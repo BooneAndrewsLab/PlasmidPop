@@ -4,6 +4,7 @@ import { type SeqDocument } from '@/core';
 
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
+import { saveDocument } from '../saveFile';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -91,6 +92,18 @@ export function Toolbar({ doc }: Props) {
         >
           Open file
         </button>
+        {doc !== null && (
+          <button
+            type="button"
+            className="button"
+            title="Download the sequence with its features as a GenBank file"
+            onClick={() => {
+              saveDocument(doc, 'genbank');
+            }}
+          >
+            Save GenBank
+          </button>
+        )}
         <input
           ref={inputRef}
           type="file"
