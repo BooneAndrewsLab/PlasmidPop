@@ -33,10 +33,19 @@ npm run dev
 
 ```
 src/
-  app/        React shell (components, routing)
-  test/       Vitest setup
-  main.tsx    Entry point
+  app/          React shell (components, routing)
+  core/         Pure-TS domain model, no React, worker-safe
+    range/      0-based half-open "unrolled" ranges, wraparound-aware shifting
+    sequence/   IUPAC alphabet helpers, persistent rope (SequenceText)
+    features/   Segment/Feature types, FeatureSet with interval-tree index
+    document/   Immutable SeqDocument + EditOp vocabulary
+    history/    Generic undo/redo stack
+  test/         Vitest setup and shared test helpers
+  main.tsx      Entry point
 ```
 
-Domain code (document model, parsers, analysis) will live in dedicated
-`src/` subpackages as it lands; see the build order in CLAUDE.md.
+Coordinates: positions are 0-based; ranges are half-open `[start, end)`.
+On circular sequences `end` may exceed the length to express a range that
+wraps past the origin (`end - start` is always the base count). GenBank's
+1-based inclusive coordinates are converted only at the parser/writer
+boundary.
