@@ -381,6 +381,19 @@ describe('feature CRUD', () => {
     expect(doc.rename('pUC19').name).toBe('pUC19');
     expect(doc.rename('Untitled')).toBe(doc);
   });
+
+  it('carries metadata', () => {
+    expect(doc.metadata.description).toBe('');
+    const next = doc.setMetadata({ description: 'Cloning vector', accession: 'L09137' });
+    expect(next.metadata).toMatchObject({ description: 'Cloning vector', accession: 'L09137' });
+    expect(next.setMetadata({ accession: 'X' }).metadata.description).toBe('Cloning vector');
+    expect(doc.apply({ type: 'setMetadata', patch: { keywords: 'k' } }).metadata.keywords).toBe(
+      'k',
+    );
+    expect(
+      SeqDocument.create({ sequence: SEQ, metadata: { organism: 'E. coli' } }).metadata.organism,
+    ).toBe('E. coli');
+  });
 });
 
 describe('site segments', () => {
@@ -423,6 +436,7 @@ describe('apply / EditOp', () => {
       [{ type: 'setOrigin', position: 4 }, doc.setOrigin(4)],
       [{ type: 'setTopology', topology: 'linear' }, doc.setTopology('linear')],
       [{ type: 'rename', name: 'x' }, doc.rename('x')],
+      [{ type: 'setMetadata', patch: { description: 'd' } }, doc.setMetadata({ description: 'd' })],
       [{ type: 'addFeature', feature }, doc.addFeature(feature)],
       [
         { type: 'updateFeature', id: 'f', patch: { name: 'n' } },

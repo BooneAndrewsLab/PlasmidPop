@@ -24,12 +24,14 @@ import {
 } from '../range';
 import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
 import { type EditOp, type FeaturePatch } from './editOp';
+import { type DocumentMetadata, EMPTY_METADATA } from './metadata';
 
 export interface SeqDocumentInit {
   readonly name?: string;
   readonly sequence: string | SequenceText;
   readonly topology?: Topology;
   readonly features?: Iterable<Feature> | FeatureSet;
+  readonly metadata?: Partial<DocumentMetadata>;
 }
 
 interface SeqDocumentFields {
@@ -37,6 +39,7 @@ interface SeqDocumentFields {
   readonly sequence: SequenceText;
   readonly topology: Topology;
   readonly features: FeatureSet;
+  readonly metadata: DocumentMetadata;
 }
 
 /**
@@ -52,6 +55,7 @@ export class SeqDocument {
   readonly sequence: SequenceText;
   readonly topology: Topology;
   readonly features: FeatureSet;
+  readonly metadata: DocumentMetadata;
 
   static create(init: SeqDocumentInit): SeqDocument {
     let sequence: SequenceText;
@@ -65,7 +69,13 @@ export class SeqDocument {
     const features =
       init.features instanceof FeatureSet ? init.features : FeatureSet.from(init.features ?? []);
     for (const f of features) validateFeature(f, sequence.length, topology);
-    return new SeqDocument({ name: init.name ?? 'Untitled', sequence, topology, features });
+    return new SeqDocument({
+      name: init.name ?? 'Untitled',
+      sequence,
+      topology,
+      features,
+      metadata: { ...EMPTY_METADATA, ...init.metadata },
+    });
   }
 
   private constructor(fields: SeqDocumentFields) {
@@ -73,6 +83,7 @@ export class SeqDocument {
     this.sequence = fields.sequence;
     this.topology = fields.topology;
     this.features = fields.features;
+    this.metadata = fields.metadata;
   }
 
   get length(): number {
@@ -89,6 +100,7 @@ export class SeqDocument {
       sequence: patch.sequence ?? this.sequence,
       topology: patch.topology ?? this.topology,
       features: patch.features ?? this.features,
+      metadata: patch.metadata ?? this.metadata,
     });
   }
 
@@ -144,6 +156,8 @@ export class SeqDocument {
         return this.setTopology(op.topology);
       case 'rename':
         return this.rename(op.name);
+      case 'setMetadata':
+        return this.setMetadata(op.patch);
       case 'addFeature':
         return this.addFeature(op.feature);
       case 'updateFeature':
@@ -155,6 +169,10 @@ export class SeqDocument {
 
   rename(name: string): SeqDocument {
     return name === this.name ? this : this.with({ name });
+  }
+
+  setMetadata(patch: Partial<DocumentMetadata>): SeqDocument {
+    return this.with({ metadata: { ...this.metadata, ...patch } });
   }
 
   /** Inserts `text` before the base at `position`. `text` must be valid IUPAC. */

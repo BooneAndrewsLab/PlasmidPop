@@ -40,7 +40,12 @@ src/
     features/   Segment/Feature types, FeatureSet with interval-tree index
     document/   Immutable SeqDocument + EditOp vocabulary
     history/    Generic undo/redo stack
+  io/           File formats behind one interface (parseSequenceFile)
+    genbank/    GenBank flat-file parser + writer, location grammar
+    fasta/      FASTA parser + writer
+    fixtures/   Public NCBI records used by round-trip tests
   test/         Vitest setup and shared test helpers
+fixtures/local/ Private test files (gitignored); tests use them when present
   main.tsx      Entry point
 ```
 

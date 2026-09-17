@@ -1,5 +1,6 @@
 import { type Feature, type FeatureId } from '../features';
 import { type Range, type Topology } from '../range';
+import { type DocumentMetadata } from './metadata';
 
 /**
  * Every change to a document is expressible as plain data. The UI, undo
@@ -14,6 +15,7 @@ export type EditOp =
   | { readonly type: 'setOrigin'; readonly position: number }
   | { readonly type: 'setTopology'; readonly topology: Topology }
   | { readonly type: 'rename'; readonly name: string }
+  | { readonly type: 'setMetadata'; readonly patch: Partial<DocumentMetadata> }
   | { readonly type: 'addFeature'; readonly feature: Feature }
   | { readonly type: 'updateFeature'; readonly id: FeatureId; readonly patch: FeaturePatch }
   | { readonly type: 'removeFeature'; readonly id: FeatureId };
@@ -36,6 +38,8 @@ export function describeEditOp(op: EditOp): string {
       return op.topology === 'circular' ? 'Make circular' : 'Make linear';
     case 'rename':
       return 'Rename';
+    case 'setMetadata':
+      return 'Edit description';
     case 'addFeature':
       return 'Add feature';
     case 'updateFeature':

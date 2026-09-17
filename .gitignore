@@ -24,3 +24,6 @@ pnpm-debug.log*
 .idea/shelf/
 *.local
 .DS_Store
+
+# private test fixtures (never committed)
+fixtures/local/

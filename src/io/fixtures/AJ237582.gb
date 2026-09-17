@@ -1,0 +1,53 @@
+LOCUS       AJ237582                 206 bp    DNA     linear   PLN 26-JUL-2016
+DEFINITION  Armoracia rusticana csp14 gene (partial), exons 2-3.
+ACCESSION   AJ237582
+VERSION     AJ237582.1
+KEYWORDS    cold shock protein; csp14 gene.
+SOURCE      Armoracia rusticana
+  ORGANISM  Armoracia rusticana
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliopsida; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Cardamineae; Armoracia.
+REFERENCE   1
+  AUTHORS   Baymiev,A.K., Gimalov,F.R. and Vakhitov,V.A.
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 206)
+  AUTHORS   Baymiev,A.K.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (20-MAR-1999) Baymiev A.K., Departament of Biochemistry
+            and Cytochemistry, Ufa Scientific Centre, pr. Oktyabrya 69, Ufa,
+            Bashkortostan, Russia, 450054, RUSSIA
+FEATURES             Location/Qualifiers
+     source          1..206
+                     /organism="Armoracia rusticana"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:3704"
+                     /geo_loc_name="Russia:Bashkortostan"
+     gene            <1..>206
+                     /gene="csp14"
+     mRNA            join(<1..48,143..>206)
+                     /gene="csp14"
+     CDS             join(<1..48,143..>206)
+                     /gene="csp14"
+                     /codon_start=2
+                     /product="cold shock protein"
+                     /protein_id="CAB39890.1"
+                     /db_xref="UniProtKB/TrEMBL:Q9XFN1"
+                     /translation="DKAKDAAAAAGASAQQAGKNISDAAAGGVNFVKEKTG"
+     exon            1..48
+                     /gene="csp14"
+                     /number=2
+     intron          49..142
+                     /gene="csp14"
+                     /number=2
+     exon            143..206
+                     /gene="csp14"
+                     /number=3
+ORIGIN      
+        1 ggacaaggcc aaggatgctg ctgctgcagc tggagcttcc gcgcaacaag taaacagata
+       61 cacacacatg acacatatat aantacatat cacaagtagg tcgtagattt ctgatatntt
+      121 tgtattgtgt attacgtata taggcgggaa agaacatatc ggatgcagca gctggaggtg
+      181 ttaacttcgt gaaggagaag accggc
+//
+
