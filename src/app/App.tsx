@@ -1,5 +1,6 @@
 import { type DragEvent, useState } from 'react';
 
+import { CircularMapView } from './components/CircularMapView';
 import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FeatureList } from './components/FeatureList';
@@ -10,7 +11,7 @@ import { openFile } from './openFile';
 import { useEditorState } from './state/useEditorStore';
 
 export function App() {
-  const { history } = useEditorState();
+  const { history, view } = useEditorState();
   const doc = history?.present ?? null;
   const [dragging, setDragging] = useState(false);
 
@@ -42,7 +43,10 @@ export function App() {
         <main className="app__main">
           <div className="app__editor">
             <EditBar doc={doc} />
-            <LinearSequenceView doc={doc} />
+            <div className={`app__views app__views--${view}`}>
+              {view !== 'sequence' && <CircularMapView doc={doc} />}
+              {view !== 'map' && <LinearSequenceView doc={doc} />}
+            </div>
           </div>
           <FeatureList doc={doc} />
         </main>

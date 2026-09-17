@@ -248,6 +248,71 @@ button {
   font-size: 13px;
 }
 
+/* View switcher and split */
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-right: 8px;
+}
+
+.segmented__button {
+  padding: 4px 10px;
+  border: 0;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.segmented__button + .segmented__button {
+  border-left: 1px solid var(--line);
+}
+
+.segmented__button--active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.app__views {
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+}
+
+.app__views--both {
+  grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+}
+
+.app__views--both > .map-view {
+  border-right: 1px solid var(--line);
+}
+
+@media (max-width: 1000px) {
+  .app__views--both {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(240px, 1fr) minmax(0, 1.4fr);
+  }
+
+  .app__views--both > .map-view {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.map-view {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface);
+}
+
+.map-view__canvas {
+  display: block;
+  touch-action: none;
+}
+
 /* Sequence view */
 
 .seq-view {

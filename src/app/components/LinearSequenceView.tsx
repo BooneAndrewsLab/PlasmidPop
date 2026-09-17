@@ -20,6 +20,7 @@ import {
   measureCharWidth,
   renderLinearView,
 } from '@/view/linear';
+import { drawableFeatures } from '@/view/visibleFeatures';
 
 import {
   clampPosition,
@@ -81,9 +82,14 @@ export function LinearSequenceView({ doc }: Props) {
     }),
     [size.width, charWidth, showComplement],
   );
-  const lanes = useMemo(() => assignLanes(doc.features.all(), doc.length), [doc]);
+  const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
   const layout = useMemo(() => {
-    const perRow = lanesPerRow(doc.features.all(), lanes, doc.length, metrics.basesPerRow);
+    const perRow = lanesPerRow(
+      drawableFeatures(doc.features.all()),
+      lanes,
+      doc.length,
+      metrics.basesPerRow,
+    );
     return new LinearLayout(doc.length, metrics, perRow);
   }, [doc, lanes, metrics]);
 

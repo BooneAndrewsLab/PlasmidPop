@@ -13,6 +13,8 @@ import { type ParseResult, type ParseWarning } from '@/io';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
 
+export type ViewMode = 'sequence' | 'map' | 'both';
+
 export interface EditorState {
   /** Undo history whose present is the open document; null before a file is opened. */
   readonly history: History<SeqDocument> | null;
@@ -22,6 +24,7 @@ export interface EditorState {
   readonly warnings: readonly ParseWarning[];
   readonly error: string | null;
   readonly showComplement: boolean;
+  readonly view: ViewMode;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
   /** Set when the feature panel should open an inline rename for a feature. */
@@ -35,6 +38,7 @@ const INITIAL: EditorState = {
   warnings: [],
   error: null,
   showComplement: true,
+  view: 'both',
   reveal: null,
   renameRequest: null,
 };
@@ -203,6 +207,10 @@ export class EditorStore {
 
   revealPosition(position: number): void {
     this.set({ reveal: { position, nonce: (this.state.reveal?.nonce ?? 0) + 1 } });
+  }
+
+  setView(view: ViewMode): void {
+    if (view !== this.state.view) this.set({ view });
   }
 
   setShowComplement(show: boolean): void {

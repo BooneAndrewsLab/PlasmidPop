@@ -42,6 +42,7 @@ src/
     history/    Generic undo/redo stack
   view/         Canvas rendering (pure; no React)
     linear/     Row layout, feature lane assignment, linear view renderer
+    circular/   Plasmid map geometry, label placement, map renderer
   io/           File formats behind one interface (parseSequenceFile)
     genbank/    GenBank flat-file parser + writer, location grammar
     fasta/      FASTA parser + writer

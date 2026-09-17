@@ -5,7 +5,7 @@ import { type SeqDocument } from '@/core';
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { saveDocument } from '../saveFile';
-import { editorStore } from '../state/editorStore';
+import { type ViewMode, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
 interface Props {
@@ -13,7 +13,12 @@ interface Props {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { history, showComplement } = useEditorState();
+  const { history, showComplement, view } = useEditorState();
+  const views: readonly [ViewMode, string][] = [
+    ['sequence', 'Sequence'],
+    ['map', 'Map'],
+    ['both', 'Both'],
+  ];
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onPick = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -38,6 +43,23 @@ export function Toolbar({ doc }: Props) {
         </div>
       )}
       <div className="toolbar__actions">
+        {doc !== null && (
+          <div className="segmented" role="group" aria-label="View">
+            {views.map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                className={`segmented__button${view === mode ? ' segmented__button--active' : ''}`}
+                aria-pressed={view === mode}
+                onClick={() => {
+                  editorStore.setView(mode);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         {doc !== null && (
           <label className="toggle">
             <input
