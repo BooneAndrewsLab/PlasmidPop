@@ -72,4 +72,40 @@ describe('EditorStore', () => {
     store.setSelection(null);
     expect(listener).toHaveBeenCalledTimes(2);
   });
+
+  it('follows the selection through reverse complement and set origin', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    store.setSelection({ start: 2, end: 5 });
+    store.apply({ type: 'reverseComplement' });
+    expect(store.getState().selection).toEqual({ start: 15, end: 18 });
+    store.apply({ type: 'setOrigin', position: 15 });
+    expect(store.getState().selection).toEqual({ start: 0, end: 3 });
+    expect(store.document?.subsequence({ start: 0, end: 3 })).toBe(
+      doc
+        .subsequence({ start: 2, end: 5 })
+        .split('')
+        .reverse()
+        .map((c) => ({ A: 'T', C: 'G', G: 'C', T: 'A' })[c] ?? c)
+        .join(''),
+    );
+  });
+
+  it('annotates the selection and asks for a name', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    store.addFeatureFromSelection();
+    expect(store.document?.features.size).toBe(1);
+    store.setSelection({ start: 3, end: 9 });
+    store.addFeatureFromSelection();
+    expect(store.document?.features.size).toBe(2);
+    const added = store.document?.features.all()[1];
+    expect(added).toMatchObject({ type: 'misc_feature', name: 'New feature' });
+    expect(store.getState().renameRequest?.id).toBe(added?.id);
+    expect(store.getState().selection).toEqual({ start: 3, end: 9 });
+    store.finishRename();
+    expect(store.getState().renameRequest).toBeNull();
+    store.applyPlan(null);
+    expect(store.getState().history?.undoDepth).toBe(1);
+  });
 });

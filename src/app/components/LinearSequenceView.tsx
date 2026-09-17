@@ -1,4 +1,6 @@
 import {
+  type ClipboardEvent as ReactClipboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useLayoutEffect,
@@ -7,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import { type SeqDocument } from '@/core';
+import { type SeqDocument, InvalidSequenceError, isEmptyRange } from '@/core';
 import {
   type LinearMetrics,
   type LinearTheme,
@@ -19,6 +21,14 @@ import {
   renderLinearView,
 } from '@/view/linear';
 
+import {
+  clampPosition,
+  deleteBackward,
+  deleteForward,
+  deleteSelection,
+  selectionBetween,
+  typeText,
+} from '../editing';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -53,6 +63,8 @@ export function LinearSequenceView({ doc }: Props) {
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [scrollTop, setScrollTop] = useState(0);
   const dragAnchor = useRef<number | null>(null);
+  /** Fixed end of the selection while extending with shift+arrows. */
+  const anchor = useRef<number | null>(null);
 
   const charWidth = useMemo(() => measureCharWidth(MONO_FONT), []);
   const metrics = useMemo<LinearMetrics>(
@@ -159,14 +171,16 @@ export function LinearSequenceView({ doc }: Props) {
       }
     }
     if (hit.kind !== 'boundary') return;
+    containerRef.current?.focus({ preventScroll: true });
     e.currentTarget.setPointerCapture(e.pointerId);
     if (e.shiftKey && selection !== null) {
       dragAnchor.current = hit.position >= selection.end ? selection.start : selection.end;
-      editorStore.setSelection(ordered(dragAnchor.current, hit.position));
+      editorStore.setSelection(selectionBetween(dragAnchor.current, hit.position));
     } else {
       dragAnchor.current = hit.position;
       editorStore.setSelection({ start: hit.position, end: hit.position });
     }
+    anchor.current = dragAnchor.current;
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
@@ -179,7 +193,7 @@ export function LinearSequenceView({ doc }: Props) {
     if (row === undefined) return;
     const hit = layout.hitTest(x, Math.min(Math.max(y, row.top), row.top + row.height - 1));
     const position = hit.kind === 'none' ? anchor : hit.position;
-    editorStore.setSelection(ordered(anchor, position));
+    editorStore.setSelection(selectionBetween(anchor, position));
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
@@ -189,14 +203,146 @@ export function LinearSequenceView({ doc }: Props) {
       e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
+  const withText = (text: string): void => {
+    try {
+      editorStore.applyPlan(typeText(doc, selection, text));
+    } catch (err) {
+      if (err instanceof InvalidSequenceError) editorStore.fail(err.message);
+      else throw err;
+    }
+  };
+
+  const moveCaret = (target: number, extend: boolean): void => {
+    const position = clampPosition(doc, target);
+    if (extend && selection !== null) {
+      const fixed = anchor.current ?? selection.start;
+      anchor.current = fixed;
+      editorStore.setSelection(selectionBetween(fixed, position));
+    } else {
+      anchor.current = position;
+      editorStore.setSelection({ start: position, end: position });
+    }
+    editorStore.revealPosition(position);
+  };
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
+    const mod = e.ctrlKey || e.metaKey;
+    const focus =
+      selection === null ? 0 : anchor.current === selection.start ? selection.end : selection.start;
+    if (mod) {
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) editorStore.redo();
+        else editorStore.undo();
+      } else if (key === 'y') {
+        e.preventDefault();
+        editorStore.redo();
+      } else if (key === 'a') {
+        e.preventDefault();
+        anchor.current = 0;
+        editorStore.setSelection({ start: 0, end: doc.length });
+      } else if (key === 'home' || key === 'end') {
+        e.preventDefault();
+        moveCaret(key === 'home' ? 0 : doc.length, e.shiftKey);
+      }
+      return; // copy/cut/paste arrive as clipboard events
+    }
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'ArrowRight':
+      case 'ArrowUp':
+      case 'ArrowDown': {
+        e.preventDefault();
+        if (selection === null) {
+          moveCaret(0, false);
+          return;
+        }
+        const step =
+          e.key === 'ArrowLeft'
+            ? -1
+            : e.key === 'ArrowRight'
+              ? 1
+              : e.key === 'ArrowUp'
+                ? -metrics.basesPerRow
+                : metrics.basesPerRow;
+        if (
+          !e.shiftKey &&
+          !isEmptyRange(selection) &&
+          (e.key === 'ArrowLeft' || e.key === 'ArrowRight')
+        ) {
+          // Collapse the selection to the side we are moving towards.
+          moveCaret(e.key === 'ArrowLeft' ? selection.start : selection.end, false);
+          return;
+        }
+        moveCaret(focus + step, e.shiftKey);
+        return;
+      }
+      case 'Home':
+      case 'End': {
+        e.preventDefault();
+        if (selection === null) return;
+        const row = layout.rowOfPosition(focus);
+        if (row === undefined) return;
+        moveCaret(e.key === 'Home' ? row.start : row.end, e.shiftKey);
+        return;
+      }
+      case 'Backspace':
+        e.preventDefault();
+        editorStore.applyPlan(deleteBackward(doc, selection));
+        return;
+      case 'Delete':
+        e.preventDefault();
+        editorStore.applyPlan(deleteForward(doc, selection));
+        return;
+      case 'Escape':
+        editorStore.setSelection(null);
+        return;
+      default:
+        if (e.key.length === 1 && !e.altKey) {
+          e.preventDefault();
+          withText(e.key);
+        }
+    }
+  };
+
+  const selectedText = (): string =>
+    selection === null || isEmptyRange(selection) ? '' : doc.subsequence(selection);
+
+  const onCopy = (e: ReactClipboardEvent<HTMLDivElement>): void => {
+    const text = selectedText();
+    if (text === '') return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', text);
+  };
+
+  const onCut = (e: ReactClipboardEvent<HTMLDivElement>): void => {
+    const text = selectedText();
+    if (text === '' || selection === null) return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', text);
+    editorStore.applyPlan(deleteSelection(doc, selection));
+  };
+
+  const onPaste = (e: ReactClipboardEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    withText(e.clipboardData.getData('text/plain'));
+  };
+
   return (
     <div
       ref={containerRef}
       className="seq-view"
+      tabIndex={0}
       onScroll={(e) => {
         setScrollTop(e.currentTarget.scrollTop);
       }}
-      role="region"
+      onKeyDown={onKeyDown}
+      onCopy={onCopy}
+      onCut={onCut}
+      onPaste={onPaste}
+      role="textbox"
+      aria-multiline="true"
       aria-label="Sequence"
     >
       <div className="seq-view__spacer" style={{ height: layout.totalHeight }}>
@@ -212,8 +358,4 @@ export function LinearSequenceView({ doc }: Props) {
       </div>
     </div>
   );
-}
-
-function ordered(a: number, b: number): { start: number; end: number } {
-  return a <= b ? { start: a, end: b } : { start: b, end: a };
 }

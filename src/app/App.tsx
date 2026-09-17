@@ -1,5 +1,6 @@
 import { type DragEvent, useState } from 'react';
 
+import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FeatureList } from './components/FeatureList';
 import { LinearSequenceView } from './components/LinearSequenceView';
@@ -39,7 +40,10 @@ export function App() {
         </main>
       ) : (
         <main className="app__main">
-          <LinearSequenceView doc={doc} />
+          <div className="app__editor">
+            <EditBar doc={doc} />
+            <LinearSequenceView doc={doc} />
+          </div>
           <FeatureList doc={doc} />
         </main>
       )}

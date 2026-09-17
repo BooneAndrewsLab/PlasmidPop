@@ -4,10 +4,14 @@ import {
   type RangeSegment,
   type SeqDocument,
   History,
+  createFeature,
   describeEditOp,
   isEmptyRange,
+  rangeSegment,
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
+
+import { type EditPlan, selectionAfterOp } from '../editing';
 
 export interface EditorState {
   /** Undo history whose present is the open document; null before a file is opened. */
@@ -20,6 +24,8 @@ export interface EditorState {
   readonly showComplement: boolean;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
+  /** Set when the feature panel should open an inline rename for a feature. */
+  readonly renameRequest: { readonly id: string; readonly nonce: number } | null;
 }
 
 const INITIAL: EditorState = {
@@ -30,6 +36,7 @@ const INITIAL: EditorState = {
   error: null,
   showComplement: true,
   reveal: null,
+  renameRequest: null,
 };
 
 type Listener = () => void;
@@ -95,21 +102,54 @@ export class EditorStore {
     if (this.state.error !== null) this.set({ error: null });
   }
 
-  apply(op: EditOp): void {
+  /**
+   * Applies an op. The selection follows the edit: a caret is mapped through
+   * inserts and deletes, and document-wide ops (reverse complement, set
+   * origin) move it along; `selectionAfter` overrides that when given.
+   */
+  apply(op: EditOp, selectionAfter?: Range | null): void {
     const history = this.state.history;
     if (history === null) return;
-    const next = history.present.apply(op);
-    if (next === history.present) return;
-    const selection =
-      this.state.selection === null
-        ? null
-        : isEmptyRange(this.state.selection)
-          ? (() => {
-              const p = history.present.mapPositionThrough(op, this.state.selection.start);
-              return { start: p, end: p };
-            })()
-          : null;
-    this.set({ history: history.push(next, describeEditOp(op)), selection });
+    const doc = history.present;
+    const next = doc.apply(op);
+    if (next === doc) return;
+    let selection: Range | null;
+    if (selectionAfter !== undefined) {
+      selection = selectionAfter;
+    } else if (this.state.selection !== null && isEmptyRange(this.state.selection)) {
+      const p = doc.mapPositionThrough(op, this.state.selection.start);
+      selection = { start: p, end: p };
+    } else {
+      selection = selectionAfterOp(doc, this.state.selection, op);
+    }
+    if (selection !== null && selection.start === selection.end && selection.start > next.length) {
+      selection = { start: next.length, end: next.length };
+    }
+    const reveal =
+      selection !== null && (op.type === 'insert' || op.type === 'delete' || op.type === 'replace')
+        ? { position: selection.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 }
+        : this.state.reveal;
+    this.set({ history: history.push(next, describeEditOp(op)), selection, reveal });
+  }
+
+  applyPlan(plan: EditPlan | null): void {
+    if (plan !== null) this.apply(plan.op, plan.selectionAfter);
+  }
+
+  /** Annotates the current selection as a new feature and asks the panel to name it. */
+  addFeatureFromSelection(): void {
+    const doc = this.document;
+    const selection = this.state.selection;
+    if (doc === null || selection === null || isEmptyRange(selection)) return;
+    const feature = createFeature({
+      type: 'misc_feature',
+      name: 'New feature',
+      segments: [rangeSegment(selection.start, selection.end)],
+    });
+    this.apply({ type: 'addFeature', feature }, selection);
+    this.set({
+      renameRequest: { id: feature.id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 },
+    });
   }
 
   undo(): void {
@@ -151,6 +191,14 @@ export class EditorStore {
       selection,
       reveal: { position: first.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
+  }
+
+  requestRename(id: string): void {
+    this.set({ renameRequest: { id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 } });
+  }
+
+  finishRename(): void {
+    if (this.state.renameRequest !== null) this.set({ renameRequest: null });
   }
 
   revealPosition(position: number): void {
