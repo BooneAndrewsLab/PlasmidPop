@@ -1,0 +1,6 @@
+dist
+coverage
+node_modules
+.idea
+package-lock.json
+CLAUDE.md
