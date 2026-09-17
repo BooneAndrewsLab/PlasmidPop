@@ -50,6 +50,7 @@ function readTheme(el: HTMLElement): LinearTheme {
     selectionFill: v('--seq-selection', 'rgba(27, 110, 140, 0.22)'),
     caret: v('--seq-caret', '#1b6e8c'),
     background: v('--surface', '#ffffff'),
+    cutSite: v('--seq-cut', '#b3261e'),
   };
 }
 
@@ -58,7 +59,14 @@ interface Props {
 }
 
 export function LinearSequenceView({ doc }: Props) {
-  const { selection, showComplement, reveal } = useEditorState();
+  const { selection, showComplement, reveal, analysis, shownEnzymes } = useEditorState();
+  const cutSites = useMemo(
+    () =>
+      analysis !== null && analysis.doc === doc
+        ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
+        : [],
+    [analysis, doc, shownEnzymes],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -74,13 +82,13 @@ export function LinearSequenceView({ doc }: Props) {
       charWidth,
       lineHeight: 18,
       showComplement,
-      rulerHeight: 16,
+      rulerHeight: cutSites.length > 0 ? 30 : 16,
       laneHeight: 20,
       rowGap: 14,
       leftGutter: LEFT_GUTTER,
       topPadding: 12,
     }),
-    [size.width, charWidth, showComplement],
+    [size.width, charWidth, showComplement, cutSites.length],
   );
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
   const layout = useMemo(() => {
@@ -144,6 +152,7 @@ export function LinearSequenceView({ doc }: Props) {
         layout,
         lanes,
         selection,
+        cutSites,
         scrollTop,
         width: size.width,
         height: size.height,
@@ -156,7 +165,7 @@ export function LinearSequenceView({ doc }: Props) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [doc, layout, lanes, selection, scrollTop, size]);
+  }, [doc, layout, lanes, selection, cutSites, scrollTop, size]);
 
   const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const rect = e.currentTarget.getBoundingClientRect();

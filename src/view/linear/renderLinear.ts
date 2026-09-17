@@ -1,4 +1,11 @@
-import { type Feature, type Range, type SeqDocument, complement, rangePieces } from '@/core';
+import {
+  type CutSite,
+  type Feature,
+  type Range,
+  type SeqDocument,
+  complement,
+  rangePieces,
+} from '@/core';
 
 import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from './lanes';
@@ -12,6 +19,7 @@ export interface LinearTheme {
   readonly selectionFill: string;
   readonly caret: string;
   readonly background: string;
+  readonly cutSite: string;
 }
 
 export interface RenderParams {
@@ -19,6 +27,8 @@ export interface RenderParams {
   readonly layout: LinearLayout;
   readonly lanes: LaneAssignment;
   readonly selection: Range | null;
+  /** Cut sites to mark above the strands (already filtered to the enzymes the user wants). */
+  readonly cutSites: readonly CutSite[];
   readonly scrollTop: number;
   readonly width: number;
   readonly height: number;
@@ -212,6 +222,56 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number):
   return lo === 0 ? '' : `${text.slice(0, lo)}…`;
 }
 
+/**
+ * Marks restriction cuts: a vertical line at the top-strand cut, a short
+ * jog to the bottom-strand cut, and the enzyme name above. Labels that would
+ * collide with the previous one in the row are skipped (the mark stays).
+ */
+function drawCutSites(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLayout): void {
+  const { layout, theme, doc } = p;
+  const m = layout.metrics;
+  const sites = p.cutSites.filter(
+    (s) =>
+      (s.cut >= row.start && s.cut <= row.end && (s.cut < row.end || row.end === doc.length)) ||
+      (s.cutBottom >= row.start && s.cutBottom < row.end),
+  );
+  if (sites.length === 0) return;
+  const strandTop = layout.forwardTextTop(row);
+  const strandBottom = strandTop + m.lineHeight * (m.showComplement ? 2 : 1);
+  const mid = m.showComplement ? strandTop + m.lineHeight : strandBottom;
+  const labelBaseline = row.top + 11;
+  ctx.font = p.sansFont;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.lineWidth = 1;
+  let lastLabelEnd = -Infinity;
+  const ordered = [...sites].sort((a, b) => a.cut - b.cut);
+  for (const site of ordered) {
+    const xTop =
+      Math.round(layout.xOfColumn(Math.min(Math.max(site.cut, row.start), row.end) - row.start)) +
+      0.5;
+    const xBottom =
+      Math.round(
+        layout.xOfColumn(Math.min(Math.max(site.cutBottom, row.start), row.end) - row.start),
+      ) + 0.5;
+    ctx.strokeStyle = theme.cutSite;
+    ctx.beginPath();
+    ctx.moveTo(xTop, row.top + 14);
+    ctx.lineTo(xTop, mid);
+    if (m.showComplement) {
+      ctx.lineTo(xBottom, mid);
+      ctx.lineTo(xBottom, strandBottom);
+    }
+    ctx.stroke();
+    const width = ctx.measureText(site.enzyme).width;
+    if (xTop - width / 2 > lastLabelEnd + 4) {
+      ctx.fillStyle = theme.cutSite;
+      ctx.fillText(site.enzyme, xTop, labelBaseline);
+      lastLabelEnd = xTop + width / 2;
+    }
+  }
+}
+
 /** Draws the visible part of the linear view onto a canvas that covers the viewport. */
 export function renderLinearView(ctx: CanvasRenderingContext2D, p: RenderParams): void {
   const { layout, doc, scrollTop, width, height, devicePixelRatio: dpr } = p;
@@ -225,6 +285,7 @@ export function renderLinearView(ctx: CanvasRenderingContext2D, p: RenderParams)
     drawSelection(ctx, p, row);
     drawRuler(ctx, p, row);
     drawStrands(ctx, p, row);
+    drawCutSites(ctx, p, row);
     if (row.lanes > 0) {
       for (const feature of doc.features.overlapping(
         { start: row.start, end: row.end },

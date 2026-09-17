@@ -39,6 +39,7 @@ function readTheme(el: HTMLElement): CircularTheme {
     caret: v('--seq-caret', '#1b6e8c'),
     background: v('--surface', '#ffffff'),
     leader: v('--line', '#d5dae2'),
+    cutSite: v('--seq-cut', '#b3261e'),
   };
 }
 
@@ -47,7 +48,14 @@ interface Props {
 }
 
 export function CircularMapView({ doc }: Props) {
-  const { selection } = useEditorState();
+  const { selection, analysis, shownEnzymes } = useEditorState();
+  const cutSites = useMemo(
+    () =>
+      analysis !== null && analysis.doc === doc
+        ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
+        : [],
+    [analysis, doc, shownEnzymes],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 600, height: 600 });
@@ -104,6 +112,7 @@ export function CircularMapView({ doc }: Props) {
         layout,
         lanes,
         selection,
+        cutSites,
         hoveredFeatureId: hovered,
         width: size.width,
         height: size.height,
@@ -116,7 +125,7 @@ export function CircularMapView({ doc }: Props) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [doc, layout, lanes, selection, hovered, size]);
+  }, [doc, layout, lanes, selection, cutSites, hovered, size]);
 
   const point = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const rect = e.currentTarget.getBoundingClientRect();

@@ -1,5 +1,7 @@
 import {
+  type CutSite,
   type EditOp,
+  type Orf,
   type Range,
   type RangeSegment,
   type SeqDocument,
@@ -14,6 +16,14 @@ import { type ParseResult, type ParseWarning } from '@/io';
 import { type EditPlan, selectionAfterOp } from '../editing';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
+export type SidebarTab = 'features' | 'enzymes' | 'orfs';
+
+export interface AnalysisState {
+  /** Document the results belong to; stale when it is not the present document. */
+  readonly doc: SeqDocument;
+  readonly cutSites: readonly CutSite[];
+  readonly orfs: readonly Orf[];
+}
 
 export interface EditorState {
   /** Undo history whose present is the open document; null before a file is opened. */
@@ -25,6 +35,14 @@ export interface EditorState {
   readonly error: string | null;
   readonly showComplement: boolean;
   readonly view: ViewMode;
+  readonly sidebarTab: SidebarTab;
+  readonly analysis: AnalysisState | null;
+  /** Enzymes whose cut sites are drawn in the views. */
+  readonly shownEnzymes: ReadonlySet<string>;
+  /** Minimum ORF length in codons. */
+  readonly orfMinCodons: number;
+  /** Whether the default shown-enzyme set (single cutters) was applied for this document. */
+  readonly enzymesInitialized: boolean;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
   /** Set when the feature panel should open an inline rename for a feature. */
@@ -39,6 +57,11 @@ const INITIAL: EditorState = {
   error: null,
   showComplement: true,
   view: 'both',
+  sidebarTab: 'features',
+  analysis: null,
+  shownEnzymes: new Set(),
+  orfMinCodons: 75,
+  enzymesInitialized: false,
   reveal: null,
   renameRequest: null,
 };
@@ -94,6 +117,9 @@ export class EditorStore {
       fileName,
       warnings,
       error: null,
+      analysis: null,
+      shownEnzymes: new Set(),
+      enzymesInitialized: false,
       reveal: { position: 0, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
   }
@@ -207,6 +233,53 @@ export class EditorStore {
 
   revealPosition(position: number): void {
     this.set({ reveal: { position, nonce: (this.state.reveal?.nonce ?? 0) + 1 } });
+  }
+
+  setSidebarTab(tab: SidebarTab): void {
+    if (tab !== this.state.sidebarTab) this.set({ sidebarTab: tab });
+  }
+
+  /**
+   * Stores analysis results. The first results for a newly opened document
+   * also pick the default enzymes to display: those that cut exactly once.
+   */
+  setAnalysis(doc: SeqDocument, cutSites: readonly CutSite[], orfs: readonly Orf[]): void {
+    if (this.document !== doc) return; // stale result
+    let shownEnzymes = this.state.shownEnzymes;
+    let enzymesInitialized = this.state.enzymesInitialized;
+    if (!enzymesInitialized) {
+      const counts = new Map<string, number>();
+      for (const s of cutSites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
+      shownEnzymes = new Set(
+        [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name),
+      );
+      enzymesInitialized = true;
+    }
+    this.set({ analysis: { doc, cutSites, orfs }, shownEnzymes, enzymesInitialized });
+  }
+
+  setEnzymeShown(name: string, shown: boolean): void {
+    if (this.state.shownEnzymes.has(name) === shown) return;
+    const next = new Set(this.state.shownEnzymes);
+    if (shown) next.add(name);
+    else next.delete(name);
+    this.set({ shownEnzymes: next });
+  }
+
+  setShownEnzymes(names: Iterable<string>): void {
+    this.set({ shownEnzymes: new Set(names), enzymesInitialized: true });
+  }
+
+  setOrfMinCodons(n: number): void {
+    const value = Math.max(1, Math.floor(n));
+    if (value !== this.state.orfMinCodons) this.set({ orfMinCodons: value, analysis: null });
+  }
+
+  /** Cut sites of the enzymes currently shown, for the present document only. */
+  visibleCutSites(): readonly CutSite[] {
+    const a = this.state.analysis;
+    if (a?.doc !== this.document) return [];
+    return a.cutSites.filter((s) => this.state.shownEnzymes.has(s.enzyme));
   }
 
   setView(view: ViewMode): void {

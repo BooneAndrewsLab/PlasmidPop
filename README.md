@@ -40,9 +40,11 @@ src/
     features/   Segment/Feature types, FeatureSet with interval-tree index
     document/   Immutable SeqDocument + EditOp vocabulary
     history/    Generic undo/redo stack
+    analysis/   Genetic code + translation, ORF finder, enzyme table, cut-site scanner
   view/         Canvas rendering (pure; no React)
     linear/     Row layout, feature lane assignment, linear view renderer
     circular/   Plasmid map geometry, label placement, map renderer
+  workers/      Analysis Web Worker + client (inline fallback where Workers are missing)
   io/           File formats behind one interface (parseSequenceFile)
     genbank/    GenBank flat-file parser + writer, location grammar
     fasta/      FASTA parser + writer

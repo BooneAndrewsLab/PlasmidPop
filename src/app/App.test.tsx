@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { editorStore } from './state/editorStore';
 import { App } from './App';
@@ -51,5 +51,25 @@ describe('App', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Add feature/ }));
     expect(screen.getByRole('textbox', { name: 'Feature name' })).toHaveValue('New feature');
+  });
+
+  it('lists restriction enzymes and ORFs once analysis finishes', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
+    await waitFor(() => {
+      expect(screen.getByText('EcoRI')).toBeInTheDocument();
+    });
+    // pBR322 has single EcoRI, BamHI, PstI sites among others
+    expect(screen.getByRole('checkbox', { name: /EcoRI/ })).toBeChecked();
+    fireEvent.click(screen.getByRole('tab', { name: 'ORFs' }));
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /aa$/ }).length).toBeGreaterThan(0);
+    });
+    const [first] = screen.getAllByRole('button', { name: /aa$/ });
+    if (first === undefined) throw new Error('no ORF row');
+    fireEvent.click(first);
+    expect(screen.getByText('ORF translation')).toBeInTheDocument();
+    expect(screen.getByText(/^M[A-Z*]+$/)).toBeInTheDocument();
   });
 });

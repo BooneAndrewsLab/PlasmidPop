@@ -3,16 +3,18 @@ import { type DragEvent, useState } from 'react';
 import { CircularMapView } from './components/CircularMapView';
 import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
-import { FeatureList } from './components/FeatureList';
 import { LinearSequenceView } from './components/LinearSequenceView';
+import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
 import { openFile } from './openFile';
+import { useAnalysis } from './state/useAnalysis';
 import { useEditorState } from './state/useEditorStore';
 
 export function App() {
   const { history, view } = useEditorState();
   const doc = history?.present ?? null;
+  useAnalysis();
   const [dragging, setDragging] = useState(false);
 
   const onDrop = (e: DragEvent<HTMLDivElement>): void => {
@@ -48,7 +50,7 @@ export function App() {
               {view !== 'map' && <LinearSequenceView doc={doc} />}
             </div>
           </div>
-          <FeatureList doc={doc} />
+          <Sidebar doc={doc} />
         </main>
       )}
       <StatusBar doc={doc} />

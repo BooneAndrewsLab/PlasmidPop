@@ -1,4 +1,4 @@
-import { type Feature, type Range, type SeqDocument, rangePieces } from '@/core';
+import { type CutSite, type Feature, type Range, type SeqDocument, rangePieces } from '@/core';
 
 import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from '../linear/lanes';
@@ -14,6 +14,7 @@ export interface CircularTheme {
   readonly caret: string;
   readonly background: string;
   readonly leader: string;
+  readonly cutSite: string;
 }
 
 export interface CircularRenderParams {
@@ -21,6 +22,7 @@ export interface CircularRenderParams {
   readonly layout: CircularLayout;
   readonly lanes: LaneAssignment;
   readonly selection: Range | null;
+  readonly cutSites: readonly CutSite[];
   readonly hoveredFeatureId: string | null;
   readonly width: number;
   readonly height: number;
@@ -219,6 +221,12 @@ function featureMidAngle(
   return layout.angleOf((weighted / total) % Math.max(1, seqLength));
 }
 
+const CUT_PREFIX = 'cut:';
+
+/**
+ * Labels for features and for cut sites share one ring so they are spaced
+ * against each other. Cut-site labels list the enzymes sharing a position.
+ */
 function drawLabels(
   ctx: CanvasRenderingContext2D,
   p: CircularRenderParams,
@@ -232,29 +240,62 @@ function drawLabels(
     if (angle === null) continue;
     inputs.push({ id: f.id, text: f.name, angle, textWidth: ctx.measureText(f.name).width });
   }
+  const cutsByPosition = new Map<number, string[]>();
+  for (const s of p.cutSites) {
+    const list = cutsByPosition.get(s.cut) ?? [];
+    list.push(s.enzyme);
+    cutsByPosition.set(s.cut, list);
+  }
+  for (const [cut, names] of cutsByPosition) {
+    const text = `${names.join(', ')} (${(cut + 1).toLocaleString()})`;
+    inputs.push({
+      id: `${CUT_PREFIX}${cut}`,
+      text,
+      angle: layout.angleOf(cut),
+      textWidth: ctx.measureText(text).width,
+    });
+  }
+
   const placed = layoutLabels(inputs, layout, layout.radius + 34, LABEL_LINE_HEIGHT, p.height);
   const byId = new Map(visible.map((f) => [f.id, f] as const));
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 1;
   for (const label of placed) {
-    const feature = byId.get(label.id);
-    if (feature === undefined) continue;
-    const lane = p.lanes.laneOf.get(feature.id) ?? 0;
-    const start = {
-      x: layout.cx + (layout.laneRadius(lane) + layout.ringWidth / 2) * Math.cos(label.angle),
-      y: layout.cy + (layout.laneRadius(lane) + layout.ringWidth / 2) * Math.sin(label.angle),
-    };
+    const isCut = label.id.startsWith(CUT_PREFIX);
+    let start: { x: number; y: number };
+    if (isCut) {
+      const cut = Number(label.id.slice(CUT_PREFIX.length));
+      const inner = layout.pointAt(cut, layout.radius - 6);
+      start = layout.pointAt(cut, layout.radius + 8);
+      ctx.strokeStyle = theme.cutSite;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(inner.x, inner.y);
+      ctx.lineTo(start.x, start.y);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    } else {
+      const feature = byId.get(label.id);
+      if (feature === undefined) continue;
+      const lane = p.lanes.laneOf.get(feature.id) ?? 0;
+      const r = layout.laneRadius(lane) + layout.ringWidth / 2;
+      start = {
+        x: layout.cx + r * Math.cos(label.angle),
+        y: layout.cy + r * Math.sin(label.angle),
+      };
+    }
     const elbow = {
       x: layout.cx + (layout.radius + 26) * Math.cos(label.angle),
       y: layout.cy + (layout.radius + 26) * Math.sin(label.angle),
     };
-    ctx.strokeStyle = label.id === p.hoveredFeatureId ? theme.ink : theme.leader;
+    const highlighted = label.id === p.hoveredFeatureId;
+    ctx.strokeStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.leader;
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(elbow.x, elbow.y);
     ctx.lineTo(label.anchorX, label.y);
     ctx.stroke();
-    ctx.fillStyle = label.id === p.hoveredFeatureId ? theme.ink : theme.inkMuted;
+    ctx.fillStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.inkMuted;
     ctx.textAlign = label.align;
     const maxWidth = label.align === 'left' ? p.width - label.x - 4 : label.x - 4;
     ctx.fillText(label.text, label.x, label.y, Math.max(20, maxWidth));

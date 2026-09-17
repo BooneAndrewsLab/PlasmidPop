@@ -109,3 +109,36 @@ describe('EditorStore', () => {
     expect(store.getState().history?.undoDepth).toBe(1);
   });
 });
+
+describe('EditorStore analysis', () => {
+  it('stores results for the current document only and defaults to single cutters', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const site = (enzyme: string, cut: number) => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut,
+      strand: 'forward' as const,
+    });
+    store.setAnalysis(doc, [site('EcoRI', 3), site('AluI', 5), site('AluI', 9)], []);
+    expect([...store.getState().shownEnzymes]).toEqual(['EcoRI']);
+    expect(store.visibleCutSites()).toHaveLength(1);
+    store.setEnzymeShown('AluI', true);
+    expect(store.visibleCutSites()).toHaveLength(3);
+    store.setEnzymeShown('AluI', true);
+    // Later results keep the user's choice.
+    store.setAnalysis(doc, [site('EcoRI', 3)], []);
+    expect(store.getState().shownEnzymes.has('AluI')).toBe(true);
+    // Results for another document are ignored.
+    store.setAnalysis(SeqDocument.create({ sequence: 'ACGT' }), [site('NotI', 1)], []);
+    expect(store.getState().analysis?.cutSites.map((s) => s.enzyme)).toEqual(['EcoRI']);
+    // Editing invalidates the visible sites until fresh results arrive.
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.visibleCutSites()).toEqual([]);
+    store.setOrfMinCodons(30);
+    expect(store.getState().analysis).toBeNull();
+    store.setShownEnzymes(['NotI']);
+    expect([...store.getState().shownEnzymes]).toEqual(['NotI']);
+  });
+});
