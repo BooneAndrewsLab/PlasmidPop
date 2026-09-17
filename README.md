@@ -33,13 +33,15 @@ npm run dev
 
 ```
 src/
-  app/          React shell (components, routing)
+  app/          React shell: editor store, toolbar, sequence view, feature list
   core/         Pure-TS domain model, no React, worker-safe
     range/      0-based half-open "unrolled" ranges, wraparound-aware shifting
     sequence/   IUPAC alphabet helpers, persistent rope (SequenceText)
     features/   Segment/Feature types, FeatureSet with interval-tree index
     document/   Immutable SeqDocument + EditOp vocabulary
     history/    Generic undo/redo stack
+  view/         Canvas rendering (pure; no React)
+    linear/     Row layout, feature lane assignment, linear view renderer
   io/           File formats behind one interface (parseSequenceFile)
     genbank/    GenBank flat-file parser + writer, location grammar
     fasta/      FASTA parser + writer
