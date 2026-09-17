@@ -123,6 +123,10 @@ button {
   white-space: nowrap;
 }
 
+.toolbar__dirty {
+  color: var(--accent);
+}
+
 .toolbar__actions {
   margin-left: auto;
   display: flex;
@@ -701,9 +705,12 @@ button {
 /* Empty state */
 
 .empty {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 24px 16px;
+  overflow: auto;
 }
 
 .empty__card {
@@ -723,4 +730,78 @@ button {
 .empty__hint {
   margin: 0;
   color: var(--ink-2);
+}
+
+.recent {
+  width: 100%;
+  max-width: 34rem;
+  margin-top: 28px;
+}
+
+.recent__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.recent__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.recent__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.recent__item + .recent__item {
+  border-top: 1px solid var(--line);
+}
+
+.recent__open {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.recent__open:hover {
+  background: var(--surface-3);
+}
+
+.recent__name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent__meta {
+  grid-column: 1;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent__when {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
 }

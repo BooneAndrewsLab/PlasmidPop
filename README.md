@@ -45,6 +45,7 @@ src/
     linear/     Row layout, feature lane assignment, linear view renderer
     circular/   Plasmid map geometry, label placement, map renderer
   workers/      Analysis Web Worker + client (inline fallback where Workers are missing)
+  storage/      Dexie (IndexedDB) document store, File System Access wrappers
   io/           File formats behind one interface (parseSequenceFile)
     genbank/    GenBank flat-file parser + writer, location grammar
     fasta/      FASTA parser + writer
@@ -54,6 +55,11 @@ src/
 fixtures/local/ Private test files (gitignored); tests use them when present
   main.tsx      Entry point
 ```
+
+Persistence: open documents autosave to IndexedDB (as GenBank text) and the
+last one is restored on reload; Save writes back to the opened file through
+the File System Access API where available, otherwise downloads. The app is
+an installable PWA that works offline.
 
 Coordinates: positions are 0-based; ranges are half-open `[start, end)`.
 On circular sequences `end` may exceed the length to express a range that

@@ -142,3 +142,35 @@ describe('EditorStore analysis', () => {
     expect([...store.getState().shownEnzymes]).toEqual(['NotI']);
   });
 });
+
+describe('EditorStore persistence state', () => {
+  it('tracks dirtiness against the saved version', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().documentId).toMatch(/[0-9a-f-]{36}/);
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.getState().dirty).toBe(true);
+    store.undo();
+    expect(store.getState().dirty).toBe(false);
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    store.markSaved('y.gb');
+    expect(store.getState()).toMatchObject({ dirty: false, fileName: 'y.gb' });
+    store.closeDocument();
+    expect(store.document).toBeNull();
+    expect(store.getState()).toMatchObject({ documentId: null, dirty: false, fileHandle: null });
+  });
+
+  it('treats documents without a file as unsaved and keeps a given id and handle', () => {
+    const store = new EditorStore();
+    const handle = { name: 'h.gb' } as FileSystemFileHandle;
+    store.openDocument(doc, null, [], { id: 'fixed', handle });
+    expect(store.getState()).toMatchObject({
+      dirty: true,
+      documentId: 'fixed',
+      fileHandle: handle,
+    });
+    store.setFileHandle(null);
+    expect(store.getState().fileHandle).toBeNull();
+  });
+});

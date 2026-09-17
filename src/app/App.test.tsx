@@ -8,7 +8,7 @@ describe('App', () => {
   it('renders the brand and an empty state before a file is opened', () => {
     render(<App />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('PlasmidPop');
-    expect(screen.getByText(/Drop a GenBank or FASTA file/)).toBeInTheDocument();
+    expect(screen.getByText(/Drop a GenBank, FASTA or SnapGene file/)).toBeInTheDocument();
     expect(screen.getByText('No sequence open')).toBeInTheDocument();
   });
 

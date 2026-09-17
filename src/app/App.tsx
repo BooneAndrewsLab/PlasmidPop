@@ -10,11 +10,21 @@ import { Toolbar } from './components/Toolbar';
 import { openFile } from './openFile';
 import { useAnalysis } from './state/useAnalysis';
 import { useEditorState } from './state/useEditorStore';
+import {
+  useAutosave,
+  useRestoreSession,
+  useSaveShortcut,
+  useUnsavedWarning,
+} from './state/usePersistence';
 
 export function App() {
   const { history, view } = useEditorState();
   const doc = history?.present ?? null;
   useAnalysis();
+  useAutosave();
+  useRestoreSession();
+  useSaveShortcut();
+  useUnsavedWarning();
   const [dragging, setDragging] = useState(false);
 
   const onDrop = (e: DragEvent<HTMLDivElement>): void => {

@@ -31,6 +31,14 @@ export interface EditorState {
   /** Current selection; an empty range is a caret. Null when nothing is selected. */
   readonly selection: Range | null;
   readonly fileName: string | null;
+  /** Stable id of the open document in local storage. */
+  readonly documentId: string | null;
+  /** Handle of the file the document came from or was saved to, when the browser gave us one. */
+  readonly fileHandle: FileSystemFileHandle | null;
+  /** The version last written to a file (or the version opened from one). */
+  readonly savedDoc: SeqDocument | null;
+  /** Whether the present document differs from what is on disk. */
+  readonly dirty: boolean;
   readonly warnings: readonly ParseWarning[];
   readonly error: string | null;
   readonly showComplement: boolean;
@@ -53,6 +61,10 @@ const INITIAL: EditorState = {
   history: null,
   selection: null,
   fileName: null,
+  documentId: null,
+  fileHandle: null,
+  savedDoc: null,
+  dirty: false,
   warnings: [],
   error: null,
   showComplement: true,
@@ -92,7 +104,10 @@ export class EditorStore {
   }
 
   private set(patch: Partial<EditorState>): void {
-    this.state = { ...this.state, ...patch };
+    const next = { ...this.state, ...patch };
+    const present = next.history?.present ?? null;
+    next.dirty = present !== null && next.savedDoc !== present;
+    this.state = next;
     for (const l of this.listeners) l();
   }
 
@@ -110,11 +125,16 @@ export class EditorStore {
     doc: SeqDocument,
     fileName: string | null = null,
     warnings: readonly ParseWarning[] = [],
+    storage: { id?: string; handle?: FileSystemFileHandle | null } = {},
   ): void {
     this.set({
       history: History.create(doc),
       selection: null,
       fileName,
+      documentId: storage.id ?? crypto.randomUUID(),
+      fileHandle: storage.handle ?? null,
+      // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
+      savedDoc: fileName === null ? null : doc,
       warnings,
       error: null,
       analysis: null,
@@ -122,6 +142,33 @@ export class EditorStore {
       enzymesInitialized: false,
       reveal: { position: 0, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
+  }
+
+  closeDocument(): void {
+    this.set({
+      history: null,
+      selection: null,
+      fileName: null,
+      documentId: null,
+      fileHandle: null,
+      savedDoc: null,
+      warnings: [],
+      analysis: null,
+      shownEnzymes: new Set(),
+      enzymesInitialized: false,
+      renameRequest: null,
+    });
+  }
+
+  setFileHandle(handle: FileSystemFileHandle | null): void {
+    this.set({ fileHandle: handle });
+  }
+
+  /** Records that the present document now matches the file (optionally under a new name). */
+  markSaved(fileName?: string): void {
+    const present = this.document;
+    if (present === null) return;
+    this.set(fileName === undefined ? { savedDoc: present } : { savedDoc: present, fileName });
   }
 
   fail(message: string): void {

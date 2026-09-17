@@ -4,7 +4,7 @@ import { type SeqDocument } from '@/core';
 
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
-import { saveDocument } from '../saveFile';
+import { persistence } from '../state/persistence';
 import { type ViewMode, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -13,7 +13,22 @@ interface Props {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { history, showComplement, view } = useEditorState();
+  const { history, showComplement, view, dirty, fileHandle } = useEditorState();
+  const report = (p: Promise<unknown>): void => {
+    p.catch((e: unknown) => {
+      editorStore.fail(e instanceof Error ? e.message : String(e));
+    });
+  };
+  const openViaPicker = (): void => {
+    persistence
+      .openWithPicker(openFile)
+      .then((handled) => {
+        if (!handled) inputRef.current?.click();
+      })
+      .catch((e: unknown) => {
+        editorStore.fail(e instanceof Error ? e.message : String(e));
+      });
+  };
   const views: readonly [ViewMode, string][] = [
     ['sequence', 'Sequence'],
     ['map', 'Map'],
@@ -36,6 +51,12 @@ export function Toolbar({ doc }: Props) {
         <div className="toolbar__doc">
           <span className="toolbar__name" title={doc.metadata.description}>
             {doc.name}
+            {dirty && (
+              <span className="toolbar__dirty" title="Changes not yet saved to a file">
+                {' '}
+                •
+              </span>
+            )}
           </span>
           <span className="toolbar__meta">
             {doc.length.toLocaleString()} bp, {doc.topology}
@@ -105,26 +126,46 @@ export function Toolbar({ doc }: Props) {
             Open example
           </button>
         )}
-        <button
-          type="button"
-          className="button button--primary"
-          onClick={() => {
-            inputRef.current?.click();
-          }}
-        >
+        <button type="button" className="button button--primary" onClick={openViaPicker}>
           Open file
         </button>
         {doc !== null && (
-          <button
-            type="button"
-            className="button"
-            title="Download the sequence with its features as a GenBank file"
-            onClick={() => {
-              saveDocument(doc, 'genbank');
-            }}
-          >
-            Save GenBank
-          </button>
+          <>
+            <button
+              type="button"
+              className="button"
+              title={
+                fileHandle === null
+                  ? 'Save as a GenBank file (Ctrl+S)'
+                  : 'Save to the opened file (Ctrl+S)'
+              }
+              onClick={() => {
+                report(persistence.save());
+              }}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="button"
+              title="Save a copy as GenBank (Ctrl+Shift+S)"
+              onClick={() => {
+                report(persistence.saveAs());
+              }}
+            >
+              Save as
+            </button>
+            <button
+              type="button"
+              className="button button--quiet"
+              title="Close this document (it stays in your recent documents)"
+              onClick={() => {
+                editorStore.closeDocument();
+              }}
+            >
+              Close
+            </button>
+          </>
         )}
         <input
           ref={inputRef}
