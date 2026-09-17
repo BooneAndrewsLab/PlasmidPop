@@ -43,6 +43,13 @@ working with no account and no server round-trip.
   because round-tripping is where third-party parsers break.
 - **Distribution:** PWA. No Electron/Tauri for v1. A Tauri wrapper may come
   later for enterprise/local-install demands.
+- **Analytics:** Matomo (self-hosted). Usage tracking is a feature to
+  include: page views and coarse feature-usage events (e.g. "opened
+  GenBank", "ran restriction analysis"), never sequence content, file
+  names or other scientific data. Opt-in with a visible toggle, honours
+  Do-Not-Track, IP anonymisation on. Instance URL and site id are
+  build-time config (`VITE_MATOMO_URL`, `VITE_MATOMO_SITE_ID`); when
+  unset the tracker is a no-op, so local-first use never phones home.
 
 ## Domain rules that cause bugs
 
@@ -73,7 +80,7 @@ working with no account and no server round-trip.
 7. Restriction analysis (bundled enzyme table), ORF finding, translation.
 8. SnapGene .dna import.
 9. Local persistence (Dexie), PWA manifest, file open/save via File System
-   Access API with download fallback.
+   Access API with download fallback. Matomo tracking (opt-in, see Stack).
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. Optional backend: auth + sync + share links.
 
