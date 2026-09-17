@@ -27,3 +27,29 @@ export function listLocalFixtures(): { name: string; text: string }[] {
     .sort()
     .map((name) => ({ name, text: readFileSync(join(dir, name), 'utf8') }));
 }
+
+const SNAPGENE_RESOURCES =
+  '/home/matej/Programs/snapgene_8.2.2_linux/data/opt/gslbiotech/snapgene/resources';
+
+/**
+ * Real SnapGene .dna files from a local SnapGene installation, when present.
+ * Never committed; tests using them pass trivially elsewhere.
+ */
+export function listLocalSnapGeneFiles(limit = 12): { name: string; data: Uint8Array }[] {
+  const out: { name: string; data: Uint8Array }[] = [];
+  const dirs = [
+    join(SNAPGENE_RESOURCES, 'sampleData/Sample project'),
+    join(SNAPGENE_RESOURCES, 'Plasmids/Gateway Destination Vectors'),
+    join(root, 'fixtures/local'),
+  ];
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)
+      .filter((x) => x.toLowerCase().endsWith('.dna'))
+      .sort()) {
+      if (out.length >= limit) return out;
+      out.push({ name: f, data: new Uint8Array(readFileSync(join(dir, f))) });
+    }
+  }
+  return out;
+}

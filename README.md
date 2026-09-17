@@ -48,6 +48,7 @@ src/
   io/           File formats behind one interface (parseSequenceFile)
     genbank/    GenBank flat-file parser + writer, location grammar
     fasta/      FASTA parser + writer
+    snapgene/   SnapGene .dna reader (packets + XML), plus a tiny XML parser in io/xml.ts
     fixtures/   Public NCBI records used by round-trip tests
   test/         Vitest setup and shared test helpers
 fixtures/local/ Private test files (gitignored); tests use them when present

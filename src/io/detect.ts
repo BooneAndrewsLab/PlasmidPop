@@ -2,6 +2,7 @@ import { SeqDocument, normalizeSequenceInput } from '@/core';
 
 import { parseFasta } from './fasta';
 import { parseGenBank } from './genbank';
+import { isSnapGene, parseSnapGene } from './snapgene';
 import { type FormatId, type ParseResult, FormatError } from './types';
 
 const GENBANK_EXTENSIONS = new Set(['gb', 'gbk', 'genbank', 'gbff', 'ape']);
@@ -40,6 +41,20 @@ function nameFromFilename(filename: string | undefined): string {
   return stem === '' ? 'Untitled' : stem;
 }
 
+/**
+ * Parses file contents of any supported format. Binary input is checked for
+ * the SnapGene signature first; anything else is decoded as UTF-8 text.
+ */
+export function parseSequenceData(
+  data: ArrayBuffer | Uint8Array | string,
+  filename?: string,
+): ParseResult {
+  if (typeof data === 'string') return parseSequenceFile(data, filename);
+  if (isSnapGene(data)) return parseSnapGene(data, filename);
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  return parseSequenceFile(new TextDecoder('utf-8').decode(bytes), filename);
+}
+
 /** Parses a text file in any supported format, detecting which one it is. */
 export function parseSequenceFile(text: string, filename?: string): ParseResult {
   const format = detectFormat(text, filename);
@@ -59,6 +74,8 @@ export function parseSequenceFile(text: string, filename?: string): ParseResult 
         ],
         warnings: [],
       };
+    case 'snapgene':
+      throw new FormatError('SnapGene files are binary; pass the file bytes to parseSequenceData');
     case null:
       throw new FormatError(
         filename === undefined

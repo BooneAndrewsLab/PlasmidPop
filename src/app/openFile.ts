@@ -1,9 +1,8 @@
-import { parseSequenceFile } from '@/io';
+import { parseSequenceData, parseSequenceFile } from '@/io';
 
 import { editorStore } from './state/editorStore';
 
 const UNSUPPORTED: Readonly<Record<string, string>> = {
-  dna: 'SnapGene .dna files are not supported yet. Export the file as GenBank from SnapGene and open that.',
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',
 };
 
@@ -15,14 +14,18 @@ export async function openFile(file: File): Promise<void> {
     editorStore.fail(unsupported);
     return;
   }
-  let text: string;
+  let data: ArrayBuffer;
   try {
-    text = await file.text();
+    data = await file.arrayBuffer();
   } catch {
     editorStore.fail(`Could not read "${file.name}".`);
     return;
   }
-  openText(text, file.name);
+  try {
+    editorStore.openParsed(parseSequenceData(data, file.name), file.name);
+  } catch (e) {
+    editorStore.fail(e instanceof Error ? e.message : String(e));
+  }
 }
 
 export function openText(text: string, fileName: string | null): void {
