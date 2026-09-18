@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 362 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 376 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -149,10 +149,13 @@ pick from here when the current work is done.
     document itself after a simulated digest.
 11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs
     an auth-provider decision first.
-12. **User documentation**: a short guide (getting started, file formats,
-    editing, analysis, keyboard shortcuts) reachable from the app, plus a
-    README that reads as a landing page. Required by JOSS and NAR web
-    server reviewers, so it should land before any publication attempt.
+12. ~~**User documentation**~~: done. Thirteen guide pages in
+    `docs/guide/` (getting started, files, viewing, editing, features,
+    find, enzymes, ORFs, translation, primers, alignment, cloning,
+    shortcuts), each with a how-to, rendered in the app from the same
+    files by a "?" button at the right of the toolbar (also the `?` key;
+    `src/app/help/`, own Markdown subset in `markdown.ts`), plus a README
+    that reads as a landing page. Keep it current, see Conventions.
 13. ~~**Licence**~~: done. MIT (`LICENSE`, `package.json`, `CITATION.cff`).
     Keep REBASE data out of the repo; its terms restrict redistribution.
 14. ~~**Circular map zoom**~~: done. Wheel and pinch zoom about the
@@ -216,6 +219,14 @@ pick from here when the current work is done.
 - Profile before adding WASM or WebGL; write down the measurement.
 - Keep third-party bio libraries behind our own interfaces so they can be
   swapped out.
+- Keep the user guide (`docs/guide/*.md`, rendered in the app by
+  `src/app/help/`) in step with the code. Any change a user can notice
+  (new feature, changed behaviour, new shortcut, bugfix that alters what
+  the UI does or says) updates the relevant page in the same commit; a new
+  feature gets a page or a section with a short how-to, plus an entry in
+  `docs/guide/README.md` and `src/app/help/guide.ts`. Check `13-shortcuts.md`
+  whenever a key binding is touched. `guide.test.ts` catches broken links
+  between pages but not stale prose: reread the page.
 
 ## Open questions
 

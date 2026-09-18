@@ -5,6 +5,7 @@ import { type SeqDocument } from '@/core';
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
+import { HelpButton } from '../help/HelpButton';
 import { FileMenu } from './FileMenu';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
@@ -185,6 +186,7 @@ export function Toolbar({ doc }: Props) {
           onChange={onPick}
         />
       </div>
+      <HelpButton />
     </header>
   );
 }

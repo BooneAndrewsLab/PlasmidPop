@@ -1,10 +1,45 @@
 # PlasmidPop
 
-Browser-based DNA sequence editor and plasmid viewer. Everything runs
-client-side: open a GenBank file and start working with no account and no
-server round-trip.
+Browser-based DNA sequence editor and plasmid viewer. Everything runs in
+the browser: open a GenBank, FASTA or SnapGene file and start working with
+no account, no upload and no server round-trip. Works offline once loaded.
 
-See [CLAUDE.md](./CLAUDE.md) for the architecture handoff and build order.
+**Try it:** https://booneandrewslab.github.io/PlasmidPop/
+
+## What it does
+
+- **Open and save** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA and SnapGene
+  `.dna`; save back to the opened GenBank file, export FASTA, export the
+  map as SVG, export a selection with its features.
+- **View** a linear sequence with complement, ruler, feature lanes and
+  amino acids under CDS features, next to a zoomable circular map with
+  labels and cut sites.
+- **Edit** by typing: insert, delete, replace, copy and paste with
+  features, reverse complement, set the origin, switch between circular and
+  linear, with full undo and a history list.
+- **Annotate**: a feature list and editor with GenBank locations
+  (`join`, `complement`, wrapping the origin, partial ends) and
+  qualifiers.
+- **Analyse**: restriction sites for about 130 enzymes with fragment
+  sizes, open reading frames, six-frame translation, primer design and
+  primer checking with binding sites, pairwise alignment (global and
+  local).
+- **Clone in silico**: digest with chosen enzymes, collect fragments from
+  several files, check every junction and ligate into a new construct.
+- **Local first**: documents autosave to the browser, the last one is
+  restored on reload, and the app installs as a PWA that opens sequence
+  files from the file manager.
+
+The **user guide** lives in [`docs/guide`](./docs/guide/README.md) and
+opens inside the app from the **?** button at the right of the toolbar.
+Start with [Getting started](./docs/guide/01-getting-started.md).
+
+## Contributing
+
+Issues and pull requests are welcome. PlasmidPop is MIT licensed
+([LICENSE](./LICENSE)); see [CITATION.cff](./CITATION.cff) to cite it.
+[CLAUDE.md](./CLAUDE.md) holds the architecture handoff, domain rules and
+the list of candidate features.
 
 ## Development
 
