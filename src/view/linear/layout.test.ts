@@ -7,6 +7,7 @@ const metrics: LinearMetrics = {
   showComplement: true,
   rulerHeight: 14,
   laneHeight: 18,
+  translationHeight: 12,
   rowGap: 6,
   leftGutter: 60,
   topPadding: 8,
@@ -31,6 +32,38 @@ describe('LinearLayout', () => {
     ]);
     expect(layout.rows[1]?.top).toBe(8 + base + 18 + 6);
     expect(layout.totalHeight).toBe(8 + layout.rows.reduce((n, r) => n + r.height, 0));
+  });
+
+  it('reserves translation lines between the strands and the feature lanes', () => {
+    const withTranslations = new LinearLayout(35, metrics, [1, 0, 2, 0], [2, 1, 0, 0]);
+    const base = 14 + 32;
+    expect(withTranslations.rows.map((r) => r.translations)).toEqual([2, 1, 0, 0]);
+    expect(withTranslations.rows.map((r) => r.height)).toEqual([
+      base + 24 + 18 + 6,
+      base + 12 + 6,
+      base + 36 + 6,
+      base + 6,
+    ]);
+    const first = withTranslations.rows[0];
+    if (first === undefined) throw new Error('row');
+    expect(withTranslations.translationTop(first, 0)).toBe(first.top + base);
+    expect(withTranslations.translationTop(first, 1)).toBe(first.top + base + 12);
+    expect(withTranslations.laneTop(first, 0)).toBe(first.top + base + 24);
+    // The band hit-tests as a translation line; the lane below is still a lane.
+    expect(withTranslations.hitTest(60 + 8 * 4.5, first.top + base + 13)).toMatchObject({
+      kind: 'translation',
+      line: 1,
+      position: 4,
+    });
+    expect(withTranslations.hitTest(60 + 8 * 4.5, first.top + base + 25)).toMatchObject({
+      kind: 'lane',
+      lane: 0,
+      position: 4,
+    });
+    // Rows without translations keep the lanes right under the strands.
+    const third = withTranslations.rows[2];
+    if (third === undefined) throw new Error('row');
+    expect(withTranslations.laneTop(third, 0)).toBe(third.top + base);
   });
 
   it('finds rows by position and by y', () => {

@@ -42,6 +42,8 @@ export interface EditorState {
   readonly warnings: readonly ParseWarning[];
   readonly error: string | null;
   readonly showComplement: boolean;
+  /** Whether amino-acid translations are drawn under CDS features in the sequence view. */
+  readonly showTranslations: boolean;
   readonly view: ViewMode;
   readonly sidebarTab: SidebarTab;
   readonly analysis: AnalysisState | null;
@@ -71,6 +73,7 @@ const INITIAL: EditorState = {
   warnings: [],
   error: null,
   showComplement: true,
+  showTranslations: true,
   view: 'both',
   sidebarTab: 'features',
   analysis: null,
@@ -362,6 +365,10 @@ export class EditorStore {
 
   setShowComplement(show: boolean): void {
     if (show !== this.state.showComplement) this.set({ showComplement: show });
+  }
+
+  setShowTranslations(show: boolean): void {
+    if (show !== this.state.showTranslations) this.set({ showTranslations: show });
   }
 }
 

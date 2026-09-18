@@ -1,4 +1,5 @@
 import {
+  type CdsTranslations,
   type CutSite,
   type Feature,
   type Range,
@@ -8,7 +9,7 @@ import {
 } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
-import { contrastingText, featureColor } from '../featureColors';
+import { contrastingText, featureColor, withAlpha } from '../featureColors';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
 
@@ -27,6 +28,12 @@ export interface RenderParams {
   readonly doc: SeqDocument;
   readonly layout: LinearLayout;
   readonly lanes: LaneAssignment;
+  /**
+   * Amino-acid translations drawn under the strands, and which line each
+   * coding feature occupies. `null` hides translations altogether.
+   */
+  readonly translations: CdsTranslations | null;
+  readonly translationLanes: LaneAssignment;
   readonly selection: Range | null;
   /** Cut sites to mark above the strands (already filtered to the enzymes the user wants). */
   readonly cutSites: readonly CutSite[];
@@ -120,6 +127,62 @@ function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void
   };
   drawLine(text, layout.forwardTextTop(row), theme.ink);
   if (m.showComplement) drawLine(complement(text), layout.complementTextTop(row), theme.inkMuted);
+}
+
+interface Run {
+  readonly start: number;
+  readonly end: number;
+}
+
+/** Contiguous runs of the ascending positions in `positions` that fall inside `[start, end)`. */
+function runsInRow(positions: readonly number[], start: number, end: number): Run[] {
+  const inRow = positions.filter((p) => p >= start && p < end).sort((a, b) => a - b);
+  const runs: Run[] = [];
+  for (const p of inRow) {
+    const last = runs[runs.length - 1];
+    if (last?.end === p) runs[runs.length - 1] = { start: last.start, end: p + 1 };
+    else runs.push({ start: p, end: p + 1 });
+  }
+  return runs;
+}
+
+/**
+ * One line of amino acids per coding feature in the row: each codon is a
+ * lightly tinted box over its bases (alternating shades so codon boundaries
+ * read even where letters are omitted) with the one-letter code centred on
+ * it. A codon split by a join or a row break is shaded wherever its bases
+ * are and lettered once, over the piece holding its middle base.
+ */
+function drawTranslations(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { doc, layout, theme, translations, translationLanes } = p;
+  if (translations === null || row.translations === 0) return;
+  const m = layout.metrics;
+  const height = m.translationHeight - 2;
+  ctx.font = p.monoFont;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const feature of doc.features.overlapping({ start: row.start, end: row.end }, doc.length)) {
+    const line = translationLanes.laneOf.get(feature.id);
+    if (line === undefined || line >= row.translations) continue;
+    const top = layout.translationTop(row, line) + 1;
+    const color = featureColor(feature);
+    const fills = [withAlpha(color, 0.16), withAlpha(color, 0.34)];
+    for (const codon of translations.get(feature).codons) {
+      const runs = runsInRow(codon.positions, row.start, row.end);
+      if (runs.length === 0) continue;
+      const middle = codon.positions[1];
+      for (const run of runs) {
+        const x0 = layout.xOfColumn(run.start - row.start);
+        const x1 = layout.xOfColumn(run.end - row.start);
+        ctx.fillStyle = fills[codon.index % 2] ?? color;
+        ctx.fillRect(x0, top, x1 - x0, height);
+        if (middle >= run.start && middle < run.end) {
+          ctx.fillStyle = codon.aminoAcid === '*' ? theme.cutSite : theme.ink;
+          ctx.fillText(codon.aminoAcid, (x0 + x1) / 2, top + height / 2 + 0.5);
+        }
+      }
+    }
+  }
 }
 
 interface Ribbon {
@@ -281,6 +344,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
     drawSelection(ctx, p, row);
     drawRuler(ctx, p, row);
     drawStrands(ctx, p, row);
+    drawTranslations(ctx, p, row);
     drawCutSites(ctx, p, row);
     if (row.lanes > 0) {
       for (const feature of doc.features.overlapping(

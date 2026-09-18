@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { showComplement, view, dirty, fileHandle } = useEditorState();
+  const { showComplement, showTranslations, view, dirty, fileHandle } = useEditorState();
   const report = (p: Promise<unknown>): void => {
     p.catch((e: unknown) => {
       editorStore.fail(e instanceof Error ? e.message : String(e));
@@ -119,6 +119,18 @@ export function Toolbar({ doc }: Props) {
               }}
             />
             Complement strand
+          </label>
+        )}
+        {doc !== null && (
+          <label className="toggle" title="Show amino acids under CDS features">
+            <input
+              type="checkbox"
+              checked={showTranslations}
+              onChange={(e) => {
+                editorStore.setShowTranslations(e.target.checked);
+              }}
+            />
+            Translations
           </label>
         )}
         <HistoryMenu />

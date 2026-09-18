@@ -53,19 +53,34 @@ export function featureColor(feature: Feature): string {
   return TYPE_COLORS[feature.type] ?? DEFAULT_COLOR;
 }
 
-/** Black or white, whichever reads better on `hex`. */
-export function contrastingText(hex: string): string {
+/** `hex` (#rgb or #rrggbb) as an rgba() string with the given opacity; other strings pass through. */
+export function withAlpha(hex: string, alpha: number): string {
+  const rgb = parseHex(hex);
+  if (rgb === null) return hex;
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+function parseHex(hex: string): [number, number, number] | null {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex);
-  if (m?.[1] === undefined) return '#1c2430';
+  if (m?.[1] === undefined) return null;
   let h = m[1];
   if (h.length === 3)
     h = h
       .split('')
       .map((c) => c + c)
       .join('');
-  const r = Number.parseInt(h.slice(0, 2), 16);
-  const g = Number.parseInt(h.slice(2, 4), 16);
-  const b = Number.parseInt(h.slice(4, 6), 16);
+  return [
+    Number.parseInt(h.slice(0, 2), 16),
+    Number.parseInt(h.slice(2, 4), 16),
+    Number.parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+/** Black or white, whichever reads better on `hex`. */
+export function contrastingText(hex: string): string {
+  const rgb = parseHex(hex);
+  if (rgb === null) return '#1c2430';
+  const [r, g, b] = rgb;
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.6 ? '#1c2430' : '#ffffff';
 }

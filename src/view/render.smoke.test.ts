@@ -1,4 +1,4 @@
-import { findCutSites, findOrfs } from '@/core';
+import { CdsTranslations, findCutSites, findOrfs, isCodingFeature } from '@/core';
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
@@ -50,9 +50,11 @@ describe('renderers over a real plasmid', () => {
     expect(findOrfs(text, doc.topology).length).toBeGreaterThan(0);
   }, 5000);
 
-  it('linear view renders every row with cut sites', () => {
+  it('linear view renders every row with cut sites and translations', () => {
     const features = drawableFeatures(doc.features.all());
     const lanes = assignLanes(features, doc.length);
+    const coding = features.filter(isCodingFeature);
+    const translationLanes = assignLanes(coding, doc.length);
     const metrics = {
       basesPerRow: 100,
       charWidth: 8,
@@ -60,6 +62,7 @@ describe('renderers over a real plasmid', () => {
       showComplement: true,
       rulerHeight: 30,
       laneHeight: 20,
+      translationHeight: 16,
       rowGap: 14,
       leftGutter: 72,
       topPadding: 12,
@@ -68,11 +71,16 @@ describe('renderers over a real plasmid', () => {
       doc.length,
       metrics,
       lanesPerRow(features, lanes, doc.length, 100),
+      lanesPerRow(coding, translationLanes, doc.length, 100),
     );
+    expect(coding.length).toBeGreaterThan(0);
+    expect(layout.rows.some((r) => r.translations > 0)).toBe(true);
     renderLinearView(stubContext(), {
       doc,
       layout,
       lanes,
+      translations: new CdsTranslations(doc),
+      translationLanes,
       selection: { start: 10, end: 500 },
       cutSites: shown,
       scrollTop: 0,

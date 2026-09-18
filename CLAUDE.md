@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 298 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 312 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -101,9 +101,13 @@ for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 Ideas judged worthwhile, roughly in priority order. None is committed to;
 pick from here when the current work is done.
 
-1. **Amino-acid translation under CDS features** in the linear view (per
-   frame, codon-aligned, respecting `/codon_start` and joins). The most
-   used SnapGene affordance we lack.
+1. ~~**Amino-acid translation under CDS features**~~: done. One line per
+   CDS between the strands and the feature lanes, codon-aligned with
+   alternating shading, honouring `/codon_start`, `/transl_table`, joins,
+   reverse strand, partial ends and origin wrap
+   (`src/core/analysis/cdsTranslation.ts`, `drawTranslations` in
+   `renderLinear.ts`); "Translations" toggle in the toolbar. Not yet:
+   `/transl_except`, comparing against a stored `/translation`.
 2. **Copy and paste with features.** Copy a selection as a sub-document
    (see `extractRange`) and paste it into another document, shifting and
    merging annotations; internal clipboard first, then a JSON MIME type.
@@ -140,6 +144,11 @@ pick from here when the current work is done.
     sequence, with the sidebar and views collapsing into tabs. Editing
     on a touch screen is hard to get right and can wait; test on real
     devices, not only a narrow desktop window.
+16. **Make tiny features visible on the circular map.** Selecting a very
+    short feature in the feature list (e.g. the 2 bp feature at 141..142
+    in the pBR322 example) highlights a sliver that is impossible to see.
+    Extend the selection highlight inward towards the centre of the map,
+    or outward past the outer ring, so even a 1 bp selection is obvious.
 
 ## Non-goals for v1
 

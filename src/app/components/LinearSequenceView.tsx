@@ -9,7 +9,13 @@ import {
   useState,
 } from 'react';
 
-import { type SeqDocument, InvalidSequenceError, isEmptyRange } from '@/core';
+import {
+  type SeqDocument,
+  CdsTranslations,
+  InvalidSequenceError,
+  isCodingFeature,
+  isEmptyRange,
+} from '@/core';
 import {
   type LinearMetrics,
   type LinearTheme,
@@ -59,7 +65,8 @@ interface Props {
 }
 
 export function LinearSequenceView({ doc }: Props) {
-  const { selection, showComplement, reveal, analysis, shownEnzymes } = useEditorState();
+  const { selection, showComplement, showTranslations, reveal, analysis, shownEnzymes } =
+    useEditorState();
   const cutSites = useMemo(
     () =>
       analysis !== null && analysis.doc === doc
@@ -84,6 +91,7 @@ export function LinearSequenceView({ doc }: Props) {
       showComplement,
       rulerHeight: cutSites.length > 0 ? 30 : 16,
       laneHeight: 20,
+      translationHeight: 16,
       rowGap: 14,
       leftGutter: LEFT_GUTTER,
       topPadding: 12,
@@ -91,6 +99,18 @@ export function LinearSequenceView({ doc }: Props) {
     [size.width, charWidth, showComplement, cutSites.length],
   );
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
+  const codingFeatures = useMemo(
+    () => (showTranslations ? drawableFeatures(doc.features.all()).filter(isCodingFeature) : []),
+    [doc, showTranslations],
+  );
+  const translationLanes = useMemo(
+    () => assignLanes(codingFeatures, doc.length),
+    [codingFeatures, doc.length],
+  );
+  const translations = useMemo(
+    () => (showTranslations ? new CdsTranslations(doc) : null),
+    [doc, showTranslations],
+  );
   const layout = useMemo(() => {
     const perRow = lanesPerRow(
       drawableFeatures(doc.features.all()),
@@ -98,8 +118,14 @@ export function LinearSequenceView({ doc }: Props) {
       doc.length,
       metrics.basesPerRow,
     );
-    return new LinearLayout(doc.length, metrics, perRow);
-  }, [doc, lanes, metrics]);
+    const translationsPerRow = lanesPerRow(
+      codingFeatures,
+      translationLanes,
+      doc.length,
+      metrics.basesPerRow,
+    );
+    return new LinearLayout(doc.length, metrics, perRow, translationsPerRow);
+  }, [doc, lanes, codingFeatures, translationLanes, metrics]);
 
   // Track the viewport size.
   useLayoutEffect(() => {
@@ -151,6 +177,8 @@ export function LinearSequenceView({ doc }: Props) {
         doc,
         layout,
         lanes,
+        translations,
+        translationLanes,
         selection,
         cutSites,
         scrollTop,
@@ -165,7 +193,7 @@ export function LinearSequenceView({ doc }: Props) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [doc, layout, lanes, selection, cutSites, scrollTop, size]);
+  }, [doc, layout, lanes, translations, translationLanes, selection, cutSites, scrollTop, size]);
 
   const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -176,10 +204,12 @@ export function LinearSequenceView({ doc }: Props) {
     if (e.button !== 0) return;
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
-    if (hit.kind === 'lane') {
+    if (hit.kind === 'lane' || hit.kind === 'translation') {
+      const laneOf = hit.kind === 'lane' ? lanes.laneOf : translationLanes.laneOf;
+      const index = hit.kind === 'lane' ? hit.lane : hit.line;
       const feature = doc.features
         .at(hit.position, doc.length)
-        .find((f) => lanes.laneOf.get(f.id) === hit.lane);
+        .find((f) => laneOf.get(f.id) === index);
       if (feature !== undefined) {
         editorStore.selectFeature(feature.id);
         return;

@@ -1,8 +1,9 @@
 /**
  * Geometry of the linear sequence view: the sequence is broken into rows of
  * `basesPerRow` bases; every row shows a ruler, the forward strand,
- * optionally the complement, and as many feature lanes as it needs. Pure
- * functions so the maths is unit-testable without a canvas.
+ * optionally the complement, one translation line per coding feature that
+ * touches it, and as many feature lanes as it needs. Pure functions so the
+ * maths is unit-testable without a canvas.
  */
 
 export interface LinearMetrics {
@@ -13,6 +14,8 @@ export interface LinearMetrics {
   readonly showComplement: boolean;
   readonly rulerHeight: number;
   readonly laneHeight: number;
+  /** Height of one amino-acid line drawn under the strands. */
+  readonly translationHeight: number;
   /** Vertical space after the last lane of a row. */
   readonly rowGap: number;
   /** Space reserved on the left for position numbers. */
@@ -28,6 +31,8 @@ export interface RowLayout {
   readonly end: number;
   readonly top: number;
   readonly height: number;
+  /** Translation lines drawn between the strands and the feature lanes. */
+  readonly translations: number;
   readonly lanes: number;
 }
 
@@ -37,6 +42,12 @@ export type Hit =
       readonly kind: 'lane';
       readonly row: RowLayout;
       readonly lane: number;
+      readonly position: number;
+    }
+  | {
+      readonly kind: 'translation';
+      readonly row: RowLayout;
+      readonly line: number;
       readonly position: number;
     }
   | { readonly kind: 'none' };
@@ -49,19 +60,26 @@ export class LinearLayout {
     readonly seqLength: number,
     readonly metrics: LinearMetrics,
     lanesPerRow: readonly number[],
+    translationsPerRow: readonly number[] = [],
   ) {
     const rows: RowLayout[] = [];
     const rowCount = Math.max(1, Math.ceil(seqLength / metrics.basesPerRow));
     let y = metrics.topPadding;
     for (let i = 0; i < rowCount; i++) {
       const lanes = lanesPerRow[i] ?? 0;
-      const height = this.baseBlockHeight() + lanes * metrics.laneHeight + metrics.rowGap;
+      const translations = translationsPerRow[i] ?? 0;
+      const height =
+        this.baseBlockHeight() +
+        translations * metrics.translationHeight +
+        lanes * metrics.laneHeight +
+        metrics.rowGap;
       rows.push({
         index: i,
         start: i * metrics.basesPerRow,
         end: Math.min(seqLength, (i + 1) * metrics.basesPerRow),
         top: y,
         height,
+        translations,
         lanes,
       });
       y += height;
@@ -84,8 +102,13 @@ export class LinearLayout {
     return row.top + this.metrics.rulerHeight + this.metrics.lineHeight;
   }
 
+  /** Top of translation line `line` (0 = directly under the strands). */
+  translationTop(row: RowLayout, line: number): number {
+    return row.top + this.baseBlockHeight() + line * this.metrics.translationHeight;
+  }
+
   laneTop(row: RowLayout, lane: number): number {
-    return row.top + this.baseBlockHeight() + lane * this.metrics.laneHeight;
+    return this.translationTop(row, row.translations) + lane * this.metrics.laneHeight;
   }
 
   xOfColumn(column: number): number {
@@ -131,8 +154,8 @@ export class LinearLayout {
 
   /**
    * What is under document-space point (x, y): a base boundary (the nearest
-   * gap between bases, for placing a caret or a selection edge), a feature
-   * lane, or nothing.
+   * gap between bases, for placing a caret or a selection edge), a
+   * translation line, a feature lane, or nothing.
    */
   hitTest(x: number, y: number): Hit {
     const row = this.rowAtY(y);
@@ -140,11 +163,16 @@ export class LinearLayout {
     const m = this.metrics;
     const column = (x - m.leftGutter) / m.charWidth;
     const rowLength = row.end - row.start;
+    const baseAt = row.start + Math.min(rowLength - 1, Math.max(0, Math.floor(column)));
+    const translationsTop = this.translationTop(row, 0);
+    if (row.translations > 0 && y >= translationsTop && y < this.laneTop(row, 0)) {
+      const line = Math.floor((y - translationsTop) / m.translationHeight);
+      return { kind: 'translation', row, line, position: baseAt };
+    }
     const inLanes = y >= this.laneTop(row, 0) && row.lanes > 0 && y < this.laneTop(row, row.lanes);
     if (inLanes) {
       const lane = Math.floor((y - this.laneTop(row, 0)) / m.laneHeight);
-      const position = row.start + Math.min(rowLength - 1, Math.max(0, Math.floor(column)));
-      return { kind: 'lane', row, lane, position };
+      return { kind: 'lane', row, lane, position: baseAt };
     }
     const boundary = Math.min(rowLength, Math.max(0, Math.round(column)));
     return { kind: 'boundary', position: row.start + boundary, row };
