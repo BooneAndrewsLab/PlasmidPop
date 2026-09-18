@@ -230,6 +230,96 @@ describe('replace', () => {
   });
 });
 
+describe('insertFragment', () => {
+  const doc = SeqDocument.create({
+    sequence: SEQ,
+    topology: 'circular',
+    features: [
+      createFeature({ id: 'a', type: 'gene', segments: [rangeSegment(5, 10)] }),
+      createFeature({ id: 'w', type: 'gene', segments: [rangeSegment(17, 23)] }),
+    ],
+  });
+  const fragment = {
+    sequence: 'NNNNNN',
+    features: [
+      createFeature({ id: 'p', type: 'CDS', segments: [rangeSegment(1, 5, { partialEnd: true })] }),
+      createFeature({ id: 's', type: 'misc', segments: [siteSegment(3)] }),
+    ],
+  };
+
+  it('inserts at a caret and shifts the fragment features to the paste position', () => {
+    const next = doc.insertFragment(range(2, 2), fragment);
+    expect(next.sequence.toString()).toBe('AC' + 'NNNNNN' + SEQ.slice(2));
+    expect(next.length).toBe(26);
+    expect(segs(next.getFeature('a'))).toEqual([range(11, 16)]);
+    expect(segs(next.getFeature('w'))).toEqual([range(23, 35)]); // wraps past the paste, so it grows
+    expect(next.getFeature('p')?.segments).toEqual([rangeSegment(3, 7, { partialEnd: true })]);
+    expect(next.getFeature('s')?.segments).toEqual([siteSegment(5)]);
+    expect(next.featureSequence('p')).toBe('NNNN');
+  });
+
+  it('replaces a selection, dropping annotations confined to it', () => {
+    const next = doc.insertFragment(range(4, 11), fragment);
+    expect(next.sequence.toString()).toBe(SEQ.slice(0, 4) + 'NNNNNN' + SEQ.slice(11));
+    expect(next.getFeature('a')).toBeUndefined();
+    expect(segs(next.getFeature('p'))).toEqual([range(5, 9)]);
+    expect(segs(next.getFeature('w'))).toEqual([range(16, 22)]);
+  });
+
+  it('pastes at the origin and over a selection that wraps it', () => {
+    const atOrigin = doc.insertFragment(range(0, 0), fragment);
+    expect(atOrigin.sequence.toString()).toBe('NNNNNN' + SEQ);
+    expect(segs(atOrigin.getFeature('p'))).toEqual([range(1, 5)]);
+    // Deleting 18,19,0,1 leaves old base 2 as base 0 and the cut at the origin,
+    // so the paste goes in at the origin; the wrapped feature grows around it.
+    const wrapped = doc.insertFragment(range(18, 22), fragment);
+    expect(wrapped.sequence.toString()).toBe('NNNNNN' + SEQ.slice(2, 18));
+    expect(segs(wrapped.getFeature('p'))).toEqual([range(1, 5)]);
+    expect(segs(wrapped.getFeature('w'))).toEqual([range(21, 29)]);
+    expect(wrapped.featureSequence('w')).toBe('C' + 'NNNNNN' + 'G');
+  });
+
+  it('grows a feature the paste lands inside and pushes one starting there', () => {
+    const inside = doc.insertFragment(range(7, 7), fragment);
+    expect(segs(inside.getFeature('a'))).toEqual([range(5, 16)]);
+    const atStart = doc.insertFragment(range(5, 5), fragment);
+    expect(segs(atStart.getFeature('a'))).toEqual([range(11, 16)]);
+  });
+
+  it('is one op for undo and appears in the linear case too', () => {
+    const linear = SeqDocument.create({ sequence: 'ACGT' });
+    const next = linear.apply({ type: 'insertFragment', range: range(4, 4), fragment });
+    expect(next.sequence.toString()).toBe('ACGTNNNNNN');
+    expect(next.features.size).toBe(2);
+    expect(linear.features.size).toBe(0);
+    expect(describeEditOp({ type: 'insertFragment', range: range(0, 0), fragment })).toBe(
+      'Paste 6 bases',
+    );
+  });
+
+  it('with an empty sequence just deletes; rejects bad bases and clashing ids', () => {
+    const empty = { sequence: '', features: [] };
+    expect(doc.insertFragment(range(0, 0), empty)).toBe(doc);
+    expect(doc.insertFragment(range(2, 4), empty).length).toBe(18);
+    expect(() => doc.insertFragment(range(0, 0), { sequence: 'XYZ', features: [] })).toThrow(
+      InvalidSequenceError,
+    );
+    expect(() =>
+      doc.insertFragment(range(0, 0), {
+        sequence: 'AA',
+        features: [createFeature({ id: 'a', type: 'gene', segments: [rangeSegment(0, 2)] })],
+      }),
+    ).toThrow(/Duplicate feature id/);
+  });
+
+  it('maps cursor positions through a paste', () => {
+    const op: EditOp = { type: 'insertFragment', range: range(4, 8), fragment };
+    expect(doc.mapPositionThrough(op, 2)).toBe(2);
+    expect(doc.mapPositionThrough(op, 6)).toBe(10); // collapsed onto the cut, then pushed past the paste
+    expect(doc.mapPositionThrough(op, 12)).toBe(14);
+  });
+});
+
 describe('reverseComplement', () => {
   const doc = SeqDocument.create({
     sequence: SEQ,

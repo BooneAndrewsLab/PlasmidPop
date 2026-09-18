@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 312 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 332 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -108,9 +108,15 @@ pick from here when the current work is done.
    (`src/core/analysis/cdsTranslation.ts`, `drawTranslations` in
    `renderLinear.ts`); "Translations" toggle in the toolbar. Not yet:
    `/transl_except`, comparing against a stored `/translation`.
-2. **Copy and paste with features.** Copy a selection as a sub-document
-   (see `extractRange`) and paste it into another document, shifting and
-   merging annotations; internal clipboard first, then a JSON MIME type.
+2. ~~**Copy and paste with features.**~~ done. Ctrl+C/X in the sequence
+   view copies the selection as a `SeqFragment` (bases plus trimmed
+   features, `source` left behind; `src/core/document/fragment.ts`) under
+   both `text/plain` and a JSON MIME type, remembering it in-tab as a
+   fallback (`src/app/clipboard.ts`). Ctrl+V applies one `insertFragment`
+   op (delete selection, insert bases, add shifted features with fresh
+   ids), so it is a single undo step. Not yet: a paste target in the empty
+   state, pasting GenBank text, cross-tab paste in browsers that strip
+   custom clipboard types (only the plain bases arrive there).
 3. **Simulated cloning.** Cut with the shown enzymes, list fragments with
    overhangs, ligate compatible ends into a new document; later Gibson
    and Golden Gate assembly from primer/fragment sets.

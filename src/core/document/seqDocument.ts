@@ -7,6 +7,7 @@ import {
   flipSegment,
   flipStrand,
   rotateSegment,
+  shiftSegmentBy,
   shiftSegmentForDelete,
   shiftSegmentForInsert,
   splitWrappedSegment,
@@ -24,6 +25,7 @@ import {
 } from '../range';
 import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
 import { type EditOp, type FeaturePatch } from './editOp';
+import { type SeqFragment } from './fragment';
 import { type DocumentMetadata, EMPTY_METADATA } from './metadata';
 
 export interface SeqDocumentInit {
@@ -148,6 +150,8 @@ export class SeqDocument {
         return this.delete(op.range);
       case 'replace':
         return this.replace(op.range, op.text);
+      case 'insertFragment':
+        return this.insertFragment(op.range, op.fragment);
       case 'reverseComplement':
         return this.reverseComplement();
       case 'setOrigin':
@@ -233,6 +237,33 @@ export class SeqDocument {
       return doc.delete({ start: pivot, end: pivot + (oldLen - common) });
     }
     return doc;
+  }
+
+  /**
+   * Removes the bases in `r` (nothing for a caret) and puts the fragment's
+   * sequence there, then adds its features shifted to the paste position.
+   * Feature ids come from the fragment, so callers pasting the same fragment
+   * twice must give it fresh ids first.
+   */
+  insertFragment(r: Range, fragment: SeqFragment): SeqDocument {
+    assertValidRange(r, this.length, this.topology);
+    assertValidSequence(fragment.sequence);
+    const removed = this.delete(r);
+    const p = removed.pastePosition(this, r);
+    if (fragment.sequence.length === 0) return removed;
+    let doc = removed.insert(p, fragment.sequence);
+    for (const f of fragment.features) {
+      doc = doc.addFeature({ ...f, segments: f.segments.map((seg) => shiftSegmentBy(seg, p)) });
+    }
+    return doc;
+  }
+
+  /** Where `r.start` of `before` lands in this document once `r` has been deleted from it. */
+  private pastePosition(before: SeqDocument, r: Range): number {
+    if (this.length === 0) return 0;
+    const start = normalizePosition(r.start, before.length, before.topology);
+    const moved = shiftPositionForDelete(start, r, before.length);
+    return this.isCircular ? moved % this.length : Math.min(moved, this.length);
   }
 
   /** Same-length overwrite starting at `position`; never moves annotations. */
@@ -323,6 +354,12 @@ export class SeqDocument {
         : position;
     }
     if (op.type === 'delete') return shiftPositionForDelete(position, op.range, this.length);
+    if (op.type === 'insertFragment') {
+      const removed = this.delete(op.range);
+      const p = removed.pastePosition(this, op.range);
+      const moved = shiftPositionForDelete(position, op.range, this.length);
+      return moved >= p ? moved + op.fragment.sequence.length : moved;
+    }
     return position;
   }
 }

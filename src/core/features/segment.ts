@@ -132,6 +132,17 @@ export function shiftSegmentForDelete(
   }
 }
 
+/** Moves a segment by `offset` bases, e.g. from fragment to document coordinates. */
+export function shiftSegmentBy(seg: Segment, offset: number): Segment {
+  if (offset === 0) return seg;
+  switch (seg.kind) {
+    case 'range':
+      return { ...seg, start: seg.start + offset, end: seg.end + offset };
+    case 'site':
+      return siteSegment(seg.position + offset);
+  }
+}
+
 export function rotateSegment(seg: Segment, origin: number, seqLength: number): Segment {
   switch (seg.kind) {
     case 'range':

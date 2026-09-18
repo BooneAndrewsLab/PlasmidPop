@@ -1,11 +1,15 @@
 import {
   type EditOp,
+  type SeqFragment,
   type Range,
   type SeqDocument,
+  assertValidSequence,
   isEmptyRange,
+  newFeatureId,
   normalizePosition,
   normalizeSequenceInput,
   range,
+  shiftPositionForDelete,
 } from '@/core';
 
 /** An edit to apply plus where the selection should land afterwards. */
@@ -16,6 +20,15 @@ export interface EditPlan {
 
 function caret(position: number): Range {
   return range(position, position);
+}
+
+/** Where the start of a deleted selection sits once it is gone, as a valid caret. */
+function caretAfterDelete(doc: SeqDocument, selection: Range): number {
+  const newLength = doc.length - (selection.end - selection.start);
+  if (newLength === 0) return 0;
+  const start = normalizePosition(selection.start, doc.length, doc.topology);
+  const moved = shiftPositionForDelete(start, selection, doc.length);
+  return doc.isCircular ? moved % newLength : Math.min(moved, newLength);
 }
 
 /** Wraps or clamps a position so it is a valid caret for the document. */
@@ -49,14 +62,36 @@ export function typeText(
   return { op: { type: 'replace', range: selection, text }, selectionAfter: caret(after) };
 }
 
+/**
+ * Pasting a fragment: its bases replace the selection (or go in at the
+ * caret) and its features come along, shifted to the paste position and
+ * given fresh ids so the same fragment can be pasted more than once. A
+ * fragment without features behaves exactly like pasted text.
+ */
+export function pasteFragment(
+  doc: SeqDocument,
+  selection: Range | null,
+  fragment: SeqFragment,
+): EditPlan | null {
+  if (fragment.features.length === 0) return typeText(doc, selection, fragment.sequence);
+  if (selection === null) return null;
+  assertValidSequence(fragment.sequence);
+  const features = fragment.features.map((f) => ({ ...f, id: newFeatureId() }));
+  const newLength = doc.length - (selection.end - selection.start) + fragment.sequence.length;
+  const end = caretAfterDelete(doc, selection) + fragment.sequence.length;
+  const after = doc.isCircular && newLength > 0 ? end % newLength : end;
+  return {
+    op: { type: 'insertFragment', range: selection, fragment: { ...fragment, features } },
+    selectionAfter: caret(after),
+  };
+}
+
 /** Deletes the selection and leaves a caret where it started. */
 export function deleteSelection(doc: SeqDocument, selection: Range): EditPlan {
-  const newLength = doc.length - (selection.end - selection.start);
-  const after =
-    doc.isCircular && newLength > 0
-      ? selection.start % newLength
-      : Math.min(selection.start, newLength);
-  return { op: { type: 'delete', range: selection }, selectionAfter: caret(after) };
+  return {
+    op: { type: 'delete', range: selection },
+    selectionAfter: caret(caretAfterDelete(doc, selection)),
+  };
 }
 
 /** Backspace: the selection, or the base before the caret (wrapping on circular sequences). */
@@ -113,6 +148,7 @@ export function selectionAfterOp(
     case 'insert':
     case 'delete':
     case 'replace':
+    case 'insertFragment':
     case 'rename':
     case 'setMetadata':
     case 'addFeature':

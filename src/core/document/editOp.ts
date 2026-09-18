@@ -1,5 +1,6 @@
 import { type Feature, type FeatureId } from '../features';
 import { type Range, type Topology } from '../range';
+import { type SeqFragment } from './fragment';
 import { type DocumentMetadata } from './metadata';
 
 /**
@@ -11,6 +12,12 @@ export type EditOp =
   | { readonly type: 'insert'; readonly position: number; readonly text: string }
   | { readonly type: 'delete'; readonly range: Range }
   | { readonly type: 'replace'; readonly range: Range; readonly text: string }
+  /**
+   * Pasting: the bases in `range` (none for a caret) are removed and the
+   * fragment's sequence and features take their place. Unlike `replace`,
+   * annotations confined to `range` do not survive.
+   */
+  | { readonly type: 'insertFragment'; readonly range: Range; readonly fragment: SeqFragment }
   | { readonly type: 'reverseComplement' }
   | { readonly type: 'setOrigin'; readonly position: number }
   | { readonly type: 'setTopology'; readonly topology: Topology }
@@ -30,6 +37,10 @@ export function describeEditOp(op: EditOp): string {
       return 'Delete';
     case 'replace':
       return 'Replace';
+    case 'insertFragment': {
+      const n = op.fragment.sequence.length;
+      return n === 1 ? 'Paste 1 base' : `Paste ${n.toLocaleString()} bases`;
+    }
     case 'reverseComplement':
       return 'Reverse complement';
     case 'setOrigin':

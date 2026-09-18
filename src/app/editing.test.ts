@@ -1,9 +1,10 @@
-import { InvalidSequenceError, SeqDocument } from '@/core';
+import { InvalidSequenceError, SeqDocument, createFeature, rangeSegment } from '@/core';
 
 import {
   clampPosition,
   deleteBackward,
   deleteForward,
+  pasteFragment,
   selectionAfterOp,
   selectionBetween,
   typeText,
@@ -43,6 +44,56 @@ describe('typeText', () => {
   });
 });
 
+describe('pasteFragment', () => {
+  const fragment = {
+    sequence: 'GGGGGG',
+    features: [createFeature({ id: 'f', type: 'gene', segments: [rangeSegment(1, 5)] })],
+  };
+
+  it('builds an insertFragment op with fresh feature ids and a caret after the paste', () => {
+    const plan = pasteFragment(linear, { start: 3, end: 3 }, fragment);
+    expect(plan?.op.type).toBe('insertFragment');
+    if (plan?.op.type !== 'insertFragment') throw new Error('unexpected op');
+    expect(plan.op.range).toEqual({ start: 3, end: 3 });
+    expect(plan.op.fragment.sequence).toBe('GGGGGG');
+    expect(plan.op.fragment.features[0]?.id).not.toBe('f');
+    expect(plan.op.fragment.features[0]?.segments).toEqual([rangeSegment(1, 5)]);
+    expect(plan.selectionAfter).toEqual({ start: 9, end: 9 });
+    const again = pasteFragment(linear, { start: 3, end: 3 }, fragment);
+    expect(again?.op.type === 'insertFragment' && again.op.fragment.features[0]?.id).not.toBe(
+      plan.op.fragment.features[0]?.id,
+    );
+  });
+
+  it('replaces a selection and puts the caret after the paste, wrapping on circles', () => {
+    expect(pasteFragment(linear, { start: 2, end: 6 }, fragment)?.selectionAfter).toEqual({
+      start: 8,
+      end: 8,
+    });
+    // Removing 8,9,0,1 leaves the cut at the origin: the paste occupies 0..6.
+    const plan = pasteFragment(circular, { start: 8, end: 12 }, fragment);
+    expect(plan?.selectionAfter).toEqual({ start: 6, end: 6 });
+    if (plan === null) throw new Error('no plan');
+    expect(circular.apply(plan.op).sequence.toString()).toBe('GGGGGG' + 'GTACGT');
+    // A paste filling the whole circle leaves the caret at 0, not at the length.
+    const whole = pasteFragment(circular, { start: 0, end: 10 }, fragment);
+    expect(whole?.selectionAfter).toEqual({ start: 0, end: 0 });
+  });
+
+  it('falls back to plain text for a fragment without features', () => {
+    expect(pasteFragment(linear, { start: 2, end: 6 }, { sequence: 'GG', features: [] })).toEqual(
+      typeText(linear, { start: 2, end: 6 }, 'GG'),
+    );
+  });
+
+  it('rejects bad bases and needs a selection', () => {
+    expect(() =>
+      pasteFragment(linear, { start: 0, end: 0 }, { ...fragment, sequence: 'HELLO!' }),
+    ).toThrow(InvalidSequenceError);
+    expect(pasteFragment(linear, null, fragment)).toBeNull();
+  });
+});
+
 describe('deleteBackward / deleteForward', () => {
   it('deletes a selection either way', () => {
     const plan = {
@@ -51,6 +102,15 @@ describe('deleteBackward / deleteForward', () => {
     };
     expect(deleteBackward(linear, { start: 2, end: 6 })).toEqual(plan);
     expect(deleteForward(linear, { start: 2, end: 6 })).toEqual(plan);
+    // a selection wrapping the origin leaves the caret at the origin
+    expect(deleteForward(circular, { start: 8, end: 12 })?.selectionAfter).toEqual({
+      start: 0,
+      end: 0,
+    });
+    expect(deleteForward(circular, { start: 0, end: 10 })?.selectionAfter).toEqual({
+      start: 0,
+      end: 0,
+    });
   });
 
   it('deletes single bases around the caret, wrapping only on circular sequences', () => {

@@ -85,7 +85,8 @@ export function EditBar({ doc }: Props) {
         Find
       </button>
       <span className="editbar__hint">
-        Type bases to insert, Backspace to delete, Ctrl+V to paste.
+        Type bases to insert, Backspace to delete. Ctrl+C copies the selection with its features,
+        Ctrl+V pastes.
       </span>
     </div>
   );

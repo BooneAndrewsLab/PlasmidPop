@@ -13,6 +13,7 @@ import {
   type SeqDocument,
   CdsTranslations,
   InvalidSequenceError,
+  fragmentFromRange,
   isCodingFeature,
   isEmptyRange,
 } from '@/core';
@@ -28,11 +29,13 @@ import {
 } from '@/view/linear';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
+import { readClipboard, writeFragment } from '../clipboard';
 import {
   clampPosition,
   deleteBackward,
   deleteForward,
   deleteSelection,
+  pasteFragment,
   selectionBetween,
   typeText,
 } from '../editing';
@@ -257,6 +260,20 @@ export function LinearSequenceView({ doc }: Props) {
     }
   };
 
+  const withClipboard = (data: DataTransfer): void => {
+    const content = readClipboard(data);
+    if (typeof content === 'string') {
+      withText(content);
+      return;
+    }
+    try {
+      editorStore.applyPlan(pasteFragment(doc, selection, content));
+    } catch (err) {
+      if (err instanceof InvalidSequenceError) editorStore.fail(err.message);
+      else throw err;
+    }
+  };
+
   const moveCaret = (target: number, extend: boolean): void => {
     const position = clampPosition(doc, target);
     if (extend && selection !== null) {
@@ -351,27 +368,26 @@ export function LinearSequenceView({ doc }: Props) {
     }
   };
 
-  const selectedText = (): string =>
-    selection === null || isEmptyRange(selection) ? '' : doc.subsequence(selection);
+  /** Copies the selection, bases and features, to the clipboard; false when nothing is selected. */
+  const copySelection = (data: DataTransfer): boolean => {
+    if (selection === null || isEmptyRange(selection)) return false;
+    writeFragment(data, fragmentFromRange(doc, selection));
+    return true;
+  };
 
   const onCopy = (e: ReactClipboardEvent<HTMLDivElement>): void => {
-    const text = selectedText();
-    if (text === '') return;
-    e.preventDefault();
-    e.clipboardData.setData('text/plain', text);
+    if (copySelection(e.clipboardData)) e.preventDefault();
   };
 
   const onCut = (e: ReactClipboardEvent<HTMLDivElement>): void => {
-    const text = selectedText();
-    if (text === '' || selection === null) return;
+    if (selection === null || !copySelection(e.clipboardData)) return;
     e.preventDefault();
-    e.clipboardData.setData('text/plain', text);
     editorStore.applyPlan(deleteSelection(doc, selection));
   };
 
   const onPaste = (e: ReactClipboardEvent<HTMLDivElement>): void => {
     e.preventDefault();
-    withText(e.clipboardData.getData('text/plain'));
+    withClipboard(e.clipboardData);
   };
 
   return (
