@@ -53,6 +53,36 @@ describe('App', () => {
     expect(screen.getByRole('textbox', { name: 'Feature name' })).toHaveValue('New feature');
   });
 
+  it('lists changes in the history menu and jumps between them', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const menu = screen.getByRole('button', { name: 'History' });
+    expect(menu).toBeDisabled();
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 0, text: 'AC' });
+      editorStore.apply({ type: 'rename', name: 'renamed' });
+      editorStore.apply({ type: 'setTopology', topology: 'linear' });
+    });
+    fireEvent.click(menu);
+    const items = screen.getAllByRole('menuitemradio');
+    expect(items.map((i) => i.textContent)).toEqual([
+      '3Make linear',
+      '2Rename',
+      '1Insert 2 bases',
+      'Opened document',
+    ]);
+    expect(items[0]).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /Insert 2 bases/ }));
+    expect(editorStore.document?.name).toBe('SYNPBR322');
+    expect(editorStore.document?.topology).toBe('circular');
+    expect(editorStore.getState().history?.position).toBe(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.click(menu);
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /Make linear/ }));
+    expect(editorStore.document?.topology).toBe('linear');
+    expect(editorStore.getState().history?.canRedo).toBe(false);
+  });
+
   it('lists restriction enzymes and ORFs once analysis finishes', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

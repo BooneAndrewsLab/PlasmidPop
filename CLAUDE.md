@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 276 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 281 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -125,6 +125,18 @@ pick from here when the current work is done.
     document itself after a simulated digest.
 11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs
     an auth-provider decision first.
+12. **User documentation**: a short guide (getting started, file formats,
+    editing, analysis, keyboard shortcuts) reachable from the app, plus a
+    README that reads as a landing page. Required by JOSS and NAR web
+    server reviewers, so it should land before any publication attempt.
+13. **Licence**: none is declared yet (no LICENSE file, nothing in
+    package.json), so the repo cannot be made public or submitted to JOSS.
+    Decide (MIT or Apache-2.0 are the usual picks for lab software; check
+    what the reference implementations and the enzyme data allow), add the
+    LICENSE file, the package.json field and a CITATION.cff.
+14. **Circular map zoom**: mouse-wheel and pinch zoom on the map, panning
+    when zoomed, and a zoom-to-selection or zoom-to-feature action, so
+    dense regions and short features can be read on large plasmids.
 
 ## Non-goals for v1
 

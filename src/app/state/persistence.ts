@@ -20,12 +20,28 @@ import { editorStore } from './editorStore';
 export class PersistenceService {
   constructor(private readonly repo: DocumentRepository = getRepository()) {}
 
-  /** Writes the present document to IndexedDB (called debounced by useAutosave). */
+  /**
+   * Writes the present document to IndexedDB (called debounced by
+   * useAutosave). The first save of a newly opened document reuses the entry
+   * of an identical stored one, so reopening a file or the example does not
+   * pile up duplicates in the recent list.
+   */
   async autosave(): Promise<void> {
     const { history, documentId, fileName } = editorStore.getState();
     if (history === null || documentId === null) return;
-    await this.repo.save(documentId, history.present, fileName);
-    this.repo.setLastDocumentId(documentId);
+    let id = documentId;
+    if (!(await this.repo.has(id))) {
+      const existing = await this.repo.findIdentical(history.present, fileName);
+      if (existing !== null) {
+        await this.repo.moveHandle(id, existing);
+        // Bail if the user opened something else while we were looking.
+        if (editorStore.getState().documentId !== id) return;
+        editorStore.setDocumentId(existing);
+        id = existing;
+      }
+    }
+    await this.repo.save(id, history.present, fileName);
+    this.repo.setLastDocumentId(id);
   }
 
   /** Reopens the document that was open when the page was last closed. */

@@ -165,6 +165,12 @@ export class EditorStore {
     });
   }
 
+  /** Re-keys the open document in local storage (used to merge into an identical stored entry). */
+  setDocumentId(id: string): void {
+    if (this.state.documentId !== null && id !== this.state.documentId)
+      this.set({ documentId: id });
+  }
+
   setFileHandle(handle: FileSystemFileHandle | null): void {
     this.set({ fileHandle: handle });
   }
@@ -244,6 +250,14 @@ export class EditorStore {
     const history = this.state.history;
     if (history?.canRedo !== true) return;
     this.set({ history: history.redo(), selection: null });
+  }
+
+  /** Undoes or redoes to the state with `position` changes applied (0 = as opened). */
+  jumpHistory(position: number): void {
+    const history = this.state.history;
+    if (history === null) return;
+    const next = history.jumpTo(position);
+    if (next !== history) this.set({ history: next, selection: null });
   }
 
   setSelection(selection: Range | null): void {

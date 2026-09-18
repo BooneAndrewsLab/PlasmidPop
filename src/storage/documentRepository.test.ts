@@ -57,6 +57,28 @@ describe('DocumentRepository', () => {
     expect(second?.updatedAt).toBeGreaterThan(first?.updatedAt ?? Infinity);
   });
 
+  it('finds an identical stored document by content and file name', async () => {
+    const repo = freshRepo();
+    await repo.save('a', doc, 'pTest.gb');
+    expect(await repo.has('a')).toBe(true);
+    expect(await repo.has('zzz')).toBe(false);
+    expect(await repo.findIdentical(doc, 'pTest.gb')).toBe('a');
+    expect(await repo.findIdentical(doc, null)).toBeNull();
+    expect(await repo.findIdentical(doc.insert(0, 'A'), 'pTest.gb')).toBeNull();
+    expect(await repo.findIdentical(doc.rename('other'), 'pTest.gb')).toBeNull();
+  });
+
+  it('moves file handles between ids', async () => {
+    const repo = freshRepo();
+    const handle = { kind: 'file', name: 'x.gb' } as unknown as FileSystemFileHandle;
+    await repo.saveHandle('fresh', handle);
+    await repo.moveHandle('fresh', 'old');
+    expect(await repo.loadHandle('fresh')).toBeNull();
+    expect(await repo.loadHandle('old')).toMatchObject({ name: 'x.gb' });
+    await repo.moveHandle('missing', 'old'); // no handle to move: keeps the existing one
+    expect(await repo.loadHandle('old')).toMatchObject({ name: 'x.gb' });
+  });
+
   it('remembers the last open document id', () => {
     const repo = freshRepo();
     repo.setLastDocumentId('xyz');

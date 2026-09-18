@@ -59,8 +59,8 @@ export function EmptyState() {
         </p>
       </div>
       {recent !== null && recent.length > 0 && (
-        <section className="recent" aria-label="Recent documents">
-          <h2 className="recent__title">Recent documents</h2>
+        <section className="recent" aria-label="Recent files">
+          <h2 className="recent__title">Recent files</h2>
           <ul className="recent__list">
             {recent.map((d) => (
               <li key={d.id} className="recent__item">

@@ -47,6 +47,29 @@ describe('History', () => {
     expect(h.canUndo).toBe(false);
   });
 
+  it('lists all changes and jumps to any position', () => {
+    let h = History.create('a').push('b', 'to b').push('c', 'to c').push('d', 'to d');
+    expect(h.labels).toEqual(['to b', 'to c', 'to d']);
+    expect(h.position).toBe(3);
+
+    h = h.jumpTo(1);
+    expect(h.present).toBe('b');
+    expect(h.position).toBe(1);
+    expect(h.labels).toEqual(['to b', 'to c', 'to d']);
+    expect(h.redoLabel).toBe('to c');
+
+    h = h.jumpTo(3);
+    expect(h.present).toBe('d');
+    expect(h.jumpTo(3)).toBe(h);
+    expect(h.jumpTo(-5).present).toBe('a');
+    expect(h.jumpTo(99).present).toBe('d');
+
+    // A new change from the middle drops the undone tail from the list.
+    h = h.jumpTo(1).push('e', 'to e');
+    expect(h.labels).toEqual(['to b', 'to e']);
+    expect(h.position).toBe(2);
+  });
+
   it('is immutable', () => {
     const a = History.create('x');
     const b = a.push('y', 'y');

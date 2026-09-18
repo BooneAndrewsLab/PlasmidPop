@@ -6,6 +6,7 @@ import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
 import { ExportMenu } from './ExportMenu';
+import { HistoryMenu } from './HistoryMenu';
 import { Logo } from './Logo';
 import { type ViewMode, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { history, showComplement, view, dirty, fileHandle } = useEditorState();
+  const { showComplement, view, dirty, fileHandle } = useEditorState();
   const report = (p: Promise<unknown>): void => {
     p.catch((e: unknown) => {
       editorStore.fail(e instanceof Error ? e.message : String(e));
@@ -97,28 +98,7 @@ export function Toolbar({ doc }: Props) {
             Complement strand
           </label>
         )}
-        <button
-          type="button"
-          className="button"
-          disabled={history?.canUndo !== true}
-          title={history?.undoLabel === undefined ? 'Undo' : `Undo ${history.undoLabel}`}
-          onClick={() => {
-            editorStore.undo();
-          }}
-        >
-          Undo
-        </button>
-        <button
-          type="button"
-          className="button"
-          disabled={history?.canRedo !== true}
-          title={history?.redoLabel === undefined ? 'Redo' : `Redo ${history.redoLabel}`}
-          onClick={() => {
-            editorStore.redo();
-          }}
-        >
-          Redo
-        </button>
+        <HistoryMenu />
         {example !== undefined && (
           <button
             type="button"
@@ -163,12 +143,12 @@ export function Toolbar({ doc }: Props) {
             <button
               type="button"
               className="button button--quiet"
-              title="Close this document (it stays in your recent documents)"
+              title="Go to the list of files stored in this browser (this one stays there)"
               onClick={() => {
                 editorStore.closeDocument();
               }}
             >
-              Close
+              Show files
             </button>
           </>
         )}

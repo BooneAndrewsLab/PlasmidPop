@@ -38,6 +38,36 @@ export class DocumentRepository {
     });
   }
 
+  async has(id: string): Promise<boolean> {
+    return (await this.db.documents.where('id').equals(id).count()) > 0;
+  }
+
+  /**
+   * Id of a stored document identical to `doc` (same GenBank text and file
+   * name), so opening the same file or example twice does not add a second
+   * entry to the recent list.
+   */
+  async findIdentical(doc: SeqDocument, fileName: string | null): Promise<string | null> {
+    const text = writeGenBank(doc);
+    const match = await this.db.documents
+      .where('name')
+      .equals(doc.name)
+      .filter((d) => d.fileName === fileName && d.text === text)
+      .first();
+    return match?.id ?? null;
+  }
+
+  /** Re-keys a stored file handle, dropping any handle already under `to`. */
+  async moveHandle(from: string, to: string): Promise<void> {
+    if (from === to) return;
+    await this.db.transaction('rw', this.db.handles, async () => {
+      const stored = await this.db.handles.get(from);
+      if (stored === undefined) return;
+      await this.db.handles.put({ id: to, handle: stored.handle });
+      await this.db.handles.delete(from);
+    });
+  }
+
   async load(id: string): Promise<{ doc: SeqDocument; fileName: string | null } | null> {
     const stored = await this.db.documents.get(id);
     if (stored === undefined) return null;

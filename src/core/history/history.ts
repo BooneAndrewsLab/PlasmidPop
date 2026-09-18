@@ -47,6 +47,29 @@ export class History<T> {
     return this.past.length;
   }
 
+  /**
+   * Labels of every recorded change, oldest first: the undone ones follow
+   * the applied ones. `position` says how many of them are applied.
+   */
+  get labels(): readonly string[] {
+    const future = this.future.map((e) => e.label);
+    future.reverse();
+    return [...this.past.map((e) => e.label), ...future];
+  }
+
+  /** Number of applied changes; `labels[position - 1]` is what `undo()` reverts. */
+  get position(): number {
+    return this.past.length;
+  }
+
+  /** Undoes or redoes as many steps as needed to have `position` changes applied. */
+  jumpTo(position: number): History<T> {
+    const target = Math.max(0, Math.min(this.past.length + this.future.length, position));
+    if (this.position > target) return this.undo().jumpTo(target);
+    if (this.position < target) return this.redo().jumpTo(target);
+    return this;
+  }
+
   /** Records `next` as the new present. Discards any redo steps. */
   push(next: T, label: string): History<T> {
     if (next === this.present) return this;

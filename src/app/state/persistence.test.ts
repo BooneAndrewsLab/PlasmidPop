@@ -27,6 +27,31 @@ describe('PersistenceService', () => {
     });
   });
 
+  it('reuses the stored entry when an identical document is opened again', async () => {
+    const first = editorStore.getState().documentId;
+    const handle = { kind: 'file', name: 'pKeep.gb' } as unknown as FileSystemFileHandle;
+    editorStore.openDocument(doc, 'pKeep.gb', [], { handle });
+    const second = editorStore.getState().documentId ?? '';
+    expect(second).not.toBe(first);
+    await repo.saveHandle(second, handle);
+    await service.autosave();
+    expect(editorStore.getState().documentId).toBe(first);
+    expect((await service.listStored()).map((d) => d.id)).toEqual([first]);
+    expect(await repo.loadHandle(first ?? '')).toMatchObject({ name: 'pKeep.gb' });
+    expect(await repo.loadHandle(second)).toBeNull();
+
+    // A different document (edited, or without a file name) gets its own entry.
+    editorStore.openDocument(doc, null);
+    await service.autosave();
+    expect((await service.listStored()).length).toBe(2);
+    await service.removeStored(editorStore.getState().documentId ?? '');
+    // Leave the first entry open again for the next test.
+    editorStore.openDocument(doc, 'pKeep.gb');
+    await service.autosave();
+    expect(editorStore.getState().documentId).toBe(first);
+    expect((await service.listStored()).map((d) => d.id)).toEqual([first]);
+  });
+
   it('removes stored documents and closes them if open', async () => {
     const id = editorStore.getState().documentId ?? '';
     await service.removeStored(id);
