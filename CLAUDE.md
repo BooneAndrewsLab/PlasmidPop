@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 284 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 298 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -131,9 +131,15 @@ pick from here when the current work is done.
     server reviewers, so it should land before any publication attempt.
 13. ~~**Licence**~~: done. MIT (`LICENSE`, `package.json`, `CITATION.cff`).
     Keep REBASE data out of the repo; its terms restrict redistribution.
-14. **Circular map zoom**: mouse-wheel and pinch zoom on the map, panning
-    when zoomed, and a zoom-to-selection or zoom-to-feature action, so
-    dense regions and short features can be read on large plasmids.
+14. ~~**Circular map zoom**~~: done. Wheel and pinch zoom about the
+    cursor, drag to pan, +/−/Fit/Sel buttons, double-click a feature to
+    fit it (`src/view/circular/viewport.ts`, `CircularMapView.tsx`).
+    Lane widths and fonts do not scale; ticks densify with zoom.
+15. **Mobile-friendly layout**, probably view-only at first: a phone or
+    tablet should be able to open a file and read the map, features and
+    sequence, with the sidebar and views collapsing into tabs. Editing
+    on a touch screen is hard to get right and can wait; test on real
+    devices, not only a narrow desktop window.
 
 ## Non-goals for v1
 

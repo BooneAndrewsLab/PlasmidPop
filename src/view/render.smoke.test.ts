@@ -110,4 +110,32 @@ describe('renderers over a real plasmid', () => {
       titleFont: '15px sans-serif',
     });
   }, 5000);
+
+  it('circular map renders zoomed in and panned', () => {
+    const features = drawableFeatures(doc.features.all());
+    const lanes = assignLanes(features, doc.length);
+    const layout = new CircularLayout(doc.length, doc.topology, {
+      width: 800,
+      height: 600,
+      laneCount: lanes.laneCount,
+      ringWidth: 14,
+      outerMargin: 110,
+      viewport: { zoom: 6, panX: 300, panY: 900 },
+    });
+    expect(layout.radius).toBe(layout.baseRadius * 6);
+    renderCircularMap(stubContext(), {
+      doc,
+      layout,
+      lanes,
+      selection: { start: 10, end: 500 },
+      cutSites: shown,
+      hoveredFeatureId: null,
+      width: 800,
+      height: 600,
+      devicePixelRatio: 1,
+      theme,
+      sansFont: '12px sans-serif',
+      titleFont: '15px sans-serif',
+    });
+  }, 5000);
 });

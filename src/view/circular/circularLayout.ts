@@ -1,5 +1,7 @@
 import { type Topology } from '@/core';
 
+import { type MapViewport, type ViewportBounds, FIT_VIEWPORT, maxZoomFor } from './viewport';
+
 /**
  * Geometry of the circular plasmid map. Position 0 sits at 12 o'clock and
  * positions increase clockwise. Feature lanes stack inward from the
@@ -21,13 +23,21 @@ export interface CircularOptions {
   readonly ringWidth: number;
   /** Space kept outside the backbone for ticks and labels. */
   readonly outerMargin: number;
+  /** Zoom and pan; the whole circle, centred, when omitted. */
+  readonly viewport?: MapViewport;
 }
 
 export class CircularLayout {
+  readonly width: number;
+  readonly height: number;
   readonly cx: number;
   readonly cy: number;
-  /** Radius of the backbone circle. */
+  /** Radius of the backbone circle at the current zoom. */
   readonly radius: number;
+  /** Backbone radius at zoom 1, when the whole circle fits the canvas. */
+  readonly baseRadius: number;
+  readonly viewport: MapViewport;
+  readonly maxZoom: number;
   readonly ringWidth: number;
   readonly laneCount: number;
 
@@ -36,13 +46,37 @@ export class CircularLayout {
     readonly topology: Topology,
     options: CircularOptions,
   ) {
-    this.cx = options.width / 2;
-    this.cy = options.height / 2;
+    this.width = options.width;
+    this.height = options.height;
     this.ringWidth = options.ringWidth;
     this.laneCount = options.laneCount;
     const available = Math.min(options.width, options.height) / 2 - options.outerMargin;
     const needed = 40 + options.laneCount * options.ringWidth;
-    this.radius = Math.max(24, Math.max(available, needed));
+    this.baseRadius = Math.max(24, Math.max(available, needed));
+    this.maxZoom = maxZoomFor(seqLength, this.baseRadius);
+    this.viewport = options.viewport ?? FIT_VIEWPORT;
+    this.radius = this.baseRadius * this.viewport.zoom;
+    this.cx = options.width / 2 + this.viewport.panX;
+    this.cy = options.height / 2 + this.viewport.panY;
+  }
+
+  get zoom(): number {
+    return this.viewport.zoom;
+  }
+
+  /** What the zoom and pan rules need to know about this canvas. */
+  get bounds(): ViewportBounds {
+    return {
+      width: this.width,
+      height: this.height,
+      baseRadius: this.baseRadius,
+      maxZoom: this.maxZoom,
+    };
+  }
+
+  /** Whether a canvas point lies within `margin` pixels of the canvas. */
+  isOnCanvas(x: number, y: number, margin = 0): boolean {
+    return x >= -margin && x <= this.width + margin && y >= -margin && y <= this.height + margin;
   }
 
   /** Angle (radians) of a base boundary; 0 → -π/2 (top). */
@@ -91,7 +125,11 @@ const TICK_STEPS = [
   10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000,
 ];
 
-/** Spacing between ruler ticks such that the map shows at most ~16 of them. */
+/**
+ * Spacing between ruler ticks such that the whole circle carries at most
+ * ~16 of them at zoom 1; zooming in admits proportionally more, so the
+ * tick density on screen stays roughly constant.
+ */
 export function tickInterval(seqLength: number, maxTicks = 16): number {
   for (const step of TICK_STEPS) if (seqLength / step <= maxTicks) return step;
   return 10 ** Math.ceil(Math.log10(seqLength / maxTicks));
@@ -115,8 +153,10 @@ export interface PlacedLabel extends LabelInput {
 
 /**
  * Places labels on a ring outside the backbone and nudges them vertically so
- * that labels on the same side never overlap. Labels are kept inside the
- * canvas height.
+ * that labels on the same side never overlap. Labels whose text does not
+ * overlap horizontally may share a line, which matters near the top and
+ * bottom of the circle and on a zoomed-in map, where the ring runs almost
+ * horizontally. Labels are kept inside the canvas height.
  */
 export function layoutLabels(
   labels: readonly LabelInput[],
@@ -139,12 +179,25 @@ export function layoutLabels(
     };
     (right ? sides.right : sides.left).push(placed);
   }
+  const xExtent = (l: PlacedLabel): readonly [number, number] =>
+    l.align === 'left' ? [l.x, l.x + l.textWidth] : [l.x - l.textWidth, l.x];
+  const overlapsX = (a: PlacedLabel, b: PlacedLabel): boolean => {
+    const [a0, a1] = xExtent(a);
+    const [b0, b1] = xExtent(b);
+    return a0 < b1 + 4 && b0 < a1 + 4;
+  };
   const resolve = (items: PlacedLabel[]): PlacedLabel[] => {
     items.sort((a, b) => a.y - b.y);
     const ys = items.map((l) => l.y);
     for (let i = 1; i < ys.length; i++) {
-      const prev = ys[i - 1] ?? 0;
-      if ((ys[i] ?? 0) < prev + lineHeight) ys[i] = prev + lineHeight;
+      const me = items[i];
+      if (me === undefined) continue;
+      let floor = -Infinity;
+      for (let j = 0; j < i; j++) {
+        const other = items[j];
+        if (other !== undefined && overlapsX(me, other)) floor = Math.max(floor, ys[j] ?? 0);
+      }
+      if ((ys[i] ?? 0) < floor + lineHeight) ys[i] = floor + lineHeight;
     }
     // Push back up if the stack ran past the bottom edge.
     const overflow = (ys[ys.length - 1] ?? 0) + lineHeight / 2 - height;

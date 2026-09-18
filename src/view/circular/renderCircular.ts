@@ -55,7 +55,8 @@ function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
   ctx.stroke();
 
   if (doc.length === 0) return;
-  const step = tickInterval(doc.length);
+  // More ticks as the map zooms in, so their spacing on screen stays put.
+  const step = tickInterval(doc.length, Math.round(16 * layout.zoom));
   ctx.font = p.sansFont;
   ctx.fillStyle = theme.inkMuted;
   ctx.strokeStyle = theme.tick;
@@ -64,6 +65,7 @@ function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
   for (let pos = 0; pos < doc.length; pos += step) {
     const a = layout.angleOf(pos);
     const inner = layout.pointAt(pos, layout.radius + 1);
+    if (!layout.isOnCanvas(inner.x, inner.y, 80)) continue;
     const outer = layout.pointAt(pos, layout.radius + 7);
     ctx.beginPath();
     ctx.moveTo(inner.x, inner.y);
@@ -235,11 +237,23 @@ function drawLabels(
 ): void {
   const { layout, theme, doc } = p;
   ctx.font = p.sansFont;
+  const labelRadius = layout.radius + 34;
+  // Labels anchored well off the canvas are dropped before spacing, so
+  // that on a zoomed-in map the visible ones are spaced only against each
+  // other and the clamp to the canvas height does not drag in stragglers.
+  const nearCanvas = (angle: number, textWidth: number): boolean =>
+    layout.isOnCanvas(
+      layout.cx + labelRadius * Math.cos(angle),
+      layout.cy + labelRadius * Math.sin(angle),
+      textWidth + 4 * LABEL_LINE_HEIGHT,
+    );
   const inputs: LabelInput[] = [];
   for (const f of featuresToLabel(visible, doc.length)) {
     const angle = featureMidAngle(f, layout, doc.length);
     if (angle === null) continue;
-    inputs.push({ id: f.id, text: f.name, angle, textWidth: ctx.measureText(f.name).width });
+    const textWidth = ctx.measureText(f.name).width;
+    if (!nearCanvas(angle, textWidth)) continue;
+    inputs.push({ id: f.id, text: f.name, angle, textWidth });
   }
   const cutsByPosition = new Map<number, string[]>();
   for (const s of p.cutSites) {
@@ -249,15 +263,13 @@ function drawLabels(
   }
   for (const [cut, names] of cutsByPosition) {
     const text = `${names.join(', ')} (${(cut + 1).toLocaleString()})`;
-    inputs.push({
-      id: `${CUT_PREFIX}${cut}`,
-      text,
-      angle: layout.angleOf(cut),
-      textWidth: ctx.measureText(text).width,
-    });
+    const angle = layout.angleOf(cut);
+    const textWidth = ctx.measureText(text).width;
+    if (!nearCanvas(angle, textWidth)) continue;
+    inputs.push({ id: `${CUT_PREFIX}${cut}`, text, angle, textWidth });
   }
 
-  const placed = layoutLabels(inputs, layout, layout.radius + 34, LABEL_LINE_HEIGHT, p.height);
+  const placed = layoutLabels(inputs, layout, labelRadius, LABEL_LINE_HEIGHT, p.height);
   const byId = new Map(visible.map((f) => [f.id, f] as const));
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 1;
@@ -305,6 +317,7 @@ function drawLabels(
 
 function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
   const { layout, theme, doc } = p;
+  if (!layout.isOnCanvas(layout.cx, layout.cy, 40)) return;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = theme.ink;

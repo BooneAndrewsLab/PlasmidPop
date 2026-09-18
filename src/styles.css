@@ -358,6 +358,31 @@ button {
   touch-action: none;
 }
 
+.map-view__controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.map-view__control {
+  min-width: 34px;
+  padding: 2px 6px;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.map-view__zoom {
+  color: var(--ink-3);
+  font-size: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Sequence view */
 
 .seq-view {

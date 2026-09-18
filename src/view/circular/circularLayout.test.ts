@@ -31,6 +31,25 @@ describe('CircularLayout', () => {
     expect(layout.hitTest(0, 0)).toEqual({ kind: 'none' });
   });
 
+  it('scales the radius and shifts the centre with a viewport', () => {
+    const zoomed = new CircularLayout(1000, 'circular', {
+      ...opts,
+      viewport: { zoom: 3, panX: -50, panY: 20 },
+    });
+    expect(zoomed.baseRadius).toBe(140);
+    expect(zoomed.radius).toBe(420);
+    expect(zoomed.cx).toBe(250);
+    expect(zoomed.cy).toBe(220);
+    expect(zoomed.zoom).toBe(3);
+    expect(zoomed.bounds).toMatchObject({ width: 600, height: 400, baseRadius: 140 });
+    expect(zoomed.bounds.maxZoom).toBeCloseTo(3000 / (2 * Math.PI * 140));
+    const onBackbone = zoomed.pointAt(100, zoomed.radius - 2);
+    expect(zoomed.hitTest(onBackbone.x, onBackbone.y)).toEqual({ kind: 'backbone', position: 100 });
+    expect(zoomed.isOnCanvas(-10, 50)).toBe(false);
+    expect(zoomed.isOnCanvas(-10, 50, 20)).toBe(true);
+    expect(layout.viewport).toEqual({ zoom: 1, panX: 0, panY: 0 });
+  });
+
   it('grows the radius when many lanes need room', () => {
     const crowded = new CircularLayout(1000, 'circular', { ...opts, laneCount: 12 });
     expect(crowded.radius).toBeGreaterThan(140);
@@ -68,6 +87,37 @@ describe('layoutLabels', () => {
       expect(l.y).toBeGreaterThanOrEqual(7);
       expect(l.y).toBeLessThanOrEqual(393);
     }
+  });
+
+  it('lets labels that do not overlap horizontally share a line', () => {
+    // Along the top of a zoomed-in ring: same y, spread out in x.
+    const wide = new CircularLayout(1000, 'circular', {
+      ...opts,
+      viewport: { zoom: 10, panX: 0, panY: 1400 },
+    });
+    const labels = [-0.06, -0.04, -0.02].map((d, i) => ({
+      id: `t${i}`,
+      text: 'tt',
+      angle: -Math.PI / 2 + d,
+      textWidth: 14,
+    }));
+    const placed = layoutLabels(labels, wide, wide.radius + 34, 14, 400);
+    const ys = placed.map((l) => l.y);
+    // Untouched: they sit where the ring put them, within a few pixels.
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(5);
+    const xs = placed.map((l) => l.x).sort((a, b) => a - b);
+    for (let i = 1; i < xs.length; i++) expect((xs[i] ?? 0) - (xs[i - 1] ?? 0)).toBeGreaterThan(18);
+    // Crowd them and they stack instead.
+    const crowded = layoutLabels(
+      labels.map((l) => ({ ...l, textWidth: 60 })),
+      wide,
+      wide.radius + 34,
+      14,
+      400,
+    );
+    const stacked = crowded.map((l) => l.y).sort((a, b) => a - b);
+    for (let i = 1; i < stacked.length; i++)
+      expect((stacked[i] ?? 0) - (stacked[i - 1] ?? 0)).toBeGreaterThanOrEqual(14 - 1e-9);
   });
 
   it('aligns labels on the left half to the right', () => {
