@@ -457,26 +457,36 @@ button {
 .sidebar__tabs {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 1px;
+  padding: 1px;
+  background: var(--line);
   border-bottom: 1px solid var(--line);
 }
 
+/* Bordered button grid in the same language as the toolbar's view switcher:
+   the 1px gaps on the strip's background draw the cell borders. */
 .sidebar__tab {
   min-width: 0;
-  padding: 7px 4px;
+  padding: 6px 4px;
   font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
+  background: var(--surface);
   color: var(--ink-2);
   cursor: pointer;
 }
 
-.sidebar__tab--active {
+.sidebar__tab:hover:not(.sidebar__tab--active) {
+  background: var(--surface-3);
   color: var(--ink);
-  border-bottom-color: var(--accent);
+}
+
+.sidebar__tab--active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 550;
 }
 
 .sidebar__panel {

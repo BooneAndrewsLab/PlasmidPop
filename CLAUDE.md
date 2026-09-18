@@ -178,6 +178,24 @@ pick from here when the current work is done.
     bare bases as a new document (`openPastedText` in
     `src/app/openFile.ts`). Not yet: choosing circular/name up front (use
     "Make circular" and rename after).
+18. **Sidebar tab strip that stays on one row.** Seven tabs do not fit
+    the 300 px sidebar, so the strip is currently a bordered 4 + 3 button
+    grid (`.sidebar__tabs` in `src/styles.css`, same construction as the
+    toolbar view switcher). It will get worse as tabs are added (History
+    panel). Options considered on 2026-09-18, in order of preference:
+    (a) a vertical rail along the sidebar's outer edge with rotated
+    labels, JetBrains style, about 30 px wide, sidebar widened to ~330 px
+    to compensate; scales to any tab count, nothing hidden. (b) An
+    overflow menu, DevTools style: show the tabs that fit, collapse the
+    rest into a "More" button, always promote the active tab; needs a
+    ResizeObserver in `Sidebar.tsx`. (c) Icon tabs with 10 px captions,
+    seven cells of ~42 px; needs icons, and would carry over to the mobile
+    layout. (d) Fewer top-level tabs: fold Cloning under Enzymes, ORFs
+    under Translate, Primers and Align under Tools, with a segmented
+    sub-switch. Rejected: a horizontally scrolling row (hides the tab
+    people cannot find), and a wider or resizable sidebar on its own
+    (does not help small windows). If the grid stays, fill the empty
+    fourth cell of the second row with the surface colour.
 
 ## Non-goals for v1
 
