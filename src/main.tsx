@@ -14,7 +14,7 @@ if (container === null) {
 // Offline support: the service worker is generated at build time (vite-plugin-pwa).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
       // Offline caching is a convenience; the app works without it.
     });
   });

@@ -84,6 +84,45 @@ working with no account and no server round-trip.
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. Optional backend: auth + sync + share links.
 
+## Status (2026-09-18)
+
+Build order steps 1–10 are implemented and committed; step 11 (backend)
+is not started. Beyond the build order, these have landed: Save GenBank /
+Save as / write-back through the File System Access API, SVG map export,
+selection export, find (Ctrl+F), a full feature editor, and a bundled
+example (pBR322). Tests: 276 passing. Perf measurements live in
+`docs/perf-notes.md`.
+
+## Potential new features (not scheduled)
+
+Ideas judged worthwhile, roughly in priority order. None is committed to;
+pick from here when the current work is done.
+
+1. **Amino-acid translation under CDS features** in the linear view (per
+   frame, codon-aligned, respecting `/codon_start` and joins). The most
+   used SnapGene affordance we lack.
+2. **Copy and paste with features.** Copy a selection as a sub-document
+   (see `extractRange`) and paste it into another document, shifting and
+   merging annotations; internal clipboard first, then a JSON MIME type.
+3. **Simulated cloning.** Cut with the shown enzymes, list fragments with
+   overhangs, ligate compatible ends into a new document; later Gibson
+   and Golden Gate assembly from primer/fragment sets.
+4. **Translation of any selected range in six frames** with the protein
+   shown in a panel and exportable as FASTA.
+5. **History panel** listing undo steps with labels; jump to any state.
+6. **Multiple open documents (tabs)**, prerequisite for cloning workflows
+   that move DNA between constructs.
+7. **Enzyme table from REBASE** once the licence question is settled;
+   supplier filter and methylation sensitivity.
+8. **Linear map export as SVG** (the current viewport or a chosen range),
+   reusing `SvgContext`.
+9. **Sequence view options**: font size, bases per row override, show
+   line numbers for the complement, colour bases.
+10. **Linear molecule end handling**: sticky ends and overhangs on the
+    document itself after a simulated digest.
+11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs
+    an auth-provider decision first.
+
 ## Non-goals for v1
 
 - Real-time multi-user editing

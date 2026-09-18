@@ -29,6 +29,15 @@ npm run dev
 | `npm run format`        | Prettier, write mode                         |
 | `npm run check`         | Typecheck + lint + format check + tests (CI) |
 
+## Building and deploying
+
+`npm run build` writes a static, installable PWA to `dist/` (service worker,
+manifest, icons included). Serve it from any static host; `npm run preview`
+serves the build locally. For a sub-path deployment set `BASE_PATH`, e.g.
+`BASE_PATH=/PlasmidPop/ npm run build`. The `deploy.yml` workflow publishes
+`dist/` to GitHub Pages on every push to `main` once Pages is enabled in the
+repository settings (source: GitHub Actions).
+
 ## Layout
 
 ```
