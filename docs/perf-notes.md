@@ -9,6 +9,7 @@ implementation changes.
 | Date       | Input            | Cells | Time   | Where                                 |
 | ---------- | ---------------- | ----- | ------ | ------------------------------------- |
 | 2026-09-17 | 3,000 × 2,940 bp | 8.8 M | 278 ms | Node 24 (V8), `pairwise.test.ts` perf |
+| 2026-09-18 | 3,000 × 2,940 bp | 8.8 M | 1.8 s  | GitHub Actions ubuntu-latest runner   |
 
 About 30 ns per cell including traceback bookkeeping, ~3 bytes per cell of
 traceback memory. Extrapolated: 5 kb × 5 kb ≈ 0.8 s and 75 MB; 10 kb × 10 kb
