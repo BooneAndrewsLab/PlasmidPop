@@ -1,12 +1,13 @@
 name: Deploy to GitHub Pages
 
-# Builds the PWA and publishes it to GitHub Pages on every push to main.
-# Enable Pages in the repository settings with "GitHub Actions" as source.
+# Builds the PWA and publishes it to GitHub Pages. Run it manually from the
+# Actions tab once Pages is enabled in the repository settings with
+# "GitHub Actions" as source. Note: on this org's plan a Pages site is
+# always public, even for a private repository; switch the trigger to
+# `push: branches: [main]` when that is acceptable.
 # The site is served under /<repo>/, which BASE_PATH passes to Vite.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
