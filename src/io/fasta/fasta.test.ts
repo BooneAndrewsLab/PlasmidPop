@@ -1,7 +1,7 @@
 import { SeqDocument } from '@/core';
 
 import { FormatError } from '../types';
-import { parseFasta, writeFasta, writeFastaRecords } from './fasta';
+import { formatFastaRecord, parseFasta, writeFasta, writeFastaRecords } from './fasta';
 
 describe('FASTA', () => {
   it('parses multiple records with names, descriptions and wrapped sequences', () => {
@@ -53,5 +53,15 @@ describe('FASTA', () => {
     expect(back.name).toBe('my_plasmid');
     expect(writeFasta(back)).toBe(text);
     expect(writeFastaRecords([doc, doc]).match(/^>/gm)).toHaveLength(2);
+  });
+
+  it('formats a single record of any alphabet', () => {
+    expect(formatFastaRecord('p frame +1', 'MKV*')).toBe('>p frame +1\nMKV*\n');
+    expect(formatFastaRecord('long', 'A'.repeat(71)).split('\n')).toEqual([
+      '>long',
+      'A'.repeat(70),
+      'A',
+      '',
+    ]);
   });
 });

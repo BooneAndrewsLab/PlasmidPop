@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
+import { translateSixFrames } from '@/core';
+
+import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
 import { editorStore } from './state/editorStore';
 import { App } from './App';
 
@@ -121,6 +124,35 @@ describe('App', () => {
     fireEvent.click(first);
     expect(screen.getByText('ORF translation')).toBeInTheDocument();
     expect(screen.getByText(/^M[A-Z*]+$/)).toBeInTheDocument();
+  });
+});
+
+describe('six-frame translation', () => {
+  it('translates the selection in six frames and exports them as FASTA', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Translate' }));
+    expect(screen.getByText('Whole sequence')).toBeInTheDocument();
+    expect(screen.getAllByRole('region', { name: /^Frame [+−][123]$/ })).toHaveLength(6);
+    act(() => {
+      // ATG AAA TAA → MK* in frame +1
+      editorStore.setSelection({ start: 0, end: 9 });
+    });
+    expect(screen.getByText('Selection')).toBeInTheDocument();
+    expect(screen.getByText(/1–9 · 9 bp/)).toBeInTheDocument();
+    const dna = editorStore.document?.subsequence({ start: 0, end: 9 }) ?? '';
+    const frames = translateSixFrames(dna);
+    const plus1 = screen.getByRole('region', { name: 'Frame +1' });
+    expect(plus1.querySelector('.frame__protein')?.textContent).toBe(frames[0]?.protein);
+    const minus1 = screen.getByRole('region', { name: 'Frame −1' });
+    expect(minus1.querySelector('.frame__protein')?.textContent).toBe(frames[3]?.protein);
+    const doc = editorStore.document;
+    if (doc === null) throw new Error('expected a document');
+    const fasta = sixFrameFasta(doc, { start: 0, end: 9 }, frames);
+    expect(fasta.match(/^>/gm)).toHaveLength(6);
+    expect(fasta).toContain('>SYNPBR322_1-9_frame+1 SYNPBR322 1..9 frame +1, 3 aa\n');
+    expect(fasta).toContain('>SYNPBR322_1-9_frame-3 SYNPBR322 1..9 frame -3, 2 aa\n');
+    expect(sixFrameFileName(doc, { start: 0, end: 9 })).toBe('SYNPBR322_1-9_6frames.fasta');
   });
 });
 

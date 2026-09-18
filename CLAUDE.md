@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 348 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 354 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -129,8 +129,14 @@ pick from here when the current work is done.
    Gibson and Golden Gate assembly from primer/fragment sets, partial
    digests, dephosphorylation, resolving IUPAC codes in overhangs, and
    persisting the assembly shelf across reloads.
-4. **Translation of any selected range in six frames** with the protein
-   shown in a panel and exportable as FASTA.
+4. ~~**Translation of any selected range in six frames**~~ done. The
+   Translate sidebar tab shows the selection (or the whole sequence when
+   nothing is selected) in frames +1..+3 and −1..−3
+   (`translateSixFrames` in `src/core/analysis/sixFrame.ts`; −1 starts at
+   the 3′ end of the selection), with stop codons marked, per-frame Copy
+   and an Export FASTA button that writes one protein record per frame
+   (`src/app/sixFrameExport.ts`). Not yet: alternative genetic codes,
+   clicking a residue to select its codon.
 5. **History panel** listing undo steps with labels; jump to any state.
 6. **Multiple open documents (tabs)**, prerequisite for cloning workflows
    that move DNA between constructs.

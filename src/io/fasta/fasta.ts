@@ -73,9 +73,17 @@ export function writeFasta(doc: SeqDocument): string {
   const headerParts = [doc.name.trim() === '' ? 'Untitled' : doc.name.replace(/\s+/g, '_')];
   if (description !== '') headerParts.push(description);
   if (circular) headerParts.push('[topology=circular]');
-  const lines = [`>${headerParts.join(' ')}`];
-  const text = doc.sequence.toString();
-  for (let i = 0; i < text.length; i += LINE_WIDTH) lines.push(text.slice(i, i + LINE_WIDTH));
+  return formatFastaRecord(headerParts.join(' '), doc.sequence.toString());
+}
+
+/**
+ * One FASTA record: `>header` followed by `sequence` wrapped to 70 columns
+ * and a trailing newline. Works for protein as well as nucleotide text.
+ */
+export function formatFastaRecord(header: string, sequence: string): string {
+  const lines = [`>${header}`];
+  for (let i = 0; i < sequence.length; i += LINE_WIDTH)
+    lines.push(sequence.slice(i, i + LINE_WIDTH));
   return `${lines.join('\n')}\n`;
 }
 

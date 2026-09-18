@@ -8,6 +8,7 @@ import { EnzymePanel } from './EnzymePanel';
 import { FeatureList } from './FeatureList';
 import { OrfPanel } from './OrfPanel';
 import { PrimerPanel } from './PrimerPanel';
+import { TranslatePanel } from './TranslatePanel';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -17,6 +18,7 @@ const TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],
   ['enzymes', 'Enzymes'],
   ['orfs', 'ORFs'],
+  ['translate', 'Translate'],
   ['primers', 'Primers'],
   ['align', 'Align'],
   ['cloning', 'Cloning'],
@@ -46,6 +48,7 @@ export function Sidebar({ doc }: Props) {
         {sidebarTab === 'features' && <FeatureList doc={doc} />}
         {sidebarTab === 'enzymes' && <EnzymePanel doc={doc} />}
         {sidebarTab === 'orfs' && <OrfPanel doc={doc} />}
+        {sidebarTab === 'translate' && <TranslatePanel doc={doc} />}
         {sidebarTab === 'primers' && <PrimerPanel doc={doc} />}
         {sidebarTab === 'align' && <AlignPanel doc={doc} />}
         {sidebarTab === 'cloning' && <CloningPanel doc={doc} />}

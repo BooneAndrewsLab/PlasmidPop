@@ -17,7 +17,8 @@ import { type ParseResult, type ParseWarning } from '@/io';
 import { type EditPlan, selectionAfterOp } from '../editing';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
-export type SidebarTab = 'features' | 'enzymes' | 'orfs' | 'primers' | 'align' | 'cloning';
+export type SidebarTab =
+  'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning';
 
 /** A digest fragment set aside for ligation, in the orientation it will be joined. */
 export interface AssemblyPart {

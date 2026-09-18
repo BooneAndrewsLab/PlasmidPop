@@ -428,13 +428,13 @@ button {
 
 .sidebar__tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--line);
-  overflow-x: auto;
 }
 
 .sidebar__tab {
   flex: 1 0 auto;
-  padding: 8px 4px;
+  padding: 7px 6px;
   font-size: 12.5px;
   white-space: nowrap;
   border: 0;
@@ -538,6 +538,57 @@ button {
 .panel__protein {
   max-height: 200px;
   overflow: auto;
+}
+
+/* Six-frame translation panel */
+.frame {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.frame__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.frame__heading .panel__heading-note {
+  margin-left: 0;
+}
+
+.frame__label {
+  min-width: 2.2em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.frame__label--reverse {
+  background: var(--seq-selection);
+}
+
+.frame__copy {
+  margin-left: auto;
+}
+
+.frame__protein {
+  max-height: 120px;
+}
+
+.frame__stop {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.frame__range {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
 }
 
 .enzyme-list,
