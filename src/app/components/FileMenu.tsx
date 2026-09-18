@@ -2,7 +2,7 @@ import { analytics } from '../analytics';
 import { type ReactNode } from 'react';
 
 import { type SeqDocument, extractRange, isEmptyRange } from '@/core';
-import { exportMapSvg } from '@/view/svg';
+import { exportLinearSvg, exportMapSvg } from '@/view/svg';
 
 import { EXAMPLES } from '../examples';
 import { openText } from '../openFile';
@@ -44,7 +44,7 @@ function Item({ children, shortcut, title, disabled, onClick }: ItemProps) {
 
 /** Every file-level action for the open document, behind one "File" button. */
 export function FileMenu({ doc, onOpenFile }: Props) {
-  const { selection, fileHandle, fileName } = useEditorState();
+  const { selection, fileHandle, fileName, showComplement, showTranslations } = useEditorState();
   const { open, toggle, close, ref } = useMenu();
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const example = EXAMPLES[0];
@@ -57,6 +57,14 @@ export function FileMenu({ doc, onOpenFile }: Props) {
     });
   };
   const stem = fileNameFor(doc, 'genbank').replace(/\.gb$/, '');
+  /** Runs an export, showing why it could not be written rather than throwing. */
+  const attempt = (fn: () => void): void => {
+    try {
+      fn();
+    } catch (e: unknown) {
+      editorStore.fail(e instanceof Error ? e.message : String(e));
+    }
+  };
   const run = (fn: () => void): (() => void) => {
     return () => {
       close();
@@ -133,6 +141,46 @@ export function FileMenu({ doc, onOpenFile }: Props) {
             })}
           >
             Export map as SVG
+          </Item>
+          <Item
+            title="The sequence rows — ruler, strands, features — as a vector file"
+            onClick={run(() => {
+              analytics.track('file', 'export', 'sequence-svg');
+              attempt(() => {
+                downloadText(
+                  `${stem}_sequence.svg`,
+                  exportLinearSvg(doc, {
+                    showComplement,
+                    showTranslations,
+                    cutSites: editorStore.visibleCutSites(),
+                  }),
+                );
+              });
+            })}
+          >
+            Export sequence view as SVG
+          </Item>
+          <Item
+            disabled={!hasSelection}
+            title="The rows holding the selection, with it highlighted"
+            onClick={run(() => {
+              if (selection === null) return;
+              analytics.track('file', 'export', 'selection-svg');
+              attempt(() => {
+                downloadText(
+                  `${stem}_selection.svg`,
+                  exportLinearSvg(doc, {
+                    range: selection,
+                    selection,
+                    showComplement,
+                    showTranslations,
+                    cutSites: editorStore.visibleCutSites(),
+                  }),
+                );
+              });
+            })}
+          >
+            Export selection view as SVG
           </Item>
           <Item
             onClick={run(() => {

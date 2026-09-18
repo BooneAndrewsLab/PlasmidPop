@@ -21,6 +21,9 @@ above each row giving the position of its first base. Below each row:
 Clicking a feature bar or a translation line selects that feature. Lowercase
 bases stay lowercase, as many people use case to mark regions.
 
+**File ▸ Export sequence view as SVG** writes what you see as a vector file
+for figures, see [Files](02-files.md).
+
 ## Circular map
 
 The map draws the backbone as a ring with tick marks, features as arcs in

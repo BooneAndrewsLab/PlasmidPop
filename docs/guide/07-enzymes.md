@@ -31,7 +31,7 @@ Below the list: how many enzymes cut, and how many do not cut at all.
 
 Shown cut sites are drawn in the sequence view (a mark with the enzyme name
 above the bases) and on the map (labels around the ring), and they are
-included in **Export map as SVG**.
+included in **Export map as SVG** and **Export sequence view as SVG**.
 
 ## Fragments
 

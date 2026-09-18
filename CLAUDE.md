@@ -90,13 +90,13 @@ Build order steps 1–10 are implemented and committed; step 11 (backend)
 is not started. Beyond the build order, these have landed: Save GenBank /
 Save as / write-back through the File System Access API, SVG map export,
 selection export, find (Ctrl+F), a full feature editor, a History sidebar
-tab, a bundled example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
+tab, sequence-view / selection SVG export, a bundled example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
 always on when configured, no user toggle by decision of 2026-09-18;
 events at file open/new/save/export, enzyme show, primer design, align,
 ligate, history jump; the Pages workflow sets the instance URL and site id 6). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 402 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 407 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -152,8 +152,16 @@ pick from here when the current work is done.
    that move DNA between constructs.
 7. **Enzyme table from REBASE** once the licence question is settled;
    supplier filter and methylation sensitivity.
-8. **Linear map export as SVG** (the current viewport or a chosen range),
-   reusing `SvgContext`.
+8. ~~**Linear map export as SVG**~~: done. **File ▸ Export sequence view as
+   SVG** writes the sequence rows (ruler, strands, translations, cut sites,
+   feature lanes) through `SvgContext` at a fixed 60 bases per row, and
+   **Export selection view as SVG** cuts it down to the rows holding the
+   selection, keeping document positions and highlighting it
+   (`exportLinearSvg` in `src/view/svg/exportLinear.ts`; the same
+   `renderLinearView` as the canvas, with a print theme and a Courier metric
+   the SVG text estimator matches). Refuses over 100,000 bases. Not yet: a
+   chosen range other than the selection, a bases-per-row control in the UI,
+   page-sized (A4) pagination.
 9. **Sequence view options**: font size, bases per row override, show
    line numbers for the complement, colour bases.
 10. **Linear molecule end handling**: sticky ends and overhangs on the

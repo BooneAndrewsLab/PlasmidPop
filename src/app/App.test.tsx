@@ -336,6 +336,8 @@ describe('toolbar', () => {
       'Open example',
       'Save…Ctrl+S', // no file handle: Save already asks where, so no Save as
       'Export map as SVG',
+      'Export sequence view as SVG',
+      'Export selection view as SVG',
       'Export sequence as FASTA',
       'Export selection as GenBank',
       'Export selection as FASTA',

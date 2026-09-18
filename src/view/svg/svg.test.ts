@@ -1,6 +1,7 @@
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
+import { exportLinearSvg } from './exportLinear';
 import { exportMapSvg } from './exportMap';
 import { SvgContext } from './svgContext';
 
@@ -71,5 +72,77 @@ describe('exportMapSvg', () => {
     expect(svg).toContain('fill="#ffffff"');
     expect((svg.match(/<path /g) ?? []).length).toBeGreaterThan(20);
     expect(exportMapSvg(doc, { size: 300, transparent: true })).not.toContain('fill="#ffffff"/>');
+  });
+});
+
+describe('exportLinearSvg', () => {
+  const doc = (() => {
+    const d = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (d === undefined) throw new Error('fixture');
+    return d;
+  })();
+  const height = (svg: string): number => Number(/height="([\d.]+)"/.exec(svg)?.[1] ?? 0);
+
+  it('draws the whole sequence: bases, ruler, features, white paper', () => {
+    const svg = exportLinearSvg(doc);
+    expect(svg.startsWith('<svg ')).toBe(true);
+    expect(svg.endsWith('</svg>')).toBe(true);
+    expect(svg).toContain('<title>SYNPBR322 sequence</title>');
+    expect(svg).toContain('4,361 bp');
+    expect(svg).toContain('fill="#ffffff"');
+    // First row: position label, forward bases and their complement.
+    expect(svg).toContain('>1<');
+    expect(svg).toContain('>ttctcatgtt<');
+    expect(svg).toContain('>aagagtacaa<');
+    expect(svg).toContain('>tet<');
+  });
+
+  it('exports only the rows holding a range, numbered as in the document', () => {
+    const whole = exportLinearSvg(doc);
+    const part = exportLinearSvg(doc, {
+      range: { start: 1000, end: 1050 },
+      selection: { start: 1000, end: 1050 },
+    });
+    expect(height(part)).toBeLessThan(height(whole));
+    // 60 bases per row, so the range starts in the row beginning at base 961.
+    expect(part).toContain('>961<');
+    expect(part).not.toContain('>1,381<');
+    // The selection is highlighted.
+    expect(part).toContain('fill="rgba(27, 110, 140, 0.18)"');
+  });
+
+  it('falls back to the whole sequence for a range that wraps the origin', () => {
+    const wrapped = exportLinearSvg(doc, { range: { start: 4300, end: 4381 } });
+    expect(height(wrapped)).toBe(height(exportLinearSvg(doc)));
+  });
+
+  it('honours complement, translations, cut sites, row width and transparency', () => {
+    const plain = exportLinearSvg(doc, { showComplement: false });
+    expect(height(plain)).toBeLessThan(height(exportLinearSvg(doc)));
+    expect(plain).not.toContain('>aagagtacaa<');
+
+    const sites = [
+      { enzyme: 'EcoRI', cut: 100, cutBottom: 104, siteStart: 100, strand: 'forward' },
+    ] as const;
+    const cut = exportLinearSvg(doc, { cutSites: sites });
+    expect(cut).toContain('>EcoRI<');
+
+    const narrow = exportLinearSvg(doc, { basesPerRow: 30 });
+    expect(Number(/width="([\d.]+)"/.exec(narrow)?.[1] ?? 0)).toBeLessThan(
+      Number(/width="([\d.]+)"/.exec(exportLinearSvg(doc))?.[1] ?? 0),
+    );
+
+    expect(exportLinearSvg(doc, { transparent: true })).not.toContain('fill="#ffffff"/>');
+  });
+
+  it('translates coding features when asked', () => {
+    const svg = exportLinearSvg(doc, {
+      range: { start: 86, end: 200 },
+      showTranslations: true,
+    });
+    expect(svg).toContain('font-size="13"');
+    expect(height(svg)).toBeGreaterThan(
+      height(exportLinearSvg(doc, { range: { start: 86, end: 200 } })),
+    );
   });
 });
