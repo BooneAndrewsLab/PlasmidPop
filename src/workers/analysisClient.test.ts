@@ -12,6 +12,8 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(orfs).toHaveLength(1);
     const all = await client.cutSites('CCGAATTCCC', 'linear');
     expect(all.map((s) => s.enzyme)).toContain('EcoRI');
+    const aln = await client.align('ACGT', 'ACGT');
+    expect(aln.identity).toBe(1);
   });
 
   it('uses the worker when a factory is provided', async () => {

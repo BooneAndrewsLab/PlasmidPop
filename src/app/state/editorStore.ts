@@ -16,7 +16,7 @@ import { type ParseResult, type ParseWarning } from '@/io';
 import { type EditPlan, selectionAfterOp } from '../editing';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
-export type SidebarTab = 'features' | 'enzymes' | 'orfs';
+export type SidebarTab = 'features' | 'enzymes' | 'orfs' | 'primers' | 'align';
 
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */

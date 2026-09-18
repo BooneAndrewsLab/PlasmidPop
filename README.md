@@ -41,6 +41,8 @@ src/
     document/   Immutable SeqDocument + EditOp vocabulary
     history/    Generic undo/redo stack
     analysis/   Genetic code + translation, ORF finder, enzyme table, cut-site scanner
+    primers/    Nearest-neighbour Tm, primer QC, pair design, binding-site search
+    alignment/  Gotoh affine-gap pairwise alignment (global/local), see docs/perf-notes.md
   view/         Canvas rendering (pure; no React)
     linear/     Row layout, feature lane assignment, linear view renderer
     circular/   Plasmid map geometry, label placement, map renderer

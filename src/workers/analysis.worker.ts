@@ -1,4 +1,4 @@
-import { ENZYMES, findCutSites, findOrfs } from '@/core';
+import { ENZYMES, alignPairwise, findCutSites, findOrfs } from '@/core';
 
 import { type AnalysisRequest, type AnalysisResponse } from './analysisProtocol';
 
@@ -23,6 +23,8 @@ export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
           kind: 'orfs',
           orfs: findOrfs(req.sequence, req.topology, req.options),
         };
+      case 'align':
+        return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
     }
   } catch (e) {
     return { id: req.id, kind: 'error', message: e instanceof Error ? e.message : String(e) };

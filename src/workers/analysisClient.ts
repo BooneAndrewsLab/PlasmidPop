@@ -1,4 +1,11 @@
-import { type CutSite, type Orf, type OrfOptions, type Topology } from '@/core';
+import {
+  type Alignment,
+  type AlignmentOptions,
+  type CutSite,
+  type Orf,
+  type OrfOptions,
+  type Topology,
+} from '@/core';
 
 import { handleAnalysisRequest } from './analysis.worker';
 import { type AnalysisRequest, type AnalysisResponse } from './analysisProtocol';
@@ -76,6 +83,13 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'orfs') throw new Error('Unexpected analysis response');
     return res.orfs;
+  }
+
+  async align(a: string, b: string, options: AlignmentOptions = {}): Promise<Alignment> {
+    const res = await this.send({ kind: 'align', a, b, options });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'align') throw new Error('Unexpected analysis response');
+    return res.alignment;
   }
 
   dispose(): void {

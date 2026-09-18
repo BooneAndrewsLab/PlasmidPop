@@ -2,9 +2,11 @@ import { type SeqDocument } from '@/core';
 
 import { type SidebarTab, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { AlignPanel } from './AlignPanel';
 import { EnzymePanel } from './EnzymePanel';
 import { FeatureList } from './FeatureList';
 import { OrfPanel } from './OrfPanel';
+import { PrimerPanel } from './PrimerPanel';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -14,6 +16,8 @@ const TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],
   ['enzymes', 'Enzymes'],
   ['orfs', 'ORFs'],
+  ['primers', 'Primers'],
+  ['align', 'Align'],
 ];
 
 export function Sidebar({ doc }: Props) {
@@ -40,6 +44,8 @@ export function Sidebar({ doc }: Props) {
         {sidebarTab === 'features' && <FeatureList doc={doc} />}
         {sidebarTab === 'enzymes' && <EnzymePanel doc={doc} />}
         {sidebarTab === 'orfs' && <OrfPanel doc={doc} />}
+        {sidebarTab === 'primers' && <PrimerPanel doc={doc} />}
+        {sidebarTab === 'align' && <AlignPanel doc={doc} />}
       </div>
     </aside>
   );
