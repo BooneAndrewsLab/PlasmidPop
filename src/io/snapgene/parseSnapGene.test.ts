@@ -193,19 +193,24 @@ describe('parseSnapGene (synthetic file)', () => {
   });
 });
 
-describe('real SnapGene files from a local installation', () => {
-  const files = listLocalSnapGeneFiles();
-  it.each(files.map((f) => [f.name, f.data] as const))('%s parses', (name, data) => {
-    const result = parseSnapGene(data, name);
-    const doc = result.documents[0];
-    if (doc === undefined) throw new Error('no document');
-    expect(doc.length).toBeGreaterThan(100);
-    expect(doc.features.size).toBeGreaterThan(0);
-    for (const f of doc.features) expect(f.name).not.toBe('');
-    expect(result.warnings.filter((w) => w.message.includes('Could not read'))).toEqual([]);
-    // GenBank export of the imported document must round-trip.
-    const back = parseGenBank(writeGenBank(doc)).documents[0];
-    expect(back?.features.size).toBe(doc.features.size);
-    expect(back?.length).toBe(doc.length);
-  });
-});
+const localSnapGeneFiles = listLocalSnapGeneFiles();
+
+describe.skipIf(localSnapGeneFiles.length === 0)(
+  'real SnapGene files from a local installation',
+  () => {
+    const files = localSnapGeneFiles;
+    it.each(files.map((f) => [f.name, f.data] as const))('%s parses', (name, data) => {
+      const result = parseSnapGene(data, name);
+      const doc = result.documents[0];
+      if (doc === undefined) throw new Error('no document');
+      expect(doc.length).toBeGreaterThan(100);
+      expect(doc.features.size).toBeGreaterThan(0);
+      for (const f of doc.features) expect(f.name).not.toBe('');
+      expect(result.warnings.filter((w) => w.message.includes('Could not read'))).toEqual([]);
+      // GenBank export of the imported document must round-trip.
+      const back = parseGenBank(writeGenBank(doc)).documents[0];
+      expect(back?.features.size).toBe(doc.features.size);
+      expect(back?.length).toBe(doc.length);
+    });
+  },
+);

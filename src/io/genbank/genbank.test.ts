@@ -170,22 +170,28 @@ describe('GenBank fixtures from NCBI', () => {
   });
 });
 
-describe('local GenBank fixtures (fixtures/local, not committed)', () => {
-  const local = listLocalFixtures();
-  it.each(local.map((f) => [f.name, f.text] as const))(
-    '%s parses and round-trips',
-    (name, text) => {
-      const result = parseGenBank(text);
-      expect(result.documents).toHaveLength(1);
-      const doc = result.documents[0];
-      if (doc === undefined) throw new Error('no document');
-      expect(doc.length).toBeGreaterThan(0);
-      expect(doc.features.size).toBeGreaterThan(0);
-      for (const f of doc.features) expect(f.name).not.toBe('');
-      expectRoundTrip(text, name);
-    },
-  );
-});
+const localFixtures = listLocalFixtures();
+
+// Skipped where the private fixtures are absent (CI); Vitest fails a suite with no tests.
+describe.skipIf(localFixtures.length === 0)(
+  'local GenBank fixtures (fixtures/local, not committed)',
+  () => {
+    const local = localFixtures;
+    it.each(local.map((f) => [f.name, f.text] as const))(
+      '%s parses and round-trips',
+      (name, text) => {
+        const result = parseGenBank(text);
+        expect(result.documents).toHaveLength(1);
+        const doc = result.documents[0];
+        if (doc === undefined) throw new Error('no document');
+        expect(doc.length).toBeGreaterThan(0);
+        expect(doc.features.size).toBeGreaterThan(0);
+        for (const f of doc.features) expect(f.name).not.toBe('');
+        expectRoundTrip(text, name);
+      },
+    );
+  },
+);
 
 describe('GenBank parser edge cases', () => {
   const seq = 'ACGTACGTACGTACGTACGT'; // 20 bp
