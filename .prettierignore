@@ -4,3 +4,6 @@ node_modules
 .idea
 package-lock.json
 CLAUDE.md
+
+# Verbatim logo exports from the design tool
+design/logo/*.html

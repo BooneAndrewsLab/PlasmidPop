@@ -98,9 +98,13 @@ button {
 
 .toolbar__brand {
   margin: 0;
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  color: var(--ink);
+}
+
+.toolbar__brand .logo {
+  display: block;
 }
 
 .toolbar__doc {

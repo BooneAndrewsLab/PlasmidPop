@@ -6,6 +6,7 @@ import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
 import { ExportMenu } from './ExportMenu';
+import { Logo } from './Logo';
 import { type ViewMode, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -47,7 +48,9 @@ export function Toolbar({ doc }: Props) {
 
   return (
     <header className="toolbar">
-      <h1 className="toolbar__brand">PlasmidPop</h1>
+      <h1 className="toolbar__brand">
+        <Logo />
+      </h1>
       {doc !== null && (
         <div className="toolbar__doc">
           <span className="toolbar__name" title={doc.metadata.description}>
