@@ -35,10 +35,9 @@ npm run dev
 manifest, icons included). Serve it from any static host; `npm run preview`
 serves the build locally. For a sub-path deployment set `BASE_PATH`, e.g.
 `BASE_PATH=/PlasmidPop/ npm run build`. The `deploy.yml` workflow publishes
-`dist/` to GitHub Pages when run manually from the Actions tab (Pages must be
-enabled in the repository settings with source "GitHub Actions"). It is not
-triggered on push because a Pages site is public even for a private repo on
-the current org plan.
+`dist/` to GitHub Pages on every push to `main`:
+https://booneandrewslab.github.io/PlasmidPop/ (the site is public even
+though the repository is private; the org plan cannot restrict it).
 
 ## Layout
 
