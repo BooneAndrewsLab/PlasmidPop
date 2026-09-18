@@ -55,6 +55,9 @@ export interface EditorState {
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
   /** Set when the feature panel should open an inline rename for a feature. */
   readonly renameRequest: { readonly id: string; readonly nonce: number } | null;
+  /** Feature currently open in the full editor. */
+  readonly editingFeatureId: string | null;
+  readonly findOpen: boolean;
 }
 
 const INITIAL: EditorState = {
@@ -76,6 +79,8 @@ const INITIAL: EditorState = {
   enzymesInitialized: false,
   reveal: null,
   renameRequest: null,
+  editingFeatureId: null,
+  findOpen: false,
 };
 
 type Listener = () => void;
@@ -272,6 +277,14 @@ export class EditorStore {
 
   requestRename(id: string): void {
     this.set({ renameRequest: { id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 } });
+  }
+
+  editFeature(id: string | null): void {
+    if (id !== this.state.editingFeatureId) this.set({ editingFeatureId: id, renameRequest: null });
+  }
+
+  setFindOpen(open: boolean): void {
+    if (open !== this.state.findOpen) this.set({ findOpen: open });
   }
 
   finishRename(): void {

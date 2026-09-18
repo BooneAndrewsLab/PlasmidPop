@@ -6,6 +6,7 @@ import { featureColor } from '@/view/featureColors';
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { FeatureEditor } from './FeatureEditor';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -56,7 +57,7 @@ function RenameField({ feature }: { readonly feature: Feature }) {
 }
 
 export function FeatureList({ doc }: Props) {
-  const { selection, renameRequest } = useEditorState();
+  const { selection, renameRequest, editingFeatureId } = useEditorState();
   const features = doc.features.all();
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
@@ -112,7 +113,8 @@ export function FeatureList({ doc }: Props) {
                     </span>
                   </button>
                 )}
-                {selected && renaming !== f.id && (
+                {editingFeatureId === f.id && <FeatureEditor key={f.id} doc={doc} feature={f} />}
+                {selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions">
                     <button
                       type="button"
@@ -122,6 +124,15 @@ export function FeatureList({ doc }: Props) {
                       }}
                     >
                       Rename
+                    </button>
+                    <button
+                      type="button"
+                      className="button button--quiet button--small"
+                      onClick={() => {
+                        editorStore.editFeature(f.id);
+                      }}
+                    >
+                      Edit
                     </button>
                     <button
                       type="button"

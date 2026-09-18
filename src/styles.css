@@ -944,3 +944,99 @@ button {
   margin: 4px 0;
   background: var(--line);
 }
+
+/* Find bar */
+
+.findbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.findbar__input {
+  flex: 0 1 320px;
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.findbar__count {
+  flex: 1;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Feature editor */
+
+.feature-editor {
+  display: grid;
+  gap: 8px;
+  padding: 8px 8px 12px 28px;
+  font-size: 13px;
+}
+
+.feature-editor__field {
+  display: grid;
+  gap: 3px;
+  color: var(--ink-2);
+}
+
+.feature-editor__field .panel__search,
+.feature-editor__field .panel__select {
+  width: 100%;
+}
+
+.feature-editor__hint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.panel__search--invalid {
+  border-color: var(--danger);
+}
+
+.panel__search--invalid + .feature-editor__hint {
+  color: var(--danger);
+}
+
+.panel__mono-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.feature-editor__qualifiers {
+  margin: 0;
+  padding: 6px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.feature-editor__qualifiers legend {
+  padding: 0 4px;
+  color: var(--ink-2);
+}
+
+.feature-editor__qualifier {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.feature-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.feature-editor__remove {
+  margin-left: auto;
+  color: var(--danger);
+}

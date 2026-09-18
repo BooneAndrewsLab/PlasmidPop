@@ -74,6 +74,16 @@ export function EditBar({ doc }: Props) {
       >
         {doc.isCircular ? 'Make linear' : 'Make circular'}
       </button>
+      <button
+        type="button"
+        className="button button--small"
+        title="Find bases or features (Ctrl+F)"
+        onClick={() => {
+          editorStore.setFindOpen(true);
+        }}
+      >
+        Find
+      </button>
       <span className="editbar__hint">
         Type bases to insert, Backspace to delete, Ctrl+V to paste.
       </span>

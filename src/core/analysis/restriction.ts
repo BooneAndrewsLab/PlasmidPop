@@ -1,7 +1,7 @@
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
-import { IUPAC_SETS } from './codons';
 import { ENZYME_TABLE } from './enzymeTable';
+import { matchPositions, patternMasks, sequenceMasks } from './search';
 
 export interface Enzyme {
   readonly name: string;
@@ -54,47 +54,6 @@ export interface CutSite {
   readonly siteStart: number;
   /** Whether the site was matched on the forward or reverse strand (always forward for palindromes). */
   readonly strand: 'forward' | 'reverse';
-}
-
-const BASE_BITS: Readonly<Record<string, number>> = { A: 1, C: 2, G: 4, T: 8 };
-
-function codeMask(code: string): number {
-  let mask = 0;
-  for (const b of IUPAC_SETS[code.toUpperCase()] ?? []) mask |= BASE_BITS[b] ?? 0;
-  return mask;
-}
-
-/** Bitmask per position of the sequence; unknown characters match nothing. */
-function sequenceMasks(sequence: string): Uint8Array {
-  const out = new Uint8Array(sequence.length);
-  for (let i = 0; i < sequence.length; i++) out[i] = codeMask(sequence.charAt(i));
-  return out;
-}
-
-function patternMasks(site: string): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < site.length; i++) out.push(codeMask(site.charAt(i)));
-  return out;
-}
-
-/**
- * Positions in `masks` (a possibly extended sequence) where `pattern`
- * matches with every base compatible. A sequence base is compatible when
- * its possibilities are a subset of the pattern's (so an N in the sequence
- * only matches an N in the site).
- */
-function matchPositions(masks: Uint8Array, pattern: readonly number[], maxStart: number): number[] {
-  const out: number[] = [];
-  const n = pattern.length;
-  outer: for (let i = 0; i <= maxStart && i + n <= masks.length; i++) {
-    for (let j = 0; j < n; j++) {
-      const s = masks[i + j] ?? 0;
-      const p = pattern[j] ?? 0;
-      if (s === 0 || (s & ~p) !== 0) continue outer;
-    }
-    out.push(i);
-  }
-  return out;
 }
 
 function wrap(position: number, length: number, topology: Topology): number | null {

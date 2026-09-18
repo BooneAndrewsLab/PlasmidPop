@@ -33,11 +33,18 @@ export function useRestoreSession(): void {
   }, []);
 }
 
-/** Ctrl/Cmd+S saves, with Shift for Save as. */
+/** Ctrl/Cmd+S saves (Shift for Save as); Ctrl/Cmd+F opens find. */
 export function useSaveShortcut(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's') return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'f' && editorStore.document !== null) {
+        e.preventDefault();
+        editorStore.setFindOpen(true);
+        return;
+      }
+      if (key !== 's') return;
       e.preventDefault();
       if (editorStore.document === null) return;
       (e.shiftKey ? persistence.saveAs() : persistence.save()).catch((err: unknown) => {

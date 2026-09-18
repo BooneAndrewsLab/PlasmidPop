@@ -73,3 +73,45 @@ describe('App', () => {
     expect(screen.getByText(/^M[A-Z*]+$/)).toBeInTheDocument();
   });
 });
+
+describe('find and feature editing', () => {
+  it('finds bases and features, and edits a feature location', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.keyDown(window, { key: 'f', ctrlKey: true });
+    const find = screen.getByRole('searchbox', { name: 'Find' });
+    fireEvent.change(find, { target: { value: 'GAATTC' } });
+    await waitFor(() => {
+      expect(screen.getByText(/1 of 1, forward strand/)).toBeInTheDocument();
+    });
+    expect(editorStore.getState().selection).toEqual({ start: 4358, end: 4364 });
+    fireEvent.change(find, { target: { value: 'rop' } });
+    await waitFor(() => {
+      expect(screen.getByText(/1 of \d+, ROP protein/)).toBeInTheDocument();
+    });
+    fireEvent.keyDown(find, { key: 'Escape' });
+    expect(screen.queryByRole('searchbox', { name: 'Find' })).toBeNull();
+
+    // Edit the ROP CDS: rename, flip strand, move by one base.
+    const rop = editorStore.document?.features.all().find((f) => f.name === 'ROP protein');
+    if (rop === undefined) throw new Error('no ROP feature');
+    act(() => {
+      editorStore.setSidebarTab('features');
+      editorStore.selectFeature(rop.id);
+      editorStore.editFeature(rop.id);
+    });
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'rop' } });
+    expect(screen.getByLabelText(/^Location/)).toHaveValue('1915..2106');
+    fireEvent.change(screen.getByLabelText(/^Location/), { target: { value: '1916..2106' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    const edited = editorStore.document?.getFeature(rop.id);
+    expect(edited).toMatchObject({ name: 'rop' });
+    expect(edited?.segments[0]).toMatchObject({ start: 1915, end: 2106 });
+    // Invalid locations disable saving.
+    act(() => {
+      editorStore.editFeature(rop.id);
+    });
+    fireEvent.change(screen.getByLabelText(/^Location/), { target: { value: '9999..10' } });
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  });
+});
