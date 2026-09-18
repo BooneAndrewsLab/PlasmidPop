@@ -129,11 +129,8 @@ pick from here when the current work is done.
     editing, analysis, keyboard shortcuts) reachable from the app, plus a
     README that reads as a landing page. Required by JOSS and NAR web
     server reviewers, so it should land before any publication attempt.
-13. **Licence**: none is declared yet (no LICENSE file, nothing in
-    package.json), so the repo cannot be made public or submitted to JOSS.
-    Decide (MIT or Apache-2.0 are the usual picks for lab software; check
-    what the reference implementations and the enzyme data allow), add the
-    LICENSE file, the package.json field and a CITATION.cff.
+13. ~~**Licence**~~: done. MIT (`LICENSE`, `package.json`, `CITATION.cff`).
+    Keep REBASE data out of the repo; its terms restrict redistribution.
 14. **Circular map zoom**: mouse-wheel and pinch zoom on the map, panning
     when zoomed, and a zoom-to-selection or zoom-to-feature action, so
     dense regions and short features can be read on large plasmids.

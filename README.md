@@ -78,3 +78,9 @@ On circular sequences `end` may exceed the length to express a range that
 wraps past the origin (`end - start` is always the base count). GenBank's
 1-based inclusive coordinates are converted only at the parser/writer
 boundary.
+
+## Licence
+
+PlasmidPop is released under the [MIT License](LICENSE). If you use it in
+your research, please cite it; a `CITATION.cff` is included and GitHub shows
+a "Cite this repository" button from it.

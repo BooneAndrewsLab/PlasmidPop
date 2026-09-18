@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Browser-based DNA sequence editor and plasmid viewer",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
