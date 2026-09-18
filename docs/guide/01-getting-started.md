@@ -34,7 +34,7 @@ they can be reopened, renamed or removed. See [Files and storage](02-files.md).
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
 - **Sidebar** (right): tabs for Features, Enzymes, ORFs, Translate, Primers,
-  Align and Cloning.
+  Align, Cloning and History.
 - **Status bar** (bottom): what is selected, warnings raised while opening
   the file, and the file name.
 
@@ -51,7 +51,8 @@ disk. The browser also warns before you close the tab in that state.
 4. Press `Ctrl+F`, type `GAATTC` and press `Enter` to step through the
    matches on either strand.
 5. Click anywhere in the sequence view, type a few bases, and watch the
-   features move with them. `Ctrl+Z` undoes it.
+   features move with them. `Ctrl+Z` undoes it, and the **History** tab
+   lists what you did.
 6. Press `Ctrl+S` to save the result as a GenBank file.
 
 ## Where your data lives

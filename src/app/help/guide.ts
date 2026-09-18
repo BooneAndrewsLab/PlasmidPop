@@ -6,9 +6,10 @@ import features from '../../../docs/guide/05-features.md?raw';
 import files from '../../../docs/guide/02-files.md?raw';
 import find from '../../../docs/guide/06-find.md?raw';
 import gettingStarted from '../../../docs/guide/01-getting-started.md?raw';
+import history from '../../../docs/guide/13-history.md?raw';
 import orfs from '../../../docs/guide/08-orfs.md?raw';
 import primers from '../../../docs/guide/10-primers.md?raw';
-import shortcuts from '../../../docs/guide/13-shortcuts.md?raw';
+import shortcuts from '../../../docs/guide/14-shortcuts.md?raw';
 import translate from '../../../docs/guide/09-translate.md?raw';
 import viewing from '../../../docs/guide/03-viewing.md?raw';
 
@@ -42,7 +43,8 @@ export const GUIDE: readonly GuidePage[] = [
   page('10-primers', primers),
   page('11-align', align),
   page('12-cloning', cloning),
-  page('13-shortcuts', shortcuts),
+  page('13-history', history),
+  page('14-shortcuts', shortcuts),
 ];
 
 export function guidePage(id: string): GuidePage | undefined {

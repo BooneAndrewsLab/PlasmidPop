@@ -19,7 +19,7 @@ import { type EditPlan, selectionAfterOp } from '../editing';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
 export type SidebarTab =
-  'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning';
+  'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
 
 /** A digest fragment set aside for ligation, in the orientation it will be joined. */
 export interface AssemblyPart {
@@ -420,7 +420,9 @@ export class EditorStore {
     const history = this.state.history;
     if (history === null) return;
     const next = history.jumpTo(position);
-    if (next !== history) this.set({ history: next, selection: null });
+    if (next === history) return;
+    analytics.track('history', 'jump');
+    this.set({ history: next, selection: null });
   }
 
   setSelection(selection: Range | null): void {

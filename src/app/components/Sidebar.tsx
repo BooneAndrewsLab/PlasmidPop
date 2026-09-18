@@ -6,6 +6,7 @@ import { AlignPanel } from './AlignPanel';
 import { CloningPanel } from './CloningPanel';
 import { EnzymePanel } from './EnzymePanel';
 import { FeatureList } from './FeatureList';
+import { HistoryPanel } from './HistoryPanel';
 import { OrfPanel } from './OrfPanel';
 import { PrimerPanel } from './PrimerPanel';
 import { TranslatePanel } from './TranslatePanel';
@@ -22,6 +23,7 @@ const TABS: readonly [SidebarTab, string][] = [
   ['primers', 'Primers'],
   ['align', 'Align'],
   ['cloning', 'Cloning'],
+  ['history', 'History'],
 ];
 
 export function Sidebar({ doc }: Props) {
@@ -52,6 +54,7 @@ export function Sidebar({ doc }: Props) {
         {sidebarTab === 'primers' && <PrimerPanel doc={doc} />}
         {sidebarTab === 'align' && <AlignPanel doc={doc} />}
         {sidebarTab === 'cloning' && <CloningPanel doc={doc} />}
+        {sidebarTab === 'history' && <HistoryPanel />}
       </div>
     </aside>
   );

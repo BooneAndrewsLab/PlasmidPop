@@ -60,6 +60,9 @@ To rename the document, click its name in the toolbar, type, and press
   _Edit feature_ or _Set origin_. Click any entry to jump to that state;
   entries above the current one are shown greyed and can be reached again
   with Redo until you make a new change.
+- The **History** tab in the sidebar shows the same list as a panel, with
+  the time of each change, how much it added or removed, and which state the
+  file on disk holds. See [History](13-history.md).
 
 Undo works on the document in memory. It does not un-save a file on disk, and
 the browser's autosave always keeps the current state.

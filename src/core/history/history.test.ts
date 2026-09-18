@@ -70,6 +70,56 @@ describe('History', () => {
     expect(h.position).toBe(2);
   });
 
+  it('pairs every change with the state it produces, applied or undone', () => {
+    let h = History.create('a').push('b', 'to b').push('c', 'to c').push('d', 'to d');
+    expect(h.steps.map((s) => [s.position, s.label, s.state])).toEqual([
+      [1, 'to b', 'b'],
+      [2, 'to c', 'c'],
+      [3, 'to d', 'd'],
+    ]);
+    expect(h.size).toBe(3);
+
+    // Undone changes keep their state and position, so redo is reversible.
+    h = h.jumpTo(1);
+    expect(h.steps.map((s) => [s.position, s.label, s.state])).toEqual([
+      [1, 'to b', 'b'],
+      [2, 'to c', 'c'],
+      [3, 'to d', 'd'],
+    ]);
+    expect(h.stateAt(0)).toBe('a');
+    expect(h.stateAt(1)).toBe('b');
+    expect(h.stateAt(3)).toBe('d');
+    expect(h.stateAt(4)).toBeUndefined();
+    expect(h.stateAt(-1)).toBeUndefined();
+    expect(History.create('a').steps).toEqual([]);
+  });
+
+  it('keeps the time of each change across undo and redo', () => {
+    const h = History.create('a', { at: 1000 }).push('b', 'to b', 2000).push('c', 'to c', 3000);
+    expect(h.startedAt).toBe(1000);
+    expect(h.steps.map((s) => s.at)).toEqual([2000, 3000]);
+    expect(
+      h
+        .undo()
+        .redo()
+        .steps.map((s) => s.at),
+    ).toEqual([2000, 3000]);
+  });
+
+  it('reports that dropped steps left the starting state behind', () => {
+    let h = History.create(0, { limit: 2, at: 10 });
+    expect(h.truncated).toBe(false);
+    h = h.push(1, 'one', 20).push(2, 'two', 30);
+    expect(h.truncated).toBe(false);
+    h = h.push(3, 'three', 40);
+    // Step 0 is no longer the opened state; it is dated by the change that
+    // produced the oldest state still kept.
+    expect(h.truncated).toBe(true);
+    expect(h.startedAt).toBe(20);
+    expect(h.stateAt(0)).toBe(1);
+    expect(h.steps.map((s) => s.state)).toEqual([2, 3]);
+  });
+
   it('is immutable', () => {
     const a = History.create('x');
     const b = a.push('y', 'y');

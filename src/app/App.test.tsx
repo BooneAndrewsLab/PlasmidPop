@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { translateSixFrames } from '@/core';
 import { getRepository } from '@/storage';
@@ -176,6 +176,40 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('menuitemradio', { name: /Make linear/ }));
     expect(editorStore.document?.topology).toBe('linear');
     expect(editorStore.getState().history?.canRedo).toBe(false);
+  });
+
+  it('shows the history panel with what each change did and jumps from it', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+    expect(screen.getByText(/Nothing has been changed yet/)).toBeInTheDocument();
+    // The state on disk is the one the file was opened at.
+    expect(screen.getByText('on disk')).toBeInTheDocument();
+
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 0, text: 'AC' });
+      editorStore.apply({ type: 'setTopology', topology: 'linear' });
+    });
+    const list = screen.getByRole('list', { name: 'Changes' });
+    const rows = within(list).getAllByRole('button');
+    expect(rows.map((r) => r.textContent)).toEqual([
+      expect.stringContaining('Make linear'),
+      expect.stringContaining('Insert 2 bases'),
+      expect.stringContaining('Opened document'),
+    ]);
+    expect(rows[0]).toHaveAttribute('aria-current', 'step');
+    expect(rows[0]?.textContent).toContain('linear');
+    expect(rows[1]?.textContent).toContain('+2 bp');
+    expect(rows[2]?.textContent).toContain('4,361 bp · 50 features');
+
+    // Clicking a row undoes back to it; Latest redoes everything again.
+    fireEvent.click(within(list).getByRole('button', { name: /Insert 2 bases/ }));
+    expect(editorStore.document?.topology).toBe('circular');
+    expect(editorStore.getState().history?.position).toBe(1);
+    expect(within(list).getAllByRole('button')[0]).toHaveClass('history-panel__item--undone');
+    fireEvent.click(screen.getByRole('button', { name: 'Latest' }));
+    expect(editorStore.document?.topology).toBe('linear');
+    expect(screen.getByRole('button', { name: 'Latest' })).toBeDisabled();
   });
 
   it('lists restriction enzymes and ORFs once analysis finishes', async () => {

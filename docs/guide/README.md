@@ -15,4 +15,5 @@ toolbar.
 10. [Primers](10-primers.md): design and checking
 11. [Pairwise alignment](11-align.md)
 12. [Simulated cloning](12-cloning.md): digest and ligation
-13. [Keyboard shortcuts](13-shortcuts.md)
+13. [History](13-history.md): the list of changes and jumping between them
+14. [Keyboard shortcuts](14-shortcuts.md)

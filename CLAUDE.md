@@ -89,14 +89,14 @@ working with no account and no server round-trip.
 Build order steps 1–10 are implemented and committed; step 11 (backend)
 is not started. Beyond the build order, these have landed: Save GenBank /
 Save as / write-back through the File System Access API, SVG map export,
-selection export, find (Ctrl+F), a full feature editor, a bundled
-example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
+selection export, find (Ctrl+F), a full feature editor, a History sidebar
+tab, a bundled example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
 always on when configured, no user toggle by decision of 2026-09-18;
 events at file open/new/save/export, enzyme show, primer design, align,
-ligate; the Pages workflow sets the instance URL and site id 6). The logo (`design/logo/`, made in Claude Design) is used
+ligate, history jump; the Pages workflow sets the instance URL and site id 6). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 391 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 402 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -139,7 +139,15 @@ pick from here when the current work is done.
    and an Export FASTA button that writes one protein record per frame
    (`src/app/sixFrameExport.ts`). Not yet: alternative genetic codes,
    clicking a residue to select its codon.
-5. **History panel** listing undo steps with labels; jump to any state.
+5. ~~**History panel**~~ done. The **History** sidebar tab lists every
+   recorded change newest first with its number, label, time and what it did
+   to the document (`+12 bp`, `−3 bp`, `+1 feature`, `circular`), marks the
+   state the file on disk holds and the current one, greys undone steps, and
+   jumps to any state on a click; **Latest** redoes everything undone
+   (`src/app/historyView.ts`, `src/app/components/HistoryPanel.tsx`; the core
+   `History` now carries a timestamp per step, `steps`, `stateAt`, `size` and
+   `truncated`). Not yet: naming or bookmarking a state, coalescing runs of
+   single-base typing into one step, a diff of what a step changed.
 6. **Multiple open documents (tabs)**, prerequisite for cloning workflows
    that move DNA between constructs.
 7. **Enzyme table from REBASE** once the licence question is settled;
@@ -152,10 +160,10 @@ pick from here when the current work is done.
     document itself after a simulated digest.
 11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs
     an auth-provider decision first.
-12. ~~**User documentation**~~: done. Thirteen guide pages in
+12. ~~**User documentation**~~: done. Fourteen guide pages in
     `docs/guide/` (getting started, files, viewing, editing, features,
     find, enzymes, ORFs, translation, primers, alignment, cloning,
-    shortcuts), each with a how-to, rendered in the app from the same
+    history, shortcuts), each with a how-to, rendered in the app from the same
     files by a "?" button at the right of the toolbar (also the `?` key;
     `src/app/help/`, own Markdown subset in `markdown.ts`), plus a README
     that reads as a landing page. Keep it current, see Conventions.
@@ -184,11 +192,12 @@ pick from here when the current work is done.
     bare bases as a new document (`openPastedText` in
     `src/app/openFile.ts`). Not yet: choosing circular/name up front (use
     "Make circular" and rename after).
-18. **Sidebar tab strip that stays on one row.** Seven tabs do not fit
-    the 300 px sidebar, so the strip is currently a bordered 4 + 3 button
+18. **Sidebar tab strip that stays on one row.** Eight tabs do not fit
+    the 300 px sidebar, so the strip is currently a bordered 4 + 4 button
     grid (`.sidebar__tabs` in `src/styles.css`, same construction as the
-    toolbar view switcher). It will get worse as tabs are added (History
-    panel). Options considered on 2026-09-18, in order of preference:
+    toolbar view switcher). The History tab filled the empty cell of the
+    second row; a ninth tab starts a third row. Options considered on
+    2026-09-18, in order of preference:
     (a) a vertical rail along the sidebar's outer edge with rotated
     labels, JetBrains style, about 30 px wide, sidebar widened to ~330 px
     to compensate; scales to any tab count, nothing hidden. (b) An
@@ -200,8 +209,7 @@ pick from here when the current work is done.
     under Translate, Primers and Align under Tools, with a segmented
     sub-switch. Rejected: a horizontally scrolling row (hides the tab
     people cannot find), and a wider or resizable sidebar on its own
-    (does not help small windows). If the grid stays, fill the empty
-    fourth cell of the second row with the surface colour.
+    (does not help small windows).
 19. **Selecting amino acids in the sequence view.** Clicking or dragging
     on a translation row (the amino acids drawn under a CDS) currently
     selects the whole feature; it should select the codon(s) under the
@@ -249,7 +257,7 @@ pick from here when the current work is done.
   (new feature, changed behaviour, new shortcut, bugfix that alters what
   the UI does or says) updates the relevant page in the same commit; a new
   feature gets a page or a section with a short how-to, plus an entry in
-  `docs/guide/README.md` and `src/app/help/guide.ts`. Check `13-shortcuts.md`
+  `docs/guide/README.md` and `src/app/help/guide.ts`. Check `14-shortcuts.md`
   whenever a key binding is touched. `guide.test.ts` catches broken links
   between pages but not stale prose: reread the page.
 
