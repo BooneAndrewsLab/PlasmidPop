@@ -878,34 +878,122 @@ button {
   font-size: 13px;
 }
 
+/* A fixed height: nothing shown in the row (error, warnings button) may move
+   the panels above it. Three columns with equal-width sides keep the notice
+   centred in the bar; the sides never shrink below their text, so a long
+   notice truncates first. */
 .statusbar__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
   align-items: center;
   gap: 12px;
-  padding: 6px 16px;
-  min-height: 32px;
+  padding: 0 16px;
+  height: 32px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.statusbar__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.statusbar__row > .button--quiet {
+  padding-top: 1px;
+  padding-bottom: 1px;
+  line-height: 18px;
 }
 
 .statusbar__selection {
   font-variant-numeric: tabular-nums;
 }
 
-.statusbar__spacer {
-  flex: 1;
-}
-
 .statusbar__file {
   color: var(--ink-3);
 }
 
+/* The row's middle column, truncated so the bar never changes height. */
 .statusbar__error {
+  min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--danger-surface);
+  justify-content: center;
+  gap: 8px;
   color: var(--danger);
+}
+
+.statusbar__error > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Round dismiss control: an × for a sticky error, a draining ring for one
+   that goes away by itself. */
+.statusbar__dismiss {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.statusbar__dismiss:hover {
+  background: var(--danger-surface);
+}
+
+.statusbar__dismiss svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.statusbar__countdown-track {
+  opacity: 0.25;
+}
+
+/* Circumference of r=6: 2π·6 ≈ 37.7. Starts full and drains clockwise from the top. */
+.statusbar__countdown-arc {
+  stroke-dasharray: 37.7;
+  stroke-dashoffset: 0;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  animation: statusbar-drain linear forwards;
+}
+
+@keyframes statusbar-drain {
+  to {
+    stroke-dashoffset: 37.7;
+  }
+}
+
+/* Fades once the ring has drained (delay and duration set inline from the store). */
+.statusbar__error--fading {
+  animation: statusbar-fade linear forwards;
+}
+
+@keyframes statusbar-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusbar__countdown-arc,
+  .statusbar__error--fading {
+    animation: none;
+  }
 }
 
 .statusbar__warnings {

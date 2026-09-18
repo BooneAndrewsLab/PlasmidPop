@@ -49,6 +49,8 @@ const MONO_FONT = '13px ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans M
 const SANS_FONT = '11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const LEFT_GUTTER = 72;
 const RIGHT_PADDING = 24;
+/** How long a notice about rejected input stays after the last rejected keystroke. */
+const REJECTED_INPUT_NOTICE_MS = 5000;
 
 function readTheme(el: HTMLElement): LinearTheme {
   const css = getComputedStyle(el);
@@ -95,14 +97,16 @@ export function LinearSequenceView({ doc }: Props) {
       charWidth,
       lineHeight: 18,
       showComplement,
-      rulerHeight: cutSites.length > 0 ? 30 : 16,
+      // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
+      // their height while sites are recomputed after an edit.
+      rulerHeight: shownEnzymes.size > 0 ? 30 : 16,
       laneHeight: 20,
       translationHeight: 16,
       rowGap: 14,
       leftGutter: LEFT_GUTTER,
       topPadding: 12,
     }),
-    [size.width, charWidth, showComplement, cutSites.length],
+    [size.width, charWidth, showComplement, shownEnzymes.size],
   );
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
   const codingFeatures = useMemo(
@@ -264,6 +268,11 @@ export function LinearSequenceView({ doc }: Props) {
       e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
+  /** Shows why typed or pasted text was rejected, for a while after the last rejection. */
+  const rejectInput = (message: string): void => {
+    editorStore.fail(message, { autoDismissMs: REJECTED_INPUT_NOTICE_MS });
+  };
+
   const withText = (text: string): void => {
     if (doc.length === 0) {
       // A whole record pasted into an empty document replaces it.
@@ -278,7 +287,7 @@ export function LinearSequenceView({ doc }: Props) {
     try {
       editorStore.applyPlan(typeText(doc, target, text));
     } catch (err) {
-      if (err instanceof InvalidSequenceError) editorStore.fail(err.message);
+      if (err instanceof InvalidSequenceError) rejectInput(err.message);
       else throw err;
     }
   };
@@ -292,7 +301,7 @@ export function LinearSequenceView({ doc }: Props) {
     try {
       editorStore.applyPlan(pasteFragment(doc, selection, content));
     } catch (err) {
-      if (err instanceof InvalidSequenceError) editorStore.fail(err.message);
+      if (err instanceof InvalidSequenceError) rejectInput(err.message);
       else throw err;
     }
   };

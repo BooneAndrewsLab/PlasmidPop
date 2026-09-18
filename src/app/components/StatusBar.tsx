@@ -20,25 +20,11 @@ function describeSelection(doc: SeqDocument, selection: { start: number; end: nu
 }
 
 export function StatusBar({ doc }: Props) {
-  const { selection, warnings, error, fileName } = useEditorState();
+  const { selection, warnings, error, errorCountdown, fileName } = useEditorState();
   const [showWarnings, setShowWarnings] = useState(false);
 
   return (
     <footer className="statusbar">
-      {error !== null && (
-        <div className="statusbar__error" role="alert">
-          <span>{error}</span>
-          <button
-            type="button"
-            className="button button--quiet"
-            onClick={() => {
-              editorStore.dismissError();
-            }}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
       {showWarnings && warnings.length > 0 && (
         <ul className="statusbar__warnings">
           {warnings.map((w, i) => (
@@ -57,20 +43,71 @@ export function StatusBar({ doc }: Props) {
               ? 'Nothing selected'
               : describeSelection(doc, selection)}
         </span>
-        <span className="statusbar__spacer" />
-        {warnings.length > 0 && (
-          <button
-            type="button"
-            className="button button--quiet"
-            aria-expanded={showWarnings}
-            onClick={() => {
-              setShowWarnings((v) => !v);
-            }}
+        {error === null ? (
+          <span />
+        ) : (
+          // Keyed by nonce so a repeated rejection restarts the fade and the ring.
+          <div
+            key={errorCountdown?.nonce}
+            className={
+              errorCountdown === null
+                ? 'statusbar__error'
+                : 'statusbar__error statusbar__error--fading'
+            }
+            style={
+              errorCountdown === null
+                ? undefined
+                : {
+                    animationDelay: `${errorCountdown.durationMs}ms`,
+                    animationDuration: `${errorCountdown.fadeMs}ms`,
+                  }
+            }
+            role="alert"
           >
-            {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`} while opening
-          </button>
+            <span title={error}>{error}</span>
+            <button
+              type="button"
+              className="statusbar__dismiss"
+              aria-label="Dismiss"
+              title="Dismiss"
+              onClick={() => {
+                editorStore.dismissError();
+              }}
+            >
+              {errorCountdown === null ? (
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <circle className="statusbar__countdown-track" cx="8" cy="8" r="6" />
+                  <circle
+                    className="statusbar__countdown-arc"
+                    cx="8"
+                    cy="8"
+                    r="6"
+                    style={{ animationDuration: `${errorCountdown.durationMs}ms` }}
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
         )}
-        {fileName !== null && <span className="statusbar__file">{fileName}</span>}
+        <span className="statusbar__right">
+          {warnings.length > 0 && (
+            <button
+              type="button"
+              className="button button--quiet"
+              aria-expanded={showWarnings}
+              onClick={() => {
+                setShowWarnings((v) => !v);
+              }}
+            >
+              {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`} while opening
+            </button>
+          )}
+          {fileName !== null && <span className="statusbar__file">{fileName}</span>}
+        </span>
       </div>
     </footer>
   );

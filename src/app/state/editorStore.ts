@@ -33,6 +33,72 @@ export interface AnalysisState {
   readonly doc: SeqDocument;
   readonly cutSites: readonly CutSite[];
   readonly orfs: readonly Orf[];
+  /**
+   * True when the results were carried over from the previous document by
+   * shifting positions through an edit, so the views have something to draw
+   * while the worker recomputes. Positions are approximate until then.
+   */
+  readonly provisional: boolean;
+}
+
+/** How long a self-dismissing error fades once its time is up. */
+export const ERROR_FADE_MS = 400;
+
+/** Ops that leave the sequence and topology alone, so analysis results stay exact. */
+const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
+  'rename',
+  'setMetadata',
+  'addFeature',
+  'updateFeature',
+  'removeFeature',
+]);
+
+/** Ops whose effect on positions `mapPositionThrough` knows how to follow. */
+const MAPPABLE_OPS: ReadonlySet<EditOp['type']> = new Set([
+  'insert',
+  'delete',
+  'replace',
+  'insertFragment',
+]);
+
+/**
+ * Analysis results for `next`, derived from the results for `doc` without
+ * recomputing. Annotation-only ops keep them exact. Sequence edits shift every
+ * position through the op and drop sites and ORFs the edit touched; the
+ * result is provisional and replaced when the worker answers. Whole-document
+ * ops (reverse complement, set origin, set topology) are not followed.
+ */
+function carryAnalysis(
+  analysis: AnalysisState | null,
+  doc: SeqDocument,
+  op: EditOp,
+  next: SeqDocument,
+): AnalysisState | null {
+  if (analysis?.doc !== doc) return null;
+  if (ANNOTATION_OPS.has(op.type)) return { ...analysis, doc: next };
+  if (!MAPPABLE_OPS.has(op.type)) return null;
+  const map = (p: number) => doc.mapPositionThrough(op, p);
+  const cutSites: CutSite[] = [];
+  for (const s of analysis.cutSites) {
+    const cut = map(s.cut);
+    const cutBottom = map(s.cutBottom);
+    const siteStart = map(s.siteStart);
+    // The edit landed between the site and the cut: the site moved as a whole or is gone.
+    if (cut - siteStart !== s.cut - s.siteStart || cutBottom - cut !== s.cutBottom - s.cut)
+      continue;
+    if (siteStart < 0 || siteStart >= next.length || cut > next.length) continue;
+    cutSites.push({ ...s, cut, cutBottom, siteStart });
+  }
+  const orfs: Orf[] = [];
+  for (const o of analysis.orfs) {
+    // Unrolled ranges past the end cannot be mapped reliably; let the worker redo them.
+    if (o.range.end > doc.length) continue;
+    const start = map(o.range.start);
+    const end = map(o.range.end);
+    if (end - start !== o.range.end - o.range.start || end > next.length) continue;
+    orfs.push({ ...o, range: { start, end } });
+  }
+  return { doc: next, cutSites, orfs, provisional: true };
 }
 
 export interface EditorState {
@@ -51,6 +117,16 @@ export interface EditorState {
   readonly dirty: boolean;
   readonly warnings: readonly ParseWarning[];
   readonly error: string | null;
+  /**
+   * Set while `error` will dismiss itself: how long it is shown in full, how
+   * long it then takes to fade, and a nonce that changes every time the clock
+   * is restarted so a countdown indicator can start over.
+   */
+  readonly errorCountdown: {
+    readonly durationMs: number;
+    readonly fadeMs: number;
+    readonly nonce: number;
+  } | null;
   /** Set while Save waits for the user to agree that it may overwrite the file on disk. */
   readonly overwritePrompt: { readonly fileName: string } | null;
   readonly showComplement: boolean;
@@ -89,6 +165,7 @@ const INITIAL: EditorState = {
   dirty: false,
   warnings: [],
   error: null,
+  errorCountdown: null,
   overwritePrompt: null,
   showComplement: true,
   showTranslations: true,
@@ -116,6 +193,8 @@ type Listener = () => void;
 export class EditorStore {
   private state: EditorState = INITIAL;
   private readonly listeners = new Set<Listener>();
+  /** Pending auto-dismiss of a timed error, see `fail`. */
+  private errorTimer: ReturnType<typeof setTimeout> | null = null;
 
   getState = (): EditorState => this.state;
 
@@ -165,6 +244,7 @@ export class EditorStore {
       savedDoc: fileName === null ? null : doc,
       warnings,
       error: null,
+      errorCountdown: null,
       analysis: null,
       shownEnzymes: new Set(),
       enzymesInitialized: false,
@@ -222,8 +302,33 @@ export class EditorStore {
     this.set(fileName === undefined ? { savedDoc: present } : { savedDoc: present, fileName });
   }
 
-  fail(message: string): void {
-    this.set({ error: message });
+  /**
+   * Shows an error. With `autoDismissMs` the message goes away by itself that
+   * long after the most recent call (plus a fade), so a burst of rejected
+   * keystrokes reads as one notice that stays put until the user has had a
+   * chance to see it.
+   */
+  fail(message: string, options: { readonly autoDismissMs?: number } = {}): void {
+    this.clearErrorTimer();
+    const ms = options.autoDismissMs;
+    if (ms === undefined) {
+      this.set({ error: message, errorCountdown: null });
+      return;
+    }
+    const nonce = (this.state.errorCountdown?.nonce ?? 0) + 1;
+    this.set({ error: message, errorCountdown: { durationMs: ms, fadeMs: ERROR_FADE_MS, nonce } });
+    this.errorTimer = setTimeout(() => {
+      this.errorTimer = null;
+      if (this.state.errorCountdown?.nonce === nonce)
+        this.set({ error: null, errorCountdown: null });
+    }, ms + ERROR_FADE_MS);
+  }
+
+  private clearErrorTimer(): void {
+    if (this.errorTimer !== null) {
+      clearTimeout(this.errorTimer);
+      this.errorTimer = null;
+    }
   }
 
   requestOverwrite(fileName: string): void {
@@ -235,7 +340,8 @@ export class EditorStore {
   }
 
   dismissError(): void {
-    if (this.state.error !== null) this.set({ error: null });
+    this.clearErrorTimer();
+    if (this.state.error !== null) this.set({ error: null, errorCountdown: null });
   }
 
   /**
@@ -265,7 +371,12 @@ export class EditorStore {
       selection !== null && (op.type === 'insert' || op.type === 'delete' || op.type === 'replace')
         ? { position: selection.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 }
         : this.state.reveal;
-    this.set({ history: history.push(next, describeEditOp(op)), selection, reveal });
+    this.set({
+      history: history.push(next, describeEditOp(op)),
+      selection,
+      reveal,
+      analysis: carryAnalysis(this.state.analysis, doc, op, next),
+    });
   }
 
   applyPlan(plan: EditPlan | null): void {
@@ -377,7 +488,11 @@ export class EditorStore {
       );
       enzymesInitialized = true;
     }
-    this.set({ analysis: { doc, cutSites, orfs }, shownEnzymes, enzymesInitialized });
+    this.set({
+      analysis: { doc, cutSites, orfs, provisional: false },
+      shownEnzymes,
+      enzymesInitialized,
+    });
   }
 
   setEnzymeShown(name: string, shown: boolean): void {

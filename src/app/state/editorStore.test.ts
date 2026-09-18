@@ -1,7 +1,7 @@
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
 import { parseGenBank } from '@/io';
 
-import { EditorStore } from './editorStore';
+import { ERROR_FADE_MS, EditorStore } from './editorStore';
 
 const doc = SeqDocument.create({
   sequence: 'ACGTACGTACGTACGTACGT',
@@ -131,6 +131,54 @@ describe('EditorStore', () => {
   });
 });
 
+describe('EditorStore errors', () => {
+  it('auto-dismisses a timed notice, restarting the clock on each repeat', () => {
+    vi.useFakeTimers();
+    try {
+      const store = new EditorStore();
+      store.openDocument(doc);
+      store.fail('bad character', { autoDismissMs: 5000 });
+      expect(store.getState().errorCountdown).toEqual({
+        durationMs: 5000,
+        fadeMs: ERROR_FADE_MS,
+        nonce: 1,
+      });
+      vi.advanceTimersByTime(4000);
+      // A good keystroke in between does not hide it.
+      store.apply({ type: 'insert', position: 0, text: 'A' });
+      expect(store.getState().error).toBe('bad character');
+      // Another rejected keystroke restarts the five seconds (and the indicator).
+      store.fail('bad character', { autoDismissMs: 5000 });
+      expect(store.getState().errorCountdown?.nonce).toBe(2);
+      vi.advanceTimersByTime(4000);
+      expect(store.getState().error).toBe('bad character');
+      // Still there while fading, gone after.
+      vi.advanceTimersByTime(1000);
+      expect(store.getState().error).toBe('bad character');
+      vi.advanceTimersByTime(ERROR_FADE_MS);
+      expect(store.getState().error).toBeNull();
+      expect(store.getState().errorCountdown).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps an untimed error until dismissed, and dismissing cancels a pending timer', () => {
+    vi.useFakeTimers();
+    try {
+      const store = new EditorStore();
+      store.fail('timed', { autoDismissMs: 5000 });
+      store.dismissError();
+      store.fail('permanent');
+      expect(store.getState().errorCountdown).toBeNull();
+      vi.advanceTimersByTime(10000);
+      expect(store.getState().error).toBe('permanent');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('EditorStore analysis', () => {
   it('stores results for the current document only and defaults to single cutters', () => {
     const store = new EditorStore();
@@ -154,13 +202,108 @@ describe('EditorStore analysis', () => {
     // Results for another document are ignored.
     store.setAnalysis(SeqDocument.create({ sequence: 'ACGT' }), [site('NotI', 1)], []);
     expect(store.getState().analysis?.cutSites.map((s) => s.enzyme)).toEqual(['EcoRI']);
-    // Editing invalidates the visible sites until fresh results arrive.
+    // Editing keeps the sites, shifted, as a provisional result until fresh ones arrive.
     store.apply({ type: 'insert', position: 0, text: 'A' });
-    expect(store.visibleCutSites()).toEqual([]);
+    expect(store.getState().analysis?.provisional).toBe(true);
+    expect(store.visibleCutSites().map((s) => s.cut)).toEqual([4]);
     store.setOrfMinCodons(30);
     expect(store.getState().analysis).toBeNull();
     store.setShownEnzymes(['NotI']);
     expect([...store.getState().shownEnzymes]).toEqual(['NotI']);
+  });
+
+  describe('carrying results through edits', () => {
+    const site = (enzyme: string, siteStart: number, cut: number, cutBottom = cut) => ({
+      enzyme,
+      cut,
+      cutBottom,
+      siteStart,
+      strand: 'forward' as const,
+    });
+    const orf = (start: number, end: number) => ({
+      range: { start, end },
+      strand: 'forward' as const,
+      frame: 0,
+      codons: (end - start) / 3 - 1,
+    });
+    const linear = SeqDocument.create({ sequence: 'ACGTACGTACGTACGTACGT' });
+
+    function withResults() {
+      const store = new EditorStore();
+      store.openDocument(linear);
+      store.setAnalysis(
+        linear,
+        [site('EcoRI', 2, 3), site('BsaI', 10, 14, 18), site('AluI', 15, 16)],
+        [orf(0, 6), orf(6, 18)],
+      );
+      return store;
+    }
+
+    it('keeps results exact through annotation-only ops', () => {
+      const store = withResults();
+      store.apply({ type: 'rename', name: 'renamed' });
+      const a = store.getState().analysis;
+      expect(a?.doc).toBe(store.document);
+      expect(a?.provisional).toBe(false);
+      expect(a?.cutSites).toHaveLength(3);
+      expect(a?.orfs).toHaveLength(2);
+    });
+
+    it('shifts sites and ORFs after an insert and drops the ones the edit hit', () => {
+      const store = withResults();
+      store.apply({ type: 'insert', position: 8, text: 'GG' });
+      const a = store.getState().analysis;
+      expect(a?.doc).toBe(store.document);
+      expect(a?.provisional).toBe(true);
+      expect(a?.cutSites.map((s) => [s.enzyme, s.siteStart, s.cut, s.cutBottom])).toEqual([
+        ['EcoRI', 2, 3, 3],
+        ['BsaI', 12, 16, 20],
+        ['AluI', 17, 18, 18],
+      ]);
+      // The first ORF is before the insert; the second spans it and is gone.
+      expect(a?.orfs.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
+    });
+
+    it('drops a site whose cut is separated from its recognition site by the edit', () => {
+      const store = withResults();
+      store.apply({ type: 'insert', position: 12, text: 'T' });
+      const names = store.getState().analysis?.cutSites.map((s) => s.enzyme);
+      expect(names).toEqual(['EcoRI', 'AluI']);
+    });
+
+    it('shifts positions back after a delete', () => {
+      const store = withResults();
+      store.apply({ type: 'delete', range: { start: 4, end: 8 } });
+      const a = store.getState().analysis;
+      expect(a?.cutSites.map((s) => [s.enzyme, s.cut])).toEqual([
+        ['EcoRI', 3],
+        ['BsaI', 10],
+        ['AluI', 12],
+      ]);
+      expect(a?.orfs).toEqual([]);
+    });
+
+    it('does not follow whole-document ops', () => {
+      const store = withResults();
+      store.apply({ type: 'reverseComplement' });
+      expect(store.getState().analysis).toBeNull();
+    });
+
+    it('is replaced by fresh results and ignores stale ones', () => {
+      const store = withResults();
+      store.apply({ type: 'insert', position: 0, text: 'A' });
+      store.setAnalysis(linear, [site('NotI', 0, 1)], []);
+      expect(store.getState().analysis?.provisional).toBe(true);
+      const present = store.document;
+      if (present === null) throw new Error('no document');
+      store.setAnalysis(present, [site('NotI', 0, 1)], []);
+      expect(store.getState().analysis).toEqual({
+        doc: present,
+        cutSites: [site('NotI', 0, 1)],
+        orfs: [],
+        provisional: false,
+      });
+    });
   });
 });
 

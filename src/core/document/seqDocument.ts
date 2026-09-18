@@ -354,6 +354,26 @@ export class SeqDocument {
         : position;
     }
     if (op.type === 'delete') return shiftPositionForDelete(position, op.range, this.length);
+    if (op.type === 'replace') {
+      // Mirrors replace(): the common prefix is overwritten in place, then the
+      // difference in length is inserted at, or deleted after, the pivot.
+      const oldLen = rangeLength(op.range);
+      const common = Math.min(oldLen, op.text.length);
+      const pivot =
+        this.isCircular && this.length > 0
+          ? (op.range.start + common) % this.length
+          : op.range.start + common;
+      if (op.text.length > oldLen)
+        return position >= pivot ? position + op.text.length - common : position;
+      if (oldLen > op.text.length) {
+        return shiftPositionForDelete(
+          position,
+          { start: pivot, end: pivot + (oldLen - common) },
+          this.length,
+        );
+      }
+      return position;
+    }
     if (op.type === 'insertFragment') {
       const removed = this.delete(op.range);
       const p = removed.pastePosition(this, op.range);

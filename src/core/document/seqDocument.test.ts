@@ -551,6 +551,26 @@ describe('apply / EditOp', () => {
     expect(doc.mapPositionThrough({ type: 'delete', range: range(2, 6) }, 4)).toBe(2);
     expect(doc.mapPositionThrough({ type: 'rename', name: 'x' }, 4)).toBe(4);
   });
+
+  it('maps positions through replace', () => {
+    // Same length: nothing moves.
+    expect(doc.mapPositionThrough({ type: 'replace', range: range(2, 6), text: 'NNNN' }, 10)).toBe(
+      10,
+    );
+    // Longer: positions after the replaced range shift by the growth.
+    expect(
+      doc.mapPositionThrough({ type: 'replace', range: range(2, 6), text: 'NNNNNN' }, 10),
+    ).toBe(12);
+    expect(doc.mapPositionThrough({ type: 'replace', range: range(2, 6), text: 'NNNNNN' }, 6)).toBe(
+      8,
+    );
+    expect(doc.mapPositionThrough({ type: 'replace', range: range(2, 6), text: 'NNNNNN' }, 5)).toBe(
+      5,
+    );
+    // Shorter: positions after the range shift back; positions in the removed tail collapse onto it.
+    expect(doc.mapPositionThrough({ type: 'replace', range: range(2, 6), text: 'N' }, 10)).toBe(7);
+    expect(doc.mapPositionThrough({ type: 'replace', range: range(2, 6), text: 'N' }, 4)).toBe(3);
+  });
 });
 
 describe('randomized invariants', () => {
