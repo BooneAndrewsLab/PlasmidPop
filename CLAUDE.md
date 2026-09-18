@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 332 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 348 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -117,9 +117,18 @@ pick from here when the current work is done.
    ids), so it is a single undo step. Not yet: a paste target in the empty
    state, pasting GenBank text, cross-tab paste in browsers that strip
    custom clipboard types (only the plain bases arrive there).
-3. **Simulated cloning.** Cut with the shown enzymes, list fragments with
-   overhangs, ligate compatible ends into a new document; later Gibson
-   and Golden Gate assembly from primer/fragment sets.
+3. ~~**Simulated cloning.**~~ done, restriction-ligation only. The
+   Cloning sidebar tab digests the document with the enzymes ticked in the
+   Enzymes tab (`digest` in `src/core/cloning/digest.ts`: fragments with
+   both ends described as blunt / 5′ / 3′ plus the overhang bases) and lets
+   fragments be collected into an assembly that survives opening another
+   file, so vector and insert can come from different documents. Parts can
+   be flipped and reordered; every junction is checked (`endsCompatible`,
+   `assemblyJunctions` in `ligate.ts`) and `ligate` opens the product as a
+   new circular or linear document with the fragments' features. Not yet:
+   Gibson and Golden Gate assembly from primer/fragment sets, partial
+   digests, dephosphorylation, resolving IUPAC codes in overhangs, and
+   persisting the assembly shelf across reloads.
 4. **Translation of any selected range in six frames** with the protein
    shown in a panel and exportable as FASTA.
 5. **History panel** listing undo steps with labels; jump to any state.

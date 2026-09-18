@@ -165,3 +165,69 @@ describe('find and feature editing', () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 });
+
+describe('cloning', () => {
+  it('digests with the shown enzymes and ligates collected fragments into a new document', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const before = editorStore.document;
+    if (before === null) throw new Error('no document');
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(before);
+    });
+    act(() => {
+      editorStore.setShownEnzymes(['EcoRI', 'BamHI']);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    expect(screen.getByText('EcoRI, BamHI'.split(', ').sort().join(', '))).toBeInTheDocument();
+    expect(screen.getByText(/2 fragments/)).toBeInTheDocument();
+    // pBR322: EcoRI cuts after 4359, BamHI after 375 → 4361 - 377 + 1 ... the two pieces sum to 4361.
+    const lengths = screen.getAllByRole('button', { name: / bp$/ });
+    expect(lengths.map((b) => b.textContent)).toEqual(['3,984 bp', '377 bp']);
+    // Selecting a fragment selects its bases.
+    fireEvent.click(screen.getByRole('button', { name: '377 bp' }));
+    expect(screen.getByText(/377 bp selected/)).toBeInTheDocument();
+    // Collect both: insert (EcoRI→BamHI) first, then the vector (BamHI→EcoRI).
+    const [addVector, addInsert] = screen.getAllByRole('button', { name: 'Add' });
+    if (addVector === undefined || addInsert === undefined) throw new Error('expected 2 Add');
+    fireEvent.click(addInsert);
+    fireEvent.click(addVector);
+    expect(screen.getByText(/2 parts, 4,361 bp/)).toBeInTheDocument();
+    const joins = () =>
+      screen
+        .getAllByRole('listitem', { name: /compatible/ })
+        .map((li) => li.getAttribute('aria-label'));
+    expect(joins()).toEqual([
+      'Join: BamHI 5′ GATC to BamHI 5′ GATC, compatible',
+      'Closing join: EcoRI 5′ AATT to EcoRI 5′ AATT, compatible',
+    ]);
+    // Flipping the insert puts EcoRI against BamHI at both joins (the insert is directional).
+    fireEvent.click(screen.getByRole('button', { name: 'Flip part 1' }));
+    expect(joins()).toEqual([
+      'Join: EcoRI 5′ AATT to BamHI 5′ GATC, incompatible',
+      'Closing join: EcoRI 5′ AATT to BamHI 5′ GATC, incompatible',
+    ]);
+    expect(screen.getByText(/\(flipped\)/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Assemble' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Flip part 1' }));
+    expect(screen.getByRole('button', { name: 'Assemble' })).toBeEnabled();
+    // Reordering rotates the product; move back so it starts at the EcoRI cut.
+    fireEvent.click(screen.getByRole('button', { name: 'Move part 1 down' }));
+    expect(joins()[0]).toBe('Join: EcoRI 5′ AATT to EcoRI 5′ AATT, compatible');
+    fireEvent.click(screen.getByRole('button', { name: 'Move part 2 up' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /Name of the assembled/ }), {
+      target: { value: 'religated' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
+    const product = editorStore.document;
+    expect(product?.name).toBe('religated');
+    expect(product?.isCircular).toBe(true);
+    expect(product?.length).toBe(4361);
+    // Same molecule, rotated to start at the EcoRI cut.
+    const rotated = before.setOrigin(4359).sequence.toString();
+    expect(product?.sequence.toString()).toBe(rotated);
+    expect(product?.features.all().length).toBeGreaterThan(5);
+    expect(editorStore.getState().assembly).toEqual([]);
+    expect(screen.getByText('4,361 bp, circular')).toBeInTheDocument();
+  });
+});

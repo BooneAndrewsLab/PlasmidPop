@@ -1,5 +1,6 @@
 import {
   type CutSite,
+  type DigestFragment,
   type EditOp,
   type Orf,
   type Range,
@@ -16,7 +17,15 @@ import { type ParseResult, type ParseWarning } from '@/io';
 import { type EditPlan, selectionAfterOp } from '../editing';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
-export type SidebarTab = 'features' | 'enzymes' | 'orfs' | 'primers' | 'align';
+export type SidebarTab = 'features' | 'enzymes' | 'orfs' | 'primers' | 'align' | 'cloning';
+
+/** A digest fragment set aside for ligation, in the orientation it will be joined. */
+export interface AssemblyPart {
+  readonly id: string;
+  readonly fragment: DigestFragment;
+  /** Whether the fragment was turned around since it was added. */
+  readonly flipped: boolean;
+}
 
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */
@@ -60,6 +69,11 @@ export interface EditorState {
   /** Feature currently open in the full editor. */
   readonly editingFeatureId: string | null;
   readonly findOpen: boolean;
+  /**
+   * Fragments collected for ligation, in order. Independent of the open
+   * document so pieces can be gathered from several files in turn.
+   */
+  readonly assembly: readonly AssemblyPart[];
 }
 
 const INITIAL: EditorState = {
@@ -84,6 +98,7 @@ const INITIAL: EditorState = {
   renameRequest: null,
   editingFeatureId: null,
   findOpen: false,
+  assembly: [],
 };
 
 type Listener = () => void;
@@ -369,6 +384,46 @@ export class EditorStore {
 
   setShowTranslations(show: boolean): void {
     if (show !== this.state.showTranslations) this.set({ showTranslations: show });
+  }
+
+  // ------------------------------------------------------------- assembly
+
+  /** Appends a fragment to the assembly and returns its part id. */
+  addToAssembly(fragment: DigestFragment): string {
+    const id = crypto.randomUUID();
+    this.set({ assembly: [...this.state.assembly, { id, fragment, flipped: false }] });
+    return id;
+  }
+
+  removeFromAssembly(id: string): void {
+    const next = this.state.assembly.filter((p) => p.id !== id);
+    if (next.length !== this.state.assembly.length) this.set({ assembly: next });
+  }
+
+  /** Turns a part around (reverse complement); the caller supplies the flipped fragment. */
+  flipAssemblyPart(id: string, flipped: DigestFragment): void {
+    this.set({
+      assembly: this.state.assembly.map((p) =>
+        p.id === id ? { ...p, fragment: flipped, flipped: !p.flipped } : p,
+      ),
+    });
+  }
+
+  /** Moves a part up (-1) or down (+1) in the order of joining. */
+  moveAssemblyPart(id: string, delta: -1 | 1): void {
+    const parts = [...this.state.assembly];
+    const i = parts.findIndex((p) => p.id === id);
+    const j = i + delta;
+    const a = parts[i];
+    const b = parts[j];
+    if (i < 0 || a === undefined || b === undefined) return;
+    parts[i] = b;
+    parts[j] = a;
+    this.set({ assembly: parts });
+  }
+
+  clearAssembly(): void {
+    if (this.state.assembly.length > 0) this.set({ assembly: [] });
   }
 }
 

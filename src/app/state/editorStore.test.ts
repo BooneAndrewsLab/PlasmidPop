@@ -174,3 +174,35 @@ describe('EditorStore persistence state', () => {
     expect(store.getState().fileHandle).toBeNull();
   });
 });
+
+describe('assembly shelf', () => {
+  const frag = (name: string) => ({
+    sequence: 'ACGT',
+    features: [],
+    range: { start: 0, end: 4 },
+    left: { kind: 'blunt' as const, overhang: '', enzyme: null },
+    right: { kind: 'blunt' as const, overhang: '', enzyme: null },
+    source: name,
+  });
+
+  it('collects, reorders, flips, removes and survives opening another document', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const a = store.addToAssembly(frag('a'));
+    const b = store.addToAssembly(frag('b'));
+    const c = store.addToAssembly(frag('c'));
+    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'b', 'c']);
+    store.moveAssemblyPart(c, -1);
+    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'c', 'b']);
+    store.moveAssemblyPart(a, -1); // already first: no-op
+    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'c', 'b']);
+    store.flipAssemblyPart(b, { ...frag('b'), sequence: 'TTTT' });
+    expect(store.getState().assembly[2]).toMatchObject({ flipped: true });
+    expect(store.getState().assembly[2]?.fragment.sequence).toBe('TTTT');
+    store.removeFromAssembly(c);
+    store.openDocument(SeqDocument.create({ sequence: 'AAAA' }));
+    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'b']);
+    store.clearAssembly();
+    expect(store.getState().assembly).toEqual([]);
+  });
+});
