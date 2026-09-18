@@ -71,6 +71,17 @@ export class PersistenceService {
     if (editorStore.getState().documentId === id) editorStore.closeDocument();
   }
 
+  /** Renames a stored document; the open one goes through the store so the change is undoable. */
+  async renameStored(id: string, name: string): Promise<void> {
+    if (editorStore.getState().documentId === id) {
+      editorStore.apply({ type: 'rename', name });
+      return;
+    }
+    if (!(await this.repo.rename(id, name))) {
+      editorStore.fail('That document is no longer in local storage.');
+    }
+  }
+
   listStored() {
     return this.repo.list();
   }

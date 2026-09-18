@@ -6,6 +6,7 @@ import { EXAMPLES } from '../examples';
 import { openText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
+import { InlineRename } from './InlineRename';
 
 function formatWhen(timestamp: number): string {
   const diff = Date.now() - timestamp;
@@ -20,6 +21,7 @@ function formatWhen(timestamp: number): string {
 export function EmptyState() {
   const example = EXAMPLES[0];
   const [recent, setRecent] = useState<DocumentSummary[] | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
 
   const refresh = (): void => {
     persistence
@@ -31,6 +33,12 @@ export function EmptyState() {
   };
 
   useEffect(refresh, []);
+
+  const report = (p: Promise<unknown>): void => {
+    p.then(refresh).catch((e: unknown) => {
+      editorStore.fail(e instanceof Error ? e.message : String(e));
+    });
+  };
 
   return (
     <div className="empty">
@@ -64,33 +72,52 @@ export function EmptyState() {
           <ul className="recent__list">
             {recent.map((d) => (
               <li key={d.id} className="recent__item">
+                {renamingId === d.id ? (
+                  <InlineRename
+                    value={d.name}
+                    label="Document name"
+                    className="recent__rename"
+                    onCommit={(name) => {
+                      report(persistence.renameStored(d.id, name));
+                    }}
+                    onDone={() => {
+                      setRenamingId(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="recent__open"
+                    onClick={() => {
+                      persistence.openStored(d.id).catch((e: unknown) => {
+                        editorStore.fail(e instanceof Error ? e.message : String(e));
+                      });
+                    }}
+                  >
+                    <span className="recent__name">{d.name}</span>
+                    <span className="recent__meta">
+                      {d.length.toLocaleString()} bp, {d.topology}, {d.featureCount} features
+                      {d.fileName === null ? '' : `, ${d.fileName}`}
+                    </span>
+                    <span className="recent__when">{formatWhen(d.updatedAt)}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="recent__open"
+                  className="button button--quiet button--small"
+                  title="Give this document a different name"
                   onClick={() => {
-                    persistence.openStored(d.id).catch((e: unknown) => {
-                      editorStore.fail(e instanceof Error ? e.message : String(e));
-                    });
+                    setRenamingId(d.id);
                   }}
                 >
-                  <span className="recent__name">{d.name}</span>
-                  <span className="recent__meta">
-                    {d.length.toLocaleString()} bp, {d.topology}, {d.featureCount} features
-                    {d.fileName === null ? '' : `, ${d.fileName}`}
-                  </span>
-                  <span className="recent__when">{formatWhen(d.updatedAt)}</span>
+                  Rename
                 </button>
                 <button
                   type="button"
                   className="button button--quiet button--small"
                   title="Remove from this browser's storage"
                   onClick={() => {
-                    persistence
-                      .removeStored(d.id)
-                      .then(refresh)
-                      .catch((e: unknown) => {
-                        editorStore.fail(e instanceof Error ? e.message : String(e));
-                      });
+                    report(persistence.removeStored(d.id));
                   }}
                 >
                   Remove

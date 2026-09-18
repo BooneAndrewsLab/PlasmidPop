@@ -76,6 +76,14 @@ export class DocumentRepository {
     return { doc: doc.rename(stored.name), fileName: stored.fileName };
   }
 
+  /** Renames a stored document in place; false when there is no such document. */
+  async rename(id: string, name: string): Promise<boolean> {
+    const stored = await this.load(id);
+    if (stored === null) return false;
+    await this.save(id, stored.doc.rename(name), stored.fileName);
+    return true;
+  }
+
   async list(): Promise<DocumentSummary[]> {
     const all = await this.db.documents.orderBy('updatedAt').reverse().toArray();
     return all.map(({ id, name, fileName, length, topology, featureCount, updatedAt }) => ({

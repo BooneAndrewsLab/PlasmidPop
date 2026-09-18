@@ -1,4 +1,4 @@
-import { type ChangeEvent, useRef } from 'react';
+import { type ChangeEvent, useRef, useState } from 'react';
 
 import { type SeqDocument } from '@/core';
 
@@ -7,6 +7,7 @@ import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
 import { ExportMenu } from './ExportMenu';
 import { HistoryMenu } from './HistoryMenu';
+import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
 import { type ViewMode, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -38,6 +39,7 @@ export function Toolbar({ doc }: Props) {
     ['both', 'Both'],
   ];
   const inputRef = useRef<HTMLInputElement>(null);
+  const [renaming, setRenaming] = useState(false);
 
   const onPick = (e: ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
@@ -54,15 +56,36 @@ export function Toolbar({ doc }: Props) {
       </h1>
       {doc !== null && (
         <div className="toolbar__doc">
-          <span className="toolbar__name" title={doc.metadata.description}>
-            {doc.name}
-            {dirty && (
-              <span className="toolbar__dirty" title="Changes not yet saved to a file">
-                {' '}
-                •
-              </span>
-            )}
-          </span>
+          {renaming ? (
+            <InlineRename
+              value={doc.name}
+              label="Document name"
+              className="toolbar__rename"
+              onCommit={(name) => {
+                editorStore.apply({ type: 'rename', name });
+              }}
+              onDone={() => {
+                setRenaming(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className="toolbar__name"
+              title={`${doc.metadata.description === '' ? '' : `${doc.metadata.description}\n`}Click to rename`}
+              onClick={() => {
+                setRenaming(true);
+              }}
+            >
+              {doc.name}
+              {dirty && (
+                <span className="toolbar__dirty" title="Changes not yet saved to a file">
+                  {' '}
+                  •
+                </span>
+              )}
+            </button>
+          )}
           <span className="toolbar__meta">
             {doc.length.toLocaleString()} bp, {doc.topology}
           </span>

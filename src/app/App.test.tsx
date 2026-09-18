@@ -53,6 +53,26 @@ describe('App', () => {
     expect(screen.getByRole('textbox', { name: 'Feature name' })).toHaveValue('New feature');
   });
 
+  it('renames the document from the toolbar', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'SYNPBR322' }));
+    const field = screen.getByRole('textbox', { name: 'Document name' });
+    expect(field).toHaveValue('SYNPBR322');
+    fireEvent.change(field, { target: { value: '  pBR322 edited ' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(editorStore.document?.name).toBe('pBR322 edited');
+    expect(screen.getByRole('button', { name: /pBR322 edited/ })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Document name' })).toBeNull();
+    // Escape cancels.
+    fireEvent.click(screen.getByRole('button', { name: /pBR322 edited/ }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Document name' }), {
+      target: { value: 'nope' },
+    });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Document name' }), { key: 'Escape' });
+    expect(editorStore.document?.name).toBe('pBR322 edited');
+  });
+
   it('lists changes in the history menu and jumps between them', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

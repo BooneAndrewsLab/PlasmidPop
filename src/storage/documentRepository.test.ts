@@ -68,6 +68,16 @@ describe('DocumentRepository', () => {
     expect(await repo.findIdentical(doc.rename('other'), 'pTest.gb')).toBeNull();
   });
 
+  it('renames a stored document, keeping its file name', async () => {
+    const repo = freshRepo();
+    await repo.save('a', doc, 'pTest.gb');
+    expect(await repo.rename('a', 'pTest edited')).toBe(true);
+    expect(await repo.rename('missing', 'x')).toBe(false);
+    const list = await repo.list();
+    expect(list.map((d) => [d.name, d.fileName])).toEqual([['pTest edited', 'pTest.gb']]);
+    expect((await repo.load('a'))?.doc.name).toBe('pTest edited');
+  });
+
   it('moves file handles between ids', async () => {
     const repo = freshRepo();
     const handle = { kind: 'file', name: 'x.gb' } as unknown as FileSystemFileHandle;

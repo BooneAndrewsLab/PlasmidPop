@@ -52,6 +52,24 @@ describe('PersistenceService', () => {
     expect((await service.listStored()).map((d) => d.id)).toEqual([first]);
   });
 
+  it('renames stored documents, through the store when they are open', async () => {
+    const id = editorStore.getState().documentId ?? '';
+    await service.renameStored(id, 'pKeep open');
+    expect(editorStore.document?.name).toBe('pKeep open');
+    expect(editorStore.getState().history?.undoLabel).toBe('Rename');
+    editorStore.undo();
+    await service.autosave();
+
+    editorStore.closeDocument();
+    await service.renameStored(id, 'pKeep stored');
+    expect((await service.listStored()).map((d) => d.name)).toEqual(['pKeep stored']);
+    await service.renameStored('missing', 'x');
+    expect(editorStore.getState().error).toMatch(/no longer/);
+    editorStore.dismissError();
+    await service.openStored(id);
+    expect(editorStore.document?.name).toBe('pKeep stored');
+  });
+
   it('removes stored documents and closes them if open', async () => {
     const id = editorStore.getState().documentId ?? '';
     await service.removeStored(id);
