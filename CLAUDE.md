@@ -204,6 +204,28 @@ pick from here when the current work is done.
     selects the whole feature; it should select the codon(s) under the
     pointer, i.e. the residue's three bases, extending codon by codon
     when dragging. Requested 2026-09-18.
+20. **Hide cut sites without losing the enzyme selection.** The tick
+    boxes in the Enzymes tab do two jobs at once: they choose which cut
+    sites are drawn in the views and which enzymes the Cloning tab
+    digests with. Users want to declutter the map temporarily without
+    unticking a carefully chosen set and re-ticking it later. Add a
+    separate "show cut sites" toggle (in the Enzymes tab or next to
+    Complement / Translations in the toolbar) that hides all drawn sites
+    while the ticked set stays as it is; the Cloning digest, SVG export
+    and fragment list should say whether they follow the toggle or the
+    ticks. Update `07-enzymes.md` when it lands. Requested 2026-09-18.
+21. **Show edits in the sequence view.** Mark bases that were inserted or
+    changed (and where deletions happened) so an editing session is
+    visible at a glance, like tracked changes. Open question: what is the
+    reference point. Candidates: (a) the file on disk, which the store
+    already tracks as `savedDoc` for the dirty flag, so the marks clear
+    on Save; (b) the state when the document was opened (history
+    position 0), so marks survive Save until the file is reopened; (c) a
+    baseline the user sets ("mark from here"). (a) is the cheapest and
+    matches the dirty dot in the toolbar; (b) and (c) need a stored
+    baseline document. Either way the marks are a diff between two
+    `SeqDocument`s: the alignment module can produce it for the sequence,
+    and feature ids give the feature diff. Requested 2026-09-18.
 
 ## Non-goals for v1
 
