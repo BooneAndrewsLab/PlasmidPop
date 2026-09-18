@@ -4,7 +4,7 @@ import { parseGenBank } from '@/io';
 import { PlasmidPopDb, DocumentRepository } from '@/storage';
 
 import { editorStore } from './editorStore';
-import { PersistenceService } from './persistence';
+import { PersistenceService, writeBackTarget } from './persistence';
 
 const doc = SeqDocument.create({ name: 'pKeep', sequence: 'ACGTACGTAC', topology: 'circular' });
 
@@ -111,7 +111,17 @@ describe('PersistenceService', () => {
     urlSpy.mockRestore();
   });
 
-  it('writes through a stored handle when the file is GenBank', async () => {
+  it('names the write-back target only for GenBank files with a handle', () => {
+    const handle = { name: 'pKeep.gb' } as unknown as FileSystemFileHandle;
+    expect(writeBackTarget(null, 'pKeep.gb')).toBeNull();
+    expect(writeBackTarget(handle, 'pKeep.gb')).toBe('pKeep.gb');
+    expect(writeBackTarget(handle, 'pKeep.ape')).toBe('pKeep.gb');
+    expect(writeBackTarget(handle, null)).toBe('pKeep.gb');
+    expect(writeBackTarget(handle, 'pKeep.fasta')).toBeNull();
+    expect(writeBackTarget(handle, 'pKeep.dna')).toBeNull();
+  });
+
+  it('asks before the first write-back into an opened file, then writes silently', async () => {
     let written = '';
     const handle = {
       name: 'pKeep.gb',
@@ -125,10 +135,42 @@ describe('PersistenceService', () => {
         }),
     } as unknown as FileSystemFileHandle;
     editorStore.openDocument(doc, 'pKeep.gb', [], { handle });
+    // Real handles are structured-clonable; this mock (with a function on it) is
+    // not, so store a plain stand-in under the same id as the picker would.
+    const id = editorStore.getState().documentId ?? '';
+    await repo.saveHandle(id, {
+      kind: 'file',
+      name: 'pKeep.gb',
+    } as unknown as FileSystemFileHandle);
     editorStore.apply({ type: 'rename', name: 'pKeep2' });
+    // Opened, never agreed to: Save raises the prompt instead of writing.
     await service.save();
+    expect(written).toBe('');
+    expect(editorStore.getState()).toMatchObject({
+      dirty: true,
+      overwritePrompt: { fileName: 'pKeep.gb' },
+    });
+    editorStore.dismissOverwrite();
+    await service.save();
+    expect(written).toBe('');
+    // Agreeing writes and is remembered for the document.
+    await service.confirmOverwrite();
+    expect(editorStore.getState().overwritePrompt).toBeNull();
     expect(parseGenBank(written).documents[0]?.name).toBe('pKeep2');
     expect(editorStore.getState().dirty).toBe(false);
+    editorStore.apply({ type: 'rename', name: 'pKeep3' });
+    await service.save();
+    expect(parseGenBank(written).documents[0]?.name).toBe('pKeep3');
+    expect(editorStore.getState().overwritePrompt).toBeNull();
+    // Still remembered after reopening from local storage.
+    await service.autosave();
+    editorStore.closeDocument();
+    await service.openStored(id);
+    expect(editorStore.getState().fileHandle).toMatchObject({ name: 'pKeep.gb' });
+    editorStore.setFileHandle(handle); // the writable mock again, in place of the stand-in
+    editorStore.apply({ type: 'rename', name: 'pKeep4' });
+    await service.save();
+    expect(parseGenBank(written).documents[0]?.name).toBe('pKeep4');
     editorStore.closeDocument();
   });
 });

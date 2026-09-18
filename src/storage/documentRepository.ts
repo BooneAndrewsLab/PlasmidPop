@@ -63,7 +63,7 @@ export class DocumentRepository {
     await this.db.transaction('rw', this.db.handles, async () => {
       const stored = await this.db.handles.get(from);
       if (stored === undefined) return;
-      await this.db.handles.put({ id: to, handle: stored.handle });
+      await this.db.handles.put({ ...stored, id: to });
       await this.db.handles.delete(from);
     });
   }
@@ -105,12 +105,27 @@ export class DocumentRepository {
     if (this.lastDocumentId() === id) this.setLastDocumentId(null);
   }
 
-  async saveHandle(id: string, handle: FileSystemFileHandle): Promise<void> {
-    await this.db.handles.put({ id, handle });
+  /** Stores the handle Save writes to; `writeConfirmed` when the user chose the file in a save dialog. */
+  async saveHandle(
+    id: string,
+    handle: FileSystemFileHandle,
+    writeConfirmed = false,
+  ): Promise<void> {
+    await this.db.handles.put({ id, handle, writeConfirmed });
   }
 
   async loadHandle(id: string): Promise<FileSystemFileHandle | null> {
     return (await this.db.handles.get(id))?.handle ?? null;
+  }
+
+  /** Whether the user has agreed that Save may overwrite the stored file. */
+  async isWriteConfirmed(id: string): Promise<boolean> {
+    return (await this.db.handles.get(id))?.writeConfirmed === true;
+  }
+
+  /** Records the user's agreement to overwrite the stored file; no-op without a stored handle. */
+  async confirmWrite(id: string): Promise<void> {
+    await this.db.handles.where('id').equals(id).modify({ writeConfirmed: true });
   }
 
   lastDocumentId(): string | null {

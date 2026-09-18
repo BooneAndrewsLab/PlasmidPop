@@ -24,6 +24,12 @@ export interface StoredDocument {
 export interface StoredHandle {
   readonly id: string;
   readonly handle: FileSystemFileHandle;
+  /**
+   * Whether the user has agreed that Save may overwrite this file on disk.
+   * Set when they pick the file in a save dialog or accept the overwrite
+   * prompt; absent for handles that came from opening a file.
+   */
+  readonly writeConfirmed?: boolean;
 }
 
 export class PlasmidPopDb extends Dexie {

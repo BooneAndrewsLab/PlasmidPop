@@ -14,6 +14,20 @@ import { downloadText, fileNameFor } from '../saveFile';
 import { editorStore } from './editorStore';
 
 /**
+ * Name of the file Save would overwrite in place, or null when Save will ask
+ * where to write: we need a handle, and we only write GenBank back into a
+ * file that was GenBank to begin with.
+ */
+export function writeBackTarget(
+  fileHandle: FileSystemFileHandle | null,
+  fileName: string | null,
+): string | null {
+  if (fileHandle === null) return null;
+  const isGenBank = fileName === null || /\.(gb|gbk|genbank|gbff|ape)$/i.test(fileName);
+  return isGenBank ? fileHandle.name : null;
+}
+
+/**
  * Everything that touches disk or IndexedDB, kept out of the store so the
  * store stays synchronous and testable.
  */
@@ -109,22 +123,47 @@ export class PersistenceService {
 
   /**
    * Saves as GenBank: to the file the document came from when we hold a
-   * handle to it (and it is a GenBank file), otherwise like Save as.
+   * handle to it (and it is a GenBank file), otherwise like Save as. The
+   * first write-back into a file the user merely opened is not silent: a
+   * browser overwriting a file on disk is unexpected, so the store raises a
+   * prompt and the write waits for `confirmOverwrite`.
    */
   async save(): Promise<void> {
-    const { history, fileHandle, fileName } = editorStore.getState();
+    const { history, fileHandle, fileName, documentId } = editorStore.getState();
     if (history === null) return;
-    const isGenBank = fileName === null || /\.(gb|gbk|genbank|gbff|ape)$/i.test(fileName);
-    if (fileHandle !== null && isGenBank) {
-      if (!(await ensureWritePermission(fileHandle))) {
-        editorStore.fail('Permission to write the file was not granted.');
-        return;
-      }
-      await writeTextToHandle(fileHandle, writeGenBank(history.present));
-      editorStore.markSaved();
+    const target = writeBackTarget(fileHandle, fileName);
+    if (fileHandle === null || target === null) {
+      await this.saveAs();
       return;
     }
-    await this.saveAs();
+    if (documentId === null || !(await this.repo.isWriteConfirmed(documentId))) {
+      editorStore.requestOverwrite(target);
+      return;
+    }
+    await this.writeBack(fileHandle);
+  }
+
+  /** The user accepted the overwrite prompt: remember that for this file and write. */
+  async confirmOverwrite(): Promise<void> {
+    const { fileHandle, documentId } = editorStore.getState();
+    editorStore.dismissOverwrite();
+    if (fileHandle === null) return;
+    if (documentId !== null) {
+      if (await this.repo.loadHandle(documentId)) await this.repo.confirmWrite(documentId);
+      else await this.repo.saveHandle(documentId, fileHandle, true);
+    }
+    await this.writeBack(fileHandle);
+  }
+
+  private async writeBack(handle: FileSystemFileHandle): Promise<void> {
+    const doc = editorStore.document;
+    if (doc === null) return;
+    if (!(await ensureWritePermission(handle))) {
+      editorStore.fail('Permission to write the file was not granted.');
+      return;
+    }
+    await writeTextToHandle(handle, writeGenBank(doc));
+    editorStore.markSaved();
   }
 
   async saveAs(): Promise<void> {
@@ -142,7 +181,8 @@ export class PersistenceService {
     await writeTextToHandle(handle, writeGenBank(doc));
     editorStore.setFileHandle(handle);
     editorStore.markSaved(handle.name);
-    if (documentId !== null) await this.repo.saveHandle(documentId, handle);
+    // Chosen in a save dialog, so overwriting it later needs no further prompt.
+    if (documentId !== null) await this.repo.saveHandle(documentId, handle, true);
   }
 }
 

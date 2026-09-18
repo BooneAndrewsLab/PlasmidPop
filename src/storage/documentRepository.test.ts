@@ -87,6 +87,10 @@ describe('DocumentRepository', () => {
     expect(await repo.loadHandle('old')).toMatchObject({ name: 'x.gb' });
     await repo.moveHandle('missing', 'old'); // no handle to move: keeps the existing one
     expect(await repo.loadHandle('old')).toMatchObject({ name: 'x.gb' });
+    // The overwrite agreement travels with the handle.
+    await repo.confirmWrite('old');
+    await repo.moveHandle('old', 'newer');
+    expect(await repo.isWriteConfirmed('newer')).toBe(true);
   });
 
   it('remembers the last open document id', () => {
@@ -103,5 +107,13 @@ describe('DocumentRepository', () => {
     await repo.saveHandle('a', handle);
     expect(await repo.loadHandle('a')).toMatchObject({ name: 'x.gb' });
     expect(await repo.loadHandle('missing')).toBeNull();
+    // Opened files are not confirmed for overwriting until the user agrees.
+    expect(await repo.isWriteConfirmed('a')).toBe(false);
+    await repo.confirmWrite('a');
+    expect(await repo.isWriteConfirmed('a')).toBe(true);
+    await repo.confirmWrite('missing'); // nothing stored: nothing to confirm
+    expect(await repo.isWriteConfirmed('missing')).toBe(false);
+    await repo.saveHandle('b', handle, true); // picked in a save dialog
+    expect(await repo.isWriteConfirmed('b')).toBe(true);
   });
 });

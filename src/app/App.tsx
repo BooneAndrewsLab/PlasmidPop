@@ -5,6 +5,7 @@ import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
+import { OverwriteDialog } from './components/OverwriteDialog';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
@@ -66,6 +67,7 @@ export function App() {
         </main>
       )}
       <StatusBar doc={doc} />
+      <OverwriteDialog />
     </div>
   );
 }

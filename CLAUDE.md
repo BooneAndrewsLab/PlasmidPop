@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 358 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 362 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -196,6 +196,11 @@ pick from here when the current work is done.
     people cannot find), and a wider or resizable sidebar on its own
     (does not help small windows). If the grid stays, fill the empty
     fourth cell of the second row with the surface colour.
+19. **Selecting amino acids in the sequence view.** Clicking or dragging
+    on a translation row (the amino acids drawn under a CDS) currently
+    selects the whole feature; it should select the codon(s) under the
+    pointer, i.e. the residue's three bases, extending codon by codon
+    when dragging. Requested 2026-09-18.
 
 ## Non-goals for v1
 

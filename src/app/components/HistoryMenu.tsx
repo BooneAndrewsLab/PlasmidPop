@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { useMenu } from './useMenu';
 
 /**
  * Undo and Redo buttons with a dropdown listing every recorded change, so
@@ -9,26 +10,13 @@ import { useEditorState } from '../state/useEditorStore';
  */
 export function HistoryMenu() {
   const { history } = useEditorState();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const { open, toggle, close, ref } = useMenu();
   const currentRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const current = currentRef.current as { scrollIntoView?: Element['scrollIntoView'] } | null;
     current?.scrollIntoView?.({ block: 'nearest' }); // jsdom has no scrollIntoView
-    const close = (e: MouseEvent): void => {
-      if (ref.current !== null && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const esc = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', esc);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', esc);
-    };
   }, [open]);
 
   const labels = history?.labels ?? [];
@@ -41,48 +29,50 @@ export function HistoryMenu() {
 
   return (
     <div className="menu history" ref={ref}>
-      <button
-        type="button"
-        className="button history__button"
-        disabled={history?.canUndo !== true}
-        title={
-          history?.undoLabel === undefined ? 'Undo (Ctrl+Z)' : `Undo ${history.undoLabel} (Ctrl+Z)`
-        }
-        onClick={() => {
-          editorStore.undo();
-        }}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        className="button history__button"
-        disabled={history?.canRedo !== true}
-        title={
-          history?.redoLabel === undefined
-            ? 'Redo (Ctrl+Shift+Z)'
-            : `Redo ${history.redoLabel} (Ctrl+Shift+Z)`
-        }
-        onClick={() => {
-          editorStore.redo();
-        }}
-      >
-        Redo
-      </button>
-      <button
-        type="button"
-        className="button history__button history__toggle"
-        aria-label="History"
-        title="Show the list of changes"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={history === null || labels.length === 0}
-        onClick={() => {
-          setOpen((v) => !v);
-        }}
-      >
-        ▾
-      </button>
+      <div className="segmented" role="group" aria-label="History">
+        <button
+          type="button"
+          className="segmented__button"
+          disabled={history?.canUndo !== true}
+          title={
+            history?.undoLabel === undefined
+              ? 'Undo (Ctrl+Z)'
+              : `Undo ${history.undoLabel} (Ctrl+Z)`
+          }
+          onClick={() => {
+            editorStore.undo();
+          }}
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          className="segmented__button"
+          disabled={history?.canRedo !== true}
+          title={
+            history?.redoLabel === undefined
+              ? 'Redo (Ctrl+Shift+Z)'
+              : `Redo ${history.redoLabel} (Ctrl+Shift+Z)`
+          }
+          onClick={() => {
+            editorStore.redo();
+          }}
+        >
+          Redo
+        </button>
+        <button
+          type="button"
+          className="segmented__button segmented__button--caret"
+          aria-label="History"
+          title="Show the list of changes"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          disabled={history === null || labels.length === 0}
+          onClick={toggle}
+        >
+          ▾
+        </button>
+      </div>
       {open && (
         <div className="menu__list history__list" role="menu" aria-label="Changes">
           {entries.map((entry) => {
@@ -108,7 +98,7 @@ export function HistoryMenu() {
                         : 'Undo back to this change'
                 }
                 onClick={() => {
-                  setOpen(false);
+                  close();
                   editorStore.jumpHistory(entry.position);
                 }}
               >

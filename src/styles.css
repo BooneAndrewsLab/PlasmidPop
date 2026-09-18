@@ -112,6 +112,24 @@ button {
   display: block;
 }
 
+.toolbar__home {
+  display: block;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toolbar__home:disabled {
+  cursor: default;
+}
+
+.toolbar__home:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
 .toolbar__doc {
   display: flex;
   align-items: baseline;
@@ -171,13 +189,21 @@ button {
   color: var(--accent);
 }
 
+/* Clusters (file, history, view, show) read as groups: a wide gap between
+   them, a narrow one inside a cluster. */
 .toolbar__actions {
   margin-left: auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 6px 8px;
+  gap: 6px 16px;
+}
+
+.toolbar__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .toggle {
@@ -223,6 +249,22 @@ button {
   padding: 3px 8px;
 }
 
+.button__caret {
+  font-size: 11px;
+  margin-left: 2px;
+}
+
+.button--danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--surface);
+}
+
+.button--danger:hover:not(:disabled) {
+  background: var(--danger);
+  filter: brightness(1.08);
+}
+
 .link {
   border: 0;
   padding: 0;
@@ -256,7 +298,7 @@ button {
   }
 
   .toolbar__meta,
-  .toggle {
+  .toolbar__show {
     display: none;
   }
 }
@@ -305,7 +347,7 @@ button {
   font-size: 13px;
 }
 
-/* View switcher and split */
+/* Segmented button groups (view switcher, show toggles, undo/redo) and split */
 
 .segmented {
   display: inline-flex;
@@ -314,8 +356,9 @@ button {
   overflow: hidden;
 }
 
+/* 5px padding inside the group's 1px border matches the height of .button. */
 .segmented__button {
-  padding: 4px 10px;
+  padding: 5px 10px;
   border: 0;
   background: var(--surface);
   cursor: pointer;
@@ -325,9 +368,23 @@ button {
   border-left: 1px solid var(--line);
 }
 
+.segmented__button:hover:not(:disabled):not(.segmented__button--active) {
+  background: var(--surface-3);
+}
+
+.segmented__button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .segmented__button--active {
   background: var(--accent);
   color: var(--accent-ink);
+}
+
+.segmented__button--caret {
+  padding: 5px 7px;
+  font-size: 11px;
 }
 
 .app__views {
@@ -1081,10 +1138,19 @@ button {
   z-index: 10;
 }
 
+/* For a trigger at the left of its row: the list opens under its left edge. */
+.menu__list--start {
+  left: 0;
+  right: auto;
+}
+
 .menu__item {
-  display: block;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
   width: 100%;
   padding: 6px 10px;
+  white-space: nowrap;
   border: 0;
   border-radius: 5px;
   background: transparent;
@@ -1107,26 +1173,59 @@ button {
   background: var(--line);
 }
 
+.menu__shortcut {
+  color: var(--ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Modal dialog (overwrite confirmation) */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 26rem;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.dialog__title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dialog__body {
+  margin: 0 0 18px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* Undo history */
 
 .history {
   display: inline-flex;
-}
-
-.history__button {
-  border-radius: 0;
-  margin-left: -1px;
-}
-
-.history__button:first-child {
-  border-radius: 6px 0 0 6px;
-  margin-left: 0;
-}
-
-.history__toggle {
-  border-radius: 0 6px 6px 0;
-  padding: 5px 7px;
-  font-size: 11px;
 }
 
 .history__list {

@@ -2,10 +2,27 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { translateSixFrames } from '@/core';
+import { getRepository } from '@/storage';
 
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
 import { editorStore } from './state/editorStore';
 import { App } from './App';
+
+// The store is a module singleton and autosave remembers the last document:
+// start every test on the empty page instead of inheriting (or restoring)
+// the previous test's document.
+beforeEach(() => {
+  getRepository().setLastDocumentId(null);
+  act(() => {
+    editorStore.closeDocument();
+  });
+});
+
+/** Picks an item from the File menu, where file actions live once a document is open. */
+function fileMenu(item: string | RegExp): void {
+  fireEvent.click(screen.getByRole('button', { name: 'File' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: item }));
+}
 
 describe('App', () => {
   it('renders the brand and an empty state before a file is opened', () => {
@@ -76,7 +93,7 @@ describe('App', () => {
     fireEvent.keyDown(box, { key: 'Escape' });
     fireEvent.keyDown(box, { key: 'Backspace' });
     expect(editorStore.document?.length).toBe(3);
-    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fileMenu('New');
     expect(editorStore.document?.length).toBe(0);
     fireEvent.keyDown(box, { key: 'Escape' });
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), { key: 't' });
@@ -94,17 +111,18 @@ describe('App', () => {
     paste('LOCUS       X 4 bp DNA circular\nORIGIN\n        1 acgt\n//\n');
     expect(editorStore.document?.name).toBe('X');
     expect(editorStore.document?.isCircular).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Show files' }));
+    // The logo is the way home too.
+    fireEvent.click(screen.getByRole('button', { name: 'PlasmidPop' }));
     expect(editorStore.document).toBeNull();
     paste('acgt acgt\n  11 nnry\n');
     expect(editorStore.document?.sequence.toString()).toBe('acgtacgtnnry');
     expect(editorStore.getState().selection).toEqual({ start: 12, end: 12 });
     // Pasting a record into the still-empty new document opens it instead of failing.
-    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fileMenu('New');
     paste('>frag\nGGCC\n', screen.getByRole('textbox', { name: 'Sequence' }));
     expect(editorStore.document?.name).toBe('frag');
     expect(editorStore.document?.sequence.toString()).toBe('GGCC');
-    fireEvent.click(screen.getByRole('button', { name: 'Show files' }));
+    fileMenu('Show files');
     paste('hello world');
     expect(editorStore.document).toBeNull();
     expect(screen.getByRole('alert')).toHaveTextContent(/not a GenBank or FASTA/);
@@ -249,6 +267,91 @@ describe('find and feature editing', () => {
     });
     fireEvent.change(screen.getByLabelText(/^Location/), { target: { value: '9999..10' } });
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  });
+});
+
+describe('toolbar', () => {
+  it('toggles the complement strand and translations with pressed buttons', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const complement = screen.getByRole('button', { name: 'Complement' });
+    const translations = screen.getByRole('button', { name: 'Translations' });
+    expect(complement).toHaveAttribute('aria-pressed', 'true');
+    expect(editorStore.getState().showComplement).toBe(true);
+    fireEvent.click(complement);
+    expect(complement).toHaveAttribute('aria-pressed', 'false');
+    expect(editorStore.getState().showComplement).toBe(false);
+    const before = editorStore.getState().showTranslations;
+    fireEvent.click(translations);
+    expect(editorStore.getState().showTranslations).toBe(!before);
+    expect(translations).toHaveAttribute('aria-pressed', String(!before));
+  });
+
+  it('collects the file actions in one menu once a document is open', () => {
+    render(<App />);
+    expect(screen.queryByRole('button', { name: 'File' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open file' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    expect(screen.queryByRole('button', { name: 'Open example' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    const names = screen.getAllByRole('menuitem').map((item) => item.textContent);
+    expect(names).toEqual([
+      'New',
+      'Open file…',
+      'Open example',
+      'Save…Ctrl+S', // no file handle: Save already asks where, so no Save as
+      'Export map as SVG',
+      'Export sequence as FASTA',
+      'Export selection as GenBank',
+      'Export selection as FASTA',
+      'Show files',
+    ]);
+    expect(screen.getByRole('menuitem', { name: 'Export selection as FASTA' })).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    // With a handle to a GenBank file, Save names its target and Save as appears.
+    act(() => {
+      editorStore.setFileHandle({ name: 'pBR322.gb' } as unknown as FileSystemFileHandle);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    expect(screen.getByRole('menuitem', { name: /^Save to pBR322\.gb/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^Save as…/ })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    act(() => {
+      editorStore.setSelection({ start: 0, end: 10 });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    expect(screen.getByRole('menuitem', { name: 'Export selection as FASTA' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Show files' }));
+    expect(editorStore.document).toBeNull();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+});
+
+describe('overwrite prompt', () => {
+  it('asks before Save first overwrites the opened file and offers a copy instead', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setFileHandle({ name: 'pBR322.gb' } as unknown as FileSystemFileHandle);
+    });
+    fileMenu(/^Save to pBR322\.gb/);
+    const dialog = await screen.findByRole('dialog', { name: 'Overwrite pBR322.gb?' });
+    expect(dialog).toHaveTextContent(/replacing the file you opened/);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Ctrl+S goes through the same gate.
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true });
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(editorStore.getState().overwritePrompt).toBeNull();
+    // Let the analysis of the example finish so it does not delay the next test's.
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
   });
 });
 

@@ -5,7 +5,7 @@ import { type SeqDocument } from '@/core';
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
-import { ExportMenu } from './ExportMenu';
+import { FileMenu } from './FileMenu';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
@@ -16,13 +16,18 @@ interface Props {
   readonly doc: SeqDocument | null;
 }
 
+const VIEWS: readonly [ViewMode, string][] = [
+  ['sequence', 'Sequence'],
+  ['map', 'Map'],
+  ['both', 'Both'],
+];
+
+function segmentedClass(active: boolean): string {
+  return `segmented__button${active ? ' segmented__button--active' : ''}`;
+}
+
 export function Toolbar({ doc }: Props) {
-  const { showComplement, showTranslations, view, dirty, fileHandle } = useEditorState();
-  const report = (p: Promise<unknown>): void => {
-    p.catch((e: unknown) => {
-      editorStore.fail(e instanceof Error ? e.message : String(e));
-    });
-  };
+  const { showComplement, showTranslations, view, dirty } = useEditorState();
   const openViaPicker = (): void => {
     persistence
       .openWithPicker(openFile)
@@ -33,11 +38,6 @@ export function Toolbar({ doc }: Props) {
         editorStore.fail(e instanceof Error ? e.message : String(e));
       });
   };
-  const views: readonly [ViewMode, string][] = [
-    ['sequence', 'Sequence'],
-    ['map', 'Map'],
-    ['both', 'Both'],
-  ];
   const inputRef = useRef<HTMLInputElement>(null);
   const [renaming, setRenaming] = useState(false);
 
@@ -52,7 +52,20 @@ export function Toolbar({ doc }: Props) {
   return (
     <header className="toolbar">
       <h1 className="toolbar__brand">
-        <Logo />
+        {/* Logo as home: back to the file list, like a site's logo goes to its front page. */}
+        <button
+          type="button"
+          className="toolbar__home"
+          title={
+            doc === null ? 'PlasmidPop' : 'Show files (this document stays stored in this browser)'
+          }
+          disabled={doc === null}
+          onClick={() => {
+            editorStore.closeDocument();
+          }}
+        >
+          <Logo />
+        </button>
       </h1>
       {doc !== null && (
         <div className="toolbar__doc">
@@ -92,109 +105,76 @@ export function Toolbar({ doc }: Props) {
         </div>
       )}
       <div className="toolbar__actions">
-        {doc !== null && (
-          <div className="segmented" role="group" aria-label="View">
-            {views.map(([mode, label]) => (
+        {doc === null ? (
+          <div className="toolbar__group">
+            <button
+              type="button"
+              className="button"
+              title="Start an empty sequence to type or paste into"
+              onClick={() => {
+                editorStore.newDocument();
+              }}
+            >
+              New
+            </button>
+            {example !== undefined && (
               <button
-                key={mode}
                 type="button"
-                className={`segmented__button${view === mode ? ' segmented__button--active' : ''}`}
-                aria-pressed={view === mode}
+                className="button"
                 onClick={() => {
-                  editorStore.setView(mode);
+                  openText(example.text, example.fileName);
                 }}
               >
-                {label}
+                Open example
               </button>
-            ))}
+            )}
+            <button type="button" className="button button--primary" onClick={openViaPicker}>
+              Open file
+            </button>
           </div>
-        )}
-        {doc !== null && (
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={showComplement}
-              onChange={(e) => {
-                editorStore.setShowComplement(e.target.checked);
-              }}
-            />
-            Complement strand
-          </label>
-        )}
-        {doc !== null && (
-          <label className="toggle" title="Show amino acids under CDS features">
-            <input
-              type="checkbox"
-              checked={showTranslations}
-              onChange={(e) => {
-                editorStore.setShowTranslations(e.target.checked);
-              }}
-            />
-            Translations
-          </label>
-        )}
-        <HistoryMenu />
-        <button
-          type="button"
-          className="button"
-          title="Start an empty sequence to type or paste into"
-          onClick={() => {
-            editorStore.newDocument();
-          }}
-        >
-          New
-        </button>
-        {example !== undefined && (
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              openText(example.text, example.fileName);
-            }}
-          >
-            Open example
-          </button>
-        )}
-        <button type="button" className="button button--primary" onClick={openViaPicker}>
-          Open file
-        </button>
-        {doc !== null && (
+        ) : (
           <>
-            <button
-              type="button"
-              className="button"
-              title={
-                fileHandle === null
-                  ? 'Save as a GenBank file (Ctrl+S)'
-                  : 'Save to the opened file (Ctrl+S)'
-              }
-              onClick={() => {
-                report(persistence.save());
-              }}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="button"
-              title="Save a copy as GenBank (Ctrl+Shift+S)"
-              onClick={() => {
-                report(persistence.saveAs());
-              }}
-            >
-              Save as
-            </button>
-            <ExportMenu doc={doc} />
-            <button
-              type="button"
-              className="button button--quiet"
-              title="Go to the list of files stored in this browser (this one stays there)"
-              onClick={() => {
-                editorStore.closeDocument();
-              }}
-            >
-              Show files
-            </button>
+            <FileMenu doc={doc} onOpenFile={openViaPicker} />
+            <HistoryMenu />
+            <div className="segmented" role="group" aria-label="View">
+              {VIEWS.map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={segmentedClass(view === mode)}
+                  aria-pressed={view === mode}
+                  onClick={() => {
+                    editorStore.setView(mode);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="segmented toolbar__show" role="group" aria-label="Show">
+              <button
+                type="button"
+                className={segmentedClass(showComplement)}
+                aria-pressed={showComplement}
+                title="Show the complement strand"
+                onClick={() => {
+                  editorStore.setShowComplement(!showComplement);
+                }}
+              >
+                Complement
+              </button>
+              <button
+                type="button"
+                className={segmentedClass(showTranslations)}
+                aria-pressed={showTranslations}
+                title="Show amino acids under CDS features"
+                onClick={() => {
+                  editorStore.setShowTranslations(!showTranslations);
+                }}
+              >
+                Translations
+              </button>
+            </div>
           </>
         )}
         <input

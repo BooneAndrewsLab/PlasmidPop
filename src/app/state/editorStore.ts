@@ -51,6 +51,8 @@ export interface EditorState {
   readonly dirty: boolean;
   readonly warnings: readonly ParseWarning[];
   readonly error: string | null;
+  /** Set while Save waits for the user to agree that it may overwrite the file on disk. */
+  readonly overwritePrompt: { readonly fileName: string } | null;
   readonly showComplement: boolean;
   /** Whether amino-acid translations are drawn under CDS features in the sequence view. */
   readonly showTranslations: boolean;
@@ -87,6 +89,7 @@ const INITIAL: EditorState = {
   dirty: false,
   warnings: [],
   error: null,
+  overwritePrompt: null,
   showComplement: true,
   showTranslations: true,
   view: 'both',
@@ -157,6 +160,7 @@ export class EditorStore {
       fileName,
       documentId: storage.id ?? crypto.randomUUID(),
       fileHandle: storage.handle ?? null,
+      overwritePrompt: null,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
       savedDoc: fileName === null ? null : doc,
       warnings,
@@ -191,6 +195,7 @@ export class EditorStore {
       fileName: null,
       documentId: null,
       fileHandle: null,
+      overwritePrompt: null,
       savedDoc: null,
       warnings: [],
       analysis: null,
@@ -219,6 +224,14 @@ export class EditorStore {
 
   fail(message: string): void {
     this.set({ error: message });
+  }
+
+  requestOverwrite(fileName: string): void {
+    this.set({ overwritePrompt: { fileName } });
+  }
+
+  dismissOverwrite(): void {
+    if (this.state.overwritePrompt !== null) this.set({ overwritePrompt: null });
   }
 
   dismissError(): void {
