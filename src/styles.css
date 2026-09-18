@@ -1025,9 +1025,15 @@ button {
 
 .feature-editor__qualifier {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
   gap: 4px;
   margin-bottom: 4px;
+}
+
+.feature-editor__qualifier .panel__search {
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 12px;
 }
 
 .feature-editor__actions {
