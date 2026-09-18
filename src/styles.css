@@ -899,3 +899,48 @@ button {
   margin-bottom: 8px;
   white-space: pre;
 }
+
+/* Dropdown menu */
+
+.menu {
+  position: relative;
+}
+
+.menu__list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+}
+
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
+.menu__item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.menu__separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--line);
+}

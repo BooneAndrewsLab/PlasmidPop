@@ -5,6 +5,7 @@ import { type SeqDocument } from '@/core';
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
+import { ExportMenu } from './ExportMenu';
 import { type ViewMode, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -155,6 +156,7 @@ export function Toolbar({ doc }: Props) {
             >
               Save as
             </button>
+            <ExportMenu doc={doc} />
             <button
               type="button"
               className="button button--quiet"

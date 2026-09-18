@@ -1,5 +1,6 @@
 import { type CutSite, type Feature, type Range, type SeqDocument, rangePieces } from '@/core';
 
+import { type DrawingContext } from '../drawingContext';
 import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from '../linear/lanes';
 import { drawableFeatures, featuresToLabel } from '../visibleFeatures';
@@ -34,7 +35,7 @@ export interface CircularRenderParams {
 
 const LABEL_LINE_HEIGHT = 14;
 
-function drawBackbone(ctx: CanvasRenderingContext2D, p: CircularRenderParams): void {
+function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
   const { layout, theme, doc } = p;
   ctx.strokeStyle = theme.backbone;
   ctx.lineWidth = 2;
@@ -79,7 +80,7 @@ function drawBackbone(ctx: CanvasRenderingContext2D, p: CircularRenderParams): v
   }
 }
 
-function drawSelection(ctx: CanvasRenderingContext2D, p: CircularRenderParams): void {
+function drawSelection(ctx: DrawingContext, p: CircularRenderParams): void {
   const { selection, layout, theme, doc } = p;
   if (selection === null || doc.length === 0) return;
   if (selection.start === selection.end) {
@@ -107,7 +108,7 @@ function drawSelection(ctx: CanvasRenderingContext2D, p: CircularRenderParams): 
 }
 
 function arrowHead(
-  ctx: CanvasRenderingContext2D,
+  ctx: DrawingContext,
   layout: CircularLayout,
   position: number,
   r: number,
@@ -136,7 +137,7 @@ function arrowHead(
 }
 
 function drawFeature(
-  ctx: CanvasRenderingContext2D,
+  ctx: DrawingContext,
   p: CircularRenderParams,
   feature: Feature,
   lane: number,
@@ -228,7 +229,7 @@ const CUT_PREFIX = 'cut:';
  * against each other. Cut-site labels list the enzymes sharing a position.
  */
 function drawLabels(
-  ctx: CanvasRenderingContext2D,
+  ctx: DrawingContext,
   p: CircularRenderParams,
   visible: readonly Feature[],
 ): void {
@@ -302,7 +303,7 @@ function drawLabels(
   }
 }
 
-function drawCentre(ctx: CanvasRenderingContext2D, p: CircularRenderParams): void {
+function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
   const { layout, theme, doc } = p;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -319,7 +320,7 @@ function drawCentre(ctx: CanvasRenderingContext2D, p: CircularRenderParams): voi
   ctx.fillText(`${doc.length.toLocaleString()} bp`, layout.cx, layout.cy + 9, maxWidth);
 }
 
-export function renderCircularMap(ctx: CanvasRenderingContext2D, p: CircularRenderParams): void {
+export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams): void {
   const { width, height, devicePixelRatio: dpr, doc, lanes } = p;
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

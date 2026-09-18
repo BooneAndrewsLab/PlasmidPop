@@ -7,6 +7,7 @@ import {
   rangePieces,
 } from '@/core';
 
+import { type DrawingContext } from '../drawingContext';
 import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
@@ -41,7 +42,7 @@ export interface RenderParams {
 const ARROW = 7;
 const RIBBON_INSET = 2;
 
-function drawRuler(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLayout): void {
+function drawRuler(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { layout, theme } = p;
   const m = layout.metrics;
   const baseline = row.top + m.rulerHeight - 3;
@@ -71,7 +72,7 @@ function drawRuler(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLayou
   }
 }
 
-function drawSelection(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLayout): void {
+function drawSelection(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { selection, layout, theme, doc } = p;
   if (selection === null) return;
   const m = layout.metrics;
@@ -103,7 +104,7 @@ function drawSelection(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowL
   }
 }
 
-function drawStrands(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLayout): void {
+function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, layout, theme } = p;
   const m = layout.metrics;
   const text = doc.sequence.slice(row.start, row.end);
@@ -128,7 +129,7 @@ interface Ribbon {
   readonly arrowLeft: boolean;
 }
 
-function ribbonPath(ctx: CanvasRenderingContext2D, r: Ribbon, top: number, height: number): void {
+function ribbonPath(ctx: DrawingContext, r: Ribbon, top: number, height: number): void {
   const mid = top + height / 2;
   const a = Math.min(ARROW, (r.x1 - r.x0) / 2);
   ctx.beginPath();
@@ -141,12 +142,7 @@ function ribbonPath(ctx: CanvasRenderingContext2D, r: Ribbon, top: number, heigh
   ctx.closePath();
 }
 
-function drawFeature(
-  ctx: CanvasRenderingContext2D,
-  p: RenderParams,
-  row: RowLayout,
-  feature: Feature,
-): void {
+function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, feature: Feature): void {
   const { doc, layout, lanes } = p;
   const lane = lanes.laneOf.get(feature.id);
   if (lane === undefined || lane >= row.lanes) return;
@@ -210,7 +206,7 @@ function drawFeature(
   }
 }
 
-function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+function fitText(ctx: DrawingContext, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let lo = 0;
   let hi = text.length;
@@ -227,7 +223,7 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number):
  * jog to the bottom-strand cut, and the enzyme name above. Labels that would
  * collide with the previous one in the row are skipped (the mark stays).
  */
-function drawCutSites(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLayout): void {
+function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { layout, theme, doc } = p;
   const m = layout.metrics;
   const sites = p.cutSites.filter(
@@ -273,7 +269,7 @@ function drawCutSites(ctx: CanvasRenderingContext2D, p: RenderParams, row: RowLa
 }
 
 /** Draws the visible part of the linear view onto a canvas that covers the viewport. */
-export function renderLinearView(ctx: CanvasRenderingContext2D, p: RenderParams): void {
+export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   const { layout, doc, scrollTop, width, height, devicePixelRatio: dpr } = p;
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
