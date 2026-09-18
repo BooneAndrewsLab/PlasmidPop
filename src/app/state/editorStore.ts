@@ -5,8 +5,8 @@ import {
   type Orf,
   type Range,
   type RangeSegment,
-  type SeqDocument,
   History,
+  SeqDocument,
   createFeature,
   describeEditOp,
   isEmptyRange,
@@ -166,6 +166,22 @@ export class EditorStore {
       enzymesInitialized: false,
       reveal: { position: 0, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
+  }
+
+  /**
+   * Opens a new, empty document to type or paste into. It starts clean (no
+   * unsaved-changes warning until something is typed) with a caret at the
+   * start so the first keystroke lands.
+   */
+  newDocument(topology: 'linear' | 'circular' = 'linear'): void {
+    const doc = SeqDocument.create({
+      name: 'Untitled',
+      sequence: '',
+      topology,
+      metadata: { moleculeType: 'DNA' },
+    });
+    this.openDocument(doc);
+    this.set({ savedDoc: doc, selection: { start: 0, end: 0 } });
   }
 
   closeDocument(): void {

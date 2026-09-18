@@ -78,6 +78,21 @@ describe('PersistenceService', () => {
     expect(await service.restoreLastSession()).toBe(false);
   });
 
+  it('does not store a new document until something is typed into it', async () => {
+    editorStore.newDocument();
+    await service.autosave();
+    expect(await service.listStored()).toEqual([]);
+    editorStore.apply({ type: 'insert', position: 0, text: 'ACGT' });
+    await service.autosave();
+    expect((await service.listStored()).map((d) => [d.name, d.length])).toEqual([['Untitled', 4]]);
+    // Emptying a stored document keeps its entry.
+    editorStore.apply({ type: 'delete', range: { start: 0, end: 4 } });
+    await service.autosave();
+    expect((await service.listStored()).map((d) => d.length)).toEqual([0]);
+    await service.removeStored(editorStore.getState().documentId ?? '');
+    expect(await service.listStored()).toEqual([]);
+  });
+
   it('falls back to a download when the picker API is missing', async () => {
     editorStore.openDocument(doc.insert(0, 'GG'), null);
     expect(editorStore.getState().dirty).toBe(true);

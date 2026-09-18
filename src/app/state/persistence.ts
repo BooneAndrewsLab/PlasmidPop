@@ -31,6 +31,9 @@ export class PersistenceService {
     if (history === null || documentId === null) return;
     let id = documentId;
     if (!(await this.repo.has(id))) {
+      // A new document nobody has typed into yet is not worth a recent-files entry.
+      const doc = history.present;
+      if (doc.length === 0 && doc.features.size === 0) return;
       const existing = await this.repo.findIdentical(history.present, fileName);
       if (existing !== null) {
         await this.repo.moveHandle(id, existing);

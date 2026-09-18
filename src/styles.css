@@ -74,7 +74,11 @@ button {
 .app {
   height: 100%;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  /* An explicit minmax(0) column: an implicit auto column would grow to the
+     toolbar's minimum content width on narrow windows and push the sidebar
+     past the viewport. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   outline: 2px solid transparent;
   outline-offset: -2px;
   transition: outline-color 120ms;
@@ -88,8 +92,9 @@ button {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
+  gap: 6px 20px;
   padding: 8px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-2);
@@ -169,8 +174,10 @@ button {
 .toolbar__actions {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
 }
 
 .toggle {
@@ -178,7 +185,6 @@ button {
   align-items: center;
   gap: 6px;
   color: var(--ink-2);
-  margin-right: 8px;
   user-select: none;
 }
 
@@ -266,12 +272,12 @@ button {
 
 .editbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
-  overflow-x: auto;
 }
 
 .editbar__divider {
@@ -282,10 +288,16 @@ button {
 }
 
 .editbar__hint {
+  /* Gives way first: shrinks and truncates before the buttons wrap. */
+  flex: 1 1 0;
+  min-width: 0;
   margin-left: auto;
+  text-align: right;
   color: var(--ink-3);
   font-size: 12px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .button--small {
@@ -300,7 +312,6 @@ button {
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
-  margin-right: 8px;
 }
 
 .segmented__button {
@@ -409,6 +420,17 @@ button {
   touch-action: none;
 }
 
+.seq-view__placeholder {
+  position: absolute;
+  z-index: 1; /* above the sticky canvas */
+  top: 70px;
+  left: 72px; /* the sequence column, past the position gutter */
+  right: 16px;
+  margin: 0;
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
 /* Sidebar with tabs */
 
 .sidebar {
@@ -417,6 +439,8 @@ button {
   border-left: 1px solid var(--line);
   background: var(--surface-2);
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 720px) {
@@ -426,17 +450,23 @@ button {
   }
 }
 
+/* Seven tabs do not fit on one row at the 300px sidebar width, so the strip
+   is a grid of equal cells: 4 + 3 in the default sidebar, one row when the
+   sidebar is wider (the full-width layout under 720px). Cells never overflow
+   the frame; the minimum cell width fits the longest label. */
 .sidebar__tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   border-bottom: 1px solid var(--line);
 }
 
 .sidebar__tab {
-  flex: 1 0 auto;
-  padding: 7px 6px;
+  min-width: 0;
+  padding: 7px 4px;
   font-size: 12.5px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
@@ -848,6 +878,10 @@ button {
 .empty__hint {
   margin: 0;
   color: var(--ink-2);
+}
+
+.empty__hint + .empty__hint {
+  margin-top: 8px;
 }
 
 .recent {

@@ -29,6 +29,8 @@ import {
 } from '@/view/linear';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
+import { detectFormat } from '@/io';
+
 import { readClipboard, writeFragment } from '../clipboard';
 import {
   clampPosition,
@@ -39,6 +41,7 @@ import {
   selectionBetween,
   typeText,
 } from '../editing';
+import { openPastedText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -134,11 +137,15 @@ export function LinearSequenceView({ doc }: Props) {
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (el === null || typeof ResizeObserver === 'undefined') return;
-    const update = (): void => {
-      // clientWidth/Height exclude the scrollbars, so the canvas never overflows.
+    const update = (entries?: ResizeObserverEntry[]): void => {
+      // The content box excludes the scrollbars, so the canvas never overflows. The
+      // observer's fractional size is floored: rounding it up (as clientHeight does)
+      // can overflow by a fraction of a pixel, which pops a scrollbar in and out
+      // whenever the rows are shorter than the viewport.
+      const box = entries?.[0]?.contentRect;
       setSize((prev) => {
-        const width = Math.max(200, el.clientWidth);
-        const height = Math.max(100, el.clientHeight);
+        const width = Math.max(200, Math.floor(box?.width ?? el.clientWidth));
+        const height = Math.max(100, Math.floor(box?.height ?? el.clientHeight));
         return prev.width === width && prev.height === height ? prev : { width, height };
       });
     };
@@ -149,6 +156,12 @@ export function LinearSequenceView({ doc }: Props) {
       observer.disconnect();
     };
   }, []);
+
+  // An empty document is there to be typed into: take the keyboard right away.
+  const isEmpty = doc.length === 0;
+  useEffect(() => {
+    if (isEmpty) containerRef.current?.focus({ preventScroll: true });
+  }, [isEmpty]);
 
   // Scroll to a requested position.
   useEffect(() => {
@@ -252,8 +265,18 @@ export function LinearSequenceView({ doc }: Props) {
   };
 
   const withText = (text: string): void => {
+    if (doc.length === 0) {
+      // A whole record pasted into an empty document replaces it.
+      const format = detectFormat(text);
+      if (format === 'genbank' || format === 'fasta') {
+        openPastedText(text);
+        return;
+      }
+    }
+    // With nothing to click on yet, typing into an empty document goes at the start.
+    const target = selection ?? (doc.length === 0 ? { start: 0, end: 0 } : null);
     try {
-      editorStore.applyPlan(typeText(doc, selection, text));
+      editorStore.applyPlan(typeText(doc, target, text));
     } catch (err) {
       if (err instanceof InvalidSequenceError) editorStore.fail(err.message);
       else throw err;
@@ -406,6 +429,11 @@ export function LinearSequenceView({ doc }: Props) {
       aria-multiline="true"
       aria-label="Sequence"
     >
+      {isEmpty && (
+        <p className="seq-view__placeholder" aria-hidden="true">
+          Type or paste a DNA sequence to start. Pasting a GenBank or FASTA record opens it instead.
+        </p>
+      )}
       <div className="seq-view__spacer" style={{ height: layout.totalHeight }}>
         <canvas
           ref={canvasRef}

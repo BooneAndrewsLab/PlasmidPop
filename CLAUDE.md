@@ -93,7 +93,7 @@ selection export, find (Ctrl+F), a full feature editor, and a bundled
 example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 354 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 358 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -114,9 +114,8 @@ pick from here when the current work is done.
    both `text/plain` and a JSON MIME type, remembering it in-tab as a
    fallback (`src/app/clipboard.ts`). Ctrl+V applies one `insertFragment`
    op (delete selection, insert bases, add shifted features with fresh
-   ids), so it is a single undo step. Not yet: a paste target in the empty
-   state, pasting GenBank text, cross-tab paste in browsers that strip
-   custom clipboard types (only the plain bases arrive there).
+   ids), so it is a single undo step. Not yet: cross-tab paste in browsers
+   that strip custom clipboard types (only the plain bases arrive there).
 3. ~~**Simulated cloning.**~~ done, restriction-ligation only. The
    Cloning sidebar tab digests the document with the enzymes ticked in the
    Enzymes tab (`digest` in `src/core/cloning/digest.ts`: fragments with
@@ -170,6 +169,15 @@ pick from here when the current work is done.
     in the pBR322 example) highlights a sliver that is impossible to see.
     Extend the selection highlight inward towards the centre of the map,
     or outward past the outer ring, so even a 1 bp selection is obvious.
+17. ~~**Create from scratch**~~: done. "New" in the toolbar and "start a
+    new sequence" in the empty state open an empty linear "Untitled"
+    document (`editorStore.newDocument`) with the caret placed and the
+    sequence view focused, so typing starts at once; it is not autosaved
+    until something is typed. Ctrl+V with nothing open (or into a
+    still-empty document) opens pasted GenBank/FASTA text as a record and
+    bare bases as a new document (`openPastedText` in
+    `src/app/openFile.ts`). Not yet: choosing circular/name up front (use
+    "Make circular" and rename after).
 
 ## Non-goals for v1
 

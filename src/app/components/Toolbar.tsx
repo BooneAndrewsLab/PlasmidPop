@@ -134,6 +134,16 @@ export function Toolbar({ doc }: Props) {
           </label>
         )}
         <HistoryMenu />
+        <button
+          type="button"
+          className="button"
+          title="Start an empty sequence to type or paste into"
+          onClick={() => {
+            editorStore.newDocument();
+          }}
+        >
+          New
+        </button>
         {example !== undefined && (
           <button
             type="button"

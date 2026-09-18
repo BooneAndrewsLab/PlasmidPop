@@ -56,6 +56,60 @@ describe('App', () => {
     expect(screen.getByRole('textbox', { name: 'Feature name' })).toHaveValue('New feature');
   });
 
+  it('starts a new sequence from the empty state and types into it', () => {
+    act(() => {
+      editorStore.closeDocument();
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+    expect(editorStore.document?.length).toBe(0);
+    expect(screen.getByText('0 bp, linear')).toBeInTheDocument();
+    expect(screen.getByText(/Type or paste a DNA sequence/)).toBeInTheDocument();
+    const box = screen.getByRole('textbox', { name: 'Sequence' });
+    expect(box).toHaveFocus();
+    fireEvent.keyDown(box, { key: 'a' });
+    fireEvent.keyDown(box, { key: 'c' });
+    fireEvent.keyDown(box, { key: 'g' });
+    expect(editorStore.document?.sequence.toString()).toBe('acg');
+    expect(screen.queryByText(/Type or paste a DNA sequence/)).not.toBeInTheDocument();
+    // Typing with no caret (after Escape) still appends to an empty document.
+    fireEvent.keyDown(box, { key: 'Escape' });
+    fireEvent.keyDown(box, { key: 'Backspace' });
+    expect(editorStore.document?.length).toBe(3);
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    expect(editorStore.document?.length).toBe(0);
+    fireEvent.keyDown(box, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), { key: 't' });
+    expect(editorStore.document?.sequence.toString()).toBe('t');
+  });
+
+  it('pastes a record or bare bases onto the empty page', () => {
+    act(() => {
+      editorStore.closeDocument();
+    });
+    render(<App />);
+    const paste = (text: string, target: Element = document.body) => {
+      fireEvent.paste(target, { clipboardData: { getData: () => text } });
+    };
+    paste('LOCUS       X 4 bp DNA circular\nORIGIN\n        1 acgt\n//\n');
+    expect(editorStore.document?.name).toBe('X');
+    expect(editorStore.document?.isCircular).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Show files' }));
+    expect(editorStore.document).toBeNull();
+    paste('acgt acgt\n  11 nnry\n');
+    expect(editorStore.document?.sequence.toString()).toBe('acgtacgtnnry');
+    expect(editorStore.getState().selection).toEqual({ start: 12, end: 12 });
+    // Pasting a record into the still-empty new document opens it instead of failing.
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    paste('>frag\nGGCC\n', screen.getByRole('textbox', { name: 'Sequence' }));
+    expect(editorStore.document?.name).toBe('frag');
+    expect(editorStore.document?.sequence.toString()).toBe('GGCC');
+    fireEvent.click(screen.getByRole('button', { name: 'Show files' }));
+    paste('hello world');
+    expect(editorStore.document).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent(/not a GenBank or FASTA/);
+  });
+
   it('renames the document from the toolbar', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

@@ -21,6 +21,27 @@ describe('EditorStore', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
+  it('starts a new empty document that is clean until edited', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.newDocument();
+    expect(store.document?.length).toBe(0);
+    expect(store.document?.name).toBe('Untitled');
+    expect(store.document?.topology).toBe('linear');
+    expect(store.getState()).toMatchObject({
+      fileName: null,
+      fileHandle: null,
+      dirty: false,
+      selection: { start: 0, end: 0 },
+    });
+    store.apply({ type: 'insert', position: 0, text: 'ACGT' });
+    expect(store.document?.sequence.toString()).toBe('ACGT');
+    expect(store.getState().dirty).toBe(true);
+    expect(store.getState().selection).toEqual({ start: 4, end: 4 });
+    store.newDocument('circular');
+    expect(store.document?.isCircular).toBe(true);
+  });
+
   it('opens parse results and reports empty ones', () => {
     const store = new EditorStore();
     store.openParsed(

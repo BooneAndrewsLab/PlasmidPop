@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { type DocumentSummary } from '@/storage';
 
 import { EXAMPLES } from '../examples';
-import { openText } from '../openFile';
+import { openPastedText, openText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { InlineRename } from './InlineRename';
@@ -16,6 +16,15 @@ function formatWhen(timestamp: number): string {
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} h ago`;
   return new Date(timestamp).toLocaleDateString();
+}
+
+function isTextField(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target.isContentEditable)
+  );
 }
 
 export function EmptyState() {
@@ -34,6 +43,21 @@ export function EmptyState() {
 
   useEffect(refresh, []);
 
+  // Ctrl+V with nothing open: a record or bare bases pasted anywhere becomes a document.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent): void => {
+      if (isTextField(e.target)) return;
+      const text = e.clipboardData?.getData('text/plain') ?? '';
+      if (text.trim() === '') return;
+      e.preventDefault();
+      openPastedText(text);
+    };
+    document.addEventListener('paste', onPaste);
+    return () => {
+      document.removeEventListener('paste', onPaste);
+    };
+  }, []);
+
   const report = (p: Promise<unknown>): void => {
     p.then(refresh).catch((e: unknown) => {
       editorStore.fail(e instanceof Error ? e.message : String(e));
@@ -45,6 +69,19 @@ export function EmptyState() {
       <div className="empty__card">
         <p className="empty__lead">
           Drop a GenBank, FASTA or SnapGene file anywhere on this page to open it.
+        </p>
+        <p className="empty__hint">
+          Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.newDocument();
+            }}
+          >
+            start a new sequence
+          </button>{' '}
+          and type it in.
         </p>
         <p className="empty__hint">
           Everything stays in your browser. Nothing is uploaded.
