@@ -1,3 +1,4 @@
+import { analytics } from '../analytics';
 import { type ReactNode } from 'react';
 
 import { type SeqDocument, extractRange, isEmptyRange } from '@/core';
@@ -124,6 +125,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
           <div className="menu__separator" role="separator" />
           <Item
             onClick={run(() => {
+              analytics.track('file', 'export', 'map-svg');
               downloadText(
                 `${stem}_map.svg`,
                 exportMapSvg(doc, { cutSites: editorStore.visibleCutSites() }),
@@ -134,6 +136,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
           </Item>
           <Item
             onClick={run(() => {
+              analytics.track('file', 'export', 'fasta');
               downloadText(fileNameFor(doc, 'fasta'), serialize(doc, 'fasta'));
             })}
           >
@@ -143,6 +146,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
             disabled={!hasSelection}
             onClick={run(() => {
               if (selection === null) return;
+              analytics.track('file', 'export', 'selection-genbank');
               const sub = extractRange(doc, selection);
               downloadText(fileNameFor(sub, 'genbank'), serialize(sub, 'genbank'));
             })}
@@ -153,6 +157,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
             disabled={!hasSelection}
             onClick={run(() => {
               if (selection === null) return;
+              analytics.track('file', 'export', 'selection-fasta');
               const sub = extractRange(doc, selection);
               downloadText(fileNameFor(sub, 'fasta'), serialize(sub, 'fasta'));
             })}

@@ -36,6 +36,9 @@ jobs:
         run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          # Opt-in usage statistics (see docs/guide/02-files.md). Unset = tracker off.
+          VITE_MATOMO_URL: https://boonelab.ccbr.utoronto.ca/matomo/
+          VITE_MATOMO_SITE_ID: '6'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

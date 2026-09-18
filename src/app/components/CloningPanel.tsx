@@ -1,3 +1,4 @@
+import { analytics } from '../analytics';
 import { Fragment, useMemo, useState } from 'react';
 
 import {
@@ -218,6 +219,7 @@ export function CloningPanel({ doc }: Props) {
 
   const assemble = (): void => {
     try {
+      analytics.track('cloning', 'ligate');
       const product = ligate(parts, {
         name: name.trim() === '' ? defaultName : name.trim(),
         circular,

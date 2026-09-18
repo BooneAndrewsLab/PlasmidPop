@@ -108,6 +108,12 @@ last one is restored on reload; Save writes back to the opened file through
 the File System Access API where available, otherwise downloads. The app is
 an installable PWA that works offline.
 
+Usage statistics: `src/app/analytics.ts` talks to a self-hosted Matomo
+instance when `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build
+time (the Pages workflow sets them); otherwise it is a no-op. Honours
+Do-Not-Track, cookieless, and sends only coarse feature events, never
+sequence data.
+
 Coordinates: positions are 0-based; ranges are half-open `[start, end)`.
 On circular sequences `end` may exceed the length to express a range that
 wraps past the origin (`end - start` is always the base count). GenBank's

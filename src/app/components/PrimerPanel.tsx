@@ -1,3 +1,4 @@
+import { analytics } from '../analytics';
 import { useMemo, useState } from 'react';
 
 import {
@@ -61,6 +62,7 @@ export function PrimerPanel({ doc }: Props) {
 
   const design = (): void => {
     if (selection === null) return;
+    analytics.track('primers', 'design');
     const result = designPrimers(doc.sequence.toString(), doc.topology, selection);
     setPairs(result);
     setDesignedFor(`${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()}`);

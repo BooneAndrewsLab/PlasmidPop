@@ -84,6 +84,16 @@ Local storage is per browser profile and per device, and the browser may
 clear it when space runs low. Treat it as a scratchpad and keep your files
 with Save.
 
+## Usage statistics
+
+The public build sends anonymous usage statistics to a self-hosted
+[Matomo](https://matomo.org) instance: page views and coarse events such as
+"opened a GenBank file", "ran a ligation" or "exported the map as SVG".
+Never sent: sequences, feature names, file names or anything else from your
+documents. The tracker sets no cookies and the instance anonymises IP
+addresses. If your browser sends a Do-Not-Track signal, nothing is sent at
+all. Builds without a configured instance never send anything.
+
 ## Offline use
 
 PlasmidPop is a progressive web app. After the first visit it works without a

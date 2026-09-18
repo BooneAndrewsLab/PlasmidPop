@@ -1,3 +1,4 @@
+import { analytics } from '../analytics';
 import { useState } from 'react';
 
 import {
@@ -94,6 +95,7 @@ export function AlignPanel({ doc }: Props) {
         ? selection
         : { start: 0, end: doc.length };
     const a = doc.subsequence(target);
+    analytics.track('align', 'run', mode);
     setBusy(true);
     setError(null);
     const opts = { mode };

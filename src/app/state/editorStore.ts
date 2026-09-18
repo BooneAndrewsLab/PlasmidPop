@@ -1,3 +1,4 @@
+import { analytics } from '../analytics';
 import {
   type CutSite,
   type DigestFragment,
@@ -224,6 +225,7 @@ export class EditorStore {
       this.set({ error: 'The file contains no sequences.', warnings: result.warnings });
       return;
     }
+    analytics.track('file', 'open', result.format);
     this.openDocument(doc, fileName, result.warnings);
   }
 
@@ -264,6 +266,7 @@ export class EditorStore {
       topology,
       metadata: { moleculeType: 'DNA' },
     });
+    analytics.track('file', 'new');
     this.openDocument(doc);
     this.set({ savedDoc: doc, selection: { start: 0, end: 0 } });
   }
@@ -299,6 +302,7 @@ export class EditorStore {
   markSaved(fileName?: string): void {
     const present = this.document;
     if (present === null) return;
+    analytics.track('file', 'save');
     this.set(fileName === undefined ? { savedDoc: present } : { savedDoc: present, fileName });
   }
 
@@ -497,6 +501,7 @@ export class EditorStore {
 
   setEnzymeShown(name: string, shown: boolean): void {
     if (this.state.shownEnzymes.has(name) === shown) return;
+    if (shown) analytics.track('enzymes', 'show');
     const next = new Set(this.state.shownEnzymes);
     if (shown) next.add(name);
     else next.delete(name);

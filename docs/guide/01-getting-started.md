@@ -59,6 +59,8 @@ disk. The browser also warns before you close the tab in that state.
 Open documents are saved to the browser's local storage half a second after
 every change, and the last document is restored when you come back. That
 storage is per browser and per device. To keep a file, save it (`Ctrl+S`).
+Your sequences never leave your device; the public build only counts
+anonymous feature usage (see the usage statistics section of the files page).
 
 PlasmidPop can be installed as an app from the browser's address bar. Once
 installed it works offline, and `.gb`, `.fa` and `.dna` files can be opened

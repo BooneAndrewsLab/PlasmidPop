@@ -46,8 +46,8 @@ working with no account and no server round-trip.
 - **Analytics:** Matomo (self-hosted). Usage tracking is a feature to
   include: page views and coarse feature-usage events (e.g. "opened
   GenBank", "ran restriction analysis"), never sequence content, file
-  names or other scientific data. Opt-in with a visible toggle, honours
-  Do-Not-Track, IP anonymisation on. Instance URL and site id are
+  names or other scientific data. No user-facing toggle (decided
+  2026-09-18); honours Do-Not-Track, cookieless, IP anonymisation on. Instance URL and site id are
   build-time config (`VITE_MATOMO_URL`, `VITE_MATOMO_SITE_ID`); when
   unset the tracker is a no-op, so local-first use never phones home.
 
@@ -80,7 +80,7 @@ working with no account and no server round-trip.
 7. Restriction analysis (bundled enzyme table), ORF finding, translation.
 8. SnapGene .dna import.
 9. Local persistence (Dexie), PWA manifest, file open/save via File System
-   Access API with download fallback. Matomo tracking (opt-in, see Stack).
+   Access API with download fallback. Matomo tracking (see Stack).
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. Optional backend: auth + sync + share links.
 
@@ -89,11 +89,14 @@ working with no account and no server round-trip.
 Build order steps 1–10 are implemented and committed; step 11 (backend)
 is not started. Beyond the build order, these have landed: Save GenBank /
 Save as / write-back through the File System Access API, SVG map export,
-selection export, find (Ctrl+F), a full feature editor, and a bundled
-example (pBR322). The logo (`design/logo/`, made in Claude Design) is used
+selection export, find (Ctrl+F), a full feature editor, a bundled
+example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
+always on when configured, no user toggle by decision of 2026-09-18;
+events at file open/new/save/export, enzyme show, primer design, align,
+ligate; the Pages workflow sets the instance URL and site id 6). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 376 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 391 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
