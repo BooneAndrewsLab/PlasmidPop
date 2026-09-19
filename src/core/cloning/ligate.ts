@@ -1,4 +1,5 @@
 import { type Feature } from '../features';
+import { newId } from '../ids';
 import { type DocumentMetadata, SeqDocument, createMetadata } from '../document';
 import { reverseComplement } from '../sequence';
 import { type DigestFragment, type FragmentEnd } from './digest';
@@ -103,7 +104,7 @@ export function ligate(fragments: readonly DigestFragment[], options: LigateOpti
     for (const feature of f.features) {
       features.push({
         ...feature,
-        id: crypto.randomUUID(),
+        id: newId(),
         segments: feature.segments.map((seg) =>
           seg.kind === 'range'
             ? { ...seg, start: seg.start + offset, end: seg.end + offset }

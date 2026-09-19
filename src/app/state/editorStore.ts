@@ -11,6 +11,7 @@ import {
   createFeature,
   describeEditOp,
   isEmptyRange,
+  newId,
   rangeSegment,
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
@@ -239,7 +240,7 @@ export class EditorStore {
       history: History.create(doc),
       selection: null,
       fileName,
-      documentId: storage.id ?? crypto.randomUUID(),
+      documentId: storage.id ?? newId(),
       fileHandle: storage.handle ?? null,
       overwritePrompt: null,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
@@ -542,7 +543,7 @@ export class EditorStore {
 
   /** Appends a fragment to the assembly and returns its part id. */
   addToAssembly(fragment: DigestFragment): string {
-    const id = crypto.randomUUID();
+    const id = newId();
     this.set({ assembly: [...this.state.assembly, { id, fragment, flipped: false }] });
     return id;
   }

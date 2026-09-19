@@ -1,4 +1,5 @@
 import { type Feature, type Segment, rangeSegment } from '../features';
+import { newId } from '../ids';
 import { type Range, rangePieces } from '../range';
 import { SeqDocument } from './seqDocument';
 
@@ -58,7 +59,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         });
       } else merged.push(seg);
     }
-    features.push({ ...f, id: crypto.randomUUID(), segments: merged });
+    features.push({ ...f, id: newId(), segments: merged });
   }
 
   const from = r.start + 1;

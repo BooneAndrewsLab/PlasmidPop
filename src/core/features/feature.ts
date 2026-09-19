@@ -1,3 +1,4 @@
+import { newId } from '../ids';
 import { type Segment, segmentLength } from './segment';
 
 export type Strand = 'forward' | 'reverse';
@@ -44,7 +45,7 @@ export interface FeatureInit {
 }
 
 export function newFeatureId(): FeatureId {
-  return crypto.randomUUID();
+  return newId();
 }
 
 export function createFeature(init: FeatureInit): Feature {
