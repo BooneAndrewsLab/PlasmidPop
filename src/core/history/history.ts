@@ -4,7 +4,45 @@ export interface HistoryEntry<T> {
   readonly label: string;
   /** When the change was recorded, as epoch milliseconds. */
   readonly at: number;
+  /**
+   * What the next change must name in `Coalesce.follows` to merge into this
+   * step instead of starting a new one. Absent on a step nothing may join.
+   */
+  readonly coalesceKey?: string;
+  /** How many changes this one step holds; absent means the usual one. */
+  readonly merged?: number;
 }
+
+/**
+ * How a change may merge into the one before it, so that a run of small
+ * related changes — typing base after base, holding Backspace — is one undo
+ * step rather than dozens.
+ *
+ * The two keys make a run: a change merges when the step before it offers
+ * exactly the `follows` it asks for, and the merged step then offers this
+ * change's own `key` to whatever comes next. Keys therefore describe both
+ * what kind of run this is and where it has got to, so that typing at the
+ * caret continues a run while typing somewhere else begins one.
+ *
+ * Merging never reaches across an undo: a change is only ever folded into
+ * the step immediately before it, in an unbroken run, and `seal()` ends a
+ * run at a point that has to stay reachable on its own.
+ */
+export interface Coalesce {
+  /** Merges into the previous step when that step's key is this. */
+  readonly follows: string;
+  /** The key the step offers to the change after it. */
+  readonly key: string;
+  /** Most changes that may become one step; the run breaks past that. */
+  readonly limit?: number;
+  /** Longest pause between two changes that still merges them, in ms. */
+  readonly withinMs?: number;
+  /** Label for the merged step, given how many changes it now holds. */
+  readonly relabel?: (merged: number) => string;
+}
+
+/** Default for `Coalesce.withinMs`: a pause this long ends a run. */
+export const DEFAULT_COALESCE_MS = 2000;
 
 export interface HistoryOptions {
   /** Maximum number of undo steps kept. Older ones are dropped. */
@@ -127,10 +165,25 @@ export class History<T> {
     return this;
   }
 
-  /** Records `next` as the new present. Discards any redo steps. */
-  push(next: T, label: string, at: number = Date.now()): History<T> {
+  /**
+   * Records `next` as the new present. Discards any redo steps.
+   *
+   * With a `coalesce` whose `follows` is what the step before offers, the
+   * change is folded into that step instead of adding one: the step keeps
+   * the state it started from, so undo still reaches back past the whole
+   * run, and takes on the new label, time and key. A run breaks on a pause
+   * longer than `withinMs`, once it holds `limit` changes, after an undo
+   * (there is a redo stack to discard), and wherever `seal()` was called.
+   */
+  push(next: T, label: string, at: number = Date.now(), coalesce?: Coalesce): History<T> {
     if (next === this.present) return this;
-    let past = [...this.past, { state: this.present, label, at }];
+    const merged = this.mergePush(next, at, coalesce);
+    if (merged !== null) return merged;
+    const entry: HistoryEntry<T> =
+      coalesce === undefined
+        ? { state: this.present, label, at }
+        : { state: this.present, label, at, coalesceKey: coalesce.key };
+    let past = [...this.past, entry];
     let startedAt = this.startedAt;
     let truncated = this.truncated;
     if (past.length > this.limit) {
@@ -144,13 +197,62 @@ export class History<T> {
     return new History(next, past, [], this.limit, startedAt, truncated);
   }
 
+  /**
+   * The history with `next` folded into the last step, or null when this
+   * change does not continue a run and has to become a step of its own.
+   */
+  private mergePush(next: T, at: number, coalesce: Coalesce | undefined): History<T> | null {
+    const last = this.past[this.past.length - 1];
+    if (coalesce === undefined || last === undefined) return null;
+    // A redo stack means the user has undone something: the run is over.
+    if (this.future.length > 0) return null;
+    // An unsealed step offers a key; a sealed one has none and matches nothing.
+    if (last.coalesceKey !== coalesce.follows) return null;
+    if (at - last.at > (coalesce.withinMs ?? DEFAULT_COALESCE_MS)) return null;
+    const count = (last.merged ?? 1) + 1;
+    if (coalesce.limit !== undefined && count > coalesce.limit) return null;
+    const past = [
+      ...this.past.slice(0, -1),
+      // The state stays the one the run started from, so this is still a
+      // single step back to before the first change of the run.
+      {
+        ...last,
+        label: coalesce.relabel?.(count) ?? last.label,
+        at,
+        coalesceKey: coalesce.key,
+        merged: count,
+      },
+    ];
+    return new History(next, past, [], this.limit, this.startedAt, this.truncated);
+  }
+
+  /**
+   * Ends any run at the present, so the next change starts a step of its own
+   * and this state stays reachable as a step. Callers seal wherever the
+   * present has become a landmark: it was written to a file, or the user
+   * marked it.
+   */
+  seal(): History<T> {
+    const last = this.past[this.past.length - 1];
+    if (last?.coalesceKey === undefined) return this;
+    const { coalesceKey: _dropped, ...sealed } = last;
+    return new History(
+      this.present,
+      [...this.past.slice(0, -1), sealed],
+      this.future,
+      this.limit,
+      this.startedAt,
+      this.truncated,
+    );
+  }
+
   undo(): History<T> {
     const entry = this.past[this.past.length - 1];
     if (entry === undefined) return this;
     return new History(
       entry.state,
       this.past.slice(0, -1),
-      [...this.future, { state: this.present, label: entry.label, at: entry.at }],
+      [...this.future, { ...entry, state: this.present }],
       this.limit,
       this.startedAt,
       this.truncated,
@@ -162,7 +264,7 @@ export class History<T> {
     if (entry === undefined) return this;
     return new History(
       entry.state,
-      [...this.past, { state: this.present, label: entry.label, at: entry.at }],
+      [...this.past, { ...entry, state: this.present }],
       this.future.slice(0, -1),
       this.limit,
       this.startedAt,

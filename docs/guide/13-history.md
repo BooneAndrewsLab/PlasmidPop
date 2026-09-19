@@ -26,6 +26,24 @@ The last row is where the history starts: **Opened document** for a file, or
 count it had then. Only the most recent 200 changes are kept, so in a long
 session the oldest row reads **Oldest kept state** instead.
 
+## Runs of typing are one step
+
+Typing base after base is one thing you did, so it is recorded as one
+change: a row that reads _Insert 12 bases_, and one `Ctrl+Z` that takes all
+twelve back. Holding `Backspace` or `Delete` merges the same way.
+
+A run ends, and the next keystroke starts a fresh row, when you
+
+- pause for two seconds or more,
+- move the caret or click elsewhere,
+- reach 60 bases in one run,
+- undo, redo or jump to another state,
+- save the file, so the version on disk stays a row you can return to, or
+- choose **Mark from here** in the **Edits** menu.
+
+Switching between typing, `Backspace` and `Delete` also starts a new row,
+and a paste is always a row of its own however short it is.
+
 ## Jumping to a state
 
 Click any row to put the document in that state. Rows below the current one

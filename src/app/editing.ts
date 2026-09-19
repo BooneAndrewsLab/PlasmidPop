@@ -1,21 +1,31 @@
 import {
+  type Coalesce,
   type EditOp,
   type SeqFragment,
   type Range,
   type SeqDocument,
   assertValidSequence,
+  backspaceRun,
+  deleteForwardRun,
   isEmptyRange,
   newFeatureId,
   normalizePosition,
   normalizeSequenceInput,
   range,
   shiftPositionForDelete,
+  typingRun,
 } from '@/core';
 
 /** An edit to apply plus where the selection should land afterwards. */
 export interface EditPlan {
   readonly op: EditOp;
   readonly selectionAfter: Range;
+  /**
+   * Set when this edit may join the one before it as a single undo step: one
+   * base of a run of typing, one press of a held Backspace or Delete. See
+   * `core/document/coalesce.ts`.
+   */
+  readonly coalesce?: Coalesce;
 }
 
 function caret(position: number): Range {
@@ -52,7 +62,20 @@ export function typeText(
   if (text.length === 0 || selection === null) return null;
   if (isEmptyRange(selection)) {
     const p = normalizePosition(selection.start, doc.length, doc.topology);
-    return { op: { type: 'insert', position: p, text }, selectionAfter: caret(p + text.length) };
+    const after = p + text.length;
+    const plan: EditPlan = {
+      op: { type: 'insert', position: p, text },
+      selectionAfter: caret(after),
+    };
+    // Only one base at a time is typing; a longer run of text is a paste and
+    // deserves an undo step of its own.
+    if (text.length !== 1) return plan;
+    // The key is the caret as the next keystroke will see it, so a run that
+    // reaches the origin of a circular sequence carries on across it.
+    return {
+      ...plan,
+      coalesce: typingRun(p, normalizePosition(after, doc.length + text.length, doc.topology)),
+    };
   }
   const newLength = doc.length - (selection.end - selection.start) + text.length;
   const after =
@@ -101,12 +124,19 @@ export function deleteBackward(doc: SeqDocument, selection: Range | null): EditP
   const p = normalizePosition(selection.start, doc.length, doc.topology);
   if (p === 0) {
     if (!doc.isCircular) return null;
+    // Backspacing at the origin of a circular sequence eats the last base
+    // and leaves the caret where it was, so the whole run shares a key.
     return {
       op: { type: 'delete', range: range(doc.length - 1, doc.length) },
       selectionAfter: caret(0),
+      coalesce: backspaceRun(0, 0),
     };
   }
-  return { op: { type: 'delete', range: range(p - 1, p) }, selectionAfter: caret(p - 1) };
+  return {
+    op: { type: 'delete', range: range(p - 1, p) },
+    selectionAfter: caret(p - 1),
+    coalesce: backspaceRun(p, p - 1),
+  };
 }
 
 /** Delete key: the selection, or the base after the caret. */
@@ -115,7 +145,11 @@ export function deleteForward(doc: SeqDocument, selection: Range | null): EditPl
   if (!isEmptyRange(selection)) return deleteSelection(doc, selection);
   const p = normalizePosition(selection.start, doc.length, doc.topology);
   if (p >= doc.length) return null;
-  return { op: { type: 'delete', range: range(p, p + 1) }, selectionAfter: caret(p) };
+  return {
+    op: { type: 'delete', range: range(p, p + 1) },
+    selectionAfter: caret(p),
+    coalesce: deleteForwardRun(p),
+  };
 }
 
 /** Selection spanning `anchor` and `focus` in either order. */

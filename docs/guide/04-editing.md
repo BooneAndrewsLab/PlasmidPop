@@ -1,9 +1,9 @@
 # Editing the sequence
 
 The sequence view is a text editor for DNA. Click to place the cursor, then
-type. Every change is one step in the undo history, and features keep their
-places: a feature after an insertion moves along, a feature around it grows,
-a feature whose bases are deleted shrinks or disappears.
+type. Features keep their places: a feature after an insertion moves along,
+a feature around it grows, a feature whose bases are deleted shrinks or
+disappears.
 
 ## Typing, deleting, replacing
 
@@ -96,6 +96,10 @@ detail_. Undo it, or use **Mark from here**, to get back to useful marks.
 
 - `Ctrl+Z` undoes, `Ctrl+Shift+Z` or `Ctrl+Y` redoes. The **Undo** and
   **Redo** buttons show what they will undo or redo in their tooltip.
+- A run of typing is one step, not one step per base, and so is a run of
+  `Backspace` or `Delete`. A pause, a click elsewhere, a save or 60 bases
+  ends the run and the next keystroke starts a new step. See
+  [History](13-history.md).
 - The **▾** next to them lists every change since the document was opened,
   newest first, with labels such as _Insert 3 bases_, _Paste 120 bases_,
   _Edit feature_ or _Set origin_. Click any entry to jump to that state;

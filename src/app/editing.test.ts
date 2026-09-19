@@ -19,7 +19,7 @@ describe('typeText', () => {
       op: { type: 'insert', position: 3, text: 'gg' },
       selectionAfter: { start: 5, end: 5 },
     });
-    expect(typeText(circular, { start: 10, end: 10 }, 'G')).toEqual({
+    expect(typeText(circular, { start: 10, end: 10 }, 'G')).toMatchObject({
       op: { type: 'insert', position: 0, text: 'G' },
       selectionAfter: { start: 1, end: 1 },
     });
@@ -114,16 +114,16 @@ describe('deleteBackward / deleteForward', () => {
   });
 
   it('deletes single bases around the caret, wrapping only on circular sequences', () => {
-    expect(deleteBackward(linear, { start: 4, end: 4 })).toEqual({
+    expect(deleteBackward(linear, { start: 4, end: 4 })).toMatchObject({
       op: { type: 'delete', range: { start: 3, end: 4 } },
       selectionAfter: { start: 3, end: 3 },
     });
     expect(deleteBackward(linear, { start: 0, end: 0 })).toBeNull();
-    expect(deleteBackward(circular, { start: 0, end: 0 })).toEqual({
+    expect(deleteBackward(circular, { start: 0, end: 0 })).toMatchObject({
       op: { type: 'delete', range: { start: 9, end: 10 } },
       selectionAfter: { start: 0, end: 0 },
     });
-    expect(deleteForward(linear, { start: 4, end: 4 })).toEqual({
+    expect(deleteForward(linear, { start: 4, end: 4 })).toMatchObject({
       op: { type: 'delete', range: { start: 4, end: 5 } },
       selectionAfter: { start: 4, end: 4 },
     });
@@ -177,5 +177,50 @@ describe('positions and selections', () => {
       end: 4,
     });
     expect(selectionAfterOp(linear, null, { type: 'reverseComplement' })).toBeNull();
+  });
+});
+
+describe('undo runs', () => {
+  it('chains one-base typing and leaves longer text alone', () => {
+    const first = typeText(linear, { start: 3, end: 3 }, 'G');
+    const second = typeText(linear.insert(3, 'G'), { start: 4, end: 4 }, 'G');
+    // The key the first change offers is the one the second asks to follow.
+    expect(first?.coalesce?.key).toBe(second?.coalesce?.follows);
+    expect(second?.coalesce?.key).not.toBe(second?.coalesce?.follows);
+    expect(first?.coalesce?.relabel?.(4)).toBe('Insert 4 bases');
+    // Typing somewhere else does not continue the run.
+    expect(typeText(linear, { start: 8, end: 8 }, 'G')?.coalesce?.follows).not.toBe(
+      first?.coalesce?.key,
+    );
+    // A paste is one step of its own.
+    expect(typeText(linear, { start: 3, end: 3 }, 'GG')?.coalesce).toBeUndefined();
+    expect(typeText(linear, { start: 2, end: 6 }, 'G')?.coalesce).toBeUndefined();
+  });
+
+  it('carries a typing run across the origin of a circular sequence', () => {
+    // Typing at the last position leaves the caret at the end, which is the
+    // origin again once the base is in.
+    const atEnd = typeText(circular, { start: 9, end: 9 }, 'G');
+    expect(atEnd?.selectionAfter).toEqual({ start: 10, end: 10 });
+    const next = typeText(circular.insert(9, 'G'), { start: 10, end: 10 }, 'G');
+    expect(next?.coalesce?.follows).toBe(atEnd?.coalesce?.key);
+  });
+
+  it('chains Backspace leftwards and Delete in place', () => {
+    const back = deleteBackward(linear, { start: 4, end: 4 });
+    const backAgain = deleteBackward(linear.delete({ start: 3, end: 4 }), { start: 3, end: 3 });
+    expect(backAgain?.coalesce?.follows).toBe(back?.coalesce?.key);
+    expect(back?.coalesce?.relabel?.(3)).toBe('Delete 3 bases');
+
+    const forward = deleteForward(linear, { start: 4, end: 4 });
+    const forwardAgain = deleteForward(linear.delete({ start: 4, end: 5 }), { start: 4, end: 4 });
+    expect(forwardAgain?.coalesce?.follows).toBe(forward?.coalesce?.key);
+
+    // The two directions are separate runs, and neither joins a typing run.
+    expect(back?.coalesce?.key).not.toBe(forward?.coalesce?.key);
+    expect(deleteBackward(linear, { start: 2, end: 6 })?.coalesce).toBeUndefined();
+    expect(typeText(linear, { start: 3, end: 3 }, 'G')?.coalesce?.key).not.toBe(
+      back?.coalesce?.key,
+    );
   });
 });

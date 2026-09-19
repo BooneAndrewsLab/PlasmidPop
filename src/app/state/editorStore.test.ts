@@ -1,4 +1,6 @@
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
+
+import { deleteBackward, deleteForward, typeText } from '../editing';
 import { parseGenBank } from '@/io';
 
 import { ERROR_FADE_MS, EditorStore } from './editorStore';
@@ -643,5 +645,91 @@ describe('EditorStore tabs', () => {
     expect(store.getState().overwritePrompt).toEqual({ fileName: 'renamed.gb' });
     store.dismissOverwrite();
     expect(store.getState().overwritePrompt).toBeNull();
+  });
+});
+
+describe('EditorStore typing runs', () => {
+  const linear = SeqDocument.create({ sequence: 'ACGTACGTAC' });
+
+  /** Types `text` one base at a time, the way the sequence view does. */
+  function type(store: EditorStore, text: string): void {
+    for (const base of text) {
+      store.applyPlan(typeText(store.document ?? linear, store.getState().selection, base));
+    }
+  }
+
+  it('makes a run of typing one undo step', () => {
+    const store = new EditorStore();
+    store.openDocument(linear, 'x.gb');
+    store.setSelection({ start: 4, end: 4 });
+    type(store, 'GGGG');
+    expect(store.document?.sequence.toString()).toBe('ACGTGGGGACGTAC');
+    expect(store.getState().history?.size).toBe(1);
+    expect(store.getState().history?.undoLabel).toBe('Insert 4 bases');
+    store.undo();
+    expect(store.document?.sequence.toString()).toBe('ACGTACGTAC');
+  });
+
+  it('starts a new step when the caret moves away', () => {
+    const store = new EditorStore();
+    store.openDocument(linear, 'x.gb');
+    store.setSelection({ start: 4, end: 4 });
+    type(store, 'GG');
+    store.setSelection({ start: 0, end: 0 });
+    type(store, 'TT');
+    expect(store.getState().history?.size).toBe(2);
+    store.undo();
+    expect(store.document?.sequence.toString()).toBe('ACGTGGACGTAC');
+  });
+
+  it('keeps the saved version reachable when typing carries on after a save', () => {
+    const store = new EditorStore();
+    const id = store.openDocument(linear, 'x.gb');
+    store.setSelection({ start: 0, end: 0 });
+    type(store, 'GG');
+    store.markSaved(id);
+    const saved = store.document;
+    type(store, 'TT');
+    expect(store.getState().history?.size).toBe(2);
+    // The version on disk is still a step the history panel can point at.
+    expect(store.getState().history?.stateAt(1)).toBe(saved);
+  });
+
+  it('does not fold a change into a run the user has undone out of', () => {
+    const store = new EditorStore();
+    store.openDocument(linear, 'x.gb');
+    store.setSelection({ start: 0, end: 0 });
+    type(store, 'GG');
+    store.apply({ type: 'rename', name: 'renamed' });
+    store.undo();
+    store.setSelection({ start: 2, end: 2 });
+    type(store, 'T');
+    expect(store.getState().history?.size).toBe(2);
+    store.undo();
+    expect(store.document?.sequence.toString()).toBe('GGACGTACGTAC');
+  });
+
+  it('runs Backspace and Delete separately from typing', () => {
+    const store = new EditorStore();
+    store.openDocument(linear, 'x.gb');
+    store.setSelection({ start: 5, end: 5 });
+    for (let i = 0; i < 3; i++) {
+      store.applyPlan(deleteBackward(store.document ?? linear, store.getState().selection));
+    }
+    // Backspace at 5 eats positions 4, 3 and 2 in turn.
+    expect(store.document?.sequence.toString()).toBe('ACCGTAC');
+    expect(store.getState().history?.size).toBe(1);
+    expect(store.getState().history?.undoLabel).toBe('Delete 3 bases');
+
+    for (let i = 0; i < 2; i++) {
+      store.applyPlan(deleteForward(store.document ?? linear, store.getState().selection));
+    }
+    // Delete stays at the caret and eats what shuffles into it.
+    expect(store.document?.sequence.toString()).toBe('ACTAC');
+    expect(store.getState().history?.undoLabel).toBe('Delete 2 bases');
+    // Backspace and Delete are runs of their own.
+    expect(store.getState().history?.size).toBe(2);
+    store.undo();
+    expect(store.document?.sequence.toString()).toBe('ACCGTAC');
   });
 });

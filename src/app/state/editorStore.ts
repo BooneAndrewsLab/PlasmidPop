@@ -1,5 +1,6 @@
 import { analytics } from '../analytics';
 import {
+  type Coalesce,
   type CutSite,
   type DigestFragment,
   type EditOp,
@@ -506,9 +507,15 @@ export class EditorStore {
     if (target === null) return;
     analytics.track('file', 'save');
     const present = target.history.present;
+    // Sealing keeps the version on disk reachable as a step of its own: a
+    // keystroke right after a save must not be folded into the step that
+    // produced what was written.
+    const history = target.history.seal();
     this.setDocument(
       id,
-      fileName === undefined ? { savedDoc: present } : { savedDoc: present, fileName },
+      fileName === undefined
+        ? { savedDoc: present, history }
+        : { savedDoc: present, fileName, history },
     );
   }
 
@@ -561,9 +568,16 @@ export class EditorStore {
    * Applies an op to a document, the one in front by default. The selection
    * follows the edit: a caret is mapped through inserts and deletes, and
    * document-wide ops (reverse complement, set origin) move it along;
-   * `selectionAfter` overrides that when given.
+   * `selectionAfter` overrides that when given. `coalesce` lets a change
+   * that carries on from the one before it share its undo step, which is how
+   * a run of typing stays one step; see `applyPlan`.
    */
-  apply(op: EditOp, selectionAfter?: Range | null, id: string | null = this.activeId): void {
+  apply(
+    op: EditOp,
+    selectionAfter?: Range | null,
+    id: string | null = this.activeId,
+    coalesce?: Coalesce,
+  ): void {
     const target = this.documentState(id);
     if (target === null) return;
     const history = target.history;
@@ -587,7 +601,7 @@ export class EditorStore {
         ? { position: selection.start, nonce: (target.reveal?.nonce ?? 0) + 1 }
         : target.reveal;
     this.setDocument(target.documentId, {
-      history: history.push(next, describeEditOp(op)),
+      history: history.push(next, describeEditOp(op), Date.now(), coalesce),
       selection,
       reveal,
       analysis: carryAnalysis(target.analysis, doc, op, next),
@@ -595,7 +609,7 @@ export class EditorStore {
   }
 
   applyPlan(plan: EditPlan | null): void {
-    if (plan !== null) this.apply(plan.op, plan.selectionAfter);
+    if (plan !== null) this.apply(plan.op, plan.selectionAfter, this.activeId, plan.coalesce);
   }
 
   /** Annotates the current selection as a new feature and asks the panel to name it. */
@@ -614,16 +628,19 @@ export class EditorStore {
     });
   }
 
+  // Undo, redo and a jump all seal the step they land on, so the next edit
+  // starts a step of its own rather than joining a run the user has just
+  // stepped out of.
   undo(): void {
     const history = this.state.history;
     if (history?.canUndo !== true) return;
-    this.setActive({ history: history.undo(), selection: null });
+    this.setActive({ history: history.undo().seal(), selection: null });
   }
 
   redo(): void {
     const history = this.state.history;
     if (history?.canRedo !== true) return;
-    this.setActive({ history: history.redo(), selection: null });
+    this.setActive({ history: history.redo().seal(), selection: null });
   }
 
   /** Undoes or redoes to the state with `position` changes applied (0 = as opened). */
@@ -633,7 +650,7 @@ export class EditorStore {
     const next = history.jumpTo(position);
     if (next === history) return;
     analytics.track('history', 'jump');
-    this.setActive({ history: next, selection: null });
+    this.setActive({ history: next.seal(), selection: null });
   }
 
   setSelection(selection: Range | null): void {
@@ -790,10 +807,11 @@ export class EditorStore {
 
   /** Makes the present document the point the edit marks are measured from. */
   markEditsFromHere(): void {
-    const present = this.document;
-    if (present === null) return;
+    const target = this.documentState();
+    if (target === null) return;
     analytics.track('edits', 'baseline', 'marked');
-    this.setActive({ markedDoc: present });
+    // The marked state is a landmark too; the next edit starts a fresh step.
+    this.setActive({ markedDoc: target.history.present, history: target.history.seal() });
     this.setShared({ editsBaseline: 'marked' });
   }
 

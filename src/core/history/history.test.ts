@@ -1,4 +1,4 @@
-import { History } from './history';
+import { type Coalesce, History } from './history';
 
 describe('History', () => {
   it('pushes, undoes and redoes with labels', () => {
@@ -126,5 +126,81 @@ describe('History', () => {
     expect(a.present).toBe('x');
     expect(a.canUndo).toBe(false);
     expect(b.present).toBe('y');
+  });
+});
+
+describe('History coalescing', () => {
+  /** A run of typing: each change picks up where the last one left off. */
+  const typed = (before: number, after: number): Coalesce => ({
+    follows: `type@${before}`,
+    key: `type@${after}`,
+    relabel: (n) => `Insert ${n} bases`,
+  });
+
+  it('folds a run of changes into one step back to where it started', () => {
+    const h = History.create('', { at: 0 })
+      .push('A', 'Insert 1 base', 10, typed(0, 1))
+      .push('AC', 'Insert 1 base', 20, typed(1, 2))
+      .push('ACG', 'Insert 1 base', 30, typed(2, 3));
+    expect(h.present).toBe('ACG');
+    expect(h.size).toBe(1);
+    expect(h.undoLabel).toBe('Insert 3 bases');
+    // One undo takes the whole run back.
+    expect(h.undo().present).toBe('');
+    // The step is dated by the last change in it.
+    expect(h.steps.map((step) => step.at)).toEqual([30]);
+  });
+
+  it('starts a new step when the run is broken', () => {
+    const base = History.create('', { at: 0 }).push('A', 'Insert 1 base', 10, typed(0, 1));
+    // A change that does not follow on: typing somewhere else.
+    expect(base.push('AX', 'Insert 1 base', 20, typed(7, 8)).size).toBe(2);
+    // A pause longer than the window.
+    expect(base.push('AC', 'Insert 1 base', 9000, typed(1, 2)).size).toBe(2);
+    // A change with no run at all.
+    expect(base.push('AC', 'Insert 1 base', 20).size).toBe(2);
+    // The run hit its limit.
+    expect(base.push('AC', 'Insert 1 base', 20, { ...typed(1, 2), limit: 1 }).size).toBe(2);
+    // The window can be set per run.
+    expect(base.push('AC', 'Insert 1 base', 60, { ...typed(1, 2), withinMs: 20 }).size).toBe(2);
+  });
+
+  it('never merges across an undo', () => {
+    const h = History.create('', { at: 0 })
+      .push('A', 'Insert 1 base', 10, typed(0, 1))
+      .push('AC', 'Insert 1 base', 20, typed(1, 2))
+      .push('ACX', 'Add feature', 30)
+      .undo();
+    // The step the run left behind still offers `type@2`, but there is a redo
+    // waiting: the user has stepped out of the run, so it is over.
+    expect(h.present).toBe('AC');
+    const next = h.push('ACG', 'Insert 1 base', 40, typed(2, 3));
+    expect(next.size).toBe(2);
+    expect(next.undo().present).toBe('AC');
+  });
+
+  it('seals a step so the state stays reachable', () => {
+    const h = History.create('', { at: 0 })
+      .push('A', 'Insert 1 base', 10, typed(0, 1))
+      .seal()
+      .push('AC', 'Insert 1 base', 20, typed(1, 2));
+    expect(h.size).toBe(2);
+    expect(h.stateAt(1)).toBe('A');
+    // Sealing an empty history, or one already sealed, changes nothing.
+    const plain = History.create('x');
+    expect(plain.seal()).toBe(plain);
+    const once = plain.push('y', 'y', 0, typed(0, 1)).seal();
+    expect(once.seal()).toBe(once);
+  });
+
+  it('keeps counting a run that carries on after a merge', () => {
+    const h = History.create('', { at: 0 })
+      .push('A', 'Insert 1 base', 10, typed(0, 1))
+      .push('AC', 'Insert 1 base', 20, typed(1, 2))
+      .push('ACG', 'Insert 1 base', 30, typed(2, 3))
+      .push('ACGT', 'Insert 1 base', 40, { ...typed(3, 4), limit: 4 });
+    expect(h.undoLabel).toBe('Insert 4 bases');
+    // A fifth would be over the limit of four.
+    expect(h.push('ACGTA', 'Insert 1 base', 50, { ...typed(4, 5), limit: 4 }).size).toBe(2);
   });
 });

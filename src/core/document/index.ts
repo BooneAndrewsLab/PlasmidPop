@@ -1,3 +1,4 @@
+export * from './coalesce';
 export * from './editOp';
 export * from './ends';
 export * from './metadata';
