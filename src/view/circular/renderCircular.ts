@@ -82,9 +82,44 @@ function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
   }
 }
 
-function drawSelection(ctx: DrawingContext, p: CircularRenderParams): void {
+/** Shortest the selection band may be on screen, in pixels of arc. */
+const MIN_SELECTION_PX = 7;
+
+/**
+ * Angular span of the drawn selection band. A one- or two-base selection of
+ * a plasmid covers a fraction of a degree, so the span is widened about its
+ * centre until it is `minPx` of arc at `radius`; `widened` tells the caller
+ * the band alone is too thin to find, and a radial marker is drawn as well.
+ */
+export function selectionSweep(
+  startAngle: number,
+  endAngle: number,
+  radius: number,
+  minPx: number = MIN_SELECTION_PX,
+): { readonly start: number; readonly end: number; readonly widened: boolean } {
+  const raw = endAngle - startAngle;
+  // A selection crossing the origin can end at a smaller angle than it
+  // starts; the arc then sweeps clockwise the long way round.
+  const span = raw >= 0 ? raw : raw + Math.PI * 2;
+  const minAngle = radius > 0 ? Math.min(minPx / radius, Math.PI * 2) : 0;
+  if (span >= minAngle) return { start: startAngle, end: endAngle, widened: false };
+  const mid = startAngle + span / 2;
+  return { start: mid - minAngle / 2, end: mid + minAngle / 2, widened: true };
+}
+
+/** Radius the selection marker points in to: just inside the lanes. */
+function innerRadius(layout: CircularLayout): number {
+  const r =
+    layout.laneCount > 0
+      ? layout.laneRadius(layout.laneCount - 1) - layout.ringWidth
+      : layout.radius - 20;
+  return Math.max(4, r);
+}
+
+/** Returns whether the band was too thin to stand on its own. */
+function drawSelection(ctx: DrawingContext, p: CircularRenderParams): boolean {
   const { selection, layout, theme, doc } = p;
-  if (selection === null || doc.length === 0) return;
+  if (selection === null || doc.length === 0) return false;
   if (selection.start === selection.end) {
     const a = layout.pointAt(selection.start, layout.radius - 8);
     const b = layout.pointAt(selection.start, layout.radius + 8);
@@ -94,18 +129,46 @@ function drawSelection(ctx: DrawingContext, p: CircularRenderParams): void {
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
-    return;
+    return false;
   }
+  const outer = layout.radius + 8;
+  const sweep = selectionSweep(
+    layout.angleOf(selection.start),
+    layout.angleOf(selection.end),
+    outer,
+  );
   ctx.strokeStyle = theme.selectionFill;
   ctx.lineWidth = 14 + layout.laneCount * layout.ringWidth;
   ctx.beginPath();
-  ctx.arc(
-    layout.cx,
-    layout.cy,
-    layout.radius - ctx.lineWidth / 2 + 8,
+  ctx.arc(layout.cx, layout.cy, outer - ctx.lineWidth / 2, sweep.start, sweep.end);
+  ctx.stroke();
+  return sweep.widened;
+}
+
+/**
+ * A short selection is drawn again on top of the features as a needle
+ * running from outside the backbone in towards the centre, so that even a
+ * 1 bp range is impossible to miss.
+ */
+function drawSelectionMarker(ctx: DrawingContext, p: CircularRenderParams): void {
+  const { selection, layout, theme } = p;
+  if (selection === null) return;
+  const sweep = selectionSweep(
     layout.angleOf(selection.start),
     layout.angleOf(selection.end),
+    layout.radius + 8,
   );
+  const mid = (sweep.start + sweep.end) / 2;
+  const cos = Math.cos(mid);
+  const sin = Math.sin(mid);
+  const from = innerRadius(layout);
+  const to = layout.radius + 8;
+  ctx.strokeStyle = theme.caret;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'butt';
+  ctx.beginPath();
+  ctx.moveTo(layout.cx + from * cos, layout.cy + from * sin);
+  ctx.lineTo(layout.cx + to * cos, layout.cy + to * sin);
   ctx.stroke();
 }
 
@@ -340,13 +403,14 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   ctx.fillStyle = p.theme.background;
   ctx.fillRect(0, 0, width, height);
 
-  drawSelection(ctx, p);
+  const tinySelection = drawSelection(ctx, p);
   drawBackbone(ctx, p);
   const features = drawableFeatures(doc.features.all());
   for (const f of features) {
     const lane = lanes.laneOf.get(f.id);
     if (lane !== undefined) drawFeature(ctx, p, f, lane);
   }
+  if (tinySelection) drawSelectionMarker(ctx, p);
   drawLabels(ctx, p, features);
   drawCentre(ctx, p);
   ctx.restore();

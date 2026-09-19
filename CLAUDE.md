@@ -186,11 +186,13 @@ pick from here when the current work is done.
     sequence, with the sidebar and views collapsing into tabs. Editing
     on a touch screen is hard to get right and can wait; test on real
     devices, not only a narrow desktop window.
-16. **Make tiny features visible on the circular map.** Selecting a very
-    short feature in the feature list (e.g. the 2 bp feature at 141..142
-    in the pBR322 example) highlights a sliver that is impossible to see.
-    Extend the selection highlight inward towards the centre of the map,
-    or outward past the outer ring, so even a 1 bp selection is obvious.
+16. ~~**Make tiny features visible on the circular map.**~~ done. A
+    selection whose arc would be under 7 px on screen (the 2 bp feature at
+    141..142 of pBR322, say) is widened about its centre to that much
+    (`selectionSweep` in `src/view/circular/renderCircular.ts`) and drawn
+    again over the features as a needle from just outside the backbone in
+    to the inner edge of the lanes. Not yet: the same treatment for the
+    caret, or for a tiny feature that is not selected.
 17. ~~**Create from scratch**~~: done. "New" in the toolbar and "start a
     new sequence" in the empty state open an empty linear "Untitled"
     document (`editorStore.newDocument`) with the caret placed and the

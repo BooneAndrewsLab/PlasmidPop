@@ -42,6 +42,10 @@ A linear sequence is drawn as an open ring with a gap at the ends.
   with the middle button) to pan.
 - The buttons in the corner zoom **+** and **−**, zoom to the **Sel**ection
   and **Fit** the whole map.
+- A selection too short to see as an arc — a few bases of a plasmid, say — is
+  drawn a little wider than it is and marked with a line running from the
+  backbone in towards the centre, so it can still be found. Zoom in to see
+  its true extent.
 
 Lane widths and fonts do not change with zoom; the tick marks get denser as
 you zoom in.
