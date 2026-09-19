@@ -103,8 +103,11 @@ and the Edits baseline are remembered in localStorage
 documents and enzyme ticks are unaffected. The logo
 (`design/logo/`, made in Claude Design) is used for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 547 passing. Perf
-measurements live in `docs/perf-notes.md`.
+`scripts/make-wordmark.py`, no webfont). Added 2026-09-19: runs of typing
+coalesce into one undo step, the Cloning tab's assembly shelf survives a
+reload, and Golden Gate assembly (items 5 and 3 under "Potential new
+features"). Tests: 580 passing. Perf measurements live in
+`docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
 
@@ -126,7 +129,7 @@ pick from here when the current work is done.
    op (delete selection, insert bases, add shifted features with fresh
    ids), so it is a single undo step. Not yet: cross-tab paste in browsers
    that strip custom clipboard types (only the plain bases arrive there).
-3. ~~**Simulated cloning.**~~ done, restriction-ligation only. The
+3. ~~**Simulated cloning.**~~ done: restriction-ligation and Golden Gate. The
    Cloning sidebar tab digests the document with the enzymes ticked in the
    Enzymes tab (`digest` in `src/core/cloning/digest.ts`: fragments with
    both ends described as blunt / 5′ / 3′ plus the overhang bases) and lets
@@ -135,10 +138,24 @@ pick from here when the current work is done.
    be flipped and reordered; every junction is checked (`endsCompatible`,
    `assemblyJunctions` in `ligate.ts`) and `ligate` opens the product as a
    new circular or linear document with the fragments' features; a fragment
-   can also be opened on its own (**Open**, item 10). Not yet:
-   Gibson and Golden Gate assembly from primer/fragment sets, partial
-   digests, dephosphorylation, resolving IUPAC codes in overhangs, and
-   persisting the assembly shelf across reloads.
+   can also be opened on its own (**Open**, item 10). The shelf survives a
+   reload: it is a row of its own in IndexedDB (Dexie version 2, table
+   `shelf`), written by `useAutosaveShelf` and read back by
+   `restoreLastSession`, which gives way to a shelf the user has already
+   started filling. A **Golden Gate** section below it takes whole open
+   documents instead (`goldenGate` in `src/core/cloning/goldenGate.ts`):
+   one Type IIS enzyme (`isTypeIIS`, `GOLDEN_GATE_ENZYMES`, BsaI by
+   default), digest every ticked document, drop the pieces that still carry
+   a site or lack two sticky ends, then walk the overhangs, flipping a part
+   where that is how it fits, and refuse with a sentence rather than guess
+   when they do not force one circle. It costs a few ms on the main thread
+   (`docs/perf-notes.md`). `flipFragment` was fixed along the way: a
+   fragment's `sequence` is its top strand alone, so turning it over moves
+   the window by an overhang at each end rather than just
+   reverse-complementing it. Not yet: Gibson assembly, partial digests,
+   dephosphorylation, resolving IUPAC codes in overhangs, mixing two
+   enzymes in one Golden Gate, and taking Golden Gate parts from the
+   assembly shelf rather than from open documents.
 4. ~~**Translation of any selected range in six frames**~~ done. The
    Translate sidebar tab shows the selection (or the whole sequence when
    nothing is selected) in frames +1..+3 and −1..−3
@@ -154,8 +171,13 @@ pick from here when the current work is done.
    jumps to any state on a click; **Latest** redoes everything undone
    (`src/app/historyView.ts`, `src/app/components/HistoryPanel.tsx`; the core
    `History` now carries a timestamp per step, `steps`, `stateAt`, `size` and
-   `truncated`). Not yet: naming or bookmarking a state, coalescing runs of
-   single-base typing into one step, a diff of what a step changed.
+   `truncated`). A run of typing is one step, not one per base:
+   `History.push` takes an optional `Coalesce` whose two keys chain a run
+   (`src/core/document/coalesce.ts` defines typing, Backspace and Delete),
+   and `seal()` ends a run where the present must stay reachable — on
+   undo, redo and jump, on save, and on "Mark from here". A run also breaks
+   on a two-second pause, at 60 bases, and when the caret moves. Not yet:
+   naming or bookmarking a state, a diff of what a step changed.
 6. ~~**Multiple open documents (tabs)**~~ done. The store keeps one
    `DocumentState` per open document (history, selection, file name and
    handle, saved/opened/marked versions, warnings, analysis, enzyme ticks,
