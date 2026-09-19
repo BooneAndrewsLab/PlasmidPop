@@ -110,21 +110,47 @@ function carryAnalysis(
   return { doc: next, cutSites, orfs, provisional: true };
 }
 
-export interface EditorState {
-  /** Undo history whose present is the open document; null before a file is opened. */
-  readonly history: History<SeqDocument> | null;
+/**
+ * Everything that belongs to one open document: its own tab. The store keeps
+ * one of these per tab and shows the one in front flattened into
+ * `EditorState`, so a view that reads `state.selection` gets the selection of
+ * the document it is drawing.
+ */
+export interface DocumentState {
+  /** Stable id of the document in local storage; also the tab's identity. */
+  readonly documentId: string;
+  /** Undo history whose present is the document. */
+  readonly history: History<SeqDocument>;
   /** Current selection; an empty range is a caret. Null when nothing is selected. */
   readonly selection: Range | null;
   readonly fileName: string | null;
-  /** Stable id of the open document in local storage. */
-  readonly documentId: string | null;
   /** Handle of the file the document came from or was saved to, when the browser gave us one. */
   readonly fileHandle: FileSystemFileHandle | null;
   /** The version last written to a file (or the version opened from one). */
   readonly savedDoc: SeqDocument | null;
-  /** Whether the present document differs from what is on disk. */
-  readonly dirty: boolean;
+  /** The document as it was opened, the baseline for `editsBaseline: 'opened'`. */
+  readonly openedDoc: SeqDocument;
+  /** The document when "Mark from here" was last used. */
+  readonly markedDoc: SeqDocument | null;
   readonly warnings: readonly ParseWarning[];
+  /** Set while Save waits for the user to agree that it may overwrite the file on disk. */
+  readonly overwritePrompt: { readonly fileName: string } | null;
+  readonly analysis: AnalysisState | null;
+  /** Enzymes whose cut sites are drawn in the views. */
+  readonly shownEnzymes: ReadonlySet<string>;
+  /** Whether the default shown-enzyme set (single cutters) was applied for this document. */
+  readonly enzymesInitialized: boolean;
+  /** Bumped when the view should scroll to `revealPosition`. */
+  readonly reveal: { readonly position: number; readonly nonce: number } | null;
+  /** Set when the feature panel should open an inline rename for a feature. */
+  readonly renameRequest: { readonly id: string; readonly nonce: number } | null;
+  /** Feature currently open in the full editor. */
+  readonly editingFeatureId: string | null;
+  readonly findOpen: boolean;
+}
+
+/** State of the app as a whole, the same whichever document is in front. */
+export interface SharedState {
   readonly error: string | null;
   /**
    * Set while `error` will dismiss itself: how long it is shown in full, how
@@ -136,8 +162,6 @@ export interface EditorState {
     readonly fadeMs: number;
     readonly nonce: number;
   } | null;
-  /** Set while Save waits for the user to agree that it may overwrite the file on disk. */
-  readonly overwritePrompt: { readonly fileName: string } | null;
   readonly showComplement: boolean;
   /** Whether amino-acid translations are drawn under CDS features in the sequence view. */
   readonly showTranslations: boolean;
@@ -154,15 +178,8 @@ export interface EditorState {
   readonly colorBases: boolean;
   /** Which version the sequence view marks changes against; see `EditsBaseline`. */
   readonly editsBaseline: EditsBaseline;
-  /** The document as it was opened, the baseline for `editsBaseline: 'opened'`. */
-  readonly openedDoc: SeqDocument | null;
-  /** The document when "Mark from here" was last used. */
-  readonly markedDoc: SeqDocument | null;
   readonly view: ViewMode;
   readonly sidebarTab: SidebarTab;
-  readonly analysis: AnalysisState | null;
-  /** Enzymes whose cut sites are drawn in the views. */
-  readonly shownEnzymes: ReadonlySet<string>;
   /**
    * Whether cut sites are drawn at all. Off hides every site in the views and
    * in the SVG exports without touching `shownEnzymes`, so a carefully chosen
@@ -172,34 +189,34 @@ export interface EditorState {
   readonly showCutSites: boolean;
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
-  /** Whether the default shown-enzyme set (single cutters) was applied for this document. */
-  readonly enzymesInitialized: boolean;
-  /** Bumped when the view should scroll to `revealPosition`. */
-  readonly reveal: { readonly position: number; readonly nonce: number } | null;
-  /** Set when the feature panel should open an inline rename for a feature. */
-  readonly renameRequest: { readonly id: string; readonly nonce: number } | null;
-  /** Feature currently open in the full editor. */
-  readonly editingFeatureId: string | null;
-  readonly findOpen: boolean;
   /**
    * Fragments collected for ligation, in order. Independent of the open
-   * document so pieces can be gathered from several files in turn.
+   * documents so pieces can be gathered from several of them in turn.
    */
   readonly assembly: readonly AssemblyPart[];
 }
 
-const INITIAL: EditorState = {
-  history: null,
-  selection: null,
-  fileName: null,
-  documentId: null,
-  fileHandle: null,
-  savedDoc: null,
-  dirty: false,
-  warnings: [],
+/**
+ * The fields of the document in front, or their empty values while the file
+ * list is shown: a null history stands for "nothing open", as it always has.
+ */
+type ActiveDocumentFields = {
+  readonly [K in keyof DocumentState]: K extends
+    'warnings' | 'shownEnzymes' | 'enzymesInitialized' | 'findOpen'
+    ? DocumentState[K]
+    : DocumentState[K] | null;
+};
+
+export interface EditorState extends SharedState, ActiveDocumentFields {
+  /** The open documents, in tab order. */
+  readonly documents: readonly DocumentState[];
+  /** Whether the document in front differs from what is on disk. */
+  readonly dirty: boolean;
+}
+
+const SHARED_INITIAL: SharedState = {
   error: null,
   errorCountdown: null,
-  overwritePrompt: null,
   showComplement: true,
   showTranslations: true,
   seqFontSize: 13,
@@ -207,32 +224,82 @@ const INITIAL: EditorState = {
   numberComplement: false,
   colorBases: false,
   editsBaseline: 'opened',
-  openedDoc: null,
-  markedDoc: null,
   view: 'both',
   sidebarTab: 'features',
-  analysis: null,
-  shownEnzymes: new Set(),
   showCutSites: true,
   orfMinCodons: 75,
+  assembly: [],
+};
+
+const NO_DOCUMENT: ActiveDocumentFields = {
+  documentId: null,
+  history: null,
+  selection: null,
+  fileName: null,
+  fileHandle: null,
+  savedDoc: null,
+  openedDoc: null,
+  markedDoc: null,
+  warnings: [],
+  overwritePrompt: null,
+  analysis: null,
+  shownEnzymes: new Set(),
   enzymesInitialized: false,
   reveal: null,
   renameRequest: null,
   editingFeatureId: null,
   findOpen: false,
-  assembly: [],
 };
+
+/** Whether the document differs from the file it was read from or written to (or has none). */
+export function isDirty(d: DocumentState): boolean {
+  return d.savedDoc !== d.history.present;
+}
+
+/**
+ * A document from "New" that nothing has happened to yet. Opening a file
+ * takes its place rather than leaving an empty tab behind.
+ */
+export function isUntouchedNew(d: DocumentState): boolean {
+  const doc = d.history.present;
+  return (
+    d.fileName === null &&
+    !d.history.canUndo &&
+    !d.history.canRedo &&
+    doc.length === 0 &&
+    doc.features.size === 0
+  );
+}
+
+function compose(
+  shared: SharedState,
+  documents: readonly DocumentState[],
+  activeId: string | null,
+): EditorState {
+  const active = documents.find((d) => d.documentId === activeId) ?? null;
+  return {
+    ...shared,
+    ...(active ?? NO_DOCUMENT),
+    documents,
+    dirty: active !== null && isDirty(active),
+  };
+}
 
 type Listener = () => void;
 
 /**
  * Minimal external store for the editor: immutable state, plain methods for
  * every action, and `subscribe`/`getState` for React's useSyncExternalStore.
- * Everything document-related goes through `apply(op)` so undo, and later a
- * CRDT layer, see one vocabulary of changes.
+ * Documents are open in tabs; the methods act on the one in front unless
+ * they take an id. Everything document-related goes through `apply(op)` so
+ * undo, and later a CRDT layer, see one vocabulary of changes.
  */
 export class EditorStore {
-  private state: EditorState = INITIAL;
+  private shared: SharedState = SHARED_INITIAL;
+  private docs: readonly DocumentState[] = [];
+  /** The tab in front, or null while the file list is shown. */
+  private activeId: string | null = null;
+  private state: EditorState = compose(this.shared, this.docs, this.activeId);
   private readonly listeners = new Set<Listener>();
   /** Pending auto-dismiss of a timed error, see `fail`. */
   private errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -246,54 +313,123 @@ export class EditorStore {
     };
   };
 
+  /** The document in front, or null while the file list is shown. */
   get document(): SeqDocument | null {
     return this.state.history?.present ?? null;
   }
 
-  private set(patch: Partial<EditorState>): void {
-    const next = { ...this.state, ...patch };
-    const present = next.history?.present ?? null;
-    next.dirty = present !== null && next.savedDoc !== present;
-    this.state = next;
+  /** The state of an open document by id, the one in front by default; null when not open. */
+  documentState(id: string | null = this.activeId): DocumentState | null {
+    return id === null ? null : (this.docs.find((d) => d.documentId === id) ?? null);
+  }
+
+  private commit(): void {
+    this.state = compose(this.shared, this.docs, this.activeId);
     for (const l of this.listeners) l();
   }
 
-  /** Shows the first document of a parse result. */
-  openParsed(result: ParseResult, fileName: string | null): void {
-    const doc = result.documents[0];
-    if (doc === undefined) {
-      this.set({ error: 'The file contains no sequences.', warnings: result.warnings });
-      return;
-    }
-    analytics.track('file', 'open', result.format);
-    this.openDocument(doc, fileName, result.warnings);
+  private setShared(patch: Partial<SharedState>): void {
+    this.shared = { ...this.shared, ...patch };
+    this.commit();
   }
 
+  private setDocument(id: string, patch: Partial<Omit<DocumentState, 'documentId'>>): void {
+    const i = this.docs.findIndex((d) => d.documentId === id);
+    const current = this.docs[i];
+    if (current === undefined) return;
+    const docs = [...this.docs];
+    docs[i] = { ...current, ...patch };
+    this.docs = docs;
+    this.commit();
+  }
+
+  /** Patches the document in front; nothing happens while the file list is shown. */
+  private setActive(patch: Partial<Omit<DocumentState, 'documentId'>>): void {
+    if (this.activeId !== null) this.setDocument(this.activeId, patch);
+  }
+
+  /** Opens the first document of a parse result in a new tab; returns its id. */
+  openParsed(result: ParseResult, fileName: string | null): string | null {
+    const doc = result.documents[0];
+    if (doc === undefined) {
+      this.setShared({ error: 'The file contains no sequences.' });
+      this.setActive({ warnings: result.warnings });
+      return null;
+    }
+    analytics.track('file', 'open', result.format);
+    return this.openDocument(doc, fileName, result.warnings);
+  }
+
+  /**
+   * Opens a document in a new tab and brings it to the front, returning its
+   * id. A document already open — under `storage.id`, or the same file
+   * opened again — is brought to the front instead. An untouched "New"
+   * document in front gives up its tab to the opened one, so New followed
+   * by Open does not leave an empty tab behind.
+   */
   openDocument(
     doc: SeqDocument,
     fileName: string | null = null,
     warnings: readonly ParseWarning[] = [],
     storage: { id?: string; handle?: FileSystemFileHandle | null } = {},
-  ): void {
-    this.set({
+  ): string {
+    const open =
+      storage.id === undefined ? this.findOpenCopy(doc, fileName) : this.documentState(storage.id);
+    if (open !== null) {
+      this.activateDocument(open.documentId);
+      return open.documentId;
+    }
+    const entry: DocumentState = {
+      documentId: storage.id ?? newId(),
       history: History.create(doc),
       selection: null,
       fileName,
-      documentId: storage.id ?? newId(),
       fileHandle: storage.handle ?? null,
-      overwritePrompt: null,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
       savedDoc: fileName === null ? null : doc,
       openedDoc: doc,
       markedDoc: null,
       warnings,
-      error: null,
-      errorCountdown: null,
+      overwritePrompt: null,
       analysis: null,
       shownEnzymes: new Set(),
       enzymesInitialized: false,
-      reveal: { position: 0, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
-    });
+      reveal: { position: 0, nonce: 1 },
+      renameRequest: null,
+      editingFeatureId: null,
+      findOpen: false,
+    };
+    const active = this.documentState();
+    this.docs =
+      active !== null && isUntouchedNew(active)
+        ? this.docs.map((d) => (d === active ? entry : d))
+        : [...this.docs, entry];
+    this.activeId = entry.documentId;
+    this.commit();
+    return entry.documentId;
+  }
+
+  /**
+   * The tab holding the same file as it was opened, if any: the same name,
+   * and the document as read from the file the same in sequence, topology
+   * and number of features. Edits since do not count; it is still that file.
+   * A document without a file name (a paste, an example) never matches.
+   */
+  private findOpenCopy(doc: SeqDocument, fileName: string | null): DocumentState | null {
+    if (fileName === null) return null;
+    return (
+      this.docs.find((d) => {
+        const o = d.openedDoc;
+        return (
+          d.fileName === fileName &&
+          o.name === doc.name &&
+          o.topology === doc.topology &&
+          o.length === doc.length &&
+          o.features.size === doc.features.size &&
+          o.sequence.toString() === doc.sequence.toString()
+        );
+      }) ?? null
+    );
   }
 
   /**
@@ -301,7 +437,7 @@ export class EditorStore {
    * unsaved-changes warning until something is typed) with a caret at the
    * start so the first keystroke lands.
    */
-  newDocument(topology: 'linear' | 'circular' = 'linear'): void {
+  newDocument(topology: 'linear' | 'circular' = 'linear'): string {
     const doc = SeqDocument.create({
       name: 'Untitled',
       sequence: '',
@@ -309,45 +445,71 @@ export class EditorStore {
       metadata: { moleculeType: 'DNA' },
     });
     analytics.track('file', 'new');
-    this.openDocument(doc);
-    this.set({ savedDoc: doc, selection: { start: 0, end: 0 } });
+    const id = this.openDocument(doc);
+    this.setDocument(id, { savedDoc: doc, selection: { start: 0, end: 0 } });
+    return id;
   }
 
-  closeDocument(): void {
-    this.set({
-      history: null,
-      selection: null,
-      fileName: null,
-      documentId: null,
-      fileHandle: null,
-      overwritePrompt: null,
-      savedDoc: null,
-      openedDoc: null,
-      markedDoc: null,
-      warnings: [],
-      analysis: null,
-      shownEnzymes: new Set(),
-      enzymesInitialized: false,
-      renameRequest: null,
-    });
+  /** Brings an open document to the front; null shows the file list with the tabs kept. */
+  activateDocument(id: string | null): void {
+    if (id === this.activeId || (id !== null && this.documentState(id) === null)) return;
+    this.activeId = id;
+    this.commit();
   }
 
-  /** Re-keys the open document in local storage (used to merge into an identical stored entry). */
-  setDocumentId(id: string): void {
-    if (this.state.documentId !== null && id !== this.state.documentId)
-      this.set({ documentId: id });
+  /** Shows the file list. The open documents stay in their tabs. */
+  showFiles(): void {
+    this.activateDocument(null);
   }
 
-  setFileHandle(handle: FileSystemFileHandle | null): void {
-    this.set({ fileHandle: handle });
+  /**
+   * Closes a tab, the one in front by default. Closing the front tab brings
+   * its right-hand neighbour forward, else the left-hand one, else the file
+   * list. The document stays in local storage.
+   */
+  closeDocument(id: string | null = this.activeId): void {
+    if (id === null) return;
+    const i = this.docs.findIndex((d) => d.documentId === id);
+    if (i < 0) return;
+    const docs = this.docs.filter((d) => d.documentId !== id);
+    if (this.activeId === id) this.activeId = (docs[i] ?? docs[i - 1])?.documentId ?? null;
+    this.docs = docs;
+    this.commit();
   }
 
-  /** Records that the present document now matches the file (optionally under a new name). */
-  markSaved(fileName?: string): void {
-    const present = this.document;
-    if (present === null) return;
+  closeAllDocuments(): void {
+    if (this.docs.length === 0 && this.activeId === null) return;
+    this.docs = [];
+    this.activeId = null;
+    this.commit();
+  }
+
+  /**
+   * Re-keys an open document in local storage (used to merge into an
+   * identical stored entry). Nothing happens when the new id is already a
+   * tab of its own.
+   */
+  setDocumentId(from: string, to: string): void {
+    if (from === to || this.documentState(from) === null || this.documentState(to) !== null) return;
+    this.docs = this.docs.map((d) => (d.documentId === from ? { ...d, documentId: to } : d));
+    if (this.activeId === from) this.activeId = to;
+    this.commit();
+  }
+
+  setFileHandle(id: string, handle: FileSystemFileHandle | null): void {
+    this.setDocument(id, { fileHandle: handle });
+  }
+
+  /** Records that a document now matches its file (optionally under a new name). */
+  markSaved(id: string, fileName?: string): void {
+    const target = this.documentState(id);
+    if (target === null) return;
     analytics.track('file', 'save');
-    this.set(fileName === undefined ? { savedDoc: present } : { savedDoc: present, fileName });
+    const present = target.history.present;
+    this.setDocument(
+      id,
+      fileName === undefined ? { savedDoc: present } : { savedDoc: present, fileName },
+    );
   }
 
   /**
@@ -360,15 +522,18 @@ export class EditorStore {
     this.clearErrorTimer();
     const ms = options.autoDismissMs;
     if (ms === undefined) {
-      this.set({ error: message, errorCountdown: null });
+      this.setShared({ error: message, errorCountdown: null });
       return;
     }
     const nonce = (this.state.errorCountdown?.nonce ?? 0) + 1;
-    this.set({ error: message, errorCountdown: { durationMs: ms, fadeMs: ERROR_FADE_MS, nonce } });
+    this.setShared({
+      error: message,
+      errorCountdown: { durationMs: ms, fadeMs: ERROR_FADE_MS, nonce },
+    });
     this.errorTimer = setTimeout(() => {
       this.errorTimer = null;
       if (this.state.errorCountdown?.nonce === nonce)
-        this.set({ error: null, errorCountdown: null });
+        this.setShared({ error: null, errorCountdown: null });
     }, ms + ERROR_FADE_MS);
   }
 
@@ -379,51 +544,53 @@ export class EditorStore {
     }
   }
 
-  requestOverwrite(fileName: string): void {
-    this.set({ overwritePrompt: { fileName } });
+  requestOverwrite(id: string, fileName: string): void {
+    this.setDocument(id, { overwritePrompt: { fileName } });
   }
 
   dismissOverwrite(): void {
-    if (this.state.overwritePrompt !== null) this.set({ overwritePrompt: null });
+    if (this.state.overwritePrompt !== null) this.setActive({ overwritePrompt: null });
   }
 
   dismissError(): void {
     this.clearErrorTimer();
-    if (this.state.error !== null) this.set({ error: null, errorCountdown: null });
+    if (this.state.error !== null) this.setShared({ error: null, errorCountdown: null });
   }
 
   /**
-   * Applies an op. The selection follows the edit: a caret is mapped through
-   * inserts and deletes, and document-wide ops (reverse complement, set
-   * origin) move it along; `selectionAfter` overrides that when given.
+   * Applies an op to a document, the one in front by default. The selection
+   * follows the edit: a caret is mapped through inserts and deletes, and
+   * document-wide ops (reverse complement, set origin) move it along;
+   * `selectionAfter` overrides that when given.
    */
-  apply(op: EditOp, selectionAfter?: Range | null): void {
-    const history = this.state.history;
-    if (history === null) return;
+  apply(op: EditOp, selectionAfter?: Range | null, id: string | null = this.activeId): void {
+    const target = this.documentState(id);
+    if (target === null) return;
+    const history = target.history;
     const doc = history.present;
     const next = doc.apply(op);
     if (next === doc) return;
     let selection: Range | null;
     if (selectionAfter !== undefined) {
       selection = selectionAfter;
-    } else if (this.state.selection !== null && isEmptyRange(this.state.selection)) {
-      const p = doc.mapPositionThrough(op, this.state.selection.start);
+    } else if (target.selection !== null && isEmptyRange(target.selection)) {
+      const p = doc.mapPositionThrough(op, target.selection.start);
       selection = { start: p, end: p };
     } else {
-      selection = selectionAfterOp(doc, this.state.selection, op);
+      selection = selectionAfterOp(doc, target.selection, op);
     }
     if (selection !== null && selection.start === selection.end && selection.start > next.length) {
       selection = { start: next.length, end: next.length };
     }
     const reveal =
       selection !== null && (op.type === 'insert' || op.type === 'delete' || op.type === 'replace')
-        ? { position: selection.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 }
-        : this.state.reveal;
-    this.set({
+        ? { position: selection.start, nonce: (target.reveal?.nonce ?? 0) + 1 }
+        : target.reveal;
+    this.setDocument(target.documentId, {
       history: history.push(next, describeEditOp(op)),
       selection,
       reveal,
-      analysis: carryAnalysis(this.state.analysis, doc, op, next),
+      analysis: carryAnalysis(target.analysis, doc, op, next),
     });
   }
 
@@ -442,7 +609,7 @@ export class EditorStore {
       segments: [rangeSegment(selection.start, selection.end)],
     });
     this.apply({ type: 'addFeature', feature }, selection);
-    this.set({
+    this.setActive({
       renameRequest: { id: feature.id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 },
     });
   }
@@ -450,13 +617,13 @@ export class EditorStore {
   undo(): void {
     const history = this.state.history;
     if (history?.canUndo !== true) return;
-    this.set({ history: history.undo(), selection: null });
+    this.setActive({ history: history.undo(), selection: null });
   }
 
   redo(): void {
     const history = this.state.history;
     if (history?.canRedo !== true) return;
-    this.set({ history: history.redo(), selection: null });
+    this.setActive({ history: history.redo(), selection: null });
   }
 
   /** Undoes or redoes to the state with `position` changes applied (0 = as opened). */
@@ -466,7 +633,7 @@ export class EditorStore {
     const next = history.jumpTo(position);
     if (next === history) return;
     analytics.track('history', 'jump');
-    this.set({ history: next, selection: null });
+    this.setActive({ history: next, selection: null });
   }
 
   setSelection(selection: Range | null): void {
@@ -480,7 +647,7 @@ export class EditorStore {
     ) {
       return;
     }
-    this.set({ selection });
+    this.setActive({ selection });
   }
 
   /** Selects a feature's full extent (its first range segment through its last) and scrolls to it. */
@@ -492,44 +659,49 @@ export class EditorStore {
     const last = ranges[ranges.length - 1];
     if (first === undefined || last === undefined) return;
     const selection = { start: first.start, end: Math.max(last.end, first.end) };
-    this.set({
+    this.setActive({
       selection,
       reveal: { position: first.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
   }
 
   requestRename(id: string): void {
-    this.set({ renameRequest: { id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 } });
+    this.setActive({ renameRequest: { id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 } });
   }
 
   editFeature(id: string | null): void {
-    if (id !== this.state.editingFeatureId) this.set({ editingFeatureId: id, renameRequest: null });
+    if (id !== this.state.editingFeatureId) {
+      this.setActive({ editingFeatureId: id, renameRequest: null });
+    }
   }
 
   setFindOpen(open: boolean): void {
-    if (open !== this.state.findOpen) this.set({ findOpen: open });
+    if (open !== this.state.findOpen) this.setActive({ findOpen: open });
   }
 
   finishRename(): void {
-    if (this.state.renameRequest !== null) this.set({ renameRequest: null });
+    if (this.state.renameRequest !== null) this.setActive({ renameRequest: null });
   }
 
   revealPosition(position: number): void {
-    this.set({ reveal: { position, nonce: (this.state.reveal?.nonce ?? 0) + 1 } });
+    this.setActive({ reveal: { position, nonce: (this.state.reveal?.nonce ?? 0) + 1 } });
   }
 
   setSidebarTab(tab: SidebarTab): void {
-    if (tab !== this.state.sidebarTab) this.set({ sidebarTab: tab });
+    if (tab !== this.state.sidebarTab) this.setShared({ sidebarTab: tab });
   }
 
   /**
-   * Stores analysis results. The first results for a newly opened document
-   * also pick the default enzymes to display: those that cut exactly once.
+   * Stores analysis results for whichever open document they are for, in
+   * front or not; results for a version no tab holds any more are dropped.
+   * The first results for a newly opened document also pick the default
+   * enzymes to display: those that cut exactly once.
    */
   setAnalysis(doc: SeqDocument, cutSites: readonly CutSite[], orfs: readonly Orf[]): void {
-    if (this.document !== doc) return; // stale result
-    let shownEnzymes = this.state.shownEnzymes;
-    let enzymesInitialized = this.state.enzymesInitialized;
+    const target = this.docs.find((d) => d.history.present === doc);
+    if (target === undefined) return; // stale result
+    let shownEnzymes = target.shownEnzymes;
+    let enzymesInitialized = target.enzymesInitialized;
     if (!enzymesInitialized) {
       const counts = new Map<string, number>();
       for (const s of cutSites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
@@ -538,7 +710,7 @@ export class EditorStore {
       );
       enzymesInitialized = true;
     }
-    this.set({
+    this.setDocument(target.documentId, {
       analysis: { doc, cutSites, orfs, provisional: false },
       shownEnzymes,
       enzymesInitialized,
@@ -551,24 +723,27 @@ export class EditorStore {
     const next = new Set(this.state.shownEnzymes);
     if (shown) next.add(name);
     else next.delete(name);
-    this.set({ shownEnzymes: next });
+    this.setActive({ shownEnzymes: next });
   }
 
   setShownEnzymes(names: Iterable<string>): void {
-    this.set({ shownEnzymes: new Set(names), enzymesInitialized: true });
+    this.setActive({ shownEnzymes: new Set(names), enzymesInitialized: true });
   }
 
   setShowCutSites(show: boolean): void {
-    if (show !== this.state.showCutSites) this.set({ showCutSites: show });
+    if (show !== this.state.showCutSites) this.setShared({ showCutSites: show });
   }
 
+  /** Sets the ORF threshold; every open document's ORFs are recomputed. */
   setOrfMinCodons(n: number): void {
     const value = Math.max(1, Math.floor(n));
-    if (value !== this.state.orfMinCodons) this.set({ orfMinCodons: value, analysis: null });
+    if (value === this.state.orfMinCodons) return;
+    this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
+    this.setShared({ orfMinCodons: value });
   }
 
   /**
-   * Cut sites drawn for the present document: those of the ticked enzymes,
+   * Cut sites drawn for the document in front: those of the ticked enzymes,
    * or none while `showCutSites` is off.
    */
   visibleCutSites(): readonly CutSite[] {
@@ -578,39 +753,39 @@ export class EditorStore {
   }
 
   setView(view: ViewMode): void {
-    if (view !== this.state.view) this.set({ view });
+    if (view !== this.state.view) this.setShared({ view });
   }
 
   setShowComplement(show: boolean): void {
-    if (show !== this.state.showComplement) this.set({ showComplement: show });
+    if (show !== this.state.showComplement) this.setShared({ showComplement: show });
   }
 
   setShowTranslations(show: boolean): void {
-    if (show !== this.state.showTranslations) this.set({ showTranslations: show });
+    if (show !== this.state.showTranslations) this.setShared({ showTranslations: show });
   }
 
   setSeqFontSize(size: FontSize): void {
-    if (size !== this.state.seqFontSize) this.set({ seqFontSize: size });
+    if (size !== this.state.seqFontSize) this.setShared({ seqFontSize: size });
   }
 
   /** Fixes the row width in bases, or passes null to go back to fitting the window. */
   setSeqBasesPerRow(bases: number | null): void {
     const value = bases === null ? null : Math.max(10, Math.round(bases));
-    if (value !== this.state.seqBasesPerRow) this.set({ seqBasesPerRow: value });
+    if (value !== this.state.seqBasesPerRow) this.setShared({ seqBasesPerRow: value });
   }
 
   setNumberComplement(show: boolean): void {
-    if (show !== this.state.numberComplement) this.set({ numberComplement: show });
+    if (show !== this.state.numberComplement) this.setShared({ numberComplement: show });
   }
 
   setColorBases(color: boolean): void {
-    if (color !== this.state.colorBases) this.set({ colorBases: color });
+    if (color !== this.state.colorBases) this.setShared({ colorBases: color });
   }
 
   setEditsBaseline(baseline: EditsBaseline): void {
     if (baseline === this.state.editsBaseline) return;
     analytics.track('edits', 'baseline', baseline);
-    this.set({ editsBaseline: baseline });
+    this.setShared({ editsBaseline: baseline });
   }
 
   /** Makes the present document the point the edit marks are measured from. */
@@ -618,7 +793,8 @@ export class EditorStore {
     const present = this.document;
     if (present === null) return;
     analytics.track('edits', 'baseline', 'marked');
-    this.set({ markedDoc: present, editsBaseline: 'marked' });
+    this.setActive({ markedDoc: present });
+    this.setShared({ editsBaseline: 'marked' });
   }
 
   editsBaselineDocument(): SeqDocument | null {
@@ -630,18 +806,18 @@ export class EditorStore {
   /** Appends a fragment to the assembly and returns its part id. */
   addToAssembly(fragment: DigestFragment): string {
     const id = newId();
-    this.set({ assembly: [...this.state.assembly, { id, fragment, flipped: false }] });
+    this.setShared({ assembly: [...this.state.assembly, { id, fragment, flipped: false }] });
     return id;
   }
 
   removeFromAssembly(id: string): void {
     const next = this.state.assembly.filter((p) => p.id !== id);
-    if (next.length !== this.state.assembly.length) this.set({ assembly: next });
+    if (next.length !== this.state.assembly.length) this.setShared({ assembly: next });
   }
 
   /** Turns a part around (reverse complement); the caller supplies the flipped fragment. */
   flipAssemblyPart(id: string, flipped: DigestFragment): void {
-    this.set({
+    this.setShared({
       assembly: this.state.assembly.map((p) =>
         p.id === id ? { ...p, fragment: flipped, flipped: !p.flipped } : p,
       ),
@@ -658,11 +834,11 @@ export class EditorStore {
     if (i < 0 || a === undefined || b === undefined) return;
     parts[i] = b;
     parts[j] = a;
-    this.set({ assembly: parts });
+    this.setShared({ assembly: parts });
   }
 
   clearAssembly(): void {
-    if (this.state.assembly.length > 0) this.set({ assembly: [] });
+    if (this.state.assembly.length > 0) this.setShared({ assembly: [] });
   }
 }
 

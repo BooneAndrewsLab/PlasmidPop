@@ -26,8 +26,11 @@ no account, no upload and no server round-trip. Works offline once loaded.
   primer checking with binding sites, pairwise alignment (global and
   local).
 - **Clone in silico**: digest with chosen enzymes, collect fragments from
-  several files, check every junction and ligate into a new construct.
-- **Local first**: documents autosave to the browser, the last one is
+  several open documents, check every junction and ligate into a new
+  construct.
+- **Several documents at once**, each in its own tab, with the file list as
+  a tab of its own.
+- **Local first**: documents autosave to the browser, the open tabs are
   restored on reload, and the app installs as a PWA that opens sequence
   files from the file manager.
 

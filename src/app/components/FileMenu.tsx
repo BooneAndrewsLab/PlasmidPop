@@ -236,12 +236,20 @@ export function FileMenu({ doc, onOpenFile }: Props) {
           </Item>
           <div className="menu__separator" role="separator" />
           <Item
-            title="Go to the list of files stored in this browser (this one stays there)"
+            title="Go to the list of files stored in this browser (the open tabs stay open)"
+            onClick={run(() => {
+              editorStore.showFiles();
+            })}
+          >
+            Show files
+          </Item>
+          <Item
+            title="Close this tab (the document stays stored in this browser)"
             onClick={run(() => {
               editorStore.closeDocument();
             })}
           >
-            Show files
+            Close
           </Item>
         </div>
       )}

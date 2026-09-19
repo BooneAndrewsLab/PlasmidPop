@@ -103,7 +103,7 @@ and the Edits baseline are remembered in localStorage
 documents and enzyme ticks are unaffected. The logo
 (`design/logo/`, made in Claude Design) is used for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 534 passing. Perf
+`scripts/make-wordmark.py`, no webfont). Tests: 547 passing. Perf
 measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -156,8 +156,28 @@ pick from here when the current work is done.
    `History` now carries a timestamp per step, `steps`, `stateAt`, `size` and
    `truncated`). Not yet: naming or bookmarking a state, coalescing runs of
    single-base typing into one step, a diff of what a step changed.
-6. **Multiple open documents (tabs)**, prerequisite for cloning workflows
-   that move DNA between constructs.
+6. ~~**Multiple open documents (tabs)**~~ done. The store keeps one
+   `DocumentState` per open document (history, selection, file name and
+   handle, saved/opened/marked versions, warnings, analysis, enzyme ticks,
+   reveal, find, feature editing, overwrite prompt) and a `SharedState` for
+   the app (view prefs, sidebar tab, cut-site toggle, ORF threshold, error,
+   assembly shelf); `getState()` flattens the front tab into the same
+   `EditorState` shape the views always read, plus `documents`. Methods act
+   on the front tab unless they take an id (`apply`, `markSaved`,
+   `setFileHandle`, `requestOverwrite`, `closeDocument`); `setAnalysis`
+   files results by the document they are for, so a slow worker answer lands
+   in the right tab. `openDocument` returns the id, reuses the tab of a file
+   already open (`findOpenCopy`: same file name and the document as read
+   from it) and takes over an untouched "New" tab. The strip
+   (`DocumentTabs.tsx`) has a fixed **Files** tab (the start screen,
+   `showFiles`), one tab per document with a dirty dot and ×, and +; the
+   editor area is keyed by document so views start afresh on a switch while
+   the sidebar keeps its panels' state. Autosave writes every changed tab
+   (`PersistenceService.autosaved` remembers what was written) and records
+   the open ids and the front one (`openDocumentIds` in the repository);
+   `restoreLastSession` reopens them all. Not yet: a key binding to switch
+   or close tabs (Ctrl+Tab/Ctrl+W belong to the browser), dragging tabs to
+   reorder, remembering scroll and zoom per tab across a switch.
 7. **Enzyme table from REBASE** once the licence question is settled;
    supplier filter and methylation sensitivity.
 8. ~~**Linear map export as SVG**~~: done. **File ▸ Export sequence view as

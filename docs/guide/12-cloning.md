@@ -52,12 +52,12 @@ them, since a circle has no ends; reverse-complementing swaps them.
 
 ## Assembly
 
-**Add** moves a fragment to the **Assembly** list. The list survives opening
-another file, so the usual workflow is:
+**Add** moves a fragment to the **Assembly** list. The list is shared by
+every open tab, so the usual workflow is:
 
 1. Open the vector, tick the enzymes, add the backbone fragment.
-2. Open the file with the insert, tick the same (or compatible) enzymes,
-   add the insert fragment.
+2. Open the file with the insert (it gets a tab of its own), tick the same
+   (or compatible) enzymes, add the insert fragment.
 3. Arrange the parts: **⇄** flips a fragment (reverse complement, ends
    swapped), **↑ ↓** reorder, **✕** removes.
 4. Between consecutive parts a junction line shows **✓** when the ends can

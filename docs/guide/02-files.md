@@ -40,6 +40,34 @@ write `.dna`; save as GenBank instead.
 
 **Geneious** files are not supported. Export them as GenBank first.
 
+## Several documents at once
+
+Every document you open gets a tab in the strip under the toolbar, so a
+vector and its insert can be open side by side. **Open file**, **New**,
+**Open example**, a dropped file, a pasted record, a ligation product and a
+fragment opened from the Cloning tab all open in a new tab and bring it to
+the front. Opening a file that already has a tab goes to that tab instead of
+opening it twice, and a "New" document nothing has been typed into gives its
+tab up to the next file you open.
+
+- Click a tab to switch to it. Each tab keeps its own selection, undo
+  history, enzyme ticks, cut sites and find bar; the view switcher, the
+  toggles, the Format and Edits settings and the sidebar tab are the same
+  for all of them.
+- The **×** on a tab (or **File ▸ Close**) closes it. The document stays in
+  the browser's storage and under **Recent files**; only its undo history is
+  gone.
+- The **Files** tab at the left is the start screen with the recent files;
+  the logo and **File ▸ Show files** go there too. The other tabs stay open
+  behind it, and entries that are open in a tab are marked **open**.
+- **+** at the right of the strip starts a new sequence, like **New**.
+- A dot after a tab's name means that document differs from the file on
+  disk. The browser warns before you close it while any tab is in that
+  state.
+
+The open tabs, their order and the one in front are remembered, so a reload
+brings them all back.
+
 ## Saving
 
 Saving always produces GenBank.
@@ -86,17 +114,19 @@ translations, see [Translation](09-translate.md).
 
 Every open document is saved to the browser's storage (IndexedDB) half a
 second after each change, so a closed tab or a crash loses nothing. On the
-start screen, **Recent files** lists these documents with size, topology,
-feature count and when they were last changed. Opening the same file twice
-does not create a second entry.
+start screen (the **Files** tab), **Recent files** lists these documents with
+size, topology, feature count and when they were last changed. Opening the
+same file twice does not create a second entry.
 
-- Click an entry to reopen it. If the browser remembers the file it came
-  from, Save writes back to that file.
+- Click an entry to reopen it in a tab, or to go to its tab when it is
+  already **open**. If the browser remembers the file it came from, Save
+  writes back to that file.
 - **Rename** changes the stored name (and the document name, when it is
-  open).
-- **Remove** deletes it from the browser. This does not touch files on disk.
-- **File ▸ Show files** goes back to this list while keeping the current
-  document stored.
+  open, as an undoable change in that tab).
+- **Remove** deletes it from the browser and closes its tab. This does not
+  touch files on disk.
+- **File ▸ Show files** goes back to this list while keeping every tab
+  open.
 
 The view switcher and the Complement, Translations and Cut sites toggles are
 remembered in the same browser storage, see

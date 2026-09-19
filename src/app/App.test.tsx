@@ -14,9 +14,10 @@ import { App } from './App';
 // the previous test's document. The view toggles are remembered the same way.
 beforeEach(() => {
   getRepository().setLastDocumentId(null);
+  getRepository().setOpenDocumentIds([]);
   localStorage.removeItem('plasmidpop.viewPrefs');
   act(() => {
-    editorStore.closeDocument();
+    editorStore.closeAllDocuments();
   });
 });
 
@@ -77,7 +78,7 @@ describe('App', () => {
 
   it('starts a new sequence from the empty state and types into it', () => {
     act(() => {
-      editorStore.closeDocument();
+      editorStore.closeAllDocuments();
     });
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
@@ -104,7 +105,7 @@ describe('App', () => {
 
   it('pastes a record or bare bases onto the empty page', () => {
     act(() => {
-      editorStore.closeDocument();
+      editorStore.closeAllDocuments();
     });
     render(<App />);
     const paste = (text: string, target: Element = document.body) => {
@@ -139,10 +140,10 @@ describe('App', () => {
     fireEvent.change(field, { target: { value: '  pBR322 edited ' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(editorStore.document?.name).toBe('pBR322 edited');
-    expect(screen.getByRole('button', { name: /pBR322 edited/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^pBR322 edited/ })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Document name' })).toBeNull();
     // Escape cancels.
-    fireEvent.click(screen.getByRole('button', { name: /pBR322 edited/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^pBR322 edited/ }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Document name' }), {
       target: { value: 'nope' },
     });
@@ -401,13 +402,16 @@ describe('toolbar', () => {
       'Export selection as GenBank',
       'Export selection as FASTA',
       'Show files',
+      'Close',
     ]);
     expect(screen.getByRole('menuitem', { name: 'Export selection as FASTA' })).toBeDisabled();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     // With a handle to a GenBank file, Save names its target and Save as appears.
     act(() => {
-      editorStore.setFileHandle({ name: 'pBR322.gb' } as unknown as FileSystemFileHandle);
+      editorStore.setFileHandle(editorStore.getState().documentId ?? '', {
+        name: 'pBR322.gb',
+      } as unknown as FileSystemFileHandle);
     });
     fireEvent.click(screen.getByRole('button', { name: 'File' }));
     expect(screen.getByRole('menuitem', { name: /^Save to pBR322\.gb/ })).toBeInTheDocument();
@@ -424,12 +428,61 @@ describe('toolbar', () => {
   });
 });
 
+describe('document tabs', () => {
+  it('keeps several documents open in tabs, with the file list as the first tab', () => {
+    act(() => {
+      editorStore.setView('both'); // the sequence view must be on screen to type into
+    });
+    render(<App />);
+    const strip = { name: 'Open documents' };
+    expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const tabs = () => within(screen.getByRole('tablist', strip)).getAllByRole('tab');
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'SYNPBR322']);
+    expect(tabs()[1]).toHaveAttribute('aria-selected', 'true');
+    // New opens a second tab and brings it to the front.
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'SYNPBR322', 'Untitled']);
+    expect(editorStore.document?.name).toBe('Untitled');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), { key: 'a' });
+    expect(tabs()[2]).toHaveTextContent('Untitled •');
+    // Back to the first; its own view state comes with it.
+    fireEvent.click(screen.getByRole('tab', { name: /^SYNPBR322/ }));
+    expect(editorStore.document?.name).toBe('SYNPBR322');
+    expect(screen.getByText('4,361 bp, circular')).toBeInTheDocument();
+    // The file list is a tab too, and the others stay open behind it.
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(editorStore.document).toBeNull();
+    expect(screen.getByText(/Drop a GenBank, FASTA or SnapGene file/)).toBeInTheDocument();
+    expect(tabs()).toHaveLength(3);
+    expect(tabs()[0]).toHaveAttribute('aria-selected', 'true');
+    // Closing a tab keeps the rest.
+    fireEvent.click(screen.getByRole('button', { name: 'Close Untitled' }));
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'SYNPBR322']);
+    fireEvent.click(screen.getByRole('button', { name: 'Close SYNPBR322' }));
+    expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
+  });
+
+  it('closes the front tab from the File menu and moves to its neighbour', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    fileMenu('Close');
+    expect(editorStore.document?.name).toBe('SYNPBR322');
+    expect(
+      within(screen.getByRole('tablist', { name: 'Open documents' })).getAllByRole('tab'),
+    ).toHaveLength(2);
+  });
+});
+
 describe('overwrite prompt', () => {
   it('asks before Save first overwrites the opened file and offers a copy instead', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     act(() => {
-      editorStore.setFileHandle({ name: 'pBR322.gb' } as unknown as FileSystemFileHandle);
+      editorStore.setFileHandle(editorStore.getState().documentId ?? '', {
+        name: 'pBR322.gb',
+      } as unknown as FileSystemFileHandle);
     });
     fileMenu(/^Save to pBR322\.gb/);
     const dialog = await screen.findByRole('dialog', { name: 'Overwrite pBR322.gb?' });

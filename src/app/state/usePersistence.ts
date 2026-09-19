@@ -1,18 +1,24 @@
 import { useEffect } from 'react';
 
-import { editorStore } from './editorStore';
+import { editorStore, isDirty } from './editorStore';
 import { persistence } from './persistence';
 import { useEditorState } from './useEditorStore';
 import { startViewPrefs } from './viewPrefs';
 
 const AUTOSAVE_MS = 500;
 
-/** Writes the open document to IndexedDB shortly after every change. */
+/**
+ * Writes the open documents to IndexedDB, and which tabs are open, shortly
+ * after every change to any of them (including which one is in front).
+ */
 export function useAutosave(): void {
-  const { history, documentId, fileName } = useEditorState();
-  const doc = history?.present ?? null;
+  const { documents, documentId } = useEditorState();
   useEffect(() => {
-    if (doc === null || documentId === null) return;
+    if (documents.length === 0) {
+      // The last tab was closed (unless the page is still loading): come back to the file list.
+      if (persistence.restoreAttempted) persistence.rememberSession();
+      return;
+    }
     const timer = setTimeout(() => {
       persistence.autosave().catch((e: unknown) => {
         editorStore.fail(`Could not save locally: ${e instanceof Error ? e.message : String(e)}`);
@@ -21,13 +27,13 @@ export function useAutosave(): void {
     return () => {
       clearTimeout(timer);
     };
-  }, [doc, documentId, fileName]);
+  }, [documents, documentId]);
 }
 
-/** On first load, reopens the last document. */
+/** On first load, reopens the tabs that were open last time. */
 export function useRestoreSession(): void {
   useEffect(() => {
-    if (editorStore.document !== null) return;
+    if (editorStore.getState().documents.length > 0) return;
     persistence.restoreLastSession().catch(() => {
       // Nothing to restore, or storage unavailable: start empty.
     });
@@ -64,9 +70,10 @@ export function useSaveShortcut(): void {
   }, []);
 }
 
-/** Warns before leaving with unsaved (to file) changes. */
+/** Warns before leaving with unsaved (to file) changes in any tab. */
 export function useUnsavedWarning(): void {
-  const { dirty } = useEditorState();
+  const { documents } = useEditorState();
+  const dirty = documents.some(isDirty);
   useEffect(() => {
     if (!dirty) return;
     const onBeforeUnload = (e: BeforeUnloadEvent): void => {

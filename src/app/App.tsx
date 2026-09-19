@@ -1,6 +1,7 @@
 import { type DragEvent, useState } from 'react';
 
 import { CircularMapView } from './components/CircularMapView';
+import { DocumentTabs } from './components/DocumentTabs';
 import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
@@ -21,7 +22,7 @@ import {
 } from './state/usePersistence';
 
 export function App() {
-  const { history, view, findOpen } = useEditorState();
+  const { history, view, findOpen, documentId } = useEditorState();
   const doc = history?.present ?? null;
   useAnalysis();
   useAutosave();
@@ -51,13 +52,17 @@ export function App() {
       onDrop={onDrop}
     >
       <Toolbar doc={doc} />
+      <DocumentTabs />
       {doc === null ? (
         <main className="app__main app__main--empty">
           <EmptyState />
         </main>
       ) : (
         <main className="app__main">
-          <div className="app__editor">
+          {/* Keyed by document so a switch of tabs starts the views afresh (scroll, zoom)
+              instead of carrying the previous document's over; the sidebar is not, so
+              what was typed into its panels survives a look at another tab. */}
+          <div className="app__editor" key={documentId}>
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}
             <div className={`app__views app__views--${view}`}>

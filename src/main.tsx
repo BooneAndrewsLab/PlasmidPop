@@ -34,8 +34,8 @@ launchQueue?.setConsumer((params) => {
   handle
     .getFile()
     .then((file) => openFile(file))
-    .then(() => {
-      editorStore.setFileHandle(handle);
+    .then((documentId) => {
+      if (documentId !== null) editorStore.setFileHandle(documentId, handle);
     })
     .catch(() => {
       editorStore.fail(`Could not open "${handle.name}".`);

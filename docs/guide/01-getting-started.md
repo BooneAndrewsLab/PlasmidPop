@@ -19,8 +19,10 @@ Any of these gets you a sequence on screen:
   placed, so you can type straight away.
 - **Open example** loads pBR322 (4,361 bp, circular) to look around.
 
-Files opened earlier appear under **Recent files** on the start screen, where
-they can be reopened, renamed or removed. See [Files and storage](02-files.md).
+Each document opens in its own tab under the toolbar, so several can be open
+at once; the **Files** tab is the start screen. Files opened earlier appear
+there under **Recent files**, where they can be reopened, renamed or removed.
+See [Files and storage](02-files.md).
 
 ## What is on the screen
 
@@ -29,7 +31,9 @@ they can be reopened, renamed or removed. See [Files and storage](02-files.md).
   history list, the view switcher (**Sequence**, **Map**, **Both**), the
   **Complement**, **Translations** and **Cut sites** toggles, and the **?**
   button that opens this guide.
-- **Edit bar** (under the toolbar): Add feature, Delete selection, Reverse
+- **Document tabs** (under the toolbar): **Files**, then one tab per open
+  document, and **+** for a new one.
+- **Edit bar** (under the tabs): Add feature, Delete selection, Reverse
   complement, Set origin here, Make circular / linear, Find.
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
@@ -40,8 +44,9 @@ they can be reopened, renamed or removed. See [Files and storage](02-files.md).
 - **Status bar** (bottom): what is selected, warnings raised while opening
   the file, and the file name.
 
-A dot after the document name means the document differs from what is on
-disk. The browser also warns before you close the tab in that state.
+A dot after the document name (and on its tab) means the document differs
+from what is on disk. The browser also warns before you leave the page while
+any document is in that state.
 
 ## A two-minute tour
 

@@ -29,6 +29,9 @@ describe('PersistenceService', () => {
 
   it('reuses the stored entry when an identical document is opened again', async () => {
     const first = editorStore.getState().documentId;
+    // Open in a tab already: the same file goes to that tab.
+    expect(editorStore.openDocument(doc, 'pKeep.gb')).toBe(first);
+    editorStore.closeDocument();
     const handle = { kind: 'file', name: 'pKeep.gb' } as unknown as FileSystemFileHandle;
     editorStore.openDocument(doc, 'pKeep.gb', [], { handle });
     const second = editorStore.getState().documentId ?? '';
@@ -42,14 +45,67 @@ describe('PersistenceService', () => {
 
     // A different document (edited, or without a file name) gets its own entry.
     editorStore.openDocument(doc, null);
+    expect(editorStore.getState().documents).toHaveLength(2);
     await service.autosave();
     expect((await service.listStored()).length).toBe(2);
     await service.removeStored(editorStore.getState().documentId ?? '');
-    // Leave the first entry open again for the next test.
-    editorStore.openDocument(doc, 'pKeep.gb');
-    await service.autosave();
+    // Removing closed its tab; the first entry is in front again for the next test.
     expect(editorStore.getState().documentId).toBe(first);
+    await service.autosave();
     expect((await service.listStored()).map((d) => d.id)).toEqual([first]);
+  });
+
+  it('restores every tab in order, with the one that was in front, or the file list', async () => {
+    const first = editorStore.getState().documentId ?? '';
+    const second = editorStore.openDocument(
+      SeqDocument.create({ name: 'pSecond', sequence: 'GGCC' }),
+      'pSecond.gb',
+    );
+    const third = editorStore.openDocument(
+      SeqDocument.create({ name: 'pThird', sequence: 'TTAA' }),
+      'pThird.gb',
+    );
+    editorStore.activateDocument(second);
+    await service.autosave();
+    editorStore.closeAllDocuments();
+    expect(await service.restoreLastSession()).toBe(true);
+    expect(editorStore.getState().documents.map((d) => d.documentId)).toEqual([
+      first,
+      second,
+      third,
+    ]);
+    expect(editorStore.getState().documentId).toBe(second);
+    // A missing document is skipped; the file list comes back as the file list.
+    editorStore.showFiles();
+    await service.autosave();
+    await repo.remove(third);
+    editorStore.closeAllDocuments();
+    expect(await service.restoreLastSession()).toBe(true);
+    expect(editorStore.getState().documents.map((d) => d.documentId)).toEqual([first, second]);
+    expect(editorStore.document).toBeNull();
+    editorStore.closeDocument(second);
+    await repo.remove(second);
+    editorStore.activateDocument(first);
+    await service.autosave();
+  });
+
+  it('renames an open background tab through its history', async () => {
+    const first = editorStore.getState().documentId ?? '';
+    const other = editorStore.openDocument(
+      SeqDocument.create({ name: 'pOther', sequence: 'GG' }),
+      'pOther.gb',
+    );
+    await service.renameStored(first, 'pKeep renamed');
+    expect(editorStore.document?.name).toBe('pOther');
+    expect(editorStore.documentState(first)?.history.present.name).toBe('pKeep renamed');
+    editorStore.undo(); // the front tab has nothing to undo
+    editorStore.activateDocument(first);
+    editorStore.undo();
+    expect(editorStore.document?.name).toBe('pKeep');
+    await service.autosave();
+    expect((await service.listStored()).map((d) => d.id).sort()).toEqual([first, other].sort());
+    editorStore.closeDocument(other);
+    await service.removeStored(other);
   });
 
   it('renames stored documents, through the store when they are open', async () => {
@@ -167,7 +223,7 @@ describe('PersistenceService', () => {
     editorStore.closeDocument();
     await service.openStored(id);
     expect(editorStore.getState().fileHandle).toMatchObject({ name: 'pKeep.gb' });
-    editorStore.setFileHandle(handle); // the writable mock again, in place of the stand-in
+    editorStore.setFileHandle(id, handle); // the writable mock again, in place of the stand-in
     editorStore.apply({ type: 'rename', name: 'pKeep4' });
     await service.save();
     expect(parseGenBank(written).documents[0]?.name).toBe('pKeep4');

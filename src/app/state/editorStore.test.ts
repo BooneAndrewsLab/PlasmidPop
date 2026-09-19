@@ -339,7 +339,7 @@ describe('EditorStore persistence state', () => {
     store.undo();
     expect(store.getState().dirty).toBe(false);
     store.apply({ type: 'insert', position: 0, text: 'A' });
-    store.markSaved('y.gb');
+    store.markSaved(store.getState().documentId ?? '', 'y.gb');
     expect(store.getState()).toMatchObject({ dirty: false, fileName: 'y.gb' });
     store.closeDocument();
     expect(store.document).toBeNull();
@@ -355,7 +355,9 @@ describe('EditorStore persistence state', () => {
       documentId: 'fixed',
       fileHandle: handle,
     });
-    store.setFileHandle(null);
+    store.setFileHandle('fixed', null);
+    expect(store.getState().fileHandle).toBeNull();
+    store.setFileHandle('elsewhere', handle); // not open: nothing happens
     expect(store.getState().fileHandle).toBeNull();
   });
 });
@@ -398,12 +400,15 @@ describe('EditorStore edit-mark baseline', () => {
     store.openDocument(doc, 'x.gb');
     return store;
   }
+  const save = (store: EditorStore): void => {
+    store.markSaved(store.getState().documentId ?? '');
+  };
 
   it('measures from the opened state by default, across a save', () => {
     const store = opened();
     expect(store.editsBaselineDocument()).toBe(doc);
     store.apply({ type: 'insert', position: 0, text: 'TTT' });
-    store.markSaved();
+    save(store);
     expect(store.editsBaselineDocument()).toBe(doc);
   });
 
@@ -412,7 +417,7 @@ describe('EditorStore edit-mark baseline', () => {
     store.setEditsBaseline('saved');
     store.apply({ type: 'insert', position: 0, text: 'TTT' });
     expect(store.editsBaselineDocument()).toBe(doc);
-    store.markSaved();
+    save(store);
     expect(store.editsBaselineDocument()).toBe(store.document);
   });
 
@@ -451,5 +456,192 @@ describe('EditorStore edit-mark baseline', () => {
     expect(store.editsBaselineDocument()).toBeNull();
     store.markEditsFromHere();
     expect(store.getState().editsBaseline).toBe('opened');
+  });
+});
+
+describe('EditorStore tabs', () => {
+  const other = SeqDocument.create({ name: 'other', sequence: 'GGGGCCCC' });
+  const third = SeqDocument.create({ name: 'third', sequence: 'TTTT' });
+  const ids = (store: EditorStore) => store.getState().documents.map((d) => d.documentId);
+
+  it('opens every document in its own tab and brings the newest to the front', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const b = store.openDocument(other, 'b.gb');
+    expect(ids(store)).toEqual([a, b]);
+    expect(store.getState().documentId).toBe(b);
+    expect(store.document).toBe(other);
+    store.activateDocument(a);
+    expect(store.document).toBe(doc);
+    expect(store.getState().fileName).toBe('a.gb');
+    store.activateDocument('missing');
+    expect(store.getState().documentId).toBe(a);
+  });
+
+  it("keeps each tab's selection, history and enzyme ticks across a switch", () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const b = store.openDocument(other, 'b.gb');
+    store.setSelection({ start: 2, end: 2 });
+    store.apply({ type: 'insert', position: 0, text: 'AA' });
+    store.setShownEnzymes(['EcoRI']);
+    store.setFindOpen(true);
+    store.activateDocument(a);
+    expect(store.getState()).toMatchObject({
+      selection: null,
+      findOpen: false,
+      dirty: false,
+      shownEnzymes: new Set(),
+    });
+    expect(store.getState().history?.canUndo).toBe(false);
+    store.activateDocument(b);
+    expect(store.getState()).toMatchObject({
+      selection: { start: 4, end: 4 },
+      findOpen: true,
+      dirty: true,
+      shownEnzymes: new Set(['EcoRI']),
+    });
+    expect(store.document?.sequence.toString()).toBe('AAGGGGCCCC');
+    store.undo();
+    expect(store.document).toBe(other);
+  });
+
+  it("shows the file list with the tabs kept, and the front tab's dirtiness only", () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    store.setSelection({ start: 0, end: 0 });
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    store.openDocument(other, 'b.gb');
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().documents.map((d) => d.savedDoc !== d.history.present)).toEqual([
+      true,
+      false,
+    ]);
+    store.showFiles();
+    expect(store.document).toBeNull();
+    expect(store.getState()).toMatchObject({ documentId: null, history: null, dirty: false });
+    expect(ids(store)).toHaveLength(2);
+    store.setSelection({ start: 0, end: 1 }); // nothing in front: ignored
+    store.activateDocument(a);
+    expect(store.getState().selection).toEqual({ start: 1, end: 1 });
+    store.closeAllDocuments();
+    expect(ids(store)).toEqual([]);
+  });
+
+  it('closing the front tab brings the right-hand neighbour forward, else the left, else the list', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const b = store.openDocument(other, 'b.gb');
+    const c = store.openDocument(third, 'c.gb');
+    store.activateDocument(b);
+    store.closeDocument();
+    expect(ids(store)).toEqual([a, c]);
+    expect(store.getState().documentId).toBe(c);
+    store.closeDocument(c);
+    expect(store.getState().documentId).toBe(a);
+    // Closing a background tab leaves the front one alone.
+    const d = store.openDocument(third, 'd.gb');
+    store.closeDocument(a);
+    expect(store.getState().documentId).toBe(d);
+    store.closeDocument('missing');
+    expect(ids(store)).toEqual([d]);
+    store.closeDocument();
+    expect(store.document).toBeNull();
+    expect(ids(store)).toEqual([]);
+  });
+
+  it('lets an untouched new document give up its tab to an opened one', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const fresh = store.newDocument();
+    const b = store.openDocument(other, 'b.gb');
+    expect(ids(store)).toEqual([a, b]);
+    expect(store.documentState(fresh)).toBeNull();
+    // Typed into, renamed or given a file name, it is a document of its own.
+    const typed = store.newDocument();
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    const c = store.openDocument(third, 'c.gb');
+    expect(ids(store)).toEqual([a, b, typed, c]);
+    // Only the tab in front is taken over.
+    const blank = store.newDocument();
+    store.activateDocument(a);
+    store.openDocument(third, 'd.gb');
+    expect(ids(store)).toContain(blank);
+  });
+
+  it('brings an already open document forward instead of opening it twice', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb', [], { id: 'stored-a' });
+    store.openDocument(other, 'b.gb');
+    expect(store.openDocument(third, null, [], { id: 'stored-a' })).toBe(a);
+    expect(store.getState().documentId).toBe('stored-a');
+    expect(store.document).toBe(doc);
+    // The same file opened again, even after edits, is that tab.
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    store.openDocument(other, 'b.gb');
+    expect(store.openDocument(doc, 'a.gb')).toBe(a);
+    expect(store.document?.length).toBe(doc.length + 1);
+    expect(ids(store)).toHaveLength(2);
+    // A different file name, or no file at all, is a new tab.
+    store.openDocument(doc, 'copy.gb');
+    store.openDocument(doc);
+    store.openDocument(doc);
+    expect(ids(store)).toHaveLength(5);
+  });
+
+  it('files analysis results and edits by id, in front or not', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const b = store.openDocument(other, 'b.gb');
+    const site = (enzyme: string, cut: number) => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut,
+      strand: 'forward' as const,
+    });
+    store.setAnalysis(doc, [site('EcoRI', 3)], []);
+    expect(store.getState().analysis).toBeNull(); // b is in front
+    expect(store.documentState(a)?.analysis?.cutSites).toHaveLength(1);
+    expect([...(store.documentState(a)?.shownEnzymes ?? [])]).toEqual(['EcoRI']);
+    store.apply({ type: 'rename', name: 'renamed' }, undefined, a);
+    expect(store.document).toBe(other);
+    expect(store.documentState(a)?.history.present.name).toBe('renamed');
+    expect(store.documentState(a)?.history.undoLabel).toBe('Rename');
+    store.apply({ type: 'rename', name: 'x' }, undefined, 'missing');
+    expect(store.documentState(b)?.history.canUndo).toBe(false);
+    // A new ORF threshold sends every tab back to the worker.
+    store.setAnalysis(other, [], []);
+    store.setOrfMinCodons(10);
+    expect(store.getState().documents.map((d) => d.analysis)).toEqual([null, null]);
+  });
+
+  it('re-keys a tab in storage unless the id is taken', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const b = store.openDocument(other, 'b.gb');
+    store.setDocumentId(b, 'stored');
+    expect(ids(store)).toEqual([a, 'stored']);
+    expect(store.getState().documentId).toBe('stored');
+    store.setDocumentId(a, 'stored');
+    expect(ids(store)).toEqual([a, 'stored']);
+    store.setDocumentId('missing', 'z');
+    expect(ids(store)).toEqual([a, 'stored']);
+  });
+
+  it('marks saved and prompts for overwrite by id', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    store.openDocument(other, 'b.gb');
+    store.markSaved(a, 'renamed.gb');
+    expect(store.documentState(a)).toMatchObject({ fileName: 'renamed.gb' });
+    expect(store.documentState(a)?.savedDoc).toBe(store.documentState(a)?.history.present);
+    store.requestOverwrite(a, 'renamed.gb');
+    expect(store.getState().overwritePrompt).toBeNull(); // the prompt belongs to a's tab
+    store.activateDocument(a);
+    expect(store.getState().overwritePrompt).toEqual({ fileName: 'renamed.gb' });
+    store.dismissOverwrite();
+    expect(store.getState().overwritePrompt).toBeNull();
   });
 });

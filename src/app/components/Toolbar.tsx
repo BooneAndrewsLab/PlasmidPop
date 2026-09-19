@@ -59,12 +59,10 @@ export function Toolbar({ doc }: Props) {
         <button
           type="button"
           className="toolbar__home"
-          title={
-            doc === null ? 'PlasmidPop' : 'Show files (this document stays stored in this browser)'
-          }
+          title={doc === null ? 'PlasmidPop' : 'Show files (the open tabs stay open)'}
           disabled={doc === null}
           onClick={() => {
-            editorStore.closeDocument();
+            editorStore.showFiles();
           }}
         >
           <Logo />

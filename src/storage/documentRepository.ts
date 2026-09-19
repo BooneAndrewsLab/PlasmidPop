@@ -4,6 +4,7 @@ import { parseGenBank, writeGenBank } from '@/io';
 import { type PlasmidPopDb, type StoredDocument, getDb } from './db';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
+const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
 
 export interface DocumentSummary {
   readonly id: string;
@@ -103,6 +104,7 @@ export class DocumentRepository {
       await this.db.handles.delete(id);
     });
     if (this.lastDocumentId() === id) this.setLastDocumentId(null);
+    this.setOpenDocumentIds(this.openDocumentIds().filter((open) => open !== id));
   }
 
   /** Stores the handle Save writes to; `writeConfirmed` when the user chose the file in a save dialog. */
@@ -128,11 +130,33 @@ export class DocumentRepository {
     await this.db.handles.where('id').equals(id).modify({ writeConfirmed: true });
   }
 
+  /** The document that was in front when the page was last left, or null for the file list. */
   lastDocumentId(): string | null {
     try {
       return globalThis.localStorage.getItem(LAST_DOCUMENT_KEY);
     } catch {
       return null;
+    }
+  }
+
+  /** Ids of the documents that were open in tabs, in tab order, when the page was last left. */
+  openDocumentIds(): readonly string[] {
+    try {
+      const raw = globalThis.localStorage.getItem(OPEN_DOCUMENTS_KEY);
+      if (raw === null) return [];
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  setOpenDocumentIds(ids: readonly string[]): void {
+    try {
+      if (ids.length === 0) globalThis.localStorage.removeItem(OPEN_DOCUMENTS_KEY);
+      else globalThis.localStorage.setItem(OPEN_DOCUMENTS_KEY, JSON.stringify(ids));
+    } catch {
+      // Best effort, like `setLastDocumentId`.
     }
   }
 

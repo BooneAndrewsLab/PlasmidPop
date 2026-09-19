@@ -99,7 +99,9 @@ button {
      toolbar's minimum content width on narrow windows and push the sidebar
      past the viewport. */
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Toolbar, document tabs (absent until something is open), main, status bar.
+     The last two are placed by hand so the missing tab row does not pull them up. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   outline: 2px solid transparent;
   outline-offset: -2px;
   transition: outline-color 120ms;
@@ -303,6 +305,7 @@ button {
 /* Main area */
 
 .app__main {
+  grid-row: 3;
   display: grid;
   /* 330px: the sidebar panel keeps its old 300px next to the 30px tab rail. */
   grid-template-columns: minmax(0, 1fr) 330px;
@@ -955,6 +958,7 @@ button {
 /* Status bar */
 
 .statusbar {
+  grid-row: 4;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
   font-size: 13px;
@@ -1193,6 +1197,130 @@ button {
   align-self: center;
   font-size: 12.5px;
   color: var(--ink-3);
+}
+
+/* Document tabs under the toolbar */
+
+.doctabs {
+  grid-row: 2;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.doctabs__list {
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  /* Only sideways: a vertical bar would appear for the tabs' own bottom border. */
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.doctabs__tab {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 2px solid transparent;
+  color: var(--ink-2);
+}
+
+.doctabs__tab--active {
+  border-bottom-color: var(--accent);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.doctabs__tab:hover:not(.doctabs__tab--active) {
+  background: var(--surface-3);
+}
+
+.doctabs__name {
+  font: inherit;
+  color: inherit;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  max-width: 14em;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doctabs__tab--active .doctabs__name {
+  font-weight: 600;
+}
+
+/* A closable tab's name gives up its right-hand padding to the close button. */
+.doctabs__name:has(+ .doctabs__close) {
+  padding-right: 4px;
+}
+
+.doctabs__dirty {
+  color: var(--accent);
+}
+
+.doctabs__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.doctabs__close svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+}
+
+.doctabs__close:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.doctabs__new {
+  flex: none;
+  width: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.doctabs__new:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.recent__badge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
 }
 
 /* Primer and alignment panels */

@@ -6,6 +6,7 @@ import { EXAMPLES } from '../examples';
 import { openPastedText, openText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
+import { useEditorState } from '../state/useEditorStore';
 import { InlineRename } from './InlineRename';
 
 function formatWhen(timestamp: number): string {
@@ -31,6 +32,8 @@ export function EmptyState() {
   const example = EXAMPLES[0];
   const [recent, setRecent] = useState<DocumentSummary[] | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const { documents } = useEditorState();
+  const openIds = new Set(documents.map((d) => d.documentId));
 
   const refresh = (): void => {
     persistence
@@ -131,7 +134,14 @@ export function EmptyState() {
                       });
                     }}
                   >
-                    <span className="recent__name">{d.name}</span>
+                    <span className="recent__name">
+                      {d.name}
+                      {openIds.has(d.id) && (
+                        <span className="recent__badge" title="Open in a tab">
+                          open
+                        </span>
+                      )}
+                    </span>
                     <span className="recent__meta">
                       {d.length.toLocaleString()} bp, {d.topology}, {d.featureCount} features
                       {d.fileName === null ? '' : `, ${d.fileName}`}
