@@ -10,9 +10,10 @@ import { App } from './App';
 
 // The store is a module singleton and autosave remembers the last document:
 // start every test on the empty page instead of inheriting (or restoring)
-// the previous test's document.
+// the previous test's document. The view toggles are remembered the same way.
 beforeEach(() => {
   getRepository().setLastDocumentId(null);
+  localStorage.removeItem('plasmidpop.viewPrefs');
   act(() => {
     editorStore.closeDocument();
   });
@@ -327,6 +328,24 @@ describe('toolbar', () => {
     act(() => {
       editorStore.setShowCutSites(true);
     });
+  });
+
+  it('remembers the view toggles across a reload', () => {
+    const { unmount } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cut sites' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Map' }));
+    unmount();
+    act(() => {
+      editorStore.setShowCutSites(true);
+      editorStore.setView('both');
+    });
+    render(<App />);
+    expect(screen.getByRole('button', { name: 'Cut sites' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('collects the file actions in one menu once a document is open', () => {

@@ -5,6 +5,12 @@ The toolbar's view switcher shows the **Sequence** view, the **Map**, or
 in one is highlighted in the other and reported in the status bar as
 `N bp selected, from to to` (1-based, inclusive).
 
+The switcher and the **Complement**, **Translations** and **Cut sites**
+toggles next to it are remembered in the browser, so the views come back the
+way you left them the next time you open PlasmidPop. They are settings of the
+app, not of a document: they do not change with the file you open and are not
+written into a saved file.
+
 ## Sequence view
 
 Bases are laid out in rows that fill the available width, with a ruler

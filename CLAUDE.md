@@ -93,10 +93,13 @@ selection export, find (Ctrl+F), a full feature editor, a History sidebar
 tab, sequence-view / selection SVG export, a bundled example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
 always on when configured, no user toggle by decision of 2026-09-18;
 events at file open/new/save/export, enzyme show, primer design, align,
-ligate, history jump; the Pages workflow sets the instance URL and site id 6). The logo (`design/logo/`, made in Claude Design) is used
+ligate, history jump; the Pages workflow sets the instance URL and site id 6). The view
+switcher and the Complement / Translations / Cut sites toggles are remembered
+in localStorage (`src/app/state/viewPrefs.ts`, applied and watched by
+`useViewPrefs`); documents and enzyme ticks are unaffected. The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 421 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 429 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -232,8 +235,9 @@ pick from here when the current work is done.
     `shownEnzymes` is untouched, so the chosen set comes back intact. The
     Enzymes tab says so while they are hidden, with a "Show cut sites"
     link, and its fragment list and the Cloning digest follow the ticks,
-    not the toggle (both headings now say "ticked enzymes"). Not yet: a
-    key binding, remembering the toggle across reloads.
+    not the toggle (both headings now say "ticked enzymes"). The toggle
+    is remembered across reloads with the other view preferences
+    (`src/app/state/viewPrefs.ts`). Not yet: a key binding.
 21. **Show edits in the sequence view.** Mark bases that were inserted or
     changed (and where deletions happened) so an editing session is
     visible at a glance, like tracked changes. Open question: what is the

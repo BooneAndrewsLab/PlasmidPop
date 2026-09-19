@@ -91,6 +91,10 @@ does not create a second entry.
 - **File ▸ Show files** goes back to this list while keeping the current
   document stored.
 
+The view switcher and the Complement, Translations and Cut sites toggles are
+remembered in the same browser storage, see
+[Viewing and selecting](03-viewing.md).
+
 Local storage is per browser profile and per device, and the browser may
 clear it when space runs low. Treat it as a scratchpad and keep your files
 with Save.

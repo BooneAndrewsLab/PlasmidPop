@@ -17,6 +17,7 @@ import {
   useRestoreSession,
   useSaveShortcut,
   useUnsavedWarning,
+  useViewPrefs,
 } from './state/usePersistence';
 
 export function App() {
@@ -27,6 +28,7 @@ export function App() {
   useRestoreSession();
   useSaveShortcut();
   useUnsavedWarning();
+  useViewPrefs();
   const [dragging, setDragging] = useState(false);
 
   const onDrop = (e: DragEvent<HTMLDivElement>): void => {

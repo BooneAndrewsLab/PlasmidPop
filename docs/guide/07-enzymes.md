@@ -41,6 +41,9 @@ SVG**.
 every drawn cut site at once — useful when a map with a dozen labels is too
 busy to read. The ticks stay exactly as they are, so switching it back on
 restores the same set; no need to untick and re-tick a carefully chosen list.
+The toggle is remembered between sessions (see
+[Viewing and selecting](03-viewing.md)); the ticks are not, they start again
+at the single cutters of each document you open.
 
 While it is off:
 

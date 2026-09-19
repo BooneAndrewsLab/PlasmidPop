@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { editorStore } from './editorStore';
 import { persistence } from './persistence';
 import { useEditorState } from './useEditorStore';
+import { startViewPrefs } from './viewPrefs';
 
 const AUTOSAVE_MS = 500;
 
@@ -31,6 +32,11 @@ export function useRestoreSession(): void {
       // Nothing to restore, or storage unavailable: start empty.
     });
   }, []);
+}
+
+/** Restores the remembered view switcher and toggles, and records changes to them. */
+export function useViewPrefs(): void {
+  useEffect(() => startViewPrefs(), []);
 }
 
 /** Ctrl/Cmd+S saves (Shift for Save as); Ctrl/Cmd+F opens find. */
