@@ -1,5 +1,6 @@
 import { type Feature, type Reference, type SeqDocument } from '@/core';
 
+import { formatEndsComment, isEndsComment } from './endsComment';
 import { formatLocation } from './location';
 import { NAME_QUALIFIERS } from './parseGenBank';
 
@@ -119,7 +120,16 @@ function headerLines(doc: SeqDocument): string[] {
       out.push(' '.repeat(HEADER_INDENT) + chunk);
   }
   for (const ref of m.references) out.push(...referenceBlock(ref));
-  for (const comment of m.comments) out.push(...headerBlock('COMMENT', comment, '', true));
+  // The ends are not a GenBank field; they ride in a comment of our own
+  // (`endsComment.ts`). Any copy that came from somewhere else is dropped, so
+  // the file says what the document says and only once.
+  if (doc.ends !== null) {
+    out.push(...headerBlock('COMMENT', formatEndsComment(doc.ends), '', true));
+  }
+  for (const comment of m.comments) {
+    if (isEndsComment(comment)) continue;
+    out.push(...headerBlock('COMMENT', comment, '', true));
+  }
   for (const extra of m.extraHeaders)
     out.push(...headerBlock(extra.keyword, extra.value, '', true));
   return out;

@@ -301,3 +301,53 @@ describe('renderLinearView format options', () => {
     expect(at(0) - at(40)).toBe(40);
   });
 });
+
+/** Just the strand text: the ruler numbers are drawn with the same call. */
+function strandTexts(svg: string): string[] {
+  return texts(svg)
+    .map((t) => t.text)
+    .filter((t) => /^[ACGT ]{2,}$/.test(t));
+}
+
+describe('renderLinearView sticky ends', () => {
+  // Ten bases a row in the fixture metrics, so this is exactly two rows.
+  const seq = 'AATTCGGGCCGGGCCCTGCA';
+  const doc = SeqDocument.create({
+    sequence: seq,
+    topology: 'linear',
+    ends: {
+      // The first four bases are the overhang: the top strand is on its own there.
+      left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+      // The bottom strand runs four bases past the end instead.
+      right: { kind: "5'", overhang: 'TGCA', enzyme: 'PstI' },
+    },
+  });
+
+  it('leaves a gap opposite bases that have no partner', () => {
+    expect(strandTexts(render(doc, false))).toEqual([
+      'AATTCGGGCC',
+      // Four blanks opposite the 5' overhang on the top strand.
+      '    GCCCGG',
+      'GGGCCCTGCA',
+      'CCCGGGACGT',
+      // The bottom strand's own overhang, past the last column.
+      'ACGT',
+    ]);
+  });
+
+  it('washes over the single-stranded bases so they show without the complement', () => {
+    const svg = render(doc, false);
+    // Four columns wide, from the first column, over both strand lines.
+    expect(svg).toContain(`<rect x="100" y="${metrics.rulerHeight}" width="40" height="40"`);
+  });
+
+  it('draws nothing extra for a molecule with plain ends', () => {
+    const plain = SeqDocument.create({ sequence: seq, topology: 'linear' });
+    expect(strandTexts(render(plain, false))).toEqual([
+      'AATTCGGGCC',
+      'TTAAGCCCGG',
+      'GGGCCCTGCA',
+      'CCCGGGACGT',
+    ]);
+  });
+});

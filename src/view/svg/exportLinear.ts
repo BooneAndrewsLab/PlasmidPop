@@ -13,6 +13,7 @@ import {
   DEFAULT_FONT_SIZE,
   LinearLayout,
   assignLanes,
+  endOverhangs,
   lanesPerRow,
   linearMetrics,
   linearWidth,
@@ -93,6 +94,7 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
   const cutSites = options.cutSites ?? [];
   const monoFont = monoFontOf(fontSize);
   const charWidth = charWidthFor(monoFont);
+  const overhangs = endOverhangs(doc);
   const metrics = linearMetrics({
     fontSize,
     basesPerRow,
@@ -100,6 +102,9 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     showComplement: options.showComplement ?? true,
     // Room for the enzyme names above the strands, as in the on-screen view.
     cutSiteLabels: cutSites.length > 0,
+    // ...and for a sticky end drawn beside the first or last column.
+    extraLeftGutter: overhangs.leftBottom * charWidth,
+    extraRightGutter: overhangs.rightBottom * charWidth,
   });
 
   const features = drawableFeatures(doc.features.all());

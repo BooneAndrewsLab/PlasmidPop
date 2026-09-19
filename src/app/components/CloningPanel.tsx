@@ -8,6 +8,7 @@ import {
   assemblyJunctions,
   describeEnd,
   digest,
+  documentFromFragment,
   flipFragment,
   ligate,
 } from '@/core';
@@ -45,10 +46,12 @@ function FragmentRow({
   fragment,
   seqLength,
   onSelect,
+  onOpen,
 }: {
   readonly fragment: DigestFragment;
   readonly seqLength: number;
   readonly onSelect: () => void;
+  readonly onOpen: () => void;
 }) {
   const names = [...new Set(fragment.features.map((f) => (f.name === '' ? f.type : f.name)))];
   return (
@@ -72,6 +75,14 @@ function FragmentRow({
           }}
         >
           Add
+        </button>
+        <button
+          type="button"
+          className="button button--quiet button--small"
+          title="Open this fragment as a document of its own, sticky ends and all"
+          onClick={onOpen}
+        >
+          Open
         </button>
       </div>
       <div className="fragment__ends">
@@ -279,6 +290,11 @@ export function CloningPanel({ doc }: Props) {
               onSelect={() => {
                 editorStore.setSelection(f.range);
                 editorStore.revealPosition(f.range.start);
+              }}
+              onOpen={() => {
+                analytics.track('cloning', 'open-fragment');
+                editorStore.openDocument(documentFromFragment(f));
+                editorStore.setSidebarTab('features');
               }}
             />
           ))}

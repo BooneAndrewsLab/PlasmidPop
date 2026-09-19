@@ -1,6 +1,6 @@
 import { type ChangeEvent, useRef, useState } from 'react';
 
-import { type SeqDocument } from '@/core';
+import { type SeqDocument, describeEnds } from '@/core';
 
 import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
@@ -104,6 +104,10 @@ export function Toolbar({ doc }: Props) {
           )}
           <span className="toolbar__meta">
             {doc.length.toLocaleString()} bp, {doc.topology}
+            {/* Only a molecule something has cut has ends worth naming. */}
+            {doc.ends !== null && (
+              <span title={`Ends: ${describeEnds(doc.ends)}`}> · {describeEnds(doc.ends)}</span>
+            )}
           </span>
         </div>
       )}

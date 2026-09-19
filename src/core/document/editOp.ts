@@ -1,5 +1,6 @@
 import { type Feature, type FeatureId } from '../features';
 import { type Range, type Topology } from '../range';
+import { type DocumentEnds } from './ends';
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata } from './metadata';
 
@@ -21,6 +22,8 @@ export type EditOp =
   | { readonly type: 'reverseComplement' }
   | { readonly type: 'setOrigin'; readonly position: number }
   | { readonly type: 'setTopology'; readonly topology: Topology }
+  /** Describes the ends of a linear molecule, or clears the description. */
+  | { readonly type: 'setEnds'; readonly ends: DocumentEnds | null }
   | { readonly type: 'rename'; readonly name: string }
   | { readonly type: 'setMetadata'; readonly patch: Partial<DocumentMetadata> }
   | { readonly type: 'addFeature'; readonly feature: Feature }
@@ -47,6 +50,8 @@ export function describeEditOp(op: EditOp): string {
       return 'Set origin';
     case 'setTopology':
       return op.topology === 'circular' ? 'Make circular' : 'Make linear';
+    case 'setEnds':
+      return op.ends === null ? 'Blunt the ends' : 'Set the ends';
     case 'rename':
       return 'Rename';
     case 'setMetadata':

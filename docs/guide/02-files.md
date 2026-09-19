@@ -20,6 +20,11 @@ Saving writes a standard GenBank flat file that other programs can read.
 Anything PlasmidPop does not understand in a record is reported as a warning
 in the status bar rather than silently dropped.
 
+A molecule with sticky ends — a fragment from a digest, say — has something
+GenBank cannot express, so the ends travel as a `PlasmidPop-ends:` comment
+line. Other software sees an ordinary comment; PlasmidPop reads it back as
+the document's ends (see [Simulated cloning](12-cloning.md)).
+
 **ApE** files are GenBank with extra colour qualifiers; those colours are
 used for the features.
 

@@ -19,6 +19,7 @@ function fingerprint(doc: SeqDocument) {
     topology: doc.topology,
     sequence: doc.sequence.toString(),
     metadata: doc.metadata,
+    ends: doc.ends,
     features: doc.features.all().map(({ id: _id, ...rest }) => rest),
   };
 }
@@ -421,5 +422,43 @@ describe('GenBank parser edge cases', () => {
       doc.setMetadata({ division: 'SYN', date: '01-JAN-2020' }),
     ).split('\n')[0];
     expect(withDivision).toMatch(/ linear {3}SYN 01-JAN-2020$/);
+  });
+});
+
+describe('sticky ends', () => {
+  const seq = 'AATTCGGGCCCGGGTTTAAA'; // 20 bp, starting with an EcoRI overhang
+  const record = (extraHeader = ''): string =>
+    `LOCUS       X 20 bp DNA linear\n${extraHeader}FEATURES             Location/Qualifiers\n` +
+    `ORIGIN\n        1 ${seq.slice(0, 10)} ${seq.slice(10)}\n//\n`;
+  const sticky = (): SeqDocument =>
+    only(parseGenBank(record())).setEnds({
+      left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+      right: { kind: 'blunt', overhang: '', enzyme: 'SmaI' },
+    });
+
+  it('writes the ends as a comment and reads them back', () => {
+    const text = writeGenBank(sticky());
+    expect(text).toContain("COMMENT     PlasmidPop-ends: left=5' AATT/EcoRI; right=blunt/SmaI");
+    const reparsed = only(parseGenBank(text));
+    expect(reparsed.ends).toEqual(sticky().ends);
+    // The line is the document's ends, not one of its comments, so writing it
+    // again produces the same file rather than a second copy.
+    expect(reparsed.metadata.comments).toEqual([]);
+    expect(writeGenBank(reparsed)).toBe(text);
+    expectRoundTrip(text, 'sticky ends');
+  });
+
+  it('leaves an ordinary linear record alone', () => {
+    const plain = only(parseGenBank(record()));
+    expect(plain.ends).toBeNull();
+    expect(writeGenBank(plain)).not.toContain('PlasmidPop-ends');
+  });
+
+  it('ignores a damaged ends comment, keeping it as a comment', () => {
+    const parsed = only(
+      parseGenBank(record('COMMENT     PlasmidPop-ends: left=sideways; right=blunt\n')),
+    );
+    expect(parsed.ends).toBeNull();
+    expect(parsed.metadata.comments).toEqual(['PlasmidPop-ends: left=sideways; right=blunt']);
   });
 });

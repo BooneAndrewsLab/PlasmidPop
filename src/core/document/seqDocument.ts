@@ -25,6 +25,14 @@ import {
 } from '../range';
 import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
 import { type EditOp, type FeaturePatch } from './editOp';
+import {
+  type DocumentEnds,
+  BLUNT_END,
+  endsEqual,
+  flipEnds,
+  normalizeEnds,
+  topStrandOverhang,
+} from './ends';
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata, EMPTY_METADATA } from './metadata';
 
@@ -34,6 +42,8 @@ export interface SeqDocumentInit {
   readonly topology?: Topology;
   readonly features?: Iterable<Feature> | FeatureSet;
   readonly metadata?: Partial<DocumentMetadata>;
+  /** Shape of the two ends; see `ends.ts`. Ignored for a circular sequence. */
+  readonly ends?: DocumentEnds | null;
 }
 
 interface SeqDocumentFields {
@@ -42,6 +52,7 @@ interface SeqDocumentFields {
   readonly topology: Topology;
   readonly features: FeatureSet;
   readonly metadata: DocumentMetadata;
+  readonly ends: DocumentEnds | null;
 }
 
 /**
@@ -58,6 +69,13 @@ export class SeqDocument {
   readonly topology: Topology;
   readonly features: FeatureSet;
   readonly metadata: DocumentMetadata;
+  /**
+   * The shape of the two ends of a linear molecule, once something has made
+   * them other than plain and blunt — a digest, or a ligation of sticky
+   * fragments. Null for a circular sequence, which has no ends, and for a
+   * linear one with nothing to say about them.
+   */
+  readonly ends: DocumentEnds | null;
 
   static create(init: SeqDocumentInit): SeqDocument {
     let sequence: SequenceText;
@@ -77,6 +95,7 @@ export class SeqDocument {
       topology,
       features,
       metadata: { ...EMPTY_METADATA, ...init.metadata },
+      ends: normalizeEnds(init.ends, topology),
     });
   }
 
@@ -86,6 +105,7 @@ export class SeqDocument {
     this.topology = fields.topology;
     this.features = fields.features;
     this.metadata = fields.metadata;
+    this.ends = fields.ends;
   }
 
   get length(): number {
@@ -97,12 +117,17 @@ export class SeqDocument {
   }
 
   private with(patch: Partial<SeqDocumentFields>): SeqDocument {
+    const topology = patch.topology ?? this.topology;
+    // `ends` is nullable, so an explicit null has to be told apart from "not
+    // in the patch"; every other field can use ??.
+    const ends = 'ends' in patch ? patch.ends : this.ends;
     return new SeqDocument({
       name: patch.name ?? this.name,
       sequence: patch.sequence ?? this.sequence,
-      topology: patch.topology ?? this.topology,
+      topology,
       features: patch.features ?? this.features,
       metadata: patch.metadata ?? this.metadata,
+      ends: normalizeEnds(ends, topology),
     });
   }
 
@@ -158,6 +183,8 @@ export class SeqDocument {
         return this.setOrigin(op.position);
       case 'setTopology':
         return this.setTopology(op.topology);
+      case 'setEnds':
+        return this.setEnds(op.ends);
       case 'rename':
         return this.rename(op.name);
       case 'setMetadata':
@@ -192,6 +219,7 @@ export class SeqDocument {
       features: this.features.map((f) =>
         mapSegments(f, (seg) => shiftSegmentForInsert(seg, p, count, oldLength, this.topology)),
       ),
+      ends: this.endsAfterEdit({ start: p, end: p }),
     });
   }
 
@@ -210,6 +238,7 @@ export class SeqDocument {
       features: this.features.map((f) =>
         mapSegments(f, (seg) => shiftSegmentForDelete(seg, r, oldLength)),
       ),
+      ends: this.endsAfterEdit(r),
     });
   }
 
@@ -226,17 +255,23 @@ export class SeqDocument {
     assertValidSequence(text);
     const oldLen = rangeLength(r);
     const common = Math.min(oldLen, text.length);
+    // Worked out before anything moves, and applied at the end: the steps
+    // below would each judge only their own part of the replacement, and
+    // `substitute` changes bases without moving anything at all.
+    const ends = this.endsAfterEdit(r);
+    const withEnds = (doc: SeqDocument): SeqDocument =>
+      endsEqual(doc.ends, ends) ? doc : doc.with({ ends });
     const doc = common > 0 ? this.substitute(r.start, text.slice(0, common)) : this;
     // First position after the substituted prefix, wrapped for circular sequences.
     const pivot =
       doc.isCircular && doc.length > 0 ? (r.start + common) % doc.length : r.start + common;
     if (text.length > oldLen) {
-      return doc.insert(pivot, text.slice(common));
+      return withEnds(doc.insert(pivot, text.slice(common)));
     }
     if (oldLen > text.length) {
-      return doc.delete({ start: pivot, end: pivot + (oldLen - common) });
+      return withEnds(doc.delete({ start: pivot, end: pivot + (oldLen - common) }));
     }
-    return doc;
+    return withEnds(doc);
   }
 
   /**
@@ -285,6 +320,7 @@ export class SeqDocument {
   reverseComplement(): SeqDocument {
     const length = this.length;
     return this.with({
+      ends: flipEnds(this.ends),
       sequence: Rope.from(reverseComplement(this.sequence.toString())),
       features: this.features.map((f) => ({
         ...f,
@@ -316,6 +352,7 @@ export class SeqDocument {
    */
   setTopology(topology: Topology): SeqDocument {
     if (topology === this.topology) return this;
+    // Closing the molecule leaves no ends to describe; `with` drops them.
     if (topology === 'circular') return this.with({ topology });
     const length = this.length;
     return this.with({
@@ -342,6 +379,31 @@ export class SeqDocument {
   removeFeature(id: FeatureId): SeqDocument {
     if (!this.features.has(id)) return this;
     return this.with({ features: this.features.remove(id) });
+  }
+
+  /**
+   * Describes the ends of a linear molecule (see `ends.ts`). Blunt ends with
+   * no enzyme, or any ends on a circular sequence, are stored as none.
+   */
+  setEnds(ends: DocumentEnds | null): SeqDocument {
+    const next = normalizeEnds(ends, this.topology);
+    return endsEqual(next, this.ends) ? this : this.with({ ends: next });
+  }
+
+  /**
+   * The ends after an edit over `r`. An edit in the middle leaves them
+   * alone; one that reaches the tip of the molecule — the single-stranded
+   * bases of an overhang, or the very first or last base pair — leaves an
+   * end that is no longer the one the enzyme made, so that end goes back to
+   * being an undescribed blunt one rather than a lie.
+   */
+  private endsAfterEdit(r: Range): DocumentEnds | null {
+    const ends = this.ends;
+    if (ends === null) return null;
+    const left = r.start <= topStrandOverhang(ends.left, 'left') ? BLUNT_END : ends.left;
+    const right =
+      r.end >= this.length - topStrandOverhang(ends.right, 'right') ? BLUNT_END : ends.right;
+    return { left, right };
   }
 
   // ---------------------------------------------------------------- helpers

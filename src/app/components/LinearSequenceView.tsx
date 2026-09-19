@@ -27,6 +27,7 @@ import {
   LinearLayout,
   assignLanes,
   basesPerRowFor,
+  endOverhangs,
   lanesPerRow,
   linearMetrics,
   linearWidth,
@@ -153,9 +154,10 @@ export function LinearSequenceView({ doc }: Props) {
   const sansFont = useMemo(() => sansFontOf(seqFontSize), [seqFontSize]);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
   const metrics = useMemo(() => {
-    // The gutters scale with the text, so how many bases fit depends on the
-    // font; build the metrics once to get them, then again with the answer.
-    const blank = linearMetrics({
+    // A sticky end whose bottom strand runs past the sequence is drawn beside
+    // the first or last column, so the gutter there has to hold it.
+    const overhangs = endOverhangs(doc);
+    const options = {
       fontSize: seqFontSize,
       basesPerRow: 10,
       charWidth,
@@ -163,10 +165,16 @@ export function LinearSequenceView({ doc }: Props) {
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
       cutSiteLabels: showCutSites && shownEnzymes.size > 0,
-    });
+      extraLeftGutter: overhangs.leftBottom * charWidth,
+      extraRightGutter: overhangs.rightBottom * charWidth,
+    };
+    // The gutters scale with the text, so how many bases fit depends on the
+    // font; build the metrics once to get them, then again with the answer.
+    const blank = linearMetrics(options);
     const fitted = basesPerRowFor(size.width - blank.leftGutter - blank.rightGutter, charWidth);
     return { ...blank, basesPerRow: seqBasesPerRow ?? fitted };
   }, [
+    doc,
     size.width,
     charWidth,
     seqFontSize,

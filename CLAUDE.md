@@ -103,7 +103,7 @@ and the Edits baseline are remembered in localStorage
 documents and enzyme ticks are unaffected. The logo
 (`design/logo/`, made in Claude Design) is used for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 511 passing. Perf
+`scripts/make-wordmark.py`, no webfont). Tests: 534 passing. Perf
 measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -134,7 +134,8 @@ pick from here when the current work is done.
    file, so vector and insert can come from different documents. Parts can
    be flipped and reordered; every junction is checked (`endsCompatible`,
    `assemblyJunctions` in `ligate.ts`) and `ligate` opens the product as a
-   new circular or linear document with the fragments' features. Not yet:
+   new circular or linear document with the fragments' features; a fragment
+   can also be opened on its own (**Open**, item 10). Not yet:
    Gibson and Golden Gate assembly from primer/fragment sets, partial
    digests, dephosphorylation, resolving IUPAC codes in overhangs, and
    persisting the assembly shelf across reloads.
@@ -180,8 +181,23 @@ pick from here when the current work is done.
    the other view preferences and the sequence-view SVG exports follow all
    but the text size. Not yet: a bases-per-row number of the user's own,
    colours the user can change, a font family choice.
-10. **Linear molecule end handling**: sticky ends and overhangs on the
-    document itself after a simulated digest.
+10. ~~**Linear molecule end handling**~~: done. A `SeqDocument` carries the
+    shape of its two ends (`src/core/document/ends.ts`: kind, overhang bases
+    in the same top-strand convention as a digest fragment, and the enzyme),
+    null for a circular molecule or a plainly blunt linear one. `digest`
+    gives the outer fragments the molecule's own ends, a linear `ligate`
+    product keeps the outermost ends of the assembly, and
+    `documentFromFragment` (**Open** in the Cloning tab) opens a fragment as
+    a document. An edit that reaches a tip blunts that end, reverse
+    complement swaps them, making the molecule circular drops them. The
+    sequence view washes over single-stranded bases, leaves a gap opposite
+    them and draws a bottom-strand overhang in the gutter beyond the first
+    or last column (the gutters grow to fit); the toolbar names both ends.
+    They survive a save: GenBank has no field for them, so they ride in a
+    `PlasmidPop-ends:` comment that the parser turns back into ends
+    (`src/io/genbank/endsComment.ts`). Not yet: filling in or chewing back an
+    overhang (Klenow / T4 blunting), ends on the circular map, and any
+    carriage through FASTA or SnapGene.
 11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs
     an auth-provider decision first.
 12. ~~**User documentation**~~: done. Fourteen guide pages in

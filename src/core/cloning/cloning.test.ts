@@ -1,12 +1,12 @@
 import { findCutSites, getEnzyme } from '../analysis';
-import { SeqDocument } from '../document';
+import { BLUNT_END, SeqDocument, describeEnd } from '../document';
 import { createFeature, rangeSegment } from '../features';
 import {
-  BLUNT_END,
   assemblyJunctions,
   cutOffset,
-  describeEnd,
+  defaultFragmentName,
   digest,
+  documentFromFragment,
   endsCompatible,
   flipFragment,
   ligate,
@@ -131,6 +131,32 @@ describe('digest', () => {
   });
 });
 
+describe('digesting a molecule that already has ends', () => {
+  const sticky = SeqDocument.create({
+    name: 'piece',
+    sequence: LINEAR,
+    ends: {
+      left: { kind: "5'", overhang: 'CCCC', enzyme: 'AgeI' },
+      right: { kind: "3'", overhang: 'GGAA', enzyme: 'KpnI' },
+    },
+  });
+
+  it('gives the outer fragments the ends of the molecule itself', () => {
+    const frags = cutWith(sticky, 'BamHI');
+    expect(frags).toHaveLength(2);
+    expect(frags[0]?.left).toEqual({ kind: "5'", overhang: 'CCCC', enzyme: 'AgeI' });
+    expect(frags[0]?.right).toEqual({ kind: "5'", overhang: 'GATC', enzyme: 'BamHI' });
+    expect(frags[1]?.right).toEqual({ kind: "3'", overhang: 'GGAA', enzyme: 'KpnI' });
+  });
+
+  it('hands an uncut sticky molecule back whole, ends and all', () => {
+    const [whole] = cutWith(sticky);
+    expect(whole?.sequence).toBe(LINEAR);
+    expect(whole?.left.enzyme).toBe('AgeI');
+    expect(whole?.right.enzyme).toBe('KpnI');
+  });
+});
+
 describe('ligation', () => {
   const doc = SeqDocument.create({
     name: 'lin',
@@ -240,5 +266,46 @@ describe('ligation', () => {
     const product = ligate([tail, head], { name: 'swap', circular: false });
     expect(product.sequence.toString()).toBe(LINEAR.slice(40) + LINEAR.slice(0, 40));
     expect(() => ligate([], { name: 'none', circular: false })).toThrow(/Nothing/);
+  });
+});
+
+describe('a fragment as a document', () => {
+  const doc = SeqDocument.create({ name: 'pXYZ', sequence: LINEAR });
+
+  it('opens with the sticky ends the digest left', () => {
+    const frags = cutWith(doc, 'EcoRI', 'BamHI');
+    const insert = frags[1];
+    if (insert === undefined) throw new Error('no fragment');
+    const opened = documentFromFragment(insert);
+    expect(opened.sequence.toString()).toBe(insert.sequence);
+    expect(opened.topology).toBe('linear');
+    expect(opened.ends).toEqual({ left: insert.left, right: insert.right });
+    expect(opened.name).toBe('pXYZ EcoRI-BamHI fragment');
+    expect(opened.metadata.description).toContain('EcoRI 5′ AATT');
+    // Digesting the piece again finds the ends it arrived with.
+    expect(cutWith(opened)[0]?.left).toEqual(insert.left);
+  });
+
+  it('names a fragment with one enzyme, or none, sensibly', () => {
+    const frags = cutWith(doc, 'EcoRI');
+    expect(defaultFragmentName(frags[0] as never)).toBe('pXYZ EcoRI fragment');
+    const uncut = cutWith(doc);
+    expect(defaultFragmentName(uncut[0] as never)).toBe('pXYZ fragment');
+  });
+
+  it('gives a linear ligation product the outermost ends of the assembly', () => {
+    const frags = cutWith(doc, 'EcoRI', 'BamHI');
+    const [first, second] = frags;
+    if (first === undefined || second === undefined) throw new Error('no fragments');
+    const product = ligate([first, second], { name: 'joined', circular: false });
+    expect(product.ends).toEqual({ left: first.left, right: second.right });
+    // A circle has no ends.
+    const circle = cutWith(
+      SeqDocument.create({ name: 'c', sequence: LINEAR, topology: 'circular' }),
+      'EcoRI',
+      'BamHI',
+    );
+    const closed = ligate(circle, { name: 'closed', circular: true });
+    expect(closed.ends).toBeNull();
   });
 });

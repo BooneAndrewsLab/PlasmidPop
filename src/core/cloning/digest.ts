@@ -1,25 +1,23 @@
-import { type CutSite, type OverhangKind } from '../analysis/restriction';
-import { type SeqDocument, fragmentFromRange } from '../document';
+import { type CutSite } from '../analysis/restriction';
+import {
+  type DocumentEnds,
+  type OverhangKind,
+  type StrandEnd,
+  BLUNT_END,
+  fragmentFromRange,
+  type SeqDocument,
+} from '../document';
 import { type Feature } from '../features';
 import { type Range, type Topology } from '../range';
 
 /**
- * One end of a double-stranded fragment.
- *
- * `overhang` is the single-stranded stretch written as *top-strand* bases
- * 5'→3' over the overhang region, whichever strand actually carries them:
- * for a 5' overhang on the left end of a fragment the top strand has these
- * bases, for a 5' overhang on the right end the bottom strand has their
- * complement. This makes compatibility a plain comparison: a right end and a
- * left end ligate when their kinds and overhangs are equal (see `ligate.ts`).
+ * One end of a double-stranded fragment: the same description a document
+ * carries for its own ends (`core/document/ends.ts`), where the convention
+ * for `overhang` is spelled out. It makes compatibility a plain comparison:
+ * a right end and a left end ligate when their kinds and overhangs are equal
+ * (see `ligate.ts`).
  */
-export interface FragmentEnd {
-  readonly kind: OverhangKind;
-  /** Empty for a blunt end. */
-  readonly overhang: string;
-  /** Enzyme that made the cut; null for the natural end of a linear molecule. */
-  readonly enzyme: string | null;
-}
+export type FragmentEnd = StrandEnd;
 
 /** A piece of a digest, detached from its source document. */
 export interface DigestFragment {
@@ -39,8 +37,6 @@ export interface DigestFragment {
   /** Name of the document the fragment was cut from. */
   readonly source: string;
 }
-
-export const BLUNT_END: FragmentEnd = { kind: 'blunt', overhang: '', enzyme: null };
 
 /**
  * Signed distance from the top-strand cut to the bottom-strand cut. Positive
@@ -96,9 +92,10 @@ function distinctCuts(sites: readonly CutSite[], length: number, topology: Topol
 /**
  * Cuts `doc` at the given sites and returns the fragments in the order they
  * lie along the top strand, starting at the first cut (circular) or the
- * molecule's start (linear). A linear molecule without cuts is one fragment
- * with blunt natural ends; a circular one without cuts yields nothing, since
- * it has no ends to ligate.
+ * molecule's start (linear). The outermost ends of a linear molecule are the
+ * molecule's own (`doc.ends`), so digesting a fragment again keeps the ends
+ * it already had; a circular molecule without cuts yields nothing, since it
+ * has no ends to ligate.
  */
 export function digest(doc: SeqDocument, sites: readonly CutSite[]): DigestFragment[] {
   const L = doc.length;
@@ -117,15 +114,16 @@ export function digest(doc: SeqDocument, sites: readonly CutSite[]): DigestFragm
   };
 
   if (doc.topology === 'linear') {
+    const natural: DocumentEnds = doc.ends ?? { left: BLUNT_END, right: BLUNT_END };
     const out: DigestFragment[] = [];
     let start = 0;
-    let left = BLUNT_END;
+    let left = natural.left;
     for (const s of cuts) {
       out.push(piece({ start, end: s.cut }, left, endAt(doc, s)));
       start = s.cut;
       left = endAt(doc, s);
     }
-    out.push(piece({ start, end: L }, left, BLUNT_END));
+    out.push(piece({ start, end: L }, left, natural.right));
     return out;
   }
 
@@ -135,13 +133,4 @@ export function digest(doc: SeqDocument, sites: readonly CutSite[]): DigestFragm
     const end = next.cut > s.cut ? next.cut : next.cut + L;
     return piece({ start: s.cut, end }, endAt(doc, s), endAt(doc, next));
   });
-}
-
-/** Human-readable end, e.g. "EcoRI 5′ AATT", "SmaI blunt" or "blunt end". */
-export function describeEnd(end: FragmentEnd): string {
-  const shape =
-    end.kind === 'blunt'
-      ? 'blunt'
-      : `${end.kind === "5'" ? '5′' : '3′'} ${end.overhang.toUpperCase()}`;
-  return end.enzyme === null ? `${shape} end` : `${end.enzyme} ${shape}`;
 }

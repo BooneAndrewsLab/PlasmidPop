@@ -1,7 +1,12 @@
 import { type Feature } from '../features';
 import { newId } from '../ids';
-import { type DocumentMetadata, SeqDocument, createMetadata } from '../document';
-import { reverseComplement } from '../sequence';
+import {
+  type DocumentMetadata,
+  SeqDocument,
+  createMetadata,
+  describeEnd,
+  flipEnd,
+} from '../document';
 import { type DigestFragment, type FragmentEnd } from './digest';
 
 /**
@@ -14,10 +19,6 @@ export function flipFragment(fragment: DigestFragment): DigestFragment {
     features: fragment.features,
     topology: 'linear',
   }).reverseComplement();
-  const flipEnd = (end: FragmentEnd): FragmentEnd => ({
-    ...end,
-    overhang: reverseComplement(end.overhang),
-  });
   return {
     ...fragment,
     sequence: flipped.sequence.toString(),
@@ -113,11 +114,19 @@ export function ligate(fragments: readonly DigestFragment[], options: LigateOpti
       });
     }
   }
+  const first = fragments[0];
+  const last = fragments[fragments.length - 1];
   return SeqDocument.create({
     name: options.name,
     sequence,
     topology: options.circular ? 'circular' : 'linear',
     features,
+    // A linear product still has the two outermost ends of the assembly: it
+    // can go on to be ligated into something else.
+    ends:
+      options.circular || first === undefined || last === undefined
+        ? null
+        : { left: first.left, right: last.right },
     metadata: createMetadata({
       moleculeType: 'DNA',
       division: 'SYN',
@@ -134,4 +143,30 @@ function describeAssembly(fragments: readonly DigestFragment[], circular: boolea
     return `${f.source}${cut} fragment (${f.sequence.length.toLocaleString()} bp)`;
   });
   return `${circular ? 'Circular' : 'Linear'} ligation of ${parts.join(', ')}`;
+}
+
+/**
+ * A digest fragment as a document of its own, sticky ends and all, so a
+ * piece of a digest can be looked at, edited and saved like anything else.
+ */
+export function documentFromFragment(
+  fragment: DigestFragment,
+  options: { readonly name?: string } = {},
+): SeqDocument {
+  return ligate([fragment], {
+    name: options.name ?? defaultFragmentName(fragment),
+    circular: false,
+    metadata: {
+      description: `${fragment.sequence.length.toLocaleString()} bp fragment of ${fragment.source}: ${describeEnd(fragment.left)} to ${describeEnd(fragment.right)}`,
+    },
+  });
+}
+
+/** "pBR322 EcoRI-BamHI fragment", or just "... fragment" for an uncut end. */
+export function defaultFragmentName(fragment: DigestFragment): string {
+  const enzymes = [...new Set([fragment.left.enzyme, fragment.right.enzyme])].filter(
+    (e): e is string => e !== null,
+  );
+  const cut = enzymes.length === 0 ? '' : ` ${enzymes.join('-')}`;
+  return `${fragment.source}${cut} fragment`;
 }

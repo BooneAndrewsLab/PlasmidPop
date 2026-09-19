@@ -29,6 +29,11 @@ position of its first base. Below each row:
 - **edit marks** over the bases you have changed, when **Edits** is on in the
   toolbar (see [Editing the sequence](04-editing.md)).
 
+The first and last rows also show the **sticky ends** of a molecule that has
+been cut: single-stranded bases are washed over with a gap opposite them, and
+an overhang on the other strand is drawn just outside the first or last
+column (see [Simulated cloning](12-cloning.md)).
+
 Clicking a feature bar selects that feature; clicking an amino acid on a
 translation line selects that residue's three bases. The pointer turns into a
 hand over those tracks and stays a text cursor over the bases, where it places

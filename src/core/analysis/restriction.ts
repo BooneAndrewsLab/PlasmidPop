@@ -1,3 +1,4 @@
+import { type OverhangKind } from '../document';
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
 import { ENZYME_TABLE } from './enzymeTable';
@@ -14,8 +15,6 @@ export interface Enzyme {
   /** Site reads the same on both strands, so one match is one cut. */
   readonly palindromic: boolean;
 }
-
-export type OverhangKind = 'blunt' | "5'" | "3'";
 
 export function overhangKind(e: Pick<Enzyme, 'cutTop' | 'cutBottom'>): OverhangKind {
   if (e.cutTop === e.cutBottom) return 'blunt';

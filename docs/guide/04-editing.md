@@ -48,6 +48,13 @@ In the edit bar:
   molecule linear breaks it at the origin, so set the origin first if a
   feature crosses it.
 
+On a molecule with sticky ends (a fragment from a digest, see
+[Simulated cloning](12-cloning.md)), an edit that reaches the very first or
+last bases leaves that end plain and blunt again, since it is no longer the
+end the enzyme made; an edit in the middle leaves both ends as they were.
+Making the molecule circular drops the ends, and reverse-complementing swaps
+them.
+
 To rename the document, click its name in the toolbar, type, and press
 `Enter` (`Escape` cancels).
 

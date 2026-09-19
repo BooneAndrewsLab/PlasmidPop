@@ -8,6 +8,7 @@ import {
   complement,
   marksIn,
   rangePieces,
+  topStrandOverhang,
 } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
@@ -94,8 +95,14 @@ function drawRuler(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   // The complement is read from the same coordinates, so its number is the
   // same one repeated: on a wide row it saves tracking back to the top line.
   if (p.numberComplement && m.showComplement) {
+    // Past the bottom-strand bases of a sticky end, which sit in the gutter.
+    const clear = row.index === 0 ? endOverhangs(p.doc).leftBottom * m.charWidth : 0;
     ctx.fillStyle = theme.inkMuted;
-    ctx.fillText(number, m.leftGutter - 10, layout.complementTextTop(row) + m.lineHeight * 0.75);
+    ctx.fillText(
+      number,
+      m.leftGutter - 10 - clear,
+      layout.complementTextTop(row) + m.lineHeight * 0.75,
+    );
     ctx.fillStyle = theme.gutterText;
   }
 
@@ -198,6 +205,80 @@ function drawEdits(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   }
 }
 
+/**
+ * The single-stranded bases at each end of a linear molecule, in columns.
+ * `top` is how many of the document's own bases have no partner (they are
+ * drawn with a gap opposite them); `bottom` is how far the other strand runs
+ * past the sequence, drawn in the gutter beside it.
+ */
+interface EndOverhangs {
+  readonly leftTop: number;
+  readonly leftBottom: number;
+  readonly rightTop: number;
+  readonly rightBottom: number;
+}
+
+export function endOverhangs(doc: SeqDocument): EndOverhangs {
+  const ends = doc.ends;
+  if (ends === null) return { leftTop: 0, leftBottom: 0, rightTop: 0, rightBottom: 0 };
+  const leftTop = topStrandOverhang(ends.left, 'left');
+  const rightTop = topStrandOverhang(ends.right, 'right');
+  return {
+    leftTop,
+    leftBottom: leftTop > 0 ? 0 : ends.left.overhang.length,
+    rightTop,
+    rightBottom: rightTop > 0 ? 0 : ends.right.overhang.length,
+  };
+}
+
+/**
+ * Sticky ends: the bases of the molecule that have nothing opposite them are
+ * washed over, so an overhang reads even when the complement is hidden.
+ * Drawn under everything else.
+ */
+function drawEndShading(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { doc, layout, theme } = p;
+  if (doc.ends === null) return;
+  const m = layout.metrics;
+  const { leftTop, rightTop } = endOverhangs(doc);
+  const top = layout.forwardTextTop(row);
+  const bottom = top + m.lineHeight * (m.showComplement ? 2 : 1);
+  ctx.fillStyle = withAlpha(theme.inkMuted, 0.2);
+  for (const span of [
+    { start: 0, end: leftTop },
+    { start: doc.length - rightTop, end: doc.length },
+  ]) {
+    const s = Math.max(span.start, row.start);
+    const e = Math.min(span.end, row.end);
+    if (e <= s) continue;
+    const x0 = layout.xOfColumn(s - row.start);
+    ctx.fillRect(x0, top, layout.xOfColumn(e - row.start) - x0, bottom - top);
+  }
+}
+
+/**
+ * The part of a sticky end that is not in the document's own sequence: where
+ * the bottom strand runs past the top one, its bases are drawn in the gutter
+ * beyond the first or last column, muted like the rest of the complement.
+ */
+function drawEndOverhangBases(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { doc, layout, theme } = p;
+  const ends = doc.ends;
+  if (ends === null || !layout.metrics.showComplement) return;
+  const { leftBottom, rightBottom } = endOverhangs(doc);
+  ctx.font = p.monoFont;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = theme.inkMuted;
+  const y = layout.complementTextTop(row) + layout.metrics.lineHeight * 0.75;
+  if (leftBottom > 0 && row.index === 0) {
+    ctx.fillText(complement(ends.left.overhang), layout.xOfColumn(-leftBottom), y);
+  }
+  if (rightBottom > 0 && row.end === doc.length) {
+    ctx.fillText(complement(ends.right.overhang), layout.xOfColumn(row.end - row.start), y);
+  }
+}
+
 /** The colour a base is drawn in while base colouring is on. */
 function baseColor(colors: BaseColors, base: string): string {
   switch (base) {
@@ -272,6 +353,23 @@ function drawBaseLine(
   }
 }
 
+/**
+ * The complement of `text` with a gap wherever the top strand is on its own:
+ * the single-stranded bases of a sticky end have no partner to draw.
+ */
+function pairedComplement(text: string, p: RenderParams, row: RowLayout): string {
+  const { doc } = p;
+  if (doc.ends === null) return complement(text);
+  const { leftTop, rightTop } = endOverhangs(doc);
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    const at = row.start + i;
+    const unpaired = at < leftTop || at >= doc.length - rightTop;
+    out += unpaired ? ' ' : complement(text[i] ?? '');
+  }
+  return out;
+}
+
 function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, layout, theme } = p;
   const m = layout.metrics;
@@ -281,7 +379,13 @@ function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void
   ctx.textBaseline = 'alphabetic';
   drawBaseLine(ctx, p, text, layout.forwardTextTop(row), theme.ink);
   if (m.showComplement) {
-    drawBaseLine(ctx, p, complement(text), layout.complementTextTop(row), theme.inkMuted);
+    drawBaseLine(
+      ctx,
+      p,
+      pairedComplement(text, p, row),
+      layout.complementTextTop(row),
+      theme.inkMuted,
+    );
   }
 }
 
@@ -518,10 +622,12 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   ctx.translate(-scrollLeft, -scrollTop);
 
   for (const row of layout.rowsInWindow(scrollTop, scrollTop + height)) {
+    drawEndShading(ctx, p, row);
     drawEdits(ctx, p, row);
     drawSelection(ctx, p, row);
     drawRuler(ctx, p, row);
     drawStrands(ctx, p, row);
+    drawEndOverhangBases(ctx, p, row);
     drawTranslations(ctx, p, row);
     drawCutSites(ctx, p, row);
     if (row.lanes > 0) {

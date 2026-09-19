@@ -13,6 +13,7 @@ import {
 } from '@/core';
 
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
+import { isEndsComment, parseEndsComment } from './endsComment';
 import { LocationError, parseLocation } from './location';
 
 /** Qualifiers whose value names the feature, in priority order. */
@@ -443,7 +444,15 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
     );
   }
 
-  const metadata = buildMetadata(header, locus, warnings);
+  const parsed = buildMetadata(header, locus, warnings);
+  // Sticky ends travel in a comment of ours; it becomes the document's ends
+  // rather than staying in the comments, so writing the file back produces
+  // the same line instead of a second one.
+  const ends = parsed.comments.map(parseEndsComment).find((e) => e !== null) ?? null;
+  const metadata =
+    ends === null
+      ? parsed
+      : { ...parsed, comments: parsed.comments.filter((c) => !isEndsComment(c)) };
   const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);
   return SeqDocument.create({
     name: locus.name === '' ? 'Untitled' : locus.name,
@@ -451,6 +460,7 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
     topology: locus.topology,
     features,
     metadata,
+    ends,
   });
 }
 

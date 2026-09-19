@@ -145,6 +145,7 @@ export function selectionAfterOp(
     }
     case 'setTopology':
       return op.topology === 'linear' && selection.end > doc.length ? null : selection;
+    case 'setEnds':
     case 'insert':
     case 'delete':
     case 'replace':

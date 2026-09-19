@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { translateSixFrames } from '@/core';
+import { parseGenBank, writeGenBank } from '@/io';
 import { getRepository } from '@/storage';
 
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
@@ -511,6 +512,38 @@ describe('cloning', () => {
     expect(product?.sequence.toString()).toBe(rotated);
     expect(product?.features.all().length).toBeGreaterThan(5);
     expect(editorStore.getState().assembly).toEqual([]);
-    expect(screen.getByText('4,361 bp, circular')).toBeInTheDocument();
+    expect(screen.getByText(/4,361 bp, circular/)).toBeInTheDocument();
+  });
+
+  it('opens a fragment as a document that keeps its sticky ends', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const before = editorStore.document;
+    if (before === null) throw new Error('no document');
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(before);
+    });
+    act(() => {
+      editorStore.setShownEnzymes(['EcoRI', 'BamHI']);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    const [openBiggest] = screen.getAllByRole('button', { name: 'Open' });
+    if (openBiggest === undefined) throw new Error('expected an Open button');
+    fireEvent.click(openBiggest);
+    const fragment = editorStore.document;
+    expect(fragment?.name).toBe('SYNPBR322 BamHI-EcoRI fragment');
+    expect(fragment?.length).toBe(3984);
+    expect(fragment?.topology).toBe('linear');
+    // The overhang is quoted from the sequence, which pBR322 writes in
+    // lowercase; ends are compared case-insensitively when they are ligated.
+    expect(fragment?.ends).toEqual({
+      left: { kind: "5'", overhang: 'gatc', enzyme: 'BamHI' },
+      right: { kind: "5'", overhang: 'aatt', enzyme: 'EcoRI' },
+    });
+    // The toolbar says what the ends are.
+    expect(screen.getByText(/BamHI 5′ GATC \/ EcoRI 5′ AATT/)).toBeInTheDocument();
+    // ...and it survives a save and reopen through GenBank.
+    const reopened = parseGenBank(writeGenBank(fragment as never)).documents[0];
+    expect(reopened?.ends).toEqual(fragment?.ends);
   });
 });

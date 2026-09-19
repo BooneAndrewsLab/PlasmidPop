@@ -209,7 +209,9 @@ export interface MetricsOptions {
   readonly showComplement: boolean;
   /** Whether room is kept above the strands for enzyme labels. */
   readonly cutSiteLabels: boolean;
-  /** Extra space after the last column, on top of the default padding. */
+  /** Extra space before the first column, for a sticky end hanging off the left. */
+  readonly extraLeftGutter?: number;
+  /** Extra space after the last column, for a sticky end hanging off the right. */
   readonly extraRightGutter?: number;
 }
 
@@ -231,7 +233,7 @@ export function linearMetrics(o: MetricsOptions): LinearMetrics {
     laneHeight: at(20),
     translationHeight: at(16),
     rowGap: at(14),
-    leftGutter: at(72),
+    leftGutter: at(72) + (o.extraLeftGutter ?? 0),
     rightGutter: at(24) + (o.extraRightGutter ?? 0),
     topPadding: 12,
   };

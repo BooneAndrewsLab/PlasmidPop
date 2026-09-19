@@ -16,10 +16,39 @@ first, each with:
 - its **length** (click it to select the fragment in the views) and range;
 - its two **ends**: the enzyme that made the cut, whether the end is blunt
   or has a 5′ or 3′ overhang, and the overhang bases;
-- the **features** it carries.
+- the **features** it carries;
+- **Add**, which puts it in the assembly below, and **Open**, which opens it
+  as a document of its own.
 
-An uncut linear molecule is one blunt-ended fragment; an uncut circular
-molecule gives nothing to work with.
+An uncut linear molecule is one fragment with the ends the molecule already
+has; an uncut circular molecule gives nothing to work with.
+
+## Sticky ends on a document
+
+A fragment you **Open**, and a linear ligation product, is a molecule whose
+two strands stop in different places, and it is kept that way: the document
+remembers each end's shape, overhang and enzyme. The toolbar says so next to
+the length (`538 bp, linear · AlwNI 3′ CCA / BsaI 5′ ACCG`), and the sequence
+view draws it:
+
+- bases with nothing opposite them — the single-stranded part of the
+  overhang — are washed over and have a gap on the complement line;
+- where the other strand runs past the sequence instead, its bases are drawn
+  just outside the first or last column.
+
+Digesting such a molecule again gives its outer fragments the ends it came
+with, so a piece can be cut, opened and cut again without losing track of
+what will ligate to what.
+
+The ends are saved with the document. GenBank has nowhere to put them, so
+they travel as a comment line of ours (`PlasmidPop-ends: ...`) that other
+software ignores and PlasmidPop reads back.
+
+Editing the molecule's tip — typing over an overhang base, deleting the first
+or last bases, pasting at either end — leaves an end that is no longer the
+one the enzyme made, so that end goes back to being a plain blunt one. An
+edit in the middle leaves both ends alone. Making the molecule circular drops
+them, since a circle has no ends; reverse-complementing swaps them.
 
 ## Assembly
 
@@ -50,4 +79,6 @@ and a BamHI end will join a BglII end (both leave `GATC`).
 
 Gibson and Golden Gate assembly from primers or fragment sets, partial
 digests, dephosphorylation, ambiguity codes in overhangs (an `N` never
-pairs), and keeping the assembly list across page reloads.
+pairs), and keeping the assembly list across page reloads. Nothing fills in
+or chews back an overhang yet (no Klenow or T4 polymerase blunting), the
+circular map does not draw the ends, and a FASTA export does not carry them.
