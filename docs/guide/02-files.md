@@ -55,12 +55,13 @@ saved file.
 From the **File** menu:
 
 - **Export map as SVG**: the circular map as a standalone vector file for
-  figures, with the cut sites of the enzymes shown in the Enzymes tab.
+  figures, with the cut sites of the enzymes ticked in the Enzymes tab —
+  none of them while the toolbar's **Cut sites** toggle is off.
 - **Export sequence view as SVG**: the sequence rows as a vector file —
   ruler, bases, features and cut sites, laid out as on screen but always 60
   bases to a row so the file does not depend on the window width. It follows
-  the **Complement** and **Translations** toggles and the enzymes ticked in
-  the Enzymes tab. Sequences longer than 100,000 bases are refused: export a
+  the **Complement**, **Translations** and **Cut sites** toggles and the
+  enzymes ticked in the Enzymes tab. Sequences longer than 100,000 bases are refused: export a
   range instead.
 - **Export selection view as SVG**: the same picture, cut down to the rows
   that hold the selection and with the selection highlighted. Positions stay

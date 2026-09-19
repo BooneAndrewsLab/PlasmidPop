@@ -28,7 +28,7 @@ function segmentedClass(active: boolean): string {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { showComplement, showTranslations, view, dirty } = useEditorState();
+  const { showComplement, showTranslations, showCutSites, view, dirty } = useEditorState();
   const openViaPicker = (): void => {
     persistence
       .openWithPicker(openFile)
@@ -174,6 +174,17 @@ export function Toolbar({ doc }: Props) {
                 }}
               >
                 Translations
+              </button>
+              <button
+                type="button"
+                className={segmentedClass(showCutSites)}
+                aria-pressed={showCutSites}
+                title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks"
+                onClick={() => {
+                  editorStore.setShowCutSites(!showCutSites);
+                }}
+              >
+                Cut sites
               </button>
             </div>
           </>

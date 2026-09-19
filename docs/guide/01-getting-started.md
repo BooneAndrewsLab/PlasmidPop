@@ -27,8 +27,8 @@ they can be reopened, renamed or removed. See [Files and storage](02-files.md).
 - **Toolbar** (top): the logo, the document name (click it to rename), its
   length and topology, then the **File** menu, **Undo / Redo** with the
   history list, the view switcher (**Sequence**, **Map**, **Both**), the
-  **Complement** and **Translations** toggles, and the **?** button that
-  opens this guide.
+  **Complement**, **Translations** and **Cut sites** toggles, and the **?**
+  button that opens this guide.
 - **Edit bar** (under the toolbar): Add feature, Delete selection, Reverse
   complement, Set origin here, Make circular / linear, Find.
 - **Views**: the circular map on the left and the linear sequence view on the

@@ -96,7 +96,7 @@ events at file open/new/save/export, enzyme show, primer design, align,
 ligate, history jump; the Pages workflow sets the instance URL and site id 6). The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 407 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 421 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -225,16 +225,15 @@ pick from here when the current work is done.
     selects the whole feature; it should select the codon(s) under the
     pointer, i.e. the residue's three bases, extending codon by codon
     when dragging. Requested 2026-09-18.
-20. **Hide cut sites without losing the enzyme selection.** The tick
-    boxes in the Enzymes tab do two jobs at once: they choose which cut
-    sites are drawn in the views and which enzymes the Cloning tab
-    digests with. Users want to declutter the map temporarily without
-    unticking a carefully chosen set and re-ticking it later. Add a
-    separate "show cut sites" toggle (in the Enzymes tab or next to
-    Complement / Translations in the toolbar) that hides all drawn sites
-    while the ticked set stays as it is; the Cloning digest, SVG export
-    and fragment list should say whether they follow the toggle or the
-    ticks. Update `07-enzymes.md` when it lands. Requested 2026-09-18.
+20. ~~**Hide cut sites without losing the enzyme selection.**~~ done. A
+    **Cut sites** toggle sits next to Complement / Translations in the
+    toolbar (`showCutSites` in the store); off, the sequence view, the
+    circular map and both SVG exports draw no cut sites while
+    `shownEnzymes` is untouched, so the chosen set comes back intact. The
+    Enzymes tab says so while they are hidden, with a "Show cut sites"
+    link, and its fragment list and the Cloning digest follow the ticks,
+    not the toggle (both headings now say "ticked enzymes"). Not yet: a
+    key binding, remembering the toggle across reloads.
 21. **Show edits in the sequence view.** Mark bases that were inserted or
     changed (and where deletions happened) so an editing session is
     visible at a glance, like tracked changes. Open question: what is the

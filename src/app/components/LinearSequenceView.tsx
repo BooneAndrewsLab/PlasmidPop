@@ -73,14 +73,21 @@ interface Props {
 }
 
 export function LinearSequenceView({ doc }: Props) {
-  const { selection, showComplement, showTranslations, reveal, analysis, shownEnzymes } =
-    useEditorState();
+  const {
+    selection,
+    showComplement,
+    showTranslations,
+    showCutSites,
+    reveal,
+    analysis,
+    shownEnzymes,
+  } = useEditorState();
   const cutSites = useMemo(
     () =>
-      analysis !== null && analysis.doc === doc
+      showCutSites && analysis !== null && analysis.doc === doc
         ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
         : [],
-    [analysis, doc, shownEnzymes],
+    [analysis, doc, shownEnzymes, showCutSites],
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,14 +106,14 @@ export function LinearSequenceView({ doc }: Props) {
       showComplement,
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
-      rulerHeight: shownEnzymes.size > 0 ? 30 : 16,
+      rulerHeight: showCutSites && shownEnzymes.size > 0 ? 30 : 16,
       laneHeight: 20,
       translationHeight: 16,
       rowGap: 14,
       leftGutter: LEFT_GUTTER,
       topPadding: 12,
     }),
-    [size.width, charWidth, showComplement, shownEnzymes.size],
+    [size.width, charWidth, showComplement, showCutSites, shownEnzymes.size],
   );
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
   const codingFeatures = useMemo(

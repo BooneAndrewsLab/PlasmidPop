@@ -189,7 +189,7 @@ function PartRow({
 }
 
 export function CloningPanel({ doc }: Props) {
-  const { analysis, shownEnzymes, assembly } = useEditorState();
+  const { analysis, shownEnzymes, showCutSites, assembly } = useEditorState();
   const [circular, setCircular] = useState(true);
   const [name, setName] = useState('');
   const ready = analysis !== null && analysis.doc === doc;
@@ -236,7 +236,7 @@ export function CloningPanel({ doc }: Props) {
   return (
     <div className="panel">
       <h3 className="panel__heading">
-        Digest with shown enzymes
+        Digest with ticked enzymes
         {enzymesUsed.length > 0 && (
           <span className="panel__heading-note">{enzymesUsed.join(', ')}</span>
         )}
@@ -245,7 +245,7 @@ export function CloningPanel({ doc }: Props) {
         <p className="panel__note">Scanning for restriction sites…</p>
       ) : enzymesUsed.length === 0 ? (
         <p className="panel__note">
-          No enzyme is shown.{' '}
+          No enzyme is ticked.{' '}
           <button
             type="button"
             className="link"
@@ -262,6 +262,11 @@ export function CloningPanel({ doc }: Props) {
         <p className="panel__note">
           {fragments.length === 1 ? '1 fragment' : `${fragments.length} fragments`}, largest first.
           Add the ones to join, then arrange them below.
+        </p>
+      )}
+      {!showCutSites && enzymesUsed.length > 0 && (
+        <p className="panel__note">
+          Cut sites are hidden in the views; this digest follows the ticks, not that toggle.
         </p>
       )}
       {fragments.length > 0 && (

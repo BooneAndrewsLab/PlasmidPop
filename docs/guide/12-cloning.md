@@ -8,7 +8,9 @@ with the features of its parts.
 ## Digest
 
 The digest uses the enzymes **ticked in the Enzymes tab**. Tick the enzymes
-you would put in the tube, then come back. Fragments are listed largest
+you would put in the tube, then come back. It follows the ticks alone: the
+toolbar's **Cut sites** toggle only hides the sites drawn in the views, so a
+decluttered map still digests with everything ticked. Fragments are listed largest
 first, each with:
 
 - its **length** (click it to select the fragment in the views) and range;

@@ -79,13 +79,13 @@ interface Props {
 }
 
 export function CircularMapView({ doc }: Props) {
-  const { selection, analysis, shownEnzymes, documentId, reveal } = useEditorState();
+  const { selection, analysis, shownEnzymes, showCutSites, documentId, reveal } = useEditorState();
   const cutSites = useMemo(
     () =>
-      analysis !== null && analysis.doc === doc
+      showCutSites && analysis !== null && analysis.doc === doc
         ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
         : [],
-    [analysis, doc, shownEnzymes],
+    [analysis, doc, shownEnzymes, showCutSites],
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);

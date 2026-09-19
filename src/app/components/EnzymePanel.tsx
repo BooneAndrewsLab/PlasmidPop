@@ -21,7 +21,7 @@ function describeSite(site: CutSite): string {
 }
 
 export function EnzymePanel({ doc }: Props) {
-  const { analysis, shownEnzymes } = useEditorState();
+  const { analysis, shownEnzymes, showCutSites } = useEditorState();
   const [singleOnly, setSingleOnly] = useState(false);
   const [filter, setFilter] = useState('');
   const ready = analysis !== null && analysis.doc === doc;
@@ -114,6 +114,21 @@ export function EnzymePanel({ doc }: Props) {
           </button>
         </div>
       </div>
+      {!showCutSites && (
+        <p className="panel__note">
+          Cut sites are hidden in the views and in the SVG exports. The ticks below still choose the
+          fragments here and the enzymes the Cloning tab digests with.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.setShowCutSites(true);
+            }}
+          >
+            Show cut sites
+          </button>
+        </p>
+      )}
       {!ready ? (
         <p className="panel__note">Scanning for restriction sites…</p>
       ) : (
@@ -121,7 +136,10 @@ export function EnzymePanel({ doc }: Props) {
           <ul className="enzyme-list">
             {rows.map(({ enzyme, sites }) => (
               <li key={enzyme.name} className="enzyme-row">
-                <label className="enzyme-row__toggle" title="Show cut sites in the views">
+                <label
+                  className="enzyme-row__toggle"
+                  title="Tick to draw this enzyme's cut sites and to digest with it"
+                >
                   <input
                     type="checkbox"
                     checked={shownEnzymes.has(enzyme.name)}
@@ -158,7 +176,7 @@ export function EnzymePanel({ doc }: Props) {
           </p>
           {fragments.length > 0 && (
             <div className="panel__section">
-              <h3 className="panel__heading">Fragments from shown enzymes</h3>
+              <h3 className="panel__heading">Fragments from ticked enzymes</h3>
               <p className="panel__mono">
                 {fragments.map((f) => f.length.toLocaleString()).join(', ')} bp
               </p>

@@ -16,7 +16,8 @@ above each row giving the position of its first base. Below each row:
 - **features** as coloured bars with their names, stacked into lanes when
   they overlap;
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
-  enzyme name.
+  enzyme name, unless **Cut sites** is off in the toolbar (see
+  [Restriction enzymes](07-enzymes.md)).
 
 Clicking a feature bar or a translation line selects that feature. Lowercase
 bases stay lowercase, as many people use case to mark regions.
@@ -28,8 +29,9 @@ for figures, see [Files](02-files.md).
 
 The map draws the backbone as a ring with tick marks, features as arcs in
 lanes around it, and labels with leader lines. Features that share a name
-(a gene and its CDS, for example) get one label. Cut sites of the shown
-enzymes are labelled on the same ring. The centre shows the name and length.
+(a gene and its CDS, for example) get one label. Cut sites of the ticked
+enzymes are labelled on the same ring, unless **Cut sites** is off in the
+toolbar. The centre shows the name and length.
 A linear sequence is drawn as an open ring with a gap at the ends.
 
 - **Click** the backbone to place the cursor, **drag** along it to select.

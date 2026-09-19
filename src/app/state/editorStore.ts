@@ -139,6 +139,13 @@ export interface EditorState {
   readonly analysis: AnalysisState | null;
   /** Enzymes whose cut sites are drawn in the views. */
   readonly shownEnzymes: ReadonlySet<string>;
+  /**
+   * Whether cut sites are drawn at all. Off hides every site in the views and
+   * in the SVG exports without touching `shownEnzymes`, so a carefully chosen
+   * set survives decluttering the map; the Cloning digest and the Enzymes
+   * tab's fragment list keep following the ticks.
+   */
+  readonly showCutSites: boolean;
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
   /** Whether the default shown-enzyme set (single cutters) was applied for this document. */
@@ -175,6 +182,7 @@ const INITIAL: EditorState = {
   sidebarTab: 'features',
   analysis: null,
   shownEnzymes: new Set(),
+  showCutSites: true,
   orfMinCodons: 75,
   enzymesInitialized: false,
   reveal: null,
@@ -515,15 +523,22 @@ export class EditorStore {
     this.set({ shownEnzymes: new Set(names), enzymesInitialized: true });
   }
 
+  setShowCutSites(show: boolean): void {
+    if (show !== this.state.showCutSites) this.set({ showCutSites: show });
+  }
+
   setOrfMinCodons(n: number): void {
     const value = Math.max(1, Math.floor(n));
     if (value !== this.state.orfMinCodons) this.set({ orfMinCodons: value, analysis: null });
   }
 
-  /** Cut sites of the enzymes currently shown, for the present document only. */
+  /**
+   * Cut sites drawn for the present document: those of the ticked enzymes,
+   * or none while `showCutSites` is off.
+   */
   visibleCutSites(): readonly CutSite[] {
     const a = this.state.analysis;
-    if (a?.doc !== this.document) return [];
+    if (a?.doc !== this.document || !this.state.showCutSites) return [];
     return a.cutSites.filter((s) => this.state.shownEnzymes.has(s.enzyme));
   }
 

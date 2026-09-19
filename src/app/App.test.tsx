@@ -319,6 +319,14 @@ describe('toolbar', () => {
     fireEvent.click(translations);
     expect(editorStore.getState().showTranslations).toBe(!before);
     expect(translations).toHaveAttribute('aria-pressed', String(!before));
+    const cutSites = screen.getByRole('button', { name: 'Cut sites' });
+    expect(cutSites).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(cutSites);
+    expect(cutSites).toHaveAttribute('aria-pressed', 'false');
+    expect(editorStore.getState().showCutSites).toBe(false);
+    act(() => {
+      editorStore.setShowCutSites(true);
+    });
   });
 
   it('collects the file actions in one menu once a document is open', () => {

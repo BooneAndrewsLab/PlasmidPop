@@ -212,6 +212,27 @@ describe('EditorStore analysis', () => {
     expect([...store.getState().shownEnzymes]).toEqual(['NotI']);
   });
 
+  it('hides drawn cut sites without touching the ticks', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const site = (enzyme: string, cut: number) => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut,
+      strand: 'forward' as const,
+    });
+    store.setAnalysis(doc, [site('EcoRI', 3), site('AluI', 5), site('AluI', 9)], []);
+    expect(store.getState().showCutSites).toBe(true);
+    expect(store.visibleCutSites()).toHaveLength(1);
+    store.setShowCutSites(false);
+    expect(store.visibleCutSites()).toHaveLength(0);
+    // The chosen set survives, so showing them again needs no re-ticking.
+    expect([...store.getState().shownEnzymes]).toEqual(['EcoRI']);
+    store.setShowCutSites(true);
+    expect(store.visibleCutSites().map((s) => s.enzyme)).toEqual(['EcoRI']);
+  });
+
   describe('carrying results through edits', () => {
     const site = (enzyme: string, siteStart: number, cut: number, cutBottom = cut) => ({
       enzyme,
