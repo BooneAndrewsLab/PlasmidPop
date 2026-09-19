@@ -42,7 +42,7 @@ export function Sidebar({ doc }: Props) {
               editorStore.setSidebarTab(tab);
             }}
           >
-            {label}
+            <span className="sidebar__tab-label">{label}</span>
           </button>
         ))}
       </div>

@@ -283,7 +283,8 @@ button {
 
 .app__main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  /* 330px: the sidebar panel keeps its old 300px next to the 30px tab rail. */
+  grid-template-columns: minmax(0, 1fr) 330px;
   min-height: 0;
 }
 
@@ -492,9 +493,14 @@ button {
 
 /* Sidebar with tabs */
 
+/* The tabs sit in a vertical rail on the sidebar's outer edge, JetBrains
+   style, with the panel beside it. A row of tabs across the top ran out of
+   width at eight tabs; the rail takes as many as there are and shows every
+   label. Both children are in row 1, panel first. */
 .sidebar {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   border-left: 1px solid var(--line);
   background: var(--surface-2);
   min-height: 0;
@@ -502,39 +508,43 @@ button {
   overflow: hidden;
 }
 
-@media (max-width: 720px) {
-  .sidebar {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
-}
-
-/* Eight tabs do not fit on one row at the 300px sidebar width, so the strip
-   is a grid of equal cells: 4 + 4 in the default sidebar, one row when the
-   sidebar is wider (the full-width layout under 720px). Cells never overflow
-   the frame; the minimum cell width fits the longest label. */
 .sidebar__tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-  gap: 1px;
-  padding: 1px;
-  background: var(--line);
-  border-bottom: 1px solid var(--line);
+  grid-area: 1 / 2;
+  display: flex;
+  flex-direction: column;
+  width: 30px;
+  background: var(--surface-2);
+  border-left: 1px solid var(--line);
+  /* Tabs shrink and ellipsize before this bites, so it only shows up on a
+     very short window. */
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
-/* Bordered button grid in the same language as the toolbar's view switcher:
-   the 1px gaps on the strip's background draw the cell borders. */
+/* The label is a child so it can be centred on both axes and clipped with an
+   ellipsis when the rail is too short for every tab at full length. */
 .sidebar__tab {
-  min-width: 0;
-  padding: 6px 4px;
+  flex: 0 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  padding: 8px 0;
   font-size: 12.5px;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   border: 0;
+  border-bottom: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink-2);
   cursor: pointer;
+}
+
+/* Rotated a quarter turn, reading top to bottom. */
+.sidebar__tab-label {
+  writing-mode: vertical-rl;
+  max-height: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar__tab:hover:not(.sidebar__tab--active) {
@@ -549,8 +559,53 @@ button {
 }
 
 .sidebar__panel {
+  grid-area: 1 / 1;
   overflow: auto;
   min-height: 0;
+}
+
+/* Under the full-width layout the sidebar is short and wide: the rail would
+   not fit its height, so the tabs go back to a row across the top. The grid
+   of equal cells wraps to as many rows as it needs. */
+@media (max-width: 720px) {
+  .sidebar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .sidebar__tabs {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    width: auto;
+    gap: 1px;
+    padding: 1px;
+    background: var(--line);
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+    overflow: visible;
+  }
+
+  /* The 1px gaps on the strip's background draw the cell borders, as in the
+     toolbar's view switcher. */
+  .sidebar__tab {
+    min-width: 0;
+    min-height: 0;
+    padding: 6px 4px;
+    border-bottom: 0;
+  }
+
+  .sidebar__tab-label {
+    writing-mode: horizontal-tb;
+    max-height: none;
+    max-width: 100%;
+  }
+
+  .sidebar__panel {
+    grid-area: 2 / 1;
+  }
 }
 
 .features {

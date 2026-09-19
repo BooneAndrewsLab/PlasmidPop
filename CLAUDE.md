@@ -205,24 +205,19 @@ pick from here when the current work is done.
     bare bases as a new document (`openPastedText` in
     `src/app/openFile.ts`). Not yet: choosing circular/name up front (use
     "Make circular" and rename after).
-18. **Sidebar tab strip that stays on one row.** Eight tabs do not fit
-    the 300 px sidebar, so the strip is currently a bordered 4 + 4 button
-    grid (`.sidebar__tabs` in `src/styles.css`, same construction as the
-    toolbar view switcher). The History tab filled the empty cell of the
-    second row; a ninth tab starts a third row. Options considered on
-    2026-09-18, in order of preference:
-    (a) a vertical rail along the sidebar's outer edge with rotated
-    labels, JetBrains style, about 30 px wide, sidebar widened to ~330 px
-    to compensate; scales to any tab count, nothing hidden. (b) An
-    overflow menu, DevTools style: show the tabs that fit, collapse the
-    rest into a "More" button, always promote the active tab; needs a
-    ResizeObserver in `Sidebar.tsx`. (c) Icon tabs with 10 px captions,
-    seven cells of ~42 px; needs icons, and would carry over to the mobile
-    layout. (d) Fewer top-level tabs: fold Cloning under Enzymes, ORFs
-    under Translate, Primers and Align under Tools, with a segmented
-    sub-switch. Rejected: a horizontally scrolling row (hides the tab
-    people cannot find), and a wider or resizable sidebar on its own
-    (does not help small windows).
+18. ~~**Sidebar tab strip that stays on one row.**~~ done, as option (a)
+    of the four considered on 2026-09-18. The tabs are a 30 px vertical
+    rail down the sidebar's outer edge with the labels turned a quarter
+    turn, JetBrains style, and the panel beside them; the sidebar is
+    330 px wide so the panel keeps its old 300 px (`.sidebar`,
+    `.sidebar__tabs`, `.sidebar__tab-label` in `src/styles.css`). Every
+    tab is shown whatever their number: on a window too short for them at
+    full length they shrink and the labels ellipsize (about 80 % of each
+    label survives at a 500 px viewport), and the rail scrolls only past
+    that. Under 720 px, where the sidebar is short and wide instead, the
+    tabs go back to the grid of equal cells above the panel. Not yet:
+    arrow-key navigation along the rail (the tabs are plain buttons in
+    the Tab order), icons instead of words.
 19. ~~**Selecting amino acids in the sequence view.**~~ done. Clicking an
     amino acid on a translation line selects its codon and dragging along
     the line extends the selection codon by codon in reading order, so a
