@@ -10,6 +10,7 @@ import {
   translateSixFrames,
 } from '@/core';
 
+import { copyText } from '../clipboard';
 import { downloadText } from '../saveFile';
 import { rangeBounds, sixFrameFasta, sixFrameFileName } from '../sixFrameExport';
 import { useEditorState } from '../state/useEditorStore';
@@ -59,7 +60,7 @@ function FrameRow({ frame }: { readonly frame: FrameTranslation }) {
           className="button button--small frame__copy"
           disabled={frame.protein === ''}
           onClick={() => {
-            void navigator.clipboard.writeText(frame.protein);
+            copyText(frame.protein);
           }}
         >
           Copy

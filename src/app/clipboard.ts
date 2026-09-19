@@ -39,3 +39,47 @@ export function readClipboard(data: DataTransfer): SeqFragment | string {
 export function resetClipboardMemory(): void {
   lastCopied = null;
 }
+
+/**
+ * Copies plain text (a translation, say) from a button.
+ *
+ * `navigator.clipboard` exists only in a secure context, so a page served
+ * over plain http falls back to selecting the text in an off-screen
+ * textarea and the old `execCommand('copy')`, which still works there.
+ */
+export function copyText(text: string): void {
+  const clipboard = (navigator as { clipboard?: Clipboard }).clipboard;
+  if (clipboard === undefined) {
+    copyBySelection(text);
+    return;
+  }
+  clipboard.writeText(text).catch(() => {
+    copyBySelection(text);
+  });
+}
+
+function copyBySelection(text: string): void {
+  // execCommand is deprecated and typed as such, but it is the only copy
+  // there is outside a secure context, and older browsers may lack it.
+  const doc = document as { execCommand?: (command: string) => boolean };
+  if (typeof doc.execCommand !== 'function') return;
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.readOnly = true;
+  area.style.position = 'fixed';
+  area.style.top = '-1000px';
+  area.style.opacity = '0';
+  document.body.append(area);
+  const selection = document.getSelection();
+  const previous = selection !== null && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  area.select();
+  try {
+    doc.execCommand('copy');
+  } finally {
+    area.remove();
+    if (selection !== null && previous !== null) {
+      selection.removeAllRanges();
+      selection.addRange(previous);
+    }
+  }
+}

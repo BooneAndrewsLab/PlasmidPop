@@ -10,6 +10,7 @@ import {
   translate,
 } from '@/core';
 
+import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -121,7 +122,7 @@ export function OrfPanel({ doc }: Props) {
               type="button"
               className="button button--small"
               onClick={() => {
-                void navigator.clipboard.writeText(protein);
+                copyText(protein);
               }}
             >
               Copy protein
