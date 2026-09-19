@@ -1,4 +1,4 @@
-import { type SeqDocument } from '@/core';
+import { type AssemblyPart, type SeqDocument } from '@/core';
 import { writeGenBank } from '@/io';
 import {
   type DocumentRepository,
@@ -39,6 +39,8 @@ interface Autosaved {
  */
 export class PersistenceService {
   private readonly autosaved = new Map<string, Autosaved>();
+  /** The shelf as last written, so an unchanged one is not written again. */
+  private savedShelf: readonly AssemblyPart[] | null = null;
   /**
    * Whether `restoreLastSession` has run. Until it has, an empty tab strip
    * is the page still loading, not the user having closed everything, and
@@ -87,6 +89,19 @@ export class PersistenceService {
     this.autosaved.set(id, { doc, fileName: d.fileName });
   }
 
+  /**
+   * Writes the Cloning tab's assembly shelf, so fragments gathered for a
+   * ligation are still there after a reload. It is kept apart from the
+   * documents: the shelf outlives every tab being closed, which is the
+   * point of it.
+   */
+  async saveShelf(): Promise<void> {
+    const { assembly } = editorStore.getState();
+    if (assembly === this.savedShelf) return;
+    await this.repo.saveShelf(assembly);
+    this.savedShelf = assembly;
+  }
+
   /** Records which documents are open and which is in front, for `restoreLastSession`. */
   rememberSession(): void {
     const { documents, documentId } = editorStore.getState();
@@ -101,6 +116,9 @@ export class PersistenceService {
    */
   async restoreLastSession(): Promise<boolean> {
     try {
+      const shelf = await this.repo.loadShelf();
+      editorStore.restoreAssembly(shelf);
+      this.savedShelf = editorStore.getState().assembly;
       const last = this.repo.lastDocumentId();
       const ids = [...this.repo.openDocumentIds()];
       if (last !== null && !ids.includes(last)) ids.push(last);

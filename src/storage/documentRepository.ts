@@ -1,7 +1,7 @@
-import { type SeqDocument } from '@/core';
+import { type AssemblyPart, type OverhangKind, type SeqDocument } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
-import { type PlasmidPopDb, type StoredDocument, getDb } from './db';
+import { type PlasmidPopDb, type StoredDocument, SHELF_ID, getDb } from './db';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
@@ -160,6 +160,26 @@ export class DocumentRepository {
     }
   }
 
+  /**
+   * The Cloning tab's assembly shelf. Stored parts are checked on the way in
+   * rather than trusted: a row written by an older build, or one that has
+   * gone bad, should cost the user a fragment, not the Cloning tab.
+   */
+  async loadShelf(): Promise<AssemblyPart[]> {
+    const stored = await this.db.shelf.get(SHELF_ID);
+    if (stored === undefined) return [];
+    return stored.parts.filter((p): p is AssemblyPart => isAssemblyPart(p));
+  }
+
+  /** Writes the shelf, removing the row altogether when it is empty. */
+  async saveShelf(parts: readonly AssemblyPart[]): Promise<void> {
+    if (parts.length === 0) {
+      await this.db.shelf.delete(SHELF_ID);
+      return;
+    }
+    await this.db.shelf.put({ id: SHELF_ID, parts, updatedAt: Date.now() });
+  }
+
   setLastDocumentId(id: string | null): void {
     try {
       if (id === null) globalThis.localStorage.removeItem(LAST_DOCUMENT_KEY);
@@ -168,6 +188,60 @@ export class DocumentRepository {
       // Storage may be unavailable (private mode, quota); persistence is best effort.
     }
   }
+}
+
+const OVERHANG_KINDS: ReadonlySet<string> = new Set<OverhangKind>(['blunt', "5'", "3'"]);
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
+}
+
+function isString(v: unknown): boolean {
+  return typeof v === 'string';
+}
+
+function isStrandEnd(v: unknown): boolean {
+  if (!isObject(v)) return false;
+  const kind: unknown = v['kind'];
+  return (
+    typeof kind === 'string' &&
+    OVERHANG_KINDS.has(kind) &&
+    isString(v['overhang']) &&
+    (v['enzyme'] === null || isString(v['enzyme']))
+  );
+}
+
+function isRange(v: unknown): boolean {
+  return isObject(v) && typeof v['start'] === 'number' && typeof v['end'] === 'number';
+}
+
+/** Enough of a feature to place and to draw; the rest is the parser's business. */
+function isFeature(v: unknown): boolean {
+  return (
+    isObject(v) &&
+    isString(v['id']) &&
+    isString(v['type']) &&
+    isString(v['name']) &&
+    (v['strand'] === 'forward' || v['strand'] === 'reverse') &&
+    Array.isArray(v['segments']) &&
+    v['segments'].length > 0 &&
+    Array.isArray(v['qualifiers'])
+  );
+}
+
+function isAssemblyPart(v: unknown): boolean {
+  if (!isObject(v) || !isString(v['id']) || typeof v['flipped'] !== 'boolean') return false;
+  const f: unknown = v['fragment'];
+  return (
+    isObject(f) &&
+    isString(f['sequence']) &&
+    isString(f['source']) &&
+    isRange(f['range']) &&
+    isStrandEnd(f['left']) &&
+    isStrandEnd(f['right']) &&
+    Array.isArray(f['features']) &&
+    f['features'].every(isFeature)
+  );
 }
 
 let shared: DocumentRepository | null = null;

@@ -20,6 +20,56 @@ const doc = SeqDocument.create({
   metadata: { description: 'A test' },
 });
 
+const shelfPart = (source: string) => ({
+  id: `part-${source}`,
+  flipped: false,
+  fragment: {
+    sequence: 'AATTCGGG',
+    features: [createFeature({ id: 'g', type: 'gene', name: 'g', segments: [rangeSegment(0, 4)] })],
+    range: { start: 0, end: 8 },
+    left: { kind: "5'" as const, overhang: 'AATT', enzyme: 'EcoRI' },
+    right: { kind: 'blunt' as const, overhang: '', enzyme: null },
+    source,
+  },
+});
+
+describe('DocumentRepository shelf', () => {
+  it('stores the assembly shelf and reads it back whole', async () => {
+    const repo = freshRepo();
+    expect(await repo.loadShelf()).toEqual([]);
+    const parts = [shelfPart('vector'), shelfPart('insert')];
+    await repo.saveShelf(parts);
+    const back = await repo.loadShelf();
+    expect(back).toEqual(parts);
+    expect(back[0]?.fragment.left).toEqual({ kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' });
+    expect(back[0]?.fragment.features[0]?.name).toBe('g');
+  });
+
+  it('clears the shelf when it is emptied', async () => {
+    const repo = freshRepo();
+    await repo.saveShelf([shelfPart('vector')]);
+    await repo.saveShelf([]);
+    expect(await repo.loadShelf()).toEqual([]);
+  });
+
+  it('drops parts it cannot make sense of rather than the whole shelf', async () => {
+    const repo = freshRepo();
+    const good = shelfPart('vector');
+    // A row written by some other build: keep what still parses.
+    const bad = [
+      { ...good, id: 7 },
+      {
+        ...good,
+        fragment: { ...good.fragment, left: { kind: 'sticky', overhang: '', enzyme: null } },
+      },
+      { ...good, fragment: { ...good.fragment, sequence: null } },
+      { ...good, fragment: { ...good.fragment, features: [{ id: 'x' }] } },
+    ];
+    await repo.saveShelf([...bad, good] as unknown as Parameters<typeof repo.saveShelf>[0]);
+    expect(await repo.loadShelf()).toEqual([good]);
+  });
+});
+
 describe('DocumentRepository', () => {
   it('saves, lists, loads and removes documents', async () => {
     const repo = freshRepo();

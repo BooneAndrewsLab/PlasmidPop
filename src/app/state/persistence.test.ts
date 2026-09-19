@@ -230,3 +230,39 @@ describe('PersistenceService', () => {
     editorStore.closeDocument();
   });
 });
+
+describe('PersistenceService assembly shelf', () => {
+  const blunt = { kind: 'blunt' as const, overhang: '', enzyme: null };
+  const frag = (source: string) => ({
+    sequence: 'ACGTACGT',
+    features: [],
+    range: { start: 0, end: 8 },
+    left: blunt,
+    right: blunt,
+    source,
+  });
+
+  it('keeps the shelf across a reload, with every tab closed', async () => {
+    const repo = new DocumentRepository(new PlasmidPopDb(`shelf-${Date.now()}`));
+    const service = new PersistenceService(repo);
+    editorStore.clearAssembly();
+    editorStore.addToAssembly(frag('vector'));
+    editorStore.addToAssembly(frag('insert'));
+    await service.saveShelf();
+
+    // A fresh page: nothing open, nothing on the shelf.
+    editorStore.clearAssembly();
+    editorStore.closeDocument();
+    const next = new PersistenceService(repo);
+    await next.restoreLastSession();
+    expect(editorStore.getState().assembly.map((p) => p.fragment.source)).toEqual([
+      'vector',
+      'insert',
+    ]);
+
+    // Assembling or clearing empties the stored shelf too.
+    editorStore.clearAssembly();
+    await next.saveShelf();
+    expect(await repo.loadShelf()).toEqual([]);
+  });
+});

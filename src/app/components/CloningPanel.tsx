@@ -2,6 +2,7 @@ import { analytics } from '../analytics';
 import { Fragment, useMemo, useState } from 'react';
 
 import {
+  type AssemblyPart,
   type DigestFragment,
   type FragmentEnd,
   type SeqDocument,
@@ -13,7 +14,7 @@ import {
   ligate,
 } from '@/core';
 
-import { type AssemblyPart, editorStore } from '../state/editorStore';
+import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
 interface Props {
@@ -313,8 +314,8 @@ export function CloningPanel({ doc }: Props) {
         </h3>
         {assembly.length === 0 ? (
           <p className="panel__note">
-            Nothing collected yet. Fragments stay here while you open other files, so a vector from
-            one file can take an insert from another.
+            Nothing collected yet. Fragments stay here while you open other files, and across
+            reloads, so a vector from one file can take an insert from another.
           </p>
         ) : (
           <ol className="part-list">

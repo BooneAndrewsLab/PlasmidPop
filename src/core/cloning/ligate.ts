@@ -10,6 +10,18 @@ import {
 import { type DigestFragment, type FragmentEnd } from './digest';
 
 /**
+ * A digest fragment set aside for ligation, in the orientation it will be
+ * joined in. The shelf of these is the user's bench: pieces gathered from
+ * several documents in turn, kept until they are assembled.
+ */
+export interface AssemblyPart {
+  readonly id: string;
+  readonly fragment: DigestFragment;
+  /** Whether the fragment was turned around since it was added. */
+  readonly flipped: boolean;
+}
+
+/**
  * The same piece of DNA turned around: the bottom strand becomes the top
  * strand, so the ends swap and each overhang is read from the other strand.
  */

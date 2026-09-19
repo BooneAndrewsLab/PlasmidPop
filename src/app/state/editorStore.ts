@@ -1,5 +1,6 @@
 import { analytics } from '../analytics';
 import {
+  type AssemblyPart,
   type Coalesce,
   type CutSite,
   type DigestFragment,
@@ -29,14 +30,6 @@ export type ViewMode = 'sequence' | 'map' | 'both';
 export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked';
 export type SidebarTab =
   'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
-
-/** A digest fragment set aside for ligation, in the orientation it will be joined. */
-export interface AssemblyPart {
-  readonly id: string;
-  readonly fragment: DigestFragment;
-  /** Whether the fragment was turned around since it was added. */
-  readonly flipped: boolean;
-}
 
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */
@@ -820,6 +813,16 @@ export class EditorStore {
   }
 
   // ------------------------------------------------------------- assembly
+
+  /**
+   * Puts back the shelf the last session left behind. It gives way to
+   * whatever is already there: if the user has started collecting fragments
+   * while storage was being read, those are the ones they mean.
+   */
+  restoreAssembly(parts: readonly AssemblyPart[]): void {
+    if (parts.length === 0 || this.state.assembly.length > 0) return;
+    this.setShared({ assembly: parts });
+  }
 
   /** Appends a fragment to the assembly and returns its part id. */
   addToAssembly(fragment: DigestFragment): string {

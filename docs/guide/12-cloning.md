@@ -53,7 +53,9 @@ them, since a circle has no ends; reverse-complementing swaps them.
 ## Assembly
 
 **Add** moves a fragment to the **Assembly** list. The list is shared by
-every open tab, so the usual workflow is:
+every open tab and is kept in the browser, so it survives closing every tab
+and reloading the page: a ligation you set up on Friday is still there on
+Monday. The usual workflow is:
 
 1. Open the vector, tick the enzymes, add the backbone fragment.
 2. Open the file with the insert (it gets a tab of its own), tick the same
@@ -77,8 +79,8 @@ and a BamHI end will join a BglII end (both leave `GATC`).
 
 ## Not yet
 
-Gibson and Golden Gate assembly from primers or fragment sets, partial
-digests, dephosphorylation, ambiguity codes in overhangs (an `N` never
-pairs), and keeping the assembly list across page reloads. Nothing fills in
-or chews back an overhang yet (no Klenow or T4 polymerase blunting), the
-circular map does not draw the ends, and a FASTA export does not carry them.
+Gibson assembly from primers or fragment sets, partial digests,
+dephosphorylation, and ambiguity codes in overhangs (an `N` never pairs).
+Nothing fills in or chews back an overhang yet (no Klenow or T4 polymerase
+blunting), the circular map does not draw the ends, and a FASTA export does
+not carry them.

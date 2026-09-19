@@ -394,6 +394,23 @@ describe('assembly shelf', () => {
     store.clearAssembly();
     expect(store.getState().assembly).toEqual([]);
   });
+
+  it('puts back a stored shelf, but never over one already being filled', () => {
+    const store = new EditorStore();
+    const stored = [{ id: 'p1', fragment: frag('vector'), flipped: false }];
+    store.restoreAssembly(stored);
+    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['vector']);
+
+    // What the user has collected in the meantime wins over what was stored.
+    const busy = new EditorStore();
+    busy.addToAssembly(frag('mine'));
+    busy.restoreAssembly(stored);
+    expect(busy.getState().assembly.map((p) => p.fragment.source)).toEqual(['mine']);
+
+    // Nothing stored leaves the shelf alone.
+    busy.restoreAssembly([]);
+    expect(busy.getState().assembly.map((p) => p.fragment.source)).toEqual(['mine']);
+  });
 });
 
 describe('EditorStore edit-mark baseline', () => {

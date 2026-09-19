@@ -15,6 +15,7 @@ import { useAnalysis } from './state/useAnalysis';
 import { useEditorState } from './state/useEditorStore';
 import {
   useAutosave,
+  useAutosaveShelf,
   useRestoreSession,
   useSaveShortcut,
   useUnsavedWarning,
@@ -26,6 +27,7 @@ export function App() {
   const doc = history?.present ?? null;
   useAnalysis();
   useAutosave();
+  useAutosaveShelf();
   useRestoreSession();
   useSaveShortcut();
   useUnsavedWarning();
