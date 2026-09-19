@@ -1,0 +1,259 @@
+import { type Feature, type FeatureId, type Qualifier, type Segment } from '../features';
+import { type SeqDocument } from '../document';
+import {
+  type SequenceDiff,
+  type SequenceDiffOptions,
+  diffSequences,
+  positionMapper,
+} from './sequenceDiff';
+
+/**
+ * What happened to a run of bases, in the coordinates of the newer
+ * document: `inserted` bases are new, `changed` bases stand where others
+ * used to be.
+ */
+export type EditMarkKind = 'inserted' | 'changed';
+
+export interface EditMark {
+  readonly kind: EditMarkKind;
+  /** Half-open span of the newer document. */
+  readonly start: number;
+  readonly end: number;
+}
+
+/** Bases that are gone, at the boundary of the newer document they left behind. */
+export interface DeletionMark {
+  readonly position: number;
+  readonly count: number;
+}
+
+/**
+ * How the newer of two versions of a document differs from the older one,
+ * as something the views can draw: spans to mark, boundaries where bases
+ * were removed, and which features were touched.
+ */
+export interface DocumentDiff {
+  /** Marks in ascending order, never overlapping. */
+  readonly marks: readonly EditMark[];
+  /** Deletion boundaries in ascending order. */
+  readonly deletions: readonly DeletionMark[];
+  readonly featuresAdded: ReadonlySet<FeatureId>;
+  readonly featuresChanged: ReadonlySet<FeatureId>;
+  /** How many features the older version had that the newer one has not. */
+  readonly featuresRemoved: number;
+  readonly basesInserted: number;
+  readonly basesChanged: number;
+  readonly basesDeleted: number;
+  readonly renamed: boolean;
+  readonly topologyChanged: boolean;
+  /** True when the sequences differ by more than the diff will follow base by base. */
+  readonly coarse: boolean;
+}
+
+export const EMPTY_DIFF: DocumentDiff = {
+  marks: [],
+  deletions: [],
+  featuresAdded: new Set(),
+  featuresChanged: new Set(),
+  featuresRemoved: 0,
+  basesInserted: 0,
+  basesChanged: 0,
+  basesDeleted: 0,
+  renamed: false,
+  topologyChanged: false,
+  coarse: false,
+};
+
+/** True when there is nothing for the views to mark. */
+export function isEmptyDiff(diff: DocumentDiff): boolean {
+  return (
+    diff.marks.length === 0 &&
+    diff.deletions.length === 0 &&
+    diff.featuresAdded.size === 0 &&
+    diff.featuresChanged.size === 0 &&
+    diff.featuresRemoved === 0
+  );
+}
+
+/**
+ * Compares `current` against `baseline`: the bases are diffed as text (so a
+ * circular sequence whose origin moved reads as changed throughout, which is
+ * what the views show), and features are matched by id — a feature counts as
+ * changed only when it differs from where the sequence diff says its old
+ * self would now sit, so annotations merely pushed along by an edit
+ * elsewhere are left alone.
+ */
+export function diffDocuments(
+  baseline: SeqDocument,
+  current: SeqDocument,
+  options: SequenceDiffOptions = {},
+): DocumentDiff {
+  if (baseline === current) return EMPTY_DIFF;
+  const diff = diffSequences(baseline.sequence.toString(), current.sequence.toString(), options);
+  const { marks, deletions, basesInserted, basesChanged, basesDeleted } = collectMarks(diff);
+  const features = diffFeatures(baseline, current, diff);
+  return {
+    marks,
+    deletions,
+    ...features,
+    basesInserted,
+    basesChanged,
+    basesDeleted,
+    renamed: baseline.name !== current.name,
+    topologyChanged: baseline.topology !== current.topology,
+    coarse: diff.coarse,
+  };
+}
+
+interface MarkResult {
+  readonly marks: EditMark[];
+  readonly deletions: DeletionMark[];
+  readonly basesInserted: number;
+  readonly basesChanged: number;
+  readonly basesDeleted: number;
+}
+
+/**
+ * Turns the edit script into marks. Each run of non-equal ops is one hunk:
+ * new bases standing where old ones were are `changed`, new bases with
+ * nothing removed are `inserted`, and whatever was removed beyond the length
+ * of the replacement is a deletion at the end of the hunk.
+ */
+function collectMarks(diff: SequenceDiff): MarkResult {
+  const marks: EditMark[] = [];
+  const deletions: DeletionMark[] = [];
+  let basesInserted = 0;
+  let basesChanged = 0;
+  let basesDeleted = 0;
+
+  let i = 0;
+  while (i < diff.ops.length) {
+    const op = diff.ops[i];
+    if (op === undefined) break;
+    if (op.kind === 'equal') {
+      i++;
+      continue;
+    }
+    let removed = 0;
+    const start = op.bStart;
+    let end = op.bStart;
+    while (i < diff.ops.length) {
+      const hunk = diff.ops[i];
+      if (hunk === undefined || hunk.kind === 'equal') break;
+      removed += hunk.aEnd - hunk.aStart;
+      end = Math.max(end, hunk.bEnd);
+      i++;
+    }
+    const added = end - start;
+    if (added > 0) {
+      const kind: EditMarkKind = removed > 0 ? 'changed' : 'inserted';
+      marks.push({ kind, start, end });
+      if (kind === 'changed') basesChanged += added;
+      else basesInserted += added;
+    }
+    const surplus = removed - added;
+    if (surplus > 0) {
+      deletions.push({ position: end, count: surplus });
+      basesDeleted += surplus;
+    }
+  }
+  return { marks, deletions, basesInserted, basesChanged, basesDeleted };
+}
+
+interface FeatureDiff {
+  readonly featuresAdded: ReadonlySet<FeatureId>;
+  readonly featuresChanged: ReadonlySet<FeatureId>;
+  readonly featuresRemoved: number;
+}
+
+function diffFeatures(
+  baseline: SeqDocument,
+  current: SeqDocument,
+  diff: SequenceDiff,
+): FeatureDiff {
+  const map = positionMapper(diff, baseline.length, current.length);
+  // Feature locations are unrolled, so a segment that wraps the origin ends
+  // past the sequence; map the wrapped part and put it back past the end.
+  const mapUnrolled = (position: number): number =>
+    position > baseline.length ? map(position - baseline.length) + current.length : map(position);
+
+  const featuresAdded = new Set<FeatureId>();
+  const featuresChanged = new Set<FeatureId>();
+  for (const feature of current.features) {
+    const before = baseline.getFeature(feature.id);
+    if (before === undefined) featuresAdded.add(feature.id);
+    else if (!sameFeature(before, feature, mapUnrolled)) featuresChanged.add(feature.id);
+  }
+  let featuresRemoved = 0;
+  for (const feature of baseline.features) {
+    if (current.getFeature(feature.id) === undefined) featuresRemoved++;
+  }
+  return { featuresAdded, featuresChanged, featuresRemoved };
+}
+
+function sameFeature(before: Feature, after: Feature, map: (position: number) => number): boolean {
+  return (
+    before.type === after.type &&
+    before.name === after.name &&
+    before.strand === after.strand &&
+    sameQualifiers(before.qualifiers, after.qualifiers) &&
+    before.segments.length === after.segments.length &&
+    before.segments.every((seg, i) => sameSegment(seg, after.segments[i], map))
+  );
+}
+
+function sameQualifiers(before: readonly Qualifier[], after: readonly Qualifier[]): boolean {
+  return (
+    before.length === after.length &&
+    before.every((q, i) => {
+      const other = after[i];
+      if (other === undefined) return false;
+      return q.name === other.name && q.value === other.value;
+    })
+  );
+}
+
+function sameSegment(
+  before: Segment,
+  after: Segment | undefined,
+  map: (position: number) => number,
+): boolean {
+  if (after?.kind !== before.kind) return false;
+  if (before.kind === 'site') {
+    return after.kind === 'site' && map(before.position) === after.position;
+  }
+  if (after.kind !== 'range') return false;
+  // An exclusive end is ambiguous: mapping the boundary itself follows an
+  // insertion that happens to sit there, mapping the last base does not, and
+  // a deletion that swallowed that base only comes out right the first way.
+  // Either answer counts, so an edit *beside* a feature does not mark it.
+  const ends = [map(before.end), map(before.end - 1) + 1];
+  return (
+    map(before.start) === after.start &&
+    ends.includes(after.end) &&
+    before.partialStart === after.partialStart &&
+    before.partialEnd === after.partialEnd
+  );
+}
+
+/** The marks that overlap `[start, end)`, by binary search on the sorted list. */
+export function marksIn(
+  marks: readonly EditMark[],
+  start: number,
+  end: number,
+): readonly EditMark[] {
+  let lo = 0;
+  let hi = marks.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if ((marks[mid]?.end ?? 0) <= start) lo = mid + 1;
+    else hi = mid;
+  }
+  const out: EditMark[] = [];
+  for (let i = lo; i < marks.length; i++) {
+    const mark = marks[i];
+    if (mark === undefined || mark.start >= end) break;
+    out.push(mark);
+  }
+  return out;
+}

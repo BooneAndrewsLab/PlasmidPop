@@ -21,6 +21,45 @@ Decision: no WASM for v1. Plasmid-scale alignments finish in well under a
 second. Revisit (Rust/WASM plus a banded or linear-space algorithm) if
 alignment of >10 kb inputs becomes a requested workflow.
 
+## Edit marks (sequence diff)
+
+Myers' greedy O(ND) diff over the two versions, after stripping the common
+prefix and suffix (`src/core/diff/sequenceDiff.ts`), then an affine-gap
+re-alignment of each neighbourhood of changes (`refine.ts`). It runs on the
+main thread once per edit, so the cost has to fit inside a keystroke.
+
+| Date       | Input                                                       | Time    |
+| ---------- | ----------------------------------------------------------- | ------- |
+| 2026-09-19 | 4,361 bp (pBR322-sized), 20 short edits                     | 1.3 ms  |
+| 2026-09-19 | 4,361 bp, 500 scattered substitutions                       | 31.4 ms |
+| 2026-09-19 | 4,361 bp, two unrelated sequences (hits the step cap)       | 29.8 ms |
+| 2026-09-19 | 10 kb, 16 unrelated blocks with shared 32-mers between them | 37.3 ms |
+
+Node 24 (V8), `sequenceDiff.test.ts` perf. Cost is roughly proportional to
+the edit distance D times the length, so it is the number of _edits_, not
+the sequence length, that matters. `maxEdits` is 1,000 steps. Past that the
+diff looks for a 32-base run occurring once in each version and splits
+there, which keeps a long session with one big indel in it exact; only when
+no such run exists is the differing middle reported as one replacement.
+A plain insertion or deletion of any size never reaches the fill at all.
+Splitting turns one hard problem into two that can each be hard again, so
+the splits share a work budget of three whole-input fills; the last row
+above is the shape that exhausts it.
+
+A shortest edit script is not always the clearest one: on a four-letter
+alphabet, two edits a dozen bases apart can be "explained" in fewer steps by
+matching stray bases in between, which draws as a scatter of one-base marks.
+Every neighbourhood of changes within 24 bases of each other is therefore
+re-aligned with `alignPairwise` in global mode, whose affine gap costs
+prefer one long gap to six short ones. Those windows are tiny, so the O(nm)
+aligner is affordable here; neighbourhoods over ~200 × 200 bases are left as
+the cheap script had them, and the re-alignments share a 250,000-cell budget
+per diff. It costs about 30 % on top of the fill, worst case ~37 ms.
+
+Nothing here is a WASM candidate; if plasmids of this size ever cost more
+than a frame, move the diff into the analysis worker before reaching for
+Rust.
+
 ## Restriction scanning
 
 Full 130-enzyme scan of a 4.4 kb plasmid completes in a few milliseconds

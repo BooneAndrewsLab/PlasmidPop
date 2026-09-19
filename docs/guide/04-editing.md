@@ -51,6 +51,40 @@ In the edit bar:
 To rename the document, click its name in the toolbar, type, and press
 `Enter` (`Escape` cancels).
 
+## Seeing what you changed
+
+The **Edits** button in the toolbar marks your changes in the sequence view,
+like tracked changes in a word processor. Bases that are new are tinted and
+underlined in green, bases standing where other bases used to be in amber,
+and a red wedge with a line through the strands marks every place where
+bases were removed. A feature you added or edited gets an outline in the
+same colours. The dot on the button says something is marked; its tooltip,
+and the foot of its menu, count it up (`+12 bp · 4 bp changed · −3 bp`).
+
+The menu chooses what the marks are measured from:
+
+- **Since opened** (the default) compares against the document as it was
+  when you opened it, so the marks survive a save and show the whole
+  session's work until you open the file again.
+- **Since last save** compares against the version on disk, so the marks
+  clear every time you save — the same thing the dot beside the document
+  name means. A document that has never been saved has nothing to compare
+  to, and nothing is marked.
+- **Mark from here** makes the document as it is now the point everything
+  is measured from, for when you want to see only what you do next.
+- **Off** leaves the view unmarked.
+
+The choice is remembered between sessions (except **Mark from here**, which
+belongs to one session's work and comes back as **Since opened**). The marks
+also appear in **File ▸ Export sequence view as SVG**.
+
+The marks describe the difference between two versions, not the steps that
+got you there: if you type a base and delete it again, nothing is marked.
+Something that renumbers the whole sequence — **Set origin here** or
+**Reverse complement** — makes every base differ from the old version, so
+the whole sequence is marked and the tally says _too different to follow in
+detail_. Undo it, or use **Mark from here**, to get back to useful marks.
+
 ## Undo, redo and the history list
 
 - `Ctrl+Z` undoes, `Ctrl+Shift+Z` or `Ctrl+Y` redoes. The **Undo** and

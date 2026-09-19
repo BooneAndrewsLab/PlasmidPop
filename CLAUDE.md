@@ -90,17 +90,20 @@ Build order steps 1–10 are implemented and committed; step 11 (backend)
 is not started. Beyond the build order, these have landed: Save GenBank /
 Save as / write-back through the File System Access API, SVG map export,
 selection export, find (Ctrl+F), a full feature editor, a History sidebar
-tab, sequence-view / selection SVG export, a bundled example (pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
+tab, sequence-view / selection SVG export, tracked-changes marks for the
+sequence view (`src/core/diff/`, the **Edits** menu), a bundled example
+(pBR322), and Matomo usage statistics (`src/app/analytics.ts`,
 always on when configured, no user toggle by decision of 2026-09-18;
 events at file open/new/save/export, enzyme show, primer design, align,
-ligate, history jump; the Pages workflow sets the instance URL and site id 6). The view
-switcher and the Complement / Translations / Cut sites toggles are remembered
-in localStorage (`src/app/state/viewPrefs.ts`, applied and watched by
-`useViewPrefs`); documents and enzyme ticks are unaffected. The logo (`design/logo/`, made in Claude Design) is used
-for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
+ligate, history jump, edit-mark baseline; the Pages workflow sets the
+instance URL and site id 6). The view switcher, the Complement /
+Translations / Cut sites toggles and the Edits baseline are remembered in
+localStorage (`src/app/state/viewPrefs.ts`, applied and watched by
+`useViewPrefs`); documents and enzyme ticks are unaffected. The logo
+(`design/logo/`, made in Claude Design) is used for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 435 passing. Perf measurements live in
-`docs/perf-notes.md`.
+`scripts/make-wordmark.py`, no webfont). Tests: 496 passing. Perf
+measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
 
@@ -243,18 +246,28 @@ pick from here when the current work is done.
     not the toggle (both headings now say "ticked enzymes"). The toggle
     is remembered across reloads with the other view preferences
     (`src/app/state/viewPrefs.ts`). Not yet: a key binding.
-21. **Show edits in the sequence view.** Mark bases that were inserted or
-    changed (and where deletions happened) so an editing session is
-    visible at a glance, like tracked changes. Open question: what is the
-    reference point. Candidates: (a) the file on disk, which the store
-    already tracks as `savedDoc` for the dirty flag, so the marks clear
-    on Save; (b) the state when the document was opened (history
-    position 0), so marks survive Save until the file is reopened; (c) a
-    baseline the user sets ("mark from here"). (a) is the cheapest and
-    matches the dirty dot in the toolbar; (b) and (c) need a stored
-    baseline document. Either way the marks are a diff between two
-    `SeqDocument`s: the alignment module can produce it for the sequence,
-    and feature ids give the feature diff. Requested 2026-09-18.
+21. ~~**Show edits in the sequence view.**~~ done, with all three
+    baselines of the open question, chosen from an **Edits** menu in the
+    toolbar: Off / Since opened (the default) / Since last save / Mark
+    from here (`editsBaseline`, `openedDoc`, `markedDoc` in the store;
+    the mode is remembered with the other view preferences, "marked"
+    coming back as "opened"). The marks are a diff of two `SeqDocument`s
+    (`src/core/diff/`): a Myers O(ND) diff after stripping the common
+    prefix and suffix, which splits on a shared 32-mer when one stretch
+    needs more than 1,000 steps and only then reports "this whole stretch
+    was replaced". A shortest script is not the clearest one on four
+    letters — two edits a dozen bases apart come out as a scatter of
+    one-base specks — so each neighbourhood of changes is re-aligned with
+    `alignPairwise` (`refine.ts`), whose affine gaps prefer one long gap
+    to six short ones; those windows are small enough for O(nm) (1.3 ms
+    for a normal session, ~37 ms worst case, `docs/perf-notes.md`). Inserted bases are
+    tinted green with an underline, changed bases amber, deletions get a
+    red wedge and a line at the boundary; features added or edited are
+    outlined, and a feature that merely moved with an edit elsewhere is
+    not (its old location is mapped through the diff). The marks are in
+    the sequence-view SVG exports too. Requested 2026-09-18. Not yet: the
+    circular map, a key binding, anything for a rename or topology change
+    beyond the menu's tally.
 
 ## Non-goals for v1
 

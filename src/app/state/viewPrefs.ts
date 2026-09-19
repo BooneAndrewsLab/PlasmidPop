@@ -1,4 +1,4 @@
-import { type ViewMode, editorStore } from './editorStore';
+import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
 
 /**
  * How the views were left: the toolbar's view switcher and its three
@@ -12,6 +12,12 @@ export interface ViewPrefs {
   readonly showComplement: boolean;
   readonly showTranslations: boolean;
   readonly showCutSites: boolean;
+  /**
+   * Which baseline the edit marks use. "Mark from here" is a point in one
+   * session's work, so it is remembered as the state the document was opened
+   * in instead — there is no baseline document to bring back.
+   */
+  readonly editsBaseline: Exclude<EditsBaseline, 'marked'>;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -20,6 +26,12 @@ const VIEW_MODES: readonly ViewMode[] = ['sequence', 'map', 'both'];
 
 function isViewMode(v: unknown): v is ViewMode {
   return typeof v === 'string' && (VIEW_MODES as readonly string[]).includes(v);
+}
+
+const BASELINES: readonly string[] = ['off', 'opened', 'saved'];
+
+function isStoredBaseline(v: unknown): v is Exclude<EditsBaseline, 'marked'> {
+  return typeof v === 'string' && BASELINES.includes(v);
 }
 
 /**
@@ -45,6 +57,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   const record = parsed as Record<string, unknown>;
   const prefs: { -readonly [K in keyof ViewPrefs]?: ViewPrefs[K] } = {};
   if (isViewMode(record['view'])) prefs.view = record['view'];
+  if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
   for (const key of ['showComplement', 'showTranslations', 'showCutSites'] as const) {
     if (typeof record[key] === 'boolean') prefs[key] = record[key];
   }
@@ -60,8 +73,15 @@ export function saveViewPrefs(prefs: ViewPrefs): void {
 }
 
 function snapshot(): ViewPrefs {
-  const { view, showComplement, showTranslations, showCutSites } = editorStore.getState();
-  return { view, showComplement, showTranslations, showCutSites };
+  const { view, showComplement, showTranslations, showCutSites, editsBaseline } =
+    editorStore.getState();
+  return {
+    view,
+    showComplement,
+    showTranslations,
+    showCutSites,
+    editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
+  };
 }
 
 function same(a: ViewPrefs, b: ViewPrefs): boolean {
@@ -69,7 +89,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.view === b.view &&
     a.showComplement === b.showComplement &&
     a.showTranslations === b.showTranslations &&
-    a.showCutSites === b.showCutSites
+    a.showCutSites === b.showCutSites &&
+    a.editsBaseline === b.editsBaseline
   );
 }
 
@@ -85,6 +106,7 @@ export function startViewPrefs(): () => void {
     editorStore.setShowTranslations(stored.showTranslations);
   }
   if (stored.showCutSites !== undefined) editorStore.setShowCutSites(stored.showCutSites);
+  if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();

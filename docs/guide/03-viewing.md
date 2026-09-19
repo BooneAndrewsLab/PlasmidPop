@@ -5,11 +5,11 @@ The toolbar's view switcher shows the **Sequence** view, the **Map**, or
 in one is highlighted in the other and reported in the status bar as
 `N bp selected, from to to` (1-based, inclusive).
 
-The switcher and the **Complement**, **Translations** and **Cut sites**
-toggles next to it are remembered in the browser, so the views come back the
-way you left them the next time you open PlasmidPop. They are settings of the
-app, not of a document: they do not change with the file you open and are not
-written into a saved file.
+The switcher, the **Complement**, **Translations** and **Cut sites** toggles
+next to it and the **Edits** baseline are remembered in the browser, so the
+views come back the way you left them the next time you open PlasmidPop. They
+are settings of the app, not of a document: they do not change with the file
+you open and are not written into a saved file.
 
 ## Sequence view
 
@@ -23,7 +23,9 @@ above each row giving the position of its first base. Below each row:
   they overlap;
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
   enzyme name, unless **Cut sites** is off in the toolbar (see
-  [Restriction enzymes](07-enzymes.md)).
+  [Restriction enzymes](07-enzymes.md));
+- **edit marks** over the bases you have changed, when **Edits** is on in the
+  toolbar (see [Editing the sequence](04-editing.md)).
 
 Clicking a feature bar selects that feature; clicking an amino acid on a
 translation line selects that residue's three bases. The pointer turns into a

@@ -11,6 +11,7 @@ const DEFAULTS = {
   showComplement: true,
   showTranslations: true,
   showCutSites: true,
+  editsBaseline: 'opened',
 } as const;
 
 function reset(): void {
@@ -19,6 +20,7 @@ function reset(): void {
   editorStore.setShowComplement(DEFAULTS.showComplement);
   editorStore.setShowTranslations(DEFAULTS.showTranslations);
   editorStore.setShowCutSites(DEFAULTS.showCutSites);
+  editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
 }
 
 describe('view preferences', () => {
@@ -34,6 +36,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: true,
       showCutSites: false,
+      editsBaseline: 'saved',
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -44,7 +47,10 @@ describe('view preferences', () => {
     expect(loadViewPrefs()).toEqual({});
     localStorage.setItem(KEY, '[1,2]');
     expect(loadViewPrefs()).toEqual({});
-    localStorage.setItem(KEY, JSON.stringify({ view: 'chromosome', showComplement: 'yes' }));
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ view: 'chromosome', showComplement: 'yes', editsBaseline: 'marked' }),
+    );
     expect(loadViewPrefs()).toEqual({});
     // A partial entry keeps the fields it does have.
     localStorage.setItem(KEY, JSON.stringify({ showCutSites: false, extra: 1 }));
@@ -57,6 +63,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       showCutSites: false,
+      editsBaseline: 'off',
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -64,6 +71,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       showCutSites: false,
+      editsBaseline: 'off',
     });
     stop();
   });
@@ -84,6 +92,19 @@ describe('view preferences', () => {
     stop();
     editorStore.setShowComplement(false);
     expect(loadViewPrefs()).toMatchObject({ showComplement: true });
+  });
+
+  it('remembers the edit-mark baseline, but not a "mark from here"', () => {
+    const stop = startViewPrefs();
+    editorStore.setEditsBaseline('saved');
+    expect(loadViewPrefs()).toMatchObject({ editsBaseline: 'saved' });
+    editorStore.openDocument(SeqDocument.create({ sequence: 'ACGT' }), 'x.gb');
+    editorStore.markEditsFromHere();
+    expect(editorStore.getState().editsBaseline).toBe('marked');
+    // A baseline that only exists in this session comes back as "since opened".
+    expect(loadViewPrefs()).toMatchObject({ editsBaseline: 'opened' });
+    stop();
+    editorStore.closeDocument();
   });
 
   it('writes nothing for changes that are not view preferences', () => {

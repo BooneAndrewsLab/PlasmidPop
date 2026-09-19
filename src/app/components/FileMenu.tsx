@@ -7,6 +7,7 @@ import { exportLinearSvg, exportMapSvg } from '@/view/svg';
 import { EXAMPLES } from '../examples';
 import { openText } from '../openFile';
 import { downloadText, fileNameFor, serialize } from '../saveFile';
+import { editDiffOf } from '../state/editDiff';
 import { persistence, writeBackTarget } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -153,6 +154,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
                     showComplement,
                     showTranslations,
                     cutSites: editorStore.visibleCutSites(),
+                    edits: editDiffOf(editorStore.getState()),
                   }),
                 );
               });
@@ -175,6 +177,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
                     showComplement,
                     showTranslations,
                     cutSites: editorStore.visibleCutSites(),
+                    edits: editDiffOf(editorStore.getState()),
                   }),
                 );
               });

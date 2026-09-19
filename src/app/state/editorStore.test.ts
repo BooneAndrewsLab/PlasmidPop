@@ -391,3 +391,65 @@ describe('assembly shelf', () => {
     expect(store.getState().assembly).toEqual([]);
   });
 });
+
+describe('EditorStore edit-mark baseline', () => {
+  function opened(): EditorStore {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    return store;
+  }
+
+  it('measures from the opened state by default, across a save', () => {
+    const store = opened();
+    expect(store.editsBaselineDocument()).toBe(doc);
+    store.apply({ type: 'insert', position: 0, text: 'TTT' });
+    store.markSaved();
+    expect(store.editsBaselineDocument()).toBe(doc);
+  });
+
+  it('measures from the file on disk when asked, so a save clears the marks', () => {
+    const store = opened();
+    store.setEditsBaseline('saved');
+    store.apply({ type: 'insert', position: 0, text: 'TTT' });
+    expect(store.editsBaselineDocument()).toBe(doc);
+    store.markSaved();
+    expect(store.editsBaselineDocument()).toBe(store.document);
+  });
+
+  it('has nothing to measure against while off, or with no file to compare to', () => {
+    const store = opened();
+    store.setEditsBaseline('off');
+    expect(store.editsBaselineDocument()).toBeNull();
+    store.setEditsBaseline('saved');
+    store.openDocument(doc); // pasted or an example: nowhere to be saved yet
+    expect(store.getState().savedDoc).toBeNull();
+    expect(store.editsBaselineDocument()).toBeNull();
+    // A new document starts out as the empty one it was, so typing is marked.
+    store.newDocument();
+    const empty = store.document;
+    store.apply({ type: 'insert', position: 0, text: 'ACGT' });
+    expect(store.editsBaselineDocument()).toBe(empty);
+  });
+
+  it('moves the baseline to the present state on "mark from here"', () => {
+    const store = opened();
+    store.apply({ type: 'insert', position: 0, text: 'TTT' });
+    const marked = store.document;
+    store.markEditsFromHere();
+    expect(store.getState().editsBaseline).toBe('marked');
+    expect(store.editsBaselineDocument()).toBe(marked);
+    store.apply({ type: 'insert', position: 0, text: 'AAA' });
+    expect(store.editsBaselineDocument()).toBe(marked);
+    // Falls back to the opened state until it has been used for this document.
+    store.openDocument(doc, 'y.gb');
+    expect(store.editsBaselineDocument()).toBe(doc);
+  });
+
+  it('has no baseline with nothing open', () => {
+    const store = new EditorStore();
+    store.setEditsBaseline('opened');
+    expect(store.editsBaselineDocument()).toBeNull();
+    store.markEditsFromHere();
+    expect(store.getState().editsBaseline).toBe('opened');
+  });
+});

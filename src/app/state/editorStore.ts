@@ -19,6 +19,12 @@ import { type ParseResult, type ParseWarning } from '@/io';
 import { type EditPlan, selectionAfterOp } from '../editing';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
+/**
+ * What the edit marks in the sequence view compare the document against:
+ * nothing, the state it was opened in, the version last written to a file,
+ * or a point the user chose with "Mark from here".
+ */
+export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked';
 export type SidebarTab =
   'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
 
@@ -134,6 +140,12 @@ export interface EditorState {
   readonly showComplement: boolean;
   /** Whether amino-acid translations are drawn under CDS features in the sequence view. */
   readonly showTranslations: boolean;
+  /** Which version the sequence view marks changes against; see `EditsBaseline`. */
+  readonly editsBaseline: EditsBaseline;
+  /** The document as it was opened, the baseline for `editsBaseline: 'opened'`. */
+  readonly openedDoc: SeqDocument | null;
+  /** The document when "Mark from here" was last used. */
+  readonly markedDoc: SeqDocument | null;
   readonly view: ViewMode;
   readonly sidebarTab: SidebarTab;
   readonly analysis: AnalysisState | null;
@@ -178,6 +190,9 @@ const INITIAL: EditorState = {
   overwritePrompt: null,
   showComplement: true,
   showTranslations: true,
+  editsBaseline: 'opened',
+  openedDoc: null,
+  markedDoc: null,
   view: 'both',
   sidebarTab: 'features',
   analysis: null,
@@ -253,6 +268,8 @@ export class EditorStore {
       overwritePrompt: null,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
       savedDoc: fileName === null ? null : doc,
+      openedDoc: doc,
+      markedDoc: null,
       warnings,
       error: null,
       errorCountdown: null,
@@ -289,6 +306,8 @@ export class EditorStore {
       fileHandle: null,
       overwritePrompt: null,
       savedDoc: null,
+      openedDoc: null,
+      markedDoc: null,
       warnings: [],
       analysis: null,
       shownEnzymes: new Set(),
@@ -554,6 +573,24 @@ export class EditorStore {
     if (show !== this.state.showTranslations) this.set({ showTranslations: show });
   }
 
+  setEditsBaseline(baseline: EditsBaseline): void {
+    if (baseline === this.state.editsBaseline) return;
+    analytics.track('edits', 'baseline', baseline);
+    this.set({ editsBaseline: baseline });
+  }
+
+  /** Makes the present document the point the edit marks are measured from. */
+  markEditsFromHere(): void {
+    const present = this.document;
+    if (present === null) return;
+    analytics.track('edits', 'baseline', 'marked');
+    this.set({ markedDoc: present, editsBaseline: 'marked' });
+  }
+
+  editsBaselineDocument(): SeqDocument | null {
+    return editsBaselineDocument(this.state);
+  }
+
   // ------------------------------------------------------------- assembly
 
   /** Appends a fragment to the assembly and returns its part id. */
@@ -592,6 +629,26 @@ export class EditorStore {
 
   clearAssembly(): void {
     if (this.state.assembly.length > 0) this.set({ assembly: [] });
+  }
+}
+
+/**
+ * The version the edit marks compare against, or null when they are off or
+ * there is nothing to compare with — a document that was never saved has no
+ * file to be measured against, and "Mark from here" falls back to the state
+ * the document was opened in until it is used.
+ */
+export function editsBaselineDocument(state: EditorState): SeqDocument | null {
+  if (state.history === null) return null;
+  switch (state.editsBaseline) {
+    case 'off':
+      return null;
+    case 'saved':
+      return state.savedDoc;
+    case 'marked':
+      return state.markedDoc ?? state.openedDoc;
+    case 'opened':
+      return state.openedDoc;
   }
 }
 

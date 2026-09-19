@@ -47,6 +47,7 @@ import {
   typeText,
 } from '../editing';
 import { openPastedText } from '../openFile';
+import { useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -70,6 +71,9 @@ function readTheme(el: HTMLElement): LinearTheme {
     caret: v('--seq-caret', '#1b6e8c'),
     background: v('--surface', '#ffffff'),
     cutSite: v('--seq-cut', '#b3261e'),
+    editInsert: v('--seq-edit-insert', '#1d7a4c'),
+    editChange: v('--seq-edit-change', '#a86200'),
+    editDelete: v('--seq-edit-delete', '#b3261e'),
   };
 }
 
@@ -94,6 +98,7 @@ export function LinearSequenceView({ doc }: Props) {
         : [],
     [analysis, doc, shownEnzymes, showCutSites],
   );
+  const edits = useEditDiff();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -218,6 +223,7 @@ export function LinearSequenceView({ doc }: Props) {
         translationLanes,
         selection,
         cutSites,
+        edits,
         scrollTop,
         width: size.width,
         height: size.height,
@@ -230,7 +236,18 @@ export function LinearSequenceView({ doc }: Props) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [doc, layout, lanes, translations, translationLanes, selection, cutSites, scrollTop, size]);
+  }, [
+    doc,
+    layout,
+    lanes,
+    translations,
+    translationLanes,
+    selection,
+    cutSites,
+    edits,
+    scrollTop,
+    size,
+  ]);
 
   const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const rect = e.currentTarget.getBoundingClientRect();

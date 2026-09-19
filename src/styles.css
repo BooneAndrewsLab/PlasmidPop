@@ -20,6 +20,9 @@
   --seq-selection: rgba(27, 110, 140, 0.2);
   --seq-caret: var(--accent);
   --seq-cut: #b3261e;
+  --seq-edit-insert: #1d7a4c;
+  --seq-edit-change: #a86200;
+  --seq-edit-delete: #b3261e;
 
   --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
@@ -44,6 +47,9 @@
     --seq-rule: #3a424e;
     --seq-selection: rgba(95, 176, 208, 0.28);
     --seq-cut: #ff8a80;
+    --seq-edit-insert: #5fd196;
+    --seq-edit-change: #e0a458;
+    --seq-edit-delete: #ff8a80;
   }
 }
 
@@ -1319,6 +1325,20 @@ button {
 }
 
 .menu__shortcut {
+  color: var(--ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Edit marks: the dot on the toolbar button and the tally under its menu. */
+
+.edits__dot {
+  color: var(--seq-edit-change);
+}
+
+.edits__summary {
+  margin: 0;
+  padding: 4px 10px;
   color: var(--ink-3);
   font-size: 12px;
   white-space: nowrap;

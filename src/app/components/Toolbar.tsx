@@ -6,6 +6,7 @@ import { EXAMPLES } from '../examples';
 import { openFile, openText } from '../openFile';
 import { persistence } from '../state/persistence';
 import { HelpButton } from '../help/HelpButton';
+import { EditsMenu } from './EditsMenu';
 import { FileMenu } from './FileMenu';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
@@ -187,6 +188,7 @@ export function Toolbar({ doc }: Props) {
                 Cut sites
               </button>
             </div>
+            <EditsMenu />
           </>
         )}
         <input

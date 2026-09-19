@@ -1,5 +1,6 @@
 import {
   type CutSite,
+  type DocumentDiff,
   type Range,
   type SeqDocument,
   CdsTranslations,
@@ -28,6 +29,9 @@ export const PRINT_LINEAR_THEME: LinearTheme = {
   caret: 'rgba(0,0,0,0)',
   background: '#ffffff',
   cutSite: '#b3261e',
+  editInsert: '#1d7a4c',
+  editChange: '#a86200',
+  editDelete: '#b3261e',
 };
 
 /** Fonts with an advance width the SVG estimator can predict (Courier is exactly 0.6 em). */
@@ -53,6 +57,8 @@ export interface LinearExportOptions {
   readonly showComplement?: boolean;
   readonly showTranslations?: boolean;
   readonly cutSites?: readonly CutSite[];
+  /** Changes to mark, as the sequence view marks them on screen. */
+  readonly edits?: DocumentDiff | null;
   readonly transparent?: boolean;
 }
 
@@ -129,6 +135,7 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     translationLanes,
     selection: options.selection ?? null,
     cutSites,
+    edits: options.edits ?? null,
     scrollTop: top,
     width,
     height,

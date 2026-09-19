@@ -16,7 +16,8 @@ no account, no upload and no server round-trip. Works offline once loaded.
   labels and cut sites.
 - **Edit** by typing: insert, delete, replace, copy and paste with
   features, reverse complement, set the origin, switch between circular and
-  linear, with full undo and a history list.
+  linear, with full undo, a history list and tracked-changes marks over
+  what you changed.
 - **Annotate**: a feature list and editor with GenBank locations
   (`join`, `complement`, wrapping the origin, partial ends) and
   qualifiers.
@@ -85,6 +86,7 @@ src/
     features/   Segment/Feature types, FeatureSet with interval-tree index
     document/   Immutable SeqDocument + EditOp vocabulary
     history/    Generic undo/redo stack
+    diff/       Myers diff of two document versions, for the edit marks
     analysis/   Genetic code + translation, ORF finder, enzyme table, cut-site scanner
     primers/    Nearest-neighbour Tm, primer QC, pair design, binding-site search
     alignment/  Gotoh affine-gap pairwise alignment (global/local), see docs/perf-notes.md

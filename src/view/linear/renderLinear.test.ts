@@ -1,4 +1,4 @@
-import { CdsTranslations, SeqDocument, createFeature, rangeSegment } from '@/core';
+import { CdsTranslations, SeqDocument, createFeature, diffDocuments, rangeSegment } from '@/core';
 
 import { SvgContext } from '../svg/svgContext';
 import { assignLanes, lanesPerRow } from './lanes';
@@ -14,6 +14,9 @@ const theme: LinearTheme = {
   caret: '#0000ff',
   background: '#ffffff',
   cutSite: '#ff0000',
+  editInsert: '#00aa00',
+  editChange: '#aa8800',
+  editDelete: '#ff0000',
 };
 
 const metrics: LinearMetrics = {
@@ -38,7 +41,11 @@ function texts(svg: string): { text: string; x: number; y: number }[] {
   }));
 }
 
-function render(doc: SeqDocument, showTranslations = true): string {
+function render(
+  doc: SeqDocument,
+  showTranslations = true,
+  edits: RenderParams['edits'] = null,
+): string {
   const features = doc.features.all();
   const lanes = assignLanes(features, doc.length);
   const coding = showTranslations ? features : [];
@@ -57,6 +64,7 @@ function render(doc: SeqDocument, showTranslations = true): string {
     translations: showTranslations ? new CdsTranslations(doc) : null,
     translationLanes,
     selection: null,
+    edits,
     cutSites: [],
     scrollTop: 0,
     width: 300,
@@ -134,5 +142,63 @@ describe('renderLinearView translations', () => {
     });
     const drawn = texts(render(doc, false)).filter((t) => /^[A-Z*]$/.test(t.text));
     expect(drawn).toEqual([]);
+  });
+});
+
+describe('renderLinearView edit marks', () => {
+  const base = SeqDocument.create({ sequence: 'ACGTTGCAAGGCTTAACCGG' });
+  /** Rectangles drawn by the renderer, with their geometry, in drawing order. */
+  function rects(svg: string): { x: number; y: number; w: number; h: number; fill: string }[] {
+    return [
+      ...svg.matchAll(
+        /<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)" fill="([^"]*)"/g,
+      ),
+    ].map((m) => ({
+      x: Number(m[1]),
+      y: Number(m[2]),
+      w: Number(m[3]),
+      h: Number(m[4]),
+      fill: m[5] ?? '',
+    }));
+  }
+
+  it('draws nothing extra without a diff', () => {
+    expect(rects(render(base, false)).filter((r) => r.fill.includes('0, 170, 0'))).toEqual([]);
+  });
+
+  it('tints and underlines inserted bases over both strands', () => {
+    const edited = base.insert(2, 'TTT');
+    const drawn = rects(render(edited, false, diffDocuments(base, edited)));
+    // Columns 2..5 of row 0: x = 100 + 2 * 10, width 3 * 10.
+    const tint = drawn.find((r) => r.fill.startsWith('rgba(0, 170, 0'));
+    expect(tint).toMatchObject({ x: 120, w: 30, h: 40 }); // two 20px strand lines
+    const underline = drawn.find((r) => r.fill === '#00aa00' && r.h === 2);
+    expect(underline).toMatchObject({ x: 120, w: 30 });
+  });
+
+  it('uses the changed colour where bases replaced others', () => {
+    const edited = base.replace({ start: 4, end: 8 }, 'NNNN');
+    const drawn = rects(render(edited, false, diffDocuments(base, edited)));
+    expect(drawn.some((r) => r.fill.startsWith('rgba(170, 136, 0'))).toBe(true);
+    expect(drawn.some((r) => r.fill.startsWith('rgba(0, 170, 0'))).toBe(false);
+  });
+
+  it('marks a deletion with a wedge and a line at the boundary it left', () => {
+    const edited = base.delete({ start: 1, end: 4 });
+    const svg = render(edited, false, diffDocuments(base, edited));
+    // Column 1 of row 0 is x = 110: a wedge in the ruler band above the
+    // strands, and a line down through both of them (y 20 to 60).
+    expect(svg).toContain('<path d="M106.5 14 L114.5 14 L110.5 19 Z" fill="#ff0000"');
+    expect(svg).toContain('<path d="M110.5 20 L110.5 60" fill="none" stroke="#ff0000"');
+  });
+
+  it('outlines a feature that was added or edited', () => {
+    const added = base.addFeature(
+      createFeature({ id: 'new', type: 'CDS', name: 'x', segments: [rangeSegment(2, 9)] }),
+    );
+    const svg = render(added, false, diffDocuments(base, added));
+    expect(svg).toMatch(/fill="none" stroke="#00aa00" stroke-width="1.5"/);
+    // An untouched feature keeps its plain ribbon.
+    expect(render(added, false, null)).not.toMatch(/stroke="#00aa00"/);
   });
 });

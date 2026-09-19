@@ -1,10 +1,12 @@
 import {
   type CdsTranslations,
   type CutSite,
+  type DocumentDiff,
   type Feature,
   type Range,
   type SeqDocument,
   complement,
+  marksIn,
   rangePieces,
 } from '@/core';
 
@@ -22,6 +24,12 @@ export interface LinearTheme {
   readonly caret: string;
   readonly background: string;
   readonly cutSite: string;
+  /** Bases that are new since the baseline. */
+  readonly editInsert: string;
+  /** Bases standing where other bases used to be. */
+  readonly editChange: string;
+  /** Boundaries where bases were removed. */
+  readonly editDelete: string;
 }
 
 export interface RenderParams {
@@ -37,6 +45,11 @@ export interface RenderParams {
   readonly selection: Range | null;
   /** Cut sites to mark above the strands (already filtered to the enzymes the user wants). */
   readonly cutSites: readonly CutSite[];
+  /**
+   * Changes since the baseline the user chose, marked over the strands and
+   * around the features they touched. `null` leaves the view unmarked.
+   */
+  readonly edits: DocumentDiff | null;
   readonly scrollTop: number;
   readonly width: number;
   readonly height: number;
@@ -108,6 +121,57 @@ function drawSelection(ctx: DrawingContext, p: RenderParams, row: RowLayout): vo
     const x0 = layout.xOfColumn(s - row.start);
     const x1 = layout.xOfColumn(e - row.start);
     ctx.fillRect(x0, top, x1 - x0, bottom - top);
+  }
+}
+
+/** Half-width and height of the wedge that marks bases which are gone. */
+const DELETION_WEDGE = 4;
+
+/**
+ * Tracked changes over the strands: a tint with a solid underline for bases
+ * that are new or that replaced others, and a wedge at every boundary where
+ * bases were removed. Drawn under the selection so both stay readable.
+ */
+function drawEdits(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { doc, edits, layout, theme } = p;
+  if (edits === null) return;
+  const m = layout.metrics;
+  const top = layout.forwardTextTop(row);
+  const bottom = top + m.lineHeight * (m.showComplement ? 2 : 1);
+  for (const mark of marksIn(edits.marks, row.start, row.end)) {
+    const s = Math.max(mark.start, row.start);
+    const e = Math.min(mark.end, row.end);
+    if (e <= s) continue;
+    const color = mark.kind === 'inserted' ? theme.editInsert : theme.editChange;
+    const x0 = layout.xOfColumn(s - row.start);
+    const x1 = layout.xOfColumn(e - row.start);
+    ctx.fillStyle = withAlpha(color, 0.2);
+    ctx.fillRect(x0, top, x1 - x0, bottom - top);
+    ctx.fillStyle = color;
+    ctx.fillRect(x0, bottom - 2, x1 - x0, 2);
+  }
+  for (const deletion of edits.deletions) {
+    const at = deletion.position;
+    // A deletion at a row break belongs to the row it ends, and one at the
+    // very end of the sequence to the last row.
+    if (at < row.start || at > row.end) continue;
+    if (at === row.end && row.end !== doc.length) continue;
+    // A wedge in the ruler band pointing at the gap, and a line down through
+    // the strands to say exactly which boundary it is.
+    const x = Math.round(layout.xOfColumn(at - row.start)) + 0.5;
+    ctx.fillStyle = theme.editDelete;
+    ctx.beginPath();
+    ctx.moveTo(x - DELETION_WEDGE, top - DELETION_WEDGE - 2);
+    ctx.lineTo(x + DELETION_WEDGE, top - DELETION_WEDGE - 2);
+    ctx.lineTo(x, top - 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = theme.editDelete;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
   }
 }
 
@@ -205,6 +269,15 @@ function ribbonPath(ctx: DrawingContext, r: Ribbon, top: number, height: number)
   ctx.closePath();
 }
 
+/** The colour an annotation that changed since the baseline is outlined in. */
+function editOutline(p: RenderParams, feature: Feature): string | null {
+  const { edits, theme } = p;
+  if (edits === null) return null;
+  if (edits.featuresAdded.has(feature.id)) return theme.editInsert;
+  if (edits.featuresChanged.has(feature.id)) return theme.editChange;
+  return null;
+}
+
 function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, feature: Feature): void {
   const { doc, layout, lanes } = p;
   const lane = lanes.laneOf.get(feature.id);
@@ -213,6 +286,7 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
   const top = layout.laneTop(row, lane) + RIBBON_INSET;
   const height = m.laneHeight - RIBBON_INSET * 2;
   const color = featureColor(feature);
+  const outline = editOutline(p, feature);
   const label = feature.name === '' ? feature.type : feature.name;
 
   const pieces: { start: number; end: number; first: boolean; last: boolean }[] = [];
@@ -227,6 +301,11 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
         ctx.lineTo(x, top + height);
         ctx.closePath();
         ctx.fill();
+        if (outline !== null) {
+          ctx.strokeStyle = outline;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
       }
       return;
     }
@@ -254,6 +333,12 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
     ctx.fillStyle = color;
     ribbonPath(ctx, ribbon, top, height);
     ctx.fill();
+    if (outline !== null) {
+      // The fill leaves the path in place, so the outline needs no second one.
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
 
     const inner =
       ribbon.x1 - ribbon.x0 - (ribbon.arrowLeft ? ARROW : 0) - (ribbon.arrowRight ? ARROW : 0) - 8;
@@ -341,6 +426,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   ctx.translate(0, -scrollTop);
 
   for (const row of layout.rowsInWindow(scrollTop, scrollTop + height)) {
+    drawEdits(ctx, p, row);
     drawSelection(ctx, p, row);
     drawRuler(ctx, p, row);
     drawStrands(ctx, p, row);
