@@ -16,6 +16,7 @@ import {
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { GoldenGatePanel } from './GoldenGatePanel';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -380,6 +381,14 @@ export function CloningPanel({ doc }: Props) {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="panel__section">
+        <h3 className="panel__heading">
+          Golden Gate
+          <span className="panel__heading-note">one pot, one enzyme</span>
+        </h3>
+        <GoldenGatePanel />
       </div>
     </div>
   );

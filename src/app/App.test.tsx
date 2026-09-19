@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { translateSixFrames } from '@/core';
+import { SeqDocument, translateSixFrames } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 import { getRepository } from '@/storage';
 
@@ -598,5 +598,76 @@ describe('cloning', () => {
     // ...and it survives a save and reopen through GenBank.
     const reopened = parseGenBank(writeGenBank(fragment as never)).documents[0];
     expect(reopened?.ends).toEqual(fragment?.ends);
+  });
+});
+
+describe('golden gate', () => {
+  /** A part with a BsaI site at each end pointing inwards; see goldenGate.test.ts. */
+  const insert = (name: string, left: string, payload: string, right: string) =>
+    SeqDocument.create({ name, sequence: `TTGGTCTCA${left}${payload}${right}AGAGACCTT` });
+  const vector = SeqDocument.create({
+    name: 'pDest',
+    topology: 'circular',
+    sequence: 'AATGCCCCCCCCCCCCGCTTAGAGACCTTTTGGTCTCA',
+  });
+
+  async function openParts(): Promise<void> {
+    render(<App />);
+    act(() => {
+      editorStore.openDocument(vector, 'pDest.gb');
+      editorStore.openDocument(insert('insert1', 'GCTT', 'AAAAAAAAAA', 'CGCT'), 'insert1.gb');
+      editorStore.openDocument(insert('insert2', 'CGCT', 'TTTTTTTTTT', 'AATG'), 'insert2.gb');
+    });
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+  }
+
+  it('works out the order from the overhangs and assembles the circle', async () => {
+    await openParts();
+    expect(screen.getByText(/3 parts join/)).toBeInTheDocument();
+    expect(screen.getByText(/44 bp circle/)).toBeInTheDocument();
+    // The overhangs chain pDest → insert1 → insert2 and back, whatever
+    // order the parts were given in.
+    const rows = within(screen.getByRole('list', { name: 'Assembly order' })).getAllByRole(
+      'listitem',
+    );
+    expect(rows.map((li) => li.textContent)).toEqual([
+      '1pDest16 bpAATG',
+      '2insert114 bpGCTT',
+      '3insert214 bpCGCT',
+    ]);
+    // The five pieces that keep a BsaI site are reported, not silently dropped.
+    expect(screen.getByText('5 pieces left out')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
+    const product = editorStore.document;
+    expect(product?.name).toBe('pDest+insert1+insert2 assembly');
+    expect(product?.isCircular).toBe(true);
+    expect(product?.length).toBe(44);
+    expect(product?.sequence.toString()).toBe('AATGCCCCCCCCCCCCGCTTAAAAAAAAAACGCTTTTTTTTTTT');
+    // Not a BsaI site left: the product cannot be cut again.
+    expect(product?.sequence.toString()).not.toContain('GGTCTC');
+    expect(product?.sequence.toString()).not.toContain('GAGACC');
+  });
+
+  it('says why the parts do not go together when one is left out', async () => {
+    await openParts();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'insert2' }));
+    expect(screen.queryByRole('button', { name: 'Assemble' })).not.toBeInTheDocument();
+    expect(screen.getByText(/CGCT/)).toBeInTheDocument();
+    // Ticking it again brings the assembly back.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'insert2' }));
+    expect(screen.getByRole('button', { name: 'Assemble' })).toBeEnabled();
+  });
+
+  it('names the product when the user does', async () => {
+    await openParts();
+    fireEvent.change(screen.getByRole('textbox', { name: /Name of the assembled/ }), {
+      target: { value: 'pFinal' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
+    expect(editorStore.document?.name).toBe('pFinal');
   });
 });

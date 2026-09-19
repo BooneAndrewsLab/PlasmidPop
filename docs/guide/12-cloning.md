@@ -2,8 +2,9 @@
 
 The **Cloning** tab cuts the document with restriction enzymes, describes
 the resulting fragments end by end, and lets you collect fragments, from
-this file and others, into a ligation. The product opens as a new document
-with the features of its parts.
+this file and others, into a ligation. It also runs a
+**Golden Gate** reaction (below) over the open documents. Either way the
+product opens as a new document with the features of its parts.
 
 ## Digest
 
@@ -77,10 +78,50 @@ Ends are compatible when both are blunt, or when they have the same kind of
 overhang with complementary bases. A PstI end will not join an EcoRI end,
 and a BamHI end will join a BglII end (both leave `GATC`).
 
+## Golden Gate
+
+Golden Gate is a different reaction and has a section of its own at the
+bottom of the tab. Every part carries the same Type IIS enzyme's site at
+each end, pointing inwards, so cutting takes the sites away with the flanks
+and leaves a four-base overhang the designer chose. Cutting and ligating
+happen in one tube, and the overhangs, not you, decide the order.
+
+The panel works that out:
+
+1. Open the destination vector and every part, each in its own tab.
+2. Choose the **enzyme** the parts were designed for. BsaI is the default;
+   BsmBI, BbsI and SapI are there too, along with the other Type IIS
+   enzymes in the table that leave an overhang.
+3. Untick any open document that is not in the tube. Everything open is in
+   it to begin with.
+4. The panel digests each part, throws out the pieces that still carry a
+   recognition site (those are cut again in a real reaction) and any piece
+   with a blunt end, then follows the overhangs from one piece to the next.
+   It reports the order it found and the size of the circle.
+5. Name the product if you like, then **Assemble**. It opens as a new
+   circular document with the parts' features.
+
+**Pieces left out** expands to say what was discarded and why. In a
+well-designed set that is the vector's stuffer and each part's two flanks.
+
+A part goes in whichever way round its overhangs demand, so a part ordered
+back to front is turned around for you and the order says **(flipped)**
+beside it. If two parts offer the same
+overhang, or none offers the one the reaction has reached, the panel says
+so rather than guessing: Golden Gate needs every overhang to be distinct,
+and an ambiguous set is a design problem worth seeing.
+
+The product is always circular, and always the whole set: a reaction that
+would use only some of the parts is reported as a failure, not quietly
+assembled from what fits.
+
 ## Not yet
 
 Gibson assembly from primers or fragment sets, partial digests,
 dephosphorylation, and ambiguity codes in overhangs (an `N` never pairs).
-Nothing fills in or chews back an overhang yet (no Klenow or T4 polymerase
-blunting), the circular map does not draw the ends, and a FASTA export does
-not carry them.
+Golden Gate takes whole open documents rather than fragments from the
+assembly list, will not mix two enzymes in one reaction, and does not check
+that a set of overhangs would misligate in the tube. Nothing fills in or
+chews back an overhang yet (no Klenow or T4 polymerase blunting), the
+circular map does not draw the ends, and a FASTA export does not carry
+them.

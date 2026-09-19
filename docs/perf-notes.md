@@ -86,3 +86,22 @@ rows in the window, the first line of the table. One fill per base would be
 ~1,800 calls for that screen, which is the reason for the masking. The cost
 test in `render.smoke.test.ts` fails if colouring ever grows past a small
 multiple of the plain path.
+
+## Golden Gate assembly
+
+The Cloning tab works the reaction out on the main thread, in a `useMemo`
+that re-runs whenever the enzyme or the ticked parts change, rather than in
+the analysis worker. The panel has to answer while the user is ticking
+boxes, and it is one enzyme over a handful of plasmids rather than the full
+table over one.
+
+| Date       | Reaction                              | Product   | Time   |
+| ---------- | ------------------------------------- | --------- | ------ |
+| 2026-09-19 | 4 kb vector + 2 inserts of 1 kb, BsaI | 6,012 bp  | 2.2 ms |
+| 2026-09-19 | 8 kb vector + 5 inserts of 2 kb, BsaI | 18,024 bp | 5.2 ms |
+
+Node 24 (V8), mean of 20 runs. That covers the digest of every part, the
+walk over the overhangs, and building the product document. Both are inside
+a frame, so nothing is gained by moving it off the main thread; if parts
+ever arrive in the dozens, the digest is the half that grows and belongs in
+the worker with the rest of the restriction scanning.

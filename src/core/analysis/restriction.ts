@@ -25,6 +25,17 @@ export function overhangLength(e: Pick<Enzyme, 'cutTop' | 'cutBottom'>): number 
   return Math.abs(e.cutTop - e.cutBottom);
 }
 
+/**
+ * Whether the enzyme cuts outside its recognition site, the defining trait of
+ * a Type IIS enzyme (BsaI, BsmBI, BbsI, SapI). It is what makes Golden Gate
+ * work: the cut leaves an overhang of the user's own choosing and takes the
+ * site away with the piece that is thrown out.
+ */
+export function isTypeIIS(e: Pick<Enzyme, 'site' | 'cutTop' | 'cutBottom'>): boolean {
+  const n = e.site.length;
+  return e.cutTop < 0 || e.cutTop > n || e.cutBottom < 0 || e.cutBottom > n;
+}
+
 function isPalindromic(site: string): boolean {
   return reverseComplement(site).toUpperCase() === site.toUpperCase();
 }
