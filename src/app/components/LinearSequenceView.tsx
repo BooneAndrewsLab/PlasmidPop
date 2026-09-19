@@ -10,14 +10,19 @@ import {
 } from 'react';
 
 import {
+  type CdsTranslation,
+  type Feature,
   type SeqDocument,
   CdsTranslations,
   InvalidSequenceError,
+  codonIndexAt,
+  codonSpan,
   fragmentFromRange,
   isCodingFeature,
   isEmptyRange,
 } from '@/core';
 import {
+  type Hit,
   type LinearMetrics,
   type LinearTheme,
   LinearLayout,
@@ -93,7 +98,12 @@ export function LinearSequenceView({ doc }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [scrollTop, setScrollTop] = useState(0);
+  /** What the pointer is over: the feature and translation tracks are click
+      targets, the bases are text. */
+  const [cursor, setCursor] = useState<'text' | 'pointer' | 'default'>('text');
   const dragAnchor = useRef<number | null>(null);
+  /** Codon drag on a translation line: the CDS being read and the codon it started on. */
+  const codonDrag = useRef<{ translation: CdsTranslation; anchorIndex: number } | null>(null);
   /** Fixed end of the selection while extending with shift+arrows. */
   const anchor = useRef<number | null>(null);
 
@@ -227,17 +237,56 @@ export function LinearSequenceView({ doc }: Props) {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top + scrollTop };
   };
 
+  /**
+   * The hit under the pointer with `y` pulled into the nearest row, so a drag
+   * that leaves the rows above or below still tracks the row it left.
+   */
+  const clampedHit = (e: ReactPointerEvent<HTMLCanvasElement>): Hit => {
+    const { x, y } = docPoint(e);
+    const row =
+      layout.rowAtY(y) ??
+      (y < metrics.topPadding ? layout.rows[0] : layout.rows[layout.rows.length - 1]);
+    if (row === undefined) return { kind: 'none' };
+    return layout.hitTest(x, Math.min(Math.max(y, row.top), row.top + row.height - 1));
+  };
+
+  /** The feature drawn at a lane or translation hit; undefined where the lane is empty. */
+  const featureAtHit = (hit: Hit): Feature | undefined => {
+    if (hit.kind !== 'lane' && hit.kind !== 'translation') return undefined;
+    const laneOf = hit.kind === 'lane' ? lanes.laneOf : translationLanes.laneOf;
+    const index = hit.kind === 'lane' ? hit.lane : hit.line;
+    return doc.features.at(hit.position, doc.length).find((f) => laneOf.get(f.id) === index);
+  };
+
+  const updateCursor = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const { x, y } = docPoint(e);
+    const hit = layout.hitTest(x, y);
+    if (hit.kind !== 'lane' && hit.kind !== 'translation') setCursor('text');
+    else setCursor(featureAtHit(hit) === undefined ? 'default' : 'pointer');
+  };
+
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     if (e.button !== 0) return;
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
     if (hit.kind === 'lane' || hit.kind === 'translation') {
-      const laneOf = hit.kind === 'lane' ? lanes.laneOf : translationLanes.laneOf;
-      const index = hit.kind === 'lane' ? hit.lane : hit.line;
-      const feature = doc.features
-        .at(hit.position, doc.length)
-        .find((f) => laneOf.get(f.id) === index);
+      const feature = featureAtHit(hit);
       if (feature !== undefined) {
+        // On a translation line the codon under the pointer is what is meant;
+        // a drag from there extends the selection codon by codon.
+        if (hit.kind === 'translation' && translations !== null) {
+          const translation = translations.get(feature);
+          const codon = codonIndexAt(translation, hit.position);
+          const span = codon < 0 ? null : codonSpan(translation, codon, codon, doc.length);
+          if (span !== null) {
+            containerRef.current?.focus({ preventScroll: true });
+            e.currentTarget.setPointerCapture(e.pointerId);
+            codonDrag.current = { translation, anchorIndex: codon };
+            anchor.current = span.start;
+            editorStore.setSelection(span);
+            return;
+          }
+        }
         editorStore.selectFeature(feature.id);
         return;
       }
@@ -256,23 +305,34 @@ export function LinearSequenceView({ doc }: Props) {
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const codon = codonDrag.current;
+    if (codon !== null) {
+      const hit = clampedHit(e);
+      if (hit.kind === 'none') return;
+      const index = codonIndexAt(codon.translation, hit.position);
+      // Off the coding bases (an intron, or past either end): keep what is selected.
+      if (index < 0) return;
+      const span = codonSpan(codon.translation, codon.anchorIndex, index, doc.length);
+      if (span !== null) editorStore.setSelection(span);
+      return;
+    }
     const anchor = dragAnchor.current;
-    if (anchor === null) return;
-    const { x, y } = docPoint(e);
-    const row =
-      layout.rowAtY(y) ??
-      (y < metrics.topPadding ? layout.rows[0] : layout.rows[layout.rows.length - 1]);
-    if (row === undefined) return;
-    const hit = layout.hitTest(x, Math.min(Math.max(y, row.top), row.top + row.height - 1));
+    if (anchor === null) {
+      updateCursor(e);
+      return;
+    }
+    const hit = clampedHit(e);
     const position = hit.kind === 'none' ? anchor : hit.position;
     editorStore.setSelection(selectionBetween(anchor, position));
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
-    if (dragAnchor.current === null) return;
+    if (dragAnchor.current === null && codonDrag.current === null) return;
     dragAnchor.current = null;
+    codonDrag.current = null;
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
+    updateCursor(e);
   };
 
   /** Shows why typed or pasted text was rejected, for a while after the last rejection. */
@@ -454,11 +514,14 @@ export function LinearSequenceView({ doc }: Props) {
         <canvas
           ref={canvasRef}
           className="seq-view__canvas"
-          style={{ width: size.width, height: size.height }}
+          style={{ width: size.width, height: size.height, cursor }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onPointerLeave={() => {
+            setCursor('text');
+          }}
         />
       </div>
     </div>

@@ -25,8 +25,11 @@ above each row giving the position of its first base. Below each row:
   enzyme name, unless **Cut sites** is off in the toolbar (see
   [Restriction enzymes](07-enzymes.md)).
 
-Clicking a feature bar or a translation line selects that feature. Lowercase
-bases stay lowercase, as many people use case to mark regions.
+Clicking a feature bar selects that feature; clicking an amino acid on a
+translation line selects that residue's three bases. The pointer turns into a
+hand over those tracks and stays a text cursor over the bases, where it places
+the caret. Lowercase bases stay lowercase, as many people use case to mark
+regions.
 
 **File ▸ Export sequence view as SVG** writes what you see as a vector file
 for figures, see [Files](02-files.md).
@@ -66,6 +69,12 @@ In the sequence view:
   `Cursor after base N`.
 - **Drag** to select a range; **Shift+click** extends the selection to the
   clicked position.
+- On a **translation line**, click an amino acid to select its codon and drag
+  along the line to extend the selection codon by codon, so the selection
+  always starts and ends on a codon boundary. On a reverse-strand CDS the
+  codons are read right to left, and the selection follows. Dragging off the
+  coding bases — into an intron or past either end — leaves the selection as
+  it was.
 - `Shift+Arrow` keys extend the selection one base (left/right) or one row
   (up/down) at a time. `Home` and `End` go to the ends of the row,
   `Ctrl+Home` and `Ctrl+End` to the ends of the sequence; add `Shift` to

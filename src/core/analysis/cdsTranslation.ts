@@ -1,6 +1,6 @@
 import { type SeqDocument } from '../document';
-import { type Feature, type FeatureId, firstQualifier } from '../features';
-import { rangePieces } from '../range';
+import { type Feature, type FeatureId, type Strand, firstQualifier } from '../features';
+import { type Range, range, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
 import { type TranslationTable, isStartCodon, translateCodon } from './codons';
 
@@ -21,6 +21,8 @@ export interface Codon {
 
 export interface CdsTranslation {
   readonly codons: readonly Codon[];
+  /** Strand the feature is read from; the codons' positions descend when reverse. */
+  readonly strand: Strand;
   /** The codons' amino acids concatenated (stops included as `*`). */
   readonly protein: string;
   readonly table: TranslationTable;
@@ -90,7 +92,7 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
     codons.push({ index, positions: [a, b, c], aminoAcid });
     protein += aminoAcid;
   }
-  return { codons, protein, table, codonStart };
+  return { codons, protein, strand: feature.strand, table, codonStart };
 }
 
 /**
@@ -112,4 +114,37 @@ export class CdsTranslations {
     }
     return t;
   }
+}
+
+/**
+ * Index of the codon holding forward-strand position `position`, or -1 when
+ * no codon does: the position may be in an intron of a `join(...)`, in the
+ * bases `/codon_start` skips, or in a trailing part-codon.
+ */
+export function codonIndexAt(t: CdsTranslation, position: number): number {
+  return t.codons.findIndex((codon) => codon.positions.includes(position));
+}
+
+/**
+ * Forward-strand range covering codons `from` through `to` (given in either
+ * order), or `null` if either index is out of range. The span runs from the
+ * first base of the earlier codon in reading order to the last base of the
+ * later one, so it is mirrored for a reverse-strand feature, wraps the origin
+ * when the codons do, and covers the intervening bases when the codons sit on
+ * either side of a `join(...)` boundary.
+ */
+export function codonSpan(
+  t: CdsTranslation,
+  from: number,
+  to: number,
+  seqLength: number,
+): Range | null {
+  const first = t.codons[Math.min(from, to)];
+  const last = t.codons[Math.max(from, to)];
+  if (first === undefined || last === undefined) return null;
+  const start = t.strand === 'reverse' ? last.positions[2] : first.positions[0];
+  const lastBase = t.strand === 'reverse' ? first.positions[0] : last.positions[2];
+  let span = lastBase + 1 - start;
+  if (span <= 0) span += seqLength; // the span crosses the origin
+  return range(start, start + span);
 }

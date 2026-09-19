@@ -19,8 +19,12 @@ frame is easy to follow. The translation honours:
 - partial ends (`<` and `>`), which suppress the start-codon `M`;
 - features that wrap the origin of a circular sequence.
 
-Stops are shown as `*`, codons with ambiguity codes as `X`. Clicking a
-translation line selects the feature.
+Stops are shown as `*`, codons with ambiguity codes as `X`.
+
+Clicking an amino acid selects its codon — the three bases it is read from —
+and dragging along the line extends the selection codon by codon, which is a
+quick way to take a protein-aligned piece of a gene. Click the feature bar
+below instead to select the whole feature.
 
 Not yet supported: `/transl_except`, and comparing against a stored
 `/translation` qualifier.

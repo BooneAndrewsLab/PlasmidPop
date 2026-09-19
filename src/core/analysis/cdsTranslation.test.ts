@@ -1,6 +1,12 @@
 import { SeqDocument } from '../document';
 import { type Feature, createFeature, rangeSegment, siteSegment } from '../features';
-import { CdsTranslations, isCodingFeature, translateCds } from './cdsTranslation';
+import {
+  CdsTranslations,
+  codonIndexAt,
+  codonSpan,
+  isCodingFeature,
+  translateCds,
+} from './cdsTranslation';
 
 function cds(init: Partial<Feature> & { segments: Feature['segments'] }): Feature {
   return createFeature({ id: 'cds', type: 'CDS', name: 'orf', ...init });
@@ -127,5 +133,75 @@ describe('CdsTranslations', () => {
     expect(cache.get(feature).protein).toBe('MK*');
     const edited = doc.replace({ start: 3, end: 6 }, 'CCC');
     expect(new CdsTranslations(edited).get(feature).protein).toBe('MP*');
+  });
+});
+
+describe('codonIndexAt', () => {
+  const doc = SeqDocument.create({ sequence: 'ATGAAAGGGTGACCC', topology: 'linear' });
+
+  it('finds the codon holding a position and reports -1 elsewhere', () => {
+    const t = translateCds(doc, cds({ segments: [rangeSegment(0, 12)] }));
+    expect(codonIndexAt(t, 0)).toBe(0);
+    expect(codonIndexAt(t, 2)).toBe(0);
+    expect(codonIndexAt(t, 3)).toBe(1);
+    expect(codonIndexAt(t, 11)).toBe(3);
+    expect(codonIndexAt(t, 12)).toBe(-1); // outside the feature
+  });
+
+  it('reports -1 for bases /codon_start skips and for an intron', () => {
+    const skipped = translateCds(
+      doc,
+      cds({ segments: [rangeSegment(0, 12)], qualifiers: [{ name: 'codon_start', value: '3' }] }),
+    );
+    expect(codonIndexAt(skipped, 0)).toBe(-1);
+    expect(codonIndexAt(skipped, 1)).toBe(-1);
+    expect(codonIndexAt(skipped, 2)).toBe(0);
+    const joined = translateCds(doc, cds({ segments: [rangeSegment(0, 5), rangeSegment(6, 12)] }));
+    expect(codonIndexAt(joined, 5)).toBe(-1); // the skipped base
+    expect(codonIndexAt(joined, 6)).toBe(1);
+  });
+});
+
+describe('codonSpan', () => {
+  //                 0         1         2
+  //                 012345678901234567890123456789
+  const forward = 'ATGAAAGGGTGACCCAAATTTCCCGGGTTT';
+  const doc = SeqDocument.create({ sequence: forward, topology: 'linear' });
+
+  it('covers one codon and a run of codons on the forward strand', () => {
+    const t = translateCds(doc, cds({ segments: [rangeSegment(0, 12)] }));
+    expect(codonSpan(t, 1, 1, doc.length)).toEqual({ start: 3, end: 6 });
+    expect(codonSpan(t, 1, 3, doc.length)).toEqual({ start: 3, end: 12 });
+    // The two ends may be given in either order.
+    expect(codonSpan(t, 3, 1, doc.length)).toEqual({ start: 3, end: 12 });
+    expect(codonSpan(t, 0, 9, doc.length)).toBeNull();
+  });
+
+  it('mirrors the span for a reverse-strand feature', () => {
+    const rcDoc = SeqDocument.create({ sequence: 'TTACATGGGTTT' }); // rc = AAACCCATGTAA
+    const t = translateCds(rcDoc, cds({ strand: 'reverse', segments: [rangeSegment(0, 12)] }));
+    expect(t.codons[0]?.positions).toEqual([11, 10, 9]);
+    expect(codonSpan(t, 0, 0, rcDoc.length)).toEqual({ start: 9, end: 12 });
+    // Codons 0..1 read leftwards, so they cover the last six bases.
+    expect(codonSpan(t, 0, 1, rcDoc.length)).toEqual({ start: 6, end: 12 });
+  });
+
+  it('wraps the origin when the codons do', () => {
+    const circ = SeqDocument.create({
+      sequence: forward.slice(3) + forward.slice(0, 3),
+      topology: 'circular',
+    });
+    const t = translateCds(circ, cds({ segments: [rangeSegment(27, 39)] }));
+    // Codon 0 is 27..29, codon 1 is 0..2: one codon straddling the origin.
+    expect(codonSpan(t, 0, 0, circ.length)).toEqual({ start: 27, end: 30 });
+    expect(codonSpan(t, 0, 1, circ.length)).toEqual({ start: 27, end: 33 });
+    const wrapping = translateCds(circ, cds({ segments: [rangeSegment(29, 32)] }));
+    expect(wrapping.codons[0]?.positions).toEqual([29, 0, 1]);
+    expect(codonSpan(wrapping, 0, 0, circ.length)).toEqual({ start: 29, end: 32 });
+  });
+
+  it('covers the intervening bases when the codons sit either side of a join', () => {
+    const t = translateCds(doc, cds({ segments: [rangeSegment(0, 5), rangeSegment(6, 12)] }));
+    expect(codonSpan(t, 0, 1, doc.length)).toEqual({ start: 0, end: 7 });
   });
 });

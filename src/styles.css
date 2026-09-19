@@ -469,11 +469,13 @@ button {
   position: relative;
 }
 
+/* The cursor is set inline by LinearSequenceView, from whatever the pointer
+   is over: text between the bases, a hand over the feature and translation
+   tracks. */
 .seq-view__canvas {
   position: sticky;
   top: 0;
   display: block;
-  cursor: text;
   touch-action: none;
 }
 

@@ -99,7 +99,7 @@ in localStorage (`src/app/state/viewPrefs.ts`, applied and watched by
 `useViewPrefs`); documents and enzyme ticks are unaffected. The logo (`design/logo/`, made in Claude Design) is used
 for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 429 passing. Perf measurements live in
+`scripts/make-wordmark.py`, no webfont). Tests: 435 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -223,11 +223,21 @@ pick from here when the current work is done.
     sub-switch. Rejected: a horizontally scrolling row (hides the tab
     people cannot find), and a wider or resizable sidebar on its own
     (does not help small windows).
-19. **Selecting amino acids in the sequence view.** Clicking or dragging
-    on a translation row (the amino acids drawn under a CDS) currently
-    selects the whole feature; it should select the codon(s) under the
-    pointer, i.e. the residue's three bases, extending codon by codon
-    when dragging. Requested 2026-09-18.
+19. ~~**Selecting amino acids in the sequence view.**~~ done. Clicking an
+    amino acid on a translation line selects its codon and dragging along
+    the line extends the selection codon by codon in reading order, so a
+    reverse-strand CDS selects right to left and a codon that crosses a
+    `join(...)` boundary or the origin comes out whole (`codonIndexAt`,
+    `codonSpan` in `src/core/analysis/cdsTranslation.ts`, which now
+    records the feature's `strand`; the drag itself is in
+    `LinearSequenceView`). Clicking the feature bar still selects the
+    whole feature, and so does a click on a part of a translation line
+    with no codon under it — an intron, or the bases `/codon_start`
+    skips. The canvas cursor now follows what is under the pointer
+    (`cursor` state in `LinearSequenceView`): a hand over a feature bar or
+    a residue, the text caret over the bases, the arrow over empty lane
+    space. Not yet: extending the selection by codon from the keyboard
+    (`Shift+Arrow` still moves one base).
 20. ~~**Hide cut sites without losing the enzyme selection.**~~ done. A
     **Cut sites** toggle sits next to Complement / Translations in the
     toolbar (`showCutSites` in the store); off, the sequence view, the
