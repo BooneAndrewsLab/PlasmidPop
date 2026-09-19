@@ -1,11 +1,13 @@
-import { type Feature } from '../features';
+import { type Feature, shiftSegmentBy } from '../features';
 import { newId } from '../ids';
 import {
   type DocumentMetadata,
   SeqDocument,
   createMetadata,
   describeEnd,
+  extractRange,
   flipEnd,
+  topStrandOverhang,
 } from '../document';
 import { type DigestFragment, type FragmentEnd } from './digest';
 
@@ -24,19 +26,49 @@ export interface AssemblyPart {
 /**
  * The same piece of DNA turned around: the bottom strand becomes the top
  * strand, so the ends swap and each overhang is read from the other strand.
+ *
+ * The two strands of a sticky-ended piece do not cover the same bases, and
+ * `sequence` is the top strand alone (see `DigestFragment`). Turning the
+ * piece over therefore does not simply reverse-complement `sequence`: the
+ * window moves by an overhang at each end. An overhang the old top strand
+ * carried (a 5' left end, a 3' right end) drops out of the new one, and an
+ * overhang the old bottom strand carried joins it. Those bases are not in
+ * `sequence` at all, but the ends describe them, which is enough to write
+ * the new top strand out.
+ *
+ * Features are trimmed to the window that survives, and get fresh ids: what
+ * comes back is a new piece of annotation, not a move of the old one.
  */
 export function flipFragment(fragment: DigestFragment): DigestFragment {
-  const flipped = SeqDocument.create({
-    sequence: fragment.sequence,
-    features: fragment.features,
+  const { left, right, sequence } = fragment;
+  // Bases of `sequence` that are this fragment's own single-stranded ends.
+  const leftOnTop = topStrandOverhang(left, 'left');
+  const rightOnTop = topStrandOverhang(right, 'right');
+  // The overhangs the bottom strand carries instead, written as top-strand
+  // bases: they sit just outside `sequence` and come into it on the flip.
+  const head = left.kind === "3'" ? left.overhang : '';
+  const tail = right.kind === "5'" ? right.overhang : '';
+  const whole = SeqDocument.create({
+    sequence: head + sequence + tail,
+    features: fragment.features.map((f) => ({
+      ...f,
+      segments: f.segments.map((seg) => shiftSegmentBy(seg, head.length)),
+    })),
     topology: 'linear',
+  });
+  // What the bottom strand covers, which is what the new top strand reads.
+  // `head` and `leftOnTop` are never both set, so the start is just the one
+  // that applies; the same holds for `tail` and `rightOnTop` at the end.
+  const flipped = extractRange(whole, {
+    start: leftOnTop,
+    end: head.length + sequence.length - rightOnTop + tail.length,
   }).reverseComplement();
   return {
     ...fragment,
     sequence: flipped.sequence.toString(),
     features: flipped.features.all(),
-    left: flipEnd(fragment.right),
-    right: flipEnd(fragment.left),
+    left: flipEnd(right),
+    right: flipEnd(left),
   };
 }
 

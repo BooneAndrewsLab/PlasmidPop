@@ -177,7 +177,11 @@ describe('ligation', () => {
     const flipped = flipFragment(second);
     expect(flipped.right).toEqual({ kind: "5'", overhang: 'CAGT', enzyme: 'BsaI' });
     expect(flipped.left).toEqual(BLUNT_END);
-    expect(flipped.sequence).toBe('AAAAAAAAACAGT');
+    // The ACTG the old top strand carried at its 5' end is not on the new
+    // top strand: turned around, those bases are the bottom strand running
+    // past the right-hand end, which is what `right` now describes.
+    expect(second.sequence).toBe('ACTGTTTTTTTTT');
+    expect(flipped.sequence).toBe('AAAAAAAAA');
     // Flipping twice is the identity.
     expect(flipFragment(flipped)).toEqual(frags[1]);
   });
@@ -249,14 +253,26 @@ describe('ligation', () => {
     const [a, b, c] = cutWith(two, 'EcoRI');
     if (a === undefined || b === undefined || c === undefined) throw new Error('expected 3');
     const product = ligate([a, flipFragment(b), c], { name: 'inv', circular: false });
-    const middle = SeqDocument.create({ sequence: seq.slice(3, 14) })
-      .reverseComplement()
-      .sequence.toString();
-    expect(product.sequence.toString()).toBe(seq.slice(0, 3) + middle + seq.slice(14));
+    // Inverting a cassette between two ends the same enzyme made puts the
+    // enzyme's site back at both junctions: the middle piece turns over, the
+    // sticky ends still pair, and the molecule is the same length.
+    expect(product.sequence.toString()).toBe('CCGAATTCCCTTTGAATTCTT');
+    expect(product.length).toBe(seq.length);
+    expect(
+      findCutSites(product.sequence.toString(), 'linear', enzymes('EcoRI')).map((x) => x.siteStart),
+    ).toEqual([2, 13]);
+    // Between the two cuts the molecule now reads the other way round.
+    expect(product.sequence.toString().slice(7, 14)).toBe(
+      SeqDocument.create({ sequence: seq.slice(7, 14) })
+        .reverseComplement()
+        .sequence.toString(),
+    );
     const g = product.features.all()[0];
     expect(g?.strand).toBe('reverse');
-    // g covered bases 8..11 of the 3..14 fragment, i.e. fragment bases 5..8 → flipped 3..6 → +3.
-    expect(g?.segments).toEqual([rangeSegment(6, 9)]);
+    // g covered bases 8..11 of the piece the bottom strand spans, 7..18,
+    // so 1..4 of it; flipped over its 11 bases that is 7..10, and +3 for the
+    // 'CCG' in front.
+    expect(g?.segments).toEqual([rangeSegment(10, 13)]);
   });
 
   it('ligates blunt ends and refuses empty input', () => {
