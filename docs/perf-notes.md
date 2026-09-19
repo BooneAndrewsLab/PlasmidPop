@@ -65,3 +65,24 @@ Rust.
 Full 130-enzyme scan of a 4.4 kb plasmid completes in a few milliseconds
 (see `render.smoke.test.ts`, which runs the scan as part of the renderer
 smoke test). Not a WASM candidate at plasmid scale.
+
+## Colouring the bases in the sequence view
+
+The strand text is drawn ten bases to a `fillText`, which keeps the letters
+on the column grid whatever the font's real advance width is. With "Colour
+the bases" on (the Format menu), each line is drawn once per colour present
+with the other columns blanked out with spaces, instead of once per base.
+
+| Date       | What                               | fillText calls | Renderer time |
+| ---------- | ---------------------------------- | -------------- | ------------- |
+| 2026-09-19 | one 900 px screen of pBR322, plain | 201            | 0.29 ms       |
+| 2026-09-19 | the same screen, bases coloured    | 639            | 0.72 ms       |
+| 2026-09-19 | all 44 rows at once, plain         | 1,066          | 3.8 ms        |
+| 2026-09-19 | all 44 rows at once, coloured      | 3,460          | 4.4 ms        |
+
+Node 24 (V8) with a stub drawing context, so this is the renderer's own work
+and the string masking, not text rasterization; the view only ever draws the
+rows in the window, the first line of the table. One fill per base would be
+~1,800 calls for that screen, which is the reason for the masking. The cost
+test in `render.smoke.test.ts` fails if colouring ever grows past a small
+multiple of the plain path.

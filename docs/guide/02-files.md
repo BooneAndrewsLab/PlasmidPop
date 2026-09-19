@@ -58,11 +58,13 @@ From the **File** menu:
   figures, with the cut sites of the enzymes ticked in the Enzymes tab —
   none of them while the toolbar's **Cut sites** toggle is off.
 - **Export sequence view as SVG**: the sequence rows as a vector file —
-  ruler, bases, features and cut sites, laid out as on screen but always 60
-  bases to a row so the file does not depend on the window width. It follows
-  the **Complement**, **Translations** and **Cut sites** toggles, the
-  **Edits** marks and the enzymes ticked in the Enzymes tab. Sequences longer
-  than 100,000 bases are refused: export a range instead.
+  ruler, bases, features and cut sites, laid out as on screen. It follows the
+  **Complement**, **Translations** and **Cut sites** toggles, the **Edits**
+  marks, the enzymes ticked in the Enzymes tab and the **Format** menu's
+  bases-per-row, complement numbering and base colours. With Format left at
+  "Fit the window" the file is written 60 bases to a row, so it does not
+  depend on the window width; the text size is always the export's own.
+  Sequences longer than 100,000 bases are refused: export a range instead.
 - **Export selection view as SVG**: the same picture, cut down to the rows
   that hold the selection and with the selection highlighted. Positions stay
   those of the whole document. A selection that crosses the origin has no

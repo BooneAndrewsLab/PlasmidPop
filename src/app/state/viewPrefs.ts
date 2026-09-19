@@ -1,10 +1,13 @@
+import { type FontSize, isFontSize } from '@/view/linear';
+
 import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
 
 /**
- * How the views were left: the toolbar's view switcher and its three
- * toggles. Remembered so a chosen arrangement — no cut sites on a busy map,
- * say — survives a reload instead of coming back at the defaults. Nothing
- * here describes a document, so it is one setting for the app rather than
+ * How the views were left: the toolbar's view switcher, its three toggles
+ * and the Format menu's sequence-view options. Remembered so a chosen
+ * arrangement — no cut sites on a busy map, large text on a small screen —
+ * survives a reload instead of coming back at the defaults. Nothing here
+ * describes a document, so it is one setting for the app rather than
  * something stored per file.
  */
 export interface ViewPrefs {
@@ -12,6 +15,11 @@ export interface ViewPrefs {
   readonly showComplement: boolean;
   readonly showTranslations: boolean;
   readonly showCutSites: boolean;
+  readonly seqFontSize: FontSize;
+  /** Null means "fit the window", as in the store. */
+  readonly seqBasesPerRow: number | null;
+  readonly numberComplement: boolean;
+  readonly colorBases: boolean;
   /**
    * Which baseline the edit marks use. "Mark from here" is a point in one
    * session's work, so it is remembered as the state the document was opened
@@ -58,7 +66,19 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   const prefs: { -readonly [K in keyof ViewPrefs]?: ViewPrefs[K] } = {};
   if (isViewMode(record['view'])) prefs.view = record['view'];
   if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
-  for (const key of ['showComplement', 'showTranslations', 'showCutSites'] as const) {
+  if (isFontSize(record['seqFontSize'])) prefs.seqFontSize = record['seqFontSize'];
+  const bases = record['seqBasesPerRow'];
+  if (bases === null) prefs.seqBasesPerRow = null;
+  else if (typeof bases === 'number' && Number.isFinite(bases) && bases >= 10) {
+    prefs.seqBasesPerRow = Math.round(bases);
+  }
+  for (const key of [
+    'showComplement',
+    'showTranslations',
+    'showCutSites',
+    'numberComplement',
+    'colorBases',
+  ] as const) {
     if (typeof record[key] === 'boolean') prefs[key] = record[key];
   }
   return prefs;
@@ -73,13 +93,26 @@ export function saveViewPrefs(prefs: ViewPrefs): void {
 }
 
 function snapshot(): ViewPrefs {
-  const { view, showComplement, showTranslations, showCutSites, editsBaseline } =
-    editorStore.getState();
+  const {
+    view,
+    showComplement,
+    showTranslations,
+    showCutSites,
+    seqFontSize,
+    seqBasesPerRow,
+    numberComplement,
+    colorBases,
+    editsBaseline,
+  } = editorStore.getState();
   return {
     view,
     showComplement,
     showTranslations,
     showCutSites,
+    seqFontSize,
+    seqBasesPerRow,
+    numberComplement,
+    colorBases,
     editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
   };
 }
@@ -90,6 +123,10 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.showComplement === b.showComplement &&
     a.showTranslations === b.showTranslations &&
     a.showCutSites === b.showCutSites &&
+    a.seqFontSize === b.seqFontSize &&
+    a.seqBasesPerRow === b.seqBasesPerRow &&
+    a.numberComplement === b.numberComplement &&
+    a.colorBases === b.colorBases &&
     a.editsBaseline === b.editsBaseline
   );
 }
@@ -106,6 +143,12 @@ export function startViewPrefs(): () => void {
     editorStore.setShowTranslations(stored.showTranslations);
   }
   if (stored.showCutSites !== undefined) editorStore.setShowCutSites(stored.showCutSites);
+  if (stored.seqFontSize !== undefined) editorStore.setSeqFontSize(stored.seqFontSize);
+  if (stored.seqBasesPerRow !== undefined) editorStore.setSeqBasesPerRow(stored.seqBasesPerRow);
+  if (stored.numberComplement !== undefined) {
+    editorStore.setNumberComplement(stored.numberComplement);
+  }
+  if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
   let last = snapshot();
   return editorStore.subscribe(() => {

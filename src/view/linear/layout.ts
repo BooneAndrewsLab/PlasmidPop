@@ -20,6 +20,11 @@ export interface LinearMetrics {
   readonly rowGap: number;
   /** Space reserved on the left for position numbers. */
   readonly leftGutter: number;
+  /**
+   * Space reserved after the last column, for the bottom-strand overhang of
+   * a sticky end and so the last base is not against the edge.
+   */
+  readonly rightGutter: number;
   readonly topPadding: number;
 }
 
@@ -183,4 +188,56 @@ export class LinearLayout {
 export function basesPerRowFor(availableWidth: number, charWidth: number): number {
   const raw = Math.floor(availableWidth / charWidth);
   return Math.max(10, Math.floor(raw / 10) * 10);
+}
+
+/** The sizes the view offers, in px of the monospace strand text. */
+export const FONT_SIZES = [11, 13, 16] as const;
+export type FontSize = (typeof FONT_SIZES)[number];
+/** The size every other measurement below is expressed as a fraction of. */
+export const DEFAULT_FONT_SIZE: FontSize = 13;
+
+export function isFontSize(n: unknown): n is FontSize {
+  return typeof n === 'number' && (FONT_SIZES as readonly number[]).includes(n);
+}
+
+export interface MetricsOptions {
+  /** Size of the strand text; every other dimension scales with it. */
+  readonly fontSize: number;
+  readonly basesPerRow: number;
+  /** Advance width of one character, measured by the caller in its own context. */
+  readonly charWidth: number;
+  readonly showComplement: boolean;
+  /** Whether room is kept above the strands for enzyme labels. */
+  readonly cutSiteLabels: boolean;
+  /** Extra space after the last column, on top of the default padding. */
+  readonly extraRightGutter?: number;
+}
+
+/**
+ * The row geometry for a font size. All the vertical measurements and the
+ * gutter are proportional to the text, so a larger size gives a roomier view
+ * rather than crowded lanes; at the default size they are the numbers the
+ * view has always used.
+ */
+export function linearMetrics(o: MetricsOptions): LinearMetrics {
+  const scale = o.fontSize / DEFAULT_FONT_SIZE;
+  const at = (atDefault: number): number => Math.round(atDefault * scale);
+  return {
+    basesPerRow: o.basesPerRow,
+    charWidth: o.charWidth,
+    lineHeight: at(18),
+    showComplement: o.showComplement,
+    rulerHeight: o.cutSiteLabels ? at(30) : at(16),
+    laneHeight: at(20),
+    translationHeight: at(16),
+    rowGap: at(14),
+    leftGutter: at(72),
+    rightGutter: at(24) + (o.extraRightGutter ?? 0),
+    topPadding: 12,
+  };
+}
+
+/** Width of the whole view: gutter, columns, gutter. */
+export function linearWidth(m: LinearMetrics): number {
+  return m.leftGutter + m.basesPerRow * m.charWidth + m.rightGutter;
 }

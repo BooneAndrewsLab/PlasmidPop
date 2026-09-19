@@ -23,12 +23,13 @@ import {
 } from '@/core';
 import {
   type Hit,
-  type LinearMetrics,
   type LinearTheme,
   LinearLayout,
   assignLanes,
   basesPerRowFor,
   lanesPerRow,
+  linearMetrics,
+  linearWidth,
   measureCharWidth,
   renderLinearView,
 } from '@/view/linear';
@@ -51,12 +52,35 @@ import { useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
-const MONO_FONT = '13px ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace';
-const SANS_FONT = '11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-const LEFT_GUTTER = 72;
-const RIGHT_PADDING = 24;
+const monoFontOf = (size: number): string =>
+  `${size}px ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace`;
+/** Labels (the ruler, feature names) sit two pixels under the strand text. */
+const sansFontOf = (size: number): string =>
+  `${size - 2}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
 /** How long a notice about rejected input stays after the last rejected keystroke. */
 const REJECTED_INPUT_NOTICE_MS = 5000;
+
+/**
+ * Follows the pointer even when it leaves the canvas mid-drag. Not every
+ * environment has it (nor every pointer id, if the event was synthesized),
+ * and a drag still works without it, so a refusal is not worth an error.
+ */
+function capturePointer(e: ReactPointerEvent<HTMLCanvasElement>): void {
+  try {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  } catch {
+    // No capture; pointer events outside the canvas are simply not seen.
+  }
+}
+
+function releasePointer(e: ReactPointerEvent<HTMLCanvasElement>): void {
+  try {
+    if (e.currentTarget.hasPointerCapture(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
+  } catch {
+    // Nothing was captured in the first place.
+  }
+}
 
 function readTheme(el: HTMLElement): LinearTheme {
   const css = getComputedStyle(el);
@@ -74,6 +98,13 @@ function readTheme(el: HTMLElement): LinearTheme {
     editInsert: v('--seq-edit-insert', '#1d7a4c'),
     editChange: v('--seq-edit-change', '#a86200'),
     editDelete: v('--seq-edit-delete', '#b3261e'),
+    baseColors: {
+      a: v('--seq-base-a', '#2f7d32'),
+      c: v('--seq-base-c', '#1b6ec8'),
+      g: v('--seq-base-g', '#8a5a00'),
+      t: v('--seq-base-t', '#c0392b'),
+      other: v('--seq-base-other', '#6b7280'),
+    },
   };
 }
 
@@ -87,6 +118,10 @@ export function LinearSequenceView({ doc }: Props) {
     showComplement,
     showTranslations,
     showCutSites,
+    seqFontSize,
+    seqBasesPerRow,
+    numberComplement,
+    colorBases,
     reveal,
     analysis,
     shownEnzymes,
@@ -103,6 +138,8 @@ export function LinearSequenceView({ doc }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [scrollTop, setScrollTop] = useState(0);
+  /** Only ever non-zero when a fixed row width is wider than the viewport. */
+  const [scrollLeft, setScrollLeft] = useState(0);
   /** What the pointer is over: the feature and translation tracks are click
       targets, the bases are text. */
   const [cursor, setCursor] = useState<'text' | 'pointer' | 'default'>('text');
@@ -112,24 +149,34 @@ export function LinearSequenceView({ doc }: Props) {
   /** Fixed end of the selection while extending with shift+arrows. */
   const anchor = useRef<number | null>(null);
 
-  const charWidth = useMemo(() => measureCharWidth(MONO_FONT), []);
-  const metrics = useMemo<LinearMetrics>(
-    () => ({
-      basesPerRow: basesPerRowFor(size.width - LEFT_GUTTER - RIGHT_PADDING, charWidth),
+  const monoFont = useMemo(() => monoFontOf(seqFontSize), [seqFontSize]);
+  const sansFont = useMemo(() => sansFontOf(seqFontSize), [seqFontSize]);
+  const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
+  const metrics = useMemo(() => {
+    // The gutters scale with the text, so how many bases fit depends on the
+    // font; build the metrics once to get them, then again with the answer.
+    const blank = linearMetrics({
+      fontSize: seqFontSize,
+      basesPerRow: 10,
       charWidth,
-      lineHeight: 18,
       showComplement,
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
-      rulerHeight: showCutSites && shownEnzymes.size > 0 ? 30 : 16,
-      laneHeight: 20,
-      translationHeight: 16,
-      rowGap: 14,
-      leftGutter: LEFT_GUTTER,
-      topPadding: 12,
-    }),
-    [size.width, charWidth, showComplement, showCutSites, shownEnzymes.size],
-  );
+      cutSiteLabels: showCutSites && shownEnzymes.size > 0,
+    });
+    const fitted = basesPerRowFor(size.width - blank.leftGutter - blank.rightGutter, charWidth);
+    return { ...blank, basesPerRow: seqBasesPerRow ?? fitted };
+  }, [
+    size.width,
+    charWidth,
+    seqFontSize,
+    seqBasesPerRow,
+    showComplement,
+    showCutSites,
+    shownEnzymes.size,
+  ]);
+  /** How wide the rows are; more than the viewport when a fixed width overflows. */
+  const contentWidth = linearWidth(metrics);
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
   const codingFeatures = useMemo(
     () => (showTranslations ? drawableFeatures(doc.features.all()).filter(isCodingFeature) : []),
@@ -224,13 +271,16 @@ export function LinearSequenceView({ doc }: Props) {
         selection,
         cutSites,
         edits,
+        colorBases,
+        numberComplement,
         scrollTop,
+        scrollLeft,
         width: size.width,
         height: size.height,
         devicePixelRatio: dpr,
         theme: readTheme(container),
-        monoFont: MONO_FONT,
-        sansFont: SANS_FONT,
+        monoFont,
+        sansFont,
       });
     });
     return () => {
@@ -245,13 +295,18 @@ export function LinearSequenceView({ doc }: Props) {
     selection,
     cutSites,
     edits,
+    colorBases,
+    numberComplement,
     scrollTop,
+    scrollLeft,
     size,
+    monoFont,
+    sansFont,
   ]);
 
   const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const rect = e.currentTarget.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top + scrollTop };
+    return { x: e.clientX - rect.left + scrollLeft, y: e.clientY - rect.top + scrollTop };
   };
 
   /**
@@ -297,7 +352,7 @@ export function LinearSequenceView({ doc }: Props) {
           const span = codon < 0 ? null : codonSpan(translation, codon, codon, doc.length);
           if (span !== null) {
             containerRef.current?.focus({ preventScroll: true });
-            e.currentTarget.setPointerCapture(e.pointerId);
+            capturePointer(e);
             codonDrag.current = { translation, anchorIndex: codon };
             anchor.current = span.start;
             editorStore.setSelection(span);
@@ -310,7 +365,7 @@ export function LinearSequenceView({ doc }: Props) {
     }
     if (hit.kind !== 'boundary') return;
     containerRef.current?.focus({ preventScroll: true });
-    e.currentTarget.setPointerCapture(e.pointerId);
+    capturePointer(e);
     if (e.shiftKey && selection !== null) {
       dragAnchor.current = hit.position >= selection.end ? selection.start : selection.end;
       editorStore.setSelection(selectionBetween(dragAnchor.current, hit.position));
@@ -347,8 +402,7 @@ export function LinearSequenceView({ doc }: Props) {
     if (dragAnchor.current === null && codonDrag.current === null) return;
     dragAnchor.current = null;
     codonDrag.current = null;
-    if (e.currentTarget.hasPointerCapture(e.pointerId))
-      e.currentTarget.releasePointerCapture(e.pointerId);
+    releasePointer(e);
     updateCursor(e);
   };
 
@@ -513,6 +567,7 @@ export function LinearSequenceView({ doc }: Props) {
       tabIndex={0}
       onScroll={(e) => {
         setScrollTop(e.currentTarget.scrollTop);
+        setScrollLeft(e.currentTarget.scrollLeft);
       }}
       onKeyDown={onKeyDown}
       onCopy={onCopy}
@@ -527,7 +582,10 @@ export function LinearSequenceView({ doc }: Props) {
           Type or paste a DNA sequence to start. Pasting a GenBank or FASTA record opens it instead.
         </p>
       )}
-      <div className="seq-view__spacer" style={{ height: layout.totalHeight }}>
+      <div
+        className="seq-view__spacer"
+        style={{ height: layout.totalHeight, width: Math.max(contentWidth, size.width) }}
+      >
         <canvas
           ref={canvasRef}
           className="seq-view__canvas"

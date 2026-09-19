@@ -17,6 +17,7 @@ const theme: LinearTheme = {
   editInsert: '#00aa00',
   editChange: '#aa8800',
   editDelete: '#ff0000',
+  baseColors: { a: '#00aa00', c: '#0000ff', g: '#aa5500', t: '#cc0000', other: '#666666' },
 };
 
 const metrics: LinearMetrics = {
@@ -29,6 +30,7 @@ const metrics: LinearMetrics = {
   translationHeight: 20,
   rowGap: 10,
   leftGutter: 100,
+  rightGutter: 24,
   topPadding: 0,
 };
 
@@ -45,6 +47,7 @@ function render(
   doc: SeqDocument,
   showTranslations = true,
   edits: RenderParams['edits'] = null,
+  options: Partial<RenderParams> = {},
 ): string {
   const features = doc.features.all();
   const lanes = assignLanes(features, doc.length);
@@ -66,13 +69,17 @@ function render(
     selection: null,
     edits,
     cutSites: [],
+    colorBases: false,
+    numberComplement: false,
     scrollTop: 0,
+    scrollLeft: 0,
     width: 300,
     height: layout.totalHeight,
     devicePixelRatio: 1,
     theme,
     monoFont: '13px monospace',
     sansFont: '11px sans-serif',
+    ...options,
   };
   renderLinearView(ctx, params);
   return ctx.toSvg();
@@ -200,5 +207,97 @@ describe('renderLinearView edit marks', () => {
     expect(svg).toMatch(/fill="none" stroke="#00aa00" stroke-width="1.5"/);
     // An untouched feature keeps its plain ribbon.
     expect(render(added, false, null)).not.toMatch(/stroke="#00aa00"/);
+  });
+});
+
+/** Drawn text with the colour it was filled in. */
+function coloredTexts(svg: string): { text: string; x: number; y: number; fill: string }[] {
+  return [
+    ...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"[^>]*fill="([^"]+)"[^>]*>([^<]*)<\/text>/g),
+  ].map((m) => ({ text: m[4] ?? '', x: Number(m[1]), y: Number(m[2]), fill: m[3] ?? '' }));
+}
+
+/** The y of the forward strand's text in the fixture layout above. */
+const FORWARD_Y = metrics.rulerHeight + metrics.lineHeight * 0.75;
+const COMPLEMENT_Y = FORWARD_Y + metrics.lineHeight;
+
+describe('renderLinearView format options', () => {
+  const doc = SeqDocument.create({ sequence: 'ACGTNACGTA' });
+
+  it('draws the strands in one ink by default', () => {
+    const drawn = coloredTexts(render(doc, false)).filter((t) => t.text.length > 1);
+    expect(drawn).toEqual([
+      { text: 'ACGTNACGTA', x: 100, y: FORWARD_Y, fill: theme.ink },
+      { text: 'TGCANTGCAT', x: 100, y: COMPLEMENT_Y, fill: theme.inkMuted },
+    ]);
+  });
+
+  it('colours each base, keeping every letter in its own column', () => {
+    const svg = render(doc, false, null, { colorBases: true });
+    const baseColors = new Set(Object.values(theme.baseColors));
+    const forward = coloredTexts(svg).filter((t) => t.y === FORWARD_Y && baseColors.has(t.fill));
+    // One pass per colour, the other columns blanked out with spaces.
+    const byFill = new Map(forward.map((t) => [t.fill, t.text]));
+    expect(byFill.get(theme.baseColors.a)).toBe('A    A   A');
+    expect(byFill.get(theme.baseColors.c)).toBe(' C    C   ');
+    expect(byFill.get(theme.baseColors.g)).toBe('  G    G  ');
+    expect(byFill.get(theme.baseColors.t)).toBe('   T    T ');
+    expect(byFill.get(theme.baseColors.other)).toBe('    N     ');
+    // Every pass starts at the first column, so the spaces do the aligning.
+    expect(new Set(forward.map((t) => t.x))).toEqual(new Set([100]));
+    // ...and the export says so, or the spaces would collapse.
+    expect(svg).toContain('xml:space="preserve"');
+    // The complement is coloured by the base it shows, not the one it pairs with.
+    const complement = coloredTexts(svg).filter(
+      (t) => t.y === COMPLEMENT_Y && baseColors.has(t.fill),
+    );
+    expect(new Map(complement.map((t) => [t.fill, t.text])).get(theme.baseColors.a)).toBe(
+      '   A    A ',
+    );
+  });
+
+  it('numbers the complement with the same position, muted', () => {
+    const plain = texts(render(doc, false)).filter((t) => t.text === '1');
+    expect(plain).toHaveLength(1);
+    const numbered = coloredTexts(render(doc, false, null, { numberComplement: true })).filter(
+      (t) => t.text === '1',
+    );
+    expect(numbered).toEqual([
+      { text: '1', x: 90, y: FORWARD_Y, fill: theme.gutterText },
+      // The repeat sits a line lower, beside the complement.
+      { text: '1', x: 90, y: COMPLEMENT_Y, fill: theme.inkMuted },
+    ]);
+  });
+
+  it('leaves the complement unnumbered when the complement is hidden', () => {
+    const hidden = new LinearLayout(doc.length, { ...metrics, showComplement: false }, [0], [0]);
+    const ctx = new SvgContext(300, hidden.totalHeight);
+    renderLinearView(ctx, {
+      doc,
+      layout: hidden,
+      lanes: assignLanes([], doc.length),
+      translations: null,
+      translationLanes: assignLanes([], doc.length),
+      selection: null,
+      cutSites: [],
+      edits: null,
+      colorBases: false,
+      numberComplement: true,
+      scrollTop: 0,
+      scrollLeft: 0,
+      width: 300,
+      height: hidden.totalHeight,
+      devicePixelRatio: 1,
+      theme,
+      monoFont: '13px monospace',
+      sansFont: '11px sans-serif',
+    });
+    expect(texts(ctx.toSvg()).filter((t) => t.text === '1')).toHaveLength(1);
+  });
+
+  it('shifts the drawing left when the view is scrolled sideways', () => {
+    const at = (scrollLeft: number): number =>
+      texts(render(doc, false, null, { scrollLeft }))[0]?.x ?? NaN;
+    expect(at(0) - at(40)).toBe(40);
   });
 });

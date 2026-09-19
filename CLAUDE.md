@@ -97,12 +97,13 @@ always on when configured, no user toggle by decision of 2026-09-18;
 events at file open/new/save/export, enzyme show, primer design, align,
 ligate, history jump, edit-mark baseline; the Pages workflow sets the
 instance URL and site id 6). The view switcher, the Complement /
-Translations / Cut sites toggles and the Edits baseline are remembered in
-localStorage (`src/app/state/viewPrefs.ts`, applied and watched by
-`useViewPrefs`); documents and enzyme ticks are unaffected. The logo
+Translations / Cut sites toggles, the Format menu's sequence-view options
+and the Edits baseline are remembered in localStorage
+(`src/app/state/viewPrefs.ts`, applied and watched by `useViewPrefs`);
+documents and enzyme ticks are unaffected. The logo
 (`design/logo/`, made in Claude Design) is used for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
 (`src/app/components/Logo.tsx`; wordmark outlined by
-`scripts/make-wordmark.py`, no webfont). Tests: 496 passing. Perf
+`scripts/make-wordmark.py`, no webfont). Tests: 511 passing. Perf
 measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -168,8 +169,17 @@ pick from here when the current work is done.
    the SVG text estimator matches). Refuses over 100,000 bases. Not yet: a
    chosen range other than the selection, a bases-per-row control in the UI,
    page-sized (A4) pagination.
-9. **Sequence view options**: font size, bases per row override, show
-   line numbers for the complement, colour bases.
+9. ~~**Sequence view options**~~: done. A **Format** menu in the toolbar
+   sets the text size (Small / Medium / Large, with the rest of the row
+   scaling with it through `linearMetrics` in `src/view/linear/layout.ts`),
+   the bases per row (Fit the window, or a fixed 30 / 60 / 90 / 120, which
+   scrolls sideways when it does not fit), whether the row's position
+   number is repeated beside the complement, and whether the bases are
+   coloured (one drawing pass per colour with the other columns blanked
+   out, measured in `docs/perf-notes.md`). The choices are remembered with
+   the other view preferences and the sequence-view SVG exports follow all
+   but the text size. Not yet: a bases-per-row number of the user's own,
+   colours the user can change, a font family choice.
 10. **Linear molecule end handling**: sticky ends and overhangs on the
     document itself after a simulated digest.
 11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs

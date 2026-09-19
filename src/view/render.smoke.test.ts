@@ -7,9 +7,12 @@ import { LinearLayout, assignLanes, lanesPerRow, renderLinearView } from './line
 import { drawableFeatures } from './visibleFeatures';
 
 /** A canvas context that records nothing and measures every string as 6px per char. */
-function stubContext(): CanvasRenderingContext2D {
+function stubContext(counts?: { fillText: number }): CanvasRenderingContext2D {
   const target = {
     measureText: (s: string) => ({ width: s.length * 6 }),
+    fillText: () => {
+      if (counts !== undefined) counts.fillText += 1;
+    },
   } as Record<string, unknown>;
   return new Proxy(target, {
     get(t, prop) {
@@ -46,6 +49,7 @@ describe('renderers over a real plasmid', () => {
     backbone: '#444',
     tick: '#ccc',
     leader: '#ddd',
+    baseColors: { a: '#0a0', c: '#00f', g: '#a50', t: '#c00', other: '#666' },
   };
 
   it('analysis finishes quickly', () => {
@@ -68,6 +72,7 @@ describe('renderers over a real plasmid', () => {
       translationHeight: 16,
       rowGap: 14,
       leftGutter: 72,
+      rightGutter: 24,
       topPadding: 12,
     };
     const layout = new LinearLayout(
@@ -87,7 +92,10 @@ describe('renderers over a real plasmid', () => {
       selection: { start: 10, end: 500 },
       cutSites: shown,
       edits: null,
+      colorBases: true,
+      numberComplement: true,
       scrollTop: 0,
+      scrollLeft: 0,
       width: 1000,
       height: layout.totalHeight,
       devicePixelRatio: 1,
@@ -95,6 +103,61 @@ describe('renderers over a real plasmid', () => {
       monoFont: '13px monospace',
       sansFont: '11px sans-serif',
     });
+  }, 5000);
+
+  it('colouring the bases costs a few passes over each row, not one per base', () => {
+    const features = drawableFeatures(doc.features.all());
+    const lanes = assignLanes(features, doc.length);
+    const metrics = {
+      basesPerRow: 100,
+      charWidth: 8,
+      lineHeight: 18,
+      showComplement: true,
+      rulerHeight: 16,
+      laneHeight: 20,
+      translationHeight: 16,
+      rowGap: 14,
+      leftGutter: 72,
+      rightGutter: 24,
+      topPadding: 12,
+    };
+    const layout = new LinearLayout(
+      doc.length,
+      metrics,
+      lanesPerRow(features, lanes, doc.length, 100),
+    );
+    const draw = (colorBases: boolean): number => {
+      const counts = { fillText: 0 };
+      renderLinearView(stubContext(counts), {
+        doc,
+        layout,
+        lanes,
+        translations: null,
+        translationLanes: assignLanes([], doc.length),
+        selection: null,
+        cutSites: [],
+        edits: null,
+        colorBases,
+        numberComplement: false,
+        scrollTop: 0,
+        scrollLeft: 0,
+        width: 1000,
+        height: layout.totalHeight,
+        devicePixelRatio: 1,
+        theme,
+        monoFont: '13px monospace',
+        sansFont: '11px sans-serif',
+      });
+      return counts.fillText;
+    };
+    const plain = draw(false);
+    const colored = draw(true);
+    // Ten bases to a fill either way; colouring repeats the line once per
+    // colour present, so it stays a small multiple and never approaches one
+    // fill per base, which over two strands would be 2 × doc.length.
+    expect(colored).toBeGreaterThan(plain);
+    expect(colored).toBeLessThan(plain * 6);
+    expect(colored).toBeLessThan(doc.length);
   }, 5000);
 
   it('circular map renders with cut-site labels', () => {

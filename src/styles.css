@@ -24,6 +24,15 @@
   --seq-edit-change: #a86200;
   --seq-edit-delete: #b3261e;
 
+  /* Base colours, used only while "Colour the bases" is on. Chosen to stay
+     apart for the common forms of colour blindness and to keep contrast on
+     the page. */
+  --seq-base-a: #2f7d32;
+  --seq-base-c: #1b6ec8;
+  --seq-base-g: #8a5a00;
+  --seq-base-t: #c0392b;
+  --seq-base-other: #6b7280;
+
   --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
 }
@@ -50,6 +59,12 @@
     --seq-edit-insert: #5fd196;
     --seq-edit-change: #e0a458;
     --seq-edit-delete: #ff8a80;
+
+    --seq-base-a: #6fcf7a;
+    --seq-base-c: #6ab8ff;
+    --seq-base-g: #e0a458;
+    --seq-base-t: #ff8a80;
+    --seq-base-other: #9aa5b1;
   }
 }
 
@@ -480,8 +495,12 @@ button {
    is over: text between the bases, a hand over the feature and translation
    tracks. */
 .seq-view__canvas {
+  /* Sticky in both directions: the spacer is as big as the whole document
+     (and wider than the viewport when a fixed row width overflows), while the
+     canvas only ever covers the visible part of it. */
   position: sticky;
   top: 0;
+  left: 0;
   display: block;
   touch-action: none;
 }
@@ -1322,6 +1341,14 @@ button {
   height: 1px;
   margin: 4px 0;
   background: var(--line);
+}
+
+.menu__group-label {
+  margin: 6px 10px 2px;
+  color: var(--ink-3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .menu__shortcut {

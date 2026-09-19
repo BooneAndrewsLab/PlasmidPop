@@ -348,6 +348,37 @@ describe('toolbar', () => {
     expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('sets the sequence view format and keeps it across a reload', () => {
+    const { unmount } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Large' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: '60' }));
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Colour the bases' }));
+    expect(editorStore.getState()).toMatchObject({
+      seqFontSize: 16,
+      seqBasesPerRow: 60,
+      colorBases: true,
+    });
+    // The menu stays open so several choices can be tried in a row.
+    expect(screen.getByRole('menuitemradio', { name: 'Large' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    unmount();
+    act(() => {
+      editorStore.setSeqFontSize(13);
+      editorStore.setSeqBasesPerRow(null);
+      editorStore.setColorBases(false);
+    });
+    render(<App />);
+    expect(editorStore.getState()).toMatchObject({
+      seqFontSize: 16,
+      seqBasesPerRow: 60,
+      colorBases: true,
+    });
+  });
+
   it('collects the file actions in one menu once a document is open', () => {
     render(<App />);
     expect(screen.queryByRole('button', { name: 'File' })).not.toBeInTheDocument();

@@ -191,8 +191,13 @@ export class SvgContext implements DrawingContext {
         ? ` textLength="${num(maxWidth)}" lengthAdjust="spacingAndGlyphs"`
         : '';
     const weight = f.weight === 'normal' ? '' : ` font-weight="${f.weight}"`;
+    // SVG collapses leading, trailing and repeated spaces unless told not to.
+    // The sequence rows are drawn with spaces standing in for columns that
+    // stay empty (a base of another colour, the gap opposite an overhang), so
+    // those runs have to survive or every letter after them shifts left.
+    const space = /^\s|\s$|\s\s/.test(text) ? ' xml:space="preserve"' : '';
     this.parts.push(
-      `<text x="${this.px(x)}" y="${this.py(y)}" font-family="${esc(f.family)}" font-size="${num(f.size)}"${weight} text-anchor="${anchor}"${baseline} ${paintAttr('fill', this.fillStyle)}${fit}>${esc(text)}</text>`,
+      `<text x="${this.px(x)}" y="${this.py(y)}" font-family="${esc(f.family)}" font-size="${num(f.size)}"${weight} text-anchor="${anchor}"${baseline}${space} ${paintAttr('fill', this.fillStyle)}${fit}>${esc(text)}</text>`,
     );
   }
 

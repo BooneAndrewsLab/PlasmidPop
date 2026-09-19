@@ -11,6 +11,10 @@ const DEFAULTS = {
   showComplement: true,
   showTranslations: true,
   showCutSites: true,
+  seqFontSize: 13,
+  seqBasesPerRow: null,
+  numberComplement: false,
+  colorBases: false,
   editsBaseline: 'opened',
 } as const;
 
@@ -20,6 +24,10 @@ function reset(): void {
   editorStore.setShowComplement(DEFAULTS.showComplement);
   editorStore.setShowTranslations(DEFAULTS.showTranslations);
   editorStore.setShowCutSites(DEFAULTS.showCutSites);
+  editorStore.setSeqFontSize(DEFAULTS.seqFontSize);
+  editorStore.setSeqBasesPerRow(DEFAULTS.seqBasesPerRow);
+  editorStore.setNumberComplement(DEFAULTS.numberComplement);
+  editorStore.setColorBases(DEFAULTS.colorBases);
   editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
 }
 
@@ -36,6 +44,10 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: true,
       showCutSites: false,
+      seqFontSize: 16,
+      seqBasesPerRow: 60,
+      numberComplement: true,
+      colorBases: true,
       editsBaseline: 'saved',
     } as const;
     saveViewPrefs(prefs);
@@ -49,7 +61,14 @@ describe('view preferences', () => {
     expect(loadViewPrefs()).toEqual({});
     localStorage.setItem(
       KEY,
-      JSON.stringify({ view: 'chromosome', showComplement: 'yes', editsBaseline: 'marked' }),
+      JSON.stringify({
+        view: 'chromosome',
+        showComplement: 'yes',
+        editsBaseline: 'marked',
+        seqFontSize: 9,
+        seqBasesPerRow: 4,
+        colorBases: 1,
+      }),
     );
     expect(loadViewPrefs()).toEqual({});
     // A partial entry keeps the fields it does have.
@@ -63,6 +82,10 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       showCutSites: false,
+      seqFontSize: 11,
+      seqBasesPerRow: 90,
+      numberComplement: true,
+      colorBases: true,
       editsBaseline: 'off',
     });
     const stop = startViewPrefs();
@@ -71,6 +94,10 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       showCutSites: false,
+      seqFontSize: 11,
+      seqBasesPerRow: 90,
+      numberComplement: true,
+      colorBases: true,
       editsBaseline: 'off',
     });
     stop();
@@ -80,6 +107,19 @@ describe('view preferences', () => {
     localStorage.setItem(KEY, JSON.stringify({ showCutSites: false }));
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({ ...DEFAULTS, showCutSites: false });
+    stop();
+  });
+
+  it('records a format choice', () => {
+    const stop = startViewPrefs();
+    editorStore.setSeqFontSize(16);
+    editorStore.setSeqBasesPerRow(30);
+    editorStore.setColorBases(true);
+    expect(loadViewPrefs()).toMatchObject({
+      seqFontSize: 16,
+      seqBasesPerRow: 30,
+      colorBases: true,
+    });
     stop();
   });
 

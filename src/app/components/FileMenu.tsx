@@ -45,7 +45,28 @@ function Item({ children, shortcut, title, disabled, onClick }: ItemProps) {
 
 /** Every file-level action for the open document, behind one "File" button. */
 export function FileMenu({ doc, onOpenFile }: Props) {
-  const { selection, fileHandle, fileName, showComplement, showTranslations } = useEditorState();
+  const {
+    selection,
+    fileHandle,
+    fileName,
+    showComplement,
+    showTranslations,
+    seqBasesPerRow,
+    numberComplement,
+    colorBases,
+  } = useEditorState();
+  /**
+   * The parts of the sequence view's format the export follows. The text
+   * size is not one of them: the file keeps the export's own metric so it
+   * comes out the same whatever the screen is set to.
+   */
+  const format = {
+    showComplement,
+    showTranslations,
+    numberComplement,
+    colorBases,
+    ...(seqBasesPerRow === null ? {} : { basesPerRow: seqBasesPerRow }),
+  };
   const { open, toggle, close, ref } = useMenu();
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const example = EXAMPLES[0];
@@ -151,8 +172,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
                 downloadText(
                   `${stem}_sequence.svg`,
                   exportLinearSvg(doc, {
-                    showComplement,
-                    showTranslations,
+                    ...format,
                     cutSites: editorStore.visibleCutSites(),
                     edits: editDiffOf(editorStore.getState()),
                   }),
@@ -172,10 +192,9 @@ export function FileMenu({ doc, onOpenFile }: Props) {
                 downloadText(
                   `${stem}_selection.svg`,
                   exportLinearSvg(doc, {
+                    ...format,
                     range: selection,
                     selection,
-                    showComplement,
-                    showTranslations,
                     cutSites: editorStore.visibleCutSites(),
                     edits: editDiffOf(editorStore.getState()),
                   }),

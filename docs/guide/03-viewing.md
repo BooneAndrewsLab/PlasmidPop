@@ -6,15 +6,17 @@ in one is highlighted in the other and reported in the status bar as
 `N bp selected, from to to` (1-based, inclusive).
 
 The switcher, the **Complement**, **Translations** and **Cut sites** toggles
-next to it and the **Edits** baseline are remembered in the browser, so the
-views come back the way you left them the next time you open PlasmidPop. They
-are settings of the app, not of a document: they do not change with the file
-you open and are not written into a saved file.
+next to it, the **Format** menu's choices and the **Edits** baseline are
+remembered in the browser, so the views come back the way you left them the
+next time you open PlasmidPop. They are settings of the app, not of a
+document: they do not change with the file you open and are not written into
+a saved file.
 
 ## Sequence view
 
-Bases are laid out in rows that fill the available width, with a ruler
-above each row giving the position of its first base. Below each row:
+Bases are laid out in rows that fill the available width — or a width you
+fix in the **Format** menu, below — with a ruler above each row giving the
+position of its first base. Below each row:
 
 - the **complement** strand, when **Complement** is on in the toolbar;
 - one line of **amino acids** per CDS feature, when **Translations** is on
@@ -35,6 +37,29 @@ regions.
 
 **File ▸ Export sequence view as SVG** writes what you see as a vector file
 for figures, see [Files](02-files.md).
+
+### Format
+
+The toolbar's **Format** menu sets how the sequence view draws. Choices take
+effect at once and the menu stays open, so you can try one and look.
+
+- **Text size** — Small, Medium (the default) or Large. The rows, lanes and
+  labels scale with the text, so a larger size gives a roomier view with
+  fewer bases in a row.
+- **Bases per row** — **Fit the window** (the default) puts as many bases in
+  a row as the width holds, in tens, and re-flows when the window changes.
+  Pick 30, 60, 90 or 120 instead to keep the same rows whatever the window
+  size — useful for comparing two windows side by side, or for an export
+  that matches what you see. If the fixed width does not fit, the view
+  scrolls sideways.
+- **Number the complement** repeats each row's position number beside the
+  complement strand, so a wide row can be read from either line.
+- **Colour the bases** gives A, C, G and T each their own colour on both
+  strands; anything else (an N or another IUPAC code) is grey.
+
+The SVG exports follow the bases-per-row, numbering and colour choices. They
+keep their own text size so the file looks the same whatever the screen is
+set to.
 
 ## Circular map
 

@@ -8,6 +8,7 @@ import { persistence } from '../state/persistence';
 import { HelpButton } from '../help/HelpButton';
 import { EditsMenu } from './EditsMenu';
 import { FileMenu } from './FileMenu';
+import { FormatMenu } from './FormatMenu';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
@@ -188,6 +189,7 @@ export function Toolbar({ doc }: Props) {
                 Cut sites
               </button>
             </div>
+            <FormatMenu />
             <EditsMenu />
           </>
         )}

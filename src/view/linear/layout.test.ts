@@ -1,4 +1,12 @@
-import { type LinearMetrics, LinearLayout, basesPerRowFor } from './layout';
+import {
+  type LinearMetrics,
+  DEFAULT_FONT_SIZE,
+  LinearLayout,
+  basesPerRowFor,
+  isFontSize,
+  linearMetrics,
+  linearWidth,
+} from './layout';
 
 const metrics: LinearMetrics = {
   basesPerRow: 10,
@@ -10,6 +18,7 @@ const metrics: LinearMetrics = {
   translationHeight: 12,
   rowGap: 6,
   leftGutter: 60,
+  rightGutter: 24,
   topPadding: 8,
 };
 
@@ -132,5 +141,65 @@ describe('basesPerRowFor', () => {
     expect(basesPerRowFor(800, 8)).toBe(100);
     expect(basesPerRowFor(799, 8)).toBe(90);
     expect(basesPerRowFor(10, 8)).toBe(10);
+  });
+});
+
+describe('linearMetrics', () => {
+  const at = (fontSize: number): LinearMetrics =>
+    linearMetrics({
+      fontSize,
+      basesPerRow: 60,
+      charWidth: fontSize * 0.6,
+      showComplement: true,
+      cutSiteLabels: false,
+    });
+
+  it('keeps the numbers the view has always used at the default size', () => {
+    expect(at(DEFAULT_FONT_SIZE)).toMatchObject({
+      lineHeight: 18,
+      laneHeight: 20,
+      translationHeight: 16,
+      rowGap: 14,
+      rulerHeight: 16,
+      leftGutter: 72,
+      rightGutter: 24,
+      topPadding: 12,
+    });
+  });
+
+  it('scales the rows with the text', () => {
+    expect(at(11).lineHeight).toBeLessThan(at(13).lineHeight);
+    expect(at(16).lineHeight).toBeGreaterThan(at(13).lineHeight);
+    expect(at(16).leftGutter).toBeGreaterThan(at(13).leftGutter);
+  });
+
+  it('keeps room above the strands for enzyme labels only when asked', () => {
+    const labelled = linearMetrics({
+      fontSize: 13,
+      basesPerRow: 60,
+      charWidth: 8,
+      showComplement: true,
+      cutSiteLabels: true,
+    });
+    expect(labelled.rulerHeight).toBe(30);
+  });
+
+  it('adds the extra right gutter a sticky end needs', () => {
+    const wide = linearMetrics({
+      fontSize: 13,
+      basesPerRow: 10,
+      charWidth: 8,
+      showComplement: true,
+      cutSiteLabels: false,
+      extraRightGutter: 32,
+    });
+    expect(wide.rightGutter).toBe(56);
+    expect(linearWidth(wide)).toBe(72 + 80 + 56);
+  });
+
+  it('knows which sizes it offers', () => {
+    expect(isFontSize(13)).toBe(true);
+    expect(isFontSize(12)).toBe(false);
+    expect(isFontSize('13')).toBe(false);
   });
 });

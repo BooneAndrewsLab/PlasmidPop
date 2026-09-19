@@ -15,6 +15,7 @@ import {
   rangeSegment,
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
+import { type FontSize } from '@/view/linear';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
 
@@ -140,6 +141,17 @@ export interface EditorState {
   readonly showComplement: boolean;
   /** Whether amino-acid translations are drawn under CDS features in the sequence view. */
   readonly showTranslations: boolean;
+  /** Size of the sequence view's text; the rest of the row scales with it. */
+  readonly seqFontSize: FontSize;
+  /**
+   * Bases in one row of the sequence view, or null to fit as many as the
+   * window holds. A fixed count that does not fit scrolls sideways.
+   */
+  readonly seqBasesPerRow: number | null;
+  /** Whether the row's position number is repeated beside the complement. */
+  readonly numberComplement: boolean;
+  /** Whether bases are tinted by what they are (A/C/G/T). */
+  readonly colorBases: boolean;
   /** Which version the sequence view marks changes against; see `EditsBaseline`. */
   readonly editsBaseline: EditsBaseline;
   /** The document as it was opened, the baseline for `editsBaseline: 'opened'`. */
@@ -190,6 +202,10 @@ const INITIAL: EditorState = {
   overwritePrompt: null,
   showComplement: true,
   showTranslations: true,
+  seqFontSize: 13,
+  seqBasesPerRow: null,
+  numberComplement: false,
+  colorBases: false,
   editsBaseline: 'opened',
   openedDoc: null,
   markedDoc: null,
@@ -571,6 +587,24 @@ export class EditorStore {
 
   setShowTranslations(show: boolean): void {
     if (show !== this.state.showTranslations) this.set({ showTranslations: show });
+  }
+
+  setSeqFontSize(size: FontSize): void {
+    if (size !== this.state.seqFontSize) this.set({ seqFontSize: size });
+  }
+
+  /** Fixes the row width in bases, or passes null to go back to fitting the window. */
+  setSeqBasesPerRow(bases: number | null): void {
+    const value = bases === null ? null : Math.max(10, Math.round(bases));
+    if (value !== this.state.seqBasesPerRow) this.set({ seqBasesPerRow: value });
+  }
+
+  setNumberComplement(show: boolean): void {
+    if (show !== this.state.numberComplement) this.set({ numberComplement: show });
+  }
+
+  setColorBases(color: boolean): void {
+    if (color !== this.state.colorBases) this.set({ colorBases: color });
   }
 
   setEditsBaseline(baseline: EditsBaseline): void {

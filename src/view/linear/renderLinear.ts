@@ -15,6 +15,18 @@ import { contrastingText, featureColor, withAlpha } from '../featureColors';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
 
+/**
+ * Colours for the four bases when base colouring is on, with `other` for the
+ * IUPAC ambiguity codes.
+ */
+export interface BaseColors {
+  readonly a: string;
+  readonly c: string;
+  readonly g: string;
+  readonly t: string;
+  readonly other: string;
+}
+
 export interface LinearTheme {
   readonly ink: string;
   readonly inkMuted: string;
@@ -30,6 +42,7 @@ export interface LinearTheme {
   readonly editChange: string;
   /** Boundaries where bases were removed. */
   readonly editDelete: string;
+  readonly baseColors: BaseColors;
 }
 
 export interface RenderParams {
@@ -50,7 +63,13 @@ export interface RenderParams {
    * around the features they touched. `null` leaves the view unmarked.
    */
   readonly edits: DocumentDiff | null;
+  /** Tint each base by what it is instead of drawing the strands in one ink. */
+  readonly colorBases: boolean;
+  /** Repeat the row's position number beside the complement strand. */
+  readonly numberComplement: boolean;
   readonly scrollTop: number;
+  /** How far the view is scrolled right; 0 unless a fixed row width overflows. */
+  readonly scrollLeft: number;
   readonly width: number;
   readonly height: number;
   readonly devicePixelRatio: number;
@@ -70,11 +89,15 @@ function drawRuler(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   ctx.fillStyle = theme.gutterText;
   ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(
-    (row.start + 1).toLocaleString(),
-    m.leftGutter - 10,
-    layout.forwardTextTop(row) + m.lineHeight * 0.75,
-  );
+  const number = (row.start + 1).toLocaleString();
+  ctx.fillText(number, m.leftGutter - 10, layout.forwardTextTop(row) + m.lineHeight * 0.75);
+  // The complement is read from the same coordinates, so its number is the
+  // same one repeated: on a wide row it saves tracking back to the top line.
+  if (p.numberComplement && m.showComplement) {
+    ctx.fillStyle = theme.inkMuted;
+    ctx.fillText(number, m.leftGutter - 10, layout.complementTextTop(row) + m.lineHeight * 0.75);
+    ctx.fillStyle = theme.gutterText;
+  }
 
   const labelEvery = m.basesPerRow >= 50 ? 50 : 10;
   ctx.strokeStyle = theme.rulerLine;
@@ -175,6 +198,80 @@ function drawEdits(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   }
 }
 
+/** The colour a base is drawn in while base colouring is on. */
+function baseColor(colors: BaseColors, base: string): string {
+  switch (base) {
+    case 'A':
+    case 'a':
+      return colors.a;
+    case 'C':
+    case 'c':
+      return colors.c;
+    case 'G':
+    case 'g':
+      return colors.g;
+    case 'T':
+    case 't':
+    case 'U':
+    case 'u':
+      return colors.t;
+    default:
+      return colors.other;
+  }
+}
+
+/**
+ * One line of bases, in ten-base chunks so the text stays anchored to the
+ * column grid even where the font's advance width is not exactly
+ * `charWidth`. Spaces in `s` leave a column empty — that is how the paired
+ * base of a single-stranded overhang is left out.
+ */
+function drawBaseChunks(
+  ctx: DrawingContext,
+  p: RenderParams,
+  s: string,
+  y: number,
+  color: string,
+): void {
+  ctx.fillStyle = color;
+  for (let i = 0; i < s.length; i += 10) {
+    const chunk = s.slice(i, i + 10);
+    if (chunk.trim() === '') continue;
+    ctx.fillText(chunk, p.layout.xOfColumn(i), y);
+  }
+}
+
+/** The colours a coloured line is drawn in, in a fixed order, without repeats. */
+function distinctBaseColors(colors: BaseColors): string[] {
+  return [...new Set([colors.a, colors.c, colors.g, colors.t, colors.other])];
+}
+
+/**
+ * A line of bases. Uncoloured it is one fill per ten bases; coloured, the
+ * line is drawn once per colour with the other columns blanked out, which
+ * costs a handful of passes instead of one fill per base and keeps every
+ * letter exactly where the grid puts it.
+ */
+function drawBaseLine(
+  ctx: DrawingContext,
+  p: RenderParams,
+  s: string,
+  top: number,
+  plain: string,
+): void {
+  const y = top + p.layout.metrics.lineHeight * 0.75;
+  if (!p.colorBases) {
+    drawBaseChunks(ctx, p, s, y, plain);
+    return;
+  }
+  const colors = p.theme.baseColors;
+  for (const color of distinctBaseColors(colors)) {
+    let masked = '';
+    for (const ch of s) masked += baseColor(colors, ch) === color && ch !== ' ' ? ch : ' ';
+    drawBaseChunks(ctx, p, masked, y, color);
+  }
+}
+
 function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, layout, theme } = p;
   const m = layout.metrics;
@@ -182,15 +279,10 @@ function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void
   ctx.font = p.monoFont;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  const drawLine = (s: string, top: number, color: string): void => {
-    ctx.fillStyle = color;
-    const y = top + m.lineHeight * 0.75;
-    // Ten-base chunks keep the text anchored to the column grid even if the
-    // font's advance width is not exactly `charWidth`.
-    for (let i = 0; i < s.length; i += 10) ctx.fillText(s.slice(i, i + 10), layout.xOfColumn(i), y);
-  };
-  drawLine(text, layout.forwardTextTop(row), theme.ink);
-  if (m.showComplement) drawLine(complement(text), layout.complementTextTop(row), theme.inkMuted);
+  drawBaseLine(ctx, p, text, layout.forwardTextTop(row), theme.ink);
+  if (m.showComplement) {
+    drawBaseLine(ctx, p, complement(text), layout.complementTextTop(row), theme.inkMuted);
+  }
 }
 
 interface Run {
@@ -418,12 +510,12 @@ function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
 
 /** Draws the visible part of the linear view onto a canvas that covers the viewport. */
 export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
-  const { layout, doc, scrollTop, width, height, devicePixelRatio: dpr } = p;
+  const { layout, doc, scrollTop, scrollLeft, width, height, devicePixelRatio: dpr } = p;
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = p.theme.background;
   ctx.fillRect(0, 0, width, height);
-  ctx.translate(0, -scrollTop);
+  ctx.translate(-scrollLeft, -scrollTop);
 
   for (const row of layout.rowsInWindow(scrollTop, scrollTop + height)) {
     drawEdits(ctx, p, row);

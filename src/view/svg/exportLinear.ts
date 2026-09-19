@@ -9,11 +9,13 @@ import {
 } from '@/core';
 
 import {
-  type LinearMetrics,
   type LinearTheme,
+  DEFAULT_FONT_SIZE,
   LinearLayout,
   assignLanes,
   lanesPerRow,
+  linearMetrics,
+  linearWidth,
   renderLinearView,
 } from '../linear';
 import { drawableFeatures } from '../visibleFeatures';
@@ -32,13 +34,18 @@ export const PRINT_LINEAR_THEME: LinearTheme = {
   editInsert: '#1d7a4c',
   editChange: '#a86200',
   editDelete: '#b3261e',
+  baseColors: {
+    a: '#2f7d32',
+    c: '#1b6ec8',
+    g: '#8a5a00',
+    t: '#c0392b',
+    other: '#6b7280',
+  },
 };
 
 /** Fonts with an advance width the SVG estimator can predict (Courier is exactly 0.6 em). */
-const MONO_FONT = '13px "Courier New", Courier, monospace';
-const SANS_FONT = '11px Helvetica, Arial, sans-serif';
-const LEFT_GUTTER = 72;
-const RIGHT_PADDING = 24;
+const monoFontOf = (size: number): string => `${size}px "Courier New", Courier, monospace`;
+const sansFontOf = (size: number): string => `${size - 2}px Helvetica, Arial, sans-serif`;
 const DEFAULT_BASES_PER_ROW = 60;
 /** One row per 60 bases makes a tall page; refuse to write an unusable file. */
 const MAX_EXPORT_BASES = 100_000;
@@ -52,6 +59,12 @@ export interface LinearExportOptions {
   readonly range?: Range | null;
   /** Bases per row; the page width follows from it. Default 60. */
   readonly basesPerRow?: number;
+  /** Size of the strand text; the rest of the row scales with it. Default 13. */
+  readonly fontSize?: number;
+  /** Tint the bases by what they are, as the view can on screen. */
+  readonly colorBases?: boolean;
+  /** Repeat each row's position number beside the complement. */
+  readonly numberComplement?: boolean;
   /** Highlight this range, as the selection is highlighted on screen. */
   readonly selection?: Range | null;
   readonly showComplement?: boolean;
@@ -76,21 +89,18 @@ function charWidthFor(font: string): number {
  */
 export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions = {}): string {
   const basesPerRow = Math.max(10, Math.round(options.basesPerRow ?? DEFAULT_BASES_PER_ROW));
+  const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cutSites = options.cutSites ?? [];
-  const charWidth = charWidthFor(MONO_FONT);
-  const metrics: LinearMetrics = {
+  const monoFont = monoFontOf(fontSize);
+  const charWidth = charWidthFor(monoFont);
+  const metrics = linearMetrics({
+    fontSize,
     basesPerRow,
     charWidth,
-    lineHeight: 18,
     showComplement: options.showComplement ?? true,
     // Room for the enzyme names above the strands, as in the on-screen view.
-    rulerHeight: cutSites.length > 0 ? 30 : 16,
-    laneHeight: 20,
-    translationHeight: 16,
-    rowGap: 14,
-    leftGutter: LEFT_GUTTER,
-    topPadding: 12,
-  };
+    cutSiteLabels: cutSites.length > 0,
+  });
 
   const features = drawableFeatures(doc.features.all());
   const lanes = assignLanes(features, doc.length);
@@ -124,7 +134,7 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
   // padding); a row's height already carries the gap below it.
   const top = first.index === 0 ? 0 : first.top;
   const height = last.top + last.height - top;
-  const width = metrics.leftGutter + basesPerRow * charWidth + RIGHT_PADDING;
+  const width = linearWidth(metrics);
 
   const ctx = new SvgContext(width, height);
   renderLinearView(ctx, {
@@ -136,7 +146,10 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     selection: options.selection ?? null,
     cutSites,
     edits: options.edits ?? null,
+    colorBases: options.colorBases ?? false,
+    numberComplement: options.numberComplement ?? false,
     scrollTop: top,
+    scrollLeft: 0,
     width,
     height,
     devicePixelRatio: 1,
@@ -144,8 +157,8 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
       options.transparent === true
         ? { ...PRINT_LINEAR_THEME, background: 'rgba(0,0,0,0)' }
         : PRINT_LINEAR_THEME,
-    monoFont: MONO_FONT,
-    sansFont: SANS_FONT,
+    monoFont,
+    sansFont: sansFontOf(fontSize),
   });
   const shown =
     range === null
