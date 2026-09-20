@@ -87,8 +87,13 @@ export const BUNDLED_ENZYME_SET: EnzymeSet = {
   suppliers: [],
 };
 
+/** The bundled table by lowercased name; also the fallback in `getEnzyme`. */
+const BUNDLED_BY_NAME: ReadonlyMap<string, Enzyme> = new Map(
+  ENZYMES.map((e) => [e.name.toLowerCase(), e] as const),
+);
+
 let activeSet: EnzymeSet = BUNDLED_ENZYME_SET;
-let byName = new Map(ENZYMES.map((e) => [e.name.toLowerCase(), e] as const));
+let byName: ReadonlyMap<string, Enzyme> = BUNDLED_BY_NAME;
 
 /**
  * The set every scan, digest and panel works from. It is module state
@@ -107,7 +112,10 @@ export function activeEnzymes(): readonly Enzyme[] {
 /** Installs a set, or the bundled table when given null. */
 export function setActiveEnzymeSet(set: EnzymeSet | null): void {
   activeSet = set ?? BUNDLED_ENZYME_SET;
-  byName = new Map(activeSet.enzymes.map((e) => [e.name.toLowerCase(), e] as const));
+  byName =
+    activeSet === BUNDLED_ENZYME_SET
+      ? BUNDLED_BY_NAME
+      : new Map(activeSet.enzymes.map((e) => [e.name.toLowerCase(), e] as const));
 }
 
 /**
@@ -117,7 +125,7 @@ export function setActiveEnzymeSet(set: EnzymeSet | null): void {
  */
 export function getEnzyme(name: string): Enzyme | undefined {
   const key = name.toLowerCase();
-  return byName.get(key) ?? ENZYMES.find((e) => e.name.toLowerCase() === key);
+  return byName.get(key) ?? BUNDLED_BY_NAME.get(key);
 }
 
 export interface CutSite {
