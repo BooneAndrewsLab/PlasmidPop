@@ -95,6 +95,13 @@ export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
           ref={input}
           type="file"
           className="visually-hidden"
+          /*
+           * A hint, not a gate: browsers keep an "All files" entry in the
+           * picker's filter list, which is the way out when the download
+           * arrived without an extension (saving the page gives
+           * link_withrefm.txt, but "Save link as" need not).
+           */
+          accept="text/plain,.txt,.dat"
           onChange={(e) => {
             take(e.target.files?.[0]);
             e.target.value = '';
@@ -108,7 +115,7 @@ export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
         >
           {busy ? 'Reading…' : 'Choose file…'}
         </button>
-        <span className="enzyme-import__hint">or drop the file here</span>
+        <span className="enzyme-import__hint">or drop link_withrefm.txt here</span>
       </div>
       {error !== null && <p className="panel__note panel__note--error">{error}</p>}
       {summary !== null && (

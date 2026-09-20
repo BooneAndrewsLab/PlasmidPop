@@ -100,8 +100,10 @@ not allow a web page to fetch them. You download the file; the app reads it.
 2. Follow **Download withrefm from REBASE**. The file opens as plain text in
    a new tab — save it with Ctrl+S, or right-click the link and choose _Save
    link as_. It is about 4 MB.
-3. Back in PlasmidPop, click **Choose file…** and pick what you saved, or
-   drop the file onto the panel.
+3. Back in PlasmidPop, click **Choose file…** and pick what you saved
+   (usually `link_withrefm.txt`), or drop the file onto the panel. The
+   picker asks for text files; if your browser saved it without an
+   extension, switch the picker to _All files_.
 
 The table is read in your browser, kept in this browser's local storage, and
 never uploaded anywhere. It survives reloads, and the Enzymes tab says which

@@ -143,9 +143,10 @@ export function EnzymePanel({ doc }: Props) {
           Single cutters only
         </label>
         {enzymeSetInfo.suppliers.length > 0 && (
-          <label className="panel__field">
+          <label className="panel__field panel__field--row">
             <span>Sold by</span>
             <select
+              className="panel__select"
               value={supplier}
               onChange={(e) => {
                 setSupplier(e.target.value);

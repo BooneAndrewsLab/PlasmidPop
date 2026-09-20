@@ -677,6 +677,24 @@ button {
   color: var(--ink-2);
 }
 
+/**
+ * A field that takes the whole width of the controls row. Supplier names run
+ * to "Molecular Biology Resources - CHIMERx", which leaves the label wrapping
+ * and the select spilling past the 330 px sidebar when it shares a line.
+ */
+.panel__field--row {
+  flex: 1 1 100%;
+}
+
+.panel__field--row > span {
+  white-space: nowrap;
+}
+
+.panel__field--row .panel__select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .panel__buttons {
   display: flex;
   gap: 4px;
