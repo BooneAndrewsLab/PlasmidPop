@@ -63,7 +63,7 @@ export const ENZYME_TABLE: readonly (readonly [string, string, number, number])[
   ['ClaI', 'ATCGAT', 2, 4],
   ['DpnII', 'GATC', 0, 4],
   ['DraI', 'TTTAAA', 3, 3],
-  ['DrdI', 'GACNNNNNNGTC', 6, 6],
+  ['DrdI', 'GACNNNNNNGTC', 7, 5],
   ['EagI', 'CGGCCG', 1, 5],
   ['EarI', 'CTCTTC', 7, 10],
   ['EcoNI', 'CCTNNNNNAGG', 5, 6],
