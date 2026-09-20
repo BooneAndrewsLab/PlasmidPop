@@ -104,6 +104,13 @@ export function EnzymePanel({ doc }: Props) {
   );
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
   const shownRows = rows.slice(0, MAX_ROWS_SHOWN);
+  /**
+   * Every enzyme that cuts once, whatever the filters say. This is what a
+   * document ticks by itself when there are few enough of them
+   * (`MAX_DEFAULT_ENZYMES`); with a REBASE table there are too many, and the
+   * note below is how you ask for them anyway.
+   */
+  const singleCutters = groups.filter((g) => g.sites.length === 1).map((g) => g.enzyme.name);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -187,6 +194,22 @@ export function EnzymePanel({ doc }: Props) {
           >
             Show cut sites
           </button>
+        </p>
+      )}
+      {ready && shownEnzymes.size === 0 && singleCutters.length > 0 && (
+        <p className="panel__note">
+          Nothing is ticked, so no cut sites are drawn and the Cloning tab has nothing to digest
+          with.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.setShownEnzymes(singleCutters);
+            }}
+          >
+            Tick the {singleCutters.length} enzymes that cut once
+          </button>
+          .
         </p>
       )}
       {!ready ? (

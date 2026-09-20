@@ -26,7 +26,11 @@ Below the list: how many enzymes cut, and how many do not cut at all.
 ## Choosing which to show
 
 - When a document opens, the enzymes that cut **exactly once** are ticked,
-  so unique sites are on the map at once.
+  so unique sites are on the map at once. If there are more than 50 of them
+  — which happens with an imported REBASE table, where a small fragment can
+  have ninety unique cutters — nothing is ticked instead, because ninety
+  labels is a wall rather than a starting point. The tab then offers **Tick
+  the N enzymes that cut once** if you want them after all.
 - Tick or untick individual enzymes. **Show listed** ticks every enzyme
   currently in the (filtered) list, **Hide all** clears them.
 - **Filter** by name (`Eco`) or by site (`GGATCC`).
@@ -48,7 +52,8 @@ busy to read. The ticks stay exactly as they are, so switching it back on
 restores the same set; no need to untick and re-tick a carefully chosen list.
 The toggle is remembered between sessions (see
 [Viewing and selecting](03-viewing.md)); the ticks are not, they start again
-at the single cutters of each document you open.
+at the single cutters of each document you open (or at nothing, with a big
+table).
 
 While it is off:
 

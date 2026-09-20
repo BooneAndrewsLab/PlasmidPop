@@ -48,6 +48,18 @@ export interface AnalysisState {
 /** How long a self-dismissing error fades once its time is up. */
 export const ERROR_FADE_MS = 400;
 
+/**
+ * How many single cutters a freshly opened document may tick by itself.
+ *
+ * Ticking the single cutters is the useful default, and with the bundled
+ * table it stays one: pBR322, the largest thing the bundled 127 enzymes are
+ * likely to meet, has 35 of them. An imported REBASE table has around ninety
+ * on a 538 bp fragment, and ninety labels is a wall across the sequence view
+ * and the map rather than a starting point. Past this many, nothing is ticked
+ * and the Enzymes tab offers them in one click.
+ */
+export const MAX_DEFAULT_ENZYMES = 50;
+
 /** Ops that leave the sequence and topology alone, so analysis results stay exact. */
 const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
   'rename',
@@ -133,7 +145,11 @@ export interface DocumentState {
   readonly analysis: AnalysisState | null;
   /** Enzymes whose cut sites are drawn in the views. */
   readonly shownEnzymes: ReadonlySet<string>;
-  /** Whether the default shown-enzyme set (single cutters) was applied for this document. */
+  /**
+   * Whether the default shown-enzyme set was applied for this document: the
+   * single cutters, or nothing at all when there are more of them than
+   * `MAX_DEFAULT_ENZYMES`.
+   */
   readonly enzymesInitialized: boolean;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
@@ -741,9 +757,8 @@ export class EditorStore {
     if (!enzymesInitialized) {
       const counts = new Map<string, number>();
       for (const s of cutSites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
-      shownEnzymes = new Set(
-        [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name),
-      );
+      const singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
+      shownEnzymes = new Set(singles.length > MAX_DEFAULT_ENZYMES ? [] : singles);
       enzymesInitialized = true;
     }
     this.setDocument(target.documentId, {

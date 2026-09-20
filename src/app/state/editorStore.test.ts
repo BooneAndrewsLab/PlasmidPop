@@ -3,7 +3,7 @@ import { SeqDocument, createFeature, rangeSegment } from '@/core';
 import { deleteBackward, deleteForward, typeText } from '../editing';
 import { parseGenBank } from '@/io';
 
-import { ERROR_FADE_MS, EditorStore } from './editorStore';
+import { ERROR_FADE_MS, EditorStore, MAX_DEFAULT_ENZYMES } from './editorStore';
 
 const doc = SeqDocument.create({
   sequence: 'ACGTACGTACGTACGTACGT',
@@ -212,6 +212,25 @@ describe('EditorStore analysis', () => {
     expect(store.getState().analysis).toBeNull();
     store.setShownEnzymes(['NotI']);
     expect([...store.getState().shownEnzymes]).toEqual(['NotI']);
+  });
+
+  it('ticks nothing when a big table gives too many single cutters', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const site = (enzyme: string, cut: number) => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut,
+      strand: 'forward' as const,
+    });
+    const many = Array.from({ length: MAX_DEFAULT_ENZYMES + 1 }, (_, i) => site(`Enz${i}`, i));
+    store.setAnalysis(doc, many, []);
+    expect(store.getState().shownEnzymes.size).toBe(0);
+    // The default is not applied again once the user has chosen.
+    store.setEnzymeShown('Enz0', true);
+    store.setAnalysis(doc, many, []);
+    expect([...store.getState().shownEnzymes]).toEqual(['Enz0']);
   });
 
   it('hides drawn cut sites without touching the ticks', () => {
