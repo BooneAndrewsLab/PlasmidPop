@@ -106,8 +106,9 @@ documents and enzyme ticks are unaffected. The logo
 (`src/app/components/Logo.tsx`; wordmark outlined by
 `scripts/make-wordmark.py`, no webfont). Added 2026-09-19: runs of typing
 coalesce into one undo step, the Cloning tab's assembly shelf survives a
-reload, and Golden Gate assembly (items 5 and 3 under "Potential new
-features"). Tests: 590 passing. Perf measurements live in
+reload, Golden Gate assembly (items 5 and 3 under "Potential new
+features"), and the rough edges the REBASE import left (item 7) are
+cleared. Tests: 594 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -255,24 +256,30 @@ pick from here when the current work is done.
      strain does to it — the Dam/Dcm table is a separate dataset);
      isoschizomer grouping in the list; double cutters; narrowing the scan
      itself to the supplier filter or the ticked enzymes.
-   - Rough edges seen with a table imported, none of them fixed:
-     - The 200-row cap is a stopgap for virtualizing the list. It cuts off
-       the tail rather than letting you reach it, so an enzyme past the
-       200th is only findable through the filter box.
-     - **Sold by** does not fit the 330 px sidebar: the label wraps to two
-       lines and the `<select>` runs to the panel's edge, because supplier
-       names go up to "Molecular Biology Resources - CHIMERx". It wants the
-       supplier's letter code, or the select on its own row.
-     - Opening a document ticks every single cutter, which is 18 enzymes
-       with the bundled table and about 90 with REBASE on a 538 bp
-       fragment. That is a wall of labels in the sequence view and on the
-       map. A big table probably wants a different default — nothing
-       ticked, or only what a supplier filter leaves.
-     - The import's file input takes no `accept`, so the picker does not
-       hint at what it wants.
-     - `getEnzyme` falls back to a linear scan of the bundled table when a
-       name is not in the active set. Only `selectSite` and the digest hit
-       it, so it has not mattered, but it is O(n) per miss.
+   - The rough edges a table imported left behind were cleared on
+     2026-09-19:
+     - The list is windowed instead of cut off at 200 rows. It scrolls
+       inside the panel and only the rows over the viewport plus 600 px
+       either side are in the DOM, 22 to 34 of them on pBR322
+       (`useRowWindow` in `src/app/components/`, which measures each row as
+       it appears because a row is as tall as its cut positions need;
+       `docs/perf-notes.md`). Everything below the list is in view again
+       rather than a thousand rows down. It costs two things: a browser page
+       search does not see a row scrolled out of sight, and **Show listed**
+       asks for a narrower list past 200 enzymes rather than ticking more
+       labels than the views can draw.
+     - **Sold by** has the controls row to itself, and the `<select>` has
+       the panel's own styling, which it never had.
+     - Opening a document ticks the single cutters only when there are at
+       most `MAX_DEFAULT_ENZYMES` (50) of them — pBR322 has 35 with the
+       bundled table, about 90 with REBASE. Past that nothing is ticked and
+       the tab offers "Tick the N enzymes that cut once".
+     - The import's file input has an `accept` list and the drop zone names
+       the file. It is a hint, not a gate: "Save link as" can leave the
+       download without an extension, and the picker's All files entry is
+       the way out (said so in the guide).
+     - `getEnzyme`'s fallback to the bundled table is a map built beside it
+       rather than a linear scan.
 
 8. ~~**Linear map export as SVG**~~: done. **File ▸ Export sequence view as
    SVG** writes the sequence rows (ruler, strands, translations, cut sites,
