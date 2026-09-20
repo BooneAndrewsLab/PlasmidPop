@@ -200,8 +200,55 @@ pick from here when the current work is done.
    `restoreLastSession` reopens them all. Not yet: a key binding to switch
    or close tabs (Ctrl+Tab/Ctrl+W belong to the browser), dragging tabs to
    reorder, remembering scroll and zoom per tab across a switch.
-7. **Enzyme table from REBASE** once the licence question is settled;
-   supplier filter and methylation sensitivity.
+7. **Enzyme table from REBASE**: supplier filter and methylation
+   sensitivity, over the 127 enzymes hand-typed from supplier catalogues in
+   `src/core/analysis/enzymeTable.ts`. Shelved 2026-09-19, but the licence
+   question is settled and the route is chosen; what is left is the work.
+   - **Licence.** Every REBASE data file opens with `Copyright (c) Dr.
+     Richard J. Roberts, <year>. All rights reserved.` — no redistribution
+     grant in the file. (The CC BY-NC that search engines offer up covers
+     the *NAR papers*, not the data.) So shipping REBASE data in this repo
+     or on the Pages site needs permission, whoever fetches it and however
+     it gets there.
+   - **The app cannot fetch it at runtime.** `rebase.neb.com` sends no
+     `Access-Control-Allow-Origin`, so a browser `fetch()` from our origin
+     is blocked; `ftp.neb.com` is moot since Chrome 95 dropped FTP. A CORS
+     proxy would be both a server (a non-goal) and us redistributing it
+     anyway; downloading at build time is bundling with extra steps;
+     third-party GitHub mirrors do send `access-control-allow-origin: *`
+     but are someone else's copy of an all-rights-reserved file.
+   - **Chosen route: import, do not ship.** The user downloads
+     `link_emboss_e` (or `withrefm`) from rebase.neb.com themselves and
+     opens it; we parse once and keep it in IndexedDB. No CORS, no server,
+     no redistribution, works offline after the first time, and it doubles
+     as a custom-enzyme-list feature. Nothing about it is blocked. Keep the
+     curated table as the default set, and its supplier/methylation columns
+     can be typed from supplier catalogues by hand the way the sites were.
+   - **If a full bundle is ever wanted**, ask Dana Macelis
+    , who runs REBASE distribution, copying Rich Roberts
+    , the copyright holder and correspondence author on
+     every REBASE paper. The ask that gets a yes is narrow: the data file
+     keeps REBASE's own terms and notice rather than falling under our MIT
+     grant, we cite the NAR paper in the UI, and we refresh from the
+     official files rather than forking them. Asking them to effectively
+     MIT-license REBASE is a different and much larger request.
+   - **Format notes for the importer.** `link_emboss_e` is
+     `name pattern len ncuts blunt c1 c2 c3 c4`, and `c1`/`c2` use our own
+     convention — offsets from the first base of the site, EcoRI is `1 5`,
+     Type IIS have `c1 > len` — so the parse is nearly a straight read.
+     But `c3`/`c4` are a *second* pair of cuts: BcgI and the other
+     double-cutters excise a fragment, and `Enzyme` has room for one pair.
+     An import either skips `ncuts == 4` or the model grows, which reaches
+     `digest`, `ligate` and the cut-site drawing. REBASE cuts a release a
+     month (609 was 2026-08-27), so show the version loaded.
+   - **Before shipping thousands of enzymes**, measure: ~4,000 patterns
+     over a 5 kb plasmid is ~20M mask ops a scan, fine in the worker but it
+     belongs in `docs/perf-notes.md`, and `EnzymePanel` needs virtualizing
+     or a default "commercially available only" filter before it renders
+     that many rows.
+   - The real prize is methylation sensitivity: Dam is `GATC` and Dcm is
+     `CCWGG`, so a per-enzyme flag plus the flanking bases lets us mark
+     *the site in this plasmid* as blocked, not just warn about the enzyme.
 8. ~~**Linear map export as SVG**~~: done. **File ▸ Export sequence view as
    SVG** writes the sequence rows (ruler, strands, translations, cut sites,
    feature lanes) through `SvgContext` at a fixed 60 bases per row, and
@@ -362,6 +409,8 @@ pick from here when the current work is done.
 
 ## Open questions
 
-- Enzyme database source and license (REBASE vs. curated subset).
+- Enzyme database source: settled on licence (REBASE data is all rights
+  reserved, see item 7) and on route (user-imported file, not bundled);
+  the work itself is shelved.
 - Which SnapGene .dna versions to support and where to get test fixtures.
 - Auth provider if/when the backend lands.
