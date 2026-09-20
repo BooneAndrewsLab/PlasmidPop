@@ -42,6 +42,34 @@ describe('EnzymePanel', () => {
     expect(screen.queryByText(/enzymes that cut once/)).toBeNull();
   });
 
+  it('renders only the rows near the viewport', () => {
+    const names = activeEnzymes()
+      .slice(0, 120)
+      .map((e) => e.name);
+    setup(singleCutters(names.length));
+    const scroller = document.querySelector('.enzyme-list__scroll');
+    const list = document.querySelector('.enzyme-list');
+    if (scroller === null || list === null) throw new Error('no list');
+    // Every row is counted, but only a screenful of them is in the DOM.
+    expect(screen.getByText(/120 of 127 enzymes cut/)).toBeInTheDocument();
+    const rendered = () =>
+      [...list.querySelectorAll('.enzyme-row__name')].map((n) => n.textContent);
+    expect(rendered().length).toBeLessThan(names.length / 2);
+    expect(rendered()).toContain(names[0]);
+    expect(rendered()).not.toContain(names[names.length - 1]);
+
+    // Scrolling to the bottom swaps the window over, and the list keeps its
+    // full height through the padding above the rows.
+    Object.defineProperty(scroller, 'clientHeight', { value: 400, configurable: true });
+    Object.defineProperty(scroller, 'scrollTop', { value: 1e6, configurable: true });
+    act(() => {
+      fireEvent.scroll(scroller);
+    });
+    expect(rendered()).toContain(names[names.length - 1]);
+    expect(rendered()).not.toContain(names[0]);
+    expect(parseFloat((list as HTMLElement).style.paddingTop)).toBeGreaterThan(0);
+  });
+
   it('offers the single cutters when there were too many to tick', () => {
     setup(singleCutters(MAX_DEFAULT_ENZYMES + 1));
     expect(editorStore.getState().shownEnzymes.size).toBe(0);

@@ -849,6 +849,17 @@ button {
   color: var(--ink-2);
 }
 
+/*
+ * The enzyme list scrolls inside the panel rather than with it. An imported
+ * REBASE table lists over a thousand rows, and everything below the list —
+ * the counts, the import link, the fragment sizes — would otherwise be a
+ * thousand rows away. `useRowWindow` renders only what fits in here.
+ */
+.enzyme-list__scroll {
+  max-height: min(55vh, 520px);
+  overflow-y: auto;
+}
+
 .enzyme-list,
 .orf-list {
   list-style: none;

@@ -136,3 +136,18 @@ thread is now the larger half. Narrowing the scan to what the panel is
 actually showing (the supplier filter, or the ticked enzymes) is the next
 thing to try if this ever needs to be faster; it would cut both halves at
 once.
+
+### Rendering the list of rows
+
+`EnzymePanel` used to put at most 200 rows in the DOM and cut the rest off,
+because a row per enzyme locked the page up for seconds. The list is now
+windowed (`useRowWindow` in `src/app/components/`): it scrolls inside the
+panel, and only the rows over the viewport plus 600 px either side are
+rendered — 22 to 34 of them on pBR322 in Chrome, whatever the size of the
+table behind them. Rows are not all the same height, since a row's cut
+positions wrap onto as many lines as they need (49, 67 and 86 px on pBR322),
+so each is measured as it is rendered and remembered by name; a row never
+yet seen is assumed to be 46 px, which shows up only in the length of the
+scrollbar. The 600 px of slack is there because the scroll position reaches
+React a frame after the browser has painted it, and a window that ended at
+the viewport's edge would show a band of nothing until it caught up.

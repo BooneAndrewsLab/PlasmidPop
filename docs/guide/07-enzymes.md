@@ -21,6 +21,13 @@ Each row is one enzyme that cuts the sequence:
 - the **cut positions**: the base after which the top strand is cut. Click
   one to select that recognition site in the views.
 
+The list scrolls inside the panel, so what is below it — the counts, the
+import link, the fragment sizes — stays where you left it however many
+enzymes cut. Only the rows on screen are drawn, which is what keeps an
+imported table of 1,500 enzymes responsive; a browser page search (Ctrl+F)
+will not find an enzyme that is scrolled out of sight, so use the filter box
+for that.
+
 Below the list: how many enzymes cut, and how many do not cut at all.
 
 ## Choosing which to show
@@ -32,7 +39,9 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   labels is a wall rather than a starting point. The tab then offers **Tick
   the N enzymes that cut once** if you want them after all.
 - Tick or untick individual enzymes. **Show listed** ticks every enzyme
-  currently in the (filtered) list, **Hide all** clears them.
+  currently in the (filtered) list, **Hide all** clears them. Show listed
+  asks for a narrower list past 200 enzymes: more labels than that is more
+  than the views can draw.
 - **Filter** by name (`Eco`) or by site (`GGATCC`).
 - **Single cutters only** hides enzymes with more than one site.
 - **Sold by** narrows the list to one supplier's catalogue. It appears only

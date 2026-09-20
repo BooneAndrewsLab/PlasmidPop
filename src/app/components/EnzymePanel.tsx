@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   type CutSite,
@@ -13,6 +13,7 @@ import {
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { EnzymeImport } from './EnzymeImport';
+import { useRowWindow } from './useRowWindow';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -26,13 +27,19 @@ interface Props {
 const MAX_SITES_SHOWN = 12;
 
 /**
- * Enzyme rows rendered at once. With the bundled table this never bites, but
- * an imported REBASE table has around 1,500 enzymes and most of them cut a
- * plasmid somewhere; rendering every row locks the page up for seconds. The
- * filters above the list are how you get to the one you want, so the tail is
- * cut off with a note rather than virtualized.
+ * Height assumed for a row not yet measured, in pixels: a name and one line
+ * of cut positions. Only rows below the viewport are ever guessed at, so the
+ * guess costs nothing but a slightly wrong scrollbar.
  */
-const MAX_ROWS_SHOWN = 200;
+const ROW_ESTIMATE = 46;
+
+/**
+ * How long a list "Show listed" will tick in one go. Ticking every enzyme of
+ * an imported REBASE table is around 1,400 of them and 63,000 cut sites to
+ * label, which no view can draw; past this the button asks for a narrower
+ * list instead of taking the page down.
+ */
+const MAX_SHOW_LISTED = 200;
 
 function describeSite(site: CutSite): string {
   return site.cut.toLocaleString();
@@ -103,7 +110,6 @@ export function EnzymePanel({ doc }: Props) {
         g.enzyme.site.toLowerCase().includes(needle)),
   );
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
-  const shownRows = rows.slice(0, MAX_ROWS_SHOWN);
   /**
    * Every enzyme that cuts once, whatever the filters say. This is what a
    * document ticks by itself when there are few enough of them
@@ -111,6 +117,16 @@ export function EnzymePanel({ doc }: Props) {
    * note below is how you ask for them anyway.
    */
   const singleCutters = groups.filter((g) => g.sites.length === 1).map((g) => g.enzyme.name);
+
+  // Only the rows on screen are rendered: an imported table lists thousands.
+  const { first, end, padTop, padBottom, attachScroller, attachRow, scrollToTop } = useRowWindow(
+    useMemo(() => rows.map((g) => g.enzyme.name), [rows]),
+    ROW_ESTIMATE,
+  );
+  // A new filter is a new list, and the old scroll position means nothing in it.
+  useEffect(() => {
+    scrollToTop();
+  }, [needle, supplier, singleOnly, scrollToTop]);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -165,8 +181,14 @@ export function EnzymePanel({ doc }: Props) {
           <button
             type="button"
             className="button button--quiet button--small"
+            disabled={rows.length > MAX_SHOW_LISTED}
+            title={
+              rows.length > MAX_SHOW_LISTED
+                ? `${rows.length.toLocaleString()} enzymes is more than the views can label; filter the list first`
+                : 'Tick every enzyme in the list'
+            }
             onClick={() => {
-              editorStore.setShownEnzymes(shownRows.map((g) => g.enzyme.name));
+              editorStore.setShownEnzymes(rows.map((g) => g.enzyme.name));
             }}
           >
             Show listed
@@ -217,57 +239,58 @@ export function EnzymePanel({ doc }: Props) {
         <p className="panel__note">Scanning for restriction sites…</p>
       ) : (
         <>
-          <ul className="enzyme-list">
-            {shownRows.map(({ enzyme, sites }) => (
-              <li key={enzyme.name} className="enzyme-row">
-                <label
-                  className="enzyme-row__toggle"
-                  title="Tick to draw this enzyme's cut sites and to digest with it"
-                >
-                  <input
-                    type="checkbox"
-                    checked={shownEnzymes.has(enzyme.name)}
-                    onChange={(e) => {
-                      editorStore.setEnzymeShown(enzyme.name, e.target.checked);
-                    }}
-                  />
-                  <span className="enzyme-row__name">{enzyme.name}</span>
-                </label>
-                <span className="enzyme-row__site" title={describeEnzyme(enzyme)}>
-                  {enzyme.site}
-                </span>
-                <span className="enzyme-row__cuts">
-                  {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className="link link--mono"
-                      title={`Select the ${enzyme.name} site cut after base ${describeSite(s)}`}
-                      onClick={() => {
-                        selectSite(s);
+          <div className="enzyme-list__scroll" ref={attachScroller}>
+            <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
+              {rows.slice(first, end).map(({ enzyme, sites }) => (
+                <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
+                  <label
+                    className="enzyme-row__toggle"
+                    title="Tick to draw this enzyme's cut sites and to digest with it"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={shownEnzymes.has(enzyme.name)}
+                      onChange={(e) => {
+                        editorStore.setEnzymeShown(enzyme.name, e.target.checked);
                       }}
-                    >
-                      {describeSite(s)}
-                    </button>
-                  ))}
-                  {sites.length > MAX_SITES_SHOWN && (
-                    <span
-                      className="enzyme-row__more"
-                      title={`${enzyme.name} cuts ${sites.length} times in all`}
-                    >
-                      +{sites.length - MAX_SITES_SHOWN}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
+                    />
+                    <span className="enzyme-row__name">{enzyme.name}</span>
+                  </label>
+                  <span className="enzyme-row__site" title={describeEnzyme(enzyme)}>
+                    {enzyme.site}
+                  </span>
+                  <span className="enzyme-row__cuts">
+                    {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className="link link--mono"
+                        title={`Select the ${enzyme.name} site cut after base ${describeSite(s)}`}
+                        onClick={() => {
+                          selectSite(s);
+                        }}
+                      >
+                        {describeSite(s)}
+                      </button>
+                    ))}
+                    {sites.length > MAX_SITES_SHOWN && (
+                      <span
+                        className="enzyme-row__more"
+                        title={`${enzyme.name} cuts ${sites.length} times in all`}
+                      >
+                        +{sites.length - MAX_SITES_SHOWN}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
           <p className="panel__note">
-            {rows.length} of {enzymeSetInfo.count.toLocaleString()} enzymes cut
+            {rows.length.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()} enzymes cut
             {singleOnly ? ' once' : ''}
-            {supplier === '' ? '' : ' and are sold by that supplier'}. {nonCutters} do not cut.
-            {rows.length > MAX_ROWS_SHOWN &&
-              ` Showing the first ${MAX_ROWS_SHOWN}; filter to narrow the list.`}
+            {supplier === '' ? '' : ' and are sold by that supplier'}. {nonCutters.toLocaleString()}{' '}
+            do not cut.
           </p>
           <p className="panel__note panel__note--quiet">
             {enzymeSetInfo.bundled

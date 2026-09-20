@@ -220,10 +220,15 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
     await waitFor(() => {
-      expect(screen.getByText('EcoRI')).toBeInTheDocument();
+      expect(screen.getByText(/enzymes cut/)).toBeInTheDocument();
+    });
+    // The list renders only the rows on screen, so reach EcoRI the way a
+    // user would, through the filter box.
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter enzymes' }), {
+      target: { value: 'EcoRI' },
     });
     // pBR322 has single EcoRI, BamHI, PstI sites among others
-    expect(screen.getByRole('checkbox', { name: /EcoRI/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'EcoRI' })).toBeChecked();
     fireEvent.click(screen.getByRole('tab', { name: 'ORFs' }));
     await waitFor(() => {
       expect(screen.getAllByRole('button', { name: /aa$/ }).length).toBeGreaterThan(0);
