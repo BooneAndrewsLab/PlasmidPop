@@ -255,6 +255,24 @@ pick from here when the current work is done.
      strain does to it — the Dam/Dcm table is a separate dataset);
      isoschizomer grouping in the list; double cutters; narrowing the scan
      itself to the supplier filter or the ticked enzymes.
+   - Rough edges seen with a table imported, none of them fixed:
+     - The 200-row cap is a stopgap for virtualizing the list. It cuts off
+       the tail rather than letting you reach it, so an enzyme past the
+       200th is only findable through the filter box.
+     - **Sold by** does not fit the 330 px sidebar: the label wraps to two
+       lines and the `<select>` runs to the panel's edge, because supplier
+       names go up to "Molecular Biology Resources - CHIMERx". It wants the
+       supplier's letter code, or the select on its own row.
+     - Opening a document ticks every single cutter, which is 18 enzymes
+       with the bundled table and about 90 with REBASE on a 538 bp
+       fragment. That is a wall of labels in the sequence view and on the
+       map. A big table probably wants a different default — nothing
+       ticked, or only what a supplier filter leaves.
+     - The import's file input takes no `accept`, so the picker does not
+       hint at what it wants.
+     - `getEnzyme` falls back to a linear scan of the bundled table when a
+       name is not in the active set. Only `selectSite` and the digest hit
+       it, so it has not mattered, but it is O(n) per miss.
 
 8. ~~**Linear map export as SVG**~~: done. **File ▸ Export sequence view as
    SVG** writes the sequence rows (ruler, strands, translations, cut sites,
