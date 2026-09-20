@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 
-import { type AssemblyPart, type Topology } from '@/core';
+import { type AssemblyPart, type Enzyme, type Topology } from '@/core';
 
 /**
  * A document as kept in IndexedDB. The sequence and annotations are stored
@@ -46,10 +46,33 @@ export interface StoredShelf {
 /** Key of the single `shelf` row. */
 export const SHELF_ID = 'shelf';
 
+/**
+ * An enzyme set the user imported from their own REBASE download, parsed and
+ * kept so it does not have to be read again on every reload. There is only
+ * ever one, under `ENZYME_SET_ID`.
+ *
+ * This is the user's copy of REBASE sitting in the user's own browser. We
+ * neither ship it nor upload it anywhere; see `src/io/rebase/withrefm.ts`.
+ */
+export interface StoredEnzymeSet {
+  readonly id: string;
+  /** What to call it, e.g. `REBASE 609`. */
+  readonly label: string;
+  readonly enzymes: readonly Enzyme[];
+  readonly suppliers: readonly { readonly code: string; readonly name: string }[];
+  /** The file it was read from, to show in the Enzymes tab. */
+  readonly fileName: string | null;
+  readonly importedAt: number;
+}
+
+/** Key of the single `enzymeSets` row. */
+export const ENZYME_SET_ID = 'active';
+
 export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
   declare handles: EntityTable<StoredHandle, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
+  declare enzymeSets: EntityTable<StoredEnzymeSet, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -60,6 +83,10 @@ export class PlasmidPopDb extends Dexie {
     // Version 2 adds the assembly shelf; the older stores carry over.
     this.version(2).stores({
       shelf: 'id',
+    });
+    // Version 3 adds the imported enzyme set.
+    this.version(3).stores({
+      enzymeSets: 'id',
     });
   }
 }

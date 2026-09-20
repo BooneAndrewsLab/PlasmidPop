@@ -1,5 +1,5 @@
-import { type AssemblyPart, type SeqDocument } from '@/core';
-import { writeGenBank } from '@/io';
+import { type AssemblyPart, type EnzymeSet, type SeqDocument, BUNDLED_ENZYME_SET } from '@/core';
+import { type RebaseSkipped, parseRebaseWithRefM, writeGenBank } from '@/io';
 import {
   type DocumentRepository,
   ensureWritePermission,
@@ -10,8 +10,19 @@ import {
   writeTextToHandle,
 } from '@/storage';
 
+import { analysisClient } from '@/workers/analysisClient';
+
+import { analytics } from '../analytics';
 import { downloadText, fileNameFor } from '../saveFile';
 import { type DocumentState, editorStore } from './editorStore';
+
+/** What an import turned out to hold, for the Enzymes tab to report. */
+export interface RebaseImportSummary {
+  readonly label: string;
+  readonly count: number;
+  readonly released: string | null;
+  readonly skipped: RebaseSkipped;
+}
 
 /**
  * Name of the file Save would overwrite in place, or null when Save will ask
@@ -100,6 +111,72 @@ export class PersistenceService {
     if (assembly === this.savedShelf) return;
     await this.repo.saveShelf(assembly);
     this.savedShelf = assembly;
+  }
+
+  /**
+   * Installs an enzyme set everywhere it is needed: the core's active set and
+   * the worker (through the client), and the store so the Enzymes tab
+   * re-renders and every document's stale cut sites are dropped.
+   */
+  private applyEnzymeSet(set: (EnzymeSet & { fileName: string | null }) | null): void {
+    analysisClient.useEnzymes(set);
+    editorStore.setEnzymeSetInfo(
+      set === null
+        ? {
+            label: 'Bundled table',
+            count: BUNDLED_ENZYME_SET.enzymes.length,
+            bundled: true,
+            fileName: null,
+            suppliers: [],
+          }
+        : {
+            label: set.label,
+            count: set.enzymes.length,
+            bundled: false,
+            fileName: set.fileName,
+            suppliers: set.suppliers,
+          },
+    );
+  }
+
+  /** Reads back an enzyme set imported in an earlier session, if there is one. */
+  async restoreEnzymeSet(): Promise<void> {
+    const stored = await this.repo.loadEnzymeSet();
+    if (stored !== null) this.applyEnzymeSet(stored);
+  }
+
+  /**
+   * Reads a REBASE `withrefm` file the user downloaded and makes it the
+   * active set. The file itself is not kept, only the parsed enzymes, and
+   * only in this browser: we have no right to redistribute REBASE data and
+   * no wish to hold it.
+   */
+  async importEnzymeFile(file: File): Promise<RebaseImportSummary> {
+    const parsed = parseRebaseWithRefM(await file.text());
+    const label = parsed.version === null ? 'Imported enzymes' : `REBASE ${parsed.version}`;
+    const set = {
+      id: 'rebase',
+      label,
+      enzymes: parsed.enzymes,
+      suppliers: parsed.suppliers,
+      fileName: file.name,
+    };
+    await this.repo.saveEnzymeSet(set);
+    this.applyEnzymeSet(set);
+    analytics.track('enzymes', 'import', parsed.version ?? 'unknown');
+    return {
+      label,
+      count: parsed.enzymes.length,
+      released: parsed.released,
+      skipped: parsed.skipped,
+    };
+  }
+
+  /** Goes back to the table that ships with the app and forgets the import. */
+  async useBundledEnzymes(): Promise<void> {
+    await this.repo.saveEnzymeSet(null);
+    this.applyEnzymeSet(null);
+    analytics.track('enzymes', 'import-clear');
   }
 
   /** Records which documents are open and which is in front, for `restoreLastSession`. */

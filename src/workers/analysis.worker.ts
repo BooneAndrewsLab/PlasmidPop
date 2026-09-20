@@ -1,4 +1,4 @@
-import { ENZYMES, alignPairwise, findCutSites, findOrfs } from '@/core';
+import { activeEnzymes, alignPairwise, findCutSites, findOrfs, setActiveEnzymeSet } from '@/core';
 
 import { type AnalysisRequest, type AnalysisResponse } from './analysisProtocol';
 
@@ -6,11 +6,15 @@ import { type AnalysisRequest, type AnalysisResponse } from './analysisProtocol'
 export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
   try {
     switch (req.kind) {
+      case 'setEnzymes':
+        setActiveEnzymeSet(req.set);
+        return { id: req.id, kind: 'setEnzymes' };
       case 'cutSites': {
+        const all = activeEnzymes();
         const enzymes =
           req.enzymes === undefined
-            ? ENZYMES
-            : ENZYMES.filter((e) => req.enzymes?.includes(e.name) === true);
+            ? all
+            : all.filter((e) => req.enzymes?.includes(e.name) === true);
         return {
           id: req.id,
           kind: 'cutSites',

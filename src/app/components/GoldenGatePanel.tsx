@@ -4,7 +4,7 @@ import {
   type AssembledPart,
   type DroppedFragment,
   type Enzyme,
-  GOLDEN_GATE_ENZYMES,
+  goldenGateEnzymes,
   defaultGoldenGateEnzyme,
   describeDropped,
   getEnzyme,
@@ -123,7 +123,7 @@ export function GoldenGatePanel() {
               setEnzymeName(e.target.value);
             }}
           >
-            {GOLDEN_GATE_ENZYMES.map((e) => (
+            {goldenGateEnzymes().map((e) => (
               <option key={e.name} value={e.name}>
                 {e.name} {e.site}
               </option>

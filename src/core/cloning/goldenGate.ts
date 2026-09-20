@@ -1,6 +1,6 @@
 import {
   type Enzyme,
-  ENZYMES,
+  activeEnzymes,
   findCutSites,
   isTypeIIS,
   overhangLength,
@@ -73,20 +73,21 @@ export interface GoldenGateOptions {
  * site and leave an overhang to join by. A blunt Type IIS cutter (MlyI) has
  * nothing to assemble with.
  */
-export const GOLDEN_GATE_ENZYMES: readonly Enzyme[] = ENZYMES.filter(
-  (e) => isTypeIIS(e) && overhangLength(e) > 0,
-);
+export function goldenGateEnzymes(): readonly Enzyme[] {
+  return activeEnzymes().filter((e) => isTypeIIS(e) && overhangLength(e) > 0);
+}
 
 /** Enzymes a Golden Gate is usually done with, offered first. */
 const PREFERRED = ['BsaI', 'BsmBI', 'BbsI', 'SapI'];
 
 /** The enzyme to start the picker on: BsaI if it is in the table. */
 export function defaultGoldenGateEnzyme(): Enzyme | undefined {
+  const usable = goldenGateEnzymes();
   for (const name of PREFERRED) {
-    const found = GOLDEN_GATE_ENZYMES.find((e) => e.name === name);
+    const found = usable.find((e) => e.name === name);
     if (found !== undefined) return found;
   }
-  return GOLDEN_GATE_ENZYMES[0];
+  return usable[0];
 }
 
 /** Whether the recognition sequence is still somewhere in `sequence`, on either strand. */

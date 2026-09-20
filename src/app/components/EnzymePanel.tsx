@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 
 import {
   type CutSite,
+  type Enzyme,
   type SeqDocument,
-  ENZYMES,
+  activeEnzymes,
   digestFragments,
   getEnzyme,
   overhangKind,
@@ -11,19 +12,54 @@ import {
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { EnzymeImport } from './EnzymeImport';
 
 interface Props {
   readonly doc: SeqDocument;
 }
 
+/**
+ * Cut positions listed in one row before the rest become a count. An imported
+ * REBASE table has four-base cutters that hit a plasmid a hundred times, and
+ * a hundred numbers in a row is not a list anyone reads.
+ */
+const MAX_SITES_SHOWN = 12;
+
+/**
+ * Enzyme rows rendered at once. With the bundled table this never bites, but
+ * an imported REBASE table has around 1,500 enzymes and most of them cut a
+ * plasmid somewhere; rendering every row locks the page up for seconds. The
+ * filters above the list are how you get to the one you want, so the tail is
+ * cut off with a note rather than virtualized.
+ */
+const MAX_ROWS_SHOWN = 200;
+
 function describeSite(site: CutSite): string {
   return site.cut.toLocaleString();
 }
 
+/** Tooltip for an enzyme: the overhang, and whatever an import added. */
+function describeEnzyme(enzyme: Enzyme): string {
+  const lines = [`${overhangKind(enzyme)} overhang`];
+  if (enzyme.suppliers !== undefined && enzyme.suppliers.length > 0) {
+    lines.push(`Suppliers: ${enzyme.suppliers.join('')}`);
+  }
+  if (enzyme.methylation !== undefined) {
+    lines.push(`Methylated by its own MTase at ${enzyme.methylation}`);
+  }
+  const iso = enzyme.isoschizomers ?? [];
+  if (iso.length > 0) {
+    lines.push(`Isoschizomers: ${iso.slice(0, 8).join(', ')}${iso.length > 8 ? ', …' : ''}`);
+  }
+  return lines.join('\n');
+}
+
 export function EnzymePanel({ doc }: Props) {
-  const { analysis, shownEnzymes, showCutSites } = useEditorState();
+  const { analysis, shownEnzymes, showCutSites, enzymeSetInfo } = useEditorState();
   const [singleOnly, setSingleOnly] = useState(false);
   const [filter, setFilter] = useState('');
+  const [supplier, setSupplier] = useState('');
+  const [importing, setImporting] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
 
   const groups = useMemo(() => {
@@ -35,8 +71,12 @@ export function EnzymePanel({ doc }: Props) {
         byName.set(s.enzyme, list);
       }
     }
-    return ENZYMES.map((enzyme) => ({ enzyme, sites: byName.get(enzyme.name) ?? [] }));
-  }, [analysis, ready]);
+    return activeEnzymes().map((enzyme) => ({ enzyme, sites: byName.get(enzyme.name) ?? [] }));
+    // The enzymes come from module state, so the memo has to be told to
+    // re-run when the set changes; `enzymeSetInfo` is the store's record of
+    // which set that is, and the linter cannot see the connection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, ready, enzymeSetInfo]);
 
   const shownCuts = useMemo(() => {
     const cuts: number[] = [];
@@ -57,11 +97,13 @@ export function EnzymePanel({ doc }: Props) {
     (g) =>
       g.sites.length > 0 &&
       (!singleOnly || g.sites.length === 1) &&
+      (supplier === '' || g.enzyme.suppliers?.includes(supplier) === true) &&
       (needle === '' ||
         g.enzyme.name.toLowerCase().includes(needle) ||
         g.enzyme.site.toLowerCase().includes(needle)),
   );
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
+  const shownRows = rows.slice(0, MAX_ROWS_SHOWN);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -93,12 +135,30 @@ export function EnzymePanel({ doc }: Props) {
           />
           Single cutters only
         </label>
+        {enzymeSetInfo.suppliers.length > 0 && (
+          <label className="panel__field">
+            <span>Sold by</span>
+            <select
+              value={supplier}
+              onChange={(e) => {
+                setSupplier(e.target.value);
+              }}
+            >
+              <option value="">Any supplier</option>
+              {enzymeSetInfo.suppliers.map((sup) => (
+                <option key={sup.code} value={sup.code}>
+                  {sup.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="panel__buttons">
           <button
             type="button"
             className="button button--quiet button--small"
             onClick={() => {
-              editorStore.setShownEnzymes(rows.map((g) => g.enzyme.name));
+              editorStore.setShownEnzymes(shownRows.map((g) => g.enzyme.name));
             }}
           >
             Show listed
@@ -134,7 +194,7 @@ export function EnzymePanel({ doc }: Props) {
       ) : (
         <>
           <ul className="enzyme-list">
-            {rows.map(({ enzyme, sites }) => (
+            {shownRows.map(({ enzyme, sites }) => (
               <li key={enzyme.name} className="enzyme-row">
                 <label
                   className="enzyme-row__toggle"
@@ -149,11 +209,11 @@ export function EnzymePanel({ doc }: Props) {
                   />
                   <span className="enzyme-row__name">{enzyme.name}</span>
                 </label>
-                <span className="enzyme-row__site" title={`${overhangKind(enzyme)} overhang`}>
+                <span className="enzyme-row__site" title={describeEnzyme(enzyme)}>
                   {enzyme.site}
                 </span>
                 <span className="enzyme-row__cuts">
-                  {sites.map((s, i) => (
+                  {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => (
                     <button
                       key={i}
                       type="button"
@@ -166,14 +226,48 @@ export function EnzymePanel({ doc }: Props) {
                       {describeSite(s)}
                     </button>
                   ))}
+                  {sites.length > MAX_SITES_SHOWN && (
+                    <span
+                      className="enzyme-row__more"
+                      title={`${enzyme.name} cuts ${sites.length} times in all`}
+                    >
+                      +{sites.length - MAX_SITES_SHOWN}
+                    </span>
+                  )}
                 </span>
               </li>
             ))}
           </ul>
           <p className="panel__note">
-            {rows.length} of {ENZYMES.length} enzymes cut{singleOnly ? ' once' : ''}. {nonCutters}{' '}
-            do not cut.
+            {rows.length} of {enzymeSetInfo.count.toLocaleString()} enzymes cut
+            {singleOnly ? ' once' : ''}
+            {supplier === '' ? '' : ' and are sold by that supplier'}. {nonCutters} do not cut.
+            {rows.length > MAX_ROWS_SHOWN &&
+              ` Showing the first ${MAX_ROWS_SHOWN}; filter to narrow the list.`}
           </p>
+          <p className="panel__note panel__note--quiet">
+            {enzymeSetInfo.bundled
+              ? 'Scanning with the bundled table of common cloning enzymes.'
+              : `Scanning with ${enzymeSetInfo.label}${
+                  enzymeSetInfo.fileName === null ? '' : `, from ${enzymeSetInfo.fileName}`
+                }.`}{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setImporting((v) => !v);
+              }}
+            >
+              {importing ? 'Hide import' : 'Import a REBASE table…'}
+            </button>
+          </p>
+          {importing && (
+            <EnzymeImport
+              onClose={() => {
+                setImporting(false);
+              }}
+            />
+          )}
           {fragments.length > 0 && (
             <div className="panel__section">
               <h3 className="panel__heading">Fragments from ticked enzymes</h3>

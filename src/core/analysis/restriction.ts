@@ -14,6 +14,20 @@ export interface Enzyme {
   readonly cutBottom: number;
   /** Site reads the same on both strands, so one match is one cut. */
   readonly palindromic: boolean;
+  /**
+   * REBASE one-letter codes of the companies that sell it, absent for the
+   * bundled table and for an enzyme nobody sells. See `EnzymeSet.suppliers`
+   * for what the letters stand for.
+   */
+  readonly suppliers?: readonly string[];
+  /** Other enzymes with the same specificity, as REBASE lists them. */
+  readonly isoschizomers?: readonly string[];
+  /**
+   * Where the enzyme's *own* methyltransferase methylates its site, in
+   * REBASE's notation (`3(6)` is N6-methyladenine at base 3). This is not
+   * Dam/Dcm sensitivity, which REBASE keeps elsewhere; see CLAUDE.md item 7.
+   */
+  readonly methylation?: string;
 }
 
 export function overhangKind(e: Pick<Enzyme, 'cutTop' | 'cutBottom'>): OverhangKind {
@@ -36,22 +50,74 @@ export function isTypeIIS(e: Pick<Enzyme, 'site' | 'cutTop' | 'cutBottom'>): boo
   return e.cutTop < 0 || e.cutTop > n || e.cutBottom < 0 || e.cutBottom > n;
 }
 
-function isPalindromic(site: string): boolean {
+/** Whether a recognition sequence reads the same on both strands. */
+export function isPalindromicSite(site: string): boolean {
   return reverseComplement(site).toUpperCase() === site.toUpperCase();
 }
 
+/** The table that ships with the app: common cloning enzymes, no more. */
 export const ENZYMES: readonly Enzyme[] = ENZYME_TABLE.map(([name, site, cutTop, cutBottom]) => ({
   name,
   site,
   cutTop,
   cutBottom,
-  palindromic: isPalindromic(site),
+  palindromic: isPalindromicSite(site),
 }));
 
-const ENZYME_BY_NAME = new Map(ENZYMES.map((e) => [e.name.toLowerCase(), e] as const));
+/**
+ * A named list of enzymes: the bundled table, or one the user imported from
+ * a REBASE file of their own. We never ship REBASE data — see
+ * `src/io/rebase/withrefm.ts` — so a bigger table is always the user's copy,
+ * held in their browser.
+ */
+export interface EnzymeSet {
+  /** `bundled`, or `rebase` for an imported one. */
+  readonly id: string;
+  /** What to call it in the UI, e.g. `REBASE 609`. */
+  readonly label: string;
+  readonly enzymes: readonly Enzyme[];
+  /** Supplier letter to company name, empty for the bundled table. */
+  readonly suppliers: readonly { readonly code: string; readonly name: string }[];
+}
 
+export const BUNDLED_ENZYME_SET: EnzymeSet = {
+  id: 'bundled',
+  label: 'Bundled table',
+  enzymes: ENZYMES,
+  suppliers: [],
+};
+
+let activeSet: EnzymeSet = BUNDLED_ENZYME_SET;
+let byName = new Map(ENZYMES.map((e) => [e.name.toLowerCase(), e] as const));
+
+/**
+ * The set every scan, digest and panel works from. It is module state
+ * rather than a parameter because the alternative is threading an enzyme
+ * list through every caller of `findCutSites`; the worker keeps its own
+ * copy, which `AnalysisClient` sets whenever it starts one.
+ */
+export function activeEnzymeSet(): EnzymeSet {
+  return activeSet;
+}
+
+export function activeEnzymes(): readonly Enzyme[] {
+  return activeSet.enzymes;
+}
+
+/** Installs a set, or the bundled table when given null. */
+export function setActiveEnzymeSet(set: EnzymeSet | null): void {
+  activeSet = set ?? BUNDLED_ENZYME_SET;
+  byName = new Map(activeSet.enzymes.map((e) => [e.name.toLowerCase(), e] as const));
+}
+
+/**
+ * An enzyme by name from the active set, falling back to the bundled table
+ * so a name remembered from before an import (a ticked enzyme, a fragment's
+ * end) still resolves.
+ */
 export function getEnzyme(name: string): Enzyme | undefined {
-  return ENZYME_BY_NAME.get(name.toLowerCase());
+  const key = name.toLowerCase();
+  return byName.get(key) ?? ENZYMES.find((e) => e.name.toLowerCase() === key);
 }
 
 export interface CutSite {
@@ -79,7 +145,7 @@ function wrap(position: number, length: number, topology: Topology): number | nu
 export function findCutSites(
   sequence: string,
   topology: Topology,
-  enzymes: readonly Enzyme[] = ENZYMES,
+  enzymes: readonly Enzyme[] = activeEnzymes(),
 ): CutSite[] {
   const L = sequence.length;
   if (L === 0) return [];
@@ -90,31 +156,47 @@ export function findCutSites(
   const masks = sequenceMasks(extended);
   const out: CutSite[] = [];
 
+  // Enzymes that share a recognition sequence share its matches, and
+  // isoschizomers are everywhere: a REBASE import of 1,581 enzymes has only
+  // 346 distinct sites between them. Matching once per site rather than once
+  // per enzyme is what keeps a full imported table scannable
+  // (docs/perf-notes.md).
+  const bySite = new Map<string, Enzyme[]>();
   for (const enzyme of enzymes) {
-    const n = enzyme.site.length;
+    const key = enzyme.site.toUpperCase();
+    const group = bySite.get(key);
+    if (group === undefined) bySite.set(key, [enzyme]);
+    else group.push(enzyme);
+  }
+
+  for (const [site, group] of bySite) {
+    const n = site.length;
     const maxStart = topology === 'circular' ? L - 1 : L - n;
-    const push = (
-      siteStart: number,
-      cutTop: number,
-      cutBottom: number,
-      strand: CutSite['strand'],
-    ): void => {
-      const cut = wrap(cutTop, L, topology);
-      const bottom = wrap(cutBottom, L, topology);
-      if (cut === null || bottom === null) return;
-      out.push({ enzyme: enzyme.name, cut, cutBottom: bottom, siteStart: siteStart % L, strand });
-    };
-    for (const start of matchPositions(masks, patternMasks(enzyme.site), maxStart)) {
-      push(start, start + enzyme.cutTop, start + enzyme.cutBottom, 'forward');
-    }
-    if (!enzyme.palindromic) {
-      // A site on the bottom strand reads as its reverse complement on top;
-      // the cut offsets mirror around the site.
-      for (const start of matchPositions(
-        masks,
-        patternMasks(reverseComplement(enzyme.site)),
-        maxStart,
-      )) {
+    const forward = matchPositions(masks, patternMasks(site), maxStart);
+    // A site on the bottom strand reads as its reverse complement on top; the
+    // cut offsets mirror around the site. Palindromy follows from the site, so
+    // every enzyme in the group agrees about whether there is a reverse pass.
+    const reverse =
+      (group[0]?.palindromic ?? true)
+        ? []
+        : matchPositions(masks, patternMasks(reverseComplement(site)), maxStart);
+
+    for (const enzyme of group) {
+      const push = (
+        siteStart: number,
+        cutTop: number,
+        cutBottom: number,
+        strand: CutSite['strand'],
+      ): void => {
+        const cut = wrap(cutTop, L, topology);
+        const bottom = wrap(cutBottom, L, topology);
+        if (cut === null || bottom === null) return;
+        out.push({ enzyme: enzyme.name, cut, cutBottom: bottom, siteStart: siteStart % L, strand });
+      };
+      for (const start of forward) {
+        push(start, start + enzyme.cutTop, start + enzyme.cutBottom, 'forward');
+      }
+      for (const start of reverse) {
         push(start, start + n - enzyme.cutBottom, start + n - enzyme.cutTop, 'reverse');
       }
     }
@@ -131,7 +213,7 @@ export interface EnzymeSummary {
 /** Cut sites grouped per enzyme, including enzymes that do not cut (empty list). */
 export function summarizeEnzymes(
   sites: readonly CutSite[],
-  enzymes: readonly Enzyme[] = ENZYMES,
+  enzymes: readonly Enzyme[] = activeEnzymes(),
 ): EnzymeSummary[] {
   const byName = new Map<string, CutSite[]>();
   for (const s of sites) {

@@ -57,10 +57,21 @@ export function useAutosaveShelf(): void {
 /** On first load, reopens the tabs that were open last time. */
 export function useRestoreSession(): void {
   useEffect(() => {
-    if (editorStore.getState().documents.length > 0) return;
-    persistence.restoreLastSession().catch(() => {
-      // Nothing to restore, or storage unavailable: start empty.
-    });
+    void (async () => {
+      // The enzymes first, and awaited, so a restored document's first scan
+      // already uses the imported set rather than scanning twice.
+      try {
+        await persistence.restoreEnzymeSet();
+      } catch {
+        // No import, or storage unavailable: the bundled table stands.
+      }
+      if (editorStore.getState().documents.length > 0) return;
+      try {
+        await persistence.restoreLastSession();
+      } catch {
+        // Nothing to restore, or storage unavailable: start empty.
+      }
+    })();
   }, []);
 }
 

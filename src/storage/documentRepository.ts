@@ -1,7 +1,13 @@
-import { type AssemblyPart, type OverhangKind, type SeqDocument } from '@/core';
+import {
+  type AssemblyPart,
+  type Enzyme,
+  type EnzymeSet,
+  type OverhangKind,
+  type SeqDocument,
+} from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
-import { type PlasmidPopDb, type StoredDocument, SHELF_ID, getDb } from './db';
+import { type PlasmidPopDb, type StoredDocument, ENZYME_SET_ID, SHELF_ID, getDb } from './db';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
@@ -180,6 +186,45 @@ export class DocumentRepository {
     await this.db.shelf.put({ id: SHELF_ID, parts, updatedAt: Date.now() });
   }
 
+  /**
+   * The imported enzyme set, checked on the way in like the shelf: a row from
+   * an older build should cost the user an import, not the Enzymes tab.
+   * Returns null when nothing was imported or nothing survived the check.
+   */
+  async loadEnzymeSet(): Promise<(EnzymeSet & { fileName: string | null }) | null> {
+    const stored = await this.db.enzymeSets.get(ENZYME_SET_ID);
+    if (stored === undefined) return null;
+    const enzymes = (stored.enzymes as readonly unknown[]).filter((e): e is Enzyme => isEnzyme(e));
+    if (enzymes.length === 0) return null;
+    const suppliers = (stored.suppliers as readonly unknown[]).filter(
+      (v): v is { code: string; name: string } =>
+        isObject(v) && isString(v['code']) && isString(v['name']),
+    );
+    return {
+      id: 'rebase',
+      label: isString(stored.label) ? stored.label : 'Imported enzymes',
+      enzymes,
+      suppliers,
+      fileName: isString(stored.fileName) ? stored.fileName : null,
+    };
+  }
+
+  /** Writes the imported set, removing the row when given null. */
+  async saveEnzymeSet(set: (EnzymeSet & { fileName: string | null }) | null): Promise<void> {
+    if (set === null) {
+      await this.db.enzymeSets.delete(ENZYME_SET_ID);
+      return;
+    }
+    await this.db.enzymeSets.put({
+      id: ENZYME_SET_ID,
+      label: set.label,
+      enzymes: set.enzymes,
+      suppliers: set.suppliers,
+      fileName: set.fileName,
+      importedAt: Date.now(),
+    });
+  }
+
   setLastDocumentId(id: string | null): void {
     try {
       if (id === null) globalThis.localStorage.removeItem(LAST_DOCUMENT_KEY);
@@ -188,6 +233,17 @@ export class DocumentRepository {
       // Storage may be unavailable (private mode, quota); persistence is best effort.
     }
   }
+}
+
+function isEnzyme(v: unknown): v is Enzyme {
+  return (
+    isObject(v) &&
+    isString(v['name']) &&
+    isString(v['site']) &&
+    typeof v['cutTop'] === 'number' &&
+    typeof v['cutBottom'] === 'number' &&
+    typeof v['palindromic'] === 'boolean'
+  );
 }
 
 const OVERHANG_KINDS: ReadonlySet<string> = new Set<OverhangKind>(['blunt', "5'", "3'"]);

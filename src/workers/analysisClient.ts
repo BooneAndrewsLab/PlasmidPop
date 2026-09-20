@@ -2,9 +2,11 @@ import {
   type Alignment,
   type AlignmentOptions,
   type CutSite,
+  type EnzymeSet,
   type Orf,
   type OrfOptions,
   type Topology,
+  setActiveEnzymeSet,
 } from '@/core';
 
 import { handleAnalysisRequest } from './analysis.worker';
@@ -27,6 +29,8 @@ export class AnalysisClient {
   private worker: Worker | null = null;
   private nextId = 1;
   private readonly pending = new Map<number, Pending>();
+  /** The set to scan with, null for the bundled table. */
+  private enzymeSet: EnzymeSet | null = null;
 
   constructor(private readonly createWorker: (() => Worker) | null = defaultWorkerFactory) {}
 
@@ -43,6 +47,11 @@ export class AnalysisClient {
       this.pending.delete(ev.data.id);
       p.resolve(ev.data);
     };
+    // A worker has its own module state, so the imported set has to be sent
+    // over every time one is started, including after an error killed the last.
+    if (this.enzymeSet !== null) {
+      this.worker.postMessage({ id: this.nextId++, kind: 'setEnzymes', set: this.enzymeSet });
+    }
     this.worker.onerror = () => {
       for (const p of this.pending.values())
         p.resolve({ id: -1, kind: 'error', message: 'Analysis worker failed' });
@@ -61,6 +70,16 @@ export class AnalysisClient {
       this.pending.set(id, { resolve });
       worker.postMessage(full);
     });
+  }
+
+  /**
+   * Installs the enzyme set on both threads: here, for the inline fallback
+   * and for everything the UI reads, and in the worker if one is running.
+   */
+  useEnzymes(set: EnzymeSet | null): void {
+    this.enzymeSet = set;
+    setActiveEnzymeSet(set);
+    this.worker?.postMessage({ id: this.nextId++, kind: 'setEnzymes', set });
   }
 
   async cutSites(

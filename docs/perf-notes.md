@@ -105,3 +105,34 @@ walk over the overhangs, and building the product document. Both are inside
 a frame, so nothing is gained by moving it off the main thread; if parts
 ever arrive in the dozens, the digest is the half that grows and belongs in
 the worker with the rest of the restriction scanning.
+
+## Restriction scanning with an imported enzyme table
+
+The bundled table is 127 enzymes. A REBASE `withrefm` import (see the user
+guide, "Enzymes") is 1,581 — every enzyme in REBASE 609 whose cut position
+is known and which cuts on one side of its site — of which 577 are sold by
+somebody. Reading the 4.4 MB file takes 110 ms, once, on import.
+
+Scanning pBR322 (4,361 bp, circular), Node 24 (V8), mean of 10–20 runs:
+
+| Date       | Enzymes                  | Scan    |
+| ---------- | ------------------------ | ------- |
+| 2026-09-19 | 127 (bundled)            | 7.3 ms  |
+| 2026-09-19 | 577 (REBASE, commercial) | 17.7 ms |
+| 2026-09-19 | 1,581 (REBASE, all)      | 82.5 ms |
+| 2026-09-19 | 1,581 over 52 kb         | 1.04 s  |
+
+All of it runs in the analysis worker, so these are not frames dropped; the
+Enzymes tab says "Scanning for restriction sites…" until the answer comes
+back. A plasmid stays comfortable even with everything imported.
+
+`findCutSites` matches once per distinct recognition sequence rather than
+once per enzyme, because isoschizomers are rife: those 1,581 enzymes have
+only 346 distinct sites between them. That took the full scan from 134 ms
+to 82 ms — less than the 4.5x the pattern count suggests, because matching
+is no longer the whole cost. A full scan of pBR322 returns **63,053** cut
+sites, and allocating, sorting and structured-cloning those back to the main
+thread is now the larger half. Narrowing the scan to what the panel is
+actually showing (the supplier filter, or the ticked enzymes) is the next
+thing to try if this ever needs to be faster; it would cut both halves at
+once.

@@ -1,6 +1,6 @@
 import { SeqDocument, createFeature, getEnzyme, rangeSegment, reverseComplement } from '@/core';
 
-import { GOLDEN_GATE_ENZYMES, defaultGoldenGateEnzyme, goldenGate } from './goldenGate';
+import { goldenGateEnzymes, defaultGoldenGateEnzyme, goldenGate } from './goldenGate';
 
 const BsaI = getEnzyme('BsaI');
 if (BsaI === undefined) throw new Error('BsaI is not in the enzyme table');
@@ -32,7 +32,7 @@ const C = 'CGCT';
 
 describe('Golden Gate enzymes', () => {
   it('offers the Type IIS enzymes that leave an overhang', () => {
-    const names = GOLDEN_GATE_ENZYMES.map((e) => e.name);
+    const names = goldenGateEnzymes().map((e) => e.name);
     expect(names).toContain('BsaI');
     expect(names).toContain('BsmBI');
     expect(names).toContain('BbsI');

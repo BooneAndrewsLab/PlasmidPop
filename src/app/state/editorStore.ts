@@ -8,6 +8,7 @@ import {
   type Orf,
   type Range,
   type RangeSegment,
+  BUNDLED_ENZYME_SET,
   History,
   SeqDocument,
   createFeature,
@@ -188,6 +189,24 @@ export interface SharedState {
    * documents so pieces can be gathered from several of them in turn.
    */
   readonly assembly: readonly AssemblyPart[];
+  /**
+   * What the Enzymes tab says it is scanning with. The enzymes themselves
+   * live in `@/core`'s active set (and a copy of them in the worker); this is
+   * only what the UI needs to describe it and to re-render on a change.
+   */
+  readonly enzymeSetInfo: EnzymeSetInfo;
+}
+
+/** A one-line description of the active enzyme set, for the Enzymes tab. */
+export interface EnzymeSetInfo {
+  readonly label: string;
+  readonly count: number;
+  /** Whether it is the bundled table rather than something imported. */
+  readonly bundled: boolean;
+  /** The file an imported set was read from. */
+  readonly fileName: string | null;
+  /** Supplier letter to company name; empty for the bundled table. */
+  readonly suppliers: readonly { readonly code: string; readonly name: string }[];
 }
 
 /**
@@ -223,6 +242,13 @@ const SHARED_INITIAL: SharedState = {
   showCutSites: true,
   orfMinCodons: 75,
   assembly: [],
+  enzymeSetInfo: {
+    label: BUNDLED_ENZYME_SET.label,
+    count: BUNDLED_ENZYME_SET.enzymes.length,
+    bundled: true,
+    fileName: null,
+    suppliers: [],
+  },
 };
 
 const NO_DOCUMENT: ActiveDocumentFields = {
@@ -742,6 +768,15 @@ export class EditorStore {
 
   setShowCutSites(show: boolean): void {
     if (show !== this.state.showCutSites) this.setShared({ showCutSites: show });
+  }
+
+  /**
+   * Records which enzyme set is in use and drops every document's cached
+   * analysis, since the cut sites were found with the old one.
+   */
+  setEnzymeSetInfo(info: EnzymeSetInfo): void {
+    this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
+    this.setShared({ enzymeSetInfo: info });
   }
 
   /** Sets the ORF threshold; every open document's ORFs are recomputed. */
