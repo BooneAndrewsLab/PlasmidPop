@@ -8,7 +8,7 @@ import { useMenu } from './useMenu';
 const CHOICES: readonly { baseline: EditsBaseline; title: string }[] = [
   { baseline: 'off', title: 'Leave the sequence view unmarked' },
   { baseline: 'opened', title: 'Mark everything changed since this document was opened' },
-  { baseline: 'saved', title: 'Mark what has not been written to a file yet' },
+  { baseline: 'saved', title: 'Mark everything changed since the last download' },
 ];
 
 /**
@@ -17,7 +17,7 @@ const CHOICES: readonly { baseline: EditsBaseline; title: string }[] = [
  * chooses the baseline and can move it to the present state.
  */
 export function EditsMenu() {
-  const { editsBaseline, savedDoc } = useEditorState();
+  const { editsBaseline, savedDoc, origin } = useEditorState();
   const diff = useEditDiff();
   const { open, toggle, close, ref } = useMenu();
 
@@ -66,7 +66,11 @@ export function EditsMenu() {
               <span>{EDITS_BASELINE_LABELS[choice.baseline]}</span>
               <span className="menu__shortcut">
                 {editsBaseline === choice.baseline ? '✓' : ''}
-                {choice.baseline === 'saved' && savedDoc === null ? ' never saved' : ''}
+                {/* A copy falls back to the file it came from, so only a
+                    document that came from nowhere has nothing to compare to. */}
+                {choice.baseline === 'saved' && savedDoc === null && origin === null
+                  ? ' never downloaded'
+                  : ''}
               </span>
             </button>
           ))}

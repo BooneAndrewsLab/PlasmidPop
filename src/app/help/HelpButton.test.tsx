@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { GUIDE } from './guide';
 import { HelpButton } from './HelpButton';
+import { openGuide } from './openGuide';
 
 describe('HelpButton', () => {
   it('opens the guide on the first page and lists every page', () => {
@@ -30,6 +31,48 @@ describe('HelpButton', () => {
     expect(within(nav).getByRole('button', { name: 'Files and storage' })).toHaveAttribute(
       'aria-current',
       'page',
+    );
+  });
+
+  it('opens at the page something else asked for', () => {
+    render(<HelpButton />);
+    act(() => {
+      openGuide('02-files');
+    });
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Files and storage');
+    // Another page while it is up wins; the "?" button goes back to the top.
+    act(() => {
+      openGuide('14-shortcuts');
+    });
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Keyboard shortcuts');
+    fireEvent.click(screen.getByRole('button', { name: 'Close guide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(GUIDE[0]?.title ?? '');
+  });
+
+  it('makes a link within a page scroll to that section instead of opening a tab', () => {
+    render(<HelpButton />);
+    act(() => {
+      openGuide('02-files');
+    });
+    const article = screen.getByRole('article');
+    // Every heading is a target, and `[working copy](#working-copies)` in the
+    // page text is a button in the dialog rather than a link out of it.
+    expect(article.querySelector('#working-copies')?.textContent).toBe('Working copies');
+    const link = within(article).getByRole('button', { name: 'working copy' });
+    expect(article.querySelector('a[href="#working-copies"]')).toBeNull();
+    fireEvent.click(link);
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Files and storage');
+  });
+
+  it('opens at a section when one is named', () => {
+    render(<HelpButton />);
+    act(() => {
+      openGuide('02-files#downloading-in-firefox-and-safari');
+    });
+    const article = screen.getByRole('article');
+    expect(article.querySelector('#downloading-in-firefox-and-safari')?.textContent).toBe(
+      'Downloading in Firefox and Safari',
     );
   });
 

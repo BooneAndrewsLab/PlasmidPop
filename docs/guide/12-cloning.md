@@ -71,8 +71,8 @@ Monday. The usual workflow is:
    **Assemble**. It is enabled only when every junction is compatible.
 
 The product opens as a new circular or linear document carrying the parts'
-features, and the assembly list is cleared. It is saved to the browser like
-any other document; use Save to write it to a file.
+features, and the assembly list is cleared. It is kept in the browser like
+any other document; download it to get a file.
 
 Ends are compatible when both are blunt, or when they have the same kind of
 overhang with complementary bases. A PstI end will not join an EcoRI end,

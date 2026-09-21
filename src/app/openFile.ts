@@ -1,6 +1,7 @@
 import { FormatError, parseSequenceData, parseSequenceFile } from '@/io';
 
-import { editorStore } from './state/editorStore';
+import { type Example } from './examples';
+import { type OpenStorage, editorStore } from './state/editorStore';
 
 const UNSUPPORTED: Readonly<Record<string, string>> = {
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',
@@ -33,9 +34,17 @@ export async function openFile(file: File): Promise<string | null> {
   }
 }
 
-export function openText(text: string, fileName: string | null): string | null {
+export function openText(
+  text: string,
+  fileName: string | null,
+  storage: OpenStorage = {},
+): string | null {
   try {
-    return editorStore.openParsed(parseSequenceFile(text, fileName ?? undefined), fileName);
+    return editorStore.openParsed(
+      parseSequenceFile(text, fileName ?? undefined),
+      fileName,
+      storage,
+    );
   } catch (e) {
     editorStore.fail(e instanceof Error ? e.message : String(e));
     return null;
@@ -66,4 +75,13 @@ export function openPastedText(text: string): void {
   const doc = editorStore.document;
   if (result.format === 'raw' && doc !== null)
     editorStore.setSelection({ start: doc.length, end: doc.length });
+}
+
+/**
+ * Opens the bundled example. Its file name is there to save under, not to
+ * point at anything on the user's disk, so it gets no origin: there is no
+ * file to fork a working copy off.
+ */
+export function openExample(example: Example): string | null {
+  return openText(example.text, example.fileName, { origin: null });
 }

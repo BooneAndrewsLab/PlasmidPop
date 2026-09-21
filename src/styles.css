@@ -1629,6 +1629,146 @@ button {
   gap: 8px;
 }
 
+/* Working copies: the banner, and the review shown before one is saved */
+
+.dialog--wide {
+  max-width: min(52rem, 100%);
+}
+
+.copy-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* The same shelf, for a notice about what a save just did rather than a
+   standing fact about the document: a step darker, so two of them stacked
+   read as two things. */
+.copy-banner--notice {
+  background: var(--surface-3);
+}
+.copy-banner__text strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Sized to the name it holds, so the sentence around it does not jump. */
+.copy-banner__rename {
+  min-width: 8em;
+  padding: 0 2px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+}
+.copy-banner__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.copy-banner__link:hover {
+  text-decoration: none;
+}
+
+.save-review {
+  max-height: min(58vh, 34rem);
+  margin-bottom: 18px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+
+.save-review__summary {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.save-review__note,
+.save-review__empty {
+  margin: 0 0 10px;
+  color: var(--ink-2);
+}
+
+.save-review__heading {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.save-review__features ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.save-review__features li {
+  padding: 1px 0;
+}
+
+.save-review__mark {
+  display: inline-block;
+  width: 1em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.save-review__mark--add {
+  color: var(--seq-edit-insert);
+}
+
+.save-review__mark--change {
+  color: var(--seq-edit-change);
+}
+
+.save-review__mark--remove {
+  color: var(--seq-edit-delete);
+}
+
+.diff-strip {
+  margin-bottom: 12px;
+}
+
+.diff-strip__label {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.diff-strip__where {
+  color: var(--ink-3);
+}
+
+/* A row is as wide as 60 bases need; a narrow dialog scrolls rather than
+   reflowing, so positions stay where the ruler says they are. */
+.diff-strip__scroll {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.diff-strip__canvas {
+  display: block;
+}
+
 /* Undo history */
 
 .history {

@@ -1,4 +1,12 @@
-import { guideLinkTarget, markdownTitle, parseInline, parseMarkdown, plainText } from './markdown';
+import {
+  anchorTarget,
+  guideLinkTarget,
+  headingSlug,
+  markdownTitle,
+  parseInline,
+  parseMarkdown,
+  plainText,
+} from './markdown';
 
 describe('parseMarkdown', () => {
   it('reads headings, joins wrapped paragraph lines and splits on blank lines', () => {
@@ -69,6 +77,14 @@ describe('helpers', () => {
     expect(markdownTitle('intro\n# The **Title**\n## Not this')).toBe('The Title');
     expect(markdownTitle('no heading')).toBeNull();
     expect(plainText(parseInline('a `b` [c](d)'))).toBe('a b c');
+  });
+
+  it('slugs a heading the way GitHub does, and reads a `#…` link', () => {
+    expect(headingSlug('Saving in Firefox and Safari')).toBe('saving-in-firefox-and-safari');
+    expect(headingSlug('Local storage and recent files')).toBe('local-storage-and-recent-files');
+    expect(headingSlug('  ORFs, and what counts  ')).toBe('orfs-and-what-counts');
+    expect(anchorTarget('#working-copies')).toBe('working-copies');
+    expect(anchorTarget('02-files.md')).toBeNull();
   });
 
   it('recognises links to other guide pages', () => {

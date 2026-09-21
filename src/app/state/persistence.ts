@@ -2,7 +2,6 @@ import { type AssemblyPart, type EnzymeSet, type SeqDocument, BUNDLED_ENZYME_SET
 import { type RebaseSkipped, parseRebaseWithRefM, writeGenBank } from '@/io';
 import {
   type DocumentRepository,
-  ensureWritePermission,
   getRepository,
   pickOpenFile,
   pickSaveFile,
@@ -25,17 +24,24 @@ export interface RebaseImportSummary {
 }
 
 /**
- * Name of the file Save would overwrite in place, or null when Save will ask
- * where to write: we need a handle, and we only write GenBank back into a
- * file that was GenBank to begin with.
+ * What a download is called before the user says otherwise: the name it was
+ * last written under, so writing it again offers the same file, and
+ * otherwise a name made from the document's own.
+ *
+ * A working copy's `fileName` is still the file it was read from at this
+ * point, and that name is the one thing never to offer: the original is what
+ * the copy exists to leave alone.
  */
-export function writeBackTarget(
-  fileHandle: FileSystemFileHandle | null,
-  fileName: string | null,
-): string | null {
-  if (fileHandle === null) return null;
-  const isGenBank = fileName === null || /\.(gb|gbk|genbank|gbff|ape)$/i.test(fileName);
-  return isGenBank ? fileHandle.name : null;
+export function downloadNameFor(d: {
+  readonly history: { readonly present: SeqDocument };
+  readonly fileName: string | null;
+  readonly origin: { readonly fileName: string } | null;
+}): string {
+  const own = d.fileName;
+  if (own === null || own === d.origin?.fileName) return fileNameFor(d.history.present, 'genbank');
+  return /\.(gb|gbk|genbank|gbff|ape)$/i.test(own)
+    ? own
+    : fileNameFor(d.history.present, 'genbank');
 }
 
 /** What the last autosave wrote for a document, so an unchanged tab is not written again. */
@@ -52,6 +58,8 @@ export class PersistenceService {
   private readonly autosaved = new Map<string, Autosaved>();
   /** The shelf as last written, so an unchanged one is not written again. */
   private savedShelf: readonly AssemblyPart[] | null = null;
+  /** Whether the browser has been asked to keep this origin's storage. */
+  private persistenceRequested = false;
   /**
    * Whether `restoreLastSession` has run. Until it has, an empty tab strip
    * is the page still loading, not the user having closed everything, and
@@ -77,6 +85,26 @@ export class PersistenceService {
     this.rememberSession();
   }
 
+  /**
+   * Asks the browser to keep this origin's storage instead of evicting it
+   * when space runs short. Done once, when the first document is actually
+   * written: there is something to protect by then, and the user is working
+   * rather than staring at a freshly loaded page. Chromium decides for
+   * itself, Firefox asks the user; a no is fine, and storage then stays
+   * evictable as it was before.
+   */
+  private async requestPersistentStorage(): Promise<void> {
+    if (this.persistenceRequested) return;
+    this.persistenceRequested = true;
+    const storage = navigator.storage as StorageManager | undefined;
+    try {
+      if (storage === undefined || (await storage.persisted())) return;
+      await storage.persist();
+    } catch {
+      // Not available (or refused): nothing to do about it either way.
+    }
+  }
+
   private async autosaveDocument(d: DocumentState): Promise<void> {
     const doc = d.history.present;
     const last = this.autosaved.get(d.documentId);
@@ -88,7 +116,6 @@ export class PersistenceService {
       const existing = await this.repo.findIdentical(doc, d.fileName);
       // Only merge into an entry that is not itself open in another tab.
       if (existing !== null && editorStore.documentState(existing) === null) {
-        await this.repo.moveHandle(id, existing);
         // Bail if the tab was closed while we were looking.
         if (editorStore.documentState(id) === null) return;
         editorStore.setDocumentId(id, existing);
@@ -96,8 +123,9 @@ export class PersistenceService {
         id = existing;
       }
     }
-    await this.repo.save(id, doc, d.fileName);
+    await this.repo.save(id, doc, d.fileName, { origin: d.origin, derived: d.derived });
     this.autosaved.set(id, { doc, fileName: d.fileName });
+    void this.requestPersistentStorage();
   }
 
   /**
@@ -203,8 +231,11 @@ export class PersistenceService {
       for (const id of ids) {
         const stored = await this.repo.load(id);
         if (stored === null) continue;
-        const handle = await this.repo.loadHandle(id);
-        editorStore.openDocument(stored.doc, stored.fileName, [], { id, handle });
+        editorStore.openDocument(stored.doc, stored.fileName, [], {
+          id,
+          origin: stored.origin,
+          derived: stored.derived,
+        });
         this.autosaved.set(id, { doc: stored.doc, fileName: stored.fileName });
         opened.push(id);
       }
@@ -227,8 +258,11 @@ export class PersistenceService {
       editorStore.fail('That document is no longer in local storage.');
       return;
     }
-    const handle = await this.repo.loadHandle(id);
-    editorStore.openDocument(stored.doc, stored.fileName, [], { id, handle });
+    editorStore.openDocument(stored.doc, stored.fileName, [], {
+      id,
+      origin: stored.origin,
+      derived: stored.derived,
+    });
     this.autosaved.set(id, { doc: stored.doc, fileName: stored.fileName });
     this.rememberSession();
   }
@@ -255,95 +289,74 @@ export class PersistenceService {
   }
 
   /**
-   * Opens a file with the native picker when available (so Save can write
-   * back to it), returning false when the caller should fall back to an
-   * <input type="file">. `parse` returns the id of the document it opened,
-   * or null when the file could not be read.
+   * Opens a file with the native picker when available — a better dialog
+   * than an <input type="file">, and that is all it is for now that nothing
+   * writes back — returning false when the caller should fall back to the
+   * input. `parse` returns the id of the document it opened, or null when
+   * the file could not be read.
    */
   async openWithPicker(parse: (file: File) => Promise<string | null>): Promise<boolean> {
     if (!supportsFileSystemAccess()) return false;
-    const picked = await pickOpenFile();
-    if (picked === null) return true; // cancelled
-    const documentId = await parse(picked.file);
-    if (documentId !== null) {
-      editorStore.setFileHandle(documentId, picked.handle);
-      await this.repo.saveHandle(documentId, picked.handle);
-    }
+    const file = await pickOpenFile();
+    if (file === null) return true; // cancelled
+    await parse(file);
     return true;
   }
 
   /**
-   * Saves the document in front as GenBank: to the file it came from when we
-   * hold a handle to it (and it is a GenBank file), otherwise like Save as.
-   * The first write-back into a file the user merely opened is not silent: a
-   * browser overwriting a file on disk is unexpected, so the store raises a
-   * prompt and the write waits for `confirmOverwrite`.
+   * Writes the document in front out as a GenBank file. Nothing PlasmidPop
+   * holds is a file on disk — a document lives in this browser until the
+   * user asks for a copy of it — so this is the one way sequence leaves the
+   * app, and a working copy shows what it changed about the file it came
+   * from before it goes: the dialog's own button then calls `write`, which
+   * is also the user gesture the save dialog needs.
    */
-  async save(): Promise<void> {
+  async download(): Promise<void> {
     const target = editorStore.documentState();
     if (target === null) return;
-    const { documentId, fileHandle, fileName } = target;
-    const name = writeBackTarget(fileHandle, fileName);
-    if (fileHandle === null || name === null) {
-      await this.saveAs();
+    const { documentId, origin, derived } = target;
+    if (origin !== null && derived) {
+      editorStore.requestSaveReview(documentId, origin.fileName);
       return;
     }
-    if (!(await this.repo.isWriteConfirmed(documentId))) {
-      editorStore.requestOverwrite(documentId, name);
-      return;
-    }
-    await this.writeBack(documentId, fileHandle);
+    await this.write(documentId);
   }
 
-  /** The user accepted the overwrite prompt: remember that for this file and write. */
-  async confirmOverwrite(): Promise<void> {
-    const target = editorStore.documentState();
-    editorStore.dismissOverwrite();
-    const fileHandle = target?.fileHandle ?? null;
-    if (target === null || fileHandle === null) return;
-    const { documentId } = target;
-    if (await this.repo.loadHandle(documentId)) await this.repo.confirmWrite(documentId);
-    else await this.repo.saveHandle(documentId, fileHandle, true);
-    await this.writeBack(documentId, fileHandle);
+  /** The user has read the review of their changes and wants the file written. */
+  async confirmSaveReview(): Promise<void> {
+    const id = editorStore.getState().documentId;
+    editorStore.dismissSaveReview();
+    if (id !== null) await this.write(id);
   }
 
   /**
-   * Writes a document to its file. The tab is named rather than taken from
-   * the front, because the user may switch tabs while a permission prompt
-   * or a picker is up.
+   * Writes a document out, through the browser's save dialog where there is
+   * one and as an ordinary download where there is not. The handle the
+   * dialog returns is used for this one write and then dropped: a document
+   * is never bound to a file, so no later edit can reach back into one.
+   *
+   * The tab is named rather than taken from the front, because the user may
+   * switch tabs while the dialog is up.
    */
-  private async writeBack(documentId: string, handle: FileSystemFileHandle): Promise<void> {
-    const doc = editorStore.documentState(documentId)?.history.present;
-    if (doc === undefined) return;
-    if (!(await ensureWritePermission(handle))) {
-      editorStore.fail('Permission to write the file was not granted.');
-      return;
-    }
-    await writeTextToHandle(handle, writeGenBank(doc));
-    editorStore.markSaved(documentId);
-  }
-
-  async saveAs(): Promise<void> {
-    const target = editorStore.documentState();
+  private async write(documentId: string): Promise<void> {
+    const target = editorStore.documentState(documentId);
     if (target === null) return;
-    const { documentId } = target;
-    const doc: SeqDocument = target.history.present;
-    const suggested = fileNameFor(doc, 'genbank');
+    const suggested = downloadNameFor(target);
     if (!supportsFileSystemAccess()) {
-      downloadText(suggested, writeGenBank(doc));
-      editorStore.markSaved(documentId, suggested);
+      downloadText(suggested, writeGenBank(target.history.present));
+      editorStore.markDownloaded(documentId, suggested);
+      // The browser owns the file from here: it decides where it lands and
+      // numbers the next one rather than replacing this one. Say so.
+      editorStore.noteDownload(suggested);
       return;
     }
     const handle = await pickSaveFile(suggested);
-    if (handle === null) return;
+    if (handle === null) return; // cancelled
     // The document as it is now, not as it was when the dialog opened.
     const current = editorStore.documentState(documentId)?.history.present;
     if (current === undefined) return; // the tab was closed while the dialog was up
     await writeTextToHandle(handle, writeGenBank(current));
-    editorStore.setFileHandle(documentId, handle);
-    editorStore.markSaved(documentId, handle.name);
-    // Chosen in a save dialog, so overwriting it later needs no further prompt.
-    await this.repo.saveHandle(documentId, handle, true);
+    editorStore.markDownloaded(documentId, handle.name);
   }
 }
 

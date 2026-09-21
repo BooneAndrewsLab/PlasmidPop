@@ -33,7 +33,9 @@ working with no account and no server round-trip.
 - **Collaboration (future):** Yjs. Design the document model so a CRDT can
   be layered on later; do not retrofit.
 - **Storage:** Local-first. IndexedDB via Dexie (or OPFS for large files).
-  Cloud sync is opt-in.
+  Cloud sync is opt-in. Nothing on the user's disk is ever written to: a
+  document leaves the app as a download, never through a kept file handle
+  (item 24 under "Potential new features").
 - **Backend (thin):** Auth, sync, sharing links, team libraries only. No
   computation server-side. Node/TS (Hono or Fastify) or Rust/Axum, Postgres,
   S3-compatible object storage. Supabase is acceptable for a fast launch.
@@ -95,7 +97,7 @@ sequence view (`src/core/diff/`, the **Edits** menu), a bundled example
 (pBR322), an optional REBASE enzyme table imported from the user's own
 download (`src/io/rebase/`), and Matomo usage statistics (`src/app/analytics.ts`,
 always on when configured, no user toggle by decision of 2026-09-18;
-events at file open/new/save/export, enzyme show, primer design, align,
+events at file open/new/download/export, enzyme show, primer design, align,
 ligate, history jump, edit-mark baseline; the Pages workflow sets the
 instance URL and site id 6). The view switcher, the Complement /
 Translations / Cut sites toggles, the Format menu's sequence-view options
@@ -108,7 +110,10 @@ documents and enzyme ticks are unaffected. The logo
 coalesce into one undo step, the Cloning tab's assembly shelf survives a
 reload, Golden Gate assembly (items 5 and 3 under "Potential new
 features"), and the rough edges the REBASE import left (item 7) are
-cleared. Tests: 594 passing. Perf measurements live in
+cleared. Added 2026-09-20: working copies, so the file a document was opened
+from is never written to (item 22). Added 2026-09-21: **nothing writes to a
+file at all any more** — a document lives in this browser and leaves it as a
+download (item 24). Tests: 638 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -415,6 +420,148 @@ pick from here when the current work is done.
     the sequence-view SVG exports too. Requested 2026-09-18. Not yet: the
     circular map, a key binding, anything for a rename or topology change
     beyond the menu's tally.
+22. ~~**Working copies: the opened file is never written to.**~~ done,
+    2026-09-20, asked for because a PI was uneasy that a user can edit a
+    plasmid and wanted to know a file had not been quietly altered. A
+    `DocumentState` records the file it was read from (`origin`: that file's
+    name and the document exactly as read) and whether it has been forked off
+    it (`derived`). The first edit of a document with an origin forks it in
+    `apply`: the `fileHandle` is dropped, so `save()`'s write-back path cannot
+    be reached for that file. Two conditions, deliberately separate. `derived`
+    latches and is never cleared, because the handle cannot be got back. The
+    copy's *name* is decided per edit instead — a working copy never carries
+    the origin's name (`copyNameFor` in `src/app/state/derive.ts`: `pBR322` →
+    `pBR322 copy`, numbered when another tab has it, never stacking
+    `copy copy`) — because the name lives in the document and so travels with
+    undo: undoing to the start brings the original's name back, and the next
+    edit has to take a copy name again. A rename is the user naming it
+    themselves and keeps their name. Opening the same file
+    again no longer reuses a derived tab (`findOpenCopy`), so the original
+    comes back in a tab of its own to compare with. The bundled example is
+    opened by `openExample` with an explicit `origin: null`: its file name is
+    there to save under and names nothing on the user's disk, so editing it
+    forks nothing. The origin and the flag
+    survive a reload: they are stored beside the document in Dexie (optional
+    `origin`/`derived` on `StoredDocument`, non-indexed, so no schema version
+    bump), and autosave deletes the stored handle of a derived document that
+    has no handle in the store, so a reload cannot hand the file back.
+    `Ctrl+S` on a working copy opens `SaveReviewDialog` before writing: a summary line
+    (`describeEditDiff`), then each changed neighbourhood drawn by `DiffStrip`
+    — the same `renderLinearView` and the same tracked-changes marks as the
+    sequence view, at a fixed 60 bases a row, scrolled to that hunk — headed
+    with where it is and what happened there (`around 1,204  inserted 5 bp;
+    deleted 3 bp`), then the features added, changed or removed. The
+    neighbourhoods come from `diffHunks` (`src/core/diff/hunks.ts`), which
+    pads each change by 30 bases and merges the ones whose padding touches,
+    and carries a per-hunk tally. The dialog's **Download** goes straight to
+    the save dialog (the click is the user gesture it needs). **Superseded in
+    part by item 24:** there is no write-back any more, so the review is shown
+    before every download rather than once, and the `written` flag that told
+    those apart is gone. A browser that will not let a page ask where a
+    download goes numbers each one instead (`pBR322_copy(1).gb`), which
+    nothing in the page can change, so a `DownloadNotice` banner under the
+    toolbar says where the file went and that the next one will not replace
+    it, once, with **Got it** remembering that in localStorage and **How to
+    keep one file** opening the guide at "Downloading in Firefox and Safari"
+    (`openGuide` in `src/app/help/`, a window event, since the dialog belongs
+    to the toolbar's `HelpButton`). Guide headings now carry
+    GitHub's slug as their id, so a `#…` link scrolls the dialog instead of
+    opening a tab (which is what `[working copy](#working-copies)` had been
+    doing), and `openGuide` takes `02-files#a-section`.
+    A `CopyBanner` under the toolbar names the file the copy came from and
+    offers the same review at any time. The diff is computed only while the
+    dialog is up: `editDiffBetween`'s cache holds one pair of versions and the
+    sequence view's own marks share it. Not yet: the other provenance ideas
+    offered alongside this one — a rotation- and strand-invariant sequence
+    checksum shown in the UI and written into the file (the SEGUID v2 family,
+    `cdseguid` for a plasmid), **File ▸ Compare with…** against any file on
+    disk, a `PlasmidPop-derived-from:` comment carrying the original's
+    checksum, and persisting the history log across reloads. The two rough
+    edges left here are moot under item 24: no file handle is kept to be
+    lost on a rename, and undoing back to the original is not possible at
+    all, because the copy's history starts under its own name.
+23. **Feature naming: `/gene` outranks `/product`, so one gene's name spreads
+    over every feature that mentions it.** Noticed 2026-09-20 on the bundled
+    example, which appears to show "two tet features at 86..1276". It is not
+    a parsing bug: J01749 really carries `gene 86..1276 /gene="tet"` and
+    `CDS 86..1276 /gene="tet"`, which is how NCBI writes a gene, and `bla` at
+    `complement(3293..4153)` is the same pair. What makes the pair read as a
+    duplicate is `deriveName` (`src/io/genbank/parseGenBank.ts`), whose
+    `NAME_QUALIFIERS` precedence is one global list —
+    `label, gene, product, locus_tag, standard_name`. Two consequences: the
+    CDS is shown as `tet` rather than its own
+    `/product="tetracycline resistance protein"`, which is exactly what would
+    have told the two rows apart; and `/gene` on a *non-gene* feature is a
+    cross-reference to the gene it sits in, not a name, so
+    `misc_feature 146..147`, `misc_binding 411..414`, `misc_difference 426`,
+    `misc_binding 469..472` and `old_sequence 526..528` are all labelled
+    `tet` too — 7 features named `tet` and 4 named `bla` in one 50-feature
+    record.
+    - **Proposed fix: make the precedence type-aware.** `CDS` → `label`,
+      `product`, `gene`; `gene` → `label`, `gene`; everything else →
+      `label`, `product`, `locus_tag`, `standard_name` and *not* `gene`,
+      falling back to the empty name, since the list and the map already show
+      the type (`misc_binding 411..414` then reads as itself). That gives
+      `tet` (gene) and `tetracycline resistance protein` (CDS) on the two
+      rows and drops nine spurious labels.
+    - **Round-trip should survive it**, but check rather than assume:
+      `featureLines` in `writeGenBank.ts` only emits an extra `/label` when
+      the name matches no `NAME_QUALIFIERS` value, so a CDS named from
+      `/product` still writes back unchanged. Run the round-trip fixtures.
+      `NAME_QUALIFIERS` is exported and used by the writer, so a type-aware
+      rule needs a shape both can use.
+    - **Separately: collapse a `gene` that exactly coincides with a `CDS`**
+      of the same name into one bar, as SnapGene does. Display only, no data
+      implications, and worth doing after the naming rather than instead of
+      it — the naming fix alone makes the pair legible.
+    - Neither is started; both change what every opened file looks like, so
+      they want a deliberate decision.
+24. ~~**One way out: download, never write**~~: done, 2026-09-21, replacing
+    the write-back half of item 22. The File System Access API was doing two
+    jobs — picking a file to read, and holding a handle to write back to —
+    and the second one made the app behave differently per browser: Chromium
+    users' `Ctrl+S` wrote silently to a file, Firefox and Safari users got a
+    new numbered download every time (`pBR322_copy(1).gb`, reported by the
+    user and not fixable from the page, since those browsers will not let one
+    ask where a download goes). One model everywhere is worth more than
+    write-back for one browser family:
+    - **File ▸ Download GenBank… (`Ctrl+S`, `Ctrl+Shift+S`)** is the only way
+      sequence leaves the app (`PersistenceService.download`). A working copy
+      is reviewed first — `SaveReviewDialog`, now shown before *every*
+      download rather than once — and the dialog's own button is the user
+      gesture the save dialog needs. Where the File System Access API exists
+      the write still goes through `showSaveFilePicker`, so the user can
+      replace their own file; the handle is used for that one write and
+      dropped. `downloadNameFor` offers the name the document was last
+      written under (never the origin's), so replacing is one click.
+    - **No handles are kept anywhere.** `fileHandle`, `written`,
+      `overwritePrompt`/`OverwriteDialog`, `writeBackTarget`,
+      `ensureWritePermission`, the repository's handle methods and Dexie's
+      `handles` table are gone (version 4 drops the table, which also drops
+      handles an older build stored — none may survive a reload). `pickOpenFile`
+      returns a `File`, not a handle.
+    - **The fork resets the history.** The first edit of a document with an
+      origin starts a new `History` at the file's contents *under the copy's
+      name* (the user's name when that edit is their rename, and then there
+      is no step to record). So undo reaches what the file holds and stops
+      there, `savedDoc` becomes null, and the per-edit re-naming that item 22
+      needed — the name travelled with undo, so every edit had to check it —
+      is deleted. `CopyBanner` names the copy and renames it in place
+      (`InlineRename`), because that name is what the download will be called.
+    - **"Dirty" means "changed since the last download."** The unload warning
+      is gone (nothing is bound to a file and the session comes back); in its
+      place `useFlushOnLeave` writes the open documents on `pagehide` and on
+      `visibilitychange`, which is what that dialog was really protecting.
+      The first autosave asks for persistent storage
+      (`requestPersistentStorage`: Chromium decides, Firefox asks the user),
+      so the browser does not evict documents when space runs low. The Edits
+      menu's second baseline is **Since last download**, and for a copy that
+      has never been downloaded it falls back to the file it came from.
+    - Not yet: nothing tells the user which stored documents have never been
+      downloaded (every document lives in the browser now, so a per-row
+      marker would be noise — the Files screen says it once instead), and
+      **File ▸ Compare with…** against a file on disk is still the obvious
+      companion to this (item 22's list).
 
 ## Non-goals for v1
 

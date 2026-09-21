@@ -109,9 +109,12 @@ fixtures/local/ Private test files (gitignored); tests use them when present
 ```
 
 Persistence: open documents autosave to IndexedDB (as GenBank text) and the
-last one is restored on reload; Save writes back to the opened file through
-the File System Access API where available, otherwise downloads. The app is
-an installable PWA that works offline.
+last one is restored on reload. Nothing is ever written to a file on disk:
+the first edit of an opened file forks a working copy, and a document leaves
+the app only as a download, which shows what the copy changed first. The
+download goes through the save dialog where the File System Access API is
+available (the handle is used once and dropped) and as an ordinary browser
+download otherwise. The app is an installable PWA that works offline.
 
 Usage statistics: `src/app/analytics.ts` talks to a self-hosted Matomo
 instance when `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build

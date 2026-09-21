@@ -57,7 +57,7 @@ not exist in the new one.
 
 ## The version on disk
 
-The row whose state matches the file as it was last saved or opened is
+The row whose state matches the document as opened or last downloaded is
 tagged **on disk**. It is the same information as the dot next to the
 document name in the toolbar, but it says which state the file holds, so you
 can see how far the document has moved since. Saving moves the tag to the
@@ -71,5 +71,5 @@ current row.
   [Editing the sequence](04-editing.md) and
   [Keyboard shortcuts](14-shortcuts.md).
 
-History lives in memory: it is not saved to the file, and reloading the page
+History lives in memory: it is not written to the file, and reloading the page
 starts a fresh history from the restored document.

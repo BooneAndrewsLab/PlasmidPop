@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { type DocumentSummary } from '@/storage';
 
 import { EXAMPLES } from '../examples';
-import { openPastedText, openText } from '../openFile';
+import { openExample, openPastedText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
@@ -87,7 +87,8 @@ export function EmptyState() {
           and type it in.
         </p>
         <p className="empty__hint">
-          Everything stays in your browser. Nothing is uploaded.
+          Everything stays in your browser: documents are kept here as you work and never uploaded,
+          and no file on your disk is written to. Download the ones you want as files.
           {example !== undefined && (
             <>
               {' '}
@@ -96,7 +97,7 @@ export function EmptyState() {
                 type="button"
                 className="link"
                 onClick={() => {
-                  openText(example.text, example.fileName);
+                  openExample(example);
                 }}
               >
                 open {example.label}

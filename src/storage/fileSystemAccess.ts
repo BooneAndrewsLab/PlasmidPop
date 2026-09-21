@@ -1,6 +1,9 @@
 /**
  * Thin wrapper over the File System Access API (Chromium) with feature
  * detection, so callers can fall back to <input type="file"> and downloads.
+ *
+ * A handle is only ever a means to one read or one write here; none is kept,
+ * stored or reused. A document in PlasmidPop is not bound to a file on disk.
  */
 
 interface FilePickerType {
@@ -24,11 +27,6 @@ interface SavePickerOptions {
 interface PickerWindow {
   showOpenFilePicker?: (options?: OpenPickerOptions) => Promise<FileSystemFileHandle[]>;
   showSaveFilePicker?: (options?: SavePickerOptions) => Promise<FileSystemFileHandle>;
-}
-
-interface PermissionCapableHandle {
-  queryPermission?: (d: { mode: 'read' | 'readwrite' }) => Promise<PermissionState>;
-  requestPermission?: (d: { mode: 'read' | 'readwrite' }) => Promise<PermissionState>;
 }
 
 export const SEQUENCE_FILE_TYPES: readonly FilePickerType[] = [
@@ -59,8 +57,12 @@ function isAbort(e: unknown): boolean {
   return e instanceof DOMException && e.name === 'AbortError';
 }
 
-/** Lets the user pick a file; resolves null when they cancel or the API is missing. */
-export async function pickOpenFile(): Promise<{ file: File; handle: FileSystemFileHandle } | null> {
+/**
+ * Lets the user pick a file to read; resolves null when they cancel or the
+ * API is missing. Only the file comes back: the handle would let the app
+ * write to what the user opened, and nothing in PlasmidPop may do that.
+ */
+export async function pickOpenFile(): Promise<File | null> {
   const w = pickerWindow();
   if (w?.showOpenFilePicker === undefined) return null;
   try {
@@ -70,7 +72,7 @@ export async function pickOpenFile(): Promise<{ file: File; handle: FileSystemFi
       id: 'plasmidpop-open',
     });
     if (handle === undefined) return null;
-    return { file: await handle.getFile(), handle };
+    return await handle.getFile();
   } catch (e) {
     if (isAbort(e)) return null;
     throw e;
@@ -91,14 +93,6 @@ export async function pickSaveFile(suggestedName: string): Promise<FileSystemFil
     if (isAbort(e)) return null;
     throw e;
   }
-}
-
-/** Ensures we may write to a handle that came back from IndexedDB after a reload. */
-export async function ensureWritePermission(handle: FileSystemFileHandle): Promise<boolean> {
-  const h = handle as unknown as PermissionCapableHandle;
-  if (h.queryPermission === undefined || h.requestPermission === undefined) return true;
-  if ((await h.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
-  return (await h.requestPermission({ mode: 'readwrite' })) === 'granted';
 }
 
 export async function writeTextToHandle(handle: FileSystemFileHandle, text: string): Promise<void> {

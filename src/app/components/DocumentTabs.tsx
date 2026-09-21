@@ -73,7 +73,7 @@ function DocumentTab({ state, active }: TabProps) {
       >
         {name}
         {dirty && (
-          <span className="doctabs__dirty" title="Changes not yet saved to a file">
+          <span className="doctabs__dirty" title="Changed since the last download">
             {' '}
             •
           </span>

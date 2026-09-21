@@ -71,12 +71,14 @@ and the foot of its menu, count it up (`+12 bp · 4 bp changed · −3 bp`).
 The menu chooses what the marks are measured from:
 
 - **Since opened** (the default) compares against the document as it was
-  when you opened it, so the marks survive a save and show the whole
+  when you opened it, so the marks survive a download and show the whole
   session's work until you open the file again.
-- **Since last save** compares against the version on disk, so the marks
-  clear every time you save — the same thing the dot beside the document
-  name means. A document that has never been saved has nothing to compare
-  to, and nothing is marked.
+- **Since last download** compares against the version you last got a file
+  of, so the marks clear every time you download — the same thing the dot
+  beside the document name means. A working copy you have not downloaded yet
+  is measured against the file it came from; a document that came from
+  nowhere and has never been downloaded has nothing to compare to, and
+  nothing is marked.
 - **Mark from here** makes the document as it is now the point everything
   is measured from, for when you want to see only what you do next.
 - **Off** leaves the view unmarked.

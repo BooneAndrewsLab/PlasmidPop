@@ -23,7 +23,6 @@ import {
 } from '@/core';
 import {
   type Hit,
-  type LinearTheme,
   LinearLayout,
   assignLanes,
   basesPerRowFor,
@@ -32,7 +31,9 @@ import {
   linearMetrics,
   linearWidth,
   measureCharWidth,
+  monoFontOf,
   renderLinearView,
+  sansFontOf,
 } from '@/view/linear';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
@@ -50,14 +51,10 @@ import {
 } from '../editing';
 import { openPastedText } from '../openFile';
 import { useEditDiff } from '../state/editDiff';
+import { readLinearTheme } from './linearTheme';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
-const monoFontOf = (size: number): string =>
-  `${size}px ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace`;
-/** Labels (the ruler, feature names) sit two pixels under the strand text. */
-const sansFontOf = (size: number): string =>
-  `${size - 2}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
 /** How long a notice about rejected input stays after the last rejected keystroke. */
 const REJECTED_INPUT_NOTICE_MS = 5000;
 
@@ -81,32 +78,6 @@ function releasePointer(e: ReactPointerEvent<HTMLCanvasElement>): void {
   } catch {
     // Nothing was captured in the first place.
   }
-}
-
-function readTheme(el: HTMLElement): LinearTheme {
-  const css = getComputedStyle(el);
-  const v = (name: string, fallback: string): string =>
-    css.getPropertyValue(name).trim() || fallback;
-  return {
-    ink: v('--seq-ink', '#1c2430'),
-    inkMuted: v('--seq-ink-muted', '#8a94a3'),
-    gutterText: v('--seq-gutter', '#8a94a3'),
-    rulerLine: v('--seq-rule', '#c8cdd5'),
-    selectionFill: v('--seq-selection', 'rgba(27, 110, 140, 0.22)'),
-    caret: v('--seq-caret', '#1b6e8c'),
-    background: v('--surface', '#ffffff'),
-    cutSite: v('--seq-cut', '#b3261e'),
-    editInsert: v('--seq-edit-insert', '#1d7a4c'),
-    editChange: v('--seq-edit-change', '#a86200'),
-    editDelete: v('--seq-edit-delete', '#b3261e'),
-    baseColors: {
-      a: v('--seq-base-a', '#2f7d32'),
-      c: v('--seq-base-c', '#1b6ec8'),
-      g: v('--seq-base-g', '#8a5a00'),
-      t: v('--seq-base-t', '#c0392b'),
-      other: v('--seq-base-other', '#6b7280'),
-    },
-  };
 }
 
 interface Props {
@@ -286,7 +257,7 @@ export function LinearSequenceView({ doc }: Props) {
         width: size.width,
         height: size.height,
         devicePixelRatio: dpr,
-        theme: readTheme(container),
+        theme: readLinearTheme(container),
         monoFont,
         sansFont,
       });

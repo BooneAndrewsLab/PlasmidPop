@@ -21,6 +21,7 @@ import { type ParseResult, type ParseWarning } from '@/io';
 import { type FontSize } from '@/view/linear';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
+import { copyNameFor } from './derive';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
 /**
@@ -118,6 +119,29 @@ function carryAnalysis(
 }
 
 /**
+ * The file a document was read from, and the document exactly as it was read.
+ *
+ * It is kept for the life of the tab so that the working copy an edit forks
+ * off can still say what it came from and be compared against it. The
+ * document is immutable and shares structure with every version edited out
+ * of it, so holding on to it costs little.
+ */
+/** What `openDocument` needs to know about where a document is coming from. */
+export interface OpenStorage {
+  /** Id to reuse, when the document is one already in local storage. */
+  readonly id?: string;
+  /** Given explicitly — including as null — this is the origin, file name or not. */
+  readonly origin?: DocumentOrigin | null;
+  readonly derived?: boolean;
+}
+
+export interface DocumentOrigin {
+  /** Name of the file as it was opened; the document's own `fileName` moves on. */
+  readonly fileName: string;
+  readonly doc: SeqDocument;
+}
+
+/**
  * Everything that belongs to one open document: its own tab. The store keeps
  * one of these per tab and shows the one in front flattened into
  * `EditorState`, so a view that reads `state.selection` gets the selection of
@@ -130,18 +154,28 @@ export interface DocumentState {
   readonly history: History<SeqDocument>;
   /** Current selection; an empty range is a caret. Null when nothing is selected. */
   readonly selection: Range | null;
+  /** The file it was read from, or the name it was last written out under. */
   readonly fileName: string | null;
-  /** Handle of the file the document came from or was saved to, when the browser gave us one. */
-  readonly fileHandle: FileSystemFileHandle | null;
-  /** The version last written to a file (or the version opened from one). */
+  /** The version last written out as a file (or the version opened from one). */
   readonly savedDoc: SeqDocument | null;
   /** The document as it was opened, the baseline for `editsBaseline: 'opened'`. */
   readonly openedDoc: SeqDocument;
   /** The document when "Mark from here" was last used. */
   readonly markedDoc: SeqDocument | null;
+  /** The file this document was read from, if it was read from one at all. */
+  readonly origin: DocumentOrigin | null;
+  /**
+   * Whether this document has been forked off its origin: it has been edited,
+   * carries a name of its own and has no handle to write back through, so the
+   * file it came from cannot be overwritten from this tab.
+   */
+  readonly derived: boolean;
   readonly warnings: readonly ParseWarning[];
-  /** Set while Save waits for the user to agree that it may overwrite the file on disk. */
-  readonly overwritePrompt: { readonly fileName: string } | null;
+  /**
+   * Set while a download is showing what this working copy changed about the
+   * file it came from, before it is written out. Carries that file's name.
+   */
+  readonly saveReview: { readonly fileName: string } | null;
   readonly analysis: AnalysisState | null;
   /** Enzymes whose cut sites are drawn in the views. */
   readonly shownEnzymes: ReadonlySet<string>;
@@ -211,6 +245,13 @@ export interface SharedState {
    * only what the UI needs to describe it and to re-render on a change.
    */
   readonly enzymeSetInfo: EnzymeSetInfo;
+  /**
+   * The file name a save was last downloaded under, in a browser that cannot
+   * write to files. Set because a download is not a save the app can repeat:
+   * the browser owns the file from there on and numbers the next one, which
+   * the user should hear once rather than discover as a pile of files.
+   */
+  readonly downloadNotice: { readonly fileName: string } | null;
 }
 
 /** A one-line description of the active enzyme set, for the Enzymes tab. */
@@ -231,7 +272,7 @@ export interface EnzymeSetInfo {
  */
 type ActiveDocumentFields = {
   readonly [K in keyof DocumentState]: K extends
-    'warnings' | 'shownEnzymes' | 'enzymesInitialized' | 'findOpen'
+    'warnings' | 'shownEnzymes' | 'enzymesInitialized' | 'findOpen' | 'derived'
     ? DocumentState[K]
     : DocumentState[K] | null;
 };
@@ -258,6 +299,7 @@ const SHARED_INITIAL: SharedState = {
   showCutSites: true,
   orfMinCodons: 75,
   assembly: [],
+  downloadNotice: null,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
     count: BUNDLED_ENZYME_SET.enzymes.length,
@@ -272,12 +314,13 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   history: null,
   selection: null,
   fileName: null,
-  fileHandle: null,
   savedDoc: null,
   openedDoc: null,
   markedDoc: null,
+  origin: null,
+  derived: false,
   warnings: [],
-  overwritePrompt: null,
+  saveReview: null,
   analysis: null,
   shownEnzymes: new Set(),
   enzymesInitialized: false,
@@ -287,7 +330,11 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   findOpen: false,
 };
 
-/** Whether the document differs from the file it was read from or written to (or has none). */
+/**
+ * Whether the document has changed since the last file was made of it — the
+ * one it was read from, or the last download. True for a document no file
+ * holds, which a working copy is until it is downloaded.
+ */
 export function isDirty(d: DocumentState): boolean {
   return d.savedDoc !== d.history.present;
 }
@@ -385,7 +432,11 @@ export class EditorStore {
   }
 
   /** Opens the first document of a parse result in a new tab; returns its id. */
-  openParsed(result: ParseResult, fileName: string | null): string | null {
+  openParsed(
+    result: ParseResult,
+    fileName: string | null,
+    storage: OpenStorage = {},
+  ): string | null {
     const doc = result.documents[0];
     if (doc === undefined) {
       this.setShared({ error: 'The file contains no sequences.' });
@@ -393,7 +444,7 @@ export class EditorStore {
       return null;
     }
     analytics.track('file', 'open', result.format);
-    return this.openDocument(doc, fileName, result.warnings);
+    return this.openDocument(doc, fileName, result.warnings, storage);
   }
 
   /**
@@ -407,7 +458,7 @@ export class EditorStore {
     doc: SeqDocument,
     fileName: string | null = null,
     warnings: readonly ParseWarning[] = [],
-    storage: { id?: string; handle?: FileSystemFileHandle | null } = {},
+    storage: OpenStorage = {},
   ): string {
     const open =
       storage.id === undefined ? this.findOpenCopy(doc, fileName) : this.documentState(storage.id);
@@ -420,13 +471,25 @@ export class EditorStore {
       history: History.create(doc),
       selection: null,
       fileName,
-      fileHandle: storage.handle ?? null,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
       savedDoc: fileName === null ? null : doc,
       openedDoc: doc,
       markedDoc: null,
+      // Only a document read from a file has one to protect; a paste, an
+      // example or a "New" document is the user's own from the start. An
+      // explicit `origin` wins either way: a working copy restored from
+      // storage brings its own back (since `doc` is then the copy rather than
+      // what the file holds), and the bundled example passes null because its
+      // file name names nothing on the user's disk.
+      origin:
+        storage.origin !== undefined
+          ? storage.origin
+          : fileName === null
+            ? null
+            : { fileName, doc },
+      derived: storage.derived ?? false,
       warnings,
-      overwritePrompt: null,
+      saveReview: null,
       analysis: null,
       shownEnzymes: new Set(),
       enzymesInitialized: false,
@@ -457,6 +520,9 @@ export class EditorStore {
       this.docs.find((d) => {
         const o = d.openedDoc;
         return (
+          // A working copy is no longer that file: opening it again should
+          // give the user the original back, not the tab they edited.
+          !d.derived &&
           d.fileName === fileName &&
           o.name === doc.name &&
           o.topology === doc.topology &&
@@ -532,26 +598,20 @@ export class EditorStore {
     this.commit();
   }
 
-  setFileHandle(id: string, handle: FileSystemFileHandle | null): void {
-    this.setDocument(id, { fileHandle: handle });
-  }
-
-  /** Records that a document now matches its file (optionally under a new name). */
-  markSaved(id: string, fileName?: string): void {
+  /**
+   * Records that a document has been written out under `fileName`: it is
+   * what was last downloaded, so nothing is outstanding until the next edit.
+   */
+  markDownloaded(id: string, fileName: string): void {
     const target = this.documentState(id);
     if (target === null) return;
-    analytics.track('file', 'save');
+    analytics.track('file', 'download');
     const present = target.history.present;
     // Sealing keeps the version on disk reachable as a step of its own: a
     // keystroke right after a save must not be folded into the step that
     // produced what was written.
     const history = target.history.seal();
-    this.setDocument(
-      id,
-      fileName === undefined
-        ? { savedDoc: present, history }
-        : { savedDoc: present, fileName, history },
-    );
+    this.setDocument(id, { savedDoc: present, fileName, history });
   }
 
   /**
@@ -586,12 +646,22 @@ export class EditorStore {
     }
   }
 
-  requestOverwrite(id: string, fileName: string): void {
-    this.setDocument(id, { overwritePrompt: { fileName } });
+  /** Records that a save went out as a download, for the notice under the toolbar. */
+  noteDownload(fileName: string): void {
+    this.setShared({ downloadNotice: { fileName } });
   }
 
-  dismissOverwrite(): void {
-    if (this.state.overwritePrompt !== null) this.setActive({ overwritePrompt: null });
+  dismissDownloadNotice(): void {
+    if (this.state.downloadNotice !== null) this.setShared({ downloadNotice: null });
+  }
+
+  /** Puts up the review of what this working copy changed, before a download writes it. */
+  requestSaveReview(id: string, fileName: string): void {
+    this.setDocument(id, { saveReview: { fileName } });
+  }
+
+  dismissSaveReview(): void {
+    if (this.state.saveReview !== null) this.setActive({ saveReview: null });
   }
 
   dismissError(): void {
@@ -615,10 +685,28 @@ export class EditorStore {
   ): void {
     const target = this.documentState(id);
     if (target === null) return;
-    const history = target.history;
-    const doc = history.present;
-    const next = doc.apply(op);
-    if (next === doc) return;
+    const doc = target.history.present;
+    const edited = doc.apply(op);
+    if (edited === doc) return;
+    // The file a document was opened from is never written to, so the first
+    // edit forks the document into a working copy: it takes a name of its
+    // own — the user's, when the edit is their rename — and starts a history
+    // of its own from the file's contents under that name. Undo therefore
+    // goes back to what the file holds and no further: there is no state in
+    // which the copy is the original again, which is what let the name slip
+    // back to the original's before. `derived` latches for the life of the
+    // tab, and a copy is never written out under the original's name.
+    const forking = target.origin !== null && !target.derived;
+    const copyName =
+      op.type === 'rename'
+        ? op.name
+        : copyNameFor(
+            doc.name,
+            this.docs.map((d) => d.history.present.name),
+          );
+    const base = forking ? doc.rename(copyName) : doc;
+    const next = forking ? base.apply(op) : edited;
+    const history = forking ? History.create(base) : target.history;
     let selection: Range | null;
     if (selectionAfter !== undefined) {
       selection = selectionAfter;
@@ -636,10 +724,16 @@ export class EditorStore {
         ? { position: selection.start, nonce: (target.reveal?.nonce ?? 0) + 1 }
         : target.reveal;
     this.setDocument(target.documentId, {
-      history: history.push(next, describeEditOp(op), Date.now(), coalesce),
+      // A rename that forks is the whole of the fork: the copy is called
+      // what the user called it, and there is no step to record on top.
+      history:
+        next === base ? history : history.push(next, describeEditOp(op), Date.now(), coalesce),
       selection,
       reveal,
       analysis: carryAnalysis(target.analysis, doc, op, next),
+      // The copy has never been written anywhere, whatever the file it came
+      // from holds, so nothing about it is on disk yet.
+      ...(forking ? { derived: true, savedDoc: null } : {}),
     });
   }
 
@@ -915,9 +1009,10 @@ export class EditorStore {
 
 /**
  * The version the edit marks compare against, or null when they are off or
- * there is nothing to compare with — a document that was never saved has no
- * file to be measured against, and "Mark from here" falls back to the state
- * the document was opened in until it is used.
+ * there is nothing to compare with — a document that has never been written
+ * out and came from nowhere has no file to be measured against, and "Mark
+ * from here" falls back to the state the document was opened in until it is
+ * used.
  */
 export function editsBaselineDocument(state: EditorState): SeqDocument | null {
   if (state.history === null) return null;
@@ -925,7 +1020,9 @@ export function editsBaselineDocument(state: EditorState): SeqDocument | null {
     case 'off':
       return null;
     case 'saved':
-      return state.savedDoc;
+      // A working copy that has not been downloaded yet is measured against
+      // the file it came from: that is the last version of it on a disk.
+      return state.savedDoc ?? state.origin?.doc ?? null;
     case 'marked':
       return state.markedDoc ?? state.openedDoc;
     case 'opened':

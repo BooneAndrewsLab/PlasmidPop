@@ -60,13 +60,14 @@ any document is in that state.
 5. Click anywhere in the sequence view, type a few bases, and watch the
    features move with them. `Ctrl+Z` undoes it, and the **History** tab
    lists what you did.
-6. Press `Ctrl+S` to save the result as a GenBank file.
+6. Press `Ctrl+S` to download the result as a GenBank file.
 
 ## Where your data lives
 
-Open documents are saved to the browser's local storage half a second after
-every change, and the last document is restored when you come back. That
-storage is per browser and per device. To keep a file, save it (`Ctrl+S`).
+Open documents are written to the browser's local storage half a second
+after every change, and the last document is restored when you come back.
+That storage is per browser and per device. PlasmidPop never writes to a file
+on your disk: to get one, download it (`Ctrl+S`).
 Your sequences never leave your device; the public build only counts
 anonymous feature usage (see the usage statistics section of the files page).
 

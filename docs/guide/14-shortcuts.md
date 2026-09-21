@@ -4,11 +4,10 @@ On macOS use `Cmd` where `Ctrl` is written.
 
 ## Files
 
-| Keys                       | Action                                                   |
-| -------------------------- | -------------------------------------------------------- |
-| `Ctrl+S`                   | Save (write back to the opened GenBank file, or Save as) |
-| `Ctrl+Shift+S`             | Save as                                                  |
-| `Ctrl+V` with nothing open | Open a pasted GenBank or FASTA record, or bare bases     |
+| Keys                       | Action                                                         |
+| -------------------------- | -------------------------------------------------------------- |
+| `Ctrl+S`, `Ctrl+Shift+S`   | Download GenBank (a working copy's changes are reviewed first) |
+| `Ctrl+V` with nothing open | Open a pasted GenBank or FASTA record, or bare bases           |
 
 ## Editing
 

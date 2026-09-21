@@ -31,12 +31,10 @@ const launchQueue = (window as unknown as { launchQueue?: LaunchQueue }).launchQ
 launchQueue?.setConsumer((params) => {
   const [handle] = params.files;
   if (handle === undefined) return;
+  // The handle is only read from: a document is not bound to its file.
   handle
     .getFile()
     .then((file) => openFile(file))
-    .then((documentId) => {
-      if (documentId !== null) editorStore.setFileHandle(documentId, handle);
-    })
     .catch(() => {
       editorStore.fail(`Could not open "${handle.name}".`);
     });

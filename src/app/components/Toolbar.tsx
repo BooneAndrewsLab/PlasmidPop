@@ -3,7 +3,7 @@ import { type ChangeEvent, useRef, useState } from 'react';
 import { type SeqDocument, describeEnds } from '@/core';
 
 import { EXAMPLES } from '../examples';
-import { openFile, openText } from '../openFile';
+import { openExample, openFile } from '../openFile';
 import { persistence } from '../state/persistence';
 import { HelpButton } from '../help/HelpButton';
 import { EditsMenu } from './EditsMenu';
@@ -93,7 +93,7 @@ export function Toolbar({ doc }: Props) {
             >
               {doc.name}
               {dirty && (
-                <span className="toolbar__dirty" title="Changes not yet saved to a file">
+                <span className="toolbar__dirty" title="Changed since the last download">
                   {' '}
                   •
                 </span>
@@ -127,7 +127,7 @@ export function Toolbar({ doc }: Props) {
                 type="button"
                 className="button"
                 onClick={() => {
-                  openText(example.text, example.fileName);
+                  openExample(example);
                 }}
               >
                 Open example

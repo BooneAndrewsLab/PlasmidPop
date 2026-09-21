@@ -6,7 +6,9 @@ import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
-import { OverwriteDialog } from './components/OverwriteDialog';
+import { CopyBanner } from './components/CopyBanner';
+import { DownloadNotice } from './components/DownloadNotice';
+import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
@@ -16,9 +18,9 @@ import { useEditorState } from './state/useEditorStore';
 import {
   useAutosave,
   useAutosaveShelf,
+  useFlushOnLeave,
   useRestoreSession,
   useSaveShortcut,
-  useUnsavedWarning,
   useViewPrefs,
 } from './state/usePersistence';
 
@@ -30,7 +32,7 @@ export function App() {
   useAutosaveShelf();
   useRestoreSession();
   useSaveShortcut();
-  useUnsavedWarning();
+  useFlushOnLeave();
   useViewPrefs();
   const [dragging, setDragging] = useState(false);
 
@@ -65,6 +67,8 @@ export function App() {
               instead of carrying the previous document's over; the sidebar is not, so
               what was typed into its panels survives a look at another tab. */}
           <div className="app__editor" key={documentId}>
+            <CopyBanner />
+            <DownloadNotice />
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}
             <div className={`app__views app__views--${view}`}>
@@ -76,7 +80,7 @@ export function App() {
         </main>
       )}
       <StatusBar doc={doc} />
-      <OverwriteDialog />
+      <SaveReviewDialog />
     </div>
   );
 }

@@ -32,7 +32,6 @@ describe('EditorStore', () => {
     expect(store.document?.topology).toBe('linear');
     expect(store.getState()).toMatchObject({
       fileName: null,
-      fileHandle: null,
       dirty: false,
       selection: { start: 0, end: 0 },
     });
@@ -357,29 +356,21 @@ describe('EditorStore persistence state', () => {
     expect(store.getState().documentId).toMatch(/[0-9a-f-]{36}/);
     store.apply({ type: 'insert', position: 0, text: 'A' });
     expect(store.getState().dirty).toBe(true);
+    // Undo goes back to what the file holds, but this tab is a working copy
+    // now and no file holds it, so there is still something to download.
     store.undo();
-    expect(store.getState().dirty).toBe(false);
-    store.apply({ type: 'insert', position: 0, text: 'A' });
-    store.markSaved(store.getState().documentId ?? '', 'y.gb');
+    expect(store.getState().dirty).toBe(true);
+    store.markDownloaded(store.getState().documentId ?? '', 'y.gb');
     expect(store.getState()).toMatchObject({ dirty: false, fileName: 'y.gb' });
     store.closeDocument();
     expect(store.document).toBeNull();
-    expect(store.getState()).toMatchObject({ documentId: null, dirty: false, fileHandle: null });
+    expect(store.getState()).toMatchObject({ documentId: null, dirty: false });
   });
 
-  it('treats documents without a file as unsaved and keeps a given id and handle', () => {
+  it('treats a document without a file as unsaved and keeps a given id', () => {
     const store = new EditorStore();
-    const handle = { name: 'h.gb' } as FileSystemFileHandle;
-    store.openDocument(doc, null, [], { id: 'fixed', handle });
-    expect(store.getState()).toMatchObject({
-      dirty: true,
-      documentId: 'fixed',
-      fileHandle: handle,
-    });
-    store.setFileHandle('fixed', null);
-    expect(store.getState().fileHandle).toBeNull();
-    store.setFileHandle('elsewhere', handle); // not open: nothing happens
-    expect(store.getState().fileHandle).toBeNull();
+    store.openDocument(doc, null, [], { id: 'fixed' });
+    expect(store.getState()).toMatchObject({ dirty: true, documentId: 'fixed' });
   });
 });
 
@@ -439,7 +430,7 @@ describe('EditorStore edit-mark baseline', () => {
     return store;
   }
   const save = (store: EditorStore): void => {
-    store.markSaved(store.getState().documentId ?? '');
+    store.markDownloaded(store.getState().documentId ?? '', 'x.gb');
   };
 
   it('measures from the opened state by default, across a save', () => {
@@ -540,8 +531,10 @@ describe('EditorStore tabs', () => {
       shownEnzymes: new Set(['EcoRI']),
     });
     expect(store.document?.sequence.toString()).toBe('AAGGGGCCCC');
+    // Undo reaches the file's contents, under the copy's own name.
     store.undo();
-    expect(store.document).toBe(other);
+    expect(store.document?.sequence.toString()).toBe(other.sequence.toString());
+    expect(store.document?.name).toBe('other copy');
   });
 
   it("shows the file list with the tabs kept, and the front tab's dirtiness only", () => {
@@ -614,17 +607,23 @@ describe('EditorStore tabs', () => {
     expect(store.openDocument(third, null, [], { id: 'stored-a' })).toBe(a);
     expect(store.getState().documentId).toBe('stored-a');
     expect(store.document).toBe(doc);
-    // The same file opened again, even after edits, is that tab.
-    store.apply({ type: 'insert', position: 0, text: 'A' });
+    // The same file unedited is that tab.
     store.openDocument(other, 'b.gb');
     expect(store.openDocument(doc, 'a.gb')).toBe(a);
-    expect(store.document?.length).toBe(doc.length + 1);
     expect(ids(store)).toHaveLength(2);
+    // Once edited the tab holds a working copy, not that file, so opening
+    // the file again gives the user the original back in a tab of its own.
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    const reopened = store.openDocument(doc, 'a.gb');
+    expect(reopened).not.toBe(a);
+    expect(store.document).toBe(doc);
+    expect(store.documentState(a)?.history.present.length).toBe(doc.length + 1);
+    expect(ids(store)).toHaveLength(3);
     // A different file name, or no file at all, is a new tab.
     store.openDocument(doc, 'copy.gb');
     store.openDocument(doc);
     store.openDocument(doc);
-    expect(ids(store)).toHaveLength(5);
+    expect(ids(store)).toHaveLength(6);
   });
 
   it('files analysis results and edits by id, in front or not', () => {
@@ -645,7 +644,9 @@ describe('EditorStore tabs', () => {
     store.apply({ type: 'rename', name: 'renamed' }, undefined, a);
     expect(store.document).toBe(other);
     expect(store.documentState(a)?.history.present.name).toBe('renamed');
-    expect(store.documentState(a)?.history.undoLabel).toBe('Rename');
+    // That rename forked a's working copy and named it, which is the whole
+    // of the fork: the copy is called this from its first state on.
+    expect(store.documentState(a)?.history.canUndo).toBe(false);
     store.apply({ type: 'rename', name: 'x' }, undefined, 'missing');
     expect(store.documentState(b)?.history.canUndo).toBe(false);
     // A new ORF threshold sends every tab back to the worker.
@@ -667,20 +668,20 @@ describe('EditorStore tabs', () => {
     expect(ids(store)).toEqual([a, 'stored']);
   });
 
-  it('marks saved and prompts for overwrite by id', () => {
+  it('marks a download and reviews one by id', () => {
     const store = new EditorStore();
     const a = store.openDocument(doc, 'a.gb');
     store.apply({ type: 'insert', position: 0, text: 'A' });
     store.openDocument(other, 'b.gb');
-    store.markSaved(a, 'renamed.gb');
+    store.markDownloaded(a, 'renamed.gb');
     expect(store.documentState(a)).toMatchObject({ fileName: 'renamed.gb' });
     expect(store.documentState(a)?.savedDoc).toBe(store.documentState(a)?.history.present);
-    store.requestOverwrite(a, 'renamed.gb');
-    expect(store.getState().overwritePrompt).toBeNull(); // the prompt belongs to a's tab
+    store.requestSaveReview(a, 'a.gb');
+    expect(store.getState().saveReview).toBeNull(); // the review belongs to a's tab
     store.activateDocument(a);
-    expect(store.getState().overwritePrompt).toEqual({ fileName: 'renamed.gb' });
-    store.dismissOverwrite();
-    expect(store.getState().overwritePrompt).toBeNull();
+    expect(store.getState().saveReview).toEqual({ fileName: 'a.gb' });
+    store.dismissSaveReview();
+    expect(store.getState().saveReview).toBeNull();
   });
 });
 
@@ -723,7 +724,7 @@ describe('EditorStore typing runs', () => {
     const id = store.openDocument(linear, 'x.gb');
     store.setSelection({ start: 0, end: 0 });
     type(store, 'GG');
-    store.markSaved(id);
+    store.markDownloaded(id, 'x.gb');
     const saved = store.document;
     type(store, 'TT');
     expect(store.getState().history?.size).toBe(2);
@@ -767,5 +768,75 @@ describe('EditorStore typing runs', () => {
     expect(store.getState().history?.size).toBe(2);
     store.undo();
     expect(store.document?.sequence.toString()).toBe('ACCGTAC');
+  });
+});
+
+describe('EditorStore working copies', () => {
+  const named = SeqDocument.create({ name: 'pOrig', sequence: 'ACGTACGTACGTACGTACGT' });
+
+  function opened() {
+    const store = new EditorStore();
+    store.openDocument(named, 'pOrig.gb');
+    return store;
+  }
+
+  it('forks a working copy on the first edit', () => {
+    const store = opened();
+    expect(store.getState()).toMatchObject({ derived: false });
+    expect(store.getState().origin?.fileName).toBe('pOrig.gb');
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.document?.name).toBe('pOrig copy');
+    expect(store.getState()).toMatchObject({ derived: true });
+  });
+
+  it('starts the copy a history of its own, at the contents of the file', () => {
+    const store = opened();
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.getState().history?.size).toBe(1);
+    store.undo();
+    // Undo reaches what the file holds and stops there: the copy keeps its
+    // own name, so no state in this tab is the original again.
+    expect(store.document?.sequence.toString()).toBe(named.sequence.toString());
+    expect(store.document?.name).toBe('pOrig copy');
+    expect(store.getState().history?.canUndo).toBe(false);
+    // Editing on carries the same name rather than taking another copy name.
+    store.apply({ type: 'insert', position: 5, text: 'TT' });
+    expect(store.document?.name).toBe('pOrig copy');
+    expect(store.getState()).toMatchObject({ derived: true });
+  });
+
+  it('names the copy what the user called it when a rename is the first edit', () => {
+    const store = opened();
+    store.apply({ type: 'rename', name: 'my construct' });
+    expect(store.document?.name).toBe('my construct');
+    expect(store.getState()).toMatchObject({ derived: true });
+    // The name is the copy's first state, so there is no rename to undo.
+    expect(store.getState().history?.canUndo).toBe(false);
+    expect(store.getState().history?.present.sequence.toString()).toBe(named.sequence.toString());
+  });
+
+  it('keeps a name the user chose, through later edits', () => {
+    const store = opened();
+    store.apply({ type: 'rename', name: 'my construct' });
+    expect(store.document?.name).toBe('my construct');
+    expect(store.getState()).toMatchObject({ derived: true });
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.document?.name).toBe('my construct');
+  });
+
+  it('numbers the copy when another tab has that name', () => {
+    const store = opened();
+    store.openDocument(named.rename('pOrig copy'), 'elsewhere.gb');
+    store.activateDocument(store.getState().documents[0]?.documentId ?? null);
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.document?.name).toBe('pOrig copy 2');
+  });
+
+  it('leaves a document with no file of its own alone', () => {
+    const store = new EditorStore();
+    store.openDocument(named);
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.document?.name).toBe('pOrig');
+    expect(store.getState()).toMatchObject({ derived: false, origin: null });
   });
 });

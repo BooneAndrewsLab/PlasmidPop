@@ -12,6 +12,25 @@ import { type PlasmidPopDb, type StoredDocument, ENZYME_SET_ID, SHELF_ID, getDb 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
 
+/**
+ * Where a document came from, as `save` takes it: the file it was forked
+ * from, if any, and whether it has been forked off it. Kept out of the
+ * document itself because it describes the tab's relationship to a file,
+ * not the molecule.
+ */
+export interface DocumentProvenance {
+  readonly origin: { readonly fileName: string; readonly doc: SeqDocument } | null;
+  readonly derived: boolean;
+}
+
+const NO_PROVENANCE: DocumentProvenance = { origin: null, derived: false };
+
+/** A stored document read back, with what is known about where it came from. */
+export interface StoredLoad extends DocumentProvenance {
+  readonly doc: SeqDocument;
+  readonly fileName: string | null;
+}
+
 export interface DocumentSummary {
   readonly id: string;
   readonly name: string;
@@ -29,9 +48,15 @@ export interface DocumentSummary {
 export class DocumentRepository {
   constructor(private readonly db: PlasmidPopDb = getDb()) {}
 
-  async save(id: string, doc: SeqDocument, fileName: string | null): Promise<void> {
+  async save(
+    id: string,
+    doc: SeqDocument,
+    fileName: string | null,
+    provenance: DocumentProvenance = NO_PROVENANCE,
+  ): Promise<void> {
     const now = Date.now();
     const existing = await this.db.documents.get(id);
+    const origin = provenance.origin;
     await this.db.documents.put({
       id,
       name: doc.name,
@@ -42,6 +67,10 @@ export class DocumentRepository {
       featureCount: doc.features.size,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
+      ...(origin === null
+        ? {}
+        : { origin: { fileName: origin.fileName, text: writeGenBank(origin.doc) } }),
+      ...(provenance.derived ? { derived: true } : {}),
     });
   }
 
@@ -64,30 +93,36 @@ export class DocumentRepository {
     return match?.id ?? null;
   }
 
-  /** Re-keys a stored file handle, dropping any handle already under `to`. */
-  async moveHandle(from: string, to: string): Promise<void> {
-    if (from === to) return;
-    await this.db.transaction('rw', this.db.handles, async () => {
-      const stored = await this.db.handles.get(from);
-      if (stored === undefined) return;
-      await this.db.handles.put({ ...stored, id: to });
-      await this.db.handles.delete(from);
-    });
-  }
-
-  async load(id: string): Promise<{ doc: SeqDocument; fileName: string | null } | null> {
+  async load(id: string): Promise<StoredLoad | null> {
     const stored = await this.db.documents.get(id);
     if (stored === undefined) return null;
     const doc = parseGenBank(stored.text).documents[0];
     if (doc === undefined) return null;
-    return { doc: doc.rename(stored.name), fileName: stored.fileName };
+    const storedOrigin = stored.origin;
+    // A working copy whose origin will not parse is still a working copy:
+    // it keeps `derived`, so the file it came from stays un-overwritable
+    // even when we can no longer show what changed.
+    const originDoc =
+      storedOrigin === undefined ? undefined : parseGenBank(storedOrigin.text).documents[0];
+    return {
+      doc: doc.rename(stored.name),
+      fileName: stored.fileName,
+      origin:
+        storedOrigin === undefined || originDoc === undefined
+          ? null
+          : { fileName: storedOrigin.fileName, doc: originDoc },
+      derived: stored.derived ?? false,
+    };
   }
 
   /** Renames a stored document in place; false when there is no such document. */
   async rename(id: string, name: string): Promise<boolean> {
     const stored = await this.load(id);
     if (stored === null) return false;
-    await this.save(id, stored.doc.rename(name), stored.fileName);
+    await this.save(id, stored.doc.rename(name), stored.fileName, {
+      origin: stored.origin,
+      derived: stored.derived,
+    });
     return true;
   }
 
@@ -105,35 +140,9 @@ export class DocumentRepository {
   }
 
   async remove(id: string): Promise<void> {
-    await this.db.transaction('rw', this.db.documents, this.db.handles, async () => {
-      await this.db.documents.delete(id);
-      await this.db.handles.delete(id);
-    });
+    await this.db.documents.delete(id);
     if (this.lastDocumentId() === id) this.setLastDocumentId(null);
     this.setOpenDocumentIds(this.openDocumentIds().filter((open) => open !== id));
-  }
-
-  /** Stores the handle Save writes to; `writeConfirmed` when the user chose the file in a save dialog. */
-  async saveHandle(
-    id: string,
-    handle: FileSystemFileHandle,
-    writeConfirmed = false,
-  ): Promise<void> {
-    await this.db.handles.put({ id, handle, writeConfirmed });
-  }
-
-  async loadHandle(id: string): Promise<FileSystemFileHandle | null> {
-    return (await this.db.handles.get(id))?.handle ?? null;
-  }
-
-  /** Whether the user has agreed that Save may overwrite the stored file. */
-  async isWriteConfirmed(id: string): Promise<boolean> {
-    return (await this.db.handles.get(id))?.writeConfirmed === true;
-  }
-
-  /** Records the user's agreement to overwrite the stored file; no-op without a stored handle. */
-  async confirmWrite(id: string): Promise<void> {
-    await this.db.handles.where('id').equals(id).modify({ writeConfirmed: true });
   }
 
   /** The document that was in front when the page was last left, or null for the file list. */

@@ -5,10 +5,10 @@ import { type SeqDocument, extractRange, isEmptyRange } from '@/core';
 import { exportLinearSvg, exportMapSvg } from '@/view/svg';
 
 import { EXAMPLES } from '../examples';
-import { openText } from '../openFile';
+import { openExample } from '../openFile';
 import { downloadText, fileNameFor, serialize } from '../saveFile';
 import { editDiffOf } from '../state/editDiff';
-import { persistence, writeBackTarget } from '../state/persistence';
+import { persistence } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useMenu } from './useMenu';
@@ -47,8 +47,7 @@ function Item({ children, shortcut, title, disabled, onClick }: ItemProps) {
 export function FileMenu({ doc, onOpenFile }: Props) {
   const {
     selection,
-    fileHandle,
-    fileName,
+    derived,
     showComplement,
     showTranslations,
     seqBasesPerRow,
@@ -70,8 +69,6 @@ export function FileMenu({ doc, onOpenFile }: Props) {
   const { open, toggle, close, ref } = useMenu();
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const example = EXAMPLES[0];
-  // Where Save writes without asking; null when it will open a picker instead.
-  const target = writeBackTarget(fileHandle, fileName);
 
   const report = (p: Promise<unknown>): void => {
     p.catch((e: unknown) => {
@@ -120,7 +117,7 @@ export function FileMenu({ doc, onOpenFile }: Props) {
           {example !== undefined && (
             <Item
               onClick={run(() => {
-                openText(example.text, example.fileName);
+                openExample(example);
               })}
             >
               Open example
@@ -130,28 +127,16 @@ export function FileMenu({ doc, onOpenFile }: Props) {
           <Item
             shortcut="Ctrl+S"
             title={
-              target === null
-                ? 'Save as a GenBank file'
-                : 'Write the sequence back to the opened file'
+              derived
+                ? 'Write this copy out as a GenBank file, after a look at what changed'
+                : 'Write this document out as a GenBank file'
             }
             onClick={run(() => {
-              report(persistence.save());
+              report(persistence.download());
             })}
           >
-            {target === null ? 'Save…' : `Save to ${target}`}
+            Download GenBank…
           </Item>
-          {target !== null && (
-            // When Save itself asks where to write, one item is enough.
-            <Item
-              shortcut="Ctrl+Shift+S"
-              title="Save a copy as GenBank"
-              onClick={run(() => {
-                report(persistence.saveAs());
-              })}
-            >
-              Save as…
-            </Item>
-          )}
           <div className="menu__separator" role="separator" />
           <Item
             onClick={run(() => {

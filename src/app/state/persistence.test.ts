@@ -4,7 +4,7 @@ import { parseGenBank } from '@/io';
 import { PlasmidPopDb, DocumentRepository } from '@/storage';
 
 import { editorStore } from './editorStore';
-import { PersistenceService, writeBackTarget } from './persistence';
+import { PersistenceService, downloadNameFor } from './persistence';
 
 const doc = SeqDocument.create({ name: 'pKeep', sequence: 'ACGTACGTAC', topology: 'circular' });
 
@@ -32,16 +32,12 @@ describe('PersistenceService', () => {
     // Open in a tab already: the same file goes to that tab.
     expect(editorStore.openDocument(doc, 'pKeep.gb')).toBe(first);
     editorStore.closeDocument();
-    const handle = { kind: 'file', name: 'pKeep.gb' } as unknown as FileSystemFileHandle;
-    editorStore.openDocument(doc, 'pKeep.gb', [], { handle });
+    editorStore.openDocument(doc, 'pKeep.gb');
     const second = editorStore.getState().documentId ?? '';
     expect(second).not.toBe(first);
-    await repo.saveHandle(second, handle);
     await service.autosave();
     expect(editorStore.getState().documentId).toBe(first);
     expect((await service.listStored()).map((d) => d.id)).toEqual([first]);
-    expect(await repo.loadHandle(first ?? '')).toMatchObject({ name: 'pKeep.gb' });
-    expect(await repo.loadHandle(second)).toBeNull();
 
     // A different document (edited, or without a file name) gets its own entry.
     editorStore.openDocument(doc, null);
@@ -101,7 +97,9 @@ describe('PersistenceService', () => {
     editorStore.undo(); // the front tab has nothing to undo
     editorStore.activateDocument(first);
     editorStore.undo();
-    expect(editorStore.document?.name).toBe('pKeep');
+    // That rename made the tab a working copy under the name it was given,
+    // which is the copy's first state: there is nothing behind it.
+    expect(editorStore.document?.name).toBe('pKeep renamed');
     await service.autosave();
     expect((await service.listStored()).map((d) => d.id).sort()).toEqual([first, other].sort());
     editorStore.closeDocument(other);
@@ -160,73 +158,146 @@ describe('PersistenceService', () => {
     });
     const urlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
-    await service.save();
+    await service.download();
     expect(created[0]?.download).toBe('pKeep.gb');
     expect(editorStore.getState()).toMatchObject({ dirty: false, fileName: 'pKeep.gb' });
+    // The browser owns the file now, which the notice under the toolbar says.
+    expect(editorStore.getState().downloadNotice).toEqual({ fileName: 'pKeep.gb' });
     clickSpy.mockRestore();
     urlSpy.mockRestore();
   });
 
-  it('names the write-back target only for GenBank files with a handle', () => {
-    const handle = { name: 'pKeep.gb' } as unknown as FileSystemFileHandle;
-    expect(writeBackTarget(null, 'pKeep.gb')).toBeNull();
-    expect(writeBackTarget(handle, 'pKeep.gb')).toBe('pKeep.gb');
-    expect(writeBackTarget(handle, 'pKeep.ape')).toBe('pKeep.gb');
-    expect(writeBackTarget(handle, null)).toBe('pKeep.gb');
-    expect(writeBackTarget(handle, 'pKeep.fasta')).toBeNull();
-    expect(writeBackTarget(handle, 'pKeep.dna')).toBeNull();
+  it('offers the name a document was last written under, but never the original', () => {
+    const state = (fileName: string | null, originName: string | null = null) => ({
+      history: { present: doc },
+      fileName,
+      origin: originName === null ? null : { fileName: originName },
+    });
+    // Nothing written yet: a name made from the document's own.
+    expect(downloadNameFor(state(null))).toBe('pKeep.gb');
+    // The file it came from is the one name never to offer back.
+    expect(downloadNameFor(state('pOther.gb', 'pOther.gb'))).toBe('pKeep.gb');
+    // Written before: the same file, so replacing it is one click.
+    expect(downloadNameFor(state('my construct.gbk'))).toBe('my construct.gbk');
+    // Read from something we cannot write: GenBank under the document's name.
+    expect(downloadNameFor(state('pKeep.dna'))).toBe('pKeep.gb');
+    expect(downloadNameFor(state('pKeep.fasta'))).toBe('pKeep.gb');
   });
 
-  it('asks before the first write-back into an opened file, then writes silently', async () => {
-    let written = '';
+  it('writes an unedited document straight out and reviews a working copy first', async () => {
+    editorStore.closeAllDocuments();
+    const created: HTMLAnchorElement[] = [];
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      created.push(this);
+    });
+    const urlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    editorStore.openDocument(doc, 'pKeep.gb');
+    // Nothing has been changed, so there is nothing to review: it goes out.
+    await service.download();
+    expect(created.map((a) => a.download)).toEqual(['pKeep.gb']);
+
+    // An edit makes it a working copy, and the review comes first.
+    editorStore.apply({ type: 'insert', position: 0, text: 'A' });
+    await service.download();
+    expect(created).toHaveLength(1);
+    expect(editorStore.getState().saveReview).toEqual({ fileName: 'pKeep.gb' });
+    // Dismissing writes nothing.
+    editorStore.dismissSaveReview();
+    expect(created).toHaveLength(1);
+    // Accepting writes it under a name of its own, not the original's.
+    await service.download();
+    await service.confirmSaveReview();
+    expect(created.map((a) => a.download)).toEqual(['pKeep.gb', 'pKeep_copy.gb']);
+    expect(editorStore.getState()).toMatchObject({ dirty: false, fileName: 'pKeep_copy.gb' });
+    // Every download is reviewed: the copy is still a copy of that file.
+    editorStore.apply({ type: 'insert', position: 0, text: 'C' });
+    await service.download();
+    expect(editorStore.getState().saveReview).toEqual({ fileName: 'pKeep.gb' });
+    await service.confirmSaveReview();
+    // ...and it offers the name it was written under before, so the same
+    // file can be replaced rather than another one made beside it.
+    expect(created.map((a) => a.download)).toEqual(['pKeep.gb', 'pKeep_copy.gb', 'pKeep_copy.gb']);
+
+    clickSpy.mockRestore();
+    urlSpy.mockRestore();
+    editorStore.closeDocument();
+  });
+
+  it('writes through the save dialog where there is one, keeping no handle', async () => {
+    editorStore.closeAllDocuments();
+    const writes: string[] = [];
+    const suggested: (string | undefined)[] = [];
     const handle = {
-      name: 'pKeep.gb',
+      kind: 'file',
+      name: 'pOwn_copy.gb',
       createWritable: () =>
         Promise.resolve({
           write: (t: string) => {
-            written = t;
+            writes.push(t);
             return Promise.resolve();
           },
           close: () => Promise.resolve(),
         }),
     } as unknown as FileSystemFileHandle;
-    editorStore.openDocument(doc, 'pKeep.gb', [], { handle });
-    // Real handles are structured-clonable; this mock (with a function on it) is
-    // not, so store a plain stand-in under the same id as the picker would.
+    const w = window as unknown as Record<string, unknown>;
+    w['showOpenFilePicker'] = () => Promise.resolve([]);
+    w['showSaveFilePicker'] = (o?: { suggestedName?: string }) => {
+      suggested.push(o?.suggestedName);
+      return Promise.resolve(handle);
+    };
+
+    editorStore.openDocument(
+      SeqDocument.create({ name: 'pOwn', sequence: 'ACGTACGTAC' }),
+      'pOwn.gb',
+    );
     const id = editorStore.getState().documentId ?? '';
-    await repo.saveHandle(id, {
-      kind: 'file',
-      name: 'pKeep.gb',
-    } as unknown as FileSystemFileHandle);
-    editorStore.apply({ type: 'rename', name: 'pKeep2' });
-    // Opened, never agreed to: Save raises the prompt instead of writing.
-    await service.save();
-    expect(written).toBe('');
-    expect(editorStore.getState()).toMatchObject({
-      dirty: true,
-      overwritePrompt: { fileName: 'pKeep.gb' },
-    });
-    editorStore.dismissOverwrite();
-    await service.save();
-    expect(written).toBe('');
-    // Agreeing writes and is remembered for the document.
-    await service.confirmOverwrite();
-    expect(editorStore.getState().overwritePrompt).toBeNull();
-    expect(parseGenBank(written).documents[0]?.name).toBe('pKeep2');
-    expect(editorStore.getState().dirty).toBe(false);
-    editorStore.apply({ type: 'rename', name: 'pKeep3' });
-    await service.save();
-    expect(parseGenBank(written).documents[0]?.name).toBe('pKeep3');
-    expect(editorStore.getState().overwritePrompt).toBeNull();
-    // Still remembered after reopening from local storage.
+    editorStore.apply({ type: 'insert', position: 0, text: 'A' });
+    await service.download();
+    await service.confirmSaveReview();
+    expect(suggested).toEqual(['pOwn_copy.gb']);
+    // A LOCUS name holds no spaces, so the copy's comes back underscored.
+    expect(parseGenBank(writes[0] ?? '').documents[0]?.name).toBe('pOwn_copy');
+    expect(editorStore.getState().fileName).toBe('pOwn_copy.gb');
+
+    // The handle is not kept anywhere: a reload cannot write through it, and
+    // the next download asks again — with that file's name filled in.
+    await service.autosave();
+    editorStore.closeAllDocuments();
+    await service.openStored(id);
+    expect(editorStore.getState()).toMatchObject({ derived: true, fileName: 'pOwn_copy.gb' });
+    editorStore.apply({ type: 'insert', position: 0, text: 'C' });
+    await service.download();
+    await service.confirmSaveReview();
+    expect(suggested).toEqual(['pOwn_copy.gb', 'pOwn_copy.gb']);
+    expect(writes).toHaveLength(2);
+    expect(parseGenBank(writes[1] ?? '').documents[0]?.sequence.toString()).toBe('CAACGTACGTAC');
+
+    delete w['showOpenFilePicker'];
+    delete w['showSaveFilePicker'];
+    editorStore.closeDocument();
+  });
+
+  it('brings a working copy back as a working copy after a reload', async () => {
+    editorStore.closeAllDocuments();
+    const forked = SeqDocument.create({ name: 'pFork', sequence: 'ACGTACGTAC' });
+    editorStore.openDocument(forked, 'pFork.gb');
+    const id = editorStore.getState().documentId ?? '';
+    editorStore.apply({ type: 'insert', position: 0, text: 'A' });
     await service.autosave();
     editorStore.closeDocument();
     await service.openStored(id);
-    expect(editorStore.getState().fileHandle).toMatchObject({ name: 'pKeep.gb' });
-    editorStore.setFileHandle(id, handle); // the writable mock again, in place of the stand-in
-    editorStore.apply({ type: 'rename', name: 'pKeep4' });
-    await service.save();
-    expect(parseGenBank(written).documents[0]?.name).toBe('pKeep4');
+    expect(editorStore.getState()).toMatchObject({ derived: true });
+    expect(editorStore.document?.name).toBe('pFork copy');
+    const origin = editorStore.getState().origin;
+    expect(origin?.fileName).toBe('pFork.gb');
+    // The original itself comes back, not just its name, so the copy can
+    // still be compared against it.
+    expect(origin?.doc.sequence.toString()).toBe(forked.sequence.toString());
+    expect(origin?.doc.name).toBe('pFork');
     editorStore.closeDocument();
   });
 });

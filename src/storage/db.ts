@@ -7,6 +7,19 @@ import { type AssemblyPart, type Enzyme, type Topology } from '@/core';
  * as GenBank text produced by our own writer: it round-trips losslessly,
  * stays readable if the app disappears, and avoids a second schema.
  */
+/**
+ * The file a working copy was forked from: its name and its contents as they
+ * were read, in the same GenBank text a document is stored as.
+ *
+ * It is kept so that a reload cannot turn a working copy back into the file
+ * it came from — the original must stay both un-overwritable and available
+ * to compare against.
+ */
+export interface StoredOrigin {
+  readonly fileName: string;
+  readonly text: string;
+}
+
 export interface StoredDocument {
   readonly id: string;
   readonly name: string;
@@ -18,18 +31,14 @@ export interface StoredDocument {
   readonly featureCount: number;
   readonly createdAt: number;
   readonly updatedAt: number;
-}
-
-/** File handles are structured-clonable, so they can live in IndexedDB but not in JSON. */
-export interface StoredHandle {
-  readonly id: string;
-  readonly handle: FileSystemFileHandle;
+  /** The file this document was forked from, when it is a working copy. */
+  readonly origin?: StoredOrigin;
   /**
-   * Whether the user has agreed that Save may overwrite this file on disk.
-   * Set when they pick the file in a save dialog or accept the overwrite
-   * prompt; absent for handles that came from opening a file.
+   * Whether the document has been edited away from `origin`, so it has a
+   * name of its own and may not be written back to that file. Absent on
+   * documents stored before working copies existed, which read as false.
    */
-  readonly writeConfirmed?: boolean;
+  readonly derived?: boolean;
 }
 
 /**
@@ -70,7 +79,6 @@ export const ENZYME_SET_ID = 'active';
 
 export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
-  declare handles: EntityTable<StoredHandle, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
   declare enzymeSets: EntityTable<StoredEnzymeSet, 'id'>;
 
@@ -87,6 +95,13 @@ export class PlasmidPopDb extends Dexie {
     // Version 3 adds the imported enzyme set.
     this.version(3).stores({
       enzymeSets: 'id',
+    });
+    // Version 4 drops the file handles: a document is no longer bound to a
+    // file on disk, so there is nothing to write back to and nothing to ask
+    // permission for. Dropping the table also drops handles stored by an
+    // older build, which is the point — none of them may survive a reload.
+    this.version(4).stores({
+      handles: null,
     });
   }
 }

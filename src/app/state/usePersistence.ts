@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { editorStore, isDirty } from './editorStore';
+import { editorStore } from './editorStore';
 import { persistence } from './persistence';
 import { useEditorState } from './useEditorStore';
 import { startViewPrefs } from './viewPrefs';
@@ -80,7 +80,7 @@ export function useViewPrefs(): void {
   useEffect(() => startViewPrefs(), []);
 }
 
-/** Ctrl/Cmd+S saves (Shift for Save as); Ctrl/Cmd+F opens find. */
+/** Ctrl/Cmd+S downloads the document (Shift too, out of habit); Ctrl/Cmd+F opens find. */
 export function useSaveShortcut(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -94,7 +94,8 @@ export function useSaveShortcut(): void {
       if (key !== 's') return;
       e.preventDefault();
       if (editorStore.document === null) return;
-      (e.shiftKey ? persistence.saveAs() : persistence.save()).catch((err: unknown) => {
+      // Both, because Ctrl+Shift+S was Save as… and there is now one way out.
+      persistence.download().catch((err: unknown) => {
         editorStore.fail(err instanceof Error ? err.message : String(err));
       });
     };
@@ -105,18 +106,32 @@ export function useSaveShortcut(): void {
   }, []);
 }
 
-/** Warns before leaving with unsaved (to file) changes in any tab. */
-export function useUnsavedWarning(): void {
-  const { documents } = useEditorState();
-  const dirty = documents.some(isDirty);
+/**
+ * Writes the open documents out when the page is being left, instead of
+ * warning about it.
+ *
+ * There is nothing to warn about any more: no document is bound to a file,
+ * and every one of them comes back from this browser's storage on the next
+ * visit. What a dialog would have protected is the half-second between the
+ * last keystroke and the autosave, so flush that instead. `pagehide` is the
+ * last event a page reliably gets (`beforeunload` does not fire on mobile);
+ * the write is best effort, as everything about local storage is.
+ */
+export function useFlushOnLeave(): void {
   useEffect(() => {
-    if (!dirty) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent): void => {
-      e.preventDefault();
+    const flush = (): void => {
+      if (!persistence.restoreAttempted) return;
+      void persistence.autosave().catch(() => undefined);
+      void persistence.saveShelf().catch(() => undefined);
     };
-    window.addEventListener('beforeunload', onBeforeUnload);
+    const onHidden = (): void => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHidden);
     return () => {
-      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHidden);
     };
-  }, [dirty]);
+  }, []);
 }

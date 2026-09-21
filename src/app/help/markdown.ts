@@ -193,6 +193,25 @@ export function parseInline(text: string): Inline[] {
   return out;
 }
 
+/**
+ * The id a heading gets, and what a `#…` link in the guide points at. The
+ * rule is GitHub's, so the same link works in the rendered page here and in
+ * the Markdown file on GitHub: lower case, spaces to hyphens, the rest of
+ * the punctuation dropped.
+ */
+export function headingSlug(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-');
+}
+
+/** The `#…` a link points at within the page, without the hash, or null. */
+export function anchorTarget(href: string): string | null {
+  return href.startsWith('#') ? href.slice(1) : null;
+}
+
 /** Page id a relative guide link points at (`05-features.md` → `05-features`), or null. */
 export function guideLinkTarget(href: string): string | null {
   const m = /^(?:\.\/)?([\w-]+)\.md(?:#.*)?$/.exec(href);

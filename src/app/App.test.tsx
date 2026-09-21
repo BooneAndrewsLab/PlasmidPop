@@ -171,6 +171,8 @@ describe('App', () => {
     ]);
     expect(items[0]).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(screen.getByRole('menuitemradio', { name: /Insert 2 bases/ }));
+    // The example is not a file on disk, so editing it forks no working copy
+    // and the name stays the one the record carries.
     expect(editorStore.document?.name).toBe('SYNPBR322');
     expect(editorStore.document?.topology).toBe('circular');
     expect(editorStore.getState().history?.position).toBe(1);
@@ -399,7 +401,7 @@ describe('toolbar', () => {
       'New',
       'Open file…',
       'Open example',
-      'Save…Ctrl+S', // no file handle: Save already asks where, so no Save as
+      'Download GenBank…Ctrl+S', // the one way a document leaves the app
       'Export map as SVG',
       'Export sequence view as SVG',
       'Export selection view as SVG',
@@ -412,16 +414,6 @@ describe('toolbar', () => {
     expect(screen.getByRole('menuitem', { name: 'Export selection as FASTA' })).toBeDisabled();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-    // With a handle to a GenBank file, Save names its target and Save as appears.
-    act(() => {
-      editorStore.setFileHandle(editorStore.getState().documentId ?? '', {
-        name: 'pBR322.gb',
-      } as unknown as FileSystemFileHandle);
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'File' }));
-    expect(screen.getByRole('menuitem', { name: /^Save to pBR322\.gb/ })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /^Save as…/ })).toBeInTheDocument();
-    fireEvent.keyDown(document, { key: 'Escape' });
     act(() => {
       editorStore.setSelection({ start: 0, end: 10 });
     });
@@ -480,31 +472,31 @@ describe('document tabs', () => {
   });
 });
 
-describe('overwrite prompt', () => {
-  it('asks before Save first overwrites the opened file and offers a copy instead', async () => {
+describe('downloading', () => {
+  it('reviews a working copy before writing it, from the menu and from Ctrl+S', async () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open file' }));
+    // The example is nobody's file on disk, so open a file to get an origin.
     act(() => {
-      editorStore.setFileHandle(editorStore.getState().documentId ?? '', {
-        name: 'pBR322.gb',
-      } as unknown as FileSystemFileHandle);
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(
+        SeqDocument.create({ name: 'pDown', sequence: 'ACGTACGTAC' }),
+        'pDown.gb',
+      );
+      editorStore.apply({ type: 'insert', position: 0, text: 'A' });
     });
-    fileMenu(/^Save to pBR322\.gb/);
-    const dialog = await screen.findByRole('dialog', { name: 'Overwrite pBR322.gb?' });
-    expect(dialog).toHaveTextContent(/replacing the file you opened/);
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    fileMenu(/^Download GenBank…/);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/working copy of/);
+    expect(dialog).toHaveTextContent('pDown.gb');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    // Ctrl+S goes through the same gate.
+    // Ctrl+S is the same action.
     fireEvent.keyDown(document, { key: 's', ctrlKey: true });
     await screen.findByRole('dialog');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(editorStore.getState().overwritePrompt).toBeNull();
-    // Let the analysis of the example finish so it does not delay the next test's.
-    await waitFor(() => {
-      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
-    });
+    expect(editorStore.getState().saveReview).toBeNull();
   });
 });
 

@@ -4,8 +4,16 @@ import { GUIDE, guidePage } from './guide';
 import { Markdown } from './Markdown';
 
 interface Props {
-  readonly initialPage?: string;
+  /** A page id, optionally with a section: `02-files` or `02-files#saving`. */
+  readonly initialPage?: string | undefined;
   readonly onClose: () => void;
+}
+
+/** Splits `02-files#saving` into its page and its section. */
+function splitAnchor(page: string | undefined): [string | undefined, string | null] {
+  if (page === undefined) return [undefined, null];
+  const hash = page.indexOf('#');
+  return hash === -1 ? [page, null] : [page.slice(0, hash), page.slice(hash + 1)];
 }
 
 /**
@@ -13,7 +21,9 @@ interface Props {
  * on the right. Escape or a click on the backdrop closes it.
  */
 export function HelpDialog({ initialPage, onClose }: Props) {
-  const [pageId, setPageId] = useState(initialPage ?? GUIDE[0]?.id ?? '');
+  // `initialPage` may name a section too: `02-files#saving-in-firefox-and-safari`.
+  const [initialId, initialAnchor] = splitAnchor(initialPage);
+  const [pageId, setPageId] = useState(initialId ?? GUIDE[0]?.id ?? '');
   const dialogRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   const page = guidePage(pageId) ?? GUIDE[0];
@@ -22,9 +32,20 @@ export function HelpDialog({ initialPage, onClose }: Props) {
     dialogRef.current?.focus({ preventScroll: true });
   }, []);
 
+  /**
+   * Where a `#…` link, or the section `initialPage` named, has asked to be:
+   * a heading id to scroll to once the page below is rendered, or null for
+   * the top of the page.
+   */
+  const [anchor, setAnchor] = useState<string | null>(initialAnchor);
+
   useEffect(() => {
-    if (articleRef.current !== null) articleRef.current.scrollTop = 0;
-  }, [pageId]);
+    const article = articleRef.current;
+    if (article === null) return;
+    const heading = anchor === null ? null : article.querySelector(`#${CSS.escape(anchor)}`);
+    if (heading instanceof HTMLElement) article.scrollTop = heading.offsetTop - article.offsetTop;
+    else article.scrollTop = 0;
+  }, [pageId, anchor]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     if (e.key === 'Escape') {
@@ -72,6 +93,7 @@ export function HelpDialog({ initialPage, onClose }: Props) {
                 aria-current={p.id === page?.id ? 'page' : undefined}
                 onClick={() => {
                   setPageId(p.id);
+                  setAnchor(null);
                 }}
               >
                 {p.title}
@@ -79,7 +101,16 @@ export function HelpDialog({ initialPage, onClose }: Props) {
             ))}
           </nav>
           <article ref={articleRef} className="help__page">
-            {page !== undefined && <Markdown markdown={page.markdown} onNavigate={setPageId} />}
+            {page !== undefined && (
+              <Markdown
+                markdown={page.markdown}
+                onNavigate={(id) => {
+                  setPageId(id);
+                  setAnchor(null);
+                }}
+                onAnchor={setAnchor}
+              />
+            )}
           </article>
         </div>
       </div>

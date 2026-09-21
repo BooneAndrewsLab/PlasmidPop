@@ -8,7 +8,7 @@ const MINUS = '−';
 export const EDITS_BASELINE_LABELS: Readonly<Record<EditsBaseline, string>> = {
   off: 'Off',
   opened: 'Since opened',
-  saved: 'Since last save',
+  saved: 'Since last download',
   marked: 'Since marked',
 };
 
