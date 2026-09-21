@@ -101,7 +101,7 @@ The panel works that out:
 5. Name the product if you like, then **Assemble**. It opens as a new
    circular document with the parts' features.
 
-**Pieces left out** expands to say what was discarded and why. In a
+**_N_ pieces left out** expands to say what was discarded and why. In a
 well-designed set that is the vector's stuffer and each part's two flanks.
 
 A part goes in whichever way round its overhangs demand, so a part ordered

@@ -8,9 +8,10 @@ no account, no upload and no server round-trip. Works offline once loaded.
 
 ## What it does
 
-- **Open and save** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA and SnapGene
-  `.dna`; save back to the opened GenBank file, export FASTA, export the
-  map as SVG, export a selection with its features.
+- **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA and SnapGene `.dna`;
+  **download** GenBank (the file you opened is never written to), export
+  FASTA, export the map or the sequence view as SVG, export a selection
+  with its features.
 - **View** a linear sequence with complement, ruler, feature lanes and
   amino acids under CDS features, next to a zoomable circular map with
   labels and cut sites.
@@ -21,13 +22,13 @@ no account, no upload and no server round-trip. Works offline once loaded.
 - **Annotate**: a feature list and editor with GenBank locations
   (`join`, `complement`, wrapping the origin, partial ends) and
   qualifiers.
-- **Analyse**: restriction sites for about 130 enzymes with fragment
-  sizes, open reading frames, six-frame translation, primer design and
-  primer checking with binding sites, pairwise alignment (global and
-  local).
+- **Analyse**: restriction sites for about 130 bundled enzymes — or the
+  whole of REBASE, imported from your own download — with fragment sizes,
+  open reading frames, six-frame translation, primer design and primer
+  checking with binding sites, pairwise alignment (global and local).
 - **Clone in silico**: digest with chosen enzymes, collect fragments from
   several open documents, check every junction and ligate into a new
-  construct.
+  construct, or run a Golden Gate reaction over the open parts.
 - **Several documents at once**, each in its own tab, with the file list as
   a tab of its own.
 - **Local first**: documents autosave to the browser, the open tabs are
@@ -90,18 +91,21 @@ src/
     document/   Immutable SeqDocument + EditOp vocabulary
     history/    Generic undo/redo stack
     diff/       Myers diff of two document versions, for the edit marks
+    cloning/    Digest into fragments, ligation and Golden Gate assembly
     analysis/   Genetic code + translation, ORF finder, enzyme table, cut-site scanner
     primers/    Nearest-neighbour Tm, primer QC, pair design, binding-site search
     alignment/  Gotoh affine-gap pairwise alignment (global/local), see docs/perf-notes.md
   view/         Canvas rendering (pure; no React)
     linear/     Row layout, feature lane assignment, linear view renderer
     circular/   Plasmid map geometry, label placement, map renderer
+    svg/        The same renderers against an SVG context, for the exports
   workers/      Analysis Web Worker + client (inline fallback where Workers are missing)
-  storage/      Dexie (IndexedDB) document store, File System Access wrappers
+  storage/      Dexie (IndexedDB) document store, file picker / save dialog wrappers
   io/           File formats behind one interface (parseSequenceFile)
     genbank/    GenBank flat-file parser + writer, location grammar
     fasta/      FASTA parser + writer
     snapgene/   SnapGene .dna reader (packets + XML), plus a tiny XML parser in io/xml.ts
+    rebase/     Reader for a REBASE withrefm file the user imports
     fixtures/   Public NCBI records used by round-trip tests
   test/         Vitest setup and shared test helpers
 fixtures/local/ Private test files (gitignored); tests use them when present
@@ -109,12 +113,13 @@ fixtures/local/ Private test files (gitignored); tests use them when present
 ```
 
 Persistence: open documents autosave to IndexedDB (as GenBank text) and the
-last one is restored on reload. Nothing is ever written to a file on disk:
-the first edit of an opened file forks a working copy, and a document leaves
-the app only as a download, which shows what the copy changed first. The
-download goes through the save dialog where the File System Access API is
-available (the handle is used once and dropped) and as an ordinary browser
-download otherwise. The app is an installable PWA that works offline.
+tabs that were open are restored on reload. Nothing is ever written to a
+file on disk: the first edit of an opened file forks a working copy, and a
+document leaves the app only as a download, which shows what the copy
+changed first. The download goes through the save dialog where the File
+System Access API is available (the handle is used once and dropped) and as
+an ordinary browser download otherwise. The app is an installable PWA that
+works offline.
 
 Usage statistics: `src/app/analytics.ts` talks to a self-hosted Matomo
 instance when `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build

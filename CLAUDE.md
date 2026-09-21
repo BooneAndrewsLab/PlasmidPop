@@ -86,14 +86,15 @@ working with no account and no server round-trip.
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. Optional backend: auth + sync + share links.
 
-## Status (2026-09-18)
+## Status (2026-09-21)
 
 Build order steps 1–10 are implemented and committed; step 11 (backend)
-is not started. Beyond the build order, these have landed: Save GenBank /
-Save as / write-back through the File System Access API, SVG map export,
-selection export, find (Ctrl+F), a full feature editor, a History sidebar
-tab, sequence-view / selection SVG export, tracked-changes marks for the
-sequence view (`src/core/diff/`, the **Edits** menu), a bundled example
+is not started. Beyond the build order, these have landed: Download GenBank
+(write-back through the File System Access API came first and item 24 took
+it out again), SVG map export, selection export, find (Ctrl+F), a full
+feature editor, a History sidebar tab, sequence-view / selection SVG
+export, tracked-changes marks for the sequence view (`src/core/diff/`, the
+**Edits** menu), a bundled example
 (pBR322), an optional REBASE enzyme table imported from the user's own
 download (`src/io/rebase/`), and Matomo usage statistics (`src/app/analytics.ts`,
 always on when configured, no user toggle by decision of 2026-09-18;
@@ -153,7 +154,7 @@ pick from here when the current work is done.
    `restoreLastSession`, which gives way to a shelf the user has already
    started filling. A **Golden Gate** section below it takes whole open
    documents instead (`goldenGate` in `src/core/cloning/goldenGate.ts`):
-   one Type IIS enzyme (`isTypeIIS`, `GOLDEN_GATE_ENZYMES`, BsaI by
+   one Type IIS enzyme (`isTypeIIS`, `goldenGateEnzymes`, BsaI by
    default), digest every ticked document, drop the pieces that still carry
    a site or lack two sticky ends, then walk the overhangs, flipping a part
    where that is how it fits, and refuse with a sentence rather than guess
@@ -194,8 +195,8 @@ pick from here when the current work is done.
    the app (view prefs, sidebar tab, cut-site toggle, ORF threshold, error,
    assembly shelf); `getState()` flattens the front tab into the same
    `EditorState` shape the views always read, plus `documents`. Methods act
-   on the front tab unless they take an id (`apply`, `markSaved`,
-   `setFileHandle`, `requestOverwrite`, `closeDocument`); `setAnalysis`
+   on the front tab unless they take an id (`apply`, `markDownloaded`,
+   `requestSaveReview`, `activateDocument`, `closeDocument`); `setAnalysis`
    files results by the document they are for, so a slow worker answer lands
    in the right tab. `openDocument` returns the id, reuses the tab of a file
    already open (`findOpenCopy`: same file name and the document as read
@@ -488,7 +489,7 @@ pick from here when the current work is done.
     a parsing bug: J01749 really carries `gene 86..1276 /gene="tet"` and
     `CDS 86..1276 /gene="tet"`, which is how NCBI writes a gene, and `bla` at
     `complement(3293..4153)` is the same pair. What makes the pair read as a
-    duplicate is `deriveName` (`src/io/genbank/parseGenBank.ts`), whose
+    duplicate is `deriveFeatureName` (`src/io/genbank/parseGenBank.ts`), whose
     `NAME_QUALIFIERS` precedence is one global list —
     `label, gene, product, locus_tag, standard_name`. Two consequences: the
     CDS is shown as `tet` rather than its own

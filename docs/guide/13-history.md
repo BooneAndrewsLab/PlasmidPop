@@ -38,7 +38,8 @@ A run ends, and the next keystroke starts a fresh row, when you
 - move the caret or click elsewhere,
 - reach 60 bases in one run,
 - undo, redo or jump to another state,
-- save the file, so the version on disk stays a row you can return to, or
+- download the document, so the version you have a file of stays a row you
+  can return to, or
 - choose **Mark from here** in the **Edits** menu.
 
 Switching between typing, `Backspace` and `Delete` also starts a new row,
@@ -55,13 +56,15 @@ does drop the changes above it, exactly as Undo followed by typing does.
 The selection is cleared on a jump, because positions from the old state may
 not exist in the new one.
 
-## The version on disk
+## The version you have a file of
 
-The row whose state matches the document as opened or last downloaded is
-tagged **on disk**. It is the same information as the dot next to the
-document name in the toolbar, but it says which state the file holds, so you
-can see how far the document has moved since. Saving moves the tag to the
-current row.
+The row whose state matches the last download — or, in a document opened from
+a file and not yet edited, the file it was read from — is tagged **on disk**.
+It is the same information as the dot next to the document name in the
+toolbar, but it says which state your file holds, so you can see how far the
+document has moved since. Downloading moves the tag to the current row. A
+[working copy](02-files.md#working-copies) you have not downloaded yet has no
+such row: its history starts at the contents of the file it came from.
 
 ## Elsewhere
 

@@ -121,8 +121,11 @@ import.
 
 Of the roughly 6,100 records in REBASE, about 1,580 become usable enzymes.
 The panel reports what it left out: enzymes whose cut position nobody has
-determined, and the handful (BcgI and its kin) that cut on _both_ sides of
-their recognition site, which PlasmidPop cannot yet represent.
+determined, the handful (BcgI and its kin) that cut on _both_ sides of their
+recognition site, which PlasmidPop cannot yet represent, and the ones that
+cut at a modified base rather than at a sequence (AbaSI, MspJI and kin),
+whose REBASE site is a base or two and would otherwise appear to cut
+everywhere.
 
 Scanning with the whole table takes about 80 ms on a 4 kb plasmid instead of
 7 ms, in the background, so the list takes a moment longer to appear.

@@ -29,8 +29,9 @@ See [Files and storage](02-files.md).
 - **Toolbar** (top): the logo, the document name (click it to rename), its
   length and topology, then the **File** menu, **Undo / Redo** with the
   history list, the view switcher (**Sequence**, **Map**, **Both**), the
-  **Complement**, **Translations** and **Cut sites** toggles, and the **?**
-  button that opens this guide.
+  **Complement**, **Translations** and **Cut sites** toggles, the
+  **Format** and **Edits** menus, and the **?** button that opens this
+  guide.
 - **Document tabs** (under the toolbar): **Files**, then one tab per open
   document, and **+** for a new one.
 - **Edit bar** (under the tabs): Add feature, Delete selection, Reverse
@@ -44,9 +45,10 @@ See [Files and storage](02-files.md).
 - **Status bar** (bottom): what is selected, warnings raised while opening
   the file, and the file name.
 
-A dot after the document name (and on its tab) means the document differs
-from what is on disk. The browser also warns before you leave the page while
-any document is in that state.
+A dot after the document name (and on its tab) means the document has
+changed since you last downloaded it. Nothing is lost if you leave the page
+with the dot showing: every open document is written to this browser as you
+work and comes back when you return.
 
 ## A two-minute tour
 
@@ -65,7 +67,7 @@ any document is in that state.
 ## Where your data lives
 
 Open documents are written to the browser's local storage half a second
-after every change, and the last document is restored when you come back.
+after every change, and the tabs you had open come back when you return.
 That storage is per browser and per device. PlasmidPop never writes to a file
 on your disk: to get one, download it (`Ctrl+S`).
 Your sequences never leave your device; the public build only counts

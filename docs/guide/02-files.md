@@ -62,9 +62,9 @@ nothing has been typed into gives its tab up to the next file you open.
   the logo and **File ▸ Show files** go there too. The other tabs stay open
   behind it, and entries that are open in a tab are marked **open**.
 - **+** at the right of the strip starts a new sequence, like **New**.
-- A dot after a tab's name means that document differs from the file on
-  disk. The browser warns before you close it while any tab is in that
-  state.
+- A dot after a tab's name means that document has changed since it was
+  last downloaded. Closing the tab, or the page, loses nothing: the document
+  is in this browser's storage either way.
 
 The open tabs, their order and the one in front are remembered, so a reload
 brings them all back.
@@ -116,8 +116,9 @@ Downloads are always GenBank.
   browser decides (see below).
 - The name PlasmidPop offers comes from the document's own name, never from
   the file the copy was made from: `pBR322` is offered as `pBR322_copy.gb`.
-  Rename the document (double-click its name in the Features tab) to change
-  it, or type another name in the browser's dialog.
+  Rename the document — click its name in the toolbar, or **Rename** on the
+  working copy's line under it — to change what is offered, or type another
+  name in the browser's dialog.
 
 The dot after the document name means it has changed since the last download.
 
