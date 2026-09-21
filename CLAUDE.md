@@ -631,6 +631,38 @@ pick from here when the current work is done.
       features); and whether a previewed primer with mismatches should draw
       them, which is the thing a scientist actually squints at and neither
       view has any vocabulary for yet.
+27. **Name the features a diff removed.** `SaveReviewDialog`'s Features list
+    names what was added (`+ lacZα`) and what changed (`~ tet changed`), but
+    a removal is one anonymous line — `− 3 features removed` — and the Edits
+    menu's one-liner likewise ends in `· −3 features`. The names are the
+    thing the reviewer wants: "3 features removed" from a plasmid could be
+    three stray `misc_binding`s or it could be the resistance marker.
+    - **The asymmetry has a cause.** `featuresAdded` and `featuresChanged`
+      are sets of ids that `featureNames` resolves against `current`, which
+      the dialog holds; `featuresRemoved` is a bare `number`
+      (`src/core/diff/documentDiff.ts`) because those features exist only in
+      the baseline. The fix is to make it a `ReadonlySet<FeatureId>` like the
+      other two and resolve it against the baseline document — `origin.doc`
+      in the dialog, already at hand. Small and mechanical: the set's `.size`
+      replaces the number in `isEmptyDiff` and `describeEditDiff`
+      (`src/app/editsView.ts`), and no consumer of the cached diff outside
+      the dialog needs the names.
+    - **A name alone may not be enough.** After item 23 most features on a
+      real record are unnamed, so `featureNames` falls back to the type and a
+      list can read `misc_feature, misc_binding, misc_binding`. What tells
+      them apart is where they were, which means the removed feature's old
+      location mapped through the diff (`positionMapper` is right there in
+      `diffFeatures`) — `− misc_binding 411..414`. Worth doing for added and
+      changed features too, in their own coordinates.
+    - **Then the list needs a cap.** None of the three lists has one today.
+      Deleting 2 kb of a plasmid removes every feature on it, and the
+      Features section would run to a screenful where the hunks above it
+      stop at a few with "and N more places not shown"; removals should get
+      the same treatment, and a removal caused by a deletion could be said
+      once ("the deletion at 1,204 took 7 features with it") rather than
+      seven times.
+    - Touches item 21's summary line and item 22's review dialog. No data
+      implications — the diff already knows everything needed.
 
 ## Non-goals for v1
 
