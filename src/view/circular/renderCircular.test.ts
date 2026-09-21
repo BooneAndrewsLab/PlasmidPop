@@ -1,8 +1,11 @@
 import { SeqDocument, createFeature } from '@/core';
+import { parseGenBank } from '@/io/genbank';
+import { readFixture } from '@/test/fixtures';
 
 import { NO_LANES, assignLanes } from '../linear/lanes';
 import { type OverlaySpan, NO_OVERLAY, overlayLanes } from '../overlay';
 import { PRINT_THEME } from '../svg/exportMap';
+import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout } from './circularLayout';
 import { renderCircularMap, selectionSweep } from './renderCircular';
@@ -205,5 +208,65 @@ describe('renderCircularMap labels', () => {
     const bubble = inkPaths(hovered).find((path) => path.includes('A4 4'));
     expect(bubble).toBeDefined();
     expect(bubble).toContain('fill="none"');
+  });
+
+  it('leaves every other label where it was when one is hovered', () => {
+    // Ranking the hovered label first would let it take the slot nearest its
+    // anchor and shuffle its neighbours, so labels swapped places as the
+    // pointer moved between two features.
+    const texts = (svg: string): string[] =>
+      [...svg.matchAll(/<text x="([^"]*)" y="([^"]*)"[^>]*>([^<]*)<\/text>/g)]
+        .map((m) => `${m[3] ?? ''}@${m[1] ?? ''},${m[2] ?? ''}`)
+        .sort();
+    const plain = texts(draw(null));
+    const hovered = texts(draw('f0'));
+    const moved = plain.filter((t) => !t.startsWith('0 a rather') && !hovered.includes(t));
+    expect(moved).toEqual([]);
+  });
+
+  it('highlights the label a same-named feature already has, rather than a second copy', () => {
+    // pBR322 carries gene bla, CDS beta-lactamase and mat_peptide
+    // beta-lactamase; featuresToLabel collapses the last two into one label,
+    // so the mat_peptide has no label of its own to highlight.
+    const doc = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (doc === undefined) throw new Error('fixture');
+    const features = drawableFeatures(doc.features.all());
+    const lanes = assignLanes(features, doc.length);
+    const render = (hoveredFeatureId: string | null): string => {
+      const layout = new CircularLayout(doc.length, doc.topology, {
+        width: 700,
+        height: 700,
+        laneCount: lanes.laneCount,
+        ringWidth: 14,
+        outerMargin: 110,
+      });
+      const ctx = new SvgContext(700, 700);
+      renderCircularMap(ctx, {
+        doc,
+        layout,
+        lanes,
+        selection: null,
+        cutSites: [],
+        overlay: NO_OVERLAY,
+        overlayLanes: NO_LANES,
+        hoveredFeatureId,
+        hoveredCut: null,
+        width: 700,
+        height: 700,
+        devicePixelRatio: 1,
+        theme: PRINT_THEME,
+        sansFont: '12px Helvetica, Arial, sans-serif',
+        titleFont: '600 15px Helvetica, Arial, sans-serif',
+      });
+      return ctx.toSvg();
+    };
+    const collapsed = features.find((f) => f.type === 'mat_peptide' && f.name === 'beta-lactamase');
+    expect(collapsed).toBeDefined();
+    const svg = render(collapsed?.id ?? null);
+    expect([...svg.matchAll(/>beta-lactamase</g)]).toHaveLength(1);
+    // ... and its leader is the highlighted one, drawn in ink rather than
+    // in the leader colour.
+    expect(svg).toContain(`stroke="${PRINT_THEME.ink}"`);
+    expect(render(null)).not.toContain(`stroke="${PRINT_THEME.ink}"`);
   });
 });

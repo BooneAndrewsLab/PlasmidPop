@@ -430,6 +430,14 @@ function drawOverlays(ctx: DrawingContext, p: CircularRenderParams): void {
   }
 }
 
+/** Smallest angle between two directions, in radians. */
+function angleGap(a: number, b: number): number {
+  const twoPi = Math.PI * 2;
+  let d = (a - b + Math.PI) % twoPi;
+  if (d < 0) d += twoPi;
+  return Math.abs(d - Math.PI);
+}
+
 function featureMidAngle(
   feature: Feature,
   layout: CircularLayout,
@@ -454,13 +462,18 @@ const MIN_LABEL_WIDTH = 34;
 const ELLIPSIS = '…';
 
 /**
- * Who keeps their place when the ring cannot hold everything: whatever the
- * pointer is on, then features longest first, then cut sites rarest first —
- * the unique cutter is the one a cloner is looking for. A feature outranks a
- * cut site because it is the document's own annotation, while the cut sites
- * are an analysis the Enzymes tab can narrow at will.
+ * Who keeps their place when the ring cannot hold everything: features
+ * longest first, then cut sites rarest first — the unique cutter is the one
+ * a cloner is looking for. A feature outranks a cut site because it is the
+ * document's own annotation, while the cut sites are an analysis the Enzymes
+ * tab can narrow at will.
+ *
+ * What the pointer is on is deliberately *not* in this: ranking it first
+ * would let it take the slot nearest its anchor and shuffle its neighbours,
+ * so labels swapped places as the pointer moved between two features. A
+ * hovered label whose ring had no room is brought back by
+ * `drawFloatingLabel` instead, which costs the layout nothing.
  */
-const RANK_HOVER = 3e9;
 const RANK_FEATURE = 2e9;
 const RANK_CUT = 1e9;
 
@@ -561,6 +574,7 @@ function drawFloatingLabel(
   text: string,
   angle: number,
   color: string,
+  start: { readonly x: number; readonly y: number },
 ): void {
   const { layout } = p;
   const labelRadius = layout.radius + m.labelRing;
@@ -575,7 +589,22 @@ function drawFloatingLabel(
     Math.max(EDGE_INSET, p.width - width - BUBBLE_PAD_X - EDGE_INSET),
   );
   const y = Math.min(Math.max(ay, m.lineHeight), p.height - m.lineHeight);
-  drawBubble(ctx, p, labelBox(x, y, width, m.lineHeight, 'left'), color);
+  const box = labelBox(x, y, width, m.lineHeight, 'left');
+  const elbow = {
+    x: layout.cx + (layout.radius + m.elbow) * Math.cos(angle),
+    y: layout.cy + (layout.radius + m.elbow) * Math.sin(angle),
+  };
+  // The leader runs to whichever side of the outline faces the map, so a
+  // label the clamp moved is still tied to the thing it names.
+  const join = elbow.x <= box.left ? box.left - BUBBLE_PAD_X : box.right + BUBBLE_PAD_X;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(elbow.x, elbow.y);
+  ctx.lineTo(join, y);
+  ctx.stroke();
+  drawBubble(ctx, p, box, color);
   ctx.fillStyle = color;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -624,12 +653,13 @@ function drawLabels(
     inputs.push({ id, text: fitted.text, angle, textWidth: fitted.width, rank });
   };
 
-  for (const f of featuresToLabel(visible, doc.length)) {
+  const labelled = featuresToLabel(visible, doc.length);
+  const angleOf = new Map<string, number>();
+  for (const f of labelled) {
     const angle = featureMidAngle(f, layout, doc.length);
     if (angle === null) continue;
-    const rank =
-      f.id === p.hoveredFeatureId ? RANK_HOVER : RANK_FEATURE + Math.min(featureLength(f), 1e6);
-    add(f.id, f.name, angle, rank);
+    angleOf.set(f.id, angle);
+    add(f.id, f.name, angle, RANK_FEATURE + Math.min(featureLength(f), 1e6));
   }
 
   const cutsByPosition = new Map<number, string[]>();
@@ -643,7 +673,7 @@ function drawLabels(
   for (const [cut, names] of cutsByPosition) {
     const text = `${names.join(', ')} (${(cut + 1).toLocaleString()})`;
     const rarity = Math.min(...names.map((n) => cutsPerEnzyme.get(n) ?? 1));
-    const rank = cut === p.hoveredCut ? RANK_HOVER : RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
+    const rank = RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
     add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank);
   }
 
@@ -657,6 +687,39 @@ function drawLabels(
   });
 
   const byId = new Map(visible.map((f) => [f.id, f] as const));
+  const hoveredFeature = p.hoveredFeatureId === null ? undefined : byId.get(p.hoveredFeatureId);
+  const hoveredAngle =
+    hoveredFeature === undefined ? null : featureMidAngle(hoveredFeature, layout, doc.length);
+  /**
+   * The label that speaks for whatever the pointer is on. `featuresToLabel`
+   * collapses features that share a name into one label, so the feature
+   * under the pointer often has no label of its own — a gene and the CDS
+   * inside it, say. The nearest label of the same name is the one to
+   * highlight; drawing a second copy of the same name beside it, which is
+   * what happened before, says nothing and covers its neighbours.
+   */
+  const hoveredLabelId = ((): string | null => {
+    if (p.hoveredFeatureId !== null) {
+      if (angleOf.has(p.hoveredFeatureId)) return p.hoveredFeatureId;
+      if (hoveredFeature === undefined || hoveredFeature.name === '' || hoveredAngle === null)
+        return null;
+      let best: string | null = null;
+      let bestGap = Infinity;
+      for (const f of labelled) {
+        if (f.name !== hoveredFeature.name) continue;
+        const angle = angleOf.get(f.id);
+        if (angle === undefined) continue;
+        const gap = angleGap(angle, hoveredAngle);
+        if (gap < bestGap) {
+          bestGap = gap;
+          best = f.id;
+        }
+      }
+      return best;
+    }
+    if (p.hoveredCut !== null) return `${CUT_PREFIX}${p.hoveredCut}`;
+    return null;
+  })();
   ctx.textBaseline = 'middle';
 
   // Leaders first, then every piece of text over them: a label that a
@@ -692,7 +755,7 @@ function drawLabels(
       x: layout.cx + (layout.radius + m.elbow) * Math.cos(label.angle),
       y: layout.cy + (layout.radius + m.elbow) * Math.sin(label.angle),
     };
-    const highlighted = label.id === p.hoveredFeatureId;
+    const highlighted = label.id === hoveredLabelId;
     ctx.strokeStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.leader;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -710,13 +773,11 @@ function drawLabels(
     ctx.fillText(tick.text, tick.x, tick.y);
   });
 
-  const hoveredId =
-    p.hoveredFeatureId ?? (p.hoveredCut === null ? null : `${CUT_PREFIX}${p.hoveredCut}`);
-  // The hovered label is drawn last, in its bubble, so that no neighbour's
-  // plate clips the outline.
+  // The hovered label is drawn last, in its outline, so that no neighbour's
+  // plate clips it.
   let hovered: PlacedLabel | null = null;
   for (const label of placed) {
-    if (label.id === hoveredId) {
+    if (label.id === hoveredLabelId) {
       hovered = label;
       continue;
     }
@@ -733,25 +794,29 @@ function drawLabels(
     ctx.fillText(hovered.text, hovered.x, hovered.y);
   }
 
-  // Whatever the pointer is on says its name even when the ring had no room.
-  const shown = new Set(placed.map((l) => l.id));
-  if (p.hoveredFeatureId !== null && !shown.has(p.hoveredFeatureId)) {
-    const feature = byId.get(p.hoveredFeatureId);
-    const angle = feature === undefined ? null : featureMidAngle(feature, layout, doc.length);
-    if (feature !== undefined && feature.name !== '' && angle !== null)
-      drawFloatingLabel(ctx, p, m, feature.name, angle, theme.ink);
-  }
-  if (p.hoveredCut !== null && !shown.has(`${CUT_PREFIX}${p.hoveredCut}`)) {
-    const names = cutsByPosition.get(p.hoveredCut);
-    if (names !== undefined)
-      drawFloatingLabel(
-        ctx,
-        p,
-        m,
-        `${names.join(', ')} (${(p.hoveredCut + 1).toLocaleString()})`,
-        layout.angleOf(p.hoveredCut),
-        theme.cutSite,
-      );
+  // Whatever the pointer is on says its name even when the ring had no room
+  // for it, with a leader of its own back to the thing it names.
+  if (hovered === null) {
+    if (hoveredFeature !== undefined && hoveredFeature.name !== '' && hoveredAngle !== null) {
+      const lane = p.lanes.laneOf.get(hoveredFeature.id) ?? 0;
+      const r = layout.laneRadius(lane) + layout.ringWidth / 2;
+      drawFloatingLabel(ctx, p, m, hoveredFeature.name, hoveredAngle, theme.ink, {
+        x: layout.cx + r * Math.cos(hoveredAngle),
+        y: layout.cy + r * Math.sin(hoveredAngle),
+      });
+    } else if (p.hoveredCut !== null) {
+      const names = cutsByPosition.get(p.hoveredCut);
+      if (names !== undefined)
+        drawFloatingLabel(
+          ctx,
+          p,
+          m,
+          `${names.join(', ')} (${(p.hoveredCut + 1).toLocaleString()})`,
+          layout.angleOf(p.hoveredCut),
+          theme.cutSite,
+          layout.pointAt(p.hoveredCut, layout.radius - 6),
+        );
+    }
   }
 
   return dropped.length + unfit;

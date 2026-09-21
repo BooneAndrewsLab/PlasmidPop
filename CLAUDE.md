@@ -813,17 +813,32 @@ pick from here when the current work is done.
       rarest first (a unique cutter is what a cloner is looking for). A
       `+7 labels not shown` line sits in the bottom-left corner.
     - **Hovering brings a left-out label back**, which is what makes the
-      dropping affordable: the hovered feature or cut site outranks everything,
-      and if even that will not fit it is drawn on top of whatever is there
-      (`drawFloatingLabel`). Either way the hovered label is drawn last and in
-      a rounded outline (`drawBubble`) — it is the one label that may lie over
-      its neighbours, and a bare rectangle of background over them reads as a
-      hole punched in the map. `EDGE_INSET` keeps every label a few pixels
-      clear of the canvas so that outline is never clipped. Cut sites had no
-      hit region at all — `hitTest` knows `backbone` and `lane` — so `cutAt`
-      in `CircularMapView` finds the tick under the pointer within 6 px and
+      dropping affordable. The hovered label is drawn last and in a rounded
+      outline (`drawBubble`) — it is the one label that may lie over its
+      neighbours, and a bare rectangle of background over them reads as a hole
+      punched in the map — and `EDGE_INSET` keeps every label a few pixels
+      clear of the canvas so that outline is never clipped. One the ring had
+      no room for is drawn on top of whatever is there, with a leader of its
+      own back to the feature (`drawFloatingLabel`). Cut sites had no hit
+      region at all — `hitTest` knows `backbone` and `lane` — so `cutAt` in
+      `CircularMapView` finds the tick under the pointer within 6 px and
       passes `hoveredCut`; it is hover only, and a press near the backbone
       still starts a selection.
+    - **Hovering does not change the layout**, which took two goes to get
+      right (reported 2026-09-21 with four screenshots of pBR322's bla). The
+      hovered label was ranked first so that it could never be dropped, which
+      let it take the slot nearest its anchor and pushed its neighbours
+      around: `beta-lactamase` and `bla` swapped places as the pointer moved
+      between the two arcs. Rank is the document's alone now, and a hovered
+      label that did not fit comes back through the floating path instead,
+      which costs the layout nothing. The second half of the same report:
+      `featuresToLabel` collapses same-named features into one label, so the
+      feature under the pointer often has *no* label of its own — pBR322's
+      `mat_peptide` beta-lactamase sits inside the CDS of that name — and
+      nothing was highlighted while a second copy of the name was floated over
+      the first. `hoveredLabelId` resolves the pointer to the nearest label of
+      the same name, so the label that is already there lights up, leader and
+      all.
     - **Leaders are drawn before every piece of text, and text sits on a plate
       of the background.** A label a neighbour's leader ran through was as hard
       to read as one a neighbour's name ran through, and no spacing rule can
