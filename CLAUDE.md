@@ -36,7 +36,7 @@ working with no account and no server round-trip.
   Cloud sync is opt-in. Nothing on the user's disk is ever written to: a
   document leaves the app as a download, never through a kept file handle
   (item 24 under "Potential new features").
-- **Backend: none** (decided 2026-09-21). The app is a static site and
+- **Backend: none** (decided and built 2026-09-21). The app is a static site and
   stays one, so it deploys to GitHub Pages with nothing behind it. Auth,
   sync and team libraries are dropped rather than deferred; sharing, the
   one piece wanted from them, is a link that carries the document in its
@@ -93,7 +93,7 @@ working with no account and no server round-trip.
 
 Build order steps 1–10 are implemented and committed; step 11 (backend) is
 dropped rather than pending — the app stays a static site, and sharing is a
-link, not an account (decided 2026-09-21, item 11). Beyond the build order, these have landed: Download GenBank
+link, not an account (decided and built 2026-09-21, item 11). Beyond the build order, these have landed: Download GenBank
 (write-back through the File System Access API came first and item 24 took
 it out again), SVG map export, selection export, find (Ctrl+F), a full
 feature editor, a History sidebar tab, sequence-view / selection SVG
@@ -120,7 +120,10 @@ from is never written to (item 22). Added 2026-09-21: **nothing writes to a
 file at all any more** — a document lives in this browser and leaves it as a
 download (item 24). Added 2026-09-21: a feature takes its name from the
 qualifiers that suit its type, so `/gene` no longer labels every feature
-inside a gene (item 23). Tests: 642 passing. Perf measurements live in
+inside a gene (item 23). Added 2026-09-21: **File ▸ Copy share link** — a
+document travels whole inside the URL fragment, so it reaches the person it
+is sent to without being uploaded anywhere, and the Matomo call now reports
+a page URL with the fragment cut off (item 11). Tests: 662 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -331,60 +334,64 @@ pick from here when the current work is done.
     (`src/io/genbank/endsComment.ts`). Not yet: filling in or chewing back an
     overhang (Klenow / T4 blunting), ends on the circular map, and any
     carriage through FASTA or SnapGene.
-11. **Sharing, without a backend.** Decided 2026-09-21: the backend is
-    dropped as a goal. Auth, sync and team libraries bought nothing the app
-    needs, and a static site on GitHub Pages — no origin to run, nothing to
-    keep up, no account between a scientist and their plasmid — is worth
-    more than all three. Sharing is the one piece wanted, and it does not
-    need a server: **the document travels in the URL fragment.**
-    - **Why a fragment and not an upload.** Everything after `#` is never
-      sent in the HTTP request, and is not sent in `Referer` either, so a
-      share link carries the sequence to the recipient without it touching
-      Pages, us, or anyone's log. That is the same promise as the rest of
-      the app — no server round-trip, nothing of the science leaves the
-      browser — rather than a carefully-worded exception to it. `File ▸
-      Copy share link` writes `…/#d=<payload>` to the clipboard; opening
-      one decodes it into a new document tab.
-    - **Payload**: `writeGenBank(doc)` through `CompressionStream
-      ('deflate-raw')`, then base64url. Reuses the writer and parser that
-      are already tested, and the ends comment
-      (`src/io/genbank/endsComment.ts`) rides along, so a linear molecule
-      keeps its overhangs. Measured on the fixtures: AJ237582 (206 bp) is a
-      1.3 k-character link, AF177870 (3.1 kb) 3.9 k, L09137 (2.7 kb) 4.5 k,
-      U49845 (5 kb) 5.6 k, pBR322/J01749 (4.4 kb) 10.8 k, NC_001422 (5.4 kb)
-      11.3 k. Every browser takes those; email and chat clients will wrap
-      them, which is the practical limit rather than any hard one.
-    - **A cleverer encoding does not raise the ceiling.** In pBR322's
-      10.8 k, the ORIGIN block accounts for 2.1 k of the compressed bytes
-      and the header, references and 50 features for 5.8 k — it is the
-      annotation text that fills the link, not the bases. Packing the
-      sequence two bits to a base would save about 1 k of 8 k and cost a
-      format of our own. Refuse past some length with a sentence that says
-      to send the file instead; where to put the line wants a look at real
-      records, not a guess.
-    - **Matomo must not see the fragment, and by default it would.** The
-      tracker takes `window.location.href` whole unless `discardHashTag` is
-      set or `setCustomUrl` overrides it, so a page view from an opened
-      share link would post the entire compressed sequence to the analytics
-      instance — precisely the thing `src/app/analytics.ts` promises never
-      to send. Whichever way `PlasmidPop` sharing lands, that call is fixed
-      in the same commit, with a test.
-    - **It is a second way out.** Item 24 made downloading the only way
-      sequence leaves the app; a share link is another, so its framing needs
-      amending and the copy-link action should say in one line what the link
-      contains — a link pasted in a public channel is the whole plasmid.
-      Whether it also deserves `SaveReviewDialog`'s review is doubtful:
-      nothing is being overwritten, and the friction would be out of
-      proportion.
-    - Open: what a document opened from a link is, in item 22's terms —
-      probably `origin: null` like `openExample`, since there is no file on
-      the recipient's disk to be a working copy of, but then the first edit
-      forks nothing and the tab is just a document; whether the link should
-      carry a display name separate from the record's; and whether a link
-      that has grown too long should fall back to a tiny blob store for a
-      short URL. That last one is the decision this item exists to avoid —
-      it would put sequence on a server for the first time — so it stays
-      shut unless someone asks for it with a reason.
+11. ~~**Sharing, without a backend.**~~ done, 2026-09-21. The backend was
+    dropped as a goal the same day: auth, sync and team libraries bought
+    nothing the app needs, and a static site on GitHub Pages — no origin to
+    run, nothing to keep up, no account between a scientist and their
+    plasmid — is worth more than all three. Sharing was the one piece
+    wanted, and it needs no server, because **the document travels in the
+    URL fragment**.
+    - **File ▸ Copy share link** puts `…/#d=<payload>` on the clipboard
+      (`copyShareLink` in `src/app/share.ts`). Everything after `#` is never
+      sent in the HTTP request and is left out of `Referer`, so the sequence
+      reaches whoever the link is sent to without touching Pages, us, or
+      anyone's log — the same promise as the rest of the app rather than a
+      carefully-worded exception to it.
+    - **The payload** is `writeGenBank(doc)` through `CompressionStream
+      ('deflate-raw')`, base64url, behind a `1` that says which encoding it
+      is (`src/io/share/link.ts`). GenBank rather than a format of our own:
+      the writer and parser are already tested against real files, and the
+      ends comment rides along, so a linear molecule keeps its overhangs.
+      `Blob.stream` is not used — jsdom has no such thing — so the codec
+      feeds one buffer through the stream by hand, not awaiting the write
+      before reading or a buffer past the queue size would deadlock.
+    - **Measured**: AJ237582 (206 bp) 1.3 k characters, AF177870 (3.1 kb)
+      3.9 k, L09137 (2.7 kb) 4.5 k, U49845 (5 kb) 5.6 k, pBR322 (4.4 kb)
+      10.8 k, NC_001422 (5.4 kb) 11.3 k. `MAX_SHARE_PAYLOAD` refuses past
+      32,000 with the length in the message and a word about downloading the
+      file instead. A cleverer encoding would not raise that ceiling: of
+      pBR322's 10.8 k, the ORIGIN block is 2.1 k of the compressed bytes and
+      the header, references and 50 features are 5.8 k — it is the
+      annotation that fills a link, so two-bit packing the bases would save
+      about 1 k of 8 k and cost a format of our own.
+    - **Matomo would have posted the whole fragment.** The tracker takes
+      `window.location.href` unless told otherwise, so a page view from an
+      opened share link would have sent the entire compressed sequence to
+      the analytics instance — the one thing `analytics.ts` promises never
+      to send. It now pushes `discardHashTag` and an explicit
+      `setCustomUrl` of `trackableUrl()`, with a test that a page carrying a
+      fragment reports a URL without one.
+    - **A shared document is the reader's own.** It opens with no file name
+      and no origin (`openSharedPayload`), so there is nothing to fork a
+      working copy off and "dirty" keeps its meaning — not downloaded in
+      this browser yet. The fragment comes off the address bar before
+      anything else (`takeShareFragment`, `history.replaceState`), so the
+      sequence is not left in the URL or in the browser's history; that also
+      makes the effect safe to run twice, as React does in development. The
+      restore of the last session runs first and the shared document opens
+      last, so it is the tab in front and the session's own tabs are behind
+      it rather than replaced.
+    - **`ShareNotice`** under the toolbar says what was copied — the length,
+      that nothing was uploaded, and that anyone with the link can open it —
+      and takes itself away after twelve seconds. A link cannot be withdrawn
+      or updated, which the guide says plainly (`docs/guide/02-files.md`,
+      "Sharing a link").
+    - Not yet: no key binding; a link always carries the whole document
+      (a selection, or a document without its references, would make a much
+      shorter one); nothing on the receiving side says where a document came
+      from, which is where item 22's `PlasmidPop-derived-from:` checksum
+      would belong; and a link is GenBank only, so SnapGene-specific
+      material a `.dna` import dropped is not in it either.
 12. ~~**User documentation**~~: done. Fourteen guide pages in
     `docs/guide/` (getting started, files, viewing, editing, features,
     find, enzymes, ORFs, translation, primers, alignment, cloning,

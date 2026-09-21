@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Analytics, doNotTrack, readConfig } from './analytics';
+import { Analytics, doNotTrack, readConfig, trackableUrl } from './analytics';
 
 const CONFIG = { url: 'https://stats.example.org/matomo/', siteId: '6' };
 
@@ -22,6 +22,32 @@ describe('readConfig', () => {
       url: 'https://x/m/',
       siteId: '6',
     });
+  });
+});
+
+describe('trackableUrl', () => {
+  // A share link carries the whole document after the `#`; Matomo takes
+  // `location.href` whole unless told not to, so this is what stands between
+  // a shared plasmid and the analytics instance.
+  it('cuts off the fragment', () => {
+    expect(trackableUrl('https://x.org/PlasmidPop/#d=1AAAAsequence')).toBe(
+      'https://x.org/PlasmidPop/',
+    );
+    expect(trackableUrl('https://x.org/PlasmidPop/')).toBe('https://x.org/PlasmidPop/');
+    expect(trackableUrl('https://x.org/p/?a=1#d=xyz')).toBe('https://x.org/p/?a=1');
+  });
+
+  it('reports a page view with no fragment even when the page has one', () => {
+    globalThis.location.hash = '#d=1AAAAsecret';
+    const load = vi.fn();
+    new Analytics(CONFIG, false, load);
+    const urls = paq()
+      .filter((e) => e[0] === 'setCustomUrl')
+      .map((e) => String(e[1]));
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).not.toContain('#');
+    expect(urls[0]).not.toContain('secret');
+    globalThis.location.hash = '';
   });
 });
 
@@ -71,6 +97,8 @@ describe('Analytics', () => {
       ['setDoNotTrack', true],
       ['setTrackerUrl', 'https://stats.example.org/matomo/matomo.php'],
       ['setSiteId', '6'],
+      ['discardHashTag', true],
+      ['setCustomUrl', trackableUrl()],
       ['trackPageView'],
       ['enableLinkTracking'],
     ]);

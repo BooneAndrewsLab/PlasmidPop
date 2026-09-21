@@ -59,8 +59,11 @@ describe('HelpButton', () => {
     // Every heading is a target, and `[working copy](#working-copies)` in the
     // page text is a button in the dialog rather than a link out of it.
     expect(article.querySelector('#working-copies')?.textContent).toBe('Working copies');
-    const link = within(article).getByRole('button', { name: 'working copy' });
+    const links = within(article).getAllByRole('button', { name: 'working copy' });
+    expect(links.length).toBeGreaterThan(0);
     expect(article.querySelector('a[href="#working-copies"]')).toBeNull();
+    const [link] = links;
+    if (link === undefined) throw new Error('expected a link to the working copies section');
     fireEvent.click(link);
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Files and storage');
   });

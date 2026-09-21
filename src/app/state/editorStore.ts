@@ -252,6 +252,12 @@ export interface SharedState {
    * the user should hear once rather than discover as a pile of files.
    */
   readonly downloadNotice: { readonly fileName: string } | null;
+  /**
+   * That a share link was just copied, and how long it is. A link carries
+   * the whole document, so the one thing the user has to be told is what
+   * they are about to paste somewhere.
+   */
+  readonly shareNotice: { readonly chars: number } | null;
 }
 
 /** A one-line description of the active enzyme set, for the Enzymes tab. */
@@ -300,6 +306,7 @@ const SHARED_INITIAL: SharedState = {
   orfMinCodons: 75,
   assembly: [],
   downloadNotice: null,
+  shareNotice: null,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
     count: BUNDLED_ENZYME_SET.enzymes.length,
@@ -653,6 +660,15 @@ export class EditorStore {
 
   dismissDownloadNotice(): void {
     if (this.state.downloadNotice !== null) this.setShared({ downloadNotice: null });
+  }
+
+  /** Records that a share link went to the clipboard, for the notice under the toolbar. */
+  noteShareCopied(chars: number): void {
+    this.setShared({ shareNotice: { chars } });
+  }
+
+  dismissShareNotice(): void {
+    if (this.state.shareNotice !== null) this.setShared({ shareNotice: null });
   }
 
   /** Puts up the review of what this working copy changed, before a download writes it. */

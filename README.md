@@ -31,6 +31,9 @@ no account, no upload and no server round-trip. Works offline once loaded.
   construct, or run a Golden Gate reaction over the open parts.
 - **Several documents at once**, each in its own tab, with the file list as
   a tab of its own.
+- **Share** a document as a link that carries it whole in the URL fragment,
+  so the sequence goes to the person you send it to without being uploaded
+  anywhere. There is no backend at all.
 - **Local first**: documents autosave to the browser, the open tabs are
   restored on reload, and the app installs as a PWA that opens sequence
   files from the file manager.
@@ -115,11 +118,14 @@ fixtures/local/ Private test files (gitignored); tests use them when present
 Persistence: open documents autosave to IndexedDB (as GenBank text) and the
 tabs that were open are restored on reload. Nothing is ever written to a
 file on disk: the first edit of an opened file forks a working copy, and a
-document leaves the app only as a download, which shows what the copy
-changed first. The download goes through the save dialog where the File
-System Access API is available (the handle is used once and dropped) and as
-an ordinary browser download otherwise. The app is an installable PWA that
-works offline.
+document leaves the app as a download, which shows what the copy
+changed first, or inside a share link. The download goes through the save
+dialog where the File System Access API is available (the handle is used
+once and dropped) and as an ordinary browser download otherwise. A share
+link (`src/io/share/`, `src/app/share.ts`) is the document as GenBank,
+deflated into the URL fragment — never sent to a server, since a fragment
+does not leave the browser. The app is an installable PWA that works
+offline.
 
 Usage statistics: `src/app/analytics.ts` talks to a self-hosted Matomo
 instance when `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build

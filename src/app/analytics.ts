@@ -6,6 +6,12 @@
  * Do-Not-Track signal. Events carry only coarse actions ("opened genbank",
  * "ran ligation"); never sequence content, file names or other scientific
  * data. The tracker runs cookieless; IP anonymisation is an instance setting.
+ *
+ * The page URL is reported without its fragment, deliberately and with a
+ * test: a share link carries the whole document after the `#`, and Matomo
+ * sends `window.location.href` whole unless it is told otherwise. Both the
+ * belt (`setCustomUrl` for this page view) and the braces
+ * (`discardHashTag`, which covers any later one) are set.
  */
 
 export interface AnalyticsConfig {
@@ -35,6 +41,12 @@ export function doNotTrack(nav: Partial<Navigator> = globalThis.navigator): bool
 
 type PaqEntry = readonly (string | number | boolean)[];
 
+/** This page, with any fragment cut off. Nothing of a share link is reportable. */
+export function trackableUrl(href: string = globalThis.location.href): string {
+  const hash = href.indexOf('#');
+  return hash === -1 ? href : href.slice(0, hash);
+}
+
 /** Loads the Matomo script. Separated so tests can stub it. */
 function injectScript(url: string): void {
   const doc = globalThis.document;
@@ -58,6 +70,8 @@ export class Analytics {
     this.push(['setDoNotTrack', true]);
     this.push(['setTrackerUrl', `${config.url}matomo.php`]);
     this.push(['setSiteId', config.siteId]);
+    this.push(['discardHashTag', true]);
+    this.push(['setCustomUrl', trackableUrl()]);
     this.push(['trackPageView']);
     this.push(['enableLinkTracking']);
     load(config.url);

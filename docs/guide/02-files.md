@@ -146,6 +146,39 @@ Nothing is lost in the meantime: every open document is written to this
 browser's own storage as you work and comes back when you return. Downloading
 is how you get a file _out_ of PlasmidPop, not how you avoid losing work.
 
+## Sharing a link
+
+**File ▸ Copy share link** puts a link to the document on your clipboard.
+Paste it into an email or a chat, and whoever opens it gets the document —
+sequence, topology, features and all — in their own copy of PlasmidPop.
+
+Nothing is uploaded. The document travels inside the link itself, in the part
+after the `#`, which browsers never send to a server: not to the site the app
+is served from, not to us, not into anyone's logs. There is no account, no
+expiry and no server holding your plasmid, because there is no server.
+
+What follows from that is worth knowing.
+
+- **Anyone with the link can open it.** The link _is_ the document, not a
+  pointer to it. Treat it the way you would treat the file.
+- **A link cannot be withdrawn or updated.** It is a snapshot of the document
+  as it was when you copied it; edit the document and copy a new one.
+- **Links are long.** An ordinary annotated plasmid makes one of four to
+  twelve thousand characters. Mail and chat clients cope, but such a link
+  wraps badly in plain text — paste it as a link where you can.
+- **A document too big for a link is refused**, with its length in the
+  message; download the GenBank file and send that instead. It is the
+  annotation rather than the bases that fills a link, so a lightly annotated
+  long sequence may share while a heavily annotated short one does not.
+- **What the reader gets is their own copy.** It opens in a tab of its own
+  with no file name, and it is marked as changed since its last download,
+  because in their browser it has never been downloaded. There is no
+  [working copy](#working-copies) to fork, since there is no file behind it,
+  and nothing they do can reach back to you.
+- **The link leaves the address bar** as soon as the document opens, so the
+  sequence is not left in the browser's history. Reloading is safe: the
+  document is in that browser's storage like any other.
+
 ## Exporting
 
 From the **File** menu:
@@ -212,7 +245,9 @@ The public build sends anonymous usage statistics to a self-hosted
 [Matomo](https://matomo.org) instance: page views and coarse events such as
 "opened a GenBank file", "ran a ligation" or "exported the map as SVG".
 Never sent: sequences, feature names, file names or anything else from your
-documents. The tracker sets no cookies and the instance anonymises IP
+documents. The page address is reported without the part after the `#`, so
+opening a [share link](#sharing-a-link) sends the tracker the app's address
+and nothing of the document it carries. The tracker sets no cookies and the instance anonymises IP
 addresses. If your browser sends a Do-Not-Track signal, nothing is sent at
 all. Builds without a configured instance never send anything.
 

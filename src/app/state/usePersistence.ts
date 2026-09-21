@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { openSharedPayload, takeShareFragment } from '../share';
 import { editorStore } from './editorStore';
 import { persistence } from './persistence';
 import { useEditorState } from './useEditorStore';
@@ -54,9 +55,21 @@ export function useAutosaveShelf(): void {
   }, [assembly]);
 }
 
-/** On first load, reopens the tabs that were open last time. */
+/**
+ * On first load, reopens the tabs that were open last time, and opens the
+ * document a share link carries, if the page was opened from one.
+ *
+ * The fragment is taken off the address bar first thing, before any await:
+ * it holds the sequence, and it has no business staying in the URL or in
+ * this browser's history. Taking it also makes this safe to run twice, as
+ * React does in development — the second run finds nothing.
+ *
+ * The shared document is opened last so it is the tab in front, with the
+ * session's own tabs behind it rather than replaced by it.
+ */
 export function useRestoreSession(): void {
   useEffect(() => {
+    const shared = takeShareFragment();
     void (async () => {
       // The enzymes first, and awaited, so a restored document's first scan
       // already uses the imported set rather than scanning twice.
@@ -65,12 +78,14 @@ export function useRestoreSession(): void {
       } catch {
         // No import, or storage unavailable: the bundled table stands.
       }
-      if (editorStore.getState().documents.length > 0) return;
-      try {
-        await persistence.restoreLastSession();
-      } catch {
-        // Nothing to restore, or storage unavailable: start empty.
+      if (editorStore.getState().documents.length === 0) {
+        try {
+          await persistence.restoreLastSession();
+        } catch {
+          // Nothing to restore, or storage unavailable: start empty.
+        }
       }
+      if (shared !== null) await openSharedPayload(shared);
     })();
   }, []);
 }

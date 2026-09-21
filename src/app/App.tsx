@@ -9,6 +9,7 @@ import { LinearSequenceView } from './components/LinearSequenceView';
 import { CopyBanner } from './components/CopyBanner';
 import { DownloadNotice } from './components/DownloadNotice';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
+import { ShareNotice } from './components/ShareNotice';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
@@ -69,6 +70,7 @@ export function App() {
           <div className="app__editor" key={documentId}>
             <CopyBanner />
             <DownloadNotice />
+            <ShareNotice />
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}
             <div className={`app__views app__views--${view}`}>

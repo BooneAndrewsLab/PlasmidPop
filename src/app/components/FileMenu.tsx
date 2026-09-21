@@ -6,6 +6,7 @@ import { exportLinearSvg, exportMapSvg } from '@/view/svg';
 
 import { EXAMPLES } from '../examples';
 import { openExample } from '../openFile';
+import { copyShareLink } from '../share';
 import { downloadText, fileNameFor, serialize } from '../saveFile';
 import { editDiffOf } from '../state/editDiff';
 import { persistence } from '../state/persistence';
@@ -136,6 +137,14 @@ export function FileMenu({ doc, onOpenFile }: Props) {
             })}
           >
             Download GenBank…
+          </Item>
+          <Item
+            title="A link that carries this document inside it — nothing is uploaded"
+            onClick={run(() => {
+              report(copyShareLink(doc));
+            })}
+          >
+            Copy share link
           </Item>
           <div className="menu__separator" role="separator" />
           <Item

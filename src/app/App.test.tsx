@@ -5,6 +5,8 @@ import { SeqDocument, translateSixFrames } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 import { getRepository } from '@/storage';
 
+import { EXAMPLES } from './examples';
+import { shareUrlFor } from './share';
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
 import { editorStore } from './state/editorStore';
 import { App } from './App';
@@ -401,7 +403,8 @@ describe('toolbar', () => {
       'New',
       'Open file…',
       'Open example',
-      'Download GenBank…Ctrl+S', // the one way a document leaves the app
+      'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
+      'Copy share link', // as a file, or inside a link that goes nowhere near a server
       'Export map as SVG',
       'Export sequence view as SVG',
       'Export selection view as SVG',
@@ -666,5 +669,49 @@ describe('golden gate', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
     expect(editorStore.document?.name).toBe('pFinal');
+  });
+});
+
+describe('share links', () => {
+  afterEach(() => {
+    globalThis.location.hash = '';
+  });
+
+  it('opens the document a link carries, and takes it off the address bar', async () => {
+    const example = EXAMPLES[0];
+    if (example === undefined) throw new Error('expected a bundled example');
+    const doc = parseGenBank(example.text).documents[0];
+    if (doc === undefined) throw new Error('expected a document');
+    const url = await shareUrlFor(doc, 'https://example.org/PlasmidPop/');
+    globalThis.location.hash = new URL(url).hash;
+
+    render(<App />);
+    await waitFor(() => {
+      expect(editorStore.document?.name).toBe(doc.name);
+    });
+    expect(editorStore.document?.sequence.toString()).toBe(doc.sequence.toString());
+    expect(editorStore.document?.features.all()).toHaveLength(doc.features.all().length);
+    // The sequence has no business staying in the URL or in this browser's history.
+    expect(globalThis.location.hash).toBe('');
+  });
+
+  it('says what a copied link is, and the notice can be dismissed', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fileMenu('Copy share link');
+    const notice = await screen.findByRole('status');
+    expect(notice).toHaveTextContent(/Share link copied — [\d,]+ characters/);
+    expect(notice).toHaveTextContent(/nothing was uploaded/);
+    fireEvent.click(within(notice).getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText(/Share link copied/)).not.toBeInTheDocument();
+  });
+
+  it('reports a damaged link instead of opening a tab', async () => {
+    globalThis.location.hash = '#d=1thisisnotapayload';
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/damaged/);
+    });
+    expect(editorStore.getState().documents).toHaveLength(0);
   });
 });
