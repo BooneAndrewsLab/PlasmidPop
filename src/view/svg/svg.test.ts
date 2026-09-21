@@ -1,3 +1,5 @@
+import { SeqDocument, findCutSites } from '@/core';
+import { ENZYMES } from '@/core/analysis/restriction';
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
@@ -72,6 +74,33 @@ describe('exportMapSvg', () => {
     expect(svg).toContain('fill="#ffffff"');
     expect((svg.match(/<path /g) ?? []).length).toBeGreaterThan(20);
     expect(exportMapSvg(doc, { size: 300, transparent: true })).not.toContain('fill="#ffffff"/>');
+  });
+
+  it('grows the canvas rather than leaving labels out', () => {
+    const parsed = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (parsed === undefined) throw new Error('fixture');
+    // Every feature named and every single cutter labelled: far more than a
+    // small export can hold on one ring. The map on screen drops what will
+    // not fit and hovering brings it back, but a figure has no hover, so the
+    // export buys room instead — the circle is unchanged, the canvas grows.
+    const doc = SeqDocument.create({
+      name: parsed.name,
+      sequence: parsed.sequence,
+      topology: parsed.topology,
+      features: parsed.features
+        .all()
+        .map((f, i) => (f.name === '' ? { ...f, name: `${f.type} ${i + 1}` } : f)),
+    });
+    const cuts = findCutSites(doc.sequence.toString(), doc.topology, ENZYMES);
+    const counts = new Map<string, number>();
+    for (const s of cuts) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
+    const single = cuts.filter((s) => counts.get(s.enzyme) === 1);
+    const size = 400;
+    const svg = exportMapSvg(doc, { size, cutSites: single });
+    const width = Number(/width="(\d+(?:\.\d+)?)"/.exec(svg)?.[1] ?? '0');
+    expect(width).toBeGreaterThan(size);
+    // A map that fits keeps the size it was asked for.
+    expect(exportMapSvg(parsed, { size })).toContain(`width="${size}"`);
   });
 });
 

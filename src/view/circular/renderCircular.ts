@@ -1,11 +1,26 @@
-import { type CutSite, type Feature, type Range, type SeqDocument, rangePieces } from '@/core';
+import {
+  type CutSite,
+  type Feature,
+  type Range,
+  type SeqDocument,
+  featureLength,
+  rangePieces,
+} from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
+import { isTransparent } from '../svg/svgContext';
 import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from '../linear/lanes';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { drawableFeatures, featuresToLabel } from '../visibleFeatures';
-import { type CircularLayout, type LabelInput, layoutLabels, tickInterval } from './circularLayout';
+import {
+  type CircularLayout,
+  type LabelBox,
+  type LabelInput,
+  labelBox,
+  layoutLabels,
+  tickInterval,
+} from './circularLayout';
 
 export interface CircularTheme {
   readonly ink: string;
@@ -31,6 +46,8 @@ export interface CircularRenderParams {
   readonly overlay: readonly OverlaySpan[];
   readonly overlayLanes: LaneAssignment;
   readonly hoveredFeatureId: string | null;
+  /** Top-strand cut position under the pointer, if any; its label is kept. */
+  readonly hoveredCut: number | null;
   readonly width: number;
   readonly height: number;
   readonly devicePixelRatio: number;
@@ -39,7 +56,37 @@ export interface CircularRenderParams {
   readonly titleFont: string;
 }
 
-const LABEL_LINE_HEIGHT = 14;
+interface MapMetrics {
+  readonly fontSize: number;
+  readonly lineHeight: number;
+  /** Radial offsets from the backbone, for everything drawn outside it. */
+  readonly tickOuter: number;
+  readonly tickText: number;
+  readonly elbow: number;
+  readonly labelRing: number;
+}
+
+function fontSizeOf(font: string): number {
+  const m = /(\d+(?:\.\d+)?)px/.exec(font);
+  return m === null ? 12 : Number.parseFloat(m[1] ?? '12');
+}
+
+/**
+ * Everything outside the backbone is measured in text, so an export drawn at
+ * twice the type size moves its rings out with it. At the screen's 12 px
+ * these come out at the offsets the map has always used (7, 12, 26, 34).
+ */
+function mapMetrics(p: CircularRenderParams): MapMetrics {
+  const fontSize = fontSizeOf(p.sansFont);
+  return {
+    fontSize,
+    lineHeight: Math.max(12, fontSize * 1.15),
+    tickOuter: fontSize * 0.58,
+    tickText: fontSize,
+    elbow: fontSize * 2.15,
+    labelRing: fontSize * 2.8,
+  };
+}
 
 function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
   const { layout, theme, doc } = p;
@@ -59,32 +106,64 @@ function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
     );
   }
   ctx.stroke();
+}
 
-  if (doc.length === 0) return;
+interface RulerTick {
+  readonly position: number;
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly align: 'left' | 'right' | 'center';
+}
+
+/**
+ * Where the ruler's numbers go. They are worked out before the labels are
+ * placed because the label pass spaces against them: a tick number is drawn
+ * wherever the ruler says, and it is the label that gives way.
+ */
+function rulerTicks(p: CircularRenderParams, m: MapMetrics): RulerTick[] {
+  const { layout, doc } = p;
+  if (doc.length === 0) return [];
   // More ticks as the map zooms in, so their spacing on screen stays put.
   const step = tickInterval(doc.length, Math.round(16 * layout.zoom));
-  ctx.font = p.sansFont;
-  ctx.fillStyle = theme.inkMuted;
-  ctx.strokeStyle = theme.tick;
-  ctx.lineWidth = 1;
-  ctx.textBaseline = 'middle';
+  const out: RulerTick[] = [];
   for (let pos = 0; pos < doc.length; pos += step) {
     const a = layout.angleOf(pos);
     const inner = layout.pointAt(pos, layout.radius + 1);
     if (!layout.isOnCanvas(inner.x, inner.y, 80)) continue;
-    const outer = layout.pointAt(pos, layout.radius + 7);
+    const at = layout.pointAt(pos, layout.radius + m.tickText);
+    const cos = Math.cos(a);
+    out.push({
+      position: pos,
+      text: pos === 0 ? '1' : pos.toLocaleString(),
+      x: at.x,
+      y: at.y + (Math.sin(a) < -0.9 ? -2 : 0),
+      align: Math.abs(cos) < 0.2 ? 'center' : cos > 0 ? 'left' : 'right',
+    });
+  }
+  return out;
+}
+
+/**
+ * The tick marks only. Their numbers are drawn with the labels, after the
+ * leader lines, so that nothing is written through them.
+ */
+function drawTickMarks(
+  ctx: DrawingContext,
+  p: CircularRenderParams,
+  m: MapMetrics,
+  ticks: readonly RulerTick[],
+): void {
+  const { layout, theme } = p;
+  ctx.strokeStyle = theme.tick;
+  ctx.lineWidth = 1;
+  for (const tick of ticks) {
+    const inner = layout.pointAt(tick.position, layout.radius + 1);
+    const outer = layout.pointAt(tick.position, layout.radius + m.tickOuter);
     ctx.beginPath();
     ctx.moveTo(inner.x, inner.y);
     ctx.lineTo(outer.x, outer.y);
     ctx.stroke();
-    const label = layout.pointAt(pos, layout.radius + 12);
-    const cos = Math.cos(a);
-    ctx.textAlign = Math.abs(cos) < 0.2 ? 'center' : cos > 0 ? 'left' : 'right';
-    ctx.fillText(
-      pos === 0 ? '1' : pos.toLocaleString(),
-      label.x,
-      label.y + (Math.sin(a) < -0.9 ? -2 : 0),
-    );
   }
 }
 
@@ -369,53 +448,163 @@ function featureMidAngle(
 
 const CUT_PREFIX = 'cut:';
 
+/** Narrowest a label may be shortened to before it is left out instead. */
+const MIN_LABEL_WIDTH = 34;
+const ELLIPSIS = '…';
+
 /**
- * Labels for features and for cut sites share one ring so they are spaced
- * against each other. Cut-site labels list the enzymes sharing a position.
+ * Who keeps their place when the ring cannot hold everything: whatever the
+ * pointer is on, then features longest first, then cut sites rarest first —
+ * the unique cutter is the one a cloner is looking for. A feature outranks a
+ * cut site because it is the document's own annotation, while the cut sites
+ * are an analysis the Enzymes tab can narrow at will.
+ */
+const RANK_HOVER = 3e9;
+const RANK_FEATURE = 2e9;
+const RANK_CUT = 1e9;
+
+/** The text, shortened with an ellipsis, or null if even that will not fit. */
+function fitText(
+  ctx: DrawingContext,
+  text: string,
+  maxWidth: number,
+): { readonly text: string; readonly width: number } | null {
+  const full = ctx.measureText(text).width;
+  if (full <= maxWidth) return { text, width: full };
+  if (maxWidth < MIN_LABEL_WIDTH) return null;
+  let lo = 0;
+  let hi = text.length - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (ctx.measureText(text.slice(0, mid) + ELLIPSIS).width <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  if (lo === 0) return null;
+  const cut = text.slice(0, lo) + ELLIPSIS;
+  return { text: cut, width: ctx.measureText(cut).width };
+}
+
+/**
+ * The background behind a piece of text, so a leader line that passes under
+ * it does not read as a strike-through. An export asked for a transparent
+ * background paints nothing here, which is the right answer for one.
+ */
+function drawPlate(ctx: DrawingContext, p: CircularRenderParams, box: LabelBox): void {
+  if (isTransparent(p.theme.background)) return;
+  ctx.fillStyle = p.theme.background;
+  ctx.fillRect(box.left - 2, box.top, box.right - box.left + 4, box.bottom - box.top);
+}
+
+/**
+ * A label the ring had no room for, drawn on top with a plate behind it
+ * because the pointer is on the thing it names. This is the way back to a
+ * name the map left out.
+ */
+function drawFloatingLabel(
+  ctx: DrawingContext,
+  p: CircularRenderParams,
+  m: MapMetrics,
+  text: string,
+  angle: number,
+  color: string,
+): void {
+  const { layout } = p;
+  const labelRadius = layout.radius + m.labelRing;
+  const ax = layout.cx + labelRadius * Math.cos(angle);
+  const ay = layout.cy + labelRadius * Math.sin(angle);
+  const width = ctx.measureText(text).width;
+  const ideal = Math.cos(angle) >= 0 ? ax + 4 : ax - 4 - width;
+  // Clamped onto the canvas: beside the wrong part of the ring beats off
+  // the edge, and this only happens where the ring had no room at all.
+  const x = Math.min(Math.max(ideal, 4), Math.max(4, p.width - width - 4));
+  const y = Math.min(Math.max(ay, m.lineHeight), p.height - m.lineHeight);
+  ctx.fillStyle = p.theme.background;
+  ctx.fillRect(x - 3, y - m.lineHeight / 2 - 1, width + 6, m.lineHeight + 2);
+  ctx.fillStyle = color;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+/**
+ * Labels for features and for cut sites share one ring, so they are spaced
+ * against each other and against the ruler's numbers. Returns how many were
+ * left out for want of room; the map says so in the corner, and the one
+ * under the pointer comes back on top (`drawFloatingLabel`).
  */
 function drawLabels(
   ctx: DrawingContext,
   p: CircularRenderParams,
+  m: MapMetrics,
   visible: readonly Feature[],
-): void {
+  ticks: readonly RulerTick[],
+): number {
   const { layout, theme, doc } = p;
   ctx.font = p.sansFont;
-  const labelRadius = layout.radius + 34;
-  // Labels anchored well off the canvas are dropped before spacing, so
-  // that on a zoomed-in map the visible ones are spaced only against each
-  // other and the clamp to the canvas height does not drag in stragglers.
-  const nearCanvas = (angle: number, textWidth: number): boolean =>
-    layout.isOnCanvas(
-      layout.cx + labelRadius * Math.cos(angle),
-      layout.cy + labelRadius * Math.sin(angle),
-      textWidth + 4 * LABEL_LINE_HEIGHT,
-    );
+  const labelRadius = layout.radius + m.labelRing;
+  const obstacles = ticks.map((t) =>
+    labelBox(t.x, t.y, ctx.measureText(t.text).width, m.lineHeight, t.align),
+  );
+
   const inputs: LabelInput[] = [];
+  let unfit = 0;
+  const add = (id: string, text: string, angle: number, rank: number): void => {
+    if (text === '') return;
+    const ax = layout.cx + labelRadius * Math.cos(angle);
+    const ay = layout.cy + labelRadius * Math.sin(angle);
+    // A label anchored off the canvas is not "left out" — the thing it names
+    // is off screen too, and counting it would make the tally meaningless on
+    // a zoomed-in map.
+    if (!layout.isOnCanvas(ax, ay, m.lineHeight * 2)) return;
+    // The text runs outwards from the ring, so what is left of the canvas on
+    // that side is all the room there is. Long names on the left used to run
+    // off the edge because only the anchor was tested.
+    const room = Math.cos(angle) >= 0 ? p.width - ax - 8 : ax - 8;
+    const fitted = fitText(ctx, text, room);
+    if (fitted === null) {
+      unfit++;
+      return;
+    }
+    inputs.push({ id, text: fitted.text, angle, textWidth: fitted.width, rank });
+  };
+
   for (const f of featuresToLabel(visible, doc.length)) {
     const angle = featureMidAngle(f, layout, doc.length);
     if (angle === null) continue;
-    const textWidth = ctx.measureText(f.name).width;
-    if (!nearCanvas(angle, textWidth)) continue;
-    inputs.push({ id: f.id, text: f.name, angle, textWidth });
+    const rank =
+      f.id === p.hoveredFeatureId ? RANK_HOVER : RANK_FEATURE + Math.min(featureLength(f), 1e6);
+    add(f.id, f.name, angle, rank);
   }
+
   const cutsByPosition = new Map<number, string[]>();
+  const cutsPerEnzyme = new Map<string, number>();
   for (const s of p.cutSites) {
     const list = cutsByPosition.get(s.cut) ?? [];
     list.push(s.enzyme);
     cutsByPosition.set(s.cut, list);
+    cutsPerEnzyme.set(s.enzyme, (cutsPerEnzyme.get(s.enzyme) ?? 0) + 1);
   }
   for (const [cut, names] of cutsByPosition) {
     const text = `${names.join(', ')} (${(cut + 1).toLocaleString()})`;
-    const angle = layout.angleOf(cut);
-    const textWidth = ctx.measureText(text).width;
-    if (!nearCanvas(angle, textWidth)) continue;
-    inputs.push({ id: `${CUT_PREFIX}${cut}`, text, angle, textWidth });
+    const rarity = Math.min(...names.map((n) => cutsPerEnzyme.get(n) ?? 1));
+    const rank = cut === p.hoveredCut ? RANK_HOVER : RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
+    add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank);
   }
 
-  const placed = layoutLabels(inputs, layout, labelRadius, LABEL_LINE_HEIGHT, p.height);
+  const { placed, dropped } = layoutLabels(inputs, layout, {
+    labelRadius,
+    lineHeight: m.lineHeight,
+    width: p.width,
+    height: p.height,
+    obstacles,
+  });
+
   const byId = new Map(visible.map((f) => [f.id, f] as const));
   ctx.textBaseline = 'middle';
-  ctx.lineWidth = 1;
+
+  // Leaders first, then every piece of text over them: a label that a
+  // neighbour's leader ran through was as hard to read as one a neighbour's
+  // name ran through, and the spacing pass cannot help with a line.
   for (const label of placed) {
     const isCut = label.id.startsWith(CUT_PREFIX);
     let start: { x: number; y: number };
@@ -429,7 +618,6 @@ function drawLabels(
       ctx.moveTo(inner.x, inner.y);
       ctx.lineTo(start.x, start.y);
       ctx.stroke();
-      ctx.lineWidth = 1;
     } else {
       const feature = byId.get(label.id);
       if (feature === undefined) continue;
@@ -440,22 +628,86 @@ function drawLabels(
         y: layout.cy + r * Math.sin(label.angle),
       };
     }
+    // The elbow stays at the anchor's own angle, so a label that slid along
+    // the ring is joined to its feature by a leader that runs beside the
+    // ring rather than across the map.
     const elbow = {
-      x: layout.cx + (layout.radius + 26) * Math.cos(label.angle),
-      y: layout.cy + (layout.radius + 26) * Math.sin(label.angle),
+      x: layout.cx + (layout.radius + m.elbow) * Math.cos(label.angle),
+      y: layout.cy + (layout.radius + m.elbow) * Math.sin(label.angle),
     };
     const highlighted = label.id === p.hoveredFeatureId;
     ctx.strokeStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.leader;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(elbow.x, elbow.y);
-    ctx.lineTo(label.anchorX, label.y);
+    ctx.lineTo(label.anchorX, label.anchorY);
     ctx.stroke();
+  }
+
+  ticks.forEach((tick, i) => {
+    const box = obstacles[i];
+    if (box !== undefined) drawPlate(ctx, p, box);
+    ctx.fillStyle = theme.inkMuted;
+    ctx.textAlign = tick.align;
+    ctx.fillText(tick.text, tick.x, tick.y);
+  });
+
+  for (const label of placed) {
+    const isCut = label.id.startsWith(CUT_PREFIX);
+    const highlighted = label.id === p.hoveredFeatureId;
+    drawPlate(ctx, p, label.box);
     ctx.fillStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.inkMuted;
     ctx.textAlign = label.align;
-    const maxWidth = label.align === 'left' ? p.width - label.x - 4 : label.x - 4;
-    ctx.fillText(label.text, label.x, label.y, Math.max(20, maxWidth));
+    ctx.fillText(label.text, label.x, label.y);
   }
+
+  // Whatever the pointer is on says its name even when the ring had no room.
+  const shown = new Set(placed.map((l) => l.id));
+  if (p.hoveredFeatureId !== null && !shown.has(p.hoveredFeatureId)) {
+    const feature = byId.get(p.hoveredFeatureId);
+    const angle = feature === undefined ? null : featureMidAngle(feature, layout, doc.length);
+    if (feature !== undefined && feature.name !== '' && angle !== null)
+      drawFloatingLabel(ctx, p, m, feature.name, angle, theme.ink);
+  }
+  if (p.hoveredCut !== null && !shown.has(`${CUT_PREFIX}${p.hoveredCut}`)) {
+    const names = cutsByPosition.get(p.hoveredCut);
+    if (names !== undefined)
+      drawFloatingLabel(
+        ctx,
+        p,
+        m,
+        `${names.join(', ')} (${(p.hoveredCut + 1).toLocaleString()})`,
+        layout.angleOf(p.hoveredCut),
+        theme.cutSite,
+      );
+  }
+
+  return dropped.length + unfit;
+}
+
+/**
+ * How many labels the map left out. Saying nothing would be the old
+ * behaviour in a new disguise: a name the reader has no way to know was
+ * there. Hovering the feature or the cut site brings its own back.
+ */
+function drawDroppedCount(
+  ctx: DrawingContext,
+  p: CircularRenderParams,
+  m: MapMetrics,
+  dropped: number,
+): void {
+  if (dropped <= 0) return;
+  const text = `+${dropped.toLocaleString()} label${dropped === 1 ? '' : 's'} not shown`;
+  ctx.font = p.sansFont;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const width = ctx.measureText(text).width;
+  const y = p.height - m.lineHeight;
+  ctx.fillStyle = p.theme.background;
+  ctx.fillRect(4, y - m.lineHeight / 2 - 2, width + 8, m.lineHeight + 4);
+  ctx.fillStyle = p.theme.inkMuted;
+  ctx.fillText(text, 8, y);
 }
 
 function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
@@ -476,8 +728,14 @@ function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
   ctx.fillText(`${doc.length.toLocaleString()} bp`, layout.cx, layout.cy + 9, maxWidth);
 }
 
-export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams): void {
+export interface MapRenderResult {
+  /** Labels the ring had no room for; the map draws the count in the corner. */
+  readonly droppedLabels: number;
+}
+
+export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams): MapRenderResult {
   const { width, height, devicePixelRatio: dpr, doc, lanes } = p;
+  const m = mapMetrics(p);
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = p.theme.background;
@@ -485,6 +743,8 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
 
   const tinySelection = drawSelection(ctx, p);
   drawBackbone(ctx, p);
+  const ticks = rulerTicks(p, m);
+  drawTickMarks(ctx, p, m, ticks);
   const features = drawableFeatures(doc.features.all());
   for (const f of features) {
     const lane = lanes.laneOf.get(f.id);
@@ -492,9 +752,11 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   }
   if (tinySelection) drawSelectionMarker(ctx, p);
   drawOverlays(ctx, p);
-  drawLabels(ctx, p, features);
+  const droppedLabels = drawLabels(ctx, p, m, features, ticks);
   drawCentre(ctx, p);
+  drawDroppedCount(ctx, p, m, droppedLabels);
   ctx.restore();
+  return { droppedLabels };
 }
 
 /** Bases covered by a clockwise drag from `anchor` to `focus`. */

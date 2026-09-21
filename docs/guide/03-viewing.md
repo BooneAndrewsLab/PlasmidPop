@@ -115,6 +115,29 @@ A linear sequence is drawn as an open ring with a gap at the ends.
 Lane widths and fonts do not change with zoom; the tick marks get denser as
 you zoom in.
 
+### When there are more labels than room
+
+Every label — a feature's name, a cut site, one of the ruler's position
+numbers — is kept clear of every other one. A label that cannot sit beside
+the thing it names slides along the ring until it finds room, so it stays on
+the same side of the map and never crosses the circle.
+
+Past a certain number of labels the ring is full, and the map leaves some out
+rather than writing them over each other. It says how many in the bottom-left
+corner: **+7 labels not shown**. What is left out is decided by the document,
+not by where the crowding happens to be: features keep their labels before
+cut sites do, longer features before shorter ones, and a rare cutter before
+an enzyme that cuts all over the plasmid.
+
+Nothing is lost by it. **Hover a feature arc or a cut site's tick mark** and
+its name appears even if the ring had no room for it, and the feature list
+and the Enzymes tab list everything either way. Zooming in also frees up
+room, since a label whose feature has gone off screen no longer takes a slot.
+
+The SVG map export does not leave labels out — a figure has nothing to hover.
+It grows its canvas around the same circle until they all fit instead, so an
+exported map may be a little wider than it is tall.
+
 ## Selecting
 
 In the sequence view:

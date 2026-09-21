@@ -71,10 +71,15 @@ type Gesture =
 
 interface Hover {
   readonly featureId: string | null;
+  /** Top-strand cut position under the pointer; the map keeps its label. */
+  readonly cut: number | null;
   readonly kind: 'lane' | 'backbone' | 'none';
 }
 
-const NO_HOVER: Hover = { featureId: null, kind: 'none' };
+const NO_HOVER: Hover = { featureId: null, cut: null, kind: 'none' };
+
+/** Half-width of the band a cut site's tick is hit-tested in, in pixels. */
+const CUT_HIT_PX = 6;
 
 interface Props {
   readonly doc: SeqDocument;
@@ -253,6 +258,7 @@ export function CircularMapView({ doc }: Props) {
         overlay,
         overlayLanes: previewLanes,
         hoveredFeatureId: hover.featureId,
+        hoveredCut: hover.cut,
         width: size.width,
         height: size.height,
         devicePixelRatio: dpr,
@@ -264,13 +270,49 @@ export function CircularMapView({ doc }: Props) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [doc, layout, lanes, selection, cutSites, overlay, previewLanes, hover.featureId, size]);
+  }, [
+    doc,
+    layout,
+    lanes,
+    selection,
+    cutSites,
+    overlay,
+    previewLanes,
+    hover.featureId,
+    hover.cut,
+    size,
+  ]);
 
   const point = (
     e: ReactPointerEvent<HTMLCanvasElement> | ReactMouseEvent<HTMLCanvasElement>,
   ): { x: number; y: number } => {
     const rect = e.currentTarget.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  /**
+   * The cut site whose tick is under the pointer, so the map can bring back
+   * a cut label the ring had no room for. Hover only: a press near the
+   * backbone still starts a selection.
+   */
+  const cutAt = (x: number, y: number): number | null => {
+    if (cutSites.length === 0 || doc.length === 0) return null;
+    const r = Math.hypot(x - layout.cx, y - layout.cy);
+    if (r < layout.radius - 10 || r > layout.radius + 12) return null;
+    const angle = Math.atan2(y - layout.cy, x - layout.cx);
+    const twoPi = Math.PI * 2;
+    let best: number | null = null;
+    let bestPx = CUT_HIT_PX;
+    for (const site of cutSites) {
+      let d = (layout.angleOf(site.cut) - angle + Math.PI) % twoPi;
+      if (d < 0) d += twoPi;
+      const px = Math.abs(d - Math.PI) * layout.radius;
+      if (px < bestPx) {
+        bestPx = px;
+        best = site.cut;
+      }
+    }
+    return best;
   };
 
   const featureAt = (lane: number, position: number): string | null => {
@@ -356,10 +398,13 @@ export function CircularMapView({ doc }: Props) {
     }
     const next: Hover = {
       featureId: hit.kind === 'lane' ? featureAt(hit.lane, hit.position) : null,
+      cut: hit.kind === 'lane' ? null : cutAt(pt.x, pt.y),
       kind: hit.kind,
     };
     setHover((prev) =>
-      prev.featureId === next.featureId && prev.kind === next.kind ? prev : next,
+      prev.featureId === next.featureId && prev.cut === next.cut && prev.kind === next.kind
+        ? prev
+        : next,
     );
   };
 

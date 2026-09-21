@@ -86,6 +86,7 @@ describe('renderCircularMap preview', () => {
       overlay,
       overlayLanes: overlayLanes(overlay, doc.length),
       hoveredFeatureId: null,
+      hoveredCut: null,
       width: 600,
       height: 600,
       devicePixelRatio: 1,

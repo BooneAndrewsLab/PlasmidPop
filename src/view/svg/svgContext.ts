@@ -42,6 +42,63 @@ function paintAttr(
   return `${name}="${typeof style === 'string' ? esc(style) : 'currentColor'}"`;
 }
 
+/**
+ * Advance widths of Helvetica and Arial, in thousandths of an em. There is
+ * no layout engine here, so text has to be estimated — and since the map's
+ * label pass now decides what fits from the estimate, a flat average is not
+ * good enough: "MCS" is 2.2 em of Helvetica and 1.65 em of a 0.55 average,
+ * which is the difference between two labels clearing each other in an
+ * export and running together.
+ */
+const UPPER = [
+  667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667,
+  611, 722, 667, 944, 667, 667, 611,
+];
+const LOWER = [
+  556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500,
+  278, 556, 500, 722, 500, 500, 500,
+];
+const PUNCTUATION: Readonly<Record<string, number>> = {
+  ' ': 278,
+  '.': 278,
+  ',': 278,
+  ':': 278,
+  ';': 278,
+  "'": 191,
+  '"': 355,
+  '(': 333,
+  ')': 333,
+  '[': 278,
+  ']': 278,
+  '-': 333,
+  '/': 278,
+  '+': 584,
+  '\u2026': 1000,
+  '\u2032': 247,
+};
+/** Anything else, including the Greek and accented letters a plasmid name carries. */
+const DEFAULT_ADVANCE = 550;
+
+/** Width of `text` in ems of a proportional font, as `measureText` sees it. */
+export function textAdvance(text: string): number {
+  let em = 0;
+  for (const ch of text) em += advance(ch);
+  return em;
+}
+
+/** Whether a colour paints nothing, so a plate behind text can be skipped. */
+export function isTransparent(color: string): boolean {
+  return /^(transparent|rgba?\([^)]*,\s*0(\.0+)?\s*\))$/i.test(color.trim());
+}
+
+function advance(ch: string): number {
+  const code = ch.charCodeAt(0);
+  if (code >= 65 && code <= 90) return (UPPER[code - 65] ?? DEFAULT_ADVANCE) / 1000;
+  if (code >= 97 && code <= 122) return (LOWER[code - 97] ?? DEFAULT_ADVANCE) / 1000;
+  if (code >= 48 && code <= 57) return 0.556;
+  return (PUNCTUATION[ch] ?? DEFAULT_ADVANCE) / 1000;
+}
+
 interface State {
   tx: number;
   ty: number;
@@ -210,8 +267,8 @@ export class SvgContext implements DrawingContext {
 
   measureText(text: string): { readonly width: number } {
     const f = parseFont(this.font);
-    const mono = /mono|menlo|consolas|courier/i.test(f.family);
-    return { width: text.length * f.size * (mono ? 0.6 : 0.55) };
+    if (/mono|menlo|consolas|courier/i.test(f.family)) return { width: text.length * f.size * 0.6 };
+    return { width: textAdvance(text) * f.size };
   }
 
   toSvg(options: { readonly title?: string; readonly description?: string } = {}): string {

@@ -123,11 +123,16 @@ qualifiers that suit its type, so `/gene` no longer labels every feature
 inside a gene (item 23). Added 2026-09-21: **File ▸ Copy share link** — a
 document travels whole inside the URL fragment, so it reaches the person it
 is sent to without being uploaded anywhere, and the Matomo call now reports
-a page URL with the fragment cut off (item 11). Added 2026-09-21: a
+a page URL with the fragment cut off (item 11). Added 2026-09-21: the
+circular map's labels are spaced against the ruler's numbers and each other,
+slide along the ring rather than across the map, and are left out with a
+count in the corner rather than stacked on top of one another when the ring
+is full — hovering a feature or a cut site brings its own back, and the SVG
+export grows its canvas instead of dropping anything (item 29). Added 2026-09-21: a
 **preview channel** both views draw beside the document's own annotation
 (`src/view/overlay.ts`), used by the Primers tab for a designed pair and its
 product and by Find for every match at once, so weighing up candidates costs
-no edit (item 26). Tests: 682 passing. Perf measurements live in
+no edit (item 26). Tests: 689 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -767,86 +772,97 @@ pick from here when the current work is done.
     - The sidebar is a fixed 330 px (item 18) and wants exactly the same
       handle on its inner edge, so build the splitter once and use it
       twice. Guide: `03-viewing.md`.
-29. **Map labels are written over by the ruler, and drift across the map as
-    they are spaced.** Reported 2026-09-21 ("the map labels are kind of
-    overlap on top of each other … unless I zoom in a lot") with a
-    screenshot of a 13,799 bp lentiviral construct, about 40 named features,
-    no enzymes ticked. Read off the screenshot rather than guessed at — and
-    it is not what it first looks like. The feature labels are spaced
-    correctly against each other, a clean 14 px apart. Three other things
-    are wrong.
-    - **The ruler numbers are not in the spacing pass.** `1,000` is drawn
-      straight through `CAP binding site`, `2,000` through `RSV promoter`,
-      `12,000` through `SV40 ori`, `11,000` through another. `drawRuler`
-      (`renderCircular.ts`) writes each tick number at `layout.radius + 12`
-      knowing nothing about the labels, and `drawLabels` places its ring at
-      `radius + 34` knowing nothing about the ticks. An unnudged label
-      clears them; a nudged one lands on one. The fix is to feed the tick
-      numbers into `layoutLabels` as fixed obstacles — placed first, never
-      moved, and spaced against — rather than to draw them separately.
-    - **Nudging is vertical only, so a crowded label walks over the map.**
-      `layoutLabels` moves a label down until it clears the stack but keeps
-      its `x` at the anchor's ring position. Near 1 o'clock the ring's `x`
-      is close to `cx`, so pushing the label down carries it *inside* the
-      circle: in the screenshot `T3 promoter`, `lac operator (fragment)`,
-      `RSV promoter` and `5' LTR (truncated)` all cross the backbone and
-      sit on the feature arrows. A label should hug the ring at whatever
-      `y` it ends up with — `x = cx ± sqrt(labelRadius² − (y − cy)²)`,
-      clamped — so the column of labels follows the circle instead of
-      cutting the chord. That changes the x-extents the collision test
-      reads, so the pass has to be reformulated (place at ring x, then
-      resolve; or resolve and reposition, then re-resolve once) and it
-      costs vertical room, which runs into the third point.
-    - **Long labels on the left run off the canvas.** A left-side label is
-      right-aligned ending at its anchor, so it extends leftwards and is
-      clipped by the edge: the screenshot has `…Zα (fragment)`,
-      `(A) signal`, `(ΔU3)` and `…ment)` cut off. `nearCanvas` tests the
-      *anchor* with a margin, which says nothing about where the text ends.
-      Test the drawn box, and then inset, ellipsize or drop.
-    - **A fourth, and the one that puts cut-site labels on feature names:
-      the stack is clamped at the canvas edges.** Features and cut sites
-      share one ring and are spaced against each other, so the pass itself
-      never puts one on the other — but when a stack runs past the bottom
-      it is compressed back up, and every label then gets
-      `Math.max(lineHeight / 2, …)` at the top. Both of those can only
-      squeeze, so labels land on each other with nothing said. Measured by
-      rendering pBR322 through `SvgContext` and comparing the drawn text
-      boxes (48 renders, every feature given a name so there are 50 of
-      them, 10–35 single cutters ticked, four canvas sizes, zoom 1–3):
-      610 cut-over-feature pairs, 862 feature-over-feature, 85
-      cut-over-cut. Where they fall matters:
-      - **Zoom 1, roomy canvas** (900 × 700, 1200 × 800): the ring is
-        clean. Only the ruler collides, 2–3 times.
-      - **Zoom 1, the Both view's pane** (420 × 560) with 20–35 cut sites:
-        10–12 cut-over-feature and 10–15 feature-over-feature already.
-      - **Zoom 1.5 and up, any size**: up to 62 cut-over-feature and 64
-        feature-over-feature on 900 × 700. Zooming crowds the labels
-        against the top and bottom of the canvas, which is exactly where
-        the clamps are; the examples come out at `y = 1`, the top edge.
-      So the answer to "is it the cut sites or the features" is neither —
-      it is whatever piles up at an edge, and cut sites are simply the
-      cheapest way to put a lot of labels on a map (ticking the single
-      cutters of an imported REBASE table is ~90 on pBR322 before a
-      feature is named). The fix is the same either way: when the stack
-      will not fit between the edges, leave labels out rather than stack
-      them, say how many, and choose what to leave out by rank — a feature
-      over a cut site, a longer feature over a shorter one — rather than
-      by where the clamp happens to bite. Labels drawn wholly off the
-      canvas should go first: at zoom 2, 28 of 43 texts were outside a
-      900 × 700 canvas and every one of them still took a slot in the
-      stack and pushed the visible ones around (`nearCanvas` admits an
-      anchor within `textWidth + 56` of the edge, which says nothing about
-      where the text ends up).
-    - Worth having after those: a second label ring further out, which is
-      what SnapGene does with a crowded map, and a look at the leader
-      lines — in the screenshot a dozen of them fan out as a near-parallel
-      tangle, which is itself most of the mess. Zooming in reads better
-      only because `nearCanvas` then drops what has gone off the canvas.
-    - The SVG map export shares all of this code, so both are fixed at
-      once. Check the result by rasterising an `SvgContext` render at the
-      sizes above with a file of this kind (many features, dense in
-      places), not by asserting on the layout function — the numbers say
-      nothing about how it reads.
+29. ~~**Map labels are written over by the ruler, and drift across the map as
+    they are spaced.**~~ fixed 2026-09-21. Reported 2026-09-21 ("the map labels
+    are kind of overlap on top of each other … unless I zoom in a lot") with a
+    screenshot of a 13,799 bp lentiviral construct, about 40 named features, no
+    enzymes ticked. Four faults, all of them in how the ring was laid out
+    rather than in how many labels there were, and one measured rather than
+    seen: 610 cut-over-feature pairs, 862 feature-over-feature and 85
+    cut-over-cut across 48 renders of pBR322 (`cceb5df`).
+    - **The ruler's numbers are in the spacing pass now.** `drawRuler` wrote
+      each tick number at `radius + 12` knowing nothing about the labels, and
+      `drawLabels` placed its ring at `radius + 34` knowing nothing about the
+      ticks, so `1,000` went through `CAP binding site`. `rulerTicks` works out
+      where the numbers go before anything is placed and hands them to
+      `layoutLabels` as `obstacles`: placed first, never moved, never dropped.
+    - **A crowded label slides along the ring, not down the canvas.** The old
+      pass pushed a label down and kept its `x` at the anchor's, which near 1
+      o'clock carried it *inside* the circle and over the feature arrows. The
+      offsets tried are now angular, so where the ring runs steeply (3 and 9
+      o'clock) the label stacks vertically exactly as before, and where it runs
+      flat (12 and 6) the labels spread sideways instead. A label may not slide
+      past 12 or 6 o'clock: the text runs outwards from the ring, so one that
+      crossed a pole would be written back across the map — found by rendering,
+      not by reasoning, and the reason `PlacedLabel` carries its `box`.
+    - **The drawn box is what is tested against the canvas**, not the anchor.
+      `nearCanvas` admitted an anchor within `textWidth + 56` of the edge,
+      which says nothing about where the text ends up, so long names on the
+      left ran off it. A label is now a candidate when its *anchor* is on the
+      canvas (the thing it names is on screen); its text is ellipsized to the
+      room left on that side, and its box has to fit the canvas at whatever
+      slot it takes.
+    - **When the ring is full the map leaves labels out and says so.** The two
+      clamps that squeezed a stack back inside the canvas height could only
+      compress, so past a certain density labels landed on each other with
+      nothing said — that, not the kind of label, is where the 610 pairs came
+      from. `layoutLabels` now places in **rank** order and drops what finds no
+      slot: `{ placed, dropped }`. Rank is a property of the document, never of
+      the canvas, so panning does not reshuffle which labels survive — whatever
+      the pointer is on first, then features longest first, then cut sites
+      rarest first (a unique cutter is what a cloner is looking for). A
+      `+7 labels not shown` line sits in the bottom-left corner.
+    - **Hovering brings a left-out label back**, which is what makes the
+      dropping affordable: the hovered feature or cut site outranks everything,
+      and if even that will not fit it is drawn on top with a plate behind it
+      (`drawFloatingLabel`). Cut sites had no hit region at all — `hitTest`
+      knows `backbone` and `lane` — so `cutAt` in `CircularMapView` finds the
+      tick under the pointer within 6 px and passes `hoveredCut`; it is hover
+      only, and a press near the backbone still starts a selection.
+    - **Leaders are drawn before every piece of text, and text sits on a plate
+      of the background.** A label a neighbour's leader ran through was as hard
+      to read as one a neighbour's name ran through, and no spacing rule can
+      help with a line. An export asked for a transparent background paints no
+      plate, which is the right answer for one.
+    - **The map's own geometry is measured in text now** (`mapMetrics`): the
+      tick, number, elbow and label radii and the line height all come from the
+      sans font's size, and come out at the offsets the map has always used
+      (7, 12, 26, 34) at 12 px. The export scales its fonts with `size` and had
+      a fixed 14 px line height, so a 2,000 px export would have overlapped
+      every label; nothing exposes `size` yet, so it was latent.
+    - **The SVG export buys room instead of dropping** (`PAD_STEPS`): it
+      re-renders with a larger canvas and the same circle — `outerMargin` grows
+      with the canvas, so the radius does not move — and keeps the first size
+      that loses nothing. A figure has no hover, so a name left out of one is
+      lost for good. A 900 px export of the reported construct fits at once; a
+      deliberately small 400 px export of pBR322 with every feature named grew
+      to 496 px.
+    - **`SvgContext.measureText` uses Helvetica's advance widths** rather than a
+      flat 0.55 em. The estimate is what decides what fits, and "MCS" is 2.2 em
+      of Helvetica against 1.65 em of the average — the difference between two
+      labels clearing each other in an export and running together. The
+      monospace path (the sequence-view export's Courier metric) is untouched.
+    - **Measured by rendering, not by asserting on the layout**
+      (`src/view/circular/labelCollisions.test.ts`, the harness the earlier
+      count was taken with, now committed): pBR322 with every feature named and
+      a 13.8 kb construct shaped like the reported one, at four canvas sizes,
+      four zooms and 0/10/20/35 cut sites, comparing every drawn text box with
+      every other. **0 collisions** in all 128 renders, against the 1,557 pairs
+      before. `LABEL_REPORT=1` prints the table. Cost is in
+      `docs/perf-notes.md`: 1.3 ms for 50 features, 6.5 ms for the absurd case
+      of every cut site of all 127 bundled enzymes.
+    - Not yet: **a second label ring**, which is what SnapGene does with a
+      crowded map and the only thing that would raise how much fits rather than
+      how well it is spaced — the drop counts are the evidence for whether it
+      is worth it, and they are now visible (`+N`): a roomy canvas loses
+      nothing on a real record, the Both view's 420 × 560 pane loses 19 of 42
+      on the reported construct. Note that at the sides a second ring is really
+      a second *column* and needs the widest text in the first one (~140 px)
+      before it helps, which `OUTER_MARGIN` (110) cannot fund without shrinking
+      the circle. Also not yet: the leader lines still fan out in a near-parallel
+      tangle where a dozen labels bunch, nothing in the ring is clickable, and
+      the label ring is sized for the sans font but `OUTER_MARGIN` is still a
+      constant.
 30. **Filter the enzyme list by how many times an enzyme cuts, not just
     "once".** Asked for 2026-09-21: dual cutters are what a diagnostic
     digest wants — BsrGI after an LR reaction, or checking a Golden Gate

@@ -167,3 +167,31 @@ the features use, and a preview has a handful of spans rather than the
 hundreds a REBASE scan produces; `overlaysPerRow` walks each span's rows
 once. The cap in the find bar is there for legibility rather than speed — at
 200 dashed boxes the view says nothing that the count does not say better.
+
+## Map labels
+
+The label ring is laid out on every render, and the map is redrawn whenever
+the pointer moves onto or off a feature, so the pass has to be cheap at the
+densities a REBASE import makes possible. Each label is placed in rank order
+at the free slot nearest its anchor, which means testing its box against the
+boxes already taken; those are filed by horizontal band (two line heights),
+so a candidate is only compared with what is near its own y rather than with
+everything placed so far.
+
+Measured 2026-09-21 in Node 24 on pBR322 with every feature named (50 of
+them), the whole map rendered through `SvgContext` at 900 × 700, mean of
+100–200 runs:
+
+| labels on the ring                                     | render |
+| ------------------------------------------------------ | ------ |
+| 6 features, no cut sites (a real pBR322)               | 0.4 ms |
+| 50 features                                            | 1.3 ms |
+| 50 features, 35 single cutters                         | 1.8 ms |
+| 50 features, 123 cut positions                         | 2.8 ms |
+| 50 features, every cut site of all 127 bundled enzymes | 6.5 ms |
+
+The last row is not a case the app puts in front of anyone — the Enzymes tab
+ticks single cutters and only up to `MAX_DEFAULT_ENZYMES` of them — but it is
+the shape of the worst case, and it stays inside a frame. Banding the boxes
+took it from 8.8 ms to 6.5 ms and left everything else where it was; most of
+what remains is building the SVG string, which the canvas does not do.
