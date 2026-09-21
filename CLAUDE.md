@@ -817,7 +817,10 @@ pick from here when the current work is done.
       outline (`drawBubble`) — it is the one label that may lie over its
       neighbours, and a bare rectangle of background over them reads as a hole
       punched in the map — and `EDGE_INSET` keeps every label a few pixels
-      clear of the canvas so that outline is never clipped. One the ring had
+      clear of the canvas so that outline is never clipped. Its leader waits
+      for the end with it: drawn in `placed` order it was painted over by
+      every muted leader crossing it, so the highlight showed only on the
+      stretch where nothing else ran. One the ring had
       no room for is drawn on top of whatever is there, with a leader of its
       own back to the feature (`drawFloatingLabel`). Cut sites had no hit
       region at all — `hitTest` knows `backbone` and `lane` — so `cutAt` in

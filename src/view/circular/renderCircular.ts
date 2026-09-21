@@ -722,10 +722,13 @@ function drawLabels(
   })();
   ctx.textBaseline = 'middle';
 
-  // Leaders first, then every piece of text over them: a label that a
-  // neighbour's leader ran through was as hard to read as one a neighbour's
-  // name ran through, and the spacing pass cannot help with a line.
-  for (const label of placed) {
+  /**
+   * A label's leader: from the feature's lane (or the cut site's tick)
+   * out to the ring. The elbow stays at the anchor's own angle, so a label
+   * that slid along the ring is joined to its feature by a line that runs
+   * beside the ring rather than across the map.
+   */
+  const drawLeader = (label: PlacedLabel, highlighted: boolean): void => {
     const isCut = label.id.startsWith(CUT_PREFIX);
     let start: { x: number; y: number };
     if (isCut) {
@@ -740,7 +743,7 @@ function drawLabels(
       ctx.stroke();
     } else {
       const feature = byId.get(label.id);
-      if (feature === undefined) continue;
+      if (feature === undefined) return;
       const lane = p.lanes.laneOf.get(feature.id) ?? 0;
       const r = layout.laneRadius(lane) + layout.ringWidth / 2;
       start = {
@@ -748,14 +751,10 @@ function drawLabels(
         y: layout.cy + r * Math.sin(label.angle),
       };
     }
-    // The elbow stays at the anchor's own angle, so a label that slid along
-    // the ring is joined to its feature by a leader that runs beside the
-    // ring rather than across the map.
     const elbow = {
       x: layout.cx + (layout.radius + m.elbow) * Math.cos(label.angle),
       y: layout.cy + (layout.radius + m.elbow) * Math.sin(label.angle),
     };
-    const highlighted = label.id === hoveredLabelId;
     ctx.strokeStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.leader;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -763,7 +762,15 @@ function drawLabels(
     ctx.lineTo(elbow.x, elbow.y);
     ctx.lineTo(label.anchorX, label.anchorY);
     ctx.stroke();
-  }
+  };
+
+  // Leaders first, then every piece of text over them: a label that a
+  // neighbour's leader ran through was as hard to read as one a neighbour's
+  // name ran through, and the spacing pass cannot help with a line. The
+  // hovered label's own leader waits for the end, with its label — drawn
+  // here it would be painted over by every muted leader that crosses it,
+  // which left a highlight visible only where nothing else ran.
+  for (const label of placed) if (label.id !== hoveredLabelId) drawLeader(label, false);
 
   ticks.forEach((tick, i) => {
     const box = obstacles[i];
@@ -788,6 +795,7 @@ function drawLabels(
   }
   if (hovered !== null) {
     const color = hovered.id.startsWith(CUT_PREFIX) ? theme.cutSite : theme.ink;
+    drawLeader(hovered, true);
     drawBubble(ctx, p, hovered.box, color);
     ctx.fillStyle = color;
     ctx.textAlign = hovered.align;
