@@ -593,6 +593,44 @@ pick from here when the current work is done.
     `diffHunks`) — this is a rendering question. Related: item 22's
     **File ▸ Compare with…**, which would want exactly this view for two
     different files rather than two versions of one.
+26. **Preview a primer before it becomes a feature.** Today the only way to
+    see where a designed pair sits is **Add both as features**, which is an
+    edit: two `primer_bind` features go into the document, a step goes into
+    the History, item 21's marks outline them, and comparing three candidate
+    pairs means three add-and-undo rounds. Nothing is lost — it undoes
+    cleanly — but choosing between candidates should not touch the document
+    at all. What is wanted: hover or click a pair in the Primers tab and see
+    the two sites drawn as arrows in the sequence view and on the circular
+    map, with the product span between them, in a ghost style that says
+    "not saved"; the same for the binding sites of **Check a primer**, which
+    today can only be selected one at a time.
+    - **Do not build it primer-specific.** The general shape is an overlay
+      channel: a list of transient, non-document features (or spans) that
+      both renderers draw beside `doc.features`. The same channel would
+      serve ORFs (`OrfPanel` can only select one), find hits beyond the
+      current match, digest fragments in the Cloning tab, and a previewed
+      Golden Gate product. A primers-only highlight would be thrown away
+      the first time one of those wants the same thing.
+    - **The cheap half is worth doing first and may be most of the value.**
+      A pair row that selects its amplicon and reveals it (exactly what the
+      binding-site rows already do, `editorStore.setSelection` +
+      `revealPosition`) costs a few lines and no rendering work, and both
+      views already show a selection well — including item 16's needle for a
+      short one. That alone answers "where does this pair sit". The ghost
+      arrows are the expensive half: `assignLanes` and the renderers read
+      `doc.features` directly (`renderLinear.ts`'s
+      `doc.features.overlapping`, `CircularMapView`'s `assignLanes`), so an
+      extra list has to be threaded through lane assignment, both renderers
+      and both SVG exports — unless preview primers are drawn outside the
+      lanes altogether, in the cut-site style, which avoids relayout but
+      cannot show a primer that overlaps a feature as clearly.
+    - Open: whether the preview lives in the store (so both views and the
+      SVG exports can see it) or is panel-local state passed down; whether a
+      previewed pair survives switching sidebar tabs; whether the preview
+      should be clickable (click the ghost arrow to commit that pair as
+      features); and whether a previewed primer with mismatches should draw
+      them, which is the thing a scientist actually squints at and neither
+      view has any vocabulary for yet.
 
 ## Non-goals for v1
 
