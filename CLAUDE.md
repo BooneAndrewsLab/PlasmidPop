@@ -115,7 +115,7 @@ from is never written to (item 22). Added 2026-09-21: **nothing writes to a
 file at all any more** — a document lives in this browser and leaves it as a
 download (item 24). Added 2026-09-21: a feature takes its name from the
 qualifiers that suit its type, so `/gene` no longer labels every feature
-inside a gene (item 23). Tests: 640 passing. Perf measurements live in
+inside a gene (item 23). Tests: 642 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -564,6 +564,13 @@ pick from here when the current work is done.
       so the browser does not evict documents when space runs low. The Edits
       menu's second baseline is **Since last download**, and for a copy that
       has never been downloaded it falls back to the file it came from.
+    - **Coming up from an older build is covered by a test**
+      (`src/storage/migration.test.ts`): anyone who used the deployed site has
+      a Dexie version 1 database with a `handles` table, so version 4 drops
+      that table under them in one open. The documents survive it, they read
+      back as neither `derived` nor having an `origin`, and the tab that build
+      remembered reopens — it wrote only `plasmidpop.lastDocument`, never the
+      `openDocuments` that `restoreLastSession` prefers.
     - Not yet: nothing tells the user which stored documents have never been
       downloaded (every document lives in the browser now, so a per-row
       marker would be noise — the Files screen says it once instead), and
