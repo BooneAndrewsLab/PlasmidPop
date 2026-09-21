@@ -53,6 +53,18 @@ On macOS use `Cmd` where `Ctrl` is written.
 | Double-click elsewhere        | Zoom in one step       |
 | Drag empty space, middle-drag | Pan when zoomed in     |
 
+## Panes
+
+With a boundary between two panes focused (Tab to it; see
+[Viewing](03-viewing.md#sizing-the-panes)):
+
+| Input                     | Action                              |
+| ------------------------- | ----------------------------------- |
+| `← →` or `↑ ↓`            | Move the boundary a little          |
+| `Page Up`, `Page Down`    | Move it further                     |
+| `Home`, `End`             | Take it to either pane's floor      |
+| Double-click the boundary | Put that boundary back where it was |
+
 ## Help
 
 | Keys                            | Action          |

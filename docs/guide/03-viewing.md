@@ -6,11 +6,36 @@ in one is highlighted in the other and reported in the status bar as
 `N bp selected, from to to` (1-based, inclusive).
 
 The switcher, the **Complement**, **Translations** and **Cut sites** toggles
-next to it, the **Format** menu's choices and the **Edits** baseline are
-remembered in the browser, so the views come back the way you left them the
-next time you open PlasmidPop. They are settings of the app, not of a
-document: they do not change with the file you open and are not written into
-a saved file.
+next to it, the **Format** menu's choices, the **Edits** baseline and the
+sizes of the panes are remembered in the browser, so the views come back the
+way you left them the next time you open PlasmidPop. They are settings of the
+app, not of a document: they do not change with the file you open and are not
+written into a saved file.
+
+## Sizing the panes
+
+In the **Both** view the boundary between the map and the sequence can be
+dragged: take hold of the line between them and move it. The same handle sits
+on the sidebar's inner edge. Each pane has a floor it will not go below, so
+neither can be squeezed away to nothing.
+
+- **Drag** the line to move it. **Double-click** it to put that one boundary
+  back where it started.
+- With the handle focused (Tab to it), the **arrow keys** move it in small
+  steps, **Page Up** and **Page Down** in larger ones, and **Home** and
+  **End** take it to either floor.
+- On a narrow window the map sits above the sequence instead of beside it.
+  That layout keeps its own boundary: a division chosen for a wide window is
+  not imposed on the other one.
+- **Format ▸ Reset the layout** puts the map, the sequence and the sidebar
+  back to the sizes they started at, and opens the sidebar if it is closed.
+
+## Putting the sidebar away
+
+Clicking the sidebar tab that is already open closes the panel and leaves the
+tab strip on the window's edge, giving the views the whole width. Clicking any
+label opens it again on that tab. The panel keeps whatever you had typed into
+it while it is closed.
 
 ## Sequence view
 
@@ -83,6 +108,8 @@ effect at once and the menu stays open, so you can try one and look.
   complement strand, so a wide row can be read from either line.
 - **Colour the bases** gives A, C, G and T each their own colour on both
   strands; anything else (an N or another IUPAC code) is grey.
+- **Reset the layout** is not about the sequence view: it puts the panes back
+  to the sizes they started at, see [Sizing the panes](#sizing-the-panes).
 
 The SVG exports follow the bases-per-row, numbering and colour choices. They
 keep their own text size so the file looks the same whatever the screen is

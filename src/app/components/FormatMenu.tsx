@@ -24,9 +24,11 @@ function Tick({ on }: { readonly on: boolean }) {
 
 /**
  * How the sequence view draws: text size, how many bases go in a row,
- * whether the complement is numbered too and whether bases are coloured.
- * These are preferences for the app, not the document, and they are
- * remembered between sessions.
+ * whether the complement is numbered too and whether bases are coloured,
+ * and — since it is the other thing about the arrangement rather than the
+ * document — a way back from wherever the splitters were dragged to. These
+ * are preferences for the app, not the document, and they are remembered
+ * between sessions.
  */
 export function FormatMenu() {
   const { seqFontSize, seqBasesPerRow, numberComplement, colorBases } = useEditorState();
@@ -40,7 +42,7 @@ export function FormatMenu() {
         type="button"
         className="button"
         aria-label="Format"
-        title="Text size, bases per row, numbering and base colours in the sequence view"
+        title="Text size, bases per row, numbering and base colours in the sequence view, and the pane sizes"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -48,7 +50,7 @@ export function FormatMenu() {
         Format <span className="button__caret">▾</span>
       </button>
       {open && (
-        <div className="menu__list" role="menu" aria-label="Sequence view format">
+        <div className="menu__list" role="menu" aria-label="Format and layout">
           <p className="menu__group-label">Text size</p>
           {FONT_SIZES.map((size) => (
             <button
@@ -122,6 +124,18 @@ export function FormatMenu() {
           >
             <span>Colour the bases</span>
             <Tick on={colorBases} />
+          </button>
+          <div className="menu__separator" />
+          <button
+            type="button"
+            role="menuitem"
+            className="menu__item"
+            title="Put the map, the sequence and the sidebar back to the sizes they started at"
+            onClick={() => {
+              editorStore.resetLayout();
+            }}
+          >
+            <span>Reset the layout</span>
           </button>
         </div>
       )}

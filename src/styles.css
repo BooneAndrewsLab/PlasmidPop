@@ -311,7 +311,9 @@ button {
 .app__main {
   grid-row: 3;
   display: grid;
-  /* 330px: the sidebar panel keeps its old 300px next to the 30px tab rail. */
+  /* The splitter sets these inline: editor, handle, sidebar. The fallback
+     here is the width the sidebar starts at — 330px, so the panel keeps its
+     old 300px next to the 30px tab rail. */
   grid-template-columns: minmax(0, 1fr) 330px;
   min-height: 0;
 }
@@ -422,12 +424,12 @@ button {
   min-width: 0;
 }
 
+/* The ratios are set inline from the stored fraction the splitter moves;
+    what is here is the fallback, and the breakpoint at 1000px is the one
+    `VIEWS_STACKED_QUERY` names so the handle knows which axis it divides.
+    The line between the panes is the splitter's own. */
 .app__views--both {
   grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
-}
-
-.app__views--both > .map-view {
-  border-right: 1px solid var(--line);
 }
 
 @media (max-width: 1000px) {
@@ -435,11 +437,71 @@ button {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(240px, 1fr) minmax(0, 1.4fr);
   }
+}
 
-  .app__views--both > .map-view {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
+/* A splitter is a grid track of its own between two panes: a hairline that
+   thickens into the accent under the pointer, on focus and while it is
+   dragged, so the boundary looks like something to take hold of. It draws
+   the border the panes used to have. */
+.splitter {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  touch-action: none;
+}
+
+.splitter::after {
+  content: '';
+  position: absolute;
+  background: var(--line);
+}
+
+.splitter--x {
+  cursor: col-resize;
+}
+
+.splitter--y {
+  cursor: row-resize;
+}
+
+.splitter--x::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.splitter--y::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.splitter:hover::after,
+.splitter:focus-visible::after,
+.splitter--dragging::after {
+  background: var(--accent);
+}
+
+.splitter--x:hover::after,
+.splitter--x:focus-visible::after,
+.splitter--x.splitter--dragging::after {
+  width: 3px;
+}
+
+.splitter--y:hover::after,
+.splitter--y:focus-visible::after,
+.splitter--y.splitter--dragging::after {
+  height: 3px;
+}
+
+.splitter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .map-view {
@@ -486,6 +548,7 @@ button {
   position: relative;
   overflow: auto;
   min-height: 0;
+  min-width: 0;
   background: var(--surface);
 }
 
@@ -533,7 +596,6 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr);
-  border-left: 1px solid var(--line);
   background: var(--surface-2);
   min-height: 0;
   min-width: 0;
@@ -596,6 +658,17 @@ button {
   min-height: 0;
 }
 
+/* Collapsed, the sidebar is the rail alone: the panel is hidden and the
+   column it was in goes away, so the views take the width. The rail stays
+   whatever happens — it is how the panel is asked for again. */
+.sidebar--collapsed {
+  grid-template-columns: auto;
+}
+
+.sidebar--collapsed .sidebar__tabs {
+  grid-area: 1 / 1;
+}
+
 /* Under the full-width layout the sidebar is short and wide: the rail would
    not fit its height, so the tabs go back to a row across the top. The grid
    of equal cells wraps to as many rows as it needs. */
@@ -603,7 +676,6 @@ button {
   .sidebar {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
-    border-left: 0;
     border-top: 1px solid var(--line);
   }
 
@@ -637,6 +709,10 @@ button {
 
   .sidebar__panel {
     grid-area: 2 / 1;
+  }
+
+  .sidebar--collapsed {
+    grid-template-rows: auto;
   }
 }
 

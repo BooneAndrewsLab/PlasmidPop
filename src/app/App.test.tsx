@@ -9,6 +9,7 @@ import { EXAMPLES } from './examples';
 import { shareUrlFor } from './share';
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
 import { editorStore } from './state/editorStore';
+import { DEFAULT_LAYOUT } from './state/layout';
 import { App } from './App';
 
 // The store is a module singleton and autosave remembers the last document:
@@ -20,6 +21,12 @@ beforeEach(() => {
   localStorage.removeItem('plasmidpop.viewPrefs');
   act(() => {
     editorStore.closeAllDocuments();
+    // The sidebar is shared state too, and clicking the tab that is already
+    // open now puts it away: start every test on the Features tab, shown.
+    editorStore.setSidebarTab('features');
+    editorStore.setSidebarOpen(true);
+    editorStore.setView('both');
+    editorStore.resetLayout();
   });
 });
 
@@ -431,6 +438,55 @@ describe('toolbar', () => {
       seqBasesPerRow: 60,
       colorBases: true,
     });
+  });
+
+  it('moves the boundaries between the panes and remembers where they were left', () => {
+    const { unmount } = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    expect(
+      screen.getByRole('separator', { name: 'Resize the map and the sequence' }),
+    ).toHaveAttribute('aria-orientation', 'vertical');
+    const sidebarSplit = screen.getByRole('separator', { name: 'Resize the sidebar' });
+    act(() => {
+      editorStore.setLayout({ sidebarWidth: 420, viewsSplit: 0.55 });
+    });
+    const main = document.querySelector('.app__main');
+    expect(main?.getAttribute('style')).toContain('420px');
+    expect(document.querySelector('.app__views')?.getAttribute('style')).toContain('0.55fr');
+    // A double-click puts that one boundary back, and leaves the other alone.
+    fireEvent.doubleClick(sidebarSplit);
+    expect(editorStore.getState().layout).toMatchObject({
+      sidebarWidth: DEFAULT_LAYOUT.sidebarWidth,
+      viewsSplit: 0.55,
+    });
+    unmount();
+    act(() => {
+      editorStore.resetLayout();
+    });
+    render(<App />);
+    expect(editorStore.getState().layout.viewsSplit).toBe(0.55);
+  });
+
+  it('puts the panel away from its own tab and brings it back from the rail', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    // Clicking the tab that is open collapses the sidebar to its rail.
+    fireEvent.click(screen.getByRole('tab', { name: 'Features' }));
+    expect(screen.getByRole('tab', { name: 'Features' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tabpanel', { hidden: true })).not.toBeVisible();
+    expect(screen.queryByRole('separator', { name: 'Resize the sidebar' })).toBeNull();
+    // The rail is still there, and any label brings the panel back on that tab.
+    fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
+    expect(screen.getByRole('tab', { name: 'Enzymes' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toBeVisible();
+    expect(screen.getByRole('separator', { name: 'Resize the sidebar' })).toBeInTheDocument();
+    // Reset the layout opens it again as well, from the Format menu.
+    act(() => {
+      editorStore.setSidebarOpen(false);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reset the layout' }));
+    expect(editorStore.getState()).toMatchObject({ sidebarOpen: true, layout: DEFAULT_LAYOUT });
   });
 
   it('collects the file actions in one menu once a document is open', () => {

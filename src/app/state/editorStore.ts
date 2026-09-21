@@ -24,6 +24,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
 import { copyNameFor } from './derive';
+import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
 /**
@@ -234,6 +235,12 @@ export interface SharedState {
   readonly view: ViewMode;
   readonly sidebarTab: SidebarTab;
   /**
+   * Whether the sidebar is on screen at all. Hiding it gives the views the
+   * whole window, which is what a map on a laptop screen wants; the tab it
+   * was on is kept, so showing it again comes back to the same panel.
+   */
+  readonly sidebarOpen: boolean;
+  /**
    * Whether cut sites are drawn at all. Off hides every site in the views and
    * in the SVG exports without touching `shownEnzymes`, so a carefully chosen
    * set survives decluttering the map; the Cloning digest and the Enzymes
@@ -268,6 +275,8 @@ export interface SharedState {
   readonly shareNotice: { readonly chars: number } | null;
   /** What a panel is pointing at in the views; see `DocumentPreview`. */
   readonly preview: DocumentPreview | null;
+  /** Where the draggable boundaries sit; see `LayoutSizes`. */
+  readonly layout: LayoutSizes;
 }
 
 /**
@@ -332,12 +341,14 @@ const SHARED_INITIAL: SharedState = {
   editsBaseline: 'opened',
   view: 'both',
   sidebarTab: 'features',
+  sidebarOpen: true,
   showCutSites: true,
   orfMinCodons: 75,
   assembly: [],
   downloadNotice: null,
   shareNotice: null,
   preview: null,
+  layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
     count: BUNDLED_ENZYME_SET.enzymes.length,
@@ -950,8 +961,35 @@ export class EditorStore {
     this.setActive({ shownEnzymes: new Set(names), enzymesInitialized: true });
   }
 
+  /** Puts every draggable boundary back where it started, sidebar included. */
+  resetLayout(): void {
+    this.setShared({ layout: DEFAULT_LAYOUT, sidebarOpen: true });
+  }
+
+  setSidebarOpen(open: boolean): void {
+    if (open !== this.state.sidebarOpen) this.setShared({ sidebarOpen: open });
+  }
+
   setShowCutSites(show: boolean): void {
     if (show !== this.state.showCutSites) this.setShared({ showCutSites: show });
+  }
+
+  /**
+   * Moves one of the draggable boundaries. The floors a drag is held to are
+   * in px and belong to the splitter that knows the container's size; what
+   * is clamped here is only what could otherwise come back out of storage.
+   */
+  setLayout(patch: Partial<LayoutSizes>): void {
+    const next = { ...this.state.layout, ...clampLayout(patch) };
+    const current = this.state.layout;
+    if (
+      next.viewsSplit === current.viewsSplit &&
+      next.viewsSplitStacked === current.viewsSplitStacked &&
+      next.sidebarWidth === current.sidebarWidth
+    ) {
+      return;
+    }
+    this.setShared({ layout: next });
   }
 
   /**

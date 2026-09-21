@@ -1,6 +1,7 @@
 import { type FontSize, isFontSize } from '@/view/linear';
 
 import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
+import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
 /**
  * How the views were left: the toolbar's view switcher, its three toggles
@@ -26,6 +27,10 @@ export interface ViewPrefs {
    * in instead — there is no baseline document to bring back.
    */
   readonly editsBaseline: Exclude<EditsBaseline, 'marked'>;
+  /** Where the splitters were left; see `LayoutSizes`. */
+  readonly layout: LayoutSizes;
+  /** Whether the sidebar is shown at all. */
+  readonly sidebarOpen: boolean;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -72,12 +77,22 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   else if (typeof bases === 'number' && Number.isFinite(bases) && bases >= 10) {
     prefs.seqBasesPerRow = Math.round(bases);
   }
+  const layout = record['layout'];
+  if (typeof layout === 'object' && layout !== null) {
+    const l = layout as Record<string, unknown>;
+    const numbers: { -readonly [K in keyof LayoutSizes]?: number } = {};
+    for (const key of ['viewsSplit', 'viewsSplitStacked', 'sidebarWidth'] as const) {
+      if (typeof l[key] === 'number') numbers[key] = l[key];
+    }
+    prefs.layout = { ...DEFAULT_LAYOUT, ...clampLayout(numbers) };
+  }
   for (const key of [
     'showComplement',
     'showTranslations',
     'showCutSites',
     'numberComplement',
     'colorBases',
+    'sidebarOpen',
   ] as const) {
     if (typeof record[key] === 'boolean') prefs[key] = record[key];
   }
@@ -103,6 +118,8 @@ function snapshot(): ViewPrefs {
     numberComplement,
     colorBases,
     editsBaseline,
+    layout,
+    sidebarOpen,
   } = editorStore.getState();
   return {
     view,
@@ -114,6 +131,8 @@ function snapshot(): ViewPrefs {
     numberComplement,
     colorBases,
     editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
+    layout,
+    sidebarOpen,
   };
 }
 
@@ -127,7 +146,9 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.seqBasesPerRow === b.seqBasesPerRow &&
     a.numberComplement === b.numberComplement &&
     a.colorBases === b.colorBases &&
-    a.editsBaseline === b.editsBaseline
+    a.editsBaseline === b.editsBaseline &&
+    a.layout === b.layout &&
+    a.sidebarOpen === b.sidebarOpen
   );
 }
 
@@ -150,6 +171,8 @@ export function startViewPrefs(): () => void {
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
+  if (stored.layout !== undefined) editorStore.setLayout(stored.layout);
+  if (stored.sidebarOpen !== undefined) editorStore.setSidebarOpen(stored.sidebarOpen);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();

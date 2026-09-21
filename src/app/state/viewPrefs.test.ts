@@ -2,6 +2,7 @@
 import { SeqDocument } from '@/core';
 
 import { editorStore } from './editorStore';
+import { DEFAULT_LAYOUT } from './layout';
 import { loadViewPrefs, saveViewPrefs, startViewPrefs } from './viewPrefs';
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -16,6 +17,8 @@ const DEFAULTS = {
   numberComplement: false,
   colorBases: false,
   editsBaseline: 'opened',
+  layout: DEFAULT_LAYOUT,
+  sidebarOpen: true,
 } as const;
 
 function reset(): void {
@@ -29,6 +32,8 @@ function reset(): void {
   editorStore.setNumberComplement(DEFAULTS.numberComplement);
   editorStore.setColorBases(DEFAULTS.colorBases);
   editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
+  editorStore.setLayout(DEFAULT_LAYOUT);
+  editorStore.setSidebarOpen(true);
 }
 
 describe('view preferences', () => {
@@ -49,6 +54,8 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       editsBaseline: 'saved',
+      layout: { viewsSplit: 0.5, viewsSplitStacked: 0.3, sidebarWidth: 420 },
+      sidebarOpen: false,
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -87,6 +94,8 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       editsBaseline: 'off',
+      layout: { viewsSplit: 0.62, viewsSplitStacked: 0.5, sidebarWidth: 420 },
+      sidebarOpen: false,
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -99,6 +108,8 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       editsBaseline: 'off',
+      layout: { viewsSplit: 0.62, viewsSplitStacked: 0.5, sidebarWidth: 420 },
+      sidebarOpen: false,
     });
     stop();
   });
@@ -145,6 +156,45 @@ describe('view preferences', () => {
     expect(loadViewPrefs()).toMatchObject({ editsBaseline: 'opened' });
     stop();
     editorStore.closeDocument();
+  });
+
+  it('remembers a hidden sidebar, and brings the layout back on a reset', () => {
+    const stop = startViewPrefs();
+    editorStore.setSidebarOpen(false);
+    editorStore.setLayout({ sidebarWidth: 500, viewsSplit: 0.7 });
+    expect(loadViewPrefs()).toMatchObject({ sidebarOpen: false });
+    editorStore.resetLayout();
+    expect(loadViewPrefs()).toMatchObject({ sidebarOpen: true, layout: DEFAULT_LAYOUT });
+    stop();
+  });
+
+  it('records where a splitter was left', () => {
+    const stop = startViewPrefs();
+    editorStore.setLayout({ viewsSplit: 0.55 });
+    editorStore.setLayout({ sidebarWidth: 400 });
+    expect(loadViewPrefs()).toMatchObject({
+      layout: {
+        viewsSplit: 0.55,
+        viewsSplitStacked: DEFAULT_LAYOUT.viewsSplitStacked,
+        sidebarWidth: 400,
+      },
+    });
+    stop();
+  });
+
+  it('holds a stored split to what the layout can show', () => {
+    // A hand-edited or damaged entry must not be able to collapse a pane.
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ layout: { viewsSplit: 4, sidebarWidth: 10, viewsSplitStacked: 'wide' } }),
+    );
+    expect(loadViewPrefs()).toEqual({
+      layout: {
+        viewsSplit: 0.95,
+        viewsSplitStacked: DEFAULT_LAYOUT.viewsSplitStacked,
+        sidebarWidth: 240,
+      },
+    });
   });
 
   it('writes nothing for changes that are not view preferences', () => {

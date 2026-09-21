@@ -11,9 +11,23 @@ import { DownloadNotice } from './components/DownloadNotice';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { ShareNotice } from './components/ShareNotice';
 import { Sidebar } from './components/Sidebar';
+import { SPLITTER_SIZE, Splitter } from './components/Splitter';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
+import { useMediaQuery } from './components/useMediaQuery';
 import { openFile } from './openFile';
+import {
+  DEFAULT_LAYOUT,
+  MIN_EDITOR_PX,
+  MIN_MAP_PX,
+  MIN_SEQUENCE_HEIGHT_PX,
+  MIN_SEQUENCE_PX,
+  MIN_SIDEBAR_PX,
+  SIDEBAR_STACKED_QUERY,
+  VIEWS_STACKED_QUERY,
+  clampSidebarWidth,
+} from './state/layout';
+import { editorStore } from './state/editorStore';
 import { useAnalysis } from './state/useAnalysis';
 import { useEditorState } from './state/useEditorStore';
 import {
@@ -26,7 +40,7 @@ import {
 } from './state/usePersistence';
 
 export function App() {
-  const { history, view, findOpen, documentId } = useEditorState();
+  const { history, view, findOpen, documentId, layout, sidebarOpen } = useEditorState();
   const doc = history?.present ?? null;
   useAnalysis();
   useAutosave();
@@ -36,6 +50,13 @@ export function App() {
   useFlushOnLeave();
   useViewPrefs();
   const [dragging, setDragging] = useState(false);
+  // The two layouts divide different axes, so each keeps its own fraction and
+  // the splitter has to know which one is on screen.
+  const stackedViews = useMediaQuery(VIEWS_STACKED_QUERY);
+  const stackedSidebar = useMediaQuery(SIDEBAR_STACKED_QUERY);
+  const split = stackedViews ? layout.viewsSplitStacked : layout.viewsSplit;
+  const percent = Math.round(split * 100);
+  const tracks = `${split}fr ${SPLITTER_SIZE}px ${1 - split}fr`;
 
   const onDrop = (e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -63,7 +84,20 @@ export function App() {
           <EmptyState />
         </main>
       ) : (
-        <main className="app__main">
+        <main
+          className="app__main"
+          style={
+            stackedSidebar
+              ? undefined
+              : {
+                  // Collapsed, the sidebar is its tab rail alone and there is
+                  // nothing to drag, so the splitter's track goes with it.
+                  gridTemplateColumns: sidebarOpen
+                    ? `minmax(0, 1fr) ${SPLITTER_SIZE}px ${layout.sidebarWidth}px`
+                    : 'minmax(0, 1fr) auto',
+                }
+          }
+        >
           {/* Keyed by document so a switch of tabs starts the views afresh (scroll, zoom)
               instead of carrying the previous document's over; the sidebar is not, so
               what was typed into its panels survives a look at another tab. */}
@@ -73,11 +107,64 @@ export function App() {
             <ShareNotice />
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}
-            <div className={`app__views app__views--${view}`}>
+            <div
+              className={`app__views app__views--${view}`}
+              style={
+                view !== 'both'
+                  ? undefined
+                  : stackedViews
+                    ? { gridTemplateColumns: 'minmax(0, 1fr)', gridTemplateRows: tracks }
+                    : { gridTemplateColumns: tracks, gridTemplateRows: 'minmax(0, 1fr)' }
+              }
+            >
               {view !== 'sequence' && <CircularMapView doc={doc} />}
+              {view === 'both' && (
+                <Splitter
+                  axis={stackedViews ? 'y' : 'x'}
+                  label="Resize the map and the sequence"
+                  minBefore={MIN_MAP_PX}
+                  minAfter={stackedViews ? MIN_SEQUENCE_HEIGHT_PX : MIN_SEQUENCE_PX}
+                  value={percent}
+                  min={5}
+                  max={95}
+                  valueText={`The map takes ${percent}% of the views`}
+                  onMove={(before, extent) => {
+                    if (extent <= 0) return;
+                    const fraction = before / extent;
+                    editorStore.setLayout(
+                      stackedViews ? { viewsSplitStacked: fraction } : { viewsSplit: fraction },
+                    );
+                  }}
+                  onReset={() => {
+                    editorStore.setLayout(
+                      stackedViews
+                        ? { viewsSplitStacked: DEFAULT_LAYOUT.viewsSplitStacked }
+                        : { viewsSplit: DEFAULT_LAYOUT.viewsSplit },
+                    );
+                  }}
+                />
+              )}
               {view !== 'map' && <LinearSequenceView doc={doc} />}
             </div>
           </div>
+          {sidebarOpen && !stackedSidebar && (
+            <Splitter
+              axis="x"
+              label="Resize the sidebar"
+              minBefore={MIN_EDITOR_PX}
+              minAfter={MIN_SIDEBAR_PX}
+              value={layout.sidebarWidth}
+              min={MIN_SIDEBAR_PX}
+              max={900}
+              valueText={`The sidebar is ${layout.sidebarWidth} pixels wide`}
+              onMove={(before, extent) => {
+                editorStore.setLayout({ sidebarWidth: clampSidebarWidth(extent - before) });
+              }}
+              onReset={() => {
+                editorStore.setLayout({ sidebarWidth: DEFAULT_LAYOUT.sidebarWidth });
+              }}
+            />
+          )}
           <Sidebar doc={doc} />
         </main>
       )}
