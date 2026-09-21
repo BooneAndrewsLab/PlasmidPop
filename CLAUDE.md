@@ -803,23 +803,40 @@ pick from here when the current work is done.
       `(A) signal`, `(ΔU3)` and `…ment)` cut off. `nearCanvas` tests the
       *anchor* with a margin, which says nothing about where the text ends.
       Test the drawn box, and then inset, ellipsize or drop.
-    - **A fourth, latent: the ring silently runs out of room.** Measured
-      against `layoutLabels` directly, capacity is
-      `floor(height / LABEL_LINE_HEIGHT)` a side. Past it the final
-      `Math.max(lineHeight / 2, …)` clamp compresses the stack instead of
-      separating it, and labels land on each other with nothing said. At
-      700 × 700 the first overlapping pair appears between 100 and 120
-      labels; in the Both view's map pane (about 420 × 560) between 80 and
-      90; at 1000 × 800, 120 labels give 12 overlapping pairs. Below
-      capacity nothing overlapped in any shape tried — clustered like a
-      polylinker, mixed widths, a short canvas. The screenshot is nowhere
-      near this (40 labels), but cut sites share the ring and a cut label
-      is the whole `EcoRI, ClaI (1,234)`: ticking the single cutters of an
-      imported REBASE table is ~90 labels on pBR322 before a feature is
-      named. When the stack will not fit, leave labels out and say how
-      many, the way the enzyme list does; choose what to leave out by rank
-      (a feature over a cut site, a longer feature over a shorter one)
-      rather than by angle.
+    - **A fourth, and the one that puts cut-site labels on feature names:
+      the stack is clamped at the canvas edges.** Features and cut sites
+      share one ring and are spaced against each other, so the pass itself
+      never puts one on the other — but when a stack runs past the bottom
+      it is compressed back up, and every label then gets
+      `Math.max(lineHeight / 2, …)` at the top. Both of those can only
+      squeeze, so labels land on each other with nothing said. Measured by
+      rendering pBR322 through `SvgContext` and comparing the drawn text
+      boxes (48 renders, every feature given a name so there are 50 of
+      them, 10–35 single cutters ticked, four canvas sizes, zoom 1–3):
+      610 cut-over-feature pairs, 862 feature-over-feature, 85
+      cut-over-cut. Where they fall matters:
+      - **Zoom 1, roomy canvas** (900 × 700, 1200 × 800): the ring is
+        clean. Only the ruler collides, 2–3 times.
+      - **Zoom 1, the Both view's pane** (420 × 560) with 20–35 cut sites:
+        10–12 cut-over-feature and 10–15 feature-over-feature already.
+      - **Zoom 1.5 and up, any size**: up to 62 cut-over-feature and 64
+        feature-over-feature on 900 × 700. Zooming crowds the labels
+        against the top and bottom of the canvas, which is exactly where
+        the clamps are; the examples come out at `y = 1`, the top edge.
+      So the answer to "is it the cut sites or the features" is neither —
+      it is whatever piles up at an edge, and cut sites are simply the
+      cheapest way to put a lot of labels on a map (ticking the single
+      cutters of an imported REBASE table is ~90 on pBR322 before a
+      feature is named). The fix is the same either way: when the stack
+      will not fit between the edges, leave labels out rather than stack
+      them, say how many, and choose what to leave out by rank — a feature
+      over a cut site, a longer feature over a shorter one — rather than
+      by where the clamp happens to bite. Labels drawn wholly off the
+      canvas should go first: at zoom 2, 28 of 43 texts were outside a
+      900 × 700 canvas and every one of them still took a slot in the
+      stack and pushed the visible ones around (`nearCanvas` admits an
+      anchor within `textWidth + 56` of the edge, which says nothing about
+      where the text ends up).
     - Worth having after those: a second label ring further out, which is
       what SnapGene does with a crowded map, and a look at the leader
       lines — in the screenshot a dozen of them fan out as a near-parallel
