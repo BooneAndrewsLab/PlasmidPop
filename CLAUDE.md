@@ -874,6 +874,10 @@ pick from here when the current work is done.
       before. `LABEL_REPORT=1` prints the table. Cost is in
       `docs/perf-notes.md`: 1.3 ms for 50 features, 6.5 ms for the absurd case
       of every cut site of all 127 bundled enzymes.
+    - Two things asked for alongside it, both on the map: a left click on
+      empty space clears the selection (a press that turns into a pan does
+      not — `CLICK_SLOP`), and selecting a feature scrolls its row into view
+      when the Features tab is open.
     - Not yet: **a second label ring**, which is what SnapGene does with a
       crowded map and the only thing that would raise how much fits rather than
       how well it is spaced — the drop counts are the evidence for whether it

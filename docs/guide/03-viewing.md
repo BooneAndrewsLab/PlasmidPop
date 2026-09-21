@@ -100,8 +100,10 @@ A linear sequence is drawn as an open ring with a gap at the ends.
 - **Click** the backbone to place the cursor, **drag** along it to select.
   On a circular sequence the selection runs clockwise from where you started
   and may cross the origin.
-- **Click** a feature arc to select the feature. **Double-click** it to zoom
-  in on it.
+- **Click** a feature arc to select the feature; if the **Features** tab is
+  open its row scrolls into view. **Double-click** the arc to zoom in on it.
+- **Click** empty space — inside the circle, or outside it — to clear the
+  selection.
 - **Wheel** or **pinch** to zoom about the pointer; **double-click** empty
   space to zoom in one step. When zoomed in, **drag** empty space (or drag
   with the middle button) to pan.

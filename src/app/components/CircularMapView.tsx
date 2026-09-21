@@ -33,6 +33,8 @@ const SANS_FONT = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
 const TITLE_FONT = '600 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const RING_WIDTH = 14;
 const OUTER_MARGIN = 110;
+/** How far the pointer may travel and still count as a click rather than a drag. */
+const CLICK_SLOP = 3;
 /** Zoom factor of one press of the +/− buttons and of a double-click. */
 const ZOOM_STEP = 1.6;
 
@@ -66,7 +68,13 @@ function featureExtent(feature: Feature): { start: number; end: number } | null 
 type Gesture =
   | { readonly kind: 'idle' }
   | { readonly kind: 'select'; readonly anchor: number }
-  | { readonly kind: 'pan'; last: { x: number; y: number } }
+  | {
+      readonly kind: 'pan';
+      readonly button: number;
+      readonly from: { x: number; y: number };
+      last: { x: number; y: number };
+      moved: boolean;
+    }
   | { readonly kind: 'pinch'; prev: { dist: number; x: number; y: number } | null };
 
 interface Hover {
@@ -340,7 +348,7 @@ export function CircularMapView({ doc }: Props) {
     if (e.button === 1 || (e.button === 0 && hit.kind === 'none')) {
       if (e.button === 1) e.preventDefault(); // no middle-click autoscroll
       e.currentTarget.setPointerCapture(e.pointerId);
-      gesture.current = { kind: 'pan', last: pt };
+      gesture.current = { kind: 'pan', button: e.button, from: pt, last: pt, moved: false };
       setPanning(layout.zoom > 1);
       return;
     }
@@ -384,6 +392,7 @@ export function CircularMapView({ doc }: Props) {
       const bounds = layoutRef.current.bounds;
       commit(panBy(viewportRef.current, bounds, pt.x - g.last.x, pt.y - g.last.y));
       g.last = pt;
+      if (Math.hypot(pt.x - g.from.x, pt.y - g.from.y) > CLICK_SLOP) g.moved = true;
       return;
     }
     const hit = layout.hitTest(pt.x, pt.y);
@@ -417,6 +426,9 @@ export function CircularMapView({ doc }: Props) {
       if (pointers.current.size < 2) endGesture();
       return;
     }
+    // A left click on empty space that did not turn into a pan clears the
+    // selection, as clicking away from everything is expected to.
+    if (g.kind === 'pan' && g.button === 0 && !g.moved) editorStore.setSelection(null);
     if (g.kind !== 'idle') endGesture();
   };
 

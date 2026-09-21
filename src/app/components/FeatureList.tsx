@@ -61,6 +61,18 @@ export function FeatureList({ doc }: Props) {
   const features = doc.features.all();
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
+  const selectedId = features.find((f) => isSelected(f, selection))?.id ?? null;
+
+  // Selecting a feature somewhere else — a click on the map, a find — brings
+  // its row into view, as does opening this tab with one already selected.
+  // `nearest` leaves a row that is already on screen where it is.
+  const selectedRow = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (selectedId === null) return;
+    const row = selectedRow.current;
+    // Guarded because jsdom, where the app's tests run, has no scrollIntoView.
+    if (typeof row?.scrollIntoView === 'function') row.scrollIntoView({ block: 'nearest' });
+  }, [selectedId]);
 
   return (
     <aside className="features" aria-label="Features">
@@ -74,9 +86,15 @@ export function FeatureList({ doc }: Props) {
       ) : (
         <ul className="features__list">
           {features.map((f) => {
+            // Two features may share an extent (a gene and its CDS), and the
+            // selection matches both; only the first carries the ref.
             const selected = isSelected(f, selection);
             return (
-              <li key={f.id} className={`feature-item${selected ? ' feature-item--selected' : ''}`}>
+              <li
+                key={f.id}
+                ref={f.id === selectedId ? selectedRow : undefined}
+                className={`feature-item${selected ? ' feature-item--selected' : ''}`}
+              >
                 {renaming === f.id ? (
                   <div className="feature-row">
                     <span
