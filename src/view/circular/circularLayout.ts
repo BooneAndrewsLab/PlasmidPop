@@ -178,6 +178,8 @@ export interface LabelLayoutOptions {
   readonly obstacles?: readonly LabelBox[];
   /** How far a label may slide along the ring from its anchor, in pixels. */
   readonly maxShift?: number;
+  /** Margin kept clear at the canvas edges, for the hovered label's bubble. */
+  readonly inset?: number;
 }
 
 export interface LabelLayout {
@@ -228,6 +230,7 @@ export function layoutLabels(
   options: LabelLayoutOptions,
 ): LabelLayout {
   const { labelRadius, lineHeight, width, height } = options;
+  const inset = options.inset ?? 0;
   const maxShift = options.maxShift ?? lineHeight * 16;
   const step = Math.max(2, lineHeight / 2);
   const radius = Math.max(1, labelRadius);
@@ -278,7 +281,13 @@ export function layoutLabels(
         const ay = layout.cy + labelRadius * Math.sin(angle);
         const x = right ? ax + LABEL_GAP_X : ax - LABEL_GAP_X;
         const box = labelBox(x, ay, label.textWidth, lineHeight, align);
-        if (box.left < 0 || box.right > width || box.top < 0 || box.bottom > height) continue;
+        if (
+          box.left < inset ||
+          box.right > width - inset ||
+          box.top < inset ||
+          box.bottom > height - inset
+        )
+          continue;
         if (!isFree(box)) continue;
         found = { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box };
         break;

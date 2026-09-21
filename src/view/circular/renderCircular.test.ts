@@ -1,7 +1,7 @@
-import { SeqDocument } from '@/core';
+import { SeqDocument, createFeature } from '@/core';
 
-import { NO_LANES } from '../linear/lanes';
-import { type OverlaySpan, overlayLanes } from '../overlay';
+import { NO_LANES, assignLanes } from '../linear/lanes';
+import { type OverlaySpan, NO_OVERLAY, overlayLanes } from '../overlay';
 import { PRINT_THEME } from '../svg/exportMap';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout } from './circularLayout';
@@ -121,5 +121,89 @@ describe('renderCircularMap preview', () => {
 
   it('draws nothing of its own when there is no preview', () => {
     expect(draw([])).not.toContain('#6b4fd8');
+  });
+});
+
+describe('renderCircularMap labels', () => {
+  const crowded = SeqDocument.create({
+    sequence: 'ACGT'.repeat(1000),
+    topology: 'circular',
+    features: Array.from({ length: 24 }, (_, i) =>
+      createFeature({
+        id: `f${i}`,
+        type: 'misc_feature',
+        name: `${i} a rather long feature name`,
+        segments: [
+          {
+            kind: 'range',
+            start: i * 160,
+            end: i * 160 + 120,
+            partialStart: false,
+            partialEnd: false,
+          },
+        ],
+      }),
+    ),
+  });
+
+  const draw = (hoveredFeatureId: string | null, size = 600): string => {
+    const features = crowded.features.all();
+    const lanes = assignLanes(features, crowded.length);
+    const layout = new CircularLayout(crowded.length, crowded.topology, {
+      ...opts,
+      width: size,
+      height: size,
+      laneCount: lanes.laneCount,
+    });
+    const ctx = new SvgContext(size, size);
+    renderCircularMap(ctx, {
+      doc: crowded,
+      layout,
+      lanes,
+      selection: null,
+      cutSites: [],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      hoveredFeatureId,
+      hoveredCut: null,
+      width: size,
+      height: size,
+      devicePixelRatio: 1,
+      theme: PRINT_THEME,
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    return ctx.toSvg();
+  };
+
+  it('says how many labels it had no room for', () => {
+    const svg = draw(null, 420);
+    const count = /\+(\d+) labels? not shown/.exec(svg);
+    expect(count).not.toBeNull();
+    expect(Number(count?.[1] ?? 0)).toBeGreaterThan(0);
+  });
+
+  it('brings back the hovered label the ring had no room for', () => {
+    const size = 420;
+    const plain = draw(null, size);
+    // A name may be shortened with an ellipsis, so it is the number each one
+    // starts with that says whether the label is on the map at all.
+    const shown = (svg: string, i: number): boolean => new RegExp(`>${i} a rather`).test(svg);
+    const missing = crowded.features.all().findIndex((_, i) => !shown(plain, i));
+    expect(missing).toBeGreaterThanOrEqual(0);
+    expect(shown(draw(`f${missing}`, size), missing)).toBe(true);
+  });
+
+  it('draws the hovered label in an outlined bubble', () => {
+    const plain = draw(null);
+    const hovered = draw('f0');
+    // The bubble is the one path stroked in the ink colour, with the 4 px
+    // corners and the tail that a leader line does not have.
+    const inkPaths = (svg: string): string[] =>
+      [...svg.matchAll(/<path[^>]*stroke="#1c2430"[^>]*\/>/g)].map((m) => m[0]);
+    expect(inkPaths(plain)).toHaveLength(0);
+    const bubble = inkPaths(hovered).find((path) => path.includes('A4 4'));
+    expect(bubble).toBeDefined();
+    expect(bubble).toContain('fill="none"');
   });
 });

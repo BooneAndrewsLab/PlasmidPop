@@ -814,11 +814,16 @@ pick from here when the current work is done.
       `+7 labels not shown` line sits in the bottom-left corner.
     - **Hovering brings a left-out label back**, which is what makes the
       dropping affordable: the hovered feature or cut site outranks everything,
-      and if even that will not fit it is drawn on top with a plate behind it
-      (`drawFloatingLabel`). Cut sites had no hit region at all — `hitTest`
-      knows `backbone` and `lane` — so `cutAt` in `CircularMapView` finds the
-      tick under the pointer within 6 px and passes `hoveredCut`; it is hover
-      only, and a press near the backbone still starts a selection.
+      and if even that will not fit it is drawn on top of whatever is there
+      (`drawFloatingLabel`). Either way the hovered label is drawn last and in
+      a rounded outline (`drawBubble`) — it is the one label that may lie over
+      its neighbours, and a bare rectangle of background over them reads as a
+      hole punched in the map. `EDGE_INSET` keeps every label a few pixels
+      clear of the canvas so that outline is never clipped. Cut sites had no
+      hit region at all — `hitTest` knows `backbone` and `lane` — so `cutAt`
+      in `CircularMapView` finds the tick under the pointer within 6 px and
+      passes `hoveredCut`; it is hover only, and a press near the backbone
+      still starts a selection.
     - **Leaders are drawn before every piece of text, and text sits on a plate
       of the background.** A label a neighbour's leader ran through was as hard
       to read as one a neighbour's name ran through, and no spacing rule can

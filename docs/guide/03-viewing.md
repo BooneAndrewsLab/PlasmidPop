@@ -130,8 +130,9 @@ cut sites do, longer features before shorter ones, and a rare cutter before
 an enzyme that cuts all over the plasmid.
 
 Nothing is lost by it. **Hover a feature arc or a cut site's tick mark** and
-its name appears even if the ring had no room for it, and the feature list
-and the Enzymes tab list everything either way. Zooming in also frees up
+its name appears even if the ring had no room for it, drawn in a rounded
+outline so that it reads as lying on top of the map rather than as a hole in
+it. The feature list and the Enzymes tab list everything either way. Zooming in also frees up
 room, since a label whose feature has gone off screen no longer takes a slot.
 
 The SVG map export does not leave labels out — a figure has nothing to hover.

@@ -17,6 +17,7 @@ import {
   type CircularLayout,
   type LabelBox,
   type LabelInput,
+  type PlacedLabel,
   labelBox,
   layoutLabels,
   tickInterval,
@@ -496,9 +497,62 @@ function drawPlate(ctx: DrawingContext, p: CircularRenderParams, box: LabelBox):
 }
 
 /**
- * A label the ring had no room for, drawn on top with a plate behind it
- * because the pointer is on the thing it names. This is the way back to a
- * name the map left out.
+/**
+ * Room kept clear at the canvas edges. The hovered label's outline stands a
+ * little outside its box, and a label allowed to end exactly at the edge
+ * would have that outline clipped.
+ */
+const EDGE_INSET = 5;
+
+/** Corners and padding of the outline the hovered label is drawn in. */
+const BUBBLE_RADIUS = 4;
+const BUBBLE_PAD_X = 4;
+const BUBBLE_PAD_Y = 1.5;
+
+/**
+ * The label under the pointer, drawn in a rounded outline rather than as
+ * text on a bare plate. It is the one label that may sit over its
+ * neighbours — a label the ring had no room for has nowhere of its own to
+ * go — and a plain rectangle of background over them reads as a hole
+ * punched in the map rather than as something lying on top of it. The
+ * leader line joins it as it does any other label, so it needs no tail of
+ * its own.
+ */
+function drawBubble(
+  ctx: DrawingContext,
+  p: CircularRenderParams,
+  box: LabelBox,
+  color: string,
+): void {
+  const r = BUBBLE_RADIUS;
+  const left = box.left - BUBBLE_PAD_X;
+  const right = box.right + BUBBLE_PAD_X;
+  const top = box.top - BUBBLE_PAD_Y;
+  const bottom = box.bottom + BUBBLE_PAD_Y;
+  ctx.beginPath();
+  ctx.moveTo(left + r, top);
+  ctx.lineTo(right - r, top);
+  ctx.arc(right - r, top + r, r, -Math.PI / 2, 0);
+  ctx.lineTo(right, bottom - r);
+  ctx.arc(right - r, bottom - r, r, 0, Math.PI / 2);
+  ctx.lineTo(left + r, bottom);
+  ctx.arc(left + r, bottom - r, r, Math.PI / 2, Math.PI);
+  ctx.lineTo(left, top + r);
+  ctx.arc(left + r, top + r, r, Math.PI, Math.PI * 1.5);
+  ctx.closePath();
+  if (!isTransparent(p.theme.background)) {
+    ctx.fillStyle = p.theme.background;
+    ctx.fill();
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/**
+ * A label the ring had no room for, drawn in a bubble on top of whatever is
+ * there because the pointer is on the thing it names. This is the way back
+ * to a name the map left out.
  */
 function drawFloatingLabel(
   ctx: DrawingContext,
@@ -516,10 +570,12 @@ function drawFloatingLabel(
   const ideal = Math.cos(angle) >= 0 ? ax + 4 : ax - 4 - width;
   // Clamped onto the canvas: beside the wrong part of the ring beats off
   // the edge, and this only happens where the ring had no room at all.
-  const x = Math.min(Math.max(ideal, 4), Math.max(4, p.width - width - 4));
+  const x = Math.min(
+    Math.max(ideal, BUBBLE_PAD_X + EDGE_INSET),
+    Math.max(EDGE_INSET, p.width - width - BUBBLE_PAD_X - EDGE_INSET),
+  );
   const y = Math.min(Math.max(ay, m.lineHeight), p.height - m.lineHeight);
-  ctx.fillStyle = p.theme.background;
-  ctx.fillRect(x - 3, y - m.lineHeight / 2 - 1, width + 6, m.lineHeight + 2);
+  drawBubble(ctx, p, labelBox(x, y, width, m.lineHeight, 'left'), color);
   ctx.fillStyle = color;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -559,7 +615,7 @@ function drawLabels(
     // The text runs outwards from the ring, so what is left of the canvas on
     // that side is all the room there is. Long names on the left used to run
     // off the edge because only the anchor was tested.
-    const room = Math.cos(angle) >= 0 ? p.width - ax - 8 : ax - 8;
+    const room = (Math.cos(angle) >= 0 ? p.width - ax : ax) - 8 - EDGE_INSET;
     const fitted = fitText(ctx, text, room);
     if (fitted === null) {
       unfit++;
@@ -597,6 +653,7 @@ function drawLabels(
     width: p.width,
     height: p.height,
     obstacles,
+    inset: EDGE_INSET,
   });
 
   const byId = new Map(visible.map((f) => [f.id, f] as const));
@@ -653,13 +710,27 @@ function drawLabels(
     ctx.fillText(tick.text, tick.x, tick.y);
   });
 
+  const hoveredId =
+    p.hoveredFeatureId ?? (p.hoveredCut === null ? null : `${CUT_PREFIX}${p.hoveredCut}`);
+  // The hovered label is drawn last, in its bubble, so that no neighbour's
+  // plate clips the outline.
+  let hovered: PlacedLabel | null = null;
   for (const label of placed) {
-    const isCut = label.id.startsWith(CUT_PREFIX);
-    const highlighted = label.id === p.hoveredFeatureId;
+    if (label.id === hoveredId) {
+      hovered = label;
+      continue;
+    }
     drawPlate(ctx, p, label.box);
-    ctx.fillStyle = isCut ? theme.cutSite : highlighted ? theme.ink : theme.inkMuted;
+    ctx.fillStyle = label.id.startsWith(CUT_PREFIX) ? theme.cutSite : theme.inkMuted;
     ctx.textAlign = label.align;
     ctx.fillText(label.text, label.x, label.y);
+  }
+  if (hovered !== null) {
+    const color = hovered.id.startsWith(CUT_PREFIX) ? theme.cutSite : theme.ink;
+    drawBubble(ctx, p, hovered.box, color);
+    ctx.fillStyle = color;
+    ctx.textAlign = hovered.align;
+    ctx.fillText(hovered.text, hovered.x, hovered.y);
   }
 
   // Whatever the pointer is on says its name even when the ring had no room.
