@@ -56,6 +56,7 @@ export class SvgContext implements DrawingContext {
   textAlign: CanvasTextAlign = 'start';
   textBaseline: CanvasTextBaseline = 'alphabetic';
 
+  private dash: readonly number[] = [];
   private readonly parts: string[] = [];
   private path: string[] = [];
   private hasCurrentPoint = false;
@@ -148,6 +149,10 @@ export class SvgContext implements DrawingContext {
     this.hasCurrentPoint = true;
   }
 
+  setLineDash(segments: number[]): void {
+    this.dash = [...segments];
+  }
+
   fill(): void {
     if (this.path.length === 0) return;
     this.parts.push(
@@ -158,8 +163,10 @@ export class SvgContext implements DrawingContext {
   stroke(): void {
     if (this.path.length === 0) return;
     const cap = this.lineCap === 'butt' ? '' : ` stroke-linecap="${this.lineCap}"`;
+    const dash =
+      this.dash.length === 0 ? '' : ` stroke-dasharray="${this.dash.map(num).join(' ')}"`;
     this.parts.push(
-      `<path d="${this.path.join(' ')}" fill="none" ${paintAttr('stroke', this.strokeStyle)} stroke-width="${num(this.lineWidth)}"${cap}/>`,
+      `<path d="${this.path.join(' ')}" fill="none" ${paintAttr('stroke', this.strokeStyle)} stroke-width="${num(this.lineWidth)}"${cap}${dash}/>`,
     );
   }
 

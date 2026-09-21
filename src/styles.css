@@ -23,6 +23,9 @@
   --seq-edit-insert: #1d7a4c;
   --seq-edit-change: #a86200;
   --seq-edit-delete: #b3261e;
+  /* Previews: a primer pair being weighed up, every match of a find. A
+     colour of its own, because nothing drawn in it is in the document. */
+  --seq-preview: #6b4fd8;
 
   /* Base colours, used only while "Colour the bases" is on. Chosen to stay
      apart for the common forms of colour blindness and to keep contrast on
@@ -59,6 +62,7 @@
     --seq-edit-insert: #5fd196;
     --seq-edit-change: #e0a458;
     --seq-edit-delete: #ff8a80;
+    --seq-preview: #b9a6ff;
 
     --seq-base-a: #6fcf7a;
     --seq-base-c: #6ab8ff;
@@ -1488,6 +1492,18 @@ button {
   gap: 8px;
   margin-top: 4px;
   color: var(--ink-2);
+}
+
+.pair__buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* The pair whose preview is being held in the views. */
+.pair--shown {
+  border-left: 2px solid var(--seq-preview);
+  padding-left: 6px;
+  margin-left: -8px;
 }
 
 .alignment {

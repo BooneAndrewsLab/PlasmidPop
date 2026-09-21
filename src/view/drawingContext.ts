@@ -31,6 +31,8 @@ export interface DrawingContext {
   ): void;
   fill(): void;
   stroke(): void;
+  /** Dash pattern for subsequent strokes; an empty list draws solid again. */
+  setLineDash(segments: number[]): void;
   fillRect(x: number, y: number, w: number, h: number): void;
 
   fillText(text: string, x: number, y: number, maxWidth?: number): void;

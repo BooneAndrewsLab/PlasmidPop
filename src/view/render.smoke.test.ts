@@ -3,7 +3,8 @@ import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
 import { CircularLayout, renderCircularMap } from './circular';
-import { LinearLayout, assignLanes, lanesPerRow, renderLinearView } from './linear';
+import { LinearLayout, NO_LANES, assignLanes, lanesPerRow, renderLinearView } from './linear';
+import { NO_OVERLAY } from './overlay';
 import { drawableFeatures } from './visibleFeatures';
 
 /** A canvas context that records nothing and measures every string as 6px per char. */
@@ -46,6 +47,7 @@ describe('renderers over a real plasmid', () => {
     editInsert: '#0a0',
     editChange: '#a80',
     editDelete: '#f00',
+    preview: '#63d',
     backbone: '#444',
     tick: '#ccc',
     leader: '#ddd',
@@ -70,6 +72,7 @@ describe('renderers over a real plasmid', () => {
       rulerHeight: 30,
       laneHeight: 20,
       translationHeight: 16,
+      overlayHeight: 16,
       rowGap: 14,
       leftGutter: 72,
       rightGutter: 24,
@@ -91,6 +94,8 @@ describe('renderers over a real plasmid', () => {
       translationLanes,
       selection: { start: 10, end: 500 },
       cutSites: shown,
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
       edits: null,
       colorBases: true,
       numberComplement: true,
@@ -116,6 +121,7 @@ describe('renderers over a real plasmid', () => {
       rulerHeight: 16,
       laneHeight: 20,
       translationHeight: 16,
+      overlayHeight: 16,
       rowGap: 14,
       leftGutter: 72,
       rightGutter: 24,
@@ -136,6 +142,8 @@ describe('renderers over a real plasmid', () => {
         translationLanes: assignLanes([], doc.length),
         selection: null,
         cutSites: [],
+        overlay: NO_OVERLAY,
+        overlayLanes: NO_LANES,
         edits: null,
         colorBases,
         numberComplement: false,
@@ -176,6 +184,8 @@ describe('renderers over a real plasmid', () => {
       lanes,
       selection: { start: 10, end: 500 },
       cutSites: shown,
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
       hoveredFeatureId: null,
       width: 800,
       height: 600,
@@ -204,6 +214,8 @@ describe('renderers over a real plasmid', () => {
       lanes,
       selection: { start: 10, end: 500 },
       cutSites: shown,
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
       hoveredFeatureId: null,
       width: 800,
       height: 600,

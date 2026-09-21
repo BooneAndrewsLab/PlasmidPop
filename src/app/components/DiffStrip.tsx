@@ -13,6 +13,7 @@ import {
   renderLinearView,
   sansFontOf,
 } from '@/view/linear';
+import { NO_OVERLAY } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { readLinearTheme } from './linearTheme';
@@ -99,6 +100,9 @@ export function DiffStrip({ doc, diff, hunk }: Props) {
       translationLanes: drawing.noLanes,
       selection: null,
       cutSites: [],
+      // The review shows what changed, not what a panel is pointing at.
+      overlay: NO_OVERLAY,
+      overlayLanes: drawing.noLanes,
       edits: diff,
       colorBases: false,
       numberComplement: false,

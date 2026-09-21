@@ -12,6 +12,7 @@ import {
   type LinearTheme,
   DEFAULT_FONT_SIZE,
   LinearLayout,
+  NO_LANES,
   assignLanes,
   endOverhangs,
   lanesPerRow,
@@ -19,6 +20,7 @@ import {
   linearWidth,
   renderLinearView,
 } from '../linear';
+import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from './svgContext';
 
@@ -35,6 +37,7 @@ export const PRINT_LINEAR_THEME: LinearTheme = {
   editInsert: '#1d7a4c',
   editChange: '#a86200',
   editDelete: '#b3261e',
+  preview: '#6b4fd8',
   baseColors: {
     a: '#2f7d32',
     c: '#1b6ec8',
@@ -150,6 +153,10 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     translationLanes,
     selection: options.selection ?? null,
     cutSites,
+    // A preview is something the user is weighing up, not part of the
+    // document; an exported figure shows the document.
+    overlay: NO_OVERLAY,
+    overlayLanes: NO_LANES,
     edits: options.edits ?? null,
     colorBases: options.colorBases ?? false,
     numberComplement: options.numberComplement ?? false,

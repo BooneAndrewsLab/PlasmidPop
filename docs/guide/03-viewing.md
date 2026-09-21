@@ -27,7 +27,11 @@ position of its first base. Below each row:
   enzyme name, unless **Cut sites** is off in the toolbar (see
   [Restriction enzymes](07-enzymes.md));
 - **edit marks** over the bases you have changed, when **Edits** is on in the
-  toolbar (see [Editing the sequence](04-editing.md)).
+  toolbar (see [Editing the sequence](04-editing.md));
+- a **preview**, outside everything else: dashed spans in a colour of their
+  own, drawn while a panel is pointing at something that is not in the
+  document — a primer pair you are weighing up, every match of a find. See
+  [Previews](#previews).
 
 The first and last rows also show the **sticky ends** of a molecule that has
 been cut: single-stranded bases are washed over with a gap opposite them, and
@@ -42,6 +46,24 @@ regions.
 
 **File ▸ Export sequence view as SVG** writes what you see as a vector file
 for figures, see [Files](02-files.md).
+
+## Previews
+
+Some things are worth seeing on the sequence and the map before they are
+anything in the document. A previewed span is drawn dashed, in a colour used
+for nothing else: in the sequence view in a band outside the feature lanes,
+on the map in a ring just inside the backbone, where a span too short to see
+is widened as a short selection is.
+
+Nothing previewed is part of the document. It is not saved, it is not in the
+SVG exports, it costs no undo step, and it goes away when you edit the
+sequence, switch sidebar tab or close the panel that asked for it.
+
+Today two things use it:
+
+- the [Primers](10-primers.md) tab, for a designed pair and the product it
+  would give, and for the binding sites of a primer you paste in;
+- [Find](06-find.md), which draws every match at once while the bar is open.
 
 ### Format
 

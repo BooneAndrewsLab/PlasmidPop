@@ -840,3 +840,66 @@ describe('EditorStore working copies', () => {
     expect(store.getState()).toMatchObject({ derived: false, origin: null });
   });
 });
+
+describe('EditorStore preview', () => {
+  const span = {
+    id: 'forward',
+    label: 'Fwd 1',
+    range: { start: 2, end: 8 },
+    strand: 'forward' as const,
+    shape: 'arrow' as const,
+  };
+
+  it('points the views at spans and takes them away again', () => {
+    const store = new EditorStore();
+    const id = store.openDocument(doc, 'x.gb');
+    store.setPreview('primers', [span]);
+    expect(store.getState().preview).toEqual({ owner: 'primers', documentId: id, items: [span] });
+    store.setPreview('primers', []);
+    expect(store.getState().preview).toBeNull();
+  });
+
+  it('does not notify when the same spans are set again', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setPreview('primers', [span]);
+    const listener = vi.fn();
+    store.subscribe(listener);
+    store.setPreview('primers', [{ ...span, range: { start: 2, end: 8 } }]);
+    expect(listener).not.toHaveBeenCalled();
+    store.setPreview('primers', [{ ...span, range: { start: 3, end: 9 } }]);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a preview only over the document it was computed for', () => {
+    const store = new EditorStore();
+    const first = store.openDocument(doc, 'x.gb');
+    store.setPreview('primers', [span]);
+    const second = store.openDocument(doc.rename('other'), 'y.gb');
+    expect(store.getState().preview).toBeNull();
+    store.activateDocument(first);
+    expect(store.getState().preview?.documentId).toBe(first);
+    store.closeDocument(second);
+    expect(store.getState().preview?.documentId).toBe(first);
+  });
+
+  it('drops a preview when the sequence under it moves', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setPreview('primers', [span]);
+    store.apply({ type: 'insert', position: 0, text: 'AAAA' });
+    expect(store.getState().preview).toBeNull();
+  });
+
+  it('lets only the panel that set a preview take it away', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setPreview('find', [span]);
+    // The find bar closing must not clear what the Primers tab is showing,
+    // and the other way round.
+    store.clearPreview('primers');
+    expect(store.getState().preview?.owner).toBe('find');
+    store.clearPreview('find');
+    expect(store.getState().preview).toBeNull();
+  });
+});

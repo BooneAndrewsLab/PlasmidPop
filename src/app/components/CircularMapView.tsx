@@ -22,6 +22,7 @@ import {
   zoomAround,
 } from '@/view/circular';
 import { assignLanes } from '@/view/linear';
+import { NO_OVERLAY, overlayLanes } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { selectionBetween } from '../editing';
@@ -49,6 +50,7 @@ function readTheme(el: HTMLElement): CircularTheme {
     background: v('--surface', '#ffffff'),
     leader: v('--line', '#d5dae2'),
     cutSite: v('--seq-cut', '#b3261e'),
+    preview: v('--seq-preview', '#6b4fd8'),
   };
 }
 
@@ -79,7 +81,10 @@ interface Props {
 }
 
 export function CircularMapView({ doc }: Props) {
-  const { selection, analysis, shownEnzymes, showCutSites, documentId, reveal } = useEditorState();
+  const { selection, analysis, shownEnzymes, showCutSites, documentId, reveal, preview } =
+    useEditorState();
+  const overlay = preview?.items ?? NO_OVERLAY;
+  const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
   const cutSites = useMemo(
     () =>
       showCutSites && analysis !== null && analysis.doc === doc
@@ -245,6 +250,8 @@ export function CircularMapView({ doc }: Props) {
         lanes,
         selection,
         cutSites,
+        overlay,
+        overlayLanes: previewLanes,
         hoveredFeatureId: hover.featureId,
         width: size.width,
         height: size.height,
@@ -257,7 +264,7 @@ export function CircularMapView({ doc }: Props) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [doc, layout, lanes, selection, cutSites, hover.featureId, size]);
+  }, [doc, layout, lanes, selection, cutSites, overlay, previewLanes, hover.featureId, size]);
 
   const point = (
     e: ReactPointerEvent<HTMLCanvasElement> | ReactMouseEvent<HTMLCanvasElement>,

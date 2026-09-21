@@ -13,6 +13,7 @@ import {
 
 import { type DrawingContext } from '../drawingContext';
 import { contrastingText, featureColor, withAlpha } from '../featureColors';
+import { type OverlaySpan, overlayPieces } from '../overlay';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
 
@@ -43,6 +44,8 @@ export interface LinearTheme {
   readonly editChange: string;
   /** Boundaries where bases were removed. */
   readonly editDelete: string;
+  /** Spans previewed beside the document's own annotation, which are not in it. */
+  readonly preview: string;
   readonly baseColors: BaseColors;
 }
 
@@ -59,6 +62,13 @@ export interface RenderParams {
   readonly selection: Range | null;
   /** Cut sites to mark above the strands (already filtered to the enzymes the user wants). */
   readonly cutSites: readonly CutSite[];
+  /**
+   * Transient spans drawn in a band outside the feature lanes: a primer pair
+   * under consideration, every match of a find. Nothing here is part of the
+   * document.
+   */
+  readonly overlay: readonly OverlaySpan[];
+  readonly overlayLanes: LaneAssignment;
   /**
    * Changes since the baseline the user chose, marked over the strands and
    * around the features they touched. `null` leaves the view unmarked.
@@ -562,6 +572,110 @@ function fitText(ctx: DrawingContext, text: string, maxWidth: number): string {
   return lo === 0 ? '' : `${text.slice(0, lo)}…`;
 }
 
+/** Dash pattern that says a span is a preview and not an annotation. */
+const PREVIEW_DASH = [4, 3];
+
+/**
+ * The preview band, outside the feature lanes: an `arrow` span is a hollow
+ * dashed ribbon pointing the way it reads, a `span` is a thin bracket
+ * between two of them. Everything here is drawn in one colour of its own and
+ * never filled solid, so it cannot be taken for something the document
+ * holds.
+ */
+function drawOverlays(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { doc, layout, theme, overlay, overlayLanes } = p;
+  if (row.overlays === 0 || overlay.length === 0) return;
+  const m = layout.metrics;
+  const color = theme.preview;
+  ctx.font = p.sansFont;
+  ctx.textBaseline = 'middle';
+  for (const span of overlay) {
+    const lane = overlayLanes.laneOf.get(span.id);
+    if (lane === undefined || lane >= row.overlays) continue;
+    const top = layout.overlayTop(row, lane) + 2;
+    const height = m.overlayHeight - 5;
+    const mid = top + height / 2;
+    const pieces = overlayPieces(span, doc.length);
+    pieces.forEach((piece, index) => {
+      const s = Math.max(piece.start, row.start);
+      const e = Math.min(piece.end, row.end);
+      if (e <= s) return;
+      const x0 = layout.xOfColumn(s - row.start);
+      const x1 = layout.xOfColumn(e - row.start);
+      const first = index === 0 && s === piece.start;
+      const last = index === pieces.length - 1 && e === piece.end;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash(PREVIEW_DASH);
+      if (span.shape === 'span') {
+        ctx.beginPath();
+        ctx.moveTo(x0, mid);
+        ctx.lineTo(x1, mid);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        for (const [x, draw] of [
+          [x0, first],
+          [x1, last],
+        ] as const) {
+          if (!draw) continue;
+          ctx.beginPath();
+          ctx.moveTo(Math.round(x) + 0.5, top);
+          ctx.lineTo(Math.round(x) + 0.5, top + height);
+          ctx.stroke();
+        }
+      } else {
+        const ribbon: Ribbon = {
+          x0,
+          x1,
+          arrowRight: span.strand === 'forward' && last,
+          arrowLeft: span.strand === 'reverse' && first,
+        };
+        ribbonPath(ctx, ribbon, top, height);
+        ctx.fillStyle = withAlpha(color, 0.14);
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      drawOverlayLabel(ctx, p, span, x0, x1, mid, color);
+    });
+  }
+  ctx.setLineDash([]);
+}
+
+/**
+ * The span's name, inside an arrow where it fits and over the middle of a
+ * bracket (on a patch of background, so the line does not run through the
+ * letters). Skipped where there is no room rather than shortened to nothing.
+ */
+function drawOverlayLabel(
+  ctx: DrawingContext,
+  p: RenderParams,
+  span: OverlaySpan,
+  x0: number,
+  x1: number,
+  mid: number,
+  color: string,
+): void {
+  if (span.label === '') return;
+  const available = x1 - x0 - (span.shape === 'arrow' ? ARROW + 8 : 8);
+  if (available < 16) return;
+  const text = fitText(ctx, span.label, available);
+  if (text === '') return;
+  ctx.fillStyle = color;
+  if (span.shape === 'span') {
+    const width = ctx.measureText(text).width;
+    const centre = (x0 + x1) / 2;
+    ctx.fillStyle = p.theme.background;
+    ctx.fillRect(centre - width / 2 - 3, mid - 6, width + 6, 12);
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, centre, mid + 0.5);
+  } else {
+    ctx.textAlign = 'left';
+    ctx.fillText(text, x0 + (span.strand === 'reverse' ? ARROW : 0) + 4, mid + 0.5);
+  }
+}
+
 /**
  * Marks restriction cuts: a vertical line at the top-strand cut, a short
  * jog to the bottom-strand cut, and the enzyme name above. Labels that would
@@ -630,6 +744,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
     drawEndOverhangBases(ctx, p, row);
     drawTranslations(ctx, p, row);
     drawCutSites(ctx, p, row);
+    drawOverlays(ctx, p, row);
     if (row.lanes > 0) {
       for (const feature of doc.features.overlapping(
         { start: row.start, end: row.end },

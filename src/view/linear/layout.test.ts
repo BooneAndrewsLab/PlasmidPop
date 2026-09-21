@@ -15,6 +15,7 @@ const metrics: LinearMetrics = {
   showComplement: true,
   rulerHeight: 14,
   laneHeight: 18,
+  overlayHeight: 16,
   translationHeight: 12,
   rowGap: 6,
   leftGutter: 60,

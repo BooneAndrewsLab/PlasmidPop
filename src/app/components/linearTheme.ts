@@ -22,6 +22,7 @@ export function readLinearTheme(el: HTMLElement): LinearTheme {
     editInsert: v('--seq-edit-insert', '#1d7a4c'),
     editChange: v('--seq-edit-change', '#a86200'),
     editDelete: v('--seq-edit-delete', '#b3261e'),
+    preview: v('--seq-preview', '#6b4fd8'),
     baseColors: {
       a: v('--seq-base-a', '#2f7d32'),
       c: v('--seq-base-c', '#1b6ec8'),

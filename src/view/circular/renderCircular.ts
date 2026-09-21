@@ -3,6 +3,7 @@ import { type CutSite, type Feature, type Range, type SeqDocument, rangePieces }
 import { type DrawingContext } from '../drawingContext';
 import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from '../linear/lanes';
+import { type OverlaySpan, overlayPieces } from '../overlay';
 import { drawableFeatures, featuresToLabel } from '../visibleFeatures';
 import { type CircularLayout, type LabelInput, layoutLabels, tickInterval } from './circularLayout';
 
@@ -16,6 +17,8 @@ export interface CircularTheme {
   readonly background: string;
   readonly leader: string;
   readonly cutSite: string;
+  /** Spans previewed beside the document's own annotation, which are not in it. */
+  readonly preview: string;
 }
 
 export interface CircularRenderParams {
@@ -24,6 +27,9 @@ export interface CircularRenderParams {
   readonly lanes: LaneAssignment;
   readonly selection: Range | null;
   readonly cutSites: readonly CutSite[];
+  /** Transient spans drawn in a ring just inside the backbone; see `OverlaySpan`. */
+  readonly overlay: readonly OverlaySpan[];
+  readonly overlayLanes: LaneAssignment;
   readonly hoveredFeatureId: string | null;
   readonly width: number;
   readonly height: number;
@@ -270,6 +276,80 @@ function drawFeature(
   }
 }
 
+/** Radial pitch of the preview ring, which stacks inwards from the backbone. */
+const PREVIEW_RING = 7;
+/** Shortest a preview arc may be on screen, as the selection band has. */
+const MIN_PREVIEW_PX = 7;
+
+/**
+ * The preview: transient spans in a ring of their own between the backbone
+ * and the first feature lane, in one colour that belongs to nothing in the
+ * document. A short one is widened the way a short selection is, so a 20 nt
+ * primer on a 4 kb plasmid can still be seen. Labels are left to the panel
+ * that asked for the preview — the map's own label ring is busy enough.
+ */
+function drawOverlays(ctx: DrawingContext, p: CircularRenderParams): void {
+  const { layout, theme, doc, overlay, overlayLanes } = p;
+  if (overlay.length === 0 || doc.length === 0) return;
+  ctx.lineCap = 'butt';
+  for (const span of overlay) {
+    // The rings stack inwards, but the *last* lane takes the clear gap just
+    // inside the backbone: lane 0 holds the longest span (the bracket of a
+    // product, say), and a thin dashed line crossing the feature lanes
+    // hides less of them than a primer's solid arc would.
+    const lane = overlayLanes.laneOf.get(span.id) ?? 0;
+    const ring = Math.max(0, overlayLanes.laneCount - 1 - lane);
+    const r = Math.max(6, layout.radius - 6 - ring * PREVIEW_RING);
+    const bracket = span.shape === 'span';
+    const half = bracket ? 3 : 2.5;
+    const pieces = overlayPieces(span, doc.length);
+    pieces.forEach((piece, index) => {
+      const sweep = selectionSweep(
+        layout.angleOf(piece.start),
+        layout.angleOf(piece.end),
+        r,
+        MIN_PREVIEW_PX,
+      );
+      // Which way a primer reads is the point of drawing it, so a head goes
+      // on as soon as there is room for one, as a feature's does.
+      const arrow = !bracket && (sweep.end - sweep.start) * r > half * 3 ? half * 1.4 : 0;
+      const forward = span.strand === 'forward';
+      const first = index === 0;
+      const last = index === pieces.length - 1;
+      let a0 = sweep.start;
+      let a1 = sweep.end;
+      if (arrow > 0 && forward && last) a1 -= arrow / r;
+      if (arrow > 0 && !forward && first) a0 += arrow / r;
+      ctx.strokeStyle = theme.preview;
+      ctx.fillStyle = theme.preview;
+      ctx.lineWidth = bracket ? 1.5 : half * 2;
+      ctx.setLineDash(bracket ? [4, 3] : []);
+      ctx.beginPath();
+      ctx.arc(layout.cx, layout.cy, r, a0, Math.max(a0, a1));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (bracket) {
+        // End ticks, so a bracket's limits read even where it is faint.
+        for (const [angle, draw] of [
+          [sweep.start, first],
+          [sweep.end, last],
+        ] as const) {
+          if (!draw) continue;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(layout.cx + (r - 4) * Math.cos(angle), layout.cy + (r - 4) * Math.sin(angle));
+          ctx.lineTo(layout.cx + (r + 4) * Math.cos(angle), layout.cy + (r + 4) * Math.sin(angle));
+          ctx.stroke();
+        }
+      } else if (arrow > 0) {
+        const at = (angle: number): number => ((angle + Math.PI / 2) / (Math.PI * 2)) * doc.length;
+        if (forward && last) arrowHead(ctx, layout, at(a1), r, true, half);
+        if (!forward && first) arrowHead(ctx, layout, at(a0), r, false, half);
+      }
+    });
+  }
+}
+
 function featureMidAngle(
   feature: Feature,
   layout: CircularLayout,
@@ -411,6 +491,7 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
     if (lane !== undefined) drawFeature(ctx, p, f, lane);
   }
   if (tinySelection) drawSelectionMarker(ctx, p);
+  drawOverlays(ctx, p);
   drawLabels(ctx, p, features);
   drawCentre(ctx, p);
   ctx.restore();

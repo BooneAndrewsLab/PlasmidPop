@@ -1,6 +1,13 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 
-import { type Range, type SeqDocument, findSequenceMatches, looksLikeSequence } from '@/core';
+import {
+  type Range,
+  type SeqDocument,
+  type Strand,
+  findSequenceMatches,
+  looksLikeSequence,
+} from '@/core';
+import { type OverlaySpan } from '@/view/overlay';
 
 import { editorStore } from '../state/editorStore';
 
@@ -11,7 +18,16 @@ interface Props {
 interface Hit {
   readonly range: Range;
   readonly label: string;
+  /** Which strand a sequence match is on; a feature-name match is on neither. */
+  readonly strand: Strand | 'none';
 }
+
+/**
+ * Past this many matches the views are shown none of them: the count in the
+ * bar is the useful answer to "how common is this", and several hundred
+ * dashed boxes are not.
+ */
+const MAX_PREVIEWED_HITS = 200;
 
 function featureExtent(
   f: SeqDocument['features'] extends Iterable<infer F> ? F : never,
@@ -45,6 +61,7 @@ export function FindBar({ doc }: Props) {
       return findSequenceMatches(doc.sequence.toString(), doc.topology, trimmed).map((m) => ({
         range: m.range,
         label: m.strand === 'forward' ? 'forward strand' : 'reverse strand',
+        strand: m.strand,
       }));
     }
     const needle = trimmed.toLowerCase();
@@ -53,7 +70,8 @@ export function FindBar({ doc }: Props) {
       if (!f.name.toLowerCase().includes(needle) && !f.type.toLowerCase().includes(needle))
         continue;
       const extent = featureExtent(f);
-      if (extent !== null) out.push({ range: extent, label: f.name === '' ? f.type : f.name });
+      if (extent !== null)
+        out.push({ range: extent, label: f.name === '' ? f.type : f.name, strand: 'none' });
     }
     return out;
   }, [doc, trimmed, sequenceMode]);
@@ -66,6 +84,34 @@ export function FindBar({ doc }: Props) {
     editorStore.setSelection(current.range);
     editorStore.revealPosition(current.range.start);
   }, [current]);
+
+  // Every match at once in both views, so a search says where a site is
+  // *distributed* and not only where the next one is. The current match is
+  // the selection on top of it.
+  const previewed = useMemo<OverlaySpan[]>(
+    () =>
+      hits.length > MAX_PREVIEWED_HITS
+        ? []
+        : hits.map((h, i) => ({
+            id: `hit-${i}`,
+            label: '',
+            range: h.range,
+            strand: h.strand,
+            shape: 'arrow' as const,
+          })),
+    [hits],
+  );
+
+  useEffect(() => {
+    editorStore.setPreview('find', previewed);
+  }, [previewed]);
+  // Closing the bar takes the matches off the views.
+  useEffect(
+    () => () => {
+      editorStore.clearPreview('find');
+    },
+    [],
+  );
 
   const step = (delta: number): void => {
     if (hits.length === 0) return;

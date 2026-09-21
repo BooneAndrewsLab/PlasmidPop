@@ -151,3 +151,19 @@ yet seen is assumed to be 46 px, which shows up only in the length of the
 scrollbar. The 600 px of slack is there because the scroll position reaches
 React a frame after the browser has painted it, and a window that ended at
 the viewport's edge would show a band of nothing until it caught up.
+
+## The preview overlay
+
+A preview (a primer pair, every match of a find) is packed into lanes and
+turned into a per-row count before the linear layout is rebuilt, and that
+happens on every keystroke in the find bar. Measured 2026-09-21 in Node 24,
+mean of 20 runs: **1.65 ms** for the worst case the app allows — a 101 kb
+sequence (1,690 rows of 60 bases) with 200 previewed spans, which is the cap
+the find bar draws up to. A designed primer pair on a plasmid is three spans
+over ~70 rows and does not register.
+
+Two things keep it cheap. `packLanes` is the same greedy interval colouring
+the features use, and a preview has a handful of spans rather than the
+hundreds a REBASE scan produces; `overlaysPerRow` walks each span's rows
+once. The cap in the find bar is there for legibility rather than speed — at
+200 dashed boxes the view says nothing that the count does not say better.

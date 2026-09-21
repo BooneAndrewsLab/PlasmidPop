@@ -123,7 +123,11 @@ qualifiers that suit its type, so `/gene` no longer labels every feature
 inside a gene (item 23). Added 2026-09-21: **File ▸ Copy share link** — a
 document travels whole inside the URL fragment, so it reaches the person it
 is sent to without being uploaded anywhere, and the Matomo call now reports
-a page URL with the fragment cut off (item 11). Tests: 662 passing. Perf measurements live in
+a page URL with the fragment cut off (item 11). Added 2026-09-21: a
+**preview channel** both views draw beside the document's own annotation
+(`src/view/overlay.ts`), used by the Primers tab for a designed pair and its
+product and by Find for every match at once, so weighing up candidates costs
+no edit (item 26). Tests: 682 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -656,44 +660,58 @@ pick from here when the current work is done.
     `diffHunks`) — this is a rendering question. Related: item 22's
     **File ▸ Compare with…**, which would want exactly this view for two
     different files rather than two versions of one.
-26. **Preview a primer before it becomes a feature.** Today the only way to
-    see where a designed pair sits is **Add both as features**, which is an
-    edit: two `primer_bind` features go into the document, a step goes into
-    the History, item 21's marks outline them, and comparing three candidate
-    pairs means three add-and-undo rounds. Nothing is lost — it undoes
-    cleanly — but choosing between candidates should not touch the document
-    at all. What is wanted: hover or click a pair in the Primers tab and see
-    the two sites drawn as arrows in the sequence view and on the circular
-    map, with the product span between them, in a ghost style that says
-    "not saved"; the same for the binding sites of **Check a primer**, which
-    today can only be selected one at a time.
-    - **Do not build it primer-specific.** The general shape is an overlay
-      channel: a list of transient, non-document features (or spans) that
-      both renderers draw beside `doc.features`. The same channel would
-      serve ORFs (`OrfPanel` can only select one), find hits beyond the
-      current match, digest fragments in the Cloning tab, and a previewed
-      Golden Gate product. A primers-only highlight would be thrown away
-      the first time one of those wants the same thing.
-    - **The cheap half is worth doing first and may be most of the value.**
-      A pair row that selects its amplicon and reveals it (exactly what the
-      binding-site rows already do, `editorStore.setSelection` +
-      `revealPosition`) costs a few lines and no rendering work, and both
-      views already show a selection well — including item 16's needle for a
-      short one. That alone answers "where does this pair sit". The ghost
-      arrows are the expensive half: `assignLanes` and the renderers read
-      `doc.features` directly (`renderLinear.ts`'s
-      `doc.features.overlapping`, `CircularMapView`'s `assignLanes`), so an
-      extra list has to be threaded through lane assignment, both renderers
-      and both SVG exports — unless preview primers are drawn outside the
-      lanes altogether, in the cut-site style, which avoids relayout but
-      cannot show a primer that overlaps a feature as clearly.
-    - Open: whether the preview lives in the store (so both views and the
-      SVG exports can see it) or is panel-local state passed down; whether a
-      previewed pair survives switching sidebar tabs; whether the preview
-      should be clickable (click the ghost arrow to commit that pair as
-      features); and whether a previewed primer with mismatches should draw
-      them, which is the thing a scientist actually squints at and neither
-      view has any vocabulary for yet.
+26. ~~**Preview a primer before it becomes a feature.**~~ done, 2026-09-21,
+    and not primer-shaped: what was built is the **overlay channel** the note
+    asked for. A preview is a list of `OverlaySpan`s — id, label, an
+    *unrolled* range, strand, and `arrow` (the thing itself) or `span` (the
+    stretch between two things) — that both renderers draw beside
+    `doc.features` (`src/view/overlay.ts`). It lives in the store as
+    `preview` (`SharedState`, carrying the document it was computed for and
+    the panel that put it there; `compose` hides it behind another document
+    tab, `apply` drops it because an edit moves the ground under it, and a
+    panel clears only its own on the way out — the find bar and a sidebar
+    tab can both be open). Nothing previewed is in the document, the History
+    or the SVG exports.
+    - **In the sequence view** the spans take a band of their own outside the
+      feature lanes, and the rows grow for it exactly as they do for
+      translation lines (`overlayHeight`, `RowLayout.overlays`, `overlayTop`,
+      and an `overlay` hit kind that is deliberately inert — a click there
+      does nothing rather than dropping a caret). The lanes are packed by the
+      *same* greedy colouring the features use: `assignLanes` and
+      `lanesPerRow` are now thin wrappers over `packLanes` and
+      `itemLanesPerRow`, which take `{ id, pieces }`.
+    - **On the map** they are a ring in the 12 px gap between the backbone and
+      the first feature lane. The *last* lane takes that gap, so a primer's
+      solid arc is drawn in the clear and it is the bracket's dashed line that
+      crosses the features. A span too short to see is widened by
+      `selectionSweep` — item 16's rule for a short selection — so a 22 nt
+      primer on a 4 kb plasmid is still an arrow with a head on it.
+    - Everything is dashed, in `--seq-preview`, a colour used for nothing
+      else. That needed `setLineDash` on `DrawingContext` (canvas has it;
+      `SvgContext` writes `stroke-dasharray`), which is also how the renderer
+      tests can assert what was drawn.
+    - **Primers**: **Show** on a pair draws its two sites as arrows and the
+      product as a bracket, and selects the product — the cheap half the note
+      predicted would carry most of the value. Hovering a pair shows it while
+      the pointer is there, **Hide** or leaving the tab takes it off, and
+      **Add both as features** is still the only thing that edits. Under
+      **Check a primer** every binding site is previewed at once, so
+      off-target sites are seen together instead of one selection at a time.
+    - **Find** draws every match while the bar is open, the current one still
+      the selection on top; past 200 matches it draws none, because the count
+      answers that question better than 200 marks would.
+    - A wrapped product taught the convention the hard way: a range over the
+      origin must be **unrolled** (`unrollRange`), or `rangePieces` hands back
+      a piece with `end <= start` and the span silently draws nothing. That
+      was a real bug in the first cut of the Primers panel, found by reading
+      the store in the browser rather than by a test.
+    - Not yet: nothing in the band is clickable (the hit kind is there for
+      it); ORFs, the Cloning tab's digest fragments and a previewed Golden
+      Gate product are the obvious next callers; there is one channel, so
+      two panels pointing at once means the last one wins; a preview does
+      not come back after leaving the sidebar tab; and a previewed primer
+      still does not draw its mismatches, which is the thing a scientist
+      squints at.
 27. **Name the features a diff removed.** `SaveReviewDialog`'s Features list
     names what was added (`+ lacZα`) and what changed (`~ tet changed`), but
     a removal is one anonymous line — `− 3 features removed` — and the Edits

@@ -1,7 +1,8 @@
 import { type SeqDocument, type CutSite } from '@/core';
 
 import { type CircularTheme, CircularLayout, renderCircularMap } from '../circular';
-import { assignLanes } from '../linear';
+import { NO_LANES, assignLanes } from '../linear';
+import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from './svgContext';
 
@@ -16,6 +17,7 @@ export const PRINT_THEME: CircularTheme = {
   background: '#ffffff',
   leader: '#b8c0ca',
   cutSite: '#b3261e',
+  preview: '#6b4fd8',
 };
 
 export interface MapExportOptions {
@@ -43,6 +45,9 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
     lanes,
     selection: null,
     cutSites: options.cutSites ?? [],
+    // As in the sequence-view export: a preview is not part of the document.
+    overlay: NO_OVERLAY,
+    overlayLanes: NO_LANES,
     hoveredFeatureId: null,
     width: size,
     height: size,

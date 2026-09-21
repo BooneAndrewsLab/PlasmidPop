@@ -16,6 +16,8 @@ export interface LinearMetrics {
   readonly laneHeight: number;
   /** Height of one amino-acid line drawn under the strands. */
   readonly translationHeight: number;
+  /** Height of one preview-overlay lane, drawn outside the feature lanes. */
+  readonly overlayHeight: number;
   /** Vertical space after the last lane of a row. */
   readonly rowGap: number;
   /** Space reserved on the left for position numbers. */
@@ -39,6 +41,8 @@ export interface RowLayout {
   /** Translation lines drawn between the strands and the feature lanes. */
   readonly translations: number;
   readonly lanes: number;
+  /** Preview lanes drawn outside the feature lanes. */
+  readonly overlays: number;
 }
 
 export type Hit =
@@ -55,6 +59,12 @@ export type Hit =
       readonly line: number;
       readonly position: number;
     }
+  | {
+      readonly kind: 'overlay';
+      readonly row: RowLayout;
+      readonly lane: number;
+      readonly position: number;
+    }
   | { readonly kind: 'none' };
 
 export class LinearLayout {
@@ -66,6 +76,7 @@ export class LinearLayout {
     readonly metrics: LinearMetrics,
     lanesPerRow: readonly number[],
     translationsPerRow: readonly number[] = [],
+    overlaysPerRow: readonly number[] = [],
   ) {
     const rows: RowLayout[] = [];
     const rowCount = Math.max(1, Math.ceil(seqLength / metrics.basesPerRow));
@@ -73,10 +84,12 @@ export class LinearLayout {
     for (let i = 0; i < rowCount; i++) {
       const lanes = lanesPerRow[i] ?? 0;
       const translations = translationsPerRow[i] ?? 0;
+      const overlays = overlaysPerRow[i] ?? 0;
       const height =
         this.baseBlockHeight() +
         translations * metrics.translationHeight +
         lanes * metrics.laneHeight +
+        overlays * metrics.overlayHeight +
         metrics.rowGap;
       rows.push({
         index: i,
@@ -86,6 +99,7 @@ export class LinearLayout {
         height,
         translations,
         lanes,
+        overlays,
       });
       y += height;
     }
@@ -114,6 +128,11 @@ export class LinearLayout {
 
   laneTop(row: RowLayout, lane: number): number {
     return this.translationTop(row, row.translations) + lane * this.metrics.laneHeight;
+  }
+
+  /** Top of preview lane `lane`, beyond the last feature lane of the row. */
+  overlayTop(row: RowLayout, lane: number): number {
+    return this.laneTop(row, row.lanes) + lane * this.metrics.overlayHeight;
   }
 
   xOfColumn(column: number): number {
@@ -179,6 +198,11 @@ export class LinearLayout {
       const lane = Math.floor((y - this.laneTop(row, 0)) / m.laneHeight);
       return { kind: 'lane', row, lane, position: baseAt };
     }
+    const overlayTop = this.overlayTop(row, 0);
+    if (row.overlays > 0 && y >= overlayTop && y < this.overlayTop(row, row.overlays)) {
+      const lane = Math.floor((y - overlayTop) / m.overlayHeight);
+      return { kind: 'overlay', row, lane, position: baseAt };
+    }
     const boundary = Math.min(rowLength, Math.max(0, Math.round(column)));
     return { kind: 'boundary', position: row.start + boundary, row };
   }
@@ -232,6 +256,7 @@ export function linearMetrics(o: MetricsOptions): LinearMetrics {
     rulerHeight: o.cutSiteLabels ? at(30) : at(16),
     laneHeight: at(20),
     translationHeight: at(16),
+    overlayHeight: at(18),
     rowGap: at(14),
     leftGutter: at(72) + (o.extraLeftGutter ?? 0),
     rightGutter: at(24) + (o.extraRightGutter ?? 0),

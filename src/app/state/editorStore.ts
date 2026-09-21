@@ -19,6 +19,7 @@ import {
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
 import { type FontSize } from '@/view/linear';
+import { type OverlaySpan } from '@/view/overlay';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
 import { copyNameFor } from './derive';
@@ -258,7 +259,29 @@ export interface SharedState {
    * they are about to paste somewhere.
    */
   readonly shareNotice: { readonly chars: number } | null;
+  /** What a panel is pointing at in the views; see `DocumentPreview`. */
+  readonly preview: DocumentPreview | null;
 }
+
+/**
+ * Spans a panel is pointing at — a primer pair being weighed up, every match
+ * of a find — drawn in both views and in neither document. It is shared
+ * rather than per-tab because only one panel points at a time, and it
+ * carries the document it was computed against so a stale preview cannot be
+ * drawn over another tab's sequence.
+ */
+export interface DocumentPreview {
+  /**
+   * Which panel put it there. Only that panel may take it away again, so
+   * two panels that can be open at once — the find bar and a sidebar tab —
+   * do not clear each other's spans when one of them closes.
+   */
+  readonly owner: PreviewOwner;
+  readonly documentId: string;
+  readonly items: readonly OverlaySpan[];
+}
+
+export type PreviewOwner = 'primers' | 'find';
 
 /** A one-line description of the active enzyme set, for the Enzymes tab. */
 export interface EnzymeSetInfo {
@@ -307,6 +330,7 @@ const SHARED_INITIAL: SharedState = {
   assembly: [],
   downloadNotice: null,
   shareNotice: null,
+  preview: null,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
     count: BUNDLED_ENZYME_SET.enzymes.length,
@@ -361,6 +385,24 @@ export function isUntouchedNew(d: DocumentState): boolean {
   );
 }
 
+/** Whether two previews would draw the same thing, so one can replace the other silently. */
+function samePreview(a: readonly OverlaySpan[], b: readonly OverlaySpan[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((x, i) => {
+      const y = b[i];
+      return (
+        x.id === y?.id &&
+        x.label === y.label &&
+        x.shape === y.shape &&
+        x.strand === y.strand &&
+        x.range.start === y.range.start &&
+        x.range.end === y.range.end
+      );
+    })
+  );
+}
+
 function compose(
   shared: SharedState,
   documents: readonly DocumentState[],
@@ -370,6 +412,9 @@ function compose(
   return {
     ...shared,
     ...(active ?? NO_DOCUMENT),
+    // A preview belongs to the tab it was computed for; behind another one
+    // it is simply not there, and it comes back on the way back.
+    preview: shared.preview?.documentId === activeId ? shared.preview : null,
     documents,
     dirty: active !== null && isDirty(active),
   };
@@ -704,6 +749,9 @@ export class EditorStore {
     const doc = target.history.present;
     const edited = doc.apply(op);
     if (edited === doc) return;
+    // Whatever a panel was pointing at was computed against the document as
+    // it stands; an edit moves the ground under it.
+    this.clearPreview();
     // The file a document was opened from is never written to, so the first
     // edit forks the document into a working copy: it takes a name of its
     // own — the user's, when the edit is their rename — and starts a history
@@ -899,6 +947,34 @@ export class EditorStore {
    * Records which enzyme set is in use and drops every document's cached
    * analysis, since the cut sites were found with the old one.
    */
+  /**
+   * Points the views at a set of spans without touching the document: the
+   * preview channel of the Primers and Find panels. Passing nothing clears
+   * it, as does any edit — the positions would move under it.
+   */
+  setPreview(
+    owner: PreviewOwner,
+    items: readonly OverlaySpan[],
+    id: string | null = this.activeId,
+  ): void {
+    if (id === null || items.length === 0) {
+      this.clearPreview(owner);
+      return;
+    }
+    const current = this.shared.preview;
+    if (current?.documentId === id && current.owner === owner && samePreview(current.items, items))
+      return;
+    this.setShared({ preview: { owner, documentId: id, items } });
+  }
+
+  /** Takes the preview away; with an owner, only if that panel put it there. */
+  clearPreview(owner?: PreviewOwner): void {
+    const current = this.shared.preview;
+    if (current === null) return;
+    if (owner !== undefined && current.owner !== owner) return;
+    this.setShared({ preview: null });
+  }
+
   setEnzymeSetInfo(info: EnzymeSetInfo): void {
     this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
     this.setShared({ enzymeSetInfo: info });

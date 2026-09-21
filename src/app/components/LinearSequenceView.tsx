@@ -35,6 +35,7 @@ import {
   renderLinearView,
   sansFontOf,
 } from '@/view/linear';
+import { NO_OVERLAY, overlayLanes, overlaysPerRow } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { detectFormat } from '@/io';
@@ -97,6 +98,7 @@ export function LinearSequenceView({ doc }: Props) {
     reveal,
     analysis,
     shownEnzymes,
+    preview,
   } = useEditorState();
   const cutSites = useMemo(
     () =>
@@ -105,6 +107,8 @@ export function LinearSequenceView({ doc }: Props) {
         : [],
     [analysis, doc, shownEnzymes, showCutSites],
   );
+  const overlay = preview?.items ?? NO_OVERLAY;
+  const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
   const edits = useEditDiff();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -182,8 +186,9 @@ export function LinearSequenceView({ doc }: Props) {
       doc.length,
       metrics.basesPerRow,
     );
-    return new LinearLayout(doc.length, metrics, perRow, translationsPerRow);
-  }, [doc, lanes, codingFeatures, translationLanes, metrics]);
+    const previewPerRow = overlaysPerRow(overlay, previewLanes, doc.length, metrics.basesPerRow);
+    return new LinearLayout(doc.length, metrics, perRow, translationsPerRow, previewPerRow);
+  }, [doc, lanes, codingFeatures, translationLanes, metrics, overlay, previewLanes]);
 
   // Track the viewport size.
   useLayoutEffect(() => {
@@ -249,6 +254,8 @@ export function LinearSequenceView({ doc }: Props) {
         translationLanes,
         selection,
         cutSites,
+        overlay,
+        overlayLanes: previewLanes,
         edits,
         colorBases,
         numberComplement,
@@ -273,6 +280,8 @@ export function LinearSequenceView({ doc }: Props) {
     translationLanes,
     selection,
     cutSites,
+    overlay,
+    previewLanes,
     edits,
     colorBases,
     numberComplement,
@@ -312,7 +321,8 @@ export function LinearSequenceView({ doc }: Props) {
   const updateCursor = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
-    if (hit.kind !== 'lane' && hit.kind !== 'translation') setCursor('text');
+    if (hit.kind === 'overlay') setCursor('default');
+    else if (hit.kind !== 'lane' && hit.kind !== 'translation') setCursor('text');
     else setCursor(featureAtHit(hit) === undefined ? 'default' : 'pointer');
   };
 

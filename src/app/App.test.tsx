@@ -274,6 +274,49 @@ describe('six-frame translation', () => {
   });
 });
 
+describe('previews', () => {
+  it('draws every find match, and takes them away when the bar closes', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.keyDown(window, { key: 'f', ctrlKey: true });
+    const find = screen.getByRole('searchbox', { name: 'Find' });
+    fireEvent.change(find, { target: { value: 'GGATCC' } });
+    const count = await waitFor(() => {
+      const shown = /of (\d+)/.exec(screen.getByRole('search').textContent);
+      if (shown === null) throw new Error('no match count yet');
+      return Number(shown[1]);
+    });
+    expect(count).toBeGreaterThan(0);
+    expect(editorStore.getState().preview?.items).toHaveLength(count);
+    fireEvent.keyDown(find, { key: 'Escape' });
+    expect(editorStore.getState().preview).toBeNull();
+  });
+
+  it('shows a primer pair and what it would amplify without touching the document', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const before = editorStore.document;
+    act(() => {
+      editorStore.setSelection({ start: 600, end: 900 });
+      editorStore.setSidebarTab('primers');
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
+    const [show] = await screen.findAllByRole('button', { name: 'Show' });
+    if (show === undefined) throw new Error('expected a designed pair');
+    fireEvent.click(show);
+    const preview = editorStore.getState().preview;
+    expect(preview?.items.map((i) => i.id)).toEqual(['product', 'forward', 'reverse']);
+    const product = preview?.items[0];
+    // The product is selected, so the map and the sequence view scroll to it...
+    expect(editorStore.getState().selection).toEqual(product?.range);
+    // ...and nothing about the document changed.
+    expect(editorStore.document).toBe(before);
+    expect(editorStore.getState().dirty).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    expect(editorStore.getState().preview).toBeNull();
+  });
+});
+
 describe('find and feature editing', () => {
   it('finds bases and features, and edits a feature location', async () => {
     render(<App />);

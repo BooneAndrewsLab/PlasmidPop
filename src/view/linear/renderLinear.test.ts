@@ -1,7 +1,8 @@
 import { CdsTranslations, SeqDocument, createFeature, diffDocuments, rangeSegment } from '@/core';
 
 import { SvgContext } from '../svg/svgContext';
-import { assignLanes, lanesPerRow } from './lanes';
+import { type OverlaySpan, NO_OVERLAY, overlayLanes, overlaysPerRow } from '../overlay';
+import { NO_LANES, assignLanes, lanesPerRow } from './lanes';
 import { type LinearMetrics, LinearLayout } from './layout';
 import { type LinearTheme, type RenderParams, renderLinearView } from './renderLinear';
 
@@ -17,6 +18,7 @@ const theme: LinearTheme = {
   editInsert: '#00aa00',
   editChange: '#aa8800',
   editDelete: '#ff0000',
+  preview: '#6b4fd8',
   baseColors: { a: '#00aa00', c: '#0000ff', g: '#aa5500', t: '#cc0000', other: '#666666' },
 };
 
@@ -28,6 +30,7 @@ const metrics: LinearMetrics = {
   rulerHeight: 20,
   laneHeight: 20,
   translationHeight: 20,
+  overlayHeight: 16,
   rowGap: 10,
   leftGutter: 100,
   rightGutter: 24,
@@ -53,11 +56,14 @@ function render(
   const lanes = assignLanes(features, doc.length);
   const coding = showTranslations ? features : [];
   const translationLanes = assignLanes(coding, doc.length);
+  const overlay = options.overlay ?? NO_OVERLAY;
+  const previewLanes = overlayLanes(overlay, doc.length);
   const layout = new LinearLayout(
     doc.length,
     metrics,
     lanesPerRow(features, lanes, doc.length, metrics.basesPerRow),
     lanesPerRow(coding, translationLanes, doc.length, metrics.basesPerRow),
+    overlaysPerRow(overlay, previewLanes, doc.length, metrics.basesPerRow),
   );
   const ctx = new SvgContext(300, layout.totalHeight);
   const params: RenderParams = {
@@ -69,6 +75,8 @@ function render(
     selection: null,
     edits,
     cutSites: [],
+    overlay,
+    overlayLanes: previewLanes,
     colorBases: false,
     numberComplement: false,
     scrollTop: 0,
@@ -280,6 +288,8 @@ describe('renderLinearView format options', () => {
       translationLanes: assignLanes([], doc.length),
       selection: null,
       cutSites: [],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
       edits: null,
       colorBases: false,
       numberComplement: true,
@@ -349,5 +359,53 @@ describe('renderLinearView sticky ends', () => {
       'GGGCCCTGCA',
       'CCCGGGACGT',
     ]);
+  });
+});
+
+describe('renderLinearView preview overlay', () => {
+  const doc = SeqDocument.create({ sequence: 'ACGTACGTACACGTACGTAC' });
+  // What the Primers tab shows for a pair: the product, and a primer on it.
+  const preview: OverlaySpan[] = [
+    {
+      id: 'product',
+      label: 'Product 20 bp',
+      range: { start: 0, end: 20 },
+      strand: 'none',
+      shape: 'span',
+    },
+    {
+      id: 'forward',
+      label: 'Fwd 1',
+      range: { start: 0, end: 10 },
+      strand: 'forward',
+      shape: 'arrow',
+    },
+  ];
+
+  it('draws the preview dashed, in a band outside the feature lanes', () => {
+    const svg = render(doc, false, null, { overlay: preview });
+    expect(svg).toContain('stroke-dasharray="4 3"');
+    // Ruler and two strands take 60px; the product takes the first preview
+    // lane (it is the longer) and the primer the second, 16px further down.
+    const label = texts(svg).find((t) => t.text === 'Fwd 1');
+    expect(label).toEqual({ text: 'Fwd 1', x: 104, y: 84 });
+    // The bracket's label is centred over it.
+    expect(texts(svg).find((t) => t.text === 'Product 20 bp')).toEqual({
+      text: 'Product 20 bp',
+      x: 150,
+      y: 68,
+    });
+  });
+
+  it('makes room for the band in every row the preview touches', () => {
+    const plain = /height="(\d+)"/.exec(render(doc, false))?.[1];
+    const withPreview = /height="(\d+)"/.exec(render(doc, false, null, { overlay: preview }))?.[1];
+    // Rows of 10 bases: both carry the product, only the first the primer.
+    expect(plain).toBe('140');
+    expect(withPreview).toBe(String(140 + 2 * 16 + 1 * 16));
+  });
+
+  it('leaves the view alone when nothing is previewed', () => {
+    expect(render(doc, false)).not.toContain('stroke-dasharray');
   });
 });

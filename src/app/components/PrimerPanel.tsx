@@ -1,9 +1,10 @@
 import { analytics } from '../analytics';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   type BindingSite,
   type PrimerPair,
+  type Range,
   type SeqDocument,
   analyzePrimer,
   createFeature,
@@ -11,7 +12,9 @@ import {
   findPrimerBindingSites,
   isEmptyRange,
   rangeSegment,
+  unrollRange,
 } from '@/core';
+import { type OverlaySpan } from '@/view/overlay';
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -26,6 +29,57 @@ function pct(x: number): string {
 
 function tm(x: number): string {
   return Number.isNaN(x) ? '–' : `${x.toFixed(1)} °C`;
+}
+
+/**
+ * The stretch a pair amplifies: the forward primer's 5′ end through the
+ * reverse primer's. Unrolled, because on a plasmid the product may be the
+ * piece that runs over the origin.
+ */
+function productRange(pair: PrimerPair, seqLength: number): Range {
+  return unrollRange(pair.forwardSite.start, pair.reverseSite.end, seqLength);
+}
+
+/**
+ * What a pair looks like in the views before it is anything in the
+ * document: the two sites as arrows and the product between them as a
+ * bracket. Nothing here is an edit, so three candidates can be compared
+ * without three add-and-undo rounds.
+ */
+function pairPreview(pair: PrimerPair, n: number, seqLength: number): OverlaySpan[] {
+  return [
+    {
+      id: 'product',
+      label: `Product ${pair.productLength.toLocaleString()} bp`,
+      range: productRange(pair, seqLength),
+      strand: 'none',
+      shape: 'span',
+    },
+    {
+      id: 'forward',
+      label: `Fwd ${n}`,
+      range: pair.forwardSite,
+      strand: 'forward',
+      shape: 'arrow',
+    },
+    {
+      id: 'reverse',
+      label: `Rev ${n}`,
+      range: pair.reverseSite,
+      strand: 'reverse',
+      shape: 'arrow',
+    },
+  ];
+}
+
+function sitePreview(sites: readonly BindingSite[]): OverlaySpan[] {
+  return sites.map((s, i) => ({
+    id: `site-${i}`,
+    label: s.mismatches === 0 ? 'Primer' : `Primer (${s.mismatches} mm)`,
+    range: s.range,
+    strand: s.strand,
+    shape: 'arrow' as const,
+  }));
 }
 
 function addPrimerFeature(
@@ -49,6 +103,9 @@ export function PrimerPanel({ doc }: Props) {
   const [probe, setProbe] = useState('');
   const [pairs, setPairs] = useState<PrimerPair[] | null>(null);
   const [designedFor, setDesignedFor] = useState<string>('');
+  /** The pair whose preview is held on screen, and the one under the pointer. */
+  const [shown, setShown] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   const hasTarget = selection !== null && !isEmptyRange(selection);
   const report = useMemo(() => (probe.trim() === '' ? null : analyzePrimer(probe)), [probe]);
@@ -60,12 +117,48 @@ export function PrimerPanel({ doc }: Props) {
     [doc, report],
   );
 
+  // A pair held on screen wins over one merely under the pointer, and the
+  // binding sites of "Check a primer" show when no pair is being looked at.
+  const previewed = useMemo<OverlaySpan[]>(() => {
+    const index = shown ?? hovered;
+    if (index !== null) {
+      const pair = pairs?.[index];
+      if (pair !== undefined) return pairPreview(pair, index + 1, doc.length);
+    }
+    return sitePreview(sites);
+  }, [shown, hovered, pairs, sites, doc.length]);
+
+  useEffect(() => {
+    editorStore.setPreview('primers', previewed);
+  }, [previewed]);
+  // Leaving the tab takes this panel's preview with it, and nobody else's.
+  useEffect(
+    () => () => {
+      editorStore.clearPreview('primers');
+    },
+    [],
+  );
+
   const design = (): void => {
     if (selection === null) return;
     analytics.track('primers', 'design');
     const result = designPrimers(doc.sequence.toString(), doc.topology, selection);
     setPairs(result);
+    setShown(null);
+    setHovered(null);
     setDesignedFor(`${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()}`);
+  };
+
+  /** Holds a pair's preview on screen and selects what it would amplify. */
+  const showPair = (index: number, pair: PrimerPair): void => {
+    if (shown === index) {
+      setShown(null);
+      return;
+    }
+    setShown(index);
+    const product = productRange(pair, doc.length);
+    editorStore.setSelection(product);
+    editorStore.revealPosition(product.start);
   };
 
   return (
@@ -95,7 +188,22 @@ export function PrimerPanel({ doc }: Props) {
             ) : (
               <ol className="pair-list">
                 {pairs.map((p, i) => (
-                  <li key={i} className="pair">
+                  <li
+                    key={i}
+                    className={`pair${shown === i ? ' pair--shown' : ''}`}
+                    onMouseEnter={() => {
+                      setHovered(i);
+                    }}
+                    onMouseLeave={() => {
+                      setHovered((h) => (h === i ? null : h));
+                    }}
+                    onFocus={() => {
+                      setHovered(i);
+                    }}
+                    onBlur={() => {
+                      setHovered((h) => (h === i ? null : h));
+                    }}
+                  >
                     <div className="pair__row">
                       <span className="pair__label">Fwd</span>
                       <span className="pair__seq">{p.forward.sequence}</span>
@@ -115,26 +223,38 @@ export function PrimerPanel({ doc }: Props) {
                         Product {p.productLength.toLocaleString()} bp, ΔTm{' '}
                         {p.tmDifference.toFixed(1)} °C
                       </span>
-                      <button
-                        type="button"
-                        className="button button--quiet button--small"
-                        onClick={() => {
-                          addPrimerFeature(
-                            `Fwd primer ${i + 1}`,
-                            p.forwardSite,
-                            'forward',
-                            p.forward.sequence,
-                          );
-                          addPrimerFeature(
-                            `Rev primer ${i + 1}`,
-                            p.reverseSite,
-                            'reverse',
-                            p.reverse.sequence,
-                          );
-                        }}
-                      >
-                        Add both as features
-                      </button>
+                      <span className="pair__buttons">
+                        <button
+                          type="button"
+                          className="button button--quiet button--small"
+                          aria-pressed={shown === i}
+                          onClick={() => {
+                            showPair(i, p);
+                          }}
+                        >
+                          {shown === i ? 'Hide' : 'Show'}
+                        </button>
+                        <button
+                          type="button"
+                          className="button button--quiet button--small"
+                          onClick={() => {
+                            addPrimerFeature(
+                              `Fwd primer ${i + 1}`,
+                              p.forwardSite,
+                              'forward',
+                              p.forward.sequence,
+                            );
+                            addPrimerFeature(
+                              `Rev primer ${i + 1}`,
+                              p.reverseSite,
+                              'reverse',
+                              p.reverse.sequence,
+                            );
+                          }}
+                        >
+                          Add both as features
+                        </button>
+                      </span>
                     </div>
                   </li>
                 ))}

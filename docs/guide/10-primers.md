@@ -15,9 +15,17 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
 3. Up to ten pairs are listed, best first. Each shows the forward and
    reverse primer with its Tm and GC content, the product size and the Tm
    difference between the two.
-4. **Add both as features** annotates the pair as `primer_bind` features
+4. **Show** draws that pair in both views without touching the document:
+   the two sites as dashed arrows pointing the way each primer reads, and
+   the product between them as a bracket (see
+   [Previews](03-viewing.md#previews)). It also selects the product, so the
+   views scroll to it and the status bar gives its length. **Hide** takes it
+   off again, and hovering a pair shows it for as long as the pointer is
+   there — so three candidates can be compared without annotating anything.
+5. **Add both as features** annotates the pair as `primer_bind` features
    (the primer sequence goes in a `/note`), so the sites are on the map and
-   saved with the file.
+   saved with the file. Unlike **Show**, this is an edit: it goes into the
+   History and can be undone.
 
 Candidates are 18–27 nt long with a Tm of 55–65 °C and no more than 3 °C
 apart, and may start up to 200 bp outside the selection so the product
@@ -36,9 +44,10 @@ self-complementary stretch of six or more, or no GC clamp.
 
 With eight or more bases, the tab also searches the document for **binding
 sites** on both strands: the 3′ end must match exactly and up to two
-mismatches are allowed elsewhere. Each site shows its strand, position and
-mismatch count; click one to select it, or **Add sites as primer_bind** to
-annotate them all.
+mismatches are allowed elsewhere. Every site found is previewed in both
+views at once, so off-target binding is visible at a glance. Each site also
+shows its strand, position and mismatch count in the list; click one to
+select it, or **Add sites as primer_bind** to annotate them all.
 
 Use this to check a primer from a paper or an old order against the plasmid
 you have, and to spot off-target binding.
