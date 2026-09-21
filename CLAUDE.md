@@ -113,7 +113,9 @@ features"), and the rough edges the REBASE import left (item 7) are
 cleared. Added 2026-09-20: working copies, so the file a document was opened
 from is never written to (item 22). Added 2026-09-21: **nothing writes to a
 file at all any more** — a document lives in this browser and leaves it as a
-download (item 24). Tests: 638 passing. Perf measurements live in
+download (item 24). Added 2026-09-21: a feature takes its name from the
+qualifiers that suit its type, so `/gene` no longer labels every feature
+inside a gene (item 23). Tests: 640 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -480,8 +482,8 @@ pick from here when the current work is done.
     edges left here are moot under item 24: no file handle is kept to be
     lost on a rename, and undoing back to the original is not possible at
     all, because the copy's history starts under its own name.
-23. **Feature naming: `/gene` outranks `/product`, so one gene's name spreads
-    over every feature that mentions it.** Noticed 2026-09-20 on the bundled
+23. ~~**Feature naming: `/gene` outranks `/product`, so one gene's name spreads
+    over every feature that mentions it.**~~ fixed 2026-09-21. Noticed 2026-09-20 on the bundled
     example, which appears to show "two tet features at 86..1276". It is not
     a parsing bug: J01749 really carries `gene 86..1276 /gene="tet"` and
     `CDS 86..1276 /gene="tet"`, which is how NCBI writes a gene, and `bla` at
@@ -497,25 +499,30 @@ pick from here when the current work is done.
     `misc_binding 469..472` and `old_sequence 526..528` are all labelled
     `tet` too — 7 features named `tet` and 4 named `bla` in one 50-feature
     record.
-    - **Proposed fix: make the precedence type-aware.** `CDS` → `label`,
-      `product`, `gene`; `gene` → `label`, `gene`; everything else →
-      `label`, `product`, `locus_tag`, `standard_name` and *not* `gene`,
-      falling back to the empty name, since the list and the map already show
-      the type (`misc_binding 411..414` then reads as itself). That gives
-      `tet` (gene) and `tetracycline resistance protein` (CDS) on the two
-      rows and drops nine spurious labels.
-    - **Round-trip should survive it**, but check rather than assume:
-      `featureLines` in `writeGenBank.ts` only emits an extra `/label` when
-      the name matches no `NAME_QUALIFIERS` value, so a CDS named from
-      `/product` still writes back unchanged. Run the round-trip fixtures.
-      `NAME_QUALIFIERS` is exported and used by the writer, so a type-aware
-      rule needs a shape both can use.
-    - **Separately: collapse a `gene` that exactly coincides with a `CDS`**
+    - **The precedence is type-aware now.** `NAME_QUALIFIERS` is gone;
+      `nameQualifiersFor(type)` gives `gene` → `label, gene`; `CDS` and the
+      transcripts (`mRNA`, `tRNA`, `rRNA`, `ncRNA`, `tmRNA`, `misc_RNA`,
+      `precursor_RNA`) → `label, product, gene`; everything else →
+      `label, product` and *not* `gene`, each ending in
+      `locus_tag, standard_name` so a CDS or gene carrying only a
+      `/locus_tag` still has a name. Unnamed falls back to the empty string,
+      since the list and the map already show the type (`misc_binding
+      411..414` reads as itself). On the bundled example: `tet` and `bla`
+      went from 7 and 4 features to 1 each, the two CDSs took their own
+      `/product`, and 38 unnamed features became 44 of 50.
+    - **Round-trip survives it**, checked rather than assumed: the fixtures
+      pass, and the writer now asks the *same* question the parser does —
+      `featureLines` compares the name against `deriveFeatureName(type,
+      qualifiers)` rather than against any qualifier in a global list. That
+      also fixes a case the old check got wrong: a CDS renamed to its
+      `/product` while still carrying a `/label` of its own wrote no
+      `/label` and read back under the old one.
+    - **Still open: collapse a `gene` that exactly coincides with a `CDS`**
       of the same name into one bar, as SnapGene does. Display only, no data
-      implications, and worth doing after the naming rather than instead of
-      it — the naming fix alone makes the pair legible.
-    - Neither is started; both change what every opened file looks like, so
-      they want a deliberate decision.
+      implications. Much less pressing now — after the naming fix the pair
+      no longer *has* one name, so there is nothing to collapse on the
+      bundled example; it would only bite a file where both carry the same
+      `/label`.
 24. ~~**One way out: download, never write**~~: done, 2026-09-21, replacing
     the write-back half of item 22. The File System Access API was doing two
     jobs — picking a file to read, and holding a handle to write back to —

@@ -16,14 +16,50 @@ import { type ParseResult, type ParseWarning, FormatError, warning } from '../ty
 import { isEndsComment, parseEndsComment } from './endsComment';
 import { LocationError, parseLocation } from './location';
 
-/** Qualifiers whose value names the feature, in priority order. */
-export const NAME_QUALIFIERS: readonly string[] = [
-  'label',
-  'gene',
-  'product',
-  'locus_tag',
-  'standard_name',
+/**
+ * Qualifiers whose value names the feature, in priority order, by feature type.
+ *
+ * `/gene` is only a name on the feature that *is* the gene or its transcript.
+ * Anywhere else it is a cross-reference to the gene the feature sits inside,
+ * so a `misc_binding` within `tet` carries `/gene="tet"` without being called
+ * tet — taking it as a name puts one gene's label on every feature that
+ * mentions it. `/product` outranks `/gene` on a CDS for the same reason in
+ * reverse: NCBI writes a gene as a `gene` and a `CDS` over the same range,
+ * and it is the CDS's own `/product` that tells the two apart.
+ *
+ * `label` is first everywhere: it is what an editor writes when the user
+ * names a feature themselves.
+ */
+const TAIL_QUALIFIERS: readonly string[] = ['locus_tag', 'standard_name'];
+
+/** Feature types whose `/gene` names them: the gene itself. */
+const GENE_TYPES: readonly string[] = ['gene'];
+
+/**
+ * Feature types that are a gene's product, named by `/product` first and by
+ * the gene they come from second.
+ */
+const PRODUCT_TYPES: readonly string[] = [
+  'CDS',
+  'mRNA',
+  'tRNA',
+  'rRNA',
+  'ncRNA',
+  'tmRNA',
+  'misc_RNA',
+  'precursor_RNA',
 ];
+
+/**
+ * The qualifiers that may name a feature of this type, in priority order.
+ * Used by the parser to derive a name and by the writer to decide whether a
+ * name needs a `/label` of its own, so the two stay in step.
+ */
+export function nameQualifiersFor(type: string): readonly string[] {
+  if (GENE_TYPES.includes(type)) return ['label', 'gene', ...TAIL_QUALIFIERS];
+  if (PRODUCT_TYPES.includes(type)) return ['label', 'product', 'gene', ...TAIL_QUALIFIERS];
+  return ['label', 'product', ...TAIL_QUALIFIERS];
+}
 
 interface Line {
   readonly text: string;
@@ -341,8 +377,13 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
   return features;
 }
 
-function deriveName(qualifiers: readonly Qualifier[]): string {
-  for (const name of NAME_QUALIFIERS) {
+/**
+ * The name a feature of this type takes from its qualifiers, or the empty
+ * string when none of them names it. The writer asks the same question to
+ * decide whether a name needs a `/label` written for it.
+ */
+export function deriveFeatureName(type: string, qualifiers: readonly Qualifier[]): string {
+  for (const name of nameQualifiersFor(type)) {
     const q = qualifiers.find((x) => x.name === name && x.value !== null && x.value.trim() !== '');
     if (q?.value != null) return q.value.trim();
   }
@@ -373,7 +414,7 @@ function buildFeatures(
     out.push(
       createFeature({
         type: rf.key,
-        name: deriveName(qualifiers),
+        name: deriveFeatureName(rf.key, qualifiers),
         strand: parsed.strand,
         segments: parsed.segments,
         qualifiers,

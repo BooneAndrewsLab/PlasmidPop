@@ -2,7 +2,7 @@ import { type Feature, type Reference, type SeqDocument } from '@/core';
 
 import { formatEndsComment, isEndsComment } from './endsComment';
 import { formatLocation } from './location';
-import { NAME_QUALIFIERS } from './parseGenBank';
+import { deriveFeatureName } from './parseGenBank';
 
 const LINE_WIDTH = 79;
 const HEADER_INDENT = 12;
@@ -193,9 +193,10 @@ function locationLines(key: string, location: string): string[] {
 function featureLines(feature: Feature, doc: SeqDocument): string[] {
   const out = locationLines(feature.type, formatLocation(feature, doc.length, doc.topology));
   const name = feature.name.trim();
-  const named = feature.qualifiers.some(
-    (q) => NAME_QUALIFIERS.includes(q.name) && q.value !== null && q.value.trim() === name,
-  );
+  // A /label is needed unless reading this record back would derive the same
+  // name: a misc_feature named after its /gene would not, and neither would a
+  // CDS renamed to its /product while it still carries a /label of its own.
+  const named = deriveFeatureName(feature.type, feature.qualifiers) === name;
   if (name !== '' && !named) out.push(...qualifierLines('label', name));
   for (const q of feature.qualifiers) out.push(...qualifierLines(q.name, q.value));
   return out;

@@ -23,7 +23,28 @@ carries its own colours from ApE or SnapGene, which are used instead.
 
 The `source` feature that GenBank records use for organism metadata is
 listed but not drawn on the views. On the map, features that share a name
-(a gene and its CDS, or a gene and its binding sites) share one label.
+share one label.
+
+## Where a name comes from
+
+GenBank has no one field for a feature's name, so it is taken from the
+qualifiers, and which one wins depends on the type:
+
+- Anything you named yourself wins: a `/label` is used before all others.
+- A **gene** is named by its `/gene`.
+- A **CDS** and the RNAs (`mRNA`, `tRNA`, `rRNA` and kin) are named by their
+  `/product` first, then by their `/gene`. So NCBI's usual pair over the same
+  range reads as two rows — `tet` for the gene and _tetracycline resistance
+  protein_ for the CDS — rather than as `tet` twice.
+- **Every other type** is named by `/product`, `/locus_tag` or
+  `/standard_name`, and never by `/gene`. On a `misc_feature` or a
+  `misc_binding`, `/gene` is a cross-reference to the gene the feature sits
+  inside, not a name of its own; taking it as one would put a single gene's
+  label on every feature within it.
+
+A feature with none of those is listed and drawn under its type, which is
+normal for the `misc_feature`s that fill most records. Rename it (or any
+other) in the Features tab and the name is written back as a `/label`.
 
 ## Adding a feature
 

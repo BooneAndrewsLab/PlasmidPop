@@ -250,7 +250,8 @@ describe('GenBank parser edge cases', () => {
     const result = parseGenBank(text);
     expect(result.warnings).toEqual([]);
     const f = result.documents[0]?.features.all()[0];
-    expect(f?.name).toBe('lacZ');
+    // A CDS is named by its /product, not the /gene it belongs to.
+    expect(f?.name).toBe('beta-galactosidase');
     expect(f?.qualifiers).toEqual([
       { name: 'gene', value: 'lacZ' },
       { name: 'note', value: 'say "hi" and keep going /not-a-qualifier end' },
@@ -266,6 +267,63 @@ describe('GenBank parser edge cases', () => {
     expect(written).toContain('/codon_start=1\n');
     expect(written).toContain('/citation=[1]\n');
     expect(written).not.toContain('/label=');
+  });
+
+  it('takes /gene as a name only on a gene and its products', () => {
+    const text = record(
+      'LOCUS       X 20 bp DNA linear',
+      [
+        '     gene            1..9',
+        '                     /gene="tet"',
+        '     CDS             1..9',
+        '                     /gene="tet"',
+        '                     /product="tetracycline resistance protein"',
+        '     mRNA            1..9',
+        '                     /gene="tet"',
+        '     misc_binding    11..14',
+        '                     /gene="tet"',
+        '     misc_feature    16..17',
+        '                     /gene="tet"',
+        '                     /label="a name of its own"',
+        '     CDS             18..20',
+        '                     /locus_tag="b0001"',
+        '',
+      ].join('\n'),
+    );
+    const doc = only(parseGenBank(text));
+    expect(doc.features.all().map((f) => f.name)).toEqual([
+      'tet',
+      'tetracycline resistance protein',
+      'tet',
+      '',
+      'a name of its own',
+      'b0001',
+    ]);
+    // The names survive a round trip, and nothing gains a /label it did not
+    // have: every one of them is derived from a qualifier already there.
+    const written = writeGenBank(doc);
+    expect(written.match(/\/label=/g)).toHaveLength(1);
+    expect(
+      only(parseGenBank(written))
+        .features.all()
+        .map((f) => f.name),
+    ).toEqual(doc.features.all().map((f) => f.name));
+  });
+
+  it('writes a /label when the name is not what reading back would derive', () => {
+    const text = record(
+      'LOCUS       X 20 bp DNA linear',
+      ['     CDS             1..9', '                     /product="P"', ''].join('\n'),
+    );
+    const doc = only(parseGenBank(text));
+    const id = doc.features.all()[0]?.id ?? '';
+    expect(doc.features.all()[0]?.name).toBe('P');
+    // Renaming it away from /product has to be written down, or the name is
+    // lost to the next read.
+    const renamed = doc.updateFeature(id, { name: 'My CDS' });
+    const written = writeGenBank(renamed);
+    expect(written).toContain('/label="My CDS"');
+    expect(only(parseGenBank(written)).features.all()[0]?.name).toBe('My CDS');
   });
 
   it('derives names by priority and writes /label only when needed', () => {
