@@ -36,9 +36,12 @@ working with no account and no server round-trip.
   Cloud sync is opt-in. Nothing on the user's disk is ever written to: a
   document leaves the app as a download, never through a kept file handle
   (item 24 under "Potential new features").
-- **Backend (thin):** Auth, sync, sharing links, team libraries only. No
-  computation server-side. Node/TS (Hono or Fastify) or Rust/Axum, Postgres,
-  S3-compatible object storage. Supabase is acceptable for a fast launch.
+- **Backend: none** (decided 2026-09-21). The app is a static site and
+  stays one, so it deploys to GitHub Pages with nothing behind it. Auth,
+  sync and team libraries are dropped rather than deferred; sharing, the
+  one piece wanted from them, is a link that carries the document in its
+  URL fragment and needs no server (item 11 under "Potential new
+  features"). Server-side computation was never a goal and still is not.
 - **File formats:** GenBank, FASTA, SnapGene .dna are required from day one.
   Geneious and ApE are nice-to-haves. Teselagen `bio-parsers` is an
   acceptable starting point; plan to own the GenBank writer eventually
@@ -84,12 +87,13 @@ working with no account and no server round-trip.
 9. Local persistence (Dexie), PWA manifest, file open/save via File System
    Access API with download fallback. Matomo tracking (see Stack).
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
-11. Optional backend: auth + sync + share links.
+11. ~~Optional backend~~ — dropped (see Stack); share links instead, item 11.
 
 ## Status (2026-09-21)
 
-Build order steps 1–10 are implemented and committed; step 11 (backend)
-is not started. Beyond the build order, these have landed: Download GenBank
+Build order steps 1–10 are implemented and committed; step 11 (backend) is
+dropped rather than pending — the app stays a static site, and sharing is a
+link, not an account (decided 2026-09-21, item 11). Beyond the build order, these have landed: Download GenBank
 (write-back through the File System Access API came first and item 24 took
 it out again), SVG map export, selection export, find (Ctrl+F), a full
 feature editor, a History sidebar tab, sequence-view / selection SVG
@@ -327,8 +331,60 @@ pick from here when the current work is done.
     (`src/io/genbank/endsComment.ts`). Not yet: filling in or chewing back an
     overhang (Klenow / T4 blunting), ends on the circular map, and any
     carriage through FASTA or SnapGene.
-11. **Backend (step 11)**: auth, sync, share links, team libraries. Needs
-    an auth-provider decision first.
+11. **Sharing, without a backend.** Decided 2026-09-21: the backend is
+    dropped as a goal. Auth, sync and team libraries bought nothing the app
+    needs, and a static site on GitHub Pages — no origin to run, nothing to
+    keep up, no account between a scientist and their plasmid — is worth
+    more than all three. Sharing is the one piece wanted, and it does not
+    need a server: **the document travels in the URL fragment.**
+    - **Why a fragment and not an upload.** Everything after `#` is never
+      sent in the HTTP request, and is not sent in `Referer` either, so a
+      share link carries the sequence to the recipient without it touching
+      Pages, us, or anyone's log. That is the same promise as the rest of
+      the app — no server round-trip, nothing of the science leaves the
+      browser — rather than a carefully-worded exception to it. `File ▸
+      Copy share link` writes `…/#d=<payload>` to the clipboard; opening
+      one decodes it into a new document tab.
+    - **Payload**: `writeGenBank(doc)` through `CompressionStream
+      ('deflate-raw')`, then base64url. Reuses the writer and parser that
+      are already tested, and the ends comment
+      (`src/io/genbank/endsComment.ts`) rides along, so a linear molecule
+      keeps its overhangs. Measured on the fixtures: AJ237582 (206 bp) is a
+      1.3 k-character link, AF177870 (3.1 kb) 3.9 k, L09137 (2.7 kb) 4.5 k,
+      U49845 (5 kb) 5.6 k, pBR322/J01749 (4.4 kb) 10.8 k, NC_001422 (5.4 kb)
+      11.3 k. Every browser takes those; email and chat clients will wrap
+      them, which is the practical limit rather than any hard one.
+    - **A cleverer encoding does not raise the ceiling.** In pBR322's
+      10.8 k, the ORIGIN block accounts for 2.1 k of the compressed bytes
+      and the header, references and 50 features for 5.8 k — it is the
+      annotation text that fills the link, not the bases. Packing the
+      sequence two bits to a base would save about 1 k of 8 k and cost a
+      format of our own. Refuse past some length with a sentence that says
+      to send the file instead; where to put the line wants a look at real
+      records, not a guess.
+    - **Matomo must not see the fragment, and by default it would.** The
+      tracker takes `window.location.href` whole unless `discardHashTag` is
+      set or `setCustomUrl` overrides it, so a page view from an opened
+      share link would post the entire compressed sequence to the analytics
+      instance — precisely the thing `src/app/analytics.ts` promises never
+      to send. Whichever way `PlasmidPop` sharing lands, that call is fixed
+      in the same commit, with a test.
+    - **It is a second way out.** Item 24 made downloading the only way
+      sequence leaves the app; a share link is another, so its framing needs
+      amending and the copy-link action should say in one line what the link
+      contains — a link pasted in a public channel is the whole plasmid.
+      Whether it also deserves `SaveReviewDialog`'s review is doubtful:
+      nothing is being overwritten, and the friction would be out of
+      proportion.
+    - Open: what a document opened from a link is, in item 22's terms —
+      probably `origin: null` like `openExample`, since there is no file on
+      the recipient's disk to be a working copy of, but then the first edit
+      forks nothing and the tab is just a document; whether the link should
+      carry a display name separate from the record's; and whether a link
+      that has grown too long should fall back to a tiny blob store for a
+      short URL. That last one is the decision this item exists to avoid —
+      it would put sequence on a server for the first time — so it stays
+      shut unless someone asks for it with a reason.
 12. ~~**User documentation**~~: done. Fourteen guide pages in
     `docs/guide/` (getting started, files, viewing, editing, features,
     find, enzymes, ORFs, translation, primers, alignment, cloning,
@@ -693,4 +749,6 @@ pick from here when the current work is done.
   rights reserved, so it is imported from the user's own download rather
   than bundled. Only a full bundle would need NEB's permission.
 - Which SnapGene .dna versions to support and where to get test fixtures.
-- Auth provider if/when the backend lands.
+- Auth provider: moot, there is no backend (decided 2026-09-21).
+- Where to refuse a share link for length, and what a document opened from
+  one counts as in item 22's terms (item 11).
