@@ -744,6 +744,101 @@ pick from here when the current work is done.
       seven times.
     - Touches item 21's summary line and item 22's review dialog. No data
       implications — the diff already knows everything needed.
+28. **Drag the boundary between the map and the sequence.** Asked for
+    2026-09-21: in the **Both** view the two panes are a fixed ratio, and a
+    user who wants the map at half the screen cannot have it. The split is
+    `.app__views--both` in `src/styles.css` —
+    `minmax(280px, 2fr) minmax(0, 3fr)` side by side, and under 1000 px
+    `minmax(240px, 1fr) minmax(0, 1.4fr)` stacked with the map on top.
+    - A splitter between the panes, with the fraction remembered in
+      `viewPrefs` beside the other view preferences. Two fractions, not one:
+      the two layouts divide different axes, and a ratio chosen for a wide
+      window is the wrong one stacked. Both views re-measure themselves
+      (`ResizeObserver` in `CircularMapView` and `LinearSequenceView`), so
+      nothing else has to be told the panes changed size; the map keeps its
+      zoom and pan across a resize, which is right — the radius follows the
+      smaller dimension.
+    - Details that decide whether it feels made rather than added:
+      `role="separator"` with `aria-orientation`, arrow keys to move it and
+      a double-click to put it back (a drag handle is easy to make the only
+      way), pointer capture so a fast drag does not lose the grab, and a
+      floor on both sides — the map clamps itself to 200 px, the sequence
+      view needs enough width for a column of bases at the chosen size.
+    - The sidebar is a fixed 330 px (item 18) and wants exactly the same
+      handle on its inner edge, so build the splitter once and use it
+      twice. Guide: `03-viewing.md`.
+29. **Map labels collide once there are more of them than the ring holds.**
+    Reported 2026-09-21 ("kind of overlap on top of each other … unless I
+    zoom in a lot"; the screenshot did not reach the repo, so what follows
+    is measured rather than read off it).
+    - **Where it breaks.** `layoutLabels`
+      (`src/view/circular/circularLayout.ts`) puts every label on a ring
+      outside the backbone, splits them left and right, and nudges each one
+      down until it clears the labels it overlaps horizontally on its own
+      side. When the stack runs past the bottom it is pushed back up, and
+      then every label is clamped with `Math.max(lineHeight / 2, …)`. That
+      final clamp is the collision: the passes can only compress a stack,
+      so once the labels need more height than the canvas has they are laid
+      on top of each other silently. Nothing drops a label and nothing says
+      the map could not show them all.
+    - **Measured** against `layoutLabels` directly, 14 px a line: capacity
+      is `floor(height / LABEL_LINE_HEIGHT)` per side. At 700 × 700 the
+      first overlapping pair appears between 100 and 120 labels; in the map
+      pane of the Both view (about 420 × 560) between 80 and 90; at
+      1000 × 800, 120 labels give 12 overlapping pairs. Below the capacity
+      nothing overlapped in any shape tried — labels clustered like a
+      polylinker, mixed text widths, a short canvas — so it is the count
+      that matters, not the arrangement.
+    - **Cut sites are most of the count.** Feature labels and cut-site
+      labels share one ring so they space against each other (`drawLabels`
+      in `renderCircular.ts`), and a cut label is the whole
+      `EcoRI, ClaI (1,234)`. Ticking the single cutters of an imported
+      REBASE table is about 90 labels on pBR322 before a single feature is
+      named. Zooming in helps because `nearCanvas` drops what has gone off
+      the canvas, which is the symptom the report describes.
+    - **Roughly in order of worth:** (a) never overlap — when the stack will
+      not fit, leave labels out and say how many, the way the enzyme list
+      says what it is not showing; (b) choose what to leave out by rank
+      rather than by angle: a feature over a cut site, a longer feature over
+      a shorter one, a single cutter over a frequent one; (c) a second
+      label ring further out before dropping anything, which is what
+      SnapGene does with a crowded map; (d) 14 px for a 12 px font is tight
+      even where nothing overlaps and the leader lines crisscross — worth
+      looking at with real eyes once (a) is in.
+    - The SVG map export shares this code, so it is fixed in both at once.
+      Check the result by rasterising an `SvgContext` render rather than by
+      reading the layout function — the numbers above say nothing about how
+      it looks. Ask the user for the screenshot, or for the file: their
+      plasmid may be crowded in a way pBR322 is not.
+30. **Filter the enzyme list by how many times an enzyme cuts, not just
+    "once".** Asked for 2026-09-21: dual cutters are what a diagnostic
+    digest wants — BsrGI after an LR reaction, or checking a Golden Gate
+    assembly — and the panel can only narrow to single cutters.
+    - `EnzymePanel` has a `singleOnly` checkbox and filters
+      `g.sites.length === 1`. The generalisation is a small control (any /
+      1 / 2 / 1–2 / ≤3, or a number) in its place, with today's checkbox
+      surviving as one of its values.
+    - Two things are written for the boolean and have to follow it: the
+      offer shown when nothing is ticked, **Tick the N enzymes that cut
+      once** (`singleCutters`, which deliberately ignores the filters), and
+      the footer's "N of M enzymes cut once". The default tick on opening a
+      document stays single cutters (`MAX_DEFAULT_ENZYMES` in
+      `editorStore.ts`) — that is a sensible default, not a filter.
+    - The filter is component state, so it is forgotten on a tab switch and
+      on a reload. Decide whether a cut-count choice is a view preference
+      like the others or belongs to the document being looked at; the
+      supplier filter and the search box have the same question and no
+      answer yet.
+    - **The larger want behind it.** A diagnostic digest is chosen by the
+      *fragment sizes* it gives — two bands far enough apart to tell on a
+      gel — and the panel already computes those for the ticked enzymes
+      (`digestFragments`). "Which enzyme cuts this plasmid into bands I can
+      distinguish" is a different feature from a cut-count filter, and a
+      better answer to the same need: fragment sizes per enzyme in the row,
+      or a sort by how well separated they are. Worth its own item if the
+      filter turns out not to be enough.
+    - Guide: `07-enzymes.md` describes the checkbox twice, in the filters
+      list and in the how-to at the foot.
 
 ## Non-goals for v1
 
