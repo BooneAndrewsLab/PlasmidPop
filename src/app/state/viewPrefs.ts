@@ -1,5 +1,6 @@
 import { type FontSize, isFontSize } from '@/view/linear';
 
+import { type CutCountFilter, isCutCountFilter } from './cutFilter';
 import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
@@ -31,6 +32,9 @@ export interface ViewPrefs {
   readonly layout: LayoutSizes;
   /** Whether the sidebar is shown at all. */
   readonly sidebarOpen: boolean;
+  /** The Enzymes tab's filters; see `SharedState.enzymeCutFilter`. */
+  readonly enzymeCutFilter: CutCountFilter;
+  readonly enzymeSupplier: string;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -77,6 +81,15 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   else if (typeof bases === 'number' && Number.isFinite(bases) && bases >= 10) {
     prefs.seqBasesPerRow = Math.round(bases);
   }
+  if (isCutCountFilter(record['enzymeCutFilter'])) {
+    prefs.enzymeCutFilter = record['enzymeCutFilter'];
+  }
+  // The code is not checked against a table here: which suppliers exist
+  // depends on the imported set, and the panel falls back to "any" for a
+  // code the table in use does not have.
+  if (typeof record['enzymeSupplier'] === 'string') {
+    prefs.enzymeSupplier = record['enzymeSupplier'].slice(0, 8);
+  }
   const layout = record['layout'];
   if (typeof layout === 'object' && layout !== null) {
     const l = layout as Record<string, unknown>;
@@ -120,6 +133,8 @@ function snapshot(): ViewPrefs {
     editsBaseline,
     layout,
     sidebarOpen,
+    enzymeCutFilter,
+    enzymeSupplier,
   } = editorStore.getState();
   return {
     view,
@@ -133,6 +148,8 @@ function snapshot(): ViewPrefs {
     editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
     layout,
     sidebarOpen,
+    enzymeCutFilter,
+    enzymeSupplier,
   };
 }
 
@@ -148,7 +165,9 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.colorBases === b.colorBases &&
     a.editsBaseline === b.editsBaseline &&
     a.layout === b.layout &&
-    a.sidebarOpen === b.sidebarOpen
+    a.sidebarOpen === b.sidebarOpen &&
+    a.enzymeCutFilter === b.enzymeCutFilter &&
+    a.enzymeSupplier === b.enzymeSupplier
   );
 }
 
@@ -173,6 +192,8 @@ export function startViewPrefs(): () => void {
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
   if (stored.layout !== undefined) editorStore.setLayout(stored.layout);
   if (stored.sidebarOpen !== undefined) editorStore.setSidebarOpen(stored.sidebarOpen);
+  if (stored.enzymeCutFilter !== undefined) editorStore.setEnzymeCutFilter(stored.enzymeCutFilter);
+  if (stored.enzymeSupplier !== undefined) editorStore.setEnzymeSupplier(stored.enzymeSupplier);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();

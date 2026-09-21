@@ -24,6 +24,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
 import { copyNameFor } from './derive';
+import { type CutCountFilter } from './cutFilter';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
@@ -247,6 +248,18 @@ export interface SharedState {
    * tab's fragment list keep following the ticks.
    */
   readonly showCutSites: boolean;
+  /**
+   * How often an enzyme may cut to be listed in the Enzymes tab, and whose
+   * catalogue it must be in. Both describe what the user is looking for
+   * rather than the document in front of them — a lab that buys from one
+   * supplier buys from it for every plasmid — so they are kept with the view
+   * preferences and survive a reload. The tab's search box is not: it is a
+   * question about the list in front of you, and coming back to a filtered
+   * list with a forgotten word in the box would be a puzzle.
+   */
+  readonly enzymeCutFilter: CutCountFilter;
+  /** Supplier code, or '' for any; only an imported REBASE table has them. */
+  readonly enzymeSupplier: string;
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
   /**
@@ -343,6 +356,8 @@ const SHARED_INITIAL: SharedState = {
   sidebarTab: 'features',
   sidebarOpen: true,
   showCutSites: true,
+  enzymeCutFilter: 'any',
+  enzymeSupplier: '',
   orfMinCodons: 75,
   assembly: [],
   downloadNotice: null,
@@ -959,6 +974,14 @@ export class EditorStore {
 
   setShownEnzymes(names: Iterable<string>): void {
     this.setActive({ shownEnzymes: new Set(names), enzymesInitialized: true });
+  }
+
+  setEnzymeCutFilter(filter: CutCountFilter): void {
+    if (filter !== this.state.enzymeCutFilter) this.setShared({ enzymeCutFilter: filter });
+  }
+
+  setEnzymeSupplier(code: string): void {
+    if (code !== this.state.enzymeSupplier) this.setShared({ enzymeSupplier: code });
   }
 
   /** Puts every draggable boundary back where it started, sidebar included. */

@@ -21,6 +21,34 @@ function singleCutters(n: number): CutSite[] {
     }));
 }
 
+/**
+ * Cut sites for the first enzymes of the table, one entry per enzyme saying
+ * how many times it cuts.
+ */
+function cutsEach(counts: readonly number[]): CutSite[] {
+  const sites: CutSite[] = [];
+  activeEnzymes()
+    .slice(0, counts.length)
+    .forEach((enzyme, i) => {
+      for (let n = 0; n < (counts[i] ?? 0); n++) {
+        const cut = i * 100 + n * 10 + 1;
+        sites.push({
+          enzyme: enzyme.name,
+          cut,
+          cutBottom: cut,
+          siteStart: cut - 1,
+          strand: 'forward' as const,
+        });
+      }
+    });
+  return sites;
+}
+
+/** The enzyme names of the rows the list is showing. */
+function listed(): (string | null)[] {
+  return [...document.querySelectorAll('.enzyme-row__name')].map((n) => n.textContent);
+}
+
 function setup(sites: readonly CutSite[]) {
   act(() => {
     editorStore.openDocument(doc);
@@ -30,6 +58,13 @@ function setup(sites: readonly CutSite[]) {
 }
 
 describe('EnzymePanel', () => {
+  beforeEach(() => {
+    act(() => {
+      editorStore.setEnzymeCutFilter('any');
+      editorStore.setEnzymeSupplier('');
+    });
+  });
+
   afterEach(() => {
     act(() => {
       editorStore.closeDocument();
@@ -80,5 +115,82 @@ describe('EnzymePanel', () => {
       fireEvent.click(offer);
     });
     expect(editorStore.getState().shownEnzymes.size).toBe(MAX_DEFAULT_ENZYMES + 1);
+  });
+});
+
+describe('EnzymePanel cut-count filter', () => {
+  const COUNTS = [1, 1, 1, 2, 2, 3, 4];
+  const names = activeEnzymes()
+    .slice(0, COUNTS.length)
+    .map((e) => e.name);
+
+  beforeEach(() => {
+    act(() => {
+      editorStore.setEnzymeCutFilter('any');
+    });
+  });
+
+  afterEach(() => {
+    act(() => {
+      editorStore.setEnzymeCutFilter('any');
+      editorStore.closeDocument();
+    });
+  });
+
+  /** Picks a value in the "Cuts" select. */
+  function chooseCuts(value: string): void {
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Cuts'), { target: { value } });
+    });
+  }
+
+  it('lists the enzymes that cut a chosen number of times', () => {
+    setup(cutsEach(COUNTS));
+    expect(screen.getByText(/7 of 127 enzymes cut\./)).toBeInTheDocument();
+    expect(listed()).toEqual(names);
+
+    chooseCuts('twice');
+    expect(listed()).toEqual(names.slice(3, 5));
+    expect(screen.getByText(/2 of 127 enzymes cut twice/)).toBeInTheDocument();
+
+    // A dual digest usually wants either, and three is as many bands as a
+    // gel of a small plasmid is worth reading.
+    chooseCuts('once-or-twice');
+    expect(listed()).toEqual(names.slice(0, 5));
+    chooseCuts('up-to-three');
+    expect(listed()).toEqual(names.slice(0, 6));
+    chooseCuts('once');
+    expect(listed()).toEqual(names.slice(0, 3));
+    expect(screen.getByText(/3 of 127 enzymes cut once/)).toBeInTheDocument();
+
+    // The name filter still applies on top of it.
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter enzymes' }), {
+      target: { value: names[1] ?? '' },
+    });
+    expect(listed()).toEqual([names[1]]);
+  });
+
+  it('offers to tick what the filter asks for, not always the single cutters', () => {
+    setup(cutsEach(COUNTS));
+    act(() => {
+      editorStore.setShownEnzymes([]);
+    });
+    // With no cut-count filter the offer is the single cutters, as ever.
+    expect(screen.getByRole('button', { name: 'Tick the 3 enzymes that cut once' })).toBeVisible();
+    chooseCuts('twice');
+    const offer = screen.getByRole('button', { name: 'Tick the 2 enzymes that cut twice' });
+    act(() => {
+      fireEvent.click(offer);
+    });
+    expect([...editorStore.getState().shownEnzymes]).toEqual(names.slice(3, 5));
+  });
+
+  it('keeps what it was asked for when the panel comes back', () => {
+    const view = setup(cutsEach(COUNTS));
+    chooseCuts('twice');
+    view.unmount();
+    render(<EnzymePanel doc={doc} />);
+    expect(screen.getByLabelText('Cuts')).toHaveValue('twice');
+    expect(listed()).toEqual(names.slice(3, 5));
   });
 });

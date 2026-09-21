@@ -138,7 +138,9 @@ sequence and the sidebar are **dragged** rather than fixed ratios
 (`src/app/components/Splitter.tsx`, one splitter used twice; the fractions and
 the sidebar's width are remembered in `viewPrefs`, **Format ▸ Reset the
 layout** puts them back), and clicking the open sidebar tab collapses the
-sidebar to its rail (item 28). Tests: 710 passing. Perf measurements live in
+sidebar to its rail (item 28), and the Enzymes tab filters by how often an
+enzyme cuts rather than only "once" (item 30; that filter and the supplier one
+are remembered, the search box is not). Tests: 714 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -926,35 +928,47 @@ pick from here when the current work is done.
       tangle where a dozen labels bunch, nothing in the ring is clickable, and
       the label ring is sized for the sans font but `OUTER_MARGIN` is still a
       constant.
-30. **Filter the enzyme list by how many times an enzyme cuts, not just
-    "once".** Asked for 2026-09-21: dual cutters are what a diagnostic
-    digest wants — BsrGI after an LR reaction, or checking a Golden Gate
-    assembly — and the panel can only narrow to single cutters.
-    - `EnzymePanel` has a `singleOnly` checkbox and filters
-      `g.sites.length === 1`. The generalisation is a small control (any /
-      1 / 2 / 1–2 / ≤3, or a number) in its place, with today's checkbox
-      surviving as one of its values.
-    - Two things are written for the boolean and have to follow it: the
-      offer shown when nothing is ticked, **Tick the N enzymes that cut
-      once** (`singleCutters`, which deliberately ignores the filters), and
-      the footer's "N of M enzymes cut once". The default tick on opening a
-      document stays single cutters (`MAX_DEFAULT_ENZYMES` in
-      `editorStore.ts`) — that is a sensible default, not a filter.
-    - The filter is component state, so it is forgotten on a tab switch and
-      on a reload. Decide whether a cut-count choice is a view preference
-      like the others or belongs to the document being looked at; the
-      supplier filter and the search box have the same question and no
-      answer yet.
-    - **The larger want behind it.** A diagnostic digest is chosen by the
-      *fragment sizes* it gives — two bands far enough apart to tell on a
-      gel — and the panel already computes those for the ticked enzymes
+30. ~~**Filter the enzyme list by how many times an enzyme cuts, not just
+    "once".**~~ done, 2026-09-21. Asked for the same day: dual cutters are what a
+    diagnostic digest wants — BsrGI after an LR reaction, or checking a Golden
+    Gate assembly — and the panel could only narrow to single cutters.
+    - **A "Cuts" select** in place of the `singleOnly` checkbox
+      (`src/app/state/cutFilter.ts`: `CutCountFilter` is `any | once | twice |
+      once-or-twice | up-to-three`, with the option label and the phrase a
+      sentence needs beside each value, so the control and the prose cannot
+      drift apart). `matchesCutCount` is the one place the counts are decided;
+      it also refuses a zero, because the list is of enzymes that cut.
+    - **The two things written for the boolean follow it.** The footer reads
+      "N of M enzymes cut twice" through `cutCountPhrase`, and the offer shown
+      when nothing is ticked offers what the filter asks for — "Tick the 4
+      enzymes that cut twice" — falling back to the single cutters when the
+      filter is *any*, which is what it always did. The offer still ignores the
+      name and supplier boxes (it answers "I have nothing on the map", not "the
+      list in front of me"), and it is now capped at `MAX_SHOW_LISTED` like
+      **Show listed**, since "3 times or fewer" over a REBASE table is hundreds
+      of enzymes and more labels than the views can draw. The default tick on
+      opening a document is untouched: single cutters, up to
+      `MAX_DEFAULT_ENZYMES`.
+    - **Where the choice lives, which the item left open: a view preference.**
+      `enzymeCutFilter` and `enzymeSupplier` are in `SharedState` and in
+      `viewPrefs`, so they survive a tab switch and a reload — they say what
+      the user is looking for in general, and a lab that buys from one supplier
+      buys from it for every plasmid. The search box is *not* persisted: it is
+      a question about the list in front of you, and coming back to a filtered
+      list with a forgotten word in the box would be a puzzle. A stored
+      supplier code that the table in use does not have (a different import, or
+      back to the bundled table) is ignored rather than emptying the list.
+    - **Still open: the larger want behind it.** A diagnostic digest is chosen
+      by the *fragment sizes* it gives — two bands far enough apart to tell on
+      a gel — and the panel computes those only for the ticked enzymes
       (`digestFragments`). "Which enzyme cuts this plasmid into bands I can
-      distinguish" is a different feature from a cut-count filter, and a
-      better answer to the same need: fragment sizes per enzyme in the row,
-      or a sort by how well separated they are. Worth its own item if the
-      filter turns out not to be enough.
-    - Guide: `07-enzymes.md` describes the checkbox twice, in the filters
-      list and in the how-to at the foot.
+      distinguish" would be fragment sizes per enzyme in the row, or a sort by
+      how well separated they are; the filter plus the Fragments line is the
+      two-step version of it, and the guide says so.
+    - The control took a row of its own in a 330 px sidebar (the buttons wrap
+      below it); on a sidebar widened past ~430 px they share a line again,
+      which is item 28 paying for itself.
+
 31. **A crowded side of the map places its labels outrageously.** Reported
     2026-09-21 with a screenshot: pBR322 zoomed in, the ring a shallow arc down
     the right of the pane, and the cut sites of 3,400–4,300 labelled in a

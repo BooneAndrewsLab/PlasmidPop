@@ -10,6 +10,12 @@ import {
   overhangKind,
 } from '@/core';
 
+import {
+  CUT_COUNT_OPTIONS,
+  cutCountPhrase,
+  isCutCountFilter,
+  matchesCutCount,
+} from '../state/cutFilter';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { EnzymeImport } from './EnzymeImport';
@@ -62,12 +68,17 @@ function describeEnzyme(enzyme: Enzyme): string {
 }
 
 export function EnzymePanel({ doc }: Props) {
-  const { analysis, shownEnzymes, showCutSites, enzymeSetInfo } = useEditorState();
-  const [singleOnly, setSingleOnly] = useState(false);
+  const { analysis, shownEnzymes, showCutSites, enzymeSetInfo, enzymeCutFilter, enzymeSupplier } =
+    useEditorState();
   const [filter, setFilter] = useState('');
-  const [supplier, setSupplier] = useState('');
   const [importing, setImporting] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
+  // A supplier is a code out of the table in use. A code stored from another
+  // import — or from before "Go back to the bundled table" — names nobody
+  // here, and filtering on it would empty the list with no way to see why.
+  const supplier = enzymeSetInfo.suppliers.some((s) => s.code === enzymeSupplier)
+    ? enzymeSupplier
+    : '';
 
   const groups = useMemo(() => {
     const byName = new Map<string, CutSite[]>();
@@ -102,21 +113,26 @@ export function EnzymePanel({ doc }: Props) {
   const needle = filter.trim().toLowerCase();
   const rows = groups.filter(
     (g) =>
-      g.sites.length > 0 &&
-      (!singleOnly || g.sites.length === 1) &&
+      matchesCutCount(enzymeCutFilter, g.sites.length) &&
       (supplier === '' || g.enzyme.suppliers?.includes(supplier) === true) &&
       (needle === '' ||
         g.enzyme.name.toLowerCase().includes(needle) ||
         g.enzyme.site.toLowerCase().includes(needle)),
   );
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
+  const cutters = groups.length - nonCutters;
   /**
-   * Every enzyme that cuts once, whatever the filters say. This is what a
+   * What the "nothing is ticked" note offers, whatever the name and supplier
+   * boxes say: the enzymes the cut-count filter asks for, or the single
+   * cutters when it is not narrowing anything. Single cutters are what a
    * document ticks by itself when there are few enough of them
-   * (`MAX_DEFAULT_ENZYMES`); with a REBASE table there are too many, and the
-   * note below is how you ask for them anyway.
+   * (`MAX_DEFAULT_ENZYMES`); with a REBASE table there are too many, and this
+   * note is how you ask for them anyway.
    */
-  const singleCutters = groups.filter((g) => g.sites.length === 1).map((g) => g.enzyme.name);
+  const offerFilter = enzymeCutFilter === 'any' ? 'once' : enzymeCutFilter;
+  const offered = groups
+    .filter((g) => matchesCutCount(offerFilter, g.sites.length))
+    .map((g) => g.enzyme.name);
 
   // Only the rows on screen are rendered: an imported table lists thousands.
   const { first, end, padTop, padBottom, attachScroller, attachRow, scrollToTop } = useRowWindow(
@@ -126,7 +142,7 @@ export function EnzymePanel({ doc }: Props) {
   // A new filter is a new list, and the old scroll position means nothing in it.
   useEffect(() => {
     scrollToTop();
-  }, [needle, supplier, singleOnly, scrollToTop]);
+  }, [needle, supplier, enzymeCutFilter, scrollToTop]);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -148,15 +164,24 @@ export function EnzymePanel({ doc }: Props) {
             setFilter(e.target.value);
           }}
         />
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={singleOnly}
+        <label className="panel__field">
+          <span>Cuts</span>
+          <select
+            className="panel__select"
+            value={enzymeCutFilter}
+            title="List only the enzymes that cut this many times — two for a diagnostic digest, one for a cloning site"
             onChange={(e) => {
-              setSingleOnly(e.target.checked);
+              editorStore.setEnzymeCutFilter(
+                isCutCountFilter(e.target.value) ? e.target.value : 'any',
+              );
             }}
-          />
-          Single cutters only
+          >
+            {CUT_COUNT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </label>
         {enzymeSetInfo.suppliers.length > 0 && (
           <label className="panel__field panel__field--row">
@@ -165,7 +190,7 @@ export function EnzymePanel({ doc }: Props) {
               className="panel__select"
               value={supplier}
               onChange={(e) => {
-                setSupplier(e.target.value);
+                editorStore.setEnzymeSupplier(e.target.value);
               }}
             >
               <option value="">Any supplier</option>
@@ -219,20 +244,24 @@ export function EnzymePanel({ doc }: Props) {
           </button>
         </p>
       )}
-      {ready && shownEnzymes.size === 0 && singleCutters.length > 0 && (
+      {ready && shownEnzymes.size === 0 && cutters > 0 && (
         <p className="panel__note">
           Nothing is ticked, so no cut sites are drawn and the Cloning tab has nothing to digest
           with.{' '}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              editorStore.setShownEnzymes(singleCutters);
-            }}
-          >
-            Tick the {singleCutters.length} enzymes that cut once
-          </button>
-          .
+          {offered.length > 0 && offered.length <= MAX_SHOW_LISTED && (
+            <>
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.setShownEnzymes(offered);
+                }}
+              >
+                Tick the {offered.length} enzymes that {cutCountPhrase(offerFilter)}
+              </button>
+              .
+            </>
+          )}
         </p>
       )}
       {!ready ? (
@@ -287,8 +316,8 @@ export function EnzymePanel({ doc }: Props) {
             </ul>
           </div>
           <p className="panel__note">
-            {rows.length.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()} enzymes cut
-            {singleOnly ? ' once' : ''}
+            {rows.length.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()} enzymes{' '}
+            {cutCountPhrase(enzymeCutFilter)}
             {supplier === '' ? '' : ' and are sold by that supplier'}. {nonCutters.toLocaleString()}{' '}
             do not cut.
           </p>

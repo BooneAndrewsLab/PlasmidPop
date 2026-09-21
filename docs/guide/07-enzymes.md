@@ -37,16 +37,31 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   — which happens with an imported REBASE table, where a small fragment can
   have ninety unique cutters — nothing is ticked instead, because ninety
   labels is a wall rather than a starting point. The tab then offers **Tick
-  the N enzymes that cut once** if you want them after all.
+  the N enzymes that cut once** if you want them after all; with a **Cuts**
+  filter set, it offers those instead — **Tick the N enzymes that cut
+  twice**.
 - Tick or untick individual enzymes. **Show listed** ticks every enzyme
   currently in the (filtered) list, **Hide all** clears them. Show listed
   asks for a narrower list past 200 enzymes: more labels than that is more
   than the views can draw.
 - **Filter** by name (`Eco`) or by site (`GGATCC`).
-- **Single cutters only** hides enzymes with more than one site.
+- **Cuts** lists only the enzymes that cut a chosen number of times: once (a
+  unique site to clone into), twice, once or twice, or three times or fewer.
+  A **diagnostic digest** is the usual reason for wanting more than one — an
+  enzyme that cuts twice gives two bands to check a construct against, where
+  a unique cutter only linearises it. **Any number** is the default.
 - **Sold by** narrows the list to one supplier's catalogue. It appears only
   after you import a REBASE table, which is where the supplier information
   comes from.
+
+**Cuts** and **Sold by** are remembered between sessions, like the toolbar's
+view settings: they say what you are generally looking for rather than
+anything about the document. The name filter is not — it is a question about
+the list in front of you, not a standing choice.
+
+To pick a **diagnostic digest**, set **Cuts** to _Twice_, tick a candidate,
+and read the **Fragments from ticked enzymes** line below the list: two bands
+far enough apart to tell on a gel is what you are after.
 
 Cut sites of the ticked enzymes are drawn in the sequence view (a mark with
 the enzyme name above the bases) and on the map (labels around the ring), and
@@ -90,8 +105,8 @@ tab.
 
 1. Open the **Enzymes** tab.
 2. Type the enzyme name in the filter box.
-3. Look at the number of cut positions in its row. Tick **Single cutters
-   only** to list all unique cutters at once.
+3. Look at the number of cut positions in its row. Set **Cuts** to _Once_ to
+   list all unique cutters at once.
 
 ## Importing the full REBASE table
 

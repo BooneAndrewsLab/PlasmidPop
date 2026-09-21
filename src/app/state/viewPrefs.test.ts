@@ -19,6 +19,8 @@ const DEFAULTS = {
   editsBaseline: 'opened',
   layout: DEFAULT_LAYOUT,
   sidebarOpen: true,
+  enzymeCutFilter: 'any',
+  enzymeSupplier: '',
 } as const;
 
 function reset(): void {
@@ -34,6 +36,8 @@ function reset(): void {
   editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
   editorStore.setLayout(DEFAULT_LAYOUT);
   editorStore.setSidebarOpen(true);
+  editorStore.setEnzymeCutFilter(DEFAULTS.enzymeCutFilter);
+  editorStore.setEnzymeSupplier(DEFAULTS.enzymeSupplier);
 }
 
 describe('view preferences', () => {
@@ -56,6 +60,8 @@ describe('view preferences', () => {
       editsBaseline: 'saved',
       layout: { viewsSplit: 0.5, viewsSplitStacked: 0.3, sidebarWidth: 420 },
       sidebarOpen: false,
+      enzymeCutFilter: 'twice',
+      enzymeSupplier: 'N',
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -96,6 +102,8 @@ describe('view preferences', () => {
       editsBaseline: 'off',
       layout: { viewsSplit: 0.62, viewsSplitStacked: 0.5, sidebarWidth: 420 },
       sidebarOpen: false,
+      enzymeCutFilter: 'once-or-twice',
+      enzymeSupplier: 'N',
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -110,6 +118,8 @@ describe('view preferences', () => {
       editsBaseline: 'off',
       layout: { viewsSplit: 0.62, viewsSplitStacked: 0.5, sidebarWidth: 420 },
       sidebarOpen: false,
+      enzymeCutFilter: 'once-or-twice',
+      enzymeSupplier: 'N',
     });
     stop();
   });
@@ -166,6 +176,16 @@ describe('view preferences', () => {
     editorStore.resetLayout();
     expect(loadViewPrefs()).toMatchObject({ sidebarOpen: true, layout: DEFAULT_LAYOUT });
     stop();
+  });
+
+  it('remembers what the Enzymes tab is looking for, but not a made-up filter', () => {
+    const stop = startViewPrefs();
+    editorStore.setEnzymeCutFilter('twice');
+    editorStore.setEnzymeSupplier('N');
+    expect(loadViewPrefs()).toMatchObject({ enzymeCutFilter: 'twice', enzymeSupplier: 'N' });
+    stop();
+    localStorage.setItem(KEY, JSON.stringify({ enzymeCutFilter: 'sometimes' }));
+    expect(loadViewPrefs()).toEqual({});
   });
 
   it('records where a splitter was left', () => {
