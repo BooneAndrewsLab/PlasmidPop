@@ -105,8 +105,9 @@ always on when configured, no user toggle by decision of 2026-09-18;
 events at file open/new/download/export, enzyme show, primer design, align,
 ligate, history jump, edit-mark baseline; the Pages workflow sets the
 instance URL and site id 6). The view switcher, the Complement /
-Translations / Cut sites toggles, the Format menu's sequence-view options
-and the Edits baseline are remembered in localStorage
+Translations / Cut sites toggles, the Format menu's sequence-view options,
+the Edits baseline, the pane sizes and whether the sidebar is open are
+remembered in localStorage
 (`src/app/state/viewPrefs.ts`, applied and watched by `useViewPrefs`);
 documents and enzyme ticks are unaffected. The logo
 (`design/logo/`, made in Claude Design) is used for the favicon, PWA icons (`scripts/make-icons.sh`) and the toolbar lockup
@@ -132,7 +133,12 @@ export grows its canvas instead of dropping anything (item 29). Added 2026-09-21
 **preview channel** both views draw beside the document's own annotation
 (`src/view/overlay.ts`), used by the Primers tab for a designed pair and its
 product and by Find for every match at once, so weighing up candidates costs
-no edit (item 26). Tests: 689 passing. Perf measurements live in
+no edit (item 26). Added 2026-09-21: the boundaries between the map, the
+sequence and the sidebar are **dragged** rather than fixed ratios
+(`src/app/components/Splitter.tsx`, one splitter used twice; the fractions and
+the sidebar's width are remembered in `viewPrefs`, **Format ▸ Reset the
+layout** puts them back), and clicking the open sidebar tab collapses the
+sidebar to its rail (item 28). Tests: 710 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -749,29 +755,51 @@ pick from here when the current work is done.
       seven times.
     - Touches item 21's summary line and item 22's review dialog. No data
       implications — the diff already knows everything needed.
-28. **Drag the boundary between the map and the sequence.** Asked for
-    2026-09-21: in the **Both** view the two panes are a fixed ratio, and a
-    user who wants the map at half the screen cannot have it. The split is
-    `.app__views--both` in `src/styles.css` —
-    `minmax(280px, 2fr) minmax(0, 3fr)` side by side, and under 1000 px
-    `minmax(240px, 1fr) minmax(0, 1.4fr)` stacked with the map on top.
-    - A splitter between the panes, with the fraction remembered in
-      `viewPrefs` beside the other view preferences. Two fractions, not one:
-      the two layouts divide different axes, and a ratio chosen for a wide
-      window is the wrong one stacked. Both views re-measure themselves
-      (`ResizeObserver` in `CircularMapView` and `LinearSequenceView`), so
-      nothing else has to be told the panes changed size; the map keeps its
-      zoom and pan across a resize, which is right — the radius follows the
-      smaller dimension.
-    - Details that decide whether it feels made rather than added:
-      `role="separator"` with `aria-orientation`, arrow keys to move it and
-      a double-click to put it back (a drag handle is easy to make the only
-      way), pointer capture so a fast drag does not lose the grab, and a
-      floor on both sides — the map clamps itself to 200 px, the sequence
-      view needs enough width for a column of bases at the chosen size.
-    - The sidebar is a fixed 330 px (item 18) and wants exactly the same
-      handle on its inner edge, so build the splitter once and use it
-      twice. Guide: `03-viewing.md`.
+28. ~~**Drag the boundary between the map and the sequence.**~~ done,
+    2026-09-21. Asked for the same day: in the **Both** view the two panes were
+    a fixed ratio (`minmax(280px, 2fr) minmax(0, 3fr)`, and stacked under
+    1000 px `minmax(240px, 1fr) minmax(0, 1.4fr)`), and a user who wanted the
+    map at half the screen could not have it.
+    - **One `Splitter`, used twice** (`src/app/components/Splitter.tsx`): a grid
+      item of its own between two panes, so the panes stay plain children and
+      the container only has to give the track a width. It reads the geometry
+      off the DOM — its own parent is the container — rather than being told
+      the sizes, which is why nothing had to be taught that the panes changed:
+      both views already re-measure themselves with a `ResizeObserver`, and the
+      map keeps its zoom and pan across a resize. `onMove` hands back the first
+      pane's size and the room the two share, both in px and already held to
+      the floors (map 200, sequence 260 wide or 160 tall, sidebar 240, editor
+      360); the caller turns that into whatever it stores. `role="separator"`
+      with `aria-orientation`, `aria-valuenow`/`valuetext`, arrow keys (16 px),
+      Page Up/Down (64 px), Home/End to either floor, double-click to put that
+      one boundary back, and pointer capture so a fast drag keeps the grab.
+      Whether a drag is under way is a **ref**, not state: the first
+      `pointermove` can arrive before React has re-rendered, and a boundary
+      that ignores it jumps when the second one lands (found in the browser,
+      not by the tests, which flush between events).
+    - **Two fractions and a width**, in `SharedState.layout`
+      (`src/app/state/layout.ts`), remembered with the other view preferences:
+      `viewsSplit` for the side-by-side layout, `viewsSplitStacked` for the
+      stacked one — a ratio chosen for a wide window is the wrong one on the
+      other axis — and `sidebarWidth` in px. The breakpoints are named there
+      as well as in `styles.css` (`useMediaQuery`), because the handle has to
+      know which axis it is dividing; the stylesheet keeps the old ratios as
+      the fallback. **Format ▸ Reset the layout** (`resetLayout`) puts all
+      three back and opens the sidebar.
+    - **The sidebar puts itself away.** Asked for alongside it: clicking the
+      sidebar tab that is already open collapses the sidebar to its 30 px rail
+      (`sidebarOpen`, `.sidebar--collapsed`), giving the views the whole width,
+      and clicking any label opens it again on that tab — the tool-window
+      behaviour of the IDEs the rail was modelled on (item 18). The rail is
+      always there, so there is no separate control to hide or show it and no
+      way to get stuck; the panel is `hidden` rather than unmounted, so what
+      was typed into it survives. A toolbar toggle was built first and taken
+      out again as redundant.
+    - Not yet: no key binding to collapse the sidebar or to move a boundary
+      without tabbing to it; the stacked (≤720 px) sidebar is still a fixed
+      200 px row with no handle, which belongs with item 15; and a splitter
+      cannot be dragged past its floor to collapse a pane.
+
 29. ~~**Map labels are written over by the ruler, and drift across the map as
     they are spaced.**~~ fixed 2026-09-21. Reported 2026-09-21 ("the map labels
     are kind of overlap on top of each other … unless I zoom in a lot") with a
@@ -927,6 +955,42 @@ pick from here when the current work is done.
       filter turns out not to be enough.
     - Guide: `07-enzymes.md` describes the checkbox twice, in the filters
       list and in the how-to at the foot.
+31. **A crowded side of the map places its labels outrageously.** Reported
+    2026-09-21 with a screenshot: pBR322 zoomed in, the ring a shallow arc down
+    the right of the pane, and the cut sites of 3,400–4,300 labelled in a
+    column far out to the left — `SspI (4,171)`, `ScaI (3,847)`,
+    `PvuI (3,737)`, `ZraI (4,287)`, `PstI (3,612)`, `AseI (3,539)`,
+    `BsaI (3,428)` — with long leaders fanning across the gap and crossing each
+    other, and the labels not in the order their ticks are. Item 29 fixed
+    labels landing *on top of* one another (0 collisions in 128 renders); this
+    is the cost it paid for that, and it shows worst zoomed in, where one
+    crowded arc holds every label at once.
+    - **Where it comes from.** `layoutLabels` (`src/view/circular/
+      circularLayout.ts`) places in rank order and gives each label the free
+      slot nearest its own anchor, sliding along the ring up to `maxShift`
+      (`lineHeight * 16`, about 192 px). Nothing makes a later label yield to
+      an earlier one's *position*, so the angular order is not kept and two
+      leaders may cross; nothing charges for the length of a leader either, so
+      a label will slide 190 px rather than be dropped. Zoomed in the ring's
+      radius is large, so a slide of that many pixels is a small angle and the
+      whole crowd ends up stacked at the same end of the arc.
+    - **What would fix it**, roughly in order of how much it changes: place
+      each side's labels in *angular* order and spread them with the standard
+      one-pass "push down, then push back" over the sorted list, which cannot
+      produce a crossing; or charge for the slide (drop a label rather than
+      take a slot more than a few line heights away, which the `+N` count
+      already makes affordable); or scale `maxShift` with the radius so the
+      cap is an angle rather than a pixel distance.
+    - The harness to measure it is already there
+      (`src/view/circular/labelCollisions.test.ts`, `LABEL_REPORT=1`), but it
+      counts overlapping boxes, and none of this overlaps. It needs a second
+      measure — leader length and the number of crossing leaders — and a case
+      zoomed into one arc, which is the state the screenshot was taken in.
+    - Related: item 29's own "not yet" list already names the near-parallel
+      tangle of leaders where a dozen labels bunch, and a second label ring as
+      the thing that would raise how much fits rather than how well it is
+      spaced.
+
 
 ## Non-goals for v1
 
