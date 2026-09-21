@@ -57,11 +57,20 @@ function RenameField({ feature }: { readonly feature: Feature }) {
 }
 
 export function FeatureList({ doc }: Props) {
-  const { selection, renameRequest, editingFeatureId } = useEditorState();
+  const { selection, selectedFeatureId, renameRequest, editingFeatureId } = useEditorState();
   const features = doc.features.all();
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
-  const selectedId = features.find((f) => isSelected(f, selection))?.id ?? null;
+  // A gene and the CDS inside it can cover exactly the same bases, so the
+  // selection alone does not say which was clicked. When the store knows —
+  // the selection came from a click on a feature, and that feature still
+  // covers it — only that row is the selected one.
+  const precise =
+    selectedFeatureId !== null &&
+    features.some((f) => f.id === selectedFeatureId && isSelected(f, selection))
+      ? selectedFeatureId
+      : null;
+  const selectedId = precise ?? features.find((f) => isSelected(f, selection))?.id ?? null;
 
   // Selecting a feature somewhere else — a click on the map, a find — brings
   // its row into view, as does opening this tab with one already selected.
@@ -86,9 +95,7 @@ export function FeatureList({ doc }: Props) {
       ) : (
         <ul className="features__list">
           {features.map((f) => {
-            // Two features may share an extent (a gene and its CDS), and the
-            // selection matches both; only the first carries the ref.
-            const selected = isSelected(f, selection);
+            const selected = precise === null ? isSelected(f, selection) : f.id === precise;
             return (
               <li
                 key={f.id}

@@ -101,7 +101,9 @@ A linear sequence is drawn as an open ring with a gap at the ends.
   On a circular sequence the selection runs clockwise from where you started
   and may cross the origin.
 - **Click** a feature arc to select the feature; if the **Features** tab is
-  open its row scrolls into view. **Double-click** the arc to zoom in on it.
+  open, its row is highlighted on its own and scrolls into view — even where
+  another feature covers exactly the same bases, as a gene and its CDS often
+  do. **Double-click** the arc to zoom in on it.
 - **Click** empty space — inside the circle, or outside it — to clear the
   selection.
 - **Wheel** or **pinch** to zoom about the pointer; **double-click** empty

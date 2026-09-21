@@ -728,7 +728,23 @@ function drawLabels(
    * that slid along the ring is joined to its feature by a line that runs
    * beside the ring rather than across the map.
    */
-  const drawLeader = (label: PlacedLabel, highlighted: boolean): void => {
+  const lanePoint = (feature: Feature, angle: number): { x: number; y: number } => {
+    const lane = p.lanes.laneOf.get(feature.id) ?? 0;
+    const r = layout.laneRadius(lane) + layout.ringWidth / 2;
+    return { x: layout.cx + r * Math.cos(angle), y: layout.cy + r * Math.sin(angle) };
+  };
+
+  const drawLeader = (
+    label: PlacedLabel,
+    highlighted: boolean,
+    /**
+     * Where the leader begins, when that is not the labelled feature's own
+     * lane: the pointer may be on a feature that shares the label (a CDS and
+     * the mat_peptide inside it), and the line has to reach the arc under it
+     * rather than stopping at the arc that happens to own the label.
+     */
+    from?: { x: number; y: number },
+  ): void => {
     const isCut = label.id.startsWith(CUT_PREFIX);
     let start: { x: number; y: number };
     if (isCut) {
@@ -744,12 +760,7 @@ function drawLabels(
     } else {
       const feature = byId.get(label.id);
       if (feature === undefined) return;
-      const lane = p.lanes.laneOf.get(feature.id) ?? 0;
-      const r = layout.laneRadius(lane) + layout.ringWidth / 2;
-      start = {
-        x: layout.cx + r * Math.cos(label.angle),
-        y: layout.cy + r * Math.sin(label.angle),
-      };
+      start = from ?? lanePoint(feature, label.angle);
     }
     const elbow = {
       x: layout.cx + (layout.radius + m.elbow) * Math.cos(label.angle),
@@ -795,7 +806,13 @@ function drawLabels(
   }
   if (hovered !== null) {
     const color = hovered.id.startsWith(CUT_PREFIX) ? theme.cutSite : theme.ink;
-    drawLeader(hovered, true);
+    drawLeader(
+      hovered,
+      true,
+      hoveredFeature === undefined || hoveredAngle === null
+        ? undefined
+        : lanePoint(hoveredFeature, hoveredAngle),
+    );
     drawBubble(ctx, p, hovered.box, color);
     ctx.fillStyle = color;
     ctx.textAlign = hovered.align;
@@ -806,12 +823,8 @@ function drawLabels(
   // for it, with a leader of its own back to the thing it names.
   if (hovered === null) {
     if (hoveredFeature !== undefined && hoveredFeature.name !== '' && hoveredAngle !== null) {
-      const lane = p.lanes.laneOf.get(hoveredFeature.id) ?? 0;
-      const r = layout.laneRadius(lane) + layout.ringWidth / 2;
-      drawFloatingLabel(ctx, p, m, hoveredFeature.name, hoveredAngle, theme.ink, {
-        x: layout.cx + r * Math.cos(hoveredAngle),
-        y: layout.cy + r * Math.sin(hoveredAngle),
-      });
+      const start = lanePoint(hoveredFeature, hoveredAngle);
+      drawFloatingLabel(ctx, p, m, hoveredFeature.name, hoveredAngle, theme.ink, start);
     } else if (p.hoveredCut !== null) {
       const names = cutsByPosition.get(p.hoveredCut);
       if (names !== undefined)

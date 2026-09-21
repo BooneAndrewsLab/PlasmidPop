@@ -268,5 +268,25 @@ describe('renderCircularMap labels', () => {
     // in the leader colour.
     expect(svg).toContain(`stroke="${PRINT_THEME.ink}"`);
     expect(render(null)).not.toContain(`stroke="${PRINT_THEME.ink}"`);
+    // It reaches the arc under the pointer, which is a lane in from the one
+    // that owns the label: a leader that stopped at the labelled feature's
+    // own lane pointed at the wrong arc.
+    const layout = new CircularLayout(doc.length, doc.topology, {
+      width: 700,
+      height: 700,
+      laneCount: lanes.laneCount,
+      ringWidth: 14,
+      outerMargin: 110,
+    });
+    // The leader is the ink polyline; the hovered arc's own outline is an
+    // arc path, and is stroked in ink too.
+    const leader = new RegExp(
+      `<path d="M([\\d.]+) ([\\d.]+) L[^"]*" fill="none" stroke="${PRINT_THEME.ink}"`,
+    ).exec(svg);
+    expect(leader).not.toBeNull();
+    const lane = lanes.laneOf.get(collapsed?.id ?? '') ?? 0;
+    expect(
+      Math.hypot(Number(leader?.[1]) - layout.cx, Number(leader?.[2]) - layout.cy),
+    ).toBeCloseTo(layout.laneRadius(lane) + layout.ringWidth / 2, 1);
   });
 });

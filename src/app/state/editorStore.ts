@@ -5,6 +5,7 @@ import {
   type CutSite,
   type DigestFragment,
   type EditOp,
+  type FeatureId,
   type Orf,
   type Range,
   type RangeSegment,
@@ -155,6 +156,12 @@ export interface DocumentState {
   readonly history: History<SeqDocument>;
   /** Current selection; an empty range is a caret. Null when nothing is selected. */
   readonly selection: Range | null;
+  /**
+   * The feature that selection came from, when it came from one. A selection
+   * is a range, and two features can cover the same range — a gene and the
+   * CDS inside it — so the range alone does not say which was clicked.
+   */
+  readonly selectedFeatureId: FeatureId | null;
   /** The file it was read from, or the name it was last written out under. */
   readonly fileName: string | null;
   /** The version last written out as a file (or the version opened from one). */
@@ -355,6 +362,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   analysis: null,
   shownEnzymes: new Set(),
   enzymesInitialized: false,
+  selectedFeatureId: null,
   reveal: null,
   renameRequest: null,
   editingFeatureId: null,
@@ -522,6 +530,7 @@ export class EditorStore {
       documentId: storage.id ?? newId(),
       history: History.create(doc),
       selection: null,
+      selectedFeatureId: null,
       fileName,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
       savedDoc: fileName === null ? null : doc,
@@ -848,16 +857,17 @@ export class EditorStore {
 
   setSelection(selection: Range | null): void {
     const current = this.state.selection;
-    if (
+    const same =
       (selection === null && current === null) ||
       (selection !== null &&
         current !== null &&
         selection.start === current.start &&
-        selection.end === current.end)
-    ) {
-      return;
-    }
-    this.setActive({ selection });
+        selection.end === current.end);
+    // Selecting the same bases by hand is still a change when the store was
+    // holding the feature they came from: it is a range now, not a feature.
+    if (same && this.state.selectedFeatureId === null) return;
+    // Whatever made this selection, it was not a click on a feature.
+    this.setActive({ selection, selectedFeatureId: null });
   }
 
   /** Selects a feature's full extent (its first range segment through its last) and scrolls to it. */
@@ -871,6 +881,7 @@ export class EditorStore {
     const selection = { start: first.start, end: Math.max(last.end, first.end) };
     this.setActive({
       selection,
+      selectedFeatureId: featureId,
       reveal: { position: first.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
   }
