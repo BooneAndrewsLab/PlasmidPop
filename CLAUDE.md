@@ -576,6 +576,22 @@ pick from here when the current work is done.
       marker would be noise — the Files screen says it once instead), and
       **File ▸ Compare with…** against a file on disk is still the obvious
       companion to this (item 22's list).
+25. **A diff on the map, not only in the sequence.** The tracked-changes marks
+    of item 21 exist only in the sequence view (and its SVG exports); the
+    circular map and the feature lanes show nothing. A map-based diff would
+    put the same `editDiff` on the circular map — arcs for inserted, changed
+    and deleted stretches around the backbone, a marker where a deletion
+    closed up, features outlined where they were added or edited — so a
+    glance at the map says what changed, which is how a plasmid is usually
+    read. Open: whether the two documents are drawn as one map with marks
+    (needs the diff's position mapping to place the old coordinates on the
+    new molecule) or side by side with the changes tied across; what a
+    change in length does to a circle's geometry; whether this shares the
+    `DiffStrip` in `SaveReviewDialog` or gets a map of its own there. The
+    diff itself is already there (`src/core/diff/`, `editDiffBetween`,
+    `diffHunks`) — this is a rendering question. Related: item 22's
+    **File ▸ Compare with…**, which would want exactly this view for two
+    different files rather than two versions of one.
 
 ## Non-goals for v1
 
