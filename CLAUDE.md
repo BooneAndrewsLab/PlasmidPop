@@ -767,49 +767,69 @@ pick from here when the current work is done.
     - The sidebar is a fixed 330 px (item 18) and wants exactly the same
       handle on its inner edge, so build the splitter once and use it
       twice. Guide: `03-viewing.md`.
-29. **Map labels collide once there are more of them than the ring holds.**
-    Reported 2026-09-21 ("kind of overlap on top of each other … unless I
-    zoom in a lot"; the screenshot did not reach the repo, so what follows
-    is measured rather than read off it).
-    - **Where it breaks.** `layoutLabels`
-      (`src/view/circular/circularLayout.ts`) puts every label on a ring
-      outside the backbone, splits them left and right, and nudges each one
-      down until it clears the labels it overlaps horizontally on its own
-      side. When the stack runs past the bottom it is pushed back up, and
-      then every label is clamped with `Math.max(lineHeight / 2, …)`. That
-      final clamp is the collision: the passes can only compress a stack,
-      so once the labels need more height than the canvas has they are laid
-      on top of each other silently. Nothing drops a label and nothing says
-      the map could not show them all.
-    - **Measured** against `layoutLabels` directly, 14 px a line: capacity
-      is `floor(height / LABEL_LINE_HEIGHT)` per side. At 700 × 700 the
-      first overlapping pair appears between 100 and 120 labels; in the map
-      pane of the Both view (about 420 × 560) between 80 and 90; at
-      1000 × 800, 120 labels give 12 overlapping pairs. Below the capacity
-      nothing overlapped in any shape tried — labels clustered like a
-      polylinker, mixed text widths, a short canvas — so it is the count
-      that matters, not the arrangement.
-    - **Cut sites are most of the count.** Feature labels and cut-site
-      labels share one ring so they space against each other (`drawLabels`
-      in `renderCircular.ts`), and a cut label is the whole
-      `EcoRI, ClaI (1,234)`. Ticking the single cutters of an imported
-      REBASE table is about 90 labels on pBR322 before a single feature is
-      named. Zooming in helps because `nearCanvas` drops what has gone off
-      the canvas, which is the symptom the report describes.
-    - **Roughly in order of worth:** (a) never overlap — when the stack will
-      not fit, leave labels out and say how many, the way the enzyme list
-      says what it is not showing; (b) choose what to leave out by rank
-      rather than by angle: a feature over a cut site, a longer feature over
-      a shorter one, a single cutter over a frequent one; (c) a second
-      label ring further out before dropping anything, which is what
-      SnapGene does with a crowded map; (d) 14 px for a 12 px font is tight
-      even where nothing overlaps and the leader lines crisscross — worth
-      looking at with real eyes once (a) is in.
-    - The SVG map export shares this code, so it is fixed in both at once.
-      Check the result by rasterising an `SvgContext` render rather than by
-      reading the layout function — the numbers above say nothing about how
-      it looks. Ask the user for the screenshot, or for the file: their
-      plasmid may be crowded in a way pBR322 is not.
+29. **Map labels are written over by the ruler, and drift across the map as
+    they are spaced.** Reported 2026-09-21 ("the map labels are kind of
+    overlap on top of each other … unless I zoom in a lot") with a
+    screenshot of a 13,799 bp lentiviral construct, about 40 named features,
+    no enzymes ticked. Read off the screenshot rather than guessed at — and
+    it is not what it first looks like. The feature labels are spaced
+    correctly against each other, a clean 14 px apart. Three other things
+    are wrong.
+    - **The ruler numbers are not in the spacing pass.** `1,000` is drawn
+      straight through `CAP binding site`, `2,000` through `RSV promoter`,
+      `12,000` through `SV40 ori`, `11,000` through another. `drawRuler`
+      (`renderCircular.ts`) writes each tick number at `layout.radius + 12`
+      knowing nothing about the labels, and `drawLabels` places its ring at
+      `radius + 34` knowing nothing about the ticks. An unnudged label
+      clears them; a nudged one lands on one. The fix is to feed the tick
+      numbers into `layoutLabels` as fixed obstacles — placed first, never
+      moved, and spaced against — rather than to draw them separately.
+    - **Nudging is vertical only, so a crowded label walks over the map.**
+      `layoutLabels` moves a label down until it clears the stack but keeps
+      its `x` at the anchor's ring position. Near 1 o'clock the ring's `x`
+      is close to `cx`, so pushing the label down carries it *inside* the
+      circle: in the screenshot `T3 promoter`, `lac operator (fragment)`,
+      `RSV promoter` and `5' LTR (truncated)` all cross the backbone and
+      sit on the feature arrows. A label should hug the ring at whatever
+      `y` it ends up with — `x = cx ± sqrt(labelRadius² − (y − cy)²)`,
+      clamped — so the column of labels follows the circle instead of
+      cutting the chord. That changes the x-extents the collision test
+      reads, so the pass has to be reformulated (place at ring x, then
+      resolve; or resolve and reposition, then re-resolve once) and it
+      costs vertical room, which runs into the third point.
+    - **Long labels on the left run off the canvas.** A left-side label is
+      right-aligned ending at its anchor, so it extends leftwards and is
+      clipped by the edge: the screenshot has `…Zα (fragment)`,
+      `(A) signal`, `(ΔU3)` and `…ment)` cut off. `nearCanvas` tests the
+      *anchor* with a margin, which says nothing about where the text ends.
+      Test the drawn box, and then inset, ellipsize or drop.
+    - **A fourth, latent: the ring silently runs out of room.** Measured
+      against `layoutLabels` directly, capacity is
+      `floor(height / LABEL_LINE_HEIGHT)` a side. Past it the final
+      `Math.max(lineHeight / 2, …)` clamp compresses the stack instead of
+      separating it, and labels land on each other with nothing said. At
+      700 × 700 the first overlapping pair appears between 100 and 120
+      labels; in the Both view's map pane (about 420 × 560) between 80 and
+      90; at 1000 × 800, 120 labels give 12 overlapping pairs. Below
+      capacity nothing overlapped in any shape tried — clustered like a
+      polylinker, mixed widths, a short canvas. The screenshot is nowhere
+      near this (40 labels), but cut sites share the ring and a cut label
+      is the whole `EcoRI, ClaI (1,234)`: ticking the single cutters of an
+      imported REBASE table is ~90 labels on pBR322 before a feature is
+      named. When the stack will not fit, leave labels out and say how
+      many, the way the enzyme list does; choose what to leave out by rank
+      (a feature over a cut site, a longer feature over a shorter one)
+      rather than by angle.
+    - Worth having after those: a second label ring further out, which is
+      what SnapGene does with a crowded map, and a look at the leader
+      lines — in the screenshot a dozen of them fan out as a near-parallel
+      tangle, which is itself most of the mess. Zooming in reads better
+      only because `nearCanvas` then drops what has gone off the canvas.
+    - The SVG map export shares all of this code, so both are fixed at
+      once. Check the result by rasterising an `SvgContext` render at the
+      sizes above with a file of this kind (many features, dense in
+      places), not by asserting on the layout function — the numbers say
+      nothing about how it reads.
 30. **Filter the enzyme list by how many times an enzyme cuts, not just
     "once".** Asked for 2026-09-21: dual cutters are what a diagnostic
     digest wants — BsrGI after an LR reaction, or checking a Golden Gate
