@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 850 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 867 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -1218,13 +1218,42 @@ pick from here when the current work is done.
       list with a forgotten word in the box would be a puzzle. A stored
       supplier code that the table in use does not have (a different import, or
       back to the bundled table) is ignored rather than emptying the list.
-    - **Still open: the larger want behind it.** A diagnostic digest is chosen
-      by the *fragment sizes* it gives — two bands far enough apart to tell on
-      a gel — and the panel computes those only for the ticked enzymes
-      (`digestFragments`). "Which enzyme cuts this plasmid into bands I can
-      distinguish" would be fragment sizes per enzyme in the row, or a sort by
-      how well separated they are; the filter plus the Fragments line is the
-      two-step version of it, and the guide says so.
+    - **The larger want behind it is answered too, 2026-09-22.** A diagnostic
+      digest is chosen by the *fragment sizes* it gives, and the panel
+      computed those only for the ticked enzymes; a cut count says nothing
+      about whether the pieces can be told apart. Every row now carries the
+      bands that enzyme alone would give (`src/core/analysis/gel.ts`), and an
+      **Order** select sorts the list by how far apart they are, so *Cuts:
+      twice* plus *Order: band separation* is the answer rather than the two
+      steps towards it. On pBR322 that puts DrdI first at 3,948 + 413 bp and
+      BtsI last, whose two cuts are 20 bp apart.
+      - **A gel is what is modelled, not a fragment list.** Two fragments
+        within 15 % of each other run as one band, so they are *written* as
+        one (`2,181 ×2`); under 100 bp a band may run off the end, and more
+        than one fragment over 10 kb compresses near the well. They are the
+        rules of thumb for a 1 % agarose gel and they are `GelOptions` rather
+        than constants, so the judgement is in one place and a caller at
+        another percentage can say so.
+      - **`misleading` and `readable` are different questions**, which the
+        first cut ran together and the browser caught: an enzyme that
+        linearises a plasmid is not a diagnostic digest, but flagging it with
+        a warning reads as "this enzyme is bad" when a unique cutter is the
+        most useful enzyme there is. The ⚠ is for a lane that *hides*
+        something — fragments running as one band, bands off the gel. The
+        sort uses `readable`, which also wants two bands.
+      - `compareDiagnostic` orders by readable, then the tightest pair of
+        neighbouring bands, then fewer bands, then fewer fragments hidden
+        under a shared band. The tightest pair is the measure because that is
+        what "far enough apart to tell on a gel" means.
+      - The profiles are computed for every enzyme rather than for the rows on
+        screen, since the list can be ordered by them: 35.8 ms for a REBASE
+        table of 1,581, paid once when a scan comes back rather than while
+        anything is typed (`docs/perf-notes.md`). The **Fragments from ticked
+        enzymes** section gained the same reading of the whole lane, which no
+        single row can predict.
+      - Not yet: the gel is one percentage and one ladder-free lane, nothing
+        draws it, and the order cannot be reversed or applied to the fragment
+        sizes of a *pair* of enzymes, which is what a double digest is.
     - The control took a row of its own in a 330 px sidebar (the buttons wrap
       below it); on a sidebar widened past ~430 px they share a line again,
       which is item 28 paying for itself.

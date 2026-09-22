@@ -1,0 +1,229 @@
+import { type Topology } from '../range';
+import { type CutSite } from './restriction';
+import { digestFragments } from './restriction';
+
+/**
+ * What a digest would look like on an agarose gel, and whether it answers
+ * the question a diagnostic digest is run to answer: are the bands far
+ * enough apart to tell one construct from another by eye.
+ *
+ * The Enzymes tab could already narrow the list to the enzymes that cut a
+ * given number of times (item 30), which is half of it. The other half is
+ * that a cut count says nothing about the bands: BsaI cutting a 4.4 kb
+ * plasmid twice is useless if the two pieces are 2,180 and 2,181 bp, and a
+ * 4,000 + 361 bp pair is read off the gel in a second.
+ *
+ * The numbers below are rules of thumb for a standard 1 % agarose gel, not
+ * a simulation of one. They are options rather than constants so that a
+ * caller working at another percentage can say so, and so that the
+ * judgement is in one place instead of spread through the UI.
+ */
+export interface GelOptions {
+  /**
+   * How different in length two fragments must be to run as two bands,
+   * as a ratio of the larger to the smaller. Below about 10 % difference
+   * two bands touch on a 1 % gel; 1.15 leaves a little room.
+   */
+  readonly resolution?: number;
+  /** Below this a band runs with the dye front and is easily missed. */
+  readonly minVisible?: number;
+  /** Above this the large fragments compress together near the well. */
+  readonly maxResolved?: number;
+}
+
+export const DEFAULT_GEL: Required<GelOptions> = {
+  resolution: 1.15,
+  minVisible: 100,
+  maxResolved: 10_000,
+};
+
+/** One band of the gel: the fragments that would run together at one place. */
+export interface GelBand {
+  /** Length to label it by: the largest of the fragments that run here. */
+  readonly length: number;
+  /** The fragment lengths that co-migrate, longest first. */
+  readonly fragments: readonly number[];
+}
+
+export interface DigestProfile {
+  /** Fragment lengths, longest first. */
+  readonly fragments: readonly number[];
+  /** What is seen: co-migrating fragments merged into one band. */
+  readonly bands: readonly GelBand[];
+  /**
+   * The tightest pair of neighbouring bands, as the ratio of the larger to
+   * the smaller. Infinity when there is at most one band, since there is no
+   * pair to tell apart. This is what "far enough apart" means, and what the
+   * Enzymes tab sorts by.
+   */
+  readonly separation: number;
+  /** Fragments too short to see, and too long to resolve from each other. */
+  readonly tooSmall: number;
+  readonly tooLarge: number;
+  /** Fragments sharing a band with another, which read as one. */
+  readonly comigrating: number;
+  /**
+   * Whether the lane hides something: fragments running as one band, bands
+   * off the bottom of the gel, or a clutch of them compressed at the top.
+   * This is the one worth warning about, because it is where a gel is read
+   * wrongly rather than merely uninformatively.
+   */
+  readonly misleading: boolean;
+  /**
+   * Whether the gel answers "which construct is this" by itself: at least
+   * two bands, and nothing hidden. An enzyme that linearises a plasmid is
+   * not `misleading` and not `readable` — there is simply nothing to tell
+   * apart, which is a fact about the question, not a fault of the enzyme.
+   */
+  readonly readable: boolean;
+}
+
+/**
+ * Groups fragment lengths into the bands a gel would show. Single linkage
+ * down the sorted list: a fragment joins the band above it when the two are
+ * closer than `resolution`, which is what running together means. A chain
+ * of near-equal fragments is one smear, and calling it one band is the
+ * honest reading of it.
+ */
+function bandsOf(lengths: readonly number[], resolution: number): GelBand[] {
+  const bands: GelBand[] = [];
+  let current: number[] = [];
+  for (const length of lengths) {
+    const last = current[current.length - 1];
+    if (last !== undefined && length > 0 && last / length < resolution) {
+      current.push(length);
+      continue;
+    }
+    if (current.length > 0) bands.push({ length: current[0] ?? 0, fragments: current });
+    current = [length];
+  }
+  if (current.length > 0) bands.push({ length: current[0] ?? 0, fragments: current });
+  return bands;
+}
+
+/** What `lengths` would look like on a gel. */
+export function gelProfile(lengths: readonly number[], options: GelOptions = {}): DigestProfile {
+  const { resolution, minVisible, maxResolved } = { ...DEFAULT_GEL, ...options };
+  const fragments = [...lengths].sort((a, b) => b - a);
+  const bands = bandsOf(fragments, resolution);
+  let separation = Infinity;
+  for (let i = 1; i < bands.length; i++) {
+    const above = bands[i - 1]?.fragments;
+    const below = bands[i]?.length;
+    const smallest = above?.[above.length - 1];
+    if (smallest === undefined || below === undefined || below <= 0) continue;
+    separation = Math.min(separation, smallest / below);
+  }
+  const tooSmall = fragments.filter((n) => n < minVisible).length;
+  const tooLarge = fragments.filter((n) => n > maxResolved).length;
+  const comigrating = bands.reduce(
+    (n, b) => n + (b.fragments.length > 1 ? b.fragments.length : 0),
+    0,
+  );
+  // Two fragments too long to resolve are only a problem when they are
+  // meant to be told apart, which is what the band count already says.
+  const misleading = tooSmall > 0 || comigrating > 0 || tooLarge > 1;
+  return {
+    fragments,
+    bands,
+    separation,
+    tooSmall,
+    tooLarge,
+    comigrating,
+    misleading,
+    readable: bands.length >= 2 && !misleading,
+  };
+}
+
+/** The profile of cutting a molecule of `seqLength` at the given positions. */
+export function digestProfile(
+  cuts: readonly number[],
+  seqLength: number,
+  topology: Topology,
+  options: GelOptions = {},
+): DigestProfile {
+  return gelProfile(
+    digestFragments(cuts, seqLength, topology).map((f) => f.length),
+    options,
+  );
+}
+
+/** The profile one enzyme's own cut sites would give. */
+export function enzymeProfile(
+  sites: readonly CutSite[],
+  seqLength: number,
+  topology: Topology,
+  options: GelOptions = {},
+): DigestProfile {
+  return digestProfile(
+    sites.map((s) => s.cut),
+    seqLength,
+    topology,
+    options,
+  );
+}
+
+/**
+ * Orders two digests by how well they answer "which construct is this".
+ * Best first, for the Enzymes tab's "Band separation" sort:
+ *
+ * 1. A gel that can be read by itself beats one that cannot.
+ * 2. Bands further apart beat bands that nearly touch.
+ * 3. Fewer bands beat more: a lane of eight is a ladder, not an answer.
+ * 4. Fewer pieces hidden under a shared band beat more, which only
+ *    separates the digests rule 1 has already set aside: a lane where two
+ *    fragments run as one is more misleading than a lane with one band.
+ *
+ * A digest with one band — an enzyme that linearises a plasmid — has no
+ * pair to separate, so it is never `readable` and sorts below anything
+ * that gives two. That is right for this question and says nothing about
+ * the enzyme: linearising is what the "Cuts: once" filter is for.
+ */
+export function compareDiagnostic(a: DigestProfile, b: DigestProfile): number {
+  if (a.readable !== b.readable) return a.readable ? -1 : 1;
+  const sa = Number.isFinite(a.separation) ? a.separation : 0;
+  const sb = Number.isFinite(b.separation) ? b.separation : 0;
+  if (sa !== sb) return sb - sa;
+  if (a.bands.length !== b.bands.length) return a.bands.length - b.bands.length;
+  return a.comigrating - b.comigrating;
+}
+
+/** "3,224 + 1,137 bp", the band sizes as a gel would show them. */
+export function describeBands(profile: DigestProfile, max = 4): string {
+  const shown = profile.bands
+    .slice(0, max)
+    .map(
+      (b) =>
+        `${b.length.toLocaleString()}${b.fragments.length > 1 ? ` ×${b.fragments.length}` : ''}`,
+    );
+  const rest = profile.bands.length - shown.length;
+  return `${shown.join(' + ')}${rest > 0 ? ` + ${rest} more` : ''} bp`;
+}
+
+/** Why a gel would not be read at a glance; empty when it would. */
+export function bandProblems(profile: DigestProfile, options: GelOptions = {}): string[] {
+  const { minVisible, maxResolved } = { ...DEFAULT_GEL, ...options };
+  const out: string[] = [];
+  if (profile.bands.length < 2) out.push('one band, so there is nothing to tell apart');
+  const shared = profile.bands.filter((b) => b.fragments.length > 1);
+  const one = shared[0];
+  if (one !== undefined) {
+    // One pair or triple is worth naming; a lane full of them is a count.
+    // A digest of every single cutter of a plasmid has a dozen such groups,
+    // and listing them all is a paragraph nobody reads.
+    out.push(
+      shared.length === 1 && one.fragments.length <= 3
+        ? `${one.fragments.map((n) => n.toLocaleString()).join(' and ')} run together`
+        : `${profile.comigrating} fragments run together under ${shared.length} bands`,
+    );
+  }
+  if (profile.tooSmall > 0) {
+    out.push(
+      `${profile.tooSmall} ${profile.tooSmall === 1 ? 'band is' : 'bands are'} under ${minVisible.toLocaleString()} bp and may run off`,
+    );
+  }
+  if (profile.tooLarge > 1) {
+    out.push(`${profile.tooLarge} bands are over ${maxResolved.toLocaleString()} bp and compress`);
+  }
+  return out;
+}

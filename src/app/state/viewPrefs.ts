@@ -2,6 +2,7 @@ import { type TranslationTable, isTranslationTable } from '@/core';
 import { type FontSize, isFontSize } from '@/view/linear';
 
 import { type CutCountFilter, isCutCountFilter } from './cutFilter';
+import { type EnzymeSort, isEnzymeSort } from './enzymeSort';
 import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
@@ -33,9 +34,10 @@ export interface ViewPrefs {
   readonly layout: LayoutSizes;
   /** Whether the sidebar is shown at all. */
   readonly sidebarOpen: boolean;
-  /** The Enzymes tab's filters; see `SharedState.enzymeCutFilter`. */
+  /** The Enzymes tab's filters and order; see `SharedState.enzymeCutFilter`. */
   readonly enzymeCutFilter: CutCountFilter;
   readonly enzymeSupplier: string;
+  readonly enzymeSort: EnzymeSort;
   /** The code the Translate tab and the ORF scan read with. */
   readonly geneticCode: TranslationTable;
 }
@@ -87,6 +89,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isCutCountFilter(record['enzymeCutFilter'])) {
     prefs.enzymeCutFilter = record['enzymeCutFilter'];
   }
+  if (isEnzymeSort(record['enzymeSort'])) prefs.enzymeSort = record['enzymeSort'];
   // The code is not checked against a table here: which suppliers exist
   // depends on the imported set, and the panel falls back to "any" for a
   // code the table in use does not have.
@@ -140,6 +143,7 @@ function snapshot(): ViewPrefs {
     sidebarOpen,
     enzymeCutFilter,
     enzymeSupplier,
+    enzymeSort,
     geneticCode,
   } = editorStore.getState();
   return {
@@ -156,6 +160,7 @@ function snapshot(): ViewPrefs {
     sidebarOpen,
     enzymeCutFilter,
     enzymeSupplier,
+    enzymeSort,
     geneticCode,
   };
 }
@@ -175,6 +180,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.sidebarOpen === b.sidebarOpen &&
     a.enzymeCutFilter === b.enzymeCutFilter &&
     a.enzymeSupplier === b.enzymeSupplier &&
+    a.enzymeSort === b.enzymeSort &&
     a.geneticCode === b.geneticCode
   );
 }
@@ -202,6 +208,7 @@ export function startViewPrefs(): () => void {
   if (stored.sidebarOpen !== undefined) editorStore.setSidebarOpen(stored.sidebarOpen);
   if (stored.enzymeCutFilter !== undefined) editorStore.setEnzymeCutFilter(stored.enzymeCutFilter);
   if (stored.enzymeSupplier !== undefined) editorStore.setEnzymeSupplier(stored.enzymeSupplier);
+  if (stored.enzymeSort !== undefined) editorStore.setEnzymeSort(stored.enzymeSort);
   if (stored.geneticCode !== undefined) editorStore.setGeneticCode(stored.geneticCode);
   let last = snapshot();
   return editorStore.subscribe(() => {

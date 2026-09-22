@@ -2,10 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   type CutSite,
+  type DigestProfile,
   type Enzyme,
   type SeqDocument,
   activeEnzymes,
+  bandProblems,
+  compareDiagnostic,
+  describeBands,
   digestFragments,
+  enzymeProfile,
+  gelProfile,
   getEnzyme,
   overhangKind,
 } from '@/core';
@@ -16,6 +22,7 @@ import {
   isCutCountFilter,
   matchesCutCount,
 } from '../state/cutFilter';
+import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { EnzymeImport } from './EnzymeImport';
@@ -67,9 +74,43 @@ function describeEnzyme(enzyme: Enzyme): string {
   return lines.join('\n');
 }
 
+/**
+ * The bands this enzyme alone would give, which is what a diagnostic digest
+ * is actually chosen by: a cut count says nothing about whether the pieces
+ * can be told apart. Bands that would run together, or off the end of the
+ * gel, are said rather than left to be worked out from the numbers.
+ */
+function BandLine({ profile }: { readonly profile: DigestProfile }) {
+  const problems = bandProblems(profile);
+  // A single cutter gives one band and no warning: it linearises the
+  // plasmid, which is what it is for. The mark is for a lane that hides
+  // something, not for one with nothing to say.
+  const clear = !profile.misleading;
+  return (
+    <span
+      className={`enzyme-row__bands${clear ? '' : ' enzyme-row__bands--muddy'}`}
+      title={
+        clear
+          ? `On a gel: ${describeBands(profile, 12)}`
+          : `On a gel: ${describeBands(profile, 12)} — ${problems.join('; ')}`
+      }
+    >
+      {describeBands(profile)}
+      {clear ? '' : ' ⚠'}
+    </span>
+  );
+}
+
 export function EnzymePanel({ doc }: Props) {
-  const { analysis, shownEnzymes, showCutSites, enzymeSetInfo, enzymeCutFilter, enzymeSupplier } =
-    useEditorState();
+  const {
+    analysis,
+    shownEnzymes,
+    showCutSites,
+    enzymeSetInfo,
+    enzymeCutFilter,
+    enzymeSupplier,
+    enzymeSort,
+  } = useEditorState();
   const [filter, setFilter] = useState('');
   const [importing, setImporting] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
@@ -89,12 +130,23 @@ export function EnzymePanel({ doc }: Props) {
         byName.set(s.enzyme, list);
       }
     }
-    return activeEnzymes().map((enzyme) => ({ enzyme, sites: byName.get(enzyme.name) ?? [] }));
+    // The bands each enzyme alone would give. Computed for every enzyme
+    // rather than for the rows on screen, because the list can be ordered by
+    // them; it is a sort of a handful of cut positions per enzyme, and costs
+    // a couple of ms over an imported REBASE table (docs/perf-notes.md).
+    return activeEnzymes().map((enzyme) => {
+      const sites = byName.get(enzyme.name) ?? [];
+      return {
+        enzyme,
+        sites,
+        profile: sites.length === 0 ? null : enzymeProfile(sites, doc.length, doc.topology),
+      };
+    });
     // The enzymes come from module state, so the memo has to be told to
     // re-run when the set changes; `enzymeSetInfo` is the store's record of
     // which set that is, and the linter cannot see the connection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, ready, enzymeSetInfo]);
+  }, [analysis, ready, enzymeSetInfo, doc.length, doc.topology]);
 
   const shownCuts = useMemo(() => {
     const cuts: number[] = [];
@@ -109,9 +161,11 @@ export function EnzymePanel({ doc }: Props) {
         : digestFragments(shownCuts, doc.length, doc.topology).sort((a, b) => b.length - a.length),
     [shownCuts, doc.length, doc.topology],
   );
+  /** How everything ticked together would read on a gel. */
+  const ticked = useMemo(() => gelProfile(fragments.map((f) => f.length)), [fragments]);
 
   const needle = filter.trim().toLowerCase();
-  const rows = groups.filter(
+  const matching = groups.filter(
     (g) =>
       matchesCutCount(enzymeCutFilter, g.sites.length) &&
       (supplier === '' || g.enzyme.suppliers?.includes(supplier) === true) &&
@@ -119,6 +173,16 @@ export function EnzymePanel({ doc }: Props) {
         g.enzyme.name.toLowerCase().includes(needle) ||
         g.enzyme.site.toLowerCase().includes(needle)),
   );
+  // `activeEnzymes()` is already in name order, so only the other sort has
+  // any work to do. Ties keep that order, which is why it is a stable sort.
+  const rows =
+    enzymeSort === 'bands'
+      ? [...matching].sort((a, b) =>
+          a.profile === null || b.profile === null
+            ? Number(a.profile === null) - Number(b.profile === null)
+            : compareDiagnostic(a.profile, b.profile),
+        )
+      : matching;
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
   const cutters = groups.length - nonCutters;
   /**
@@ -142,7 +206,7 @@ export function EnzymePanel({ doc }: Props) {
   // A new filter is a new list, and the old scroll position means nothing in it.
   useEffect(() => {
     scrollToTop();
-  }, [needle, supplier, enzymeCutFilter, scrollToTop]);
+  }, [needle, supplier, enzymeCutFilter, enzymeSort, scrollToTop]);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -178,6 +242,23 @@ export function EnzymePanel({ doc }: Props) {
           >
             {CUT_COUNT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="panel__field">
+          <span>Order</span>
+          <select
+            className="panel__select"
+            value={enzymeSort}
+            title="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
+            onChange={(e) => {
+              editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
+            }}
+          >
+            {ENZYME_SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value} title={o.title}>
                 {o.label}
               </option>
             ))}
@@ -270,7 +351,7 @@ export function EnzymePanel({ doc }: Props) {
         <>
           <div className="enzyme-list__scroll" ref={attachScroller}>
             <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-              {rows.slice(first, end).map(({ enzyme, sites }) => (
+              {rows.slice(first, end).map(({ enzyme, sites, profile }) => (
                 <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
                   <label
                     className="enzyme-row__toggle"
@@ -311,6 +392,7 @@ export function EnzymePanel({ doc }: Props) {
                       </span>
                     )}
                   </span>
+                  {profile !== null && <BandLine profile={profile} />}
                 </li>
               ))}
             </ul>
@@ -349,6 +431,16 @@ export function EnzymePanel({ doc }: Props) {
               <h3 className="panel__heading">Fragments from ticked enzymes</h3>
               <p className="panel__mono">
                 {fragments.map((f) => f.length.toLocaleString()).join(', ')} bp
+              </p>
+              {/* The pieces are one thing, the lane is another: a digest of
+                  five fragments can still show three bands. */}
+              <p
+                className={`panel__note${ticked.misleading ? ' panel__note--warn' : ''}`}
+                data-testid="gel-reading"
+              >
+                {ticked.misleading
+                  ? `On a gel: ${describeBands(ticked, 6)} — ${bandProblems(ticked).join('; ')}.`
+                  : `On a gel: ${ticked.bands.length === 1 ? '1 band' : `${ticked.bands.length} bands`}, ${describeBands(ticked, 6)}.`}
               </p>
             </div>
           )}

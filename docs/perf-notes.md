@@ -137,6 +137,26 @@ actually showing (the supplier filter, or the ticked enzymes) is the next
 thing to try if this ever needs to be faster; it would cut both halves at
 once.
 
+### Reading the bands off each enzyme
+
+The Enzymes tab works out what every enzyme's own fragments would look like
+on a gel (`gelProfile` in `src/core/analysis/gel.ts`), not just the enzymes
+whose rows are on screen, because the list can be ordered by how far apart
+the bands are. That is a sort of each enzyme's cut positions plus one walk
+down them.
+
+| Date       | Enzymes                       | Time    |
+| ---------- | ----------------------------- | ------- |
+| 2026-09-22 | 1,581 (REBASE), ~40 cuts each | 35.8 ms |
+
+Node 24 (V8), `gel.test.ts` perf; the bundled 127-enzyme table is about a
+fortieth of that. It runs in a `useMemo` on the main thread, keyed on the
+analysis and the enzyme table rather than on the filter boxes, so it is paid
+once when a scan comes back and not while anything is being typed. Left
+where it is: the scan it follows costs 82 ms in the worker, and moving 36 ms
+of arithmetic there to save a single frame after it would mean sending a
+profile per enzyme back across the wire.
+
 ### Rendering the list of rows
 
 `EnzymePanel` used to put at most 200 rows in the DOM and cut the rest off,

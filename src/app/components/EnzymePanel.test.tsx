@@ -6,6 +6,7 @@ import { type CutSite, SeqDocument, activeEnzymes } from '@/core';
 import { MAX_DEFAULT_ENZYMES, editorStore } from '../state/editorStore';
 import { EnzymePanel } from './EnzymePanel';
 
+// 4,000 bp, linear: the fragment sizes below are cut positions on it.
 const doc = SeqDocument.create({ sequence: 'ACGT'.repeat(1000) });
 
 /** The first `n` enzymes of the active table, each cutting the document once. */
@@ -62,6 +63,7 @@ describe('EnzymePanel', () => {
     act(() => {
       editorStore.setEnzymeCutFilter('any');
       editorStore.setEnzymeSupplier('');
+      editorStore.setEnzymeSort('name');
     });
   });
 
@@ -103,6 +105,87 @@ describe('EnzymePanel', () => {
     expect(rendered()).toContain(names[names.length - 1]);
     expect(rendered()).not.toContain(names[0]);
     expect(parseFloat((list as HTMLElement).style.paddingTop)).toBeGreaterThan(0);
+  });
+
+  it('shows the bands each enzyme alone would give, and warns about a muddy one', () => {
+    const names = activeEnzymes()
+      .slice(0, 3)
+      .map((e) => e.name);
+    const [clean, muddy, single] = names;
+    if (clean === undefined || muddy === undefined || single === undefined)
+      throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    // The document is 4,000 bp and linear: 400 + 3,600 reads at a glance,
+    // 2,000 + 2,000 is one band.
+    setup([at(clean, 400), at(muddy, 2000), at(single, 1000)]);
+    const bands = [...document.querySelectorAll('.enzyme-row__bands')].map((n) => n.textContent);
+    expect(bands[0]).toBe('3,600 + 400 bp');
+    expect(bands[1]).toBe('2,000 ×2 bp ⚠');
+    // One cut on a linear molecule is two pieces; a warning only when they
+    // cannot be told apart.
+    expect(bands[2]).toBe('3,000 + 1,000 bp');
+    const warned = document.querySelectorAll('.enzyme-row__bands--muddy');
+    expect(warned).toHaveLength(1);
+    expect(warned[0]?.getAttribute('title')).toMatch(/run together/);
+  });
+
+  it('says how everything ticked together would read on a gel', () => {
+    const names = activeEnzymes()
+      .slice(0, 2)
+      .map((e) => e.name);
+    const [a, b] = names;
+    if (a === undefined || b === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    // Ticked together the two enzymes give 400, 1,700 and 1,900: the last
+    // two are within 15 % and run as one band, which neither enzyme's own
+    // line can say.
+    setup([at(a, 400), at(b, 2100)]);
+    act(() => {
+      editorStore.setShownEnzymes([a, b]);
+    });
+    expect(screen.getByTestId('gel-reading').textContent).toBe(
+      'On a gel: 1,900 ×2 + 400 bp — 1,900 and 1,700 run together.',
+    );
+    act(() => {
+      editorStore.setShownEnzymes([a]);
+    });
+    expect(screen.getByTestId('gel-reading').textContent).toBe(
+      'On a gel: 2 bands, 3,600 + 400 bp.',
+    );
+  });
+
+  it('orders by band separation on request, and by name otherwise', () => {
+    const names = activeEnzymes()
+      .slice(0, 3)
+      .map((e) => e.name);
+    const [a, b, c] = names;
+    if (a === undefined || b === undefined || c === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    // a: 2,000 + 2,000 (one band), b: 3,600 + 400 (9x), c: 2,400 + 1,600 (1.5x).
+    setup([at(a, 2000), at(b, 400), at(c, 1600)]);
+    expect(listed()).toEqual([a, b, c]);
+    act(() => {
+      editorStore.setEnzymeSort('bands');
+    });
+    expect(listed()).toEqual([b, c, a]);
   });
 
   it('offers the single cutters when there were too many to tick', () => {

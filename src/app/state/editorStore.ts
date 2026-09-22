@@ -29,6 +29,7 @@ import { type EditPlan, selectionAfterOp } from '../editing';
 import { translationWarnings } from '../translationWarnings';
 import { copyNameFor } from './derive';
 import { type CutCountFilter } from './cutFilter';
+import { type EnzymeSort } from './enzymeSort';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
@@ -277,6 +278,12 @@ export interface SharedState {
   readonly enzymeCutFilter: CutCountFilter;
   /** Supplier code, or '' for any; only an imported REBASE table has them. */
   readonly enzymeSupplier: string;
+  /**
+   * Whether the list reads as a catalogue or as an answer to "which enzyme
+   * gives bands I can tell apart". Kept with the filters above for the same
+   * reason: it is how this user reads the tab, not a fact about the file.
+   */
+  readonly enzymeSort: EnzymeSort;
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
   /**
@@ -391,6 +398,7 @@ const SHARED_INITIAL: SharedState = {
   showCutSites: true,
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
+  enzymeSort: 'name',
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
   assembly: [],
@@ -1035,6 +1043,10 @@ export class EditorStore {
 
   setEnzymeSupplier(code: string): void {
     if (code !== this.state.enzymeSupplier) this.setShared({ enzymeSupplier: code });
+  }
+
+  setEnzymeSort(sort: EnzymeSort): void {
+    if (sort !== this.state.enzymeSort) this.setShared({ enzymeSort: sort });
   }
 
   /** Puts every draggable boundary back where it started, sidebar included. */
