@@ -1,4 +1,14 @@
-import { bandProblems, compareDiagnostic, describeBands, digestProfile, gelProfile } from './gel';
+import {
+  bandIntensities,
+  bandLabel,
+  bandProblems,
+  chooseLadder,
+  compareDiagnostic,
+  describeBands,
+  digestProfile,
+  gelProfile,
+  migration,
+} from './gel';
 
 describe('gelProfile', () => {
   it('reads two well-separated fragments as two bands', () => {
@@ -134,5 +144,47 @@ describe('gel profile performance', () => {
     expect(ms).toBeLessThan(500);
     // eslint-disable-next-line no-console
     console.info(`[perf] gel profiles for 1,581 enzymes: ${ms.toFixed(1)} ms`);
+  });
+});
+
+describe('the picture of a gel', () => {
+  it('runs a short fragment further down the lane than a long one', () => {
+    expect(migration(10_000)).toBe(0);
+    expect(migration(50)).toBe(1);
+    const order = [8000, 4000, 2000, 1000, 500, 200].map((n) => migration(n));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    // Log spacing: halving the length moves the same distance each time,
+    // which is why a gel resolves 500 from 250 and not 8,000 from 7,750.
+    expect(migration(2000) - migration(4000)).toBeCloseTo(migration(1000) - migration(2000), 6);
+  });
+
+  it('pins anything off the ends of the gel to the ends', () => {
+    expect(migration(50_000)).toBe(0);
+    expect(migration(10)).toBe(1);
+    // The same two numbers the warnings use, so the drawing cannot say a
+    // band is on the gel while the text says it ran off.
+    expect(migration(20_000, { maxResolved: 20_000 })).toBe(0);
+  });
+
+  it('picks the ladder that spans what is being run', () => {
+    expect(chooseLadder([4361, 1200]).name).toBe('1 kb');
+    expect(chooseLadder([1200, 300]).name).toBe('100 bp');
+    expect(chooseLadder([]).name).toBe('100 bp');
+  });
+
+  it('stains by mass, so a short band is faint', () => {
+    const [big, small] = bandIntensities(gelProfile([4000, 200]).bands);
+    expect(big).toBe(1);
+    expect(small).toBeLessThan(0.5);
+    expect(small).toBeGreaterThan(0.1);
+    // Two fragments under one band stain as both of them.
+    const [one, two] = bandIntensities(gelProfile([1000, 500, 500]).bands);
+    expect(one).toBe(1);
+    expect(two).toBeCloseTo(Math.sqrt(1), 6);
+  });
+
+  it('labels a shared band with what is under it', () => {
+    const bands = gelProfile([2181, 2180, 400]).bands;
+    expect(bands.map(bandLabel)).toEqual(['2,181 \u00d72', '400']);
   });
 });

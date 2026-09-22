@@ -38,6 +38,14 @@
   --seq-base-t: #c0392b;
   --seq-base-other: #6b7280;
 
+  /* A gel photograph is dark whatever the page around it is, and the picture
+     should say "gel" before it says anything else, so these four are not
+     redefined for the dark theme. */
+  --gel-surface: #12171f;
+  --gel-well: #070a0e;
+  --gel-band: #dfe7f0;
+  --gel-hot: #7fd1ff;
+
   --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
 }
@@ -2652,4 +2660,80 @@ button {
   .sidebar__tab {
     min-height: 40px;
   }
+}
+
+/* ------------------------------------------------- a digest drawn as a gel */
+
+.gel {
+  margin: 10px 0 0;
+}
+
+.gel__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 320px;
+}
+
+.gel__slab {
+  fill: var(--gel-surface);
+}
+
+.gel__well {
+  fill: var(--gel-well);
+}
+
+.gel__band {
+  fill: var(--gel-band);
+}
+
+.gel__size {
+  fill: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: 8px;
+}
+
+.gel__leader {
+  stroke: var(--line);
+  stroke-width: 0.6;
+}
+
+.gel__lane-name {
+  fill: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: 8px;
+}
+
+.gel__hit {
+  fill: transparent;
+}
+
+.gel__pick {
+  cursor: pointer;
+}
+
+.gel__pick:hover .gel__band,
+.gel__pick:focus-visible .gel__band {
+  fill: var(--gel-hot);
+  opacity: 1;
+}
+
+.gel__pick:hover .gel__size,
+.gel__pick:focus-visible .gel__size {
+  fill: var(--accent);
+}
+
+.gel__pick:focus-visible {
+  outline: none;
+}
+
+.gel__pick:focus-visible .gel__hit {
+  fill: rgb(127 209 255 / 18%);
+}
+
+.gel__caption {
+  margin: 4px 0 0;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
 }

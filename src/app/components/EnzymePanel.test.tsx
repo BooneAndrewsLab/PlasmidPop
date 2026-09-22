@@ -166,6 +166,45 @@ describe('EnzymePanel', () => {
     );
   });
 
+  it('draws the lane, and a click on a band selects the piece it is', () => {
+    const names = activeEnzymes()
+      .slice(0, 2)
+      .map((e) => e.name);
+    const [a, b] = names;
+    if (a === undefined || b === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    setup([at(a, 400), at(b, 2100)]);
+    act(() => {
+      editorStore.setShownEnzymes([a, b]);
+    });
+    // 400, 1,700 and 1,900 bp, two of them under one band, and the lane is
+    // headed by a count rather than by both enzyme names run together.
+    expect(document.querySelectorAll('.gel__band:not(.gel__band--ladder)')).toHaveLength(2);
+    expect(screen.getByText('2 enzymes')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '1,900 and 1,700 bp run here; select the 1,900 bp one',
+      }),
+    );
+    // The 1,900 bp piece is the one from 2,100 to the end.
+    expect(editorStore.getState().selection).toEqual({ start: 2100, end: 4000 });
+
+    act(() => {
+      editorStore.setShownEnzymes([a]);
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Select the 400 bp fragment in the views' }),
+    );
+    expect(editorStore.getState().selection).toEqual({ start: 0, end: 400 });
+  });
+
   it('orders by band separation on request, and by name otherwise', () => {
     const names = activeEnzymes()
       .slice(0, 3)

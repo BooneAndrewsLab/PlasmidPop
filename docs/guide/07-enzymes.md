@@ -110,16 +110,24 @@ sites** link to bring them back.
 
 ## Fragments
 
-**Fragments from ticked enzymes** lists the sizes of the pieces a complete
-digest with all ticked enzymes would produce, largest first. On a circular
-molecule, n cuts give n fragments; on a linear one, n + 1. Under it, **On a
-gel** says how that lane would read: how many bands, which pieces would run
-together, and whether any are too small to stay on the gel.
+**Fragments from ticked enzymes** draws the lane a complete digest with all
+ticked enzymes would give, beside a ladder — 1 kb, or 100 bp when everything
+is small. A short band is drawn faint, because a stain binds DNA by mass and
+a 200 bp band really is faint next to a 4 kb one. **Click a band to select
+that piece** in the sequence view and on the map; where two pieces run
+together, the click takes the larger one, and the band says so when you hover
+it.
+
+Under the lane are the fragment sizes themselves, largest first — on a
+circular molecule, n cuts give n fragments; on a linear one, n + 1 — and then
+**On a gel**, which says in words what the picture cannot: which pieces would
+run together, and whether any are too small to stay on the gel.
 
 The gel is a rule of thumb for a standard 1 % agarose gel, not a simulation
-of one: two fragments within about 15 % of each other are called one band,
-anything under 100 bp may run off the end, and more than one fragment over
-10 kb will compress near the well. Your gel may do better or worse.
+of one: band positions are calculated from the length, two fragments within
+about 15 % of each other are called one band, anything under 100 bp may run
+off the end, and more than one fragment over 10 kb will compress near the
+well. Your gel may do better or worse.
 
 For the fragments themselves, with their ends and the features they carry,
 and to join them into a new construct, use the [Cloning](12-cloning.md)

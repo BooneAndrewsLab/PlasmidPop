@@ -4,6 +4,7 @@ import {
   type CutSite,
   type DigestProfile,
   type Enzyme,
+  type GelBand,
   type SeqDocument,
   activeEnzymes,
   bandProblems,
@@ -26,6 +27,7 @@ import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { EnzymeImport } from './EnzymeImport';
+import { Gel } from './Gel';
 import { useRowWindow } from './useRowWindow';
 
 interface Props {
@@ -53,6 +55,13 @@ const ROW_ESTIMATE = 46;
  * list instead of taking the page down.
  */
 const MAX_SHOW_LISTED = 200;
+
+/** "2,181 and 2,180", the pieces hidden under one band. */
+function describeBandFragments(band: GelBand): string {
+  const shown = band.fragments.slice(0, 3).map((n) => n.toLocaleString());
+  const rest = band.fragments.length - shown.length;
+  return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(' and ');
+}
 
 function describeSite(site: CutSite): string {
   return site.cut.toLocaleString();
@@ -163,6 +172,14 @@ export function EnzymePanel({ doc }: Props) {
   );
   /** How everything ticked together would read on a gel. */
   const ticked = useMemo(() => gelProfile(fragments.map((f) => f.length)), [fragments]);
+  // A lane is 42 units wide, so the heading over it is a name or a count,
+  // never a list of five enzymes run together into one word.
+  const tickedLabel = useMemo(() => {
+    const names = groups
+      .filter((g) => shownEnzymes.has(g.enzyme.name) && g.sites.length > 0)
+      .map((g) => g.enzyme.name);
+    return names.length === 1 ? (names[0] ?? 'Digest') : `${names.length} enzymes`;
+  }, [groups, shownEnzymes]);
 
   const needle = filter.trim().toLowerCase();
   const matching = groups.filter(
@@ -429,6 +446,24 @@ export function EnzymePanel({ doc }: Props) {
           {fragments.length > 0 && (
             <div className="panel__section">
               <h3 className="panel__heading">Fragments from ticked enzymes</h3>
+              {/* The lane before the numbers: the question a diagnostic digest
+                  is chosen to answer is "will I see two bands", and that is a
+                  question for the eye. Clicking one selects the piece it is. */}
+              <Gel
+                profile={ticked}
+                label={tickedLabel}
+                onPick={(band) => {
+                  const piece = fragments.find((f) => f.length === band.length);
+                  if (piece === undefined) return;
+                  editorStore.setSelection({ start: piece.start, end: piece.end });
+                  editorStore.revealPosition(piece.start);
+                }}
+                pickTitle={(band) =>
+                  band.fragments.length > 1
+                    ? `${describeBandFragments(band)} bp run here; select the ${band.length.toLocaleString()} bp one`
+                    : `Select the ${band.length.toLocaleString()} bp fragment in the views`
+                }
+              />
               <p className="panel__mono">
                 {fragments.map((f) => f.length.toLocaleString()).join(', ')} bp
               </p>

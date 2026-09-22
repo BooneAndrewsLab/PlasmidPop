@@ -29,12 +29,19 @@ export interface GelOptions {
   readonly minVisible?: number;
   /** Above this the large fragments compress together near the well. */
   readonly maxResolved?: number;
+  /**
+   * Length that runs with the dye front. Nothing shorter is any further
+   * down the lane, because there is no further down: this is where the
+   * picture ends.
+   */
+  readonly frontLength?: number;
 }
 
 export const DEFAULT_GEL: Required<GelOptions> = {
   resolution: 1.15,
   minVisible: 100,
   maxResolved: 10_000,
+  frontLength: 50,
 };
 
 /** One band of the gel: the fragments that would run together at one place. */
@@ -226,4 +233,78 @@ export function bandProblems(profile: DigestProfile, options: GelOptions = {}): 
     out.push(`${profile.tooLarge} bands are over ${maxResolved.toLocaleString()} bp and compress`);
   }
   return out;
+}
+
+// ------------------------------------------------------- the picture of it
+
+/**
+ * How far down the lane a fragment of `length` runs: 0 at the well, 1 at
+ * the dye front.
+ *
+ * Mobility goes as the log of the length over the range a gel resolves, and
+ * outside that range everything piles up at one end or the other — which is
+ * the clamping, and is also what `maxResolved` and `minVisible` already say
+ * in words. So the drawing and the warnings cannot disagree about where the
+ * gel stops being informative: they are the same two numbers.
+ */
+export function migration(length: number, options: GelOptions = {}): number {
+  const { maxResolved, frontLength } = { ...DEFAULT_GEL, ...options };
+  const top = Math.log10(maxResolved);
+  const bottom = Math.log10(Math.max(1, frontLength));
+  if (top <= bottom) return 0;
+  const x = Math.log10(Math.max(1, length));
+  return Math.min(1, Math.max(0, (top - x) / (top - bottom)));
+}
+
+/** A size standard: the bands of one, longest first. */
+export interface Ladder {
+  readonly name: string;
+  readonly bands: readonly number[];
+}
+
+/**
+ * The two ladders a molecular biology bench has in the freezer. They are
+ * here so a drawn gel has a scale beside it — a lane of bands with nothing
+ * to measure against is a picture, not a reading.
+ */
+export const LADDERS: readonly Ladder[] = [
+  {
+    name: '1 kb',
+    bands: [10_000, 8000, 6000, 5000, 4000, 3000, 2000, 1500, 1000, 500],
+  },
+  {
+    name: '100 bp',
+    bands: [1500, 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100],
+  },
+];
+
+/** The ladder that spans what is being run: the 100 bp one for small stuff. */
+export function chooseLadder(lengths: readonly number[]): Ladder {
+  const longest = lengths.reduce((n, x) => Math.max(n, x), 0);
+  const fine = LADDERS[1];
+  const coarse = LADDERS[0];
+  if (coarse === undefined || fine === undefined) throw new Error('No ladders');
+  return longest <= 1500 ? fine : coarse;
+}
+
+/**
+ * How brightly each band stains, 0–1 against the brightest in the lane.
+ *
+ * A stain binds DNA by mass, not by molarity, so a 4 kb band and a 200 bp
+ * band at the same molar amount are not equally bright — the short one is
+ * faint, and on a real gel it is the one people miss. The square root
+ * compresses that twentyfold difference into something a drawing can show
+ * without making the faint band invisible, which would be truthful and
+ * useless.
+ */
+export function bandIntensities(bands: readonly GelBand[]): number[] {
+  const mass = bands.map((b) => b.fragments.reduce((n, x) => n + x, 0));
+  const brightest = mass.reduce((n, x) => Math.max(n, x), 0);
+  if (brightest <= 0) return mass.map(() => 0);
+  return mass.map((m) => Math.sqrt(m / brightest));
+}
+
+/** "2,181 ×2", the label a band carries beside the lane. */
+export function bandLabel(band: GelBand): string {
+  return `${band.length.toLocaleString()}${band.fragments.length > 1 ? ` \u00d7${band.fragments.length}` : ''}`;
 }
