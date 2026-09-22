@@ -34,6 +34,7 @@ export function describeEditDiff(diff: DocumentDiff | null): string {
   if (diff.basesDeleted > 0) parts.push(`${MINUS}${count(diff.basesDeleted, 'bp', 'bp')}`);
   const features = diff.featuresAdded.size + diff.featuresChanged.size;
   if (features > 0) parts.push(count(features, 'feature'));
-  if (diff.featuresRemoved > 0) parts.push(`${MINUS}${count(diff.featuresRemoved, 'feature')}`);
+  if (diff.featuresRemoved.size > 0)
+    parts.push(`${MINUS}${count(diff.featuresRemoved.size, 'feature')}`);
   return parts.join(' · ');
 }

@@ -143,7 +143,9 @@ enzyme cuts rather than only "once" (item 30; that filter and the supplier one
 are remembered, the search box is not). Added 2026-09-21: a map label slides only
 a short way from its own tick and no leader line crosses another unless two
 features sit at the same place, measured by rendering rather than asserted
-(item 31). Tests: 716 passing. Perf measurements live in
+(item 31), and the review before a download names the features a
+removal took and where they were rather than counting them (item 27).
+Tests: 724 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -728,38 +730,50 @@ pick from here when the current work is done.
       not come back after leaving the sidebar tab; and a previewed primer
       still does not draw its mismatches, which is the thing a scientist
       squints at.
-27. **Name the features a diff removed.** `SaveReviewDialog`'s Features list
-    names what was added (`+ lacZα`) and what changed (`~ tet changed`), but
-    a removal is one anonymous line — `− 3 features removed` — and the Edits
-    menu's one-liner likewise ends in `· −3 features`. The names are the
-    thing the reviewer wants: "3 features removed" from a plasmid could be
-    three stray `misc_binding`s or it could be the resistance marker.
-    - **The asymmetry has a cause.** `featuresAdded` and `featuresChanged`
-      are sets of ids that `featureNames` resolves against `current`, which
-      the dialog holds; `featuresRemoved` is a bare `number`
-      (`src/core/diff/documentDiff.ts`) because those features exist only in
-      the baseline. The fix is to make it a `ReadonlySet<FeatureId>` like the
-      other two and resolve it against the baseline document — `origin.doc`
-      in the dialog, already at hand. Small and mechanical: the set's `.size`
-      replaces the number in `isEmptyDiff` and `describeEditDiff`
-      (`src/app/editsView.ts`), and no consumer of the cached diff outside
-      the dialog needs the names.
-    - **A name alone may not be enough.** After item 23 most features on a
-      real record are unnamed, so `featureNames` falls back to the type and a
-      list can read `misc_feature, misc_binding, misc_binding`. What tells
-      them apart is where they were, which means the removed feature's old
-      location mapped through the diff (`positionMapper` is right there in
-      `diffFeatures`) — `− misc_binding 411..414`. Worth doing for added and
-      changed features too, in their own coordinates.
-    - **Then the list needs a cap.** None of the three lists has one today.
-      Deleting 2 kb of a plasmid removes every feature on it, and the
-      Features section would run to a screenful where the hunks above it
-      stop at a few with "and N more places not shown"; removals should get
-      the same treatment, and a removal caused by a deletion could be said
-      once ("the deletion at 1,204 took 7 features with it") rather than
-      seven times.
-    - Touches item 21's summary line and item 22's review dialog. No data
-      implications — the diff already knows everything needed.
+27. ~~**Name the features a diff removed.**~~ done, 2026-09-21.
+    `SaveReviewDialog`'s Features list named what was added (`+ lacZα`) and what
+    changed (`~ tet changed`), but a removal was one anonymous line —
+    `− 3 features removed`. The names are the thing the reviewer wants: three
+    features removed from a plasmid could be three stray `misc_binding`s or it
+    could be the resistance marker.
+    - **The asymmetry had a cause**, and the fix the note proposed — make
+      `featuresRemoved` a `ReadonlySet<FeatureId>` and resolve it against the
+      baseline — is half of one. A removed feature is in *neither* document the
+      dialog holds: the current one has lost it, and the baseline puts it at
+      coordinates the edits have since moved. So `DocumentDiff.featuresRemoved`
+      is a `ReadonlyMap<FeatureId, Feature>` carrying the feature itself with
+      its location mapped through the diff (`mapFeature`, using the
+      `positionMapper` that was already there for `sameFeature`). `.size`
+      stands in for the old number in `isEmptyDiff` and `describeEditDiff`, so
+      the Edits menu's one-liner still ends in `· −3 features` — a summary line
+      is the wrong place for names.
+    - **A name alone is not enough**, as the note said: after item 23 most
+      features on a real record are unnamed and fall back to their type, so
+      every line carries where it is — `− misc_binding 411..414`, and the same
+      for added and changed features in their own coordinates. The positions
+      are written the way the rest of the dialog writes one (1-based, inclusive,
+      grouped), not as GenBank locations.
+    - **A deletion is said once.** Deleting a stretch takes every feature on it,
+      and seven lines is seven times the same event; a removed feature whose
+      mapped location has collapsed onto a deletion boundary is grouped with
+      the others that collapsed there: `− the deletion at 1,205 took 7 features
+      with it: bla, tet, rop and 4 more`. It has to *be* a deletion — a 1 bp
+      feature removed by hand also comes back covering one base — and the
+      collapsed location is not always a point: delete `4..12` of a sequence
+      whose base at 4 repeats after the cut and the shortest edit script
+      deletes `5..13` instead, so the feature's ends map either side of the
+      boundary. The rule is "covers at most one base and a deletion is at it".
+    - **Each list is capped** at eight lines with the rest counted (`and 5 more
+      features removed`), which none of the three had: the sequence hunks above
+      stop at a dozen and say so, and the Features section could run to a
+      screenful under them. A deletion's grouped line counts for all the
+      features it stands for.
+    - The rows are built in `src/app/featureChanges.ts` rather than in the
+      dialog, which now maps over them; `featureNames` is gone.
+    - Not yet: nothing else shows the names — the Edits menu's tally and the
+      sequence view's marks are unchanged — and a removed feature's line is
+      not clickable, though its location is now known.
+
 28. ~~**Drag the boundary between the map and the sequence.**~~ done,
     2026-09-21. Asked for the same day: in the **Both** view the two panes were
     a fixed ratio (`minmax(280px, 2fr) minmax(0, 3fr)`, and stacked under

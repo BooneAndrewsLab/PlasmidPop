@@ -1,4 +1,10 @@
-import { type Feature, type FeatureId, type Qualifier, type Segment } from '../features';
+import {
+  type Feature,
+  type FeatureId,
+  type Qualifier,
+  type Segment,
+  createFeature,
+} from '../features';
 import { type SeqDocument } from '../document';
 import {
   type SequenceDiff,
@@ -39,8 +45,15 @@ export interface DocumentDiff {
   readonly deletions: readonly DeletionMark[];
   readonly featuresAdded: ReadonlySet<FeatureId>;
   readonly featuresChanged: ReadonlySet<FeatureId>;
-  /** How many features the older version had that the newer one has not. */
-  readonly featuresRemoved: number;
+  /**
+   * Features the older version had that the newer one has not, each one as
+   * it was but with its location mapped into the newer document. A set of
+   * ids would be no use: these features are in neither document the caller
+   * holds — the newer one has lost them and the older one puts them at
+   * coordinates that have since moved — and a review that can only say
+   * "3 features removed" is exactly what item 27 was about.
+   */
+  readonly featuresRemoved: ReadonlyMap<FeatureId, Feature>;
   readonly basesInserted: number;
   readonly basesChanged: number;
   readonly basesDeleted: number;
@@ -55,7 +68,7 @@ export const EMPTY_DIFF: DocumentDiff = {
   deletions: [],
   featuresAdded: new Set(),
   featuresChanged: new Set(),
-  featuresRemoved: 0,
+  featuresRemoved: new Map(),
   basesInserted: 0,
   basesChanged: 0,
   basesDeleted: 0,
@@ -71,7 +84,7 @@ export function isEmptyDiff(diff: DocumentDiff): boolean {
     diff.deletions.length === 0 &&
     diff.featuresAdded.size === 0 &&
     diff.featuresChanged.size === 0 &&
-    diff.featuresRemoved === 0
+    diff.featuresRemoved.size === 0
   );
 }
 
@@ -163,7 +176,19 @@ function collectMarks(diff: SequenceDiff): MarkResult {
 interface FeatureDiff {
   readonly featuresAdded: ReadonlySet<FeatureId>;
   readonly featuresChanged: ReadonlySet<FeatureId>;
-  readonly featuresRemoved: number;
+  readonly featuresRemoved: ReadonlyMap<FeatureId, Feature>;
+}
+
+/** The same feature, at wherever the sequence diff says its bases went. */
+function mapFeature(feature: Feature, map: (position: number) => number): Feature {
+  return createFeature({
+    ...feature,
+    segments: feature.segments.map((seg) =>
+      seg.kind === 'site'
+        ? { ...seg, position: map(seg.position) }
+        : { ...seg, start: map(seg.start), end: Math.max(map(seg.start), map(seg.end)) },
+    ),
+  });
 }
 
 function diffFeatures(
@@ -184,9 +209,10 @@ function diffFeatures(
     if (before === undefined) featuresAdded.add(feature.id);
     else if (!sameFeature(before, feature, mapUnrolled)) featuresChanged.add(feature.id);
   }
-  let featuresRemoved = 0;
+  const featuresRemoved = new Map<FeatureId, Feature>();
   for (const feature of baseline.features) {
-    if (current.getFeature(feature.id) === undefined) featuresRemoved++;
+    if (current.getFeature(feature.id) === undefined)
+      featuresRemoved.set(feature.id, mapFeature(feature, mapUnrolled));
   }
   return { featuresAdded, featuresChanged, featuresRemoved };
 }

@@ -89,7 +89,7 @@ describe('SaveReviewDialog', () => {
     expect(container.querySelector('.diff-strip__label')?.textContent).toContain('deleted 6 bp');
   });
 
-  it('lists features that were added', () => {
+  it('lists features that were added, and where they are', () => {
     setup(() => {
       editorStore.apply({
         type: 'addFeature',
@@ -101,8 +101,36 @@ describe('SaveReviewDialog', () => {
       });
     });
     const { container } = render(<SaveReviewDialog />);
-    expect(container.querySelector('.save-review__features')?.textContent).toContain('bla');
+    const features = container.querySelector('.save-review__features')?.textContent;
+    expect(features).toContain('bla');
+    expect(features).toContain('11..40');
     expect(container.querySelector('.save-review__summary')?.textContent).toBe('1 feature');
+  });
+
+  it('names the features a removal took, rather than counting them', () => {
+    const annotated = original
+      .addFeature(
+        createFeature({ id: 'a', type: 'CDS', name: 'tet', segments: [rangeSegment(10, 40)] }),
+      )
+      .addFeature(
+        createFeature({ id: 'b', type: 'misc_binding', segments: [rangeSegment(60, 64)] }),
+      );
+    act(() => {
+      editorStore.closeAllDocuments();
+      const id = editorStore.openDocument(annotated, 'pRev.gb');
+      editorStore.apply({ type: 'removeFeature', id: 'a' });
+      editorStore.apply({ type: 'removeFeature', id: 'b' });
+      editorStore.requestSaveReview(id, 'pRev.gb');
+    });
+    const { container } = render(<SaveReviewDialog />);
+    const features = container.querySelector('.save-review__features')?.textContent;
+    // The names are the point: "2 features removed" could be two stray
+    // binding sites or it could be the resistance marker.
+    expect(features).toContain('tet');
+    expect(features).toContain('11..40');
+    // An unnamed one is told apart by its type and where it was.
+    expect(features).toContain('misc_binding');
+    expect(features).toContain('61..64');
   });
 
   it('says so when the copy has drifted back to the original', () => {

@@ -107,8 +107,10 @@ Downloads are always GenBank.
   came from — a summary line, each changed stretch of sequence drawn with the
   same marks the sequence view uses for tracked changes and headed with where
   it is and what happened there (`around 1,204  inserted 5 bp; deleted 3 bp`),
-  and the features added, changed or removed. **Download** writes it;
-  **Cancel** writes nothing.
+  and the features added, changed or removed. Each feature is named and says
+  where it is (`− misc_binding 411..414`), a removal included; where one
+  deletion took several features with it, the review says so once, naming
+  them. **Download** writes it; **Cancel** writes nothing.
 - In Chrome and Edge the browser then asks where to put the file, with the
   name filled in — the name you chose last time for this document, so you can
   point at the same file again and replace it. In Firefox and Safari a page

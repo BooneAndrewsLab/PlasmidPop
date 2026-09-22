@@ -116,11 +116,33 @@ describe('diffDocuments features', () => {
     const extra = createFeature({ id: 'f2', type: 'promoter', segments: [rangeSegment(0, 3)] });
     const added = diffDocuments(base, base.addFeature(extra));
     expect([...added.featuresAdded]).toEqual(['f2']);
-    expect(added.featuresRemoved).toBe(0);
+    expect(added.featuresRemoved.size).toBe(0);
 
     const removed = diffDocuments(base, base.removeFeature('f1'));
-    expect(removed.featuresRemoved).toBe(1);
+    expect(removed.featuresRemoved.size).toBe(1);
     expect(removed.featuresAdded.size).toBe(0);
+    // The feature itself, so a review can name it: it is in neither
+    // document the caller holds.
+    expect(removed.featuresRemoved.get('f1')?.name).toBe('gene');
+  });
+
+  it('puts a removed feature where the edits since have left its bases', () => {
+    // Three bases inserted before it, so what was 4..12 is now 7..15.
+    const after = base.insert(0, 'TTT').removeFeature('f1');
+    const gone = diffDocuments(base, after).featuresRemoved.get('f1');
+    expect(gone?.segments[0]).toMatchObject({ start: 7, end: 15 });
+  });
+
+  it('collapses a feature the deletion swallowed to the boundary it left', () => {
+    // 4..12 deleted outright, so the feature has no bases left to sit on and
+    // comes out at the boundary. Not a single point: the base at 4 is a T
+    // and so is the one that follows the deletion, so the shortest edit
+    // script deletes 5..13 and the feature's own ends map either side of it.
+    // Near enough for the review, which groups by the deletion beside it.
+    const after = base.delete({ start: 4, end: 12 }).removeFeature('f1');
+    const diff = diffDocuments(base, after);
+    expect(diff.featuresRemoved.get('f1')?.segments[0]).toMatchObject({ start: 4, end: 5 });
+    expect(diff.deletions).toEqual([{ position: 5, count: 8 }]);
   });
 
   it('marks a feature whose annotation was edited', () => {

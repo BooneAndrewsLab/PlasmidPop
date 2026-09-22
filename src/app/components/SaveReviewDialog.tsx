@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 
-import { type DiffHunk, type SeqDocument, diffHunks, isEmptyDiff } from '@/core';
+import { type DiffHunk, diffHunks, isEmptyDiff } from '@/core';
 import { supportsFileSystemAccess } from '@/storage';
 
 import { describeEditDiff } from '../editsView';
+import { featureChangeRows } from '../featureChanges';
 import { editDiffBetween } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
@@ -16,6 +17,13 @@ import { DiffStrip } from './DiffStrip';
  */
 const MAX_STRIPS = 12;
 
+/** How each kind of change is marked in the Features list. */
+const MARK_CLASS: Readonly<Record<'+' | '~' | '−', string>> = {
+  '+': 'save-review__mark--add',
+  '~': 'save-review__mark--change',
+  '−': 'save-review__mark--remove',
+};
+
 /**
  * What one neighbourhood did, as its heading: `inserted 5 bp; deleted 3 bp`.
  * Only what happened is named, so a plain insertion does not read as a list
@@ -27,15 +35,6 @@ function describeHunk(hunk: DiffHunk): string {
   if (hunk.basesDeleted > 0) parts.push(`deleted ${hunk.basesDeleted.toLocaleString()} bp`);
   if (hunk.basesChanged > 0) parts.push(`changed ${hunk.basesChanged.toLocaleString()} bp`);
   return parts.join('; ');
-}
-
-/** Names of the features in `ids`, as the edited document has them. */
-function featureNames(doc: SeqDocument, ids: ReadonlySet<string>): string[] {
-  if (ids.size === 0) return [];
-  return doc.features
-    .all()
-    .filter((f) => ids.has(f.id))
-    .map((f) => (f.name.trim() === '' ? f.type : f.name));
 }
 
 /**
@@ -74,6 +73,10 @@ export function SaveReviewDialog() {
   );
   const hunks = useMemo(
     () => (diff === null || current === null ? [] : diffHunks(diff, current.length)),
+    [diff, current],
+  );
+  const featureRows = useMemo(
+    () => (diff === null || current === null ? [] : featureChangeRows(diff, current)),
     [diff, current],
   );
 
@@ -152,30 +155,23 @@ export function SaveReviewDialog() {
                   {hunks.length - shown.length === 1 ? 'place' : 'places'} not shown.
                 </p>
               )}
-              {(changes.featuresAdded.size > 0 ||
-                changes.featuresChanged.size > 0 ||
-                changes.featuresRemoved > 0) && (
+              {featureRows.length > 0 && (
                 <div className="save-review__features">
                   <h3 className="save-review__heading">Features</h3>
                   <ul>
-                    {featureNames(current, changes.featuresAdded).map((name) => (
-                      <li key={`+${name}`}>
-                        <span className="save-review__mark save-review__mark--add">+</span> {name}
+                    {featureRows.map((row) => (
+                      <li key={row.key}>
+                        {row.mark !== '' && (
+                          <span className={`save-review__mark ${MARK_CLASS[row.mark]}`}>
+                            {row.mark}
+                          </span>
+                        )}{' '}
+                        {row.text}
+                        {row.where !== '' && (
+                          <span className="save-review__where"> {row.where}</span>
+                        )}
                       </li>
                     ))}
-                    {featureNames(current, changes.featuresChanged).map((name) => (
-                      <li key={`~${name}`}>
-                        <span className="save-review__mark save-review__mark--change">~</span>{' '}
-                        {name} changed
-                      </li>
-                    ))}
-                    {changes.featuresRemoved > 0 && (
-                      <li>
-                        <span className="save-review__mark save-review__mark--remove">−</span>{' '}
-                        {changes.featuresRemoved.toLocaleString()}{' '}
-                        {changes.featuresRemoved === 1 ? 'feature' : 'features'} removed
-                      </li>
-                    )}
                   </ul>
                 </div>
               )}
