@@ -9,3 +9,4 @@ export * from './analysis';
 export * from './primers';
 export * from './alignment';
 export * from './cloning';
+export * from './checksum';

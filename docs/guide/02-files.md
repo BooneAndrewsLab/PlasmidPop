@@ -178,13 +178,21 @@ of your own plasmid is usually for.
   qualifier is not reported; one that differs in name, type, location or
   qualifiers is reported as one removed and one added, because nothing in
   the two files says it is the same feature edited.
-- **A plasmid rotated to a different origin reads as different throughout.**
-  The bases are compared as text, so the same circle written from another
-  starting point has nothing in common with this one until the origins
-  match. The dialog says so when both are the same length; use
-  [Set origin](04-editing.md) and compare again.
+- **A plasmid written from another origin is lined up first.** A circle has
+  no first base, so the same plasmid saved by two programs can share no text
+  at all. The dialog works out how the other file's copy has to be turned —
+  rotated to another origin, read from the other strand, or both — says so
+  above the differences, and compares against it turned. What is left is the
+  real difference between the two molecules, not the difference between two
+  ways of writing one.
+- **The two checksums are at the top.** Each is the molecule's
+  [SEGUID v2 name](03-viewing.md#the-checksum), which does not change with
+  the origin or the strand, so two that match mean the same molecule for
+  certain — anything the dialog then lists is annotation, not sequence.
 - **Two unrelated sequences** come out as "too different to follow in
-  detail" rather than as a thousand tiny differences.
+  detail" rather than as a thousand tiny differences. Where nothing long
+  enough is shared, nothing can be lined up either, and the dialog says that
+  rather than guessing.
 
 ## Sharing a link
 

@@ -1,3 +1,4 @@
+import { type MoleculeAlignment } from '@/core';
 import { parseSequenceData } from '@/io';
 
 import { analytics } from './analytics';
@@ -32,4 +33,25 @@ export async function compareWithFile(file: File): Promise<boolean> {
     editorStore.fail(e instanceof Error ? e.message : String(e));
     return false;
   }
+}
+
+/**
+ * What had to be done to the other file's copy before the two could be
+ * compared at all, said in the dialog above the differences.
+ *
+ * Turning it is not a detail to leave out: the reader is being shown a diff
+ * against something other than what the file literally says, and the whole
+ * point of comparing was to trust the answer.
+ */
+export function describeAlignment(alignment: MoleculeAlignment, fileName: string): string {
+  const turn =
+    alignment.origin > 0 && alignment.flipped
+      ? `read from the other strand and rotated to base ${(alignment.origin + 1).toLocaleString()}`
+      : alignment.flipped
+        ? 'read from the other strand'
+        : `rotated to base ${(alignment.origin + 1).toLocaleString()}`;
+  const same = alignment.exact
+    ? `${fileName} holds this same molecule written another way`
+    : `${fileName} looks like this molecule written another way`;
+  return `${same}, so it has been ${turn} before comparing. The differences below are what is left once they line up.`;
 }

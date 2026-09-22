@@ -63,6 +63,41 @@ describe('Compare with…', () => {
     expect(dialog.textContent).toContain('Nothing differs');
   });
 
+  it('lines a rotated plasmid up instead of calling it different throughout', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const doc = editorStore.document;
+    if (doc === null) throw new Error('expected a document');
+    // The same plasmid, written from an origin 1,000 bases along: not one
+    // line of it is the same text, and every base of it is the same molecule.
+    const file = gbFile('pBR322-rotated.gb', writeGenBank(doc.setOrigin(1000)));
+    await act(async () => {
+      await compareWithFile(file);
+    });
+    const dialog = await screen.findByRole('dialog', { name: /compared with/ });
+    expect(dialog.textContent).toContain('rotated to base');
+    expect(dialog.textContent).toContain('Nothing else differs');
+    // And it says so with the checksum, which is the same for both.
+    const checksums = dialog.textContent.match(/cdseguid=[A-Za-z0-9_-]{27}/g) ?? [];
+    expect(checksums).toHaveLength(2);
+    expect(checksums[0]).toBe(checksums[1]);
+  });
+
+  it('shows both checksums when the two files are not the same molecule', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const file = fileFromOpenDocument('pBR322-other.gb', (text) =>
+      text.replace(/^ {8}1 (\w{10})/m, '        1 '),
+    );
+    await act(async () => {
+      await compareWithFile(file);
+    });
+    const dialog = await screen.findByRole('dialog', { name: /compared with/ });
+    const checksums = dialog.textContent.match(/cdseguid=[A-Za-z0-9_-]{27}/g) ?? [];
+    expect(checksums).toHaveLength(2);
+    expect(checksums[0]).not.toBe(checksums[1]);
+  });
+
   it('reports a file it cannot read without opening a comparison', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

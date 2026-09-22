@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react';
 
-import { diffDocuments, isEmptyDiff } from '@/core';
+import {
+  alignToDocument,
+  applyAlignment,
+  diffDocuments,
+  documentChecksum,
+  isEmptyDiff,
+  isIdentityAlignment,
+} from '@/core';
 
+import { describeAlignment } from '../compare';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { DiffReview } from './DiffReview';
@@ -14,6 +22,12 @@ import { DiffReview } from './DiffReview';
  * It answers the question a plasmid map cannot: is this the same construct
  * as the one in that file, and if not, where do they part company. Nothing
  * is opened, written or stored; the other file is read, diffed and dropped.
+ *
+ * The file is lined up with this document before it is diffed. Two files can
+ * hold the same plasmid and share no text at all, because a circle has no
+ * first base: `alignToDocument` works out the rotation (and the strand) and
+ * the dialog says what it did, since the diff shown is then against the file
+ * turned rather than against the file as written.
  *
  * The diff is computed here rather than through `editDiffBetween`, whose
  * one-slot cache belongs to the sequence view's own marks: this pair would
@@ -37,15 +51,33 @@ export function CompareDialog() {
     };
   }, [comparison]);
 
-  const other = comparison?.doc ?? null;
+  const file = comparison?.doc ?? null;
+  const alignment = useMemo(
+    () => (file === null || current === null ? null : alignToDocument(current, file)),
+    [file, current],
+  );
+  const turned = alignment !== null && !isIdentityAlignment(alignment);
+  const other = useMemo(
+    () => (file === null || alignment === null || !turned ? file : applyAlignment(file, alignment)),
+    [file, alignment, turned],
+  );
   const diff = useMemo(
     () => (other === null || current === null ? null : diffDocuments(other, current)),
     [other, current],
   );
+  const checksums = useMemo(
+    () =>
+      file === null || current === null
+        ? null
+        : { mine: documentChecksum(current), theirs: documentChecksum(file) },
+    [file, current],
+  );
 
-  if (comparison === null || current === null || other === null) return null;
+  if (comparison === null || current === null || other === null || file === null) return null;
   const changes = diff === null || isEmptyDiff(diff) ? null : diff;
   const sameLength = other.length === current.length;
+  const sameMolecule =
+    checksums !== null && checksums.mine !== null && checksums.mine.text === checksums.theirs?.text;
 
   return (
     <div className="dialog-backdrop">
@@ -64,20 +96,44 @@ export function CompareDialog() {
           document’s own coordinates. Neither file is changed, and nothing was opened or stored.
         </p>
 
+        {checksums?.mine != null && checksums.theirs != null && (
+          <dl className="compare-checksums">
+            <div>
+              <dt>{current.name === '' ? 'This document' : current.name}</dt>
+              <dd>
+                <code>{checksums.mine.text}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>{comparison.fileName}</dt>
+              <dd>
+                <code className={sameMolecule ? 'compare-checksums__same' : undefined}>
+                  {checksums.theirs.text}
+                </code>
+              </dd>
+            </div>
+          </dl>
+        )}
+
+        {alignment !== null && turned && (
+          <p className="save-review__note">{describeAlignment(alignment, comparison.fileName)}</p>
+        )}
+
         <div className="save-review">
           {changes === null ? (
             <p className="save-review__empty">
-              Nothing differs: the same {current.length.toLocaleString()} bp, the same features and
-              the same name.
+              Nothing {turned ? 'else ' : ''}differs: the same {current.length.toLocaleString()} bp,
+              the same features and the same name.
             </p>
           ) : (
             <DiffReview doc={current} baseline={other} diff={changes} />
           )}
-          {changes?.coarse === true && sameLength && current.topology === 'circular' && (
+          {changes?.coarse === true && !turned && sameLength && current.topology === 'circular' && (
             <p className="save-review__note">
-              Both are {current.length.toLocaleString()} bp but read as different throughout, which
-              is what the same plasmid looks like when the two files start it at different origins.
-              Set this document’s origin to match and compare again.
+              Both are {current.length.toLocaleString()} bp but read as different throughout, and
+              nothing long enough to go on is shared, so they could not be lined up. That is what
+              the same plasmid looks like when the two files start it at different origins and it
+              has been heavily edited since — set this document’s origin to match and compare again.
             </p>
           )}
         </div>

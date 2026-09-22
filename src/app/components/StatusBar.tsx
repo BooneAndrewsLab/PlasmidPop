@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { type SeqDocument } from '@/core';
+import { type SeqDocument, documentChecksum } from '@/core';
 
+import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -22,6 +23,10 @@ function describeSelection(doc: SeqDocument, selection: { start: number; end: nu
 export function StatusBar({ doc }: Props) {
   const { selection, warnings, error, errorCountdown, fileName } = useEditorState();
   const [showWarnings, setShowWarnings] = useState(false);
+  const [copied, setCopied] = useState(false);
+  // A SHA-1 over the sequence, which is microseconds even for a plasmid, but
+  // it is taken on every render of the status bar without this.
+  const checksum = useMemo(() => (doc === null ? null : documentChecksum(doc)), [doc]);
 
   return (
     <footer className="statusbar">
@@ -104,6 +109,22 @@ export function StatusBar({ doc }: Props) {
               }}
             >
               {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`} while opening
+            </button>
+          )}
+          {checksum !== null && (
+            <button
+              type="button"
+              className="button button--quiet statusbar__checksum"
+              title={`${checksum.text}\nThe molecule's SEGUID v2 name: the same for this sequence whatever origin it is written from and whichever strand is on top. Click to copy it in full.`}
+              onClick={() => {
+                copyText(checksum.text);
+                setCopied(true);
+                window.setTimeout(() => {
+                  setCopied(false);
+                }, 2000);
+              }}
+            >
+              {copied ? 'Checksum copied' : `${checksum.kind}=${checksum.short}…`}
             </button>
           )}
           {fileName !== null && <span className="statusbar__file">{fileName}</span>}

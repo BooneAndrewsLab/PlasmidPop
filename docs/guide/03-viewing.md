@@ -211,3 +211,33 @@ Elsewhere:
 
 Many actions work on the selection: Add feature, Delete selection, Copy and
 Cut, Export selection, Translate, Design primers, Align against selection.
+
+## The checksum
+
+The right of the status bar shows a short checksum of the open molecule, like
+`cdseguid=dUxN7Y…`. Click it to copy the whole thing.
+
+It is a [SEGUID v2](https://www.seguid.org/) name, and it has one property
+that makes it worth having: **it does not change when the molecule is written
+differently.** A plasmid has no first base, and DNA has no top strand, so
+rotating a circle to another origin or reverse-complementing it gives a file
+that shares no text with the one you started with — and the same checksum.
+Two molecules with the same checksum are the same molecule; two with
+different checksums are not.
+
+- The prefix says what kind of molecule it is: `cdseguid=` for a circular one
+  and `ldseguid=` for a linear one. It is part of the checksum, not a label
+  on it — the same bases as a plasmid and as a fragment are two different
+  things.
+- **Sticky ends count.** A fragment left by a digest is not the blunt
+  fragment of the same bases, so its checksum is different. Case does not
+  count: `atgc` and `ATGC` are the same molecule.
+- **Names, features and everything else are not in it.** It is a name for the
+  sequence, not for the annotation, so renaming a feature does not change it
+  and neither does adding one.
+
+Paste it into a lab notebook, an email or a methods section and anyone with
+the same construct can check they have the same construct — without either of
+you sending the other the sequence. [Compare with…](02-files.md#comparing-with-a-file)
+shows both checksums, and uses them to line a rotated plasmid up with this one
+before showing the differences.
