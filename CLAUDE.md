@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 884 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 888 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -292,6 +292,36 @@ pick from here when the current work is done.
        documents rather than the assembly shelf; and neither the chew-back's
        length nor the fill-in is modelled, so a very long part with a very
        short overlap can fail on the bench while looking right here.
+   - **One reaction at a time, and the fragments on the views, 2026-09-22.**
+     Three reactions stacked down a 300 px column made the tab 3,482 px tall
+     against a 931 px viewport, measured rather than guessed. They are
+     alternatives, not steps, so a segmented picker under the digest chooses
+     one (`cloningReaction`, kept with the view preferences because a lab
+     that does Gibson does Gibson every week) and only that one renders: 807
+     px, one screen. The fragment list scrolls inside itself as the enzyme
+     list does, since the picker is below it and a digest of every single
+     cutter of pBR322 is 35 rows.
+     - The picker sits **under** the digest rather than at the top of the
+       tab. The digest is the one part that is about the document in front of
+       you; the three reactions work across the open tabs, and two of them
+       never look at it. The line between them is the thing the tab was
+       missing.
+     - **The digest draws its fragments on both views** through item 26's
+       preview channel, which its note had named as the obvious next caller.
+       Each is a `span` — a dashed arc with a tick at either end — so a ring
+       of fragments reads as fragments rather than as one unbroken band, and
+       the ticks land where the enzyme cuts. The one under the pointer is an
+       `arrow` instead: solid, with a head. That needed no rendering work,
+       which is the channel paying for itself; two shapes it already had say
+       "these are the pieces" and "this is the one you are asking about".
+     - The question the preview answers is which piece is the backbone. The
+       sizes cannot say where they are, and clicking a row to select it
+       answers for one piece at a time.
+     - Not yet: nothing in the band is clickable, so a fragment cannot be
+       added to the shelf from the map; the Golden Gate and Gibson products
+       are not previewed at all, which would need somewhere to draw a
+       molecule that is not open; and a digest of dozens of fragments draws
+       a busy ring, which is honest but not useful.
 4. ~~**Translation of any selected range in six frames**~~ done. The
    Translate sidebar tab shows the selection (or the whole sequence when
    nothing is selected) in frames +1..+3 and −1..−3

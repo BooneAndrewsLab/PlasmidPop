@@ -30,6 +30,11 @@ beforeEach(() => {
   });
 });
 
+/** The Cloning tab shows one reaction at a time; this is the picker. */
+function pickReaction(name: string): HTMLElement {
+  return within(screen.getByRole('group', { name: 'Reaction' })).getByRole('button', { name });
+}
+
 /** Picks an item from the File menu, where file actions live once a document is open. */
 function fileMenu(item: string | RegExp): void {
   fireEvent.click(screen.getByRole('button', { name: 'File' }));
@@ -753,6 +758,8 @@ describe('golden gate', () => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
     fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    // The three reactions are one at a time now; pick this one.
+    fireEvent.click(pickReaction('Golden Gate'));
   }
 
   it('works out the order from the overhangs and assembles the circle', async () => {
@@ -832,6 +839,7 @@ describe('gibson', () => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
     fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    fireEvent.click(pickReaction('Gibson'));
   }
 
   it('finds the order from the shared ends and closes the circle', async () => {

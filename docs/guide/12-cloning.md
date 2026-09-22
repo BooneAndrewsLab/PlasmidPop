@@ -1,10 +1,16 @@
 # Simulated cloning
 
-The **Cloning** tab cuts the document with restriction enzymes, describes
-the resulting fragments end by end, and lets you collect fragments, from
-this file and others, into a ligation. It also runs a
-**Golden Gate** reaction (below) over the open documents. Either way the
-product opens as a new document with the features of its parts.
+The **Cloning** tab cuts the document with restriction enzymes and
+describes the resulting fragments end by end. Below the digest, a picker
+chooses one of three reactions to build something with: **Ligation**, which
+joins fragments you have collected by their overhangs, **Golden Gate**, and
+**Gibson**. They are alternatives, so one is shown at a time and the choice
+is remembered. Whichever you use, the product opens as a new document with
+the features of its parts.
+
+The digest belongs to the document in front of you. The three reactions do
+not: they work across the open tabs, and two of them never look at the
+document you happen to be reading.
 
 ## Digest
 
@@ -23,6 +29,14 @@ first, each with:
 
 An uncut linear molecule is one fragment with the ends the molecule already
 has; an uncut circular molecule gives nothing to work with.
+
+Every fragment is also drawn on the map and in the sequence view while the
+tab is open, in the dashed preview colour (see
+[Previews](03-viewing.md#previews)), with a tick where each cut falls.
+Nothing is added to the document. Hovering a row draws that one fragment as
+a solid arrow instead, which is how you see at a glance which piece is the
+backbone and which is the insert — the sizes alone cannot tell you where
+they are.
 
 ## Sticky ends on a document
 
@@ -53,23 +67,24 @@ them, since a circle has no ends; reverse-complementing swaps them and moves
 the sequence to the other strand's window, which is a few bases longer or
 shorter (see [Editing the sequence](04-editing.md#whole-sequence-operations)).
 
-## Assembly
+## Ligation
 
-**Add** moves a fragment to the **Assembly** list. The list is shared by
+**Add** moves a fragment to the **Ligation** list. The list is shared by
 every open tab and is kept in the browser, so it survives closing every tab
 and reloading the page: a ligation you set up on Friday is still there on
 Monday. The usual workflow is:
 
-1. Open the vector, tick the enzymes, add the backbone fragment.
-2. Open the file with the insert (it gets a tab of its own), tick the same
+1. Choose **Ligation** under the digest.
+2. Open the vector, tick the enzymes, add the backbone fragment.
+3. Open the file with the insert (it gets a tab of its own), tick the same
    (or compatible) enzymes, add the insert fragment.
-3. Arrange the parts: **⇄** flips a fragment (reverse complement, ends
+4. Arrange the parts: **⇄** flips a fragment (reverse complement, ends
    swapped), **↑ ↓** reorder, **✕** removes.
-4. Between consecutive parts a junction line shows **✓** when the ends can
+5. Between consecutive parts a junction line shows **✓** when the ends can
    be ligated, **✕ ends do not match** when they cannot. With **Circular
    product** ticked there is also a closing junction from the last part back
    to the first.
-5. Give the product a name (or keep the suggested one) and click
+6. Give the product a name (or keep the suggested one) and click
    **Assemble**. It is enabled only when every junction is compatible.
 
 The product opens as a new circular or linear document carrying the parts'
@@ -82,8 +97,8 @@ and a BamHI end will join a BglII end (both leave `GATC`).
 
 ## Golden Gate
 
-Golden Gate is a different reaction and has a section of its own at the
-bottom of the tab. Every part carries the same Type IIS enzyme's site at
+Golden Gate is a different reaction; choose it in the picker under the
+digest. Every part carries the same Type IIS enzyme's site at
 each end, pointing inwards, so cutting takes the sites away with the flanks
 and leaves a four-base overhang the designer chose. Cutting and ligating
 happen in one tube, and the overhangs, not you, decide the order.
@@ -125,7 +140,8 @@ was amplified with, usually — and in the tube an exonuclease, a polymerase
 and a ligase join them. The product is seamless: the shared stretch appears
 once, and there is no scar to design around.
 
-So the panel asks only what is in the tube:
+So the panel asks only what is in the tube. Choose **Gibson** in the picker,
+then:
 
 1. Open each part in its own tab: the linearised (or PCR-amplified) vector
    and the inserts. A circular document is left out, because it has no ends

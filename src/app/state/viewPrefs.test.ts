@@ -22,6 +22,7 @@ const DEFAULTS = {
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
   enzymeSort: 'name',
+  cloningReaction: 'ligation',
   geneticCode: 1,
 } as const;
 
@@ -41,6 +42,7 @@ function reset(): void {
   editorStore.setEnzymeCutFilter(DEFAULTS.enzymeCutFilter);
   editorStore.setEnzymeSupplier(DEFAULTS.enzymeSupplier);
   editorStore.setEnzymeSort(DEFAULTS.enzymeSort);
+  editorStore.setCloningReaction(DEFAULTS.cloningReaction);
   editorStore.setGeneticCode(DEFAULTS.geneticCode);
 }
 
@@ -67,6 +69,7 @@ describe('view preferences', () => {
       enzymeCutFilter: 'twice',
       enzymeSupplier: 'N',
       enzymeSort: 'bands',
+      cloningReaction: 'gibson',
       geneticCode: 11,
     } as const;
     saveViewPrefs(prefs);
@@ -111,6 +114,7 @@ describe('view preferences', () => {
       enzymeCutFilter: 'once-or-twice',
       enzymeSupplier: 'N',
       enzymeSort: 'bands',
+      cloningReaction: 'golden-gate',
       geneticCode: 2,
     });
     const stop = startViewPrefs();
@@ -129,6 +133,7 @@ describe('view preferences', () => {
       enzymeCutFilter: 'once-or-twice',
       enzymeSupplier: 'N',
       enzymeSort: 'bands',
+      cloningReaction: 'golden-gate',
       geneticCode: 2,
     });
     stop();

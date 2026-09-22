@@ -390,6 +390,17 @@ button {
   overflow: hidden;
 }
 
+/* Fills the panel, so the three reactions share a 300 px column evenly. */
+.segmented--wide {
+  display: flex;
+  width: 100%;
+}
+
+.segmented--wide .segmented__button {
+  flex: 1;
+  text-align: center;
+}
+
 /* 5px padding inside the group's 1px border matches the height of .button. */
 .segmented__button {
   padding: 5px 10px;
@@ -2226,6 +2237,14 @@ button {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* A digest can run to dozens of pieces (every single cutter of pBR322 gives
+   35), and the reaction picker is below it. The list scrolls inside itself
+   so what follows stays reachable, as the enzyme list does. */
+.fragment-list {
+  max-height: min(45vh, 420px);
+  overflow-y: auto;
 }
 
 .fragment {

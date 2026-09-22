@@ -1,6 +1,7 @@
 import { type TranslationTable, isTranslationTable } from '@/core';
 import { type FontSize, isFontSize } from '@/view/linear';
 
+import { type CloningReaction, isCloningReaction } from './cloningReaction';
 import { type CutCountFilter, isCutCountFilter } from './cutFilter';
 import { type EnzymeSort, isEnzymeSort } from './enzymeSort';
 import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
@@ -38,6 +39,8 @@ export interface ViewPrefs {
   readonly enzymeCutFilter: CutCountFilter;
   readonly enzymeSupplier: string;
   readonly enzymeSort: EnzymeSort;
+  /** Which reaction the Cloning tab shows; see `SharedState.cloningReaction`. */
+  readonly cloningReaction: CloningReaction;
   /** The code the Translate tab and the ORF scan read with. */
   readonly geneticCode: TranslationTable;
 }
@@ -90,6 +93,9 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     prefs.enzymeCutFilter = record['enzymeCutFilter'];
   }
   if (isEnzymeSort(record['enzymeSort'])) prefs.enzymeSort = record['enzymeSort'];
+  if (isCloningReaction(record['cloningReaction'])) {
+    prefs.cloningReaction = record['cloningReaction'];
+  }
   // The code is not checked against a table here: which suppliers exist
   // depends on the imported set, and the panel falls back to "any" for a
   // code the table in use does not have.
@@ -144,6 +150,7 @@ function snapshot(): ViewPrefs {
     enzymeCutFilter,
     enzymeSupplier,
     enzymeSort,
+    cloningReaction,
     geneticCode,
   } = editorStore.getState();
   return {
@@ -161,6 +168,7 @@ function snapshot(): ViewPrefs {
     enzymeCutFilter,
     enzymeSupplier,
     enzymeSort,
+    cloningReaction,
     geneticCode,
   };
 }
@@ -181,6 +189,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.enzymeCutFilter === b.enzymeCutFilter &&
     a.enzymeSupplier === b.enzymeSupplier &&
     a.enzymeSort === b.enzymeSort &&
+    a.cloningReaction === b.cloningReaction &&
     a.geneticCode === b.geneticCode
   );
 }
@@ -209,6 +218,9 @@ export function startViewPrefs(): () => void {
   if (stored.enzymeCutFilter !== undefined) editorStore.setEnzymeCutFilter(stored.enzymeCutFilter);
   if (stored.enzymeSupplier !== undefined) editorStore.setEnzymeSupplier(stored.enzymeSupplier);
   if (stored.enzymeSort !== undefined) editorStore.setEnzymeSort(stored.enzymeSort);
+  if (stored.cloningReaction !== undefined) {
+    editorStore.setCloningReaction(stored.cloningReaction);
+  }
   if (stored.geneticCode !== undefined) editorStore.setGeneticCode(stored.geneticCode);
   let last = snapshot();
   return editorStore.subscribe(() => {

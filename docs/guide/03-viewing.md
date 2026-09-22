@@ -115,11 +115,14 @@ Nothing previewed is part of the document. It is not saved, it is not in the
 SVG exports, it costs no undo step, and it goes away when you edit the
 sequence, switch sidebar tab or close the panel that asked for it.
 
-Today two things use it:
+Today three things use it:
 
 - the [Primers](10-primers.md) tab, for a designed pair and the product it
   would give, and for the binding sites of a primer you paste in;
-- [Find](06-find.md), which draws every match at once while the bar is open.
+- [Find](06-find.md), which draws every match at once while the bar is open;
+- the [Cloning](12-cloning.md) tab, which draws the pieces a digest would
+  give, each with a tick where its cuts fall, and draws the one under the
+  pointer as a solid arrow.
 
 ### Format
 

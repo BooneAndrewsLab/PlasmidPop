@@ -28,6 +28,7 @@ import { type OverlaySpan } from '@/view/overlay';
 import { type EditPlan, selectionAfterOp } from '../editing';
 import { translationWarnings } from '../translationWarnings';
 import { copyNameFor } from './derive';
+import { type CloningReaction } from './cloningReaction';
 import { type CutCountFilter } from './cutFilter';
 import { type EnzymeSort } from './enzymeSort';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
@@ -284,6 +285,13 @@ export interface SharedState {
    * reason: it is how this user reads the tab, not a fact about the file.
    */
   readonly enzymeSort: EnzymeSort;
+  /**
+   * Which of the three reactions the Cloning tab shows. Remembered for the
+   * same reason the enzyme filters are: a lab that does Gibson does Gibson
+   * every week, and coming back to the tab on someone else's reaction is a
+   * small tax paid over and over.
+   */
+  readonly cloningReaction: CloningReaction;
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
   /**
@@ -350,7 +358,7 @@ export interface DocumentPreview {
   readonly items: readonly OverlaySpan[];
 }
 
-export type PreviewOwner = 'primers' | 'find';
+export type PreviewOwner = 'primers' | 'find' | 'cloning';
 
 /** A one-line description of the active enzyme set, for the Enzymes tab. */
 export interface EnzymeSetInfo {
@@ -399,6 +407,7 @@ const SHARED_INITIAL: SharedState = {
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
   enzymeSort: 'name',
+  cloningReaction: 'ligation',
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
   assembly: [],
@@ -1047,6 +1056,10 @@ export class EditorStore {
 
   setEnzymeSort(sort: EnzymeSort): void {
     if (sort !== this.state.enzymeSort) this.setShared({ enzymeSort: sort });
+  }
+
+  setCloningReaction(reaction: CloningReaction): void {
+    if (reaction !== this.state.cloningReaction) this.setShared({ cloningReaction: reaction });
   }
 
   /** Puts every draggable boundary back where it started, sidebar included. */

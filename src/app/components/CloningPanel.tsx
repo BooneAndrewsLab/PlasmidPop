@@ -1,5 +1,5 @@
 import { analytics } from '../analytics';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import {
   type AssemblyPart,
@@ -13,7 +13,9 @@ import {
   flipFragment,
   ligate,
 } from '@/core';
+import { type OverlaySpan } from '@/view/overlay';
 
+import { CLONING_REACTIONS } from '../state/cloningReaction';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { GibsonPanel } from './GibsonPanel';
@@ -50,15 +52,32 @@ function FragmentRow({
   seqLength,
   onSelect,
   onOpen,
+  onHover,
 }: {
   readonly fragment: DigestFragment;
   readonly seqLength: number;
   readonly onSelect: () => void;
   readonly onOpen: () => void;
+  /** Called with this row's id while the pointer is on it, null when it leaves. */
+  readonly onHover: (hovered: boolean) => void;
 }) {
   const names = [...new Set(fragment.features.map((f) => (f.name === '' ? f.type : f.name)))];
   return (
-    <li className="fragment">
+    <li
+      className="fragment"
+      onMouseEnter={() => {
+        onHover(true);
+      }}
+      onMouseLeave={() => {
+        onHover(false);
+      }}
+      onFocus={() => {
+        onHover(true);
+      }}
+      onBlur={() => {
+        onHover(false);
+      }}
+    >
       <div className="fragment__head">
         <button
           type="button"
@@ -202,10 +221,43 @@ function PartRow({
   );
 }
 
+/** A digest fragment's id within one digest: its place on the molecule. */
+function fragmentId(f: DigestFragment): string {
+  return `${f.range.start}-${f.range.end}`;
+}
+
+/**
+ * The pieces a digest would give, drawn on both views beside the document's
+ * own annotation (`src/view/overlay.ts`). Each is a bracket with a tick at
+ * either end, so a ring of fragments reads as fragments rather than as one
+ * unbroken band, and the ticks fall where the enzyme cuts. The one under the
+ * pointer becomes a solid arrow instead, which is the answer to "which of
+ * these is the backbone" — the question the sizes alone cannot settle.
+ */
+function digestPreview(
+  fragments: readonly DigestFragment[],
+  hovered: string | null,
+): OverlaySpan[] {
+  return fragments.map((f) => {
+    const id = fragmentId(f);
+    const lit = id === hovered;
+    return {
+      id,
+      label: `${f.sequence.length.toLocaleString()} bp`,
+      // Already unrolled by `digest`, so a fragment over the origin draws as
+      // the one piece it is.
+      range: f.range,
+      strand: lit ? ('forward' as const) : ('none' as const),
+      shape: lit ? ('arrow' as const) : ('span' as const),
+    };
+  });
+}
+
 export function CloningPanel({ doc }: Props) {
-  const { analysis, shownEnzymes, showCutSites, assembly } = useEditorState();
+  const { analysis, shownEnzymes, showCutSites, assembly, cloningReaction } = useEditorState();
   const [circular, setCircular] = useState(true);
   const [name, setName] = useState('');
+  const [hovered, setHovered] = useState<string | null>(null);
   const ready = analysis !== null && analysis.doc === doc;
 
   const cutSites = useMemo(
@@ -220,6 +272,18 @@ export function CloningPanel({ doc }: Props) {
     () =>
       ready ? digest(doc, cutSites).sort((a, b) => b.sequence.length - a.sequence.length) : [],
     [doc, cutSites, ready],
+  );
+
+  const previewed = useMemo(() => digestPreview(fragments, hovered), [fragments, hovered]);
+  useEffect(() => {
+    editorStore.setPreview('cloning', previewed);
+  }, [previewed]);
+  // Leaving the tab takes the fragments off the views with it.
+  useEffect(
+    () => () => {
+      editorStore.clearPreview('cloning');
+    },
+    [],
   );
 
   const parts = assembly.map((p) => p.fragment);
@@ -287,7 +351,7 @@ export function CloningPanel({ doc }: Props) {
         <ul className="fragment-list">
           {fragments.map((f) => (
             <FragmentRow
-              key={`${f.range.start}-${f.range.end}`}
+              key={fragmentId(f)}
               fragment={f}
               seqLength={doc.length}
               onSelect={() => {
@@ -299,106 +363,140 @@ export function CloningPanel({ doc }: Props) {
                 editorStore.openDocument(documentFromFragment(f));
                 editorStore.setSidebarTab('features');
               }}
+              onHover={(on) => {
+                setHovered((h) => (on ? fragmentId(f) : h === fragmentId(f) ? null : h));
+              }}
             />
           ))}
         </ul>
       )}
 
       <div className="panel__section">
-        <h3 className="panel__heading">
-          Assembly
-          {assembly.length > 0 && (
-            <span className="panel__heading-note">
-              {assembly.length} {assembly.length === 1 ? 'part' : 'parts'}, {total.toLocaleString()}{' '}
-              bp
-            </span>
-          )}
-        </h3>
-        {assembly.length === 0 ? (
-          <p className="panel__note">
-            Nothing collected yet. Fragments stay here while you open other files, and across
-            reloads, so a vector from one file can take an insert from another.
-          </p>
-        ) : (
-          <ol className="part-list">
-            {assembly.map((part, i) => {
-              const join = junctions[i];
-              return (
-                <Fragment key={part.id}>
-                  <PartRow part={part} index={i} count={assembly.length} />
-                  {join !== undefined && (
-                    <JunctionRow {...join} closing={i === assembly.length - 1} />
-                  )}
-                </Fragment>
-              );
-            })}
-          </ol>
-        )}
-        {assembly.length > 0 && (
-          <div className="panel__controls">
-            <input
-              className="panel__search"
-              type="text"
-              placeholder={defaultName}
-              aria-label="Name of the assembled document"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
+        {/* The three reactions are alternatives, not steps, so the tab asks
+            which one rather than stacking all three down a 300 px column.
+            Everything above this line is the digest, which belongs to the
+            document in front of you and to none of the three. */}
+        <div className="segmented segmented--wide" role="group" aria-label="Reaction">
+          {CLONING_REACTIONS.map((r) => (
+            <button
+              key={r.value}
+              type="button"
+              className={`segmented__button${
+                cloningReaction === r.value ? ' segmented__button--active' : ''
+              }`}
+              aria-pressed={cloningReaction === r.value}
+              title={r.title}
+              onClick={() => {
+                editorStore.setCloningReaction(r.value);
               }}
-            />
-            <label className="toggle">
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {cloningReaction === 'ligation' && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            Ligation
+            {assembly.length > 0 && (
+              <span className="panel__heading-note">
+                {assembly.length} {assembly.length === 1 ? 'part' : 'parts'},{' '}
+                {total.toLocaleString()} bp
+              </span>
+            )}
+          </h3>
+          {assembly.length === 0 ? (
+            <p className="panel__note">
+              Nothing collected yet. Fragments stay here while you open other files, and across
+              reloads, so a vector from one file can take an insert from another.
+            </p>
+          ) : (
+            <ol className="part-list">
+              {assembly.map((part, i) => {
+                const join = junctions[i];
+                return (
+                  <Fragment key={part.id}>
+                    <PartRow part={part} index={i} count={assembly.length} />
+                    {join !== undefined && (
+                      <JunctionRow {...join} closing={i === assembly.length - 1} />
+                    )}
+                  </Fragment>
+                );
+              })}
+            </ol>
+          )}
+          {assembly.length > 0 && (
+            <div className="panel__controls">
               <input
-                type="checkbox"
-                checked={circular}
+                className="panel__search"
+                type="text"
+                placeholder={defaultName}
+                aria-label="Name of the assembled document"
+                value={name}
                 onChange={(e) => {
-                  setCircular(e.target.checked);
+                  setName(e.target.value);
                 }}
               />
-              Circular product
-            </label>
-            <div className="panel__buttons">
-              <button
-                type="button"
-                className="button button--quiet button--small"
-                onClick={() => {
-                  editorStore.clearAssembly();
-                }}
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                className="button button--primary button--small"
-                disabled={!canAssemble}
-                title={
-                  canAssemble
-                    ? 'Ligate the parts into a new document'
-                    : 'Every join must have matching ends'
-                }
-                onClick={assemble}
-              >
-                Assemble
-              </button>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={circular}
+                  onChange={(e) => {
+                    setCircular(e.target.checked);
+                  }}
+                />
+                Circular product
+              </label>
+              <div className="panel__buttons">
+                <button
+                  type="button"
+                  className="button button--quiet button--small"
+                  onClick={() => {
+                    editorStore.clearAssembly();
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  className="button button--primary button--small"
+                  disabled={!canAssemble}
+                  title={
+                    canAssemble
+                      ? 'Ligate the parts into a new document'
+                      : 'Every join must have matching ends'
+                  }
+                  onClick={assemble}
+                >
+                  Assemble
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      <div className="panel__section">
-        <h3 className="panel__heading">
-          Golden Gate
-          <span className="panel__heading-note">one pot, one enzyme</span>
-        </h3>
-        <GoldenGatePanel />
-      </div>
+      {cloningReaction === 'golden-gate' && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            Golden Gate
+            <span className="panel__heading-note">one pot, one enzyme</span>
+          </h3>
+          <GoldenGatePanel />
+        </div>
+      )}
 
-      <div className="panel__section">
-        <h3 className="panel__heading">
-          Gibson
-          <span className="panel__heading-note">no enzyme, matching ends</span>
-        </h3>
-        <GibsonPanel />
-      </div>
+      {cloningReaction === 'gibson' && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            Gibson
+            <span className="panel__heading-note">no enzyme, matching ends</span>
+          </h3>
+          <GibsonPanel />
+        </div>
+      )}
     </div>
   );
 }
