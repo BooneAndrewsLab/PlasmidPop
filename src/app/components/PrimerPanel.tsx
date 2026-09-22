@@ -1,5 +1,5 @@
 import { analytics } from '../analytics';
-import { useEffect, useMemo, useState } from 'react';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type BindingSite,
@@ -98,6 +98,23 @@ function addPrimerFeature(
   editorStore.apply({ type: 'addFeature', feature }, site);
 }
 
+/**
+ * Gives back the selection **Show** made. A preview that is taken off the
+ * views but leaves the product highlighted behind it reads as a pair still
+ * being shown, which is confusing while hovering the others. Only the range
+ * this panel selected is cleared: a selection the user has made since is
+ * theirs, and is left alone.
+ */
+function releaseSelection(owned: RefObject<Range | null>): void {
+  const product = owned.current;
+  owned.current = null;
+  if (product === null) return;
+  const current = editorStore.getState().selection;
+  if (current === null) return;
+  if (current.start !== product.start || current.end !== product.end) return;
+  editorStore.setSelection(null);
+}
+
 export function PrimerPanel({ doc }: Props) {
   const { selection } = useEditorState();
   const [probe, setProbe] = useState('');
@@ -106,6 +123,13 @@ export function PrimerPanel({ doc }: Props) {
   /** The pair whose preview is held on screen, and the one under the pointer. */
   const [shown, setShown] = useState<number | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  /**
+   * The product range **Show** put on the selection, so that **Hide** and
+   * leaving the tab can take it off again. Held as the range rather than as
+   * a flag: the user may have selected something else in the meantime, and
+   * that selection is theirs to keep.
+   */
+  const ownedSelection = useRef<Range | null>(null);
 
   const hasTarget = selection !== null && !isEmptyRange(selection);
   const report = useMemo(() => (probe.trim() === '' ? null : analyzePrimer(probe)), [probe]);
@@ -131,10 +155,12 @@ export function PrimerPanel({ doc }: Props) {
   useEffect(() => {
     editorStore.setPreview('primers', previewed);
   }, [previewed]);
-  // Leaving the tab takes this panel's preview with it, and nobody else's.
+  // Leaving the tab takes this panel's preview with it, and nobody else's,
+  // and the selection it made along with it.
   useEffect(
     () => () => {
       editorStore.clearPreview('primers');
+      releaseSelection(ownedSelection);
     },
     [],
   );
@@ -146,6 +172,9 @@ export function PrimerPanel({ doc }: Props) {
     setPairs(result);
     setShown(null);
     setHovered(null);
+    // The selection is the target being designed for now, not a product
+    // this panel put there; forget it rather than clearing it.
+    ownedSelection.current = null;
     setDesignedFor(`${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()}`);
   };
 
@@ -153,11 +182,13 @@ export function PrimerPanel({ doc }: Props) {
   const showPair = (index: number, pair: PrimerPair): void => {
     if (shown === index) {
       setShown(null);
+      releaseSelection(ownedSelection);
       return;
     }
     setShown(index);
     const product = productRange(pair, doc.length);
     editorStore.setSelection(product);
+    ownedSelection.current = product;
     editorStore.revealPosition(product.start);
   };
 

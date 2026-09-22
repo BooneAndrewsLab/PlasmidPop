@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 846 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 850 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -949,7 +949,13 @@ pick from here when the current work is done.
       product as a bracket, and selects the product — the cheap half the note
       predicted would carry most of the value. Hovering a pair shows it while
       the pointer is there, **Hide** or leaving the tab takes it off, and
-      **Add both as features** is still the only thing that edits. Under
+      **Add both as features** is still the only thing that edits. **Hide
+      gives the product selection back** as well as the drawing (2026-09-22,
+      reported the same day): a highlight left behind reads as a pair still
+      being shown, which is confusing while the other pairs are being
+      hovered. Only the range **Show** selected is cleared — a selection made
+      since is the user's and is left alone — which is why the panel holds
+      the range it selected rather than a flag. Under
       **Check a primer** every binding site is previewed at once, so
       off-target sites are seen together instead of one selection at a time.
     - **Find** draws every match while the bar is open, the current one still

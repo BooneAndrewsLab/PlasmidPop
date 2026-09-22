@@ -19,9 +19,12 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
    the two sites as dashed arrows pointing the way each primer reads, and
    the product between them as a bracket (see
    [Previews](03-viewing.md#previews)). It also selects the product, so the
-   views scroll to it and the status bar gives its length. **Hide** takes it
-   off again, and hovering a pair shows it for as long as the pointer is
-   there — so three candidates can be compared without annotating anything.
+   views scroll to it and the status bar gives its length. **Hide** takes
+   both away again, the drawing and the selection, as does leaving the tab;
+   if you have selected something else in the meantime that selection is
+   yours and is left alone. Hovering a pair shows it for as long as the
+   pointer is there — so three candidates can be compared without annotating
+   anything.
 5. **Add both as features** annotates the pair as `primer_bind` features
    (the primer sequence goes in a `/note`), so the sites are on the map and
    saved with the file. Unlike **Show**, this is an edit: it goes into the
