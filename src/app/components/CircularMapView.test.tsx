@@ -2,7 +2,7 @@
 import { act, fireEvent, render } from '@testing-library/react';
 
 import { SeqDocument, createFeature } from '@/core';
-import { CircularLayout } from '@/view/circular';
+import { CircularLayout, overlayRingRadius } from '@/view/circular';
 
 import { editorStore } from '../state/editorStore';
 import { CircularMapView } from './CircularMapView';
@@ -53,7 +53,73 @@ const ON_FEATURE = ((): { clientX: number; clientY: number } => {
 const MOUSE_ON_FEATURE = { ...ON_FEATURE, button: 0, pointerId: 1, pointerType: 'mouse' };
 const FINGER_ON_FEATURE = { ...ON_FEATURE, button: 0, pointerId: 2, pointerType: 'touch' };
 
+/** A point on the preview ring, where the digest draws its fragments. */
+const ON_PREVIEW = ((): { clientX: number; clientY: number } => {
+  const layout = new CircularLayout(doc.length, 'circular', {
+    width: 600,
+    height: 600,
+    laneCount: 1,
+    ringWidth: 14,
+    outerMargin: 110,
+  });
+  const pt = layout.pointAt(500, overlayRingRadius(layout.radius, 0, 1));
+  return { clientX: pt.x, clientY: pt.y };
+})();
+
 describe('CircularMapView', () => {
+  it('sends a click on a clickable previewed span to the panel that drew it', () => {
+    const canvas = setup();
+    act(() => {
+      editorStore.setSelection(null);
+      editorStore.setPreview('cloning', [
+        {
+          id: 'frag',
+          label: '800 bp',
+          range: { start: 200, end: 1000 },
+          strand: 'none',
+          shape: 'span',
+          clickable: true,
+        },
+      ]);
+    });
+    const before = editorStore.getState().previewActivated?.nonce ?? 0;
+    fireEvent.pointerDown(canvas, { ...ON_PREVIEW, button: 0, pointerId: 5 });
+    fireEvent.pointerUp(canvas, { ...ON_PREVIEW, button: 0, pointerId: 5 });
+    const after = editorStore.getState().previewActivated;
+    expect(after?.nonce).toBeGreaterThan(before);
+    expect(after?.id).toBe('frag');
+    // The ring sits inside the backbone's own hit band, so the press must
+    // not also have started a selection there.
+    expect(editorStore.getState().selection).toBeNull();
+    act(() => {
+      editorStore.clearPreview('cloning');
+    });
+  });
+
+  it('still selects on the backbone where a span is not clickable', () => {
+    const canvas = setup();
+    act(() => {
+      editorStore.setSelection(null);
+      editorStore.setPreview('find', [
+        {
+          id: 'm0',
+          label: 'match',
+          range: { start: 200, end: 1000 },
+          strand: 'none',
+          shape: 'arrow',
+        },
+      ]);
+    });
+    const before = editorStore.getState().previewActivated?.nonce ?? 0;
+    fireEvent.pointerDown(canvas, { ...ON_PREVIEW, button: 0, pointerId: 6 });
+    expect(editorStore.getState().previewActivated?.nonce ?? 0).toBe(before);
+    expect(editorStore.getState().selection).not.toBeNull();
+    fireEvent.pointerUp(canvas, { ...ON_PREVIEW, button: 0, pointerId: 6 });
+    act(() => {
+      editorStore.clearPreview('find');
+    });
+  });
+
   it('clears the selection when empty space is clicked', () => {
     const canvas = setup();
     act(() => {

@@ -221,6 +221,13 @@ export interface DocumentState {
   /** Feature currently open in the full editor. */
   readonly editingFeatureId: string | null;
   readonly findOpen: boolean;
+  /**
+   * Which sidebar panel this tab is on. Per document rather than shared,
+   * because a tab is a piece of work: opening a fragment from the Cloning
+   * tab used to leave the document it was cut from on Features, having
+   * moved the whole app there for the new tab's sake.
+   */
+  readonly sidebarTab: SidebarTab;
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
@@ -253,7 +260,7 @@ export interface SharedState {
   /** Which version the sequence view marks changes against; see `EditsBaseline`. */
   readonly editsBaseline: EditsBaseline;
   readonly view: ViewMode;
-  readonly sidebarTab: SidebarTab;
+
   /**
    * Whether the sidebar is on screen at all. Hiding it gives the views the
    * whole window, which is what a map on a laptop screen wants; the tab it
@@ -328,6 +335,8 @@ export interface SharedState {
   readonly shareNotice: { readonly chars: number } | null;
   /** What a panel is pointing at in the views; see `DocumentPreview`. */
   readonly preview: DocumentPreview | null;
+  /** Bumped when a clickable previewed span is clicked in either view. */
+  readonly previewActivated: PreviewActivation | null;
   /**
    * A file the document in front is being compared with: what it was called
    * and the document read out of it. Nothing is opened and nothing is
@@ -360,6 +369,18 @@ export interface DocumentPreview {
 
 export type PreviewOwner = 'primers' | 'find' | 'cloning';
 
+/**
+ * A click on a previewed span, for the panel that put it there to act on.
+ * Only spans marked `clickable` raise one, so a preview that has nothing to
+ * do with a click (a find match, a primer site) keeps the views' own
+ * behaviour where it is drawn.
+ */
+export interface PreviewActivation {
+  readonly owner: PreviewOwner;
+  readonly id: string;
+  readonly nonce: number;
+}
+
 /** A one-line description of the active enzyme set, for the Enzymes tab. */
 export interface EnzymeSetInfo {
   readonly label: string;
@@ -378,7 +399,14 @@ export interface EnzymeSetInfo {
  */
 type ActiveDocumentFields = {
   readonly [K in keyof DocumentState]: K extends
-    'warnings' | 'shownEnzymes' | 'enzymesInitialized' | 'findOpen' | 'derived'
+    | 'warnings'
+    | 'shownEnzymes'
+    | 'enzymesInitialized'
+    | 'findOpen'
+    | 'derived'
+    // The sidebar is shown beside the file list too, so its tab always has a
+    // value; `NO_DOCUMENT` carries the one a new tab would start on.
+    | 'sidebarTab'
     ? DocumentState[K]
     : DocumentState[K] | null;
 };
@@ -401,7 +429,6 @@ const SHARED_INITIAL: SharedState = {
   colorBases: false,
   editsBaseline: 'opened',
   view: 'both',
-  sidebarTab: 'features',
   sidebarOpen: true,
   showCutSites: true,
   enzymeCutFilter: 'any',
@@ -414,6 +441,7 @@ const SHARED_INITIAL: SharedState = {
   downloadNotice: null,
   shareNotice: null,
   preview: null,
+  previewActivated: null,
   comparison: null,
   layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
@@ -445,6 +473,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   renameRequest: null,
   editingFeatureId: null,
   findOpen: false,
+  sidebarTab: 'features',
 };
 
 /**
@@ -644,6 +673,9 @@ export class EditorStore {
       renameRequest: null,
       editingFeatureId: null,
       findOpen: false,
+      // A new tab opens on the panel the last one was on: opening the insert
+      // while setting up a digest should not send you back to Features.
+      sidebarTab: this.documentState()?.sidebarTab ?? 'features',
     };
     const active = this.documentState();
     this.docs =
@@ -1005,7 +1037,7 @@ export class EditorStore {
   }
 
   setSidebarTab(tab: SidebarTab): void {
-    if (tab !== this.state.sidebarTab) this.setShared({ sidebarTab: tab });
+    if (tab !== this.state.sidebarTab) this.setActive({ sidebarTab: tab });
   }
 
   /**
@@ -1127,6 +1159,23 @@ export class EditorStore {
     this.setShared({ comparison: null });
   }
 
+  /**
+   * Reports a click on a previewed span to whichever panel drew it. The
+   * panel watches the nonce, as the views watch `reveal`; nothing here knows
+   * what a span means.
+   */
+  activatePreview(id: string): void {
+    const preview = this.state.preview;
+    if (preview === null) return;
+    this.setShared({
+      previewActivated: {
+        owner: preview.owner,
+        id,
+        nonce: (this.shared.previewActivated?.nonce ?? 0) + 1,
+      },
+    });
+  }
+
   /** Takes the preview away; with an owner, only if that panel put it there. */
   clearPreview(owner?: PreviewOwner): void {
     const current = this.shared.preview;
@@ -1234,7 +1283,12 @@ export class EditorStore {
   /** Appends a fragment to the assembly and returns its part id. */
   addToAssembly(fragment: DigestFragment): string {
     const id = newId();
-    this.setShared({ assembly: [...this.state.assembly, { id, fragment, flipped: false }] });
+    this.setShared({
+      assembly: [...this.state.assembly, { id, fragment, flipped: false }],
+      // The shelf lives in the Ligation section, so put a fragment where the
+      // user can see it land rather than behind another reaction's panel.
+      cloningReaction: 'ligation',
+    });
     return id;
   }
 

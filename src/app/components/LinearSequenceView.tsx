@@ -35,7 +35,13 @@ import {
   renderLinearView,
   sansFontOf,
 } from '@/view/linear';
-import { NO_OVERLAY, overlayLanes, overlaysPerRow } from '@/view/overlay';
+import {
+  type OverlaySpan,
+  NO_OVERLAY,
+  overlayAt,
+  overlayLanes,
+  overlaysPerRow,
+} from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { detectFormat } from '@/io';
@@ -330,6 +336,12 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     return layout.hitTest(x, Math.min(Math.max(y, row.top), row.top + row.height - 1));
   };
 
+  /** The clickable previewed span under an overlay hit, if there is one there. */
+  const spanAtHit = (hit: Hit): OverlaySpan | undefined =>
+    hit.kind === 'overlay'
+      ? overlayAt(overlay, doc.length, hit.position, previewLanes, hit.lane)
+      : undefined;
+
   /** The feature drawn at a lane or translation hit; undefined where the lane is empty. */
   const featureAtHit = (hit: Hit): Feature | undefined => {
     if (hit.kind !== 'lane' && hit.kind !== 'translation') return undefined;
@@ -341,7 +353,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const updateCursor = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
-    if (hit.kind === 'overlay') setCursor('default');
+    if (hit.kind === 'overlay') setCursor(spanAtHit(hit) === undefined ? 'default' : 'pointer');
     else if (hit.kind !== 'lane' && hit.kind !== 'translation') setCursor('text');
     else setCursor(featureAtHit(hit) === undefined ? 'default' : 'pointer');
   };
@@ -386,6 +398,13 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         editorStore.selectFeature(feature.id);
         return;
       }
+    }
+    if (hit.kind === 'overlay') {
+      // The band is inert except where a panel has put something clickable
+      // in it: the Cloning tab's digest fragments, which go to the shelf.
+      const span = spanAtHit(hit);
+      if (span !== undefined) editorStore.activatePreview(span.id);
+      return;
     }
     if (hit.kind !== 'boundary') return;
     containerRef.current?.focus({ preventScroll: true });

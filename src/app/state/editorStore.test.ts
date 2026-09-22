@@ -507,6 +507,23 @@ describe('EditorStore tabs', () => {
     expect(store.getState().documentId).toBe(a);
   });
 
+  it('keeps each tab on the sidebar panel it was left on', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    store.setSidebarTab('cloning');
+    // A new tab opens on the panel the last one was on, since opening a
+    // second file is usually part of the same piece of work.
+    const b = store.openDocument(other, 'b.gb');
+    expect(store.getState().sidebarTab).toBe('cloning');
+    store.setSidebarTab('features');
+    expect(store.getState().sidebarTab).toBe('features');
+    // Which must not have moved the tab it came from.
+    store.activateDocument(a);
+    expect(store.getState().sidebarTab).toBe('cloning');
+    store.activateDocument(b);
+    expect(store.getState().sidebarTab).toBe('features');
+  });
+
   it("keeps each tab's selection, history and enzyme ticks across a switch", () => {
     const store = new EditorStore();
     const a = store.openDocument(doc, 'a.gb');

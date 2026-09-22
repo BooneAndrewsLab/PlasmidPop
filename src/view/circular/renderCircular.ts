@@ -484,6 +484,16 @@ function drawDeletion(
 
 /** Radial pitch of the preview ring, which stacks inwards from the backbone. */
 const PREVIEW_RING = 7;
+
+/**
+ * Where a previewed span in `lane` is drawn, counting inwards from the
+ * backbone. Exported so hit-testing asks the same question the drawing
+ * answers rather than keeping a second copy of these numbers.
+ */
+export function overlayRingRadius(radius: number, lane: number, laneCount: number): number {
+  const ring = Math.max(0, laneCount - 1 - lane);
+  return Math.max(6, radius - 6 - ring * PREVIEW_RING);
+}
 /** Shortest a preview arc may be on screen, as the selection band has. */
 const MIN_PREVIEW_PX = 7;
 
@@ -504,8 +514,7 @@ function drawOverlays(ctx: DrawingContext, p: CircularRenderParams): void {
     // product, say), and a thin dashed line crossing the feature lanes
     // hides less of them than a primer's solid arc would.
     const lane = overlayLanes.laneOf.get(span.id) ?? 0;
-    const ring = Math.max(0, overlayLanes.laneCount - 1 - lane);
-    const r = Math.max(6, layout.radius - 6 - ring * PREVIEW_RING);
+    const r = overlayRingRadius(layout.radius, lane, overlayLanes.laneCount);
     const bracket = span.shape === 'span';
     const half = bracket ? 3 : 2.5;
     const pieces = overlayPieces(span, doc.length);

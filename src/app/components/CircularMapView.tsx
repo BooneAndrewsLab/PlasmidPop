@@ -16,12 +16,13 @@ import {
   FIT_VIEWPORT,
   clockwiseSelection,
   fitRange,
+  overlayRingRadius,
   panBy,
   renderCircularMap,
   zoomAround,
 } from '@/view/circular';
 import { assignLanes } from '@/view/linear';
-import { NO_OVERLAY, overlayLanes } from '@/view/overlay';
+import { NO_OVERLAY, overlayAt, overlayLanes } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { selectionBetween } from '../editing';
@@ -71,6 +72,8 @@ const NO_HOVER: Hover = { featureId: null, cut: null, kind: 'none' };
 
 /** Half-width of the band a cut site's tick is hit-tested in, in pixels. */
 const CUT_HIT_PX = 6;
+/** How far off the preview ring a click may land and still count. */
+const OVERLAY_HIT_PX = 6;
 
 interface Props {
   readonly doc: SeqDocument;
@@ -285,6 +288,26 @@ export function CircularMapView({ doc }: Props) {
   };
 
   /**
+   * The clickable previewed span under the pointer, or null. The preview
+   * ring sits just inside the backbone, so this is asked before the backbone
+   * is, and only spans a panel marked clickable answer — otherwise a find
+   * with 200 matches would shadow half the backbone.
+   */
+  const overlayIdAt = (x: number, y: number): string | null => {
+    if (overlay.length === 0 || doc.length === 0) return null;
+    const r = Math.hypot(x - layout.cx, y - layout.cy);
+    const position = layout.positionOf(Math.atan2(y - layout.cy, x - layout.cx));
+    for (const span of overlay) {
+      if (span.clickable !== true) continue;
+      const lane = previewLanes.laneOf.get(span.id) ?? 0;
+      const ring = overlayRingRadius(layout.radius, lane, previewLanes.laneCount);
+      if (Math.abs(r - ring) > OVERLAY_HIT_PX) continue;
+      if (overlayAt([span], doc.length, position) !== undefined) return span.id;
+    }
+    return null;
+  };
+
+  /**
    * The cut site whose tick is under the pointer, so the map can bring back
    * a cut label the ring had no room for. Hover only: a press near the
    * backbone still starts a selection.
@@ -348,6 +371,11 @@ export function CircularMapView({ doc }: Props) {
         // it, and stays until the next tap (`onPointerLeave` lets it be).
         if (e.pointerType === 'touch') setHover({ featureId: id, cut: null, kind: 'lane' });
       }
+      return;
+    }
+    const spanId = overlayIdAt(pt.x, pt.y);
+    if (spanId !== null) {
+      editorStore.activatePreview(spanId);
       return;
     }
     if (hit.kind !== 'backbone') return;

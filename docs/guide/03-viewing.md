@@ -37,6 +37,12 @@ tab strip on the window's edge, giving the views the whole width. Clicking any
 label opens it again on that tab, and `Alt+S` does both. The panel keeps
 whatever you had typed into it while it is closed.
 
+Which panel is open belongs to the document tab, not to the window: switching
+files brings back the panel that file was left on, and a file opened while you
+are working in one panel opens on the same one. So setting up a digest in
+Cloning and opening the insert alongside it keeps you in Cloning, and looking
+at the insert's features does not move the first file.
+
 ## On a phone
 
 On a screen narrower than about 600 px PlasmidPop is a reader rather than an
@@ -122,7 +128,8 @@ Today three things use it:
 - [Find](06-find.md), which draws every match at once while the bar is open;
 - the [Cloning](12-cloning.md) tab, which draws the pieces a digest would
   give, each with a tick where its cuts fall, and draws the one under the
-  pointer as a solid arrow.
+  pointer as a solid arrow. These can be clicked, which puts that fragment
+  on the ligation shelf; the other two previews are drawings only.
 
 ### Format
 

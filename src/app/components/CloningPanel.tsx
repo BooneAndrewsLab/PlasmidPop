@@ -1,5 +1,5 @@
 import { analytics } from '../analytics';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AssemblyPart,
@@ -249,12 +249,23 @@ function digestPreview(
       range: f.range,
       strand: lit ? ('forward' as const) : ('none' as const),
       shape: lit ? ('arrow' as const) : ('span' as const),
+      // Clicking one puts it on the shelf, which is what the Add button in
+      // its row does. The views know nothing of fragments; they report the
+      // click and this panel decides what it meant.
+      clickable: true,
     };
   });
 }
 
 export function CloningPanel({ doc }: Props) {
-  const { analysis, shownEnzymes, showCutSites, assembly, cloningReaction } = useEditorState();
+  const {
+    analysis,
+    shownEnzymes,
+    showCutSites,
+    assembly,
+    cloningReaction,
+    previewActivated: activated,
+  } = useEditorState();
   const [circular, setCircular] = useState(true);
   const [name, setName] = useState('');
   const [hovered, setHovered] = useState<string | null>(null);
@@ -278,6 +289,21 @@ export function CloningPanel({ doc }: Props) {
   useEffect(() => {
     editorStore.setPreview('cloning', previewed);
   }, [previewed]);
+  // A click on a fragment in either view adds it, exactly as its Add button
+  // does. The nonce is watched rather than the id, so clicking the same
+  // fragment twice adds it twice — two copies of one piece is a real
+  // assembly, and the shelf is a list, not a set.
+  // Seeded with the nonce present at mount, so a click answered before this
+  // panel was last closed is not answered again when it comes back — coming
+  // back to the tab would otherwise put a fragment on the shelf by itself.
+  const handledClick = useRef(activated?.nonce ?? 0);
+  useEffect(() => {
+    if (activated?.owner !== 'cloning') return;
+    if (activated.nonce === handledClick.current) return;
+    handledClick.current = activated.nonce;
+    const fragment = fragments.find((f) => fragmentId(f) === activated.id);
+    if (fragment !== undefined) editorStore.addToAssembly(fragment);
+  }, [activated, fragments]);
   // Leaving the tab takes the fragments off the views with it.
   useEffect(
     () => () => {

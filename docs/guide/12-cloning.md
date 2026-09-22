@@ -38,6 +38,11 @@ a solid arrow instead, which is how you see at a glance which piece is the
 backbone and which is the insert — the sizes alone cannot tell you where
 they are.
 
+**Click a fragment in either view to put it on the shelf**, which is what
+**Add** in its row does. On the map that is the thin dashed ring just inside
+the backbone; in the sequence view it is the band outside the feature lanes.
+Either way the panel switches to **Ligation**, so you can see it land.
+
 ## Sticky ends on a document
 
 A fragment you **Open**, and a linear ligation product, is a molecule whose

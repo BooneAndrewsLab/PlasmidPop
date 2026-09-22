@@ -41,6 +41,7 @@ describe('CloningPanel', () => {
 
   afterEach(() => {
     act(() => {
+      editorStore.clearAssembly();
       editorStore.closeDocument();
     });
   });
@@ -93,6 +94,60 @@ describe('CloningPanel', () => {
       fireEvent.mouseLeave(second);
     });
     expect(preview()?.items.map((s) => s.shape)).toEqual(['span', 'span']);
+  });
+
+  it('adds a fragment to the shelf when its span is clicked in a view', () => {
+    setup();
+    const spans = preview()?.items ?? [];
+    expect(spans.every((s) => s.clickable === true)).toBe(true);
+    const small = spans[1];
+    if (small === undefined) throw new Error('expected two spans');
+    act(() => {
+      editorStore.activatePreview(small.id);
+    });
+    const shelf = editorStore.getState().assembly;
+    expect(shelf).toHaveLength(1);
+    expect(shelf[0]?.fragment.sequence.length).toBe(1000);
+    // The shelf lives in the Ligation section, so that is what is shown.
+    expect(editorStore.getState().cloningReaction).toBe('ligation');
+
+    // The same fragment twice is two parts: a shelf is a list, not a set.
+    act(() => {
+      editorStore.activatePreview(small.id);
+    });
+    expect(editorStore.getState().assembly).toHaveLength(2);
+  });
+
+  it('ignores an activation meant for another panel', () => {
+    setup();
+    act(() => {
+      editorStore.setPreview('find', [
+        { id: 'm0', label: 'match', range: { start: 0, end: 4 }, strand: 'none', shape: 'arrow' },
+      ]);
+      editorStore.activatePreview('m0');
+    });
+    expect(editorStore.getState().assembly).toHaveLength(0);
+  });
+
+  it('does not answer a click again when the tab comes back', () => {
+    const first = setup();
+    const id = preview()?.items[0]?.id;
+    if (id === undefined) throw new Error('no preview');
+    act(() => {
+      editorStore.activatePreview(id);
+    });
+    expect(editorStore.getState().assembly).toHaveLength(1);
+    act(() => {
+      first.unmount();
+    });
+    // Leaving the Cloning tab and coming back must not add it a second time.
+    // The panel alone is remounted, as switching sidebar tabs does; the
+    // document and its ticks are untouched.
+    const again = render(<CloningPanel doc={doc} />);
+    expect(editorStore.getState().assembly).toHaveLength(1);
+    act(() => {
+      again.unmount();
+    });
   });
 
   it('takes the fragments off the views when the tab is left', () => {

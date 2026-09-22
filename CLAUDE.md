@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 888 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 896 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -365,7 +365,13 @@ pick from here when the current work is done.
    files results by the document they are for, so a slow worker answer lands
    in the right tab. `openDocument` returns the id, reuses the tab of a file
    already open (`findOpenCopy`: same file name and the document as read
-   from it) and takes over an untouched "New" tab. The strip
+   from it) and takes over an untouched "New" tab. **The sidebar tab is a
+   document's own** (2026-09-22): it was shared, so opening a fragment from
+   the Cloning tab moved the file it was cut from to Features as a side
+   effect of the new tab wanting it. A new tab opens on the panel the last
+   one was on, since opening the insert is part of the same piece of work,
+   and the explicit switches after an assembly still apply to the product
+   alone. The strip
    (`DocumentTabs.tsx`) has a fixed **Files** tab (the start screen,
    `showFiles`), one tab per document with a dirty dot and ×, and +; the
    editor area is keyed by document so views start afresh on a switch while

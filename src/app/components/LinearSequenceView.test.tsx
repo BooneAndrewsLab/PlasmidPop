@@ -99,6 +99,60 @@ describe('LinearSequenceView', () => {
     expect(spacerHeight(reader)).toBeLessThan(fullHeight);
   });
 
+  it('sends a click on a clickable previewed span to the panel that drew it', () => {
+    const { canvas } = setup();
+    act(() => {
+      editorStore.setPreview('cloning', [
+        {
+          id: 'frag',
+          label: '200 bp',
+          range: { start: 0, end: 200 },
+          strand: 'none',
+          shape: 'span',
+          clickable: true,
+        },
+      ]);
+    });
+    const before = editorStore.getState().previewActivated?.nonce ?? 0;
+    // The band sits below the feature lanes, whose height depends on the
+    // metrics; walk the first row from the top and click each pixel until
+    // something answers, rather than restating the layout's arithmetic here.
+    const x = LEFT_GUTTER + 10 * CHAR_WIDTH;
+    for (
+      let y = 0;
+      y < 220 && (editorStore.getState().previewActivated?.nonce ?? 0) === before;
+      y++
+    ) {
+      fireEvent.pointerDown(canvas, { clientX: x, clientY: y, button: 0, pointerId: 3 });
+      fireEvent.pointerUp(canvas, { clientX: x, clientY: y, button: 0, pointerId: 3 });
+    }
+    const after = editorStore.getState().previewActivated;
+    expect(after?.id).toBe('frag');
+    expect(after?.owner).toBe('cloning');
+    act(() => {
+      editorStore.clearPreview('cloning');
+    });
+  });
+
+  it('leaves a previewed span that is not clickable inert', () => {
+    const { canvas } = setup();
+    act(() => {
+      editorStore.setPreview('find', [
+        { id: 'm0', label: 'match', range: { start: 0, end: 200 }, strand: 'none', shape: 'arrow' },
+      ]);
+    });
+    const before = editorStore.getState().previewActivated?.nonce ?? 0;
+    const x = LEFT_GUTTER + 10 * CHAR_WIDTH;
+    for (let y = 0; y < 220; y++) {
+      fireEvent.pointerDown(canvas, { clientX: x, clientY: y, button: 0, pointerId: 4 });
+      fireEvent.pointerUp(canvas, { clientX: x, clientY: y, button: 0, pointerId: 4 });
+    }
+    expect(editorStore.getState().previewActivated?.nonce ?? 0).toBe(before);
+    act(() => {
+      editorStore.clearPreview('find');
+    });
+  });
+
   it('follows the view sideways when a fixed row width scrolls', () => {
     const { canvas, container } = setup();
     act(() => {

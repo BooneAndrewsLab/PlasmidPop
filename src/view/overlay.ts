@@ -28,6 +28,29 @@ export interface OverlaySpan {
    * mistaken for an annotation.
    */
   readonly shape: 'arrow' | 'span';
+  /**
+   * Whether clicking it does something. The panel that drew the span decides
+   * what (`editorStore.activatePreview`), and a span without this stays
+   * inert, so a find match or a primer site keeps whatever the view does
+   * where it is drawn.
+   */
+  readonly clickable?: boolean;
+}
+
+/** The clickable span at `position`, in `lane` where the caller knows one. */
+export function overlayAt(
+  spans: readonly OverlaySpan[],
+  seqLength: number,
+  position: number,
+  lanes?: LaneAssignment,
+  lane?: number,
+): OverlaySpan | undefined {
+  return spans.find(
+    (span) =>
+      span.clickable === true &&
+      (lanes === undefined || lane === undefined || lanes.laneOf.get(span.id) === lane) &&
+      overlayPieces(span, seqLength).some((p) => position >= p.start && position < p.end),
+  );
 }
 
 /** Stable empty preview, so a view that has none re-renders no more than it must. */
