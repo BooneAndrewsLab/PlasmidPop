@@ -761,9 +761,16 @@ button {
  * A field that takes the whole width of the controls row. Supplier names run
  * to "Molecular Biology Resources - CHIMERx", which leaves the label wrapping
  * and the select spilling past the 330 px sidebar when it shares a line.
+ *
+ * `min-width: 0` because a flex item will not shrink below the widest thing
+ * inside it otherwise, and a `<select>` is as wide as its longest option:
+ * NCBI's genetic code 4 is "Mold Mitochondrial; Protozoan Mitochondrial;
+ * Coelenterate Mitochondrial; Mycoplasma; Spiroplasma", which took the panel
+ * 478 px past its own edge and gave the sidebar a horizontal scrollbar.
  */
 .panel__field--row {
   flex: 1 1 100%;
+  min-width: 0;
 }
 
 .panel__field--row > span {
