@@ -7,6 +7,7 @@ import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
 import { CopyBanner } from './components/CopyBanner';
+import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { ShareNotice } from './components/ShareNotice';
@@ -170,6 +171,7 @@ export function App() {
       )}
       <StatusBar doc={doc} />
       <SaveReviewDialog />
+      <CompareDialog />
     </div>
   );
 }

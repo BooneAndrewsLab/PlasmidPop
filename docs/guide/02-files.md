@@ -151,6 +151,38 @@ Nothing is lost in the meantime: every open document is written to this
 browser's own storage as you work and comes back when you return. Downloading
 is how you get a file _out_ of PlasmidPop, not how you avoid losing work.
 
+## Comparing with a file
+
+**File ▸ Compare with…** picks a file and shows how the open document
+differs from it: the same review a [working copy](#working-copies) gets
+before it is downloaded, asked of any file rather than the one this document
+came from.
+
+It answers the question a plasmid map cannot — _is this the same construct
+as the one in that file, and if not, where do they part company_ — which is
+what a colleague's copy, a vendor's sequence or last month's version of your
+own plasmid is usually for.
+
+- **Nothing is opened, written or stored.** The file is read, compared and
+  dropped; no tab appears and neither file changes. The document you are
+  looking at is the one that keeps its tab.
+- **The differences are in this document's coordinates**: what it has that
+  the file does not. Each neighbourhood of changed bases is drawn the way
+  the sequence view draws tracked changes, and the features added, changed
+  and removed are named below them.
+- **Features are matched by what they are**, since two files give the same
+  feature different internal ids. A feature both agree on to the last
+  qualifier is not reported; one that differs in name, type, location or
+  qualifiers is reported as one removed and one added, because nothing in
+  the two files says it is the same feature edited.
+- **A plasmid rotated to a different origin reads as different throughout.**
+  The bases are compared as text, so the same circle written from another
+  starting point has nothing in common with this one until the origins
+  match. The dialog says so when both are the same length; use
+  [Set origin](04-editing.md) and compare again.
+- **Two unrelated sequences** come out as "too different to follow in
+  detail" rather than as a thousand tiny differences.
+
 ## Sharing a link
 
 **File ▸ Copy share link** puts a link to the document on your clipboard.

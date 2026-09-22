@@ -126,6 +126,37 @@ describe('diffDocuments features', () => {
     expect(removed.featuresRemoved.get('f1')?.name).toBe('gene');
   });
 
+  it('matches features by what they are when the two files give them different ids', () => {
+    // Two parses of the same record share nothing but content: every feature
+    // gets a fresh id, so matching by id alone would call every one of them
+    // removed and added again. This is what Compare with… is made of.
+    const reparsed = SeqDocument.create({
+      sequence: SEQ,
+      features: [createFeature({ ...feature, id: 'other-id' })],
+    });
+    expect(isEmptyDiff(diffDocuments(base, reparsed))).toBe(true);
+
+    // A feature that really is different is still reported both ways, since
+    // without ids there is nothing to say it is the same one edited.
+    const renamed = SeqDocument.create({
+      sequence: SEQ,
+      features: [createFeature({ ...feature, id: 'other-id', name: 'gene2' })],
+    });
+    const diff = diffDocuments(base, renamed);
+    expect([...diff.featuresAdded]).toEqual(['other-id']);
+    expect([...diff.featuresRemoved.keys()]).toEqual(['f1']);
+  });
+
+  it('pairs each feature once, so a duplicate still reads as added', () => {
+    const twice = SeqDocument.create({
+      sequence: SEQ,
+      features: [createFeature({ ...feature, id: 'a' }), createFeature({ ...feature, id: 'b' })],
+    });
+    const diff = diffDocuments(base, twice);
+    expect(diff.featuresAdded.size).toBe(1);
+    expect(diff.featuresRemoved.size).toBe(0);
+  });
+
   it('puts a removed feature where the edits since have left its bases', () => {
     // Three bases inserted before it, so what was 4..12 is now 7..15.
     const after = base.insert(0, 'TTT').removeFeature('f1');

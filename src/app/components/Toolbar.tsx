@@ -1,7 +1,8 @@
-import { type ChangeEvent, useRef, useState } from 'react';
+import { type ChangeEvent, type RefObject, useRef, useState } from 'react';
 
 import { type SeqDocument, describeEnds } from '@/core';
 
+import { compareWithFile } from '../compare';
 import { EXAMPLES } from '../examples';
 import { openExample, openFile } from '../openFile';
 import { persistence } from '../state/persistence';
@@ -31,24 +32,38 @@ function segmentedClass(active: boolean): string {
 
 export function Toolbar({ doc }: Props) {
   const { showComplement, showTranslations, showCutSites, view, dirty } = useEditorState();
-  const openViaPicker = (): void => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const compareRef = useRef<HTMLInputElement>(null);
+  /** The picker where it exists, the hidden input where it does not. */
+  const pickFile = (
+    handle: (file: File) => Promise<unknown>,
+    fallback: RefObject<HTMLInputElement | null>,
+  ): void => {
     persistence
-      .openWithPicker(openFile)
+      .openWithPicker(handle)
       .then((handled) => {
-        if (!handled) inputRef.current?.click();
+        if (!handled) fallback.current?.click();
       })
       .catch((e: unknown) => {
         editorStore.fail(e instanceof Error ? e.message : String(e));
       });
   };
-  const inputRef = useRef<HTMLInputElement>(null);
+  const openViaPicker = (): void => {
+    pickFile(openFile, inputRef);
+  };
+  const compareViaPicker = (): void => {
+    pickFile(compareWithFile, compareRef);
+  };
   const [renaming, setRenaming] = useState(false);
 
-  const onPick = (e: ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0];
-    if (file !== undefined) void openFile(file);
-    e.target.value = '';
-  };
+  /** The hidden inputs' handler; `handle` is what to do with the file picked. */
+  const onPick =
+    (handle: (file: File) => Promise<unknown>) =>
+    (e: ChangeEvent<HTMLInputElement>): void => {
+      const file = e.target.files?.[0];
+      if (file !== undefined) void handle(file);
+      e.target.value = '';
+    };
 
   const example = EXAMPLES[0];
 
@@ -139,7 +154,7 @@ export function Toolbar({ doc }: Props) {
           </div>
         ) : (
           <>
-            <FileMenu doc={doc} onOpenFile={openViaPicker} />
+            <FileMenu doc={doc} onOpenFile={openViaPicker} onCompareFile={compareViaPicker} />
             <HistoryMenu />
             <div className="segmented" role="group" aria-label="View">
               {VIEWS.map(([mode, label]) => (
@@ -200,7 +215,15 @@ export function Toolbar({ doc }: Props) {
           type="file"
           accept=".gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna"
           hidden
-          onChange={onPick}
+          onChange={onPick(openFile)}
+        />
+        <input
+          ref={compareRef}
+          type="file"
+          accept=".gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna"
+          aria-label="File to compare with"
+          hidden
+          onChange={onPick(compareWithFile)}
         />
       </div>
       <HelpButton />

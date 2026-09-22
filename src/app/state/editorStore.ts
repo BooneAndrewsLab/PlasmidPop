@@ -299,6 +299,14 @@ export interface SharedState {
   readonly shareNotice: { readonly chars: number } | null;
   /** What a panel is pointing at in the views; see `DocumentPreview`. */
   readonly preview: DocumentPreview | null;
+  /**
+   * A file the document in front is being compared with: what it was called
+   * and the document read out of it. Nothing is opened and nothing is
+   * stored — the file is read, diffed and dropped — so this is the one place
+   * a document PlasmidPop is not editing lives. Shared rather than per-tab
+   * because the comparison is a modal dialog: only one can be up.
+   */
+  readonly comparison: { readonly fileName: string; readonly doc: SeqDocument } | null;
   /** Where the draggable boundaries sit; see `LayoutSizes`. */
   readonly layout: LayoutSizes;
 }
@@ -375,6 +383,7 @@ const SHARED_INITIAL: SharedState = {
   downloadNotice: null,
   shareNotice: null,
   preview: null,
+  comparison: null,
   layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
@@ -663,6 +672,10 @@ export class EditorStore {
   activateDocument(id: string | null): void {
     if (id === this.activeId || (id !== null && this.documentState(id) === null)) return;
     this.activeId = id;
+    // A comparison is against the document it was asked for, so it goes when
+    // that document does. (The dialog is modal, so this is the path where a
+    // tab is closed or opened from outside it.)
+    this.shared = { ...this.shared, comparison: null };
     this.commit();
   }
 
@@ -683,6 +696,7 @@ export class EditorStore {
     const docs = this.docs.filter((d) => d.documentId !== id);
     if (this.activeId === id) this.activeId = (docs[i] ?? docs[i - 1])?.documentId ?? null;
     this.docs = docs;
+    this.shared = { ...this.shared, comparison: null };
     this.commit();
   }
 
@@ -690,6 +704,7 @@ export class EditorStore {
     if (this.docs.length === 0 && this.activeId === null) return;
     this.docs = [];
     this.activeId = null;
+    this.shared = { ...this.shared, comparison: null };
     this.commit();
   }
 
@@ -1057,6 +1072,16 @@ export class EditorStore {
     if (current?.documentId === id && current.owner === owner && samePreview(current.items, items))
       return;
     this.setShared({ preview: { owner, documentId: id, items } });
+  }
+
+  /** Shows what the document in front differs from in a file just read. */
+  showComparison(fileName: string, doc: SeqDocument): void {
+    this.setShared({ comparison: { fileName, doc } });
+  }
+
+  dismissComparison(): void {
+    if (this.shared.comparison === null) return;
+    this.setShared({ comparison: null });
   }
 
   /** Takes the preview away; with an owner, only if that panel put it there. */

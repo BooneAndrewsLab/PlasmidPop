@@ -289,17 +289,17 @@ export class PersistenceService {
   }
 
   /**
-   * Opens a file with the native picker when available — a better dialog
+   * Picks a file with the native picker when available — a better dialog
    * than an <input type="file">, and that is all it is for now that nothing
-   * writes back — returning false when the caller should fall back to the
-   * input. `parse` returns the id of the document it opened, or null when
-   * the file could not be read.
+   * writes back — and hands it to `use`, which opens it or compares against
+   * it. Returns false when the caller should fall back to the input, true
+   * when the picker did its job (including when the user cancelled).
    */
-  async openWithPicker(parse: (file: File) => Promise<string | null>): Promise<boolean> {
+  async openWithPicker(handle: (file: File) => Promise<unknown>): Promise<boolean> {
     if (!supportsFileSystemAccess()) return false;
     const file = await pickOpenFile();
     if (file === null) return true; // cancelled
-    await parse(file);
+    await handle(file);
     return true;
   }
 

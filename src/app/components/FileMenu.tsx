@@ -18,6 +18,8 @@ interface Props {
   readonly doc: SeqDocument;
   /** Opens the file picker (kept in the toolbar, which owns the fallback input). */
   readonly onOpenFile: () => void;
+  /** Picks a file to compare this document with, the same way. */
+  readonly onCompareFile: () => void;
 }
 
 interface ItemProps {
@@ -45,7 +47,7 @@ function Item({ children, shortcut, title, disabled, onClick }: ItemProps) {
 }
 
 /** Every file-level action for the open document, behind one "File" button. */
-export function FileMenu({ doc, onOpenFile }: Props) {
+export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
   const {
     selection,
     derived,
@@ -145,6 +147,12 @@ export function FileMenu({ doc, onOpenFile }: Props) {
             })}
           >
             Copy share link
+          </Item>
+          <Item
+            title="Show how this document differs from a file on disk. Neither is changed and nothing is opened."
+            onClick={run(onCompareFile)}
+          >
+            Compare with…
           </Item>
           <div className="menu__separator" role="separator" />
           <Item

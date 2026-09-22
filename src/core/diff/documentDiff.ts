@@ -202,19 +202,67 @@ function diffFeatures(
   const mapUnrolled = (position: number): number =>
     position > baseline.length ? map(position - baseline.length) + current.length : map(position);
 
-  const featuresAdded = new Set<FeatureId>();
+  const featuresAdded: Feature[] = [];
   const featuresChanged = new Set<FeatureId>();
   for (const feature of current.features) {
     const before = baseline.getFeature(feature.id);
-    if (before === undefined) featuresAdded.add(feature.id);
+    if (before === undefined) featuresAdded.push(feature);
     else if (!sameFeature(before, feature, mapUnrolled)) featuresChanged.add(feature.id);
   }
-  const featuresRemoved = new Map<FeatureId, Feature>();
+  const featuresRemoved: Feature[] = [];
   for (const feature of baseline.features) {
-    if (current.getFeature(feature.id) === undefined)
-      featuresRemoved.set(feature.id, mapFeature(feature, mapUnrolled));
+    if (current.getFeature(feature.id) === undefined) featuresRemoved.push(feature);
   }
-  return { featuresAdded, featuresChanged, featuresRemoved };
+  // Ids only mean something between two versions of one document. Two files
+  // parsed separately give every feature a fresh id, so what is left over is
+  // paired up by what the features *are* instead — a feature the two
+  // documents agree on to the last qualifier is not an addition and a
+  // removal, whatever it is called internally.
+  const paired = pairByContent(featuresRemoved, featuresAdded, mapUnrolled);
+  return {
+    featuresAdded: new Set(featuresAdded.filter((f) => !paired.has(f)).map((f) => f.id)),
+    featuresChanged,
+    featuresRemoved: new Map(
+      featuresRemoved
+        .filter((f) => !paired.has(f))
+        .map((f) => [f.id, mapFeature(f, mapUnrolled)] as const),
+    ),
+  };
+}
+
+/** Everything but the id, cheap enough to bucket on before comparing in full. */
+function bucketKey(feature: Feature): string {
+  return [feature.type, feature.name, feature.strand, feature.segments.length].join('\u0000');
+}
+
+/**
+ * Matches features the two documents hold in common but under different ids,
+ * returning every feature that found a partner. Only features already known
+ * to be unmatched by id are offered, so this cannot override an id match.
+ */
+function pairByContent(
+  removed: readonly Feature[],
+  added: readonly Feature[],
+  map: (position: number) => number,
+): ReadonlySet<Feature> {
+  const paired = new Set<Feature>();
+  if (removed.length === 0 || added.length === 0) return paired;
+  const buckets = new Map<string, Feature[]>();
+  for (const feature of added) {
+    const key = bucketKey(feature);
+    const bucket = buckets.get(key);
+    if (bucket === undefined) buckets.set(key, [feature]);
+    else bucket.push(feature);
+  }
+  for (const before of removed) {
+    const bucket = buckets.get(bucketKey(before));
+    if (bucket === undefined) continue;
+    const match = bucket.find((after) => !paired.has(after) && sameFeature(before, after, map));
+    if (match === undefined) continue;
+    paired.add(before);
+    paired.add(match);
+  }
+  return paired;
 }
 
 function sameFeature(before: Feature, after: Feature, map: (position: number) => number): boolean {
