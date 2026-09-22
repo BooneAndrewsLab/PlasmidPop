@@ -86,6 +86,17 @@ Tick a candidate and the **Fragments from ticked enzymes** section below the
 list says what the whole digest would look like — several enzymes ticked
 together give a lane none of their own rows can predict.
 
+### A double digest beside the single ones
+
+Tick two enzymes (or three) and the gel draws a lane for each of them alone
+and a last lane, **Both** (or **All 3**), for the digest with all of them —
+the way a double digest is run at the bench, so a band can be read off
+against the lanes that explain it. A band in **Both** that is in neither
+single lane is the piece between the two enzymes' sites. The sizes are
+written beside the combined lane; hover a band in any lane for its size, and
+the line under the gel lists what each enzyme gives alone. Tick four or more
+and the gel goes back to one lane for them all.
+
 ## Hiding the cut sites without losing the choice
 
 **Cut sites** in the toolbar, next to Complement and Translations, hides
@@ -111,10 +122,11 @@ sites** link to bring them back.
 ## Fragments
 
 **Fragments from ticked enzymes** draws the lane a complete digest with all
-ticked enzymes would give, beside a ladder — 1 kb, or 100 bp when everything
+ticked enzymes would give (with a lane for each enzyme alone beside it when
+two or three are ticked), beside a ladder — 1 kb, or 100 bp when everything
 is small. A short band is drawn faint, because a stain binds DNA by mass and
 a 200 bp band really is faint next to a 4 kb one. **Click a band to select
-that piece** in the sequence view and on the map; where two pieces run
+that piece** — in a single enzyme's lane, the piece that enzyme alone cuts — in the sequence view and on the map; where two pieces run
 together, the click takes the larger one, and the band says so when you hover
 it.
 

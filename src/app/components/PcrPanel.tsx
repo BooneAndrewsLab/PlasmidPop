@@ -335,13 +335,18 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           {/* What would come off the machine: one band, or the two you would
               have to tell apart. Clicking one picks that product. */}
           <Gel
-            profile={lane}
-            label="PCR"
-            onPick={(band) => {
-              const index = products.findIndex((p) => p.length === band.length);
-              if (index >= 0) show(index);
-            }}
-            pickTitle={(band) => `Show the ${band.length.toLocaleString()} bp product on the views`}
+            lanes={[
+              {
+                profile: lane,
+                label: 'PCR',
+                onPick: (band) => {
+                  const index = products.findIndex((p) => p.length === band.length);
+                  if (index >= 0) show(index);
+                },
+                pickTitle: (band) =>
+                  `Show the ${band.length.toLocaleString()} bp product on the views`,
+              },
+            ]}
           />
         </>
       )}

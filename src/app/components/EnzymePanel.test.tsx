@@ -183,18 +183,47 @@ describe('EnzymePanel', () => {
     act(() => {
       editorStore.setShownEnzymes([a, b]);
     });
-    // 400, 1,700 and 1,900 bp, two of them under one band, and the lane is
-    // headed by a count rather than by both enzyme names run together.
-    expect(document.querySelectorAll('.gel__band:not(.gel__band--ladder)')).toHaveLength(2);
-    expect(screen.getByText('2 enzymes')).toBeInTheDocument();
+    // A double digest is drawn beside the two single ones: each enzyme alone
+    // cuts the linear 4 kb into two (b's two within 15 % of each other, so one
+    // band), and together they give 400, 1,700 and 1,900 bp, two of them under
+    // one band.
+    const lanes = [...document.querySelectorAll('.gel__lane')];
+    expect(lanes.map((l) => l.getAttribute('data-lane'))).toEqual([a, b, 'Both']);
+    expect(lanes.map((l) => l.querySelectorAll('.gel__band').length)).toEqual([2, 1, 2]);
+    expect(screen.getByTestId('gel-singles').textContent).toBe(
+      `Beside it, each alone: ${a} 3,600 + 400 bp; ${b} 2,100 ×2 bp.`,
+    );
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: '1,900 and 1,700 bp run here; select the 1,900 bp one',
+        name: 'Both: 1,900 and 1,700 bp run here; select the 1,900 bp one',
       }),
     );
     // The 1,900 bp piece is the one from 2,100 to the end.
     expect(editorStore.getState().selection).toEqual({ start: 2100, end: 4000 });
+    // A single lane's band is that enzyme's own piece.
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `${b} alone: 2,100 and 1,900 bp run here; select the 2,100 bp one`,
+      }),
+    );
+    expect(editorStore.getState().selection).toEqual({ start: 0, end: 2100 });
+
+    // Past three enzymes the lane is a survey and stands alone, headed by a count.
+    const four = activeEnzymes()
+      .slice(2, 4)
+      .map((e) => e.name);
+    act(() => {
+      editorStore.setAnalysis(
+        doc,
+        [at(a, 400), at(b, 2100), ...four.map((n, i) => at(n, 3000 + i * 500))],
+        [],
+      );
+      editorStore.setShownEnzymes([a, b, ...four]);
+    });
+    expect(document.querySelectorAll('.gel__lane')).toHaveLength(1);
+    expect(screen.getByText('4 enzymes')).toBeInTheDocument();
+    expect(screen.queryByTestId('gel-singles')).toBeNull();
 
     act(() => {
       editorStore.setShownEnzymes([a]);

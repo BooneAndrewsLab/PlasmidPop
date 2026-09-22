@@ -1434,10 +1434,25 @@ pick from here when the current work is done.
           the picture in any case, so a dropped label costs a glance and not
           the number. (The first cut computed which labels to drop and then
           drew them all anyway, which the browser caught and no test did.)
-      - Not yet: the gel is one percentage and one lane at a time, so a double
-        digest cannot be set beside the two single ones; the ladder cannot be
-        chosen; and the order cannot be reversed or applied to the fragment
-        sizes of a *pair* of enzymes, which is what a double digest is.
+      - **A double digest is drawn beside the single ones, 2026-09-22.** Tick
+        two or three enzymes and the gel has a lane for each alone and a last
+        one (`Both`, `All 3`) for the digest together, which is how one is
+        run and read: a band in the combined lane that is in no single lane
+        is the piece between two enzymes' sites. `Gel` takes `lanes` now
+        (PCR passes one). Only the last lane has its sizes written beside it —
+        numbers between lanes would need the label room five times over and
+        the gel would shrink until nothing on it could be read — so the
+        others are named on hover and listed in a line under the picture.
+        Lanes narrow from 42 to 32 units when they share the slab, a name
+        longer than seven characters is cut with an ellipsis and given in
+        full on hover, and the SVG's `max-width` grows with the lane count
+        at the scale one lane had, so a wider gel is wider rather than
+        smaller. Clicking a band in a single lane selects that enzyme's own
+        piece. Past three the lane is a survey of cut sites rather than a
+        digest anyone runs, and it stands alone as before.
+      - Not yet: the gel is one percentage; the ladder cannot be chosen; and
+        the order cannot be reversed or applied to the fragment sizes of a
+        *pair* of enzymes.
     - The control took a row of its own in a 330 px sidebar (the buttons wrap
       below it); on a sidebar widened past ~430 px they share a line again,
       which is item 28 paying for itself.

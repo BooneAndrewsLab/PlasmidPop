@@ -31,13 +31,19 @@ import {
  * rasteriser.
  */
 
-const LANE_W = 42;
+/** A lane on its own is 42 units wide; beside others it gives up some of that. */
+const LANE_W_ALONE = 42;
+const LANE_W_SHARED = 32;
 const GAP = 14;
-/** Room to the left for the ladder's numbers, and to the right for the lane's. */
+/** Room to the left for the ladder's numbers, and to the right for the last lane's. */
 const SLAB_LEFT = 46;
 const LABEL_ROOM = 62;
-const SLAB_W = GAP * 3 + LANE_W * 2;
-const WIDTH = SLAB_LEFT + SLAB_W + LABEL_ROOM;
+/**
+ * Units to pixels at most. One lane beside a ladder was drawn at the 320 px
+ * the panel gives it; a wider gel keeps that scale rather than shrinking its
+ * text to fit, and only gives way where the panel is narrower.
+ */
+const SCALE = 320 / (SLAB_LEFT + GAP * 3 + LANE_W_ALONE * 2 + LABEL_ROOM);
 /** The slab, and under it the room the lane names sit in. */
 const SLAB_H = 172;
 const HEIGHT = SLAB_H + 18;
@@ -49,12 +55,11 @@ const BOTTOM = SLAB_H - 10;
 const BAND_H = 3.4;
 /** Two labels closer than this would be written over each other. */
 const LABEL_GAP = 9;
+/** Characters of a lane's name that fit under a shared lane. */
+const NAME_CHARS = 7;
 
-const LADDER_X = SLAB_LEFT + GAP;
-const SAMPLE_X = LADDER_X + LANE_W + GAP;
-/** Both columns of numbers are off the slab, where they are read against the page. */
+/** The ladder's numbers are off the slab, where they are read against the page. */
 const LADDER_LABEL_X = SLAB_LEFT - 4;
-const SAMPLE_LABEL_X = SLAB_LEFT + SLAB_W + 6;
 
 function laneY(length: number, options: GelOptions | undefined): number {
   return TOP + migration(length, options) * (BOTTOM - TOP);
@@ -121,46 +126,84 @@ function pushApart(ys: readonly number[]): number[] | null {
   return out.every((at, i) => Math.abs(at - (ys[i] ?? at)) <= MAX_SHIFT) ? out : null;
 }
 
-interface Props {
+/** One sample lane: a digest, or what a PCR made. */
+export interface GelLane {
   readonly profile: DigestProfile;
-  /** Heading over the sample lane: the enzymes, or what was amplified. */
+  /** Heading under the lane: an enzyme, "Both", or what was amplified. */
   readonly label: string;
-  readonly options?: GelOptions;
   /** Called when a band is clicked; without it the bands are not clickable. */
   readonly onPick?: (band: GelBand) => void;
   /** What clicking a band would do, for its title and its accessible name. */
   readonly pickTitle?: (band: GelBand) => string;
 }
 
-export function Gel({ profile, label, options, onPick, pickTitle }: Props) {
+interface Props {
+  /** Left to right after the ladder. The last one is the lane the sizes are written beside. */
+  readonly lanes: readonly GelLane[];
+  readonly options?: GelOptions;
+}
+
+/** "HindIII" fits under a shared lane; "BsaXI-HF" is cut to it, and named in full on hover. */
+function laneName(label: string, shared: boolean): string {
+  return shared && label.length > NAME_CHARS ? `${label.slice(0, NAME_CHARS - 1)}\u2026` : label;
+}
+
+/**
+ * The gel. Several lanes are for comparing digests — a double digest beside
+ * the two single ones, which is how a double digest is read at the bench: a
+ * band that is in the double lane and in neither single lane is the piece
+ * between the two enzymes' sites.
+ *
+ * Only the last lane has its sizes written beside it. Numbers between lanes
+ * would need a gap as wide as the label room for each, and a gel five lanes
+ * wide at that spacing is shrunk until nothing on it can be read; the other
+ * lanes' bands are named on hover, and every size is listed under the
+ * picture by whoever draws it.
+ */
+export function Gel({ lanes, options }: Props) {
   const titleId = useId();
-  const ladder = chooseLadder(profile.fragments);
+  const shared = lanes.length > 1;
+  const laneW = shared ? LANE_W_SHARED : LANE_W_ALONE;
+  const slabW = GAP * (lanes.length + 2) + laneW * (lanes.length + 1);
+  const width = SLAB_LEFT + slabW + LABEL_ROOM;
+  const ladderX = SLAB_LEFT + GAP;
+  const laneX = (i: number): number => ladderX + (laneW + GAP) * (i + 1);
+  const sampleLabelX = SLAB_LEFT + slabW + 6;
+
+  const ladder = chooseLadder(lanes.flatMap((l) => l.profile.fragments));
   const ladderIntensity = bandIntensities(ladder.bands.map((n) => ({ length: n, fragments: [n] })));
-  const sampleIntensity = bandIntensities(profile.bands);
   const ladderRows = labelRows(
     ladder.bands.map((n) => laneY(n, options)),
     'drop',
   );
-  const sampleRows = labelRows(
-    profile.bands.map((b) => laneY(b.length, options)),
-    'push',
-  );
+  const lastIndex = lanes.length - 1;
+  const last = lanes[lastIndex];
+  const sampleRows =
+    last === undefined
+      ? []
+      : labelRows(
+          last.profile.bands.map((b) => laneY(b.length, options)),
+          'push',
+        );
 
   return (
     <figure className="gel">
       <svg
         className="gel__svg"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        viewBox={`0 0 ${width} ${HEIGHT}`}
+        style={{ maxWidth: Math.round(width * SCALE) }}
         role="group"
         aria-labelledby={titleId}
         preserveAspectRatio="xMidYMid meet"
       >
         <title id={titleId}>
-          {`${label} on a ${ladder.name} ladder: ${profile.bands.map(bandLabel).join(', ')} bp`}
+          {`${lanes
+            .map((l) => `${l.label}: ${l.profile.bands.map(bandLabel).join(', ')} bp`)
+            .join('; ')}; beside a ${ladder.name} ladder`}
         </title>
-        <rect className="gel__slab" x={SLAB_LEFT} y={0} width={SLAB_W} height={SLAB_H} rx={2} />
-        {[LADDER_X, SAMPLE_X].map((x) => (
-          <rect key={x} className="gel__well" x={x} y={WELL_Y} width={LANE_W} height={WELL_H} />
+        <rect className="gel__slab" x={SLAB_LEFT} y={0} width={slabW} height={SLAB_H} rx={2} />
+        {[ladderX, ...lanes.map((_, i) => laneX(i))].map((x) => (
+          <rect key={x} className="gel__well" x={x} y={WELL_Y} width={laneW} height={WELL_H} />
         ))}
 
         {ladder.bands.map((length, i) => {
@@ -170,9 +213,9 @@ export function Gel({ profile, label, options, onPick, pickTitle }: Props) {
             <g key={length}>
               <rect
                 className="gel__band gel__band--ladder"
-                x={LADDER_X}
+                x={ladderX}
                 y={y - BAND_H / 2}
-                width={LANE_W}
+                width={laneW}
                 height={BAND_H}
                 opacity={ladderIntensity[i] ?? 1}
               />
@@ -185,97 +228,108 @@ export function Gel({ profile, label, options, onPick, pickTitle }: Props) {
           );
         })}
 
-        {profile.bands.map((band, i) => {
-          const y = laneY(band.length, options);
-          const row = sampleRows[i];
-          const at = row?.y ?? y;
-          // A number the lane had no room for is left out, as on the ladder;
-          // every size is listed under the picture in any case.
-          const named = row?.shown !== false;
-          const name = `${bandLabel(band)} bp`;
-          const title = pickTitle?.(band) ?? `${name}: ${band.fragments.join(' + ')} bp`;
-          const body = (
-            <>
-              <rect
-                className="gel__band"
-                x={SAMPLE_X}
-                y={y - BAND_H / 2}
-                width={LANE_W}
-                height={BAND_H}
-                opacity={sampleIntensity[i] ?? 1}
-              />
-              {/* A label pushed clear of its neighbour is joined back to its
-                  own band, or the lane reads as one band short and one
-                  number too many. */}
-              {named && Math.abs(at - y) > 1.5 && (
-                <line
-                  className="gel__leader"
-                  x1={SAMPLE_X + LANE_W}
-                  y1={y}
-                  x2={SAMPLE_LABEL_X - 2}
-                  y2={at}
-                />
-              )}
-              {named && (
-                <text className="gel__size" x={SAMPLE_LABEL_X} y={at + 2.8}>
-                  {bandLabel(band)}
-                </text>
-              )}
-            </>
-          );
-          if (onPick === undefined) {
-            return (
-              <g key={`${band.length}-${i}`}>
-                <title>{title}</title>
-                {body}
-              </g>
-            );
-          }
+        {lanes.map((lane, laneIndex) => {
+          const x = laneX(laneIndex);
+          const intensity = bandIntensities(lane.profile.bands);
+          const labelled = laneIndex === lastIndex;
           return (
-            <g
-              key={`${band.length}-${i}`}
-              className="gel__pick"
-              role="button"
-              tabIndex={0}
-              aria-label={title}
-              onClick={() => {
-                onPick(band);
-              }}
-              onKeyDown={(e) => {
-                if (e.key !== 'Enter' && e.key !== ' ') return;
-                e.preventDefault();
-                onPick(band);
-              }}
-            >
-              <title>{title}</title>
-              {/* A 3 px band is not a target; the hit area is the row it is in. */}
-              <rect
-                className="gel__hit"
-                x={SAMPLE_X}
-                y={y - LABEL_GAP / 2}
-                width={LANE_W}
-                height={LABEL_GAP}
-              />
-              {body}
+            <g key={laneIndex} className="gel__lane" data-lane={lane.label}>
+              {lane.profile.bands.map((band, i) => {
+                const y = laneY(band.length, options);
+                const row = labelled ? sampleRows[i] : undefined;
+                const at = row?.y ?? y;
+                // A number the lane had no room for is left out, as on the
+                // ladder; every size is listed under the picture in any case.
+                const named = labelled && row?.shown !== false;
+                const name = `${bandLabel(band)} bp`;
+                const title =
+                  lane.pickTitle?.(band) ??
+                  `${shared ? `${lane.label}: ` : ''}${name}: ${band.fragments.join(' + ')} bp`;
+                const body = (
+                  <>
+                    <rect
+                      className="gel__band"
+                      x={x}
+                      y={y - BAND_H / 2}
+                      width={laneW}
+                      height={BAND_H}
+                      opacity={intensity[i] ?? 1}
+                    />
+                    {/* A label pushed clear of its neighbour is joined back to
+                        its own band, or the lane reads as one band short and
+                        one number too many. */}
+                    {named && Math.abs(at - y) > 1.5 && (
+                      <line
+                        className="gel__leader"
+                        x1={x + laneW}
+                        y1={y}
+                        x2={sampleLabelX - 2}
+                        y2={at}
+                      />
+                    )}
+                    {named && (
+                      <text className="gel__size" x={sampleLabelX} y={at + 2.8}>
+                        {bandLabel(band)}
+                      </text>
+                    )}
+                  </>
+                );
+                const { onPick } = lane;
+                if (onPick === undefined) {
+                  return (
+                    <g key={`${band.length}-${i}`}>
+                      <title>{title}</title>
+                      {body}
+                    </g>
+                  );
+                }
+                return (
+                  <g
+                    key={`${band.length}-${i}`}
+                    className="gel__pick"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={title}
+                    onClick={() => {
+                      onPick(band);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return;
+                      e.preventDefault();
+                      onPick(band);
+                    }}
+                  >
+                    <title>{title}</title>
+                    {/* A 3 px band is not a target; the hit area is the row it is in. */}
+                    <rect
+                      className="gel__hit"
+                      x={x}
+                      y={y - LABEL_GAP / 2}
+                      width={laneW}
+                      height={LABEL_GAP}
+                    />
+                    {body}
+                  </g>
+                );
+              })}
+              <g>
+                {/* Only a name that was cut short needs saying in full. */}
+                {laneName(lane.label, shared) !== lane.label && <title>{lane.label}</title>}
+                <text
+                  className="gel__lane-name"
+                  x={x + laneW / 2}
+                  y={HEIGHT - 4}
+                  textAnchor="middle"
+                >
+                  {laneName(lane.label, shared)}
+                </text>
+              </g>
             </g>
           );
         })}
 
-        <text
-          className="gel__lane-name"
-          x={LADDER_X + LANE_W / 2}
-          y={HEIGHT - 4}
-          textAnchor="middle"
-        >
+        <text className="gel__lane-name" x={ladderX + laneW / 2} y={HEIGHT - 4} textAnchor="middle">
           {ladder.name}
-        </text>
-        <text
-          className="gel__lane-name"
-          x={SAMPLE_X + LANE_W / 2}
-          y={HEIGHT - 4}
-          textAnchor="middle"
-        >
-          {label}
         </text>
       </svg>
       <figcaption className="gel__caption">

@@ -4,6 +4,7 @@ import {
   type CutSite,
   type DigestProfile,
   type Enzyme,
+  type Fragment,
   type GelBand,
   type SeqDocument,
   activeEnzymes,
@@ -27,7 +28,7 @@ import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { EnzymeImport } from './EnzymeImport';
-import { Gel } from './Gel';
+import { Gel, type GelLane } from './Gel';
 import { useRowWindow } from './useRowWindow';
 
 interface Props {
@@ -55,6 +56,13 @@ const ROW_ESTIMATE = 46;
  * list instead of taking the page down.
  */
 const MAX_SHOW_LISTED = 200;
+
+/**
+ * How many ticked enzymes still get a lane each beside the combined digest.
+ * Three is a triple digest; more than that is not a digest anyone runs to
+ * check a construct, and five lanes of 32 units are too narrow to name.
+ */
+const MAX_SINGLE_LANES = 3;
 
 /** "2,181 and 2,180", the pieces hidden under one band. */
 function describeBandFragments(band: GelBand): string {
@@ -172,14 +180,71 @@ export function EnzymePanel({ doc }: Props) {
   );
   /** How everything ticked together would read on a gel. */
   const ticked = useMemo(() => gelProfile(fragments.map((f) => f.length)), [fragments]);
-  // A lane is 42 units wide, so the heading over it is a name or a count,
-  // never a list of five enzymes run together into one word.
-  const tickedLabel = useMemo(() => {
-    const names = groups
-      .filter((g) => shownEnzymes.has(g.enzyme.name) && g.sites.length > 0)
-      .map((g) => g.enzyme.name);
-    return names.length === 1 ? (names[0] ?? 'Digest') : `${names.length} enzymes`;
-  }, [groups, shownEnzymes]);
+  /** The ticked enzymes that cut, each with its own profile. */
+  const tickedGroups = useMemo(
+    () =>
+      groups.flatMap((g) =>
+        shownEnzymes.has(g.enzyme.name) && g.profile !== null
+          ? [{ name: g.enzyme.name, sites: g.sites, profile: g.profile }]
+          : [],
+      ),
+    [groups, shownEnzymes],
+  );
+  /**
+   * Two or three enzymes ticked is a double or triple digest, and one of
+   * those is read against the single digests beside it: a band in the
+   * combined lane that is in none of the others is the piece between two
+   * enzymes' sites. Past three it is a survey of cut sites rather than a
+   * digest anyone runs, and one lane says as much as it can.
+   */
+  const lanes = useMemo((): GelLane[] => {
+    const pick = (pieces: readonly Fragment[], who: string) => ({
+      onPick: (band: GelBand) => {
+        const piece = pieces.find((f) => f.length === band.length);
+        if (piece === undefined) return;
+        editorStore.setSelection({ start: piece.start, end: piece.end });
+        editorStore.revealPosition(piece.start);
+      },
+      pickTitle: (band: GelBand) =>
+        `${who}${
+          band.fragments.length > 1
+            ? `${describeBandFragments(band)} bp run here; select the ${band.length.toLocaleString()} bp one`
+            : `Select the ${band.length.toLocaleString()} bp fragment in the views`
+        }`,
+    });
+    const n = tickedGroups.length;
+    const alone = n >= 2 && n <= MAX_SINGLE_LANES;
+    // A lane is narrow, so the heading under it is a name or a count, never
+    // a list of five enzymes run together into one word.
+    const combined: GelLane = {
+      profile: ticked,
+      label:
+        n === 1
+          ? (tickedGroups[0]?.name ?? 'Digest')
+          : alone
+            ? n === 2
+              ? 'Both'
+              : `All ${n}`
+            : `${n} enzymes`,
+      ...pick(fragments, alone ? `${n === 2 ? 'Both' : `All ${n}`}: ` : ''),
+    };
+    if (!alone) return [combined];
+    return [
+      ...tickedGroups.map((g) => ({
+        profile: g.profile,
+        label: g.name,
+        ...pick(
+          digestFragments(
+            g.sites.map((s) => s.cut),
+            doc.length,
+            doc.topology,
+          ),
+          `${g.name} alone: `,
+        ),
+      })),
+      combined,
+    ];
+  }, [tickedGroups, ticked, fragments, doc.length, doc.topology]);
 
   const needle = filter.trim().toLowerCase();
   const matching = groups.filter(
@@ -449,24 +514,16 @@ export function EnzymePanel({ doc }: Props) {
               {/* The lane before the numbers: the question a diagnostic digest
                   is chosen to answer is "will I see two bands", and that is a
                   question for the eye. Clicking one selects the piece it is. */}
-              <Gel
-                profile={ticked}
-                label={tickedLabel}
-                onPick={(band) => {
-                  const piece = fragments.find((f) => f.length === band.length);
-                  if (piece === undefined) return;
-                  editorStore.setSelection({ start: piece.start, end: piece.end });
-                  editorStore.revealPosition(piece.start);
-                }}
-                pickTitle={(band) =>
-                  band.fragments.length > 1
-                    ? `${describeBandFragments(band)} bp run here; select the ${band.length.toLocaleString()} bp one`
-                    : `Select the ${band.length.toLocaleString()} bp fragment in the views`
-                }
-              />
+              <Gel lanes={lanes} />
               <p className="panel__mono">
                 {fragments.map((f) => f.length.toLocaleString()).join(', ')} bp
               </p>
+              {lanes.length > 1 && (
+                <p className="panel__note panel__note--quiet" data-testid="gel-singles">
+                  Beside it, each alone:{' '}
+                  {tickedGroups.map((g) => `${g.name} ${describeBands(g.profile)}`).join('; ')}.
+                </p>
+              )}
               {/* The pieces are one thing, the lane is another: a digest of
                   five fragments can still show three bands. */}
               <p
