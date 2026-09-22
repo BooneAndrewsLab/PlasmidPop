@@ -34,7 +34,7 @@ export function EditsMenu() {
       <button
         type="button"
         className="button"
-        title={`${state}. Click to choose what changes are measured from.`}
+        title={`${state}. Click to choose what changes are measured from; Alt+E turns the marks off and on.`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}

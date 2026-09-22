@@ -534,7 +534,7 @@ describe('toolbar', () => {
       'Open file…',
       'Open example',
       'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
-      'Copy share link', // as a file, or inside a link that goes nowhere near a server
+      'Copy share linkAlt+L', // as a file, or inside a link that goes nowhere near a server
       'Compare with…', // and the one that reads a file without opening it
       'Export map as SVG',
       'Export sequence view as SVG',
@@ -829,7 +829,7 @@ describe('share links', () => {
   it('says what a copied link is, and the notice can be dismissed', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
-    fileMenu('Copy share link');
+    fileMenu(/^Copy share link/);
     const notice = await screen.findByRole('status');
     expect(notice).toHaveTextContent(/Share link copied — [\d,]+ characters/);
     expect(notice).toHaveTextContent(/nothing was uploaded/);

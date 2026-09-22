@@ -47,7 +47,7 @@ export function Sidebar({ doc }: Props) {
               type="button"
               role="tab"
               aria-selected={active}
-              title={active ? 'Hide the panel' : `Show ${label}`}
+              title={active ? 'Hide the panel (Alt+S)' : `Show ${label}`}
               className={`sidebar__tab${active ? ' sidebar__tab--active' : ''}`}
               onClick={() => {
                 if (active) {

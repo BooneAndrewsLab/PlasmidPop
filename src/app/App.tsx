@@ -31,6 +31,7 @@ import {
 import { editorStore } from './state/editorStore';
 import { useAnalysis } from './state/useAnalysis';
 import { useEditorState } from './state/useEditorStore';
+import { useViewShortcuts } from './state/useViewShortcuts';
 import {
   useAutosave,
   useAutosaveShelf,
@@ -48,6 +49,7 @@ export function App() {
   useAutosaveShelf();
   useRestoreSession();
   useSaveShortcut();
+  useViewShortcuts();
   useFlushOnLeave();
   useViewPrefs();
   const [dragging, setDragging] = useState(false);

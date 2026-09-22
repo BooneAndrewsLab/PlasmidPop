@@ -1,19 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { isTextTarget } from '../keys';
 import { HelpDialog } from './HelpDialog';
 import { onOpenGuide } from './openGuide';
 import './help.css';
-
-function isTextTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    target.isContentEditable ||
-    target.closest('[role="textbox"]') !== null
-  );
-}
 
 /** The "?" at the right end of the toolbar; opens the user guide. `?` anywhere outside a text field does too. */
 export function HelpButton() {

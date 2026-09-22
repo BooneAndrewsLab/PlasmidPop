@@ -124,6 +124,12 @@ export function LinearSequenceView({ doc }: Props) {
   const codonDrag = useRef<{ translation: CdsTranslation; anchorIndex: number } | null>(null);
   /** Fixed end of the selection while extending with shift+arrows. */
   const anchor = useRef<number | null>(null);
+  /** The run of codons Ctrl+Shift+arrows is extending, and where it started. */
+  const codonRun = useRef<{
+    translation: CdsTranslation;
+    anchorIndex: number;
+    index: number;
+  } | null>(null);
 
   const monoFont = useMemo(() => monoFontOf(seqFontSize), [seqFontSize]);
   const sansFont = useMemo(() => sansFontOf(seqFontSize), [seqFontSize]);
@@ -169,10 +175,11 @@ export function LinearSequenceView({ doc }: Props) {
     () => assignLanes(codingFeatures, doc.length),
     [codingFeatures, doc.length],
   );
-  const translations = useMemo(
-    () => (showTranslations ? new CdsTranslations(doc) : null),
-    [doc, showTranslations],
-  );
+  // Every coding feature's translation, computed lazily per feature. Kept
+  // whether or not the toggle is on: `translations` is what gets drawn, this
+  // is what the keyboard reads to select a codon at a time.
+  const allTranslations = useMemo(() => new CdsTranslations(doc), [doc]);
+  const translations = showTranslations ? allTranslations : null;
   const layout = useMemo(() => {
     const perRow = lanesPerRow(
       drawableFeatures(doc.features.all()),
@@ -446,12 +453,66 @@ export function LinearSequenceView({ doc }: Props) {
     editorStore.revealPosition(position);
   };
 
+  /**
+   * Extends the selection by one codon of the coding feature the caret is
+   * in. `step` is which way along the row, so it is reading order on a
+   * forward CDS and against it on a reverse one — the same as dragging along
+   * a translation line, which follows the pointer rather than the protein.
+   *
+   * Returns false when there is no codon to work from, so the caller can let
+   * the plain arrow keys have the event.
+   */
+  const extendByCodon = (step: 1 | -1, position: number): boolean => {
+    const run = codonRun.current;
+    // The first press takes the codon the caret is in, as Shift+arrow takes
+    // the base it is on; the presses after that extend from there.
+    if (run === null) {
+      for (const feature of doc.features.all()) {
+        if (!isCodingFeature(feature)) continue;
+        const translation = allTranslations.get(feature);
+        const index = codonIndexAt(translation, position);
+        if (index < 0) continue;
+        const span = codonSpan(translation, index, index, doc.length);
+        if (span === null) return false;
+        codonRun.current = { translation, anchorIndex: index, index };
+        anchor.current = span.start;
+        editorStore.setSelection(span);
+        return true;
+      }
+      return false;
+    }
+    // Which way along the row, not along the protein: a reverse-strand CDS
+    // reads right to left, and the arrow keys follow the screen as dragging
+    // along a translation line does.
+    const forward = run.translation.strand !== 'reverse';
+    const next = run.index + (forward ? step : -step);
+    if (next < 0 || next >= run.translation.codons.length) return true; // held at the end
+    const span = codonSpan(run.translation, run.anchorIndex, next, doc.length);
+    if (span === null) return true;
+    codonRun.current = { ...run, index: next };
+    anchor.current = span.start;
+    editorStore.setSelection(span);
+    editorStore.revealPosition(run.translation.codons[next]?.positions[0] ?? span.start);
+    return true;
+  };
+
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
     const mod = e.ctrlKey || e.metaKey;
     const focus =
       selection === null ? 0 : anchor.current === selection.start ? selection.end : selection.start;
+    // Any other key ends the run of codons, so the next Ctrl+Shift+arrow
+    // starts again from wherever the caret has got to.
+    if (!(mod && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight'))) {
+      codonRun.current = null;
+    }
     if (mod) {
       const key = e.key.toLowerCase();
+      if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        if (extendByCodon(e.key === 'ArrowRight' ? 1 : -1, focus)) {
+          e.preventDefault();
+          return;
+        }
+      }
       if (key === 'z') {
         e.preventDefault();
         if (e.shiftKey) editorStore.redo();

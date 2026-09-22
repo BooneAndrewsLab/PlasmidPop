@@ -141,6 +141,7 @@ export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
             Download GenBank…
           </Item>
           <Item
+            shortcut="Alt+L"
             title="A link that carries this document inside it — nothing is uploaded"
             onClick={run(() => {
               report(copyShareLink(doc));

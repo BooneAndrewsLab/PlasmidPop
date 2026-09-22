@@ -35,10 +35,24 @@ describe('checkCdsTranslation', () => {
 
   it('reports where the two first differ, and how many differ in all', () => {
     expect(checkCdsTranslation(doc, cds([{ name: 'translation', value: 'MQG' }]))).toEqual([
-      { kind: 'residue', featureId: 'cds', position: 2, stored: 'Q', computed: 'K', differences: 1 },
+      {
+        kind: 'residue',
+        featureId: 'cds',
+        position: 2,
+        stored: 'Q',
+        computed: 'K',
+        differences: 1,
+      },
     ]);
     expect(checkCdsTranslation(doc, cds([{ name: 'translation', value: 'AQG' }]))).toEqual([
-      { kind: 'residue', featureId: 'cds', position: 1, stored: 'A', computed: 'M', differences: 2 },
+      {
+        kind: 'residue',
+        featureId: 'cds',
+        position: 1,
+        stored: 'A',
+        computed: 'M',
+        differences: 2,
+      },
     ]);
   });
 
@@ -46,7 +60,9 @@ describe('checkCdsTranslation', () => {
     // Selenocysteine and pyrrolysine reach a file through /transl_except,
     // which we do not read; X on either side is a codon nobody could call.
     const ambiguous = SeqDocument.create({ sequence: 'ATGAANGGGTGA', topology: 'linear' });
-    expect(checkCdsTranslation(ambiguous, cds([{ name: 'translation', value: 'MKG' }]))).toEqual([]);
+    expect(checkCdsTranslation(ambiguous, cds([{ name: 'translation', value: 'MKG' }]))).toEqual(
+      [],
+    );
     expect(checkCdsTranslation(doc, cds([{ name: 'translation', value: 'MUG' }]))).toEqual([]);
     expect(checkCdsTranslation(doc, cds([{ name: 'translation', value: 'MXG' }]))).toEqual([]);
   });

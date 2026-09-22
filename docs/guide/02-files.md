@@ -54,7 +54,8 @@ opening it twice — unless that tab has been edited, which makes it a
 [working copy](#working-copies) rather than the file — and a "New" document
 nothing has been typed into gives its tab up to the next file you open.
 
-- Click a tab to switch to it. Each tab keeps its own selection, undo
+- Click a tab to switch to it, or press `Alt+1` … `Alt+9` for the first to
+  the ninth. Each tab keeps its own selection, undo
   history, enzyme ticks, cut sites and find bar; the view switcher, the
   toggles, the Format and Edits settings and the sidebar tab are the same
   for all of them.
@@ -185,7 +186,8 @@ own plasmid is usually for.
 
 ## Sharing a link
 
-**File ▸ Copy share link** puts a link to the document on your clipboard.
+**File ▸ Copy share link** (`Alt+L`) puts a link to the document on your
+clipboard.
 Paste it into an email or a chat, and whoever opens it gets the document —
 sequence, topology, features and all — in their own copy of PlasmidPop.
 

@@ -44,7 +44,8 @@ export function sixFrameFasta(
 ): string {
   const stem = stemOf(doc);
   const { from, to } = rangeBounds(r, doc.length);
-  const code = table === DEFAULT_TABLE ? '' : `, genetic code ${table} (${geneticCode(table).name})`;
+  const code =
+    table === DEFAULT_TABLE ? '' : `, genetic code ${table} (${geneticCode(table).name})`;
   return frames
     .filter((f) => f.protein !== '')
     .map((f) =>

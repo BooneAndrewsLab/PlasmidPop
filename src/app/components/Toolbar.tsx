@@ -176,7 +176,7 @@ export function Toolbar({ doc }: Props) {
                 type="button"
                 className={segmentedClass(showComplement)}
                 aria-pressed={showComplement}
-                title="Show the complement strand"
+                title="Show the complement strand (Alt+C)"
                 onClick={() => {
                   editorStore.setShowComplement(!showComplement);
                 }}
@@ -187,7 +187,7 @@ export function Toolbar({ doc }: Props) {
                 type="button"
                 className={segmentedClass(showTranslations)}
                 aria-pressed={showTranslations}
-                title="Show amino acids under CDS features"
+                title="Show amino acids under CDS features (Alt+T)"
                 onClick={() => {
                   editorStore.setShowTranslations(!showTranslations);
                 }}
@@ -198,7 +198,7 @@ export function Toolbar({ doc }: Props) {
                 type="button"
                 className={segmentedClass(showCutSites)}
                 aria-pressed={showCutSites}
-                title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks"
+                title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks (Alt+R)"
                 onClick={() => {
                   editorStore.setShowCutSites(!showCutSites);
                 }}

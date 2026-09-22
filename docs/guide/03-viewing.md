@@ -5,8 +5,8 @@ The toolbar's view switcher shows the **Sequence** view, the **Map**, or
 in one is highlighted in the other and reported in the status bar as
 `N bp selected, from to to` (1-based, inclusive).
 
-The switcher, the **Complement**, **Translations** and **Cut sites** toggles
-next to it, the **Format** menu's choices, the **Edits** baseline and the
+The switcher, the **Complement** (`Alt+C`), **Translations** (`Alt+T`) and
+**Cut sites** (`Alt+R`) toggles next to it, the **Format** menu's choices, the **Edits** baseline and the
 sizes of the panes are remembered in the browser, so the views come back the
 way you left them the next time you open PlasmidPop. They are settings of the
 app, not of a document: they do not change with the file you open and are not
@@ -34,8 +34,8 @@ neither can be squeezed away to nothing.
 
 Clicking the sidebar tab that is already open closes the panel and leaves the
 tab strip on the window's edge, giving the views the whole width. Clicking any
-label opens it again on that tab. The panel keeps whatever you had typed into
-it while it is closed.
+label opens it again on that tab, and `Alt+S` does both. The panel keeps
+whatever you had typed into it while it is closed.
 
 ## Sequence view
 

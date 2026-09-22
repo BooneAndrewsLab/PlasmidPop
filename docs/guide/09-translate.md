@@ -26,7 +26,9 @@ Stops are shown as `*`, codons with ambiguity codes as `X`.
 
 Clicking an amino acid selects its codon — the three bases it is read from —
 and dragging along the line extends the selection codon by codon, which is a
-quick way to take a protein-aligned piece of a gene. Click the feature bar
+quick way to take a protein-aligned piece of a gene. `Ctrl+Shift+←` and
+`Ctrl+Shift+→` do the same from the keyboard: the first press takes the codon
+the cursor is in, each one after that adds the next. Click the feature bar
 below instead to select the whole feature.
 
 A `/transl_table` naming a code NCBI does not use — 7 and 8 were withdrawn,

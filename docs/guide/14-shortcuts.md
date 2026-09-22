@@ -7,6 +7,8 @@ On macOS use `Cmd` where `Ctrl` is written.
 | Keys                       | Action                                                         |
 | -------------------------- | -------------------------------------------------------------- |
 | `Ctrl+S`, `Ctrl+Shift+S`   | Download GenBank (a working copy's changes are reviewed first) |
+| `Alt+L`                    | Copy a share link                                              |
+| `Alt+1` … `Alt+9`          | Bring the first … ninth open document forward                  |
 | `Ctrl+V` with nothing open | Open a pasted GenBank or FASTA record, or bare bases           |
 
 ## Editing
@@ -22,6 +24,20 @@ On macOS use `Cmd` where `Ctrl` is written.
 | `Ctrl+Z`                 | Undo                                                  |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | Redo                                                  |
 
+## Showing and hiding
+
+Everything here is `Alt` and one key. Bare letters type bases in the
+sequence view and `Ctrl` belongs to the browser, so `Alt` is the modifier
+left for the view.
+
+| Keys    | Action                                                    |
+| ------- | --------------------------------------------------------- |
+| `Alt+C` | Complement strand on or off                               |
+| `Alt+T` | Translations under CDS features on or off                 |
+| `Alt+R` | Cut sites on or off (the ticked enzymes are kept)         |
+| `Alt+E` | Edit marks off, and back to the baseline that was chosen  |
+| `Alt+S` | Collapse the sidebar to its rail, or bring the panel back |
+
 ## Selecting and moving
 
 | Keys                    | Action                                       |
@@ -29,6 +45,7 @@ On macOS use `Cmd` where `Ctrl` is written.
 | `← →`                   | Move the cursor one base                     |
 | `↑ ↓`                   | Move the cursor one row                      |
 | `Shift` + arrows        | Extend the selection                         |
+| `Ctrl+Shift+← →`        | Extend the selection a codon at a time       |
 | `Home`, `End`           | Start or end of the row                      |
 | `Ctrl+Home`, `Ctrl+End` | Start or end of the sequence                 |
 | `Shift+click`           | Extend the selection to the clicked position |
