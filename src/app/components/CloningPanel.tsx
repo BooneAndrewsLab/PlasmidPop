@@ -16,6 +16,7 @@ import {
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
 
 interface Props {
@@ -389,6 +390,14 @@ export function CloningPanel({ doc }: Props) {
           <span className="panel__heading-note">one pot, one enzyme</span>
         </h3>
         <GoldenGatePanel />
+      </div>
+
+      <div className="panel__section">
+        <h3 className="panel__heading">
+          Gibson
+          <span className="panel__heading-note">no enzyme, matching ends</span>
+        </h3>
+        <GibsonPanel />
       </div>
     </div>
   );

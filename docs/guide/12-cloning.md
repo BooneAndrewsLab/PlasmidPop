@@ -117,10 +117,48 @@ The product is always circular, and always the whole set: a reaction that
 would use only some of the parts is reported as a failure, not quietly
 assembled from what fits.
 
+## Gibson
+
+Gibson assembly has no enzyme and no site. Each piece is made to end in the
+same 15–40 bases the next one starts with — by the tails of the primers it
+was amplified with, usually — and in the tube an exonuclease, a polymerase
+and a ligase join them. The product is seamless: the shared stretch appears
+once, and there is no scar to design around.
+
+So the panel asks only what is in the tube:
+
+1. Open each part in its own tab: the linearised (or PCR-amplified) vector
+   and the inserts. A circular document is left out, because it has no ends
+   to join by — digest or linearise it first.
+2. Untick anything that is not in the reaction. Set **Overlap** to the
+   shortest homology to accept; 15 bp is the default and what NEB's protocol
+   asks for.
+3. The panel finds the longest shared stretch between the end of one part
+   and the start of another, follows the chain, and reports the order. A
+   part whose ends only fit the other way round is turned around for you and
+   says **(flipped)**.
+4. Each junction line gives the length of the homology and its melting
+   temperature. The reaction is held at 50 °C, so a junction under 48 °C is
+   marked: the homology is there, but it may not anneal.
+5. **Assemble** opens the product as a new document with every part's
+   features. Untick **Circular product** for a linear one.
+
+One part on its own is an assembly too, if its two ends share homology: that
+is how a PCR product is circularised.
+
+If two parts could follow the same one, or nothing follows a part, the panel
+says which and assembles nothing. Homology that is unique to each junction is
+what makes a Gibson design work, and a set that is ambiguous on paper is
+worth seeing before it is ambiguous in the tube.
+
 ## Not yet
 
-Gibson assembly from primers or fragment sets, partial digests,
-dephosphorylation, and ambiguity codes in overhangs (an `N` never pairs).
+Partial digests, dephosphorylation, and ambiguity codes in overhangs (an
+`N` never pairs). Gibson does not check for homology _inside_ a part that
+could anneal as readily as the junction it was designed for, does not take
+parts from the assembly list above it, and models neither the length of the
+chew-back nor the polymerase's fill-in, so a very long part with a very short
+overlap may fail on the bench while looking right here.
 Golden Gate takes whole open documents rather than fragments from the
 assembly list, will not mix two enzymes in one reaction, and does not check
 that a set of overhangs would misligate in the tube. Nothing fills in or

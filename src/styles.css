@@ -2390,6 +2390,16 @@ button {
   color: var(--danger);
 }
 
+/* A Gibson junction whose homology anneals poorly: real, but worth a look. */
+.junction--weak {
+  border-left-color: var(--warn);
+  color: var(--warn);
+}
+
+.junction--weak .junction__mark {
+  color: var(--warn);
+}
+
 /* Golden Gate: the parts in the tube, and the pieces the reaction discards. */
 
 .gg__parts {

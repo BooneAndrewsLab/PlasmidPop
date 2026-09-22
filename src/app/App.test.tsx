@@ -772,7 +772,7 @@ describe('golden gate', () => {
     // The five pieces that keep a BsaI site are reported, not silently dropped.
     expect(screen.getByText('5 pieces left out')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble by Golden Gate' }));
     const product = editorStore.document;
     expect(product?.name).toBe('pDest+insert1+insert2 assembly');
     expect(product?.isCircular).toBe(true);
@@ -785,21 +785,95 @@ describe('golden gate', () => {
 
   it('says why the parts do not go together when one is left out', async () => {
     await openParts();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'insert2' }));
-    expect(screen.queryByRole('button', { name: 'Assemble' })).not.toBeInTheDocument();
+    // The Gibson section below lists the same documents, so the tick has to
+    // be the Golden Gate's own.
+    const tube = (): HTMLElement =>
+      within(screen.getByRole('list', { name: 'Documents in the Golden Gate' })).getByRole(
+        'checkbox',
+        { name: 'insert2' },
+      );
+    fireEvent.click(tube());
+    expect(
+      screen.queryByRole('button', { name: 'Assemble by Golden Gate' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/CGCT/)).toBeInTheDocument();
     // Ticking it again brings the assembly back.
-    fireEvent.click(screen.getByRole('checkbox', { name: 'insert2' }));
-    expect(screen.getByRole('button', { name: 'Assemble' })).toBeEnabled();
+    fireEvent.click(tube());
+    expect(screen.getByRole('button', { name: 'Assemble by Golden Gate' })).toBeEnabled();
   });
 
   it('names the product when the user does', async () => {
     await openParts();
-    fireEvent.change(screen.getByRole('textbox', { name: /Name of the assembled/ }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name of the Golden Gate product' }), {
       target: { value: 'pFinal' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble by Golden Gate' }));
     expect(editorStore.document?.name).toBe('pFinal');
+  });
+});
+
+describe('gibson', () => {
+  // Twenty bases at each junction, the tails a designer would put on their
+  // primers. Balanced enough to anneal at the 50 °C the reaction runs at.
+  const A = 'GCATTGACCTAGGCTTACAG';
+  const B = 'TTCAGCCGATACGTGCAATC';
+  const vectorBody = 'CCCCCCCCCCGGGGGGGGGGAAAATTTTAA';
+  const insertBody = 'ATGGCTAGCAAAGGTGAAGAACTGTTTACC';
+  const vector = SeqDocument.create({ name: 'pBackbone', sequence: `${A}${vectorBody}${B}` });
+  const insert = SeqDocument.create({ name: 'gfp', sequence: `${B}${insertBody}${A}` });
+
+  async function openParts(): Promise<void> {
+    render(<App />);
+    act(() => {
+      editorStore.openDocument(vector, 'pBackbone.gb');
+      editorStore.openDocument(insert, 'gfp.gb');
+    });
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+  }
+
+  it('finds the order from the shared ends and closes the circle', async () => {
+    await openParts();
+    const rows = within(screen.getByRole('list', { name: 'Gibson assembly order' })).getAllByRole(
+      'listitem',
+    );
+    expect(rows.map((li) => li.textContent)).toEqual([
+      '1pBackbone70 bp',
+      expect.stringContaining('20 bp overlap'),
+      '2gfp70 bp',
+      expect.stringContaining('closes: 20 bp overlap'),
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble by Gibson' }));
+    const product = editorStore.document;
+    expect(product?.name).toBe('pBackbone+gfp assembly');
+    expect(product?.isCircular).toBe(true);
+    // Seamless: each shared stretch is in the product once.
+    expect(product?.sequence.toString()).toBe(`${A}${vectorBody}${B}${insertBody}`);
+  });
+
+  it('says what is missing when a part is left out of the tube', async () => {
+    await openParts();
+    const tube = (): HTMLElement =>
+      within(screen.getByRole('list', { name: 'Documents in the Gibson' })).getByRole('checkbox', {
+        name: 'gfp',
+      });
+    fireEvent.click(tube());
+    expect(screen.queryByRole('button', { name: 'Assemble by Gibson' })).not.toBeInTheDocument();
+    expect(screen.getByText(/do not close into a circle/)).toBeInTheDocument();
+    fireEvent.click(tube());
+    expect(screen.getByRole('button', { name: 'Assemble by Gibson' })).toBeEnabled();
+  });
+
+  it('refuses the junctions when more homology is asked for', async () => {
+    await openParts();
+    fireEvent.change(screen.getByRole('combobox', { name: /Overlap/ }), {
+      target: { value: '25' },
+    });
+    expect(screen.queryByRole('list', { name: 'Gibson assembly order' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Nothing follows|do not close/)).toBeInTheDocument();
   });
 });
 

@@ -106,6 +106,21 @@ a frame, so nothing is gained by moving it off the main thread; if parts
 ever arrive in the dozens, the digest is the half that grows and belongs in
 the worker with the rest of the restriction scanning.
 
+## Gibson assembly
+
+Cheaper than the Golden Gate above it, because there is nothing to digest:
+the whole reaction is a search for the longest shared end between each
+ordered pair of parts, so it is `maxOverlap` string comparisons per pair.
+
+| Date       | Reaction                        | Product   | Time   |
+| ---------- | ------------------------------- | --------- | ------ |
+| 2026-09-22 | 6 parts of 2 kb, 30 bp overlaps | 12,000 bp | 1.0 ms |
+
+Node 24 (V8), `gibson.test.ts` perf, mean of 10 runs, including building the
+product document. Six parts is the practical ceiling of the one-step
+protocol, so this is the large case rather than a worst case. It runs in the
+same main-thread `useMemo` as the Golden Gate, for the same reason.
+
 ## Restriction scanning with an imported enzyme table
 
 The bundled table is 127 enzymes. A REBASE `withrefm` import (see the user

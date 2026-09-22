@@ -132,7 +132,7 @@ export function GoldenGatePanel() {
         </label>
       </div>
 
-      <ul className="gg__parts">
+      <ul className="gg__parts" aria-label="Documents in the Golden Gate">
         {documents.map((d) => (
           <li key={d.documentId}>
             <label className="toggle">
@@ -196,7 +196,7 @@ export function GoldenGatePanel() {
             className="panel__search"
             type="text"
             placeholder={assembly.product.name}
-            aria-label="Name of the assembled document"
+            aria-label="Name of the Golden Gate product"
             value={name}
             onChange={(e) => {
               setName(e.target.value);
@@ -206,6 +206,7 @@ export function GoldenGatePanel() {
             <button
               type="button"
               className="button button--primary button--small"
+              aria-label="Assemble by Golden Gate"
               title="Open the product as a new document"
               onClick={assemble}
             >

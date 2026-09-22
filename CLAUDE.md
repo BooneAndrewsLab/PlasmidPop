@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 867 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 884 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -227,7 +227,8 @@ pick from here when the current work is done.
    op (delete selection, insert bases, add shifted features with fresh
    ids), so it is a single undo step. Not yet: cross-tab paste in browsers
    that strip custom clipboard types (only the plain bases arrive there).
-3. ~~**Simulated cloning.**~~ done: restriction-ligation and Golden Gate. The
+3. ~~**Simulated cloning.**~~ done: restriction-ligation, Golden Gate and
+   Gibson. The
    Cloning sidebar tab digests the document with the enzymes ticked in the
    Enzymes tab (`digest` in `src/core/cloning/digest.ts`: fragments with
    both ends described as blunt / 5′ / 3′ plus the overhang bases) and lets
@@ -250,10 +251,47 @@ pick from here when the current work is done.
    (`docs/perf-notes.md`). `flipFragment` was fixed along the way: a
    fragment's `sequence` is its top strand alone, so turning it over moves
    the window by an overhang at each end rather than just
-   reverse-complementing it. Not yet: Gibson assembly, partial digests,
+   reverse-complementing it. Not yet: partial digests,
    dephosphorylation, resolving IUPAC codes in overhangs, mixing two
    enzymes in one Golden Gate, and taking Golden Gate parts from the
    assembly shelf rather than from open documents.
+   - **Gibson, 2026-09-22** (`src/core/cloning/gibson.ts`, a third section in
+     the Cloning tab). The reaction has no enzyme, no site and no scar: each
+     piece is made to end in the bases the next one starts with, and an
+     exonuclease, a polymerase and a ligase join them in one tube. So there
+     is nothing to digest and no overhang table to consult — the whole
+     question is which end matches which, and whether that order is forced.
+     `terminalOverlap` takes the *longest* shared stretch within
+     `minOverlap`..`maxOverlap`, because a designed 30-mer also has a
+     matching 15-base suffix and the designed one is the true junction.
+     - **The product is seamless**, which is the whole point: every shared
+       stretch is in it once. Each part gives up the homology it shares with
+       the part before it, *except* the closing one of a circle, which is
+       taken off the last part's tail instead — trimming the first part's
+       head was the first cut, and it gave back the same circle written from
+       an origin the user never chose. Caught by asserting the product is
+       the sequence the parts were cut from, not merely its length.
+     - **A circle can be followed one way round; a linear product cannot.**
+       The chain walks forward from the first part, and for a linear product
+       also backward, because the part the user happened to open first may
+       be in the middle of it. Golden Gate never needed this: its product is
+       always circular.
+     - **One part is an assembly** when its own two ends share homology,
+       which is how a PCR product is circularised.
+     - Junctions carry the overlap's melting temperature
+       (`meltingTemperature`, already there for primers). The reaction is
+       held at 50 °C, so the panel marks a junction under 48 °C rather than
+       refusing it: whether it anneals is a bench question, and the homology
+       is real either way.
+     - Circular documents are dropped with a sentence rather than ignored, as
+       Golden Gate drops a piece that keeps its site. 1.0 ms for six 2 kb
+       parts (`docs/perf-notes.md`), so it sits in the same main-thread memo
+       the Golden Gate does.
+     - Not yet: homology *inside* a part that would anneal as readily as the
+       junction it was designed for is not looked for; parts come from open
+       documents rather than the assembly shelf; and neither the chew-back's
+       length nor the fill-in is modelled, so a very long part with a very
+       short overlap can fail on the bench while looking right here.
 4. ~~**Translation of any selected range in six frames**~~ done. The
    Translate sidebar tab shows the selection (or the whole sequence when
    nothing is selected) in frames +1..+3 and −1..−3
