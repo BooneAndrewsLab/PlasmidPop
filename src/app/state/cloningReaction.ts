@@ -1,14 +1,17 @@
 /**
  * Which reaction the Cloning tab is showing.
  *
- * The three are alternatives, not steps: nobody runs a Golden Gate and a
- * Gibson on the same bench at the same time. Rendering all three stacked put
- * 3,482 px of panel in a 931 px column, so the tab asks which one instead.
- * The digest above the picker belongs to none of them — it is where the
- * pieces come from, and it is the only part of the tab that is about the
- * document in front of you.
+ * They are alternatives, not steps: nobody runs a Golden Gate and a Gibson on
+ * the same bench at the same time. Rendering them stacked put 3,482 px of
+ * panel in a 931 px column, so the tab asks which one instead.
+ *
+ * PCR is first because it is where a part comes from — the other three join
+ * parts, and two of them join parts by homology that only a primer tail can
+ * put there. It is also, with the digest above the picker, one of the two
+ * things here that are about the document in front of you rather than about
+ * the tube of open tabs.
  */
-export type CloningReaction = 'ligation' | 'golden-gate' | 'gibson';
+export type CloningReaction = 'pcr' | 'ligation' | 'golden-gate' | 'gibson';
 
 export interface CloningReactionOption {
   readonly value: CloningReaction;
@@ -17,6 +20,11 @@ export interface CloningReactionOption {
 }
 
 export const CLONING_REACTIONS: readonly CloningReactionOption[] = [
+  {
+    value: 'pcr',
+    label: 'PCR',
+    title: 'Amplify a stretch of this document with two primers',
+  },
   {
     value: 'ligation',
     label: 'Ligation',

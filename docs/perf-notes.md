@@ -121,6 +121,36 @@ product document. Six parts is the practical ceiling of the one-step
 protocol, so this is the large case rather than a worst case. It runs in the
 same main-thread `useMemo` as the Golden Gate, for the same reason.
 
+## PCR
+
+Two walks over the template per primer — one for each strand — and a walk
+stops at the first base that does not pair, so all but a handful of the 2 L
+starting positions cost a single character comparison. Building the product
+documents is the rest of it.
+
+| Date       | Template  | Products | Time    |
+| ---------- | --------- | -------- | ------- |
+| 2026-09-22 | 4,361 bp  | 1        | 2.1 ms  |
+| 2026-09-22 | 13,800 bp | 1        | 3.3 ms  |
+| 2026-09-22 | 50,000 bp | 1        | 11.3 ms |
+| 2026-09-22 | 50,000 bp | 7        | 14.2 ms |
+
+Node 24 (V8), mean of 20–50 runs; the last row is `pcr.test.ts` perf, where
+the two primers also prime in enough other places to give six more products. Linear in the length, as
+the walk says it should be, and the extra 3 ms of the last row is six more
+product documents rather than more searching.
+
+The panel runs it in a main-thread `useMemo` on every keystroke in either
+primer box, like the Golden Gate and Gibson panels above it. At plasmid
+scale that is 2 ms per character typed, which is inside a frame; a 50 kb
+template is not, and would want debouncing or the worker if anyone amplifies
+from one.
+
+Note the seven products: over 100 kb of searchable strand, a 15-base 3′
+match with two mismatches turns up by chance. That is not a modelling error
+— a long template really does prime in more places — and it is why the
+products are ordered by mismatches first and capped at `maxProducts`.
+
 ## Restriction scanning with an imported enzyme table
 
 The bundled table is 127 enzymes. A REBASE `withrefm` import (see the user

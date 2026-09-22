@@ -2,14 +2,15 @@
 
 The **Cloning** tab cuts the document with restriction enzymes and
 describes the resulting fragments end by end. Below the digest, a picker
-chooses one of three reactions to build something with: **Ligation**, which
-joins fragments you have collected by their overhangs, **Golden Gate**, and
+chooses one reaction to build something with: **PCR**, which amplifies a
+stretch of this document with two primers, **Ligation**, which joins
+fragments you have collected by their overhangs, **Golden Gate**, and
 **Gibson**. They are alternatives, so one is shown at a time and the choice
 is remembered. Whichever you use, the product opens as a new document with
 the features of its parts.
 
-The digest belongs to the document in front of you. The three reactions do
-not: they work across the open tabs, and two of them never look at the
+PCR and the digest belong to the document in front of you. The other three
+do not: they work across the open tabs, and two of them never look at the
 document you happen to be reading.
 
 ## Digest
@@ -71,6 +72,50 @@ edit in the middle leaves both ends alone. Making the molecule circular drops
 them, since a circle has no ends; reverse-complementing swaps them and moves
 the sequence to the other strand's window, which is a few bases longer or
 shorter (see [Editing the sequence](04-editing.md#whole-sequence-operations)).
+
+## PCR
+
+PCR is where a part comes from. The other three reactions join pieces that
+already exist somewhere; a PCR makes one that is in no file yet, because
+what a primer carries at its 5′ end ends up in the product.
+
+Choose **PCR** in the picker and paste the two oligos, written 5′ to 3′ as
+you would order them. Nothing else is asked, because everything a designer
+decided is already in those two sequences.
+
+- **Only the 3′ end has to match the template.** A cloning primer is a 3′
+  part that anneals and a 5′ tail that does not — a restriction site, a
+  Gibson homology arm, a tag, a His stretch. The tail is copied into the
+  product all the same. Under each box the panel says how long the oligo is,
+  how much of it is tail, the melting temperature of the part that anneals
+  and where it lands.
+- **The last 5 bases must match exactly**, as they must on the bench: a
+  polymerase extends from the 3′ end, and a mismatch under it stops the
+  reaction whatever the rest of the oligo does. Up to two mismatches further
+  back are allowed.
+- **A mismatch is a mutation, not an error.** The product is the primers'
+  sequence, not the template's, so a deliberate mismatch is carried into
+  every copy. That is site-directed mutagenesis, and it needs nothing else
+  here: design the primer with the change in it and amplify.
+- **The product lists what it would be**: its length, the stretch of
+  template it copies, and whether it runs over the origin. **Show** draws it
+  and its two primers on the map and in the sequence view (see
+  [Previews](03-viewing.md#previews)); **Open** opens it as a document, with
+  the template's features and a `primer_bind` feature for each oligo, tail
+  and all. Clicking the previewed product in either view opens it too.
+- **More than one product** is what a real tube gives when a primer binds in
+  more than one place. They are listed cleanest and shortest first, because
+  an exactly-matched short amplicon out-competes the rest, and drawn as a
+  gel so you can see whether the bands could be told apart.
+
+Two primers pointing away from each other on a plasmid amplify the long way
+round — inverse PCR, which is how a vector is linearised for a Gibson. It
+needs nothing special here: it is simply the product that happens to be
+nearly the whole molecule.
+
+The product is left blunt. A-tailing, primer dimers and the polymerase's
+processivity are not modelled; a pairing that would give a product longer
+than 20 kb is reported and not built.
 
 ## Ligation
 
@@ -183,6 +228,13 @@ what makes a Gibson design work, and a set that is ambiguous on paper is
 worth seeing before it is ambiguous in the tube.
 
 ## Not yet
+
+PCR takes its template from the document in front of you, so amplifying from
+another open tab means switching to it first, and the product is not put on
+the Ligation shelf for you — **Open** it and it is in the tube like any other
+tab. A-tailing, primer dimers and how much more readily a short product
+amplifies than a long one are not modelled beyond the order the products are
+listed in.
 
 Partial digests, dephosphorylation, and ambiguity codes in overhangs (an
 `N` never pairs). Gibson does not check for homology _inside_ a part that

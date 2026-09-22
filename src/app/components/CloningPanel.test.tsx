@@ -53,6 +53,18 @@ describe('CloningPanel', () => {
     expect(screen.getByRole('heading', { name: /Ligation/ })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Golden Gate/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: /Gibson/ })).toBeNull();
+    expect(screen.queryByRole('heading', { name: /PCR/ })).toBeNull();
+
+    act(() => {
+      fireEvent.click(pick('PCR'));
+    });
+    expect(screen.getByRole('heading', { name: /PCR/ })).toBeInTheDocument();
+    // One preview channel: the digest gives it up to the panel being worked in.
+    expect(preview()).toBeNull();
+    act(() => {
+      fireEvent.click(pick('Ligation'));
+    });
+    expect(preview()?.owner).toBe('cloning');
 
     act(() => {
       fireEvent.click(pick('Gibson'));

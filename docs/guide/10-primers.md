@@ -54,3 +54,10 @@ select it, or **Add sites as primer_bind** to annotate them all.
 
 Use this to check a primer from a paper or an old order against the plasmid
 you have, and to spot off-target binding.
+
+Note that this search asks whether the **whole** oligo matches, which is the
+right question for "is this primer specific to my plasmid" and the wrong one
+for a cloning primer with a 5′ tail — a restriction site or a Gibson homology
+arm matches the template nowhere. To amplify with such a primer, use
+[Cloning ▸ PCR](12-cloning.md#pcr), which anneals by the 3′ end and reports
+the rest as a tail.

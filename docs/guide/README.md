@@ -14,6 +14,6 @@ toolbar.
 9. [Translation](09-translate.md): under CDS features and in six frames
 10. [Primers](10-primers.md): design, preview and checking
 11. [Pairwise alignment](11-align.md)
-12. [Simulated cloning](12-cloning.md): digest, ligation, Golden Gate and Gibson
+12. [Simulated cloning](12-cloning.md): digest, PCR, ligation, Golden Gate and Gibson
 13. [History](13-history.md): the list of changes and jumping between them
 14. [Keyboard shortcuts](14-shortcuts.md)

@@ -367,7 +367,7 @@ export interface DocumentPreview {
   readonly items: readonly OverlaySpan[];
 }
 
-export type PreviewOwner = 'primers' | 'find' | 'cloning';
+export type PreviewOwner = 'primers' | 'find' | 'cloning' | 'pcr';
 
 /**
  * A click on a previewed span, for the panel that put it there to act on.

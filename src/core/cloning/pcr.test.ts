@@ -201,4 +201,27 @@ describe('pcr', () => {
       TEXT.slice(1500) + TEXT.slice(0, 1500) + INSERT.slice(100, 522),
     );
   });
+
+  it('costs little enough to run on every keystroke', () => {
+    // It is two walks over the template per primer, and a walk stops at the
+    // first base that does not pair, so nearly every position costs one
+    // comparison. The panel runs it on the main thread as the user types.
+    const long = template(50_000, 99);
+    const big = SeqDocument.create({ name: 'big', sequence: long, topology: 'circular' });
+    const primers: PcrPrimer[] = [
+      { name: 'F', sequence: long.slice(10_000, 10_022) },
+      { name: 'R', sequence: reverseComplement(long.slice(14_000, 14_022)) },
+    ];
+    const t0 = performance.now();
+    let found = 0;
+    for (let run = 0; run < 20; run++) found += pcr(big, primers).products.length;
+    const ms = (performance.now() - t0) / 20;
+    // Over 100 kb of searchable strand a 15-base 3′ match with two
+    // mismatches turns up by chance, so a long template really does give
+    // spurious products; they sort below the exact one.
+    expect(found).toBeGreaterThanOrEqual(20);
+    expect(ms).toBeLessThan(200);
+    // eslint-disable-next-line no-console
+    console.info(`[perf] PCR over a 50 kb template: ${ms.toFixed(2)} ms`);
+  });
 });

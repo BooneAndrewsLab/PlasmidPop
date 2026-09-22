@@ -398,7 +398,9 @@ button {
   overflow: hidden;
 }
 
-/* Fills the panel, so the three reactions share a 300 px column evenly. */
+/* Fills the panel, so the four reactions share a 300 px column evenly. A
+   narrow sidebar wraps "Golden Gate" onto two lines rather than clipping it,
+   which is why the buttons are aligned on their middles. */
 .segmented--wide {
   display: flex;
   width: 100%;
@@ -406,6 +408,7 @@ button {
 
 .segmented--wide .segmented__button {
   flex: 1;
+  padding-inline: 4px;
   text-align: center;
 }
 
@@ -792,6 +795,20 @@ button {
  * Coelenterate Mitochondrial; Mycoplasma; Spiroplasma", which took the panel
  * 478 px past its own edge and gave the sidebar a horizontal scrollbar.
  */
+/* A field whose label sits above its control: a primer box needs the whole
+   width for the sequence and has a name too long to put beside it. */
+.panel__field--stack {
+  flex: 1 1 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+
+.panel__field--stack > span {
+  font-size: 11px;
+}
+
 .panel__field--row {
   flex: 1 1 100%;
   min-width: 0;
@@ -1605,6 +1622,17 @@ button {
 
 .pair__label {
   color: var(--ink-3);
+}
+
+/* A PCR product leads with its size rather than with a two-letter label, so
+   the first column is only as wide as the number needs. */
+.pair__row--wide {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pair__length {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .pair__seq {

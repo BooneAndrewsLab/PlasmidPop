@@ -20,6 +20,7 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
+import { PcrPanel } from './PcrPanel';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -285,7 +286,13 @@ export function CloningPanel({ doc }: Props) {
     [doc, cutSites, ready],
   );
 
-  const previewed = useMemo(() => digestPreview(fragments, hovered), [fragments, hovered]);
+  // There is one preview channel, so the digest gives it up while the PCR
+  // panel is open: that panel has primer sites and products to point at, and
+  // they are what is being worked on. The fragment rows still select.
+  const previewed = useMemo(
+    () => (cloningReaction === 'pcr' ? [] : digestPreview(fragments, hovered)),
+    [fragments, hovered, cloningReaction],
+  );
   useEffect(() => {
     editorStore.setPreview('cloning', previewed);
   }, [previewed]);
@@ -421,6 +428,16 @@ export function CloningPanel({ doc }: Props) {
           ))}
         </div>
       </div>
+
+      {cloningReaction === 'pcr' && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            PCR
+            <span className="panel__heading-note">two primers, one template</span>
+          </h3>
+          <PcrPanel doc={doc} />
+        </div>
+      )}
 
       {cloningReaction === 'ligation' && (
         <div className="panel__section">
