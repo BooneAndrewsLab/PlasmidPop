@@ -190,8 +190,15 @@ sidebar panel** (item 6). Added 2026-09-22: a feature that differs between
 two files is **paired with the one it became** instead of being reported as a
 loss and a gain, the review says what changed about it (`type gene → CDS`),
 and the outline in the views is **solid where the bases moved and broken
-where only the label did** (item 35). Tests: 902 passing. Perf measurements
-live in `docs/perf-notes.md`.
+where only the label did** (item 35). Added 2026-09-22: **PCR**
+(`src/core/cloning/pcr.ts`, `src/core/primers/anneal.ts`, item 36) — the
+Cloning tab's fourth reaction and the one that *makes* a part rather than
+joining parts, annealing a primer by its 3′ end so a 5′ tail (a site, a
+Gibson arm, a mutation) is carried into the product; and the **gel is drawn**
+rather than only described (`src/app/components/Gel.tsx`, item 30), a lane
+beside a chosen ladder under the Enzymes tab's ticked fragments and under the
+PCR products, where clicking a band selects that piece. Tests: 938 passing.
+Perf measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
 
@@ -1089,6 +1096,12 @@ pick from here when the current work is done.
       exists — a preview that answers a click everywhere would shadow the
       backbone's own hit band on the map, and a find match has nothing to
       say to one.
+    - **PCR was the third caller** (2026-09-22, item 36) and cost the channel
+      no rendering work at all: a product is a stretch of the template, so it
+      is a span, and the two primers are arrows. It did show up the one-channel
+      limit in the flesh — the digest above it in the same tab draws fragments
+      — so the digest now stands aside while that panel is open, which is a
+      decision made twice now and wants a rule if a third panel needs one.
     - Not yet: ORFs and a previewed Golden Gate or Gibson product are the
       obvious next callers, the last needing somewhere to draw a molecule
       that is not open; there is one channel, so two panels pointing at once
@@ -1375,8 +1388,37 @@ pick from here when the current work is done.
         anything is typed (`docs/perf-notes.md`). The **Fragments from ticked
         enzymes** section gained the same reading of the whole lane, which no
         single row can predict.
-      - Not yet: the gel is one percentage and one ladder-free lane, nothing
-        draws it, and the order cannot be reversed or applied to the fragment
+      - **And the lane is drawn, 2026-09-22** (`Gel.tsx`), which is what the
+        note above asked for. The same numbers, not new ones: `migration` is
+        written from the `maxResolved` and `minVisible` the warnings already
+        use, so the picture and the prose cannot disagree about where the gel
+        stops saying anything, and a band is the `GelBand` the text was built
+        from. Mobility goes as the log of the length and anything off either
+        end of that range is pinned to the well or the dye front. A ladder is
+        chosen to span the sample — 100 bp when everything is small, 1 kb
+        otherwise — since a lane with nothing to measure against is a picture
+        rather than a reading. A short band is drawn faint, because a stain
+        binds by mass and a 200 bp band beside a 4 kb one really is; the
+        square root keeps that honest without making it invisible. Clicking a
+        band selects that piece in both views, which answers the question the
+        sizes cannot — which of these is the backbone.
+        - SVG rather than canvas, unlike the sequence and the map: a dozen
+          rectangles, not fifty thousand bases, and being in the DOM is what
+          lets a band be a button and a test read the lane off without a
+          rasteriser.
+        - **Labelling a crowded lane took a look at a real one.** Pushing the
+          numbers apart keeps every band named, which is what a three-piece
+          digest wants; with pBR322's 35 single cutters ticked, sixteen bands
+          sit at the foot of the lane and pushing them apart drew a fan of
+          leaders across the gel. So the lane pushes only while a number stays
+          within two line heights of its own band and otherwise drops what
+          will not fit, as the ladder always does — the sizes are listed under
+          the picture in any case, so a dropped label costs a glance and not
+          the number. (The first cut computed which labels to drop and then
+          drew them all anyway, which the browser caught and no test did.)
+      - Not yet: the gel is one percentage and one lane at a time, so a double
+        digest cannot be set beside the two single ones; the ladder cannot be
+        chosen; and the order cannot be reversed or applied to the fragment
         sizes of a *pair* of enzymes, which is what a double digest is.
     - The control took a row of its own in a 330 px sidebar (the buttons wrap
       below it); on a sidebar widened past ~430 px they share a line again,
@@ -1639,6 +1681,69 @@ pick from here when the current work is done.
       SVG exports get it from the one helper.
     - Not yet: a feature that both moved *and* was renamed pairs with nothing,
       since the location is the one thing the looser pass will not give up.
+36. ~~**PCR: the reaction that makes a part.**~~ done, 2026-09-22
+    (`src/core/cloning/pcr.ts`, `src/core/primers/anneal.ts`, the Cloning
+    tab's fourth reaction). A digest takes a molecule apart and Golden Gate
+    and Gibson put molecules together, but nothing could *make* a part, so an
+    assembly could only be built out of files that already existed. Almost no
+    bench work is like that: the insert is amplified, the backbone is
+    amplified, and the homology a Gibson joins them by is on the primers
+    rather than in any file. Item 3 and item 26 both end on wants this
+    answers.
+    - **A primer is not its binding site.** It is a 3′ part that anneals and a
+      5′ tail that does not, and the tail is where the restriction site, the
+      homology arm, the tag or the mutation lives.
+      `findPrimerBindingSites` asks whether the *whole* oligo matches, which
+      is the right question for "is this specific to my plasmid" and cannot
+      see a cloning primer at all. `findAnnealingSites` walks back from the 3′
+      end instead — the end a polymerase extends from, and where a mismatch
+      stops the reaction whatever the rest does — and reports the leftover as
+      a tail. The run is trimmed back to a match, so a site never begins on a
+      mismatch, and a tail base that happens to pair does pair: that changes
+      the report and not the molecule, which is a test rather than a note.
+    - **The product is the primers' sequence, not the template's.** The first
+      cycle copies the template and every cycle after copies the product, so a
+      mismatch under a primer is a mutation to write down rather than an error
+      to flag. Site-directed mutagenesis therefore needs nothing of its own:
+      design the primer with the change in it and amplify.
+    - **Inverse PCR needs no case either.** On a circle the product is the
+      stretch from the forward primer round to the reverse one, so back-to-back
+      primers give nearly the whole plasmid — which is how a vector is
+      linearised for a Gibson. A pair pointing away from each other on a
+      *linear* template is refused with that sentence.
+    - **The panel asks for two oligos and nothing else**, because everything a
+      designer decided is already in them. It reports what they would do: the
+      lengths, the tails, the Tm of the annealing part, where each lands, and
+      the products — cleanest and shortest first, since an exactly-matched
+      short amplicon out-competes the rest in the tube. Every product and
+      every site is drawn through item 26's preview channel until one is
+      picked, which is how an off-target band is seen beside the wanted one;
+      clicking a previewed product opens it, as clicking a digest fragment
+      shelves it. The digest gives up the preview channel while the panel is
+      open, there being one of them.
+    - **PCR is first in the picker** and, with the digest, one of the two
+      things in the tab that are about the document in front of you rather
+      than about the tube of open tabs: a PCR has one template.
+    - The products are drawn as a gel (item 30). One band is what a real gel
+      gets compared against; two are the question of whether they could be
+      told apart, which is why the gel is drawn at all.
+    - **Measured** (`docs/perf-notes.md`): 2.1 ms for a plasmid, 11 ms for
+      50 kb, so it runs in a main-thread memo on every keystroke like the two
+      one-pot panels. The 50 kb case gives six spurious products, which is not
+      a modelling error — over 100 kb of searchable strand a 15-base 3′ match
+      with two mismatches turns up by chance, and a long template really does
+      prime in more places. It is why the products are sorted by mismatches
+      first and capped.
+    - The last test amplifies a vector by inverse PCR, amplifies an insert
+      from a *different* molecule with tails that anneal nowhere on it, and
+      hands both to `gibson`: the loop this closes.
+    - Not yet: the template is the document in front of you, so amplifying
+      from another tab means switching to it, and the product is not put on
+      the ligation shelf for you (**Open** it and it joins the tube like any
+      other tab). A-tailing is not modelled, so the product is blunt and TA
+      cloning is not there; neither are primer dimers, nor the polymerase's
+      processivity beyond a flat 20 kb ceiling; a mismatched site's Tm is
+      reported as if it matched.
 
 ## Non-goals for v1
 
@@ -1678,10 +1783,13 @@ pick from here when the current work is done.
 - Whether a preview can show a molecule that is not open. The channel draws
   spans on the document in front of you, which is why a Golden Gate or Gibson
   product cannot be previewed before it is assembled: it is a different
-  molecule, not a range of this one. Opening it and looking is the answer for
-  now, and a second surface to draw on is a much larger idea than the want
-  behind it (items 3 and 26).
+  molecule, not a range of this one. A PCR product *is* a range of this one,
+  which is why item 36 could preview its products and those two still cannot.
+  Opening it and looking is the answer for now, and a second surface to draw
+  on is a much larger idea than the want behind it (items 3, 26 and 36).
 - Whether the shelf is the ligation's or the bench's. Both one-pot reactions
   take parts from it now, and a fragment clicked in a view lands there, but
   it still lives under **Ligation** and adding to it switches the picker
-  there. If it grows a third use it wants a place of its own (item 3).
+  there. If it grows a third use it wants a place of its own (item 3). A PCR
+  product is the obvious third thing to put on it and deliberately is not:
+  it opens as a tab, which the tube already takes (item 36).
