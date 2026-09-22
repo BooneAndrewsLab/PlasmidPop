@@ -443,8 +443,8 @@ pick from here when the current work is done.
      `Access-Control-Allow-Origin`, so the app cannot fetch it either, and a
      proxy or a build-time download would just make us the redistributor.
      The user's own copy in the user's own browser is none of those things.
-     If a bundle is ever wanted, ask Dana Macelis, who
-     runs REBASE distribution, copying Rich Roberts; the
+     If a bundle is ever wanted, ask Dana Macelis, who runs REBASE
+     distribution, copying Rich Roberts (addresses on `rebase.neb.com`); the
      ask that gets a yes keeps REBASE's terms on the data rather than
      putting it under our MIT grant.
    - `parseRebaseWithRefM` (`src/io/rebase/withrefm.ts`) reads the
