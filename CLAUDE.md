@@ -161,7 +161,16 @@ share link, and `Ctrl+Shift+←`/`→` to extend a selection a codon at a time
 arcs over the backbone where bases are new or replaced, a wedge where they
 closed up, an outline on a feature that was touched — and the review before a
 download and **Compare with…** both open with that ring, so where a change
-landed is the first thing said rather than the last (item 25). Tests: 769 passing. Perf measurements live in
+landed is the first thing said rather than the last (item 25). Added 2026-09-22:
+a molecule has a **name that does not change with how it is written** — the
+SEGUID v2 checksum (`src/core/checksum/`, our own synchronous SHA-1, checked
+against the reference implementations' vectors), shown short in the status bar
+and copied whole on a click. **Compare with… lines a rotated plasmid up**
+before diffing it instead of calling it different throughout (item 33's last
+open point), and a working copy carries
+`PlasmidPop-derived-from: cdseguid=… pBR322.gb` into every file and share link
+it leaves as, which is what items 22 and 11 were both waiting on. Known and
+unfixed: item 34, reverse complement of a molecule with sticky ends. Tests: 819 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -464,11 +473,13 @@ pick from here when the current work is done.
       and takes itself away after twelve seconds. A link cannot be withdrawn
       or updated, which the guide says plainly (`docs/guide/02-files.md`,
       "Sharing a link").
+    - **A shared working copy now says where it came from** (2026-09-22): the
+      `PlasmidPop-derived-from:` comment of item 22 is written by
+      `writeGenBank`, so it is inside the payload and the reader sees the
+      original's checksum and file name under the toolbar.
     - Not yet: a link always carries the whole document
       (a selection, or a document without its references, would make a much
-      shorter one); nothing on the receiving side says where a document came
-      from, which is where item 22's `PlasmidPop-derived-from:` checksum
-      would belong; and a link is GenBank only, so SnapGene-specific
+      shorter one), and a link is GenBank only, so SnapGene-specific
       material a `.dna` import dropped is not in it either.
 12. ~~**User documentation**~~: done. Fourteen guide pages in
     `docs/guide/` (getting started, files, viewing, editing, features,
@@ -620,11 +631,37 @@ pick from here when the current work is done.
     offers the same review at any time. The diff is computed only while the
     dialog is up: `editDiffBetween`'s cache holds one pair of versions and the
     sequence view's own marks share it. **File ▸ Compare with…** is item 33.
-    Not yet: the other provenance ideas offered alongside this one — a
-    rotation- and strand-invariant sequence checksum shown in the UI and
-    written into the file (the SEGUID v2 family, `cdseguid` for a plasmid), a
-    `PlasmidPop-derived-from:` comment carrying the original's checksum, and
-    persisting the history log across reloads. The two rough
+    - **The checksum and the provenance comment landed 2026-09-22**, which were
+      the two provenance ideas offered alongside this and the thing items 11
+      and 33 were both waiting on. A plasmid has no first base and DNA has no
+      top strand, so the same construct written by two programs shares no
+      text; SEGUID v2 hashes the smallest rotation of whichever strand sorts
+      first and so survives both (`src/core/checksum/`). All four variants
+      are there — `documentChecksum` picks `cdseguid` for a plasmid and
+      `ldseguid` for a linear molecule, with item 10's sticky ends written as
+      the `-` the spec uses for a staggered end, because a fragment with EcoRI
+      ends is not the blunt fragment of the same bases. They are checked
+      against the reference implementations' own vectors
+      (`seguid/seguid-tests`), not against ourselves, since a checksum nobody
+      else computes the same way is worth nothing.
+      - **The SHA-1 is written rather than taken from `crypto.subtle`**, which
+        is asynchronous and undefined outside a secure context: the checksum
+        is wanted where a file is being built as a string and where a status
+        bar is being drawn, and the app has to work served over plain http on
+        a lab machine's LAN address. FIPS 180-1's vectors pin it. 0.92 ms for
+        pBR322, linear in the length (`docs/perf-notes.md`).
+      - **The status bar** shows the short form and copies the whole thing on
+        a click. **Compare with…** shows both, and lines the other file up
+        before diffing it (item 33).
+      - **`PlasmidPop-derived-from: cdseguid=… pBR322.gb`** is written by the
+        fork into `DocumentMetadata.derivedFrom` and rides in every file and
+        share link the copy leaves as, handled exactly as `PlasmidPop-ends:`
+        is (`src/io/genbank/derivedComment.ts`); a damaged line stays a
+        comment rather than being swallowed, which the ends parser already
+        did and the first cut of this broke. The checksum is the load-bearing
+        half: a file name is what someone called a file once, a `cdseguid` is
+        the molecule. A quiet banner says so when such a file is opened.
+    Not yet: persisting the history log across reloads. The two rough
     edges left here are moot under item 24: no file handle is kept to be
     lost on a rename, and undoing back to the original is not possible at
     all, because the copy's history starts under its own name.
@@ -1239,11 +1276,53 @@ pick from here when the current work is done.
       so the dialog says so when both are the same length and the diff came
       out coarse; two unrelated sequences come out as "too different to follow
       in detail", which `describeEditDiff` already knew how to say.
+    - **The origin-rotation case is fixed, 2026-09-22**, by item 22's checksum.
+      `alignToDocument` (`src/core/checksum/align.ts`) works out how the other
+      file's copy has to be turned before it is diffed — rotated to another
+      origin, read from the other strand, or both — and the dialog says what
+      it did, because the differences shown are then against the file turned
+      rather than against the file as written. Exactly, when the two
+      `cdseguid`s agree: the same molecule for certain, and the rotation is
+      then one `indexOf` in the sequence doubled. Otherwise by voting on where
+      a handful of shared 32-mers land, which is the case anyone actually
+      compares — the same plasmid, from another origin, with an edit in it, so
+      no checksum agrees. It takes a majority of the anchors that voted and at
+      least two, so one chance stretch in common moves nothing. The old "set
+      the origin and compare again" note is now only for the case where
+      nothing long enough is shared to line anything up.
     - Not yet: no key binding; the comparison is against the front document
       only, and closing or switching tabs takes it away; nothing lets you open
       the other file from the dialog, or step from one difference to the next
-      in the views; and the origin-rotation case is diagnosed but not fixed —
-      that is what item 22's `cdseguid` checksum would settle.
+      in the views.
+
+34. **Turning a sticky-ended molecule over loses the window shift.** Found
+    2026-09-22 by the checksum of item 22, which is what a checksum is for:
+    `ldseguid` is invariant to which strand is on top, so turning a fragment
+    over and getting a different one says the *turn* is wrong, not the
+    checksum. `SeqDocument.reverseComplement` reverse-complements the top
+    strand and swaps the ends (`flipEnds`), but the new top strand is the old
+    *bottom* strand, which starts and ends elsewhere: a molecule with an EcoRI
+    5′ overhang at the left and a 3′ overhang at the right has 4 and 2 bases
+    of top strand with nothing under them, and after the turn the document
+    claims all of them are double-stranded and 6 bases that are not there at
+    all. Same molecule in, different molecule out.
+    - **`flipFragment` (`src/core/cloning/ligate.ts`) already has the fix**,
+      and its comment says why: "a fragment's `sequence` is its top strand
+      alone, so turning it over moves the window by an overhang at each end
+      rather than just reverse-complementing it". It builds `head + sequence +
+      tail` from the bottom-only overhangs, extracts what the bottom strand
+      covers and reverse-complements that. The document method wants the same
+      four lines.
+    - **It is left unfixed deliberately**, because it changes what an editing
+      op does rather than what a checksum says: reverse-complementing a sticky
+      molecule would make the sequence *shorter* (the top-only overhang bases
+      leave, the bottom-only ones arrive), which is correct and is still a
+      visible change to an operation people use, and a feature annotated on an
+      overhang would be clipped. Worth doing; worth doing as its own decision.
+    - Only a document with non-null `ends` is affected, which is one that came
+      from a digest fragment, a ligation, or a file with our
+      `PlasmidPop-ends:` comment. `seguid.test.ts` has the invariance test for
+      a blunt molecule; the sticky one goes in with the fix.
 
 ## Non-goals for v1
 

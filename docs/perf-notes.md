@@ -222,3 +222,38 @@ A session's editing gives a handful of marks; 200 is well past what the
 Myers diff and its re-alignment produce for anything a person typed, and it
 is still inside a frame. A diff too coarse to follow is one mark, not
 thousands, so the pathological case is bounded from the other side too.
+
+## Molecule checksums (SEGUID v2)
+
+`documentChecksum` is taken on the document in front every time it changes —
+the status bar shows it — so it sits on the same path as a keystroke, beside
+the edit-mark diff above. The work is three passes over the sequence and a
+SHA-1 over twice it: Booth's minimal rotation of each strand, and the digest
+of `watson;crick`.
+
+| Date       | Input                      | Time    | Where                     |
+| ---------- | -------------------------- | ------- | ------------------------- |
+| 2026-09-22 | 4,361 bp circular (pBR322) | 0.92 ms | Node 24, `seguid.test.ts` |
+| 2026-09-22 | 200,000 bp circular        | 21.5 ms | Node 24, `seguid.test.ts` |
+
+Linear in the length, as the algorithm says it should be. Two things brought
+the plasmid case down from 1.12 ms, both of them arithmetic rather than
+structure, and both are safe because the published test vectors say what the
+answer has to be:
+
+- The second strand is rotated to follow the first (two slices) instead of
+  being reverse-complemented again, which is what the reference
+  implementations do and what the first cut here did not.
+- Booth's loop compares code units rather than characters. Every symbol
+  involved is ASCII and `-` (45) sorts below every base, which is the order
+  SEGUID's staggered ends need anyway.
+
+The remaining cost is split about evenly between the two rotations, the
+reverse complement that builds the second strand, and the digest. The status
+bar memoizes on the document, so a render that changes nothing else costs
+nothing; `Compare with…` takes three more, once, when the dialog opens.
+
+WASM would be the obvious next step and is not worth it: 0.9 ms is a fifteenth
+of a frame on a plasmid, and the 200 kb case is past the scale of anything
+this app targets (>10 Mb is a non-goal; 200 kb is already ten pBR322s of
+BAC).

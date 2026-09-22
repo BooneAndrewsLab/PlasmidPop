@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { randomDna, seededRandom } from '@/test/random';
+
 import { SeqDocument } from '../document';
 import { reverseComplement } from '../sequence';
 
@@ -200,4 +202,33 @@ describe('documentStrands', () => {
     );
     expect(documentChecksum(cut)?.value).not.toBe(documentChecksum(blunt)?.value);
   });
+});
+
+describe('checksum performance', () => {
+  /**
+   * The status bar takes a checksum of the document in front, and `Compare
+   * with…` takes three more, so it has to be cheap enough to sit in a render
+   * rather than behind a worker.
+   */
+  it('names a plasmid in well under a frame', () => {
+    const rand = seededRandom(3);
+    const doc = SeqDocument.create({ sequence: randomDna(rand, 4361), topology: 'circular' });
+    const t0 = performance.now();
+    for (let i = 0; i < 20; i++) documentChecksum(doc);
+    const ms = (performance.now() - t0) / 20;
+    // eslint-disable-next-line no-console
+    console.info(`[perf] cdseguid of 4,361 bp: ${ms.toFixed(2)} ms`);
+    expect(ms).toBeLessThan(100);
+  }, 10_000);
+
+  it('stays linear on a sequence far larger than a plasmid', () => {
+    const rand = seededRandom(4);
+    const doc = SeqDocument.create({ sequence: randomDna(rand, 200_000), topology: 'circular' });
+    const t0 = performance.now();
+    documentChecksum(doc);
+    const ms = performance.now() - t0;
+    // eslint-disable-next-line no-console
+    console.info(`[perf] cdseguid of 200,000 bp: ${ms.toFixed(1)} ms`);
+    expect(ms).toBeLessThan(2000);
+  }, 20_000);
 });

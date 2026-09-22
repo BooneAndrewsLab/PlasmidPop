@@ -69,8 +69,10 @@ export function minimalRotation(s: string): { readonly rotated: string; readonly
   let b = 0;
   while (b < n) {
     for (let i = 0; i < n - a; i++) {
-      const sa = doubled.charAt(a + i);
-      const sb = doubled.charAt(b + i);
+      // Code units rather than characters: every symbol here is ASCII, and
+      // their order is the same one, `-` included (45, below every base).
+      const sa = doubled.charCodeAt(a + i);
+      const sb = doubled.charCodeAt(b + i);
       if (sa < sb || a + i === b) {
         if (i > 0) b += i - 1;
         break;
@@ -83,6 +85,11 @@ export function minimalRotation(s: string): { readonly rotated: string; readonly
     b += 1;
   }
   return { rotated: doubled.slice(a, a + n), index: a };
+}
+
+/** `s` turned so that it starts `k` bases *earlier* than it did. */
+function rotateRight(s: string, k: number): string {
+  return k === 0 ? s : s.slice(s.length - k) + s.slice(0, s.length - k);
 }
 
 /** Linear single-stranded: the sequence itself. */
@@ -117,10 +124,15 @@ export function ldseguid(watson: string, crick: string): Seguid {
  * complement.
  */
 export function cdseguid(watson: string, crick: string): Seguid {
-  const w = minimalRotation(watson).rotated;
-  const c = minimalRotation(crick).rotated;
-  const top = w <= c ? w : c;
-  return seguid('cdseguid', `${top};${reverseComplement(top)}`);
+  const w = minimalRotation(watson);
+  const c = minimalRotation(crick);
+  // The second strand follows the first round the circle, which is two slices
+  // rather than another reverse complement of the whole molecule.
+  const canonical =
+    w.rotated <= c.rotated
+      ? `${w.rotated};${rotateRight(crick, w.index)}`
+      : `${c.rotated};${rotateRight(watson, c.index)}`;
+  return seguid('cdseguid', canonical);
 }
 
 /**
