@@ -80,6 +80,45 @@ describe('translateCds', () => {
     expect(t.codons[1]?.positions).toEqual([0, 1, 2]);
   });
 
+  it('reads a CDS with the genetic code its /transl_table names', () => {
+    // TGA at 9..11 is a stop under the standard code and tryptophan under
+    // the vertebrate mitochondrial one, which is the whole point of table 2.
+    const mito = translateCds(
+      doc,
+      cds({
+        segments: [rangeSegment(0, 12)],
+        qualifiers: [{ name: 'transl_table', value: '2' }],
+      }),
+    );
+    expect(mito.protein).toBe('MKGW');
+    expect(mito.table).toBe(2);
+    expect(mito.unknownTable).toBeNull();
+  });
+
+  it('says so rather than guessing when /transl_table names no code', () => {
+    // NCBI withdrew table 7; reading such a feature with the standard code
+    // is a guess, and one the caller can tell the user about.
+    const t = translateCds(
+      doc,
+      cds({
+        segments: [rangeSegment(0, 12)],
+        qualifiers: [{ name: 'transl_table', value: '7' }],
+      }),
+    );
+    expect(t.protein).toBe('MKG*');
+    expect(t.table).toBe(1);
+    expect(t.unknownTable).toBe('7');
+    const nonsense = translateCds(
+      doc,
+      cds({
+        segments: [rangeSegment(0, 12)],
+        qualifiers: [{ name: 'transl_table', value: 'bacterial' }],
+      }),
+    );
+    expect(nonsense.table).toBe(1);
+    expect(nonsense.unknownTable).toBe('bacterial');
+  });
+
   it('shows alternative start codons as M under table 11 unless the 5′ end is partial', () => {
     const gtg = SeqDocument.create({ sequence: 'GTGAAATAA' });
     const table11 = [{ name: 'transl_table', value: '11' }];

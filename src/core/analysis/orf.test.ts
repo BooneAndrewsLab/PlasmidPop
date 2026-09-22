@@ -14,6 +14,20 @@ describe('findOrfs', () => {
     expect(findOrfs(seq, 'linear', { minCodons: 6 })).toEqual([]);
   });
 
+  it('ends an ORF where the chosen genetic code says it does', () => {
+    // ATG + 3 codons + TGA + ATG + 2 codons + TAA. TGA stops the reading
+    // under the standard code and is tryptophan under table 2, so the same
+    // bases are two short ORFs or one long one depending on the code.
+    const seq = 'ATGGCCATTGTATGAATGCCCGGGTAA';
+    expect(findOrfs(seq, 'linear', { minCodons: 3 })).toEqual([
+      { range: { start: 0, end: 15 }, strand: 'forward', frame: 0, codons: 4 },
+      { range: { start: 15, end: 27 }, strand: 'forward', frame: 0, codons: 3 },
+    ]);
+    expect(findOrfs(seq, 'linear', { minCodons: 3, table: 2 })).toEqual([
+      { range: { start: 0, end: 27 }, strand: 'forward', frame: 0, codons: 8 },
+    ]);
+  });
+
   it('finds reverse-strand ORFs in forward coordinates', () => {
     const seq = `GG${reverseComplement(ORF)}G`;
     const orfs = findOrfs(seq, 'linear', { minCodons: 3 });

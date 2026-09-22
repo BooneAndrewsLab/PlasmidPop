@@ -11,8 +11,11 @@ residue sits under its codon, and codons are shaded alternately so the
 frame is easy to follow. The translation honours:
 
 - `/codon_start` (1, 2 or 3) for features that begin mid-codon;
-- `/transl_table`: table 1 (standard) or 11 (bacterial and plastid), which
-  differ in start codons;
+- `/transl_table`: every genetic code NCBI numbers (1–6, 9–16 and 21–33), not
+  only the standard and bacterial ones. The code decides the amino acids as
+  well as the start codons — TGA is a stop under the standard code and
+  tryptophan under the vertebrate mitochondrial one — so a gene read with the
+  wrong code comes out chopped short;
 - `join(...)` locations: the pieces are spliced before translating;
 - reverse-strand features, translated from the reverse complement and drawn
   right to left;
@@ -26,8 +29,10 @@ and dragging along the line extends the selection codon by codon, which is a
 quick way to take a protein-aligned piece of a gene. Click the feature bar
 below instead to select the whole feature.
 
-Not yet supported: `/transl_except`, and comparing against a stored
-`/translation` qualifier.
+A `/transl_table` naming a code NCBI does not use — 7 and 8 were withdrawn,
+17 to 20 were never issued — falls back to the standard code.
+
+Not yet supported: `/transl_except`.
 
 ## The Translate tab
 

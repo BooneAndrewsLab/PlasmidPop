@@ -2,7 +2,13 @@ import { type SeqDocument } from '../document';
 import { type Feature, type FeatureId, type Strand, firstQualifier } from '../features';
 import { type Range, range, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
-import { type TranslationTable, isStartCodon, translateCodon } from './codons';
+import {
+  DEFAULT_TABLE,
+  type TranslationTable,
+  isStartCodon,
+  isTranslationTable,
+  translateCodon,
+} from './codons';
 
 /** One codon of a coding feature, placed on the forward strand. */
 export interface Codon {
@@ -25,7 +31,15 @@ export interface CdsTranslation {
   readonly strand: Strand;
   /** The codons' amino acids concatenated (stops included as `*`). */
   readonly protein: string;
+  /** The genetic code it was read with. */
   readonly table: TranslationTable;
+  /**
+   * The `/transl_table` value when it names no genetic code we have — NCBI
+   * withdrew 7, 8 and 17–20 — and null otherwise. Such a feature is read
+   * with the standard code, which is a guess, so it is said rather than
+   * silently done.
+   */
+  readonly unknownTable: string | null;
   /** Reading frame offset from `/codon_start` (1, 2 or 3). */
   readonly codonStart: 1 | 2 | 3;
 }
@@ -40,8 +54,13 @@ function codonStartOf(feature: Feature): 1 | 2 | 3 {
   return value === '2' ? 2 : value === '3' ? 3 : 1;
 }
 
-function tableOf(feature: Feature): TranslationTable {
-  return firstQualifier(feature, 'transl_table')?.trim() === '11' ? 11 : 1;
+/** The genetic code named by `/transl_table`, and what it said if we have no such code. */
+function tableOf(feature: Feature): { table: TranslationTable; unknownTable: string | null } {
+  const raw = firstQualifier(feature, 'transl_table')?.trim();
+  if (raw === undefined || raw === '') return { table: DEFAULT_TABLE, unknownTable: null };
+  const id = Number.parseInt(raw, 10);
+  if (isTranslationTable(id)) return { table: id, unknownTable: null };
+  return { table: DEFAULT_TABLE, unknownTable: raw };
 }
 
 /** Whether the biological 5' end of the feature is marked partial (`<` or `>` in GenBank). */
@@ -58,6 +77,9 @@ function fivePrimePartial(feature: Feature): boolean {
  * `/codon_start` skips leading bases, and the first full codon is shown as
  * `M` when it is a start codon of the feature's `/transl_table` and the 5'
  * end is not partial. Trailing bases that do not fill a codon are dropped.
+ *
+ * Every NCBI genetic code is understood; a `/transl_table` that names none of
+ * them falls back to the standard code and says so in `unknownTable`.
  */
 export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation {
   const length = doc.length;
@@ -76,14 +98,14 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
   }
 
   const codonStart = codonStartOf(feature);
-  const table = tableOf(feature);
+  const { table, unknownTable } = tableOf(feature);
   const partial = fivePrimePartial(feature);
   const codons: Codon[] = [];
   let protein = '';
   let index = 0;
   for (let i = codonStart - 1; i + 3 <= text.length; i += 3, index++) {
     const codon = text.slice(i, i + 3);
-    let aminoAcid = translateCodon(codon);
+    let aminoAcid = translateCodon(codon, table);
     if (index === 0 && !partial && isStartCodon(codon, table)) aminoAcid = 'M';
     const a = positions[i];
     const b = positions[i + 1];
@@ -92,7 +114,7 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
     codons.push({ index, positions: [a, b, c], aminoAcid });
     protein += aminoAcid;
   }
-  return { codons, protein, strand: feature.strand, table, codonStart };
+  return { codons, protein, strand: feature.strand, table, unknownTable, codonStart };
 }
 
 /**

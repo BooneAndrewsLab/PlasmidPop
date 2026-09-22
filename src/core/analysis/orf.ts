@@ -1,7 +1,7 @@
 import { type Strand } from '../features';
 import { type Range, type Topology } from '../range';
 import { reverseComplement } from '../sequence';
-import { type TranslationTable, isStartCodon, isStopCodon } from './codons';
+import { DEFAULT_TABLE, type TranslationTable, isStartCodon, isStopCodon } from './codons';
 
 export interface Orf {
   /** Bases covered, unrolled (may wrap on circular sequences), including the stop codon. */
@@ -16,8 +16,13 @@ export interface Orf {
 export interface OrfOptions {
   /** Minimum ORF length in codons, excluding the stop. Default 75. */
   readonly minCodons?: number;
+  /**
+   * Genetic code to read with. It decides where an ORF ends as well as where
+   * it may begin: TGA is a stop under the standard code and tryptophan under
+   * the vertebrate mitochondrial one.
+   */
   readonly table?: TranslationTable;
-  /** Only ATG starts, even under table 11. Default true. */
+  /** Only ATG starts, even under a code with more of them. Default true. */
   readonly atgOnly?: boolean;
 }
 
@@ -42,7 +47,7 @@ function scanStrand(
         if (isStart(codon)) orfStart = i;
         continue;
       }
-      if (isStopCodon(codon)) {
+      if (isStopCodon(codon, opts.table)) {
         const end = i + 3;
         const codons = (end - orfStart) / 3 - 1;
         if (orfStart < seqLength && end - orfStart <= seqLength && codons >= opts.minCodons) {
@@ -63,7 +68,7 @@ function scanStrand(
 export function findOrfs(sequence: string, topology: Topology, options: OrfOptions = {}): Orf[] {
   const opts: Required<OrfOptions> = {
     minCodons: options.minCodons ?? 75,
-    table: options.table ?? 1,
+    table: options.table ?? DEFAULT_TABLE,
     atgOnly: options.atgOnly ?? true,
   };
   const L = sequence.length;
