@@ -110,16 +110,22 @@ happen in one tube, and the overhangs, not you, decide the order.
 
 The panel works that out:
 
-1. Open the destination vector and every part, each in its own tab.
+1. Put the destination vector and every part in the tube. Anything open is
+   one, each in its own tab, and so is anything on the **Ligation** shelf —
+   a piece already cut out of a plasmid goes in beside a file, and the list
+   says which is which.
 2. Choose the **enzyme** the parts were designed for. BsaI is the default;
    BsmBI, BbsI and SapI are there too, along with the other Type IIS
    enzymes in the table that leave an overhang.
-3. Untick any open document that is not in the tube. Everything open is in
-   it to begin with.
+3. Untick anything that is not in the tube. Everything is in it to begin
+   with.
 4. The panel digests each part, throws out the pieces that still carry a
    recognition site (those are cut again in a real reaction) and any piece
    with a blunt end, then follows the overhangs from one piece to the next.
-   It reports the order it found and the size of the circle.
+   It reports the order it found and the size of the circle. A part with no
+   site in it — a fragment off the shelf, usually — survives the digest
+   whole and joins on the sticky ends it already has, which is what happens
+   in the tube.
 5. Name the product if you like, then **Assemble**. It opens as a new
    circular document with the parts' features.
 
@@ -185,8 +191,7 @@ neither the length of the chew-back nor the polymerase's fill-in, so a very
 long part with a very short overlap may fail on the bench while looking right
 here.
 
-Golden Gate takes whole open documents rather than fragments from the
-ligation shelf, will not mix two enzymes in one reaction, and does not check
+Golden Gate will not mix two enzymes in one reaction, and does not check
 that a set of overhangs would misligate in the tube. Nothing fills in or
 chews back an overhang yet (no Klenow or T4 polymerase blunting), the
 circular map does not draw the ends, and a FASTA export does not carry

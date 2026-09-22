@@ -14,6 +14,8 @@ import {
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { PartsTube } from './PartsTube';
+import { useTube } from './tube';
 
 const DEFAULT_ENZYME = defaultGoldenGateEnzyme();
 
@@ -61,24 +63,25 @@ function DroppedRow({
  * would do.
  */
 export function GoldenGatePanel() {
-  const { documents } = useEditorState();
+  const { documents, assembly: shelf } = useEditorState();
   const [enzymeName, setEnzymeName] = useState(DEFAULT_ENZYME?.name ?? '');
   const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
   const [name, setName] = useState('');
 
   const enzyme = getEnzyme(enzymeName);
-  const docs = documents.filter((d) => !excluded.has(d.documentId)).map((d) => d.history.present);
+  // The shelf is in the tube as well as the open tabs. A piece already cut
+  // out of a plasmid is a part like any other: the reaction digests it with
+  // the Type IIS enzyme like everything else, and if it carries no site it
+  // survives whole, joining on the sticky ends it already has.
+  const { ingredients, docs } = useTube(documents, shelf, excluded);
 
   // Digesting every part and working out the order is done here rather than
   // in a worker: it is one enzyme over a few plasmids, and the panel has to
   // answer while the user is ticking boxes. See docs/perf-notes.md.
-  const result = useMemo(() => {
-    if (enzyme === undefined) return null;
-    const parts = documents
-      .filter((d) => !excluded.has(d.documentId))
-      .map((d) => d.history.present);
-    return parts.length === 0 ? null : goldenGate(parts, { enzyme });
-  }, [documents, excluded, enzyme]);
+  const result = useMemo(
+    () => (enzyme === undefined || docs.length === 0 ? null : goldenGate(docs, { enzyme })),
+    [docs, enzyme],
+  );
 
   const toggle = (id: string): void => {
     const next = new Set(excluded);
@@ -100,11 +103,11 @@ export function GoldenGatePanel() {
     setName('');
   };
 
-  if (documents.length === 0) {
+  if (ingredients.length === 0) {
     return (
       <p className="panel__note">
-        Open the destination vector and the parts to put in it, then choose the enzyme they were
-        designed for.
+        Open the destination vector and the parts to put in it, or collect them from a digest above,
+        then choose the enzyme they were designed for.
       </p>
     );
   }
@@ -132,22 +135,12 @@ export function GoldenGatePanel() {
         </label>
       </div>
 
-      <ul className="gg__parts" aria-label="Documents in the Golden Gate">
-        {documents.map((d) => (
-          <li key={d.documentId}>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={!excluded.has(d.documentId)}
-                onChange={() => {
-                  toggle(d.documentId);
-                }}
-              />
-              {d.history.present.name}
-            </label>
-          </li>
-        ))}
-      </ul>
+      <PartsTube
+        ingredients={ingredients}
+        excluded={excluded}
+        onToggle={toggle}
+        label="Documents in the Golden Gate"
+      />
 
       {enzyme === undefined ? (
         <p className="panel__note">Choose a Type IIS enzyme.</p>

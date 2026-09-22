@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 897 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 898 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -253,8 +253,8 @@ pick from here when the current work is done.
    the window by an overhang at each end rather than just
    reverse-complementing it. Not yet: partial digests,
    dephosphorylation, resolving IUPAC codes in overhangs, mixing two
-   enzymes in one Golden Gate, and taking Golden Gate parts from the
-   assembly shelf rather than from open documents (Gibson takes them).
+   enzymes in one Golden Gate, and checking whether a set of Golden Gate
+   overhangs would misligate.
    - **Gibson, 2026-09-22** (`src/core/cloning/gibson.ts`, a third section in
      the Cloning tab). The reaction has no enzyme, no site and no scar: each
      piece is made to end in the bases the next one starts with, and an
@@ -287,20 +287,24 @@ pick from here when the current work is done.
        Golden Gate drops a piece that keeps its site. 1.0 ms for six 2 kb
        parts (`docs/perf-notes.md`), so it sits in the same main-thread memo
        the Golden Gate does.
-     - **The tube takes the shelf too, 2026-09-22.** A real Gibson mixes a
-       backbone cut out of a plasmid with an insert amplified from somewhere
-       else, so the open documents and the ligation shelf are one list with a
-       tick each rather than a choice between them. A shelf fragment goes in
-       as `documentFromFragment` makes it — the same linear document, ends
-       and features and all, that **Open** gives — so `gibson` itself did not
-       change. Two fragments of one digest with the same enzyme at both ends
-       share a default name, and a name is how an ambiguity is reported, so a
-       repeat is numbered.
+     - **The tube takes the shelf too, 2026-09-22**, for Golden Gate as well
+       as Gibson (`tube.ts`, `PartsTube.tsx`, shared by both panels). A real
+       assembly mixes them — a backbone cut out of a plasmid with an insert
+       amplified from somewhere else — so the open documents and the ligation
+       shelf are one list with a tick each rather than a choice between them.
+       A shelf fragment goes in as `documentFromFragment` makes it, the same
+       linear document with its ends and features that **Open** gives, so
+       neither `gibson` nor `goldenGate` changed at all. Two fragments of one
+       digest with the same enzyme at both ends share a default name, and a
+       name is how both panels report an ambiguity, so a repeat is numbered.
+       A shelf fragment carrying no Type IIS site survives the Golden Gate's
+       digest whole and joins on the sticky ends it already has, which is
+       what the reaction does in the tube and needed no special case.
      - Not yet: homology *inside* a part that would anneal as readily as the
-       junction it was designed for is not looked for; Golden Gate still takes
-       whole open documents only; and neither the chew-back's length nor the
-       fill-in is modelled, so a very long part with a very short overlap can
-       fail on the bench while looking right here.
+       junction it was designed for is not looked for, and neither the
+       chew-back's length nor the fill-in is modelled, so a very long part
+       with a very short overlap can fail on the bench while looking right
+       here.
    - **One reaction at a time, and the fragments on the views, 2026-09-22.**
      Three reactions stacked down a 300 px column made the tab 3,482 px tall
      against a 931 px viewport, measured rather than guessed. They are

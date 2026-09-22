@@ -790,6 +790,44 @@ describe('golden gate', () => {
     expect(product?.sequence.toString()).not.toContain('GAGACC');
   });
 
+  it('takes a part off the ligation shelf as well as an open document', async () => {
+    render(<App />);
+    act(() => {
+      editorStore.clearAssembly();
+      editorStore.openDocument(vector, 'pDest.gb');
+      editorStore.openDocument(insert('insert1', 'GCTT', 'AAAAAAAAAA', 'CGCT'), 'insert1.gb');
+      // The third part arrives as a fragment somebody collected rather than
+      // as a file. It carries no BsaI site, so the reaction leaves it whole
+      // and it joins on the sticky ends it already has.
+      editorStore.addToAssembly({
+        sequence: 'CGCTTTTTTTTTTT',
+        features: [],
+        range: { start: 0, end: 14 },
+        left: { kind: "5'", overhang: 'CGCT', enzyme: 'BsaI' },
+        right: { kind: "5'", overhang: 'AATG', enzyme: 'BsaI' },
+        source: 'insert2',
+      });
+    });
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    fireEvent.click(pickReaction('Golden Gate'));
+
+    const tube = screen.getByRole('list', { name: 'Documents in the Golden Gate' });
+    expect(within(tube).getByRole('checkbox', { name: 'insert2 BsaI fragment' })).toBeChecked();
+    expect(screen.getByText(/3 parts join/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble by Golden Gate' }));
+    expect(editorStore.document?.isCircular).toBe(true);
+    expect(editorStore.document?.sequence.toString()).toBe(
+      'AATGCCCCCCCCCCCCGCTTAAAAAAAAAACGCTTTTTTTTTTT',
+    );
+    act(() => {
+      editorStore.clearAssembly();
+    });
+  });
+
   it('says why the parts do not go together when one is left out', async () => {
     await openParts();
     // The Gibson section below lists the same documents, so the tick has to
