@@ -9,6 +9,7 @@ import {
   type SeqDocument,
   activeEnzymes,
   bandProblems,
+  bestPairs,
   compareDiagnostic,
   describeBands,
   digestFragments,
@@ -64,6 +65,20 @@ const MAX_SHOW_LISTED = 200;
  */
 const MAX_SINGLE_LANES = 3;
 
+/**
+ * The enzymes a double digest is looked for among: those cutting at most
+ * this many times. A pair of frequent cutters is a lane of a dozen bands,
+ * which `compareDiagnostic` would rank last anyway.
+ */
+const MAX_PAIR_CUTS = 3;
+/**
+ * How many of them are paired, fewest cuts first. Every pair is a digest,
+ * so this is quadratic: 120 is 7,140 pairs and about 13 ms, and a REBASE
+ * table can list several hundred (docs/perf-notes.md).
+ */
+const MAX_PAIR_CANDIDATES = 120;
+const PAIRS_SHOWN = 5;
+
 /** "2,181 and 2,180", the pieces hidden under one band. */
 function describeBandFragments(band: GelBand): string {
   const shown = band.fragments.slice(0, 3).map((n) => n.toLocaleString());
@@ -115,6 +130,98 @@ function BandLine({ profile }: { readonly profile: DigestProfile }) {
       {describeBands(profile)}
       {clear ? '' : ' ⚠'}
     </span>
+  );
+}
+
+interface DoubleDigestsProps {
+  /** The rows the list is showing, in its order, so its filters narrow the pairs too. */
+  readonly listed: readonly { readonly enzyme: Enzyme; readonly sites: readonly CutSite[] }[];
+  readonly doc: SeqDocument;
+  readonly shownEnzymes: ReadonlySet<string>;
+}
+
+/**
+ * The best double digests among the enzymes listed, under a list ordered by
+ * band separation: the same question asked of pairs, for when no enzyme on
+ * its own gives a lane worth running. "Tick both" ticks the pair alone, and
+ * the gel below then draws their digest beside each single one.
+ */
+function DoubleDigests({ listed, doc, shownEnzymes }: DoubleDigestsProps) {
+  // Keyed on the names rather than on `listed`, a new array every render.
+  const key = listed
+    .filter((g) => g.sites.length > 0 && g.sites.length <= MAX_PAIR_CUTS)
+    .map((g) => g.enzyme.name)
+    .join(' ');
+  const poolSize = key === '' ? 0 : key.split(' ').length;
+  const pairs = useMemo(() => {
+    const names = new Set(key.split(' '));
+    const pool = listed
+      .filter((g) => names.has(g.enzyme.name))
+      .sort((a, b) => a.sites.length - b.sites.length)
+      .slice(0, MAX_PAIR_CANDIDATES);
+    return bestPairs(
+      pool.map((g) => ({ name: g.enzyme.name, cuts: g.sites.map((site) => site.cut) })),
+      doc.length,
+      doc.topology,
+      PAIRS_SHOWN,
+    );
+    // `listed` is read only through the names in `key`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, doc.length, doc.topology]);
+  if (poolSize < 2) return null;
+
+  return (
+    <div className="panel__section" data-testid="double-digests">
+      <h3 className="panel__heading">Double digests</h3>
+      {pairs.length === 0 ? (
+        <p className="panel__note">
+          No pair of the enzymes listed gives a lane that can be read at a glance.
+        </p>
+      ) : (
+        <ul className="enzyme-list">
+          {pairs.map((pair) => {
+            // A pair reads the same whichever way the list happened to be sorted.
+            const [first, second] =
+              pair.first.localeCompare(pair.second) <= 0
+                ? [pair.first, pair.second]
+                : [pair.second, pair.first];
+            const { profile } = pair;
+            const both =
+              shownEnzymes.size === 2 && shownEnzymes.has(first) && shownEnzymes.has(second);
+            return (
+              <li key={`${first}+${second}`} className="enzyme-row">
+                <span className="enzyme-row__pair">
+                  {first} + {second}
+                </span>
+                <button
+                  type="button"
+                  className="button button--quiet button--small"
+                  disabled={both}
+                  title={
+                    both
+                      ? 'These two are what is ticked; the gel below is their digest'
+                      : `Tick ${first} and ${second} alone, to see their digest beside each on its own`
+                  }
+                  onClick={() => {
+                    editorStore.setShownEnzymes([pair.first, pair.second]);
+                  }}
+                >
+                  {both ? 'Ticked' : 'Tick both'}
+                </button>
+                <BandLine profile={profile} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="panel__note panel__note--quiet">
+        Pairs of the listed enzymes that cut {MAX_PAIR_CUTS} times or fewer, best separated first
+        {poolSize > MAX_PAIR_CANDIDATES
+          ? ` — the ${MAX_PAIR_CANDIDATES} that cut least of ${poolSize.toLocaleString()}; narrow the list to pair the others`
+          : ''}
+        .
+      </p>
+    </div>
   );
 }
 
@@ -485,6 +592,9 @@ export function EnzymePanel({ doc }: Props) {
             {supplier === '' ? '' : ' and are sold by that supplier'}. {nonCutters.toLocaleString()}{' '}
             do not cut.
           </p>
+          {enzymeSort === 'bands' && (
+            <DoubleDigests listed={rows} doc={doc} shownEnzymes={shownEnzymes} />
+          )}
           <p className="panel__note panel__note--quiet">
             {enzymeSetInfo.bundled
               ? 'Scanning with the bundled table of common cloning enzymes.'

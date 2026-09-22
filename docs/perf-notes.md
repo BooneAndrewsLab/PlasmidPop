@@ -202,6 +202,25 @@ where it is: the scan it follows costs 82 ms in the worker, and moving 36 ms
 of arithmetic there to save a single frame after it would mean sending a
 profile per enzyme back across the wire.
 
+### Ranking double digests
+
+`bestPairs` (`src/core/analysis/gel.ts`) judges every pair of the listed
+enzymes that cut at most three times by the digest with both, so it is
+quadratic. The first cut built a `Set` and a full `digestFragments` per pair
+and took 111 ms for 200 enzymes; merging the two sorted cut lists, going
+straight to lengths and rejecting an unreadable lane before building its
+profile (most pairs of a big table are one) brought that to 36 ms warm.
+
+| Date       | Enzymes paired | Pairs  | Time    |
+| ---------- | -------------- | ------ | ------- |
+| 2026-09-22 | 120            | 7,140  | 14.4 ms |
+| 2026-09-22 | 200            | 19,900 | 36.0 ms |
+
+Node 24 (V8), `gel.test.ts` perf. The Enzymes tab pairs at most 120, fewest
+cuts first, and recomputes only when the names listed change, not on each
+render. The bundled table on pBR322 lists 49 such enzymes (1,176 pairs), so the
+usual cost is a few ms.
+
 ### Rendering the list of rows
 
 `EnzymePanel` used to put at most 200 rows in the DOM and cut the rest off,

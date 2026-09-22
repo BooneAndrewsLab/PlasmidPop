@@ -1450,9 +1450,27 @@ pick from here when the current work is done.
         smaller. Clicking a band in a single lane selects that enzyme's own
         piece. Past three the lane is a survey of cut sites rather than a
         digest anyone runs, and it stands alone as before.
-      - Not yet: the gel is one percentage; the ladder cannot be chosen; and
-        the order cannot be reversed or applied to the fragment sizes of a
-        *pair* of enzymes.
+      - **And pairs are ranked, 2026-09-22** (`bestPairs`): with the list
+        ordered by band separation a **Double digests** section offers the
+        five best pairs of the listed enzymes cutting ≤ 3 times, judged by
+        `compareDiagnostic` on the digest with both, so every filter narrows
+        the pairs too; **Tick both** ticks that pair alone and the gel above
+        draws it beside each single lane. A pair whose cuts are all one
+        enzyme's own is left out (it is that enzyme's digest). Quadratic, so
+        at most 120 are paired, fewest cuts first — 14 ms
+        (`docs/perf-notes.md`, which has how 111 ms became that).
+      - **The ranking was capped because of it.** The first list of pBR322
+        pairs was led by 4,259 + 102 bp — 41 times apart and a band nobody
+        would see — because `compareDiagnostic` rewarded the raw ratio. Now
+        separation counts up to `plenty` (2×, as distinct as bands get),
+        then the smallest band up to `bright` (500 bp, since stain goes by
+        mass), then the raw ratio. That moved the single-enzyme order too:
+        on pBR322 *Twice* now reads HincII (3,254 + 1,107), BstAPI, DrdI
+        (3,948 + 413), where DrdI led before. Both are `GelOptions`.
+      - Not yet: the gel is one percentage; the ladder cannot be chosen; the
+        order cannot be reversed; and the pairs are among the listed enzymes
+        only, so "a partner for EcoRI" means filtering down to it and its
+        candidates by hand.
     - The control took a row of its own in a 330 px sidebar (the buttons wrap
       below it); on a sidebar widened past ~430 px they share a line again,
       which is item 28 paying for itself.

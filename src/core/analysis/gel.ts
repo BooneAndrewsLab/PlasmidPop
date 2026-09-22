@@ -35,6 +35,19 @@ export interface GelOptions {
    * picture ends.
    */
   readonly frontLength?: number;
+  /**
+   * Bands this far apart, as a ratio, are told apart at a glance, and
+   * further apart is no easier: 4,000 + 2,000 reads as well as 4,000 + 100.
+   * Ranking by the raw ratio rewarded the second, which is a lane with a
+   * faint sliver at the foot of it.
+   */
+  readonly plenty?: number;
+  /**
+   * The shortest band that stains brightly enough not to be looked for.
+   * A stain binds by mass, so a 150 bp band beside a 4 kb one is a
+   * thirtieth of its brightness (see `bandIntensities`).
+   */
+  readonly bright?: number;
 }
 
 export const DEFAULT_GEL: Required<GelOptions> = {
@@ -42,6 +55,8 @@ export const DEFAULT_GEL: Required<GelOptions> = {
   minVisible: 100,
   maxResolved: 10_000,
   frontLength: 50,
+  plenty: 2,
+  bright: 500,
 };
 
 /** One band of the gel: the fragments that would run together at one place. */
@@ -172,27 +187,168 @@ export function enzymeProfile(
 
 /**
  * Orders two digests by how well they answer "which construct is this".
- * Best first, for the Enzymes tab's "Band separation" sort:
+ * Best first, for the Enzymes tab's "Band separation" sort and its double
+ * digests:
  *
  * 1. A gel that can be read by itself beats one that cannot.
- * 2. Bands further apart beat bands that nearly touch.
- * 3. Fewer bands beat more: a lane of eight is a ladder, not an answer.
- * 4. Fewer pieces hidden under a shared band beat more, which only
+ * 2. Bands further apart beat bands that nearly touch — up to `plenty`,
+ *    past which two bands are as distinct as they will ever be.
+ * 3. A brighter smallest band beats a fainter one, up to `bright`: among
+ *    lanes that separate plenty, the one without a sliver at the foot.
+ * 4. Then the separation itself, so that among lanes equal on both counts
+ *    the wider still comes first.
+ * 5. Fewer bands beat more: a lane of eight is a ladder, not an answer.
+ * 6. Fewer pieces hidden under a shared band beat more, which only
  *    separates the digests rule 1 has already set aside: a lane where two
  *    fragments run as one is more misleading than a lane with one band.
+ *
+ * Rules 2 and 3 are capped because the first version was not, and ranked a
+ * double digest of pBR322 into 4,259 + 102 bp first: 41 times apart, and a
+ * band nobody would see.
  *
  * A digest with one band — an enzyme that linearises a plasmid — has no
  * pair to separate, so it is never `readable` and sorts below anything
  * that gives two. That is right for this question and says nothing about
  * the enzyme: linearising is what the "Cuts: once" filter is for.
  */
-export function compareDiagnostic(a: DigestProfile, b: DigestProfile): number {
+export function compareDiagnostic(
+  a: DigestProfile,
+  b: DigestProfile,
+  options: GelOptions = {},
+): number {
+  const { plenty, bright } = { ...DEFAULT_GEL, ...options };
   if (a.readable !== b.readable) return a.readable ? -1 : 1;
   const sa = Number.isFinite(a.separation) ? a.separation : 0;
   const sb = Number.isFinite(b.separation) ? b.separation : 0;
+  const enough = Math.min(sb, plenty) - Math.min(sa, plenty);
+  if (enough !== 0) return enough;
+  const faintest = (p: DigestProfile): number =>
+    Math.min(p.fragments[p.fragments.length - 1] ?? 0, bright);
+  const brighter = faintest(b) - faintest(a);
+  if (brighter !== 0) return brighter;
   if (sa !== sb) return sb - sa;
   if (a.bands.length !== b.bands.length) return a.bands.length - b.bands.length;
   return a.comigrating - b.comigrating;
+}
+
+/**
+ * The lengths `digestFragments` would give for sorted, distinct cuts, without
+ * building a fragment for each: this is the inner loop of `bestPairs`.
+ */
+function fragmentLengths(cuts: readonly number[], seqLength: number, topology: Topology): number[] {
+  const inner = topology === 'linear' ? cuts.filter((c) => c > 0 && c < seqLength) : cuts;
+  const first = inner[0];
+  if (first === undefined) return seqLength > 0 ? [seqLength] : [];
+  const out: number[] = [];
+  for (let k = 1; k < inner.length; k++) out.push((inner[k] ?? 0) - (inner[k - 1] ?? 0));
+  const last = inner[inner.length - 1] ?? first;
+  if (topology === 'linear') out.push(first, seqLength - last);
+  else out.push(seqLength - last + first);
+  return out;
+}
+
+/**
+ * Whether lengths sorted longest first could make a readable lane: nothing
+ * under `minVisible`, at most one over `maxResolved`, and no neighbours close
+ * enough to run together. The same three tests `gelProfile` makes, without
+ * the bands it builds to make them.
+ */
+function mayBeReadable(lengths: readonly number[], gel: Required<GelOptions>): boolean {
+  if (lengths.length < 2) return false;
+  let large = 0;
+  for (let k = 0; k < lengths.length; k++) {
+    const n = lengths[k] ?? 0;
+    if (n < gel.minVisible) return false;
+    if (n > gel.maxResolved && ++large > 1) return false;
+    const above = lengths[k - 1];
+    if (above !== undefined && above / n < gel.resolution) return false;
+  }
+  return true;
+}
+
+/** An enzyme a double digest could be made with, and where it cuts. */
+export interface PairCandidate {
+  readonly name: string;
+  readonly cuts: readonly number[];
+}
+
+/** Two enzymes and the gel they would give together. */
+export interface RankedPair {
+  readonly first: string;
+  readonly second: string;
+  readonly profile: DigestProfile;
+}
+
+/**
+ * The enzyme pairs whose double digest reads best on a gel, best first.
+ *
+ * The single-enzyme sort answers "which enzyme gives bands I can tell
+ * apart"; a double digest is the answer when none does, and the one a
+ * cloner reaches for anyway, since two enzymes that each cut once cut out
+ * the piece between them. Every pair is judged by `compareDiagnostic` on the
+ * digest together, the same rule the list is sorted by.
+ *
+ * Two kinds of pair are left out because running them says nothing a
+ * single digest does not: one whose cuts all fall where the other's do (an
+ * isoschizomer, or an enzyme whose site sits inside the other's), and one
+ * whose gel cannot be read. Ties keep the order the candidates came in, so
+ * the list is stable as it is recomputed.
+ */
+export function bestPairs(
+  candidates: readonly PairCandidate[],
+  seqLength: number,
+  topology: Topology,
+  limit = 5,
+  options: GelOptions = {},
+): RankedPair[] {
+  // Each enzyme's cuts once, sorted and inside the molecule, so a pair is a
+  // merge rather than a set built and a digest cut for every one of the
+  // tens of thousands of pairs a big table has (docs/perf-notes.md).
+  // On a circle a cut at the end is a cut at the origin.
+  const sorted = candidates.map((c) =>
+    [
+      ...new Set(
+        c.cuts
+          .filter((x) => x >= 0 && x <= seqLength)
+          .map((x) => (topology === 'circular' && seqLength > 0 ? x % seqLength : x)),
+      ),
+    ].sort((x, y) => x - y),
+  );
+  const gel = { ...DEFAULT_GEL, ...options };
+  const pairs: RankedPair[] = [];
+  const merged: number[] = [];
+  for (let i = 0; i < candidates.length; i++) {
+    const cutsA = sorted[i] ?? [];
+    for (let j = i + 1; j < candidates.length; j++) {
+      const cutsB = sorted[j] ?? [];
+      merged.length = 0;
+      let p = 0;
+      let q = 0;
+      while (p < cutsA.length || q < cutsB.length) {
+        const x = cutsA[p] ?? Infinity;
+        const y = cutsB[q] ?? Infinity;
+        const next = Math.min(x, y);
+        if (x === next) p++;
+        if (y === next) q++;
+        merged.push(next);
+      }
+      // Every cut of one is a cut of the other: this is a single digest.
+      if (merged.length === cutsA.length || merged.length === cutsB.length) continue;
+      const lengths = fragmentLengths(merged, seqLength, topology).sort((x, y) => y - x);
+      // Most pairs of a big table fail, so the cheap half of `readable` is
+      // asked first and a profile is built only for a lane worth ranking.
+      if (!mayBeReadable(lengths, gel)) continue;
+      const profile = gelProfile(lengths, options);
+      if (!profile.readable) continue;
+      const a = candidates[i];
+      const b = candidates[j];
+      if (a !== undefined && b !== undefined)
+        pairs.push({ first: a.name, second: b.name, profile });
+    }
+  }
+  // Stable, so candidates earlier in the list win a tie.
+  pairs.sort((x, y) => compareDiagnostic(x.profile, y.profile, options));
+  return pairs.slice(0, limit);
 }
 
 /** "3,224 + 1,137 bp", the band sizes as a gel would show them. */

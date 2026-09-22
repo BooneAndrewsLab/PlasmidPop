@@ -256,6 +256,44 @@ describe('EnzymePanel', () => {
     expect(listed()).toEqual([b, c, a]);
   });
 
+  it('offers the best double digests when ordered by band separation', () => {
+    const names = activeEnzymes()
+      .slice(0, 3)
+      .map((e) => e.name);
+    const [a, b, c] = names;
+    if (a === undefined || b === undefined || c === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    // On the linear 4 kb: a+b cut it into 1,000 + 1,000 + 2,000 (two run
+    // together, so not offered), b+c into 2,000 + 1,500 + 500, a+c into
+    // 1,000 + 2,500 + 500.
+    setup([at(a, 1000), at(b, 2000), at(c, 3500)]);
+    expect(screen.queryByTestId('double-digests')).toBeNull();
+    act(() => {
+      editorStore.setEnzymeSort('bands');
+    });
+    const section = screen.getByTestId('double-digests');
+    const pairs = [...section.querySelectorAll('.enzyme-row__pair')].map((n) => n.textContent);
+    // Each pair is named alphabetically, whatever order the list is in.
+    const named = (x: string, y: string) => [x, y].sort((p, q) => p.localeCompare(q)).join(' + ');
+    expect(pairs).toEqual([named(a, c), named(b, c)]);
+
+    const [best] = screen.getAllByRole('button', { name: 'Tick both' });
+    if (best === undefined) throw new Error('no pair offered');
+    fireEvent.click(best);
+    expect([...editorStore.getState().shownEnzymes].sort()).toEqual([a, c].sort());
+    // The ticked pair says so, and the gel below draws it beside each alone.
+    expect(screen.getByRole('button', { name: 'Ticked' })).toBeDisabled();
+    expect(
+      [...document.querySelectorAll('.gel__lane')].map((l) => l.getAttribute('data-lane')),
+    ).toEqual([a, c, 'Both']);
+  });
+
   it('offers the single cutters when there were too many to tick', () => {
     setup(singleCutters(MAX_DEFAULT_ENZYMES + 1));
     expect(editorStore.getState().shownEnzymes.size).toBe(0);

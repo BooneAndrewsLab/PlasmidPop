@@ -1040,6 +1040,16 @@ button {
   color: var(--ink-3);
 }
 
+/* A pair for a double digest has no tick of its own, so its name is not indented by one. */
+.enzyme-row__pair {
+  font-weight: 550;
+  align-self: center;
+}
+
+.enzyme-row__pair ~ .enzyme-row__bands {
+  padding-left: 0;
+}
+
 /* Bands that would run together, off the gel, or not at all. */
 .enzyme-row__bands--muddy {
   color: var(--warn);

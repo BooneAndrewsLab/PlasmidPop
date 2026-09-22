@@ -1,5 +1,6 @@
 import {
   bandIntensities,
+  bestPairs,
   bandLabel,
   bandProblems,
   chooseLadder,
@@ -110,6 +111,40 @@ describe('compareDiagnostic', () => {
     ).toEqual([[4000, 361], [2500, 1861], [4361], [2181, 2180]]);
   });
 
+  it('counts separation only up to plenty, then prefers the brighter lane', () => {
+    // Both are far enough apart to read at a glance; the second has a band
+    // a thirtieth as bright as its neighbour, which is the one people miss.
+    expect(
+      sorted([
+        [4259, 102],
+        [3254, 1107],
+      ]),
+    ).toEqual([
+      [3254, 1107],
+      [4259, 102],
+    ]);
+    // Past bright enough, the wider separation still wins the tie.
+    expect(
+      sorted([
+        [3115, 1246],
+        [3254, 1107],
+      ]),
+    ).toEqual([
+      [3254, 1107],
+      [3115, 1246],
+    ]);
+    // And separation under plenty still outranks brightness.
+    expect(
+      sorted([
+        [2768, 1593],
+        [3948, 413],
+      ]),
+    ).toEqual([
+      [3948, 413],
+      [2768, 1593],
+    ]);
+  });
+
   it('prefers fewer bands when the separation is the same', () => {
     const three = gelProfile([4000, 2000, 1000]);
     const two = gelProfile([4000, 2000]);
@@ -122,6 +157,83 @@ describe('describeBands', () => {
     expect(describeBands(gelProfile([3224, 1137]))).toBe('3,224 + 1,137 bp');
     expect(describeBands(gelProfile([2181, 2180]))).toBe('2,181 ×2 bp');
     expect(describeBands(gelProfile([900, 700, 500, 300, 100]), 2)).toBe('900 + 700 + 3 more bp');
+  });
+});
+
+describe('bestPairs', () => {
+  it('puts the double digest with the bands furthest apart first', () => {
+    // A 4,000 bp plasmid. A and B together cut out 500 bp, B and C 1,400;
+    // A and C cut it into 1,900 and 2,100, which run together.
+    const pairs = bestPairs(
+      [
+        { name: 'A', cuts: [100] },
+        { name: 'B', cuts: [600] },
+        { name: 'C', cuts: [2000] },
+      ],
+      4000,
+      'circular',
+    );
+    expect(pairs.map((p) => `${p.first}+${p.second}`)).toEqual(['A+B', 'B+C']);
+    expect(pairs[0]?.profile.fragments).toEqual([3500, 500]);
+  });
+
+  it('leaves out a pair that is no different from one enzyme alone', () => {
+    // B cuts everywhere A does, so A+B is B's own digest.
+    const pairs = bestPairs(
+      [
+        { name: 'A', cuts: [100] },
+        { name: 'B', cuts: [100, 1500] },
+      ],
+      4000,
+      'circular',
+    );
+    expect(pairs).toEqual([]);
+  });
+
+  it('stops at the limit, keeping the order of the candidates on a tie', () => {
+    // Four enzymes cutting at the quarter points: every adjacent pair gives
+    // 1,000 + 3,000, every opposite one 2,000 ×2 and so is left out.
+    const pairs = bestPairs(
+      ['A', 'B', 'C', 'D'].map((name, i) => ({ name, cuts: [i * 1000] })),
+      4000,
+      'circular',
+      3,
+    );
+    expect(pairs.map((p) => `${p.first}+${p.second}`)).toEqual(['A+B', 'A+D', 'B+C']);
+  });
+
+  it('reads each pair exactly as a digest with both would', () => {
+    // The pairs are cut without building fragments; check that against the
+    // digest itself, on both topologies and with cuts at the ends.
+    const candidates = [
+      { name: 'A', cuts: [0, 700] },
+      { name: 'B', cuts: [3000, 4000] },
+      { name: 'C', cuts: [1500, 700] },
+      { name: 'D', cuts: [2200] },
+    ];
+    for (const topology of ['circular', 'linear'] as const) {
+      for (const pair of bestPairs(candidates, 4000, topology, 10)) {
+        const cuts = [pair.first, pair.second].flatMap(
+          (n) => candidates.find((c) => c.name === n)?.cuts ?? [],
+        );
+        expect(pair.profile).toEqual(digestProfile(cuts, 4000, topology));
+      }
+    }
+  });
+
+  it('ranks the pairs of 120 enzymes, the most the Enzymes tab pairs, inside a frame', () => {
+    const candidates = Array.from({ length: 120 }, (_, i) => ({
+      name: `E${i}`,
+      cuts: Array.from({ length: 1 + (i % 3) }, (_, k) => (i * 97 + k * 1109) % 4361),
+    }));
+    for (let run = 0; run < 3; run++) bestPairs(candidates, 4361, 'circular');
+    const t0 = performance.now();
+    for (let run = 0; run < 5; run++) bestPairs(candidates, 4361, 'circular');
+    const ms = (performance.now() - t0) / 5;
+    expect(bestPairs(candidates, 4361, 'circular')).toHaveLength(5);
+    expect(ms).toBeLessThan(200);
+    // eslint-disable-next-line no-console
+    console.info(`[perf] best pairs of 120 enzymes (7,140 pairs): ${ms.toFixed(1)} ms`);
   });
 });
 

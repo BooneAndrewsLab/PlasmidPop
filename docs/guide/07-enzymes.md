@@ -58,9 +58,11 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   enzyme that cuts twice gives two bands to check a construct against, where
   a unique cutter only linearises it. **Any number** is the default.
 - **Order** sorts the list. _Name_ is the catalogue. _Band separation_ puts
-  the enzymes whose fragments are furthest apart on a gel first, and the
+  the enzymes whose bands are easiest to tell apart on a gel first, and the
   ones whose bands would run together last, which is how a diagnostic digest
-  is actually chosen.
+  is actually chosen. Bands twice as long as each other are as distinct as
+  bands ever get, so past that the order prefers a lane whose smallest band
+  is bright — 500 bp or more — over one with a faint sliver at the foot.
 - **Sold by** narrows the list to one supplier's catalogue. It appears only
   after you import a REBASE table, which is where the supplier information
   comes from.
@@ -78,9 +80,21 @@ SVG**.
 ## Choosing a diagnostic digest
 
 Set **Cuts** to _Twice_ and **Order** to _Band separation_. The enzyme at the
-top gives the two bands furthest apart, which is the one to run. On pBR322
-that is DrdI, at 3,948 + 413 bp; BtsI also cuts twice, but its two cuts are
-20 bp apart, so it is at the bottom with a ⚠ and one band you could see.
+top gives the two bands easiest to read, which is the one to run. On pBR322
+that is HincII, at 3,254 + 1,107 bp, with BstAPI and DrdI (3,948 + 413) just
+behind it; BtsI also cuts twice, but its two cuts are 20 bp apart, so it is
+at the bottom with a ⚠ and one band you could see.
+
+When no single enzyme will do, **Double digests** under the list offers the
+five best pairs of the enzymes listed, judged by the same rule on the digest
+with both — on pBR322, EagI + MscI at 3,854 + 507 bp. It appears while the
+list is ordered by band separation, pairs only enzymes that cut three times
+or fewer, and follows the other filters, so _Sold by_ narrows the pairs to
+what you can buy from one place. A pair whose second enzyme cuts only where
+the first already does is left out, since it is the same digest as one
+enzyme alone. **Tick both** ticks that pair and nothing else, and the gel
+then shows it beside each enzyme alone. With a big imported table only the
+120 enzymes that cut least are paired; narrow the list to pair the others.
 
 Tick a candidate and the **Fragments from ticked enzymes** section below the
 list says what the whole digest would look like — several enzymes ticked
