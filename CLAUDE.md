@@ -170,7 +170,7 @@ before diffing it instead of calling it different throughout (item 33's last
 open point), and a working copy carries
 `PlasmidPop-derived-from: cdseguid=… pBR322.gb` into every file and share link
 it leaves as, which is what items 22 and 11 were both waiting on. Known and
-unfixed: item 34, reverse complement of a molecule with sticky ends. Tests: 819 passing. Perf measurements live in
+unfixed: item 34, reverse complement of a molecule with sticky ends. Tests: 825 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -643,7 +643,12 @@ pick from here when the current work is done.
       ends is not the blunt fragment of the same bases. They are checked
       against the reference implementations' own vectors
       (`seguid/seguid-tests`), not against ourselves, since a checksum nobody
-      else computes the same way is worth nothing.
+      else computes the same way is worth nothing. The published vectors are
+      eight bases long, so all six NCBI fixtures are pinned to values computed
+      by the reference *JavaScript* implementation over the same files
+      (`genbank.test.ts`) — that checks the whole path on a real record:
+      reading the ORIGIN block, the topology off the LOCUS line, the strand
+      and the rotation. pBR322 is `cdseguid=H-FY2ZzvKeazrRW2dNeSeMikjoc`.
       - **The SHA-1 is written rather than taken from `crypto.subtle`**, which
         is asynchronous and undefined outside a secure context: the checksum
         is wanted where a file is being built as a string and where a status

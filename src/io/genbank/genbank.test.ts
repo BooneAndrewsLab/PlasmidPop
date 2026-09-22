@@ -1,4 +1,4 @@
-import { type SeqDocument } from '@/core';
+import { type SeqDocument, documentChecksum } from '@/core';
 import { listFixtures, listLocalFixtures, readFixture } from '@/test/fixtures';
 
 import { type ParseResult, FormatError } from '../types';
@@ -84,6 +84,24 @@ describe('GenBank fixtures from NCBI', () => {
       const result = parseGenBank(text);
       const doc = result.documents[0];
       if (doc === undefined) throw new Error('no document');
+
+      it('checks out against the reference SEGUID implementation', () => {
+        // These are not our numbers: each was computed by the reference
+        // JavaScript implementation (`seguid/seguid-javascript`) over the
+        // same fixture, so they pin the whole path — parsing the ORIGIN
+        // block, the topology off the LOCUS line, the strand and the
+        // rotation — against somebody else's arithmetic on a real record,
+        // where the published vectors are eight bases long.
+        const expected: Readonly<Record<string, string>> = {
+          'AF177870.gb': 'ldseguid=6W6l7BQluAQXJj6Svj_GGDX9aVQ',
+          'AJ237582.gb': 'ldseguid=ZseyAgw6r3sfU0fqs2FIbjtghok',
+          'J01749.gb': 'cdseguid=H-FY2ZzvKeazrRW2dNeSeMikjoc',
+          'L09137.gb': 'cdseguid=mCC0B3UMZfgLyh3Pl574MVjm30U',
+          'NC_001422.1.gb': 'cdseguid=QnQ29umcBWohNMhfcFbI9fv1zwA',
+          'U49845.gb': 'ldseguid=nNE7TwWKYuNXOHdAmChDxGK9QTg',
+        };
+        expect(documentChecksum(doc)?.text).toBe(expected[name]);
+      });
 
       it('parses without warnings and with the LOCUS length', () => {
         expect(result.warnings).toEqual([]);
