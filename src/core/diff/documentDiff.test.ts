@@ -136,15 +136,52 @@ describe('diffDocuments features', () => {
     });
     expect(isEmptyDiff(diffDocuments(base, reparsed))).toBe(true);
 
-    // A feature that really is different is still reported both ways, since
-    // without ids there is nothing to say it is the same one edited.
+    // A feature that differs is the same feature changed, not a loss and a
+    // gain at the same coordinates: it is in the same place and still
+    // recognisable, by its type here since the name is what changed.
     const renamed = SeqDocument.create({
       sequence: SEQ,
       features: [createFeature({ ...feature, id: 'other-id', name: 'gene2' })],
     });
     const diff = diffDocuments(base, renamed);
+    expect(diff.featuresAdded.size).toBe(0);
+    expect(diff.featuresRemoved.size).toBe(0);
+    expect([...diff.featuresChanged.keys()]).toEqual(['other-id']);
+    expect(diff.featuresChanged.get('other-id')?.name).toBe(feature.name);
+  });
+
+  it('pairs a feature whose type was edited, by its name and its place', () => {
+    // The base feature is a CDS called "gene"; this is the same thing typed
+    // as a gene instead, which is the case that sent us here.
+    const retyped = SeqDocument.create({
+      sequence: SEQ,
+      features: [createFeature({ ...feature, id: 'other-id', type: 'gene' })],
+    });
+    const diff = diffDocuments(base, retyped);
+    expect(diff.featuresAdded.size).toBe(0);
+    expect(diff.featuresRemoved.size).toBe(0);
+    expect(diff.featuresChanged.get('other-id')?.type).toBe('CDS');
+  });
+
+  it('will not pair two features that share only a place', () => {
+    // A gene and the CDS inside it cover the same bases on a real record and
+    // are not versions of one another, so losing one and gaining the other
+    // is two events, not one change.
+    const other = SeqDocument.create({
+      sequence: SEQ,
+      features: [
+        createFeature({
+          ...feature,
+          id: 'other-id',
+          type: 'promoter',
+          name: 'operator',
+        }),
+      ],
+    });
+    const diff = diffDocuments(base, other);
     expect([...diff.featuresAdded]).toEqual(['other-id']);
     expect([...diff.featuresRemoved.keys()]).toEqual(['f1']);
+    expect(diff.featuresChanged.size).toBe(0);
   });
 
   it('pairs each feature once, so a duplicate still reads as added', () => {
@@ -178,12 +215,14 @@ describe('diffDocuments features', () => {
 
   it('marks a feature whose annotation was edited', () => {
     const diff = diffDocuments(base, base.updateFeature('f1', { name: 'renamed' }));
-    expect([...diff.featuresChanged]).toEqual(['f1']);
+    expect([...diff.featuresChanged.keys()]).toEqual(['f1']);
+    // The before is carried with it, so a review can say what changed.
+    expect(diff.featuresChanged.get('f1')?.name).toBe(feature.name);
   });
 
   it('marks a feature whose location was edited by hand', () => {
     const diff = diffDocuments(base, base.updateFeature('f1', { segments: [rangeSegment(4, 15)] }));
-    expect([...diff.featuresChanged]).toEqual(['f1']);
+    expect([...diff.featuresChanged.keys()]).toEqual(['f1']);
   });
 
   it('leaves a feature alone when an edit elsewhere only shifted it', () => {

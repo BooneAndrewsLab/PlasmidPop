@@ -28,8 +28,34 @@ describe('featureChangeRows', () => {
       .addFeature(feature('f3', 30, 36, 'lacZα', 'CDS'));
     expect(lines(before, after)).toEqual([
       '+ lacZα 31..36',
-      '~ tetA changed 5..12',
+      '~ tetA renamed from tet 5..12',
       '− misc_binding 21..24',
+    ]);
+  });
+
+  it('says what changed about a feature, not merely that it did', () => {
+    const before = doc([feature('f1', 4, 12, 'tet', 'gene')]);
+    const typed = before.updateFeature('f1', { type: 'CDS' });
+    expect(lines(before, typed)).toEqual(['~ tet type gene → CDS 5..12']);
+
+    // A qualifier can be a paragraph of /note, so those are counted.
+    const noted = before.updateFeature('f1', {
+      qualifiers: [
+        { name: 'note', value: 'a long explanation' },
+        { name: 'gene', value: 'tet' },
+      ],
+    });
+    expect(lines(before, noted)).toEqual(['~ tet 2 qualifiers changed 5..12']);
+
+    // Several at once read in one line, and where it went is the column
+    // every row already has.
+    const lots = before.updateFeature('f1', {
+      type: 'CDS',
+      strand: 'reverse',
+      segments: [rangeSegment(4, 20)],
+    });
+    expect(lines(before, lots)).toEqual([
+      '~ tet type gene → CDS, now on the reverse strand, moved 5..20',
     ]);
   });
 

@@ -1,4 +1,4 @@
-import { type DocumentDiff, EMPTY_DIFF, SeqDocument, createFeature } from '@/core';
+import { type DocumentDiff, EMPTY_DIFF, SeqDocument, createFeature, rangeSegment } from '@/core';
 import { parseGenBank } from '@/io/genbank';
 import { readFixture } from '@/test/fixtures';
 
@@ -413,7 +413,14 @@ describe('renderCircularMap tracked changes', () => {
     expect(arcs(added, '#00aa00').length).toBeGreaterThan(0);
     // The outline is on the feature's own lane, not on the backbone.
     expect(arcs(added, '#00aa00')[0]?.radius).toBeLessThan(layout.radius - 10);
-    const changed = draw({ ...EMPTY_DIFF, featuresChanged: new Set(['f1']) });
+    // The map only asks whether a feature changed; the before it is paired
+    // with is for the review's prose.
+    const changed = draw({
+      ...EMPTY_DIFF,
+      featuresChanged: new Map([
+        ['f1', createFeature({ type: 'CDS', segments: [rangeSegment(0, 10)] })],
+      ]),
+    });
     expect(arcs(changed, '#aa8800').length).toBeGreaterThan(0);
   });
 

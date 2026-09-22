@@ -44,7 +44,14 @@ export interface DocumentDiff {
   /** Deletion boundaries in ascending order. */
   readonly deletions: readonly DeletionMark[];
   readonly featuresAdded: ReadonlySet<FeatureId>;
-  readonly featuresChanged: ReadonlySet<FeatureId>;
+  /**
+   * Features the newer version has changed, each one against the older
+   * version of itself with its location mapped into the newer document. The
+   * before is carried rather than a bare set of ids so a review can say what
+   * changed about it, and because a feature paired across two files has a
+   * different id on each side (see `pairByContent`).
+   */
+  readonly featuresChanged: ReadonlyMap<FeatureId, Feature>;
   /**
    * Features the older version had that the newer one has not, each one as
    * it was but with its location mapped into the newer document. A set of
@@ -67,7 +74,7 @@ export const EMPTY_DIFF: DocumentDiff = {
   marks: [],
   deletions: [],
   featuresAdded: new Set(),
-  featuresChanged: new Set(),
+  featuresChanged: new Map(),
   featuresRemoved: new Map(),
   basesInserted: 0,
   basesChanged: 0,
@@ -175,7 +182,7 @@ function collectMarks(diff: SequenceDiff): MarkResult {
 
 interface FeatureDiff {
   readonly featuresAdded: ReadonlySet<FeatureId>;
-  readonly featuresChanged: ReadonlySet<FeatureId>;
+  readonly featuresChanged: ReadonlyMap<FeatureId, Feature>;
   readonly featuresRemoved: ReadonlyMap<FeatureId, Feature>;
 }
 
@@ -203,11 +210,13 @@ function diffFeatures(
     position > baseline.length ? map(position - baseline.length) + current.length : map(position);
 
   const featuresAdded: Feature[] = [];
-  const featuresChanged = new Set<FeatureId>();
+  const featuresChanged = new Map<FeatureId, Feature>();
   for (const feature of current.features) {
     const before = baseline.getFeature(feature.id);
     if (before === undefined) featuresAdded.push(feature);
-    else if (!sameFeature(before, feature, mapUnrolled)) featuresChanged.add(feature.id);
+    else if (!sameFeature(before, feature, mapUnrolled)) {
+      featuresChanged.set(feature.id, mapFeature(before, mapUnrolled));
+    }
   }
   const featuresRemoved: Feature[] = [];
   for (const feature of baseline.features) {
@@ -217,17 +226,25 @@ function diffFeatures(
   // parsed separately give every feature a fresh id, so what is left over is
   // paired up by what the features *are* instead — a feature the two
   // documents agree on to the last qualifier is not an addition and a
-  // removal, whatever it is called internally.
-  const paired = pairByContent(featuresRemoved, featuresAdded, mapUnrolled);
+  // removal, whatever it is called internally, and one they disagree about
+  // is a change rather than a loss and a gain.
+  const { same, changed } = pairByContent(featuresRemoved, featuresAdded, mapUnrolled);
+  for (const [before, after] of changed) {
+    featuresChanged.set(after.id, mapFeature(before, mapUnrolled));
+  }
+  const gone = (f: Feature): boolean => !same.has(f) && !paired(changed, f);
   return {
-    featuresAdded: new Set(featuresAdded.filter((f) => !paired.has(f)).map((f) => f.id)),
+    featuresAdded: new Set(featuresAdded.filter(gone).map((f) => f.id)),
     featuresChanged,
     featuresRemoved: new Map(
-      featuresRemoved
-        .filter((f) => !paired.has(f))
-        .map((f) => [f.id, mapFeature(f, mapUnrolled)] as const),
+      featuresRemoved.filter(gone).map((f) => [f.id, mapFeature(f, mapUnrolled)] as const),
     ),
   };
+}
+
+/** Whether a feature is one half of a pair the looser pass matched up. */
+function paired(changed: readonly (readonly [Feature, Feature])[], feature: Feature): boolean {
+  return changed.some(([before, after]) => before === feature || after === feature);
 }
 
 /** Everything but the id, cheap enough to bucket on before comparing in full. */
@@ -235,18 +252,40 @@ function bucketKey(feature: Feature): string {
   return [feature.type, feature.name, feature.strand, feature.segments.length].join('\u0000');
 }
 
+/** What the two passes below found: identical pairs, and changed ones. */
+interface ContentPairs {
+  /** Features the two documents agree on to the last qualifier. */
+  readonly same: ReadonlySet<Feature>;
+  /** Pairs that are the same feature changed, older first. */
+  readonly changed: readonly (readonly [Feature, Feature])[];
+}
+
 /**
- * Matches features the two documents hold in common but under different ids,
- * returning every feature that found a partner. Only features already known
- * to be unmatched by id are offered, so this cannot override an id match.
+ * Matches features the two documents hold in common but under different ids.
+ * Only features already known to be unmatched by id are offered, so this
+ * cannot override an id match.
+ *
+ * Two passes. The first pairs features that agree about everything, which is
+ * the common case across two files and says nothing to the user. The second
+ * goes over what is left and asks a weaker question: is this the same feature
+ * with something changed about it? A feature is somewhere, so its location has
+ * to match, and it has to still be recognisable — the same name, or failing
+ * that the same type. That pairs a feature whose type was edited with the one
+ * it became, and a renamed one with its old self, instead of reporting each as
+ * a loss and a gain at the same coordinates.
+ *
+ * It deliberately will not pair two features that share only a location: the
+ * `gene` and the `CDS` inside it cover the same bases on a real record
+ * (pBR322 has two such pairs) and are not versions of one another.
  */
 function pairByContent(
   removed: readonly Feature[],
   added: readonly Feature[],
   map: (position: number) => number,
-): ReadonlySet<Feature> {
-  const paired = new Set<Feature>();
-  if (removed.length === 0 || added.length === 0) return paired;
+): ContentPairs {
+  const same = new Set<Feature>();
+  const changed: (readonly [Feature, Feature])[] = [];
+  if (removed.length === 0 || added.length === 0) return { same, changed };
   const buckets = new Map<string, Feature[]>();
   for (const feature of added) {
     const key = bucketKey(feature);
@@ -257,12 +296,40 @@ function pairByContent(
   for (const before of removed) {
     const bucket = buckets.get(bucketKey(before));
     if (bucket === undefined) continue;
-    const match = bucket.find((after) => !paired.has(after) && sameFeature(before, after, map));
+    const match = bucket.find((after) => !same.has(after) && sameFeature(before, after, map));
     if (match === undefined) continue;
-    paired.add(before);
-    paired.add(match);
+    same.add(before);
+    same.add(match);
   }
-  return paired;
+
+  const taken = new Set<Feature>(same);
+  const leftOver = added.filter((f) => !taken.has(f));
+  if (leftOver.length === 0) return { same, changed };
+  for (const before of removed) {
+    if (taken.has(before)) continue;
+    const match = leftOver.find(
+      (after) =>
+        !taken.has(after) && sameLocation(before, after, map) && recognisable(before, after),
+    );
+    if (match === undefined) continue;
+    taken.add(before);
+    taken.add(match);
+    changed.push([before, match]);
+  }
+  return { same, changed };
+}
+
+/** Whether two features are the same thing under some change: name, or type. */
+function recognisable(before: Feature, after: Feature): boolean {
+  if (before.name !== '' && before.name === after.name) return true;
+  return before.type === after.type;
+}
+
+function sameLocation(before: Feature, after: Feature, map: (position: number) => number): boolean {
+  return (
+    before.segments.length === after.segments.length &&
+    before.segments.every((seg, i) => sameSegment(seg, after.segments[i], map))
+  );
 }
 
 function sameFeature(before: Feature, after: Feature, map: (position: number) => number): boolean {
@@ -271,8 +338,7 @@ function sameFeature(before: Feature, after: Feature, map: (position: number) =>
     before.name === after.name &&
     before.strand === after.strand &&
     sameQualifiers(before.qualifiers, after.qualifiers) &&
-    before.segments.length === after.segments.length &&
-    before.segments.every((seg, i) => sameSegment(seg, after.segments[i], map))
+    sameLocation(before, after, map)
   );
 }
 

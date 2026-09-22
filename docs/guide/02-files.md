@@ -139,7 +139,8 @@ Downloads are always GenBank.
   and the features added, changed or removed. Each feature is named and says
   where it is (`− misc_binding 411..414`), a removal included; where one
   deletion took several features with it, the review says so once, naming
-  them. **Download** writes it; **Cancel** writes nothing.
+  them. A changed feature says what changed — `~ tet type gene → CDS` — with
+  qualifiers counted rather than quoted, since a `/note` can be a paragraph. **Download** writes it; **Cancel** writes nothing.
 - In Chrome and Edge the browser then asks where to put the file, with the
   name filled in — the name you chose last time for this document, so you can
   point at the same file again and replace it. In Firefox and Safari a page
@@ -199,9 +200,12 @@ of your own plasmid is usually for.
   added, changed and removed are named below them.
 - **Features are matched by what they are**, since two files give the same
   feature different internal ids. A feature both agree on to the last
-  qualifier is not reported; one that differs in name, type, location or
-  qualifiers is reported as one removed and one added, because nothing in
-  the two files says it is the same feature edited.
+  qualifier is not reported. One that differs is matched to the feature it
+  became when it is still in the same place and still recognisable, by its
+  name or by its type, and then it is one changed line rather than a removal
+  and an addition at the same coordinates. Two features that share only a
+  place are not matched: a `gene` and the `CDS` inside it cover the same
+  bases and are not versions of one another.
 - **A plasmid written from another origin is lined up first.** A circle has
   no first base, so the same plasmid saved by two programs can share no text
   at all. The dialog works out how the other file's copy has to be turned —

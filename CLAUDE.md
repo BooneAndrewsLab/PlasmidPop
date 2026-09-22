@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 898 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 901 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -1555,30 +1555,45 @@ pick from here when the current work is done.
       still reads "Reverse complement" and the Edits marks show the whole
       molecule as replaced, which for a flip they always did.
 
-35. **A feature whose type changed reads as a removal and an addition.**
-    Reported 2026-09-22: change a feature's type and **Compare with…** lists
-    it twice, once removed and once added, at the same name and the same
-    location. Not a bug in the pairing so much as its limit. Within one
-    document the edit keeps the feature's id, so it is reported as changed;
-    across two files every id is fresh (item 33), so leftovers are paired by
-    *content*, and both `bucketKey` and `sameFeature`
-    (`src/core/diff/documentDiff.ts`) require the type to be equal. A feature
-    that differs only in type therefore pairs with nothing.
-    - **Pairing it as one changed feature is the fix worth having**, ahead of
-      any extra detail: two lines read as "you have lost a feature", which is
-      the frightening reading and the wrong one. A second, looser pass over
-      whatever the exact pass could not pair — same name, strand and mapped
-      location — would catch it, at the cost of merging two genuinely
-      different features that sit at the same place under the same name,
-      which today are already reported as a pair of lines anyway.
-    - **Then say what changed, where it is one thing.** The Features list of
-      item 27 writes `~ tet changed`; `~ tet  type gene → CDS` is the whole
-      story in four words and is cheap for the enumerable fields (type, name,
-      strand, location). Qualifiers are the messy case — a `/note` can be a
-      paragraph — so a count ("3 qualifiers changed") rather than a list.
-    - Open: whether the sequence view's and the map's outline for a changed
-      feature should say anything more than "touched", which is all colour
-      can carry.
+35. ~~**A feature whose type changed reads as a removal and an addition.**~~
+    fixed 2026-09-22, reported the same day: change a feature's type and
+    **Compare with…** listed it twice, removed and added, at the same name and
+    the same location. Not a bug in the pairing so much as its limit. Within
+    one document the edit keeps the feature's id, so it was already reported
+    as changed; across two files every id is fresh (item 33), so leftovers are
+    paired by *content*, and both `bucketKey` and `sameFeature` required the
+    type to be equal. A feature differing only in type paired with nothing.
+    - **`pairByContent` has a second, looser pass now**
+      (`src/core/diff/documentDiff.ts`). The first pairs features that agree
+      about everything, which says nothing to the user; the second asks the
+      weaker question of whatever is left over — is this the same feature with
+      something changed about it? A feature is *somewhere*, so the mapped
+      location has to match, and it has to still be recognisable: the same
+      name, or failing that the same type. That catches an edited type (the
+      name matches) and a rename (the type matches), and the pair is reported
+      as one change rather than a loss and a gain at one place. Two lines read
+      as "you have lost a feature", which is the frightening reading and the
+      wrong one.
+    - **A shared location alone is not enough**, which is the rule that keeps
+      it honest: pBR322 carries a `gene` and the `CDS` inside it over exactly
+      the same bases, twice, and they are not versions of one another. That is
+      a test.
+    - **`featuresChanged` carries the before**, mapped into the newer
+      document's coordinates as `featuresRemoved` already was, rather than
+      being a bare set of ids: a paired feature has a different id on each
+      side, so there is nothing to look the older version up by, and the
+      review wants to say what changed anyway. `.has` and `.size` are what the
+      renderers and the Edits tally use, so a Map was a drop-in.
+    - **The review says what changed**, not merely that it did:
+      `~ tet type gene → CDS` (`describeFeatureChange` in
+      `src/app/featureChanges.ts`), naming the fields that are one thing each
+      — type, name, strand, whether it moved — and counting qualifiers, since
+      a `/note` can be a paragraph. Where it went is the column every row
+      already has.
+    - Not yet: the sequence view's and the map's outline for a changed feature
+      still says only "touched", which is all a colour can carry; and a
+      feature that both moved *and* was renamed pairs with nothing, since the
+      location is the one thing the looser pass will not give up.
 
 ## Non-goals for v1
 

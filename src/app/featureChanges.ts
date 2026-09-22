@@ -157,6 +157,54 @@ function capped(lines: readonly Line[], what: string): FeatureChangeRow[] {
   ];
 }
 
+/**
+ * What changed about a feature, in the fewest words that are still an
+ * answer. "changed" alone leaves the reader to open the feature editor and
+ * compare by eye; `type gene → CDS` is the whole story.
+ *
+ * Only the fields that are one thing each are named. A qualifier can be a
+ * paragraph of `/note`, so those are counted rather than quoted, and the
+ * location is left to the `where` column that every line already carries.
+ */
+export function describeFeatureChange(before: Feature, after: Feature): string {
+  const parts: string[] = [];
+  if (before.type !== after.type) parts.push(`type ${before.type} → ${after.type}`);
+  if (before.name !== after.name) {
+    parts.push(
+      before.name.trim() === ''
+        ? `named ${after.name}`
+        : after.name.trim() === ''
+          ? `lost the name ${before.name}`
+          : `renamed from ${before.name}`,
+    );
+  }
+  if (before.strand !== after.strand) parts.push(`now ${strandWord(after.strand)}`);
+  if (!sameExtent(before, after)) parts.push('moved');
+  const n = qualifiersChanged(before, after);
+  if (n > 0) parts.push(`${n} qualifier${n === 1 ? '' : 's'} changed`);
+  return parts.length === 0 ? 'changed' : parts.join(', ');
+}
+
+function strandWord(strand: Feature['strand']): string {
+  return strand === 'reverse' ? 'on the reverse strand' : 'on the forward strand';
+}
+
+function sameExtent(before: Feature, after: Feature): boolean {
+  const a = extent(before);
+  const b = extent(after);
+  return a.start === b.start && a.end === b.end && before.segments.length === after.segments.length;
+}
+
+/** Qualifiers added, dropped or given another value, counted by name. */
+function qualifiersChanged(before: Feature, after: Feature): number {
+  const was = new Map(before.qualifiers.map((q) => [q.name, q.value] as const));
+  const now = new Map(after.qualifiers.map((q) => [q.name, q.value] as const));
+  let n = 0;
+  for (const [name, value] of now) if (was.get(name) !== value) n++;
+  for (const name of was.keys()) if (!now.has(name)) n++;
+  return n;
+}
+
 /** Every line of the Features section, added first, then changed, then removed. */
 export function featureChangeRows(
   diff: DocumentDiff,
@@ -168,10 +216,14 @@ export function featureChangeRows(
     count: 1,
     row: { key: `+${f.id}`, mark: '+', text: displayName(f), where: whereIs(f) },
   }));
-  const changed = of(diff.featuresChanged).map((f): Line => ({
-    count: 1,
-    row: { key: `~${f.id}`, mark: '~', text: `${displayName(f)} changed`, where: whereIs(f) },
-  }));
+  const changed = of(new Set(diff.featuresChanged.keys())).map((f): Line => {
+    const before = diff.featuresChanged.get(f.id);
+    const what = before === undefined ? 'changed' : describeFeatureChange(before, f);
+    return {
+      count: 1,
+      row: { key: `~${f.id}`, mark: '~', text: `${displayName(f)} ${what}`, where: whereIs(f) },
+    };
+  });
   return [
     ...capped(added, 'added'),
     ...capped(changed, 'changed'),
