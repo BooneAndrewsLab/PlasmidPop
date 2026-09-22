@@ -1,4 +1,4 @@
-import { SeqDocument, createFeature, rangeSegment } from '@/core';
+import { SeqDocument, createFeature, documentChecksum, rangeSegment } from '@/core';
 
 import { deleteBackward, deleteForward, typeText } from '../editing';
 import { parseGenBank } from '@/io';
@@ -787,6 +787,23 @@ describe('EditorStore working copies', () => {
     store.apply({ type: 'insert', position: 0, text: 'A' });
     expect(store.document?.name).toBe('pOrig copy');
     expect(store.getState()).toMatchObject({ derived: true });
+  });
+
+  it('stamps the copy with the molecule and the file it came from', () => {
+    const store = opened();
+    expect(store.document?.metadata.derivedFrom).toBeNull();
+    store.apply({ type: 'insert', position: 0, text: 'A' });
+    expect(store.document?.metadata.derivedFrom).toEqual({
+      checksum: documentChecksum(named)?.text,
+      fileName: 'pOrig.gb',
+    });
+    // It is the original's checksum, not the copy's, and it stays that way
+    // as the copy is edited further.
+    store.apply({ type: 'insert', position: 0, text: 'C' });
+    expect(store.document?.metadata.derivedFrom?.checksum).toBe(documentChecksum(named)?.text);
+    expect(store.document?.metadata.derivedFrom?.checksum).not.toBe(
+      documentChecksum(store.document ?? named)?.text,
+    );
   });
 
   it('starts the copy a history of its own, at the contents of the file', () => {

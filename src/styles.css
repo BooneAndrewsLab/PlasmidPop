@@ -1754,6 +1754,17 @@ button {
   color: var(--ink-2);
 }
 
+/* Provenance a file carried in with it, rather than a copy made in this
+   session: the same shelf, said once and in passing. */
+.copy-banner--quiet {
+  color: var(--ink-3);
+}
+
+.copy-banner--quiet code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 /* The same shelf, for a notice about what a save just did rather than a
    standing fact about the document: a step darker, so two of them stacked
    read as two things. */

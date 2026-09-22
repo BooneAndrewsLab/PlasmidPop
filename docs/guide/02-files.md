@@ -97,6 +97,30 @@ in that tab afterwards, the file on disk is exactly as it was.
   fragment opened from the Cloning tab has no file on your disk to protect
   and is never forked.
 
+### What a copy remembers about its original
+
+A working copy also writes down what it came from, and carries that into
+every file and link it leaves as:
+
+    COMMENT     PlasmidPop-derived-from: cdseguid=dUxN7YQ… pBR322.gb
+
+The file name is a courtesy; the [checksum](03-viewing.md#the-checksum) is
+the part that holds up. A name is what somebody called a file once, while a
+checksum is the molecule itself and stays true however the original is
+rotated, renamed or exported again — so whoever ends up with `pBR322
+copy.gb` can put the original beside it and _check_, rather than take the
+line's word for it.
+
+- PlasmidPop says so under the toolbar when you open such a file: **Derived
+  from pBR322.gb**, with the checksum. Point **Compare with…** at that file
+  and the dialog confirms it is the one, then shows everything that has
+  happened since.
+- Other software sees an ordinary comment and ignores it. PlasmidPop takes
+  the line out of the comments on reading and puts it back on writing, so a
+  file never collects copies of it.
+- It records the file a copy was forked from, not a chain: a copy of a copy
+  names its immediate parent.
+
 ## Downloading
 
 **PlasmidPop never writes to a file on your disk.** Documents live in this

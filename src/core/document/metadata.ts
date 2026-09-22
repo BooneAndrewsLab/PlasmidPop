@@ -17,6 +17,18 @@ export interface Reference {
   readonly remark: string;
 }
 
+/**
+ * The molecule a document was forked from: its checksum (`seguid.ts`) and
+ * the name of the file that held it. Written into a GenBank file as a
+ * comment of ours, so a download says where it came from (`derivedComment.ts`).
+ */
+export interface DerivedFrom {
+  /** `cdseguid=…`, in full. */
+  readonly checksum: string;
+  /** The file it was read from; may be empty for a document with no file. */
+  readonly fileName: string;
+}
+
 /** A header entry we do not model explicitly, kept verbatim for round-trips. */
 export interface HeaderEntry {
   readonly keyword: string;
@@ -45,6 +57,8 @@ export interface DocumentMetadata {
   /** One entry per COMMENT block, lines joined with "\n". */
   readonly comments: readonly string[];
   readonly extraHeaders: readonly HeaderEntry[];
+  /** The molecule this one was forked from, when it was forked from one. */
+  readonly derivedFrom: DerivedFrom | null;
 }
 
 export const EMPTY_METADATA: DocumentMetadata = {
@@ -62,6 +76,7 @@ export const EMPTY_METADATA: DocumentMetadata = {
   references: [],
   comments: [],
   extraHeaders: [],
+  derivedFrom: null,
 };
 
 export function createMetadata(partial: Partial<DocumentMetadata> = {}): DocumentMetadata {

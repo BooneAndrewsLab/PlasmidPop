@@ -16,6 +16,7 @@ import {
   SeqDocument,
   createFeature,
   describeEditOp,
+  documentChecksum,
   isEmptyRange,
   newId,
   rangeSegment,
@@ -146,6 +147,19 @@ export interface DocumentOrigin {
   /** Name of the file as it was opened; the document's own `fileName` moves on. */
   readonly fileName: string;
   readonly doc: SeqDocument;
+}
+
+/**
+ * A document stamped with the checksum of the molecule it was forked from.
+ * Left alone when there is no checksum to take (an empty original), rather
+ * than clearing whatever the file itself said about where *it* came from.
+ */
+function withProvenance(doc: SeqDocument, origin: DocumentOrigin): SeqDocument {
+  const checksum = documentChecksum(origin.doc);
+  if (checksum === null) return doc;
+  return doc.setMetadata({
+    derivedFrom: { checksum: checksum.text, fileName: origin.fileName },
+  });
 }
 
 /**
@@ -830,7 +844,8 @@ export class EditorStore {
     // which the copy is the original again, which is what let the name slip
     // back to the original's before. `derived` latches for the life of the
     // tab, and a copy is never written out under the original's name.
-    const forking = target.origin !== null && !target.derived;
+    const forkOrigin = target.derived ? null : target.origin;
+    const forking = forkOrigin !== null;
     const copyName =
       op.type === 'rename'
         ? op.name
@@ -838,7 +853,10 @@ export class EditorStore {
             doc.name,
             this.docs.map((d) => d.history.present.name),
           );
-    const base = forking ? doc.rename(copyName) : doc;
+    // The copy records the molecule it came from as well as being renamed:
+    // inside this browser `origin` says where it came from, but the file the
+    // copy leaves as carries nothing at all without this (`derivedComment.ts`).
+    const base = forkOrigin === null ? doc : withProvenance(doc.rename(copyName), forkOrigin);
     const next = forking ? base.apply(op) : edited;
     const history = forking ? History.create(base) : target.history;
     let selection: Range | null;

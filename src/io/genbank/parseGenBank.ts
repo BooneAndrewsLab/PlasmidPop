@@ -13,6 +13,7 @@ import {
 } from '@/core';
 
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
+import { isDerivedComment, parseDerivedComment } from './derivedComment';
 import { isEndsComment, parseEndsComment } from './endsComment';
 import { LocationError, parseLocation } from './location';
 
@@ -490,10 +491,17 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   // rather than staying in the comments, so writing the file back produces
   // the same line instead of a second one.
   const ends = parsed.comments.map(parseEndsComment).find((e) => e !== null) ?? null;
-  const metadata =
-    ends === null
-      ? parsed
-      : { ...parsed, comments: parsed.comments.filter((c) => !isEndsComment(c)) };
+  // Where the document came from travels the same way (`derivedComment.ts`).
+  const derivedFrom = parsed.comments.map(parseDerivedComment).find((d) => d !== null) ?? null;
+  // Only a line that was understood comes out of the comments: a damaged one
+  // stays where it is rather than being silently swallowed.
+  const metadata = {
+    ...parsed,
+    derivedFrom,
+    comments: parsed.comments.filter(
+      (c) => (ends === null || !isEndsComment(c)) && (derivedFrom === null || !isDerivedComment(c)),
+    ),
+  };
   const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);
   return SeqDocument.create({
     name: locus.name === '' ? 'Untitled' : locus.name,

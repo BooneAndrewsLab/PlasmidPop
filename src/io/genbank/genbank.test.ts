@@ -520,3 +520,58 @@ describe('sticky ends', () => {
     expect(parsed.metadata.comments).toEqual(['PlasmidPop-ends: left=sideways; right=blunt']);
   });
 });
+
+describe('where a document came from', () => {
+  const record = (extraHeader = ''): string =>
+    `LOCUS       X 20 bp DNA linear\n${extraHeader}FEATURES             Location/Qualifiers\n` +
+    `ORIGIN\n        1 AATTCGGGCC CGGGTTTAAA\n//\n`;
+  const derivedFrom = {
+    checksum: 'cdseguid=dUxN7YQyVInv3oDcvz8ByupL44A',
+    fileName: 'pBR322.gb',
+  };
+
+  it('writes the provenance as a comment and reads it back', () => {
+    const doc = only(parseGenBank(record())).setMetadata({ derivedFrom });
+    const text = writeGenBank(doc);
+    expect(text).toContain(
+      'COMMENT     PlasmidPop-derived-from: cdseguid=dUxN7YQyVInv3oDcvz8ByupL44A pBR322.gb',
+    );
+    const reparsed = only(parseGenBank(text));
+    expect(reparsed.metadata.derivedFrom).toEqual(derivedFrom);
+    // The line is the document's provenance, not one of its comments, so
+    // writing it again produces the same file rather than a second copy.
+    expect(reparsed.metadata.comments).toEqual([]);
+    expect(writeGenBank(reparsed)).toBe(text);
+  });
+
+  it('leaves a record that came from nowhere alone', () => {
+    const plain = only(parseGenBank(record()));
+    expect(plain.metadata.derivedFrom).toBeNull();
+    expect(writeGenBank(plain)).not.toContain('PlasmidPop-derived-from');
+  });
+
+  it('keeps a file name with spaces in it', () => {
+    const doc = only(parseGenBank(record())).setMetadata({
+      derivedFrom: { ...derivedFrom, fileName: 'my plasmid v2.gb' },
+    });
+    expect(only(parseGenBank(writeGenBank(doc))).metadata.derivedFrom?.fileName).toBe(
+      'my plasmid v2.gb',
+    );
+  });
+
+  it('writes a checksum with no file name behind it', () => {
+    const doc = only(parseGenBank(record())).setMetadata({
+      derivedFrom: { ...derivedFrom, fileName: '' },
+    });
+    const reparsed = only(parseGenBank(writeGenBank(doc)));
+    expect(reparsed.metadata.derivedFrom).toEqual({ ...derivedFrom, fileName: '' });
+  });
+
+  it('ignores a damaged line, keeping it as a comment', () => {
+    const parsed = only(
+      parseGenBank(record('COMMENT     PlasmidPop-derived-from: not-a-checksum\n')),
+    );
+    expect(parsed.metadata.derivedFrom).toBeNull();
+    expect(parsed.metadata.comments).toEqual(['PlasmidPop-derived-from: not-a-checksum']);
+  });
+});

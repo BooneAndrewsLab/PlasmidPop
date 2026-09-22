@@ -1,5 +1,6 @@
 import { type Feature, type Reference, type SeqDocument } from '@/core';
 
+import { formatDerivedComment, isDerivedComment } from './derivedComment';
 import { formatEndsComment, isEndsComment } from './endsComment';
 import { formatLocation } from './location';
 import { deriveFeatureName } from './parseGenBank';
@@ -126,8 +127,13 @@ function headerLines(doc: SeqDocument): string[] {
   if (doc.ends !== null) {
     out.push(...headerBlock('COMMENT', formatEndsComment(doc.ends), '', true));
   }
+  // Where the document came from rides in another (`derivedComment.ts`), and
+  // is treated the same way.
+  if (m.derivedFrom !== null) {
+    out.push(...headerBlock('COMMENT', formatDerivedComment(m.derivedFrom), '', true));
+  }
   for (const comment of m.comments) {
-    if (isEndsComment(comment)) continue;
+    if (isEndsComment(comment) || isDerivedComment(comment)) continue;
     out.push(...headerBlock('COMMENT', comment, '', true));
   }
   for (const extra of m.extraHeaders)

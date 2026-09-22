@@ -178,6 +178,28 @@ describe('CopyBanner', () => {
     expect(view.container.querySelector('.copy-banner')?.textContent).toContain('pRev copy');
   });
 
+  it('says where a file that carries its own provenance came from', () => {
+    // A copy that was downloaded and opened again: nothing in this session
+    // forked it, but the file says what molecule it came from.
+    const reopened = original.setMetadata({
+      derivedFrom: { checksum: 'cdseguid=dUxN7YQyVInv3oDcvz8ByupL44A', fileName: 'pRev.gb' },
+    });
+    act(() => {
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(reopened, 'pRev copy.gb');
+    });
+    const view = render(<CopyBanner />);
+    const text = view.container.querySelector('.copy-banner')?.textContent ?? '';
+    expect(text).toContain('Derived from');
+    expect(text).toContain('pRev.gb');
+    expect(text).toContain('cdseguid=dUxN7YQyVInv3oDcvz8ByupL44A');
+    // Once this tab forks its own copy, the working-copy banner takes over.
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 0, text: 'A' });
+    });
+    expect(view.container.querySelector('.copy-banner')?.textContent).toContain('Working copy of');
+  });
+
   it('renames the copy in place', () => {
     act(() => {
       editorStore.closeAllDocuments();

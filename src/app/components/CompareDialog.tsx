@@ -115,6 +115,14 @@ export function CompareDialog() {
           </dl>
         )}
 
+        {checksums?.theirs != null &&
+          current.metadata.derivedFrom?.checksum === checksums.theirs.text && (
+            <p className="save-review__note">
+              This is the molecule this document was derived from, so what follows is everything
+              that has happened to it since.
+            </p>
+          )}
+
         {alignment !== null && turned && (
           <p className="save-review__note">{describeAlignment(alignment, comparison.fileName)}</p>
         )}
