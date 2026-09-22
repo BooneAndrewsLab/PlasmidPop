@@ -154,9 +154,10 @@ the thing it names slides along the ring until it finds room, so it stays on
 the same side of the map and never crosses the circle. It slides a short way
 only: a name a long leader line away from its own tick is harder to read
 than no name at all, so past about eight lines' worth the map leaves it out
-instead of towing it to the end of a crowded arc. Two leader lines cross
-only where two features sit at nearly the same place and one of them has to
-give way.
+instead of towing it to the end of a crowded arc. The labels stay in the
+order their ticks are, and their leader lines do not cross; where two
+features sit at nearly the same place one of them has to give way, and
+either it goes without those two niceties or it is left out.
 
 Past a certain number of labels the ring is full, and the map leaves some out
 rather than writing them over each other. It says how many in the bottom-left

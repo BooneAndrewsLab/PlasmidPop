@@ -688,7 +688,15 @@ function drawLabels(
     labelRadius,
     elbowRadius: layout.radius + m.elbow,
     lineHeight: m.lineHeight,
-    ...(p.labelShiftLines === undefined ? {} : { maxShift: m.lineHeight * p.labelShiftLines }),
+    // A caller that asks for a longer slide is a figure, not a screen: it
+    // also wants the label the rules refused rather than a gap, so the
+    // rescue pass gets the whole budget too.
+    ...(p.labelShiftLines === undefined
+      ? {}
+      : {
+          maxShift: m.lineHeight * p.labelShiftLines,
+          rescueShift: m.lineHeight * p.labelShiftLines,
+        }),
     width: p.width,
     height: p.height,
     obstacles,

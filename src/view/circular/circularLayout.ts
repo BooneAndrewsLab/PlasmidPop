@@ -183,6 +183,11 @@ export interface LabelLayoutOptions {
    * ring is to fit into: past it the label is left out instead.
    */
   readonly maxShift?: number;
+  /**
+   * How far a label the rules refused may slide in the pass that takes
+   * what room is left; see `RESCUE_SHIFT_LINES`.
+   */
+  readonly rescueShift?: number;
   /** Margin kept clear at the canvas edges, for the hovered label's bubble. */
   readonly inset?: number;
   /**
@@ -214,14 +219,25 @@ const MAX_SHIFT_LINES = 8;
 
 /**
  * How far a label placed in the second pass may slide, in line heights.
- * Much shorter than `MAX_SHIFT_LINES`: that pass is there for the pair of
- * features at nearly the same place — a `mat_peptide` inside its CDS, a
- * cut site beside a feature's end — where one of the two has to give way
- * and whichever does crosses the other. A label that has to travel to find
- * room *and* cross something to get there is the tangle this was fixing,
- * so it is left out as before.
+ * Much less than the whole budget: that pass is there for the pair of features at
+ * nearly the same place — a `mat_peptide` inside its CDS, a cut site beside
+ * a feature's end — where one of the two has to give way and whichever does
+ * gets in the other's way. A label that has to travel to find room *and*
+ * break the order to get there is the tangle this was fixing, so it is left
+ * out as before. `rescueShift` overrides it, which is what the SVG export
+ * does: on paper a name that did not fit is lost for good, so a figure pays
+ * the long leader and the broken order rather than leave one out.
  */
-const TANGLED_SHIFT_LINES = 2;
+const RESCUE_SHIFT_LINES = 2;
+
+/** A label placed, with what the next one needs to know about it. */
+interface Attempt {
+  readonly label: PlacedLabel;
+  readonly run: PlacedRun;
+  readonly slot: Slot;
+  readonly side: 0 | 1;
+  readonly index: number;
+}
 
 /**
  * Angle normalised to [-π/2, 3π/2), so that each side of the ring is one
@@ -235,6 +251,12 @@ function ringAngle(angle: number): number {
   if (a < -Math.PI / 2) a += TWO_PI;
   if (a >= Math.PI * 1.5) a -= TWO_PI;
   return a;
+}
+
+/** A slot taken on one side of the ring, and whose turn along it it was. */
+interface Slot {
+  readonly rung: number;
+  readonly at: number;
 }
 
 /**
@@ -354,6 +376,7 @@ export function layoutLabels(
   const { labelRadius, lineHeight, width, height } = options;
   const inset = options.inset ?? 0;
   const maxShift = options.maxShift ?? lineHeight * MAX_SHIFT_LINES;
+  const rescueShift = options.rescueShift ?? lineHeight * RESCUE_SHIFT_LINES;
   const step = Math.max(2, lineHeight / 2);
   const radius = Math.max(1, labelRadius);
   // Boxes are filed by horizontal band, so a candidate is only compared with
@@ -393,17 +416,36 @@ export function layoutLabels(
   const runs: PlacedRun[] = [];
   const placed: PlacedLabel[] = [];
   const dropped: LabelInput[] = [];
+  // Each label's place in the ring's own order, which is the order the slots
+  // they take have to keep. Ties are broken by id, so the order is the
+  // document's and not the array's.
+  const rung = new Map(
+    [...labels]
+      .sort((a, b) => ringAngle(a.angle) - ringAngle(b.angle) || (a.id < b.id ? -1 : 1))
+      .map((label, index) => [label.id, index] as const),
+  );
+  // Slots taken on each side, kept in that order; the invariant is that
+  // their angles run the same way.
+  const slots: [Slot[], Slot[]] = [[], []];
 
-  const attempt = (
-    label: LabelInput,
-    mayCross: boolean,
-    limit = maxShift,
-  ): { readonly label: PlacedLabel; readonly run: PlacedRun } | null => {
+  const attempt = (label: LabelInput, strict: boolean, limit = maxShift): Attempt | null => {
     const at = ringAngle(label.angle);
     const right = at <= HALF_PI;
     const align = right ? 'left' : 'right';
-    const lo = right ? -HALF_PI : HALF_PI;
-    const hi = right ? HALF_PI : Math.PI * 1.5;
+    const taken = slots[right ? 0 : 1];
+    const mine = rung.get(label.id) ?? 0;
+    let after = 0;
+    while (after < taken.length && (taken[after]?.rung ?? 0) < mine) after++;
+    // Room the neighbours already placed leave: strictly between the slot
+    // below and the slot above, so the order along the ring cannot break.
+    const lo = Math.max(
+      right ? -HALF_PI : HALF_PI,
+      strict ? (taken[after - 1]?.at ?? -Infinity) : -Infinity,
+    );
+    const hi = Math.min(
+      right ? HALF_PI : Math.PI * 1.5,
+      strict ? (taken[after]?.at ?? Infinity) : Infinity,
+    );
     const ex = layout.cx + elbowRadius * Math.cos(at);
     const ey = layout.cy + elbowRadius * Math.sin(at);
     for (let i = 0; i * step <= limit; i++) {
@@ -423,23 +465,30 @@ export function layoutLabels(
           continue;
         if (!isFree(box)) continue;
         const run: PlacedRun = { lo: Math.min(at, angle), hi: Math.max(at, angle), ex, ey, ax, ay };
-        if (!mayCross && !runIsClear(runs, run, ex, ey, ax, ay)) continue;
-        return { label: { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box }, run };
+        if (strict && !runIsClear(runs, run, ex, ey, ax, ay)) continue;
+        return {
+          label: { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box },
+          run,
+          slot: { rung: mine, at: angle },
+          side: right ? 0 : 1,
+          index: after,
+        };
       }
     }
     return null;
   };
 
-  const keep = (got: { readonly label: PlacedLabel; readonly run: PlacedRun }): void => {
+  const keep = (got: Attempt): void => {
     placed.push(got.label);
     take(got.label.box);
     runs.push(got.run);
+    slots[got.side].splice(got.index, 0, got.slot);
   };
 
   const order = [...labels].sort((a, b) => b.rank - a.rank || a.angle - b.angle);
   const tangled: LabelInput[] = [];
   for (const label of order) {
-    const got = attempt(label, false);
+    const got = attempt(label, true);
     if (got === null) tangled.push(label);
     else keep(got);
   }
@@ -449,7 +498,7 @@ export function layoutLabels(
   // blemish, and losing the name of a feature is not. So everything the
   // rule refused is offered the room that is left.
   for (const label of tangled) {
-    const got = attempt(label, true, lineHeight * TANGLED_SHIFT_LINES);
+    const got = attempt(label, false, rescueShift);
     if (got === null) dropped.push(label);
     else keep(got);
   }

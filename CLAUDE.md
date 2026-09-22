@@ -141,11 +141,11 @@ layout** puts them back), and clicking the open sidebar tab collapses the
 sidebar to its rail (item 28), and the Enzymes tab filters by how often an
 enzyme cuts rather than only "once" (item 30; that filter and the supplier one
 are remembered, the search box is not). Added 2026-09-21: a map label slides only
-a short way from its own tick and no leader line crosses another unless two
-features sit at the same place, measured by rendering rather than asserted
-(item 31), and the review before a download names the features a
+a short way from its own tick, the labels read in the order their ticks are
+and their leaders do not cross, all three measured by rendering rather than
+asserted (item 31), and the review before a download names the features a
 removal took and where they were rather than counting them (item 27).
-Tests: 724 passing. Perf measurements live in
+Tests: 725 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -1005,33 +1005,46 @@ pick from here when the current work is done.
       purpose: zoomed in the radius is large, so the same slide is a small
       angle, and a whole crowd could slide the same way with the angular
       spacing never looking wrong — which is exactly what the screenshot was.
-    - **No leader may cross another.** The two candidate rules in the note were
-      keeping the ring's order and charging for the slide; the order rule turns
-      out to be a proxy for what the reader actually sees, and a weaker one —
-      it cost the same labels and still left five crossing pairs in the
-      measured set. So the *lines themselves* are tested: a slot whose leader
-      would cut across one already drawn is refused (`crossesRun`, filed by the
-      stretch of ring a leader runs over, and compared a turn either way
-      because the two sides meet at 12 o'clock). That needed the elbow radius,
-      which `layoutLabels` was not told — `elbowRadius` is an option now.
-    - **It is a rule and not a law.** Refusing outright cost names that nothing
-      else would have lost: on the bundled pBR322 the SVG export went from
-      dropping none to dropping two, because `bla` and the `beta-lactamase`
-      mat_peptide inside it sit at nearly the same angle and one of them has to
-      give way. So a label the rule refuses is offered what room is left in a
-      second pass, with a much shorter slide (`TANGLED_SHIFT_LINES`, two line
-      heights): a pair whose leaders meet beside their own features is a
-      blemish, a missing name is not, and a label that has to travel *and*
-      cross to find room is the tangle this was about. Measured over the
-      harness's 268 renders, the second pass is worth 49 labels for 10 crossing
-      pairs; letting it slide as far as the first pass does would buy another
-      157 labels for another 210.
+    - **The ring's order is kept and no leader crosses another.** Both of the
+      note's candidate rules, in the end, and it took a second report to learn
+      why both are needed. The first cut tested only the leaders — a slot whose
+      line back to the elbow would cut across one already drawn is refused
+      (`crossesRun`, filed by the stretch of ring a leader runs over and
+      compared a turn either way, because the two sides meet at 12 o'clock;
+      this needed the elbow radius, which `layoutLabels` was not told, so
+      `elbowRadius` is an option now). That left `SspI (4,171)` drawn *above*
+      `ZraI (4,287)` on the left of the ring, 88 px from its own tick, with
+      nothing crossing: a label sitting at its own anchor has only an 8 px
+      radial stub for a leader, and another can slide clean past it without
+      touching anything. Crossing is a consequence of breaking the order, not
+      the same thing as it. So a slot must also lie between the slots its
+      neighbours along the ring took (`rung`, `slots`). Over the harness's 268
+      renders that is **337 pairs out of order before, 39 after**, and it is
+      measured now rather than reasoned about — a third measure, read off the
+      drawn leaders, since an inversion shows up in neither the collision nor
+      the crossing count.
+    - **They are rules and not laws.** Refusing outright cost names that
+      nothing else would have lost: on the bundled pBR322 the SVG export went
+      from dropping none to dropping two, because `bla` and the
+      `beta-lactamase` mat_peptide inside it sit at nearly the same angle and
+      one of them has to give way. So a label the rules refuse is offered what
+      room is left in a second pass, with a much shorter slide
+      (`rescueShift`, two line heights by default): a pair that meet beside
+      their own features is a blemish, a missing name is not, and a label that
+      has to travel *and* break a rule to find room is the tangle this was
+      about. Over the 268 renders that pass is worth 53 labels for 14 crossing
+      pairs and 39 inversions, none of them more than two in one render;
+      letting it slide as far as the first pass does would buy 264 more labels
+      for 289 crossings and 398 inversions, which is the disease.
     - **The export buys the long leader the screen refuses**
-      (`labelShiftLines`, 16 for `exportMapSvg`). A figure has no pointer, so a
-      name the ring has no room for beside its own feature is lost rather than
-      one hover away — the same reason the export grows its canvas instead of
-      dropping. With it, the bundled pBR322 exports with nothing left out as
-      before.
+      (`labelShiftLines`, 16 for `exportMapSvg`, which sets `rescueShift` to
+      the same budget). A figure has no pointer, so a name the ring has no room
+      for beside its own feature is lost rather than one hover away — the same
+      reason the export grows its canvas instead of dropping, and the reason it
+      will take a long leader and a broken order rather than leave one out.
+      With it the bundled pBR322 exports with nothing left out as before, at
+      any size, with or without its cut sites; the absurd case of every feature
+      named drops 28 where it dropped 38.
     - **Measured by rendering, as item 29 was**
       (`src/view/circular/labelCollisions.test.ts`). Two measures were added,
       since none of this overlaps and the collision count could not see it: the
@@ -1040,15 +1053,18 @@ pick from here when the current work is done.
       viewports the report was taken in — `fitRange` on four arcs of each
       molecule at two pane sizes, which is what a double-click on a feature and
       the **Sel** button do. Over 268 renders: **1,052 crossing pairs before,
-      14 after**, longest leader **209 px before, 110 after**, and the cost is
-      5,195 labels drawn before against 4,812 after (the rest are in the `+N`
-      line and one hover away). Collisions stay at 0. The whole map got
-      slightly *faster* — 6.7 ms to 5.3 ms in the absurd case — because the
-      shorter slide halves the slots a crowded label tries
-      (`docs/perf-notes.md`).
+      14 after**, **337 pairs out of order before, 39 after**, longest leader
+      **209 px before, 110 after**, and the cost is 5,195 labels drawn before
+      against 4,665 after (the rest are in the `+N` line and one hover away).
+      Collisions stay at 0. The whole map got *faster* — 6.7 ms to 3.5 ms in
+      the absurd case — because the shorter slide halves the slots a crowded
+      label tries and the order rule cuts the search short as soon as a
+      neighbour's slot is reached (`docs/perf-notes.md`).
     - Not yet: the labels are still placed greedily in rank order, so the
       highest-ranked of a bunch keeps its ideal spot and its neighbours work
-      around it. A pass that spread a crowd about its centre instead would fit
+      around it — which is why a crowd against 12 or 6 o'clock, where the ring
+      has no more room in the direction the order demands, loses its
+      pole-most labels to the `+N` count. A pass that spread a crowd about its centre instead would fit
       more of them at the same quality, and that — with item 29's second label
       ring — is what would raise how much a crowded map can hold rather than
       how well it is spaced.

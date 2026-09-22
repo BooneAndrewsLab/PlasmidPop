@@ -176,9 +176,10 @@ densities a REBASE import makes possible. Each label is placed in rank order
 at the free slot nearest its anchor, which means testing its box against the
 boxes already taken; those are filed by horizontal band (two line heights),
 so a candidate is only compared with what is near its own y rather than with
-everything placed so far. Item 31 added a second test per slot — whether the
-leader line back to the elbow would cross one already drawn — filed the same
-way, by the stretch of ring a leader runs over.
+everything placed so far. Item 31 added two more tests per slot: whether it
+keeps the ring's order against the slots its neighbours took, and whether the
+leader line back to the elbow would cross one already drawn (filed the same
+way, by the stretch of ring a leader runs over).
 
 Measured 2026-09-21 in Node 24 on pBR322 with every feature named (50 of
 them), the whole map rendered through `SvgContext` at 900 × 700, mean of 150
@@ -187,16 +188,17 @@ runs:
 | labels on the ring                                     | render |
 | ------------------------------------------------------ | ------ |
 | 6 features, no cut sites (a real pBR322)               | 0.7 ms |
-| 50 features                                            | 1.2 ms |
-| 50 features, 35 single cutters                         | 1.6 ms |
-| 50 features, 123 cut positions                         | 2.0 ms |
-| 50 features, every cut site of all 127 bundled enzymes | 5.3 ms |
+| 50 features                                            | 1.1 ms |
+| 50 features, 35 single cutters                         | 1.4 ms |
+| 50 features, 123 cut positions                         | 1.6 ms |
+| 50 features, every cut site of all 127 bundled enzymes | 3.5 ms |
 
 The last row is not a case the app puts in front of anyone — the Enzymes tab
 ticks single cutters and only up to `MAX_DEFAULT_ENZYMES` of them — but it is
 the shape of the worst case, and it stays inside a frame. Banding the boxes
 took it from 8.8 ms to 6.5 ms and left everything else where it was; most of
-what remains is building the SVG string, which the canvas does not do. The
-crossing test did not cost anything measurable and the worst case came down
-to 5.3 ms with it, because the shorter slide it came with (eight line heights
-where it had been sixteen) halves the slots a crowded label tries.
+what remains is building the SVG string, which the canvas does not do. Item
+31's two tests cost nothing measurable and the worst case came _down_ to
+3.5 ms with them: the shorter slide they came with (eight line heights where
+it had been sixteen) halves the slots a crowded label tries, and the order
+rule cuts the search short as soon as a neighbour's slot is reached.

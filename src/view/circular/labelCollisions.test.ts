@@ -38,6 +38,13 @@ const MAX_LEADER_RUN = 120;
  */
 const MAX_CROSSING_LEADERS = 4;
 
+/**
+ * How many pairs of labels may read out of the order their ticks are, for
+ * the same reason and from the same pass. Before item 31 one render of
+ * pBR322 had 17 of them.
+ */
+const MAX_INVERSIONS = 4;
+
 const SANS = '12px Helvetica, Arial, sans-serif';
 const TITLE = '600 15px Helvetica, Arial, sans-serif';
 const report = process.env['LABEL_REPORT'] === '1';
@@ -143,6 +150,36 @@ function runsCross(a: Leader, b: Leader): boolean {
   return d1 !== 0 && d2 !== 0 && d3 !== 0 && d4 !== 0 && d1 !== d2 && d3 !== d4;
 }
 
+/**
+ * Pairs of labels that do not read in the order their ticks are. A label can
+ * slide past a neighbour without crossing anything when that neighbour sits
+ * at its own anchor, where its leader is a bare radial stub with nothing to
+ * cut across — which is how `SspI (4,171)` came to be drawn above
+ * `ZraI (4,287)` on the left of the ring, the second report of item 31. So
+ * the order is measured too, off the drawn leaders: the elbow is at the
+ * thing's own angle and the far end is where its label went.
+ */
+function inversions(layout: CircularLayout, ls: readonly Leader[]): number {
+  const ring = (p: Point): number => {
+    let a = Math.atan2(p.y - layout.cy, p.x - layout.cx);
+    if (a < -Math.PI / 2) a += Math.PI * 2;
+    return a;
+  };
+  const sides: [{ at: number; slot: number }[], { at: number; slot: number }[]] = [[], []];
+  for (const l of ls) {
+    const at = ring(l.elbow);
+    sides[at <= Math.PI / 2 ? 0 : 1].push({ at, slot: ring(l.to) });
+  }
+  let n = 0;
+  for (const side of sides) {
+    side.sort((a, b) => a.at - b.at);
+    for (let i = 0; i < side.length; i++)
+      for (let j = i + 1; j < side.length; j++)
+        if ((side[j]?.slot ?? 0) < (side[i]?.slot ?? 0)) n++;
+  }
+  return n;
+}
+
 function crossingRuns(ls: readonly Leader[]): number {
   let n = 0;
   for (let i = 0; i < ls.length; i++)
@@ -158,7 +195,7 @@ function render(
   doc: SeqDocument,
   cutSites: readonly CutSite[],
   c: RenderCase,
-): { svg: string; dropped: number } {
+): { svg: string; dropped: number; layout: CircularLayout } {
   const features = drawableFeatures(doc.features.all());
   const lanes = assignLanes(features, doc.length);
   const layout = new CircularLayout(doc.length, doc.topology, {
@@ -187,7 +224,7 @@ function render(
     sansFont: SANS,
     titleFont: TITLE,
   });
-  return { svg: ctx.toSvg(), dropped: droppedLabels };
+  return { svg: ctx.toSvg(), dropped: droppedLabels, layout };
 }
 
 /** The map's own chrome, which is not part of the label ring. */
@@ -381,7 +418,7 @@ describe('circular map labels', () => {
       let worst = 0;
       for (const c of [...CASES, ...arcCases(doc)]) {
         const started = performance.now();
-        const { svg, dropped } = render(doc, cuts.slice(0, c.cuts), c);
+        const { svg, dropped, layout } = render(doc, cuts.slice(0, c.cuts), c);
         const took = performance.now() - started;
         const boxes = textBoxes(svg).filter((b) => !isChrome(doc, b));
         const pairs = overlappingPairs(boxes);
@@ -393,6 +430,7 @@ describe('circular map labels', () => {
               `${String(boxes.length).padStart(3)} labels, ${String(pairs.length).padStart(3)} collisions, ` +
               `${String(dropped).padStart(3)} dropped, ` +
               `${String(crossingRuns(runs)).padStart(3)} crossings, ` +
+              `${String(inversions(layout, runs)).padStart(3)} inversions, ` +
               `leader max ${String(Math.round(Math.max(0, ...runs.map(leaderRun)))).padStart(3)}, ` +
               `${took.toFixed(1)} ms` +
               (pairs.length > 0
@@ -427,12 +465,16 @@ describe('circular map labels', () => {
     it(`keeps every label beside the thing it names: ${label}`, () => {
       const cuts = singleCutters(doc);
       for (const c of [...CASES, ...arcCases(doc)]) {
-        const { svg } = render(doc, cuts.slice(0, c.cuts), c);
+        const { svg, layout } = render(doc, cuts.slice(0, c.cuts), c);
         const runs = leaders(svg);
         const where = `${label} ${c.width}x${c.height} ${c.zoomed} ${c.cuts} cuts`;
         expect(crossingRuns(runs), `${where}: leaders cross`).toBeLessThanOrEqual(
           MAX_CROSSING_LEADERS,
         );
+        expect(
+          inversions(layout, runs),
+          `${where}: labels out of the order their ticks are`,
+        ).toBeLessThanOrEqual(MAX_INVERSIONS);
         const longest = Math.round(Math.max(0, ...runs.map(leaderRun)));
         expect(longest, `${where}: leader runs ${longest} px`).toBeLessThanOrEqual(MAX_LEADER_RUN);
       }

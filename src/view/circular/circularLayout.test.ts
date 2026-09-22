@@ -137,11 +137,11 @@ describe('layoutLabels', () => {
   });
 
   it('slides a crowded label along the ring instead of across the map', () => {
-    // Four wide labels bunched at 12 o'clock, where the ring runs flat: they
-    // spread sideways rather than marching down over the features.
+    // Three labels bunched just past 12 o'clock, where the ring runs flat:
+    // they spread sideways rather than marching down over the features.
     const top = inputs(
-      [-0.04, -0.02, 0, 0.02].map((d) => -Math.PI / 2 + d),
-      70,
+      [0, 0.05, 0.1].map((d) => -Math.PI / 2 + d),
+      40,
     );
     const { placed, dropped } = layoutLabels(top, layout, base);
     expect(dropped).toHaveLength(0);
@@ -150,8 +150,30 @@ describe('layoutLabels', () => {
       expect(ring(l)).toBeCloseTo(radius);
       expect(l.y).toBeLessThan(layout.cy - layout.radius);
     }
-    const xs = placed.map((l) => l.x).sort((a, b) => a - b);
-    expect((xs[xs.length - 1] ?? 0) - (xs[0] ?? 0)).toBeGreaterThan(70);
+    const spread = (v: number[]): number => Math.max(...v) - Math.min(...v);
+    const across = spread(placed.map((l) => l.x));
+    expect(across).toBeGreaterThan(40);
+    expect(across).toBeGreaterThan(spread(placed.map((l) => l.y)) * 2);
+  });
+
+  it('leaves out a label that could only fit by passing its neighbour', () => {
+    // Four wide labels bunched at 12 o'clock. `l1` is hemmed between `l0`
+    // and the top of the circle, where the ring has nowhere left to go, and
+    // the only free slot is on the far side of `l0` — where its name would
+    // read before `l0`'s although its tick comes after it. Out it goes, into
+    // the `+N labels not shown` count, rather than out of order: the leaders
+    // would not have crossed, because a label sitting at its own anchor has
+    // nothing but a radial stub to cut across (item 31).
+    const top = inputs(
+      [-0.04, -0.02, 0, 0.02].map((d) => -Math.PI / 2 + d),
+      70,
+    );
+    const { placed, dropped } = layoutLabels(top, layout, base);
+    expect(dropped.map((l) => l.id)).toEqual(['l1']);
+    const onRight = placed.filter((l) => l.align === 'left').sort((a, b) => a.angle - b.angle);
+    expect(onRight.map((l) => l.id)).toEqual(['l2', 'l3']);
+    // Down the right side, later along the ring means further down.
+    expect(onRight[0]?.anchorY ?? 0).toBeLessThan(onRight[1]?.anchorY ?? 0);
   });
 
   it('lets labels that do not overlap horizontally share a line', () => {
