@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 845 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 846 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -568,11 +568,14 @@ pick from here when the current work is done.
       glyphs sideways rather than doing anything readable (and the SVG export
       did the same through `lengthAdjust="spacingAndGlyphs"`); with four
       lanes of features inside a 390 px ring there are ~40 px in the middle.
-      `fitTitle` now steps the title font down to `MIN_TITLE_PX` (11) and then
-      shortens it with the labels' own `fitText` ellipsis, and nothing on the
-      map passes a `maxWidth` any more. Tested through the SVG: "pBR322" stays
-      at 15 px, "pLenti-CMV-EGFP1" steps down whole, "SYNPBR322 copy" at a
-      phone's size is `SYN…` at 11 px, and no `textLength` is written.
+      `fitTitle` now steps the title font down to `MIN_TITLE_PX` (11) and past
+      that the name is **left out**, not shortened — the first cut ellipsized
+      it, and "SYN…" says nothing the toolbar's name does not, on a phone or on
+      a desktop map dragged narrow (which squished the same way). The length
+      is whole or absent too, and takes the middle when the name has gone.
+      Nothing on the map passes a `maxWidth` any more. Tested through the SVG:
+      "pBR322" stays at 15 px, "pLenti-CMV-EGFP1" steps down whole, "SYNPBR322
+      copy" at a phone's size draws nothing, and no `textLength` is written.
     - **Not done from here: tested on a real device**, which the item asked
       for and which a jsdom test cannot stand in for. Also not yet: long-press
       to select a stretch of sequence for copying (the one editor-ish thing a

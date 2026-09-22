@@ -483,11 +483,10 @@ describe('renderCircularMap centre title', () => {
     });
     return ctx.toSvg();
   };
-  /** The title is the one piece of bold text on the map. */
-  const title = (svg: string): { readonly size: number; readonly text: string } => {
+  /** The title is the one piece of bold text on the map; null when none is drawn. */
+  const title = (svg: string): { readonly size: number; readonly text: string } | null => {
     const m = /<text[^>]*font-size="([\d.]+)" font-weight="600"[^>]*>([^<]*)<\/text>/.exec(svg);
-    if (m === null) throw new Error('no title');
-    return { size: Number(m[1]), text: m[2] ?? '' };
+    return m === null ? null : { size: Number(m[1]), text: m[2] ?? '' };
   };
 
   it('keeps a name that fits at full size', () => {
@@ -497,20 +496,61 @@ describe('renderCircularMap centre title', () => {
   it('sets a longer name smaller rather than squeezing it', () => {
     const svg = draw('pLenti-CMV-EGFP1', 500);
     const t = title(svg);
-    expect(t.text).toBe('pLenti-CMV-EGFP1');
-    expect(t.size).toBeLessThan(15);
-    expect(t.size).toBeGreaterThanOrEqual(11);
+    expect(t?.text).toBe('pLenti-CMV-EGFP1');
+    expect(t?.size).toBeLessThan(15);
+    expect(t?.size).toBeGreaterThanOrEqual(11);
     expect(svg).not.toContain('textLength');
   });
 
-  it('shortens a name the floor cannot hold, and never condenses it', () => {
-    // A phone's map pane, with four lanes of features inside the ring: the
-    // room left in the middle is a few characters. "SYNPBR322 copy" was drawn
-    // there as a squeezed script before the title learnt to step down.
+  it('leaves out a name the floor cannot hold, and never condenses or cuts it', () => {
+    // A phone's map pane, or a narrow desktop one, with four lanes of features
+    // inside the ring: the room left in the middle is a few characters.
+    // "SYNPBR322 copy" was drawn there as a squeezed script; now it is not
+    // drawn, since the toolbar has the name and "SYN…" says nothing.
     const svg = draw('SYNPBR322 copy', 390);
-    const t = title(svg);
-    expect(t.size).toBe(11);
-    expect(t.text).toMatch(/^SYN.*…$/);
+    expect(title(svg)).toBeNull();
+    expect(svg).not.toContain('SYN');
     expect(svg).not.toContain('textLength');
+    // The length is whole or absent too; here it does not fit either.
+    expect(svg).not.toContain(' bp<');
+  });
+
+  it('gives the length the middle when the name has gone', () => {
+    // Two lanes leave room for "4,360 bp" but not for the name.
+    const doc = SeqDocument.create({
+      name: 'a rather long plasmid name',
+      sequence: 'ACGT'.repeat(1090),
+      topology: 'circular',
+    });
+    const layout = new CircularLayout(doc.length, doc.topology, {
+      ...lanes,
+      laneCount: 2,
+      width: 420,
+      height: 420,
+    });
+    const ctx = new SvgContext(420, 420);
+    renderCircularMap(ctx, {
+      doc,
+      layout,
+      lanes: NO_LANES,
+      selection: null,
+      cutSites: [],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 420,
+      height: 420,
+      devicePixelRatio: 1,
+      theme: PRINT_THEME,
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    const svg = ctx.toSvg();
+    expect(title(svg)).toBeNull();
+    const bp = /<text x="([\d.]+)" y="([\d.]+)"[^>]*>4,360 bp<\/text>/.exec(svg);
+    expect(bp).not.toBeNull();
+    expect(Number(bp?.[2])).toBeCloseTo(layout.cy, 0);
   });
 });

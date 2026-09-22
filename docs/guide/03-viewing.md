@@ -152,7 +152,9 @@ The map draws the backbone as a ring with tick marks, features as arcs in
 lanes around it, and labels with leader lines. Features that share a name
 (a gene and its CDS, for example) get one label. Cut sites of the ticked
 enzymes are labelled on the same ring, unless **Cut sites** is off in the
-toolbar. The centre shows the name and length.
+toolbar. The centre shows the name and length when they fit whole; on a
+narrow map the name is set smaller, and past that it is left out rather than
+squeezed or cut short, since the toolbar has it.
 A linear sequence is drawn as an open ring with a gap at the ends.
 
 - **Click** the backbone to place the cursor, **drag** along it to select.

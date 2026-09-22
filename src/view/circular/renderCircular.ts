@@ -1016,36 +1016,41 @@ function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
       : layout.radius - 20;
   const maxWidth = Math.max(40, innerRadius * 1.8);
   // The room inside the lanes is what it is. A name wider than it is set
-  // smaller, down to a floor, and then shortened with an ellipsis — never
-  // handed to `fillText` as its `maxWidth`, which condenses the glyphs
-  // sideways (and the SVG export the same, through `lengthAdjust`): on a
-  // phone's map "SYNPBR322 copy" came out as a squeezed script.
+  // smaller, down to a floor, and past that it is left out: the toolbar has
+  // the name, and "SYN…" says nothing it does not. Never handed to `fillText`
+  // as its `maxWidth`, which condenses the glyphs sideways (the SVG export the
+  // same, through `lengthAdjust`) — on a narrow map "SYNPBR322 copy" came out
+  // as a squeezed script. The length is whole or absent for the same reason,
+  // and takes the middle when the name is gone.
   const title = fitTitle(ctx, p.titleFont, doc.name, maxWidth);
-  ctx.font = title.font;
-  ctx.fillText(title.text, layout.cx, layout.cy - 9);
+  if (title !== null) {
+    ctx.font = title;
+    ctx.fillText(doc.name, layout.cx, layout.cy - 9);
+  }
   ctx.font = p.sansFont;
   ctx.fillStyle = theme.inkMuted;
-  const length = fitText(ctx, `${doc.length.toLocaleString()} bp`, maxWidth);
-  if (length !== null) ctx.fillText(length.text, layout.cx, layout.cy + 9);
+  const length = `${doc.length.toLocaleString()} bp`;
+  if (ctx.measureText(length).width <= maxWidth) {
+    ctx.fillText(length, layout.cx, title === null ? layout.cy : layout.cy + 9);
+  }
 }
 
-/** Smallest the centre title is set before it is shortened instead. */
+/** Smallest the centre title is set before it is left out instead. */
 const MIN_TITLE_PX = 11;
 
-/** The title font at the size the name fits in, or at the floor with the name cut. */
+/** The title font at the largest size down to the floor that the name fits in, or null. */
 function fitTitle(
   ctx: DrawingContext,
   font: string,
   text: string,
   maxWidth: number,
-): { readonly font: string; readonly text: string } {
+): string | null {
   const at = (px: number): string => font.replace(/\d+(?:\.\d+)?px/, `${px}px`);
   for (let px = fontSizeOf(font); px >= MIN_TITLE_PX; px -= 1) {
     ctx.font = at(px);
-    if (ctx.measureText(text).width <= maxWidth) return { font: at(px), text };
+    if (ctx.measureText(text).width <= maxWidth) return at(px);
   }
-  ctx.font = at(MIN_TITLE_PX);
-  return { font: at(MIN_TITLE_PX), text: fitText(ctx, text, maxWidth)?.text ?? '' };
+  return null;
 }
 
 export interface MapRenderResult {
