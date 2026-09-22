@@ -6,6 +6,7 @@ import {
   type SeqDocument,
   featureLength,
   rangePieces,
+  sameFeatureLocation,
 } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
@@ -372,8 +373,9 @@ function drawFeature(
   // saying something the reader cannot get any other way.
   const outline = editOutline(p, feature);
   if (hovered || outline !== null) {
-    ctx.strokeStyle = outline ?? contrastingText(color);
+    ctx.strokeStyle = outline?.color ?? contrastingText(color);
     ctx.lineWidth = outline === null ? 1.5 : 2;
+    ctx.setLineDash(outline?.dashed === true ? EDIT_DASH : []);
     for (const seg of feature.segments) {
       if (seg.kind !== 'range') continue;
       for (const edge of [r - half + 0.75, r + half - 0.75]) {
@@ -382,16 +384,37 @@ function drawFeature(
         ctx.stroke();
       }
     }
+    ctx.setLineDash([]);
   }
 }
 
-/** The colour an annotation that changed since the baseline is outlined in. */
-function editOutline(p: CircularRenderParams, feature: Feature): string | null {
+/** Dash for the outline of a feature whose bases did not change, only its label. */
+const EDIT_DASH = [3, 2];
+
+/** The colour a changed annotation is outlined in, and the line it is drawn with. */
+interface EditOutline {
+  readonly color: string;
+  /** Broken, for a feature whose bases are the same and whose label is not. */
+  readonly dashed: boolean;
+}
+
+/**
+ * How an annotation that changed since the baseline is outlined: the colour
+ * of the change, and whether the line is broken.
+ *
+ * A solid line means the feature covers different bases than it did. A
+ * broken one means the same bases, described differently — retyped, renamed,
+ * a qualifier edited. That is the one distinction a line can carry, and it
+ * is the one worth carrying: the first can break a construct, the second
+ * cannot.
+ */
+function editOutline(p: CircularRenderParams, feature: Feature): EditOutline | null {
   const { edits, theme } = p;
   if (edits === null) return null;
-  if (edits.featuresAdded.has(feature.id)) return theme.editInsert;
-  if (edits.featuresChanged.has(feature.id)) return theme.editChange;
-  return null;
+  if (edits.featuresAdded.has(feature.id)) return { color: theme.editInsert, dashed: false };
+  const before = edits.featuresChanged.get(feature.id);
+  if (before === undefined) return null;
+  return { color: theme.editChange, dashed: sameFeatureLocation(before, feature) };
 }
 
 /** Shortest an edit arc may be on screen, as a short selection has. */

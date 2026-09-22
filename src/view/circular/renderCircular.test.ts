@@ -413,15 +413,24 @@ describe('renderCircularMap tracked changes', () => {
     expect(arcs(added, '#00aa00').length).toBeGreaterThan(0);
     // The outline is on the feature's own lane, not on the backbone.
     expect(arcs(added, '#00aa00')[0]?.radius).toBeLessThan(layout.radius - 10);
-    // The map only asks whether a feature changed; the before it is paired
-    // with is for the review's prose.
-    const changed = draw({
-      ...EMPTY_DIFF,
-      featuresChanged: new Map([
-        ['f1', createFeature({ type: 'CDS', segments: [rangeSegment(0, 10)] })],
-      ]),
+    // Moved by hand: the feature covers bases it did not, so a solid line.
+    const movedFrom = createFeature({
+      ...feature,
+      segments: [rangeSegment(1000, 1400)],
     });
-    expect(arcs(changed, '#aa8800').length).toBeGreaterThan(0);
+    const changed = draw({ ...EMPTY_DIFF, featuresChanged: new Map([['f1', movedFrom]]) });
+    const outlines = [...changed.matchAll(/<path[^>]*stroke="#aa8800"[^>]*\/>/g)].map((m) => m[0]);
+    expect(outlines.length).toBeGreaterThan(0);
+    expect(outlines.every((path) => !path.includes('stroke-dasharray'))).toBe(true);
+
+    // Retyped in place: the same bases under another label, so a broken one.
+    const retyped = draw({
+      ...EMPTY_DIFF,
+      featuresChanged: new Map([['f1', createFeature({ ...feature, type: 'gene' })]]),
+    });
+    const broken = [...retyped.matchAll(/<path[^>]*stroke="#aa8800"[^>]*\/>/g)].map((m) => m[0]);
+    expect(broken.length).toBeGreaterThan(0);
+    expect(broken.every((path) => path.includes('stroke-dasharray="3 2"'))).toBe(true);
   });
 
   it('scales the marks with the type size, as the rest of the ring does', () => {

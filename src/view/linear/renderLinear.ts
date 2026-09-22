@@ -8,6 +8,7 @@ import {
   complement,
   marksIn,
   rangePieces,
+  sameFeatureLocation,
   topStrandOverhang,
 } from '@/core';
 
@@ -475,13 +476,42 @@ function ribbonPath(ctx: DrawingContext, r: Ribbon, top: number, height: number)
   ctx.closePath();
 }
 
-/** The colour an annotation that changed since the baseline is outlined in. */
-function editOutline(p: RenderParams, feature: Feature): string | null {
+/** Dash for the outline of a feature whose bases did not change, only its label. */
+const EDIT_DASH = [3, 2];
+
+/** The colour a changed annotation is outlined in, and the line it is drawn with. */
+interface EditOutline {
+  readonly color: string;
+  /** Broken, for a feature whose bases are the same and whose label is not. */
+  readonly dashed: boolean;
+}
+
+/**
+ * How an annotation that changed since the baseline is outlined: the colour
+ * of the change, and whether the line is broken.
+ *
+ * A solid line means the feature covers different bases than it did. A
+ * broken one means the same bases, described differently — retyped, renamed,
+ * a qualifier edited. That is the one distinction a line can carry, and it
+ * is the one worth carrying: the first can break a construct, the second
+ * cannot.
+ */
+function editOutline(p: RenderParams, feature: Feature): EditOutline | null {
   const { edits, theme } = p;
   if (edits === null) return null;
-  if (edits.featuresAdded.has(feature.id)) return theme.editInsert;
-  if (edits.featuresChanged.has(feature.id)) return theme.editChange;
-  return null;
+  if (edits.featuresAdded.has(feature.id)) return { color: theme.editInsert, dashed: false };
+  const before = edits.featuresChanged.get(feature.id);
+  if (before === undefined) return null;
+  return { color: theme.editChange, dashed: sameFeatureLocation(before, feature) };
+}
+
+/** Strokes the path already in place with an edit outline, dash and all. */
+function strokeOutline(ctx: DrawingContext, outline: EditOutline): void {
+  ctx.strokeStyle = outline.color;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash(outline.dashed ? EDIT_DASH : []);
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, feature: Feature): void {
@@ -508,9 +538,7 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
         ctx.closePath();
         ctx.fill();
         if (outline !== null) {
-          ctx.strokeStyle = outline;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
+          strokeOutline(ctx, outline);
         }
       }
       return;
@@ -541,9 +569,7 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
     ctx.fill();
     if (outline !== null) {
       // The fill leaves the path in place, so the outline needs no second one.
-      ctx.strokeStyle = outline;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      strokeOutline(ctx, outline);
     }
 
     const inner =

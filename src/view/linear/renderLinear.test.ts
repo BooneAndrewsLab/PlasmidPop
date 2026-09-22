@@ -216,6 +216,26 @@ describe('renderLinearView edit marks', () => {
     // An untouched feature keeps its plain ribbon.
     expect(render(added, false, null)).not.toMatch(/stroke="#00aa00"/);
   });
+
+  it('breaks the outline where only the label changed, not the bases', () => {
+    const annotated = base.addFeature(
+      createFeature({ id: 'f', type: 'gene', name: 'x', segments: [rangeSegment(2, 9)] }),
+    );
+    const outlineOf = (svg: string): string =>
+      /<path[^>]*stroke="#aa8800"[^>]*>/.exec(svg)?.[0] ?? '';
+
+    // Retyped in place: the same bases, described differently.
+    const retyped = annotated.updateFeature('f', { type: 'CDS' });
+    expect(outlineOf(render(retyped, false, diffDocuments(annotated, retyped)))).toContain(
+      'stroke-dasharray="3 2"',
+    );
+
+    // Moved by hand: it covers bases it did not before, so the line is solid.
+    const moved = annotated.updateFeature('f', { segments: [rangeSegment(2, 14)] });
+    const movedSvg = render(moved, false, diffDocuments(annotated, moved));
+    expect(outlineOf(movedSvg)).not.toBe('');
+    expect(outlineOf(movedSvg)).not.toContain('stroke-dasharray');
+  });
 });
 
 /** Drawn text with the colour it was filled in. */

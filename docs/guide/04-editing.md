@@ -72,7 +72,11 @@ tracked changes in a word processor. Bases that are new are tinted and
 underlined in green, bases standing where other bases used to be in amber,
 and a red wedge with a line through the strands marks every place where
 bases were removed. A feature you added or edited gets an outline in the
-same colours. The dot on the button says something is marked; its tooltip,
+same colours, and the line says which kind of edit it was: a solid outline
+means the feature covers different bases than it did, a broken one means the
+same bases described differently — retyped, renamed, a qualifier edited. The
+first can break a construct and the second cannot, which is the one
+distinction a line can carry. The dot on the button says something is marked; its tooltip,
 and the foot of its menu, count it up (`+12 bp · 4 bp changed · −3 bp`).
 
 The **circular map** marks the same changes on the ring, in the same
@@ -80,7 +84,7 @@ colours: a green or amber band drawn over the backbone where the bases are
 new or replaced, and a red wedge pointing at every place where bases closed
 up. A stretch too short to see as a band — a single base of a plasmid — is
 drawn a little wider than it is, the way a short selection is. Features keep
-their outlines there too. This is the view that answers _where_ a change
+their outlines there too, broken or solid as in the sequence view. This is the view that answers _where_ a change
 landed: in the marker, in the origin, in nothing that matters.
 
 The menu chooses what the marks are measured from:

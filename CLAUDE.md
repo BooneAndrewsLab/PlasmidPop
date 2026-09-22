@@ -175,7 +175,7 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 901 passing. Perf measurements live in
+tapped feature keeping its label as a hovered one does. Tests: 902 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -1590,10 +1590,18 @@ pick from here when the current work is done.
       — type, name, strand, whether it moved — and counting qualifiers, since
       a `/note` can be a paragraph. Where it went is the column every row
       already has.
-    - Not yet: the sequence view's and the map's outline for a changed feature
-      still says only "touched", which is all a colour can carry; and a
-      feature that both moved *and* was renamed pairs with nothing, since the
-      location is the one thing the looser pass will not give up.
+    - **The outline says which kind of change it was** (2026-09-22): solid
+      where the feature covers different bases than it did, broken where it
+      covers the same ones under another label — retyped, renamed, a
+      qualifier edited. That is the one distinction a line can carry and the
+      one worth carrying, since the first can break a construct and the
+      second cannot. `sameFeatureLocation` answers it off the before the diff
+      now holds, which is already mapped into the newer document's
+      coordinates, so a feature that only *shifted* under an edit elsewhere
+      is not called moved. Both renderers and so both review dialogs and both
+      SVG exports get it from the one helper.
+    - Not yet: a feature that both moved *and* was renamed pairs with nothing,
+      since the location is the one thing the looser pass will not give up.
 
 ## Non-goals for v1
 

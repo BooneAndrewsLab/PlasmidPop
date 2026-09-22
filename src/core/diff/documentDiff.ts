@@ -325,6 +325,17 @@ function recognisable(before: Feature, after: Feature): boolean {
   return before.type === after.type;
 }
 
+/**
+ * Whether two versions of one feature cover the same bases. The older one a
+ * diff carries is already mapped into the newer document's coordinates, so
+ * this is the honest question to ask of it: has the annotation moved, or has
+ * only its description changed? A view can say that much with a line style,
+ * where "touched" is all a colour on its own can carry.
+ */
+export function sameFeatureLocation(before: Feature, after: Feature): boolean {
+  return sameLocation(before, after, (position) => position);
+}
+
 function sameLocation(before: Feature, after: Feature, map: (position: number) => number): boolean {
   return (
     before.segments.length === after.segments.length &&
