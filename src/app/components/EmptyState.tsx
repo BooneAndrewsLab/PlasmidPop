@@ -88,7 +88,9 @@ export function EmptyState() {
         </p>
         <p className="empty__hint">
           Everything stays in your browser: documents are kept here as you work and never uploaded,
-          and no file on your disk is written to. Download the ones you want as files.
+          and no file on your disk is written to. Download the ones you want as files. Your browser
+          may ask whether PlasmidPop can keep its data; saying yes protects your documents when disk
+          space runs low.
           {example !== undefined && (
             <>
               {' '}

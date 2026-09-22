@@ -333,6 +333,13 @@ export interface SharedState {
    * they are about to paste somewhere.
    */
   readonly shareNotice: { readonly chars: number } | null;
+  /**
+   * That the browser would ask the user before keeping this origin's
+   * storage, and has not been asked yet. The banner explains what the
+   * question means and puts it from a click, so the browser's own dialog
+   * follows something the user did rather than appearing out of nowhere.
+   */
+  readonly storageNotice: boolean;
   /** What a panel is pointing at in the views; see `DocumentPreview`. */
   readonly preview: DocumentPreview | null;
   /** Bumped when a clickable previewed span is clicked in either view. */
@@ -440,6 +447,7 @@ const SHARED_INITIAL: SharedState = {
   assembly: [],
   downloadNotice: null,
   shareNotice: null,
+  storageNotice: false,
   preview: null,
   previewActivated: null,
   comparison: null,
@@ -847,6 +855,15 @@ export class EditorStore {
 
   dismissShareNotice(): void {
     if (this.state.shareNotice !== null) this.setShared({ shareNotice: null });
+  }
+
+  /** Records that keeping the browser's storage is a question for the user, for the banner. */
+  noteStoragePrompt(): void {
+    if (!this.state.storageNotice) this.setShared({ storageNotice: true });
+  }
+
+  dismissStorageNotice(): void {
+    if (this.state.storageNotice) this.setShared({ storageNotice: false });
   }
 
   /** Puts up the review of what this working copy changed, before a download writes it. */

@@ -968,6 +968,24 @@ pick from here when the current work is done.
       back as neither `derived` nor having an `origin`, and the tab that build
       remembered reopens — it wrote only `plasmidpop.lastDocument`, never the
       `openDocuments` that `restoreLastSession` prefers.
+    - **The persistent-storage request is explained before it is made**
+      (2026-09-22). A user reported Firefox's "store data in persistent
+      storage" dialog appearing, unexplained, after their first file was
+      opened. `requestPersistentStorage` now asks the Permissions API first:
+      where the state is `prompt`, `StorageNotice` (a banner under the
+      toolbar, the same shelf as `DownloadNotice`) says where the documents
+      are and why the browser will ask, and **Keep my documents** makes the
+      request from the click, so the dialog follows the user's own action.
+      The answer is reported rather than assumed: Chromium also answers
+      `prompt` and then refuses in silence unless the app is installed,
+      bookmarked or used often (checked in Chrome 147), so a refusal gets a
+      second sentence and the guide says what helps. The choice is
+      `plasmidpop.storageChoice` in localStorage (`state/storageChoice.ts`):
+      `keep` asks silently every session until granted, `no` never asks. The
+      start screen carries one priming sentence about it, and the guide's
+      Usage statistics section explains Chrome's *local network* prompt,
+      which is the Matomo host resolving to a private address on the lab
+      network and nothing the app can change.
     - Not yet: nothing tells the user which stored documents have never been
       downloaded (every document lives in the browser now, so a per-row
       marker would be noise — the Files screen says it once instead).

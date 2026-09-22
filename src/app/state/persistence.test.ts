@@ -337,3 +337,90 @@ describe('PersistenceService assembly shelf', () => {
     expect(await repo.loadShelf()).toEqual([]);
   });
 });
+
+describe('PersistenceService persistent storage', () => {
+  /** A browser with a storage manager and a permission state of the test's choosing. */
+  function browser(state: PermissionState | null, persisted = false) {
+    const persist = vi.fn(() => Promise.resolve(true));
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { persisted: () => Promise.resolve(persisted), persist },
+    });
+    Object.defineProperty(navigator, 'permissions', {
+      configurable: true,
+      value:
+        state === null
+          ? undefined
+          : { query: () => Promise.resolve({ state } as PermissionStatus) },
+    });
+    return persist;
+  }
+
+  async function firstWrite(): Promise<void> {
+    const repo = new DocumentRepository(new PlasmidPopDb(`persist-${Date.now()}-${Math.random()}`));
+    const service = new PersistenceService(repo);
+    editorStore.openDocument(
+      SeqDocument.create({ name: 'pStore', sequence: 'ACGTACGT' }),
+      'pStore.gb',
+    );
+    await service.autosave();
+    await new Promise((r) => setTimeout(r, 0));
+    editorStore.closeDocument();
+  }
+
+  beforeEach(() => {
+    globalThis.localStorage.clear();
+    editorStore.dismissStorageNotice();
+  });
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'storage');
+    Reflect.deleteProperty(navigator, 'permissions');
+  });
+
+  it('puts up the banner instead of asking when the browser would ask the user', async () => {
+    const persist = browser('prompt');
+    await firstWrite();
+    expect(editorStore.getState().storageNotice).toBe(true);
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('asks silently where the browser decides for itself or cannot say', async () => {
+    for (const state of ['granted', 'denied', null] as const) {
+      const persist = browser(state);
+      await firstWrite();
+      expect(editorStore.getState().storageNotice).toBe(false);
+      expect(persist).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('never asks again after a no, and asks silently each session after a keep', async () => {
+    globalThis.localStorage.setItem('plasmidpop.storageChoice', 'no');
+    let persist = browser('prompt');
+    await firstWrite();
+    expect(editorStore.getState().storageNotice).toBe(false);
+    expect(persist).not.toHaveBeenCalled();
+
+    globalThis.localStorage.setItem('plasmidpop.storageChoice', 'keep');
+    persist = browser('prompt');
+    await firstWrite();
+    expect(editorStore.getState().storageNotice).toBe(false);
+    expect(persist).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing at all once the storage is already kept', async () => {
+    const persist = browser('prompt', true);
+    await firstWrite();
+    expect(editorStore.getState().storageNotice).toBe(false);
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('keepStorage reports the answer the browser gives', async () => {
+    browser('prompt');
+    expect(await new PersistenceService().keepStorage()).toBe(true);
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { persisted: () => Promise.resolve(false), persist: () => Promise.resolve(false) },
+    });
+    expect(await new PersistenceService().keepStorage()).toBe(false);
+  });
+});

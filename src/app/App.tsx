@@ -12,6 +12,7 @@ import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { ShareNotice } from './components/ShareNotice';
+import { StorageNotice } from './components/StorageNotice';
 import { Sidebar } from './components/Sidebar';
 import { SPLITTER_SIZE, Splitter } from './components/Splitter';
 import { StatusBar } from './components/StatusBar';
@@ -97,6 +98,7 @@ export function App() {
             <CopyBanner />
             <DownloadNotice />
             <ShareNotice />
+            <StorageNotice />
             <PhoneShell doc={doc} />
           </div>
         </main>
@@ -122,6 +124,7 @@ export function App() {
             <CopyBanner />
             <DownloadNotice />
             <ShareNotice />
+            <StorageNotice />
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}
             <div

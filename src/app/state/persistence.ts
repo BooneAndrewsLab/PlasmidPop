@@ -14,6 +14,7 @@ import { analysisClient } from '@/workers/analysisClient';
 import { analytics } from '../analytics';
 import { downloadText, fileNameFor } from '../saveFile';
 import { type DocumentState, editorStore } from './editorStore';
+import { storageChoice } from './storageChoice';
 
 /** What an import turned out to hold, for the Enzymes tab to report. */
 export interface RebaseImportSummary {
@@ -48,6 +49,22 @@ export function downloadNameFor(d: {
 interface Autosaved {
   readonly doc: SeqDocument;
   readonly fileName: string | null;
+}
+
+/**
+ * Whether asking to keep storage is a question for the user rather than
+ * for the browser. `prompt` is the only state that says so; `granted` and
+ * `denied` are already decided, and a browser without the query (Safari)
+ * has no dialog to warn about.
+ */
+async function wouldAskTheUser(): Promise<boolean> {
+  const permissions = navigator.permissions as Permissions | undefined;
+  if (permissions === undefined) return false;
+  try {
+    return (await permissions.query({ name: 'persistent-storage' })).state === 'prompt';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -89,9 +106,16 @@ export class PersistenceService {
    * Asks the browser to keep this origin's storage instead of evicting it
    * when space runs short. Done once, when the first document is actually
    * written: there is something to protect by then, and the user is working
-   * rather than staring at a freshly loaded page. Chromium decides for
-   * itself, Firefox asks the user; a no is fine, and storage then stays
-   * evictable as it was before.
+   * rather than staring at a freshly loaded page.
+   *
+   * Where the browser would put the question to the user (Firefox does;
+   * Chromium answers `prompt` too but decides silently), it is not asked
+   * straight away: the banner says what the question means and asks from a
+   * click, so the browser's dialog follows something the user did. The
+   * banner is shown once; after a `keep` the request is made silently each
+   * session until granted, after a `no` never. A browser without the
+   * Permissions API is simply asked, as before, and a no is fine either
+   * way: storage then stays evictable as it was.
    */
   private async requestPersistentStorage(): Promise<void> {
     if (this.persistenceRequested) return;
@@ -99,9 +123,31 @@ export class PersistenceService {
     const storage = navigator.storage as StorageManager | undefined;
     try {
       if (storage === undefined || (await storage.persisted())) return;
+      const choice = storageChoice();
+      if (choice === 'no') return;
+      if (choice === null && (await wouldAskTheUser())) {
+        editorStore.noteStoragePrompt();
+        return;
+      }
       await storage.persist();
     } catch {
       // Not available (or refused): nothing to do about it either way.
+    }
+  }
+
+  /**
+   * The banner's own request, made from its button. Resolves to whether the
+   * browser agreed, which is the one thing the banner has to report: a
+   * refusal here is silent in Chromium and a closed dialog in Firefox, and
+   * both leave the documents evictable.
+   */
+  async keepStorage(): Promise<boolean> {
+    try {
+      const storage = navigator.storage as StorageManager | undefined;
+      if (storage === undefined) return false;
+      return (await storage.persisted()) || (await storage.persist());
+    } catch {
+      return false;
     }
   }
 

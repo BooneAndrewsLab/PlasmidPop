@@ -306,15 +306,28 @@ The view switcher and the Complement, Translations and Cut sites toggles are
 remembered in the same browser storage, see
 [Viewing and selecting](03-viewing.md).
 
-Local storage is per browser profile and per device. The first time a
-document is written there, PlasmidPop asks the browser to keep that storage
-rather than clear it when space runs low; Chrome and Edge decide for
-themselves, Firefox asks you, and saying yes means your documents are not
-among the first things thrown away. Clearing site data still removes them,
-and a private window keeps nothing.
+Local storage is per browser profile and per device. A browser may clear a
+site's storage when disk space runs low, so the first time a document is
+written there a banner under the toolbar offers to ask the browser to keep
+PlasmidPop's storage instead. Nothing about that changes where your data is:
+it stays in this browser and nothing is uploaded.
 
-So: this browser is where your work lives while you are working, and it is
-not a backup. Download the documents you want to keep as files.
+- **Keep my documents** puts the question to the browser. In Firefox that
+  is a dialog of the browser's own, worded something like "Allow this site
+  to store data in persistent storage"; saying yes there means your
+  documents are not among the first things thrown away. Chrome and Edge show
+  no dialog and decide for themselves: they agree when the app is
+  [installed](#offline-use), bookmarked or used often, and otherwise say no
+  in silence. If the browser says no, the banner tells you so, and asks
+  again quietly on later visits until it agrees, so installing the app later
+  is enough.
+- **Not now** leaves things as they are. The browser is not asked, now or on
+  later visits, and storage stays clearable.
+
+Either way your documents are still in the browser. Clearing site data
+removes them, and a private window keeps nothing. So: this browser is where
+your work lives while you are working, and it is not a backup. Download the
+documents you want to keep as files.
 
 ## Usage statistics
 
@@ -327,6 +340,12 @@ opening a [share link](#sharing-a-link) sends the tracker the app's address
 and nothing of the document it carries. The tracker sets no cookies and the instance anonymises IP
 addresses. If your browser sends a Do-Not-Track signal, nothing is sent at
 all. Builds without a configured instance never send anything.
+
+If Chrome asks whether the page may **access other devices on your local
+network**, that is this tracker: the statistics server is on the lab's
+network, and Chrome asks before a public page may reach a private address.
+Refusing costs nothing but the statistics; the editor does not use the
+network at all.
 
 ## Offline use
 
