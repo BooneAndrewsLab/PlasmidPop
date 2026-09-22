@@ -175,8 +175,23 @@ sequence is written over, which the checksum had just caught it not doing
 (item 34). Added 2026-09-22: **a phone reader** (`PhoneShell`, item 15) — under
 600 px one pane at a time behind a bar of three tabs, a toolbar cut to the name
 and the File menu, touch that taps and scrolls rather than selecting, and a
-tapped feature keeping its label as a hovered one does. Tests: 902 passing. Perf measurements live in
-`docs/perf-notes.md`.
+tapped feature keeping its label as a hovered one does. Added 2026-09-22:
+**a diagnostic digest is chosen by its bands** rather than by how often an
+enzyme cuts — every row carries the bands that enzyme alone would give and an
+**Order** select sorts by how far apart they are, over a model of a 1 %
+agarose gel (`src/core/analysis/gel.ts`, item 30). Added 2026-09-22:
+**Gibson assembly** (`src/core/cloning/gibson.ts`, item 3), which joins parts
+by the homology at their ends rather than by an enzyme's overhang, and takes
+its parts from the open tabs and the ligation shelf alike, as Golden Gate now
+does. Added 2026-09-22: the Cloning tab **shows one reaction at a time** and
+**draws the digest's fragments on both views** through the preview channel,
+where clicking one shelves it (item 3); **each document tab keeps its own
+sidebar panel** (item 6). Added 2026-09-22: a feature that differs between
+two files is **paired with the one it became** instead of being reported as a
+loss and a gain, the review says what changed about it (`type gene → CDS`),
+and the outline in the views is **solid where the bases moved and broken
+where only the label did** (item 35). Tests: 902 passing. Perf measurements
+live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
 
@@ -255,8 +270,8 @@ pick from here when the current work is done.
    dephosphorylation, resolving IUPAC codes in overhangs, mixing two
    enzymes in one Golden Gate, and checking whether a set of Golden Gate
    overhangs would misligate.
-   - **Gibson, 2026-09-22** (`src/core/cloning/gibson.ts`, a third section in
-     the Cloning tab). The reaction has no enzyme, no site and no scar: each
+   - **Gibson, 2026-09-22** (`src/core/cloning/gibson.ts`, the third reaction
+     the Cloning tab's picker offers). The reaction has no enzyme, no site and no scar: each
      piece is made to end in the bases the next one starts with, and an
      exonuclease, a polymerase and a ligase join them in one tube. So there
      is nothing to digest and no overhang table to consult — the whole
@@ -330,11 +345,22 @@ pick from here when the current work is done.
      - The question the preview answers is which piece is the backbone. The
        sizes cannot say where they are, and clicking a row to select it
        answers for one piece at a time.
-     - Not yet: nothing in the band is clickable, so a fragment cannot be
-       added to the shelf from the map; the Golden Gate and Gibson products
-       are not previewed at all, which would need somewhere to draw a
-       molecule that is not open; and a digest of dozens of fragments draws
-       a busy ring, which is honest but not useful.
+     - **A previewed fragment is clickable** (2026-09-22) and goes to the
+       shelf exactly as its **Add** button does; the panel switches to
+       Ligation so it can be seen landing. The views know nothing of
+       fragments: a span carries `clickable` and a click raises
+       `previewActivated` (owner, id, nonce) for whoever drew it, as `reveal`
+       is raised for the views. Only clickable spans answer, so Find's 200
+       matches and the Primers arrows keep the behaviour the views already
+       had where they are drawn — on the map that matters, because the
+       preview ring is inside the backbone's own hit band and would otherwise
+       shadow half of it. The nonce is seeded at mount, or coming back to the
+       tab would answer the last click again and shelve a fragment by itself
+       (caught by a test, not by reading).
+     - Not yet: the Golden Gate and Gibson products are not previewed at all,
+       which would need somewhere to draw a molecule that is not open; and a
+       digest of dozens of fragments draws a busy ring, which is honest but
+       not useful.
 4. ~~**Translation of any selected range in six frames**~~ done. The
    Translate sidebar tab shows the selection (or the whole sequence when
    nothing is selected) in frames +1..+3 and −1..−3
@@ -369,9 +395,9 @@ pick from here when the current work is done.
 6. ~~**Multiple open documents (tabs)**~~ done. The store keeps one
    `DocumentState` per open document (history, selection, file name and
    handle, saved/opened/marked versions, warnings, analysis, enzyme ticks,
-   reveal, find, feature editing, overwrite prompt) and a `SharedState` for
-   the app (view prefs, sidebar tab, cut-site toggle, ORF threshold, error,
-   assembly shelf); `getState()` flattens the front tab into the same
+   reveal, find, feature editing, overwrite prompt, sidebar tab) and a
+   `SharedState` for the app (view prefs, cut-site toggle, ORF threshold,
+   error, assembly shelf, preview); `getState()` flattens the front tab into the same
    `EditorState` shape the views always read, plus `documents`. Methods act
    on the front tab unless they take an id (`apply`, `markDownloaded`,
    `requestSaveReview`, `activateDocument`, `closeDocument`); `setAnalysis`
@@ -971,7 +997,10 @@ pick from here when the current work is done.
     - **Features added or edited are outlined** in the colour of the change,
       as they are in the sequence view (`editOutline`, the same shape as the
       hover outline and outranking it — the pointer already says which feature
-      it is on, the colour says something nothing else does).
+      it is on, the colour says something nothing else does). Since
+      2026-09-22 the line says which kind of change it was as well: solid
+      where the feature covers different bases, broken where it covers the
+      same ones under another label (item 35).
     - **The geometry is measured in text**, like everything else outside the
       backbone since item 29: the arc's thickness and the wedge are
       `mapMetrics` derived from the sans font, so a large export does not draw
@@ -1053,13 +1082,19 @@ pick from here when the current work is done.
       a piece with `end <= start` and the span silently draws nothing. That
       was a real bug in the first cut of the Primers panel, found by reading
       the store in the browser rather than by a test.
-    - Not yet: nothing in the band is clickable (the hit kind is there for
-      it); ORFs, the Cloning tab's digest fragments and a previewed Golden
-      Gate product are the obvious next callers; there is one channel, so
-      two panels pointing at once means the last one wins; a preview does
-      not come back after leaving the sidebar tab; and a previewed primer
-      still does not draw its mismatches, which is the thing a scientist
-      squints at.
+    - **A span can be clicked** (2026-09-22), where the panel that drew it
+      marks it `clickable`: the view reports it through
+      `editorStore.activatePreview` and knows nothing more. The Cloning tab's
+      digest fragments were the first caller and are the reason the flag
+      exists — a preview that answers a click everywhere would shadow the
+      backbone's own hit band on the map, and a find match has nothing to
+      say to one.
+    - Not yet: ORFs and a previewed Golden Gate or Gibson product are the
+      obvious next callers, the last needing somewhere to draw a molecule
+      that is not open; there is one channel, so two panels pointing at once
+      means the last one wins; a preview does not come back after leaving the
+      sidebar tab; and a previewed primer still does not draw its mismatches,
+      which is the thing a scientist squints at.
 27. ~~**Name the features a diff removed.**~~ done, 2026-09-21.
     `SaveReviewDialog`'s Features list named what was added (`+ lacZα`) and what
     changed (`~ tet changed`), but a removal was one anonymous line —
@@ -1100,6 +1135,8 @@ pick from here when the current work is done.
       features it stands for.
     - The rows are built in `src/app/featureChanges.ts` rather than in the
       dialog, which now maps over them; `featureNames` is gone.
+    - A changed feature's line said only `~ tet changed` until 2026-09-22; it
+      names what changed now (item 35).
     - Not yet: nothing else shows the names — the Edits menu's tally and the
       sequence view's marks are unchanged — and a removed feature's line is
       not clickable, though its location is now known.
@@ -1638,3 +1675,13 @@ pick from here when the current work is done.
 - Auth provider: moot, there is no backend (decided 2026-09-21).
 - Where to refuse a share link for length, and what a document opened from
   one counts as in item 22's terms (item 11).
+- Whether a preview can show a molecule that is not open. The channel draws
+  spans on the document in front of you, which is why a Golden Gate or Gibson
+  product cannot be previewed before it is assembled: it is a different
+  molecule, not a range of this one. Opening it and looking is the answer for
+  now, and a second surface to draw on is a much larger idea than the want
+  behind it (items 3 and 26).
+- Whether the shelf is the ligation's or the bench's. Both one-pot reactions
+  take parts from it now, and a fragment clicked in a view lands there, but
+  it still lives under **Ligation** and adding to it switches the picker
+  there. If it grows a third use it wants a place of its own (item 3).
