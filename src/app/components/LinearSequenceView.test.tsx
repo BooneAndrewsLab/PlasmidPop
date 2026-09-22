@@ -39,6 +39,11 @@ function clickColumn(canvas: Element, x: number): void {
   fireEvent.pointerUp(canvas, { clientX: x, clientY: 30, button: 0, pointerId: 1 });
 }
 
+/** A finger at column `x`. */
+function touch(x: number): Record<string, unknown> {
+  return { clientX: x, clientY: 30, button: 0, pointerId: 2, pointerType: 'touch' };
+}
+
 describe('LinearSequenceView', () => {
   afterEach(() => {
     act(() => {
@@ -51,6 +56,47 @@ describe('LinearSequenceView', () => {
     const { canvas } = setup();
     clickColumn(canvas, LEFT_GUTTER + 10 * CHAR_WIDTH);
     expect(editorStore.getState().selection).toEqual({ start: 10, end: 10 });
+  });
+
+  it('acts on a finger only once it lifts where it landed', () => {
+    const { canvas } = setup();
+    const x = LEFT_GUTTER + 10 * CHAR_WIDTH;
+    fireEvent.pointerDown(canvas, touch(x));
+    // Down alone decides nothing: it may be the start of a scroll.
+    expect(editorStore.getState().selection).toBeNull();
+    fireEvent.pointerUp(canvas, touch(x));
+    expect(editorStore.getState().selection).toEqual({ start: 10, end: 10 });
+  });
+
+  it('leaves a finger that scrolled alone', () => {
+    const { canvas } = setup();
+    const from = LEFT_GUTTER + 10 * CHAR_WIDTH;
+    const to = LEFT_GUTTER + 30 * CHAR_WIDTH;
+    fireEvent.pointerDown(canvas, touch(from));
+    fireEvent.pointerMove(canvas, touch(to));
+    fireEvent.pointerUp(canvas, touch(to));
+    expect(editorStore.getState().selection).toBeNull();
+    // The browser taking the gesture for a scroll arrives as a cancel.
+    fireEvent.pointerDown(canvas, touch(from));
+    fireEvent.pointerCancel(canvas, touch(from));
+    expect(editorStore.getState().selection).toBeNull();
+  });
+
+  it('shows the bases alone in the reader, whatever the toggles say', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setShowComplement(true);
+    });
+    const spacerHeight = (view: ReturnType<typeof render>): number => {
+      const spacer = view.container.querySelector<HTMLElement>('.seq-view__spacer');
+      if (spacer === null) throw new Error('no spacer');
+      return parseFloat(spacer.style.height);
+    };
+    const full = render(<LinearSequenceView doc={doc} />);
+    const fullHeight = spacerHeight(full);
+    full.unmount();
+    const reader = render(<LinearSequenceView doc={doc} reader />);
+    expect(spacerHeight(reader)).toBeLessThan(fullHeight);
   });
 
   it('follows the view sideways when a fixed row width scrolls', () => {

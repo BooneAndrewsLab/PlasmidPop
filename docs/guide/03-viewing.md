@@ -37,6 +37,37 @@ tab strip on the window's edge, giving the views the whole width. Clicking any
 label opens it again on that tab, and `Alt+S` does both. The panel keeps
 whatever you had typed into it while it is closed.
 
+## On a phone
+
+On a screen narrower than about 600 px PlasmidPop is a reader rather than an
+editor: it shows one pane at a time, chosen from a bar at the foot of the
+screen. It is meant for the plasmid someone sent you as a link, read where the
+message arrived.
+
+- **Map**, **Sequence** and **Details** are the three panes. Details holds the
+  Features and Enzymes lists; the other sidebar tabs (primers, alignment,
+  cloning, ORFs, translation, history) are for making things and are not
+  offered on a phone.
+- The toolbar keeps the name, the size and shape of the molecule and the
+  **File** menu, so a document can still be downloaded or sent on as a link.
+  The view switcher, the toggles, **Format**, **Edits** and **History** are
+  not there.
+- **Tap a feature** on the map to select it. Its name comes back if the ring
+  had no room for it and stays until you tap somewhere else, which is what
+  hovering does with a mouse. **Pinch** to zoom and **drag** to pan.
+- In the sequence a finger **scrolls**. A **tap** on a feature bar selects the
+  feature, a tap on the bases puts the caret there. The bases are shown alone:
+  the Complement and Translations toggles are not applied, since each one adds
+  a line to every row.
+- Tapping a row in a list takes you back to the view you were last in, with
+  that feature selected.
+
+Nothing about a document is different on a phone: it is the same file, stored
+in the same browser, and everything comes back on a wider window. A notice
+says so the first time; **Got it** puts it away for good. A tablet is wide
+enough for the normal layout, with the map above the sequence in portrait, and
+the same touch gestures work there.
+
 ## Sequence view
 
 Bases are laid out in rows that fill the available width — or a width you

@@ -334,6 +334,9 @@ for (const [width, height] of [
   [1200, 800],
   [420, 560],
   [600, 600],
+  // A phone in portrait, the map pane of `PhoneShell`; there is no hover
+  // there to bring a dropped label back, so this is where the count is felt.
+  [390, 600],
 ] as const) {
   for (const zoom of [1, 1.5, 2, 3]) {
     for (const cuts of [0, 10, 20, 35])

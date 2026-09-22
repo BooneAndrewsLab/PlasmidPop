@@ -50,6 +50,9 @@ changed since you last downloaded it. Nothing is lost if you leave the page
 with the dot showing: every open document is written to this browser as you
 work and comes back when you return.
 
+On a phone the screen is arranged differently: one pane at a time and no
+editing controls. See [On a phone](03-viewing.md#on-a-phone).
+
 ## A two-minute tour
 
 1. Click **Open example**.

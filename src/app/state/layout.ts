@@ -31,6 +31,15 @@ export const DEFAULT_LAYOUT: LayoutSizes = {
  */
 export const VIEWS_STACKED_QUERY = '(max-width: 1000px)';
 export const SIDEBAR_STACKED_QUERY = '(max-width: 720px)';
+/**
+ * Where the app stops being an editor with panes and becomes the phone
+ * reader: one pane at a time behind a bar of three tabs (`PhoneShell`), a
+ * toolbar cut down to the name and the File menu, and no splitters at all.
+ * 600px takes in every phone in portrait and none of the tablets, whose
+ * landscape widths are the desktop layout and whose portrait ones are the
+ * stacked layout above.
+ */
+export const PHONE_QUERY = '(max-width: 600px)';
 
 /** Floors, in px, for what a pane is still usable at. */
 export const MIN_MAP_PX = 200;

@@ -514,6 +514,8 @@ button {
 
 .map-view__canvas {
   display: block;
+  /* A finger drag is the map's own: a pan, a pinch or a selection along the
+     backbone, never the page scrolling. */
   touch-action: none;
 }
 
@@ -2404,4 +2406,177 @@ button {
 .gg__dropped-size {
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
+}
+
+/* Phone reader (`PhoneShell`, at `PHONE_QUERY`) */
+
+/* One column and one row: the sidebar's 200px row of the stacked layout
+   would otherwise stand empty under the shell. */
+.app__main--phone {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* The editor column on a phone is a stack: whatever banners are up, then the
+   shell taking the rest. A flex column rather than the editor's grid, because
+   the banners come and go and a grid would have to know how many there are. */
+.phone-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.phone {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.phone__pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.phone__details {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  background: var(--surface-2);
+}
+
+.phone__subtabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.phone__subtab {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.phone__subtab--active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+  font-weight: 550;
+}
+
+.phone__panel {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* The bar sits where a thumb is; the safe-area inset keeps it off the home
+   indicator on the phones that have one. */
+.phone__bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.phone__tab {
+  min-height: 48px;
+  border: 0;
+  border-top: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.phone__tab--active {
+  color: var(--accent);
+  border-top-color: var(--accent);
+  font-weight: 600;
+}
+
+/* A finger drag on the sequence scrolls it, as it does any page; the view
+   acts on a tap when the finger lifts in place (`LinearSequenceView`). */
+.seq-view__canvas {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+@media (max-width: 600px) {
+  .toolbar {
+    padding: 6px 10px;
+    gap: 4px 10px;
+  }
+
+  .toolbar__brand .logo {
+    height: 22px;
+    width: auto;
+  }
+
+  /* The toggles that took this row's room at 720px are not on a phone's
+     toolbar, so the size and the shape come back: they are the first thing
+     a reader wants to know. */
+  .toolbar__meta {
+    display: inline;
+  }
+
+  .toolbar__name {
+    max-width: 60vw;
+  }
+
+  /* The size and shape under the name rather than beside it, so the brand,
+     the name and the File menu share one row on a 390px screen. */
+  .toolbar__doc {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .toolbar__meta {
+    font-size: 12px;
+  }
+
+  .statusbar__file {
+    display: none;
+  }
+
+  .statusbar__row {
+    padding: 0 10px;
+    gap: 8px;
+  }
+}
+
+/* Where the primary pointer is a finger, what it lands on is bigger. */
+@media (pointer: coarse) {
+  .button,
+  .segmented__button {
+    min-height: 36px;
+  }
+
+  .doctabs__name {
+    min-height: 36px;
+  }
+
+  .doctabs__close {
+    width: 28px;
+    height: 28px;
+  }
+
+  .map-view__control {
+    min-width: 40px;
+    line-height: 28px;
+  }
+
+  .sidebar__tab {
+    min-height: 40px;
+  }
 }

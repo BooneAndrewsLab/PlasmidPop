@@ -341,7 +341,13 @@ export function CircularMapView({ doc }: Props) {
     if (e.button !== 0) return;
     if (hit.kind === 'lane') {
       const id = featureAt(hit.lane, hit.position);
-      if (id !== null) editorStore.selectFeature(id);
+      if (id !== null) {
+        editorStore.selectFeature(id);
+        // A finger has no hover, so the tap does what a pointer resting
+        // there does: the feature's label comes back if the ring dropped
+        // it, and stays until the next tap (`onPointerLeave` lets it be).
+        if (e.pointerType === 'touch') setHover({ featureId: id, cut: null, kind: 'lane' });
+      }
       return;
     }
     if (hit.kind !== 'backbone') return;
@@ -414,7 +420,10 @@ export function CircularMapView({ doc }: Props) {
     }
     // A left click on empty space that did not turn into a pan clears the
     // selection, as clicking away from everything is expected to.
-    if (g.kind === 'pan' && g.button === 0 && !g.moved) editorStore.setSelection(null);
+    if (g.kind === 'pan' && g.button === 0 && !g.moved) {
+      editorStore.setSelection(null);
+      setHover(NO_HOVER);
+    }
     if (g.kind !== 'idle') endGesture();
   };
 
@@ -459,8 +468,10 @@ export function CircularMapView({ doc }: Props) {
         onContextMenu={(e) => {
           if (gesture.current.kind === 'pan') e.preventDefault();
         }}
-        onPointerLeave={() => {
-          setHover(NO_HOVER);
+        onPointerLeave={(e) => {
+          // A finger leaves the moment it lifts, and the label it brought
+          // back would go with it.
+          if (e.pointerType !== 'touch') setHover(NO_HOVER);
         }}
       />
       <div className="map-view__controls" role="toolbar" aria-label="Map zoom">

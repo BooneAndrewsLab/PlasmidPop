@@ -14,7 +14,9 @@ import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
 import { type ViewMode, editorStore } from '../state/editorStore';
+import { PHONE_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
+import { useMediaQuery } from './useMediaQuery';
 
 interface Props {
   readonly doc: SeqDocument | null;
@@ -55,6 +57,10 @@ export function Toolbar({ doc }: Props) {
     pickFile(compareWithFile, compareRef);
   };
   const [renaming, setRenaming] = useState(false);
+  // A phone's toolbar is the name and the File menu. The view switcher is
+  // the shell's own bar there, and the toggles, Format, Edits and History
+  // are for editing, which a phone does not do.
+  const phone = useMediaQuery(PHONE_QUERY);
 
   /** The hidden inputs' handler; `handle` is what to do with the file picked. */
   const onPick =
@@ -152,6 +158,8 @@ export function Toolbar({ doc }: Props) {
               Open file
             </button>
           </div>
+        ) : phone ? (
+          <FileMenu doc={doc} onOpenFile={openViaPicker} onCompareFile={compareViaPicker} />
         ) : (
           <>
             <FileMenu doc={doc} onOpenFile={openViaPicker} onCompareFile={compareViaPicker} />

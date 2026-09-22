@@ -64,15 +64,38 @@ export function Sidebar({ doc }: Props) {
         })}
       </div>
       <div className="sidebar__panel" role="tabpanel" hidden={!sidebarOpen}>
-        {sidebarTab === 'features' && <FeatureList doc={doc} />}
-        {sidebarTab === 'enzymes' && <EnzymePanel doc={doc} />}
-        {sidebarTab === 'orfs' && <OrfPanel doc={doc} />}
-        {sidebarTab === 'translate' && <TranslatePanel doc={doc} />}
-        {sidebarTab === 'primers' && <PrimerPanel doc={doc} />}
-        {sidebarTab === 'align' && <AlignPanel doc={doc} />}
-        {sidebarTab === 'cloning' && <CloningPanel doc={doc} />}
-        {sidebarTab === 'history' && <HistoryPanel />}
+        <SidebarPanel doc={doc} tab={sidebarTab} />
       </div>
     </aside>
   );
+}
+
+interface PanelProps {
+  readonly doc: SeqDocument;
+  readonly tab: SidebarTab;
+}
+
+/**
+ * The panel a tab names, on its own so the phone reader (`PhoneShell`) can
+ * show the two it has a use for without a rail it has no room for.
+ */
+export function SidebarPanel({ doc, tab }: PanelProps) {
+  switch (tab) {
+    case 'features':
+      return <FeatureList doc={doc} />;
+    case 'enzymes':
+      return <EnzymePanel doc={doc} />;
+    case 'orfs':
+      return <OrfPanel doc={doc} />;
+    case 'translate':
+      return <TranslatePanel doc={doc} />;
+    case 'primers':
+      return <PrimerPanel doc={doc} />;
+    case 'align':
+      return <AlignPanel doc={doc} />;
+    case 'cloning':
+      return <CloningPanel doc={doc} />;
+    case 'history':
+      return <HistoryPanel />;
+  }
 }

@@ -58,6 +58,8 @@ import { useEditorState } from '../state/useEditorStore';
 
 /** How long a notice about rejected input stays after the last rejected keystroke. */
 const REJECTED_INPUT_NOTICE_MS = 5000;
+/** How far a finger may drift and still have tapped rather than scrolled. */
+const TOUCH_SLOP = 10;
 
 /**
  * Follows the pointer even when it leaves the canvas mid-drag. Not every
@@ -83,13 +85,20 @@ function releasePointer(e: ReactPointerEvent<HTMLCanvasElement>): void {
 
 interface Props {
   readonly doc: SeqDocument;
+  /**
+   * The phone's reader (`PhoneShell`): the bases alone, whatever the
+   * Complement and Translations toggles say. The complement doubles every
+   * row and a translation line adds one per CDS, and a phone has the
+   * height for neither.
+   */
+  readonly reader?: boolean;
 }
 
-export function LinearSequenceView({ doc }: Props) {
+export function LinearSequenceView({ doc, reader = false }: Props) {
   const {
     selection,
-    showComplement,
-    showTranslations,
+    showComplement: complementPref,
+    showTranslations: translationsPref,
     showCutSites,
     seqFontSize,
     seqBasesPerRow,
@@ -100,6 +109,8 @@ export function LinearSequenceView({ doc }: Props) {
     shownEnzymes,
     preview,
   } = useEditorState();
+  const showComplement = complementPref && !reader;
+  const showTranslations = translationsPref && !reader;
   const cutSites = useMemo(
     () =>
       showCutSites && analysis !== null && analysis.doc === doc
@@ -120,6 +131,8 @@ export function LinearSequenceView({ doc }: Props) {
       targets, the bases are text. */
   const [cursor, setCursor] = useState<'text' | 'pointer' | 'default'>('text');
   const dragAnchor = useRef<number | null>(null);
+  /** Where a finger came down; a tap is acted on when it lifts in place. */
+  const touchTap = useRef<{ x: number; y: number } | null>(null);
   /** Codon drag on a translation line: the CDS being read and the codon it started on. */
   const codonDrag = useRef<{ translation: CdsTranslation; anchorIndex: number } | null>(null);
   /** Fixed end of the selection while extending with shift+arrows. */
@@ -335,6 +348,21 @@ export function LinearSequenceView({ doc }: Props) {
 
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     if (e.button !== 0) return;
+    if (e.pointerType === 'touch') {
+      // A finger down is a scroll until it lifts in place. The browser owns
+      // the drag (`touch-action` on the canvas), so nothing is selected or
+      // captured here; `onPointerUp` acts on the tap.
+      touchTap.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+    press(e);
+  };
+
+  /**
+   * What a press does: selects the feature or the codon under it, or puts
+   * the caret there and takes the drag that may follow.
+   */
+  const press = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
     if (hit.kind === 'lane' || hit.kind === 'translation') {
@@ -395,6 +423,17 @@ export function LinearSequenceView({ doc }: Props) {
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const tap = touchTap.current;
+    touchTap.current = null;
+    // A finger that lifted where it landed was a tap, not a scroll; a scroll
+    // arrives as a cancel, or as an up somewhere else.
+    if (
+      tap !== null &&
+      e.type !== 'pointercancel' &&
+      Math.hypot(e.clientX - tap.x, e.clientY - tap.y) <= TOUCH_SLOP
+    ) {
+      press(e);
+    }
     if (dragAnchor.current === null && codonDrag.current === null) return;
     dragAnchor.current = null;
     codonDrag.current = null;

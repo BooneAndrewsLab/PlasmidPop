@@ -9,7 +9,7 @@ import { EXAMPLES } from './examples';
 import { shareUrlFor } from './share';
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
 import { editorStore } from './state/editorStore';
-import { DEFAULT_LAYOUT } from './state/layout';
+import { DEFAULT_LAYOUT, PHONE_QUERY } from './state/layout';
 import { App } from './App';
 
 // The store is a module singleton and autosave remembers the last document:
@@ -844,5 +844,50 @@ describe('share links', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/damaged/);
     });
     expect(editorStore.getState().documents).toHaveLength(0);
+  });
+});
+
+describe('App on a phone', () => {
+  // jsdom has no matchMedia; answer the phone query alone and put it back after.
+  const real = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+  beforeEach(() => {
+    const matchMedia = (query: string): MediaQueryList =>
+      ({
+        matches: query === PHONE_QUERY,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as MediaQueryList;
+    Object.defineProperty(window, 'matchMedia', {
+      value: matchMedia,
+      configurable: true,
+      writable: true,
+    });
+  });
+  afterEach(() => {
+    if (real === undefined) Reflect.deleteProperty(window, 'matchMedia');
+    else Object.defineProperty(window, 'matchMedia', real);
+  });
+
+  it('reads one pane at a time, with the size and shape above and nothing to drag', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /open pBR322/i }));
+    expect(screen.getByText('4,361 bp, circular')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'File' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'View' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Show' })).toBeNull();
+    expect(screen.queryByRole('separator')).toBeNull();
+    expect(screen.getByRole('img', { name: /^Map of/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Details' }));
+    const [tet] = screen.getAllByRole('button', { name: /^tetgene/i });
+    if (tet === undefined) throw new Error('expected a tet feature');
+    // Tapping a feature in the list goes to where it is.
+    fireEvent.click(tet);
+    expect(screen.getByRole('img', { name: /^Map of/ })).toBeInTheDocument();
+    expect(screen.getByText(/bp selected/)).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
+import { PhoneShell } from './components/PhoneShell';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
@@ -24,6 +25,7 @@ import {
   MIN_SEQUENCE_HEIGHT_PX,
   MIN_SEQUENCE_PX,
   MIN_SIDEBAR_PX,
+  PHONE_QUERY,
   SIDEBAR_STACKED_QUERY,
   VIEWS_STACKED_QUERY,
   clampSidebarWidth,
@@ -57,6 +59,9 @@ export function App() {
   // the splitter has to know which one is on screen.
   const stackedViews = useMediaQuery(VIEWS_STACKED_QUERY);
   const stackedSidebar = useMediaQuery(SIDEBAR_STACKED_QUERY);
+  // On a phone the panes give way to one at a time (`PhoneShell`); the
+  // toolbar and the document tabs above it cut themselves down on their own.
+  const phone = useMediaQuery(PHONE_QUERY);
   const split = stackedViews ? layout.viewsSplitStacked : layout.viewsSplit;
   const percent = Math.round(split * 100);
   const tracks = `${split}fr ${SPLITTER_SIZE}px ${1 - split}fr`;
@@ -85,6 +90,15 @@ export function App() {
       {doc === null ? (
         <main className="app__main app__main--empty">
           <EmptyState />
+        </main>
+      ) : phone ? (
+        <main className="app__main app__main--phone">
+          <div className="phone-editor" key={documentId}>
+            <CopyBanner />
+            <DownloadNotice />
+            <ShareNotice />
+            <PhoneShell doc={doc} />
+          </div>
         </main>
       ) : (
         <main
