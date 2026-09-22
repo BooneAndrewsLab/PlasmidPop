@@ -103,6 +103,10 @@ decided is already in those two sequences.
   [Previews](03-viewing.md#previews)); **Open** opens it as a document, with
   the template's features and a `primer_bind` feature for each oligo, tail
   and all. Clicking the previewed product in either view opens it too.
+- **Upper case in the product means "not from the template".** The bases that
+  came from the template are written in the case the template writes them
+  (usually lower, in a GenBank file), so what is left in capitals is the 5′
+  tails and any mismatch — the way a primer is written out in a paper.
 - **More than one product** is what a real tube gives when a primer binds in
   more than one place. They are listed cleanest and shortest first, because
   an exactly-matched short amplicon out-competes the rest, and drawn as a

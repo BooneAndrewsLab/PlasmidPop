@@ -88,6 +88,28 @@ describe('pcr', () => {
     expect(result.products[0]?.mismatches).toBe(1);
   });
 
+  it('writes in upper case only what did not come from the template', () => {
+    // A GenBank ORIGIN block is lower case and a primer is cleaned to upper,
+    // so writing the oligo over the template would shout the whole annealing
+    // region — which is the template's own sequence. Upper case in a product
+    // means the 5′ tail and the mismatches, as a primer is written out in a
+    // paper.
+    const lower = SeqDocument.create({ name: 'strip', sequence: TEXT.toLowerCase() });
+    const mutation = TEXT.charAt(108) === 'A' ? 'C' : 'A';
+    const annealing = `${TEXT.slice(100, 108)}${mutation}${TEXT.slice(109, 122)}`;
+    const result = pcr(lower, [{ name: 'F', sequence: `GGATCC${annealing}` }, rev(500, 522)]);
+    const product = one(result);
+    expect(product.toUpperCase()).toBe(
+      `GGATCC${TEXT.slice(100, 108)}${mutation}${TEXT.slice(109, 522)}`,
+    );
+    const shouted: number[] = [];
+    for (let i = 0; i < product.length; i++) {
+      if (product.charAt(i) !== product.charAt(i).toLowerCase()) shouted.push(i);
+    }
+    // The six bases of the tail, and the mismatch at 6 + 8.
+    expect(shouted).toEqual([0, 1, 2, 3, 4, 5, 14]);
+  });
+
   it('refuses a mismatch under the 3′ end', () => {
     const annealing = TEXT.slice(100, 122).split('');
     annealing[21] = annealing[21] === 'A' ? 'C' : 'A';

@@ -190,10 +190,14 @@ function amplify(template: SeqDocument, c: Candidate, name: string): PcrProduct 
   // The product's ends are the primers', not the template's: the bases under
   // an annealing region come from the oligo, so a mismatch in one is a
   // mutation in the product. The interior is the template's own.
+  const body = copied.sequence;
+  const reverseOligo = reverseComplement(r.primer);
   const sequence =
-    f.primer +
-    copied.sequence.slice(f.annealLength, span - r.annealLength) +
-    reverseComplement(r.primer);
+    f.tail +
+    fromPrimer(body.slice(0, f.annealLength), f.primer.slice(f.tail.length)) +
+    body.slice(f.annealLength, span - r.annealLength) +
+    fromPrimer(body.slice(span - r.annealLength), reverseOligo.slice(0, r.annealLength)) +
+    reverseOligo.slice(r.annealLength);
   const shift = f.tail.length;
   const features = copied.features.map((feature) => ({
     ...feature,
@@ -226,6 +230,28 @@ function amplify(template: SeqDocument, c: Candidate, name: string): PcrProduct 
     length: sequence.length,
     mismatches: f.mismatches + r.mismatches,
   };
+}
+
+/**
+ * The annealed stretch as the product carries it: the template's own bases,
+ * except where the primer disagrees.
+ *
+ * It is the same string either way but for its case, and the case is worth
+ * having. Primers are cleaned to upper case and a GenBank ORIGIN block is
+ * usually lower, so writing the primer over the template would shout the
+ * whole annealing region — which came from the template after all. Written
+ * this way, the upper-case letters of a product are exactly the bases that
+ * did not: the 5\u2032 tails and the mismatches. That is how a primer is written
+ * out in a paper, and it costs nothing.
+ */
+function fromPrimer(fromTemplate: string, fromOligo: string): string {
+  let out = '';
+  for (let i = 0; i < fromTemplate.length; i++) {
+    const base = fromTemplate.charAt(i);
+    const oligo = fromOligo.charAt(i);
+    out += base.toUpperCase() === oligo ? base : oligo;
+  }
+  return out;
 }
 
 /**

@@ -197,7 +197,7 @@ joining parts, annealing a primer by its 3′ end so a 5′ tail (a site, a
 Gibson arm, a mutation) is carried into the product; and the **gel is drawn**
 rather than only described (`src/app/components/Gel.tsx`, item 30), a lane
 beside a chosen ladder under the Enzymes tab's ticked fragments and under the
-PCR products, where clicking a band selects that piece. Tests: 938 passing.
+PCR products, where clicking a band selects that piece. Tests: 939 passing.
 Perf measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -1706,6 +1706,14 @@ pick from here when the current work is done.
       mismatch under a primer is a mutation to write down rather than an error
       to flag. Site-directed mutagenesis therefore needs nothing of its own:
       design the primer with the change in it and amplify.
+    - **Upper case in the product means "not from the template".** The
+      annealed bases are written in the template's own case and only the
+      tails and the mismatches in the primer's, so the capitals in a product
+      are exactly what the template did not supply — which is how a primer is
+      written out in a paper, and is free. (Writing the oligo over the
+      template shouts the whole annealing region, since primers are cleaned
+      to upper case and an ORIGIN block is lower: seen in the browser, not in
+      a test, and now both.)
     - **Inverse PCR needs no case either.** On a circle the product is the
       stretch from the forward primer round to the reverse one, so back-to-back
       primers give nearly the whole plasmid — which is how a vector is
