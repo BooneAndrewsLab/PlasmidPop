@@ -140,7 +140,10 @@ the sidebar's width are remembered in `viewPrefs`, **Format ▸ Reset the
 layout** puts them back), and clicking the open sidebar tab collapses the
 sidebar to its rail (item 28), and the Enzymes tab filters by how often an
 enzyme cuts rather than only "once" (item 30; that filter and the supplier one
-are remembered, the search box is not). Tests: 714 passing. Perf measurements live in
+are remembered, the search box is not). Added 2026-09-21: a map label slides only
+a short way from its own tick and no leader line crosses another unless two
+features sit at the same place, measured by rendering rather than asserted
+(item 31). Tests: 716 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -969,42 +972,72 @@ pick from here when the current work is done.
       below it); on a sidebar widened past ~430 px they share a line again,
       which is item 28 paying for itself.
 
-31. **A crowded side of the map places its labels outrageously.** Reported
-    2026-09-21 with a screenshot: pBR322 zoomed in, the ring a shallow arc down
-    the right of the pane, and the cut sites of 3,400–4,300 labelled in a
-    column far out to the left — `SspI (4,171)`, `ScaI (3,847)`,
+31. ~~**A crowded side of the map places its labels outrageously.**~~ fixed
+    2026-09-21. Reported 2026-09-21 with a screenshot: pBR322 zoomed in, the ring
+    a shallow arc down the right of the pane, and the cut sites of 3,400–4,300
+    labelled in a column far out to the left — `SspI (4,171)`, `ScaI (3,847)`,
     `PvuI (3,737)`, `ZraI (4,287)`, `PstI (3,612)`, `AseI (3,539)`,
     `BsaI (3,428)` — with long leaders fanning across the gap and crossing each
-    other, and the labels not in the order their ticks are. Item 29 fixed
-    labels landing *on top of* one another (0 collisions in 128 renders); this
-    is the cost it paid for that, and it shows worst zoomed in, where one
-    crowded arc holds every label at once.
-    - **Where it comes from.** `layoutLabels` (`src/view/circular/
-      circularLayout.ts`) places in rank order and gives each label the free
-      slot nearest its own anchor, sliding along the ring up to `maxShift`
-      (`lineHeight * 16`, about 192 px). Nothing makes a later label yield to
-      an earlier one's *position*, so the angular order is not kept and two
-      leaders may cross; nothing charges for the length of a leader either, so
-      a label will slide 190 px rather than be dropped. Zoomed in the ring's
-      radius is large, so a slide of that many pixels is a small angle and the
-      whole crowd ends up stacked at the same end of the arc.
-    - **What would fix it**, roughly in order of how much it changes: place
-      each side's labels in *angular* order and spread them with the standard
-      one-pass "push down, then push back" over the sorted list, which cannot
-      produce a crossing; or charge for the slide (drop a label rather than
-      take a slot more than a few line heights away, which the `+N` count
-      already makes affordable); or scale `maxShift` with the radius so the
-      cap is an angle rather than a pixel distance.
-    - The harness to measure it is already there
-      (`src/view/circular/labelCollisions.test.ts`, `LABEL_REPORT=1`), but it
-      counts overlapping boxes, and none of this overlaps. It needs a second
-      measure — leader length and the number of crossing leaders — and a case
-      zoomed into one arc, which is the state the screenshot was taken in.
-    - Related: item 29's own "not yet" list already names the near-parallel
-      tangle of leaders where a dozen labels bunch, and a second label ring as
-      the thing that would raise how much fits rather than how well it is
-      spaced.
-
+    other, and the labels not in the order their ticks are. Item 29 fixed labels
+    landing *on top of* one another (0 collisions in 128 renders); this was the
+    cost it paid for that, and it showed worst zoomed in, where one crowded arc
+    holds every label at once.
+    - **The slide is charged for now.** `layoutLabels` let a label slide
+      `lineHeight * 16` along the ring — about 190 px, most of a pane — rather
+      than be left out, and nothing charged for the distance. It is eight line
+      heights (~110 px), so a label that cannot be reached in a glance from its
+      own tick is left out instead and counted in the `+N` line, which is what
+      item 29 made affordable. A pixel cap rather than an angular one on
+      purpose: zoomed in the radius is large, so the same slide is a small
+      angle, and a whole crowd could slide the same way with the angular
+      spacing never looking wrong — which is exactly what the screenshot was.
+    - **No leader may cross another.** The two candidate rules in the note were
+      keeping the ring's order and charging for the slide; the order rule turns
+      out to be a proxy for what the reader actually sees, and a weaker one —
+      it cost the same labels and still left five crossing pairs in the
+      measured set. So the *lines themselves* are tested: a slot whose leader
+      would cut across one already drawn is refused (`crossesRun`, filed by the
+      stretch of ring a leader runs over, and compared a turn either way
+      because the two sides meet at 12 o'clock). That needed the elbow radius,
+      which `layoutLabels` was not told — `elbowRadius` is an option now.
+    - **It is a rule and not a law.** Refusing outright cost names that nothing
+      else would have lost: on the bundled pBR322 the SVG export went from
+      dropping none to dropping two, because `bla` and the `beta-lactamase`
+      mat_peptide inside it sit at nearly the same angle and one of them has to
+      give way. So a label the rule refuses is offered what room is left in a
+      second pass, with a much shorter slide (`TANGLED_SHIFT_LINES`, two line
+      heights): a pair whose leaders meet beside their own features is a
+      blemish, a missing name is not, and a label that has to travel *and*
+      cross to find room is the tangle this was about. Measured over the
+      harness's 268 renders, the second pass is worth 49 labels for 10 crossing
+      pairs; letting it slide as far as the first pass does would buy another
+      157 labels for another 210.
+    - **The export buys the long leader the screen refuses**
+      (`labelShiftLines`, 16 for `exportMapSvg`). A figure has no pointer, so a
+      name the ring has no room for beside its own feature is lost rather than
+      one hover away — the same reason the export grows its canvas instead of
+      dropping. With it, the bundled pBR322 exports with nothing left out as
+      before.
+    - **Measured by rendering, as item 29 was**
+      (`src/view/circular/labelCollisions.test.ts`). Two measures were added,
+      since none of this overlaps and the collision count could not see it: the
+      length of a leader's run from the elbow to its label, and the number of
+      pairs of runs that cross, both read off the drawn SVG. So were the
+      viewports the report was taken in — `fitRange` on four arcs of each
+      molecule at two pane sizes, which is what a double-click on a feature and
+      the **Sel** button do. Over 268 renders: **1,052 crossing pairs before,
+      14 after**, longest leader **209 px before, 110 after**, and the cost is
+      5,195 labels drawn before against 4,812 after (the rest are in the `+N`
+      line and one hover away). Collisions stay at 0. The whole map got
+      slightly *faster* — 6.7 ms to 5.3 ms in the absurd case — because the
+      shorter slide halves the slots a crowded label tries
+      (`docs/perf-notes.md`).
+    - Not yet: the labels are still placed greedily in rank order, so the
+      highest-ranked of a bunch keeps its ideal spot and its neighbours work
+      around it. A pass that spread a crowd about its centre instead would fit
+      more of them at the same quality, and that — with item 29's second label
+      ring — is what would raise how much a crowded map can hold rather than
+      how well it is spaced.
 
 ## Non-goals for v1
 

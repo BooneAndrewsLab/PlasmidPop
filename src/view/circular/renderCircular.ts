@@ -55,6 +55,13 @@ export interface CircularRenderParams {
   readonly theme: CircularTheme;
   readonly sansFont: string;
   readonly titleFont: string;
+  /**
+   * How far a label may slide along the ring from the thing it names, in
+   * line heights. On screen a name the ring has no room for is one hover
+   * away, so the map keeps its leaders short and leaves the name out; an
+   * export has no hover, so it pays the longer leader rather than lose it.
+   */
+  readonly labelShiftLines?: number;
 }
 
 interface MapMetrics {
@@ -679,7 +686,9 @@ function drawLabels(
 
   const { placed, dropped } = layoutLabels(inputs, layout, {
     labelRadius,
+    elbowRadius: layout.radius + m.elbow,
     lineHeight: m.lineHeight,
+    ...(p.labelShiftLines === undefined ? {} : { maxShift: m.lineHeight * p.labelShiftLines }),
     width: p.width,
     height: p.height,
     obstacles,

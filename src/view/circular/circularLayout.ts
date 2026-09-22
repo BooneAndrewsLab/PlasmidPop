@@ -176,10 +176,21 @@ export interface LabelLayoutOptions {
   readonly height: number;
   /** Boxes already spoken for — ruler numbers — which never move. */
   readonly obstacles?: readonly LabelBox[];
-  /** How far a label may slide along the ring from its anchor, in pixels. */
+  /**
+   * How far a label may slide along the ring from its anchor, in pixels.
+   * A slide is a leader line drawn across the map, so this is a budget for
+   * how far the reader's eye has to travel, not a measure of how hard the
+   * ring is to fit into: past it the label is left out instead.
+   */
   readonly maxShift?: number;
   /** Margin kept clear at the canvas edges, for the hovered label's bubble. */
   readonly inset?: number;
+  /**
+   * Radius of the elbow a leader turns at, which is where the line to a
+   * slid label starts. Needed to keep leaders from crossing; defaults to
+   * the label ring, which makes every leader a chord of it.
+   */
+  readonly elbowRadius?: number;
 }
 
 export interface LabelLayout {
@@ -190,6 +201,98 @@ export interface LabelLayout {
 
 const LABEL_GAP_X = 4;
 const LABEL_GAP_Y = 1;
+
+/**
+ * How far a label may slide from its anchor by default, in line heights.
+ * It was sixteen, which is most of a pane: on a map zoomed into one arc a
+ * crowded side would slide its whole crowd to one end rather than leave
+ * any of it out, and the leaders fanned across the gap (item 31). A label
+ * that cannot be reached in a glance from the thing it names is worth less
+ * than the `+N not shown` line that replaces it.
+ */
+const MAX_SHIFT_LINES = 8;
+
+/**
+ * How far a label placed in the second pass may slide, in line heights.
+ * Much shorter than `MAX_SHIFT_LINES`: that pass is there for the pair of
+ * features at nearly the same place — a `mat_peptide` inside its CDS, a
+ * cut site beside a feature's end — where one of the two has to give way
+ * and whichever does crosses the other. A label that has to travel to find
+ * room *and* cross something to get there is the tangle this was fixing,
+ * so it is left out as before.
+ */
+const TANGLED_SHIFT_LINES = 2;
+
+/**
+ * Angle normalised to [-π/2, 3π/2), so that each side of the ring is one
+ * interval — the right side [-π/2, π/2], the left the rest — and a label's
+ * place along the ring is just this number: it increases clockwise down the
+ * right side and anticlockwise up the left one, which on both sides is the
+ * order the labels are read in.
+ */
+function ringAngle(angle: number): number {
+  let a = angle % TWO_PI;
+  if (a < -Math.PI / 2) a += TWO_PI;
+  if (a >= Math.PI * 1.5) a -= TWO_PI;
+  return a;
+}
+
+/**
+ * A leader already drawn: the line from the elbow beside the thing named to
+ * the label itself, with the stretch of ring it runs over so that the ones
+ * nowhere near a candidate can be dismissed on one comparison.
+ */
+interface PlacedRun {
+  readonly lo: number;
+  readonly hi: number;
+  readonly ex: number;
+  readonly ey: number;
+  readonly ax: number;
+  readonly ay: number;
+}
+
+function turn(ax: number, ay: number, bx: number, by: number, cx: number, cy: number): number {
+  return Math.sign((bx - ax) * (cy - ay) - (by - ay) * (cx - ax));
+}
+
+/** Whether two leaders run over the same stretch of ring, a turn either way. */
+function overlapsTurn(a: PlacedRun, b: PlacedRun): boolean {
+  for (const shift of [0, TWO_PI, -TWO_PI])
+    if (a.lo + shift <= b.hi && b.lo <= a.hi + shift) return true;
+  return false;
+}
+
+/**
+ * Whether a candidate leader crosses none of those already drawn. Only one
+ * running over the same stretch of ring can be in the way, and a slide is a
+ * few line heights at most, so nearly every one is dismissed on a single
+ * comparison. The two sides meet at 12 o'clock, where one is just over -π/2
+ * and the other just under 3π/2, so the stretches are compared a turn apart
+ * as well: neighbours across the top were being missed.
+ */
+function runIsClear(
+  runs: readonly PlacedRun[],
+  run: PlacedRun,
+  ex: number,
+  ey: number,
+  ax: number,
+  ay: number,
+): boolean {
+  for (const other of runs) {
+    if (!overlapsTurn(other, run)) continue;
+    if (crossesRun(other, ex, ey, ax, ay)) return false;
+  }
+  return true;
+}
+
+/** Whether a candidate leader would cross one already drawn. */
+function crossesRun(run: PlacedRun, ex: number, ey: number, ax: number, ay: number): boolean {
+  const d1 = turn(ex, ey, ax, ay, run.ex, run.ey);
+  const d2 = turn(ex, ey, ax, ay, run.ax, run.ay);
+  const d3 = turn(run.ex, run.ey, run.ax, run.ay, ex, ey);
+  const d4 = turn(run.ex, run.ey, run.ax, run.ay, ax, ay);
+  return d1 !== d2 && d3 !== d4;
+}
 
 export function labelBox(
   x: number,
@@ -223,6 +326,25 @@ function overlaps(a: LabelBox, b: LabelBox): boolean {
  * `maxShift`, or none that fits on the canvas, is dropped rather than
  * stacked on top of its neighbour. Ruler numbers are passed in as
  * obstacles: they are placed first, never move, and are never dropped.
+ *
+ * Two rules keep a slid label readable, both of them item 31:
+ *
+ * - **No leader may cross another.** A slot whose line back to the elbow
+ *   would cut across a line already drawn is refused. Spacing the text is
+ *   not enough on a crowded arc: labels that clear each other but took each
+ *   other's places leave a fan of crossing leaders, and the reader can no
+ *   longer tell which name belongs to which tick. Testing the lines
+ *   themselves rather than keeping the labels in the ring's order allows
+ *   the pair whose leaders happen to miss each other, which is a few more
+ *   names on the map for the same clarity. It is a rule and not a law: a
+ *   label it refuses is offered the room that is left in a second pass,
+ *   because two neighbours whose leaders meet beside their own features
+ *   are a blemish and a missing name is not (`TANGLED_SHIFT_LINES`).
+ * - **The slide is charged for.** `maxShift` is a few line heights, not a
+ *   pane's width, so a label is left out rather than towed to the far end
+ *   of a crowded arc. Zooming in makes this bite: the ring's radius grows,
+ *   so the same slide in pixels is a smaller angle, and a whole crowd could
+ *   slide the same way without the angular spacing ever looking wrong.
  */
 export function layoutLabels(
   labels: readonly LabelInput[],
@@ -231,7 +353,7 @@ export function layoutLabels(
 ): LabelLayout {
   const { labelRadius, lineHeight, width, height } = options;
   const inset = options.inset ?? 0;
-  const maxShift = options.maxShift ?? lineHeight * 16;
+  const maxShift = options.maxShift ?? lineHeight * MAX_SHIFT_LINES;
   const step = Math.max(2, lineHeight / 2);
   const radius = Math.max(1, labelRadius);
   // Boxes are filed by horizontal band, so a candidate is only compared with
@@ -260,23 +382,34 @@ export function layoutLabels(
     return true;
   };
   for (const box of options.obstacles ?? []) take(box);
-  const order = [...labels].sort((a, b) => b.rank - a.rank || a.angle - b.angle);
+
+  // The side is fixed by the anchor, so sliding never flips a label from
+  // one side of the ring to the other under the reader. It is also why a
+  // label may not slide past 12 or 6 o'clock: the text runs away from the
+  // ring, so a right-hand label that slid onto the left half would be
+  // written back across the map.
+  const HALF_PI = Math.PI / 2;
+  const elbowRadius = options.elbowRadius ?? labelRadius;
+  const runs: PlacedRun[] = [];
   const placed: PlacedLabel[] = [];
   const dropped: LabelInput[] = [];
 
-  for (const label of order) {
-    // The side is fixed by the anchor, so sliding never flips a label from
-    // one side of the ring to the other under the reader. It is also why a
-    // label may not slide past 12 or 6 o'clock: the text runs away from the
-    // ring, so a right-hand label that slid onto the left half would be
-    // written back across the map.
-    const right = Math.cos(label.angle) >= 0;
+  const attempt = (
+    label: LabelInput,
+    mayCross: boolean,
+    limit = maxShift,
+  ): { readonly label: PlacedLabel; readonly run: PlacedRun } | null => {
+    const at = ringAngle(label.angle);
+    const right = at <= HALF_PI;
     const align = right ? 'left' : 'right';
-    let found: PlacedLabel | null = null;
-    for (let i = 0; found === null && i * step <= maxShift; i++) {
+    const lo = right ? -HALF_PI : HALF_PI;
+    const hi = right ? HALF_PI : Math.PI * 1.5;
+    const ex = layout.cx + elbowRadius * Math.cos(at);
+    const ey = layout.cy + elbowRadius * Math.sin(at);
+    for (let i = 0; i * step <= limit; i++) {
       for (const dir of i === 0 ? [0] : [1, -1]) {
-        const angle = label.angle + (dir * i * step) / radius;
-        if (Math.cos(angle) >= 0 !== right) continue;
+        const angle = at + (dir * i * step) / radius;
+        if (angle < lo || angle > hi) continue;
         const ax = layout.cx + labelRadius * Math.cos(angle);
         const ay = layout.cy + labelRadius * Math.sin(angle);
         const x = right ? ax + LABEL_GAP_X : ax - LABEL_GAP_X;
@@ -289,16 +422,36 @@ export function layoutLabels(
         )
           continue;
         if (!isFree(box)) continue;
-        found = { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box };
-        break;
+        const run: PlacedRun = { lo: Math.min(at, angle), hi: Math.max(at, angle), ex, ey, ax, ay };
+        if (!mayCross && !runIsClear(runs, run, ex, ey, ax, ay)) continue;
+        return { label: { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box }, run };
       }
     }
-    if (found === null) {
-      dropped.push(label);
-    } else {
-      placed.push(found);
-      take(found.box);
-    }
+    return null;
+  };
+
+  const keep = (got: { readonly label: PlacedLabel; readonly run: PlacedRun }): void => {
+    placed.push(got.label);
+    take(got.label.box);
+    runs.push(got.run);
+  };
+
+  const order = [...labels].sort((a, b) => b.rank - a.rank || a.angle - b.angle);
+  const tangled: LabelInput[] = [];
+  for (const label of order) {
+    const got = attempt(label, false);
+    if (got === null) tangled.push(label);
+    else keep(got);
+  }
+  // A name the ring has room for is worth a crossed leader. What made the
+  // reported map unreadable was a fan of long ones, and `maxShift` has
+  // already ruled that out; a pair that meet near their own features is a
+  // blemish, and losing the name of a feature is not. So everything the
+  // rule refused is offered the room that is left.
+  for (const label of tangled) {
+    const got = attempt(label, true, lineHeight * TANGLED_SHIFT_LINES);
+    if (got === null) dropped.push(label);
+    else keep(got);
   }
   return { placed, dropped };
 }

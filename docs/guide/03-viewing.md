@@ -151,7 +151,12 @@ you zoom in.
 Every label — a feature's name, a cut site, one of the ruler's position
 numbers — is kept clear of every other one. A label that cannot sit beside
 the thing it names slides along the ring until it finds room, so it stays on
-the same side of the map and never crosses the circle.
+the same side of the map and never crosses the circle. It slides a short way
+only: a name a long leader line away from its own tick is harder to read
+than no name at all, so past about eight lines' worth the map leaves it out
+instead of towing it to the end of a crowded arc. Two leader lines cross
+only where two features sit at nearly the same place and one of them has to
+give way.
 
 Past a certain number of labels the ring is full, and the map leaves some out
 rather than writing them over each other. It says how many in the bottom-left
@@ -168,7 +173,9 @@ room, since a label whose feature has gone off screen no longer takes a slot.
 
 The SVG map export does not leave labels out — a figure has nothing to hover.
 It grows its canvas around the same circle until they all fit instead, so an
-exported map may be a little wider than it is tall.
+exported map may be a little wider than it is tall, and it lets a label sit
+further from its feature than the map on screen would, for the same reason:
+on paper a name that did not fit is gone for good.
 
 ## Selecting
 

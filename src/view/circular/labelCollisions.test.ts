@@ -10,6 +10,7 @@ import { SvgContext, textAdvance } from '../svg/svgContext';
 import { drawableFeatures } from '../visibleFeatures';
 import { CircularLayout } from './circularLayout';
 import { renderCircularMap } from './renderCircular';
+import { type MapViewport, fitRange } from './viewport';
 
 /**
  * What the map actually draws, measured rather than reasoned about: every
@@ -19,6 +20,23 @@ import { renderCircularMap } from './renderCircular';
  * had their say, and only a render answers that (item 29 in CLAUDE.md, where
  * the pre-fix counts are recorded). Run with LABEL_REPORT=1 for the table.
  */
+
+/**
+ * How far a label may end up from the elbow beside its own feature. The
+ * spacing pass is capped in line heights; this is that cap plus the elbow's
+ * own radial run, rounded up, and it is asserted so the cap cannot be
+ * quietly raised again.
+ */
+const MAX_LEADER_RUN = 120;
+
+/**
+ * How many pairs of leaders may cross in one render. Not zero: a label the
+ * ring can hold is worth a crossed leader, so a name refused by the
+ * no-crossing rule is offered what room is left (see `layoutLabels`). This
+ * is a budget for how much of that is tolerable — the map this measure was
+ * written for had 58 crossing pairs in one render.
+ */
+const MAX_CROSSING_LEADERS = 4;
 
 const SANS = '12px Helvetica, Arial, sans-serif';
 const TITLE = '600 15px Helvetica, Arial, sans-serif';
@@ -69,8 +87,71 @@ function overlappingPairs(boxes: readonly TextBox[]): [TextBox, TextBox][] {
 interface RenderCase {
   readonly width: number;
   readonly height: number;
-  readonly zoom: number;
+  readonly viewport: MapViewport;
+  /** How the viewport was arrived at, for a failure message. */
+  readonly zoomed: string;
   readonly cuts: number;
+}
+
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * A label's leader: the feature's lane (or the cut site's tick), the elbow
+ * at the anchor's own angle, and the label. Every three-point polyline in
+ * the map is one of these; arcs and tick marks are not.
+ */
+interface Leader {
+  readonly from: Point;
+  readonly elbow: Point;
+  readonly to: Point;
+}
+
+const LEADER_RE =
+  /<path d="M(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+)" fill="none"/g;
+
+function leaders(svg: string): Leader[] {
+  const out: Leader[] = [];
+  for (const m of svg.matchAll(LEADER_RE)) {
+    const n = m.slice(1).map(Number);
+    out.push({
+      from: { x: n[0] ?? 0, y: n[1] ?? 0 },
+      elbow: { x: n[2] ?? 0, y: n[3] ?? 0 },
+      to: { x: n[4] ?? 0, y: n[5] ?? 0 },
+    });
+  }
+  return out;
+}
+
+/** How far a label sits from the elbow beside the thing it names. */
+function leaderRun(l: Leader): number {
+  return Math.hypot(l.to.x - l.elbow.x, l.to.y - l.elbow.y);
+}
+
+function side(a: Point, b: Point, c: Point): number {
+  return Math.sign((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+}
+
+/** Whether the two runs cross properly; touching ends do not count. */
+function runsCross(a: Leader, b: Leader): boolean {
+  const d1 = side(a.elbow, a.to, b.elbow);
+  const d2 = side(a.elbow, a.to, b.to);
+  const d3 = side(b.elbow, b.to, a.elbow);
+  const d4 = side(b.elbow, b.to, a.to);
+  return d1 !== 0 && d2 !== 0 && d3 !== 0 && d4 !== 0 && d1 !== d2 && d3 !== d4;
+}
+
+function crossingRuns(ls: readonly Leader[]): number {
+  let n = 0;
+  for (let i = 0; i < ls.length; i++)
+    for (let j = i + 1; j < ls.length; j++) {
+      const a = ls[i];
+      const b = ls[j];
+      if (a !== undefined && b !== undefined && runsCross(a, b)) n++;
+    }
+  return n;
 }
 
 function render(
@@ -86,7 +167,7 @@ function render(
     laneCount: lanes.laneCount,
     ringWidth: 14,
     outerMargin: 110,
-    viewport: { zoom: c.zoom, panX: 0, panY: 0 },
+    viewport: c.viewport,
   });
   const ctx = new SvgContext(c.width, c.height);
   const { droppedLabels } = renderCircularMap(ctx, {
@@ -217,8 +298,61 @@ for (const [width, height] of [
   [600, 600],
 ] as const) {
   for (const zoom of [1, 1.5, 2, 3]) {
-    for (const cuts of [0, 10, 20, 35]) CASES.push({ width, height, zoom, cuts });
+    for (const cuts of [0, 10, 20, 35])
+      CASES.push({
+        width,
+        height,
+        viewport: { zoom, panX: 0, panY: 0 },
+        zoomed: `zoom ${zoom}`,
+        cuts,
+      });
   }
+}
+
+/** Arcs of the molecule, as a fraction of its length, to zoom into. */
+const ARC_FRACTIONS: readonly (readonly [number, number])[] = [
+  [0.78, 0.99],
+  [0.0, 0.2],
+  [0.45, 0.6],
+  [0.2, 0.3],
+];
+
+/**
+ * The state the report that opened item 31 was taken in: zoomed into one
+ * arc, so the ring is a shallow curve down one side of the pane and every
+ * label of that stretch is crowded into it at once. `fitRange` is what a
+ * double-click on a feature and the Sel button do, so these are viewports a
+ * reader actually lands in rather than arbitrary pans.
+ */
+function arcCases(doc: SeqDocument): RenderCase[] {
+  const lanes = assignLanes(drawableFeatures(doc.features.all()), doc.length);
+  const out: RenderCase[] = [];
+  for (const [width, height] of [
+    [420, 560],
+    [900, 700],
+  ] as const) {
+    const fit = new CircularLayout(doc.length, doc.topology, {
+      width,
+      height,
+      laneCount: lanes.laneCount,
+      ringWidth: 14,
+      outerMargin: 110,
+    });
+    for (const [f0, f1] of ARC_FRACTIONS) {
+      const start = Math.round(f0 * doc.length);
+      const end = Math.round(f1 * doc.length);
+      const viewport = fitRange(fit.bounds, start, end, doc.length, 120);
+      for (const cuts of [0, 20, 35])
+        out.push({
+          width,
+          height,
+          viewport,
+          zoomed: `arc ${start}..${end} (zoom ${viewport.zoom.toFixed(1)})`,
+          cuts,
+        });
+    }
+  }
+  return out;
 }
 
 function fixtureDoc(name: string): SeqDocument {
@@ -245,25 +379,29 @@ describe('circular map labels', () => {
       const cuts = singleCutters(doc);
       const rows: string[] = [];
       let worst = 0;
-      for (const c of CASES) {
+      for (const c of [...CASES, ...arcCases(doc)]) {
         const started = performance.now();
         const { svg, dropped } = render(doc, cuts.slice(0, c.cuts), c);
         const took = performance.now() - started;
         const boxes = textBoxes(svg).filter((b) => !isChrome(doc, b));
         const pairs = overlappingPairs(boxes);
         worst = Math.max(worst, pairs.length);
+        const runs = leaders(svg);
         if (report)
           rows.push(
-            `${String(c.width).padStart(4)}x${c.height} zoom ${c.zoom}  ${String(c.cuts).padStart(2)} cuts: ` +
+            `${String(c.width).padStart(4)}x${c.height} ${c.zoomed.padEnd(26)} ${String(c.cuts).padStart(2)} cuts: ` +
               `${String(boxes.length).padStart(3)} labels, ${String(pairs.length).padStart(3)} collisions, ` +
-              `${String(dropped).padStart(3)} dropped, ${took.toFixed(1)} ms` +
+              `${String(dropped).padStart(3)} dropped, ` +
+              `${String(crossingRuns(runs)).padStart(3)} crossings, ` +
+              `leader max ${String(Math.round(Math.max(0, ...runs.map(leaderRun)))).padStart(3)}, ` +
+              `${took.toFixed(1)} ms` +
               (pairs.length > 0
                 ? `  e.g. ${pairs[0]?.[0].text ?? ''} / ${pairs[0]?.[1].text ?? ''}`
                 : ''),
           );
         expect(
           pairs.length,
-          `${label} ${c.width}x${c.height} zoom ${c.zoom} ${c.cuts} cuts: ` +
+          `${label} ${c.width}x${c.height} ${c.zoomed} ${c.cuts} cuts: ` +
             pairs
               .slice(0, 5)
               .map(([a, b]) => `"${a.text}" over "${b.text}"`)
@@ -275,6 +413,32 @@ describe('circular map labels', () => {
     });
   }
 
+  for (const [label, doc] of [
+    ['pBR322, every feature named', pBR322],
+    ['13.8 kb construct, 42 features', lenti],
+  ] as const) {
+    /**
+     * The second measure item 31 asked for. Labels that clear each other can
+     * still be unreadable: a label that slid half a pane from its anchor
+     * trails a long leader across the map, and two that took each other's
+     * places cross. Neither shows up in the collision count. Across every
+     * case here that was 1,052 crossing pairs and leaders up to 209 px.
+     */
+    it(`keeps every label beside the thing it names: ${label}`, () => {
+      const cuts = singleCutters(doc);
+      for (const c of [...CASES, ...arcCases(doc)]) {
+        const { svg } = render(doc, cuts.slice(0, c.cuts), c);
+        const runs = leaders(svg);
+        const where = `${label} ${c.width}x${c.height} ${c.zoomed} ${c.cuts} cuts`;
+        expect(crossingRuns(runs), `${where}: leaders cross`).toBeLessThanOrEqual(
+          MAX_CROSSING_LEADERS,
+        );
+        const longest = Math.round(Math.max(0, ...runs.map(leaderRun)));
+        expect(longest, `${where}: leader runs ${longest} px`).toBeLessThanOrEqual(MAX_LEADER_RUN);
+      }
+    });
+  }
+
   it('keeps every drawn label inside the canvas', () => {
     const cuts = singleCutters(pBR322).slice(0, 20);
     for (const c of CASES) {
@@ -282,7 +446,7 @@ describe('circular map labels', () => {
       // The ruler's own numbers are not in this: they are drawn wherever the
       // ruler says, and one at the edge of a zoomed map is clipped by it.
       for (const box of textBoxes(svg).filter((b) => !/^[\d,]+$/.test(b.text))) {
-        const where = `"${box.text}" at ${c.width}x${c.height} zoom ${c.zoom}`;
+        const where = `"${box.text}" at ${c.width}x${c.height} ${c.zoomed}`;
         expect(box.left, `${where} ran off the left edge`).toBeGreaterThanOrEqual(-0.5);
         expect(box.right, `${where} ran off the right edge`).toBeLessThanOrEqual(c.width + 0.5);
         expect(box.top, `${where} ran off the top`).toBeGreaterThanOrEqual(-0.5);

@@ -72,6 +72,10 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
         options.transparent === true
           ? { ...PRINT_THEME, background: 'rgba(0,0,0,0)' }
           : PRINT_THEME,
+      // A figure has no pointer, so a label the ring has no room for beside
+      // its own feature is lost rather than one hover away: the export buys
+      // the long leader the screen refuses (item 31).
+      labelShiftLines: 16,
       sansFont: `${Math.max(11, size / 70)}px Helvetica, Arial, sans-serif`,
       titleFont: `600 ${Math.max(14, size / 50)}px Helvetica, Arial, sans-serif`,
     });

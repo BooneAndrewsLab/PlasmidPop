@@ -78,7 +78,16 @@ describe('tickInterval', () => {
 describe('layoutLabels', () => {
   const layout = new CircularLayout(1000, 'circular', opts);
   const radius = layout.radius + 34;
-  const base = { labelRadius: radius, lineHeight: 14, width: 600, height: 400 };
+  // The elbow ring the renderer actually uses, a little inside the label
+  // ring: the gap is what gives a leader somewhere to go without cutting
+  // across its neighbour's.
+  const base = {
+    labelRadius: radius,
+    elbowRadius: layout.radius + 26,
+    lineHeight: 14,
+    width: 600,
+    height: 400,
+  };
   const ring = (l: PlacedLabel): number => Math.hypot(l.anchorX - layout.cx, l.anchorY - layout.cy);
   const collisions = (boxes: readonly LabelBox[]): number => {
     let n = 0;
