@@ -1555,6 +1555,31 @@ pick from here when the current work is done.
       still reads "Reverse complement" and the Edits marks show the whole
       molecule as replaced, which for a flip they always did.
 
+35. **A feature whose type changed reads as a removal and an addition.**
+    Reported 2026-09-22: change a feature's type and **Compare with…** lists
+    it twice, once removed and once added, at the same name and the same
+    location. Not a bug in the pairing so much as its limit. Within one
+    document the edit keeps the feature's id, so it is reported as changed;
+    across two files every id is fresh (item 33), so leftovers are paired by
+    *content*, and both `bucketKey` and `sameFeature`
+    (`src/core/diff/documentDiff.ts`) require the type to be equal. A feature
+    that differs only in type therefore pairs with nothing.
+    - **Pairing it as one changed feature is the fix worth having**, ahead of
+      any extra detail: two lines read as "you have lost a feature", which is
+      the frightening reading and the wrong one. A second, looser pass over
+      whatever the exact pass could not pair — same name, strand and mapped
+      location — would catch it, at the cost of merging two genuinely
+      different features that sit at the same place under the same name,
+      which today are already reported as a pair of lines anyway.
+    - **Then say what changed, where it is one thing.** The Features list of
+      item 27 writes `~ tet changed`; `~ tet  type gene → CDS` is the whole
+      story in four words and is cheap for the enumerable fields (type, name,
+      strand, location). Qualifiers are the messy case — a `/note` can be a
+      paragraph — so a count ("3 qualifiers changed") rather than a list.
+    - Open: whether the sequence view's and the map's outline for a changed
+      feature should say anything more than "touched", which is all colour
+      can carry.
+
 ## Non-goals for v1
 
 - Real-time multi-user editing
