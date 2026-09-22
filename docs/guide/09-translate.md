@@ -30,7 +30,31 @@ quick way to take a protein-aligned piece of a gene. Click the feature bar
 below instead to select the whole feature.
 
 A `/transl_table` naming a code NCBI does not use — 7 and 8 were withdrawn,
-17 to 20 were never issued — falls back to the standard code.
+17 to 20 were never issued — falls back to the standard code, and a warning
+in the status bar says which feature asked for what.
+
+## Checking a record against itself
+
+Most records state the protein they expect: a CDS carries a `/translation`
+qualifier its author wrote out. When a file is opened, every CDS that has
+one is translated from its own bases and compared with it, and a
+disagreement is reported in the status bar with the feature, where it is,
+and the first residue that differs:
+
+```
+CDS rpoB at complement(4,181,245..4,185,273) — the file's /translation
+differs from the sequence at residue 12: the file says Q, the sequence gives E.
+```
+
+This is worth knowing before trusting either one. It usually means the file
+and its own annotation have drifted apart — a sequence edited without the
+translation being redone — but it can equally mean the feature needs a
+genetic code or a `/codon_start` it does not have. Only the first eight are
+listed; the rest are counted.
+
+Residues nobody is claiming to know are not counted as disagreements: an `X`
+on either side, and the `U` and `O` of selenocysteine and pyrrolysine, which
+a record states through the `/transl_except` qualifier we do not read yet.
 
 Not yet supported: `/transl_except`.
 

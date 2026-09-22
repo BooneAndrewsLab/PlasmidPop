@@ -23,6 +23,7 @@ import { type FontSize } from '@/view/linear';
 import { type OverlaySpan } from '@/view/overlay';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
+import { translationWarnings } from '../translationWarnings';
 import { copyNameFor } from './derive';
 import { type CutCountFilter } from './cutFilter';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
@@ -530,7 +531,15 @@ export class EditorStore {
       return null;
     }
     analytics.track('file', 'open', result.format);
-    return this.openDocument(doc, fileName, result.warnings, storage);
+    // The file's own /translation qualifiers are checked here rather than in
+    // the parser: it is a question about the sequence and the features
+    // together, and it is asked of whatever format they were read from.
+    return this.openDocument(
+      doc,
+      fileName,
+      [...result.warnings, ...translationWarnings(doc)],
+      storage,
+    );
   }
 
   /**

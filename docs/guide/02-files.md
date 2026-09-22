@@ -18,7 +18,10 @@ references, and every feature with its full location (`complement(...)`,
 `join(...)`, partial ends, ranges that wrap the origin) and qualifiers.
 A download writes a standard GenBank flat file that other programs can read.
 Anything PlasmidPop does not understand in a record is reported as a warning
-in the status bar rather than silently dropped.
+in the status bar rather than silently dropped. So is a record that
+contradicts itself: a CDS whose stored `/translation` is not the protein its
+own bases give (see
+[Checking a record against itself](09-translate.md#checking-a-record-against-itself)).
 
 A molecule with sticky ends — a fragment from a digest, say — has something
 GenBank cannot express, so the ends travel as a `PlasmidPop-ends:` comment
