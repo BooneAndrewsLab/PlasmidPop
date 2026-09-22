@@ -145,7 +145,19 @@ a short way from its own tick, the labels read in the order their ticks are
 and their leaders do not cross, all three measured by rendering rather than
 asserted (item 31), and the review before a download names the features a
 removal took and where they were rather than counting them (item 27).
-Tests: 725 passing. Perf measurements live in
+Added 2026-09-21: **every NCBI genetic code**, generated from
+NCBI's own file rather than typed in — table 2's TGA is tryptophan, and
+before this a mitochondrial gene was read with the standard code and chopped
+short with nothing said (item 1) — a **Code** chooser for the Translate and
+ORFs tabs (item 4), and a check of each CDS against the `/translation` its
+file carries, reported in the status bar when a file is opened (item 1).
+Added 2026-09-21: **File ▸ Compare with…**, which reads a file, says how the
+open document differs from it and drops it, sharing its body with the
+download review (item 33); features are matched by content there, since two
+files agree on nothing internal. Added 2026-09-21: `Alt` **key bindings** for
+the view toggles, the edit marks, the sidebar, the document tabs and the
+share link, and `Ctrl+Shift+←`/`→` to extend a selection a codon at a time
+(item 32). Tests: 763 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -158,8 +170,37 @@ pick from here when the current work is done.
    alternating shading, honouring `/codon_start`, `/transl_table`, joins,
    reverse strand, partial ends and origin wrap
    (`src/core/analysis/cdsTranslation.ts`, `drawTranslations` in
-   `renderLinear.ts`); "Translations" toggle in the toolbar. Not yet:
-   `/transl_except`, comparing against a stored `/translation`.
+   `renderLinear.ts`); "Translations" toggle in the toolbar.
+   - **Every genetic code, 2026-09-21.** `codons.ts` shipped tables 1 and 11
+     and they shared one codon map, so they differed only in start codons;
+     anything else a file asked for was read with the standard code and
+     nothing said so. A `/transl_table=2` gene came out chopped at the first
+     TGA, which is tryptophan under that code. All 27 NCBI codes are now
+     generated from NCBI's own `gc.prt` by `scripts/make-genetic-codes.py`
+     into `src/core/analysis/geneticCodes.ts` — a hand-copied 64-character
+     string is how a translation table ends up quietly wrong — and compiled
+     to maps on first use. `TranslationTable` is the union of the ids we
+     ship; `isStopCodon` takes one too, without which `findOrfs` ended an ORF
+     at a codon the chosen code reads as an amino acid. A `/transl_table`
+     naming no code NCBI uses (7, 8 and 17–20 were withdrawn) falls back to
+     the standard code and says so in `CdsTranslation.unknownTable`.
+   - **Checked against the file's own `/translation`, 2026-09-21**
+     (`src/core/analysis/translationCheck.ts`). Most records state the
+     protein they expect; that qualifier is the one honest oracle for the
+     genetic code, `/codon_start`, splicing a `join(...)`, the reverse strand
+     and a CDS that wraps the origin, because someone else translated the
+     same bases. `checkTranslations` compares them when a file is opened and
+     reports a disagreement through the status bar's parse warnings
+     (`src/app/translationWarnings.ts`): the feature, where it is, the first
+     residue that differs, eight at most and the rest counted. Residues
+     neither side claims to know are excused — an `X` on either side, and the
+     `U`/`O` of selenocysteine and pyrrolysine, which come from the
+     `/transl_except` we still do not read. The six committed records state
+     19 proteins and agree with us on all of them, which is a test
+     (`src/io/genbank/storedTranslation.test.ts`, local fixtures included
+     when present).
+   - Not yet: `/transl_except`; re-checking a `/translation` as the sequence
+     is edited (the check runs at open, not per keystroke).
 2. ~~**Copy and paste with features.**~~ done. Ctrl+C/X in the sequence
    view copies the selection as a `SeqFragment` (bases plus trimmed
    features, `source` left behind; `src/core/document/fragment.ts`) under
@@ -201,8 +242,17 @@ pick from here when the current work is done.
    (`translateSixFrames` in `src/core/analysis/sixFrame.ts`; −1 starts at
    the 3′ end of the selection), with stop codons marked, per-frame Copy
    and an Export FASTA button that writes one protein record per frame
-   (`src/app/sixFrameExport.ts`). Not yet: alternative genetic codes,
-   clicking a residue to select its codon.
+   (`src/app/sixFrameExport.ts`). A **Code** select (2026-09-21) picks any of
+   the 27 genetic codes of item 1; it is `SharedState.geneticCode`, kept with
+   the view preferences and shared with the ORFs tab
+   (`GeneticCodeSelect.tsx`), because a six-frame translation and an ORF scan
+   have no feature to ask which code they are reading — unlike a CDS, which
+   is always read with its own `/transl_table`. The scan follows it too:
+   which codons stop a reading is what an ORF is made of, so changing the
+   code drops every open document's analysis, **Add as CDS feature** writes
+   `/transl_table` when it is not the standard code, and the six-frame FASTA
+   names it in the description lines. Clicking a residue to select its codon
+   is item 19. Not yet: nothing outstanding here.
 5. ~~**History panel**~~ done. The **History** sidebar tab lists every
    recorded change newest first with its number, label, time and what it did
    to the document (`+12 bp`, `−3 bp`, `+1 feature`, `circular`), marks the
@@ -236,9 +286,10 @@ pick from here when the current work is done.
    the sidebar keeps its panels' state. Autosave writes every changed tab
    (`PersistenceService.autosaved` remembers what was written) and records
    the open ids and the front one (`openDocumentIds` in the repository);
-   `restoreLastSession` reopens them all. Not yet: a key binding to switch
-   or close tabs (Ctrl+Tab/Ctrl+W belong to the browser), dragging tabs to
-   reorder, remembering scroll and zoom per tab across a switch.
+   `restoreLastSession` reopens them all. `Alt+1`..`Alt+9` bring the
+   first to the ninth tab forward (item 32). Not yet: a binding to close a
+   tab (Ctrl+W belongs to the browser), dragging tabs to reorder,
+   remembering scroll and zoom per tab across a switch.
 7. ~~**Enzyme table from REBASE**~~: done, as an import rather than a
    bundle. **Import a REBASE table…** at the foot of the Enzymes tab links
    straight to `rebase.neb.com/rebase/link_withrefm` and takes the file back
@@ -403,12 +454,13 @@ pick from here when the current work is done.
       restore of the last session runs first and the shared document opens
       last, so it is the tab in front and the session's own tabs are behind
       it rather than replaced.
+    - **`Alt+L`** copies one without opening the File menu (item 32).
     - **`ShareNotice`** under the toolbar says what was copied — the length,
       that nothing was uploaded, and that anyone with the link can open it —
       and takes itself away after twelve seconds. A link cannot be withdrawn
       or updated, which the guide says plainly (`docs/guide/02-files.md`,
       "Sharing a link").
-    - Not yet: no key binding; a link always carries the whole document
+    - Not yet: a link always carries the whole document
       (a selection, or a document without its references, would make a much
       shorter one); nothing on the receiving side says where a document came
       from, which is where item 22's `PlasmidPop-derived-from:` checksum
@@ -474,8 +526,11 @@ pick from here when the current work is done.
     skips. The canvas cursor now follows what is under the pointer
     (`cursor` state in `LinearSequenceView`): a hand over a feature bar or
     a residue, the text caret over the bases, the arrow over empty lane
-    space. Not yet: extending the selection by codon from the keyboard
-    (`Shift+Arrow` still moves one base).
+    space. `Ctrl+Shift+←`/`→` do it from the keyboard
+    (item 32): the first press takes the codon the caret is in, as
+    `Shift+Arrow` takes the base it is on, and each press after that adds one
+    — along the row rather than along the protein, so a reverse-strand CDS
+    extends leftwards, as dragging already did.
 20. ~~**Hide cut sites without losing the enzyme selection.**~~ done. A
     **Cut sites** toggle sits next to Complement / Translations in the
     toolbar (`showCutSites` in the store); off, the sequence view, the
@@ -485,7 +540,7 @@ pick from here when the current work is done.
     link, and its fragment list and the Cloning digest follow the ticks,
     not the toggle (both headings now say "ticked enzymes"). The toggle
     is remembered across reloads with the other view preferences
-    (`src/app/state/viewPrefs.ts`). Not yet: a key binding.
+    (`src/app/state/viewPrefs.ts`) and bound to `Alt+R` (item 32).
 21. ~~**Show edits in the sequence view.**~~ done, with all three
     baselines of the open question, chosen from an **Edits** menu in the
     toolbar: Off / Since opened (the default) / Since last save / Mark
@@ -505,9 +560,10 @@ pick from here when the current work is done.
     red wedge and a line at the boundary; features added or edited are
     outlined, and a feature that merely moved with an edit elsewhere is
     not (its old location is mapped through the diff). The marks are in
-    the sequence-view SVG exports too. Requested 2026-09-18. Not yet: the
-    circular map, a key binding, anything for a rename or topology change
-    beyond the menu's tally.
+    the sequence-view SVG exports too. Requested 2026-09-18. `Alt+E` turns the marks
+    off and back to the chosen baseline (item 32). Not yet: the circular map
+    (item 25), anything for a rename or topology change beyond the menu's
+    tally.
 22. ~~**Working copies: the opened file is never written to.**~~ done,
     2026-09-20, asked for because a PI was uneasy that a user can edit a
     plasmid and wanted to know a file had not been quietly altered. A
@@ -559,12 +615,12 @@ pick from here when the current work is done.
     A `CopyBanner` under the toolbar names the file the copy came from and
     offers the same review at any time. The diff is computed only while the
     dialog is up: `editDiffBetween`'s cache holds one pair of versions and the
-    sequence view's own marks share it. Not yet: the other provenance ideas
-    offered alongside this one — a rotation- and strand-invariant sequence
-    checksum shown in the UI and written into the file (the SEGUID v2 family,
-    `cdseguid` for a plasmid), **File ▸ Compare with…** against any file on
-    disk, a `PlasmidPop-derived-from:` comment carrying the original's
-    checksum, and persisting the history log across reloads. The two rough
+    sequence view's own marks share it. **File ▸ Compare with…** is item 33.
+    Not yet: the other provenance ideas offered alongside this one — a
+    rotation- and strand-invariant sequence checksum shown in the UI and
+    written into the file (the SEGUID v2 family, `cdseguid` for a plasmid), a
+    `PlasmidPop-derived-from:` comment carrying the original's checksum, and
+    persisting the history log across reloads. The two rough
     edges left here are moot under item 24: no file handle is kept to be
     lost on a rename, and undoing back to the original is not possible at
     all, because the copy's history starts under its own name.
@@ -659,9 +715,8 @@ pick from here when the current work is done.
       `openDocuments` that `restoreLastSession` prefers.
     - Not yet: nothing tells the user which stored documents have never been
       downloaded (every document lives in the browser now, so a per-row
-      marker would be noise — the Files screen says it once instead), and
-      **File ▸ Compare with…** against a file on disk is still the obvious
-      companion to this (item 22's list).
+      marker would be noise — the Files screen says it once instead).
+      **File ▸ Compare with…**, the obvious companion to this, is item 33.
 25. **A diff on the map, not only in the sequence.** The tracked-changes marks
     of item 21 exist only in the sequence view (and its SVG exports); the
     circular map and the feature lanes show nothing. A map-based diff would
@@ -675,9 +730,10 @@ pick from here when the current work is done.
     change in length does to a circle's geometry; whether this shares the
     `DiffStrip` in `SaveReviewDialog` or gets a map of its own there. The
     diff itself is already there (`src/core/diff/`, `editDiffBetween`,
-    `diffHunks`) — this is a rendering question. Related: item 22's
-    **File ▸ Compare with…**, which would want exactly this view for two
-    different files rather than two versions of one.
+    `diffHunks`) — this is a rendering question. Related: **File ▸ Compare
+    with…** (item 33), which would want exactly this view for two different
+    files rather than two versions of one, and is now a second caller asking
+    for it.
 26. ~~**Preview a primer before it becomes a feature.**~~ done, 2026-09-21,
     and not primer-shaped: what was built is the **overlay channel** the note
     asked for. A preview is a list of `OverlaySpan`s — id, label, an
@@ -814,8 +870,8 @@ pick from here when the current work is done.
       way to get stuck; the panel is `hidden` rather than unmounted, so what
       was typed into it survives. A toolbar toggle was built first and taken
       out again as redundant.
-    - Not yet: no key binding to collapse the sidebar or to move a boundary
-      without tabbing to it; the stacked (≤720 px) sidebar is still a fixed
+    - `Alt+S` collapses the sidebar and brings it back (item 32). Not yet: no
+      binding to move a boundary without tabbing to it; the stacked (≤720 px) sidebar is still a fixed
       200 px row with no handle, which belongs with item 15; and a splitter
       cannot be dragged past its floor to collapse a pane.
 
@@ -1069,6 +1125,76 @@ pick from here when the current work is done.
       ring — is what would raise how much a crowded map can hold rather than
       how well it is spaced.
 
+32. ~~**Key bindings for the things that were only ever a click away.**~~ done,
+    2026-09-21. Five items had ended with the same footnote — the Cut sites
+    toggle (20), the Edits baseline (21), collapsing the sidebar (28),
+    switching document tabs (6) and the share link (11) — plus extending a
+    selection by codon (19). Separately each is a footnote; together they are
+    the difference between using the app with a pointer and using it while
+    working.
+    - They are all `Alt` and one key, which is not a style choice: in the
+      sequence view every bare letter types a base, and `Ctrl` is spoken for
+      by the browser and by editing, so `Alt` is the one modifier a document
+      editor can spend. `isAltKey` (`src/app/keys.ts`) matches the physical
+      `code`, because on macOS `Alt+C` arrives as `ç` and a shortcut that
+      works on one keyboard and not another is worse than none.
+      `useViewShortcuts` (`src/app/state/`) holds them; it does nothing while
+      a modal is up or a text field has the key.
+    - `Alt+C`/`Alt+T`/`Alt+R` the three toolbar toggles, `Alt+E` the edit
+      marks off and back to the baseline that was chosen (remembered in a
+      ref, so it is the user's choice that returns), `Alt+S` the sidebar,
+      `Alt+L` a share link, `Alt+1`..`Alt+9` the nth open document.
+    - **Selecting by codon** lives in the sequence view, where the CDS is:
+      `Ctrl+Shift+←`/`→`, the first press taking the codon the caret is in as
+      `Shift+Arrow` takes the base it is on, each press after that adding
+      one. Along the row rather than along the protein, so a reverse-strand
+      CDS extends leftwards — which is what dragging a translation line
+      already did, since it follows the pointer. `CdsTranslations` is now
+      built whether or not the Translations toggle is on: the keyboard needs
+      the codons even when nothing is drawing them.
+    - Not yet: nothing for the view switcher, the Format menu or the sidebar
+      tabs; no way to close a tab from the keyboard (`Ctrl+W` is the
+      browser's); the bindings are fixed, not configurable.
+
+33. ~~**File ▸ Compare with… another file on disk.**~~ done, 2026-09-21; asked
+    for by items 22 and 24 and wanted by item 25. The diff engine has been
+    there since item 21 and the review since item 22, but both could only look
+    at two versions of one document. The question a scientist asks is about
+    two files: is this the same construct as the one my colleague sent, and if
+    not, where do they part company. A map that looks right is how a wrong
+    plasmid gets used.
+    - **Nothing is opened, written or stored.** The file is read, diffed and
+      dropped (`src/app/compare.ts`, `SharedState.comparison`), so it is safe
+      to point at a colleague's copy; the picker is the same `openWithPicker`
+      as Open file, with the toolbar's own hidden input as the fallback where
+      there is no File System Access API.
+    - **The review body is shared with the download review** — `DiffReview`
+      (`src/app/components/`), lifted out of `SaveReviewDialog` — so the
+      summary line, the hunks drawn by the same renderer as the sequence view
+      and the named feature changes of item 27 cannot drift apart between the
+      two dialogs. `CompareDialog` diffs directly rather than through
+      `editDiffBetween`, whose one-slot cache belongs to the sequence view's
+      marks and would be evicted on every render.
+    - **Features had to stop being matched by id**, which the first test
+      caught: two files parsed separately give every feature a fresh id, so
+      `diffDocuments` called all fifty of pBR322's features removed and added
+      again. Leftovers no id matched are now paired by what they are — type,
+      name, strand, qualifiers and mapped location, bucketed so it stays
+      linear (`pairByContent`). That is the better answer inside one document
+      too: a feature deleted and typed back identically is no longer two lines
+      of noise. A feature that really differs is still reported both ways,
+      since without ids nothing says it is the same one edited.
+    - **Two ways it reads oddly are said out loud.** A circular plasmid
+      written from another origin has nothing in common with this one as text,
+      so the dialog says so when both are the same length and the diff came
+      out coarse; two unrelated sequences come out as "too different to follow
+      in detail", which `describeEditDiff` already knew how to say.
+    - Not yet: no key binding; the comparison is against the front document
+      only, and closing or switching tabs takes it away; nothing lets you open
+      the other file from the dialog, or step from one difference to the next
+      in the views; and the origin-rotation case is diagnosed but not fixed —
+      that is what item 22's `cdseguid` checksum would settle.
+
 ## Non-goals for v1
 
 - Real-time multi-user editing
@@ -1098,6 +1224,9 @@ pick from here when the current work is done.
   rights reserved, so it is imported from the user's own download rather
   than bundled. Only a full bundle would need NEB's permission.
 - Which SnapGene .dna versions to support and where to get test fixtures.
+- Whether the `/translation` check should follow edits rather than run only
+  when a file is opened, and where a per-feature "this no longer matches"
+  marker would live if it did (item 1).
 - Auth provider: moot, there is no backend (decided 2026-09-21).
 - Where to refuse a share link for length, and what a document opened from
   one counts as in item 22's terms (item 11).
