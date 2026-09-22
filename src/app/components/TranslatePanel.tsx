@@ -14,6 +14,7 @@ import { copyText } from '../clipboard';
 import { downloadText } from '../saveFile';
 import { rangeBounds, sixFrameFasta, sixFrameFileName } from '../sixFrameExport';
 import { useEditorState } from '../state/useEditorStore';
+import { GeneticCodeSelect } from './GeneticCodeSelect';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -81,13 +82,13 @@ function FrameRow({ frame }: { readonly frame: FrameTranslation }) {
  * reverse complement starting from the 3′ end of the selection.
  */
 export function TranslatePanel({ doc }: Props) {
-  const { selection } = useEditorState();
+  const { selection, geneticCode: table } = useEditorState();
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const start = hasSelection ? selection.start : 0;
   const end = hasSelection ? selection.end : doc.length;
   const range = useMemo((): Range => ({ start, end }), [start, end]);
   const dna = useMemo(() => doc.subsequence(range), [doc, range]);
-  const frames = useMemo(() => translateSixFrames(dna), [dna]);
+  const frames = useMemo(() => translateSixFrames(dna, { table }), [dna, table]);
   const { from, to } = rangeBounds(range, doc.length);
 
   if (dna.length < 3) {
@@ -111,12 +112,13 @@ export function TranslatePanel({ doc }: Props) {
             {from.toLocaleString()}–{to.toLocaleString()} · {dna.length.toLocaleString()} bp
           </span>
         </span>
+        <GeneticCodeSelect title="The genetic code these six frames are read with. A CDS feature is read with its own /transl_table instead." />
         <div className="panel__buttons">
           <button
             type="button"
             className="button button--small"
             onClick={() => {
-              downloadText(sixFrameFileName(doc, range), sixFrameFasta(doc, range, frames));
+              downloadText(sixFrameFileName(doc, range), sixFrameFasta(doc, range, frames, table));
             }}
           >
             Export FASTA

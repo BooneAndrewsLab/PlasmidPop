@@ -74,7 +74,16 @@ puts one frame on the clipboard. **Export FASTA** downloads all six as one
 protein FASTA file, one record per frame, named after the document and the
 range.
 
-The Translate tab uses the standard genetic code.
+**Code** chooses the genetic code the six frames are read with — any of the
+27 NCBI numbers, the standard code by default. A frame full of stops under
+the standard code often has none under the right mitochondrial one, which is
+the quickest way to tell what you are looking at. The choice is remembered
+and is shared with the [ORFs](08-orfs.md) tab, because both are reading
+bases that carry no `/transl_table` of their own; CDS features are read with
+theirs whatever is chosen here.
+
+**Export FASTA** names the code in each description line when it is not the
+standard one.
 
 ## How to find the reading frame of a fragment
 

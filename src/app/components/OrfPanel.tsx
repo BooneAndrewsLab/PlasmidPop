@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   type Orf,
   type SeqDocument,
+  DEFAULT_TABLE,
   createFeature,
   isEmptyRange,
   rangeSegment,
@@ -13,6 +14,7 @@ import {
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { GeneticCodeSelect } from './GeneticCodeSelect';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -30,7 +32,7 @@ function orfSequence(doc: SeqDocument, orf: Orf): string {
 }
 
 export function OrfPanel({ doc }: Props) {
-  const { analysis, orfMinCodons, selection } = useEditorState();
+  const { analysis, orfMinCodons, selection, geneticCode: table } = useEditorState();
   const [pending, setPending] = useState(String(orfMinCodons));
   const ready = analysis !== null && analysis.doc === doc;
   const orfs = ready ? analysis.orfs : [];
@@ -44,9 +46,9 @@ export function OrfPanel({ doc }: Props) {
       : null;
   const protein =
     selectedOrf !== undefined
-      ? translate(orfSequence(doc, selectedOrf), { firstCodonAsMet: true })
+      ? translate(orfSequence(doc, selectedOrf), { firstCodonAsMet: true, table })
       : selectionText !== null && selectionText.length >= 3
-        ? translate(selectionText)
+        ? translate(selectionText, { table })
         : null;
 
   const commitMin = (): void => {
@@ -75,6 +77,7 @@ export function OrfPanel({ doc }: Props) {
           />
           codons
         </label>
+        <GeneticCodeSelect title="The genetic code the scan reads with: it decides where an ORF ends as well as where it may begin." />
       </div>
       {!ready ? (
         <p className="panel__note">Looking for open reading frames…</p>
@@ -139,6 +142,12 @@ export function OrfPanel({ doc }: Props) {
                     segments: [rangeSegment(selectedOrf.range.start, selectedOrf.range.end)],
                     qualifiers: [
                       { name: 'codon_start', value: '1' },
+                      // Only when it is not the standard code: a CDS with no
+                      // /transl_table means table 1, and writing it out on
+                      // every feature would be noise in the file.
+                      ...(table === DEFAULT_TABLE
+                        ? []
+                        : [{ name: 'transl_table', value: String(table) }]),
                       { name: 'translation', value: protein.replace(/\*$/, '') },
                     ],
                   });

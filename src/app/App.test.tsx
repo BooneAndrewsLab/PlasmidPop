@@ -279,6 +279,37 @@ describe('six-frame translation', () => {
     expect(fasta).toContain('>SYNPBR322_1-9_frame-3 SYNPBR322 1..9 frame -3, 2 aa\n');
     expect(sixFrameFileName(doc, { start: 0, end: 9 })).toBe('SYNPBR322_1-9_6frames.fasta');
   });
+
+  it('reads the frames with the chosen genetic code, and names it in the export', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Translate' }));
+    const range = { start: 0, end: 300 };
+    act(() => {
+      editorStore.setSelection(range);
+    });
+    const doc = editorStore.document;
+    if (doc === null) throw new Error('expected a document');
+    const dna = doc.subsequence(range);
+    const plus1 = () => screen.getByRole('region', { name: 'Frame +1' }).textContent;
+    // Under the vertebrate mitochondrial code TGA is tryptophan rather than a
+    // stop, so 300 bases of pBR322 read differently and the panel must follow.
+    const standard = translateSixFrames(dna)[0]?.protein ?? '';
+    const mitochondrial = translateSixFrames(dna, { table: 2 })[0]?.protein ?? '';
+    expect(mitochondrial).not.toBe(standard);
+    expect(plus1()).toContain(standard);
+
+    const code = screen.getByRole('combobox', { name: 'Code' });
+    fireEvent.change(code, { target: { value: '2' } });
+    expect(plus1()).toContain(mitochondrial);
+
+    const frames = translateSixFrames(dna, { table: 2 });
+    expect(sixFrameFasta(doc, range, frames, 2)).toContain(
+      'genetic code 2 (Vertebrate Mitochondrial)',
+    );
+    // The standard code is the assumption, so it is not written out.
+    expect(sixFrameFasta(doc, range, frames)).not.toContain('genetic code');
+  });
 });
 
 describe('previews', () => {

@@ -21,6 +21,7 @@ const DEFAULTS = {
   sidebarOpen: true,
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
+  geneticCode: 1,
 } as const;
 
 function reset(): void {
@@ -38,6 +39,7 @@ function reset(): void {
   editorStore.setSidebarOpen(true);
   editorStore.setEnzymeCutFilter(DEFAULTS.enzymeCutFilter);
   editorStore.setEnzymeSupplier(DEFAULTS.enzymeSupplier);
+  editorStore.setGeneticCode(DEFAULTS.geneticCode);
 }
 
 describe('view preferences', () => {
@@ -62,6 +64,7 @@ describe('view preferences', () => {
       sidebarOpen: false,
       enzymeCutFilter: 'twice',
       enzymeSupplier: 'N',
+      geneticCode: 11,
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -104,6 +107,7 @@ describe('view preferences', () => {
       sidebarOpen: false,
       enzymeCutFilter: 'once-or-twice',
       enzymeSupplier: 'N',
+      geneticCode: 2,
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -120,6 +124,7 @@ describe('view preferences', () => {
       sidebarOpen: false,
       enzymeCutFilter: 'once-or-twice',
       enzymeSupplier: 'N',
+      geneticCode: 2,
     });
     stop();
   });

@@ -9,7 +9,9 @@ import {
   type Orf,
   type Range,
   type RangeSegment,
+  type TranslationTable,
   BUNDLED_ENZYME_SET,
+  DEFAULT_TABLE,
   History,
   SeqDocument,
   createFeature,
@@ -264,6 +266,14 @@ export interface SharedState {
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
   /**
+   * The genetic code the Translate tab reads with and open reading frames are
+   * found under. It is the app's, not a document's: a CDS carries its own
+   * `/transl_table` and is read with that, while a six-frame translation and
+   * an ORF scan have no feature to ask. A lab working on mitochondria works
+   * on them all day, so it is remembered with the view preferences.
+   */
+  readonly geneticCode: TranslationTable;
+  /**
    * Fragments collected for ligation, in order. Independent of the open
    * documents so pieces can be gathered from several of them in turn.
    */
@@ -360,6 +370,7 @@ const SHARED_INITIAL: SharedState = {
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
   orfMinCodons: 75,
+  geneticCode: DEFAULT_TABLE,
   assembly: [],
   downloadNotice: null,
   shareNotice: null,
@@ -1067,6 +1078,17 @@ export class EditorStore {
     if (value === this.state.orfMinCodons) return;
     this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
     this.setShared({ orfMinCodons: value });
+  }
+
+  /**
+   * Sets the genetic code for six-frame translation and ORFs; every open
+   * document's ORFs are recomputed, because which codons stop a reading
+   * differs by code.
+   */
+  setGeneticCode(table: TranslationTable): void {
+    if (table === this.state.geneticCode) return;
+    this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
+    this.setShared({ geneticCode: table });
   }
 
   /**

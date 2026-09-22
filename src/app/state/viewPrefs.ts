@@ -1,3 +1,4 @@
+import { type TranslationTable, isTranslationTable } from '@/core';
 import { type FontSize, isFontSize } from '@/view/linear';
 
 import { type CutCountFilter, isCutCountFilter } from './cutFilter';
@@ -35,6 +36,8 @@ export interface ViewPrefs {
   /** The Enzymes tab's filters; see `SharedState.enzymeCutFilter`. */
   readonly enzymeCutFilter: CutCountFilter;
   readonly enzymeSupplier: string;
+  /** The code the Translate tab and the ORF scan read with. */
+  readonly geneticCode: TranslationTable;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -90,6 +93,8 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (typeof record['enzymeSupplier'] === 'string') {
     prefs.enzymeSupplier = record['enzymeSupplier'].slice(0, 8);
   }
+  const code = record['geneticCode'];
+  if (typeof code === 'number' && isTranslationTable(code)) prefs.geneticCode = code;
   const layout = record['layout'];
   if (typeof layout === 'object' && layout !== null) {
     const l = layout as Record<string, unknown>;
@@ -135,6 +140,7 @@ function snapshot(): ViewPrefs {
     sidebarOpen,
     enzymeCutFilter,
     enzymeSupplier,
+    geneticCode,
   } = editorStore.getState();
   return {
     view,
@@ -150,6 +156,7 @@ function snapshot(): ViewPrefs {
     sidebarOpen,
     enzymeCutFilter,
     enzymeSupplier,
+    geneticCode,
   };
 }
 
@@ -167,7 +174,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.layout === b.layout &&
     a.sidebarOpen === b.sidebarOpen &&
     a.enzymeCutFilter === b.enzymeCutFilter &&
-    a.enzymeSupplier === b.enzymeSupplier
+    a.enzymeSupplier === b.enzymeSupplier &&
+    a.geneticCode === b.geneticCode
   );
 }
 
@@ -194,6 +202,7 @@ export function startViewPrefs(): () => void {
   if (stored.sidebarOpen !== undefined) editorStore.setSidebarOpen(stored.sidebarOpen);
   if (stored.enzymeCutFilter !== undefined) editorStore.setEnzymeCutFilter(stored.enzymeCutFilter);
   if (stored.enzymeSupplier !== undefined) editorStore.setEnzymeSupplier(stored.enzymeSupplier);
+  if (stored.geneticCode !== undefined) editorStore.setGeneticCode(stored.geneticCode);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();
