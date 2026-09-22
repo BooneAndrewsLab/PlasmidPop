@@ -1015,10 +1015,37 @@ function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
       ? layout.laneRadius(layout.laneCount - 1) - layout.ringWidth
       : layout.radius - 20;
   const maxWidth = Math.max(40, innerRadius * 1.8);
-  ctx.fillText(doc.name, layout.cx, layout.cy - 9, maxWidth);
+  // The room inside the lanes is what it is. A name wider than it is set
+  // smaller, down to a floor, and then shortened with an ellipsis — never
+  // handed to `fillText` as its `maxWidth`, which condenses the glyphs
+  // sideways (and the SVG export the same, through `lengthAdjust`): on a
+  // phone's map "SYNPBR322 copy" came out as a squeezed script.
+  const title = fitTitle(ctx, p.titleFont, doc.name, maxWidth);
+  ctx.font = title.font;
+  ctx.fillText(title.text, layout.cx, layout.cy - 9);
   ctx.font = p.sansFont;
   ctx.fillStyle = theme.inkMuted;
-  ctx.fillText(`${doc.length.toLocaleString()} bp`, layout.cx, layout.cy + 9, maxWidth);
+  const length = fitText(ctx, `${doc.length.toLocaleString()} bp`, maxWidth);
+  if (length !== null) ctx.fillText(length.text, layout.cx, layout.cy + 9);
+}
+
+/** Smallest the centre title is set before it is shortened instead. */
+const MIN_TITLE_PX = 11;
+
+/** The title font at the size the name fits in, or at the floor with the name cut. */
+function fitTitle(
+  ctx: DrawingContext,
+  font: string,
+  text: string,
+  maxWidth: number,
+): { readonly font: string; readonly text: string } {
+  const at = (px: number): string => font.replace(/\d+(?:\.\d+)?px/, `${px}px`);
+  for (let px = fontSizeOf(font); px >= MIN_TITLE_PX; px -= 1) {
+    ctx.font = at(px);
+    if (ctx.measureText(text).width <= maxWidth) return { font: at(px), text };
+  }
+  ctx.font = at(MIN_TITLE_PX);
+  return { font: at(MIN_TITLE_PX), text: fitText(ctx, text, maxWidth)?.text ?? '' };
 }
 
 export interface MapRenderResult {

@@ -452,3 +452,65 @@ describe('renderCircularMap tracked changes', () => {
     for (const color of ['#00aa00', '#aa8800', '#ff00ff']) expect(svg).not.toContain(color);
   });
 });
+
+describe('renderCircularMap centre title', () => {
+  const lanes = { ringWidth: 14, outerMargin: 110, laneCount: 4 };
+  const draw = (name: string, size: number): string => {
+    const doc = SeqDocument.create({ name, sequence: 'ACGT'.repeat(1090), topology: 'circular' });
+    const layout = new CircularLayout(doc.length, doc.topology, {
+      ...lanes,
+      width: size,
+      height: size,
+    });
+    const ctx = new SvgContext(size, size);
+    renderCircularMap(ctx, {
+      doc,
+      layout,
+      lanes: NO_LANES,
+      selection: null,
+      cutSites: [],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: size,
+      height: size,
+      devicePixelRatio: 1,
+      theme: PRINT_THEME,
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    return ctx.toSvg();
+  };
+  /** The title is the one piece of bold text on the map. */
+  const title = (svg: string): { readonly size: number; readonly text: string } => {
+    const m = /<text[^>]*font-size="([\d.]+)" font-weight="600"[^>]*>([^<]*)<\/text>/.exec(svg);
+    if (m === null) throw new Error('no title');
+    return { size: Number(m[1]), text: m[2] ?? '' };
+  };
+
+  it('keeps a name that fits at full size', () => {
+    expect(title(draw('pBR322', 600))).toEqual({ size: 15, text: 'pBR322' });
+  });
+
+  it('sets a longer name smaller rather than squeezing it', () => {
+    const svg = draw('pLenti-CMV-EGFP1', 500);
+    const t = title(svg);
+    expect(t.text).toBe('pLenti-CMV-EGFP1');
+    expect(t.size).toBeLessThan(15);
+    expect(t.size).toBeGreaterThanOrEqual(11);
+    expect(svg).not.toContain('textLength');
+  });
+
+  it('shortens a name the floor cannot hold, and never condenses it', () => {
+    // A phone's map pane, with four lanes of features inside the ring: the
+    // room left in the middle is a few characters. "SYNPBR322 copy" was drawn
+    // there as a squeezed script before the title learnt to step down.
+    const svg = draw('SYNPBR322 copy', 390);
+    const t = title(svg);
+    expect(t.size).toBe(11);
+    expect(t.text).toMatch(/^SYN.*…$/);
+    expect(svg).not.toContain('textLength');
+  });
+});
