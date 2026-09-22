@@ -2430,8 +2430,31 @@ button {
   gap: 2px;
 }
 
+.gg__part {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
 .gg__parts .toggle {
+  min-width: 0;
   max-width: 100%;
+}
+
+/* A long file name gives way to the size on its right rather than wrapping. */
+.gg__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What a part is, beside its name: its length, and where it came from. */
+.gg__detail {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 .gg__left-out {

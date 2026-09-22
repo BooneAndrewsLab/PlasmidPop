@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { SeqDocument, translateSixFrames } from '@/core';
+import { BLUNT_END, SeqDocument, translateSixFrames } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 import { getRepository } from '@/storage';
 
@@ -873,6 +873,42 @@ describe('gibson', () => {
     expect(screen.getByText(/do not close into a circle/)).toBeInTheDocument();
     fireEvent.click(tube());
     expect(screen.getByRole('button', { name: 'Assemble by Gibson' })).toBeEnabled();
+  });
+
+  it('takes a part off the ligation shelf as well as an open document', async () => {
+    render(<App />);
+    act(() => {
+      editorStore.clearAssembly();
+      editorStore.openDocument(vector, 'pBackbone.gb');
+      // The insert arrives as a digest fragment rather than a file, the way
+      // a backbone cut out of a plasmid does.
+      editorStore.addToAssembly({
+        sequence: insert.sequence.toString(),
+        features: [],
+        range: { start: 0, end: insert.length },
+        left: BLUNT_END,
+        right: BLUNT_END,
+        source: 'gfp cassette',
+      });
+    });
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    fireEvent.click(pickReaction('Gibson'));
+
+    const tube = screen.getByRole('list', { name: 'Documents in the Gibson' });
+    expect(within(tube).getByRole('checkbox', { name: 'pBackbone' })).toBeChecked();
+    expect(within(tube).getByRole('checkbox', { name: 'gfp cassette fragment' })).toBeChecked();
+    expect(within(tube).getByText('70 bp from the shelf')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assemble by Gibson' }));
+    const product = editorStore.document;
+    expect(product?.isCircular).toBe(true);
+    expect(product?.sequence.toString()).toBe(`${A}${vectorBody}${B}${insertBody}`);
+    act(() => {
+      editorStore.clearAssembly();
+    });
   });
 
   it('refuses the junctions when more homology is asked for', async () => {

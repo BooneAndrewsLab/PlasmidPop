@@ -1,11 +1,15 @@
 import { Fragment, useMemo, useState } from 'react';
 
 import {
+  type AssemblyPart,
   type DroppedPart,
   type GibsonJoin,
   type GibsonPart,
+  type SeqDocument,
   GIBSON_DEFAULTS,
+  defaultFragmentName,
   describeGibsonDropped,
+  documentFromFragment,
   gibson,
 } from '@/core';
 
@@ -58,6 +62,39 @@ function JoinRow({ join, closing }: { readonly join: GibsonJoin; readonly closin
   );
 }
 
+/** One thing in the tube: an open document, or a fragment off the shelf. */
+interface Ingredient {
+  /** The document's tab id, or the shelf part's id. */
+  readonly id: string;
+  readonly document: SeqDocument;
+  readonly detail: string;
+}
+
+/**
+ * The shelf as Gibson sees it: each collected fragment as a linear document
+ * of its own, ends and features and all, which is what `documentFromFragment`
+ * already makes for **Open**. So a piece of a digest and a PCR product opened
+ * from a file go into the same tube without Gibson knowing the difference.
+ *
+ * Two fragments of one digest with the same enzyme at both ends have the same
+ * default name, and a name is how the panel reports an ambiguity, so a repeat
+ * is numbered.
+ */
+function shelfIngredients(assembly: readonly AssemblyPart[]): Ingredient[] {
+  const used = new Map<string, number>();
+  return assembly.map((part) => {
+    const base = defaultFragmentName(part.fragment);
+    const n = (used.get(base) ?? 0) + 1;
+    used.set(base, n);
+    const name = n === 1 ? base : `${base} ${n}`;
+    return {
+      id: part.id,
+      document: documentFromFragment(part.fragment, { name }),
+      detail: `${part.fragment.sequence.length.toLocaleString()} bp from the shelf`,
+    };
+  });
+}
+
 /**
  * Gibson assembly: no enzyme, no site, no scar. Each piece is made to end in
  * the bases the next one starts with, and the reaction joins them in the one
@@ -66,15 +103,26 @@ function JoinRow({ join, closing }: { readonly join: GibsonJoin; readonly closin
  * found and what each junction is made of.
  */
 export function GibsonPanel() {
-  const { documents } = useEditorState();
+  const { documents, assembly: shelf } = useEditorState();
   const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
   const [minOverlap, setMinOverlap] = useState<number>(GIBSON_DEFAULTS.minOverlap);
   const [circular, setCircular] = useState(true);
   const [name, setName] = useState('');
 
+  // One tube, two sources. A Gibson usually mixes them — a backbone cut out
+  // of a plasmid and an insert amplified from somewhere else — so they are
+  // one list with a tick each rather than a choice between them.
+  const open: Ingredient[] = documents.map((d) => ({
+    id: d.documentId,
+    document: d.history.present,
+    detail: `${d.history.present.length.toLocaleString()} bp`,
+  }));
+  const fromShelf = useMemo(() => shelfIngredients(shelf), [shelf]);
   const docs = useMemo(
-    () => documents.filter((d) => !excluded.has(d.documentId)).map((d) => d.history.present),
-    [documents, excluded],
+    () => [...open, ...fromShelf].filter((i) => !excluded.has(i.id)).map((i) => i.document),
+    // `open` is rebuilt every render; the documents it holds are not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [documents, fromShelf, excluded],
   );
   // Finding the junctions is a handful of string comparisons per pair of
   // ends, so it is done here rather than in a worker, like the Golden Gate
@@ -107,11 +155,11 @@ export function GibsonPanel() {
     setName('');
   };
 
-  if (documents.length === 0) {
+  if (open.length === 0 && fromShelf.length === 0) {
     return (
       <p className="panel__note">
         Open the linearised vector and the inserts, each ending in the bases the next one starts
-        with.
+        with, or collect the pieces from a digest above.
       </p>
     );
   }
@@ -151,18 +199,21 @@ export function GibsonPanel() {
       </div>
 
       <ul className="gg__parts" aria-label="Documents in the Gibson">
-        {documents.map((d) => (
-          <li key={d.documentId}>
+        {[...open, ...fromShelf].map((i) => (
+          <li key={i.id} className="gg__part">
             <label className="toggle">
               <input
                 type="checkbox"
-                checked={!excluded.has(d.documentId)}
+                checked={!excluded.has(i.id)}
                 onChange={() => {
-                  toggle(d.documentId);
+                  toggle(i.id);
                 }}
               />
-              {d.history.present.name}
+              <span className="gg__name">{i.document.name}</span>
             </label>
+            {/* Outside the label, so the tick box is named by the part alone
+                and a test (or a screen reader) asks for it by name. */}
+            <span className="gg__detail">{i.detail}</span>
           </li>
         ))}
       </ul>

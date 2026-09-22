@@ -148,9 +148,13 @@ once, and there is no scar to design around.
 So the panel asks only what is in the tube. Choose **Gibson** in the picker,
 then:
 
-1. Open each part in its own tab: the linearised (or PCR-amplified) vector
-   and the inserts. A circular document is left out, because it has no ends
-   to join by — digest or linearise it first.
+1. Put the parts in the tube. Anything open is one: the linearised (or
+   PCR-amplified) vector and the inserts, each in its own tab. So is anything
+   on the **Ligation** shelf, which is how a backbone cut out of a plasmid
+   joins an insert amplified from somewhere else — the two are one list with
+   a tick each, and a piece off the shelf says so beside its size. A circular
+   document is left out, because it has no ends to join by; digest or
+   linearise it first.
 2. Untick anything that is not in the reaction. Set **Overlap** to the
    shortest homology to accept; 15 bp is the default and what NEB's protocol
    asks for.
@@ -176,12 +180,13 @@ worth seeing before it is ambiguous in the tube.
 
 Partial digests, dephosphorylation, and ambiguity codes in overhangs (an
 `N` never pairs). Gibson does not check for homology _inside_ a part that
-could anneal as readily as the junction it was designed for, does not take
-parts from the assembly list above it, and models neither the length of the
-chew-back nor the polymerase's fill-in, so a very long part with a very short
-overlap may fail on the bench while looking right here.
+could anneal as readily as the junction it was designed for, and models
+neither the length of the chew-back nor the polymerase's fill-in, so a very
+long part with a very short overlap may fail on the bench while looking right
+here.
+
 Golden Gate takes whole open documents rather than fragments from the
-assembly list, will not mix two enzymes in one reaction, and does not check
+ligation shelf, will not mix two enzymes in one reaction, and does not check
 that a set of overhangs would misligate in the tube. Nothing fills in or
 chews back an overhang yet (no Klenow or T4 polymerase blunting), the
 circular map does not draw the ends, and a FASTA export does not carry
