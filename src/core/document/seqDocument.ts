@@ -30,6 +30,8 @@ import {
   BLUNT_END,
   endsEqual,
   flipEnds,
+  flipWindow,
+  isSameWindow,
   normalizeEnds,
   topStrandOverhang,
 } from './ends';
@@ -318,16 +320,42 @@ export class SeqDocument {
 
   /** Reverse-complements the whole sequence; features flip strand and position. */
   reverseComplement(): SeqDocument {
-    const length = this.length;
-    return this.with({
-      ends: flipEnds(this.ends),
-      sequence: Rope.from(reverseComplement(this.sequence.toString())),
-      features: this.features.map((f) => ({
+    const doc = this.onBottomStrand();
+    const length = doc.length;
+    return doc.with({
+      ends: flipEnds(doc.ends),
+      sequence: Rope.from(reverseComplement(doc.sequence.toString())),
+      features: doc.features.map((f) => ({
         ...f,
         strand: flipStrand(f.strand),
-        segments: [...f.segments].reverse().map((seg) => flipSegment(seg, length, this.topology)),
+        segments: [...f.segments].reverse().map((seg) => flipSegment(seg, length, doc.topology)),
       })),
     });
+  }
+
+  /**
+   * The same molecule with `sequence` written over the bases the *bottom*
+   * strand covers, which is the window the new top strand will read once it
+   * is reverse-complemented (`flipWindow` in `ends.ts` says why it moves).
+   *
+   * So a sticky-ended molecule comes out of a flip a different length: the
+   * bases a bottom-strand overhang carries arrive, and the ones only the old
+   * top strand had leave, taking any annotation on them with them. Nothing
+   * about the molecule changes here, only which of its two strands is being
+   * written out.
+   */
+  private onBottomStrand(): SeqDocument {
+    const window = flipWindow(this.ends);
+    if (isSameWindow(window)) return this;
+    const { head, tail, trimStart, trimEnd } = window;
+    // Each step is a no-op when its end has nothing to move, so all four run.
+    const framed = this.insert(this.length, tail).insert(0, head);
+    const trimmed = framed
+      .delete({ start: framed.length - trimEnd, end: framed.length })
+      .delete({ start: 0, end: trimStart });
+    // Every one of those edits reached a tip and so blunted the end it
+    // reached; the molecule itself is the one it was.
+    return trimmed.with({ ends: this.ends });
   }
 
   /** Rotates a circular sequence so that the base at `position` becomes base 0. */

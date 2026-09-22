@@ -7,7 +7,7 @@ import {
   describeEnd,
   extractRange,
   flipEnd,
-  topStrandOverhang,
+  flipWindow,
 } from '../document';
 import { type DigestFragment, type FragmentEnd } from './digest';
 
@@ -41,13 +41,11 @@ export interface AssemblyPart {
  */
 export function flipFragment(fragment: DigestFragment): DigestFragment {
   const { left, right, sequence } = fragment;
-  // Bases of `sequence` that are this fragment's own single-stranded ends.
-  const leftOnTop = topStrandOverhang(left, 'left');
-  const rightOnTop = topStrandOverhang(right, 'right');
-  // The overhangs the bottom strand carries instead, written as top-strand
-  // bases: they sit just outside `sequence` and come into it on the flip.
-  const head = left.kind === "3'" ? left.overhang : '';
-  const tail = right.kind === "5'" ? right.overhang : '';
+  // `head`/`tail` are the bottom strand's own overhangs, written as
+  // top-strand bases: they sit just outside `sequence` and come into it on
+  // the flip. `trimStart`/`trimEnd` are the bases of `sequence` that are this
+  // fragment's own single-stranded ends and go the other way.
+  const { head, tail, trimStart, trimEnd } = flipWindow({ left, right });
   const whole = SeqDocument.create({
     sequence: head + sequence + tail,
     features: fragment.features.map((f) => ({
@@ -57,11 +55,11 @@ export function flipFragment(fragment: DigestFragment): DigestFragment {
     topology: 'linear',
   });
   // What the bottom strand covers, which is what the new top strand reads.
-  // `head` and `leftOnTop` are never both set, so the start is just the one
-  // that applies; the same holds for `tail` and `rightOnTop` at the end.
+  // `head` and `trimStart` are never both set, so the start is just the one
+  // that applies; the same holds for `tail` and `trimEnd` at the end.
   const flipped = extractRange(whole, {
-    start: leftOnTop,
-    end: head.length + sequence.length - rightOnTop + tail.length,
+    start: trimStart,
+    end: head.length + sequence.length - trimEnd + tail.length,
   }).reverseComplement();
   return {
     ...fragment,

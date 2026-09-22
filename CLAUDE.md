@@ -169,8 +169,10 @@ and copied whole on a click. **Compare with… lines a rotated plasmid up**
 before diffing it instead of calling it different throughout (item 33's last
 open point), and a working copy carries
 `PlasmidPop-derived-from: cdseguid=… pBR322.gb` into every file and share link
-it leaves as, which is what items 22 and 11 were both waiting on. Known and
-unfixed: item 34, reverse complement of a molecule with sticky ends. Tests: 825 passing. Perf measurements live in
+it leaves as, which is what items 22 and 11 were both waiting on. Added
+2026-09-22: **turning a sticky-ended molecule over moves the window** the
+sequence is written over, which the checksum had just caught it not doing
+(item 34). Tests: 831 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -1300,34 +1302,49 @@ pick from here when the current work is done.
       the other file from the dialog, or step from one difference to the next
       in the views.
 
-34. **Turning a sticky-ended molecule over loses the window shift.** Found
-    2026-09-22 by the checksum of item 22, which is what a checksum is for:
-    `ldseguid` is invariant to which strand is on top, so turning a fragment
-    over and getting a different one says the *turn* is wrong, not the
-    checksum. `SeqDocument.reverseComplement` reverse-complements the top
-    strand and swaps the ends (`flipEnds`), but the new top strand is the old
-    *bottom* strand, which starts and ends elsewhere: a molecule with an EcoRI
-    5′ overhang at the left and a 3′ overhang at the right has 4 and 2 bases
-    of top strand with nothing under them, and after the turn the document
-    claims all of them are double-stranded and 6 bases that are not there at
-    all. Same molecule in, different molecule out.
-    - **`flipFragment` (`src/core/cloning/ligate.ts`) already has the fix**,
-      and its comment says why: "a fragment's `sequence` is its top strand
-      alone, so turning it over moves the window by an overhang at each end
-      rather than just reverse-complementing it". It builds `head + sequence +
-      tail` from the bottom-only overhangs, extracts what the bottom strand
-      covers and reverse-complements that. The document method wants the same
-      four lines.
-    - **It is left unfixed deliberately**, because it changes what an editing
-      op does rather than what a checksum says: reverse-complementing a sticky
-      molecule would make the sequence *shorter* (the top-only overhang bases
-      leave, the bottom-only ones arrive), which is correct and is still a
-      visible change to an operation people use, and a feature annotated on an
-      overhang would be clipped. Worth doing; worth doing as its own decision.
-    - Only a document with non-null `ends` is affected, which is one that came
-      from a digest fragment, a ligation, or a file with our
-      `PlasmidPop-ends:` comment. `seguid.test.ts` has the invariance test for
-      a blunt molecule; the sticky one goes in with the fix.
+34. ~~**Turning a sticky-ended molecule over loses the window shift.**~~ fixed
+    2026-09-22. Found the same day by the checksum of item 22, which is what a
+    checksum is for: `ldseguid` is invariant to which strand is on top, so
+    turning a fragment over and getting a different one says the *turn* is
+    wrong, not the checksum. `SeqDocument.reverseComplement` reverse-complemented
+    the top strand and swapped the ends (`flipEnds`), but the new top strand is
+    the old *bottom* strand, which starts and ends elsewhere: a molecule with an
+    EcoRI 5′ overhang at the left and a PstI 3′ one at the right has 4 bases at
+    each tip with nothing under them, and after the turn the document claimed
+    all of them were double-stranded and 8 bases that are not there at all.
+    Same molecule in, different molecule out.
+    - **The window is one calculation now, in `ends.ts`.** `flipWindow(ends)`
+      gives the bases a bottom-strand overhang carries just outside the
+      sequence and that come into it (`head`, `tail`) and the bases of the
+      sequence that only the top strand has and that leave it (`trimStart`,
+      `trimEnd`), with `windowShift` and `flippedLength` derived from them.
+      `flipFragment` (`src/core/cloning/ligate.ts`), which had the arithmetic
+      right all along and inline, now asks the same function — the fragment
+      and the document were never going to be two different questions, and
+      `FragmentEnd` is `StrandEnd`.
+    - **The document reframes itself before it reverses.** `onBottomStrand` is
+      four existing ops — insert the two bottom-strand overhangs, delete the
+      two top-strand ones, then put the ends back, since each of those edits
+      reaches a tip and `endsAfterEdit` rightly blunts what it reaches — and
+      `reverseComplement` runs over what comes out. So the trimming carries a
+      feature annotated on an overhang away with the overhang, through the
+      same `delete` as everywhere else, rather than through a second copy of
+      extract's logic (`extractRange` cannot be imported here: it imports
+      `SeqDocument`).
+    - **A sticky flip changes the length**, which is the visible part and the
+      reason this was its own decision rather than part of the checksum work.
+      `selectionAfterOp` mirrors about the *new* length and about the moved
+      window, clamping each end, so a selection on an overhang that has gone
+      collapses to the tip it was at instead of pointing past the document.
+      The caret path (`mapPositionThrough`) is untouched: it has never mirrored
+      a reverse complement, and the store already clamps it.
+    - `seguid.test.ts` has the invariance test for a sticky molecule beside the
+      blunt one, `ends.test.ts` the window, the round trip and the clipped
+      feature, and `editing.test.ts` the selection. All four fail without the
+      fix, which was checked by taking it out.
+    - Not yet: nothing tells the user the length changed — the History step
+      still reads "Reverse complement" and the Edits marks show the whole
+      molecule as replaced, which for a flip they always did.
 
 ## Non-goals for v1
 

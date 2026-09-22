@@ -178,6 +178,35 @@ describe('positions and selections', () => {
     });
     expect(selectionAfterOp(linear, null, { type: 'reverseComplement' })).toBeNull();
   });
+
+  it('follows the selection through the window a sticky flip moves', () => {
+    // EcoRI at the left, PstI at the right: eight of the eighteen bases are
+    // single-stranded and leave the molecule when it is turned over.
+    const cut = SeqDocument.create({
+      sequence: 'AATTGACCTAGGCATGCA',
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: "3'", overhang: 'TGCA', enzyme: 'PstI' },
+      },
+    });
+    expect(cut.reverseComplement().length).toBe(10);
+    // GAC, the first three bases of the double-stranded middle, come out as
+    // the last three of the ten that are left.
+    expect(selectionAfterOp(cut, { start: 4, end: 7 }, { type: 'reverseComplement' })).toEqual({
+      start: 7,
+      end: 10,
+    });
+    // A selection on the overhang has nothing left to be on.
+    expect(selectionAfterOp(cut, { start: 0, end: 4 }, { type: 'reverseComplement' })).toEqual({
+      start: 10,
+      end: 10,
+    });
+    // One that reaches into the middle keeps the part that survives.
+    expect(selectionAfterOp(cut, { start: 0, end: 7 }, { type: 'reverseComplement' })).toEqual({
+      start: 7,
+      end: 10,
+    });
+  });
 });
 
 describe('undo runs', () => {

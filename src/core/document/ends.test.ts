@@ -1,3 +1,5 @@
+import { type Feature, createFeature, rangeSegment } from '../features';
+import { reverseComplement } from '../sequence';
 import { SeqDocument } from './seqDocument';
 import {
   type DocumentEnds,
@@ -133,3 +135,70 @@ describe('SeqDocument ends', () => {
     expect(renamed.ends).toEqual(sticky);
   });
 });
+
+describe('turning a sticky-ended molecule over', () => {
+  // EcoRI at the left, PstI at the right, both overhangs really in the
+  // sequence: the first four bases sit on the top strand alone, and so do
+  // the last four.
+  const left: StrandEnd = ecoRI;
+  const right: StrandEnd = pstI;
+  const INNER = 'GGGCCCAAA';
+  const STICKY = `AATT${INNER}TGCA`;
+
+  function sticky3(features: Feature[] = []): SeqDocument {
+    return SeqDocument.create({
+      sequence: STICKY,
+      topology: 'linear',
+      features,
+      ends: { left, right },
+    });
+  }
+
+  it('moves the window by an overhang at each end', () => {
+    const flipped = sticky3().reverseComplement();
+    // The new top strand is the old bottom one, which covers the double-
+    // stranded middle and neither overhang.
+    expect(flipped.sequence.toString()).toBe(reverseComplement(INNER));
+    expect(flipped.ends).toEqual(flipEnds({ left, right }));
+  });
+
+  it('brings a bottom-strand overhang into the sequence', () => {
+    // The same molecule written the other way round. Both overhangs are on
+    // the bottom strand now, so they are not in the sequence at all and the
+    // flip has to get them back from the ends: nine bases in, seventeen out.
+    const other = SeqDocument.create({
+      sequence: reverseComplement(INNER),
+      topology: 'linear',
+      ends: flipEnds({ left, right }),
+    });
+    expect(other.reverseComplement().sequence.toString()).toBe(STICKY);
+    expect(other.reverseComplement().ends).toEqual({ left, right });
+  });
+
+  it('leaves a blunt molecule where it is', () => {
+    const blunt = SeqDocument.create({ sequence: STICKY, topology: 'linear', ends: null });
+    expect(blunt.reverseComplement().sequence.toString()).toBe(reverseComplement(STICKY));
+    // A blunt end an enzyme made says what cut there and nothing about a window.
+    const named = blunt.setEnds({ left: smaI, right: smaI });
+    expect(named.reverseComplement().sequence.toString()).toBe(reverseComplement(STICKY));
+  });
+
+  it('takes a feature annotated on an overhang with the overhang', () => {
+    // GGG, the first three bases of the double-stranded middle.
+    const inner = feature('inner', 4, 7);
+    const onOverhang = feature('on the overhang', 0, 4);
+    const flipped = sticky3([inner, onOverhang]).reverseComplement();
+    expect(flipped.features.all().map((f) => f.name)).toEqual(['inner']);
+    // The overhang it was measured from is gone, so it is at 0..3 of the
+    // window before the flip and the last three bases of the nine after it.
+    expect(flipped.features.all()[0]?.segments).toEqual([
+      rangeSegment(INNER.length - 3, INNER.length),
+    ]);
+    expect(flipped.subsequence({ start: 6, end: 9 })).toBe('CCC');
+    expect(flipped.features.all()[0]?.strand).toBe('reverse');
+  });
+});
+
+function feature(name: string, start: number, end: number): Feature {
+  return createFeature({ name, type: 'misc_feature', segments: [rangeSegment(start, end)] });
+}

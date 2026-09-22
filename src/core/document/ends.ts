@@ -103,3 +103,64 @@ export function describeEnds(ends: DocumentEnds | null): string {
 export function hasOverhang(ends: DocumentEnds | null): boolean {
   return ends !== null && (ends.left.kind !== 'blunt' || ends.right.kind !== 'blunt');
 }
+
+/**
+ * What the sequence gains and loses at each end when the molecule is turned
+ * over.
+ *
+ * A document's `sequence` is its top strand alone, and the two strands of a
+ * sticky-ended molecule do not cover the same bases. The new top strand is
+ * the old bottom one, so it reaches past the sequence wherever a
+ * bottom-strand overhang hangs off it (`head` and `tail`, which the ends
+ * describe but the sequence does not hold) and stops short wherever a
+ * top-strand overhang runs on (`trimStart` and `trimEnd`, which are bases of
+ * the sequence with nothing under them). Turning a molecule over therefore
+ * moves the window by an overhang at each end rather than just
+ * reverse-complementing what is there.
+ *
+ * Both sides are exclusive: an end either has bases coming in or bases going
+ * out, never both.
+ */
+export interface FlipWindow {
+  /** Bottom-strand bases before the sequence, top-strand reading, that come in. */
+  readonly head: string;
+  /** Bottom-strand bases after the sequence, top-strand reading, that come in. */
+  readonly tail: string;
+  /** Bases at the start of the sequence only the top strand has; they go out. */
+  readonly trimStart: number;
+  /** Bases at the end of the sequence only the top strand has; they go out. */
+  readonly trimEnd: number;
+}
+
+const SAME_WINDOW: FlipWindow = { head: '', tail: '', trimStart: 0, trimEnd: 0 };
+
+export function flipWindow(ends: DocumentEnds | null): FlipWindow {
+  if (ends === null) return SAME_WINDOW;
+  return {
+    head: ends.left.kind === "3'" ? ends.left.overhang : '',
+    tail: ends.right.kind === "5'" ? ends.right.overhang : '',
+    trimStart: topStrandOverhang(ends.left, 'left'),
+    trimEnd: topStrandOverhang(ends.right, 'right'),
+  };
+}
+
+/** Whether the window is where it was, so the flip is a plain reverse complement. */
+export function isSameWindow(w: FlipWindow): boolean {
+  return w.head === '' && w.tail === '' && w.trimStart === 0 && w.trimEnd === 0;
+}
+
+/**
+ * How far the sequence slides within the new window: bases gained at the
+ * left count positive, bases lost negative. Position `p` of the old sequence
+ * sits at `p + windowShift(w)` once the window has moved, and so at
+ * `flippedLength(w, length) - (p + windowShift(w))` once it is read
+ * backwards.
+ */
+export function windowShift(w: FlipWindow): number {
+  return w.head.length - w.trimStart;
+}
+
+/** The length of the molecule once it has been turned over. */
+export function flippedLength(w: FlipWindow, length: number): number {
+  return length + w.head.length + w.tail.length - w.trimStart - w.trimEnd;
+}

@@ -7,6 +7,8 @@ import {
   assertValidSequence,
   backspaceRun,
   deleteForwardRun,
+  flipWindow,
+  flippedLength,
   isEmptyRange,
   newFeatureId,
   normalizePosition,
@@ -14,6 +16,7 @@ import {
   range,
   shiftPositionForDelete,
   typingRun,
+  windowShift,
 } from '@/core';
 
 /** An edit to apply plus where the selection should land afterwards. */
@@ -167,10 +170,19 @@ export function selectionAfterOp(
   switch (op.type) {
     case 'reverseComplement': {
       const len = selection.end - selection.start;
-      let start = doc.length - selection.end;
-      if (doc.isCircular && doc.length > 0)
-        start = ((start % doc.length) + doc.length) % doc.length;
-      return range(start, start + len);
+      // A sticky-ended molecule comes out of a flip a different length and
+      // with its bases at a different offset (`flipWindow` in `core/document`),
+      // so the mirror is about the new length, not this one; a selection on
+      // an overhang that has gone collapses to the end it was at.
+      const window = flipWindow(doc.ends);
+      const flipped = flippedLength(window, doc.length);
+      const start = flipped - (selection.end + windowShift(window));
+      if (doc.isCircular && doc.length > 0) {
+        const wrapped = ((start % doc.length) + doc.length) % doc.length;
+        return range(wrapped, wrapped + len);
+      }
+      const clamp = (p: number): number => Math.max(0, Math.min(p, flipped));
+      return range(clamp(start), clamp(start + len));
     }
     case 'setOrigin': {
       if (doc.length === 0) return selection;

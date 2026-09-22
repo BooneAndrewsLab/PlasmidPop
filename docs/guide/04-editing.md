@@ -53,7 +53,14 @@ On a molecule with sticky ends (a fragment from a digest, see
 last bases leaves that end plain and blunt again, since it is no longer the
 end the enzyme made; an edit in the middle leaves both ends as they were.
 Making the molecule circular drops the ends, and reverse-complementing swaps
-them.
+them — and moves the sequence with them. The sequence shown is the top strand
+alone, and the two strands of a sticky-ended molecule do not cover the same
+bases, so turning it over writes out the other strand, which starts and ends
+elsewhere: the bases of an overhang the bottom strand carried come into the
+sequence and the ones only the top strand had leave it. The molecule is the
+same one; its length changes by an overhang at each end, and a feature
+annotated on an overhang that has gone goes with it. A blunt molecule is
+simply reversed.
 
 To rename the document, click its name in the toolbar, type, and press
 `Enter` (`Escape` cancels).

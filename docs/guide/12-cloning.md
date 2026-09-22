@@ -49,7 +49,9 @@ Editing the molecule's tip — typing over an overhang base, deleting the first
 or last bases, pasting at either end — leaves an end that is no longer the
 one the enzyme made, so that end goes back to being a plain blunt one. An
 edit in the middle leaves both ends alone. Making the molecule circular drops
-them, since a circle has no ends; reverse-complementing swaps them.
+them, since a circle has no ends; reverse-complementing swaps them and moves
+the sequence to the other strand's window, which is a few bases longer or
+shorter (see [Editing the sequence](04-editing.md#whole-sequence-operations)).
 
 ## Assembly
 

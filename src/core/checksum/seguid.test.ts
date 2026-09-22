@@ -118,6 +118,24 @@ describe('documentChecksum', () => {
     expect(documentChecksum(doc.reverseComplement())?.text).toBe(documentChecksum(doc)?.text);
   });
 
+  it('does not change when a sticky-ended molecule is turned around', () => {
+    // `ldseguid` is invariant to which strand is written on top, so a flip
+    // that gave a different checksum would mean the flip had changed the
+    // molecule -- which is how the window bug this covers was found. EcoRI
+    // at the left, PstI at the right, both overhangs in the sequence.
+    const doc = SeqDocument.create({
+      sequence: 'AATTGACCTAGGCATGCA',
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: "3'", overhang: 'TGCA', enzyme: 'PstI' },
+      },
+    });
+    const flipped = doc.reverseComplement();
+    expect(documentChecksum(flipped)?.text).toBe(documentChecksum(doc)?.text);
+    // And the turn is its own inverse: the same molecule comes back.
+    expect(flipped.reverseComplement().sequence.toString()).toBe(doc.sequence.toString());
+  });
+
   it('ignores the case the sequence is written in', () => {
     expect(documentChecksum(circular('aacgttgacc'))?.text).toBe(
       documentChecksum(circular('AACGTTGACC'))?.text,
