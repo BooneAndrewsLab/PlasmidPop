@@ -1,0 +1,204 @@
+import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
+
+import { gibson } from './gibson';
+import { type PcrPrimer, pcr } from './pcr';
+
+/** A fixed pseudo-random template, so every primer site is unique by accident. */
+function template(length: number, seed = 20260922): string {
+  let x = seed;
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    x = (x * 1103515245 + 12345) & 0x7fffffff;
+    out += 'ACGT'.charAt((x >> 16) & 3);
+  }
+  return out;
+}
+
+const TEXT = template(3000);
+const LINEAR = SeqDocument.create({ name: 'strip', sequence: TEXT });
+const PLASMID = SeqDocument.create({ name: 'pTest', sequence: TEXT, topology: 'circular' });
+
+/** A primer that anneals to the top strand at [start, end). */
+function fwd(start: number, end: number, tail = '', name = 'F'): PcrPrimer {
+  return { name, sequence: tail + TEXT.slice(start, end) };
+}
+
+/** A primer that anneals to the bottom strand over the top strand's [start, end). */
+function rev(start: number, end: number, tail = '', name = 'R'): PcrPrimer {
+  return { name, sequence: tail + reverseComplement(TEXT.slice(start, end)) };
+}
+
+function one(result: ReturnType<typeof pcr>): string {
+  expect(result.problem).toBeNull();
+  expect(result.products).toHaveLength(1);
+  return result.products[0]?.document.sequence.toString() ?? '';
+}
+
+describe('pcr', () => {
+  it('copies the stretch between two primers', () => {
+    const result = pcr(LINEAR, [fwd(100, 122), rev(500, 522)]);
+    expect(one(result)).toBe(TEXT.slice(100, 522));
+    const product = result.products[0];
+    expect(product?.length).toBe(422);
+    expect(product?.templateRange).toEqual({ start: 100, end: 522 });
+    expect(product?.document.topology).toBe('linear');
+  });
+
+  it('carries the 5′ tails that anneal to nothing', () => {
+    // What a cloning primer is: a site or a homology arm on the 5′ end, and
+    // the template's own bases on the 3′ end.
+    const result = pcr(LINEAR, [fwd(100, 122, 'GGATCC'), rev(500, 522, 'AAGCTT')]);
+    expect(one(result)).toBe(`GGATCC${TEXT.slice(100, 522)}${reverseComplement('AAGCTT')}`);
+    const site = result.products[0]?.forward;
+    expect(site?.tail).toBe('GGATCC');
+    expect(site?.annealLength).toBe(22);
+    // The tail is nowhere on the template, so the copied stretch starts where
+    // the annealing part does rather than six bases earlier.
+    expect(result.products[0]?.templateRange.start).toBe(100);
+  });
+
+  it('lets a tail anneal where it happens to match, and changes nothing', () => {
+    // Where a tail is drawn is a matter of what pairs, not of what the
+    // designer meant: the HindIII site here shares AA and C with the four
+    // bases after the annealing region, so two more base pairs form. The
+    // product is the same string either way — those bases match the template,
+    // which is why they annealed — so this is a fact about the report, not
+    // about the molecule.
+    const result = pcr(LINEAR, [fwd(100, 122, 'GGATCC'), rev(500, 522, 'AAGCTT')]);
+    const reverse = result.products[0]?.reverse;
+    expect(reverse?.annealLength).toBe(26);
+    expect(reverse?.tail).toBe('AA');
+    expect(reverse?.mismatches).toBe(2);
+    expect(result.products[0]?.templateRange).toEqual({ start: 100, end: 526 });
+    expect(one(result)).toBe(`GGATCC${TEXT.slice(100, 522)}AAGCTT`);
+  });
+
+  it('writes a primer mismatch into the product', () => {
+    // Site-directed mutagenesis: the product is the primer's sequence, not
+    // the template's, from the second cycle on.
+    const annealing = TEXT.slice(100, 122).split('');
+    const at = 8;
+    const mutation = annealing[at] === 'A' ? 'C' : 'A';
+    annealing[at] = mutation;
+    const mutagenic: PcrPrimer = { name: 'F*', sequence: annealing.join('') };
+    const result = pcr(LINEAR, [mutagenic, rev(500, 522)]);
+    const expected = TEXT.slice(100, 522).split('');
+    expected[at] = mutation;
+    expect(one(result)).toBe(expected.join(''));
+    expect(result.products[0]?.mismatches).toBe(1);
+  });
+
+  it('refuses a mismatch under the 3′ end', () => {
+    const annealing = TEXT.slice(100, 122).split('');
+    annealing[21] = annealing[21] === 'A' ? 'C' : 'A';
+    const result = pcr(LINEAR, [{ name: 'F', sequence: annealing.join('') }, rev(500, 522)]);
+    expect(result.products).toHaveLength(0);
+    expect(result.problem).toMatch(/does not anneal/);
+  });
+
+  it('amplifies across the origin of a plasmid', () => {
+    const result = pcr(PLASMID, [fwd(2900, 2922), rev(100, 122)]);
+    expect(one(result)).toBe(TEXT.slice(2900) + TEXT.slice(0, 122));
+    expect(result.products[0]?.templateRange).toEqual({ start: 2900, end: 3122 });
+  });
+
+  it('amplifies the whole plasmid from back-to-back primers', () => {
+    // Inverse PCR, which is how a vector is linearised for a Gibson. It
+    // needs no case of its own: it is the long way round.
+    const result = pcr(PLASMID, [fwd(1000, 1022), rev(978, 1000)]);
+    expect(one(result)).toBe(TEXT.slice(1000) + TEXT.slice(0, 1000));
+    expect(result.products[0]?.length).toBe(3000);
+  });
+
+  it('takes the template’s features and adds the two primers', () => {
+    const annotated = SeqDocument.create({
+      name: 'strip',
+      sequence: TEXT,
+      features: [
+        createFeature({ type: 'CDS', name: 'gfp', segments: [rangeSegment(200, 300)] }),
+        createFeature({ type: 'CDS', name: 'elsewhere', segments: [rangeSegment(1000, 1100)] }),
+      ],
+    });
+    const result = pcr(annotated, [fwd(100, 122, 'GGATCC'), rev(500, 522)]);
+    const features = result.products[0]?.document.features.all() ?? [];
+    const gfp = features.find((f) => f.name === 'gfp');
+    // Shifted by the tail, which is 6 bases of product before the template's.
+    expect(gfp?.segments[0]).toMatchObject({ start: 106, end: 206 });
+    expect(features.some((f) => f.name === 'elsewhere')).toBe(false);
+    const primers = features.filter((f) => f.type === 'primer_bind');
+    expect(primers.map((f) => f.name)).toEqual(['F', 'R']);
+    // The oligo itself, tail included — which is where a tail can be drawn.
+    expect(primers[0]?.segments[0]).toMatchObject({ start: 0, end: 28 });
+    expect(primers[0]?.strand).toBe('forward');
+    expect(primers[1]?.strand).toBe('reverse');
+    expect(primers[1]?.segments[0]).toMatchObject({ start: 406, end: 428 });
+  });
+
+  it('lists the exact product before a mismatched one, shortest first', () => {
+    // The same forward primer, an exact reverse site and a nearer one with a
+    // mismatch in it: the exact pair is the band that was designed for.
+    const near = reverseComplement(TEXT.slice(300, 322)).split('');
+    near[10] = near[10] === 'A' ? 'C' : 'A';
+    const result = pcr(LINEAR, [
+      fwd(100, 122),
+      rev(500, 522),
+      { name: 'R2', sequence: near.join('') },
+    ]);
+    expect(result.products.map((p) => p.length)).toEqual([422, 222]);
+    expect(result.products.map((p) => p.mismatches)).toEqual([0, 1]);
+  });
+
+  it('says which way it failed', () => {
+    expect(pcr(LINEAR, [fwd(100, 122), fwd(500, 522, '', 'F2')]).problem).toMatch(
+      /same strand of strip/,
+    );
+    expect(pcr(LINEAR, [fwd(500, 522), rev(100, 122)]).problem).toMatch(/point away from each/);
+    expect(pcr(LINEAR, [fwd(100, 122), { name: 'R', sequence: 'A'.repeat(24) }]).problem).toMatch(
+      /^R does not anneal to strip/,
+    );
+    expect(pcr(PLASMID, [fwd(100, 122), rev(500, 522)], { maxProduct: 100 }).problem).toMatch(
+      /longer than 100 bp/,
+    );
+  });
+
+  it('feeds a Gibson the parts nothing else could make', () => {
+    // The reason PCR is here at all: the homology a Gibson joins by lives on
+    // the primers, not in any file, so before this an assembly could only be
+    // built from documents that already had it. Here the vector is
+    // linearised by inverse PCR and the insert is amplified from a different
+    // molecule with tails that anneal to nothing on it.
+    const INSERT = template(800, 777);
+    const source = SeqDocument.create({ name: 'gDNA', sequence: INSERT });
+
+    const vector = pcr(PLASMID, [
+      { name: 'V-fwd', sequence: TEXT.slice(1500, 1522) },
+      { name: 'V-rev', sequence: reverseComplement(TEXT.slice(1478, 1500)) },
+    ]).products[0]?.document;
+    expect(vector?.length).toBe(3000);
+
+    const insert = pcr(source, [
+      { name: 'I-fwd', sequence: TEXT.slice(1475, 1500) + INSERT.slice(100, 122) },
+      {
+        name: 'I-rev',
+        sequence: reverseComplement(INSERT.slice(500, 522) + TEXT.slice(1500, 1525)),
+      },
+    ]).products[0];
+    // The tails are the vector's ends and are nowhere on the insert's own
+    // template, which is exactly what the annealing search is for.
+    expect(insert?.forward.tail).toBe(TEXT.slice(1475, 1500));
+    expect(insert?.length).toBe(472);
+
+    const parts = [vector, insert?.document].filter((d) => d !== undefined);
+    expect(parts).toHaveLength(2);
+    const assembled = gibson(parts);
+    expect(assembled.problem).toBeNull();
+    const product = assembled.assembly?.product;
+    // Seamless: 3,000 bp of vector plus 422 bp of insert, each shared
+    // stretch in it once.
+    expect(product?.length).toBe(3422);
+    expect(product?.isCircular).toBe(true);
+    expect(product?.sequence.toString()).toBe(
+      TEXT.slice(1500) + TEXT.slice(0, 1500) + INSERT.slice(100, 522),
+    );
+  });
+});
