@@ -89,7 +89,7 @@ working with no account and no server round-trip.
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. ~~Optional backend~~ — dropped (see Stack); share links instead, item 11.
 
-## Status (2026-09-21)
+## Status (2026-09-22)
 
 Build order steps 1–10 are implemented and committed; step 11 (backend) is
 dropped rather than pending — the app stays a static site, and sharing is a
@@ -157,7 +157,11 @@ download review (item 33); features are matched by content there, since two
 files agree on nothing internal. Added 2026-09-21: `Alt` **key bindings** for
 the view toggles, the edit marks, the sidebar, the document tabs and the
 share link, and `Ctrl+Shift+←`/`→` to extend a selection a codon at a time
-(item 32). Tests: 763 passing. Perf measurements live in
+(item 32). Added 2026-09-22: the **circular map marks tracked changes** too —
+arcs over the backbone where bases are new or replaced, a wedge where they
+closed up, an outline on a feature that was touched — and the review before a
+download and **Compare with…** both open with that ring, so where a change
+landed is the first thing said rather than the last (item 25). Tests: 769 passing. Perf measurements live in
 `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -717,23 +721,69 @@ pick from here when the current work is done.
       downloaded (every document lives in the browser now, so a per-row
       marker would be noise — the Files screen says it once instead).
       **File ▸ Compare with…**, the obvious companion to this, is item 33.
-25. **A diff on the map, not only in the sequence.** The tracked-changes marks
-    of item 21 exist only in the sequence view (and its SVG exports); the
-    circular map and the feature lanes show nothing. A map-based diff would
-    put the same `editDiff` on the circular map — arcs for inserted, changed
-    and deleted stretches around the backbone, a marker where a deletion
-    closed up, features outlined where they were added or edited — so a
-    glance at the map says what changed, which is how a plasmid is usually
-    read. Open: whether the two documents are drawn as one map with marks
-    (needs the diff's position mapping to place the old coordinates on the
-    new molecule) or side by side with the changes tied across; what a
-    change in length does to a circle's geometry; whether this shares the
-    `DiffStrip` in `SaveReviewDialog` or gets a map of its own there. The
-    diff itself is already there (`src/core/diff/`, `editDiffBetween`,
-    `diffHunks`) — this is a rendering question. Related: **File ▸ Compare
-    with…** (item 33), which would want exactly this view for two different
-    files rather than two versions of one, and is now a second caller asking
-    for it.
+25. ~~**A diff on the map, not only in the sequence.**~~ done, 2026-09-22. The
+    tracked-changes marks of item 21 lived only in the sequence view and its SVG
+    exports; a plasmid is read as a ring, and the circular map said nothing.
+    Asked for by items 22 and 33 — the review before a download and **Compare
+    with…** both answered "is this the same construct" with a column of
+    sequence hunks, which says *where* last.
+    - **One map with marks, not two side by side**, which is the open question
+      the note left. The diff is already in the newer document's coordinates
+      (`featuresRemoved` carries its own mapped locations, item 27), so there
+      is one molecule to draw and no second circle whose different length
+      would need a geometry of its own. `CircularRenderParams.edits` is the
+      same `DocumentDiff` the sequence view takes, from the same
+      `useEditDiff()`, so the Edits menu's baseline drives both views and they
+      cannot disagree.
+    - **The marks are the backbone.** A stretch of new or replaced bases *is* a
+      stretch of the molecule, so it is drawn as an arc over the ring itself
+      rather than in a band of its own — which is also the only radius left:
+      the feature lanes are inside it, item 26's preview ring just under it,
+      and the ruler's ticks and numbers just outside, where item 29 placed
+      them first and immovably. Green for inserted, amber for replaced, the
+      sequence view's own colours. A mark too short to see is widened about
+      its centre to 7 px of arc, item 16's rule for a short selection: a
+      single inserted base of pBR322 is 0.4 px and would otherwise be nothing
+      at all.
+    - **A deletion has no width on the ring** — the bases it took are not on
+      the molecule any more — so there is nothing to sweep, only a place to
+      point at: a line across the ring at the join and a wedge just inside it
+      pointing out, as the sequence view puts one over the strands. Inside
+      because outside is the ruler's.
+    - **Features added or edited are outlined** in the colour of the change,
+      as they are in the sequence view (`editOutline`, the same shape as the
+      hover outline and outranking it — the pointer already says which feature
+      it is on, the colour says something nothing else does).
+    - **The geometry is measured in text**, like everything else outside the
+      backbone since item 29: the arc's thickness and the wedge are
+      `mapMetrics` derived from the sans font, so a large export does not draw
+      them as hairlines. That was a latent bug the first cut had, caught by
+      asking the question item 29 had already answered for the label ring, and
+      it is a test rather than a note.
+    - **`DiffMap` puts the ring at the top of both review dialogs**
+      (`DiffReview`, shared by the download review and **Compare with…**), the
+      whole molecule at a fixed 380 px with no selection, cut sites or
+      preview. It is `renderCircularMap` at another size, as `DiffStrip` is
+      `renderLinearView` at another size, so neither review can drift from
+      what the editor draws. `readCircularTheme` was lifted out of
+      `CircularMapView` for it, beside the `readLinearTheme` that `DiffStrip`
+      already shared.
+    - **Export map as SVG carries the marks** too, as the sequence-view export
+      has since item 21.
+    - Measured (`docs/perf-notes.md`): 0.6 ms with no diff, 0.7 ms with ten
+      marks and ten deletions, 2.4 ms with two hundred of each — there is
+      nothing to lay out, and the diff itself was already computed for the
+      sequence view.
+    - Not yet: a **removed** feature is named in the review's Features list
+      but is not drawn on the ring — where a deletion took it the wedge is
+      already there, and a ghost arc for one deleted by hand has nowhere to go
+      that the preview ring and the lanes have not taken. Nothing on the ring
+      is clickable, so a mark cannot be jumped to (item 33 wants the same
+      thing for stepping between differences). The review's map is the front
+      document's own ring, not two rings tied across, so a circular plasmid
+      written from another origin still reads as changed throughout — that is
+      item 22's `cdseguid` checksum, not a rendering question.
+
 26. ~~**Preview a primer before it becomes a feature.**~~ done, 2026-09-21,
     and not primer-shaped: what was built is the **overlay channel** the note
     asked for. A preview is a list of `OverlaySpan`s — id, label, an

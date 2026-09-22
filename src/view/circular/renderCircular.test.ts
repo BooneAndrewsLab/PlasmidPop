@@ -1,4 +1,4 @@
-import { SeqDocument, createFeature } from '@/core';
+import { type DocumentDiff, EMPTY_DIFF, SeqDocument, createFeature } from '@/core';
 import { parseGenBank } from '@/io/genbank';
 import { readFixture } from '@/test/fixtures';
 
@@ -88,6 +88,7 @@ describe('renderCircularMap preview', () => {
       cutSites: [],
       overlay,
       overlayLanes: overlayLanes(overlay, doc.length),
+      edits: null,
       hoveredFeatureId: null,
       hoveredCut: null,
       width: 600,
@@ -167,6 +168,7 @@ describe('renderCircularMap labels', () => {
       cutSites: [],
       overlay: NO_OVERLAY,
       overlayLanes: NO_LANES,
+      edits: null,
       hoveredFeatureId,
       hoveredCut: null,
       width: size,
@@ -249,6 +251,7 @@ describe('renderCircularMap labels', () => {
         cutSites: [],
         overlay: NO_OVERLAY,
         overlayLanes: NO_LANES,
+        edits: null,
         hoveredFeatureId,
         hoveredCut: null,
         width: 700,
@@ -288,5 +291,164 @@ describe('renderCircularMap labels', () => {
     expect(
       Math.hypot(Number(leader?.[1]) - layout.cx, Number(leader?.[2]) - layout.cy),
     ).toBeCloseTo(layout.laneRadius(lane) + layout.ringWidth / 2, 1);
+  });
+});
+
+describe('renderCircularMap tracked changes', () => {
+  const feature = createFeature({
+    id: 'f1',
+    type: 'CDS',
+    name: 'marker',
+    segments: [{ kind: 'range', start: 1000, end: 1600, partialStart: false, partialEnd: false }],
+  });
+  const doc = SeqDocument.create({
+    sequence: 'ACGT'.repeat(1000),
+    topology: 'circular',
+    features: [feature],
+  });
+  const lanes = assignLanes(doc.features.all(), doc.length);
+  // Colours nothing else on the map uses, so what is drawn in each of them
+  // can be told apart from the backbone, the cut sites and the preview.
+  const theme = {
+    ...PRINT_THEME,
+    editInsert: '#00aa00',
+    editChange: '#aa8800',
+    editDelete: '#ff00ff',
+  };
+  const layout = new CircularLayout(doc.length, doc.topology, {
+    ...opts,
+    laneCount: lanes.laneCount,
+  });
+
+  const draw = (edits: DocumentDiff | null): string => {
+    const ctx = new SvgContext(600, 600);
+    renderCircularMap(ctx, {
+      doc,
+      layout,
+      lanes,
+      selection: null,
+      cutSites: [],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      edits,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme,
+      sansFont: '12px sans-serif',
+      titleFont: '15px sans-serif',
+    });
+    return ctx.toSvg();
+  };
+
+  /** Every stroked path in one colour, with its arc radius and chord length. */
+  const arcs = (svg: string, color: string): { radius: number; chord: number }[] =>
+    [...svg.matchAll(new RegExp(`<path d="([^"]*)"[^>]*stroke="${color}"[^>]*/>`, 'g'))]
+      .map((m) => {
+        const d = m[1] ?? '';
+        const from = /^M([\d.-]+) ([\d.-]+)/.exec(d);
+        const arc = /A([\d.]+) [\d.]+ 0 \d \d ([\d.-]+) ([\d.-]+)/.exec(d);
+        if (from === null || arc === null) return null;
+        return {
+          radius: Number(arc[1]),
+          chord: Math.hypot(Number(arc[2]) - Number(from[1]), Number(arc[3]) - Number(from[2])),
+        };
+      })
+      .filter((a): a is { radius: number; chord: number } => a !== null);
+
+  it('draws inserted and changed stretches as arcs on the backbone', () => {
+    const svg = draw({
+      ...EMPTY_DIFF,
+      marks: [
+        { kind: 'inserted', start: 400, end: 440 },
+        { kind: 'changed', start: 2000, end: 2080 },
+      ],
+      basesInserted: 40,
+      basesChanged: 80,
+    });
+    const inserted = arcs(svg, '#00aa00');
+    const changed = arcs(svg, '#aa8800');
+    expect(inserted).toHaveLength(1);
+    expect(changed).toHaveLength(1);
+    // On the backbone itself: a stretch of changed bases is a stretch of the
+    // molecule, and it is the one radius the lanes, the preview ring and the
+    // ruler have all left clear.
+    expect(inserted[0]?.radius).toBeCloseTo(layout.radius, 0);
+    expect(changed[0]?.radius).toBeCloseTo(layout.radius, 0);
+    // 80 bases of 4,000 is twice the arc of 40.
+    expect((changed[0]?.chord ?? 0) / (inserted[0]?.chord ?? 1)).toBeCloseTo(2, 1);
+  });
+
+  it('widens a one-base insertion so that it can be seen', () => {
+    // One base of 4,000 is under half a pixel of arc at this radius.
+    const bare = (2 * Math.PI * layout.radius) / doc.length;
+    expect(bare).toBeLessThan(1);
+    const svg = draw({ ...EMPTY_DIFF, marks: [{ kind: 'inserted', start: 400, end: 401 }] });
+    const drawn = arcs(svg, '#00aa00')[0];
+    expect(drawn?.chord ?? 0).toBeGreaterThan(6);
+  });
+
+  it('marks a deletion at the boundary the bases closed up at', () => {
+    const svg = draw({
+      ...EMPTY_DIFF,
+      deletions: [{ position: 600, count: 12 }],
+      basesDeleted: 12,
+    });
+    // A line across the ring at the join, and a filled wedge inside it: a
+    // deletion has no width on the ring, so there is only a place to point at.
+    expect(svg).toContain('stroke="#ff00ff"');
+    expect(svg).toContain('fill="#ff00ff"');
+    const at = layout.pointAt(600, layout.radius);
+    const line = new RegExp(
+      '<path d="M([\\d.-]+) ([\\d.-]+) L([\\d.-]+) ([\\d.-]+)"[^>]*stroke="#ff00ff"',
+    ).exec(svg);
+    expect(line).not.toBeNull();
+    expect(Math.hypot(Number(line?.[1]) - at.x, Number(line?.[2]) - at.y)).toBeLessThan(8);
+  });
+
+  it('outlines a feature that was added or edited, in the colour of the change', () => {
+    const added = draw({ ...EMPTY_DIFF, featuresAdded: new Set(['f1']) });
+    expect(arcs(added, '#00aa00').length).toBeGreaterThan(0);
+    // The outline is on the feature's own lane, not on the backbone.
+    expect(arcs(added, '#00aa00')[0]?.radius).toBeLessThan(layout.radius - 10);
+    const changed = draw({ ...EMPTY_DIFF, featuresChanged: new Set(['f1']) });
+    expect(arcs(changed, '#aa8800').length).toBeGreaterThan(0);
+  });
+
+  it('scales the marks with the type size, as the rest of the ring does', () => {
+    // The export draws at twice the screen's type size and more; a mark
+    // measured in fixed pixels would come out a hairline on a large figure,
+    // which is the bug item 29 found latent in the label ring.
+    const strokeWidth = (font: string): number => {
+      const ctx = new SvgContext(600, 600);
+      renderCircularMap(ctx, {
+        doc,
+        layout,
+        lanes,
+        selection: null,
+        cutSites: [],
+        overlay: NO_OVERLAY,
+        overlayLanes: NO_LANES,
+        edits: { ...EMPTY_DIFF, marks: [{ kind: 'inserted', start: 400, end: 440 }] },
+        hoveredFeatureId: null,
+        hoveredCut: null,
+        width: 600,
+        height: 600,
+        devicePixelRatio: 1,
+        theme,
+        sansFont: font,
+        titleFont: font,
+      });
+      const m = new RegExp(`stroke="#00aa00" stroke-width="([\\d.]+)"`).exec(ctx.toSvg());
+      return Number(m?.[1] ?? 0);
+    };
+    expect(strokeWidth('24px sans-serif')).toBeCloseTo(2 * strokeWidth('12px sans-serif'), 5);
+  });
+
+  it('draws nothing of its own when there is nothing to mark', () => {
+    const svg = draw(null);
+    for (const color of ['#00aa00', '#aa8800', '#ff00ff']) expect(svg).not.toContain(color);
   });
 });

@@ -11,7 +11,6 @@ import {
 
 import { type Feature, type RangeSegment, type SeqDocument, isEmptyRange } from '@/core';
 import {
-  type CircularTheme,
   type MapViewport,
   CircularLayout,
   FIT_VIEWPORT,
@@ -26,6 +25,8 @@ import { NO_OVERLAY, overlayLanes } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { selectionBetween } from '../editing';
+import { readCircularTheme } from './circularTheme';
+import { useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -37,24 +38,6 @@ const OUTER_MARGIN = 110;
 const CLICK_SLOP = 3;
 /** Zoom factor of one press of the +/− buttons and of a double-click. */
 const ZOOM_STEP = 1.6;
-
-function readTheme(el: HTMLElement): CircularTheme {
-  const css = getComputedStyle(el);
-  const v = (name: string, fallback: string): string =>
-    css.getPropertyValue(name).trim() || fallback;
-  return {
-    ink: v('--ink', '#1c2430'),
-    inkMuted: v('--ink-3', '#8a94a3'),
-    backbone: v('--ink-2', '#4a5566'),
-    tick: v('--seq-rule', '#c8cdd5'),
-    selectionFill: v('--seq-selection', 'rgba(27, 110, 140, 0.22)'),
-    caret: v('--seq-caret', '#1b6e8c'),
-    background: v('--surface', '#ffffff'),
-    leader: v('--line', '#d5dae2'),
-    cutSite: v('--seq-cut', '#b3261e'),
-    preview: v('--seq-preview', '#6b4fd8'),
-  };
-}
 
 /** First range segment's start through the last one's end, as the map draws it. */
 function featureExtent(feature: Feature): { start: number; end: number } | null {
@@ -97,6 +80,7 @@ export function CircularMapView({ doc }: Props) {
   const { selection, analysis, shownEnzymes, showCutSites, documentId, reveal, preview } =
     useEditorState();
   const overlay = preview?.items ?? NO_OVERLAY;
+  const edits = useEditDiff();
   const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
   const cutSites = useMemo(
     () =>
@@ -265,12 +249,13 @@ export function CircularMapView({ doc }: Props) {
         cutSites,
         overlay,
         overlayLanes: previewLanes,
+        edits,
         hoveredFeatureId: hover.featureId,
         hoveredCut: hover.cut,
         width: size.width,
         height: size.height,
         devicePixelRatio: dpr,
-        theme: readTheme(container),
+        theme: readCircularTheme(container),
         sansFont: SANS_FONT,
         titleFont: TITLE_FONT,
       });
@@ -286,6 +271,7 @@ export function CircularMapView({ doc }: Props) {
     cutSites,
     overlay,
     previewLanes,
+    edits,
     hover.featureId,
     hover.cut,
     size,

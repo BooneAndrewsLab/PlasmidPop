@@ -215,6 +215,7 @@ function render(
     cutSites,
     overlay: NO_OVERLAY,
     overlayLanes: overlayLanes(NO_OVERLAY, doc.length),
+    edits: null,
     hoveredFeatureId: null,
     hoveredCut: null,
     width: c.width,

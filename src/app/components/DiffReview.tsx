@@ -4,6 +4,7 @@ import { type DiffHunk, type DocumentDiff, type SeqDocument, diffHunks } from '@
 
 import { describeEditDiff } from '../editsView';
 import { featureChangeRows } from '../featureChanges';
+import { DiffMap } from './DiffMap';
 import { DiffStrip } from './DiffStrip';
 
 /**
@@ -42,8 +43,9 @@ interface Props {
 
 /**
  * A diff as something to read: the one-line summary, what happened to the
- * name and topology, each neighbourhood of changed bases drawn by the same
- * renderer as the sequence view, and what became of the features.
+ * name and topology, the whole molecule with its changes marked, each
+ * neighbourhood of changed bases drawn by the same renderer as the sequence
+ * view, and what became of the features.
  *
  * Shared by the review before a download and by **Compare with…** so the two
  * cannot drift apart — the questions are the same one asked of a different
@@ -69,6 +71,9 @@ export function DiffReview({ doc, baseline, diff }: Props) {
           Made {doc.topology === 'circular' ? 'circular' : 'linear'}.
         </p>
       )}
+      <div className="diff-map">
+        <DiffMap doc={doc} diff={diff} />
+      </div>
       {shown.map((hunk) => (
         <div key={`${hunk.start}-${hunk.end}`} className="diff-strip">
           <p className="diff-strip__label">

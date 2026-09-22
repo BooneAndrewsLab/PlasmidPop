@@ -161,7 +161,10 @@ export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
               analytics.track('file', 'export', 'map-svg');
               downloadText(
                 `${stem}_map.svg`,
-                exportMapSvg(doc, { cutSites: editorStore.visibleCutSites() }),
+                exportMapSvg(doc, {
+                  cutSites: editorStore.visibleCutSites(),
+                  edits: editDiffOf(editorStore.getState()),
+                }),
               );
             })}
           >

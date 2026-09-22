@@ -108,7 +108,8 @@ Downloads are always GenBank.
 - **Download GenBank…** (`Ctrl+S`, and `Ctrl+Shift+S` out of habit) writes
   the document in front.
 - A **working copy** is reviewed first: what it changed about the file it
-  came from — a summary line, each changed stretch of sequence drawn with the
+  came from — a summary line, the whole molecule drawn as a map with the
+  changes marked on the ring, each changed stretch of sequence drawn with the
   same marks the sequence view uses for tracked changes and headed with where
   it is and what happened there (`around 1,204  inserted 5 bp; deleted 3 bp`),
   and the features added, changed or removed. Each feature is named and says
@@ -159,18 +160,19 @@ differs from it: the same review a [working copy](#working-copies) gets
 before it is downloaded, asked of any file rather than the one this document
 came from.
 
-It answers the question a plasmid map cannot — _is this the same construct
-as the one in that file, and if not, where do they part company_ — which is
-what a colleague's copy, a vendor's sequence or last month's version of your
-own plasmid is usually for.
+It answers the question a plasmid map on its own cannot — _is this the same
+construct as the one in that file, and if not, where do they part company_ —
+which is what a colleague's copy, a vendor's sequence or last month's version
+of your own plasmid is usually for.
 
 - **Nothing is opened, written or stored.** The file is read, compared and
   dropped; no tab appears and neither file changes. The document you are
   looking at is the one that keeps its tab.
 - **The differences are in this document's coordinates**: what it has that
-  the file does not. Each neighbourhood of changed bases is drawn the way
-  the sequence view draws tracked changes, and the features added, changed
-  and removed are named below them.
+  the file does not. The map at the top marks them on the ring, so where they
+  fall is the first thing you see. Each neighbourhood of changed bases is
+  drawn the way the sequence view draws tracked changes, and the features
+  added, changed and removed are named below them.
 - **Features are matched by what they are**, since two files give the same
   feature different internal ids. A feature both agree on to the last
   qualifier is not reported; one that differs in name, type, location or

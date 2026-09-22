@@ -1792,6 +1792,18 @@ button {
   background: var(--surface-2);
 }
 
+.diff-map {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 12px;
+}
+
+.diff-map__canvas {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
 .save-review__summary {
   margin: 0 0 10px;
   font-weight: 600;

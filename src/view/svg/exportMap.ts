@@ -1,4 +1,4 @@
-import { type SeqDocument, type CutSite } from '@/core';
+import { type CutSite, type DocumentDiff, type SeqDocument } from '@/core';
 
 import { type CircularTheme, CircularLayout, renderCircularMap } from '../circular';
 import { NO_LANES, assignLanes } from '../linear';
@@ -18,12 +18,17 @@ export const PRINT_THEME: CircularTheme = {
   leader: '#b8c0ca',
   cutSite: '#b3261e',
   preview: '#6b4fd8',
+  editInsert: '#1d7a4c',
+  editChange: '#a86200',
+  editDelete: '#b3261e',
 };
 
 export interface MapExportOptions {
   readonly size?: number; // default 900
   readonly cutSites?: readonly CutSite[];
   readonly transparent?: boolean;
+  /** Tracked changes to mark on the ring, as the sequence-view export takes. */
+  readonly edits?: DocumentDiff | null;
 }
 
 /**
@@ -63,6 +68,7 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
       // As in the sequence-view export: a preview is not part of the document.
       overlay: NO_OVERLAY,
       overlayLanes: NO_LANES,
+      edits: options.edits ?? null,
       hoveredFeatureId: null,
       hoveredCut: null,
       width: canvas,

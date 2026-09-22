@@ -142,6 +142,10 @@ A linear sequence is drawn as an open ring with a gap at the ends.
   drawn a little wider than it is and marked with a line running from the
   backbone in towards the centre, so it can still be found. Zoom in to see
   its true extent.
+- When **Edits** is on, your changes are marked on the ring: bands over the
+  backbone where bases are new (green) or replaced (amber), a red wedge where
+  bases were removed, and an outline on any feature you added or edited. See
+  [Seeing what you changed](04-editing#seeing-what-you-changed).
 
 Lane widths and fonts do not change with zoom; the tick marks get denser as
 you zoom in.

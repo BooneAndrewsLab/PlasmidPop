@@ -1,5 +1,6 @@
 import {
   type CutSite,
+  type DocumentDiff,
   type Feature,
   type Range,
   type SeqDocument,
@@ -35,6 +36,10 @@ export interface CircularTheme {
   readonly cutSite: string;
   /** Spans previewed beside the document's own annotation, which are not in it. */
   readonly preview: string;
+  /** Tracked changes: bases that are new, that replaced others, and that are gone. */
+  readonly editInsert: string;
+  readonly editChange: string;
+  readonly editDelete: string;
 }
 
 export interface CircularRenderParams {
@@ -46,6 +51,12 @@ export interface CircularRenderParams {
   /** Transient spans drawn in a ring just inside the backbone; see `OverlaySpan`. */
   readonly overlay: readonly OverlaySpan[];
   readonly overlayLanes: LaneAssignment;
+  /**
+   * Tracked changes in this document's coordinates, drawn on the ring; the
+   * same `DocumentDiff` the sequence view marks, so the two views answer the
+   * question the same way. Null when there is nothing to mark.
+   */
+  readonly edits: DocumentDiff | null;
   readonly hoveredFeatureId: string | null;
   /** Top-strand cut position under the pointer, if any; its label is kept. */
   readonly hoveredCut: number | null;
@@ -72,6 +83,10 @@ interface MapMetrics {
   readonly tickText: number;
   readonly elbow: number;
   readonly labelRing: number;
+  /** Thickness of the tracked-changes arc laid over the backbone. */
+  readonly editRing: number;
+  /** Half-width of the wedge that marks bases which are gone. */
+  readonly deletionWedge: number;
 }
 
 function fontSizeOf(font: string): number {
@@ -93,6 +108,8 @@ function mapMetrics(p: CircularRenderParams): MapMetrics {
     tickText: fontSize,
     elbow: fontSize * 2.15,
     labelRing: fontSize * 2.8,
+    editRing: fontSize * 0.5,
+    deletionWedge: fontSize / 3,
   };
 }
 
@@ -349,9 +366,14 @@ function drawFeature(
     }
   });
 
-  if (hovered) {
-    ctx.strokeStyle = contrastingText(color);
-    ctx.lineWidth = 1.5;
+  // An annotation that was added or edited is outlined in the colour of the
+  // change, as it is in the sequence view. That outranks the hover outline:
+  // the pointer is already saying which feature it is on, and the colour is
+  // saying something the reader cannot get any other way.
+  const outline = editOutline(p, feature);
+  if (hovered || outline !== null) {
+    ctx.strokeStyle = outline ?? contrastingText(color);
+    ctx.lineWidth = outline === null ? 1.5 : 2;
     for (const seg of feature.segments) {
       if (seg.kind !== 'range') continue;
       for (const edge of [r - half + 0.75, r + half - 0.75]) {
@@ -361,6 +383,103 @@ function drawFeature(
       }
     }
   }
+}
+
+/** The colour an annotation that changed since the baseline is outlined in. */
+function editOutline(p: CircularRenderParams, feature: Feature): string | null {
+  const { edits, theme } = p;
+  if (edits === null) return null;
+  if (edits.featuresAdded.has(feature.id)) return theme.editInsert;
+  if (edits.featuresChanged.has(feature.id)) return theme.editChange;
+  return null;
+}
+
+/** Shortest an edit arc may be on screen, as a short selection has. */
+const MIN_EDIT_PX = 7;
+
+/**
+ * Tracked changes on the ring: arcs over the backbone where bases are new or
+ * stand where others used to, and a marker at every boundary where bases
+ * closed up.
+ *
+ * They are drawn *as* the backbone rather than in a ring of their own
+ * because that is what they are — a stretch of changed bases is a stretch of
+ * the molecule — and because it is the one radius left: the feature lanes
+ * are inside it, the preview ring just under it, the ruler just outside.
+ */
+function drawEditMarks(ctx: DrawingContext, p: CircularRenderParams, m: MapMetrics): void {
+  const { edits, layout, theme, doc } = p;
+  if (edits === null || doc.length === 0) return;
+  ctx.lineCap = 'butt';
+  ctx.setLineDash([]);
+  for (const mark of edits.marks) {
+    for (const piece of rangePieces({ start: mark.start, end: mark.end }, doc.length)) {
+      if (piece.end <= piece.start) continue;
+      // A single inserted base is a thousandth of a turn on a plasmid, so a
+      // short arc is widened about its centre the way a short selection is.
+      const sweep = selectionSweep(
+        layout.angleOf(piece.start),
+        layout.angleOf(piece.end),
+        layout.radius,
+        MIN_EDIT_PX,
+      );
+      ctx.strokeStyle = mark.kind === 'inserted' ? theme.editInsert : theme.editChange;
+      ctx.lineWidth = m.editRing;
+      ctx.beginPath();
+      ctx.arc(layout.cx, layout.cy, layout.radius, sweep.start, Math.max(sweep.start, sweep.end));
+      ctx.stroke();
+    }
+  }
+  for (const deletion of edits.deletions) drawDeletion(ctx, p, m, deletion.position);
+}
+
+/**
+ * Where bases closed up. A deletion has no width on the ring — the bases it
+ * took are not on the molecule any more — so there is nothing to sweep, only
+ * a place to point at: a line across the ring at the join, and a wedge
+ * inside pointing out at it, as the sequence view puts one over the strands.
+ *
+ * The wedge goes inside because outside is the ruler's: its numbers sit a
+ * dozen pixels out and are placed before anything else is.
+ */
+function drawDeletion(
+  ctx: DrawingContext,
+  p: CircularRenderParams,
+  m: MapMetrics,
+  position: number,
+): void {
+  const { layout, theme } = p;
+  const angle = layout.angleOf(position);
+  const at = (r: number, a: number = angle): { x: number; y: number } => ({
+    x: layout.cx + r * Math.cos(a),
+    y: layout.cy + r * Math.sin(a),
+  });
+  const tipR = layout.radius - m.editRing / 2 - 1;
+  const baseR = tipR - m.deletionWedge * 1.6;
+  ctx.strokeStyle = theme.editDelete;
+  ctx.fillStyle = theme.editDelete;
+  ctx.lineCap = 'butt';
+  ctx.setLineDash([]);
+  // Thinner than the arc it crosses, and scaled with it: at the screen's
+  // 12 px this is the 2 px the sequence view draws the same line at.
+  ctx.lineWidth = m.editRing / 3;
+  const inner = at(tipR);
+  const outer = at(layout.radius + m.editRing / 2 + 1);
+  ctx.beginPath();
+  ctx.moveTo(inner.x, inner.y);
+  ctx.lineTo(outer.x, outer.y);
+  ctx.stroke();
+  // The wedge is as wide in pixels wherever it is drawn, so its half-width
+  // is an angle that shrinks as the map zooms in and the radius grows.
+  const half = m.deletionWedge / Math.max(1, baseR);
+  const left = at(baseR, angle - half);
+  const right = at(baseR, angle + half);
+  ctx.beginPath();
+  ctx.moveTo(inner.x, inner.y);
+  ctx.lineTo(left.x, left.y);
+  ctx.lineTo(right.x, right.y);
+  ctx.closePath();
+  ctx.fill();
 }
 
 /** Radial pitch of the preview ring, which stacks inwards from the backbone. */
@@ -925,6 +1044,7 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
     if (lane !== undefined) drawFeature(ctx, p, f, lane);
   }
   if (tinySelection) drawSelectionMarker(ctx, p);
+  drawEditMarks(ctx, p, m);
   drawOverlays(ctx, p);
   const droppedLabels = drawLabels(ctx, p, m, features, ticks);
   drawCentre(ctx, p);

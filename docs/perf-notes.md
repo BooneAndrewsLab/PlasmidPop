@@ -202,3 +202,23 @@ what remains is building the SVG string, which the canvas does not do. Item
 3.5 ms with them: the shorter slide they came with (eight line heights where
 it had been sixteen) halves the slots a crowded label tries, and the order
 rule cuts the search short as soon as a neighbour's slot is reached.
+
+### Tracked changes on the ring
+
+Item 25 draws the same `DocumentDiff` the sequence view marks — an arc over
+the backbone per mark, a wedge per deletion, an outline per touched feature.
+There is nothing to lay out: the diff is already computed for the sequence
+view (and shared through `editDiffBetween`'s one-slot cache), and each mark
+is one arc at a radius that is known. Measured the same way, on the real
+pBR322 at 900 × 700, mean of 150 runs:
+
+| marks on the ring           | render |
+| --------------------------- | ------ |
+| none (`edits` null)         | 0.6 ms |
+| 10 marks and 10 deletions   | 0.7 ms |
+| 200 marks and 200 deletions | 2.4 ms |
+
+A session's editing gives a handful of marks; 200 is well past what the
+Myers diff and its re-alignment produce for anything a person typed, and it
+is still inside a frame. A diff too coarse to follow is one mark, not
+thousands, so the pathological case is bounded from the other side too.
