@@ -88,8 +88,8 @@ alongside it.
   column's quality is the read base's; for a base the read lacks, the lower
   of its neighbours', since a missing base has none and it is the calls
   either side that vouch for the gap. Q20 (one error in a hundred) divides
-  confident from poor, the threshold Sanger QC commonly uses; it is not a
-  setting yet. For a read that aligned reversed, the qualities are reversed
+  confident from poor, the threshold Sanger QC commonly uses; a setting for
+  it is #56. For a read that aligned reversed, the qualities are reversed
   with it and its numbering counts along the reverse complement, as before.
 - **Shown three ways**: a line of counts ("1 difference at confident bases
   (Q20+), 3 at poor ones"), the confident ones listed with their position
@@ -98,7 +98,7 @@ alongside it.
   clone match"; the list is where to look.
 - **The document's own read** is not used: when the open document is itself
   an AB1 and the box holds the reference, its qualities are ignored. Aligning
-  the read into the reference is the usual way round.
+  the read into the reference is the usual way round (#57).
 
 ## Long reads (#51)
 
@@ -163,8 +163,13 @@ alongside it.
 - **The Align strip** is a canvas per 60-column block, as wide as the
   block's text at the `<pre>`'s own character width, drawn once. Picking a
   confident difference scrolls to its block and marks it.
-- **Not yet**: no toggle for the sequence view's trace (it shows whenever
-  the document has one); no zoom of the trace's height.
+- **Follow-ups**: a toggle for the sequence view's trace (#55).
+
+## Follow-ups filed
+
+#55 a toggle for the sequence view's trace; #56 a setting for the Q20
+threshold; #57 using the document's own read when it is the read; #58
+exporting a read as FASTQ; #59 aligning every record of a file as a batch.
 
 ## Found on the way
 
