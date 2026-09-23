@@ -79,3 +79,13 @@ anonymous feature usage (see the usage statistics section of the files page).
 PlasmidPop can be installed as an app from the browser's address bar. Once
 installed it works offline, and `.gb`, `.fa` and `.dna` files can be opened
 with it from the file manager.
+
+## Citing PlasmidPop
+
+If PlasmidPop helped with work you publish, please cite it as:
+
+Usaj, M. PlasmidPop. Zenodo.
+[doi:10.5281/zenodo.22907552](https://doi.org/10.5281/zenodo.22907552)
+
+That DOI covers every version. The Zenodo record also lists a DOI for each
+release, for a methods section that names the exact version used.

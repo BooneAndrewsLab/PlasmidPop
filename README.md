@@ -1,5 +1,7 @@
 # PlasmidPop
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22907552.svg)](https://doi.org/10.5281/zenodo.22907552)
+
 Browser-based DNA sequence editor and plasmid viewer. Everything runs in
 the browser: open a GenBank, FASTA or SnapGene file and start working with
 no account, no upload and no server round-trip. Works offline once loaded.
@@ -139,8 +141,19 @@ wraps past the origin (`end - start` is always the base count). GenBank's
 1-based inclusive coordinates are converted only at the parser/writer
 boundary.
 
+## Citing PlasmidPop
+
+If you use PlasmidPop in your research, please cite it by its DOI:
+
+> Usaj, M. PlasmidPop. Zenodo. https://doi.org/10.5281/zenodo.22907552
+
+That DOI stands for every version and always leads to the newest one. Each
+release has a DOI of its own as well, listed on the Zenodo record, for when
+the exact version matters (1.0.0 is
+[10.5281/zenodo.22907553](https://doi.org/10.5281/zenodo.22907553)). GitHub's
+"Cite this repository" button gives the same citation in APA and BibTeX,
+read from `CITATION.cff`.
+
 ## Licence
 
-PlasmidPop is released under the [MIT License](LICENSE). If you use it in
-your research, please cite it; a `CITATION.cff` is included and GitHub shows
-a "Cite this repository" button from it.
+PlasmidPop is released under the [MIT License](LICENSE).
