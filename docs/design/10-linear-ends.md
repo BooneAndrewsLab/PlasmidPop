@@ -15,5 +15,27 @@ or last column (the gutters grow to fit); the toolbar names both ends.
 They survive a save: GenBank has no field for them, so they ride in a
 `PlasmidPop-ends:` comment that the parser turns back into ends
 (`src/io/genbank/endsComment.ts`). Not yet: filling in or chewing back an
-overhang (Klenow / T4 blunting), ends on the circular map, and any
-carriage through FASTA or SnapGene.
+overhang (Klenow / T4 blunting; #8).
+
+Added 2026-09-23 (#9):
+
+- **FASTA** carries the GenBank comment's text in brackets at the end of
+  the header, `[PlasmidPop-ends: …]`, beside the `[topology=circular]` the
+  format already uses; the parser takes it out of the description, and the
+  writer strips one that is there before adding its own.
+- **SnapGene** writes overhangs in packet 0x08,
+  `<AdditionalSequenceProperties>`: `UpstreamStickiness` and
+  `DownstreamStickiness`, a count of single-stranded bases with the sign
+  giving the kind (positive 5′, negative 3′). Established from SnapGene
+  8.2's 203 bundled files: every linearised TA vector is -1/-1 and its
+  sequence starts with the A under the bottom strand's T and ends with the
+  top strand's T; pET151 D-TOPO and kin are 0/4. So SnapGene's sequence is
+  both strands' union, and ours is the top strand: where the bottom strand
+  is the longer one (3′ upstream, 5′ downstream) those bases are deleted
+  from the sequence with an ordinary `delete`, which clips any feature on
+  them, and the end records them. All 203 files import and round-trip their
+  ends through GenBank. Import only; there is no .dna writer.
+- **The circular map** strokes both tips of the open ring in the cut-site
+  colour and writes `describeEnds` under the length in the centre, whole or
+  not at all like the title. Inside the ring beside the gap was the first
+  idea and collides with the feature lanes.

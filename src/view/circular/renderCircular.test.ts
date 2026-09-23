@@ -570,3 +570,51 @@ describe('renderCircularMap centre title', () => {
     expect(Number(bp?.[2])).toBeCloseTo(layout.cy, 0);
   });
 });
+
+describe('renderCircularMap ends of a linear molecule', () => {
+  const draw = (doc: SeqDocument): string => {
+    const layout = new CircularLayout(doc.length, doc.topology, opts);
+    const ctx = new SvgContext(600, 600);
+    renderCircularMap(ctx, {
+      doc,
+      layout,
+      lanes: NO_LANES,
+      selection: null,
+      cutSites: [],
+      overlay: [],
+      overlayLanes: NO_LANES,
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme: PRINT_THEME,
+      sansFont: '12px sans-serif',
+      titleFont: '15px sans-serif',
+    });
+    return ctx.toSvg();
+  };
+  const sequence = `AATT${'GCTAGCTAGC'.repeat(40)}`;
+
+  it('names sticky ends in the middle and marks both tips in the cut-site colour', () => {
+    const doc = SeqDocument.create({
+      name: 'frag',
+      sequence,
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: 'blunt', overhang: '', enzyme: 'SmaI' },
+      },
+    });
+    const svg = draw(doc);
+    expect(svg).toContain('EcoRI 5′ AATT / SmaI blunt');
+    const tips = svg.match(new RegExp(`stroke="${PRINT_THEME.cutSite}"`, 'g')) ?? [];
+    expect(tips.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('says nothing about plain ends, or about a circle', () => {
+    const plain = draw(SeqDocument.create({ name: 'frag', sequence }));
+    expect(plain).not.toContain('blunt');
+    expect(plain).not.toContain(`stroke="${PRINT_THEME.cutSite}"`);
+  });
+});

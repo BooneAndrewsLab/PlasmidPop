@@ -4,6 +4,7 @@ import {
   type Feature,
   type Range,
   type SeqDocument,
+  describeEnds,
   featureLength,
   rangePieces,
   sameFeatureLocation,
@@ -132,6 +133,31 @@ function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
     );
   }
   ctx.stroke();
+  if (doc.topology === 'linear' && doc.ends !== null) drawEndTips(ctx, p);
+}
+
+/**
+ * A stroke across the backbone at each tip of an open ring whose ends are
+ * worth naming — cut by an enzyme, or sticky — so the gap reads as the cut
+ * ends it is rather than as a gap in the drawing (#9). What the ends are is
+ * written in the centre (`drawCentre`).
+ */
+function drawEndTips(ctx: DrawingContext, p: CircularRenderParams): void {
+  const { layout, theme, doc } = p;
+  ctx.strokeStyle = theme.cutSite;
+  ctx.lineWidth = 2;
+  for (const [position, nudge] of [
+    [0, 0.06],
+    [doc.length, -0.06],
+  ] as const) {
+    const a = layout.angleOf(position) + nudge;
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    ctx.beginPath();
+    ctx.moveTo(layout.cx + (layout.radius - 5) * cos, layout.cy + (layout.radius - 5) * sin);
+    ctx.lineTo(layout.cx + (layout.radius + 5) * cos, layout.cy + (layout.radius + 5) * sin);
+    ctx.stroke();
+  }
 }
 
 interface RulerTick {
@@ -1062,8 +1088,17 @@ function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
   ctx.font = p.sansFont;
   ctx.fillStyle = theme.inkMuted;
   const length = `${doc.length.toLocaleString()} bp`;
+  const lengthY = title === null ? layout.cy : layout.cy + 9;
   if (ctx.measureText(length).width <= maxWidth) {
-    ctx.fillText(length, layout.cx, title === null ? layout.cy : layout.cy + 9);
+    ctx.fillText(length, layout.cx, lengthY);
+  }
+  // A linear molecule's ends under its length, left end first, in the words
+  // the toolbar uses. Whole or not at all, like the title.
+  if (doc.topology === 'linear' && doc.ends !== null) {
+    const ends = describeEnds(doc.ends);
+    if (ctx.measureText(ends).width <= maxWidth) {
+      ctx.fillText(ends, layout.cx, lengthY + fontSizeOf(p.sansFont) * 1.4);
+    }
   }
 }
 

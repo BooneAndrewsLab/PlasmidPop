@@ -57,13 +57,19 @@ view draws it:
 - where the other strand runs past the sequence instead, its bases are drawn
   just outside the first or last column.
 
+On the circular map, where a linear molecule is an open ring, both tips are
+marked in the cut-site colour and the ends are named under the length in the
+middle.
+
 Digesting such a molecule again gives its outer fragments the ends it came
 with, so a piece can be cut, opened and cut again without losing track of
 what will ligate to what.
 
 The ends are saved with the document. GenBank has nowhere to put them, so
 they travel as a comment line of ours (`PlasmidPop-ends: ...`) that other
-software ignores and PlasmidPop reads back.
+software ignores and PlasmidPop reads back; FASTA carries the same in its
+header, and SnapGene files bring their own overhangs with them (see
+[Files and storage](02-files.md)).
 
 Editing the molecule's tip — typing over an overhang base, deleting the first
 or last bases, pasting at either end — leaves an end that is no longer the

@@ -33,13 +33,14 @@ function buildFile(opts: {
   features?: string;
   primers?: string;
   notes?: string;
+  properties?: string;
 }): Uint8Array {
   const cookie = concat([enc.encode('SnapGene'), new Uint8Array([0, 1, 0, 15, 0, 19])]);
   const seq = concat([new Uint8Array([(opts.circular ? 1 : 0) | 2]), enc.encode(opts.sequence)]);
   const parts = [
     packet(0x09, cookie),
     packet(0x00, seq),
-    packet(0x08, enc.encode('<AdditionalSequenceProperties/>')),
+    packet(0x08, enc.encode(opts.properties ?? '<AdditionalSequenceProperties/>')),
   ];
   if (opts.features !== undefined) parts.push(packet(0x0a, enc.encode(opts.features)));
   if (opts.primers !== undefined) parts.push(packet(0x05, enc.encode(opts.primers)));
@@ -190,6 +191,62 @@ describe('parseSnapGene (synthetic file)', () => {
     expect(() => parseSnapGene(truncated)).toThrow(/Truncated/);
     const noSeq = concat([packet(0x09, concat([enc.encode('SnapGene'), new Uint8Array(6)]))]);
     expect(() => parseSnapGene(noSeq)).toThrow(/no DNA sequence/);
+  });
+});
+
+describe('sticky ends', () => {
+  const props = (up: number, down: number) =>
+    `<AdditionalSequenceProperties><UpstreamStickiness>${up}</UpstreamStickiness><DownstreamStickiness>${down}</DownstreamStickiness></AdditionalSequenceProperties>`;
+  const read = (sequence: string, up: number, down: number, features?: string) => {
+    const doc = parseSnapGene(
+      buildFile({
+        sequence,
+        circular: false,
+        properties: props(up, down),
+        ...(features === undefined ? {} : { features }),
+      }),
+    ).documents[0];
+    if (doc === undefined) throw new Error('no document');
+    return doc;
+  };
+
+  it('reads a TA vector: a 3′ T at each end, one of them on the bottom strand only', () => {
+    // SnapGene's sequence spans both strands, so it starts with the A under
+    // the bottom strand's overhanging T and ends with the top strand's T.
+    const doc = read('AGGGCCCAAATTTGGGCCCT', -1, -1);
+    expect(doc.sequence.toString()).toBe('GGGCCCAAATTTGGGCCCT');
+    expect(doc.ends).toEqual({
+      left: { kind: "3'", overhang: 'A', enzyme: null },
+      right: { kind: "3'", overhang: 'T', enzyme: null },
+    });
+  });
+
+  it('reads a 4-base 5′ overhang downstream, taking it out of the top strand', () => {
+    const features = `<Features><Feature name="tip" type="misc_feature" directionality="0"><Segment range="15-20" type="standard"/></Feature></Features>`;
+    const doc = read('ATGCATGCATGCATGCCACC', 0, 4, features);
+    expect(doc.sequence.toString()).toBe('ATGCATGCATGCATGC');
+    expect(doc.ends?.right).toEqual({ kind: "5'", overhang: 'CACC', enzyme: null });
+    expect(doc.ends?.left.kind).toBe('blunt');
+    // A feature running onto the bottom-strand bases is clipped to the top strand.
+    const [tip] = [...doc.features];
+    expect(tip?.segments[0]).toMatchObject({ start: 14, end: 16 });
+  });
+
+  it('survives a GenBank round trip', () => {
+    const doc = read('AGGGCCCAAATTTGGGCCCT', -1, -1);
+    expect(parseGenBank(writeGenBank(doc)).documents[0]?.ends).toEqual(doc.ends);
+  });
+
+  it('ignores stickiness on a circle, and overhangs longer than the molecule', () => {
+    const circle = parseSnapGene(
+      buildFile({ sequence: SEQ, circular: true, properties: props(-1, -1) }),
+    ).documents[0];
+    expect(circle?.ends).toBeNull();
+    const result = parseSnapGene(
+      buildFile({ sequence: 'ACGTAC', circular: false, properties: props(-4, 4) }),
+    );
+    expect(result.documents[0]?.ends).toBeNull();
+    expect(result.warnings.map((w) => w.message).join()).toMatch(/longer than the molecule/);
   });
 });
 

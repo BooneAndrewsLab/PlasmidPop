@@ -5,7 +5,9 @@ import {
   type Reference,
   type Segment,
   type Strand,
+  type StrandEnd,
   type Topology,
+  BLUNT_END,
   SeqDocument,
   createFeature,
   createMetadata,
@@ -29,6 +31,9 @@ import { type XmlElement, childElements, firstChild, parseXml, stripHtml, textOf
  *   0x0A  features    XML <Features><Feature><Segment/><Q><V/></Q></Feature>…
  *   0x05  primers     XML <Primers><Primer><BindingSite/></Primer>…
  *   0x06  notes       XML <Notes> with description, organism, references…
+ *   0x08  properties  XML <AdditionalSequenceProperties>, whose
+ *                     <UpstreamStickiness>/<DownstreamStickiness> give a
+ *                     linear molecule's overhangs (see `stickyEnds`)
  *
  * Everything else (enzyme sets, history, alignments, appearance) is skipped.
  */
@@ -39,6 +44,7 @@ const Packet = {
   Sequence: 0x00,
   Primers: 0x05,
   Notes: 0x06,
+  Properties: 0x08,
   Cookie: 0x09,
   Features: 0x0a,
 } as const;
@@ -312,12 +318,56 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
 
   const stem =
     fileName === undefined ? null : fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '');
-  const doc = SeqDocument.create({
+  let doc = SeqDocument.create({
     name: name ?? (stem === null || stem === '' ? 'Untitled' : stem),
     sequence,
     topology,
     features,
     metadata: createMetadata(metadata),
   });
+  const properties = packets.find((p) => p.type === Packet.Properties);
+  if (properties !== undefined && topology === 'linear') {
+    doc = stickyEnds(doc, utf8.decode(properties.payload), warnings);
+  }
   return { format: 'snapgene', documents: [doc], warnings };
+}
+
+function stickiness(xml: string, tag: string): number {
+  const m = new RegExp(`<${tag}>\\s*(-?\\d+)\\s*</${tag}>`).exec(xml);
+  return m?.[1] === undefined ? 0 : Number(m[1]);
+}
+
+/**
+ * A linear molecule's overhangs, as SnapGene writes them (#9): a count of
+ * single-stranded bases at each end, positive for a 5′ overhang and negative
+ * for a 3′ one (every linearised TA vector it ships is -1/-1, pET151 D-TOPO
+ * is 0/4). SnapGene's sequence spans both strands, so those bases are always
+ * in it. Ours is the top strand alone (`core/document/ends.ts`): where the
+ * top strand is the longer one — a 5′ overhang upstream, a 3′ one downstream
+ * — the bases stay; where the bottom strand is, they come out of the
+ * sequence, by the same delete an edit makes, and the end records them.
+ */
+function stickyEnds(doc: SeqDocument, xml: string, warnings: ParseWarning[]): SeqDocument {
+  const up = stickiness(xml, 'UpstreamStickiness');
+  const down = stickiness(xml, 'DownstreamStickiness');
+  if (up === 0 && down === 0) return doc;
+  const L = doc.length;
+  if (Math.abs(up) + Math.abs(down) >= L) {
+    warnings.push(warning('The overhangs the file gives are longer than the molecule; left out'));
+    return doc;
+  }
+  const seq = doc.sequence.toString();
+  const left: StrandEnd =
+    up === 0
+      ? BLUNT_END
+      : { kind: up > 0 ? "5'" : "3'", overhang: seq.slice(0, Math.abs(up)), enzyme: null };
+  const right: StrandEnd =
+    down === 0
+      ? BLUNT_END
+      : { kind: down > 0 ? "5'" : "3'", overhang: seq.slice(L - Math.abs(down)), enzyme: null };
+  let out = doc;
+  // The end goes first so the start of the sequence is still where it was.
+  if (down > 0) out = out.apply({ type: 'delete', range: { start: L - down, end: L } });
+  if (up < 0) out = out.apply({ type: 'delete', range: { start: 0, end: -up } });
+  return out.apply({ type: 'setEnds', ends: { left, right } });
 }

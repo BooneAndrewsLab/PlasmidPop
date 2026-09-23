@@ -26,7 +26,12 @@ own bases give (see
 A molecule with sticky ends — a fragment from a digest, say — has something
 GenBank cannot express, so the ends travel as a `PlasmidPop-ends:` comment
 line. Other software sees an ordinary comment; PlasmidPop reads it back as
-the document's ends (see [Simulated cloning](12-cloning.md)).
+the document's ends (see [Simulated cloning](12-cloning.md)). A FASTA file
+carries the same text in brackets at the end of the header line
+(`>insert [PlasmidPop-ends: left=5' AATT/EcoRI; right=blunt]`), beside the
+usual `[topology=circular]`. A SnapGene file's own record of its overhangs
+is read on import — a linearised TA vector opens with its 3′ T at each end,
+a D-TOPO vector with its 5′ overhang.
 
 **ApE** files are GenBank with extra colour qualifiers; those colours are
 used for the features.
