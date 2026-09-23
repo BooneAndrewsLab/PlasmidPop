@@ -18,7 +18,8 @@ function fingerprint(doc: SeqDocument) {
     name: doc.name,
     topology: doc.topology,
     sequence: doc.sequence.toString(),
-    metadata: doc.metadata,
+    // A record without a division is written as SYN (see writeGenBank).
+    metadata: { ...doc.metadata, division: doc.metadata.division || 'SYN' },
     ends: doc.ends,
     features: doc.features.all().map(({ id: _id, ...rest }) => rest),
   };
@@ -490,14 +491,19 @@ describe('GenBank parser edge cases', () => {
   it('writes a LOCUS line in NCBI layout with sensible defaults', () => {
     const doc = only(parseGenBank(record('LOCUS       X 20 bp DNA linear', '')));
     const locus = writeGenBank(doc.rename('my plasmid')).split('\n')[0] ?? '';
-    expect(locus).toMatch(/^LOCUS {7}my_plasmid +20 bp {4}DNA {5}linear {3}\d{2}-[A-Z]{3}-\d{4}$/);
+    expect(locus).toMatch(
+      /^LOCUS {7}my_plasmid +20 bp {4}DNA {5}linear {3}SYN \d{2}-[A-Z]{3}-\d{4}$/,
+    );
     // NCBI layout: name starts at column 13, length is right-aligned to end at column 40.
     expect(locus.indexOf('my_plasmid')).toBe(12);
     expect(locus.indexOf('bp')).toBe(41);
+    // The division is required (Biopython refuses a line without one), and
+    // the date starts at column 69.
+    expect(locus.slice(64, 68)).toBe('SYN ');
     const withDivision = writeGenBank(
-      doc.setMetadata({ division: 'SYN', date: '01-JAN-2020' }),
+      doc.setMetadata({ division: 'PLN', date: '01-JAN-2020' }),
     ).split('\n')[0];
-    expect(withDivision).toMatch(/ linear {3}SYN 01-JAN-2020$/);
+    expect(withDivision).toMatch(/ linear {3}PLN 01-JAN-2020$/);
   });
 });
 

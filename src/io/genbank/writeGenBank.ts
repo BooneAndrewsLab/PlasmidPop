@@ -76,9 +76,11 @@ function locusLine(doc: SeqDocument): string {
   const name = (doc.name.trim() === '' ? 'Untitled' : doc.name).replace(/\s+/g, '_');
   const mol = doc.metadata.moleculeType === '' ? 'DNA' : doc.metadata.moleculeType;
   const date = doc.metadata.date === '' ? genBankDate() : doc.metadata.date;
-  // The division code is optional in practice (SnapGene and ApE omit it);
-  // leaving it out when unknown keeps re-parsed metadata identical.
-  const tail = [doc.topology.padEnd(8), doc.metadata.division, date].filter((t) => t !== '');
+  // The division code is required: Biopython refuses a LOCUS line without
+  // one. A document with none is almost always a construct made or edited
+  // here, which is what NCBI's SYN (synthetic) division is for.
+  const division = doc.metadata.division === '' ? 'SYN' : doc.metadata.division;
+  const tail = [doc.topology.padEnd(8), division, date];
   return (
     'LOCUS       ' +
     name.padEnd(16) +

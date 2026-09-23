@@ -86,8 +86,9 @@ Each one is tolerated only in its exact shape, so anything new still fails:
 - `order(...)` is read as `join(...)` (with a warning on opening) and
   written back as `join(...)`.
 
-Found and left for a decision: our LOCUS line leaves out the division code
-when a document has none, which is every document made in the app. Biopython
-1.85 refuses such a file outright ("LOCUS line does not contain space at
-position 68"). With a division added, all 441 files of the writer check read
-back as meant.
+The writer check found one more: our LOCUS line left out the division
+code when a document had none, which is every document made in the app,
+and Biopython 1.85 refuses such a file outright ("LOCUS line does not
+contain space at position 68"). The writer now puts SYN, NCBI's division
+for synthetic constructs, where there is none. Since then all 441 files of
+the writer check read back as meant.
