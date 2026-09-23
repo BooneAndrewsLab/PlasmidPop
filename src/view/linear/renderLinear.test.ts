@@ -19,6 +19,7 @@ const theme: LinearTheme = {
   editChange: '#aa8800',
   editDelete: '#ff0000',
   preview: '#6b4fd8',
+  traceQuality: '#dddddd',
   baseColors: { a: '#00aa00', c: '#0000ff', g: '#aa5500', t: '#cc0000', other: '#666666' },
 };
 
@@ -28,6 +29,7 @@ const metrics: LinearMetrics = {
   lineHeight: 20,
   showComplement: true,
   rulerHeight: 20,
+  traceHeight: 0,
   laneHeight: 20,
   translationHeight: 20,
   overlayHeight: 16,

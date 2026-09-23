@@ -1,6 +1,7 @@
 /**
  * Geometry of the linear sequence view: the sequence is broken into rows of
- * `basesPerRow` bases; every row shows a ruler, the forward strand,
+ * `basesPerRow` bases; every row shows a ruler, a sequencing read's trace
+ * when the document has one, the forward strand,
  * optionally the complement, one translation line per coding feature that
  * touches it, and as many feature lanes as it needs. Pure functions so the
  * maths is unit-testable without a canvas.
@@ -13,6 +14,8 @@ export interface LinearMetrics {
   readonly lineHeight: number;
   readonly showComplement: boolean;
   readonly rulerHeight: number;
+  /** Height of the chromatogram above the strands; 0 without one. */
+  readonly traceHeight: number;
   readonly laneHeight: number;
   /** Height of one amino-acid line drawn under the strands. */
   readonly translationHeight: number;
@@ -107,18 +110,29 @@ export class LinearLayout {
     this.totalHeight = y;
   }
 
-  /** Ruler + strands, before any feature lane. */
+  /** Ruler, trace and strands, before any feature lane. */
   baseBlockHeight(): number {
     const m = this.metrics;
-    return m.rulerHeight + m.lineHeight * (m.showComplement ? 2 : 1);
+    return m.rulerHeight + m.traceHeight + this.strandsHeight();
   }
 
-  forwardTextTop(row: RowLayout): number {
+  /** The forward strand, and the complement under it when shown. */
+  strandsHeight(): number {
+    const m = this.metrics;
+    return m.lineHeight * (m.showComplement ? 2 : 1);
+  }
+
+  /** Top of the chromatogram, between the ruler and the strands. */
+  traceTop(row: RowLayout): number {
     return row.top + this.metrics.rulerHeight;
   }
 
+  forwardTextTop(row: RowLayout): number {
+    return row.top + this.metrics.rulerHeight + this.metrics.traceHeight;
+  }
+
   complementTextTop(row: RowLayout): number {
-    return row.top + this.metrics.rulerHeight + this.metrics.lineHeight;
+    return this.forwardTextTop(row) + this.metrics.lineHeight;
   }
 
   /** Top of translation line `line` (0 = directly under the strands). */
@@ -233,6 +247,8 @@ export interface MetricsOptions {
   readonly showComplement: boolean;
   /** Whether room is kept above the strands for enzyme labels. */
   readonly cutSiteLabels: boolean;
+  /** Whether room is kept above the strands for a sequencing read's trace. */
+  readonly trace?: boolean;
   /** Extra space before the first column, for a sticky end hanging off the left. */
   readonly extraLeftGutter?: number;
   /** Extra space after the last column, for a sticky end hanging off the right. */
@@ -254,6 +270,7 @@ export function linearMetrics(o: MetricsOptions): LinearMetrics {
     lineHeight: at(18),
     showComplement: o.showComplement,
     rulerHeight: o.cutSiteLabels ? at(30) : at(16),
+    traceHeight: o.trace === true ? at(64) : 0,
     laneHeight: at(20),
     translationHeight: at(16),
     overlayHeight: at(18),

@@ -14,6 +14,7 @@ const metrics: LinearMetrics = {
   lineHeight: 16,
   showComplement: true,
   rulerHeight: 14,
+  traceHeight: 0,
   laneHeight: 18,
   overlayHeight: 16,
   translationHeight: 12,
@@ -162,6 +163,7 @@ describe('linearMetrics', () => {
       translationHeight: 16,
       rowGap: 14,
       rulerHeight: 16,
+      traceHeight: 0,
       leftGutter: 72,
       rightGutter: 24,
       topPadding: 12,
@@ -202,5 +204,29 @@ describe('linearMetrics', () => {
     expect(isFontSize(13)).toBe(true);
     expect(isFontSize(12)).toBe(false);
     expect(isFontSize('13')).toBe(false);
+  });
+});
+
+describe('a read’s trace in the rows (#52)', () => {
+  const withTrace = { ...metrics, traceHeight: 40 };
+  const layout = new LinearLayout(35, withTrace, [0, 0, 0, 0]);
+  const plain = new LinearLayout(35, metrics, [0, 0, 0, 0]);
+
+  it('sits between the ruler and the strands, which move down by its height', () => {
+    const row = layout.rows[0];
+    const plainRow = plain.rows[0];
+    if (row === undefined || plainRow === undefined) throw new Error('rows');
+    expect(layout.traceTop(row)).toBe(row.top + metrics.rulerHeight);
+    expect(layout.forwardTextTop(row)).toBe(plain.forwardTextTop(plainRow) + 40);
+    expect(layout.complementTextTop(row)).toBe(layout.forwardTextTop(row) + metrics.lineHeight);
+    expect(row.height).toBe(plainRow.height + 40);
+    expect(layout.strandsHeight()).toBe(plain.strandsHeight());
+  });
+
+  it('is kept only when asked for, scaled with the text', () => {
+    const o = { basesPerRow: 60, charWidth: 8, showComplement: true, cutSiteLabels: false };
+    expect(linearMetrics({ ...o, fontSize: 13 }).traceHeight).toBe(0);
+    expect(linearMetrics({ ...o, fontSize: 13, trace: true }).traceHeight).toBe(64);
+    expect(linearMetrics({ ...o, fontSize: 16, trace: true }).traceHeight).toBe(79);
   });
 });

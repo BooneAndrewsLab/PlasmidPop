@@ -1,24 +1,29 @@
 import { analytics } from '../analytics';
-import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type Alignment,
   type AlignmentMode,
   type ReadDifference,
   type SeqDocument,
+  type SequencingRead,
   CONFIDENT_QUALITY,
   columnQualities,
   isEmptyRange,
   normalizeSequenceInput,
   readDifferences,
+  reverseComplementRead,
   trimByQuality,
 } from '@/core';
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
+import { measureCharWidth } from '@/view/linear';
+
 import { SEQUENCE_FILE_ACCEPT } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { AlignmentTrace } from './AlignmentTrace';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -29,8 +34,8 @@ const BLOCK = 60;
 interface SequenceRecord {
   readonly name: string;
   readonly sequence: string;
-  /** Per-base Phred qualities, for a record read from an AB1 or FASTQ file. */
-  readonly qualities?: Uint8Array;
+  /** Its qualities, and an AB1's trace, for a record read from a sequencing file. */
+  readonly read?: SequencingRead;
 }
 
 type Records =
@@ -88,7 +93,7 @@ async function readFile(file: File): Promise<LoadedFile> {
   const records = parsed.documents.map((d) => ({
     name: d.name,
     sequence: d.sequence.toString(),
-    ...(d.read === null ? {} : { qualities: d.read.qualities }),
+    ...(d.read === null ? {} : { read: d.read }),
   }));
   return { text, records };
 }
@@ -126,12 +131,17 @@ function ReadLine({ bases, qualities }: { bases: string; qualities: readonly num
   );
 }
 
+/** Characters before a block's first column: seven for the position and a space. */
+const INDENT = 8;
+
 function AlignmentBlocks({
   alignment,
   offsetA,
   offsetB,
   wrap,
   qualities,
+  trace,
+  focus,
 }: {
   alignment: Alignment;
   offsetA: number;
@@ -140,27 +150,73 @@ function AlignmentBlocks({
   wrap: number | null;
   /** The read's quality under each column, or null without qualities. */
   qualities: readonly number[] | null;
+  /**
+   * The read with its trace, turned the way it aligned and indexed as the
+   * read's line is numbered, when there is a trace to draw under each block.
+   */
+  trace: SequencingRead | null;
+  /** A column to bring into view and mark, with a nonce to do it again. */
+  focus: { readonly column: number; readonly nonce: number } | null;
 }) {
-  const blocks: { a: string; m: string; b: string; posA: number; posB: number; at: number }[] = [];
+  const pre = useRef<HTMLPreElement>(null);
+  const [charWidth, setCharWidth] = useState(7);
+  useLayoutEffect(() => {
+    const el = pre.current;
+    if (el !== null) setCharWidth(measureCharWidth(getComputedStyle(el).font));
+  }, []);
+  useEffect(() => {
+    if (focus === null) return;
+    const block = pre.current?.children[Math.floor(focus.column / BLOCK)];
+    // Guarded because jsdom, where the app's tests run, has no scrollIntoView.
+    if (typeof block?.scrollIntoView === 'function') block.scrollIntoView({ block: 'nearest' });
+  }, [focus]);
+
+  const blocks: {
+    a: string;
+    m: string;
+    b: string;
+    posA: number;
+    posB: number;
+    at: number;
+    bases: { index: number; column: number }[];
+  }[] = [];
   let posA = alignment.startA + offsetA;
   let posB = alignment.startB + offsetB;
   for (let i = 0; i < alignment.columns; i += BLOCK) {
     const a = alignment.alignedA.slice(i, i + BLOCK);
     const b = alignment.alignedB.slice(i, i + BLOCK);
-    blocks.push({ a, m: alignment.matchLine.slice(i, i + BLOCK), b, posA, posB, at: i });
+    const bases: { index: number; column: number }[] = [];
+    let index = posB;
+    for (let c = 0; c < b.length; c++) {
+      if (b.charAt(c) !== '-') bases.push({ index: index++, column: c });
+    }
+    blocks.push({ a, m: alignment.matchLine.slice(i, i + BLOCK), b, posA, posB, at: i, bases });
     posA += a.replace(/-/g, '').length;
-    posB += b.replace(/-/g, '').length;
+    posB = index;
   }
+  const focusBlock = focus === null ? -1 : Math.floor(focus.column / BLOCK);
   return (
-    <pre className="alignment">
-      {blocks.map((blk) => (
-        <div key={`${blk.posA}-${blk.posB}`} className="alignment__block">
-          {`${String((wrap === null ? blk.posA : blk.posA % wrap) + 1).padStart(7)} ${blk.a}\n${' '.repeat(8)}${blk.m}\n${String(blk.posB + 1).padStart(7)} `}
+    <pre className="alignment" ref={pre}>
+      {blocks.map((blk, k) => (
+        <div
+          key={`${blk.posA}-${blk.posB}`}
+          className={`alignment__block${k === focusBlock ? ' alignment__block--focus' : ''}`}
+        >
+          {`${String((wrap === null ? blk.posA : blk.posA % wrap) + 1).padStart(7)} ${blk.a}\n${' '.repeat(INDENT)}${blk.m}\n${String(blk.posB + 1).padStart(7)} `}
           <ReadLine
             bases={blk.b}
             qualities={qualities === null ? null : qualities.slice(blk.at, blk.at + BLOCK)}
           />
           {'\n'}
+          {trace !== null && blk.bases.length > 0 && (
+            <AlignmentTrace
+              read={trace}
+              bases={blk.bases}
+              columns={blk.b.length}
+              indent={INDENT}
+              charWidth={charWidth}
+            />
+          )}
         </div>
       ))}
     </pre>
@@ -184,11 +240,14 @@ function ReadSummary({
   offset,
   wrap,
   docName,
+  onPick,
 }: {
   differences: readonly ReadDifference[];
   offset: number;
   wrap: number | null;
   docName: string;
+  /** Told the column of a difference picked, to show it in the alignment. */
+  onPick: (column: number) => void;
 }) {
   const confident = differences.filter((d) => d.confident);
   const poor = differences.length - confident.length;
@@ -212,6 +271,7 @@ function ReadSummary({
                     const end = d.kind === 'insertion' ? at : at + 1;
                     editorStore.setSelection({ start: at, end });
                     editorStore.revealPosition(at);
+                    onPick(d.column);
                   }}
                 >
                   {KIND_LABEL[d.kind]} at {(d.kind === 'insertion' ? at : at + 1).toLocaleString()}
@@ -235,6 +295,10 @@ export function AlignPanel({ doc }: Props) {
   const [fileNote, setFileNote] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<LoadedFile | null>(null);
   const [trim, setTrim] = useState(true);
+  const [showTrace, setShowTrace] = useState(true);
+  const [focus, setFocus] = useState<{ readonly column: number; readonly nonce: number } | null>(
+    null,
+  );
   const fileInput = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<AlignmentMode>('global');
   const [useSelection, setUseSelection] = useState(false);
@@ -255,6 +319,8 @@ export function AlignPanel({ doc }: Props) {
     trimmed: { readonly start: number; readonly end: number } | null;
     /** The read's quality under each column, when it had qualities. */
     qualities: readonly number[] | null;
+    /** The read with its trace, turned the way it aligned, when it had a trace. */
+    trace: SequencingRead | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -291,7 +357,7 @@ export function AlignPanel({ doc }: Props) {
       .then((read) => {
         setText(read.text);
         setLoaded(read);
-        const withQualities = read.records.some((r) => r.qualities !== undefined);
+        const withQualities = read.records.some((r) => r.read !== undefined);
         setFileNote(`From ${file.name}${withQualities ? ', with base qualities' : ''}.`);
       })
       .catch((e: unknown) => {
@@ -325,7 +391,8 @@ export function AlignPanel({ doc }: Props) {
       return;
     }
     // A read's unreliable ends are trimmed off before it is aligned (#50).
-    const allQualities = record?.qualities ?? null;
+    const readData = record?.read ?? null;
+    const allQualities = readData?.qualities ?? null;
     const kept =
       allQualities !== null && trim ? trimByQuality(allQualities) : { start: 0, end: full.length };
     if (kept.end <= kept.start) {
@@ -373,6 +440,7 @@ export function AlignPanel({ doc }: Props) {
                 startA: best.alignment.startA - turn,
                 endA: best.alignment.endA - turn,
               };
+        setFocus(null);
         setResult({
           ...best,
           alignment,
@@ -382,6 +450,13 @@ export function AlignPanel({ doc }: Props) {
           lengthB: b.length,
           trimmed,
           qualities: oriented === null ? null : columnQualities(alignment, oriented),
+          // The whole read, so the trace keeps the read's own numbering.
+          trace:
+            readData?.trace === null || readData === null
+              ? null
+              : reverse
+                ? reverseComplementRead(readData)
+                : readData,
         });
       })
       .catch((e: unknown) => {
@@ -480,7 +555,7 @@ export function AlignPanel({ doc }: Props) {
             <option value="local">Local (best region)</option>
           </select>
         </label>
-        {record?.qualities !== undefined && (
+        {record?.read !== undefined && (
           <label
             className="toggle"
             title="Mott's algorithm: keep the stretch whose bases are mostly better than Q13 (5% error)"
@@ -568,6 +643,18 @@ export function AlignPanel({ doc }: Props) {
           >
             Select aligned region in this document
           </button>
+          {result.trace !== null && (
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={showTrace}
+                onChange={(e) => {
+                  setShowTrace(e.target.checked);
+                }}
+              />
+              Show the trace under the read
+            </label>
+          )}
           {result.trimmed !== null && (
             <p className="panel__note">
               {result.trimmed.start + result.trimmed.end === 0
@@ -581,6 +668,9 @@ export function AlignPanel({ doc }: Props) {
               offset={result.offset}
               wrap={result.wrap}
               docName={doc.name}
+              onPick={(column) => {
+                setFocus((f) => ({ column, nonce: (f?.nonce ?? 0) + 1 }));
+              }}
             />
           )}
           <AlignmentBlocks
@@ -589,6 +679,8 @@ export function AlignPanel({ doc }: Props) {
             offsetB={result.offsetB}
             wrap={result.wrap}
             qualities={result.qualities}
+            trace={showTrace ? result.trace : null}
+            focus={focus}
           />
         </div>
       )}

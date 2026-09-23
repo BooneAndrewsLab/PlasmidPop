@@ -13,6 +13,7 @@ import {
 } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
+import { drawTrace } from '../trace';
 import { contrastingText, featureColor, withAlpha } from '../featureColors';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { type LaneAssignment } from './lanes';
@@ -47,6 +48,8 @@ export interface LinearTheme {
   readonly editDelete: string;
   /** Spans previewed beside the document's own annotation, which are not in it. */
   readonly preview: string;
+  /** The base-quality bars behind a sequencing read's trace. */
+  readonly traceQuality: string;
   readonly baseColors: BaseColors;
 }
 
@@ -149,7 +152,7 @@ function drawSelection(ctx: DrawingContext, p: RenderParams, row: RowLayout): vo
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(x, top);
-      ctx.lineTo(x, layout.forwardTextTop(row) + layout.baseBlockHeight() - m.rulerHeight);
+      ctx.lineTo(x, layout.forwardTextTop(row) + layout.strandsHeight());
       ctx.stroke();
     }
     return;
@@ -752,6 +755,29 @@ function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
   }
 }
 
+/**
+ * A sequencing read's chromatogram over the row's bases (#52), each base's
+ * peak over its letter, between the ruler and the strands.
+ */
+function drawReadTrace(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { layout, doc, theme } = p;
+  const m = layout.metrics;
+  const read = doc.read;
+  if (m.traceHeight === 0 || read?.trace == null) return;
+  const bases = [];
+  for (let k = row.start; k < row.end; k++) {
+    bases.push({ index: k, x: layout.xOfColumn(k - row.start) + m.charWidth / 2 });
+  }
+  drawTrace(ctx, {
+    read,
+    bases,
+    top: layout.traceTop(row) + 2,
+    height: m.traceHeight - 4,
+    charWidth: m.charWidth,
+    colors: { ...theme.baseColors, quality: theme.traceQuality },
+  });
+}
+
 /** Draws the visible part of the linear view onto a canvas that covers the viewport. */
 export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   const { layout, doc, scrollTop, scrollLeft, width, height, devicePixelRatio: dpr } = p;
@@ -766,6 +792,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
     drawEdits(ctx, p, row);
     drawSelection(ctx, p, row);
     drawRuler(ctx, p, row);
+    drawReadTrace(ctx, p, row);
     drawStrands(ctx, p, row);
     drawEndOverhangBases(ctx, p, row);
     drawTranslations(ctx, p, row);

@@ -136,6 +136,36 @@ alongside it.
   range across the origin. A read longer than the circle (a concatemer)
   selects the circle once.
 
+## The chromatogram (#52)
+
+- **Where** (decided on #52 at the start of the work): both in the sequence
+  view of an opened AB1, between the ruler and the strands, and under each
+  block of an alignment in the Align panel; one renderer for both
+  (`view/trace.ts`). On a phone the reader's sequence view shows it too,
+  read-only, since it is the same view.
+- **Lining the trace up with letters.** Peaks are not evenly spaced and
+  letters are, so the caller lists the bases to draw with the x of each
+  one's centre, and the signal between two listed peaks is stretched over
+  the distance between their centres, half a base's worth beyond the ends.
+  In the alignment a gap in the read is a column left out of the list, so
+  the trace stretches across it with no case of its own; a read aligned
+  reversed draws the reverse complement of its read (channels swapped and
+  mirrored, `reverseComplementRead`), indexed as its line is numbered.
+- **Scale**: the 99th percentile of the tallest channel, sampled over the
+  whole trace and cached, so one dye blob does not flatten the rest and
+  every row and block is drawn to the same height. Qualities are bars
+  behind, Q60 at full height.
+- **In the layout** it is `traceHeight` in the row metrics (0 without a
+  trace), so the strands, selection, caret and everything positioned from
+  `forwardTextTop` move down with it; the SVG export draws it through the
+  same renderer. Colours are the view's base colours, so it follows the
+  theme, with a quality colour of its own (`--seq-trace-quality`).
+- **The Align strip** is a canvas per 60-column block, as wide as the
+  block's text at the `<pre>`'s own character width, drawn once. Picking a
+  confident difference scrolls to its block and marks it.
+- **Not yet**: no toggle for the sequence view's trace (it shows whenever
+  the document has one); no zoom of the trace's height.
+
 ## Found on the way
 
 - **A second banner above the views collapsed to nothing.** `.app__editor`

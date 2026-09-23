@@ -23,6 +23,7 @@ export function readLinearTheme(el: HTMLElement): LinearTheme {
     editChange: v('--seq-edit-change', '#a86200'),
     editDelete: v('--seq-edit-delete', '#b3261e'),
     preview: v('--seq-preview', '#6b4fd8'),
+    traceQuality: v('--seq-trace-quality', 'rgba(27, 110, 140, 0.12)'),
     baseColors: {
       a: v('--seq-base-a', '#2f7d32'),
       c: v('--seq-base-c', '#1b6ec8'),

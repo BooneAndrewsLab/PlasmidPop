@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
+import { parseAbif } from '@/io';
 import {
   AnalysisCancelledError,
   type LongRequestOptions,
@@ -240,5 +244,51 @@ describe('AlignPanel', () => {
       Number(b.textContent.trim().split(/\s+/)[0]),
     );
     expect(starts.slice(0, 7)).toEqual([701, 761, 821, 881, 941, 1, 61]);
+  });
+
+  describe('with an AB1 trace (#52)', () => {
+    const bytes = new Uint8Array(
+      readFileSync(join(process.cwd(), 'src/io/fixtures/abif/sanger.ab1')),
+    );
+    const called = parseAbif(bytes).documents[0]?.sequence.toString() ?? '';
+    // The reference differs from the read at 200 (0-based), where the read is Q47.
+    const reference = called.slice(0, 200) + (called[200] === 'A' ? 'C' : 'A') + called.slice(201);
+    const refDoc = SeqDocument.create({ name: 'pRef', sequence: reference.replace(/N/g, 'A') });
+
+    async function alignTrace(): Promise<void> {
+      act(() => {
+        editorStore.openDocument(refDoc);
+      });
+      render(<AlignPanel doc={refDoc} />);
+      fireEvent.drop(box(), fileDrop(new File([bytes.slice()], 'clone3.ab1')));
+      await waitFor(() => {
+        expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/Local alignment/)).toBeInTheDocument();
+      });
+    }
+
+    it('draws a trace under every block of the alignment, and hides it on request', async () => {
+      await alignTrace();
+      const blocks = document.querySelectorAll('.alignment__block').length;
+      expect(blocks).toBeGreaterThan(0);
+      expect(document.querySelectorAll('.alignment__trace')).toHaveLength(blocks);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Show the trace under the read' }));
+      expect(document.querySelectorAll('.alignment__trace')).toHaveLength(0);
+    });
+
+    it('brings a picked difference’s block into view and marks it', async () => {
+      await alignTrace();
+      fireEvent.click(screen.getByRole('button', { name: /Mismatch at 201, Q47/ }));
+      const marked = document.querySelector('.alignment__block--focus');
+      expect(marked?.textContent).toMatch(/^\s*\d+/);
+      // The block holds position 201.
+      const first = Number((marked?.textContent ?? '').trim().split(/\s+/)[0]);
+      expect(first).toBeLessThanOrEqual(201);
+      expect(first + 60).toBeGreaterThan(201);
+    });
   });
 });

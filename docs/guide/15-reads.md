@@ -16,9 +16,14 @@ in this browser, like the rest of the document:
 - The status bar says **Read, 92% Q20+**: the share of bases whose quality
   is 20 or more. Quality is on the Phred scale, where 20 means one error in
   a hundred bases, 30 one in a thousand.
-- The qualities and the trace are kept for the trace view. To check a read
-  against a plasmid with its qualities, open the plasmid and drop the read
-  on the Align tab's box: see
+- An AB1 read shows its **trace** in the sequence view, above the bases:
+  the four dye signals (in the colours the bases are coloured in), each
+  base's peak over its letter, and its quality as a faint bar behind. A
+  clean read is a row of single, evenly spaced peaks; a mixed or noisy one
+  shows overlapping peaks, which is where a base call is doubtful. The
+  trace shows on a phone too.
+- To check a read against a plasmid with its qualities, open the plasmid
+  and drop the read on the Align tab's box: see
   [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities).
 
 A gzipped FASTQ (`.fastq.gz`), as nanopore runs usually come, opens without
@@ -33,7 +38,7 @@ opened; there is no sequence in it.
 ## Editing a read
 
 A read's qualities and trace describe its bases as they came off the
-sequencer. An edit that changes the bases — typing, deleting, pasting,
+sequencer, and the trace is drawn only while they do. An edit that changes the bases — typing, deleting, pasting,
 moving the origin — sets them aside, and a notice says so; **Undo** brings
 them back with the bases. Edits that leave the bases alone (features, the
 name, the description) keep them. **Reverse complement** keeps them too,
@@ -42,7 +47,9 @@ turned over with the bases.
 ## Downloading a read
 
 A download is GenBank, which has a place for the bases and features but not
-for qualities or a trace; a notice says so when you download a read. The
+for qualities or a trace; a notice says so when you download a read.
+**Export sequence view as SVG** (see [Exporting](02-files.md#exporting))
+draws the trace as it is shown. The
 read stays whole in the browser. A [share link](02-files.md#sharing-a-link)
 carries the document the same way, so it too arrives without the read. To
 keep the original, keep the file you opened: PlasmidPop never writes to it.

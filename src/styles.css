@@ -37,6 +37,8 @@
   --seq-base-g: #8a5a00;
   --seq-base-t: #c0392b;
   --seq-base-other: #6b7280;
+  /* Base-quality bars behind a read's trace. */
+  --seq-trace-quality: rgba(27, 110, 140, 0.12);
 
   /* A gel photograph is dark whatever the page around it is, and the picture
      should say "gel" before it says anything else, so these four are not
@@ -80,6 +82,7 @@
     --seq-base-g: #e0a458;
     --seq-base-t: #ff8a80;
     --seq-base-other: #9aa5b1;
+    --seq-trace-quality: rgba(106, 184, 255, 0.14);
   }
 }
 
@@ -1870,6 +1873,18 @@ button {
 .alignment__block {
   margin-bottom: 8px;
   white-space: pre;
+}
+
+/* A block's chromatogram, under the read's line (#52). */
+.alignment__trace {
+  display: block;
+  margin: -4px 0 2px;
+}
+
+/* The block of the difference last picked from the list above. */
+.alignment__block--focus {
+  background: var(--seq-selection);
+  border-radius: 4px;
 }
 
 /* A read base below Q20: dimmed and dotted, so a mismatch on it reads as doubt. */

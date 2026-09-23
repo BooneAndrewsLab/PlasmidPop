@@ -52,6 +52,13 @@ for what the qualities are.
   the poor ones are usually the sequencer, not the clone.
 - **Poor bases are marked in the read's line** of the alignment, underlined
   and in the warning colour, so a mismatch on one reads as doubt.
+- **The trace, under the read.** An AB1 read shows its trace under each
+  block of the alignment, each base's peak under its letter and stretched
+  across a gap in the read, so a mismatch can be checked against the
+  signal it was called from: one clean peak of the read's base, or two
+  peaks on top of each other. Clicking a confident difference in the list
+  also brings its block into view and marks it. **Show the trace under the
+  read** turns it off.
 
 ## Scoring and limits
 

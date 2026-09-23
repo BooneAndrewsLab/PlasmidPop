@@ -276,7 +276,8 @@ From the **File** menu:
   figures, with the cut sites of the enzymes ticked in the Enzymes tab —
   none of them while the toolbar's **Cut sites** toggle is off.
 - **Export sequence view as SVG**: the sequence rows as a vector file —
-  ruler, bases, features and cut sites, laid out as on screen. It follows the
+  ruler, bases, features and cut sites, and a read's trace, laid out as on
+  screen. It follows the
   **Complement**, **Translations** and **Cut sites** toggles, the **Edits**
   marks, the enzymes ticked in the Enzymes tab and the **Format** menu's
   bases-per-row, complement numbering and base colours. With Format left at

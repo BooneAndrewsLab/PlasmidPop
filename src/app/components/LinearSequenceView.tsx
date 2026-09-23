@@ -166,6 +166,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
       cutSiteLabels: showCutSites && shownEnzymes.size > 0,
+      // A read's chromatogram, above its bases (#52).
+      trace: doc.read?.trace != null,
       extraLeftGutter: overhangs.leftBottom * charWidth,
       extraRightGutter: overhangs.rightBottom * charWidth,
     };

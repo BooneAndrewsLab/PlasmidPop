@@ -38,6 +38,7 @@ export const PRINT_LINEAR_THEME: LinearTheme = {
   editChange: '#a86200',
   editDelete: '#b3261e',
   preview: '#6b4fd8',
+  traceQuality: 'rgba(27, 110, 140, 0.12)',
   baseColors: {
     a: '#2f7d32',
     c: '#1b6ec8',
@@ -105,6 +106,8 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     showComplement: options.showComplement ?? true,
     // Room for the enzyme names above the strands, as in the on-screen view.
     cutSiteLabels: cutSites.length > 0,
+    // A read's chromatogram is exported with it, as it is shown.
+    trace: doc.read?.trace != null,
     // ...and for a sticky end drawn beside the first or last column.
     extraLeftGutter: overhangs.leftBottom * charWidth,
     extraRightGutter: overhangs.rightBottom * charWidth,
