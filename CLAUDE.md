@@ -91,9 +91,12 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-23)
 
-**1.1.1** (2026-09-23) is the current release, fixing two GenBank export
-faults: a LOCUS line without a division, which Biopython refuses, and a
-site feature left off the end of a circle by an edit (item 37). **1.0.0**
+**1.1.2** (2026-09-23) is the current release: CDS translations read
+`/transl_except`, so selenocysteine and pyrrolysine show instead of a stop
+(item 1), and usage statistics carry a catalogue of every event (item 38).
+**1.1.1** (2026-09-23) fixed two GenBank export faults: a LOCUS line
+without a division, which Biopython refuses, and a site feature left off
+the end of a circle by an edit (item 37). **1.0.0**
 (2026-09-22) was the first public one, the version the repo went public at and the first archived
 on Zenodo for a citable DOI. Bump `package.json` and `CITATION.cff` together;
 each GitHub Release gets a DOI of its own, and the concept DOI in
