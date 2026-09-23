@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { SeqDocument } from '@/core';
+import { type StrandedAlignment, SeqDocument } from '@/core';
+import {
+  AnalysisCancelledError,
+  type LongRequestOptions,
+  analysisClient,
+} from '@/workers/analysisClient';
 
 import { editorStore } from '../state/editorStore';
 import { AlignPanel } from './AlignPanel';
@@ -72,5 +77,56 @@ describe('AlignPanel', () => {
       dataTransfer: { files: [], types: ['text/plain'] },
     });
     expect(notCancelled).toBe(true);
+  });
+
+  it('shows the progress of a long alignment and cancels it', async () => {
+    let long: LongRequestOptions = {};
+    let reject: (e: unknown) => void = () => undefined;
+    const spy = vi
+      .spyOn(analysisClient, 'alignEitherStrand')
+      .mockImplementation((_a, _b, _o, options = {}) => {
+        long = options;
+        return new Promise<StrandedAlignment>((_resolve, rej) => {
+          reject = rej;
+          options.signal?.addEventListener('abort', () => {
+            rej(new AnalysisCancelledError());
+          });
+        });
+      });
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'ACGTACGT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    expect(screen.queryByRole('progressbar')).toBeNull(); // nothing until it first reports
+    act(() => {
+      long.onProgress?.(0.42);
+    });
+    expect(screen.getByRole('progressbar', { name: 'Alignment progress' })).toHaveValue(0.42);
+    expect(screen.getByText('42%')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(long.signal?.aborted).toBe(true);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Align' })).toBeEnabled();
+    });
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(document.querySelector('.panel__error')).toBeNull(); // a cancel is not an error
+    reject(null);
+    spy.mockRestore();
+  });
+
+  it('stops a running alignment when the panel goes away', () => {
+    let long: LongRequestOptions = {};
+    const spy = vi
+      .spyOn(analysisClient, 'alignEitherStrand')
+      .mockImplementation((_a, _b, _o, options = {}) => {
+        long = options;
+        return new Promise<StrandedAlignment>(() => undefined);
+      });
+    const view = render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'ACGTACGT' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    view.unmount();
+    expect(long.signal?.aborted).toBe(true);
+    spy.mockRestore();
   });
 });

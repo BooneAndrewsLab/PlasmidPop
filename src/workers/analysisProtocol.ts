@@ -62,6 +62,12 @@ export type AnalysisResponse =
       readonly kind: 'alignEitherStrand';
       readonly result: StrandedAlignment;
     }
+  | {
+      /** Sent ahead of the answer to a long request; not an answer itself. */
+      readonly id: number;
+      readonly kind: 'progress';
+      readonly fraction: number;
+    }
   | { readonly id: number; readonly kind: 'error'; readonly message: string };
 
 /**

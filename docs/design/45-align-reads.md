@@ -1,6 +1,6 @@
 # 45. Align: ambiguity codes, larger inputs, files
 
-Done, 2026-09-23 (#46, #47, #48), for 1.2.1. From a user trying the Align tab
+Done, 2026-09-23 (#46, #47, #48, #54), for 1.2.1. From a user trying the Align tab
 on Sanger and nanopore reads: a file dropped on the box opened a tab, and a
 ~10 kb nanopore read was refused ("120,538,441 alignment cells; the
 in-browser limit is 30,000,000"). The rest of that feedback — AB1 and FASTQ
@@ -57,3 +57,17 @@ with base qualities, banded alignment, a chromatogram — is milestone 1.3
   GenBank text, silently. Now a list of the records (name and length)
   appears when there are several, and the chosen one is aligned. Aligning
   all of them at once is left for reads in 1.3.
+- **Progress and Cancel (#54).** At 150 M cells an alignment takes seconds,
+  with only "Aligning…" on the button to show for it. The fill reports the
+  fraction of rows done every 2 M cells, so a plasmid-scale alignment never
+  reports and the bar never flashes; when both strands are aligned each is
+  half of the bar. The worker sends these as `progress` messages carrying
+  the request's id ahead of its answer, the protocol's first that is not
+  one reply per request. A fill cannot be interrupted from outside, so
+  **Cancel** terminates the worker and starts another; whatever else was
+  waiting for an answer (a cut-site scan, say) is sent again to the new one,
+  and the enzyme set with it, so a cancel costs nothing but the alignment.
+  An alignment left running when the panel unmounts is cancelled the same
+  way. Other analysis still queues behind a running alignment on the one
+  worker; a worker of its own for alignment would fix that and was not
+  needed yet.

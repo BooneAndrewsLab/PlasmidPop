@@ -77,7 +77,18 @@ const NEG = -1_000_000_000;
 /** Scores are doubled internally so a -0.5 extension stays an integer. */
 const SCALE = 2;
 
-export function alignPairwise(a: string, b: string, options: AlignmentOptions = {}): Alignment {
+/** Told the fraction of the fill done, from 0 to 1, a few dozen times over a long alignment. */
+export type AlignmentProgress = (fraction: number) => void;
+
+/** Cells filled between two progress reports. */
+const PROGRESS_EVERY = 2_000_000;
+
+export function alignPairwise(
+  a: string,
+  b: string,
+  options: AlignmentOptions = {},
+  onProgress?: AlignmentProgress,
+): Alignment {
   const mode = options.mode ?? 'global';
   const local = mode === 'local';
   const mismatch = Math.round((options.mismatch ?? -4) * SCALE);
@@ -131,7 +142,9 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
   let bestJ = 0;
   let bestState = M;
 
+  const rowsPerReport = Math.max(1, Math.floor(PROGRESS_EVERY / width));
   for (let i = 1; i <= n; i++) {
+    if (onProgress !== undefined && i % rowsPerReport === 0) onProgress(i / n);
     const scoreRow = (codesA[i - 1] ?? 0) * CODES;
     const rowBase = i * width;
     curM[0] = local ? 0 : NEG;

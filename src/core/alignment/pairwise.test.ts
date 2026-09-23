@@ -113,6 +113,21 @@ describe('limits and performance', () => {
     expect(12_001 * 12_001).toBeLessThan(DEFAULT_MAX_CELLS);
   });
 
+  it('reports its progress through a long fill, rising and short of the end', () => {
+    const seen: number[] = [];
+    alignPairwise('ACGT'.repeat(600), 'TGCA'.repeat(600), {}, (f) => seen.push(f));
+    // 2,401 × 2,401 cells: a report about every 830 rows
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    expect(seen).toEqual([...seen].sort((x, y) => x - y));
+    expect(seen.every((f) => f > 0 && f < 1)).toBe(true);
+  });
+
+  it('does not report on a small alignment', () => {
+    const seen: number[] = [];
+    alignPairwise('ACGTACGT', 'ACGTACGT', {}, (f) => seen.push(f));
+    expect(seen).toEqual([]);
+  });
+
   it('refuses oversized problems', () => {
     expect(() => alignPairwise('A'.repeat(1000), 'A'.repeat(1000), { maxCells: 1000 })).toThrow(
       AlignmentTooLargeError,

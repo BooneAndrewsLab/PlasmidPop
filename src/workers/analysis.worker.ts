@@ -9,8 +9,14 @@ import {
 
 import { type AnalysisRequest, type AnalysisResponse, packCutSites } from './analysisProtocol';
 
-/** Pure function so the same code runs inline where Workers are unavailable (tests). */
-export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
+/**
+ * Pure function so the same code runs inline where Workers are unavailable
+ * (tests). A long request reports how far it has got to `onProgress`.
+ */
+export function handleAnalysisRequest(
+  req: AnalysisRequest,
+  onProgress?: (fraction: number) => void,
+): AnalysisResponse {
   try {
     switch (req.kind) {
       case 'setEnzymes':
@@ -40,7 +46,7 @@ export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
         return {
           id: req.id,
           kind: 'alignEitherStrand',
-          result: alignEitherStrand(req.a, req.b, req.options),
+          result: alignEitherStrand(req.a, req.b, req.options, onProgress),
         };
     }
   } catch (e) {
@@ -54,7 +60,10 @@ const scope = globalThis as {
 };
 if (typeof scope.postMessage === 'function' && typeof document === 'undefined') {
   scope.onmessage = (ev: MessageEvent<AnalysisRequest>) => {
-    const res = handleAnalysisRequest(ev.data);
+    const { id } = ev.data;
+    const res = handleAnalysisRequest(ev.data, (fraction) => {
+      scope.postMessage?.({ id, kind: 'progress', fraction });
+    });
     // The packed sites are handed over rather than copied.
     if (res.kind === 'cutSites') scope.postMessage?.(res, [res.sites.data.buffer]);
     else scope.postMessage?.(res);

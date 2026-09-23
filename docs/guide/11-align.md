@@ -39,8 +39,9 @@ bases they stand for: `A` against `R` (A or G) +1, `A` against `N` −2. An
 not attract the alignment.
 
 Alignment runs in a background thread and the interface stays responsive.
-Inputs whose product exceeds 150 million cells (about 12 kb × 12 kb, a few
-seconds) are refused to protect the browser's memory; align against a
-selection for longer inputs. For large inputs the orientation is picked
+A long one shows a progress bar with the percentage done and a **Cancel**
+button; leaving the Align tab cancels it too. Inputs whose product exceeds
+150 million cells (about 12 kb × 12 kb, a few seconds) are refused to
+protect the browser's memory; align against a selection for longer inputs. For large inputs the orientation is picked
 first from the short words the two sequences share, so only one alignment
 runs; when neither orientation clearly wins, both are aligned.

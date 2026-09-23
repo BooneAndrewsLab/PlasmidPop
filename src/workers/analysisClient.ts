@@ -14,7 +14,23 @@ import { handleAnalysisRequest } from './analysis.worker';
 import { type AnalysisRequest, type AnalysisResponse, unpackCutSites } from './analysisProtocol';
 
 interface Pending {
-  resolve: (r: AnalysisResponse) => void;
+  readonly request: AnalysisRequest;
+  readonly resolve: (r: AnalysisResponse) => void;
+  readonly onProgress?: (fraction: number) => void;
+}
+
+/** What a long request can be given: where to report progress, and a way to stop it. */
+export interface LongRequestOptions {
+  readonly onProgress?: (fraction: number) => void;
+  readonly signal?: AbortSignal;
+}
+
+/** The rejection of a request its signal stopped. */
+export class AnalysisCancelledError extends Error {
+  constructor() {
+    super('Cancelled');
+    this.name = 'AnalysisCancelledError';
+  }
 }
 
 /** Omit that distributes over a union, so each request variant keeps its own fields. */
@@ -45,6 +61,10 @@ export class AnalysisClient {
     this.worker.onmessage = (ev: MessageEvent<AnalysisResponse>) => {
       const p = this.pending.get(ev.data.id);
       if (p === undefined) return;
+      if (ev.data.kind === 'progress') {
+        p.onProgress?.(ev.data.fraction);
+        return;
+      }
       this.pending.delete(ev.data.id);
       p.resolve(ev.data);
     };
@@ -62,15 +82,45 @@ export class AnalysisClient {
     return this.worker;
   }
 
-  private send(req: RequestBody): Promise<AnalysisResponse> {
+  private send(req: RequestBody, long: LongRequestOptions = {}): Promise<AnalysisResponse> {
+    const { onProgress, signal } = long;
+    if (signal?.aborted === true) return Promise.reject(new AnalysisCancelledError());
     const id = this.nextId++;
     const full: AnalysisRequest = { ...req, id };
     const worker = this.ensureWorker();
-    if (worker === null) return Promise.resolve(handleAnalysisRequest(full));
-    return new Promise((resolve) => {
-      this.pending.set(id, { resolve });
+    // Inline, the work runs to the end before a signal could be looked at.
+    if (worker === null) return Promise.resolve(handleAnalysisRequest(full, onProgress));
+    return new Promise((resolve, reject) => {
+      this.pending.set(
+        id,
+        onProgress === undefined
+          ? { request: full, resolve }
+          : { request: full, resolve, onProgress },
+      );
+      signal?.addEventListener(
+        'abort',
+        () => {
+          if (!this.pending.delete(id)) return; // already answered
+          reject(new AnalysisCancelledError());
+          this.restart();
+        },
+        { once: true },
+      );
       worker.postMessage(full);
     });
+  }
+
+  /**
+   * Stops whatever the worker is doing by replacing it — a fill cannot be
+   * interrupted from outside — and sends what else was waiting for an answer
+   * to the new one, so a cancelled alignment takes no scan down with it.
+   */
+  private restart(): void {
+    this.worker?.terminate();
+    this.worker = null;
+    const worker = this.ensureWorker();
+    if (worker === null) return;
+    for (const p of this.pending.values()) worker.postMessage(p.request);
   }
 
   /**
@@ -116,8 +166,9 @@ export class AnalysisClient {
     a: string,
     b: string,
     options: AlignmentOptions = {},
+    long: LongRequestOptions = {},
   ): Promise<StrandedAlignment> {
-    const res = await this.send({ kind: 'alignEitherStrand', a, b, options });
+    const res = await this.send({ kind: 'alignEitherStrand', a, b, options }, long);
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'alignEitherStrand') throw new Error('Unexpected analysis response');
     return res.result;

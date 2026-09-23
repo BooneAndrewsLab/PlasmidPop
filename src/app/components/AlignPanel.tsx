@@ -1,5 +1,5 @@
 import { analytics } from '../analytics';
-import { type DragEvent, useMemo, useRef, useState } from 'react';
+import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type Alignment,
@@ -9,7 +9,7 @@ import {
   normalizeSequenceInput,
 } from '@/core';
 import { parseSequenceData, parseSequenceFile, writeFastaRecords } from '@/io';
-import { analysisClient } from '@/workers/analysisClient';
+import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
 import { SEQUENCE_FILE_ACCEPT } from '../openFile';
 import { editorStore } from '../state/editorStore';
@@ -107,6 +107,9 @@ export function AlignPanel({ doc }: Props) {
   const [mode, setMode] = useState<AlignmentMode>('global');
   const [useSelection, setUseSelection] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Fraction of the running alignment done; null until it first reports. */
+  const [progress, setProgress] = useState<number | null>(null);
+  const running = useRef<AbortController | null>(null);
   const [result, setResult] = useState<{
     alignment: Alignment;
     strand: 'forward' | 'reverse';
@@ -114,6 +117,14 @@ export function AlignPanel({ doc }: Props) {
     lengthB: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Leaving the tab stops an alignment nobody would see the end of.
+  useEffect(
+    () => () => {
+      running.current?.abort();
+    },
+    [],
+  );
 
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const parsed = useMemo(() => readRecords(other), [other]);
@@ -169,18 +180,24 @@ export function AlignPanel({ doc }: Props) {
         : { start: 0, end: doc.length };
     const a = doc.subsequence(target);
     analytics.track('align', 'run', mode);
+    const controller = new AbortController();
+    running.current = controller;
     setBusy(true);
+    setProgress(null);
     setError(null);
     analysisClient
-      .alignEitherStrand(a, b, { mode })
+      .alignEitherStrand(a, b, { mode }, { onProgress: setProgress, signal: controller.signal })
       .then((best) => {
         setResult({ ...best, offset: target.start, lengthB: b.length });
       })
       .catch((e: unknown) => {
+        if (e instanceof AnalysisCancelledError) return;
         setError(e instanceof Error ? e.message : String(e));
       })
       .finally(() => {
+        if (running.current === controller) running.current = null;
         setBusy(false);
+        setProgress(null);
       });
   };
 
@@ -288,6 +305,29 @@ export function AlignPanel({ doc }: Props) {
           {busy ? 'Aligning…' : 'Align'}
         </button>
       </div>
+      {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
+      {busy && progress !== null && (
+        <div className="align-progress">
+          <progress
+            className="align-progress__bar"
+            value={progress}
+            max={1}
+            aria-label="Alignment progress"
+          />
+          <span className="align-progress__label" aria-live="polite">
+            {Math.floor(progress * 100)}%
+          </span>
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            onClick={() => {
+              running.current?.abort();
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
       {error !== null && <p className="panel__error">{error}</p>}
       {result !== null && (
         <div className="panel__section">

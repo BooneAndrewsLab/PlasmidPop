@@ -1,7 +1,12 @@
 import { type Strand } from '../features/feature';
 import { reverseComplement } from '../sequence/alphabet';
 
-import { type Alignment, type AlignmentOptions, alignPairwise } from './pairwise';
+import {
+  type Alignment,
+  type AlignmentOptions,
+  type AlignmentProgress,
+  alignPairwise,
+} from './pairwise';
 
 export interface StrandedAlignment {
   readonly alignment: Alignment;
@@ -26,17 +31,26 @@ export function alignEitherStrand(
   a: string,
   b: string,
   options: AlignmentOptions = {},
+  onProgress?: AlignmentProgress,
 ): StrandedAlignment {
   const rc = reverseComplement(b);
   const cells = (a.length + 1) * (b.length + 1);
   if (cells >= BOTH_STRANDS_BELOW) {
     const strand = likelyStrand(a, b, rc);
     if (strand !== null) {
-      return { alignment: alignPairwise(a, strand === 'forward' ? b : rc, options), strand };
+      const alignment = alignPairwise(a, strand === 'forward' ? b : rc, options, onProgress);
+      return { alignment, strand };
     }
   }
-  const fwd = alignPairwise(a, b, options);
-  const rev = alignPairwise(a, rc, options);
+  // Two fills: each reports half of the way.
+  const half = (from: number): AlignmentProgress | undefined =>
+    onProgress === undefined
+      ? undefined
+      : (f) => {
+          onProgress(from + f / 2);
+        };
+  const fwd = alignPairwise(a, b, options, half(0));
+  const rev = alignPairwise(a, rc, options, half(0.5));
   return rev.score > fwd.score
     ? { alignment: rev, strand: 'reverse' }
     : { alignment: fwd, strand: 'forward' };

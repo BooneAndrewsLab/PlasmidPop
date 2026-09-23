@@ -58,6 +58,14 @@ describe('alignEitherStrand', () => {
     expect(r.alignment.identity).toBe(1);
   });
 
+  it('reports both strands as halves of one progress', () => {
+    const seen: number[] = [];
+    alignEitherStrand(randomSequence(1500, 4), randomSequence(1500, 5), {}, (f) => seen.push(f));
+    expect(seen.some((f) => f < 0.5)).toBe(true);
+    expect(seen.some((f) => f > 0.5)).toBe(true);
+    expect(seen).toEqual([...seen].sort((x, y) => x - y));
+  });
+
   it('on large inputs aligns only the strand the k-mers pick, with the same answer', () => {
     const plasmid = randomSequence(3000, 11);
     const read = reverseComplement(noisyRead(plasmid.slice(200, 2800)));

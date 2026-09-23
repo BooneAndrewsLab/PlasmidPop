@@ -1726,6 +1726,28 @@ button {
   margin-bottom: 8px;
 }
 
+.align-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.align-progress__bar {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  accent-color: var(--accent);
+}
+
+.align-progress__label {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  font-size: 12px;
+  min-width: 3ch;
+  text-align: right;
+}
+
 .panel__textarea--over {
   border-color: var(--accent);
   outline: 1px solid var(--accent);

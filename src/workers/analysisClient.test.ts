@@ -1,4 +1,4 @@
-import { AnalysisClient } from './analysisClient';
+import { AnalysisCancelledError, AnalysisClient } from './analysisClient';
 import { packCutSites, unpackCutSites } from './analysisProtocol';
 
 describe('AnalysisClient (inline fallback)', () => {
@@ -35,6 +35,88 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(posted).toHaveLength(1);
     withWorker.dispose();
     expect(fake.terminate).toHaveBeenCalled();
+  });
+});
+
+/** A worker that answers only when told to, and remembers what it was sent. */
+function heldWorker() {
+  const w = {
+    posted: [] as { id: number; kind: string }[],
+    onmessage: null as ((ev: MessageEvent) => void) | null,
+    onerror: null,
+    postMessage(msg: { id: number; kind: string }) {
+      w.posted.push(msg);
+    },
+    reply(data: unknown) {
+      w.onmessage?.({ data } as MessageEvent);
+    },
+    terminate: vi.fn(),
+  };
+  return w;
+}
+
+describe('AnalysisClient long requests (#54)', () => {
+  it('passes progress on and resolves with the answer that follows it', async () => {
+    const w = heldWorker();
+    const client = new AnalysisClient(() => w as unknown as Worker);
+    const seen: number[] = [];
+    const answer = client.alignEitherStrand(
+      'ACGT',
+      'ACGT',
+      {},
+      { onProgress: (f) => seen.push(f) },
+    );
+    const { id } = w.posted[0] ?? { id: -1 };
+    w.reply({ id, kind: 'progress', fraction: 0.25 });
+    w.reply({ id, kind: 'progress', fraction: 0.5 });
+    w.reply({ id, kind: 'alignEitherStrand', result: { strand: 'forward', alignment: {} } });
+    expect((await answer).strand).toBe('forward');
+    expect(seen).toEqual([0.25, 0.5]);
+  });
+
+  it('cancels by replacing the worker, and sends what else was waiting to the new one', async () => {
+    const workers = [heldWorker(), heldWorker()];
+    let started = 0;
+    const client = new AnalysisClient(() => workers[started++] as unknown as Worker);
+    const controller = new AbortController();
+    const alignment = client.alignEitherStrand('ACGT', 'ACGT', {}, { signal: controller.signal });
+    const orfs = client.orfs('ATG', 'linear');
+    const [first, second] = workers;
+    if (first === undefined || second === undefined) throw new Error('two workers');
+
+    controller.abort();
+    await expect(alignment).rejects.toBeInstanceOf(AnalysisCancelledError);
+    expect(first.terminate).toHaveBeenCalled();
+    // the ORF scan went to the new worker and is answered from there
+    const resent = second.posted.find((m) => m.kind === 'orfs');
+    expect(resent).toBeDefined();
+    expect(second.posted.some((m) => m.kind === 'alignEitherStrand')).toBe(false);
+    second.reply({ id: resent?.id, kind: 'orfs', orfs: [] });
+    expect(await orfs).toEqual([]);
+  });
+
+  it('ignores a cancel that comes after the answer', async () => {
+    const w = heldWorker();
+    const client = new AnalysisClient(() => w as unknown as Worker);
+    const controller = new AbortController();
+    const answer = client.alignEitherStrand('A', 'A', {}, { signal: controller.signal });
+    w.reply({
+      id: w.posted[0]?.id,
+      kind: 'alignEitherStrand',
+      result: { strand: 'reverse', alignment: {} },
+    });
+    expect((await answer).strand).toBe('reverse');
+    controller.abort();
+    expect(w.terminate).not.toHaveBeenCalled();
+  });
+
+  it('refuses a request whose signal was already aborted', async () => {
+    const client = new AnalysisClient(null);
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      client.alignEitherStrand('A', 'A', {}, { signal: controller.signal }),
+    ).rejects.toBeInstanceOf(AnalysisCancelledError);
   });
 });
 
