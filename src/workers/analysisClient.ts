@@ -10,7 +10,7 @@ import {
 } from '@/core';
 
 import { handleAnalysisRequest } from './analysis.worker';
-import { type AnalysisRequest, type AnalysisResponse } from './analysisProtocol';
+import { type AnalysisRequest, type AnalysisResponse, unpackCutSites } from './analysisProtocol';
 
 interface Pending {
   resolve: (r: AnalysisResponse) => void;
@@ -94,7 +94,7 @@ export class AnalysisClient {
     );
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'cutSites') throw new Error('Unexpected analysis response');
-    return res.sites;
+    return unpackCutSites(res.sites);
   }
 
   async orfs(sequence: string, topology: Topology, options: OrfOptions = {}): Promise<Orf[]> {

@@ -238,8 +238,8 @@ its recognition site says so. They are not offered for Golden Gate. A table
 imported before version 1.2 does not have them; import it again to add
 them.
 
-Scanning with the whole table takes about 80 ms on a 4 kb plasmid instead of
-7 ms, in the background, so the list takes a moment longer to appear.
+Scanning with the whole table takes about 15 ms on a 4 kb plasmid instead of
+3 ms, and about 130 ms on a 50 kb construct, in the background.
 
 If you publish work that used it, please cite REBASE: Roberts RJ, Vincze T,
 Posfai J, Macelis D, _REBASE — a database for DNA restriction and

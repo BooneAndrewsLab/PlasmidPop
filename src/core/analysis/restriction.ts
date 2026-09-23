@@ -282,7 +282,15 @@ export function findCutSites(
       }
     }
   }
-  out.sort((a, b) => a.cut - b.cut || a.enzyme.localeCompare(b.enzyme));
+  // Ties by name, ranked once: isoschizomers put a dozen enzymes on one cut,
+  // and `localeCompare` per comparison was a third of a REBASE scan.
+  const rank = new Map(
+    enzymes
+      .map((e) => e.name)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name, i) => [name, i] as const),
+  );
+  out.sort((a, b) => a.cut - b.cut || (rank.get(a.enzyme) ?? 0) - (rank.get(b.enzyme) ?? 0));
   return out;
 }
 

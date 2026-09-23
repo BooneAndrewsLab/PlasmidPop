@@ -193,6 +193,46 @@ actually showing (the supplier filter, or the ticked enzymes) is the next
 thing to try if this ever needs to be faster; it would cut both halves at
 once.
 
+### Shift-And matching and packed results (2026-09-23)
+
+Measured again for #20, the scan was not what the paragraph above says any
+more: pBR322 against the table imported now returns **10,485** sites, not
+63,053 (the larger count predates `MIN_SITE_BITS`, which dropped AbaSI and
+kin). Scanning one enzyme per isoschizomer group — 422 of them — still took
+27 of the 36 ms, so the matching was the cost, not the allocation, and
+narrowing the scan to the supplier filter would have saved a third of it at
+the price of re-scanning on every change of the filter.
+
+Three changes instead, none of which changes what is found:
+
+- `matchPositions` uses **Shift-And** for patterns of up to 31 bases: one
+  shift and one AND per base per pattern, against a comparison per pattern
+  base before. That also speeds up Find and primer binding, which use it.
+- `findCutSites` breaks ties in its sort by a name rank computed once,
+  not by `localeCompare` per comparison; isoschizomers put a dozen
+  enzymes on one cut, so there are many ties.
+- The worker sends the sites **packed** as an `Int32Array` of four numbers
+  each plus the enzyme names (`packCutSites` in
+  `src/workers/analysisProtocol.ts`), and transfers the buffer. A
+  structured clone of 110,000 objects cost 183–235 ms, about half of it
+  rebuilding them on the main thread; packing and unpacking cost 8 ms each.
+
+Node 24 (V8), circular, mean of 10 runs; "52 kb" is a random sequence.
+Before and after, scan plus handover (clone before, pack + unpack after):
+
+| Sequence | Enzymes                  | Sites   | Scan before | Scan after | Handover before | Handover after |
+| -------- | ------------------------ | ------- | ----------- | ---------- | --------------- | -------------- |
+| pBR322   | 127 (bundled)            | 462     | 7.1 ms      | 2.8 ms     | 0.8 ms          | 0.3 ms         |
+| pBR322   | 587 (REBASE, commercial) | 3,916   | 17.4 ms     | 6.4 ms     | 6.8 ms          | 0.4 ms         |
+| pBR322   | 1,581 (REBASE, all)      | 10,485  | 35.8 ms     | 14.3 ms    | 16.0 ms         | 1.1 ms         |
+| 52 kb    | 127 (bundled)            | 4,984   | 77.4 ms     | 21.8 ms    | 8.9 ms          | 0.4 ms         |
+| 52 kb    | 1,581 (REBASE, all)      | 109,638 | 408 ms      | 116 ms     | 235 ms          | 15.6 ms        |
+
+A full REBASE scan of a 52 kb construct went from about 640 ms to 130 ms.
+What is left is mostly pushing a `CutSite` per cut for every isoschizomer;
+sharing one set of cuts per group would be the next step, and would mean
+changing what `CutSite[]` consumers are handed.
+
 ### Reading the bands off each enzyme
 
 The Enzymes tab works out what every enzyme's own fragments would look like

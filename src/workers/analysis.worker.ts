@@ -1,6 +1,6 @@
 import { activeEnzymes, alignPairwise, findCutSites, findOrfs, setActiveEnzymeSet } from '@/core';
 
-import { type AnalysisRequest, type AnalysisResponse } from './analysisProtocol';
+import { type AnalysisRequest, type AnalysisResponse, packCutSites } from './analysisProtocol';
 
 /** Pure function so the same code runs inline where Workers are unavailable (tests). */
 export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
@@ -18,7 +18,7 @@ export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
         return {
           id: req.id,
           kind: 'cutSites',
-          sites: findCutSites(req.sequence, req.topology, enzymes),
+          sites: packCutSites(findCutSites(req.sequence, req.topology, enzymes)),
         };
       }
       case 'orfs':
@@ -37,10 +37,13 @@ export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
 
 const scope = globalThis as {
   onmessage?: ((ev: MessageEvent<AnalysisRequest>) => void) | null;
-  postMessage?: (m: AnalysisResponse) => void;
+  postMessage?: (m: AnalysisResponse, transfer?: Transferable[]) => void;
 };
 if (typeof scope.postMessage === 'function' && typeof document === 'undefined') {
   scope.onmessage = (ev: MessageEvent<AnalysisRequest>) => {
-    scope.postMessage?.(handleAnalysisRequest(ev.data));
+    const res = handleAnalysisRequest(ev.data);
+    // The packed sites are handed over rather than copied.
+    if (res.kind === 'cutSites') scope.postMessage?.(res, [res.sites.data.buffer]);
+    else scope.postMessage?.(res);
   };
 }

@@ -1,4 +1,10 @@
-import { findSequenceMatches, looksLikeSequence } from './search';
+import {
+  findSequenceMatches,
+  looksLikeSequence,
+  matchPositions,
+  patternMasks,
+  sequenceMasks,
+} from './search';
 
 describe('findSequenceMatches', () => {
   it('finds IUPAC patterns on both strands and wraps on circular sequences', () => {
@@ -32,5 +38,45 @@ describe('findSequenceMatches', () => {
     expect(looksLikeSequence('acgtn')).toBe(true);
     expect(looksLikeSequence('lacZ')).toBe(false);
     expect(looksLikeSequence('')).toBe(false);
+  });
+});
+
+describe('matchPositions', () => {
+  /** The rule spelled out: every sequence base a non-empty subset of the pattern's. */
+  function naive(masks: Uint8Array, pattern: readonly number[], maxStart: number): number[] {
+    const out: number[] = [];
+    for (let i = 0; i <= maxStart && i + pattern.length <= masks.length; i++) {
+      if (pattern.every((p, j) => (masks[i + j] ?? 0) !== 0 && ((masks[i + j] ?? 0) & ~p) === 0)) {
+        out.push(i);
+      }
+    }
+    return out;
+  }
+
+  it('agrees with the rule spelled out, for short, IUPAC and over-long patterns', () => {
+    let x = 7;
+    const next = () => (x = (Math.imul(x, 1103515245) + 12345) >>> 0) >>> 16;
+    // Mostly ACGT, with the odd N and R, and an unknown character now and then.
+    const alphabet = 'ACGTACGTACGTACGTNRX';
+    const seq = Array.from({ length: 3000 }, () => alphabet[next() % alphabet.length]).join('');
+    const masks = sequenceMasks(seq);
+    for (const pattern of [
+      'A',
+      'GATC',
+      'GANTC',
+      'GCCNNNNNGGC',
+      'RGCY',
+      'NNNN',
+      'ACNNNNGTAYC',
+      'N'.repeat(31),
+      `GA${'N'.repeat(33)}`,
+    ]) {
+      const p = patternMasks(pattern);
+      for (const maxStart of [seq.length - pattern.length, 1500, 0]) {
+        expect(matchPositions(masks, p, maxStart), `${pattern} to ${maxStart}`).toEqual(
+          naive(masks, p, maxStart),
+        );
+      }
+    }
   });
 });

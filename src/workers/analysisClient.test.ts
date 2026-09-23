@@ -1,4 +1,5 @@
 import { AnalysisClient } from './analysisClient';
+import { packCutSites, unpackCutSites } from './analysisProtocol';
 
 describe('AnalysisClient (inline fallback)', () => {
   const client = new AnalysisClient(null);
@@ -34,5 +35,20 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(posted).toHaveLength(1);
     withWorker.dispose();
     expect(fake.terminate).toHaveBeenCalled();
+  });
+});
+
+describe('packed cut sites', () => {
+  it('come back as they went in, reverse strand and negative positions included', () => {
+    const sites = [
+      { enzyme: 'EcoRI', cut: 5, cutBottom: 9, siteStart: 4, strand: 'forward' as const },
+      { enzyme: 'BsaI', cut: 0, cutBottom: 3, siteStart: 12, strand: 'reverse' as const },
+      { enzyme: 'EcoRI', cut: 4000, cutBottom: 4004, siteStart: 3999, strand: 'forward' as const },
+    ];
+    const packed = packCutSites(sites);
+    expect(packed.enzymes).toEqual(['EcoRI', 'BsaI']);
+    expect(packed.data).toHaveLength(12);
+    expect(unpackCutSites(packed)).toEqual(sites);
+    expect(unpackCutSites(packCutSites([]))).toEqual([]);
   });
 });
