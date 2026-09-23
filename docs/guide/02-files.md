@@ -42,9 +42,12 @@ protein FASTA is rejected.
 
 **SnapGene `.dna`** files are read for sequence and topology, features
 (including segmented features and their colours), primers (as `primer_bind`
-features) and notes (description, organism, references). Enzyme sets,
-history, alignments and appearance settings are skipped. PlasmidPop cannot
-write `.dna`; download GenBank instead.
+features), sticky ends and notes (description, organism, references). Enzyme
+sets, history, alignments and appearance settings are skipped. PlasmidPop
+cannot write `.dna`; download GenBank instead. Files from current SnapGene
+versions are what is tested; before version 1.2, primers were placed one base
+to the left of where SnapGene has them, and a primer SnapGene stores twice
+came in twice — reopen the `.dna` file to get them right.
 
 **Geneious** files are not supported. Export them as GenBank first.
 

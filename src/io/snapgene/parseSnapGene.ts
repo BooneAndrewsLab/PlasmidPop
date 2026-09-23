@@ -92,6 +92,27 @@ function parseRange(
   return unrollRange(a - 1, b, seqLength);
 }
 
+/**
+ * A primer's `BindingSite location`, which unlike a feature's `range` counts
+ * from 0 and includes both ends: `0-9` is the first ten bases. Established
+ * against the primers' own sequences in SnapGene 8.2's 203 bundled files —
+ * read this way 72 of 80 sites match their primer's 3′ end exactly, read as
+ * a feature range none do — and it is what Biopython does (#44).
+ */
+function parsePrimerRange(
+  text: string,
+  seqLength: number,
+  topology: Topology,
+): { start: number; end: number } | null {
+  const m = /^(\d+)-(\d+)$/.exec(text.trim());
+  if (m === null) return null;
+  const a = Number.parseInt(m[1] ?? '0', 10);
+  const b = Number.parseInt(m[2] ?? '0', 10);
+  if (a >= seqLength || b >= seqLength) return null;
+  if (b < a && topology === 'linear') return null;
+  return unrollRange(a, b + 1, seqLength);
+}
+
 function strandOf(directionality: string | undefined): Strand {
   return directionality === '2' ? 'reverse' : 'forward';
 }
@@ -196,9 +217,16 @@ function parsePrimers(
       warnings.push(warning(`Primer "${name}" has no binding site in this sequence; skipped`));
       continue;
     }
+    const seen = new Set<string>();
     for (const site of sites) {
-      const r = parseRange(site.attributes['location'] ?? '', seqLength, topology);
+      const r = parsePrimerRange(site.attributes['location'] ?? '', seqLength, topology);
       if (r === null) continue;
+      // SnapGene writes a site twice, once marked simplified="1", when it
+      // keeps a simplified form of it for display; the second copy is the
+      // same binding site, and imported it is a duplicate primer (#44).
+      const key = `${r.start}-${r.end}-${site.attributes['boundStrand'] ?? '0'}`;
+      if (site.attributes['simplified'] === '1' && seen.has(key)) continue;
+      seen.add(key);
       const qualifiers: Qualifier[] = [];
       if (sequence !== '') qualifiers.push({ name: 'note', value: `sequence: ${sequence}` });
       if (description !== '') qualifiers.push({ name: 'note', value: description });

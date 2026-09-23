@@ -69,8 +69,8 @@ const FEATURES = `<?xml version="1.0"?><Features nextValidID="3">
 </Features>`;
 
 const PRIMERS = `<?xml version="1.0"?><Primers nextValidID="2"><HybridizationParams minContinuousMatchLen="10"/>
-<Primer recentID="0" name="fwd" sequence="ATGGCCATTG" description="&lt;html&gt;&lt;body&gt;forward&lt;/body&gt;&lt;/html&gt;"><BindingSite location="1-10" boundStrand="0" meltingTemperature="30"/></Primer>
-<Primer recentID="1" name="rev" sequence="ACGTACGTAC"><BindingSite location="41-50" boundStrand="1"/></Primer>
+<Primer recentID="0" name="fwd" sequence="ATGGCCATTG" description="&lt;html&gt;&lt;body&gt;forward&lt;/body&gt;&lt;/html&gt;"><BindingSite location="0-9" boundStrand="0" meltingTemperature="30"/></Primer>
+<Primer recentID="1" name="rev" sequence="ACGTACGTAC"><BindingSite location="41-50" boundStrand="1"/><BindingSite simplified="1" location="41-50" boundStrand="1"/></Primer>
 <Primer recentID="2" name="orphan" sequence="GGGGGGGGGG"/>
 </Primers>`;
 
@@ -153,6 +153,12 @@ describe('parseSnapGene (synthetic file)', () => {
       { name: 'note', value: 'sequence: ATGGCCATTG' },
       { name: 'note', value: 'forward' },
     ]);
+    // SnapGene counts binding sites from 0, both ends included, unlike
+    // feature ranges: each site is exactly where its primer's bases are.
+    const [fwd, rev] = primers;
+    if (fwd === undefined || rev === undefined) throw new Error('primers');
+    expect(doc.featureSequence(fwd.id)).toBe('ATGGCCATTG');
+    expect(doc.featureSequence(rev.id)).toBe('ACGTACGTAC');
   });
 
   it('maps notes onto metadata', () => {
