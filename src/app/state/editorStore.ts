@@ -376,6 +376,13 @@ export interface SharedState {
    */
   readonly shareNotice: { readonly chars: number } | null;
   /**
+   * That a document's read (the qualities and trace of the AB1 or FASTQ it
+   * was opened from) was just left behind: by an edit that changed the
+   * bases, or by a download in a format that cannot hold it (#49). The
+   * nonce restarts the notice when it happens again.
+   */
+  readonly readNotice: { readonly kind: 'edited' | 'downloaded'; readonly nonce: number } | null;
+  /**
    * That the browser would ask the user before keeping this origin's
    * storage, and has not been asked yet. The banner explains what the
    * question means and puts it from a click, so the browser's own dialog
@@ -494,6 +501,7 @@ const SHARED_INITIAL: SharedState = {
   assembly: [],
   downloadNotice: null,
   shareNotice: null,
+  readNotice: null,
   storageNotice: false,
   preview: null,
   previewActivated: null,
@@ -666,13 +674,24 @@ export class EditorStore {
       return null;
     }
     analytics.track('file', 'open', result.format);
+    // A tab holds one molecule. The rest of a many-record file (a FASTQ of
+    // reads, say) is not opened, but it is not dropped without a word.
+    const more = result.documents.length - 1;
+    const rest: ParseWarning[] =
+      more === 0
+        ? []
+        : [
+            {
+              message: `Only the first of ${result.documents.length.toLocaleString()} records was opened. To use another, drop the file on the Align tab's box and pick it there.`,
+            },
+          ];
     // The file's own /translation qualifiers are checked here rather than in
     // the parser: it is a question about the sequence and the features
     // together, and it is asked of whatever format they were read from.
     return this.openDocument(
       doc,
       fileName,
-      [...result.warnings, ...translationWarnings(doc)],
+      [...result.warnings, ...rest, ...translationWarnings(doc)],
       storage,
     );
   }
@@ -904,6 +923,15 @@ export class EditorStore {
     if (this.state.shareNotice !== null) this.setShared({ shareNotice: null });
   }
 
+  /** Records that a read was left behind, for the notice under the toolbar. */
+  noteReadLeftBehind(kind: 'edited' | 'downloaded'): void {
+    this.setShared({ readNotice: { kind, nonce: (this.state.readNotice?.nonce ?? 0) + 1 } });
+  }
+
+  dismissReadNotice(): void {
+    if (this.state.readNotice !== null) this.setShared({ readNotice: null });
+  }
+
   /** Records that keeping the browser's storage is a question for the user, for the banner. */
   noteStoragePrompt(): void {
     if (!this.state.storageNotice) this.setShared({ storageNotice: true });
@@ -1003,6 +1031,8 @@ export class EditorStore {
       // from holds, so nothing about it is on disk yet.
       ...(forking ? { derived: true, savedDoc: null } : {}),
     });
+    // The read described the bases this edit changed; undo brings it back.
+    if (doc.read !== null && next.read === null) this.noteReadLeftBehind('edited');
   }
 
   applyPlan(plan: EditPlan | null): void {

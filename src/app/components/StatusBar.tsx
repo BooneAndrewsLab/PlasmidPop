@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { type SeqDocument, documentChecksum } from '@/core';
+import { type SeqDocument, documentChecksum, fractionAtLeast } from '@/core';
 
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
@@ -27,6 +27,7 @@ export function StatusBar({ doc }: Props) {
   // A SHA-1 over the sequence, which is microseconds even for a plasmid, but
   // it is taken on every render of the status bar without this.
   const checksum = useMemo(() => (doc === null ? null : documentChecksum(doc)), [doc]);
+  const read = doc?.read ?? null;
 
   return (
     <footer className="statusbar">
@@ -110,6 +111,14 @@ export function StatusBar({ doc }: Props) {
             >
               {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`} while opening
             </button>
+          )}
+          {read !== null && (
+            <span
+              className="statusbar__read"
+              title={`This document is a sequencing read: its base qualities${read.trace === null ? '' : ' and trace'} are kept with it. Q20 is one error in a hundred bases or fewer.`}
+            >
+              Read, {Math.round(fractionAtLeast(read, 20) * 100)}% Q20+
+            </span>
           )}
           {checksum !== null && (
             <button

@@ -11,6 +11,7 @@ import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
+import { ReadNotice } from './components/ReadNotice';
 import { ShareNotice } from './components/ShareNotice';
 import { StorageNotice } from './components/StorageNotice';
 import { Sidebar } from './components/Sidebar';
@@ -103,6 +104,7 @@ export function App() {
             <CopyBanner />
             <DownloadNotice />
             <ShareNotice />
+            <ReadNotice />
             <StorageNotice />
             <PhoneShell doc={doc} />
           </div>
@@ -129,6 +131,7 @@ export function App() {
             <CopyBanner />
             <DownloadNotice />
             <ShareNotice />
+            <ReadNotice />
             <StorageNotice />
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}

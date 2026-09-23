@@ -478,6 +478,13 @@ export class SeqDocument {
     return this.with({ features: this.features.remove(id) });
   }
 
+  /** Gives the document the qualities and trace of the read it is (or none). */
+  setRead(read: SequencingRead | null): SeqDocument {
+    if (read === this.read) return this;
+    if (read !== null) assertValidRead(read, this.length);
+    return this.with({ read });
+  }
+
   /**
    * Describes the ends of a linear molecule (see `ends.ts`). Blunt ends with
    * no enzyme, or any ends on a circular sequence, are stored as none.

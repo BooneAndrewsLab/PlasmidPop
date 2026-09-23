@@ -8,8 +8,8 @@ design.
 
 1. Paste the other sequence into the box: bare bases, a FASTA record or a
    GenBank record all work. Or drop a file on the box, or click **Choose
-   file…**: GenBank, FASTA and SnapGene files are read into the box without
-   opening a tab.
+   file…**: GenBank, FASTA, SnapGene, AB1 and FASTQ files (gzipped too)
+   are read into the box without opening a tab.
 2. If the box holds several records (a FASTA file of several reads, say),
    pick the one to align from the list that appears.
 3. Choose **Global (end to end)** to align the whole of both sequences

@@ -388,6 +388,8 @@ export class PersistenceService {
     const target = editorStore.documentState(documentId);
     if (target === null) return;
     const suggested = downloadNameFor(target);
+    // GenBank has nowhere for a read's qualities and trace; they stay here.
+    if (target.history.present.read !== null) editorStore.noteReadLeftBehind('downloaded');
     if (!supportsFileSystemAccess()) {
       downloadText(suggested, writeGenBank(target.history.present));
       editorStore.markDownloaded(documentId, suggested);

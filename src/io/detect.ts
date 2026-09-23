@@ -112,7 +112,13 @@ export async function readSequenceData(data: ArrayBuffer, filename?: string): Pr
   if (!isGzip(bytes)) return parseSequenceData(bytes, filename);
   let inflated: ArrayBuffer;
   try {
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const source = new ReadableStream<BufferSource>({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    });
+    const stream = source.pipeThrough(new DecompressionStream('gzip'));
     inflated = await new Response(stream).arrayBuffer();
   } catch {
     throw new FormatError('This gzipped file could not be decompressed');

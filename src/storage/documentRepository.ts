@@ -4,6 +4,7 @@ import {
   type EnzymeSet,
   type OverhangKind,
   type SeqDocument,
+  type SequencingRead,
 } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
@@ -42,6 +43,23 @@ export interface DocumentSummary {
 }
 
 /**
+ * A stored document with its read put back. A read that no longer fits the
+ * bases (it should not happen: an edit drops it) is left off rather than
+ * losing the document.
+ */
+function withStoredRead<D extends SeqDocument | undefined>(
+  doc: D,
+  read: SequencingRead | undefined,
+): D {
+  if (doc === undefined || read === undefined) return doc;
+  try {
+    return doc.setRead(read) as D;
+  } catch {
+    return doc;
+  }
+}
+
+/**
  * Persistence for open documents. Every method takes the database as an
  * optional last argument so tests can use an isolated instance.
  */
@@ -62,6 +80,7 @@ export class DocumentRepository {
       name: doc.name,
       fileName,
       text: writeGenBank(doc),
+      ...(doc.read === null ? {} : { read: doc.read }),
       length: doc.length,
       topology: doc.topology,
       featureCount: doc.features.size,
@@ -69,7 +88,13 @@ export class DocumentRepository {
       updatedAt: now,
       ...(origin === null
         ? {}
-        : { origin: { fileName: origin.fileName, text: writeGenBank(origin.doc) } }),
+        : {
+            origin: {
+              fileName: origin.fileName,
+              text: writeGenBank(origin.doc),
+              ...(origin.doc.read === null ? {} : { read: origin.doc.read }),
+            },
+          }),
       ...(provenance.derived ? { derived: true } : {}),
     });
   }
@@ -96,14 +121,17 @@ export class DocumentRepository {
   async load(id: string): Promise<StoredLoad | null> {
     const stored = await this.db.documents.get(id);
     if (stored === undefined) return null;
-    const doc = parseGenBank(stored.text).documents[0];
-    if (doc === undefined) return null;
+    const parsed = parseGenBank(stored.text).documents[0];
+    if (parsed === undefined) return null;
+    const doc = withStoredRead(parsed, stored.read);
     const storedOrigin = stored.origin;
     // A working copy whose origin will not parse is still a working copy:
     // it keeps `derived`, so the file it came from stays un-overwritable
     // even when we can no longer show what changed.
     const originDoc =
-      storedOrigin === undefined ? undefined : parseGenBank(storedOrigin.text).documents[0];
+      storedOrigin === undefined
+        ? undefined
+        : withStoredRead(parseGenBank(storedOrigin.text).documents[0], storedOrigin.read);
     return {
       doc: doc.rename(stored.name),
       fileName: stored.fileName,

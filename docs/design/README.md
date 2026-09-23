@@ -57,6 +57,7 @@ piece of work needs its reasoning written down, with the next free number.
 43. [SnapGene fixtures, checked against Biopython](43-snapgene-fixtures.md)
 44. [Dam and Dcm methylation](44-dam-dcm.md)
 45. [Align: ambiguity codes, larger inputs, files](45-align-reads.md)
+46. [Sequencing reads: AB1 and FASTQ](46-sequencing-reads.md)
 
 ## Changelog to 1.1.0
 

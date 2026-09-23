@@ -8,7 +8,7 @@ import {
   isEmptyRange,
   normalizeSequenceInput,
 } from '@/core';
-import { parseSequenceData, parseSequenceFile, writeFastaRecords } from '@/io';
+import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
 import { SEQUENCE_FILE_ACCEPT } from '../openFile';
@@ -54,17 +54,21 @@ function readRecords(text: string): Records {
   }
 }
 
+const TEXT_FORMATS: readonly string[] = ['genbank', 'fasta', 'raw'];
+
 /**
- * A picked or dropped file as text for the box: a text format as it is, a
- * SnapGene file (binary) as FASTA of its sequence. Throws if the file is not
- * one the app can read.
+ * A picked or dropped file as text for the box: GenBank or FASTA as it is,
+ * anything else — SnapGene and AB1, which are binary, FASTQ, a gzipped file
+ * — as FASTA of its records. Throws if the file is not one the app can read.
  */
 async function fileAsText(file: File): Promise<string> {
   const data = await file.arrayBuffer();
-  const parsed = parseSequenceData(data, file.name);
-  return parsed.format === 'snapgene'
-    ? writeFastaRecords(parsed.documents)
-    : new TextDecoder('utf-8').decode(data);
+  const parsed = await readSequenceData(data, file.name);
+  const bytes = new Uint8Array(data, 0, Math.min(2, data.byteLength));
+  const gzipped = bytes[0] === 0x1f && bytes[1] === 0x8b;
+  return TEXT_FORMATS.includes(parsed.format) && !gzipped
+    ? new TextDecoder('utf-8').decode(data)
+    : writeFastaRecords(parsed.documents);
 }
 
 function AlignmentBlocks({

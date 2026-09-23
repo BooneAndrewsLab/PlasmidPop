@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 
-import { type AssemblyPart, type Enzyme, type Topology } from '@/core';
+import { type AssemblyPart, type Enzyme, type SequencingRead, type Topology } from '@/core';
 
 /**
  * A document as kept in IndexedDB. The sequence and annotations are stored
@@ -18,6 +18,7 @@ import { type AssemblyPart, type Enzyme, type Topology } from '@/core';
 export interface StoredOrigin {
   readonly fileName: string;
   readonly text: string;
+  readonly read?: SequencingRead;
 }
 
 export interface StoredDocument {
@@ -39,6 +40,12 @@ export interface StoredDocument {
    * documents stored before working copies existed, which read as false.
    */
   readonly derived?: boolean;
+  /**
+   * The qualities and trace of a document opened from a sequencing read
+   * (AB1, FASTQ), which GenBank text cannot hold. Stored as the typed
+   * arrays they are; IndexedDB keeps those as they are.
+   */
+  readonly read?: SequencingRead;
 }
 
 /**

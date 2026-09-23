@@ -1,11 +1,12 @@
-import { FormatError, parseSequenceData, parseSequenceFile } from '@/io';
+import { FormatError, parseSequenceFile, readSequenceData } from '@/io';
 
 import { analytics, formatOfFileName } from './analytics';
 import { type Example } from './examples';
 import { type OpenStorage, editorStore } from './state/editorStore';
 
-/** What the file pickers offer: every format `parseSequenceData` reads. */
-export const SEQUENCE_FILE_ACCEPT = '.gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna';
+/** What the file pickers offer: every format `readSequenceData` reads. */
+export const SEQUENCE_FILE_ACCEPT =
+  '.gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna,.ab1,.abi,.fastq,.fq,.gz';
 
 const UNSUPPORTED: Readonly<Record<string, string>> = {
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',
@@ -32,7 +33,7 @@ export async function openFile(file: File): Promise<string | null> {
     return null;
   }
   try {
-    return editorStore.openParsed(parseSequenceData(data, file.name), file.name);
+    return editorStore.openParsed(await readSequenceData(data, file.name), file.name);
   } catch (e) {
     analytics.track('file', 'open-failed', formatOfFileName(file.name));
     editorStore.fail(e instanceof Error ? e.message : String(e));

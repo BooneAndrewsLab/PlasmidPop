@@ -1,5 +1,5 @@
 import { type MoleculeAlignment } from '@/core';
-import { parseSequenceData } from '@/io';
+import { readSequenceData } from '@/io';
 
 import { analytics } from './analytics';
 import { editorStore } from './state/editorStore';
@@ -20,7 +20,7 @@ export async function compareWithFile(file: File): Promise<boolean> {
     return false;
   }
   try {
-    const result = parseSequenceData(data, file.name);
+    const result = await readSequenceData(data, file.name);
     const other = result.documents[0];
     if (other === undefined) {
       editorStore.fail(`“${file.name}” contains no sequences.`);

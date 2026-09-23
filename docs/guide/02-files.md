@@ -7,11 +7,15 @@
 | GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape` | yes  | yes        |
 | FASTA      | `.fa` `.fasta` `.fna` `.seq` `.txt`    | yes  | export     |
 | SnapGene   | `.dna`                                 | yes  | no         |
+| AB1        | `.ab1` `.abi`                          | yes  | as GenBank |
+| FASTQ      | `.fastq` `.fq`, gzipped or not         | yes  | as GenBank |
 | Bare bases | `.txt`, or pasted                      | yes  | as GenBank |
 
 The format is sniffed from the content first, so a GenBank record in a
 `.txt` file still opens as GenBank. If a file holds several records, the first
-one is opened.
+one is opened, and a warning in the status bar says how many others there
+were. AB1 and FASTQ files are sequencing reads, with a quality for every
+base: see [Sequencing reads](15-reads.md).
 
 **GenBank** is the native format: sequence, topology, definition, accession,
 references, and every feature with its full location (`complement(...)`,

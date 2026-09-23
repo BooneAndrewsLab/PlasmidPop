@@ -77,3 +77,12 @@ export function reverseComplementRead(read: SequencingRead): SequencingRead {
     },
   };
 }
+
+/** The fraction of bases with a quality of at least `q`, 0 for no bases. */
+export function fractionAtLeast(read: SequencingRead, q: number): number {
+  const n = read.qualities.length;
+  if (n === 0) return 0;
+  let count = 0;
+  for (const value of read.qualities) if (value >= q) count++;
+  return count / n;
+}

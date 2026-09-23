@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 
-import { SeqDocument, createFeature, rangeSegment } from '@/core';
+import { type SequencingRead, SeqDocument, createFeature, rangeSegment } from '@/core';
 
 import { PlasmidPopDb } from './db';
 import { DocumentRepository } from './documentRepository';
@@ -134,5 +134,48 @@ describe('DocumentRepository', () => {
     expect(repo.lastDocumentId()).toBe('xyz');
     repo.setLastDocumentId(null);
     expect(repo.lastDocumentId()).toBeNull();
+  });
+});
+
+describe('DocumentRepository reads (#49)', () => {
+  const read = {
+    qualities: Uint8Array.from([30, 31, 32, 33]),
+    trace: {
+      channels: {
+        A: Int16Array.from([0, 900, 0, 0, 0, 0]),
+        C: Int16Array.from([0, 0, 800, 0, 0, 0]),
+        G: Int16Array.from([0, 0, 0, 700, 0, 0]),
+        T: Int16Array.from([0, 0, 0, 0, 600, 0]),
+      },
+      peaks: Int32Array.from([1, 2, 3, 4]),
+    },
+  };
+  const opened = SeqDocument.create({ name: 'clone3', sequence: 'ACGT', read });
+
+  it('keeps a document’s qualities and trace, which GenBank text cannot hold', async () => {
+    const repo = freshRepo();
+    await repo.save('r', opened, 'clone3.ab1', {
+      origin: { fileName: 'clone3.ab1', doc: opened },
+      derived: false,
+    });
+    const back = await repo.load('r');
+    // As plain numbers: fake-indexeddb's clones are typed arrays of another realm.
+    const plain = (r: SequencingRead | null | undefined) =>
+      r === null || r === undefined
+        ? null
+        : {
+            qualities: [...r.qualities],
+            peaks: [...(r.trace?.peaks ?? [])],
+            A: [...(r.trace?.channels.A ?? [])],
+            T: [...(r.trace?.channels.T ?? [])],
+          };
+    expect(plain(back?.doc.read)).toEqual(plain(read));
+    expect(plain(back?.origin?.doc.read)).toEqual(plain(read));
+  });
+
+  it('stores no read for a document without one', async () => {
+    const repo = freshRepo();
+    await repo.save('d', doc, null);
+    expect((await repo.load('d'))?.doc.read).toBeNull();
   });
 });

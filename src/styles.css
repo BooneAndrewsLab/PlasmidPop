@@ -347,11 +347,23 @@ button {
 
 /* Editor column */
 
+/* A column: the banners above the views (working copy, download, share,
+   read, storage — any number of them at once) take their own height and the
+   views the rest. A two-row grid gave the rest to whichever child came
+   second, so a second banner collapsed to nothing. */
 .app__editor {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   min-width: 0;
+}
+
+.app__editor > * {
+  flex: none;
+}
+
+.app__editor > .app__views {
+  flex: 1 1 0;
 }
 
 .editbar {
@@ -1380,6 +1392,12 @@ button {
 }
 
 /* The molecule's checksum: a name to paste, not a number to read. */
+.statusbar__read {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 .statusbar__checksum {
   font-family: var(--font-mono);
   font-size: 11px;
