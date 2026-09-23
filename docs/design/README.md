@@ -52,6 +52,7 @@ piece of work needs its reasoning written down, with the next free number.
 38. [Usage statistics that can say what is not used](38-usage-events.md)
 39. [Isoschizomers share a row](39-isoschizomer-rows.md)
 40. [Enzymes that cut on both sides of their site](40-double-cutters.md)
+41. [The gel's percentage and ladder, and a reversible order](41-gel-settings.md)
 
 ## Changelog to 1.1.0
 

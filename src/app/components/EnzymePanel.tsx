@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 
 import {
   type CutSite,
@@ -29,6 +29,7 @@ import {
 } from '../state/cutFilter';
 import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
 import { editorStore } from '../state/editorStore';
+import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
 import { EnzymeImport } from './EnzymeImport';
 import { Gel, type GelLane } from './Gel';
@@ -131,7 +132,7 @@ function describeOthers(shown: Enzyme, members: readonly Enzyme[]): string {
  * gel, are said rather than left to be worked out from the numbers.
  */
 function BandLine({ profile }: { readonly profile: DigestProfile }) {
-  const problems = bandProblems(profile);
+  const problems = bandProblems(profile, useGelOptions());
   // A single cutter gives one band and no warning: it linearises the
   // plasmid, which is what it is for. The mark is for a lane that hides
   // something, not for one with nothing to say.
@@ -165,6 +166,7 @@ interface DoubleDigestsProps {
  * the gel below then draws their digest beside each single one.
  */
 function DoubleDigests({ listed, doc, shownEnzymes }: DoubleDigestsProps) {
+  const gel = useGelOptions();
   // Keyed on the names rather than on `listed`, a new array every render.
   const key = listed
     .filter((g) => g.sites.length > 0 && g.sites.length <= MAX_PAIR_CUTS)
@@ -182,10 +184,11 @@ function DoubleDigests({ listed, doc, shownEnzymes }: DoubleDigestsProps) {
       doc.length,
       doc.topology,
       PAIRS_SHOWN,
+      gel,
     );
     // `listed` is read only through the names in `key`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, doc.length, doc.topology]);
+  }, [key, doc.length, doc.topology, gel]);
   if (poolSize < 2) return null;
 
   return (
@@ -253,7 +256,10 @@ export function EnzymePanel({ doc }: Props) {
     enzymeSupplier,
     enzymeSort,
     enzymeGroupIsoschizomers: grouped,
+    enzymeSortReversed: reversed,
   } = useEditorState();
+  const gel = useGelOptions();
+  const orderId = useId();
   const [filter, setFilter] = useState('');
   const [importing, setImporting] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
@@ -282,14 +288,14 @@ export function EnzymePanel({ doc }: Props) {
       return {
         enzyme,
         sites,
-        profile: sites.length === 0 ? null : enzymeProfile(sites, doc.length, doc.topology),
+        profile: sites.length === 0 ? null : enzymeProfile(sites, doc.length, doc.topology, gel),
       };
     });
     // The enzymes come from module state, so the memo has to be told to
     // re-run when the set changes; `enzymeSetInfo` is the store's record of
     // which set that is, and the linter cannot see the connection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, ready, enzymeSetInfo, doc.length, doc.topology]);
+  }, [analysis, ready, enzymeSetInfo, doc.length, doc.topology, gel]);
 
   const shownCuts = useMemo(() => {
     const cuts: number[] = [];
@@ -305,7 +311,14 @@ export function EnzymePanel({ doc }: Props) {
     [shownCuts, doc.length, doc.topology],
   );
   /** How everything ticked together would read on a gel. */
-  const ticked = useMemo(() => gelProfile(fragments.map((f) => f.length)), [fragments]);
+  const ticked = useMemo(
+    () =>
+      gelProfile(
+        fragments.map((f) => f.length),
+        gel,
+      ),
+    [fragments, gel],
+  );
   /** The ticked enzymes that cut, each with its own profile. */
   const tickedGroups = useMemo(
     () =>
@@ -417,14 +430,33 @@ export function EnzymePanel({ doc }: Props) {
     const byName = grouped
       ? [...matching].sort((a, b) => a.enzyme.name.localeCompare(b.enzyme.name))
       : matching;
-    return enzymeSort === 'bands'
-      ? [...byName].sort((a, b) =>
-          a.profile === null || b.profile === null
-            ? Number(a.profile === null) - Number(b.profile === null)
-            : compareDiagnostic(a.profile, b.profile),
-        )
-      : byName;
-  }, [units, supplier, entryByName, enzymeCutFilter, needle, shownEnzymes, grouped, enzymeSort]);
+    const ordered =
+      enzymeSort === 'bands'
+        ? [...byName].sort((a, b) =>
+            a.profile === null || b.profile === null
+              ? Number(a.profile === null) - Number(b.profile === null)
+              : compareDiagnostic(a.profile, b.profile, gel),
+          )
+        : byName;
+    if (!reversed) return ordered;
+    // Backwards is Z–A, or the lanes that would mislead first — a search
+    // for the enzyme whose pieces run together. Enzymes that do not cut have
+    // no lane to judge, so they stay at the foot either way.
+    if (enzymeSort === 'name') return [...ordered].reverse();
+    const cutting = ordered.filter((r) => r.profile !== null).reverse();
+    return [...cutting, ...ordered.filter((r) => r.profile === null)];
+  }, [
+    units,
+    supplier,
+    entryByName,
+    enzymeCutFilter,
+    needle,
+    shownEnzymes,
+    grouped,
+    enzymeSort,
+    reversed,
+    gel,
+  ]);
   const listedEnzymes = rows.reduce((n, r) => n + r.members.length, 0);
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
   const cutters = groups.length - nonCutters;
@@ -453,7 +485,7 @@ export function EnzymePanel({ doc }: Props) {
   // A new filter is a new list, and the old scroll position means nothing in it.
   useEffect(() => {
     scrollToTop();
-  }, [needle, supplier, enzymeCutFilter, enzymeSort, scrollToTop]);
+  }, [needle, supplier, enzymeCutFilter, enzymeSort, reversed, scrollToTop]);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -498,22 +530,41 @@ export function EnzymePanel({ doc }: Props) {
               ))}
             </select>
           </label>
-          <label>
+          <label htmlFor={orderId}>
             <span>Order</span>
-            <select
-              className="panel__select"
-              value={enzymeSort}
-              title="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
-              onChange={(e) => {
-                editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
-              }}
-            >
-              {ENZYME_SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value} title={o.title}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <span className="panel__form-pair">
+              <select
+                id={orderId}
+                className="panel__select"
+                value={enzymeSort}
+                title="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
+                onChange={(e) => {
+                  editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
+                }}
+              >
+                {ENZYME_SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value} title={o.title}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="button button--quiet button--small"
+                aria-pressed={reversed}
+                aria-label="Reverse the order"
+                title={
+                  enzymeSort === 'name'
+                    ? 'List Z to A'
+                    : 'List the lanes that would be hardest to read first'
+                }
+                onClick={() => {
+                  editorStore.setEnzymeSortReversed(!reversed);
+                }}
+              >
+                {reversed ? '↑' : '↓'}
+              </button>
+            </span>
           </label>
           <span className="panel__form-label">Isoschizomers</span>
           <span className="panel__form-range">
@@ -740,7 +791,7 @@ export function EnzymePanel({ doc }: Props) {
                 data-testid="gel-reading"
               >
                 {ticked.misleading
-                  ? `On a gel: ${describeBands(ticked, 6)} — ${bandProblems(ticked).join('; ')}.`
+                  ? `On a gel: ${describeBands(ticked, 6)} — ${bandProblems(ticked, gel).join('; ')}.`
                   : `On a gel: ${ticked.bands.length === 1 ? '1 band' : `${ticked.bands.length} bands`}, ${describeBands(ticked, 6)}.`}
               </p>
             </div>

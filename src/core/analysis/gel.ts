@@ -59,6 +59,44 @@ export const DEFAULT_GEL: Required<GelOptions> = {
   bright: 500,
 };
 
+/** The agarose percentages offered, as a bench keeps them. */
+export const AGAROSE_PERCENTAGES = [0.7, 1, 1.5, 2] as const;
+export type AgarosePercent = (typeof AGAROSE_PERCENTAGES)[number];
+
+export function isAgarosePercent(v: unknown): v is AgarosePercent {
+  return typeof v === 'number' && (AGAROSE_PERCENTAGES as readonly number[]).includes(v);
+}
+
+/**
+ * The range each percentage separates well, from supplier tables (NEB,
+ * Thermo): a thinner gel opens up the large fragments and loses the small
+ * ones off the bottom, a thicker one the reverse. 1 % is `DEFAULT_GEL`.
+ */
+const AGAROSE_RANGE: Readonly<Record<AgarosePercent, readonly [number, number]>> = {
+  0.7: [800, 12_000],
+  1: [500, 10_000],
+  1.5: [200, 4000],
+  2: [100, 2000],
+};
+
+/**
+ * The gel rules for a percentage. The resolved range is the table's; below
+ * it, the numbers scale as `DEFAULT_GEL`'s do at 1 %: a band is easily
+ * missed under a fifth of the range's foot and runs with the dye at a
+ * tenth, and bright means inside the range. Resolution stays at 15 %: a
+ * thicker gel moves the range down rather than sharpening it.
+ */
+export function gelForAgarose(percent: AgarosePercent): Required<GelOptions> {
+  const [low, high] = AGAROSE_RANGE[percent];
+  return {
+    ...DEFAULT_GEL,
+    minVisible: low / 5,
+    frontLength: low / 10,
+    maxResolved: high,
+    bright: low,
+  };
+}
+
 /** One band of the gel: the fragments that would run together at one place. */
 export interface GelBand {
   /** Length to label it by: the largest of the fragments that run here. */
@@ -432,10 +470,32 @@ export const LADDERS: readonly Ladder[] = [
     name: '100 bp',
     bands: [1500, 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100],
   },
+  {
+    // Both scales in one lane, for a digest with a large and a small piece.
+    name: '1 kb Plus',
+    bands: [
+      10_000, 8000, 6000, 5000, 4000, 3000, 2000, 1500, 1200, 1000, 900, 800, 700, 600, 500, 400,
+      300, 200, 100,
+    ],
+  },
 ];
 
-/** The ladder that spans what is being run: the 100 bp one for small stuff. */
-export function chooseLadder(lengths: readonly number[]): Ladder {
+/** A ladder by name, or `auto` for whichever spans what is being run. */
+export type LadderChoice = 'auto' | '1 kb' | '100 bp' | '1 kb Plus';
+
+export const LADDER_CHOICES: readonly LadderChoice[] = ['auto', '1 kb', '1 kb Plus', '100 bp'];
+
+export function isLadderChoice(v: unknown): v is LadderChoice {
+  return typeof v === 'string' && (LADDER_CHOICES as readonly string[]).includes(v);
+}
+
+/**
+ * The ladder to draw: the one asked for, or with `auto` the one that spans
+ * what is being run — the 100 bp one for small stuff.
+ */
+export function chooseLadder(lengths: readonly number[], choice: LadderChoice = 'auto'): Ladder {
+  const named = LADDERS.find((l) => l.name === choice);
+  if (named !== undefined) return named;
   const longest = lengths.reduce((n, x) => Math.max(n, x), 0);
   const fine = LADDERS[1];
   const coarse = LADDERS[0];

@@ -1,14 +1,22 @@
 import { useId } from 'react';
 
 import {
+  AGAROSE_PERCENTAGES,
   type DigestProfile,
   type GelBand,
   type GelOptions,
+  LADDER_CHOICES,
   bandIntensities,
   bandLabel,
   chooseLadder,
+  isAgarosePercent,
+  isLadderChoice,
   migration,
 } from '@/core';
+
+import { editorStore } from '../state/editorStore';
+import { useGelOptions } from '../state/useGel';
+import { useEditorState } from '../state/useEditorStore';
 
 /**
  * A digest as a lane on a gel, beside a ladder.
@@ -61,7 +69,7 @@ const NAME_CHARS = 7;
 /** The ladder's numbers are off the slab, where they are read against the page. */
 const LADDER_LABEL_X = SLAB_LEFT - 4;
 
-function laneY(length: number, options: GelOptions | undefined): number {
+function laneY(length: number, options: Required<GelOptions>): number {
   return TOP + migration(length, options) * (BOTTOM - TOP);
 }
 
@@ -138,9 +146,12 @@ export interface GelLane {
 }
 
 interface Props {
-  /** Left to right after the ladder. The last one is the lane the sizes are written beside. */
+  /**
+   * Left to right after the ladder. The last one is the lane the sizes are
+   * written beside. Their profiles should be judged by `useGelOptions`, the
+   * gel this draws.
+   */
   readonly lanes: readonly GelLane[];
-  readonly options?: GelOptions;
 }
 
 /** "HindIII" fits under a shared lane; "BsaXI-HF" is cut to it, and named in full on hover. */
@@ -160,7 +171,9 @@ function laneName(label: string, shared: boolean): string {
  * lanes' bands are named on hover, and every size is listed under the
  * picture by whoever draws it.
  */
-export function Gel({ lanes, options }: Props) {
+export function Gel({ lanes }: Props) {
+  const options = useGelOptions();
+  const { gelAgarose, gelLadder } = useEditorState();
   const titleId = useId();
   const shared = lanes.length > 1;
   const laneW = shared ? LANE_W_SHARED : LANE_W_ALONE;
@@ -170,7 +183,10 @@ export function Gel({ lanes, options }: Props) {
   const laneX = (i: number): number => ladderX + (laneW + GAP) * (i + 1);
   const sampleLabelX = SLAB_LEFT + slabW + 6;
 
-  const ladder = chooseLadder(lanes.flatMap((l) => l.profile.fragments));
+  const ladder = chooseLadder(
+    lanes.flatMap((l) => l.profile.fragments),
+    gelLadder,
+  );
   const ladderIntensity = bandIntensities(ladder.bands.map((n) => ({ length: n, fragments: [n] })));
   const ladderRows = labelRows(
     ladder.bands.map((n) => laneY(n, options)),
@@ -333,8 +349,44 @@ export function Gel({ lanes, options }: Props) {
         </text>
       </svg>
       <figcaption className="gel__caption">
-        Calculated for a 1 % agarose gel, not measured: band positions and how brightly each one
-        stains are a model.
+        <span className="gel__settings">
+          <label>
+            <select
+              className="panel__select"
+              value={gelAgarose}
+              aria-label="Agarose"
+              title="The gel percentage: a thicker gel separates small fragments and loses large ones"
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (isAgarosePercent(v)) editorStore.setGelAgarose(v);
+              }}
+            >
+              {AGAROSE_PERCENTAGES.map((p) => (
+                <option key={p} value={p}>
+                  {p} % agarose
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <select
+              className="panel__select"
+              value={gelLadder}
+              aria-label="Ladder"
+              onChange={(e) => {
+                if (isLadderChoice(e.target.value)) editorStore.setGelLadder(e.target.value);
+              }}
+            >
+              {LADDER_CHOICES.map((l) => (
+                <option key={l} value={l}>
+                  {l === 'auto' ? `Ladder: ${ladder.name} (to fit)` : `${l} ladder`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </span>
+        Calculated, not measured: band positions and how brightly each one stains are a model of a{' '}
+        {gelAgarose} % gel.
       </figcaption>
     </figure>
   );

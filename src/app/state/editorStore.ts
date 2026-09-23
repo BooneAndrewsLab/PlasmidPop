@@ -1,11 +1,13 @@
 import { analytics } from '../analytics';
 import {
+  type AgarosePercent,
   type AssemblyPart,
   type Coalesce,
   type CutSite,
   type DigestFragment,
   type EditOp,
   type FeatureId,
+  type LadderChoice,
   type Orf,
   type PrimerCriteria,
   type Range,
@@ -316,6 +318,15 @@ export interface SharedState {
    * a dozen names for BamHI's specificity; they are one choice at the bench.
    */
   readonly enzymeGroupIsoschizomers: boolean;
+  /** The list order read backwards: Z–A, or the worst-separated lanes first. */
+  readonly enzymeSortReversed: boolean;
+  /**
+   * The gel every drawn lane is calculated for, and the ladder beside it
+   * (item 41). A lab runs the same gel week in, week out, so these are
+   * remembered like the list options rather than asked per digest.
+   */
+  readonly gelAgarose: AgarosePercent;
+  readonly gelLadder: LadderChoice;
   /**
    * Which of the three reactions the Cloning tab shows. Remembered for the
    * same reason the enzyme filters are: a lab that does Gibson does Gibson
@@ -473,6 +484,9 @@ const SHARED_INITIAL: SharedState = {
   enzymeSupplier: '',
   enzymeSort: 'name',
   enzymeGroupIsoschizomers: true,
+  enzymeSortReversed: false,
+  gelAgarose: 1,
+  gelLadder: 'auto',
   cloningReaction: 'ligation',
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
@@ -1144,6 +1158,20 @@ export class EditorStore {
 
   setEnzymeSort(sort: EnzymeSort): void {
     if (sort !== this.state.enzymeSort) this.setShared({ enzymeSort: sort });
+  }
+
+  setEnzymeSortReversed(reversed: boolean): void {
+    if (reversed !== this.state.enzymeSortReversed) {
+      this.setShared({ enzymeSortReversed: reversed });
+    }
+  }
+
+  setGelAgarose(percent: AgarosePercent): void {
+    if (percent !== this.state.gelAgarose) this.setShared({ gelAgarose: percent });
+  }
+
+  setGelLadder(ladder: LadderChoice): void {
+    if (ladder !== this.state.gelLadder) this.setShared({ gelLadder: ladder });
   }
 
   setEnzymeGroupIsoschizomers(group: boolean): void {

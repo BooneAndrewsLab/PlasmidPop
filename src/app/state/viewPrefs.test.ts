@@ -23,6 +23,9 @@ const DEFAULTS = {
   enzymeSupplier: '',
   enzymeSort: 'name',
   enzymeGroupIsoschizomers: true,
+  enzymeSortReversed: false,
+  gelAgarose: 1,
+  gelLadder: 'auto',
   cloningReaction: 'ligation',
   geneticCode: 1,
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
@@ -45,6 +48,9 @@ function reset(): void {
   editorStore.setEnzymeSupplier(DEFAULTS.enzymeSupplier);
   editorStore.setEnzymeSort(DEFAULTS.enzymeSort);
   editorStore.setEnzymeGroupIsoschizomers(DEFAULTS.enzymeGroupIsoschizomers);
+  editorStore.setEnzymeSortReversed(DEFAULTS.enzymeSortReversed);
+  editorStore.setGelAgarose(DEFAULTS.gelAgarose);
+  editorStore.setGelLadder(DEFAULTS.gelLadder);
   editorStore.setCloningReaction(DEFAULTS.cloningReaction);
   editorStore.setGeneticCode(DEFAULTS.geneticCode);
   editorStore.setPrimerCriteria(DEFAULTS.primerCriteria);
@@ -74,6 +80,9 @@ describe('view preferences', () => {
       enzymeSupplier: 'N',
       enzymeSort: 'bands',
       enzymeGroupIsoschizomers: false,
+      enzymeSortReversed: true,
+      gelAgarose: 2,
+      gelLadder: '1 kb Plus',
       cloningReaction: 'gibson',
       geneticCode: 11,
       primerCriteria: {
@@ -126,6 +135,9 @@ describe('view preferences', () => {
       enzymeSupplier: 'N',
       enzymeSort: 'bands',
       enzymeGroupIsoschizomers: false,
+      enzymeSortReversed: true,
+      gelAgarose: 2,
+      gelLadder: '1 kb Plus',
       cloningReaction: 'golden-gate',
       geneticCode: 2,
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
@@ -147,6 +159,9 @@ describe('view preferences', () => {
       enzymeSupplier: 'N',
       enzymeSort: 'bands',
       enzymeGroupIsoschizomers: false,
+      enzymeSortReversed: true,
+      gelAgarose: 2,
+      gelLadder: '1 kb Plus',
       cloningReaction: 'golden-gate',
       geneticCode: 2,
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },

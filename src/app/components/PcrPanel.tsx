@@ -15,6 +15,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
+import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
 import { Gel } from './Gel';
 
@@ -166,7 +167,15 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   // above it and runs here rather than in the worker (docs/perf-notes.md).
   const result = useMemo(() => (primers.length === 0 ? null : pcr(doc, primers)), [doc, primers]);
   const products = result?.products ?? NO_PRODUCTS;
-  const lane = useMemo(() => gelProfile(products.map((p) => p.length)), [products]);
+  const gel = useGelOptions();
+  const lane = useMemo(
+    () =>
+      gelProfile(
+        products.map((p) => p.length),
+        gel,
+      ),
+    [products, gel],
+  );
 
   const picked = shown ?? hovered;
   const spans = useMemo(

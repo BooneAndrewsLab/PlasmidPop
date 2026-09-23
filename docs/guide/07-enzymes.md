@@ -65,14 +65,16 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   ones whose bands would run together last, which is how a diagnostic digest
   is actually chosen. Bands twice as long as each other are as distinct as
   bands ever get, so past that the order prefers a lane whose smallest band
-  is bright — 500 bp or more — over one with a faint sliver at the foot.
+  is bright — 500 bp or more on a 1 % gel — over one with a faint sliver at
+  the foot. The **↓** button beside it reverses either order: Z to A, or the
+  lanes hardest to read first (enzymes that do not cut stay at the end).
 - **Sold by** narrows the list to one supplier's catalogue. It appears only
   after you import a REBASE table, which is where the supplier information
   comes from.
 
 - **Isoschizomers: share a row** is described [below](#isoschizomers).
 
-**Cuts**, **Order**, **Sold by** and **Isoschizomers** are remembered between sessions, like
+**Cuts**, **Order** (and its direction), **Sold by** and **Isoschizomers** are remembered between sessions, like
 the toolbar's view settings: they say what you are generally looking for
 rather than anything about the document. The name filter is not — it is a
 question about the list in front of you, not a standing choice.
@@ -169,7 +171,7 @@ sites** link to bring them back.
 **Fragments from ticked enzymes** draws the lane a complete digest with all
 ticked enzymes would give (with a lane for each enzyme alone beside it when
 two or three are ticked), beside a ladder — 1 kb, or 100 bp when everything
-is small. A short band is drawn faint, because a stain binds DNA by mass and
+is small, unless you choose one (see [The gel](#the-gel) below). A short band is drawn faint, because a stain binds DNA by mass and
 a 200 bp band really is faint next to a 4 kb one. **Click a band to select
 that piece** — in a single enzyme's lane, the piece that enzyme alone cuts — in the sequence view and on the map; where two pieces run
 together, the click takes the larger one, and the band says so when you hover
@@ -180,11 +182,29 @@ circular molecule, n cuts give n fragments; on a linear one, n + 1 — and then
 **On a gel**, which says in words what the picture cannot: which pieces would
 run together, and whether any are too small to stay on the gel.
 
-The gel is a rule of thumb for a standard 1 % agarose gel, not a simulation
-of one: band positions are calculated from the length, two fragments within
-about 15 % of each other are called one band, anything under 100 bp may run
-off the end, and more than one fragment over 10 kb will compress near the
-well. Your gel may do better or worse.
+### The gel
+
+Under every drawn gel — here and in the [Cloning](12-cloning.md) tab's PCR
+— two menus say what it is a picture of:
+
+- **Agarose**: 0.7, 1, 1.5 or 2 %. A thinner gel spreads out large
+  fragments and loses small ones off the end; a thicker one the reverse. The
+  choice changes the drawing and everything judged from it: the ⚠ on a row,
+  the **Band separation** order and the double digests offered.
+- **Ladder**: chosen to fit what is run (1 kb, or 100 bp when everything is
+  under 1.5 kb), or always the 1 kb, the 1 kb Plus (both scales in one
+  lane) or the 100 bp one.
+
+Both are remembered between sessions.
+
+The gel is a rule of thumb, not a simulation: band positions are
+calculated from the length, and two fragments within about 15 % of each
+other are called one band. Each percentage has a range it separates well —
+0.7 % from about 800 bp to 12 kb, 1 % from 500 bp to 10 kb, 1.5 % from
+200 bp to 4 kb, 2 % from 100 bp to 2 kb. More than one fragment above the
+top of it will compress near the well, and anything under a fifth of the
+foot of it (100 bp on a 1 % gel, 20 bp on a 2 % one) may run off the end.
+Your gel may do better or worse.
 
 For the fragments themselves, with their ends and the features they carry,
 and to join them into a new construct, use the [Cloning](12-cloning.md)

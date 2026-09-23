@@ -110,7 +110,9 @@ decided is already in those two sequences.
 - **More than one product** is what a real tube gives when a primer binds in
   more than one place. They are listed cleanest and shortest first, because
   an exactly-matched short amplicon out-competes the rest, and drawn as a
-  gel so you can see whether the bands could be told apart.
+  gel so you can see whether the bands could be told apart — on the agarose
+  percentage and beside the ladder chosen under it (see
+  [The gel](07-enzymes.md#the-gel)).
 
 Two primers pointing away from each other on a plasmid amplify the long way
 round — inverse PCR, which is how a vector is linearised for a Gibson. It

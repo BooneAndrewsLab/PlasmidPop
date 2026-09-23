@@ -64,6 +64,9 @@ describe('EnzymePanel', () => {
       editorStore.setEnzymeCutFilter('any');
       editorStore.setEnzymeSupplier('');
       editorStore.setEnzymeSort('name');
+      editorStore.setEnzymeSortReversed(false);
+      editorStore.setGelAgarose(1);
+      editorStore.setGelLadder('auto');
     });
   });
 
@@ -254,6 +257,61 @@ describe('EnzymePanel', () => {
       editorStore.setEnzymeSort('bands');
     });
     expect(listed()).toEqual([b, c, a]);
+  });
+
+  it('reverses the order on request', () => {
+    const names = activeEnzymes()
+      .slice(0, 3)
+      .map((e) => e.name);
+    const [a, b, c] = names;
+    if (a === undefined || b === undefined || c === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    setup([at(a, 2000), at(b, 400), at(c, 1600)]);
+    act(() => {
+      editorStore.setEnzymeSort('bands');
+    });
+    const reverse = screen.getByRole('button', { name: 'Reverse the order' });
+    act(() => {
+      fireEvent.click(reverse);
+    });
+    expect(reverse).toHaveAttribute('aria-pressed', 'true');
+    // Hardest to read first: a's one band, then c's 1.5x, then b's 9x.
+    expect(listed()).toEqual([a, c, b]);
+    act(() => {
+      editorStore.setEnzymeSort('name');
+    });
+    expect(listed()).toEqual([c, b, a]);
+  });
+
+  it('judges and draws the lanes for the agarose chosen, beside the ladder chosen', () => {
+    const [a] = activeEnzymes().map((e) => e.name);
+    if (a === undefined) throw new Error('table');
+    // 3,920 + 80 bp: the 80 runs off a 1 % gel, and stays on a 2 % one.
+    setup([{ enzyme: a, cut: 80, cutBottom: 80, siteStart: 79, strand: 'forward' }]);
+    act(() => {
+      editorStore.setShownEnzymes([a]);
+    });
+    expect(document.querySelector('.enzyme-row__bands--muddy')).not.toBeNull();
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Agarose' }), {
+        target: { value: '2' },
+      });
+    });
+    expect(editorStore.getState().gelAgarose).toBe(2);
+    expect(document.querySelector('.enzyme-row__bands--muddy')).toBeNull();
+    expect(screen.getByText(/model of a 2 % gel/)).toBeVisible();
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Ladder' }), {
+        target: { value: '100 bp' },
+      });
+    });
+    expect(document.querySelector('.gel__svg title')?.textContent).toMatch(/100 bp ladder$/);
   });
 
   it('offers the best double digests when ordered by band separation', () => {

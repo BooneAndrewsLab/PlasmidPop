@@ -1,6 +1,10 @@
 import {
+  type AgarosePercent,
+  type LadderChoice,
   type PrimerCriteria,
   type TranslationTable,
+  isAgarosePercent,
+  isLadderChoice,
   isTranslationTable,
   normalizePrimerCriteria,
   samePrimerCriteria,
@@ -46,6 +50,10 @@ export interface ViewPrefs {
   readonly enzymeSupplier: string;
   readonly enzymeSort: EnzymeSort;
   readonly enzymeGroupIsoschizomers: boolean;
+  readonly enzymeSortReversed: boolean;
+  /** The gel lanes are drawn for; see `SharedState.gelAgarose`. */
+  readonly gelAgarose: AgarosePercent;
+  readonly gelLadder: LadderChoice;
   /** Which reaction the Cloning tab shows; see `SharedState.cloningReaction`. */
   readonly cloningReaction: CloningReaction;
   /** The code the Translate tab and the ORF scan read with. */
@@ -102,6 +110,8 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     prefs.enzymeCutFilter = record['enzymeCutFilter'];
   }
   if (isEnzymeSort(record['enzymeSort'])) prefs.enzymeSort = record['enzymeSort'];
+  if (isAgarosePercent(record['gelAgarose'])) prefs.gelAgarose = record['gelAgarose'];
+  if (isLadderChoice(record['gelLadder'])) prefs.gelLadder = record['gelLadder'];
   if (isCloningReaction(record['cloningReaction'])) {
     prefs.cloningReaction = record['cloningReaction'];
   }
@@ -133,6 +143,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     'colorBases',
     'sidebarOpen',
     'enzymeGroupIsoschizomers',
+    'enzymeSortReversed',
   ] as const) {
     if (typeof record[key] === 'boolean') prefs[key] = record[key];
   }
@@ -164,6 +175,9 @@ function snapshot(): ViewPrefs {
     enzymeSupplier,
     enzymeSort,
     enzymeGroupIsoschizomers,
+    enzymeSortReversed,
+    gelAgarose,
+    gelLadder,
     cloningReaction,
     geneticCode,
     primerCriteria,
@@ -184,6 +198,9 @@ function snapshot(): ViewPrefs {
     enzymeSupplier,
     enzymeSort,
     enzymeGroupIsoschizomers,
+    enzymeSortReversed,
+    gelAgarose,
+    gelLadder,
     cloningReaction,
     geneticCode,
     primerCriteria,
@@ -207,6 +224,9 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.enzymeSupplier === b.enzymeSupplier &&
     a.enzymeSort === b.enzymeSort &&
     a.enzymeGroupIsoschizomers === b.enzymeGroupIsoschizomers &&
+    a.enzymeSortReversed === b.enzymeSortReversed &&
+    a.gelAgarose === b.gelAgarose &&
+    a.gelLadder === b.gelLadder &&
     a.cloningReaction === b.cloningReaction &&
     a.geneticCode === b.geneticCode &&
     samePrimerCriteria(a.primerCriteria, b.primerCriteria)
@@ -237,6 +257,11 @@ export function startViewPrefs(): () => void {
   if (stored.enzymeCutFilter !== undefined) editorStore.setEnzymeCutFilter(stored.enzymeCutFilter);
   if (stored.enzymeSupplier !== undefined) editorStore.setEnzymeSupplier(stored.enzymeSupplier);
   if (stored.enzymeSort !== undefined) editorStore.setEnzymeSort(stored.enzymeSort);
+  if (stored.enzymeSortReversed !== undefined) {
+    editorStore.setEnzymeSortReversed(stored.enzymeSortReversed);
+  }
+  if (stored.gelAgarose !== undefined) editorStore.setGelAgarose(stored.gelAgarose);
+  if (stored.gelLadder !== undefined) editorStore.setGelLadder(stored.gelLadder);
   if (stored.enzymeGroupIsoschizomers !== undefined) {
     editorStore.setEnzymeGroupIsoschizomers(stored.enzymeGroupIsoschizomers);
   }

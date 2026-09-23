@@ -1,4 +1,6 @@
 import {
+  AGAROSE_PERCENTAGES,
+  DEFAULT_GEL,
   bandIntensities,
   bestPairs,
   bandLabel,
@@ -7,6 +9,7 @@ import {
   compareDiagnostic,
   describeBands,
   digestProfile,
+  gelForAgarose,
   gelProfile,
   migration,
 } from './gel';
@@ -282,6 +285,38 @@ describe('the picture of a gel', () => {
     expect(chooseLadder([4361, 1200]).name).toBe('1 kb');
     expect(chooseLadder([1200, 300]).name).toBe('100 bp');
     expect(chooseLadder([]).name).toBe('100 bp');
+  });
+
+  it('draws the ladder asked for, whatever is being run', () => {
+    expect(chooseLadder([1200, 300], '1 kb').name).toBe('1 kb');
+    expect(chooseLadder([4361], '100 bp').name).toBe('100 bp');
+    expect(chooseLadder([4361], '1 kb Plus').bands).toContain(1200);
+  });
+
+  describe('agarose percentage', () => {
+    it('is the default gel at 1 %', () => {
+      expect(gelForAgarose(1)).toEqual(DEFAULT_GEL);
+    });
+
+    it('moves the range the gel resolves', () => {
+      for (let i = 1; i < AGAROSE_PERCENTAGES.length; i++) {
+        const thinner = gelForAgarose(AGAROSE_PERCENTAGES[i - 1] ?? 1);
+        const thicker = gelForAgarose(AGAROSE_PERCENTAGES[i] ?? 1);
+        expect(thicker.maxResolved).toBeLessThan(thinner.maxResolved);
+        expect(thicker.minVisible).toBeLessThan(thinner.minVisible);
+      }
+    });
+
+    it('reads a digest with a small piece on a 2 % gel, and a large pair on 0.7 %', () => {
+      // 1,800 + 80 bp: the 80 runs off a 1 % gel and stays on a 2 % one.
+      expect(gelProfile([1800, 80]).readable).toBe(false);
+      expect(gelProfile([1800, 80], gelForAgarose(2)).readable).toBe(true);
+      // 11 + 6 kb compress at the top of a 1 % gel, not of a 0.7 % one.
+      expect(gelProfile([11_000, 10_500, 6000]).tooLarge).toBe(2);
+      expect(gelProfile([11_000, 6000], gelForAgarose(0.7)).tooLarge).toBe(0);
+      // And the drawing agrees: 80 bp is at the dye front of a 1 % gel only.
+      expect(migration(80)).toBeGreaterThan(migration(80, gelForAgarose(2)));
+    });
   });
 
   it('stains by mass, so a short band is faint', () => {
