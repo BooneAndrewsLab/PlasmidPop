@@ -65,10 +65,18 @@ answers.
 - The last test amplifies a vector by inverse PCR, amplifies an insert
   from a _different_ molecule with tails that anneal nowhere on it, and
   hands both to `gibson`: the loop this closes.
-- Not yet: the template is the document in front of you, so amplifying
-  from another tab means switching to it, and the product is not put on
-  the ligation shelf for you (**Open** it and it joins the tube like any
-  other tab). A-tailing is not modelled, so the product is blunt and TA
+- **Another tab as the template, and products on the shelf, 2026-09-23**
+  (#13). **Template** picks any open tab, the front one by default and
+  again when the picked one closes. Only the front document's products are
+  drawn: the preview channel belongs to the tab in front, and another
+  molecule's coordinates would be drawn on the wrong one, so the list says
+  so and **Show** is not offered rather than drawing nothing silently.
+  **Shelve** needed no conversion of its own: a linear document digested
+  with no enzymes is one fragment with the document's own ends, which for a
+  product is blunt at both, so `digest(product.document, [])` is the shelf
+  part, features and all. It is the shelf's third use, which is what moved
+  the shelf out of Ligation (item 3, #16).
+- Not yet: A-tailing is not modelled, so the product is blunt and TA
   cloning is not there; neither are primer dimers, nor the polymerase's
   processivity beyond a flat 20 kb ceiling; a mismatched site's Tm is
   reported as if it matched.

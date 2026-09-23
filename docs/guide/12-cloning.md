@@ -9,8 +9,9 @@ joins shelf fragments by their overhangs, **Golden Gate**, and **Gibson**. They 
 is remembered. Whichever you use, the product opens as a new document with
 the features of its parts.
 
-PCR and the digest belong to the document in front of you. The other three
-do not: they work across the open tabs, and two of them never look at the
+The digest belongs to the document in front of you, and so does PCR unless
+you pick another tab as its template. The other three do not: they work
+across the open tabs and the shelf, and two of them never look at the
 document you happen to be reading.
 
 ## Digest
@@ -90,6 +91,13 @@ Choose **PCR** in the picker and paste the two oligos, written 5′ to 3′ as
 you would order them. Nothing else is asked, because everything a designer
 decided is already in those two sequences.
 
+The template is the document in front of you. With more than one tab open,
+**Template** picks another one instead, so an insert can be amplified out of
+one plasmid while you look at the vector it is going into. Its products are
+listed and can be opened or shelved, but they are not drawn: the views show
+the document in front of you, and another molecule's positions would land in
+the wrong places.
+
 - **Only the 3′ end has to match the template.** A cloning primer is a 3′
   part that anneals and a 5′ tail that does not — a restriction site, a
   Gibson homology arm, a tag, a His stretch. The tail is copied into the
@@ -110,6 +118,8 @@ decided is already in those two sequences.
   [Previews](03-viewing.md#previews)); **Open** opens it as a document, with
   the template's features and a `primer_bind` feature for each oligo, tail
   and all. Clicking the previewed product in either view opens it too.
+  **Shelve** puts it on the [shelf](#the-shelf) instead, the same molecule
+  with blunt ends, ready for a ligation, a Golden Gate or a Gibson.
 - **Upper case in the product means "not from the template".** The bases that
   came from the template are written in the case the template writes them
   (usually lower, in a GenBank file), so what is left in capitals is the 5′
@@ -256,10 +266,7 @@ worth seeing before it is ambiguous in the tube.
 
 ## Not yet
 
-PCR takes its template from the document in front of you, so amplifying from
-another open tab means switching to it first, and the product is not put on
-the shelf for you — **Open** it and it is in the tube like any other
-tab. A-tailing, primer dimers and how much more readily a short product
+A-tailing, primer dimers and how much more readily a short product
 amplifies than a long one are not modelled beyond the order the products are
 listed in.
 

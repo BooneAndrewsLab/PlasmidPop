@@ -52,6 +52,62 @@ describe('PcrPanel', () => {
     });
   });
 
+  it('puts a product on the shelf, blunt and with its primers', () => {
+    setup();
+    type('Forward primer', TAIL + FWD);
+    type('Reverse primer', REV);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Shelve' }));
+    });
+    const shelf = editorStore.getState().shelf;
+    expect(shelf).toHaveLength(1);
+    const part = shelf[0]?.fragment;
+    expect(part?.sequence.length).toBe(522 + TAIL.length);
+    expect(part?.sequence.startsWith(TAIL)).toBe(true);
+    expect(part?.left.kind).toBe('blunt');
+    expect(part?.right.kind).toBe('blunt');
+    expect(part?.source).toBe('pTest PCR product');
+    expect(part?.features.filter((f) => f.type === 'primer_bind')).toHaveLength(2);
+    act(() => {
+      editorStore.clearShelf();
+    });
+  });
+
+  it('amplifies from another open tab, without drawing on this one', () => {
+    const other = SeqDocument.create({
+      name: 'pOther',
+      sequence: template(1500, 4242) + TEXT.slice(200, 722) + template(500, 99),
+      topology: 'linear',
+    });
+    act(() => {
+      editorStore.openDocument(other);
+      editorStore.openDocument(doc);
+    });
+    render(<PcrPanel doc={doc} />);
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Template'), {
+        target: { value: editorStore.getState().documents[0]?.documentId },
+      });
+    });
+    type('Forward primer', FWD);
+    type('Reverse primer', REV);
+    // The same 522 bp stretch, where it sits in the other molecule.
+    expect(screen.getByText('522 bp')).toBeInTheDocument();
+    expect(screen.getByText('1,501–2,022')).toBeInTheDocument();
+    // The views show pTest, so nothing is drawn and nothing offers to be.
+    expect(preview()?.items ?? []).toEqual([]);
+    expect(screen.queryByRole('button', { name: 'Show' })).toBeNull();
+    expect(
+      screen.getByText(/products of pOther are listed here but not drawn/),
+    ).toBeInTheDocument();
+    // Back to this tab's own template.
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Template'), { target: { value: '' } });
+    });
+    expect(screen.getByText('201–722')).toBeInTheDocument();
+    expect(preview()?.items.length).toBeGreaterThan(0);
+  });
+
   it('amplifies what the two primers sit between', () => {
     setup();
     type('Forward primer', FWD);

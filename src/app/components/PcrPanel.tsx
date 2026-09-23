@@ -7,6 +7,7 @@ import {
   type PcrSite,
   type Range,
   type SeqDocument,
+  digest,
   gelProfile,
   pcr,
   rangeWraps,
@@ -26,9 +27,9 @@ import { Gel } from './Gel';
  * it is a molecule, and because that molecule is what the other three then
  * take: a Gibson's homology arms are tails on these primers, and a
  * restriction-ligation's sites are too. It is unlike them in one way — it
- * works on *the document in front of you*, as the digest above the picker
- * does, rather than on the tube of open tabs, because a PCR has one
- * template.
+ * has one template rather than a tube of parts. That is the document in
+ * front of you unless another open tab is picked (#13), and only the one in
+ * front can have its products drawn on the views.
  *
  * The panel asks for two oligos and nothing else. Everything a designer
  * chose is already in them: the tail carries the site or the arm, the
@@ -148,8 +149,26 @@ function preview(
   ];
 }
 
+/**
+ * A product as a shelf fragment: the whole linear molecule, which is what a
+ * digest with no cuts gives, so its ends are the product's own (blunt, as
+ * the polymerase leaves them) and its features come along.
+ */
+function shelve(product: PcrProduct): void {
+  const [whole] = digest(product.document, []);
+  if (whole !== undefined) editorStore.addToShelf(whole);
+}
+
 export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
-  const { previewActivated: activated } = useEditorState();
+  const { previewActivated: activated, documents, documentId } = useEditorState();
+  // The template: another open tab when one is picked, the document in front
+  // of you otherwise, and again when the picked tab is closed.
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const picked = documents.find((d) => d.documentId === templateId && templateId !== documentId);
+  const template = picked?.history.present ?? doc;
+  // The views draw the document in front of you, so only its products and
+  // sites can be previewed; another tab's would land on the wrong molecule.
+  const drawn = picked === undefined;
   const [forward, setForward] = useState('');
   const [reverse, setReverse] = useState('');
   /** The product held on screen, and the one under the pointer. */
@@ -165,7 +184,10 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
 
   // Two walks over the template per primer, so it costs less than the digest
   // above it and runs here rather than in the worker (docs/perf-notes.md).
-  const result = useMemo(() => (primers.length === 0 ? null : pcr(doc, primers)), [doc, primers]);
+  const result = useMemo(
+    () => (primers.length === 0 ? null : pcr(template, primers)),
+    [template, primers],
+  );
   const products = result?.products ?? NO_PRODUCTS;
   const gel = useGelOptions();
   const lane = useMemo(
@@ -177,10 +199,10 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
     [products, gel],
   );
 
-  const picked = shown ?? hovered;
+  const pointed = shown ?? hovered;
   const spans = useMemo(
-    () => preview(products, result?.sites ?? [], picked),
-    [products, result, picked],
+    () => (drawn ? preview(products, result?.sites ?? [], pointed) : []),
+    [drawn, products, result, pointed],
   );
   useEffect(() => {
     editorStore.setPreview('pcr', spans);
@@ -212,6 +234,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   }, [activated, products]);
 
   const show = (index: number): void => {
+    if (!drawn) return;
     setShown((s) => (s === index ? null : index));
     // Holding a product on the views is worth nothing if the sequence view is
     // a thousand bases away from it. Nothing is selected, though: the preview
@@ -225,6 +248,29 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   return (
     <>
       <div className="panel__controls">
+        {documents.length > 1 && (
+          <label className="panel__field">
+            Template
+            <select
+              className="panel__select"
+              value={picked?.documentId ?? ''}
+              onChange={(e) => {
+                setTemplateId(e.target.value === '' ? null : e.target.value);
+                setShown(null);
+                setHovered(null);
+              }}
+            >
+              <option value="">{doc.name} (this tab)</option>
+              {documents
+                .filter((d) => d.documentId !== documentId)
+                .map((d) => (
+                  <option key={d.documentId} value={d.documentId}>
+                    {d.history.present.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        )}
         <label className="panel__field panel__field--stack">
           <span>Forward primer</span>
           <input
@@ -242,7 +288,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
         <PrimerReport
           sites={result?.sites.filter((s) => s.name === FORWARD) ?? []}
           sequence={forward}
-          seqLength={doc.length}
+          seqLength={template.length}
         />
         <label className="panel__field panel__field--stack">
           <span>Reverse primer</span>
@@ -261,14 +307,14 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
         <PrimerReport
           sites={result?.sites.filter((s) => s.name === REVERSE) ?? []}
           sequence={reverse}
-          seqLength={doc.length}
+          seqLength={template.length}
         />
       </div>
 
       {result === null ? (
         <p className="panel__note">
-          Paste the two oligos to amplify {doc.name} with. Only their 3′ ends have to match it: a 5′
-          tail — a restriction site, a Gibson homology arm, a tag — is copied into the product,
+          Paste the two oligos to amplify {template.name} with. Only their 3′ ends have to match it:
+          a 5′ tail — a restriction site, a Gibson homology arm, a tag — is copied into the product,
           which is how a part is made that is in no file yet.
         </p>
       ) : products.length === 0 ? (
@@ -280,6 +326,12 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
               ? 'One product:'
               : `${products.length} products, the cleanest and shortest first — a real tube gives them all:`}
           </p>
+          {!drawn && (
+            <p className="panel__note panel__note--quiet">
+              The views show {doc.name}, so products of {template.name} are listed here but not
+              drawn.
+            </p>
+          )}
           <ol className="pair-list" aria-label="PCR products">
             {products.map((p, i) => (
               <li
@@ -295,8 +347,8 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                 <div className="pair__row pair__row--wide">
                   <span className="pair__length">{p.length.toLocaleString()} bp</span>
                   <span className="pair__meta">
-                    {describeSpan(p.templateRange, doc.length)}
-                    {rangeWraps(p.templateRange, doc.length) ? ', over the origin' : ''}
+                    {describeSpan(p.templateRange, template.length)}
+                    {rangeWraps(p.templateRange, template.length) ? ', over the origin' : ''}
                   </span>
                 </div>
                 <div className="pair__foot">
@@ -309,16 +361,29 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                       : ''}
                   </span>
                   <span className="pair__buttons">
+                    {drawn && (
+                      <button
+                        type="button"
+                        className="button button--quiet button--small"
+                        aria-pressed={shown === i}
+                        title="Draw this product and its primers on both views"
+                        onClick={() => {
+                          show(i);
+                        }}
+                      >
+                        {shown === i ? 'Hide' : 'Show'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="button button--quiet button--small"
-                      aria-pressed={shown === i}
-                      title="Draw this product and its primers on both views"
+                      title="Put the product on the shelf, for a ligation, Golden Gate or Gibson"
                       onClick={() => {
-                        show(i);
+                        analytics.track('cloning', 'pcr');
+                        shelve(p);
                       }}
                     >
-                      {shown === i ? 'Hide' : 'Show'}
+                      Shelve
                     </button>
                     <button
                       type="button"
@@ -345,16 +410,18 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
               have to tell apart. Clicking one picks that product. */}
           <Gel
             lanes={[
-              {
-                profile: lane,
-                label: 'PCR',
-                onPick: (band) => {
-                  const index = products.findIndex((p) => p.length === band.length);
-                  if (index >= 0) show(index);
-                },
-                pickTitle: (band) =>
-                  `Show the ${band.length.toLocaleString()} bp product on the views`,
-              },
+              drawn
+                ? {
+                    profile: lane,
+                    label: 'PCR',
+                    onPick: (band) => {
+                      const index = products.findIndex((p) => p.length === band.length);
+                      if (index >= 0) show(index);
+                    },
+                    pickTitle: (band) =>
+                      `Show the ${band.length.toLocaleString()} bp product on the views`,
+                  }
+                : { profile: lane, label: 'PCR' },
             ]}
           />
         </>
