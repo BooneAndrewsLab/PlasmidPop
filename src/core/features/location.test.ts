@@ -1,6 +1,6 @@
-import { createFeature, rangeSegment, siteSegment } from '@/core';
-
+import { createFeature } from './feature';
 import { LocationError, formatLocation, parseLocation } from './location';
+import { rangeSegment, siteSegment } from './segment';
 
 const L = 100;
 

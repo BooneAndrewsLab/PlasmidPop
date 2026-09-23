@@ -1,8 +1,7 @@
-import { type SeqDocument, documentChecksum } from '@/core';
+import { type SeqDocument, documentChecksum, formatLocation } from '@/core';
 import { listFixtures, listLocalFixtures, readFixture } from '@/test/fixtures';
 
 import { type ParseResult, FormatError } from '../types';
-import { formatLocation } from './location';
 import { parseGenBank } from './parseGenBank';
 import { writeGenBank } from './writeGenBank';
 
@@ -75,6 +74,7 @@ describe('GenBank fixtures from NCBI', () => {
       'J01749.gb',
       'L09137.gb',
       'NC_001422.1.gb',
+      'NM_000581.gb',
       'U49845.gb',
     ]);
   });
@@ -99,6 +99,9 @@ describe('GenBank fixtures from NCBI', () => {
           'J01749.gb': 'cdseguid=H-FY2ZzvKeazrRW2dNeSeMikjoc',
           'L09137.gb': 'cdseguid=mCC0B3UMZfgLyh3Pl574MVjm30U',
           'NC_001422.1.gb': 'cdseguid=QnQ29umcBWohNMhfcFbI9fv1zwA',
+          // Added later and computed by a separate Python implementation of
+          // the spec (hashlib), which reproduces the linear values above.
+          'NM_000581.gb': 'ldseguid=kNDFGKxWhpOW_tBzh6GlnduF5UM',
           'U49845.gb': 'ldseguid=nNE7TwWKYuNXOHdAmChDxGK9QTg',
         };
         expect(documentChecksum(doc)?.text).toBe(expected[name]);

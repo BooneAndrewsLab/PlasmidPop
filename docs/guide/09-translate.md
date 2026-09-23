@@ -20,9 +20,18 @@ frame is easy to follow. The translation honours:
 - reverse-strand features, translated from the reverse complement and drawn
   right to left;
 - partial ends (`<` and `>`), which suppress the start-codon `M`;
+- `/transl_except`, which reads one codon as a residue the genetic code
+  would not give it: `(pos:220..222,aa:Sec)` makes that UGA selenocysteine,
+  `U`, instead of a stop. Pyrrolysine shows as `O`;
 - features that wrap the origin of a circular sequence.
 
 Stops are shown as `*`, codons with ambiguity codes as `X`.
+
+A `/transl_except` names its codon by position in the sequence, so it moves
+with its feature: insert bases upstream, reverse-complement the molecule, set
+a new origin or copy the gene into another tab, and it still names the same
+codon. An edit to that codon's own bases removes it. The same goes for
+`/anticodon` on a tRNA.
 
 Clicking an amino acid selects its codon — the three bases it is read from —
 and dragging along the line extends the selection codon by codon, which is a
@@ -33,7 +42,9 @@ below instead to select the whole feature.
 
 A `/transl_table` naming a code NCBI does not use — 7 and 8 were withdrawn,
 17 to 20 were never issued — falls back to the standard code, and a warning
-in the status bar says which feature asked for what.
+in the status bar says which feature asked for what. So does a
+`/transl_except` that names no codon of its feature, such as one out of
+frame; that codon is read with the genetic code.
 
 ## Checking a record against itself
 
@@ -54,11 +65,9 @@ translation being redone — but it can equally mean the feature needs a
 genetic code or a `/codon_start` it does not have. Only the first eight are
 listed; the rest are counted.
 
-Residues nobody is claiming to know are not counted as disagreements: an `X`
-on either side, and the `U` and `O` of selenocysteine and pyrrolysine, which
-a record states through the `/transl_except` qualifier we do not read yet.
-
-Not yet supported: `/transl_except`.
+An `X` on either side is not counted as a disagreement: it is a residue
+nobody is claiming to know. A `U` or `O` in the file is counted unless a
+`/transl_except` puts it there.
 
 ## The Translate tab
 

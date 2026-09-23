@@ -1,4 +1,4 @@
-import { type Feature, shiftSegmentBy } from '../features';
+import { type Feature, shiftFeature } from '../features';
 import { newId } from '../ids';
 import {
   type DocumentMetadata,
@@ -48,10 +48,14 @@ export function flipFragment(fragment: DigestFragment): DigestFragment {
   const { head, tail, trimStart, trimEnd } = flipWindow({ left, right });
   const whole = SeqDocument.create({
     sequence: head + sequence + tail,
-    features: fragment.features.map((f) => ({
-      ...f,
-      segments: f.segments.map((seg) => shiftSegmentBy(seg, head.length)),
-    })),
+    features: fragment.features.map((f) =>
+      shiftFeature(
+        f,
+        head.length,
+        { length: sequence.length, topology: 'linear' },
+        { length: head.length + sequence.length + tail.length, topology: 'linear' },
+      ),
+    ),
     topology: 'linear',
   });
   // What the bottom strand covers, which is what the new top strand reads.
@@ -141,19 +145,16 @@ export function ligate(fragments: readonly DigestFragment[], options: LigateOpti
   }
   let sequence = '';
   const features: Feature[] = [];
+  const product = {
+    length: fragments.reduce((n, f) => n + f.sequence.length, 0),
+    topology: options.circular ? 'circular' : 'linear',
+  } as const;
   for (const f of fragments) {
     const offset = sequence.length;
     sequence += f.sequence;
+    const from = { length: f.sequence.length, topology: 'linear' } as const;
     for (const feature of f.features) {
-      features.push({
-        ...feature,
-        id: newId(),
-        segments: feature.segments.map((seg) =>
-          seg.kind === 'range'
-            ? { ...seg, start: seg.start + offset, end: seg.end + offset }
-            : { kind: 'site', position: seg.position + offset },
-        ),
-      });
+      features.push({ ...shiftFeature(feature, offset, from, product), id: newId() });
     }
   }
   const first = fragments[0];

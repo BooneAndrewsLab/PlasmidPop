@@ -1,12 +1,6 @@
-import {
-  type Feature,
-  type Segment,
-  type Strand,
-  type Topology,
-  rangePieces,
-  rangeSegment,
-  siteSegment,
-} from '@/core';
+import { type Topology, rangePieces } from '../range';
+import { type Strand } from './feature';
+import { type Segment, rangeSegment, siteSegment } from './segment';
 
 /**
  * GenBank feature location grammar (DDBJ/ENA/GenBank Feature Table §3.4.3):
@@ -129,9 +123,13 @@ class LocationParser {
   }
 }
 
-export interface ParsedLocation {
+/** Where something sits on the sequence: a feature's location without the rest of the feature. */
+export interface FeatureLocation {
   readonly strand: Strand;
   readonly segments: readonly Segment[];
+}
+
+export interface ParsedLocation extends FeatureLocation {
   readonly warnings: readonly string[];
 }
 
@@ -303,7 +301,11 @@ function formatSegment(seg: Segment, seqLength: number, topology: Topology): str
 }
 
 /** Location string for a feature, using `join(...)` for multi-part and origin-spanning locations. */
-export function formatLocation(feature: Feature, seqLength: number, topology: Topology): string {
+export function formatLocation(
+  feature: FeatureLocation,
+  seqLength: number,
+  topology: Topology,
+): string {
   const pieces = feature.segments.flatMap((seg) => formatSegment(seg, seqLength, topology));
   const body = pieces.length === 1 ? (pieces[0] ?? '') : `join(${pieces.join(',')})`;
   return feature.strand === 'reverse' ? `complement(${body})` : body;

@@ -1,7 +1,6 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
-import { type Feature, type SeqDocument } from '@/core';
-import { formatLocation } from '@/io';
+import { type Feature, type SeqDocument, formatLocation } from '@/core';
 import { featureColor } from '@/view/featureColors';
 
 import { editorStore } from '../state/editorStore';

@@ -119,6 +119,95 @@ describe('translateCds', () => {
     expect(nonsense.unknownTable).toBe('bacterial');
   });
 
+  describe('/transl_except', () => {
+    // ATG TGA AAA TAA: the TGA at 4..6 is a stop unless an exception says otherwise.
+    const sec = 'ATGTGAAAATAA';
+    const except = (value: string) => ({ name: 'transl_except', value });
+
+    it('reads the codon it names as the residue it gives', () => {
+      const d = SeqDocument.create({ sequence: sec });
+      const t = translateCds(
+        d,
+        cds({ segments: [rangeSegment(0, 12)], qualifiers: [except('(pos:4..6,aa:Sec)')] }),
+      );
+      expect(t.protein).toBe('MUK*');
+      expect(t.codons[1]?.aminoAcid).toBe('U');
+      expect(t.unusedExceptions).toEqual([]);
+      const pyl = translateCds(
+        d,
+        cds({ segments: [rangeSegment(0, 12)], qualifiers: [except('(pos:4..6,aa:Pyl)')] }),
+      );
+      expect(pyl.protein).toBe('MOK*');
+    });
+
+    it('finds the codon on the reverse strand', () => {
+      // The same gene written on the bottom strand: its TGA is at 7..9.
+      const d = SeqDocument.create({ sequence: 'TTATTTTCACAT' });
+      const t = translateCds(
+        d,
+        cds({
+          strand: 'reverse',
+          segments: [rangeSegment(0, 12)],
+          qualifiers: [except('(pos:complement(7..9),aa:Sec)')],
+        }),
+      );
+      expect(t.protein).toBe('MUK*');
+    });
+
+    it('finds a codon that straddles the origin', () => {
+      // Rotated so the ATG is at 8..10 and the TGA is base 11, then 0..1.
+      const d = SeqDocument.create({
+        sequence: sec.slice(4) + sec.slice(0, 4),
+        topology: 'circular',
+      });
+      const t = translateCds(
+        d,
+        cds({
+          segments: [rangeSegment(8, 20)],
+          qualifiers: [except('(pos:join(12,1..2),aa:Sec)')],
+        }),
+      );
+      expect(t.protein).toBe('MUK*');
+      expect(t.unusedExceptions).toEqual([]);
+    });
+
+    it('overrules the start codon too', () => {
+      const d = SeqDocument.create({ sequence: sec });
+      const t = translateCds(
+        d,
+        cds({ segments: [rangeSegment(0, 12)], qualifiers: [except('(pos:1..3,aa:Leu)')] }),
+      );
+      expect(t.protein).toBe('L*K*');
+    });
+
+    it('lets a TERM of fewer than three bases complete a stop past the annotation', () => {
+      // ATG AAA TA, the last A added by the poly(A) tail.
+      const d = SeqDocument.create({ sequence: 'ATGAAATA' });
+      const t = translateCds(
+        d,
+        cds({ segments: [rangeSegment(0, 8)], qualifiers: [except('(pos:7..8,aa:TERM)')] }),
+      );
+      expect(t.protein).toBe('MK');
+      expect(t.unusedExceptions).toEqual([]);
+    });
+
+    it('says which exceptions it could not apply, and reads those codons as usual', () => {
+      const d = SeqDocument.create({ sequence: sec });
+      const values = [
+        '(pos:5..7,aa:Sec)', // not in frame
+        '(pos:4..6,aa:Foo)', // no such amino acid
+        'pos:4..6,aa:Sec', // not the (pos:…) form
+        '(pos:40..42,aa:Sec)', // off the sequence
+      ];
+      const t = translateCds(
+        d,
+        cds({ segments: [rangeSegment(0, 12)], qualifiers: values.map(except) }),
+      );
+      expect(t.protein).toBe('M*K*');
+      expect(t.unusedExceptions).toEqual(values);
+    });
+  });
+
   it('shows alternative start codons as M under table 11 unless the 5′ end is partial', () => {
     const gtg = SeqDocument.create({ sequence: 'GTGAAATAA' });
     const table11 = [{ name: 'transl_table', value: '11' }];

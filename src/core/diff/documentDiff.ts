@@ -3,7 +3,10 @@ import {
   type FeatureId,
   type Qualifier,
   type Segment,
+  type SequenceSpace,
   createFeature,
+  eachSegment,
+  moveFeature,
 } from '../features';
 import { type SeqDocument } from '../document';
 import {
@@ -186,16 +189,28 @@ interface FeatureDiff {
   readonly featuresRemoved: ReadonlyMap<FeatureId, Feature>;
 }
 
-/** The same feature, at wherever the sequence diff says its bases went. */
-function mapFeature(feature: Feature, map: (position: number) => number): Feature {
-  return createFeature({
-    ...feature,
-    segments: feature.segments.map((seg) =>
+/**
+ * The same feature, at wherever the sequence diff says its bases went —
+ * the locations its qualifiers hold (`/transl_except`) included, so that a
+ * qualifier an edit upstream moved along is not taken for a changed one.
+ */
+function mapFeature(
+  feature: Feature,
+  map: (position: number) => number,
+  from: SequenceSpace,
+  to: SequenceSpace,
+): Feature {
+  const moved = moveFeature(
+    feature,
+    from,
+    to,
+    eachSegment((seg) =>
       seg.kind === 'site'
         ? { ...seg, position: map(seg.position) }
         : { ...seg, start: map(seg.start), end: Math.max(map(seg.start), map(seg.end)) },
     ),
-  });
+  );
+  return createFeature(moved ?? feature);
 }
 
 function diffFeatures(
@@ -208,14 +223,16 @@ function diffFeatures(
   // past the sequence; map the wrapped part and put it back past the end.
   const mapUnrolled = (position: number): number =>
     position > baseline.length ? map(position - baseline.length) + current.length : map(position);
+  const mapped = (f: Feature): Feature => mapFeature(f, mapUnrolled, baseline, current);
+  const qualifiersOf = (f: Feature): readonly Qualifier[] => mapped(f).qualifiers;
 
   const featuresAdded: Feature[] = [];
   const featuresChanged = new Map<FeatureId, Feature>();
   for (const feature of current.features) {
     const before = baseline.getFeature(feature.id);
     if (before === undefined) featuresAdded.push(feature);
-    else if (!sameFeature(before, feature, mapUnrolled)) {
-      featuresChanged.set(feature.id, mapFeature(before, mapUnrolled));
+    else if (!sameFeature(before, feature, mapUnrolled, qualifiersOf)) {
+      featuresChanged.set(feature.id, mapped(before));
     }
   }
   const featuresRemoved: Feature[] = [];
@@ -228,17 +245,20 @@ function diffFeatures(
   // documents agree on to the last qualifier is not an addition and a
   // removal, whatever it is called internally, and one they disagree about
   // is a change rather than a loss and a gain.
-  const { same, changed } = pairByContent(featuresRemoved, featuresAdded, mapUnrolled);
+  const { same, changed } = pairByContent(
+    featuresRemoved,
+    featuresAdded,
+    mapUnrolled,
+    qualifiersOf,
+  );
   for (const [before, after] of changed) {
-    featuresChanged.set(after.id, mapFeature(before, mapUnrolled));
+    featuresChanged.set(after.id, mapped(before));
   }
   const gone = (f: Feature): boolean => !same.has(f) && !paired(changed, f);
   return {
     featuresAdded: new Set(featuresAdded.filter(gone).map((f) => f.id)),
     featuresChanged,
-    featuresRemoved: new Map(
-      featuresRemoved.filter(gone).map((f) => [f.id, mapFeature(f, mapUnrolled)] as const),
-    ),
+    featuresRemoved: new Map(featuresRemoved.filter(gone).map((f) => [f.id, mapped(f)] as const)),
   };
 }
 
@@ -282,6 +302,7 @@ function pairByContent(
   removed: readonly Feature[],
   added: readonly Feature[],
   map: (position: number) => number,
+  qualifiersOf: (before: Feature) => readonly Qualifier[],
 ): ContentPairs {
   const same = new Set<Feature>();
   const changed: (readonly [Feature, Feature])[] = [];
@@ -296,7 +317,9 @@ function pairByContent(
   for (const before of removed) {
     const bucket = buckets.get(bucketKey(before));
     if (bucket === undefined) continue;
-    const match = bucket.find((after) => !same.has(after) && sameFeature(before, after, map));
+    const match = bucket.find(
+      (after) => !same.has(after) && sameFeature(before, after, map, qualifiersOf),
+    );
     if (match === undefined) continue;
     same.add(before);
     same.add(match);
@@ -343,12 +366,18 @@ function sameLocation(before: Feature, after: Feature, map: (position: number) =
   );
 }
 
-function sameFeature(before: Feature, after: Feature, map: (position: number) => number): boolean {
+/** `qualifiersOf` gives the older feature's qualifiers moved into the newer document. */
+function sameFeature(
+  before: Feature,
+  after: Feature,
+  map: (position: number) => number,
+  qualifiersOf: (before: Feature) => readonly Qualifier[],
+): boolean {
   return (
     before.type === after.type &&
     before.name === after.name &&
     before.strand === after.strand &&
-    sameQualifiers(before.qualifiers, after.qualifiers) &&
+    sameQualifiers(qualifiersOf(before), after.qualifiers) &&
     sameLocation(before, after, map)
   );
 }

@@ -1,5 +1,5 @@
 import { SeqDocument, createMetadata, fragmentFromRange } from '../document';
-import { type Feature, createFeature, rangeSegment, shiftSegmentBy } from '../features';
+import { type Feature, createFeature, rangeSegment, shiftFeature } from '../features';
 import { newId } from '../ids';
 import { type AnnealOptions, type AnnealingSite, findAnnealingSites } from '../primers';
 import { type Range } from '../range';
@@ -199,10 +199,11 @@ function amplify(template: SeqDocument, c: Candidate, name: string): PcrProduct 
     fromPrimer(body.slice(span - r.annealLength), reverseOligo.slice(0, r.annealLength)) +
     reverseOligo.slice(r.annealLength);
   const shift = f.tail.length;
+  const from = { length: body.length, topology: 'linear' } as const;
+  const to = { length: sequence.length, topology: 'linear' } as const;
   const features = copied.features.map((feature) => ({
-    ...feature,
+    ...shiftFeature(feature, shift, from, to),
     id: newId(),
-    segments: feature.segments.map((seg) => shiftSegmentBy(seg, shift)),
   }));
   const document = SeqDocument.create({
     name,

@@ -57,14 +57,38 @@ describe('checkCdsTranslation', () => {
   });
 
   it('excuses the residues neither side is claiming to know', () => {
-    // Selenocysteine and pyrrolysine reach a file through /transl_except,
-    // which we do not read; X on either side is a codon nobody could call.
+    // X on either side is a codon nobody could call.
     const ambiguous = SeqDocument.create({ sequence: 'ATGAANGGGTGA', topology: 'linear' });
     expect(checkCdsTranslation(ambiguous, cds([{ name: 'translation', value: 'MKG' }]))).toEqual(
       [],
     );
-    expect(checkCdsTranslation(doc, cds([{ name: 'translation', value: 'MUG' }]))).toEqual([]);
     expect(checkCdsTranslation(doc, cds([{ name: 'translation', value: 'MXG' }]))).toEqual([]);
+  });
+
+  it('holds selenocysteine to the /transl_except that states it', () => {
+    // ATG TGA AAA TAA with the TGA read as Sec: the file's MUK is right
+    // with the exception, and a disagreement without it.
+    const sec = SeqDocument.create({ sequence: 'ATGTGAAAATAA', topology: 'linear' });
+    const translation = { name: 'translation', value: 'MUK' };
+    const except = { name: 'transl_except', value: '(pos:4..6,aa:Sec)' };
+    expect(checkCdsTranslation(sec, cds([except, translation]))).toEqual([]);
+    expect(checkCdsTranslation(sec, cds([translation]))).toEqual([
+      {
+        kind: 'residue',
+        featureId: 'cds',
+        position: 2,
+        stored: 'U',
+        computed: '*',
+        differences: 1,
+      },
+    ]);
+  });
+
+  it('reports a /transl_except that names no codon of the feature', () => {
+    const value = '(pos:5..7,aa:Sec)';
+    expect(checkCdsTranslation(doc, cds([{ name: 'transl_except', value }]))).toEqual([
+      { kind: 'unused-exception', featureId: 'cds', value },
+    ]);
   });
 
   it('reads the stored translation with the genetic code the feature names', () => {

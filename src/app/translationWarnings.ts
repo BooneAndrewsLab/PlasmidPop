@@ -1,5 +1,11 @@
-import { type Feature, type SeqDocument, type TranslationProblem, checkTranslations } from '@/core';
-import { type ParseWarning, formatLocation } from '@/io';
+import {
+  type Feature,
+  type SeqDocument,
+  type TranslationProblem,
+  checkTranslations,
+  formatLocation,
+} from '@/core';
+import { type ParseWarning } from '@/io';
 
 /**
  * How many features may be named before the rest are counted. A file whose
@@ -18,6 +24,8 @@ function sentence(problem: TranslationProblem): string {
   switch (problem.kind) {
     case 'unknown-table':
       return `/transl_table=${problem.value} is not a genetic code NCBI uses, so the standard code was used.`;
+    case 'unused-exception':
+      return `/transl_except=${problem.value} names no codon of this feature that could be read, so the genetic code was used there.`;
     case 'length':
       return `the file's /translation is ${problem.stored.toLocaleString()} aa, the sequence gives ${problem.computed.toLocaleString()}.`;
     case 'residue':

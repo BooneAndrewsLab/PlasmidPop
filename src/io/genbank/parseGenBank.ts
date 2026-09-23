@@ -9,13 +9,14 @@ import {
   createFeature,
   createMetadata,
   createReference,
+  LocationError,
   isValidSequence,
+  parseLocation,
 } from '@/core';
 
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
 import { isDerivedComment, parseDerivedComment } from './derivedComment';
 import { isEndsComment, parseEndsComment } from './endsComment';
-import { LocationError, parseLocation } from './location';
 
 /**
  * Qualifiers whose value names the feature, in priority order, by feature type.

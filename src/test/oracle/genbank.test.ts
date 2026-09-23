@@ -1,5 +1,5 @@
-import { type SeqDocument } from '@/core';
-import { formatLocation, parseGenBank } from '@/io';
+import { type SeqDocument, formatLocation } from '@/core';
+import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
 import oracle from './genbank.json';

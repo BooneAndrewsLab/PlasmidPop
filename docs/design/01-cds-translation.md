@@ -29,11 +29,41 @@ reverse strand, partial ends and origin wrap
   reports a disagreement through the status bar's parse warnings
   (`src/app/translationWarnings.ts`): the feature, where it is, the first
   residue that differs, eight at most and the rest counted. Residues
-  neither side claims to know are excused — an `X` on either side, and the
-  `U`/`O` of selenocysteine and pyrrolysine, which come from the
-  `/transl_except` we still do not read. The six committed records state
-  19 proteins and agree with us on all of them, which is a test
-  (`src/io/genbank/storedTranslation.test.ts`, local fixtures included
-  when present).
-- Not yet: `/transl_except`; re-checking a `/translation` as the sequence
-  is edited (the check runs at open, not per keystroke).
+  neither side claims to know are excused — an `X` on either side. The
+  committed records state 20 proteins and agree with us on all of them,
+  which is a test (`src/io/genbank/storedTranslation.test.ts`, local
+  fixtures included when present).
+- **`/transl_except`, 2026-09-23.** Until now the check excused every `U`
+  and `O` in a stored `/translation`, because the selenocysteine and
+  pyrrolysine they stand for come from `/transl_except` and we did not read
+  it; the translation on screen showed a stop there. `translateCds` now
+  applies each `(pos:…,aa:…)` to the codon whose three bases it names
+  (`applyExceptions`), the start codon included, and the excuse is gone, so
+  a `U` the record cannot account for is reported. The exception must name
+  exactly one codon of the feature, in frame; one that does not, or names an
+  amino acid INSDC does not list, is left unapplied and reported
+  (`unused-exception`). A `TERM` of one or two bases is the stop the poly(A)
+  tail completes past the annotation and has no codon of ours to change, so
+  it is accepted silently. `NM_000581` (human GPX1, Sec at residue 49) is
+  committed as the real-record test.
+
+  The harder half was that the qualifier holds absolute 1-based positions,
+  exactly like the feature's own location, and nothing moved them: an
+  insertion upstream would have left the exception naming the wrong codon,
+  and three bases would have made it silently name the next one. The
+  GenBank location grammar moved from `src/io/genbank/location.ts` to
+  `src/core/features/location.ts` so the core can read and write it, and
+  `moveFeature` (`src/core/features/locatedQualifiers.ts`) moves a feature
+  and every located qualifier it carries — `/transl_except` and `/anticodon`,
+  both `(pos:LOCATION,…)` — by the same function. Every path that moves
+  features goes through it: insert, delete, replace, reverse complement, set
+  origin, extract (so copy, digest, Gibson and Golden Gate), paste, PCR,
+  ligation, and the Edits/Compare diff, which would otherwise have reported a
+  moved exception as an edited qualifier. A located qualifier whose base
+  count changes on the way (an edit inside its codon, an extract that cuts
+  it) no longer means what it said and is dropped; one we cannot parse is
+  kept as it was, unmoved, rather than lost. Topology changes need nothing:
+  the text is the same, only its reading differs.
+
+- Not yet: re-checking a `/translation` as the sequence is edited (the
+  check runs at open, not per keystroke).

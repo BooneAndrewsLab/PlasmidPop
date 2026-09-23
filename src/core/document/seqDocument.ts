@@ -1,14 +1,15 @@
 import {
   type Feature,
   type FeatureId,
-  type Segment,
   FeatureSet,
   assertValidSegment,
   closeSiteOnCircle,
+  eachSegment,
   flipSegment,
   flipStrand,
+  moveFeature,
   rotateSegment,
-  shiftSegmentBy,
+  shiftFeature,
   shiftSegmentForDelete,
   shiftSegmentForInsert,
   splitWrappedSegment,
@@ -220,10 +221,15 @@ export class SeqDocument {
     return this.with({
       sequence: this.sequence.insert(p, text),
       features: this.features.map((f) =>
-        mapSegments(f, (seg) => {
-          const moved = shiftSegmentForInsert(seg, p, count, oldLength, this.topology);
-          return this.isCircular ? closeSiteOnCircle(moved, oldLength + count) : moved;
-        }),
+        moveFeature(
+          f,
+          this,
+          { length: oldLength + count, topology: this.topology },
+          eachSegment((seg) => {
+            const moved = shiftSegmentForInsert(seg, p, count, oldLength, this.topology);
+            return this.isCircular ? closeSiteOnCircle(moved, oldLength + count) : moved;
+          }),
+        ),
       ),
       ends: this.endsAfterEdit({ start: p, end: p }),
     });
@@ -242,12 +248,17 @@ export class SeqDocument {
     return this.with({
       sequence,
       features: this.features.map((f) =>
-        mapSegments(f, (seg) => {
-          const moved = shiftSegmentForDelete(seg, r, oldLength);
-          return moved !== null && this.isCircular
-            ? closeSiteOnCircle(moved, sequence.length)
-            : moved;
-        }),
+        moveFeature(
+          f,
+          this,
+          { length: sequence.length, topology: this.topology },
+          eachSegment((seg) => {
+            const moved = shiftSegmentForDelete(seg, r, oldLength);
+            return moved !== null && this.isCircular
+              ? closeSiteOnCircle(moved, sequence.length)
+              : moved;
+          }),
+        ),
       ),
       ends: this.endsAfterEdit(r),
     });
@@ -298,16 +309,16 @@ export class SeqDocument {
     const p = removed.pastePosition(this, r);
     if (fragment.sequence.length === 0) return removed;
     let doc = removed.insert(p, fragment.sequence);
+    const from = { length: fragment.sequence.length, topology: 'linear' } as const;
     for (const f of fragment.features) {
+      const shifted = shiftFeature(f, p, from, doc);
       // A site at the fragment's far end can land on the end of a circle.
       const length = doc.length;
-      doc = doc.addFeature({
-        ...f,
-        segments: f.segments.map((seg) => {
-          const shifted = shiftSegmentBy(seg, p);
-          return doc.isCircular ? closeSiteOnCircle(shifted, length) : shifted;
-        }),
-      });
+      doc = doc.addFeature(
+        doc.isCircular
+          ? { ...shifted, segments: shifted.segments.map((seg) => closeSiteOnCircle(seg, length)) }
+          : shifted,
+      );
     }
     return doc;
   }
@@ -342,11 +353,14 @@ export class SeqDocument {
     return doc.with({
       ends: flipEnds(doc.ends),
       sequence: Rope.from(reverseComplement(doc.sequence.toString())),
-      features: doc.features.map((f) => ({
-        ...f,
-        strand: flipStrand(f.strand),
-        segments: [...f.segments].reverse().map((seg) => flipSegment(seg, length, doc.topology)),
-      })),
+      features: doc.features.map((f) =>
+        moveFeature(f, doc, doc, (loc) => ({
+          strand: flipStrand(loc.strand),
+          segments: [...loc.segments]
+            .reverse()
+            .map((seg) => flipSegment(seg, length, doc.topology)),
+        })),
+      ),
     });
   }
 
@@ -387,7 +401,14 @@ export class SeqDocument {
     const text = this.sequence.toString();
     return this.with({
       sequence: Rope.from(text.slice(p) + text.slice(0, p)),
-      features: this.features.map((f) => mapSegments(f, (seg) => rotateSegment(seg, p, length))),
+      features: this.features.map((f) =>
+        moveFeature(
+          f,
+          this,
+          this,
+          eachSegment((seg) => rotateSegment(seg, p, length)),
+        ),
+      ),
     });
   }
 
@@ -402,7 +423,14 @@ export class SeqDocument {
       // Closing the molecule leaves no ends to describe; `with` drops them.
       return this.with({
         topology,
-        features: this.features.map((f) => mapSegments(f, (seg) => closeSiteOnCircle(seg, length))),
+        features: this.features.map((f) =>
+          moveFeature(
+            f,
+            this,
+            { length, topology },
+            eachSegment((seg) => closeSiteOnCircle(seg, length)),
+          ),
+        ),
       });
     }
     return this.with({
@@ -501,21 +529,4 @@ function validateFeature(feature: Feature, seqLength: number, topology: Topology
     throw new RangeError(`Feature "${feature.name}" (${feature.id}) has no segments`);
   }
   for (const seg of feature.segments) assertValidSegment(seg, seqLength, topology);
-}
-
-/** Rebuilds a feature's segments; drops the feature when none survive. */
-function mapSegments(feature: Feature, fn: (seg: Segment) => Segment | null): Feature | null {
-  const segments: Segment[] = [];
-  let changed = false;
-  for (const seg of feature.segments) {
-    const next = fn(seg);
-    if (next === null) {
-      changed = true;
-      continue;
-    }
-    if (next !== seg) changed = true;
-    segments.push(next);
-  }
-  if (segments.length === 0) return null;
-  return changed ? { ...feature, segments } : feature;
 }

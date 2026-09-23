@@ -1,7 +1,14 @@
 import { useState } from 'react';
 
-import { type Feature, type Qualifier, type SeqDocument, type Strand } from '@/core';
-import { LocationError, formatLocation, parseLocation } from '@/io';
+import {
+  type Feature,
+  type Qualifier,
+  type SeqDocument,
+  type Strand,
+  LocationError,
+  formatLocation,
+  parseLocation,
+} from '@/core';
 
 import { editorStore } from '../state/editorStore';
 

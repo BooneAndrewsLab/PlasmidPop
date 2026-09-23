@@ -1,4 +1,10 @@
-import { type Feature, type Segment, rangeSegment } from '../features';
+import {
+  type Feature,
+  type FeatureLocation,
+  type Segment,
+  moveFeature,
+  rangeSegment,
+} from '../features';
 import { newId } from '../ids';
 import { type Range, rangePieces } from '../range';
 import { SeqDocument } from './seqDocument';
@@ -21,10 +27,10 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     acc += p.end - p.start;
   }
 
-  const features: Feature[] = [];
-  for (const f of doc.features) {
+  // A location's bases inside the region, in extract coordinates.
+  const clip = (location: FeatureLocation): FeatureLocation | null => {
     const segments: Segment[] = [];
-    for (const seg of f.segments) {
+    for (const seg of location.segments) {
       if (seg.kind === 'site') {
         for (const o of offsets) {
           if (seg.position > o.start && seg.position < o.end) {
@@ -47,7 +53,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         }
       }
     }
-    if (segments.length === 0) continue;
+    if (segments.length === 0) return null;
     // Consecutive pieces that abut inside the extract merge back into one segment.
     const merged: Segment[] = [];
     for (const seg of segments) {
@@ -59,7 +65,14 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         });
       } else merged.push(seg);
     }
-    features.push({ ...f, id: newId(), segments: merged });
+    return { strand: location.strand, segments: merged };
+  };
+
+  const into = { length: sequence.length, topology: 'linear' } as const;
+  const features: Feature[] = [];
+  for (const f of doc.features) {
+    const moved = moveFeature(f, doc, into, clip);
+    if (moved !== null) features.push({ ...moved, id: newId() });
   }
 
   const from = r.start + 1;

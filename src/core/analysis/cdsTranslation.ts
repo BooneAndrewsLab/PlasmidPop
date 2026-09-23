@@ -1,10 +1,20 @@
 import { type SeqDocument } from '../document';
-import { type Feature, type FeatureId, type Strand, firstQualifier } from '../features';
+import {
+  type Feature,
+  type FeatureId,
+  type FeatureLocation,
+  type Strand,
+  firstQualifier,
+  parseLocatedValue,
+  qualifierValues,
+} from '../features';
 import { type Range, range, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
 import {
   DEFAULT_TABLE,
+  STOP,
   type TranslationTable,
+  UNKNOWN_AA,
   isStartCodon,
   isTranslationTable,
   translateCodon,
@@ -42,6 +52,13 @@ export interface CdsTranslation {
   readonly unknownTable: string | null;
   /** Reading frame offset from `/codon_start` (1, 2 or 3). */
   readonly codonStart: 1 | 2 | 3;
+  /**
+   * `/transl_except` values that could not be applied, verbatim: not in the
+   * `(pos:…,aa:…)` form, naming an amino acid we do not know, or not on a
+   * codon of this feature. The codon they meant is read with the genetic
+   * code, which may be the very thing the exception was there to overrule.
+   */
+  readonly unusedExceptions: readonly string[];
 }
 
 /** Features whose translation is shown under the sequence. */
@@ -63,6 +80,101 @@ function tableOf(feature: Feature): { table: TranslationTable; unknownTable: str
   return { table: DEFAULT_TABLE, unknownTable: raw };
 }
 
+/**
+ * INSDC's three-letter amino acid abbreviations (Feature Table, appendix
+ * "Amino acid abbreviations"), with `TERM` for a stop and `OTHER` for
+ * anything else, as `/transl_except` writes them.
+ */
+const AMINO_ACIDS: Readonly<Record<string, string>> = {
+  ALA: 'A',
+  ARG: 'R',
+  ASN: 'N',
+  ASP: 'D',
+  ASX: 'B',
+  CYS: 'C',
+  GLN: 'Q',
+  GLU: 'E',
+  GLX: 'Z',
+  GLY: 'G',
+  HIS: 'H',
+  ILE: 'I',
+  XLE: 'J',
+  LEU: 'L',
+  LYS: 'K',
+  MET: 'M',
+  PHE: 'F',
+  PRO: 'P',
+  PYL: 'O',
+  SEC: 'U',
+  SER: 'S',
+  THR: 'T',
+  TRP: 'W',
+  TYR: 'Y',
+  VAL: 'V',
+  XAA: UNKNOWN_AA,
+  OTHER: UNKNOWN_AA,
+  TERM: STOP,
+};
+
+/** The one-letter residue a `/transl_except`'s `aa:` names, or null. */
+function exceptionResidue(rest: string): string | null {
+  const m = /^aa:([A-Za-z]+)$/.exec(rest);
+  return m === null ? null : (AMINO_ACIDS[(m[1] ?? '').toUpperCase()] ?? null);
+}
+
+/** A location's forward-strand positions in reading order. */
+function readingPositions(location: FeatureLocation, length: number): number[] {
+  const positions: number[] = [];
+  for (const seg of location.segments) {
+    if (seg.kind !== 'range') continue;
+    for (const piece of rangePieces(seg, length)) {
+      for (let p = piece.start; p < piece.end; p++) positions.push(p);
+    }
+  }
+  if (location.strand === 'reverse') positions.reverse();
+  return positions;
+}
+
+/**
+ * Applies the feature's `/transl_except` qualifiers to its codons, in place,
+ * and returns the values that could not be. An exception names the three
+ * bases of one codon, in the record's coordinates, and the residue to read
+ * there: selenocysteine at a UGA, most often. One of fewer than three bases
+ * saying `TERM` completes a stop codon past the annotated bases (the
+ * poly(A) tail finishes it in the mRNA); there is no codon of ours for it to
+ * change, which is right, since the terminal stop is not a residue.
+ */
+function applyExceptions(doc: SeqDocument, feature: Feature, codons: Codon[]): string[] {
+  const values = qualifierValues(feature, 'transl_except');
+  if (values.length === 0) return [];
+  const byFirstBase = new Map<number, number>();
+  for (const [i, codon] of codons.entries()) byFirstBase.set(codon.positions[0], i);
+  const unused: string[] = [];
+  for (const value of values) {
+    const parsed = parseLocatedValue(value, doc);
+    const residue = parsed === null ? null : exceptionResidue(parsed.rest);
+    if (parsed === null || residue === null) {
+      unused.push(value);
+      continue;
+    }
+    const bases = readingPositions(parsed.location, doc.length);
+    if (bases.length < 3 && residue === STOP) continue;
+    const i = bases.length === 3 ? byFirstBase.get(bases[0] ?? -1) : undefined;
+    const codon = i === undefined ? undefined : codons[i];
+    if (
+      i === undefined ||
+      codon === undefined ||
+      codon.positions[1] !== bases[1] ||
+      codon.positions[2] !== bases[2]
+    ) {
+      unused.push(value);
+      continue;
+    }
+    codons[i] = { ...codon, aminoAcid: residue };
+  }
+  return unused;
+}
+
 /** Whether the biological 5' end of the feature is marked partial (`<` or `>` in GenBank). */
 function fivePrimePartial(feature: Feature): boolean {
   const ranges = feature.segments.filter((s) => s.kind === 'range');
@@ -80,6 +192,8 @@ function fivePrimePartial(feature: Feature): boolean {
  *
  * Every NCBI genetic code is understood; a `/transl_table` that names none of
  * them falls back to the standard code and says so in `unknownTable`.
+ * `/transl_except` overrules the code at the codons it names, the start
+ * codon included.
  */
 export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation {
   const length = doc.length;
@@ -101,7 +215,6 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
   const { table, unknownTable } = tableOf(feature);
   const partial = fivePrimePartial(feature);
   const codons: Codon[] = [];
-  let protein = '';
   let index = 0;
   for (let i = codonStart - 1; i + 3 <= text.length; i += 3, index++) {
     const codon = text.slice(i, i + 3);
@@ -112,9 +225,18 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
     const c = positions[i + 2];
     if (a === undefined || b === undefined || c === undefined) break;
     codons.push({ index, positions: [a, b, c], aminoAcid });
-    protein += aminoAcid;
   }
-  return { codons, protein, strand: feature.strand, table, unknownTable, codonStart };
+  const unusedExceptions = applyExceptions(doc, feature, codons);
+  const protein = codons.map((codon) => codon.aminoAcid).join('');
+  return {
+    codons,
+    protein,
+    strand: feature.strand,
+    table,
+    unknownTable,
+    codonStart,
+    unusedExceptions,
+  };
 }
 
 /**

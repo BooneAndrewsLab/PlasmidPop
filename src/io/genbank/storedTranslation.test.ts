@@ -1,4 +1,10 @@
-import { type SeqDocument, checkTranslations, firstQualifier, isCodingFeature } from '@/core';
+import {
+  type SeqDocument,
+  checkTranslations,
+  firstQualifier,
+  isCodingFeature,
+  translateCds,
+} from '@/core';
 import { listFixtures, listLocalFixtures, readFixture } from '@/test/fixtures';
 
 import { parseGenBank } from './parseGenBank';
@@ -31,12 +37,27 @@ describe('stored /translation qualifiers', () => {
     });
   }
 
+  it('reads the selenocysteine of GPX1 from its /transl_except', () => {
+    // NM_000581: human glutathione peroxidase 1, whose UGA at 220..222 is
+    // residue 49, Sec. Without the exception the same codon is a stop and
+    // the record's own /translation disagrees with us.
+    const doc = parseGenBank(readFixture('NM_000581.gb')).documents[0];
+    const gpx1 = doc?.features.all().find((f) => isCodingFeature(f));
+    if (doc === undefined || gpx1 === undefined) throw new Error('no CDS in NM_000581');
+    expect(translateCds(doc, gpx1).protein.charAt(48)).toBe('U');
+    expect(checkTranslations(doc)).toEqual([]);
+    const without = doc.updateFeature(gpx1.id, {
+      qualifiers: gpx1.qualifiers.filter((q) => q.name !== 'transl_except'),
+    });
+    expect(checkTranslations(without).map((p) => p.kind)).toEqual(['residue']);
+  });
+
   it('has something to compare', () => {
     // Guards the tests above from passing because nothing was checked at
-    // all: the committed records state 19 proteins between them.
+    // all: the committed records state 20 proteins between them.
     const total = files
       .flatMap(({ text }) => parseGenBank(text).documents)
       .reduce((n, doc) => n + stated(doc), 0);
-    expect(total).toBeGreaterThanOrEqual(19);
+    expect(total).toBeGreaterThanOrEqual(20);
   });
 });

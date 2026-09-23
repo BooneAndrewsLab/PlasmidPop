@@ -233,6 +233,19 @@ describe('diffDocuments features', () => {
     );
   });
 
+  it('leaves a feature alone when the edit moved the codon its /transl_except names', () => {
+    const cds = createFeature({
+      id: 'f1',
+      type: 'CDS',
+      segments: [rangeSegment(4, 12)],
+      qualifiers: [{ name: 'transl_except', value: '(pos:8..10,aa:Sec)' }],
+    });
+    const before = SeqDocument.create({ sequence: SEQ, features: [cds] });
+    const after = before.insert(0, 'TTTT');
+    expect(after.getFeature('f1')?.qualifiers[0]?.value).toBe('(pos:12..14,aa:Sec)');
+    expect(diffDocuments(before, after).featuresChanged.size).toBe(0);
+  });
+
   it('leaves a feature alone when an edit inside it stretched it', () => {
     const grown = base.insert(8, 'AAA');
     expect(grown.getFeature('f1')?.segments[0]).toMatchObject({ start: 4, end: 15 });

@@ -1,8 +1,7 @@
-import { type Feature, type Reference, type SeqDocument } from '@/core';
+import { type Feature, type Reference, type SeqDocument, formatLocation } from '@/core';
 
 import { formatDerivedComment, isDerivedComment } from './derivedComment';
 import { formatEndsComment, isEndsComment } from './endsComment';
-import { formatLocation } from './location';
 import { deriveFeatureName } from './parseGenBank';
 
 const LINE_WIDTH = 79;

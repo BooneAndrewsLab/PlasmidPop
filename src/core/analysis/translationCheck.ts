@@ -16,6 +16,12 @@ export type TranslationProblem =
       readonly value: string;
     }
   | {
+      readonly kind: 'unused-exception';
+      readonly featureId: FeatureId;
+      /** The `/transl_except` value, which is unreadable or names no codon of the feature. */
+      readonly value: string;
+    }
+  | {
       readonly kind: 'length';
       readonly featureId: FeatureId;
       /** Residues in the stored `/translation`. */
@@ -36,17 +42,15 @@ export type TranslationProblem =
     };
 
 /**
- * A residue we decline to call a disagreement:
- *
- * - `X` from us means the codon holds an ambiguity code, so we cannot say
- *   what it is and the file may legitimately know better;
- * - `U` and `O` in the file are selenocysteine and pyrrolysine, which a
- *   record states through `/transl_except` — something we do not read yet,
- *   so every such residue would be a false alarm;
- * - `X` in the file is the file declining in the same way we do.
+ * A residue we decline to call a disagreement: `X` from us means the codon
+ * holds an ambiguity code, so we cannot say what it is and the file may
+ * legitimately know better, and `X` in the file is the file declining in
+ * the same way. The `U` and `O` of selenocysteine and pyrrolysine are not
+ * excused: a record states them through `/transl_except`, which the
+ * translation applies, so one without it is a disagreement worth hearing.
  */
 function excused(stored: string, computed: string): boolean {
-  return computed === UNKNOWN_AA || stored === 'U' || stored === 'O' || stored === UNKNOWN_AA;
+  return computed === UNKNOWN_AA || stored === UNKNOWN_AA;
 }
 
 /** The `/translation` qualifier as one run of letters, or null when there is none. */
@@ -64,7 +68,8 @@ function comparable(t: CdsTranslation): string {
 
 /**
  * Checks one coding feature against what it claims: that its
- * `/transl_table` names a genetic code, and that the `/translation` the file
+ * `/transl_table` names a genetic code, that each `/transl_except` names one
+ * of its codons, and that the `/translation` the file
  * carries is the protein its bases give. A feature with no `/translation` is
  * only checked for the first.
  *
@@ -77,6 +82,9 @@ export function checkCdsTranslation(doc: SeqDocument, feature: Feature): Transla
   const t = translateCds(doc, feature);
   if (t.unknownTable !== null) {
     problems.push({ kind: 'unknown-table', featureId: feature.id, value: t.unknownTable });
+  }
+  for (const value of t.unusedExceptions) {
+    problems.push({ kind: 'unused-exception', featureId: feature.id, value });
   }
   const stored = storedTranslation(feature);
   if (stored === null) return problems;
