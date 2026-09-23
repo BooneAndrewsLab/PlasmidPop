@@ -132,12 +132,50 @@ function candidatePenalty(report: PrimerReport, c: PrimerCriteria): number | nul
   return penalty;
 }
 
+/** How many of each primer, best first, go on to be paired. */
+const SHORTLIST = 40;
+/**
+ * How many candidates the specificity check may look at before giving up on
+ * filling the shortlist. It is a scan of the whole template per candidate,
+ * so on a repetitive template that is short of specific primers it is this
+ * rather than the candidate count that bounds the time.
+ */
+const MAX_SPECIFICITY_CHECKS = 400;
+
+/**
+ * The best candidates, and with `specific` only those that anneal nowhere
+ * but their own site. Checked in penalty order and only until the list is
+ * full, because the check scans the whole template: most candidates never
+ * need it.
+ */
+function shortlist(
+  candidates: readonly Candidate[],
+  strand: Strand,
+  sequence: string,
+  topology: Topology,
+  specific: boolean,
+): Candidate[] {
+  if (!specific) return candidates.slice(0, SHORTLIST);
+  const out: Candidate[] = [];
+  for (let i = 0; i < candidates.length && i < MAX_SPECIFICITY_CHECKS; i++) {
+    const cand = candidates[i];
+    if (cand === undefined) break;
+    const sites = findPrimerBindingSites(sequence, topology, cand.report.sequence);
+    const elsewhere = sites.some((b) => b.strand !== strand || b.range.start !== cand.site.start);
+    if (elsewhere) continue;
+    out.push(cand);
+    if (out.length >= SHORTLIST) break;
+  }
+  return out;
+}
+
 /**
  * Designs PCR primer pairs flanking `target`: forward primers lying within
  * `forwardRegion` of the target start and reverse primers (on the bottom
  * strand) within `reverseRegion` of its end. Every candidate must meet the
- * criteria, and a pair must also match in Tm and not pair at a 3′ end with
- * its partner. Pairs are ranked by a penalty combining Tm distance from the
+ * criteria — including, with `requireSpecific`, annealing nowhere else on
+ * the template — and a pair must also match in Tm, give a product in the
+ * size range and not pair at a 3′ end with its partner. Pairs are ranked by a penalty combining Tm distance from the
  * middle of the range, GC balance, clamp, self-complementarity, hairpins and
  * Tm mismatch.
  */
@@ -191,10 +229,12 @@ export function designPrimers(
   }
   forwards.sort((a, b) => a.penalty - b.penalty);
   reverses.sort((a, b) => a.penalty - b.penalty);
+  const bestForwards = shortlist(forwards, 'forward', sequence, topology, c.requireSpecific);
+  const bestReverses = shortlist(reverses, 'reverse', sequence, topology, c.requireSpecific);
 
   const pairs: PrimerPair[] = [];
-  for (const f of forwards.slice(0, 40)) {
-    for (const r of reverses.slice(0, 40)) {
+  for (const f of bestForwards) {
+    for (const r of bestReverses) {
       const tmDifference = Math.abs(f.report.tm - r.report.tm);
       if (tmDifference > c.maxTmDifference) continue;
       let productLength = r.site.end - f.site.start;
@@ -202,6 +242,7 @@ export function designPrimers(
       // Primers that overlap past each other amplify nothing.
       if (productLength < Math.max(f.report.length, r.report.length)) continue;
       if (circular && productLength > L) continue;
+      if (productLength < c.minProduct || productLength > c.maxProduct) continue;
       const crossDimer = Math.max(
         threePrimeComplementarity(f.report.sequence, r.report.sequence),
         threePrimeComplementarity(r.report.sequence, f.report.sequence),

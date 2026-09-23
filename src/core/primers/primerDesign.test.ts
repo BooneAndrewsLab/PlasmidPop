@@ -160,6 +160,44 @@ describe('designPrimers with criteria', () => {
     }
   });
 
+  it('keeps products inside the size range', () => {
+    const pairs = designPrimers(seq, 'linear', target, {
+      minProduct: 250,
+      maxProduct: 300,
+      maxPairs: 20,
+    });
+    expect(pairs.length).toBeGreaterThan(0);
+    for (const p of pairs) {
+      expect(p.productLength).toBeGreaterThanOrEqual(250);
+      expect(p.productLength).toBeLessThanOrEqual(300);
+    }
+  });
+
+  it('refuses a primer that would also anneal elsewhere', () => {
+    // A second copy of 40..130, where the best forward primers are, at the
+    // end: a primer lying wholly in that stretch primes twice.
+    const repeated = seq + seq.slice(40, 130);
+    const inRepeat = (r: { start: number; end: number }): boolean => r.start >= 40 && r.end <= 130;
+    const loose = designPrimers(repeated, 'linear', target, {
+      requireSpecific: false,
+      maxPairs: 50,
+    });
+    expect(loose.some((p) => inRepeat(p.forwardSite))).toBe(true);
+    const strict = designPrimers(repeated, 'linear', target, { maxPairs: 50 });
+    expect(strict.length).toBeGreaterThan(0);
+    for (const p of strict) {
+      expect(inRepeat(p.forwardSite)).toBe(false);
+      for (const [primer, strand, site] of [
+        [p.forward.sequence, 'forward', p.forwardSite],
+        [p.reverse.sequence, 'reverse', p.reverseSite],
+      ] as const) {
+        expect(findPrimerBindingSites(repeated, 'linear', primer)).toEqual([
+          expect.objectContaining({ strand, range: site }),
+        ]);
+      }
+    }
+  });
+
   it('judges a pasted primer by the same criteria', () => {
     const c = { ...DEFAULT_PRIMER_CRITERIA, minLength: 10, minGc: 0.2 };
     expect(analyzePrimer('ATATATATATAT', c).warnings).not.toContain('Shorter than 10 bases');
@@ -176,7 +214,12 @@ describe('criteria', () => {
       minTm: 'hot',
       forwardRegion: { near: 100, far: 10 },
       requireGcClamp: true,
+      minProduct: 5000,
+      maxProduct: 100,
+      requireSpecific: 'yes',
     });
+    expect([c.minProduct, c.maxProduct]).toEqual([100, 5000]);
+    expect(c.requireSpecific).toBe(true);
     expect([c.minLength, c.maxLength]).toEqual([20, 30]);
     expect(c.minTm).toBe(DEFAULT_PRIMER_CRITERIA.minTm);
     expect(c.forwardRegion).toEqual({ near: 10, far: 100 });

@@ -41,19 +41,21 @@ candidate that breaks one of them is refused, and the same numbers are what
 designed ones had to pass. They are remembered in this browser, from plasmid
 to plasmid; **Reset to defaults** puts them back.
 
-| Setting    | Default               | What it means                                                                                                                  |
-| ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Length     | 18–27 nt              | Shortest and longest primer.                                                                                                   |
-| Tm         | 55–65 °C              | Melting temperature range.                                                                                                     |
-| GC         | 35–65 %               | GC content range.                                                                                                              |
-| ΔTm        | ≤ 3 °C                | Largest Tm difference between the two primers of a pair.                                                                       |
-| Forward    | 0–200 bp before start | Where the forward primer may lie.                                                                                              |
-| Reverse    | 0–200 bp after end    | Where the reverse primer may lie.                                                                                              |
-| Base run   | ≤ 4                   | Longest run of one base (`GGGG` is 4).                                                                                         |
-| Hairpin    | stem ≤ 4 bp           | Longest stem the primer can fold back into, with a loop of at least 3 bases.                                                   |
-| Self-dimer | ≤ 6 bp                | Longest stretch that pairs with another part of the same primer.                                                               |
-| 3′ dimer   | ≤ 4 bp                | Longest stretch at the 3′ end that pairs with itself or with the other primer of the pair — the dimer a polymerase can extend. |
-| GC clamp   | preferred             | Tick **required** to refuse a primer that does not end in G or C.                                                              |
+| Setting    | Default               | What it means                                                                                                                                                                                                            |
+| ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Length     | 18–27 nt              | Shortest and longest primer.                                                                                                                                                                                             |
+| Tm         | 55–65 °C              | Melting temperature range.                                                                                                                                                                                               |
+| GC         | 35–65 %               | GC content range.                                                                                                                                                                                                        |
+| ΔTm        | ≤ 3 °C                | Largest Tm difference between the two primers of a pair.                                                                                                                                                                 |
+| Forward    | 0–200 bp before start | Where the forward primer may lie.                                                                                                                                                                                        |
+| Reverse    | 0–200 bp after end    | Where the reverse primer may lie.                                                                                                                                                                                        |
+| Base run   | ≤ 4                   | Longest run of one base (`GGGG` is 4).                                                                                                                                                                                   |
+| Hairpin    | stem ≤ 4 bp           | Longest stem the primer can fold back into, with a loop of at least 3 bases.                                                                                                                                             |
+| Self-dimer | ≤ 6 bp                | Longest stretch that pairs with another part of the same primer.                                                                                                                                                         |
+| 3′ dimer   | ≤ 4 bp                | Longest stretch at the 3′ end that pairs with itself or with the other primer of the pair — the dimer a polymerase can extend.                                                                                           |
+| GC clamp   | preferred             | Tick **required** to refuse a primer that does not end in G or C.                                                                                                                                                        |
+| Product    | 0–20,000 bp           | Shortest and longest product a pair may give. 20 kb is the most the PCR reaction will make.                                                                                                                              |
+| Elsewhere  | refused               | Refuse a primer that would also anneal somewhere else on either strand — exact 3′ end, up to two mismatches elsewhere, the same rule as **Check a primer**'s binding sites. Untick it to allow a primer inside a repeat. |
 
 **Where to look** is measured from the selection's edges: the forward primer
 lies wholly between the two distances before the start, the reverse primer

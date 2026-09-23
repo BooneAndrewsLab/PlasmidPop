@@ -894,6 +894,11 @@ button {
   padding: 2px 6px;
 }
 
+/* A product length runs to five digits, which 4.5em cuts off behind the spinner. */
+.panel__number--wide {
+  width: 6em;
+}
+
 .primer-settings {
   margin: 8px 0;
   padding: 6px 8px;

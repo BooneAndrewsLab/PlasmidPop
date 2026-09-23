@@ -212,11 +212,15 @@ Tm, GC and ΔTm ranges, where each primer is looked for relative to the
 selection's start and end (a negative near edge reaches into it), and
 filters for runs, hairpins (`longestHairpinStem`), self-dimers and 3′ dimers
 with itself or the partner (`threePrimeComplementarity`), plus a required GC
-clamp; one `PrimerCriteria` drives both the designer and **Check a primer**,
-and is kept in `viewPrefs`. The sidebar tabs now read Features, ORFs,
+clamp, a product size range, and refusing a primer that also anneals
+elsewhere on the template (`requireSpecific`, on by default; cost in
+`docs/perf-notes.md`); one `PrimerCriteria` drives both the designer and
+**Check a primer**, and is kept in `viewPrefs`. The phone reader's Features
+list (`FeatureList`'s `reader`) offers no Rename / Edit / Remove, so a
+stray tap cannot fork a shared plasmid (item 15). The sidebar tabs now read Features, ORFs,
 Translate, Primers, Enzymes, Cloning, Align, History, and the Enzymes tab's
 Filter / Cuts / Order / Sold by sit in one two-column grid (`.panel__form`).
-Tests: 969 passing.
+Tests: 972 passing.
 Perf measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)
@@ -718,9 +722,7 @@ pick from here when the current work is done.
     - **Not done from here: tested on a real device**, which the item asked
       for and which a jsdom test cannot stand in for. Also not yet: long-press
       to select a stretch of sequence for copying (the one editor-ish thing a
-      reader might want, and it fights the browser for the gesture); the
-      Features list's edit and delete buttons are still there on a phone, so
-      the reader can fork a working copy by accident; whether the messaging
+      reader might want, and it fights the browser for the gesture); whether the messaging
       apps people actually use pass a 10 k-character URL fragment intact
       (Slack and email do; some SMS apps rewrite long links), which decides
       whether the link case is real; a Web Share Target so a GenBank

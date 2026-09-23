@@ -18,6 +18,7 @@ const RANGES: readonly (readonly [NumericKey, NumericKey])[] = [
   ['minLength', 'maxLength'],
   ['minTm', 'maxTm'],
   ['minGc', 'maxGc'],
+  ['minProduct', 'maxProduct'],
 ];
 
 /**
@@ -50,6 +51,8 @@ interface NumberProps {
   readonly value: number;
   readonly label: string;
   readonly step?: number;
+  /** Room for five digits, which a product length runs to. */
+  readonly wide?: boolean;
   readonly onCommit: (value: number) => void;
 }
 
@@ -59,7 +62,7 @@ interface NumberProps {
  * which the criteria hold up to the shortest primer allowed before the
  * second digit arrives.
  */
-function NumberBox({ value, label, step = 1, onCommit }: NumberProps) {
+function NumberBox({ value, label, step = 1, wide = false, onCommit }: NumberProps) {
   // Null while nothing is being typed, so the box shows the stored value
   // and follows it when it changes elsewhere (Reset, a clamped range).
   const [draft, setDraft] = useState<string | null>(null);
@@ -71,7 +74,7 @@ function NumberBox({ value, label, step = 1, onCommit }: NumberProps) {
   };
   return (
     <input
-      className="panel__number panel__number--short"
+      className={`panel__number panel__number--short${wide ? ' panel__number--wide' : ''}`}
       type="number"
       inputMode="decimal"
       step={step}
@@ -105,11 +108,12 @@ export function PrimerSettings({ criteria: c }: Props) {
   const set = (next: PrimerCriteria): void => {
     editorStore.setPrimerCriteria(next);
   };
-  const field = (key: NumericKey, label: string, step = 1) => (
+  const field = (key: NumericKey, label: string, step = 1, wide = false) => (
     <NumberBox
       value={c[key]}
       label={label}
       step={step}
+      wide={wide}
       onCommit={(v) => {
         set(withField(c, key, v));
       }}
@@ -164,6 +168,12 @@ export function PrimerSettings({ criteria: c }: Props) {
           ≤ {field('maxTmDifference', 'Largest Tm difference in a pair', 0.5)} °C
         </span>
 
+        <span className="panel__form-label">Product</span>
+        <span className="panel__form-range">
+          {field('minProduct', 'Shortest product', 1, true)}–
+          {field('maxProduct', 'Longest product', 1, true)} bp
+        </span>
+
         <span className="panel__form-heading">Where to look</span>
         <span className="panel__form-label">Forward</span>
         <span className="panel__form-range">
@@ -211,6 +221,19 @@ export function PrimerSettings({ criteria: c }: Props) {
               }}
             />
             required
+          </label>
+        </span>
+        <span className="panel__form-label">Elsewhere</span>
+        <span className="panel__form-range">
+          <label className="panel__form-check">
+            <input
+              type="checkbox"
+              checked={c.requireSpecific}
+              onChange={(e) => {
+                set({ ...c, requireSpecific: e.target.checked });
+              }}
+            />
+            refuse a primer that also binds elsewhere
           </label>
         </span>
       </div>

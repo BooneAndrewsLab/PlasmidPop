@@ -37,6 +37,15 @@ export interface PrimerCriteria {
   readonly maxThreePrime: number;
   /** Refuse a primer that does not end in G or C, rather than only preferring one. */
   readonly requireGcClamp: boolean;
+  /** Shortest and longest product a pair may give, bp. */
+  readonly minProduct: number;
+  readonly maxProduct: number;
+  /**
+   * Refuse a primer that would also anneal somewhere else on the template,
+   * either strand, by `findPrimerBindingSites`' rule (exact 3′ end, up to
+   * two mismatches elsewhere) — the second band nobody asked for.
+   */
+  readonly requireSpecific: boolean;
 }
 
 export interface PrimerRegion {
@@ -59,12 +68,18 @@ export const DEFAULT_PRIMER_CRITERIA: PrimerCriteria = {
   maxSelfComplementarity: 6,
   maxThreePrime: 4,
   requireGcClamp: false,
+  minProduct: 0,
+  // The PCR reaction's own ceiling (`src/core/cloning/pcr.ts`).
+  maxProduct: 20_000,
+  requireSpecific: true,
 };
 
 /** The shortest and longest primer the designer will consider. */
 export const PRIMER_LENGTH_LIMITS = { min: 8, max: 60 } as const;
 /** How far from the selection a primer may be looked for, either way. */
 export const PRIMER_REGION_LIMIT = 5000;
+/** The longest product the settings will ask for. */
+export const PRIMER_PRODUCT_LIMIT = 1_000_000;
 
 function num(v: unknown, fallback: number, lo: number, hi: number, integer = true): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
@@ -102,6 +117,10 @@ export function normalizePrimerCriteria(input: unknown): PrimerCriteria {
     num(r['minGc'], d.minGc, 0, 1, false),
     num(r['maxGc'], d.maxGc, 0, 1, false),
   );
+  const [minProduct, maxProduct] = pair(
+    num(r['minProduct'], d.minProduct, 0, PRIMER_PRODUCT_LIMIT),
+    num(r['maxProduct'], d.maxProduct, 0, PRIMER_PRODUCT_LIMIT),
+  );
   return {
     minLength,
     maxLength,
@@ -118,6 +137,10 @@ export function normalizePrimerCriteria(input: unknown): PrimerCriteria {
     maxThreePrime: num(r['maxThreePrime'], d.maxThreePrime, 0, lenHi),
     requireGcClamp:
       typeof r['requireGcClamp'] === 'boolean' ? r['requireGcClamp'] : d.requireGcClamp,
+    minProduct,
+    maxProduct,
+    requireSpecific:
+      typeof r['requireSpecific'] === 'boolean' ? r['requireSpecific'] : d.requireSpecific,
   };
 }
 

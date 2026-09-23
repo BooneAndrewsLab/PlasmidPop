@@ -121,6 +121,17 @@ product document. Six parts is the practical ceiling of the one-step
 protocol, so this is the large case rather than a worst case. It runs in the
 same main-thread `useMemo` as the Golden Gate, for the same reason.
 
+## Primer design
+
+`designPrimers` runs on a click, not per keystroke. With the settings'
+filters (hairpin, 3′ dimer) it takes about 125 ms for a 600 bp target on a
+4.4 kb circle and 110 ms on 50 kb. The specificity check
+(`requireSpecific`, on by default) scans the whole template once per
+shortlisted candidate, in penalty order and only until 40 of each strand
+are found (at most 400 checks): +5 ms on 4.4 kb, +260 ms on 50 kb, measured
+2026-09-22 over five runs on a random template. If that ever needs to come
+down, index the template's 3′-anchor 5-mers once instead of rescanning.
+
 ## PCR
 
 Two walks over the template per primer — one for each strand — and a walk
