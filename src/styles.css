@@ -1872,6 +1872,21 @@ button {
   white-space: pre;
 }
 
+/* A read base below Q20: dimmed and dotted, so a mismatch on it reads as doubt. */
+.alignment__q-low {
+  color: var(--warn);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.read-summary__list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
 /* Dropdown menu */
 
 .menu {

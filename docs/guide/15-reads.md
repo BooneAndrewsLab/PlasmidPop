@@ -16,8 +16,10 @@ in this browser, like the rest of the document:
 - The status bar says **Read, 92% Q20+**: the share of bases whose quality
   is 20 or more. Quality is on the Phred scale, where 20 means one error in
   a hundred bases, 30 one in a thousand.
-- The qualities and the trace are kept for the alignment and the trace
-  view.
+- The qualities and the trace are kept for the trace view. To check a read
+  against a plasmid with its qualities, open the plasmid and drop the read
+  on the Align tab's box: see
+  [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities).
 
 A gzipped FASTQ (`.fastq.gz`), as nanopore runs usually come, opens without
 unpacking it first. A FASTQ file holds many reads and a tab holds one: the

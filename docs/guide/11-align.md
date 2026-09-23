@@ -30,6 +30,29 @@ position (1-based) at the start of each line. `|` marks identical bases,
 Identity counts only the `|` columns. **Select aligned region in this
 document** selects the covered bases so you can annotate or copy them.
 
+## Aligning a read with its qualities
+
+An AB1 or FASTQ file dropped on the box (or chosen with **Choose file…**)
+keeps its base qualities for the alignment; the note under the box says
+**with base qualities**. They last while the box holds the file's text: edit
+it and it is read as plain bases again. See [Sequencing reads](15-reads.md)
+for what the qualities are.
+
+- **Trim poor ends**, on by default, cuts the read's unreliable start and
+  tail before aligning — the first 20–50 bases and the end of a Sanger read,
+  typically. It keeps the stretch whose bases are mostly better than Q13 (a
+  5% chance of error), by Mott's algorithm as phred uses it, so a single
+  poor base inside a good stretch stays. The result says how many bases went
+  from each end; untick it to align the whole read.
+- **The differences, by confidence.** Above the alignment, a line says how
+  many differences from the document sit on bases the read was sure of
+  (Q20 or better, one error in a hundred) and how many on poor ones. Each
+  confident difference is listed with its position in the document and its
+  quality; click one to select it there. Those are the ones worth a look;
+  the poor ones are usually the sequencer, not the clone.
+- **Poor bases are marked in the read's line** of the alignment, underlined
+  and in the warning colour, so a mismatch on one reads as doubt.
+
 ## Scoring and limits
 
 Scores use match +5, mismatch −4, gap open −10 and gap extend −0.5 (the

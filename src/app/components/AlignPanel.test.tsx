@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { type StrandedAlignment, SeqDocument } from '@/core';
+import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
 import {
   AnalysisCancelledError,
   type LongRequestOptions,
@@ -128,5 +128,88 @@ describe('AlignPanel', () => {
     view.unmount();
     expect(long.signal?.aborted).toBe(true);
     spy.mockRestore();
+  });
+
+  describe('with a read’s qualities (#50)', () => {
+    // 60 bases of reference; the read is 40 of them with a poor base at 10
+    // that is also a mismatch, a confident mismatch at 30, and five poor
+    // random bases at each end.
+    const reference = 'GATTACAGCTTGACCGTAAGCTAGGCTTACGATCGATTGCAAGTCCGATGCATTGACCTA';
+    const refDoc = SeqDocument.create({ name: 'pRef', sequence: reference });
+    const middle = reference.slice(10, 50).split('');
+    middle[10] = middle[10] === 'A' ? 'C' : 'A';
+    middle[30] = middle[30] === 'G' ? 'T' : 'G';
+    const read = `TTTTT${middle.join('')}GGGGG`;
+    // Q2 at each end ('#'), Q10 at the poor base ('+'), Q40 elsewhere ('I').
+    const quality = `#####${Array.from({ length: 40 }, (_, i) => (i === 10 ? '+' : 'I')).join('')}#####`;
+
+    beforeEach(() => {
+      act(() => {
+        editorStore.openDocument(refDoc);
+      });
+    });
+
+    async function alignDropped(): Promise<void> {
+      render(<AlignPanel doc={refDoc} />);
+      const fastq = new File([`@read1\n${read}\n+\n${quality}\n`], 'read1.fastq');
+      fireEvent.drop(box(), fileDrop(fastq));
+      await waitFor(() => {
+        expect(screen.getByText('From read1.fastq, with base qualities.')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/Local alignment/)).toBeInTheDocument();
+      });
+    }
+
+    it('trims the poor ends and says so', async () => {
+      await alignDropped();
+      expect(screen.getByRole('checkbox', { name: 'Trim poor ends' })).toBeChecked();
+      expect(
+        screen.getByText(/Trimmed 5 bases from the start of the read and 5 from the end/),
+      ).toBeInTheDocument();
+    });
+
+    it('tells a confident difference from a doubtful one, and selects it', async () => {
+      await alignDropped();
+      expect(
+        screen.getByText(/1 difference at confident bases \(Q20\+\), 1 at poor ones/),
+      ).toBeInTheDocument();
+      // The confident mismatch is reference base 41 (1-based).
+      fireEvent.click(screen.getByRole('button', { name: /Mismatch at 41, Q40/ }));
+      expect(editorStore.getState().selection).toEqual({ start: 40, end: 41 });
+      // The poor base is marked in the read's line.
+      const poor = document.querySelectorAll('.alignment__q-low');
+      expect([...poor].map((e) => e.textContent).join('')).toBe(middle[10]);
+    });
+
+    it('turns the qualities round with a read that aligns reversed', async () => {
+      const rc = reverseComplement(read);
+      const reversedQuality = quality.split('').reverse().join('');
+      render(<AlignPanel doc={refDoc} />);
+      fireEvent.drop(
+        box(),
+        fileDrop(new File([`@read1\n${rc}\n+\n${reversedQuality}\n`], 'read1.fastq')),
+      );
+      await waitFor(() => {
+        expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/reverse complement/)).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: /Mismatch at 41, Q40/ })).toBeInTheDocument();
+      expect(
+        [...document.querySelectorAll('.alignment__q-low')].map((e) => e.textContent).join(''),
+      ).toBe(middle[10]);
+    });
+
+    it('forgets the qualities once the text is edited', async () => {
+      await alignDropped();
+      fireEvent.change(box(), { target: { value: `>read1\n${read}` } });
+      expect(screen.queryByRole('checkbox', { name: 'Trim poor ends' })).toBeNull();
+    });
   });
 });

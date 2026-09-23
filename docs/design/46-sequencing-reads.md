@@ -65,8 +65,40 @@ alongside it.
 - **Many-record files.** A tab holds one molecule, so a FASTQ of reads opens
   its first. That was already true of FASTA, silently; now a warning says
   how many records were not opened and that the Align box can pick one.
-  In the Align box AB1 and FASTQ are read as FASTA for now, which loses the
-  qualities until #50.
+  In the Align box an AB1 or FASTQ shows as FASTA text, while its records
+  keep their qualities (#50, below).
+
+## Qualities in Align (#50)
+
+- **Where the qualities live.** The Align box is text, and FASTA cannot
+  carry a quality, so a file read into it is kept as the text it shows plus
+  its records as read; the records are used while the box still holds that
+  exact text. An edit to the text is a new sequence, read afresh, without
+  qualities: nothing silently mismatched.
+- **Trimming** (`trimByQuality`, `core/alignment/quality.ts`): Mott's
+  algorithm, each base scoring 0.05 − 10^(−q/10) and the maximal-scoring
+  stretch kept, as phred's `-trim_alt`. Biopython's `abi-trim` is the same
+  idea but never scores the first base and drops the last base of the
+  stretch, so it is not the oracle here; a brute-force search over random
+  qualities is. The read is trimmed before it is aligned, rather than the
+  alignment afterwards, so its junk ends cannot pull a local alignment or
+  add end gaps to a global one. When nothing clears the cutoff the panel
+  says so instead of aligning an empty read.
+- **Confidence per difference** (`columnQualities`, `readDifferences`). A
+  column's quality is the read base's; for a base the read lacks, the lower
+  of its neighbours', since a missing base has none and it is the calls
+  either side that vouch for the gap. Q20 (one error in a hundred) divides
+  confident from poor, the threshold Sanger QC commonly uses; it is not a
+  setting yet. For a read that aligned reversed, the qualities are reversed
+  with it and its numbering counts along the reverse complement, as before.
+- **Shown three ways**: a line of counts ("1 difference at confident bases
+  (Q20+), 3 at poor ones"), the confident ones listed with their position
+  and quality to click to in the document (the first 50), and the poor
+  read bases marked in the alignment. The count is the answer to "does my
+  clone match"; the list is where to look.
+- **The document's own read** is not used: when the open document is itself
+  an AB1 and the box holds the reference, its qualities are ignored. Aligning
+  the read into the reference is the usual way round.
 
 ## Found on the way
 

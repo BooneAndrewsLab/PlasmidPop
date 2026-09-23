@@ -4,9 +4,14 @@ import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type Alignment,
   type AlignmentMode,
+  type ReadDifference,
   type SeqDocument,
+  CONFIDENT_QUALITY,
+  columnQualities,
   isEmptyRange,
   normalizeSequenceInput,
+  readDifferences,
+  trimByQuality,
 } from '@/core';
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
@@ -24,6 +29,8 @@ const BLOCK = 60;
 interface SequenceRecord {
   readonly name: string;
   readonly sequence: string;
+  /** Per-base Phred qualities, for a record read from an AB1 or FASTQ file. */
+  readonly qualities?: Uint8Array;
 }
 
 type Records =
@@ -56,37 +63,88 @@ function readRecords(text: string): Records {
 
 const TEXT_FORMATS: readonly string[] = ['genbank', 'fasta', 'raw'];
 
+/** A file read into the box: the text it shows, and its records as read. */
+interface LoadedFile {
+  readonly text: string;
+  readonly records: readonly SequenceRecord[];
+}
+
 /**
- * A picked or dropped file as text for the box: GenBank or FASTA as it is,
- * anything else — SnapGene and AB1, which are binary, FASTQ, a gzipped file
- * — as FASTA of its records. Throws if the file is not one the app can read.
+ * A picked or dropped file for the box. The box shows GenBank or FASTA as
+ * it is, and anything else — SnapGene and AB1, which are binary, FASTQ, a
+ * gzipped file — as FASTA of its records; the records keep the qualities
+ * a read has, which FASTA cannot show (#50). Throws if the file is not one
+ * the app can read.
  */
-async function fileAsText(file: File): Promise<string> {
+async function readFile(file: File): Promise<LoadedFile> {
   const data = await file.arrayBuffer();
   const parsed = await readSequenceData(data, file.name);
   const bytes = new Uint8Array(data, 0, Math.min(2, data.byteLength));
   const gzipped = bytes[0] === 0x1f && bytes[1] === 0x8b;
-  return TEXT_FORMATS.includes(parsed.format) && !gzipped
-    ? new TextDecoder('utf-8').decode(data)
-    : writeFastaRecords(parsed.documents);
+  const text =
+    TEXT_FORMATS.includes(parsed.format) && !gzipped
+      ? new TextDecoder('utf-8').decode(data)
+      : writeFastaRecords(parsed.documents);
+  const records = parsed.documents.map((d) => ({
+    name: d.name,
+    sequence: d.sequence.toString(),
+    ...(d.read === null ? {} : { qualities: d.read.qualities }),
+  }));
+  return { text, records };
+}
+
+/** The read's quality class under a column: poor below Q20. */
+function qualityClass(q: number | undefined): string {
+  return q === undefined || q >= CONFIDENT_QUALITY ? '' : 'alignment__q-low';
+}
+
+/**
+ * The second sequence's line of a block, its poor bases (below Q20) marked
+ * when there are qualities: runs of one class, so a block is a few spans.
+ */
+function ReadLine({ bases, qualities }: { bases: string; qualities: readonly number[] | null }) {
+  if (qualities === null) return <>{bases}</>;
+  const runs: { text: string; cls: string }[] = [];
+  for (let k = 0; k < bases.length; k++) {
+    const cls = qualityClass(qualities[k]);
+    const last = runs[runs.length - 1];
+    if (last?.cls === cls) last.text += bases.charAt(k);
+    else runs.push({ text: bases.charAt(k), cls });
+  }
+  return (
+    <>
+      {runs.map((r, i) =>
+        r.cls === '' ? (
+          r.text
+        ) : (
+          <span key={i} className={r.cls}>
+            {r.text}
+          </span>
+        ),
+      )}
+    </>
+  );
 }
 
 function AlignmentBlocks({
   alignment,
   offsetA,
   offsetB,
+  qualities,
 }: {
   alignment: Alignment;
   offsetA: number;
   offsetB: number;
+  /** The read's quality under each column, or null without qualities. */
+  qualities: readonly number[] | null;
 }) {
-  const blocks: { a: string; m: string; b: string; posA: number; posB: number }[] = [];
+  const blocks: { a: string; m: string; b: string; posA: number; posB: number; at: number }[] = [];
   let posA = alignment.startA + offsetA;
   let posB = alignment.startB + offsetB;
   for (let i = 0; i < alignment.columns; i += BLOCK) {
     const a = alignment.alignedA.slice(i, i + BLOCK);
     const b = alignment.alignedB.slice(i, i + BLOCK);
-    blocks.push({ a, m: alignment.matchLine.slice(i, i + BLOCK), b, posA, posB });
+    blocks.push({ a, m: alignment.matchLine.slice(i, i + BLOCK), b, posA, posB, at: i });
     posA += a.replace(/-/g, '').length;
     posB += b.replace(/-/g, '').length;
   }
@@ -94,10 +152,73 @@ function AlignmentBlocks({
     <pre className="alignment">
       {blocks.map((blk) => (
         <div key={`${blk.posA}-${blk.posB}`} className="alignment__block">
-          {`${String(blk.posA + 1).padStart(7)} ${blk.a}\n${' '.repeat(8)}${blk.m}\n${String(blk.posB + 1).padStart(7)} ${blk.b}\n`}
+          {`${String(blk.posA + 1).padStart(7)} ${blk.a}\n${' '.repeat(8)}${blk.m}\n${String(blk.posB + 1).padStart(7)} `}
+          <ReadLine
+            bases={blk.b}
+            qualities={qualities === null ? null : qualities.slice(blk.at, blk.at + BLOCK)}
+          />
+          {'\n'}
         </div>
       ))}
     </pre>
+  );
+}
+
+const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
+  mismatch: 'Mismatch',
+  insertion: 'Extra base in the read',
+  deletion: 'Base missing from the read',
+};
+
+/**
+ * What the qualities say about the differences: how many sit on bases the
+ * read was sure of (Q20+) and how many on poor ones, with each confident
+ * one listed to be looked at in the document. "Does my clone match" comes
+ * down to the first number.
+ */
+function ReadSummary({
+  differences,
+  offset,
+  docName,
+}: {
+  differences: readonly ReadDifference[];
+  offset: number;
+  docName: string;
+}) {
+  const confident = differences.filter((d) => d.confident);
+  const poor = differences.length - confident.length;
+  return (
+    <div className="read-summary">
+      <p className="panel__note">
+        {differences.length === 0
+          ? `No differences from ${docName} over the aligned stretch.`
+          : `${confident.length === 0 ? 'No' : confident.length.toLocaleString()} ${confident.length === 1 ? 'difference' : 'differences'} at confident bases (Q${CONFIDENT_QUALITY}+)${poor === 0 ? '' : `, ${poor.toLocaleString()} at poor ones, shaded in the read`}.`}
+      </p>
+      {confident.length > 0 && (
+        <ul className="read-summary__list">
+          {confident.slice(0, 50).map((d) => {
+            const at = offset + d.positionA;
+            return (
+              <li key={d.column}>
+                <button
+                  type="button"
+                  className="button button--quiet button--small"
+                  onClick={() => {
+                    const end = d.kind === 'insertion' ? at : at + 1;
+                    editorStore.setSelection({ start: at, end });
+                    editorStore.revealPosition(at);
+                  }}
+                >
+                  {KIND_LABEL[d.kind]} at {(d.kind === 'insertion' ? at : at + 1).toLocaleString()}
+                  {d.kind === 'insertion' ? ' (after)' : ''}, Q{d.quality}
+                </button>
+              </li>
+            );
+          })}
+          {confident.length > 50 && <li>…and {(confident.length - 50).toLocaleString()} more</li>}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -107,6 +228,8 @@ export function AlignPanel({ doc }: Props) {
   const [picked, setPicked] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<LoadedFile | null>(null);
+  const [trim, setTrim] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<AlignmentMode>('global');
   const [useSelection, setUseSelection] = useState(false);
@@ -118,7 +241,13 @@ export function AlignPanel({ doc }: Props) {
     alignment: Alignment;
     strand: 'forward' | 'reverse';
     offset: number;
+    /** Where the aligned stretch of the other sequence starts, as numbered on screen. */
+    offsetB: number;
     lengthB: number;
+    /** Bases trimmed from each end of a read before aligning. */
+    trimmed: { readonly start: number; readonly end: number } | null;
+    /** The read's quality under each column, when it had qualities. */
+    qualities: readonly number[] | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,7 +260,15 @@ export function AlignPanel({ doc }: Props) {
   );
 
   const hasSelection = selection !== null && !isEmptyRange(selection);
-  const parsed = useMemo(() => readRecords(other), [other]);
+  // A file's records, qualities and all, while the box still shows its text;
+  // once the text is edited it is read afresh and the qualities are gone.
+  const parsed = useMemo<Records>(
+    () =>
+      loaded !== null && loaded.text === other
+        ? { ok: true, records: loaded.records }
+        : readRecords(other),
+    [loaded, other],
+  );
   const records = parsed.ok ? parsed.records : [];
   const record = records[Math.min(picked, records.length - 1)];
 
@@ -143,10 +280,12 @@ export function AlignPanel({ doc }: Props) {
 
   const load = (file: File | undefined): void => {
     if (file === undefined) return;
-    fileAsText(file)
-      .then((text) => {
-        setText(text);
-        setFileNote(`From ${file.name}.`);
+    readFile(file)
+      .then((read) => {
+        setText(read.text);
+        setLoaded(read);
+        const withQualities = read.records.some((r) => r.qualities !== undefined);
+        setFileNote(`From ${file.name}${withQualities ? ', with base qualities' : ''}.`);
       })
       .catch((e: unknown) => {
         setError(`Could not read "${file.name}": ${e instanceof Error ? e.message : String(e)}`);
@@ -173,11 +312,25 @@ export function AlignPanel({ doc }: Props) {
       setError(parsed.message);
       return;
     }
-    const b = record?.sequence ?? '';
-    if (b === '') {
+    const full = record?.sequence ?? '';
+    if (full === '') {
       setError('Paste the sequence to align against this document.');
       return;
     }
+    // A read's unreliable ends are trimmed off before it is aligned (#50).
+    const allQualities = record?.qualities ?? null;
+    const kept =
+      allQualities !== null && trim ? trimByQuality(allQualities) : { start: 0, end: full.length };
+    if (kept.end <= kept.start) {
+      setError(
+        'No stretch of this read is of good enough quality to align. Untick the trimming to align it all.',
+      );
+      return;
+    }
+    const b = full.slice(kept.start, kept.end);
+    const qualities = allQualities === null ? null : allQualities.slice(kept.start, kept.end);
+    const trimmed =
+      allQualities !== null && trim ? { start: kept.start, end: full.length - kept.end } : null;
     const target =
       useSelection && selection !== null && hasSelection
         ? selection
@@ -192,7 +345,19 @@ export function AlignPanel({ doc }: Props) {
     analysisClient
       .alignEitherStrand(a, b, { mode }, { onProgress: setProgress, signal: controller.signal })
       .then((best) => {
-        setResult({ ...best, offset: target.start, lengthB: b.length });
+        const reverse = best.strand === 'reverse';
+        // The reverse complement's qualities run the other way; so does its
+        // numbering, which counts along the reverse complement of the whole read.
+        const oriented =
+          qualities === null ? null : reverse ? qualities.slice().reverse() : qualities;
+        setResult({
+          ...best,
+          offset: target.start,
+          offsetB: reverse ? full.length - kept.end : kept.start,
+          lengthB: b.length,
+          trimmed,
+          qualities: oriented === null ? null : columnQualities(best.alignment, oriented),
+        });
       })
       .catch((e: unknown) => {
         if (e instanceof AnalysisCancelledError) return;
@@ -221,6 +386,7 @@ export function AlignPanel({ doc }: Props) {
         onChange={(e) => {
           setText(e.target.value);
           setFileNote(null);
+          setLoaded(null);
         }}
         onDragOver={onDragOver}
         onDragLeave={() => {
@@ -289,6 +455,21 @@ export function AlignPanel({ doc }: Props) {
             <option value="local">Local (best region)</option>
           </select>
         </label>
+        {record?.qualities !== undefined && (
+          <label
+            className="toggle"
+            title="Mott's algorithm: keep the stretch whose bases are mostly better than Q13 (5% error)"
+          >
+            <input
+              type="checkbox"
+              checked={trim}
+              onChange={(e) => {
+                setTrim(e.target.checked);
+              }}
+            />
+            Trim poor ends
+          </label>
+        )}
         <label className="toggle">
           <input
             type="checkbox"
@@ -358,7 +539,26 @@ export function AlignPanel({ doc }: Props) {
           >
             Select aligned region in this document
           </button>
-          <AlignmentBlocks alignment={result.alignment} offsetA={result.offset} offsetB={0} />
+          {result.trimmed !== null && (
+            <p className="panel__note">
+              {result.trimmed.start + result.trimmed.end === 0
+                ? 'The read’s ends are of good quality; nothing was trimmed.'
+                : `Trimmed ${result.trimmed.start.toLocaleString()} ${result.trimmed.start === 1 ? 'base' : 'bases'} from the start of the read and ${result.trimmed.end.toLocaleString()} from the end, where the quality falls off.`}
+            </p>
+          )}
+          {result.qualities !== null && (
+            <ReadSummary
+              differences={readDifferences(result.alignment, result.qualities)}
+              offset={result.offset}
+              docName={doc.name}
+            />
+          )}
+          <AlignmentBlocks
+            alignment={result.alignment}
+            offsetA={result.offset}
+            offsetB={result.offsetB}
+            qualities={result.qualities}
+          />
         </div>
       )}
     </div>
