@@ -71,6 +71,12 @@ export interface DocumentDiff {
   readonly topologyChanged: boolean;
   /** True when the sequences differ by more than the diff will follow base by base. */
   readonly coarse: boolean;
+  /**
+   * True when the newer version is the older one turned over, give or take
+   * edits: the marks are then against the older version reverse-complemented
+   * (see `diffDocuments`), and say only what the turn and the edits changed.
+   */
+  readonly reversed: boolean;
 }
 
 export const EMPTY_DIFF: DocumentDiff = {
@@ -85,11 +91,17 @@ export const EMPTY_DIFF: DocumentDiff = {
   renamed: false,
   topologyChanged: false,
   coarse: false,
+  reversed: false,
 };
 
-/** True when there is nothing for the views to mark. */
+/**
+ * True when there is nothing to mark or report. A molecule turned over has
+ * no marks but is not unchanged: its file reads from the other strand, so
+ * the summary has something to say even where the views draw nothing.
+ */
 export function isEmptyDiff(diff: DocumentDiff): boolean {
   return (
+    !diff.reversed &&
     diff.marks.length === 0 &&
     diff.deletions.length === 0 &&
     diff.featuresAdded.size === 0 &&
@@ -105,6 +117,15 @@ export function isEmptyDiff(diff: DocumentDiff): boolean {
  * changed only when it differs from where the sequence diff says its old
  * self would now sit, so annotations merely pushed along by an edit
  * elsewhere are left alone.
+ *
+ * A molecule turned over reads as changed throughout too, which says nothing
+ * (#7): so when most of it differs, the diff is taken again against the
+ * baseline turned over, and the smaller of the two is the answer, with
+ * `reversed` set. A sticky-ended flip then marks nothing even though its
+ * length changed, which is right: `reverseComplement` moves the window the
+ * same way for the baseline as it did for the document, and the molecule is
+ * the same one read from its other strand. The History step says the
+ * length (`describeEditStep`).
  */
 export function diffDocuments(
   baseline: SeqDocument,
@@ -112,6 +133,22 @@ export function diffDocuments(
   options: SequenceDiffOptions = {},
 ): DocumentDiff {
   if (baseline === current) return EMPTY_DIFF;
+  const forward = compare(baseline, current, options);
+  const size = (d: DocumentDiff): number => d.basesInserted + d.basesChanged + d.basesDeleted;
+  if (!forward.coarse && size(forward) * 2 < Math.max(baseline.length, current.length)) {
+    return forward;
+  }
+  const turned = compare(baseline.reverseComplement(), current, options);
+  return size(turned) < size(forward)
+    ? { ...turned, renamed: baseline.name !== current.name, reversed: true }
+    : forward;
+}
+
+function compare(
+  baseline: SeqDocument,
+  current: SeqDocument,
+  options: SequenceDiffOptions,
+): DocumentDiff {
   const diff = diffSequences(baseline.sequence.toString(), current.sequence.toString(), options);
   const { marks, deletions, basesInserted, basesChanged, basesDeleted } = collectMarks(diff);
   const features = diffFeatures(baseline, current, diff);
@@ -125,6 +162,7 @@ export function diffDocuments(
     renamed: baseline.name !== current.name,
     topologyChanged: baseline.topology !== current.topology,
     coarse: diff.coarse,
+    reversed: false,
   };
 }
 

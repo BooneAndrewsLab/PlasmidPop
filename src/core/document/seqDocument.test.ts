@@ -9,7 +9,7 @@ import {
 } from '../features';
 import { type Range, range } from '../range';
 import { InvalidSequenceError, reverseComplement } from '../sequence';
-import { type EditOp, describeEditOp } from './editOp';
+import { type EditOp, describeEditOp, describeEditStep } from './editOp';
 import { SeqDocument } from './seqDocument';
 
 // Twenty distinct-ish bases so every position is identifiable in assertions.
@@ -677,3 +677,15 @@ function featureLen(f: Feature): number {
   for (const s of f.segments) if (s.kind === 'range') n += s.end - s.start;
   return n;
 }
+
+describe('describeEditStep', () => {
+  it('says how a turn changed the length, and nothing more otherwise', () => {
+    const turn: EditOp = { type: 'reverseComplement' };
+    expect(describeEditStep(turn, { length: 1000 }, { length: 1000 })).toBe('Reverse complement');
+    expect(describeEditStep(turn, { length: 1000 }, { length: 1008 })).toBe(
+      'Reverse complement: 1,000 → 1,008 bp',
+    );
+    const insert: EditOp = { type: 'insert', position: 0, text: 'ACG' };
+    expect(describeEditStep(insert, { length: 10 }, { length: 13 })).toBe('Insert 3 bases');
+  });
+});

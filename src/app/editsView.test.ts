@@ -22,6 +22,16 @@ describe('describeEditDiff', () => {
     );
   });
 
+  it('says a molecule was turned over rather than replaced', () => {
+    const long = SeqDocument.create({
+      sequence: 'ATGACCATGATTACGCCAAGCTTGCATGCCTGCAGGTCGACTCTAGAGGATCCCCGGGTA',
+    });
+    expect(describeEditDiff(diffDocuments(long, long.reverseComplement()))).toBe('turned over');
+    expect(describeEditDiff(diffDocuments(long, long.reverseComplement().insert(30, 'GGG')))).toBe(
+      'turned over · +3 bp',
+    );
+  });
+
   it('counts features touched and lost', () => {
     const feature = createFeature({ id: 'f', type: 'CDS', segments: [rangeSegment(2, 8)] });
     const withFeature = base.addFeature(feature);

@@ -334,4 +334,65 @@ describe('diffDocuments on a real plasmid', () => {
     expect(spans(diff.marks)).toEqual(['changed 1900-1910', 'inserted 2900-2904']);
     expect(diff.deletions).toEqual([{ position: 1000, count: 100 }]);
   });
+
+  describe('a molecule turned over', () => {
+    // 60 bases with no stretch that reads the same on the other strand.
+    const LONG = 'ATGACCATGATTACGCCAAGCTTGCATGCCTGCAGGTCGACTCTAGAGGATCCCCGGGTA';
+
+    it('marks nothing for a plain reverse complement, and says it was turned', () => {
+      const before = SeqDocument.create({
+        name: 'flip',
+        sequence: LONG,
+        features: [
+          createFeature({ id: 'f', type: 'gene', name: 'g', segments: [rangeSegment(5, 20)] }),
+        ],
+      });
+      const diff = diffDocuments(before, before.reverseComplement());
+      expect(diff.reversed).toBe(true);
+      expect(diff.marks).toEqual([]);
+      expect(diff.deletions).toEqual([]);
+      // The feature moved with the turn, which is not a change to it.
+      expect(diff.featuresChanged.size).toBe(0);
+      // Nothing to mark, but something to say.
+      expect(isEmptyDiff(diff)).toBe(false);
+    });
+
+    it('marks only an edit made after the turn', () => {
+      const before = doc(LONG);
+      const after = before.reverseComplement().apply({ type: 'insert', position: 30, text: 'GGG' });
+      const diff = diffDocuments(before, after);
+      expect(diff.reversed).toBe(true);
+      expect(diff.basesInserted).toBe(3);
+      expect(diff.basesChanged + diff.basesDeleted).toBe(0);
+    });
+
+    it('marks nothing for a sticky-ended flip, though its length changes', () => {
+      // EcoRI 5′ on the left and PstI 3′ on the right both leave their four
+      // bases on the top strand only, so the bottom strand, which is the top
+      // after the turn, is 8 shorter. The molecule is the same one.
+      const before = SeqDocument.create({
+        name: 'sticky',
+        sequence: `AATT${LONG}TGCA`,
+        ends: {
+          left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+          right: { kind: "3'", overhang: 'TGCA', enzyme: 'PstI' },
+        },
+      });
+      const turned = before.reverseComplement();
+      const diff = diffDocuments(before, turned);
+      expect(diff.reversed).toBe(true);
+      expect(diff.marks).toEqual([]);
+      expect(turned.length).toBe(before.length - 8);
+    });
+
+    it('keeps the forward reading for an ordinary edit', () => {
+      const before = doc(LONG);
+      const diff = diffDocuments(
+        before,
+        before.apply({ type: 'delete', range: { start: 10, end: 12 } }),
+      );
+      expect(diff.reversed).toBe(false);
+      expect(diff.basesDeleted).toBe(2);
+    });
+  });
 });

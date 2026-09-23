@@ -41,6 +41,18 @@ Same molecule in, different molecule out.
   blunt one, `ends.test.ts` the window, the round trip and the clipped
   feature, and `editing.test.ts` the selection. All four fail without the
   fix, which was checked by taking it out.
-- Not yet: nothing tells the user the length changed — the History step
-  still reads "Reverse complement" and the Edits marks show the whole
-  molecule as replaced, which for a flip they always did.
+- Followed up 2026-09-23 (#7). The History step says the length when a
+  turn changes it (`describeEditStep`, "Reverse complement: 1,000 → 992
+  bp"), since the length is the one visible consequence. `diffDocuments`
+  recognises a turn: when the forward diff is coarse or marks at least
+  half the molecule, it diffs again against `baseline.reverseComplement()`
+  and keeps the smaller answer, flagged `reversed`. The window moves the
+  same way for the baseline as it did for the document, so a sticky flip
+  marks nothing — the molecule is the same, read from its other strand —
+  and edits either side of the turn are marked as edits. `isEmptyDiff` is
+  false for a turn even with no marks, so the Edits summary and the save
+  review say "turned over" rather than "nothing differs". The second diff
+  runs only when the first came back large, so ordinary typing pays
+  nothing; a heavily edited document pays a second capped diff (≤ ~20 ms).
+  A feature that sat only on an overhang the turn dropped is in neither
+  version compared, so it is not listed as removed.

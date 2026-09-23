@@ -32,6 +32,22 @@ export type EditOp =
 
 export type FeaturePatch = Partial<Omit<Feature, 'id'>>;
 
+/**
+ * The History label for an edit that took `before` to `after`. Only a turn
+ * says more than its op does: a molecule with overhangs comes out of one a
+ * different length (item 34), and a step that reads "Reverse complement"
+ * gives no hint of that (#7).
+ */
+export function describeEditStep(
+  op: EditOp,
+  before: { readonly length: number },
+  after: { readonly length: number },
+): string {
+  const label = describeEditOp(op);
+  if (op.type !== 'reverseComplement' || before.length === after.length) return label;
+  return `${label}: ${before.length.toLocaleString()} → ${after.length.toLocaleString()} bp`;
+}
+
 export function describeEditOp(op: EditOp): string {
   switch (op.type) {
     case 'insert':

@@ -28,6 +28,7 @@ export function describeEditDiff(diff: DocumentDiff | null): string {
   // (a moved origin, a reverse complement, a very long session) the marks
   // cover the whole stretch that differs; say so rather than quote a tally
   // that reads as if every base had been retyped.
+  if (diff.reversed) parts.push('turned over');
   if (diff.coarse) parts.push('too different to follow in detail');
   if (diff.basesInserted > 0) parts.push(`+${count(diff.basesInserted, 'bp', 'bp')}`);
   if (diff.basesChanged > 0) parts.push(`${count(diff.basesChanged, 'bp', 'bp')} changed`);

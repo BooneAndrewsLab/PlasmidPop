@@ -41,7 +41,10 @@ step.
 In the edit bar:
 
 - **Reverse complement** flips the entire molecule. Features move to the
-  opposite strand at the mirrored position.
+  opposite strand at the mirrored position. A linear molecule with sticky
+  ends comes out a different length, because its other strand starts and
+  ends elsewhere; the History step then says so, e.g. _Reverse complement:
+  4,361 → 4,365 bp_.
 - **Set origin here** (circular sequences only) renumbers the sequence so
   the base after the cursor, or the first selected base, becomes base 1.
   Features that end up spanning the new origin are kept as wrapping
@@ -111,10 +114,16 @@ SVG**, and in the review before a download and in **Compare with…**.
 
 The marks describe the difference between two versions, not the steps that
 got you there: if you type a base and delete it again, nothing is marked.
-Something that renumbers the whole sequence — **Set origin here** or
-**Reverse complement** — makes every base differ from the old version, so
-the whole sequence is marked and the tally says _too different to follow in
-detail_. Undo it, or use **Mark from here**, to get back to useful marks.
+**Set origin here** renumbers the whole sequence, which makes every base
+differ from the old version, so the whole sequence is marked and the tally
+says _too different to follow in detail_. Undo it, or use **Mark from
+here**, to get back to useful marks.
+
+**Reverse complement** is recognised instead: the marks are worked out
+against the old version turned over too, so a turn on its own marks no
+bases, the tally says _turned over_, and edits made before or after it are
+marked as usual. That holds for a sticky-ended molecule as well, whose
+length changes but whose molecule does not.
 
 ## Undo, redo and the history list
 

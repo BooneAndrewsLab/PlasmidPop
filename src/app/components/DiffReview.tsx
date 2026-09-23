@@ -61,6 +61,12 @@ export function DiffReview({ doc, baseline, diff }: Props) {
       <p className="save-review__summary">
         {describeEditDiff(diff) === '' ? 'Changed' : describeEditDiff(diff)}
       </p>
+      {diff.reversed && (
+        <p className="save-review__note">
+          Turned over: the sequence now reads from what was the bottom strand, and the marks below
+          are against the old version turned over too.
+        </p>
+      )}
       {diff.renamed && (
         <p className="save-review__note">
           Renamed from “{baseline.name}” to “{doc.name}”.

@@ -20,7 +20,7 @@ import {
   SeqDocument,
   activeEnzymes,
   createFeature,
-  describeEditOp,
+  describeEditStep,
   documentChecksum,
   isEmptyRange,
   isoschizomerGroups,
@@ -993,7 +993,9 @@ export class EditorStore {
       // A rename that forks is the whole of the fork: the copy is called
       // what the user called it, and there is no step to record on top.
       history:
-        next === base ? history : history.push(next, describeEditOp(op), Date.now(), coalesce),
+        next === base
+          ? history
+          : history.push(next, describeEditStep(op, doc, next), Date.now(), coalesce),
       selection,
       reveal,
       analysis: carryAnalysis(target.analysis, doc, op, next),
