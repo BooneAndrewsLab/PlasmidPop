@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
+import pkg from '../../../package.json' with { type: 'json' };
+
 import { GUIDE } from './guide';
 import { HelpButton } from './HelpButton';
 import { openGuide } from './openGuide';
@@ -15,6 +17,14 @@ describe('HelpButton', () => {
     const nav = screen.getByRole('navigation', { name: 'Guide pages' });
     for (const p of GUIDE) expect(nav).toHaveTextContent(p.title);
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(GUIDE[0]?.title ?? '');
+  });
+
+  it('says which release this is', () => {
+    render(<HelpButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+    const dialog = screen.getByRole('dialog', { name: 'PlasmidPop guide' });
+    expect(dialog).toHaveTextContent(`Version ${pkg.version}`);
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it('switches pages from the list and from links inside a page', () => {

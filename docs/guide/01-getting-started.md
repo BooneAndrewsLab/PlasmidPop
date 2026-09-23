@@ -88,4 +88,5 @@ Usaj, M. PlasmidPop. Zenodo.
 [doi:10.5281/zenodo.22907552](https://doi.org/10.5281/zenodo.22907552)
 
 That DOI covers every version. The Zenodo record also lists a DOI for each
-release, for a methods section that names the exact version used.
+release, for a methods section that names the exact version used. The
+version you are running is at the top of this guide, beside its title.

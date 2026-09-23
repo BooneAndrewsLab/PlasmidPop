@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import pkg from './package.json' with { type: 'json' };
+
 /**
  * Deployment base path, e.g. "/PlasmidPop/" for GitHub Pages under a repo.
  * Set BASE_PATH in the environment at build time; defaults to the root.
@@ -12,6 +14,11 @@ const base = process.env['BASE_PATH'] ?? '/';
 
 export default defineConfig({
   base,
+  define: {
+    // Shown in the guide's header, so a user or a bug report can say which
+    // release they are on. package.json is the one place it is written.
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
     react(),
     VitePWA({

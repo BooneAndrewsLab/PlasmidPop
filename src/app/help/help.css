@@ -63,6 +63,13 @@
   font-weight: 600;
 }
 
+/* The release, beside the title; pushes the Close button to the far end. */
+.help__version {
+  margin-right: auto;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
 .help__body {
   display: flex;
   flex: 1;

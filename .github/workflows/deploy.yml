@@ -1,14 +1,16 @@
 name: Deploy to GitHub Pages
 
-# Builds the PWA and publishes it to GitHub Pages on every push to main.
+# Builds the PWA and publishes it to GitHub Pages when a GitHub Release is
+# published, so the live site is always a release: the version a Zenodo DOI
+# names is the version users are running. A push to main is checked by
+# ci.yml and deploys nothing. "Run workflow" redeploys by hand; run it from
+# a release tag, since it builds whatever ref it is started on.
 # Pages is enabled in the repository settings with "GitHub Actions" as
-# source. Note: on this org's plan the Pages site is public even though the
-# repository is private (accepted for now, 2026-09-18).
-# The site is served under /<repo>/, which BASE_PATH passes to Vite.
+# source. The site is served under /<repo>/, which BASE_PATH passes to Vite.
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:

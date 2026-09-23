@@ -74,6 +74,7 @@ export function HelpDialog({ initialPage, onClose }: Props) {
           <h1 id="help-title" className="help__title">
             PlasmidPop guide
           </h1>
+          <span className="help__version">Version {__APP_VERSION__}</span>
           <button
             type="button"
             className="button button--quiet button--small"
