@@ -14,9 +14,6 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.22907552
     description: 'All versions of PlasmidPop (concept DOI)'
-  - type: doi
-    value: 10.5281/zenodo.22907553
-    description: 'PlasmidPop 1.0.0'
 license: MIT
 repository-code: 'https://github.com/BooneAndrewsLab/PlasmidPop'
 version: 1.1.0

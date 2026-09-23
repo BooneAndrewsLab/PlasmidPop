@@ -151,10 +151,8 @@ If you use PlasmidPop in your research, please cite it by its DOI:
 
 That DOI stands for every version and always leads to the newest one. Each
 release has a DOI of its own as well, listed on the Zenodo record, for when
-the exact version matters (1.0.0 is
-[10.5281/zenodo.22907553](https://doi.org/10.5281/zenodo.22907553)). GitHub's
-"Cite this repository" button gives the same citation in APA and BibTeX,
-read from `CITATION.cff`.
+the exact version matters. GitHub's "Cite this repository" button gives the
+same citation in APA and BibTeX, read from `CITATION.cff`.
 
 ## Licence
 
