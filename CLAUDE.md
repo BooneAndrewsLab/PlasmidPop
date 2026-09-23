@@ -91,8 +91,10 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-23)
 
-**1.1.0** (2026-09-22) is the current release; **1.0.0** (2026-09-22) was the
-first public one, the version the repo went public at and the first archived
+**1.1.1** (2026-09-23) is the current release, fixing two GenBank export
+faults: a LOCUS line without a division, which Biopython refuses, and a
+site feature left off the end of a circle by an edit (item 37). **1.0.0**
+(2026-09-22) was the first public one, the version the repo went public at and the first archived
 on Zenodo for a citable DOI. Bump `package.json` and `CITATION.cff` together;
 each GitHub Release gets a DOI of its own, and the concept DOI in
 `CITATION.cff` stands for all of them. **The site deploys only when a GitHub
