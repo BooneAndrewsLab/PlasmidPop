@@ -10,8 +10,8 @@ authors:
     affiliation: 'The Donnelly Centre, University of Toronto'
 license: MIT
 repository-code: 'https://github.com/BooneAndrewsLab/PlasmidPop'
-version: 0.1.0
-date-released: 2026-09-18
+version: 1.0.0
+date-released: 2026-09-22
 keywords:
   - plasmid
   - DNA

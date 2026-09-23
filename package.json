@@ -1,6 +1,6 @@
 {
   "name": "plasmidpop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Browser-based DNA sequence editor and plasmid viewer",
   "private": true,
   "license": "MIT",

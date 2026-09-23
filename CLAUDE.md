@@ -91,6 +91,11 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-22)
 
+**1.0.0 is the first public release** (2026-09-22), the version the repo went
+public at and the first to be archived on Zenodo for a citable DOI. Bump
+`package.json` and `CITATION.cff` together; each GitHub Release gets a DOI of
+its own, and the concept DOI in `CITATION.cff` stands for all of them.
+
 Build order steps 1–10 are implemented and committed; step 11 (backend) is
 dropped rather than pending — the app stays a static site, and sharing is a
 link, not an account (decided and built 2026-09-21, item 11). Beyond the build order, these have landed: Download GenBank
