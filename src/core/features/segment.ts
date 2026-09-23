@@ -132,6 +132,16 @@ export function shiftSegmentForDelete(
   }
 }
 
+/**
+ * On a circle the gap after the last base is the gap before the first, and
+ * only position 0 names it (see `isValidSegment`). A site an edit leaves at
+ * `seqLength` — the end it collapsed onto, or the end a linear sequence had
+ * before it was closed — is moved there.
+ */
+export function closeSiteOnCircle(seg: Segment, seqLength: number): Segment {
+  return seg.kind === 'site' && seqLength > 0 && seg.position === seqLength ? siteSegment(0) : seg;
+}
+
 /** Moves a segment by `offset` bases, e.g. from fragment to document coordinates. */
 export function shiftSegmentBy(seg: Segment, offset: number): Segment {
   if (offset === 0) return seg;

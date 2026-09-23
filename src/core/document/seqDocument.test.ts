@@ -507,6 +507,28 @@ describe('site segments', () => {
     expect(isValidSegment(siteSegment(20), 20, 'linear')).toBe(true);
     expect(isValidSegment(siteSegment(0), 20, 'circular')).toBe(true);
   });
+
+  // On a circle the gap after the last base is position 0; an edit that
+  // leaves a site at `length` must say so, or the document fails its own
+  // validation (editing the feature throws) and a save moves the site.
+  it('go to position 0, not the end, when an edit leaves them at the end of a circle', () => {
+    expect(segs(doc.delete(range(10, 20)).getFeature('s'))).toEqual([range(0, 0)]);
+    const emptied = doc.delete(range(0, 20));
+    expect(segs(emptied.insert(0, 'ACGT').getFeature('s'))).toEqual([range(0, 0)]);
+    const atEnd = SeqDocument.create({
+      sequence: SEQ,
+      features: [createFeature({ id: 'e', type: 'misc_feature', segments: [siteSegment(20)] })],
+    });
+    expect(segs(atEnd.setTopology('circular').getFeature('e'))).toEqual([range(0, 0)]);
+    const pasted = emptied.insertFragment(range(0, 0), {
+      sequence: 'ACG',
+      features: [createFeature({ id: 'p', type: 'misc_feature', segments: [siteSegment(3)] })],
+    });
+    expect(segs(pasted.getFeature('p'))).toEqual([range(0, 0)]);
+    for (const d of [doc.delete(range(10, 20)), atEnd.setTopology('circular'), pasted]) {
+      expect(() => SeqDocument.create(d)).not.toThrow();
+    }
+  });
 });
 
 describe('apply / EditOp', () => {

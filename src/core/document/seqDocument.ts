@@ -4,6 +4,7 @@ import {
   type Segment,
   FeatureSet,
   assertValidSegment,
+  closeSiteOnCircle,
   flipSegment,
   flipStrand,
   rotateSegment,
@@ -219,7 +220,10 @@ export class SeqDocument {
     return this.with({
       sequence: this.sequence.insert(p, text),
       features: this.features.map((f) =>
-        mapSegments(f, (seg) => shiftSegmentForInsert(seg, p, count, oldLength, this.topology)),
+        mapSegments(f, (seg) => {
+          const moved = shiftSegmentForInsert(seg, p, count, oldLength, this.topology);
+          return this.isCircular ? closeSiteOnCircle(moved, oldLength + count) : moved;
+        }),
       ),
       ends: this.endsAfterEdit({ start: p, end: p }),
     });
@@ -238,7 +242,12 @@ export class SeqDocument {
     return this.with({
       sequence,
       features: this.features.map((f) =>
-        mapSegments(f, (seg) => shiftSegmentForDelete(seg, r, oldLength)),
+        mapSegments(f, (seg) => {
+          const moved = shiftSegmentForDelete(seg, r, oldLength);
+          return moved !== null && this.isCircular
+            ? closeSiteOnCircle(moved, sequence.length)
+            : moved;
+        }),
       ),
       ends: this.endsAfterEdit(r),
     });
@@ -290,7 +299,15 @@ export class SeqDocument {
     if (fragment.sequence.length === 0) return removed;
     let doc = removed.insert(p, fragment.sequence);
     for (const f of fragment.features) {
-      doc = doc.addFeature({ ...f, segments: f.segments.map((seg) => shiftSegmentBy(seg, p)) });
+      // A site at the fragment's far end can land on the end of a circle.
+      const length = doc.length;
+      doc = doc.addFeature({
+        ...f,
+        segments: f.segments.map((seg) => {
+          const shifted = shiftSegmentBy(seg, p);
+          return doc.isCircular ? closeSiteOnCircle(shifted, length) : shifted;
+        }),
+      });
     }
     return doc;
   }
@@ -380,9 +397,14 @@ export class SeqDocument {
    */
   setTopology(topology: Topology): SeqDocument {
     if (topology === this.topology) return this;
-    // Closing the molecule leaves no ends to describe; `with` drops them.
-    if (topology === 'circular') return this.with({ topology });
     const length = this.length;
+    if (topology === 'circular') {
+      // Closing the molecule leaves no ends to describe; `with` drops them.
+      return this.with({
+        topology,
+        features: this.features.map((f) => mapSegments(f, (seg) => closeSiteOnCircle(seg, length))),
+      });
+    }
     return this.with({
       topology,
       features: this.features.map((f) => {

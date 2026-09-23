@@ -3,13 +3,16 @@ import fc from 'fast-check';
 import {
   type EditOp,
   type Feature,
-  type SeqDocument,
   type SeqFragment,
   type Topology,
+  SeqDocument,
   createFeature,
+  flipStrand,
+  isValidSegment,
   normalizePosition,
   rangeSegment,
   reverseComplement,
+  siteSegment,
 } from '@/core';
 
 /**
@@ -36,6 +39,8 @@ export interface FeatureShape {
   readonly cuts: readonly number[];
   readonly reverse: boolean;
   readonly type: string;
+  /** A site between two bases (GenBank `5^6`) rather than a range. */
+  readonly site: boolean;
 }
 
 const featureShapeArb: fc.Arbitrary<FeatureShape> = fc.record({
@@ -44,12 +49,17 @@ const featureShapeArb: fc.Arbitrary<FeatureShape> = fc.record({
   cuts: fc.array(fc.nat(), { maxLength: 4 }),
   reverse: fc.boolean(),
   type: fc.constantFrom('gene', 'CDS', 'misc_feature', 'promoter'),
+  site: fc.oneof(
+    { arbitrary: fc.constant(false), weight: 6 },
+    { arbitrary: fc.constant(true), weight: 1 },
+  ),
 });
 
 /**
  * Lays a shape on a sequence: a single range or a join of disjoint pieces in
  * ascending order, possibly wrapping the origin of a circular sequence.
- * Null on an empty sequence, which cannot carry a range.
+ * A site can sit in any gap, the far end of a linear sequence included.
+ * Null for a range on an empty sequence, which cannot carry one.
  */
 export function layFeature(
   shape: FeatureShape,
@@ -57,6 +67,10 @@ export function layFeature(
   length: number,
   topology: Topology,
 ): Feature | null {
+  if (shape.site) {
+    const gaps = topology === 'circular' ? Math.max(length, 1) : length + 1;
+    return createFeature({ id, type: shape.type, segments: [siteSegment(shape.start % gaps)] });
+  }
   if (length === 0) return null;
   const start = shape.start % length;
   const maxSpan = topology === 'circular' ? length : length - start;
@@ -205,7 +219,8 @@ export function resolveOp(doc: SeqDocument, shape: OpShape): EditOp | null {
     case 'paste': {
       const range = shapeRange(doc, shape.at, shape.len, 0);
       if (range === null) return null;
-      const features = shape.features.flatMap((f) => {
+      // The clipboard never carries annotations without bases.
+      const features = (shape.text === '' ? [] : shape.features).flatMap((f) => {
         const laid = layFeature(f, freshId('p'), shape.text.length, 'linear');
         return laid === null ? [] : [laid];
       });
@@ -259,6 +274,14 @@ export class RefModel {
     this.topology = topology;
   }
 
+  /** An independent copy that goes on numbering where this one stands. */
+  clone(): RefModel {
+    const copy = new RefModel('', this.topology);
+    copy.cells = [...this.cells];
+    copy.nextId = this.nextId;
+    return copy;
+  }
+
   private cell(base: string): Cell {
     const c = { id: this.nextId, base };
     this.nextId += 1;
@@ -275,11 +298,18 @@ export class RefModel {
 
   /** Cell identities covered by `feature`, segment by segment, in coordinate order. */
   covered(feature: Feature): number[] {
+    return this.coveredBySegment(feature).flat();
+  }
+
+  /** The same, kept apart per range segment. */
+  coveredBySegment(feature: Feature): number[][] {
     const L = this.cells.length;
-    const out: number[] = [];
+    const out: number[][] = [];
     for (const seg of feature.segments) {
       if (seg.kind !== 'range') continue;
-      for (let i = seg.start; i < seg.end; i++) out.push(this.at(i % L).id);
+      const ids: number[] = [];
+      for (let i = seg.start; i < seg.end; i++) ids.push(this.at(i % L).id);
+      out.push(ids);
     }
     return out;
   }
@@ -377,5 +407,135 @@ export class RefModel {
       case 'removeFeature':
         return none;
     }
+  }
+}
+
+// ---------------------------------------------------------------- the check
+
+function sameIds(actual: readonly number[], expected: readonly number[], what: string): void {
+  if (actual.length !== expected.length || actual.some((v, i) => v !== expected[i])) {
+    throw new Error(`${what}: covers [${actual.join(',')}], expected [${expected.join(',')}]`);
+  }
+}
+
+/**
+ * Checks one edit, `before` → `after` by `op`, against the reference model
+ * (already advanced by `step`), and throws on the first thing wrong:
+ *
+ * 1. the sequence equals the model's, letter for letter, and so does the topology;
+ * 2. every segment lies on the sequence;
+ * 3. every feature that was there covers exactly the bases it covered, less
+ *    the deleted ones (reversed by a reverse complement), is dropped exactly
+ *    when none are left, keeps its type and flips strand only on a reverse
+ *    complement;
+ * 4. inserted bases join a feature exactly when they land between two
+ *    adjacent bases of one of its segments (or anywhere in a segment that
+ *    goes all the way round a circle), as one run, in order, in that gap;
+ * 5. pasted and added features read what they read before.
+ *
+ * `coveredBefore` is `model.coveredBySegment` of every feature of `before`,
+ * taken before the model was advanced.
+ */
+export function checkEdit(
+  before: SeqDocument,
+  after: SeqDocument,
+  op: EditOp,
+  model: RefModel,
+  step: ModelStep,
+  coveredBefore: ReadonlyMap<string, readonly (readonly number[])[]>,
+): void {
+  if (after.sequence.toString() !== model.text) {
+    throw new Error(`sequence ${after.sequence.toString()}, expected ${model.text}`);
+  }
+  if (after.topology !== model.topology) throw new Error(`topology ${after.topology}`);
+  for (const f of after.features) {
+    for (const seg of f.segments) {
+      if (!isValidSegment(seg, after.length, after.topology)) {
+        throw new Error(`${f.id}: segment ${JSON.stringify(seg)} is off the sequence`);
+      }
+    }
+  }
+
+  const inserted = new Set(step.inserted);
+  const first = step.inserted[0];
+  const firstIndex = first === undefined ? -1 : model.cells.findIndex((c) => c.id === first);
+  const left = firstIndex < 0 ? undefined : model.leftOf(firstIndex);
+  const rightIndex = firstIndex + step.inserted.length;
+  const right =
+    firstIndex < 0 || (model.topology === 'linear' && rightIndex >= model.length)
+      ? undefined
+      : model.cells[rightIndex % model.length]?.id;
+  const lengthBeforeInsert = model.length - step.inserted.length;
+
+  for (const f of before.features) {
+    let segments = (coveredBefore.get(f.id) ?? [])
+      .map((ids) => ids.filter((id) => !step.deleted.has(id)))
+      .filter((ids) => ids.length > 0);
+    if (step.reversed) segments = segments.reverse().map((ids) => [...ids].reverse());
+    const core = segments.flat();
+    const found = after.getFeature(f.id);
+    const isSite = f.segments.every((s) => s.kind === 'site');
+    if (core.length === 0 && !isSite) {
+      if (found !== undefined) throw new Error(`${f.id} lost every base but survived`);
+      continue;
+    }
+    if (found === undefined) throw new Error(`${f.id} was dropped though bases remain`);
+    if (found.type !== f.type) throw new Error(`${f.id}: type changed to ${found.type}`);
+    const strand = step.reversed ? flipStrand(f.strand) : f.strand;
+    if (found.strand !== strand) throw new Error(`${f.id}: strand ${found.strand}`);
+
+    const covered = model.covered(found);
+    sameIds(
+      covered.filter((id) => !inserted.has(id)),
+      core,
+      f.id,
+    );
+    const grown = covered.filter((id) => inserted.has(id));
+    const shouldGrow =
+      step.inserted.length > 0 &&
+      segments.some(
+        (ids) =>
+          (model.topology === 'circular' && ids.length === lengthBeforeInsert) ||
+          (left !== undefined &&
+            right !== undefined &&
+            ids.some((id, i) => id === left && ids[i + 1] === right)),
+      );
+    if (shouldGrow !== grown.length > 0) {
+      throw new Error(
+        `${f.id} ${shouldGrow ? 'should have grown' : 'grew'} on an insertion between ${String(left)} and ${String(right)}: covers [${covered.join(',')}]`,
+      );
+    }
+    if (grown.length > 0) {
+      sameIds(grown, step.inserted, `${f.id} growth`);
+      const at = covered.indexOf(first ?? -1);
+      sameIds(covered.slice(at, at + grown.length), step.inserted, `${f.id} run`);
+      if (at > 0 && covered[at - 1] !== left)
+        throw new Error(`${f.id}: run not after ${String(left)}`);
+      const next = covered[at + grown.length];
+      if (next !== undefined && next !== right)
+        throw new Error(`${f.id}: run not before ${String(right)}`);
+    }
+  }
+
+  if (op.type === 'insertFragment') {
+    const fragment = SeqDocument.create({
+      sequence: op.fragment.sequence,
+      features: op.fragment.features,
+    });
+    for (const f of op.fragment.features) {
+      if (after.featureSequence(f.id) !== fragment.featureSequence(f)) {
+        throw new Error(`pasted ${f.id} reads ${after.featureSequence(f.id)}`);
+      }
+      for (const id of model.covered(after.requireFeature(f.id))) {
+        if (!inserted.has(id))
+          throw new Error(`pasted ${f.id} covers a base it was not pasted with`);
+      }
+    }
+  }
+  if (
+    op.type === 'addFeature' &&
+    after.featureSequence(op.feature.id) !== before.featureSequence(op.feature)
+  ) {
+    throw new Error(`added ${op.feature.id} reads ${after.featureSequence(op.feature.id)}`);
   }
 }

@@ -34,7 +34,12 @@ describe('GenBank round trip after random editing', () => {
         expect(back.sequence.toString()).toBe(doc.sequence.toString());
         expect(back.topology).toBe(doc.topology);
 
-        const wrote = doc.features.all();
+        // An empty sequence has no gap between bases for a site to name in
+        // GenBank, so a site left on one (by deleting everything) cannot be
+        // written; that is the one loss allowed.
+        const wrote = doc.features
+          .all()
+          .filter((f) => doc.length > 0 || f.segments.some((s) => s.kind === 'range'));
         const read = back.features.all();
         expect(read.map((f) => f.type)).toEqual(wrote.map((f) => f.type));
         read.forEach((f, i) => {
