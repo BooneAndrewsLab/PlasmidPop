@@ -1,0 +1,3 @@
+# The oracle's answers depend on this exact version; bump it deliberately
+# and review the diff in src/test/oracle/*.json.
+biopython==1.85

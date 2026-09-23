@@ -30,3 +30,6 @@ fixtures/local/
 
 # per-machine MCP server config (WebStorm port changes every launch)
 .mcp.json
+
+# Biopython oracle virtualenv (scripts/oracle/run.sh)
+.venv-oracle/
