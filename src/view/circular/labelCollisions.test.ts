@@ -17,7 +17,7 @@ import { type MapViewport, fitRange } from './viewport';
  * text box in a rendered map, compared with every other. A layout function
  * can be asserted on directly, but the question here is whether one label
  * lands on another after the ruler, the canvas edges and the ring have all
- * had their say, and only a render answers that (item 29 in CLAUDE.md, where
+ * had their say, and only a render answers that (docs/design/29-map-label-spacing.md, where
  * the pre-fix counts are recorded). Run with LABEL_REPORT=1 for the table.
  */
 

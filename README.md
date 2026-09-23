@@ -48,8 +48,10 @@ Start with [Getting started](./docs/guide/01-getting-started.md).
 
 Issues and pull requests are welcome. PlasmidPop is MIT licensed
 ([LICENSE](./LICENSE)); see [CITATION.cff](./CITATION.cff) to cite it.
-[CLAUDE.md](./CLAUDE.md) holds the architecture handoff, domain rules and
-the list of candidate features.
+[CLAUDE.md](./CLAUDE.md) holds the architecture handoff and domain rules,
+[docs/design/](./docs/design/README.md) the reasoning behind each piece of
+work, and planned work and ideas are in the
+[issue tracker](https://github.com/BooneAndrewsLab/PlasmidPop/issues).
 
 ## Development
 

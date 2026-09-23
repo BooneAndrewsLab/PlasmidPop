@@ -35,7 +35,7 @@ function describeSkipped(s: RebaseImportSummary['skipped']): string | null {
  * REBASE is free to use but its files say "all rights reserved", and
  * `rebase.neb.com` sends no CORS header, so the app can neither ship the
  * data nor fetch it. What it can do is make the round trip short: a link
- * straight to the file, then a file picker. See CLAUDE.md item 7.
+ * straight to the file, then a file picker. See docs/design/07-rebase-enzymes.md.
  */
 export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
   const { enzymeSetInfo } = useEditorState();

@@ -25,7 +25,7 @@ export interface Enzyme {
   /**
    * Where the enzyme's *own* methyltransferase methylates its site, in
    * REBASE's notation (`3(6)` is N6-methyladenine at base 3). This is not
-   * Dam/Dcm sensitivity, which REBASE keeps elsewhere; see CLAUDE.md item 7.
+   * Dam/Dcm sensitivity, which REBASE keeps elsewhere; see docs/design/07-rebase-enzymes.md.
    */
   readonly methylation?: string;
 }

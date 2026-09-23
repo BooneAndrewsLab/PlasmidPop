@@ -7,7 +7,7 @@ import { RebaseParseError, parseRebaseWithRefM } from './withrefm';
 /**
  * A stand-in for a REBASE download, written here rather than checked in as a
  * real one: REBASE files are "all rights reserved" and must not live in this
- * repo (CLAUDE.md item 7). The layout follows the format REBASE documents in
+ * repo (docs/design/07-rebase-enzymes.md). The layout follows the format REBASE documents in
  * its own header; the enzymes are ones the bundled table already carries, so
  * the facts in this fixture are ours to begin with.
  */

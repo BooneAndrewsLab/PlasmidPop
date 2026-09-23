@@ -9,7 +9,7 @@
  * enzymes cut beyond the site, e.g. BsaI GGTCTC(1/5) is `7, 11`.
  *
  * Format is REBASE-compatible in spirit so a full REBASE import can replace
- * this table later (see CLAUDE.md open questions). Entries were typed from
+ * this table later (as docs/design/07-rebase-enzymes.md did). Entries were typed from
  * supplier catalogues; the unit tests check every palindromic entry for
  * cut-position symmetry.
  */

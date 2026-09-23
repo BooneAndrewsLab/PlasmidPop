@@ -8,7 +8,7 @@ import { type Enzyme, isPalindromicSite } from '@/core';
  * Richard J. Roberts, <year>. All rights reserved.", and `rebase.neb.com`
  * sends no CORS header, so the app cannot fetch it either. The user
  * downloads the file themselves and opens it here; the parsed set lives in
- * their own browser and never leaves it. See CLAUDE.md item 7.
+ * their own browser and never leaves it. See docs/design/07-rebase-enzymes.md.
  *
  * `withrefm` is the format worth reading because it is the one that carries
  * the two fields the bundled table lacks: commercial suppliers and the
