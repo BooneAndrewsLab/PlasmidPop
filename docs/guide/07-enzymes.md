@@ -281,9 +281,31 @@ The bundled table was typed from supplier catalogues and has no supplier,
 isoschizomer or methylation information; an imported REBASE table adds all
 three (hover an enzyme's recognition site to see them). What REBASE calls
 the methylation site is where the enzyme's _own_ methyltransferase modifies
-the site — it is not a statement about whether Dam or Dcm methylation from
-your _E. coli_ strain will block the enzyme. PlasmidPop does not warn about
-that yet.
+the site — it is not a statement about Dam or Dcm methylation from your
+_E. coli_ strain, which is the next section.
+
+## Dam and Dcm methylation
+
+Most laboratory _E. coli_ strains methylate the DNA they copy: Dam puts a
+methyl group on the A of every GATC, Dcm on the inner C of every CCAGG and
+CCTGG. Some enzymes will not cut, or cut poorly, where that methyl group
+lands inside their site — sometimes only when a GATC or CCWGG is made by the
+site together with the bases beside it, as with XbaI in `GATCTAGA`.
+
+For the enzymes New England Biolabs lists as blocked or impaired, the
+Enzymes tab looks at the bases around each site. A cut position whose site
+a Dam or Dcm methyl group would fall in is marked with a small **m** and
+written in the warning colour; hovering it says which. The row says how many
+of its sites are affected — _1 of 2 sites may be blocked by Dam/Dcm
+methylation_ — and the enzyme's tooltip says it is a sensitive one.
+
+On pBR322, for example, the MscI site is inside a CCTGG and the BspEI site
+inside a GATC, so plasmid grown in an ordinary strain may not cut there.
+
+The marks are a warning, not a simulation: digests, the gel and the
+Cloning tab still cut every site. DNA from a PCR, from mammalian cells or
+from a dam–/dcm– strain carries no Dam or Dcm methylation, and there the
+marks do not apply.
 
 Cut positions are given on the top strand; the bottom-strand cut and the
 overhang are used by the Cloning tab.

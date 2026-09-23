@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { type CutSite, type Enzyme, SeqDocument, activeEnzymes, setActiveEnzymeSet } from '@/core';
+import {
+  type CutSite,
+  type Enzyme,
+  SeqDocument,
+  activeEnzymes,
+  findCutSites,
+  getEnzyme,
+  setActiveEnzymeSet,
+} from '@/core';
 
 import { MAX_DEFAULT_ENZYMES, editorStore } from '../state/editorStore';
 import { EnzymePanel } from './EnzymePanel';
@@ -608,5 +616,32 @@ describe('EnzymePanel isoschizomers', () => {
       if (box) fireEvent.click(box);
     });
     expect([...editorStore.getState().shownEnzymes]).toEqual(['XmaI']);
+  });
+});
+
+describe('EnzymePanel host methylation', () => {
+  afterEach(() => {
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('marks a site Dam methylation overlaps, and says how many there are', () => {
+    // Two ClaI sites (ATCGAT): the first behind a G, which makes GATC; the second not.
+    const sequence = `${'CCCCCCCCCC'.repeat(5)}GATCGAT${'CCCCCCCCCC'.repeat(5)}CATCGATA${'C'.repeat(40)}`;
+    const methylDoc = SeqDocument.create({ sequence });
+    const claI = getEnzyme('ClaI');
+    if (claI === undefined) throw new Error('ClaI');
+    act(() => {
+      editorStore.openDocument(methylDoc);
+      editorStore.setAnalysis(methylDoc, findCutSites(sequence, 'linear', [claI]), []);
+      editorStore.setEnzymeCutFilter('any');
+      editorStore.setEnzymeSupplier('');
+    });
+    render(<EnzymePanel doc={methylDoc} />);
+    const cuts = [...document.querySelectorAll('.enzyme-row__cuts .link')];
+    expect(cuts.map((c) => c.classList.contains('link--methylated'))).toEqual([true, false]);
+    expect(cuts[0]?.getAttribute('title')).toMatch(/Dam methylation overlaps it/);
+    expect(screen.getByText(/1 of 2 sites may be blocked by Dam\/Dcm methylation/)).toBeVisible();
   });
 });

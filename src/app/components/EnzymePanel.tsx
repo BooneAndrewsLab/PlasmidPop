@@ -17,6 +17,8 @@ import {
   enzymeProfile,
   gelProfile,
   getEnzyme,
+  hostMethylationAt,
+  isHostMethylationSensitive,
   isDoubleCutter,
   isoschizomerGroups,
   overhangKind,
@@ -108,11 +110,33 @@ function describeEnzyme(enzyme: Enzyme): string {
   if (enzyme.methylation !== undefined) {
     lines.push(`Methylated by its own MTase at ${enzyme.methylation}`);
   }
+  if (isHostMethylationSensitive(enzyme.name)) {
+    lines.push(
+      'Blocked or impaired by Dam or Dcm methylation where it overlaps the site (NEB); marked sites are those',
+    );
+  }
   const iso = enzyme.isoschizomers ?? [];
   if (iso.length > 0) {
     lines.push(`Isoschizomers: ${iso.slice(0, 8).join(', ')}${iso.length > 8 ? ', …' : ''}`);
   }
   return lines.join('\n');
+}
+
+/**
+ * "1 of 2 sites blocked by Dam/Dcm", under a row whose enzyme would not cut
+ * every site it has in DNA grown in an ordinary E. coli strain (#17).
+ */
+function MethylationNote({ count, of }: { readonly count: number; readonly of: number }) {
+  if (count === 0) return null;
+  return (
+    <span
+      className="enzyme-row__methylation"
+      title="Most laboratory E. coli strains methylate GATC (Dam) and CCWGG (Dcm). Grow the plasmid in a dam–/dcm– strain, or use an isoschizomer that is not sensitive, to cut these sites."
+    >
+      {count === of ? (of === 1 ? 'Its site' : `All ${of} sites`) : `${count} of ${of} sites`} may
+      be blocked by Dam/Dcm methylation
+    </span>
+  );
 }
 
 /** "BstI, AliI and 3 more", a row's other names. */
@@ -602,6 +626,11 @@ export function EnzymePanel({ doc }: Props) {
     scrollToTop();
   }, [needle, supplier, enzymeCutFilter, enzymeSort, reversed, scrollToTop]);
 
+  const sequence = useMemo(() => doc.sequence.toString(), [doc]);
+  /** Dam or Dcm inside this site in DNA from a methylating strain; see `hostMethylationAt`. */
+  const methylated = (enzyme: Enzyme, site: CutSite) =>
+    hostMethylationAt(sequence, doc.topology, site, enzyme.site.length);
+
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
     const len = enzyme?.site.length ?? 1;
@@ -821,19 +850,27 @@ export function EnzymePanel({ doc }: Props) {
                     {enzyme.site}
                   </span>
                   <span className="enzyme-row__cuts">
-                    {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className="link link--mono"
-                        title={`Select the ${enzyme.name} site cut after base ${describeSite(s)}`}
-                        onClick={() => {
-                          selectSite(s);
-                        }}
-                      >
-                        {describeSite(s)}
-                      </button>
-                    ))}
+                    {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => {
+                      const host = methylated(enzyme, s);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
+                          title={`Select the ${enzyme.name} site cut after base ${describeSite(s)}${
+                            host.length > 0
+                              ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
+                              : ''
+                          }`}
+                          onClick={() => {
+                            selectSite(s);
+                          }}
+                        >
+                          {describeSite(s)}
+                          {host.length > 0 && <sup>m</sup>}
+                        </button>
+                      );
+                    })}
                     {sites.length > MAX_SITES_SHOWN && (
                       <span
                         className="enzyme-row__more"
@@ -843,6 +880,14 @@ export function EnzymePanel({ doc }: Props) {
                       </span>
                     )}
                   </span>
+                  <MethylationNote
+                    count={
+                      isHostMethylationSensitive(enzyme.name)
+                        ? sites.filter((s) => methylated(enzyme, s).length > 0).length
+                        : 0
+                    }
+                    of={sites.length}
+                  />
                   {profile !== null && <BandLine profile={profile} />}
                 </li>
               ))}

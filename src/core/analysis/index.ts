@@ -7,3 +7,4 @@ export * from './cdsTranslation';
 export * from './translationCheck';
 export * from './sixFrame';
 export * from './gel';
+export * from './methylation';
