@@ -333,9 +333,13 @@ documents you want to keep as files.
 
 The public build sends anonymous usage statistics to a self-hosted
 [Matomo](https://matomo.org) instance: page views and coarse events such as
-"opened a GenBank file", "ran a ligation" or "exported the map as SVG".
-Never sent: sequences, feature names, file names or anything else from your
-documents. The page address is reported without the part after the `#`, so
+"opened a GenBank file", "ran a ligation" or "exported the map as SVG", and
+which parts of the app a visit used at all — which sidebar tabs, views,
+toggles and guide pages, which kinds of edit, which keyboard shortcuts —
+each reported once per visit however often it is used. The version of the
+app, and whether it runs on a phone or as an installed app, are sent once.
+Never sent: sequences, feature names, file names, sequence lengths, where
+in a sequence you worked, or anything else from your documents. The page address is reported without the part after the `#`, so
 opening a [share link](#sharing-a-link) sends the tracker the app's address
 and nothing of the document it carries. The tracker sets no cookies and the instance anonymises IP
 addresses. If your browser sends a Do-Not-Track signal, nothing is sent at

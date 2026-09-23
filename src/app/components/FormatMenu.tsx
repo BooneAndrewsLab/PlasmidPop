@@ -1,5 +1,6 @@
 import { type FontSize, FONT_SIZES } from '@/view/linear';
 
+import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useMenu } from './useMenu';
@@ -60,6 +61,7 @@ export function FormatMenu() {
               aria-checked={seqFontSize === size}
               className="menu__item"
               onClick={() => {
+                analytics.trackOnce('view', 'format', 'font-size');
                 editorStore.setSeqFontSize(size);
               }}
             >
@@ -76,6 +78,7 @@ export function FormatMenu() {
             className="menu__item"
             title="As many as the window holds, in tens"
             onClick={() => {
+              analytics.trackOnce('view', 'format', 'bases-per-row');
               editorStore.setSeqBasesPerRow(null);
             }}
           >
@@ -91,6 +94,7 @@ export function FormatMenu() {
               className="menu__item"
               title={`Always ${bases} bases in a row, scrolling sideways if the window is narrower`}
               onClick={() => {
+                analytics.trackOnce('view', 'format', 'bases-per-row');
                 editorStore.setSeqBasesPerRow(bases);
               }}
             >
@@ -106,6 +110,7 @@ export function FormatMenu() {
             className="menu__item"
             title="Repeat the row's position beside the complement strand"
             onClick={() => {
+              analytics.trackOnce('view', 'format', 'number-complement');
               editorStore.setNumberComplement(!numberComplement);
             }}
           >
@@ -119,6 +124,7 @@ export function FormatMenu() {
             className="menu__item"
             title="Give A, C, G and T each their own colour"
             onClick={() => {
+              analytics.trackOnce('view', 'format', 'color-bases');
               editorStore.setColorBases(!colorBases);
             }}
           >

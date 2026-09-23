@@ -46,6 +46,7 @@ import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { detectFormat } from '@/io';
 
+import { analytics } from '../analytics';
 import { readClipboard, writeFragment } from '../clipboard';
 import {
   clampPosition,
@@ -568,9 +569,11 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         if (extendByCodon(e.key === 'ArrowRight' ? 1 : -1, focus)) {
           e.preventDefault();
+          analytics.shortcut('ctrl+shift+arrow');
           return;
         }
       }
+      if (key === 'z' || key === 'y') analytics.shortcut('ctrl+z');
       if (key === 'z') {
         e.preventDefault();
         if (e.shiftKey) editorStore.redo();

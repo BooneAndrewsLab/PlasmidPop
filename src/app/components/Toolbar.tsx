@@ -2,6 +2,7 @@ import { type ChangeEvent, type RefObject, useRef, useState } from 'react';
 
 import { type SeqDocument, describeEnds } from '@/core';
 
+import { analytics } from '../analytics';
 import { compareWithFile } from '../compare';
 import { EXAMPLES } from '../examples';
 import { openExample, openFile } from '../openFile';
@@ -172,6 +173,7 @@ export function Toolbar({ doc }: Props) {
                   className={segmentedClass(view === mode)}
                   aria-pressed={view === mode}
                   onClick={() => {
+                    analytics.trackOnce('view', 'mode', mode);
                     editorStore.setView(mode);
                   }}
                 >
@@ -186,6 +188,7 @@ export function Toolbar({ doc }: Props) {
                 aria-pressed={showComplement}
                 title="Show the complement strand (Alt+C)"
                 onClick={() => {
+                  analytics.trackOnce('view', 'toggle', 'complement');
                   editorStore.setShowComplement(!showComplement);
                 }}
               >
@@ -197,6 +200,7 @@ export function Toolbar({ doc }: Props) {
                 aria-pressed={showTranslations}
                 title="Show amino acids under CDS features (Alt+T)"
                 onClick={() => {
+                  analytics.trackOnce('view', 'toggle', 'translations');
                   editorStore.setShowTranslations(!showTranslations);
                 }}
               >
@@ -208,6 +212,7 @@ export function Toolbar({ doc }: Props) {
                 aria-pressed={showCutSites}
                 title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks (Alt+R)"
                 onClick={() => {
+                  analytics.trackOnce('view', 'toggle', 'cut-sites');
                   editorStore.setShowCutSites(!showCutSites);
                 }}
               >

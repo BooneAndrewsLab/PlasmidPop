@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { type Shortcut, analytics } from '../analytics';
 import { isAltKey, isTextTarget } from '../keys';
 import { copyShareLink } from '../share';
 import { type EditsBaseline, editorStore } from './editorStore';
@@ -7,11 +8,13 @@ import { type EditsBaseline, editorStore } from './editorStore';
 /** Toggles the toolbar's three view switches go under. */
 const TOGGLES: readonly {
   readonly code: string;
+  readonly binding: Shortcut;
   readonly read: (s: ReturnType<typeof editorStore.getState>) => boolean;
   readonly set: (on: boolean) => void;
 }[] = [
   {
     code: 'KeyC',
+    binding: 'alt+c',
     read: (s) => s.showComplement,
     set: (v) => {
       editorStore.setShowComplement(v);
@@ -19,6 +22,7 @@ const TOGGLES: readonly {
   },
   {
     code: 'KeyT',
+    binding: 'alt+t',
     read: (s) => s.showTranslations,
     set: (v) => {
       editorStore.setShowTranslations(v);
@@ -26,6 +30,7 @@ const TOGGLES: readonly {
   },
   {
     code: 'KeyR',
+    binding: 'alt+r',
     read: (s) => s.showCutSites,
     set: (v) => {
       editorStore.setShowCutSites(v);
@@ -57,12 +62,14 @@ export function useViewShortcuts(): void {
       for (const toggle of TOGGLES) {
         if (!isAltKey(e, toggle.code)) continue;
         e.preventDefault();
+        analytics.shortcut(toggle.binding);
         toggle.set(!toggle.read(state));
         return;
       }
 
       if (isAltKey(e, 'KeyE')) {
         e.preventDefault();
+        analytics.shortcut('alt+e');
         if (state.editsBaseline === 'off') editorStore.setEditsBaseline(lastBaseline.current);
         else {
           lastBaseline.current = state.editsBaseline;
@@ -73,6 +80,7 @@ export function useViewShortcuts(): void {
 
       if (isAltKey(e, 'KeyS')) {
         e.preventDefault();
+        analytics.shortcut('alt+s');
         editorStore.setSidebarOpen(!state.sidebarOpen);
         return;
       }
@@ -80,6 +88,7 @@ export function useViewShortcuts(): void {
       if (isAltKey(e, 'KeyL')) {
         if (state.history === null) return;
         e.preventDefault();
+        analytics.shortcut('alt+l');
         copyShareLink(state.history.present).catch((err: unknown) => {
           editorStore.fail(err instanceof Error ? err.message : String(err));
         });
@@ -94,6 +103,7 @@ export function useViewShortcuts(): void {
         const target = state.documents[Number(digit[1]) - 1];
         if (target === undefined) return;
         e.preventDefault();
+        analytics.shortcut('alt+digit');
         editorStore.activateDocument(target.documentId);
       }
     };

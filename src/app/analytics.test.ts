@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Analytics, doNotTrack, readConfig, trackableUrl } from './analytics';
+import {
+  Analytics,
+  EVENTS,
+  doNotTrack,
+  formatOfFileName,
+  readConfig,
+  trackableUrl,
+} from './analytics';
 
 const CONFIG = { url: 'https://stats.example.org/matomo/', siteId: '6' };
 
@@ -104,10 +111,64 @@ describe('Analytics', () => {
     ]);
 
     a.track('file', 'open', 'genbank');
-    a.track('file', 'save');
+    a.track('file', 'download');
     expect(paq().slice(-2)).toEqual([
       ['trackEvent', 'file', 'open', 'genbank'],
-      ['trackEvent', 'file', 'save'],
+      ['trackEvent', 'file', 'download'],
     ]);
+  });
+
+  it('sends a trackOnce event the first time only, per name', () => {
+    const a = new Analytics(CONFIG, false, vi.fn());
+    const before = paq().length;
+    a.trackOnce('panel', 'open', 'primers');
+    a.trackOnce('panel', 'open', 'primers');
+    a.trackOnce('panel', 'open', 'enzymes');
+    a.shortcut('alt+c');
+    a.shortcut('alt+c');
+    expect(paq().slice(before)).toEqual([
+      ['trackEvent', 'panel', 'open', 'primers'],
+      ['trackEvent', 'panel', 'open', 'enzymes'],
+      ['trackEvent', 'shortcut', 'use', 'alt+c'],
+    ]);
+  });
+
+  it('reports the kind of visit once', () => {
+    const a = new Analytics(CONFIG, false, vi.fn());
+    const before = paq().length;
+    a.start('1.2.0', true);
+    a.start('1.2.0', true);
+    expect(paq().slice(before)).toEqual([
+      ['trackEvent', 'app', 'start', '1.2.0'],
+      ['trackEvent', 'app', 'layout', 'phone'],
+      ['trackEvent', 'app', 'display', 'browser'],
+    ]);
+  });
+
+  it('keeps trackOnce silent when disabled', () => {
+    const a = new Analytics(null, false, vi.fn());
+    a.trackOnce('edit', 'insert');
+    a.start('1.2.0', false);
+    expect(paq()).toEqual([]);
+  });
+});
+
+describe('EVENTS', () => {
+  it('lists every kind of edit, plus undo and redo', () => {
+    expect(EVENTS.edit).toContain('reverseComplement');
+    expect(EVENTS.edit).toContain('removeFeature');
+    expect(EVENTS.edit.slice(-2)).toEqual(['undo', 'redo']);
+  });
+});
+
+describe('formatOfFileName', () => {
+  // The extension is the one part of a file name that is reported, and only
+  // as one of the formats the app knows.
+  it('reduces an extension to a known format', () => {
+    expect(formatOfFileName('pUC19.GB')).toBe('genbank');
+    expect(formatOfFileName('x.fasta')).toBe('fasta');
+    expect(formatOfFileName('my plasmid.dna')).toBe('snapgene');
+    expect(formatOfFileName('lab-notes-for-project-x.docx')).toBe('other');
+    expect(formatOfFileName('no-extension')).toBe('other');
   });
 });

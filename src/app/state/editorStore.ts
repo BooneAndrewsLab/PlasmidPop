@@ -909,6 +909,7 @@ export class EditorStore {
     const doc = target.history.present;
     const edited = doc.apply(op);
     if (edited === doc) return;
+    analytics.trackOnce('edit', op.type);
     // Whatever a panel was pointing at was computed against the document as
     // it stands; an edit moves the ground under it.
     this.clearPreview();
@@ -991,12 +992,14 @@ export class EditorStore {
   undo(): void {
     const history = this.state.history;
     if (history?.canUndo !== true) return;
+    analytics.trackOnce('edit', 'undo');
     this.setActive({ history: history.undo().seal(), selection: null });
   }
 
   redo(): void {
     const history = this.state.history;
     if (history?.canRedo !== true) return;
+    analytics.trackOnce('edit', 'redo');
     this.setActive({ history: history.redo().seal(), selection: null });
   }
 
@@ -1052,7 +1055,9 @@ export class EditorStore {
   }
 
   setFindOpen(open: boolean): void {
-    if (open !== this.state.findOpen) this.setActive({ findOpen: open });
+    if (open === this.state.findOpen) return;
+    if (open) analytics.trackOnce('find', 'open');
+    this.setActive({ findOpen: open });
   }
 
   finishRename(): void {
@@ -1281,7 +1286,6 @@ export class EditorStore {
 
   setEditsBaseline(baseline: EditsBaseline): void {
     if (baseline === this.state.editsBaseline) return;
-    analytics.track('edits', 'baseline', baseline);
     this.setShared({ editsBaseline: baseline });
   }
 

@@ -1,5 +1,6 @@
 import { FormatError, parseSequenceData, parseSequenceFile } from '@/io';
 
+import { analytics, formatOfFileName } from './analytics';
 import { type Example } from './examples';
 import { type OpenStorage, editorStore } from './state/editorStore';
 
@@ -16,6 +17,7 @@ export async function openFile(file: File): Promise<string | null> {
   const ext = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
   const unsupported = UNSUPPORTED[ext];
   if (unsupported !== undefined) {
+    analytics.track('file', 'open-failed', formatOfFileName(file.name));
     editorStore.fail(unsupported);
     return null;
   }
@@ -29,6 +31,7 @@ export async function openFile(file: File): Promise<string | null> {
   try {
     return editorStore.openParsed(parseSequenceData(data, file.name), file.name);
   } catch (e) {
+    analytics.track('file', 'open-failed', formatOfFileName(file.name));
     editorStore.fail(e instanceof Error ? e.message : String(e));
     return null;
   }

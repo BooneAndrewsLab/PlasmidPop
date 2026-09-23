@@ -12,7 +12,14 @@
  * sends `window.location.href` whole unless it is told otherwise. Both the
  * belt (`setCustomUrl` for this page view) and the braces
  * (`discardHashTag`, which covers any later one) are set.
+ *
+ * What may be sent is `EVENTS`, below, and nothing else: `track` accepts a
+ * category and action only from it. The list is also what "unused" is read
+ * against — a feature that never shows up in the Events report is on it and
+ * was not used (item 38, `docs/design/38-usage-events.md`).
  */
+
+import { type EditOp } from '@/core';
 
 export interface AnalyticsConfig {
   /** Matomo instance URL, with trailing slash. */
@@ -39,6 +46,90 @@ export function doNotTrack(nav: Partial<Navigator> = globalThis.navigator): bool
   return flag === '1' || flag === 'yes';
 }
 
+/** Every kind of edit, by the name `EditOp` gives it; exhaustive by `Record`. */
+const EDIT_OPS: Readonly<Record<EditOp['type'], true>> = {
+  insert: true,
+  delete: true,
+  replace: true,
+  insertFragment: true,
+  reverseComplement: true,
+  setOrigin: true,
+  setTopology: true,
+  setEnds: true,
+  rename: true,
+  setMetadata: true,
+  addFeature: true,
+  updateFeature: true,
+  removeFeature: true,
+};
+
+/**
+ * Everything the app may report, as category → actions. The event name,
+ * where there is one, is a fixed label: a file format, a panel, a view, a
+ * key binding, a guide page, the app version. Never anything the user typed
+ * or anything read from a document.
+ */
+export const EVENTS = {
+  /** Once per visit: `start` (the version), `layout` (desktop/phone), `display` (browser/standalone). */
+  app: ['start', 'layout', 'display'],
+  file: ['open', 'open-failed', 'new', 'download', 'compare', 'export'],
+  share: ['copy', 'open'],
+  /** Which sidebar tab the user opened. */
+  panel: ['open'],
+  /** The view switcher, the toolbar toggles and the Format menu options. */
+  view: ['mode', 'toggle', 'format'],
+  find: ['open'],
+  /** The kind of edit only: never where, how long, or what bases. */
+  edit: [...(Object.keys(EDIT_OPS) as EditOp['type'][]), 'undo', 'redo'],
+  edits: ['baseline'],
+  history: ['jump'],
+  enzymes: ['show', 'import', 'import-clear'],
+  primers: ['design'],
+  align: ['run'],
+  cloning: ['ligate', 'open-fragment', 'gibson', 'golden-gate', 'pcr'],
+  /** A key binding was used; the name is the binding, e.g. `alt+c`. */
+  shortcut: ['use'],
+  /** Which page of the guide was read. */
+  help: ['page'],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
+
+export type EventCategory = keyof typeof EVENTS;
+export type EventAction<C extends EventCategory> = (typeof EVENTS)[C][number];
+
+/** The key bindings reported under `shortcut`. */
+export type Shortcut =
+  | 'alt+c'
+  | 'alt+t'
+  | 'alt+r'
+  | 'alt+e'
+  | 'alt+s'
+  | 'alt+l'
+  | 'alt+digit'
+  | 'ctrl+s'
+  | 'ctrl+f'
+  | 'ctrl+z'
+  | 'ctrl+shift+arrow';
+
+/**
+ * A file extension reduced to the formats the app knows, so a name the user
+ * gave a file can never reach the tracker through its extension.
+ */
+export function formatOfFileName(fileName: string): string {
+  const dot = fileName.lastIndexOf('.');
+  const ext = dot === -1 ? '' : fileName.slice(dot + 1).toLowerCase();
+  if (['gb', 'gbk', 'genbank', 'gbff', 'ape'].includes(ext)) return 'genbank';
+  if (['fa', 'fasta', 'fna', 'fas', 'ffn', 'faa'].includes(ext)) return 'fasta';
+  if (ext === 'dna') return 'snapgene';
+  if (ext === 'geneious') return 'geneious';
+  return 'other';
+}
+
+/** How the page is running: an installed PWA or a browser tab. */
+function displayMode(): 'standalone' | 'browser' {
+  const media = globalThis.matchMedia as ((q: string) => MediaQueryList) | undefined;
+  return media?.('(display-mode: standalone)').matches === true ? 'standalone' : 'browser';
+}
+
 type PaqEntry = readonly (string | number | boolean)[];
 
 /** This page, with any fragment cut off. Nothing of a share link is reportable. */
@@ -58,6 +149,8 @@ function injectScript(url: string): void {
 
 export class Analytics {
   readonly enabled: boolean;
+  /** What `trackOnce` has sent in this page load. */
+  private readonly sent = new Set<string>();
 
   constructor(
     config: AnalyticsConfig | null,
@@ -81,13 +174,45 @@ export class Analytics {
    * Records a coarse usage event. `name` must be a fixed label (a format,
    * a mode), never user data.
    */
-  track(category: string, action: string, name?: string): void {
+  track<C extends EventCategory>(category: C, action: EventAction<C>, name?: string): void {
     if (!this.enabled) return;
     this.push(
       name === undefined
         ? ['trackEvent', category, action]
         : ['trackEvent', category, action, name],
     );
+  }
+
+  /**
+   * Records the event the first time it happens in this page load and
+   * ignores it after that. For things done often — edits, toggles, tab
+   * switches — where what is worth knowing is whether a visit used them at
+   * all: Matomo's "unique events" then reads as visits, one person toggling
+   * a switch a hundred times counts once, and a visit sends a handful of
+   * requests rather than one per click.
+   */
+  trackOnce<C extends EventCategory>(category: C, action: EventAction<C>, name?: string): void {
+    if (!this.enabled) return;
+    const key = `${category}\u0000${action}\u0000${name ?? ''}`;
+    if (this.sent.has(key)) return;
+    this.sent.add(key);
+    this.track(category, action, name);
+  }
+
+  /** A key binding was used; once per binding per visit. */
+  shortcut(binding: Shortcut): void {
+    this.trackOnce('shortcut', 'use', binding);
+  }
+
+  /**
+   * What kind of visit this is: the version, the phone layout or the
+   * desktop one, and whether the app is installed. Called once, from the
+   * app's first render, which is where the layout is known.
+   */
+  start(version: string, phone: boolean): void {
+    this.trackOnce('app', 'start', version);
+    this.trackOnce('app', 'layout', phone ? 'phone' : 'desktop');
+    this.trackOnce('app', 'display', displayMode());
   }
 
   private push(entry: PaqEntry): void {

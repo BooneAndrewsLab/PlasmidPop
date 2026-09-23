@@ -1,3 +1,4 @@
+import { analytics } from '../analytics';
 import { type EditsBaseline, editorStore } from '../state/editorStore';
 import { EDITS_BASELINE_LABELS, describeEditDiff } from '../editsView';
 import { useEditDiff } from '../state/editDiff';
@@ -60,6 +61,7 @@ export function EditsMenu() {
               title={choice.title}
               onClick={() => {
                 close();
+                analytics.track('edits', 'baseline', choice.baseline);
                 editorStore.setEditsBaseline(choice.baseline);
               }}
             >

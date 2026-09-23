@@ -1,5 +1,6 @@
 import { type SeqDocument } from '@/core';
 
+import { analytics } from '../analytics';
 import { type SidebarTab, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AlignPanel } from './AlignPanel';
@@ -54,6 +55,7 @@ export function Sidebar({ doc }: Props) {
                   editorStore.setSidebarOpen(false);
                   return;
                 }
+                analytics.trackOnce('panel', 'open', tab);
                 editorStore.setSidebarTab(tab);
                 editorStore.setSidebarOpen(true);
               }}

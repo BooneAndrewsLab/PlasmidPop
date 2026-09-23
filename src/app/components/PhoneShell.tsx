@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { type SeqDocument } from '@/core';
 
+import { analytics } from '../analytics';
 import { type SidebarTab, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { CircularMapView } from './CircularMapView';
@@ -84,6 +85,7 @@ export function PhoneShell({ doc }: Props) {
                     aria-selected={active}
                     className={`phone__subtab${active ? ' phone__subtab--active' : ''}`}
                     onClick={() => {
+                      analytics.trackOnce('panel', 'open', tab);
                       editorStore.setSidebarTab(tab);
                       editorStore.setSidebarOpen(true);
                     }}

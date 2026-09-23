@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
+import { analytics } from '../analytics';
 import { GUIDE, guidePage } from './guide';
 import { Markdown } from './Markdown';
 
@@ -31,6 +32,12 @@ export function HelpDialog({ initialPage, onClose }: Props) {
   useEffect(() => {
     dialogRef.current?.focus({ preventScroll: true });
   }, []);
+
+  // The id of a page the guide has, never whatever id was asked for.
+  const readId = page?.id;
+  useEffect(() => {
+    if (readId !== undefined) analytics.trackOnce('help', 'page', readId);
+  }, [readId]);
 
   /**
    * Where a `#…` link, or the section `initialPage` named, has asked to be:

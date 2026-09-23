@@ -1,15 +1,19 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { analytics } from './app/analytics';
 import { App } from './app/App';
 import { openFile } from './app/openFile';
 import { editorStore } from './app/state/editorStore';
+import { PHONE_QUERY } from './app/state/layout';
 import './styles.css';
 
 const container = document.getElementById('root');
 if (container === null) {
   throw new Error('Root element #root not found');
 }
+
+analytics.start(__APP_VERSION__, window.matchMedia(PHONE_QUERY).matches);
 
 // Offline support: the service worker is generated at build time (vite-plugin-pwa).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

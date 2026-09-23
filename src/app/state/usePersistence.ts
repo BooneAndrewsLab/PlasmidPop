@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { analytics } from '../analytics';
 import { openSharedPayload, takeShareFragment } from '../share';
 import { editorStore } from './editorStore';
 import { persistence } from './persistence';
@@ -103,12 +104,14 @@ export function useSaveShortcut(): void {
       const key = e.key.toLowerCase();
       if (key === 'f' && editorStore.document !== null) {
         e.preventDefault();
+        analytics.shortcut('ctrl+f');
         editorStore.setFindOpen(true);
         return;
       }
       if (key !== 's') return;
       e.preventDefault();
       if (editorStore.document === null) return;
+      analytics.shortcut('ctrl+s');
       // Both, because Ctrl+Shift+S was Save as… and there is now one way out.
       persistence.download().catch((err: unknown) => {
         editorStore.fail(err instanceof Error ? err.message : String(err));
