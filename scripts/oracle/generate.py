@@ -416,6 +416,43 @@ def translation():
     write('translation.json', {'alphabet': IUPAC, 'tables': tables, 'samples': samples})
 
 
+# ------------------------------------------------------------------ SnapGene
+
+
+def snapgene():
+    """Biopython's reading of the .dna fixtures snapgene_fixtures.py writes.
+
+    Biopython keeps SnapGene's own sequence, which runs over both strands of
+    a sticky end, and does not read the ends; the test puts ours back
+    together before comparing (src/test/oracle/snapgene.test.ts).
+    """
+    sys.path.insert(0, os.path.dirname(__file__))
+    import snapgene_fixtures
+
+    snapgene_fixtures.main()
+    files = []
+    for path in sorted(glob.glob(os.path.join(FIXTURES, 'snapgene', '*.dna'))):
+        record = SeqIO.read(path, 'snapgene')
+        files.append(
+            {
+                'file': os.path.basename(path),
+                'length': len(record.seq),
+                'sequence': str(record.seq),
+                'topology': record.annotations.get('topology', 'linear'),
+                'features': [
+                    {
+                        'type': f.type,
+                        'strand': strand_name(f.location.strand),
+                        'parts': [[int(p.start), int(p.end)] for p in f.location.parts],
+                        'label': (f.qualifiers.get('label') or [''])[0],
+                    }
+                    for f in record.features
+                ],
+            }
+        )
+    write('snapgene.json', {'files': files})
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     write(
@@ -424,6 +461,7 @@ def main():
     )
     restriction()
     translation()
+    snapgene()
 
 
 if __name__ == '__main__':

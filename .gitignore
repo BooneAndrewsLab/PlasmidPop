@@ -33,3 +33,5 @@ fixtures/local/
 
 # Biopython oracle virtualenv (scripts/oracle/run.sh)
 .venv-oracle/
+
+__pycache__/

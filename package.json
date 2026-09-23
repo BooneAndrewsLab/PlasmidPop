@@ -22,6 +22,7 @@
     "test:coverage": "vitest run --coverage",
     "oracle:generate": "scripts/oracle/run.sh generate",
     "oracle:writer": "scripts/oracle/run.sh writer",
+    "oracle:snapgene": "scripts/oracle/run.sh snapgene-local",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "dependencies": {

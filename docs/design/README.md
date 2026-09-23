@@ -54,6 +54,7 @@ piece of work needs its reasoning written down, with the next free number.
 40. [Enzymes that cut on both sides of their site](40-double-cutters.md)
 41. [The gel's percentage and ladder, and a reversible order](41-gel-settings.md)
 42. [A double-digest partner for one enzyme](42-digest-partner.md)
+43. [SnapGene fixtures, checked against Biopython](43-snapgene-fixtures.md)
 
 ## Changelog to 1.1.0
 

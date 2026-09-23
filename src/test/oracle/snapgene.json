@@ -1,0 +1,162 @@
+{
+ "biopython": "1.85",
+ "files": [
+  {
+   "features": [],
+   "file": "bare.dna",
+   "length": 80,
+   "sequence": "ACATGGTGGTCAGCGAAGTGAGTCTTTTTGACTTAGCTTCAATCGTACTCAAGTCTGTCTCGAGTAACTGTGACGAAGCA",
+   "topology": "linear"
+  },
+  {
+   "features": [
+    {
+     "label": "tip",
+     "parts": [
+      [
+       109,
+       124
+      ]
+     ],
+     "strand": "forward",
+     "type": "misc_feature"
+    },
+    {
+     "label": "T7",
+     "parts": [
+      [
+       5,
+       25
+      ]
+     ],
+     "strand": "forward",
+     "type": "primer_bind"
+    }
+   ],
+   "file": "d-topo.dna",
+   "length": 124,
+   "sequence": "CGGATTCCACCAGGCGGTGCGGTGCACATCGTCATTGGGTCATTAAGGATTGTCATCGGGTATAGCTGTCGGTCCCCGCCATACGTATGTACGCCCAGTACGATAGTTAATTGCGTAATGCACC",
+   "topology": "linear"
+  },
+  {
+   "features": [
+    {
+     "label": "split CDS",
+     "parts": [
+      [
+       10,
+       40
+      ],
+      [
+       60,
+       90
+      ]
+     ],
+     "strand": "forward",
+     "type": "CDS"
+    },
+    {
+     "label": "backwards",
+     "parts": [
+      [
+       119,
+       180
+      ]
+     ],
+     "strand": "reverse",
+     "type": "gene"
+    },
+    {
+     "label": "over the origin",
+     "parts": [
+      [
+       280,
+       300
+      ],
+      [
+       0,
+       20
+      ]
+     ],
+     "strand": "forward",
+     "type": "misc_feature"
+    },
+    {
+     "label": "both ways",
+     "parts": [
+      [
+       199,
+       210
+      ]
+     ],
+     "strand": "forward",
+     "type": "misc_feature"
+    },
+    {
+     "label": "fwd",
+     "parts": [
+      [
+       30,
+       50
+      ]
+     ],
+     "strand": "forward",
+     "type": "primer_bind"
+    },
+    {
+     "label": "rev",
+     "parts": [
+      [
+       230,
+       252
+      ]
+     ],
+     "strand": "reverse",
+     "type": "primer_bind"
+    }
+   ],
+   "file": "plasmid.dna",
+   "length": 300,
+   "sequence": "ACATGGTGGTCAGCGAAGTGAGTCTTTTTGACTTAGCTTCAATCGTACTCAAGTCTGTCTCGAGTAACTGTGACGAAGCACAAGGAAACGCAAAGAGTTATTTTGTCTATGCGGATCACTAGTGGTGCAAACCAGTTGTACCCGCTTCATCAGGCATGTGTCCCAATAGTACGTTAGCAATAATCCTTTTCACTTGGACCCATGGAAGGATACTGACGCAAGTCACTATTGGTATAAGATGCTACTGCGCACGGAGCCCGTTTTGGTCCCAAGCTAGTGAGCCGTCGGGATGGCAAATTT",
+   "topology": "circular"
+  },
+  {
+   "features": [
+    {
+     "label": "lacZ alpha",
+     "parts": [
+      [
+       0,
+       60
+      ]
+     ],
+     "strand": "forward",
+     "type": "CDS"
+    }
+   ],
+   "file": "ta-vector.dna",
+   "length": 162,
+   "sequence": "AGAACATCGCTTGGTAAGCATCCCCTGGCAACTCTTGGGTGTGATACCGGACTGGTCGTCTGGCCCGTAAAAGTGACGTTTGCGAGCTTGCGAATGCGCATCTGAGCGGCGCCAAGTTCTGATCAGTATCCGCAGAACCAAACCCAGGGTGGCAACGCCGGT",
+   "topology": "linear"
+  },
+  {
+   "features": [
+    {
+     "label": "\u03b2-lactamase",
+     "parts": [
+      [
+       9,
+       90
+      ]
+     ],
+     "strand": "reverse",
+     "type": "CDS"
+    }
+   ],
+   "file": "unicode.dna",
+   "length": 150,
+   "sequence": "ACATGGTGGTCAGCGAAGTGAGTCTTTTTGACTTAGCTTCAATCGTACTCAAGTCTGTCTCGAGTAACTGTGACGAAGCACAAGGAAACGCAAAGAGTTATTTTGTCTATGCGGATCACTAGTGGTGCAAACCAGTTGTACCCGCTTCAT",
+   "topology": "circular"
+  }
+ ]
+}
