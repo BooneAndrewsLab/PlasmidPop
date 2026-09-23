@@ -65,7 +65,7 @@ reverse strand, partial ends and origin wrap
   kept as it was, unmoved, rather than lost. Topology changes need nothing:
   the text is the same, only its reading differs.
 
-- **Re-checked as the sequence is edited** (#2, 2026-09-24). Decided: yes,
+- **Re-checked as the sequence is edited** (#2, 2026-09-23). Decided: yes,
   with the marker on the feature. `translationProblems`
   (`src/app/state/translationProblems.ts`) checks every coding feature of
   the version on screen, keyed in a `WeakMap` on the feature object and the

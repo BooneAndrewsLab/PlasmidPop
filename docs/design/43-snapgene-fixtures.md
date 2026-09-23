@@ -1,6 +1,6 @@
 # 43. SnapGene fixtures, checked against Biopython
 
-Done, 2026-09-24 (#44). The question was which SnapGene versions to support
+Done, 2026-09-23 (#44). The question was which SnapGene versions to support
 and where test files could come from: SnapGene's own files cannot be
 committed, so CI had only `.dna` files built in memory by the test that
 reads them — the same assumptions on both sides.

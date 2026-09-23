@@ -1,6 +1,6 @@
 # 44. Dam and Dcm methylation
 
-Done, 2026-09-24 (#17). Item 7 left it out because REBASE's `<4>` is where an
+Done, 2026-09-23 (#17). Item 7 left it out because REBASE's `<4>` is where an
 enzyme's own methyltransferase acts, not whether the host's Dam or Dcm
 blocks it, and that needs a separate dataset.
 

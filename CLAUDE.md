@@ -91,7 +91,15 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-23)
 
-**1.1.2** (2026-09-23) is the current release: CDS translations read
+**1.2.0** (2026-09-23) is the current release, the first of the four
+themed minor releases planned after 1.1 (GitHub milestones 1.2–1.5):
+isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
+ladder, double-digest partners (items 39–42), Dam/Dcm marks (item 44), CDS
+translations re-checked as you edit (item 1), SnapGene primers fixed and
+the reader checked against Biopython (item 43), sticky ends through FASTA
+and SnapGene (item 10), a reverse complement that says what it changed
+(item 34), and cross-tab paste with features (item 2).
+**1.1.2** (2026-09-23): CDS translations read
 `/transl_except`, so selenocysteine and pyrrolysine show instead of a stop
 (item 1), and usage statistics carry a catalogue of every event (item 38).
 **1.1.1** (2026-09-23) fixed two GenBank export faults: a LOCUS line
