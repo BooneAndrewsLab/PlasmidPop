@@ -5,6 +5,7 @@ import {
   digestFragments,
   findCutSites,
   getEnzyme,
+  isoschizomerGroups,
   overhangKind,
   overhangLength,
   summarizeEnzymes,
@@ -122,5 +123,48 @@ describe('digestFragments', () => {
     expect(digestFragments([3], 10, 'circular')).toEqual([{ start: 3, end: 13, length: 10 }]);
     expect(digestFragments([], 10, 'circular')).toEqual([{ start: 0, end: 10, length: 10 }]);
     expect(digestFragments([], 0, 'circular')).toEqual([]);
+  });
+});
+
+describe('isoschizomerGroups', () => {
+  const make = (name: string, site: string, cutTop: number, cutBottom: number, suppliers = '') => ({
+    name,
+    site,
+    cutTop,
+    cutBottom,
+    palindromic: true,
+    suppliers: suppliers === '' ? [] : suppliers.split(','),
+  });
+
+  it('groups by site and cut, so neoschizomers stay apart', () => {
+    const groups = isoschizomerGroups([
+      make('XmaI', 'CCCGGG', 1, 5),
+      make('SmaI', 'CCCGGG', 3, 3),
+      make('TspMI', 'cccggg', 1, 5),
+      make('BamHI', 'GGATCC', 1, 5),
+    ]);
+    expect(groups.map((g) => g.members.map((e) => e.name))).toEqual([
+      ['BamHI'],
+      ['SmaI'],
+      ['XmaI', 'TspMI'],
+    ]);
+  });
+
+  it('puts the bundled name first, then the most widely sold', () => {
+    const [group] = isoschizomerGroups([
+      make('BstI', 'GGATCC', 1, 5, 'A,B,C,D'),
+      make('AliI', 'GGATCC', 1, 5, 'A,B'),
+      make('BamHI', 'GGATCC', 1, 5, 'N'),
+      make('OkrAI', 'GGATCC', 1, 5, 'A,B'),
+    ]);
+    expect(group?.members.map((e) => e.name)).toEqual(['BamHI', 'BstI', 'AliI', 'OkrAI']);
+  });
+
+  it('leaves the bundled table nearly one enzyme per group', () => {
+    const groups = isoschizomerGroups(ENZYMES);
+    const shared = groups.filter((g) => g.members.length > 1);
+    // HpaII and MspI are the classic pair: C^CGG both, one blocked by CpG methylation.
+    expect(shared.some((g) => g.members.some((e) => e.name === 'MspI'))).toBe(true);
+    expect(groups.length).toBeGreaterThan(ENZYMES.length - 10);
   });
 });

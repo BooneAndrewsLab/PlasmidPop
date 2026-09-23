@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { type CutSite, SeqDocument, activeEnzymes } from '@/core';
+import { type CutSite, type Enzyme, SeqDocument, activeEnzymes, setActiveEnzymeSet } from '@/core';
 
 import { MAX_DEFAULT_ENZYMES, editorStore } from '../state/editorStore';
 import { EnzymePanel } from './EnzymePanel';
@@ -381,5 +381,134 @@ describe('EnzymePanel cut-count filter', () => {
     render(<EnzymePanel doc={doc} />);
     expect(screen.getByLabelText('Cuts')).toHaveValue('twice');
     expect(listed()).toEqual(names.slice(3, 5));
+  });
+});
+
+describe('EnzymePanel isoschizomers', () => {
+  const enzyme = (name: string, site: string, cut: number, suppliers: string[]): Enzyme => ({
+    name,
+    site,
+    cutTop: cut,
+    cutBottom: site.length - cut,
+    palindromic: true,
+    suppliers,
+  });
+  // BamHI and two isoschizomers; XmaI and SmaI share a site but not a cut.
+  const SET = [
+    enzyme('AliI', 'GGATCC', 1, ['B']),
+    enzyme('BamHI', 'GGATCC', 1, ['N']),
+    enzyme('BstI', 'GGATCC', 1, ['N', 'B', 'K']),
+    enzyme('SmaI', 'CCCGGG', 3, ['N']),
+    enzyme('XmaI', 'CCCGGG', 1, ['N']),
+  ];
+  const cutOnce = (name: string, at: number): CutSite => ({
+    enzyme: name,
+    cut: at,
+    cutBottom: at,
+    siteStart: at - 1,
+    strand: 'forward',
+  });
+  const SITES = [
+    ...['AliI', 'BamHI', 'BstI'].map((n) => cutOnce(n, 101)),
+    cutOnce('SmaI', 503),
+    cutOnce('XmaI', 501),
+  ];
+
+  beforeEach(() => {
+    setActiveEnzymeSet({
+      id: 'rebase',
+      label: 'Test set',
+      enzymes: SET,
+      suppliers: [
+        { code: 'B', name: 'Thermo' },
+        { code: 'K', name: 'Takara' },
+        { code: 'N', name: 'NEB' },
+      ],
+    });
+    act(() => {
+      editorStore.setEnzymeSetInfo({
+        label: 'Test set',
+        count: SET.length,
+        bundled: false,
+        fileName: null,
+        suppliers: [
+          { code: 'B', name: 'Thermo' },
+          { code: 'K', name: 'Takara' },
+          { code: 'N', name: 'NEB' },
+        ],
+      });
+      editorStore.setEnzymeCutFilter('any');
+      editorStore.setEnzymeSupplier('');
+      editorStore.setEnzymeSort('name');
+      editorStore.setEnzymeGroupIsoschizomers(true);
+    });
+  });
+
+  afterEach(() => {
+    setActiveEnzymeSet(null);
+    act(() => {
+      editorStore.closeDocument();
+      editorStore.setEnzymeGroupIsoschizomers(true);
+    });
+  });
+
+  it('lists enzymes with the same site and cut as one row, and ticks one of them', () => {
+    setup(SITES);
+    // BamHI is the bundled table's name for it; neoschizomers keep their own rows.
+    expect(listed()).toEqual(['BamHI', 'SmaI', 'XmaI']);
+    expect([...editorStore.getState().shownEnzymes].sort()).toEqual(['BamHI', 'SmaI', 'XmaI']);
+    expect(screen.getByTitle('Same site and cut: BstI and AliI')).toHaveTextContent('+2');
+    expect(
+      screen.getByText(/5 of 5 enzymes .* in 3 rows with isoschizomers together/),
+    ).toBeVisible();
+  });
+
+  it('lists them separately when asked to', () => {
+    setup(SITES);
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'share a row' }));
+    });
+    expect(listed()).toEqual(['AliI', 'BamHI', 'BstI', 'SmaI', 'XmaI']);
+    expect(editorStore.getState().enzymeGroupIsoschizomers).toBe(false);
+  });
+
+  it('names the row after the enzyme searched for, ticked, or sold by the supplier', () => {
+    setup(SITES);
+    const search = screen.getByRole('searchbox', { name: 'Filter enzymes' });
+    fireEvent.change(search, { target: { value: 'bamh' } });
+    expect(listed()).toEqual(['BamHI']);
+    fireEvent.change(search, { target: { value: '' } });
+    act(() => {
+      editorStore.setShownEnzymes(['AliI']);
+    });
+    expect(listed()).toEqual(['AliI', 'SmaI', 'XmaI']);
+    act(() => {
+      editorStore.setShownEnzymes([]);
+      editorStore.setEnzymeSupplier('K');
+    });
+    expect(listed()).toEqual(['BstI']);
+    act(() => {
+      editorStore.setEnzymeSupplier('B');
+    });
+    // AliI and BstI are sold by B; BstI is sold by more companies.
+    expect(listed()).toEqual(['BstI']);
+    expect(screen.getByTitle('Same site and cut: AliI')).toBeVisible();
+  });
+
+  it('unticks every member when the row is unticked', () => {
+    setup(SITES);
+    act(() => {
+      editorStore.setShownEnzymes(['AliI', 'BamHI', 'XmaI']);
+    });
+    // The row is named after the first ticked member in the group's order.
+    const row = [...document.querySelectorAll('.enzyme-row__name')]
+      .find((n) => n.textContent === 'BamHI')
+      ?.closest('li');
+    const box = row?.querySelector('input');
+    expect(box).toBeChecked();
+    act(() => {
+      if (box) fireEvent.click(box);
+    });
+    expect([...editorStore.getState().shownEnzymes]).toEqual(['XmaI']);
   });
 });

@@ -16,6 +16,7 @@ import {
   enzymeProfile,
   gelProfile,
   getEnzyme,
+  isoschizomerGroups,
   overhangKind,
 } from '@/core';
 
@@ -104,6 +105,17 @@ function describeEnzyme(enzyme: Enzyme): string {
     lines.push(`Isoschizomers: ${iso.slice(0, 8).join(', ')}${iso.length > 8 ? ', …' : ''}`);
   }
   return lines.join('\n');
+}
+
+/** "BstI, AliI and 3 more", a row's other names. */
+function describeOthers(shown: Enzyme, members: readonly Enzyme[]): string {
+  const others = members.filter((e) => e !== shown).map((e) => e.name);
+  const named = others.slice(0, 8);
+  const rest = others.length - named.length;
+  if (rest > 0) return `${named.join(', ')} and ${rest} more`;
+  return named.length > 1
+    ? `${named.slice(0, -1).join(', ')} and ${named[named.length - 1] ?? ''}`
+    : named.join('');
 }
 
 /**
@@ -234,6 +246,7 @@ export function EnzymePanel({ doc }: Props) {
     enzymeCutFilter,
     enzymeSupplier,
     enzymeSort,
+    enzymeGroupIsoschizomers: grouped,
   } = useEditorState();
   const [filter, setFilter] = useState('');
   const [importing, setImporting] = useState(false);
@@ -353,25 +366,60 @@ export function EnzymePanel({ doc }: Props) {
     ];
   }, [tickedGroups, ticked, fragments, doc.length, doc.topology]);
 
-  const needle = filter.trim().toLowerCase();
-  const matching = groups.filter(
-    (g) =>
-      matchesCutCount(enzymeCutFilter, g.sites.length) &&
-      (supplier === '' || g.enzyme.suppliers?.includes(supplier) === true) &&
-      (needle === '' ||
-        g.enzyme.name.toLowerCase().includes(needle) ||
-        g.enzyme.site.toLowerCase().includes(needle)),
+  /**
+   * What one row of the list stands for: an enzyme, or with isoschizomers
+   * grouped, every enzyme that cuts the same site in the same place, best
+   * known first. They cut identically, so any member's sites are the row's.
+   */
+  const units = useMemo(
+    () =>
+      grouped
+        ? isoschizomerGroups(activeEnzymes()).map((g) => g.members)
+        : activeEnzymes().map((e) => [e]),
+    // Module state again; see `groups`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [grouped, enzymeSetInfo],
   );
-  // `activeEnzymes()` is already in name order, so only the other sort has
-  // any work to do. Ties keep that order, which is why it is a stable sort.
-  const rows =
-    enzymeSort === 'bands'
-      ? [...matching].sort((a, b) =>
+  const entryByName = useMemo(() => new Map(groups.map((g) => [g.enzyme.name, g])), [groups]);
+
+  const needle = filter.trim().toLowerCase();
+  const rows = useMemo(() => {
+    const matching = units.flatMap((all) => {
+      // Only what the supplier sells can stand for the row, or the name on it
+      // would be one you cannot buy there.
+      const members =
+        supplier === '' ? all : all.filter((e) => e.suppliers?.includes(supplier) === true);
+      const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
+      if (entry === undefined || !matchesCutCount(enzymeCutFilter, entry.sites.length)) return [];
+      const named =
+        needle === '' ? [] : members.filter((e) => e.name.toLowerCase().includes(needle));
+      if (
+        needle !== '' &&
+        named.length === 0 &&
+        !entry.enzyme.site.toLowerCase().includes(needle)
+      ) {
+        return [];
+      }
+      // The name on the row is the one ticked, or the one searched for, so
+      // neither disappears behind a better-known isoschizomer.
+      const enzyme = members.find((e) => shownEnzymes.has(e.name)) ?? named[0] ?? entry.enzyme;
+      return [{ enzyme, members, sites: entry.sites, profile: entry.profile }];
+    });
+    // Ungrouped, `activeEnzymes()` is already in name order; grouped, the name
+    // on a row can be any member's. Ties in the other sort keep that order,
+    // which is why it is a stable sort.
+    const byName = grouped
+      ? [...matching].sort((a, b) => a.enzyme.name.localeCompare(b.enzyme.name))
+      : matching;
+    return enzymeSort === 'bands'
+      ? [...byName].sort((a, b) =>
           a.profile === null || b.profile === null
             ? Number(a.profile === null) - Number(b.profile === null)
             : compareDiagnostic(a.profile, b.profile),
         )
-      : matching;
+      : byName;
+  }, [units, supplier, entryByName, enzymeCutFilter, needle, shownEnzymes, grouped, enzymeSort]);
+  const listedEnzymes = rows.reduce((n, r) => n + r.members.length, 0);
   const nonCutters = groups.filter((g) => g.sites.length === 0).length;
   const cutters = groups.length - nonCutters;
   /**
@@ -383,9 +431,13 @@ export function EnzymePanel({ doc }: Props) {
    * note is how you ask for them anyway.
    */
   const offerFilter = enzymeCutFilter === 'any' ? 'once' : enzymeCutFilter;
-  const offered = groups
-    .filter((g) => matchesCutCount(offerFilter, g.sites.length))
-    .map((g) => g.enzyme.name);
+  const offered = units.flatMap((members) => {
+    const first = members[0];
+    const sites = first === undefined ? undefined : entryByName.get(first.name)?.sites;
+    return first !== undefined && sites !== undefined && matchesCutCount(offerFilter, sites.length)
+      ? [first.name]
+      : [];
+  });
 
   // Only the rows on screen are rendered: an imported table lists thousands.
   const { first, end, padTop, padBottom, attachScroller, attachRow, scrollToTop } = useRowWindow(
@@ -457,6 +509,22 @@ export function EnzymePanel({ doc }: Props) {
               ))}
             </select>
           </label>
+          <span className="panel__form-label">Isoschizomers</span>
+          <span className="panel__form-range">
+            <label
+              className="panel__form-check"
+              title="Enzymes that cut the same site in the same place give the same fragments and ends; list them as one row"
+            >
+              <input
+                type="checkbox"
+                checked={grouped}
+                onChange={(e) => {
+                  editorStore.setEnzymeGroupIsoschizomers(e.target.checked);
+                }}
+              />
+              share a row
+            </label>
+          </span>
           {enzymeSetInfo.suppliers.length > 0 && (
             <label>
               <span>Sold by</span>
@@ -545,7 +613,7 @@ export function EnzymePanel({ doc }: Props) {
         <>
           <div className="enzyme-list__scroll" ref={attachScroller}>
             <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-              {rows.slice(first, end).map(({ enzyme, sites, profile }) => (
+              {rows.slice(first, end).map(({ enzyme, members, sites, profile }) => (
                 <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
                   <label
                     className="enzyme-row__toggle"
@@ -553,12 +621,29 @@ export function EnzymePanel({ doc }: Props) {
                   >
                     <input
                       type="checkbox"
-                      checked={shownEnzymes.has(enzyme.name)}
+                      checked={members.some((e) => shownEnzymes.has(e.name))}
                       onChange={(e) => {
-                        editorStore.setEnzymeShown(enzyme.name, e.target.checked);
+                        if (e.target.checked) editorStore.setEnzymeShown(enzyme.name, true);
+                        else {
+                          // Unticking the row unticks the whole group, or an
+                          // isoschizomer ticked earlier would keep it ticked.
+                          const names = new Set(members.map((m) => m.name));
+                          editorStore.setShownEnzymes(
+                            [...shownEnzymes].filter((name) => !names.has(name)),
+                          );
+                        }
                       }}
                     />
                     <span className="enzyme-row__name">{enzyme.name}</span>
+                    {members.length > 1 && (
+                      <span
+                        className="enzyme-row__more"
+                        title={`Same site and cut: ${describeOthers(enzyme, members)}`}
+                      >
+                        {' '}
+                        +{members.length - 1}
+                      </span>
+                    )}
                   </label>
                   <span className="enzyme-row__site" title={describeEnzyme(enzyme)}>
                     {enzyme.site}
@@ -592,10 +677,13 @@ export function EnzymePanel({ doc }: Props) {
             </ul>
           </div>
           <p className="panel__note">
-            {rows.length.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()} enzymes{' '}
+            {listedEnzymes.toLocaleString()} of {enzymeSetInfo.count.toLocaleString()} enzymes{' '}
             {cutCountPhrase(enzymeCutFilter)}
-            {supplier === '' ? '' : ' and are sold by that supplier'}. {nonCutters.toLocaleString()}{' '}
-            do not cut.
+            {supplier === '' ? '' : ' and are sold by that supplier'}
+            {rows.length < listedEnzymes
+              ? `, in ${rows.length.toLocaleString()} rows with isoschizomers together`
+              : ''}
+            . {nonCutters.toLocaleString()} do not cut.
           </p>
           {enzymeSort === 'bands' && (
             <DoubleDigests listed={rows} doc={doc} shownEnzymes={shownEnzymes} />

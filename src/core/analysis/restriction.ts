@@ -128,6 +128,49 @@ export function getEnzyme(name: string): Enzyme | undefined {
   return byName.get(key) ?? BUNDLED_BY_NAME.get(key);
 }
 
+/**
+ * Enzymes that recognise the same site and cut it in the same place: true
+ * isoschizomers, which give the same fragments with the same ends and so
+ * are one choice at the bench whatever the tube says. Neoschizomers — the
+ * same site cut elsewhere, SmaI and XmaI — are separate groups, because the
+ * ends they leave are what a cloning plan is chosen by.
+ */
+export interface IsoschizomerGroup {
+  /** Site, top cut and bottom cut, e.g. `GGATCC 1 5`. */
+  readonly key: string;
+  /**
+   * Best known first: an enzyme of the bundled table (the name people clone
+   * with), then the one most companies sell, then by name.
+   */
+  readonly members: readonly Enzyme[];
+}
+
+export function isoschizomerKey(e: Pick<Enzyme, 'site' | 'cutTop' | 'cutBottom'>): string {
+  return `${e.site.toUpperCase()} ${e.cutTop} ${e.cutBottom}`;
+}
+
+/** Groups enzymes by specificity, in the order of their first member's name. */
+export function isoschizomerGroups(enzymes: readonly Enzyme[]): IsoschizomerGroup[] {
+  const byKey = new Map<string, Enzyme[]>();
+  for (const enzyme of enzymes) {
+    const key = isoschizomerKey(enzyme);
+    const group = byKey.get(key);
+    if (group === undefined) byKey.set(key, [enzyme]);
+    else group.push(enzyme);
+  }
+  const rank = (e: Enzyme): number => (BUNDLED_BY_NAME.has(e.name.toLowerCase()) ? 1 : 0);
+  const groups = [...byKey].map(([key, members]) => ({
+    key,
+    members: members.sort(
+      (a, b) =>
+        rank(b) - rank(a) ||
+        (b.suppliers?.length ?? 0) - (a.suppliers?.length ?? 0) ||
+        a.name.localeCompare(b.name),
+    ),
+  }));
+  return groups.sort((a, b) => (a.members[0]?.name ?? '').localeCompare(b.members[0]?.name ?? ''));
+}
+
 export interface CutSite {
   readonly enzyme: string;
   /** Where the top strand is cut: the index of the first base after the cut, 0..length. */

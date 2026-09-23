@@ -11,11 +11,14 @@ below.
 
 ## Reading the list
 
-Each row is one enzyme that cuts the sequence:
+Each row is one enzyme that cuts the sequence — or, with isoschizomers
+sharing a row, every enzyme that cuts it identically (see
+[Isoschizomers](#isoschizomers)):
 
 - a **tick box** that chooses the enzyme: its cut sites are drawn in the
   views, and the Cloning tab digests with it;
-- the **name**;
+- the **name**, with **+N** after it when N other enzymes share the row
+  (hover it for their names);
 - the **recognition site**, 5′→3′ on the top strand (hover to see whether it
   leaves a blunt end, a 5′ overhang or a 3′ overhang);
 - the **cut positions**: the base after which the top strand is cut. Click
@@ -67,7 +70,9 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   after you import a REBASE table, which is where the supplier information
   comes from.
 
-**Cuts**, **Order** and **Sold by** are remembered between sessions, like
+- **Isoschizomers: share a row** is described [below](#isoschizomers).
+
+**Cuts**, **Order**, **Sold by** and **Isoschizomers** are remembered between sessions, like
 the toolbar's view settings: they say what you are generally looking for
 rather than anything about the document. The name filter is not — it is a
 question about the list in front of you, not a standing choice.
@@ -110,6 +115,32 @@ single lane is the piece between the two enzymes' sites. The sizes are
 written beside the combined lane; hover a band in any lane for its size, and
 the line under the gel lists what each enzyme gives alone. Tick four or more
 and the gel goes back to one lane for them all.
+
+## Isoschizomers
+
+Enzymes from different organisms often recognise the same site and cut it
+in the same place — BamHI, BstI and a dozen others all cut `G^GATCC`. They
+give the same fragments with the same ends, so at the bench they are one
+choice whatever the label on the tube. With **Isoschizomers: share a row**
+ticked (the default), they are listed as one row: an imported REBASE table
+of about 1,550 enzymes becomes about 400 rows.
+
+- The row carries the best-known name: an enzyme from the bundled table if
+  there is one, otherwise the one sold by most companies. A name you
+  searched for, or one you ticked, takes its place, and with **Sold by**
+  set only that supplier's enzymes can name the row.
+- Ticking the row ticks the enzyme named on it, and unticking it unticks
+  every enzyme in the row.
+- When a document opens and its single cutters are ticked, one enzyme per
+  row is ticked, so one cut is drawn with one label rather than twelve.
+- The count under the list still counts enzymes, and says how many rows
+  they take.
+
+Enzymes that recognise the same site but cut it differently —
+_neoschizomers_ such as SmaI (`CCC^GGG`, blunt) and XmaI (`C^CCGGG`, 5′
+overhang) — keep separate rows, because the ends they leave are what a
+cloning plan depends on. Untick **share a row** to list every enzyme on its
+own.
 
 ## Hiding the cut sites without losing the choice
 

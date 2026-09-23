@@ -16,10 +16,12 @@ import {
   DEFAULT_TABLE,
   History,
   SeqDocument,
+  activeEnzymes,
   createFeature,
   describeEditOp,
   documentChecksum,
   isEmptyRange,
+  isoschizomerGroups,
   newId,
   rangeSegment,
 } from '@/core';
@@ -72,6 +74,20 @@ export const ERROR_FADE_MS = 400;
  * and the Enzymes tab offers them in one click.
  */
 export const MAX_DEFAULT_ENZYMES = 50;
+
+/**
+ * One name per isoschizomer group, the one the group lists first: ticking
+ * BamHI and its eleven REBASE isoschizomers draws twelve labels on one cut.
+ */
+function firstOfEachGroup(names: readonly string[]): string[] {
+  const wanted = new Set(names);
+  const out: string[] = [];
+  for (const group of isoschizomerGroups(activeEnzymes())) {
+    const first = group.members.find((e) => wanted.has(e.name));
+    if (first !== undefined) out.push(first.name);
+  }
+  return out;
+}
 
 /** Ops that leave the sequence and topology alone, so analysis results stay exact. */
 const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
@@ -295,6 +311,12 @@ export interface SharedState {
    */
   readonly enzymeSort: EnzymeSort;
   /**
+   * Whether enzymes with the same site and cut share one row of the Enzymes
+   * tab, and one tick when a document opens (item 39). A REBASE table lists
+   * a dozen names for BamHI's specificity; they are one choice at the bench.
+   */
+  readonly enzymeGroupIsoschizomers: boolean;
+  /**
    * Which of the three reactions the Cloning tab shows. Remembered for the
    * same reason the enzyme filters are: a lab that does Gibson does Gibson
    * every week, and coming back to the tab on someone else's reaction is a
@@ -450,6 +472,7 @@ const SHARED_INITIAL: SharedState = {
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
   enzymeSort: 'name',
+  enzymeGroupIsoschizomers: true,
   cloningReaction: 'ligation',
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
@@ -1086,7 +1109,8 @@ export class EditorStore {
     if (!enzymesInitialized) {
       const counts = new Map<string, number>();
       for (const s of cutSites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
-      const singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
+      let singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
+      if (this.state.enzymeGroupIsoschizomers) singles = firstOfEachGroup(singles);
       shownEnzymes = new Set(singles.length > MAX_DEFAULT_ENZYMES ? [] : singles);
       enzymesInitialized = true;
     }
@@ -1120,6 +1144,12 @@ export class EditorStore {
 
   setEnzymeSort(sort: EnzymeSort): void {
     if (sort !== this.state.enzymeSort) this.setShared({ enzymeSort: sort });
+  }
+
+  setEnzymeGroupIsoschizomers(group: boolean): void {
+    if (group !== this.state.enzymeGroupIsoschizomers) {
+      this.setShared({ enzymeGroupIsoschizomers: group });
+    }
   }
 
   setCloningReaction(reaction: CloningReaction): void {

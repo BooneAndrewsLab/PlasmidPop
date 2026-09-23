@@ -45,6 +45,7 @@ export interface ViewPrefs {
   readonly enzymeCutFilter: CutCountFilter;
   readonly enzymeSupplier: string;
   readonly enzymeSort: EnzymeSort;
+  readonly enzymeGroupIsoschizomers: boolean;
   /** Which reaction the Cloning tab shows; see `SharedState.cloningReaction`. */
   readonly cloningReaction: CloningReaction;
   /** The code the Translate tab and the ORF scan read with. */
@@ -131,6 +132,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     'numberComplement',
     'colorBases',
     'sidebarOpen',
+    'enzymeGroupIsoschizomers',
   ] as const) {
     if (typeof record[key] === 'boolean') prefs[key] = record[key];
   }
@@ -161,6 +163,7 @@ function snapshot(): ViewPrefs {
     enzymeCutFilter,
     enzymeSupplier,
     enzymeSort,
+    enzymeGroupIsoschizomers,
     cloningReaction,
     geneticCode,
     primerCriteria,
@@ -180,6 +183,7 @@ function snapshot(): ViewPrefs {
     enzymeCutFilter,
     enzymeSupplier,
     enzymeSort,
+    enzymeGroupIsoschizomers,
     cloningReaction,
     geneticCode,
     primerCriteria,
@@ -202,6 +206,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.enzymeCutFilter === b.enzymeCutFilter &&
     a.enzymeSupplier === b.enzymeSupplier &&
     a.enzymeSort === b.enzymeSort &&
+    a.enzymeGroupIsoschizomers === b.enzymeGroupIsoschizomers &&
     a.cloningReaction === b.cloningReaction &&
     a.geneticCode === b.geneticCode &&
     samePrimerCriteria(a.primerCriteria, b.primerCriteria)
@@ -232,6 +237,9 @@ export function startViewPrefs(): () => void {
   if (stored.enzymeCutFilter !== undefined) editorStore.setEnzymeCutFilter(stored.enzymeCutFilter);
   if (stored.enzymeSupplier !== undefined) editorStore.setEnzymeSupplier(stored.enzymeSupplier);
   if (stored.enzymeSort !== undefined) editorStore.setEnzymeSort(stored.enzymeSort);
+  if (stored.enzymeGroupIsoschizomers !== undefined) {
+    editorStore.setEnzymeGroupIsoschizomers(stored.enzymeGroupIsoschizomers);
+  }
   if (stored.cloningReaction !== undefined) {
     editorStore.setCloningReaction(stored.cloningReaction);
   }
