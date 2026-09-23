@@ -63,8 +63,24 @@ not attract the alignment.
 
 Alignment runs in a background thread and the interface stays responsive.
 A long one shows a progress bar with the percentage done and a **Cancel**
-button; leaving the Align tab cancels it too. Inputs whose product exceeds
-150 million cells (about 12 kb × 12 kb, a few seconds) are refused to
-protect the browser's memory; align against a selection for longer inputs. For large inputs the orientation is picked
-first from the short words the two sequences share, so only one alignment
-runs; when neither orientation clearly wins, both are aligned.
+button; leaving the Align tab cancels it too. For large inputs the
+orientation is picked first from the short words the two sequences share,
+so only one alignment runs; when neither orientation clearly wins, both are
+aligned.
+
+A long read against the plasmid it came from — a nanopore read of 10 kb,
+say — is aligned in a band around the words the two share rather than over
+every pair of bases, which takes a fraction of a second rather than
+several. The answer is the same: when the best path runs along the edge of
+the band, the band is widened and the alignment done again. Two sequences
+that share too little for a band, and would need more than 150 million
+cells in full (about 12 kb × 12 kb), are refused to protect the browser's
+memory; align against a selection for those.
+
+## Reads through the origin
+
+On a circular document, a **Local** alignment against the whole document
+finds a read that runs through the origin, such as a whole-plasmid nanopore
+read that happens to start in the middle. Positions are numbered as the
+document's, going from its last base back to 1, and **Select aligned
+region in this document** selects across the origin.

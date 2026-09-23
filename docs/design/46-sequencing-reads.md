@@ -100,6 +100,42 @@ alongside it.
   an AB1 and the box holds the reference, its qualities are ignored. Aligning
   the read into the reference is the usual way round.
 
+## Long reads (#51)
+
+- **Banded, around anchors** (`core/alignment/banded.ts`). The read's
+  15-mers found in the reference (a word met more than four times there is
+  a repeat and skipped) are anchors; their longest chain rising in both
+  sequences is the guide, and an anchor whose diagonal is far from both
+  neighbours' is dropped as a chance match. 15 rather than the strand
+  check's 11: a chain wants few chance matches more than many true ones,
+  and a 5% error read still keeps about half its 15-mers.
+- **The band is the rectangles between anchors.** The optimal path between
+  two anchors that lie on it cannot leave the rectangle they span, however
+  many indels the read has in between, so a long insertion or a stretch
+  without anchors is covered without guessing a width. Each rectangle is
+  padded by a margin (64 first) for anchors slightly off the path; past
+  the chain's ends the band follows the diagonal; a global alignment adds
+  the matrix corners as anchors. Made monotone, it is what the fill needs.
+- **Checked by its edge.** A path that touches the band's edge (not the
+  matrix's) may have been cut off, so the margin is widened (256, 1024) and
+  the fill run again; at the widest, the full alignment replaces it if it
+  fits. Tests compare the banded score with the full one on noisy reads,
+  a 400-base insertion and a repeated segment.
+- **One fill** (`alignInBand`): the full alignment is the band of every
+  cell, same visiting order and tie-breaking, checked identical on 800
+  random pairs before the old fill was removed; 5% slower in full, which
+  buys not having two fills to keep in step.
+- **When**: up to 25 M cells the full fill, exact and under a second;
+  past it the band. Too little in common to band and too large in full is
+  refused, saying which.
+- **Through the origin.** A local alignment against a whole circular
+  document is made against the sequence with its start repeated after its
+  end, as far as the read is long; an alignment found wholly in the repeat
+  is moved one turn back, positions are shown modulo the length, and the
+  selection is the unrolled range the document model already has for a
+  range across the origin. A read longer than the circle (a concatemer)
+  selects the circle once.
+
 ## Found on the way
 
 - **A second banner above the views collapsed to nothing.** `.app__editor`

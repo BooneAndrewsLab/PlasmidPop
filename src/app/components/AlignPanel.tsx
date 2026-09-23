@@ -130,11 +130,14 @@ function AlignmentBlocks({
   alignment,
   offsetA,
   offsetB,
+  wrap,
   qualities,
 }: {
   alignment: Alignment;
   offsetA: number;
   offsetB: number;
+  /** A circular document's length, when positions past its end go round again. */
+  wrap: number | null;
   /** The read's quality under each column, or null without qualities. */
   qualities: readonly number[] | null;
 }) {
@@ -152,7 +155,7 @@ function AlignmentBlocks({
     <pre className="alignment">
       {blocks.map((blk) => (
         <div key={`${blk.posA}-${blk.posB}`} className="alignment__block">
-          {`${String(blk.posA + 1).padStart(7)} ${blk.a}\n${' '.repeat(8)}${blk.m}\n${String(blk.posB + 1).padStart(7)} `}
+          {`${String((wrap === null ? blk.posA : blk.posA % wrap) + 1).padStart(7)} ${blk.a}\n${' '.repeat(8)}${blk.m}\n${String(blk.posB + 1).padStart(7)} `}
           <ReadLine
             bases={blk.b}
             qualities={qualities === null ? null : qualities.slice(blk.at, blk.at + BLOCK)}
@@ -179,10 +182,12 @@ const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
 function ReadSummary({
   differences,
   offset,
+  wrap,
   docName,
 }: {
   differences: readonly ReadDifference[];
   offset: number;
+  wrap: number | null;
   docName: string;
 }) {
   const confident = differences.filter((d) => d.confident);
@@ -197,7 +202,7 @@ function ReadSummary({
       {confident.length > 0 && (
         <ul className="read-summary__list">
           {confident.slice(0, 50).map((d) => {
-            const at = offset + d.positionA;
+            const at = wrap === null ? offset + d.positionA : (offset + d.positionA) % wrap;
             return (
               <li key={d.column}>
                 <button
@@ -241,6 +246,8 @@ export function AlignPanel({ doc }: Props) {
     alignment: Alignment;
     strand: 'forward' | 'reverse';
     offset: number;
+    /** The document's length when the alignment may run past its origin, else null. */
+    wrap: number | null;
     /** Where the aligned stretch of the other sequence starts, as numbered on screen. */
     offsetB: number;
     lengthB: number;
@@ -335,7 +342,13 @@ export function AlignPanel({ doc }: Props) {
       useSelection && selection !== null && hasSelection
         ? selection
         : { start: 0, end: doc.length };
-    const a = doc.subsequence(target);
+    // A read of a circular plasmid may run through its origin: a local
+    // alignment is made against the sequence with its start repeated after
+    // its end, far enough for the read to fit (#51).
+    const whole = target.start === 0 && target.end === doc.length;
+    const wrap = whole && doc.isCircular && mode === 'local' && doc.length > 1 ? doc.length : null;
+    const own = doc.subsequence(target);
+    const a = wrap === null ? own : own + own.slice(0, Math.min(b.length, own.length - 1));
     analytics.track('align', 'run', mode);
     const controller = new AbortController();
     running.current = controller;
@@ -350,13 +363,25 @@ export function AlignPanel({ doc }: Props) {
         // numbering, which counts along the reverse complement of the whole read.
         const oriented =
           qualities === null ? null : reverse ? qualities.slice().reverse() : qualities;
+        // Found wholly in the repeated start: the same alignment one turn back.
+        const turn = wrap !== null && best.alignment.startA >= wrap ? wrap : 0;
+        const alignment =
+          turn === 0
+            ? best.alignment
+            : {
+                ...best.alignment,
+                startA: best.alignment.startA - turn,
+                endA: best.alignment.endA - turn,
+              };
         setResult({
           ...best,
+          alignment,
           offset: target.start,
+          wrap,
           offsetB: reverse ? full.length - kept.end : kept.start,
           lengthB: b.length,
           trimmed,
-          qualities: oriented === null ? null : columnQualities(best.alignment, oriented),
+          qualities: oriented === null ? null : columnQualities(alignment, oriented),
         });
       })
       .catch((e: unknown) => {
@@ -530,7 +555,11 @@ export function AlignPanel({ doc }: Props) {
             className="button button--quiet button--small"
             onClick={() => {
               const start = result.offset + result.alignment.startA;
-              const end = result.offset + result.alignment.endA;
+              // Past the origin is fine (a wrapping range); round it more than once is not.
+              const end = Math.min(
+                result.offset + result.alignment.endA,
+                start + (result.wrap ?? Number.POSITIVE_INFINITY),
+              );
               if (end > start) {
                 editorStore.setSelection({ start, end });
                 editorStore.revealPosition(start);
@@ -550,6 +579,7 @@ export function AlignPanel({ doc }: Props) {
             <ReadSummary
               differences={readDifferences(result.alignment, result.qualities)}
               offset={result.offset}
+              wrap={result.wrap}
               docName={doc.name}
             />
           )}
@@ -557,6 +587,7 @@ export function AlignPanel({ doc }: Props) {
             alignment={result.alignment}
             offsetA={result.offset}
             offsetB={result.offsetB}
+            wrap={result.wrap}
             qualities={result.qualities}
           />
         </div>

@@ -212,4 +212,33 @@ describe('AlignPanel', () => {
       expect(screen.queryByRole('checkbox', { name: 'Trim poor ends' })).toBeNull();
     });
   });
+
+  it('aligns a read through the origin of a circular document (#51)', async () => {
+    let x = 11;
+    let plasmid = '';
+    for (let i = 0; i < 1000; i++) {
+      x = (x * 1103515245 + 12345) & 0x7fffffff;
+      plasmid += 'ACGT'.charAt((x >> 16) & 3);
+    }
+    const circle = SeqDocument.create({ name: 'pCirc', sequence: plasmid, topology: 'circular' });
+    act(() => {
+      editorStore.openDocument(circle);
+    });
+    render(<AlignPanel doc={circle} />);
+    // 300 bases before the origin and 400 after it.
+    fireEvent.change(box(), { target: { value: plasmid.slice(700) + plasmid.slice(0, 400) } });
+    fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity 100% over 700 columns/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select aligned region in this document' }));
+    expect(editorStore.getState().selection).toEqual({ start: 700, end: 1400 });
+    // Numbered as the document is, round the origin: blocks of 60 from 701
+    // reach 941, and the next begins at base 1 again.
+    const starts = [...document.querySelectorAll('.alignment__block')].map((b) =>
+      Number(b.textContent.trim().split(/\s+/)[0]),
+    );
+    expect(starts.slice(0, 7)).toEqual([701, 761, 821, 881, 941, 1, 61]);
+  });
 });

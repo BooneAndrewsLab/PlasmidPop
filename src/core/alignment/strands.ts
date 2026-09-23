@@ -1,10 +1,13 @@
 import { type Strand } from '../features/feature';
 import { reverseComplement } from '../sequence/alphabet';
 
+import { alignBanded } from './banded';
 import {
   type Alignment,
   type AlignmentOptions,
   type AlignmentProgress,
+  AlignmentTooLargeError,
+  DEFAULT_MAX_CELLS,
   alignPairwise,
 } from './pairwise';
 
@@ -22,10 +25,41 @@ const K = 11;
 const BOTH_STRANDS_BELOW = 4_000_000;
 
 /**
+ * Up to this many cells a pair is aligned in full, the exact answer in
+ * well under a second; past it, in a band around the words the two share
+ * (#51), which is what makes a 10 kb read against its plasmid cheap.
+ */
+const FULL_UP_TO = 25_000_000;
+
+/**
+ * One alignment: in full when that is small, else in a band. The band is
+ * dropped for the full alignment when its path ran along the band's edge
+ * even at its widest and the full one fits, and when the two share too
+ * little to band around; a pair too large for either is refused saying
+ * which.
+ */
+export function alignLong(
+  a: string,
+  b: string,
+  options: AlignmentOptions = {},
+  onProgress?: AlignmentProgress,
+): Alignment {
+  const cells = (a.length + 1) * (b.length + 1);
+  const maxCells = options.maxCells ?? DEFAULT_MAX_CELLS;
+  if (cells <= FULL_UP_TO) return alignPairwise(a, b, options, onProgress);
+  const banded = alignBanded(a, b, options, onProgress);
+  if (banded !== null && (!banded.touchedEdge || cells > maxCells)) return banded.alignment;
+  if (banded === null && cells > maxCells) {
+    throw new AlignmentTooLargeError(cells, maxCells, 'unanchored');
+  }
+  return alignPairwise(a, b, options, onProgress);
+}
+
+/**
  * Aligns `b` and its reverse complement to `a` and keeps the higher score.
  * For large inputs the strand is chosen first by counting `b`'s 11-mers
- * found in `a` on each strand, so only one full alignment runs; it takes
- * both when the counts do not clearly favour one (#48).
+ * found in `a` on each strand, so only one alignment runs; it takes both
+ * when the counts do not clearly favour one (#48).
  */
 export function alignEitherStrand(
   a: string,
@@ -38,7 +72,7 @@ export function alignEitherStrand(
   if (cells >= BOTH_STRANDS_BELOW) {
     const strand = likelyStrand(a, b, rc);
     if (strand !== null) {
-      const alignment = alignPairwise(a, strand === 'forward' ? b : rc, options, onProgress);
+      const alignment = alignLong(a, strand === 'forward' ? b : rc, options, onProgress);
       return { alignment, strand };
     }
   }
@@ -49,8 +83,8 @@ export function alignEitherStrand(
       : (f) => {
           onProgress(from + f / 2);
         };
-  const fwd = alignPairwise(a, b, options, half(0));
-  const rev = alignPairwise(a, rc, options, half(0.5));
+  const fwd = alignLong(a, b, options, half(0));
+  const rev = alignLong(a, rc, options, half(0.5));
   return rev.score > fwd.score
     ? { alignment: rev, strand: 'reverse' }
     : { alignment: fwd, strand: 'forward' };
