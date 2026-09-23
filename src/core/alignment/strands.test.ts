@@ -49,7 +49,8 @@ describe('likelyStrand', () => {
   });
 });
 
-describe('alignEitherStrand', () => {
+// The last test aligns 7.8 M cells twice to compare: seconds on a CI runner.
+describe('alignEitherStrand', { timeout: 60_000 }, () => {
   it('aligns small inputs on both strands and keeps the better', () => {
     const plasmid = randomSequence(600, 3);
     const read = reverseComplement(plasmid.slice(100, 400));

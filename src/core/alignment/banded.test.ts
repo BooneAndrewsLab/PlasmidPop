@@ -32,7 +32,11 @@ function noisy(seq: string, rate: number, next: () => number): string {
   return out;
 }
 
-describe('banded alignment (#51)', () => {
+// Several tests check the band against a full alignment of 12–24 M cells:
+// under a second here, 7–13 s on a shared CI runner.
+const FULL_ALIGNMENT_MS = 60_000;
+
+describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
   it.each([1, 2, 3])('scores a noisy read as the full alignment does (seed %i)', (seed) => {
     const next = rng(seed);
     const reference = randomSequence(5000, next);
