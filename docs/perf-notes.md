@@ -6,20 +6,24 @@ implementation changes.
 
 ## Pairwise alignment (Gotoh affine, global)
 
-| Date       | Input            | Cells | Time   | Where                                 |
-| ---------- | ---------------- | ----- | ------ | ------------------------------------- |
-| 2026-09-17 | 3,000 × 2,940 bp | 8.8 M | 278 ms | Node 24 (V8), `pairwise.test.ts` perf |
-| 2026-09-18 | 3,000 × 2,940 bp | 8.8 M | 1.8 s  | GitHub Actions ubuntu-latest runner   |
+| Date       | Input            | Cells | Time   | Where                                  |
+| ---------- | ---------------- | ----- | ------ | -------------------------------------- |
+| 2026-09-17 | 3,000 × 2,940 bp | 8.8 M | 278 ms | Node 24 (V8), `pairwise.test.ts` perf  |
+| 2026-09-18 | 3,000 × 2,940 bp | 8.8 M | 1.8 s  | GitHub Actions ubuntu-latest runner    |
+| 2026-09-23 | 5,000 × 5,000 bp | 25 M  | 820 ms | Node 24, packed traceback (was 960 ms) |
+| 2026-09-23 | 12,000 × 10,409  | 125 M | 3.2 s  | Node 24, local, one strand, 220 MB RSS |
 
-About 30 ns per cell including traceback bookkeeping, ~3 bytes per cell of
-traceback memory. Extrapolated: 5 kb × 5 kb ≈ 0.8 s and 75 MB; 10 kb × 10 kb
-≈ 3 s and 300 MB. The in-browser limit is set to 30 M cells (roughly
-5.5 kb × 5.5 kb) and alignment runs in the analysis worker so the UI never
-blocks.
+About 26 ns per cell including traceback bookkeeping, one byte per cell of
+traceback memory (three until 2026-09-23, item 45). The 12 kb row is a
+noisy (≈7% error) reverse-strand read against a random plasmid, the case a
+user reported; the strand was picked by 11-mer count, so one alignment ran
+instead of two. The in-browser limit is 150 M cells (roughly 12 kb × 12 kb,
+150 MB) and alignment runs in the analysis worker so the UI never blocks.
 
 Decision: no WASM for v1. Plasmid-scale alignments finish in well under a
-second. Revisit (Rust/WASM plus a banded or linear-space algorithm) if
-alignment of >10 kb inputs becomes a requested workflow.
+second and a 10 kb read in a few. The limit is the quadratic algorithm, not
+the language: longer reads want a banded alignment around k-mer anchors
+(#51), with WASM only if that measures too slow.
 
 ## Edit marks (sequence diff)
 

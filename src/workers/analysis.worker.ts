@@ -1,4 +1,11 @@
-import { activeEnzymes, alignPairwise, findCutSites, findOrfs, setActiveEnzymeSet } from '@/core';
+import {
+  activeEnzymes,
+  alignEitherStrand,
+  alignPairwise,
+  findCutSites,
+  findOrfs,
+  setActiveEnzymeSet,
+} from '@/core';
 
 import { type AnalysisRequest, type AnalysisResponse, packCutSites } from './analysisProtocol';
 
@@ -29,6 +36,12 @@ export function handleAnalysisRequest(req: AnalysisRequest): AnalysisResponse {
         };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
+      case 'alignEitherStrand':
+        return {
+          id: req.id,
+          kind: 'alignEitherStrand',
+          result: alignEitherStrand(req.a, req.b, req.options),
+        };
     }
   } catch (e) {
     return { id: req.id, kind: 'error', message: e instanceof Error ? e.message : String(e) };

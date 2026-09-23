@@ -5,6 +5,7 @@ import {
   type EnzymeSet,
   type Orf,
   type OrfOptions,
+  type StrandedAlignment,
   type Topology,
 } from '@/core';
 
@@ -41,6 +42,14 @@ export type AnalysisRequest =
       readonly a: string;
       readonly b: string;
       readonly options: AlignmentOptions;
+    }
+  | {
+      /** `b` or its reverse complement, whichever aligns better. */
+      readonly id: number;
+      readonly kind: 'alignEitherStrand';
+      readonly a: string;
+      readonly b: string;
+      readonly options: AlignmentOptions;
     };
 
 export type AnalysisResponse =
@@ -48,6 +57,11 @@ export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'cutSites'; readonly sites: PackedCutSites }
   | { readonly id: number; readonly kind: 'orfs'; readonly orfs: Orf[] }
   | { readonly id: number; readonly kind: 'align'; readonly alignment: Alignment }
+  | {
+      readonly id: number;
+      readonly kind: 'alignEitherStrand';
+      readonly result: StrandedAlignment;
+    }
   | { readonly id: number; readonly kind: 'error'; readonly message: string };
 
 /**

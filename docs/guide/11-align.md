@@ -14,20 +14,29 @@ design.
    plasmid.
 3. Tick **Against selection only** to align against the selected part of
    the document instead of all of it.
-4. Click **Align**. Both orientations of the pasted sequence are tried and
-   the better one is shown; the heading says when it was the reverse
+4. Click **Align**. Both orientations of the other sequence are considered
+   and the better one is shown; the heading says when it was the reverse
    complement.
 
 The result reports the score, percent identity, the number of columns and
 of gap columns, then the alignment in blocks of 60 with the document
 position (1-based) at the start of each line. `|` marks identical bases,
-`.` a mismatch and a space a gap. **Select aligned region in this
+`:` a base matched only through an ambiguity code (an `N` in a read, or
+`R` in the document against an `A`), `.` a mismatch and a space a gap.
+Identity counts only the `|` columns. **Select aligned region in this
 document** selects the covered bases so you can annotate or copy them.
 
 ## Scoring and limits
 
 Scores use match +5, mismatch −4, gap open −10 and gap extend −0.5 (the
-EMBOSS DNAfull scheme). Alignment runs in a background thread and the
-interface stays responsive; inputs whose product exceeds 30 million cells
-(about 5.5 kb × 5.5 kb) are refused to protect the browser's memory. Align
-against a selection, or a smaller region, for longer inputs.
+EMBOSS DNAfull scheme). Ambiguity codes score by the same scheme, by the
+bases they stand for: `A` against `R` (A or G) +1, `A` against `N` −2. An
+`N` is therefore neither a match nor a full mismatch, and a run of them does
+not attract the alignment.
+
+Alignment runs in a background thread and the interface stays responsive.
+Inputs whose product exceeds 150 million cells (about 12 kb × 12 kb, a few
+seconds) are refused to protect the browser's memory; align against a
+selection for longer inputs. For large inputs the orientation is picked
+first from the short words the two sequences share, so only one alignment
+runs; when neither orientation clearly wins, both are aligned.

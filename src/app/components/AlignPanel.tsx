@@ -7,7 +7,6 @@ import {
   type SeqDocument,
   isEmptyRange,
   normalizeSequenceInput,
-  reverseComplement,
 } from '@/core';
 import { parseSequenceFile } from '@/io';
 import { analysisClient } from '@/workers/analysisClient';
@@ -98,16 +97,9 @@ export function AlignPanel({ doc }: Props) {
     analytics.track('align', 'run', mode);
     setBusy(true);
     setError(null);
-    const opts = { mode };
-    Promise.all([
-      analysisClient.align(a, b, opts),
-      analysisClient.align(a, reverseComplement(b), opts),
-    ])
-      .then(([fwd, rev]) => {
-        const best =
-          rev.score > fwd.score
-            ? { alignment: rev, strand: 'reverse' as const }
-            : { alignment: fwd, strand: 'forward' as const };
+    analysisClient
+      .alignEitherStrand(a, b, { mode })
+      .then((best) => {
         setResult({ ...best, offset: target.start, lengthB: b.length });
       })
       .catch((e: unknown) => {

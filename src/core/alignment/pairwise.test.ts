@@ -1,4 +1,4 @@
-import { AlignmentTooLargeError, alignPairwise } from './pairwise';
+import { AlignmentTooLargeError, DEFAULT_MAX_CELLS, alignPairwise } from './pairwise';
 
 describe('alignPairwise global', () => {
   it('aligns identical sequences with full identity', () => {
@@ -65,7 +65,54 @@ describe('alignPairwise local', () => {
   });
 });
 
+describe('alignPairwise IUPAC codes (#47)', () => {
+  it('scores ambiguity codes by EDNAFULL instead of as mismatches', () => {
+    // A–N −2 and G–R +1 (EDNAFULL), against −4 for a mismatch
+    const r = alignPairwise('ACGTACGT', 'ACNTACRT');
+    expect(r.alignedB).toBe('ACNTACRT');
+    expect(r.matchLine).toBe('||:|||:|');
+    expect(r.score).toBe(6 * 5 - 2 + 1);
+    expect(r.identities).toBe(6);
+    expect(r.ambiguous).toBe(2);
+    expect(r.identity).toBe(6 / 8);
+  });
+
+  it('matches a degenerate base in the first sequence too, in either case', () => {
+    const r = alignPairwise('ACYT', 'acct');
+    expect(r.matchLine).toBe('||:|');
+    expect(r.score).toBe(15 + 1);
+  });
+
+  it('still counts an incompatible code as a mismatch', () => {
+    // R is A or G, never C
+    const r = alignPairwise('ACGT', 'ARGT');
+    expect(r.matchLine).toBe('|.||');
+    expect(r.score).toBe(15 - 4);
+  });
+
+  it('does not let a run of Ns outscore the bases it hides', () => {
+    // N against anything scores −2, so an N-rich read does not align everywhere
+    const r = alignPairwise('GGGGGGGGACGTACGTACGT', 'NNNNNNNNNNNNNNNNNNNN', { mode: 'local' });
+    expect(r.columns).toBe(0);
+  });
+
+  it('with iupac false, only identical codes match', () => {
+    const r = alignPairwise('ACGT', 'ACNT', { iupac: false });
+    expect(r.score).toBe(15 - 4);
+    // the match line still says the N was compatible
+    expect(r.matchLine).toBe('||:|');
+  });
+
+  it('treats U as T', () => {
+    expect(alignPairwise('ACGT', 'ACGU').matchLine).toBe('||||');
+  });
+});
+
 describe('limits and performance', () => {
+  it('allows a 12 kb × 12 kb problem by default', () => {
+    expect(12_001 * 12_001).toBeLessThan(DEFAULT_MAX_CELLS);
+  });
+
   it('refuses oversized problems', () => {
     expect(() => alignPairwise('A'.repeat(1000), 'A'.repeat(1000), { maxCells: 1000 })).toThrow(
       AlignmentTooLargeError,

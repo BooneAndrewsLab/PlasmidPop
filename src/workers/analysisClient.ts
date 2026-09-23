@@ -5,6 +5,7 @@ import {
   type EnzymeSet,
   type Orf,
   type OrfOptions,
+  type StrandedAlignment,
   type Topology,
   setActiveEnzymeSet,
 } from '@/core';
@@ -109,6 +110,17 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'align') throw new Error('Unexpected analysis response');
     return res.alignment;
+  }
+
+  async alignEitherStrand(
+    a: string,
+    b: string,
+    options: AlignmentOptions = {},
+  ): Promise<StrandedAlignment> {
+    const res = await this.send({ kind: 'alignEitherStrand', a, b, options });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'alignEitherStrand') throw new Error('Unexpected analysis response');
+    return res.result;
   }
 
   dispose(): void {

@@ -56,6 +56,7 @@ piece of work needs its reasoning written down, with the next free number.
 42. [A double-digest partner for one enzyme](42-digest-partner.md)
 43. [SnapGene fixtures, checked against Biopython](43-snapgene-fixtures.md)
 44. [Dam and Dcm methylation](44-dam-dcm.md)
+45. [Align: ambiguity codes, larger inputs, files](45-align-reads.md)
 
 ## Changelog to 1.1.0
 

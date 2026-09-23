@@ -1,9 +1,12 @@
+import { CODES, encode, pairMark, scoreTable } from './scoring';
+
 /**
  * Pairwise alignment with affine gap penalties (Gotoh 1982): global
  * (Needleman–Wunsch) or local (Smith–Waterman). Plain TypeScript. The fill
- * keeps three Int32 score rows and a byte-per-cell traceback for each of
- * the three states, so memory is about 3·n·m bytes; `maxCells` guards the
- * browser against accidental genome-scale inputs.
+ * keeps three Int32 score rows and one traceback byte per cell holding all
+ * three states' moves, so memory is about n·m bytes; `maxCells` guards the
+ * browser against accidental genome-scale inputs. IUPAC ambiguity codes
+ * score by EDNAFULL (`scoring.ts`).
  */
 
 export type AlignmentMode = 'global' | 'local';
@@ -14,8 +17,13 @@ export interface AlignmentOptions {
   readonly mismatch?: number; // default -4
   readonly gapOpen?: number; // default -10 (score of the first base of a gap)
   readonly gapExtend?: number; // default -0.5
-  /** Refuse inputs whose (n+1)(m+1) exceeds this (default 30 million). */
+  /** Refuse inputs whose (n+1)(m+1) exceeds this (default `DEFAULT_MAX_CELLS`). */
   readonly maxCells?: number;
+  /**
+   * Score ambiguity codes by the bases they stand for (default true). False
+   * makes only identical codes match, for callers that compare text.
+   */
+  readonly iupac?: boolean;
 }
 
 export interface Alignment {
@@ -25,28 +33,41 @@ export interface Alignment {
   readonly alignedA: string;
   /** Aligned target with '-' for gaps. */
   readonly alignedB: string;
-  /** '|' identical, '.' mismatch, ' ' gap, per column. */
+  /** '|' identical, ':' compatible through an ambiguity code, '.' mismatch, ' ' gap, per column. */
   readonly matchLine: string;
   /** 0-based half-open span of each input covered by the alignment. */
   readonly startA: number;
   readonly endA: number;
   readonly startB: number;
   readonly endB: number;
+  /** Columns of the same definite base; ambiguous matches are not counted. */
   readonly identities: number;
+  /** Columns matched only through an ambiguity code (A against N, say). */
+  readonly ambiguous: number;
   readonly gaps: number;
   readonly columns: number;
   readonly identity: number;
 }
 
 export class AlignmentTooLargeError extends Error {
-  constructor(cells: number, max: number) {
+  constructor(cells: number, max: number, outOfMemory = false) {
     super(
-      `These sequences would need ${cells.toLocaleString()} alignment cells; the in-browser limit is ${max.toLocaleString()}.`,
+      outOfMemory
+        ? `These sequences need ${cells.toLocaleString()} alignment cells, more memory than this browser would give.`
+        : `These sequences would need ${cells.toLocaleString()} alignment cells; the in-browser limit is ${max.toLocaleString()}.`,
     );
     this.name = 'AlignmentTooLargeError';
   }
 }
 
+/**
+ * About 150 MB of traceback, one byte a cell: a 12 kb read against a
+ * 12 kb plasmid, in a few seconds in the worker (docs/perf-notes.md).
+ */
+export const DEFAULT_MAX_CELLS = 150_000_000;
+
+// Traceback moves, two bits each, packed per cell as M | X << 2 | Y << 4:
+// where the cell's best score in each state came from.
 const M = 0; // diagonal
 const X = 1; // gap in B (consumes A)
 const Y = 2; // gap in A (consumes B)
@@ -59,23 +80,33 @@ const SCALE = 2;
 export function alignPairwise(a: string, b: string, options: AlignmentOptions = {}): Alignment {
   const mode = options.mode ?? 'global';
   const local = mode === 'local';
-  const match = Math.round((options.match ?? 5) * SCALE);
   const mismatch = Math.round((options.mismatch ?? -4) * SCALE);
   const gapOpen = Math.round((options.gapOpen ?? -10) * SCALE);
   const gapExtend = Math.round((options.gapExtend ?? -0.5) * SCALE);
-  const maxCells = options.maxCells ?? 30_000_000;
+  const maxCells = options.maxCells ?? DEFAULT_MAX_CELLS;
+  const scores = scoreTable(
+    options.match ?? 5,
+    options.mismatch ?? -4,
+    options.iupac ?? true,
+    SCALE,
+  );
 
   const A = a.toUpperCase();
   const B = b.toUpperCase();
+  const codesA = encode(A);
+  const codesB = encode(B);
   const n = A.length;
   const m = B.length;
   const width = m + 1;
   const cells = (n + 1) * width;
   if (cells > maxCells) throw new AlignmentTooLargeError(cells, maxCells);
 
-  const tbM = new Uint8Array(cells);
-  const tbX = new Uint8Array(cells);
-  const tbY = new Uint8Array(cells);
+  let tb: Uint8Array;
+  try {
+    tb = new Uint8Array(cells);
+  } catch {
+    throw new AlignmentTooLargeError(cells, maxCells, true);
+  }
 
   let prevM = new Int32Array(width);
   let prevX = new Int32Array(width);
@@ -91,10 +122,9 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
     prevM[j] = local ? 0 : NEG;
     prevX[j] = NEG;
     prevY[j] = local ? NEG : gapOpen + (j - 1) * gapExtend;
-    tbY[j] = j === 1 ? M : Y;
-    if (local) tbM[j] = STOP;
+    tb[j] = (local ? STOP : M) | ((j === 1 ? M : Y) << 4);
   }
-  if (local) tbM[0] = STOP;
+  tb[0] = local ? STOP : M;
 
   let best = local ? 0 : NEG;
   let bestI = 0;
@@ -102,17 +132,15 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
   let bestState = M;
 
   for (let i = 1; i <= n; i++) {
-    const ca = A.charCodeAt(i - 1);
+    const scoreRow = (codesA[i - 1] ?? 0) * CODES;
     const rowBase = i * width;
     curM[0] = local ? 0 : NEG;
     curX[0] = local ? NEG : gapOpen + (i - 1) * gapExtend;
     curY[0] = NEG;
-    tbX[rowBase] = i === 1 ? M : X;
-    if (local) tbM[rowBase] = STOP;
+    tb[rowBase] = (local ? STOP : M) | ((i === 1 ? M : X) << 2);
 
     for (let j = 1; j <= m; j++) {
-      const idx = rowBase + j;
-      const s = ca === B.charCodeAt(j - 1) ? match : mismatch;
+      const s = scores[scoreRow + (codesB[j - 1] ?? 0)] ?? mismatch;
 
       const pm = prevM[j - 1] ?? NEG;
       const px = prevX[j - 1] ?? NEG;
@@ -133,20 +161,19 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
         from = STOP;
       }
       curM[j] = mScore;
-      tbM[idx] = from;
+      let moves = from;
 
       const openX = (prevM[j] ?? NEG) + gapOpen;
       const extX = (prevX[j] ?? NEG) + gapExtend;
       const yToX = (prevY[j] ?? NEG) + gapOpen;
       if (openX >= extX && openX >= yToX) {
         curX[j] = openX;
-        tbX[idx] = M;
       } else if (extX >= yToX) {
         curX[j] = extX;
-        tbX[idx] = X;
+        moves |= X << 2;
       } else {
         curX[j] = yToX;
-        tbX[idx] = Y;
+        moves |= Y << 2;
       }
 
       const openY = (curM[j - 1] ?? NEG) + gapOpen;
@@ -154,14 +181,14 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
       const xToY = (curX[j - 1] ?? NEG) + gapOpen;
       if (openY >= extY && openY >= xToY) {
         curY[j] = openY;
-        tbY[idx] = M;
       } else if (extY >= xToY) {
         curY[j] = extY;
-        tbY[idx] = Y;
+        moves |= Y << 4;
       } else {
         curY[j] = xToY;
-        tbY[idx] = X;
+        moves |= X << 4;
       }
+      tb[rowBase + j] = moves;
 
       if (local && mScore > best) {
         best = mScore;
@@ -195,9 +222,9 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
   let j = bestJ;
   let state = bestState;
   while (i > 0 || j > 0) {
-    const idx = i * width + j;
+    const moves = tb[i * width + j] ?? 0;
     if (state === M) {
-      const from = tbM[idx] ?? M;
+      const from = moves & 3;
       if (from === STOP || i === 0 || j === 0) break;
       outA.push(A.charAt(i - 1));
       outB.push(B.charAt(j - 1));
@@ -208,13 +235,13 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
       if (i === 0) break;
       outA.push(A.charAt(i - 1));
       outB.push('-');
-      state = tbX[idx] ?? M;
+      state = (moves >> 2) & 3;
       i--;
     } else {
       if (j === 0) break;
       outA.push('-');
       outB.push(B.charAt(j - 1));
-      state = tbY[idx] ?? M;
+      state = (moves >> 4) & 3;
       j--;
     }
   }
@@ -222,19 +249,23 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
   const alignedA = outA.reverse().join('');
   const alignedB = outB.reverse().join('');
   let identities = 0;
+  let ambiguous = 0;
   let gaps = 0;
-  let matchLine = '';
+  const marks: string[] = [];
   for (let k = 0; k < alignedA.length; k++) {
     const x = alignedA.charAt(k);
     const y = alignedB.charAt(k);
     if (x === '-' || y === '-') {
       gaps++;
-      matchLine += ' ';
-    } else if (x === y) {
-      identities++;
-      matchLine += '|';
-    } else matchLine += '.';
+      marks.push(' ');
+      continue;
+    }
+    const mark = pairMark(x, y);
+    if (mark === '|') identities++;
+    else if (mark === ':') ambiguous++;
+    marks.push(mark);
   }
+  const matchLine = marks.join('');
   return {
     mode,
     score: best / SCALE,
@@ -246,6 +277,7 @@ export function alignPairwise(a: string, b: string, options: AlignmentOptions = 
     startB: j,
     endB: bestJ,
     identities,
+    ambiguous,
     gaps,
     columns: alignedA.length,
     identity: alignedA.length === 0 ? 0 : identities / alignedA.length,

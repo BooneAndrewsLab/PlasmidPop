@@ -118,7 +118,8 @@ function realign(
   const bSeg = b.slice(bStart, bEnd);
   let alignment;
   try {
-    alignment = alignPairwise(aSeg, bSeg, { mode: 'global' });
+    // Edit marks compare text: an A rewritten as N is an edit, not a match.
+    alignment = alignPairwise(aSeg, bSeg, { mode: 'global', iupac: false });
   } catch {
     return null; // too large for the aligner; the cheap script stands
   }
