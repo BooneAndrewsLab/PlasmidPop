@@ -91,8 +91,11 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-23)
 
-**1.2.0** (2026-09-23) is the current release, the first of the four
-themed minor releases planned after 1.1 (GitHub milestones 1.2–1.5):
+**1.2.0** (2026-09-23) is the current release, the first of the themed
+minor releases planned after 1.1. The GitHub milestones after it, reordered
+the same day on user feedback about Align: 1.2.1 Align fixes, 1.3
+sequencing reads (AB1/FASTQ, qualities, long reads), then 1.4 cloning
+bench, 1.5 workspace and map, 1.6 compare, history and sharing. 1.2.0 has
 isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
 ladder, double-digest partners (items 39–42), Dam/Dcm marks (item 44), CDS
 translations re-checked as you edit (item 1), SnapGene primers fixed and
