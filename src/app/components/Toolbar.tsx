@@ -5,7 +5,7 @@ import { type SeqDocument, describeEnds } from '@/core';
 import { analytics } from '../analytics';
 import { compareWithFile } from '../compare';
 import { EXAMPLES } from '../examples';
-import { openExample, openFile } from '../openFile';
+import { SEQUENCE_FILE_ACCEPT, openExample, openFile } from '../openFile';
 import { persistence } from '../state/persistence';
 import { HelpButton } from '../help/HelpButton';
 import { EditsMenu } from './EditsMenu';
@@ -226,14 +226,14 @@ export function Toolbar({ doc }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept=".gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna"
+          accept={SEQUENCE_FILE_ACCEPT}
           hidden
           onChange={onPick(openFile)}
         />
         <input
           ref={compareRef}
           type="file"
-          accept=".gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna"
+          accept={SEQUENCE_FILE_ACCEPT}
           aria-label="File to compare with"
           hidden
           onChange={onPick(compareWithFile)}

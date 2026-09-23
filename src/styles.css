@@ -1726,6 +1726,11 @@ button {
   margin-bottom: 8px;
 }
 
+.panel__textarea--over {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+}
+
 .panel__select {
   font: inherit;
   padding: 4px 8px;

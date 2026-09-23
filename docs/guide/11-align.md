@@ -7,14 +7,18 @@ design.
 ## How to align
 
 1. Paste the other sequence into the box: bare bases, a FASTA record or a
-   GenBank record all work.
-2. Choose **Global (end to end)** to align the whole of both sequences
+   GenBank record all work. Or drop a file on the box, or click **Choose
+   file…**: GenBank, FASTA and SnapGene files are read into the box without
+   opening a tab.
+2. If the box holds several records (a FASTA file of several reads, say),
+   pick the one to align from the list that appears.
+3. Choose **Global (end to end)** to align the whole of both sequences
    (Needleman–Wunsch), or **Local (best region)** to find the best-matching
    stretch (Smith–Waterman). Local is the right choice for a read against a
    plasmid.
-3. Tick **Against selection only** to align against the selected part of
+4. Tick **Against selection only** to align against the selected part of
    the document instead of all of it.
-4. Click **Align**. Both orientations of the other sequence are considered
+5. Click **Align**. Both orientations of the other sequence are considered
    and the better one is shown; the heading says when it was the reverse
    complement.
 

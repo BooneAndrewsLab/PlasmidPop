@@ -1,5 +1,5 @@
 import { analytics } from '../analytics';
-import { useState } from 'react';
+import { type DragEvent, useMemo, useRef, useState } from 'react';
 
 import {
   type Alignment,
@@ -8,9 +8,10 @@ import {
   isEmptyRange,
   normalizeSequenceInput,
 } from '@/core';
-import { parseSequenceFile } from '@/io';
+import { parseSequenceData, parseSequenceFile, writeFastaRecords } from '@/io';
 import { analysisClient } from '@/workers/analysisClient';
 
+import { SEQUENCE_FILE_ACCEPT } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -20,15 +21,50 @@ interface Props {
 
 const BLOCK = 60;
 
-/** Sequence text out of whatever the user pasted: raw bases, FASTA or GenBank. */
-function extractSequence(text: string): string {
+interface SequenceRecord {
+  readonly name: string;
+  readonly sequence: string;
+}
+
+type Records =
+  | { readonly ok: true; readonly records: readonly SequenceRecord[] }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * The records in whatever the user pasted or dropped: raw bases (one
+ * record), or every record of a FASTA or GenBank text (#46).
+ */
+function readRecords(text: string): Records {
   const trimmed = text.trim();
-  if (trimmed === '') return '';
-  if (trimmed.startsWith('>') || trimmed.startsWith('LOCUS')) {
-    const doc = parseSequenceFile(trimmed).documents[0];
-    return doc === undefined ? '' : doc.sequence.toString();
+  if (trimmed === '') return { ok: true, records: [] };
+  try {
+    if (trimmed.startsWith('>') || trimmed.startsWith('LOCUS')) {
+      const records = parseSequenceFile(trimmed).documents.map((d) => ({
+        name: d.name,
+        sequence: d.sequence.toString(),
+      }));
+      return { ok: true, records };
+    }
+    return {
+      ok: true,
+      records: [{ name: 'Pasted sequence', sequence: normalizeSequenceInput(trimmed) }],
+    };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
-  return normalizeSequenceInput(trimmed);
+}
+
+/**
+ * A picked or dropped file as text for the box: a text format as it is, a
+ * SnapGene file (binary) as FASTA of its sequence. Throws if the file is not
+ * one the app can read.
+ */
+async function fileAsText(file: File): Promise<string> {
+  const data = await file.arrayBuffer();
+  const parsed = parseSequenceData(data, file.name);
+  return parsed.format === 'snapgene'
+    ? writeFastaRecords(parsed.documents)
+    : new TextDecoder('utf-8').decode(data);
 }
 
 function AlignmentBlocks({
@@ -64,6 +100,10 @@ function AlignmentBlocks({
 export function AlignPanel({ doc }: Props) {
   const { selection } = useEditorState();
   const [other, setOther] = useState('');
+  const [picked, setPicked] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [fileNote, setFileNote] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<AlignmentMode>('global');
   const [useSelection, setUseSelection] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,15 +116,49 @@ export function AlignPanel({ doc }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const hasSelection = selection !== null && !isEmptyRange(selection);
+  const parsed = useMemo(() => readRecords(other), [other]);
+  const records = parsed.ok ? parsed.records : [];
+  const record = records[Math.min(picked, records.length - 1)];
+
+  const setText = (text: string): void => {
+    setOther(text);
+    setPicked(0);
+    setError(null);
+  };
+
+  const load = (file: File | undefined): void => {
+    if (file === undefined) return;
+    fileAsText(file)
+      .then((text) => {
+        setText(text);
+        setFileNote(`From ${file.name}.`);
+      })
+      .catch((e: unknown) => {
+        setError(`Could not read "${file.name}": ${e instanceof Error ? e.message : String(e)}`);
+      });
+  };
+
+  // A dragged file is claimed here with preventDefault, so the app-wide
+  // handler (which would open it in a new tab) leaves it alone; dragged
+  // text drops into the box as usual.
+  const onDragOver = (e: DragEvent): void => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    if (!dragging) setDragging(true);
+  };
+  const onDrop = (e: DragEvent): void => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    setDragging(false);
+    load(e.dataTransfer.files[0]);
+  };
 
   const run = (): void => {
-    let b: string;
-    try {
-      b = extractSequence(other);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    if (!parsed.ok) {
+      setError(parsed.message);
       return;
     }
+    const b = record?.sequence ?? '';
     if (b === '') {
       setError('Paste the sequence to align against this document.');
       return;
@@ -113,20 +187,74 @@ export function AlignPanel({ doc }: Props) {
   return (
     <div className="panel">
       <p className="panel__note">
-        Align another sequence to {useSelection && hasSelection ? 'the selection' : doc.name}. Both
-        orientations are tried and the better one is shown.
+        Align another sequence to {useSelection && hasSelection ? 'the selection' : doc.name}.
+        Whichever orientation of it aligns better is shown.
       </p>
       <textarea
-        className="panel__textarea"
+        className={`panel__textarea${dragging ? ' panel__textarea--over' : ''}`}
         rows={5}
         spellCheck={false}
-        placeholder="Paste bases, FASTA or GenBank"
+        placeholder="Paste bases, FASTA or GenBank, or drop a file here"
         aria-label="Sequence to align"
         value={other}
         onChange={(e) => {
-          setOther(e.target.value);
+          setText(e.target.value);
+          setFileNote(null);
         }}
+        onDragOver={onDragOver}
+        onDragLeave={() => {
+          setDragging(false);
+        }}
+        onDrop={onDrop}
       />
+      <div className="panel__controls">
+        <button
+          type="button"
+          className="button button--quiet button--small"
+          onClick={() => fileInput.current?.click()}
+        >
+          Choose file…
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept={SEQUENCE_FILE_ACCEPT}
+          aria-label="File to align"
+          hidden
+          onChange={(e) => {
+            load(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+        {records.length > 1 && (
+          <label className="panel__field">
+            <select
+              className="panel__select"
+              aria-label="Record to align"
+              value={Math.min(picked, records.length - 1)}
+              onChange={(e) => {
+                setPicked(Number(e.target.value));
+              }}
+            >
+              {records.map((r, i) => (
+                <option key={i} value={i}>
+                  {r.name} ({r.sequence.length.toLocaleString()} bp)
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {(fileNote !== null || records.length > 1) && (
+        <p className="panel__note">
+          {[
+            fileNote,
+            records.length > 1 ? `${records.length} records; the one chosen is aligned.` : null,
+          ]
+            .filter((t) => t !== null)
+            .join(' ')}
+        </p>
+      )}
       <div className="panel__controls">
         <label className="panel__field">
           <select

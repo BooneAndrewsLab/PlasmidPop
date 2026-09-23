@@ -67,9 +67,13 @@ export function App() {
   const percent = Math.round(split * 100);
   const tracks = `${split}fr ${SPLITTER_SIZE}px ${1 - split}fr`;
 
+  // A drop target inside the app (the Align box, the REBASE import) claims
+  // its drop with preventDefault; only unclaimed drops open a tab.
   const onDrop = (e: DragEvent<HTMLDivElement>): void => {
+    const claimed = e.defaultPrevented;
     e.preventDefault();
     setDragging(false);
+    if (claimed) return;
     const file = e.dataTransfer.files[0];
     if (file !== undefined) void openFile(file);
   };
@@ -78,8 +82,9 @@ export function App() {
     <div
       className={`app${dragging ? ' app--dragging' : ''}`}
       onDragOver={(e) => {
+        const claimed = e.defaultPrevented;
         e.preventDefault();
-        if (!dragging) setDragging(true);
+        if (dragging === claimed) setDragging(!claimed);
       }}
       onDragLeave={(e) => {
         if (e.currentTarget === e.target) setDragging(false);

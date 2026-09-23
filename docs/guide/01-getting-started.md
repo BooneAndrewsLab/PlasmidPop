@@ -10,6 +10,8 @@ Any of these gets you a sequence on screen:
 
 - **Drop a file** anywhere on the page. GenBank, FASTA and SnapGene `.dna`
   files are recognised by their content, so the extension does not matter much.
+  (A file dropped on the [Align](11-align.md) box or the enzyme import is
+  read there instead of opening a tab.)
 - **Open file** in the toolbar (or **File ▸ Open file…** once a document is
   open) shows the usual file picker.
 - **Paste** (`Ctrl+V`) a GenBank record, a FASTA record or bare bases while

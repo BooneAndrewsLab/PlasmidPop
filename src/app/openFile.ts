@@ -4,6 +4,9 @@ import { analytics, formatOfFileName } from './analytics';
 import { type Example } from './examples';
 import { type OpenStorage, editorStore } from './state/editorStore';
 
+/** What the file pickers offer: every format `parseSequenceData` reads. */
+export const SEQUENCE_FILE_ACCEPT = '.gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna';
+
 const UNSUPPORTED: Readonly<Record<string, string>> = {
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',
 };

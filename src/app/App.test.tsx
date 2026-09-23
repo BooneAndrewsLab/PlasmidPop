@@ -255,6 +255,20 @@ describe('App', () => {
     expect(screen.getByText('ORF translation')).toBeInTheDocument();
     expect(screen.getByText(/^M[A-Z*]+$/)).toBeInTheDocument();
   });
+
+  it('reads a file dropped on the Align box there instead of opening a tab (#46)', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Align' }));
+    const box = screen.getByRole('textbox', { name: 'Sequence to align' });
+    const file = new File(['>read\nGAATTCTCATGTTTGACAGC\n'], 'read.fa');
+    fireEvent.drop(box, { dataTransfer: { files: [file], types: ['Files'] } });
+    await waitFor(() => {
+      expect(box).toHaveValue('>read\nGAATTCTCATGTTTGACAGC\n');
+    });
+    expect(editorStore.getState().documents).toHaveLength(1);
+    expect(editorStore.document?.name).toBe('SYNPBR322');
+  });
 });
 
 describe('six-frame translation', () => {
