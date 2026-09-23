@@ -2,6 +2,8 @@ export * from './types';
 export * from './genbank';
 export * from './fasta';
 export * from './snapgene';
+export * from './abif';
+export * from './fastq';
 export * from './rebase';
 export * from './share';
 export * from './xml';

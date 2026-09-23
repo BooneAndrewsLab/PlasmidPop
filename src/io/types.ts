@@ -1,6 +1,6 @@
 import { type SeqDocument } from '@/core';
 
-export type FormatId = 'genbank' | 'fasta' | 'raw' | 'snapgene';
+export type FormatId = 'genbank' | 'fasta' | 'raw' | 'snapgene' | 'abif' | 'fastq';
 
 export interface ParseWarning {
   readonly message: string;

@@ -39,6 +39,7 @@ import {
 } from './ends';
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata, EMPTY_METADATA } from './metadata';
+import { type SequencingRead, assertValidRead, reverseComplementRead } from './read';
 
 export interface SeqDocumentInit {
   readonly name?: string;
@@ -48,6 +49,8 @@ export interface SeqDocumentInit {
   readonly metadata?: Partial<DocumentMetadata>;
   /** Shape of the two ends; see `ends.ts`. Ignored for a circular sequence. */
   readonly ends?: DocumentEnds | null;
+  /** Qualities and trace of a sequencing read, one quality per base. */
+  readonly read?: SequencingRead | null;
 }
 
 interface SeqDocumentFields {
@@ -57,6 +60,7 @@ interface SeqDocumentFields {
   readonly features: FeatureSet;
   readonly metadata: DocumentMetadata;
   readonly ends: DocumentEnds | null;
+  readonly read: SequencingRead | null;
 }
 
 /**
@@ -80,6 +84,13 @@ export class SeqDocument {
    * linear one with nothing to say about them.
    */
   readonly ends: DocumentEnds | null;
+  /**
+   * The qualities and trace of the sequencing read this document was opened
+   * from (AB1, FASTQ), or null. Kept while the bases are the read's own: an
+   * edit that brings new bases drops it (`with`), and reverse complement
+   * turns it over with them.
+   */
+  readonly read: SequencingRead | null;
 
   static create(init: SeqDocumentInit): SeqDocument {
     let sequence: SequenceText;
@@ -93,6 +104,8 @@ export class SeqDocument {
     const features =
       init.features instanceof FeatureSet ? init.features : FeatureSet.from(init.features ?? []);
     for (const f of features) validateFeature(f, sequence.length, topology);
+    const read = init.read ?? null;
+    if (read !== null) assertValidRead(read, sequence.length);
     return new SeqDocument({
       name: init.name ?? 'Untitled',
       sequence,
@@ -100,6 +113,7 @@ export class SeqDocument {
       features,
       metadata: { ...EMPTY_METADATA, ...init.metadata },
       ends: normalizeEnds(init.ends, topology),
+      read,
     });
   }
 
@@ -110,6 +124,7 @@ export class SeqDocument {
     this.features = fields.features;
     this.metadata = fields.metadata;
     this.ends = fields.ends;
+    this.read = fields.read;
   }
 
   get length(): number {
@@ -125,6 +140,8 @@ export class SeqDocument {
     // `ends` is nullable, so an explicit null has to be told apart from "not
     // in the patch"; every other field can use ??.
     const ends = 'ends' in patch ? patch.ends : this.ends;
+    // New bases leave the read describing bases that are no longer there.
+    const read = 'read' in patch ? patch.read : patch.sequence === undefined ? this.read : null;
     return new SeqDocument({
       name: patch.name ?? this.name,
       sequence: patch.sequence ?? this.sequence,
@@ -132,6 +149,7 @@ export class SeqDocument {
       features: patch.features ?? this.features,
       metadata: patch.metadata ?? this.metadata,
       ends: normalizeEnds(ends, topology),
+      read: read ?? null,
     });
   }
 
@@ -352,6 +370,7 @@ export class SeqDocument {
     const length = doc.length;
     return doc.with({
       ends: flipEnds(doc.ends),
+      read: doc.read === null ? null : reverseComplementRead(doc.read),
       sequence: Rope.from(reverseComplement(doc.sequence.toString())),
       features: doc.features.map((f) =>
         moveFeature(f, doc, doc, (loc) => ({

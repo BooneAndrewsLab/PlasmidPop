@@ -453,6 +453,20 @@ def snapgene():
     write('snapgene.json', {'files': files})
 
 
+def abif():
+    """Biopython's reading of the .ab1 fixtures abif_fixtures.py writes."""
+    sys.path.insert(0, os.path.dirname(__file__))
+    import abif_fixtures
+    import abif_local
+
+    abif_fixtures.main()
+    files = [
+        abif_local.describe(path, os.path.basename(path))
+        for path in sorted(glob.glob(os.path.join(FIXTURES, 'abif', '*.ab1')))
+    ]
+    write('abif.json', {'files': files})
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     write(
@@ -462,6 +476,7 @@ def main():
     restriction()
     translation()
     snapgene()
+    abif()
 
 
 if __name__ == '__main__':

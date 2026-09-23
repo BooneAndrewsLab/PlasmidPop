@@ -23,6 +23,7 @@
     "oracle:generate": "scripts/oracle/run.sh generate",
     "oracle:writer": "scripts/oracle/run.sh writer",
     "oracle:snapgene": "scripts/oracle/run.sh snapgene-local",
+    "oracle:abif": "scripts/oracle/run.sh abif-local",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "dependencies": {

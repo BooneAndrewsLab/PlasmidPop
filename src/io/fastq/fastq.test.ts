@@ -1,0 +1,34 @@
+import { FormatError } from '../types';
+import { parseFastq } from './fastq';
+
+describe('parseFastq', () => {
+  it('reads records with Phred+33 qualities as reads without a trace', () => {
+    const r = parseFastq('@read1 runid=abc ch=12\nACGTN\n+\n!+5?I\n@read2\nGG\n+read2\nII\n');
+    expect(r.format).toBe('fastq');
+    expect(r.documents.map((d) => d.name)).toEqual(['read1', 'read2']);
+    const [one] = r.documents;
+    expect(one?.sequence.toString()).toBe('ACGTN');
+    expect(one?.metadata.description).toBe('runid=abc ch=12');
+    expect([...(one?.read?.qualities ?? [])]).toEqual([0, 10, 20, 30, 40]);
+    expect(one?.read?.trace).toBeNull();
+  });
+
+  it('reads wrapped records, and a quality line that starts with @', () => {
+    const r = parseFastq('@x\nACGT\nACGT\n+\n@@@@\nIIII\n@y\nA\n+\nI\n');
+    expect(r.documents[0]?.sequence.toString()).toBe('ACGTACGT');
+    expect(r.documents[0]?.read?.qualities[0]).toBe(31);
+    expect(r.documents[1]?.name).toBe('y');
+  });
+
+  it('refuses a record whose quality does not match its bases', () => {
+    expect(() => parseFastq('@x\nACGT\n+\nII\n')).toThrow(/2 quality values for 4 bases/);
+    expect(() => parseFastq('@x\nACGT\n')).toThrow(FormatError);
+    expect(() => parseFastq('x\nACGT\n+\nIIII\n')).toThrow(/"@" header/);
+    expect(() => parseFastq('@x\nAXGT\n+\nIIII\n')).toThrow(/IUPAC/);
+  });
+
+  it('accepts Windows line endings and blank lines between records', () => {
+    const r = parseFastq('@a\r\nAC\r\n+\r\nII\r\n\r\n@b\r\nG\r\n+\r\nI\r\n');
+    expect(r.documents).toHaveLength(2);
+  });
+});
