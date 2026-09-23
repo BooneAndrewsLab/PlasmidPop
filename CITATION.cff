@@ -18,7 +18,7 @@ identifiers:
     description: 'PlasmidPop 1.0.0'
 license: MIT
 repository-code: 'https://github.com/BooneAndrewsLab/PlasmidPop'
-version: 1.0.0
+version: 1.1.0
 date-released: 2026-09-22
 keywords:
   - plasmid

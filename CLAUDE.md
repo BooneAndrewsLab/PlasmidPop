@@ -95,6 +95,8 @@ working with no account and no server round-trip.
 public at and the first to be archived on Zenodo for a citable DOI. Bump
 `package.json` and `CITATION.cff` together; each GitHub Release gets a DOI of
 its own, and the concept DOI in `CITATION.cff` stands for all of them.
+**1.1.0** (2026-09-22) adds the primer settings, the sidebar reorder, the
+aligned Enzymes filters and the phone reader's read-only Features list.
 **The site deploys only when a GitHub Release is published** (`deploy.yml`;
 the `github-pages` environment allows `main` and tags `v*`), so a push to main
 reaches no user until a release carries it. The guide's header shows the
