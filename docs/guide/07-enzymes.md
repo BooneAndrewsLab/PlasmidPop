@@ -225,11 +225,18 @@ import.
 
 Of the roughly 6,100 records in REBASE, about 1,580 become usable enzymes.
 The panel reports what it left out: enzymes whose cut position nobody has
-determined, the handful (BcgI and its kin) that cut on _both_ sides of their
-recognition site, which PlasmidPop cannot yet represent, and the ones that
-cut at a modified base rather than at a sequence (AbaSI, MspJI and kin),
-whose REBASE site is a base or two and would otherwise appear to cut
-everywhere.
+determined, and the ones that cut at a modified base rather than at a
+sequence (AbaSI, MspJI and kin), whose REBASE site is a base or two and
+would otherwise appear to cut everywhere.
+
+About 27 of them — BcgI, BaeI, CspCI, BsaXI and kin — cut on _both_ sides
+of their recognition site, cutting it out on a piece of about 30 bp. Each
+site of theirs is two cuts, so such an enzyme with one site in your plasmid
+is listed as cutting twice, draws two cut marks, and in a digest cuts out
+the short piece carrying the site. The tooltip on
+its recognition site says so. They are not offered for Golden Gate. A table
+imported before version 1.2 does not have them; import it again to add
+them.
 
 Scanning with the whole table takes about 80 ms on a 4 kb plasmid instead of
 7 ms, in the background, so the list takes a moment longer to appear.

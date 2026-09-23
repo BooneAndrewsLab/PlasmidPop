@@ -18,7 +18,6 @@ function plural(n: number, one: string, many = `${one}s`): string {
 function describeSkipped(s: RebaseImportSummary['skipped']): string | null {
   const parts: string[] = [];
   if (s.cutUnknown > 0) parts.push(`${s.cutUnknown.toLocaleString()} with no known cut position`);
-  if (s.doubleCutter > 0) parts.push(`${s.doubleCutter} that cut on both sides of their site`);
   if (s.tooUnspecific > 0) {
     parts.push(
       `${s.tooUnspecific} that cut at modified bases rather than a sequence (AbaSI, MspJI and kin)`,

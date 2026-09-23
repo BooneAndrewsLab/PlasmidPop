@@ -1,4 +1,4 @@
-import { type Enzyme, isPalindromicSite } from '@/core';
+import { type CutOffsets, type Enzyme, isPalindromicSite } from '@/core';
 
 /**
  * Reader for REBASE's `withrefm` file, the "All Enzymes (each w/ref &
@@ -48,8 +48,6 @@ export interface RebaseImport {
 export interface RebaseSkipped {
   /** A site is given but nobody has determined where it cuts. */
   readonly cutUnknown: number;
-  /** Cuts on both sides of its site (BcgI and kin); `Enzyme` holds one pair. */
-  readonly doubleCutter: number;
   /** No recognition sequence at all, or one with characters we cannot read. */
   readonly noSite: number;
   /** Site too unspecific to predict from sequence; see `MIN_SITE_BITS`. */
@@ -125,25 +123,37 @@ function fields(block: string): Map<string, string> {
  * - `GGTCTC(1/5)` — a Type IIS cut beyond the 3' end of the site:
  *   `length + 1` and `length + 5`. The numbers can be negative
  *   (`CAGGTACCC...(-12/-16)`), which cuts back inside the site.
- * - `(10/12)CGANNNNNNTGC(12/10)` — cuts on *both* sides. `Enzyme` carries
- *   one pair of offsets, so these are left out rather than half-read.
+ * - `(10/12)CGANNNNNNTGC(12/10)` — cuts on *both* sides: `-10`/`-12`
+ *   before the site, and `secondCut` `length + 12`/`length + 10` after it.
  * - Anything with a `?` in it has no determined cut and is left out.
  */
 function readSite(
   raw: string,
-): { site: string; cutTop: number; cutBottom: number } | keyof RebaseSkipped {
+):
+  | { site: string; cutTop: number; cutBottom: number; secondCut?: CutOffsets }
+  | keyof RebaseSkipped {
   const s = raw.trim().toUpperCase();
   if (s === '') return 'noSite';
   if (s.includes('?')) return 'cutUnknown';
 
   const lead = /^\((-?\d+)\/(-?\d+)\)/.exec(s);
   const trail = /\((-?\d+)\/(-?\d+)\)$/.exec(s);
-  if (lead !== null && trail !== null) return 'doubleCutter';
 
   const site = s.replace(/^\(-?\d+\/-?\d+\)/, '').replace(/\(-?\d+\/-?\d+\)$/, '');
   const bare = site.replace(/\^/g, '');
   if (bare === '' || !/^[ACGTRYSWKMBDHVN]+$/.test(bare)) return 'noSite';
 
+  if (lead !== null && trail !== null) {
+    const offsets = [lead[1], lead[2], trail[1], trail[2]].map(Number);
+    const [a = NaN, b = NaN, c = NaN, d = NaN] = offsets;
+    if (!offsets.every(Number.isFinite)) return 'cutUnknown';
+    return {
+      site: bare,
+      cutTop: -a,
+      cutBottom: -b,
+      secondCut: { cutTop: bare.length + c, cutBottom: bare.length + d },
+    };
+  }
   if (trail !== null) {
     const top = Number(trail[1]);
     const bottom = Number(trail[2]);
@@ -204,7 +214,7 @@ export function parseRebaseWithRefM(text: string): RebaseImport {
   const released = /^Rich Roberts\s{2,}(\S.*?)\s*$/m.exec(header)?.[1] ?? null;
 
   const enzymes: Enzyme[] = [];
-  const skipped = { cutUnknown: 0, doubleCutter: 0, noSite: 0, tooUnspecific: 0 };
+  const skipped = { cutUnknown: 0, noSite: 0, tooUnspecific: 0 };
   const seen = new Set<string>();
 
   const starts: number[] = [];
@@ -238,6 +248,7 @@ export function parseRebaseWithRefM(text: string): RebaseImport {
       site: read.site,
       cutTop: read.cutTop,
       cutBottom: read.cutBottom,
+      ...(read.secondCut !== undefined ? { secondCut: read.secondCut } : {}),
       palindromic: isPalindromicSite(read.site),
       ...(suppliers.length > 0 ? { suppliers } : {}),
       ...(isoschizomers.length > 0 ? { isoschizomers } : {}),

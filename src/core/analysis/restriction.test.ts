@@ -1,6 +1,7 @@
 import { reverseComplement } from '../sequence';
 import { ENZYME_TABLE } from './enzymeTable';
 import {
+  type Enzyme,
   ENZYMES,
   digestFragments,
   findCutSites,
@@ -81,6 +82,53 @@ describe('findCutSites', () => {
     expect(findCutSites('CCGGTCTCAA', 'circular', only('BsaI'))).toEqual([
       { enzyme: 'BsaI', cut: 9, cutBottom: 3, siteStart: 2, strand: 'forward' },
     ]);
+  });
+
+  describe('an enzyme that cuts on both sides of its site', () => {
+    // BcgI (10/12)CGANNNNNNTGC(12/10), as a REBASE import reads it.
+    const bcgI: Enzyme = {
+      name: 'BcgI',
+      site: 'CGANNNNNNTGC',
+      cutTop: -10,
+      cutBottom: -12,
+      secondCut: { cutTop: 24, cutBottom: 22 },
+      palindromic: false,
+    };
+    const flank = 'T'.repeat(20);
+    const fwd = `${flank}CGAAAAAAATGC${flank}`; // site at 20..32
+
+    it('cuts twice per site, and mirrors both cuts on the bottom strand', () => {
+      expect(findCutSites(fwd, 'linear', [bcgI])).toEqual([
+        { enzyme: 'BcgI', cut: 10, cutBottom: 8, siteStart: 20, strand: 'forward' },
+        { enzyme: 'BcgI', cut: 44, cutBottom: 42, siteStart: 20, strand: 'forward' },
+      ]);
+      const L = fwd.length;
+      expect(findCutSites(reverseComplement(fwd), 'linear', [bcgI])).toEqual([
+        { enzyme: 'BcgI', cut: L - 42, cutBottom: L - 44, siteStart: L - 32, strand: 'reverse' },
+        { enzyme: 'BcgI', cut: L - 8, cutBottom: L - 10, siteStart: L - 32, strand: 'reverse' },
+      ]);
+      // Excised: the site leaves on a 34-base piece, with 3' overhangs of 2.
+      expect(digestFragments([10, 44], L, 'linear').map((f) => f.length)).toEqual([10, 34, 8]);
+    });
+
+    it('keeps the cut that falls on a linear molecule and drops the other', () => {
+      const short = `TTTTTCGAAAAAAATGC${flank}`;
+      expect(findCutSites(short, 'linear', [bcgI]).map((c) => c.cut)).toEqual([29]);
+    });
+
+    it('wraps both cuts on a circle', () => {
+      const circle = `CGAAAAAAATGC${flank}`; // 32 bp; the first cut is 10 before the origin
+      expect(findCutSites(circle, 'circular', [bcgI])).toEqual([
+        { enzyme: 'BcgI', cut: 22, cutBottom: 20, siteStart: 0, strand: 'forward' },
+        { enzyme: 'BcgI', cut: 24, cutBottom: 22, siteStart: 0, strand: 'forward' },
+      ]);
+    });
+
+    it('is a group of its own, apart from a single cutter at the same site', () => {
+      const { secondCut: _, ...rest } = bcgI;
+      const single: Enzyme = { ...rest, name: 'Single' };
+      expect(isoschizomerGroups([bcgI, single])).toHaveLength(2);
+    });
   });
 
   it('finds sites and cuts across the origin of a circular sequence', () => {

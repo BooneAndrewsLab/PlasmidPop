@@ -51,6 +51,7 @@ piece of work needs its reasoning written down, with the next free number.
 37. [Tests that a plasmid comes out as it went in](37-correctness-tests.md)
 38. [Usage statistics that can say what is not used](38-usage-events.md)
 39. [Isoschizomers share a row](39-isoschizomer-rows.md)
+40. [Enzymes that cut on both sides of their site](40-double-cutters.md)
 
 ## Changelog to 1.1.0
 

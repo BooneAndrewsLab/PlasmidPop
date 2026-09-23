@@ -2,6 +2,7 @@ import {
   type Enzyme,
   activeEnzymes,
   findCutSites,
+  isDoubleCutter,
   isTypeIIS,
   overhangLength,
 } from '../analysis/restriction';
@@ -71,10 +72,11 @@ export interface GoldenGateOptions {
 /**
  * The enzymes worth offering for a Golden Gate: those that cut outside their
  * site and leave an overhang to join by. A blunt Type IIS cutter (MlyI) has
- * nothing to assemble with.
+ * nothing to assemble with, and a double cutter (BcgI) cuts on both sides of
+ * its site, so no part keeps an end of the enzyme's making on one side only.
  */
 export function goldenGateEnzymes(): readonly Enzyme[] {
-  return activeEnzymes().filter((e) => isTypeIIS(e) && overhangLength(e) > 0);
+  return activeEnzymes().filter((e) => isTypeIIS(e) && overhangLength(e) > 0 && !isDoubleCutter(e));
 }
 
 /** Enzymes a Golden Gate is usually done with, offered first. */

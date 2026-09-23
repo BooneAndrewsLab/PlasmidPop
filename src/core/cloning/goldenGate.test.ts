@@ -1,4 +1,12 @@
-import { SeqDocument, createFeature, getEnzyme, rangeSegment, reverseComplement } from '@/core';
+import {
+  BUNDLED_ENZYME_SET,
+  SeqDocument,
+  createFeature,
+  getEnzyme,
+  rangeSegment,
+  reverseComplement,
+  setActiveEnzymeSet,
+} from '@/core';
 
 import { goldenGateEnzymes, defaultGoldenGateEnzyme, goldenGate } from './goldenGate';
 
@@ -42,6 +50,23 @@ describe('Golden Gate enzymes', () => {
     // Type IIS but blunt: nothing to assemble by.
     expect(names).not.toContain('MlyI');
     expect(defaultGoldenGateEnzyme()?.name).toBe('BsaI');
+  });
+
+  it('leaves out an enzyme that cuts on both sides of its site', () => {
+    const bcgI = {
+      name: 'BcgI',
+      site: 'CGANNNNNNTGC',
+      cutTop: -10,
+      cutBottom: -12,
+      secondCut: { cutTop: 24, cutBottom: 22 },
+      palindromic: false,
+    };
+    setActiveEnzymeSet({ ...BUNDLED_ENZYME_SET, enzymes: [...BUNDLED_ENZYME_SET.enzymes, bcgI] });
+    try {
+      expect(goldenGateEnzymes().map((e) => e.name)).not.toContain('BcgI');
+    } finally {
+      setActiveEnzymeSet(null);
+    }
   });
 });
 

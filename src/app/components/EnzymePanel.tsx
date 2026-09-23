@@ -16,6 +16,7 @@ import {
   enzymeProfile,
   gelProfile,
   getEnzyme,
+  isDoubleCutter,
   isoschizomerGroups,
   overhangKind,
 } from '@/core';
@@ -94,6 +95,11 @@ function describeSite(site: CutSite): string {
 /** Tooltip for an enzyme: the overhang, and whatever an import added. */
 function describeEnzyme(enzyme: Enzyme): string {
   const lines = [`${overhangKind(enzyme)} overhang`];
+  if (isDoubleCutter(enzyme)) {
+    lines.push(
+      'Cuts on both sides of its site, so each site is two cuts and leaves on a short piece',
+    );
+  }
   if (enzyme.suppliers !== undefined && enzyme.suppliers.length > 0) {
     lines.push(`Suppliers: ${enzyme.suppliers.join('')}`);
   }

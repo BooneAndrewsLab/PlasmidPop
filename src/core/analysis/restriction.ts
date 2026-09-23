@@ -12,6 +12,13 @@ export interface Enzyme {
   readonly cutTop: number;
   /** Bottom-strand cut offset from the site start, in top-strand coordinates. */
   readonly cutBottom: number;
+  /**
+   * The cut on the far side of the site, for the few enzymes that cut on
+   * both sides of it (BcgI, `(10/12)CGANNNNNNTGC(12/10)`): offsets as for
+   * `cutTop`/`cutBottom`, which then hold the cut before the site. Each
+   * match is two cuts, and the site leaves on a piece of about 34 bp.
+   */
+  readonly secondCut?: CutOffsets;
   /** Site reads the same on both strands, so one match is one cut. */
   readonly palindromic: boolean;
   /**
@@ -28,6 +35,17 @@ export interface Enzyme {
    * Dam/Dcm sensitivity, which REBASE keeps elsewhere; see docs/design/07-rebase-enzymes.md.
    */
   readonly methylation?: string;
+}
+
+/** Where an enzyme cuts both strands, from the first base of its site. */
+export interface CutOffsets {
+  readonly cutTop: number;
+  readonly cutBottom: number;
+}
+
+/** Whether the enzyme cuts on both sides of its site, excising it. */
+export function isDoubleCutter(e: Pick<Enzyme, 'secondCut'>): boolean {
+  return e.secondCut !== undefined;
 }
 
 export function overhangKind(e: Pick<Enzyme, 'cutTop' | 'cutBottom'>): OverhangKind {
@@ -145,8 +163,11 @@ export interface IsoschizomerGroup {
   readonly members: readonly Enzyme[];
 }
 
-export function isoschizomerKey(e: Pick<Enzyme, 'site' | 'cutTop' | 'cutBottom'>): string {
-  return `${e.site.toUpperCase()} ${e.cutTop} ${e.cutBottom}`;
+export function isoschizomerKey(
+  e: Pick<Enzyme, 'site' | 'cutTop' | 'cutBottom' | 'secondCut'>,
+): string {
+  const second = e.secondCut === undefined ? '' : ` ${e.secondCut.cutTop} ${e.secondCut.cutBottom}`;
+  return `${e.site.toUpperCase()} ${e.cutTop} ${e.cutBottom}${second}`;
 }
 
 /** Groups enzymes by specificity, in the order of their first member's name. */
@@ -233,6 +254,7 @@ export function findCutSites(
         : matchPositions(masks, patternMasks(reverseComplement(site)), maxStart);
 
     for (const enzyme of group) {
+      const second = enzyme.secondCut;
       const push = (
         siteStart: number,
         cutTop: number,
@@ -244,11 +266,19 @@ export function findCutSites(
         if (cut === null || bottom === null) return;
         out.push({ enzyme: enzyme.name, cut, cutBottom: bottom, siteStart: siteStart % L, strand });
       };
+      // A double cutter's two cuts are pushed one at a time, so on a linear
+      // molecule the one that falls off an end is dropped and the other kept.
       for (const start of forward) {
         push(start, start + enzyme.cutTop, start + enzyme.cutBottom, 'forward');
+        if (second !== undefined) {
+          push(start, start + second.cutTop, start + second.cutBottom, 'forward');
+        }
       }
       for (const start of reverse) {
         push(start, start + n - enzyme.cutBottom, start + n - enzyme.cutTop, 'reverse');
+        if (second !== undefined) {
+          push(start, start + n - second.cutBottom, start + n - second.cutTop, 'reverse');
+        }
       }
     }
   }

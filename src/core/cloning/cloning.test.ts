@@ -123,6 +123,29 @@ describe('digest', () => {
     expect(digest(SeqDocument.create({ sequence: '' }), [])).toEqual([]);
   });
 
+  it('cuts the site out with an enzyme that cuts on both sides of it', () => {
+    const bcgI = {
+      name: 'BcgI',
+      site: 'CGANNNNNNTGC',
+      cutTop: -10,
+      cutBottom: -12,
+      secondCut: { cutTop: 24, cutBottom: 22 },
+      palindromic: false,
+    };
+    const seq = `${'A'.repeat(15)}ACGTACGTACCGAAAAAAATGCGGATCCTTAACCG${'T'.repeat(15)}`;
+    const mol = SeqDocument.create({ name: 'bcg', sequence: seq });
+    const frags = digest(mol, findCutSites(seq, 'linear', [bcgI]));
+    // Site at 25; cuts at 15 and 49 on top, 13 and 47 on the bottom.
+    expect(frags.map((f) => f.range)).toEqual([
+      { start: 0, end: 15 },
+      { start: 15, end: 49 },
+      { start: 49, end: seq.length },
+    ]);
+    expect(frags[1]?.sequence).toContain('CGAAAAAAATGC');
+    expect(frags[1]?.left).toEqual({ kind: "3'", overhang: 'AA', enzyme: 'BcgI' });
+    expect(frags[1]?.right).toEqual({ kind: "3'", overhang: 'CC', enzyme: 'BcgI' });
+  });
+
   it('describes ends', () => {
     expect(describeEnd(BLUNT_END)).toBe('blunt end');
     expect(describeEnd({ kind: "5'", overhang: 'aatt', enzyme: 'EcoRI' })).toBe('EcoRI 5′ AATT');

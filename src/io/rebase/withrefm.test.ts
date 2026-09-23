@@ -171,15 +171,24 @@ describe('parseRebaseWithRefM', () => {
     expect(find('BsmI')?.methylation).toBeUndefined();
   });
 
+  it('reads an enzyme that cuts on both sides of its site', () => {
+    // (10/12)CGANNNNNNTGC(12/10): 10 and 12 bases before the 12-base site,
+    // 12 and 10 after it — a 2-base 3' overhang at each cut.
+    expect(find('BcgI')).toMatchObject({
+      site: 'CGANNNNNNTGC',
+      cutTop: -10,
+      cutBottom: -12,
+      secondCut: { cutTop: 24, cutBottom: 22 },
+    });
+    expect(find('EcoRI')?.secondCut).toBeUndefined();
+  });
+
   it('leaves out what it cannot represent, and counts why', () => {
-    // Cuts on both sides of its site; `Enzyme` holds one pair of offsets.
-    expect(find('BcgI')).toBeUndefined();
     // A site with no cut position determined.
     expect(find('AbaPI')).toBeUndefined();
     expect(find('AbcI')).toBeUndefined();
     expect(parsed.skipped).toEqual({
       cutUnknown: 2,
-      doubleCutter: 1,
       noSite: 0,
       tooUnspecific: 1,
     });
