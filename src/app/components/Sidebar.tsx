@@ -73,16 +73,18 @@ export function Sidebar({ doc }: Props) {
 interface PanelProps {
   readonly doc: SeqDocument;
   readonly tab: SidebarTab;
+  /** The phone reader's panels, which look and do not edit. */
+  readonly reader?: boolean;
 }
 
 /**
  * The panel a tab names, on its own so the phone reader (`PhoneShell`) can
  * show the two it has a use for without a rail it has no room for.
  */
-export function SidebarPanel({ doc, tab }: PanelProps) {
+export function SidebarPanel({ doc, tab, reader = false }: PanelProps) {
   switch (tab) {
     case 'features':
-      return <FeatureList doc={doc} />;
+      return <FeatureList doc={doc} reader={reader} />;
     case 'enzymes':
       return <EnzymePanel doc={doc} />;
     case 'orfs':

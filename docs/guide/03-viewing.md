@@ -66,7 +66,9 @@ message arrived.
   the Complement and Translations toggles are not applied, since each one adds
   a line to every row.
 - Tapping a row in a list takes you back to the view you were last in, with
-  that feature selected.
+  that feature selected. The Features list has no **Rename**, **Edit** or
+  **Remove** on a phone, so a stray tap cannot turn a plasmid someone sent
+  you into a working copy.
 
 Nothing about a document is different on a phone: it is the same file, stored
 in the same browser, and everything comes back on a wider window. A notice

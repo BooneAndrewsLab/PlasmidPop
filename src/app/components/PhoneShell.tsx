@@ -94,7 +94,7 @@ export function PhoneShell({ doc }: Props) {
               })}
             </div>
             <div className="phone__panel" role="tabpanel">
-              <SidebarPanel doc={doc} tab={detailTab} />
+              <SidebarPanel doc={doc} tab={detailTab} reader />
             </div>
           </div>
         )}

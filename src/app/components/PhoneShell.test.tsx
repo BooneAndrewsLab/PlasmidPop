@@ -54,6 +54,21 @@ describe('PhoneShell', () => {
     expect(screen.getByRole('complementary', { name: 'Features' })).toBeInTheDocument();
   });
 
+  it('lists features to look at, not to edit', () => {
+    setup();
+    fireEvent.click(pane('Details'));
+    const row = screen.getByRole('button', { name: /thing/ });
+    fireEvent.click(row);
+    expect(editorStore.getState().selectedFeatureId).toBe('f1');
+    // No Rename, Edit or Remove under the selected row, and a double tap
+    // does not open a rename: any of them would fork a working copy.
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    fireEvent.doubleClick(row);
+    expect(editorStore.getState().renameRequest).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
+  });
+
   it('offers Features and Enzymes, falling back to Features from a tab it has not got', () => {
     setup();
     act(() => {

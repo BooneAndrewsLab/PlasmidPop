@@ -10,6 +10,12 @@ import { FeatureEditor } from './FeatureEditor';
 
 interface Props {
   readonly doc: SeqDocument;
+  /**
+   * The phone reader's list: rows select, nothing renames, edits or removes.
+   * A reader holding a shared plasmid is one stray tap on Remove from having
+   * forked a working copy of it, which is an edit nobody made on purpose.
+   */
+  readonly reader?: boolean;
 }
 
 function isSelected(feature: Feature, selection: { start: number; end: number } | null): boolean {
@@ -56,7 +62,7 @@ function RenameField({ feature }: { readonly feature: Feature }) {
   );
 }
 
-export function FeatureList({ doc }: Props) {
+export function FeatureList({ doc, reader = false }: Props) {
   const { selection, selectedFeatureId, renameRequest, editingFeatureId } = useEditorState();
   const features = doc.features.all();
   const renaming =
@@ -102,7 +108,7 @@ export function FeatureList({ doc }: Props) {
                 ref={f.id === selectedId ? selectedRow : undefined}
                 className={`feature-item${selected ? ' feature-item--selected' : ''}`}
               >
-                {renaming === f.id ? (
+                {!reader && renaming === f.id ? (
                   <div className="feature-row">
                     <span
                       className="feature-row__swatch"
@@ -118,9 +124,13 @@ export function FeatureList({ doc }: Props) {
                     onClick={() => {
                       editorStore.selectFeature(f.id);
                     }}
-                    onDoubleClick={() => {
-                      editorStore.requestRename(f.id);
-                    }}
+                    onDoubleClick={
+                      reader
+                        ? undefined
+                        : () => {
+                            editorStore.requestRename(f.id);
+                          }
+                    }
                   >
                     <span
                       className="feature-row__swatch"
@@ -138,8 +148,10 @@ export function FeatureList({ doc }: Props) {
                     </span>
                   </button>
                 )}
-                {editingFeatureId === f.id && <FeatureEditor key={f.id} doc={doc} feature={f} />}
-                {selected && renaming !== f.id && editingFeatureId !== f.id && (
+                {!reader && editingFeatureId === f.id && (
+                  <FeatureEditor key={f.id} doc={doc} feature={f} />
+                )}
+                {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions">
                     <button
                       type="button"
