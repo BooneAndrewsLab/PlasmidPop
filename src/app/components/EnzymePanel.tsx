@@ -407,71 +407,76 @@ export function EnzymePanel({ doc }: Props) {
   return (
     <div className="panel">
       <div className="panel__controls">
-        <input
-          className="panel__search"
-          type="search"
-          placeholder="Filter enzymes or sites"
-          aria-label="Filter enzymes"
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value);
-          }}
-        />
-        <label className="panel__field">
-          <span>Cuts</span>
-          <select
-            className="panel__select"
-            value={enzymeCutFilter}
-            title="List only the enzymes that cut this many times — two for a diagnostic digest, one for a cloning site"
-            onChange={(e) => {
-              editorStore.setEnzymeCutFilter(
-                isCutCountFilter(e.target.value) ? e.target.value : 'any',
-              );
-            }}
-          >
-            {CUT_COUNT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="panel__field">
-          <span>Order</span>
-          <select
-            className="panel__select"
-            value={enzymeSort}
-            title="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
-            onChange={(e) => {
-              editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
-            }}
-          >
-            {ENZYME_SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} title={o.title}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        {enzymeSetInfo.suppliers.length > 0 && (
-          <label className="panel__field panel__field--row">
-            <span>Sold by</span>
+        <div className="panel__form">
+          <label>
+            <span>Filter</span>
+            <input
+              className="panel__search"
+              type="search"
+              placeholder="Enzyme or site"
+              aria-label="Filter enzymes"
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value);
+              }}
+            />
+          </label>
+          <label>
+            <span>Cuts</span>
             <select
               className="panel__select"
-              value={supplier}
+              value={enzymeCutFilter}
+              title="List only the enzymes that cut this many times — two for a diagnostic digest, one for a cloning site"
               onChange={(e) => {
-                editorStore.setEnzymeSupplier(e.target.value);
+                editorStore.setEnzymeCutFilter(
+                  isCutCountFilter(e.target.value) ? e.target.value : 'any',
+                );
               }}
             >
-              <option value="">Any supplier</option>
-              {enzymeSetInfo.suppliers.map((sup) => (
-                <option key={sup.code} value={sup.code}>
-                  {sup.name}
+              {CUT_COUNT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
           </label>
-        )}
+          <label>
+            <span>Order</span>
+            <select
+              className="panel__select"
+              value={enzymeSort}
+              title="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
+              onChange={(e) => {
+                editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
+              }}
+            >
+              {ENZYME_SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value} title={o.title}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {enzymeSetInfo.suppliers.length > 0 && (
+            <label>
+              <span>Sold by</span>
+              <select
+                className="panel__select"
+                value={supplier}
+                onChange={(e) => {
+                  editorStore.setEnzymeSupplier(e.target.value);
+                }}
+              >
+                <option value="">Any supplier</option>
+                {enzymeSetInfo.suppliers.map((sup) => (
+                  <option key={sup.code} value={sup.code}>
+                    {sup.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         <div className="panel__buttons">
           <button
             type="button"

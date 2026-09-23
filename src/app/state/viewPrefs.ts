@@ -1,4 +1,10 @@
-import { type TranslationTable, isTranslationTable } from '@/core';
+import {
+  type PrimerCriteria,
+  type TranslationTable,
+  isTranslationTable,
+  normalizePrimerCriteria,
+  samePrimerCriteria,
+} from '@/core';
 import { type FontSize, isFontSize } from '@/view/linear';
 
 import { type CloningReaction, isCloningReaction } from './cloningReaction';
@@ -43,6 +49,8 @@ export interface ViewPrefs {
   readonly cloningReaction: CloningReaction;
   /** The code the Translate tab and the ORF scan read with. */
   readonly geneticCode: TranslationTable;
+  /** The Primers tab's settings; see `SharedState.primerCriteria`. */
+  readonly primerCriteria: PrimerCriteria;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -104,6 +112,9 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   }
   const code = record['geneticCode'];
   if (typeof code === 'number' && isTranslationTable(code)) prefs.geneticCode = code;
+  if (typeof record['primerCriteria'] === 'object' && record['primerCriteria'] !== null) {
+    prefs.primerCriteria = normalizePrimerCriteria(record['primerCriteria']);
+  }
   const layout = record['layout'];
   if (typeof layout === 'object' && layout !== null) {
     const l = layout as Record<string, unknown>;
@@ -152,6 +163,7 @@ function snapshot(): ViewPrefs {
     enzymeSort,
     cloningReaction,
     geneticCode,
+    primerCriteria,
   } = editorStore.getState();
   return {
     view,
@@ -170,6 +182,7 @@ function snapshot(): ViewPrefs {
     enzymeSort,
     cloningReaction,
     geneticCode,
+    primerCriteria,
   };
 }
 
@@ -190,7 +203,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.enzymeSupplier === b.enzymeSupplier &&
     a.enzymeSort === b.enzymeSort &&
     a.cloningReaction === b.cloningReaction &&
-    a.geneticCode === b.geneticCode
+    a.geneticCode === b.geneticCode &&
+    samePrimerCriteria(a.primerCriteria, b.primerCriteria)
   );
 }
 
@@ -222,6 +236,7 @@ export function startViewPrefs(): () => void {
     editorStore.setCloningReaction(stored.cloningReaction);
   }
   if (stored.geneticCode !== undefined) editorStore.setGeneticCode(stored.geneticCode);
+  if (stored.primerCriteria !== undefined) editorStore.setPrimerCriteria(stored.primerCriteria);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();

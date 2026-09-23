@@ -127,3 +127,51 @@ export function maxSelfComplementarity(sequence: string): number {
   }
   return best;
 }
+
+/**
+ * Longest stem a primer can fold back on itself to form: `k` consecutive
+ * bases pairing, antiparallel, with `k` further along, and at least
+ * `minLoop` unpaired bases between the two arms (three is the tightest turn
+ * a single strand can make). A hairpin ties up the 3′ end before it finds
+ * the template, which is why it is filtered on separately from a dimer.
+ */
+export function longestHairpinStem(sequence: string, minLoop = 3): number {
+  const seq = sequence.toUpperCase();
+  const n = seq.length;
+  let best = 0;
+  // run[i][j]: stem length whose innermost pair is (i, j), growing outward
+  // to (i - 1, j + 1) and so on. Rolled into one row per j.
+  let outer = new Array<number>(n + 1).fill(0); // row for j + 1
+  for (let j = n - 1; j >= 0; j--) {
+    const row = new Array<number>(n + 1).fill(0);
+    for (let i = 0; i + minLoop < j; i++) {
+      if (COMPLEMENT[seq.charAt(i)] !== seq.charAt(j)) continue;
+      const run = (i > 0 ? (outer[i - 1] ?? 0) : 0) + 1;
+      row[i] = run;
+      if (run > best) best = run;
+    }
+    outer = row;
+  }
+  return best;
+}
+
+/**
+ * How many bases at the 3′ end of `a` would pair with `b` laid antiparallel
+ * against it: the longest `k` for which the last `k` bases of `a`,
+ * reverse-complemented, occur in `b`. That is the dimer a polymerase can
+ * extend, which makes it the one that matters; a dimer in the middle of two
+ * primers mostly costs a little Tm. Pass the same primer twice for a
+ * self-dimer, or the two of a pair for a primer-dimer.
+ */
+export function threePrimeComplementarity(a: string, b: string): number {
+  const x = a.toUpperCase();
+  const y = b.toUpperCase();
+  let best = 0;
+  for (let k = 1; k <= x.length && k <= y.length; k++) {
+    let rc = '';
+    for (let i = x.length - 1; i >= x.length - k; i--) rc += COMPLEMENT[x.charAt(i)] ?? 'N';
+    if (!y.includes(rc)) break;
+    best = k;
+  }
+  return best;
+}

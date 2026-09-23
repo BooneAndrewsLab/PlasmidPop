@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { SeqDocument } from '@/core';
+import { DEFAULT_PRIMER_CRITERIA, SeqDocument } from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { PrimerPanel } from './PrimerPanel';
@@ -104,5 +104,49 @@ describe('PrimerPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
     });
     expect(editorStore.getState().selection).not.toBeNull();
+  });
+});
+
+describe('primer settings', () => {
+  afterEach(() => {
+    act(() => {
+      editorStore.setPrimerCriteria(DEFAULT_PRIMER_CRITERIA);
+    });
+  });
+
+  it('commits a typed number on leaving the box, and designs to it', () => {
+    setup();
+    const box = screen.getByLabelText('Shortest primer');
+    act(() => {
+      fireEvent.change(box, { target: { value: '2' } });
+    });
+    // Nothing is committed while the number is still being typed.
+    expect(editorStore.getState().primerCriteria.minLength).toBe(18);
+    act(() => {
+      fireEvent.change(box, { target: { value: '22' } });
+      fireEvent.blur(box);
+    });
+    const c = editorStore.getState().primerCriteria;
+    expect(c.minLength).toBe(22);
+    expect(c.maxLength).toBe(27);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
+    });
+    expect(screen.getAllByText(/^[ACGT]{22,27}$/).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/^[ACGT]{18,21}$/)).toHaveLength(0);
+  });
+
+  it('moves the other end of a range rather than leaving it backwards', () => {
+    setup();
+    const box = screen.getByLabelText('Lowest Tm');
+    act(() => {
+      fireEvent.change(box, { target: { value: '70' } });
+      fireEvent.keyDown(box, { key: 'Enter' });
+    });
+    expect(editorStore.getState().primerCriteria).toMatchObject({ minTm: 70, maxTm: 70 });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
+    });
+    expect(editorStore.getState().primerCriteria).toEqual(DEFAULT_PRIMER_CRITERIA);
   });
 });

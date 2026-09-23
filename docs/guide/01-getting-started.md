@@ -38,8 +38,8 @@ See [Files and storage](02-files.md).
   complement, Set origin here, Make circular / linear, Find.
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
-- **Sidebar** (right): tabs for Features, Enzymes, ORFs, Translate, Primers,
-  Align, Cloning and History, in a narrow rail down the right-hand edge with
+- **Sidebar** (right): tabs for Features, ORFs, Translate, Primers, Enzymes,
+  Cloning, Align and History, in a narrow rail down the right-hand edge with
   the labels turned on their side. On a narrow window the rail becomes a row
   of tabs above the panel.
 - **Status bar** (bottom): what is selected, warnings raised while opening

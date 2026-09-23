@@ -206,7 +206,17 @@ joining parts, annealing a primer by its 3′ end so a 5′ tail (a site, a
 Gibson arm, a mutation) is carried into the product; and the **gel is drawn**
 rather than only described (`src/app/components/Gel.tsx`, item 30), a lane
 beside a chosen ladder under the Enzymes tab's ticked fragments and under the
-PCR products, where clicking a band selects that piece. Tests: 939 passing.
+PCR products, where clicking a band selects that piece. Added 2026-09-22: **primer
+settings** (`src/core/primers/criteria.ts`, `PrimerSettings.tsx`) — length,
+Tm, GC and ΔTm ranges, where each primer is looked for relative to the
+selection's start and end (a negative near edge reaches into it), and
+filters for runs, hairpins (`longestHairpinStem`), self-dimers and 3′ dimers
+with itself or the partner (`threePrimeComplementarity`), plus a required GC
+clamp; one `PrimerCriteria` drives both the designer and **Check a primer**,
+and is kept in `viewPrefs`. The sidebar tabs now read Features, ORFs,
+Translate, Primers, Enzymes, Cloning, Align, History, and the Enzymes tab's
+Filter / Cuts / Order / Sold by sit in one two-column grid (`.panel__form`).
+Tests: 969 passing.
 Perf measurements live in `docs/perf-notes.md`.
 
 ## Potential new features (not scheduled)

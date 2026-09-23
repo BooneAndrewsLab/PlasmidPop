@@ -8,6 +8,7 @@ import {
   type SeqDocument,
   analyzePrimer,
   createFeature,
+  describePrimerCriteria,
   designPrimers,
   findPrimerBindingSites,
   isEmptyRange,
@@ -18,6 +19,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { PrimerSettings } from './PrimerSettings';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -116,7 +118,7 @@ function releaseSelection(owned: RefObject<Range | null>): void {
 }
 
 export function PrimerPanel({ doc }: Props) {
-  const { selection } = useEditorState();
+  const { selection, primerCriteria } = useEditorState();
   const [probe, setProbe] = useState('');
   const [pairs, setPairs] = useState<PrimerPair[] | null>(null);
   const [designedFor, setDesignedFor] = useState<string>('');
@@ -132,7 +134,10 @@ export function PrimerPanel({ doc }: Props) {
   const ownedSelection = useRef<Range | null>(null);
 
   const hasTarget = selection !== null && !isEmptyRange(selection);
-  const report = useMemo(() => (probe.trim() === '' ? null : analyzePrimer(probe)), [probe]);
+  const report = useMemo(
+    () => (probe.trim() === '' ? null : analyzePrimer(probe, primerCriteria)),
+    [probe, primerCriteria],
+  );
   const sites: BindingSite[] = useMemo(
     () =>
       report === null || report.length < 8
@@ -168,7 +173,7 @@ export function PrimerPanel({ doc }: Props) {
   const design = (): void => {
     if (selection === null) return;
     analytics.track('primers', 'design');
-    const result = designPrimers(doc.sequence.toString(), doc.topology, selection);
+    const result = designPrimers(doc.sequence.toString(), doc.topology, selection, primerCriteria);
     setPairs(result);
     setShown(null);
     setHovered(null);
@@ -198,9 +203,10 @@ export function PrimerPanel({ doc }: Props) {
         <h3 className="panel__heading">Design primers for the selection</h3>
         <p className="panel__note">
           {hasTarget
-            ? `Target ${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()} (${(selection.end - selection.start).toLocaleString()} bp). Primers 18–27 nt, Tm 55–65 °C, within 200 bp of the target.`
+            ? `Target ${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()} (${(selection.end - selection.start).toLocaleString()} bp). Primers ${describePrimerCriteria(primerCriteria)}.`
             : 'Select the region to amplify, then design.'}
         </p>
+        <PrimerSettings criteria={primerCriteria} />
         <button
           type="button"
           className="button button--small"
@@ -213,8 +219,8 @@ export function PrimerPanel({ doc }: Props) {
           <div className="panel__section">
             {pairs.length === 0 ? (
               <p className="panel__note">
-                No suitable pairs for {designedFor}. Try a different region or select more flanking
-                sequence.
+                No suitable pairs for {designedFor}. Try a different region, look further from it,
+                or loosen the settings.
               </p>
             ) : (
               <ol className="pair-list">

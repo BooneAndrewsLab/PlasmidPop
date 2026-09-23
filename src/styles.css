@@ -823,6 +823,103 @@ button {
   min-width: 0;
 }
 
+/**
+ * Labelled controls in two columns — the label, then the control filling
+ * the rest — so that a stack of them lines up down both edges. The Enzymes
+ * tab's Cuts / Order / Sold by were three inline fields that wrapped where
+ * their widths happened to fall, with no two selects the same width or
+ * starting at the same place.
+ *
+ * A `<label>` row takes both columns through `subgrid`, so the label stays
+ * the element that names its control. `min-width: 0` for the reason under
+ * `.panel__field--row`: a `<select>` is as wide as its longest option.
+ */
+.panel__form {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+  color: var(--ink-2);
+}
+
+.panel__form > label {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+.panel__form .panel__select,
+.panel__form .panel__search {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+}
+
+.panel__form-range {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.panel__form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel__form-heading {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.panel__form-hint {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.panel__number--short {
+  width: 4.5em;
+  padding: 2px 6px;
+}
+
+.primer-settings {
+  margin: 8px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.primer-settings > summary {
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.primer-settings[open] > summary {
+  margin-bottom: 8px;
+}
+
+.primer-settings__summary {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.primer-settings > .button {
+  margin-top: 8px;
+}
+
 .panel__buttons {
   display: flex;
   gap: 4px;

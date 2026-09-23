@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { SeqDocument } from '@/core';
+import { DEFAULT_PRIMER_CRITERIA, SeqDocument } from '@/core';
 
 import { editorStore } from './editorStore';
 import { DEFAULT_LAYOUT } from './layout';
@@ -24,6 +24,7 @@ const DEFAULTS = {
   enzymeSort: 'name',
   cloningReaction: 'ligation',
   geneticCode: 1,
+  primerCriteria: DEFAULT_PRIMER_CRITERIA,
 } as const;
 
 function reset(): void {
@@ -44,6 +45,7 @@ function reset(): void {
   editorStore.setEnzymeSort(DEFAULTS.enzymeSort);
   editorStore.setCloningReaction(DEFAULTS.cloningReaction);
   editorStore.setGeneticCode(DEFAULTS.geneticCode);
+  editorStore.setPrimerCriteria(DEFAULTS.primerCriteria);
 }
 
 describe('view preferences', () => {
@@ -71,6 +73,12 @@ describe('view preferences', () => {
       enzymeSort: 'bands',
       cloningReaction: 'gibson',
       geneticCode: 11,
+      primerCriteria: {
+        ...DEFAULT_PRIMER_CRITERIA,
+        minLength: 20,
+        forwardRegion: { near: -30, far: 0 },
+        requireGcClamp: true,
+      },
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -116,6 +124,7 @@ describe('view preferences', () => {
       enzymeSort: 'bands',
       cloningReaction: 'golden-gate',
       geneticCode: 2,
+      primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -135,6 +144,7 @@ describe('view preferences', () => {
       enzymeSort: 'bands',
       cloningReaction: 'golden-gate',
       geneticCode: 2,
+      primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
     });
     stop();
   });

@@ -17,12 +17,12 @@ interface Props {
 
 const TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],
-  ['enzymes', 'Enzymes'],
   ['orfs', 'ORFs'],
   ['translate', 'Translate'],
   ['primers', 'Primers'],
-  ['align', 'Align'],
+  ['enzymes', 'Enzymes'],
   ['cloning', 'Cloning'],
+  ['align', 'Align'],
   ['history', 'History'],
 ];
 

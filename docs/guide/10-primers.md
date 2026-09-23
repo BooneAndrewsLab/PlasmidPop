@@ -30,20 +30,52 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
    saved with the file. Unlike **Show**, this is an edit: it goes into the
    History and can be undone.
 
-Candidates are 18–27 nt long with a Tm of 55–65 °C and no more than 3 °C
-apart, and may start up to 200 bp outside the selection so the product
-covers it with some margin. Pairs are ranked by a penalty that favours
-a Tm near 60 °C, balanced GC, a GC clamp, little self-complementarity, a
-length near 21 nt and a small Tm difference. If nothing qualifies, select more flanking sequence or
-a different region.
+If nothing qualifies, select more flanking sequence, look further from the
+selection, or loosen the settings.
+
+## Settings
+
+**Settings**, under the target, sets what a designed primer has to be. Every
+candidate that breaks one of them is refused, and the same numbers are what
+**Check a primer** warns about, so a pasted primer is judged by the rules the
+designed ones had to pass. They are remembered in this browser, from plasmid
+to plasmid; **Reset to defaults** puts them back.
+
+| Setting    | Default               | What it means                                                                                                                  |
+| ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Length     | 18–27 nt              | Shortest and longest primer.                                                                                                   |
+| Tm         | 55–65 °C              | Melting temperature range.                                                                                                     |
+| GC         | 35–65 %               | GC content range.                                                                                                              |
+| ΔTm        | ≤ 3 °C                | Largest Tm difference between the two primers of a pair.                                                                       |
+| Forward    | 0–200 bp before start | Where the forward primer may lie.                                                                                              |
+| Reverse    | 0–200 bp after end    | Where the reverse primer may lie.                                                                                              |
+| Base run   | ≤ 4                   | Longest run of one base (`GGGG` is 4).                                                                                         |
+| Hairpin    | stem ≤ 4 bp           | Longest stem the primer can fold back into, with a loop of at least 3 bases.                                                   |
+| Self-dimer | ≤ 6 bp                | Longest stretch that pairs with another part of the same primer.                                                               |
+| 3′ dimer   | ≤ 4 bp                | Longest stretch at the 3′ end that pairs with itself or with the other primer of the pair — the dimer a polymerase can extend. |
+| GC clamp   | preferred             | Tick **required** to refuse a primer that does not end in G or C.                                                              |
+
+**Where to look** is measured from the selection's edges: the forward primer
+lies wholly between the two distances before the start, the reverse primer
+between the two after the end. A negative number reaches _into_ the
+selection, so `-30`–`0` for the forward primer puts it on the selection's
+own first bases — how an ORF is amplified from its start codon. To keep
+primers well clear of the region, as for sequencing across it, raise the
+near edge: `50`–`200` leaves at least 50 bp between each primer and the
+selection.
+
+Among the candidates that pass, pairs are ranked by a penalty that favours
+a Tm in the middle of the range, GC in the middle of its range, a GC clamp,
+little self-complementarity or hairpin, a length near 21 nt and a small Tm
+difference.
 
 ## Checking a primer
 
 Paste a sequence under **Check a primer**. You get its length, Tm, GC
-content and whether it ends in a GC clamp, plus warnings for the usual
-problems: shorter than 18 or longer than 30 bases, Tm below 52 or above
-65 °C, GC outside 40–60 %, a run of five or more identical bases, a
-self-complementary stretch of six or more, or no GC clamp.
+content and whether it ends in a GC clamp, plus a warning for each setting it
+breaks — too short or too long, Tm or GC out of range, a long run of one
+base, a hairpin, a self-complementary stretch, a 3′ end that pairs with
+itself — and for a missing GC clamp.
 
 With eight or more bases, the tab also searches the document for **binding
 sites** on both strands: the 3′ end must match exactly and up to two

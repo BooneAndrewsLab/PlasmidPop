@@ -7,10 +7,12 @@ import {
   type EditOp,
   type FeatureId,
   type Orf,
+  type PrimerCriteria,
   type Range,
   type RangeSegment,
   type TranslationTable,
   BUNDLED_ENZYME_SET,
+  DEFAULT_PRIMER_CRITERIA,
   DEFAULT_TABLE,
   History,
   SeqDocument,
@@ -310,6 +312,13 @@ export interface SharedState {
    */
   readonly geneticCode: TranslationTable;
   /**
+   * What the Primers tab designs to and checks against: lengths, Tm and GC
+   * ranges, where to look, and the hairpin and dimer limits. A lab has its
+   * own habits here and keeps them from plasmid to plasmid, so they are kept
+   * with the view preferences.
+   */
+  readonly primerCriteria: PrimerCriteria;
+  /**
    * Fragments collected for ligation, in order. Independent of the open
    * documents so pieces can be gathered from several of them in turn.
    */
@@ -444,6 +453,7 @@ const SHARED_INITIAL: SharedState = {
   cloningReaction: 'ligation',
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
+  primerCriteria: DEFAULT_PRIMER_CRITERIA,
   assembly: [],
   downloadNotice: null,
   shareNotice: null,
@@ -1223,6 +1233,10 @@ export class EditorStore {
     if (table === this.state.geneticCode) return;
     this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
     this.setShared({ geneticCode: table });
+  }
+
+  setPrimerCriteria(criteria: PrimerCriteria): void {
+    if (criteria !== this.state.primerCriteria) this.setShared({ primerCriteria: criteria });
   }
 
   /**
