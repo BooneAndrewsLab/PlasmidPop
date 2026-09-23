@@ -91,9 +91,13 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-23)
 
-**1.2.0** (2026-09-23) is the current release, the first of the themed
+**1.2.1** (2026-09-23) is the current release, fixes to Align from user
+feedback (item 45): files dropped or picked into the Align box, with a
+choice among several records; IUPAC codes scored by EDNAFULL; a 150 M-cell
+limit (10 kb reads) with the strand picked first; a progress bar with
+Cancel. **1.2.0** (2026-09-23) was the first of the themed
 minor releases planned after 1.1. The GitHub milestones after it, reordered
-the same day on user feedback about Align: 1.2.1 Align fixes, 1.3
+the same day on user feedback about Align: 1.2.1 Align fixes (done), 1.3
 sequencing reads (AB1/FASTQ, qualities, long reads), then 1.4 cloning
 bench, 1.5 workspace and map, 1.6 compare, history and sharing. 1.2.0 has
 isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
