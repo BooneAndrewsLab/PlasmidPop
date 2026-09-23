@@ -103,6 +103,16 @@ enzyme alone. **Tick both** ticks that pair and nothing else, and the gel
 then shows it beside each enzyme alone. With a big imported table only the
 120 enzymes that cut least are paired; narrow the list to pair the others.
 
+### A partner for one enzyme
+
+Often the question is narrower: _what do I cut with EcoRI to check this?_
+Set **Pair** above the double digests to _EcoRI with a partner_, and the
+five best partners for it are listed, looked for among **every** enzyme
+that cuts three times or fewer — the name filter and the **Cuts** filter do
+not narrow them, only **Sold by** does. With exactly one enzyme ticked, the
+section offers **Find a partner for** it in one click. Set **Pair** back to
+_any two listed enzymes_ for the pairs of the list.
+
 Tick a candidate and the **Fragments from ticked enzymes** section below the
 list says what the whole digest would look like — several enzymes ticked
 together give a lane none of their own rows can predict.

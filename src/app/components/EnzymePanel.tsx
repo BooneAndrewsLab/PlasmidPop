@@ -10,6 +10,7 @@ import {
   activeEnzymes,
   bandProblems,
   bestPairs,
+  bestPartners,
   compareDiagnostic,
   describeBands,
   digestFragments,
@@ -152,28 +153,50 @@ function BandLine({ profile }: { readonly profile: DigestProfile }) {
   );
 }
 
+/** An enzyme that may go into a double digest: a row of the list, filters aside. */
+interface PairRow {
+  /** The name it is offered under, as on its row. */
+  readonly name: string;
+  /** Every enzyme the row stands for, so a partner chosen by any name is found. */
+  readonly members: readonly string[];
+  readonly cuts: readonly number[];
+}
+
 interface DoubleDigestsProps {
   /** The rows the list is showing, in its order, so its filters narrow the pairs too. */
   readonly listed: readonly { readonly enzyme: Enzyme; readonly sites: readonly CutSite[] }[];
+  /**
+   * Every row that cuts at most `MAX_PAIR_CUTS` times, whatever the name and
+   * cut-count filters say (the supplier filter still holds): where a partner
+   * for one chosen enzyme is looked for.
+   */
+  readonly pairable: readonly PairRow[];
   readonly doc: SeqDocument;
   readonly shownEnzymes: ReadonlySet<string>;
 }
 
 /**
- * The best double digests among the enzymes listed, under a list ordered by
- * band separation: the same question asked of pairs, for when no enzyme on
- * its own gives a lane worth running. "Tick both" ticks the pair alone, and
- * the gel below then draws their digest beside each single one.
+ * The best double digests, under a list ordered by band separation: the same
+ * question asked of pairs, for when no enzyme on its own gives a lane worth
+ * running. By default among the enzymes listed; with **Pair** set to one
+ * enzyme, its best partners among every enzyme that cuts few enough times,
+ * which is the question as it is usually asked — "what do I cut with EcoRI"
+ * (item 42). "Tick both" ticks the pair alone, and the gel below then draws
+ * their digest beside each single one.
  */
-function DoubleDigests({ listed, doc, shownEnzymes }: DoubleDigestsProps) {
+function DoubleDigests({ listed, pairable, doc, shownEnzymes }: DoubleDigestsProps) {
   const gel = useGelOptions();
+  const [anchorName, setAnchorName] = useState('');
+  const anchor =
+    anchorName === '' ? undefined : pairable.find((r) => r.members.includes(anchorName));
   // Keyed on the names rather than on `listed`, a new array every render.
   const key = listed
     .filter((g) => g.sites.length > 0 && g.sites.length <= MAX_PAIR_CUTS)
     .map((g) => g.enzyme.name)
     .join(' ');
   const poolSize = key === '' ? 0 : key.split(' ').length;
-  const pairs = useMemo(() => {
+  const listedPairs = useMemo(() => {
+    if (anchor !== undefined) return [];
     const names = new Set(key.split(' '));
     const pool = listed
       .filter((g) => names.has(g.enzyme.name))
@@ -188,22 +211,83 @@ function DoubleDigests({ listed, doc, shownEnzymes }: DoubleDigestsProps) {
     );
     // `listed` is read only through the names in `key`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, doc.length, doc.topology, gel]);
-  if (poolSize < 2) return null;
+  }, [key, anchor, doc.length, doc.topology, gel]);
+  const partnerPairs = useMemo(
+    () =>
+      anchor === undefined
+        ? []
+        : bestPartners(
+            anchor,
+            pairable.filter((r) => r !== anchor),
+            doc.length,
+            doc.topology,
+            PAIRS_SHOWN,
+            gel,
+          ),
+    [anchor, pairable, doc.length, doc.topology, gel],
+  );
+  const pairs = anchor === undefined ? listedPairs : partnerPairs;
+  if (pairable.length < 2) return null;
+  // One enzyme ticked is the usual start of "and what do I cut it with".
+  const [onlyTicked] = shownEnzymes.size === 1 ? [...shownEnzymes] : [];
+  const offer =
+    anchor === undefined && onlyTicked !== undefined
+      ? pairable.find((r) => r.members.includes(onlyTicked))
+      : undefined;
 
   return (
     <div className="panel__section" data-testid="double-digests">
       <h3 className="panel__heading">Double digests</h3>
-      {pairs.length === 0 ? (
+      <div className="panel__form">
+        <label>
+          <span>Pair</span>
+          <select
+            className="panel__select"
+            value={anchor?.name ?? ''}
+            title="Pairs among the enzymes listed, or the best partners for one enzyme"
+            onChange={(e) => {
+              setAnchorName(e.target.value);
+            }}
+          >
+            <option value="">any two listed enzymes</option>
+            {pairable.map((r) => (
+              <option key={r.name} value={r.name}>
+                {r.name} with a partner
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {offer !== undefined && (
         <p className="panel__note">
-          No pair of the enzymes listed gives a lane that can be read at a glance.
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setAnchorName(offer.name);
+            }}
+          >
+            Find a partner for {offer.name}
+          </button>
+        </p>
+      )}
+      {anchor === undefined && poolSize < 2 ? (
+        <p className="panel__note">
+          Fewer than two of the enzymes listed cut {MAX_PAIR_CUTS} times or fewer.
+        </p>
+      ) : pairs.length === 0 ? (
+        <p className="panel__note">
+          {anchor === undefined
+            ? 'No pair of the enzymes listed gives a lane that can be read at a glance.'
+            : `No enzyme with ${anchor.name} gives a lane that can be read at a glance.`}
         </p>
       ) : (
         <ul className="enzyme-list">
           {pairs.map((pair) => {
-            // A pair reads the same whichever way the list happened to be sorted.
+            // A pair reads the same whichever way the list happened to be
+            // sorted; a partner comes after the enzyme it was found for.
             const [first, second] =
-              pair.first.localeCompare(pair.second) <= 0
+              anchor !== undefined || pair.first.localeCompare(pair.second) <= 0
                 ? [pair.first, pair.second]
                 : [pair.second, pair.first];
             const { profile } = pair;
@@ -236,11 +320,21 @@ function DoubleDigests({ listed, doc, shownEnzymes }: DoubleDigestsProps) {
         </ul>
       )}
       <p className="panel__note panel__note--quiet">
-        Pairs of the listed enzymes that cut {MAX_PAIR_CUTS} times or fewer, best separated first
-        {poolSize > MAX_PAIR_CANDIDATES
-          ? ` — the ${MAX_PAIR_CANDIDATES} that cut least of ${poolSize.toLocaleString()}; narrow the list to pair the others`
-          : ''}
-        .
+        {anchor === undefined ? (
+          <>
+            Pairs of the listed enzymes that cut {MAX_PAIR_CUTS} times or fewer, best separated
+            first
+            {poolSize > MAX_PAIR_CANDIDATES
+              ? ` — the ${MAX_PAIR_CANDIDATES} that cut least of ${poolSize.toLocaleString()}; narrow the list to pair the others`
+              : ''}
+            .
+          </>
+        ) : (
+          <>
+            Partners for {anchor.name} among all {(pairable.length - 1).toLocaleString()} enzymes
+            that cut {MAX_PAIR_CUTS} times or fewer, whatever the list shows, best separated first.
+          </>
+        )}
       </p>
     </div>
   );
@@ -400,6 +494,27 @@ export function EnzymePanel({ doc }: Props) {
     [grouped, enzymeSetInfo],
   );
   const entryByName = useMemo(() => new Map(groups.map((g) => [g.enzyme.name, g])), [groups]);
+  const pairable = useMemo(
+    () =>
+      units
+        .flatMap((all): PairRow[] => {
+          const members =
+            supplier === '' ? all : all.filter((e) => e.suppliers?.includes(supplier) === true);
+          const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
+          const n = entry?.sites.length ?? 0;
+          if (entry === undefined || n === 0 || n > MAX_PAIR_CUTS) return [];
+          const name = (members.find((e) => shownEnzymes.has(e.name)) ?? entry.enzyme).name;
+          return [
+            {
+              name,
+              members: members.map((e) => e.name),
+              cuts: entry.sites.map((site) => site.cut),
+            },
+          ];
+        })
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [units, supplier, entryByName, shownEnzymes],
+  );
 
   const needle = filter.trim().toLowerCase();
   const rows = useMemo(() => {
@@ -743,7 +858,12 @@ export function EnzymePanel({ doc }: Props) {
             . {nonCutters.toLocaleString()} do not cut.
           </p>
           {enzymeSort === 'bands' && (
-            <DoubleDigests listed={rows} doc={doc} shownEnzymes={shownEnzymes} />
+            <DoubleDigests
+              listed={rows}
+              pairable={pairable}
+              doc={doc}
+              shownEnzymes={shownEnzymes}
+            />
           )}
           <p className="panel__note panel__note--quiet">
             {enzymeSetInfo.bundled

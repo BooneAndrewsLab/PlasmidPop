@@ -339,54 +339,98 @@ export function bestPairs(
   limit = 5,
   options: GelOptions = {},
 ): RankedPair[] {
-  // Each enzyme's cuts once, sorted and inside the molecule, so a pair is a
-  // merge rather than a set built and a digest cut for every one of the
-  // tens of thousands of pairs a big table has (docs/perf-notes.md).
-  // On a circle a cut at the end is a cut at the origin.
-  const sorted = candidates.map((c) =>
-    [
-      ...new Set(
-        c.cuts
-          .filter((x) => x >= 0 && x <= seqLength)
-          .map((x) => (topology === 'circular' && seqLength > 0 ? x % seqLength : x)),
-      ),
-    ].sort((x, y) => x - y),
-  );
-  const gel = { ...DEFAULT_GEL, ...options };
+  const judge = pairJudge(seqLength, topology, options);
+  const sorted = candidates.map((c) => sortedCuts(c.cuts, seqLength, topology));
   const pairs: RankedPair[] = [];
-  const merged: number[] = [];
   for (let i = 0; i < candidates.length; i++) {
-    const cutsA = sorted[i] ?? [];
     for (let j = i + 1; j < candidates.length; j++) {
-      const cutsB = sorted[j] ?? [];
-      merged.length = 0;
-      let p = 0;
-      let q = 0;
-      while (p < cutsA.length || q < cutsB.length) {
-        const x = cutsA[p] ?? Infinity;
-        const y = cutsB[q] ?? Infinity;
-        const next = Math.min(x, y);
-        if (x === next) p++;
-        if (y === next) q++;
-        merged.push(next);
-      }
-      // Every cut of one is a cut of the other: this is a single digest.
-      if (merged.length === cutsA.length || merged.length === cutsB.length) continue;
-      const lengths = fragmentLengths(merged, seqLength, topology).sort((x, y) => y - x);
-      // Most pairs of a big table fail, so the cheap half of `readable` is
-      // asked first and a profile is built only for a lane worth ranking.
-      if (!mayBeReadable(lengths, gel)) continue;
-      const profile = gelProfile(lengths, options);
-      if (!profile.readable) continue;
+      const profile = judge(sorted[i] ?? [], sorted[j] ?? []);
       const a = candidates[i];
       const b = candidates[j];
-      if (a !== undefined && b !== undefined)
+      if (profile !== null && a !== undefined && b !== undefined)
         pairs.push({ first: a.name, second: b.name, profile });
     }
   }
   // Stable, so candidates earlier in the list win a tie.
   pairs.sort((x, y) => compareDiagnostic(x.profile, y.profile, options));
   return pairs.slice(0, limit);
+}
+
+/**
+ * The best partners for one enzyme: `bestPairs` with one side fixed, for
+ * "what do I cut with EcoRI to check this". Linear in the candidates rather
+ * than quadratic, so it can look through a whole imported table instead of
+ * the handful `bestPairs` is given. `first` is always the anchor; a
+ * candidate of the anchor's own name is passed over.
+ */
+export function bestPartners(
+  anchor: PairCandidate,
+  candidates: readonly PairCandidate[],
+  seqLength: number,
+  topology: Topology,
+  limit = 5,
+  options: GelOptions = {},
+): RankedPair[] {
+  const judge = pairJudge(seqLength, topology, options);
+  const cutsA = sortedCuts(anchor.cuts, seqLength, topology);
+  const pairs: RankedPair[] = [];
+  for (const c of candidates) {
+    if (c.name === anchor.name) continue;
+    const profile = judge(cutsA, sortedCuts(c.cuts, seqLength, topology));
+    if (profile !== null) pairs.push({ first: anchor.name, second: c.name, profile });
+  }
+  pairs.sort((x, y) => compareDiagnostic(x.profile, y.profile, options));
+  return pairs.slice(0, limit);
+}
+
+/**
+ * An enzyme's cuts once, sorted and inside the molecule, so a pair is a
+ * merge rather than a set built and a digest cut for every one of the tens
+ * of thousands of pairs a big table has (docs/perf-notes.md). On a circle a
+ * cut at the end is a cut at the origin.
+ */
+function sortedCuts(cuts: readonly number[], seqLength: number, topology: Topology): number[] {
+  return [
+    ...new Set(
+      cuts
+        .filter((x) => x >= 0 && x <= seqLength)
+        .map((x) => (topology === 'circular' && seqLength > 0 ? x % seqLength : x)),
+    ),
+  ].sort((x, y) => x - y);
+}
+
+/**
+ * The gel two enzymes' sorted cuts would give together, or null for a pair
+ * not worth offering: one whose cuts all fall where the other's do (it is a
+ * single digest), or one whose lane cannot be read.
+ */
+function pairJudge(
+  seqLength: number,
+  topology: Topology,
+  options: GelOptions,
+): (cutsA: readonly number[], cutsB: readonly number[]) => DigestProfile | null {
+  const gel = { ...DEFAULT_GEL, ...options };
+  const merged: number[] = [];
+  return (cutsA, cutsB) => {
+    merged.length = 0;
+    let p = 0;
+    let q = 0;
+    while (p < cutsA.length || q < cutsB.length) {
+      const x = cutsA[p] ?? Infinity;
+      const y = cutsB[q] ?? Infinity;
+      const next = Math.min(x, y);
+      if (x === next) p++;
+      if (y === next) q++;
+      merged.push(next);
+    }
+    if (merged.length === cutsA.length || merged.length === cutsB.length) return null;
+    const lengths = fragmentLengths(merged, seqLength, topology).sort((x, y) => y - x);
+    // Most pairs of a big table fail, so the cheap half of `readable` is
+    // asked first and a profile is built only for a lane worth ranking.
+    if (!mayBeReadable(lengths, gel)) return null;
+    const profile = gelProfile(lengths, options);
+    return profile.readable ? profile : null;
+  };
 }
 
 /** "3,224 + 1,137 bp", the band sizes as a gel would show them. */

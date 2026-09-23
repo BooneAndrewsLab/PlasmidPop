@@ -352,6 +352,46 @@ describe('EnzymePanel', () => {
     ).toEqual([a, c, 'Both']);
   });
 
+  it('finds a partner for one enzyme among every enzyme, whatever the list shows', () => {
+    const [a, b, c] = activeEnzymes()
+      .slice(0, 3)
+      .map((e) => e.name);
+    if (a === undefined || b === undefined || c === undefined) throw new Error('table');
+    const at = (enzyme: string, cut: number): CutSite => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut - 1,
+      strand: 'forward' as const,
+    });
+    // On the 4,000 bp linear document: a + b is 2,500 + 1,000 + 500; a + c
+    // and b + c both leave two pieces within 15 % of each other.
+    setup([at(a, 1000), at(b, 1500), at(c, 2900)]);
+    act(() => {
+      editorStore.setEnzymeSort('bands');
+      editorStore.setShownEnzymes([a]);
+    });
+    // Filtered down to one enzyme, the listed pairs have nothing to pair.
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter enzymes' }), {
+      target: { value: c },
+    });
+    const section = screen.getByTestId('double-digests');
+    expect(section).toHaveTextContent('Fewer than two of the enzymes listed');
+    // One enzyme ticked: offered as the one to find a partner for.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: `Find a partner for ${a}` }));
+    });
+    expect(screen.getByRole('combobox', { name: 'Pair' })).toHaveValue(a);
+    expect([...section.querySelectorAll('.enzyme-row__pair')].map((n) => n.textContent)).toEqual([
+      `${a} + ${b}`,
+    ]);
+    expect(section).toHaveTextContent(`Partners for ${a} among all 2 enzymes`);
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Pair' }), { target: { value: c } });
+    });
+    expect(section).toHaveTextContent(`No enzyme with ${c} gives a lane`);
+  });
+
   it('offers the single cutters when there were too many to tick', () => {
     setup(singleCutters(MAX_DEFAULT_ENZYMES + 1));
     expect(editorStore.getState().shownEnzymes.size).toBe(0);

@@ -3,6 +3,7 @@ import {
   DEFAULT_GEL,
   bandIntensities,
   bestPairs,
+  bestPartners,
   bandLabel,
   bandProblems,
   chooseLadder,
@@ -237,6 +238,45 @@ describe('bestPairs', () => {
     expect(ms).toBeLessThan(200);
     // eslint-disable-next-line no-console
     console.info(`[perf] best pairs of 120 enzymes (7,140 pairs): ${ms.toFixed(1)} ms`);
+  });
+});
+
+describe('bestPartners', () => {
+  const candidates = [
+    { name: 'A', cuts: [100] },
+    { name: 'B', cuts: [600] },
+    { name: 'C', cuts: [2000] },
+    { name: 'D', cuts: [2600] },
+  ];
+
+  it('pairs the anchor with every other enzyme, best first, the anchor named first', () => {
+    // On 4,000 bp: A+B 3,500 + 500; A+D 2,500 + 1,500; A+C runs together.
+    const pairs = bestPartners({ name: 'A', cuts: [100] }, candidates, 4000, 'circular');
+    expect(pairs.map((p) => `${p.first}+${p.second}`)).toEqual(['A+B', 'A+D']);
+  });
+
+  it('agrees with bestPairs about the pairs it shares', () => {
+    const all = bestPairs(candidates, 4000, 'linear', 20);
+    for (const pair of bestPartners({ name: 'C', cuts: [2000] }, candidates, 4000, 'linear', 20)) {
+      const same = all.find(
+        (p) =>
+          (p.first === pair.first && p.second === pair.second) ||
+          (p.first === pair.second && p.second === pair.first),
+      );
+      expect(same?.profile).toEqual(pair.profile);
+    }
+  });
+
+  it('looks through a whole imported table in well under a frame', () => {
+    const table = Array.from({ length: 1500 }, (_, i) => ({
+      name: `E${i}`,
+      cuts: Array.from({ length: 1 + (i % 3) }, (_, k) => (i * 97 + k * 1109) % 4361),
+    }));
+    const t0 = performance.now();
+    const pairs = bestPartners({ name: 'X', cuts: [1234] }, table, 4361, 'circular');
+    const ms = performance.now() - t0;
+    expect(pairs).toHaveLength(5);
+    expect(ms).toBeLessThan(50);
   });
 });
 
