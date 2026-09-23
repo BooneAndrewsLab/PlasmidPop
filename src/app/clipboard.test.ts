@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { createFeature, fragmentToJSON, rangeSegment } from '@/core';
 
 import { FRAGMENT_MIME, readClipboard, resetClipboardMemory, writeFragment } from './clipboard';
@@ -33,6 +34,38 @@ describe('clipboard', () => {
     writeFragment(fakeDataTransfer(), fragment);
     expect(readClipboard(fakeDataTransfer({ 'text/plain': 'ACGTACGT\n' }))).toEqual(fragment);
     expect(readClipboard(fakeDataTransfer({ 'text/plain': 'ACGTACGA' }))).toBe('ACGTACGA');
+  });
+
+  it('reads the fragment from the HTML copy when the typed one was dropped', () => {
+    const copied = fakeDataTransfer();
+    writeFragment(copied, fragment);
+    // Another browser tab: no memory of the copy, and no custom type.
+    resetClipboardMemory();
+    const pasted = fakeDataTransfer({
+      'text/plain': copied.getData('text/plain'),
+      'text/html': copied.getData('text/html'),
+    });
+    expect(readClipboard(pasted)).toEqual(fragment);
+    // What other applications see is the bases.
+    const html = new DOMParser().parseFromString(copied.getData('text/html'), 'text/html');
+    expect(html.body.textContent).toBe('ACGTACGT');
+  });
+
+  it('ignores HTML whose fragment no longer matches the text, or is not ours', () => {
+    const copied = fakeDataTransfer();
+    writeFragment(copied, fragment);
+    resetClipboardMemory();
+    const edited = fakeDataTransfer({
+      'text/plain': 'ACGTAAAA',
+      'text/html': copied.getData('text/html'),
+    });
+    expect(readClipboard(edited)).toBe('ACGTAAAA');
+    const foreign = fakeDataTransfer({
+      'text/plain': 'GGCC',
+      'text/html':
+        '<pre data-plasmidpop-fragment="{&quot;x&quot;:1}">GGCC</pre><script>x()</script>',
+    });
+    expect(readClipboard(foreign)).toBe('GGCC');
   });
 
   it('treats foreign or broken typed data as plain text', () => {

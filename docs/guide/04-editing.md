@@ -29,8 +29,10 @@ step.
 - Pasting into another program gives plain bases.
 - Pasting bases from another program inserts them as text, which is
   checked against the IUPAC alphabet.
-- Between browser tabs, some browsers keep only the plain text, so the
-  features may not come along.
+- Between browser tabs and windows the features come along too, including
+  in browsers that drop PlasmidPop's own clipboard format: the copy also
+  carries them in its formatted (HTML) version. A program that accepts
+  formatted text shows it as the plain bases.
 - Pasting a whole GenBank or FASTA record into an **empty** document opens
   the record instead of inserting its text.
 

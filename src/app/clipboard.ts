@@ -8,6 +8,14 @@ import { type SeqFragment, fragmentToJSON, parseFragmentJSON } from '@/core';
 export const FRAGMENT_MIME = 'application/x-plasmidpop-fragment+json';
 
 /**
+ * The attribute the fragment also rides in, on the `text/html` copy. Some
+ * browsers drop custom types on the way to another browser tab (#3), but
+ * every browser keeps `text/html`, and every application that reads it sees
+ * a `<pre>` of the bases, which is what it would paste anyway.
+ */
+const HTML_ATTRIBUTE = 'data-plasmidpop-fragment';
+
+/**
  * The fragment most recently copied in this tab. Some browsers drop custom
  * clipboard types, so a paste whose text matches this fragment's bases is
  * taken to be that fragment, features included.
@@ -16,13 +24,41 @@ let lastCopied: SeqFragment | null = null;
 
 export function writeFragment(data: DataTransfer, fragment: SeqFragment): void {
   data.setData('text/plain', fragment.sequence);
-  data.setData(FRAGMENT_MIME, fragmentToJSON(fragment));
+  const json = fragmentToJSON(fragment);
+  data.setData(FRAGMENT_MIME, json);
+  data.setData('text/html', fragmentHtml(fragment.sequence, json));
   lastCopied = fragment;
+}
+
+function fragmentHtml(sequence: string, json: string): string {
+  const pre = document.createElement('pre');
+  pre.setAttribute(HTML_ATTRIBUTE, json);
+  pre.textContent = sequence;
+  return pre.outerHTML;
+}
+
+/**
+ * The fragment carried in pasted HTML, if it is ours and still matches the
+ * plain text beside it. The HTML may come from anywhere, so it is parsed
+ * inert and only the one attribute is read; `parseFragmentJSON` then checks
+ * the contents as it does for the typed copy.
+ */
+function fragmentFromHtml(html: string, text: string): SeqFragment | null {
+  if (!html.includes(HTML_ATTRIBUTE)) return null;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const json = doc.querySelector(`[${HTML_ATTRIBUTE}]`)?.getAttribute(HTML_ATTRIBUTE);
+  if (json === null || json === undefined) return null;
+  const fragment = parseFragmentJSON(json);
+  // An application that rewrote the text but kept the markup has changed
+  // what was copied; the text is what the user can see, so it wins.
+  if (fragment === null || (text !== '' && text.trim() !== fragment.sequence)) return null;
+  return fragment;
 }
 
 /**
  * What a paste event carries: a fragment when the clipboard holds one we
- * wrote (or its bases match the last copy), otherwise the plain text.
+ * wrote — typed, or in the HTML copy, or failing both, bases matching the
+ * last copy made in this tab — otherwise the plain text.
  */
 export function readClipboard(data: DataTransfer): SeqFragment | string {
   const json = data.getData(FRAGMENT_MIME);
@@ -31,6 +67,8 @@ export function readClipboard(data: DataTransfer): SeqFragment | string {
     if (fragment !== null) return fragment;
   }
   const text = data.getData('text/plain');
+  const fromHtml = fragmentFromHtml(data.getData('text/html'), text);
+  if (fromHtml !== null) return fromHtml;
   if (lastCopied !== null && text.trim() === lastCopied.sequence) return lastCopied;
   return text;
 }
