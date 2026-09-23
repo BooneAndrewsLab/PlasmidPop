@@ -2392,6 +2392,447 @@
    "expected": {
     "features": [
      {
+      "location": "1..899",
+      "parts": [
+       [
+        0,
+        899,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "chromosome": [
+        "3"
+       ],
+       "db_xref": [
+        "taxon:9606"
+       ],
+       "map": [
+        "3p21.31"
+       ],
+       "mol_type": [
+        "mRNA"
+       ],
+       "organism": [
+        "Homo sapiens"
+       ]
+      },
+      "sequence": "AAAAGGAGGCGCCTGCTGGCCTCCCCTTACAGTGCTTGTTCGGGGCGCTCCGCTGGCTTCTTGGACAATTGCGCCATGTGTGCTGCTCGGCTAGCGGCGGCGGCGGCGGCGGCCCAGTCGGTGTATGCCTTCTCGGCGCGCCCGCTGGCCGGCGGGGAGCCTGTGAGCCTGGGCTCCCTGCGGGGCAAGGTACTACTTATCGAGAATGTGGCGTCCCTCTGAGGCACCACGGTCCGGGACTACACCCAGATGAACGAGCTGCAGCGGCGCCTCGGACCCCGGGGCCTGGTGGTGCTCGGCTTCCCGTGCAACCAGTTTGGGCATCAGGAGAACGCCAAGAACGAAGAGATTCTGAATTCCCTCAAGTACGTCCGGCCTGGTGGTGGGTTCGAGCCCAACTTCATGCTCTTCGAGAAGTGCGAGGTGAACGGTGCGGGGGCGCACCCTCTCTTCGCCTTCCTGCGGGAGGCCCTGCCAGCTCCCAGCGACGACGCCACCGCGCTTATGACCGACCCCAAGCTCATCACCTGGTCTCCGGTGTGTCGCAACGATGTTGCCTGGAACTTTGAGAAGTTCCTGGTGGGCCCTGACGGTGTGCCCCTACGCAGGTACAGCCGCCGCTTCCAGACCATTGACATCGAGCCTGACATCGAAGCCCTGCTGTCTCAAGGGCCCAGCTGTGCCTAGGGCGCCCCTCCTACCCCGGCTGCTTGGCAGTTGCAGTGCTGCTGTCTCGGGGGGGTTTTCATCTATGAGGGTGTTTCCTCTAAACCTACGAGGGAGGAACACCTGATCTTACAGAAAATACCACCTCGAGATGGGTGCTGGTCCTGTTGATCCCAGTCTCTGCCAGACCAAGGCGAGTTTCCCCACTAATAAAGTGCCGGGTGTCAGCAGAA",
+      "strand": "forward",
+      "type": "source"
+     },
+     {
+      "location": "1..899",
+      "parts": [
+       [
+        0,
+        899,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "db_xref": [
+        "GeneID:2876",
+        "HGNC:HGNC:4553",
+        "MIM:138320"
+       ],
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "glutathione peroxidase 1"
+       ]
+      },
+      "sequence": "AAAAGGAGGCGCCTGCTGGCCTCCCCTTACAGTGCTTGTTCGGGGCGCTCCGCTGGCTTCTTGGACAATTGCGCCATGTGTGCTGCTCGGCTAGCGGCGGCGGCGGCGGCGGCCCAGTCGGTGTATGCCTTCTCGGCGCGCCCGCTGGCCGGCGGGGAGCCTGTGAGCCTGGGCTCCCTGCGGGGCAAGGTACTACTTATCGAGAATGTGGCGTCCCTCTGAGGCACCACGGTCCGGGACTACACCCAGATGAACGAGCTGCAGCGGCGCCTCGGACCCCGGGGCCTGGTGGTGCTCGGCTTCCCGTGCAACCAGTTTGGGCATCAGGAGAACGCCAAGAACGAAGAGATTCTGAATTCCCTCAAGTACGTCCGGCCTGGTGGTGGGTTCGAGCCCAACTTCATGCTCTTCGAGAAGTGCGAGGTGAACGGTGCGGGGGCGCACCCTCTCTTCGCCTTCCTGCGGGAGGCCCTGCCAGCTCCCAGCGACGACGCCACCGCGCTTATGACCGACCCCAAGCTCATCACCTGGTCTCCGGTGTGTCGCAACGATGTTGCCTGGAACTTTGAGAAGTTCCTGGTGGGCCCTGACGGTGTGCCCCTACGCAGGTACAGCCGCCGCTTCCAGACCATTGACATCGAGCCTGACATCGAAGCCCTGCTGTCTCAAGGGCCCAGCTGTGCCTAGGGCGCCCCTCCTACCCCGGCTGCTTGGCAGTTGCAGTGCTGCTGTCTCGGGGGGGTTTTCATCTATGAGGGTGTTTCCTCTAAACCTACGAGGGAGGAACACCTGATCTTACAGAAAATACCACCTCGAGATGGGTGCTGGTCCTGTTGATCCCAGTCTCTGCCAGACCAAGGCGAGTTTCCCCACTAATAAAGTGCCGGGTGTCAGCAGAA",
+      "strand": "forward",
+      "type": "gene"
+     },
+     {
+      "location": "1..327",
+      "parts": [
+       [
+        0,
+        327,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "inference": [
+        "alignment:Splign:2.1.0"
+       ]
+      },
+      "sequence": "AAAAGGAGGCGCCTGCTGGCCTCCCCTTACAGTGCTTGTTCGGGGCGCTCCGCTGGCTTCTTGGACAATTGCGCCATGTGTGCTGCTCGGCTAGCGGCGGCGGCGGCGGCGGCCCAGTCGGTGTATGCCTTCTCGGCGCGCCCGCTGGCCGGCGGGGAGCCTGTGAGCCTGGGCTCCCTGCGGGGCAAGGTACTACTTATCGAGAATGTGGCGTCCCTCTGAGGCACCACGGTCCGGGACTACACCCAGATGAACGAGCTGCAGCGGCGCCTCGGACCCCGGGGCCTGGTGGTGCTCGGCTTCCCGTGCAACCAGTTTGGGCATCAG",
+      "strand": "forward",
+      "type": "exon"
+     },
+     {
+      "location": "76..687",
+      "parts": [
+       [
+        75,
+        687,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "EC_number": [
+        "1.11.1.9",
+        "1.11.1.12"
+       ],
+       "codon_start": [
+        "1"
+       ],
+       "db_xref": [
+        "CCDS:CCDS43091.1",
+        "GeneID:2876",
+        "HGNC:HGNC:4553",
+        "MIM:138320"
+       ],
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "UGA stop codon recoded as selenocysteine; isoform 1 is encoded by transcript variant 1; cellular glutathione peroxidase; GSHPx-1; selenoprotein GPX1; phospholipid-hydroperoxide glutathione peroxidase GPX1"
+       ],
+       "product": [
+        "glutathione peroxidase 1 isoform 1"
+       ],
+       "protein_id": [
+        "NP_000572.2"
+       ],
+       "transl_except": [
+        "(pos:220..222,aa:Sec)"
+       ],
+       "translation": [
+        "MCAARLAAAAAAAQSVYAFSARPLAGGEPVSLGSLRGKVLLIENVASLUGTTVRDYTQMNELQRRLGPRGLVVLGFPCNQFGHQENAKNEEILNSLKYVRPGGGFEPNFMLFEKCEVNGAGAHPLFAFLREALPAPSDDATALMTDPKLITWSPVCRNDVAWNFEKFLVGPDGVPLRRYSRRFQTIDIEPDIEALLSQGPSCA"
+       ]
+      },
+      "sequence": "ATGTGTGCTGCTCGGCTAGCGGCGGCGGCGGCGGCGGCCCAGTCGGTGTATGCCTTCTCGGCGCGCCCGCTGGCCGGCGGGGAGCCTGTGAGCCTGGGCTCCCTGCGGGGCAAGGTACTACTTATCGAGAATGTGGCGTCCCTCTGAGGCACCACGGTCCGGGACTACACCCAGATGAACGAGCTGCAGCGGCGCCTCGGACCCCGGGGCCTGGTGGTGCTCGGCTTCCCGTGCAACCAGTTTGGGCATCAGGAGAACGCCAAGAACGAAGAGATTCTGAATTCCCTCAAGTACGTCCGGCCTGGTGGTGGGTTCGAGCCCAACTTCATGCTCTTCGAGAAGTGCGAGGTGAACGGTGCGGGGGCGCACCCTCTCTTCGCCTTCCTGCGGGAGGCCCTGCCAGCTCCCAGCGACGACGCCACCGCGCTTATGACCGACCCCAAGCTCATCACCTGGTCTCCGGTGTGTCGCAACGATGTTGCCTGGAACTTTGAGAAGTTCCTGGTGGGCCCTGACGGTGTGCCCCTACGCAGGTACAGCCGCCGCTTCCAGACCATTGACATCGAGCCTGACATCGAAGCCCTGCTGTCTCAAGGGCCCAGCTGTGCCTAG",
+      "strand": "forward",
+      "type": "CDS"
+     },
+     {
+      "location": "175..177",
+      "parts": [
+       [
+        174,
+        177,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "Phosphoserine. /evidence=ECO:0000250|UniProtKB:P04041; propagated from UniProtKB/Swiss-Prot (P07203.4); phosphorylation site"
+       ]
+      },
+      "sequence": "TCC",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "220..222",
+      "parts": [
+       [
+        219,
+        222,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "Selenocysteine; other site"
+       ]
+      },
+      "sequence": "TGA",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "220..222",
+      "parts": [
+       [
+        219,
+        222,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "Subject to oxidation and hydroselenide loss to dehydroalanine. /evidence=ECO:0000250; propagated from UniProtKB/Swiss-Prot (P07203.4); other site"
+       ]
+      },
+      "sequence": "TGA",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "337..339",
+      "parts": [
+       [
+        336,
+        339,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "N6-acetyllysine, alternate. /evidence=ECO:0000250|UniProtKB:P11352; propagated from UniProtKB/Swiss-Prot (P07203.4); acetylation site"
+       ]
+      },
+      "sequence": "AAG",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "415..417",
+      "parts": [
+       [
+        414,
+        417,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "N6-acetyllysine, alternate. /evidence=ECO:0000250|UniProtKB:P11352; propagated from UniProtKB/Swiss-Prot (P07203.4); acetylation site"
+       ]
+      },
+      "sequence": "AAG",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "517..519",
+      "parts": [
+       [
+        516,
+        519,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "N6-acetyllysine, alternate. /evidence=ECO:0000250|UniProtKB:P11352; propagated from UniProtKB/Swiss-Prot (P07203.4); acetylation site"
+       ]
+      },
+      "sequence": "AAG",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "664..666",
+      "parts": [
+       [
+        663,
+        666,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "Phosphoserine. /evidence=ECO:0000250|UniProtKB:P04041; propagated from UniProtKB/Swiss-Prot (P07203.4); phosphorylation site"
+       ]
+      },
+      "sequence": "TCT",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "676..678",
+      "parts": [
+       [
+        675,
+        678,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "Phosphoserine. /evidence=ECO:0007744|PubMed:24275569; propagated from UniProtKB/Swiss-Prot (P07203.4); phosphorylation site"
+       ]
+      },
+      "sequence": "AGC",
+      "strand": "forward",
+      "type": "misc_feature"
+     },
+     {
+      "location": "328..899",
+      "parts": [
+       [
+        327,
+        899,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "inference": [
+        "alignment:Splign:2.1.0"
+       ]
+      },
+      "sequence": "GAGAACGCCAAGAACGAAGAGATTCTGAATTCCCTCAAGTACGTCCGGCCTGGTGGTGGGTTCGAGCCCAACTTCATGCTCTTCGAGAAGTGCGAGGTGAACGGTGCGGGGGCGCACCCTCTCTTCGCCTTCCTGCGGGAGGCCCTGCCAGCTCCCAGCGACGACGCCACCGCGCTTATGACCGACCCCAAGCTCATCACCTGGTCTCCGGTGTGTCGCAACGATGTTGCCTGGAACTTTGAGAAGTTCCTGGTGGGCCCTGACGGTGTGCCCCTACGCAGGTACAGCCGCCGCTTCCAGACCATTGACATCGAGCCTGACATCGAAGCCCTGCTGTCTCAAGGGCCCAGCTGTGCCTAGGGCGCCCCTCCTACCCCGGCTGCTTGGCAGTTGCAGTGCTGCTGTCTCGGGGGGGTTTTCATCTATGAGGGTGTTTCCTCTAAACCTACGAGGGAGGAACACCTGATCTTACAGAAAATACCACCTCGAGATGGGTGCTGGTCCTGTTGATCCCAGTCTCTGCCAGACCAAGGCGAGTTTCCCCACTAATAAAGTGCCGGGTGTCAGCAGAA",
+      "strand": "forward",
+      "type": "exon"
+     },
+     {
+      "location": "740..808",
+      "parts": [
+       [
+        739,
+        808,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "function": [
+        "essential for recoding UGA to specify selenocysteine"
+       ],
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "SECIS_element"
+       ],
+       "regulatory_class": [
+        "recoding_stimulatory_region"
+       ]
+      },
+      "sequence": "GGGTTTTCATCTATGAGGGTGTTTCCTCTAAACCTACGAGGGAGGAACACCTGATCTTACAGAAAATAC",
+      "strand": "forward",
+      "type": "regulatory"
+     },
+     {
+      "location": "875..880",
+      "parts": [
+       [
+        874,
+        880,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "hexamer: AATAAA"
+       ],
+       "regulatory_class": [
+        "polyA_signal_sequence"
+       ]
+      },
+      "sequence": "AATAAA",
+      "strand": "forward",
+      "type": "regulatory"
+     },
+     {
+      "location": "899",
+      "parts": [
+       [
+        898,
+        899,
+        "forward"
+       ]
+      ],
+      "qualifiers": {
+       "gene": [
+        "GPX1"
+       ],
+       "gene_synonym": [
+        "GPXD; GSHPX1"
+       ],
+       "note": [
+        "major polyA site"
+       ]
+      },
+      "sequence": "A",
+      "strand": "forward",
+      "type": "polyA_site"
+     }
+    ],
+    "length": 899,
+    "name": "NM_000581",
+    "sequence": "AAAAGGAGGCGCCTGCTGGCCTCCCCTTACAGTGCTTGTTCGGGGCGCTCCGCTGGCTTCTTGGACAATTGCGCCATGTGTGCTGCTCGGCTAGCGGCGGCGGCGGCGGCGGCCCAGTCGGTGTATGCCTTCTCGGCGCGCCCGCTGGCCGGCGGGGAGCCTGTGAGCCTGGGCTCCCTGCGGGGCAAGGTACTACTTATCGAGAATGTGGCGTCCCTCTGAGGCACCACGGTCCGGGACTACACCCAGATGAACGAGCTGCAGCGGCGCCTCGGACCCCGGGGCCTGGTGGTGCTCGGCTTCCCGTGCAACCAGTTTGGGCATCAGGAGAACGCCAAGAACGAAGAGATTCTGAATTCCCTCAAGTACGTCCGGCCTGGTGGTGGGTTCGAGCCCAACTTCATGCTCTTCGAGAAGTGCGAGGTGAACGGTGCGGGGGCGCACCCTCTCTTCGCCTTCCTGCGGGAGGCCCTGCCAGCTCCCAGCGACGACGCCACCGCGCTTATGACCGACCCCAAGCTCATCACCTGGTCTCCGGTGTGTCGCAACGATGTTGCCTGGAACTTTGAGAAGTTCCTGGTGGGCCCTGACGGTGTGCCCCTACGCAGGTACAGCCGCCGCTTCCAGACCATTGACATCGAGCCTGACATCGAAGCCCTGCTGTCTCAAGGGCCCAGCTGTGCCTAGGGCGCCCCTCCTACCCCGGCTGCTTGGCAGTTGCAGTGCTGCTGTCTCGGGGGGGTTTTCATCTATGAGGGTGTTTCCTCTAAACCTACGAGGGAGGAACACCTGATCTTACAGAAAATACCACCTCGAGATGGGTGCTGGTCCTGTTGATCCCAGTCTCTGCCAGACCAAGGCGAGTTTCCCCACTAATAAAGTGCCGGGTGTCAGCAGAA",
+    "topology": "linear"
+   },
+   "fixture": "NM_000581.gb",
+   "label": "NM_000581.gb"
+  },
+  {
+   "expected": {
+    "features": [
+     {
       "location": "1..5028",
       "parts": [
        [
