@@ -694,7 +694,8 @@ describe('cloning', () => {
       'Join: EcoRI 5′ AATT to BamHI 5′ GATC, incompatible',
       'Closing join: EcoRI 5′ AATT to BamHI 5′ GATC, incompatible',
     ]);
-    expect(screen.getByText(/\(flipped\)/)).toBeInTheDocument();
+    // On the shelf, where it was flipped, and in the ligation's order below it.
+    expect(screen.getAllByText(/\(flipped\)/)).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Assemble' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Flip part 1' }));
     expect(screen.getByRole('button', { name: 'Assemble' })).toBeEnabled();
@@ -714,8 +715,12 @@ describe('cloning', () => {
     const rotated = before.setOrigin(4359).sequence.toString();
     expect(product?.sequence.toString()).toBe(rotated);
     expect(product?.features.all().length).toBeGreaterThan(5);
-    expect(editorStore.getState().assembly).toEqual([]);
+    // The shelf keeps its fragments: the vector may take another insert next.
+    expect(editorStore.getState().shelf).toHaveLength(2);
     expect(screen.getByText(/4,361 bp, circular/)).toBeInTheDocument();
+    act(() => {
+      editorStore.clearShelf();
+    });
   });
 
   it('opens a fragment as a document that keeps its sticky ends', async () => {
@@ -807,13 +812,13 @@ describe('golden gate', () => {
   it('takes a part off the ligation shelf as well as an open document', async () => {
     render(<App />);
     act(() => {
-      editorStore.clearAssembly();
+      editorStore.clearShelf();
       editorStore.openDocument(vector, 'pDest.gb');
       editorStore.openDocument(insert('insert1', 'GCTT', 'AAAAAAAAAA', 'CGCT'), 'insert1.gb');
       // The third part arrives as a fragment somebody collected rather than
       // as a file. It carries no BsaI site, so the reaction leaves it whole
       // and it joins on the sticky ends it already has.
-      editorStore.addToAssembly({
+      editorStore.addToShelf({
         sequence: 'CGCTTTTTTTTTTT',
         features: [],
         range: { start: 0, end: 14 },
@@ -838,7 +843,7 @@ describe('golden gate', () => {
       'AATGCCCCCCCCCCCCGCTTAAAAAAAAAACGCTTTTTTTTTTT',
     );
     act(() => {
-      editorStore.clearAssembly();
+      editorStore.clearShelf();
     });
   });
 
@@ -930,11 +935,11 @@ describe('gibson', () => {
   it('takes a part off the ligation shelf as well as an open document', async () => {
     render(<App />);
     act(() => {
-      editorStore.clearAssembly();
+      editorStore.clearShelf();
       editorStore.openDocument(vector, 'pBackbone.gb');
       // The insert arrives as a digest fragment rather than a file, the way
       // a backbone cut out of a plasmid does.
-      editorStore.addToAssembly({
+      editorStore.addToShelf({
         sequence: insert.sequence.toString(),
         features: [],
         range: { start: 0, end: insert.length },
@@ -959,7 +964,7 @@ describe('gibson', () => {
     expect(product?.isCircular).toBe(true);
     expect(product?.sequence.toString()).toBe(`${A}${vectorBody}${B}${insertBody}`);
     act(() => {
-      editorStore.clearAssembly();
+      editorStore.clearShelf();
     });
   });
 

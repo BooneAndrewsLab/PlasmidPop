@@ -41,7 +41,7 @@ describe('CloningPanel', () => {
 
   afterEach(() => {
     act(() => {
-      editorStore.clearAssembly();
+      editorStore.clearShelf();
       editorStore.closeDocument();
     });
   });
@@ -109,6 +109,9 @@ describe('CloningPanel', () => {
   });
 
   it('adds a fragment to the shelf when its span is clicked in a view', () => {
+    act(() => {
+      editorStore.setCloningReaction('gibson');
+    });
     setup();
     const spans = preview()?.items ?? [];
     expect(spans.every((s) => s.clickable === true)).toBe(true);
@@ -117,17 +120,54 @@ describe('CloningPanel', () => {
     act(() => {
       editorStore.activatePreview(small.id);
     });
-    const shelf = editorStore.getState().assembly;
+    const shelf = editorStore.getState().shelf;
     expect(shelf).toHaveLength(1);
     expect(shelf[0]?.fragment.sequence.length).toBe(1000);
-    // The shelf lives in the Ligation section, so that is what is shown.
-    expect(editorStore.getState().cloningReaction).toBe('ligation');
+    // The shelf is the bench's, above every reaction, so the picker stays on
+    // the reaction being worked in and the fragment is seen landing (#16).
+    expect(editorStore.getState().cloningReaction).toBe('gibson');
+    expect(
+      within(screen.getByRole('list', { name: 'Shelf' })).getByText(/1,000 bp/),
+    ).toBeInTheDocument();
 
     // The same fragment twice is two parts: a shelf is a list, not a set.
     act(() => {
       editorStore.activatePreview(small.id);
     });
-    expect(editorStore.getState().assembly).toHaveLength(2);
+    expect(editorStore.getState().shelf).toHaveLength(2);
+  });
+
+  it("ligates the ticked shelf parts in the shelf's order", () => {
+    setup();
+    for (const add of screen.getAllByRole('button', { name: 'Add' })) {
+      act(() => {
+        fireEvent.click(add);
+      });
+    }
+    const order = (): string[] =>
+      within(screen.getByRole('list', { name: 'Ligation order' }))
+        .getAllByRole('listitem')
+        .filter((li) => li.className === 'part')
+        .map((li) => li.querySelector('.part__detail')?.textContent ?? '');
+    expect(order()).toEqual(['3,000 bp', '1,000 bp']);
+    // A shelf part can be meant for another reaction, so the tick leaves it
+    // out of this one without taking it off the shelf.
+    const ticks = within(
+      screen.getByRole('list', { name: 'Fragments in the ligation' }),
+    ).getAllByRole('checkbox');
+    const second = ticks[1];
+    if (second === undefined) throw new Error('expected two ticks');
+    act(() => {
+      fireEvent.click(second);
+    });
+    expect(order()).toEqual(['3,000 bp']);
+    expect(editorStore.getState().shelf).toHaveLength(2);
+    // The shelf's order is the ligation's.
+    act(() => {
+      fireEvent.click(second);
+      fireEvent.click(screen.getByRole('button', { name: 'Move part 2 up' }));
+    });
+    expect(order()).toEqual(['1,000 bp', '3,000 bp']);
   });
 
   it('ignores an activation meant for another panel', () => {
@@ -138,7 +178,7 @@ describe('CloningPanel', () => {
       ]);
       editorStore.activatePreview('m0');
     });
-    expect(editorStore.getState().assembly).toHaveLength(0);
+    expect(editorStore.getState().shelf).toHaveLength(0);
   });
 
   it('does not answer a click again when the tab comes back', () => {
@@ -148,7 +188,7 @@ describe('CloningPanel', () => {
     act(() => {
       editorStore.activatePreview(id);
     });
-    expect(editorStore.getState().assembly).toHaveLength(1);
+    expect(editorStore.getState().shelf).toHaveLength(1);
     act(() => {
       first.unmount();
     });
@@ -156,7 +196,7 @@ describe('CloningPanel', () => {
     // The panel alone is remounted, as switching sidebar tabs does; the
     // document and its ticks are untouched.
     const again = render(<CloningPanel doc={doc} />);
-    expect(editorStore.getState().assembly).toHaveLength(1);
+    expect(editorStore.getState().shelf).toHaveLength(1);
     act(() => {
       again.unmount();
     });

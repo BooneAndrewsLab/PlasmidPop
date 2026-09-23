@@ -352,10 +352,11 @@ export interface SharedState {
    */
   readonly primerCriteria: PrimerCriteria;
   /**
-   * Fragments collected for ligation, in order. Independent of the open
-   * documents so pieces can be gathered from several of them in turn.
+   * The fragment shelf: pieces collected for any of the Cloning tab's
+   * reactions, in order. Independent of the open documents so pieces can be
+   * gathered from several of them in turn (item 3).
    */
-  readonly assembly: readonly AssemblyPart[];
+  readonly shelf: readonly AssemblyPart[];
   /**
    * What the Enzymes tab says it is scanning with. The enzymes themselves
    * live in `@/core`'s active set (and a copy of them in the worker); this is
@@ -498,7 +499,7 @@ const SHARED_INITIAL: SharedState = {
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
-  assembly: [],
+  shelf: [],
   downloadNotice: null,
   shareNotice: null,
   readNotice: null,
@@ -1393,47 +1394,46 @@ export class EditorStore {
     return editsBaselineDocument(this.state);
   }
 
-  // ------------------------------------------------------------- assembly
+  // ---------------------------------------------------------------- shelf
 
   /**
    * Puts back the shelf the last session left behind. It gives way to
    * whatever is already there: if the user has started collecting fragments
    * while storage was being read, those are the ones they mean.
    */
-  restoreAssembly(parts: readonly AssemblyPart[]): void {
-    if (parts.length === 0 || this.state.assembly.length > 0) return;
-    this.setShared({ assembly: parts });
+  restoreShelf(parts: readonly AssemblyPart[]): void {
+    if (parts.length === 0 || this.state.shelf.length > 0) return;
+    this.setShared({ shelf: parts });
   }
 
-  /** Appends a fragment to the assembly and returns its part id. */
-  addToAssembly(fragment: DigestFragment): string {
+  /** Appends a fragment to the shelf and returns its part id. */
+  addToShelf(fragment: DigestFragment): string {
     const id = newId();
     this.setShared({
-      assembly: [...this.state.assembly, { id, fragment, flipped: false }],
-      // The shelf lives in the Ligation section, so put a fragment where the
-      // user can see it land rather than behind another reaction's panel.
-      cloningReaction: 'ligation',
+      // The shelf is drawn above every reaction's panel, so the fragment is
+      // seen landing whichever reaction is picked; the picker stays put.
+      shelf: [...this.state.shelf, { id, fragment, flipped: false }],
     });
     return id;
   }
 
-  removeFromAssembly(id: string): void {
-    const next = this.state.assembly.filter((p) => p.id !== id);
-    if (next.length !== this.state.assembly.length) this.setShared({ assembly: next });
+  removeFromShelf(id: string): void {
+    const next = this.state.shelf.filter((p) => p.id !== id);
+    if (next.length !== this.state.shelf.length) this.setShared({ shelf: next });
   }
 
   /** Turns a part around (reverse complement); the caller supplies the flipped fragment. */
-  flipAssemblyPart(id: string, flipped: DigestFragment): void {
+  flipShelfPart(id: string, flipped: DigestFragment): void {
     this.setShared({
-      assembly: this.state.assembly.map((p) =>
+      shelf: this.state.shelf.map((p) =>
         p.id === id ? { ...p, fragment: flipped, flipped: !p.flipped } : p,
       ),
     });
   }
 
-  /** Moves a part up (-1) or down (+1) in the order of joining. */
-  moveAssemblyPart(id: string, delta: -1 | 1): void {
-    const parts = [...this.state.assembly];
+  /** Moves a part up (-1) or down (+1) on the shelf, which is Ligation's order of joining. */
+  moveShelfPart(id: string, delta: -1 | 1): void {
+    const parts = [...this.state.shelf];
     const i = parts.findIndex((p) => p.id === id);
     const j = i + delta;
     const a = parts[i];
@@ -1441,11 +1441,11 @@ export class EditorStore {
     if (i < 0 || a === undefined || b === undefined) return;
     parts[i] = b;
     parts[j] = a;
-    this.setShared({ assembly: parts });
+    this.setShared({ shelf: parts });
   }
 
-  clearAssembly(): void {
-    if (this.state.assembly.length > 0) this.setShared({ assembly: [] });
+  clearShelf(): void {
+    if (this.state.shelf.length > 0) this.setShared({ shelf: [] });
   }
 }
 

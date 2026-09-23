@@ -63,7 +63,7 @@ function DroppedRow({
  * would do.
  */
 export function GoldenGatePanel() {
-  const { documents, assembly: shelf } = useEditorState();
+  const { documents, shelf } = useEditorState();
   const [enzymeName, setEnzymeName] = useState(DEFAULT_ENZYME?.name ?? '');
   const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
   const [name, setName] = useState('');

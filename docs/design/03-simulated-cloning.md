@@ -120,3 +120,24 @@ overhangs would misligate.
     which would need somewhere to draw a molecule that is not open; and a
     digest of dozens of fragments draws a busy ring, which is honest but
     not useful.
+- **The shelf is the bench's, 2026-09-23** (#16, decided at the start of
+  1.4). Golden Gate and Gibson took parts from it and a fragment clicked in
+  a view landed on it, yet it lived under **Ligation** and adding to it
+  switched the picker there, pulling the user out of the reaction they were
+  working in. PCR products (#13) would have been its third use. It is now a
+  section of its own (`ShelfPanel.tsx`) between the digest and the picker,
+  and `addToShelf` leaves `cloningReaction` alone; the store's `assembly`
+  became `shelf`, the name persistence already used.
+  - **The shelf keeps Ligation's order and flips.** A ligase does not choose
+    an order, so the user must, and the shelf is where the parts already
+    were arranged; a second arrangement inside the Ligation panel would be
+    two orders for one list. The one-pot reactions find their own order and
+    orientation, so a flip on the shelf changes nothing for them.
+  - **Ligation takes ticks, like the tubes** (`LigationPanel.tsx`). A shared
+    shelf can hold a PCR product meant for a Gibson next to a backbone meant
+    for a ligation; without a way to leave one out, every stray part would
+    break the junctions.
+  - **Assembling no longer empties the shelf.** It did when the shelf was
+    Ligation's own list; a shared one may hold parts for the next reaction,
+    and a vector cut once is often ligated to one insert after another.
+    **Clear shelf** is one click.

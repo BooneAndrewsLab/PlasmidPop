@@ -68,7 +68,7 @@ function JoinRow({ join, closing }: { readonly join: GibsonJoin; readonly closin
  * found and what each junction is made of.
  */
 export function GibsonPanel() {
-  const { documents, assembly: shelf } = useEditorState();
+  const { documents, shelf } = useEditorState();
   const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
   const [minOverlap, setMinOverlap] = useState<number>(GIBSON_DEFAULTS.minOverlap);
   const [circular, setCircular] = useState(true);

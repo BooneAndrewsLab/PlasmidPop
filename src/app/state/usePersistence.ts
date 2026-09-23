@@ -33,12 +33,12 @@ export function useAutosave(): void {
 }
 
 /**
- * Writes the Cloning tab's assembly shelf shortly after it changes. It has
+ * Writes the Cloning tab's fragment shelf shortly after it changes. It has
  * an effect of its own because the shelf outlives the documents: closing
  * every tab must not take the gathered fragments with it.
  */
 export function useAutosaveShelf(): void {
-  const { assembly } = useEditorState();
+  const { shelf } = useEditorState();
   useEffect(() => {
     // Until the last session has been read back, an empty shelf is the page
     // still loading and must not be written over the stored one.
@@ -46,14 +46,14 @@ export function useAutosaveShelf(): void {
     const timer = setTimeout(() => {
       persistence.saveShelf().catch((e: unknown) => {
         editorStore.fail(
-          `Could not save the assembly: ${e instanceof Error ? e.message : String(e)}`,
+          `Could not save the fragment shelf: ${e instanceof Error ? e.message : String(e)}`,
         );
       });
     }, AUTOSAVE_MS);
     return () => {
       clearTimeout(timer);
     };
-  }, [assembly]);
+  }, [shelf]);
 }
 
 /**

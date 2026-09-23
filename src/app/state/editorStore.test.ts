@@ -374,7 +374,7 @@ describe('EditorStore persistence state', () => {
   });
 });
 
-describe('assembly shelf', () => {
+describe('fragment shelf', () => {
   const frag = (name: string) => ({
     sequence: 'ACGT',
     features: [],
@@ -387,39 +387,39 @@ describe('assembly shelf', () => {
   it('collects, reorders, flips, removes and survives opening another document', () => {
     const store = new EditorStore();
     store.openDocument(doc);
-    const a = store.addToAssembly(frag('a'));
-    const b = store.addToAssembly(frag('b'));
-    const c = store.addToAssembly(frag('c'));
-    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'b', 'c']);
-    store.moveAssemblyPart(c, -1);
-    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'c', 'b']);
-    store.moveAssemblyPart(a, -1); // already first: no-op
-    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'c', 'b']);
-    store.flipAssemblyPart(b, { ...frag('b'), sequence: 'TTTT' });
-    expect(store.getState().assembly[2]).toMatchObject({ flipped: true });
-    expect(store.getState().assembly[2]?.fragment.sequence).toBe('TTTT');
-    store.removeFromAssembly(c);
+    const a = store.addToShelf(frag('a'));
+    const b = store.addToShelf(frag('b'));
+    const c = store.addToShelf(frag('c'));
+    expect(store.getState().shelf.map((p) => p.fragment.source)).toEqual(['a', 'b', 'c']);
+    store.moveShelfPart(c, -1);
+    expect(store.getState().shelf.map((p) => p.fragment.source)).toEqual(['a', 'c', 'b']);
+    store.moveShelfPart(a, -1); // already first: no-op
+    expect(store.getState().shelf.map((p) => p.fragment.source)).toEqual(['a', 'c', 'b']);
+    store.flipShelfPart(b, { ...frag('b'), sequence: 'TTTT' });
+    expect(store.getState().shelf[2]).toMatchObject({ flipped: true });
+    expect(store.getState().shelf[2]?.fragment.sequence).toBe('TTTT');
+    store.removeFromShelf(c);
     store.openDocument(SeqDocument.create({ sequence: 'AAAA' }));
-    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['a', 'b']);
-    store.clearAssembly();
-    expect(store.getState().assembly).toEqual([]);
+    expect(store.getState().shelf.map((p) => p.fragment.source)).toEqual(['a', 'b']);
+    store.clearShelf();
+    expect(store.getState().shelf).toEqual([]);
   });
 
   it('puts back a stored shelf, but never over one already being filled', () => {
     const store = new EditorStore();
     const stored = [{ id: 'p1', fragment: frag('vector'), flipped: false }];
-    store.restoreAssembly(stored);
-    expect(store.getState().assembly.map((p) => p.fragment.source)).toEqual(['vector']);
+    store.restoreShelf(stored);
+    expect(store.getState().shelf.map((p) => p.fragment.source)).toEqual(['vector']);
 
     // What the user has collected in the meantime wins over what was stored.
     const busy = new EditorStore();
-    busy.addToAssembly(frag('mine'));
-    busy.restoreAssembly(stored);
-    expect(busy.getState().assembly.map((p) => p.fragment.source)).toEqual(['mine']);
+    busy.addToShelf(frag('mine'));
+    busy.restoreShelf(stored);
+    expect(busy.getState().shelf.map((p) => p.fragment.source)).toEqual(['mine']);
 
     // Nothing stored leaves the shelf alone.
-    busy.restoreAssembly([]);
-    expect(busy.getState().assembly.map((p) => p.fragment.source)).toEqual(['mine']);
+    busy.restoreShelf([]);
+    expect(busy.getState().shelf.map((p) => p.fragment.source)).toEqual(['mine']);
   });
 });
 

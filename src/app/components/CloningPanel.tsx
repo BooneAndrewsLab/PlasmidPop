@@ -1,17 +1,13 @@
 import { analytics } from '../analytics';
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  type AssemblyPart,
   type DigestFragment,
   type FragmentEnd,
   type SeqDocument,
-  assemblyJunctions,
   describeEnd,
   digest,
   documentFromFragment,
-  flipFragment,
-  ligate,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
@@ -20,7 +16,9 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
+import { LigationPanel } from './LigationPanel';
 import { PcrPanel } from './PcrPanel';
+import { ShelfPanel } from './ShelfPanel';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -92,9 +90,9 @@ function FragmentRow({
         <button
           type="button"
           className="button button--quiet button--small fragment__add"
-          title="Add this fragment to the assembly below"
+          title="Put this fragment on the shelf below, for any of the reactions"
           onClick={() => {
-            editorStore.addToAssembly(fragment);
+            editorStore.addToShelf(fragment);
           }}
         >
           Add
@@ -119,105 +117,6 @@ function FragmentRow({
           {names.length > 4 ? `, +${names.length - 4} more` : ''}
         </div>
       )}
-    </li>
-  );
-}
-
-function JunctionRow({
-  from,
-  to,
-  compatible,
-  closing,
-}: {
-  readonly from: FragmentEnd;
-  readonly to: FragmentEnd;
-  readonly compatible: boolean;
-  readonly closing: boolean;
-}) {
-  return (
-    <li
-      className={`junction${compatible ? ' junction--ok' : ' junction--bad'}`}
-      aria-label={`${closing ? 'Closing join' : 'Join'}: ${describeEnd(from)} to ${describeEnd(to)}, ${compatible ? 'compatible' : 'incompatible'}`}
-    >
-      <span className="junction__mark" aria-hidden="true">
-        {compatible ? '✓' : '✕'}
-      </span>
-      <span className="junction__text">
-        {closing ? 'closes: ' : ''}
-        {describeEnd(from)} ↔ {describeEnd(to)}
-        {compatible ? '' : ' — ends do not match'}
-      </span>
-    </li>
-  );
-}
-
-function PartRow({
-  part,
-  index,
-  count,
-}: {
-  readonly part: AssemblyPart;
-  readonly index: number;
-  readonly count: number;
-}) {
-  const f = part.fragment;
-  return (
-    <li className="part">
-      <span className="part__index">{index + 1}</span>
-      <span className="part__text">
-        <span className="part__name">
-          {f.source}
-          {part.flipped ? ' (flipped)' : ''}
-        </span>
-        <span className="part__detail">
-          {f.sequence.length.toLocaleString()} bp · {describeEnd(f.left)} → {describeEnd(f.right)}
-        </span>
-      </span>
-      <span className="part__actions">
-        <button
-          type="button"
-          className="button button--quiet button--small"
-          title="Turn this fragment around (reverse complement)"
-          aria-label={`Flip part ${index + 1}`}
-          onClick={() => {
-            editorStore.flipAssemblyPart(part.id, flipFragment(f));
-          }}
-        >
-          ⇄
-        </button>
-        <button
-          type="button"
-          className="button button--quiet button--small"
-          disabled={index === 0}
-          aria-label={`Move part ${index + 1} up`}
-          onClick={() => {
-            editorStore.moveAssemblyPart(part.id, -1);
-          }}
-        >
-          ↑
-        </button>
-        <button
-          type="button"
-          className="button button--quiet button--small"
-          disabled={index === count - 1}
-          aria-label={`Move part ${index + 1} down`}
-          onClick={() => {
-            editorStore.moveAssemblyPart(part.id, 1);
-          }}
-        >
-          ↓
-        </button>
-        <button
-          type="button"
-          className="button button--quiet button--small"
-          aria-label={`Remove part ${index + 1}`}
-          onClick={() => {
-            editorStore.removeFromAssembly(part.id);
-          }}
-        >
-          ✕
-        </button>
-      </span>
     </li>
   );
 }
@@ -263,12 +162,9 @@ export function CloningPanel({ doc }: Props) {
     analysis,
     shownEnzymes,
     showCutSites,
-    assembly,
     cloningReaction,
     previewActivated: activated,
   } = useEditorState();
-  const [circular, setCircular] = useState(true);
-  const [name, setName] = useState('');
   const [hovered, setHovered] = useState<string | null>(null);
   const ready = analysis !== null && analysis.doc === doc;
 
@@ -309,7 +205,7 @@ export function CloningPanel({ doc }: Props) {
     if (activated.nonce === handledClick.current) return;
     handledClick.current = activated.nonce;
     const fragment = fragments.find((f) => fragmentId(f) === activated.id);
-    if (fragment !== undefined) editorStore.addToAssembly(fragment);
+    if (fragment !== undefined) editorStore.addToShelf(fragment);
   }, [activated, fragments]);
   // Leaving the tab takes the fragments off the views with it.
   useEffect(
@@ -318,31 +214,6 @@ export function CloningPanel({ doc }: Props) {
     },
     [],
   );
-
-  const parts = assembly.map((p) => p.fragment);
-  const junctions = assemblyJunctions(parts, circular);
-  const total = parts.reduce((n, f) => n + f.sequence.length, 0);
-  const canAssemble = parts.length > 0 && junctions.every((j) => j.compatible);
-  const defaultName =
-    assembly.length === 0
-      ? 'Assembly'
-      : `${[...new Set(parts.map((f) => f.source))].join('+')} assembly`;
-
-  const assemble = (): void => {
-    try {
-      analytics.track('cloning', 'ligate');
-      const product = ligate(parts, {
-        name: name.trim() === '' ? defaultName : name.trim(),
-        circular,
-      });
-      editorStore.openDocument(product);
-      editorStore.clearAssembly();
-      editorStore.setSidebarTab('features');
-      setName('');
-    } catch (e) {
-      editorStore.fail(e instanceof Error ? e.message : String(e));
-    }
-  };
 
   return (
     <div className="panel">
@@ -372,7 +243,7 @@ export function CloningPanel({ doc }: Props) {
       ) : (
         <p className="panel__note">
           {fragments.length === 1 ? '1 fragment' : `${fragments.length} fragments`}, largest first.
-          Add the ones to join, then arrange them below.
+          Add the ones to join to the shelf below.
         </p>
       )}
       {!showCutSites && enzymesUsed.length > 0 && (
@@ -404,11 +275,13 @@ export function CloningPanel({ doc }: Props) {
         </ul>
       )}
 
+      <ShelfPanel />
+
       <div className="panel__section">
-        {/* The three reactions are alternatives, not steps, so the tab asks
-            which one rather than stacking all three down a 300 px column.
-            Everything above this line is the digest, which belongs to the
-            document in front of you and to none of the three. */}
+        {/* The four reactions are alternatives, not steps, so the tab asks
+            which one rather than stacking them down a 300 px column. Above
+            this line are the digest, which belongs to the document in front
+            of you, and the shelf, which every reaction takes parts from. */}
         <div className="segmented segmented--wide" role="group" aria-label="Reaction">
           {CLONING_REACTIONS.map((r) => (
             <button
@@ -443,81 +316,9 @@ export function CloningPanel({ doc }: Props) {
         <div className="panel__section">
           <h3 className="panel__heading">
             Ligation
-            {assembly.length > 0 && (
-              <span className="panel__heading-note">
-                {assembly.length} {assembly.length === 1 ? 'part' : 'parts'},{' '}
-                {total.toLocaleString()} bp
-              </span>
-            )}
+            <span className="panel__heading-note">in the shelf's order</span>
           </h3>
-          {assembly.length === 0 ? (
-            <p className="panel__note">
-              Nothing collected yet. Fragments stay here while you open other files, and across
-              reloads, so a vector from one file can take an insert from another.
-            </p>
-          ) : (
-            <ol className="part-list">
-              {assembly.map((part, i) => {
-                const join = junctions[i];
-                return (
-                  <Fragment key={part.id}>
-                    <PartRow part={part} index={i} count={assembly.length} />
-                    {join !== undefined && (
-                      <JunctionRow {...join} closing={i === assembly.length - 1} />
-                    )}
-                  </Fragment>
-                );
-              })}
-            </ol>
-          )}
-          {assembly.length > 0 && (
-            <div className="panel__controls">
-              <input
-                className="panel__search"
-                type="text"
-                placeholder={defaultName}
-                aria-label="Name of the assembled document"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                }}
-              />
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={circular}
-                  onChange={(e) => {
-                    setCircular(e.target.checked);
-                  }}
-                />
-                Circular product
-              </label>
-              <div className="panel__buttons">
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  onClick={() => {
-                    editorStore.clearAssembly();
-                  }}
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  className="button button--primary button--small"
-                  disabled={!canAssemble}
-                  title={
-                    canAssemble
-                      ? 'Ligate the parts into a new document'
-                      : 'Every join must have matching ends'
-                  }
-                  onClick={assemble}
-                >
-                  Assemble
-                </button>
-              </div>
-            </div>
-          )}
+          <LigationPanel />
         </div>
       )}
 

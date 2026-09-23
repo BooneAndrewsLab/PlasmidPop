@@ -1,11 +1,11 @@
 # Simulated cloning
 
 The **Cloning** tab cuts the document with restriction enzymes and
-describes the resulting fragments end by end. Below the digest, a picker
-chooses one reaction to build something with: **PCR**, which amplifies a
-stretch of this document with two primers, **Ligation**, which joins
-fragments you have collected by their overhangs, **Golden Gate**, and
-**Gibson**. They are alternatives, so one is shown at a time and the choice
+describes the resulting fragments end by end. Under the digest is the
+**shelf**, where fragments you collect wait for a reaction, and under that a
+picker chooses one reaction to build something with: **PCR**, which
+amplifies a stretch of this document with two primers, **Ligation**, which
+joins shelf fragments by their overhangs, **Golden Gate**, and **Gibson**. They are alternatives, so one is shown at a time and the choice
 is remembered. Whichever you use, the product opens as a new document with
 the features of its parts.
 
@@ -25,8 +25,8 @@ first, each with:
 - its two **ends**: the enzyme that made the cut, whether the end is blunt
   or has a 5′ or 3′ overhang, and the overhang bases;
 - the **features** it carries;
-- **Add**, which puts it in the assembly below, and **Open**, which opens it
-  as a document of its own.
+- **Add**, which puts it on the [shelf](#the-shelf) below, and **Open**,
+  which opens it as a document of its own.
 
 An uncut linear molecule is one fragment with the ends the molecule already
 has; an uncut circular molecule gives nothing to work with.
@@ -42,7 +42,8 @@ they are.
 **Click a fragment in either view to put it on the shelf**, which is what
 **Add** in its row does. On the map that is the thin dashed ring just inside
 the backbone; in the sequence view it is the band outside the feature lanes.
-Either way the panel switches to **Ligation**, so you can see it land.
+The shelf sits above every reaction, so you see it land whichever reaction
+is picked.
 
 ## Sticky ends on a document
 
@@ -129,29 +130,43 @@ The product is left blunt. A-tailing, primer dimers and the polymerase's
 processivity are not modelled; a pairing that would give a product longer
 than 20 kb is reported and not built.
 
+## The shelf
+
+**Add** puts a fragment on the **shelf**, under the digest. The shelf belongs
+to the whole tab rather than to one reaction: Ligation joins its fragments,
+and Golden Gate and Gibson take them into the tube beside the open
+documents. It is shared by every open tab and kept in the browser, so it
+survives closing every tab and reloading the page: fragments you collected
+on Friday are still there on Monday.
+
+Each part shows its name, length and ends. **⇄** flips a fragment (reverse
+complement, ends swapped), **↑ ↓** reorder, **✕** removes, and **Clear
+shelf** empties it. The order and the flips are what Ligation joins by; Golden
+Gate and Gibson work out their own order and ignore them. A reaction leaves
+the shelf as it is, so a vector cut once can take one insert after another.
+
 ## Ligation
 
-**Add** moves a fragment to the **Ligation** list. The list is shared by
-every open tab and is kept in the browser, so it survives closing every tab
-and reloading the page: a ligation you set up on Friday is still there on
-Monday. The usual workflow is:
+Ligation joins the shelf's fragments in the order they stand on the shelf.
+The usual workflow is:
 
-1. Choose **Ligation** under the digest.
-2. Open the vector, tick the enzymes, add the backbone fragment.
-3. Open the file with the insert (it gets a tab of its own), tick the same
+1. Open the vector, tick the enzymes, add the backbone fragment.
+2. Open the file with the insert (it gets a tab of its own), tick the same
    (or compatible) enzymes, add the insert fragment.
-4. Arrange the parts: **⇄** flips a fragment (reverse complement, ends
-   swapped), **↑ ↓** reorder, **✕** removes.
-5. Between consecutive parts a junction line shows **✓** when the ends can
-   be ligated, **✕ ends do not match** when they cannot. With **Circular
+3. Choose **Ligation** in the picker. Every shelf fragment is in the
+   ligation to begin with; untick one to leave it out, for instance a piece
+   you collected for a Gibson.
+4. Arrange the parts on the shelf. Between consecutive parts in the
+   **Ligation** list a junction line shows **✓** when the ends can be
+   ligated, **✕ ends do not match** when they cannot. With **Circular
    product** ticked there is also a closing junction from the last part back
    to the first.
-6. Give the product a name (or keep the suggested one) and click
+5. Give the product a name (or keep the suggested one) and click
    **Assemble**. It is enabled only when every junction is compatible.
 
 The product opens as a new circular or linear document carrying the parts'
-features, and the assembly list is cleared. It is kept in the browser like
-any other document; download it to get a file.
+features; the shelf keeps its fragments. The product is kept in the browser
+like any other document; download it to get a file.
 
 Ends are compatible when both are blunt, or when they have the same kind of
 overhang with complementary bases. A PstI end will not join an EcoRI end,
@@ -168,7 +183,7 @@ happen in one tube, and the overhangs, not you, decide the order.
 The panel works that out:
 
 1. Put the destination vector and every part in the tube. Anything open is
-   one, each in its own tab, and so is anything on the **Ligation** shelf —
+   one, each in its own tab, and so is anything on the [shelf](#the-shelf) —
    a piece already cut out of a plasmid goes in beside a file, and the list
    says which is which.
 2. Choose the **enzyme** the parts were designed for. BsaI is the default;
@@ -213,7 +228,7 @@ then:
 
 1. Put the parts in the tube. Anything open is one: the linearised (or
    PCR-amplified) vector and the inserts, each in its own tab. So is anything
-   on the **Ligation** shelf, which is how a backbone cut out of a plasmid
+   on the [shelf](#the-shelf), which is how a backbone cut out of a plasmid
    joins an insert amplified from somewhere else — the two are one list with
    a tick each, and a piece off the shelf says so beside its size. A circular
    document is left out, because it has no ends to join by; digest or
@@ -243,7 +258,7 @@ worth seeing before it is ambiguous in the tube.
 
 PCR takes its template from the document in front of you, so amplifying from
 another open tab means switching to it first, and the product is not put on
-the Ligation shelf for you — **Open** it and it is in the tube like any other
+the shelf for you — **Open** it and it is in the tube like any other
 tab. A-tailing, primer dimers and how much more readily a short product
 amplifies than a long one are not modelled beyond the order the products are
 listed in.

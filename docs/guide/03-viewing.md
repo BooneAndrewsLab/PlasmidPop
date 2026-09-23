@@ -131,7 +131,7 @@ Today three things use it:
 - the [Cloning](12-cloning.md) tab, which draws the pieces a digest would
   give, each with a tick where its cuts fall, and draws the one under the
   pointer as a solid arrow. These can be clicked, which puts that fragment
-  on the ligation shelf; the other two previews are drawings only.
+  on the Cloning tab's shelf; the other two previews are drawings only.
 
 ### Format
 

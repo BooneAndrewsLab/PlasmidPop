@@ -175,16 +175,16 @@ export class PersistenceService {
   }
 
   /**
-   * Writes the Cloning tab's assembly shelf, so fragments gathered for a
+   * Writes the Cloning tab's fragment shelf, so fragments gathered for a
    * ligation are still there after a reload. It is kept apart from the
    * documents: the shelf outlives every tab being closed, which is the
    * point of it.
    */
   async saveShelf(): Promise<void> {
-    const { assembly } = editorStore.getState();
-    if (assembly === this.savedShelf) return;
-    await this.repo.saveShelf(assembly);
-    this.savedShelf = assembly;
+    const { shelf } = editorStore.getState();
+    if (shelf === this.savedShelf) return;
+    await this.repo.saveShelf(shelf);
+    this.savedShelf = shelf;
   }
 
   /**
@@ -268,8 +268,8 @@ export class PersistenceService {
   async restoreLastSession(): Promise<boolean> {
     try {
       const shelf = await this.repo.loadShelf();
-      editorStore.restoreAssembly(shelf);
-      this.savedShelf = editorStore.getState().assembly;
+      editorStore.restoreShelf(shelf);
+      this.savedShelf = editorStore.getState().shelf;
       const last = this.repo.lastDocumentId();
       const ids = [...this.repo.openDocumentIds()];
       if (last !== null && !ids.includes(last)) ids.push(last);
