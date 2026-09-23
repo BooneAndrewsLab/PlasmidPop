@@ -16,6 +16,10 @@ range like `4200..150` for one that wraps the origin of a circular sequence.
   highlight its bases.
 - The selected row gets **Rename**, **Edit** and **Remove** buttons.
   **Double-click** a row to rename it in place.
+- A ⚠ after a CDS's name means its bases no longer give the protein its
+  `/translation` states — usually because of an edit inside it. Select it
+  to see what differs and to update or remove the stored translation (see
+  [Checking a record against itself](09-translate.md#checking-a-record-against-itself)).
 
 Features are coloured by type (CDS blue, gene green, promoter orange,
 terminator red, origin purple, primer site pink, and so on) unless the file

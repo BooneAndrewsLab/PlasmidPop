@@ -69,6 +69,19 @@ An `X` on either side is not counted as a disagreement: it is a residue
 nobody is claiming to know. A `U` or `O` in the file is counted unless a
 `/transl_except` puts it there.
 
+The check also follows your edits. As soon as an edit makes a CDS disagree
+with its `/translation` — a base changed inside it, say — its row in the
+**Features** list gets a ⚠, and hovering it says how. Select the feature and
+the same explanation appears under it, with two ways out:
+
+- **Update /translation** rewrites the stored protein from the bases as
+  they are now;
+- **Remove /translation** drops it; the protein is still shown under the
+  feature, translated from the bases.
+
+Either is one step in the History, so `Ctrl+Z` undoes it. A record that
+disagreed with itself when it was opened carries the ⚠ from the start.
+
 ## The Translate tab
 
 The tab translates the current selection, or the whole sequence when nothing

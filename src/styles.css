@@ -1259,6 +1259,20 @@ button {
   border-radius: 6px;
 }
 
+.feature-row__warn {
+  color: var(--warn);
+}
+
+.feature-item__notice {
+  margin: 2px 8px 4px;
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.feature-item__notice p {
+  margin: 2px 0;
+}
+
 .feature-item__actions {
   display: flex;
   gap: 4px;

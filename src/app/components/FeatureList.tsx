@@ -1,10 +1,19 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 
-import { type Feature, type SeqDocument, formatLocation } from '@/core';
+import {
+  type Feature,
+  type SeqDocument,
+  type TranslationProblem,
+  formatLocation,
+  isStaleTranslation,
+  translationFor,
+} from '@/core';
 import { featureColor } from '@/view/featureColors';
 
 import { editorStore } from '../state/editorStore';
+import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
+import { describeTranslationProblem } from '../translationWarnings';
 import { FeatureEditor } from './FeatureEditor';
 
 interface Props {
@@ -61,7 +70,70 @@ function RenameField({ feature }: { readonly feature: Feature }) {
   );
 }
 
+/**
+ * What is wrong with a coding feature's own claims, under its row when it is
+ * selected, with the two ways out when the stored `/translation` is what an
+ * edit left behind: rewrite it from the bases, or drop it (#2). Each is one
+ * edit, so one undo puts it back.
+ */
+function TranslationNotice({
+  doc,
+  feature,
+  problems,
+}: {
+  readonly doc: SeqDocument;
+  readonly feature: Feature;
+  readonly problems: readonly TranslationProblem[];
+}) {
+  const stale = problems.some(isStaleTranslation);
+  const setTranslation = (value: string | null): void => {
+    const others = feature.qualifiers.filter((q) => q.name !== 'translation');
+    editorStore.apply({
+      type: 'updateFeature',
+      id: feature.id,
+      patch: {
+        qualifiers: value === null ? others : [...others, { name: 'translation', value }],
+      },
+    });
+  };
+  return (
+    <div className="feature-item__notice" role="note">
+      {problems.map((p, i) => (
+        <p key={i}>
+          <span aria-hidden="true">⚠ </span>
+          {describeTranslationProblem(p).replace(/^./, (c) => c.toUpperCase())}
+        </p>
+      ))}
+      {stale && (
+        <div className="feature-item__actions">
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            title="Replace the stored /translation with the protein these bases give"
+            onClick={() => {
+              setTranslation(translationFor(doc, feature));
+            }}
+          >
+            Update /translation
+          </button>
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            title="Remove the stored /translation; the protein is still shown from the bases"
+            onClick={() => {
+              setTranslation(null);
+            }}
+          >
+            Remove /translation
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FeatureList({ doc, reader = false }: Props) {
+  const translation = useTranslationProblems(doc);
   const { selection, selectedFeatureId, renameRequest, editingFeatureId } = useEditorState();
   const features = doc.features.all();
   const renaming =
@@ -137,7 +209,20 @@ export function FeatureList({ doc, reader = false }: Props) {
                       aria-hidden="true"
                     />
                     <span className="feature-row__text">
-                      <span className="feature-row__name">{f.name === '' ? f.type : f.name}</span>
+                      <span className="feature-row__name">
+                        {f.name === '' ? f.type : f.name}
+                        {translation.has(f.id) && (
+                          <span
+                            className="feature-row__warn"
+                            title={(translation.get(f.id) ?? [])
+                              .map(describeTranslationProblem)
+                              .join('\n')}
+                          >
+                            {' '}
+                            ⚠
+                          </span>
+                        )}
+                      </span>
                       <span className="feature-row__detail">
                         {f.name === '' ? null : <span>{f.type} </span>}
                         <span className="feature-row__location">
@@ -149,6 +234,9 @@ export function FeatureList({ doc, reader = false }: Props) {
                 )}
                 {!reader && editingFeatureId === f.id && (
                   <FeatureEditor key={f.id} doc={doc} feature={f} />
+                )}
+                {!reader && selected && editingFeatureId !== f.id && translation.has(f.id) && (
+                  <TranslationNotice doc={doc} feature={f} problems={translation.get(f.id) ?? []} />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions">

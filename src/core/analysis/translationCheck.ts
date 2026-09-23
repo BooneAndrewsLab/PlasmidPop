@@ -67,6 +67,20 @@ function comparable(t: CdsTranslation): string {
 }
 
 /**
+ * The `/translation` a coding feature should carry for the bases it has now:
+ * what "Update /translation" writes when an edit has left the stored one
+ * behind (#2).
+ */
+export function translationFor(doc: SeqDocument, feature: Feature): string {
+  return comparable(translateCds(doc, feature));
+}
+
+/** Whether a problem is the stored `/translation` disagreeing, which updating it would settle. */
+export function isStaleTranslation(problem: TranslationProblem): boolean {
+  return problem.kind === 'length' || problem.kind === 'residue';
+}
+
+/**
  * Checks one coding feature against what it claims: that its
  * `/transl_table` names a genetic code, that each `/transl_except` names one
  * of its codons, and that the `/translation` the file

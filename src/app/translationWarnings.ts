@@ -20,7 +20,7 @@ function label(doc: SeqDocument, feature: Feature): string {
   return `${named} at ${formatLocation(feature, doc.length, doc.topology)}`;
 }
 
-function sentence(problem: TranslationProblem): string {
+export function describeTranslationProblem(problem: TranslationProblem): string {
   switch (problem.kind) {
     case 'unknown-table':
       return `/transl_table=${problem.value} is not a genetic code NCBI uses, so the standard code was used.`;
@@ -49,7 +49,7 @@ export function translationWarnings(doc: SeqDocument): ParseWarning[] {
   for (const problem of problems.slice(0, MAX_LISTED)) {
     const feature = doc.features.get(problem.featureId);
     if (feature === undefined) continue;
-    warnings.push({ message: `${label(doc, feature)} — ${sentence(problem)}` });
+    warnings.push({ message: `${label(doc, feature)} — ${describeTranslationProblem(problem)}` });
   }
   const rest = problems.length - MAX_LISTED;
   if (rest > 0) {

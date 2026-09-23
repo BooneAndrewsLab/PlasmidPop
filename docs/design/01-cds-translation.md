@@ -65,5 +65,19 @@ reverse strand, partial ends and origin wrap
   kept as it was, unmoved, rather than lost. Topology changes need nothing:
   the text is the same, only its reading differs.
 
-- Not yet: re-checking a `/translation` as the sequence is edited (the
-  check runs at open, not per keystroke).
+- **Re-checked as the sequence is edited** (#2, 2026-09-24). Decided: yes,
+  with the marker on the feature. `translationProblems`
+  (`src/app/state/translationProblems.ts`) checks every coding feature of
+  the version on screen, keyed in a `WeakMap` on the feature object and the
+  bases under it: features are immutable, so one an edit did not touch is
+  the same object in the next version and is not translated again, and one
+  pushed along by an edit upstream is a new object with the same bases,
+  which is the other half of the key. The feature list puts a ⚠ on the row
+  of a CDS whose claims its bases do not bear out, and under the selected
+  row says what disagrees, with **Update /translation** (rewritten from the
+  bases, `translationFor`) and **Remove /translation** when the stored
+  protein is what disagrees — each one `updateFeature`, so one undo. A
+  record that disagreed when opened is flagged the same way, which the
+  status-bar warning at open already said. The fix is in the list rather
+  than the feature editor because the editor holds its qualifiers as form
+  state, and a button rewriting one underneath it would race the form.

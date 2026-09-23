@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { SeqDocument, createFeature } from '@/core';
+import { SeqDocument, createFeature, rangeSegment } from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { FeatureList } from './FeatureList';
@@ -82,5 +82,84 @@ describe('FeatureList', () => {
       editorStore.setSelection({ start: 100, end: 900 });
     });
     expect(selectedNames()).toHaveLength(2);
+  });
+});
+
+describe('FeatureList translation check', () => {
+  // ATG GCC ATT GTA ATG GGC CGC TGA: M A I V M G R, then a stop.
+  const cds = createFeature({
+    id: 'cds',
+    type: 'CDS',
+    name: 'orf',
+    segments: [rangeSegment(3, 27)],
+    qualifiers: [{ name: 'translation', value: 'MAIVMGR' }],
+  });
+  const start = SeqDocument.create({
+    name: 'cds',
+    sequence: 'CCCATGGCCATTGTAATGGGCCGCTGACCC',
+    features: [cds],
+  });
+
+  const warned = (): boolean => document.querySelector('.feature-row__warn') !== null;
+  const present = () => editorStore.getState().history?.present;
+  const stored = () =>
+    present()
+      ?.features.get('cds')
+      ?.qualifiers.find((q) => q.name === 'translation')?.value;
+
+  function setup() {
+    act(() => {
+      editorStore.openDocument(start);
+    });
+    const view = render(<FeatureList doc={start} />);
+    const rerender = () => {
+      const doc = present();
+      if (doc !== undefined) view.rerender(<FeatureList doc={doc} />);
+    };
+    return rerender;
+  }
+
+  it('flags a CDS an edit has left disagreeing with its /translation, and updates it', () => {
+    const rerender = setup();
+    expect(warned()).toBe(false);
+    // GCC → GAC at codon 2: A becomes D.
+    act(() => {
+      editorStore.apply({ type: 'replace', range: { start: 7, end: 8 }, text: 'A' });
+      editorStore.selectFeature('cds');
+    });
+    rerender();
+    expect(warned()).toBe(true);
+    expect(screen.getByRole('note')).toHaveTextContent(
+      /differs from the sequence at residue 2: the file says A, the sequence gives D/,
+    );
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Update /translation' }));
+    });
+    rerender();
+    expect(stored()).toBe('MDIVMGR');
+    expect(warned()).toBe(false);
+    // One undo puts the old /translation back, and the flag with it.
+    act(() => {
+      editorStore.undo();
+      editorStore.selectFeature('cds');
+    });
+    rerender();
+    expect(stored()).toBe('MAIVMGR');
+    expect(warned()).toBe(true);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove /translation' }));
+    });
+    rerender();
+    expect(stored()).toBeUndefined();
+    expect(warned()).toBe(false);
+  });
+
+  it('leaves a CDS alone when the edit is outside it', () => {
+    const rerender = setup();
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 1, text: 'GG' });
+    });
+    rerender();
+    expect(warned()).toBe(false);
   });
 });
