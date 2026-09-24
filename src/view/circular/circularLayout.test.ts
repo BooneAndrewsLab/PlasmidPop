@@ -156,24 +156,40 @@ describe('layoutLabels', () => {
     expect(across).toBeGreaterThan(spread(placed.map((l) => l.y)) * 2);
   });
 
-  it('leaves out a label that could only fit by passing its neighbour', () => {
-    // Four wide labels bunched at 12 o'clock. `l1` is hemmed between `l0`
-    // and the top of the circle, where the ring has nowhere left to go, and
-    // the only free slot is on the far side of `l0` — where its name would
-    // read before `l0`'s although its tick comes after it. Out it goes, into
-    // the `+N labels not shown` count, rather than out of order: the leaders
-    // would not have crossed, because a label sitting at its own anchor has
-    // nothing but a radial stub to cut across (item 31).
+  it("spreads a crowd against 12 o'clock away from the pole, keeping its order", () => {
+    // Four wide labels bunched at 12 o'clock. Placed greedily, `l1` was
+    // hemmed between `l0` and the top of the circle, where the ring has
+    // nowhere left to go, and was left out rather than put out of order
+    // (item 31). Spread as a crowd, the two on each side move away from the
+    // pole together and all four fit (#24).
     const top = inputs(
       [-0.04, -0.02, 0, 0.02].map((d) => -Math.PI / 2 + d),
       70,
     );
     const { placed, dropped } = layoutLabels(top, layout, base);
-    expect(dropped.map((l) => l.id)).toEqual(['l1']);
-    const onRight = placed.filter((l) => l.align === 'left').sort((a, b) => a.angle - b.angle);
-    expect(onRight.map((l) => l.id)).toEqual(['l2', 'l3']);
-    // Down the right side, later along the ring means further down.
-    expect(onRight[0]?.anchorY ?? 0).toBeLessThan(onRight[1]?.anchorY ?? 0);
+    expect(dropped).toEqual([]);
+    const side = (align: 'left' | 'right') =>
+      placed.filter((l) => l.align === align).sort((a, b) => a.angle - b.angle);
+    // Down the right side, later along the ring means further down; up the
+    // left side, later means further up.
+    const right = side('left');
+    expect(right.map((l) => l.id)).toEqual(['l2', 'l3']);
+    expect(right[0]?.anchorY ?? 0).toBeLessThan(right[1]?.anchorY ?? 0);
+    const left = side('right');
+    expect(left.map((l) => l.id)).toEqual(['l0', 'l1']);
+    expect(left[0]?.anchorY ?? 0).toBeGreaterThan(left[1]?.anchorY ?? 0);
+  });
+
+  it('lays a crowd out the same whatever the ids, which a parsed file makes at random', () => {
+    const angles = [-0.05, -0.03, -0.01, 0.01, 0.03].map((d) => -Math.PI / 2 + d);
+    const once = layoutLabels(inputs(angles, 60), layout, base);
+    const renamed = inputs(angles, 60)
+      .map((l, i) => ({ ...l, id: `z${String(9 - i)}` }))
+      .reverse();
+    const again = layoutLabels(renamed, layout, base);
+    const where = (r: typeof once) =>
+      r.placed.map((l) => `${l.text}@${l.x.toFixed(1)},${l.y.toFixed(1)}`).sort();
+    expect(where(again)).toEqual(where(once));
   });
 
   it('lets labels that do not overlap horizontally share a line', () => {

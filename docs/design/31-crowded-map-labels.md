@@ -75,11 +75,42 @@ holds every label at once.
   the absurd case — because the shorter slide halves the slots a crowded
   label tries and the order rule cuts the search short as soon as a
   neighbour's slot is reached (`docs/perf-notes.md`).
-- Not yet: the labels are still placed greedily in rank order, so the
-  highest-ranked of a bunch keeps its ideal spot and its neighbours work
-  around it — which is why a crowd against 12 or 6 o'clock, where the ring
-  has no more room in the direction the order demands, loses its
-  pole-most labels to the `+N` count. A pass that spread a crowd about its centre instead would fit
-  more of them at the same quality, and that — with item 29's second label
-  ring — is what would raise how much a crowded map can hold rather than
-  how well it is spaced.
+- **A crowd is spread about its centre** (#24, 2026-09-24). Placed greedily
+  in rank order, the highest-ranked of a bunch kept its own anchor and the
+  rest worked around it, so a crowd against 12 or 6 o'clock, where a side
+  ends, lost its pole-most labels. `spreadTargets` runs first: along each
+  side and within each stretch of ring the canvas shows, the one-dimensional
+  cluster spread — neighbours that would crowd each other form a cluster,
+  a cluster is centred on its members' anchors and held inside the
+  stretch, clusters that then touch merge, until none do. The spacing two
+  neighbours need is estimated from where they are (a line's height where
+  the ring runs steeply, the pole-ward label's width where it runs flat);
+  it is only where the slot search starts, and every box is still tested.
+  Three things it took to make it pay:
+  - **An overfull crowd is trimmed first.** Spreading room for labels that
+    will be left out anyway pushed the survivors away from their features
+    and lost names on small full-view panes (up to 11 in a render). A
+    cluster longer than its stretch, or one that would push a member past
+    `maxShift`, loses its lowest-ranked tenth from the spread, a round at a
+    time (at most 16); they are still offered a slot afterwards.
+  - **The rescue pass keeps the ring's order.** With the crowds spread, a
+    rescue free to break it bought ~270 names for 136 crossings and 339
+    inversions; kept to the order it still buys most of them.
+  - **Ties are broken by text, never by id.** Measured twice, the same code
+    gave 5,980 and 5,993 labels: a parsed file's feature ids are random,
+    and so is the order features with the same start come out of the set.
+    `tie` is used for the ring's order too, which had broken ties by id
+    since item 31; a document is now laid out the same every time.
+
+  Over the harness's 208 renders: **5,769 labels drawn before, 5,981
+  after** (+212, dropped 3,752 → 3,540), **crossing pairs 21 → 0**,
+  **inversions 46 → 3**, no render losing more than one label, longest
+  leader 109 → 110 px, collisions 0. It costs time, measured in
+  `docs/perf-notes.md`: 1.0 → 1.4 ms for pBR322 with every feature named,
+  4.0 → 6.4 ms with every cut site of every enzyme, both well inside a
+  frame. The first cut re-centred a whole cluster at every merge and took
+  38.7 ms there; a cluster now keeps its span and the sum it is centred
+  on, so a merge costs nothing per member.
+
+- Not yet: item 29's second label ring (#23), which is what would raise how
+  much a crowded map can hold rather than how well it shares its room.

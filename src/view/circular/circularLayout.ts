@@ -230,6 +230,9 @@ const MAX_SHIFT_LINES = 8;
  */
 const RESCUE_SHIFT_LINES = 2;
 
+/** Rounds of trimming an overfull crowd before the spread settles for what it has. */
+const MAX_SPREAD_ROUNDS = 16;
+
 /** A label placed, with what the next one needs to know about it. */
 interface Attempt {
   readonly label: PlacedLabel;
@@ -316,6 +319,195 @@ function crossesRun(run: PlacedRun, ex: number, ey: number, ax: number, ay: numb
   return d1 !== d2 && d3 !== d4;
 }
 
+/**
+ * Where each label of a crowd would like to sit so that the crowd shares
+ * its room, as angles by label id (#24).
+ *
+ * Placing greedily in rank order lets the highest-ranked of a bunch keep its
+ * own anchor and the rest work around it, which against 12 or 6 o'clock —
+ * where a side ends and the ring has no more room in the direction the
+ * order demands — leaves the pole-most labels no slot at all. This is the
+ * one-dimensional cluster spread: along each side, in the ring's order,
+ * labels that would crowd each other form a cluster, the cluster is centred
+ * on its members' anchors and held inside the stretch of ring that can show
+ * it, and clusters that then touch merge, until none do. A crowd against a
+ * pole is pushed away from it as one, so each label gets a share rather
+ * than the first comers getting all of it.
+ *
+ * The spacing between two neighbours is estimated from where they are on
+ * the ring: where it runs steeply a label needs a line's height of it, where
+ * it runs flat the width of the label nearer the pole. It is an estimate;
+ * the targets are where the slot search starts, and it still checks every
+ * box. No target is further from its anchor than `maxShift`.
+ */
+/**
+ * Breaks a tie between two labels by what they say, never by id: a parsed
+ * file's feature ids are random, and so is the order features with the same
+ * start come out of the set, so a tie broken either way lays the same map
+ * out differently each time it is opened. Two labels alike in text and
+ * width are alike on the map too.
+ */
+function tie(a: LabelInput, b: LabelInput): number {
+  return a.text < b.text ? -1 : a.text > b.text ? 1 : a.textWidth - b.textWidth;
+}
+
+function spreadTargets(
+  labels: readonly LabelInput[],
+  layout: CircularLayout,
+  options: LabelLayoutOptions,
+  maxShift: number,
+): Map<string, number> {
+  const { labelRadius, lineHeight, width, height } = options;
+  const inset = options.inset ?? 0;
+  const radius = Math.max(1, labelRadius);
+  const HALF_PI = Math.PI / 2;
+  const out = new Map<string, number>();
+  const visible = (angle: number): boolean => {
+    const x = layout.cx + labelRadius * Math.cos(angle);
+    const y = layout.cy + labelRadius * Math.sin(angle);
+    return x >= inset && x <= width - inset && y >= inset && y <= height - inset;
+  };
+  const need = (a: LabelInput, b: LabelInput, at: number): number => {
+    const cos = Math.max(0.05, Math.abs(Math.cos(at)));
+    const sin = Math.max(0.05, Math.abs(Math.sin(at)));
+    // The label nearer the pole is the one whose width the other must clear.
+    const pole =
+      Math.abs(Math.sin(ringAngle(a.angle))) >= Math.abs(Math.sin(ringAngle(b.angle))) ? a : b;
+    return Math.min((lineHeight + LABEL_GAP_Y) / cos, (pole.textWidth + LABEL_GAP_X) / sin) + 1;
+  };
+  const step = Math.max(1, lineHeight / 4) / radius;
+  for (const [lo, hi] of [
+    [-HALF_PI, HALF_PI],
+    [HALF_PI, Math.PI * 1.5],
+  ] as const) {
+    const side = labels
+      .filter((l) => {
+        const at = ringAngle(l.angle);
+        return lo === -HALF_PI ? at <= HALF_PI : at > HALF_PI;
+      })
+      .sort((a, b) => ringAngle(a.angle) - ringAngle(b.angle) || tie(a, b));
+    // The stretches of this side the canvas shows; a crowd is spread within
+    // the one its anchors are in, since a slot off the canvas is no slot.
+    const stretches: [number, number][] = [];
+    for (let a = lo; a <= hi; a += step) {
+      if (!visible(a)) continue;
+      const last = stretches[stretches.length - 1];
+      if (last !== undefined && a - last[1] <= step * 1.5) last[1] = a;
+      else stretches.push([a, a]);
+    }
+    for (const [from, to] of stretches) {
+      let group = side.filter((l) => {
+        const at = ringAngle(l.angle);
+        return at >= from && at <= to;
+      });
+      // A crowd the stretch cannot hold loses its lowest-ranked members from
+      // the spread, a round at a time, until what is left fits without any
+      // label pushed past `maxShift`. Spreading room for labels that will be
+      // left out anyway only moves the others away from their features.
+      for (let round = 0; group.length >= 2; round++) {
+        const { targets, overfull } = spreadStretch(group, from * radius, to * radius);
+        if (overfull.length === 0 || round >= MAX_SPREAD_ROUNDS) {
+          for (const [id, at] of targets) out.set(id, at / radius);
+          break;
+        }
+        // A tenth of each crowd that did not fit, its lowest-ranked, so a
+        // crowd of hundreds is trimmed in a few rounds rather than hundreds.
+        const leave = new Set<string>();
+        for (const members of overfull) {
+          const lowest = [...members].sort((a, b) => a.rank - b.rank || tie(b, a));
+          for (const l of lowest.slice(0, Math.max(1, Math.ceil(members.length / 10))))
+            leave.add(l.id);
+        }
+        group = group.filter((l) => !leave.has(l.id));
+      }
+    }
+  }
+
+  /**
+   * One spread of a stretch: each label's arc position, and the clusters
+   * that did not fit, because they are longer than the stretch or pushed a
+   * member further than `maxShift` from its anchor.
+   */
+  function spreadStretch(
+    group: readonly LabelInput[],
+    sFrom: number,
+    sTo: number,
+  ): { targets: Map<string, number>; overfull: LabelInput[][] } {
+    const anchor = group.map((l) => ringAngle(l.angle) * radius);
+    const gap = group.map((l, i) => {
+      const next = group[i + 1];
+      return next === undefined
+        ? 0
+        : need(l, next, (ringAngle(l.angle) + ringAngle(next.angle)) / 2);
+    });
+    // A cluster keeps what centring it needs, so a merge costs nothing per
+    // member: its span (first member to last) and the sum of its members'
+    // anchors less their offsets from its start.
+    interface Cluster {
+      first: number;
+      last: number;
+      span: number;
+      sum: number;
+      start: number;
+    }
+    const place = (c: Cluster): void => {
+      const ideal = c.sum / (c.last - c.first + 1);
+      c.start = Math.max(sFrom, Math.min(ideal, sTo - c.span));
+    };
+    const clusters: Cluster[] = group.map((_, i) => {
+      const c = { first: i, last: i, span: 0, sum: anchor[i] ?? 0, start: 0 };
+      place(c);
+      return c;
+    });
+    // Merge left to right until no cluster reaches into the next; a merge
+    // can only move a cluster back towards the one before it, so a step back
+    // after each merge settles it.
+    for (let k = 1; k < clusters.length;) {
+      const prev = clusters[k - 1];
+      const cur = clusters[k];
+      if (prev === undefined || cur === undefined) break;
+      const join = gap[prev.last] ?? 0;
+      if (prev.start + prev.span + join <= cur.start) {
+        k++;
+        continue;
+      }
+      const shift = prev.span + join;
+      prev.sum += cur.sum - shift * (cur.last - cur.first + 1);
+      prev.span = shift + cur.span;
+      prev.last = cur.last;
+      place(prev);
+      clusters.splice(k, 1);
+      k = Math.max(1, k - 1);
+    }
+    // Offsets of each member from its cluster's start, now the clusters are final.
+    const offset = new Array<number>(group.length).fill(0);
+    for (const c of clusters) {
+      let o = 0;
+      for (let i = c.first; i <= c.last; i++) {
+        if (i > c.first) o += gap[i - 1] ?? 0;
+        offset[i] = o;
+      }
+    }
+    const end = (c: Cluster): number => c.start + c.span;
+    const targets = new Map<string, number>();
+    const overfull: LabelInput[][] = [];
+    for (const c of clusters) {
+      let over = end(c) > sTo + 0.5 || c.start < sFrom - 0.5;
+      for (let i = c.first; i <= c.last; i++) {
+        const label = group[i];
+        const a = anchor[i];
+        if (label === undefined || a === undefined) continue;
+        const s = c.start + (offset[i] ?? 0);
+        if (Math.abs(s - a) > maxShift) over = true;
+        targets.set(label.id, Math.max(a - maxShift, Math.min(a + maxShift, s)));
+      }
+      if (over && c.last > c.first) overfull.push(group.slice(c.first, c.last + 1));
+    }
+    return { targets, overfull };
+  }
+  return out;
+}
+
 export function labelBox(
   x: number,
   y: number,
@@ -343,8 +535,10 @@ function overlaps(a: LabelBox, b: LabelBox): boolean {
  * what keeps it beside the feature it names: where the ring runs steeply
  * (3 and 9 o'clock) that is the vertical stacking a crowded side needs, and
  * where it runs flat (12 and 6 o'clock) the labels spread sideways instead
- * of marching down across the map. Labels are placed in rank order and each
- * takes the free slot nearest its anchor; one that finds no slot within
+ * of marching down across the map. A crowd is first spread about its centre
+ * (`spreadTargets`, #24); then labels are placed in rank order and each
+ * takes the free slot nearest where the spread put it, the slide charged
+ * from its own anchor; one that finds no slot within
  * `maxShift`, or none that fits on the canvas, is dropped rather than
  * stacked on top of its neighbour. Ruler numbers are passed in as
  * obstacles: they are placed first, never move, and are never dropped.
@@ -361,7 +555,10 @@ function overlaps(a: LabelBox, b: LabelBox): boolean {
  *   names on the map for the same clarity. It is a rule and not a law: a
  *   label it refuses is offered the room that is left in a second pass,
  *   because two neighbours whose leaders meet beside their own features
- *   are a blemish and a missing name is not (`TANGLED_SHIFT_LINES`).
+ *   are a blemish and a missing name is not (`rescueShift`). That pass
+ *   keeps the ring's order all the same (#24): with crowds spread first,
+ *   a rescue free to break it bought few names and most of the
+ *   inversions.
  * - **The slide is charged for.** `maxShift` is a few line heights, not a
  *   pane's width, so a label is left out rather than towed to the far end
  *   of a crowded arc. Zooming in makes this bite: the ring's radius grows,
@@ -417,19 +614,25 @@ export function layoutLabels(
   const placed: PlacedLabel[] = [];
   const dropped: LabelInput[] = [];
   // Each label's place in the ring's own order, which is the order the slots
-  // they take have to keep. Ties are broken by id, so the order is the
-  // document's and not the array's.
+  // they take have to keep. Ties are broken by text (`tie`), so the order is
+  // the same each time the document is opened.
   const rung = new Map(
     [...labels]
-      .sort((a, b) => ringAngle(a.angle) - ringAngle(b.angle) || (a.id < b.id ? -1 : 1))
+      .sort((a, b) => ringAngle(a.angle) - ringAngle(b.angle) || tie(a, b))
       .map((label, index) => [label.id, index] as const),
   );
   // Slots taken on each side, kept in that order; the invariant is that
   // their angles run the same way.
   const slots: [Slot[], Slot[]] = [[], []];
+  // Where each label of a crowd would sit if the crowd shared its room (#24):
+  // the first pass looks for a slot from there, the rescue pass from the
+  // label's own anchor.
+  const targets = spreadTargets(labels, layout, options, maxShift);
 
   const attempt = (label: LabelInput, strict: boolean, limit = maxShift): Attempt | null => {
     const at = ringAngle(label.angle);
+    const start = targets.get(label.id) ?? at;
+    const reach = limit + Math.abs(start - at) * radius;
     const right = at <= HALF_PI;
     const align = right ? 'left' : 'right';
     const taken = slots[right ? 0 : 1];
@@ -438,20 +641,18 @@ export function layoutLabels(
     while (after < taken.length && (taken[after]?.rung ?? 0) < mine) after++;
     // Room the neighbours already placed leave: strictly between the slot
     // below and the slot above, so the order along the ring cannot break.
-    const lo = Math.max(
-      right ? -HALF_PI : HALF_PI,
-      strict ? (taken[after - 1]?.at ?? -Infinity) : -Infinity,
-    );
-    const hi = Math.min(
-      right ? HALF_PI : Math.PI * 1.5,
-      strict ? (taken[after]?.at ?? Infinity) : Infinity,
-    );
+    // Both passes keep it (#24): with the crowds spread, a rescue that may
+    // break the order bought few names and most of the inversions.
+    const lo = Math.max(right ? -HALF_PI : HALF_PI, taken[after - 1]?.at ?? -Infinity);
+    const hi = Math.min(right ? HALF_PI : Math.PI * 1.5, taken[after]?.at ?? Infinity);
     const ex = layout.cx + elbowRadius * Math.cos(at);
     const ey = layout.cy + elbowRadius * Math.sin(at);
-    for (let i = 0; i * step <= limit; i++) {
+    for (let i = 0; i * step <= reach; i++) {
       for (const dir of i === 0 ? [0] : [1, -1]) {
-        const angle = at + (dir * i * step) / radius;
+        const angle = start + (dir * i * step) / radius;
         if (angle < lo || angle > hi) continue;
+        // The slide is charged from the label's own anchor, wherever the search began.
+        if (Math.abs(angle - at) * radius > limit) continue;
         const ax = layout.cx + labelRadius * Math.cos(angle);
         const ay = layout.cy + labelRadius * Math.sin(angle);
         const x = right ? ax + LABEL_GAP_X : ax - LABEL_GAP_X;
@@ -485,7 +686,7 @@ export function layoutLabels(
     slots[got.side].splice(got.index, 0, got.slot);
   };
 
-  const order = [...labels].sort((a, b) => b.rank - a.rank || a.angle - b.angle);
+  const order = [...labels].sort((a, b) => b.rank - a.rank || a.angle - b.angle || tie(a, b));
   const tangled: LabelInput[] = [];
   for (const label of order) {
     const got = attempt(label, true);

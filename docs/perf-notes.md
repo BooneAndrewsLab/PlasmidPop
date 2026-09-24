@@ -349,6 +349,22 @@ what remains is building the SVG string, which the canvas does not do. Item
 it had been sixteen) halves the slots a crowded label tries, and the order
 rule cuts the search short as soon as a neighbour's slot is reached.
 
+Spreading crowds about their centre first (#24, item 31) costs some of that
+back. Measured 2026-09-24 the same way, mean of 150 runs after 30 to warm up,
+before and after:
+
+| labels on the ring                 | before | after  |
+| ---------------------------------- | ------ | ------ |
+| 50 features                        | 1.0 ms | 1.4 ms |
+| 50 features, 35 single cutters     | 1.5 ms | 1.9 ms |
+| 50 features, every cut site of all | 4.0 ms | 6.4 ms |
+
+The first cut of the spread took 38.7 ms in the last row: trimming an
+overfull crowd re-spread it once per label left out, and every merge
+re-centred the whole cluster. A cluster now keeps its span and the sum its
+centre is found from, so a merge is constant time, and a tenth of an
+overfull crowd is trimmed per round, at most 16 rounds.
+
 ### Tracked changes on the ring
 
 Item 25 draws the same `DocumentDiff` the sequence view marks — an arc over
