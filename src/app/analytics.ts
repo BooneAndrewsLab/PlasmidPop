@@ -87,7 +87,16 @@ export const EVENTS = {
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],
   align: ['run'],
-  cloning: ['ligate', 'open-fragment', 'gibson', 'golden-gate', 'pcr', 'mutagenesis', 'gateway'],
+  cloning: [
+    'ligate',
+    'open-fragment',
+    'gibson',
+    'golden-gate',
+    'pcr',
+    'mutagenesis',
+    'gateway',
+    'overlap-primers',
+  ],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],
   /** Which page of the guide was read. */

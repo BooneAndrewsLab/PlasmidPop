@@ -13,6 +13,7 @@ import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
+import { OverlapPrimerDesign } from './OverlapPrimerDesign';
 import { PartsTube } from './PartsTube';
 import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
@@ -232,6 +233,10 @@ export function GibsonPanel() {
           </div>
         </div>
       )}
+
+      {/* The tails that make an amplicon join a linearised vector. The
+          reaction is the one above, so the design sits with it (#63). */}
+      <OverlapPrimerDesign />
     </>
   );
 }

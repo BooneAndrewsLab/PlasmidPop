@@ -390,6 +390,29 @@ says which and assembles nothing. Homology that is unique to each junction is
 what makes a Gibson design work, and a set that is ambiguous on paper is
 worth seeing before it is ambiguous in the tube.
 
+### In-Fusion and NEBuilder: designing the insert primers
+
+In-Fusion (Takara) and NEBuilder HiFi (NEB) work the way Gibson does, so
+the reaction is the one above; what they need is the two primers that put
+the vector's ends on the insert. **Design insert primers**, under the Gibson
+panel, makes them.
+
+1. Linearise the vector — digest it, or amplify it by inverse PCR — and
+   open it in a tab.
+2. Open the template to amplify the insert from, and **select the insert
+   there**. Each tab keeps its own selection, so select it, then come back.
+3. Choose **In-Fusion** (15 bases of homology) or **NEBuilder HiFi** (20),
+   then the two tabs.
+
+Each primer is the vector's end in upper case followed by the bases that
+anneal to the template, grown until they melt at 60 °C. The panel then
+_runs_ the design — amplifies the insert with those primers and assembles
+the amplicon with the vector — so what it shows is the circle they would
+really make, not a promise. **Open product** opens it.
+
+It warns when the vector has sticky ends, and when the primers would
+amplify something else from the template as well.
+
 ## Gateway
 
 Gateway is recombination, not cutting and joining: an integrase pairs two
@@ -444,6 +467,7 @@ modelled beyond the order the products are listed in, and a mismatched
 primer's first-cycle temperature leaves out what the mismatched stretch
 still contributes. Gibson does not model the chew-back itself, only the
 length rules above, and Golden Gate's overhang warnings follow design rules
-rather than measured ligation fidelity. Gateway reads att sites from a
-file's annotation rather than finding them by sequence, and runs one pair at
+rather than measured ligation fidelity. In-Fusion and NEBuilder differ here only in how much homology
+they ask for; their exonucleases are not modelled separately. Gateway reads
+att sites from a file's annotation rather than finding them by sequence, and runs one pair at
 a time, so a multisite LR takes several passes.

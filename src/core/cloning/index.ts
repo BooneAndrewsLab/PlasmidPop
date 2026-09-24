@@ -5,3 +5,4 @@ export * from './goldenGate';
 export * from './gibson';
 export * from './mutagenesis';
 export * from './gateway';
+export * from './overlapPrimers';

@@ -201,3 +201,26 @@ overhangs would misligate.
   Ligation got the same line, computing the product on each render, since
   `ligate` is string joins and a feature shift. To see the map, assemble and
   look: one click, and undoable by closing the tab.
+- **In-Fusion and NEBuilder primer design, 2026-09-23** (#63;
+  `src/core/cloning/overlapPrimers.ts`). The issue said it: most users need
+  the design more than the assembly, which the Gibson panel already does.
+  Both kits assemble by homology at the ends, which is the rule `gibson`
+  models, so they differ here only in how much homology their protocols ask
+  for — 15 bases for In-Fusion, 20 for NEBuilder — and that is a number,
+  not a second reaction. Their exonucleases differ on the bench; nothing
+  here turns on that, so nothing here models it.
+  - **The design is run, not described.** `designOverlapPrimers` makes the
+    two oligos, amplifies the insert with `pcr`, and assembles the amplicon
+    with the vector by `gibson`. So the panel shows the circle the primers
+    would really make, and a design that does not close is reported as a
+    failure rather than drawn anyway. It also means the tails are checked
+    against the same annealing search a user's own primers meet.
+  - **The wanted product is found by content, not coordinates.** The
+    annealing search keeps walking while bases match, so a tail base that
+    happens to continue the template becomes part of the site and the
+    product's `templateRange` starts a base or two before the selection.
+    Matching on the start position therefore rejected the very product that
+    had been designed; the shortest product that contains the whole insert
+    is the right test. Caught by the panel's test, not by the core's.
+  - It lives inside the Gibson panel rather than as a sixth reaction: the
+    reaction _is_ the Gibson, and the picker is long enough.
