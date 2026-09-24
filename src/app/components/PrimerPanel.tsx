@@ -317,9 +317,26 @@ export function PrimerPanel({ doc }: Props) {
         {report !== null && report.length > 0 && (
           <>
             <p className="panel__mono">
-              {report.length} nt, Tm {tm(report.tm)}, GC {pct(report.gc)}
+              {report.length} nt, Tm{' '}
+              {report.degenerate === 0
+                ? tm(report.tm)
+                : report.tmRange === null
+                  ? '–'
+                  : `${report.tmRange.min.toFixed(1)}–${report.tmRange.max.toFixed(1)} °C`}
+              , GC{' '}
+              {report.degenerate === 0
+                ? pct(report.gc)
+                : `${pct(report.gcRange.min)}–${pct(report.gcRange.max)}`}
               {report.gcClamp ? ', GC clamp' : ''}
             </p>
+            {report.degenerate > 0 && (
+              <p className="panel__note panel__note--quiet">
+                Degenerate: {report.degenerate} {report.degenerate === 1 ? 'position' : 'positions'}
+                , a mix of {report.molecules.toLocaleString()} molecules. Tm and GC are ranges over
+                the mix; hairpins and dimers are counted on the plain bases. A code binds wherever
+                it stands for the template&rsquo;s base.
+              </p>
+            )}
             {report.warnings.length > 0 && (
               <ul className="panel__warnings">
                 {report.warnings.map((w) => (

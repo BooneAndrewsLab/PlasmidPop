@@ -1,6 +1,8 @@
 import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
 import { reverseComplement } from '../sequence';
+import { IUPAC_SETS } from '../analysis/codons';
+import { cleanPrimer, pairsWithCode } from './anneal';
 import { DEFAULT_PRIMER_CRITERIA, type PrimerCriteria } from './criteria';
 import {
   gcFraction,
@@ -24,7 +26,36 @@ export interface PrimerReport {
   readonly threePrimeSelf: number;
   /** Ends in G or C (a "GC clamp"). */
   readonly gcClamp: boolean;
+  /**
+   * Ambiguity codes in the primer (#76). A degenerate primer is a mix of
+   * molecules, so its Tm and GC content are ranges over the mix; `tm` is NaN
+   * for one and `gc` counts only the bases every molecule shares.
+   */
+  readonly degenerate: number;
+  /** How many molecules the mix holds; 1 for a plain primer. */
+  readonly molecules: number;
+  /**
+   * Lowest and highest Tm over the mix, or null for a plain primer and for
+   * one too degenerate to list (more than `MAX_MOLECULES` molecules).
+   */
+  readonly tmRange: { readonly min: number; readonly max: number } | null;
+  /** Lowest and highest GC fraction over the mix; both `gc` for a plain primer. */
+  readonly gcRange: { readonly min: number; readonly max: number };
   readonly warnings: readonly string[];
+}
+
+/** Molecules of a degenerate primer listed for its Tm range; 4,096 is N⁶. */
+export const MAX_MOLECULES = 4096;
+
+/** Every molecule a degenerate primer stands for, or null past `limit`. */
+function molecules(seq: string, limit: number): string[] | null {
+  let out = [''];
+  for (const code of seq) {
+    const bases = IUPAC_SETS[code] ?? [code];
+    if (out.length * bases.length > limit) return null;
+    out = out.flatMap((prefix) => bases.map((b) => prefix + b));
+  }
+  return out;
 }
 
 function pct(x: number): string {
@@ -41,22 +72,60 @@ export function analyzePrimer(
   criteria: PrimerCriteria = DEFAULT_PRIMER_CRITERIA,
 ): PrimerReport {
   const c = criteria;
-  const seq = sequence.toUpperCase().replace(/[^ACGTU]/g, '');
-  const tm = meltingTemperature(seq);
+  // Codes kept in place (#76): dropping one would measure an oligo nobody
+  // ordered, its neighbours joined up.
+  const seq = cleanPrimer(sequence);
+  const degenerate = Array.from(seq).filter((b) => !'ACGT'.includes(b)).length;
+  const count = Array.from(seq).reduce((n, b) => n * (IUPAC_SETS[b]?.length ?? 1), 1);
+  const mix = degenerate === 0 ? null : molecules(seq, MAX_MOLECULES);
+  const tms = mix?.map((m) => meltingTemperature(m)) ?? [];
+  const tmRange = mix === null ? null : { min: Math.min(...tms), max: Math.max(...tms) };
+  const tm = degenerate === 0 ? meltingTemperature(seq) : NaN;
   const gc = gcFraction(seq);
+  // Exact without listing the mix: each position holds a G or C in the
+  // fewest molecules when none of its bases is one, in the most when any is.
+  const gcRange =
+    seq.length === 0
+      ? { min: 0, max: 0 }
+      : {
+          min:
+            Array.from(seq).filter((b) =>
+              (IUPAC_SETS[b] ?? []).every((x) => x === 'G' || x === 'C'),
+            ).length / seq.length,
+          max:
+            Array.from(seq).filter((b) => (IUPAC_SETS[b] ?? []).some((x) => x === 'G' || x === 'C'))
+              .length / seq.length,
+        };
   const homopolymer = longestHomopolymer(seq);
   const selfComplementarity = maxSelfComplementarity(seq);
   const hairpin = longestHairpinStem(seq);
   const threePrimeSelf = threePrimeComplementarity(seq, seq);
   const last = seq.charAt(seq.length - 1);
-  const gcClamp = last === 'G' || last === 'C';
+  // S is G or C, so a clamp whichever molecule of the mix it is.
+  const gcClamp = last === 'G' || last === 'C' || last === 'S';
   const warnings: string[] = [];
   if (seq.length < c.minLength) warnings.push(`Shorter than ${c.minLength} bases`);
   if (seq.length > c.maxLength) warnings.push(`Longer than ${c.maxLength} bases`);
-  if (!Number.isNaN(tm) && tm < c.minTm) warnings.push(`Tm below ${c.minTm} °C`);
-  if (tm > c.maxTm) warnings.push(`Tm above ${c.maxTm} °C`);
-  if (gc < c.minGc) warnings.push(`GC content below ${pct(c.minGc)}`);
-  if (gc > c.maxGc) warnings.push(`GC content above ${pct(c.maxGc)}`);
+  // A mix is out of bounds when all of it is, and worth a word when part is.
+  const tmLow = degenerate === 0 ? tm : (tmRange?.min ?? NaN);
+  const tmHigh = degenerate === 0 ? tm : (tmRange?.max ?? NaN);
+  if (degenerate > 0 && tmRange === null) {
+    warnings.push(`Too degenerate to give a Tm: ${count.toLocaleString()} molecules`);
+  }
+  if (!Number.isNaN(tmHigh) && tmHigh < c.minTm) warnings.push(`Tm below ${c.minTm} °C`);
+  else if (!Number.isNaN(tmLow) && tmLow < c.minTm) {
+    warnings.push(`Part of the mix has a Tm below ${c.minTm} °C`);
+  }
+  if (tmLow > c.maxTm) warnings.push(`Tm above ${c.maxTm} °C`);
+  else if (tmHigh > c.maxTm) warnings.push(`Part of the mix has a Tm above ${c.maxTm} °C`);
+  if (gcRange.max < c.minGc) warnings.push(`GC content below ${pct(c.minGc)}`);
+  else if (gcRange.min < c.minGc) {
+    warnings.push(`Part of the mix has GC content below ${pct(c.minGc)}`);
+  }
+  if (gcRange.min > c.maxGc) warnings.push(`GC content above ${pct(c.maxGc)}`);
+  else if (gcRange.max > c.maxGc) {
+    warnings.push(`Part of the mix has GC content above ${pct(c.maxGc)}`);
+  }
   if (homopolymer > c.maxHomopolymer) warnings.push(`Run of ${homopolymer} identical bases`);
   if (hairpin > c.maxHairpin) warnings.push(`Hairpin with a ${hairpin} bp stem`);
   if (selfComplementarity > c.maxSelfComplementarity) {
@@ -76,6 +145,10 @@ export function analyzePrimer(
     hairpin,
     threePrimeSelf,
     gcClamp,
+    degenerate,
+    molecules: count,
+    tmRange,
+    gcRange,
     warnings,
   };
 }
@@ -301,7 +374,8 @@ export function findPrimerBindingSites(
 ): BindingSite[] {
   const maxMismatches = options.maxMismatches ?? 2;
   const anchor = options.exactThreePrime ?? 5;
-  const p = primer.toUpperCase().replace(/[^ACGT]/g, '');
+  // Codes kept in place, and paired as PCR pairs them (#76).
+  const p = cleanPrimer(primer);
   const L = sequence.length;
   const n = p.length;
   if (n === 0 || L === 0 || n > L) return [];
@@ -314,7 +388,9 @@ export function findPrimerBindingSites(
       let mismatches = 0;
       let ok = true;
       for (let i = 0; i < n; i++) {
-        if (scan.charCodeAt(s + i) === probe.charCodeAt(i)) continue;
+        if (scan.charCodeAt(s + i) === probe.charCodeAt(i) && 'ACGT'.includes(probe.charAt(i)))
+          continue;
+        if (pairsWithCode(scan.charAt(s + i), probe.charAt(i))) continue;
         // For a forward primer the 3' end is the right end of the probe; for a
         // reverse primer (probe = its reverse complement) it is the left end.
         const fromThreePrime = strand === 'forward' ? n - 1 - i : i;

@@ -125,3 +125,12 @@ answers.
   anneals there. `primerDimers` keeps the codes in place for the same reason.
   The Primers tab's own binding-site search (`findPrimerBindingSites`) still
   reads plain bases only.
+- **The Primers tab's check, the same way, 2026-09-24** (#76). A pasted
+  primer's report and its binding sites stripped the codes too, so the tab
+  and PCR disagreed about the same oligo. `findPrimerBindingSites` now pairs
+  a code as `findAnnealingSites` does. `analyzePrimer` keeps the codes and,
+  since a mix has no single Tm, gives `tmRange` by listing its molecules (up
+  to 4,096, six Ns; past that none, with a warning) and `gcRange` exactly
+  without listing. A bound is broken when the whole range is outside it and
+  **Part of the mix** is said when only some is; hairpin and dimer counts
+  stay on the plain bases, where a code pairs with nothing.

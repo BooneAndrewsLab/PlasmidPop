@@ -10,7 +10,7 @@ import { meltingTemperature } from './thermo';
  * degenerate primer's R pairs with an A or a G, and N with anything. A
  * template N pairs only with a primer N, since which base it is is unknown.
  */
-function pairs(template: string, primer: string): boolean {
+export function pairsWithCode(template: string, primer: string): boolean {
   const t = codeMask(template);
   return t !== 0 && (t & ~codeMask(primer)) === 0;
 }
@@ -114,7 +114,7 @@ function annealRun(
     // Off the end of a linear template: the primer hangs over the tip, and
     // what it has matched so far is all there is.
     if (base === '') break;
-    if (pairs(base, probe.charAt(i))) {
+    if (pairsWithCode(base, probe.charAt(i))) {
       best = i + 1;
       bestMismatches = mismatches;
       continue;
@@ -170,7 +170,7 @@ export function findAnnealingSites(
         strand === 'forward'
           ? baseAt(range.start + offset)
           : reverseComplement(baseAt(range.end - 1 - offset));
-      out += /[ACGT]/.test(code) || !pairs(base, code) ? code : base;
+      out += /[ACGT]/.test(code) || !pairsWithCode(base, code) ? code : base;
     }
     return out;
   };

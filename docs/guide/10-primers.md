@@ -86,6 +86,16 @@ views at once, so off-target binding is visible at a glance. Each site also
 shows its strand, position and mismatch count in the list; click one to
 select it, or **Add sites as primer_bind** to annotate them all.
 
+A **degenerate primer** — one with ambiguity codes, such as `NNK` for a codon
+library — is a mix of molecules, and the check says so: how many positions
+are degenerate and how many molecules the mix holds. Tm and GC content are
+given as the range over the mix (`Tm 58.2–63.9 °C`). A setting is broken when
+all of the mix breaks it, and **Part of the mix** says when only some does.
+Past 4,096 molecules (six `N`s) the Tm is not given. A code binds wherever it
+stands for the template's base, so a degenerate primer's sites are the ones
+some molecule of the mix binds at, as in PCR. Hairpins and dimers are counted
+on the plain bases.
+
 Use this to check a primer from a paper or an old order against the plasmid
 you have, and to spot off-target binding.
 

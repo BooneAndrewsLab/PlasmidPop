@@ -150,3 +150,46 @@ describe('primer settings', () => {
     expect(editorStore.getState().primerCriteria).toEqual(DEFAULT_PRIMER_CRITERIA);
   });
 });
+
+describe('checking a degenerate primer (#76)', () => {
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+    });
+  });
+
+  it('shows ranges over the mix, and finds the site a code stands for', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+    });
+    render(<PrimerPanel doc={doc} />);
+    const site = template().slice(100, 122);
+    // An N where the template has whatever base, and an R/Y that covers it.
+    const b = site.charAt(12);
+    const code = { A: 'R', G: 'R', C: 'Y', T: 'Y' }[b] ?? 'N';
+    const primer = `${site.slice(0, 5)}N${site.slice(6, 12)}${code}${site.slice(13)}`;
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Primer sequence'), { target: { value: primer } });
+    });
+    const summary = screen.getByText(/22 nt, Tm/);
+    expect(summary.textContent).toMatch(/Tm \d+\.\d–\d+\.\d °C, GC \d+%–\d+%/);
+    expect(screen.getByText(/Degenerate: 2 positions, a mix of 8 molecules/)).toBeInTheDocument();
+    expect(screen.getByText('1 binding site:')).toBeInTheDocument();
+    expect(screen.getByText('101–122')).toBeInTheDocument();
+    expect(screen.getByText('exact')).toBeInTheDocument();
+  });
+
+  it('shows a plain primer as before', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+    });
+    render(<PrimerPanel doc={doc} />);
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Primer sequence'), {
+        target: { value: template().slice(100, 122) },
+      });
+    });
+    expect(screen.getByText(/22 nt, Tm/).textContent).toMatch(/Tm \d+\.\d °C, GC \d+%/);
+    expect(screen.queryByText(/Degenerate:/)).toBeNull();
+  });
+});
