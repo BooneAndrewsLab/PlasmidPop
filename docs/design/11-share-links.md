@@ -62,3 +62,12 @@ URL fragment**.
   (a selection, or a document without its references, would make a much
   shorter one), and a link is GenBank only, so SnapGene-specific
   material a `.dna` import dropped is not in it either.
+- **Decided 2026-09-24 (#40):** the limit stays at 32,000 characters. It
+  sits well above a typical plasmid (pBR322 with its features is 10.8 k)
+  and far below what browsers accept, so the question is what the apps a
+  link is pasted into do with it; #41 measures that, and if some mangle
+  shorter links the share notice gets a warning tier from those numbers,
+  not from a guess. A document opened from a link stays the reader's own,
+  as above: the sender's file is not the reader's, so there is nothing to
+  fork a working copy from or compare the edit marks against, and the
+  `derived-from` line already says where it came from.
