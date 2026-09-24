@@ -42,6 +42,30 @@ describe('view shortcuts', () => {
     expect(editorStore.getState().sidebarOpen).toBe(true);
   });
 
+  it('works with the keyboard in the sequence view, and not in a text field', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    // Alt types no base, so the view the work is done in is where the Alt
+    // bindings have to work. Until 1.5 they stood down there.
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), {
+      code: 'KeyC',
+      altKey: true,
+    });
+    expect(editorStore.getState().showComplement).toBe(false);
+    // A field takes its keys: Alt there can type a character.
+    act(() => {
+      editorStore.setFindOpen(true);
+    });
+    fireEvent.keyDown(screen.getByLabelText('Find'), {
+      code: 'KeyC',
+      altKey: true,
+    });
+    expect(editorStore.getState().showComplement).toBe(false);
+    act(() => {
+      editorStore.setFindOpen(false);
+    });
+  });
+
   it('turns the edit marks off and brings back the baseline that was chosen', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

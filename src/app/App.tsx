@@ -23,14 +23,17 @@ import { useMediaQuery } from './components/useMediaQuery';
 import { openFile } from './openFile';
 import {
   DEFAULT_LAYOUT,
+  MIN_EDITOR_HEIGHT_PX,
   MIN_EDITOR_PX,
   MIN_MAP_PX,
   MIN_SEQUENCE_HEIGHT_PX,
   MIN_SEQUENCE_PX,
+  MIN_SIDEBAR_HEIGHT_PX,
   MIN_SIDEBAR_PX,
   PHONE_QUERY,
   SIDEBAR_STACKED_QUERY,
   VIEWS_STACKED_QUERY,
+  clampSidebarHeight,
   clampSidebarWidth,
 } from './state/layout';
 import { editorStore } from './state/editorStore';
@@ -121,7 +124,12 @@ export function App() {
           className="app__main"
           style={
             stackedSidebar
-              ? undefined
+              ? {
+                  // Under the editor, the sidebar is a row of its own height (#36).
+                  gridTemplateRows: sidebarOpen
+                    ? `minmax(0, 1fr) ${SPLITTER_SIZE}px ${layout.sidebarHeightStacked}px`
+                    : 'minmax(0, 1fr) auto',
+                }
               : {
                   // Collapsed, the sidebar is its tab rail alone and there is
                   // nothing to drag, so the splitter's track goes with it.
@@ -177,6 +185,10 @@ export function App() {
                         : { viewsSplit: DEFAULT_LAYOUT.viewsSplit },
                     );
                   }}
+                  // Pushed past a pane's floor, the other view is shown alone.
+                  onCollapse={(pane) => {
+                    editorStore.setView(pane === 'before' ? 'sequence' : 'map');
+                  }}
                 />
               )}
               {view !== 'map' && <LinearSequenceView doc={doc} />}
@@ -197,6 +209,34 @@ export function App() {
               }}
               onReset={() => {
                 editorStore.setLayout({ sidebarWidth: DEFAULT_LAYOUT.sidebarWidth });
+              }}
+              onCollapse={(pane) => {
+                if (pane === 'after') editorStore.setSidebarOpen(false);
+              }}
+            />
+          )}
+          {sidebarOpen && stackedSidebar && (
+            <Splitter
+              axis="y"
+              label="Resize the sidebar"
+              minBefore={MIN_EDITOR_HEIGHT_PX}
+              minAfter={MIN_SIDEBAR_HEIGHT_PX}
+              value={layout.sidebarHeightStacked}
+              min={MIN_SIDEBAR_HEIGHT_PX}
+              max={900}
+              valueText={`The sidebar is ${layout.sidebarHeightStacked} pixels tall`}
+              onMove={(before, extent) => {
+                editorStore.setLayout({
+                  sidebarHeightStacked: clampSidebarHeight(extent - before),
+                });
+              }}
+              onReset={() => {
+                editorStore.setLayout({
+                  sidebarHeightStacked: DEFAULT_LAYOUT.sidebarHeightStacked,
+                });
+              }}
+              onCollapse={(pane) => {
+                if (pane === 'after') editorStore.setSidebarOpen(false);
               }}
             />
           )}

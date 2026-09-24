@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { isAltKey, isTextTarget } from '../keys';
+import { isAltBlocked, isAltKey } from '../keys';
 import { editorStore } from '../state/editorStore';
 
 /**
@@ -18,7 +18,7 @@ export function useAltKey(code: string, action: (() => void) | null): void {
   useEffect(() => {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent): void => {
-      if (!isAltKey(e, code) || isTextTarget(e.target)) return;
+      if (!isAltKey(e, code) || isAltBlocked(e.target)) return;
       const { saveReview, comparison } = editorStore.getState();
       if (saveReview !== null || comparison !== null) return;
       e.preventDefault();

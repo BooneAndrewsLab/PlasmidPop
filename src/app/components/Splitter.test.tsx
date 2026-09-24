@@ -14,9 +14,15 @@ interface Move {
 
 function setup(
   axis: 'x' | 'y' = 'x',
-  props: Partial<{ minBefore: number; minAfter: number }> = {},
-): { handle: HTMLElement; moves: Move[]; resets: () => number } {
+  props: Partial<{ minBefore: number; minAfter: number; collapsible: boolean }> = {},
+): {
+  handle: HTMLElement;
+  moves: Move[];
+  resets: () => number;
+  collapsed: ('before' | 'after')[];
+} {
   const moves: Move[] = [];
+  const collapsed: ('before' | 'after')[] = [];
   let resetCount = 0;
   const view = render(
     <Splitter
@@ -32,6 +38,13 @@ function setup(
       onReset={() => {
         resetCount += 1;
       }}
+      {...(props.collapsible === true
+        ? {
+            onCollapse: (pane: 'before' | 'after') => {
+              collapsed.push(pane);
+            },
+          }
+        : {})}
     />,
   );
   const handle = view.container.querySelector('[role="separator"]');
@@ -49,13 +62,58 @@ function setup(
   el.setPointerCapture = () => undefined;
   el.releasePointerCapture = () => undefined;
   el.hasPointerCapture = () => true;
-  return { handle: el, moves, resets: () => resetCount };
+  return { handle: el, moves, resets: () => resetCount, collapsed };
 }
 
 /** The room the two panes share: everything but the handle. */
 const EXTENT = CONTAINER - SPLITTER_SIZE;
 
 describe('Splitter', () => {
+  it('collapses a pane dragged more than half past its floor, when the caller allows', () => {
+    const walled = setup('x');
+    fireEvent.pointerDown(walled.handle, {
+      clientX: HANDLE_AT,
+      clientY: 10,
+      button: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(walled.handle, { clientX: 20, clientY: 10, pointerId: 1 });
+    // Without onCollapse the floor is a wall.
+    expect(walled.moves).toEqual([{ before: 200, extent: EXTENT }]);
+
+    const { handle, moves, collapsed } = setup('x', { collapsible: true });
+    fireEvent.pointerDown(handle, { clientX: HANDLE_AT, clientY: 10, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 150, clientY: 10, pointerId: 1 }); // past the floor, not half
+    expect(collapsed).toEqual([]);
+    fireEvent.pointerMove(handle, { clientX: 90, clientY: 10, pointerId: 1 });
+    expect(collapsed).toEqual(['before']);
+    // The grab ends with it: nothing more follows the pointer.
+    fireEvent.pointerMove(handle, { clientX: 500, clientY: 10, pointerId: 1 });
+    expect(moves).toEqual([{ before: 200, extent: EXTENT }]);
+  });
+
+  it('collapses the other pane past its floor too, by pointer or by an arrow at the floor', () => {
+    const drag = setup('x', { collapsible: true });
+    fireEvent.pointerDown(drag.handle, {
+      clientX: HANDLE_AT,
+      clientY: 10,
+      button: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(drag.handle, { clientX: EXTENT - 100, clientY: 10, pointerId: 1 });
+    expect(drag.collapsed).toEqual(['after']);
+
+    // The handle is at 400: with a 400 px floor before it, it is at that floor.
+    const atFloor = setup('x', { collapsible: true, minBefore: HANDLE_AT });
+    fireEvent.keyDown(atFloor.handle, { key: 'ArrowRight' });
+    expect(atFloor.collapsed).toEqual([]);
+    fireEvent.keyDown(atFloor.handle, { key: 'ArrowLeft' });
+    expect(atFloor.collapsed).toEqual(['before']);
+    const atCeiling = setup('x', { collapsible: true, minAfter: EXTENT - HANDLE_AT });
+    fireEvent.keyDown(atCeiling.handle, { key: 'ArrowRight' });
+    expect(atCeiling.collapsed).toEqual(['after']);
+  });
+
   it('describes itself as a separator on the axis it divides', () => {
     const { handle } = setup('x');
     expect(handle.getAttribute('aria-orientation')).toBe('vertical');

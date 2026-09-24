@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 import { type Shortcut, analytics } from '../analytics';
-import { isAltKey, isTextTarget } from '../keys';
+import { isAltBlocked, isAltKey } from '../keys';
+import { focusNextSplitter } from '../components/splitterFocus';
 import { copyShareLink } from '../share';
 import { FONT_SIZES } from '@/view/linear';
 
@@ -60,7 +61,7 @@ export function useViewShortcuts(): void {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (isTextTarget(e.target)) return;
+      if (isAltBlocked(e.target)) return;
       const state = editorStore.getState();
       // A modal has the user's attention; its own Escape is the way out.
       if (state.saveReview !== null || state.comparison !== null) return;
@@ -153,6 +154,16 @@ export function useViewShortcuts(): void {
         e.preventDefault();
         analytics.shortcut('alt+digit');
         editorStore.showBench('key');
+        return;
+      }
+
+      // Alt+B: the keyboard to the next boundary between panes, where the
+      // arrow keys move it; Escape gives it back (#36).
+      if (isAltKey(e, 'KeyB')) {
+        if (focusNextSplitter()) {
+          e.preventDefault();
+          analytics.shortcut('alt+b');
+        }
         return;
       }
 

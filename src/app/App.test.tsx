@@ -10,7 +10,12 @@ import { shareUrlFor } from './share';
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
 import { DEFAULT_BENCH } from './state/benchSettings';
 import { editorStore } from './state/editorStore';
-import { DEFAULT_LAYOUT, PHONE_QUERY } from './state/layout';
+import {
+  DEFAULT_LAYOUT,
+  PHONE_QUERY,
+  SIDEBAR_STACKED_QUERY,
+  VIEWS_STACKED_QUERY,
+} from './state/layout';
 import { App } from './App';
 
 // The store is a module singleton and autosave remembers the last document:
@@ -575,6 +580,32 @@ describe('toolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Format' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Reset the layout' }));
     expect(editorStore.getState()).toMatchObject({ sidebarOpen: true, layout: DEFAULT_LAYOUT });
+  });
+
+  it('takes the keyboard to a boundary with Alt+B and back with Escape, and collapses past a floor', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const views = screen.getByRole('separator', { name: 'Resize the map and the sequence' });
+    const sidebar = screen.getByRole('separator', { name: 'Resize the sidebar' });
+    const sequence = screen.getByRole('textbox', { name: 'Sequence' });
+    sequence.focus();
+    fireEvent.keyDown(sequence, { code: 'KeyB', altKey: true });
+    expect(views).toHaveFocus();
+    fireEvent.keyDown(views, { code: 'KeyB', altKey: true });
+    expect(sidebar).toHaveFocus();
+    fireEvent.keyDown(sidebar, { key: 'Escape' });
+    expect(sequence).toHaveFocus();
+    // With the sidebar at its floor (jsdom lays nothing out, so the boxes are
+    // stated), one more arrow toward it puts it away, as a drag past it would.
+    const container = sidebar.parentElement;
+    if (container === null) throw new Error('no container');
+    container.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 600);
+    sidebar.getBoundingClientRect = () => new DOMRect(1000 - 6 - 240, 0, 6, 600);
+    fireEvent.keyDown(sidebar, { key: 'ArrowRight' });
+    expect(editorStore.getState().sidebarOpen).toBe(false);
+    act(() => {
+      editorStore.setSidebarOpen(true);
+    });
   });
 
   it('collects the file actions in one menu once a document is open', () => {
@@ -1257,6 +1288,57 @@ describe('share links', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/damaged/);
     });
     expect(editorStore.getState().documents).toHaveLength(0);
+  });
+});
+
+describe('App on a narrow window', () => {
+  // Answer the queries of a window under 720 px that is not a phone.
+  const real = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+  beforeEach(() => {
+    const matchMedia = (query: string): MediaQueryList =>
+      ({
+        matches: query === SIDEBAR_STACKED_QUERY || query === VIEWS_STACKED_QUERY,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as MediaQueryList;
+    Object.defineProperty(window, 'matchMedia', {
+      value: matchMedia,
+      configurable: true,
+      writable: true,
+    });
+  });
+  afterEach(() => {
+    if (real === undefined) Reflect.deleteProperty(window, 'matchMedia');
+    else Object.defineProperty(window, 'matchMedia', real);
+  });
+
+  it('gives the sidebar under the editor a handle of its own, and remembers its height', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const handle = screen.getByRole('separator', { name: 'Resize the sidebar' });
+    expect(handle).toHaveAttribute('aria-orientation', 'horizontal');
+    const main = () => document.querySelector('.app__main')?.getAttribute('style') ?? '';
+    expect(main()).toContain(`${DEFAULT_LAYOUT.sidebarHeightStacked}px`);
+    act(() => {
+      editorStore.setLayout({ sidebarHeightStacked: 320 });
+    });
+    expect(main()).toContain('320px');
+    fireEvent.doubleClick(handle);
+    expect(editorStore.getState().layout.sidebarHeightStacked).toBe(
+      DEFAULT_LAYOUT.sidebarHeightStacked,
+    );
+    act(() => {
+      editorStore.setSidebarOpen(false);
+    });
+    expect(screen.queryByRole('separator', { name: 'Resize the sidebar' })).toBeNull();
+    act(() => {
+      editorStore.setSidebarOpen(true);
+    });
   });
 });
 

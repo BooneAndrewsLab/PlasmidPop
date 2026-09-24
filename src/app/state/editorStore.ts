@@ -1331,7 +1331,8 @@ export class EditorStore {
     if (
       next.viewsSplit === current.viewsSplit &&
       next.viewsSplitStacked === current.viewsSplitStacked &&
-      next.sidebarWidth === current.sidebarWidth
+      next.sidebarWidth === current.sidebarWidth &&
+      next.sidebarHeightStacked === current.sidebarHeightStacked
     ) {
       return;
     }

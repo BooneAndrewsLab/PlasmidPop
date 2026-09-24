@@ -15,6 +15,11 @@ export interface LayoutSizes {
   readonly viewsSplitStacked: number;
   /** The sidebar's width in px, tab rail included. */
   readonly sidebarWidth: number;
+  /**
+   * The sidebar's height in px on a window too narrow for it beside the
+   * editor, where it is a row under it (#36).
+   */
+  readonly sidebarHeightStacked: number;
 }
 
 /** The ratios the stylesheet had before the splitters: 2fr/3fr and 1fr/1.4fr. */
@@ -22,6 +27,7 @@ export const DEFAULT_LAYOUT: LayoutSizes = {
   viewsSplit: 2 / 5,
   viewsSplitStacked: 1 / 2.4,
   sidebarWidth: 330,
+  sidebarHeightStacked: 200,
 };
 
 /**
@@ -49,6 +55,9 @@ export const MIN_SEQUENCE_PX = 260;
 export const MIN_SEQUENCE_HEIGHT_PX = 160;
 export const MIN_SIDEBAR_PX = 240;
 export const MIN_EDITOR_PX = 360;
+/** Stacked, the sidebar keeps its tabs and a few lines of panel; the editor a toolbar and a view. */
+export const MIN_SIDEBAR_HEIGHT_PX = 120;
+export const MIN_EDITOR_HEIGHT_PX = 200;
 
 export function clampFraction(f: number): number {
   if (!Number.isFinite(f)) return DEFAULT_LAYOUT.viewsSplit;
@@ -60,6 +69,11 @@ export function clampSidebarWidth(px: number): number {
   return Math.min(900, Math.max(MIN_SIDEBAR_PX, Math.round(px)));
 }
 
+export function clampSidebarHeight(px: number): number {
+  if (!Number.isFinite(px)) return DEFAULT_LAYOUT.sidebarHeightStacked;
+  return Math.min(900, Math.max(MIN_SIDEBAR_HEIGHT_PX, Math.round(px)));
+}
+
 /** Sanity-checks a patch on its way into the store or out of storage. */
 export function clampLayout(patch: Partial<LayoutSizes>): Partial<LayoutSizes> {
   const next: { -readonly [K in keyof LayoutSizes]?: LayoutSizes[K] } = {};
@@ -68,5 +82,8 @@ export function clampLayout(patch: Partial<LayoutSizes>): Partial<LayoutSizes> {
     next.viewsSplitStacked = clampFraction(patch.viewsSplitStacked);
   }
   if (patch.sidebarWidth !== undefined) next.sidebarWidth = clampSidebarWidth(patch.sidebarWidth);
+  if (patch.sidebarHeightStacked !== undefined) {
+    next.sidebarHeightStacked = clampSidebarHeight(patch.sidebarHeightStacked);
+  }
   return next;
 }

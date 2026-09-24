@@ -16,17 +16,25 @@ written into a saved file.
 
 In the **Both** view the boundary between the map and the sequence can be
 dragged: take hold of the line between them and move it. The same handle sits
-on the sidebar's inner edge. Each pane has a floor it will not go below, so
-neither can be squeezed away to nothing.
+on the sidebar's inner edge. Each pane has a floor it will not be dragged
+below, so it is never squeezed to a sliver.
 
 - **Drag** the line to move it. **Double-click** it to put that one boundary
   back where it started.
-- With the handle focused (Tab to it), the **arrow keys** move it in small
-  steps, **Page Up** and **Page Down** in larger ones, and **Home** and
-  **End** take it to either floor.
+- **Drag on past the floor** to put the pane away: more than half of it
+  gone, and the map or the sequence leaves the other one showing alone (the
+  view switcher's **Sequence** or **Map**), and the sidebar folds to its tab
+  rail. The view switcher and the rail bring them back.
+- With the handle focused, the **arrow keys** move it in small steps, **Page
+  Up** and **Page Down** in larger ones, and **Home** and **End** take it to
+  either floor; one more arrow toward a pane at its floor puts it away.
+  `Alt+B` takes the keyboard to the next handle from wherever it is, and
+  `Escape` gives it back — no need to Tab through the toolbar to get there.
 - On a narrow window the map sits above the sequence instead of beside it.
   That layout keeps its own boundary: a division chosen for a wide window is
-  not imposed on the other one.
+  not imposed on the other one. On a window narrower still the sidebar moves
+  under the editor, and its top edge is a handle too; its height is kept
+  apart from its width beside the editor.
 - **Format ▸ Reset the layout** puts the map, the sequence and the sidebar
   back to the sizes they started at, and opens the sidebar if it is closed.
 

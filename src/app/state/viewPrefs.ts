@@ -144,7 +144,12 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (typeof layout === 'object' && layout !== null) {
     const l = layout as Record<string, unknown>;
     const numbers: { -readonly [K in keyof LayoutSizes]?: number } = {};
-    for (const key of ['viewsSplit', 'viewsSplitStacked', 'sidebarWidth'] as const) {
+    for (const key of [
+      'viewsSplit',
+      'viewsSplitStacked',
+      'sidebarWidth',
+      'sidebarHeightStacked',
+    ] as const) {
       if (typeof l[key] === 'number') numbers[key] = l[key];
     }
     prefs.layout = { ...DEFAULT_LAYOUT, ...clampLayout(numbers) };

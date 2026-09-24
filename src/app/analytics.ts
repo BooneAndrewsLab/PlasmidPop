@@ -121,6 +121,7 @@ export type Shortcut =
   | 'alt+l'
   | 'alt+digit'
   | 'alt+w'
+  | 'alt+b'
   | 'alt+v'
   | 'alt+bracket'
   | 'alt+size'

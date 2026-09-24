@@ -5,6 +5,8 @@ import {
   useState,
 } from 'react';
 
+import { returnFocus } from './splitterFocus';
+
 /** Thickness of the handle: the grid track the splitter takes between two panes. */
 export const SPLITTER_SIZE = 6;
 
@@ -27,6 +29,13 @@ export interface SplitterProps {
   readonly onMove: (before: number, extent: number) => void;
   /** Double-click: put the boundary back where it started. */
   readonly onReset: () => void;
+  /**
+   * Called when the boundary is pushed well past a pane's floor (#36): more
+   * than half of it dragged away, or an arrow key pressed toward a pane
+   * already at its floor. The caller puts that pane away; without this the
+   * floor is a wall.
+   */
+  readonly onCollapse?: (pane: 'before' | 'after') => void;
   /** Where the boundary is, for a screen reader; units are the caller's. */
   readonly value: number;
   readonly min: number;
@@ -79,6 +88,7 @@ export function Splitter({
   minAfter,
   onMove,
   onReset,
+  onCollapse,
   value,
   min,
   max,
@@ -94,6 +104,17 @@ export function Splitter({
    */
   const dragging = useRef(false);
   const [active, setActive] = useState(false);
+
+  /** Collapses the pane `before` would squeeze past half its floor, if the caller allows; whether it did. */
+  const collapse = (before: number, extent: number): boolean => {
+    if (onCollapse === undefined) return false;
+    const pane =
+      before < minBefore / 2 ? 'before' : extent - before < minAfter / 2 ? 'after' : null;
+    if (pane === null) return false;
+    endGrab();
+    onCollapse(pane);
+    return true;
+  };
 
   const emit = (before: number, extent: number): void => {
     // The upper bound is floored at minBefore so a container too small for
@@ -124,13 +145,19 @@ export function Splitter({
     if (el === null || !dragging.current) return;
     const m = measure(el, axis);
     if (m === null) return;
-    emit(pointerAt(e) - m.start - grab.current, m.extent);
+    const before = pointerAt(e) - m.start - grab.current;
+    if (!collapse(before, m.extent)) emit(before, m.extent);
+  };
+
+  /** Lets go, whether the pointer did or a collapse took the handle away. */
+  const endGrab = (): void => {
+    dragging.current = false;
+    setActive(false);
   };
 
   const endDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
     if (!dragging.current) return;
-    dragging.current = false;
-    setActive(false);
+    endGrab();
     const el = ref.current;
     if (el?.hasPointerCapture(e.pointerId) === true) el.releasePointerCapture(e.pointerId);
   };
@@ -138,6 +165,12 @@ export function Splitter({
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     const el = ref.current;
     if (el === null) return;
+    if (e.key === 'Escape') {
+      // Back to where Alt+B came from, if it did.
+      e.preventDefault();
+      returnFocus(el);
+      return;
+    }
     const back = axis === 'x' ? 'ArrowLeft' : 'ArrowUp';
     const forward = axis === 'x' ? 'ArrowRight' : 'ArrowDown';
     let delta: number | null = null;
@@ -149,8 +182,15 @@ export function Splitter({
     const m = measure(el, axis);
     if (m === null) return;
     e.preventDefault();
-    if (delta === null) emit(e.key === 'Home' ? 0 : m.extent, m.extent);
-    else emit(m.before + delta, m.extent);
+    if (delta === null) {
+      emit(e.key === 'Home' ? 0 : m.extent, m.extent);
+      return;
+    }
+    // An arrow toward a pane already at its floor puts that pane away.
+    const ceiling = Math.max(minBefore, m.extent - minAfter);
+    if (delta < 0 && m.before <= minBefore + 0.5 && collapse(0, m.extent)) return;
+    if (delta > 0 && m.before >= ceiling - 0.5 && collapse(m.extent, m.extent)) return;
+    emit(m.before + delta, m.extent);
   };
 
   return (

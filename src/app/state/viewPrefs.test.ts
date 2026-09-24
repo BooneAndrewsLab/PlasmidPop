@@ -77,7 +77,12 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       editsBaseline: 'saved',
-      layout: { viewsSplit: 0.5, viewsSplitStacked: 0.3, sidebarWidth: 420 },
+      layout: {
+        viewsSplit: 0.5,
+        viewsSplitStacked: 0.3,
+        sidebarWidth: 420,
+        sidebarHeightStacked: 260,
+      },
       sidebarOpen: false,
       enzymeCutFilter: 'twice',
       enzymeSupplier: 'N',
@@ -138,7 +143,12 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       editsBaseline: 'off',
-      layout: { viewsSplit: 0.62, viewsSplitStacked: 0.5, sidebarWidth: 420 },
+      layout: {
+        viewsSplit: 0.62,
+        viewsSplitStacked: 0.5,
+        sidebarWidth: 420,
+        sidebarHeightStacked: 200,
+      },
       sidebarOpen: false,
       enzymeCutFilter: 'once-or-twice',
       enzymeSupplier: 'N',
@@ -163,7 +173,12 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       editsBaseline: 'off',
-      layout: { viewsSplit: 0.62, viewsSplitStacked: 0.5, sidebarWidth: 420 },
+      layout: {
+        viewsSplit: 0.62,
+        viewsSplitStacked: 0.5,
+        sidebarWidth: 420,
+        sidebarHeightStacked: 200,
+      },
       sidebarOpen: false,
       enzymeCutFilter: 'once-or-twice',
       enzymeSupplier: 'N',
@@ -283,13 +298,21 @@ describe('view preferences', () => {
     // A hand-edited or damaged entry must not be able to collapse a pane.
     localStorage.setItem(
       KEY,
-      JSON.stringify({ layout: { viewsSplit: 4, sidebarWidth: 10, viewsSplitStacked: 'wide' } }),
+      JSON.stringify({
+        layout: {
+          viewsSplit: 4,
+          sidebarWidth: 10,
+          viewsSplitStacked: 'wide',
+          sidebarHeightStacked: 5000,
+        },
+      }),
     );
     expect(loadViewPrefs()).toEqual({
       layout: {
         viewsSplit: 0.95,
         viewsSplitStacked: DEFAULT_LAYOUT.viewsSplitStacked,
         sidebarWidth: 240,
+        sidebarHeightStacked: 900,
       },
     });
   });

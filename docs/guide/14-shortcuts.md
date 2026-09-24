@@ -83,15 +83,16 @@ left for the view.
 
 ## Panes
 
-With a boundary between two panes focused (Tab to it; see
-[Viewing](03-viewing.md#sizing-the-panes)):
+`Alt+B` takes the keyboard to the next boundary between two panes (see
+[Viewing](03-viewing.md#sizing-the-panes)); there:
 
-| Input                     | Action                              |
-| ------------------------- | ----------------------------------- |
-| `← →` or `↑ ↓`            | Move the boundary a little          |
-| `Page Up`, `Page Down`    | Move it further                     |
-| `Home`, `End`             | Take it to either pane's floor      |
-| Double-click the boundary | Put that boundary back where it was |
+| Input                     | Action                                              |
+| ------------------------- | --------------------------------------------------- |
+| `← →` or `↑ ↓`            | Move the boundary a little; past a floor, fold away |
+| `Page Up`, `Page Down`    | Move it further                                     |
+| `Home`, `End`             | Take it to either pane's floor                      |
+| `Escape`                  | Back to where the keyboard was before `Alt+B`       |
+| Double-click the boundary | Put that boundary back where it was                 |
 
 ## Help
 
