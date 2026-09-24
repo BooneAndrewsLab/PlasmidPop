@@ -62,3 +62,13 @@ named in the History and data a CRDT can carry.
 - The blunted end forgets its enzyme. "EcoRI blunt" would read as an end
   EcoRI made, which it is not, and the filled-in bases are in the sequence
   to say where it came from.
+
+Changed 2026-09-24 (#72): **a line of ours is ours only if it can be read.**
+The reader took a readable line out of the comments and left a damaged one,
+but the writer skipped every line with our prefix, so the damaged one
+vanished on the next save; with a readable line beside it, the reader
+dropped the damaged one too. `isOwnComment` (`ownComments.ts`) now decides
+for both, by parsing: a line that parses is regenerated from the document,
+one that does not is an ordinary comment both ways. FASTA's header tags
+follow the same rule, which reverses the earlier choice to drop a damaged
+ends tag: it is not read half-way, and it is no longer lost either.

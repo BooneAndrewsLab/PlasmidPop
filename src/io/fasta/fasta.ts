@@ -61,7 +61,8 @@ export function parseFasta(text: string): ParseResult {
     let description = space < 0 ? '' : body.slice(space).trim();
     const tag = ENDS_TAG.exec(description);
     const ends = tag?.[1] === undefined ? null : parseEndsComment(tag[1]);
-    if (tag !== null) description = description.replace(ENDS_TAG, '').trim();
+    // Only a tag that was understood leaves the description (#72).
+    if (ends !== null) description = description.replace(ENDS_TAG, '').trim();
     const host = METHYLATION_TAG.exec(description);
     const methylation = host?.[1] === undefined ? null : parseMethylationComment(host[1]);
     // Only a tag that was understood leaves the description, as for the ends.
@@ -101,7 +102,7 @@ export function parseFasta(text: string): ParseResult {
 
 export function writeFasta(doc: SeqDocument): string {
   const description = doc.metadata.description
-    .replace(ENDS_TAG, '')
+    .replace(ENDS_TAG, (tag: string, body: string) => (parseEndsComment(body) === null ? tag : ''))
     // Ours is written afresh below; a tag that cannot be read stays, as the
     // user's own text.
     .replace(METHYLATION_TAG, (tag: string, body: string) =>

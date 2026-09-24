@@ -176,7 +176,7 @@ describe('methylation in a GenBank file', () => {
     }
   });
 
-  it('leaves a line it cannot read in the comments', () => {
+  it('keeps a line it cannot read as an ordinary comment, through a save (#72)', () => {
     const text = writeGenBank(
       SeqDocument.create({
         name: 'p',
@@ -184,18 +184,16 @@ describe('methylation in a GenBank file', () => {
         metadata: { comments: ['PlasmidPop-methylation: garbage'] },
       }),
     );
-    // The writer drops a line of ours it did not make: nothing of it is written.
-    expect(text).not.toContain('PlasmidPop-methylation');
-    const handWritten = text.replace(
-      'FEATURES',
-      'COMMENT     PlasmidPop-methylation: garbage\nFEATURES',
-    );
-    const back = readBack(handWritten);
+    // Not understood, so not ours to rewrite: it is written as it was.
+    expect(text).toContain('PlasmidPop-methylation: garbage');
+    const back = readBack(text);
     expect(back.methylation).toEqual(METHYLATED_HOST);
     expect(back.metadata.comments).toEqual(['PlasmidPop-methylation: garbage']);
+    // And a second save keeps it, once.
+    expect(writeGenBank(back)).toBe(text);
   });
 
-  it('takes the first readable line when there are two, and keeps no copy of either', () => {
+  it('takes the first readable line when there are two, and keeps no copy of a readable one', () => {
     const base = writeGenBank(SeqDocument.create({ name: 'p', sequence: 'ACGT' }));
     const withLines = (...lines: string[]) =>
       base.replace('FEATURES', `${lines.map((l) => `COMMENT     ${l}`).join('\n')}\nFEATURES`);
@@ -204,13 +202,13 @@ describe('methylation in a GenBank file', () => {
     );
     expect(two.methylation).toEqual({ dam: false, dcm: false });
     expect(two.metadata.comments).toEqual([]);
-    // A damaged line before a good one: the good one says, and (as for
-    // sticky ends) every line of ours then leaves the comments.
+    // A damaged line before a good one: the good one says, and only it
+    // leaves the comments; the damaged one stays for the user to see (#72).
     const damaged = readBack(
       withLines('PlasmidPop-methylation: garbage', 'PlasmidPop-methylation: dcm-'),
     );
     expect(damaged.methylation).toEqual({ dam: true, dcm: false });
-    expect(damaged.metadata.comments).toEqual([]);
+    expect(damaged.metadata.comments).toEqual(['PlasmidPop-methylation: garbage']);
   });
 
   it('round-trips random documents after random edits, as a fixed point', () => {

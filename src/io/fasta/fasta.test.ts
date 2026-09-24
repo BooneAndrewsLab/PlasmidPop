@@ -76,10 +76,13 @@ describe('FASTA', () => {
     // Written again, the tag is there once.
     if (back === undefined) throw new Error('no document');
     expect(writeFasta(back)).toBe(text);
-    // A damaged tag is dropped rather than read half-way.
+    // A damaged tag is not read half-way, and is not lost either: it stays in
+    // the description, and a save keeps it (#72).
     const damaged = parseFasta('>x [PlasmidPop-ends: left=7 AA]\nACGT\n').documents[0];
     expect(damaged?.ends).toBeNull();
-    expect(damaged?.metadata.description).toBe('');
+    expect(damaged?.metadata.description).toBe('[PlasmidPop-ends: left=7 AA]');
+    if (damaged === undefined) throw new Error('no document');
+    expect(writeFasta(damaged)).toContain('[PlasmidPop-ends: left=7 AA]');
   });
 
   it('formats a single record of any alphabet', () => {

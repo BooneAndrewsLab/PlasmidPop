@@ -15,9 +15,10 @@ import {
 } from '@/core';
 
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
-import { isDerivedComment, parseDerivedComment } from './derivedComment';
-import { isEndsComment, parseEndsComment } from './endsComment';
-import { isMethylationComment, parseMethylationComment } from './methylationComment';
+import { parseDerivedComment } from './derivedComment';
+import { parseEndsComment } from './endsComment';
+import { parseMethylationComment } from './methylationComment';
+import { isOwnComment } from './ownComments';
 
 /**
  * Qualifiers whose value names the feature, in priority order, by feature type.
@@ -502,12 +503,7 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   const metadata = {
     ...parsed,
     derivedFrom,
-    comments: parsed.comments.filter(
-      (c) =>
-        (ends === null || !isEndsComment(c)) &&
-        (derivedFrom === null || !isDerivedComment(c)) &&
-        (methylation === null || !isMethylationComment(c)),
-    ),
+    comments: parsed.comments.filter((c) => !isOwnComment(c)),
   };
   const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);
   return SeqDocument.create({

@@ -42,6 +42,10 @@ Where the DNA was grown travels the same way, as
 `dam+ dcm+` plasmid (see
 [Where the DNA was grown](07-enzymes.md#where-the-dna-was-grown)).
 
+A line of ours that cannot be read — edited by hand into something that no
+longer parses, say — is kept as an ordinary comment rather than dropped, in
+GenBank and in a FASTA header alike, so it is still there to fix.
+
 **ApE** files are GenBank with extra colour qualifiers; those colours are
 used for the features.
 

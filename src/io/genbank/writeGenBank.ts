@@ -1,12 +1,9 @@
 import { type Feature, type Reference, type SeqDocument, formatLocation } from '@/core';
 
-import { formatDerivedComment, isDerivedComment } from './derivedComment';
-import { formatEndsComment, isEndsComment } from './endsComment';
-import {
-  formatMethylationComment,
-  isMethylationComment,
-  needsMethylationComment,
-} from './methylationComment';
+import { formatDerivedComment } from './derivedComment';
+import { formatEndsComment } from './endsComment';
+import { formatMethylationComment, needsMethylationComment } from './methylationComment';
+import { isOwnComment } from './ownComments';
 import { deriveFeatureName } from './parseGenBank';
 
 const LINE_WIDTH = 79;
@@ -144,8 +141,8 @@ function headerLines(doc: SeqDocument): string[] {
     out.push(...headerBlock('COMMENT', formatDerivedComment(m.derivedFrom), '', true));
   }
   for (const comment of m.comments) {
-    if (isEndsComment(comment) || isDerivedComment(comment) || isMethylationComment(comment))
-      continue;
+    // Ours, understood, is written afresh above; a damaged one stays (#72).
+    if (isOwnComment(comment)) continue;
     out.push(...headerBlock('COMMENT', comment, '', true));
   }
   for (const extra of m.extraHeaders)
