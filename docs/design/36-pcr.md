@@ -107,3 +107,10 @@ answers.
   FLAG tag passed by luck. Such a pair copies the whole circle and the
   overlap again; `templateRange` is capped at the whole circle so it stays a
   valid range for the views.
+- **A Taq product's length includes its A, 2026-09-24** (#74). The panel
+  listed and drew a Taq product one base shorter than the document it opened
+  as and the fragment it shelved as. `PcrProduct.length` is now the
+  document's length, the top strand, which is how every fragment in the app
+  is counted (a digest fragment's length includes its 5′ overhang). The reach
+  is still measured on the duplex, so a 5,000 bp Taq amplicon is made and
+  listed as 5,001.

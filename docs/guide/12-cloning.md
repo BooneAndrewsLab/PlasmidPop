@@ -178,7 +178,9 @@ nearly the whole molecule.
 Pfu) leaves the product blunt and reaches 20 kb; **Taq** adds one A to each
 3′ end, which is what TA cloning joins by (a TA vector's single 3′ T
 overhangs pair with them on the shelf), and is taken to reach 5 kb. A pairing
-that would give a longer product is reported and not built.
+that would give a longer product is reported and not built. A Taq product's
+length counts its added A, as the length of any fragment counts the overhang
+its top strand carries: a 500 bp amplicon is listed, drawn and shelved as 501.
 
 **5′-phosphorylated primers**: oligos are made without a 5′ phosphate unless
 ordered with one, and a PCR product's 5′ ends are its primers'. So a

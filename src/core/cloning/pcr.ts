@@ -69,7 +69,11 @@ export interface PcrProduct {
    * product copies the overlap twice.
    */
   readonly templateRange: Range;
-  /** Length of the product, tails included. */
+  /**
+   * Length of the product, tails included, counted as the document counts
+   * it: its top strand, so a Taq product's added A is in it (#74), as a
+   * digest fragment's 5′ overhang is in its length.
+   */
   readonly length: number;
   /** Mismatches under the two primers, which are in the product. */
   readonly mismatches: number;
@@ -277,7 +281,7 @@ function amplify(
     forward: f,
     reverse: r,
     templateRange,
-    length: sequence.length,
+    length: document.length,
     mismatches: f.mismatches + r.mismatches,
   };
 }

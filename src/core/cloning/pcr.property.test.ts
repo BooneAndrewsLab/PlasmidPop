@@ -150,6 +150,11 @@ describe('Taq A-tailing, for random reactions', () => {
           right: { kind: "3'", overhang: 'A', enzyme: null },
         });
         expect(t.topology).toBe('linear');
+        // Listed as long as the document it opens as, A and all (#74): the
+        // list, the gel and the shelf all say one number.
+        expect(must(blunt.products[0], 'a blunt product').length).toBe(b.length);
+        expect(must(taq.products[0], 'a Taq product').length).toBe(t.length);
+        expect(t.length).toBe(b.length + 1);
         // Made in a tube: no methylase has seen either, whatever the template's host.
         expect(x.template.methylation).not.toEqual(UNMETHYLATED_HOST);
         expect(b.methylation).toEqual(UNMETHYLATED_HOST);
@@ -242,7 +247,9 @@ describe('inverse PCR with primers whose 5′ ends overlap', () => {
         );
         const product = must(result.products[0], `a product at overlap ${k}`);
         expect(result.products).toHaveLength(1);
-        expect(product.length).toBe(1200 + k);
+        // Counted as its document is: a Taq product's A is in it (#74).
+        expect(product.length).toBe(1200 + k + (polymerase === 'taq' ? 1 : 0));
+        expect(product.length).toBe(product.document.length);
         const expected = text.slice(700) + text.slice(0, 700 + k);
         expect(product.document.sequence.toString()).toBe(
           polymerase === 'taq' ? `${expected}A` : expected,
@@ -284,7 +291,8 @@ describe('polymerase reach', () => {
     const result = pcr(long, pair(span), { polymerase });
     const reach = POLYMERASE_REACH[polymerase];
     if (made) {
-      expect(result.products.map((p) => p.length)).toEqual([span]);
+      // The reach is of the duplex; a Taq product is listed with its A too.
+      expect(result.products.map((p) => p.length)).toEqual([span + (polymerase === 'taq' ? 1 : 0)]);
       expect(result.problem).toBeNull();
     } else {
       expect(result.products).toEqual([]);
@@ -312,7 +320,9 @@ describe('polymerase reach', () => {
           // template's doing.
           fc.pre(result.sites.length === 2);
           if (span <= max) {
-            expect(result.products.map((p) => p.length)).toEqual([span]);
+            expect(result.products.map((p) => p.length)).toEqual([
+              span + (polymerase === 'taq' ? 1 : 0),
+            ]);
             expect(result.tooLong).toBe(0);
           } else {
             expect(result.products).toEqual([]);
