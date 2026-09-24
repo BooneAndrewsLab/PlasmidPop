@@ -41,9 +41,12 @@ See [Files and storage](02-files.md).
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
 - **Sidebar** (right): tabs for Features, ORFs, Translate, Primers, Enzymes,
-  Cloning, Align and History, in a narrow rail down the right-hand edge with
-  the labels turned on their side. On a narrow window the rail becomes a row
-  of tabs above the panel.
+  Cloning, Align and History, in a narrow rail down the right-hand edge,
+  each an icon above its label turned on its side. On a narrow window the
+  rail becomes a row of tabs above the panel. From the keyboard the rail is
+  one Tab stop: the arrow keys move along it and open the tab they reach,
+  Home and End go to either end, and `Alt+[` / `Alt+]` do the same from
+  anywhere.
 - **Status bar** (bottom): what is selected, warnings raised while opening
   the file, and the file name.
 

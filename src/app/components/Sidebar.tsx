@@ -1,7 +1,10 @@
+import { type KeyboardEvent, useRef } from 'react';
+
 import { type SeqDocument } from '@/core';
 
 import { analytics } from '../analytics';
 import { SIDEBAR_TABS, type SidebarTab, editorStore } from '../state/editorStore';
+import { SIDEBAR_STACKED_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
 import { AlignPanel } from './AlignPanel';
 import { CloningPanel } from './CloningPanel';
@@ -10,7 +13,9 @@ import { FeatureList } from './FeatureList';
 import { HistoryPanel } from './HistoryPanel';
 import { OrfPanel } from './OrfPanel';
 import { PrimerPanel } from './PrimerPanel';
+import { SidebarIcon } from './SidebarIcon';
 import { TranslatePanel } from './TranslatePanel';
+import { useMediaQuery } from './useMediaQuery';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -39,17 +44,58 @@ const TABS: readonly [SidebarTab, string][] = SIDEBAR_TABS.map((tab) => [tab, LA
  */
 export function Sidebar({ doc }: Props) {
   const { sidebarTab, sidebarOpen } = useEditorState();
+  // A rail down the edge, or a strip across the top on a narrow window.
+  const stacked = useMediaQuery(SIDEBAR_STACKED_QUERY);
+  const rail = useRef<HTMLDivElement>(null);
+
+  // The tabs pattern of WAI-ARIA (#35): one Tab stop for the whole rail, on
+  // the tab the panel is on, and the arrow keys along it, which open the
+  // tab they reach. Home and End go to either end.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
+    const back = stacked ? 'ArrowLeft' : 'ArrowUp';
+    const on = stacked ? 'ArrowRight' : 'ArrowDown';
+    const at = SIDEBAR_TABS.indexOf(sidebarTab);
+    const n = SIDEBAR_TABS.length;
+    const to =
+      e.key === back
+        ? (at - 1 + n) % n
+        : e.key === on
+          ? (at + 1) % n
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? n - 1
+              : null;
+    const next = to === null ? undefined : SIDEBAR_TABS[to];
+    if (next === undefined || e.altKey || e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+    analytics.trackOnce('panel', 'open', next);
+    editorStore.setSidebarTab(next);
+    editorStore.setSidebarOpen(true);
+    rail.current?.querySelector<HTMLElement>(`#sidebar-tab-${next}`)?.focus();
+  };
+
   return (
     <aside className={`sidebar${sidebarOpen ? '' : ' sidebar--collapsed'}`}>
-      <div className="sidebar__tabs" role="tablist">
+      <div
+        className="sidebar__tabs"
+        role="tablist"
+        aria-label="Sidebar"
+        aria-orientation={stacked ? 'horizontal' : 'vertical'}
+        ref={rail}
+        onKeyDown={onKeyDown}
+      >
         {TABS.map(([tab, label]) => {
           const active = sidebarOpen && sidebarTab === tab;
           return (
             <button
               key={tab}
+              id={`sidebar-tab-${tab}`}
               type="button"
               role="tab"
               aria-selected={active}
+              aria-controls="sidebar-panel"
+              tabIndex={tab === sidebarTab ? 0 : -1}
               title={
                 active
                   ? 'Hide the panel (Alt+S); Alt+[ and Alt+] step through the tabs'
@@ -66,12 +112,19 @@ export function Sidebar({ doc }: Props) {
                 editorStore.setSidebarOpen(true);
               }}
             >
+              <SidebarIcon tab={tab} />
               <span className="sidebar__tab-label">{label}</span>
             </button>
           );
         })}
       </div>
-      <div className="sidebar__panel" role="tabpanel" hidden={!sidebarOpen}>
+      <div
+        className="sidebar__panel"
+        id="sidebar-panel"
+        role="tabpanel"
+        aria-labelledby={`sidebar-tab-${sidebarTab}`}
+        hidden={!sidebarOpen}
+      >
         <SidebarPanel doc={doc} tab={sidebarTab} />
       </div>
     </aside>

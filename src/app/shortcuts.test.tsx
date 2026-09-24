@@ -110,6 +110,30 @@ describe('view shortcuts', () => {
     click.mockRestore();
   });
 
+  it('walks the sidebar rail with the arrow keys, as one Tab stop', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setSidebarTab('features');
+    });
+    const rail = screen.getByRole('tablist', { name: 'Sidebar' });
+    const tab = (name: string): HTMLElement => screen.getByRole('tab', { name });
+    // Only the open tab is in the Tab order.
+    expect(tab('Features')).toHaveAttribute('tabindex', '0');
+    expect(tab('ORFs')).toHaveAttribute('tabindex', '-1');
+    tab('Features').focus();
+    fireEvent.keyDown(rail, { key: 'ArrowDown' });
+    expect(editorStore.getState().sidebarTab).toBe('orfs');
+    expect(tab('ORFs')).toHaveFocus();
+    fireEvent.keyDown(rail, { key: 'End' });
+    expect(tab('History')).toHaveFocus();
+    fireEvent.keyDown(rail, { key: 'ArrowDown' }); // round to the top
+    expect(editorStore.getState().sidebarTab).toBe('features');
+    fireEvent.keyDown(rail, { key: 'ArrowUp' });
+    expect(editorStore.getState().sidebarTab).toBe('history');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'sidebar-tab-history');
+  });
+
   it('opens the Format menu on its first item with Alt+O', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

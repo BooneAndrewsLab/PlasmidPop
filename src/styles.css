@@ -730,8 +730,10 @@ button {
    ellipsis when the rail is too short for every tab at full length. */
 .sidebar__tab {
   flex: 0 1 auto;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
   min-height: 30px;
   padding: 8px 0;
   font-size: 12.5px;
@@ -741,6 +743,25 @@ button {
   background: var(--surface);
   color: var(--ink-2);
   cursor: pointer;
+}
+
+/* Above the label, and kept whole when a short rail clips the label (#35). */
+.sidebar__tab-icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Turned with the label, so an arrow points the way the word reads. */
+  transform: rotate(90deg);
+}
+
+.sidebar__tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* Rotated a quarter turn, reading top to bottom. */
@@ -810,6 +831,16 @@ button {
     min-height: 0;
     padding: 6px 4px;
     border-bottom: 0;
+  }
+
+  .sidebar__tab {
+    flex-direction: row;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .sidebar__tab-icon {
+    transform: none;
   }
 
   .sidebar__tab-label {
