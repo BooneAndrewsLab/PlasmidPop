@@ -89,9 +89,20 @@ working with no account and no server round-trip.
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. ~~Optional backend~~ — dropped (see Stack); share links instead, item 11.
 
-## Status (2026-09-23)
+## Status (2026-09-24)
 
-**1.3.0** (2026-09-23) is the current release: sequencing reads (item 46).
+**1.4.0** (2026-09-24) is the current release: the cloning bench (items 3,
+36, 47, 48). The shelf belongs to the bench and takes PCR products; PCR from
+any tab, with Taq's A overhangs, dimers and two Tms; blunting; partial
+digests and dephosphorylation; Golden Gate with IUPAC overhangs, a second
+enzyme and misligation warnings; Gibson repeat and length warnings;
+site-directed mutagenesis (Q5 and QuikChange designs); Gateway BP and LR from
+annotated att sites; In-Fusion/NEBuilder insert primers; a Product line
+before assembling; host methylation (dam/dcm) as a document property that
+digests respect. Exhaustive and property tests found and fixed a dozen faults
+before release. Stryker mutation testing is set up on the branch
+`mutation-testing` to run before a release, not in CI (#77).
+**1.3.0** (2026-09-23) was sequencing reads (item 46).
 AB1 and FASTQ files (gzipped too) open as documents that keep their base
 qualities and trace; Align trims a read's poor ends, weighs each difference
 by its quality and draws the trace under the alignment; long reads align in
@@ -103,9 +114,9 @@ choice among several records; IUPAC codes scored by EDNAFULL; a 150 M-cell
 limit (10 kb reads) with the strand picked first; a progress bar with
 Cancel. **1.2.0** (2026-09-23) was the first of the themed
 minor releases planned after 1.1. The GitHub milestones after it, reordered
-the same day on user feedback about Align: 1.2.1 Align fixes and 1.3
-sequencing reads (both done), then 1.4 cloning
-bench, 1.5 workspace and map, 1.6 compare, history and sharing. 1.2.0 has
+the same day on user feedback about Align: 1.2.1 Align fixes, 1.3
+sequencing reads and 1.4 cloning bench (all done), then 1.5 workspace and
+map with the Cloning Bench (#70), 1.6 compare, history and sharing. 1.2.0 has
 isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
 ladder, double-digest partners (items 39–42), Dam/Dcm marks (item 44), CDS
 translations re-checked as you edit (item 1), SnapGene primers fixed and
