@@ -1,7 +1,27 @@
 import { type Strand } from '../features';
 import { type Range, type Topology } from '../range';
 import { reverseComplement } from '../sequence';
+import { codeMask } from '../analysis/search';
 import { meltingTemperature } from './thermo';
+
+/**
+ * Whether a primer base pairs with a template base: the template's base has
+ * to be one the code stands for (#75). For plain bases that is equality; a
+ * degenerate primer's R pairs with an A or a G, and N with anything. A
+ * template N pairs only with a primer N, since which base it is is unknown.
+ */
+function pairs(template: string, primer: string): boolean {
+  const t = codeMask(template);
+  return t !== 0 && (t & ~codeMask(primer)) === 0;
+}
+
+/** Bases a primer may carry: IUPAC nucleotide codes, U read as T. */
+export function cleanPrimer(primer: string): string {
+  return primer
+    .toUpperCase()
+    .replace(/U/g, 'T')
+    .replace(/[^ACGTRYSWKMBDHVN]/g, '');
+}
 
 /**
  * Where a primer anneals when only part of it is meant to.
@@ -94,7 +114,7 @@ function annealRun(
     // Off the end of a linear template: the primer hangs over the tip, and
     // what it has matched so far is all there is.
     if (base === '') break;
-    if (base === probe.charAt(i)) {
+    if (pairs(base, probe.charAt(i))) {
       best = i + 1;
       bestMismatches = mismatches;
       continue;
@@ -124,7 +144,7 @@ export function findAnnealingSites(
   options: AnnealOptions = {},
 ): AnnealingSite[] {
   const opts = { ...ANNEAL_DEFAULTS, ...options };
-  const p = primer.toUpperCase().replace(/[^ACGT]/g, '');
+  const p = cleanPrimer(primer);
   const L = sequence.length;
   const n = p.length;
   if (n < opts.minAnneal || L === 0) return [];
@@ -134,6 +154,26 @@ export function findAnnealingSites(
     circular ? text.charAt(((i % L) + L) % L) : i < 0 || i >= L ? '' : text.charAt(i);
   const norm = (i: number): number => (circular ? ((i % L) + L) % L : i);
 
+  /**
+   * The last `len` bases of the primer as the template makes them pair: a
+   * degenerate code takes the template base it anneals to, which is the
+   * molecule of the mix that anneals there and the one a Tm can be given
+   * for. Plain bases, mismatched or not, are the primer's own.
+   */
+  const resolved = (range: Range, strand: Strand, len: number): string => {
+    let out = '';
+    for (let j = n - len; j < n; j++) {
+      const code = p.charAt(j);
+      // Where primer base j sits on the template, read in the primer's direction.
+      const offset = j - (n - (range.end - range.start));
+      const base =
+        strand === 'forward'
+          ? baseAt(range.start + offset)
+          : reverseComplement(baseAt(range.end - 1 - offset));
+      out += /[ACGT]/.test(code) || !pairs(base, code) ? code : base;
+    }
+    return out;
+  };
   const site = (
     range: Range,
     strand: Strand,
@@ -145,8 +185,8 @@ export function findAnnealingSites(
     annealLength: run.length,
     tail: p.slice(0, n - run.length),
     mismatches: run.mismatches,
-    tm: meltingTemperature(p.slice(n - run.length)),
-    templateTm: meltingTemperature(p.slice(n - run.perfect)),
+    tm: meltingTemperature(resolved(range, strand, run.length)),
+    templateTm: meltingTemperature(resolved(range, strand, run.perfect)),
   });
 
   const out: AnnealingSite[] = [];

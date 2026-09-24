@@ -114,3 +114,14 @@ answers.
   is counted (a digest fragment's length includes its 5′ overhang). The reach
   is still measured on the duplex, so a 5,000 bp Taq amplicon is made and
   listed as 5,001.
+- **Degenerate primers, 2026-09-24** (#75). `findAnnealingSites` dropped
+  every base that was not A, C, G or T, which joined a code's neighbours
+  into an oligo nobody ordered, so an NNK library designed by Mutate did not
+  amplify as designed. Primers now keep their IUPAC codes (`cleanPrimer`); a
+  code pairs with a template base when the base is one it stands for (a
+  template N pairs only with an N, its base being unknown), and the product
+  carries the code. A Tm cannot be given for a mix, so the annealing part is
+  resolved to the template's bases first: the molecule of the mix that
+  anneals there. `primerDimers` keeps the codes in place for the same reason.
+  The Primers tab's own binding-site search (`findPrimerBindingSites`) still
+  reads plain bases only.

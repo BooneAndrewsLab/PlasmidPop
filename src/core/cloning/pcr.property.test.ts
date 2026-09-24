@@ -362,7 +362,11 @@ describe('primerDimers', () => {
         fc.integer({ min: 0, max: 7 }),
         (sequences, max) => {
           const primers = sequences.map((sequence, i) => ({ name: `P${i}`, sequence }));
-          const clean = primers.map((p) => p.sequence.toUpperCase().replace(/[^ACGT]/g, ''));
+          // Junk goes, ambiguity codes stay where they are (#75): dropping one
+          // would join its neighbours into a stretch the oligo does not have.
+          const clean = primers.map((p) =>
+            p.sequence.toUpperCase().replace(/[^ACGTRYSWKMBDHVN]/g, ''),
+          );
           const want: { primer: string; partner: string; bases: number }[] = [];
           clean.forEach((a, i) => {
             clean.forEach((b, j) => {

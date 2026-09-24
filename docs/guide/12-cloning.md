@@ -146,6 +146,11 @@ the wrong places.
   polymerase extends from the 3′ end, and a mismatch under it stops the
   reaction whatever the rest of the oligo does. Up to two mismatches further
   back are allowed.
+- **Degenerate primers work.** An ambiguity code in a primer (`N`, `R`,
+  `NNK` for a codon library) pairs with every base it stands for, and is
+  written into the product as the code it is, so a library made with Mutate
+  amplifies here. Its melting temperature is that of the molecule in the mix
+  that matches the template.
 - **A mismatch is a mutation, not an error.** The product is the primers'
   sequence, not the template's, so a deliberate mismatch is carried into
   every copy. That is site-directed mutagenesis, and it needs nothing else

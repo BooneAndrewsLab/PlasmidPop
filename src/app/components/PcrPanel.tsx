@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ANNEAL_DEFAULTS,
+  cleanPrimer,
   type PcrPrimer,
   type PcrProduct,
   type PcrSite,
@@ -49,7 +50,7 @@ const NO_PRODUCTS: readonly PcrProduct[] = [];
 
 /** The bases of an oligo as the search reads it, junk and case aside. */
 function cleaned(sequence: string): string {
-  return sequence.toUpperCase().replace(/[^ACGT]/g, '');
+  return cleanPrimer(sequence);
 }
 
 /** Where a site is, said the way the rest of the app says a position. */

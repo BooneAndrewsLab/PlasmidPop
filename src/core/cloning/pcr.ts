@@ -5,6 +5,7 @@ import { newId } from '../ids';
 import {
   type AnnealOptions,
   type AnnealingSite,
+  cleanPrimer,
   findAnnealingSites,
   threePrimeComplementarity,
 } from '../primers';
@@ -398,7 +399,8 @@ export interface PrimerDimer {
 export function primerDimers(primers: readonly PcrPrimer[], max = 4): PrimerDimer[] {
   const clean = primers.map((p) => ({
     name: p.name,
-    bases: p.sequence.toUpperCase().replace(/[^ACGT]/g, ''),
+    // Codes kept in place: dropping one would join its neighbours (#75).
+    bases: cleanPrimer(p.sequence),
   }));
   const out: PrimerDimer[] = [];
   for (const a of clean) {
