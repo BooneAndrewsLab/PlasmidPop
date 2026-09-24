@@ -65,9 +65,38 @@ or the SVG exports.
   limit in the flesh — the digest above it in the same tab draws fragments
   — so the digest now stands aside while that panel is open, which is a
   decision made twice now and wants a rule if a third panel needs one.
-- Not yet: ORFs and a previewed Golden Gate or Gibson product are the
-  obvious next callers, the last needing somewhere to draw a molecule
-  that is not open; there is one channel, so two panels pointing at once
-  means the last one wins; a preview does not come back after leaving the
-  sidebar tab; and a previewed primer still does not draw its mismatches,
-  which is the thing a scientist squints at.
+- **One channel per panel, ORFs, mismatches, and coming back** (#32,
+  2026-09-24).
+  - The store keeps a preview per panel (`previews`), and the views draw
+    `preview`, the ones for the document in front merged (`mergePreviews`,
+    cached so an unchanged set is the same object). A span's id there is
+    its panel's and its own (`primers:forward`), so two panels' spans never
+    share a lane, and `activatePreview` hands a click back to the panel
+    that drew the span under its own id. The find bar and a sidebar tab
+    now draw together instead of the last one winning. The digest standing
+    aside for PCR is no longer a channel rule but the Cloning tab's picker:
+    one of the three is shown at a time (item 49).
+  - **ORFs are a caller**: every ORF listed is an arrow on its strand while
+    the tab is open, clickable to select it, none past 200 as Find does.
+  - **A primer's mismatches are drawn** where they fall: `OverlaySpan.marks`
+    are bases, filled in the changed-base colour across the ribbon in the
+    sequence view and ticked across the arc on the map.
+    `mismatchPositions` (`anneal.ts`) finds them by the pairing rule the
+    search used (`pairsWithCode`, so an ambiguity code in the primer pairs
+    with what it stands for), under the primer's 3′ part only — a tail is
+    not a mismatch — and reads a reverse site turned round. Check a primer's
+    sites and PCR's primers carry them; a designed pair matches by
+    construction.
+  - **Coming back.** A preview did not return after a look at another
+    sidebar tab because the panel that drew it was unmounted and its state
+    went with it — and with it the pairs Primers had designed, the primers
+    typed into PCR, Mutate's change, which was the larger loss. They are
+    kept per document for the page load by `useRemembered`
+    (`state/panelMemory.ts`, a `useState` that reads and writes a map keyed
+    by panel slot and document id, outside the store like `viewMemory`), so
+    the panel and the preview derived from it come back. Per document
+    because the sidebar outlives a switch of document tabs: a PCR product
+    opened from the template starts with empty boxes, and the template's
+    primers are there on the way back.
+- Not yet: a previewed Golden Gate or Gibson product, which now has
+  somewhere to be drawn — the Bench's product column (item 49).

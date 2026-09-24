@@ -19,6 +19,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import { SIDEBAR_REACTIONS } from '../state/cloningReaction';
 import { editorStore } from '../state/editorStore';
+import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { MutagenesisPanel } from './MutagenesisPanel';
 import { PcrPanel } from './PcrPanel';
@@ -190,10 +191,11 @@ export function CloningPanel({ doc }: Props) {
     shownEnzymes,
     showCutSites,
     sidebarReaction,
+    documentId,
     previewActivated: activated,
   } = useEditorState();
   const [hovered, setHovered] = useState<string | null>(null);
-  const [partial, setPartial] = useState(false);
+  const [partial, setPartial] = useRemembered('cloning.partial', documentId, false);
   const ready = analysis !== null && analysis.doc === doc;
 
   // The ticked enzymes' sites, less the ones this DNA's own methylation

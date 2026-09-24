@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  ANNEAL_DEFAULTS,
-  cleanPrimer,
   type PcrPrimer,
   type PcrProduct,
   type PcrSite,
+  type Polymerase,
   type Range,
   type SeqDocument,
-  digest,
-  type Polymerase,
+  ANNEAL_DEFAULTS,
   POLYMERASE_REACH,
+  cleanPrimer,
+  digest,
   gelProfile,
   meltingTemperature,
+  mismatchPositions,
   pcr,
   primerDimers,
   rangeWraps,
@@ -22,6 +23,7 @@ import { type OverlaySpan } from '@/view/overlay';
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useGelOptions } from '../state/useGel';
+import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { Gel } from './Gel';
 
@@ -128,7 +130,11 @@ function preview(
   products: readonly PcrProduct[],
   sites: readonly PcrSite[],
   picked: number | null,
+  template: string,
 ): OverlaySpan[] {
+  // Where a primer does not pair with the template, marked on its arrow (#32).
+  const marks = (site: PcrSite): { marks?: number[] } =>
+    site.mismatches === 0 ? {} : { marks: mismatchPositions(template, site, site.primer) };
   const chosen = picked === null ? undefined : products[picked];
   if (chosen !== undefined) {
     return [
@@ -140,8 +146,22 @@ function preview(
         shape: 'span',
         clickable: true,
       },
-      { id: 'fwd', label: FORWARD, range: chosen.forward.range, strand: 'forward', shape: 'arrow' },
-      { id: 'rev', label: REVERSE, range: chosen.reverse.range, strand: 'reverse', shape: 'arrow' },
+      {
+        id: 'fwd',
+        label: FORWARD,
+        range: chosen.forward.range,
+        strand: 'forward',
+        shape: 'arrow',
+        ...marks(chosen.forward),
+      },
+      {
+        id: 'rev',
+        label: REVERSE,
+        range: chosen.reverse.range,
+        strand: 'reverse',
+        shape: 'arrow',
+        ...marks(chosen.reverse),
+      },
     ];
   }
   return [
@@ -159,6 +179,7 @@ function preview(
       range: s.range,
       strand: s.strand,
       shape: 'arrow' as const,
+      ...marks(s),
     })),
   ];
 }
@@ -191,18 +212,32 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   const { previewActivated: activated, documents, documentId } = useEditorState();
   // The template: another open tab when one is picked, the document in front
   // of you otherwise, and again when the picked tab is closed.
-  const [templateId, setTemplateId] = useState<string | null>(null);
+  // All of it remembered per document, so the primers typed are still there
+  // after a look at the digest or another sidebar tab (#32).
+  const [templateId, setTemplateId] = useRemembered<string | null>(
+    'pcr.template',
+    documentId,
+    null,
+  );
   const picked = documents.find((d) => d.documentId === templateId && templateId !== documentId);
   const template = picked?.history.present ?? doc;
   // The views draw the document in front of you, so only its products and
   // sites can be previewed; another tab's would land on the wrong molecule.
   const drawn = picked === undefined;
-  const [forward, setForward] = useState('');
-  const [polymerase, setPolymerase] = useState<Polymerase>('proofreading');
-  const [phosphorylated, setPhosphorylated] = useState(false);
-  const [reverse, setReverse] = useState('');
+  const [forward, setForward] = useRemembered('pcr.forward', documentId, '');
+  const [polymerase, setPolymerase] = useRemembered<Polymerase>(
+    'pcr.polymerase',
+    documentId,
+    'proofreading',
+  );
+  const [phosphorylated, setPhosphorylated] = useRemembered(
+    'pcr.phosphorylated',
+    documentId,
+    false,
+  );
+  const [reverse, setReverse] = useRemembered('pcr.reverse', documentId, '');
   /** The product held on screen, and the one under the pointer. */
-  const [shown, setShown] = useState<number | null>(null);
+  const [shown, setShown] = useRemembered<number | null>('pcr.shown', documentId, null);
   const [hovered, setHovered] = useState<number | null>(null);
 
   const primers = useMemo<PcrPrimer[]>(() => {
@@ -232,8 +267,9 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
 
   const pointed = shown ?? hovered;
   const spans = useMemo(
-    () => (drawn ? preview(products, result?.sites ?? [], pointed) : []),
-    [drawn, products, result, pointed],
+    () =>
+      drawn ? preview(products, result?.sites ?? [], pointed, template.sequence.toString()) : [],
+    [drawn, products, result, pointed, template],
   );
   useEffect(() => {
     editorStore.setPreview('pcr', spans);

@@ -15,6 +15,35 @@ export function pairsWithCode(template: string, primer: string): boolean {
   return t !== 0 && (t & ~codeMask(primer)) === 0;
 }
 
+/**
+ * Where a primer does not pair with the template it anneals to (#32): the
+ * template positions, unrolled like `site.range`, of every base under the
+ * primer's 3′ part that its own base does not pair with. The 3′ part is as
+ * long as the site; anything before it is tail, which pairs with nothing on
+ * the template by design and is not a mismatch. A reverse site's primer is
+ * read turned round, as it lies on the top strand.
+ */
+export function mismatchPositions(
+  template: string,
+  site: { readonly range: Range; readonly strand: Strand },
+  primer: string,
+): number[] {
+  const length = site.range.end - site.range.start;
+  const L = template.length;
+  if (length <= 0 || L === 0) return [];
+  const part = cleanPrimer(primer).slice(-length);
+  const along = site.strand === 'forward' ? part : reverseComplement(part);
+  // A primer shorter than its site, which should not happen, lines up at the 3′ end.
+  const offset = site.strand === 'forward' ? length - along.length : 0;
+  const out: number[] = [];
+  for (let i = 0; i < along.length; i++) {
+    const at = site.range.start + offset + i;
+    const base = template.charAt(((at % L) + L) % L).toUpperCase();
+    if (!pairsWithCode(base, along.charAt(i))) out.push(at);
+  }
+  return out;
+}
+
 /** Bases a primer may carry: IUPAC nucleotide codes, U read as T. */
 export function cleanPrimer(primer: string): string {
   return primer

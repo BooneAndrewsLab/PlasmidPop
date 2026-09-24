@@ -666,6 +666,15 @@ function drawOverlays(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
         ctx.setLineDash([]);
       }
       drawOverlayLabel(ctx, p, span, x0, x1, mid, color);
+      // A primer's mismatches, one cell each across the ribbon (#32).
+      for (const mark of span.marks ?? []) {
+        const at = ((mark % doc.length) + doc.length) % doc.length;
+        if (at < s || at >= e) continue;
+        const mx0 = layout.xOfColumn(at - row.start);
+        const mx1 = layout.xOfColumn(at + 1 - row.start);
+        ctx.fillStyle = theme.editChange;
+        ctx.fillRect(mx0, top, Math.max(2, mx1 - mx0), height);
+      }
     });
   }
   ctx.setLineDash([]);

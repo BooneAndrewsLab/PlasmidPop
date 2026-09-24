@@ -377,13 +377,24 @@ describe('previews', () => {
     if (show === undefined) throw new Error('expected a designed pair');
     fireEvent.click(show);
     const preview = editorStore.getState().preview;
-    expect(preview?.items.map((i) => i.id)).toEqual(['product', 'forward', 'reverse']);
+    expect(preview?.items.map((i) => i.id)).toEqual([
+      'primers:product',
+      'primers:forward',
+      'primers:reverse',
+    ]);
     const product = preview?.items[0];
     // The product is selected, so the map and the sequence view scroll to it...
     expect(editorStore.getState().selection).toEqual(product?.range);
     // ...and nothing about the document changed.
     expect(editorStore.document).toBe(before);
     expect(editorStore.getState().dirty).toBe(false);
+    // Leaving the tab takes the preview off; coming back brings the design,
+    // and the pair that was shown, back with it (#32).
+    fireEvent.click(screen.getByRole('tab', { name: 'Features' }));
+    expect(editorStore.getState().preview).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Primers' }));
+    expect(editorStore.getState().preview?.items).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
     expect(editorStore.getState().preview).toBeNull();
   });

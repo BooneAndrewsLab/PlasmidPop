@@ -12,12 +12,14 @@ import {
   designPrimers,
   findPrimerBindingSites,
   isEmptyRange,
+  mismatchPositions,
   rangeSegment,
   unrollRange,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
 import { editorStore } from '../state/editorStore';
+import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { PrimerSettings } from './PrimerSettings';
 
@@ -74,13 +76,18 @@ function pairPreview(pair: PrimerPair, n: number, seqLength: number): OverlaySpa
   ];
 }
 
-function sitePreview(sites: readonly BindingSite[]): OverlaySpan[] {
+function sitePreview(
+  sites: readonly BindingSite[],
+  template: string,
+  primer: string,
+): OverlaySpan[] {
   return sites.map((s, i) => ({
     id: `site-${i}`,
     label: s.mismatches === 0 ? 'Primer' : `Primer (${s.mismatches} mm)`,
     range: s.range,
     strand: s.strand,
     shape: 'arrow' as const,
+    ...(s.mismatches === 0 ? {} : { marks: mismatchPositions(template, s, primer) }),
   }));
 }
 
@@ -118,12 +125,14 @@ function releaseSelection(owned: RefObject<Range | null>): void {
 }
 
 export function PrimerPanel({ doc }: Props) {
-  const { selection, primerCriteria } = useEditorState();
-  const [probe, setProbe] = useState('');
-  const [pairs, setPairs] = useState<PrimerPair[] | null>(null);
-  const [designedFor, setDesignedFor] = useState<string>('');
+  const { selection, primerCriteria, documentId } = useEditorState();
+  // Remembered per document, so leaving the tab and coming back finds the
+  // design, the primer being checked and the pair shown still there (#32).
+  const [probe, setProbe] = useRemembered('primers.probe', documentId, '');
+  const [pairs, setPairs] = useRemembered<PrimerPair[] | null>('primers.pairs', documentId, null);
+  const [designedFor, setDesignedFor] = useRemembered('primers.designedFor', documentId, '');
   /** The pair whose preview is held on screen, and the one under the pointer. */
-  const [shown, setShown] = useState<number | null>(null);
+  const [shown, setShown] = useRemembered<number | null>('primers.shown', documentId, null);
   const [hovered, setHovered] = useState<number | null>(null);
   /**
    * The product range **Show** put on the selection, so that **Hide** and
@@ -154,8 +163,8 @@ export function PrimerPanel({ doc }: Props) {
       const pair = pairs?.[index];
       if (pair !== undefined) return pairPreview(pair, index + 1, doc.length);
     }
-    return sitePreview(sites);
-  }, [shown, hovered, pairs, sites, doc.length]);
+    return sitePreview(sites, doc.sequence.toString(), report?.sequence ?? '');
+  }, [shown, hovered, pairs, sites, doc, report]);
 
   useEffect(() => {
     editorStore.setPreview('primers', previewed);

@@ -35,6 +35,12 @@ export interface OverlaySpan {
    * where it is drawn.
    */
   readonly clickable?: boolean;
+  /**
+   * Bases to mark inside it, forward coordinates like `range`: where a
+   * previewed primer does not pair with the template (#32), which is the
+   * thing a scientist squints at. Drawn in the colour of a changed base.
+   */
+  readonly marks?: readonly number[];
 }
 
 /** The clickable span at `position`, in `lane` where the caller knows one. */

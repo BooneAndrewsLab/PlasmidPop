@@ -2,6 +2,8 @@ import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 
+import { forgetPanels } from '@/app/state/panelMemory';
+
 // jsdom has no canvas: `getContext` returns null, which every view already
 // handles (the drawing is tested through `SvgContext` instead), but it also
 // prints "Not implemented … without installing the canvas npm package" for
@@ -16,4 +18,6 @@ if (typeof HTMLCanvasElement !== 'undefined') {
 
 afterEach(() => {
   cleanup();
+  // What the sidebar panels remember lasts a page load; a test is one.
+  forgetPanels();
 });

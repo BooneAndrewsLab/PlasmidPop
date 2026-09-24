@@ -82,7 +82,8 @@ itself — and for a missing GC clamp.
 With eight or more bases, the tab also searches the document for **binding
 sites** on both strands: the 3′ end must match exactly and up to two
 mismatches are allowed elsewhere. Every site found is previewed in both
-views at once, so off-target binding is visible at a glance. Each site also
+views at once, so off-target binding is visible at a glance, and a site's
+mismatches are marked on its arrow at the bases they fall on. Each site also
 shows its strand, position and mismatch count in the list; click one to
 select it, or **Add sites as primer_bind** to annotate them all.
 

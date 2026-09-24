@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
   type MutagenesisMethod,
@@ -11,6 +11,7 @@ import {
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
+import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 
 const METHODS: readonly { value: MutagenesisMethod; label: string; title: string }[] = [
@@ -70,9 +71,14 @@ function PrimerLine({
  * plasmid they make. Like PCR it is about the document in front of you.
  */
 export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
-  const { selection } = useEditorState();
-  const [change, setChange] = useState('');
-  const [method, setMethod] = useState<MutagenesisMethod>('back-to-back');
+  const { selection, documentId } = useEditorState();
+  // Remembered per document, like PCR's primers (#32).
+  const [change, setChange] = useRemembered('mutagenesis.change', documentId, '');
+  const [method, setMethod] = useRemembered<MutagenesisMethod>(
+    'mutagenesis.method',
+    documentId,
+    'back-to-back',
+  );
   const bases = change.toUpperCase().replace(/[^ACGTRYKMSWBDHVN]/g, '');
   const insertion = selection !== null && isEmptyRange(selection);
   const current = selection === null || insertion ? '' : doc.subsequence(selection).toUpperCase();

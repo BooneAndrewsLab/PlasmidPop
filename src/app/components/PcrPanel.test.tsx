@@ -83,6 +83,7 @@ describe('PcrPanel', () => {
 
   it('A-tails the product with Taq, and warns of primer dimers', () => {
     setup();
+    const template = editorStore.getState().documentId;
     type('Forward primer', FWD);
     type('Reverse primer', REV);
     act(() => {
@@ -92,6 +93,13 @@ describe('PcrPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     });
     expect(editorStore.document?.ends?.right).toEqual({ kind: "3'", overhang: 'A', enzyme: null });
+    // The primers belong to the template: the product's tab starts empty, and
+    // going back finds them where they were (#32).
+    expect(screen.getByLabelText('Forward primer')).toHaveValue('');
+    act(() => {
+      if (template !== null) editorStore.activateDocument(template);
+    });
+    expect(screen.getByLabelText('Forward primer')).toHaveValue(FWD);
     // A reverse primer ending in the forward primer's own 3′ end, turned
     // around, pairs with it.
     type('Reverse primer', REV + reverseComplement(FWD.slice(-8)));
@@ -157,11 +165,25 @@ describe('PcrPanel', () => {
     expect(screen.getByText(/9 bp of tail/)).toBeInTheDocument();
   });
 
+  it('marks where a primer does not pair with the template on its arrow (#32)', () => {
+    setup();
+    // The forward primer's 4th base changed: inside the annealing part and
+    // clear of the 3′ anchor, so it still primes, carrying the change.
+    const base = FWD.charAt(3);
+    const changed = `${FWD.slice(0, 3)}${base === 'A' ? 'C' : 'A'}${FWD.slice(4)}`;
+    type('Forward primer', changed);
+    type('Reverse primer', REV);
+    const forward = preview()?.items.find((s) => s.label === 'Forward');
+    expect(forward?.marks).toEqual([203]);
+    const reverse = preview()?.items.find((s) => s.label === 'Reverse');
+    expect(reverse?.marks).toBeUndefined();
+  });
+
   it('draws every product and every site until one is picked', () => {
     setup();
     type('Forward primer', FWD);
     type('Reverse primer', REV);
-    expect(preview()?.owner).toBe('pcr');
+    expect(preview()?.owners).toEqual(['pcr']);
     expect(preview()?.items.map((s) => s.shape)).toEqual(['span', 'arrow', 'arrow']);
 
     act(() => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type Orf,
@@ -10,6 +10,8 @@ import {
   reverseComplement,
   translate,
 } from '@/core';
+
+import { type OverlaySpan } from '@/view/overlay';
 
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
@@ -26,16 +28,73 @@ function orfLabel(orf: Orf, seqLength: number): string {
   return `${from.toLocaleString()}–${to.toLocaleString()}`;
 }
 
+/** An ORF's id on the views, which a click on it is reported by. */
+function orfId(orf: Orf): string {
+  return `${orf.strand}:${String(orf.range.start)}-${String(orf.range.end)}`;
+}
+
+/**
+ * Past this many ORFs the views are shown none of them, as Find does: the
+ * list is the useful answer, and the arrows would only be a texture.
+ */
+const MAX_PREVIEWED_ORFS = 200;
+
+/** The same empty list each render while the scan runs, so the preview is not rebuilt for it. */
+const NO_ORFS: readonly Orf[] = [];
+
 function orfSequence(doc: SeqDocument, orf: Orf): string {
   const text = doc.subsequence(orf.range);
   return orf.strand === 'reverse' ? reverseComplement(text) : text;
 }
 
 export function OrfPanel({ doc }: Props) {
-  const { analysis, orfMinCodons, selection, geneticCode: table } = useEditorState();
+  const {
+    analysis,
+    orfMinCodons,
+    selection,
+    geneticCode: table,
+    previewActivated: activated,
+  } = useEditorState();
   const [pending, setPending] = useState(String(orfMinCodons));
   const ready = analysis !== null && analysis.doc === doc;
-  const orfs = ready ? analysis.orfs : [];
+  const orfs = ready ? analysis.orfs : NO_ORFS;
+
+  // Every ORF listed is drawn on both views while the tab is open (#32), an
+  // arrow on its own strand, and a click on one selects it as its row does.
+  const previewed = useMemo<OverlaySpan[]>(
+    () =>
+      orfs.length > MAX_PREVIEWED_ORFS
+        ? []
+        : orfs.map((orf) => ({
+            id: orfId(orf),
+            label: `${orf.codons.toLocaleString()} aa`,
+            range: orf.range,
+            strand: orf.strand,
+            shape: 'arrow',
+            clickable: true,
+          })),
+    [orfs],
+  );
+  useEffect(() => {
+    editorStore.setPreview('orfs', previewed);
+  }, [previewed]);
+  useEffect(
+    () => () => {
+      editorStore.clearPreview('orfs');
+    },
+    [],
+  );
+  // Seeded with the click standing at mount, as the digest's is, so one
+  // answered before the tab was last left is not answered again.
+  const handledClick = useRef(activated?.nonce ?? 0);
+  useEffect(() => {
+    if (activated?.owner !== 'orfs' || activated.nonce === handledClick.current) return;
+    handledClick.current = activated.nonce;
+    const orf = orfs.find((o) => orfId(o) === activated.id);
+    if (orf === undefined) return;
+    editorStore.setSelection(orf.range);
+    editorStore.revealPosition(orf.range.start);
+  }, [activated, orfs]);
 
   const selectedOrf = orfs.find(
     (o) => selection !== null && o.range.start === selection.start && o.range.end === selection.end,

@@ -430,4 +430,19 @@ describe('renderLinearView preview overlay', () => {
   it('leaves the view alone when nothing is previewed', () => {
     expect(render(doc, false)).not.toContain('stroke-dasharray');
   });
+
+  it('marks the bases a previewed primer does not pair with, one cell each', () => {
+    const cells = (svg: string): string[] =>
+      [...svg.matchAll(/<rect[^>]*fill="#aa8800"[^>]*>/g)].map((m) => m[0]);
+    const plain = cells(render(doc, false, null, { overlay: preview }));
+    const marked = cells(
+      render(doc, false, null, {
+        overlay: preview.map((p) => (p.id === 'forward' ? { ...p, marks: [3, 7] } : p)),
+      }),
+    );
+    expect(marked.length - plain.length).toBe(2);
+    // One base wide, in the columns of bases 3 and 7.
+    const xs = marked.map((r) => Number(/x="([\d.]+)"/.exec(r)?.[1])).sort((a, b) => a - b);
+    expect(xs[1] !== undefined && xs[0] !== undefined && xs[1] - xs[0]).toBe(40);
+  });
 });

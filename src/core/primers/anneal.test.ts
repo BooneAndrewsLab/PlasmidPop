@@ -1,5 +1,5 @@
 import { reverseComplement } from '../sequence';
-import { findAnnealingSites } from './anneal';
+import { findAnnealingSites, mismatchPositions } from './anneal';
 
 /** A fixed pseudo-random template, so no site is there by coincidence. */
 function template(length: number, seed = 424242): string {
@@ -79,5 +79,43 @@ describe('findAnnealingSites', () => {
     // Its 3′ end would sit four bases before the sequence starts, so it
     // cannot prime at all.
     expect(hanging).toEqual([]);
+  });
+});
+
+describe('mismatchPositions', () => {
+  // Positions 0..19 of a template, and a primer to it with two bases changed.
+  const dna = 'ACGTTGCAAGCTTCCGGATGCATTTAAA';
+
+  it('finds the bases of a forward site the primer does not pair with', () => {
+    const site = { range: { start: 2, end: 14 }, strand: 'forward' as const };
+    expect(mismatchPositions(dna, site, dna.slice(2, 14))).toEqual([]);
+    // 2..14 is GTTGCAAGCTTC; changed at positions 4 (T to A) and 10 (C to G).
+    expect(mismatchPositions(dna, site, 'GTAGCAAGGTTC')).toEqual([4, 10]);
+  });
+
+  it('leaves a 5′ tail out, and honours ambiguity codes', () => {
+    const site = { range: { start: 2, end: 14 }, strand: 'forward' as const };
+    expect(mismatchPositions(dna, site, `GAATTC${dna.slice(2, 14)}`)).toEqual([]);
+    // N pairs with anything, R with A or G.
+    const degenerate = `GTNGCAAGCTTC`;
+    expect(mismatchPositions(dna, site, degenerate)).toEqual([]);
+    // Position 5 is a G: R stands for it, Y does not.
+    expect(mismatchPositions(dna, site, 'GTTRCAAGCTTC')).toEqual([]);
+    expect(mismatchPositions(dna, site, 'GTTYCAAGCTTC')).toEqual([5]);
+  });
+
+  it('reads a reverse site turned round, and one over the origin of a circle', () => {
+    const reverse = { range: { start: 6, end: 18 }, strand: 'reverse' as const };
+    const exact = reverseComplement(dna.slice(6, 18));
+    expect(mismatchPositions(dna, reverse, exact)).toEqual([]);
+    // The primer's 3′ base pairs with the site's first base on the top strand.
+    const wrong3 = `${exact.slice(0, -1)}${exact.endsWith('A') ? 'C' : 'A'}`;
+    expect(mismatchPositions(dna, reverse, wrong3)).toEqual([6]);
+    const wrapped = { range: { start: 24, end: 32 }, strand: 'forward' as const };
+    const across = dna.slice(24) + dna.slice(0, 4);
+    expect(mismatchPositions(dna, wrapped, across)).toEqual([]);
+    expect(mismatchPositions(dna, wrapped, `${across.slice(0, 5)}T${across.slice(6)}`)).toEqual([
+      29,
+    ]);
   });
 });

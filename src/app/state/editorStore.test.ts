@@ -982,7 +982,11 @@ describe('EditorStore preview', () => {
     const store = new EditorStore();
     const id = store.openDocument(doc, 'x.gb');
     store.setPreview('primers', [span]);
-    expect(store.getState().preview).toEqual({ owner: 'primers', documentId: id, items: [span] });
+    expect(store.getState().preview).toEqual({
+      owners: ['primers'],
+      documentId: id,
+      items: [{ ...span, id: `primers:${span.id}` }],
+    });
     store.setPreview('primers', []);
     expect(store.getState().preview).toBeNull();
   });
@@ -1026,8 +1030,26 @@ describe('EditorStore preview', () => {
     // The find bar closing must not clear what the Primers tab is showing,
     // and the other way round.
     store.clearPreview('primers');
-    expect(store.getState().preview?.owner).toBe('find');
+    expect(store.getState().preview?.owners).toEqual(['find']);
     store.clearPreview('find');
     expect(store.getState().preview).toBeNull();
+  });
+
+  it("draws two panels' previews at once, and tells a click on one to the panel it belongs to", () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setPreview('find', [span]);
+    store.setPreview('primers', [{ ...span, clickable: true }]);
+    const merged = store.getState().preview;
+    expect(merged?.owners).toEqual(['find', 'primers']);
+    // The same id from two panels is two spans.
+    expect(merged?.items.map((i) => i.id)).toEqual([`find:${span.id}`, `primers:${span.id}`]);
+    store.activatePreview(`primers:${span.id}`);
+    expect(store.getState().previewActivated).toMatchObject({ owner: 'primers', id: span.id });
+    // Unchanged previews give the views the same object, so they redraw no more than they must.
+    store.setSelection({ start: 0, end: 1 });
+    expect(store.getState().preview).toBe(merged);
+    store.clearPreview('find');
+    expect(store.getState().preview?.owners).toEqual(['primers']);
   });
 });

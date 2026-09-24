@@ -416,8 +416,12 @@ export interface SharedState {
    * follows something the user did rather than appearing out of nowhere.
    */
   readonly storageNotice: boolean;
-  /** What a panel is pointing at in the views; see `DocumentPreview`. */
-  readonly preview: DocumentPreview | null;
+  /**
+   * What each panel is pointing at in the views, one entry per panel
+   * (#32); see `DocumentPreview`. The views draw `EditorState.preview`, the
+   * ones for the document in front put together.
+   */
+  readonly previews: readonly DocumentPreview[];
   /** Bumped when a clickable previewed span is clicked in either view. */
   readonly previewActivated: PreviewActivation | null;
   /**
@@ -434,10 +438,10 @@ export interface SharedState {
 
 /**
  * Spans a panel is pointing at — a primer pair being weighed up, every match
- * of a find — drawn in both views and in neither document. It is shared
- * rather than per-tab because only one panel points at a time, and it
- * carries the document it was computed against so a stale preview cannot be
- * drawn over another tab's sequence.
+ * of a find — drawn in both views and in neither document. It carries the
+ * document it was computed against so a stale preview cannot be drawn over
+ * another tab's sequence. Each panel has one of its own, so the find bar and
+ * a sidebar tab can both point at once (#32).
  */
 export interface DocumentPreview {
   /**
@@ -450,7 +454,53 @@ export interface DocumentPreview {
   readonly items: readonly OverlaySpan[];
 }
 
-export type PreviewOwner = 'primers' | 'find' | 'cloning' | 'pcr';
+export type PreviewOwner = 'primers' | 'find' | 'cloning' | 'pcr' | 'orfs';
+
+/**
+ * The previews for the document in front, put together for the views: each
+ * span's id is its panel's and its own (`primers:forward`), so two panels'
+ * spans never share a lane or a click. `owners` says whose they are.
+ */
+export interface MergedPreview {
+  readonly documentId: string;
+  readonly owners: readonly PreviewOwner[];
+  readonly items: readonly OverlaySpan[];
+}
+
+/** The id a span has in `MergedPreview`: its panel's, then its own. */
+function mergedId(owner: PreviewOwner, id: string): string {
+  return `${owner}:${id}`;
+}
+
+let lastMerge: {
+  readonly previews: readonly DocumentPreview[];
+  readonly activeId: string | null;
+  readonly merged: MergedPreview | null;
+} | null = null;
+
+/**
+ * The previews of the document in front, merged; the same object for as
+ * long as neither changes, so a view that draws it redraws no more than it
+ * must.
+ */
+function mergePreviews(
+  previews: readonly DocumentPreview[],
+  activeId: string | null,
+): MergedPreview | null {
+  if (lastMerge !== null && lastMerge.previews === previews && lastMerge.activeId === activeId)
+    return lastMerge.merged;
+  const mine = previews.filter((p) => p.documentId === activeId);
+  const merged =
+    activeId === null || mine.length === 0
+      ? null
+      : {
+          documentId: activeId,
+          owners: mine.map((p) => p.owner),
+          items: mine.flatMap((p) => p.items.map((i) => ({ ...i, id: mergedId(p.owner, i.id) }))),
+        };
+  lastMerge = { previews, activeId, merged };
+  return merged;
+}
 
 /**
  * A click on a previewed span, for the panel that put it there to act on.
@@ -503,6 +553,8 @@ export type FrontTab = 'document' | 'files' | 'bench';
 export interface EditorState extends SharedState, ActiveDocumentFields {
   /** What is in front; the document fields are empty unless it is a document. */
   readonly front: FrontTab;
+  /** What the panels are pointing at in the document in front, for the views to draw. */
+  readonly preview: MergedPreview | null;
   /** The open documents, in tab order. */
   readonly documents: readonly DocumentState[];
   /** Whether the document in front differs from what is on disk. */
@@ -544,7 +596,7 @@ const SHARED_INITIAL: SharedState = {
   shareNotice: null,
   readNotice: null,
   storageNotice: false,
-  preview: null,
+  previews: [],
   previewActivated: null,
   comparison: null,
   layout: DEFAULT_LAYOUT,
@@ -635,7 +687,7 @@ function compose(
     front: active !== null ? 'document' : bench ? 'bench' : 'files',
     // A preview belongs to the tab it was computed for; behind another one
     // it is simply not there, and it comes back on the way back.
-    preview: shared.preview?.documentId === activeId ? shared.preview : null,
+    preview: mergePreviews(shared.previews, active === null ? null : activeId),
     documents,
     dirty: active !== null && isDirty(active),
   };
@@ -1357,10 +1409,14 @@ export class EditorStore {
       this.clearPreview(owner);
       return;
     }
-    const current = this.shared.preview;
-    if (current?.documentId === id && current.owner === owner && samePreview(current.items, items))
-      return;
-    this.setShared({ preview: { owner, documentId: id, items } });
+    const current = this.shared.previews.find((p) => p.owner === owner);
+    if (current?.documentId === id && samePreview(current.items, items)) return;
+    this.setShared({
+      previews: [
+        ...this.shared.previews.filter((p) => p.owner !== owner),
+        { owner, documentId: id, items },
+      ],
+    });
   }
 
   /** Shows what the document in front differs from in a file just read. */
@@ -1381,21 +1437,23 @@ export class EditorStore {
   activatePreview(id: string): void {
     const preview = this.state.preview;
     if (preview === null) return;
+    // The views know a span by its merged id; the panel knows it by its own.
+    const owner = preview.owners.find((o) => id.startsWith(`${o}:`));
+    if (owner === undefined) return;
     this.setShared({
       previewActivated: {
-        owner: preview.owner,
-        id,
+        owner,
+        id: id.slice(owner.length + 1),
         nonce: (this.shared.previewActivated?.nonce ?? 0) + 1,
       },
     });
   }
 
-  /** Takes the preview away; with an owner, only if that panel put it there. */
+  /** Takes a panel's preview away, or every panel's. */
   clearPreview(owner?: PreviewOwner): void {
-    const current = this.shared.preview;
-    if (current === null) return;
-    if (owner !== undefined && current.owner !== owner) return;
-    this.setShared({ preview: null });
+    const next = owner === undefined ? [] : this.shared.previews.filter((p) => p.owner !== owner);
+    if (next.length === this.shared.previews.length) return;
+    this.setShared({ previews: next });
   }
 
   setEnzymeSetInfo(info: EnzymeSetInfo): void {

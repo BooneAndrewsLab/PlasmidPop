@@ -9,6 +9,12 @@ Each row shows the strand (→ forward, ← reverse), the range in 1-based
 coordinates (including the stop codon) and the length of the protein in
 amino acids. The list is sorted by position.
 
+While the tab is open, every ORF listed is also drawn on the map and in the
+sequence view, as a dashed arrow on its own strand labelled with its length
+(see [Previews](03-viewing.md#previews)); clicking one there selects it, as
+clicking its row does. Past 200 ORFs none are drawn — lower the count with
+**Minimum length**.
+
 ## Minimum length
 
 Only ORFs of at least **Minimum length** codons (not counting the stop) are

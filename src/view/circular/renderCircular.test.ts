@@ -152,6 +152,43 @@ describe('renderCircularMap tiny features and the caret', () => {
     expect((mark.start + mark.end) / 2).toBeCloseTo(layout.angleOf(141));
   });
 
+  it('ticks a previewed primer at every base it does not pair with', () => {
+    const features = tiny.features.all();
+    const lanes = assignLanes(features, tiny.length);
+    const layout = new CircularLayout(tiny.length, tiny.topology, {
+      ...opts,
+      laneCount: lanes.laneCount,
+    });
+    const primer: OverlaySpan = {
+      id: 'fwd',
+      label: 'Forward',
+      range: { start: 1000, end: 1022 },
+      strand: 'forward',
+      shape: 'arrow',
+      marks: [1004, 1010],
+    };
+    const rec = recorder();
+    renderCircularMap(rec.ctx, {
+      doc: tiny,
+      layout,
+      lanes,
+      selection: null,
+      cutSites: [],
+      overlay: [primer],
+      overlayLanes: overlayLanes([primer], tiny.length),
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme: { ...PRINT_THEME, editChange: '#mismatch' },
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    expect(rec.lines.filter((l) => l.color === '#mismatch')).toHaveLength(2);
+  });
+
   it('draws the caret as a needle through the lanes, not a tick on the backbone', () => {
     const { lines, layout } = draw({ start: 1000, end: 1000 });
     const needle = lines.find((l) => l.color === '#caret0');

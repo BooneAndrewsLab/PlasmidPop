@@ -86,13 +86,13 @@ describe('CloningPanel', () => {
     act(() => {
       fireEvent.click(pick('Digest'));
     });
-    expect(preview()?.owner).toBe('cloning');
+    expect(preview()?.owners).toEqual(['cloning']);
   });
 
   it('draws the digest fragments on both views', () => {
     setup();
     const spans = preview()?.items ?? [];
-    expect(preview()?.owner).toBe('cloning');
+    expect(preview()?.owners).toEqual(['cloning']);
     // Largest first, as the list is; each a bracket with a tick at the cuts.
     expect(spans.map((s) => s.label)).toEqual(['3,000 bp', '1,000 bp']);
     expect(spans.map((s) => s.shape)).toEqual(['span', 'span']);

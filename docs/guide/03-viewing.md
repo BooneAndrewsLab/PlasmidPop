@@ -129,17 +129,28 @@ is widened as a short selection is.
 
 Nothing previewed is part of the document. It is not saved, it is not in the
 SVG exports, it costs no undo step, and it goes away when you edit the
-sequence, switch sidebar tab or close the panel that asked for it.
+sequence or close the panel that asked for it. Switching to another sidebar
+tab takes it off the views too, and coming back brings it back: what the
+panel was showing is kept for each document while the page is open. Two
+panels can preview at once — the find bar and a sidebar tab, say — and
+their spans are drawn together.
 
-Today three things use it:
+A primer's arrow is marked in the colour of a changed base wherever the
+primer does not pair with the sequence under it, so a mismatch is seen
+where it is rather than counted in a list.
+
+Today these use it:
 
 - the [Primers](10-primers.md) tab, for a designed pair and the product it
   would give, and for the binding sites of a primer you paste in;
 - [Find](06-find.md), which draws every match at once while the bar is open;
+- the [ORFs](08-orfs.md) tab, which draws every open reading frame it lists;
+  click one on the map or in the sequence view to select it;
 - the [Cloning](12-cloning.md) tab, which draws the pieces a digest would
   give, each with a tick where its cuts fall, and draws the one under the
   pointer as a solid arrow. These can be clicked, which puts that fragment
-  on the shelf, for the [Bench](12-cloning.md#the-bench); the other two previews are drawings only.
+  on the shelf, for the [Bench](12-cloning.md#the-bench); and its PCR, which
+  draws the products and primer sites.
 
 ### Format
 

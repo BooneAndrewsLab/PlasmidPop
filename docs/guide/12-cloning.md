@@ -127,7 +127,9 @@ what a primer carries at its 5′ end ends up in the product.
 
 Choose **PCR** in the picker and paste the two oligos, written 5′ to 3′ as
 you would order them. Nothing else is asked, because everything a designer
-decided is already in those two sequences.
+decided is already in those two sequences. They stay in the boxes while you
+look at the digest, another sidebar tab or another document, and come back
+with this one; Mutate's change does the same.
 
 The template is the document in front of you. With more than one tab open,
 **Template** picks another one instead, so an insert can be amplified out of
@@ -163,7 +165,8 @@ the wrong places.
 - **The product lists what it would be**: its length, the stretch of
   template it copies, and whether it runs over the origin. **Show** draws it
   and its two primers on the map and in the sequence view (see
-  [Previews](03-viewing.md#previews)); **Open** opens it as a document, with
+  [Previews](03-viewing.md#previews)), a primer's mismatches marked on it;
+  **Open** opens it as a document, with
   the template's features and a `primer_bind` feature for each oligo, tail
   and all. Clicking the previewed product in either view opens it too.
   **Shelve** puts it on the [shelf](#the-shelf) instead, the same molecule

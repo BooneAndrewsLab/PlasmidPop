@@ -628,6 +628,18 @@ function drawOverlays(ctx: DrawingContext, p: CircularRenderParams): void {
         if (!forward && first) arrowHead(ctx, layout, at(a0), r, false, half);
       }
     });
+    // A primer's mismatches, a tick across its arc each (#32).
+    ctx.strokeStyle = theme.editChange;
+    ctx.lineWidth = 2;
+    for (const mark of span.marks ?? []) {
+      const angle = layout.angleOf((((mark % doc.length) + doc.length) % doc.length) + 0.5);
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      ctx.beginPath();
+      ctx.moveTo(layout.cx + (r - half - 1.5) * cos, layout.cy + (r - half - 1.5) * sin);
+      ctx.lineTo(layout.cx + (r + half + 1.5) * cos, layout.cy + (r + half + 1.5) * sin);
+      ctx.stroke();
+    }
   }
 }
 
