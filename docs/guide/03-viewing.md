@@ -177,6 +177,12 @@ narrow map the name is set smaller, and past that it is left out rather than
 squeezed or cut short, since the toolbar has it.
 A linear sequence is drawn as an open ring with a gap at the ends.
 
+Nothing is too small to see. A feature of a few bases, less than a pixel of
+ring on a large plasmid, is drawn as a narrow mark at least three pixels
+wide, and it can be hovered and clicked at that width. A selection that
+short, and the cursor itself, are drawn as a needle from outside the
+backbone in through the lanes, so they are not lost under a feature.
+
 - **Click** the backbone to place the cursor, **drag** along it to select.
   On a circular sequence the selection runs clockwise from where you started
   and may cross the origin.

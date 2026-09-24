@@ -233,6 +233,14 @@ function drawTickMarks(
 const MIN_SELECTION_PX = 7;
 
 /**
+ * The least arc a range segment is drawn over, in pixels (#26). A 2 bp site
+ * on a 4 kb plasmid is half a pixel of ring, which is nothing; three is a
+ * mark, still narrow enough not to be mistaken for something longer. The
+ * map view hit-tests the same width, so what can be seen can be pointed at.
+ */
+export const MIN_FEATURE_PX = 3;
+
+/**
  * Angular span of the drawn selection band. A one- or two-base selection of
  * a plasmid covers a fraction of a degree, so the span is widened about its
  * centre until it is `minPx` of arc at `radius`; `widened` tells the caller
@@ -267,17 +275,9 @@ function innerRadius(layout: CircularLayout): number {
 function drawSelection(ctx: DrawingContext, p: CircularRenderParams): boolean {
   const { selection, layout, theme, doc } = p;
   if (selection === null || doc.length === 0) return false;
-  if (selection.start === selection.end) {
-    const a = layout.pointAt(selection.start, layout.radius - 8);
-    const b = layout.pointAt(selection.start, layout.radius + 8);
-    ctx.strokeStyle = theme.caret;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    return false;
-  }
+  // The caret is the needle a tiny selection gets, drawn over the features
+  // (#26): a short tick on the backbone was lost under a feature's arc.
+  if (selection.start === selection.end) return true;
   const outer = layout.radius + 8;
   const sweep = selectionSweep(
     layout.angleOf(selection.start),
@@ -380,8 +380,15 @@ function drawFeature(
     const forward = feature.strand === 'forward';
     const arcLength = ((seg.end - seg.start) / Math.max(1, doc.length)) * Math.PI * 2 * r;
     const arrow = arcLength > half * 3 ? half * 1.4 : 0;
-    let a0 = layout.angleOf(seg.start);
-    let a1 = layout.angleOf(seg.end);
+    // Too short to see is widened about its middle to a mark (#26).
+    const sweep = selectionSweep(
+      layout.angleOf(seg.start),
+      layout.angleOf(seg.end),
+      r,
+      MIN_FEATURE_PX,
+    );
+    let a0 = sweep.start;
+    let a1 = sweep.end;
     if (forward && last && arrow > 0) a1 -= arrow / r;
     if (!forward && first && arrow > 0) a0 += arrow / r;
     ctx.lineWidth = thickness;

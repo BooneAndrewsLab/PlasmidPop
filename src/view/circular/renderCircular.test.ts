@@ -4,6 +4,7 @@ import { readFixture } from '@/test/fixtures';
 
 import { NO_LANES, assignLanes } from '../linear/lanes';
 import { type OverlaySpan, NO_OVERLAY, overlayLanes } from '../overlay';
+import { type DrawingContext } from '../drawingContext';
 import { PRINT_THEME } from '../svg/exportMap';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
@@ -54,6 +55,112 @@ describe('selectionSweep', () => {
     const atOrigin = sweepOf(0, 1);
     expect(atOrigin.widened).toBe(true);
     expect((atOrigin.start + atOrigin.end) / 2).toBeCloseTo(layout.angleOf(0.5));
+  });
+});
+
+/**
+ * A drawing context that records the arcs it is asked for and the lines,
+ * with the stroke colour each was drawn in; everything else it takes and
+ * forgets. The renderer only ever reads `measureText` back.
+ */
+function recorder(): {
+  ctx: DrawingContext;
+  arcs: { r: number; start: number; end: number; color: string }[];
+  lines: { from: [number, number]; to: [number, number]; color: string }[];
+} {
+  const arcs: { r: number; start: number; end: number; color: string }[] = [];
+  const lines: { from: [number, number]; to: [number, number]; color: string }[] = [];
+  let at: [number, number] = [0, 0];
+  const state: Record<string | symbol, unknown> = { strokeStyle: '' };
+  const ctx = new Proxy(state, {
+    get(target, key) {
+      if (key === 'arc')
+        return (_x: number, _y: number, r: number, start: number, end: number) => {
+          arcs.push({ r, start, end, color: String(target['strokeStyle']) });
+        };
+      if (key === 'moveTo')
+        return (x: number, y: number) => {
+          at = [x, y];
+        };
+      if (key === 'lineTo')
+        return (x: number, y: number) => {
+          lines.push({ from: at, to: [x, y], color: String(target['strokeStyle']) });
+          at = [x, y];
+        };
+      if (key === 'measureText') return (text: string) => ({ width: text.length * 7 });
+      if (key in target) return target[key];
+      return () => undefined;
+    },
+    set(target, key, value) {
+      target[key] = value;
+      return true;
+    },
+  }) as unknown as DrawingContext;
+  return { ctx, arcs, lines };
+}
+
+describe('renderCircularMap tiny features and the caret', () => {
+  const tiny = SeqDocument.create({
+    sequence: 'ACGT'.repeat(1090),
+    topology: 'circular',
+    features: [
+      createFeature({
+        id: 'nick',
+        type: 'misc_feature',
+        name: '',
+        segments: [rangeSegment(140, 142)],
+      }),
+    ],
+  });
+  const draw = (selection: { start: number; end: number } | null) => {
+    const features = tiny.features.all();
+    const lanes = assignLanes(features, tiny.length);
+    const layout = new CircularLayout(tiny.length, tiny.topology, {
+      ...opts,
+      laneCount: lanes.laneCount,
+    });
+    const rec = recorder();
+    renderCircularMap(rec.ctx, {
+      doc: tiny,
+      layout,
+      lanes,
+      selection,
+      cutSites: [],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme: { ...PRINT_THEME, caret: '#caret0' },
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    return { ...rec, layout, lane: layout.laneRadius(0) };
+  };
+
+  it('draws a feature shorter than a pixel as a few pixels of arc, about its middle', () => {
+    const { arcs, layout, lane } = draw(null);
+    const mark = arcs.find((a) => Math.abs(a.r - lane) < 0.01);
+    expect(mark).toBeDefined();
+    if (mark === undefined) return;
+    // Two bases of 4,360 on this ring would be well under a pixel.
+    expect(((Math.PI * 2 * lane) / tiny.length) * 2).toBeLessThan(1);
+    expect((mark.end - mark.start) * lane).toBeCloseTo(3);
+    expect((mark.start + mark.end) / 2).toBeCloseTo(layout.angleOf(141));
+  });
+
+  it('draws the caret as a needle through the lanes, not a tick on the backbone', () => {
+    const { lines, layout } = draw({ start: 1000, end: 1000 });
+    const needle = lines.find((l) => l.color === '#caret0');
+    expect(needle).toBeDefined();
+    if (needle === undefined) return;
+    const r = (p: [number, number]) => Math.hypot(p[0] - layout.cx, p[1] - layout.cy);
+    // From inside the innermost lane out past the backbone.
+    expect(Math.min(r(needle.from), r(needle.to))).toBeLessThan(layout.laneRadius(0));
+    expect(Math.max(r(needle.from), r(needle.to))).toBeGreaterThan(layout.radius);
   });
 });
 
