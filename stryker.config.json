@@ -38,5 +38,7 @@
     "break": null
   },
   "ignorePatterns": [".venv-oracle", "dist", "coverage", "reports", "design", ".idea", ".claude"],
-  "ignoreStatic": true
+  "ignoreStatic": true,
+  "incremental": true,
+  "incrementalFile": "reports/mutation/stryker-incremental.json"
 }

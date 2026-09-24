@@ -25,7 +25,7 @@
     "oracle:snapgene": "scripts/oracle/run.sh snapgene-local",
     "oracle:abif": "scripts/oracle/run.sh abif-local",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "mutate": "PLASMIDPOP_MUTATION=1 stryker run"
+    "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 stryker run"
   },
   "dependencies": {
     "dexie": "^4.4.6",
