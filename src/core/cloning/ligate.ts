@@ -1,3 +1,4 @@
+import { codeMask } from '../analysis/search';
 import { type Feature, shiftFeature } from '../features';
 import { newId } from '../ids';
 import {
@@ -75,13 +76,27 @@ export function flipFragment(fragment: DigestFragment): DigestFragment {
 }
 
 /**
+ * Whether two overhangs, written the `FragmentEnd` way (top-strand bases),
+ * can be the same bases: position by position, the bases each code allows
+ * must overlap (#11). For plain bases that is equality; an N pairs with
+ * anything, and an R with A or G. Unknown characters pair with nothing.
+ */
+export function overhangsMatch(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if ((codeMask(a.charAt(i)) & codeMask(b.charAt(i))) === 0) return false;
+  }
+  return true;
+}
+
+/**
  * Whether the right end of one fragment can be ligated to the left end of
  * the next: both blunt, or overhangs of the same kind whose single strands
- * pair up. With the `FragmentEnd` convention that is plain equality; IUPAC
- * codes in the sequence are not resolved, so an N never pairs.
+ * pair up. With the `FragmentEnd` convention that is `overhangsMatch`, which
+ * lets an ambiguity code pair with any base it could stand for.
  */
 export function endsCompatible(right: FragmentEnd, left: FragmentEnd): boolean {
-  return right.kind === left.kind && right.overhang.toUpperCase() === left.overhang.toUpperCase();
+  return right.kind === left.kind && overhangsMatch(right.overhang, left.overhang);
 }
 
 export interface Junction {

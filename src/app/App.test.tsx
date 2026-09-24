@@ -809,6 +809,39 @@ describe('golden gate', () => {
     fireEvent.click(pickReaction('Golden Gate'));
   }
 
+  it('takes a second enzyme, and warns about overhangs a ligase could confuse', async () => {
+    render(<App />);
+    act(() => {
+      // pDest's second overhang is AATC, one base from its first, AATG. The
+      // insert is made for BsmBI rather than BsaI.
+      editorStore.openDocument(
+        SeqDocument.create({
+          name: 'pDest',
+          topology: 'circular',
+          sequence: 'AATGCCCCCCCCCCCCAATCAGAGACCTTTTGGTCTCA',
+        }),
+        'pDest.gb',
+      );
+      editorStore.openDocument(
+        SeqDocument.create({ name: 'part', sequence: 'TTCGTCTCAAATCAAAAAAAAAAAATGAGAGACGTT' }),
+        'part.gb',
+      );
+    });
+    await waitFor(() => {
+      expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
+    fireEvent.click(pickReaction('Golden Gate'));
+    expect(screen.queryByRole('button', { name: 'Assemble by Golden Gate' })).toBeNull();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Second enzyme' }), {
+      target: { value: 'BsmBI' },
+    });
+    expect(screen.getByText(/2 parts join/)).toBeInTheDocument();
+    const warnings = screen.getByRole('list', { name: 'Overhang warnings' });
+    expect(within(warnings).getByText(/AATG and AATC differ at one base/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Assemble by Golden Gate' })).toBeEnabled();
+  });
+
   it('works out the order from the overhangs and assembles the circle', async () => {
     await openParts();
     expect(screen.getByText(/3 parts join/)).toBeInTheDocument();

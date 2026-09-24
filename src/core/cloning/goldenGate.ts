@@ -6,7 +6,7 @@ import {
   isTypeIIS,
   overhangLength,
 } from '../analysis/restriction';
-import { matchPositions, patternMasks, sequenceMasks } from '../analysis/search';
+import { codeMask, matchPositions, patternMasks, sequenceMasks } from '../analysis/search';
 import { type SeqDocument, describeEnd } from '../document';
 import { reverseComplement } from '../sequence';
 import { type DigestFragment, digest } from './digest';
@@ -36,6 +36,8 @@ export type DropReason = 'site' | 'blunt';
 export interface DroppedFragment {
   readonly fragment: DigestFragment;
   readonly reason: DropReason;
+  /** For `site`: the enzyme whose site it still carries. */
+  readonly enzyme?: string;
 }
 
 /** A part in the product, as it goes in. */
@@ -50,6 +52,17 @@ export interface GoldenGateAssembly {
   /** The parts in the order they join. */
   readonly order: readonly AssembledPart[];
   readonly product: SeqDocument;
+  /**
+   * Overhangs in the set that could join the wrong partner (#11): the
+   * product is what the design intends, but the tube may hold others.
+   */
+  readonly warnings: readonly OverhangWarning[];
+}
+
+/** A risk in a set of overhangs, in a sentence, with the overhangs it is about. */
+export interface OverhangWarning {
+  readonly overhangs: readonly string[];
+  readonly text: string;
 }
 
 export interface GoldenGateResult {
@@ -65,6 +78,12 @@ export interface GoldenGateResult {
 
 export interface GoldenGateOptions {
   readonly enzyme: Enzyme;
+  /**
+   * A second Type IIS enzyme in the same tube (#11), for parts made for
+   * different enzymes. Every part is cut by both, and a piece keeping either
+   * site is cut again.
+   */
+  readonly secondEnzyme?: Enzyme;
   /** Name for the product; a description of the parts by default. */
   readonly name?: string;
 }
@@ -102,9 +121,21 @@ function containsSite(sequence: string, enzyme: Enzyme): boolean {
   return matchPositions(masks, patternMasks(reverseComplement(enzyme.site)), maxStart).length > 0;
 }
 
-/** Cuts one document with the enzyme; an uncut circle gives nothing. */
-function digestWith(doc: SeqDocument, enzyme: Enzyme): DigestFragment[] {
-  return digest(doc, findCutSites(doc.sequence.toString(), doc.topology, [enzyme]));
+/** Cuts one document with the enzymes; an uncut circle gives nothing. */
+function digestWith(doc: SeqDocument, enzymes: readonly Enzyme[]): DigestFragment[] {
+  return digest(doc, findCutSites(doc.sequence.toString(), doc.topology, enzymes));
+}
+
+/** The enzymes in the tube, and their names as a sentence says them. */
+function enzymesOf(options: GoldenGateOptions): readonly Enzyme[] {
+  const { enzyme, secondEnzyme } = options;
+  return secondEnzyme === undefined || secondEnzyme.name === enzyme.name
+    ? [enzyme]
+    : [enzyme, secondEnzyme];
+}
+
+function namesOf(enzymes: readonly Enzyme[]): string {
+  return enzymes.map((e) => e.name).join(' and ');
 }
 
 /** One oriented candidate: a fragment, as itself or turned around. */
@@ -127,13 +158,15 @@ export function goldenGate(
   parts: readonly SeqDocument[],
   options: GoldenGateOptions,
 ): GoldenGateResult {
-  const { enzyme } = options;
+  const enzymes = enzymesOf(options);
+  const names = namesOf(enzymes);
   const usable: DigestFragment[] = [];
   const dropped: DroppedFragment[] = [];
   for (const doc of parts) {
-    for (const fragment of digestWith(doc, enzyme)) {
-      if (containsSite(fragment.sequence, enzyme)) {
-        dropped.push({ fragment, reason: 'site' });
+    for (const fragment of digestWith(doc, enzymes)) {
+      const kept = enzymes.find((e) => containsSite(fragment.sequence, e));
+      if (kept !== undefined) {
+        dropped.push({ fragment, reason: 'site', enzyme: kept.name });
       } else if (fragment.left.kind === 'blunt' || fragment.right.kind === 'blunt') {
         dropped.push({ fragment, reason: 'blunt' });
       } else {
@@ -152,7 +185,7 @@ export function goldenGate(
   const first = usable[0];
   if (first === undefined) {
     return fail(
-      `Nothing to assemble: no piece of the ${enzyme.name} digest kept two sticky ends and lost its ${enzyme.name} site.`,
+      `Nothing to assemble: no piece of the ${names} digest kept two sticky ends and lost its ${enzymes.length === 1 ? `${names} site` : 'sites'}.`,
     );
   }
 
@@ -203,10 +236,11 @@ export function goldenGate(
     {
       name: options.name ?? defaultProductName(order),
       circular: true,
-      metadata: { description: describeGoldenGate(order, enzyme) },
+      metadata: { description: describeGoldenGate(order, names) },
     },
   );
-  return { usable, dropped, assembly: { order, product }, problem: null };
+  const warnings = overhangWarnings(order.map((p) => p.fragment.left.overhang));
+  return { usable, dropped, assembly: { order, product, warnings }, problem: null };
 }
 
 /** "pICH+insert1+insert2 assembly", from the documents the parts came from. */
@@ -215,18 +249,79 @@ export function defaultProductName(order: readonly AssembledPart[]): string {
   return `${sources.join('+')} assembly`;
 }
 
-function describeGoldenGate(order: readonly AssembledPart[], enzyme: Enzyme): string {
+function describeGoldenGate(order: readonly AssembledPart[], enzymes: string): string {
   const parts = order.map(({ fragment, flipped }) => {
     const turned = flipped ? ', flipped' : '';
     const size = fragment.sequence.length.toLocaleString();
     return `${fragment.source} (${size} bp, ${fragment.left.overhang.toUpperCase()}${turned})`;
   });
-  return `Golden Gate assembly with ${enzyme.name} of ${parts.join(', ')}`;
+  return `Golden Gate assembly with ${enzymes} of ${parts.join(', ')}`;
 }
 
 /** What to say about a piece the reaction leaves out. */
-export function describeDropped(dropped: DroppedFragment, enzyme: Enzyme): string {
+export function describeDropped(dropped: DroppedFragment): string {
   return dropped.reason === 'site'
-    ? `still carries the ${enzyme.name} site, so the reaction cuts it again`
+    ? `still carries the ${dropped.enzyme ?? 'enzyme'} site, so the reaction cuts it again`
     : 'has a blunt end, so there is no overhang to join it by';
+}
+
+/** Positions at which two overhangs cannot be the same base. */
+function mismatches(a: string, b: string): number {
+  let n = 0;
+  for (let i = 0; i < a.length; i++) {
+    if ((codeMask(a.charAt(i)) & codeMask(b.charAt(i))) === 0) n++;
+  }
+  return n;
+}
+
+/**
+ * What in a set of junction overhangs could make a ligase join the wrong
+ * ends (#11). The rules are the usual design ones: an overhang that is its
+ * own reverse complement lets a part join a copy of itself back to front;
+ * two overhangs one base apart, read either way (a ligase pairs an overhang
+ * with the complement of the other's too), are mis-joined at a measurable
+ * rate; and an ambiguity code pairs with every base it stands for. These are
+ * warnings, not refusals: the set can still work, and a designer who knows
+ * the fidelity data for their ligase may have chosen it on purpose.
+ */
+export function overhangWarnings(overhangs: readonly string[]): OverhangWarning[] {
+  const out: OverhangWarning[] = [];
+  const set = overhangs.map((o) => o.toUpperCase());
+  for (const o of set) {
+    if (/[^ACGT]/.test(o)) {
+      out.push({
+        overhangs: [o],
+        text: `${o} has an ambiguity code, so it pairs with every overhang it could stand for.`,
+      });
+    } else if (o.length > 0 && o === reverseComplement(o)) {
+      out.push({
+        overhangs: [o],
+        text: `${o} is its own reverse complement, so a part can join a copy of itself back to front.`,
+      });
+    }
+  }
+  for (let i = 0; i < set.length; i++) {
+    for (let j = i + 1; j < set.length; j++) {
+      const a = set[i] ?? '';
+      const b = set[j] ?? '';
+      if (a.length !== b.length || a.length === 0) continue;
+      const same = mismatches(a, b);
+      const turned = mismatches(a, reverseComplement(b));
+      if (same === 1) {
+        out.push({
+          overhangs: [a, b],
+          text: `${a} and ${b} differ at one base, so a ligase may join one in place of the other.`,
+        });
+      } else if (turned <= 1) {
+        out.push({
+          overhangs: [a, b],
+          text:
+            turned === 0
+              ? `${a} pairs with ${b} turned around, so the parts at those junctions can swap.`
+              : `${a} is one base from ${b} turned around (${reverseComplement(b)}), so a ligase may join them.`,
+        });
+      }
+    }
+  }
+  return out;
 }

@@ -164,3 +164,20 @@ overhangs would misligate.
   - Not modelled: a PCR product's missing phosphates (standard oligos have
     none, so a blunt PCR product will not go into a dephosphorylated vector
     on the bench); it is shelved as phosphorylated.
+- **Golden Gate II, 2026-09-23** (#11).
+  - `endsCompatible` resolves IUPAC codes (`overhangsMatch`): two overhangs
+    pair when, base by base, the codes allow a common base. It is the rule
+    for ligation too, since an overhang is the same molecule whichever
+    reaction joins it; an `N` overhang therefore fits several parts, and
+    Golden Gate reports that as the ambiguity it is.
+  - A second enzyme (`secondEnzyme`) cuts everything too, and a piece
+    keeping either site is dropped, now saying whose (`DroppedFragment.enzyme`).
+    Two is enough: the case is a vector made for one enzyme and parts for
+    another, and a list would be a control for a reaction nobody runs.
+  - `overhangWarnings` checks the junction overhangs of a product that did
+    assemble: palindromes, pairs one base apart either way round, and
+    ambiguity codes. Warnings rather than refusals, because the product is
+    what the design intends and the fidelity of a near pair depends on the
+    ligase and the temperature (published ligation-fidelity tables), which
+    the app does not have. A table like that would turn the warning into a
+    measured misligation rate.

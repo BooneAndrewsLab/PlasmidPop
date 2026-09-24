@@ -209,7 +209,9 @@ like any other document; download it to get a file.
 
 Ends are compatible when both are blunt, or when they have the same kind of
 overhang with complementary bases. A PstI end will not join an EcoRI end,
-and a BamHI end will join a BglII end (both leave `GATC`).
+and a BamHI end will join a BglII end (both leave `GATC`). An ambiguity code
+in an overhang pairs with any base it stands for: `N` with anything, `R`
+with `A` or `G`.
 
 **Dephosphorylation.** A ligase joins a strand only to a 5′ phosphate, which
 a restriction enzyme leaves on every end. Treating a vector with a phosphatase
@@ -236,7 +238,10 @@ The panel works that out:
    says which is which.
 2. Choose the **enzyme** the parts were designed for. BsaI is the default;
    BsmBI, BbsI and SapI are there too, along with the other Type IIS
-   enzymes in the table that leave an overhang.
+   enzymes in the table that leave an overhang. For parts made for two
+   enzymes — a BsaI vector taking a BsmBI part, say — choose the second in
+   **and**; both then cut everything in the tube, and a piece keeping
+   either site is cut again.
 3. Untick anything that is not in the tube. Everything is in it to begin
    with.
 4. The panel digests each part, throws out the pieces that still carry a
@@ -248,6 +253,20 @@ The panel works that out:
    in the tube.
 5. Name the product if you like, then **Assemble**. It opens as a new
    circular document with the parts' features.
+
+When the parts assemble, the panel also checks the set of overhangs the
+product joins on, as a designer would, and lists what could make a ligase
+join the wrong ends:
+
+- two overhangs one base apart, like `AATG` and `AATC`;
+- an overhang one base (or none) from another one read the other way round,
+  since a ligase pairs an overhang with the complement of the other's too;
+- an overhang that is its own reverse complement (`GATC`), which lets a part
+  join a copy of itself back to front;
+- an ambiguity code, which pairs with every base it could stand for.
+
+These are warnings: the product shown is the one the design intends, and
+**Assemble** still works, but the tube may give other products as well.
 
 **_N_ pieces left out** expands to say what was discarded and why. In a
 well-designed set that is the vector's stuffer and each part's two flanks.
@@ -308,7 +327,7 @@ A-tailing, primer dimers and how much more readily a short product
 amplifies than a long one are not modelled beyond the order the products are
 listed in.
 
-Ambiguity codes in overhangs (an `N` never pairs). A PCR product's ends are
+A PCR product's ends are
 taken to carry phosphates, though primers are made without them unless
 ordered phosphorylated. Gibson does not check for homology _inside_ a part that
 could anneal as readily as the junction it was designed for, and models

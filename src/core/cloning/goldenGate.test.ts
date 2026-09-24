@@ -8,7 +8,13 @@ import {
   setActiveEnzymeSet,
 } from '@/core';
 
-import { goldenGateEnzymes, defaultGoldenGateEnzyme, goldenGate } from './goldenGate';
+import {
+  goldenGateEnzymes,
+  defaultGoldenGateEnzyme,
+  goldenGate,
+  overhangWarnings,
+} from './goldenGate';
+import { overhangsMatch } from './ligate';
 
 const BsaI = getEnzyme('BsaI');
 if (BsaI === undefined) throw new Error('BsaI is not in the enzyme table');
@@ -217,5 +223,70 @@ describe('goldenGate', () => {
     expect(
       goldenGate([vector, insert], { enzyme: BsaI, name: 'pFinal' }).assembly?.product.name,
     ).toBe('pFinal');
+  });
+});
+
+describe('Golden Gate II (#11)', () => {
+  const BsmBI = getEnzyme('BsmBI');
+  if (BsmBI === undefined) throw new Error('BsmBI is not in the enzyme table');
+  /** A part made for BsmBI (CGTCTC N1/N5) rather than BsaI. */
+  const bsmBIPart = (name: string, left: string, payload: string, right: string) =>
+    SeqDocument.create({ name, sequence: `TTCGTCTCA${left}${payload}${right}AGAGACGTT` });
+
+  it('mixes two enzymes in one tube', () => {
+    const vector = circularPart('pDest', A, 'CCCCCCCCCCCC', B);
+    const insert = bsmBIPart('insert', B, 'AAAAAAAAAA', A);
+    // BsaI alone leaves the insert with its BsmBI sites and blunt ends.
+    expect(goldenGate([vector, insert], { enzyme: BsaI }).assembly).toBeNull();
+    const both = goldenGate([vector, insert], { enzyme: BsaI, secondEnzyme: BsmBI });
+    expect(both.problem).toBeNull();
+    expect(both.assembly?.product.sequence.toString()).toBe(`${A}CCCCCCCCCCCC${B}AAAAAAAAAA`);
+    expect(both.assembly?.product.metadata.description).toMatch(/with BsaI and BsmBI/);
+    // A piece that keeps a site says which enzyme's.
+    const flank = both.dropped.find((d) => d.reason === 'site');
+    expect(flank?.enzyme).toBeDefined();
+  });
+
+  it('warns about overhangs a ligase could confuse, and still assembles', () => {
+    // AATG and AATC are one base apart.
+    const vector = circularPart('pDest', A, 'CCCCCCCCCCCC', 'AATC');
+    const one = linearPart('insert1', 'AATC', 'AAAAAAAAAA', C);
+    const two = linearPart('insert2', C, 'TTTTTTTTTT', A);
+    const result = goldenGate([vector, one, two], { enzyme: BsaI });
+    expect(result.assembly).not.toBeNull();
+    expect(result.assembly?.warnings.map((w) => w.overhangs)).toEqual([['AATG', 'AATC']]);
+    // A well-chosen set has nothing to say.
+    const good = goldenGate(
+      [
+        circularPart('pDest', A, 'CCCCCCCCCCCC', B),
+        linearPart('insert1', B, 'AAAAAAAAAA', C),
+        linearPart('insert2', C, 'TTTTTTTTTT', A),
+      ],
+      { enzyme: BsaI },
+    );
+    expect(good.assembly?.warnings).toEqual([]);
+  });
+});
+
+describe('overhangWarnings', () => {
+  it('names palindromes, near neighbours either way round, and ambiguity codes', () => {
+    const texts = (set: string[]) => overhangWarnings(set).map((w) => w.overhangs.join('/'));
+    expect(texts(['GATC'])).toEqual(['GATC']);
+    // CATT turned around is AATG: the two can pair.
+    expect(texts(['AATG', 'CATT'])).toEqual(['AATG/CATT']);
+    // CATA turned around is TATG, one base from AATG.
+    expect(texts(['AATG', 'CATA'])).toEqual(['AATG/CATA']);
+    expect(texts(['AANG'])).toEqual(['AANG']);
+    expect(texts(['AATG', 'GCTT', 'CGCT'])).toEqual([]);
+  });
+});
+
+describe('overhangsMatch', () => {
+  it('lets an ambiguity code pair with any base it stands for', () => {
+    expect(overhangsMatch('AATG', 'aatg')).toBe(true);
+    expect(overhangsMatch('ANTG', 'AATG')).toBe(true);
+    expect(overhangsMatch('ARTG', 'AGTG')).toBe(true);
+    expect(overhangsMatch('ARTG', 'ACTG')).toBe(false);
+    expect(overhangsMatch('AATG', 'AAT')).toBe(false);
   });
 });

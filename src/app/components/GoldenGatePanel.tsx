@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import {
   type AssembledPart,
   type DroppedFragment,
-  type Enzyme,
+  type GoldenGateOptions,
   goldenGateEnzymes,
   defaultGoldenGateEnzyme,
   describeDropped,
@@ -39,19 +39,13 @@ function OrderRow({ part, index }: { readonly part: AssembledPart; readonly inde
   );
 }
 
-function DroppedRow({
-  dropped,
-  enzyme,
-}: {
-  readonly dropped: DroppedFragment;
-  readonly enzyme: Enzyme;
-}) {
+function DroppedRow({ dropped }: { readonly dropped: DroppedFragment }) {
   return (
     <li className="gg__dropped">
       <span className="gg__dropped-size">
         {dropped.fragment.sequence.length.toLocaleString()} bp
       </span>{' '}
-      of {dropped.fragment.source} {describeDropped(dropped, enzyme)}.
+      of {dropped.fragment.source} {describeDropped(dropped)}.
     </li>
   );
 }
@@ -65,10 +59,22 @@ function DroppedRow({
 export function GoldenGatePanel() {
   const { documents, shelf } = useEditorState();
   const [enzymeName, setEnzymeName] = useState(DEFAULT_ENZYME?.name ?? '');
+  // Empty for none: most reactions have one enzyme (#11).
+  const [secondName, setSecondName] = useState('');
   const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
   const [name, setName] = useState('');
 
   const enzyme = getEnzyme(enzymeName);
+  const second = secondName === '' ? undefined : getEnzyme(secondName);
+  const options = useMemo<GoldenGateOptions | null>(
+    () =>
+      enzyme === undefined
+        ? null
+        : second === undefined
+          ? { enzyme }
+          : { enzyme, secondEnzyme: second },
+    [enzyme, second],
+  );
   // The shelf is in the tube as well as the open tabs. A piece already cut
   // out of a plasmid is a part like any other: the reaction digests it with
   // the Type IIS enzyme like everything else, and if it carries no site it
@@ -79,8 +85,8 @@ export function GoldenGatePanel() {
   // in a worker: it is one enzyme over a few plasmids, and the panel has to
   // answer while the user is ticking boxes. See docs/perf-notes.md.
   const result = useMemo(
-    () => (enzyme === undefined || docs.length === 0 ? null : goldenGate(docs, { enzyme })),
-    [docs, enzyme],
+    () => (options === null || docs.length === 0 ? null : goldenGate(docs, options)),
+    [docs, options],
   );
 
   const toggle = (id: string): void => {
@@ -90,9 +96,9 @@ export function GoldenGatePanel() {
   };
 
   const assemble = (): void => {
-    if (enzyme === undefined) return;
+    if (options === null || enzyme === undefined) return;
     const trimmed = name.trim();
-    const run = goldenGate(docs, trimmed === '' ? { enzyme } : { enzyme, name: trimmed });
+    const run = goldenGate(docs, trimmed === '' ? options : { ...options, name: trimmed });
     if (run.assembly === null) {
       editorStore.fail(run.problem ?? 'The parts do not assemble.');
       return;
@@ -133,6 +139,26 @@ export function GoldenGatePanel() {
             ))}
           </select>
         </label>
+        <label className="panel__field">
+          and
+          <select
+            className="panel__select"
+            aria-label="Second enzyme"
+            value={secondName}
+            onChange={(e) => {
+              setSecondName(e.target.value);
+            }}
+          >
+            <option value="">no other</option>
+            {goldenGateEnzymes()
+              .filter((e) => e.name !== enzymeName)
+              .map((e) => (
+                <option key={e.name} value={e.name}>
+                  {e.name} {e.site}
+                </option>
+              ))}
+          </select>
+        </label>
       </div>
 
       <PartsTube
@@ -163,12 +189,24 @@ export function GoldenGatePanel() {
               />
             ))}
           </ol>
+          {assembly.warnings.length > 0 && (
+            <>
+              <p className="panel__note panel__note--warn">
+                The overhangs assemble, but the tube may also give something else:
+              </p>
+              <ul className="panel__warnings" aria-label="Overhang warnings">
+                {assembly.warnings.map((w) => (
+                  <li key={w.text}>{w.text}</li>
+                ))}
+              </ul>
+            </>
+          )}
         </>
       ) : (
         <p className="panel__error">{result?.problem}</p>
       )}
 
-      {result !== null && result.dropped.length > 0 && enzyme !== undefined && (
+      {result !== null && result.dropped.length > 0 && (
         <details className="gg__left-out">
           <summary>
             {result.dropped.length === 1
@@ -177,7 +215,7 @@ export function GoldenGatePanel() {
           </summary>
           <ul>
             {result.dropped.map((d, i) => (
-              <DroppedRow key={`${d.fragment.source}-${i}`} dropped={d} enzyme={enzyme} />
+              <DroppedRow key={`${d.fragment.source}-${i}`} dropped={d} />
             ))}
           </ul>
         </details>
