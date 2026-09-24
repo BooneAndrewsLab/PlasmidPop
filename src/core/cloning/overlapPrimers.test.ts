@@ -1,4 +1,5 @@
-import { SeqDocument, createFeature, rangeSegment } from '@/core';
+import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
+import { meltingTemperature } from '@/core/primers/thermo';
 
 import { KIT_OVERLAP, designOverlapPrimers } from './overlapPrimers';
 
@@ -91,5 +92,113 @@ describe('designOverlapPrimers', () => {
     const d = designOverlapPrimers(sticky, source, REGION, 'nebuilder');
     expect(d.problem).toBeNull();
     expect(d.warnings.join(' ')).toMatch(/has sticky ends/);
+  });
+});
+
+describe('designOverlapPrimers, pinned (#77)', () => {
+  it('gives back empty primers and no warnings when it refuses', () => {
+    const circle = SeqDocument.create({
+      name: 'pUncut',
+      sequence: VECTOR_TEXT,
+      topology: 'circular',
+    });
+    const d = designOverlapPrimers(circle, source, REGION, 'in-fusion');
+    const empty = { sequence: '', tail: '', annealLength: 0, tm: NaN };
+    expect(d.forward).toEqual(empty);
+    expect(d.reverse).toEqual(empty);
+    expect(d.warnings).toEqual([]);
+  });
+
+  it('stops growing a primer as soon as it reaches the target Tm', () => {
+    const insert = GENOME.slice(REGION.start, REGION.end);
+    // A target the shortest annealing part meets exactly.
+    const targetTm = meltingTemperature(insert.slice(0, 18));
+    const d = designOverlapPrimers(vector, source, REGION, 'in-fusion', { targetTm });
+    expect(d.forward.annealLength).toBe(18);
+    expect(d.forward.sequence).toBe(VECTOR_TEXT.slice(-15).toUpperCase() + insert.slice(0, 18));
+  });
+
+  it('names the product, labels the primers and passes on the assembly’s warnings', () => {
+    // 150 bp of insert and two 15-base tails: a part short enough to be chewed away.
+    const region = { start: 1000, end: 1150 };
+    const d = designOverlapPrimers(vector, source, region, 'in-fusion', { name: 'pCloned' });
+    expect(d.problem).toBeNull();
+    expect(must(d.product, 'a product').name).toBe('pCloned');
+    const amplicon = must(d.amplicon, 'an amplicon');
+    expect(amplicon.length).toBe(180);
+    expect(
+      amplicon.features
+        .all()
+        .filter((f) => f.type === 'primer_bind')
+        .map((f) => f.name),
+    ).toEqual(['Forward', 'Reverse']);
+    expect(d.warnings).toEqual([
+      'In-Fusion asks for 15 bases of homology, which both tails carry.',
+      'gDNA PCR product is 180 bp; the exonuclease may chew a piece under 200 bp away before it anneals, so add it in excess (NEB suggests 5-fold).',
+    ]);
+  });
+
+  it('counts the other products the primers make, in the singular and the plural', () => {
+    // The start of the insert copied in upstream, once and then twice: the
+    // forward primer anneals there too and each copy makes one more product.
+    const head = GENOME.slice(1000, 1030);
+    const once = SeqDocument.create({
+      name: 'gDNA',
+      sequence: GENOME.slice(0, 500) + head + GENOME.slice(500),
+    });
+    const twice = SeqDocument.create({
+      name: 'gDNA',
+      sequence: GENOME.slice(0, 300) + head + GENOME.slice(300, 500) + head + GENOME.slice(500),
+    });
+    const one = designOverlapPrimers(vector, once, { start: 1030, end: 1630 }, 'in-fusion');
+    const two = designOverlapPrimers(vector, twice, { start: 1060, end: 1660 }, 'in-fusion');
+    expect(one.problem).toBeNull();
+    expect(one.warnings).toEqual([
+      'The primers also amplify 1 other product of the template, which would compete in the tube.',
+      'In-Fusion asks for 15 bases of homology, which both tails carry.',
+    ]);
+    expect(two.problem).toBeNull();
+    expect(two.warnings).toEqual([
+      'The primers also amplify 2 other products of the template, which would compete in the tube.',
+      'In-Fusion asks for 15 bases of homology, which both tails carry.',
+    ]);
+  });
+
+  it('keeps the primers and says why when only other products amplify', () => {
+    // 20.5 kb is past a proofreading polymerase's reach, and on 21 kb of
+    // random sequence the primers find somewhere else to make one product.
+    // It was counted as "1 other products".
+    const long = SeqDocument.create({ name: 'gDNA', sequence: filler(21000, 5) });
+    const d = designOverlapPrimers(vector, long, { start: 100, end: 20600 }, 'in-fusion');
+    expect(d.problem).toBe(
+      'The primers amplify 1 other product of gDNA but not the selection; they are not specific to it.',
+    );
+    expect(d.forward.annealLength).toBeGreaterThanOrEqual(18);
+    expect(d.amplicon).toBeNull();
+    expect(d.product).toBeNull();
+    expect(d.warnings).toEqual([]);
+    const many = SeqDocument.create({ name: 'gDNA', sequence: filler(21000, 7) });
+    expect(
+      designOverlapPrimers(vector, many, { start: 100, end: 20600 }, 'in-fusion').problem,
+    ).toBe(
+      'The primers amplify 5 other products of gDNA but not the selection; they are not specific to it.',
+    );
+  });
+
+  it('keeps the amplicon and passes on the reason when the circle does not close', () => {
+    // A vector whose two ends are each other's reverse complement gives both
+    // tails the same bases, so the amplicon fits after it either way round.
+    const end = filler(15, 9);
+    const itr = SeqDocument.create({
+      name: 'pITR',
+      sequence: end + filler(2000, 10) + reverseComplement(end),
+    });
+    const d = designOverlapPrimers(itr, source, REGION, 'in-fusion');
+    expect(d.problem).toBe(
+      'The end of pITR matches gDNA PCR product either way round, so the assembly is ambiguous.',
+    );
+    expect(d.amplicon).not.toBeNull();
+    expect(d.product).toBeNull();
+    expect(d.warnings).toEqual([]);
   });
 });

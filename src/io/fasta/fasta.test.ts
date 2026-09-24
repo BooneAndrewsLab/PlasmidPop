@@ -149,3 +149,78 @@ describe('FASTA and the host methylation (#71)', () => {
     if (back !== undefined) expect(writeFasta(back)).toContain('[PlasmidPop-methylation: garbage]');
   });
 });
+
+describe('FASTA, reading line by line', () => {
+  it('splits on a lone carriage return too, the old Mac line end', () => {
+    const doc = parseFasta('>a first\rACGT\rTT\r').documents[0];
+    expect([doc?.name, doc?.metadata.description, doc?.sequence.toString()]).toEqual([
+      'a',
+      'first',
+      'ACGTTT',
+    ]);
+  });
+
+  it('reads a header and sequence lines indented or with space after the ">"', () => {
+    const doc = parseFasta('  > seq1  a plasmid  \n   ACGT  \n').documents[0];
+    expect([doc?.name, doc?.metadata.description, doc?.sequence.toString()]).toEqual([
+      'seq1',
+      'a plasmid',
+      'ACGT',
+    ]);
+  });
+
+  it('names each character it cannot read, once, and the line of its header', () => {
+    let error: unknown;
+    try {
+      parseFasta('\n\n>p protein\nMKVLLA*\nLL**\n');
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(FormatError);
+    expect((error as FormatError).line).toBe(3);
+    expect((error as FormatError).message).toBe(
+      'Line 3: Sequence is not nucleotide IUPAC (found "L", "*")',
+    );
+    expect(() => parseFasta('\n\nACGT\n')).toThrow('Line 3: FASTA files must start with a ">"');
+  });
+
+  it('takes a tag of ours out of the description wherever it stands in it', () => {
+    const ends = parseFasta(">x [PlasmidPop-ends: left=blunt; right=5' AATT/EcoRI] insert\nACGT\n")
+      .documents[0];
+    expect(ends?.metadata.description).toBe('insert');
+    const host = parseFasta('>x [PlasmidPop-methylation: dam-; dcm-] note\nACGT\n').documents[0];
+    expect(host?.metadata.description).toBe('note');
+    expect(host?.methylation).toEqual({ dam: false, dcm: false });
+  });
+});
+
+describe('FASTA, writing the header', () => {
+  it('writes the name alone when there is no description, and Untitled for a blank name', () => {
+    const doc = (name: string, description = '') =>
+      SeqDocument.create({ name, sequence: 'ACGT', metadata: { description } });
+    expect(writeFasta(doc('p1'))).toBe('>p1\nACGT\n');
+    expect(writeFasta(doc('  '))).toBe('>Untitled\nACGT\n');
+    expect(writeFasta(doc(''))).toBe('>Untitled\nACGT\n');
+    expect(writeFasta(doc('my  new\tplasmid', 'v2'))).toBe('>my_new_plasmid v2\nACGT\n');
+  });
+
+  it('drops a readable tag of ours from the description, since it writes its own', () => {
+    const doc = SeqDocument.create({
+      name: 'x',
+      sequence: 'ACGT',
+      metadata: {
+        description:
+          "insert [PlasmidPop-ends: left=5' AATT/EcoRI; right=blunt] [PlasmidPop-methylation: dam-; dcm-]",
+      },
+    });
+    // The document itself is linear with plain ends and an ordinary host.
+    expect(writeFasta(doc)).toBe('>x insert\nACGT\n');
+    const first = doc.setMetadata({ description: '[PlasmidPop-methylation: dam-; dcm-] insert' });
+    expect(writeFasta(first)).toBe('>x insert\nACGT\n');
+  });
+
+  it('adds no empty line after a sequence that fills its last line, or has none', () => {
+    expect(formatFastaRecord('x', 'A'.repeat(70))).toBe(`>x\n${'A'.repeat(70)}\n`);
+    expect(formatFastaRecord('x', '')).toBe('>x\n');
+  });
+});

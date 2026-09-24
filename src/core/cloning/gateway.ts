@@ -1,7 +1,6 @@
 import { type SeqDocument, createMetadata, fragmentFromRange } from '../document';
 import { type Feature, type Strand, createFeature, rangeSegment } from '../features';
 import { type Range } from '../range';
-import { reverseComplement } from '../sequence';
 import { type DigestFragment } from './digest';
 import { ligate } from './ligate';
 
@@ -137,9 +136,9 @@ interface Crossover {
 
 /**
  * Where two partner sites cross over: the middle of the core they share,
- * read on the forward strand of each molecule. A site annotated on the
- * reverse strand is compared reverse-complemented, since the core is the
- * same DNA either way.
+ * read on the forward strand of each molecule. Both sites lie on the same
+ * strand: `gateway` turns a vector whose sites face the other way over
+ * before it gets here.
  */
 function crossoverOf(
   first: { readonly doc: SeqDocument; readonly site: AttSite },
@@ -148,12 +147,9 @@ function crossoverOf(
   const textOf = (d: SeqDocument, s: AttSite): string => d.subsequence(s.range);
   const a = textOf(first.doc, first.site);
   const b = textOf(second.doc, second.site);
-  const flipped = first.site.strand !== second.site.strand;
-  const bRead = flipped ? reverseComplement(b) : b;
-  const core = sharedCore(a, bRead);
+  const core = sharedCore(a, b);
   if (core.length < MIN_CORE) return null;
   const half = Math.floor(core.length / 2);
-  const inSecondRead = core.inB + half;
   // A recombinant clone's own site can wrap the origin, so its range starts
   // near the end of the sequence and runs past it; the crossover is wrapped
   // back into the molecule.
@@ -161,10 +157,7 @@ function crossoverOf(
     doc.isCircular && doc.length > 0 ? ((at % doc.length) + doc.length) % doc.length : at;
   return {
     inFirst: wrap(first.site.range.start + core.inA + half, first.doc),
-    inSecond: wrap(
-      second.site.range.start + (flipped ? b.length - inSecondRead : inSecondRead),
-      second.doc,
-    ),
+    inSecond: wrap(second.site.range.start + core.inB + half, second.doc),
     core: core.length,
   };
 }

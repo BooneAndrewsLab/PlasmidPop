@@ -158,7 +158,8 @@ function annealRun(
   return {
     length: best,
     mismatches: bestMismatches,
-    perfect: bestMismatches === 0 || perfect < 0 ? best : perfect,
+    // A site with a mismatch in it had `perfect` set at the first one.
+    perfect: bestMismatches === 0 ? best : perfect,
   };
 }
 

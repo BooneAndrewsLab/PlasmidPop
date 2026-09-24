@@ -476,8 +476,10 @@ function gibsonWarnings(
     }
   }
   const floor = recommendedOverlap(order.length);
+  // No join is shorter than `minOverlap`, so none is short when the floor
+  // is at or below it.
   const short = joins.filter((j) => j.length < floor);
-  if (short.length > 0 && floor > minOverlap) {
+  if (short.length > 0) {
     out.push({
       kind: 'short-overlap',
       text: `${order.length} pieces want overlaps of ${floor} bp or more; ${short.length === 1 ? 'one junction has' : `${short.length} junctions have`} ${[...new Set(short.map((j) => j.length))].join(', ')} bp.`,

@@ -162,7 +162,7 @@ export function designOverlapPrimers(
       warnings: [],
       problem:
         reaction.problem ??
-        `The primers amplify ${reaction.products.length} other products of ${template.name} but not the selection; they are not specific to it.`,
+        `The primers amplify ${reaction.products.length} other ${reaction.products.length === 1 ? 'product' : 'products'} of ${template.name} but not the selection; they are not specific to it.`,
     };
   }
   const assembly = gibson([vector, amplicon.document], {

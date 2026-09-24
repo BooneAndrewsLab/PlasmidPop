@@ -1,7 +1,7 @@
 import { expectWithin, itTimed } from '@/test/timing';
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 
-import { gibson, terminalOverlap } from './gibson';
+import { describeGibsonDropped, gibson, terminalOverlap } from './gibson';
 
 /**
  * A pseudo-random but fixed template, so every junction's homology is
@@ -261,5 +261,206 @@ describe('gibson warnings (#12)', () => {
     expect(kinds).toEqual(['short-part', 'short-overlap']);
     expect(result.assembly?.warnings[0]?.text).toMatch(/part2 is 150 bp/);
     expect(result.assembly?.warnings[1]?.text).toMatch(/4 pieces want overlaps of 20 bp or more/);
+  });
+});
+
+describe('gibson refusals, word for word (#77)', () => {
+  it('has nothing to assemble when every part is left out, and says why each was', () => {
+    const plasmid = SeqDocument.create({
+      name: 'uncut',
+      topology: 'circular',
+      sequence: template(500, 3),
+    });
+    // Exactly as long as the homology: nothing would be left of it.
+    const oligo = SeqDocument.create({ name: 'oligo', sequence: template(15, 4) });
+    const result = gibson([plasmid, oligo]);
+    expect(result.assembly).toBeNull();
+    expect(result.usable).toEqual([]);
+    expect(result.problem).toBe('Nothing to assemble: no part has two ends to join by.');
+    const [circular, short] = result.dropped;
+    if (circular === undefined || short === undefined) throw new Error('two dropped');
+    expect([circular.reason, short.reason]).toEqual(['circular', 'short']);
+    expect(describeGibsonDropped(circular, 15)).toBe(
+      'is circular, so it has no ends to join by — linearise or digest it first',
+    );
+    expect(describeGibsonDropped(short, 15)).toBe(
+      'is shorter than the 15 bp of homology a junction needs',
+    );
+  });
+
+  it('will not call one part in a linear product an assembly', () => {
+    const [only] = pieces(PLASMID, [0], 25);
+    if (only === undefined) throw new Error('parts');
+    expect(gibson([only], { circular: false }).problem).toBe(
+      'One part and a linear product is not an assembly.',
+    );
+  });
+
+  it('names the one part that follows either way round', () => {
+    // part2 starts with part1's last 25 bases and ends with their reverse
+    // complement, so it fits after part1 as itself and turned around.
+    const a = SeqDocument.create({ name: 'part1', sequence: template(400, 5) });
+    const end = a.sequence.toString().slice(-25);
+    const b = SeqDocument.create({
+      name: 'part2',
+      sequence: end + template(300, 6) + reverseComplement(end),
+    });
+    expect(gibson([a, b]).problem).toBe(
+      'The end of part1 matches part2 either way round, so the assembly is ambiguous.',
+    );
+  });
+
+  it('names the parts that could come before the start of a linear product', () => {
+    const [a, b, c] = linearPieces(PLASMID, [0, 1000, 2000], 25);
+    if (a === undefined || b === undefined || c === undefined) throw new Error('parts');
+    const twin = SeqDocument.create({ name: 'part1 copy', sequence: a.sequence.toString() });
+    expect(gibson([b, c, a, twin], { circular: false }).problem).toBe(
+      'The start of part2 matches part1 and part1 copy, so the assembly is ambiguous. Every junction needs homology of its own.',
+    );
+  });
+
+  it('says where a linear chain stops when nothing comes before or after it', () => {
+    const [a, b] = linearPieces(PLASMID, [0, 1000, 2000], 25);
+    if (a === undefined || b === undefined) throw new Error('parts');
+    const stray = SeqDocument.create({ name: 'stray', sequence: template(500, 999) });
+    expect(gibson([a, b, stray], { circular: false }).problem).toBe(
+      'Nothing follows part2: no other part starts with its last 15 bases or more. 1 of 3 parts were never reached.',
+    );
+  });
+
+  it('does not look backwards round a circle that stops', () => {
+    // part3 without its tail has nothing after it. Walking back from part2
+    // would reach part1, but a circle is followed one way only.
+    const [a, b, c] = pieces(PLASMID, [0, 1000, 2000], 25);
+    if (a === undefined || b === undefined || c === undefined) throw new Error('parts');
+    const open = SeqDocument.create({ name: 'part3', sequence: PLASMID.slice(2000) });
+    expect(gibson([b, open, a]).problem).toBe(
+      'Nothing follows part3: no other part starts with its last 15 bases or more. 1 of 3 parts were never reached.',
+    );
+  });
+
+  it('refuses a part that is all homology', () => {
+    // part2 is the last 20 bases of part1, and its own last 15 start part3:
+    // it gives up all 20 to part1 and nothing of it is left.
+    const t = template(600, 21);
+    const a = SeqDocument.create({ name: 'part1', sequence: t.slice(0, 300) });
+    const b = SeqDocument.create({ name: 'part2', sequence: t.slice(280, 300) });
+    const c = SeqDocument.create({ name: 'part3', sequence: t.slice(285) });
+    expect(gibson([b, a, c], { circular: false }).problem).toBe(
+      'part2 is shorter than the homology at its two ends, so there would be nothing left of it in the product.',
+    );
+  });
+});
+
+describe('gibson product description (#77)', () => {
+  it('lists each part with its length, its turn and the overlap after it', () => {
+    const [a, b, c] = pieces(PLASMID, [0, 1000, 2000], 25);
+    if (a === undefined || b === undefined || c === undefined) throw new Error('parts');
+    const flipped = SeqDocument.create({
+      name: 'part2',
+      sequence: reverseComplement(b.sequence.toString()),
+    });
+    expect(gibson([a, flipped, c]).assembly?.product.metadata.description).toBe(
+      'Circular Gibson assembly of part1 (1,025 bp, 25 bp overlap), part2 (1,025 bp, flipped, 25 bp overlap), part3 (1,025 bp, 25 bp overlap)',
+    );
+  });
+
+  it('gives the last part of a linear product no overlap', () => {
+    const parts = linearPieces(PLASMID, [0, 1000, 2000], 25);
+    expect(gibson(parts, { circular: false }).assembly?.product.metadata.description).toBe(
+      'Linear Gibson assembly of part1 (1,025 bp, 25 bp overlap), part2 (1,025 bp, 25 bp overlap), part3 (1,000 bp)',
+    );
+  });
+});
+
+describe('gibson warnings, word for word (#77)', () => {
+  /** A four-piece circle of PLASMID whose junctions have the given overlaps. */
+  function fourPieces(overlaps: readonly number[]): SeqDocument[] {
+    const cuts = [0, 750, 1500, 2250];
+    return cuts.map((start, i) => {
+      const next = cuts[(i + 1) % cuts.length] ?? 0;
+      const end = (next > start ? next : next + PLASMID.length) + (overlaps[i] ?? 0);
+      let text = '';
+      for (let p = start; p < end; p++) text += PLASMID.charAt(p % PLASMID.length);
+      return SeqDocument.create({ name: `part${i + 1}`, sequence: text });
+    });
+  }
+
+  it('counts one short junction as one', () => {
+    const assembly = gibson(fourPieces([16, 25, 25, 25])).assembly;
+    expect(assembly?.joins.map((j) => j.length)).toEqual([16, 25, 25, 25]);
+    expect(assembly?.warnings.map((w) => w.text)).toEqual([
+      '4 pieces want overlaps of 20 bp or more; one junction has 16 bp.',
+    ]);
+  });
+
+  it('lists the lengths of several short junctions once each', () => {
+    const assembly = gibson(fourPieces([16, 17, 16, 25])).assembly;
+    expect(assembly?.joins.map((j) => j.length)).toEqual([16, 17, 16, 25]);
+    expect(assembly?.warnings.map((w) => w.text)).toEqual([
+      '4 pieces want overlaps of 20 bp or more; 3 junctions have 16, 17 bp.',
+    ]);
+  });
+
+  it('keeps apart two junctions whose homology begins alike, and finds each one’s copies', () => {
+    // Both junctions start with the same 15 bases (the repeat search's seed)
+    // and differ in the last 5. part2 has a copy of the first junction just
+    // past its own designed one; part3 has two copies of it back to back
+    // right after an N, and a copy of the second junction.
+    const x = template(15, 41);
+    const w1 = x + 'ACGTA';
+    const w2 = x + 'TTGCA';
+    const z = template(20, 44);
+    const part1 = SeqDocument.create({ name: 'part1', sequence: z + template(400, 45) + w1 });
+    const part2 = SeqDocument.create({
+      name: 'part2',
+      sequence: w1 + template(10, 46) + w1 + template(400, 47) + w2,
+    });
+    const part3 = SeqDocument.create({
+      name: 'part3',
+      sequence:
+        w2 + template(300, 48) + 'N' + w1 + w1 + template(300, 49) + w2 + template(100, 50) + z,
+    });
+    const assembly = gibson([part1, part2, part3], { minOverlap: 20 }).assembly;
+    if (assembly === null) throw new Error('no assembly');
+    expect(assembly.joins.map((j) => j.length)).toEqual([20, 20, 20]);
+    const tail = ', where a chewed-back end could anneal instead.';
+    expect(assembly.warnings.map((w) => w.text)).toEqual([
+      // 20 + 10: inside part2 but not where the junction put it.
+      `The homology joining part1 to part2 also occurs in part2 at 31${tail}`,
+      // The two touching copies are one stretch, from the first.
+      `The homology joining part1 to part2 also occurs in part3 at 322${tail}`,
+      `The homology joining part2 to part3 also occurs in part3 at 662${tail}`,
+    ]);
+  });
+
+  it('reports a junction’s copies by part, then strand, then position', () => {
+    // The 25-base junction part1→part2 is searched as 15-base windows. Its
+    // first window turns up on part1's other strand, its middle one in
+    // part3, its last one in part1: found in that order, reported by part.
+    const [a, b, c] = pieces(PLASMID, [0, 1000, 2000], 25);
+    if (a === undefined || b === undefined || c === undefined) throw new Error('parts');
+    const first = PLASMID.slice(1000, 1015);
+    const middle = PLASMID.slice(1005, 1020);
+    const last = PLASMID.slice(1010, 1025);
+    const p1 = a.sequence.toString();
+    const p3 = c.sequence.toString();
+    const salted1 = SeqDocument.create({
+      name: 'part1',
+      sequence:
+        p1.slice(0, 300) + reverseComplement(first) + p1.slice(300, 500) + last + p1.slice(500),
+    });
+    const salted3 = SeqDocument.create({
+      name: 'part3',
+      sequence: p3.slice(0, 50) + middle + p3.slice(50),
+    });
+    const assembly = gibson([salted1, b, salted3]).assembly;
+    if (assembly === null) throw new Error('no assembly');
+    const tail = ', where a chewed-back end could anneal instead.';
+    expect(assembly.warnings.map((w) => w.text)).toEqual([
+      `The homology joining part1 to part2 also occurs in part1 at 516${tail}`,
+      `The homology joining part1 to part2 also occurs in part1 at 301 (other strand)${tail}`,
+      `The homology joining part1 to part2 also occurs in part3 at 51${tail}`,
+    ]);
   });
 });

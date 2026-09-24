@@ -252,3 +252,11 @@ function permutations<T>(items: readonly T[]): T[][] {
     permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [item, ...rest]),
   );
 }
+
+describe('isMethylationComment', () => {
+  it('knows the line with space before it, and nothing else', () => {
+    expect(isMethylationComment('  PlasmidPop-methylation: dam-; dcm-')).toBe(true);
+    expect(isMethylationComment('PlasmidPop-ends: left=blunt; right=blunt')).toBe(false);
+    expect(isMethylationComment('grown in PlasmidPop-methylation: dam-')).toBe(false);
+  });
+});

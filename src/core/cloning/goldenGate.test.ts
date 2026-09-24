@@ -11,6 +11,7 @@ import {
 import {
   goldenGateEnzymes,
   defaultGoldenGateEnzyme,
+  describeDropped,
   goldenGate,
   overhangWarnings,
 } from './goldenGate';
@@ -288,5 +289,134 @@ describe('overhangsMatch', () => {
     expect(overhangsMatch('ARTG', 'AGTG')).toBe(true);
     expect(overhangsMatch('ARTG', 'ACTG')).toBe(false);
     expect(overhangsMatch('AATG', 'AAT')).toBe(false);
+  });
+});
+
+describe('Golden Gate, exactly (#77)', () => {
+  it('starts the picker on BsmBI when the table has no BsaI', () => {
+    setActiveEnzymeSet({
+      ...BUNDLED_ENZYME_SET,
+      enzymes: BUNDLED_ENZYME_SET.enzymes.filter((e) => e.name !== 'BsaI'),
+    });
+    try {
+      expect(defaultGoldenGateEnzyme()?.name).toBe('BsmBI');
+    } finally {
+      setActiveEnzymeSet(null);
+    }
+  });
+
+  it('keeps a part shorter than the recognition site', () => {
+    const vector = circularPart('pDest', A, 'CCCCCCCCCCCC', B);
+    // Nothing between the overhangs: the piece is the four bases of B.
+    const tiny = linearPart('tiny', B, '', A);
+    const result = goldenGate([vector, tiny], { enzyme: BsaI });
+    expect(result.problem).toBeNull();
+    expect(result.usable.map((f) => f.sequence)).toEqual([`${A}CCCCCCCCCCCC`, B]);
+    expect(result.assembly?.product.sequence.toString()).toBe(`${A}CCCCCCCCCCCC${B}`);
+  });
+
+  it('describes the product part by part', () => {
+    const vector = circularPart('pDest', A, 'CCCCCCCCCCCC', B);
+    const one = linearPart('insert1', B, 'AAAAAAAAAA', C);
+    const two = linearPart('insert2', C, 'TTTTTTTTTT', A);
+    const result = goldenGate([one, two, vector], { enzyme: BsaI });
+    expect(result.assembly?.product.metadata.description).toBe(
+      'Golden Gate assembly with BsaI of insert1 (14 bp, GCTT), insert2 (14 bp, CGCT), pDest (16 bp, AATG)',
+    );
+  });
+
+  it('drops a piece with a blunt end on either side, and says there is nothing left', () => {
+    // Two sites pointing outwards: the middle keeps both, and each flank
+    // comes away with one sticky end and the blunt end of the molecule.
+    const outward = SeqDocument.create({
+      name: 'outward',
+      sequence: `AAAAAAAAAAAAGAGACCTTTTGGTCTCAAAAAAAAAAAA`,
+    });
+    const one = goldenGate([outward], { enzyme: BsaI });
+    expect(one.dropped.map((d) => [d.reason, d.fragment.left.kind, d.fragment.right.kind])).toEqual(
+      [
+        ['blunt', 'blunt', "5'"],
+        ['site', "5'", "5'"],
+        ['blunt', "5'", 'blunt'],
+      ],
+    );
+    expect(one.usable).toEqual([]);
+    expect(one.problem).toBe(
+      'Nothing to assemble: no piece of the BsaI digest kept two sticky ends and lost its BsaI site.',
+    );
+    const BsmBI = getEnzyme('BsmBI');
+    if (BsmBI === undefined) throw new Error('BsmBI is not in the enzyme table');
+    expect(goldenGate([outward], { enzyme: BsaI, secondEnzyme: BsmBI }).problem).toBe(
+      'Nothing to assemble: no piece of the BsaI and BsmBI digest kept two sticky ends and lost its sites.',
+    );
+  });
+
+  it('drops a piece that is exactly the site', () => {
+    const BsmBI = getEnzyme('BsmBI');
+    if (BsmBI === undefined) throw new Error('BsmBI is not in the enzyme table');
+    const doc = SeqDocument.create({
+      name: 'exact',
+      sequence: 'TTCGTCTCAGGTCTCAAAAAGAGACGTT',
+    });
+    // BsmBI cuts either side of the BsaI site, leaving a piece that is the
+    // six bases of it and nothing more: still cut again.
+    const result = goldenGate([doc], { enzyme: BsaI, secondEnzyme: BsmBI });
+    expect(result.dropped.map((d) => [d.fragment.sequence, d.reason, d.enzyme])).toEqual([
+      ['TTCGTCTCA', 'site', 'BsmBI'],
+      ['GGTCTC', 'site', 'BsaI'],
+      ['AAAAGAGACGTT', 'site', 'BsmBI'],
+    ]);
+    // Between the two enzymes' cuts on the right, one base with no site.
+    expect(result.usable.map((f) => f.sequence)).toEqual(['A']);
+  });
+
+  it('says how many parts it never reached', () => {
+    const vector = circularPart('pDest', A, 'CCCCCCCCCCCC', B);
+    const orphan = linearPart('insert1', C, 'AAAAAAAAAA', A);
+    expect(goldenGate([vector, orphan], { enzyme: BsaI }).problem).toBe(
+      'No part starts with the overhang BsaI 5′ GCTT left by pDest. 1 of 2 parts were never reached.',
+    );
+  });
+
+  it('will not guess which way round a part goes when its overhangs are palindromes', () => {
+    const vector = circularPart('pDest', 'GATC', 'CCCCCCCCCCCC', 'GATC');
+    const insert = linearPart('insert1', 'GATC', 'AAAAAAAAAA', 'GATC');
+    expect(goldenGate([vector, insert], { enzyme: BsaI }).problem).toBe(
+      'The overhang BsaI 5′ GATC lets the next part go in either way round, so the assembly is ambiguous.',
+    );
+  });
+
+  it('keeps the pieces of a palindromic enzyme, which lose its site when cut', () => {
+    const EcoRI = getEnzyme('EcoRI');
+    if (EcoRI === undefined) throw new Error('EcoRI is not in the enzyme table');
+    const circle = SeqDocument.create({
+      name: 'pEco',
+      topology: 'circular',
+      sequence: 'GAATTCCCCCCCCCCCGAATTCGGGGGGGGGG',
+    });
+    const result = goldenGate([circle], { enzyme: EcoRI });
+    expect(result.dropped).toEqual([]);
+    expect(result.usable).toHaveLength(2);
+  });
+
+  it('says why each piece was left out', () => {
+    const vector = circularPart('pDest', A, 'CCCCCCCCCCCC', B);
+    const insert = linearPart('insert1', B, 'AAAAAAAAAA', A);
+    const flank = goldenGate([vector, insert], { enzyme: BsaI }).dropped[0];
+    if (flank === undefined) throw new Error('no dropped piece');
+    expect(describeDropped(flank)).toBe(
+      'still carries the BsaI site, so the reaction cuts it again',
+    );
+    expect(describeDropped({ fragment: flank.fragment, reason: 'site' })).toBe(
+      'still carries the enzyme site, so the reaction cuts it again',
+    );
+    expect(describeDropped({ fragment: flank.fragment, reason: 'blunt' })).toBe(
+      'has a blunt end, so there is no overhang to join it by',
+    );
+  });
+
+  it('finds no risk in empty overhangs, nor between overhangs of different lengths', () => {
+    expect(overhangWarnings(['', ''])).toEqual([]);
+    expect(overhangWarnings(['AATG', 'AAT'])).toEqual([]);
   });
 });
