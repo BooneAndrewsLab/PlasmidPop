@@ -24,6 +24,11 @@ export type EditOp =
   | { readonly type: 'setTopology'; readonly topology: Topology }
   /** Describes the ends of a linear molecule, or clears the description. */
   | { readonly type: 'setEnds'; readonly ends: DocumentEnds | null }
+  /**
+   * Makes both sticky ends of a linear molecule blunt, as an enzyme on the
+   * bench would (see `BluntMethod`). The bases change as well as the ends.
+   */
+  | { readonly type: 'bluntEnds'; readonly method: BluntMethod }
   | { readonly type: 'rename'; readonly name: string }
   | { readonly type: 'setMetadata'; readonly patch: Partial<DocumentMetadata> }
   | { readonly type: 'addFeature'; readonly feature: Feature }
@@ -31,6 +36,14 @@ export type EditOp =
   | { readonly type: 'removeFeature'; readonly id: FeatureId };
 
 export type FeaturePatch = Partial<Omit<Feature, 'id'>>;
+
+/**
+ * How an overhang is made blunt (#8). `fill`: a polymerase (Klenow, T4 DNA
+ * polymerase) fills a 5′ overhang in and chews a 3′ one back, so a 5′
+ * overhang's bases become base pairs. `trim`: a single-strand nuclease (mung
+ * bean) removes every overhang, 5′ or 3′.
+ */
+export type BluntMethod = 'fill' | 'trim';
 
 /**
  * The History label for an edit that took `before` to `after`. Only a turn
@@ -68,6 +81,8 @@ export function describeEditOp(op: EditOp): string {
       return op.topology === 'circular' ? 'Make circular' : 'Make linear';
     case 'setEnds':
       return op.ends === null ? 'Blunt the ends' : 'Set the ends';
+    case 'bluntEnds':
+      return op.method === 'fill' ? 'Blunt the ends (fill in)' : 'Blunt the ends (trim)';
     case 'rename':
       return 'Rename';
     case 'setMetadata':

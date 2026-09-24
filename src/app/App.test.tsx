@@ -441,6 +441,34 @@ describe('toolbar', () => {
     });
   });
 
+  it('blunts a sticky-ended molecule from the edit bar, undoably', () => {
+    render(<App />);
+    act(() => {
+      editorStore.openDocument(
+        SeqDocument.create({
+          name: 'frag',
+          sequence: 'aattcGGGCCCg',
+          topology: 'linear',
+          ends: {
+            left: { kind: "5'", overhang: 'aatt', enzyme: 'EcoRI' },
+            right: { kind: "5'", overhang: 'gatc', enzyme: 'BamHI' },
+          },
+        }),
+      );
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Blunt (fill in)' }));
+    expect(editorStore.document?.sequence.toString()).toBe('aattcGGGCCCggatc');
+    expect(editorStore.document?.ends).toBeNull();
+    // Nothing left to blunt, so the buttons go.
+    expect(screen.queryByRole('button', { name: 'Blunt (trim)' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Blunt (trim)' }));
+    expect(editorStore.document?.sequence.toString()).toBe('cGGGCCCg');
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
   it('remembers the view toggles across a reload', () => {
     const { unmount } = render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

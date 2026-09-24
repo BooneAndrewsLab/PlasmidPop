@@ -191,6 +191,13 @@ export function selectionAfterOp(
     }
     case 'setTopology':
       return op.topology === 'linear' && selection.end > doc.length ? null : selection;
+    case 'bluntEnds':
+      // Trimming a left 5′ overhang takes bases off the start; every other
+      // case adds or removes them only at the right end.
+      return range(
+        doc.mapPositionThrough(op, selection.start),
+        doc.mapPositionThrough(op, selection.end),
+      );
     case 'setEnds':
     case 'insert':
     case 'delete':

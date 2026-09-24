@@ -238,7 +238,9 @@ export function CloningPanel({ doc }: Props) {
             Tick enzymes
           </button>{' '}
           in the Enzymes tab to cut {doc.name} with them.
-          {doc.isCircular ? '' : ' Uncut, the whole molecule is one blunt-ended fragment.'}
+          {doc.isCircular
+            ? ''
+            : ' Uncut, the whole molecule is one fragment, with the ends it has.'}
         </p>
       ) : (
         <p className="panel__note">

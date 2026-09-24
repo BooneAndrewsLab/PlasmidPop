@@ -1,4 +1,4 @@
-import { type SeqDocument, isEmptyRange } from '@/core';
+import { type SeqDocument, hasOverhang, isEmptyRange } from '@/core';
 
 import { deleteSelection } from '../editing';
 import { editorStore } from '../state/editorStore';
@@ -74,6 +74,31 @@ export function EditBar({ doc }: Props) {
       >
         {doc.isCircular ? 'Make linear' : 'Make circular'}
       </button>
+      {/* Only a sticky-ended linear molecule has anything to blunt (#8). */}
+      {hasOverhang(doc.ends) && (
+        <>
+          <button
+            type="button"
+            className="button button--small"
+            title="Klenow or T4 DNA polymerase: fill 5′ overhangs in, chew 3′ ones back"
+            onClick={() => {
+              editorStore.apply({ type: 'bluntEnds', method: 'fill' });
+            }}
+          >
+            Blunt (fill in)
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            title="Mung bean nuclease: remove every overhang, 5′ or 3′"
+            onClick={() => {
+              editorStore.apply({ type: 'bluntEnds', method: 'trim' });
+            }}
+          >
+            Blunt (trim)
+          </button>
+        </>
+      )}
       <button
         type="button"
         className="button button--small"

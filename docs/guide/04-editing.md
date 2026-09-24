@@ -52,6 +52,9 @@ In the edit bar:
 - **Make circular** / **Make linear** switches the topology. Making a
   molecule linear breaks it at the origin, so set the origin first if a
   feature crosses it.
+- **Blunt (fill in)** and **Blunt (trim)** (sticky-ended linear molecules
+  only) make both ends blunt, as an enzyme would on the bench; see
+  [Blunting the ends](12-cloning.md#blunting-the-ends).
 
 On a molecule with sticky ends (a fragment from a digest, see
 [Simulated cloning](12-cloning.md)), an edit that reaches the very first or

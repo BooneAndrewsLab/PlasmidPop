@@ -39,3 +39,26 @@ Added 2026-09-23 (#9):
   colour and writes `describeEnds` under the length in the centre, whole or
   not at all like the title. Inside the ring beside the gap was the first
   idea and collides with the feature lanes.
+
+Added 2026-09-23 (#8): **blunting**, the edit bar's **Blunt (fill in)** and
+**Blunt (trim)**, one `bluntEnds` edit op with a `method`, so it is undoable,
+named in the History and data a CRDT can carry.
+
+- **Two methods, because the bench has two answers for a 5′ overhang.** A
+  polymerase (Klenow, T4) fills it in; a single-strand nuclease (mung bean)
+  cuts it off. For a 3′ overhang they agree: T4's exonuclease and mung bean
+  both remove it, and Klenow alone would leave it, which nobody wants.
+- **Where the bases change follows from which strand is longer.** A top
+  strand's overhang is in the sequence and a bottom strand's is not, so
+  filling a left 5′ overhang changes no base (the bottom strand just pairs
+  it), filling a right one appends it, and chewing a left 3′ overhang back
+  removes nothing of the sequence. Only trimming a left 5′ overhang moves
+  every position, which is why `mapPositionThrough` has a case for it
+  (`bluntShift`) and the caret keeps its place on the bases.
+- **Both ends at once.** Blunting one end is done on the bench by blunting
+  before the second cut, and the app follows the same order: digest, open,
+  blunt, digest again. An end-by-end control would be a UI for a step
+  nobody does.
+- The blunted end forgets its enzyme. "EcoRI blunt" would read as an end
+  EcoRI made, which it is not, and the filled-in bases are in the sequence
+  to say where it came from.

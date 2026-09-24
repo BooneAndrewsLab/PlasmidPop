@@ -81,6 +81,25 @@ them, since a circle has no ends; reverse-complementing swaps them and moves
 the sequence to the other strand's window, which is a few bases longer or
 shorter (see [Editing the sequence](04-editing.md#whole-sequence-operations)).
 
+### Blunting the ends
+
+To join an end to one it does not match — an EcoRI end to a SmaI one, say —
+make it blunt first. With a sticky-ended linear molecule open, the edit bar
+offers two ways, as the bench does:
+
+- **Blunt (fill in)** is Klenow or T4 DNA polymerase: a 5′ overhang is filled
+  in, so its bases become base pairs and the molecule grows by them where
+  they were on the other strand, and a 3′ overhang is chewed back.
+- **Blunt (trim)** is mung bean nuclease: every overhang, 5′ or 3′, is
+  removed.
+
+Both ends are blunted at once, and features move with the bases. It is an
+edit like any other, so **Undo** takes it back and the History names it. To
+blunt one end only, do it before cutting the other: digest with the first
+enzyme, **Open** the fragment, blunt it, then digest that with the second.
+To put the blunted piece on the shelf, untick every enzyme: an uncut linear
+document is one fragment, with the ends it has, and **Add** shelves it.
+
 ## PCR
 
 PCR is where a part comes from. The other three reactions join pieces that

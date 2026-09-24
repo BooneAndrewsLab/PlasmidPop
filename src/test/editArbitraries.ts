@@ -398,8 +398,10 @@ export class RefModel {
       case 'setTopology':
         this.topology = op.topology;
         return none;
-      // The rest touch no bases.
+      // The rest touch no bases. (`bluntEnds` would, but the documents
+      // generated here have no sticky ends, so it leaves them alone.)
       case 'setEnds':
+      case 'bluntEnds':
       case 'rename':
       case 'setMetadata':
       case 'addFeature':

@@ -26,7 +26,7 @@ import {
   shiftPositionForDelete,
 } from '../range';
 import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
-import { type EditOp, type FeaturePatch } from './editOp';
+import { type BluntMethod, type EditOp, type FeaturePatch } from './editOp';
 import {
   type DocumentEnds,
   BLUNT_END,
@@ -207,6 +207,8 @@ export class SeqDocument {
         return this.setTopology(op.topology);
       case 'setEnds':
         return this.setEnds(op.ends);
+      case 'bluntEnds':
+        return this.bluntEnds(op.method);
       case 'rename':
         return this.rename(op.name);
       case 'setMetadata':
@@ -495,6 +497,45 @@ export class SeqDocument {
   }
 
   /**
+   * Makes both ends blunt, as `method` does on the bench (`BluntMethod`).
+   *
+   * Which bases change depends on which strand is the longer one at each end
+   * (`ends.ts`): the top strand's own overhang bases are in the sequence, the
+   * bottom strand's are not. So a 5′ overhang on the left is already in the
+   * sequence, and filling in only pairs it, while trimming deletes it; a 5′
+   * overhang on the right hangs off the bottom strand, and filling it in
+   * extends the sequence by it. A 3′ overhang is chewed back either way,
+   * which deletes it from the sequence on the right and removes nothing of
+   * the sequence on the left. The right end goes first, so the left end's
+   * deletion does not move it.
+   */
+  bluntEnds(method: BluntMethod): SeqDocument {
+    const ends = this.ends;
+    if (ends === null || this.isCircular) return this;
+    const { left, right } = ends;
+    const afterRight =
+      right.kind === "3'"
+        ? this.delete({ start: Math.max(0, this.length - right.overhang.length), end: this.length })
+        : right.kind === "5'" && method === 'fill'
+          ? this.insert(this.length, right.overhang)
+          : this;
+    const doc =
+      left.kind === "5'" && method === 'trim'
+        ? afterRight.delete({ start: 0, end: Math.min(left.overhang.length, afterRight.length) })
+        : afterRight;
+    return doc.setEnds(null);
+  }
+
+  /**
+   * How many bases `bluntEnds` removes from the start of the sequence: the
+   * one case that moves every position.
+   */
+  bluntShift(method: BluntMethod): number {
+    const left = this.ends?.left;
+    return left?.kind === "5'" && method === 'trim' && !this.isCircular ? left.overhang.length : 0;
+  }
+
+  /**
    * The ends after an edit over `r`. An edit in the middle leaves them
    * alone; one that reaches the tip of the molecule — the single-stranded
    * bases of an overhang, or the very first or last base pair — leaves an
@@ -539,6 +580,10 @@ export class SeqDocument {
         );
       }
       return position;
+    }
+    if (op.type === 'bluntEnds') {
+      const shifted = position - this.bluntShift(op.method);
+      return Math.max(0, Math.min(shifted, this.bluntEnds(op.method).length));
     }
     if (op.type === 'insertFragment') {
       const removed = this.delete(op.range);
