@@ -5,8 +5,13 @@
  * file has to look the same wherever it is opened.
  */
 
-export const monoFontOf = (size: number): string =>
-  `${size}px ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace`;
+/**
+ * The strand font at `size`, in `family` first when one is chosen (#29) —
+ * a name already cleaned to letters, digits, spaces and hyphens, so it can
+ * be quoted as it is — and the system's monospace behind it.
+ */
+export const monoFontOf = (size: number, family = ''): string =>
+  `${size}px ${family === '' ? '' : `"${family}", `}ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace`;
 
 /** Labels (the ruler, feature names) sit two pixels under the strand text. */
 export const sansFontOf = (size: number): string =>

@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { type SequencingRead } from '@/core';
 import { type TraceBaseAt, drawTrace } from '@/view/trace';
 
+import { useEditorState } from '../state/useEditorStore';
 import { readLinearTheme } from './linearTheme';
 
 /** Height of a block's trace, in CSS pixels. */
@@ -33,6 +34,7 @@ export function AlignmentTrace({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const width = Math.ceil((indent + columns) * charWidth);
+  const { baseColors } = useEditorState();
 
   useLayoutEffect(() => {
     const el = canvas.current;
@@ -43,7 +45,7 @@ export function AlignmentTrace({
     el.height = Math.round(HEIGHT * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, HEIGHT);
-    const theme = readLinearTheme(el);
+    const theme = readLinearTheme(el, baseColors);
     const at: TraceBaseAt[] = bases.map((b) => ({
       index: b.index,
       x: (indent + b.column) * charWidth + charWidth / 2,
@@ -56,7 +58,7 @@ export function AlignmentTrace({
       charWidth,
       colors: { ...theme.baseColors, quality: theme.traceQuality },
     });
-  }, [read, bases, indent, charWidth, width]);
+  }, [read, bases, indent, charWidth, width, baseColors]);
 
   return (
     <canvas

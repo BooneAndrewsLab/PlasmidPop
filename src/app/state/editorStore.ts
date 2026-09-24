@@ -49,6 +49,42 @@ export type ViewMode = 'sequence' | 'map' | 'both';
  */
 export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked';
 
+/** The four base colours a user may set, as `#rrggbb`. */
+export interface CustomBaseColors {
+  readonly a: string;
+  readonly c: string;
+  readonly g: string;
+  readonly t: string;
+}
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+/** Colours read back from storage, or null when any of the four is not one. */
+export function toBaseColors(v: unknown): CustomBaseColors | null {
+  if (typeof v !== 'object' || v === null) return null;
+  const r = v as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const k of ['a', 'c', 'g', 't']) {
+    const c = r[k];
+    if (typeof c !== 'string' || !HEX_COLOR.test(c)) return null;
+    out[k] = c.toLowerCase();
+  }
+  return out as unknown as CustomBaseColors;
+}
+
+/**
+ * A font family name as the user typed it, reduced to what can go inside
+ * CSS quotes without escaping: letters, digits, spaces, hyphens and
+ * underscores, 64 at most.
+ */
+export function cleanFontFamily(name: string): string {
+  return name
+    .replace(/[^\p{L}\p{N} _-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 64);
+}
+
 /** How a read's trace is drawn in the sequence view; see `SharedState.traceSize`. */
 export type TraceSize = 'off' | 'short' | 'tall';
 
@@ -305,6 +341,17 @@ export interface SharedState {
    * chromatogram is not always what is being read.
    */
   readonly traceSize: TraceSize;
+  /**
+   * The sequence view's font family, by name, or '' for the system's own
+   * monospace (#29). Any installed monospace font will do; the view measures
+   * a character of it, so the columns stay even.
+   */
+  readonly seqFontFamily: string;
+  /**
+   * Colours for A, C, G and T chosen by the user (#29), or null for the
+   * theme's, which differ between light and dark.
+   */
+  readonly baseColors: CustomBaseColors | null;
   /** Which version the sequence view marks changes against; see `EditsBaseline`. */
   readonly editsBaseline: EditsBaseline;
   readonly view: ViewMode;
@@ -587,6 +634,8 @@ const SHARED_INITIAL: SharedState = {
   numberComplement: false,
   colorBases: false,
   traceSize: 'short',
+  seqFontFamily: '',
+  baseColors: null,
   editsBaseline: 'opened',
   view: 'both',
   sidebarOpen: true,
@@ -1526,7 +1575,7 @@ export class EditorStore {
 
   /** Fixes the row width in bases, or passes null to go back to fitting the window. */
   setSeqBasesPerRow(bases: number | null): void {
-    const value = bases === null ? null : Math.max(10, Math.round(bases));
+    const value = bases === null ? null : Math.min(1000, Math.max(10, Math.round(bases)));
     if (value !== this.state.seqBasesPerRow) this.setShared({ seqBasesPerRow: value });
   }
 
@@ -1540,6 +1589,26 @@ export class EditorStore {
 
   setTraceSize(size: TraceSize): void {
     if (size !== this.state.traceSize) this.setShared({ traceSize: size });
+  }
+
+  /** A font by name, cleaned to what a CSS family name can hold; '' for the default. */
+  setSeqFontFamily(name: string): void {
+    const family = cleanFontFamily(name);
+    if (family !== this.state.seqFontFamily) this.setShared({ seqFontFamily: family });
+  }
+
+  /** The base colours the user picked, or null for the theme's. */
+  setBaseColors(colors: CustomBaseColors | null): void {
+    const current = this.state.baseColors;
+    const same =
+      colors === null
+        ? current === null
+        : current !== null &&
+          colors.a === current.a &&
+          colors.c === current.c &&
+          colors.g === current.g &&
+          colors.t === current.t;
+    if (!same) this.setShared({ baseColors: colors === null ? null : { ...colors } });
   }
 
   setEditsBaseline(baseline: EditsBaseline): void {

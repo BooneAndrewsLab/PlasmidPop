@@ -1,12 +1,17 @@
 import { type LinearTheme } from '@/view/linear';
 
+import { type CustomBaseColors } from '../state/editorStore';
+
 /**
  * The sequence view's colours, read from the CSS custom properties in force
  * on `el`, so the canvas follows the stylesheet (and the light/dark theme)
  * rather than carrying a second palette. Shared by the sequence view and the
  * save review, which draws the same rows in a dialog.
  */
-export function readLinearTheme(el: HTMLElement): LinearTheme {
+export function readLinearTheme(
+  el: HTMLElement,
+  custom: CustomBaseColors | null = null,
+): LinearTheme {
   const css = getComputedStyle(el);
   const v = (name: string, fallback: string): string =>
     css.getPropertyValue(name).trim() || fallback;
@@ -24,11 +29,13 @@ export function readLinearTheme(el: HTMLElement): LinearTheme {
     editDelete: v('--seq-edit-delete', '#b3261e'),
     preview: v('--seq-preview', '#6b4fd8'),
     traceQuality: v('--seq-trace-quality', 'rgba(27, 110, 140, 0.12)'),
+    // The user's own colours for the four bases win over the theme's (#29);
+    // an ambiguity code keeps the theme's muted one.
     baseColors: {
-      a: v('--seq-base-a', '#2f7d32'),
-      c: v('--seq-base-c', '#1b6ec8'),
-      g: v('--seq-base-g', '#8a5a00'),
-      t: v('--seq-base-t', '#c0392b'),
+      a: custom?.a ?? v('--seq-base-a', '#2f7d32'),
+      c: custom?.c ?? v('--seq-base-c', '#1b6ec8'),
+      g: custom?.g ?? v('--seq-base-g', '#8a5a00'),
+      t: custom?.t ?? v('--seq-base-t', '#c0392b'),
       other: v('--seq-base-other', '#6b7280'),
     },
   };

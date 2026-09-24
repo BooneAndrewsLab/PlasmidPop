@@ -70,6 +70,13 @@ export interface LinearExportOptions {
   readonly colorBases?: boolean;
   /** Repeat each row's position number beside the complement. */
   readonly numberComplement?: boolean;
+  /** The base colours the user chose, which a figure keeps (#29); the print palette's otherwise. */
+  readonly baseColors?: {
+    readonly a: string;
+    readonly c: string;
+    readonly g: string;
+    readonly t: string;
+  } | null;
   /** How tall a read's trace is drawn, as the view's Format menu has it (#55). Default short. */
   readonly trace?: 'off' | 'short' | 'tall';
   /** Highlight this range, as the selection is highlighted on screen. */
@@ -170,10 +177,13 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     width,
     height,
     devicePixelRatio: 1,
-    theme:
-      options.transparent === true
-        ? { ...PRINT_LINEAR_THEME, background: 'rgba(0,0,0,0)' }
-        : PRINT_LINEAR_THEME,
+    theme: {
+      ...PRINT_LINEAR_THEME,
+      ...(options.transparent === true ? { background: 'rgba(0,0,0,0)' } : {}),
+      ...(options.baseColors == null
+        ? {}
+        : { baseColors: { ...options.baseColors, other: PRINT_LINEAR_THEME.baseColors.other } }),
+    },
     monoFont,
     sansFont: sansFontOf(fontSize),
   });

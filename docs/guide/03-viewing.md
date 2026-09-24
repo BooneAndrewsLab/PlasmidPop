@@ -164,18 +164,27 @@ effect at once and the menu stays open, so you can try one and look.
   a row as the width holds, in tens, and re-flows when the window changes.
   Pick 30, 60, 90 or 120 instead to keep the same rows whatever the window
   size — useful for comparing two windows side by side, or for an export
-  that matches what you see. If the fixed width does not fit, the view
+  that matches what you see — or type any count from 10 to 1,000 under
+  **Other** and press Enter. If the fixed width does not fit, the view
   scrolls sideways.
 - **Number the complement** repeats each row's position number beside the
   complement strand, so a wide row can be read from either line.
 - **Colour the bases** gives A, C, G and T each their own colour on both
-  strands; anything else (an N or another IUPAC code) is grey.
+  strands; anything else (an N or another IUPAC code) is grey. While it is
+  on, the four swatches under it choose the colours, for the sequence view,
+  a read's trace and the SVG export alike; **Reset** goes back to the
+  theme's, which differ between light and dark.
+- **Font** takes the name of any monospace font installed on this computer
+  (`JetBrains Mono`, `Consolas`, `Menlo`…); leave it empty for the system's
+  own. A font that is not installed falls back to the system's. The SVG
+  export keeps its Courier, so a file looks the same wherever it is opened.
 - **Reset the layout** is not about the sequence view: it puts the panes back
   to the sizes they started at, see [Sizing the panes](#sizing-the-panes).
 
-The SVG exports follow the bases-per-row, numbering and colour choices. They
-keep their own text size so the file looks the same whatever the screen is
-set to.
+The SVG exports follow the bases-per-row, numbering and colour choices,
+chosen colours included. They keep their own text size and font so the file
+looks the same whatever the screen is set to. All of these are remembered in
+this browser.
 
 ## Circular map
 

@@ -16,11 +16,14 @@ import { type SidebarReaction, isBenchReaction, isSidebarReaction } from './clon
 import { type CutCountFilter, isCutCountFilter } from './cutFilter';
 import { type EnzymeSort, isEnzymeSort } from './enzymeSort';
 import {
+  type CustomBaseColors,
   type EditsBaseline,
   type TraceSize,
   type ViewMode,
+  cleanFontFamily,
   editorStore,
   isTraceSize,
+  toBaseColors,
 } from './editorStore';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
@@ -44,6 +47,9 @@ export interface ViewPrefs {
   readonly colorBases: boolean;
   /** How tall a read's trace is drawn; see `SharedState.traceSize`. */
   readonly traceSize: TraceSize;
+  /** The sequence font and the base colours; see `SharedState.seqFontFamily`. */
+  readonly seqFontFamily: string;
+  readonly baseColors: CustomBaseColors | null;
   /**
    * Which baseline the edit marks use. "Mark from here" is a point in one
    * session's work, so it is remembered as the state the document was opened
@@ -113,10 +119,18 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
   if (isFontSize(record['seqFontSize'])) prefs.seqFontSize = record['seqFontSize'];
   if (isTraceSize(record['traceSize'])) prefs.traceSize = record['traceSize'];
+  if (typeof record['seqFontFamily'] === 'string') {
+    prefs.seqFontFamily = cleanFontFamily(record['seqFontFamily']);
+  }
+  if (record['baseColors'] === null) prefs.baseColors = null;
+  else {
+    const colors = toBaseColors(record['baseColors']);
+    if (colors !== null) prefs.baseColors = colors;
+  }
   const bases = record['seqBasesPerRow'];
   if (bases === null) prefs.seqBasesPerRow = null;
   else if (typeof bases === 'number' && Number.isFinite(bases) && bases >= 10) {
-    prefs.seqBasesPerRow = Math.round(bases);
+    prefs.seqBasesPerRow = Math.min(1000, Math.round(bases));
   }
   if (isCutCountFilter(record['enzymeCutFilter'])) {
     prefs.enzymeCutFilter = record['enzymeCutFilter'];
@@ -197,6 +211,8 @@ function snapshot(): ViewPrefs {
     numberComplement,
     colorBases,
     traceSize,
+    seqFontFamily,
+    baseColors,
     editsBaseline,
     layout,
     sidebarOpen,
@@ -222,6 +238,8 @@ function snapshot(): ViewPrefs {
     numberComplement,
     colorBases,
     traceSize,
+    seqFontFamily,
+    baseColors,
     editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
     layout,
     sidebarOpen,
@@ -250,6 +268,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.numberComplement === b.numberComplement &&
     a.colorBases === b.colorBases &&
     a.traceSize === b.traceSize &&
+    a.seqFontFamily === b.seqFontFamily &&
+    a.baseColors === b.baseColors &&
     a.editsBaseline === b.editsBaseline &&
     a.layout === b.layout &&
     a.sidebarOpen === b.sidebarOpen &&
@@ -286,6 +306,8 @@ export function startViewPrefs(): () => void {
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
   if (stored.traceSize !== undefined) editorStore.setTraceSize(stored.traceSize);
+  if (stored.seqFontFamily !== undefined) editorStore.setSeqFontFamily(stored.seqFontFamily);
+  if (stored.baseColors !== undefined) editorStore.setBaseColors(stored.baseColors);
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
   if (stored.layout !== undefined) editorStore.setLayout(stored.layout);
   if (stored.sidebarOpen !== undefined) editorStore.setSidebarOpen(stored.sidebarOpen);

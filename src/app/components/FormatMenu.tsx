@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { type FontSize, FONT_SIZES } from '@/view/linear';
 
@@ -42,8 +42,50 @@ const TRACE_SIZES: readonly (readonly [TraceSize, string, string])[] = [
  * between sessions.
  */
 export function FormatMenu() {
-  const { seqFontSize, seqBasesPerRow, numberComplement, colorBases, traceSize, history } =
-    useEditorState();
+  const {
+    seqFontSize,
+    seqBasesPerRow,
+    numberComplement,
+    colorBases,
+    traceSize,
+    history,
+    seqFontFamily,
+    baseColors,
+  } = useEditorState();
+  // Typed values are committed on Enter or on leaving the box, not per key.
+  const [rowDraft, setRowDraft] = useState<string | null>(null);
+  const [fontDraft, setFontDraft] = useState<string | null>(null);
+  const customRow = seqBasesPerRow !== null && !ROW_WIDTHS.includes(seqBasesPerRow);
+  const commitRow = (): void => {
+    if (rowDraft === null) return;
+    const n = Number.parseInt(rowDraft, 10);
+    if (Number.isFinite(n)) {
+      analytics.trackOnce('view', 'format', 'bases-per-row');
+      editorStore.setSeqBasesPerRow(n);
+    }
+    setRowDraft(null);
+  };
+  const commitFont = (): void => {
+    if (fontDraft === null) return;
+    analytics.trackOnce('view', 'format', 'font');
+    editorStore.setSeqFontFamily(fontDraft);
+    setFontDraft(null);
+  };
+  // The colour pickers start from what is drawn: the user's own, or the theme's.
+  const shownColors = (): Record<'a' | 'c' | 'g' | 't', string> => {
+    if (baseColors !== null) return { ...baseColors };
+    const css = getComputedStyle(document.documentElement);
+    const v = (name: string, fallback: string): string => {
+      const raw = css.getPropertyValue(name).trim();
+      return /^#[0-9a-f]{6}$/i.test(raw) ? raw : fallback;
+    };
+    return {
+      a: v('--seq-base-a', '#2f7d32'),
+      c: v('--seq-base-c', '#1b6ec8'),
+      g: v('--seq-base-g', '#8a5a00'),
+      t: v('--seq-base-t', '#c0392b'),
+    };
+  };
   // The trace sizes are offered only while a read with a trace is in front.
   const hasTrace = history?.present.read?.trace != null;
   // Every item leaves the menu open: the point is to try a size or a row
@@ -128,6 +170,29 @@ export function FormatMenu() {
               <Tick on={seqBasesPerRow === bases} />
             </button>
           ))}
+          <label
+            className="menu__item menu__item--field"
+            title="Any whole number of bases, 10 to 1,000"
+          >
+            <span>Other</span>
+            <input
+              className="panel__number"
+              type="number"
+              min={10}
+              max={1000}
+              aria-label="Bases per row"
+              value={rowDraft ?? (customRow ? String(seqBasesPerRow) : '')}
+              placeholder="bases"
+              onChange={(e) => {
+                setRowDraft(e.target.value);
+              }}
+              onBlur={commitRow}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRow();
+              }}
+            />
+            <Tick on={customRow} />
+          </label>
           <div className="menu__separator" />
           <button
             type="button"
@@ -157,6 +222,59 @@ export function FormatMenu() {
             <span>Colour the bases</span>
             <Tick on={colorBases} />
           </button>
+          {colorBases && (
+            <div className="menu__item menu__item--field" role="group" aria-label="Base colours">
+              {(['a', 'c', 'g', 't'] as const).map((base) => (
+                <label
+                  key={base}
+                  className="menu__swatch"
+                  title={`The colour of ${base.toUpperCase()}`}
+                >
+                  {base.toUpperCase()}
+                  <input
+                    type="color"
+                    aria-label={`Colour of ${base.toUpperCase()}`}
+                    value={shownColors()[base]}
+                    onChange={(e) => {
+                      analytics.trackOnce('view', 'format', 'base-colours');
+                      editorStore.setBaseColors({ ...shownColors(), [base]: e.target.value });
+                    }}
+                  />
+                </label>
+              ))}
+              <button
+                type="button"
+                className="button button--quiet button--small"
+                disabled={baseColors === null}
+                title="Back to the theme's colours, which differ between light and dark"
+                onClick={() => {
+                  editorStore.setBaseColors(null);
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          )}
+          <label
+            className="menu__item menu__item--field"
+            title="Any monospace font installed on this computer, by name; empty for the system's own"
+          >
+            <span>Font</span>
+            <input
+              className="panel__search"
+              type="text"
+              aria-label="Sequence font"
+              placeholder="System monospace"
+              value={fontDraft ?? seqFontFamily}
+              onChange={(e) => {
+                setFontDraft(e.target.value);
+              }}
+              onBlur={commitFont}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitFont();
+              }}
+            />
+          </label>
           {hasTrace && (
             <>
               <div className="menu__separator" />

@@ -113,6 +113,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     numberComplement,
     colorBases,
     traceSize,
+    seqFontFamily,
+    baseColors,
     reveal,
     analysis,
     shownEnzymes,
@@ -168,7 +170,10 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     index: number;
   } | null>(null);
 
-  const monoFont = useMemo(() => monoFontOf(seqFontSize), [seqFontSize]);
+  const monoFont = useMemo(
+    () => monoFontOf(seqFontSize, seqFontFamily),
+    [seqFontSize, seqFontFamily],
+  );
   const sansFont = useMemo(() => sansFontOf(seqFontSize), [seqFontSize]);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
   const metrics = useMemo(() => {
@@ -326,7 +331,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         width: size.width,
         height: size.height,
         devicePixelRatio: dpr,
-        theme: readLinearTheme(container),
+        theme: readLinearTheme(container, baseColors),
         monoFont,
         sansFont,
       });
@@ -352,6 +357,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     size,
     monoFont,
     sansFont,
+    baseColors,
   ]);
 
   const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {

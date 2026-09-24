@@ -2073,6 +2073,34 @@ button {
   cursor: pointer;
 }
 
+/* A menu row that holds a field: a number, a name, colour pickers (#29). */
+.menu__item--field {
+  align-items: center;
+  cursor: default;
+}
+
+.menu__item--field input[type='text'],
+.menu__item--field input[type='number'] {
+  width: 9em;
+  min-width: 0;
+}
+
+.menu__swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: ui-monospace, monospace;
+}
+
+.menu__swatch input[type='color'] {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+}
+
 .menu__item:hover:not(:disabled) {
   background: var(--surface-3);
 }
