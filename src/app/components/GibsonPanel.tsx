@@ -15,6 +15,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
 import { PartsTube } from './PartsTube';
+import { BenchProduct } from './BenchProduct';
 import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
 
@@ -131,6 +132,7 @@ export function GibsonPanel() {
 
   return (
     <>
+      <BenchProduct product={assembly?.product ?? null} />
       <div className="panel__controls">
         <label className="panel__field">
           <span>Overlap</span>

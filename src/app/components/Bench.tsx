@@ -1,6 +1,9 @@
+import { useState } from 'react';
+
 import { BENCH_REACTIONS } from '../state/cloningReaction';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { BenchProductSlot } from './benchProductSlot';
 import { GatewayPanel } from './GatewayPanel';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
@@ -25,6 +28,8 @@ export function Bench() {
   const { bench } = useEditorState();
   const reaction = bench.reaction;
   const [title, note] = HEADINGS[reaction];
+  // The product column is filled by the reaction panel, through a portal.
+  const [productSlot, setProductSlot] = useState<HTMLElement | null>(null);
   return (
     <div className="bench" aria-label="Cloning Bench">
       <section className="bench__column bench__parts" aria-label="Parts">
@@ -56,15 +61,19 @@ export function Bench() {
             {title}
             <span className="panel__heading-note">{note}</span>
           </h3>
-          {reaction === 'ligation' && <LigationPanel />}
-          {reaction === 'golden-gate' && <GoldenGatePanel />}
-          {reaction === 'gibson' && <GibsonPanel />}
-          {reaction === 'gateway' && <GatewayPanel />}
+          <BenchProductSlot.Provider value={productSlot}>
+            {reaction === 'ligation' && <LigationPanel />}
+            {reaction === 'golden-gate' && <GoldenGatePanel />}
+            {reaction === 'gibson' && <GibsonPanel />}
+            {reaction === 'gateway' && <GatewayPanel />}
+          </BenchProductSlot.Provider>
         </div>
       </section>
-      <section className="bench__column bench__product" aria-label="What it makes">
-        <h3 className="panel__heading">Product</h3>
-      </section>
+      <section
+        className="bench__column bench__product"
+        aria-label="What it makes"
+        ref={setProductSlot}
+      />
     </div>
   );
 }

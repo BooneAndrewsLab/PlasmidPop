@@ -16,6 +16,7 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { PartsTube } from './PartsTube';
+import { BenchProduct } from './BenchProduct';
 import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
 
@@ -136,6 +137,7 @@ export function GoldenGatePanel() {
 
   return (
     <>
+      <BenchProduct product={assembly?.product ?? null} />
       <div className="panel__controls">
         <label className="panel__field panel__field--row">
           <span>Enzyme</span>

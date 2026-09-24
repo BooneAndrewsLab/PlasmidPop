@@ -6,6 +6,7 @@ import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { PartsTube } from './PartsTube';
+import { BenchProduct } from './BenchProduct';
 import { ProductSummary } from './ProductSummary';
 import { shelfIngredients } from './tube';
 
@@ -109,6 +110,7 @@ export function LigationPanel() {
 
   return (
     <>
+      <BenchProduct product={preview} />
       <PartsTube
         ingredients={ingredients}
         excluded={excluded}

@@ -364,6 +364,16 @@ button {
   max-height: none;
 }
 
+/* The product's map, drawn in print colours as its SVG export is. */
+.bench__map {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin: 8px auto;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
 .bench__column + .bench__column {
   border-left: 1px solid var(--line);
 }

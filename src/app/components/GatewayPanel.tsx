@@ -6,6 +6,7 @@ import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
+import { BenchProduct } from './BenchProduct';
 import { ProductSummary } from './ProductSummary';
 
 const REACTIONS: readonly { value: GatewayReaction; label: string; title: string }[] = [
@@ -149,6 +150,7 @@ export function GatewayPanel() {
 
   return (
     <>
+      <BenchProduct product={result?.problem === null ? result.product : null} />
       <div className="panel__controls">
         <div className="segmented" role="group" aria-label="Reaction type">
           {REACTIONS.map((r) => (

@@ -793,6 +793,13 @@ describe('cloning', () => {
       'Closing join: EcoRI 5′ AATT to EcoRI 5′ AATT, compatible',
     ]);
     expect(screen.getByLabelText('Product')).toHaveTextContent(/^Product: 4,361 bp, circular · /);
+    // The Bench draws the product beside the reaction, with a digest to check it by.
+    const column = within(screen.getByRole('region', { name: 'What it makes' }));
+    expect(column.getByRole('img', { name: /^Map of SYNPBR322/ })).toBeInTheDocument();
+    const check = column.getByRole('combobox', { name: 'Check digest enzyme' });
+    const first = within(check).getAllByRole('option')[0];
+    expect(first?.textContent).toMatch(/ \+ .* bp \(clearest\)$/);
+    expect(column.getByRole('figure')).toBeInTheDocument();
     // Flipping the insert puts EcoRI against BamHI at both joins (the insert is directional).
     fireEvent.click(screen.getByRole('button', { name: 'Flip part 1' }));
     expect(joins()).toEqual([
