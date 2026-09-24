@@ -120,8 +120,8 @@ export function GatewayPanel() {
   }
 
   const picker = (label: string, value: string, set: (id: string) => void): React.ReactElement => (
-    <label className="panel__field">
-      {label}
+    <label className="panel__field panel__field--row">
+      <span>{label}</span>
       <select
         className="panel__select"
         aria-label={label}

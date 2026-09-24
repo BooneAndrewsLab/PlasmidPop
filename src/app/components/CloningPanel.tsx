@@ -360,11 +360,13 @@ export function CloningPanel({ doc }: Props) {
       <ShelfPanel />
 
       <div className="panel__section">
-        {/* The four reactions are alternatives, not steps, so the tab asks
-            which one rather than stacking them down a 300 px column. Above
+        {/* The six reactions are alternatives, not steps, so the tab asks
+            which one rather than stacking them down a 300 px column. Six
+            buttons do not fit one row of it, so they sit in two rows of
+            three. Above
             this line are the digest, which belongs to the document in front
             of you, and the shelf, which every reaction takes parts from. */}
-        <div className="segmented segmented--wide" role="group" aria-label="Reaction">
+        <div className="segmented segmented--grid" role="group" aria-label="Reaction">
           {CLONING_REACTIONS.map((r) => (
             <button
               key={r.value}

@@ -177,9 +177,13 @@ function shelve(product: PcrProduct, phosphorylated: boolean): void {
   }
 }
 
-const POLYMERASES: readonly { value: Polymerase; label: string }[] = [
-  { value: 'proofreading', label: 'Proofreading (blunt)' },
-  { value: 'taq', label: 'Taq (3′ A overhangs)' },
+/**
+ * The option is a name, short enough for a 300 px sidebar; what the choice
+ * does to the product is said under it, where there is room.
+ */
+const POLYMERASES: readonly { value: Polymerase; label: string; ends: string }[] = [
+  { value: 'proofreading', label: 'Proofreading', ends: 'Q5, Phusion, Pfu: blunt ends' },
+  { value: 'taq', label: 'Taq', ends: 'One 3′ A on each end, for TA cloning' },
 ];
 
 export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
@@ -275,8 +279,8 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
     <>
       <div className="panel__controls">
         {documents.length > 1 && (
-          <label className="panel__field">
-            Template
+          <label className="panel__field panel__field--row">
+            <span>Template</span>
             <select
               className="panel__select"
               value={picked?.documentId ?? ''}
@@ -335,8 +339,8 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           sequence={reverse}
           seqLength={template.length}
         />
-        <label className="panel__field">
-          Polymerase
+        <label className="panel__field panel__field--row">
+          <span>Polymerase</span>
           <select
             className="panel__select"
             value={polymerase}
@@ -347,11 +351,15 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           >
             {POLYMERASES.map((p) => (
               <option key={p.value} value={p.value}>
-                {p.label}, up to {(POLYMERASE_REACH[p.value] / 1000).toString()} kb
+                {p.label}
               </option>
             ))}
           </select>
         </label>
+        <p className="panel__note panel__note--quiet">
+          {POLYMERASES.find((p) => p.value === polymerase)?.ends}, products up to{' '}
+          {(POLYMERASE_REACH[polymerase] / 1000).toString()} kb.
+        </p>
         <label
           className="toggle"
           title="Oligos are made without a 5′ phosphate unless ordered with one; without it the product will not ligate into a dephosphorylated vector"

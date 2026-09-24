@@ -413,18 +413,30 @@ button {
   overflow: hidden;
 }
 
-/* Fills the panel, so the four reactions share a 300 px column evenly. A
-   narrow sidebar wraps "Golden Gate" onto two lines rather than clipping it,
-   which is why the buttons are aligned on their middles. */
-.segmented--wide {
-  display: flex;
+/* Six reactions in a 300 px sidebar: one row cut "Gateway" off the end, so
+   they sit in two rows of three, every cell the same width, and the borders
+   are drawn between cells rather than after each button. */
+.segmented--grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 100%;
 }
 
-.segmented--wide .segmented__button {
-  flex: 1;
-  padding-inline: 4px;
+.segmented--grid .segmented__button {
+  padding-inline: 2px;
   text-align: center;
+}
+
+.segmented--grid .segmented__button + .segmented__button {
+  border-left: 0;
+}
+
+.segmented--grid .segmented__button:not(:nth-child(3n + 1)) {
+  border-left: 1px solid var(--line);
+}
+
+.segmented--grid .segmented__button:nth-child(n + 4) {
+  border-top: 1px solid var(--line);
 }
 
 /* 5px padding inside the group's 1px border matches the height of .button. */

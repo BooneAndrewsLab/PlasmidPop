@@ -125,8 +125,8 @@ export function GoldenGatePanel() {
   return (
     <>
       <div className="panel__controls">
-        <label className="panel__field">
-          Enzyme
+        <label className="panel__field panel__field--row">
+          <span>Enzyme</span>
           <select
             className="panel__select"
             value={enzymeName}
@@ -141,8 +141,8 @@ export function GoldenGatePanel() {
             ))}
           </select>
         </label>
-        <label className="panel__field">
-          and
+        <label className="panel__field panel__field--row">
+          <span>and</span>
           <select
             className="panel__select"
             aria-label="Second enzyme"
