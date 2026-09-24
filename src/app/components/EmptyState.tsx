@@ -79,7 +79,7 @@ export function EmptyState() {
             type="button"
             className="link"
             onClick={() => {
-              editorStore.newDocument();
+              editorStore.requestNewDocument();
             }}
           >
             start a new sequence

@@ -492,6 +492,11 @@ export interface SharedState {
    * because the comparison is a modal dialog: only one can be up.
    */
   readonly comparison: { readonly fileName: string; readonly doc: SeqDocument } | null;
+  /**
+   * Whether the New sequence dialog is up (#6): a name and a topology asked
+   * for before the empty document opens, rather than fixed afterwards.
+   */
+  readonly newDialog: boolean;
   /** Where the draggable boundaries sit; see `LayoutSizes`. */
   readonly layout: LayoutSizes;
 }
@@ -662,6 +667,7 @@ const SHARED_INITIAL: SharedState = {
   previews: [],
   previewActivated: null,
   comparison: null,
+  newDialog: false,
   layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
@@ -953,9 +959,9 @@ export class EditorStore {
    * unsaved-changes warning until something is typed) with a caret at the
    * start so the first keystroke lands.
    */
-  newDocument(topology: 'linear' | 'circular' = 'linear'): string {
+  newDocument(topology: 'linear' | 'circular' = 'linear', name = 'Untitled'): string {
     const doc = SeqDocument.create({
-      name: 'Untitled',
+      name: name.trim() === '' ? 'Untitled' : name.trim(),
       sequence: '',
       topology,
       metadata: { moleculeType: 'DNA' },
@@ -1480,6 +1486,15 @@ export class EditorStore {
         { owner, documentId: id, items },
       ],
     });
+  }
+
+  /** Asks for a new sequence's name and topology before opening it (#6). */
+  requestNewDocument(): void {
+    if (!this.shared.newDialog) this.setShared({ newDialog: true });
+  }
+
+  dismissNewDocument(): void {
+    if (this.shared.newDialog) this.setShared({ newDialog: false });
   }
 
   /** Shows what the document in front differs from in a file just read. */

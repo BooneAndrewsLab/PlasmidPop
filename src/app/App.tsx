@@ -7,6 +7,7 @@ import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
+import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
@@ -246,6 +247,7 @@ export function App() {
       <StatusBar doc={doc} />
       <SaveReviewDialog />
       <CompareDialog />
+      <NewDocumentDialog />
     </div>
   );
 }

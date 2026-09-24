@@ -94,7 +94,7 @@ export function DocumentTabs() {
         title="Start an empty sequence in a new tab"
         aria-label="New sequence"
         onClick={() => {
-          editorStore.newDocument();
+          editorStore.requestNewDocument();
         }}
       >
         +

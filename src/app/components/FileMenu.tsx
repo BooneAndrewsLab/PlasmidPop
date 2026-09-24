@@ -115,7 +115,7 @@ export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
           <Item
             title="Start an empty sequence to type or paste into"
             onClick={run(() => {
-              editorStore.newDocument();
+              editorStore.requestNewDocument();
             })}
           >
             New

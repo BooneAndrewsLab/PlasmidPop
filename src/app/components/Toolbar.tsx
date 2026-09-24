@@ -152,7 +152,7 @@ export function Toolbar({ doc }: Props) {
               className="button"
               title="Start an empty sequence to type or paste into"
               onClick={() => {
-                editorStore.newDocument();
+                editorStore.requestNewDocument();
               }}
             >
               New

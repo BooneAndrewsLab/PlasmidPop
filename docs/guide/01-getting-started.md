@@ -17,8 +17,10 @@ Any of these gets you a sequence on screen:
 - **Paste** (`Ctrl+V`) a GenBank record, a FASTA record or bare bases while
   nothing is open. A record opens as such; bare bases become a new untitled
   sequence.
-- **New** starts an empty linear sequence called "Untitled" with the cursor
-  placed, so you can type straight away.
+- **New** asks for the new sequence's **Name** and whether it is **Linear**
+  or **Circular**, then opens it empty with the cursor placed, so you can
+  type straight away. `Enter` takes "Untitled" and the topology you chose
+  last; `Escape` opens nothing.
 - **Open example** loads pBR322 (4,361 bp, circular) to look around.
 
 Each document opens in its own tab under the toolbar, so several can be open

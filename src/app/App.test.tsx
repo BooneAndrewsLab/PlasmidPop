@@ -36,8 +36,14 @@ beforeEach(() => {
     // What the Cloning tab and the Bench were left on is shared state too.
     editorStore.setCloningReaction('digest');
     editorStore.restoreBench(DEFAULT_BENCH);
+    editorStore.dismissNewDocument();
   });
 });
+
+/** The New sequence dialog's Create, taking the name and topology it offers (#6). */
+function create(): void {
+  fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+}
 
 /** The Cloning tab and the Bench show one reaction at a time; this is the picker. */
 function pickReaction(name: string): HTMLElement {
@@ -111,6 +117,10 @@ describe('App', () => {
     });
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+    // Asked for a name and a topology first, Untitled and linear as they were.
+    expect(screen.getByRole('dialog', { name: 'New sequence' })).toBeInTheDocument();
+    expect(editorStore.document).toBeNull();
+    create();
     expect(editorStore.document?.length).toBe(0);
     expect(screen.getByText('0 bp, linear')).toBeInTheDocument();
     expect(screen.getByText(/Type or paste a DNA sequence/)).toBeInTheDocument();
@@ -126,10 +136,38 @@ describe('App', () => {
     fireEvent.keyDown(box, { key: 'Backspace' });
     expect(editorStore.document?.length).toBe(3);
     fileMenu('New');
+    create();
     expect(editorStore.document?.length).toBe(0);
     fireEvent.keyDown(box, { key: 'Escape' });
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), { key: 't' });
     expect(editorStore.document?.sequence.toString()).toBe('t');
+  });
+
+  it('names a new sequence and makes it circular before it opens (#6)', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /start a new sequence/i }));
+    const name = screen.getByRole('textbox', { name: 'Name' });
+    // Selected, so typing replaces it.
+    expect(name).toHaveFocus();
+    fireEvent.change(name, { target: { value: 'pNew' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Circular' }));
+    create();
+    expect(editorStore.document?.name).toBe('pNew');
+    expect(editorStore.document?.isCircular).toBe(true);
+    expect(screen.getByRole('textbox', { name: 'Sequence' })).toHaveFocus();
+    // The next New starts on the topology chosen last; Escape opens nothing.
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    expect(screen.getByRole('button', { name: 'Circular' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'New sequence' })).toBeNull();
+    expect(editorStore.getState().documents).toHaveLength(1);
+    // Put back for the tests after this one.
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Linear' }));
+    create();
   });
 
   it('pastes a record or bare bases onto the empty page', () => {
@@ -151,6 +189,7 @@ describe('App', () => {
     expect(editorStore.getState().selection).toEqual({ start: 12, end: 12 });
     // Pasting a record into the still-empty new document opens it instead of failing.
     fileMenu('New');
+    create();
     paste('>frag\nGGCC\n', screen.getByRole('textbox', { name: 'Sequence' }));
     expect(editorStore.document?.name).toBe('frag');
     expect(editorStore.document?.sequence.toString()).toBe('GGCC');
@@ -672,6 +711,7 @@ describe('document tabs', () => {
     expect(tabs()[2]).toHaveAttribute('aria-selected', 'true');
     // New opens a second tab and brings it to the front.
     fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    create();
     expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench', 'SYNPBR322', 'Untitled']);
     expect(editorStore.document?.name).toBe('Untitled');
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), { key: 'a' });
@@ -697,6 +737,7 @@ describe('document tabs', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    create();
     const names = () =>
       within(screen.getByRole('tablist', { name: 'Open documents' }))
         .getAllByRole('tab')
@@ -764,6 +805,7 @@ describe('document tabs', () => {
     fireEvent.scroll(view());
     const left = view().scrollTop;
     fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    create();
     expect(view().scrollTop).toBe(0);
     fireEvent.click(screen.getByRole('tab', { name: /^SYNPBR322/ }));
     // The top of the row that was at the top: at or just above where it was left.
@@ -792,6 +834,7 @@ describe('document tabs', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    create();
     fileMenu('Close');
     expect(editorStore.document?.name).toBe('SYNPBR322');
     expect(

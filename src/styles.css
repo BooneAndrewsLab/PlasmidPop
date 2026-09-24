@@ -2180,6 +2180,11 @@ button {
   overflow-wrap: anywhere;
 }
 
+.new-document {
+  display: grid;
+  gap: 12px;
+}
+
 .dialog__actions {
   display: flex;
   flex-wrap: wrap;
