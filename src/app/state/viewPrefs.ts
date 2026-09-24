@@ -15,7 +15,13 @@ import { type BenchSettings, normalizeBenchSettings } from './benchSettings';
 import { type SidebarReaction, isBenchReaction, isSidebarReaction } from './cloningReaction';
 import { type CutCountFilter, isCutCountFilter } from './cutFilter';
 import { type EnzymeSort, isEnzymeSort } from './enzymeSort';
-import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
+import {
+  type EditsBaseline,
+  type TraceSize,
+  type ViewMode,
+  editorStore,
+  isTraceSize,
+} from './editorStore';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
 
 /**
@@ -36,6 +42,8 @@ export interface ViewPrefs {
   readonly seqBasesPerRow: number | null;
   readonly numberComplement: boolean;
   readonly colorBases: boolean;
+  /** How tall a read's trace is drawn; see `SharedState.traceSize`. */
+  readonly traceSize: TraceSize;
   /**
    * Which baseline the edit marks use. "Mark from here" is a point in one
    * session's work, so it is remembered as the state the document was opened
@@ -104,6 +112,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isViewMode(record['view'])) prefs.view = record['view'];
   if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
   if (isFontSize(record['seqFontSize'])) prefs.seqFontSize = record['seqFontSize'];
+  if (isTraceSize(record['traceSize'])) prefs.traceSize = record['traceSize'];
   const bases = record['seqBasesPerRow'];
   if (bases === null) prefs.seqBasesPerRow = null;
   else if (typeof bases === 'number' && Number.isFinite(bases) && bases >= 10) {
@@ -187,6 +196,7 @@ function snapshot(): ViewPrefs {
     seqBasesPerRow,
     numberComplement,
     colorBases,
+    traceSize,
     editsBaseline,
     layout,
     sidebarOpen,
@@ -211,6 +221,7 @@ function snapshot(): ViewPrefs {
     seqBasesPerRow,
     numberComplement,
     colorBases,
+    traceSize,
     editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
     layout,
     sidebarOpen,
@@ -238,6 +249,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.seqBasesPerRow === b.seqBasesPerRow &&
     a.numberComplement === b.numberComplement &&
     a.colorBases === b.colorBases &&
+    a.traceSize === b.traceSize &&
     a.editsBaseline === b.editsBaseline &&
     a.layout === b.layout &&
     a.sidebarOpen === b.sidebarOpen &&
@@ -273,6 +285,7 @@ export function startViewPrefs(): () => void {
     editorStore.setNumberComplement(stored.numberComplement);
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
+  if (stored.traceSize !== undefined) editorStore.setTraceSize(stored.traceSize);
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
   if (stored.layout !== undefined) editorStore.setLayout(stored.layout);
   if (stored.sidebarOpen !== undefined) editorStore.setSidebarOpen(stored.sidebarOpen);

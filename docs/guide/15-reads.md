@@ -21,7 +21,11 @@ in this browser, like the rest of the document:
   base's peak over its letter, and its quality as a faint bar behind. A
   clean read is a row of single, evenly spaced peaks; a mixed or noisy one
   shows overlapping peaks, which is where a base call is doubtful. The
-  trace shows on a phone too.
+  trace shows on a phone too. **Format ▸ Trace** draws it **Short**, **Tall**
+  (twice the height, for peaks close together) or **Hidden**, for a read
+  whose features and translations already make tall rows; the choice is
+  remembered. The group appears in the menu while a read with a trace is in
+  front.
 - To check a read against a plasmid with its qualities, open the plasmid
   and drop the read on the Align tab's box: see
   [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities).

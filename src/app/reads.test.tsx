@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -8,6 +8,7 @@ import { gzipSync } from 'node:zlib';
 import { SeqDocument } from '@/core';
 import { PlasmidPopDb, DocumentRepository } from '@/storage';
 
+import { FormatMenu } from './components/FormatMenu';
 import { ReadNotice } from './components/ReadNotice';
 import { StatusBar } from './components/StatusBar';
 import { openFile } from './openFile';
@@ -46,6 +47,32 @@ describe('sequencing reads in the app', () => {
     expect(doc?.name).toBe('clone3_M13F');
     expect(doc?.length).toBe(240);
     expect(doc?.read?.trace?.peaks.length).toBe(240);
+  });
+
+  it("offers the trace's height in the Format menu only while a read with one is in front", async () => {
+    render(<FormatMenu />);
+    const open = (): void => {
+      fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    };
+    act(() => {
+      editorStore.openDocument(read, 'r1.fastq'); // qualities, no trace
+    });
+    open();
+    expect(screen.queryByText('Trace')).toBeNull();
+    open();
+    const bytes = new Uint8Array(readFileSync(join(fixtures, 'sanger.ab1')));
+    await act(async () => {
+      await openFile(file(bytes, 'clone3_M13F.ab1'));
+    });
+    open();
+    expect(screen.getByText('Trace')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Hidden' }));
+    expect(editorStore.getState().traceSize).toBe('off');
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tall' }));
+    expect(editorStore.getState().traceSize).toBe('tall');
+    act(() => {
+      editorStore.setTraceSize('short');
+    });
   });
 
   it('opens a gzipped FASTQ, and says how many reads were not opened', async () => {

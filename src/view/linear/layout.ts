@@ -247,8 +247,11 @@ export interface MetricsOptions {
   readonly showComplement: boolean;
   /** Whether room is kept above the strands for enzyme labels. */
   readonly cutSiteLabels: boolean;
-  /** Whether room is kept above the strands for a sequencing read's trace. */
-  readonly trace?: boolean;
+  /**
+   * How much room is kept above the strands for a sequencing read's trace:
+   * none, the 64 px it has always had at the default size, or twice that (#55).
+   */
+  readonly trace?: 'short' | 'tall' | false;
   /** Extra space before the first column, for a sticky end hanging off the left. */
   readonly extraLeftGutter?: number;
   /** Extra space after the last column, for a sticky end hanging off the right. */
@@ -270,7 +273,7 @@ export function linearMetrics(o: MetricsOptions): LinearMetrics {
     lineHeight: at(18),
     showComplement: o.showComplement,
     rulerHeight: o.cutSiteLabels ? at(30) : at(16),
-    traceHeight: o.trace === true ? at(64) : 0,
+    traceHeight: o.trace === 'tall' ? at(128) : o.trace === 'short' ? at(64) : 0,
     laneHeight: at(20),
     translationHeight: at(16),
     overlayHeight: at(18),

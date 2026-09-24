@@ -163,7 +163,13 @@ alongside it.
 - **The Align strip** is a canvas per 60-column block, as wide as the
   block's text at the `<pre>`'s own character width, drawn once. Picking a
   confident difference scrolls to its block and marks it.
-- **Follow-ups**: a toggle for the sequence view's trace (#55).
+- **Follow-ups**: a toggle for the sequence view's trace (#55) — done
+  2026-09-24 as **Format ▸ Trace**: Hidden, Short (the 64 px it had) or
+  Tall (128), `SharedState.traceSize`, remembered with the view
+  preferences, followed by the SVG export, and offered only while a read
+  with a trace is in front. The issue's second idea, scaling a weak
+  signal, needed nothing: each trace is already drawn against its own
+  99th percentile (`traceScale`), so a weak read fills its band.
 
 ## Follow-ups filed
 

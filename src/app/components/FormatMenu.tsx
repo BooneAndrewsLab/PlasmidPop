@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { type FontSize, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
-import { editorStore } from '../state/editorStore';
+import { type TraceSize, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useAltKey } from './useAltKey';
 import { useMenu } from './useMenu';
@@ -26,6 +26,13 @@ function Tick({ on }: { readonly on: boolean }) {
   );
 }
 
+/** A read's trace: how tall above its bases, or not drawn (#55). */
+const TRACE_SIZES: readonly (readonly [TraceSize, string, string])[] = [
+  ['off', 'Hidden', "Draw the read's bases without its chromatogram"],
+  ['short', 'Short', 'The chromatogram above the bases, low'],
+  ['tall', 'Tall', 'The chromatogram at twice the height, for reading close peaks'],
+];
+
 /**
  * How the sequence view draws: text size, how many bases go in a row,
  * whether the complement is numbered too and whether bases are coloured,
@@ -35,7 +42,10 @@ function Tick({ on }: { readonly on: boolean }) {
  * between sessions.
  */
 export function FormatMenu() {
-  const { seqFontSize, seqBasesPerRow, numberComplement, colorBases } = useEditorState();
+  const { seqFontSize, seqBasesPerRow, numberComplement, colorBases, traceSize, history } =
+    useEditorState();
+  // The trace sizes are offered only while a read with a trace is in front.
+  const hasTrace = history?.present.read?.trace != null;
   // Every item leaves the menu open: the point is to try a size or a row
   // width and see the view change behind it. Escape or a click outside closes.
   const { open, toggle, ref } = useMenu();
@@ -147,6 +157,29 @@ export function FormatMenu() {
             <span>Colour the bases</span>
             <Tick on={colorBases} />
           </button>
+          {hasTrace && (
+            <>
+              <div className="menu__separator" />
+              <p className="menu__group-label">Trace</p>
+              {TRACE_SIZES.map(([size, label, title]) => (
+                <button
+                  key={size}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={traceSize === size}
+                  className="menu__item"
+                  title={title}
+                  onClick={() => {
+                    analytics.trackOnce('view', 'format', 'trace');
+                    editorStore.setTraceSize(size);
+                  }}
+                >
+                  <span>{label}</span>
+                  <Tick on={traceSize === size} />
+                </button>
+              ))}
+            </>
+          )}
           <div className="menu__separator" />
           <button
             type="button"

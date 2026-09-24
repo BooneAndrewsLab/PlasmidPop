@@ -56,6 +56,7 @@ export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
     seqBasesPerRow,
     numberComplement,
     colorBases,
+    traceSize,
   } = useEditorState();
   /**
    * The parts of the sequence view's format the export follows. The text
@@ -67,6 +68,7 @@ export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
     showTranslations,
     numberComplement,
     colorBases,
+    trace: traceSize,
     ...(seqBasesPerRow === null ? {} : { basesPerRow: seqBasesPerRow }),
   };
   const { open, toggle, close, ref } = useMenu();

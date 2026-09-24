@@ -70,6 +70,8 @@ export interface LinearExportOptions {
   readonly colorBases?: boolean;
   /** Repeat each row's position number beside the complement. */
   readonly numberComplement?: boolean;
+  /** How tall a read's trace is drawn, as the view's Format menu has it (#55). Default short. */
+  readonly trace?: 'off' | 'short' | 'tall';
   /** Highlight this range, as the selection is highlighted on screen. */
   readonly selection?: Range | null;
   readonly showComplement?: boolean;
@@ -106,8 +108,8 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
     showComplement: options.showComplement ?? true,
     // Room for the enzyme names above the strands, as in the on-screen view.
     cutSiteLabels: cutSites.length > 0,
-    // A read's chromatogram is exported with it, as it is shown.
-    trace: doc.read?.trace != null,
+    // A read's chromatogram is exported with it, at the height it has on screen.
+    trace: doc.read?.trace == null || options.trace === 'off' ? false : (options.trace ?? 'short'),
     // ...and for a sticky end drawn beside the first or last column.
     extraLeftGutter: overhangs.leftBottom * charWidth,
     extraRightGutter: overhangs.rightBottom * charWidth,

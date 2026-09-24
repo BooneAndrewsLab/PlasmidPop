@@ -226,7 +226,10 @@ describe('a read’s trace in the rows (#52)', () => {
   it('is kept only when asked for, scaled with the text', () => {
     const o = { basesPerRow: 60, charWidth: 8, showComplement: true, cutSiteLabels: false };
     expect(linearMetrics({ ...o, fontSize: 13 }).traceHeight).toBe(0);
-    expect(linearMetrics({ ...o, fontSize: 13, trace: true }).traceHeight).toBe(64);
-    expect(linearMetrics({ ...o, fontSize: 16, trace: true }).traceHeight).toBe(79);
+    expect(linearMetrics({ ...o, fontSize: 13, trace: false }).traceHeight).toBe(0);
+    expect(linearMetrics({ ...o, fontSize: 13, trace: 'short' }).traceHeight).toBe(64);
+    expect(linearMetrics({ ...o, fontSize: 16, trace: 'short' }).traceHeight).toBe(79);
+    // Tall is twice the room (#55).
+    expect(linearMetrics({ ...o, fontSize: 13, trace: 'tall' }).traceHeight).toBe(128);
   });
 });

@@ -48,6 +48,13 @@ export type ViewMode = 'sequence' | 'map' | 'both';
  * or a point the user chose with "Mark from here".
  */
 export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked';
+
+/** How a read's trace is drawn in the sequence view; see `SharedState.traceSize`. */
+export type TraceSize = 'off' | 'short' | 'tall';
+
+export function isTraceSize(v: unknown): v is TraceSize {
+  return v === 'off' || v === 'short' || v === 'tall';
+}
 export type SidebarTab =
   'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
 
@@ -292,6 +299,12 @@ export interface SharedState {
   readonly numberComplement: boolean;
   /** Whether bases are tinted by what they are (A/C/G/T). */
   readonly colorBases: boolean;
+  /**
+   * How tall a sequencing read's trace is drawn above its bases, or not at
+   * all (#55): a read with features and translations has tall rows, and the
+   * chromatogram is not always what is being read.
+   */
+  readonly traceSize: TraceSize;
   /** Which version the sequence view marks changes against; see `EditsBaseline`. */
   readonly editsBaseline: EditsBaseline;
   readonly view: ViewMode;
@@ -573,6 +586,7 @@ const SHARED_INITIAL: SharedState = {
   seqBasesPerRow: null,
   numberComplement: false,
   colorBases: false,
+  traceSize: 'short',
   editsBaseline: 'opened',
   view: 'both',
   sidebarOpen: true,
@@ -1522,6 +1536,10 @@ export class EditorStore {
 
   setColorBases(color: boolean): void {
     if (color !== this.state.colorBases) this.setShared({ colorBases: color });
+  }
+
+  setTraceSize(size: TraceSize): void {
+    if (size !== this.state.traceSize) this.setShared({ traceSize: size });
   }
 
   setEditsBaseline(baseline: EditsBaseline): void {

@@ -17,6 +17,7 @@ const DEFAULTS = {
   seqBasesPerRow: null,
   numberComplement: false,
   colorBases: false,
+  traceSize: 'short',
   editsBaseline: 'opened',
   layout: DEFAULT_LAYOUT,
   sidebarOpen: true,
@@ -43,6 +44,7 @@ function reset(): void {
   editorStore.setSeqBasesPerRow(DEFAULTS.seqBasesPerRow);
   editorStore.setNumberComplement(DEFAULTS.numberComplement);
   editorStore.setColorBases(DEFAULTS.colorBases);
+  editorStore.setTraceSize(DEFAULTS.traceSize);
   editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
   editorStore.setLayout(DEFAULT_LAYOUT);
   editorStore.setSidebarOpen(true);
@@ -76,6 +78,7 @@ describe('view preferences', () => {
       seqBasesPerRow: 60,
       numberComplement: true,
       colorBases: true,
+      traceSize: 'tall',
       editsBaseline: 'saved',
       layout: {
         viewsSplit: 0.5,
@@ -142,6 +145,7 @@ describe('view preferences', () => {
       seqBasesPerRow: 90,
       numberComplement: true,
       colorBases: true,
+      traceSize: 'tall',
       editsBaseline: 'off',
       layout: {
         viewsSplit: 0.62,
@@ -172,6 +176,7 @@ describe('view preferences', () => {
       seqBasesPerRow: 90,
       numberComplement: true,
       colorBases: true,
+      traceSize: 'tall',
       editsBaseline: 'off',
       layout: {
         viewsSplit: 0.62,
@@ -228,10 +233,12 @@ describe('view preferences', () => {
     editorStore.setSeqFontSize(16);
     editorStore.setSeqBasesPerRow(30);
     editorStore.setColorBases(true);
+    editorStore.setTraceSize('tall');
     expect(loadViewPrefs()).toMatchObject({
       seqFontSize: 16,
       seqBasesPerRow: 30,
       colorBases: true,
+      traceSize: 'tall',
     });
     stop();
   });
