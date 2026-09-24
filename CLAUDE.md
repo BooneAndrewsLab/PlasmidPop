@@ -100,8 +100,7 @@ site-directed mutagenesis (Q5 and QuikChange designs); Gateway BP and LR from
 annotated att sites; In-Fusion/NEBuilder insert primers; a Product line
 before assembling; host methylation (dam/dcm) as a document property that
 digests respect. Exhaustive and property tests found and fixed a dozen faults
-before release. Stryker mutation testing is set up on the branch
-`mutation-testing` to run before a release, not in CI (#77).
+before release.
 **1.3.0** (2026-09-23) was sequencing reads (item 46).
 AB1 and FASTQ files (gzipped too) open as documents that keep their base
 qualities and trace; Align trims a read's poor ends, weighs each difference
@@ -130,7 +129,9 @@ and SnapGene (item 10), a reverse complement that says what it changed
 without a division, which Biopython refuses, and a site feature left off
 the end of a circle by an edit (item 37). **1.0.0**
 (2026-09-22) was the first public one, the version the repo went public at and the first archived
-on Zenodo for a citable DOI. Bump `package.json` and `CITATION.cff` together;
+on Zenodo for a citable DOI. Before a release, run `npm run mutate`
+(Stryker, incremental, never in CI; item 50) and triage its survivors.
+Bump `package.json` and `CITATION.cff` together;
 each GitHub Release gets a DOI of its own, and the concept DOI in
 `CITATION.cff` stands for all of them. **The site deploys only when a GitHub
 Release is published** (`deploy.yml`; the `github-pages` environment allows

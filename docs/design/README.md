@@ -61,6 +61,7 @@ piece of work needs its reasoning written down, with the next free number.
 47. [Site-directed mutagenesis](47-mutagenesis.md)
 48. [Gateway cloning](48-gateway.md)
 49. [The Cloning Bench](49-cloning-bench.md)
+50. [Mutation testing before a release](50-mutation-testing.md)
 
 ## Changelog to 1.1.0
 
