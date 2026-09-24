@@ -79,3 +79,7 @@ Added 2026-09-23 (#45): **the host, and digests that respect it.**
   user to the Enzymes tab to tick what was already ticked; it now names the
   enzymes, the host, and **Grown in**. When only some sites are blocked, a
   line under the count names them.
+- **FASTA carries it too, 2026-09-24** (#71): `[PlasmidPop-methylation:
+dam-; dcm-]` in the header beside the ends tag, written only when the host
+  is not the default. A tag that cannot be read stays in the description and
+  survives a save, as a user's own text.

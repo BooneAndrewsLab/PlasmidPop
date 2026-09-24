@@ -92,3 +92,57 @@ describe('FASTA', () => {
     ]);
   });
 });
+
+describe('FASTA and the host methylation (#71)', () => {
+  const HOSTS = [
+    { dam: true, dcm: true },
+    { dam: true, dcm: false },
+    { dam: false, dcm: true },
+    { dam: false, dcm: false },
+  ] as const;
+
+  it('round-trips every host, and writes a tag only for one that is not the default', () => {
+    for (const host of HOSTS) {
+      const doc = SeqDocument.create({ name: 'p1', sequence: 'ACGTGATC', methylation: host });
+      const text = writeFasta(doc);
+      const plain = host.dam && host.dcm;
+      expect(text.includes('PlasmidPop-methylation')).toBe(!plain);
+      const back = parseFasta(text).documents[0];
+      expect(back?.methylation).toEqual(host);
+      // The tag is ours: it leaves the description on read and is written once.
+      expect(back?.metadata.description).not.toContain('PlasmidPop-methylation');
+      if (back !== undefined) expect(writeFasta(back)).toBe(text);
+    }
+  });
+
+  it('sits beside the ends tag and the topology tag, in either order', () => {
+    const doc = SeqDocument.create({
+      name: 'frag',
+      sequence: 'AATTCGGG',
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: 'blunt', overhang: '', enzyme: null },
+      },
+      methylation: { dam: false, dcm: false },
+      metadata: { description: 'insert' },
+    });
+    const text = writeFasta(doc);
+    const back = parseFasta(text).documents[0];
+    expect(back?.ends).toEqual(doc.ends);
+    expect(back?.methylation).toEqual({ dam: false, dcm: false });
+    expect(back?.metadata.description).toBe('insert');
+    const swapped =
+      ">frag insert [PlasmidPop-methylation: dam-; dcm-] [PlasmidPop-ends: left=5' AATT/EcoRI; right=blunt]\nAATTCGGG\n";
+    const other = parseFasta(swapped).documents[0];
+    expect(other?.ends).toEqual(doc.ends);
+    expect(other?.methylation).toEqual({ dam: false, dcm: false });
+  });
+
+  it('keeps a tag it cannot read as part of the description, through a save', () => {
+    const text = '>p1 note [PlasmidPop-methylation: garbage]\nACGT\n';
+    const back = parseFasta(text).documents[0];
+    expect(back?.methylation).toEqual({ dam: true, dcm: true });
+    expect(back?.metadata.description).toContain('[PlasmidPop-methylation: garbage]');
+    if (back !== undefined) expect(writeFasta(back)).toContain('[PlasmidPop-methylation: garbage]');
+  });
+});

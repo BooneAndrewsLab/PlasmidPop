@@ -1,6 +1,11 @@
 import { SeqDocument, isValidSequence } from '@/core';
 
 import { formatEndsComment, parseEndsComment } from '../genbank/endsComment';
+import {
+  formatMethylationComment,
+  needsMethylationComment,
+  parseMethylationComment,
+} from '../genbank/methylationComment';
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
 
 const LINE_WIDTH = 70;
@@ -13,6 +18,13 @@ const LINE_WIDTH = 70;
  * write, so it does not pile up.
  */
 const ENDS_TAG = /\s*\[(PlasmidPop-ends:[^\]]*)\]/;
+
+/**
+ * Where the DNA was grown, the same way (#71): the GenBank comment's text in
+ * brackets, `[PlasmidPop-methylation: dam-; dcm-]`, and only when the host
+ * is not the ordinary `dam+ dcm+` a header without it is read as.
+ */
+const METHYLATION_TAG = /\s*\[(PlasmidPop-methylation:[^\]]*)\]/;
 
 /**
  * Parses one or more FASTA records. The first word of the header is the
@@ -50,12 +62,17 @@ export function parseFasta(text: string): ParseResult {
     const tag = ENDS_TAG.exec(description);
     const ends = tag?.[1] === undefined ? null : parseEndsComment(tag[1]);
     if (tag !== null) description = description.replace(ENDS_TAG, '').trim();
+    const host = METHYLATION_TAG.exec(description);
+    const methylation = host?.[1] === undefined ? null : parseMethylationComment(host[1]);
+    // Only a tag that was understood leaves the description, as for the ends.
+    if (methylation !== null) description = description.replace(METHYLATION_TAG, '').trim();
     documents.push(
       SeqDocument.create({
         name: name === '' ? 'Untitled' : name,
         sequence: cleaned,
         topology: /\bcircular\b/i.test(description) ? 'circular' : 'linear',
         ends,
+        ...(methylation === null ? {} : { methylation }),
         metadata: { description },
       }),
     );
@@ -83,12 +100,22 @@ export function parseFasta(text: string): ParseResult {
 }
 
 export function writeFasta(doc: SeqDocument): string {
-  const description = doc.metadata.description.replace(ENDS_TAG, '').trim();
+  const description = doc.metadata.description
+    .replace(ENDS_TAG, '')
+    // Ours is written afresh below; a tag that cannot be read stays, as the
+    // user's own text.
+    .replace(METHYLATION_TAG, (tag: string, body: string) =>
+      parseMethylationComment(body) === null ? tag : '',
+    )
+    .trim();
   const circular = doc.topology === 'circular' && !/\bcircular\b/i.test(description);
   const headerParts = [doc.name.trim() === '' ? 'Untitled' : doc.name.replace(/\s+/g, '_')];
   if (description !== '') headerParts.push(description);
   if (circular) headerParts.push('[topology=circular]');
   if (doc.ends !== null) headerParts.push(`[${formatEndsComment(doc.ends)}]`);
+  if (needsMethylationComment(doc.methylation)) {
+    headerParts.push(`[${formatMethylationComment(doc.methylation)}]`);
+  }
   return formatFastaRecord(headerParts.join(' '), doc.sequence.toString());
 }
 

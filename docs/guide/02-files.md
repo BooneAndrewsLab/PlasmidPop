@@ -46,7 +46,9 @@ Where the DNA was grown travels the same way, as
 used for the features.
 
 **FASTA** gives a bare sequence. A header ending in `[topology=circular]`
-makes the sequence circular. Gaps and digits are stripped with a warning;
+makes the sequence circular. Sticky ends and where the DNA was grown travel
+in the header too, as `[PlasmidPop-ends: ...]` and
+`[PlasmidPop-methylation: ...]`, the same text as the GenBank comment lines. Gaps and digits are stripped with a warning;
 protein FASTA is rejected.
 
 **SnapGene `.dna`** files are read for sequence and topology, features
