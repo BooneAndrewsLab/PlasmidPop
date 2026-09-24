@@ -136,7 +136,18 @@ cut-over-cut across 48 renders of pBR322 (`cceb5df`).
   (19 when this note was written; the ring there is width-limited, so
   everything gained is above and below it). The SVG export's longer slide
   gives its outer ring the same reach.
-- Also not yet: the leader lines still fan out in a near-parallel
-  tangle where a dozen labels bunch, nothing in the ring is clickable, and
-  the label ring is sized for the sans font but `OUTER_MARGIN` is still a
-  constant.
+- **Labels are click targets, the margin follows the font, and the
+  tangle** (#25, 2026-09-24). `renderCircularMap` returns every drawn
+  label's box and what it names (`DrawnLabel`), the map view keeps the last
+  frame's and tests the pointer against them first: hovering a label
+  hovers what it names, a click selects the feature or puts the caret at
+  the cut, a double-click zooms to the feature. `OUTER_MARGIN` is
+  `labelMargin(SANS_FONT)`, 110 px at 12 px as before, so a map in larger
+  type makes room in step with the rings `mapMetrics` measures in text
+  (the review's diff map keeps its tighter 92 px at 11 px on purpose). The
+  near-parallel tangle was what crossing and out-of-order leaders look
+  like, and #24 took those from 21 crossing pairs and 46 inversions to 0
+  and 3 over the harness; a render of pBR322 with every feature named and
+  35 cut sites now shows fans of neighbours sliding the same way, in order,
+  none crossing. Leaders stay straight chords from the elbow; a bent or
+  curved leader was not tried, since the harness has nothing left to count.

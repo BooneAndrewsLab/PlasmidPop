@@ -184,6 +184,10 @@ A linear sequence is drawn as an open ring with a gap at the ends.
   open, its row is highlighted on its own and scrolls into view — even where
   another feature covers exactly the same bases, as a gene and its CDS often
   do. **Double-click** the arc to zoom in on it.
+- A **label** is a target too: clicking a feature's name selects the
+  feature, double-clicking it zooms in on it, and clicking a cut site's
+  name puts the cursor at the cut. Hovering one highlights it and its
+  leader.
 - **Click** empty space — inside the circle, or outside it — to clear the
   selection.
 - **Wheel** or **pinch** to zoom about the pointer; **double-click** empty

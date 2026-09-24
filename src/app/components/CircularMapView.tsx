@@ -11,11 +11,13 @@ import {
 
 import { type SeqDocument, featureExtent, isEmptyRange } from '@/core';
 import {
+  type DrawnLabel,
   type MapViewport,
   CircularLayout,
   FIT_VIEWPORT,
   clockwiseSelection,
   fitRange,
+  labelMargin,
   overlayRingRadius,
   panBy,
   renderCircularMap,
@@ -35,7 +37,8 @@ import { recallView, rememberView } from '../state/viewMemory';
 const SANS_FONT = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const TITLE_FONT = '600 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const RING_WIDTH = 14;
-const OUTER_MARGIN = 110;
+/** Room for the label ring, measured in its text (#25). */
+const OUTER_MARGIN = labelMargin(SANS_FONT);
 /** How far the pointer may travel and still count as a click rather than a drag. */
 const CLICK_SLOP = 3;
 /** Zoom factor of one press of the +/− buttons and of a double-click. */
@@ -57,7 +60,8 @@ interface Hover {
   readonly featureId: string | null;
   /** Top-strand cut position under the pointer; the map keeps its label. */
   readonly cut: number | null;
-  readonly kind: 'lane' | 'backbone' | 'none';
+  /** `label` when the pointer is on a label, which names what it is over (#25). */
+  readonly kind: 'lane' | 'backbone' | 'label' | 'none';
 }
 
 const NO_HOVER: Hover = { featureId: null, cut: null, kind: 'none' };
@@ -94,6 +98,8 @@ export function CircularMapView({ doc }: Props) {
     () => recallView(documentId).mapViewport ?? FIT_VIEWPORT,
   );
   const gesture = useRef<Gesture>({ kind: 'idle' });
+  /** The labels the last frame drew, for the pointer to find (#25). */
+  const drawnLabels = useRef<readonly DrawnLabel[]>([]);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
 
   const [viewportDocId, setViewportDocId] = useState(documentId);
@@ -242,7 +248,7 @@ export function CircularMapView({ doc }: Props) {
       canvas.height = h;
     }
     const frame = requestAnimationFrame(() => {
-      renderCircularMap(ctx, {
+      const { labels } = renderCircularMap(ctx, {
         doc,
         layout,
         lanes,
@@ -260,6 +266,7 @@ export function CircularMapView({ doc }: Props) {
         sansFont: SANS_FONT,
         titleFont: TITLE_FONT,
       });
+      drawnLabels.current = labels;
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -340,6 +347,13 @@ export function CircularMapView({ doc }: Props) {
     setPanning(false);
   };
 
+  /** The label under a point, if any: a label is a click target like the arc it names. */
+  const labelAt = (x: number, y: number): DrawnLabel['target'] | null => {
+    for (const { box, target } of drawnLabels.current)
+      if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) return target;
+    return null;
+  };
+
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const pt = point(e);
     pointers.current.set(e.pointerId, pt);
@@ -351,6 +365,18 @@ export function CircularMapView({ doc }: Props) {
       return;
     }
     if (pointers.current.size > 2) return;
+    // A label names what it is for, so clicking it does what clicking that
+    // does: a feature's selects the feature, a cut site's puts the caret at
+    // the cut (#25).
+    const label = e.button === 0 ? labelAt(pt.x, pt.y) : null;
+    if (label !== null) {
+      if (label.kind === 'feature') editorStore.selectFeature(label.featureId);
+      else {
+        editorStore.setSelection({ start: label.position, end: label.position });
+        editorStore.revealPosition(label.position);
+      }
+      return;
+    }
     const hit = layout.hitTest(pt.x, pt.y);
     if (e.button === 1 || (e.button === 0 && hit.kind === 'none')) {
       if (e.button === 1) e.preventDefault(); // no middle-click autoscroll
@@ -423,11 +449,19 @@ export function CircularMapView({ doc }: Props) {
       );
       return;
     }
-    const next: Hover = {
-      featureId: hit.kind === 'lane' ? featureAt(hit.lane, hit.position) : null,
-      cut: hit.kind === 'lane' ? null : cutAt(pt.x, pt.y),
-      kind: hit.kind,
-    };
+    const label = labelAt(pt.x, pt.y);
+    const next: Hover =
+      label !== null
+        ? {
+            featureId: label.kind === 'feature' ? label.featureId : null,
+            cut: label.kind === 'cut' ? label.position : null,
+            kind: 'label',
+          }
+        : {
+            featureId: hit.kind === 'lane' ? featureAt(hit.lane, hit.position) : null,
+            cut: hit.kind === 'lane' ? null : cutAt(pt.x, pt.y),
+            kind: hit.kind,
+          };
     setHover((prev) =>
       prev.featureId === next.featureId && prev.cut === next.cut && prev.kind === next.kind
         ? prev
@@ -456,8 +490,15 @@ export function CircularMapView({ doc }: Props) {
   const onDoubleClick = (e: ReactMouseEvent<HTMLCanvasElement>): void => {
     const pt = point(e);
     const hit = layout.hitTest(pt.x, pt.y);
-    if (hit.kind === 'lane') {
-      const id = featureAt(hit.lane, hit.position);
+    const label = labelAt(pt.x, pt.y);
+    if (label?.kind === 'cut') return; // a cut site has nothing to zoom to
+    if (label !== null || hit.kind === 'lane') {
+      const id =
+        label?.kind === 'feature'
+          ? label.featureId
+          : hit.kind === 'lane'
+            ? featureAt(hit.lane, hit.position)
+            : null;
       const feature = id === null ? undefined : doc.getFeature(id);
       const extent = feature === undefined ? null : featureExtent(feature);
       if (extent !== null) {
@@ -470,7 +511,7 @@ export function CircularMapView({ doc }: Props) {
 
   const cursor = panning
     ? 'grabbing'
-    : hover.featureId !== null
+    : hover.featureId !== null || hover.kind === 'label'
       ? 'pointer'
       : hover.kind === 'none' && layout.zoom > 1
         ? 'grab'

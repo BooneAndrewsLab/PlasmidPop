@@ -97,6 +97,16 @@ function fontSizeOf(font: string): number {
 }
 
 /**
+ * The room to leave outside the circle for the label ring drawn in `sansFont`
+ * (#25): 110 px at the screen's 12 px, the margin the map has always had,
+ * and in step with the rings `mapMetrics` measures in text, so a map drawn
+ * in larger type keeps room for its labels rather than a constant's worth.
+ */
+export function labelMargin(sansFont: string): number {
+  return Math.round((fontSizeOf(sansFont) * 110) / 12);
+}
+
+/**
  * Everything outside the backbone is measured in text, so an export drawn at
  * twice the type size moves its rings out with it. At the screen's 12 px
  * these come out at the offsets the map has always used (7, 12, 26, 34).
@@ -807,7 +817,7 @@ function drawLabels(
   m: MapMetrics,
   visible: readonly Feature[],
   ticks: readonly RulerTick[],
-): number {
+): { readonly dropped: number; readonly drawn: DrawnLabel[] } {
   const { layout, theme, doc } = p;
   ctx.font = p.sansFont;
   const labelRadius = layout.radius + m.labelRing;
@@ -1034,7 +1044,13 @@ function drawLabels(
     }
   }
 
-  return dropped.length + unfit;
+  const drawn: DrawnLabel[] = placed.map((label) => ({
+    box: label.box,
+    target: label.id.startsWith(CUT_PREFIX)
+      ? { kind: 'cut', position: Number(label.id.slice(CUT_PREFIX.length)) }
+      : { kind: 'feature', featureId: label.id },
+  }));
+  return { dropped: dropped.length + unfit, drawn };
 }
 
 /**
@@ -1120,9 +1136,19 @@ function fitTitle(
   return null;
 }
 
+/** A label as drawn, and what it names: a feature, or the cut sites at one position. */
+export interface DrawnLabel {
+  readonly box: LabelBox;
+  readonly target:
+    | { readonly kind: 'feature'; readonly featureId: string }
+    | { readonly kind: 'cut'; readonly position: number };
+}
+
 export interface MapRenderResult {
   /** Labels the ring had no room for; the map draws the count in the corner. */
   readonly droppedLabels: number;
+  /** Where each drawn label is, so the view can make it a click target (#25). */
+  readonly labels: readonly DrawnLabel[];
 }
 
 export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams): MapRenderResult {
@@ -1145,11 +1171,11 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   if (tinySelection) drawSelectionMarker(ctx, p);
   drawEditMarks(ctx, p, m);
   drawOverlays(ctx, p);
-  const droppedLabels = drawLabels(ctx, p, m, features, ticks);
+  const { dropped: droppedLabels, drawn } = drawLabels(ctx, p, m, features, ticks);
   drawCentre(ctx, p);
   drawDroppedCount(ctx, p, m, droppedLabels);
   ctx.restore();
-  return { droppedLabels };
+  return { droppedLabels, labels: drawn };
 }
 
 /** Bases covered by a clockwise drag from `anchor` to `focus`. */

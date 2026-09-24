@@ -181,6 +181,46 @@ describe('renderCircularMap labels', () => {
     return ctx.toSvg();
   };
 
+  it('reports where each drawn label is and what it names, for the pointer to find', () => {
+    const features = crowded.features.all();
+    const lanes = assignLanes(features, crowded.length);
+    const layout = new CircularLayout(crowded.length, crowded.topology, {
+      ...opts,
+      laneCount: lanes.laneCount,
+    });
+    const ctx = new SvgContext(600, 600);
+    const { labels, droppedLabels } = renderCircularMap(ctx, {
+      doc: crowded,
+      layout,
+      lanes,
+      selection: null,
+      cutSites: [{ enzyme: 'EcoRI', cut: 99, cutBottom: 103, siteStart: 98, strand: 'forward' }],
+      overlay: NO_OVERLAY,
+      overlayLanes: NO_LANES,
+      edits: null,
+      hoveredFeatureId: null,
+      hoveredCut: null,
+      width: 600,
+      height: 600,
+      devicePixelRatio: 1,
+      theme: PRINT_THEME,
+      sansFont: '12px Helvetica, Arial, sans-serif',
+      titleFont: '600 15px Helvetica, Arial, sans-serif',
+    });
+    const named = labels.filter((l) => l.target.kind === 'feature');
+    // Every feature is either drawn, with its box, or counted as left out.
+    expect(named.length + droppedLabels).toBeGreaterThanOrEqual(features.length);
+    const ids = new Set(features.map((f) => f.id));
+    for (const { box, target } of labels) {
+      expect(box.right).toBeGreaterThan(box.left);
+      if (target.kind === 'feature') expect(ids.has(target.featureId)).toBe(true);
+    }
+    expect(labels.find((l) => l.target.kind === 'cut')?.target).toEqual({
+      kind: 'cut',
+      position: 99,
+    });
+  });
+
   it('says how many labels it had no room for', () => {
     const svg = draw(null, 420);
     const count = /\+(\d+) labels? not shown/.exec(svg);
