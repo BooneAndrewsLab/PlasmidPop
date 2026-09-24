@@ -96,3 +96,14 @@ answers.
     left out rather than typed in from memory.
   - A shelved product is dephosphorylated unless **5′-phosphorylated
     primers** is ticked (#10's follow-up), since its 5′ ends are the oligos'.
+- **Back-to-back primers whose 5′ ends overlap, 2026-09-24.** Found by the
+  mutagenesis property test (item 47). On a circle, two primers pointing
+  away from each other can have annealing sites that overlap at their 5′
+  ends — neither 3′ end inside the other's site — and the candidate loop
+  dropped them as overlapping primers. A mutagenic insert makes this happen
+  whenever its last bases continue the template before it, since the
+  annealing search counts those bases as site: one time in four for the last
+  base alone, so back-to-back insertions mostly failed and the first test's
+  FLAG tag passed by luck. Such a pair copies the whole circle and the
+  overlap again; `templateRange` is capped at the whole circle so it stays a
+  valid range for the views.

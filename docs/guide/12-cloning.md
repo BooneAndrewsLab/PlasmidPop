@@ -457,6 +457,12 @@ It also tells you:
   an att site — the commonest Gateway mistake, and one the sequence can
   answer.
 
+A vector written on the other strand from the insert — its att sites
+annotated on the reverse strand where the insert's are on the forward — is
+the same plasmid read the other way round, and recombines the same. One
+pair of sites on the same strand and the other on opposite strands is not
+an exchange, and the panel says so.
+
 A linear attB substrate (a PCR product) gives a clone but no byproduct
 circle: its two flanks come away as loose ends and are lost.
 

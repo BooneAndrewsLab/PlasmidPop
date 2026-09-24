@@ -223,6 +223,20 @@ export function gateway(
     );
   }
 
+  // A vector whose sites lie on the other strand from the insert's is the
+  // same molecule written the other way round: the crossover joins the
+  // insert's top strand to its bottom one, so its pieces go in
+  // reverse-complemented. Turning the whole vector over first keeps the
+  // pieces below on one strand. Only one pair opposed is not a swap at all
+  // (it would invert the DNA between the sites), so that is refused.
+  const opposed = [i1.strand !== v1.strand, i2.strand !== v2.strand];
+  if (opposed[0] !== opposed[1]) {
+    return fail(
+      `${named(from[0])}${i1.number} and ${named(from[0])}${i2.number} of ${insert.name} do not lie the same way round as their partners in ${vector.name}: one pair is on the same strand and the other on opposite strands, which is not an exchange of the DNA between them. Check the sites' strands.`,
+    );
+  }
+  if (opposed[0] === true) return gateway(insert, vector.reverseComplement(), reaction, options);
+
   const first = crossoverOf({ doc: insert, site: i1 }, { doc: vector, site: v1 });
   const second = crossoverOf({ doc: insert, site: i2 }, { doc: vector, site: v2 });
   if (first === null || second === null) {

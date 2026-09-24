@@ -39,6 +39,16 @@ system that Invitrogen's kits are built on.
   The halves' att features are dropped and one `protein_bind` feature is
   added across each junction, under the name the reaction gives it
   (`attL1` for a BP's entry clone), keeping the number, which is what pairs.
+- **A vector on the other strand is turned over first.** Where both of a
+  vector's sites lie on the opposite strand from their partners, the
+  crossover joins the insert's top strand to the vector's bottom one, so
+  the vector's pieces belong in the product reverse-complemented. The
+  first version compared the cores reverse-complemented but then joined
+  the vector's forward-strand pieces, which made a wrong molecule of the
+  wrong length; `gateway.property.test.ts`, checking against an oracle
+  that swaps arms as plain strings, caught it. The whole vector is now
+  reverse-complemented before the crossover, and one pair opposed with
+  the other not (an inversion, not an exchange) is refused.
 - **A linear attB substrate** gives a clone and no byproduct: its flanks
   come away as loose ends rather than as a circle.
 - **The frame warning** is the one the bench actually needs: an att site is

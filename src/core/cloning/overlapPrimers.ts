@@ -126,8 +126,12 @@ export function designOverlapPrimers(
   const text = vector.sequence.toString();
   const forwardTail = text.slice(text.length - overlap).toUpperCase();
   const reverseTail = reverseComplement(text.slice(0, overlap)).toUpperCase();
-  const forwardAnneal = anneal((n) => insert.slice(0, n), opts);
-  const reverseAnneal = anneal((n) => reverseComplement(insert.slice(insert.length - n)), opts);
+  // Neither annealing part grows past half the insert: two that overlap are
+  // not an amplicon (`pcr`), and an insert the check above let through as
+  // long enough would otherwise fail as primers pointing away from each other.
+  const grow = { ...opts, maxAnneal: Math.min(opts.maxAnneal, Math.floor(insert.length / 2)) };
+  const forwardAnneal = anneal((n) => insert.slice(0, n), grow);
+  const reverseAnneal = anneal((n) => reverseComplement(insert.slice(insert.length - n)), grow);
 
   const forward: OverlapPrimer = {
     sequence: forwardTail + forwardAnneal.toLowerCase(),

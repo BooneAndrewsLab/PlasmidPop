@@ -224,3 +224,9 @@ overhangs would misligate.
     is the right test. Caught by the panel's test, not by the core's.
   - It lives inside the Gibson panel rather than as a sixth reaction: the
     reaction _is_ the Gibson, and the picker is long enough.
+- **In-Fusion/NEBuilder annealing capped at half the insert, 2026-09-24.**
+  An insert of 36 to about 60 bp passed the length check, but its two
+  annealing parts grew to 30 bases each and overlapped, so `pcr` refused
+  them and the panel blamed primers pointing away from each other. Each part
+  now stops at half the insert; every size from 36 to 70 closes. Found by
+  `overlapPrimers.property.test.ts`, on about 3.5% of random designs.

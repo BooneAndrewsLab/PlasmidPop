@@ -45,8 +45,10 @@ export interface AnnealingSite {
   /**
    * Melting temperature of the 3′ stretch before the first mismatch, the
    * part that surely pairs in the first cycles, when the template is the
-   * original. Equal to `tm` for a site with no mismatch; a lower bound
-   * otherwise, since a mismatched stretch still pairs a little.
+   * original. Equal to `tm` for a site with no mismatch. Usually lower
+   * otherwise, but not always: a nearest-neighbour Tm does not rise with
+   * every base added, so a short GC-rich stretch can melt above the longer
+   * whole. It is the temperature of what surely pairs, not a bound on `tm`.
    */
   readonly templateTm: number;
 }

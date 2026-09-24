@@ -163,7 +163,10 @@ export function designMutagenesis(
     // primer reaches QuikChange's temperature.
     const mismatched =
       removed === inserted.length ? countDifferences(stretch(range.start, range.end), inserted) : 0;
-    const indel = removed === inserted.length ? 0 : Math.max(inserted.length, removed);
+    // N leaves out the new bases, which are in the primer; the deleted ones
+    // are not in it to leave out, so a deletion counts none (subtracting
+    // them took N to zero or below past 20 bases, and the Tm to NaN).
+    const indel = removed === inserted.length ? 0 : inserted.length;
     let left = 10;
     let right = 10;
     const build = (): string =>
@@ -224,7 +227,7 @@ function proteinEffects(
   const out: string[] = [];
   const after = new Map(mutant.features.all().map((f) => [f.id, f]));
   for (const feature of doc.features.all()) {
-    if (feature.type !== 'CDS' || !contains(feature, range)) continue;
+    if (feature.type !== 'CDS' || !contains(feature, range, doc)) continue;
     const moved = after.get(feature.id);
     if (moved === undefined) continue;
     const before = translateCds(doc, feature).protein;
@@ -235,9 +238,18 @@ function proteinEffects(
   return out;
 }
 
-function contains(feature: Feature, r: Range): boolean {
+/**
+ * Whether the change lies inside one of the feature's segments. A segment
+ * over the origin of a circle is unrolled past its length, so a change just
+ * after the origin is looked for there too, a circle further on.
+ */
+function contains(feature: Feature, r: Range, doc: SeqDocument): boolean {
+  const shifts = doc.isCircular ? [0, doc.length] : [0];
   return feature.segments.some(
-    (s) => s.kind === 'range' && s.start <= r.start && r.end <= s.end && s.start < s.end,
+    (s) =>
+      s.kind === 'range' &&
+      s.start < s.end &&
+      shifts.some((k) => s.start <= r.start + k && r.end + k <= s.end),
   );
 }
 

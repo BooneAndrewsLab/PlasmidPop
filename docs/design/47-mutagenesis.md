@@ -39,3 +39,10 @@ use a tool for.
   does for PCR: neither is about the fragments.
 - Follow-ups (NEB's Q5 Tm, codon changes by amino acid, degenerate codons)
   are #69.
+- **Fixed by the property tests, 2026-09-24.** Agilent's N had the
+  deleted bases subtracted as well as the inserted ones, though a deletion's
+  bases are not in the primer: a QuikChange deletion of 20 bases or more got
+  N ≤ 0 and a NaN Tm, shorter ones a low Tm and longer primers than needed.
+  A CDS running over the origin of a circle got no protein change for an
+  edit just after the origin. And back-to-back insertions mostly failed to
+  amplify, which was PCR's (item 36).

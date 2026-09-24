@@ -64,7 +64,9 @@ export interface PcrProduct {
   /**
    * The stretch of template copied, unrolled forward coordinates: from the
    * forward primer's 5′-most annealed base to the reverse primer's. The
-   * tails are outside it, because they are nowhere on the template.
+   * tails are outside it, because they are nowhere on the template. The
+   * whole circle, for back-to-back primers whose 5′ ends overlap, whose
+   * product copies the overlap twice.
    */
   readonly templateRange: Range;
   /** Length of the product, tails included. */
@@ -173,6 +175,12 @@ export function pcr(
         // Back-to-back primers whose ends meet exactly amplify the whole
         // circle, not nothing.
         if (span === 0) span = L;
+        // Back-to-back primers whose 5′ ends overlap — neither 3′ end inside
+        // the other's site — still point away from each other: they copy the
+        // whole circle and the overlap twice. A mutagenic insert does this
+        // whenever its bases happen to continue the template before it, which
+        // is one time in four for its last base alone.
+        else if (span < f.annealLength && span < r.annealLength) span += L;
       }
       if (span <= 0) continue;
       // Overlapping annealing regions are not an amplicon: the two primers
@@ -214,12 +222,15 @@ function amplify(
   polymerase: Polymerase,
 ): PcrProduct {
   const { forward: f, reverse: r, span } = c;
-  const templateRange: Range = { start: f.range.start, end: f.range.start + span };
+  // A span past the whole circle (5′ ends overlapping) copies it once and the
+  // overlap again; the range stays a valid one, the whole circle.
+  const L = template.length;
+  const templateRange: Range = { start: f.range.start, end: f.range.start + Math.min(span, L) };
   const copied = fragmentFromRange(template, templateRange);
   // The product's ends are the primers', not the template's: the bases under
   // an annealing region come from the oligo, so a mismatch in one is a
   // mutation in the product. The interior is the template's own.
-  const body = copied.sequence;
+  const body = span > L ? copied.sequence + copied.sequence.slice(0, span - L) : copied.sequence;
   const reverseOligo = reverseComplement(r.primer);
   const sequence =
     f.tail +
