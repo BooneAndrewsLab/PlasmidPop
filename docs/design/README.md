@@ -60,6 +60,7 @@ piece of work needs its reasoning written down, with the next free number.
 46. [Sequencing reads: AB1 and FASTQ](46-sequencing-reads.md)
 47. [Site-directed mutagenesis](47-mutagenesis.md)
 48. [Gateway cloning](48-gateway.md)
+49. [The Cloning Bench](49-cloning-bench.md)
 
 ## Changelog to 1.1.0
 

@@ -858,8 +858,9 @@ export class EditorStore {
   }
 
   /** Shows the Cloning Bench. The open documents stay in their tabs. */
-  showBench(): void {
+  showBench(from?: 'tab' | 'link'): void {
     if (this.bench) return;
+    if (from !== undefined) analytics.trackOnce('cloning', 'bench', from);
     this.activeId = null;
     this.bench = true;
     this.shared = { ...this.shared, comparison: null };
@@ -1474,6 +1475,7 @@ export class EditorStore {
   undoShelf(): void {
     const step = this.shelfPast.at(-1);
     if (step === undefined) return;
+    analytics.track('cloning', 'shelf-undo');
     this.shelfPast = this.shelfPast.slice(0, -1);
     this.shelfFuture = [...this.shelfFuture, { shelf: this.state.shelf, label: step.label }];
     this.setShared({
@@ -1487,6 +1489,7 @@ export class EditorStore {
   redoShelf(): void {
     const step = this.shelfFuture.at(-1);
     if (step === undefined) return;
+    analytics.track('cloning', 'shelf-redo');
     this.shelfFuture = this.shelfFuture.slice(0, -1);
     this.shelfPast = [...this.shelfPast, { shelf: this.state.shelf, label: step.label }];
     this.setShared({

@@ -19,7 +19,7 @@ export function ShelfSummary() {
           type="button"
           className="link"
           onClick={() => {
-            editorStore.showBench();
+            editorStore.showBench('link');
           }}
         >
           Open the Bench

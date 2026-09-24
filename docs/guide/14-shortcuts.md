@@ -24,6 +24,9 @@ On macOS use `Cmd` where `Ctrl` is written.
 | `Ctrl+Z`                 | Undo                                                  |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | Redo                                                  |
 
+On the [Bench](12-cloning.md#the-bench), where there is no sequence to edit,
+`Ctrl+Z` and `Ctrl+Shift+Z` (or `Ctrl+Y`) undo and redo changes to the shelf.
+
 ## Showing and hiding
 
 Everything here is `Alt` and one key. Bare letters type bases in the

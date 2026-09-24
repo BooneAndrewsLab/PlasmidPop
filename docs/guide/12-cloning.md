@@ -1,20 +1,25 @@
 # Simulated cloning
 
-The **Cloning** tab cuts the document with restriction enzymes and
-describes the resulting fragments end by end. Under the digest is the
-**shelf**, where fragments you collect wait for a reaction, and under that a
-picker chooses one reaction to build something with: **PCR**, which
-amplifies a stretch of this document with two primers, **Mutate**, which
-designs the primers for a point mutation, insertion or deletion,
-**Ligation**, which joins shelf fragments by their overhangs, **Golden
-Gate**, **Gibson**, and **Gateway**. They are alternatives, so one is shown at a time and the choice
-is remembered. Whichever you use, the product opens as a new document with
-the features of its parts.
+Cloning happens in two places, split by what each thing works on.
 
-The digest and **Mutate** belong to the document in front of you, and so does PCR unless
-you pick another tab as its template. The other three do not: they work
-across the open tabs and the shelf, and two of them never look at the
-document you happen to be reading.
+The **Cloning** tab in the sidebar is about the document in front of you,
+and draws on its views. Its picker chooses one of three: **Digest**, which
+cuts the document with restriction enzymes and describes the fragments end
+by end, **PCR**, which amplifies a stretch of it with two primers, and
+**Mutate**, which designs the primers for a point mutation, insertion or
+deletion. The fragments and PCR products you keep go on the
+[shelf](#the-shelf).
+
+The **[Bench](#the-bench)**, a tab of its own beside **Files** in the tab
+strip, is where the parts are joined, from any number of documents:
+**Ligation**, which joins shelf fragments by their overhangs, **Golden
+Gate**, **Gibson** (with the In-Fusion and NEBuilder primer design), and
+**Gateway**. Beside the reaction it draws what the reaction would make, and
+a digest to check it by.
+
+In both places the reactions are alternatives, so one is shown at a time
+and the choice is remembered. Whichever you use, the product opens as a new
+document with the features of its parts.
 
 ## Digest
 
@@ -30,7 +35,7 @@ first, each with:
 - its two **ends**: the enzyme that made the cut, whether the end is blunt
   or has a 5′ or 3′ overhang, and the overhang bases;
 - the **features** it carries;
-- **Add**, which puts it on the [shelf](#the-shelf) below, and **Open**,
+- **Add**, which puts it on the [shelf](#the-shelf), and **Open**,
   which opens it as a document of its own.
 
 An uncut linear molecule is one fragment with the ends the molecule already
@@ -57,8 +62,8 @@ they are.
 **Click a fragment in either view to put it on the shelf**, which is what
 **Add** in its row does. On the map that is the thin dashed ring just inside
 the backbone; in the sequence view it is the band outside the feature lanes.
-The shelf sits above every reaction, so you see it land whichever reaction
-is picked.
+The last line of the Cloning tab counts what is on the shelf, so you see it
+land, and **Open the Bench** takes you to it.
 
 ## Sticky ends on a document
 
@@ -197,20 +202,49 @@ dephosphorylated vector — as on the bench.
 with a second copy of itself, over more than 4 bases, the panel says so:
 a polymerase can extend the pair into a short product of its own.
 
+## The Bench
+
+The Bench is the tab after **Files** in the tab strip; its count is the
+number of parts on the shelf. It stays in the strip while the shelf holds
+anything, even with every document closed. It has three columns:
+
+- the **shelf** on the left;
+- the **reaction** in the middle: **Ligation**, **Golden Gate**, **Gibson**
+  or **Gateway**, picked at the top. What each is set to — the parts left
+  out of its tube, its enzymes, the tabs it uses, a name you have started
+  typing — stays as it was while you look at a document, and across a
+  reload;
+- **what it makes** on the right, once the parts go together: the product's
+  map, and **Check by digest**, a gel lane of the product cut with one
+  enzyme. The enzyme list offers every enzyme that cuts the product between
+  once and six times, the clearest lane first — the order the Enzymes tab's
+  [band separation](07-enzymes.md) sort uses — and the product's own
+  methylation is allowed for. It is the digest to run on a miniprep before
+  sending it for sequencing.
+
+The phone reader has no Bench.
+
 ## The shelf
 
-**Add** puts a fragment on the **shelf**, under the digest. The shelf belongs
-to the whole tab rather than to one reaction: Ligation joins its fragments,
-and Golden Gate and Gibson take them into the tube beside the open
-documents. It is shared by every open tab and kept in the browser, so it
-survives closing every tab and reloading the page: fragments you collected
+**Add** in the digest, and **Shelve** under a PCR product, put a part on the
+**shelf**. The shelf belongs to the Bench rather than to one reaction:
+Ligation joins its fragments, and Golden Gate and Gibson take them into the
+tube beside the open documents. A shelved part is a copy, sequence, ends and
+features, so it does not need the file it came from: it survives closing
+every tab, deleting the file and reloading the page. Fragments you collected
 on Friday are still there on Monday.
 
-Each part shows its name, length and ends. **−P** dephosphorylates it (see
+On the Bench each part shows its name, length and ends. **−P** dephosphorylates it (see
 below), **⇄** flips a fragment (reverse complement, ends swapped), **↑ ↓**
 reorder, **✕** removes, and **Clear shelf** empties it. The order and the flips are what Ligation joins by; Golden
 Gate and Gibson work out their own order and ignore them. A reaction leaves
 the shelf as it is, so a vector cut once can take one insert after another.
+
+**Undo** and **Redo** in the toolbar, and **Ctrl+Z** / **Ctrl+Shift+Z**,
+undo and redo changes to the shelf while the Bench is in front, including
+parts added from the Cloning tab. The shelf keeps a history of its own:
+undoing on the Bench never touches a document, and a document's undo never
+touches the shelf. Hover **Undo** to see what it will take back.
 
 ## Site-directed mutagenesis
 
@@ -251,7 +285,7 @@ The usual workflow is:
 1. Open the vector, tick the enzymes, add the backbone fragment.
 2. Open the file with the insert (it gets a tab of its own), tick the same
    (or compatible) enzymes, add the insert fragment.
-3. Choose **Ligation** in the picker. Every shelf fragment is in the
+3. Open the **Bench** and choose **Ligation**. Every shelf fragment is in the
    ligation to begin with; untick one to leave it out, for instance a piece
    you collected for a Gibson.
 4. Arrange the parts on the shelf. Between consecutive parts in the
@@ -285,8 +319,7 @@ to the shelf part; a part you **Open** as a document does not carry it.
 
 ## Golden Gate
 
-Golden Gate is a different reaction; choose it in the picker under the
-digest. Every part carries the same Type IIS enzyme's site at
+Golden Gate is a different reaction; choose it on the Bench. Every part carries the same Type IIS enzyme's site at
 each end, pointing inwards, so cutting takes the sites away with the flanks
 and leaves a four-base overhang the designer chose. Cutting and ligating
 happen in one tube, and the overhangs, not you, decide the order.
@@ -352,7 +385,7 @@ was amplified with, usually — and in the tube an exonuclease, a polymerase
 and a ligase join them. The product is seamless: the shared stretch appears
 once, and there is no scar to design around.
 
-So the panel asks only what is in the tube. Choose **Gibson** in the picker,
+So the panel asks only what is in the tube. Choose **Gibson** on the Bench,
 then:
 
 1. Put the parts in the tube. Anything open is one: the linearised (or
@@ -408,10 +441,10 @@ panel, makes them.
 
 1. Linearise the vector — digest it, or amplify it by inverse PCR — and
    open it in a tab.
-2. Open the template to amplify the insert from, and **select the insert
-   there**. Each tab keeps its own selection, so select it, then come back.
+2. Open the template to amplify the insert from.
 3. Choose **In-Fusion** (15 bases of homology) or **NEBuilder HiFi** (20),
-   then the two tabs.
+   then the two tabs, then the **Insert**: the template tab's selection, if
+   it has one, any of its features, or, for a linear template, all of it.
 
 Each primer is the vector's end in upper case followed by the bases that
 anneal to the template, grown until they melt at 60 °C. The panel then
@@ -442,7 +475,7 @@ does not label its sites, the panel says so, and you can annotate them
 yourself (see [Features](05-features.md)).
 
 1. Open both plasmids, each in its own tab.
-2. Choose **Gateway**, then **BP** or **LR**. Each picker lists every open
+2. On the Bench choose **Gateway**, then **BP** or **LR**. Each picker lists every open
    tab with the att sites it annotates.
 3. The panel recombines them and describes the clone. **Open clone** opens
    it; **Open byproduct** opens the other circle.

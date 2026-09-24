@@ -97,6 +97,10 @@ export const EVENTS = {
     'mutagenesis',
     'gateway',
     'overlap-primers',
+    /** The Bench was brought to the front: `tab` from the tab strip, `link` from the Cloning tab. */
+    'bench',
+    'shelf-undo',
+    'shelf-redo',
   ],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],

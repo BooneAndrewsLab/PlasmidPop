@@ -440,3 +440,18 @@ were slower: a map of every k-mer in the tube (13 ms at 6 × 2 kb, the
 allocation of 24,000 substrings) and one `indexOf` per window per strand
 (6.5 ms). A `?? []` in the inner loop, a fresh array for every base, cost about 4 ms
 by itself.
+
+## The Bench's product column (item 49)
+
+The Bench draws the open reaction's product and ranks enzymes to check it
+by, on the main thread and only when the product changes. Single warm runs,
+Vitest on Node 24, the bundled table (127 enzymes):
+
+| step                         | pBR322, 4.4 kb | 13 kb |
+| ---------------------------- | -------------- | ----- |
+| `findCutSites`, every enzyme | 4 ms           | 9 ms  |
+| `exportMapSvg` at 360 px     | 25 ms          | —     |
+
+Too little for a worker round trip. An imported REBASE set is larger, and
+the scan grows with it; if that is measured to hurt, the product can be
+scanned by the analysis worker instead.

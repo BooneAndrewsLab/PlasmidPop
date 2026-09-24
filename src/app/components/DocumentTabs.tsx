@@ -41,7 +41,7 @@ export function DocumentTabs() {
               aria-selected={front === 'bench'}
               title="The Cloning Bench: the shelf, and reactions that join parts from any tab"
               onClick={() => {
-                editorStore.showBench();
+                editorStore.showBench('tab');
               }}
             >
               Bench
