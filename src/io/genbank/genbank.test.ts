@@ -81,12 +81,18 @@ describe('GenBank fixtures from NCBI', () => {
 
   for (const name of fixtures) {
     describe(name, () => {
-      const text = readFixture(name);
-      const result = parseGenBank(text);
-      const doc = result.documents[0];
-      if (doc === undefined) throw new Error('no document');
+      // Built in each test that needs it, not once while the file loads: work
+      // done at load cannot be told apart per test by mutation testing (#77).
+      const parsed = () => {
+        const text = readFixture(name);
+        const result = parseGenBank(text);
+        const doc = result.documents[0];
+        if (doc === undefined) throw new Error('no document');
+        return { text, result, doc };
+      };
 
       it('checks out against the reference SEGUID implementation', () => {
+        const { doc } = parsed();
         // These are not our numbers: each was computed by the reference
         // JavaScript implementation (`seguid/seguid-javascript`) over the
         // same fixture, so they pin the whole path — parsing the ORIGIN
@@ -108,6 +114,7 @@ describe('GenBank fixtures from NCBI', () => {
       });
 
       it('parses without warnings and with the LOCUS length', () => {
+        const { text, result, doc } = parsed();
         expect(result.warnings).toEqual([]);
         expect(result.documents).toHaveLength(1);
         const locusLength = Number(/(\d+) bp/.exec(text)?.[1]);
@@ -116,12 +123,14 @@ describe('GenBank fixtures from NCBI', () => {
       });
 
       it('re-formats every feature location exactly as NCBI wrote it', () => {
+        const { text, doc } = parsed();
         const originals = originalLocations(text);
         const ours = doc.features.all().map((f) => formatLocation(f, doc.length, doc.topology));
         expect(ours).toEqual(originals);
       });
 
       it('round-trips through the writer', () => {
+        const { text } = parsed();
         expectRoundTrip(text, name);
       });
     });

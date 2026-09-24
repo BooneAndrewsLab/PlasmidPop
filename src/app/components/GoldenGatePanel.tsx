@@ -20,8 +20,6 @@ import { BenchProduct } from './BenchProduct';
 import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
 
-const DEFAULT_ENZYME = defaultGoldenGateEnzyme();
-
 /** One part in the order the reaction puts them, with the overhang it joins on. */
 function OrderRow({ part, index }: { readonly part: AssembledPart; readonly index: number }) {
   const { fragment, flipped } = part;
@@ -60,9 +58,15 @@ function DroppedRow({ dropped }: { readonly dropped: DroppedFragment }) {
  * would do.
  */
 export function GoldenGatePanel() {
-  const { documents, shelf, bench } = useEditorState();
+  const { documents, shelf, bench, enzymeSetInfo } = useEditorState();
   const settings = bench.goldenGate;
-  const enzymeName = settings.enzyme === '' ? (DEFAULT_ENZYME?.name ?? '') : settings.enzyme;
+  // The default comes from the enzyme set in use, so it follows an imported
+  // REBASE table; worked out once at import it stayed the bundled table's.
+  // The table itself lives outside React; `enzymeSetInfo` is the store
+  // saying it changed, which is exactly when the default has to be found again.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const defaultEnzyme = useMemo(() => defaultGoldenGateEnzyme(), [enzymeSetInfo]);
+  const enzymeName = settings.enzyme === '' ? (defaultEnzyme?.name ?? '') : settings.enzyme;
   // Empty for none: most reactions have one enzyme (#11).
   const { secondEnzyme: secondName, name } = settings;
   const excluded = useMemo(() => new Set(settings.excluded), [settings.excluded]);

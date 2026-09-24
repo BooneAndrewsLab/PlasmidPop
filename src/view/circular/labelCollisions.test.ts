@@ -403,8 +403,10 @@ function fixtureDoc(name: string): SeqDocument {
 }
 
 describe('circular map labels', () => {
-  const pBR322 = named(fixtureDoc('J01749.gb'));
-  const lenti = lentiviralLike();
+  // Built in each test, not while the file loads, so mutation testing can
+  // tell which test parsed the fixture (#77).
+  const pBR322 = (): SeqDocument => named(fixtureDoc('J01749.gb'));
+  const lenti = lentiviralLike;
   const singleCutters = (doc: SeqDocument): CutSite[] => {
     const all = findCutSites(doc.sequence.toString(), doc.topology, ENZYMES);
     const counts = new Map<string, number>();
@@ -412,11 +414,12 @@ describe('circular map labels', () => {
     return all.filter((s) => counts.get(s.enzyme) === 1);
   };
 
-  for (const [label, doc] of [
+  for (const [label, make] of [
     ['pBR322, every feature named', pBR322],
     ['13.8 kb construct, 42 features', lenti],
   ] as const) {
     it(`draws no label over another: ${label}`, () => {
+      const doc = make();
       const cuts = singleCutters(doc);
       const rows: string[] = [];
       let worst = 0;
@@ -455,7 +458,7 @@ describe('circular map labels', () => {
     });
   }
 
-  for (const [label, doc] of [
+  for (const [label, make] of [
     ['pBR322, every feature named', pBR322],
     ['13.8 kb construct, 42 features', lenti],
   ] as const) {
@@ -467,6 +470,7 @@ describe('circular map labels', () => {
      * case here that was 1,052 crossing pairs and leaders up to 209 px.
      */
     it(`keeps every label beside the thing it names: ${label}`, () => {
+      const doc = make();
       const cuts = singleCutters(doc);
       for (const c of [...CASES, ...arcCases(doc)]) {
         const { svg, layout } = render(doc, cuts.slice(0, c.cuts), c);
@@ -486,9 +490,10 @@ describe('circular map labels', () => {
   }
 
   it('keeps every drawn label inside the canvas', () => {
-    const cuts = singleCutters(pBR322).slice(0, 20);
+    const plasmid = pBR322();
+    const cuts = singleCutters(plasmid).slice(0, 20);
     for (const c of CASES) {
-      const { svg } = render(pBR322, cuts, c);
+      const { svg } = render(plasmid, cuts, c);
       // The ruler's own numbers are not in this: they are drawn wherever the
       // ruler says, and one at the edge of a zoomed map is clipped by it.
       for (const box of textBoxes(svg).filter((b) => !/^[\d,]+$/.test(b.text))) {

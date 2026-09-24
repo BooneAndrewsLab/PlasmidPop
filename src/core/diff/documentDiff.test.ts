@@ -311,10 +311,16 @@ describe('marksIn', () => {
 });
 
 describe('diffDocuments on a real plasmid', () => {
-  const base = parseGenBank(readFixture('J01749.gb')).documents[0];
-  if (base === undefined) throw new Error('fixture');
+  // Built in each test that needs it, not once while the file loads: work
+  // done at load cannot be told apart per test by mutation testing (#77).
+  const plasmid = () => {
+    const base = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (base === undefined) throw new Error('fixture');
+    return { base };
+  };
 
   it('keeps a nearby insertion and deletion apart', () => {
+    const { base } = plasmid();
     // Two edits eleven bases apart in pBR322. A shortest edit script can
     // "explain" them in fewer steps by matching stray bases in between,
     // which used to come out as a scatter of one-base marks; the
@@ -326,6 +332,7 @@ describe('diffDocuments on a real plasmid', () => {
   });
 
   it('reports a run of separate edits one by one', () => {
+    const { base } = plasmid();
     const edited = base
       .insert(3000, 'GGGG')
       .replace({ start: 2000, end: 2010 }, 'TTTTTTTTTT')

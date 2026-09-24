@@ -98,9 +98,12 @@ describe('attSites', () => {
 });
 
 describe('BP', () => {
-  const run = gateway(substrate, donor, 'BP');
+  // Run in each test, not once for the block: work done while the file
+  // loads cannot be told apart per test by mutation testing (#77).
+  const bp = (): ReturnType<typeof gateway> => gateway(substrate, donor, 'BP');
 
   it('moves the gene into an entry clone and sends ccdB to the byproduct', () => {
+    const run = bp();
     expect(run.problem).toBeNull();
     expect(names(must(run.product, 'a product'))).toEqual(['attL1', 'attL2', 'gene', 'kanR']);
     expect(names(must(run.byproduct, 'a byproduct'))).toEqual(['ampR', 'attR1', 'attR2', 'ccdB']);
@@ -113,6 +116,7 @@ describe('BP', () => {
   });
 
   it('builds the recombinant sites out of one arm from each parent', () => {
+    const run = bp();
     const entry = must(run.product, 'a product');
     const l1 = must(
       attSites(entry).find((s) => s.number === '1'),
@@ -126,6 +130,7 @@ describe('BP', () => {
   });
 
   it('warns that the byproduct carries ccdB', () => {
+    const run = bp();
     expect(run.warnings.join(' ')).toMatch(/ccdB cassette of pDONR leaves on the byproduct/);
   });
 });

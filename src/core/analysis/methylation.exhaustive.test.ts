@@ -141,8 +141,10 @@ function naiveMarks(
 const oracleKeeps = (state: HostMethylationState, marks: readonly HostMethylation[]): boolean =>
   !(marks.includes('Dam') && state.dam) && !(marks.includes('Dcm') && state.dcm);
 
-const SENSITIVE = ENZYMES.filter((e) => isHostMethylationSensitive(e.name));
-const INSENSITIVE = ENZYMES.filter((e) => !isHostMethylationSensitive(e.name));
+// Split in each test that needs them, not while the file loads, so mutation
+// testing can tell which test asked (#77).
+const sensitive = (): Enzyme[] => ENZYMES.filter((e) => isHostMethylationSensitive(e.name));
+const insensitive = (): Enzyme[] => ENZYMES.filter((e) => !isHostMethylationSensitive(e.name));
 const MOTIFS = ['GATC', 'CCAGG', 'CCTGG'] as const;
 
 interface Case {
@@ -186,12 +188,12 @@ function casesFor(enzyme: Enzyme, seed: number): Case[] {
 describe('which sites cut, for every sensitive enzyme and every host', () => {
   it('has the table’s sensitive enzymes to test', () => {
     // Most of NEB's list is in the bundled table; this is the enumeration's floor.
-    expect(SENSITIVE.length).toBeGreaterThanOrEqual(20);
+    expect(sensitive().length).toBeGreaterThanOrEqual(20);
   });
 
   it('marks as the naive scan does, and keeps a site iff its host leaves it open', () => {
     const tally = { dropped: 0, keptSensitive: 0, marked: new Set<string>() };
-    SENSITIVE.forEach((enzyme, n) => {
+    sensitive().forEach((enzyme, n) => {
       for (const c of casesFor(enzyme, 1000 + n)) {
         const sites = findCutSites(c.sequence, c.topology, [enzyme]);
         for (const site of sites) {
@@ -221,7 +223,7 @@ describe('which sites cut, for every sensitive enzyme and every host', () => {
   });
 
   it('never drops an enzyme NEB does not list, whatever methylation sits in its site', () => {
-    INSENSITIVE.forEach((enzyme, n) => {
+    insensitive().forEach((enzyme, n) => {
       for (const c of casesFor(enzyme, 5000 + n).filter((_, i) => i % 3 === 0)) {
         const sites = findCutSites(c.sequence, c.topology, [enzyme]);
         for (const s of sites) {

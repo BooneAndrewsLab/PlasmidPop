@@ -68,12 +68,17 @@ describe('partialDigest', () => {
 });
 
 describe('dephosphorylation', () => {
-  const doc = SeqDocument.create({ name: 'circ', sequence: SEQ, topology: 'circular' });
-  const [insert, vector] = digest(doc, sites(doc, 'EcoRI'));
-  if (insert === undefined || vector === undefined) throw new Error('expected two fragments');
-  const bare = { ...vector, dephosphorylated: true };
+  // Cut in each test rather than once for the block, so mutation testing can
+  // tell which test the digest ran for (#77).
+  const pieces = () => {
+    const doc = SeqDocument.create({ name: 'circ', sequence: SEQ, topology: 'circular' });
+    const [insert, vector] = digest(doc, sites(doc, 'EcoRI'));
+    if (insert === undefined || vector === undefined) throw new Error('expected two fragments');
+    return { insert, vector, bare: { ...vector, dephosphorylated: true } };
+  };
 
   it('stops a dephosphorylated vector closing on itself', () => {
+    const { vector, bare } = pieces();
     const [self] = assemblyJunctions([bare], true);
     expect(self).toMatchObject({ compatible: false, dephosphorylated: true });
     expect(() => ligate([bare], { name: 'x', circular: true })).toThrow(/dephosphorylated/);
@@ -82,6 +87,7 @@ describe('dephosphorylation', () => {
   });
 
   it('still takes an insert, whose phosphates join one strand at each end', () => {
+    const { insert, bare } = pieces();
     const joins = assemblyJunctions([bare, insert], true);
     expect(joins.every((j) => j.compatible)).toBe(true);
     expect(ligate([bare, insert], { name: 'x', circular: true }).length).toBe(SEQ.length);
@@ -91,6 +97,7 @@ describe('dephosphorylation', () => {
   });
 
   it('does not call mismatched ends a phosphate problem', () => {
+    const { insert, bare } = pieces();
     const blunt = {
       ...insert,
       dephosphorylated: true,

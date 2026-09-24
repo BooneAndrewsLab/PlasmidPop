@@ -105,14 +105,20 @@ describe('exportMapSvg', () => {
 });
 
 describe('exportLinearSvg', () => {
-  const doc = (() => {
-    const d = parseGenBank(readFixture('J01749.gb')).documents[0];
-    if (d === undefined) throw new Error('fixture');
-    return d;
-  })();
+  // Built in each test that needs it, not once while the file loads: work
+  // done at load cannot be told apart per test by mutation testing (#77).
+  const plasmid = () => {
+    const doc = (() => {
+      const d = parseGenBank(readFixture('J01749.gb')).documents[0];
+      if (d === undefined) throw new Error('fixture');
+      return d;
+    })();
+    return { doc };
+  };
   const height = (svg: string): number => Number(/height="([\d.]+)"/.exec(svg)?.[1] ?? 0);
 
   it('draws the whole sequence: bases, ruler, features, white paper', () => {
+    const { doc } = plasmid();
     const svg = exportLinearSvg(doc);
     expect(svg.startsWith('<svg ')).toBe(true);
     expect(svg.endsWith('</svg>')).toBe(true);
@@ -127,6 +133,7 @@ describe('exportLinearSvg', () => {
   });
 
   it('exports only the rows holding a range, numbered as in the document', () => {
+    const { doc } = plasmid();
     const whole = exportLinearSvg(doc);
     const part = exportLinearSvg(doc, {
       range: { start: 1000, end: 1050 },
@@ -141,11 +148,13 @@ describe('exportLinearSvg', () => {
   });
 
   it('falls back to the whole sequence for a range that wraps the origin', () => {
+    const { doc } = plasmid();
     const wrapped = exportLinearSvg(doc, { range: { start: 4300, end: 4381 } });
     expect(height(wrapped)).toBe(height(exportLinearSvg(doc)));
   });
 
   it('honours complement, translations, cut sites, row width and transparency', () => {
+    const { doc } = plasmid();
     const plain = exportLinearSvg(doc, { showComplement: false });
     expect(height(plain)).toBeLessThan(height(exportLinearSvg(doc)));
     expect(plain).not.toContain('>aagagtacaa<');
@@ -165,6 +174,7 @@ describe('exportLinearSvg', () => {
   });
 
   it('translates coding features when asked', () => {
+    const { doc } = plasmid();
     const svg = exportLinearSvg(doc, {
       range: { start: 86, end: 200 },
       showTranslations: true,

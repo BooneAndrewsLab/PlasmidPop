@@ -28,13 +28,18 @@ function stubContext(counts?: { fillText: number }): CanvasRenderingContext2D {
 }
 
 describe('renderers over a real plasmid', () => {
-  const doc = parseGenBank(readFixture('J01749.gb')).documents[0];
-  if (doc === undefined) throw new Error('fixture');
-  const text = doc.sequence.toString();
-  const sites = findCutSites(text, doc.topology);
-  const counts = new Map<string, number>();
-  for (const s of sites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
-  const shown = sites.filter((s) => counts.get(s.enzyme) === 1);
+  // Built in each test that needs it, not once while the file loads: work
+  // done at load cannot be told apart per test by mutation testing (#77).
+  const plasmid = () => {
+    const doc = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (doc === undefined) throw new Error('fixture');
+    const text = doc.sequence.toString();
+    const sites = findCutSites(text, doc.topology);
+    const counts = new Map<string, number>();
+    for (const s of sites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
+    const shown = sites.filter((s) => counts.get(s.enzyme) === 1);
+    return { doc, text, shown };
+  };
   const theme = {
     ink: '#000',
     inkMuted: '#888',
@@ -56,11 +61,13 @@ describe('renderers over a real plasmid', () => {
   };
 
   it('analysis finishes quickly', () => {
+    const { doc, text, shown } = plasmid();
     expect(shown.length).toBeGreaterThan(5);
     expect(findOrfs(text, doc.topology).length).toBeGreaterThan(0);
   }, 5000);
 
   it('linear view renders every row with cut sites and translations', () => {
+    const { doc, shown } = plasmid();
     const features = drawableFeatures(doc.features.all());
     const lanes = assignLanes(features, doc.length);
     const coding = features.filter(isCodingFeature);
@@ -113,6 +120,7 @@ describe('renderers over a real plasmid', () => {
   }, 5000);
 
   it('colouring the bases costs a few passes over each row, not one per base', () => {
+    const { doc } = plasmid();
     const features = drawableFeatures(doc.features.all());
     const lanes = assignLanes(features, doc.length);
     const metrics = {
@@ -172,6 +180,7 @@ describe('renderers over a real plasmid', () => {
   }, 5000);
 
   it('circular map renders with cut-site labels', () => {
+    const { doc, shown } = plasmid();
     const features = drawableFeatures(doc.features.all());
     const lanes = assignLanes(features, doc.length);
     const layout = new CircularLayout(doc.length, doc.topology, {
@@ -202,6 +211,7 @@ describe('renderers over a real plasmid', () => {
   }, 5000);
 
   it('circular map renders zoomed in and panned', () => {
+    const { doc, shown } = plasmid();
     const features = drawableFeatures(doc.features.all());
     const lanes = assignLanes(features, doc.length);
     const layout = new CircularLayout(doc.length, doc.topology, {
