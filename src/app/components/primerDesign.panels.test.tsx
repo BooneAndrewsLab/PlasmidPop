@@ -365,14 +365,18 @@ describe('PcrPanel, PCR II', () => {
     });
   };
 
-  it('offers both polymerases with their reach, proofreading first', () => {
+  it('offers both polymerases, proofreading first, and says what each does under it', () => {
     setup();
+    // The options are names, short enough for the sidebar; the ends and the
+    // reach are said in a line under the select.
     const options = within(polymeraseBox()).getAllByRole('option');
-    expect(options.map((o) => o.textContent)).toEqual([
-      'Proofreading (blunt), up to 20 kb',
-      'Taq (3′ A overhangs), up to 5 kb',
-    ]);
+    expect(options.map((o) => o.textContent)).toEqual(['Proofreading', 'Taq']);
     expect(polymeraseBox()).toHaveValue('proofreading');
+    expect(screen.getByText(/blunt ends, products up to 20 kb/)).toBeInTheDocument();
+    setPolymerase('taq');
+    expect(
+      screen.getByText(/One 3′ A on each end, for TA cloning, products up to 5 kb/),
+    ).toBeInTheDocument();
   });
 
   it('gives up on a product past Taq’s reach, and takes it back with proofreading', () => {
