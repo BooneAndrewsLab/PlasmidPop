@@ -8,6 +8,7 @@ import { getRepository } from '@/storage';
 import { EXAMPLES } from './examples';
 import { shareUrlFor } from './share';
 import { sixFrameFasta, sixFrameFileName } from './sixFrameExport';
+import { DEFAULT_BENCH } from './state/benchSettings';
 import { editorStore } from './state/editorStore';
 import { DEFAULT_LAYOUT, PHONE_QUERY } from './state/layout';
 import { App } from './App';
@@ -27,12 +28,21 @@ beforeEach(() => {
     editorStore.setSidebarOpen(true);
     editorStore.setView('both');
     editorStore.resetLayout();
+    // What the Cloning tab and the Bench were left on is shared state too.
+    editorStore.setCloningReaction('digest');
+    editorStore.restoreBench(DEFAULT_BENCH);
   });
 });
 
-/** The Cloning tab shows one reaction at a time; this is the picker. */
+/** The Cloning tab and the Bench show one reaction at a time; this is the picker. */
 function pickReaction(name: string): HTMLElement {
   return within(screen.getByRole('group', { name: 'Reaction' })).getByRole('button', { name });
+}
+
+/** Brings the Bench to the front and picks one of its reactions. */
+function openBench(reaction: string): void {
+  fireEvent.click(screen.getByRole('tab', { name: /^Bench/ }));
+  fireEvent.click(pickReaction(reaction));
 }
 
 /** Picks an item from the File menu, where file actions live once a document is open. */
@@ -684,6 +694,36 @@ describe('document tabs', () => {
     });
     expect(screen.queryByRole('tablist', { name: 'Open documents' })).not.toBeInTheDocument();
   });
+
+  it("undoes the shelf's changes from the toolbar and with Ctrl+Z while the Bench is in front", () => {
+    render(<App />);
+    act(() => {
+      editorStore.clearShelf();
+      editorStore.addToShelf({
+        sequence: 'ACGT',
+        features: [],
+        range: { start: 0, end: 4 },
+        left: { kind: 'blunt', overhang: '', enzyme: null },
+        right: { kind: 'blunt', overhang: '', enzyme: null },
+        source: 'pKeep',
+      });
+      editorStore.showBench();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove part 1' }));
+    expect(editorStore.getState().shelf).toHaveLength(0);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    expect(undo).toHaveAttribute('title', 'Undo Remove pKeep fragment (Ctrl+Z)');
+    fireEvent.click(undo);
+    expect(editorStore.getState().shelf).toHaveLength(1);
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true, shiftKey: true });
+    expect(editorStore.getState().shelf).toHaveLength(0);
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    expect(editorStore.getState().shelf).toHaveLength(1);
+    expect(screen.getByText('Cloning Bench')).toBeInTheDocument();
+    act(() => {
+      editorStore.clearShelf();
+    });
+  });
 });
 
 describe('downloading', () => {
@@ -740,6 +780,9 @@ describe('cloning', () => {
     if (addVector === undefined || addInsert === undefined) throw new Error('expected 2 Add');
     fireEvent.click(addInsert);
     fireEvent.click(addVector);
+    expect(screen.getByText(/The shelf holds 2 parts, 4,361 bp/)).toBeInTheDocument();
+    // They are joined on the Bench.
+    openBench('Ligation');
     expect(screen.getByText(/2 parts, 4,361 bp/)).toBeInTheDocument();
     const joins = () =>
       screen
@@ -838,9 +881,7 @@ describe('golden gate', () => {
     await waitFor(() => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
-    // The three reactions are one at a time now; pick this one.
-    fireEvent.click(pickReaction('Golden Gate'));
+    openBench('Golden Gate');
   }
 
   it('takes a second enzyme, and warns about overhangs a ligase could confuse', async () => {
@@ -864,8 +905,7 @@ describe('golden gate', () => {
     await waitFor(() => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
-    fireEvent.click(pickReaction('Golden Gate'));
+    openBench('Golden Gate');
     expect(screen.queryByRole('button', { name: 'Assemble by Golden Gate' })).toBeNull();
     fireEvent.change(screen.getByRole('combobox', { name: 'Second enzyme' }), {
       target: { value: 'BsmBI' },
@@ -929,8 +969,7 @@ describe('golden gate', () => {
     await waitFor(() => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
-    fireEvent.click(pickReaction('Golden Gate'));
+    openBench('Golden Gate');
 
     const tube = screen.getByRole('list', { name: 'Documents in the Golden Gate' });
     expect(within(tube).getByRole('checkbox', { name: 'insert2 BsaI fragment' })).toBeChecked();
@@ -994,8 +1033,7 @@ describe('gibson', () => {
     await waitFor(() => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
-    fireEvent.click(pickReaction('Gibson'));
+    openBench('Gibson');
   }
 
   it('finds the order from the shared ends and closes the circle', async () => {
@@ -1050,8 +1088,7 @@ describe('gibson', () => {
     await waitFor(() => {
       expect(editorStore.getState().analysis?.doc).toBe(editorStore.document);
     });
-    fireEvent.click(screen.getByRole('tab', { name: 'Cloning' }));
-    fireEvent.click(pickReaction('Gibson'));
+    openBench('Gibson');
 
     const tube = screen.getByRole('list', { name: 'Documents in the Gibson' });
     expect(within(tube).getByRole('checkbox', { name: 'pBackbone' })).toBeChecked();

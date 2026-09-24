@@ -85,6 +85,19 @@ describe('PersistenceService', () => {
     await service.autosave();
   });
 
+  it('brings the Bench back in front when it was left there', async () => {
+    const first = editorStore.getState().documentId ?? '';
+    editorStore.showBench();
+    await service.autosave();
+    editorStore.closeAllDocuments();
+    editorStore.showFiles();
+    expect(await service.restoreLastSession()).toBe(true);
+    expect(editorStore.getState()).toMatchObject({ front: 'bench', documentId: null });
+    expect(editorStore.getState().documents.map((d) => d.documentId)).toEqual([first]);
+    editorStore.activateDocument(first);
+    await service.autosave();
+  });
+
   it('renames an open background tab through its history', async () => {
     const first = editorStore.getState().documentId ?? '';
     const other = editorStore.openDocument(

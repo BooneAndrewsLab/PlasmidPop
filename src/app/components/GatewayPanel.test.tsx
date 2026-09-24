@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
 
+import { DEFAULT_BENCH } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { GatewayPanel } from './GatewayPanel';
 
@@ -52,6 +53,7 @@ describe('GatewayPanel', () => {
   afterEach(() => {
     act(() => {
       while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+      editorStore.restoreBench(DEFAULT_BENCH);
     });
   });
 

@@ -41,7 +41,7 @@ const TOGGLES: readonly {
 /**
  * The bindings for things that were only ever a click away: the view
  * toggles, the edit marks, the sidebar, the document tabs and the share
- * link.
+ * link; and Undo and Redo of the shelf while the Bench is in front.
  *
  * All of them are `Alt` and a key, for one reason: in the sequence view
  * every bare letter types a base, and `Ctrl` is spoken for by the browser
@@ -58,6 +58,19 @@ export function useViewShortcuts(): void {
       const state = editorStore.getState();
       // A modal has the user's attention; its own Escape is the way out.
       if (state.saveReview !== null || state.comparison !== null) return;
+
+      // On the Bench, Undo and Redo are the shelf's (item 49). A document's
+      // are the sequence view's, which is not on screen.
+      if (state.front === 'bench' && (e.ctrlKey || e.metaKey) && !e.altKey) {
+        const key = e.key.toLowerCase();
+        if (key === 'z' || key === 'y') {
+          e.preventDefault();
+          analytics.shortcut('ctrl+z');
+          if (key === 'y' || e.shiftKey) editorStore.redoShelf();
+          else editorStore.undoShelf();
+          return;
+        }
+      }
 
       for (const toggle of TOGGLES) {
         if (!isAltKey(e, toggle.code)) continue;

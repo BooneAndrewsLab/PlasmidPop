@@ -7,9 +7,11 @@ import { useMenu } from './useMenu';
 /**
  * Undo and Redo buttons with a dropdown listing every recorded change, so
  * the user can see what each step did and jump straight to any state.
+ * With the Bench in front they undo and redo the shelf instead, which keeps
+ * a history of its own (item 49); it has no list to jump through.
  */
 export function HistoryMenu() {
-  const { history } = useEditorState();
+  const { history, front, shelfUndo, shelfRedo } = useEditorState();
   const { open, toggle, close, ref } = useMenu();
   const currentRef = useRef<HTMLButtonElement>(null);
 
@@ -26,6 +28,37 @@ export function HistoryMenu() {
     ...labels.map((label, i) => ({ label, position: i + 1 })).reverse(),
     { label: 'Opened document', position: 0 },
   ];
+
+  if (front === 'bench') {
+    return (
+      <div className="menu history">
+        <div className="segmented" role="group" aria-label="History">
+          <button
+            type="button"
+            className="segmented__button"
+            disabled={shelfUndo === null}
+            title={shelfUndo === null ? 'Undo (Ctrl+Z)' : `Undo ${shelfUndo} (Ctrl+Z)`}
+            onClick={() => {
+              editorStore.undoShelf();
+            }}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="segmented__button"
+            disabled={shelfRedo === null}
+            title={shelfRedo === null ? 'Redo (Ctrl+Shift+Z)' : `Redo ${shelfRedo} (Ctrl+Shift+Z)`}
+            onClick={() => {
+              editorStore.redoShelf();
+            }}
+          >
+            Redo
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="menu history" ref={ref}>

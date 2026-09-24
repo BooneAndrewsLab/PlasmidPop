@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo } from 'react';
 
 import { type FragmentEnd, assemblyJunctions, describeEnd, ligate } from '@/core';
 
@@ -51,16 +51,24 @@ function JunctionRow({
  * the shelf also holds pieces meant for them.
  */
 export function LigationPanel() {
-  const { shelf } = useEditorState();
-  const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
-  const [circular, setCircular] = useState(true);
-  const [name, setName] = useState('');
+  const { shelf, bench } = useEditorState();
+  const { circular, name } = bench.ligation;
+  const excluded = useMemo(() => new Set(bench.ligation.excluded), [bench.ligation.excluded]);
+  const setExcluded = (next: ReadonlySet<string>): void => {
+    editorStore.updateBench('ligation', { excluded: [...next] });
+  };
+  const setCircular = (next: boolean): void => {
+    editorStore.updateBench('ligation', { circular: next });
+  };
+  const setName = (next: string): void => {
+    editorStore.updateBench('ligation', { name: next });
+  };
 
   if (shelf.length === 0) {
     return (
       <p className="panel__note">
-        Put the vector and the insert on the shelf above, from one file or several, then arrange
-        them there.
+        Put the vector and the insert on the shelf, from the Cloning tab's digest of one file or
+        several, then arrange them there.
       </p>
     );
   }

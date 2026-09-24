@@ -3,7 +3,9 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { type CutSite, SeqDocument, getEnzyme } from '@/core';
 
+import { DEFAULT_BENCH } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
+import { Bench } from './Bench';
 import { CloningPanel } from './CloningPanel';
 
 // 4,000 bp circular, cut at 400 and 1,400 by the first enzyme in the table:
@@ -21,13 +23,23 @@ const sites: CutSite[] = [400, 1400].map((cut) => ({
   strand: 'forward' as const,
 }));
 
-function setup() {
+/** The Cloning tab, and with `bench` the Bench beside it, where the shelf's parts are joined. */
+function setup(bench = false) {
   act(() => {
     editorStore.openDocument(doc);
     editorStore.setAnalysis(doc, sites, []);
     editorStore.setShownEnzymes([enzyme]);
   });
-  return render(<CloningPanel doc={doc} />);
+  return render(
+    bench ? (
+      <>
+        <CloningPanel doc={doc} />
+        <Bench />
+      </>
+    ) : (
+      <CloningPanel doc={doc} />
+    ),
+  );
 }
 
 const preview = () => editorStore.getState().preview;
@@ -35,7 +47,8 @@ const preview = () => editorStore.getState().preview;
 describe('CloningPanel', () => {
   beforeEach(() => {
     act(() => {
-      editorStore.setCloningReaction('ligation');
+      editorStore.setCloningReaction('digest');
+      editorStore.restoreBench(DEFAULT_BENCH);
     });
   });
 
@@ -46,39 +59,34 @@ describe('CloningPanel', () => {
     });
   });
 
-  it('shows one reaction at a time', () => {
+  it('shows one of the digest, PCR and Mutate at a time', () => {
     setup();
     const pick = (name: string): HTMLElement =>
       within(screen.getByRole('group', { name: 'Reaction' })).getByRole('button', { name });
-    expect(screen.getByRole('heading', { name: /Ligation/ })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /Golden Gate/ })).toBeNull();
-    expect(screen.queryByRole('heading', { name: /Gibson/ })).toBeNull();
+    expect(screen.getByRole('heading', { name: /Digest with ticked enzymes/ })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /PCR/ })).toBeNull();
+    // The reactions that join parts are on the Bench (item 49).
+    expect(
+      within(screen.getByRole('group', { name: 'Reaction' })).getAllByRole('button'),
+    ).toHaveLength(3);
 
     act(() => {
       fireEvent.click(pick('PCR'));
     });
     expect(screen.getByRole('heading', { name: /PCR/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Digest with/ })).toBeNull();
     // One preview channel: the digest gives it up to the panel being worked in.
     expect(preview()).toBeNull();
     act(() => {
-      fireEvent.click(pick('Ligation'));
+      fireEvent.click(pick('Mutate'));
+    });
+    expect(screen.getByRole('heading', { name: /Site-directed mutagenesis/ })).toBeInTheDocument();
+    // It is a preference, not panel state: it outlives the panel.
+    expect(editorStore.getState().sidebarReaction).toBe('mutagenesis');
+    act(() => {
+      fireEvent.click(pick('Digest'));
     });
     expect(preview()?.owner).toBe('cloning');
-
-    act(() => {
-      fireEvent.click(pick('Gibson'));
-    });
-    expect(screen.getByRole('heading', { name: /Gibson/ })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /Ligation/ })).toBeNull();
-    // It is a preference, not panel state: it outlives the panel.
-    expect(editorStore.getState().cloningReaction).toBe('gibson');
-
-    act(() => {
-      fireEvent.click(pick('Golden Gate'));
-    });
-    expect(screen.getByRole('heading', { name: /Golden Gate/ })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /Gibson/ })).toBeNull();
   });
 
   it('draws the digest fragments on both views', () => {
@@ -109,9 +117,6 @@ describe('CloningPanel', () => {
   });
 
   it('adds a fragment to the shelf when its span is clicked in a view', () => {
-    act(() => {
-      editorStore.setCloningReaction('gibson');
-    });
     setup();
     const spans = preview()?.items ?? [];
     expect(spans.every((s) => s.clickable === true)).toBe(true);
@@ -123,12 +128,8 @@ describe('CloningPanel', () => {
     const shelf = editorStore.getState().shelf;
     expect(shelf).toHaveLength(1);
     expect(shelf[0]?.fragment.sequence.length).toBe(1000);
-    // The shelf is the bench's, above every reaction, so the picker stays on
-    // the reaction being worked in and the fragment is seen landing (#16).
-    expect(editorStore.getState().cloningReaction).toBe('gibson');
-    expect(
-      within(screen.getByRole('list', { name: 'Shelf' })).getByText(/1,000 bp/),
-    ).toBeInTheDocument();
+    // The Cloning tab's summary of the shelf counts it, so it is seen landing (#16).
+    expect(screen.getByText(/The shelf holds 1 part, 1,000 bp/)).toBeInTheDocument();
 
     // The same fragment twice is two parts: a shelf is a list, not a set.
     act(() => {
@@ -138,7 +139,7 @@ describe('CloningPanel', () => {
   });
 
   it("ligates the ticked shelf parts in the shelf's order", () => {
-    setup();
+    setup(true);
     for (const add of screen.getAllByRole('button', { name: 'Add' })) {
       act(() => {
         fireEvent.click(add);
@@ -190,7 +191,7 @@ describe('CloningPanel', () => {
   });
 
   it('stops a dephosphorylated part closing on itself', () => {
-    setup();
+    setup(true);
     const [addLarge] = screen.getAllByRole('button', { name: 'Add' });
     if (addLarge === undefined) throw new Error('no Add');
     act(() => {

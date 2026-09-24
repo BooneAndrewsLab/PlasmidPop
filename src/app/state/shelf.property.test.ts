@@ -2,7 +2,7 @@ import fc from 'fast-check';
 
 import { type AssemblyPart, type DigestFragment, SeqDocument } from '@/core';
 
-import { type CloningReaction } from './cloningReaction';
+import { type CloningReaction, isSidebarReaction } from './cloningReaction';
 import { EditorStore } from './editorStore';
 
 /**
@@ -12,7 +12,11 @@ import { EditorStore } from './editorStore';
  * clear, restore a stored shelf, and open another document in between. Ops
  * on ids that are not on the shelf, and moves past either end, must change
  * nothing; ids handed out by `addToShelf` are never reused; and nothing the
- * shelf does moves the Cloning tab's reaction picker (`cloningReaction`).
+ * shelf does moves the Cloning tab's or the Bench's reaction picker.
+ *
+ * Undo and Redo are among the commands (item 49): the model keeps the
+ * shelves it has been, and every change that changed something is a step,
+ * while a restored shelf is where the history starts again.
  *
  * Every short sequence of commands over two parts is also run exhaustively,
  * so the corners of the model (moving the only part, flipping twice,
@@ -43,7 +47,9 @@ type Command =
   | { readonly kind: 'dephosphorylate'; readonly pick: number; readonly on: boolean }
   | { readonly kind: 'clear' }
   | { readonly kind: 'restore'; readonly sources: readonly string[] }
-  | { readonly kind: 'open' };
+  | { readonly kind: 'open' }
+  | { readonly kind: 'undo' }
+  | { readonly kind: 'redo' };
 
 /**
  * `pick` chooses a part by position; one past the end names an id that is
@@ -60,16 +66,37 @@ interface Run {
   readonly handedOut: string[];
   readonly gone: string[];
   restored: number;
+  /** The shelves before each step, oldest first, and the ones undone, newest last. */
+  past: AssemblyPart[][];
+  future: AssemblyPart[][];
 }
 
 function start(reaction: CloningReaction): Run {
   const store = new EditorStore();
   store.setCloningReaction(reaction);
-  return { store, model: [], handedOut: [], gone: [], restored: 0 };
+  return { store, model: [], handedOut: [], gone: [], restored: 0, past: [], future: [] };
 }
 
-/** Applies a command to the store and the same change, done the obvious way, to the model. */
+/** Applies a command to the store and the model, keeping the model's history as the shelf's is kept. */
 function step(run: Run, c: Command): void {
+  const before = run.model;
+  const changed = apply(run, c);
+  if (c.kind === 'undo' || c.kind === 'redo' || c.kind === 'open') return;
+  if (c.kind === 'restore') {
+    if (changed) {
+      run.past = [];
+      run.future = [];
+    }
+    return;
+  }
+  if (changed) {
+    run.past.push(before);
+    run.future = [];
+  }
+}
+
+/** Applies a command to the store and the same change, done the obvious way, to the model; whether it changed the shelf. */
+function apply(run: Run, c: Command): boolean {
   const { store } = run;
   switch (c.kind) {
     case 'add': {
@@ -78,14 +105,15 @@ function step(run: Run, c: Command): void {
       expect(run.handedOut).not.toContain(id);
       run.handedOut.push(id);
       run.model = [...run.model, { id, fragment: frag, flipped: false }];
-      return;
+      return true;
     }
     case 'remove': {
       const id = pickId(run.model, c.pick, run.gone);
       store.removeFromShelf(id);
-      if (run.model.some((p) => p.id === id)) run.gone.push(id);
+      const there = run.model.some((p) => p.id === id);
+      if (there) run.gone.push(id);
       run.model = run.model.filter((p) => p.id !== id);
-      return;
+      return there;
     }
     case 'flip': {
       const id = pickId(run.model, c.pick, run.gone);
@@ -94,7 +122,7 @@ function step(run: Run, c: Command): void {
       run.model = run.model.map((p) =>
         p.id === id ? { id, fragment: turned, flipped: !p.flipped } : p,
       );
-      return;
+      return run.model.some((p) => p.id === id);
     }
     case 'move': {
       const id = pickId(run.model, c.pick, run.gone);
@@ -107,22 +135,28 @@ function step(run: Run, c: Command): void {
         next[i] = must(next[j], 'neighbour');
         next[j] = a;
         run.model = next;
+        return true;
       }
-      return;
+      return false;
     }
     case 'dephosphorylate': {
       const id = pickId(run.model, c.pick, run.gone);
       store.setShelfPartDephosphorylated(id, c.on);
+      // Asking for what the part already is (untreated counts as off) is no change.
+      const part = run.model.find((p) => p.id === id);
+      if (part === undefined || (part.fragment.dephosphorylated === true) === c.on) return false;
       run.model = run.model.map((p) =>
-        p.id === id ? { ...p, fragment: { ...p.fragment, dephosphorylated: c.on } } : p,
+        p === part ? { ...p, fragment: { ...p.fragment, dephosphorylated: c.on } } : p,
       );
-      return;
+      return true;
     }
-    case 'clear':
+    case 'clear': {
       store.clearShelf();
+      const had = run.model.length > 0;
       run.gone.push(...run.model.map((p) => p.id));
       run.model = [];
-      return;
+      return had;
+    }
     case 'restore': {
       run.restored += 1;
       const parts = c.sources.map((s, i) => ({
@@ -132,20 +166,47 @@ function step(run: Run, c: Command): void {
       }));
       store.restoreShelf(parts);
       // What is being collected wins over what was stored; nothing stored changes nothing.
-      if (run.model.length === 0 && parts.length > 0) run.model = parts;
-      return;
+      if (run.model.length === 0 && parts.length > 0) {
+        run.model = parts;
+        return true;
+      }
+      return false;
     }
     case 'open':
       store.openDocument(SeqDocument.create({ sequence: 'ACGTACGT', name: 'another' }));
-      return;
+      return false;
+    case 'undo': {
+      store.undoShelf();
+      const back = run.past.pop();
+      if (back === undefined) return false;
+      run.future.push(run.model);
+      run.model = back;
+      return true;
+    }
+    case 'redo': {
+      store.redoShelf();
+      const again = run.future.pop();
+      if (again === undefined) return false;
+      run.past.push(run.model);
+      run.model = again;
+      return true;
+    }
   }
 }
 
+/** The reaction picked, in whichever of the sidebar and the Bench it belongs to. */
+function picked(store: EditorStore, reaction: CloningReaction): CloningReaction {
+  const { sidebarReaction, bench } = store.getState();
+  return isSidebarReaction(reaction) ? sidebarReaction : bench.reaction;
+}
+
 function check(run: Run, reaction: CloningReaction): void {
-  const { shelf, cloningReaction } = run.store.getState();
+  const { shelf, shelfUndo, shelfRedo } = run.store.getState();
   expect(shelf).toEqual(run.model);
-  expect(cloningReaction).toBe(reaction);
+  expect(picked(run.store, reaction)).toBe(reaction);
   expect(new Set(shelf.map((p) => p.id)).size).toBe(shelf.length);
+  expect(shelfUndo !== null).toBe(run.past.length > 0);
+  expect(shelfRedo !== null).toBe(run.future.length > 0);
 }
 
 const sourceArb = fc.constantFrom('vector', 'insert', 'pUC19', 'frag');
@@ -185,9 +246,12 @@ const commandArb: fc.Arbitrary<Command> = fc.oneof(
     weight: 1,
   },
   { arbitrary: fc.constant({ kind: 'open' as const }), weight: 1 },
+  { arbitrary: fc.constant({ kind: 'undo' as const }), weight: 3 },
+  { arbitrary: fc.constant({ kind: 'redo' as const }), weight: 2 },
 );
 
 const REACTIONS: readonly CloningReaction[] = [
+  'digest',
   'pcr',
   'mutagenesis',
   'ligation',
@@ -231,6 +295,8 @@ describe('the fragment shelf', () => {
       { kind: 'clear' },
       { kind: 'restore', sources: ['s'] },
       { kind: 'restore', sources: [] },
+      { kind: 'undo' },
+      { kind: 'redo' },
     ];
     let runs = 0;
     for (const a of small)
@@ -252,11 +318,11 @@ describe('the fragment shelf', () => {
     for (const reaction of REACTIONS) {
       const store = new EditorStore();
       store.setCloningReaction(reaction);
-      const before = store.getState().cloningReaction;
+      const before = picked(store, reaction);
       store.addToShelf(fragment('x'));
       store.addToShelf(fragment('y'));
       expect(before).toBe(reaction);
-      expect(store.getState().cloningReaction).toBe(reaction);
+      expect(picked(store, reaction)).toBe(reaction);
       expect(store.getState().shelf).toHaveLength(2);
     }
   });

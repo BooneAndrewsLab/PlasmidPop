@@ -1,15 +1,15 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo } from 'react';
 
 import {
   type DroppedPart,
   type GibsonJoin,
   type GibsonPart,
-  GIBSON_DEFAULTS,
   describeGibsonDropped,
   gibson,
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { GIBSON_OVERLAPS } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
@@ -19,7 +19,6 @@ import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
 
 /** Overlaps a designer would ask for; NEB's protocol wants 15 or more. */
-const OVERLAPS = [12, 15, 20, 25, 30, 40];
 
 /**
  * Below this a junction anneals poorly at the 50 °C the reaction is held at.
@@ -71,11 +70,21 @@ function JoinRow({ join, closing }: { readonly join: GibsonJoin; readonly closin
  * found and what each junction is made of.
  */
 export function GibsonPanel() {
-  const { documents, shelf } = useEditorState();
-  const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
-  const [minOverlap, setMinOverlap] = useState<number>(GIBSON_DEFAULTS.minOverlap);
-  const [circular, setCircular] = useState(true);
-  const [name, setName] = useState('');
+  const { documents, shelf, bench } = useEditorState();
+  const { minOverlap, circular, name } = bench.gibson;
+  const excluded = useMemo(() => new Set(bench.gibson.excluded), [bench.gibson.excluded]);
+  const setExcluded = (next: ReadonlySet<string>): void => {
+    editorStore.updateBench('gibson', { excluded: [...next] });
+  };
+  const setMinOverlap = (next: number): void => {
+    editorStore.updateBench('gibson', { minOverlap: next });
+  };
+  const setCircular = (next: boolean): void => {
+    editorStore.updateBench('gibson', { circular: next });
+  };
+  const setName = (next: string): void => {
+    editorStore.updateBench('gibson', { name: next });
+  };
 
   const { ingredients, docs } = useTube(documents, shelf, excluded);
   // Finding the junctions is a handful of string comparisons per pair of
@@ -113,7 +122,7 @@ export function GibsonPanel() {
     return (
       <p className="panel__note">
         Open the linearised vector and the inserts, each ending in the bases the next one starts
-        with, or collect the pieces from a digest above.
+        with, or shelve the pieces from a digest in the Cloning tab.
       </p>
     );
   }
@@ -133,7 +142,7 @@ export function GibsonPanel() {
               setMinOverlap(Number(e.target.value));
             }}
           >
-            {OVERLAPS.map((n) => (
+            {GIBSON_OVERLAPS.map((n) => (
               <option key={n} value={n}>
                 {n} bp or more
               </option>

@@ -34,7 +34,7 @@ function segmentedClass(active: boolean): string {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { showComplement, showTranslations, showCutSites, view, dirty } = useEditorState();
+  const { showComplement, showTranslations, showCutSites, view, dirty, front } = useEditorState();
   const inputRef = useRef<HTMLInputElement>(null);
   const compareRef = useRef<HTMLInputElement>(null);
   /** The picker where it exists, the hidden input where it does not. */
@@ -134,6 +134,8 @@ export function Toolbar({ doc }: Props) {
       <div className="toolbar__actions">
         {doc === null ? (
           <div className="toolbar__group">
+            {/* On the Bench, Undo and Redo are the shelf's (item 49). */}
+            {front === 'bench' && !phone && <HistoryMenu />}
             <button
               type="button"
               className="button"

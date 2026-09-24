@@ -20,6 +20,7 @@ import {
   SeqDocument,
   activeEnzymes,
   createFeature,
+  defaultFragmentName,
   describeEditStep,
   documentChecksum,
   isEmptyRange,
@@ -34,7 +35,8 @@ import { type OverlaySpan } from '@/view/overlay';
 import { type EditPlan, selectionAfterOp } from '../editing';
 import { translationWarnings } from '../translationWarnings';
 import { copyNameFor } from './derive';
-import { type CloningReaction } from './cloningReaction';
+import { type BenchPanel, type BenchSettings, DEFAULT_BENCH } from './benchSettings';
+import { type CloningReaction, type SidebarReaction, isSidebarReaction } from './cloningReaction';
 import { type CutCountFilter } from './cutFilter';
 import { type EnzymeSort } from './enzymeSort';
 import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
@@ -329,12 +331,23 @@ export interface SharedState {
   readonly gelAgarose: AgarosePercent;
   readonly gelLadder: LadderChoice;
   /**
-   * Which of the three reactions the Cloning tab shows. Remembered for the
-   * same reason the enzyme filters are: a lab that does Gibson does Gibson
-   * every week, and coming back to the tab on someone else's reaction is a
-   * small tax paid over and over.
+   * Which of the digest, PCR and Mutate the sidebar's Cloning tab shows.
+   * Remembered for the same reason the enzyme filters are: a lab
+   * that does PCR does PCR every week, and coming back to the tab on someone
+   * else's reaction is a small tax paid over and over.
    */
-  readonly cloningReaction: CloningReaction;
+  readonly sidebarReaction: SidebarReaction;
+  /** What the Bench's reactions were left at, the open one included; see `BenchSettings`. */
+  readonly bench: BenchSettings;
+  /**
+   * What Undo and Redo would do to the shelf while the Bench is in front,
+   * or null when there is nothing to undo or redo. The shelf keeps a history
+   * of its own, apart from every document's (item 49): a fragment on it can
+   * be the work of a digest in a tab since closed, and Remove or Clear should
+   * not lose it for good.
+   */
+  readonly shelfUndo: string | null;
+  readonly shelfRedo: string | null;
   /** Minimum ORF length in codons. */
   readonly orfMinCodons: number;
   /**
@@ -484,6 +497,9 @@ export interface EditorState extends SharedState, ActiveDocumentFields {
   readonly dirty: boolean;
 }
 
+/** How many shelf changes Undo can go back through. */
+const SHELF_UNDO_LIMIT = 100;
+
 const SHARED_INITIAL: SharedState = {
   error: null,
   errorCountdown: null,
@@ -504,7 +520,10 @@ const SHARED_INITIAL: SharedState = {
   enzymeSortReversed: false,
   gelAgarose: 1,
   gelLadder: 'auto',
-  cloningReaction: 'ligation',
+  sidebarReaction: 'digest',
+  bench: DEFAULT_BENCH,
+  shelfUndo: null,
+  shelfRedo: null,
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
@@ -1238,8 +1257,28 @@ export class EditorStore {
     }
   }
 
+  /** Picks a reaction: PCR and Mutate in the sidebar, the others on the Bench. */
   setCloningReaction(reaction: CloningReaction): void {
-    if (reaction !== this.state.cloningReaction) this.setShared({ cloningReaction: reaction });
+    if (isSidebarReaction(reaction)) {
+      if (reaction !== this.state.sidebarReaction) this.setShared({ sidebarReaction: reaction });
+    } else if (reaction !== this.state.bench.reaction) {
+      this.setShared({ bench: { ...this.state.bench, reaction } });
+    }
+  }
+
+  /** Changes what one of the Bench's panels is set to. */
+  updateBench<K extends BenchPanel>(panel: K, patch: Partial<BenchSettings[K]>): void {
+    const current = this.state.bench[panel];
+    const changed = (Object.keys(patch) as (keyof BenchSettings[K])[]).some(
+      (k) => patch[k] !== current[k],
+    );
+    if (!changed) return;
+    this.setShared({ bench: { ...this.state.bench, [panel]: { ...current, ...patch } } });
+  }
+
+  /** Puts back the Bench's settings a previous session left, on start-up. */
+  restoreBench(bench: BenchSettings): void {
+    this.setShared({ bench });
   }
 
   /** Puts every draggable boundary back where it started, sidebar included. */
@@ -1421,48 +1460,101 @@ export class EditorStore {
 
   // ---------------------------------------------------------------- shelf
 
+  /** Earlier shelves, newest last, each with the change that left it; see `shelfUndo`. */
+  private shelfPast: { readonly shelf: readonly AssemblyPart[]; readonly label: string }[] = [];
+  private shelfFuture: { readonly shelf: readonly AssemblyPart[]; readonly label: string }[] = [];
+
+  /** Replaces the shelf as one step of its history, which `label` describes ("Remove pUC19"). */
+  private changeShelf(shelf: readonly AssemblyPart[], label: string): void {
+    this.shelfPast = [...this.shelfPast, { shelf: this.state.shelf, label }].slice(
+      -SHELF_UNDO_LIMIT,
+    );
+    this.shelfFuture = [];
+    this.setShared({ shelf, shelfUndo: label, shelfRedo: null });
+  }
+
+  /** Takes the shelf back one change. */
+  undoShelf(): void {
+    const step = this.shelfPast.at(-1);
+    if (step === undefined) return;
+    this.shelfPast = this.shelfPast.slice(0, -1);
+    this.shelfFuture = [...this.shelfFuture, { shelf: this.state.shelf, label: step.label }];
+    this.setShared({
+      shelf: step.shelf,
+      shelfUndo: this.shelfPast.at(-1)?.label ?? null,
+      shelfRedo: step.label,
+    });
+  }
+
+  /** Makes the shelf change undone last again. */
+  redoShelf(): void {
+    const step = this.shelfFuture.at(-1);
+    if (step === undefined) return;
+    this.shelfFuture = this.shelfFuture.slice(0, -1);
+    this.shelfPast = [...this.shelfPast, { shelf: this.state.shelf, label: step.label }];
+    this.setShared({
+      shelf: step.shelf,
+      shelfUndo: step.label,
+      shelfRedo: this.shelfFuture.at(-1)?.label ?? null,
+    });
+  }
+
   /**
    * Puts back the shelf the last session left behind. It gives way to
    * whatever is already there: if the user has started collecting fragments
-   * while storage was being read, those are the ones they mean.
+   * while storage was being read, those are the ones they mean. It is where
+   * the shelf's history starts, not a step of it.
    */
   restoreShelf(parts: readonly AssemblyPart[]): void {
     if (parts.length === 0 || this.state.shelf.length > 0) return;
-    this.setShared({ shelf: parts });
+    this.shelfPast = [];
+    this.shelfFuture = [];
+    this.setShared({ shelf: parts, shelfUndo: null, shelfRedo: null });
   }
 
   /** Appends a fragment to the shelf and returns its part id. */
   addToShelf(fragment: DigestFragment): string {
     const id = newId();
-    this.setShared({
-      // The shelf is drawn above every reaction's panel, so the fragment is
-      // seen landing whichever reaction is picked; the picker stays put.
-      shelf: [...this.state.shelf, { id, fragment, flipped: false }],
-    });
+    this.changeShelf(
+      [...this.state.shelf, { id, fragment, flipped: false }],
+      `Add ${defaultFragmentName(fragment)}`,
+    );
     return id;
   }
 
   removeFromShelf(id: string): void {
-    const next = this.state.shelf.filter((p) => p.id !== id);
-    if (next.length !== this.state.shelf.length) this.setShared({ shelf: next });
+    const part = this.state.shelf.find((p) => p.id === id);
+    if (part === undefined) return;
+    this.changeShelf(
+      this.state.shelf.filter((p) => p !== part),
+      `Remove ${defaultFragmentName(part.fragment)}`,
+    );
   }
 
   /** Turns a part around (reverse complement); the caller supplies the flipped fragment. */
   flipShelfPart(id: string, flipped: DigestFragment): void {
-    this.setShared({
-      shelf: this.state.shelf.map((p) =>
-        p.id === id ? { ...p, fragment: flipped, flipped: !p.flipped } : p,
+    const part = this.state.shelf.find((p) => p.id === id);
+    if (part === undefined) return;
+    this.changeShelf(
+      this.state.shelf.map((p) =>
+        p === part ? { ...p, fragment: flipped, flipped: !p.flipped } : p,
       ),
-    });
+      `Flip ${defaultFragmentName(part.fragment)}`,
+    );
   }
 
   /** Treats a part with phosphatase, or takes the treatment back (#10). */
   setShelfPartDephosphorylated(id: string, dephosphorylated: boolean): void {
-    this.setShared({
-      shelf: this.state.shelf.map((p) =>
-        p.id === id ? { ...p, fragment: { ...p.fragment, dephosphorylated } } : p,
+    const part = this.state.shelf.find((p) => p.id === id);
+    if (part === undefined || (part.fragment.dephosphorylated === true) === dephosphorylated) {
+      return;
+    }
+    this.changeShelf(
+      this.state.shelf.map((p) =>
+        p === part ? { ...p, fragment: { ...p.fragment, dephosphorylated } } : p,
       ),
-    });
+      `${dephosphorylated ? 'Dephosphorylate' : 'Phosphorylate'} ${defaultFragmentName(part.fragment)}`,
+    );
   }
 
   /** Moves a part up (-1) or down (+1) on the shelf, which is Ligation's order of joining. */
@@ -1475,11 +1567,11 @@ export class EditorStore {
     if (i < 0 || a === undefined || b === undefined) return;
     parts[i] = b;
     parts[j] = a;
-    this.setShared({ shelf: parts });
+    this.changeShelf(parts, `Move ${defaultFragmentName(a.fragment)}`);
   }
 
   clearShelf(): void {
-    if (this.state.shelf.length > 0) this.setShared({ shelf: [] });
+    if (this.state.shelf.length > 0) this.changeShelf([], 'Clear the shelf');
   }
 }
 

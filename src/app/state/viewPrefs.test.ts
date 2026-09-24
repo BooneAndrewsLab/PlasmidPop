@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { DEFAULT_PRIMER_CRITERIA, SeqDocument } from '@/core';
 
+import { DEFAULT_BENCH } from './benchSettings';
 import { editorStore } from './editorStore';
 import { DEFAULT_LAYOUT } from './layout';
 import { loadViewPrefs, saveViewPrefs, startViewPrefs } from './viewPrefs';
@@ -26,7 +27,8 @@ const DEFAULTS = {
   enzymeSortReversed: false,
   gelAgarose: 1,
   gelLadder: 'auto',
-  cloningReaction: 'ligation',
+  sidebarReaction: 'digest',
+  bench: DEFAULT_BENCH,
   geneticCode: 1,
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
 } as const;
@@ -51,7 +53,8 @@ function reset(): void {
   editorStore.setEnzymeSortReversed(DEFAULTS.enzymeSortReversed);
   editorStore.setGelAgarose(DEFAULTS.gelAgarose);
   editorStore.setGelLadder(DEFAULTS.gelLadder);
-  editorStore.setCloningReaction(DEFAULTS.cloningReaction);
+  editorStore.setCloningReaction(DEFAULTS.sidebarReaction);
+  editorStore.restoreBench(DEFAULTS.bench);
   editorStore.setGeneticCode(DEFAULTS.geneticCode);
   editorStore.setPrimerCriteria(DEFAULTS.primerCriteria);
 }
@@ -83,7 +86,13 @@ describe('view preferences', () => {
       enzymeSortReversed: true,
       gelAgarose: 2,
       gelLadder: '1 kb Plus',
-      cloningReaction: 'gibson',
+      sidebarReaction: 'pcr',
+      bench: {
+        ...DEFAULT_BENCH,
+        reaction: 'gibson',
+        gibson: { excluded: ['tab-1'], minOverlap: 25, circular: false, name: 'pNew' },
+        gateway: { reaction: 'BP', insertId: 'tab-2', vectorId: 'tab-3' },
+      },
       geneticCode: 11,
       primerCriteria: {
         ...DEFAULT_PRIMER_CRITERIA,
@@ -138,7 +147,8 @@ describe('view preferences', () => {
       enzymeSortReversed: true,
       gelAgarose: 2,
       gelLadder: '1 kb Plus',
-      cloningReaction: 'golden-gate',
+      sidebarReaction: 'mutagenesis',
+      bench: { ...DEFAULT_BENCH, reaction: 'golden-gate' },
       geneticCode: 2,
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
     });
@@ -162,11 +172,33 @@ describe('view preferences', () => {
       enzymeSortReversed: true,
       gelAgarose: 2,
       gelLadder: '1 kb Plus',
-      cloningReaction: 'golden-gate',
+      sidebarReaction: 'mutagenesis',
+      bench: { ...DEFAULT_BENCH, reaction: 'golden-gate' },
       geneticCode: 2,
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
     });
     stop();
+  });
+
+  it("sends an older entry's one reaction to the sidebar or the Bench", () => {
+    localStorage.setItem(KEY, JSON.stringify({ cloningReaction: 'pcr' }));
+    expect(loadViewPrefs()).toEqual({ sidebarReaction: 'pcr' });
+    localStorage.setItem(KEY, JSON.stringify({ cloningReaction: 'gibson' }));
+    expect(loadViewPrefs()).toEqual({
+      sidebarReaction: 'digest',
+      bench: { ...DEFAULT_BENCH, reaction: 'gibson' },
+    });
+    // Damaged Bench settings keep what makes sense and default the rest.
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        bench: { reaction: 'cloning', gibson: { minOverlap: 7, circular: false } },
+      }),
+    );
+    expect(loadViewPrefs().bench).toEqual({
+      ...DEFAULT_BENCH,
+      gibson: { ...DEFAULT_BENCH.gibson, circular: false },
+    });
   });
 
   it('leaves the defaults alone when only some fields are stored', () => {

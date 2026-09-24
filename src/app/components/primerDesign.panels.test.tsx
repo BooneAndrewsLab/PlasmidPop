@@ -15,6 +15,7 @@ import { randomDna, seededRandom } from '@/test/random';
 
 import type * as Clipboard from '../clipboard';
 import { copyText } from '../clipboard';
+import { DEFAULT_BENCH } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { MutagenesisPanel } from './MutagenesisPanel';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
@@ -60,6 +61,7 @@ function closeAll(): void {
   act(() => {
     while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
     editorStore.clearShelf();
+    editorStore.restoreBench(DEFAULT_BENCH);
   });
   copied.mockClear();
 }

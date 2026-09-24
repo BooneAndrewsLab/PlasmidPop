@@ -1,4 +1,18 @@
+import { BENCH_REACTIONS } from '../state/cloningReaction';
+import { editorStore } from '../state/editorStore';
+import { useEditorState } from '../state/useEditorStore';
+import { GatewayPanel } from './GatewayPanel';
+import { GibsonPanel } from './GibsonPanel';
+import { GoldenGatePanel } from './GoldenGatePanel';
+import { LigationPanel } from './LigationPanel';
 import { ShelfPanel } from './ShelfPanel';
+
+const HEADINGS = {
+  ligation: ['Ligation', "in the shelf's order"],
+  'golden-gate': ['Golden Gate', 'one pot, one enzyme'],
+  gibson: ['Gibson', 'no enzyme, matching ends'],
+  gateway: ['Gateway', 'att sites, no enzyme'],
+} as const;
 
 /**
  * The Cloning Bench (item 49): a full-width page in the tab strip for what
@@ -8,15 +22,47 @@ import { ShelfPanel } from './ShelfPanel';
  * those draw on its views.
  */
 export function Bench() {
+  const { bench } = useEditorState();
+  const reaction = bench.reaction;
+  const [title, note] = HEADINGS[reaction];
   return (
     <div className="bench" aria-label="Cloning Bench">
       <section className="bench__column bench__parts" aria-label="Parts">
         <ShelfPanel />
       </section>
       <section className="bench__column bench__reaction" aria-label="Reaction">
-        <h3 className="panel__heading">Reaction</h3>
+        <div className="panel__section">
+          <div className="segmented" role="group" aria-label="Reaction">
+            {BENCH_REACTIONS.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                className={`segmented__button${
+                  reaction === r.value ? ' segmented__button--active' : ''
+                }`}
+                aria-pressed={reaction === r.value}
+                title={r.title}
+                onClick={() => {
+                  editorStore.setCloningReaction(r.value);
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            {title}
+            <span className="panel__heading-note">{note}</span>
+          </h3>
+          {reaction === 'ligation' && <LigationPanel />}
+          {reaction === 'golden-gate' && <GoldenGatePanel />}
+          {reaction === 'gibson' && <GibsonPanel />}
+          {reaction === 'gateway' && <GatewayPanel />}
+        </div>
       </section>
-      <section className="bench__column bench__product" aria-label="Product">
+      <section className="bench__column bench__product" aria-label="What it makes">
         <h3 className="panel__heading">Product</h3>
       </section>
     </div>

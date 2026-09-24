@@ -21,7 +21,7 @@ function describeSelection(doc: SeqDocument, selection: { start: number; end: nu
 }
 
 export function StatusBar({ doc }: Props) {
-  const { selection, warnings, error, errorCountdown, fileName } = useEditorState();
+  const { selection, warnings, error, errorCountdown, fileName, front } = useEditorState();
   const [showWarnings, setShowWarnings] = useState(false);
   const [copied, setCopied] = useState(false);
   // A SHA-1 over the sequence, which is microseconds even for a plasmid, but
@@ -43,11 +43,13 @@ export function StatusBar({ doc }: Props) {
       )}
       <div className="statusbar__row">
         <span className="statusbar__selection">
-          {doc === null
-            ? 'No sequence open'
-            : selection === null
-              ? 'Nothing selected'
-              : describeSelection(doc, selection)}
+          {front === 'bench'
+            ? 'Cloning Bench'
+            : doc === null
+              ? 'No sequence open'
+              : selection === null
+                ? 'Nothing selected'
+                : describeSelection(doc, selection)}
         </span>
         {error === null ? (
           <span />

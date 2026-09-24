@@ -11,7 +11,8 @@ import {
 } from '@/core';
 import { type FontSize, isFontSize } from '@/view/linear';
 
-import { type CloningReaction, isCloningReaction } from './cloningReaction';
+import { type BenchSettings, normalizeBenchSettings } from './benchSettings';
+import { type SidebarReaction, isBenchReaction, isSidebarReaction } from './cloningReaction';
 import { type CutCountFilter, isCutCountFilter } from './cutFilter';
 import { type EnzymeSort, isEnzymeSort } from './enzymeSort';
 import { type EditsBaseline, type ViewMode, editorStore } from './editorStore';
@@ -54,8 +55,10 @@ export interface ViewPrefs {
   /** The gel lanes are drawn for; see `SharedState.gelAgarose`. */
   readonly gelAgarose: AgarosePercent;
   readonly gelLadder: LadderChoice;
-  /** Which reaction the Cloning tab shows; see `SharedState.cloningReaction`. */
-  readonly cloningReaction: CloningReaction;
+  /** Which reaction the Cloning tab shows; see `SharedState.sidebarReaction`. */
+  readonly sidebarReaction: SidebarReaction;
+  /** What the Bench's reactions were left at; see `BenchSettings`. */
+  readonly bench: BenchSettings;
   /** The code the Translate tab and the ORF scan read with. */
   readonly geneticCode: TranslationTable;
   /** The Primers tab's settings; see `SharedState.primerCriteria`. */
@@ -112,8 +115,19 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isEnzymeSort(record['enzymeSort'])) prefs.enzymeSort = record['enzymeSort'];
   if (isAgarosePercent(record['gelAgarose'])) prefs.gelAgarose = record['gelAgarose'];
   if (isLadderChoice(record['gelLadder'])) prefs.gelLadder = record['gelLadder'];
-  if (isCloningReaction(record['cloningReaction'])) {
-    prefs.cloningReaction = record['cloningReaction'];
+  if (isSidebarReaction(record['sidebarReaction'])) {
+    prefs.sidebarReaction = record['sidebarReaction'];
+  }
+  if (typeof record['bench'] === 'object' && record['bench'] !== null) {
+    prefs.bench = normalizeBenchSettings(record['bench']);
+  }
+  // Before the Bench (1.4) one field held all six reactions; it goes to
+  // whichever of the two places now shows the one it names.
+  const legacy = record['cloningReaction'];
+  if (isSidebarReaction(legacy)) prefs.sidebarReaction ??= legacy;
+  else if (isBenchReaction(legacy) && prefs.bench === undefined) {
+    prefs.bench = normalizeBenchSettings({ reaction: legacy });
+    prefs.sidebarReaction ??= 'digest';
   }
   // The code is not checked against a table here: which suppliers exist
   // depends on the imported set, and the panel falls back to "any" for a
@@ -178,7 +192,8 @@ function snapshot(): ViewPrefs {
     enzymeSortReversed,
     gelAgarose,
     gelLadder,
-    cloningReaction,
+    sidebarReaction,
+    bench,
     geneticCode,
     primerCriteria,
   } = editorStore.getState();
@@ -201,7 +216,8 @@ function snapshot(): ViewPrefs {
     enzymeSortReversed,
     gelAgarose,
     gelLadder,
-    cloningReaction,
+    sidebarReaction,
+    bench,
     geneticCode,
     primerCriteria,
   };
@@ -227,7 +243,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.enzymeSortReversed === b.enzymeSortReversed &&
     a.gelAgarose === b.gelAgarose &&
     a.gelLadder === b.gelLadder &&
-    a.cloningReaction === b.cloningReaction &&
+    a.sidebarReaction === b.sidebarReaction &&
+    a.bench === b.bench &&
     a.geneticCode === b.geneticCode &&
     samePrimerCriteria(a.primerCriteria, b.primerCriteria)
   );
@@ -265,9 +282,10 @@ export function startViewPrefs(): () => void {
   if (stored.enzymeGroupIsoschizomers !== undefined) {
     editorStore.setEnzymeGroupIsoschizomers(stored.enzymeGroupIsoschizomers);
   }
-  if (stored.cloningReaction !== undefined) {
-    editorStore.setCloningReaction(stored.cloningReaction);
+  if (stored.sidebarReaction !== undefined) {
+    editorStore.setCloningReaction(stored.sidebarReaction);
   }
+  if (stored.bench !== undefined) editorStore.restoreBench(stored.bench);
   if (stored.geneticCode !== undefined) editorStore.setGeneticCode(stored.geneticCode);
   if (stored.primerCriteria !== undefined) editorStore.setPrimerCriteria(stored.primerCriteria);
   let last = snapshot();

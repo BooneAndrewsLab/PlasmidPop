@@ -71,6 +71,12 @@ async function wouldAskTheUser(): Promise<boolean> {
  * Everything that touches disk or IndexedDB, kept out of the store so the
  * store stays synchronous and testable.
  */
+/**
+ * Stands in the last-document slot for the Bench, which has no document id
+ * (item 49). No id `newId` makes looks like it.
+ */
+const BENCH_IN_FRONT = '<bench>';
+
 export class PersistenceService {
   private readonly autosaved = new Map<string, Autosaved>();
   /** The shelf as last written, so an unchanged one is not written again. */
@@ -255,22 +261,24 @@ export class PersistenceService {
 
   /** Records which documents are open and which is in front, for `restoreLastSession`. */
   rememberSession(): void {
-    const { documents, documentId } = editorStore.getState();
+    const { documents, documentId, front } = editorStore.getState();
     this.repo.setOpenDocumentIds(documents.map((d) => d.documentId));
-    this.repo.setLastDocumentId(documentId);
+    this.repo.setLastDocumentId(front === 'bench' ? BENCH_IN_FRONT : documentId);
   }
 
   /**
    * Reopens the tabs that were open when the page was last closed, in the
-   * same order and with the same one in front (or the file list, if that was
-   * showing). Documents no longer in storage are skipped.
+   * same order and with the same one in front (or the file list or the
+   * Bench, if that was showing). Documents no longer in storage are skipped.
    */
   async restoreLastSession(): Promise<boolean> {
     try {
       const shelf = await this.repo.loadShelf();
       editorStore.restoreShelf(shelf);
       this.savedShelf = editorStore.getState().shelf;
-      const last = this.repo.lastDocumentId();
+      const lastFront = this.repo.lastDocumentId();
+      const bench = lastFront === BENCH_IN_FRONT;
+      const last = bench ? null : lastFront;
       const ids = [...this.repo.openDocumentIds()];
       if (last !== null && !ids.includes(last)) ids.push(last);
       const opened: string[] = [];
@@ -285,8 +293,14 @@ export class PersistenceService {
         this.autosaved.set(id, { doc: stored.doc, fileName: stored.fileName });
         opened.push(id);
       }
+      // The Bench comes back in front only with something to work with.
+      if (bench && (opened.length > 0 || editorStore.getState().shelf.length > 0)) {
+        editorStore.showBench();
+      }
       if (opened.length === 0) return false;
-      editorStore.activateDocument(last !== null && opened.includes(last) ? last : null);
+      if (!bench) {
+        editorStore.activateDocument(last !== null && opened.includes(last) ? last : null);
+      }
       return true;
     } finally {
       this.restoreAttempted = true;

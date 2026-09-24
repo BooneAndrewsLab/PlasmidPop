@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { type GatewayReaction, type SeqDocument, attSites, gateway } from '@/core';
 
@@ -84,10 +84,17 @@ function renderProduct(
  * front of you" more than the other.
  */
 export function GatewayPanel() {
-  const { documents } = useEditorState();
-  const [reaction, setReaction] = useState<GatewayReaction>('LR');
-  const [insertId, setInsertId] = useState('');
-  const [vectorId, setVectorId] = useState('');
+  const { documents, bench } = useEditorState();
+  const { reaction, insertId, vectorId } = bench.gateway;
+  const setReaction = (next: GatewayReaction): void => {
+    editorStore.updateBench('gateway', { reaction: next });
+  };
+  const setInsertId = (next: string): void => {
+    editorStore.updateBench('gateway', { insertId: next });
+  };
+  const setVectorId = (next: string): void => {
+    editorStore.updateBench('gateway', { vectorId: next });
+  };
 
   const docs = useMemo(
     () => documents.map((d) => ({ id: d.documentId, doc: d.history.present })),

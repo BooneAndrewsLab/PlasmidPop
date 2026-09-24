@@ -17,16 +17,12 @@ import {
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
-import { CLONING_REACTIONS } from '../state/cloningReaction';
+import { SIDEBAR_REACTIONS } from '../state/cloningReaction';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
-import { GatewayPanel } from './GatewayPanel';
-import { GibsonPanel } from './GibsonPanel';
-import { GoldenGatePanel } from './GoldenGatePanel';
-import { LigationPanel } from './LigationPanel';
 import { MutagenesisPanel } from './MutagenesisPanel';
 import { PcrPanel } from './PcrPanel';
-import { ShelfPanel } from './ShelfPanel';
+import { ShelfSummary } from './ShelfSummary';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -109,7 +105,7 @@ function FragmentRow({
         <button
           type="button"
           className="button button--quiet button--small fragment__add"
-          title="Put this fragment on the shelf below, for any of the reactions"
+          title="Put this fragment on the shelf, for the reactions on the Bench"
           onClick={() => {
             shelve(fragment);
           }}
@@ -193,7 +189,7 @@ export function CloningPanel({ doc }: Props) {
     analysis,
     shownEnzymes,
     showCutSites,
-    cloningReaction,
+    sidebarReaction,
     previewActivated: activated,
   } = useEditorState();
   const [hovered, setHovered] = useState<string | null>(null);
@@ -253,15 +249,11 @@ export function CloningPanel({ doc }: Props) {
     [doc, cutSites, ready, partial, listed],
   );
 
-  // There is one preview channel, so the digest gives it up while the PCR
-  // panel is open: that panel has primer sites and products to point at, and
-  // they are what is being worked on. The fragment rows still select.
+  // There is one preview channel, so the digest has it only while it is the
+  // one shown: PCR and Mutate have primer sites and products to point at.
   const previewed = useMemo(
-    () =>
-      cloningReaction === 'pcr' || cloningReaction === 'mutagenesis'
-        ? []
-        : digestPreview(listed, hovered, partial),
-    [listed, hovered, cloningReaction, partial],
+    () => (sidebarReaction === 'digest' ? digestPreview(listed, hovered, partial) : []),
+    [listed, hovered, sidebarReaction, partial],
   );
   useEffect(() => {
     editorStore.setPreview('cloning', previewed);
@@ -291,128 +283,20 @@ export function CloningPanel({ doc }: Props) {
 
   return (
     <div className="panel">
-      <h3 className="panel__heading">
-        Digest with ticked enzymes
-        {enzymesUsed.length > 0 && (
-          <span className="panel__heading-note">{enzymesUsed.join(', ')}</span>
-        )}
-      </h3>
-      {!ready ? (
-        <p className="panel__note">Scanning for restriction sites…</p>
-      ) : enzymesUsed.length === 0 && blocked.ticked > 0 ? (
-        <p className="panel__note panel__note--warn">
-          Every site of {blocked.enzymes.join(', ')} in {doc.name} is blocked by its{' '}
-          {describeHost(doc.methylation)} methylation, so nothing is cut. If the DNA came from a
-          dam−/dcm− strain or a PCR, say so under{' '}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              editorStore.setSidebarTab('enzymes');
-            }}
-          >
-            Grown in
-          </button>{' '}
-          in the Enzymes tab.
-        </p>
-      ) : enzymesUsed.length === 0 ? (
-        <p className="panel__note">
-          No enzyme is ticked.{' '}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              editorStore.setSidebarTab('enzymes');
-            }}
-          >
-            Tick enzymes
-          </button>{' '}
-          in the Enzymes tab to cut {doc.name} with them.
-          {doc.isCircular
-            ? ''
-            : ' Uncut, the whole molecule is one fragment, with the ends it has.'}
-        </p>
-      ) : (
-        <p className="panel__note">
-          {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}
-          {partial ? ' a partial digest can give' : ''}, largest first
-          {total > listed.length
-            ? ` (the ${listed.length.toLocaleString()} that miss the fewest sites shown)`
-            : ''}
-          . Add the ones to join to the shelf below.
-        </p>
-      )}
-      {ready && enzymesUsed.length > 0 && (
-        <label
-          className="toggle"
-          title="List every piece a digest that misses some of the sites can give, not only the complete digest's"
-        >
-          <input
-            type="checkbox"
-            checked={partial}
-            onChange={(e) => {
-              setPartial(e.target.checked);
-              setHovered(null);
-            }}
-          />
-          Partial digest
-        </label>
-      )}
-      {enzymesUsed.length > 0 && blocked.sites > 0 && (
-        <p className="panel__note panel__note--quiet">
-          {blocked.sites === 1 ? '1 site' : `${blocked.sites.toLocaleString()} sites`} of{' '}
-          {blocked.enzymes.join(', ')} {blocked.sites === 1 ? 'is' : 'are'} left out: {doc.name} is{' '}
-          {describeHost(doc.methylation)}, and its methylation blocks{' '}
-          {blocked.sites === 1 ? 'it' : 'them'}.
-        </p>
-      )}
-      {!showCutSites && enzymesUsed.length > 0 && (
-        <p className="panel__note">
-          Cut sites are hidden in the views; this digest follows the ticks, not that toggle.
-        </p>
-      )}
-      {listed.length > 0 && (
-        <ul className="fragment-list">
-          {listed.map((f) => (
-            <FragmentRow
-              key={fragmentId(f)}
-              fragment={f}
-              seqLength={doc.length}
-              onSelect={() => {
-                editorStore.setSelection(f.range);
-                editorStore.revealPosition(f.range.start);
-              }}
-              onOpen={() => {
-                analytics.track('cloning', 'open-fragment');
-                editorStore.openDocument(documentFromFragment(f));
-                editorStore.setSidebarTab('features');
-              }}
-              onHover={(on) => {
-                setHovered((h) => (on ? fragmentId(f) : h === fragmentId(f) ? null : h));
-              }}
-            />
-          ))}
-        </ul>
-      )}
-
-      <ShelfPanel />
-
       <div className="panel__section">
-        {/* The six reactions are alternatives, not steps, so the tab asks
-            which one rather than stacking them down a 300 px column. Six
-            buttons do not fit one row of it, so they sit in two rows of
-            three. Above
-            this line are the digest, which belongs to the document in front
-            of you, and the shelf, which every reaction takes parts from. */}
-        <div className="segmented segmented--grid" role="group" aria-label="Reaction">
-          {CLONING_REACTIONS.map((r) => (
+        {/* The digest, PCR and Mutate are alternatives, not steps, and they
+            share the views' one preview channel, so the tab asks which one
+            rather than stacking them. The reactions that join what they make
+            are on the Bench (item 49). */}
+        <div className="segmented" role="group" aria-label="Reaction">
+          {SIDEBAR_REACTIONS.map((r) => (
             <button
               key={r.value}
               type="button"
               className={`segmented__button${
-                cloningReaction === r.value ? ' segmented__button--active' : ''
+                sidebarReaction === r.value ? ' segmented__button--active' : ''
               }`}
-              aria-pressed={cloningReaction === r.value}
+              aria-pressed={sidebarReaction === r.value}
               title={r.title}
               onClick={() => {
                 editorStore.setCloningReaction(r.value);
@@ -424,7 +308,115 @@ export function CloningPanel({ doc }: Props) {
         </div>
       </div>
 
-      {cloningReaction === 'pcr' && (
+      {sidebarReaction === 'digest' && (
+        <>
+          <h3 className="panel__heading">
+            Digest with ticked enzymes
+            {enzymesUsed.length > 0 && (
+              <span className="panel__heading-note">{enzymesUsed.join(', ')}</span>
+            )}
+          </h3>
+          {!ready ? (
+            <p className="panel__note">Scanning for restriction sites…</p>
+          ) : enzymesUsed.length === 0 && blocked.ticked > 0 ? (
+            <p className="panel__note panel__note--warn">
+              Every site of {blocked.enzymes.join(', ')} in {doc.name} is blocked by its{' '}
+              {describeHost(doc.methylation)} methylation, so nothing is cut. If the DNA came from a
+              dam−/dcm− strain or a PCR, say so under{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.setSidebarTab('enzymes');
+                }}
+              >
+                Grown in
+              </button>{' '}
+              in the Enzymes tab.
+            </p>
+          ) : enzymesUsed.length === 0 ? (
+            <p className="panel__note">
+              No enzyme is ticked.{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.setSidebarTab('enzymes');
+                }}
+              >
+                Tick enzymes
+              </button>{' '}
+              in the Enzymes tab to cut {doc.name} with them.
+              {doc.isCircular
+                ? ''
+                : ' Uncut, the whole molecule is one fragment, with the ends it has.'}
+            </p>
+          ) : (
+            <p className="panel__note">
+              {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}
+              {partial ? ' a partial digest can give' : ''}, largest first
+              {total > listed.length
+                ? ` (the ${listed.length.toLocaleString()} that miss the fewest sites shown)`
+                : ''}
+              . Add the ones to join to the shelf, and join them on the Bench.
+            </p>
+          )}
+          {ready && enzymesUsed.length > 0 && (
+            <label
+              className="toggle"
+              title="List every piece a digest that misses some of the sites can give, not only the complete digest's"
+            >
+              <input
+                type="checkbox"
+                checked={partial}
+                onChange={(e) => {
+                  setPartial(e.target.checked);
+                  setHovered(null);
+                }}
+              />
+              Partial digest
+            </label>
+          )}
+          {enzymesUsed.length > 0 && blocked.sites > 0 && (
+            <p className="panel__note panel__note--quiet">
+              {blocked.sites === 1 ? '1 site' : `${blocked.sites.toLocaleString()} sites`} of{' '}
+              {blocked.enzymes.join(', ')} {blocked.sites === 1 ? 'is' : 'are'} left out: {doc.name}{' '}
+              is {describeHost(doc.methylation)}, and its methylation blocks{' '}
+              {blocked.sites === 1 ? 'it' : 'them'}.
+            </p>
+          )}
+          {!showCutSites && enzymesUsed.length > 0 && (
+            <p className="panel__note">
+              Cut sites are hidden in the views; this digest follows the ticks, not that toggle.
+            </p>
+          )}
+          {listed.length > 0 && (
+            <ul className="fragment-list">
+              {listed.map((f) => (
+                <FragmentRow
+                  key={fragmentId(f)}
+                  fragment={f}
+                  seqLength={doc.length}
+                  onSelect={() => {
+                    editorStore.setSelection(f.range);
+                    editorStore.revealPosition(f.range.start);
+                  }}
+                  onOpen={() => {
+                    analytics.track('cloning', 'open-fragment');
+                    editorStore.openDocument(documentFromFragment(f));
+                    editorStore.setSidebarTab('features');
+                  }}
+                  onHover={(on) => {
+                    setHovered((h) => (on ? fragmentId(f) : h === fragmentId(f) ? null : h));
+                  }}
+                />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      {sidebarReaction === 'pcr' && (
         <div className="panel__section">
           <h3 className="panel__heading">
             PCR
@@ -434,7 +426,7 @@ export function CloningPanel({ doc }: Props) {
         </div>
       )}
 
-      {cloningReaction === 'mutagenesis' && (
+      {sidebarReaction === 'mutagenesis' && (
         <div className="panel__section">
           <h3 className="panel__heading">
             Site-directed mutagenesis
@@ -444,45 +436,7 @@ export function CloningPanel({ doc }: Props) {
         </div>
       )}
 
-      {cloningReaction === 'ligation' && (
-        <div className="panel__section">
-          <h3 className="panel__heading">
-            Ligation
-            <span className="panel__heading-note">in the shelf's order</span>
-          </h3>
-          <LigationPanel />
-        </div>
-      )}
-
-      {cloningReaction === 'golden-gate' && (
-        <div className="panel__section">
-          <h3 className="panel__heading">
-            Golden Gate
-            <span className="panel__heading-note">one pot, one enzyme</span>
-          </h3>
-          <GoldenGatePanel />
-        </div>
-      )}
-
-      {cloningReaction === 'gateway' && (
-        <div className="panel__section">
-          <h3 className="panel__heading">
-            Gateway
-            <span className="panel__heading-note">att sites, no enzyme</span>
-          </h3>
-          <GatewayPanel />
-        </div>
-      )}
-
-      {cloningReaction === 'gibson' && (
-        <div className="panel__section">
-          <h3 className="panel__heading">
-            Gibson
-            <span className="panel__heading-note">no enzyme, matching ends</span>
-          </h3>
-          <GibsonPanel />
-        </div>
-      )}
+      <ShelfSummary />
     </div>
   );
 }

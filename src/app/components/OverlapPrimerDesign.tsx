@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
   type OverlapKit,
@@ -54,10 +54,17 @@ function PrimerLine({ label, primer }: { readonly label: string; readonly primer
  * this sits inside that panel and designs the oligos it would need.
  */
 export function OverlapPrimerDesign() {
-  const { documents } = useEditorState();
-  const [kit, setKit] = useState<OverlapKit>('in-fusion');
-  const [vectorId, setVectorId] = useState('');
-  const [templateId, setTemplateId] = useState('');
+  const { documents, bench } = useEditorState();
+  const { kit, vectorId, templateId } = bench.overlap;
+  const setKit = (next: OverlapKit): void => {
+    editorStore.updateBench('overlap', { kit: next });
+  };
+  const setVectorId = (next: string): void => {
+    editorStore.updateBench('overlap', { vectorId: next });
+  };
+  const setTemplateId = (next: string): void => {
+    editorStore.updateBench('overlap', { templateId: next });
+  };
 
   const tabs = useMemo(
     () =>

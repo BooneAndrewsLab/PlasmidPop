@@ -421,6 +421,56 @@ describe('fragment shelf', () => {
     busy.restoreShelf([]);
     expect(busy.getState().shelf.map((p) => p.fragment.source)).toEqual(['mine']);
   });
+
+  it('undoes and redoes shelf changes, saying which, apart from any document', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const sources = () => store.getState().shelf.map((p) => p.fragment.source);
+    expect(store.getState()).toMatchObject({ shelfUndo: null, shelfRedo: null });
+    const a = store.addToShelf(frag('a'));
+    store.addToShelf(frag('b'));
+    expect(store.getState().shelfUndo).toBe('Add b fragment');
+    store.clearShelf();
+    expect(store.getState().shelfUndo).toBe('Clear the shelf');
+    // A document's history is its own: the shelf did not touch it.
+    expect(store.getState().history?.canUndo).toBe(false);
+    store.undoShelf();
+    expect(sources()).toEqual(['a', 'b']);
+    expect(store.getState()).toMatchObject({
+      shelfUndo: 'Add b fragment',
+      shelfRedo: 'Clear the shelf',
+    });
+    store.redoShelf();
+    expect(sources()).toEqual([]);
+    store.undoShelf();
+    store.removeFromShelf(a);
+    // A new change drops what was undone.
+    expect(store.getState()).toMatchObject({ shelfUndo: 'Remove a fragment', shelfRedo: null });
+    store.redoShelf();
+    expect(sources()).toEqual(['b']);
+    store.undoShelf();
+    store.undoShelf();
+    store.undoShelf();
+    store.undoShelf(); // past the start: nothing
+    expect(sources()).toEqual([]);
+    expect(store.getState().shelfUndo).toBeNull();
+  });
+
+  it('keeps each Bench panel as it was set, and changes nothing for a no-op', () => {
+    const store = new EditorStore();
+    const before = store.getState().bench;
+    store.updateBench('gibson', { minOverlap: before.gibson.minOverlap });
+    expect(store.getState().bench).toBe(before);
+    store.updateBench('gibson', { minOverlap: 25, excluded: ['x'] });
+    store.setCloningReaction('gateway');
+    store.setCloningReaction('pcr');
+    expect(store.getState().bench).toMatchObject({
+      reaction: 'gateway',
+      gibson: { minOverlap: 25, excluded: ['x'], circular: true },
+      ligation: before.ligation,
+    });
+    expect(store.getState().sidebarReaction).toBe('pcr');
+  });
 });
 
 describe('EditorStore edit-mark baseline', () => {

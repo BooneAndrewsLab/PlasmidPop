@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
   type AssembledPart,
@@ -59,12 +59,24 @@ function DroppedRow({ dropped }: { readonly dropped: DroppedFragment }) {
  * would do.
  */
 export function GoldenGatePanel() {
-  const { documents, shelf } = useEditorState();
-  const [enzymeName, setEnzymeName] = useState(DEFAULT_ENZYME?.name ?? '');
+  const { documents, shelf, bench } = useEditorState();
+  const settings = bench.goldenGate;
+  const enzymeName = settings.enzyme === '' ? (DEFAULT_ENZYME?.name ?? '') : settings.enzyme;
   // Empty for none: most reactions have one enzyme (#11).
-  const [secondName, setSecondName] = useState('');
-  const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
-  const [name, setName] = useState('');
+  const { secondEnzyme: secondName, name } = settings;
+  const excluded = useMemo(() => new Set(settings.excluded), [settings.excluded]);
+  const setEnzymeName = (next: string): void => {
+    editorStore.updateBench('goldenGate', { enzyme: next });
+  };
+  const setSecondName = (next: string): void => {
+    editorStore.updateBench('goldenGate', { secondEnzyme: next });
+  };
+  const setExcluded = (next: ReadonlySet<string>): void => {
+    editorStore.updateBench('goldenGate', { excluded: [...next] });
+  };
+  const setName = (next: string): void => {
+    editorStore.updateBench('goldenGate', { name: next });
+  };
 
   const enzyme = getEnzyme(enzymeName);
   const second = secondName === '' ? undefined : getEnzyme(secondName);
@@ -114,8 +126,8 @@ export function GoldenGatePanel() {
   if (ingredients.length === 0) {
     return (
       <p className="panel__note">
-        Open the destination vector and the parts to put in it, or collect them from a digest above,
-        then choose the enzyme they were designed for.
+        Open the destination vector and the parts to put in it, or shelve them from a digest in the
+        Cloning tab, then choose the enzyme they were designed for.
       </p>
     );
   }

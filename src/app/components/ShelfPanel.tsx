@@ -116,9 +116,9 @@ export function ShelfPanel() {
       </h3>
       {shelf.length === 0 ? (
         <p className="panel__note">
-          Nothing collected yet. Add fragments from the digest above, or click one in a view. They
-          stay here while you open other files, and across reloads, and every reaction below can use
-          them.
+          Nothing collected yet. Add fragments from a digest in the sidebar's Cloning tab, or click
+          one in a view there; shelve a PCR product from its panel. They stay here while you open
+          other files, and across reloads, and every reaction on the Bench can use them.
         </p>
       ) : (
         <>
