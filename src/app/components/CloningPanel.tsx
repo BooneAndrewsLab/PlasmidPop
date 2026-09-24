@@ -20,6 +20,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
 import { LigationPanel } from './LigationPanel';
+import { MutagenesisPanel } from './MutagenesisPanel';
 import { PcrPanel } from './PcrPanel';
 import { ShelfPanel } from './ShelfPanel';
 
@@ -227,7 +228,10 @@ export function CloningPanel({ doc }: Props) {
   // panel is open: that panel has primer sites and products to point at, and
   // they are what is being worked on. The fragment rows still select.
   const previewed = useMemo(
-    () => (cloningReaction === 'pcr' ? [] : digestPreview(listed, hovered, partial)),
+    () =>
+      cloningReaction === 'pcr' || cloningReaction === 'mutagenesis'
+        ? []
+        : digestPreview(listed, hovered, partial),
     [listed, hovered, cloningReaction, partial],
   );
   useEffect(() => {
@@ -372,6 +376,16 @@ export function CloningPanel({ doc }: Props) {
             <span className="panel__heading-note">two primers, one template</span>
           </h3>
           <PcrPanel doc={doc} />
+        </div>
+      )}
+
+      {cloningReaction === 'mutagenesis' && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            Site-directed mutagenesis
+            <span className="panel__heading-note">primers that carry a change</span>
+          </h3>
+          <MutagenesisPanel doc={doc} />
         </div>
       )}
 

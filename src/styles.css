@@ -1849,6 +1849,14 @@ button {
   color: var(--ink-2);
 }
 
+/* A mutagenesis primer, written out to be read and ordered. */
+.mutagenesis__oligo {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  word-break: break-all;
+  color: var(--ink);
+}
+
 .pair__buttons {
   display: flex;
   gap: 6px;

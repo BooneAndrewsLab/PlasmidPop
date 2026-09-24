@@ -4,12 +4,14 @@ The **Cloning** tab cuts the document with restriction enzymes and
 describes the resulting fragments end by end. Under the digest is the
 **shelf**, where fragments you collect wait for a reaction, and under that a
 picker chooses one reaction to build something with: **PCR**, which
-amplifies a stretch of this document with two primers, **Ligation**, which
-joins shelf fragments by their overhangs, **Golden Gate**, and **Gibson**. They are alternatives, so one is shown at a time and the choice
+amplifies a stretch of this document with two primers, **Mutate**, which
+designs the primers for a point mutation, insertion or deletion,
+**Ligation**, which joins shelf fragments by their overhangs, **Golden
+Gate**, and **Gibson**. They are alternatives, so one is shown at a time and the choice
 is remembered. Whichever you use, the product opens as a new document with
 the features of its parts.
 
-The digest belongs to the document in front of you, and so does PCR unless
+The digest and **Mutate** belong to the document in front of you, and so does PCR unless
 you pick another tab as its template. The other three do not: they work
 across the open tabs and the shelf, and two of them never look at the
 document you happen to be reading.
@@ -200,6 +202,37 @@ below), **⇄** flips a fragment (reverse complement, ends swapped), **↑ ↓**
 reorder, **✕** removes, and **Clear shelf** empties it. The order and the flips are what Ligation joins by; Golden
 Gate and Gibson work out their own order and ignore them. A reaction leaves
 the shelf as it is, so a vector cut once can take one insert after another.
+
+## Site-directed mutagenesis
+
+**Mutate** designs the two primers for a change to the document in front of
+you, and opens the plasmid they would make.
+
+1. Select the bases to change, or put the cursor where new bases go.
+2. Type what they become in **Change to** (for a cursor, **Bases to
+   insert**). Leave it empty to delete the selection. Ambiguity codes are
+   accepted, for a degenerate codon.
+3. Choose the design:
+   - **Back to back** is NEB's Q5 site-directed mutagenesis: the primers
+     point away from each other and meet at the change, which rides on the
+     forward primer's 5′ end (a long insert is split between the two). Each
+     primer's annealing part grows until it reaches 60 °C. Amplify the
+     whole plasmid, then phosphorylate, ligate and digest the template
+     (KLD).
+   - **Overlapping** is Agilent's QuikChange: two complementary primers
+     with the change in the middle, grown until they reach 78 °C by
+     Agilent's formula. Copy the plasmid round, digest the template with
+     DpnI, and transform.
+4. The panel names the change (`A801G`, `Δ1,001–1,030`, `+GACTAC… after
+1,500`) and what it does to every CDS it falls in — the residue changed
+   (`lacZ K12R`), a silent change, or a frameshift — read with the
+   feature's own genetic code and strand. Each primer is written 5′ to 3′
+   as you would order it, new bases in upper case, with **Copy**.
+5. **Open mutant** opens the plasmid with the change made. It opens as the
+   template renamed, with the change as its one edit, so the edit marks show
+   it and **Undo** takes it back.
+
+A design that cannot reach its temperature within 60 bases says so.
 
 ## Ligation
 

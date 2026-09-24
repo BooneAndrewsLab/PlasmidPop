@@ -11,7 +11,7 @@
  * things here that are about the document in front of you rather than about
  * the tube of open tabs.
  */
-export type CloningReaction = 'pcr' | 'ligation' | 'golden-gate' | 'gibson';
+export type CloningReaction = 'pcr' | 'mutagenesis' | 'ligation' | 'golden-gate' | 'gibson';
 
 export interface CloningReactionOption {
   readonly value: CloningReaction;
@@ -24,6 +24,11 @@ export const CLONING_REACTIONS: readonly CloningReactionOption[] = [
     value: 'pcr',
     label: 'PCR',
     title: 'Amplify a stretch of this document with two primers',
+  },
+  {
+    value: 'mutagenesis',
+    label: 'Mutate',
+    title: 'Design the primers for a substitution, insertion or deletion in this document',
   },
   {
     value: 'ligation',
