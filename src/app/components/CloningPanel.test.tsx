@@ -170,6 +170,44 @@ describe('CloningPanel', () => {
     expect(order()).toEqual(['1,000 bp', '3,000 bp']);
   });
 
+  it('lists a partial digest on request, drawing only the piece pointed at', () => {
+    setup();
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Partial digest' }));
+    });
+    // Two sites on a circle: the two complete pieces and the circle opened
+    // at either site, which is where one of them was missed.
+    expect(screen.getByText(/4 fragments a partial digest can give/)).toBeInTheDocument();
+    expect(screen.getAllByText(/1 site uncut/)).toHaveLength(2);
+    expect(preview()?.items ?? []).toEqual([]);
+    const rows = screen.getAllByRole('listitem').filter((li) => li.className === 'fragment');
+    const first = rows[0];
+    if (first === undefined) throw new Error('no rows');
+    act(() => {
+      fireEvent.mouseEnter(first);
+    });
+    expect(preview()?.items.map((s) => s.label)).toEqual(['4,000 bp']);
+  });
+
+  it('stops a dephosphorylated part closing on itself', () => {
+    setup();
+    const [addLarge] = screen.getAllByRole('button', { name: 'Add' });
+    if (addLarge === undefined) throw new Error('no Add');
+    act(() => {
+      fireEvent.click(addLarge);
+    });
+    const closing = (): string | null =>
+      screen.getByRole('listitem', { name: /Closing join/ }).getAttribute('aria-label');
+    expect(closing()).toMatch(/, compatible$/);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Dephosphorylate part 1' }));
+    });
+    expect(closing()).toMatch(/incompatible$/);
+    expect(screen.getByText(/both sides dephosphorylated/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Assemble' })).toBeDisabled();
+    expect(editorStore.getState().shelf[0]?.fragment.dephosphorylated).toBe(true);
+  });
+
   it('ignores an activation meant for another panel', () => {
     setup();
     act(() => {

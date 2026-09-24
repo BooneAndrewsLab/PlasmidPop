@@ -26,9 +26,22 @@ function ShelfRow({
         </span>
         <span className="part__detail">
           {f.sequence.length.toLocaleString()} bp · {describeEnd(f.left)} → {describeEnd(f.right)}
+          {f.dephosphorylated === true ? ' · dephosphorylated' : ''}
         </span>
       </span>
       <span className="part__actions">
+        <button
+          type="button"
+          className="button button--quiet button--small"
+          aria-pressed={f.dephosphorylated === true}
+          title="Dephosphorylate (CIP, rSAP): the part can no longer be ligated to itself or to another dephosphorylated part"
+          aria-label={`Dephosphorylate part ${index + 1}`}
+          onClick={() => {
+            editorStore.setShelfPartDephosphorylated(part.id, f.dephosphorylated !== true);
+          }}
+        >
+          −P
+        </button>
         <button
           type="button"
           className="button button--quiet button--small"

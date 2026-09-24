@@ -333,7 +333,8 @@ function isAssemblyPart(v: unknown): boolean {
     isStrandEnd(f['left']) &&
     isStrandEnd(f['right']) &&
     Array.isArray(f['features']) &&
-    f['features'].every(isFeature)
+    f['features'].every(isFeature) &&
+    (f['dephosphorylated'] === undefined || typeof f['dephosphorylated'] === 'boolean')
   );
 }
 

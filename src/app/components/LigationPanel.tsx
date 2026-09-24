@@ -12,11 +12,13 @@ function JunctionRow({
   from,
   to,
   compatible,
+  dephosphorylated,
   closing,
 }: {
   readonly from: FragmentEnd;
   readonly to: FragmentEnd;
   readonly compatible: boolean;
+  readonly dephosphorylated: boolean;
   readonly closing: boolean;
 }) {
   return (
@@ -30,7 +32,11 @@ function JunctionRow({
       <span className="junction__text">
         {closing ? 'closes: ' : ''}
         {describeEnd(from)} ↔ {describeEnd(to)}
-        {compatible ? '' : ' — ends do not match'}
+        {compatible
+          ? ''
+          : dephosphorylated
+            ? ' — both sides dephosphorylated, so neither strand joins'
+            : ' — ends do not match'}
       </span>
     </li>
   );
@@ -152,7 +158,7 @@ export function LigationPanel() {
             title={
               canAssemble
                 ? 'Ligate the fragments into a new document'
-                : 'Every join must have matching ends'
+                : 'Every join must have matching ends, and a phosphate on at least one side'
             }
             onClick={assemble}
           >

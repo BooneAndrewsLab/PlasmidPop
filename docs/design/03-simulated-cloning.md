@@ -141,3 +141,26 @@ overhangs would misligate.
     Ligation's own list; a shared one may hold parts for the next reaction,
     and a vector cut once is often ligated to one insert after another.
     **Clear shelf** is one click.
+- **Partial digests and dephosphorylation, 2026-09-23** (#10).
+  - `partialDigest` lists every stretch between two stops, each with the
+    number of sites inside it left `uncut`, so a complete digest is the
+    subset with none and the panel lists both kinds the same way. It is a
+    toggle rather than always on because it grows with the square of the
+    cuts: 35 sites on pBR322 give 1,225 pieces, and cutting all of them out
+    took 180 ms. So `partialDigest` takes a `limit` (200 in the panel) and
+    cuts out only the pieces that miss the fewest sites — what a tube mostly
+    holds — in 10–20 ms for that extreme case and about 1 ms for three
+    sites (`docs/perf-notes.md`). The panel draws only the piece under the
+    pointer, since pieces of a partial digest overlap by design and a ring
+    of all of them is a smear.
+  - Dephosphorylation is a property of the fragment
+    (`DigestFragment.dephosphorylated`), not of an end: a phosphatase treats
+    the whole molecule. A junction needs a 5′ phosphate on at least one side
+    (the other strand's nick is sealed in the cell), so `Junction` gained
+    `dephosphorylated` to tell "both bare" from "ends do not match", which are
+    different things to do something about. It is set on a shelf part, where
+    it is used, and a part opened as a document loses it: documents do not
+    model phosphates, and a GenBank file has nowhere to keep them.
+  - Not modelled: a PCR product's missing phosphates (standard oligos have
+    none, so a blunt PCR product will not go into a dephosphorylated vector
+    on the bench); it is shelved as phosphorylated.

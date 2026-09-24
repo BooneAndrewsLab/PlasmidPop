@@ -89,7 +89,19 @@ export interface Junction {
   readonly from: FragmentEnd;
   /** Left end of the fragment after it. */
   readonly to: FragmentEnd;
+  /** Whether a ligase can make this join: matching ends, and a 5′ phosphate on at least one side. */
   readonly compatible: boolean;
+  /**
+   * The ends match but both sides are dephosphorylated, so neither strand
+   * can be joined (#10). Only meaningful when `compatible` is false.
+   */
+  readonly dephosphorylated: boolean;
+}
+
+function junction(a: DigestFragment, b: DigestFragment): Junction {
+  const match = endsCompatible(a.right, b.left);
+  const bare = a.dephosphorylated === true && b.dephosphorylated === true;
+  return { from: a.right, to: b.left, compatible: match && !bare, dephosphorylated: match && bare };
 }
 
 /**
@@ -107,16 +119,12 @@ export function assemblyJunctions(
     const a = fragments[i - 1];
     const b = fragments[i];
     if (a === undefined || b === undefined) continue;
-    out.push({ from: a.right, to: b.left, compatible: endsCompatible(a.right, b.left) });
+    out.push(junction(a, b));
   }
   const last = fragments[fragments.length - 1];
   const first = fragments[0];
   if (circular && last !== undefined && first !== undefined) {
-    out.push({
-      from: last.right,
-      to: first.left,
-      compatible: endsCompatible(last.right, first.left),
-    });
+    out.push(junction(last, first));
   }
   return out;
 }
@@ -137,6 +145,9 @@ export interface LigateOptions {
 export function ligate(fragments: readonly DigestFragment[], options: LigateOptions): SeqDocument {
   if (fragments.length === 0) throw new Error('Nothing to ligate');
   for (const j of assemblyJunctions(fragments, options.circular)) {
+    if (j.dephosphorylated) {
+      throw new Error(`Both ends are dephosphorylated: ${describeEnd(j.from)} cannot be joined`);
+    }
     if (!j.compatible) {
       throw new Error(
         `Incompatible ends: ${j.from.kind} ${j.from.overhang} and ${j.to.kind} ${j.to.overhang}`,

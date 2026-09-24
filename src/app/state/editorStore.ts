@@ -1431,6 +1431,15 @@ export class EditorStore {
     });
   }
 
+  /** Treats a part with phosphatase, or takes the treatment back (#10). */
+  setShelfPartDephosphorylated(id: string, dephosphorylated: boolean): void {
+    this.setShared({
+      shelf: this.state.shelf.map((p) =>
+        p.id === id ? { ...p, fragment: { ...p.fragment, dephosphorylated } } : p,
+      ),
+    });
+  }
+
   /** Moves a part up (-1) or down (+1) on the shelf, which is Ligation's order of joining. */
   moveShelfPart(id: string, delta: -1 | 1): void {
     const parts = [...this.state.shelf];

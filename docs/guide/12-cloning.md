@@ -32,6 +32,16 @@ first, each with:
 An uncut linear molecule is one fragment with the ends the molecule already
 has; an uncut circular molecule gives nothing to work with.
 
+**Partial digest** lists every piece a digest that misses some of the sites
+can give, not only the complete digest's: each stretch from one cut to any
+later one, with the sites between left uncut, and on a circle the whole
+molecule opened at each single site. It is how an insert is cut out when the
+enzyme also cuts inside it. Each piece says how many sites it leaves uncut
+(none for a complete digest's). The count grows fast — two sites give 4
+pieces on a circle, 35 give over a thousand — so beyond 200 the list keeps
+the pieces that miss the fewest sites, which are what a partial digest mostly
+gives, and only the piece under the pointer is drawn on the views.
+
 Every fragment is also drawn on the map and in the sequence view while the
 tab is open, in the dashed preview colour (see
 [Previews](03-viewing.md#previews)), with a tick where each cut falls.
@@ -168,9 +178,9 @@ documents. It is shared by every open tab and kept in the browser, so it
 survives closing every tab and reloading the page: fragments you collected
 on Friday are still there on Monday.
 
-Each part shows its name, length and ends. **⇄** flips a fragment (reverse
-complement, ends swapped), **↑ ↓** reorder, **✕** removes, and **Clear
-shelf** empties it. The order and the flips are what Ligation joins by; Golden
+Each part shows its name, length and ends. **−P** dephosphorylates it (see
+below), **⇄** flips a fragment (reverse complement, ends swapped), **↑ ↓**
+reorder, **✕** removes, and **Clear shelf** empties it. The order and the flips are what Ligation joins by; Golden
 Gate and Gibson work out their own order and ignore them. A reaction leaves
 the shelf as it is, so a vector cut once can take one insert after another.
 
@@ -200,6 +210,15 @@ like any other document; download it to get a file.
 Ends are compatible when both are blunt, or when they have the same kind of
 overhang with complementary bases. A PstI end will not join an EcoRI end,
 and a BamHI end will join a BglII end (both leave `GATC`).
+
+**Dephosphorylation.** A ligase joins a strand only to a 5′ phosphate, which
+a restriction enzyme leaves on every end. Treating a vector with a phosphatase
+(CIP, rSAP) — **−P** on its shelf row — takes those phosphates away, so the
+vector can no longer close on itself: its closing junction says **both sides
+dephosphorylated** and Assemble stays off. An insert with its phosphates
+still joins it, one strand at each junction, as on the bench. Two
+dephosphorylated parts do not join each other at all. The treatment belongs
+to the shelf part; a part you **Open** as a document does not carry it.
 
 ## Golden Gate
 
@@ -289,8 +308,9 @@ A-tailing, primer dimers and how much more readily a short product
 amplifies than a long one are not modelled beyond the order the products are
 listed in.
 
-Partial digests, dephosphorylation, and ambiguity codes in overhangs (an
-`N` never pairs). Gibson does not check for homology _inside_ a part that
+Ambiguity codes in overhangs (an `N` never pairs). A PCR product's ends are
+taken to carry phosphates, though primers are made without them unless
+ordered phosphorylated. Gibson does not check for homology _inside_ a part that
 could anneal as readily as the junction it was designed for, and models
 neither the length of the chew-back nor the polymerase's fill-in, so a very
 long part with a very short overlap may fail on the bench while looking right

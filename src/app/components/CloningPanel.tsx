@@ -4,10 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   type DigestFragment,
   type FragmentEnd,
+  type PartialFragment,
   type SeqDocument,
   describeEnd,
   digest,
   documentFromFragment,
+  partialDigest,
+  partialDigestSize,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
@@ -46,6 +49,12 @@ function EndTag({ end, side }: { readonly end: FragmentEnd; readonly side: 'left
   );
 }
 
+/** A listed fragment onto the shelf, without the partial digest's count, which is the list's. */
+function shelve(fragment: PartialFragment): void {
+  const { uncut: _uncut, ...piece } = fragment;
+  editorStore.addToShelf(piece);
+}
+
 function FragmentRow({
   fragment,
   seqLength,
@@ -53,13 +62,15 @@ function FragmentRow({
   onOpen,
   onHover,
 }: {
-  readonly fragment: DigestFragment;
+  /** `uncut` is the sites inside it a partial digest left uncut; 0 for a complete one. */
+  readonly fragment: PartialFragment;
   readonly seqLength: number;
   readonly onSelect: () => void;
   readonly onOpen: () => void;
   /** Called with this row's id while the pointer is on it, null when it leaves. */
   readonly onHover: (hovered: boolean) => void;
 }) {
+  const { uncut } = fragment;
   const names = [...new Set(fragment.features.map((f) => (f.name === '' ? f.type : f.name)))];
   return (
     <li
@@ -86,13 +97,16 @@ function FragmentRow({
         >
           {fragment.sequence.length.toLocaleString()} bp
         </button>
-        <span className="fragment__range">{describeRange(fragment, seqLength)}</span>
+        <span className="fragment__range">
+          {describeRange(fragment, seqLength)}
+          {uncut > 0 ? ` · ${uncut} ${uncut === 1 ? 'site' : 'sites'} uncut` : ''}
+        </span>
         <button
           type="button"
           className="button button--quiet button--small fragment__add"
           title="Put this fragment on the shelf below, for any of the reactions"
           onClick={() => {
-            editorStore.addToShelf(fragment);
+            shelve(fragment);
           }}
         >
           Add
@@ -121,6 +135,13 @@ function FragmentRow({
   );
 }
 
+/**
+ * The most pieces of a partial digest listed at once. A plasmid with every
+ * single cutter ticked gives over a thousand; the ones that miss the fewest
+ * sites are what the tube mostly holds, and the ones anyone would pick from.
+ */
+const MAX_LISTED = 200;
+
 /** A digest fragment's id within one digest: its place on the molecule. */
 function fragmentId(f: DigestFragment): string {
   return `${f.range.start}-${f.range.end}`;
@@ -137,8 +158,13 @@ function fragmentId(f: DigestFragment): string {
 function digestPreview(
   fragments: readonly DigestFragment[],
   hovered: string | null,
+  partial: boolean,
 ): OverlaySpan[] {
-  return fragments.map((f) => {
+  // A partial digest's pieces overlap one another by design, and there are
+  // hundreds of them; drawn together they are one smear. So only the one
+  // under the pointer is drawn.
+  const drawn = partial ? fragments.filter((f) => fragmentId(f) === hovered) : fragments;
+  return drawn.map((f) => {
     const id = fragmentId(f);
     const lit = id === hovered;
     return {
@@ -166,6 +192,7 @@ export function CloningPanel({ doc }: Props) {
     previewActivated: activated,
   } = useEditorState();
   const [hovered, setHovered] = useState<string | null>(null);
+  const [partial, setPartial] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
 
   const cutSites = useMemo(
@@ -176,18 +203,32 @@ export function CloningPanel({ doc }: Props) {
     () => [...new Set(cutSites.map((s) => s.enzyme))].sort((a, b) => a.localeCompare(b)),
     [cutSites],
   );
-  const fragments = useMemo(
+  // A complete digest's fragments are a partial one's with nothing uncut, so
+  // both are listed as partial fragments. A partial digest cuts out only the
+  // pieces it lists: all 1,225 of pBR322's single cutters took 180 ms,
+  // which is too long for a memo that runs on every edit (docs/perf-notes.md).
+  const listed = useMemo(
     () =>
-      ready ? digest(doc, cutSites).sort((a, b) => b.sequence.length - a.sequence.length) : [],
-    [doc, cutSites, ready],
+      !ready
+        ? []
+        : partial
+          ? partialDigest(doc, cutSites, MAX_LISTED)
+          : digest(doc, cutSites)
+              .map((f) => ({ ...f, uncut: 0 }))
+              .sort((a, b) => b.sequence.length - a.sequence.length),
+    [doc, cutSites, ready, partial],
+  );
+  const total = useMemo(
+    () => (!ready ? 0 : partial ? partialDigestSize(doc, cutSites) : listed.length),
+    [doc, cutSites, ready, partial, listed],
   );
 
   // There is one preview channel, so the digest gives it up while the PCR
   // panel is open: that panel has primer sites and products to point at, and
   // they are what is being worked on. The fragment rows still select.
   const previewed = useMemo(
-    () => (cloningReaction === 'pcr' ? [] : digestPreview(fragments, hovered)),
-    [fragments, hovered, cloningReaction],
+    () => (cloningReaction === 'pcr' ? [] : digestPreview(listed, hovered, partial)),
+    [listed, hovered, cloningReaction, partial],
   );
   useEffect(() => {
     editorStore.setPreview('cloning', previewed);
@@ -204,9 +245,9 @@ export function CloningPanel({ doc }: Props) {
     if (activated?.owner !== 'cloning') return;
     if (activated.nonce === handledClick.current) return;
     handledClick.current = activated.nonce;
-    const fragment = fragments.find((f) => fragmentId(f) === activated.id);
-    if (fragment !== undefined) editorStore.addToShelf(fragment);
-  }, [activated, fragments]);
+    const fragment = listed.find((f) => fragmentId(f) === activated.id);
+    if (fragment !== undefined) shelve(fragment);
+  }, [activated, listed]);
   // Leaving the tab takes the fragments off the views with it.
   useEffect(
     () => () => {
@@ -244,18 +285,38 @@ export function CloningPanel({ doc }: Props) {
         </p>
       ) : (
         <p className="panel__note">
-          {fragments.length === 1 ? '1 fragment' : `${fragments.length} fragments`}, largest first.
-          Add the ones to join to the shelf below.
+          {total === 1 ? '1 fragment' : `${total.toLocaleString()} fragments`}
+          {partial ? ' a partial digest can give' : ''}, largest first
+          {total > listed.length
+            ? ` (the ${listed.length.toLocaleString()} that miss the fewest sites shown)`
+            : ''}
+          . Add the ones to join to the shelf below.
         </p>
+      )}
+      {ready && enzymesUsed.length > 0 && (
+        <label
+          className="toggle"
+          title="List every piece a digest that misses some of the sites can give, not only the complete digest's"
+        >
+          <input
+            type="checkbox"
+            checked={partial}
+            onChange={(e) => {
+              setPartial(e.target.checked);
+              setHovered(null);
+            }}
+          />
+          Partial digest
+        </label>
       )}
       {!showCutSites && enzymesUsed.length > 0 && (
         <p className="panel__note">
           Cut sites are hidden in the views; this digest follows the ticks, not that toggle.
         </p>
       )}
-      {fragments.length > 0 && (
+      {listed.length > 0 && (
         <ul className="fragment-list">
-          {fragments.map((f) => (
+          {listed.map((f) => (
             <FragmentRow
               key={fragmentId(f)}
               fragment={f}

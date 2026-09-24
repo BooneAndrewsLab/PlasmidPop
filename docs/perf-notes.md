@@ -403,3 +403,23 @@ WASM would be the obvious next step and is not worth it: 0.9 ms is a fifteenth
 of a frame on a plasmid, and the 200 kb case is past the scale of anything
 this app targets (>10 Mb is a non-goal; 200 kb is already ten pBR322s of
 BAC).
+
+## Partial digest (#10, 2026-09-23)
+
+`partialDigest` on pBR322 (J01749) with its 35 single cutters, in Vitest on
+Node 24, warm:
+
+| pieces cut out                               | time       |
+| -------------------------------------------- | ---------- |
+| all 1,225                                    | 175–245 ms |
+| longest 300                                  | 47–107 ms  |
+| 200 that miss the fewest sites (the panel's) | 10–20 ms   |
+| three sites of one enzyme, all 9             | 1.2 ms     |
+
+Almost all of it is `fragmentFromRange` building each piece's document
+(bases, features, interval tree); listing the stretches and sorting them is
+nothing. The pieces that miss the fewest sites are also the shortest, which
+is why keeping those is faster than keeping the longest as well as closer to
+what the tube holds. It runs in the Cloning tab's main-thread memo only while
+**Partial digest** is ticked; the realistic case — one enzyme, a few sites —
+is a millisecond.
