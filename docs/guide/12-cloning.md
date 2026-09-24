@@ -7,7 +7,7 @@ picker chooses one reaction to build something with: **PCR**, which
 amplifies a stretch of this document with two primers, **Mutate**, which
 designs the primers for a point mutation, insertion or deletion,
 **Ligation**, which joins shelf fragments by their overhangs, **Golden
-Gate**, and **Gibson**. They are alternatives, so one is shown at a time and the choice
+Gate**, **Gibson**, and **Gateway**. They are alternatives, so one is shown at a time and the choice
 is remembered. Whichever you use, the product opens as a new document with
 the features of its parts.
 
@@ -390,6 +390,53 @@ says which and assembles nothing. Homology that is unique to each junction is
 what makes a Gibson design work, and a set that is ambiguous on paper is
 worth seeing before it is ambiguous in the tube.
 
+## Gateway
+
+Gateway is recombination, not cutting and joining: an integrase pairs two
+att sites that share a core and swaps the DNA on either side. Two sites on
+one plasmid and their partners on another therefore exchange the stretches
+between them, which is why every reaction makes two circles.
+
+- **BP**: an attB substrate × a donor vector (attP) → an **entry clone**
+  (attL) and a byproduct (attR).
+- **LR**: an entry clone (attL) × a destination vector (attR) → an
+  **expression clone** (attB) and a byproduct (attP).
+
+**The att sites are read from the annotation the files carry.** A real
+donor, entry or destination vector labels them (`attP1`, `attR2`, `attL5`,
+`attP2r`), and so does a PCR product once its attB tails are annotated.
+Nothing is bundled and nothing is guessed from the sequence: if a plasmid
+does not label its sites, the panel says so, and you can annotate them
+yourself (see [Features](05-features.md)).
+
+1. Open both plasmids, each in its own tab.
+2. Choose **Gateway**, then **BP** or **LR**. Each picker lists every open
+   tab with the att sites it annotates.
+3. The panel recombines them and describes the clone. **Open clone** opens
+   it; **Open byproduct** opens the other circle.
+
+The numbers are what pair: `attL1` recombines only with `attR1`, never with
+`attR2`, and the panel says so rather than guessing when they do not match.
+The crossover point is found from the two plasmids themselves — partner
+sites share a core, so the longest stretch they have in common is it — and
+each recombinant site is half of each parent's, named for what it has
+become.
+
+It also tells you:
+
+- that the **ccdB** cassette leaves on the byproduct, so the clone that
+  grows in an ordinary strain is the one you want;
+- when a pair shares less than a full att core, which usually means a site
+  is annotated over only part of its length;
+- when a **tag in the backbone reads out of frame** into the insert across
+  an att site — the commonest Gateway mistake, and one the sequence can
+  answer.
+
+A linear attB substrate (a PCR product) gives a clone but no byproduct
+circle: its two flanks come away as loose ends and are lost.
+
+One pair of sites at a time, so a multisite LR is done a fragment at a time.
+
 ## Not yet
 
 How much more readily a short product amplifies than a long one is not
@@ -397,4 +444,6 @@ modelled beyond the order the products are listed in, and a mismatched
 primer's first-cycle temperature leaves out what the mismatched stretch
 still contributes. Gibson does not model the chew-back itself, only the
 length rules above, and Golden Gate's overhang warnings follow design rules
-rather than measured ligation fidelity.
+rather than measured ligation fidelity. Gateway reads att sites from a
+file's annotation rather than finding them by sequence, and runs one pair at
+a time, so a multisite LR takes several passes.

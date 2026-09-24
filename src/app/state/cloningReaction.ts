@@ -11,7 +11,8 @@
  * things here that are about the document in front of you rather than about
  * the tube of open tabs.
  */
-export type CloningReaction = 'pcr' | 'mutagenesis' | 'ligation' | 'golden-gate' | 'gibson';
+export type CloningReaction =
+  'pcr' | 'mutagenesis' | 'ligation' | 'golden-gate' | 'gibson' | 'gateway';
 
 export interface CloningReactionOption {
   readonly value: CloningReaction;
@@ -41,6 +42,11 @@ export const CLONING_REACTIONS: readonly CloningReactionOption[] = [
     title: 'One Type IIS enzyme, every part in one tube',
   },
   { value: 'gibson', label: 'Gibson', title: 'No enzyme: parts that end in each other' },
+  {
+    value: 'gateway',
+    label: 'Gateway',
+    title: 'BP and LR recombination between the att sites two plasmids annotate',
+  },
 ];
 
 export function isCloningReaction(v: unknown): v is CloningReaction {

@@ -17,6 +17,7 @@ import { type OverlaySpan } from '@/view/overlay';
 import { CLONING_REACTIONS } from '../state/cloningReaction';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { GatewayPanel } from './GatewayPanel';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
 import { LigationPanel } from './LigationPanel';
@@ -406,6 +407,16 @@ export function CloningPanel({ doc }: Props) {
             <span className="panel__heading-note">one pot, one enzyme</span>
           </h3>
           <GoldenGatePanel />
+        </div>
+      )}
+
+      {cloningReaction === 'gateway' && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            Gateway
+            <span className="panel__heading-note">att sites, no enzyme</span>
+          </h3>
+          <GatewayPanel />
         </div>
       )}
 
