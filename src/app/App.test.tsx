@@ -607,7 +607,7 @@ describe('toolbar', () => {
 });
 
 describe('document tabs', () => {
-  it('keeps several documents open in tabs, with the file list as the first tab', () => {
+  it('keeps several documents open in tabs, with the file list and the Bench as the first tabs', () => {
     act(() => {
       editorStore.setView('both'); // the sequence view must be on screen to type into
     });
@@ -616,14 +616,14 @@ describe('document tabs', () => {
     expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     const tabs = () => within(screen.getByRole('tablist', strip)).getAllByRole('tab');
-    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'SYNPBR322']);
-    expect(tabs()[1]).toHaveAttribute('aria-selected', 'true');
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench', 'SYNPBR322']);
+    expect(tabs()[2]).toHaveAttribute('aria-selected', 'true');
     // New opens a second tab and brings it to the front.
     fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
-    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'SYNPBR322', 'Untitled']);
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench', 'SYNPBR322', 'Untitled']);
     expect(editorStore.document?.name).toBe('Untitled');
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Sequence' }), { key: 'a' });
-    expect(tabs()[2]).toHaveTextContent('Untitled •');
+    expect(tabs()[3]).toHaveTextContent('Untitled •');
     // Back to the first; its own view state comes with it.
     fireEvent.click(screen.getByRole('tab', { name: /^SYNPBR322/ }));
     expect(editorStore.document?.name).toBe('SYNPBR322');
@@ -632,11 +632,11 @@ describe('document tabs', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
     expect(editorStore.document).toBeNull();
     expect(screen.getByText(/Drop a GenBank, FASTA or SnapGene file/)).toBeInTheDocument();
-    expect(tabs()).toHaveLength(3);
+    expect(tabs()).toHaveLength(4);
     expect(tabs()[0]).toHaveAttribute('aria-selected', 'true');
     // Closing a tab keeps the rest.
     fireEvent.click(screen.getByRole('button', { name: 'Close Untitled' }));
-    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'SYNPBR322']);
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench', 'SYNPBR322']);
     fireEvent.click(screen.getByRole('button', { name: 'Close SYNPBR322' }));
     expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
   });
@@ -649,7 +649,40 @@ describe('document tabs', () => {
     expect(editorStore.document?.name).toBe('SYNPBR322');
     expect(
       within(screen.getByRole('tablist', { name: 'Open documents' })).getAllByRole('tab'),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
+  });
+
+  it('opens the Bench as a tab of its own, counting the parts on the shelf', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const bench = () => screen.getByRole('tab', { name: /^Bench/ });
+    expect(bench()).toHaveTextContent(/^Bench$/);
+    act(() => {
+      editorStore.addToShelf({
+        sequence: 'ACGT',
+        features: [],
+        range: { start: 0, end: 4 },
+        left: { kind: 'blunt', overhang: '', enzyme: null },
+        right: { kind: 'blunt', overhang: '', enzyme: null },
+        source: 'SYNPBR322',
+      });
+    });
+    expect(bench()).toHaveAccessibleName('Bench, 1 part on the shelf');
+    fireEvent.click(bench());
+    expect(editorStore.getState().front).toBe('bench');
+    expect(editorStore.document).toBeNull();
+    expect(bench()).toHaveAttribute('aria-selected', 'true');
+    expect(
+      within(screen.getByRole('region', { name: 'Parts' })).getByRole('list', { name: 'Shelf' }),
+    ).toBeInTheDocument();
+    // The documents stay open behind it, and the shelf keeps the strip up
+    // once the last of them is closed, so the Bench can still be reached.
+    fireEvent.click(screen.getByRole('button', { name: 'Close SYNPBR322' }));
+    expect(bench()).toHaveAttribute('aria-selected', 'true');
+    act(() => {
+      editorStore.clearShelf();
+    });
+    expect(screen.queryByRole('tablist', { name: 'Open documents' })).not.toBeInTheDocument();
   });
 });
 

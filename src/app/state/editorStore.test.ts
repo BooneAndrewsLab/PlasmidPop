@@ -576,6 +576,32 @@ describe('EditorStore tabs', () => {
     expect(ids(store)).toEqual([]);
   });
 
+  it('shows the Bench in front of the documents, which stay open behind it', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    expect(store.getState().front).toBe('document');
+    store.showBench();
+    expect(store.getState()).toMatchObject({ front: 'bench', documentId: null, history: null });
+    expect(ids(store)).toEqual([a]);
+    store.setSelection({ start: 0, end: 1 }); // no document in front: ignored
+    store.closeDocument(); // nor is there one to close
+    expect(ids(store)).toEqual([a]);
+    store.showFiles();
+    expect(store.getState().front).toBe('files');
+    store.showBench();
+    store.activateDocument(a);
+    expect(store.getState()).toMatchObject({ front: 'document', documentId: a });
+    // Opening a document brings it in front of the Bench too.
+    store.showBench();
+    const b = store.openDocument(other, 'b.gb');
+    expect(store.getState()).toMatchObject({ front: 'document', documentId: b });
+    // Closing a tab behind the Bench leaves the Bench in front.
+    store.showBench();
+    store.closeDocument(a);
+    store.closeAllDocuments();
+    expect(store.getState()).toMatchObject({ front: 'bench', documents: [] });
+  });
+
   it('closing the front tab brings the right-hand neighbour forward, else the left, else the list', () => {
     const store = new EditorStore();
     const a = store.openDocument(doc, 'a.gb');

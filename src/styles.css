@@ -332,8 +332,44 @@ button {
   min-height: 0;
 }
 
-.app__main--empty {
+.app__main--empty,
+.app__main--bench {
   grid-template-columns: 1fr;
+}
+
+/* The Cloning Bench (item 49): parts, reaction, product, side by side. */
+.bench {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr) minmax(280px, 1.2fr);
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface);
+}
+
+.bench__column {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.bench__column + .bench__column {
+  border-left: 1px solid var(--line);
+}
+
+@media (max-width: 1000px) {
+  .bench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bench__column {
+    overflow-y: visible;
+  }
+
+  .bench__column + .bench__column {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
 }
 
 @media (max-width: 720px) {
@@ -1685,6 +1721,21 @@ button {
 
 .doctabs__dirty {
   color: var(--accent);
+}
+
+/* The Bench tab's count of parts on the shelf. */
+.doctabs__count {
+  display: inline-block;
+  min-width: 1.5em;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
 }
 
 .doctabs__close {

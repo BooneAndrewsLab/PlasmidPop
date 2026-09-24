@@ -1,5 +1,6 @@
 import { type DragEvent, useState } from 'react';
 
+import { Bench } from './components/Bench';
 import { CircularMapView } from './components/CircularMapView';
 import { DocumentTabs } from './components/DocumentTabs';
 import { EditBar } from './components/EditBar';
@@ -46,7 +47,7 @@ import {
 } from './state/usePersistence';
 
 export function App() {
-  const { history, view, findOpen, documentId, layout, sidebarOpen } = useEditorState();
+  const { history, view, findOpen, documentId, layout, sidebarOpen, front } = useEditorState();
   const doc = history?.present ?? null;
   useAnalysis();
   useAutosave();
@@ -94,7 +95,11 @@ export function App() {
     >
       <Toolbar doc={doc} />
       <DocumentTabs />
-      {doc === null ? (
+      {front === 'bench' && !phone ? (
+        <main className="app__main app__main--bench">
+          <Bench />
+        </main>
+      ) : doc === null ? (
         <main className="app__main app__main--empty">
           <EmptyState />
         </main>

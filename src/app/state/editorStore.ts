@@ -469,7 +469,15 @@ type ActiveDocumentFields = {
     : DocumentState[K] | null;
 };
 
+/**
+ * What the tab strip has in front: a document, the file list, or the Cloning
+ * Bench (item 49), which works across documents and so is none of them.
+ */
+export type FrontTab = 'document' | 'files' | 'bench';
+
 export interface EditorState extends SharedState, ActiveDocumentFields {
+  /** What is in front; the document fields are empty unless it is a document. */
+  readonly front: FrontTab;
   /** The open documents, in tab order. */
   readonly documents: readonly DocumentState[];
   /** Whether the document in front differs from what is on disk. */
@@ -587,11 +595,13 @@ function compose(
   shared: SharedState,
   documents: readonly DocumentState[],
   activeId: string | null,
+  bench: boolean,
 ): EditorState {
   const active = documents.find((d) => d.documentId === activeId) ?? null;
   return {
     ...shared,
     ...(active ?? NO_DOCUMENT),
+    front: active !== null ? 'document' : bench ? 'bench' : 'files',
     // A preview belongs to the tab it was computed for; behind another one
     // it is simply not there, and it comes back on the way back.
     preview: shared.preview?.documentId === activeId ? shared.preview : null,
@@ -612,9 +622,11 @@ type Listener = () => void;
 export class EditorStore {
   private shared: SharedState = SHARED_INITIAL;
   private docs: readonly DocumentState[] = [];
-  /** The tab in front, or null while the file list is shown. */
+  /** The document in front, or null while the file list or the Bench is shown. */
   private activeId: string | null = null;
-  private state: EditorState = compose(this.shared, this.docs, this.activeId);
+  /** Whether the Bench is in front; only while `activeId` is null. */
+  private bench = false;
+  private state: EditorState = compose(this.shared, this.docs, this.activeId, this.bench);
   private readonly listeners = new Set<Listener>();
   /** Pending auto-dismiss of a timed error, see `fail`. */
   private errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -639,7 +651,7 @@ export class EditorStore {
   }
 
   private commit(): void {
-    this.state = compose(this.shared, this.docs, this.activeId);
+    this.state = compose(this.shared, this.docs, this.activeId, this.bench);
     for (const l of this.listeners) l();
   }
 
@@ -759,6 +771,7 @@ export class EditorStore {
         ? this.docs.map((d) => (d === active ? entry : d))
         : [...this.docs, entry];
     this.activeId = entry.documentId;
+    this.bench = false;
     this.commit();
     return entry.documentId;
   }
@@ -809,8 +822,10 @@ export class EditorStore {
 
   /** Brings an open document to the front; null shows the file list with the tabs kept. */
   activateDocument(id: string | null): void {
-    if (id === this.activeId || (id !== null && this.documentState(id) === null)) return;
+    if (id === this.activeId && !this.bench) return;
+    if (id !== null && this.documentState(id) === null) return;
     this.activeId = id;
+    this.bench = false;
     // A comparison is against the document it was asked for, so it goes when
     // that document does. (The dialog is modal, so this is the path where a
     // tab is closed or opened from outside it.)
@@ -821,6 +836,15 @@ export class EditorStore {
   /** Shows the file list. The open documents stay in their tabs. */
   showFiles(): void {
     this.activateDocument(null);
+  }
+
+  /** Shows the Cloning Bench. The open documents stay in their tabs. */
+  showBench(): void {
+    if (this.bench) return;
+    this.activeId = null;
+    this.bench = true;
+    this.shared = { ...this.shared, comparison: null };
+    this.commit();
   }
 
   /**

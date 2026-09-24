@@ -1,25 +1,29 @@
 import { type DocumentState, editorStore, isDirty } from '../state/editorStore';
+import { PHONE_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
+import { useMediaQuery } from './useMediaQuery';
 
 /**
  * One tab per open document under the toolbar, with the file list as a
- * fixed first tab, so several constructs can be open at once and a piece
- * cut from one can be carried to another. Nothing is shown until a document
- * is open. Closing a tab keeps the document in local storage, like Show
- * files always has.
+ * fixed first tab and the Cloning Bench as a fixed second one, so several
+ * constructs can be open at once and a piece cut from one can be carried to
+ * another. Nothing is shown until a document is open or the shelf holds a
+ * part. Closing a tab keeps the document in local storage, like Show files
+ * always has. The phone reader has no Bench (item 49).
  */
 export function DocumentTabs() {
-  const { documents, documentId } = useEditorState();
-  if (documents.length === 0) return null;
+  const { documents, documentId, front, shelf } = useEditorState();
+  const phone = useMediaQuery(PHONE_QUERY);
+  if (documents.length === 0 && (phone || shelf.length === 0)) return null;
   return (
     <nav className="doctabs">
       <div className="doctabs__list" role="tablist" aria-label="Open documents">
-        <div className={tabClass(documentId === null)}>
+        <div className={tabClass(front === 'files')}>
           <button
             type="button"
             role="tab"
             className="doctabs__name"
-            aria-selected={documentId === null}
+            aria-selected={front === 'files'}
             title="The files stored in this browser"
             onClick={() => {
               editorStore.showFiles();
@@ -28,6 +32,30 @@ export function DocumentTabs() {
             Files
           </button>
         </div>
+        {!phone && (
+          <div className={tabClass(front === 'bench')}>
+            <button
+              type="button"
+              role="tab"
+              className="doctabs__name"
+              aria-selected={front === 'bench'}
+              title="The Cloning Bench: the shelf, and reactions that join parts from any tab"
+              onClick={() => {
+                editorStore.showBench();
+              }}
+            >
+              Bench
+              {shelf.length > 0 && (
+                <span
+                  className="doctabs__count"
+                  aria-label={`, ${String(shelf.length)} ${shelf.length === 1 ? 'part' : 'parts'} on the shelf`}
+                >
+                  {shelf.length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
         {documents.map((d) => (
           <DocumentTab key={d.documentId} state={d} active={d.documentId === documentId} />
         ))}
