@@ -91,7 +91,18 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-24)
 
-**1.4.0** (2026-09-24) is the current release: the cloning bench (items 3,
+**1.5.0** (2026-09-24) is the current release: workspace and map (items
+49, 50). The Cloning Bench, a fixed tab beside Files with the shelf (its own
+undo), the joining reactions and a column showing the product's map and a
+check digest, while Digest, PCR and Mutate stay in the sidebar; map labels
+spread about a crowd, with a second ring and 0 crossing leaders, clickable,
+and tiny features widened to be seen; a gene and CDS of one name drawn as
+one bar; previews per panel; tabs reordered by drag and coming back where
+left; splitters that collapse a pane; a rail with icons and arrow keys; many
+more Alt bindings; Format's bases per row, base colours and trace height;
+New asks for a name and topology. Stryker mutation testing now runs before
+each release (item 50): 77.8% at first, 94.0% after its survivors got tests.
+**1.4.0** (2026-09-24) was the cloning bench (items 3,
 36, 47, 48). The shelf belongs to the bench and takes PCR products; PCR from
 any tab, with Taq's A overhangs, dimers and two Tms; blunting; partial
 digests and dephosphorylation; Golden Gate with IUPAC overhangs, a second
@@ -114,8 +125,8 @@ limit (10 kb reads) with the strand picked first; a progress bar with
 Cancel. **1.2.0** (2026-09-23) was the first of the themed
 minor releases planned after 1.1. The GitHub milestones after it, reordered
 the same day on user feedback about Align: 1.2.1 Align fixes, 1.3
-sequencing reads and 1.4 cloning bench (all done), then 1.5 workspace and
-map with the Cloning Bench (#70), 1.6 compare, history and sharing. 1.2.0 has
+sequencing reads, 1.4 cloning bench and 1.5 workspace and map with the
+Cloning Bench (#70) (all done), then 1.6 compare, history and sharing. 1.2.0 has
 isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
 ladder, double-digest partners (items 39–42), Dam/Dcm marks (item 44), CDS
 translations re-checked as you edit (item 1), SnapGene primers fixed and
