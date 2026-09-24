@@ -2,6 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import {
+  type CutSite,
   type DigestProfile,
   type GelOptions,
   type SeqDocument,
@@ -13,10 +14,10 @@ import {
   findCutSites,
   getEnzyme,
 } from '@/core';
-import { exportMapSvg } from '@/view/svg';
 
 import { useGelOptions } from '../state/useGel';
 import { BenchProductSlot } from './benchProductSlot';
+import { DiffMap } from './DiffMap';
 import { Gel } from './Gel';
 
 /** Past this many cuts an enzyme's lane is a smear, not a check. */
@@ -25,7 +26,11 @@ const MAX_CHECK_CUTS = 6;
 interface CheckEnzyme {
   readonly name: string;
   readonly profile: DigestProfile;
+  /** Where it cuts, for the map to mark. */
+  readonly sites: readonly CutSite[];
 }
+
+const NO_SITES: readonly CutSite[] = [];
 
 /**
  * The enzymes worth checking the product with, best first: each one that
@@ -48,7 +53,11 @@ function checkEnzymes(product: SeqDocument, gel: GelOptions): CheckEnzyme[] {
   const out: CheckEnzyme[] = [];
   for (const [name, own] of byEnzyme) {
     if (own.length > MAX_CHECK_CUTS) continue;
-    out.push({ name, profile: enzymeProfile(own, product.length, product.topology, gel) });
+    out.push({
+      name,
+      profile: enzymeProfile(own, product.length, product.topology, gel),
+      sites: own,
+    });
   }
   return out.sort(
     (a, b) => compareDiagnostic(a.profile, b.profile, gel) || a.name.localeCompare(b.name),
@@ -58,12 +67,6 @@ function checkEnzymes(product: SeqDocument, gel: GelOptions): CheckEnzyme[] {
 /** The product's map, drawn as its SVG export draws it, and a digest to check it by. */
 function ProductView({ product }: { readonly product: SeqDocument }) {
   const gel = useGelOptions();
-  // A few milliseconds each (docs/perf-notes.md), and only when the product changes.
-  const map = useMemo(
-    () =>
-      `data:image/svg+xml;charset=utf-8,${encodeURIComponent(exportMapSvg(product, { size: 360 }))}`,
-    [product],
-  );
   const enzymes = useMemo(() => checkEnzymes(product, gel), [product, gel]);
   const [picked, setPicked] = useState('');
   const check = enzymes.find((e) => e.name === picked) ?? enzymes[0];
@@ -75,7 +78,16 @@ function ProductView({ product }: { readonly product: SeqDocument }) {
           {product.length.toLocaleString()} bp, {product.isCircular ? 'circular' : 'linear'}
         </span>
       </h3>
-      <img className="bench__map" src={map} alt={`Map of ${product.name}`} />
+      {/* The editor's own map renderer, read-only and in the app's colours,
+          with the check digest's cuts marked. */}
+      <div className="bench__map">
+        <DiffMap
+          doc={product}
+          cutSites={check?.sites ?? NO_SITES}
+          size={360}
+          label={`Map of ${product.name}`}
+        />
+      </div>
       <div className="panel__section">
         <h3 className="panel__heading">
           Check by digest

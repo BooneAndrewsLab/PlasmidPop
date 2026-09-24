@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+
+import * as monoFonts from '../monoFonts';
 
 import { editorStore } from '../state/editorStore';
 import { FormatMenu } from './FormatMenu';
@@ -36,15 +38,20 @@ describe('FormatMenu', () => {
     expect(other).toHaveValue(null);
   });
 
-  it('draws in a font the user names, cleaned to what a family name can hold', () => {
+  it('offers only the monospace fonts found on this computer', () => {
+    vi.spyOn(monoFonts, 'installedMonoFonts').mockReturnValue(['JetBrains Mono', 'Menlo']);
     open();
-    const font = screen.getByRole('textbox', { name: 'Sequence font' });
-    fireEvent.change(font, { target: { value: 'JetBrains Mono"; color: red' } });
-    fireEvent.keyDown(font, { key: 'Enter' });
-    expect(editorStore.getState().seqFontFamily).toBe('JetBrains Mono color red');
-    fireEvent.change(font, { target: { value: '  ' } });
-    fireEvent.blur(font);
+    const font = screen.getByRole('combobox', { name: 'Sequence font' });
+    expect(
+      within(font)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['System monospace', 'JetBrains Mono', 'Menlo']);
+    fireEvent.change(font, { target: { value: 'Menlo' } });
+    expect(editorStore.getState().seqFontFamily).toBe('Menlo');
+    fireEvent.change(font, { target: { value: '' } });
     expect(editorStore.getState().seqFontFamily).toBe('');
+    vi.restoreAllMocks();
   });
 
   it('lets the four base colours be chosen while bases are coloured, and put back', () => {

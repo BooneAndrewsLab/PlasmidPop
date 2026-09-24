@@ -56,8 +56,8 @@ function NewDocumentForm() {
           New sequence
         </h2>
         <div className="dialog__body new-document">
-          <label className="panel__field">
-            Name
+          <label className="panel__field new-document__name">
+            <span>Name</span>
             <input
               ref={nameRef}
               className="panel__search"

@@ -20,8 +20,13 @@ four `<input type="color">` swatches set A, C, G and T
 and the SVG export takes in place of its print palette; **Font** names a
 family (`seqFontFamily`), cleaned to letters, digits, spaces, hyphens and
 underscores so it can be quoted into the font string without escaping, and
-put ahead of the system monospace stack (`monoFontOf(size, family)`). The
-view measures a character of whatever it gets, so any monospace font lines
-up; a proportional one would not, which is why the box says monospace. The
+put ahead of the system monospace stack (`monoFontOf(size, family)`). It was
+a text box first, and changed the same day on review: nobody knows a font's
+name off the top of their head, and a proportional one leaves the columns
+ragged. So it is a list, of the candidates in `src/app/monoFonts.ts` found
+installed (text drawn in the font, with each generic family behind it, is
+not as wide as the generic alone) and monospaced (a run of `i` as wide as a
+run of `M`). The Local Font Access API would list every font, but behind a
+permission prompt that is not worth a list like this. The
 SVG export keeps Courier for the same reason it keeps its own size. All three
 are view preferences, checked field by field on the way back in.

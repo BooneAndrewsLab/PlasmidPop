@@ -49,7 +49,7 @@ describe('sequencing reads in the app', () => {
     expect(doc?.read?.trace?.peaks.length).toBe(240);
   });
 
-  it("offers the trace's height in the Format menu only while a read with one is in front", async () => {
+  it("lets the trace's height be set in the Format menu while a read with one is in front", async () => {
     render(<FormatMenu />);
     const open = (): void => {
       fireEvent.click(screen.getByRole('button', { name: 'Format' }));
@@ -58,7 +58,9 @@ describe('sequencing reads in the app', () => {
       editorStore.openDocument(read, 'r1.fastq'); // qualities, no trace
     });
     open();
-    expect(screen.queryByText('Trace')).toBeNull();
+    // Listed, so it can be found, but not to be set without a trace to see.
+    expect(screen.getByText('Trace')).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'Hidden' })).toBeDisabled();
     open();
     const bytes = new Uint8Array(readFileSync(join(fixtures, 'sanger.ab1')));
     await act(async () => {

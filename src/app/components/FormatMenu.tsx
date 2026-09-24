@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type FontSize, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
+import { installedMonoFonts } from '../monoFonts';
 import { type TraceSize, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useAltKey } from './useAltKey';
@@ -54,7 +55,6 @@ export function FormatMenu() {
   } = useEditorState();
   // Typed values are committed on Enter or on leaving the box, not per key.
   const [rowDraft, setRowDraft] = useState<string | null>(null);
-  const [fontDraft, setFontDraft] = useState<string | null>(null);
   const customRow = seqBasesPerRow !== null && !ROW_WIDTHS.includes(seqBasesPerRow);
   const commitRow = (): void => {
     if (rowDraft === null) return;
@@ -65,12 +65,7 @@ export function FormatMenu() {
     }
     setRowDraft(null);
   };
-  const commitFont = (): void => {
-    if (fontDraft === null) return;
-    analytics.trackOnce('view', 'format', 'font');
-    editorStore.setSeqFontFamily(fontDraft);
-    setFontDraft(null);
-  };
+
   // The colour pickers start from what is drawn: the user's own, or the theme's.
   const shownColors = (): Record<'a' | 'c' | 'g' | 't', string> => {
     if (baseColors !== null) return { ...baseColors };
@@ -86,8 +81,9 @@ export function FormatMenu() {
       t: v('--seq-base-t', '#c0392b'),
     };
   };
-  // The trace sizes are offered only while a read with a trace is in front.
+  // The trace sizes can be set only while a read with a trace is in front.
   const hasTrace = history?.present.read?.trace != null;
+  const fonts = useMemo(() => installedMonoFonts(), []);
   // Every item leaves the menu open: the point is to try a size or a row
   // width and see the view change behind it. Escape or a click outside closes.
   const { open, toggle, ref } = useMenu();
@@ -257,47 +253,50 @@ export function FormatMenu() {
           )}
           <label
             className="menu__item menu__item--field"
-            title="Any monospace font installed on this computer, by name; empty for the system's own"
+            title="The monospace fonts found on this computer; a proportional font would leave the columns ragged"
           >
             <span>Font</span>
-            <input
-              className="panel__search"
-              type="text"
+            <select
+              className="panel__select"
               aria-label="Sequence font"
-              placeholder="System monospace"
-              value={fontDraft ?? seqFontFamily}
+              value={fonts.includes(seqFontFamily) ? seqFontFamily : ''}
               onChange={(e) => {
-                setFontDraft(e.target.value);
+                analytics.trackOnce('view', 'format', 'font');
+                editorStore.setSeqFontFamily(e.target.value);
               }}
-              onBlur={commitFont}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commitFont();
-              }}
-            />
-          </label>
-          {hasTrace && (
-            <>
-              <div className="menu__separator" />
-              <p className="menu__group-label">Trace</p>
-              {TRACE_SIZES.map(([size, label, title]) => (
-                <button
-                  key={size}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={traceSize === size}
-                  className="menu__item"
-                  title={title}
-                  onClick={() => {
-                    analytics.trackOnce('view', 'format', 'trace');
-                    editorStore.setTraceSize(size);
-                  }}
-                >
-                  <span>{label}</span>
-                  <Tick on={traceSize === size} />
-                </button>
+            >
+              <option value="">System monospace</option>
+              {fonts.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
               ))}
-            </>
-          )}
+            </select>
+          </label>
+          <div className="menu__separator" />
+          <p className="menu__group-label">
+            Trace
+            {!hasTrace && <span className="menu__group-note"> · for AB1 reads</span>}
+          </p>
+          {TRACE_SIZES.map(([size, label, title]) => (
+            <button
+              key={size}
+              type="button"
+              role="menuitemradio"
+              aria-checked={traceSize === size}
+              className="menu__item"
+              // Always listed, so it can be found; set only with a trace to see.
+              disabled={!hasTrace}
+              title={hasTrace ? title : 'Only a read opened from an AB1 file has a trace'}
+              onClick={() => {
+                analytics.trackOnce('view', 'format', 'trace');
+                editorStore.setTraceSize(size);
+              }}
+            >
+              <span>{label}</span>
+              <Tick on={traceSize === size} />
+            </button>
+          ))}
           <div className="menu__separator" />
           <button
             type="button"

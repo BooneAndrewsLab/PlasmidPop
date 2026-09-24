@@ -364,14 +364,11 @@ button {
   max-height: none;
 }
 
-/* The product's map, drawn in print colours as its SVG export is. */
+/* The product's map, drawn as the editor's is, read-only. */
 .bench__map {
-  display: block;
-  width: 100%;
-  max-width: 360px;
-  margin: 8px auto;
-  border-radius: 6px;
-  background: #ffffff;
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
 }
 
 .bench__column + .bench__column {
@@ -2073,6 +2070,13 @@ button {
   cursor: pointer;
 }
 
+/* A quiet aside beside a menu group's heading. */
+.menu__group-note {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
 /* A menu row that holds a field: a number, a name, colour pickers (#29). */
 .menu__item--field {
   align-items: center;
@@ -2183,6 +2187,15 @@ button {
 .new-document {
   display: grid;
   gap: 12px;
+}
+
+/* The label keeps its word; the box takes the rest of the line. */
+.new-document__name {
+  display: flex;
+}
+
+.new-document__name > span {
+  flex: none;
 }
 
 .dialog__actions {

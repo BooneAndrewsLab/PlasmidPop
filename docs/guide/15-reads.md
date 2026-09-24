@@ -24,8 +24,7 @@ in this browser, like the rest of the document:
   trace shows on a phone too. **Format ▸ Trace** draws it **Short**, **Tall**
   (twice the height, for peaks close together) or **Hidden**, for a read
   whose features and translations already make tall rows; the choice is
-  remembered. The group appears in the menu while a read with a trace is in
-  front.
+  remembered. It can be set while a read with a trace is in front.
 - To check a read against a plasmid with its qualities, open the plasmid
   and drop the read on the Align tab's box: see
   [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities).

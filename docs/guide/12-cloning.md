@@ -218,7 +218,8 @@ anything, even with every document closed. It has three columns:
   typing — stays as it was while you look at a document, and across a
   reload;
 - **what it makes** on the right, once the parts go together: the product's
-  map, and **Check by digest**, a gel lane of the product cut with one
+  map, drawn as the editor draws one, with the check digest's cuts marked
+  on it, and **Check by digest**, a gel lane of the product cut with one
   enzyme. The enzyme list offers every enzyme that cuts the product between
   once and six times, the clearest lane first — the order the Enzymes tab's
   [band separation](07-enzymes.md) sort uses — and the product's own

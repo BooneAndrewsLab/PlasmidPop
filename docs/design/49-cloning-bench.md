@@ -65,7 +65,13 @@ split follows:
   `featureExtent`, now in `@/core`, which the map, Find and
   `selectFeature` had each written out), or all of a linear template.
 - **The product is drawn beside the reaction.** The third column shows the
-  product's map, as `exportMapSvg` draws it (25 ms for pBR322, and only
+  product's map — first as `exportMapSvg` drew it, an image in print colours;
+  on review the same day, with the editor's own canvas renderer instead
+  (`DiffMap`, the save review's read-only map, which takes cut sites and a
+  size now), in the app's theme and with the check digest's cuts marked. The
+  full interactive map was not the answer: the product is not a document, so
+  there is nothing to select or edit; hover and zoom there are #80. Before
+  that it was drawn with `exportMapSvg` (25 ms for pBR322, and only
   when the product changes), and a check digest: every enzyme that cuts
   the product 1–6 times, with its methylation allowed for, ranked by
   `compareDiagnostic` as the Enzymes tab's band-separation sort is, the

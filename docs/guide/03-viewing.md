@@ -174,10 +174,11 @@ effect at once and the menu stays open, so you can try one and look.
   on, the four swatches under it choose the colours, for the sequence view,
   a read's trace and the SVG export alike; **Reset** goes back to the
   theme's, which differ between light and dark.
-- **Font** takes the name of any monospace font installed on this computer
-  (`JetBrains Mono`, `Consolas`, `Menlo`…); leave it empty for the system's
-  own. A font that is not installed falls back to the system's. The SVG
-  export keeps its Courier, so a file looks the same wherever it is opened.
+- **Font** lists the monospace fonts found on this computer (Consolas,
+  Menlo, DejaVu Sans Mono and the like), with **System monospace** first.
+  Only monospace ones are offered, since the bases have to stand in even
+  columns. The SVG export keeps its Courier, so a file looks the same
+  wherever it is opened.
 - **Reset the layout** is not about the sequence view: it puts the panes back
   to the sizes they started at, see [Sizing the panes](#sizing-the-panes).
 
