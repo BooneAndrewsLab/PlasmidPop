@@ -423,3 +423,20 @@ is why keeping those is faster than keeping the longest as well as closer to
 what the tube holds. It runs in the Cloning tab's main-thread memo only while
 **Partial digest** is ticked; the realistic case — one enzyme, a few sites —
 is a millisecond.
+
+## Gibson warnings (#12, 2026-09-23)
+
+`gibson` on six parts with 25 bp overlaps, mean of 20 warm runs, Vitest on
+Node 24:
+
+| tube      | without warnings | with    |
+| --------- | ---------------- | ------- |
+| 6 × 2 kb  | 1.4 ms           | 2.7 ms  |
+| 6 × 10 kb | 2.7 ms           | 10.2 ms |
+
+The repeat search is one pass per strand of every part, looking up a rolling
+2-bit code of 15 bases in a map of the junction windows. Two earlier cuts
+were slower: a map of every k-mer in the tube (13 ms at 6 × 2 kb, the
+allocation of 24,000 substrings) and one `indexOf` per window per strand
+(6.5 ms). A `?? []` in the inner loop, a fresh array for every base, cost about 4 ms
+by itself.

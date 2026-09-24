@@ -14,6 +14,7 @@ import {
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { AssemblyWarnings } from './AssemblyWarnings';
 import { PartsTube } from './PartsTube';
 import { useTube } from './tube';
 
@@ -189,18 +190,7 @@ export function GoldenGatePanel() {
               />
             ))}
           </ol>
-          {assembly.warnings.length > 0 && (
-            <>
-              <p className="panel__note panel__note--warn">
-                The overhangs assemble, but the tube may also give something else:
-              </p>
-              <ul className="panel__warnings" aria-label="Overhang warnings">
-                {assembly.warnings.map((w) => (
-                  <li key={w.text}>{w.text}</li>
-                ))}
-              </ul>
-            </>
-          )}
+          <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
         </>
       ) : (
         <p className="panel__error">{result?.problem}</p>

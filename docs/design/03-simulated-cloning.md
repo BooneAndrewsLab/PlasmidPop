@@ -181,3 +181,14 @@ overhangs would misligate.
     ligase and the temperature (published ligation-fidelity tables), which
     the app does not have. A table like that would turn the warning into a
     measured misligation rate.
+- **Gibson II, 2026-09-23** (#12). `gibsonWarnings` on an assembly that
+  worked: each junction's homology looked for in the rest of the tube, both
+  strands, in windows of `minOverlap` bases; pieces under 200 bp; overlaps
+  under NEB's floor for the number of pieces (15 bp up to three, 20 bp from
+  four). The chew-back itself is not modelled: its rate depends on the mix
+  and the temperature, and the two length rules are what NEB gives users to
+  act on. The repeat search keys every junction window on a rolling 2-bit
+  code of its first 15 bases and makes one pass per strand; an index of
+  every k-mer in the tube cost 13 ms for six 2 kb parts and an `indexOf` per
+  window 6.5 ms, against 1.4 ms for the assembly without warnings and 2.7 ms
+  with (`docs/perf-notes.md`).

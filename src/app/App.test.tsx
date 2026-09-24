@@ -837,7 +837,7 @@ describe('golden gate', () => {
       target: { value: 'BsmBI' },
     });
     expect(screen.getByText(/2 parts join/)).toBeInTheDocument();
-    const warnings = screen.getByRole('list', { name: 'Overhang warnings' });
+    const warnings = screen.getByRole('list', { name: 'Assembly warnings' });
     expect(within(warnings).getByText(/AATG and AATC differ at one base/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Assemble by Golden Gate' })).toBeEnabled();
   });

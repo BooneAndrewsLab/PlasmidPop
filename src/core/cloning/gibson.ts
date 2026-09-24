@@ -2,6 +2,7 @@ import { BLUNT_END, type SeqDocument, fragmentFromRange } from '../document';
 import { meltingTemperature } from '../primers/thermo';
 import { type DigestFragment } from './digest';
 import { ligate } from './ligate';
+import { reverseComplement } from '../sequence';
 
 /**
  * Gibson assembly.
@@ -20,10 +21,10 @@ import { ligate } from './ligate';
  * the start of another, follows the chain, and refuses with a sentence
  * rather than guessing when two pieces could follow the same one.
  *
- * What it does not model: that the chew-back is a fixed number of bases, so
- * a very long piece with a very short overlap can fail on the bench for
- * reasons no sequence shows; and that a repeat elsewhere in a part can
- * anneal as readily as the junction it was designed for.
+ * What it checks beyond the order (`gibsonWarnings`, #12): homology that
+ * turns up elsewhere in the tube, pieces short enough to be chewed away, and
+ * overlaps short for the number of pieces. It does not model the chew-back
+ * itself, whose rate depends on the mix and the temperature.
  */
 
 /** Why a document cannot be a Gibson part. */
@@ -59,6 +60,17 @@ export interface GibsonAssembly {
   /** One per join, in order; the last closes the circle when circular. */
   readonly joins: readonly GibsonJoin[];
   readonly product: SeqDocument;
+  /**
+   * What could make the tube give something else, or nothing (#12): a
+   * junction's homology found elsewhere, a part the exonuclease may eat, an
+   * overlap short for the number of pieces. The product is still the design.
+   */
+  readonly warnings: readonly GibsonWarning[];
+}
+
+export interface GibsonWarning {
+  readonly kind: 'repeat' | 'short-part' | 'short-overlap';
+  readonly text: string;
 }
 
 export interface GibsonResult {
@@ -277,9 +289,185 @@ export function gibson(parts: readonly SeqDocument[], options: GibsonOptions = {
       order: order.map((p) => ({ document: p.document, flipped: p.flipped })),
       joins,
       product,
+      warnings: gibsonWarnings(order, joins, minOverlap),
     },
     problem: null,
   };
+}
+
+/**
+ * Below this a part may be chewed back from both ends before it anneals.
+ * NEB's guidance for its Gibson and NEBuilder HiFi mixes is to add pieces
+ * under 200 bp in a 5-fold molar excess.
+ */
+export const GIBSON_SHORT_PART = 200;
+
+/** Bases of a window that the repeat search keys on; 15 fit a 32-bit code. */
+const SEED = 15;
+
+/** 2-bit code per base by char code, -1 for anything else. */
+const BASE_CODE: readonly number[] = (() => {
+  const out: number[] = new Array<number>(128).fill(-1);
+  out['A'.charCodeAt(0)] = 0;
+  out['C'.charCodeAt(0)] = 1;
+  out['G'.charCodeAt(0)] = 2;
+  out['T'.charCodeAt(0)] = 3;
+  return out;
+})();
+
+/** The rolling code of the first `n` bases, or null if any is not ACGT. */
+function seedCode(text: string, n: number): number | null {
+  let code = 0;
+  for (let i = 0; i < n; i++) {
+    const bits = BASE_CODE[text.charCodeAt(i)] ?? -1;
+    if (bits < 0) return null;
+    code = (code << 2) | bits;
+  }
+  return code >>> 0;
+}
+
+/**
+ * The overlap NEB's NEBuilder HiFi guidance asks for by the number of
+ * pieces: 15–20 bp for two or three, 20–30 bp for four to six. The shorter
+ * end of each is the floor below which a junction is flagged.
+ */
+function recommendedOverlap(pieces: number): number {
+  return pieces <= 3 ? 15 : 20;
+}
+
+/**
+ * The risks in an assembly that did come together (#12).
+ *
+ * The exonuclease leaves each end as a long 3′ single strand, and what
+ * anneals is whatever pairs with it, not only the partner it was designed
+ * for. So each junction's homology is looked for everywhere else in the
+ * tube, on both strands, in windows as long as the shortest overlap the
+ * reaction accepts: a hit outside the junction itself is somewhere a
+ * chewed-back end could anneal instead. The two length rules are NEB's
+ * guidance rather than a model of the chew-back, whose rate depends on the
+ * mix and the temperature.
+ */
+function gibsonWarnings(
+  order: readonly Oriented[],
+  joins: readonly GibsonJoin[],
+  minOverlap: number,
+): GibsonWarning[] {
+  const out: GibsonWarning[] = [];
+  const k = minOverlap;
+  // Each part's two strands, upper case, searched in one pass each for
+  // every junction window at once: a rolling 2-bit code of the first
+  // `SEED` bases finds the candidates and `startsWith` confirms them. An
+  // index of every k-mer in the tube took 13 ms for six 2 kb parts, and an
+  // indexOf per window 6.5 ms, against the 1 ms of the assembly itself.
+  const strands = order.map((p) => {
+    const forward = p.sequence.toUpperCase();
+    return { forward, reverse: reverseComplement(forward) };
+  });
+  const windows = new Set<string>();
+  for (const join of joins) {
+    const overlap = join.overlap.toUpperCase();
+    for (let i = 0; i + k <= overlap.length; i++) windows.add(overlap.slice(i, i + k));
+  }
+  const seed = Math.min(k, SEED);
+  const bySeed = new Map<number, string[]>();
+  for (const w of windows) {
+    const code = seedCode(w, seed);
+    if (code === null) continue;
+    const list = bySeed.get(code);
+    if (list === undefined) bySeed.set(code, [w]);
+    else list.push(w);
+  }
+  /** Where each window occurs in the tube, both strands, forward coordinates. */
+  const found = new Map<string, { part: number; start: number; reverse: boolean }[]>();
+  const record = (w: string, hit: { part: number; start: number; reverse: boolean }): void => {
+    const list = found.get(w);
+    if (list === undefined) found.set(w, [hit]);
+    else list.push(hit);
+  };
+  const mask = (1 << (2 * seed)) - 1;
+  strands.forEach(({ forward, reverse }, part) => {
+    for (const [text, isReverse] of [
+      [forward, false],
+      [reverse, true],
+    ] as const) {
+      let code = 0;
+      let run = 0;
+      for (let at = 0; at < text.length; at++) {
+        const bits = BASE_CODE[text.charCodeAt(at)] ?? -1;
+        if (bits < 0) {
+          run = 0;
+          code = 0;
+          continue;
+        }
+        code = ((code << 2) | bits) & mask;
+        run++;
+        if (run < seed) continue;
+        const start = at - seed + 1;
+        const candidates = bySeed.get(code);
+        if (candidates === undefined) continue;
+        for (const w of candidates) {
+          if (!text.startsWith(w, start)) continue;
+          record(w, {
+            part,
+            start: isReverse ? text.length - start - k : start,
+            reverse: isReverse,
+          });
+        }
+      }
+    }
+  });
+  const hitsOf = (window: string) => found.get(window) ?? [];
+
+  joins.forEach((join, j) => {
+    const up = j;
+    const down = (j + 1) % order.length;
+    const upLength = order[up]?.sequence.length ?? 0;
+    // Where the homology is by design: the upstream part's last bases and
+    // the downstream part's first ones, on the forward strand.
+    const designed = (hit: { part: number; start: number; reverse: boolean }): boolean =>
+      !hit.reverse &&
+      ((hit.part === up && hit.start >= upLength - join.length) ||
+        (hit.part === down && hit.start + k <= join.length));
+    const overlap = join.overlap.toUpperCase();
+    // Hits of neighbouring windows are one stretch; it is reported once, from
+    // where it starts on the forward strand.
+    const stretches = new Map<string, { part: number; start: number; reverse: boolean }>();
+    for (let i = 0; i + k <= overlap.length; i++) {
+      for (const hit of hitsOf(overlap.slice(i, i + k))) {
+        if (designed(hit)) continue;
+        const key = `${hit.part}:${hit.reverse}:${Math.floor(hit.start / 100)}`;
+        const known = stretches.get(key);
+        if (known === undefined || hit.start < known.start) stretches.set(key, hit);
+      }
+    }
+    for (const hit of stretches.values()) {
+      const where = order[hit.part]?.document.name ?? 'a part';
+      const from = order[up]?.document.name ?? 'one part';
+      const to = order[down]?.document.name ?? 'the next';
+      out.push({
+        kind: 'repeat',
+        text: `The homology joining ${from} to ${to} also occurs in ${where} at ${(hit.start + 1).toLocaleString()}${hit.reverse ? ' (other strand)' : ''}, where a chewed-back end could anneal instead.`,
+      });
+    }
+  });
+
+  for (const p of order) {
+    if (p.sequence.length < GIBSON_SHORT_PART) {
+      out.push({
+        kind: 'short-part',
+        text: `${p.document.name} is ${p.sequence.length} bp; the exonuclease may chew a piece under ${GIBSON_SHORT_PART} bp away before it anneals, so add it in excess (NEB suggests 5-fold).`,
+      });
+    }
+  }
+  const floor = recommendedOverlap(order.length);
+  const short = joins.filter((j) => j.length < floor);
+  if (short.length > 0 && floor > minOverlap) {
+    out.push({
+      kind: 'short-overlap',
+      text: `${order.length} pieces want overlaps of ${floor} bp or more; ${short.length === 1 ? 'one junction has' : `${short.length} junctions have`} ${[...new Set(short.map((j) => j.length))].join(', ')} bp.`,
+    });
+  }
+  return out;
 }
 
 /** "vector+insert1+insert2 assembly", from the parts that went in. */

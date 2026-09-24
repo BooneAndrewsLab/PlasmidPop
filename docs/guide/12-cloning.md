@@ -316,6 +316,21 @@ then:
 One part on its own is an assembly too, if its two ends share homology: that
 is how a PCR product is circularised.
 
+When the parts assemble, the panel also lists what could make the tube give
+something else:
+
+- **Homology found elsewhere.** The exonuclease leaves each end as a long
+  single strand, and it anneals to whatever pairs with it. So each
+  junction's homology is looked for everywhere else in the tube, on both
+  strands, in stretches as long as **Overlap**; a hit is named with its part
+  and position, as somewhere a chewed-back end could anneal instead.
+- **A short part.** A piece under 200 bp may be chewed away from both ends
+  before it anneals; NEB suggests adding it in a 5-fold excess.
+- **Short overlaps for the number of pieces.** NEB asks for 15–20 bp with
+  two or three pieces and 20–30 bp with four to six.
+
+These are warnings; **Assemble** still works.
+
 If two parts could follow the same one, or nothing follows a part, the panel
 says which and assembles nothing. Homology that is unique to each junction is
 what makes a Gibson design work, and a set that is ambiguous on paper is
@@ -325,18 +340,8 @@ worth seeing before it is ambiguous in the tube.
 
 A-tailing, primer dimers and how much more readily a short product
 amplifies than a long one are not modelled beyond the order the products are
-listed in.
-
-A PCR product's ends are
-taken to carry phosphates, though primers are made without them unless
-ordered phosphorylated. Gibson does not check for homology _inside_ a part that
-could anneal as readily as the junction it was designed for, and models
-neither the length of the chew-back nor the polymerase's fill-in, so a very
-long part with a very short overlap may fail on the bench while looking right
-here.
-
-Golden Gate will not mix two enzymes in one reaction, and does not check
-that a set of overhangs would misligate in the tube. Nothing fills in or
-chews back an overhang yet (no Klenow or T4 polymerase blunting), the
-circular map does not draw the ends, and a FASTA export does not carry
-them.
+listed in. A PCR product's ends are taken to carry phosphates, though primers
+are made without them unless ordered phosphorylated. Gibson does not model
+the chew-back itself, only the length rules above, and Golden Gate's
+overhang warnings follow design rules rather than measured ligation
+fidelity.

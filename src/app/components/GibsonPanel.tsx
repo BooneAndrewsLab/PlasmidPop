@@ -12,6 +12,7 @@ import {
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { AssemblyWarnings } from './AssemblyWarnings';
 import { PartsTube } from './PartsTube';
 import { useTube } from './tube';
 
@@ -180,6 +181,7 @@ export function GibsonPanel() {
               );
             })}
           </ol>
+          <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
         </>
       ) : (
         <p className="panel__error">{result?.problem}</p>

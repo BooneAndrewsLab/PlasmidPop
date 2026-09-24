@@ -226,3 +226,39 @@ describe('gibson performance', () => {
     console.info(`[perf] Gibson of 6 parts into 12 kb: ${ms.toFixed(1)} ms`);
   });
 });
+
+describe('gibson warnings (#12)', () => {
+  it('has nothing to say about a clean three-piece design', () => {
+    const result = gibson(pieces(PLASMID, [0, 1000, 2000], 25));
+    expect(result.assembly?.warnings).toEqual([]);
+  });
+
+  it('finds a junction’s homology elsewhere in the tube, on either strand', () => {
+    const [a, b, c] = pieces(PLASMID, [0, 1000, 2000], 25);
+    if (a === undefined || b === undefined || c === undefined) throw new Error('three parts');
+    // The a→b homology is PLASMID[1000, 1025); put its reverse complement
+    // inside c as well, where a chewed-back end could pair with it.
+    const junction = PLASMID.slice(1000, 1025);
+    const text = c.sequence.toString();
+    const salted = SeqDocument.create({
+      name: 'part3',
+      sequence: text.slice(0, 500) + reverseComplement(junction) + text.slice(500),
+    });
+    const result = gibson([a, b, salted]);
+    expect(result.assembly).not.toBeNull();
+    const repeats = result.assembly?.warnings.filter((w) => w.kind === 'repeat') ?? [];
+    expect(repeats).toHaveLength(1);
+    expect(repeats[0]?.text).toMatch(
+      /joining part1 to part2 also occurs in part3 at 501 \(other strand\)/,
+    );
+  });
+
+  it('flags a piece short enough to be chewed away, and overlaps short for many pieces', () => {
+    // Four pieces, one of them 150 bp, joined by 16 bp overlaps.
+    const result = gibson(pieces(PLASMID, [0, 1000, 1134, 2000], 16), { minOverlap: 15 });
+    const kinds = result.assembly?.warnings.map((w) => w.kind);
+    expect(kinds).toEqual(['short-part', 'short-overlap']);
+    expect(result.assembly?.warnings[0]?.text).toMatch(/part2 is 150 bp/);
+    expect(result.assembly?.warnings[1]?.text).toMatch(/4 pieces want overlaps of 20 bp or more/);
+  });
+});
