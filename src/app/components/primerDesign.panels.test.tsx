@@ -306,10 +306,46 @@ describe('OverlapPrimerDesign', () => {
     expect(options.map((o) => o.textContent)).toEqual(['choose a tab', 'pCut', 'gDNA']);
   });
 
-  it('asks for a selection when the insert tab has only a caret', () => {
-    const ids = setup([vector, source], { start: 700, end: 700 });
+  it('picks the insert here: the selection, a feature, or all of a linear template', () => {
+    const annotated = source.addFeature(
+      createFeature({ type: 'gene', name: 'lacZ', segments: [rangeSegment(1000, 1600)] }),
+    );
+    // Only a caret in the template's tab: no selection to offer.
+    const ids = setup([vector, annotated], { start: 700, end: 700 });
     pick(ids[0], ids[1]);
-    expect(screen.getByText(/Select the insert in gDNA/)).toBeInTheDocument();
+    const options = () =>
+      within(screen.getByRole('combobox', { name: 'Insert' }))
+        .getAllByRole('option')
+        .map((o) => o.textContent);
+    expect(options()).toEqual([
+      'lacZ (gene), 1,001–1,600, 600 bp',
+      'All of it (1–2,500, 2,500 bp)',
+    ]);
+    // The first choice is taken until another is picked.
+    expect(screen.getByLabelText('Product')).toHaveTextContent('2,100 bp, circular');
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Insert' }), {
+        target: { value: 'whole' },
+      });
+    });
+    expect(screen.getByLabelText('Product')).toHaveTextContent('4,000 bp, circular');
+    // A selection made in the template's tab comes first once there is one.
+    act(() => {
+      editorStore.setSelection({ start: 400, end: 1200 });
+    });
+    expect(options()[0]).toBe('The selection (401–1,200, 800 bp)');
+    expect(editorStore.getState().bench.overlap.insert).toBe('whole');
+  });
+
+  it('says what to do when a circular template has no selection and no features', () => {
+    const ring = SeqDocument.create({
+      name: 'pTemplate',
+      sequence: sourceText,
+      topology: 'circular',
+    });
+    const ids = setup([vector, ring], { start: 700, end: 700 });
+    pick(ids[0], ids[1]);
+    expect(screen.getByText(/pTemplate has nothing selected and no features/)).toBeInTheDocument();
   });
 
   it('says why a circular vector cannot be used', () => {

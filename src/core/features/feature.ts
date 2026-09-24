@@ -1,4 +1,5 @@
 import { newId } from '../ids';
+import { type Range } from '../range';
 import { type Segment, segmentLength } from './segment';
 
 export type Strand = 'forward' | 'reverse';
@@ -60,6 +61,19 @@ export function createFeature(init: FeatureInit): Feature {
     segments: init.segments,
     qualifiers: init.qualifiers ?? [],
   };
+}
+
+/**
+ * The stretch a feature covers as one range: its first range segment's
+ * start through its last one's end, which is what selecting it selects and
+ * what the map draws. Null for a feature of sites alone.
+ */
+export function featureExtent(feature: Feature): Range | null {
+  const ranges = feature.segments.filter((s) => s.kind === 'range');
+  const first = ranges[0];
+  const last = ranges[ranges.length - 1];
+  if (first?.kind !== 'range' || last?.kind !== 'range') return null;
+  return { start: first.start, end: Math.max(first.end, last.end) };
 }
 
 /** Number of bases covered by all range segments. */

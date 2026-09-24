@@ -4,6 +4,7 @@ import {
   type Range,
   type SeqDocument,
   type Strand,
+  featureExtent,
   findSequenceMatches,
   looksLikeSequence,
 } from '@/core';
@@ -28,16 +29,6 @@ interface Hit {
  * dashed boxes are not.
  */
 const MAX_PREVIEWED_HITS = 200;
-
-function featureExtent(
-  f: SeqDocument['features'] extends Iterable<infer F> ? F : never,
-): Range | null {
-  const ranges = f.segments.filter((s) => s.kind === 'range');
-  const first = ranges[0];
-  const last = ranges[ranges.length - 1];
-  if (first?.kind !== 'range' || last?.kind !== 'range') return null;
-  return { start: first.start, end: Math.max(first.end, last.end) };
-}
 
 /**
  * Find bar (Ctrl+F). A query made of IUPAC letters searches the sequence on

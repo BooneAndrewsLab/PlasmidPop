@@ -39,6 +39,11 @@ export interface BenchSettings {
     readonly kit: OverlapKit;
     readonly vectorId: string;
     readonly templateId: string;
+    /**
+     * What of the template is the insert: `''` for its tab's selection,
+     * `'whole'` for all of a linear template, else a feature's id.
+     */
+    readonly insert: string;
   };
   readonly gateway: {
     readonly reaction: GatewayReaction;
@@ -57,7 +62,7 @@ export const DEFAULT_BENCH: BenchSettings = {
   ligation: { excluded: [], circular: true, name: '' },
   goldenGate: { enzyme: '', secondEnzyme: '', excluded: [], name: '' },
   gibson: { excluded: [], minOverlap: GIBSON_DEFAULTS.minOverlap, circular: true, name: '' },
-  overlap: { kit: 'in-fusion', vectorId: '', templateId: '' },
+  overlap: { kit: 'in-fusion', vectorId: '', templateId: '', insert: '' },
   gateway: { reaction: 'LR', insertId: '', vectorId: '' },
 };
 
@@ -122,6 +127,7 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
       kit: o['kit'] === 'nebuilder' ? 'nebuilder' : 'in-fusion',
       vectorId: text(o['vectorId'], ''),
       templateId: text(o['templateId'], ''),
+      insert: text(o['insert'], ''),
     },
     gateway: {
       reaction: w['reaction'] === 'BP' ? 'BP' : 'LR',

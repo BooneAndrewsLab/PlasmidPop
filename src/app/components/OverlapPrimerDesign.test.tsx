@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SeqDocument } from '@/core';
 
+import { DEFAULT_BENCH } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { OverlapPrimerDesign } from './OverlapPrimerDesign';
 
@@ -24,6 +25,7 @@ describe('OverlapPrimerDesign', () => {
   afterEach(() => {
     act(() => {
       while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+      editorStore.restoreBench(DEFAULT_BENCH);
     });
   });
 
@@ -64,7 +66,7 @@ describe('OverlapPrimerDesign', () => {
     expect(editorStore.document?.length).toBe(2800);
   });
 
-  it('asks for a selection when the insert tab has none', () => {
+  it('offers all of a linear template when its tab has no selection', () => {
     act(() => {
       editorStore.openDocument(vector);
       editorStore.openDocument(source);
@@ -74,6 +76,13 @@ describe('OverlapPrimerDesign', () => {
     act(() => {
       fireEvent.change(screen.getByLabelText('Insert from'), { target: { value: ids[1] } });
     });
-    expect(screen.getByText(/Select the insert in gDNA/)).toBeInTheDocument();
+    const insert = screen.getByRole('combobox', { name: 'Insert' });
+    expect(
+      within(insert)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual([
+      `All of it (1–${source.length.toLocaleString()}, ${source.length.toLocaleString()} bp)`,
+    ]);
   });
 });

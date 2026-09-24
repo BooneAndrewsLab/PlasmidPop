@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import { type Feature, type RangeSegment, type SeqDocument, isEmptyRange } from '@/core';
+import { type SeqDocument, featureExtent, isEmptyRange } from '@/core';
 import {
   type MapViewport,
   CircularLayout,
@@ -39,15 +39,6 @@ const OUTER_MARGIN = 110;
 const CLICK_SLOP = 3;
 /** Zoom factor of one press of the +/− buttons and of a double-click. */
 const ZOOM_STEP = 1.6;
-
-/** First range segment's start through the last one's end, as the map draws it. */
-function featureExtent(feature: Feature): { start: number; end: number } | null {
-  const ranges = feature.segments.filter((s): s is RangeSegment => s.kind === 'range');
-  const first = ranges[0];
-  const last = ranges[ranges.length - 1];
-  if (first === undefined || last === undefined) return null;
-  return { start: first.start, end: Math.max(last.end, first.end) };
-}
 
 type Gesture =
   | { readonly kind: 'idle' }

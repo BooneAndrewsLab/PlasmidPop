@@ -11,7 +11,6 @@ import {
   type Orf,
   type PrimerCriteria,
   type Range,
-  type RangeSegment,
   type TranslationTable,
   BUNDLED_ENZYME_SET,
   DEFAULT_PRIMER_CRITERIA,
@@ -22,6 +21,7 @@ import {
   createFeature,
   defaultFragmentName,
   describeEditStep,
+  featureExtent,
   documentChecksum,
   isEmptyRange,
   isoschizomerGroups,
@@ -1146,15 +1146,12 @@ export class EditorStore {
   selectFeature(featureId: string): void {
     const feature = this.document?.getFeature(featureId);
     if (feature === undefined) return;
-    const ranges = feature.segments.filter((s): s is RangeSegment => s.kind === 'range');
-    const first = ranges[0];
-    const last = ranges[ranges.length - 1];
-    if (first === undefined || last === undefined) return;
-    const selection = { start: first.start, end: Math.max(last.end, first.end) };
+    const selection = featureExtent(feature);
+    if (selection === null) return;
     this.setActive({
       selection,
       selectedFeatureId: featureId,
-      reveal: { position: first.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
+      reveal: { position: selection.start, nonce: (this.state.reveal?.nonce ?? 0) + 1 },
     });
   }
 
