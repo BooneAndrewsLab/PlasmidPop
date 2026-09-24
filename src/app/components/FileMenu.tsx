@@ -150,6 +150,7 @@ export function FileMenu({ doc, onOpenFile, onCompareFile }: Props) {
             Copy share link
           </Item>
           <Item
+            shortcut="Alt+K"
             title="Show how this document differs from a file on disk. Neither is changed and nothing is opened."
             onClick={run(onCompareFile)}
           >

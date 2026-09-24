@@ -51,6 +51,18 @@ export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked';
 export type SidebarTab =
   'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
 
+/** The sidebar's tabs in the rail's order, top to bottom, which `Alt+[` and `Alt+]` step through. */
+export const SIDEBAR_TABS: readonly SidebarTab[] = [
+  'features',
+  'orfs',
+  'translate',
+  'primers',
+  'enzymes',
+  'cloning',
+  'align',
+  'history',
+];
+
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */
   readonly doc: SeqDocument;
@@ -858,7 +870,7 @@ export class EditorStore {
   }
 
   /** Shows the Cloning Bench. The open documents stay in their tabs. */
-  showBench(from?: 'tab' | 'link'): void {
+  showBench(from?: 'tab' | 'link' | 'key'): void {
     if (this.bench) return;
     if (from !== undefined) analytics.trackOnce('cloning', 'bench', from);
     this.activeId = null;

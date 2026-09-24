@@ -11,6 +11,7 @@ import { HelpButton } from '../help/HelpButton';
 import { EditsMenu } from './EditsMenu';
 import { FileMenu } from './FileMenu';
 import { FormatMenu } from './FormatMenu';
+import { useAltKey } from './useAltKey';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
@@ -57,6 +58,16 @@ export function Toolbar({ doc }: Props) {
   const compareViaPicker = (): void => {
     pickFile(compareWithFile, compareRef);
   };
+  // Alt+K: Compare with…, while there is a document to compare (#34).
+  useAltKey(
+    'KeyK',
+    doc === null
+      ? null
+      : () => {
+          analytics.shortcut('alt+k');
+          compareViaPicker();
+        },
+  );
   const [renaming, setRenaming] = useState(false);
   // A phone's toolbar is the name and the File menu. The view switcher is
   // the shell's own bar there, and the toggles, Format, Edits and History
@@ -167,7 +178,12 @@ export function Toolbar({ doc }: Props) {
           <>
             <FileMenu doc={doc} onOpenFile={openViaPicker} onCompareFile={compareViaPicker} />
             <HistoryMenu />
-            <div className="segmented" role="group" aria-label="View">
+            <div
+              className="segmented"
+              role="group"
+              aria-label="View"
+              title="Alt+V steps through the three"
+            >
               {VIEWS.map(([mode, label]) => (
                 <button
                   key={mode}

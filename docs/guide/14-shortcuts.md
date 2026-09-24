@@ -9,9 +9,11 @@ On macOS use `Cmd` where `Ctrl` is written.
 | `Ctrl+S`, `Ctrl+Shift+S`    | Download GenBank (a working copy's changes are reviewed first) |
 | `Alt+L`                     | Copy a share link                                              |
 | `Alt+1` … `Alt+9`           | Bring the first … ninth open document forward                  |
+| `Alt+0`                     | Bring the [Bench](12-cloning.md#the-bench) forward             |
 | `Alt+W`                     | Close the document in front (its tab)                          |
 | `Alt+Shift+PageUp`, `…Down` | Move the document in front one tab left or right               |
 | `Ctrl+V` with nothing open  | Open a pasted GenBank or FASTA record, or bare bases           |
+| `Alt+K`                     | Compare with a file on disk (**File ▸ Compare with…**)         |
 
 ## Editing
 
@@ -35,13 +37,17 @@ Everything here is `Alt` and one key. Bare letters type bases in the
 sequence view and `Ctrl` belongs to the browser, so `Alt` is the modifier
 left for the view.
 
-| Keys    | Action                                                    |
-| ------- | --------------------------------------------------------- |
-| `Alt+C` | Complement strand on or off                               |
-| `Alt+T` | Translations under CDS features on or off                 |
-| `Alt+R` | Cut sites on or off (the ticked enzymes are kept)         |
-| `Alt+E` | Edit marks off, and back to the baseline that was chosen  |
-| `Alt+S` | Collapse the sidebar to its rail, or bring the panel back |
+| Keys             | Action                                                    |
+| ---------------- | --------------------------------------------------------- |
+| `Alt+C`          | Complement strand on or off                               |
+| `Alt+T`          | Translations under CDS features on or off                 |
+| `Alt+R`          | Cut sites on or off (the ticked enzymes are kept)         |
+| `Alt+E`          | Edit marks off, and back to the baseline that was chosen  |
+| `Alt+S`          | Collapse the sidebar to its rail, or bring the panel back |
+| `Alt+V`          | The next of the views: Sequence, Map, Both                |
+| `Alt+[`, `Alt+]` | The sidebar tab above or below (opens the sidebar)        |
+| `Alt+=`, `Alt+-` | Larger or smaller sequence text                           |
+| `Alt+O`          | Open the Format menu; Tab walks its items, Escape closes  |
 
 ## Selecting and moving
 

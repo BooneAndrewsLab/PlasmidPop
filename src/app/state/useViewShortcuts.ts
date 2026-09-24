@@ -3,7 +3,12 @@ import { useEffect, useRef } from 'react';
 import { type Shortcut, analytics } from '../analytics';
 import { isAltKey, isTextTarget } from '../keys';
 import { copyShareLink } from '../share';
-import { type EditsBaseline, editorStore } from './editorStore';
+import { FONT_SIZES } from '@/view/linear';
+
+import { type EditsBaseline, SIDEBAR_TABS, type ViewMode, editorStore } from './editorStore';
+
+/** `Alt+V` steps through the view switcher in its order. */
+const VIEW_ORDER: readonly ViewMode[] = ['sequence', 'map', 'both'];
 
 /** Toggles the toolbar's three view switches go under. */
 const TOGGLES: readonly {
@@ -106,6 +111,48 @@ export function useViewShortcuts(): void {
         copyShareLink(state.history.present).catch((err: unknown) => {
           editorStore.fail(err instanceof Error ? err.message : String(err));
         });
+        return;
+      }
+
+      // Alt+V: the next of Sequence, Map and Both, as the view switcher has them.
+      if (isAltKey(e, 'KeyV')) {
+        e.preventDefault();
+        analytics.shortcut('alt+v');
+        const at = VIEW_ORDER.indexOf(state.view);
+        editorStore.setView(VIEW_ORDER[(at + 1) % VIEW_ORDER.length] ?? 'both');
+        return;
+      }
+
+      // Alt+[ and Alt+]: the sidebar tab above or below, opening the sidebar
+      // if it was put away, and wrapping round at either end of the rail.
+      if (isAltKey(e, 'BracketLeft') || isAltKey(e, 'BracketRight')) {
+        if (state.documentId === null) return; // no sidebar beside the file list or the Bench
+        e.preventDefault();
+        analytics.shortcut('alt+bracket');
+        const step = e.code === 'BracketLeft' ? -1 : 1;
+        const at = SIDEBAR_TABS.indexOf(state.sidebarTab);
+        const n = SIDEBAR_TABS.length;
+        const next = state.sidebarOpen ? SIDEBAR_TABS[(at + step + n) % n] : state.sidebarTab;
+        if (next !== undefined) editorStore.setSidebarTab(next);
+        editorStore.setSidebarOpen(true);
+        return;
+      }
+
+      // Alt+= and Alt+-: the sequence view's text a size larger or smaller.
+      if (isAltKey(e, 'Equal') || isAltKey(e, 'Minus')) {
+        e.preventDefault();
+        analytics.shortcut('alt+size');
+        const at = FONT_SIZES.indexOf(state.seqFontSize);
+        const next = FONT_SIZES[at + (e.code === 'Equal' ? 1 : -1)];
+        if (next !== undefined) editorStore.setSeqFontSize(next);
+        return;
+      }
+
+      // Alt+0: the Bench, which sits before the documents Alt+1..9 count.
+      if (isAltKey(e, 'Digit0')) {
+        e.preventDefault();
+        analytics.shortcut('alt+digit');
+        editorStore.showBench('key');
         return;
       }
 

@@ -592,7 +592,7 @@ describe('toolbar', () => {
       'Open example',
       'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
       'Copy share linkAlt+L', // as a file, or inside a link that goes nowhere near a server
-      'Compare with…', // and the one that reads a file without opening it
+      'Compare with…Alt+K', // and the one that reads a file without opening it
       'Export map as SVG',
       'Export sequence view as SVG',
       'Export selection view as SVG',

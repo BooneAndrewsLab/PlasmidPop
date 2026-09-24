@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { getRepository } from '@/storage';
 
@@ -52,6 +52,72 @@ describe('view shortcuts', () => {
     expect(editorStore.getState().editsBaseline).toBe('off');
     alt('KeyE');
     expect(editorStore.getState().editsBaseline).toBe('saved');
+  });
+
+  it('steps through the views, the sidebar tabs and the text sizes, and brings up the Bench', () => {
+    act(() => {
+      editorStore.setView('both');
+      editorStore.setSeqFontSize(13);
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setSidebarTab('features');
+    });
+
+    alt('KeyV');
+    expect(editorStore.getState().view).toBe('sequence');
+    alt('KeyV');
+    alt('KeyV');
+    expect(editorStore.getState().view).toBe('both');
+
+    alt('BracketRight');
+    expect(editorStore.getState().sidebarTab).toBe('orfs');
+    alt('BracketLeft');
+    alt('BracketLeft'); // round the top of the rail to its foot
+    expect(editorStore.getState().sidebarTab).toBe('history');
+    // Put away, the sidebar comes back on the tab it was on.
+    alt('KeyS');
+    alt('BracketRight');
+    expect(editorStore.getState()).toMatchObject({ sidebarOpen: true, sidebarTab: 'history' });
+
+    alt('Equal');
+    expect(editorStore.getState().seqFontSize).toBe(16);
+    alt('Equal'); // already the largest
+    expect(editorStore.getState().seqFontSize).toBe(16);
+    alt('Minus');
+    alt('Minus');
+    expect(editorStore.getState().seqFontSize).toBe(11);
+
+    alt('Digit0');
+    expect(editorStore.getState().front).toBe('bench');
+    act(() => {
+      editorStore.setSeqFontSize(13);
+    });
+  });
+
+  it('asks for a file to compare with on Alt+K, and not with nothing open', async () => {
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
+    render(<App />);
+    alt('KeyK');
+    await Promise.resolve();
+    expect(click).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    alt('KeyK');
+    await waitFor(() => {
+      expect(click).toHaveBeenCalledTimes(1);
+    });
+    click.mockRestore();
+  });
+
+  it('opens the Format menu on its first item with Alt+O', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    alt('KeyO');
+    const menu = screen.getByRole('menu', { name: 'Format and layout' });
+    expect(menu.querySelector('button')).toHaveFocus();
+    alt('KeyO');
+    expect(screen.queryByRole('menu', { name: 'Format and layout' })).toBeNull();
   });
 
   it('brings the nth document forward', () => {

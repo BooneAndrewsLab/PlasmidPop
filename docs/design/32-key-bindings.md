@@ -28,6 +28,14 @@ working.
   already did, since it follows the pointer. `CdsTranslations` is now
   built whether or not the Translations toggle is on: the keyboard needs
   the codons even when nothing is drawing them.
-- Not yet: nothing for the view switcher, the Format menu or the sidebar
-  tabs; no way to close a tab from the keyboard (`Ctrl+W` is the
-  browser's); the bindings are fixed, not configurable.
+- **The rest of the toolbar and the sidebar** (#34, 2026-09-24): `Alt+V`
+  steps through the views, `Alt+[`/`Alt+]` through the sidebar tabs in the
+  rail's order (`SIDEBAR_TABS`, wrapping round; a collapsed sidebar comes
+  back on its tab), `Alt+=`/`Alt+-` the text size, `Alt+0` the Bench,
+  which stands before the documents `Alt+1..9` count, and `Alt+W` closes a
+  tab (#33). `Alt+O` opens the Format menu with its first item focused,
+  and `Alt+K` is **Compare with…**; both belong to a component (its menu,
+  its hidden file input), so `useAltKey` gives a component a binding under
+  the same rules. `Alt+D` was not used: browsers spend it on the address
+  bar. Configurable bindings are a feature of their own, not a key more:
+  #79.

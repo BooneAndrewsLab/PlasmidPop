@@ -97,7 +97,7 @@ export const EVENTS = {
     'mutagenesis',
     'gateway',
     'overlap-primers',
-    /** The Bench was brought to the front: `tab` from the tab strip, `link` from the Cloning tab. */
+    /** The Bench was brought to the front: `tab` from the tab strip, `link` from the Cloning tab, `key` by Alt+0. */
     'bench',
     'shelf-undo',
     'shelf-redo',
@@ -121,6 +121,11 @@ export type Shortcut =
   | 'alt+l'
   | 'alt+digit'
   | 'alt+w'
+  | 'alt+v'
+  | 'alt+bracket'
+  | 'alt+size'
+  | 'alt+o'
+  | 'alt+k'
   | 'alt+shift+page'
   | 'ctrl+s'
   | 'ctrl+f'

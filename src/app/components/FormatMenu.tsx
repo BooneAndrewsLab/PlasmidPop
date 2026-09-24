@@ -1,8 +1,11 @@
+import { useEffect, useRef } from 'react';
+
 import { type FontSize, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { useAltKey } from './useAltKey';
 import { useMenu } from './useMenu';
 
 const SIZE_LABELS: Readonly<Record<FontSize, string>> = {
@@ -36,6 +39,18 @@ export function FormatMenu() {
   // Every item leaves the menu open: the point is to try a size or a row
   // width and see the view change behind it. Escape or a click outside closes.
   const { open, toggle, ref } = useMenu();
+  // Alt+O opens it with its first item focused, so Tab walks the items (#34).
+  const focusFirst = useRef(false);
+  useAltKey('KeyO', () => {
+    analytics.shortcut('alt+o');
+    focusFirst.current = !open;
+    toggle();
+  });
+  useEffect(() => {
+    if (!open || !focusFirst.current) return;
+    focusFirst.current = false;
+    ref.current?.querySelector<HTMLElement>('[role="menu"] button')?.focus();
+  }, [open, ref]);
 
   return (
     <div className="menu" ref={ref}>
@@ -43,7 +58,8 @@ export function FormatMenu() {
         type="button"
         className="button"
         aria-label="Format"
-        title="Text size, bases per row, numbering and base colours in the sequence view, and the pane sizes"
+        aria-keyshortcuts="Alt+O"
+        title="Text size, bases per row, numbering and base colours in the sequence view, and the pane sizes (Alt+O)"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
