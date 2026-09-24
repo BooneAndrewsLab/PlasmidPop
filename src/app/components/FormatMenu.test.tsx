@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
-
-import * as monoFonts from '../monoFonts';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { editorStore } from '../state/editorStore';
 import { FormatMenu } from './FormatMenu';
@@ -10,7 +8,6 @@ describe('FormatMenu', () => {
   afterEach(() => {
     act(() => {
       editorStore.setSeqBasesPerRow(null);
-      editorStore.setSeqFontFamily('');
       editorStore.setBaseColors(null);
       editorStore.setColorBases(false);
     });
@@ -36,22 +33,6 @@ describe('FormatMenu', () => {
     // One of the fixed widths leaves the box empty again.
     fireEvent.click(screen.getByRole('menuitemradio', { name: '60' }));
     expect(other).toHaveValue(null);
-  });
-
-  it('offers only the monospace fonts found on this computer', () => {
-    vi.spyOn(monoFonts, 'installedMonoFonts').mockReturnValue(['JetBrains Mono', 'Menlo']);
-    open();
-    const font = screen.getByRole('combobox', { name: 'Sequence font' });
-    expect(
-      within(font)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['System monospace', 'JetBrains Mono', 'Menlo']);
-    fireEvent.change(font, { target: { value: 'Menlo' } });
-    expect(editorStore.getState().seqFontFamily).toBe('Menlo');
-    fireEvent.change(font, { target: { value: '' } });
-    expect(editorStore.getState().seqFontFamily).toBe('');
-    vi.restoreAllMocks();
   });
 
   it('lets the four base colours be chosen while bases are coloured, and put back', () => {

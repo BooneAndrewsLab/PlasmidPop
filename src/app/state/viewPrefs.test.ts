@@ -18,7 +18,6 @@ const DEFAULTS = {
   numberComplement: false,
   colorBases: false,
   traceSize: 'short',
-  seqFontFamily: '',
   baseColors: null,
   editsBaseline: 'opened',
   layout: DEFAULT_LAYOUT,
@@ -47,7 +46,6 @@ function reset(): void {
   editorStore.setNumberComplement(DEFAULTS.numberComplement);
   editorStore.setColorBases(DEFAULTS.colorBases);
   editorStore.setTraceSize(DEFAULTS.traceSize);
-  editorStore.setSeqFontFamily(DEFAULTS.seqFontFamily);
   editorStore.setBaseColors(DEFAULTS.baseColors);
   editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
   editorStore.setLayout(DEFAULT_LAYOUT);
@@ -83,7 +81,6 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       traceSize: 'tall',
-      seqFontFamily: 'JetBrains Mono',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
       editsBaseline: 'saved',
       layout: {
@@ -152,7 +149,6 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       traceSize: 'tall',
-      seqFontFamily: 'JetBrains Mono',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
       editsBaseline: 'off',
       layout: {
@@ -185,7 +181,6 @@ describe('view preferences', () => {
       numberComplement: true,
       colorBases: true,
       traceSize: 'tall',
-      seqFontFamily: 'JetBrains Mono',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
       editsBaseline: 'off',
       layout: {
@@ -311,17 +306,15 @@ describe('view preferences', () => {
     stop();
   });
 
-  it('refuses a stored font or colours that could not be used as they are', () => {
+  it('refuses stored colours that could not be used as they are', () => {
     localStorage.setItem(
       KEY,
       JSON.stringify({
-        seqFontFamily: 'Fira Code"; } body { display: none',
         baseColors: { a: '#123456', c: 'red', g: '#000000', t: '#ffffff' },
         seqBasesPerRow: 99999,
       }),
     );
     expect(loadViewPrefs()).toEqual({
-      seqFontFamily: 'Fira Code  body  display none'.replace(/\s+/g, ' '),
       seqBasesPerRow: 1000,
     });
   });

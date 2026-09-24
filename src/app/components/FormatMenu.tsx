@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { type FontSize, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
-import { installedMonoFonts } from '../monoFonts';
 import { type TraceSize, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useAltKey } from './useAltKey';
@@ -50,7 +49,6 @@ export function FormatMenu() {
     colorBases,
     traceSize,
     history,
-    seqFontFamily,
     baseColors,
   } = useEditorState();
   // Typed values are committed on Enter or on leaving the box, not per key.
@@ -83,7 +81,6 @@ export function FormatMenu() {
   };
   // The trace sizes can be set only while a read with a trace is in front.
   const hasTrace = history?.present.read?.trace != null;
-  const fonts = useMemo(() => installedMonoFonts(), []);
   // Every item leaves the menu open: the point is to try a size or a row
   // width and see the view change behind it. Escape or a click outside closes.
   const { open, toggle, ref } = useMenu();
@@ -251,28 +248,6 @@ export function FormatMenu() {
               </button>
             </div>
           )}
-          <label
-            className="menu__item menu__item--field"
-            title="The monospace fonts found on this computer; a proportional font would leave the columns ragged"
-          >
-            <span>Font</span>
-            <select
-              className="panel__select"
-              aria-label="Sequence font"
-              value={fonts.includes(seqFontFamily) ? seqFontFamily : ''}
-              onChange={(e) => {
-                analytics.trackOnce('view', 'format', 'font');
-                editorStore.setSeqFontFamily(e.target.value);
-              }}
-            >
-              <option value="">System monospace</option>
-              {fonts.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className="menu__separator" />
           <p className="menu__group-label">
             Trace

@@ -113,7 +113,6 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     numberComplement,
     colorBases,
     traceSize,
-    seqFontFamily,
     baseColors,
     reveal,
     analysis,
@@ -170,10 +169,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     index: number;
   } | null>(null);
 
-  const monoFont = useMemo(
-    () => monoFontOf(seqFontSize, seqFontFamily),
-    [seqFontSize, seqFontFamily],
-  );
+  const monoFont = useMemo(() => monoFontOf(seqFontSize), [seqFontSize]);
   const sansFont = useMemo(() => sansFontOf(seqFontSize), [seqFontSize]);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
   const metrics = useMemo(() => {

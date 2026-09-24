@@ -17,16 +17,17 @@ Enter or blur rather than per keystroke; while **Colour the bases** is on,
 four `<input type="color">` swatches set A, C, G and T
 (`SharedState.baseColors`, `#rrggbb` or null for the theme's), which
 `readLinearTheme` lays over the CSS palette for the view and the read trace
-and the SVG export takes in place of its print palette; **Font** names a
-family (`seqFontFamily`), cleaned to letters, digits, spaces, hyphens and
-underscores so it can be quoted into the font string without escaping, and
-put ahead of the system monospace stack (`monoFontOf(size, family)`). It was
-a text box first, and changed the same day on review: nobody knows a font's
-name off the top of their head, and a proportional one leaves the columns
-ragged. So it is a list, of the candidates in `src/app/monoFonts.ts` found
-installed (text drawn in the font, with each generic family behind it, is
-not as wide as the generic alone) and monospaced (a run of `i` as wide as a
-run of `M`). The Local Font Access API would list every font, but behind a
-permission prompt that is not worth a list like this. The
-SVG export keeps Courier for the same reason it keeps its own size. All three
-are view preferences, checked field by field on the way back in.
+and the SVG export takes in place of its print palette. Both are view preferences, checked field by field on the way
+back in.
+
+**A font choice was built and taken out again**, the same day. First a box
+for a family name, then, on review — nobody knows a font's name off the top
+of their head, and a proportional one leaves the columns ragged — a list of
+candidate monospace fonts found installed (text drawn in the font, with
+each generic family behind it, not as wide as the generic alone) and
+monospaced (a run of `i` as wide as a run of `M`). Then out: the real reasons
+for it (a narrower font fitting more bases, a font one is used to) are
+weak for DNA, whose letters no monospace font confuses, and the menu is
+shorter without it. It comes back if people ask; commit `91a965a` has the
+detection (`src/app/monoFonts.ts`) and the plumbing (`seqFontFamily`,
+`monoFontOf(size, family)`).

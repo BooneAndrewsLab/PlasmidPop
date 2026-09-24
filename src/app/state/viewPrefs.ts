@@ -20,7 +20,6 @@ import {
   type EditsBaseline,
   type TraceSize,
   type ViewMode,
-  cleanFontFamily,
   editorStore,
   isTraceSize,
   toBaseColors,
@@ -47,8 +46,7 @@ export interface ViewPrefs {
   readonly colorBases: boolean;
   /** How tall a read's trace is drawn; see `SharedState.traceSize`. */
   readonly traceSize: TraceSize;
-  /** The sequence font and the base colours; see `SharedState.seqFontFamily`. */
-  readonly seqFontFamily: string;
+  /** The base colours the user chose; see `SharedState.baseColors`. */
   readonly baseColors: CustomBaseColors | null;
   /**
    * Which baseline the edit marks use. "Mark from here" is a point in one
@@ -119,9 +117,6 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
   if (isFontSize(record['seqFontSize'])) prefs.seqFontSize = record['seqFontSize'];
   if (isTraceSize(record['traceSize'])) prefs.traceSize = record['traceSize'];
-  if (typeof record['seqFontFamily'] === 'string') {
-    prefs.seqFontFamily = cleanFontFamily(record['seqFontFamily']);
-  }
   if (record['baseColors'] === null) prefs.baseColors = null;
   else {
     const colors = toBaseColors(record['baseColors']);
@@ -211,7 +206,6 @@ function snapshot(): ViewPrefs {
     numberComplement,
     colorBases,
     traceSize,
-    seqFontFamily,
     baseColors,
     editsBaseline,
     layout,
@@ -238,7 +232,6 @@ function snapshot(): ViewPrefs {
     numberComplement,
     colorBases,
     traceSize,
-    seqFontFamily,
     baseColors,
     editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
     layout,
@@ -268,7 +261,6 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.numberComplement === b.numberComplement &&
     a.colorBases === b.colorBases &&
     a.traceSize === b.traceSize &&
-    a.seqFontFamily === b.seqFontFamily &&
     a.baseColors === b.baseColors &&
     a.editsBaseline === b.editsBaseline &&
     a.layout === b.layout &&
@@ -306,7 +298,6 @@ export function startViewPrefs(): () => void {
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
   if (stored.traceSize !== undefined) editorStore.setTraceSize(stored.traceSize);
-  if (stored.seqFontFamily !== undefined) editorStore.setSeqFontFamily(stored.seqFontFamily);
   if (stored.baseColors !== undefined) editorStore.setBaseColors(stored.baseColors);
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);
   if (stored.layout !== undefined) editorStore.setLayout(stored.layout);

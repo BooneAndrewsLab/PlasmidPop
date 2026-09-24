@@ -72,19 +72,6 @@ export function toBaseColors(v: unknown): CustomBaseColors | null {
   return out as unknown as CustomBaseColors;
 }
 
-/**
- * A font family name as the user typed it, reduced to what can go inside
- * CSS quotes without escaping: letters, digits, spaces, hyphens and
- * underscores, 64 at most.
- */
-export function cleanFontFamily(name: string): string {
-  return name
-    .replace(/[^\p{L}\p{N} _-]/gu, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 64);
-}
-
 /** How a read's trace is drawn in the sequence view; see `SharedState.traceSize`. */
 export type TraceSize = 'off' | 'short' | 'tall';
 
@@ -341,12 +328,6 @@ export interface SharedState {
    * chromatogram is not always what is being read.
    */
   readonly traceSize: TraceSize;
-  /**
-   * The sequence view's font family, by name, or '' for the system's own
-   * monospace (#29). Any installed monospace font will do; the view measures
-   * a character of it, so the columns stay even.
-   */
-  readonly seqFontFamily: string;
   /**
    * Colours for A, C, G and T chosen by the user (#29), or null for the
    * theme's, which differ between light and dark.
@@ -639,7 +620,6 @@ const SHARED_INITIAL: SharedState = {
   numberComplement: false,
   colorBases: false,
   traceSize: 'short',
-  seqFontFamily: '',
   baseColors: null,
   editsBaseline: 'opened',
   view: 'both',
@@ -1604,12 +1584,6 @@ export class EditorStore {
 
   setTraceSize(size: TraceSize): void {
     if (size !== this.state.traceSize) this.setShared({ traceSize: size });
-  }
-
-  /** A font by name, cleaned to what a CSS family name can hold; '' for the default. */
-  setSeqFontFamily(name: string): void {
-    const family = cleanFontFamily(name);
-    if (family !== this.state.seqFontFamily) this.setShared({ seqFontFamily: family });
   }
 
   /** The base colours the user picked, or null for the theme's. */

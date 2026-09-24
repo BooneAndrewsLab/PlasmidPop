@@ -371,6 +371,11 @@ button {
   margin: 8px 0;
 }
 
+/* The column is its frame; the review's card border would be one inside it. */
+.bench__map .diff-map__canvas {
+  border: 0;
+}
+
 .bench__column + .bench__column {
   border-left: 1px solid var(--line);
 }
@@ -2196,6 +2201,11 @@ button {
 
 .new-document__name > span {
   flex: none;
+}
+
+/* As wide as its two buttons, not the dialog. */
+.new-document > .segmented {
+  justify-self: start;
 }
 
 .dialog__actions {
