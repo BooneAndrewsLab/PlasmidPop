@@ -35,9 +35,12 @@ qualifiers)` rather than against any qualifier in a global list. That
   also fixes a case the old check got wrong: a CDS renamed to its
   `/product` while still carrying a `/label` of its own wrote no
   `/label` and read back under the old one.
-- **Still open: collapse a `gene` that exactly coincides with a `CDS`**
-  of the same name into one bar, as SnapGene does. Display only, no data
-  implications. Much less pressing now — after the naming fix the pair
-  no longer _has_ one name, so there is nothing to collapse on the
-  bundled example; it would only bite a file where both carry the same
-  `/label`.
+- **A `gene` that exactly coincides with a `CDS` of the same name is
+  drawn once** (#28, 2026-09-24), as SnapGene does: `drawableFeatures`
+  leaves out a gene whose name, strand and every segment match a CDS's,
+  and the CDS keeps the bar because it has the translation. Display only —
+  the feature list shows both and both are written back out — and since
+  `drawableFeatures` feeds every view and export, the map, the sequence
+  view and the SVGs agree. After the naming fix the bundled example has no
+  such pair (`tet` the gene is `tet`, its CDS the product's name); it is for
+  a file where both carry the same `/label`.

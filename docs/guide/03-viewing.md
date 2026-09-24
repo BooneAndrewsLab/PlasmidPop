@@ -170,7 +170,9 @@ set to.
 
 The map draws the backbone as a ring with tick marks, features as arcs in
 lanes around it, and labels with leader lines. Features that share a name
-(a gene and its CDS, for example) get one label. Cut sites of the ticked
+(a gene and its CDS, for example) get one label, and a gene and CDS of the
+same name on exactly the same bases are drawn as one bar, the CDS's, in
+both views; the feature list still lists both. Cut sites of the ticked
 enzymes are labelled on the same ring, unless **Cut sites** is off in the
 toolbar. The centre shows the name and length when they fit whole; on a
 narrow map the name is set smaller, and past that it is left out rather than

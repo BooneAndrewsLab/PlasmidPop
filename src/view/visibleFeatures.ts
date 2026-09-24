@@ -4,9 +4,26 @@ import { type Feature, rangePieces, rangesOverlap } from '@/core';
  * Features worth drawing. `source` spans the whole molecule and carries
  * organism metadata rather than annotation, so maps and sequence views hide
  * it (the feature list still shows it).
+ *
+ * A `gene` with a `CDS` of the same name on exactly the same bases and
+ * strand is one thing drawn twice, and is drawn once, as the CDS (#28):
+ * it is the one with a translation and a reading frame. SnapGene does the
+ * same. It is display only: the feature list shows both, and both are
+ * written back out.
  */
 export function drawableFeatures(features: readonly Feature[]): Feature[] {
-  return features.filter((f) => f.type !== 'source');
+  const shape = (f: Feature): string =>
+    `${f.name}\u0000${f.strand}\u0000${f.segments
+      .map((s) =>
+        s.kind === 'range' ? `${String(s.start)}-${String(s.end)}` : `@${String(s.position)}`,
+      )
+      .join(',')}`;
+  const cds = new Set(
+    features.filter((f) => f.type === 'CDS' && f.name !== '').map((f) => shape(f)),
+  );
+  return features.filter(
+    (f) => f.type !== 'source' && !(f.type === 'gene' && cds.size > 0 && cds.has(shape(f))),
+  );
 }
 
 function featureLength(f: Feature): number {

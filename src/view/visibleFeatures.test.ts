@@ -10,6 +10,38 @@ describe('drawableFeatures', () => {
     const list = [f('s', '', 0, 100, 'source'), f('a', 'a', 5, 10)];
     expect(drawableFeatures(list).map((x) => x.id)).toEqual(['a']);
   });
+
+  it('draws a gene once, as its CDS, where the two are the same name on the same bases', () => {
+    const list = [
+      f('g', 'tet', 85, 1276, 'gene'),
+      f('c', 'tet', 85, 1276, 'CDS'),
+      // Same bases but its own name: two things, both drawn.
+      f('g2', 'bla', 3292, 4153, 'gene'),
+      f('c2', 'beta-lactamase', 3292, 4153, 'CDS'),
+      // Same name, other bases: a gene longer than its CDS stays.
+      f('g3', 'rop', 1900, 2110, 'gene'),
+      f('c3', 'rop', 1914, 2106, 'CDS'),
+    ];
+    expect(drawableFeatures(list).map((x) => x.id)).toEqual(['c', 'g2', 'c2', 'g3', 'c3']);
+    // A gene on the other strand from the CDS is not the same thing either.
+    const flipped = [
+      createFeature({
+        id: 'g',
+        type: 'gene',
+        name: 'x',
+        strand: 'reverse',
+        segments: [rangeSegment(0, 90)],
+      }),
+      createFeature({
+        id: 'c',
+        type: 'CDS',
+        name: 'x',
+        strand: 'forward',
+        segments: [rangeSegment(0, 90)],
+      }),
+    ];
+    expect(drawableFeatures(flipped).map((x) => x.id)).toEqual(['g', 'c']);
+  });
 });
 
 describe('featuresToLabel', () => {
