@@ -10,17 +10,17 @@ import { type GibsonWarning, gibson } from './gibson';
  * The repeat search in `gibson.ts` is the one piece of the reaction with a
  * data structure behind it: every window of a junction's homology is keyed
  * by a rolling 2-bit code of its first 15 bases, the tube is scanned once
- * per strand, and the hits are bucketed into 100-base stretches so that one
- * repeat is reported once. Everything in that — the rolling code's restart
+ * per strand, and hits whose windows overlap or touch are merged into one
+ * stretch so that one repeat is reported once (#73). Everything in that — the rolling code's restart
  * at a base that is not ACGT, the forward-strand coordinate a reverse-strand
  * hit is reported at, the exclusion of the junction's own two ends, the
- * bucketing — is invisible from an example. So here the same question is
+ * merging — is invisible from an example. So here the same question is
  * asked of a naive oracle: for every window, `startsWith` at every position
- * of every part's two strands, drop the designed hits, bucket, keep the
- * lowest start. The set of (part, strand, start) the two find must be equal.
+ * of every part's two strands, drop the designed hits, merge touching
+ * windows, keep each stretch's lowest start. The set of (part, strand, start) the two find must be equal.
  *
- * Repeats are planted deliberately (both strands, several per design, in
- * the same bucket and in different ones), because a random 400-base tube
+ * Repeats are planted deliberately (both strands, several per design, near
+ * each other and far apart), because a random 400-base tube
  * holds none. Alongside the property are fixed cases for what an oracle
  * written from the same reading of the code could get wrong with it:
  *
@@ -29,8 +29,9 @@ import { type GibsonWarning, gibson } from './gibson';
  *   and a repeat of it is missed; an N past base 15 of a longer window is
  *   matched literally and found. That is the behaviour, deliberate or not,
  *   and it is pinned here so a change to the search has to face it.
- * - the 100-base buckets: two copies 10 bases apart are one warning, two
- *   copies either side of a bucket boundary are two.
+ * - the merging: two copies 10 bases apart are one warning, two 20 apart are
+ *   two, one long copy over a multiple of 100 is one (fixed blocks split it
+ *   in two before #73), and two copies 40 apart are two.
  * - the two length rules at their exact boundaries: 199 bp against 200 bp,
  *   and an overlap of 14/15 for three pieces and 19/20 for four.
  */
@@ -111,7 +112,7 @@ function oracleRepeats(
     const up = j;
     const down = (j + 1) % order.length;
     const upLength = must(order[up], 'the upstream part').sequence.length;
-    const buckets = new Map<string, Hit>();
+    const hits: Hit[] = [];
     for (let i = 0; i + k <= overlap.length; i++) {
       const window = overlap.slice(i, i + k);
       // A window the rolling code cannot key on is never searched for.
@@ -127,15 +128,29 @@ function oracleRepeats(
               ((part === up && start >= upLength - overlap.length) ||
                 (part === down && start + k <= overlap.length));
             if (designed) continue;
-            const hit: Hit = { part, start, reverse };
-            const bucket = `${part}:${reverse}:${Math.floor(start / 100)}`;
-            const known = buckets.get(bucket);
-            if (known === undefined || start < known.start) buckets.set(bucket, hit);
+            hits.push({ part, start, reverse });
           }
         });
       });
     }
-    out.set(j, new Set([...buckets.values()].map(key)));
+    // One stretch per run of windows that overlap or touch, on one strand of
+    // one part, reported from its first.
+    const runs: Hit[] = [];
+    const sorted = [...hits].sort(
+      (a, b) => a.part - b.part || Number(a.reverse) - Number(b.reverse) || a.start - b.start,
+    );
+    let previous: Hit | null = null;
+    for (const hit of sorted) {
+      const same: boolean =
+        previous !== null &&
+        previous.part === hit.part &&
+        previous.reverse === hit.reverse &&
+        hit.start <= previous.start + k;
+      if (!same) runs.push(hit);
+      previous =
+        same && previous !== null ? { ...hit, start: Math.max(previous.start, hit.start) } : hit;
+    }
+    out.set(j, new Set(runs.map(key)));
   });
   return out;
 }
@@ -235,7 +250,7 @@ describe('gibson repeat warnings against a naive oracle', () => {
     expect(text).toContain('at 301');
   });
 
-  it('groups a repeat into 100-base stretches, and splits one across a boundary', () => {
+  it('merges the windows of one repeat, and keeps separate copies apart (#73)', () => {
     const parts = pieces(CIRCLE, [0, 500, 1000], 25);
     const first = must(parts[0], 'part1');
     const overlap = must(parts[2], 'part3').slice(-25);
@@ -245,12 +260,28 @@ describe('gibson repeat warnings against a naive oracle', () => {
     const together = check([near, must(parts[1], 'part2'), must(parts[2], 'part3')]);
     expect(together.repeats).toBe(1);
     expect(must(together.warnings[0], 'a warning').text).toContain('at 201');
-    // Either side of a bucket boundary: two, though they are 20 bases apart.
+    const at = (text: string): string | undefined => /at (\d+)/.exec(text)?.[1];
+    // Twenty bases apart, the windows do not touch: two copies, two warnings.
     const split = splice(splice(first, 85, copy), 105, copy);
     const apart = check([split, must(parts[1], 'part2'), must(parts[2], 'part3')]);
     expect(apart.repeats).toBe(2);
-    const at = (text: string): string | undefined => /at (\d+)/.exec(text)?.[1];
     expect(apart.warnings.map((w) => at(w.text))).toEqual(['86', '106']);
+    // One copy of the whole 25-base homology over base 100: its eleven
+    // windows are one stretch, which fixed 100-base blocks split in two.
+    const across = check([
+      splice(first, 90, overlap),
+      must(parts[1], 'part2'),
+      must(parts[2], 'part3'),
+    ]);
+    expect(across.repeats).toBe(1);
+    expect(across.warnings.map((w) => at(w.text))).toEqual(['91']);
+    // Two copies forty bases apart inside one block: two, not one.
+    const inBlock = check([
+      splice(splice(first, 110, copy), 150, copy),
+      must(parts[1], 'part2'),
+      must(parts[2], 'part3'),
+    ]);
+    expect(inBlock.warnings.map((w) => at(w.text))).toEqual(['111', '151']);
   });
 
   it('does not count the junction homology itself', () => {

@@ -430,17 +430,33 @@ function gibsonWarnings(
         (hit.part === down && hit.start + k <= join.length));
     const overlap = join.overlap.toUpperCase();
     // Hits of neighbouring windows are one stretch; it is reported once, from
-    // where it starts on the forward strand.
-    const stretches = new Map<string, { part: number; start: number; reverse: boolean }>();
+    // where it starts on the forward strand. A stretch is hits whose windows
+    // overlap or touch (#73): grouping by fixed blocks of the sequence split a
+    // repeat that crossed a block's edge in two and merged separate copies
+    // inside one block.
+    const byStrand = new Map<string, { part: number; start: number; reverse: boolean }[]>();
     for (let i = 0; i + k <= overlap.length; i++) {
       for (const hit of hitsOf(overlap.slice(i, i + k))) {
         if (designed(hit)) continue;
-        const key = `${hit.part}:${hit.reverse}:${Math.floor(hit.start / 100)}`;
-        const known = stretches.get(key);
-        if (known === undefined || hit.start < known.start) stretches.set(key, hit);
+        const key = `${hit.part}:${hit.reverse}`;
+        const list = byStrand.get(key);
+        if (list === undefined) byStrand.set(key, [hit]);
+        else list.push(hit);
       }
     }
-    for (const hit of stretches.values()) {
+    const stretches: { part: number; start: number; reverse: boolean }[] = [];
+    for (const hits of byStrand.values()) {
+      hits.sort((a, b) => a.start - b.start);
+      let last = -Infinity;
+      for (const hit of hits) {
+        if (hit.start > last + k) stretches.push(hit);
+        last = Math.max(last, hit.start);
+      }
+    }
+    stretches.sort(
+      (a, b) => a.part - b.part || Number(a.reverse) - Number(b.reverse) || a.start - b.start,
+    );
+    for (const hit of stretches) {
       const where = order[hit.part]?.document.name ?? 'a part';
       const from = order[up]?.document.name ?? 'one part';
       const to = order[down]?.document.name ?? 'the next';

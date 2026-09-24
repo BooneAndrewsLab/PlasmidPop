@@ -230,3 +230,9 @@ overhangs would misligate.
   them and the panel blamed primers pointing away from each other. Each part
   now stops at half the insert; every size from 36 to 70 closes. Found by
   `overlapPrimers.property.test.ts`, on about 3.5% of random designs.
+- **A repeat is a stretch, not a block, 2026-09-24** (#73). Gibson's repeat
+  hits were grouped by `floor(start / 100)`, so one copy of a junction's
+  homology that crossed a multiple of 100 was reported twice and two copies
+  inside one block once. Hits are now merged per part and strand when their
+  windows overlap or touch, which is what one copy looks like, and each
+  stretch is reported from its first base.
