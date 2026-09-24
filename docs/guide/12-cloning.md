@@ -18,7 +18,9 @@ document you happen to be reading.
 
 ## Digest
 
-The digest uses the enzymes **ticked in the Enzymes tab**. Tick the enzymes
+The digest uses the enzymes **ticked in the Enzymes tab**, less any site
+the document's own methylation blocks (see
+[Where the DNA was grown](07-enzymes.md#where-the-dna-was-grown)). Tick the enzymes
 you would put in the tube, then come back. It follows the ticks alone: the
 toolbar's **Cut sites** toggle only hides the sites drawn in the views, so a
 decluttered map still digests with everything ticked. Fragments are listed largest

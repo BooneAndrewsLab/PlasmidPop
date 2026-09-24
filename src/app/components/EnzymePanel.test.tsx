@@ -645,3 +645,54 @@ describe('EnzymePanel host methylation', () => {
     expect(screen.getByText(/1 of 2 sites may be blocked by Dam\/Dcm methylation/)).toBeVisible();
   });
 });
+
+describe('host methylation (#45)', () => {
+  // MscI's TGGCCA here sits in a Dcm CCWGG, so an ordinary strain blocks
+  // it; the ClaI site further along is never blocked.
+  const text = `AAAACCTGGCCAAAAA${'ACGT'.repeat(20)}AAATCGATAAA${'TTAG'.repeat(20)}`;
+  const plasmid = SeqDocument.create({ name: 'pMeth', sequence: text, topology: 'circular' });
+
+  function current(): SeqDocument {
+    const doc = editorStore.document;
+    if (doc === null) throw new Error('no document');
+    return doc;
+  }
+
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+    });
+  });
+
+  it('cuts what the strain allows, and says which strain that is', () => {
+    const mscI = getEnzyme('MscI');
+    const claI = getEnzyme('ClaI');
+    if (mscI === undefined || claI === undefined) throw new Error('missing enzymes');
+    act(() => {
+      editorStore.openDocument(plasmid);
+      editorStore.setAnalysis(plasmid, findCutSites(text, 'circular', [mscI, claI]), []);
+      editorStore.setShownEnzymes(['MscI', 'ClaI']);
+    });
+    const view = render(<EnzymePanel doc={current()} />);
+    const host = (): HTMLElement => screen.getByLabelText('Host methylation');
+    expect(host()).toHaveValue('dam+/dcm+');
+    // Blocked: only ClaI cuts, so the circle opens into one piece.
+    const bands = (): number =>
+      (document.querySelector('.panel__mono')?.textContent ?? '').split(',').length;
+    expect(bands()).toBe(1);
+
+    act(() => {
+      fireEvent.change(host(), { target: { value: 'unmethylated' } });
+    });
+    expect(current().methylation).toEqual({ dam: false, dcm: false });
+    view.rerender(<EnzymePanel doc={current()} />);
+    // Now MscI cuts as well, so the digest gives two pieces.
+    expect(bands()).toBe(2);
+
+    // It is an edit, so it can be undone.
+    act(() => {
+      editorStore.undo();
+    });
+    expect(current().methylation).toEqual({ dam: true, dcm: true });
+  });
+});

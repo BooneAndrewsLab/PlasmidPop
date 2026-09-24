@@ -1,5 +1,6 @@
 import { type Feature, type FeatureId } from '../features';
 import { type Range, type Topology } from '../range';
+import { type HostMethylationState } from '../analysis/methylation';
 import { type DocumentEnds } from './ends';
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata } from './metadata';
@@ -29,6 +30,8 @@ export type EditOp =
    * bench would (see `BluntMethod`). The bases change as well as the ends.
    */
   | { readonly type: 'bluntEnds'; readonly method: BluntMethod }
+  /** Says where the DNA was grown, for the enzymes its methylation blocks. */
+  | { readonly type: 'setMethylation'; readonly methylation: HostMethylationState }
   | { readonly type: 'rename'; readonly name: string }
   | { readonly type: 'setMetadata'; readonly patch: Partial<DocumentMetadata> }
   | { readonly type: 'addFeature'; readonly feature: Feature }
@@ -83,6 +86,8 @@ export function describeEditOp(op: EditOp): string {
       return op.ends === null ? 'Blunt the ends' : 'Set the ends';
     case 'bluntEnds':
       return op.method === 'fill' ? 'Blunt the ends (fill in)' : 'Blunt the ends (trim)';
+    case 'setMethylation':
+      return 'Set the host methylation';
     case 'rename':
       return 'Rename';
     case 'setMetadata':

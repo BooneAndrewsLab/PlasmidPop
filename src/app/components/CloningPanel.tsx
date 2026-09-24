@@ -6,8 +6,10 @@ import {
   type FragmentEnd,
   type PartialFragment,
   type SeqDocument,
+  cuttableSites,
   describeEnd,
   digest,
+  getEnzyme,
   documentFromFragment,
   partialDigest,
   partialDigestSize,
@@ -197,9 +199,21 @@ export function CloningPanel({ doc }: Props) {
   const [partial, setPartial] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
 
+  // The ticked enzymes' sites, less the ones this DNA's own methylation
+  // would block (#45): a digest cuts what the tube would cut. The Enzymes
+  // tab still lists and marks them, and says where the DNA was grown.
   const cutSites = useMemo(
-    () => (ready ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme)) : []),
-    [analysis, ready, shownEnzymes],
+    () =>
+      ready
+        ? cuttableSites(
+            doc.sequence.toString(),
+            doc.topology,
+            doc.methylation,
+            analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme)),
+            (name) => getEnzyme(name)?.site.length ?? 0,
+          )
+        : [],
+    [analysis, ready, shownEnzymes, doc],
   );
   const enzymesUsed = useMemo(
     () => [...new Set(cutSites.map((s) => s.enzyme))].sort((a, b) => a.localeCompare(b)),

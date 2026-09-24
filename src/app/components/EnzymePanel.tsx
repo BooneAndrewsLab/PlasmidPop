@@ -17,6 +17,9 @@ import {
   enzymeProfile,
   gelProfile,
   getEnzyme,
+  type HostMethylationState,
+  blockedByHost,
+  describeHost,
   hostMethylationAt,
   isHostMethylationSensitive,
   isDoubleCutter,
@@ -47,6 +50,18 @@ interface Props {
  * REBASE table has four-base cutters that hit a plasmid a hundred times, and
  * a hundred numbers in a row is not a list anyone reads.
  */
+/**
+ * The strains a document can say it came from (#45). Not every combination
+ * a lab could make, but the four a digest is planned against: the ordinary
+ * one, either knockout, and DNA that was never in a cell.
+ */
+const HOSTS: readonly HostMethylationState[] = [
+  { dam: true, dcm: true },
+  { dam: true, dcm: false },
+  { dam: false, dcm: true },
+  { dam: false, dcm: false },
+];
+
 const MAX_SITES_SHOWN = 12;
 
 /**
@@ -195,6 +210,8 @@ interface DoubleDigestsProps {
    * for one chosen enzyme is looked for.
    */
   readonly pairable: readonly PairRow[];
+  /** The cuts of a row's sites that this DNA's methylation leaves open (#45). */
+  readonly cuts: (sites: readonly CutSite[]) => number[];
   readonly doc: SeqDocument;
   readonly shownEnzymes: ReadonlySet<string>;
 }
@@ -208,14 +225,17 @@ interface DoubleDigestsProps {
  * (item 42). "Tick both" ticks the pair alone, and the gel below then draws
  * their digest beside each single one.
  */
-function DoubleDigests({ listed, pairable, doc, shownEnzymes }: DoubleDigestsProps) {
+function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDigestsProps) {
   const gel = useGelOptions();
   const [anchorName, setAnchorName] = useState('');
   const anchor =
     anchorName === '' ? undefined : pairable.find((r) => r.members.includes(anchorName));
   // Keyed on the names rather than on `listed`, a new array every render.
   const key = listed
-    .filter((g) => g.sites.length > 0 && g.sites.length <= MAX_PAIR_CUTS)
+    .filter((g) => {
+      const open = cuts(g.sites).length;
+      return open > 0 && open <= MAX_PAIR_CUTS;
+    })
     .map((g) => g.enzyme.name)
     .join(' ');
   const poolSize = key === '' ? 0 : key.split(' ').length;
@@ -227,7 +247,7 @@ function DoubleDigests({ listed, pairable, doc, shownEnzymes }: DoubleDigestsPro
       .sort((a, b) => a.sites.length - b.sites.length)
       .slice(0, MAX_PAIR_CANDIDATES);
     return bestPairs(
-      pool.map((g) => ({ name: g.enzyme.name, cuts: g.sites.map((site) => site.cut) })),
+      pool.map((g) => ({ name: g.enzyme.name, cuts: cuts(g.sites) })),
       doc.length,
       doc.topology,
       PAIRS_SHOWN,
@@ -415,12 +435,37 @@ export function EnzymePanel({ doc }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis, ready, enzymeSetInfo, doc.length, doc.topology, gel]);
 
+  const sequence = useMemo(() => doc.sequence.toString(), [doc]);
+
+  /**
+   * The cuts this DNA's own methylation would block (#45), by enzyme and
+   * position. The list still shows them, marked: "blocked in a dam+ strain"
+   * is worth knowing whatever this DNA is. What changes is the digest.
+   */
+  const blocked = useMemo(() => {
+    const out = new Set<string>();
+    const { dam, dcm } = doc.methylation;
+    if (!ready || (!dam && !dcm)) return out;
+    for (const site of analysis.cutSites) {
+      const enzyme = getEnzyme(site.enzyme);
+      if (enzyme === undefined) continue;
+      const marks = hostMethylationAt(sequence, doc.topology, site, enzyme.site.length);
+      if (blockedByHost(doc.methylation, marks)) out.add(`${site.enzyme}:${site.cut}`);
+    }
+    return out;
+  }, [ready, analysis, sequence, doc.topology, doc.methylation]);
+  const cuts = useMemo(
+    () =>
+      (sites: readonly CutSite[]): number[] =>
+        sites.filter((s) => !blocked.has(`${s.enzyme}:${s.cut}`)).map((s) => s.cut),
+    [blocked],
+  );
+
   const shownCuts = useMemo(() => {
-    const cuts: number[] = [];
-    for (const g of groups)
-      if (shownEnzymes.has(g.enzyme.name)) for (const s of g.sites) cuts.push(s.cut);
-    return cuts;
-  }, [groups, shownEnzymes]);
+    const out: number[] = [];
+    for (const g of groups) if (shownEnzymes.has(g.enzyme.name)) out.push(...cuts(g.sites));
+    return out;
+  }, [groups, shownEnzymes, cuts]);
   const fragments = useMemo(
     () =>
       shownCuts.length === 0
@@ -490,18 +535,11 @@ export function EnzymePanel({ doc }: Props) {
       ...tickedGroups.map((g) => ({
         profile: g.profile,
         label: g.name,
-        ...pick(
-          digestFragments(
-            g.sites.map((s) => s.cut),
-            doc.length,
-            doc.topology,
-          ),
-          `${g.name} alone: `,
-        ),
+        ...pick(digestFragments(cuts(g.sites), doc.length, doc.topology), `${g.name} alone: `),
       })),
       combined,
     ];
-  }, [tickedGroups, ticked, fragments, doc.length, doc.topology]);
+  }, [tickedGroups, ticked, fragments, cuts, doc.length, doc.topology]);
 
   /**
    * What one row of the list stands for: an enzyme, or with isoschizomers
@@ -525,19 +563,16 @@ export function EnzymePanel({ doc }: Props) {
           const members =
             supplier === '' ? all : all.filter((e) => e.suppliers?.includes(supplier) === true);
           const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
-          const n = entry?.sites.length ?? 0;
-          if (entry === undefined || n === 0 || n > MAX_PAIR_CUTS) return [];
+          if (entry === undefined) return [];
+          // A site this DNA's methylation blocks is not a cut, so an enzyme
+          // it silences is no partner for a digest (#45).
+          const open = cuts(entry.sites);
+          if (open.length === 0 || open.length > MAX_PAIR_CUTS) return [];
           const name = (members.find((e) => shownEnzymes.has(e.name)) ?? entry.enzyme).name;
-          return [
-            {
-              name,
-              members: members.map((e) => e.name),
-              cuts: entry.sites.map((site) => site.cut),
-            },
-          ];
+          return [{ name, members: members.map((e) => e.name), cuts: open }];
         })
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [units, supplier, entryByName, shownEnzymes],
+    [units, supplier, entryByName, shownEnzymes, cuts],
   );
 
   const needle = filter.trim().toLowerCase();
@@ -626,7 +661,6 @@ export function EnzymePanel({ doc }: Props) {
     scrollToTop();
   }, [needle, supplier, enzymeCutFilter, enzymeSort, reversed, scrollToTop]);
 
-  const sequence = useMemo(() => doc.sequence.toString(), [doc]);
   /** Dam or Dcm inside this site in DNA from a methylating strain; see `hostMethylationAt`. */
   const methylated = (enzyme: Enzyme, site: CutSite) =>
     hostMethylationAt(sequence, doc.topology, site, enzyme.site.length);
@@ -709,6 +743,26 @@ export function EnzymePanel({ doc }: Props) {
                 {reversed ? '↑' : '↓'}
               </button>
             </span>
+          </label>
+          <label title="Where the DNA was grown. An ordinary laboratory strain methylates GATC (Dam) and CCWGG (Dcm), which blocks some enzymes; DNA made by PCR carries neither">
+            <span>Grown in</span>
+            <select
+              className="panel__select"
+              aria-label="Host methylation"
+              value={describeHost(doc.methylation)}
+              onChange={(e) => {
+                const chosen = HOSTS.find((h) => describeHost(h) === e.target.value);
+                if (chosen !== undefined) {
+                  editorStore.apply({ type: 'setMethylation', methylation: chosen });
+                }
+              }}
+            >
+              {HOSTS.map((h) => (
+                <option key={describeHost(h)} value={describeHost(h)}>
+                  {describeHost(h)}
+                </option>
+              ))}
+            </select>
           </label>
           <span className="panel__form-label">Isoschizomers</span>
           <span className="panel__form-range">
@@ -906,6 +960,7 @@ export function EnzymePanel({ doc }: Props) {
             <DoubleDigests
               listed={rows}
               pairable={pairable}
+              cuts={cuts}
               doc={doc}
               shownEnzymes={shownEnzymes}
             />

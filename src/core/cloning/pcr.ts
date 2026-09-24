@@ -1,3 +1,4 @@
+import { UNMETHYLATED_HOST } from '../analysis/methylation';
 import { SeqDocument, createMetadata, fragmentFromRange } from '../document';
 import { type Feature, createFeature, rangeSegment, shiftFeature } from '../features';
 import { newId } from '../ids';
@@ -246,6 +247,8 @@ function amplify(
       primerFeature(f, 0, 'forward'),
       primerFeature(r, sequence.length - r.primer.length, 'reverse'),
     ],
+    // Made in a tube: no methylase has seen it (#45), so every site cuts.
+    methylation: UNMETHYLATED_HOST,
     ends: tailed
       ? {
           left: { kind: "3'", overhang: 'T', enzyme: null },

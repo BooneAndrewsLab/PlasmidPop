@@ -34,3 +34,34 @@ blocks it, and that needs a separate dataset.
   where it was grown, which the document does not know. The follow-up is
   to make that a document property — SnapGene's sequence flags carry it —
   and let the digests use it.
+
+Added 2026-09-23 (#45): **the host, and digests that respect it.**
+
+- **A document property.** `SeqDocument.methylation` is `{dam, dcm}`,
+  `dam+ dcm+` by default, because that is where a plasmid on a bench comes
+  from and a file that says nothing is a plasmid. `pcr` sets it to neither:
+  DNA made in a tube has met no methylase. The Enzymes tab's **Grown in**
+  offers the four strains a digest is planned against, as an undoable edit
+  (`setMethylation`), which is also how it survives a reload — documents
+  are stored as GenBank.
+- **Marking and cutting are separate.** `hostMethylationAt` is about the
+  sequence and stays whatever the host is: "blocked in a dam+ strain" is
+  worth knowing about DNA that is not in one, so every site keeps its
+  **m**. `cuttableSites` is the other half, and it is what the fragments,
+  the gel, the double-digest ranking and the Cloning tab's digest use. The
+  distinction is the whole design: one is a property of the sequence, the
+  other of this DNA.
+- **The pair ranking drops a silenced enzyme entirely**, rather than
+  ranking it on cuts it would not make. On pBR322 that is the guide's own
+  example, EagI + MscI: a clean two-band digest that plasmid from an
+  ordinary strain will not give.
+- **It round-trips.** GenBank has nowhere for it, so it rides in a comment
+  of ours (`PlasmidPop-methylation: dam-; dcm+`, `methylationComment.ts`),
+  written only when it is not the default and taken out of the comments on
+  read so a file does not collect copies — the pattern item 10 set for
+  sticky ends. SnapGene's own flags byte carries it (bit 1 Dam, bit 2 Dcm,
+  bit 3 EcoKI), so its files bring their setting with them; EcoKI is read
+  and dropped, since no enzyme in the table is blocked by it.
+- Still not modelled: blocked from impaired, and which of Dam or Dcm per
+  enzyme, neither of which NEB's note gives (see above); CpG and other
+  methylation; an enzyme's own methyltransferase.

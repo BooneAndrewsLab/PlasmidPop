@@ -199,6 +199,7 @@ export function selectionAfterOp(
         doc.mapPositionThrough(op, selection.end),
       );
     case 'setEnds':
+    case 'setMethylation':
     case 'insert':
     case 'delete':
     case 'replace':

@@ -57,6 +57,7 @@ const EDIT_OPS: Readonly<Record<EditOp['type'], true>> = {
   setTopology: true,
   setEnds: true,
   bluntEnds: true,
+  setMethylation: true,
   rename: true,
   setMetadata: true,
   addFeature: true,

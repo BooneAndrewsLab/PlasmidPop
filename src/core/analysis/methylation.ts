@@ -135,3 +135,69 @@ export function hostMethylationAt(
   }
   return out;
 }
+
+/**
+ * Where a document's DNA was grown, as far as its restriction sites are
+ * concerned (#45). Almost every plasmid on a bench comes out of an
+ * ordinary `dam+ dcm+` laboratory strain of E. coli, so that is the
+ * default; DNA made in a tube (a PCR product) carries no methylation at
+ * all, and DNA from a `dam−/dcm−` strain carries whichever was knocked out.
+ */
+export interface HostMethylationState {
+  readonly dam: boolean;
+  readonly dcm: boolean;
+}
+
+/** An ordinary laboratory strain: what a plasmid is assumed to come from. */
+export const METHYLATED_HOST: HostMethylationState = { dam: true, dcm: true };
+
+/** DNA made in a tube, or grown in a `dam− dcm−` strain. */
+export const UNMETHYLATED_HOST: HostMethylationState = { dam: false, dcm: false };
+
+export function methylationEqual(a: HostMethylationState, b: HostMethylationState): boolean {
+  return a.dam === b.dam && a.dcm === b.dcm;
+}
+
+/** "dam+/dcm+", "dam+ only", "unmethylated" — how the UI and a file say it. */
+export function describeHost(state: HostMethylationState): string {
+  if (state.dam && state.dcm) return 'dam+/dcm+';
+  if (state.dam) return 'dam+ only';
+  if (state.dcm) return 'dcm+ only';
+  return 'unmethylated';
+}
+
+/**
+ * Whether this host's methylation blocks a cut that `hostMethylationAt`
+ * marked. A site marked for Dcm is cut normally by DNA from a `dcm−`
+ * strain, which is why the marks and the host are kept apart.
+ */
+export function blockedByHost(
+  state: HostMethylationState,
+  marks: readonly HostMethylation[],
+): boolean {
+  return marks.some((m) => (m === 'Dam' ? state.dam : state.dcm));
+}
+
+/**
+ * The sites of `sites` that would actually cut DNA grown as `state` says
+ * (#45): a site an enzyme is sensitive to, with Dam or Dcm inside it and
+ * that methylase present, is left out.
+ *
+ * The marks themselves (`hostMethylationAt`) are about the sequence and
+ * stay whatever the host is — the Enzymes tab shows them either way, since
+ * "this site would be blocked in a dam+ strain" is worth knowing about DNA
+ * that is not in one. This is the other half: what the tube would do.
+ */
+export function cuttableSites(
+  sequence: string,
+  topology: Topology,
+  state: HostMethylationState,
+  sites: readonly CutSite[],
+  siteLength: (enzyme: string) => number,
+): CutSite[] {
+  if (!state.dam && !state.dcm) return [...sites];
+  return sites.filter(
+    (site) =>
+      !blockedByHost(state, hostMethylationAt(sequence, topology, site, siteLength(site.enzyme))),
+  );
+}

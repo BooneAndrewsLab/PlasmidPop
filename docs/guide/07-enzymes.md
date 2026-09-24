@@ -302,10 +302,36 @@ methylation_ — and the enzyme's tooltip says it is a sensitive one.
 On pBR322, for example, the MscI site is inside a CCTGG and the BspEI site
 inside a GATC, so plasmid grown in an ordinary strain may not cut there.
 
-The marks are a warning, not a simulation: digests, the gel and the
-Cloning tab still cut every site. DNA from a PCR, from mammalian cells or
-from a dam–/dcm– strain carries no Dam or Dcm methylation, and there the
-marks do not apply.
+### Where the DNA was grown
+
+Whether those marks matter depends on where the DNA came from, and the
+document says so: **Grown in**, among the list's controls, is one of
+**dam+/dcm+** (an ordinary laboratory strain of E. coli, and the default
+for any plasmid), **dam+ only**, **dcm+ only**, or **unmethylated** — DNA
+from a `dam− dcm−` strain, from mammalian cells, or straight out of a PCR.
+A product the PCR panel makes is unmethylated from the start.
+
+What it changes is the cutting, not the marking. A site stays marked
+whatever the host is, because "this would be blocked in a dam+ strain" is
+worth knowing about DNA that is not in one. But a site the host's
+methylation does block is left out of:
+
+- the fragments and the gel below the list;
+- the double-digest ranking, so an enzyme this DNA would silence is not
+  offered as a partner;
+- the Cloning tab's digest, and so the shelf, the ligation and the gel
+  there.
+
+On pBR322 that is the difference the guide's own example turns on: EagI +
+MscI is a clean two-band digest on paper, and plasmid from an ordinary
+strain will not give it, because the MscI site is Dcm-blocked.
+
+Changing it is an edit like any other, so **Undo** takes it back, and it is
+saved with the document: GenBank has nowhere to put it, so it travels as a
+comment line of ours (`PlasmidPop-methylation: ...`), the way sticky ends
+do. A SnapGene file brings its own setting with it — the flags its sequence
+packet carries — and a file that says nothing is read as an ordinary
+plasmid.
 
 Cut positions are given on the top strand; the bottom-strand cut and the
 overhang are used by the Cloning tab.

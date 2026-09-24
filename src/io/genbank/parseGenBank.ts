@@ -17,6 +17,7 @@ import {
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
 import { isDerivedComment, parseDerivedComment } from './derivedComment';
 import { isEndsComment, parseEndsComment } from './endsComment';
+import { isMethylationComment, parseMethylationComment } from './methylationComment';
 
 /**
  * Qualifiers whose value names the feature, in priority order, by feature type.
@@ -494,13 +495,18 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   const ends = parsed.comments.map(parseEndsComment).find((e) => e !== null) ?? null;
   // Where the document came from travels the same way (`derivedComment.ts`).
   const derivedFrom = parsed.comments.map(parseDerivedComment).find((d) => d !== null) ?? null;
+  // And so does the host the DNA was grown in (`methylationComment.ts`).
+  const methylation = parsed.comments.map(parseMethylationComment).find((m) => m !== null) ?? null;
   // Only a line that was understood comes out of the comments: a damaged one
   // stays where it is rather than being silently swallowed.
   const metadata = {
     ...parsed,
     derivedFrom,
     comments: parsed.comments.filter(
-      (c) => (ends === null || !isEndsComment(c)) && (derivedFrom === null || !isDerivedComment(c)),
+      (c) =>
+        (ends === null || !isEndsComment(c)) &&
+        (derivedFrom === null || !isDerivedComment(c)) &&
+        (methylation === null || !isMethylationComment(c)),
     ),
   };
   const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);
@@ -511,6 +517,7 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
     features,
     metadata,
     ends,
+    ...(methylation === null ? {} : { methylation }),
   });
 }
 

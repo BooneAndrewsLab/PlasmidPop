@@ -94,6 +94,7 @@ function firstOfEachGroup(names: readonly string[]): string[] {
 /** Ops that leave the sequence and topology alone, so analysis results stay exact. */
 const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
   'rename',
+  'setMethylation',
   'setMetadata',
   'addFeature',
   'updateFeature',

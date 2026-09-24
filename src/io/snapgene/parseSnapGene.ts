@@ -1,4 +1,5 @@
 import {
+  type HostMethylationState,
   type DocumentMetadata,
   type Feature,
   type Qualifier,
@@ -27,7 +28,8 @@ import { type XmlElement, childElements, firstChild, parseXml, stripHtml, textOf
  * length, then the payload. The packets we use:
  *
  *   0x09  cookie      "SnapGene" + version numbers (must come first)
- *   0x00  sequence    flags byte (bit 0 = circular) followed by ASCII bases
+ *   0x00  sequence    flags byte (bit 0 = circular, 1 = Dam, 2 = Dcm,
+ *                            3 = EcoKI) followed by ASCII bases
  *   0x0A  features    XML <Features><Feature><Segment/><Q><V/></Q></Feature>…
  *   0x05  primers     XML <Primers><Primer><BindingSite/></Primer>…
  *   0x06  notes       XML <Notes> with description, organism, references…
@@ -305,6 +307,16 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
   if (seqPacket === undefined) throw new FormatError('SnapGene file has no DNA sequence packet');
   const flags = seqPacket.payload[0] ?? 0;
   const topology: Topology = (flags & 0x01) !== 0 ? 'circular' : 'linear';
+  /**
+   * SnapGene keeps the methylation the DNA is taken to carry in the same
+   * flags byte: bit 1 Dam, bit 2 Dcm, bit 3 EcoKI (#45). EcoKI blocks no
+   * restriction enzyme in our table, so it is read and dropped rather than
+   * stored as something nothing consults.
+   */
+  const methylation: HostMethylationState = {
+    dam: (flags & 0x02) !== 0,
+    dcm: (flags & 0x04) !== 0,
+  };
   let sequence = utf8.decode(seqPacket.payload.subarray(1));
   if (!isValidSequence(sequence)) {
     const cleaned = sequence.replace(/[^ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, '');
@@ -351,6 +363,7 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
     sequence,
     topology,
     features,
+    methylation,
     metadata: createMetadata(metadata),
   });
   const properties = packets.find((p) => p.type === Packet.Properties);

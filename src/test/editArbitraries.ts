@@ -402,6 +402,7 @@ export class RefModel {
       // generated here have no sticky ends, so it leaves them alone.)
       case 'setEnds':
       case 'bluntEnds':
+      case 'setMethylation':
       case 'rename':
       case 'setMetadata':
       case 'addFeature':

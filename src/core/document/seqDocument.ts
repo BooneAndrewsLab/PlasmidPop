@@ -40,6 +40,11 @@ import {
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata, EMPTY_METADATA } from './metadata';
 import { type SequencingRead, assertValidRead, reverseComplementRead } from './read';
+import {
+  type HostMethylationState,
+  METHYLATED_HOST,
+  methylationEqual,
+} from '../analysis/methylation';
 
 export interface SeqDocumentInit {
   readonly name?: string;
@@ -51,6 +56,8 @@ export interface SeqDocumentInit {
   readonly ends?: DocumentEnds | null;
   /** Qualities and trace of a sequencing read, one quality per base. */
   readonly read?: SequencingRead | null;
+  /** Where the DNA was grown, for the enzymes its methylation blocks (#45). */
+  readonly methylation?: HostMethylationState;
 }
 
 interface SeqDocumentFields {
@@ -61,6 +68,7 @@ interface SeqDocumentFields {
   readonly metadata: DocumentMetadata;
   readonly ends: DocumentEnds | null;
   readonly read: SequencingRead | null;
+  readonly methylation: HostMethylationState;
 }
 
 /**
@@ -92,6 +100,14 @@ export class SeqDocument {
    */
   readonly read: SequencingRead | null;
 
+  /**
+   * The methylation the DNA carries from wherever it was grown, which
+   * decides which restriction sites will not cut (`core/analysis/
+   * methylation.ts`). An ordinary laboratory strain by default, since that
+   * is where a plasmid comes from; what a PCR makes sets it to none.
+   */
+  readonly methylation: HostMethylationState;
+
   static create(init: SeqDocumentInit): SeqDocument {
     let sequence: SequenceText;
     if (typeof init.sequence === 'string') {
@@ -114,6 +130,7 @@ export class SeqDocument {
       metadata: { ...EMPTY_METADATA, ...init.metadata },
       ends: normalizeEnds(init.ends, topology),
       read,
+      methylation: init.methylation ?? METHYLATED_HOST,
     });
   }
 
@@ -125,6 +142,7 @@ export class SeqDocument {
     this.metadata = fields.metadata;
     this.ends = fields.ends;
     this.read = fields.read;
+    this.methylation = fields.methylation;
   }
 
   get length(): number {
@@ -150,6 +168,7 @@ export class SeqDocument {
       metadata: patch.metadata ?? this.metadata,
       ends: normalizeEnds(ends, topology),
       read: read ?? null,
+      methylation: patch.methylation ?? this.methylation,
     });
   }
 
@@ -209,6 +228,8 @@ export class SeqDocument {
         return this.setEnds(op.ends);
       case 'bluntEnds':
         return this.bluntEnds(op.method);
+      case 'setMethylation':
+        return this.setMethylation(op.methylation);
       case 'rename':
         return this.rename(op.name);
       case 'setMetadata':
@@ -478,6 +499,11 @@ export class SeqDocument {
   removeFeature(id: FeatureId): SeqDocument {
     if (!this.features.has(id)) return this;
     return this.with({ features: this.features.remove(id) });
+  }
+
+  /** Says where the DNA was grown, which decides what its methylation blocks. */
+  setMethylation(methylation: HostMethylationState): SeqDocument {
+    return methylationEqual(methylation, this.methylation) ? this : this.with({ methylation });
   }
 
   /** Gives the document the qualities and trace of the read it is (or none). */

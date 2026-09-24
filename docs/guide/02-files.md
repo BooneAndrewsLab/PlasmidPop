@@ -37,6 +37,11 @@ usual `[topology=circular]`. A SnapGene file's own record of its overhangs
 is read on import — a linearised TA vector opens with its 3′ T at each end,
 a D-TOPO vector with its 5′ overhang.
 
+Where the DNA was grown travels the same way, as
+`PlasmidPop-methylation: dam-; dcm+`, and only when it is not an ordinary
+`dam+ dcm+` plasmid (see
+[Where the DNA was grown](07-enzymes.md#where-the-dna-was-grown)).
+
 **ApE** files are GenBank with extra colour qualifiers; those colours are
 used for the features.
 

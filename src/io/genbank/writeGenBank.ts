@@ -2,6 +2,11 @@ import { type Feature, type Reference, type SeqDocument, formatLocation } from '
 
 import { formatDerivedComment, isDerivedComment } from './derivedComment';
 import { formatEndsComment, isEndsComment } from './endsComment';
+import {
+  formatMethylationComment,
+  isMethylationComment,
+  needsMethylationComment,
+} from './methylationComment';
 import { deriveFeatureName } from './parseGenBank';
 
 const LINE_WIDTH = 79;
@@ -128,13 +133,19 @@ function headerLines(doc: SeqDocument): string[] {
   if (doc.ends !== null) {
     out.push(...headerBlock('COMMENT', formatEndsComment(doc.ends), '', true));
   }
+  // And so does the host the DNA was grown in, when it is not the ordinary
+  // one a file with no line is read as (`methylationComment.ts`).
+  if (needsMethylationComment(doc.methylation)) {
+    out.push(...headerBlock('COMMENT', formatMethylationComment(doc.methylation), '', true));
+  }
   // Where the document came from rides in another (`derivedComment.ts`), and
   // is treated the same way.
   if (m.derivedFrom !== null) {
     out.push(...headerBlock('COMMENT', formatDerivedComment(m.derivedFrom), '', true));
   }
   for (const comment of m.comments) {
-    if (isEndsComment(comment) || isDerivedComment(comment)) continue;
+    if (isEndsComment(comment) || isDerivedComment(comment) || isMethylationComment(comment))
+      continue;
     out.push(...headerBlock('COMMENT', comment, '', true));
   }
   for (const extra of m.extraHeaders)
