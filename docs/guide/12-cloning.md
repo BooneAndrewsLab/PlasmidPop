@@ -132,7 +132,12 @@ the wrong places.
   Gibson homology arm, a tag, a His stretch. The tail is copied into the
   product all the same. Under each box the panel says how long the oligo is,
   how much of it is tail, the melting temperature of the part that anneals
-  and where it lands.
+  and where it lands. A tailed or mismatched primer gets two temperatures:
+  the first on the template, counting only the 3′ bases up to the first
+  mismatch, and the second once the product — which carries the whole
+  primer — is the template. The usual advice for such primers, a few cycles
+  at the lower temperature before the rest at the higher, follows from the
+  two.
 - **The last 5 bases must match exactly**, as they must on the bench: a
   polymerase extends from the 3′ end, and a mismatch under it stops the
   reaction whatever the rest of the oligo does. Up to two mismatches further
@@ -165,9 +170,21 @@ round — inverse PCR, which is how a vector is linearised for a Gibson. It
 needs nothing special here: it is simply the product that happens to be
 nearly the whole molecule.
 
-The product is left blunt. A-tailing, primer dimers and the polymerase's
-processivity are not modelled; a pairing that would give a product longer
-than 20 kb is reported and not built.
+**Polymerase** chooses what comes out. A proofreading enzyme (Q5, Phusion,
+Pfu) leaves the product blunt and reaches 20 kb; **Taq** adds one A to each
+3′ end, which is what TA cloning joins by (a TA vector's single 3′ T
+overhangs pair with them on the shelf), and is taken to reach 5 kb. A pairing
+that would give a longer product is reported and not built.
+
+**5′-phosphorylated primers**: oligos are made without a 5′ phosphate unless
+ordered with one, and a PCR product's 5′ ends are its primers'. So a
+shelved product is marked dephosphorylated (see
+[Ligation](#ligation)) unless this is ticked, and will not ligate into a
+dephosphorylated vector — as on the bench.
+
+**Primer dimers.** When the 3′ end of one primer pairs with the other, or
+with a second copy of itself, over more than 4 bases, the panel says so:
+a polymerase can extend the pair into a short product of its own.
 
 ## The shelf
 
@@ -338,10 +355,9 @@ worth seeing before it is ambiguous in the tube.
 
 ## Not yet
 
-A-tailing, primer dimers and how much more readily a short product
-amplifies than a long one are not modelled beyond the order the products are
-listed in. A PCR product's ends are taken to carry phosphates, though primers
-are made without them unless ordered phosphorylated. Gibson does not model
-the chew-back itself, only the length rules above, and Golden Gate's
-overhang warnings follow design rules rather than measured ligation
-fidelity.
+How much more readily a short product amplifies than a long one is not
+modelled beyond the order the products are listed in, and a mismatched
+primer's first-cycle temperature leaves out what the mismatched stretch
+still contributes. Gibson does not model the chew-back itself, only the
+length rules above, and Golden Gate's overhang warnings follow design rules
+rather than measured ligation fidelity.

@@ -37,12 +37,18 @@ export interface AnnealingSite {
   /** Mismatches inside the annealing part, outside the 3′ anchor. */
   readonly mismatches: number;
   /**
-   * Melting temperature of the annealing part alone, which is what the first
-   * cycle of a PCR sees — the tail is single-stranded until the second round,
-   * when the product carries it. Mismatches are not modelled, so a site with
-   * one reads a degree or two high.
+   * Melting temperature of the annealing part alone, as if it matched
+   * throughout: what the primer anneals at once the product, which carries
+   * the primer's own bases, is the template (#14).
    */
   readonly tm: number;
+  /**
+   * Melting temperature of the 3′ stretch before the first mismatch, the
+   * part that surely pairs in the first cycles, when the template is the
+   * original. Equal to `tm` for a site with no mismatch; a lower bound
+   * otherwise, since a mismatched stretch still pairs a little.
+   */
+  readonly templateTm: number;
 }
 
 export interface AnnealOptions {
@@ -75,10 +81,12 @@ function annealRun(
   anchor: number,
   step: number,
   opts: Required<AnnealOptions>,
-): { readonly length: number; readonly mismatches: number } | null {
+): { readonly length: number; readonly mismatches: number; readonly perfect: number } | null {
   let mismatches = 0;
   let best = 0;
   let bestMismatches = 0;
+  /** Bases from the 3′ end before the first mismatch. */
+  let perfect = -1;
   for (let i = 0; i < probe.length; i++) {
     const base = baseAt(anchor + step * i);
     // Off the end of a linear template: the primer hangs over the tip, and
@@ -92,9 +100,15 @@ function annealRun(
     // A mismatch under the last few bases is not a weak site, it is no site:
     // the 3′ end has to be paired for the polymerase to extend it.
     if (i < opts.exactThreePrime) return null;
+    if (perfect < 0) perfect = i;
     if (++mismatches > opts.maxMismatches) break;
   }
-  return best >= opts.minAnneal ? { length: best, mismatches: bestMismatches } : null;
+  if (best < opts.minAnneal) return null;
+  return {
+    length: best,
+    mismatches: bestMismatches,
+    perfect: bestMismatches === 0 || perfect < 0 ? best : perfect,
+  };
 }
 
 /**
@@ -121,7 +135,7 @@ export function findAnnealingSites(
   const site = (
     range: Range,
     strand: Strand,
-    run: { readonly length: number; readonly mismatches: number },
+    run: { readonly length: number; readonly mismatches: number; readonly perfect: number },
   ): AnnealingSite => ({
     primer: p,
     range,
@@ -130,6 +144,7 @@ export function findAnnealingSites(
     tail: p.slice(0, n - run.length),
     mismatches: run.mismatches,
     tm: meltingTemperature(p.slice(n - run.length)),
+    templateTm: meltingTemperature(p.slice(n - run.perfect)),
   });
 
   const out: AnnealingSite[] = [];

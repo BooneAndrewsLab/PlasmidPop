@@ -1,7 +1,7 @@
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 
 import { gibson } from './gibson';
-import { type PcrPrimer, pcr } from './pcr';
+import { type PcrPrimer, pcr, primerDimers } from './pcr';
 
 /** A fixed pseudo-random template, so every primer site is unique by accident. */
 function template(length: number, seed = 20260922): string {
@@ -245,5 +245,65 @@ describe('pcr', () => {
     expect(ms).toBeLessThan(200);
     // eslint-disable-next-line no-console
     console.info(`[perf] PCR over a 50 kb template: ${ms.toFixed(2)} ms`);
+  });
+});
+
+describe('pcr II (#14)', () => {
+  it('lets Taq add a 3′ A to each strand, which a TA vector joins by', () => {
+    const [product] = pcr(LINEAR, [fwd(100, 122), rev(500, 522)], { polymerase: 'taq' }).products;
+    const doc = product?.document;
+    expect(doc?.sequence.toString()).toBe(`${TEXT.slice(100, 522)}A`);
+    expect(doc?.ends).toEqual({
+      left: { kind: "3'", overhang: 'T', enzyme: null },
+      right: { kind: "3'", overhang: 'A', enzyme: null },
+    });
+    // A proofreading polymerase leaves it blunt.
+    const [blunt] = pcr(LINEAR, [fwd(100, 122), rev(500, 522)]).products;
+    expect(blunt?.document.ends).toBeNull();
+  });
+
+  it('gives Taq a shorter reach than a proofreading enzyme', () => {
+    const long = SeqDocument.create({ name: 'long', sequence: template(8000, 7) });
+    const text = long.sequence.toString();
+    const pair = [
+      { name: 'F', sequence: text.slice(100, 122) },
+      { name: 'R', sequence: reverseComplement(text.slice(6500, 6522)) },
+    ];
+    expect(pcr(long, pair).products).toHaveLength(1);
+    const taq = pcr(long, pair, { polymerase: 'taq' });
+    expect(taq.products).toHaveLength(0);
+    expect(taq.tooLong).toBe(1);
+    expect(taq.problem).toMatch(/longer than 5,000 bp/);
+  });
+
+  it('gives a mismatched site the Tm of its stretch before the mismatch', () => {
+    const primer =
+      TEXT.slice(100, 110) + (TEXT.charAt(110) === 'A' ? 'C' : 'A') + TEXT.slice(111, 130);
+    const [site] = pcr(LINEAR, [{ name: 'F', sequence: primer }]).sites;
+    expect(site?.mismatches).toBe(1);
+    // 19 bases pair after the mismatch; the whole 30 pair once it is copied.
+    expect(site?.templateTm).toBeLessThan(site?.tm ?? 0);
+    const [clean] = pcr(LINEAR, [fwd(100, 130)]).sites;
+    expect(clean?.templateTm).toBe(clean?.tm);
+  });
+});
+
+describe('primerDimers', () => {
+  it('finds 3′ ends that pair with the partner or with a copy of themselves', () => {
+    // GAATTC is its own reverse complement, so a primer ending in it pairs
+    // with itself over six bases.
+    const dimers = primerDimers([
+      { name: 'Forward', sequence: 'ACGTTGCAAAGAATTC' },
+      { name: 'Reverse', sequence: 'CCCCCCCCCCCCCCCC' },
+    ]);
+    expect(dimers).toEqual([{ primer: 'Forward', partner: 'Forward', bases: 6 }]);
+    // The reverse primer's 3′ end is GGGGG's complement: it pairs with a
+    // forward primer full of G.
+    const pair = primerDimers([
+      { name: 'Forward', sequence: 'ATATGGGGGGAT' },
+      { name: 'Reverse', sequence: 'TATATACCCCCC' },
+    ]);
+    expect(pair.map((d) => [d.primer, d.partner])).toContainEqual(['Reverse', 'Forward']);
+    expect(primerDimers([{ name: 'Forward', sequence: fwd(100, 122).sequence }])).toEqual([]);
   });
 });

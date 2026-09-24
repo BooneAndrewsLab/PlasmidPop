@@ -1,7 +1,12 @@
 import { SeqDocument, createMetadata, fragmentFromRange } from '../document';
 import { type Feature, createFeature, rangeSegment, shiftFeature } from '../features';
 import { newId } from '../ids';
-import { type AnnealOptions, type AnnealingSite, findAnnealingSites } from '../primers';
+import {
+  type AnnealOptions,
+  type AnnealingSite,
+  findAnnealingSites,
+  threePrimeComplementarity,
+} from '../primers';
 import { type Range } from '../range';
 import { reverseComplement } from '../sequence';
 
@@ -32,10 +37,11 @@ import { reverseComplement } from '../sequence';
  * primer, and it falls out of doing this correctly rather than needing a
  * feature of its own.
  *
- * What it does not model: A-tailing (a Taq product is left blunt here), the
- * polymerase's processivity beyond a flat length ceiling, primer dimers,
- * and how much more readily a short product amplifies than a long one — the
- * order the products are listed in says that, and nothing else does.
+ * The polymerase decides the ends (Taq adds a 3′ A, a proofreading enzyme
+ * leaves them blunt) and the reach (`POLYMERASE_REACH`); `primerDimers`
+ * checks the oligos against each other (#14). What it does not model: how
+ * much more readily a short product amplifies than a long one — the order
+ * the products are listed in says that, and nothing else does.
  */
 
 /** One of the oligos in the tube. */
@@ -66,8 +72,23 @@ export interface PcrProduct {
   readonly mismatches: number;
 }
 
+/**
+ * The polymerase in the tube (#14). A proofreading enzyme (Q5, Phusion,
+ * Pfu) leaves blunt ends; Taq adds one untemplated A to each 3′ end, which
+ * is what TA cloning joins by, and gives up on long products sooner.
+ */
+export type Polymerase = 'proofreading' | 'taq';
+
+/** Longest product each polymerase is taken to make, as its makers say it does routinely. */
+export const POLYMERASE_REACH: Readonly<Record<Polymerase, number>> = {
+  proofreading: 20_000,
+  taq: 5_000,
+};
+
 export interface PcrOptions extends AnnealOptions {
-  /** Longest product to bother with; a polymerase has its limits. */
+  /** Proofreading (blunt) by default. */
+  readonly polymerase?: Polymerase;
+  /** Longest product to bother with; the polymerase's reach by default. */
   readonly maxProduct?: number;
   /** How many products to build, when a primer binds all over the place. */
   readonly maxProducts?: number;
@@ -118,7 +139,9 @@ export function pcr(
   primers: readonly PcrPrimer[],
   options: PcrOptions = {},
 ): PcrResult {
-  const { maxProduct, maxProducts } = { ...PCR_DEFAULTS, ...options };
+  const polymerase = options.polymerase ?? 'proofreading';
+  const maxProducts = options.maxProducts ?? PCR_DEFAULTS.maxProducts;
+  const maxProduct = options.maxProduct ?? POLYMERASE_REACH[polymerase];
   const L = template.length;
   const text = template.sequence.toString();
   const circular = template.isCircular;
@@ -167,7 +190,7 @@ export function pcr(
 
   const base = options.name ?? defaultPcrName(template);
   const products = kept.map((c, i) =>
-    amplify(template, c, kept.length === 1 ? base : `${base} ${i + 1}`),
+    amplify(template, c, kept.length === 1 ? base : `${base} ${i + 1}`, polymerase),
   );
 
   return {
@@ -183,7 +206,12 @@ export function pcr(
 }
 
 /** The product of one pair: primer, template, primer. */
-function amplify(template: SeqDocument, c: Candidate, name: string): PcrProduct {
+function amplify(
+  template: SeqDocument,
+  c: Candidate,
+  name: string,
+  polymerase: Polymerase,
+): PcrProduct {
   const { forward: f, reverse: r, span } = c;
   const templateRange: Range = { start: f.range.start, end: f.range.start + span };
   const copied = fragmentFromRange(template, templateRange);
@@ -205,22 +233,29 @@ function amplify(template: SeqDocument, c: Candidate, name: string): PcrProduct 
     ...shiftFeature(feature, shift, from, to),
     id: newId(),
   }));
+  // Taq's untemplated A sits on each strand's 3′ end: past the top strand's
+  // end on the right, and past the bottom strand's on the left, where the
+  // top strand would read T. Upper case, being from no template.
+  const tailed = polymerase === 'taq';
   const document = SeqDocument.create({
     name,
-    sequence,
+    sequence: tailed ? `${sequence}A` : sequence,
     topology: 'linear',
     features: [
       ...features,
       primerFeature(f, 0, 'forward'),
       primerFeature(r, sequence.length - r.primer.length, 'reverse'),
     ],
-    // Blunt: a proofreading polymerase leaves it so. Taq's single A is not
-    // modelled, so TA cloning is not either.
-    ends: null,
+    ends: tailed
+      ? {
+          left: { kind: "3'", overhang: 'T', enzyme: null },
+          right: { kind: "3'", overhang: 'A', enzyme: null },
+        }
+      : null,
     metadata: createMetadata({
       moleculeType: 'DNA',
       division: 'SYN',
-      description: describeProduct(template, c, sequence.length),
+      description: `${describeProduct(template, c, sequence.length)}${tailed ? ', A-tailed by Taq' : ''}`,
     }),
   });
   return {
@@ -324,4 +359,36 @@ function describeFailure(
   return template.isCircular
     ? `The primers anneal but overlap each other, so there is no stretch between them to copy.`
     : `The primers point away from each other, so there is nothing between them on a linear template. On a plasmid this would be the long way round; make ${template.name} circular first.`;
+}
+
+/** A pair of primers (or one, twice) whose 3′ ends pair with each other. */
+export interface PrimerDimer {
+  /** The primer whose 3′ end pairs, and the one it pairs with. */
+  readonly primer: string;
+  readonly partner: string;
+  /** Bases at `primer`'s 3′ end that pair with `partner`. */
+  readonly bases: number;
+}
+
+/**
+ * Primer dimers a polymerase could extend (#14): the 3′ end of one oligo
+ * pairing with the other, or with a second copy of itself, over more than
+ * `max` bases — the primer designer's own limit (`maxThreePrime`). Each
+ * dimer is reported from the primer whose 3′ end is paired, since that is
+ * the one extended.
+ */
+export function primerDimers(primers: readonly PcrPrimer[], max = 4): PrimerDimer[] {
+  const clean = primers.map((p) => ({
+    name: p.name,
+    bases: p.sequence.toUpperCase().replace(/[^ACGT]/g, ''),
+  }));
+  const out: PrimerDimer[] = [];
+  for (const a of clean) {
+    for (const b of clean) {
+      if (a.bases === '' || b.bases === '') continue;
+      const bases = threePrimeComplementarity(a.bases, b.bases);
+      if (bases > max) out.push({ primer: a.name, partner: b.name, bases });
+    }
+  }
+  return out;
 }

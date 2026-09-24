@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SeqDocument, reverseComplement } from '@/core';
 
@@ -68,9 +68,38 @@ describe('PcrPanel', () => {
     expect(part?.right.kind).toBe('blunt');
     expect(part?.source).toBe('pTest PCR product');
     expect(part?.features.filter((f) => f.type === 'primer_bind')).toHaveLength(2);
+    // Oligos carry no 5′ phosphate unless ordered with one, and the
+    // product's 5′ ends are theirs.
+    expect(part?.dephosphorylated).toBe(true);
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: '5′-phosphorylated primers' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Shelve' }));
+    });
+    expect(editorStore.getState().shelf[1]?.fragment.dephosphorylated).toBeUndefined();
     act(() => {
       editorStore.clearShelf();
     });
+  });
+
+  it('A-tails the product with Taq, and warns of primer dimers', () => {
+    setup();
+    type('Forward primer', FWD);
+    type('Reverse primer', REV);
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Polymerase' }), {
+        target: { value: 'taq' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    });
+    expect(editorStore.document?.ends?.right).toEqual({ kind: "3'", overhang: 'A', enzyme: null });
+    // A reverse primer ending in the forward primer's own 3′ end, turned
+    // around, pairs with it.
+    type('Reverse primer', REV + reverseComplement(FWD.slice(-8)));
+    expect(
+      within(screen.getByRole('list', { name: 'Primer dimers' })).getByText(
+        /last 8 bases of the reverse primer pair with the forward primer/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('amplifies from another open tab, without drawing on this one', () => {

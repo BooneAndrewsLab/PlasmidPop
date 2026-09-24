@@ -76,7 +76,23 @@ answers.
   product is blunt at both, so `digest(product.document, [])` is the shelf
   part, features and all. It is the shelf's third use, which is what moved
   the shelf out of Ligation (item 3, #16).
-- Not yet: A-tailing is not modelled, so the product is blunt and TA
-  cloning is not there; neither are primer dimers, nor the polymerase's
-  processivity beyond a flat 20 kb ceiling; a mismatched site's Tm is
-  reported as if it matched.
+- **The polymerase, dimers, two temperatures and phosphates, 2026-09-23**
+  (#14).
+  - `polymerase`: proofreading (blunt, 20 kb) or Taq, which appends an A
+    to each 3′ end — past the top strand on the right, past the bottom
+    strand on the left, where the top strand would read T — and reaches
+    5 kb. Those ends are the `ends` a digest fragment has, so a TA vector
+    with 3′ T overhangs ligates to the product on the shelf with nothing new
+    in `ligate`. The reach numbers are the makers' routine figures; the
+    processivity of a real enzyme falls off rather than stops.
+  - `primerDimers` uses the primer designer's own measure
+    (`threePrimeComplementarity`, over its `maxThreePrime` of 4), for each
+    primer against the other and against itself.
+  - `AnnealingSite.templateTm` is the Tm of the 3′ stretch before the first
+    mismatch: what surely pairs while the template is the original. The
+    panel gives it beside the whole primer's Tm, which is what the primer
+    anneals at once the product exists. Nearest-neighbour mismatch
+    parameters would give one honest number instead of a bound; they were
+    left out rather than typed in from memory.
+  - A shelved product is dephosphorylated unless **5′-phosphorylated
+    primers** is ticked (#10's follow-up), since its 5′ ends are the oligos'.

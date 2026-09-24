@@ -8,8 +8,12 @@ import {
   type Range,
   type SeqDocument,
   digest,
+  type Polymerase,
+  POLYMERASE_REACH,
   gelProfile,
+  meltingTemperature,
   pcr,
+  primerDimers,
   rangeWraps,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
@@ -86,6 +90,11 @@ function PrimerReport({
     );
   }
   const tail = first.tail.length;
+  // Two numbers where the first cycles and the rest differ (#14): until the
+  // product exists, only the 3′ stretch up to a mismatch surely pairs and a
+  // tail pairs with nothing; from then on the whole oligo matches.
+  const later = tail > 0 ? meltingTemperature(first.primer) : first.tm;
+  const differs = first.mismatches > 0 || tail > 0;
   const where =
     sites.length === 1
       ? describeSite(first, seqLength)
@@ -96,7 +105,11 @@ function PrimerReport({
   return (
     <p className="panel__note panel__note--quiet">
       {first.primer.length} nt
-      {tail > 0 ? `, ${tail} of them a 5′ tail` : ''}, Tm {first.tm.toFixed(0)} °C · {where}
+      {tail > 0 ? `, ${tail} of them a 5′ tail` : ''},{' '}
+      {differs
+        ? `Tm ${first.templateTm.toFixed(0)} °C on the template${first.mismatches > 0 ? ' (up to the first mismatch)' : ''}, ${later.toFixed(0)} °C once the product carries it`
+        : `Tm ${first.tm.toFixed(0)} °C`}{' '}
+      · {where}
       {first.mismatches > 0
         ? ` · ${first.mismatches} mismatch${first.mismatches === 1 ? '' : 'es'}, which the product keeps`
         : ''}
@@ -154,10 +167,20 @@ function preview(
  * digest with no cuts gives, so its ends are the product's own (blunt, as
  * the polymerase leaves them) and its features come along.
  */
-function shelve(product: PcrProduct): void {
+function shelve(product: PcrProduct, phosphorylated: boolean): void {
   const [whole] = digest(product.document, []);
-  if (whole !== undefined) editorStore.addToShelf(whole);
+  // An oligo is made without a 5′ phosphate unless ordered with one, and a
+  // PCR product's 5′ ends are its primers' (#14), so it cannot be ligated
+  // into a dephosphorylated vector unless they were.
+  if (whole !== undefined) {
+    editorStore.addToShelf(phosphorylated ? whole : { ...whole, dephosphorylated: true });
+  }
 }
+
+const POLYMERASES: readonly { value: Polymerase; label: string }[] = [
+  { value: 'proofreading', label: 'Proofreading (blunt)' },
+  { value: 'taq', label: 'Taq (3′ A overhangs)' },
+];
 
 export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   const { previewActivated: activated, documents, documentId } = useEditorState();
@@ -170,6 +193,8 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   // sites can be previewed; another tab's would land on the wrong molecule.
   const drawn = picked === undefined;
   const [forward, setForward] = useState('');
+  const [polymerase, setPolymerase] = useState<Polymerase>('proofreading');
+  const [phosphorylated, setPhosphorylated] = useState(false);
   const [reverse, setReverse] = useState('');
   /** The product held on screen, and the one under the pointer. */
   const [shown, setShown] = useState<number | null>(null);
@@ -185,9 +210,10 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
   // Two walks over the template per primer, so it costs less than the digest
   // above it and runs here rather than in the worker (docs/perf-notes.md).
   const result = useMemo(
-    () => (primers.length === 0 ? null : pcr(template, primers)),
-    [template, primers],
+    () => (primers.length === 0 ? null : pcr(template, primers, { polymerase })),
+    [template, primers, polymerase],
   );
+  const dimers = useMemo(() => primerDimers(primers), [primers]);
   const products = result?.products ?? NO_PRODUCTS;
   const gel = useGelOptions();
   const lane = useMemo(
@@ -309,7 +335,50 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           sequence={reverse}
           seqLength={template.length}
         />
+        <label className="panel__field">
+          Polymerase
+          <select
+            className="panel__select"
+            value={polymerase}
+            onChange={(e) => {
+              setPolymerase(e.target.value === 'taq' ? 'taq' : 'proofreading');
+              setShown(null);
+            }}
+          >
+            {POLYMERASES.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}, up to {(POLYMERASE_REACH[p.value] / 1000).toString()} kb
+              </option>
+            ))}
+          </select>
+        </label>
+        <label
+          className="toggle"
+          title="Oligos are made without a 5′ phosphate unless ordered with one; without it the product will not ligate into a dephosphorylated vector"
+        >
+          <input
+            type="checkbox"
+            checked={phosphorylated}
+            onChange={(e) => {
+              setPhosphorylated(e.target.checked);
+            }}
+          />
+          5′-phosphorylated primers
+        </label>
       </div>
+      {dimers.length > 0 && (
+        <ul className="panel__warnings" aria-label="Primer dimers">
+          {dimers.map((d) => (
+            <li key={`${d.primer}-${d.partner}`}>
+              The last {d.bases} bases of the {d.primer.toLowerCase()} primer pair with{' '}
+              {d.partner === d.primer
+                ? 'a second copy of itself'
+                : `the ${d.partner.toLowerCase()} primer`}
+              , so they can prime each other into a primer dimer.
+            </li>
+          ))}
+        </ul>
+      )}
 
       {result === null ? (
         <p className="panel__note">
@@ -380,7 +449,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                       title="Put the product on the shelf, for a ligation, Golden Gate or Gibson"
                       onClick={() => {
                         analytics.track('cloning', 'pcr');
-                        shelve(p);
+                        shelve(p, phosphorylated);
                       }}
                     >
                       Shelve
