@@ -24,7 +24,8 @@
     "oracle:writer": "scripts/oracle/run.sh writer",
     "oracle:snapgene": "scripts/oracle/run.sh snapgene-local",
     "oracle:abif": "scripts/oracle/run.sh abif-local",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "mutate": "PLASMIDPOP_MUTATION=1 stryker run"
   },
   "dependencies": {
     "dexie": "^4.4.6",
@@ -33,6 +34,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.0.0",

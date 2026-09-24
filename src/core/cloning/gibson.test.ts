@@ -1,3 +1,4 @@
+import { expectWithin, itTimed } from '@/test/timing';
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 
 import { gibson, terminalOverlap } from './gibson';
@@ -202,7 +203,7 @@ describe('gibson', () => {
 });
 
 describe('gibson performance', () => {
-  it('works out a six-part assembly inside a frame', () => {
+  itTimed('works out a six-part assembly inside a frame', () => {
     // A 12 kb construct from six 2 kb pieces, which is a large Gibson: NEB
     // quotes up to six fragments for the one-step protocol.
     const big = template(12000, 4242);
@@ -221,7 +222,7 @@ describe('gibson performance', () => {
     }
     const ms = (performance.now() - t0) / 10;
     expect(length).toBe(12000);
-    expect(ms).toBeLessThan(200);
+    expectWithin(ms, 200);
     // eslint-disable-next-line no-console
     console.info(`[perf] Gibson of 6 parts into 12 kb: ${ms.toFixed(1)} ms`);
   });

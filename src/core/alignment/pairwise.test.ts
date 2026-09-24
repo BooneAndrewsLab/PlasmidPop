@@ -1,3 +1,4 @@
+import { expectWithin, itTimed } from '@/test/timing';
 import { AlignmentTooLargeError, DEFAULT_MAX_CELLS, alignPairwise } from './pairwise';
 
 describe('alignPairwise global', () => {
@@ -134,27 +135,31 @@ describe('limits and performance', () => {
     );
   });
 
-  it('aligns two 3 kb sequences quickly (plain TS baseline)', () => {
-    let x = 99;
-    const rnd = (): string => {
-      x = (x * 1103515245 + 12345) & 0x7fffffff;
-      return 'ACGT'.charAt((x >> 16) & 3);
-    };
-    let a = '';
-    for (let i = 0; i < 3000; i++) a += rnd();
-    // b: a with ~2% substitutions and a couple of indels
-    let b = '';
-    for (let i = 0; i < a.length; i++) {
-      if (i % 50 === 0) continue; // deletion
-      b += i % 47 === 0 ? (a.charAt(i) === 'A' ? 'C' : 'A') : a.charAt(i);
-    }
-    const t0 = performance.now();
-    const r = alignPairwise(a, b);
-    const ms = performance.now() - t0;
-    expect(r.identity).toBeGreaterThan(0.9);
-    // ~280 ms on a desktop, ~1.8 s on a shared CI runner; the bound only catches gross regressions.
-    expect(ms).toBeLessThan(8000);
-    // eslint-disable-next-line no-console
-    console.info(`[perf] global alignment 3000x${b.length}: ${ms.toFixed(0)} ms`);
-  }, 10_000);
+  itTimed(
+    'aligns two 3 kb sequences quickly (plain TS baseline)',
+    () => {
+      let x = 99;
+      const rnd = (): string => {
+        x = (x * 1103515245 + 12345) & 0x7fffffff;
+        return 'ACGT'.charAt((x >> 16) & 3);
+      };
+      let a = '';
+      for (let i = 0; i < 3000; i++) a += rnd();
+      // b: a with ~2% substitutions and a couple of indels
+      let b = '';
+      for (let i = 0; i < a.length; i++) {
+        if (i % 50 === 0) continue; // deletion
+        b += i % 47 === 0 ? (a.charAt(i) === 'A' ? 'C' : 'A') : a.charAt(i);
+      }
+      const t0 = performance.now();
+      const r = alignPairwise(a, b);
+      const ms = performance.now() - t0;
+      expect(r.identity).toBeGreaterThan(0.9);
+      // ~280 ms on a desktop, ~1.8 s on a shared CI runner; the bound only catches gross regressions.
+      expectWithin(ms, 8000);
+      // eslint-disable-next-line no-console
+      console.info(`[perf] global alignment 3000x${b.length}: ${ms.toFixed(0)} ms`);
+    },
+    10_000,
+  );
 });

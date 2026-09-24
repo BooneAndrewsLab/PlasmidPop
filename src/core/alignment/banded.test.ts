@@ -1,3 +1,4 @@
+import { expectWithin, itTimed } from '@/test/timing';
 import { reverseComplement } from '../sequence/alphabet';
 import { alignBanded, anchorChain, bandAround } from './banded';
 import { alignPairwise, bandCells } from './pairwise';
@@ -86,7 +87,7 @@ describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
     expect(anchorChain(randomSequence(5000, next), randomSequence(4000, next))).toBeNull();
   });
 
-  it('aligns a 10 kb read against a 12 kb plasmid in a fraction of the cells', () => {
+  itTimed('aligns a 10 kb read against a 12 kb plasmid in a fraction of the cells', () => {
     const next = rng(7);
     const plasmid = randomSequence(12_000, next);
     const read = reverseComplement(noisy(plasmid.slice(1000, 11_500), 0.03, next));
@@ -96,7 +97,7 @@ describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
     expect(r.strand).toBe('reverse');
     expect(r.alignment.endA - r.alignment.startA).toBeGreaterThan(10_000);
     process.stderr.write(`[perf] banded 12000x${read.length}: ${ms.toFixed(0)} ms\n`);
-    expect(ms).toBeLessThan(8000);
+    expectWithin(ms, 8000);
   });
 
   it('keeps the band narrow: a small share of the matrix', () => {

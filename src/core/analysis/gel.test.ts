@@ -1,3 +1,4 @@
+import { expectWithin, itTimed } from '@/test/timing';
 import {
   AGAROSE_PERCENTAGES,
   DEFAULT_GEL,
@@ -225,7 +226,7 @@ describe('bestPairs', () => {
     }
   });
 
-  it('ranks the pairs of 120 enzymes, the most the Enzymes tab pairs, inside a frame', () => {
+  itTimed('ranks the pairs of 120 enzymes, the most the Enzymes tab pairs, inside a frame', () => {
     const candidates = Array.from({ length: 120 }, (_, i) => ({
       name: `E${i}`,
       cuts: Array.from({ length: 1 + (i % 3) }, (_, k) => (i * 97 + k * 1109) % 4361),
@@ -235,7 +236,7 @@ describe('bestPairs', () => {
     for (let run = 0; run < 5; run++) bestPairs(candidates, 4361, 'circular');
     const ms = (performance.now() - t0) / 5;
     expect(bestPairs(candidates, 4361, 'circular')).toHaveLength(5);
-    expect(ms).toBeLessThan(200);
+    expectWithin(ms, 200);
     // eslint-disable-next-line no-console
     console.info(`[perf] best pairs of 120 enzymes (7,140 pairs): ${ms.toFixed(1)} ms`);
   });
@@ -267,7 +268,7 @@ describe('bestPartners', () => {
     }
   });
 
-  it('looks through a whole imported table in well under a frame', () => {
+  itTimed('looks through a whole imported table in well under a frame', () => {
     const table = Array.from({ length: 1500 }, (_, i) => ({
       name: `E${i}`,
       cuts: Array.from({ length: 1 + (i % 3) }, (_, k) => (i * 97 + k * 1109) % 4361),
@@ -276,12 +277,12 @@ describe('bestPartners', () => {
     const pairs = bestPartners({ name: 'X', cuts: [1234] }, table, 4361, 'circular');
     const ms = performance.now() - t0;
     expect(pairs).toHaveLength(5);
-    expect(ms).toBeLessThan(50);
+    expectWithin(ms, 50);
   });
 });
 
 describe('gel profile performance', () => {
-  it('profiles a REBASE-sized table inside a frame', () => {
+  itTimed('profiles a REBASE-sized table inside a frame', () => {
     // The Enzymes tab profiles every enzyme, not only the rows on screen,
     // because the list can be ordered by the bands. The shape of the work
     // is a full REBASE scan of a plasmid: 1,581 enzymes and 63,053 cut
@@ -296,7 +297,7 @@ describe('gel profile performance', () => {
     }
     const ms = (performance.now() - t0) / 5;
     expect(bands).toBeGreaterThan(0);
-    expect(ms).toBeLessThan(500);
+    expectWithin(ms, 500);
     // eslint-disable-next-line no-console
     console.info(`[perf] gel profiles for 1,581 enzymes: ${ms.toFixed(1)} ms`);
   });

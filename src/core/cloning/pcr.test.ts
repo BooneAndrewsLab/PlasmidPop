@@ -1,3 +1,4 @@
+import { expectWithin, itTimed } from '@/test/timing';
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 
 import { gibson } from './gibson';
@@ -224,7 +225,7 @@ describe('pcr', () => {
     );
   });
 
-  it('costs little enough to run on every keystroke', () => {
+  itTimed('costs little enough to run on every keystroke', () => {
     // It is two walks over the template per primer, and a walk stops at the
     // first base that does not pair, so nearly every position costs one
     // comparison. The panel runs it on the main thread as the user types.
@@ -242,7 +243,7 @@ describe('pcr', () => {
     // mismatches turns up by chance, so a long template really does give
     // spurious products; they sort below the exact one.
     expect(found).toBeGreaterThanOrEqual(20);
-    expect(ms).toBeLessThan(200);
+    expectWithin(ms, 200);
     // eslint-disable-next-line no-console
     console.info(`[perf] PCR over a 50 kb template: ${ms.toFixed(2)} ms`);
   });

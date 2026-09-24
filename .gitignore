@@ -35,3 +35,7 @@ fixtures/local/
 .venv-oracle/
 
 __pycache__/
+
+# Mutation testing (npm run mutate)
+reports/mutation
+.stryker-tmp

@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vite.config.ts",
+    "related": false
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/core/cloning/digest.ts",
+    "src/core/cloning/ligate.ts",
+    "src/core/cloning/pcr.ts",
+    "src/core/cloning/mutagenesis.ts",
+    "src/core/cloning/gibson.ts",
+    "src/core/cloning/goldenGate.ts",
+    "src/core/cloning/gateway.ts",
+    "src/core/cloning/overlapPrimers.ts",
+    "src/core/analysis/methylation.ts",
+    "src/core/primers/anneal.ts",
+    "src/core/primers/primerDesign.ts",
+    "src/io/genbank/methylationComment.ts",
+    "src/io/genbank/ownComments.ts",
+    "src/io/fasta/fasta.ts"
+  ],
+  "reporters": ["html", "json", "clear-text", "progress"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/mutation.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "tempDirName": ".stryker-tmp",
+  "timeoutMS": 30000,
+  "concurrency": 8,
+  "thresholds": {
+    "high": 90,
+    "low": 75,
+    "break": null
+  },
+  "ignorePatterns": [".venv-oracle", "dist", "coverage", "reports", "design", ".idea", ".claude"],
+  "ignoreStatic": true
+}

@@ -1,3 +1,4 @@
+import { expectWithin, itTimed } from '@/test/timing';
 import { randomDna, randomInt, seededRandom } from '@/test/random';
 
 import { type SequenceDiff, diffSequences, positionMapper } from './sequenceDiff';
@@ -162,51 +163,63 @@ describe('diff performance', () => {
     return b;
   }
 
-  it('diffs an edited plasmid fast enough to run on every keystroke', () => {
-    const rand = seededRandom(1);
-    const a = randomDna(rand, 4361);
-    const b = edited(a, 20);
-    const t0 = performance.now();
-    const diff = diffSequences(a, b);
-    const ms = performance.now() - t0;
-    expect(diff.coarse).toBe(false);
-    expect(replay(diff, a, b)).toEqual({ a, b });
-    // A millisecond or two on a desktop; the bound only catches gross regressions.
-    expect(ms).toBeLessThan(2000);
-    // eslint-disable-next-line no-console
-    console.info(`[perf] diff 4,361 bp with 20 edits: ${ms.toFixed(1)} ms`);
-  }, 10_000);
+  itTimed(
+    'diffs an edited plasmid fast enough to run on every keystroke',
+    () => {
+      const rand = seededRandom(1);
+      const a = randomDna(rand, 4361);
+      const b = edited(a, 20);
+      const t0 = performance.now();
+      const diff = diffSequences(a, b);
+      const ms = performance.now() - t0;
+      expect(diff.coarse).toBe(false);
+      expect(replay(diff, a, b)).toEqual({ a, b });
+      // A millisecond or two on a desktop; the bound only catches gross regressions.
+      expectWithin(ms, 2000);
+      // eslint-disable-next-line no-console
+      console.info(`[perf] diff 4,361 bp with 20 edits: ${ms.toFixed(1)} ms`);
+    },
+    10_000,
+  );
 
-  it('follows a long session of scattered substitutions', () => {
-    const rand = seededRandom(5);
-    const a = randomDna(rand, 4361);
-    const bases = a.split('');
-    for (let i = 0; i < 500; i++) {
-      const at = randomInt(rand, 0, bases.length);
-      bases[at] = 'ACGT'.charAt(('ACGT'.indexOf(bases[at] ?? 'A') + 1) % 4);
-    }
-    const b = bases.join('');
-    const t0 = performance.now();
-    const diff = diffSequences(a, b);
-    const ms = performance.now() - t0;
-    expect(diff.coarse).toBe(false);
-    expect(replay(diff, a, b)).toEqual({ a, b });
-    expect(ms).toBeLessThan(4000);
-    // eslint-disable-next-line no-console
-    console.info(`[perf] diff 4,361 bp with 500 substitutions: ${ms.toFixed(1)} ms`);
-  }, 10_000);
+  itTimed(
+    'follows a long session of scattered substitutions',
+    () => {
+      const rand = seededRandom(5);
+      const a = randomDna(rand, 4361);
+      const bases = a.split('');
+      for (let i = 0; i < 500; i++) {
+        const at = randomInt(rand, 0, bases.length);
+        bases[at] = 'ACGT'.charAt(('ACGT'.indexOf(bases[at] ?? 'A') + 1) % 4);
+      }
+      const b = bases.join('');
+      const t0 = performance.now();
+      const diff = diffSequences(a, b);
+      const ms = performance.now() - t0;
+      expect(diff.coarse).toBe(false);
+      expect(replay(diff, a, b)).toEqual({ a, b });
+      expectWithin(ms, 4000);
+      // eslint-disable-next-line no-console
+      console.info(`[perf] diff 4,361 bp with 500 substitutions: ${ms.toFixed(1)} ms`);
+    },
+    10_000,
+  );
 
-  it('gives up quickly on two unrelated sequences of that size', () => {
-    const a = randomDna(seededRandom(2), 4361);
-    const b = randomDna(seededRandom(3), 4361);
-    const t0 = performance.now();
-    const diff = diffSequences(a, b);
-    const ms = performance.now() - t0;
-    expect(diff.coarse).toBe(true);
-    expect(ms).toBeLessThan(2000);
-    // eslint-disable-next-line no-console
-    console.info(`[perf] diff of two unrelated 4,361 bp sequences: ${ms.toFixed(1)} ms`);
-  }, 10_000);
+  itTimed(
+    'gives up quickly on two unrelated sequences of that size',
+    () => {
+      const a = randomDna(seededRandom(2), 4361);
+      const b = randomDna(seededRandom(3), 4361);
+      const t0 = performance.now();
+      const diff = diffSequences(a, b);
+      const ms = performance.now() - t0;
+      expect(diff.coarse).toBe(true);
+      expectWithin(ms, 2000);
+      // eslint-disable-next-line no-console
+      console.info(`[perf] diff of two unrelated 4,361 bp sequences: ${ms.toFixed(1)} ms`);
+    },
+    10_000,
+  );
 });
 
 describe('large and scattered edits', () => {
@@ -252,25 +265,31 @@ describe('large and scattered edits', () => {
 });
 
 describe('work budget', () => {
-  it('stops splitting once the splits have cost as much as the whole diff', () => {
-    // Shared 32-mers between stretches that have nothing else in common:
-    // every split lands on another hard problem. Without a budget the work
-    // doubles at each level.
-    const rand = seededRandom(77);
-    const anchors = Array.from({ length: 16 }, () => randomDna(rand, 32));
-    const build = (seed: number): string => {
-      const r = seededRandom(seed);
-      return anchors.map((anchor) => anchor + randomDna(r, 600)).join('');
-    };
-    const a = build(101);
-    const b = build(202);
-    const t0 = performance.now();
-    const diff = diffSequences(a, b);
-    const ms = performance.now() - t0;
-    expect(replay(diff, a, b)).toEqual({ a, b });
-    expect(diff.coarse).toBe(true);
-    expect(ms).toBeLessThan(3000);
-    // eslint-disable-next-line no-console
-    console.info(`[perf] diff of 16 unrelated blocks between shared anchors: ${ms.toFixed(1)} ms`);
-  }, 10_000);
+  itTimed(
+    'stops splitting once the splits have cost as much as the whole diff',
+    () => {
+      // Shared 32-mers between stretches that have nothing else in common:
+      // every split lands on another hard problem. Without a budget the work
+      // doubles at each level.
+      const rand = seededRandom(77);
+      const anchors = Array.from({ length: 16 }, () => randomDna(rand, 32));
+      const build = (seed: number): string => {
+        const r = seededRandom(seed);
+        return anchors.map((anchor) => anchor + randomDna(r, 600)).join('');
+      };
+      const a = build(101);
+      const b = build(202);
+      const t0 = performance.now();
+      const diff = diffSequences(a, b);
+      const ms = performance.now() - t0;
+      expect(replay(diff, a, b)).toEqual({ a, b });
+      expect(diff.coarse).toBe(true);
+      expectWithin(ms, 3000);
+      // eslint-disable-next-line no-console
+      console.info(
+        `[perf] diff of 16 unrelated blocks between shared anchors: ${ms.toFixed(1)} ms`,
+      );
+    },
+    10_000,
+  );
 });

@@ -78,6 +78,10 @@ export default defineConfig({
     // into the DOM with a `// @vitest-environment jsdom` docblock.
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],
+    // A mutation run (`npm run mutate`) instruments the code, which runs
+    // many times slower; the ordinary limit would fail tests that are not
+    // slow at all.
+    testTimeout: process.env['PLASMIDPOP_MUTATION'] === '1' ? 60_000 : 5_000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
