@@ -1,4 +1,4 @@
-# 33. File ▸ Compare with… another file on disk
+# 33. File ▸ Compare with… another file on disk, or another tab
 
 Done, 2026-09-21; asked
 for by items 22 and 24 and wanted by item 25. The diff engine has been
@@ -48,7 +48,36 @@ plasmid gets used.
   least two, so one chance stretch in common moves nothing. The old "set
   the origin and compare again" note is now only for the case where
   nothing long enough is shared to line anything up.
-- Not yet: no key binding; the comparison is against the front document
-  only, and closing or switching tabs takes it away; nothing lets you open
-  the other file from the dialog, or step from one difference to the next
-  in the views.
+- **`Alt+K` came with #34.** **Any tab, opening the other side, marks
+  in the views and stepping, 2026-09-24 (#37).** With another tab open,
+  Compare with… first asks what with (`CompareChooser`, in the toolbar
+  beside the picker's fallback input): the other tabs by name, not the one
+  in front and not the Bench, or **A file on disk…**; with none it is the
+  picker, as before. `SharedState.comparison` became a `Comparison` union,
+  `choose` then `review`, so every "a modal is up" check held without
+  change. A tab is compared as it is now; the dialog stays a modal and a
+  tab switch still takes it away.
+  - **The review keeps its source** (`ComparisonSource`): the `File` itself
+    for a file, so **Open** runs `openFile` and gets exactly what File ▸
+    Open gives — the origin, `findOpenCopy`, the working-copy fork — rather
+    than a tab built from the parsed document, which would have had no
+    origin to protect. **Go to** is `activateDocument`.
+  - **Mark in the views** is a fifth baseline, `'compared'`, over
+    `DocumentState.compared` (the other side as the dialog lined it up, via
+    `applyAlignment`, and its name). Per document, like `markedDoc`,
+    because a comparison is between two particular documents; the choice is
+    shared, so a tab without one reads `'compared'` as `'opened'`
+    (`effectiveEditsBaseline`) and the Edits menu shows that rather than a
+    "Compared with" naming nothing. Not stored with the document or in the
+    view preferences, where it comes back as `'opened'` as `'marked'`
+    does: the other side was a file read once or a tab of this session.
+  - **Next / Previous change** (`Alt+N`, `Alt+Shift+N`, both free) step
+    through `changeStops` of the current diff, whatever the baseline: each
+    mark's span and each deletion as a caret, ordered by start then end, so
+    a caret on a mark's start goes to that mark and a deletion there comes
+    first; on a circle a mark to the end and one from 0 are one wrapping
+    stop. `stepChange` compares the selection in the same order and wraps.
+    A feature changed without its bases is not a stop: the stops are the
+    marked bases, and the feature list already goes to a feature.
+    With nothing to step to the keys are not taken, so the browser keeps
+    them.

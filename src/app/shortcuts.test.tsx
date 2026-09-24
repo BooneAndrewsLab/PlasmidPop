@@ -78,6 +78,55 @@ describe('view shortcuts', () => {
     expect(editorStore.getState().editsBaseline).toBe('saved');
   });
 
+  it('steps from one marked change to the next and back, going round', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    // Nothing marked yet: the keys do nothing, and the menu items are off.
+    act(() => {
+      editorStore.setSelection({ start: 5, end: 5 });
+    });
+    alt('KeyN');
+    expect(editorStore.getState().selection).toEqual({ start: 5, end: 5 });
+    fireEvent.click(screen.getByRole('button', { name: /^Edits/ }));
+    expect(screen.getByRole('menuitem', { name: /Next change/ })).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: /^Edits/ }));
+
+    act(() => {
+      editorStore.apply({ type: 'replace', range: { start: 100, end: 102 }, text: 'NN' });
+      editorStore.apply({ type: 'delete', range: { start: 300, end: 305 } });
+      editorStore.setSelection({ start: 0, end: 0 });
+    });
+    const reveal = editorStore.getState().reveal?.nonce ?? 0;
+    alt('KeyN');
+    expect(editorStore.getState().selection).toEqual({ start: 100, end: 102 });
+    expect(editorStore.getState().reveal).toEqual({ position: 100, nonce: reveal + 1 });
+    alt('KeyN');
+    expect(editorStore.getState().selection).toEqual({ start: 300, end: 300 });
+    alt('KeyN');
+    expect(editorStore.getState().selection).toEqual({ start: 100, end: 102 });
+    fireEvent.keyDown(window, { code: 'KeyN', altKey: true, shiftKey: true });
+    expect(editorStore.getState().selection).toEqual({ start: 300, end: 300 });
+
+    // The menu does the same.
+    fireEvent.click(screen.getByRole('button', { name: /^Edits/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Previous change/ }));
+    expect(editorStore.getState().selection).toEqual({ start: 100, end: 102 });
+  });
+
+  it('brings a comparison marked in the views back with Alt+E', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const doc = editorStore.document;
+    if (doc === null) throw new Error('expected a document');
+    act(() => {
+      editorStore.markComparedInViews('theirs.gb', doc.delete({ start: 10, end: 20 }));
+    });
+    alt('KeyE');
+    expect(editorStore.getState().editsBaseline).toBe('off');
+    alt('KeyE');
+    expect(editorStore.getState().editsBaseline).toBe('compared');
+  });
+
   it('steps through the views, the sidebar tabs and the text sizes, and brings up the Bench', () => {
     act(() => {
       editorStore.setView('both');

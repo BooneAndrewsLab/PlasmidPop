@@ -205,23 +205,30 @@ Nothing is lost in the meantime: every open document is written to this
 browser's own storage as you work and comes back when you return. Downloading
 is how you get a file _out_ of PlasmidPop, not how you avoid losing work.
 
-## Comparing with a file
+## Comparing with another document
 
-**File ▸ Compare with…** picks a file and shows how the open document
-differs from it: the same review a [working copy](#working-copies) gets
-before it is downloaded, asked of any file rather than the one this document
+**File ▸ Compare with…** (`Alt+K`) shows how the open document differs from
+another one: the same review a [working copy](#working-copies) gets before
+it is downloaded, asked of any file or tab rather than the one this document
 came from.
+
+With other documents open it first asks what to compare with: one of the
+other tabs, as it is now, or **A file on disk…**, which opens the file
+picker. With no other tab open it goes straight to the picker.
 
 It answers the question a plasmid map on its own cannot — _is this the same
 construct as the one in that file, and if not, where do they part company_ —
 which is what a colleague's copy, a vendor's sequence or last month's version
 of your own plasmid is usually for.
 
-- **Nothing is opened, written or stored.** The file is read, compared and
+- **Nothing is opened, written or stored** unless you ask. A file is read, compared and
   dropped; no tab appears and neither file changes. The document you are
-  looking at is the one that keeps its tab.
+  looking at is the one that keeps its tab. To work on the other file too,
+  **Open _file name_** in the dialog opens it in a tab of its own, exactly as
+  **Open file…** would; for another tab, **Go to _tab name_** brings it
+  forward.
 - **The differences are in this document's coordinates**: what it has that
-  the file does not. The map at the top marks them on the ring, so where they
+  the other does not. The map at the top marks them on the ring, so where they
   fall is the first thing you see. Each neighbourhood of changed bases is
   drawn the way the sequence view draws tracked changes, and the features
   added, changed and removed are named below them.
@@ -248,6 +255,14 @@ of your own plasmid is usually for.
   detail" rather than as a thousand tiny differences. Where nothing long
   enough is shared, nothing can be lined up either, and the dialog says that
   rather than guessing.
+- **Mark in the views** closes the dialog and marks the same differences in
+  the sequence view and on the map, as the [Edits](04-editing.md#seeing-what-you-changed)
+  menu marks your own changes: the other side, lined up as the dialog lined
+  it up, becomes what this document's marks are measured from. The Edits
+  menu then offers **Compared with _name_**, and **Next change** (`Alt+N`)
+  and **Previous change** (`Alt+Shift+N`) walk from one difference to the
+  next. It belongs to this document: another tab keeps its own marks, and
+  a reload brings **Since opened** back.
 
 ## Sharing a link
 

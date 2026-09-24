@@ -75,6 +75,12 @@ export const EVENTS = {
   /** Once per visit: `start` (the version), `layout` (desktop/phone), `display` (browser/standalone). */
   app: ['start', 'layout', 'display'],
   file: ['open', 'open-failed', 'new', 'download', 'compare', 'export'],
+  /**
+   * Compare with…: `target` is what it was pointed at (`tab` or `file`),
+   * `mark-in-views` made it the edit marks' baseline, `open-other` opened
+   * the file or went to the tab from the dialog (`file`/`tab`).
+   */
+  compare: ['target', 'mark-in-views', 'open-other'],
   share: ['copy', 'open'],
   /** Which sidebar tab the user opened. */
   panel: ['open'],
@@ -83,7 +89,8 @@ export const EVENTS = {
   find: ['open'],
   /** The kind of edit only: never where, how long, or what bases. */
   edit: [...(Object.keys(EDIT_OPS) as EditOp['type'][]), 'undo', 'redo'],
-  edits: ['baseline'],
+  /** The Edits menu: which baseline was chosen, and Next or Previous change. */
+  edits: ['baseline', 'next', 'prev'],
   history: ['jump'],
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],
@@ -127,6 +134,7 @@ export type Shortcut =
   | 'alt+size'
   | 'alt+o'
   | 'alt+k'
+  | 'alt+n'
   | 'alt+shift+page'
   | 'ctrl+s'
   | 'ctrl+f'

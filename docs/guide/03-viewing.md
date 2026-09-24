@@ -326,6 +326,6 @@ different checksums are not.
 
 Paste it into a lab notebook, an email or a methods section and anyone with
 the same construct can check they have the same construct — without either of
-you sending the other the sequence. [Compare with…](02-files.md#comparing-with-a-file)
+you sending the other the sequence. [Compare with…](02-files.md#comparing-with-another-document)
 shows both checksums, and uses them to line a rotated plasmid up with this one
 before showing the differences.

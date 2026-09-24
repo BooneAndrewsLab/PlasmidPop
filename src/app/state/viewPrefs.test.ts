@@ -272,6 +272,24 @@ describe('view preferences', () => {
     editorStore.closeDocument();
   });
 
+  it('does not remember a comparison marked in the views', () => {
+    const stop = startViewPrefs();
+    editorStore.setEditsBaseline('saved');
+    const doc = SeqDocument.create({ sequence: 'ACGT' });
+    editorStore.openDocument(doc, 'x.gb');
+    editorStore.markComparedInViews('theirs.gb', doc.insert(2, 'GG'));
+    expect(editorStore.getState().editsBaseline).toBe('compared');
+    // The other side was a file or a tab of this session: it comes back as "since opened".
+    expect(loadViewPrefs()).toMatchObject({ editsBaseline: 'opened' });
+    stop();
+    editorStore.closeDocument();
+  });
+
+  it('will not read a stored "compared" back', () => {
+    localStorage.setItem(KEY, JSON.stringify({ editsBaseline: 'compared' }));
+    expect(loadViewPrefs().editsBaseline).toBeUndefined();
+  });
+
   it('remembers a hidden sidebar, and brings the layout back on a reset', () => {
     const stop = startViewPrefs();
     editorStore.setSidebarOpen(false);

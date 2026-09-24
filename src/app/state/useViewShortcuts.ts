@@ -4,6 +4,7 @@ import { type Shortcut, analytics } from '../analytics';
 import { isAltBlocked, isAltKey } from '../keys';
 import { focusNextSplitter } from '../components/splitterFocus';
 import { copyShareLink } from '../share';
+import { goToChange } from './editDiff';
 import { FONT_SIZES } from '@/view/linear';
 
 import { type EditsBaseline, SIDEBAR_TABS, type ViewMode, editorStore } from './editorStore';
@@ -46,7 +47,7 @@ const TOGGLES: readonly {
 
 /**
  * The bindings for things that were only ever a click away: the view
- * toggles, the edit marks, the sidebar, the document tabs and the share
+ * toggles, the edit marks and stepping through them, the sidebar, the document tabs and the share
  * link; closing and moving the front tab; and Undo and Redo of the shelf
  * while the Bench is in front.
  *
@@ -94,6 +95,17 @@ export function useViewShortcuts(): void {
         else {
           lastBaseline.current = state.editsBaseline;
           editorStore.setEditsBaseline('off');
+        }
+        return;
+      }
+
+      // Alt+N and Alt+Shift+N: the next or previous marked change (#37).
+      // With nothing marked the keys do nothing, and are left to the browser.
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN') {
+        if (state.history === null) return;
+        if (goToChange(e.shiftKey ? -1 : 1)) {
+          e.preventDefault();
+          analytics.shortcut('alt+n');
         }
         return;
       }

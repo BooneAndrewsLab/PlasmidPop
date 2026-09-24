@@ -13,7 +13,7 @@ On macOS use `Cmd` where `Ctrl` is written.
 | `Alt+W`                     | Close the document in front (its tab)                          |
 | `Alt+Shift+PageUp`, `…Down` | Move the document in front one tab left or right               |
 | `Ctrl+V` with nothing open  | Open a pasted GenBank or FASTA record, or bare bases           |
-| `Alt+K`                     | Compare with a file on disk (**File ▸ Compare with…**)         |
+| `Alt+K`                     | Compare with another tab or a file (**File ▸ Compare with…**)  |
 
 ## Editing
 
@@ -62,6 +62,8 @@ left for the view.
 | `Shift+click`           | Extend the selection to the clicked position |
 | `Ctrl+A`                | Select all                                   |
 | `Escape`                | Clear the selection                          |
+| `Alt+N`                 | Select the next marked change                |
+| `Alt+Shift+N`           | Select the previous marked change            |
 
 ## Find
 

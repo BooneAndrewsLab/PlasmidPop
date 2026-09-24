@@ -44,7 +44,7 @@ piece of work needs its reasoning written down, with the next free number.
 30. [Filter the enzyme list by how many times an enzyme cuts, not just "once"](30-cut-count-filter.md)
 31. [A crowded side of the map places its labels outrageously](31-crowded-map-labels.md)
 32. [Key bindings for the things that were only ever a click away](32-key-bindings.md)
-33. [File ▸ Compare with… another file on disk](33-compare-with.md)
+33. [File ▸ Compare with… another file on disk, or another tab](33-compare-with.md)
 34. [Turning a sticky-ended molecule over loses the window shift](34-sticky-flip.md)
 35. [A feature whose type changed reads as a removal and an addition](35-feature-type-change.md)
 36. [PCR: the reaction that makes a part](36-pcr.md)

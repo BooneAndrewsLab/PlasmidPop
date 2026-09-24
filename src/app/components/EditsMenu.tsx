@@ -1,11 +1,16 @@
+import { useMemo } from 'react';
+
 import { analytics } from '../analytics';
-import { type EditsBaseline, editorStore } from '../state/editorStore';
-import { EDITS_BASELINE_LABELS, describeEditDiff } from '../editsView';
-import { useEditDiff } from '../state/editDiff';
+import { type EditsBaseline, editorStore, effectiveEditsBaseline } from '../state/editorStore';
+import { changeStops, describeEditDiff, editsBaselineLabel } from '../editsView';
+import { goToChange, useEditDiff } from '../state/editDiff';
 import { useEditorState } from '../state/useEditorStore';
 import { useMenu } from './useMenu';
 
-/** The baselines that can be picked directly; "marked" is set by the action below them. */
+/**
+ * The baselines that can be picked directly; "marked" is set by the action
+ * below them, and "compared" by Compare with…'s Mark in the views.
+ */
 const CHOICES: readonly { baseline: EditsBaseline; title: string }[] = [
   { baseline: 'off', title: 'Leave the sequence view unmarked' },
   { baseline: 'opened', title: 'Mark everything changed since this document was opened' },
@@ -15,27 +20,47 @@ const CHOICES: readonly { baseline: EditsBaseline; title: string }[] = [
 /**
  * Picks what the sequence view marks changes against, like tracked changes.
  * The button says whether marks are on and how much is marked; the menu
- * chooses the baseline and can move it to the present state.
+ * chooses the baseline, can move it to the present state, and steps from
+ * one marked change to the next.
  */
 export function EditsMenu() {
-  const { editsBaseline, savedDoc, origin } = useEditorState();
+  const state = useEditorState();
+  const { savedDoc, origin, compared, history } = state;
+  const editsBaseline = effectiveEditsBaseline(state);
   const diff = useEditDiff();
   const { open, toggle, close, ref } = useMenu();
+  const doc = history?.present ?? null;
+  const stops = useMemo(
+    () => (doc === null ? [] : changeStops(diff, doc.length, doc.topology === 'circular')),
+    [diff, doc],
+  );
 
   const on = editsBaseline !== 'off';
   const summary = describeEditDiff(diff);
-  const state = !on
+  const label = editsBaselineLabel(editsBaseline, compared?.name ?? null);
+  const status = !on
     ? 'Changes are not marked'
     : summary === ''
-      ? `No changes ${EDITS_BASELINE_LABELS[editsBaseline].toLowerCase()}`
-      : `${EDITS_BASELINE_LABELS[editsBaseline]}: ${summary}`;
+      ? `No changes ${editsBaseline === 'compared' ? `from ${compared?.name ?? ''}` : label.toLowerCase()}`
+      : `${label}: ${summary}`;
+
+  const choices: readonly { baseline: EditsBaseline; title: string }[] =
+    compared === null
+      ? CHOICES
+      : [
+          ...CHOICES,
+          {
+            baseline: 'compared',
+            title: `Mark what this document has that ${compared.name} does not`,
+          },
+        ];
 
   return (
     <div className="menu edits" ref={ref}>
       <button
         type="button"
         className="button"
-        title={`${state}. Click to choose what changes are measured from; Alt+E turns the marks off and on.`}
+        title={`${status}. Click to choose what changes are measured from; Alt+E turns the marks off and on.`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -51,7 +76,7 @@ export function EditsMenu() {
       </button>
       {open && (
         <div className="menu__list" role="menu" aria-label="Mark changes">
-          {CHOICES.map((choice) => (
+          {choices.map((choice) => (
             <button
               key={choice.baseline}
               type="button"
@@ -65,7 +90,7 @@ export function EditsMenu() {
                 editorStore.setEditsBaseline(choice.baseline);
               }}
             >
-              <span>{EDITS_BASELINE_LABELS[choice.baseline]}</span>
+              <span>{editsBaselineLabel(choice.baseline, compared?.name ?? null)}</span>
               <span className="menu__shortcut">
                 {editsBaseline === choice.baseline ? '✓' : ''}
                 {/* A copy falls back to the file it came from, so only a
@@ -89,6 +114,35 @@ export function EditsMenu() {
           >
             <span>Mark from here</span>
             <span className="menu__shortcut">{editsBaseline === 'marked' ? '✓' : ''}</span>
+          </button>
+          <div className="menu__separator" />
+          <button
+            type="button"
+            role="menuitem"
+            className="menu__item"
+            disabled={stops.length === 0}
+            title="Select the next marked change after the cursor, going round at the end"
+            onClick={() => {
+              close();
+              goToChange(1);
+            }}
+          >
+            <span>Next change</span>
+            <span className="menu__shortcut">Alt+N</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu__item"
+            disabled={stops.length === 0}
+            title="Select the marked change before the cursor, going round at the start"
+            onClick={() => {
+              close();
+              goToChange(-1);
+            }}
+          >
+            <span>Previous change</span>
+            <span className="menu__shortcut">Alt+Shift+N</span>
           </button>
           <div className="menu__separator" />
           <p className="edits__summary">{summary === '' ? 'Nothing marked' : summary}</p>

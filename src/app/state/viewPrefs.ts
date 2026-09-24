@@ -50,10 +50,11 @@ export interface ViewPrefs {
   readonly baseColors: CustomBaseColors | null;
   /**
    * Which baseline the edit marks use. "Mark from here" is a point in one
-   * session's work, so it is remembered as the state the document was opened
-   * in instead — there is no baseline document to bring back.
+   * session's work, and a comparison marked in the views is a file or tab of
+   * this session, so both are remembered as the state the document was
+   * opened in instead — there is no baseline document to bring back.
    */
-  readonly editsBaseline: Exclude<EditsBaseline, 'marked'>;
+  readonly editsBaseline: StoredBaseline;
   /** Where the splitters were left; see `LayoutSizes`. */
   readonly layout: LayoutSizes;
   /** Whether the sidebar is shown at all. */
@@ -87,7 +88,9 @@ function isViewMode(v: unknown): v is ViewMode {
 
 const BASELINES: readonly string[] = ['off', 'opened', 'saved'];
 
-function isStoredBaseline(v: unknown): v is Exclude<EditsBaseline, 'marked'> {
+type StoredBaseline = Exclude<EditsBaseline, 'marked' | 'compared'>;
+
+function isStoredBaseline(v: unknown): v is StoredBaseline {
   return typeof v === 'string' && BASELINES.includes(v);
 }
 
@@ -233,7 +236,8 @@ function snapshot(): ViewPrefs {
     colorBases,
     traceSize,
     baseColors,
-    editsBaseline: editsBaseline === 'marked' ? 'opened' : editsBaseline,
+    editsBaseline:
+      editsBaseline === 'marked' || editsBaseline === 'compared' ? 'opened' : editsBaseline,
     layout,
     sidebarOpen,
     enzymeCutFilter,

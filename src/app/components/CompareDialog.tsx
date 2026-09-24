@@ -9,19 +9,23 @@ import {
   isIdentityAlignment,
 } from '@/core';
 
+import { analytics } from '../analytics';
 import { describeAlignment } from '../compare';
+import { openFile } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { DiffReview } from './DiffReview';
 
 /**
- * What the document in front differs from in another file — the same review
- * a working copy gets before it is downloaded, asked of a file on disk
- * instead of the one this document came from.
+ * What the document in front differs from in another file or another tab —
+ * the same review a working copy gets before it is downloaded, asked of
+ * something other than the one this document came from.
  *
  * It answers the question a plasmid map cannot: is this the same construct
  * as the one in that file, and if not, where do they part company. Nothing
- * is opened, written or stored; the other file is read, diffed and dropped.
+ * is opened, written or stored; the other file is read, diffed and dropped,
+ * unless it is opened from here as File ▸ Open would open it, or the other
+ * side is kept as the edit marks' baseline ("Mark in the views", #37).
  *
  * The file is lined up with this document before it is diffed. Two files can
  * hold the same plasmid and share no text at all, because a circle has no
@@ -35,7 +39,7 @@ import { DiffReview } from './DiffReview';
  */
 export function CompareDialog() {
   const state = useEditorState();
-  const { comparison } = state;
+  const comparison = state.comparison?.stage === 'review' ? state.comparison : null;
   const current = state.history?.present ?? null;
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -74,6 +78,7 @@ export function CompareDialog() {
   );
 
   if (comparison === null || current === null || other === null || file === null) return null;
+  const { name, source } = comparison;
   const changes = diff === null || isEmptyDiff(diff) ? null : diff;
   const sameLength = other.length === current.length;
   const sameMolecule =
@@ -89,11 +94,14 @@ export function CompareDialog() {
         aria-describedby="compare-body"
       >
         <h2 id="compare-title" className="dialog__title">
-          “{current.name}” compared with {comparison.fileName}
+          “{current.name}” compared with {name}
         </h2>
         <p id="compare-body" className="dialog__body">
-          What this document has that <strong>{comparison.fileName}</strong> does not, in this
-          document’s own coordinates. Neither file is changed, and nothing was opened or stored.
+          What this document has that <strong>{name}</strong> does not, in this document’s own
+          coordinates.{' '}
+          {source.kind === 'file'
+            ? 'Neither file is changed, and nothing was opened or stored.'
+            : 'Neither document is changed.'}
         </p>
 
         {checksums?.mine != null && checksums.theirs != null && (
@@ -105,7 +113,7 @@ export function CompareDialog() {
               </dd>
             </div>
             <div>
-              <dt>{comparison.fileName}</dt>
+              <dt>{name}</dt>
               <dd>
                 <code className={sameMolecule ? 'compare-checksums__same' : undefined}>
                   {checksums.theirs.text}
@@ -124,7 +132,7 @@ export function CompareDialog() {
           )}
 
         {alignment !== null && turned && (
-          <p className="save-review__note">{describeAlignment(alignment, comparison.fileName)}</p>
+          <p className="save-review__note">{describeAlignment(alignment, name)}</p>
         )}
 
         <div className="save-review">
@@ -147,6 +155,30 @@ export function CompareDialog() {
         </div>
 
         <div className="dialog__actions">
+          <button
+            type="button"
+            className="button"
+            title="Open the other side in its own tab"
+            onClick={() => {
+              analytics.track('compare', 'open-other', source.kind);
+              editorStore.dismissComparison();
+              if (source.kind === 'tab') editorStore.activateDocument(source.documentId);
+              else void openFile(source.file);
+            }}
+          >
+            {source.kind === 'file' ? `Open ${name}` : `Go to ${name}`}
+          </button>
+          <button
+            type="button"
+            className="button"
+            title={`Mark what this document has that ${name} does not in the sequence view and the map, as the Edits menu marks changes`}
+            onClick={() => {
+              analytics.track('compare', 'mark-in-views');
+              editorStore.markComparedInViews(name, other);
+            }}
+          >
+            Mark in the views
+          </button>
           <button
             ref={closeRef}
             type="button"

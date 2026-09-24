@@ -7,8 +7,8 @@ import { editorStore } from './state/editorStore';
 /**
  * Reads a file the user picked and shows how the document in front differs
  * from it. The file is not opened as a tab and nothing about it is stored:
- * it is read, diffed and dropped, which is what makes this safe to point at
- * a colleague's copy of the plasmid.
+ * it is read, diffed and dropped (unless the dialog is asked to open it),
+ * which is what makes this safe to point at a colleague's copy of the plasmid.
  */
 export async function compareWithFile(file: File): Promise<boolean> {
   if (editorStore.document === null) return false;
@@ -27,7 +27,10 @@ export async function compareWithFile(file: File): Promise<boolean> {
       return false;
     }
     analytics.track('file', 'compare', result.format);
-    editorStore.showComparison(file.name, other);
+    analytics.track('compare', 'target', 'file');
+    // The file itself is kept, not a document made of it, so "Open" in the
+    // dialog reads it again the way File ▸ Open does, origin and all.
+    editorStore.showComparison(file.name, other, { kind: 'file', file });
     return true;
   } catch (e) {
     editorStore.fail(e instanceof Error ? e.message : String(e));

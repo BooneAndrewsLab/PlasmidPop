@@ -3,7 +3,12 @@ import { SeqDocument, createFeature, documentChecksum, rangeSegment } from '@/co
 import { deleteBackward, deleteForward, typeText } from '../editing';
 import { parseGenBank } from '@/io';
 
-import { ERROR_FADE_MS, EditorStore, MAX_DEFAULT_ENZYMES } from './editorStore';
+import {
+  ERROR_FADE_MS,
+  EditorStore,
+  MAX_DEFAULT_ENZYMES,
+  effectiveEditsBaseline,
+} from './editorStore';
 
 const doc = SeqDocument.create({
   sequence: 'ACGTACGTACGTACGTACGT',
@@ -527,6 +532,60 @@ describe('EditorStore edit-mark baseline', () => {
     // Falls back to the opened state until it has been used for this document.
     store.openDocument(doc, 'y.gb');
     expect(store.editsBaselineDocument()).toBe(doc);
+  });
+
+  it('measures from a comparison marked in the views, for that document only', () => {
+    const store = opened();
+    const first = store.getState().documentId;
+    const theirs = doc.insert(4, 'GGG');
+    store.requestComparison();
+    store.showComparison('theirs.gb', theirs, { kind: 'tab', documentId: 'elsewhere' });
+    store.markComparedInViews('theirs.gb', theirs);
+    expect(store.getState()).toMatchObject({
+      comparison: null,
+      editsBaseline: 'compared',
+      compared: { name: 'theirs.gb', doc: theirs },
+    });
+    expect(store.editsBaselineDocument()).toBe(theirs);
+    store.apply({ type: 'insert', position: 0, text: 'AAA' });
+    expect(store.editsBaselineDocument()).toBe(theirs);
+
+    // Another document was not compared with anything, so it falls back to
+    // the state it was opened in, as "mark from here" does.
+    const other = SeqDocument.create({ name: 'other', sequence: 'GGGGCCCC' });
+    store.openDocument(other, 'y.gb');
+    expect(store.getState().compared).toBeNull();
+    expect(effectiveEditsBaseline(store.getState())).toBe('opened');
+    expect(store.editsBaselineDocument()).toBe(other);
+
+    // And the first one still has its own after the tab switch.
+    store.activateDocument(first);
+    expect(store.editsBaselineDocument()).toBe(theirs);
+    expect(effectiveEditsBaseline(store.getState())).toBe('compared');
+  });
+
+  it('opens the chooser only with a document in front, and compares with a tab', () => {
+    const store = new EditorStore();
+    store.requestComparison();
+    expect(store.getState().comparison).toBeNull();
+    const first = store.openDocument(doc, 'x.gb');
+    const other = SeqDocument.create({ name: 'other', sequence: 'GGGGCCCC' });
+    const second = store.openDocument(other, 'y.gb');
+    store.requestComparison();
+    expect(store.getState().comparison).toEqual({ stage: 'choose' });
+    // Not with itself.
+    store.compareWithTab(second);
+    expect(store.getState().comparison).toEqual({ stage: 'choose' });
+    store.compareWithTab(first);
+    expect(store.getState().comparison).toEqual({
+      stage: 'review',
+      name: doc.name,
+      doc,
+      source: { kind: 'tab', documentId: first },
+    });
+    // A modal, so a tab switch takes it away.
+    store.activateDocument(first);
+    expect(store.getState().comparison).toBeNull();
   });
 
   it('has no baseline with nothing open', () => {

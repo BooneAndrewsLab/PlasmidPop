@@ -1,8 +1,16 @@
 import { useMemo } from 'react';
 
-import { type DocumentDiff, type SeqDocument, diffDocuments, isEmptyDiff } from '@/core';
+import {
+  type DocumentDiff,
+  type Range,
+  type SeqDocument,
+  diffDocuments,
+  isEmptyDiff,
+} from '@/core';
 
-import { type EditorState, editsBaselineDocument } from './editorStore';
+import { analytics } from '../analytics';
+import { changeStops, stepChange } from '../editsView';
+import { type EditorState, editorStore, editsBaselineDocument } from './editorStore';
 import { useEditorState } from './useEditorStore';
 
 /**
@@ -32,4 +40,26 @@ export function editDiffOf(state: EditorState): DocumentDiff | null {
 export function useEditDiff(): DocumentDiff | null {
   const state = useEditorState();
   return useMemo(() => editDiffOf(state), [state]);
+}
+
+/** Where Next change and Previous change can go in the document in front; see `changeStops`. */
+export function changeStopsOf(state: EditorState): readonly Range[] {
+  const doc = state.history?.present ?? null;
+  if (doc === null) return [];
+  return changeStops(editDiffOf(state), doc.length, doc.topology === 'circular');
+}
+
+/**
+ * Next change (`1`) or Previous change (`-1`): selects the next edit mark
+ * from the selection, or puts the caret on the next deletion, and scrolls
+ * the views to it, as Find does with a match. False when nothing is marked.
+ */
+export function goToChange(direction: 1 | -1): boolean {
+  const state = editorStore.getState();
+  const stop = stepChange(changeStopsOf(state), state.selection, direction);
+  if (stop === null) return false;
+  analytics.trackOnce('edits', direction === 1 ? 'next' : 'prev');
+  editorStore.setSelection(stop);
+  editorStore.revealPosition(stop.start);
+  return true;
 }

@@ -108,12 +108,26 @@ The menu chooses what the marks are measured from:
   nothing is marked.
 - **Mark from here** makes the document as it is now the point everything
   is measured from, for when you want to see only what you do next.
+- **Compared with _name_** is there once **Mark in the views** has been
+  used in [Compare with…](02-files.md#comparing-with-another-document): it
+  marks what this document has that the other file or tab does not. It
+  belongs to the document it was compared from; on a document not compared
+  with anything it means **Since opened**.
 - **Off** leaves the view unmarked.
 
-The choice is remembered between sessions (except **Mark from here**, which
-belongs to one session's work and comes back as **Since opened**). The marks
-also appear in **File ▸ Export sequence view as SVG** and **Export map as
-SVG**, and in the review before a download and in **Compare with…**.
+The choice is remembered between sessions (except **Mark from here** and
+**Compared with**, which belong to one session's work and come back as
+**Since opened**). The marks also appear in **File ▸ Export sequence view as
+SVG** and **Export map as SVG**, and in the review before a download and in
+**Compare with…**.
+
+**Next change** (`Alt+N`) and **Previous change** (`Alt+Shift+N`) in the
+same menu go from the cursor to the next or previous marked change, whatever
+the marks are measured from: a stretch of new or replaced bases is selected,
+a place where bases were removed gets the cursor, and both views scroll to
+it. At the last change Next goes round to the first. On a plasmid, a change
+that runs across the origin is one stop, selected across it. With nothing
+marked both are greyed out and the keys do nothing.
 
 The marks describe the difference between two versions, not the steps that
 got you there: if you type a base and delete it again, nothing is marked.

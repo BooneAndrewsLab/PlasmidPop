@@ -8,6 +8,7 @@ import { EXAMPLES } from '../examples';
 import { SEQUENCE_FILE_ACCEPT, openExample, openFile } from '../openFile';
 import { persistence } from '../state/persistence';
 import { HelpButton } from '../help/HelpButton';
+import { CompareChooser } from './CompareChooser';
 import { EditsMenu } from './EditsMenu';
 import { FileMenu } from './FileMenu';
 import { FormatMenu } from './FormatMenu';
@@ -35,7 +36,8 @@ function segmentedClass(active: boolean): string {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { showComplement, showTranslations, showCutSites, view, dirty, front } = useEditorState();
+  const { showComplement, showTranslations, showCutSites, view, dirty, front, documents } =
+    useEditorState();
   const inputRef = useRef<HTMLInputElement>(null);
   const compareRef = useRef<HTMLInputElement>(null);
   /** The picker where it exists, the hidden input where it does not. */
@@ -58,6 +60,12 @@ export function Toolbar({ doc }: Props) {
   const compareViaPicker = (): void => {
     pickFile(compareWithFile, compareRef);
   };
+  // With another tab open there is a choice to make first (#37); with none,
+  // the only thing to compare with is a file, and the picker is the question.
+  const compare = (): void => {
+    if (documents.length > 1) editorStore.requestComparison();
+    else compareViaPicker();
+  };
   // Alt+K: Compare with…, while there is a document to compare (#34).
   useAltKey(
     'KeyK',
@@ -65,7 +73,7 @@ export function Toolbar({ doc }: Props) {
       ? null
       : () => {
           analytics.shortcut('alt+k');
-          compareViaPicker();
+          compare();
         },
   );
   const [renaming, setRenaming] = useState(false);
@@ -173,10 +181,10 @@ export function Toolbar({ doc }: Props) {
             </button>
           </div>
         ) : phone ? (
-          <FileMenu doc={doc} onOpenFile={openViaPicker} onCompareFile={compareViaPicker} />
+          <FileMenu doc={doc} onOpenFile={openViaPicker} onCompare={compare} />
         ) : (
           <>
-            <FileMenu doc={doc} onOpenFile={openViaPicker} onCompareFile={compareViaPicker} />
+            <FileMenu doc={doc} onOpenFile={openViaPicker} onCompare={compare} />
             <HistoryMenu />
             <div
               className="segmented"
@@ -256,6 +264,7 @@ export function Toolbar({ doc }: Props) {
           hidden
           onChange={onPick(compareWithFile)}
         />
+        {doc !== null && <CompareChooser onPickFile={compareViaPicker} />}
       </div>
       <HelpButton />
     </header>

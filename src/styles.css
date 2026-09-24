@@ -2339,6 +2339,37 @@ button {
   color: var(--ink-2);
 }
 
+/* Compare with…'s first question: the other open tabs, one button each. */
+.compare-choices {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.compare-choices__item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+}
+
+.compare-choices__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-choices__meta {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
 .compare-checksums__same {
   color: var(--ok, #2e9e5b);
   font-weight: 600;

@@ -45,9 +45,34 @@ export type ViewMode = 'sequence' | 'map' | 'both';
 /**
  * What the edit marks in the sequence view compare the document against:
  * nothing, the state it was opened in, the version last written to a file,
- * or a point the user chose with "Mark from here".
+ * a point the user chose with "Mark from here", or the other side of a
+ * Compare with… that was marked in the views (`DocumentState.compared`).
  */
-export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked';
+export type EditsBaseline = 'off' | 'opened' | 'saved' | 'marked' | 'compared';
+
+/** Where the other side of a Compare with… came from, so the dialog can open it (#37). */
+export type ComparisonSource =
+  | {
+      readonly kind: 'file';
+      /** The file as picked, so opening it goes the way File ▸ Open does. */
+      readonly file: File;
+    }
+  | { readonly kind: 'tab'; readonly documentId: string };
+
+/**
+ * The Compare with… dialog: first choosing what to compare with (another
+ * tab, or a file on disk), then the comparison itself.
+ */
+export type Comparison =
+  | { readonly stage: 'choose' }
+  | {
+      readonly stage: 'review';
+      /** The file's name, or the other tab's document name. */
+      readonly name: string;
+      /** The other side as read or as the tab has it now, not yet lined up. */
+      readonly doc: SeqDocument;
+      readonly source: ComparisonSource;
+    };
 
 /** The four base colours a user may set, as `#rrggbb`. */
 export interface CustomBaseColors {
@@ -256,6 +281,13 @@ export interface DocumentState {
   readonly openedDoc: SeqDocument;
   /** The document when "Mark from here" was last used. */
   readonly markedDoc: SeqDocument | null;
+  /**
+   * The other side of a Compare with… marked in the views, lined up as the
+   * dialog lined it up, and what it is called: the baseline for
+   * `editsBaseline: 'compared'`. This document's own, so another tab's
+   * comparison is not drawn over it; not kept across a reload.
+   */
+  readonly compared: { readonly name: string; readonly doc: SeqDocument } | null;
   /** The file this document was read from, if it was read from one at all. */
   readonly origin: DocumentOrigin | null;
   /**
@@ -466,13 +498,14 @@ export interface SharedState {
   /** Bumped when a clickable previewed span is clicked in either view. */
   readonly previewActivated: PreviewActivation | null;
   /**
-   * A file the document in front is being compared with: what it was called
-   * and the document read out of it. Nothing is opened and nothing is
-   * stored — the file is read, diffed and dropped — so this is the one place
-   * a document PlasmidPop is not editing lives. Shared rather than per-tab
-   * because the comparison is a modal dialog: only one can be up.
+   * The Compare with… dialog, while it is up: choosing what to compare the
+   * document in front with, or the comparison with a file or another tab.
+   * Nothing is opened and nothing is stored — a file is read, diffed and
+   * dropped — so this is the one place a document PlasmidPop is not editing
+   * lives. Shared rather than per-tab because it is a modal dialog: only one
+   * can be up.
    */
-  readonly comparison: { readonly fileName: string; readonly doc: SeqDocument } | null;
+  readonly comparison: Comparison | null;
   /**
    * Whether the New sequence dialog is up (#6): a name and a topology asked
    * for before the empty document opens, rather than fixed afterwards.
@@ -666,6 +699,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   savedDoc: null,
   openedDoc: null,
   markedDoc: null,
+  compared: null,
   origin: null,
   derived: false,
   warnings: [],
@@ -871,6 +905,7 @@ export class EditorStore {
       savedDoc: fileName === null ? null : doc,
       openedDoc: doc,
       markedDoc: null,
+      compared: null,
       // Only a document read from a file has one to protect; a paste, an
       // example or a "New" document is the user's own from the start. An
       // explicit `origin` wins either way: a working copy restored from
@@ -1477,9 +1512,35 @@ export class EditorStore {
     if (this.shared.newDialog) this.setShared({ newDialog: false });
   }
 
-  /** Shows what the document in front differs from in a file just read. */
-  showComparison(fileName: string, doc: SeqDocument): void {
-    this.setShared({ comparison: { fileName, doc } });
+  /** Opens Compare with… on its first question: what to compare with. */
+  requestComparison(): void {
+    if (this.activeId === null || this.shared.comparison !== null) return;
+    this.setShared({ comparison: { stage: 'choose' } });
+  }
+
+  /** Shows what the document in front differs from in a file just read, or another tab. */
+  showComparison(name: string, doc: SeqDocument, source: ComparisonSource): void {
+    if (this.activeId === null) return;
+    this.setShared({ comparison: { stage: 'review', name, doc, source } });
+  }
+
+  /** Compares the document in front with another tab's present version. */
+  compareWithTab(id: string): void {
+    const other = this.documentState(id);
+    if (other === null || id === this.activeId) return;
+    const doc = other.history.present;
+    this.showComparison(doc.name, doc, { kind: 'tab', documentId: id });
+  }
+
+  /**
+   * Makes `doc` — the other side of a comparison, lined up as the dialog
+   * lined it up — what the edit marks of the document in front measure
+   * from, and closes the dialog.
+   */
+  markComparedInViews(name: string, doc: SeqDocument): void {
+    if (this.activeId === null) return;
+    this.shared = { ...this.shared, comparison: null, editsBaseline: 'compared' };
+    this.setActive({ compared: { name, doc } });
   }
 
   dismissComparison(): void {
@@ -1739,15 +1800,29 @@ export class EditorStore {
 }
 
 /**
+ * The baseline the document in front is actually measured from. The choice
+ * is shared by every tab but a comparison belongs to one document, so on a
+ * document that has not been compared with anything "compared" means
+ * "since opened", and the Edits menu says so rather than naming nothing.
+ */
+export function effectiveEditsBaseline(state: EditorState): EditsBaseline {
+  return state.editsBaseline === 'compared' && state.compared === null
+    ? 'opened'
+    : state.editsBaseline;
+}
+
+/**
  * The version the edit marks compare against, or null when they are off or
  * there is nothing to compare with — a document that has never been written
  * out and came from nowhere has no file to be measured against, and "Mark
  * from here" falls back to the state the document was opened in until it is
- * used.
+ * used, as "compared" does on a document not compared with anything.
  */
 export function editsBaselineDocument(state: EditorState): SeqDocument | null {
   if (state.history === null) return null;
-  switch (state.editsBaseline) {
+  switch (effectiveEditsBaseline(state)) {
+    case 'compared':
+      return state.compared?.doc ?? state.openedDoc;
     case 'off':
       return null;
     case 'saved':
