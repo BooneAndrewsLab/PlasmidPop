@@ -359,6 +359,13 @@ before and after:
 | 50 features, 35 single cutters     | 1.5 ms | 1.9 ms |
 | 50 features, every cut site of all | 4.0 ms | 6.4 ms |
 
+The second label ring (#23) adds a pass for what the first ring could not
+place; after it, measured the same way: 1.7 ms for 50 features, 2.3 ms with
+35 single cutters, 7.8 ms with every cut site of all 127 enzymes. Searched
+at the first ring's resolution and to the end it took 15.8 ms there; the
+outer ring's grid is coarser (three-quarters of a line) and the pass stops
+after 24 labels in a row find no room.
+
 The first cut of the spread took 38.7 ms in the last row: trimming an
 overfull crowd re-spread it once per label left out, and every merge
 re-centred the whole cluster. A cluster now keeps its span and the sum its

@@ -218,8 +218,10 @@ against the top or bottom of the circle moves away from it together. The
 labels stay in the order their ticks are, and their leader lines do not
 cross; where two features sit at nearly the same place one of them has to
 give way, and it is either drawn with a leader that crosses its neighbour's
-or left out. The same document is laid out the same way every time it is
-opened.
+or left out. A label with no room beside the ring can go a little further
+out, on a second row or column outside the first, where its leader can
+reach it without running through another label. The same document is laid
+out the same way every time it is opened.
 
 Past a certain number of labels the ring is full, and the map leaves some out
 rather than writing them over each other. It says how many in the bottom-left

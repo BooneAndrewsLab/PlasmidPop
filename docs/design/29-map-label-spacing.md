@@ -114,15 +114,29 @@ cut-over-cut across 48 renders of pBR322 (`cceb5df`).
   at the _hovered_ feature's lane, not the labelled one's, so hovering a
   `mat_peptide` inside a CDS draws a line that reaches the arc under the
   pointer.
-- Not yet: **a second label ring**, which is what SnapGene does with a
-  crowded map and the only thing that would raise how much fits rather than
-  how well it is spaced — the drop counts are the evidence for whether it
-  is worth it, and they are now visible (`+N`): a roomy canvas loses
-  nothing on a real record, the Both view's 420 × 560 pane loses 19 of 42
-  on the reported construct. Note that at the sides a second ring is really
-  a second _column_ and needs the widest text in the first one (~140 px)
-  before it helps, which `OUTER_MARGIN` (110) cannot fund without shrinking
-  the circle. Also not yet: the leader lines still fan out in a near-parallel
+- **A second label ring** (#23, 2026-09-24), what SnapGene does with a
+  crowded map. What the first ring has no room for, after both of its
+  passes, is offered a slot further out: for each angle the search steps
+  outward from the label ring (three-quarter-line steps) until the box is
+  free, under the first ring's rules — the ring's order kept, no leader
+  crossing another, the slide charged from the anchor — and two of its
+  own: a leader to the outer ring may be no longer than one to the first
+  (so the harness's leader cap still holds), and it may not run through a
+  label already placed (`segmentHitsBox`, Liang–Barsky on the boxes filed
+  by band). Near 12 and 6 o'clock that is a row or two above or below;
+  at the sides a second column, which as predicted only a canvas with room
+  beyond `OUTER_MARGIN` gets. Right at the poles it is often refused: the
+  first ring's labels stand shoulder to shoulder there and every way out
+  runs through one. The pass is given up after 24 labels in a row find no
+  room (the outer ring is full where the crowd is) and is searched on a
+  coarser grid, which took the worst case from 15.8 ms back to 7.8.
+  Over the harness's 208 renders **5,981 → 6,189 labels drawn**, crossing
+  pairs 0 → 0, inversions 3 → 6, longest leader 110 → 112 px; the reported
+  construct in the 420 × 560 pane drops **15 of 42 where it dropped 21**
+  (19 when this note was written; the ring there is width-limited, so
+  everything gained is above and below it). The SVG export's longer slide
+  gives its outer ring the same reach.
+- Also not yet: the leader lines still fan out in a near-parallel
   tangle where a dozen labels bunch, nothing in the ring is clickable, and
   the label ring is sized for the sans font but `OUTER_MARGIN` is still a
   constant.

@@ -180,6 +180,41 @@ describe('layoutLabels', () => {
     expect(left[0]?.anchorY ?? 0).toBeGreaterThan(left[1]?.anchorY ?? 0);
   });
 
+  it('puts what the first ring cannot hold on a second ring outside it', () => {
+    // Sixteen short labels bunched at 12 o'clock, with the margin the map
+    // itself keeps around the circle: more than one row's worth.
+    const roomy = new CircularLayout(1000, 'circular', { ...opts, outerMargin: 110 });
+    const r1 = roomy.radius + 34;
+    const around = { ...base, labelRadius: r1, elbowRadius: roomy.radius + 26 };
+    const crowd = inputs(
+      Array.from({ length: 16 }, (_, i) => -Math.PI / 2 + (i - 8) * 0.005),
+      30,
+    );
+    const without = layoutLabels(crowd, roomy, { ...around, outerReach: 0 });
+    const { placed } = layoutLabels(crowd, roomy, around);
+    const distance = (l: PlacedLabel): number =>
+      Math.hypot(l.anchorX - roomy.cx, l.anchorY - roomy.cy);
+    const outer = placed.filter((l) => distance(l) > r1 + 1);
+    expect(outer.length).toBeGreaterThan(0);
+    expect(placed.length).toBe(without.placed.length + outer.length);
+    expect(collisions(placed.map((l) => l.box))).toBe(0);
+    // Each outer leader, from its elbow out, passes through no other label.
+    for (const l of outer) {
+      const ex = roomy.cx + around.elbowRadius * Math.cos(l.angle);
+      const ey = roomy.cy + around.elbowRadius * Math.sin(l.angle);
+      for (const other of placed) {
+        if (other === l) continue;
+        const b = other.box;
+        for (let t = 0; t <= 1; t += 0.02) {
+          const x = ex + (l.anchorX - ex) * t;
+          const y = ey + (l.anchorY - ey) * t;
+          const inside = x > b.left + 1 && x < b.right - 1 && y > b.top + 1 && y < b.bottom - 1;
+          expect(inside, `${l.id}'s leader runs through ${other.id}`).toBe(false);
+        }
+      }
+    }
+  });
+
   it('lays a crowd out the same whatever the ids, which a parsed file makes at random', () => {
     const angles = [-0.05, -0.03, -0.01, 0.01, 0.03].map((d) => -Math.PI / 2 + d);
     const once = layoutLabels(inputs(angles, 60), layout, base);

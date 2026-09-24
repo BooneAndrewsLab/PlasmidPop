@@ -191,6 +191,11 @@ export interface LabelLayoutOptions {
   /** Margin kept clear at the canvas edges, for the hovered label's bubble. */
   readonly inset?: number;
   /**
+   * How far outside the label ring a second ring may put a label the first
+   * had no room for, in pixels (#23); 0 for none. Defaults to `maxShift`.
+   */
+  readonly outerReach?: number;
+  /**
    * Radius of the elbow a leader turns at, which is where the line to a
    * slid label starts. Needed to keep leaders from crossing; defaults to
    * the label ring, which makes every leader a chord of it.
@@ -229,6 +234,9 @@ const MAX_SHIFT_LINES = 8;
  * the long leader and the broken order rather than leave one out.
  */
 const RESCUE_SHIFT_LINES = 2;
+
+/** Labels in a row the outer ring may fail to place before it is taken to be full. */
+const OUTER_MISSES = 24;
 
 /** Rounds of trimming an overfull crowd before the spread settles for what it has. */
 const MAX_SPREAD_ROUNDS = 16;
@@ -519,6 +527,35 @@ export function labelBox(
   return { left, right: left + textWidth, top: y - lineHeight / 2, bottom: y + lineHeight / 2 };
 }
 
+/**
+ * Whether a line segment passes through a box (Liang–Barsky clipping). The
+ * box is taken a pixel smaller, so a leader that only grazes a label's
+ * padding is not counted as running through it.
+ */
+function segmentHitsBox(x0: number, y0: number, x1: number, y1: number, box: LabelBox): boolean {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  let t0 = 0;
+  let t1 = 1;
+  const edges: [number, number][] = [
+    [-dx, x0 - (box.left + 1)],
+    [dx, box.right - 1 - x0],
+    [-dy, y0 - (box.top + 1)],
+    [dy, box.bottom - 1 - y0],
+  ];
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const t = q / p;
+    if (p < 0) t0 = Math.max(t0, t);
+    else t1 = Math.min(t1, t);
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+
 function overlaps(a: LabelBox, b: LabelBox): boolean {
   return (
     a.left < b.right + LABEL_GAP_X &&
@@ -574,6 +611,11 @@ export function layoutLabels(
   const inset = options.inset ?? 0;
   const maxShift = options.maxShift ?? lineHeight * MAX_SHIFT_LINES;
   const rescueShift = options.rescueShift ?? lineHeight * RESCUE_SHIFT_LINES;
+  const outerReach = options.outerReach ?? maxShift;
+  // The outer ring is searched on a coarser grid than the first: it is
+  // offered only what the first had no room for, which on a dense map is
+  // hundreds of labels.
+  const outerStep = Math.max(3, lineHeight * 0.75);
   const step = Math.max(2, lineHeight / 2);
   const radius = Math.max(1, labelRadius);
   // Boxes are filed by horizontal band, so a candidate is only compared with
@@ -598,6 +640,20 @@ export function layoutLabels(
   const isFree = (box: LabelBox): boolean => {
     for (const i of bandsOf(box)) {
       for (const other of taken.get(i) ?? []) if (overlaps(box, other)) return false;
+    }
+    return true;
+  };
+  /** Whether a straight leader passes through no label already placed. */
+  const lineIsClear = (x0: number, y0: number, x1: number, y1: number): boolean => {
+    const span = {
+      left: Math.min(x0, x1),
+      right: Math.max(x0, x1),
+      top: Math.min(y0, y1),
+      bottom: Math.max(y0, y1),
+    };
+    for (const i of bandsOf(span)) {
+      for (const other of taken.get(i) ?? [])
+        if (segmentHitsBox(x0, y0, x1, y1, other)) return false;
     }
     return true;
   };
@@ -629,7 +685,12 @@ export function layoutLabels(
   // label's own anchor.
   const targets = spreadTargets(labels, layout, options, maxShift);
 
-  const attempt = (label: LabelInput, strict: boolean, limit = maxShift): Attempt | null => {
+  const attempt = (
+    label: LabelInput,
+    strict: boolean,
+    limit = maxShift,
+    outer = false,
+  ): Attempt | null => {
     const at = ringAngle(label.angle);
     const start = targets.get(label.id) ?? at;
     const reach = limit + Math.abs(start - at) * radius;
@@ -647,33 +708,53 @@ export function layoutLabels(
     const hi = Math.min(right ? HALF_PI : Math.PI * 1.5, taken[after]?.at ?? Infinity);
     const ex = layout.cx + elbowRadius * Math.cos(at);
     const ey = layout.cy + elbowRadius * Math.sin(at);
+    // What a leader may run from its elbow: to the ring and along it, or,
+    // for the outer ring, the same length in any direction.
+    const budget = labelRadius - elbowRadius + limit;
     for (let i = 0; i * step <= reach; i++) {
       for (const dir of i === 0 ? [0] : [1, -1]) {
         const angle = start + (dir * i * step) / radius;
         if (angle < lo || angle > hi) continue;
         // The slide is charged from the label's own anchor, wherever the search began.
         if (Math.abs(angle - at) * radius > limit) continue;
-        const ax = layout.cx + labelRadius * Math.cos(angle);
-        const ay = layout.cy + labelRadius * Math.sin(angle);
-        const x = right ? ax + LABEL_GAP_X : ax - LABEL_GAP_X;
-        const box = labelBox(x, ay, label.textWidth, lineHeight, align);
-        if (
-          box.left < inset ||
-          box.right > width - inset ||
-          box.top < inset ||
-          box.bottom > height - inset
-        )
-          continue;
-        if (!isFree(box)) continue;
-        const run: PlacedRun = { lo: Math.min(at, angle), hi: Math.max(at, angle), ex, ey, ax, ay };
-        if (strict && !runIsClear(runs, run, ex, ey, ax, ay)) continue;
-        return {
-          label: { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box },
-          run,
-          slot: { rung: mine, at: angle },
-          side: right ? 0 : 1,
-          index: after,
-        };
+        for (
+          let r = outer ? labelRadius + outerStep : labelRadius;
+          r <= labelRadius + (outer ? outerReach : 0);
+          r += outerStep
+        ) {
+          const ax = layout.cx + r * Math.cos(angle);
+          const ay = layout.cy + r * Math.sin(angle);
+          if (outer && Math.hypot(ax - ex, ay - ey) > budget) break;
+          const x = right ? ax + LABEL_GAP_X : ax - LABEL_GAP_X;
+          const box = labelBox(x, ay, label.textWidth, lineHeight, align);
+          if (
+            box.left < inset ||
+            box.right > width - inset ||
+            box.top < inset ||
+            box.bottom > height - inset
+          )
+            continue;
+          if (!isFree(box)) continue;
+          // A leader out to the second ring runs between the first ring's
+          // labels, and must not run through one.
+          if (outer && !lineIsClear(ex, ey, ax, ay)) continue;
+          const run: PlacedRun = {
+            lo: Math.min(at, angle),
+            hi: Math.max(at, angle),
+            ex,
+            ey,
+            ax,
+            ay,
+          };
+          if (strict && !runIsClear(runs, run, ex, ey, ax, ay)) continue;
+          return {
+            label: { ...label, x, y: ay, align, anchorX: ax, anchorY: ay, box },
+            run,
+            slot: { rung: mine, at: angle },
+            side: right ? 0 : 1,
+            index: after,
+          };
+        }
       }
     }
     return null;
@@ -698,10 +779,30 @@ export function layoutLabels(
   // already ruled that out; a pair that meet near their own features is a
   // blemish, and losing the name of a feature is not. So everything the
   // rule refused is offered the room that is left.
+  const left: LabelInput[] = [];
   for (const label of tangled) {
     const got = attempt(label, false, rescueShift);
-    if (got === null) dropped.push(label);
+    if (got === null) left.push(label);
     else keep(got);
+  }
+  // What the ring has no room for is offered a second ring outside it (#23),
+  // under the first ring's rules: in order, no leader crossed, and a leader
+  // no longer than one to the first ring may be. Near 12 and 6 o'clock that
+  // is a second row a line or two out; at the sides it is a second column
+  // beyond the first ring's labels, which only a wide canvas has room for.
+  // In rank order, and given up once enough in a row have found no room:
+  // by then the outer ring is full where the crowd is.
+  let misses = 0;
+  for (const label of left) {
+    const got =
+      outerReach > 0 && misses < OUTER_MISSES ? attempt(label, true, maxShift, true) : null;
+    if (got === null) {
+      dropped.push(label);
+      misses++;
+    } else {
+      keep(got);
+      misses = 0;
+    }
   }
   return { placed, dropped };
 }
