@@ -883,6 +883,22 @@ export class EditorStore {
     this.commit();
   }
 
+  /**
+   * Moves a tab to `index` in the strip, counted as the tabs stand before
+   * the move; out-of-range indexes go to either end. Nothing else changes:
+   * the front tab stays in front, and `Alt+1..9` follow the new order.
+   */
+  moveDocument(id: string, index: number): void {
+    const from = this.docs.findIndex((d) => d.documentId === id);
+    const moving = this.docs[from];
+    if (moving === undefined) return;
+    const rest = this.docs.filter((d) => d !== moving);
+    const to = Math.max(0, Math.min(rest.length, Math.round(index)));
+    if (to === from) return;
+    this.docs = [...rest.slice(0, to), moving, ...rest.slice(to)];
+    this.commit();
+  }
+
   closeAllDocuments(): void {
     if (this.docs.length === 0 && this.activeId === null) return;
     this.docs = [];

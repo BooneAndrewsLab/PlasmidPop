@@ -30,6 +30,7 @@ import { readCircularTheme } from './circularTheme';
 import { useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { recallView, rememberView } from '../state/viewMemory';
 
 const SANS_FONT = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const TITLE_FONT = '600 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
@@ -88,15 +89,17 @@ export function CircularMapView({ doc }: Props) {
   const [size, setSize] = useState({ width: 600, height: 600 });
   const [hover, setHover] = useState<Hover>(NO_HOVER);
   const [panning, setPanning] = useState(false);
-  const [viewport, setViewport] = useState<MapViewport>(FIT_VIEWPORT);
+  // A tab comes back zoomed where it was left (#33); a new one shows the whole circle.
+  const [viewport, setViewport] = useState<MapViewport>(
+    () => recallView(documentId).mapViewport ?? FIT_VIEWPORT,
+  );
   const gesture = useRef<Gesture>({ kind: 'idle' });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
 
-  // A newly opened document starts with the whole circle in view.
   const [viewportDocId, setViewportDocId] = useState(documentId);
   if (documentId !== viewportDocId) {
     setViewportDocId(documentId);
-    setViewport(FIT_VIEWPORT);
+    setViewport(recallView(documentId).mapViewport ?? FIT_VIEWPORT);
   }
 
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
@@ -128,10 +131,14 @@ export function CircularMapView({ doc }: Props) {
     viewportRef.current = layout.viewport;
   }, [layout]);
 
-  const commit = useCallback((next: MapViewport): void => {
-    viewportRef.current = next;
-    setViewport(next);
-  }, []);
+  const commit = useCallback(
+    (next: MapViewport): void => {
+      viewportRef.current = next;
+      setViewport(next);
+      rememberView(documentId, { mapViewport: next });
+    },
+    [documentId],
+  );
 
   // Room kept around a fitted arc for its lanes and labels; matching the
   // fit-to-canvas margin means fitting the whole circle is exactly zoom 1.

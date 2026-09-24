@@ -4,12 +4,14 @@ On macOS use `Cmd` where `Ctrl` is written.
 
 ## Files
 
-| Keys                       | Action                                                         |
-| -------------------------- | -------------------------------------------------------------- |
-| `Ctrl+S`, `Ctrl+Shift+S`   | Download GenBank (a working copy's changes are reviewed first) |
-| `Alt+L`                    | Copy a share link                                              |
-| `Alt+1` … `Alt+9`          | Bring the first … ninth open document forward                  |
-| `Ctrl+V` with nothing open | Open a pasted GenBank or FASTA record, or bare bases           |
+| Keys                        | Action                                                         |
+| --------------------------- | -------------------------------------------------------------- |
+| `Ctrl+S`, `Ctrl+Shift+S`    | Download GenBank (a working copy's changes are reviewed first) |
+| `Alt+L`                     | Copy a share link                                              |
+| `Alt+1` … `Alt+9`           | Bring the first … ninth open document forward                  |
+| `Alt+W`                     | Close the document in front (its tab)                          |
+| `Alt+Shift+PageUp`, `…Down` | Move the document in front one tab left or right               |
+| `Ctrl+V` with nothing open  | Open a pasted GenBank or FASTA record, or bare bases           |
 
 ## Editing
 

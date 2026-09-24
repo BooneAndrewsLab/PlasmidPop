@@ -651,6 +651,101 @@ describe('document tabs', () => {
     expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
   });
 
+  it('closes the front tab with Alt+W and moves it along the strip with Alt+Shift+PageUp/Down', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    const names = () =>
+      within(screen.getByRole('tablist', { name: 'Open documents' }))
+        .getAllByRole('tab')
+        .map((t) => t.textContent);
+    expect(names()).toEqual(['Files', 'Bench', 'SYNPBR322', 'Untitled']);
+    fireEvent.keyDown(window, { key: 'PageUp', code: 'PageUp', altKey: true, shiftKey: true });
+    expect(names()).toEqual(['Files', 'Bench', 'Untitled', 'SYNPBR322']);
+    // Already first: stays.
+    fireEvent.keyDown(window, { key: 'PageUp', code: 'PageUp', altKey: true, shiftKey: true });
+    expect(names()).toEqual(['Files', 'Bench', 'Untitled', 'SYNPBR322']);
+    expect(editorStore.document?.name).toBe('Untitled');
+    fireEvent.keyDown(window, { key: 'w', code: 'KeyW', altKey: true });
+    expect(names()).toEqual(['Files', 'Bench', 'SYNPBR322']);
+    expect(editorStore.document?.name).toBe('SYNPBR322');
+  });
+
+  it('reorders tabs by dragging one onto another, and ignores other drags', () => {
+    render(<App />);
+    act(() => {
+      for (const name of ['pA', 'pB', 'pC']) {
+        editorStore.openDocument(SeqDocument.create({ name, sequence: 'ACGT' }), `${name}.gb`);
+      }
+    });
+    const tabOf = (name: string): HTMLElement => {
+      const tab = screen.getByRole('tab', { name }).parentElement;
+      if (tab === null) throw new Error(`no tab ${name}`);
+      return tab;
+    };
+    const names = () => editorStore.getState().documents.map((d) => d.history.present.name);
+    const store = new Map<string, string>();
+    const dataTransfer = {
+      get types() {
+        return [...store.keys()];
+      },
+      setData: (type: string, value: string) => store.set(type, value),
+      getData: (type: string) => store.get(type) ?? '',
+      effectAllowed: 'none',
+      dropEffect: 'none',
+    };
+    // pA onto the left half of pC: it lands between pB and pC. (jsdom's drag
+    // events carry no pointer position, so the left half is where they land.)
+    const target = tabOf('pC');
+    target.getBoundingClientRect = () => ({ left: 0, width: 100 }) as DOMRect;
+    fireEvent.dragStart(tabOf('pA'), { dataTransfer });
+    fireEvent.dragOver(target, { dataTransfer });
+    expect(target).toHaveClass('doctabs__tab--drop-before');
+    fireEvent.drop(target, { dataTransfer });
+    expect(names()).toEqual(['pB', 'pA', 'pC']);
+    expect(target).not.toHaveClass('doctabs__tab--drop-before');
+    // A file dragged over the strip is not a tab, and moves nothing.
+    const files = { types: ['Files'], files: [] };
+    fireEvent.dragOver(tabOf('pB'), { dataTransfer: files });
+    expect(tabOf('pB')).not.toHaveClass('doctabs__tab--drop-before');
+    expect(names()).toEqual(['pB', 'pA', 'pC']);
+  });
+
+  it('comes back to a tab scrolled to the row it was left on', () => {
+    act(() => {
+      editorStore.setView('sequence');
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const view = () => screen.getByRole('textbox', { name: 'Sequence' });
+    view().scrollTop = 3000;
+    fireEvent.scroll(view());
+    const left = view().scrollTop;
+    fireEvent.click(screen.getByRole('button', { name: 'New sequence' }));
+    expect(view().scrollTop).toBe(0);
+    fireEvent.click(screen.getByRole('tab', { name: /^SYNPBR322/ }));
+    // The top of the row that was at the top: at or just above where it was left.
+    expect(view().scrollTop).toBeGreaterThan(left - 200);
+    expect(view().scrollTop).toBeLessThanOrEqual(left);
+  });
+
+  it('comes back to a tab with its map zoomed as it was left', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(screen.getByRole('button', { name: 'Show the whole map' })).toBeEnabled();
+    act(() => {
+      editorStore.openDocument(
+        SeqDocument.create({ name: 'pRing', sequence: 'ACGT'.repeat(500), topology: 'circular' }),
+        'pRing.gb',
+      );
+    });
+    // A tab of its own shows its whole map.
+    expect(screen.getByRole('button', { name: 'Show the whole map' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('tab', { name: /^SYNPBR322/ }));
+    expect(screen.getByRole('button', { name: 'Show the whole map' })).toBeEnabled();
+  });
+
   it('closes the front tab from the File menu and moves to its neighbour', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

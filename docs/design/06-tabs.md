@@ -26,6 +26,17 @@ the sidebar keeps its panels' state. Autosave writes every changed tab
 (`PersistenceService.autosaved` remembers what was written) and records
 the open ids and the front one (`openDocumentIds` in the repository);
 `restoreLastSession` reopens them all. `Alt+1`..`Alt+9` bring the
-first to the ninth tab forward (item 32). Not yet: a binding to close a
-tab (Ctrl+W belongs to the browser), dragging tabs to reorder,
-remembering scroll and zoom per tab across a switch.
+first to the ninth tab forward (item 32).
+
+**Closing, moving and coming back** (#33, 2026-09-24). `Alt+W` closes the
+front tab (Ctrl+W belongs to the browser). A tab is dragged along the strip
+(HTML5 drag and drop with a type of our own, so the app's file-drop
+overlay ignores it; `moveDocument`), or moved with `Alt+Shift+PageUp/Down`,
+the browser's own tab-moving keys with our modifier. Each tab's views come
+back where they were left: `state/viewMemory.ts` keeps the map's viewport
+and the sequence view's **first base of the top row** — a base, not pixels,
+so the row is found again after the window or sidebar changed width. It is
+put back once the view has measured its width, and a scroll request
+standing from before the switch is not answered again. The memory is
+outside the store, since it changes on every scroll event and nothing but
+the view reads it, and it lasts for the page load, like the selections.

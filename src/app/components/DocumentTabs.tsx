@@ -1,3 +1,5 @@
+import { type DragEvent, useState } from 'react';
+
 import { type DocumentState, editorStore, isDirty } from '../state/editorStore';
 import { PHONE_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
@@ -14,6 +16,11 @@ import { useMediaQuery } from './useMediaQuery';
 export function DocumentTabs() {
   const { documents, documentId, front, shelf } = useEditorState();
   const phone = useMediaQuery(PHONE_QUERY);
+  // A tab being dragged to a new place (#33), and the gap it would drop into:
+  // 0 before the first document tab, `documents.length` after the last.
+  const [drag, setDrag] = useState<{ readonly id: string; readonly gap: number | null } | null>(
+    null,
+  );
   if (documents.length === 0 && (phone || shelf.length === 0)) return null;
   return (
     <nav className="doctabs">
@@ -56,8 +63,29 @@ export function DocumentTabs() {
             </button>
           </div>
         )}
-        {documents.map((d) => (
-          <DocumentTab key={d.documentId} state={d} active={d.documentId === documentId} />
+        {documents.map((d, i) => (
+          <DocumentTab
+            key={d.documentId}
+            state={d}
+            active={d.documentId === documentId}
+            drop={drag?.gap === i ? 'before' : drag?.gap === i + 1 ? 'after' : null}
+            onDragStart={() => {
+              setDrag({ id: d.documentId, gap: null });
+            }}
+            onDragOver={(after) => {
+              if (drag !== null) setDrag({ ...drag, gap: after ? i + 1 : i });
+            }}
+            onDrop={() => {
+              if (drag?.gap == null) return;
+              const from = documents.findIndex((x) => x.documentId === drag.id);
+              // The gap is counted with the dragged tab still in place.
+              editorStore.moveDocument(drag.id, from < drag.gap ? drag.gap - 1 : drag.gap);
+              setDrag(null);
+            }}
+            onDragEnd={() => {
+              setDrag(null);
+            }}
+          />
         ))}
       </div>
       <button
@@ -82,13 +110,53 @@ function tabClass(active: boolean): string {
 interface TabProps {
   readonly state: DocumentState;
   readonly active: boolean;
+  /** Which side of this tab a dragged one would land on, if on this tab. */
+  readonly drop: 'before' | 'after' | null;
+  readonly onDragStart: () => void;
+  readonly onDragOver: (after: boolean) => void;
+  readonly onDrop: () => void;
+  readonly onDragEnd: () => void;
 }
 
-function DocumentTab({ state, active }: TabProps) {
+/** The MIME type a dragged tab carries, so nothing else dropped here is taken for one. */
+const TAB_TYPE = 'application/x-plasmidpop-tab';
+
+function DocumentTab({
+  state,
+  active,
+  drop,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+}: TabProps) {
   const name = state.history.present.name;
   const dirty = isDirty(state);
+  const isTab = (e: DragEvent): boolean => e.dataTransfer.types.includes(TAB_TYPE);
   return (
-    <div className={tabClass(active)}>
+    <div
+      className={`${tabClass(active)}${drop === null ? '' : ` doctabs__tab--drop-${drop}`}`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(TAB_TYPE, state.documentId);
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart();
+      }}
+      onDragOver={(e) => {
+        if (!isTab(e)) return;
+        // Claimed, so the app does not take it for a file being dropped.
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const box = e.currentTarget.getBoundingClientRect();
+        onDragOver(e.clientX > box.left + box.width / 2);
+      }}
+      onDrop={(e) => {
+        if (!isTab(e)) return;
+        e.preventDefault();
+        onDrop();
+      }}
+      onDragEnd={onDragEnd}
+    >
       <button
         type="button"
         role="tab"

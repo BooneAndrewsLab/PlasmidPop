@@ -78,13 +78,17 @@ opening it twice — unless that tab has been edited, which makes it a
 nothing has been typed into gives its tab up to the next file you open.
 
 - Click a tab to switch to it, or press `Alt+1` … `Alt+9` for the first to
-  the ninth. Each tab keeps its own selection, undo
-  history, enzyme ticks, cut sites and find bar; the view switcher, the
-  toggles, the Format and Edits settings and the sidebar tab are the same
-  for all of them.
-- The **×** on a tab (or **File ▸ Close**) closes it. The document stays in
-  the browser's storage and under **Recent files**; only its undo history is
-  gone.
+  the ninth. Each tab keeps its own selection, undo history, enzyme ticks,
+  cut sites, find bar and sidebar tab, and comes back scrolled to the row
+  and with the map zoomed as you left it; the view switcher, the toggles and
+  the Format and Edits settings are the same for all of them.
+- Drag a tab along the strip to move it, or press `Alt+Shift+PageUp` /
+  `Alt+Shift+PageDown` to move the one in front. `Alt+1` … `Alt+9` follow
+  the new order.
+- The **×** on a tab, `Alt+W` or **File ▸ Close** closes it. The document
+  stays in the browser's storage and under **Recent files**; only its undo
+  history is gone. (`Ctrl+W` is the browser's, and closes PlasmidPop
+  itself.)
 - The **Files** tab at the left is the start screen with the recent files;
   the logo and **File ▸ Show files** go there too. The other tabs stay open
   behind it, and entries that are open in a tab are marked **open**.

@@ -84,7 +84,9 @@ export function App() {
     <div
       className={`app${dragging ? ' app--dragging' : ''}`}
       onDragOver={(e) => {
-        const claimed = e.defaultPrevented;
+        // Only files open a tab; a document tab being dragged along the
+        // strip (#33) is not one.
+        const claimed = e.defaultPrevented || !e.dataTransfer.types.includes('Files');
         e.preventDefault();
         if (dragging === claimed) setDragging(!claimed);
       }}

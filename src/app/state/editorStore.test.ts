@@ -626,6 +626,24 @@ describe('EditorStore tabs', () => {
     expect(ids(store)).toEqual([]);
   });
 
+  it('moves a tab along the strip without changing which is in front', () => {
+    const store = new EditorStore();
+    const a = store.openDocument(doc, 'a.gb');
+    const b = store.openDocument(other, 'b.gb');
+    const c = store.openDocument(third, 't.gb');
+    store.moveDocument(a, 2);
+    expect(ids(store)).toEqual([b, c, a]);
+    expect(store.getState().documentId).toBe(c);
+    store.moveDocument(a, -5); // out of range: to the end it is nearest
+    expect(ids(store)).toEqual([a, b, c]);
+    store.moveDocument(c, 99);
+    expect(ids(store)).toEqual([a, b, c]);
+    const before = store.getState();
+    store.moveDocument('missing', 0);
+    store.moveDocument(b, 1); // where it already is
+    expect(store.getState()).toBe(before);
+  });
+
   it('shows the Bench in front of the documents, which stay open behind it', () => {
     const store = new EditorStore();
     const a = store.openDocument(doc, 'a.gb');

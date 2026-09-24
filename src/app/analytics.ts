@@ -120,6 +120,8 @@ export type Shortcut =
   | 'alt+s'
   | 'alt+l'
   | 'alt+digit'
+  | 'alt+w'
+  | 'alt+shift+page'
   | 'ctrl+s'
   | 'ctrl+f'
   | 'ctrl+z'

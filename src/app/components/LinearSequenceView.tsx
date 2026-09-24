@@ -62,6 +62,7 @@ import { useEditDiff } from '../state/editDiff';
 import { readLinearTheme } from './linearTheme';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { recallView, rememberView } from '../state/viewMemory';
 
 /** How long a notice about rejected input stays after the last rejected keystroke. */
 const REJECTED_INPUT_NOTICE_MS = 5000;
@@ -115,6 +116,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     analysis,
     shownEnzymes,
     preview,
+    documentId,
   } = useEditorState();
   const showComplement = complementPref && !reader;
   const showTranslations = translationsPref && !reader;
@@ -132,6 +134,20 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [scrollTop, setScrollTop] = useState(0);
+  /** Whether the view has been measured, so rows are laid out at their real width. */
+  // Without a ResizeObserver nothing will say the size changed, so the one
+  // it has is the one to lay out at.
+  const [measured, setMeasured] = useState(() => typeof ResizeObserver === 'undefined');
+  /**
+   * Where this tab's view was left (#33), put back once it has been measured,
+   * and the scroll request standing when it came back to that row: it was
+   * answered before the tab was left, so it is not answered again.
+   */
+  const [returning] = useState(() => {
+    const topBase = recallView(documentId).topBase;
+    return { topBase, answeredReveal: topBase === undefined ? undefined : reveal?.nonce };
+  });
+  const restoreTo = useRef(returning.topBase);
   /** Only ever non-zero when a fixed row width is wider than the viewport. */
   const [scrollLeft, setScrollLeft] = useState(0);
   /** What the pointer is over: the feature and translation tracks are click
@@ -222,7 +238,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   // Track the viewport size.
   useLayoutEffect(() => {
     const el = containerRef.current;
-    if (el === null || typeof ResizeObserver === 'undefined') return;
+    if (el === null) return;
+    if (typeof ResizeObserver === 'undefined') return;
     const update = (entries?: ResizeObserverEntry[]): void => {
       // The content box excludes the scrollbars, so the canvas never overflows. The
       // observer's fractional size is floored: rounding it up (as clientHeight does)
@@ -234,6 +251,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         const height = Math.max(100, Math.floor(box?.height ?? el.clientHeight));
         return prev.width === width && prev.height === height ? prev : { width, height };
       });
+      setMeasured(true);
     };
     update();
     const observer = new ResizeObserver(update);
@@ -249,16 +267,29 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     if (isEmpty) containerRef.current?.focus({ preventScroll: true });
   }, [isEmpty]);
 
+  // Back to the row this tab was left on.
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    const base = restoreTo.current;
+    if (!measured || el === null || base === undefined) return;
+    restoreTo.current = undefined;
+    const row = layout.rowOfPosition(Math.min(base, Math.max(0, doc.length - 1)));
+    if (row !== undefined) el.scrollTop = row.top;
+    el.scrollLeft = recallView(documentId).scrollLeft ?? 0;
+    setScrollTop(el.scrollTop);
+    setScrollLeft(el.scrollLeft);
+  }, [measured, layout, doc.length, documentId]);
+
   // Scroll to a requested position.
   useEffect(() => {
     const el = containerRef.current;
-    if (el === null || reveal === null) return;
+    if (el === null || reveal === null || reveal.nonce === returning.answeredReveal) return;
     const row = layout.rowOfPosition(reveal.position);
     if (row === undefined) return;
     const visible =
       row.top >= el.scrollTop && row.top + row.height <= el.scrollTop + el.clientHeight;
     if (!visible) el.scrollTop = Math.max(0, row.top - metrics.topPadding);
-  }, [reveal, layout, metrics.topPadding]);
+  }, [reveal, layout, metrics.topPadding, returning]);
 
   // Draw.
   useEffect(() => {
@@ -679,8 +710,10 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       className="seq-view"
       tabIndex={0}
       onScroll={(e) => {
-        setScrollTop(e.currentTarget.scrollTop);
-        setScrollLeft(e.currentTarget.scrollLeft);
+        const { scrollTop: top, scrollLeft: left } = e.currentTarget;
+        setScrollTop(top);
+        setScrollLeft(left);
+        rememberView(documentId, { topBase: layout.rowAtY(top)?.start ?? 0, scrollLeft: left });
       }}
       onKeyDown={onKeyDown}
       onCopy={onCopy}

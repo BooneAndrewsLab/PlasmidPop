@@ -41,7 +41,8 @@ const TOGGLES: readonly {
 /**
  * The bindings for things that were only ever a click away: the view
  * toggles, the edit marks, the sidebar, the document tabs and the share
- * link; and Undo and Redo of the shelf while the Bench is in front.
+ * link; closing and moving the front tab; and Undo and Redo of the shelf
+ * while the Bench is in front.
  *
  * All of them are `Alt` and a key, for one reason: in the sequence view
  * every bare letter types a base, and `Ctrl` is spoken for by the browser
@@ -105,6 +106,33 @@ export function useViewShortcuts(): void {
         copyShareLink(state.history.present).catch((err: unknown) => {
           editorStore.fail(err instanceof Error ? err.message : String(err));
         });
+        return;
+      }
+
+      // Alt+W closes the front tab: Ctrl+W is the browser's, and closes the app.
+      if (isAltKey(e, 'KeyW')) {
+        if (state.documentId === null) return;
+        e.preventDefault();
+        analytics.shortcut('alt+w');
+        editorStore.closeDocument();
+        return;
+      }
+
+      // Alt+Shift+PageUp/PageDown move the front tab along the strip, as
+      // Ctrl+Shift+PageUp/PageDown move a tab in the browser's own.
+      if (
+        e.altKey &&
+        e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        (e.key === 'PageUp' || e.key === 'PageDown')
+      ) {
+        const id = state.documentId;
+        if (id === null) return;
+        e.preventDefault();
+        analytics.shortcut('alt+shift+page');
+        const at = state.documents.findIndex((d) => d.documentId === id);
+        editorStore.moveDocument(id, at + (e.key === 'PageUp' ? -1 : 1));
         return;
       }
 
