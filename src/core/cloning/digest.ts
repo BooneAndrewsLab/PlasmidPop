@@ -1,3 +1,4 @@
+import { type HostMethylationState } from '../analysis/methylation';
 import { type CutSite } from '../analysis/restriction';
 import {
   type DocumentEnds,
@@ -45,6 +46,12 @@ export interface DigestFragment {
    * phosphorylated, as an enzyme leaves an end.
    */
   readonly dephosphorylated?: boolean;
+  /**
+   * The methylation of the molecule it was cut from, which a piece of it
+   * still carries: a fragment of a PCR product opened as a document must
+   * not come back methylated. Absent means an ordinary `dam+ dcm+` plasmid.
+   */
+  readonly methylation?: HostMethylationState;
 }
 
 /** A fragment of a partial digest, and how many cuts inside it were missed. */
@@ -125,6 +132,7 @@ export function digest(doc: SeqDocument, sites: readonly CutSite[]): DigestFragm
       left,
       right,
       source: doc.name,
+      methylation: doc.methylation,
     };
   };
 
@@ -227,6 +235,7 @@ export function partialDigest(
       left: from.end(),
       right: to.end(),
       source: doc.name,
+      methylation: doc.methylation,
       uncut,
     };
   });

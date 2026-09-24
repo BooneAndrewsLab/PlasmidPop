@@ -326,6 +326,16 @@ On pBR322 that is the difference the guide's own example turns on: EagI +
 MscI is a clean two-band digest on paper, and plasmid from an ordinary
 strain will not give it, because the MscI site is Dcm-blocked.
 
+The Cloning tab says when it has left a site out for this reason, and when
+every ticked enzyme is blocked it says so rather than claiming nothing is
+ticked.
+
+A piece of a molecule is that molecule's DNA: a selection exported as a
+file, a digest fragment put on the shelf or opened as a document, keeps the
+host of the document it came from, so a fragment of a PCR product stays
+unmethylated. A ligation, Golden Gate, Gibson or Gateway product is what
+you would transform and grow, so it starts as dam+/dcm+.
+
 Changing it is an edit like any other, so **Undo** takes it back, and it is
 saved with the document: GenBank has nowhere to put it, so it travels as a
 comment line of ours (`PlasmidPop-methylation: ...`), the way sticky ends

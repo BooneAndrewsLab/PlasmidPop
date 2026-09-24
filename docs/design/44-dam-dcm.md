@@ -65,3 +65,17 @@ Added 2026-09-23 (#45): **the host, and digests that respect it.**
 - Still not modelled: blocked from impaired, and which of Dam or Dcm per
   enzyme, neither of which NEB's note gives (see above); CpG and other
   methylation; an enzyme's own methyltransferase.
+- **Derived DNA keeps its host, 2026-09-24.** Found by
+  `methylation.exhaustive.test.ts`: an extracted region, a digest fragment
+  and a fragment opened as a document all reset to `dam+ dcm+`, so a piece
+  of a PCR product came back methylated and its next digest left out sites
+  the tube would cut. `extractRange` now copies the source's methylation,
+  `DigestFragment.methylation` carries it (and the shelf stores it), and
+  `documentFromFragment` restores it. A ligation of several pieces, and the
+  products of the one-pot reactions and Gateway, stay `dam+ dcm+`: they are
+  what gets transformed and grown.
+- **The Cloning tab says what the host took out.** When every ticked
+  enzyme's sites are blocked it said "No enzyme is ticked", which sent the
+  user to the Enzymes tab to tick what was already ticked; it now names the
+  enzymes, the host, and **Grown in**. When only some sites are blocked, a
+  line under the count names them.

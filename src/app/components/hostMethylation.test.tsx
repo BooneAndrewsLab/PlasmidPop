@@ -222,3 +222,57 @@ describe('double-digest partners and the host', () => {
     expect(pairOptions()).toEqual(['EcoRI', ...open(state)].sort((a, b) => a.localeCompare(b)));
   });
 });
+
+describe('the Cloning tab says what the host took out', () => {
+  const all = enzymes('MscI', 'XbaI', 'ClaI');
+
+  function show(ticked: readonly string[], state: HostMethylationState) {
+    const doc = SeqDocument.create({
+      name: 'pHost',
+      sequence: PLASMID,
+      topology: 'circular',
+      methylation: state,
+    });
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setAnalysis(doc, findCutSites(PLASMID, 'circular', all), []);
+      editorStore.setShownEnzymes([...ticked]);
+    });
+    return render(<CloningPanel doc={current()} />);
+  }
+
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+    });
+  });
+
+  it('does not call a blocked enzyme unticked', () => {
+    show(['MscI', 'XbaI'], { dam: true, dcm: true });
+    expect(screen.queryByText(/No enzyme is ticked/)).toBeNull();
+    expect(
+      screen.getByText(
+        /Every site of MscI, XbaI in pHost is blocked by its dam\+\/dcm\+ methylation/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grown in' })).toBeInTheDocument();
+  });
+
+  it('names the sites it leaves out when others still cut', () => {
+    show(['MscI', 'ClaI'], { dam: true, dcm: true });
+    expect(
+      screen.getByText(/1 site of MscI is left out: pHost is dam\+\/dcm\+/),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing when the host blocks nothing, and still says when nothing is ticked', () => {
+    show(['MscI', 'XbaI', 'ClaI'], { dam: false, dcm: false });
+    expect(screen.queryByText(/left out/)).toBeNull();
+    expect(screen.queryByText(/is blocked by its/)).toBeNull();
+  });
+
+  it('keeps the plain message when no enzyme is ticked at all', () => {
+    show([], { dam: true, dcm: true });
+    expect(screen.getByText(/No enzyme is ticked/)).toBeInTheDocument();
+  });
+});

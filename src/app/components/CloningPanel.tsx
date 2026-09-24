@@ -8,6 +8,7 @@ import {
   type SeqDocument,
   cuttableSites,
   describeEnd,
+  describeHost,
   digest,
   getEnzyme,
   documentFromFragment,
@@ -202,19 +203,32 @@ export function CloningPanel({ doc }: Props) {
   // The ticked enzymes' sites, less the ones this DNA's own methylation
   // would block (#45): a digest cuts what the tube would cut. The Enzymes
   // tab still lists and marks them, and says where the DNA was grown.
+  const tickedSites = useMemo(
+    () => (ready ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme)) : []),
+    [analysis, ready, shownEnzymes],
+  );
   const cutSites = useMemo(
     () =>
-      ready
-        ? cuttableSites(
-            doc.sequence.toString(),
-            doc.topology,
-            doc.methylation,
-            analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme)),
-            (name) => getEnzyme(name)?.site.length ?? 0,
-          )
-        : [],
-    [analysis, ready, shownEnzymes, doc],
+      cuttableSites(
+        doc.sequence.toString(),
+        doc.topology,
+        doc.methylation,
+        tickedSites,
+        (name) => getEnzyme(name)?.site.length ?? 0,
+      ),
+    [tickedSites, doc],
   );
+  // What the host took out, so the panel can say why an enzyme ticked in
+  // the Enzymes tab cuts less here, or not at all.
+  const blocked = useMemo(() => {
+    const open = new Set(cutSites.map((s) => `${s.enzyme}:${s.cut}`));
+    const lost = tickedSites.filter((s) => !open.has(`${s.enzyme}:${s.cut}`));
+    return {
+      sites: lost.length,
+      enzymes: [...new Set(lost.map((s) => s.enzyme))].sort((a, b) => a.localeCompare(b)),
+      ticked: new Set(tickedSites.map((s) => s.enzyme)).size,
+    };
+  }, [tickedSites, cutSites]);
   const enzymesUsed = useMemo(
     () => [...new Set(cutSites.map((s) => s.enzyme))].sort((a, b) => a.localeCompare(b)),
     [cutSites],
@@ -285,6 +299,22 @@ export function CloningPanel({ doc }: Props) {
       </h3>
       {!ready ? (
         <p className="panel__note">Scanning for restriction sites…</p>
+      ) : enzymesUsed.length === 0 && blocked.ticked > 0 ? (
+        <p className="panel__note panel__note--warn">
+          Every site of {blocked.enzymes.join(', ')} in {doc.name} is blocked by its{' '}
+          {describeHost(doc.methylation)} methylation, so nothing is cut. If the DNA came from a
+          dam−/dcm− strain or a PCR, say so under{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.setSidebarTab('enzymes');
+            }}
+          >
+            Grown in
+          </button>{' '}
+          in the Enzymes tab.
+        </p>
       ) : enzymesUsed.length === 0 ? (
         <p className="panel__note">
           No enzyme is ticked.{' '}
@@ -327,6 +357,14 @@ export function CloningPanel({ doc }: Props) {
           />
           Partial digest
         </label>
+      )}
+      {enzymesUsed.length > 0 && blocked.sites > 0 && (
+        <p className="panel__note panel__note--quiet">
+          {blocked.sites === 1 ? '1 site' : `${blocked.sites.toLocaleString()} sites`} of{' '}
+          {blocked.enzymes.join(', ')} {blocked.sites === 1 ? 'is' : 'are'} left out: {doc.name} is{' '}
+          {describeHost(doc.methylation)}, and its methylation blocks{' '}
+          {blocked.sites === 1 ? 'it' : 'them'}.
+        </p>
       )}
       {!showCutSites && enzymesUsed.length > 0 && (
         <p className="panel__note">

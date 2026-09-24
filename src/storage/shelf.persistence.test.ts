@@ -95,3 +95,34 @@ describe('the stored shelf and the phosphatase flag', () => {
     );
   });
 });
+
+describe('the stored shelf and the methylation of a part', () => {
+  it('keeps a well-formed host or none, and drops a malformed one', async () => {
+    const values: unknown[] = [
+      undefined,
+      { dam: true, dcm: true },
+      { dam: false, dcm: false },
+      { dam: true, dcm: false },
+      null,
+      'dam+/dcm+',
+      { dam: true },
+      { dam: 'yes', dcm: true },
+      [true, true],
+    ];
+    const withHost = (id: string, value: unknown): AssemblyPart => {
+      const base = part(id);
+      const stored: unknown =
+        value === undefined
+          ? base
+          : { ...base, fragment: { ...base.fragment, methylation: value } };
+      return stored as AssemblyPart;
+    };
+    const repo = freshRepo();
+    const parts = values.map((v, i) => withHost(`m${i}`, v));
+    await repo.saveShelf(parts);
+    const back = await repo.loadShelf();
+    expect(back.map((p) => p.id)).toEqual(['m0', 'm1', 'm2', 'm3']);
+    // An unmethylated piece of a PCR product comes back unmethylated.
+    expect(back[2]?.fragment.methylation).toEqual({ dam: false, dcm: false });
+  });
+});

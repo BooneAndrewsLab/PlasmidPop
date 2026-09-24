@@ -27,6 +27,7 @@ import {
   isHostMethylationSensitive,
   ligate,
   methylationEqual,
+  partialDigest,
   pcr,
   rangeSegment,
   reverseComplement,
@@ -567,16 +568,39 @@ describe('methylation of derived documents', () => {
     }
   });
 
-  it('currently resets to an ordinary strain for an extracted region or an opened fragment', () => {
+  it('keeps the source’s methylation for an extracted region, a fragment, and a fragment opened', () => {
+    const ecoRI = must(getEnzyme('EcoRI'), 'EcoRI');
+    for (const host of HOSTS) {
+      const source = SeqDocument.create({
+        name: 'source',
+        sequence: TEXT,
+        topology: 'linear',
+        methylation: host,
+      });
+      // A stretch of a molecule is that molecule's DNA, methylated as it was.
+      expect(extractRange(source, { start: 2, end: 30 }).methylation).toEqual(host);
+      for (const piece of digest(source, findCutSites(TEXT, 'linear', [ecoRI]))) {
+        expect(piece.methylation).toEqual(host);
+        expect(documentFromFragment(piece).methylation).toEqual(host);
+      }
+      for (const piece of partialDigest(source, findCutSites(TEXT, 'linear', [ecoRI]))) {
+        expect(piece.methylation).toEqual(host);
+      }
+    }
+  });
+
+  it('gives a ligation of several pieces an ordinary strain: it is what gets grown', () => {
+    const ecoRI = must(getEnzyme('EcoRI'), 'EcoRI');
     const product = SeqDocument.create({
       name: 'amplicon',
       sequence: TEXT,
       topology: 'linear',
       methylation: UNMETHYLATED_HOST,
     });
-    expect(extractRange(product, { start: 2, end: 30 }).methylation).toEqual(METHYLATED_HOST);
-    const ecoRI = must(getEnzyme('EcoRI'), 'EcoRI');
-    const [left] = digest(product, findCutSites(TEXT, 'linear', [ecoRI]));
-    expect(documentFromFragment(must(left, 'a fragment')).methylation).toEqual(METHYLATED_HOST);
+    const pieces = digest(product, findCutSites(TEXT, 'linear', [ecoRI]));
+    if (pieces.length < 2) return;
+    expect(ligate(pieces, { name: 'joined', circular: false }).methylation).toEqual(
+      METHYLATED_HOST,
+    );
   });
 });

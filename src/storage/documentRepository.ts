@@ -334,8 +334,14 @@ function isAssemblyPart(v: unknown): boolean {
     isStrandEnd(f['right']) &&
     Array.isArray(f['features']) &&
     f['features'].every(isFeature) &&
-    (f['dephosphorylated'] === undefined || typeof f['dephosphorylated'] === 'boolean')
+    (f['dephosphorylated'] === undefined || typeof f['dephosphorylated'] === 'boolean') &&
+    (f['methylation'] === undefined || isMethylation(f['methylation']))
   );
+}
+
+/** A host methylation state as a fragment stores it: two booleans. */
+function isMethylation(v: unknown): boolean {
+  return isObject(v) && typeof v['dam'] === 'boolean' && typeof v['dcm'] === 'boolean';
 }
 
 let shared: DocumentRepository | null = null;

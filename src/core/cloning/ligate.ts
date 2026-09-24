@@ -1,3 +1,4 @@
+import { METHYLATED_HOST } from '../analysis/methylation';
 import { codeMask } from '../analysis/search';
 import { type Feature, shiftFeature } from '../features';
 import { newId } from '../ids';
@@ -222,13 +223,17 @@ export function documentFromFragment(
   fragment: DigestFragment,
   options: { readonly name?: string } = {},
 ): SeqDocument {
+  // A fragment opened is the same DNA it was cut from, so it keeps that
+  // DNA's methylation. A ligation product of several pieces does not: it is
+  // what gets transformed and grown, and comes back from an ordinary strain.
+  const methylation = fragment.methylation ?? METHYLATED_HOST;
   return ligate([fragment], {
     name: options.name ?? defaultFragmentName(fragment),
     circular: false,
     metadata: {
       description: `${fragment.sequence.length.toLocaleString()} bp fragment of ${fragment.source}: ${describeEnd(fragment.left)} to ${describeEnd(fragment.right)}`,
     },
-  });
+  }).setMethylation(methylation);
 }
 
 /** "pBR322 EcoRI-BamHI fragment", or just "... fragment" for an uncut end. */

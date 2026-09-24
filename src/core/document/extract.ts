@@ -82,6 +82,9 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     sequence,
     topology: 'linear',
     features,
+    // A stretch of a molecule is that molecule's DNA, methylated or not as it
+    // was: an exported selection of a PCR product is still unmethylated.
+    methylation: doc.methylation,
     metadata: {
       ...doc.metadata,
       description: `${from.toLocaleString()}-${to.toLocaleString()} of ${doc.name}${doc.metadata.description === '' ? '' : `: ${doc.metadata.description}`}`,
