@@ -217,8 +217,10 @@ The usual workflow is:
    ligated, **✕ ends do not match** when they cannot. With **Circular
    product** ticked there is also a closing junction from the last part back
    to the first.
-5. Give the product a name (or keep the suggested one) and click
-   **Assemble**. It is enabled only when every junction is compatible.
+5. Once every junction is compatible, a **Product** line says what the
+   ligation would make: its length, whether it is circular, and the
+   features it carries. Give the product a name (or keep the suggested one)
+   and click **Assemble**.
 
 The product opens as a new circular or linear document carrying the parts'
 features; the shelf keeps its fragments. The product is kept in the browser
@@ -264,7 +266,8 @@ The panel works that out:
 4. The panel digests each part, throws out the pieces that still carry a
    recognition site (those are cut again in a real reaction) and any piece
    with a blunt end, then follows the overhangs from one piece to the next.
-   It reports the order it found and the size of the circle. A part with no
+   It reports the order it found, the overhang each part joins on, and a
+   **Product** line with the circle's length and the features it carries. A part with no
    site in it — a fragment off the shelf, usually — survives the digest
    whole and joins on the sticky ends it already has, which is what happens
    in the tube.
@@ -325,7 +328,8 @@ then:
    part whose ends only fit the other way round is turned around for you and
    says **(flipped)**.
 4. Each junction line gives the length of the homology and its melting
-   temperature. The reaction is held at 50 °C, so a junction under 48 °C is
+   temperature, and a **Product** line under them the length, topology and
+   features of what would come out. The reaction is held at 50 °C, so a junction under 48 °C is
    marked: the homology is there, but it may not anneal.
 5. **Assemble** opens the product as a new document with every part's
    features. Untick **Circular product** for a linear one.

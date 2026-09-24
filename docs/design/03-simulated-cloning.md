@@ -192,3 +192,12 @@ overhangs would misligate.
   every k-mer in the tube cost 13 ms for six 2 kb parts and an `indexOf` per
   window 6.5 ms, against 1.4 ms for the assembly without warnings and 2.7 ms
   with (`docs/perf-notes.md`).
+- **The product described before it is made, 2026-09-23** (#15, decided
+  at the start of 1.4). The question was whether a Golden Gate or Gibson
+  product wants a drawing surface of its own before it is assembled; the
+  answer was no. The panels already list the order and every junction, and
+  what the drawing would have added is what the molecule _is_, which a line
+  says: length, topology, the features it carries (`ProductSummary.tsx`).
+  Ligation got the same line, computing the product on each render, since
+  `ligate` is string joins and a feature shift. To see the map, assemble and
+  look: one click, and undoable by closing the tab.

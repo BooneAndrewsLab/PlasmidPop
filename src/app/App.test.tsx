@@ -716,6 +716,7 @@ describe('cloning', () => {
       'Join: BamHI 5′ GATC to BamHI 5′ GATC, compatible',
       'Closing join: EcoRI 5′ AATT to EcoRI 5′ AATT, compatible',
     ]);
+    expect(screen.getByLabelText('Product')).toHaveTextContent(/^Product: 4,361 bp, circular · /);
     // Flipping the insert puts EcoRI against BamHI at both joins (the insert is directional).
     fireEvent.click(screen.getByRole('button', { name: 'Flip part 1' }));
     expect(joins()).toEqual([
@@ -856,6 +857,10 @@ describe('golden gate', () => {
       '2insert114 bpGCTT',
       '3insert214 bpCGCT',
     ]);
+    // What it would make, said before it is made (#15).
+    expect(screen.getByLabelText('Product')).toHaveTextContent(
+      'Product: 44 bp, circular, no features',
+    );
     // The five pieces that keep a BsaI site are reported, not silently dropped.
     expect(screen.getByText('5 pieces left out')).toBeInTheDocument();
 

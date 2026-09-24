@@ -6,6 +6,7 @@ import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { PartsTube } from './PartsTube';
+import { ProductSummary } from './ProductSummary';
 import { shelfIngredients } from './tube';
 
 function JunctionRow({
@@ -71,6 +72,9 @@ export function LigationPanel() {
   const junctions = assemblyJunctions(parts, circular);
   const canAssemble = parts.length > 0 && junctions.every((j) => j.compatible);
   const defaultName = `${[...new Set(parts.map((f) => f.source))].join('+')} assembly`;
+  // Joining strings and shifting a few features: cheap enough to do on
+  // every render, so the product can be described before it is made (#15).
+  const preview = canAssemble ? ligate(parts, { name: defaultName, circular }) : null;
 
   const toggle = (id: string): void => {
     const next = new Set(excluded);
@@ -129,6 +133,7 @@ export function LigationPanel() {
           })}
         </ol>
       )}
+      {preview !== null && <ProductSummary product={preview} />}
       <div className="panel__controls">
         <input
           className="panel__search"

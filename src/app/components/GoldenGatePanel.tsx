@@ -16,6 +16,7 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { PartsTube } from './PartsTube';
+import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
 
 const DEFAULT_ENZYME = defaultGoldenGateEnzyme();
@@ -190,6 +191,7 @@ export function GoldenGatePanel() {
               />
             ))}
           </ol>
+          <ProductSummary product={assembly.product} />
           <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
         </>
       ) : (
