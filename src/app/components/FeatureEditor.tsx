@@ -7,6 +7,7 @@ import {
   type Strand,
   LocationError,
   formatLocation,
+  hasTool,
   parseLocation,
   primerFromFeature,
 } from '@/core';
@@ -254,7 +255,7 @@ export function FeatureEditor({ doc, feature }: Props) {
           Add qualifier
         </button>
       </fieldset>
-      {feature.type === 'primer_bind' && (
+      {feature.type === 'primer_bind' && hasTool(doc, 'primers') && (
         <p className="panel__note panel__note--quiet">
           <button
             type="button"
