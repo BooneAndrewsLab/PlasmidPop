@@ -2,8 +2,13 @@ import { useMemo } from 'react';
 
 import { analytics } from '../analytics';
 import { type EditsBaseline, editorStore, effectiveEditsBaseline } from '../state/editorStore';
-import { changeStops, describeEditDiff, editsBaselineLabel } from '../editsView';
-import { goToChange, useEditDiff } from '../state/editDiff';
+import {
+  changeStops,
+  describeEditDiff,
+  describeIdentityChange,
+  editsBaselineLabel,
+} from '../editsView';
+import { goToChange, useEditDiff, useIdentityChange } from '../state/editDiff';
 import { useEditorState } from '../state/useEditorStore';
 import { useMenu } from './useMenu';
 
@@ -28,6 +33,7 @@ export function EditsMenu() {
   const { savedDoc, origin, compared, history } = state;
   const editsBaseline = effectiveEditsBaseline(state);
   const diff = useEditDiff();
+  const identity = useIdentityChange();
   const { open, toggle, close, ref } = useMenu();
   const doc = history?.present ?? null;
   const stops = useMemo(
@@ -36,7 +42,10 @@ export function EditsMenu() {
   );
 
   const on = editsBaseline !== 'off';
-  const summary = describeEditDiff(diff);
+  // A rename or a change of shape marks no base but is a change all the same (#31).
+  const summary = [describeEditDiff(diff), describeIdentityChange(identity)]
+    .filter((part) => part !== '')
+    .join(' · ');
   const label = editsBaselineLabel(editsBaseline, compared?.name ?? null);
   const status = !on
     ? 'Changes are not marked'
@@ -66,7 +75,7 @@ export function EditsMenu() {
         onClick={toggle}
       >
         Edits
-        {on && diff !== null && (
+        {on && summary !== '' && (
           <span className="edits__dot" title={summary}>
             {' '}
             •

@@ -87,6 +87,17 @@ first can break a construct and the second cannot, which is the one
 distinction a line can carry. The dot on the button says something is marked; its tooltip,
 and the foot of its menu, count it up (`+12 bp · 4 bp changed · −3 bp`).
 
+A new **name** or a change between **linear and circular** touches no base,
+so there is nothing in the views to mark; the toolbar marks it instead, where
+the name and the shape are written. The name or the word _circular_ gets a
+broken amber underline, the line of a feature relabelled over the same bases,
+and its tooltip says what it was (`Renamed from “pBR322”`, `Was linear`); the
+Edits tally adds `renamed` or `made circular`. It follows the menu like the
+other marks: nothing while they are off, and against the file you compared
+with it says what that one is called or is (`Named “pBR322” in theirs.gb`).
+The name a working copy takes by itself (`pBR322 copy`) is not counted as a
+rename — the banner above the views already says it is a copy.
+
 The **circular map** marks the same changes on the ring, in the same
 colours: a green or amber band drawn over the backbone where the bases are
 new or replaced, and a red wedge pointing at every place where bases closed

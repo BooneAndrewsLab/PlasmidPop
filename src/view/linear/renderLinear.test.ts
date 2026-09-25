@@ -232,6 +232,12 @@ describe('renderLinearView edit marks', () => {
       'stroke-dasharray="3 2"',
     );
 
+    // Renamed in place (#31): the same, a changed feature with a broken line.
+    const renamed = annotated.updateFeature('f', { name: 'y' });
+    expect(outlineOf(render(renamed, false, diffDocuments(annotated, renamed)))).toContain(
+      'stroke-dasharray="3 2"',
+    );
+
     // Moved by hand: it covers bases it did not before, so the line is solid.
     const moved = annotated.updateFeature('f', { segments: [rangeSegment(2, 14)] });
     const movedSvg = render(moved, false, diffDocuments(annotated, moved));

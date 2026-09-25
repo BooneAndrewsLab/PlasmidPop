@@ -16,7 +16,9 @@ import { useAltKey } from './useAltKey';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
-import { type ViewMode, editorStore } from '../state/editorStore';
+import { renameNote, topologyNote } from '../editsView';
+import { useIdentityChange } from '../state/editDiff';
+import { type ViewMode, editorStore, effectiveEditsBaseline } from '../state/editorStore';
 import { PHONE_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
 import { useMediaQuery } from './useMediaQuery';
@@ -36,8 +38,17 @@ function segmentedClass(active: boolean): string {
 }
 
 export function Toolbar({ doc }: Props) {
-  const { showComplement, showTranslations, showCutSites, view, dirty, front, documents } =
-    useEditorState();
+  const state = useEditorState();
+  const { showComplement, showTranslations, showCutSites, view, dirty, front, documents } = state;
+  // A rename or a change of topology marks no base, so the toolbar, where the
+  // name and the shape are written, is where the edit marks say so (#31).
+  const identity = useIdentityChange();
+  const comparedName =
+    effectiveEditsBaseline(state) === 'compared' ? (state.compared?.name ?? null) : null;
+  const nameWas = identity?.nameWas ?? null;
+  const topologyWas = identity?.topologyWas ?? null;
+  const renamedNote = nameWas === null ? null : renameNote(nameWas, comparedName);
+  const shapeNote = topologyWas === null ? null : topologyNote(topologyWas, comparedName);
   const inputRef = useRef<HTMLInputElement>(null);
   const compareRef = useRef<HTMLInputElement>(null);
   /** The picker where it exists, the hidden input where it does not. */
@@ -126,8 +137,8 @@ export function Toolbar({ doc }: Props) {
           ) : (
             <button
               type="button"
-              className="toolbar__name"
-              title={`${doc.metadata.description === '' ? '' : `${doc.metadata.description}\n`}Click to rename`}
+              className={`toolbar__name${renamedNote === null ? '' : ' toolbar__name--changed'}`}
+              title={`${renamedNote === null ? '' : `${renamedNote}\n`}${doc.metadata.description === '' ? '' : `${doc.metadata.description}\n`}Click to rename`}
               onClick={() => {
                 setRenaming(true);
               }}
@@ -142,7 +153,14 @@ export function Toolbar({ doc }: Props) {
             </button>
           )}
           <span className="toolbar__meta">
-            {doc.length.toLocaleString()} bp, {doc.topology}
+            {doc.length.toLocaleString()} bp,{' '}
+            {shapeNote === null ? (
+              doc.topology
+            ) : (
+              <span className="toolbar__changed" title={shapeNote}>
+                {doc.topology}
+              </span>
+            )}
             {/* Only a molecule something has cut has ends worth naming. */}
             {doc.ends !== null && (
               <span title={`Ends: ${describeEnds(doc.ends)}`}> · {describeEnds(doc.ends)}</span>

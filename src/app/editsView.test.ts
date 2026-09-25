@@ -7,8 +7,17 @@ import {
   rangeSegment,
 } from '@/core';
 
-import { changeSelection, changeStops, describeEditDiff, stepChange } from './editsView';
-import { editDiffBetween, editDiffOf } from './state/editDiff';
+import {
+  changeSelection,
+  changeStops,
+  describeEditDiff,
+  describeIdentityChange,
+  identityChange,
+  renameNote,
+  stepChange,
+  topologyNote,
+} from './editsView';
+import { editDiffBetween, editDiffOf, identityChangeOf } from './state/editDiff';
 import { EditorStore } from './state/editorStore';
 
 const SEQ = 'ACGTTGCAAGGCTTAACCGG';
@@ -306,5 +315,52 @@ describe('changeSelection', () => {
     expect(changeSelection({ kind: 'mark', index: 9 }, diff, 100, true)).toBeNull();
     expect(changeSelection({ kind: 'deletion', index: 9 }, diff, 100, true)).toBeNull();
     expect(changeSelection({ kind: 'removed', featureId: 'x' }, diff, 100, true)).toBeNull();
+  });
+});
+
+describe('identityChange (#31)', () => {
+  const linear = SeqDocument.create({ name: 'pA', sequence: SEQ });
+
+  it('is null when the name and the shape are the same, or there is no baseline', () => {
+    expect(identityChange(linear, linear.insert(0, 'A'))).toBeNull();
+    expect(identityChange(null, linear)).toBeNull();
+    expect(identityChange(linear, null)).toBeNull();
+  });
+
+  it('keeps what the baseline was called and what shape it was', () => {
+    expect(identityChange(linear, linear.rename('pB'))).toEqual({
+      nameWas: 'pA',
+      topologyWas: null,
+    });
+    expect(identityChange(linear, linear.setTopology('circular'))).toEqual({
+      nameWas: null,
+      topologyWas: 'linear',
+    });
+    const both = identityChange(linear, linear.rename('pB').setTopology('circular'));
+    expect(both).toEqual({ nameWas: 'pA', topologyWas: 'linear' });
+    expect(describeIdentityChange(both)).toBe('renamed · made circular');
+    expect(describeIdentityChange(null)).toBe('');
+  });
+
+  it('says it for the tooltip, against a version or against another file', () => {
+    expect(renameNote('pA', null)).toBe('Renamed from “pA”');
+    expect(renameNote('pA', 'theirs.gb')).toBe('Named “pA” in theirs.gb');
+    expect(topologyNote('linear', null)).toBe('Was linear');
+    expect(topologyNote('circular', 'theirs.gb')).toBe('Circular in theirs.gb');
+  });
+
+  it('follows the baseline, off included', () => {
+    const store = new EditorStore();
+    store.openDocument(linear);
+    store.setEditsBaseline('opened');
+    store.apply({ type: 'rename', name: 'pB' });
+    expect(identityChangeOf(store.getState())?.nameWas).toBe('pA');
+    store.setEditsBaseline('off');
+    expect(identityChangeOf(store.getState())).toBeNull();
+    store.setEditsBaseline('opened');
+    store.markEditsFromHere();
+    expect(identityChangeOf(store.getState())).toBeNull();
+    store.apply({ type: 'setTopology', topology: 'circular' });
+    expect(identityChangeOf(store.getState())).toEqual({ nameWas: null, topologyWas: 'linear' });
   });
 });

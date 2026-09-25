@@ -1,4 +1,11 @@
-import { type DocumentDiff, type Range, featureExtent, outerExtent } from '@/core';
+import {
+  type DocumentDiff,
+  type Range,
+  type SeqDocument,
+  type Topology,
+  featureExtent,
+  outerExtent,
+} from '@/core';
 import { type ChangeTarget } from '@/view/circular';
 
 import { type EditsBaseline } from './state/editorStore';
@@ -46,6 +53,57 @@ export function describeEditDiff(diff: DocumentDiff | null): string {
   if (features > 0) parts.push(count(features, 'feature'));
   if (diff.featuresRemoved.size > 0)
     parts.push(`${MINUS}${count(diff.featuresRemoved.size, 'feature')}`);
+  return parts.join(' · ');
+}
+
+/**
+ * What the baseline called the document and what shape it was, where either
+ * differs from the document now (#31). Neither is a mark — a rename or a
+ * change of topology touches no base — so `DocumentDiff` carries them only as
+ * flags; this keeps what they were, for the toolbar to say.
+ */
+export interface IdentityChange {
+  /** The baseline's name, when the document now has another. */
+  readonly nameWas: string | null;
+  /** The baseline's topology, when the document is now the other one. */
+  readonly topologyWas: Topology | null;
+}
+
+/** How `current` differs from `baseline` in name and topology, or null when in neither. */
+export function identityChange(
+  baseline: SeqDocument | null,
+  current: SeqDocument | null,
+): IdentityChange | null {
+  if (baseline === null || current === null) return null;
+  const nameWas = baseline.name === current.name ? null : baseline.name;
+  const topologyWas = baseline.topology === current.topology ? null : baseline.topology;
+  return nameWas === null && topologyWas === null ? null : { nameWas, topologyWas };
+}
+
+/**
+ * The toolbar name's tooltip line for a rename: `Renamed from “pBR322”`, or
+ * against another file, what that one is called there.
+ */
+export function renameNote(nameWas: string, comparedName: string | null): string {
+  return comparedName === null
+    ? `Renamed from “${nameWas}”`
+    : `Named “${nameWas}” in ${comparedName}`;
+}
+
+/** The toolbar topology's tooltip line: `Was linear`, or `Linear in theirs.gb` against a file. */
+export function topologyNote(topologyWas: Topology, comparedName: string | null): string {
+  return comparedName === null
+    ? `Was ${topologyWas}`
+    : `${topologyWas === 'circular' ? 'Circular' : 'Linear'} in ${comparedName}`;
+}
+
+/** The rename and topology parts of the Edits tally — `renamed · made circular`. */
+export function describeIdentityChange(change: IdentityChange | null): string {
+  if (change === null) return '';
+  const parts: string[] = [];
+  if (change.nameWas !== null) parts.push('renamed');
+  if (change.topologyWas !== null)
+    parts.push(`made ${change.topologyWas === 'circular' ? 'linear' : 'circular'}`);
   return parts.join(' · ');
 }
 

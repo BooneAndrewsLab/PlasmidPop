@@ -226,6 +226,16 @@ button {
   white-space: nowrap;
 }
 
+/* Renamed or reshaped against the edit marks' baseline (#31): a broken line
+   in the "changed" colour, as a feature relabelled over the same bases is
+   outlined. */
+.toolbar__name--changed,
+.toolbar__changed {
+  text-decoration: underline dashed var(--seq-edit-change);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
 .toolbar__dirty {
   color: var(--accent);
 }

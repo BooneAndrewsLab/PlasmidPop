@@ -11,8 +11,20 @@ import {
 import { analytics } from '../analytics';
 import { type ChangeTarget } from '@/view/circular';
 
-import { changeSelection, changeStops, stepChange } from '../editsView';
-import { type EditorState, editorStore, editsBaselineDocument } from './editorStore';
+import {
+  type IdentityChange,
+  changeSelection,
+  changeStops,
+  identityChange,
+  stepChange,
+} from '../editsView';
+import { isCopyNameOf } from './derive';
+import {
+  type EditorState,
+  editorStore,
+  editsBaselineDocument,
+  effectiveEditsBaseline,
+} from './editorStore';
 import { useEditorState } from './useEditorStore';
 
 /**
@@ -42,6 +54,33 @@ export function editDiffOf(state: EditorState): DocumentDiff | null {
 export function useEditDiff(): DocumentDiff | null {
   const state = useEditorState();
   return useMemo(() => editDiffOf(state), [state]);
+}
+
+/**
+ * The name and topology the active baseline had, where they differ from the
+ * document's now (#31): null when the marks are off, as the marks are.
+ */
+export function identityChangeOf(state: EditorState): IdentityChange | null {
+  const baseline = editsBaselineDocument(state);
+  const current = state.history?.present ?? null;
+  const change = identityChange(baseline, current);
+  // A working copy takes a name of its own by itself (item 24), which the
+  // copy banner already says; only a name the user gave it is a rename.
+  // Against another file the other's name is what it is, copy or not.
+  if (
+    change?.nameWas == null ||
+    !state.derived ||
+    effectiveEditsBaseline(state) === 'compared' ||
+    current === null ||
+    !isCopyNameOf(current.name, change.nameWas)
+  )
+    return change;
+  return change.topologyWas === null ? null : { nameWas: null, topologyWas: change.topologyWas };
+}
+
+export function useIdentityChange(): IdentityChange | null {
+  const state = useEditorState();
+  return useMemo(() => identityChangeOf(state), [state]);
 }
 
 /** Where Next change and Previous change can go in the document in front; see `changeStops`. */

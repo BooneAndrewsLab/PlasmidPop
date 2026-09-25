@@ -28,3 +28,21 @@ export function copyNameFor(name: string, taken: Iterable<string> = []): string 
   for (let n = 2; used.has(candidate.toLowerCase()); n += 1) candidate = `${base} copy ${n}`;
   return candidate;
 }
+
+/**
+ * Whether `name` is one `copyNameFor` could have given a copy of `original`
+ * — the name a working copy takes by itself, which is no rename of the
+ * user's (#31).
+ */
+export function isCopyNameOf(name: string, original: string): boolean {
+  const trimmed = original.trim();
+  const stem = (trimmed === '' ? 'Untitled' : trimmed).replace(COPY_SUFFIX, '');
+  const base = stem === '' ? 'Untitled' : stem;
+  const rest = name.trim().toLowerCase();
+  const prefix = `${base.toLowerCase()} copy`;
+  return rest === prefix || new RegExp(`^${escapeRegExp(prefix)} \\d+$`).test(rest);
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

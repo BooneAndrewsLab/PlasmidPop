@@ -1,4 +1,4 @@
-import { copyNameFor } from './derive';
+import { copyNameFor, isCopyNameOf } from './derive';
 
 describe('copyNameFor', () => {
   it('names the first copy', () => {
@@ -28,5 +28,23 @@ describe('copyNameFor', () => {
 
   it('keeps the rest of the name', () => {
     expect(copyNameFor('my plasmid v2')).toBe('my plasmid v2 copy');
+  });
+});
+
+describe('isCopyNameOf', () => {
+  it('knows the names a working copy takes by itself', () => {
+    expect(isCopyNameOf('pBR322 copy', 'pBR322')).toBe(true);
+    expect(isCopyNameOf('pBR322 copy 3', 'pBR322')).toBe(true);
+    expect(isCopyNameOf('PBR322 COPY', 'pBR322')).toBe(true);
+    expect(isCopyNameOf('pBR322 copy 2', 'pBR322 copy')).toBe(true);
+    expect(isCopyNameOf('Untitled copy', '')).toBe(true);
+    expect(isCopyNameOf('p(1).x copy', 'p(1).x')).toBe(true);
+  });
+
+  it('does not take a name the user gave for one', () => {
+    expect(isCopyNameOf('pMine', 'pBR322')).toBe(false);
+    expect(isCopyNameOf('pBR322 copy x', 'pBR322')).toBe(false);
+    expect(isCopyNameOf('pBR3220 copy', 'pBR322')).toBe(false);
+    expect(isCopyNameOf('p(1)ax copy', 'p(1).x')).toBe(false);
   });
 });
