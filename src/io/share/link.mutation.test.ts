@@ -11,18 +11,23 @@ import {
 
 // Tests written against the survivors of a mutation run (item 50).
 
-/** Deterministic bases that deflate cannot squeeze much. */
+/**
+ * Deterministic bases that deflate cannot squeeze below about two bits each.
+ * xorshift32 in 32-bit integer arithmetic: an LCG done in doubles loses
+ * precision past 2^53 and falls into a short cycle, which some zlib builds
+ * then compress to almost nothing.
+ */
 function bases(length: number): string {
-  let x = 11;
+  let x = 0x9e3779b9 | 0;
   let out = '';
   for (let i = 0; i < length; i++) {
-    x = (x * 1103515245 + 12345) % 2 ** 31;
-    out += 'ACGT'.charAt((x >> 16) % 4);
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    out += 'ACGT'.charAt((x >>> 30) & 3);
   }
   return out;
 }
-
-/** The length of the payload `text` makes, whether or not a link may carry it. */
 
 describe('share link errors', () => {
   it('say what they are', () => {
