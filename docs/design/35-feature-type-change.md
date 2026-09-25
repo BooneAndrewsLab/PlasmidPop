@@ -45,5 +45,14 @@ type to be equal. A feature differing only in type paired with nothing.
   coordinates, so a feature that only _shifted_ under an edit elsewhere
   is not called moved. Both renderers and so both review dialogs and both
   SVG exports get it from the one helper.
-- Not yet: a feature that both moved _and_ was renamed pairs with nothing,
-  since the location is the one thing the looser pass will not give up.
+- **A feature that both moved and was renamed** (#38, 2026-09-24) is
+  paired by a third pass, `pairByBases`, over what the first two left: the
+  same type and strand, and the same bases (`featureSequence`, so a
+  reverse-strand feature is compared as it reads), at least 20 of them.
+  The location was the one thing the second pass would not give up, and
+  across two files it is also the thing that goes, since the sequence diff
+  keeps the longer stretches and calls a moved insert deleted and
+  inserted. The bases say it is the same annotation where nothing else
+  does. It pairs only when each side is the other's one candidate, so a
+  repeated element annotated twice stays two additions rather than a
+  guess, and a short site, whose bases recur by chance, is not offered.

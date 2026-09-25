@@ -246,7 +246,11 @@ of your own plasmid is usually for.
   name or by its type, and then it is one changed line rather than a removal
   and an addition at the same coordinates. Two features that share only a
   place are not matched: a `gene` and the `CDS` inside it cover the same
-  bases and are not versions of one another.
+  bases and are not versions of one another. A feature that both moved and
+  was renamed is matched by its bases instead: the same type on the same
+  strand covering the same sequence, at least 20 bp of it, when that
+  sequence is annotated once in each file. Two copies of a repeated element
+  are left as a removal and additions rather than matched by guesswork.
 - **A plasmid written from another origin is lined up first.** A circle has
   no first base, so the same plasmid saved by two programs can share no text
   at all. The dialog works out how the other file's copy has to be turned —

@@ -2,7 +2,7 @@ import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
 import { SeqDocument } from '../document';
-import { createFeature, rangeSegment, siteSegment } from '../features';
+import { type Feature, createFeature, rangeSegment, siteSegment } from '../features';
 import { diffDocuments, isEmptyDiff, isUnchanged, marksIn } from './documentDiff';
 
 const SEQ = 'ACGTTGCAAGGCTTAACCGG'; // 20 bases, all positions identifiable
@@ -197,6 +197,78 @@ describe('diffDocuments features', () => {
     const diff = diffDocuments(base, twice);
     expect(diff.featuresAdded.size).toBe(1);
     expect(diff.featuresRemoved.size).toBe(0);
+  });
+
+  describe('a feature that both moved and was renamed (#38)', () => {
+    // 24 bases a CDS covers, between two longer stretches, so the sequence
+    // diff keeps the stretches and calls the insert deleted and inserted: no
+    // location then ties its two places together, only its bases.
+    const INSERT = 'ATGGCTAGCAAAGGAGAAGAACTT';
+    const LEFT = 'GGCCTTAAGGCCTTAAGGCCTTAAGGCCTT';
+    const RIGHT = 'TTTTCCCCAAAAGGGGTTTTCCCCAAAAGG';
+    const cds = (id: string, name: string, start: number, extra: Partial<Feature> = {}) =>
+      createFeature({
+        id,
+        type: 'CDS',
+        name,
+        strand: 'forward',
+        segments: [rangeSegment(start, start + INSERT.length)],
+        ...extra,
+      });
+
+    it('pairs it by the bases it covers', () => {
+      const before = SeqDocument.create({
+        sequence: LEFT + INSERT + RIGHT,
+        features: [cds('old', 'gfp', 30)],
+      });
+      // Another file: the insert moved after RIGHT and the CDS called something else.
+      const after = SeqDocument.create({
+        sequence: LEFT + RIGHT + INSERT,
+        features: [cds('new', 'EGFP', 60)],
+      });
+      const diff = diffDocuments(before, after);
+      expect(diff.featuresAdded.size).toBe(0);
+      expect(diff.featuresRemoved.size).toBe(0);
+      expect([...diff.featuresChanged.keys()]).toEqual(['new']);
+      expect(diff.featuresChanged.get('new')?.name).toBe('gfp');
+    });
+
+    it('leaves two copies of the same bases unpaired rather than guess', () => {
+      const before = SeqDocument.create({
+        sequence: LEFT + INSERT + RIGHT,
+        features: [cds('old', 'gfp', 30)],
+      });
+      const after = SeqDocument.create({
+        sequence: LEFT + RIGHT + INSERT + INSERT,
+        features: [cds('a', 'EGFP', 60), cds('b', 'EGFP-2', 84)],
+      });
+      const diff = diffDocuments(before, after);
+      expect(diff.featuresChanged.size).toBe(0);
+      expect(diff.featuresAdded.size).toBe(2);
+      expect([...diff.featuresRemoved.keys()]).toEqual(['old']);
+    });
+
+    it('does not pair short features, other types or the other strand by bases', () => {
+      const short = (id: string, start: number) =>
+        createFeature({
+          id,
+          type: 'misc_feature',
+          name: id,
+          strand: 'forward',
+          segments: [rangeSegment(start, start + 8)],
+        });
+      const before = SeqDocument.create({
+        sequence: LEFT + INSERT + RIGHT,
+        features: [short('s-old', 30), cds('old', 'gfp', 30)],
+      });
+      const after = SeqDocument.create({
+        sequence: LEFT + RIGHT + INSERT,
+        features: [short('s-new', 60), cds('new', 'EGFP', 60, { type: 'gene' })],
+      });
+      const diff = diffDocuments(before, after);
+      expect(diff.featuresChanged.size).toBe(0);
+      expect([...diff.featuresAdded].sort()).toEqual(['new', 's-new']);
+    });
   });
 
   it('puts a removed feature where the edits since have left its bases', () => {

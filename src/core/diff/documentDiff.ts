@@ -298,15 +298,69 @@ function diffFeatures(
     mapUnrolled,
     qualifiersOf,
   );
-  for (const [before, after] of changed) {
+  // What is left has moved as well as changed, so no location says it is the
+  // same feature; its bases still can (#38).
+  const moved = pairByBases(
+    featuresRemoved.filter((f) => !same.has(f) && !paired(changed, f)),
+    featuresAdded.filter((f) => !same.has(f) && !paired(changed, f)),
+    (f) => baseline.featureSequence(f).toUpperCase(),
+    (f) => current.featureSequence(f).toUpperCase(),
+  );
+  const pairs = [...changed, ...moved];
+  for (const [before, after] of pairs) {
     featuresChanged.set(after.id, mapped(before));
   }
-  const gone = (f: Feature): boolean => !same.has(f) && !paired(changed, f);
+  const gone = (f: Feature): boolean => !same.has(f) && !paired(pairs, f);
   return {
     featuresAdded: new Set(featuresAdded.filter(gone).map((f) => f.id)),
     featuresChanged,
     featuresRemoved: new Map(featuresRemoved.filter(gone).map((f) => [f.id, mapped(f)] as const)),
   };
+}
+
+/** Shorter than this, a feature's bases turn up elsewhere by chance. */
+const MIN_BASES_TO_PAIR = 20;
+
+/**
+ * The third pass, for a feature that both moved and was renamed (or
+ * retyped): no location and no name ties the two versions together, but the
+ * bases it covers do. Pairs a leftover with one added feature of the same
+ * type and strand whose bases are the same, and only when each is the other's
+ * one candidate, so two copies of a repeated element are left unpaired rather
+ * than paired by guesswork.
+ */
+function pairByBases(
+  removed: readonly Feature[],
+  added: readonly Feature[],
+  basesBefore: (f: Feature) => string,
+  basesAfter: (f: Feature) => string,
+): (readonly [Feature, Feature])[] {
+  if (removed.length === 0 || added.length === 0) return [];
+  const keyOf = (f: Feature, bases: string): string | null =>
+    bases.length < MIN_BASES_TO_PAIR ? null : [f.type, f.strand, bases].join('\u0000');
+  const group = (features: readonly Feature[], bases: (f: Feature) => string) => {
+    const byKey = new Map<string, Feature[]>();
+    for (const f of features) {
+      const key = keyOf(f, bases(f));
+      if (key === null) continue;
+      const list = byKey.get(key);
+      if (list === undefined) byKey.set(key, [f]);
+      else list.push(f);
+    }
+    return byKey;
+  };
+  const before = group(removed, basesBefore);
+  const after = group(added, basesAfter);
+  const pairs: (readonly [Feature, Feature])[] = [];
+  for (const [key, olds] of before) {
+    const news = after.get(key);
+    const [old] = olds;
+    const [next] = news ?? [];
+    if (olds.length === 1 && news?.length === 1 && old !== undefined && next !== undefined) {
+      pairs.push([old, next]);
+    }
+  }
+  return pairs;
 }
 
 /** Whether a feature is one half of a pair the looser pass matched up. */
