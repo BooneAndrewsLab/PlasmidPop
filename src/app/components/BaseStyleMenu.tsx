@@ -146,6 +146,10 @@ function Swatches({
 interface Props {
   readonly doc: SeqDocument;
   readonly selection: Range | null;
+  /** Which way the list opens; down, under the button, unless there is no room. */
+  readonly opens?: 'up' | 'down';
+  /** Whether this copy of the menu answers Alt+Y; only one may. */
+  readonly shortcut?: boolean;
 }
 
 /**
@@ -154,7 +158,7 @@ interface Props {
  * with its edits, but no annotation. Each choice is one undoable edit, and
  * the menu stays open so several can be tried in turn.
  */
-export function BaseStyleMenu({ doc, selection }: Props) {
+export function BaseStyleMenu({ doc, selection, opens = 'down', shortcut = true }: Props) {
   const hasRange = selection !== null && !isEmptyRange(selection);
   const { open, toggle, close, ref } = useMenu();
   useEffect(() => {
@@ -162,12 +166,17 @@ export function BaseStyleMenu({ doc, selection }: Props) {
   }, [hasRange, close]);
   // Alt+Y ("style") opens it with its first item focused (#89).
   const focusFirst = useRef(false);
-  useAltKey('KeyY', () => {
-    if (!hasRange) return;
-    analytics.shortcut('alt+y');
-    focusFirst.current = !open;
-    toggle();
-  });
+  useAltKey(
+    'KeyY',
+    shortcut
+      ? () => {
+          if (!hasRange) return;
+          analytics.shortcut('alt+y');
+          focusFirst.current = !open;
+          toggle();
+        }
+      : null,
+  );
   useEffect(() => {
     if (!open || !focusFirst.current) return;
     focusFirst.current = false;
@@ -186,7 +195,7 @@ export function BaseStyleMenu({ doc, selection }: Props) {
         type="button"
         className="button button--small"
         disabled={!hasRange}
-        aria-keyshortcuts="Alt+Y"
+        aria-keyshortcuts={shortcut ? 'Alt+Y' : undefined}
         title="Colour, highlight, bold or enlarge the selected bases (Alt+Y)"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -195,7 +204,11 @@ export function BaseStyleMenu({ doc, selection }: Props) {
         Style <span className="button__caret">▾</span>
       </button>
       {open && hasRange && (
-        <div className="menu__list menu__list--start" role="menu" aria-label="Style of the bases">
+        <div
+          className={`menu__list menu__list--start${opens === 'up' ? ' menu__list--up' : ''}`}
+          role="menu"
+          aria-label="Style of the bases"
+        >
           <p className="menu__group-label">Letters</p>
           <Swatches
             label="Letter colour"

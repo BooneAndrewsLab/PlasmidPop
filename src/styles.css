@@ -3486,6 +3486,33 @@ button {
 }
 
 /* Copy, offered over a long-press selection where the finger let go. */
+/* The bar beside a selection (#89), in the view's own scrolled space. */
+.selection-bar {
+  position: absolute;
+  z-index: 3; /* above the sticky canvas and the copy offer */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+.selection-bar__length {
+  padding: 0 6px 0 2px;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+/* A list that opens above its trigger, where there is no room below. */
+.menu__list--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
 .seq-view__copy {
   position: absolute;
   z-index: 2; /* above the sticky canvas */

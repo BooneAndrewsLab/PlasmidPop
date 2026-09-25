@@ -52,6 +52,38 @@ describe('LinearSequenceView', () => {
     });
   });
 
+  it('floats the selection bar beside a selection once the drag that makes it ends (#89)', () => {
+    const { canvas, container } = setup();
+    const bar = (): Element | null => container.querySelector('.selection-bar');
+    expect(bar()).toBeNull();
+    const at = (column: number) => ({
+      clientX: LEFT_GUTTER + column * CHAR_WIDTH,
+      clientY: 30,
+      button: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerDown(canvas, at(10));
+    fireEvent.pointerMove(canvas, at(20));
+    // Not while the selection is still being dragged out.
+    expect(editorStore.getState().selection).toEqual({ start: 10, end: 20 });
+    expect(bar()).toBeNull();
+    fireEvent.pointerUp(canvas, at(20));
+    expect(bar()).not.toBeNull();
+    expect(bar()?.textContent).toContain('10 bp');
+    // A caret has nothing for it to act on.
+    clickColumn(canvas, LEFT_GUTTER + 5 * CHAR_WIDTH);
+    expect(bar()).toBeNull();
+  });
+
+  it('shows no selection bar in the phone reader', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setSelection({ start: 10, end: 20 });
+    });
+    const view = render(<LinearSequenceView doc={doc} reader />);
+    expect(view.container.querySelector('.selection-bar')).toBeNull();
+  });
+
   it('puts the caret where the pointer is', () => {
     const { canvas } = setup();
     clickColumn(canvas, LEFT_GUTTER + 10 * CHAR_WIDTH);

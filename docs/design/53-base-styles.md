@@ -106,6 +106,30 @@ Letters on a highlight with no colour of their own are drawn in
 `contrastingText(highlight)`, so a yellow highlight reads in the dark theme
 too. The swatches offered are light for the same reason.
 
+## The selection bar
+
+The Style button was hard to find in the edit bar, even for the person
+designing the tool: in the Both view that bar starts above the map, far
+from the bases being selected. The fix chosen was a small bar that floats
+beside the selection (`SelectionBar`) with Style, Add feature, Copy and the
+selection's length. It is the most-used actions on a selection, where the
+eye already is. The edit bar keeps all of them, and `Alt+Y` stays with the
+edit bar's copy of the menu, so only one menu answers it.
+
+- It appears when a drag ends, not during one, so it does not jump about
+  under the pointer.
+- It goes above the selection's first row, over its ruler, when the open
+  Style menu (about 380 px) fits above it, and the menu then opens upwards.
+  Otherwise it goes under the last row with the menu opening down. Either
+  way the menu does not cover the bases it is restyling. It is hidden when
+  neither place is on screen.
+- Desktop only. The phone reader (`reader`) has its long-press Copy (item 15) and no room over its bases.
+- Counted as `selection-bar / add-feature` and `/ copy`. Styling counts as
+  the `styleBases` edit it makes.
+
+Moving the edit bar itself to sit over the sequence pane was discussed and
+left for now. The floating bar was preferred.
+
 ## Not done
 
 - Styles on the circular map. Asked only for the sequence view. A highlight

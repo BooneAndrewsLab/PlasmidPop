@@ -107,7 +107,9 @@ describe('App', () => {
     act(() => {
       editorStore.setSelection({ start: 0, end: 20 });
     });
-    fireEvent.click(screen.getByRole('button', { name: /Add feature/ }));
+    // The edit bar's, not the one on the bar floating beside the selection.
+    const editBar = screen.getByRole('toolbar', { name: 'Edit' });
+    fireEvent.click(within(editBar).getByRole('button', { name: /Add feature/ }));
     expect(screen.getByRole('textbox', { name: 'Feature name' })).toHaveValue('New feature');
   });
 

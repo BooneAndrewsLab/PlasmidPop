@@ -167,6 +167,11 @@ export const EVENTS = {
    * each file's own `file / open` says its format.
    */
   phone: ['long-press-copy', 'share-target-open'],
+  /**
+   * The bar floating beside a selection in the sequence view (#89): which
+   * of its buttons was used. Styling is counted as the edit it makes.
+   */
+  'selection-bar': ['add-feature', 'copy'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;

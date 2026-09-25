@@ -319,6 +319,15 @@ Elsewhere:
 Many actions work on the selection: Add feature, Delete selection, Copy and
 Cut, Export selection, Translate, Design primers, Align against selection.
 
+When you let go of a selection in the sequence view, a small bar appears
+beside it with the commonest of these: **Style ▾** (see
+[Colouring and enlarging bases](04-editing.md#colouring-and-enlarging-bases)),
+**Add feature** and **Copy**, and how many bases are selected. It sits above
+the selection, or under it where there is no room above for the Style menu,
+so the selected bases stay in view while you work on them. Clicking a single
+position, or selecting nothing, puts it away. The phone reader has its own
+**Copy** after a long press instead.
+
 ## The checksum
 
 The right of the status bar shows a short checksum of the open molecule, like

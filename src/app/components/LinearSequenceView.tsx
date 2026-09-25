@@ -63,6 +63,7 @@ import {
 import { openPastedText } from '../openFile';
 import { useEditDiff } from '../state/editDiff';
 import { readLinearTheme } from './linearTheme';
+import { SelectionBar } from './SelectionBar';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { recallView, rememberView } from '../state/viewMemory';
@@ -114,6 +115,12 @@ interface Props {
    */
   readonly reader?: boolean;
 }
+
+/** Room the selection bar takes, for placing it (px). */
+const SELECTION_BAR_HEIGHT = 34;
+const SELECTION_BAR_WIDTH = 300;
+/** Height of the open Style menu, for which way it opens (px). */
+const STYLE_MENU_HEIGHT = 420;
 
 export function LinearSequenceView({ doc, reader = false }: Props) {
   const {
@@ -169,6 +176,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       targets, the bases are text. */
   const [cursor, setCursor] = useState<'text' | 'pointer' | 'default'>('text');
   const dragAnchor = useRef<number | null>(null);
+  /** While a mouse drag is making the selection, the selection bar waits for it to end. */
+  const [dragging, setDragging] = useState(false);
   /** Where a finger came down; a tap is acted on when it lifts in place. */
   const touchTap = useRef<{ x: number; y: number } | null>(null);
   /** The long press waiting to fire while that finger rests (#43). */
@@ -600,6 +609,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
           if (span !== null) {
             containerRef.current?.focus({ preventScroll: true });
             capturePointer(e);
+            setDragging(true);
             codonDrag.current = { translation, anchorIndex: codon };
             anchor.current = span.start;
             editorStore.setSelection(span);
@@ -620,6 +630,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     if (hit.kind !== 'boundary') return;
     containerRef.current?.focus({ preventScroll: true });
     capturePointer(e);
+    setDragging(true);
     if (e.shiftKey && selection !== null) {
       dragAnchor.current = hit.position >= selection.end ? selection.start : selection.end;
       editorStore.setSelection(selectionBetween(dragAnchor.current, hit.position));
@@ -692,6 +703,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     ) {
       press(e);
     }
+    setDragging(false);
     if (dragAnchor.current === null && codonDrag.current === null) return;
     dragAnchor.current = null;
     codonDrag.current = null;
@@ -892,6 +904,41 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     return true;
   };
 
+  /**
+   * Where the selection bar goes (#89). Above the selection's first row,
+   * over its ruler, with the Style menu opening upwards, when there is room
+   * for the menu there; otherwise under the selection's last row with the
+   * menu opening downwards. Either way the menu leaves the selected bases in
+   * sight while it restyles them. Failing both, above with the menu down.
+   * Null when there is no range selected, or neither place is on screen.
+   */
+  function selectionBarPlace(): { left: number; top: number; menuOpens: 'up' | 'down' } | null {
+    if (selection === null || isEmptyRange(selection) || doc.length === 0) return null;
+    const start = selection.start % doc.length;
+    const last = (selection.end - 1) % doc.length;
+    const first = layout.rowOfPosition(start);
+    const end = layout.rowOfPosition(last);
+    if (first === undefined || end === undefined) return null;
+    const clampLeft = (x: number): number =>
+      Math.max(scrollLeft + 8, Math.min(x - 8, scrollLeft + size.width - SELECTION_BAR_WIDTH));
+    const bottom = scrollTop + size.height;
+    const onScreen = (top: number): boolean =>
+      top >= scrollTop + 4 && top <= bottom - SELECTION_BAR_HEIGHT;
+    const above = first.top + metrics.rulerHeight - SELECTION_BAR_HEIGHT;
+    const aboveAt = { left: clampLeft(layout.xOf(first, start)), top: above };
+    const below = layout.forwardTextTop(end) + layout.strandsHeight(end) + 4;
+    const belowAt = { left: clampLeft(layout.xOf(end, last)), top: below };
+    if (onScreen(above) && above - scrollTop >= STYLE_MENU_HEIGHT) {
+      return { ...aboveAt, menuOpens: 'up' };
+    }
+    if (onScreen(below) && bottom - below >= SELECTION_BAR_HEIGHT + STYLE_MENU_HEIGHT) {
+      return { ...belowAt, menuOpens: 'down' };
+    }
+    if (onScreen(above)) return { ...aboveAt, menuOpens: 'down' };
+    if (onScreen(below)) return { ...belowAt, menuOpens: 'down' };
+    return null;
+  }
+
   const onCopy = (e: ReactClipboardEvent<HTMLDivElement>): void => {
     if (copySelection(e.clipboardData)) e.preventDefault();
   };
@@ -906,6 +953,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     e.preventDefault();
     withClipboard(e.clipboardData);
   };
+
+  const bar = reader || dragging ? null : selectionBarPlace();
 
   return (
     <div
@@ -952,6 +1001,15 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
             if (touchTap.current !== null || touchSelect.current !== null) e.preventDefault();
           }}
         />
+        {bar !== null && selection !== null && (
+          <SelectionBar
+            doc={doc}
+            selection={selection}
+            left={bar.left}
+            top={bar.top}
+            menuOpens={bar.menuOpens}
+          />
+        )}
         {offer !== null && (
           <button
             type="button"

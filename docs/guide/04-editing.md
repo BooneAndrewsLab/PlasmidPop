@@ -38,8 +38,8 @@ step.
 
 ## Colouring and enlarging bases
 
-To make a stretch of bases stand out, select it and open **Style ▾** in the
-edit bar (`Alt+Y`):
+To make a stretch of bases stand out, select it and open **Style ▾**, on the
+bar that appears beside the selection or in the edit bar (`Alt+Y`):
 
 - **Letters**: draw the bases in a colour. Click a swatch, or pick any
   colour with the box beside them. **None** puts the ordinary colour back.
