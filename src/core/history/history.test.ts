@@ -204,3 +204,90 @@ describe('History coalescing', () => {
     expect(h.push('ACGTA', 'Insert 1 base', 50, { ...typed(4, 5), limit: 4 }).size).toBe(2);
   });
 });
+
+describe('History records', () => {
+  const typed = (before: number, after: number): Coalesce => ({
+    follows: `type@${before}`,
+    key: `type@${after}`,
+    relabel: (n) => `Insert ${n} bases`,
+  });
+
+  /** Everything a history says about itself, for comparing two of them. */
+  const observed = <T>(h: History<T>) => ({
+    present: h.present,
+    position: h.position,
+    size: h.size,
+    labels: h.labels,
+    steps: h.steps,
+    startedAt: h.startedAt,
+    truncated: h.truncated,
+    limit: h.limit,
+    states: Array.from({ length: h.size + 1 }, (_, i) => h.stateAt(i)),
+  });
+
+  it('lays a history out flat, undone steps and merged counts included, and rebuilds it', () => {
+    const h = History.create('', { at: 5 })
+      .push('A', 'Insert 1 base', 10, typed(0, 1))
+      .push('AC', 'Insert 1 base', 20, typed(1, 2))
+      .push('ACX', 'Replace', 30)
+      .push('ACXY', 'Insert 1 base', 40)
+      .undo();
+    const record = h.toRecord();
+    expect(record).toEqual({
+      states: ['', 'AC', 'ACX', 'ACXY'],
+      steps: [
+        { label: 'Insert 2 bases', at: 20, merged: 2 },
+        { label: 'Replace', at: 30 },
+        { label: 'Insert 1 base', at: 40 },
+      ],
+      position: 2,
+      limit: 200,
+      startedAt: 5,
+      truncated: false,
+    });
+    const back = History.fromRecord(record);
+    expect(observed(back)).toEqual(observed(h));
+    // Redo and undo work on the rebuilt one as on the original.
+    expect(back.redo().present).toBe('ACXY');
+    expect(back.jumpTo(0).present).toBe('');
+  });
+
+  it('comes back sealed: an open run does not continue after a rebuild', () => {
+    const h = History.create('', { at: 0 }).push('A', 'Insert 1 base', 10, typed(0, 1));
+    expect(h.push('AC', 'Insert 1 base', 20, typed(1, 2)).size).toBe(1);
+    const back = History.fromRecord(h.toRecord());
+    expect(back.push('AC', 'Insert 1 base', 20, typed(1, 2)).size).toBe(2);
+  });
+
+  it('keeps truncation and the start time of a capped history', () => {
+    let h = History.create(0, { limit: 3, at: 0 });
+    for (let i = 1; i <= 6; i++) h = h.push(i, `step ${i}`, i * 10);
+    const back = History.fromRecord(h.toRecord());
+    expect(observed(back)).toEqual(observed(h));
+    expect(back.truncated).toBe(true);
+    expect(back.startedAt).toBe(30);
+    expect(back.push(7, 'step 7', 70).stateAt(0)).toBe(4);
+  });
+
+  it('rebuilds the empty history', () => {
+    const h = History.create('x', { at: 1 });
+    expect(observed(History.fromRecord(h.toRecord()))).toEqual(observed(h));
+  });
+
+  it('refuses a record that does not describe a history', () => {
+    const good = History.create('a', { at: 0 }).push('b', 'b', 1).toRecord();
+    expect(() => History.fromRecord({ ...good, states: ['a'] })).toThrow(RangeError);
+    expect(() => History.fromRecord({ ...good, position: 2 })).toThrow(RangeError);
+    expect(() => History.fromRecord({ ...good, position: -1 })).toThrow(RangeError);
+    expect(() => History.fromRecord({ ...good, position: 0.5 })).toThrow(RangeError);
+    expect(() => History.fromRecord({ ...good, limit: 0 })).toThrow(RangeError);
+    expect(() =>
+      History.fromRecord({
+        ...good,
+        limit: 1,
+        states: ['a', 'b', 'c'],
+        steps: [...good.steps, { label: 'c', at: 2 }],
+      }),
+    ).toThrow(RangeError);
+  });
+});

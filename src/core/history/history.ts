@@ -65,6 +65,32 @@ export interface HistoryStep<T> {
   readonly state: T;
 }
 
+/** One change as a `HistoryRecord` keeps it: what it was called, when, and how many it holds. */
+export interface HistoryRecordStep {
+  readonly label: string;
+  readonly at: number;
+  /** As `HistoryEntry.merged`: absent for a step of one change. */
+  readonly merged?: number;
+}
+
+/**
+ * A history laid out flat, oldest first, for something outside it to store
+ * and rebuild it from (`History.toRecord`, `History.fromRecord`). A run
+ * being typed has no place here: a rebuilt history is sealed, so the next
+ * change after it starts a step of its own.
+ */
+export interface HistoryRecord<T> {
+  /** Every kept state: `states[i]` has `i` changes applied, so there is one more than `steps`. */
+  readonly states: readonly T[];
+  /** `steps[i]` is the change that leads from `states[i]` to `states[i + 1]`. */
+  readonly steps: readonly HistoryRecordStep[];
+  /** How many of the steps are applied; the rest are undone and can be redone. */
+  readonly position: number;
+  readonly limit: number;
+  readonly startedAt: number;
+  readonly truncated: boolean;
+}
+
 /**
  * Immutable undo/redo stack over immutable states. Since document versions
  * share structure, storing whole states is cheap and avoids inverse-op bugs.
@@ -72,6 +98,71 @@ export interface HistoryStep<T> {
 export class History<T> {
   static create<T>(present: T, options: HistoryOptions = {}): History<T> {
     return new History(present, [], [], options.limit ?? 200, options.at ?? Date.now(), false);
+  }
+
+  /**
+   * The history a record describes, sealed. Throws a RangeError when the
+   * record does not describe one: a state count that is not one more than
+   * the steps, a position outside them, or more steps than the limit.
+   */
+  static fromRecord<T>(record: HistoryRecord<T>): History<T> {
+    const { states, steps, position, limit } = record;
+    if (!Number.isInteger(limit) || limit < 1) throw new RangeError(`Bad history limit ${limit}`);
+    if (states.length !== steps.length + 1) {
+      throw new RangeError(`${states.length} states for ${steps.length} steps`);
+    }
+    if (steps.length > limit)
+      throw new RangeError(`${steps.length} steps over a limit of ${limit}`);
+    if (!Number.isInteger(position) || position < 0 || position > steps.length) {
+      throw new RangeError(`Position ${position} outside 0–${steps.length}`);
+    }
+    const entry = (i: number, state: T): HistoryEntry<T> => {
+      const step = steps[i];
+      if (step === undefined) throw new RangeError(`No step ${i}`);
+      return step.merged === undefined
+        ? { state, label: step.label, at: step.at }
+        : { state, label: step.label, at: step.at, merged: step.merged };
+    };
+    const stateAt = (i: number): T => {
+      const state = states[i];
+      if (state === undefined) throw new RangeError(`No state ${i}`);
+      return state;
+    };
+    // `past[i]` keeps the state before change i + 1; `future` is a stack whose
+    // last element is the next redo and keeps the state that change leads to.
+    const past = Array.from({ length: position }, (_, i) => entry(i, stateAt(i)));
+    const future: HistoryEntry<T>[] = [];
+    for (let i = steps.length - 1; i >= position; i--) future.push(entry(i, stateAt(i + 1)));
+    return new History(stateAt(position), past, future, limit, record.startedAt, record.truncated);
+  }
+
+  /** This history laid out flat, for `fromRecord` to rebuild; an open run is not kept. */
+  toRecord(): HistoryRecord<T> {
+    const states: T[] = [];
+    const steps: HistoryRecordStep[] = [];
+    const step = (e: HistoryEntry<T>): HistoryRecordStep =>
+      e.merged === undefined
+        ? { label: e.label, at: e.at }
+        : { label: e.label, at: e.at, merged: e.merged };
+    for (const e of this.past) {
+      states.push(e.state);
+      steps.push(step(e));
+    }
+    states.push(this.present);
+    for (let i = this.future.length - 1; i >= 0; i--) {
+      const e = this.future[i];
+      if (e === undefined) continue;
+      states.push(e.state);
+      steps.push(step(e));
+    }
+    return {
+      states,
+      steps,
+      position: this.past.length,
+      limit: this.limit,
+      startedAt: this.startedAt,
+      truncated: this.truncated,
+    };
   }
 
   private constructor(
