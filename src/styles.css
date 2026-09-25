@@ -3431,7 +3431,15 @@ button {
   min-width: 0;
 }
 
+/* Each part keeps its own row: the notice is there once per browser, and
+   without it the pane would slide into the notice's auto row and the bar
+   into the pane's, squeezed to nothing on the next change of pane (#42). */
+.phone__notice {
+  grid-row: 1;
+}
+
 .phone__pane {
+  grid-row: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -3477,6 +3485,7 @@ button {
 /* The bar sits where a thumb is; the safe-area inset keeps it off the home
    indicator on the phones that have one. */
 .phone__bar {
+  grid-row: 3;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding-bottom: env(safe-area-inset-bottom, 0px);
