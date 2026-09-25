@@ -3494,17 +3494,22 @@ button {
   align-items: center;
   gap: 4px;
   padding: 3px 4px;
-  border: 1px solid var(--line);
+  /* Set off from the sequence it floats over (#89): a raised surface, an
+     edge in the accent colour and a firmer shadow, in both themes. */
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, var(--line));
   border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+  background: var(--surface-3);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.32);
   white-space: nowrap;
 }
 
 .selection-bar__length {
   padding: 0 6px 0 2px;
-  color: var(--ink-3);
+  color: var(--accent);
   font-size: 12px;
+  font-weight: 600;
 }
 
 /* A list that opens above its trigger, where there is no room below. */
