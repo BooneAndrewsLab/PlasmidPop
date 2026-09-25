@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 
-import { type SeqDocument, SeqDocument as Doc } from '@/core';
+import { type SeqDocument, type StyleRun, SeqDocument as Doc } from '@/core';
 import { docShapeArb, layFeatures, opShapeArb, resolveOp } from '@/test/editArbitraries';
 
 import {
@@ -85,8 +85,75 @@ describe('base styles in GenBank', () => {
     expect(result.warnings.some((w) => w.message.includes('base styles'))).toBe(true);
   });
 
-  it('format an empty list as just the header', () => {
+  it('format an empty list as just the header, which reads back as no runs', () => {
     expect(formatBaseStylesComment([])).toBe('PlasmidPop-base-styles: 1');
+    expect(parseBaseStylesComment('PlasmidPop-base-styles: 1')).toEqual([]);
+    expect(parseBaseStylesComment('PlasmidPop-base-styles: 1\n\n1..4:bold  \n')).toEqual([
+      { start: 0, end: 4, style: { bold: true } },
+    ]);
+  });
+
+  it('fill each line as far as 67 columns and no further', () => {
+    const bold = { bold: true } as const;
+    const runs = (size: 1.5 | 1.25): StyleRun[] => [
+      { start: 0, end: 10, style: bold },
+      { start: 11, end: 20, style: bold },
+      { start: 21, end: 30, style: bold },
+      { start: 31, end: 40, style: bold },
+      { start: 41, end: 50, style: { bold: true, size } },
+      { start: 51, end: 60, style: bold },
+    ];
+    const head = '1..10:bold 12..20:bold 22..30:bold 32..40:bold';
+    // Exactly 67 columns fits on the line.
+    expect(formatBaseStylesComment(runs(1.5))).toBe(
+      `PlasmidPop-base-styles: 1\n${head} 42..50:bold,size=1.5\n52..60:bold`,
+    );
+    // 68 does not.
+    expect(formatBaseStylesComment(runs(1.25))).toBe(
+      `PlasmidPop-base-styles: 1\n${head}\n42..50:bold,size=1.25 52..60:bold`,
+    );
+  });
+
+  it('put a run too long for any line on a line of its own, with no empty line before it', () => {
+    const run: StyleRun = {
+      start: 123456788,
+      end: 123456799,
+      style: { color: '#aabbcc', highlight: '#ddeeff', bold: true, size: 1.25 },
+    };
+    const text = formatBaseStylesComment([run]);
+    expect(text).toBe(
+      'PlasmidPop-base-styles: 1\n123456789..123456799:color=#aabbcc,highlight=#ddeeff,bold,size=1.25',
+    );
+    expect(parseBaseStylesComment(text)).toEqual([run]);
+  });
+
+  it('know the block by its header, even indented', () => {
+    expect(isBaseStylesComment('  PlasmidPop-base-styles: 1\n1..4:bold')).toBe(true);
+    expect(isBaseStylesComment('Made with PlasmidPop-base-styles: 1')).toBe(false);
+  });
+
+  it('refuse a run that repeats a part, gives a part a value it takes none of, or is malformed', () => {
+    for (const body of [
+      '1..4:bold,bold',
+      '1..4:bold=yes',
+      '1..4:color',
+      '1..4:highlight',
+      '1..4:color=#ff0000,color=#00ff00',
+      '1..4:size=1.5,size=2',
+      '1..4:size',
+      '1..4:blink=1.5',
+      '1..4:=bold',
+      'x1..4:bold',
+      '1-4:bold',
+      '5..4:bold',
+      '6..4:bold',
+      '1..4:',
+    ]) {
+      expect(parseBaseStylesComment(`PlasmidPop-base-styles: 1\n${body}`)).toBeNull();
+    }
+    expect(
+      parseBaseStylesComment('PlasmidPop-base-styles: 1\n1..4:bold,size=1.25,highlight=#FFE066'),
+    ).toEqual([{ start: 0, end: 4, style: { bold: true, size: 1.25, highlight: '#ffe066' } }]);
   });
 
   it('write → parse → write is a fixed point after random edits', () => {
