@@ -121,7 +121,8 @@ ghost selects the bases the removed feature covered — the same selection
 **Next change** would make, so a change across the origin is selected whole.
 The pointer turns into a hand over a mark, and the mark says what it is (`40 bp
 inserted`). A feature, a label or a cut site under the pointer still comes
-first, and pressing on a band and dragging still selects a range as it does
+first — clicking a cut site's tick over a mark puts the cursor at the cut, as
+hovering it shows its name — and pressing on a band and dragging still selects a range as it does
 anywhere on the backbone. The sequence view's marks are not click targets: a
 changed base there is a base you may want to put the cursor in.
 

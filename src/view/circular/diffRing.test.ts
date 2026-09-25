@@ -14,7 +14,13 @@ import { exportMapSvg } from '../svg/exportMap';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout } from './circularLayout';
 import { type ChangeTarget, ghostFeatures, ghostLaneKey, lanesWithGhosts } from './diffRing';
-import { changeAt, describeChange, renderCircularMap } from './renderCircular';
+import {
+  changeAt,
+  cutSiteAt,
+  describeChange,
+  renderCircularMap,
+  ringTargetAt,
+} from './renderCircular';
 
 const SANS = '12px sans-serif';
 /** A colour nothing else on the map is drawn in, so a ghost can be picked out of the SVG. */
@@ -222,5 +228,58 @@ describe('changeAt', () => {
     const { layout, lanes } = fixture();
     const pt = layout.pointAt(420, layout.radius);
     expect(changeAt({ layout, lanes, edits: null, sansFont: SANS }, pt.x, pt.y)).toBeNull();
+  });
+});
+
+describe('ringTargetAt (#82)', () => {
+  const on = (
+    f: ReturnType<typeof fixture>,
+    cuts: readonly number[],
+    position: number,
+    r: number,
+  ) => {
+    const pt = f.layout.pointAt(position, r);
+    return ringTargetAt(
+      { layout: f.layout, lanes: f.lanes, edits: f.edits, sansFont: SANS, cuts },
+      pt.x,
+      pt.y,
+    );
+  };
+
+  it('gives a cut site over a mark the click, as it has the hover', () => {
+    const f = fixture();
+    expect(on(f, [420], 420, f.layout.radius)).toEqual({ kind: 'cut', position: 420 });
+    // Within a few pixels of the tick, the cut still answers, at the cut itself.
+    expect(on(f, [420], 422, f.layout.radius + 2)).toEqual({ kind: 'cut', position: 420 });
+    // Along the mark away from the tick, the mark does.
+    expect(on(f, [405], 435, f.layout.radius)).toEqual({
+      kind: 'change',
+      change: { kind: 'mark', index: 0 },
+    });
+  });
+
+  it('gives a cut site a deletion wedge under it too', () => {
+    const f = fixture();
+    expect(on(f, [3000], 3000, f.layout.radius)).toEqual({ kind: 'cut', position: 3000 });
+    expect(on(f, [], 3000, f.layout.radius)).toEqual({
+      kind: 'change',
+      change: { kind: 'deletion', index: 0 },
+    });
+  });
+
+  it('leaves the lanes to the ghosts: a cut site has no say there', () => {
+    const f = fixture();
+    expect(on(f, [2200], 2200, f.layout.laneRadius(0))).toEqual({
+      kind: 'change',
+      change: { kind: 'removed', featureId: 'clear' },
+    });
+  });
+
+  it('finds nothing off the ring, and nearest tick among several', () => {
+    const f = fixture();
+    expect(on(f, [900], 900, f.layout.radius + 40)).toBeNull();
+    const pt = f.layout.pointAt(901, f.layout.radius);
+    expect(cutSiteAt(f.layout, [880, 900, 905], pt.x, pt.y)).toBe(900);
+    expect(cutSiteAt(f.layout, [], pt.x, pt.y)).toBeNull();
   });
 });

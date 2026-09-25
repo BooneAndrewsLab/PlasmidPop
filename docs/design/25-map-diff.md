@@ -100,7 +100,11 @@ sequence hunks, which says _where_ last.
     starts a drag selection, so a press on one still does; only a release
     that did not move selects the change. Hovering one shows the hand and a
     floating label saying what it is (`40 bp inserted`, `8 bp changed`),
-    below a feature, a label or a cut site. Measured with 200 marks, 200
+    below a feature, a label or a cut site. Since #82 a click keeps that
+    order too (`ringTargetAt`, asked by hover and click alike): a click on a
+    cut site's tick puts the caret at the cut, over a mark or a wedge or not,
+    and a hovered change is let go when the diff changes under a still
+    pointer, since it is an index into the diff it was found in. Measured with 200 marks, 200
     deletions and 50 ghosts, a pointer test is 20 µs.
   - **The sequence view's marks are not click targets.** A marked base there
     is a base the user may want the caret in, and a click that selected the

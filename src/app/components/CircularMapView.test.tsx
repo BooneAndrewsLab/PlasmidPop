@@ -292,4 +292,64 @@ describe('CircularMapView edit marks', () => {
     fireEvent.pointerMove(canvas, at(1500));
     expect(canvas.style.cursor).not.toBe('pointer');
   });
+
+  /** Shows one cut site, of an enzyme made up for it, on the document in front. */
+  const showCut = (cut: number): void => {
+    const present = editorStore.getState().history?.present;
+    if (present === undefined) throw new Error('no document');
+    act(() => {
+      editorStore.setAnalysis(
+        present,
+        [{ enzyme: 'TestI', cut, cutBottom: cut, siteStart: cut - 3, strand: 'forward' }],
+        [],
+      );
+      editorStore.setShownEnzymes(['TestI']);
+    });
+  };
+
+  it('puts the caret at a cut site over a mark, as hovering it says (#82)', () => {
+    const { canvas, at } = setupMarked();
+    showCut(3020);
+    fireEvent.pointerMove(canvas, at(3021));
+    expect(canvas.style.cursor).toBe('pointer');
+    click(canvas, at(3021));
+    // At the cut itself, not at the base pressed on, and not the whole mark.
+    expect(editorStore.getState().selection).toEqual({ start: 3020, end: 3020 });
+  });
+
+  it('still selects the mark away from the cut site on it', () => {
+    const { canvas, at } = setupMarked();
+    showCut(3005);
+    act(() => {
+      editorStore.setSelection({ start: 2990, end: 2990 });
+      goToChange(1);
+    });
+    const mark = editorStore.getState().selection;
+    act(() => {
+      editorStore.setSelection(null);
+    });
+    click(canvas, at(3035));
+    expect(editorStore.getState().selection).toEqual(mark);
+    expect(mark?.start).toBe(3000);
+  });
+
+  it('puts the caret at a cut site over a wedge rather than at the deletion', () => {
+    const { canvas, at } = setupMarked();
+    showCut(3638);
+    click(canvas, at(3640, -6));
+    expect(editorStore.getState().selection).toEqual({ start: 3638, end: 3638 });
+  });
+
+  it('lets a hovered mark go when the diff changes under a still pointer', () => {
+    const { canvas, at } = setupMarked();
+    fireEvent.pointerMove(canvas, at(3020));
+    expect(canvas.style.cursor).toBe('pointer');
+    // Another insertion earlier renumbers the marks: the hover would name it.
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 10, text: 'GG' });
+    });
+    expect(canvas.style.cursor).not.toBe('pointer');
+    fireEvent.pointerMove(canvas, at(3020));
+    expect(canvas.style.cursor).toBe('pointer');
+  });
 });

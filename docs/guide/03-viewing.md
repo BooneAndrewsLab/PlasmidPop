@@ -210,7 +210,7 @@ backbone in through the lanes, so they are not lost under a feature.
   do. **Double-click** the arc to zoom in on it.
 - A **label** is a target too: clicking a feature's name selects the
   feature, double-clicking it zooms in on it, and clicking a cut site's
-  name puts the cursor at the cut. Hovering one highlights it and its
+  name, or its tick mark on the backbone, puts the cursor at the cut. Hovering one highlights it and its
   leader.
 - **Click** empty space — inside the circle, or outside it — to clear the
   selection.

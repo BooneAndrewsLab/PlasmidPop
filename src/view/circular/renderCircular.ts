@@ -1317,6 +1317,62 @@ export function changeAt(input: ChangeHitInput, x: number, y: number): ChangeTar
   return null;
 }
 
+/** Half-width of the band a cut site's tick answers the pointer in, in pixels. */
+const CUT_HIT_PX = 6;
+
+/**
+ * The cut position whose tick is nearest a point on or just beside the
+ * backbone, within a few pixels, or null. `cuts` are top-strand cut
+ * positions, the ones the ticks are drawn at.
+ */
+export function cutSiteAt(
+  layout: CircularLayout,
+  cuts: readonly number[],
+  x: number,
+  y: number,
+): number | null {
+  if (cuts.length === 0 || layout.seqLength === 0) return null;
+  const r = Math.hypot(x - layout.cx, y - layout.cy);
+  if (r < layout.radius - 10 || r > layout.radius + 12) return null;
+  const angle = Math.atan2(y - layout.cy, x - layout.cx);
+  let best: number | null = null;
+  let bestPx = CUT_HIT_PX;
+  for (const cut of cuts) {
+    const px = angleGap(layout.angleOf(cut), angle) * layout.radius;
+    if (px < bestPx) {
+      bestPx = px;
+      best = cut;
+    }
+  }
+  return best;
+}
+
+/** What `ringTargetAt` needs: what `changeAt` does, and where the cut sites' ticks are. */
+export interface RingHitInput extends ChangeHitInput {
+  /** Top-strand cut positions of the cut sites drawn. */
+  readonly cuts: readonly number[];
+}
+
+/** A cut site's tick, or a change (#27), under the pointer. */
+export type RingTarget =
+  | { readonly kind: 'cut'; readonly position: number }
+  | { readonly kind: 'change'; readonly change: ChangeTarget };
+
+/**
+ * What a point of the map is on once labels and live features have had
+ * their say (#82): off the feature lanes a cut site's tick first, then a
+ * change — a cut site wins over a mark's band or a wedge under it, since
+ * the tick is the smaller target and the one whose label hovering brings
+ * back. Hover and click both ask this, so a click does what the hover said.
+ */
+export function ringTargetAt(input: RingHitInput, x: number, y: number): RingTarget | null {
+  const onLane = input.layout.hitTest(x, y).kind === 'lane';
+  const cut = onLane ? null : cutSiteAt(input.layout, input.cuts, x, y);
+  if (cut !== null) return { kind: 'cut', position: cut };
+  const change = changeAt(input, x, y);
+  return change === null ? null : { kind: 'change', change };
+}
+
 /**
  * What a change is, in the few words its floating label has room for. A
  * deletion that took features whole says how many, since it is what stands
