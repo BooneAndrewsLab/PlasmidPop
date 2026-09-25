@@ -19,6 +19,7 @@ import { parseDerivedComment } from './derivedComment';
 import { parseEndsComment } from './endsComment';
 import { parseMadeFromComment } from './madeFromComment';
 import { parseMethylationComment } from './methylationComment';
+import { parseBaseStylesComment } from './baseStylesComment';
 import { isOwnComment } from './ownComments';
 
 /**
@@ -501,6 +502,15 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   const methylation = parsed.comments.map(parseMethylationComment).find((m) => m !== null) ?? null;
   // And what it was made from, a block of lines of its own (`madeFromComment.ts`).
   const lineage = parsed.comments.map(parseMadeFromComment).find((l) => l !== null) ?? null;
+  // And how runs of its bases are drawn (`baseStylesComment.ts`), as far as
+  // they fit the sequence the record has.
+  const styleRuns = parsed.comments.map(parseBaseStylesComment).find((s) => s !== null) ?? [];
+  const styles = styleRuns.filter((r) => r.end <= sequence.length);
+  if (styles.length < styleRuns.length) {
+    warnings.push(
+      warning('Some base styles run past the end of the sequence and were left out', first.number),
+    );
+  }
   // Only a line that was understood comes out of the comments: a damaged one
   // stays where it is rather than being silently swallowed.
   const metadata = {
@@ -517,6 +527,7 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
     features,
     metadata,
     ends,
+    styles,
     ...(methylation === null ? {} : { methylation }),
   });
 }

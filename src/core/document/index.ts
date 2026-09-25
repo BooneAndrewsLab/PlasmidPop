@@ -1,3 +1,4 @@
+export * from './baseStyles';
 export * from './coalesce';
 export * from './editOp';
 export * from './ends';

@@ -1,5 +1,6 @@
 import { type Feature, type Qualifier, type Segment, type Strand } from '../features';
 import { type Range } from '../range';
+import { type StyleRun, isBaseStyle } from './baseStyles';
 import { assertValidSequence } from '../sequence';
 import { extractRange } from './extract';
 import { type SeqDocument } from './seqDocument';
@@ -13,6 +14,8 @@ import { type SeqDocument } from './seqDocument';
 export interface SeqFragment {
   readonly sequence: string;
   readonly features: readonly Feature[];
+  /** How its bases are drawn (#89), in fragment coordinates; none when absent. */
+  readonly styles?: readonly StyleRun[];
 }
 
 /**
@@ -26,6 +29,7 @@ export function fragmentFromRange(doc: SeqDocument, r: Range): SeqFragment {
   return {
     sequence: sub.sequence.toString(),
     features: sub.features.all().filter((f) => f.type !== 'source'),
+    ...(sub.styles.isEmpty ? {} : { styles: sub.styles.runs }),
   };
 }
 
@@ -40,6 +44,7 @@ interface FragmentJson {
   readonly version: number;
   readonly sequence: string;
   readonly features: readonly Feature[];
+  readonly styles?: readonly StyleRun[];
 }
 
 export function fragmentToJSON(fragment: SeqFragment): string {
@@ -48,6 +53,9 @@ export function fragmentToJSON(fragment: SeqFragment): string {
     version: VERSION,
     sequence: fragment.sequence,
     features: fragment.features,
+    ...(fragment.styles === undefined || fragment.styles.length === 0
+      ? {}
+      : { styles: fragment.styles }),
   };
   return JSON.stringify(json);
 }
@@ -83,7 +91,28 @@ export function parseFragmentJSON(text: string): SeqFragment | null {
     ids.add(feature.id);
     features.push(feature);
   }
-  return { sequence, features };
+  const rawStyles = raw['styles'];
+  if (rawStyles === undefined) return { sequence, features };
+  const styles = readStyles(rawStyles, sequence.length);
+  return styles === null ? null : { sequence, features, styles };
+}
+
+/** Styled runs as `fragmentToJSON` writes them: sorted, apart, inside the bases. */
+export function readStyles(value: unknown, length: number): StyleRun[] | null {
+  if (!Array.isArray(value)) return null;
+  const out: StyleRun[] = [];
+  let previous = 0;
+  for (const run of value) {
+    if (!isRecord(run)) return null;
+    const { start, end, style } = run;
+    if (!isIndex(start, length) || !isIndex(end, length) || start < previous || end <= start) {
+      return null;
+    }
+    if (!isBaseStyle(style)) return null;
+    out.push({ start, end, style });
+    previous = end;
+  }
+  return out;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

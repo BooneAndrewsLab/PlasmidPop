@@ -15,6 +15,7 @@ export function stateView(doc: SeqDocument) {
     ends: doc.ends,
     methylation: doc.methylation,
     read: doc.read,
+    styles: doc.styles.runs,
   };
 }
 

@@ -3,6 +3,7 @@ import { type Feature, type Reference, type SeqDocument, formatLocation } from '
 import { formatDerivedComment } from './derivedComment';
 import { formatEndsComment } from './endsComment';
 import { formatMadeFromComment } from './madeFromComment';
+import { formatBaseStylesComment } from './baseStylesComment';
 import { formatMethylationComment, needsMethylationComment } from './methylationComment';
 import { isOwnComment } from './ownComments';
 import { deriveFeatureName } from './parseGenBank';
@@ -145,6 +146,10 @@ function headerLines(doc: SeqDocument): string[] {
   // one per molecule of the tree, and is treated the same way (#67).
   if (m.lineage !== null) {
     out.push(...headerBlock('COMMENT', formatMadeFromComment(m.lineage), '', true));
+  }
+  // How runs of bases are drawn, likewise a block of lines (#89).
+  if (!doc.styles.isEmpty) {
+    out.push(...headerBlock('COMMENT', formatBaseStylesComment(doc.styles.runs), '', true));
   }
   for (const comment of m.comments) {
     // Ours, understood, is written afresh above; a damaged one stays (#72).

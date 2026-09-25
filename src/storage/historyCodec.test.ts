@@ -177,6 +177,21 @@ describe('encodeHistory / decodeHistory', () => {
     );
   });
 
+  it('keeps the base styles of every state (#89)', () => {
+    const red = plasmid.styleBases({ start: 1990, end: 2010 }, { color: '#d62728' });
+    const big = red.styleBases({ start: 5, end: 9 }, { size: 2, bold: true });
+    const moved = big.insert(0, 'A');
+    const h = History.create(plasmid, { at: 0 })
+      .push(red, 'Colour bases', 1)
+      .push(big, 'Style bases', 2)
+      .push(moved, 'Insert 1 base', 3)
+      .undo();
+    const row = encodeHistory('d', input(h));
+    const back = roundTrip(row);
+    expect(historyView(back.history)).toEqual(historyView(h));
+    expect(back.history.redo().present.styles.runs).toEqual(moved.styles.runs);
+  });
+
   it('rebuilds a real record through a session of edits', () => {
     const doc = parseGenBank(pBR322).documents[0];
     if (doc === undefined) throw new Error('no record');

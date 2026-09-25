@@ -7,6 +7,7 @@ import {
 } from '../features';
 import { newId } from '../ids';
 import { type Range, rangePieces } from '../range';
+import { type StyleRun } from './baseStyles';
 import { type DocumentEnds, BLUNT_END, topStrandOverhang } from './ends';
 import { SeqDocument } from './seqDocument';
 
@@ -82,6 +83,14 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     if (moved !== null) features.push({ ...moved, id: newId() });
   }
 
+  // The styles the bases had go with them.
+  const styles: StyleRun[] = [];
+  for (const o of offsets) {
+    for (const run of doc.styles.slice(o.start, o.end)) {
+      styles.push({ start: run.start + o.offset, end: run.end + o.offset, style: run.style });
+    }
+  }
+
   const from = r.start + 1;
   const to = ((r.end - 1) % Math.max(1, L)) + 1;
   return SeqDocument.create({
@@ -89,6 +98,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     sequence,
     topology: 'linear',
     features,
+    styles,
     // A stretch of a molecule is that molecule's DNA, methylated or not as it
     // was: an exported selection of a PCR product is still unmethylated.
     methylation: doc.methylation,

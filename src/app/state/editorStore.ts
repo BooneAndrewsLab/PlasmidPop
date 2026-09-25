@@ -186,6 +186,7 @@ function firstOfEachGroup(names: readonly string[]): string[] {
 const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
   'rename',
   'setMethylation',
+  'styleBases',
   'setMetadata',
   'addFeature',
   'updateFeature',

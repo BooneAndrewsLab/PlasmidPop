@@ -6,9 +6,11 @@ import {
   type Segment,
   type SequencingRead,
   type StrandEnd,
+  type StyleRun,
   type Topology,
   cleanStateName,
   isLineageNode,
+  readStyles,
 } from '@/core';
 
 /**
@@ -76,6 +78,8 @@ export interface StoredDelta {
   readonly ends?: DocumentEnds | null;
   readonly methylation?: HostMethylationState;
   readonly read?: SequencingRead | null;
+  /** The whole list of styled runs (#89), which is small. */
+  readonly styles?: readonly StyleRun[];
 }
 
 /** A whole document state, for the oldest kept one and for a baseline outside the steps. */
@@ -88,6 +92,8 @@ export interface StoredState {
   readonly ends: DocumentEnds | null;
   readonly methylation: HostMethylationState;
   readonly read: SequencingRead | null;
+  /** Absent in rows from before base styles, and when there are none. */
+  readonly styles?: readonly StyleRun[];
 }
 
 export interface StoredStep {
@@ -326,8 +332,14 @@ function isDelta(v: unknown): v is StoredDelta {
     (!has('metadata') || isMetadata(v['metadata'])) &&
     (!has('ends') || isEnds(v['ends'])) &&
     (!has('methylation') || isMethylation(v['methylation'])) &&
-    (!has('read') || isRead(v['read']))
+    (!has('read') || isRead(v['read'])) &&
+    (!has('styles') || isStyles(v['styles']))
   );
+}
+
+/** Styled runs in order, each a valid style; whether they fit the bases is `SeqDocument.create`'s to say. */
+function isStyles(v: unknown): v is readonly StyleRun[] {
+  return readStyles(v, Number.MAX_SAFE_INTEGER) !== null;
 }
 
 function isState(v: unknown): v is StoredState {
@@ -340,7 +352,8 @@ function isState(v: unknown): v is StoredState {
     isMetadata(v['metadata']) &&
     isEnds(v['ends']) &&
     isMethylation(v['methylation']) &&
-    isRead(v['read'])
+    isRead(v['read']) &&
+    (v['styles'] === undefined || isStyles(v['styles']))
   );
 }
 

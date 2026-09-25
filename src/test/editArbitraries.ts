@@ -1,10 +1,12 @@
 import fc from 'fast-check';
 
 import {
+  type BaseStylePatch,
   type EditOp,
   type Feature,
   type SeqFragment,
   type Topology,
+  CLEAR_BASE_STYLE,
   SeqDocument,
   createFeature,
   flipStrand,
@@ -140,7 +142,8 @@ export type OpShape =
   | { readonly kind: 'reverseComplement' }
   | { readonly kind: 'setOrigin'; readonly at: number }
   | { readonly kind: 'toggleTopology' }
-  | { readonly kind: 'addFeature'; readonly feature: FeatureShape };
+  | { readonly kind: 'addFeature'; readonly feature: FeatureShape }
+  | { readonly kind: 'style'; readonly at: number; readonly len: number; readonly pick: number };
 
 export const opShapeArb: fc.Arbitrary<OpShape> = fc.oneof(
   {
@@ -181,7 +184,26 @@ export const opShapeArb: fc.Arbitrary<OpShape> = fc.oneof(
     arbitrary: fc.record({ kind: fc.constant('addFeature' as const), feature: featureShapeArb }),
     weight: 1,
   },
+  {
+    arbitrary: fc.record({
+      kind: fc.constant('style' as const),
+      at: fc.nat(),
+      len: fc.nat(),
+      pick: fc.nat(),
+    }),
+    weight: 1,
+  },
 );
+
+/** The base styles a `style` shape picks from (#89): one of each kind, and taking them off. */
+const STYLE_PATCHES: readonly BaseStylePatch[] = [
+  { color: '#d62728' },
+  { highlight: '#ffe066' },
+  { bold: true },
+  { size: 1.5 },
+  { color: '#1f77b4', size: 2 },
+  CLEAR_BASE_STYLE,
+];
 
 /** A range of `len` taken from a raw shape, valid on `doc`; `minLen` 0 allows a caret. */
 function shapeRange(doc: SeqDocument, at: number, len: number, minLen: number) {
@@ -236,6 +258,11 @@ export function resolveOp(doc: SeqDocument, shape: OpShape): EditOp | null {
     case 'addFeature': {
       const feature = layFeature(shape.feature, freshId('a'), L, doc.topology);
       return feature === null ? null : { type: 'addFeature', feature };
+    }
+    case 'style': {
+      const range = shapeRange(doc, shape.at, shape.len, 1);
+      const style = STYLE_PATCHES[shape.pick % STYLE_PATCHES.length] ?? CLEAR_BASE_STYLE;
+      return range === null ? null : { type: 'styleBases', range, style };
     }
   }
 }
@@ -403,6 +430,7 @@ export class RefModel {
       case 'setEnds':
       case 'bluntEnds':
       case 'setMethylation':
+      case 'styleBases':
       case 'rename':
       case 'setMetadata':
       case 'addFeature':

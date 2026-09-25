@@ -26,6 +26,7 @@ import {
   shiftPositionForDelete,
 } from '../range';
 import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
+import { type BaseStylePatch, BaseStyles, type StyleRun } from './baseStyles';
 import { type BluntMethod, type EditOp, type FeaturePatch } from './editOp';
 import {
   type DocumentEnds,
@@ -58,6 +59,8 @@ export interface SeqDocumentInit {
   readonly read?: SequencingRead | null;
   /** Where the DNA was grown, for the enzymes its methylation blocks (#45). */
   readonly methylation?: HostMethylationState;
+  /** How runs of bases are drawn (#89); see `baseStyles.ts`. */
+  readonly styles?: BaseStyles | readonly StyleRun[];
 }
 
 interface SeqDocumentFields {
@@ -69,6 +72,7 @@ interface SeqDocumentFields {
   readonly ends: DocumentEnds | null;
   readonly read: SequencingRead | null;
   readonly methylation: HostMethylationState;
+  readonly styles: BaseStyles;
 }
 
 /**
@@ -108,6 +112,13 @@ export class SeqDocument {
    */
   readonly methylation: HostMethylationState;
 
+  /**
+   * The colours, highlights, bold and sizes the user gave runs of bases
+   * (#89, #91). They go where their bases go: an edit moves them as it
+   * moves the features.
+   */
+  readonly styles: BaseStyles;
+
   static create(init: SeqDocumentInit): SeqDocument {
     let sequence: SequenceText;
     if (typeof init.sequence === 'string') {
@@ -122,6 +133,10 @@ export class SeqDocument {
     for (const f of features) validateFeature(f, sequence.length, topology);
     const read = init.read ?? null;
     if (read !== null) assertValidRead(read, sequence.length);
+    const styles =
+      init.styles instanceof BaseStyles
+        ? BaseStyles.from(init.styles.runs, sequence.length)
+        : BaseStyles.from(init.styles ?? [], sequence.length);
     return new SeqDocument({
       name: init.name ?? 'Untitled',
       sequence,
@@ -131,6 +146,7 @@ export class SeqDocument {
       ends: normalizeEnds(init.ends, topology),
       read,
       methylation: init.methylation ?? METHYLATED_HOST,
+      styles,
     });
   }
 
@@ -143,6 +159,7 @@ export class SeqDocument {
     this.ends = fields.ends;
     this.read = fields.read;
     this.methylation = fields.methylation;
+    this.styles = fields.styles;
   }
 
   get length(): number {
@@ -169,6 +186,7 @@ export class SeqDocument {
       ends: normalizeEnds(ends, topology),
       read: read ?? null,
       methylation: patch.methylation ?? this.methylation,
+      styles: patch.styles ?? this.styles,
     });
   }
 
@@ -230,6 +248,8 @@ export class SeqDocument {
         return this.bluntEnds(op.method);
       case 'setMethylation':
         return this.setMethylation(op.methylation);
+      case 'styleBases':
+        return this.styleBases(op.range, op.style);
       case 'rename':
         return this.rename(op.name);
       case 'setMetadata':
@@ -273,6 +293,7 @@ export class SeqDocument {
         ),
       ),
       ends: this.endsAfterEdit({ start: p, end: p }),
+      styles: this.styles.insert(p, count),
     });
   }
 
@@ -282,10 +303,13 @@ export class SeqDocument {
     if (isEmptyRange(r)) return this;
     const oldLength = this.length;
     let sequence = this.sequence;
+    let styles = this.styles;
     // Remove the head piece (higher coordinates) first so the tail piece's
     // coordinates stay valid.
-    for (const piece of rangePieces(r, oldLength))
+    for (const piece of rangePieces(r, oldLength)) {
       sequence = sequence.remove(piece.start, piece.end);
+      styles = styles.delete(piece.start, piece.end);
+    }
     return this.with({
       sequence,
       features: this.features.map((f) =>
@@ -302,6 +326,7 @@ export class SeqDocument {
         ),
       ),
       ends: this.endsAfterEdit(r),
+      styles,
     });
   }
 
@@ -350,6 +375,10 @@ export class SeqDocument {
     const p = removed.pastePosition(this, r);
     if (fragment.sequence.length === 0) return removed;
     let doc = removed.insert(p, fragment.sequence);
+    // The pasted bases look as they did where they were copied, not like
+    // the run they landed in.
+    const end = p + fragment.sequence.length;
+    doc = doc.with({ styles: doc.styles.replaceWithin(p, end, fragment.styles ?? []) });
     const from = { length: fragment.sequence.length, topology: 'linear' } as const;
     for (const f of fragment.features) {
       const shifted = shiftFeature(f, p, from, doc);
@@ -395,6 +424,7 @@ export class SeqDocument {
       ends: flipEnds(doc.ends),
       read: doc.read === null ? null : reverseComplementRead(doc.read),
       sequence: Rope.from(reverseComplement(doc.sequence.toString())),
+      styles: doc.styles.reverse(length),
       features: doc.features.map((f) =>
         moveFeature(f, doc, doc, (loc) => ({
           strand: flipStrand(loc.strand),
@@ -443,6 +473,7 @@ export class SeqDocument {
     const text = this.sequence.toString();
     return this.with({
       sequence: Rope.from(text.slice(p) + text.slice(0, p)),
+      styles: this.styles.rotate(p, length),
       features: this.features.map((f) =>
         moveFeature(
           f,
@@ -499,6 +530,18 @@ export class SeqDocument {
   removeFeature(id: FeatureId): SeqDocument {
     if (!this.features.has(id)) return this;
     return this.with({ features: this.features.remove(id) });
+  }
+
+  /**
+   * `patch` applied to the style of every base in `r`, which may run over
+   * the origin of a circle (#89).
+   */
+  styleBases(r: Range, patch: BaseStylePatch): SeqDocument {
+    assertValidRange(r, this.length, this.topology);
+    let styles = this.styles;
+    for (const piece of rangePieces(r, this.length))
+      styles = styles.restyle(piece.start, piece.end, patch);
+    return styles.equals(this.styles) ? this : this.with({ styles });
   }
 
   /** Says where the DNA was grown, which decides what its methylation blocks. */

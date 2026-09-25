@@ -1,3 +1,8 @@
+export {
+  formatBaseStylesComment,
+  isBaseStylesComment,
+  parseBaseStylesComment,
+} from './baseStylesComment';
 export { formatEndsComment, isEndsComment, parseEndsComment } from './endsComment';
 export { formatMadeFromComment, isMadeFromComment, parseMadeFromComment } from './madeFromComment';
 export {

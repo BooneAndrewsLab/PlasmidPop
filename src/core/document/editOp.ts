@@ -1,6 +1,7 @@
 import { type Feature, type FeatureId } from '../features';
 import { type Range, type Topology } from '../range';
 import { type HostMethylationState } from '../analysis/methylation';
+import { type BaseStylePatch } from './baseStyles';
 import { type DocumentEnds } from './ends';
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata } from './metadata';
@@ -32,6 +33,8 @@ export type EditOp =
   | { readonly type: 'bluntEnds'; readonly method: BluntMethod }
   /** Says where the DNA was grown, for the enzymes its methylation blocks. */
   | { readonly type: 'setMethylation'; readonly methylation: HostMethylationState }
+  /** Colours, highlights, emboldens or resizes the bases in `range` (#89, #91). */
+  | { readonly type: 'styleBases'; readonly range: Range; readonly style: BaseStylePatch }
   | { readonly type: 'rename'; readonly name: string }
   | { readonly type: 'setMetadata'; readonly patch: Partial<DocumentMetadata> }
   | { readonly type: 'addFeature'; readonly feature: Feature }
@@ -88,6 +91,8 @@ export function describeEditOp(op: EditOp): string {
       return op.method === 'fill' ? 'Blunt the ends (fill in)' : 'Blunt the ends (trim)';
     case 'setMethylation':
       return 'Set the host methylation';
+    case 'styleBases':
+      return describeStylePatch(op.style);
     case 'rename':
       return 'Rename';
     case 'setMetadata':
@@ -100,3 +105,29 @@ export function describeEditOp(op: EditOp): string {
       return 'Remove feature';
   }
 }
+
+/** The History label for a change of base style: what it changed, when it was one thing. */
+function describeStylePatch(patch: BaseStylePatch): string {
+  const parts = (['color', 'highlight', 'bold', 'size'] as const).filter(
+    (k) => patch[k] !== undefined,
+  );
+  if (parts.length > 0 && parts.every((k) => patch[k] === null)) {
+    return parts.length === 1 ? CLEARED[parts[0] ?? 'color'] : 'Clear base style';
+  }
+  if (parts.length !== 1) return 'Style bases';
+  return SET[parts[0] ?? 'color'];
+}
+
+const SET = {
+  color: 'Colour bases',
+  highlight: 'Highlight bases',
+  bold: 'Bold bases',
+  size: 'Resize bases',
+} as const;
+
+const CLEARED = {
+  color: 'Clear base colour',
+  highlight: 'Clear highlight',
+  bold: 'Clear bold',
+  size: 'Ordinary size',
+} as const;

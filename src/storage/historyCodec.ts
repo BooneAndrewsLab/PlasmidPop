@@ -7,6 +7,7 @@ import {
   type Segment,
   type SequenceText,
   type SequencingRead,
+  type StyleRun,
   type Topology,
   FeatureSet,
   History,
@@ -139,7 +140,8 @@ export function deltaSize(d: StoredDelta): number {
     (d.name?.length ?? 0) +
     (d.metadata === undefined ? 0 : metadataSize(d.metadata)) +
     (d.ends === undefined ? 0 : 64) +
-    (d.read === undefined ? 0 : readSize(d.read))
+    (d.read === undefined ? 0 : readSize(d.read)) +
+    stylesSize(d.styles)
   );
 }
 
@@ -166,7 +168,8 @@ function storedStateSize(s: StoredState): number {
     s.name.length +
     featuresSize(s.features) +
     metadataSize(s.metadata) +
-    readSize(s.read)
+    readSize(s.read) +
+    stylesSize(s.styles)
   );
 }
 
@@ -178,8 +181,17 @@ function stateSize(doc: SeqDocument): number {
     doc.name.length +
     featuresSize(doc.features.all()) +
     metadataSize(doc.metadata) +
-    readSize(doc.read)
+    readSize(doc.read) +
+    stylesSize(doc.styles.runs)
   );
+}
+
+function stylesSize(runs: readonly StyleRun[] | undefined): number {
+  return runs === undefined || runs.length === 0 ? 0 : 16 + runs.length * 48;
+}
+
+function copyStyles(runs: readonly StyleRun[]): StyleRun[] {
+  return runs.map((r) => ({ start: r.start, end: r.end, style: { ...r.style } }));
 }
 
 // ---------------------------------------------------------------- copies and comparisons
@@ -548,6 +560,7 @@ function computeDelta(prev: SeqDocument, next: SeqDocument): StoredDelta {
     ends?: DocumentEnds | null;
     methylation?: { dam: boolean; dcm: boolean };
     read?: SequencingRead | null;
+    styles?: StyleRun[];
   } = {};
   if (next.name !== prev.name) rest.name = next.name;
   if (next.topology !== prev.topology) rest.topology = next.topology;
@@ -557,6 +570,7 @@ function computeDelta(prev: SeqDocument, next: SeqDocument): StoredDelta {
     rest.methylation = { dam: next.methylation.dam, dcm: next.methylation.dcm };
   }
   if (next.read !== prev.read) rest.read = next.read;
+  if (!next.styles.equals(prev.styles)) rest.styles = copyStyles(next.styles.runs);
   const seqs = sequenceDeltas(prev.sequence, next.sequence);
   let best: StoredDelta | null = null;
   let bestSize = Infinity;
@@ -606,6 +620,7 @@ function applyDelta(prev: SeqDocument, d: StoredDelta): SeqDocument {
     ends: d.ends === undefined ? prev.ends : d.ends,
     read: d.read === undefined ? prev.read : d.read,
     methylation: d.methylation ?? prev.methylation,
+    styles: d.styles ?? prev.styles,
   });
 }
 
@@ -625,6 +640,7 @@ function storedState(doc: SeqDocument): StoredState {
     ends: copyEnds(doc.ends),
     methylation: { dam: doc.methylation.dam, dcm: doc.methylation.dcm },
     read: doc.read,
+    ...(doc.styles.isEmpty ? {} : { styles: copyStyles(doc.styles.runs) }),
   };
   stateCache.set(doc, state);
   return state;
@@ -640,6 +656,7 @@ function stateFrom(s: StoredState): SeqDocument {
     ends: s.ends,
     read: s.read,
     methylation: s.methylation,
+    ...(s.styles === undefined ? {} : { styles: s.styles }),
   });
   stateCache.set(doc, s);
   return doc;
