@@ -49,6 +49,14 @@ import { Gel } from './Gel';
 
 const FORWARD = 'Forward';
 const REVERSE = 'Reverse';
+
+/**
+ * A primer as a sentence names it: "the forward primer" for one typed in,
+ * its own name for one picked from the collection (#64).
+ */
+function called(name: string): string {
+  return name === FORWARD || name === REVERSE ? `the ${name.toLowerCase()} primer` : name;
+}
 /** Stable empty list, so a render with no primers is not a new preview. */
 const NO_PRODUCTS: readonly PcrProduct[] = [];
 
@@ -150,7 +158,7 @@ function preview(
       },
       {
         id: 'fwd',
-        label: FORWARD,
+        label: chosen.forward.name,
         range: chosen.forward.range,
         strand: 'forward',
         shape: 'arrow',
@@ -158,7 +166,7 @@ function preview(
       },
       {
         id: 'rev',
-        label: REVERSE,
+        label: chosen.reverse.name,
         range: chosen.reverse.range,
         strand: 'reverse',
         shape: 'arrow',
@@ -246,16 +254,25 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
     false,
   );
   const [reverse, setReverse] = useRemembered('pcr.reverse', documentId, '');
+  // What the primers are called: their names when they came from the
+  // collection (#64), until the bases are edited by hand.
+  const [forwardName, setForwardName] = useRemembered('pcr.forwardName', documentId, FORWARD);
+  const [reverseName, setReverseName] = useRemembered('pcr.reverseName', documentId, REVERSE);
+  // One primer both ways round is still two slots, and the sites of each
+  // are told apart by name.
+  const sameName = forwardName === reverseName;
+  const fName = sameName ? FORWARD : forwardName;
+  const rName = sameName ? REVERSE : reverseName;
   /** The product held on screen, and the one under the pointer. */
   const [shown, setShown] = useRemembered<number | null>('pcr.shown', documentId, null);
   const [hovered, setHovered] = useState<number | null>(null);
 
   const primers = useMemo<PcrPrimer[]>(() => {
     const out: PcrPrimer[] = [];
-    if (forward.trim() !== '') out.push({ name: FORWARD, sequence: forward });
-    if (reverse.trim() !== '') out.push({ name: REVERSE, sequence: reverse });
+    if (forward.trim() !== '') out.push({ name: fName, sequence: forward });
+    if (reverse.trim() !== '') out.push({ name: rName, sequence: reverse });
     return out;
-  }, [forward, reverse]);
+  }, [forward, reverse, fName, rName]);
 
   // Two walks over the template per primer, so it costs less than the digest
   // above it and runs here rather than in the worker (docs/perf-notes.md).
@@ -351,7 +368,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
           </label>
         )}
         <label className="panel__field panel__field--stack">
-          <span>Forward primer</span>
+          <span>Forward primer{fName === FORWARD ? '' : ` \u00b7 ${fName}`}</span>
           <input
             className="panel__search"
             type="text"
@@ -360,17 +377,18 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
             value={forward}
             onChange={(e) => {
               setForward(e.target.value);
+              setForwardName(FORWARD);
               setShown(null);
             }}
           />
         </label>
         <PrimerReport
-          sites={result?.sites.filter((s) => s.name === FORWARD) ?? []}
+          sites={result?.sites.filter((s) => s.name === fName) ?? []}
           sequence={forward}
           seqLength={template.length}
         />
         <label className="panel__field panel__field--stack">
-          <span>Reverse primer</span>
+          <span>Reverse primer{rName === REVERSE ? '' : ` \u00b7 ${rName}`}</span>
           <input
             className="panel__search"
             type="text"
@@ -379,12 +397,13 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
             value={reverse}
             onChange={(e) => {
               setReverse(e.target.value);
+              setReverseName(REVERSE);
               setShown(null);
             }}
           />
         </label>
         <PrimerReport
-          sites={result?.sites.filter((s) => s.name === REVERSE) ?? []}
+          sites={result?.sites.filter((s) => s.name === rName) ?? []}
           sequence={reverse}
           seqLength={template.length}
         />
@@ -427,11 +446,9 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
         <ul className="panel__warnings" aria-label="Primer dimers">
           {dimers.map((d) => (
             <li key={`${d.primer}-${d.partner}`}>
-              The last {d.bases} bases of the {d.primer.toLowerCase()} primer pair with{' '}
-              {d.partner === d.primer
-                ? 'a second copy of itself'
-                : `the ${d.partner.toLowerCase()} primer`}
-              , so they can prime each other into a primer dimer.
+              The last {d.bases} bases of {called(d.primer)} pair with{' '}
+              {d.partner === d.primer ? 'a second copy of itself' : called(d.partner)}, so they can
+              prime each other into a primer dimer.
             </li>
           ))}
         </ul>

@@ -49,6 +49,21 @@ export function useRemembered<T>(
   return [current.value, set];
 }
 
+/**
+ * Sets what a panel will find under `slot` for a document the next time it
+ * is shown, from outside it: how the Primers tab hands a primer of the
+ * collection to PCR (#64), whose panel is not mounted while Primers is.
+ */
+export function rememberPanel(slot: string, documentId: string | null, value: unknown): void {
+  memory.set(keyOf(slot, documentId), value);
+}
+
+/** What a panel was left at under `slot`, or `initial` when nothing was. */
+export function recallPanel<T>(slot: string, documentId: string | null, initial: T): T {
+  const key = keyOf(slot, documentId);
+  return memory.has(key) ? (memory.get(key) as T) : initial;
+}
+
 /** Forgets every panel's values, for tests. */
 export function forgetPanels(): void {
   memory.clear();
