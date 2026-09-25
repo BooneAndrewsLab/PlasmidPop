@@ -1,10 +1,11 @@
 /**
- * GenBank records fetched from NCBI by accession (#65, item 58).
+ * GenBank and GenPept records fetched from NCBI by accession (#65, #92,
+ * item 58).
  *
  * The one request the app makes to a third party on the user's behalf, and
  * only when asked: E-utilities `efetch`, which answers a browser directly
  * (`Access-Control-Allow-Origin: *`, checked 2026-09-25). What goes is the
- * accession, `tool=PlasmidPop` as NCBI's usage policy asks, and nothing
+ * accessions, `tool=PlasmidPop` as NCBI's usage policy asks, and nothing
  * else: no cookies (`credentials: 'omit'`), no referrer, no API key, no
  * e-mail address.
  *
@@ -12,8 +13,12 @@
  * no CORS header, so a browser sees a refused request as a network failure
  * it cannot tell from being offline. Hence one request for all the
  * accessions typed, a gap kept between requests, and one retry after the
- * two seconds NCBI's `Retry-After` gives.
+ * two seconds NCBI's `Retry-After` gives. Nucleotide and protein records
+ * live in two databases, so a list of both takes two requests, spaced like
+ * any others.
  */
+
+import type { AccessionKind } from './accession';
 
 export const EFETCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi';
 
@@ -58,18 +63,31 @@ export interface FetchRecordsOptions {
 }
 
 export interface FetchedRecords {
-  /** The GenBank text, every record found, in NCBI's order. */
+  /** The GenBank (or, for proteins, GenPept) text, every record found, in NCBI's order. */
   readonly text: string;
   /** Accessions asked for that no record answered, as asked. */
   readonly missing: readonly string[];
 }
 
-/** The efetch address for these nucleotide accessions. */
-export function efetchUrl(accessions: readonly string[]): string {
+/** Where each kind of accession is fetched from, and as what. */
+const DATABASES: Readonly<
+  Record<AccessionKind, { readonly db: string; readonly rettype: string }>
+> = {
+  // `gbwithparts`: a CON record comes with its sequence, not just its contig line.
+  nucleotide: { db: 'nuccore', rettype: 'gbwithparts' },
+  protein: { db: 'protein', rettype: 'gp' },
+};
+
+/** The efetch address for these accessions, all of one kind. */
+export function efetchUrl(
+  accessions: readonly string[],
+  kind: AccessionKind = 'nucleotide',
+): string {
+  const { db, rettype } = DATABASES[kind];
   const params = new URLSearchParams({
-    db: 'nuccore',
+    db,
     id: accessions.join(','),
-    rettype: 'gbwithparts',
+    rettype,
     retmode: 'text',
     tool: NCBI_TOOL,
   });
@@ -108,12 +126,14 @@ export function isAbort(e: unknown): boolean {
 }
 
 /**
- * Fetches the GenBank records of nucleotide accessions (already checked by
- * `parseAccessions`) in one request. Accessions NCBI has no record for are
- * listed in `missing`; when none has one, or the request fails, it throws
- * `NcbiError`. A cancel rejects with the AbortError `fetch` gives.
+ * Fetches the records of accessions of one kind (already checked by
+ * `parseAccessions`) in one request: GenBank for nucleotide, GenPept for
+ * protein. Accessions NCBI has no record for are listed in `missing`; when
+ * none has one, or the request fails, it throws `NcbiError`. A cancel
+ * rejects with the AbortError `fetch` gives.
  */
-export async function fetchNucleotideRecords(
+export async function fetchRecords(
+  kind: AccessionKind,
   accessions: readonly string[],
   options: FetchRecordsOptions = {},
 ): Promise<FetchedRecords> {
@@ -125,7 +145,7 @@ export async function fetchNucleotideRecords(
     online = () => globalThis.navigator.onLine,
     now = Date.now,
   } = options;
-  const url = efetchUrl(accessions);
+  const url = efetchUrl(accessions, kind);
 
   const send = async (): Promise<Response> => {
     const delay = nextRequestAt - now();
@@ -173,7 +193,7 @@ export async function fetchNucleotideRecords(
       'NCBI is limiting requests from this address (3 a second without an API key). Wait a few seconds and try again.',
     );
   }
-  if (response.status === 400 || response.status === 404) throw notFound(accessions);
+  if (response.status === 400 || response.status === 404) throw notFound(kind, accessions);
   if (!response.ok) {
     throw new NcbiError(
       'server',
@@ -183,7 +203,7 @@ export async function fetchNucleotideRecords(
 
   const text = await readLimited(response, signal, onProgress);
   const trimmed = text.trimStart();
-  if (trimmed === '' || /^Error/i.test(trimmed)) throw notFound(accessions);
+  if (trimmed === '' || /^Error/i.test(trimmed)) throw notFound(kind, accessions);
   if (!trimmed.startsWith('LOCUS')) {
     throw new NcbiError('not-genbank', 'NCBI sent something that is not a GenBank record.');
   }
@@ -199,13 +219,13 @@ function offlineError(): NcbiError {
   );
 }
 
-function notFound(accessions: readonly string[]): NcbiError {
+function notFound(kind: AccessionKind, accessions: readonly string[]): NcbiError {
   const list = accessions.join(', ');
   return new NcbiError(
     'not-found',
     accessions.length === 1
-      ? `NCBI has no nucleotide record ${list}.`
-      : `NCBI has no nucleotide record for any of ${list}.`,
+      ? `NCBI has no ${kind} record ${list}.`
+      : `NCBI has no ${kind} record for any of ${list}.`,
   );
 }
 
@@ -276,12 +296,17 @@ async function readLimited(
 }
 
 function checkLengths(text: string): void {
-  for (const m of text.matchAll(/^LOCUS {2,}(\S+) +(\d+) (?:bp|aa)/gm)) {
+  for (const m of text.matchAll(/^LOCUS {2,}(\S+) +(\d+) (bp|aa)/gm)) {
     const length = Number(m[2]);
     if (length > MAX_RECORD_BP) {
+      const unit = m[3] === 'aa' ? 'aa' : 'bp';
+      const limit =
+        unit === 'aa'
+          ? `${MAX_RECORD_BP.toLocaleString('en-US')} aa`
+          : `${(MAX_RECORD_BP / 1_000_000).toString()} Mb`;
       throw new NcbiError(
         'too-large',
-        `${m[1] ?? 'The record'} is ${length.toLocaleString('en-US')} bp. PlasmidPop opens sequences up to ${(MAX_RECORD_BP / 1_000_000).toString()} Mb.`,
+        `${m[1] ?? 'The record'} is ${length.toLocaleString('en-US')} ${unit}. PlasmidPop opens sequences up to ${limit}.`,
       );
     }
   }

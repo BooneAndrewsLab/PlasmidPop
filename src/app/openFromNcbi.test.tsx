@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs';
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { efetchUrl, resetRequestGap } from '@/io';
+import { REQUEST_GAP_MS, efetchUrl, resetRequestGap } from '@/io';
 import { getRepository } from '@/storage';
 
 import { App } from './App';
-import { checkAccessionInput } from './openFromNcbi';
+import { checkAccessionInput, openFromNcbi } from './openFromNcbi';
 import { editorStore } from './state/editorStore';
 
 /** A committed NCBI record (the jsdom URL cannot resolve `@/test/fixtures`' file URL). */
@@ -58,25 +58,71 @@ function type(text: string): void {
 }
 
 describe('checkAccessionInput', () => {
-  it('passes nucleotide accessions and refuses the rest with a reason', () => {
-    expect(checkAccessionInput('L09137 nc_001422')).toEqual({
+  it('sorts nucleotide from protein accessions and refuses the rest with a reason', () => {
+    expect(checkAccessionInput('L09137 np_000509 nc_001422')).toEqual({
       ok: true,
-      accessions: ['L09137', 'NC_001422'],
+      accessions: { nucleotide: ['L09137', 'NC_001422'], protein: ['NP_000509'] },
     });
     expect(checkAccessionInput('')).toEqual({ ok: false, message: 'Type an accession number.' });
     expect(checkAccessionInput('pUC19')).toMatchObject({
       ok: false,
       message: expect.stringContaining('“pUC19” is not an accession number') as unknown,
     });
-    expect(checkAccessionInput('NP_000508')).toEqual({
-      ok: false,
-      message: 'NP_000508 is a protein accession. PlasmidPop opens nucleotide records only.',
-    });
-    const many = Array.from({ length: 21 }, (_, i) => `L${(10000 + i).toString()}`).join(' ');
+    const many = [
+      ...Array.from({ length: 11 }, (_, i) => `L${(10000 + i).toString()}`),
+      ...Array.from({ length: 10 }, (_, i) => `NP_${(100000 + i).toString()}`),
+    ].join(' ');
     expect(checkAccessionInput(many)).toEqual({
       ok: false,
       message: 'At most 20 accessions at a time.',
     });
+  });
+});
+
+describe('openFromNcbi', () => {
+  it('opens what came back when the other request fails, naming why, and counts bytes across both', async () => {
+    const gb = readFixture('L09137.gb');
+    const progress: number[] = [];
+    const ids = await openFromNcbi(
+      { nucleotide: ['L09137'], protein: ['NP_000509'] },
+      {
+        fetch: (input) =>
+          new URL(urlOf(input)).searchParams.get('db') === 'protein'
+            ? Promise.reject(new TypeError('Failed to fetch'))
+            : Promise.resolve(new Response(gb)),
+        wait: () => Promise.resolve(),
+        online: () => true,
+        onProgress: (bytes) => progress.push(bytes),
+      },
+    );
+    expect(ids).toHaveLength(1);
+    const state = editorStore.getState();
+    expect(state.history?.present.name).toBe('SYNPUC19CV');
+    expect(state.warnings.map((w) => w.message)).toContainEqual(
+      expect.stringMatching(/^NP_000509 not opened: Could not reach NCBI/),
+    );
+    expect(progress[progress.length - 1]).toBe(new TextEncoder().encode(gb).length);
+  });
+
+  it('counts the bytes of the second request on top of the first', async () => {
+    const gb = readFixture('L09137.gb');
+    const gp = readFixture('NP_000509.gp');
+    const progress: number[] = [];
+    await openFromNcbi(
+      { nucleotide: ['L09137'], protein: ['NP_000509'] },
+      {
+        fetch: (input) =>
+          Promise.resolve(
+            new Response(new URL(urlOf(input)).searchParams.get('db') === 'protein' ? gp : gb),
+          ),
+        wait: () => Promise.resolve(),
+        online: () => true,
+        onProgress: (bytes) => progress.push(bytes),
+      },
+    );
+    const size = (t: string) => new TextEncoder().encode(t).length;
+    expect(progress[progress.length - 1]).toBe(size(gb) + size(gp));
+    expect(editorStore.getState().documents).toHaveLength(2);
   });
 });
 
@@ -101,7 +147,7 @@ describe('Open from NCBI', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull();
     });
-    expect(requests.map(([url]) => urlOf(url))).toEqual([efetchUrl(['L09137'])]);
+    expect(requests.map(([url]) => urlOf(url))).toEqual([efetchUrl(['L09137'], 'nucleotide')]);
     const state = editorStore.getState();
     expect(state.documents).toHaveLength(1);
     expect(state.history?.present.name).toBe('SYNPUC19CV');
@@ -139,11 +185,92 @@ describe('Open from NCBI', () => {
     expect(editorStore.getState().documents).toHaveLength(0);
   });
 
-  it('refuses what is not a nucleotide accession without sending it', () => {
+  it('opens a protein accession as a protein document, from GenPept', async () => {
+    answer = () => Promise.resolve(new Response(readFixture('NP_000509.gp')));
     render(<App />);
     openDialog();
-    type('NP_000508');
-    expect(screen.getByRole('alert')).toHaveTextContent('protein accession');
+    type('NP_000509');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(requests.map(([url]) => urlOf(url))).toEqual([efetchUrl(['NP_000509'], 'protein')]);
+    const state = editorStore.getState();
+    expect(state.history?.present.alphabet).toBe('protein');
+    expect(state.history?.present.length).toBe(147);
+    expect(state.fileName).toBe('NP_000509.gp');
+    expect(state.documents[0]?.origin).toBeNull();
+  });
+
+  it('asks each database for its own accessions, spaced, and names what either lacks', async () => {
+    const times: number[] = [];
+    answer = (url) => {
+      times.push(Date.now());
+      return Promise.resolve(
+        new Response(
+          new URL(url).searchParams.get('db') === 'protein'
+            ? readFixture('NP_000509.gp')
+            : readFixture('L09137.gb'),
+        ),
+      );
+    };
+    render(<App />);
+    openDialog();
+    type('NP_000509 L09137 NP_999999 AB999999');
+    await waitFor(
+      () => {
+        expect(editorStore.getState().documents).toHaveLength(2);
+      },
+      { timeout: 3000 },
+    );
+    expect(requests.map(([url]) => urlOf(url))).toEqual([
+      efetchUrl(['L09137', 'AB999999'], 'nucleotide'),
+      efetchUrl(['NP_000509', 'NP_999999'], 'protein'),
+    ]);
+    const [first = 0, second = 0] = times;
+    expect(second - first).toBeGreaterThanOrEqual(REQUEST_GAP_MS - 5);
+    const state = editorStore.getState();
+    // Nucleotide records first, then proteins: the protein is in front.
+    expect(state.history?.present.alphabet).toBe('protein');
+    expect(state.warnings.map((w) => w.message)).toContain(
+      'NCBI has no nucleotide record AB999999 and no protein record NP_999999.',
+    );
+  });
+
+  it('opens one kind when the other kind has none, and says so', async () => {
+    answer = (url) =>
+      Promise.resolve(
+        new URL(url).searchParams.get('db') === 'protein'
+          ? new Response('+Error%3A', { status: 400 })
+          : new Response(readFixture('L09137.gb')),
+      );
+    render(<App />);
+    openDialog();
+    type('L09137 NP_999999');
+    await waitFor(
+      () => {
+        expect(editorStore.getState().documents).toHaveLength(1);
+      },
+      { timeout: 3000 },
+    );
+    expect(editorStore.getState().warnings.map((w) => w.message)).toContain(
+      'NCBI has no protein record NP_999999.',
+    );
+  });
+
+  it('says of both kinds when neither is found', async () => {
+    answer = () => Promise.resolve(new Response('+Error%3A', { status: 400 }));
+    render(<App />);
+    openDialog();
+    type('AB999999 NP_999999');
+    expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent(
+      'NCBI has no nucleotide record AB999999 and no protein record NP_999999.',
+    );
+    expect(editorStore.getState().documents).toHaveLength(0);
+  });
+
+  it('refuses what is not an accession without sending it', () => {
+    render(<App />);
+    openDialog();
     type('my plasmid');
     expect(screen.getByRole('alert')).toHaveTextContent('is not an accession number');
     expect(requests).toEqual([]);

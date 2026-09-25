@@ -7,7 +7,7 @@ import {
   NcbiError,
   RETRY_AFTER_MS,
   efetchUrl,
-  fetchNucleotideRecords,
+  fetchRecords,
   isAbort,
   recordIds,
   resetRequestGap,
@@ -91,6 +91,20 @@ describe('efetchUrl', () => {
   });
 });
 
+describe('efetchUrl for proteins', () => {
+  it('asks the protein database for GenPept', () => {
+    const url = new URL(efetchUrl(['NP_000509', 'AAA12345.1'], 'protein'));
+    expect(`${url.origin}${url.pathname}`).toBe(EFETCH_URL);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      db: 'protein',
+      id: 'NP_000509,AAA12345.1',
+      rettype: 'gp',
+      retmode: 'text',
+      tool: 'PlasmidPop',
+    });
+  });
+});
+
 describe('recordIds', () => {
   it('collects primary and secondary accessions and the version', () => {
     expect([...recordIds(readFixture('L09137.gb'))].sort()).toEqual([
@@ -127,7 +141,7 @@ function mockFetch(...answers: (Response | Error)[]) {
   return { fetch, calls };
 }
 
-describe('fetchNucleotideRecords', () => {
+describe('fetchRecords', () => {
   const waits: number[] = [];
   const base = {
     wait: (ms: number) => {
@@ -146,7 +160,7 @@ describe('fetchNucleotideRecords', () => {
     const text = `${readFixture('L09137.gb')}${readFixture('NC_001422.1.gb')}`;
     const { fetch, calls } = mockFetch(streamed(text));
     const progress: number[] = [];
-    const got = await fetchNucleotideRecords(['L09137', 'NC_001422.1'], {
+    const got = await fetchRecords('nucleotide', ['L09137', 'NC_001422.1'], {
       ...base,
       fetch,
       onProgress: (b) => progress.push(b),
@@ -164,17 +178,17 @@ describe('fetchNucleotideRecords', () => {
 
   it('matches a record asked for by its secondary accession or a version', async () => {
     const { fetch } = mockFetch(streamed(readFixture('L09137.gb')));
-    const got = await fetchNucleotideRecords(['X02514'], { ...base, fetch });
+    const got = await fetchRecords('nucleotide', ['X02514'], { ...base, fetch });
     expect(got.missing).toEqual([]);
     const again = mockFetch(streamed(readFixture('L09137.gb')));
     expect(
-      (await fetchNucleotideRecords(['L09137.2'], { ...base, fetch: again.fetch })).missing,
+      (await fetchRecords('nucleotide', ['L09137.2'], { ...base, fetch: again.fetch })).missing,
     ).toEqual([]);
   });
 
   it('lists the accessions NCBI left out, which it does without a word', async () => {
     const { fetch } = mockFetch(streamed(readFixture('L09137.gb')));
-    const got = await fetchNucleotideRecords(['L09137', 'AB999999'], { ...base, fetch });
+    const got = await fetchRecords('nucleotide', ['L09137', 'AB999999'], { ...base, fetch });
     expect(got.missing).toEqual(['AB999999']);
   });
 
@@ -183,7 +197,9 @@ describe('fetchNucleotideRecords', () => {
     const body =
       '+Error%3A+CEFetchPApplication%3A%3Aproxy_stream()%3A+Error%3A+F+a+i+l+e+d++t+o++r+e+t+r+i+e+v+e';
     const { fetch } = mockFetch(new Response(body, { status: 400 }));
-    await expect(fetchNucleotideRecords(['AB999999'], { ...base, fetch })).rejects.toMatchObject({
+    await expect(
+      fetchRecords('nucleotide', ['AB999999'], { ...base, fetch }),
+    ).rejects.toMatchObject({
       kind: 'not-found',
       message: 'NCBI has no nucleotide record AB999999.',
     });
@@ -194,7 +210,7 @@ describe('fetchNucleotideRecords', () => {
       new Response('Error: F a i l e d  t o  u n d e r s t a n d  i d :  Z Z 9\n\n'),
     );
     await expect(
-      fetchNucleotideRecords(['L09137', 'U49845'], { ...base, fetch }),
+      fetchRecords('nucleotide', ['L09137', 'U49845'], { ...base, fetch }),
     ).rejects.toMatchObject({
       kind: 'not-found',
       message: 'NCBI has no nucleotide record for any of L09137, U49845.',
@@ -203,14 +219,14 @@ describe('fetchNucleotideRecords', () => {
 
   it('refuses an answer that is not GenBank', async () => {
     const { fetch } = mockFetch(new Response('<html>maintenance</html>'));
-    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).rejects.toMatchObject({
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
       kind: 'not-genbank',
     });
   });
 
   it('reports a server error with its status', async () => {
     const { fetch } = mockFetch(new Response('', { status: 502 }));
-    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).rejects.toMatchObject({
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
       kind: 'server',
       message: expect.stringContaining('HTTP 502') as unknown,
     });
@@ -221,7 +237,7 @@ describe('fetchNucleotideRecords', () => {
       new TypeError('Failed to fetch'),
       streamed(readFixture('L09137.gb')),
     );
-    const got = await fetchNucleotideRecords(['L09137'], { ...base, fetch });
+    const got = await fetchRecords('nucleotide', ['L09137'], { ...base, fetch });
     expect(got.missing).toEqual([]);
     expect(calls).toHaveLength(2);
     expect(waits).toContain(RETRY_AFTER_MS);
@@ -229,7 +245,7 @@ describe('fetchNucleotideRecords', () => {
 
   it('gives up after the second network failure', async () => {
     const { fetch, calls } = mockFetch(new TypeError('x'), new TypeError('x'));
-    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).rejects.toMatchObject({
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
       kind: 'network',
     });
     expect(calls).toHaveLength(2);
@@ -238,7 +254,7 @@ describe('fetchNucleotideRecords', () => {
   it('says so when offline, without retrying', async () => {
     const { fetch, calls } = mockFetch(new TypeError('x'));
     await expect(
-      fetchNucleotideRecords(['L09137'], { ...base, online: () => false, fetch }),
+      fetchRecords('nucleotide', ['L09137'], { ...base, online: () => false, fetch }),
     ).rejects.toMatchObject({ kind: 'offline' });
     expect(calls).toHaveLength(1);
   });
@@ -250,11 +266,11 @@ describe('fetchNucleotideRecords', () => {
         headers: { 'Retry-After': '3' },
       });
     const ok = mockFetch(limited(), streamed(readFixture('L09137.gb')));
-    await fetchNucleotideRecords(['L09137'], { ...base, fetch: ok.fetch });
+    await fetchRecords('nucleotide', ['L09137'], { ...base, fetch: ok.fetch });
     expect(waits).toContain(3000);
     const refused = mockFetch(limited(), limited());
     await expect(
-      fetchNucleotideRecords(['L09137'], { ...base, fetch: refused.fetch }),
+      fetchRecords('nucleotide', ['L09137'], { ...base, fetch: refused.fetch }),
     ).rejects.toMatchObject({ kind: 'rate-limit' });
   });
 
@@ -262,10 +278,10 @@ describe('fetchNucleotideRecords', () => {
     let clock = 1_000;
     const now = () => clock;
     const first = mockFetch(streamed(readFixture('L09137.gb')));
-    await fetchNucleotideRecords(['L09137'], { ...base, now, fetch: first.fetch });
+    await fetchRecords('nucleotide', ['L09137'], { ...base, now, fetch: first.fetch });
     clock += 100;
     const second = mockFetch(streamed(readFixture('L09137.gb')));
-    await fetchNucleotideRecords(['L09137'], { ...base, now, fetch: second.fetch });
+    await fetchRecords('nucleotide', ['L09137'], { ...base, now, fetch: second.fetch });
     expect(waits).toEqual([300]);
   });
 
@@ -283,7 +299,7 @@ describe('fetchNucleotideRecords', () => {
       },
     });
     const { fetch } = mockFetch(new Response(stream));
-    const e: unknown = await fetchNucleotideRecords(['NC_000913'], { ...base, fetch }).catch(
+    const e: unknown = await fetchRecords('nucleotide', ['NC_000913'], { ...base, fetch }).catch(
       (x: unknown) => x,
     );
     expect(e).toBeInstanceOf(NcbiError);
@@ -298,8 +314,37 @@ describe('fetchNucleotideRecords', () => {
   it('takes a record of exactly the limit', async () => {
     const text = readFixture('L09137.gb').replace('2686 bp', `${MAX_RECORD_BP.toString()} bp`);
     const { fetch } = mockFetch(streamed(text, {}, 7));
-    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).resolves.toMatchObject({
-      missing: [],
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).resolves.toMatchObject(
+      {
+        missing: [],
+      },
+    );
+  });
+
+  it('fetches GenPept from the protein database, and names a missing protein', async () => {
+    const { fetch, calls } = mockFetch(streamed(readFixture('NP_000509.gp')));
+    const got = await fetchRecords('protein', ['NP_000509.1', 'NP_999999'], { ...base, fetch });
+    expect(got.text.startsWith('LOCUS       NP_000509')).toBe(true);
+    expect(got.missing).toEqual(['NP_999999']);
+    expect(calls[0]?.[0]).toBe(efetchUrl(['NP_000509.1', 'NP_999999'], 'protein'));
+    const none = mockFetch(new Response('+Error%3A', { status: 400 }));
+    await expect(
+      fetchRecords('protein', ['NP_999999'], { ...base, fetch: none.fetch }),
+    ).rejects.toMatchObject({
+      kind: 'not-found',
+      message: 'NCBI has no protein record NP_999999.',
+    });
+  });
+
+  it('turns away a protein past the limit in residues', async () => {
+    const text = readFixture('NP_000509.gp').replace(
+      '147 aa',
+      `${(MAX_RECORD_BP + 1).toString()} aa`,
+    );
+    const { fetch } = mockFetch(streamed(text));
+    await expect(fetchRecords('protein', ['NP_000509'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'too-large',
+      message: 'NP_000509 is 10,000,001 aa. PlasmidPop opens sequences up to 10,000,000 aa.',
     });
   });
 
@@ -311,7 +356,7 @@ describe('fetchNucleotideRecords', () => {
           reject(new DOMException('aborted', 'AbortError'));
         });
       });
-    const pending = fetchNucleotideRecords(['L09137'], {
+    const pending = fetchRecords('nucleotide', ['L09137'], {
       ...base,
       fetch,
       signal: controller.signal,
