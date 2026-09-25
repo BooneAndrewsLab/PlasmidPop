@@ -1642,6 +1642,12 @@ button {
   overflow: auto;
 }
 
+.empty--opening {
+  height: 100%;
+  margin: 0;
+  color: var(--ink-2);
+}
+
 .empty__card {
   max-width: 34rem;
   padding: 32px;

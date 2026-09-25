@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+import { SHARE_TARGET_PARAM } from '@/pwa/shareTarget';
 
 import { analytics } from '../analytics';
-import { openSharedPayload, takeShareFragment } from '../share';
+import { openSharedPayload, sharePayloadIn, takeShareFragment } from '../share';
 import { openSharedFiles, takeShareTargetMarker } from '../sharedFiles';
 import { editorStore } from './editorStore';
 import { persistence } from './persistence';
@@ -71,8 +73,21 @@ export function useAutosaveShelf(): void {
  * the installed app from another one (a mail attachment, through the Web
  * Share Target, #43) come after that, for the same reason; their marker is
  * taken off the address bar first thing too.
+ *
+ * Returns true while a document the page was opened with is still on its
+ * way (the session is restored and the link decompressed first, which a
+ * slow phone takes a moment over), so the app can say so rather than flash
+ * the empty page before the document appears (#42).
  */
-export function useRestoreSession(): void {
+export function useRestoreSession(): boolean {
+  // Read before the effect takes the fragment and the marker off the address bar.
+  const [opening, setOpening] = useState(() => {
+    const { location } = globalThis;
+    return (
+      sharePayloadIn(location.hash) !== null ||
+      new URLSearchParams(location.search).has(SHARE_TARGET_PARAM)
+    );
+  });
   useEffect(() => {
     const shared = takeShareFragment();
     const sharedFiles = takeShareTargetMarker();
@@ -93,8 +108,11 @@ export function useRestoreSession(): void {
       }
       if (shared !== null) await openSharedPayload(shared);
       if (sharedFiles !== null) await openSharedFiles(sharedFiles);
-    })();
+    })().finally(() => {
+      setOpening(false);
+    });
   }, []);
+  return opening;
 }
 
 /** Restores the remembered view switcher and toggles, and records changes to them. */

@@ -56,7 +56,7 @@ export function App() {
   useAnalysis();
   useAutosave();
   useAutosaveShelf();
-  useRestoreSession();
+  const opening = useRestoreSession();
   useSaveShortcut();
   useViewShortcuts();
   useFlushOnLeave();
@@ -115,7 +115,13 @@ export function App() {
         </main>
       ) : doc === null ? (
         <main className="app__main app__main--empty">
-          <EmptyState />
+          {opening ? (
+            <p className="empty empty--opening" role="status">
+              Opening the shared sequence…
+            </p>
+          ) : (
+            <EmptyState />
+          )}
         </main>
       ) : phone ? (
         <main className="app__main app__main--phone">

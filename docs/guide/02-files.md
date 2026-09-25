@@ -288,6 +288,8 @@ of your own plasmid is usually for.
 clipboard.
 Paste it into an email or a chat, and whoever opens it gets the document —
 sequence, topology, features and all — in their own copy of PlasmidPop.
+The page says "Opening the shared sequence…" for the moment it takes to
+unpack the link, which a slower phone can take a second or so over.
 
 Nothing is uploaded. The document travels inside the link itself, in the part
 after the `#`, which browsers never send to a server: not to the site the app

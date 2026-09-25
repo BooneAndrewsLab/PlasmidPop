@@ -668,7 +668,7 @@ describe('toolbar', () => {
     expect(screen.queryByRole('button', { name: 'File' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open file' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
-    expect(screen.queryByRole('button', { name: 'Open example' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Drop a GenBank/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'File' }));
     const names = screen.getAllByRole('menuitem').map((item) => item.textContent);
@@ -1371,11 +1371,19 @@ describe('share links', () => {
     if (doc === undefined) throw new Error('expected a document');
     const url = await shareUrlFor(doc, 'https://example.org/PlasmidPop/');
     globalThis.location.hash = new URL(url).hash;
+    // An earlier test may have left the Bench in front.
+    act(() => {
+      editorStore.activateDocument(null);
+    });
 
     render(<App />);
+    // Not the empty page while the link is decompressed (#42).
+    expect(screen.getByText('Opening the shared sequence…')).toBeInTheDocument();
+    expect(screen.queryByText(/^Drop a GenBank/)).not.toBeInTheDocument();
     await waitFor(() => {
       expect(editorStore.document?.name).toBe(doc.name);
     });
+    expect(screen.queryByText('Opening the shared sequence…')).not.toBeInTheDocument();
     expect(editorStore.document?.sequence.toString()).toBe(doc.sequence.toString());
     expect(editorStore.document?.features.all()).toHaveLength(doc.features.all().length);
     // The sequence has no business staying in the URL or in this browser's history.
@@ -1414,6 +1422,8 @@ describe('share links', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/damaged/);
     });
     expect(editorStore.getState().documents).toHaveLength(0);
+    // Back to the empty page rather than waiting on for ever.
+    await screen.findByText(/^Drop a GenBank/);
   });
 });
 
