@@ -36,7 +36,11 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     for (const seg of location.segments) {
       if (seg.kind === 'site') {
         for (const o of offsets) {
-          if (seg.position > o.start && seg.position < o.end) {
+          // A site is kept only with a base of the extract on each side. The
+          // start of a piece after the first is the origin of the circle the
+          // range runs across, which has bases on both sides.
+          const from = o.offset > 0 ? o.start - 1 : o.start;
+          if (seg.position > from && seg.position < o.end) {
             segments.push({ kind: 'site', position: seg.position - o.start + o.offset });
           }
         }

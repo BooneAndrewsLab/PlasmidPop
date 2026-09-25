@@ -374,7 +374,9 @@ From the **File** menu:
   the read's; see [Downloading a read](15-reads.md#downloading-a-read).
 - **Export selection as GenBank** or **as FASTA**: just the selected bases,
   with the features that fall inside them trimmed to the selection. The
-  selection may wrap the origin of a circular sequence. A selection that
+  selection may wrap the origin of a circular sequence; a site feature (a
+  point between two bases) at the origin is kept when the selection runs
+  across it, and left out at the selection's own ends. A selection that
   reaches an end of a linear fragment keeps that end's sticky overhang.
 
 The **Translate** tab has its own **Export FASTA** for six-frame

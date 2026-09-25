@@ -366,7 +366,8 @@ function finish(draft: Draft): LineageNode | null {
         return { op, parents, reaction, byproduct };
       }
       case 'mutagenesis': {
-        const change = unescapeToken(s('change') ?? '');
+        const changeText = s('change');
+        const change = changeText === undefined ? null : unescapeToken(changeText);
         const method = s('method');
         const primers = readItems(s('primers'));
         if (change === null || primers === null) return null;
