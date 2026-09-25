@@ -70,6 +70,13 @@ its translation, primers as `primer_bind` sites.
   accepts anything.
 - **Strand**: forward or reverse. Reverse-strand features are drawn with an
   arrow pointing left and are translated from the reverse complement.
+- **Thickness**: how thick the feature's bar is drawn in the sequence view
+  and on the map, _Thin_, _Medium_ or _Full_. **As its type** is thin for
+  an intron, so a gene's exons stand out from the gaps between them, and
+  full for everything else. The lane keeps its height whatever the bar's,
+  and only a full bar has room for its name inside it (the map's labels are
+  unaffected). The choice is saved with the feature as a
+  `/PlasmidPop_thickness` qualifier, which other programs ignore.
 - **Location**, 1-based inclusive, in GenBank syntax without the
   `complement(...)` wrapper (use the strand selector for that):
   `100..450` for a range, `join(100..200,300..450)` for several pieces,

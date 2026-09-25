@@ -10,7 +10,21 @@ import {
   parseLocation,
 } from '@/core';
 
+import {
+  type FeatureThickness,
+  THICKNESS_QUALIFIER,
+  chosenThickness,
+  defaultThickness,
+  isFeatureThickness,
+} from '@/view/featureShape';
+
 import { editorStore } from '../state/editorStore';
+
+const THICKNESS_LABELS: Readonly<Record<FeatureThickness, string>> = {
+  thin: 'Thin',
+  medium: 'Medium',
+  full: 'Full',
+};
 
 const COMMON_TYPES = [
   'CDS',
@@ -57,13 +71,20 @@ export function FeatureEditor({ doc, feature }: Props) {
     const text = formatLocation(feature, doc.length, doc.topology);
     return text.startsWith('complement(') ? text.slice('complement('.length, -1) : text;
   });
+  // The bar's thickness (#88) is a qualifier of ours, set with its own
+  // control rather than typed among the others.
+  const [thickness, setThickness] = useState<FeatureThickness | null>(() =>
+    chosenThickness(feature),
+  );
   const [qualifiers, setQualifiers] = useState<QualifierRow[]>(() =>
-    feature.qualifiers.map((q, i) => ({
-      key: i,
-      name: q.name,
-      value: q.value ?? '',
-      flag: q.value === null,
-    })),
+    feature.qualifiers
+      .map((q, i) => ({
+        key: i,
+        name: q.name,
+        value: q.value ?? '',
+        flag: q.value === null,
+      }))
+      .filter((q) => q.name !== THICKNESS_QUALIFIER),
   );
   const [nextKey, setNextKey] = useState(feature.qualifiers.length);
 
@@ -87,8 +108,9 @@ export function FeatureEditor({ doc, feature }: Props) {
     e.preventDefault();
     if (!valid) return;
     const cleaned: Qualifier[] = qualifiers
-      .filter((q) => q.name.trim() !== '')
+      .filter((q) => q.name.trim() !== '' && q.name.trim() !== THICKNESS_QUALIFIER)
       .map((q) => ({ name: q.name.trim(), value: q.flag ? null : q.value }));
+    if (thickness !== null) cleaned.push({ name: THICKNESS_QUALIFIER, value: thickness });
     editorStore.apply({
       type: 'updateFeature',
       id: feature.id,
@@ -140,6 +162,27 @@ export function FeatureEditor({ doc, feature }: Props) {
         >
           <option value="forward">Forward (→)</option>
           <option value="reverse">Reverse (←)</option>
+        </select>
+      </label>
+      <label className="feature-editor__field">
+        <span>Thickness</span>
+        <select
+          className="panel__select"
+          value={thickness ?? 'default'}
+          title="How thick the feature's bar is drawn in the sequence view and on the map"
+          onChange={(e) => {
+            const value = e.target.value;
+            setThickness(isFeatureThickness(value) ? value : null);
+          }}
+        >
+          <option value="default">
+            As its type ({THICKNESS_LABELS[defaultThickness(type.trim())].toLowerCase()})
+          </option>
+          {(['thin', 'medium', 'full'] as const).map((t) => (
+            <option key={t} value={t}>
+              {THICKNESS_LABELS[t]}
+            </option>
+          ))}
         </select>
       </label>
       <label className="feature-editor__field">

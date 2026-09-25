@@ -16,6 +16,7 @@ import {
 import { type DrawingContext } from '../drawingContext';
 import { drawTrace } from '../trace';
 import { contrastingText, featureColor, withAlpha } from '../featureColors';
+import { thicknessFraction } from '../featureShape';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
@@ -608,8 +609,12 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
   const lane = lanes.laneOf.get(feature.id);
   if (lane === undefined || lane >= row.lanes) return;
   const m = layout.metrics;
-  const top = layout.laneTop(row, lane) + RIBBON_INSET;
-  const height = m.laneHeight - RIBBON_INSET * 2;
+  const laneTop = layout.laneTop(row, lane) + RIBBON_INSET;
+  const full = m.laneHeight - RIBBON_INSET * 2;
+  // A thinner bar (#88) sits in the middle of its lane, which keeps its height.
+  const fraction = thicknessFraction(feature);
+  const height = Math.max(2, full * fraction);
+  const top = laneTop + (full - height) / 2;
   const color = featureColor(feature);
   const outline = editOutline(p, feature);
   const label = feature.name === '' ? feature.type : feature.name;
@@ -621,9 +626,10 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
         const x = layout.xOf(row, seg.position);
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(x - 5, top);
-        ctx.lineTo(x + 5, top);
-        ctx.lineTo(x, top + height);
+        // A site is a mark, not a bar: always the lane's full height.
+        ctx.moveTo(x - 5, laneTop);
+        ctx.lineTo(x + 5, laneTop);
+        ctx.lineTo(x, laneTop + full);
         ctx.closePath();
         ctx.fill();
         if (outline !== null) {
@@ -663,7 +669,8 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
 
     const inner =
       ribbon.x1 - ribbon.x0 - (ribbon.arrowLeft ? ARROW : 0) - (ribbon.arrowRight ? ARROW : 0) - 8;
-    if (inner > 12) {
+    // Only a full bar has the height for its name; a thinner one is a line.
+    if (inner > 12 && fraction === 1) {
       ctx.font = p.sansFont;
       ctx.fillStyle = contrastingText(color);
       ctx.textAlign = 'left';

@@ -15,6 +15,7 @@ import {
 import { type DrawingContext } from '../drawingContext';
 import { isTransparent } from '../svg/svgContext';
 import { contrastingText, featureColor } from '../featureColors';
+import { thicknessFraction } from '../featureShape';
 import { type LaneAssignment } from '../linear/lanes';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { drawableFeatures, featuresToLabel } from '../visibleFeatures';
@@ -365,7 +366,8 @@ function drawFeature(
 ): void {
   const { layout, doc } = p;
   const r = layout.laneRadius(lane);
-  const thickness = layout.ringWidth - 4;
+  // A thinner arc (#88) keeps to the middle of its lane.
+  const thickness = Math.max(2, (layout.ringWidth - 4) * thicknessFraction(feature));
   const half = thickness / 2;
   const color = featureColor(feature);
   const hovered = feature.id === p.hoveredFeatureId;
