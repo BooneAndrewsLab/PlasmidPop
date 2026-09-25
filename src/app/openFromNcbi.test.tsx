@@ -215,7 +215,7 @@ describe('Open from NCBI', () => {
     };
     render(<App />);
     openDialog();
-    type('NP_000509 L09137 NP_999999 AB999999');
+    type('NP_000509 L09137 XP_000001 AB999999');
     await waitFor(
       () => {
         expect(editorStore.getState().documents).toHaveLength(2);
@@ -224,7 +224,7 @@ describe('Open from NCBI', () => {
     );
     expect(requests.map(([url]) => urlOf(url))).toEqual([
       efetchUrl(['L09137', 'AB999999'], 'nucleotide'),
-      efetchUrl(['NP_000509', 'NP_999999'], 'protein'),
+      efetchUrl(['NP_000509', 'XP_000001'], 'protein'),
     ]);
     const [first = 0, second = 0] = times;
     expect(second - first).toBeGreaterThanOrEqual(REQUEST_GAP_MS - 5);
@@ -232,7 +232,7 @@ describe('Open from NCBI', () => {
     // Nucleotide records first, then proteins: the protein is in front.
     expect(state.history?.present.alphabet).toBe('protein');
     expect(state.warnings.map((w) => w.message)).toContain(
-      'NCBI has no nucleotide record AB999999 and no protein record NP_999999.',
+      'NCBI has no nucleotide record AB999999 and no protein record XP_000001.',
     );
   });
 
@@ -245,7 +245,7 @@ describe('Open from NCBI', () => {
       );
     render(<App />);
     openDialog();
-    type('L09137 NP_999999');
+    type('L09137 XP_000001');
     await waitFor(
       () => {
         expect(editorStore.getState().documents).toHaveLength(1);
@@ -253,7 +253,7 @@ describe('Open from NCBI', () => {
       { timeout: 3000 },
     );
     expect(editorStore.getState().warnings.map((w) => w.message)).toContain(
-      'NCBI has no protein record NP_999999.',
+      'NCBI has no protein record XP_000001.',
     );
   });
 
@@ -261,9 +261,9 @@ describe('Open from NCBI', () => {
     answer = () => Promise.resolve(new Response('+Error%3A', { status: 400 }));
     render(<App />);
     openDialog();
-    type('AB999999 NP_999999');
+    type('AB999999 XP_000001');
     expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent(
-      'NCBI has no nucleotide record AB999999 and no protein record NP_999999.',
+      'NCBI has no nucleotide record AB999999 and no protein record XP_000001.',
     );
     expect(editorStore.getState().documents).toHaveLength(0);
   });

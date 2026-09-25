@@ -323,16 +323,16 @@ describe('fetchRecords', () => {
 
   it('fetches GenPept from the protein database, and names a missing protein', async () => {
     const { fetch, calls } = mockFetch(streamed(readFixture('NP_000509.gp')));
-    const got = await fetchRecords('protein', ['NP_000509.1', 'NP_999999'], { ...base, fetch });
+    const got = await fetchRecords('protein', ['NP_000509.1', 'XP_000001'], { ...base, fetch });
     expect(got.text.startsWith('LOCUS       NP_000509')).toBe(true);
-    expect(got.missing).toEqual(['NP_999999']);
-    expect(calls[0]?.[0]).toBe(efetchUrl(['NP_000509.1', 'NP_999999'], 'protein'));
+    expect(got.missing).toEqual(['XP_000001']);
+    expect(calls[0]?.[0]).toBe(efetchUrl(['NP_000509.1', 'XP_000001'], 'protein'));
     const none = mockFetch(new Response('+Error%3A', { status: 400 }));
     await expect(
-      fetchRecords('protein', ['NP_999999'], { ...base, fetch: none.fetch }),
+      fetchRecords('protein', ['XP_000001'], { ...base, fetch: none.fetch }),
     ).rejects.toMatchObject({
       kind: 'not-found',
-      message: 'NCBI has no protein record NP_999999.',
+      message: 'NCBI has no protein record XP_000001.',
     });
   });
 
