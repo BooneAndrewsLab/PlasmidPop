@@ -100,12 +100,29 @@ export interface StoredEnzymeSet {
 /** Key of the single `enzymeSets` row. */
 export const ENZYME_SET_ID = 'active';
 
+/**
+ * One primer of the user's collection (#64, item 56), a row each so that
+ * adding or editing one writes one row. Like the documents it stays in this
+ * browser: it leaves only as a download the user asks for.
+ */
+export interface StoredPrimer {
+  readonly id: string;
+  readonly name: string;
+  readonly sequence: string;
+  readonly notes: string;
+  /** When it was added, which is the order the list is shown in. */
+  readonly addedAt: number;
+  readonly updatedAt: number;
+}
+
 export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
   declare enzymeSets: EntityTable<StoredEnzymeSet, 'id'>;
   /** Each document's undo history, under the document's id (item 51). */
   declare histories: EntityTable<StoredHistory, 'id'>;
+  /** The primer collection, a row per primer (#64). */
+  declare primers: EntityTable<StoredPrimer, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -150,6 +167,10 @@ export class PlasmidPopDb extends Dexie {
             if (checksum !== null) row.checksum = checksum;
           }),
       );
+    // Version 7 adds the primer collection (#64).
+    this.version(7).stores({
+      primers: 'id, addedAt',
+    });
   }
 }
 

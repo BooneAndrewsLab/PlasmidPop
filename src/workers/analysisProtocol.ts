@@ -1,10 +1,12 @@
 import {
   type Alignment,
   type AlignmentOptions,
+  type AnnealOptions,
   type CutSite,
   type EnzymeSet,
   type Orf,
   type OrfOptions,
+  type PrimerSearch,
   type StrandedAlignment,
   type Topology,
 } from '@/core';
@@ -50,6 +52,19 @@ export type AnalysisRequest =
       readonly a: string;
       readonly b: string;
       readonly options: AlignmentOptions;
+    }
+  | {
+      /** Where each primer of the collection binds (#64). */
+      readonly id: number;
+      readonly kind: 'findPrimers';
+      readonly sequence: string;
+      readonly topology: Topology;
+      readonly primers: readonly {
+        readonly id: string;
+        readonly name: string;
+        readonly sequence: string;
+      }[];
+      readonly options: AnnealOptions;
     };
 
 export type AnalysisResponse =
@@ -62,6 +77,7 @@ export type AnalysisResponse =
       readonly kind: 'alignEitherStrand';
       readonly result: StrandedAlignment;
     }
+  | { readonly id: number; readonly kind: 'findPrimers'; readonly result: PrimerSearch }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

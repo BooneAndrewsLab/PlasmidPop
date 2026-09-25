@@ -2,6 +2,7 @@ import {
   activeEnzymes,
   alignEitherStrand,
   alignPairwise,
+  findCollectionPrimers,
   findCutSites,
   findOrfs,
   setActiveEnzymeSet,
@@ -47,6 +48,12 @@ export function handleAnalysisRequest(
           id: req.id,
           kind: 'alignEitherStrand',
           result: alignEitherStrand(req.a, req.b, req.options, onProgress),
+        };
+      case 'findPrimers':
+        return {
+          id: req.id,
+          kind: 'findPrimers',
+          result: findCollectionPrimers(req.sequence, req.topology, req.primers, req.options),
         };
     }
   } catch (e) {

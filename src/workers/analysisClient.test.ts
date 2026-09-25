@@ -17,6 +17,18 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(aln.identity).toBe(1);
   });
 
+  it('finds a collection of primers without a worker (#64)', async () => {
+    const template = 'TTGACAGCTAGCTCAGTCCTAGGTATAATGCTAGCGAATTCGGATCCAAGCTTGGG';
+    const result = await client.findPrimers(template, 'circular', [
+      { id: 'f', name: 'fwd', sequence: template.slice(5, 25) },
+      { id: 's', name: 'short', sequence: 'ACGT' },
+    ]);
+    expect(result.tooShort).toEqual(['s']);
+    expect(result.hits.map((h) => [h.primerId, h.name, h.range.start, h.strand])).toEqual([
+      ['f', 'fwd', 5, 'forward'],
+    ]);
+  });
+
   it('uses the worker when a factory is provided', async () => {
     const posted: unknown[] = [];
     const fake = {

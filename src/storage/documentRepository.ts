@@ -1,10 +1,12 @@
 import {
   type AssemblyPart,
+  type CollectionPrimer,
   type Enzyme,
   type EnzymeSet,
   type OverhangKind,
   type SeqDocument,
   type SequencingRead,
+  cleanPrimer,
   describeEditOp,
   documentChecksum,
   isLineageNode,
@@ -409,6 +411,54 @@ export class DocumentRepository {
       fileName: set.fileName,
       importedAt: Date.now(),
     });
+  }
+
+  /**
+   * The primer collection, in the order the primers were added. Rows are
+   * checked on the way in like the shelf's: one written wrong costs that
+   * primer, not the list.
+   */
+  async loadPrimers(): Promise<CollectionPrimer[]> {
+    const rows = (await this.db.primers.orderBy('addedAt').toArray()) as readonly unknown[];
+    const out: CollectionPrimer[] = [];
+    for (const row of rows) {
+      if (!isObject(row)) continue;
+      const { id, name, sequence, notes } = row;
+      if (typeof id !== 'string' || typeof name !== 'string' || typeof sequence !== 'string') {
+        continue;
+      }
+      const bases = cleanPrimer(sequence);
+      if (bases === '') continue;
+      out.push({ id, name, sequence: bases, notes: typeof notes === 'string' ? notes : '' });
+    }
+    return out;
+  }
+
+  /**
+   * Writes primers of the collection, new or edited, keeping the time each
+   * was first added so an edit does not move it down the list.
+   */
+  async putPrimers(primers: readonly CollectionPrimer[]): Promise<void> {
+    if (primers.length === 0) return;
+    const now = Date.now();
+    await this.db.transaction('rw', this.db.primers, async () => {
+      const before = await this.db.primers.bulkGet(primers.map((p) => p.id));
+      await this.db.primers.bulkPut(
+        primers.map((p, i) => ({
+          id: p.id,
+          name: p.name,
+          sequence: p.sequence,
+          notes: p.notes,
+          // Distinct times for a batch, so the order it was pasted in holds.
+          addedAt: before[i]?.addedAt ?? now + i / 1000,
+          updatedAt: now,
+        })),
+      );
+    });
+  }
+
+  async deletePrimers(ids: readonly string[]): Promise<void> {
+    await this.db.primers.bulkDelete([...ids]);
   }
 
   setLastDocumentId(id: string | null): void {

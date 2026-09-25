@@ -1,10 +1,12 @@
 import {
   type Alignment,
   type AlignmentOptions,
+  type AnnealOptions,
   type CutSite,
   type EnzymeSet,
   type Orf,
   type OrfOptions,
+  type PrimerSearch,
   type StrandedAlignment,
   type Topology,
   setActiveEnzymeSet,
@@ -171,6 +173,19 @@ export class AnalysisClient {
     const res = await this.send({ kind: 'alignEitherStrand', a, b, options }, long);
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'alignEitherStrand') throw new Error('Unexpected analysis response');
+    return res.result;
+  }
+
+  /** Where each primer of a collection binds on `sequence` (#64). */
+  async findPrimers(
+    sequence: string,
+    topology: Topology,
+    primers: readonly { readonly id: string; readonly name: string; readonly sequence: string }[],
+    options: AnnealOptions = {},
+  ): Promise<PrimerSearch> {
+    const res = await this.send({ kind: 'findPrimers', sequence, topology, primers, options });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'findPrimers') throw new Error('Unexpected analysis response');
     return res.result;
   }
 
