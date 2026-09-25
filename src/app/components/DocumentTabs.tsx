@@ -9,9 +9,9 @@ import { useMediaQuery } from './useMediaQuery';
  * One tab per open document under the toolbar, with the file list as a
  * fixed first tab and the Cloning Bench as a fixed second one, so several
  * constructs can be open at once and a piece cut from one can be carried to
- * another. Nothing is shown until a document is open or the shelf holds a
- * part. Closing a tab keeps the document in local storage, like Show files
- * always has. The phone reader has no Bench (item 49).
+ * another. It stays up with no document open, so the file list and the
+ * Bench can always be reached. Closing a tab keeps the document in local
+ * storage, like Show files always has. The phone reader has no Bench (item 49).
  */
 export function DocumentTabs() {
   const { documents, documentId, front, shelf, shelfUndo } = useEditorState();
@@ -30,7 +30,10 @@ export function DocumentTabs() {
   const [drag, setDrag] = useState<{ readonly id: string; readonly gap: number | null } | null>(
     null,
   );
-  if (documents.length === 0 && (phone || shelf.length === 0)) return null;
+  // On a desktop the strip is always there, so closing the last tab does not
+  // take Files and the Bench away with it. The phone reader has no Bench and
+  // shows the strip only while a document is open (item 15).
+  if (phone && documents.length === 0) return null;
   return (
     <nav className="doctabs">
       <div className="doctabs__list" role="tablist" aria-label="Open documents">

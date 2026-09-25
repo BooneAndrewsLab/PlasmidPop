@@ -213,8 +213,9 @@ a polymerase can extend the pair into a short product of its own.
 ## The Bench
 
 The Bench is the tab after **Files** in the tab strip; its count is the
-number of parts on the shelf. It stays in the strip while the shelf holds
-anything, even with every document closed. It has three columns:
+number of parts on the shelf. **Files** and the Bench are always in the
+strip, even with every document closed and the shelf empty. It has three
+columns:
 
 - the **shelf** on the left;
 - the **reaction** in the middle: **Ligation**, **Golden Gate**, **Gibson**

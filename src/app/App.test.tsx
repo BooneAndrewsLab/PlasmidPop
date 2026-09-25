@@ -707,9 +707,10 @@ describe('document tabs', () => {
     });
     render(<App />);
     const strip = { name: 'Open documents' };
-    expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     const tabs = () => within(screen.getByRole('tablist', strip)).getAllByRole('tab');
+    // On a desktop the strip is there from the start, with the file list in front.
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench']);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench', 'SYNPBR322']);
     expect(tabs()[2]).toHaveAttribute('aria-selected', 'true');
     // New opens a second tab and brings it to the front.
@@ -732,8 +733,10 @@ describe('document tabs', () => {
     // Closing a tab keeps the rest.
     fireEvent.click(screen.getByRole('button', { name: 'Close Untitled' }));
     expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench', 'SYNPBR322']);
+    // Closing the last one keeps the strip, so Files and the Bench can still be reached.
     fireEvent.click(screen.getByRole('button', { name: 'Close SYNPBR322' }));
-    expect(screen.queryByRole('tablist', strip)).not.toBeInTheDocument();
+    expect(tabs().map((t) => t.textContent)).toEqual(['Files', 'Bench']);
+    expect(tabs()[0]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('closes the front tab with Alt+W and moves it along the strip with Alt+Shift+PageUp/Down', () => {
@@ -871,14 +874,16 @@ describe('document tabs', () => {
     expect(
       within(screen.getByRole('region', { name: 'Parts' })).getByRole('list', { name: 'Shelf' }),
     ).toBeInTheDocument();
-    // The documents stay open behind it, and the shelf keeps the strip up
-    // once the last of them is closed, so the Bench can still be reached.
+    // The documents stay open behind it. With the last of them closed and the
+    // shelf empty, the strip stays, so an empty Bench is not a dead end:
+    // Files is still a tab away.
     fireEvent.click(screen.getByRole('button', { name: 'Close SYNPBR322' }));
     expect(bench()).toHaveAttribute('aria-selected', 'true');
     act(() => {
       editorStore.clearShelf();
     });
-    expect(screen.queryByRole('tablist', { name: 'Open documents' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Files' }));
+    expect(editorStore.getState().front).toBe('files');
   });
 
   it('does not pulse the Bench count for a shelf restored at load (#81)', () => {

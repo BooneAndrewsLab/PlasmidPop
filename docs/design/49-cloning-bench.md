@@ -27,8 +27,10 @@ split follows:
   file list; the Bench is a second. `EditorState.front` says which of
   document, files and bench is in front, replacing "no active document"
   meaning the file list. It is fixed beside **Files**, with a count of the
-  shelf's parts, and stays in the strip while the shelf holds anything, so
-  it can be reached with every document closed. Left in front, it comes
+  shelf's parts. The strip itself is always shown on a desktop (user
+  report, 2026-09-25): it used to hide with no document open and the shelf
+  empty, so closing the last tab from an empty Bench left the Bench on
+  screen with no way back to the file list. Left in front, it comes
   back in front after a reload (a sentinel in the last-document slot).
 - **The sidebar picks one of Digest, PCR and Mutate.** The plan kept the
   digest always above a PCR/Mutate picker. But there is one preview
