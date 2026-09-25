@@ -1,7 +1,7 @@
 import { type Feature, type Qualifier, type Segment, type Strand } from '../features';
 import { type Range } from '../range';
 import { type StyleRun, isBaseStyle } from './baseStyles';
-import { assertValidSequence } from '../sequence';
+import { type Alphabet, AlphabetMismatchError, assertValidResidues, isAlphabet } from '../sequence';
 import { extractRange } from './extract';
 import { type SeqDocument } from './seqDocument';
 
@@ -16,6 +16,22 @@ export interface SeqFragment {
   readonly features: readonly Feature[];
   /** How its bases are drawn (#89), in fragment coordinates; none when absent. */
   readonly styles?: readonly StyleRun[];
+  /** Residues of a protein rather than bases (#66); absent for bases. */
+  readonly alphabet?: Alphabet;
+}
+
+/** The fragment's alphabet, nucleotide when it does not say. */
+export function fragmentAlphabet(fragment: SeqFragment): Alphabet {
+  return fragment.alphabet ?? 'nucleotide';
+}
+
+/**
+ * Throws unless `fragment` is written in `alphabet` and every letter of it
+ * is one of that alphabet's.
+ */
+export function assertFragmentFits(fragment: SeqFragment, alphabet: Alphabet): void {
+  if (fragmentAlphabet(fragment) !== alphabet) throw new AlphabetMismatchError(alphabet);
+  assertValidResidues(fragment.sequence, alphabet);
 }
 
 /**
@@ -30,6 +46,7 @@ export function fragmentFromRange(doc: SeqDocument, r: Range): SeqFragment {
     sequence: sub.sequence.toString(),
     features: sub.features.all().filter((f) => f.type !== 'source'),
     ...(sub.styles.isEmpty ? {} : { styles: sub.styles.runs }),
+    ...(doc.isProtein ? { alphabet: 'protein' as const } : {}),
   };
 }
 
@@ -45,6 +62,8 @@ interface FragmentJson {
   readonly sequence: string;
   readonly features: readonly Feature[];
   readonly styles?: readonly StyleRun[];
+  /** Absent for bases, which is what every fragment was before proteins. */
+  readonly alphabet?: 'protein';
 }
 
 export function fragmentToJSON(fragment: SeqFragment): string {
@@ -56,6 +75,7 @@ export function fragmentToJSON(fragment: SeqFragment): string {
     ...(fragment.styles === undefined || fragment.styles.length === 0
       ? {}
       : { styles: fragment.styles }),
+    ...(fragmentAlphabet(fragment) === 'protein' ? { alphabet: 'protein' as const } : {}),
   };
   return JSON.stringify(json);
 }
@@ -76,11 +96,15 @@ export function parseFragmentJSON(text: string): SeqFragment | null {
     return null;
   }
   const sequence = raw['sequence'];
+  const rawAlphabet = raw['alphabet'] ?? 'nucleotide';
+  if (!isAlphabet(rawAlphabet)) return null;
+  const alphabet = rawAlphabet;
   try {
-    assertValidSequence(sequence);
+    assertValidResidues(sequence, alphabet);
   } catch {
     return null;
   }
+  const tag = alphabet === 'protein' ? { alphabet } : {};
   const rawFeatures = raw['features'];
   if (!Array.isArray(rawFeatures)) return null;
   const features: Feature[] = [];
@@ -92,9 +116,9 @@ export function parseFragmentJSON(text: string): SeqFragment | null {
     features.push(feature);
   }
   const rawStyles = raw['styles'];
-  if (rawStyles === undefined) return { sequence, features };
+  if (rawStyles === undefined) return { sequence, features, ...tag };
   const styles = readStyles(rawStyles, sequence.length);
-  return styles === null ? null : { sequence, features, styles };
+  return styles === null ? null : { sequence, features, styles, ...tag };
 }
 
 /** Styled runs as `fragmentToJSON` writes them: sorted, apart, inside the bases. */

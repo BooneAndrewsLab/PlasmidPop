@@ -192,6 +192,31 @@ describe('encodeHistory / decodeHistory', () => {
     expect(back.history.redo().present.styles.runs).toEqual(moved.styles.runs);
   });
 
+  it('keeps a protein a protein in every state, and takes residues in its splices (#66)', () => {
+    const protein = SeqDocument.create({
+      name: 'HBB',
+      sequence: 'MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLL',
+      alphabet: 'protein',
+      features: [createFeature({ id: 'r', type: 'Region', segments: [rangeSegment(3, 20)] })],
+    });
+    const h = type(History.create(protein, { at: 0 }), 5, 'QWERTY', 10).push(
+      protein.insert(5, 'QWERTY').delete({ start: 0, end: 2 }),
+      'Delete 2 bases',
+      2000,
+    );
+    const row = encodeHistory('d', input(h));
+    expect(row?.base).toMatchObject({ alphabet: 'protein' });
+    const back = roundTrip(row).history;
+    expect(historyView(back)).toEqual(historyView(h));
+    for (let i = 0; i < back.toRecord().states.length; i++) {
+      expect(back.stateAt(i)?.alphabet).toBe('protein');
+    }
+    // A DNA state stores no alphabet at all, as before proteins.
+    expect(encodeHistory('d', input(History.create(plasmid)))?.base).not.toHaveProperty('alphabet');
+    // A row that calls its state anything else is not ours.
+    expect(isStoredHistory({ ...row, base: { ...row?.base, alphabet: 'rna' } })).toBe(false);
+  });
+
   it('rebuilds a real record through a session of edits', () => {
     const doc = parseGenBank(pBR322).documents[0];
     if (doc === undefined) throw new Error('no record');

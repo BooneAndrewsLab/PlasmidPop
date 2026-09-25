@@ -188,6 +188,8 @@ function canonicalSequence(doc: SeqDocument): string {
  */
 export function documentChecksum(doc: SeqDocument): Seguid | null {
   if (doc.length === 0) return null;
+  // A protein is one chain: SEGUID's original, single-stranded form (#66).
+  if (doc.isProtein) return lsseguid(canonicalSequence(doc));
   const { watson, crick } = documentStrands(doc);
   return doc.topology === 'circular' ? cdseguid(watson, crick) : ldseguid(watson, crick);
 }

@@ -94,6 +94,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
   const from = r.start + 1;
   const to = ((r.end - 1) % Math.max(1, L)) + 1;
   return SeqDocument.create({
+    alphabet: doc.alphabet,
     name: name ?? `${doc.name}_${from}-${to}`,
     sequence,
     topology: 'linear',

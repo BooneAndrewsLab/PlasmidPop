@@ -94,6 +94,8 @@ export interface StoredState {
   readonly read: SequencingRead | null;
   /** Absent in rows from before base styles, and when there are none. */
   readonly styles?: readonly StyleRun[];
+  /** 'protein' for a protein (#66); absent for DNA, as in every row from before proteins. */
+  readonly alphabet?: 'protein';
 }
 
 export interface StoredStep {
@@ -353,7 +355,8 @@ function isState(v: unknown): v is StoredState {
     isEnds(v['ends']) &&
     isMethylation(v['methylation']) &&
     isRead(v['read']) &&
-    (v['styles'] === undefined || isStyles(v['styles']))
+    (v['styles'] === undefined || isStyles(v['styles'])) &&
+    (v['alphabet'] === undefined || v['alphabet'] === 'protein')
   );
 }
 

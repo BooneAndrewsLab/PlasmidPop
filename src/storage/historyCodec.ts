@@ -1,4 +1,5 @@
 import {
+  type Alphabet,
   type DocumentEnds,
   type DocumentMetadata,
   type Feature,
@@ -14,7 +15,7 @@ import {
   Rope,
   SeqDocument,
   endsEqual,
-  isValidSequence,
+  isValidResidues,
   methylationEqual,
   reverseComplement,
 } from '@/core';
@@ -398,11 +399,15 @@ function rotationOf(x: string, y: string): number | null {
   return null;
 }
 
-function applySequence(seq: SequenceText, d: StoredSequenceDelta): SequenceText {
+function applySequence(
+  seq: SequenceText,
+  d: StoredSequenceDelta,
+  alphabet: Alphabet,
+): SequenceText {
   switch (d.kind) {
     case 'splice':
       if (d.start + d.deleted > seq.length) throw new RangeError('Splice past the end');
-      if (!isValidSequence(d.text)) throw new RangeError('Splice text is not a sequence');
+      if (!isValidResidues(d.text, alphabet)) throw new RangeError('Splice text is not a sequence');
       return seq.remove(d.start, d.start + d.deleted).insert(d.start, d.text);
     case 'reverseComplement':
       return Rope.from(reverseComplement(seq.toString()));
@@ -602,7 +607,9 @@ function deltaBetween(prev: SeqDocument, next: SeqDocument): CachedDelta {
 function applyDelta(prev: SeqDocument, d: StoredDelta): SeqDocument {
   const topology = d.topology ?? prev.topology;
   const sequence =
-    d.sequence === undefined ? prev.sequence : applySequence(prev.sequence, d.sequence);
+    d.sequence === undefined
+      ? prev.sequence
+      : applySequence(prev.sequence, d.sequence, prev.alphabet);
   let features: FeatureSet;
   const fd = d.features;
   if (fd === undefined) features = prev.features;
@@ -612,6 +619,8 @@ function applyDelta(prev: SeqDocument, d: StoredDelta): SeqDocument {
     features = FeatureSet.from(applyPatch(base, fd.removed, fd.upserted));
   }
   return SeqDocument.create({
+    // No edit changes the alphabet, so a delta never carries it.
+    alphabet: prev.alphabet,
     name: d.name ?? prev.name,
     sequence,
     topology,
@@ -641,6 +650,7 @@ function storedState(doc: SeqDocument): StoredState {
     methylation: { dam: doc.methylation.dam, dcm: doc.methylation.dcm },
     read: doc.read,
     ...(doc.styles.isEmpty ? {} : { styles: copyStyles(doc.styles.runs) }),
+    ...(doc.isProtein ? { alphabet: 'protein' as const } : {}),
   };
   stateCache.set(doc, state);
   return state;
@@ -657,6 +667,7 @@ function stateFrom(s: StoredState): SeqDocument {
     read: s.read,
     methylation: s.methylation,
     ...(s.styles === undefined ? {} : { styles: s.styles }),
+    ...(s.alphabet === undefined ? {} : { alphabet: s.alphabet }),
   });
   stateCache.set(doc, s);
   return doc;

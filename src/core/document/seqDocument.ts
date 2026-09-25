@@ -25,7 +25,14 @@ import {
   rangePieces,
   shiftPositionForDelete,
 } from '../range';
-import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
+import {
+  type Alphabet,
+  AlphabetMismatchError,
+  type SequenceText,
+  Rope,
+  assertValidResidues,
+  reverseComplement,
+} from '../sequence';
 import { type BaseStylePatch, BaseStyles, type StyleRun } from './baseStyles';
 import { type BluntMethod, type CaseMode, type EditOp, type FeaturePatch } from './editOp';
 import {
@@ -61,9 +68,15 @@ export interface SeqDocumentInit {
   readonly methylation?: HostMethylationState;
   /** How runs of bases are drawn (#89); see `baseStyles.ts`. */
   readonly styles?: BaseStyles | readonly StyleRun[];
+  /**
+   * Bases or amino-acid residues (#66); nucleotide by default. A protein is
+   * linear and has no ends.
+   */
+  readonly alphabet?: Alphabet;
 }
 
 interface SeqDocumentFields {
+  readonly alphabet: Alphabet;
   readonly name: string;
   readonly sequence: SequenceText;
   readonly topology: Topology;
@@ -84,6 +97,13 @@ interface SeqDocumentFields {
  * Coordinates: 0-based half-open unrolled ranges everywhere (see `Range`).
  */
 export class SeqDocument {
+  /**
+   * What the letters are (#66): the bases of DNA or RNA, or the residues of
+   * a protein. Fixed for the life of the document — no edit turns one into
+   * the other; translating a CDS makes a new document. A protein is always
+   * linear, with no ends, and what can be done to it is `tools.ts`'s to say.
+   */
+  readonly alphabet: Alphabet;
   readonly name: string;
   readonly sequence: SequenceText;
   readonly topology: Topology;
@@ -120,14 +140,18 @@ export class SeqDocument {
   readonly styles: BaseStyles;
 
   static create(init: SeqDocumentInit): SeqDocument {
+    const alphabet = init.alphabet ?? 'nucleotide';
     let sequence: SequenceText;
     if (typeof init.sequence === 'string') {
-      assertValidSequence(init.sequence);
+      assertValidResidues(init.sequence, alphabet);
       sequence = Rope.from(init.sequence);
     } else {
       sequence = init.sequence;
     }
     const topology = init.topology ?? 'linear';
+    if (alphabet === 'protein' && topology !== 'linear') {
+      throw new RangeError('A protein document is linear');
+    }
     const features =
       init.features instanceof FeatureSet ? init.features : FeatureSet.from(init.features ?? []);
     for (const f of features) validateFeature(f, sequence.length, topology);
@@ -138,12 +162,14 @@ export class SeqDocument {
         ? BaseStyles.from(init.styles.runs, sequence.length)
         : BaseStyles.from(init.styles ?? [], sequence.length);
     return new SeqDocument({
+      alphabet,
       name: init.name ?? 'Untitled',
       sequence,
       topology,
       features,
       metadata: { ...EMPTY_METADATA, ...init.metadata },
-      ends: normalizeEnds(init.ends, topology),
+      // A protein has an N and a C terminus, not overhangs.
+      ends: alphabet === 'protein' ? null : normalizeEnds(init.ends, topology),
       read,
       methylation: init.methylation ?? METHYLATED_HOST,
       styles,
@@ -151,6 +177,7 @@ export class SeqDocument {
   }
 
   private constructor(fields: SeqDocumentFields) {
+    this.alphabet = fields.alphabet;
     this.name = fields.name;
     this.sequence = fields.sequence;
     this.topology = fields.topology;
@@ -170,7 +197,12 @@ export class SeqDocument {
     return this.topology === 'circular';
   }
 
-  private with(patch: Partial<SeqDocumentFields>): SeqDocument {
+  /** Whether the letters are amino-acid residues rather than bases (#66). */
+  get isProtein(): boolean {
+    return this.alphabet === 'protein';
+  }
+
+  private with(patch: Partial<Omit<SeqDocumentFields, 'alphabet'>>): SeqDocument {
     const topology = patch.topology ?? this.topology;
     // `ends` is nullable, so an explicit null has to be told apart from "not
     // in the patch"; every other field can use ??.
@@ -178,6 +210,7 @@ export class SeqDocument {
     // New bases leave the read describing bases that are no longer there.
     const read = 'read' in patch ? patch.read : patch.sequence === undefined ? this.read : null;
     return new SeqDocument({
+      alphabet: this.alphabet,
       name: patch.name ?? this.name,
       sequence: patch.sequence ?? this.sequence,
       topology,
@@ -211,7 +244,8 @@ export class SeqDocument {
     for (const seg of feature.segments) {
       if (seg.kind === 'range') text += this.subsequence(seg);
     }
-    return feature.strand === 'reverse' ? reverseComplement(text) : text;
+    // A protein has one strand; a feature said to be on the other is read as it stands.
+    return feature.strand === 'reverse' && !this.isProtein ? reverseComplement(text) : text;
   }
 
   getFeature(id: FeatureId): Feature | undefined {
@@ -278,7 +312,7 @@ export class SeqDocument {
   /** Inserts `text` before the base at `position`. `text` must be valid IUPAC. */
   insert(position: number, text: string): SeqDocument {
     assertValidPosition(position, this.length, this.topology);
-    assertValidSequence(text);
+    assertValidResidues(text, this.alphabet);
     if (text.length === 0) return this;
     const p = normalizePosition(position, this.length, this.topology);
     const count = text.length;
@@ -344,7 +378,7 @@ export class SeqDocument {
    */
   replace(r: Range, text: string): SeqDocument {
     assertValidRange(r, this.length, this.topology);
-    assertValidSequence(text);
+    assertValidResidues(text, this.alphabet);
     const oldLen = rangeLength(r);
     const common = Math.min(oldLen, text.length);
     // Worked out before anything moves, and applied at the end: the steps
@@ -374,7 +408,10 @@ export class SeqDocument {
    */
   insertFragment(r: Range, fragment: SeqFragment): SeqDocument {
     assertValidRange(r, this.length, this.topology);
-    assertValidSequence(fragment.sequence);
+    if ((fragment.alphabet ?? 'nucleotide') !== this.alphabet) {
+      throw new AlphabetMismatchError(this.alphabet);
+    }
+    assertValidResidues(fragment.sequence, this.alphabet);
     const removed = this.delete(r);
     const p = removed.pastePosition(this, r);
     if (fragment.sequence.length === 0) return removed;
@@ -422,6 +459,7 @@ export class SeqDocument {
 
   /** Reverse-complements the whole sequence; features flip strand and position. */
   reverseComplement(): SeqDocument {
+    if (this.isProtein) throw new Error('A protein has no complement to turn over');
     const doc = this.onBottomStrand();
     const length = doc.length;
     return doc.with({
@@ -495,6 +533,7 @@ export class SeqDocument {
    */
   setTopology(topology: Topology): SeqDocument {
     if (topology === this.topology) return this;
+    if (this.isProtein) throw new Error('A protein document is linear');
     const length = this.length;
     if (topology === 'circular') {
       // Closing the molecule leaves no ends to describe; `with` drops them.
@@ -580,7 +619,10 @@ export class SeqDocument {
 
   /** Says where the DNA was grown, which decides what its methylation blocks. */
   setMethylation(methylation: HostMethylationState): SeqDocument {
-    return methylationEqual(methylation, this.methylation) ? this : this.with({ methylation });
+    // A protein is not methylated at GATC; there is nothing for it to say.
+    return this.isProtein || methylationEqual(methylation, this.methylation)
+      ? this
+      : this.with({ methylation });
   }
 
   /** Gives the document the qualities and trace of the read it is (or none). */
@@ -595,7 +637,8 @@ export class SeqDocument {
    * no enzyme, or any ends on a circular sequence, are stored as none.
    */
   setEnds(ends: DocumentEnds | null): SeqDocument {
-    const next = normalizeEnds(ends, this.topology);
+    // A protein has termini, not overhangs.
+    const next = this.isProtein ? null : normalizeEnds(ends, this.topology);
     return endsEqual(next, this.ends) ? this : this.with({ ends: next });
   }
 
