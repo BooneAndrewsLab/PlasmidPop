@@ -164,3 +164,7 @@ same citation in APA and BibTeX, read from `CITATION.cff`.
 ## Licence
 
 PlasmidPop is released under the [MIT License](LICENSE).
+
+The bundled data Detect features matches against is not code and comes with
+its own terms: the curated parts from NCBI records, and the fluorescent
+proteins from FPbase under CC BY-SA 4.0. See [DATA-LICENSES.md](DATA-LICENSES.md).

@@ -39,3 +39,6 @@ __pycache__/
 # Mutation testing (npm run mutate)
 reports/mutation
 .stryker-tmp
+
+# Records fetched by scripts/build-feature-db.mjs
+scripts/feature-db/.cache/
