@@ -17,6 +17,7 @@ import {
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
+import { copiesOnShelf } from '../shelfPieces';
 import { SIDEBAR_REACTIONS } from '../state/cloningReaction';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
@@ -57,9 +58,13 @@ function shelve(fragment: PartialFragment): void {
   editorStore.addToShelf(piece);
 }
 
+/** How long Add reads "Added ✓" after a click. */
+const ADDED_MS = 1500;
+
 function FragmentRow({
   fragment,
   seqLength,
+  onShelf,
   onSelect,
   onOpen,
   onHover,
@@ -67,13 +72,29 @@ function FragmentRow({
   /** `uncut` is the sites inside it a partial digest left uncut; 0 for a complete one. */
   readonly fragment: PartialFragment;
   readonly seqLength: number;
+  /** Copies of this piece on the shelf now (`copiesOnShelf`). */
+  readonly onShelf: number;
   readonly onSelect: () => void;
   readonly onOpen: () => void;
   /** Called with this row's id while the pointer is on it, null when it leaves. */
   readonly onHover: (hovered: boolean) => void;
 }) {
   const { uncut } = fragment;
+  // Cut short with an ellipsis when the sidebar is narrow; the title has it whole.
+  const range = `${describeRange(fragment, seqLength)}${uncut > 0 ? ` · ${String(uncut)} ${uncut === 1 ? 'site' : 'sites'} uncut` : ''}`;
   const names = [...new Set(fragment.features.map((f) => (f.name === '' ? f.type : f.name)))];
+  // A second copy is allowed (a tandem insert is a real assembly) but should
+  // be meant: the row says it is on the shelf, and the button says "again".
+  const [added, setAdded] = useState(false);
+  useEffect(() => {
+    if (!added) return;
+    const t = window.setTimeout(() => {
+      setAdded(false);
+    }, ADDED_MS);
+    return () => {
+      window.clearTimeout(t);
+    };
+  }, [added]);
   return (
     <li
       className="fragment"
@@ -99,20 +120,29 @@ function FragmentRow({
         >
           {fragment.sequence.length.toLocaleString()} bp
         </button>
-        <span className="fragment__range">
-          {describeRange(fragment, seqLength)}
-          {uncut > 0 ? ` · ${uncut} ${uncut === 1 ? 'site' : 'sites'} uncut` : ''}
+        <span className="fragment__range" title={range}>
+          {range}
         </span>
         <button
           type="button"
-          className="button button--quiet button--small fragment__add"
-          title="Put this fragment on the shelf, for the reactions on the Bench"
+          className={`button button--quiet button--small fragment__add${added ? ' fragment__add--done' : ''}`}
+          title={
+            onShelf > 0
+              ? 'Put another copy of this fragment on the shelf'
+              : 'Put this fragment on the shelf, for the reactions on the Bench'
+          }
           onClick={() => {
             shelve(fragment);
+            setAdded(true);
           }}
         >
-          Add
+          {added ? 'Added ✓' : onShelf > 0 ? 'Add again' : 'Add'}
         </button>
+        <span className="visually-hidden" aria-live="polite">
+          {added
+            ? `${fragment.sequence.length.toLocaleString()} bp fragment added to the shelf`
+            : ''}
+        </span>
         <button
           type="button"
           className="button button--quiet button--small"
@@ -126,6 +156,11 @@ function FragmentRow({
         <EndTag end={fragment.left} side="left" />
         <span className="fragment__bar" aria-hidden="true" />
         <EndTag end={fragment.right} side="right" />
+        {onShelf > 0 && (
+          <span className="fragment__shelved" title="Copies of this fragment on the shelf">
+            On shelf{onShelf > 1 ? ` ×${String(onShelf)}` : ''}
+          </span>
+        )}
       </div>
       {names.length > 0 && (
         <div className="fragment__features" title={names.join(', ')}>
@@ -193,6 +228,7 @@ export function CloningPanel({ doc }: Props) {
     sidebarReaction,
     documentId,
     previewActivated: activated,
+    shelf,
   } = useEditorState();
   const [hovered, setHovered] = useState<string | null>(null);
   const [partial, setPartial] = useRemembered('cloning.partial', documentId, false);
@@ -399,6 +435,7 @@ export function CloningPanel({ doc }: Props) {
                   key={fragmentId(f)}
                   fragment={f}
                   seqLength={doc.length}
+                  onShelf={copiesOnShelf(shelf, f)}
                   onSelect={() => {
                     editorStore.setSelection(f.range);
                     editorStore.revealPosition(f.range.start);

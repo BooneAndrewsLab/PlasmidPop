@@ -1,4 +1,4 @@
-import { type DragEvent, useState } from 'react';
+import { type DragEvent, useEffect, useRef, useState } from 'react';
 
 import { type DocumentState, editorStore, isDirty } from '../state/editorStore';
 import { PHONE_QUERY } from '../state/layout';
@@ -14,8 +14,17 @@ import { useMediaQuery } from './useMediaQuery';
  * always has. The phone reader has no Bench (item 49).
  */
 export function DocumentTabs() {
-  const { documents, documentId, front, shelf } = useEditorState();
+  const { documents, documentId, front, shelf, shelfUndo } = useEditorState();
   const phone = useMediaQuery(PHONE_QUERY);
+  // The count pulses when a part arrives, so an Add in the sidebar shows
+  // where it went (#81). A shelf restored at load has no undo step and is
+  // not an arrival; the pulse is a remount of the badge, keyed by this nonce.
+  const lastCount = useRef(shelf.length);
+  const [pulse, setPulse] = useState(0);
+  useEffect(() => {
+    if (shelf.length > lastCount.current && shelfUndo !== null) setPulse((n) => n + 1);
+    lastCount.current = shelf.length;
+  }, [shelf.length, shelfUndo]);
   // A tab being dragged to a new place (#33), and the gap it would drop into:
   // 0 before the first document tab, `documents.length` after the last.
   const [drag, setDrag] = useState<{ readonly id: string; readonly gap: number | null } | null>(
@@ -54,7 +63,8 @@ export function DocumentTabs() {
               Bench
               {shelf.length > 0 && (
                 <span
-                  className="doctabs__count"
+                  key={pulse}
+                  className={`doctabs__count${pulse > 0 ? ' doctabs__count--pulse' : ''}`}
                   aria-label={`, ${String(shelf.length)} ${shelf.length === 1 ? 'part' : 'parts'} on the shelf`}
                 >
                   {shelf.length}

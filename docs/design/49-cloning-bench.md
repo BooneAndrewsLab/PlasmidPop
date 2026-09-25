@@ -82,6 +82,16 @@ split follows:
   product there through a portal (`BenchProductSlot`), so it keeps working
   its product out itself and still renders alone in tests.
 - **No Bench on the phone reader**, which is for reading.
+- **Add says it worked, and that the piece is already there** (#81, user
+  feedback 2026-09-24). With the shelf on another tab an Add changed
+  nothing in sight, and a double click shelved a piece twice unnoticed. A
+  second copy stays allowed, since a tandem insert is a real assembly and
+  the shelf is a list, but it is made visible rather than refused: the row
+  says **On shelf ×n** and its button **Add again**, Add reads **Added ✓**
+  for 1.5 s (with a polite live region), and the Bench tab's count pulses
+  when a part arrives, not when a stored shelf is restored at load.
+  `copiesOnShelf` matches a part by source, range and the set of its
+  end enzymes, so a part turned over or dephosphorylated since still counts.
 
 ## Usage events
 

@@ -36,7 +36,12 @@ first, each with:
   or has a 5′ or 3′ overhang, and the overhang bases;
 - the **features** it carries;
 - **Add**, which puts it on the [shelf](#the-shelf), and **Open**,
-  which opens it as a document of its own.
+  which opens it as a document of its own. Add reads **Added ✓** for a
+  moment, and the Bench tab's count flashes. While the fragment is on the
+  shelf its row says **On shelf** (**On shelf ×2** for two copies, and so
+  on, counting a copy turned over or dephosphorylated on the Bench), and the
+  button reads **Add again**: a second copy is allowed, since a tandem
+  insert needs one, but it should be one you meant.
 
 An uncut linear molecule is one fragment with the ends the molecule already
 has; an uncut circular molecule gives nothing to work with.

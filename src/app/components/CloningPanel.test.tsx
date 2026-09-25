@@ -138,6 +138,53 @@ describe('CloningPanel', () => {
     expect(editorStore.getState().shelf).toHaveLength(2);
   });
 
+  it('says a fragment is on the shelf, how many times, and that Add worked (#81)', () => {
+    vi.useFakeTimers();
+    try {
+      setup();
+      const rows = () => screen.getAllByRole('listitem');
+      const row = (i: number) => {
+        const r = rows()[i];
+        if (r === undefined) throw new Error(`no fragment row ${String(i)}`);
+        return within(r);
+      };
+      expect(row(0).queryByText(/On shelf/)).toBeNull();
+
+      fireEvent.click(row(0).getByRole('button', { name: 'Add' }));
+      expect(row(0).getByRole('button', { name: 'Added ✓' })).toBeInTheDocument();
+      expect(row(0).getByText('On shelf')).toBeInTheDocument();
+      expect(row(0).getByText(/bp fragment added to the shelf/)).toBeInTheDocument();
+      // The other fragment is not on the shelf.
+      expect(row(1).queryByText(/On shelf/)).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(1500);
+      });
+      expect(row(0).getByRole('button', { name: 'Add again' })).toBeInTheDocument();
+      expect(row(0).queryByText(/fragment added to the shelf/)).toBeNull();
+
+      fireEvent.click(row(0).getByRole('button', { name: 'Add again' }));
+      expect(row(0).getByText('On shelf ×2')).toBeInTheDocument();
+      expect(editorStore.getState().shelf).toHaveLength(2);
+
+      // Taken off on the Bench, the count follows.
+      const first = editorStore.getState().shelf[0];
+      if (first === undefined) throw new Error('empty shelf');
+      act(() => {
+        editorStore.removeFromShelf(first.id);
+      });
+      expect(row(0).getByText('On shelf')).toBeInTheDocument();
+      act(() => {
+        editorStore.clearShelf();
+        vi.advanceTimersByTime(1500);
+      });
+      expect(row(0).queryByText(/On shelf/)).toBeNull();
+      expect(row(0).getByRole('button', { name: 'Add' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("ligates the ticked shelf parts in the shelf's order", () => {
     setup(true);
     for (const add of screen.getAllByRole('button', { name: 'Add' })) {

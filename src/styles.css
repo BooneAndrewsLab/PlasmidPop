@@ -1585,7 +1585,25 @@ button {
   }
 }
 
+/* A part arrived on the shelf: the Bench tab's count flashes once (#81). */
+.doctabs__count--pulse {
+  animation: doctabs-count-pulse 900ms ease-out;
+}
+
+@keyframes doctabs-count-pulse {
+  0%,
+  30% {
+    background: var(--accent);
+    color: var(--accent-ink);
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .doctabs__count--pulse,
   .statusbar__countdown-arc,
   .statusbar__error--fading {
     animation: none;
@@ -2743,6 +2761,8 @@ button {
 }
 
 .fragment__length {
+  flex: none;
+  white-space: nowrap;
   border: 0;
   padding: 0;
   background: none;
@@ -2759,12 +2779,35 @@ button {
 }
 
 .fragment__range {
+  min-width: 0;
+  overflow: hidden;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* One width for Add, Add again and Added ✓, so the row does not shift (#81). */
 .fragment__add {
+  flex: none;
+  min-width: 6.2em;
   margin-left: auto;
+}
+
+/* Copies of a listed fragment on the shelf, at the end of its ends line (#81). */
+.fragment__shelved {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.fragment__add--done {
+  color: var(--accent);
 }
 
 .fragment__ends {

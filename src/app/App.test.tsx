@@ -858,6 +858,9 @@ describe('document tabs', () => {
       });
     });
     expect(bench()).toHaveAccessibleName('Bench, 1 part on the shelf');
+    // A part arriving pulses the count, so an Add in the sidebar shows where it went (#81).
+    const count = () => bench().querySelector('.doctabs__count');
+    expect(count()).toHaveClass('doctabs__count--pulse');
     fireEvent.click(bench());
     expect(editorStore.getState().front).toBe('bench');
     expect(editorStore.document).toBeNull();
@@ -873,6 +876,33 @@ describe('document tabs', () => {
       editorStore.clearShelf();
     });
     expect(screen.queryByRole('tablist', { name: 'Open documents' })).not.toBeInTheDocument();
+  });
+
+  it('does not pulse the Bench count for a shelf restored at load (#81)', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.restoreShelf([
+        {
+          id: 'restored',
+          flipped: false,
+          fragment: {
+            sequence: 'ACGT',
+            features: [],
+            range: { start: 0, end: 4 },
+            left: { kind: 'blunt', overhang: '', enzyme: null },
+            right: { kind: 'blunt', overhang: '', enzyme: null },
+            source: 'SYNPBR322',
+          },
+        },
+      ]);
+    });
+    const bench = screen.getByRole('tab', { name: /^Bench/ });
+    expect(bench).toHaveAccessibleName('Bench, 1 part on the shelf');
+    expect(bench.querySelector('.doctabs__count')).not.toHaveClass('doctabs__count--pulse');
+    act(() => {
+      editorStore.clearShelf();
+    });
   });
 
   it("undoes the shelf's changes from the toolbar and with Ctrl+Z while the Bench is in front", () => {
