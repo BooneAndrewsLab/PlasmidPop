@@ -23,6 +23,11 @@ function parseFont(font: string): FontSpec {
   };
 }
 
+/** `text` made safe inside SVG text and attribute values. */
+export function escapeSvgText(text: string): string {
+  return esc(text);
+}
+
 function esc(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -269,6 +274,11 @@ export class SvgContext implements DrawingContext {
     const f = parseFont(this.font);
     if (/mono|menlo|consolas|courier/i.test(f.family)) return { width: text.length * f.size * 0.6 };
     return { width: textAdvance(text) * f.size };
+  }
+
+  /** The drawing alone, without an `<svg>` around it, to be placed in another (#30). */
+  body(): string {
+    return this.parts.join('');
   }
 
   toSvg(options: { readonly title?: string; readonly description?: string } = {}): string {

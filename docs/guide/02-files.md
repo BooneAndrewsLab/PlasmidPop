@@ -338,19 +338,36 @@ From the **File** menu:
 - **Export map as SVG**: the circular map as a standalone vector file for
   figures, with the cut sites of the enzymes ticked in the Enzymes tab —
   none of them while the toolbar's **Cut sites** toggle is off.
-- **Export sequence view as SVG**: the sequence rows as a vector file —
+- **Export sequence view as SVG…**: the sequence rows as a vector file —
   ruler, bases, features and cut sites, and a read's trace, laid out as on
   screen. It follows the
   **Complement**, **Translations** and **Cut sites** toggles, the **Edits**
   marks, the enzymes ticked in the Enzymes tab and the **Format** menu's
-  bases-per-row, complement numbering and base colours. With Format left at
-  "Fit the window" the file is written 60 bases to a row, so it does not
-  depend on the window width; the text size is always the export's own.
+  complement numbering and base colours; the text size is always the
+  export's own. A small dialog asks three things:
+  - **Whole sequence**, **Selection** (chosen for you when there is one,
+    and highlighted in the file) or **From–to**: two base numbers, counted
+    from 1 as the ruler counts, both included. On a circular sequence a
+    "to" before "from" runs through the origin — 4301 to 60 of a 4,361 bp
+    plasmid is its last 61 bases and then its first 60, drawn as two
+    stretches one under the other, each numbered as in the document. So
+    does a selection across the origin. The rows are whole rows, so the
+    first and last may hold a few bases either side of the range.
+  - **Bases per row**, 10 to 200: the Format menu's setting to start with,
+    or 60 when Format is left at "Fit the window", so the file does not
+    depend on the window width.
+  - **Split into A4 pages**: one SVG file per A4 page (210 × 297 mm, 15 mm
+    margins), as many whole rows to a page as fit, scaled down to the
+    page's width when the rows are wider and never scaled up. Each page's
+    foot names the document, the bases on it and the page number. The
+    dialog says how many pages it will be before you export; the pages
+    download one after another as `…_p01.svg`, `…_p02.svg` and so on, and
+    your browser may ask once whether the site may download several
+    files. At most 40 pages go at once (pBR322 is 9 at 60 bases a row):
+    choose a shorter range or more bases per row for more.
+
   Sequences longer than 100,000 bases are refused: export a range instead.
-- **Export selection view as SVG**: the same picture, cut down to the rows
-  that hold the selection and with the selection highlighted. Positions stay
-  those of the whole document. A selection that crosses the origin has no
-  contiguous rows, so the whole sequence is written instead.
+
 - **Export sequence as FASTA**.
 - **Export read as FASTQ**, for a document opened from an AB1 or FASTQ
   file: the bases with their qualities. Offered only while the bases are

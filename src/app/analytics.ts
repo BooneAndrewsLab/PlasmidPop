@@ -74,6 +74,11 @@ const EDIT_OPS: Readonly<Record<EditOp['type'], true>> = {
 export const EVENTS = {
   /** Once per visit: `start` (the version), `layout` (desktop/phone), `display` (browser/standalone). */
   app: ['start', 'layout', 'display'],
+  /**
+   * `export` is named by what was exported: `map-svg`, `sequence-svg`,
+   * `selection-svg`, `sequence-svg-pages` (on A4 pages, #30), `fasta`,
+   * `fastq`, `selection-genbank`, `selection-fasta`.
+   */
   file: ['open', 'open-failed', 'new', 'download', 'compare', 'export'],
   /**
    * Compare with…: `target` is what it was pointed at (`tab` or `file`),

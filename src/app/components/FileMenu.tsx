@@ -1,8 +1,8 @@
 import { analytics } from '../analytics';
-import { type ReactNode } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 
 import { type SeqDocument, extractRange, isEmptyRange } from '@/core';
-import { exportLinearSvg, exportMapSvg } from '@/view/svg';
+import { exportMapSvg } from '@/view/svg';
 
 import { EXAMPLES } from '../examples';
 import { openExample } from '../openFile';
@@ -12,6 +12,7 @@ import { editDiffOf } from '../state/editDiff';
 import { persistence } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { ExportSequenceDialog } from './ExportSequenceDialog';
 import { useMenu } from './useMenu';
 
 interface Props {
@@ -72,9 +73,13 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     colorBases,
     baseColors,
     trace: traceSize,
-    ...(seqBasesPerRow === null ? {} : { basesPerRow: seqBasesPerRow }),
   };
   const { open, toggle, close, ref } = useMenu();
+  /** The sequence-view export dialog (#30) is open. */
+  const [exporting, setExporting] = useState(false);
+  const closeExport = useCallback(() => {
+    setExporting(false);
+  }, []);
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const example = EXAMPLES[0];
 
@@ -187,44 +192,12 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Export map as SVG
           </Item>
           <Item
-            title="The sequence rows — ruler, strands, features — as a vector file"
+            title="The sequence rows — ruler, strands, features — as a vector file: all of them, the selection or a range, on A4 pages if you like"
             onClick={run(() => {
-              analytics.track('file', 'export', 'sequence-svg');
-              attempt(() => {
-                downloadText(
-                  `${stem}_sequence.svg`,
-                  exportLinearSvg(doc, {
-                    ...format,
-                    cutSites: editorStore.visibleCutSites(),
-                    edits: editDiffOf(editorStore.getState()),
-                  }),
-                );
-              });
+              setExporting(true);
             })}
           >
-            Export sequence view as SVG
-          </Item>
-          <Item
-            disabled={!hasSelection}
-            title="The rows holding the selection, with it highlighted"
-            onClick={run(() => {
-              if (selection === null) return;
-              analytics.track('file', 'export', 'selection-svg');
-              attempt(() => {
-                downloadText(
-                  `${stem}_selection.svg`,
-                  exportLinearSvg(doc, {
-                    ...format,
-                    range: selection,
-                    selection,
-                    cutSites: editorStore.visibleCutSites(),
-                    edits: editDiffOf(editorStore.getState()),
-                  }),
-                );
-              });
-            })}
-          >
-            Export selection view as SVG
+            Export sequence view as SVG…
           </Item>
           <Item
             onClick={run(() => {
@@ -297,6 +270,20 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Close
           </Item>
         </div>
+      )}
+      {exporting && (
+        <ExportSequenceDialog
+          doc={doc}
+          selection={selection}
+          basesPerRow={seqBasesPerRow}
+          format={{
+            ...format,
+            cutSites: editorStore.visibleCutSites(),
+            edits: editDiffOf(editorStore.getState()),
+          }}
+          stem={stem}
+          onClose={closeExport}
+        />
       )}
     </div>
   );

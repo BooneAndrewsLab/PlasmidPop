@@ -3,7 +3,12 @@ import { ENZYMES } from '@/core/analysis/restriction';
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
-import { exportLinearSvg } from './exportLinear';
+import {
+  A4_PAGE,
+  countLinearSvgPages,
+  exportLinearSvg,
+  exportLinearSvgPages,
+} from './exportLinear';
 import { exportMapSvg } from './exportMap';
 import { SvgContext } from './svgContext';
 
@@ -116,6 +121,11 @@ describe('exportLinearSvg', () => {
     return { doc };
   };
   const height = (svg: string): number => Number(/height="([\d.]+)"/.exec(svg)?.[1] ?? 0);
+  /** The position each row starts at, as its number in the gutter (the only right-aligned text). */
+  const rowNumbers = (svg: string): number[] =>
+    [...svg.matchAll(/text-anchor="end"[^>]*>([\d,]+)</g)].map((m) =>
+      Number((m[1] ?? '').replace(/,/g, '')),
+    );
 
   it('draws the whole sequence: bases, ruler, features, white paper', () => {
     const { doc } = plasmid();
@@ -147,10 +157,36 @@ describe('exportLinearSvg', () => {
     expect(part).toContain('fill="rgba(27, 110, 140, 0.18)"');
   });
 
-  it('falls back to the whole sequence for a range that wraps the origin', () => {
+  it('exports a range through the origin of a circle as its two stretches (#30)', () => {
     const { doc } = plasmid();
-    const wrapped = exportLinearSvg(doc, { range: { start: 4300, end: 4381 } });
-    expect(height(wrapped)).toBe(height(exportLinearSvg(doc)));
+    // Bases 4,301 to 20, 1-based: the last two rows, then the first.
+    const wrapped = exportLinearSvg(doc, { range: { start: 4300, end: 4361 + 20 } });
+    expect(rowNumbers(wrapped)).toEqual([4261, 4321, 1]);
+    expect(wrapped).toContain('bases 4,261–4,361, 1–60 of 4,361 bp');
+    expect(height(wrapped)).toBeLessThan(height(exportLinearSvg(doc)));
+    // Each stretch is drawn on its own, one under the other.
+    expect(wrapped.match(/<svg y="/g)).toHaveLength(2);
+  });
+
+  it('refuses a range through the origin of a linear sequence', () => {
+    const { doc } = plasmid();
+    const linear = doc.setTopology('linear');
+    expect(() => exportLinearSvg(linear, { range: { start: 4300, end: 4381 } })).toThrow(
+      /circular/,
+    );
+  });
+
+  it('lays the rows out at the bases per row asked for (#30)', () => {
+    const { doc } = plasmid();
+    const range = { start: 999, end: 2000 };
+    expect(rowNumbers(exportLinearSvg(doc, { range, basesPerRow: 100 }))).toEqual(
+      Array.from({ length: 11 }, (_, i) => 901 + i * 100),
+    );
+    expect(rowNumbers(exportLinearSvg(doc, { basesPerRow: 200 }))).toHaveLength(22);
+    expect(rowNumbers(exportLinearSvg(doc, { basesPerRow: 10, range }))).toHaveLength(101);
+    expect(exportLinearSvg(doc, { range, basesPerRow: 100 })).toContain(
+      'bases 901–2,000 of 4,361 bp',
+    );
   });
 
   it('honours complement, translations, cut sites, row width and transparency', () => {
@@ -183,5 +219,54 @@ describe('exportLinearSvg', () => {
     expect(height(svg)).toBeGreaterThan(
       height(exportLinearSvg(doc, { range: { start: 86, end: 200 } })),
     );
+  });
+});
+
+describe('exportLinearSvgPages (#30)', () => {
+  const doc = () => {
+    const d = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (d === undefined) throw new Error('fixture');
+    return d;
+  };
+  const rowNumbers = (svg: string): number[] =>
+    [...svg.matchAll(/text-anchor="end"[^>]*>([\d,]+)</g)].map((m) =>
+      Number((m[1] ?? '').replace(/,/g, '')),
+    );
+
+  it('splits the rows over A4 pages, every row once and in order', () => {
+    const d = doc();
+    const pages = exportLinearSvgPages(d);
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pages).toHaveLength(countLinearSvgPages(d));
+    for (const page of pages) {
+      expect(page).toMatch(/^<svg [^>]*width="210mm" height="297mm" viewBox="0 0 793.7 1122.52"/);
+    }
+    const rows = pages.flatMap(rowNumbers);
+    expect(rows).toEqual(Array.from({ length: 73 }, (_, i) => 1 + i * 60));
+    // Each page says what it holds.
+    expect(pages[0]).toContain('SYNPBR322 — bases 1–');
+    expect(pages[0]).toContain(`page 1 of ${pages.length}`);
+    expect(pages.at(-1)).toContain(`–4,361 of 4,361 bp — page ${pages.length} of ${pages.length}`);
+  });
+
+  it('fits the content inside the margins, scaled down to the width and never up', () => {
+    const d = doc();
+    const scaleOf = (svg: string): number => Number(/scale\(([\d.]+)\)/.exec(svg)?.[1] ?? 0);
+    expect(scaleOf(exportLinearSvgPages(d)[0] ?? '')).toBe(1);
+    const wide = exportLinearSvgPages(d, { basesPerRow: 200 });
+    const width = Number(/width="([\d.]+)"/.exec(exportLinearSvg(d, { basesPerRow: 200 }))?.[1]);
+    const fit = scaleOf(wide[0] ?? '');
+    expect(fit).toBeLessThan(1);
+    expect(width * fit).toBeLessThanOrEqual(A4_PAGE.width - 2 * A4_PAGE.margin + 0.01);
+    // Scaled down, 200-base rows take fewer pages than 60-base ones.
+    expect(wide.length).toBeLessThan(exportLinearSvgPages(d).length);
+  });
+
+  it('pages a range through the origin, and a short range on one page', () => {
+    const d = doc();
+    const pages = exportLinearSvgPages(d, { range: { start: 4300, end: 4361 + 20 } });
+    expect(pages).toHaveLength(1);
+    expect(rowNumbers(pages[0] ?? '')).toEqual([4261, 4321, 1]);
+    expect(pages[0]).toContain('bases 4,261–4,361, 1–60 of 4,361 bp — page 1 of 1');
   });
 });

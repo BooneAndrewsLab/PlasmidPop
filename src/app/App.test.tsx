@@ -679,8 +679,7 @@ describe('toolbar', () => {
       'Copy link to selection',
       'Compare with…Alt+K', // and the one that reads a file without opening it
       'Export map as SVG',
-      'Export sequence view as SVG',
-      'Export selection view as SVG',
+      'Export sequence view as SVG…',
       'Export sequence as FASTA',
       'Export selection as GenBank',
       'Export selection as FASTA',

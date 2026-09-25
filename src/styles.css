@@ -2309,6 +2309,31 @@ button {
   justify-self: start;
 }
 
+/* Export sequence view as SVG (#30): range, bases per row, pages. */
+.export-sequence {
+  display: grid;
+  gap: 12px;
+}
+
+.export-sequence > .segmented,
+.export-sequence > .panel__field,
+.export-sequence > .toggle {
+  justify-self: start;
+}
+
+.export-sequence__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.export-sequence__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
 .dialog__actions {
   display: flex;
   flex-wrap: wrap;
