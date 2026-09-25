@@ -131,6 +131,8 @@ function tVector(bases: string): SeqDocument {
   });
 }
 
+// The limits leave room for mutation testing, whose instrumented code runs
+// these many times slower than the ~1 s they take here.
 describe('Taq A-tailing, for random reactions', () => {
   it('is the proofreading product and an A, with a 3′ T left and a 3′ A right', () => {
     fc.assert(
@@ -162,7 +164,7 @@ describe('Taq A-tailing, for random reactions', () => {
       }),
       { numRuns: 150 },
     );
-  }, 10_000);
+  }, 60_000);
 
   it('ligates into a T-vector either way round, and nothing else does', () => {
     fc.assert(
@@ -200,7 +202,7 @@ describe('Taq A-tailing, for random reactions', () => {
       }),
       { numRuns: 100 },
     );
-  }, 10_000);
+  }, 60_000);
 
   it('A-tails a product that crosses the origin, and the whole plasmid', () => {
     const text = randomDna(seededRandom(101), 1500);

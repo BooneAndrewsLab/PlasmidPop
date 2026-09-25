@@ -32,7 +32,19 @@
     "src/io/fastq/fastq.ts",
     "src/io/share/link.ts",
     "src/storage/historyCodec.ts",
-    "src/storage/historyFormat.ts"
+    "src/storage/historyFormat.ts",
+    "src/core/primers/collection.ts",
+    "src/core/annotate/detect.ts",
+    "src/core/annotate/hits.ts",
+    "src/core/annotate/library.ts",
+    "src/io/ncbi/accession.ts",
+    "src/io/ncbi/efetch.ts",
+    "src/core/document/baseStyles.ts",
+    "src/io/genbank/baseStylesComment.ts",
+    "src/core/analysis/proteinProperties.ts",
+    "src/core/analysis/openAsProtein.ts",
+    "src/core/sequence/alphabet.ts",
+    "src/core/document/tools.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {

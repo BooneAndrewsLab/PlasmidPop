@@ -4,7 +4,10 @@ Done, 2026-09-24 (#77; `stryker.config.json`,
 `scripts/patch-stryker-vitest.mjs`). Stryker mutates the modules added in
 1.4, and since 1.6 the ones 1.6 added (the diff's feature pairing, the
 history and its stored form, the made-from lineage and its GenBank block,
-FASTQ, extracting a range, share links), and runs, for each mutant, the tests that cover it, to find code the
+FASTQ, extracting a range, share links), since 1.7 the ones 1.7 added
+(the primer collection, Detect features' matcher and library, the NCBI
+client, base styles and their GenBank block, protein properties, Open as
+protein, the alphabet and the tools it allows), and runs, for each mutant, the tests that cover it, to find code the
 tests reach but do not check.
 
 ## When it runs
