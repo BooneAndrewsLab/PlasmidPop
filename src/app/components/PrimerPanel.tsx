@@ -21,6 +21,8 @@ import { type OverlaySpan } from '@/view/overlay';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
+import { savePrimers } from '../state/primerCollection';
+import { PrimerCollection } from './PrimerCollection';
 import { PrimerSettings } from './PrimerSettings';
 
 interface Props {
@@ -141,6 +143,22 @@ export function PrimerPanel({ doc }: Props) {
    * that selection is theirs to keep.
    */
   const ownedSelection = useRef<Range | null>(null);
+  /** What the last save to My primers came to, said under the list it was saved from. */
+  const [saved, setSaved] = useState<{
+    readonly from: 'design' | 'check';
+    readonly text: string;
+  } | null>(null);
+  const save = (from: 'design' | 'check', drafts: Parameters<typeof savePrimers>[0]): void => {
+    void savePrimers(drafts, from).then((r) => {
+      setSaved({
+        from,
+        text:
+          r.added.length === 0
+            ? 'Already in My primers.'
+            : `Saved ${r.added.map((p) => p.name).join(' and ')} to My primers.`,
+      });
+    });
+  };
 
   const hasTarget = selection !== null && !isEmptyRange(selection);
   const report = useMemo(
@@ -300,11 +318,37 @@ export function PrimerPanel({ doc }: Props) {
                         >
                           Add both as features
                         </button>
+                        <button
+                          type="button"
+                          className="button button--quiet button--small"
+                          title="Keep both primers in My primers, in this browser"
+                          onClick={() => {
+                            const note = (tmValue: number, gc: number): string =>
+                              `Designed for ${doc.name} ${designedFor}; Tm ${tm(tmValue)}, GC ${pct(gc)}`;
+                            save('design', [
+                              {
+                                name: `${doc.name} fwd ${i + 1}`,
+                                sequence: p.forward.sequence,
+                                notes: note(p.forward.tm, p.forward.gc),
+                              },
+                              {
+                                name: `${doc.name} rev ${i + 1}`,
+                                sequence: p.reverse.sequence,
+                                notes: note(p.reverse.tm, p.reverse.gc),
+                              },
+                            ]);
+                          }}
+                        >
+                          Save both
+                        </button>
                       </span>
                     </div>
                   </li>
                 ))}
               </ol>
+            )}
+            {saved?.from === 'design' && (
+              <p className="panel__note panel__note--quiet">{saved.text}</p>
             )}
           </div>
         )}
@@ -397,9 +441,24 @@ export function PrimerPanel({ doc }: Props) {
                 Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind
               </button>
             )}
+            <button
+              type="button"
+              className="button button--quiet button--small"
+              title="Keep this primer in My primers, in this browser"
+              onClick={() => {
+                save('check', [{ name: '', sequence: report.sequence, notes: '' }]);
+              }}
+            >
+              Save to My primers
+            </button>
+            {saved?.from === 'check' && (
+              <p className="panel__note panel__note--quiet">{saved.text}</p>
+            )}
           </>
         )}
       </section>
+
+      <PrimerCollection doc={doc} />
     </div>
   );
 }

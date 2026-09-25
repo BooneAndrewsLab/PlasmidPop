@@ -134,7 +134,10 @@ Choose **PCR** in the picker and paste the two oligos, written 5′ to 3′ as
 you would order them. Nothing else is asked, because everything a designer
 decided is already in those two sequences. They stay in the boxes while you
 look at the digest, another sidebar tab or another document, and come back
-with this one; Mutate's change does the same.
+with this one; Mutate's change does the same. A primer from
+[My primers](10-primers.md#my-primers) can be put in a box from the Primers
+tab (**PCR fwd**, **PCR rev**); its name then shows beside the box and on the
+product's primer features, until you edit the bases.
 
 The template is the document in front of you. With more than one tab open,
 **Template** picks another one instead, so an insert can be amplified out of

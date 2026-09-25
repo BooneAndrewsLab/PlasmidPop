@@ -603,7 +603,7 @@ export interface DocumentPreview {
   readonly items: readonly OverlaySpan[];
 }
 
-export type PreviewOwner = 'primers' | 'find' | 'cloning' | 'pcr' | 'orfs';
+export type PreviewOwner = 'primers' | 'collection' | 'find' | 'cloning' | 'pcr' | 'orfs';
 
 /**
  * The previews for the document in front, put together for the views: each

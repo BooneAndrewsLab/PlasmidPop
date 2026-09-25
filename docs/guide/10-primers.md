@@ -1,7 +1,8 @@
 # Primers
 
-The **Primers** tab designs PCR primer pairs for a selected region and
-checks primers you already have.
+The **Primers** tab designs PCR primer pairs for a selected region, checks
+primers you already have, and keeps your own list of primers,
+[My primers](#my-primers), with where each of them binds on the document.
 
 Melting temperatures use the nearest-neighbour method (SantaLucia 1998,
 unified parameters) at 500 nM oligo and 50 mM monovalent salt. They are
@@ -29,6 +30,9 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
    (the primer sequence goes in a `/note`), so the sites are on the map and
    saved with the file. Unlike **Show**, this is an edit: it goes into the
    History and can be undone.
+6. **Save both** keeps the two primers in [My primers](#my-primers), named
+   after the document (`pUC19 fwd 1`, `pUC19 rev 1`), with the target, Tm
+   and GC content in their notes.
 
 If nothing qualifies, select more flanking sequence, look further from the
 selection, or loosen the settings.
@@ -85,7 +89,8 @@ mismatches are allowed elsewhere. Every site found is previewed in both
 views at once, so off-target binding is visible at a glance, and a site's
 mismatches are marked on its arrow at the bases they fall on. Each site also
 shows its strand, position and mismatch count in the list; click one to
-select it, or **Add sites as primer_bind** to annotate them all.
+select it, or **Add sites as primer_bind** to annotate them all. **Save to My
+primers** keeps the primer in [My primers](#my-primers).
 
 A **degenerate primer** — one with ambiguity codes, such as `NNK` for a codon
 library — is a mix of molecules, and the check says so: how many positions
@@ -106,3 +111,81 @@ for a cloning primer with a 5′ tail — a restriction site or a Gibson homolog
 arm matches the template nowhere. To amplify with such a primer, use
 [Cloning ▸ PCR](12-cloning.md#pcr), which anneals by the 3′ end and reports
 the rest as a tail.
+
+## My primers
+
+**My primers**, at the bottom of the Primers tab, is your own list of
+primers: a name, the bases and notes for each. It is kept in this browser's
+storage, beside the recent files, and like them it never leaves the browser
+except as a file you download. It is the same list whichever document is
+open.
+
+### Adding primers
+
+- **Add primers ▸ One primer**: a name, the bases (5′ to 3′, IUPAC codes
+  allowed) and notes. Without a name it is called `Primer 1`, `Primer 2` and
+  so on.
+- **Add primers ▸ Paste many**, then **Add pasted**, or **From a file…**,
+  reads a list in any of these shapes:
+  - FASTA: `>name notes` and the bases on the lines below;
+  - a table, as CSV, tab-separated (what a spreadsheet copies) or
+    semicolon-separated: with a header naming `name`, `sequence` and `notes`
+    columns in any order, or without one, when the column of bases is the
+    sequence, the first other column the name and the rest notes;
+  - one primer per line, the bases alone or after a name.
+
+  `5′-…-3′` and spaces between the bases are fine. Lines with no primer in
+  them are named in the report under the box. A primer already in the list
+  under the same name and with the same bases is left out rather than added
+  twice; the same bases under another name are added.
+
+- **Save both** under a designed pair, and **Save to My primers** under
+  **Check a primer**.
+- **From this document's primer_bind features** adds every `primer_bind`
+  feature of the open document, and **Save to My primers** in the feature
+  editor adds one. The oligo is taken from a `sequence:` note when the
+  feature has one (the Primers tab and SnapGene write one, and it holds a
+  5′ tail the template does not have), otherwise it is the bases under the
+  feature, read along its strand.
+
+**Edit** and **Delete** change one primer; **Delete all…** asks once more
+before emptying the list. Past eight primers a filter box finds them by name,
+notes or bases.
+
+### Finding where they bind
+
+Tick **Find my primers in** _the document_. Every primer of the list is
+searched on both strands and, on a circular sequence, through the origin, the
+way [PCR](12-cloning.md#pcr) anneals a primer: by its 3′ end. The last five
+bases must match exactly; before them up to two mismatches are allowed
+(**Mismatches** sets it, from none to three), and a site needs at least 15
+annealed bases. What does not anneal at the 5′ end is reported as a tail, so a
+cloning primer with a restriction site or a homology arm on it is found by the
+part that binds. Primers shorter than 15 bases are counted but not searched.
+
+Each site is listed with its strand, position, name, mismatches and tail,
+and every site is drawn on both views at once as a [preview](03-viewing.md#previews),
+mismatches marked on its arrow. The search runs again as you edit.
+
+- Click a site to select the bases it anneals to.
+- **Add** annotates one site as a `primer_bind` feature, with the whole
+  oligo in a `sequence:` note and the primer's notes after it; **Add all
+  sites as primer_bind** annotates every one. Either is one step in the
+  History, so a single **Undo** takes it back.
+- **PCR fwd** on a forward site, or **PCR rev** on a reverse one, puts the
+  primer in that slot of [Cloning ▸ PCR](12-cloning.md#pcr), under its own
+  name; the list's own **PCR fwd** and **PCR rev** buttons do the same for
+  any primer. A line under the sites says what PCR holds, and **Open PCR**
+  goes there. Editing the bases in PCR by hand drops the name.
+
+At most 200 sites are listed and drawn; a primer inside a repeat can bind
+many more.
+
+### Downloading the list
+
+**Download CSV** writes `primers.csv` (`name,sequence,notes`), which reads
+back exactly as it was. **Download FASTA** writes `primers.fasta`, one
+`>name notes` record per primer; a FASTA name ends at the first space, so
+spaces in a name become underscores. Either can be pasted or loaded back, in
+this browser or another. Download the list now and then: a browser can clear
+its storage (see [Files and storage](02-files.md#local-storage-and-recent-files)).

@@ -551,3 +551,20 @@ of the replayed edits and validating each state, the same work the edits
 did in the session; it runs once per restored tab.
 `historyCodec.timing.test.ts` keeps budgets on the keystroke (1 Mb, 100
 features) and the 10 kb decode.
+
+## Finding a primer collection (#64, item 56, 2026-09-25)
+
+500 primers of 18–30 nt, half from the template and a tenth with a 16 nt
+5′ tail, against a random circular template, single warm runs, Vitest on
+Node 24 (`collection.timing.test.ts`):
+
+| template | `findAnnealingSites` per primer, walking every base | with `buildAnnealIndex` |
+| -------- | --------------------------------------------------- | ----------------------- |
+| 10 kb    | 3,253 ms                                            | 163 ms                  |
+| 200 kb   | 78,440 ms                                           | 606 ms                  |
+
+The walk tries both strands at every base for every primer; the index of
+5-mers, built once per search, tries a primer only where its exact 3′
+anchor stands. What is left is mostly building the sites (a Tm each) and
+the lookups. It runs in the analysis worker. PCR, with two primers, still
+walks.

@@ -458,7 +458,9 @@ neither history is lost.)
 
 The view switcher and the Complement, Translations and Cut sites toggles are
 remembered in the same browser storage, see
-[Viewing and selecting](03-viewing.md).
+[Viewing and selecting](03-viewing.md). So is your primer list,
+[My primers](10-primers.md#my-primers), which leaves the browser only as a
+CSV or FASTA file you download.
 
 Local storage is per browser profile and per device. A browser may clear a
 site's storage when disk space runs low, so the first time a document is

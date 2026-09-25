@@ -8,6 +8,7 @@ import {
   LocationError,
   formatLocation,
   parseLocation,
+  primerFromFeature,
 } from '@/core';
 
 import {
@@ -19,6 +20,7 @@ import {
 } from '@/view/featureShape';
 
 import { editorStore } from '../state/editorStore';
+import { savePrimers } from '../state/primerCollection';
 
 const THICKNESS_LABELS: Readonly<Record<FeatureThickness, string>> = {
   thin: 'Thin',
@@ -87,6 +89,8 @@ export function FeatureEditor({ doc, feature }: Props) {
       .filter((q) => q.name !== THICKNESS_QUALIFIER),
   );
   const [nextKey, setNextKey] = useState(feature.qualifiers.length);
+  /** What saving a primer_bind feature to My primers came to (#64). */
+  const [savedPrimer, setSavedPrimer] = useState('');
 
   let locationError: string | null = null;
   let segments = feature.segments;
@@ -247,6 +251,27 @@ export function FeatureEditor({ doc, feature }: Props) {
           Add qualifier
         </button>
       </fieldset>
+      {feature.type === 'primer_bind' && (
+        <p className="panel__note panel__note--quiet">
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            title="Keep this primer in My primers, in this browser, as it is saved in the document"
+            onClick={() => {
+              const draft = primerFromFeature(doc, feature);
+              if (draft === null) return;
+              void savePrimers([draft], 'feature').then((r) => {
+                setSavedPrimer(
+                  r.added.length === 0 ? 'Already in My primers.' : 'Saved to My primers.',
+                );
+              });
+            }}
+          >
+            Save to My primers
+          </button>{' '}
+          {savedPrimer}
+        </p>
+      )}
       <div className="feature-editor__actions">
         <button type="submit" className="button button--primary button--small" disabled={!valid}>
           Save changes

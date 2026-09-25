@@ -2024,6 +2024,69 @@ button {
   gap: 6px;
 }
 
+/* My primers (#64): the collection, and where its primers bind. */
+.primer-list {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+  max-height: min(45vh, 420px);
+  overflow-y: auto;
+}
+
+.primer-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.primer-item__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.primer-item__meta {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.primer-item__seq,
+.primer-item__notes,
+.primer-item__buttons {
+  grid-column: 1 / -1;
+}
+
+.primer-item__notes {
+  color: var(--ink-3);
+}
+
+.primer-item__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.primer-item--editing {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.primer-collection__add .panel__field--stack {
+  gap: 4px;
+}
+
+.primer-collection__add .panel__field--stack > .button {
+  align-self: flex-start;
+}
+
+.hit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 2px;
+}
+
 /* The pair whose preview is being held in the views. */
 .pair--shown {
   border-left: 2px solid var(--seq-preview);
