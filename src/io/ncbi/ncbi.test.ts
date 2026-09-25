@@ -4,6 +4,7 @@ import { accessionKind, parseAccessions } from './accession';
 import {
   EFETCH_URL,
   MAX_RECORD_BP,
+  MAX_RESPONSE_BYTES,
   NcbiError,
   RETRY_AFTER_MS,
   efetchUrl,
@@ -364,5 +365,328 @@ describe('fetchRecords', () => {
     controller.abort();
     const e: unknown = await pending.catch((x: unknown) => x);
     expect(isAbort(e)).toBe(true);
+  });
+});
+
+/** A small GenBank record: one LOCUS line, its accession, a few bases. */
+function tiny(accession: string, length = 10, extra = ''): string {
+  return [
+    `LOCUS       ${accession}              ${length.toString()} bp    DNA     linear   SYN 01-JAN-2000`,
+    `ACCESSION   ${accession}`,
+    `VERSION     ${accession}.1`,
+    `${extra}ORIGIN`,
+    '        1 acgtacgtac',
+    '//',
+    '',
+  ].join('\n');
+}
+
+/** A Response whose body arrives in exactly these pieces. */
+function inPieces(...pieces: (string | Uint8Array)[]): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const p of pieces) controller.enqueue(typeof p === 'string' ? encoder.encode(p) : p);
+      controller.close();
+    },
+  });
+  return new Response(stream);
+}
+
+describe('NcbiError and isAbort', () => {
+  it('names its errors NcbiError', () => {
+    expect(new NcbiError('server', 'x').name).toBe('NcbiError');
+  });
+
+  it('takes only a DOMException named AbortError for a cancel', () => {
+    expect(isAbort(new DOMException('x', 'AbortError'))).toBe(true);
+    expect(isAbort(new DOMException('x', 'NetworkError'))).toBe(false);
+    const named = new Error('x');
+    named.name = 'AbortError';
+    expect(isAbort(named)).toBe(false);
+    expect(isAbort(new TypeError('Failed to fetch'))).toBe(false);
+  });
+});
+
+describe('recordIds, edge cases', () => {
+  it('reads only ACCESSION and VERSION lines, not the words inside other lines', () => {
+    const text = [
+      'LOCUS       X          10 bp    DNA     linear   SYN 01-JAN-2000',
+      'ACCESSION   ',
+      'VERSION     AB123456.1',
+      'COMMENT     Replaces',
+      '            ACCESSION   Z99999',
+    ].join('\n');
+    expect([...recordIds(text)]).toEqual(['AB123456.1']);
+  });
+});
+
+describe('fetchRecords, more answers', () => {
+  const waits: number[] = [];
+  const base = {
+    wait: (ms: number) => {
+      waits.push(ms);
+      return Promise.resolve();
+    },
+    online: () => true,
+  };
+
+  beforeEach(() => {
+    resetRequestGap();
+    waits.length = 0;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('sends exactly the accessions, no cookies, no referrer, no cache and no signal unasked', async () => {
+    const { fetch, calls } = mockFetch(inPieces(tiny('L09137')));
+    await fetchRecords('nucleotide', ['L09137'], { ...base, fetch });
+    expect(calls[0]?.[1]).toStrictEqual({
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      cache: 'no-store',
+    });
+  });
+
+  it('does not wait when the gap has just run out', async () => {
+    let clock = 1_000;
+    const now = () => clock;
+    await fetchRecords('nucleotide', ['L09137'], {
+      ...base,
+      now,
+      fetch: mockFetch(inPieces(tiny('L09137'))).fetch,
+    });
+    clock += 400;
+    await fetchRecords('nucleotide', ['L09137'], {
+      ...base,
+      now,
+      fetch: mockFetch(inPieces(tiny('L09137'))).fetch,
+    });
+    expect(waits).toEqual([]);
+  });
+
+  it.each([
+    ['no Retry-After', null, RETRY_AFTER_MS],
+    ['Retry-After: 0', '0', RETRY_AFTER_MS],
+    ['Retry-After: -1', '-1', RETRY_AFTER_MS],
+    ['Retry-After: Infinity', 'Infinity', RETRY_AFTER_MS],
+    ['an HTTP-date', 'Wed, 21 Oct 2026 07:28:00 GMT', RETRY_AFTER_MS],
+    ['Retry-After: 1', '1', 1_000],
+  ])('waits the usual pause after a 429 with %s', async (_label, header, expected) => {
+    const headers: Record<string, string> = header === null ? {} : { 'Retry-After': header };
+    const { fetch } = mockFetch(
+      new Response('', { status: 429, headers }),
+      inPieces(tiny('L09137')),
+    );
+    await fetchRecords('nucleotide', ['L09137'], { ...base, fetch });
+    expect(waits[0]).toBe(expected);
+  });
+
+  it('says in words that NCBI is limiting requests', async () => {
+    const limited = () => new Response('', { status: 429 });
+    const { fetch } = mockFetch(limited(), limited());
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'rate-limit',
+      message:
+        'NCBI is limiting requests from this address (3 a second without an API key). Wait a few seconds and try again.',
+    });
+  });
+
+  it('reads a 404 as no such record', async () => {
+    const { fetch } = mockFetch(new Response('', { status: 404 }));
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'not-found',
+      message: 'NCBI has no nucleotide record L09137.',
+    });
+  });
+
+  it('reads an empty answer as no such record', async () => {
+    const { fetch } = mockFetch(new Response('  \n'));
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'not-found',
+    });
+  });
+
+  it('says in words when the answer is not GenBank', async () => {
+    const { fetch } = mockFetch(new Response('<html>maintenance</html>'));
+    await expect(fetchRecords('nucleotide', ['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      message: 'NCBI sent something that is not a GenBank record.',
+    });
+  });
+
+  it('takes records after blank lines, and ones that mention an error or a LOCUS inside', async () => {
+    const extra = [
+      'COMMENT     Error-prone PCR was used; see',
+      '            LOCUS       NC_000913  20000000 bp for the parent.',
+      '',
+    ].join('\n');
+    const text = `\n\n${tiny('L09137', 10, extra)}`;
+    const { fetch } = mockFetch(inPieces(text));
+    const got = await fetchRecords('nucleotide', ['L09137'], { ...base, fetch });
+    expect(got).toEqual({ text, missing: [] });
+  });
+
+  it('matches an older version to the record NCBI sends', async () => {
+    const { fetch } = mockFetch(streamed(readFixture('L09137.gb')));
+    const got = await fetchRecords('nucleotide', ['L09137.1'], { ...base, fetch });
+    expect(got.missing).toEqual([]);
+  });
+
+  it('does not match an accession to one a character shorter', async () => {
+    // AAAA01000001 and AAAA010000011 are both WGS accessions.
+    const { fetch } = mockFetch(inPieces(tiny('AAAA01000001')));
+    const got = await fetchRecords('nucleotide', ['AAAA01000001', 'AAAA010000011'], {
+      ...base,
+      fetch,
+    });
+    expect(got.missing).toEqual(['AAAA010000011']);
+  });
+
+  it('decodes a character split between two pieces', async () => {
+    const text = tiny('L09137', 10, 'COMMENT     5 µg of plasmid, 37 °C.\n');
+    const bytes = new TextEncoder().encode(text);
+    const at = bytes.indexOf(0xb5); // the second byte of µ
+    const { fetch } = mockFetch(inPieces(bytes.slice(0, at), bytes.slice(at)));
+    const got = await fetchRecords('nucleotide', ['L09137'], { ...base, fetch });
+    expect(got.text).toBe(text);
+  });
+
+  it('turns a genome away when its LOCUS line is split between pieces', async () => {
+    const text = tiny('NC_000913', MAX_RECORD_BP + 1);
+    const at = text.indexOf('10000001') + 4;
+    const { fetch } = mockFetch(inPieces(text.slice(0, at), text.slice(at)));
+    await expect(
+      fetchRecords('nucleotide', ['NC_000913'], { ...base, fetch }),
+    ).rejects.toMatchObject({ kind: 'too-large' });
+  });
+
+  it('checks the lengths of an answer without a body stream too', async () => {
+    const answer = (text: string): Response =>
+      ({
+        status: 200,
+        ok: true,
+        headers: new Headers(),
+        body: null,
+        text: () => Promise.resolve(text),
+      }) as unknown as Response;
+    const small = mockFetch(answer(tiny('L09137')));
+    await expect(
+      fetchRecords('nucleotide', ['L09137'], { ...base, fetch: small.fetch }),
+    ).resolves.toEqual({ text: tiny('L09137'), missing: [] });
+    const genome = mockFetch(answer(tiny('NC_000913', MAX_RECORD_BP + 1)));
+    await expect(
+      fetchRecords('nucleotide', ['NC_000913'], { ...base, fetch: genome.fetch }),
+    ).rejects.toMatchObject({ kind: 'too-large' });
+  });
+
+  it('takes an answer of exactly the size limit, and refuses one byte more', async () => {
+    const head = new TextEncoder().encode(tiny('L09137'));
+    const exact = mockFetch(inPieces(head, new Uint8Array(MAX_RESPONSE_BYTES - head.length)));
+    const got = await fetchRecords('nucleotide', ['L09137'], { ...base, fetch: exact.fetch });
+    expect(got.text.length).toBe(MAX_RESPONSE_BYTES);
+    const over = mockFetch(inPieces(head, new Uint8Array(MAX_RESPONSE_BYTES - head.length + 1)));
+    await expect(
+      fetchRecords('nucleotide', ['L09137'], { ...base, fetch: over.fetch }),
+    ).rejects.toMatchObject({
+      kind: 'too-large',
+      message: 'The records come to more than 128 MB; open fewer at a time.',
+    });
+  });
+
+  it('stops reading when cancelled between pieces', async () => {
+    const controller = new AbortController();
+    const text = tiny('L09137');
+    const { fetch } = mockFetch(inPieces(text.slice(0, 20), text.slice(20)));
+    const e: unknown = await fetchRecords('nucleotide', ['L09137'], {
+      ...base,
+      fetch,
+      signal: controller.signal,
+      onProgress: () => {
+        controller.abort();
+      },
+    }).catch((x: unknown) => x);
+    expect(isAbort(e)).toBe(true);
+  });
+
+  it('asks the browser whether it is online when not told', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    const up = mockFetch(new TypeError('x'), new TypeError('x'));
+    await expect(
+      fetchRecords('nucleotide', ['L09137'], { wait: base.wait, fetch: up.fetch }),
+    ).rejects.toMatchObject({ kind: 'network' });
+    expect(up.calls).toHaveLength(2);
+    vi.stubGlobal('navigator', { onLine: false });
+    const down = mockFetch(new TypeError('x'));
+    await expect(
+      fetchRecords('nucleotide', ['L09137'], { wait: base.wait, fetch: down.fetch }),
+    ).rejects.toMatchObject({
+      kind: 'offline',
+      message: 'You are offline. Opening a record from NCBI needs a connection.',
+    });
+  });
+
+  describe('the wait between requests', () => {
+    /** Sends one request at time 1000, so the next must wait until 1400. */
+    async function afterOne(): Promise<void> {
+      await fetchRecords('nucleotide', ['L09137'], {
+        ...base,
+        now: () => 1_000,
+        fetch: mockFetch(inPieces(tiny('L09137'))).fetch,
+      });
+      vi.useFakeTimers();
+    }
+
+    it('lasts the rest of the gap', async () => {
+      await afterOne();
+      const { fetch, calls } = mockFetch(inPieces(tiny('L09137')));
+      const pending = fetchRecords('nucleotide', ['L09137'], {
+        online: base.online,
+        now: () => 1_000,
+        fetch,
+      });
+      await vi.advanceTimersByTimeAsync(399);
+      expect(calls).toHaveLength(0);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(calls).toHaveLength(1);
+      await expect(pending).resolves.toMatchObject({ missing: [] });
+    });
+
+    it('is cut short by a cancel, and nothing is sent', async () => {
+      await afterOne();
+      const controller = new AbortController();
+      const { fetch, calls } = mockFetch(inPieces(tiny('L09137')));
+      const pending = fetchRecords('nucleotide', ['L09137'], {
+        online: base.online,
+        now: () => 1_000,
+        fetch,
+        signal: controller.signal,
+      }).catch((x: unknown) => x);
+      await vi.advanceTimersByTimeAsync(100);
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(1_000);
+      const e = await pending;
+      expect(isAbort(e)).toBe(true);
+      expect((e as DOMException).message).toBe('The fetch was cancelled');
+      expect(calls).toHaveLength(0);
+    });
+
+    it('does not start when already cancelled', async () => {
+      await afterOne();
+      const controller = new AbortController();
+      controller.abort();
+      const { fetch, calls } = mockFetch(inPieces(tiny('L09137')));
+      const pending = fetchRecords('nucleotide', ['L09137'], {
+        online: base.online,
+        now: () => 1_000,
+        fetch,
+        signal: controller.signal,
+      }).catch((x: unknown) => x);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(isAbort(await pending)).toBe(true);
+      expect(calls).toHaveLength(0);
+    });
   });
 });
