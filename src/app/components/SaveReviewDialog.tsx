@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 
-import { isEmptyDiff } from '@/core';
+import { isUnchanged } from '@/core';
 import { supportsFileSystemAccess } from '@/storage';
 
 import { editDiffBetween } from '../state/editDiff';
+import { isCopyNameOf } from '../state/derive';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
@@ -52,7 +53,13 @@ export function SaveReviewDialog() {
   const picker = supportsFileSystemAccess();
   // Null both when the versions are identical and when nothing about them is
   // worth marking, so the body below has one case to handle rather than two.
-  const changes = diff === null || isEmptyDiff(diff) ? null : diff;
+  // The copy's own name ("pRev copy") is not a change of the user's (#31):
+  // it is what every working copy is called until it is renamed.
+  const ownName = isCopyNameOf(current.name, origin.doc.name);
+  const changes =
+    diff === null || isUnchanged(diff) || (ownName && isUnchanged({ ...diff, renamed: false }))
+      ? null
+      : diff;
   const report = (p: Promise<unknown>): void => {
     p.catch((e: unknown) => {
       editorStore.fail(e instanceof Error ? e.message : String(e));
@@ -82,7 +89,8 @@ export function SaveReviewDialog() {
         <div className="save-review">
           {changes === null ? (
             <p className="save-review__empty">
-              Nothing differs from {fileName}: the copy holds the same sequence, features and name.
+              Nothing differs from {fileName}: the copy holds the same sequence and features
+              {ownName ? ', under its own name' : ' and name'}.
             </p>
           ) : (
             <DiffReview doc={current} baseline={origin.doc} diff={changes} />

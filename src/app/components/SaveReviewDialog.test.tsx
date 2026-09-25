@@ -139,8 +139,9 @@ describe('SaveReviewDialog', () => {
       editorStore.undo();
     });
     const { container } = render(<SaveReviewDialog />);
-    expect(container.querySelector('.save-review__empty')?.textContent).toContain(
-      'Nothing differs',
+    // The copy's own name is not a change, but the note does not claim the name is the same.
+    expect(container.querySelector('.save-review__empty')?.textContent).toBe(
+      'Nothing differs from pRev.gb: the copy holds the same sequence and features, under its own name.',
     );
     expect(container.querySelectorAll('.diff-strip')).toHaveLength(0);
   });

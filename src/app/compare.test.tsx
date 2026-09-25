@@ -68,6 +68,21 @@ describe('Compare with…', () => {
     expect(dialog.textContent).toContain('Nothing differs');
   });
 
+  it('does not call a file the same when only its name differs', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    // The same record under another LOCUS name: no base or feature to mark.
+    const file = fileFromOpenDocument('renamed.gb', (text) =>
+      text.replace(/^LOCUS {7}\S+/m, 'LOCUS       pOTHER'),
+    );
+    await act(async () => {
+      await compareWithFile(file);
+    });
+    const dialog = await screen.findByRole('dialog', { name: /compared with/ });
+    expect(dialog.textContent).not.toContain('Nothing differs');
+    expect(dialog.textContent).toMatch(/Renamed from “pOTHER”/);
+  });
+
   it('lines a rotated plasmid up instead of calling it different throughout', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

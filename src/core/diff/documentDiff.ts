@@ -111,6 +111,15 @@ export function isEmptyDiff(diff: DocumentDiff): boolean {
 }
 
 /**
+ * True when the two versions are the same document: nothing to mark, and the
+ * same name and topology too. `isEmptyDiff` leaves those two out because no
+ * mark can show them; a review that says "nothing differs" must not.
+ */
+export function isUnchanged(diff: DocumentDiff): boolean {
+  return isEmptyDiff(diff) && !diff.renamed && !diff.topologyChanged;
+}
+
+/**
  * Compares `current` against `baseline`: the bases are diffed as text (so a
  * circular sequence whose origin moved reads as changed throughout, which is
  * what the views show), and features are matched by id — a feature counts as

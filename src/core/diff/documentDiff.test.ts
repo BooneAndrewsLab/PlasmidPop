@@ -3,7 +3,7 @@ import { readFixture } from '@/test/fixtures';
 
 import { SeqDocument } from '../document';
 import { createFeature, rangeSegment, siteSegment } from '../features';
-import { diffDocuments, isEmptyDiff, marksIn } from './documentDiff';
+import { diffDocuments, isEmptyDiff, isUnchanged, marksIn } from './documentDiff';
 
 const SEQ = 'ACGTTGCAAGGCTTAACCGG'; // 20 bases, all positions identifiable
 
@@ -85,6 +85,11 @@ describe('diffDocuments', () => {
     expect(diff.renamed).toBe(true);
     expect(diff.topologyChanged).toBe(true);
     expect(isEmptyDiff(diff)).toBe(true);
+    // Nothing to mark, but not the same document: a review must say so.
+    expect(isUnchanged(diff)).toBe(false);
+    expect(isUnchanged(diffDocuments(before, before.rename('other')))).toBe(false);
+    expect(isUnchanged(diffDocuments(before, before.setTopology('circular')))).toBe(false);
+    expect(isUnchanged(diffDocuments(before, before))).toBe(true);
   });
 
   it('marks the whole middle when the sequences are too different to follow', () => {

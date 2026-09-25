@@ -5,7 +5,7 @@ import {
   applyAlignment,
   diffDocuments,
   documentChecksum,
-  isEmptyDiff,
+  isUnchanged,
   isIdentityAlignment,
 } from '@/core';
 
@@ -79,7 +79,7 @@ export function CompareDialog() {
 
   if (comparison === null || current === null || other === null || file === null) return null;
   const { name, source } = comparison;
-  const changes = diff === null || isEmptyDiff(diff) ? null : diff;
+  const changes = diff === null || isUnchanged(diff) ? null : diff;
   const sameLength = other.length === current.length;
   const sameMolecule =
     checksums !== null && checksums.mine !== null && checksums.mine.text === checksums.theirs?.text;
