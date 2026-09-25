@@ -88,3 +88,35 @@ centre of gravity moved from the map to the list.
   attachment can be opened from a phone's mail app; hiding cut sites by
   default on a phone; and the phone pane is not remembered across a tab
   switch or a reload.
+
+## Follow-ups (#43, 2026-09-25)
+
+Four of the "not yet" list above, built for 1.6.
+
+- **Long-press to select** (`LinearSequenceView`). A finger that rests for
+  `LONG_PRESS_MS` (500 ms, the top of Android's own long-press range, so
+  a slow start to a scroll is not taken for a selection) without leaving
+  `TOUCH_SLOP` selects the base under it; dragging then extends the
+  selection base by base, the anchor base always included, and holding
+  within 40 px of the top or bottom edge scrolls on a frame at a time,
+  since a stretch can be longer than the screen and the finger cannot
+  scroll while it selects. Lifting offers **Copy _n_ bp** in a pill over
+  where the finger let go; it copies the bases as plain text through the
+  async clipboard (`copyFragment`, which also sets the last-copied
+  memory, so a paste back into the same tab keeps the features — the
+  async clipboard takes no custom types). The offer goes with any other
+  selection and after "Copied".
+  The gesture fight the first attempt was warned about is settled by
+  _when_ the view takes the drag, not by `touch-action`: that is read at
+  `touchstart`, so changing it once the press has fired would change the
+  next gesture, not this one. Instead a non-passive `touchmove` listener,
+  added by hand because React's touch listeners are passive, cancels the
+  move once — and only once — a long press has fired; before that a drag
+  is exactly the scroll it was, and a scroll's `pointercancel` or its first
+  move past the slop cancels the timer. `contextmenu` is prevented while a
+  finger is down (Android answers a long press with one) and the canvas
+  has `user-select: none` and `-webkit-touch-callout: none`. Decided by
+  `pointerType`, like the tap, so a tablet has it too. Tested in jsdom
+  with fake timers: the timer, the slop, the scroll that started first,
+  the cancelled `touchmove` before and after, the offer and the copy.
+  Counted as `phone / long-press-copy` when the button is used.

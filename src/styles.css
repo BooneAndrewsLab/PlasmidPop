@@ -3447,6 +3447,30 @@ button {
   touch-action: pan-x pan-y pinch-zoom;
 }
 
+/* A long press selects instead (#43): the canvas must not start the
+   browser's own text selection, magnifier or image callout under it. The
+   view cancels the touchmove once the press has fired. */
+.seq-view__canvas {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Copy, offered over a long-press selection where the finger let go. */
+.seq-view__copy {
+  position: absolute;
+  z-index: 2; /* above the sticky canvas */
+  min-height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 20px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
 @media (max-width: 600px) {
   .toolbar {
     padding: 6px 10px;

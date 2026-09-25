@@ -73,6 +73,12 @@ message arrived.
   feature, a tap on the bases puts the caret there. The bases are shown alone:
   the Complement and Translations toggles are not applied, since each one adds
   a line to every row.
+- To copy a stretch of sequence, **press and hold** on its first base for
+  half a second, until that base is selected, then **drag** to its last one
+  without lifting; holding near the top or bottom edge scrolls on. When you
+  lift, a **Copy** button over the selection copies its bases, ready to paste
+  into a message or another app. A quick drag is still a scroll and a quick
+  tap still a tap. A tablet does the same.
 - Tapping a row in a list takes you back to the view you were last in, with
   that feature selected. The Features list has no **Rename**, **Edit** or
   **Remove** on a phone, so a stray tap cannot turn a plasmid someone sent

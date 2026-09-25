@@ -96,6 +96,18 @@ export function copyText(text: string): void {
   });
 }
 
+/**
+ * Copies a fragment from a button, where there is no copy event to write
+ * into: the phone's long-press Copy (#43). The bases go out as plain text,
+ * which is what another app would paste; the async clipboard takes no
+ * custom types, so the features ride on the last-copied memory instead and
+ * a paste back into this tab still brings them.
+ */
+export function copyFragment(fragment: SeqFragment): void {
+  copyText(fragment.sequence);
+  lastCopied = fragment;
+}
+
 function copyBySelection(text: string): void {
   // execCommand is deprecated and typed as such, but it is the only copy
   // there is outside a secure context, and older browsers may lack it.

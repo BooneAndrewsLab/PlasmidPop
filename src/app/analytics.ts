@@ -158,6 +158,11 @@ export const EVENTS = {
   shortcut: ['use'],
   /** Which page of the guide was read. */
   help: ['page'],
+  /**
+   * The phone reader and touch (#43): `long-press-copy` is the Copy button
+   * a long-press selection offers, used; never how many bases.
+   */
+  phone: ['long-press-copy'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;

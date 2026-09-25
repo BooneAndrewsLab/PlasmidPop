@@ -12,6 +12,7 @@ import {
 import {
   type CdsTranslation,
   type Feature,
+  type Range,
   type SeqDocument,
   CdsTranslations,
   InvalidSequenceError,
@@ -47,7 +48,7 @@ import { drawableFeatures } from '@/view/visibleFeatures';
 import { detectFormat } from '@/io';
 
 import { analytics } from '../analytics';
-import { readClipboard, writeFragment } from '../clipboard';
+import { copyFragment, readClipboard, writeFragment } from '../clipboard';
 import {
   clampPosition,
   deleteBackward,
@@ -68,6 +69,16 @@ import { recallView, rememberView } from '../state/viewMemory';
 const REJECTED_INPUT_NOTICE_MS = 5000;
 /** How far a finger may drift and still have tapped rather than scrolled. */
 const TOUCH_SLOP = 10;
+/**
+ * How long a finger has to rest before it selects instead of scrolling
+ * (#43). Android's own long-press timeout is 400–500 ms; this is the upper
+ * end, so a slow start to a scroll is not taken for a selection.
+ */
+export const LONG_PRESS_MS = 500;
+/** How near the top or bottom edge a selecting finger scrolls the view. */
+const EDGE_SCROLL_PX = 40;
+/** How long the Copy button says "Copied" before it goes. */
+const COPIED_MS = 1200;
 
 /**
  * Follows the pointer even when it leaves the canvas mid-drag. Not every
@@ -158,6 +169,21 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const dragAnchor = useRef<number | null>(null);
   /** Where a finger came down; a tap is acted on when it lifts in place. */
   const touchTap = useRef<{ x: number; y: number } | null>(null);
+  /** The long press waiting to fire while that finger rests (#43). */
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * The base a long press landed on, while the finger that made it drags
+   * the selection; where that finger is now, for the edge scroll.
+   */
+  const touchSelect = useRef<{ anchor: number; clientX: number; clientY: number } | null>(null);
+  const edgeFrame = useRef<number | null>(null);
+  /** Copy, offered where a long-press selection was let go, over the bases it covers. */
+  const [copyOffer, setCopyOffer] = useState<{
+    readonly x: number;
+    readonly y: number;
+    readonly range: Range;
+    readonly copied: boolean;
+  } | null>(null);
   /** Codon drag on a translation line: the CDS being read and the codon it started on. */
   const codonDrag = useRef<{ translation: CdsTranslation; anchorIndex: number } | null>(null);
   /** Fixed end of the selection while extending with shift+arrows. */
@@ -294,6 +320,51 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     if (!visible) el.scrollTop = Math.max(0, row.top - metrics.topPadding);
   }, [reveal, layout, metrics.topPadding, returning]);
 
+  // A long-press selection takes the drag from the browser (#43). The only
+  // way to stop a touch scroll once `touch-action` has allowed it is to
+  // cancel the touchmove, and React's touch listeners are passive, so this
+  // one is added by hand. It cancels nothing until a long press has fired:
+  // before that a drag is the scroll it always was.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas === null) return;
+    const hold = (e: Event): void => {
+      if (touchSelect.current !== null && e.cancelable) e.preventDefault();
+    };
+    canvas.addEventListener('touchmove', hold, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchmove', hold);
+    };
+  }, []);
+
+  // A timer or a frame left running must not act on an unmounted view.
+  useEffect(
+    () => () => {
+      if (pressTimer.current !== null) clearTimeout(pressTimer.current);
+      if (edgeFrame.current !== null) cancelAnimationFrame(edgeFrame.current);
+    },
+    [],
+  );
+
+  // The offer is for the selection it was made over; any other hides it.
+  const offer =
+    copyOffer !== null &&
+    selection?.start === copyOffer.range.start &&
+    selection.end === copyOffer.range.end
+      ? copyOffer
+      : null;
+
+  // "Copied" is said for a moment, then the button goes.
+  useEffect(() => {
+    if (copyOffer?.copied !== true) return;
+    const timer = setTimeout(() => {
+      setCopyOffer(null);
+    }, COPIED_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [copyOffer]);
+
   // Draw.
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -356,9 +427,107 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     baseColors,
   ]);
 
-  const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    return { x: e.clientX - rect.left + scrollLeft, y: e.clientY - rect.top + scrollTop };
+  const pointAt = (
+    canvas: HTMLCanvasElement,
+    clientX: number,
+    clientY: number,
+  ): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    // The container's own scroll, not the state's: the edge scroll moves it
+    // between renders.
+    const el = containerRef.current;
+    const top = el?.scrollTop ?? scrollTop;
+    const left = el?.scrollLeft ?? scrollLeft;
+    return { x: clientX - rect.left + left, y: clientY - rect.top + top };
+  };
+
+  const docPoint = (e: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } =>
+    pointAt(e.currentTarget, e.clientX, e.clientY);
+
+  /**
+   * The base under a client point, with `y` pulled into the nearest row and
+   * `x` into it: a finger selecting holds on to the bases wherever it
+   * strays, onto a feature bar, the gutter or past the last row.
+   */
+  const baseAt = (clientX: number, clientY: number): number | null => {
+    const canvas = canvasRef.current;
+    if (canvas === null || doc.length === 0) return null;
+    const { x, y } = pointAt(canvas, clientX, clientY);
+    const row =
+      layout.rowAtY(y) ??
+      (y < metrics.topPadding ? layout.rows[0] : layout.rows[layout.rows.length - 1]);
+    if (row === undefined) return null;
+    const column = Math.floor((x - metrics.leftGutter) / metrics.charWidth);
+    return row.start + Math.min(row.end - row.start - 1, Math.max(0, column));
+  };
+
+  /** The bases from the long press's anchor to `base`, both included. */
+  const selectToBase = (anchorBase: number, base: number): void => {
+    editorStore.setSelection({
+      start: Math.min(anchorBase, base),
+      end: Math.max(anchorBase, base) + 1,
+    });
+  };
+
+  const cancelLongPress = (): void => {
+    if (pressTimer.current !== null) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+
+  const stopEdgeScroll = (): void => {
+    if (edgeFrame.current !== null) cancelAnimationFrame(edgeFrame.current);
+    edgeFrame.current = null;
+  };
+
+  /**
+   * A finger that has rested for `LONG_PRESS_MS`: select the base under it
+   * and take the drag from the browser, which until now owned it as a
+   * scroll. Nothing is taken earlier, so a scroll or a tap is exactly what
+   * it was before (item 15).
+   */
+  const startTouchSelect = (clientX: number, clientY: number, pointerId: number): void => {
+    pressTimer.current = null;
+    const base = baseAt(clientX, clientY);
+    if (base === null) return;
+    touchTap.current = null; // the lift ends the selection, it is not a tap
+    touchSelect.current = { anchor: base, clientX, clientY };
+    setCopyOffer(null);
+    try {
+      canvasRef.current?.setPointerCapture(pointerId);
+    } catch {
+      // As in `capturePointer`: the drag still works over the canvas.
+    }
+    selectToBase(base, base);
+    // A tick in the hand says the press was taken, where there is a motor.
+    try {
+      (navigator as { vibrate?: (pattern: number) => boolean }).vibrate?.(10);
+    } catch {
+      // Not everywhere, and not from every frame.
+    }
+  };
+
+  /**
+   * While a selecting finger is near the top or bottom edge, scroll that
+   * way a frame at a time and keep extending: the stretch wanted may be
+   * longer than a phone's screen, and the finger cannot scroll while it
+   * selects.
+   */
+  const edgeScroll = (): void => {
+    edgeFrame.current = null;
+    const el = containerRef.current;
+    const held = touchSelect.current;
+    if (el === null || held === null) return;
+    const rect = el.getBoundingClientRect();
+    const intoTop = rect.top + EDGE_SCROLL_PX - held.clientY;
+    const intoBottom = held.clientY - (rect.bottom - EDGE_SCROLL_PX);
+    const step = intoTop > 0 ? -intoTop : intoBottom > 0 ? intoBottom : 0;
+    if (step === 0 || rect.height <= 2 * EDGE_SCROLL_PX) return;
+    const before = el.scrollTop;
+    el.scrollTop = before + Math.round(step / 2);
+    if (el.scrollTop === before) return; // at the end already
+    const base = baseAt(held.clientX, held.clientY);
+    if (base !== null) selectToBase(held.anchor, base);
+    edgeFrame.current = requestAnimationFrame(edgeScroll);
   };
 
   /**
@@ -398,11 +567,18 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
 
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     if (e.button !== 0) return;
+    setCopyOffer(null);
     if (e.pointerType === 'touch') {
-      // A finger down is a scroll until it lifts in place. The browser owns
-      // the drag (`touch-action` on the canvas), so nothing is selected or
-      // captured here; `onPointerUp` acts on the tap.
+      // A finger down is a scroll until it lifts in place, or a selection
+      // once it has rested. The browser owns the drag (`touch-action` on the
+      // canvas), so nothing is selected or captured here; `onPointerUp`
+      // acts on the tap, the timer on the long press.
       touchTap.current = { x: e.clientX, y: e.clientY };
+      cancelLongPress();
+      const { clientX, clientY, pointerId } = e;
+      pressTimer.current = setTimeout(() => {
+        startTouchSelect(clientX, clientY, pointerId);
+      }, LONG_PRESS_MS);
       return;
     }
     press(e);
@@ -458,6 +634,19 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
+    const held = touchSelect.current;
+    if (held !== null) {
+      touchSelect.current = { ...held, clientX: e.clientX, clientY: e.clientY };
+      const base = baseAt(e.clientX, e.clientY);
+      if (base !== null) selectToBase(held.anchor, base);
+      edgeFrame.current ??= requestAnimationFrame(edgeScroll);
+      return;
+    }
+    const tap = touchTap.current;
+    // A finger that moves before the press has fired is a scroll.
+    if (tap !== null && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TOUCH_SLOP) {
+      cancelLongPress();
+    }
     const codon = codonDrag.current;
     if (codon !== null) {
       const hit = clampedHit(e);
@@ -480,6 +669,21 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
+    cancelLongPress();
+    const held = touchSelect.current;
+    if (held !== null) {
+      // The end of a long-press selection: offer to copy it, over where the
+      // finger let go, since a phone has no Ctrl+C and no menu to find it in.
+      touchSelect.current = null;
+      stopEdgeScroll();
+      releasePointer(e);
+      const range = editorStore.getState().selection;
+      if (range !== null && !isEmptyRange(range)) {
+        const { x, y } = docPoint(e);
+        setCopyOffer({ x, y, range, copied: false });
+      }
+      return;
+    }
     const tap = touchTap.current;
     touchTap.current = null;
     // A finger that lifted where it landed was a tap, not a scroll; a scroll
@@ -747,7 +951,32 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
           onPointerLeave={() => {
             setCursor('text');
           }}
+          onContextMenu={(e) => {
+            // A resting finger is ours: Android answers it with a context
+            // menu (and iOS with a callout) unless told not to.
+            if (touchTap.current !== null || touchSelect.current !== null) e.preventDefault();
+          }}
         />
+        {offer !== null && (
+          <button
+            type="button"
+            className="seq-view__copy"
+            style={{
+              left: Math.max(scrollLeft + 8, Math.min(offer.x - 36, scrollLeft + size.width - 88)),
+              top: Math.max(scrollTop + 8, offer.y - 64),
+            }}
+            onClick={() => {
+              if (offer.copied) return;
+              copyFragment(fragmentFromRange(doc, offer.range));
+              analytics.track('phone', 'long-press-copy');
+              setCopyOffer({ ...offer, copied: true });
+            }}
+          >
+            {offer.copied
+              ? 'Copied'
+              : `Copy ${(offer.range.end - offer.range.start).toLocaleString()} bp`}
+          </button>
+        )}
       </div>
     </div>
   );

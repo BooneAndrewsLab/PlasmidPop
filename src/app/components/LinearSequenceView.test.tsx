@@ -4,7 +4,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { SeqDocument } from '@/core';
 
 import { editorStore } from '../state/editorStore';
-import { LinearSequenceView } from './LinearSequenceView';
+import { LONG_PRESS_MS, LinearSequenceView } from './LinearSequenceView';
 
 /**
  * Without a canvas, `measureCharWidth` falls back to 8 px a character and the
@@ -162,5 +162,139 @@ describe('LinearSequenceView', () => {
     // bases further into the row.
     clickColumn(canvas, LEFT_GUTTER + 10 * CHAR_WIDTH);
     expect(editorStore.getState().selection).toEqual({ start: 20, end: 20 });
+  });
+  describe('long press (#43)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const column = (n: number): number => LEFT_GUTTER + n * CHAR_WIDTH + CHAR_WIDTH / 2;
+
+    it('selects the base under a finger that rests, and a drag then extends it', () => {
+      const { canvas } = setup();
+      fireEvent.pointerDown(canvas, touch(column(10)));
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS - 1);
+      });
+      // Not yet: a finger that has only just come down may be a scroll.
+      expect(editorStore.getState().selection).toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(editorStore.getState().selection).toEqual({ start: 10, end: 11 });
+      fireEvent.pointerMove(canvas, touch(column(24)));
+      expect(editorStore.getState().selection).toEqual({ start: 10, end: 25 });
+      // Back past where it began: the anchor base stays in.
+      fireEvent.pointerMove(canvas, touch(column(4)));
+      expect(editorStore.getState().selection).toEqual({ start: 4, end: 11 });
+      fireEvent.pointerUp(canvas, touch(column(4)));
+      // The lift is not a tap: the selection stays.
+      expect(editorStore.getState().selection).toEqual({ start: 4, end: 11 });
+    });
+
+    it('takes the drag from the browser only once the press has fired', () => {
+      const { canvas } = setup();
+      const touchmove = (): boolean => {
+        const e = new Event('touchmove', { cancelable: true });
+        canvas.dispatchEvent(e);
+        return e.defaultPrevented;
+      };
+      fireEvent.pointerDown(canvas, touch(column(10)));
+      expect(touchmove()).toBe(false); // still a scroll
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS);
+      });
+      expect(touchmove()).toBe(true);
+      fireEvent.pointerUp(canvas, touch(column(10)));
+      expect(touchmove()).toBe(false);
+    });
+
+    it('leaves a scroll that started before the press fired a scroll', () => {
+      const { canvas } = setup();
+      fireEvent.pointerDown(canvas, touch(column(10)));
+      fireEvent.pointerMove(canvas, touch(column(30)));
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS * 2);
+      });
+      expect(editorStore.getState().selection).toBeNull();
+      // And the browser taking it (a cancel) ends the wait as well.
+      fireEvent.pointerDown(canvas, touch(column(10)));
+      fireEvent.pointerCancel(canvas, touch(column(10)));
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS * 2);
+      });
+      expect(editorStore.getState().selection).toBeNull();
+    });
+
+    it('still fires for a finger that trembles within the slop', () => {
+      const { canvas } = setup();
+      fireEvent.pointerDown(canvas, touch(column(10)));
+      fireEvent.pointerMove(canvas, { ...touch(column(10)), clientY: 34 });
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS);
+      });
+      expect(editorStore.getState().selection).toEqual({ start: 10, end: 11 });
+    });
+
+    it('offers Copy where the finger let go, and copies the bases', () => {
+      const writeText = vi.fn(() => Promise.resolve());
+      const real = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+      try {
+        const { canvas, container } = setup();
+        fireEvent.pointerDown(canvas, touch(column(10)));
+        act(() => {
+          vi.advanceTimersByTime(LONG_PRESS_MS);
+        });
+        // Nothing is offered while the finger is still selecting.
+        expect(container.querySelector('.seq-view__copy')).toBeNull();
+        fireEvent.pointerMove(canvas, touch(column(17)));
+        fireEvent.pointerUp(canvas, touch(column(17)));
+        const button = container.querySelector('.seq-view__copy');
+        expect(button).toHaveTextContent('Copy 8 bp');
+        if (button === null) throw new Error('no button');
+        fireEvent.click(button);
+        expect(writeText).toHaveBeenCalledWith(doc.sequence.slice(10, 18));
+        expect(button).toHaveTextContent('Copied');
+        act(() => {
+          vi.advanceTimersByTime(2000);
+        });
+        expect(container.querySelector('.seq-view__copy')).toBeNull();
+      } finally {
+        if (real === undefined) delete (navigator as { clipboard?: Clipboard }).clipboard;
+        else Object.defineProperty(navigator, 'clipboard', real);
+      }
+    });
+
+    it('takes the offer away when the selection changes', () => {
+      const { canvas, container } = setup();
+      fireEvent.pointerDown(canvas, touch(column(10)));
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS);
+      });
+      fireEvent.pointerUp(canvas, touch(column(10)));
+      expect(container.querySelector('.seq-view__copy')).not.toBeNull();
+      act(() => {
+        editorStore.setSelection({ start: 0, end: 3 });
+      });
+      expect(container.querySelector('.seq-view__copy')).toBeNull();
+    });
+
+    it('leaves a quick tap a tap', () => {
+      const { canvas, container } = setup();
+      fireEvent.pointerDown(canvas, touch(LEFT_GUTTER + 10 * CHAR_WIDTH));
+      fireEvent.pointerUp(canvas, touch(LEFT_GUTTER + 10 * CHAR_WIDTH));
+      act(() => {
+        vi.advanceTimersByTime(LONG_PRESS_MS * 2);
+      });
+      expect(editorStore.getState().selection).toEqual({ start: 10, end: 10 });
+      expect(container.querySelector('.seq-view__copy')).toBeNull();
+    });
   });
 });
