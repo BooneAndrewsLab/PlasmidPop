@@ -4,7 +4,9 @@ import {
   BaseStyles,
   CLEAR_BASE_STYLE,
   type StyleRun,
+  isBaseSize,
   isBaseStyle,
+  isStyleColor,
   normalizeStyleColor,
 } from './baseStyles';
 import { describeEditOp } from './editOp';
@@ -99,6 +101,49 @@ describe('BaseStyles', () => {
     expect(() => BaseStyles.from([{ start: 0, end: 1, style: {} }], 10)).toThrow(RangeError);
     expect(BaseStyles.from([r(0, 5), r(5, 6)], 10).runs).toEqual([r(0, 6)]);
   });
+
+  it('refuses runs with a fractional edge or no bases, and says which', () => {
+    const r = (start: number, end: number): StyleRun => ({ start, end, style: RED });
+    expect(() => BaseStyles.from([r(0.5, 2)], 10)).toThrow(RangeError);
+    expect(() => BaseStyles.from([r(0, 1.5)], 10)).toThrow(RangeError);
+    expect(() => BaseStyles.from([r(3, 3)], 10)).toThrow('Base style 3..3 is not valid here');
+    expect(BaseStyles.from([], 10)).toBe(BaseStyles.EMPTY);
+  });
+
+  it('is EMPTY itself once every style is taken off', () => {
+    const s = BaseStyles.EMPTY.restyle(0, 10, RED);
+    expect(s.restyle(0, 10, CLEAR_BASE_STYLE)).toBe(BaseStyles.EMPTY);
+    expect(s.delete(0, 10)).toBe(BaseStyles.EMPTY);
+  });
+
+  it('gives back the same styles for an edit that moves nothing', () => {
+    const s = BaseStyles.EMPTY.restyle(2, 5, RED);
+    expect(s.restyle(3, 3, BOLD)).toBe(s);
+    expect(s.restyle(4, 3, BOLD)).toBe(s);
+    expect(s.insert(3, 0)).toBe(s);
+    expect(s.delete(3, 3)).toBe(s);
+    expect(s.delete(4, 3)).toBe(s);
+    expect(s.rotate(0, 10)).toBe(s);
+    expect(BaseStyles.EMPTY.insert(3, 2)).toBe(BaseStyles.EMPTY);
+    expect(BaseStyles.EMPTY.delete(0, 2)).toBe(BaseStyles.EMPTY);
+    expect(BaseStyles.EMPTY.rotate(3, 10)).toBe(BaseStyles.EMPTY);
+    expect(BaseStyles.EMPTY.reverse(10)).toBe(BaseStyles.EMPTY);
+  });
+
+  it('lists only the runs inside a stretch, not one that starts at its end', () => {
+    const s = BaseStyles.EMPTY.restyle(2, 4, RED).restyle(6, 8, BOLD).restyle(9, 10, RED);
+    expect(s.within(0, 5)).toEqual([{ start: 2, end: 4, style: RED }]);
+    expect(s.within(0, 6)).toEqual([{ start: 2, end: 4, style: RED }]);
+    expect(s.within(3, 7)).toEqual([
+      { start: 3, end: 4, style: RED },
+      { start: 6, end: 7, style: BOLD },
+    ]);
+    expect(s.slice(3, 7)).toEqual([
+      { start: 0, end: 1, style: RED },
+      { start: 3, end: 4, style: BOLD },
+    ]);
+    expect(s.within(4, 6)).toEqual([]);
+  });
 });
 
 describe('style values', () => {
@@ -114,6 +159,23 @@ describe('style values', () => {
     expect(isBaseStyle({ bold: false })).toBe(false);
     expect(isBaseStyle({ colour: '#ff0000' })).toBe(false);
     expect(isBaseStyle({})).toBe(false);
+    expect(isBaseStyle({ color: '#ff0000', colour: '#ff0000' })).toBe(false);
+    expect(isBaseStyle({ color: 'red' })).toBe(false);
+    expect(isBaseStyle({ highlight: 'red' })).toBe(false);
+    expect(isBaseStyle({ highlight: '#ffe066', bold: true })).toBe(true);
+    for (const notObject of [null, undefined, 'bold', 1.5, true])
+      expect(isBaseStyle(notObject)).toBe(false);
+    // A function is no style, whatever it carries.
+    expect(isBaseStyle(Object.assign(() => undefined, { bold: true }))).toBe(false);
+  });
+
+  it('knows the sizes and colours a style can hold', () => {
+    for (const size of [1.25, 1.5, 2]) expect(isBaseSize(size)).toBe(true);
+    for (const size of [1, 3, '1.5', null]) expect(isBaseSize(size)).toBe(false);
+    expect(isStyleColor('#d62728')).toBe(true);
+    for (const color of ['red', '#D62728', '#abc', 'x#d62728', ['#d62728'], null])
+      expect(isStyleColor(color)).toBe(false);
+    expect(normalizeStyleColor('x#abc')).toBeNull();
   });
 });
 
