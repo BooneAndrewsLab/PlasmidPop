@@ -1,6 +1,12 @@
 import { useSyncExternalStore } from 'react';
 
-import { type Feature, type SeqDocument, duplicatesExisting, featureFromHit } from '@/core';
+import {
+  type Feature,
+  type SeqDocument,
+  duplicatesExisting,
+  featureFromHit,
+  hasTool,
+} from '@/core';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 import { type Detection } from '@/workers/analysisProtocol';
 
@@ -186,6 +192,7 @@ export function detectOnOpen(documentId: string | null): void {
   if (documentId === null || !editorStore.getState().detectOnOpen) return;
   const doc = editorStore.documentState(documentId)?.history.present;
   if (doc === undefined || doc.length === 0 || hasOwnFeatures(doc)) return;
+  if (!hasTool(doc, 'detectFeatures')) return;
   void detectionStore.run(documentId, doc, true);
 }
 

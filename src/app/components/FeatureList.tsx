@@ -5,6 +5,7 @@ import {
   type SeqDocument,
   type TranslationProblem,
   formatLocation,
+  hasTool,
   isStaleTranslation,
   translationFor,
 } from '@/core';
@@ -162,17 +163,17 @@ export function FeatureList({ doc, reader = false }: Props) {
     if (typeof row?.scrollIntoView === 'function') row.scrollIntoView({ block: 'nearest' });
   }, [selectedId]);
 
+  // The library of parts is DNA, so a protein has nothing to look for (#66).
+  const detect = !reader && documentId !== null && hasTool(doc, 'detectFeatures');
   return (
     <aside className="features" aria-label="Features">
       <div className="features__header">
         <h2 className="features__title">
           Features <span className="features__count">{features.length}</span>
         </h2>
-        {!reader && documentId !== null && (
-          <DetectFeaturesButton documentId={documentId} doc={doc} />
-        )}
+        {detect && <DetectFeaturesButton documentId={documentId} doc={doc} />}
       </div>
-      {!reader && documentId !== null && <DetectFeaturesPanel documentId={documentId} doc={doc} />}
+      {detect && <DetectFeaturesPanel documentId={documentId} doc={doc} />}
       {features.length === 0 ? (
         <p className="features__empty">
           {reader

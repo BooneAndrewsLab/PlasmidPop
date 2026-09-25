@@ -144,5 +144,25 @@ describe('Detect features', () => {
     // A file with features of its own is left alone.
     const annotated = await openFile(new File([pBR322], 'pBR322.gb'));
     expect(detectionStore.get(annotated)).toBeNull();
+
+    // So is a protein: the parts are DNA (#66).
+    const protein = await openFile(
+      new File(
+        ['>bare protein\nMVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVK\n'],
+        'p.faa',
+      ),
+    );
+    expect(editorStore.documentState(protein)?.history.present.alphabet).toBe('protein');
+    expect(detectionStore.get(protein)).toBeNull();
+  });
+
+  it('is not offered on a protein', () => {
+    act(() => {
+      editorStore.openDocument(
+        SeqDocument.create({ name: 'p', sequence: 'MVHLTPEEKSAVTALWGKV', alphabet: 'protein' }),
+      );
+    });
+    render(<Tab />);
+    expect(screen.queryByRole('button', { name: 'Detect features' })).toBeNull();
   });
 });

@@ -24,6 +24,8 @@ export type DocumentTool =
   | 'cloning'
   /** Aligning sequencing reads to the document. */
   | 'align'
+  /** Detect features: the library of common parts is DNA (item 59). */
+  | 'detectFeatures'
   | 'reverseComplement'
   /** Making the molecule circular, setting its origin, and the circular map. */
   | 'circular'
@@ -43,6 +45,7 @@ const NUCLEOTIDE_TOOLS: ReadonlySet<DocumentTool> = new Set<DocumentTool>([
   'primers',
   'cloning',
   'align',
+  'detectFeatures',
   'reverseComplement',
   'circular',
   'ends',

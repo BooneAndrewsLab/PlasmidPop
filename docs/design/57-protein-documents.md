@@ -37,7 +37,7 @@ which a translated frame carries. In either case.
 
 `hasTool(doc, tool)` (`core/document/tools.ts`) lists what each alphabet has:
 complement, translations, enzymes, ORFs, translate, primers, cloning, align,
-reverse complement, circular (map, origin, topology), ends and methylation
+detect features (item 59), reverse complement, circular (map, origin, topology), ends and methylation
 for DNA; protein properties for a protein. Every control asks it: the
 sidebar's tabs (`sidebarTabsFor`, which the rail, `Alt+[`/`Alt+]` and the
 phone's detail tabs all use), the toolbar's view switcher and toggles, their
