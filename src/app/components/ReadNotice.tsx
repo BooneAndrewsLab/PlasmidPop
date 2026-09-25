@@ -32,7 +32,7 @@ export function ReadNotice() {
       <span className="copy-banner__text">
         {readNotice.kind === 'edited'
           ? 'That edit changed the bases, so the read’s qualities and trace no longer describe them and were set aside. Undo brings them back.'
-          : 'GenBank holds the bases and features, not the read’s qualities or trace; those stay with the document here in the browser.'}
+          : 'GenBank holds the bases and features, not the read’s qualities or trace; those stay with the document here in the browser. File ▸ Export read as FASTQ writes the bases with their qualities.'}
       </span>
       <button
         type="button"

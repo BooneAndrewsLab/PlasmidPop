@@ -2,14 +2,14 @@
 
 ## Formats
 
-| Format     | Extensions                             | Open | Download   |
-| ---------- | -------------------------------------- | ---- | ---------- |
-| GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape` | yes  | yes        |
-| FASTA      | `.fa` `.fasta` `.fna` `.seq` `.txt`    | yes  | export     |
-| SnapGene   | `.dna`                                 | yes  | no         |
-| AB1        | `.ab1` `.abi`                          | yes  | as GenBank |
-| FASTQ      | `.fastq` `.fq`, gzipped or not         | yes  | as GenBank |
-| Bare bases | `.txt`, or pasted                      | yes  | as GenBank |
+| Format     | Extensions                             | Open | Download             |
+| ---------- | -------------------------------------- | ---- | -------------------- |
+| GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape` | yes  | yes                  |
+| FASTA      | `.fa` `.fasta` `.fna` `.seq` `.txt`    | yes  | export               |
+| SnapGene   | `.dna`                                 | yes  | no                   |
+| AB1        | `.ab1` `.abi`                          | yes  | as GenBank, or FASTQ |
+| FASTQ      | `.fastq` `.fq`, gzipped or not         | yes  | as GenBank, or FASTQ |
+| Bare bases | `.txt`, or pasted                      | yes  | as GenBank           |
 
 The format is sniffed from the content first, so a GenBank record in a
 `.txt` file still opens as GenBank. If a file holds several records, the first
@@ -337,6 +337,9 @@ From the **File** menu:
   those of the whole document. A selection that crosses the origin has no
   contiguous rows, so the whole sequence is written instead.
 - **Export sequence as FASTA**.
+- **Export read as FASTQ**, for a document opened from an AB1 or FASTQ
+  file: the bases with their qualities. Offered only while the bases are
+  the read's; see [Downloading a read](15-reads.md#downloading-a-read).
 - **Export selection as GenBank** or **as FASTA**: just the selected bases,
   with the features that fall inside them trimmed to the selection. The
   selection may wrap the origin of a circular sequence.

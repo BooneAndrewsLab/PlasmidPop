@@ -8,6 +8,9 @@ import { gzipSync } from 'node:zlib';
 import { SeqDocument } from '@/core';
 import { PlasmidPopDb, DocumentRepository } from '@/storage';
 
+import { parseFastq } from '@/io';
+
+import { FileMenu } from './components/FileMenu';
 import { FormatMenu } from './components/FormatMenu';
 import { ReadNotice } from './components/ReadNotice';
 import { StatusBar } from './components/StatusBar';
@@ -132,6 +135,80 @@ describe('sequencing reads in the app', () => {
     expect(editorStore.getState().readNotice?.kind).toBe('downloaded');
     click.mockRestore();
     url.mockRestore();
+  });
+
+  describe('Export read as FASTQ (#58)', () => {
+    function openMenu(): void {
+      fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    }
+    function item(): HTMLElement | null {
+      return screen.queryByRole('menuitem', { name: 'Export read as FASTQ' });
+    }
+
+    it('downloads the read with its qualities, and reads back the same', async () => {
+      act(() => {
+        editorStore.openDocument(read, 'r1.fastq');
+      });
+      const names: string[] = [];
+      const blobs: Blob[] = [];
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+        this: HTMLAnchorElement,
+      ) {
+        names.push(this.download);
+      });
+      const url = vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => {
+        if (b instanceof Blob) blobs.push(b);
+        return 'blob:x';
+      });
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+      render(<FileMenu doc={read} onOpenFile={() => undefined} onCompare={() => undefined} />);
+      openMenu();
+      const exportItem = item();
+      expect(exportItem).toBeEnabled();
+      if (exportItem !== null) fireEvent.click(exportItem);
+      expect(names).toEqual(['r1.fastq']);
+      const text = (await blobs[0]?.text()) ?? '';
+      const back = parseFastq(text).documents[0];
+      expect(back?.sequence.toString()).toBe('ACGTACGTAC');
+      expect([...(back?.read?.qualities ?? [])]).toEqual([40, 40, 40, 40, 40, 40, 40, 40, 10, 10]);
+      click.mockRestore();
+      url.mockRestore();
+    });
+
+    it('is not offered for a document that never was a read', () => {
+      const plain = SeqDocument.create({ name: 'p', sequence: 'ACGT' });
+      act(() => {
+        editorStore.openDocument(plain, 'p.gb');
+      });
+      render(<FileMenu doc={plain} onOpenFile={() => undefined} onCompare={() => undefined} />);
+      openMenu();
+      expect(item()).toBeNull();
+    });
+
+    it('is disabled, saying why, once an edit has set the read aside, and back after undo', () => {
+      act(() => {
+        editorStore.openDocument(read, 'r1.fastq');
+        editorStore.apply({ type: 'insert', position: 2, text: 'T' });
+      });
+      const edited = editorStore.document ?? read;
+      const view = render(
+        <FileMenu doc={edited} onOpenFile={() => undefined} onCompare={() => undefined} />,
+      );
+      openMenu();
+      expect(item()).toBeDisabled();
+      expect(item()).toHaveAttribute('title', expect.stringMatching(/bases were edited/));
+      act(() => {
+        editorStore.undo();
+      });
+      view.rerender(
+        <FileMenu
+          doc={editorStore.document ?? read}
+          onOpenFile={() => undefined}
+          onCompare={() => undefined}
+        />,
+      );
+      expect(item()).toBeEnabled();
+    });
   });
 
   it('shows the share of Q20 bases in the status bar', () => {

@@ -1,7 +1,27 @@
-import { type SeqDocument } from '@/core';
-import { writeFasta, writeGenBank } from '@/io';
+import { type History, type SeqDocument } from '@/core';
+import { writeFasta, writeFastq, writeGenBank } from '@/io';
 
-export type SaveFormat = 'genbank' | 'fasta';
+/** What a document can be written as: FASTQ only while it has an intact read (#58). */
+export type SaveFormat = 'genbank' | 'fasta' | 'fastq';
+
+const EXTENSION: Readonly<Record<SaveFormat, string>> = {
+  genbank: 'gb',
+  fasta: 'fasta',
+  fastq: 'fastq',
+};
+
+/**
+ * Whether a document without a read was opened as one: some state of its
+ * undo history still has the read that an edit to the bases set aside, so
+ * the FASTQ export can say why it is not offered now rather than vanish.
+ */
+export function readSetAside(doc: SeqDocument, history: History<SeqDocument> | null): boolean {
+  if (doc.read !== null || history === null) return false;
+  for (let i = 0; i <= history.size; i++) {
+    if ((history.stateAt(i)?.read ?? null) !== null) return true;
+  }
+  return false;
+}
 
 /** A file-system-safe name for the document with the right extension. */
 export function fileNameFor(doc: SeqDocument, format: SaveFormat): string {
@@ -10,11 +30,18 @@ export function fileNameFor(doc: SeqDocument, format: SaveFormat): string {
       .trim()
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_') || 'Untitled';
-  return `${stem}.${format === 'genbank' ? 'gb' : 'fasta'}`;
+  return `${stem}.${EXTENSION[format]}`;
 }
 
 export function serialize(doc: SeqDocument, format: SaveFormat): string {
-  return format === 'genbank' ? writeGenBank(doc) : writeFasta(doc);
+  switch (format) {
+    case 'genbank':
+      return writeGenBank(doc);
+    case 'fasta':
+      return writeFasta(doc);
+    case 'fastq':
+      return writeFastq(doc);
+  }
 }
 
 /** Triggers a browser download of `text`. */

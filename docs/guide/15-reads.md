@@ -57,6 +57,18 @@ turned over with the bases.
 
 A download is GenBank, which has a place for the bases and features but not
 for qualities or a trace; a notice says so when you download a read.
+
+**File ▸ Export read as FASTQ** writes the read's bases with their
+qualities, as a FASTQ file (Phred + 33, the encoding every current tool
+reads) named after the document, for an assembler, a variant caller or
+another lab. It is a download, like every export; the file you opened is
+not touched. The trace has no place in FASTQ and is left out, and so are
+features. The export is there only while the read is as it came off the
+sequencer: once an edit has changed the bases, the qualities no longer
+describe them, so the menu item is greyed out and says why. **Undo** back
+to before the edit and it is offered again. A document that was never a
+read has no such item.
+
 **Export sequence view as SVG** (see [Exporting](02-files.md#exporting))
 draws the trace as it is shown. The
 read stays whole in the browser. A [share link](02-files.md#sharing-a-link)

@@ -7,7 +7,7 @@ import { exportLinearSvg, exportMapSvg } from '@/view/svg';
 import { EXAMPLES } from '../examples';
 import { openExample } from '../openFile';
 import { copyShareLink } from '../share';
-import { downloadText, fileNameFor, serialize } from '../saveFile';
+import { downloadText, fileNameFor, readSetAside, serialize } from '../saveFile';
 import { editDiffOf } from '../state/editDiff';
 import { persistence } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
@@ -58,6 +58,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     colorBases,
     traceSize,
     baseColors,
+    history,
   } = useEditorState();
   /**
    * The parts of the sequence view's format the export follows. The text
@@ -223,6 +224,29 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           >
             Export sequence as FASTA
           </Item>
+          {doc.read !== null ? (
+            <Item
+              title="The read's bases with their base qualities (Phred + 33), as a FASTQ file; the trace and features are left out"
+              onClick={run(() => {
+                analytics.track('file', 'export', 'fastq');
+                attempt(() => {
+                  downloadText(fileNameFor(doc, 'fastq'), serialize(doc, 'fastq'));
+                });
+              })}
+            >
+              Export read as FASTQ
+            </Item>
+          ) : (
+            readSetAside(doc, history) && (
+              <Item
+                disabled
+                title="The bases were edited since the read was opened, so its qualities no longer describe them. Undo back to the read to export it as FASTQ."
+                onClick={() => undefined}
+              >
+                Export read as FASTQ
+              </Item>
+            )
+          )}
           <Item
             disabled={!hasSelection}
             onClick={run(() => {

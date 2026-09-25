@@ -157,6 +157,29 @@ alongside it.
   (`finishReadAlignment`) moved out of the panel, so the usual way, this
   way and a batch (#59) share them.
 
+## Exporting a read as FASTQ (#58)
+
+- **Our own writer** (`writeFastq`, `io/fastq`): `@name description`, the
+  bases on one line, `+` alone, the qualities as Phred + 33 — what
+  `parseFastq` reads, the Sanger / Illumina 1.8+ encoding. Unwrapped, as
+  nearly every tool writes it and some insist on; the reader takes wrapped
+  records anyway. Qualities above 93 are written as 93, the last printable
+  character. The name's spaces become underscores, as in the FASTA
+  writer, since the first word is the id. Round-trip tested: a written read
+  reads back the same, and a file of several records read and written
+  record by record comes out byte for byte. No gzip: a Sanger read is a
+  kilobyte, and the platform's `CompressionStream` could be added if long
+  reads need it.
+- **Only while the read is intact.** `doc.read` is dropped by any edit that
+  changes the bases, so it being there is the test; the item is enabled
+  then. When it is gone but a state of the undo history still has it
+  (`readSetAside`), the item stays in the menu, disabled, with a title
+  saying the bases were edited and that Undo brings the read back — so it
+  does not simply vanish from where it was. A document that never was a
+  read has no item.
+- **Download-only** like every export (item 24), `file / export / fastq` in
+  the usage events. The GenBank download's notice now points to it.
+
 ## Long reads (#51)
 
 - **Banded, around anchors** (`core/alignment/banded.ts`). The read's
@@ -232,7 +255,7 @@ alongside it.
 
 #55 a toggle for the sequence view's trace; #56 a setting for the Q20
 threshold (done, above); #57 using the document's own read when it is the read (done, above); #58
-exporting a read as FASTQ; #59 aligning every record of a file as a batch.
+exporting a read as FASTQ (done, above); #59 aligning every record of a file as a batch.
 
 ## Found on the way
 
