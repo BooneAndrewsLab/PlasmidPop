@@ -28,6 +28,7 @@ import {
   finishReadAlignment,
   prepareReadAlignment,
   readRange,
+  suggestAlignMode,
 } from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -540,7 +541,11 @@ export function AlignPanel({ doc }: Props) {
   const [loaded, setLoaded] = useState<LoadedFile | null>(null);
   const [trim, setTrim] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<AlignmentMode>('global');
+  /**
+   * The mode picked by hand, kept while the panel is open whatever the box
+   * then holds; null until then, for the one `suggestAlignMode` gives (#86).
+   */
+  const [pickedMode, setPickedMode] = useState<AlignmentMode | null>(null);
   const [useSelection, setUseSelection] = useState(false);
   const [busy, setBusy] = useState(false);
   /** Fraction of the running alignment done; null until it first reports. */
@@ -628,17 +633,29 @@ export function AlignPanel({ doc }: Props) {
   /** The qualities the alignment will use, if any: the record's or the document's. */
   const readInUse = docIsRead ? docRead : (record?.read ?? null);
 
-  /** The document, or its selection, as the reference a read is aligned to. */
-  const documentReference = (): ReferenceInput => {
-    const target =
-      useSelection && selection !== null && hasSelection
-        ? selection
-        : { start: 0, end: doc.length };
+  const target =
+    useSelection && selection !== null && hasSelection ? selection : { start: 0, end: doc.length };
+  // Local for a read or a much shorter sequence, until a mode is picked (#86).
+  const suggested = docIsRead
+    ? suggestAlignMode({ length: doc.length, isRead: true }, record?.sequence.length ?? 0)
+    : record === undefined
+      ? suggestAlignMode({ length: 0, isRead: false }, 0)
+      : suggestAlignMode(
+          { length: record.sequence.length, isRead: record.read !== undefined },
+          target.end - target.start,
+        );
+  const mode = pickedMode ?? suggested.mode;
+
+  /**
+   * The document, or its selection, as the reference a read is aligned to;
+   * `local` when it may be aligned through the origin of a circle.
+   */
+  const documentReference = (local: boolean): ReferenceInput => {
     // A read of a circular plasmid may run through its origin: a local
     // alignment is made against the sequence with its start repeated after
     // its end, far enough for the read to fit (#51).
     const whole = target.start === 0 && target.end === doc.length;
-    const wrap = whole && doc.isCircular && mode === 'local' && doc.length > 1 ? doc.length : null;
+    const wrap = whole && doc.isCircular && local && doc.length > 1 ? doc.length : null;
     return { sequence: doc.subsequence(target), offset: target.start, wrap };
   };
 
@@ -664,8 +681,9 @@ export function AlignPanel({ doc }: Props) {
    */
   const runAll = (): void => {
     if (records.length > BATCH_LIMIT) return;
-    analytics.track('align', 'batch', mode);
-    const reference = documentReference();
+    analytics.track('align', 'batch', pickedMode ?? 'auto');
+    // Wrapping for the reads aligned locally; runReadBatch drops it for the rest.
+    const reference = documentReference(true);
     const controller = begin();
     setProgress(0);
     setResult(null);
@@ -677,7 +695,9 @@ export function AlignPanel({ doc }: Props) {
       (a, b, options, long) => analysisClient.alignEitherStrand(a, b, options, long),
       {
         // Banded whatever the size: the same answers, three to five times sooner.
-        options: { mode, fast: true },
+        options: { fast: true },
+        // Each read by the same rule as a single one, unless a mode was picked.
+        mode: pickedMode,
         trimCutoff: trim ? readTrimCutoff : null,
         onRow: (row) => {
           setBatch((b) => (b === null ? b : { ...b, rows: [...b.rows, row] }));
@@ -725,7 +745,7 @@ export function AlignPanel({ doc }: Props) {
         trim ? readTrimCutoff : null,
       );
     } else {
-      reference = documentReference();
+      reference = documentReference(mode === 'local');
       // A read's unreliable ends are trimmed off before it is aligned (#50).
       prepared = prepareReadAlignment(
         reference,
@@ -868,9 +888,10 @@ export function AlignPanel({ doc }: Props) {
         <label className="panel__field">
           <select
             className="panel__select"
+            aria-label="Alignment mode"
             value={mode}
             onChange={(e) => {
-              setMode(e.target.value as AlignmentMode);
+              setPickedMode(e.target.value as AlignmentMode);
             }}
           >
             <option value="global">Global (end to end)</option>
@@ -927,6 +948,12 @@ export function AlignPanel({ doc }: Props) {
           </button>
         )}
       </div>
+      {pickedMode === null && suggested.reason !== null && (
+        <p className="panel__note">
+          {`Local, since ${docIsRead ? 'this document' : 'the sequence in the box'} is ${suggested.reason}: Global would score it across the whole of the other. Choose Global to align end to end anyway.`}
+          {records.length > 1 ? ' Align all chooses for each record the same way.' : ''}
+        </p>
+      )}
       {anyReads && <QualitySettings trim={trim} />}
       {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
       {busy && progress !== null && (

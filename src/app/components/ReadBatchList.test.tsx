@@ -22,7 +22,7 @@ async function rows(): Promise<readonly BatchRow[]> {
     ],
     { sequence: reference, offset: 0, wrap: null },
     (a, b, options) => Promise.resolve(alignEitherStrand(a, b, options)),
-    { options: { mode: 'local' }, trimCutoff: null },
+    { options: {}, mode: 'local', trimCutoff: null },
   );
   return outcome.rows;
 }

@@ -1,4 +1,9 @@
-import { type AlignmentOptions, type StrandedAlignment, readDifferences } from '@/core';
+import {
+  type AlignmentMode,
+  type AlignmentOptions,
+  type StrandedAlignment,
+  readDifferences,
+} from '@/core';
 import { AnalysisCancelledError, type LongRequestOptions } from '@/workers/analysisClient';
 
 import {
@@ -8,6 +13,7 @@ import {
   alignedReferenceRange,
   finishReadAlignment,
   prepareReadAlignment,
+  suggestAlignMode,
 } from './readAlignment';
 
 /**
@@ -50,7 +56,13 @@ export type AlignRequest = (
 ) => Promise<StrandedAlignment>;
 
 export interface BatchOptions {
-  readonly options: AlignmentOptions;
+  /** Scoring and the like; the mode is `mode`. */
+  readonly options: Omit<AlignmentOptions, 'mode'>;
+  /**
+   * The mode every read is aligned in, as picked by hand, or null for each
+   * read's own by `suggestAlignMode`, as a single alignment starts in (#86).
+   */
+  readonly mode: AlignmentMode | null;
   /** Error rate to trim reads with qualities at, or null not to trim. */
   readonly trimCutoff: number | null;
   /** Told each row as it is done, in the records' order. */
@@ -67,7 +79,9 @@ export interface BatchOutcome {
 }
 
 /**
- * Aligns `reads` to `reference` in order. A record that cannot be aligned
+ * Aligns `reads` to `reference` in order. `reference.wrap`, set for the
+ * whole of a circle, is used by the reads aligned locally only: a global
+ * alignment runs end to end and never through the origin. A record that cannot be aligned
  * (nothing left after trimming, too large, a worker error) is a failed row
  * and the next one goes on; a cancel stops the batch and keeps what was
  * done. Throws only for more than `BATCH_LIMIT` reads.
@@ -76,7 +90,7 @@ export async function runReadBatch(
   reads: readonly BatchRead[],
   reference: ReferenceInput,
   align: AlignRequest,
-  { options, trimCutoff, onRow, onProgress, signal }: BatchOptions,
+  { options, mode, trimCutoff, onRow, onProgress, signal }: BatchOptions,
 ): Promise<BatchOutcome> {
   if (reads.length > BATCH_LIMIT) {
     throw new Error(`At most ${BATCH_LIMIT} reads are aligned at once; this has ${reads.length}`);
@@ -89,8 +103,14 @@ export async function runReadBatch(
     if (input === undefined) continue;
     const base = { index, name: input.name, length: input.sequence.length };
     let row: BatchRow;
+    const rowMode =
+      mode ??
+      suggestAlignMode(
+        { length: input.sequence.length, isRead: input.read !== null },
+        reference.sequence.length,
+      ).mode;
     const prepared = prepareReadAlignment(
-      reference,
+      rowMode === 'local' ? reference : { ...reference, wrap: null },
       input,
       input.read === null ? null : trimCutoff,
     );
@@ -99,16 +119,21 @@ export async function runReadBatch(
     } else {
       const { job } = prepared;
       try {
-        const best = await align(job.a, job.b, options, {
-          ...(onProgress === undefined
-            ? {}
-            : {
-                onProgress: (f: number) => {
-                  onProgress((index + f) / n);
-                },
-              }),
-          ...(signal === undefined ? {} : { signal }),
-        });
+        const best = await align(
+          job.a,
+          job.b,
+          { ...options, mode: rowMode },
+          {
+            ...(onProgress === undefined
+              ? {}
+              : {
+                  onProgress: (f: number) => {
+                    onProgress((index + f) / n);
+                  },
+                }),
+            ...(signal === undefined ? {} : { signal }),
+          },
+        );
         row = { ...base, status: 'aligned', result: finishReadAlignment(job, best) };
       } catch (e: unknown) {
         if (e instanceof AnalysisCancelledError) return { rows, cancelled: true };

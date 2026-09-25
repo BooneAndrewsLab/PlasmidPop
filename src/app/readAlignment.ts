@@ -1,5 +1,6 @@
 import {
   type Alignment,
+  type AlignmentMode,
   type Range,
   type SequencingRead,
   type StrandedAlignment,
@@ -175,4 +176,32 @@ export function alignedReferenceRange(result: ReadAlignment): Range | null {
     start + (result.wrap ?? Number.POSITIVE_INFINITY),
   );
   return end > start ? { start, end } : null;
+}
+
+/** The mode an alignment starts in, and why when it is not the usual Global. */
+export interface SuggestedMode {
+  readonly mode: AlignmentMode;
+  /** Why Local, to follow "it is …" by the mode select; null for Global. */
+  readonly reason: string | null;
+}
+
+/**
+ * The mode to align `query` to a reference of `referenceLength` in, until
+ * the user picks one (#86). Global scores a read across the whole of a
+ * plasmid it covers a sixth of: a perfect 750 bp read against a 4.4 kb
+ * plasmid came out at 17% identity. So a read (a sequence with qualities)
+ * and a sequence under half the reference's length start in Local; the
+ * rest in Global, the end-to-end comparison of two versions of one thing.
+ */
+export function suggestAlignMode(
+  query: { readonly length: number; readonly isRead: boolean },
+  referenceLength: number,
+): SuggestedMode {
+  if (query.isRead) {
+    return { mode: 'local', reason: 'a read' };
+  }
+  if (query.length > 0 && query.length * 2 < referenceLength) {
+    return { mode: 'local', reason: 'under half the length of what it is aligned to' };
+  }
+  return { mode: 'global', reason: null };
 }

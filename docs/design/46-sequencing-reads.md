@@ -223,6 +223,39 @@ alongside it.
   the differences, trace and "Select aligned region" are the same.
 - **Usage**: `align / batch`, named by the mode; never how many reads.
 
+## Local by default for a read (#86)
+
+Checking #59 showed every row of a plate at 17% identity: Global, the
+default, scored each 750 bp read end to end across a 4.4 kb plasmid, with
+~3,600 differences and "covers 1–4,361", for reads that matched perfectly.
+Local gave 100%.
+
+- **The rule** (`suggestAlignMode`, `app/readAlignment.ts`): a read (a
+  sequence with qualities, the box's or the document's own, #57) or a
+  sequence under half the length of what it is aligned to (the document,
+  its selection, or the box's reference) starts in Local; anything else in
+  Global, which stays the right comparison of two versions of one thing.
+  Half is where Global stops being a plausible reading of "the same
+  sequence"; a read is Local whatever its length, since its ends are where
+  it is least like the reference.
+- **Said, and overridden once.** While the mode follows the rule, a note
+  under the controls says why ("Local, since the sequence in the box is a
+  read…"). Choosing a mode in the select is kept for as long as the panel is
+  open, whatever is then typed or dropped in the box: the panel holds a
+  picked mode or none, never flips a picked one back, and while none is
+  picked the select follows the box, so pasting a plasmid after a read
+  shows Global again. The panel is remounted when the Align tab is left,
+  which is where the pick ends.
+- **The batch by the same rule.** `runReadBatch` takes `mode: null` for
+  "each read's own": a plate of Sanger reads goes Local, and a record as
+  long as the plasmid Global, row by row. A picked mode applies to every
+  row. The reference comes with its wrap (the whole of a circle) and a row
+  aligned globally drops it, as a single global alignment never wraps.
+- **Usage**: `align / batch` is named `auto` when no mode was picked.
+- Not done: a warning on Global when the lengths differ a lot. With the
+  default Local for exactly those cases, Global now only runs when chosen
+  by hand, and the result's "covers" line already shows the whole span.
+
 ## Long reads (#51)
 
 - **Banded, around anchors** (`core/alignment/banded.ts`). The read's

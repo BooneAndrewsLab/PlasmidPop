@@ -16,7 +16,12 @@ design.
 3. Choose **Global (end to end)** to align the whole of both sequences
    (Needleman–Wunsch), or **Local (best region)** to find the best-matching
    stretch (Smith–Waterman). Local is the right choice for a read against a
-   plasmid.
+   plasmid, and is chosen for you when the box holds a read (a file with
+   base qualities) or a sequence under half as long as what it is aligned
+   to; the note under the controls says so. Global would score such a
+   sequence across the whole of the plasmid and report a perfect read at
+   17% identity. A mode you choose yourself stays chosen while the Align
+   tab is open, whatever you then put in the box.
 4. Tick **Against selection only** to align against the selected part of
    the document instead of all of it.
 5. Click **Align**. Both orientations of the other sequence are considered
@@ -38,9 +43,11 @@ all at once — the usual way to check a batch of clones.
 
 1. Drop the file on the box, or click **Choose file…**. The note under the
    box says how many records it has.
-2. Choose **Local (best region)** for reads against a plasmid, and tick
-   **Against selection only** if the reads should be looked for in part of
-   the document only.
+2. Leave the mode as it is, and each record is aligned in the mode it
+   would get on its own: Local for a read or anything under half the
+   document's length, Global otherwise. A mode you choose is used for every
+   record. Tick **Against selection only** if the reads should be looked
+   for in part of the document only.
 3. Click **Align all**. Each record is aligned against the document in turn,
    in the background; the bar counts reads (**12 of 96**) and **Cancel**
    stops the batch, keeping the reads already aligned. Leaving the Align tab

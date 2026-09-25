@@ -32,7 +32,8 @@ describe('runReadBatch (#59)', () => {
     const told: string[] = [];
     const progress: number[] = [];
     const { rows, cancelled } = await runReadBatch(reads, ref, inline, {
-      options: { mode: 'local' },
+      options: {},
+      mode: 'local',
       trimCutoff: 0.05,
       onRow: (r) => told.push(r.name),
       onProgress: (f) => progress.push(f),
@@ -70,7 +71,8 @@ describe('runReadBatch (#59)', () => {
       ref,
       flaky,
       {
-        options: { mode: 'local' },
+        options: {},
+        mode: 'local',
         trimCutoff: 0.05,
       },
     );
@@ -92,7 +94,8 @@ describe('runReadBatch (#59)', () => {
     };
     const told: BatchRow[] = [];
     const outcome = await runReadBatch(reads, ref, stopping, {
-      options: { mode: 'local' },
+      options: {},
+      mode: 'local',
       trimCutoff: null,
       signal: controller.signal,
       onRow: (r) => told.push(r),
@@ -111,6 +114,7 @@ describe('runReadBatch (#59)', () => {
     };
     await runReadBatch(reads.slice(0, 1), ref, spy, {
       options: {},
+      mode: null,
       trimCutoff: null,
       signal: controller.signal,
     });
@@ -118,10 +122,52 @@ describe('runReadBatch (#59)', () => {
     controller.abort();
     const outcome = await runReadBatch(reads, ref, spy, {
       options: {},
+      mode: null,
       trimCutoff: null,
       signal: controller.signal,
     });
     expect(outcome).toEqual({ rows: [], cancelled: true });
+  });
+
+  it('aligns each read in its own mode when none was picked, as a single one starts (#86)', async () => {
+    const modes: (string | undefined)[] = [];
+    const wraps: string[] = [];
+    const spy: AlignRequest = (a, b, options, long) => {
+      modes.push(options.mode);
+      wraps.push(a === circle ? 'plain' : 'wrapped');
+      return inline(a, b, options, long);
+    };
+    const circle = reference;
+    const onCircle = { sequence: circle, offset: 0, wrap: circle.length };
+    const whole: BatchRead = { name: 'whole', sequence: circle, read: null };
+    const short: BatchRead = { name: 'short', sequence: circle.slice(5, 25), read: null };
+    const read: BatchRead = {
+      name: 'read',
+      sequence: circle.slice(0, 40),
+      read: { qualities: new Uint8Array(40).fill(40), trace: null },
+    };
+    const { rows } = await runReadBatch([whole, short, read], onCircle, spy, {
+      options: {},
+      mode: null,
+      trimCutoff: null,
+    });
+    expect(modes).toEqual(['global', 'local', 'local']);
+    // A global alignment is not made through the origin; a local one may be.
+    expect(wraps).toEqual(['plain', 'wrapped', 'wrapped']);
+    expect(rows.map((r) => r.status === 'aligned' && r.result.alignment.mode)).toEqual([
+      'global',
+      'local',
+      'local',
+    ]);
+    expect(rows[0]?.status === 'aligned' && rows[0].result.wrap).toBeNull();
+
+    modes.length = 0;
+    await runReadBatch([whole, short, read], onCircle, spy, {
+      options: {},
+      mode: 'global',
+      trimCutoff: null,
+    });
+    expect(modes).toEqual(['global', 'global', 'global']);
   });
 
   it('refuses more reads than a plate', async () => {
@@ -131,7 +177,7 @@ describe('runReadBatch (#59)', () => {
       read: null,
     }));
     await expect(
-      runReadBatch(many, ref, inline, { options: {}, trimCutoff: null }),
+      runReadBatch(many, ref, inline, { options: {}, mode: null, trimCutoff: null }),
     ).rejects.toThrow(/At most 96/);
   });
 });

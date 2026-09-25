@@ -126,7 +126,8 @@ export const EVENTS = {
    * per visit each, never the value chosen, #56); `document-read` is a run
    * with the open document as the read and the box as the reference (#57),
    * once per visit; `batch` is Align all, every record of a file, named by
-   * the mode like `run` (#59), never how many.
+   * the mode like `run` (#59), or `auto` when none was picked and each record
+   * gets its own (#86), never how many.
    */
   align: ['run', 'quality', 'document-read', 'batch'],
   cloning: [

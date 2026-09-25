@@ -5,6 +5,7 @@ import {
   finishReadAlignment,
   prepareReadAlignment,
   readRange,
+  suggestAlignMode,
 } from './readAlignment';
 
 const reference = 'GATTACAGCTTGACCGTAAGCTAGGCTTACGATCGATTGCAAGTCCGATGCATTGACCTA';
@@ -75,5 +76,30 @@ describe('one read against one reference', () => {
     expect(job.a.length).toBeGreaterThan(reference.length);
     expect(result.alignment.startA).toBe(50);
     expect(alignedReferenceRange(result)).toEqual({ start: 50, end: 75 });
+  });
+});
+
+describe('suggestAlignMode (#86)', () => {
+  it('starts a read, or anything under half the reference, in Local', () => {
+    expect(suggestAlignMode({ length: 750, isRead: true }, 4361)).toEqual({
+      mode: 'local',
+      reason: 'a read',
+    });
+    // A read is Local even as long as the reference.
+    expect(suggestAlignMode({ length: 5000, isRead: true }, 4361).mode).toBe('local');
+    expect(suggestAlignMode({ length: 2180, isRead: false }, 4361)).toEqual({
+      mode: 'local',
+      reason: 'under half the length of what it is aligned to',
+    });
+  });
+
+  it('keeps Global for two sequences of about the same length, and for nothing yet', () => {
+    expect(suggestAlignMode({ length: 2181, isRead: false }, 4361)).toEqual({
+      mode: 'global',
+      reason: null,
+    });
+    expect(suggestAlignMode({ length: 4361, isRead: false }, 4361).mode).toBe('global');
+    expect(suggestAlignMode({ length: 9000, isRead: false }, 4361).mode).toBe('global');
+    expect(suggestAlignMode({ length: 0, isRead: false }, 4361).mode).toBe('global');
   });
 });

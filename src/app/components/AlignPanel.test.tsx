@@ -47,11 +47,41 @@ describe('AlignPanel', () => {
     ]);
     expect(screen.getByText(/2 records; the one chosen is aligned/)).toBeInTheDocument();
     fireEvent.change(picker, { target: { value: '1' } });
-    fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
     await waitFor(() => {
       expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
     });
+  });
+
+  it('starts in Local for a much shorter sequence, saying why, and keeps a mode picked by hand (#86)', () => {
+    render(<AlignPanel doc={doc} />);
+    const mode = (): HTMLElement => screen.getByRole('combobox', { name: 'Alignment mode' });
+    expect(mode()).toHaveValue('global');
+    // 12 of the document's 28 bases: under half.
+    fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+    expect(mode()).toHaveValue('local');
+    expect(
+      screen.getByText(/Local, since the sequence in the box is under half/),
+    ).toBeInTheDocument();
+    // As long as the document: back to Global, as nothing was picked.
+    fireEvent.change(box(), { target: { value: doc.sequence.toString() } });
+    expect(mode()).toHaveValue('global');
+    expect(screen.queryByText(/Local, since/)).toBeNull();
+
+    fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+    fireEvent.change(mode(), { target: { value: 'global' } });
+    expect(mode()).toHaveValue('global');
+    expect(screen.queryByText(/Local, since/)).toBeNull();
+    // Picked by hand, it stays whatever the box then holds.
+    fireEvent.change(box(), { target: { value: 'GGCCAATT' } });
+    expect(mode()).toHaveValue('global');
+    fireEvent.change(box(), { target: { value: doc.sequence.toString() } });
+    fireEvent.change(mode(), { target: { value: 'local' } });
+    fireEvent.change(box(), { target: { value: `${doc.sequence.toString()}A` } });
+    expect(mode()).toHaveValue('local');
   });
 
   it('reads a dropped file into the box and claims the drop', async () => {
@@ -160,7 +190,11 @@ describe('AlignPanel', () => {
       await waitFor(() => {
         expect(screen.getByText('From read1.fastq, with base qualities.')).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      // A read starts in Local by itself (#86).
+      expect(screen.getByRole('combobox', { name: 'Alignment mode' })).toHaveValue('local');
+      expect(
+        screen.getByText(/Local, since the sequence in the box is a read/),
+      ).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
         expect(screen.getByText(/Local alignment/)).toBeInTheDocument();
@@ -199,7 +233,9 @@ describe('AlignPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+        target: { value: 'local' },
+      });
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
         expect(screen.getByText(/reverse complement/)).toBeInTheDocument();
@@ -270,7 +306,7 @@ describe('AlignPanel', () => {
         });
         render(<AlignPanel doc={d} />);
         fireEvent.change(box(), { target: { value: `>pRef\n${reference}\n` } });
-        fireEvent.change(screen.getByRole('combobox', { name: '' }), {
+        fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
           target: { value: 'local' },
         });
         fireEvent.click(screen.getByRole('button', { name: 'Align' }));
@@ -375,7 +411,9 @@ describe('AlignPanel', () => {
           screen.getByText(/3 records; the one chosen is aligned, or Align all/),
         ).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+        target: { value: 'local' },
+      });
     }
 
     it('aligns them all, lists them, and shows the one picked', async () => {
@@ -449,7 +487,9 @@ describe('AlignPanel', () => {
     render(<AlignPanel doc={circle} />);
     // 300 bases before the origin and 400 after it.
     fireEvent.change(box(), { target: { value: plasmid.slice(700) + plasmid.slice(0, 400) } });
-    fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Align' }));
     await waitFor(() => {
       expect(screen.getByText(/identity 100% over 700 columns/)).toBeInTheDocument();
@@ -482,7 +522,9 @@ describe('AlignPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
       });
-      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+        target: { value: 'local' },
+      });
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
         expect(screen.getByText(/Local alignment/)).toBeInTheDocument();

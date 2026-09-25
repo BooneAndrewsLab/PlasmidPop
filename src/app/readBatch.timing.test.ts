@@ -50,7 +50,7 @@ describe('a plate of reads', () => {
         reads,
         { sequence: plasmid, offset: 0, wrap: plasmid.length },
         (a, b, options) => Promise.resolve(alignEitherStrand(a, b, options)),
-        { options: { mode: 'local', fast: true }, trimCutoff: 0.05 },
+        { options: { fast: true }, mode: 'local', trimCutoff: 0.05 },
       );
       const ms = performance.now() - t0;
       process.stderr.write(`[perf] 96 Sanger reads against 5 kb, banded: ${ms.toFixed(0)} ms\n`);
