@@ -119,3 +119,47 @@ describe('Open as protein (#66)', () => {
     expect(protein.metadata.taxonomy).toBe('Bacteria');
   });
 });
+
+describe('Open as protein: the product (mutation tests)', () => {
+  const q = (name: string, value: string) => ({ name, value });
+  const pX = () => SeqDocument.create({ name: 'pX', sequence: 'ATGAAACTGTAA' });
+
+  it('skips a blank name, and trims the one it takes', () => {
+    expect(cdsName(pX(), cds({ name: '  ', qualifiers: [q('product', ' TEM-1 ')] }))).toBe('TEM-1');
+    expect(cdsName(pX(), cds({ qualifiers: [q('product', ' '), q('gene', 'bla')] }))).toBe('bla');
+  });
+
+  it('gives the Protein feature the product, trimmed, as its name and qualifier', () => {
+    const feature = cds({
+      name: 'klE',
+      segments: [rangeSegment(0, 12)],
+      qualifiers: [q('product', '  KLE protein ')],
+    });
+    const protein = proteinFromCds(pX(), feature);
+    expect(protein.metadata.description).toBe('KLE protein');
+    const [whole] = protein.features.all();
+    expect(whole?.name).toBe('KLE protein');
+    expect(whole?.qualifiers).toEqual([{ name: 'product', value: 'KLE protein' }]);
+  });
+
+  it('leaves the Protein feature unnamed and without a qualifier when there is no product', () => {
+    const protein = proteinFromCds(pX(), cds({ name: 'klE', segments: [rangeSegment(0, 12)] }));
+    const [whole] = protein.features.all();
+    expect(whole?.name).toBe('');
+    expect(whole?.qualifiers).toEqual([]);
+    expect(protein.metadata.description).toBe('klE');
+  });
+
+  it('takes a blank product for none', () => {
+    const feature = cds({
+      name: 'klE',
+      segments: [rangeSegment(0, 12)],
+      qualifiers: [q('product', '   ')],
+    });
+    const protein = proteinFromCds(pX(), feature);
+    expect(protein.metadata.description).toBe('klE');
+    const [whole] = protein.features.all();
+    expect(whole?.name).toBe('');
+    expect(whole?.qualifiers).toEqual([]);
+  });
+});
