@@ -84,6 +84,10 @@ message arrived.
   **Remove** on a phone, so a stray tap cannot turn a plasmid someone sent
   you into a working copy.
 
+To open a GenBank file that arrived as a mail attachment, share it to
+PlasmidPop from the mail app, on Android with PlasmidPop installed: see
+[Opening an attachment from another app](02-files.md#opening-an-attachment-from-another-app).
+
 Nothing about a document is different on a phone: it is the same file, stored
 in the same browser, and everything comes back on a wider window. A notice
 says so the first time; **Got it** puts it away for good. A tablet is wide

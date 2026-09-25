@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 import pkg from './package.json' with { type: 'json' };
+import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.ts';
 
 /**
  * Deployment base path, e.g. "/PlasmidPop/" for GitHub Pages under a repo.
@@ -46,6 +47,49 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // Files shared to the installed app from another one — a GenBank
+        // attachment in a mail app — arrive as a POST that the service worker
+        // answers (`src/pwa/shareTarget.ts`, #43). Android Chrome only; iOS
+        // Safari has no Web Share Target. Mail apps label a .gb as
+        // text/plain or application/octet-stream as often as anything, so
+        // those are accepted too and the app decides by name and content.
+        share_target: {
+          action: `${base}share-target`,
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            files: [
+              {
+                name: 'files',
+                accept: [
+                  'chemical/seq-na-genbank',
+                  'chemical/seq-na-fasta',
+                  'application/vnd.snapgene',
+                  'text/plain',
+                  'application/octet-stream',
+                  'application/gzip',
+                  'application/x-gzip',
+                  '.gb',
+                  '.gbk',
+                  '.genbank',
+                  '.gbff',
+                  '.ape',
+                  '.fa',
+                  '.fasta',
+                  '.fna',
+                  '.seq',
+                  '.txt',
+                  '.dna',
+                  '.ab1',
+                  '.abi',
+                  '.fastq',
+                  '.fq',
+                  '.gz',
+                ],
+              },
+            ],
+          },
+        },
         file_handlers: [
           {
             action: base,
@@ -61,6 +105,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${base}index.html`,
+        // The share target's POST: written into sw.js as the functions'
+        // source, so they are self-contained (see the module).
+        runtimeCaching: [
+          { urlPattern: isShareTargetRequest, handler: handleShareTarget, method: 'POST' },
+        ],
       },
     }),
   ],

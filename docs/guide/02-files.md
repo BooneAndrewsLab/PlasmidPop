@@ -458,3 +458,22 @@ network at all.
 PlasmidPop is a progressive web app. After the first visit it works without a
 network connection, and the browser offers to install it. When installed,
 sequence files can be opened with it from the file manager.
+
+### Opening an attachment from another app
+
+On **Android**, with PlasmidPop installed from Chrome (the menu's **Install
+app** or **Add to Home screen**), PlasmidPop appears in the **Share** sheet of
+other apps. To open a GenBank file someone mailed you, share the attachment
+from the mail app (or a file from the Files app, or a chat) and pick
+PlasmidPop: it opens with the file in a tab of its own, as if you had picked
+it with **File ▸ Open**. Every format in the table above works, and several
+files shared at once open in a tab each. Mail apps often label a `.gb` file as
+plain text or as unknown data, so PlasmidPop is offered for those too and
+decides from the file itself; a file it cannot read is reported in the status
+bar as when opening one.
+
+The file goes from the other app to PlasmidPop on the phone and nowhere else:
+it is handed over inside the browser, kept only until it has been opened, and
+never uploaded. **iPhone and iPad** do not support this (Safari has no share
+target for web apps); save the attachment to Files and open it with **File ▸
+Open** instead. Desktop browsers do not offer it either.

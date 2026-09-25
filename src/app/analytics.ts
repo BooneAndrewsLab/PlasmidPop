@@ -161,8 +161,11 @@ export const EVENTS = {
   /**
    * The phone reader and touch (#43): `long-press-copy` is the Copy button
    * a long-press selection offers, used; never how many bases.
+   * `share-target-open` is files shared to the installed app from another
+   * one (the Web Share Target), once per share, never how many or what;
+   * each file's own `file / open` says its format.
    */
-  phone: ['long-press-copy'],
+  phone: ['long-press-copy', 'share-target-open'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;

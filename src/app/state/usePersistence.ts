@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { analytics } from '../analytics';
 import { openSharedPayload, takeShareFragment } from '../share';
+import { openSharedFiles, takeShareTargetMarker } from '../sharedFiles';
 import { editorStore } from './editorStore';
 import { persistence } from './persistence';
 import { useEditorState } from './useEditorStore';
@@ -66,11 +67,15 @@ export function useAutosaveShelf(): void {
  * React does in development — the second run finds nothing.
  *
  * The shared document is opened last so it is the tab in front, with the
- * session's own tabs behind it rather than replaced by it.
+ * session's own tabs behind it rather than replaced by it. Files shared to
+ * the installed app from another one (a mail attachment, through the Web
+ * Share Target, #43) come after that, for the same reason; their marker is
+ * taken off the address bar first thing too.
  */
 export function useRestoreSession(): void {
   useEffect(() => {
     const shared = takeShareFragment();
+    const sharedFiles = takeShareTargetMarker();
     void (async () => {
       // The enzymes first, and awaited, so a restored document's first scan
       // already uses the imported set rather than scanning twice.
@@ -87,6 +92,7 @@ export function useRestoreSession(): void {
         }
       }
       if (shared !== null) await openSharedPayload(shared);
+      if (sharedFiles !== null) await openSharedFiles(sharedFiles);
     })();
   }, []);
 }

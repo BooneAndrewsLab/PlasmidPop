@@ -120,3 +120,35 @@ Four of the "not yet" list above, built for 1.6.
   with fake timers: the timer, the slop, the scroll that started first,
   the cancelled `touchmove` before and after, the offer and the copy.
   Counted as `phone / long-press-copy` when the button is used.
+- **Web Share Target** (`src/pwa/shareTarget.ts`, `src/app/sharedFiles.ts`),
+  so a GenBank attachment opens from a phone's mail app. The manifest's
+  `share_target` POSTs `multipart/form-data` to `share-target` under the
+  base path, with one `files` field accepting every extension `openFile`
+  reads and their MIME types — plus `text/plain`, `application/octet-stream`
+  and gzip, because that is how mail apps label a `.gb` as often as not; the
+  app decides by name and content, as File ▸ Open does. A static site cannot
+  take a POST, so the **service worker** does, and it stays on the device:
+  it stashes the files in Cache Storage (`plasmidpop-share-target`, one
+  entry per file, the name in a header) and answers 303 to
+  `<scope>?share-target=<count>` (`failed` if the form could not be read,
+  so the app says so rather than open to nothing). On start
+  `useRestoreSession` takes the marker off the address bar synchronously,
+  like the share fragment, and after the session and any share link opens
+  the files in order through `openFile` — the same path as File ▸ Open, the
+  same failure messages — then deletes the stash whether or not they read,
+  so nothing opens twice. Cache Storage over IndexedDB because both halves
+  already have it and a `Response` keeps a `File`'s bytes and type as they
+  are. **The least change to the build:** it stays `generateSW`. Workbox
+  takes a route handler as a function and writes its source into `sw.js`,
+  so `isShareTargetRequest` and `handleShareTarget` are ordinary TypeScript,
+  imported into `vite.config.ts` and unit-tested as functions, with the one
+  constraint that each stands alone (no imports, no module references);
+  a test checks the names spelled inside them against the constants the
+  app reads with. Switching to `injectManifest` would have meant owning the
+  precache and navigation routes too. Supported where Web Share Target is:
+  Android Chrome (and other Chromium browsers there) with the app
+  installed; not iOS Safari, not desktops. Counted as `phone /
+share-target-open`, once per share; each file's `file / open` gives its
+  format. Verified from the build (the manifest block and the route in
+  `dist/sw.js` under `BASE_PATH=/PlasmidPop/`) and by tests of both halves
+  against an in-memory Cache Storage, not yet on a phone.
