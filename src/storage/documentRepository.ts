@@ -5,10 +5,18 @@ import {
   type OverhangKind,
   type SeqDocument,
   type SequencingRead,
+  describeEditOp,
 } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
 import { type PlasmidPopDb, type StoredDocument, ENZYME_SET_ID, SHELF_ID, getDb } from './db';
+import {
+  type HistoryToStore,
+  type RestoredHistory,
+  decodeHistory,
+  encodeHistory,
+} from './historyCodec';
+import { isStoredHistory } from './historyFormat';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
@@ -26,10 +34,23 @@ export interface DocumentProvenance {
 
 const NO_PROVENANCE: DocumentProvenance = { origin: null, derived: false };
 
+/**
+ * What became of a stored undo history on the way back in: there was none,
+ * it came back, or there was a row that could not be read (or did not end at
+ * the stored document) and was left behind.
+ */
+export type HistoryStatus = 'none' | 'restored' | 'dropped';
+
 /** A stored document read back, with what is known about where it came from. */
 export interface StoredLoad extends DocumentProvenance {
   readonly doc: SeqDocument;
   readonly fileName: string | null;
+  /**
+   * Its undo history, whose present is `doc`, with the baselines that point
+   * into it; null when there is none to give back (`historyStatus` says why).
+   */
+  readonly history: RestoredHistory | null;
+  readonly historyStatus: HistoryStatus;
 }
 
 export interface DocumentSummary {
@@ -66,37 +87,84 @@ function withStoredRead<D extends SeqDocument | undefined>(
 export class DocumentRepository {
   constructor(private readonly db: PlasmidPopDb = getDb()) {}
 
+  /**
+   * Writes a document, and with `history` its undo history in the same
+   * transaction, so the two can never be read back out of step. A history
+   * whose present is not `doc`, or that is too large to keep any of
+   * (`encodeHistory`), deletes the stored one; null deletes it too, and
+   * leaving `history` out leaves whatever is stored alone.
+   */
   async save(
     id: string,
     doc: SeqDocument,
     fileName: string | null,
     provenance: DocumentProvenance = NO_PROVENANCE,
+    history?: HistoryToStore | null,
   ): Promise<void> {
     const now = Date.now();
-    const existing = await this.db.documents.get(id);
     const origin = provenance.origin;
-    await this.db.documents.put({
+    // Worked out before the transaction: IndexedDB commits a transaction
+    // that has nothing pending while other work runs.
+    const row =
+      history === undefined
+        ? undefined
+        : history?.history.present !== doc
+          ? null
+          : encodeHistory(id, history, undefined, now);
+    const text = writeGenBank(doc);
+    const originText = origin === null ? null : writeGenBank(origin.doc);
+    await this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
+      const existing = await this.db.documents.get(id);
+      await this.db.documents.put(
+        this.documentRow(
+          id,
+          doc,
+          fileName,
+          provenance,
+          text,
+          originText,
+          existing?.createdAt ?? now,
+          now,
+        ),
+      );
+      if (row === null) await this.db.histories.delete(id);
+      else if (row !== undefined) await this.db.histories.put(row);
+    });
+  }
+
+  private documentRow(
+    id: string,
+    doc: SeqDocument,
+    fileName: string | null,
+    provenance: DocumentProvenance,
+    text: string,
+    originText: string | null,
+    createdAt: number,
+    now: number,
+  ): StoredDocument {
+    const origin = provenance.origin;
+    return {
       id,
       name: doc.name,
       fileName,
-      text: writeGenBank(doc),
+      text,
       ...(doc.read === null ? {} : { read: doc.read }),
       length: doc.length,
       topology: doc.topology,
       featureCount: doc.features.size,
-      createdAt: existing?.createdAt ?? now,
+      createdAt,
       updatedAt: now,
-      ...(origin === null
+      ...(origin === null || originText === null
         ? {}
         : {
             origin: {
               fileName: origin.fileName,
-              text: writeGenBank(origin.doc),
+              text: originText,
               ...(origin.doc.read === null ? {} : { read: origin.doc.read }),
             },
           }),
       ...(provenance.derived ? { derived: true } : {}),
-    });
+    };
   }
 
   async has(id: string): Promise<boolean> {
@@ -132,26 +200,82 @@ export class DocumentRepository {
       storedOrigin === undefined
         ? undefined
         : withStoredRead(parseGenBank(storedOrigin.text).documents[0], storedOrigin.read);
+    const origin =
+      storedOrigin === undefined || originDoc === undefined
+        ? null
+        : { fileName: storedOrigin.fileName, doc: originDoc };
+    const { history, historyStatus } = await this.loadHistory(id, stored, origin?.doc ?? null);
     return {
-      doc: doc.rename(stored.name),
+      doc: history?.history.present ?? doc.rename(stored.name),
       fileName: stored.fileName,
-      origin:
-        storedOrigin === undefined || originDoc === undefined
-          ? null
-          : { fileName: storedOrigin.fileName, doc: originDoc },
+      origin,
       derived: stored.derived ?? false,
+      history,
+      historyStatus,
     };
   }
 
-  /** Renames a stored document in place; false when there is no such document. */
+  /**
+   * The undo history stored for a document, when there is one that reads
+   * back and ends exactly at the stored document. Anything else — a row
+   * from another build, a damaged one, one left out of step — costs the
+   * history and never the document.
+   */
+  private async loadHistory(
+    id: string,
+    stored: StoredDocument,
+    origin: SeqDocument | null,
+  ): Promise<{ history: RestoredHistory | null; historyStatus: HistoryStatus }> {
+    let row: unknown;
+    try {
+      row = await this.db.histories.get(id);
+    } catch {
+      return { history: null, historyStatus: 'dropped' };
+    }
+    if (row === undefined) return { history: null, historyStatus: 'none' };
+    const decoded = decodeHistory(row, origin);
+    const present = decoded?.history.present;
+    const matches =
+      decoded !== null &&
+      present !== undefined &&
+      isStoredHistory(row) &&
+      row.id === id &&
+      present.name === stored.name &&
+      writeGenBank(present) === stored.text;
+    return matches
+      ? { history: decoded, historyStatus: 'restored' }
+      : { history: null, historyStatus: 'dropped' };
+  }
+
+  /**
+   * Renames a stored document in place; false when there is no such
+   * document. The rename is a step of its history, as it would be in a tab.
+   */
   async rename(id: string, name: string): Promise<boolean> {
     const stored = await this.load(id);
     if (stored === null) return false;
-    await this.save(id, stored.doc.rename(name), stored.fileName, {
-      origin: stored.origin,
-      derived: stored.derived,
-    });
+    const renamed = stored.doc.rename(name);
+    const kept = stored.history;
+    await this.save(
+      id,
+      renamed,
+      stored.fileName,
+      { origin: stored.origin, derived: stored.derived },
+      kept === null
+        ? null
+        : {
+            history: kept.history.seal().push(renamed, describeEditOp({ type: 'rename', name })),
+            opened: kept.opened,
+            saved: kept.saved,
+            origin: stored.origin?.doc ?? null,
+          },
+    );
     return true;
+  }
+
+  /** Whether a document has a stored undo history row. */
+  async hasHistory(id: string): Promise<boolean> {
+    return (await this.db.histories.where('id').equals(id).count()) > 0;
   }
 
   async list(): Promise<DocumentSummary[]> {
@@ -167,8 +291,12 @@ export class DocumentRepository {
     }));
   }
 
+  /** Deletes a document and its undo history; closing a tab deletes neither. */
   async remove(id: string): Promise<void> {
-    await this.db.documents.delete(id);
+    await this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
+      await this.db.documents.delete(id);
+      await this.db.histories.delete(id);
+    });
     if (this.lastDocumentId() === id) this.setLastDocumentId(null);
     this.setOpenDocumentIds(this.openDocumentIds().filter((open) => open !== id));
   }

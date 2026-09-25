@@ -233,6 +233,16 @@ export interface OpenStorage {
   /** Given explicitly — including as null — this is the origin, file name or not. */
   readonly origin?: DocumentOrigin | null;
   readonly derived?: boolean;
+  /**
+   * The undo history kept in local storage, whose present is the document
+   * being opened, and the two baselines as they stood (item 51). Without it
+   * the document starts a fresh history as it always did.
+   */
+  readonly history?: {
+    readonly history: History<SeqDocument>;
+    readonly opened: SeqDocument;
+    readonly saved: SeqDocument | null;
+  };
 }
 
 export interface DocumentOrigin {
@@ -895,15 +905,18 @@ export class EditorStore {
       this.activateDocument(open.documentId);
       return open.documentId;
     }
+    // A history brought back from storage is only taken when it ends at the
+    // document being opened; it then says where the baselines were.
+    const kept = storage.history?.history.present === doc ? storage.history : undefined;
     const entry: DocumentState = {
       documentId: storage.id ?? newId(),
-      history: History.create(doc),
+      history: kept?.history ?? History.create(doc),
       selection: null,
       selectedFeatureId: null,
       fileName,
       // A document opened from a file starts clean; a pasted/example one has nowhere to be saved yet.
-      savedDoc: fileName === null ? null : doc,
-      openedDoc: doc,
+      savedDoc: kept === undefined ? (fileName === null ? null : doc) : kept.saved,
+      openedDoc: kept?.opened ?? doc,
       markedDoc: null,
       compared: null,
       // Only a document read from a file has one to protect; a paste, an

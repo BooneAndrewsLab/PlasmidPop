@@ -62,6 +62,7 @@ piece of work needs its reasoning written down, with the next free number.
 48. [Gateway cloning](48-gateway.md)
 49. [The Cloning Bench](49-cloning-bench.md)
 50. [Mutation testing before a release](50-mutation-testing.md)
+51. [The undo history survives a reload](51-persistent-history.md)
 
 ## Changelog to 1.1.0
 

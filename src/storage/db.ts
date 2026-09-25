@@ -2,6 +2,8 @@ import Dexie, { type EntityTable } from 'dexie';
 
 import { type AssemblyPart, type Enzyme, type SequencingRead, type Topology } from '@/core';
 
+import { type StoredHistory } from './historyFormat';
+
 /**
  * A document as kept in IndexedDB. The sequence and annotations are stored
  * as GenBank text produced by our own writer: it round-trips losslessly,
@@ -88,6 +90,8 @@ export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
   declare enzymeSets: EntityTable<StoredEnzymeSet, 'id'>;
+  /** Each document's undo history, under the document's id (item 51). */
+  declare histories: EntityTable<StoredHistory, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -109,6 +113,11 @@ export class PlasmidPopDb extends Dexie {
     // older build, which is the point — none of them may survive a reload.
     this.version(4).stores({
       handles: null,
+    });
+    // Version 5 adds the undo histories, one row per document, apart from
+    // the documents so that listing the recent files never reads them.
+    this.version(5).stores({
+      histories: 'id',
     });
   }
 }

@@ -97,7 +97,12 @@ export const EVENTS = {
    * pointing at its ghost.
    */
   edits: ['baseline', 'next', 'prev', 'map-click', 'review-click', 'review-point'],
-  history: ['jump'],
+  /**
+   * `jump` is a click in the History list; `restore` is a stored document
+   * reopened, named by what became of its undo history (`restored`, `none`,
+   * `dropped` when a stored one could not be read), once per visit each.
+   */
+  history: ['jump', 'restore'],
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],
   align: ['run'],

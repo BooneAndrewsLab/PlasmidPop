@@ -88,7 +88,7 @@ sequence view's own marks share it. **File ▸ Compare with…** is item 33.
     did and the first cut of this broke. The checksum is the load-bearing
     half: a file name is what someone called a file once, a `cdseguid` is
     the molecule. A quiet banner says so when such a file is opened.
-    Not yet: persisting the history log across reloads. The two rough
+    The history log persists across reloads since item 51. The two rough
     edges left here are moot under item 24: no file handle is kept to be
     lost on a rename, and undoing back to the original is not possible at
     all, because the copy's history starts under its own name.

@@ -74,5 +74,33 @@ such row: its history starts at the contents of the file it came from.
   [Editing the sequence](04-editing.md) and
   [Keyboard shortcuts](14-shortcuts.md).
 
-History lives in memory: it is not written to the file, and reloading the page
-starts a fresh history from the restored document.
+## After a reload
+
+The history is kept in this browser's storage beside the document, so a
+reload, a crash, or closing the tab and opening the document again from
+**Recent files** brings the list back as you left it: the same rows, times
+and current state, with the undone rows still greyed above it and reachable
+with Redo or a click. What does change:
+
+- A run of typing that was going on when the page went is finished; the
+  next keystroke starts a new row.
+- **Since opened** in the **Edits** menu still measures from the state the
+  history starts at, the **Opened document** row — or, for a
+  [working copy](02-files.md#working-copies), from the file it came from —
+  not from the moment of the reload.
+- The **on disk** tag and the dot beside the document name stay on the row
+  you last downloaded, so undoing to that row clears the dot as before. A
+  working copy you have never downloaded has the dot after a reload too.
+- **Mark from here** and **Compared with** come back as **Since opened**, as
+  they always have.
+
+The stored history is limited to the 200 most recent changes, like the
+list, and to about 4 MB per document. A long session on a very large
+document can go over that: the oldest rows are then left out of the stored
+copy, and after the next reload the list starts at **Oldest kept state**.
+A document of more than about four million bases keeps no stored history,
+and reopens with an empty list.
+
+The history lives only in this browser. It is not written to the files you
+download or into share links, and **Remove** on the start screen deletes it
+with the document; closing a tab does not.

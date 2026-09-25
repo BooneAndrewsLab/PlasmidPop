@@ -498,3 +498,31 @@ Vitest on Node 24, the bundled table (127 enzymes):
 Too little for a worker round trip. An imported REBASE set is larger, and
 the scan grows with it; if that is measured to hurt, the product can be
 scanned by the analysis worker instead.
+
+## The stored undo history (item 51, 2026-09-24)
+
+Two sessions of 200 steps each — runs of typing (1–30 bases, coalesced),
+deletes, feature renames, one reverse complement and one set origin — on a
+circular document, single warm runs, Vitest on Node 24:
+
+| step                                           | 10 kb, 12 features | 1 Mb, 1,000 features |
+| ---------------------------------------------- | ------------------ | -------------------- |
+| encode, next keystroke (one new delta)         | 0.5 ms             | 5 ms                 |
+| encode, nothing new (every delta remembered)   | 0.2 ms             | 0.2 ms               |
+| encode, all 200 deltas from nothing            | 24 ms              | 780 ms               |
+| structured clone of the row (IndexedDB's copy) | 1.5 ms             | 8 ms                 |
+| decode, all 200 states                         | 14 ms              | 310 ms               |
+| `writeGenBank`, the check on load              | 3 ms               | 27 ms                |
+| `parseGenBank` of the same, for scale          | 11 ms              | 38 ms                |
+| stored size (`storedSize`)                     | 42 KB              | 1.24 MB              |
+
+The encode from nothing never happens in use: each autosave works out only
+the delta of the step it has not seen (`deltaCache`), and a row read back
+seeds the cache. It was 1.6 s before the prefix and suffix were compared
+4 KB at a time (`===` on two slices is a memory compare; a `charCodeAt`
+loop was 19 ms per megabase pair), and 12 ms rather than 5 for the next
+keystroke. The decode is dominated by moving a thousand features for each
+of the replayed edits and validating each state, the same work the edits
+did in the session; it runs once per restored tab.
+`historyCodec.timing.test.ts` keeps budgets on the keystroke (1 Mb, 100
+features) and the 10 kb decode.

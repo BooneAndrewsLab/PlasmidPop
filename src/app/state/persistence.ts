@@ -2,6 +2,7 @@ import { type AssemblyPart, type EnzymeSet, type SeqDocument, BUNDLED_ENZYME_SET
 import { type RebaseSkipped, parseRebaseWithRefM, writeGenBank } from '@/io';
 import {
   type DocumentRepository,
+  type StoredLoad,
   getRepository,
   pickOpenFile,
   pickSaveFile,
@@ -45,10 +46,37 @@ export function downloadNameFor(d: {
     : fileNameFor(d.history.present, 'genbank');
 }
 
-/** What the last autosave wrote for a document, so an unchanged tab is not written again. */
+/**
+ * What the last autosave wrote for a document, so an unchanged tab is not
+ * written again. The history and the baselines are part of it: an undo, a
+ * download or a jump changes what is stored without a new document.
+ */
 interface Autosaved {
   readonly doc: SeqDocument;
   readonly fileName: string | null;
+  readonly history: DocumentState['history'] | null;
+  readonly savedDoc: SeqDocument | null;
+  readonly openedDoc: SeqDocument | null;
+}
+
+function autosavedOf(d: DocumentState): Autosaved {
+  return {
+    doc: d.history.present,
+    fileName: d.fileName,
+    history: d.history,
+    savedDoc: d.savedDoc,
+    openedDoc: d.openedDoc,
+  };
+}
+
+function isUnchanged(last: Autosaved | undefined, d: DocumentState): boolean {
+  return (
+    last?.doc === d.history.present &&
+    last.fileName === d.fileName &&
+    last.history === d.history &&
+    last.savedDoc === d.savedDoc &&
+    last.openedDoc === d.openedDoc
+  );
 }
 
 /**
@@ -159,8 +187,7 @@ export class PersistenceService {
 
   private async autosaveDocument(d: DocumentState): Promise<void> {
     const doc = d.history.present;
-    const last = this.autosaved.get(d.documentId);
-    if (last?.doc === doc && last.fileName === d.fileName) return;
+    if (isUnchanged(this.autosaved.get(d.documentId), d)) return;
     let id = d.documentId;
     if (!(await this.repo.has(id))) {
       // A new document nobody has typed into yet is not worth a recent-files entry.
@@ -175,8 +202,16 @@ export class PersistenceService {
         id = existing;
       }
     }
-    await this.repo.save(id, doc, d.fileName, { origin: d.origin, derived: d.derived });
-    this.autosaved.set(id, { doc, fileName: d.fileName });
+    // The history goes with the document, in the same transaction: undo,
+    // redo and the baselines come back after a reload (item 51).
+    await this.repo.save(
+      id,
+      doc,
+      d.fileName,
+      { origin: d.origin, derived: d.derived },
+      { history: d.history, opened: d.openedDoc, saved: d.savedDoc, origin: d.origin?.doc ?? null },
+    );
+    this.autosaved.set(id, autosavedOf(d));
     void this.requestPersistentStorage();
   }
 
@@ -285,12 +320,7 @@ export class PersistenceService {
       for (const id of ids) {
         const stored = await this.repo.load(id);
         if (stored === null) continue;
-        editorStore.openDocument(stored.doc, stored.fileName, [], {
-          id,
-          origin: stored.origin,
-          derived: stored.derived,
-        });
-        this.autosaved.set(id, { doc: stored.doc, fileName: stored.fileName });
+        this.reopen(id, stored);
         opened.push(id);
       }
       // The Bench comes back in front only with something to work with.
@@ -318,13 +348,24 @@ export class PersistenceService {
       editorStore.fail('That document is no longer in local storage.');
       return;
     }
+    this.reopen(id, stored);
+    this.rememberSession();
+  }
+
+  /**
+   * Opens a stored document in a tab with its undo history, when one came
+   * back, and notes it as written so that opening it is not a change.
+   */
+  private reopen(id: string, stored: StoredLoad): void {
     editorStore.openDocument(stored.doc, stored.fileName, [], {
       id,
       origin: stored.origin,
       derived: stored.derived,
+      ...(stored.history === null ? {} : { history: stored.history }),
     });
-    this.autosaved.set(id, { doc: stored.doc, fileName: stored.fileName });
-    this.rememberSession();
+    analytics.trackOnce('history', 'restore', stored.historyStatus);
+    const state = editorStore.documentState(id);
+    if (state !== null) this.autosaved.set(id, autosavedOf(state));
   }
 
   async removeStored(id: string): Promise<void> {

@@ -86,9 +86,10 @@ nothing has been typed into gives its tab up to the next file you open.
   `Alt+Shift+PageDown` to move the one in front. `Alt+1` … `Alt+9` follow
   the new order.
 - The **×** on a tab, `Alt+W` or **File ▸ Close** closes it. The document
-  stays in the browser's storage and under **Recent files**; only its undo
-  history is gone. (`Ctrl+W` is the browser's, and closes PlasmidPop
-  itself.)
+  stays in the browser's storage and under **Recent files**, with its undo
+  history: reopening it brings both back (see
+  [History](13-history.md#after-a-reload)). (`Ctrl+W` is the browser's, and
+  closes PlasmidPop itself.)
 - The **Files** tab at the left is the start screen with the recent files;
   the logo and **File ▸ Show files** go there too. The other tabs stay open
   behind it, and entries that are open in a tab are marked **open**.
@@ -341,7 +342,8 @@ translations, see [Translation](09-translate.md).
 
 Every open document is written to the browser's storage (IndexedDB) half a
 second after each change, and again when you leave the page, so a closed tab
-or a crash loses nothing. On the
+or a crash loses nothing. Its undo history is written with it, so undo and
+redo still work after a reload. On the
 start screen (the **Files** tab), **Recent files** lists these documents with
 size, topology, feature count and when they were last changed. Opening the
 same file twice does not create a second entry.
@@ -349,10 +351,10 @@ same file twice does not create a second entry.
 - Click an entry to reopen it in a tab, or to go to its tab when it is
   already **open**. A working copy comes back as a working copy, under the
   name it was given, and the file it came from is still untouched.
-- **Rename** changes the stored name (and the document name, when it is
-  open, as an undoable change in that tab).
-- **Remove** deletes it from the browser and closes its tab. This does not
-  touch files on disk.
+- **Rename** changes the stored name (and the document name, as an undoable
+  step of its history, whether it is open or not).
+- **Remove** deletes it from the browser, with its undo history, and closes
+  its tab. This does not touch files on disk.
 - **File ▸ Show files** goes back to this list while keeping every tab
   open.
 

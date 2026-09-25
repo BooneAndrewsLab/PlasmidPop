@@ -4,6 +4,7 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 
 import { editorStore } from '@/app/state/editorStore';
+import { History } from '@/core';
 import { PersistenceService } from '@/app/state/persistence';
 import U49845 from '@/io/fixtures/U49845.gb?raw';
 
@@ -90,6 +91,66 @@ describe('coming up from a database an older build wrote', () => {
     const stores = await storeNames(name);
     expect(stores).toContain('documents');
     expect(stores).not.toContain('handles');
+    // Version 5's histories table came with the same open, and is empty.
+    expect(stores).toContain('histories');
+    expect(loaded?.history).toBeNull();
+    expect(loaded?.historyStatus).toBe('none');
+  });
+
+  it('adds the histories table under the documents a version 4 build left', async () => {
+    const name = `migration-v4-${Date.now()}`;
+    // Dexie's version 4 is IndexedDB's 40: Dexie counts in tenths.
+    const open = indexedDB.open(name, 40);
+    open.onupgradeneeded = () => {
+      const created = open.result;
+      const docs = created.createObjectStore('documents', { keyPath: 'id' });
+      docs.createIndex('updatedAt', 'updatedAt');
+      docs.createIndex('name', 'name');
+      created.createObjectStore('shelf', { keyPath: 'id' });
+      created.createObjectStore('enzymeSets', { keyPath: 'id' });
+    };
+    const db = await request(open);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(['documents'], 'readwrite');
+      tx.objectStore('documents').put({
+        id: 'v4-doc',
+        name: 'SCU49845',
+        fileName: 'U49845.gb',
+        text: U49845,
+        length: 5028,
+        topology: 'linear',
+        featureCount: 9,
+        createdAt: 1,
+        updatedAt: 2,
+      });
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = () => {
+        reject(tx.error ?? new Error('Could not seed the database'));
+      };
+    });
+    db.close();
+
+    const repo = new DocumentRepository(new PlasmidPopDb(name));
+    const loaded = await repo.load('v4-doc');
+    expect(loaded?.doc.length).toBe(5028);
+    expect(loaded?.historyStatus).toBe('none');
+    expect(await storeNames(name)).toEqual(
+      expect.arrayContaining(['documents', 'shelf', 'enzymeSets', 'histories']),
+    );
+    // And the first save after the upgrade keeps a history for it.
+    if (loaded === null) throw new Error('not loaded');
+    const edited = loaded.doc.insert(0, 'ACGT');
+    await repo.save('v4-doc', edited, loaded.fileName, undefined, {
+      history: History.create(loaded.doc).push(edited, 'Insert 4 bases'),
+      opened: loaded.doc,
+      saved: loaded.doc,
+      origin: null,
+    });
+    const again = await repo.load('v4-doc');
+    expect(again?.historyStatus).toBe('restored');
+    expect(again?.history?.history.undo().present.length).toBe(5028);
   });
 
   it('reopens the document the older build remembered', async () => {

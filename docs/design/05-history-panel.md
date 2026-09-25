@@ -14,3 +14,5 @@ and `seal()` ends a run where the present must stay reachable — on
 undo, redo and jump, on save, and on "Mark from here". A run also breaks
 on a two-second pause, at 60 bases, and when the caret moves. Not yet:
 naming or bookmarking a state, a diff of what a step changed.
+The history is kept across reloads since item 51, which also says what
+**Opened document** and **on disk** mean after one.

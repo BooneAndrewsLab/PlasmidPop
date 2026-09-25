@@ -193,3 +193,16 @@ length changes but whose molecule does not.
 Undo works on the document in this browser. It does not reach back into a
 file you have already downloaded, and the browser's autosave always keeps the
 current state.
+
+The history is kept too, beside the document in this browser's storage, so
+**reloading the page, a crash, or closing the tab and reopening the document
+from Recent files brings the undo history back**: every step, the ones you
+had undone as well, which Redo still reaches. A run of typing interrupted by
+the reload is finished: the next key you press starts a step of its own.
+Up to 200 steps are kept, and at most about 4 MB per document; past that
+the oldest steps are left out of the stored copy (a plasmid's history is a
+few tens of kilobytes, so this only happens to genome-sized documents, and
+one of more than about four million bases keeps no history at all). The
+history never leaves the browser: it is not written into the downloaded
+file or a share link, and **Remove** on the start screen deletes it with the
+document. See [History](13-history.md#after-a-reload).
