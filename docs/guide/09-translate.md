@@ -94,9 +94,17 @@ is selected, in all six frames:
 
 Each frame shows its length in amino acids, the number of stop codons, and
 the protein with every stop marked, so the open frame stands out. **Copy**
-puts one frame on the clipboard. **Export FASTA** downloads all six as one
+puts one frame on the clipboard, and **Open as protein** opens it as a protein
+document of its own, stops and all. **Export FASTA** downloads all six as one
 protein FASTA file, one record per frame, named after the document and the
 range.
+
+Above the frames, **CDS features** lists the coding features of the
+selection (or of the whole sequence), each with **Open as protein**: the
+protein it codes for opens in a tab of its own, named after the CDS. It is
+read exactly as the line under the CDS is — its own genetic code,
+`/codon_start`, `/transl_except`, every piece of a join, the reverse strand —
+and the stop that ends it is left off. See [Proteins](16-proteins.md).
 
 **Code** chooses the genetic code the six frames are read with — any of the
 27 NCBI numbers, the standard code by default. A frame full of stops under

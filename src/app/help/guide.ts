@@ -9,6 +9,7 @@ import gettingStarted from '../../../docs/guide/01-getting-started.md?raw';
 import history from '../../../docs/guide/13-history.md?raw';
 import orfs from '../../../docs/guide/08-orfs.md?raw';
 import primers from '../../../docs/guide/10-primers.md?raw';
+import proteins from '../../../docs/guide/16-proteins.md?raw';
 import reads from '../../../docs/guide/15-reads.md?raw';
 import shortcuts from '../../../docs/guide/14-shortcuts.md?raw';
 import translate from '../../../docs/guide/09-translate.md?raw';
@@ -47,6 +48,7 @@ export const GUIDE: readonly GuidePage[] = [
   page('13-history', history),
   page('14-shortcuts', shortcuts),
   page('15-reads', reads),
+  page('16-proteins', proteins),
 ];
 
 export function guidePage(id: string): GuidePage | undefined {

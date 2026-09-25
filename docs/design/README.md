@@ -68,8 +68,9 @@ piece of work needs its reasoning written down, with the next free number.
 54. [Changing the case of bases](54-change-case.md)
 55. [Thinner introns, and a thickness per feature](55-feature-thickness.md)
 56. [A primer collection, and finding where its primers bind](56-primer-collection.md)
-57. [Open a GenBank record from NCBI by accession](58-ncbi-fetch.md)
-58. [Detect common features](59-detect-features.md)
+57. [Protein documents](57-protein-documents.md)
+58. [Open a GenBank record from NCBI by accession](58-ncbi-fetch.md)
+59. [Detect common features](59-detect-features.md)
 
 ## Changelog to 1.1.0
 

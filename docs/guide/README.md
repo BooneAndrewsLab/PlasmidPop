@@ -18,3 +18,4 @@ toolbar.
 13. [History](13-history.md): what a product was made from, the list of changes, jumping between them, naming a state, what one step changed, and keeping it across reloads
 14. [Keyboard shortcuts](14-shortcuts.md)
 15. [Sequencing reads](15-reads.md): AB1 and FASTQ files, qualities and traces, export as FASTQ
+16. [Proteins](16-proteins.md): protein FASTA and GenPept, Open as protein, weight, pI and extinction coefficient

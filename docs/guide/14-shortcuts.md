@@ -35,7 +35,10 @@ On the [Bench](12-cloning.md#the-bench), where there is no sequence to edit,
 
 Everything here is `Alt` and one key. Bare letters type bases in the
 sequence view and `Ctrl` belongs to the browser, so `Alt` is the modifier
-left for the view.
+left for the view. In front of a [protein](16-proteins.md), `Alt+C`, `Alt+T`,
+`Alt+R` and `Alt+V` do nothing, since a protein has no complement,
+translations, cut sites or map, and `Alt+[` and `Alt+]` step through the tabs
+it has.
 
 | Keys             | Action                                                    |
 | ---------------- | --------------------------------------------------------- |

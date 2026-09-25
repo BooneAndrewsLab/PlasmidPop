@@ -2,14 +2,15 @@
 
 ## Formats
 
-| Format     | Extensions                             | Open | Download             |
-| ---------- | -------------------------------------- | ---- | -------------------- |
-| GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape` | yes  | yes                  |
-| FASTA      | `.fa` `.fasta` `.fna` `.seq` `.txt`    | yes  | export               |
-| SnapGene   | `.dna`                                 | yes  | no                   |
-| AB1        | `.ab1` `.abi`                          | yes  | as GenBank, or FASTQ |
-| FASTQ      | `.fastq` `.fq`, gzipped or not         | yes  | as GenBank, or FASTQ |
-| Bare bases | `.txt`, or pasted                      | yes  | as GenBank           |
+| Format     | Extensions                                 | Open | Download             |
+| ---------- | ------------------------------------------ | ---- | -------------------- |
+| GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape`     | yes  | yes                  |
+| GenPept    | `.gp` `.gpff`                              | yes  | yes, for a protein   |
+| FASTA      | `.fa` `.fasta` `.fna` `.faa` `.seq` `.txt` | yes  | export               |
+| SnapGene   | `.dna`                                     | yes  | no                   |
+| AB1        | `.ab1` `.abi`                              | yes  | as GenBank, or FASTQ |
+| FASTQ      | `.fastq` `.fq`, gzipped or not             | yes  | as GenBank, or FASTQ |
+| Bare bases | `.txt`, or pasted                          | yes  | as GenBank           |
 
 The format is sniffed from the content first, so a GenBank record in a
 `.txt` file still opens as GenBank. If a file holds several records, the first
@@ -58,8 +59,9 @@ makes the sequence circular. Sticky ends and where the DNA was grown travel
 in the header too, as `[PlasmidPop-ends: ...]` and
 `[PlasmidPop-methylation: ...]`, the same text as the GenBank comment lines.
 What a product was made from does not: it is too long for a header line, so
-a FASTA export leaves it out. Gaps and digits are stripped with a warning;
-protein FASTA is rejected.
+a FASTA export leaves it out. Gaps and digits are stripped with a warning.
+A record whose letters are amino acids opens as a protein; see
+[Proteins](16-proteins.md).
 
 **SnapGene `.dna`** files are read for sequence and topology, features
 (including segmented features and their colours), primers (as `primer_bind`
