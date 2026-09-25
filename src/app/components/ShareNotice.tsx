@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { openGuide } from '../help/openGuide';
+import { shareNoticeText } from '../share';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -29,10 +30,7 @@ export function ShareNotice() {
 
   return (
     <div className="copy-banner copy-banner--notice" role="status">
-      <span className="copy-banner__text">
-        Share link copied — {shareNotice.chars.toLocaleString()} characters. The document travels
-        inside the link itself, so nothing was uploaded and anyone you send it to can open it.
-      </span>
+      <span className="copy-banner__text">{shareNoticeText(shareNotice)}</span>
       <button
         type="button"
         className="copy-banner__link"

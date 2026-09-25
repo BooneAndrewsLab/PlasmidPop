@@ -13,14 +13,14 @@
  * banner after a copy says so.
  */
 
-import { type SeqDocument } from '@/core';
-import { SHARE_KEY, decodeSharePayload, encodeSharePayload } from '@/io';
+import { type Range, type SeqDocument, extractRange } from '@/core';
+import { SHARE_KEY, ShareTooLargeError, decodeSharePayload, encodeSharePayload } from '@/io';
 
 import { analytics } from './analytics';
 import { copyText } from './clipboard';
 import { openText } from './openFile';
 import { serialize } from './saveFile';
-import { editorStore } from './state/editorStore';
+import { type ShareNoticeInfo, editorStore } from './state/editorStore';
 
 /** Where a link should point: this app, without whatever fragment is on it now. */
 function appUrl(): string {
@@ -42,20 +42,98 @@ export async function shareUrlFor(doc: SeqDocument, base: string = appUrl()): Pr
 }
 
 /**
- * Puts a link to `doc` on the clipboard and says what was copied, or reports
- * why it could not be made.
+ * `doc` without the header material that describes where a record was
+ * published rather than the construct (#39): its REFERENCE blocks and the
+ * COMMENT blocks it was read with. In a GenBank record from NCBI they are
+ * most of the header and a large part of a link. Everything else stays:
+ * the bases, features, topology, sticky ends, host, where it was derived
+ * from and what it was made from, which are fields of their own and are
+ * written as comments of ours whatever `comments` holds.
  */
-export async function copyShareLink(doc: SeqDocument): Promise<void> {
-  let url: string;
+export function withoutReferences(doc: SeqDocument): SeqDocument {
+  const { references, comments } = doc.metadata;
+  if (references.length === 0 && comments.length === 0) return doc;
+  return doc.setMetadata({ references: [], comments: [] });
+}
+
+/** Whether `withoutReferences` would leave anything out of `doc`. */
+export function hasReferences(doc: SeqDocument): boolean {
+  return doc.metadata.references.length > 0 || doc.metadata.comments.length > 0;
+}
+
+/** A link that was made, and what went into it. */
+export interface ShareLink {
+  readonly url: string;
+  /**
+   * The length the link would have had with its references and comments,
+   * when it was too long with them and they were left out; else null.
+   */
+  readonly fullChars: number | null;
+}
+
+/**
+ * A link to `doc`, whole when it fits, and without its references and
+ * comments when only that makes it fit (#39). Throws `ShareTooLargeError`
+ * when even that is too long, saying so.
+ */
+export async function shareLinkFor(doc: SeqDocument, base: string = appUrl()): Promise<ShareLink> {
   try {
-    url = await shareUrlFor(doc);
+    return { url: await shareUrlFor(doc, base), fullChars: null };
+  } catch (e) {
+    if (!(e instanceof ShareTooLargeError) || !hasReferences(doc)) throw e;
+    try {
+      const url = await shareUrlFor(withoutReferences(doc), base);
+      // The error counts the payload; the notice counts the whole link.
+      return { url, fullChars: e.chars + `${base}#${SHARE_KEY}=`.length };
+    } catch (again) {
+      if (!(again instanceof ShareTooLargeError)) throw again;
+      throw new ShareTooLargeError(again.chars, true);
+    }
+  }
+}
+
+/** The part of `doc` in `selection`, as Export selection as GenBank writes it. */
+export function selectionForShare(doc: SeqDocument, selection: Range): SeqDocument {
+  return extractRange(doc, selection);
+}
+
+/**
+ * Puts a link to `doc`, or to the part of it in `selection`, on the
+ * clipboard and says what was copied, or reports why it could not be made.
+ */
+export async function copyShareLink(
+  doc: SeqDocument,
+  selection: Range | null = null,
+): Promise<void> {
+  const shared = selection === null ? doc : selectionForShare(doc, selection);
+  let link: ShareLink;
+  try {
+    link = await shareLinkFor(shared);
   } catch (e) {
     editorStore.fail(e instanceof Error ? e.message : String(e));
     return;
   }
-  copyText(url);
-  analytics.track('share', 'copy');
-  editorStore.noteShareCopied(url.length);
+  copyText(link.url);
+  analytics.track('share', 'copy', selection === null ? 'document' : 'selection');
+  if (link.fullChars !== null) analytics.track('share', 'without-references');
+  editorStore.noteShareCopied({
+    chars: link.url.length,
+    of: selection === null ? 'document' : 'selection',
+    fullChars: link.fullChars,
+  });
+}
+
+/** What the notice says: which link, how long, and what it left out (#39). */
+export function shareNoticeText({ chars, of, fullChars }: ShareNoticeInfo): string {
+  const what = of === 'selection' ? 'Link to the selection' : 'Share link';
+  const length = `${chars.toLocaleString()} characters`;
+  const head =
+    fullChars === null
+      ? `${what} copied — ${length}.`
+      : `Too long with its references and comments (${fullChars.toLocaleString()} characters); ` +
+        `${what.charAt(0).toLowerCase()}${what.slice(1)} copied without them — ${length}.`;
+  const carried = of === 'selection' ? 'The selection, with its features,' : 'The document';
+  return `${head} ${carried} travels inside the link itself, so nothing was uploaded and anyone you send it to can open it.`;
 }
 
 /**

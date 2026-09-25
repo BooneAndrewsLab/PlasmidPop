@@ -7,13 +7,16 @@ import {
 } from '../features';
 import { newId } from '../ids';
 import { type Range, rangePieces } from '../range';
+import { type DocumentEnds, BLUNT_END, topStrandOverhang } from './ends';
 import { SeqDocument } from './seqDocument';
 
 /**
  * A new linear document holding just the bases in `r` (which may wrap on a
  * circular source). Features are kept when they overlap the region; parts
  * outside it are trimmed and the trimmed end is marked partial, so the
- * result reads like a GenBank sub-record.
+ * result reads like a GenBank sub-record. A range that reaches an end of
+ * a linear molecule keeps that end's shape, overhang and all (#39); an end
+ * the range stops short of is a plain blunt one.
  */
 export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocument {
   const L = doc.length;
@@ -85,6 +88,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     // A stretch of a molecule is that molecule's DNA, methylated or not as it
     // was: an exported selection of a PCR product is still unmethylated.
     methylation: doc.methylation,
+    ends: endsWithin(doc, r, sequence.length),
     metadata: {
       ...doc.metadata,
       description: `${from.toLocaleString()}-${to.toLocaleString()} of ${doc.name}${doc.metadata.description === '' ? '' : `: ${doc.metadata.description}`}`,
@@ -95,4 +99,19 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
       lineage: null,
     },
   });
+}
+
+/** The ends of `doc` that `r` reaches, for an extract of `length` bases. */
+function endsWithin(doc: SeqDocument, r: Range, length: number): DocumentEnds | null {
+  const { ends } = doc;
+  if (ends === null || doc.topology !== 'linear' || r.end <= r.start) return null;
+  // An end is kept only with the single-stranded bases of it that are part
+  // of the sequence, so an extract never holds half of an overhang.
+  const left = r.start === 0 ? ends.left : BLUNT_END;
+  const leftBases = topStrandOverhang(left, 'left');
+  const right =
+    r.end === doc.length && leftBases + topStrandOverhang(ends.right, 'right') <= length
+      ? ends.right
+      : BLUNT_END;
+  return leftBases <= length ? { left, right } : null;
 }

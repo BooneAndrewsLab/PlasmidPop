@@ -303,8 +303,23 @@ What follows from that is worth knowing.
 - **Links are long.** An ordinary annotated plasmid makes one of four to
   twelve thousand characters. Mail and chat clients cope, but such a link
   wraps badly in plain text — paste it as a link where you can.
-- **A document too big for a link is refused**, with its length in the
-  message; download the GenBank file and send that instead. It is the
+- **File ▸ Copy link to selection** makes a shorter one: a link to just the
+  selected bases, as a linear document of their own with the features that
+  fall inside them — what **Export selection as GenBank** writes. It may
+  wrap the origin of a circular sequence, and a selection that reaches an
+  end of a sticky fragment keeps that end's overhang. The notice says it is
+  a link to the selection.
+- **References and comments go when they are what makes it too long.** A
+  link can carry at most 32,000 characters. When a document is over that
+  with its REFERENCE and COMMENT blocks — the papers and notes a record
+  from NCBI comes with — and under it without them, the link is made
+  without them, and the notice says so and how long it would have been:
+  _Too long with its references and comments (40,210 characters); share
+  link copied without them_. The bases, features, topology, sticky ends,
+  host and where it came from are always in the link.
+- **A document too big for a link even so is refused**, with its length in
+  the message; copy a link to a part of it, or download the GenBank file
+  and send that instead. It is the
   annotation rather than the bases that fills a link, so a lightly annotated
   long sequence may share while a heavily annotated short one does not.
 - **What the reader gets is their own copy.** It opens in a tab of its own
@@ -342,7 +357,8 @@ From the **File** menu:
   the read's; see [Downloading a read](15-reads.md#downloading-a-read).
 - **Export selection as GenBank** or **as FASTA**: just the selected bases,
   with the features that fall inside them trimmed to the selection. The
-  selection may wrap the origin of a circular sequence.
+  selection may wrap the origin of a circular sequence. A selection that
+  reaches an end of a linear fragment keeps that end's sticky overhang.
 
 The **Translate** tab has its own **Export FASTA** for six-frame
 translations, see [Translation](09-translate.md).

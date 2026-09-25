@@ -58,10 +58,8 @@ URL fragment**.
   `PlasmidPop-derived-from:` comment of item 22 is written by
   `writeGenBank`, so it is inside the payload and the reader sees the
   original's checksum and file name under the toolbar.
-- Not yet: a link always carries the whole document
-  (a selection, or a document without its references, would make a much
-  shorter one), and a link is GenBank only, so SnapGene-specific
-  material a `.dna` import dropped is not in it either.
+- Not yet: a link is GenBank only, so SnapGene-specific material a
+  `.dna` import dropped is not in it.
 - **Decided 2026-09-24 (#40):** the limit stays at 32,000 characters. It
   sits well above a typical plasmid (pBR322 with its features is 10.8 k)
   and far below what browsers accept, so the question is what the apps a
@@ -71,3 +69,60 @@ URL fragment**.
   as above: the sender's file is not the reader's, so there is nothing to
   fork a working copy from or compare the edit marks against, and the
   `derived-from` line already says where it came from.
+
+## Shorter links (#39, 2026-09-25)
+
+- **File ▸ Copy link to selection** shares the selection as a document of
+  its own: `extractRange`, the path **Export selection as GenBank** takes,
+  so a selection link and an exported selection are the same record —
+  linear, features trimmed and marked partial, wrapping the origin if the
+  selection does. `extractRange` now keeps the sticky end of a linear
+  molecule that the range reaches (only with its single-stranded bases
+  inside the range); an end it stops short of is blunt. That changes
+  Export selection as GenBank the same way, which is the point of their
+  being one path. `Alt+L` stays the whole document.
+- **References and comments, as a fallback, not a checkbox.** Leaving out
+  the REFERENCE blocks and the COMMENT blocks a record was read with
+  (`withoutReferences`, `src/app/share.ts`) is done only when the whole
+  link is over the limit and the shorter one is under it; the notice then
+  says "Too long with its references and comments (N characters); share
+  link copied without them — M characters". A checkbox was the other
+  choice. It lost because under the limit there is nothing to gain that
+  #40 has not already weighed: 32,000 is the length a link is decided to
+  survive at, so a link that fits loses nothing and asks nothing, and one
+  that does not fit gets the only thing that would have made it fit
+  instead of a refusal. A checkbox would be a setting to find and a choice
+  to make on every copy for the rare document that needs it. If #41 finds
+  apps that mangle shorter links, the same function makes a default of it.
+- **What goes, and what never does.** References and the file's own
+  comments describe where the record was published, not the construct;
+  in an NCBI record they are most of the header. Everything that is a
+  field of the document stays, including what rides in comments of ours
+  (sticky ends, host methylation, derived-from, made-from), because those
+  are written from their fields, not from `comments`. Never features,
+  qualifiers or bases. Other header lines (KEYWORDS, SOURCE, DBLINK,
+  unknown keywords) are a line or two each and stay.
+- **Too long even so**: the error says it was measured without the
+  references and points to a link to a selection or the file.
+- **Usage**: `share / copy` is named `document` or `selection`;
+  `share / without-references` counts the fallback.
+- **Measured** (payload characters, whole → without references and
+  comments; the last two columns are a link to the first 1,000 bases,
+  whole → without):
+
+  | Fixture         | Length | Refs |  Whole | Without | Saved |  1 kb | 1 kb without |
+  | --------------- | -----: | ---: | -----: | ------: | ----: | ----: | -----------: |
+  | AJ237582        | 206 bp |    2 |  1,289 |   1,012 |   21% | 1,289 |        1,013 |
+  | AF177870        | 3.1 kb |    3 |  3,913 |   3,437 |   12% | 2,447 |        1,973 |
+  | L09137          | 2.7 kb |    5 |  4,467 |   2,181 |   51% | 3,349 |        1,091 |
+  | U49845          | 5.0 kb |    2 |  5,623 |   5,277 |    6% | 2,644 |        2,313 |
+  | pBR322 (J01749) | 4.4 kb |   23 | 10,884 |   5,831 |   46% | 7,256 |        2,220 |
+  | NC_001422       | 5.4 kb |   24 | 11,367 |   7,325 |   36% | 7,197 |        3,195 |
+  | NM_000581       | 899 bp |   10 |  6,599 |   2,609 |   60% | 6,597 |        2,609 |
+
+  The references are up to 60% of a link, most for a heavily cited
+  record; a selection keeps them, as an exported selection does, so a
+  selection of an NCBI record is shorter by its bases and features only
+  (pBR322's first kilobase: 7.3 k) until the fallback applies. None of the
+  fixtures reaches the limit, so the fallback is for the documents that
+  would have been refused: a record with a few dozen long references.

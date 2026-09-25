@@ -503,7 +503,7 @@ export interface SharedState {
    * the whole document, so the one thing the user has to be told is what
    * they are about to paste somewhere.
    */
-  readonly shareNotice: { readonly chars: number } | null;
+  readonly shareNotice: ShareNoticeInfo | null;
   /**
    * That a document's read (the qualities and trace of the AB1 or FASTQ it
    * was opened from) was just left behind: by an edit that changed the
@@ -657,6 +657,19 @@ type ActiveDocumentFields = {
  * Bench (item 49), which works across documents and so is none of them.
  */
 export type FrontTab = 'document' | 'files' | 'bench';
+
+/** What a copied share link carries (#39), for the notice under the toolbar. */
+export interface ShareNoticeInfo {
+  /** The link's length, in characters. */
+  readonly chars: number;
+  /** Whether it is the whole document or the selection extracted as one. */
+  readonly of: 'document' | 'selection';
+  /**
+   * The length it would have had with its references and comments, when
+   * they were left out to bring it under the limit; else null.
+   */
+  readonly fullChars: number | null;
+}
 
 export interface EditorState extends SharedState, ActiveDocumentFields {
   /** What is in front; the document fields are empty unless it is a document. */
@@ -1202,8 +1215,8 @@ export class EditorStore {
   }
 
   /** Records that a share link went to the clipboard, for the notice under the toolbar. */
-  noteShareCopied(chars: number): void {
-    this.setShared({ shareNotice: { chars } });
+  noteShareCopied(notice: ShareNoticeInfo): void {
+    this.setShared({ shareNotice: notice });
   }
 
   dismissShareNotice(): void {

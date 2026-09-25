@@ -155,6 +155,16 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Copy share link
           </Item>
           <Item
+            disabled={!hasSelection}
+            title="A link that carries only the selection, as a linear document with its features — shorter than one to the whole"
+            onClick={run(() => {
+              if (selection === null) return;
+              report(copyShareLink(doc, selection));
+            })}
+          >
+            Copy link to selection
+          </Item>
+          <Item
             shortcut="Alt+K"
             title="Show how this document differs from another open document or a file on disk. Neither is changed and nothing is opened."
             onClick={run(onCompare)}

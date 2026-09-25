@@ -68,4 +68,38 @@ describe('extractRange', () => {
       expect.objectContaining({ start: 6, end: 8, partialStart: false, partialEnd: true }),
     ]);
   });
+
+  describe('the ends of a linear molecule (#39)', () => {
+    const cut = SeqDocument.create({
+      name: 'frag',
+      sequence: 'AATTCGGATCCAAGCTTG', // 18 bp, EcoRI 5' AATT on the left
+      topology: 'linear',
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: "3'", overhang: 'TG', enzyme: null },
+      },
+    });
+
+    it('keeps an end the range reaches and makes the other blunt', () => {
+      expect(extractRange(cut, { start: 0, end: 18 }).ends).toEqual(cut.ends);
+      expect(extractRange(cut, { start: 0, end: 10 }).ends).toEqual({
+        left: cut.ends?.left,
+        right: { kind: 'blunt', overhang: '', enzyme: null },
+      });
+      expect(extractRange(cut, { start: 5, end: 18 }).ends).toEqual({
+        left: { kind: 'blunt', overhang: '', enzyme: null },
+        right: cut.ends?.right,
+      });
+      expect(extractRange(cut, { start: 5, end: 10 }).ends).toBeNull();
+    });
+
+    it('drops an end whose single-stranded bases the range does not hold', () => {
+      expect(extractRange(cut, { start: 0, end: 3 }).ends).toBeNull();
+      expect(extractRange(cut, { start: 0, end: 4 }).ends?.left).toEqual(cut.ends?.left);
+    });
+
+    it('gives a circle nothing: it has no ends', () => {
+      expect(extractRange(doc, { start: 0, end: 20 }).ends).toBeNull();
+    });
+  });
 });

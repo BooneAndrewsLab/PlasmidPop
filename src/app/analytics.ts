@@ -81,7 +81,12 @@ export const EVENTS = {
    * the file or went to the tab from the dialog (`file`/`tab`).
    */
   compare: ['target', 'mark-in-views', 'open-other'],
-  share: ['copy', 'open'],
+  /**
+   * `copy` is a link copied, named by what it carries (`document` or
+   * `selection`, #39); `without-references` is one that fitted only with
+   * its references and comments left out; `open` is a link opened.
+   */
+  share: ['copy', 'open', 'without-references'],
   /** Which sidebar tab the user opened. */
   panel: ['open'],
   /** The view switcher, the toolbar toggles and the Format menu options. */

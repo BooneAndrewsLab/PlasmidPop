@@ -676,6 +676,7 @@ describe('toolbar', () => {
       'Open example',
       'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
       'Copy share linkAlt+L', // as a file, or inside a link that goes nowhere near a server
+      'Copy link to selection',
       'Compare with…Alt+K', // and the one that reads a file without opening it
       'Export map as SVG',
       'Export sequence view as SVG',
@@ -1366,6 +1367,20 @@ describe('share links', () => {
     expect(notice).toHaveTextContent(/nothing was uploaded/);
     fireEvent.click(within(notice).getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByText(/Share link copied/)).not.toBeInTheDocument();
+  });
+
+  it('copies a link to the selection only, and says so (#39)', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    expect(screen.getByRole('menuitem', { name: /^Copy link to selection/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'File' }));
+    act(() => {
+      editorStore.setSelection({ start: 0, end: 300 });
+    });
+    fileMenu(/^Copy link to selection/);
+    const notice = await screen.findByRole('status');
+    expect(notice).toHaveTextContent(/Link to the selection copied — [\d,]+ characters/);
   });
 
   it('reports a damaged link instead of opening a tab', async () => {

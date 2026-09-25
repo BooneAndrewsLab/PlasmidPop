@@ -46,11 +46,20 @@ export class ShareLinkError extends Error {
 export class ShareTooLargeError extends ShareLinkError {
   readonly chars: number;
 
-  constructor(chars: number) {
+  /**
+   * `withoutReferences` when it is too long even with its references and
+   * comments left out (#39); the message then says so and points to a
+   * link of a selection.
+   */
+  constructor(chars: number, withoutReferences = false) {
     super(
-      `This document makes a link of ${chars.toLocaleString()} characters, past the ` +
-        `${MAX_SHARE_PAYLOAD.toLocaleString()} a link can carry without being mangled in mail ` +
-        'and chat. Download the GenBank file and send that instead.',
+      `This document makes a link of ${chars.toLocaleString()} characters` +
+        (withoutReferences ? ' even without its references and comments' : '') +
+        `, past the ${MAX_SHARE_PAYLOAD.toLocaleString()} a link can carry without being ` +
+        'mangled in mail and chat. ' +
+        (withoutReferences
+          ? 'Copy a link to a selection of it, or download the GenBank file and send that instead.'
+          : 'Download the GenBank file and send that instead.'),
     );
     this.name = 'ShareTooLargeError';
     this.chars = chars;
