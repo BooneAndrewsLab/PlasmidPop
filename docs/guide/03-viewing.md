@@ -68,7 +68,8 @@ message arrived.
   not there.
 - **Tap a feature** on the map to select it. Its name comes back if the ring
   had no room for it and stays until you tap somewhere else, which is what
-  hovering does with a mouse. **Pinch** to zoom and **drag** to pan.
+  hovering does with a mouse. Tapping a feature's name does the same, with
+  the name and its leader drawn out. **Pinch** to zoom and **drag** to pan.
 - In the sequence a finger **scrolls**. A **tap** on a feature bar selects the
   feature, a tap on the bases puts the caret there. The bases are shown alone:
   the Complement and Translations toggles are not applied, since each one adds

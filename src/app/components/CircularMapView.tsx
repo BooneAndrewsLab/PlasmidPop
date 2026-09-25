@@ -416,6 +416,15 @@ export function CircularMapView({ doc }: Props) {
     if (label !== null) {
       if (label.kind === 'feature') editorStore.selectFeature(label.featureId);
       else caretAtCut(label.position);
+      // A finger has no hover: the tapped label is outlined with its leader,
+      // as a tap on the feature itself does (#42).
+      if (e.pointerType === 'touch')
+        setHover({
+          featureId: label.kind === 'feature' ? label.featureId : null,
+          cut: label.kind === 'cut' ? label.position : null,
+          kind: 'label',
+          change: null,
+        });
       return;
     }
     const hit = layout.hitTest(pt.x, pt.y);
