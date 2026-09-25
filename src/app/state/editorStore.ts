@@ -14,6 +14,7 @@ import {
   type TranslationTable,
   BUNDLED_ENZYME_SET,
   CONFIDENT_QUALITY,
+  DEFAULT_MIN_IDENTITY,
   DEFAULT_PRIMER_CRITERIA,
   DEFAULT_TABLE,
   History,
@@ -28,6 +29,7 @@ import {
   documentChecksum,
   withPhosphates,
   isConfidentQuality,
+  isMinIdentityChoice,
   isEmptyRange,
   isTrimCutoff,
   isoschizomerGroups,
@@ -189,6 +191,7 @@ const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
   'styleBases',
   'setMetadata',
   'addFeature',
+  'addFeatures',
   'updateFeature',
   'removeFeature',
 ]);
@@ -519,6 +522,15 @@ export interface SharedState {
    */
   readonly readTrimCutoff: number;
   /**
+   * Whether a file opened with no features of its own is searched for the
+   * library's common ones straight away (item 59); off by default, since
+   * it is work the user did not ask for each time. Kept with the view
+   * preferences.
+   */
+  readonly detectOnOpen: boolean;
+  /** How closely Detect features insists a part match; one of `MIN_IDENTITY_CHOICES`. */
+  readonly detectMinIdentity: number;
+  /**
    * The fragment shelf: pieces collected for any of the Cloning tab's
    * reactions, in order. Independent of the open documents so pieces can be
    * gathered from several of them in turn (item 3).
@@ -765,6 +777,8 @@ const SHARED_INITIAL: SharedState = {
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
   readConfidentQuality: CONFIDENT_QUALITY,
   readTrimCutoff: TRIM_CUTOFF,
+  detectOnOpen: false,
+  detectMinIdentity: DEFAULT_MIN_IDENTITY,
   shelf: [],
   downloadNotice: null,
   shareNotice: null,
@@ -1885,6 +1899,18 @@ export class EditorStore {
   setReadTrimCutoff(cutoff: number): void {
     if (isTrimCutoff(cutoff) && cutoff !== this.state.readTrimCutoff) {
       this.setShared({ readTrimCutoff: cutoff });
+    }
+  }
+
+  /** Turns on or off Detect features for files opened with none; see `detectOnOpen`. */
+  setDetectOnOpen(on: boolean): void {
+    if (on !== this.state.detectOnOpen) this.setShared({ detectOnOpen: on });
+  }
+
+  /** Sets how closely Detect features insists a part match; see `detectMinIdentity`. */
+  setDetectMinIdentity(identity: number): void {
+    if (isMinIdentityChoice(identity) && identity !== this.state.detectMinIdentity) {
+      this.setShared({ detectMinIdentity: identity });
     }
   }
 

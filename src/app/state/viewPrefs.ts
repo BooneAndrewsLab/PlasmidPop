@@ -6,6 +6,7 @@ import {
   isAgarosePercent,
   isConfidentQuality,
   isLadderChoice,
+  isMinIdentityChoice,
   isTranslationTable,
   isTrimCutoff,
   normalizePrimerCriteria,
@@ -87,6 +88,9 @@ export interface ViewPrefs {
   /** What a read's confident bases and trimmed ends are; see `SharedState.readConfidentQuality`. */
   readonly readConfidentQuality: number;
   readonly readTrimCutoff: number;
+  /** Detect features' settings; see `SharedState.detectOnOpen`. */
+  readonly detectOnOpen: boolean;
+  readonly detectMinIdentity: number;
   /**
    * The phone reader's pane per document, by the id it is stored under
    * (#43), so a reload comes back to the pane each tab was left on. The one
@@ -209,6 +213,9 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     prefs.readConfidentQuality = record['readConfidentQuality'];
   }
   if (isTrimCutoff(record['readTrimCutoff'])) prefs.readTrimCutoff = record['readTrimCutoff'];
+  if (isMinIdentityChoice(record['detectMinIdentity'])) {
+    prefs.detectMinIdentity = record['detectMinIdentity'];
+  }
   const panes = toPhonePanes(record['phonePanes']);
   if (panes !== null) prefs.phonePanes = panes;
   const layout = record['layout'];
@@ -235,6 +242,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     'sidebarOpen',
     'enzymeGroupIsoschizomers',
     'enzymeSortReversed',
+    'detectOnOpen',
   ] as const) {
     if (typeof record[key] === 'boolean') prefs[key] = record[key];
   }
@@ -278,6 +286,8 @@ function snapshot(): ViewPrefs {
     primerCriteria,
     readConfidentQuality,
     readTrimCutoff,
+    detectOnOpen,
+    detectMinIdentity,
   } = editorStore.getState();
   return {
     view,
@@ -308,6 +318,8 @@ function snapshot(): ViewPrefs {
     primerCriteria,
     readConfidentQuality,
     readTrimCutoff,
+    detectOnOpen,
+    detectMinIdentity,
     phonePanes: editorStore.rememberedPhonePanes(),
   };
 }
@@ -341,6 +353,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     samePrimerCriteria(a.primerCriteria, b.primerCriteria) &&
     a.readConfidentQuality === b.readConfidentQuality &&
     a.readTrimCutoff === b.readTrimCutoff &&
+    a.detectOnOpen === b.detectOnOpen &&
+    a.detectMinIdentity === b.detectMinIdentity &&
     samePanes(a.phonePanes, b.phonePanes)
   );
 }
@@ -394,6 +408,10 @@ export function startViewPrefs(): () => void {
     editorStore.setReadConfidentQuality(stored.readConfidentQuality);
   }
   if (stored.readTrimCutoff !== undefined) editorStore.setReadTrimCutoff(stored.readTrimCutoff);
+  if (stored.detectOnOpen !== undefined) editorStore.setDetectOnOpen(stored.detectOnOpen);
+  if (stored.detectMinIdentity !== undefined) {
+    editorStore.setDetectMinIdentity(stored.detectMinIdentity);
+  }
   if (stored.phonePanes !== undefined) editorStore.restorePhonePanes(stored.phonePanes);
   let last = snapshot();
   return editorStore.subscribe(() => {

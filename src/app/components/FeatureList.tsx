@@ -14,6 +14,7 @@ import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
 import { describeTranslationProblem } from '../translationWarnings';
+import { DetectFeaturesButton, DetectFeaturesPanel } from './DetectFeatures';
 import { FeatureEditor } from './FeatureEditor';
 
 interface Props {
@@ -134,7 +135,8 @@ function TranslationNotice({
 
 export function FeatureList({ doc, reader = false }: Props) {
   const translation = useTranslationProblems(doc);
-  const { selection, selectedFeatureId, renameRequest, editingFeatureId } = useEditorState();
+  const { documentId, selection, selectedFeatureId, renameRequest, editingFeatureId } =
+    useEditorState();
   const features = doc.features.all();
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
@@ -162,12 +164,20 @@ export function FeatureList({ doc, reader = false }: Props) {
 
   return (
     <aside className="features" aria-label="Features">
-      <h2 className="features__title">
-        Features <span className="features__count">{features.length}</span>
-      </h2>
+      <div className="features__header">
+        <h2 className="features__title">
+          Features <span className="features__count">{features.length}</span>
+        </h2>
+        {!reader && documentId !== null && (
+          <DetectFeaturesButton documentId={documentId} doc={doc} />
+        )}
+      </div>
+      {!reader && documentId !== null && <DetectFeaturesPanel documentId={documentId} doc={doc} />}
       {features.length === 0 ? (
         <p className="features__empty">
-          No features yet. Select some bases and choose Add feature.
+          {reader
+            ? 'No features yet. Select some bases and choose Add feature.'
+            : 'No features yet. Select some bases and choose Add feature, or let Detect features find the common ones.'}
         </p>
       ) : (
         <ul className="features__list">

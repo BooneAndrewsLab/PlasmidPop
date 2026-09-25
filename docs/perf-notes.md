@@ -568,3 +568,21 @@ The walk tries both strands at every base for every primer; the index of
 anchor stands. What is left is mostly building the sites (a Tm each) and
 the lookups. It runs in the analysis worker. PCR, with two primers, still
 walks.
+
+## Detect features (item 59, 2026-09-25)
+
+| Input                                  | Library               | Time   | Where                          |
+| -------------------------------------- | --------------------- | ------ | ------------------------------ |
+| 1 Mb random, circular, 8 parts planted | 109 parts (partial)   | 286 ms | Node 24, map lookup per 12-mer |
+| same                                   | 109 parts             | 47 ms  | Node 24, bitmap before the map |
+| same                                   | 227 parts, 131,847 bp | 127 ms | Node 24, `detect.test.ts`      |
+
+Both strands, 95% identity. Every 12-mer of the sequence is looked up;
+nearly all are in no part, and a 2 MB bitmap of the words the library holds
+says so six times faster than the `Map` of their positions did. A seed then
+costs one diagonal check that gives up after a handful of mismatching bases,
+so what remains grows with the number of chance seeds, i.e. with the
+library's size. The index (the 12-mers at ~260,000 positions on both strands) is built
+once per worker and kept. The library itself is a lazy chunk: 109 kB
+(31 kB gzipped) for the core and 70 kB (12.6 kB gzipped) for the FPbase
+file, fetched the first time Detect features runs.

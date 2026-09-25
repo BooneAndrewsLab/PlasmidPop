@@ -61,6 +61,70 @@ other) in the Features tab and the name is written back as a `/label`.
 The ORFs and Primers tabs add features of their own: an ORF as a `CDS` with
 its translation, primers as `primer_bind` sites.
 
+## Detecting common features
+
+A bare FASTA file, or a record someone annotated sparsely, opens with few
+features or none. **Detect features**, at the top of the Features tab, looks
+for the parts plasmids are made of and offers what it finds:
+
+1. Click **Detect features**. The search runs in the background; a progress
+   bar with **Cancel** shows while it does (a plasmid takes a moment, a
+   megabase well under a second).
+2. The hits are listed under the button, every one ticked, each with its
+   type, its location, and how well it matched: _exact_, or the number of
+   mismatches and the identity, such as _2 mismatches, 99.7%_. Hover over a
+   row to see what the part is and the record it was matched against; click
+   it to select those bases in the views.
+3. Untick any you do not want (or **Untick all** and tick a few), then click
+   **Add N features**. They are added as one edit, so a single **Undo** takes
+   them all away again. **Dismiss** puts the list away without adding
+   anything.
+
+What is found:
+
+- **Both strands**, and **through the origin** of a circular sequence.
+- **Near matches**: by default a part is found when at least 95% of its
+  bases match. **Match at least** in the list changes that to 98%, 90% or
+  exactly, and searches again. Mismatches are substitutions only: a copy of a
+  part with bases inserted or deleted is not found. Parts shorter than 24
+  bases (primer sites, short tags) are only found exactly, so that they do
+  not turn up by chance.
+- **Ambiguity codes** in your sequence (`N`, `R`, `Y`, …) count against a
+  match like a mismatch, but are reported separately, as _1 ambiguous base_,
+  when the code allows the part's base.
+- A hit the document **already has** — a feature on the same strand, of the
+  same type or name, over nearly the same bases — is not offered again; the
+  list says how many there were.
+- Where two parts of one type cover the same bases, only the better match is
+  offered: the pBR322 origin rather than the pUC origin that differs from it
+  by one base, `lacZ` rather than the `lacZα` inside it. Parts of different
+  types are offered together, so a primer site inside a promoter is two
+  features.
+
+A feature added this way is named after the part and carries two notes: what
+the part is, and _Detected by PlasmidPop_ with how well it matched and the
+record it was matched against, so an annotation the app made can always be
+told from one the file came with.
+
+**Detect in every file opened without features**, a tick box under the list,
+runs the search by itself whenever a file you open has no features (a
+`source` feature does not count), and brings the Features tab forward when
+it finds something. Nothing is added until you click **Add**. It is off
+until you turn it on, and remembered in this browser.
+
+### Where the parts come from
+
+The bundled list holds over two hundred parts: origins of replication,
+resistance and auxotrophic markers, promoters, terminators, tags and fusion
+partners, operators and recombination sites, reporters, and the usual
+sequencing-primer sites, plus common fluorescent proteins. Every one is read
+from a public NCBI record whose accession and location are cited with it; the
+fluorescent proteins are chosen from [FPbase](https://www.fpbase.org), whose
+data is shared under CC BY-SA 4.0, and their DNA is the coding sequence of
+the NCBI record FPbase names. The list is matched as DNA, so a fluorescent
+protein or tag written with other codons is not found, and some short tags
+(the His tag, HA, V5) are not in the list yet.
+
 ## Editing a feature
 
 **Edit** opens the full editor under the row:

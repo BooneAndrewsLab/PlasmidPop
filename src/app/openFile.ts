@@ -2,6 +2,7 @@ import { FormatError, parseSequenceFile, readSequenceData } from '@/io';
 
 import { analytics, formatOfFileName } from './analytics';
 import { type Example } from './examples';
+import { detectOnOpen } from './state/detection';
 import { type OpenStorage, editorStore } from './state/editorStore';
 
 /** What the file pickers offer: every format `readSequenceData` reads. */
@@ -33,7 +34,10 @@ export async function openFile(file: File): Promise<string | null> {
     return null;
   }
   try {
-    return editorStore.openParsed(await readSequenceData(data, file.name), file.name);
+    const id = editorStore.openParsed(await readSequenceData(data, file.name), file.name);
+    // A bare FASTA or an unannotated record: the common parts, if asked (item 59).
+    detectOnOpen(id);
+    return id;
   } catch (e) {
     analytics.track('file', 'open-failed', formatOfFileName(file.name));
     editorStore.fail(e instanceof Error ? e.message : String(e));

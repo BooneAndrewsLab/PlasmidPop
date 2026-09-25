@@ -35,6 +35,8 @@ const DEFAULTS = {
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
   readConfidentQuality: 20,
   readTrimCutoff: 0.05,
+  detectOnOpen: false,
+  detectMinIdentity: 0.95,
 } as const;
 
 function reset(): void {
@@ -67,6 +69,8 @@ function reset(): void {
   editorStore.setPrimerCriteria(DEFAULTS.primerCriteria);
   editorStore.setReadConfidentQuality(DEFAULTS.readConfidentQuality);
   editorStore.setReadTrimCutoff(DEFAULTS.readTrimCutoff);
+  editorStore.setDetectOnOpen(DEFAULTS.detectOnOpen);
+  editorStore.setDetectMinIdentity(DEFAULTS.detectMinIdentity);
   editorStore.restorePhonePanes({});
 }
 
@@ -121,6 +125,8 @@ describe('view preferences', () => {
       },
       readConfidentQuality: 40,
       readTrimCutoff: 0.01,
+      detectOnOpen: true,
+      detectMinIdentity: 0.9,
       phonePanes: { 'doc-1': 'sequence', 'doc-2': 'details' },
     } as const;
     saveViewPrefs(prefs);
@@ -183,6 +189,8 @@ describe('view preferences', () => {
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
       readConfidentQuality: 30,
       readTrimCutoff: 0.1,
+      detectOnOpen: true,
+      detectMinIdentity: 1,
       phonePanes: {},
     });
     const stop = startViewPrefs();
@@ -219,6 +227,8 @@ describe('view preferences', () => {
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
       readConfidentQuality: 30,
       readTrimCutoff: 0.1,
+      detectOnOpen: true,
+      detectMinIdentity: 1,
     });
     stop();
   });
@@ -342,6 +352,18 @@ describe('view preferences', () => {
       JSON.stringify({ readConfidentQuality: 99, readTrimCutoff: '0.05', showCutSites: false }),
     );
     expect(loadViewPrefs()).toEqual({ showCutSites: false });
+  });
+
+  it('remembers the Detect features settings, but only identities it offers (item 59)', () => {
+    const stop = startViewPrefs();
+    editorStore.setDetectOnOpen(true);
+    editorStore.setDetectMinIdentity(0.98);
+    expect(loadViewPrefs()).toMatchObject({ detectOnOpen: true, detectMinIdentity: 0.98 });
+    editorStore.setDetectMinIdentity(0.97);
+    expect(editorStore.getState().detectMinIdentity).toBe(0.98);
+    stop();
+    localStorage.setItem(KEY, JSON.stringify({ detectOnOpen: 'yes', detectMinIdentity: 0.5 }));
+    expect(loadViewPrefs()).toEqual({});
   });
 
   it('records where a splitter was left', () => {
