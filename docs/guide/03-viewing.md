@@ -324,7 +324,9 @@ beside it with the commonest of these: **Style ▾** (see
 [Colouring and enlarging bases](04-editing.md#colouring-and-enlarging-bases)),
 **Add feature** and **Copy**, and how many bases are selected. It sits above
 the selection, or under it where there is no room above for the Style menu,
-so the selected bases stay in view while you work on them. Clicking a single
+so the selected bases stay in view while you work on them. While the mouse
+is elsewhere (a selection made on the map or from a panel) the bar is faded;
+it comes back in full as soon as the mouse is over the sequence. Clicking a single
 position, or selecting nothing, puts it away. The phone reader has its own
 **Copy** after a long press instead.
 

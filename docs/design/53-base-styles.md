@@ -123,6 +123,11 @@ edit bar's copy of the menu, so only one menu answers it.
   Otherwise it goes under the last row with the menu opening down. Either
   way the menu does not cover the bases it is restyling. It is hidden when
   neither place is on screen.
+- Faded to 40% while the pointer is outside the sequence view: a selection
+  made on the map, in a feature list or by a panel should not shout over the
+  bases. It is whole again as soon as the pointer enters the view (the bar
+  and its open menu are inside it), and while the keyboard is in the bar.
+  Pure CSS (`:hover`, `:focus-within`), and only under `(hover: hover)`.
 - Desktop only. The phone reader (`reader`) has its long-press Copy (item 15) and no room over its bases.
 - Counted as `selection-bar / add-feature` and `/ copy`. Styling counts as
   the `styleBases` edit it makes.

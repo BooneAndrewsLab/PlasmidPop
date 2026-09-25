@@ -3505,6 +3505,20 @@ button {
   white-space: nowrap;
 }
 
+/* Faded while the pointer is elsewhere — a selection made on the map or in
+   a panel need not shout over the sequence — and whole again as soon as it
+   comes into the view, the bar and its open menu included. A keyboard in
+   the bar keeps it whole too. Only where there is a pointer to hover. */
+@media (hover: hover) {
+  .selection-bar {
+    transition: opacity 0.15s ease;
+  }
+
+  .seq-view:not(:hover) .selection-bar:not(:focus-within) {
+    opacity: 0.4;
+  }
+}
+
 .selection-bar__length {
   padding: 0 6px 0 2px;
   color: var(--accent);
