@@ -52,5 +52,6 @@
   "ignorePatterns": [".venv-oracle", "dist", "coverage", "reports", "design", ".idea", ".claude"],
   "ignoreStatic": true,
   "incremental": true,
-  "incrementalFile": "reports/mutation/stryker-incremental.json"
+  "incrementalFile": "reports/mutation/stryker-incremental.json",
+  "dryRunTimeoutMinutes": 20
 }
