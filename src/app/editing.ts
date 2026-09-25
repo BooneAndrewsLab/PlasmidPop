@@ -209,6 +209,7 @@ export function selectionAfterOp(
     case 'rename':
     case 'setMetadata':
     case 'addFeature':
+    case 'addFeatures':
     case 'updateFeature':
     case 'removeFeature':
       return selection;

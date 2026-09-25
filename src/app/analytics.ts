@@ -63,6 +63,7 @@ const EDIT_OPS: Readonly<Record<EditOp['type'], true>> = {
   rename: true,
   setMetadata: true,
   addFeature: true,
+  addFeatures: true,
   updateFeature: true,
   removeFeature: true,
 };
@@ -144,6 +145,15 @@ export const EVENTS = {
     'made-from-open',
   ],
   enzymes: ['show', 'import', 'import-clear'],
+  /**
+   * Detect features (item 59): `run` is a search, named by what started it
+   * (`command` for the button, `open` for the setting that runs it on a file
+   * opened with no features); `add` is hits added to the document, named
+   * `all` when every one offered was kept and `picked` when some were
+   * unticked, never which or how many; `setting` is the run-on-open setting
+   * turned `on` or `off`.
+   */
+  detect: ['run', 'add', 'setting'],
   /**
    * The primer collection (#64): `collection-add` named by where the
    * primers came from (`design`, `check`, `feature`, `paste`, `file`,

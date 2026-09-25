@@ -470,6 +470,7 @@ export class RefModel {
       case 'rename':
       case 'setMetadata':
       case 'addFeature':
+      case 'addFeatures':
       case 'updateFeature':
       case 'removeFeature':
         return none;

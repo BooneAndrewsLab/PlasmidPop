@@ -468,6 +468,18 @@ describe('feature CRUD', () => {
 
     expect(withF.removeFeature('f').features.size).toBe(0);
     expect(withF.removeFeature('nope')).toBe(withF);
+  });
+
+  it('adds several features at once, all or none', () => {
+    const g = createFeature({ id: 'g', type: 'CDS', segments: [rangeSegment(0, 3)] });
+    const both = doc.addFeatures([f, g]);
+    expect(both.features.size).toBe(2);
+    expect(doc.addFeatures([])).toBe(doc);
+    const bad = createFeature({ id: 'h', type: 'x', segments: [rangeSegment(15, 25)] });
+    expect(() => doc.addFeatures([g, bad])).toThrow(RangeError);
+    expect(() => doc.addFeatures([g, g])).toThrow(/Duplicate/);
+    expect(describeEditOp({ type: 'addFeatures', features: [f, g] })).toBe('Add 2 features');
+    expect(describeEditOp({ type: 'addFeatures', features: [f] })).toBe('Add 1 feature');
     expect(doc.rename('pUC19').name).toBe('pUC19');
     expect(doc.rename('Untitled')).toBe(doc);
   });
@@ -550,6 +562,7 @@ describe('apply / EditOp', () => {
       [{ type: 'rename', name: 'x' }, doc.rename('x')],
       [{ type: 'setMetadata', patch: { description: 'd' } }, doc.setMetadata({ description: 'd' })],
       [{ type: 'addFeature', feature }, doc.addFeature(feature)],
+      [{ type: 'addFeatures', features: [feature] }, doc.addFeatures([feature])],
       [
         { type: 'updateFeature', id: 'f', patch: { name: 'n' } },
         doc.updateFeature('f', { name: 'n' }),

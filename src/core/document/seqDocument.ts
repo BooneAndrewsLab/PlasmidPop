@@ -258,6 +258,8 @@ export class SeqDocument {
         return this.setMetadata(op.patch);
       case 'addFeature':
         return this.addFeature(op.feature);
+      case 'addFeatures':
+        return this.addFeatures(op.features);
       case 'updateFeature':
         return this.updateFeature(op.id, op.patch);
       case 'removeFeature':
@@ -520,6 +522,17 @@ export class SeqDocument {
   addFeature(feature: Feature): SeqDocument {
     validateFeature(feature, this.length, this.topology);
     return this.with({ features: this.features.add(feature) });
+  }
+
+  /** Adds every one of `features`, or none if any is invalid; none at all is no change. */
+  addFeatures(features: readonly Feature[]): SeqDocument {
+    if (features.length === 0) return this;
+    let set = this.features;
+    for (const feature of features) {
+      validateFeature(feature, this.length, this.topology);
+      set = set.add(feature);
+    }
+    return this.with({ features: set });
   }
 
   updateFeature(id: FeatureId, patch: FeaturePatch): SeqDocument {

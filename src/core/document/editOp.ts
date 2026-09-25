@@ -43,6 +43,8 @@ export type EditOp =
   | { readonly type: 'rename'; readonly name: string }
   | { readonly type: 'setMetadata'; readonly patch: Partial<DocumentMetadata> }
   | { readonly type: 'addFeature'; readonly feature: Feature }
+  /** Several features at once, one step to undo: what Detect features adds (item 59). */
+  | { readonly type: 'addFeatures'; readonly features: readonly Feature[] }
   | { readonly type: 'updateFeature'; readonly id: FeatureId; readonly patch: FeaturePatch }
   | { readonly type: 'removeFeature'; readonly id: FeatureId };
 
@@ -109,6 +111,8 @@ export function describeEditOp(op: EditOp): string {
       return 'Edit description';
     case 'addFeature':
       return 'Add feature';
+    case 'addFeatures':
+      return op.features.length === 1 ? 'Add 1 feature' : `Add ${op.features.length} features`;
     case 'updateFeature':
       return 'Edit feature';
     case 'removeFeature':
