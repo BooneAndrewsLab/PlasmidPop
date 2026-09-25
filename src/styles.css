@@ -2335,6 +2335,31 @@ button {
   justify-self: start;
 }
 
+/* Open from NCBI (#65): the accessions, what is sent, the fetch under way. */
+.ncbi-open {
+  display: grid;
+  gap: 12px;
+}
+
+.ncbi-open__field {
+  display: flex;
+}
+
+.ncbi-open__field > span {
+  flex: none;
+}
+
+.ncbi-open__hint,
+.ncbi-open__status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.ncbi-open__status {
+  color: var(--ink-2);
+}
+
 /* Export sequence view as SVG (#30): range, bases per row, pages. */
 .export-sequence {
   display: grid;

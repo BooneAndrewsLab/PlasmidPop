@@ -65,7 +65,13 @@ export function useViewShortcuts(): void {
       if (isAltBlocked(e.target)) return;
       const state = editorStore.getState();
       // A modal has the user's attention; its own Escape is the way out.
-      if (state.saveReview !== null || state.comparison !== null || state.newDialog) return;
+      if (
+        state.saveReview !== null ||
+        state.comparison !== null ||
+        state.newDialog ||
+        state.ncbiDialog
+      )
+        return;
 
       // On the Bench, Undo and Redo are the shelf's (item 49). A document's
       // are the sequence view's, which is not on screen.

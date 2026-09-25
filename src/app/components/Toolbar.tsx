@@ -198,6 +198,16 @@ export function Toolbar({ doc }: Props) {
                 Open example
               </button>
             )}
+            <button
+              type="button"
+              className="button"
+              title="Fetch GenBank records by accession number. Only the accessions are sent, to NCBI."
+              onClick={() => {
+                editorStore.requestNcbi();
+              }}
+            >
+              From NCBI…
+            </button>
             <button type="button" className="button button--primary" onClick={openViaPicker}>
               Open file
             </button>

@@ -10,7 +10,8 @@ no account, no upload and no server round-trip. Works offline once loaded.
 
 ## What it does
 
-- **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA and SnapGene `.dna`;
+- **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA and SnapGene `.dna`,
+  or a GenBank record from NCBI by accession;
   **download** GenBank (the file you opened is never written to), export
   FASTA, export the map or the sequence view as SVG, export a selection
   with its features.
@@ -130,6 +131,12 @@ link (`src/io/share/`, `src/app/share.ts`) is the document as GenBank,
 deflated into the URL fragment — never sent to a server, since a fragment
 does not leave the browser. The app is an installable PWA that works
 offline.
+
+Open from NCBI (`src/io/ncbi/`, `src/app/openFromNcbi.ts`) is the one
+request the editor makes to a third party, and only when the user presses
+Open: E-utilities `efetch` answers browsers directly (CORS), and what it is
+sent is the accession numbers and `tool=PlasmidPop` — no cookies, no
+referrer, no API key or e-mail address.
 
 Usage statistics: `src/app/analytics.ts` talks to a self-hosted Matomo
 instance when `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build

@@ -579,6 +579,8 @@ export interface SharedState {
    * for before the empty document opens, rather than fixed afterwards.
    */
   readonly newDialog: boolean;
+  /** Whether the Open from NCBI dialog is up (#65, item 58). */
+  readonly ncbiDialog: boolean;
   /** Where the draggable boundaries sit; see `LayoutSizes`. */
   readonly layout: LayoutSizes;
 }
@@ -772,6 +774,7 @@ const SHARED_INITIAL: SharedState = {
   previewActivated: null,
   comparison: null,
   newDialog: false,
+  ncbiDialog: false,
   layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
@@ -1769,6 +1772,15 @@ export class EditorStore {
 
   dismissNewDocument(): void {
     if (this.shared.newDialog) this.setShared({ newDialog: false });
+  }
+
+  /** Asks which accessions to fetch from NCBI; nothing is sent until the user says so. */
+  requestNcbi(): void {
+    if (!this.shared.ncbiDialog) this.setShared({ ncbiDialog: true });
+  }
+
+  dismissNcbi(): void {
+    if (this.shared.ncbiDialog) this.setShared({ ncbiDialog: false });
   }
 
   /** Opens Compare with… on its first question: what to compare with. */

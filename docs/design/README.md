@@ -67,6 +67,7 @@ piece of work needs its reasoning written down, with the next free number.
 53. [Base styles: colour, highlight, bold and size](53-base-styles.md)
 54. [Changing the case of bases](54-change-case.md)
 55. [Thinner introns, and a thickness per feature](55-feature-thickness.md)
+56. [Open a GenBank record from NCBI by accession](58-ncbi-fetch.md)
 
 ## Changelog to 1.1.0
 

@@ -80,8 +80,21 @@ export const EVENTS = {
    * `export` is named by what was exported: `map-svg`, `sequence-svg`,
    * `selection-svg`, `sequence-svg-pages` (on A4 pages, #30), `fasta`,
    * `fastq`, `selection-genbank`, `selection-fasta`.
+   * `open-ncbi` is File ▸ Open from NCBI… fetching at least one record
+   * (#65, item 58) and `open-ncbi-failed` one that fetched none, named by
+   * why (`not-found`, `offline`, `network`, `rate-limit`, `too-large`,
+   * `server`, `not-genbank`): never the accession, nor how many.
    */
-  file: ['open', 'open-failed', 'new', 'download', 'compare', 'export'],
+  file: [
+    'open',
+    'open-failed',
+    'new',
+    'download',
+    'compare',
+    'export',
+    'open-ncbi',
+    'open-ncbi-failed',
+  ],
   /**
    * Compare with…: `target` is what it was pointed at (`tab` or `file`),
    * `mark-in-views` made it the edit marks' baseline, `open-other` opened

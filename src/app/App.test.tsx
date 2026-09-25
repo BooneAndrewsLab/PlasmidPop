@@ -675,6 +675,7 @@ describe('toolbar', () => {
     expect(names).toEqual([
       'New',
       'Open file…',
+      'Open from NCBI…',
       'Open example',
       'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
       'Copy share linkAlt+L', // as a file, or inside a link that goes nowhere near a server

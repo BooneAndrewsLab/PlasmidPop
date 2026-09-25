@@ -72,11 +72,54 @@ came in twice — reopen the `.dna` file to get them right.
 
 **Geneious** files are not supported. Export them as GenBank first.
 
+## Opening a record from NCBI
+
+**File ▸ Open from NCBI…** (or **From NCBI…** in the toolbar when nothing is
+open) fetches a GenBank record by its accession number, so a published
+plasmid or gene opens without downloading it first.
+
+1. Type the accession: `L09137` (pUC19), `NC_001422` (phiX174),
+   `NM_000581.2`. The version after the dot is optional; without it you get
+   the current one. A pasted NCBI address such as
+   `https://www.ncbi.nlm.nih.gov/nuccore/L09137.2` works too.
+2. Press **Open** (or `Enter`). The record opens in a tab of its own, as if
+   you had downloaded it from NCBI and opened the file: every feature, the
+   references and the comments. The tab takes the name on the record's LOCUS
+   line, as it would from the file — `L09137` opens as `SYNPUC19CV` — and
+   **Recent files** lists it as from `L09137.gb`. Click the name in the
+   toolbar to rename it. Opening the same accession again goes to its tab.
+
+- **Several at once**: separate them with spaces or commas (up to 20). Each
+  opens in its own tab, the last one in front. One NCBI has no record for is
+  named in the status bar; the others still open.
+- **Cancel** stops a fetch under way; press it again, or `Escape`, to close
+  the dialog.
+- **Nucleotide records only.** A protein accession (`NP_000508`, `AAA12345`)
+  is refused before anything is sent, and so is anything that does not look
+  like an accession, so a typo costs no request.
+- **Records up to 10 Mb.** A longer one — a bacterial chromosome's
+  scaffold, a whole contig set — is turned away as soon as its first line
+  arrives, since PlasmidPop is not a genome browser.
+- NCBI takes three requests a second from any one address without an API
+  key. PlasmidPop sends all the accessions typed in one request and tries
+  once more after two seconds if NCBI is busy; if it still is, the dialog
+  says so. It needs a connection: offline, it says that instead.
+
+**What is sent.** This is the one feature that reaches a server other than
+the one the app is loaded from, and only when you press **Open**. What goes
+to NCBI (`eutils.ncbi.nlm.nih.gov`) is the accession numbers you typed and
+the name `PlasmidPop`, which NCBI asks every program using its service to
+send. No document, sequence or file name goes, no cookies, and not the
+address of the page you are on; there is no API key and no e-mail address.
+NCBI sees the request come from your network, as it would if you opened the
+record on its website. The usage statistics count that a record was opened
+from NCBI, never which (see [Usage statistics](#usage-statistics)).
+
 ## Several documents at once
 
 Every document you open gets a tab in the strip under the toolbar, so a
 vector and its insert can be open side by side. **Open file**, **New**,
-**Open example**, a dropped file, a pasted record, a ligation product and a
+**Open example**, **Open from NCBI…**, a dropped file, a pasted record, a ligation product and a
 fragment opened from the Cloning tab all open in a new tab and bring it to
 the front. Opening a file that already has a tab goes to that tab instead of
 opening it twice — unless that tab has been edited, which makes it a
@@ -452,15 +495,18 @@ app, and whether it runs on a phone or as an installed app, are sent once.
 Never sent: sequences, feature names, file names, sequence lengths, where
 in a sequence you worked, or anything else from your documents. The page address is reported without the part after the `#`, so
 opening a [share link](#sharing-a-link) sends the tracker the app's address
-and nothing of the document it carries. The tracker sets no cookies and the instance anonymises IP
+and nothing of the document it carries. A record opened from NCBI is
+counted as one (or, if it failed, why: not found, offline and so on), never
+by its accession. The tracker sets no cookies and the instance anonymises IP
 addresses. If your browser sends a Do-Not-Track signal, nothing is sent at
 all. Builds without a configured instance never send anything.
 
 If Chrome asks whether the page may **access other devices on your local
 network**, that is this tracker: the statistics server is on the lab's
 network, and Chrome asks before a public page may reach a private address.
-Refusing costs nothing but the statistics; the editor does not use the
-network at all.
+Refusing costs nothing but the statistics; the editor itself uses the
+network only for [Open from NCBI…](#opening-a-record-from-ncbi), when you
+ask it to.
 
 ## Offline use
 

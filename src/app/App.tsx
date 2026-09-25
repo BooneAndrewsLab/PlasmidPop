@@ -7,6 +7,7 @@ import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
+import { NcbiDialog } from './components/NcbiDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
 import { CopyBanner } from './components/CopyBanner';
@@ -262,6 +263,7 @@ export function App() {
       <SaveReviewDialog />
       <CompareDialog />
       <NewDocumentDialog />
+      <NcbiDialog />
     </div>
   );
 }

@@ -4,7 +4,7 @@ The same pages open inside the app from the **?** button at the right of the
 toolbar.
 
 1. [Getting started](01-getting-started.md)
-2. [Files and storage](02-files.md): formats, document tabs, saving, comparing with another file or tab, sharing a link, exporting, recent files, usage statistics, offline use, opening an attachment from another app
+2. [Files and storage](02-files.md): formats, opening a record from NCBI, document tabs, saving, comparing with another file or tab, sharing a link, exporting, recent files, usage statistics, offline use, opening an attachment from another app
 3. [Viewing and selecting](03-viewing.md): sequence view, circular map, selection, previews, on a phone
 4. [Editing the sequence](04-editing.md): typing, copy and paste, colouring and enlarging bases, reverse complement, origin, edit marks, undo
 5. [Features](05-features.md): the feature list and editor

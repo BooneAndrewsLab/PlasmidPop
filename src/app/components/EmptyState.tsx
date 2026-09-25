@@ -84,13 +84,24 @@ export function EmptyState() {
           >
             start a new sequence
           </button>{' '}
-          and type it in.
+          and type it in, or{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.requestNcbi();
+            }}
+          >
+            open a record from NCBI
+          </button>{' '}
+          by its accession number.
         </p>
         <p className="empty__hint">
           Everything stays in your browser: documents are kept here as you work and never uploaded,
-          and no file on your disk is written to. Download the ones you want as files. Your browser
-          may ask whether PlasmidPop can keep its data; saying yes protects your documents when disk
-          space runs low.
+          and no file on your disk is written to. Opening from NCBI sends NCBI the accession numbers
+          you type, and nothing else. Download the ones you want as files. Your browser may ask
+          whether PlasmidPop can keep its data; saying yes protects your documents when disk space
+          runs low.
           {example !== undefined && (
             <>
               {' '}
