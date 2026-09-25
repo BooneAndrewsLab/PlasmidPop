@@ -1,0 +1,323 @@
+import { readFixture } from '@/test/fixtures';
+
+import { accessionKind, parseAccessions } from './accession';
+import {
+  EFETCH_URL,
+  MAX_RECORD_BP,
+  NcbiError,
+  RETRY_AFTER_MS,
+  efetchUrl,
+  fetchNucleotideRecords,
+  isAbort,
+  recordIds,
+  resetRequestGap,
+} from './efetch';
+
+describe('accessionKind', () => {
+  it.each([
+    'L09137',
+    'L09137.2',
+    'U49845',
+    'AF177870',
+    'AB12345678',
+    'AAAA01000001',
+    'AAAAAA010000001',
+    'NC_001422',
+    'NC_001422.1',
+    'NM_000581',
+    'NZ_CP012345',
+    'NZ_AAAA01000001',
+    'XM_123456',
+  ])('%s is nucleotide', (a) => {
+    expect(accessionKind(a)).toBe('nucleotide');
+  });
+
+  it.each(['NP_000508', 'XP_123456.1', 'WP_012345678', 'AAA12345', 'CAB1234567'])(
+    '%s is protein',
+    (a) => {
+      expect(accessionKind(a)).toBe('protein');
+    },
+  );
+
+  it.each(['', '12345', 'L0913', 'pUC19', 'NC-001422', 'NC_001422.', 'L09137 ', 'ZZ_123456'])(
+    '%j is not an accession',
+    (a) => {
+      expect(accessionKind(a)).toBeNull();
+    },
+  );
+});
+
+describe('parseAccessions', () => {
+  it('splits on spaces, commas and semicolons, upper-cases and drops repeats', () => {
+    expect(parseAccessions(' l09137, NC_001422.1;\nL09137  u49845 ')).toEqual({
+      nucleotide: ['L09137', 'NC_001422.1', 'U49845'],
+      protein: [],
+      invalid: [],
+    });
+  });
+
+  it('sorts proteins and anything else apart, keeping what was typed', () => {
+    expect(parseAccessions('NP_000508 pUC19 L09137 <script>')).toEqual({
+      nucleotide: ['L09137'],
+      protein: ['NP_000508'],
+      invalid: ['pUC19', '<script>'],
+    });
+  });
+
+  it('takes a pasted NCBI address as its last segment', () => {
+    expect(
+      parseAccessions(
+        'https://www.ncbi.nlm.nih.gov/nuccore/L09137.2 https://www.ncbi.nlm.nih.gov/nuccore/NC_001422/?report=genbank',
+      ).nucleotide,
+    ).toEqual(['L09137.2', 'NC_001422']);
+  });
+
+  it('gives nothing for blank input', () => {
+    expect(parseAccessions('  \n ')).toEqual({ nucleotide: [], protein: [], invalid: [] });
+  });
+});
+
+describe('efetchUrl', () => {
+  it('asks nuccore for GenBank with parts, as PlasmidPop, and sends nothing else', () => {
+    const url = new URL(efetchUrl(['L09137', 'NC_001422.1']));
+    expect(`${url.origin}${url.pathname}`).toBe(EFETCH_URL);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      db: 'nuccore',
+      id: 'L09137,NC_001422.1',
+      rettype: 'gbwithparts',
+      retmode: 'text',
+      tool: 'PlasmidPop',
+    });
+  });
+});
+
+describe('recordIds', () => {
+  it('collects primary and secondary accessions and the version', () => {
+    expect([...recordIds(readFixture('L09137.gb'))].sort()).toEqual([
+      'L09137',
+      'L09137.2',
+      'X02514',
+    ]);
+  });
+});
+
+/** A Response whose body arrives in pieces, as a network one does. */
+function streamed(text: string, init: ResponseInit = {}, pieces = 4): Response {
+  const bytes = new TextEncoder().encode(text);
+  const size = Math.ceil(bytes.length / pieces);
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (let i = 0; i < bytes.length; i += size) controller.enqueue(bytes.slice(i, i + size));
+      controller.close();
+    },
+  });
+  return new Response(stream, init);
+}
+
+type FetchArgs = Parameters<typeof globalThis.fetch>;
+
+function mockFetch(...answers: (Response | Error)[]) {
+  const calls: FetchArgs[] = [];
+  const fetch = (...args: FetchArgs): Promise<Response> => {
+    calls.push(args);
+    const next = answers.shift();
+    if (next === undefined) throw new Error('unexpected request');
+    return next instanceof Error ? Promise.reject(next) : Promise.resolve(next);
+  };
+  return { fetch, calls };
+}
+
+describe('fetchNucleotideRecords', () => {
+  const waits: number[] = [];
+  const base = {
+    wait: (ms: number) => {
+      waits.push(ms);
+      return Promise.resolve();
+    },
+    online: () => true,
+  };
+
+  beforeEach(() => {
+    resetRequestGap();
+    waits.length = 0;
+  });
+
+  it('fetches the records, without cookies or a referrer', async () => {
+    const text = `${readFixture('L09137.gb')}${readFixture('NC_001422.1.gb')}`;
+    const { fetch, calls } = mockFetch(streamed(text));
+    const progress: number[] = [];
+    const got = await fetchNucleotideRecords(['L09137', 'NC_001422.1'], {
+      ...base,
+      fetch,
+      onProgress: (b) => progress.push(b),
+    });
+    expect(got.text).toBe(text);
+    expect(got.missing).toEqual([]);
+    expect(calls).toHaveLength(1);
+    const [url, init] = calls[0] ?? [];
+    expect(url).toBe(efetchUrl(['L09137', 'NC_001422.1']));
+    expect(init).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer' });
+    expect(init?.headers).toBeUndefined();
+    expect(progress.length).toBeGreaterThan(1);
+    expect(progress[progress.length - 1]).toBe(new TextEncoder().encode(text).length);
+  });
+
+  it('matches a record asked for by its secondary accession or a version', async () => {
+    const { fetch } = mockFetch(streamed(readFixture('L09137.gb')));
+    const got = await fetchNucleotideRecords(['X02514'], { ...base, fetch });
+    expect(got.missing).toEqual([]);
+    const again = mockFetch(streamed(readFixture('L09137.gb')));
+    expect(
+      (await fetchNucleotideRecords(['L09137.2'], { ...base, fetch: again.fetch })).missing,
+    ).toEqual([]);
+  });
+
+  it('lists the accessions NCBI left out, which it does without a word', async () => {
+    const { fetch } = mockFetch(streamed(readFixture('L09137.gb')));
+    const got = await fetchNucleotideRecords(['L09137', 'AB999999'], { ...base, fetch });
+    expect(got.missing).toEqual(['AB999999']);
+  });
+
+  it('reads a 400 as no such record', async () => {
+    // What NCBI sends for a well-formed accession it has no record of.
+    const body =
+      '+Error%3A+CEFetchPApplication%3A%3Aproxy_stream()%3A+Error%3A+F+a+i+l+e+d++t+o++r+e+t+r+i+e+v+e';
+    const { fetch } = mockFetch(new Response(body, { status: 400 }));
+    await expect(fetchNucleotideRecords(['AB999999'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'not-found',
+      message: 'NCBI has no nucleotide record AB999999.',
+    });
+  });
+
+  it('reads an "Error:" answer with status 200 as no such record', async () => {
+    const { fetch } = mockFetch(
+      new Response('Error: F a i l e d  t o  u n d e r s t a n d  i d :  Z Z 9\n\n'),
+    );
+    await expect(
+      fetchNucleotideRecords(['L09137', 'U49845'], { ...base, fetch }),
+    ).rejects.toMatchObject({
+      kind: 'not-found',
+      message: 'NCBI has no nucleotide record for any of L09137, U49845.',
+    });
+  });
+
+  it('refuses an answer that is not GenBank', async () => {
+    const { fetch } = mockFetch(new Response('<html>maintenance</html>'));
+    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'not-genbank',
+    });
+  });
+
+  it('reports a server error with its status', async () => {
+    const { fetch } = mockFetch(new Response('', { status: 502 }));
+    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'server',
+      message: expect.stringContaining('HTTP 502') as unknown,
+    });
+  });
+
+  it('tries once more after a network failure, which is how a 429 looks', async () => {
+    const { fetch, calls } = mockFetch(
+      new TypeError('Failed to fetch'),
+      streamed(readFixture('L09137.gb')),
+    );
+    const got = await fetchNucleotideRecords(['L09137'], { ...base, fetch });
+    expect(got.missing).toEqual([]);
+    expect(calls).toHaveLength(2);
+    expect(waits).toContain(RETRY_AFTER_MS);
+  });
+
+  it('gives up after the second network failure', async () => {
+    const { fetch, calls } = mockFetch(new TypeError('x'), new TypeError('x'));
+    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).rejects.toMatchObject({
+      kind: 'network',
+    });
+    expect(calls).toHaveLength(2);
+  });
+
+  it('says so when offline, without retrying', async () => {
+    const { fetch, calls } = mockFetch(new TypeError('x'));
+    await expect(
+      fetchNucleotideRecords(['L09137'], { ...base, online: () => false, fetch }),
+    ).rejects.toMatchObject({ kind: 'offline' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('waits out a visible 429 for its Retry-After, once', async () => {
+    const limited = () =>
+      new Response('{"error":"API rate limit exceeded"}', {
+        status: 429,
+        headers: { 'Retry-After': '3' },
+      });
+    const ok = mockFetch(limited(), streamed(readFixture('L09137.gb')));
+    await fetchNucleotideRecords(['L09137'], { ...base, fetch: ok.fetch });
+    expect(waits).toContain(3000);
+    const refused = mockFetch(limited(), limited());
+    await expect(
+      fetchNucleotideRecords(['L09137'], { ...base, fetch: refused.fetch }),
+    ).rejects.toMatchObject({ kind: 'rate-limit' });
+  });
+
+  it('keeps a gap between requests', async () => {
+    let clock = 1_000;
+    const now = () => clock;
+    const first = mockFetch(streamed(readFixture('L09137.gb')));
+    await fetchNucleotideRecords(['L09137'], { ...base, now, fetch: first.fetch });
+    clock += 100;
+    const second = mockFetch(streamed(readFixture('L09137.gb')));
+    await fetchNucleotideRecords(['L09137'], { ...base, now, fetch: second.fetch });
+    expect(waits).toEqual([300]);
+  });
+
+  it('turns a genome away on its LOCUS line, before the rest arrives', async () => {
+    const head = `LOCUS       NC_000913            ${(MAX_RECORD_BP + 1).toString()} bp    DNA     circular CON 09-MAR-2022\n`;
+    let pulled = 0;
+    let cancelled = false;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new TextEncoder().encode(pulled === 1 ? head : 'x'.repeat(1000)));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const { fetch } = mockFetch(new Response(stream));
+    const e: unknown = await fetchNucleotideRecords(['NC_000913'], { ...base, fetch }).catch(
+      (x: unknown) => x,
+    );
+    expect(e).toBeInstanceOf(NcbiError);
+    expect(e).toMatchObject({ kind: 'too-large' });
+    expect((e as Error).message).toBe(
+      'NC_000913 is 10,000,001 bp. PlasmidPop opens sequences up to 10 Mb.',
+    );
+    expect(pulled).toBeLessThan(5);
+    expect(cancelled).toBe(true);
+  });
+
+  it('takes a record of exactly the limit', async () => {
+    const text = readFixture('L09137.gb').replace('2686 bp', `${MAX_RECORD_BP.toString()} bp`);
+    const { fetch } = mockFetch(streamed(text, {}, 7));
+    await expect(fetchNucleotideRecords(['L09137'], { ...base, fetch })).resolves.toMatchObject({
+      missing: [],
+    });
+  });
+
+  it('passes a cancel through as an AbortError', async () => {
+    const controller = new AbortController();
+    const fetch = (_url: FetchArgs[0], init?: FetchArgs[1]): Promise<Response> =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          reject(new DOMException('aborted', 'AbortError'));
+        });
+      });
+    const pending = fetchNucleotideRecords(['L09137'], {
+      ...base,
+      fetch,
+      signal: controller.signal,
+    });
+    controller.abort();
+    const e: unknown = await pending.catch((x: unknown) => x);
+    expect(isAbort(e)).toBe(true);
+  });
+});
