@@ -163,15 +163,113 @@ function annealRun(
   };
 }
 
+const BASE_INDEX: Readonly<Record<string, number>> = { A: 0, C: 1, G: 2, T: 3 };
+
+/**
+ * The template's every `k`-mer, for finding where a primer's 3′ anchor lies
+ * without walking the whole template for each primer (#64). A search for one
+ * primer can afford the walk; a search for a lab's five hundred cannot — it
+ * was 3 s on a 10 kb plasmid (docs/perf-notes.md). The anchor has to match
+ * exactly, so only the places its bases stand at can be sites, and those are
+ * a lookup.
+ *
+ * Built once per template, reused for every primer. Windows holding anything
+ * but A, C, G and T (an N, a code) are few and kept aside, and tried for
+ * every primer as the walk would have tried them.
+ */
+export interface AnnealIndex {
+  readonly sequence: string;
+  readonly topology: Topology;
+  /** Length of the indexed words; never more than the anchor. */
+  readonly k: number;
+  /** Window starts, grouped by word: word w's are `starts[offsets[w]..offsets[w + 1])`, ascending. */
+  readonly offsets: Int32Array;
+  readonly starts: Int32Array;
+  /** Starts of the windows that are not plain bases, ascending. */
+  readonly irregular: readonly number[];
+}
+
+/** The index `findAnnealingSites` can be given, words as long as the anchor up to five bases. */
+export function buildAnnealIndex(
+  sequence: string,
+  topology: Topology,
+  exactThreePrime: number = ANNEAL_DEFAULTS.exactThreePrime,
+): AnnealIndex | null {
+  const k = Math.min(exactThreePrime, 5);
+  const L = sequence.length;
+  if (k <= 0 || L < k) return null;
+  const text = sequence.toUpperCase();
+  const circular = topology === 'circular';
+  const windows = circular ? L : L - k + 1;
+  const words = new Int32Array(windows);
+  const counts = new Int32Array((1 << (2 * k)) + 1);
+  const irregular: number[] = [];
+  for (let s = 0; s < windows; s++) {
+    let word = 0;
+    for (let j = 0; j < k; j++) {
+      const b = BASE_INDEX[text.charAt((s + j) % L)];
+      if (b === undefined) {
+        word = -1;
+        break;
+      }
+      word = (word << 2) | b;
+    }
+    words[s] = word;
+    if (word < 0) irregular.push(s);
+    else counts[word + 1] = (counts[word + 1] ?? 0) + 1;
+  }
+  const offsets = new Int32Array(counts.length);
+  for (let w = 1; w < counts.length; w++) offsets[w] = (offsets[w - 1] ?? 0) + (counts[w] ?? 0);
+  const fill = offsets.slice();
+  const starts = new Int32Array(windows - irregular.length);
+  for (let s = 0; s < windows; s++) {
+    const word = words[s] ?? -1;
+    if (word < 0) continue;
+    starts[fill[word] ?? 0] = s;
+    fill[word] = (fill[word] ?? 0) + 1;
+  }
+  return { sequence, topology, k, offsets, starts, irregular };
+}
+
+/**
+ * Starts of the windows whose plain bases the `k` codes of `anchor` pair
+ * with, and the irregular windows, ascending. A code expands to each base it
+ * stands for, so a degenerate anchor looks up each word of its mix.
+ */
+function anchorWindows(index: AnnealIndex, anchor: string): number[] {
+  let words = [0];
+  for (let j = 0; j < anchor.length; j++) {
+    const code = anchor.charAt(j);
+    const next: number[] = [];
+    for (const w of words) {
+      for (const base of 'ACGT') {
+        if (pairsWithCode(base, code)) next.push((w << 2) | (BASE_INDEX[base] ?? 0));
+      }
+    }
+    words = next;
+  }
+  const out: number[] = [...index.irregular];
+  for (const w of words) {
+    const from = index.offsets[w] ?? 0;
+    const to = index.offsets[w + 1] ?? 0;
+    for (let i = from; i < to; i++) out.push(index.starts[i] ?? 0);
+  }
+  return out.sort((a, b) => a - b);
+}
+
 /**
  * Every place `primer` would anneal by its 3′ end, on either strand. Sites
  * may wrap the origin of a circular template.
+ *
+ * With an `index` of the same template, only the places the primer's 3′
+ * anchor can stand at are tried; the sites found are the same.
  */
 export function findAnnealingSites(
   sequence: string,
   topology: Topology,
   primer: string,
   options: AnnealOptions = {},
+  index: AnnealIndex | null = null,
 ): AnnealingSite[] {
   const opts = { ...ANNEAL_DEFAULTS, ...options };
   const p = cleanPrimer(primer);
@@ -220,24 +318,47 @@ export function findAnnealingSites(
   });
 
   const out: AnnealingSite[] = [];
+  const reverse = reverseComplement(p);
+  // An index is only good for the template it was built from, and only
+  // narrows the search while the anchor is at least as long as its words
+  // and a site is longer than they are.
+  const usable =
+    index !== null &&
+    index.sequence === sequence &&
+    index.topology === topology &&
+    index.k <= opts.exactThreePrime &&
+    index.k < opts.minAnneal;
+  const k = usable ? index.k : 0;
+  /** Where the top strand reads the forward anchor, as 3′ ends `e`. */
+  const forwardEnds = usable
+    ? anchorWindows(index, p.slice(n - k))
+        .map((s) => ((s + k - 1) % L) + 1)
+        .sort((a, b) => a - b)
+    : null;
+  /** Where the top strand reads the reverse primer's anchor, as starts `s`. */
+  const reverseStarts = usable ? anchorWindows(index, reverse.slice(0, k)) : null;
+
   // Top strand: the primer reads the same way the sequence does, so its 3′
   // base sits at `e - 1` and the match runs leftwards from there.
   let forward = '';
   for (let i = n - 1; i >= 0; i--) forward += p.charAt(i);
-  for (let e = 1; e <= L; e++) {
+  const tryForward = (e: number): void => {
     const run = annealRun(forward, baseAt, e - 1, -1, opts);
-    if (run === null) continue;
+    if (run === null) return;
     const start = norm(e - run.length);
     out.push(site({ start, end: start + run.length }, 'forward', run));
-  }
+  };
+  if (forwardEnds === null) for (let e = 1; e <= L; e++) tryForward(e);
+  else for (const e of forwardEnds) tryForward(e);
   // Bottom strand: the primer's reverse complement matches the top strand,
   // and its 3′ base is that probe's *first* one, so the match runs rightwards.
-  const reverse = reverseComplement(p);
-  for (let s = 0; s < L; s++) {
+  const tryReverse = (s: number): void => {
     const run = annealRun(reverse, baseAt, s, 1, opts);
-    if (run === null) continue;
+    if (run === null) return;
     out.push(site({ start: norm(s), end: norm(s) + run.length }, 'reverse', run));
-  }
+  };
+  if (reverseStarts === null) for (let s = 0; s < L; s++) tryReverse(s);
+  else for (const s of reverseStarts) tryReverse(s);
   out.sort((a, b) => a.range.start - b.range.start || a.strand.localeCompare(b.strand));
   return out;
 }
