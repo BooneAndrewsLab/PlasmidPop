@@ -594,7 +594,8 @@ describe('fetchRecords, more answers', () => {
       kind: 'too-large',
       message: 'The records come to more than 128 MB; open fewer at a time.',
     });
-  });
+    // Two answers of 128 MB: under a second here, far longer instrumented.
+  }, 60_000);
 
   it('stops reading when cancelled between pieces', async () => {
     const controller = new AbortController();
