@@ -24,6 +24,7 @@ export function historyView(history: History<SeqDocument>) {
   return {
     ...record,
     states: record.states.map(stateView),
+    kept: (record.kept ?? []).map((k) => ({ ...k, state: stateView(k.state) })),
     labels: history.labels,
     canUndo: history.canUndo,
     canRedo: history.canRedo,

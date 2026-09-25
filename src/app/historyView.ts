@@ -17,6 +17,28 @@ export interface HistoryRow {
   readonly undone: boolean;
   /** True when this state is what the file on disk holds. */
   readonly saved: boolean;
+  /** What the user called this state (#4), if anything. */
+  readonly name?: string;
+  /** The state before this change, which "What changed" compares with; null for the start. */
+  readonly before: SeqDocument | null;
+}
+
+/**
+ * A named state the History's limit dropped from the steps (#4), as the
+ * panel lists it below them: it can be brought back, renamed or marked
+ * from, but not undone to.
+ */
+export interface KeptRow {
+  /** Its index in `History.kept`, which the store's calls take. */
+  readonly index: number;
+  readonly name: string;
+  readonly label: string;
+  readonly at: number;
+  /** The size and feature count of the state, as the starting row shows them. */
+  readonly effect: string;
+  readonly state: SeqDocument;
+  /** True when the document is in this state now. */
+  readonly current: boolean;
 }
 
 export interface HistoryRowOptions {
@@ -79,6 +101,7 @@ export function historyRows(
       current: history.position === 0,
       undone: false,
       saved: savedDoc !== null && savedDoc === start,
+      before: null,
     },
   ];
   let prev = start;
@@ -92,11 +115,44 @@ export function historyRows(
       current: step.position === history.position,
       undone: step.position > history.position,
       saved: savedDoc !== null && savedDoc === step.state,
+      before: prev,
+      ...(step.name === undefined ? {} : { name: step.name }),
     });
     prev = step.state;
   }
   rows.reverse();
   return rows;
+}
+
+/** The named states kept outside the steps, newest first as the list above them is. */
+export function keptRows(history: History<SeqDocument> | null): readonly KeptRow[] {
+  if (history === null) return [];
+  return history.kept
+    .map((k, index) => ({
+      index,
+      name: k.name,
+      label: k.label,
+      at: k.at,
+      effect: summarizeDocument(k.state),
+      state: k.state,
+      current: k.state === history.present,
+    }))
+    .reverse();
+}
+
+/**
+ * What a state is called where the edit marks name what they measure from
+ * ("Compared with …"): its name, else its step number, else — for the state
+ * the history starts from — what the list calls that row.
+ */
+export function stateTitle(row: {
+  readonly position: number;
+  readonly label: string;
+  readonly name?: string;
+}): string {
+  if (row.name !== undefined) return row.name;
+  if (row.position === 0) return `the ${row.label.charAt(0).toLowerCase()}${row.label.slice(1)}`;
+  return `step ${row.position.toLocaleString()}`;
 }
 
 /** Clock time of a step, as short as the locale allows. */

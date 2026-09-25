@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 
-import { type Coalesce, History, SeqDocument } from '@/core';
+import { type Coalesce, type HistoryRecord, History, SeqDocument } from '@/core';
 import {
   type DocShape,
   type OpShape,
@@ -21,9 +21,11 @@ import { type HistoryToStore, decodeHistory, encodeHistory, storedSize } from '.
  * must be the same history in every respect a user or the app can observe:
  * each state's bases, features (multi-segment and across the origin
  * included), name, topology and description, each step's label, time and
- * merged count, the position with the redo steps above it, `truncated`,
- * `startedAt`, and the two baselines. With a small budget it must be the
- * newest part of that history, cut where the budget says.
+ * merged count and name, the named states kept outside the steps (#4), the
+ * position with the redo steps above it, `truncated`, `startedAt`, and the
+ * two baselines. With a small budget it must be the newest part of that
+ * history, cut where the budget says, and any named state it loses must be
+ * older than every one it keeps outside the steps.
  */
 
 const RUNS = 200;
@@ -34,7 +36,10 @@ type Action =
   | { readonly kind: 'redo' }
   | { readonly kind: 'jump'; readonly to: number }
   | { readonly kind: 'seal' }
-  | { readonly kind: 'download' };
+  | { readonly kind: 'download' }
+  | { readonly kind: 'name'; readonly at: number; readonly clear: boolean }
+  | { readonly kind: 'nameKept'; readonly at: number; readonly clear: boolean }
+  | { readonly kind: 'nameAll' };
 
 const actionArb: fc.Arbitrary<Action> = fc.oneof(
   {
@@ -51,6 +56,24 @@ const actionArb: fc.Arbitrary<Action> = fc.oneof(
   { arbitrary: fc.record({ kind: fc.constant('jump' as const), to: fc.nat() }), weight: 1 },
   { arbitrary: fc.constant({ kind: 'seal' as const }), weight: 1 },
   { arbitrary: fc.constant({ kind: 'download' as const }), weight: 1 },
+  {
+    arbitrary: fc.record({
+      kind: fc.constant('name' as const),
+      at: fc.nat(),
+      clear: fc.boolean(),
+    }),
+    weight: 4,
+  },
+  {
+    arbitrary: fc.record({
+      kind: fc.constant('nameKept' as const),
+      at: fc.nat(),
+      clear: fc.boolean(),
+    }),
+    weight: 1,
+  },
+  // Every step named at once, so that later edits push named states past the limit.
+  { arbitrary: fc.constant({ kind: 'nameAll' as const }), weight: 1 },
 );
 
 const sessionArb = fc.record({
@@ -94,6 +117,8 @@ function play(
   let t = start;
   let h = History.create(first, { limit, at: t });
   let saved: SeqDocument | null = fork ? null : first;
+  // Every name given is new, so a name tells which state it was given to.
+  let names = 0;
   for (const a of actions) {
     switch (a.kind) {
       case 'edit': {
@@ -122,15 +147,49 @@ function play(
         saved = h.present;
         h = h.seal();
         break;
+      case 'name':
+        if (h.size > 0) h = h.named(1 + (a.at % h.size), a.clear ? '' : `state ${++names}`);
+        break;
+      case 'nameAll':
+        for (let p = 1; p <= h.size; p++) h = h.named(p, `all ${++names}`);
+        break;
+      case 'nameKept':
+        if (h.kept.length > 0) {
+          h = h.renamedKept(a.at % h.kept.length, a.clear ? ' ' : `kept ${++names}`);
+        }
+        break;
     }
   }
   return { input: { history: h, opened: fork ? file : first, saved, origin: fork ? file : null } };
 }
 
+/** Every named state of a record, oldest first as the encoder orders them: those kept outside the steps, then the named steps. */
+function namedStates(record: HistoryRecord<SeqDocument>): { name: string; state: SeqDocument }[] {
+  return [
+    ...(record.kept ?? []).map((k) => ({ name: k.name, state: k.state })),
+    ...record.steps.flatMap((step, i) => {
+      const state = record.states[i + 1];
+      return step.name === undefined || state === undefined ? [] : [{ name: step.name, state }];
+    }),
+  ];
+}
+
+/**
+ * Sessions long enough, under a limit small enough, that steps fall off the
+ * bottom of the history, named ones among them (#4).
+ */
+const truncatingArb = fc.record({
+  shape: docShapeArb,
+  actions: fc.array(actionArb, { minLength: 15, maxLength: 50 }),
+  limit: fc.integer({ min: 1, max: 4 }),
+  fork: fc.boolean(),
+  start: fc.integer({ min: 0, max: 2e12 }),
+});
+
 describe('stored histories', () => {
   it('come back exactly as they went in', () => {
     fc.assert(
-      fc.property(sessionArb, ({ shape, actions, limit, fork, start }) => {
+      fc.property(fc.oneof(sessionArb, truncatingArb), ({ shape, actions, limit, fork, start }) => {
         const { input } = play(shape, actions, limit, fork, start);
         const row = encodeHistory('doc', input);
         expect(row).not.toBeNull();
@@ -166,7 +225,7 @@ describe('stored histories', () => {
   it('keep the newest part that fits a budget, the present always among it', () => {
     fc.assert(
       fc.property(
-        sessionArb,
+        fc.oneof(sessionArb, truncatingArb),
         fc.integer({ min: 0, max: 8000 }),
         ({ shape, actions, limit, fork, start }, budget) => {
           const { input } = play(shape, actions, limit, fork, start);
@@ -200,6 +259,22 @@ describe('stored histories', () => {
           );
           // Redo steps are only given up once no undo step is left.
           if (kept.steps.length < original.steps.length - lo) expect(kept.position).toBe(0);
+          // Named states (#4): every one that comes back is the state it was
+          // given to, and those that do not are the oldest of them.
+          const all = namedStates(original);
+          const cameBack = new Map(namedStates(kept).map((n) => [n.name, n]));
+          for (const n of cameBack.values()) {
+            const was = all.find((m) => m.name === n.name);
+            expect(was).toBeDefined();
+            if (was !== undefined) expect(stateView(n.state)).toEqual(stateView(was.state));
+          }
+          const lost = all.flatMap((n, i) => (cameBack.has(n.name) ? [] : [i]));
+          const outside = all.flatMap((n, i) =>
+            (kept.kept ?? []).some((k) => k.name === n.name) ? [i] : [],
+          );
+          if (lost.length > 0 && outside.length > 0) {
+            expect(Math.max(...lost)).toBeLessThan(Math.min(...outside));
+          }
         },
       ),
       { numRuns: RUNS },

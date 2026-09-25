@@ -101,8 +101,12 @@ export const EVENTS = {
    * `jump` is a click in the History list; `restore` is a stored document
    * reopened, named by what became of its undo history (`restored`, `none`,
    * `dropped` when a stored one could not be read), once per visit each.
+   * `name` is a state named (`set`) or its name cleared (`clear`), never the
+   * name; `what-changed` opened one step's review, `mark-since` made a state
+   * the edit marks' baseline, `bring-back` made a named state the limit had
+   * dropped the present again (#4).
    */
-  history: ['jump', 'restore'],
+  history: ['jump', 'restore', 'name', 'what-changed', 'mark-since', 'bring-back'],
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],
   align: ['run'],

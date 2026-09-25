@@ -326,6 +326,118 @@ describe('encodeHistory / decodeHistory', () => {
     });
   });
 
+  describe('named states (#4)', () => {
+    // As the budget tests, but each step rewrites 1000 bases, so that a few
+    // steps outweigh a whole state and the window is set by the states.
+    let h = History.create(plasmid, { at: 5 });
+    for (let i = 1; i <= 20; i++) {
+      const text = randomDna(seededRandom(100 + i), 1000);
+      h = h.push(h.present.replace({ start: 0, end: 1000 }, text), `step ${i}`, i * 10);
+    }
+    const oneState = storedSize(encodeHistory('d', input(History.create(plasmid))));
+    const stepSizes = (encodeHistory('d', input(h))?.steps ?? []).map(
+      (step) => deltaSize(step.delta) + step.label.length,
+    );
+    const sum = (sizes: readonly number[]): number => sizes.reduce((a, b) => a + b, 0);
+    const least = Math.min(...stepSizes);
+    const named = h.named(3, 'Before the swap').named(18, 'Swapped');
+
+    it('keeps the names of steps and of states outside them through a row', () => {
+      let small = History.create(plasmid, { limit: 3, at: 0 });
+      for (let i = 1; i <= 3; i++) small = small.push(small.present.insert(0, 'A'), `A ${i}`, i);
+      small = small.named(1, 'one').named(3, 'three');
+      for (let i = 4; i <= 5; i++) small = small.push(small.present.insert(0, 'C'), `C ${i}`, i);
+      expect(small.kept.map((k) => k.name)).toEqual(['one']);
+      const row = encodeHistory('d', input(small));
+      expect(row?.steps.map((step) => step.name)).toEqual(['three', undefined, undefined]);
+      expect(row?.named?.map((n) => [n.name, n.label, n.at, n.state.kind])).toEqual([
+        ['one', 'A 1', 1, 'state'],
+      ]);
+      const back = roundTrip(row).history;
+      expect(historyView(back)).toEqual(historyView(small));
+    });
+
+    it('counts names and named states in the estimate, as the encoder does', () => {
+      const row = encodeHistory('d', input(h.jumpTo(20).named(20, 'last')));
+      expect(storedSize(row)).toBe(oneState + sum(stepSizes) + 'last'.length);
+    });
+
+    it('stores a named state the budget drops from the steps whole, and counts it', () => {
+      // Room for the present, the opened state and the named one whole, and five steps.
+      const budget = 3 * oneState + sum(stepSizes.slice(15)) + least / 2;
+      const row = encodeHistory('d', input(named), budget);
+      if (row === null) throw new Error('no row');
+      expect(row.steps).toHaveLength(5);
+      expect(storedSize(row)).toBeLessThanOrEqual(budget);
+      expect(row.steps.map((step) => step.name)).toEqual([
+        undefined,
+        undefined,
+        'Swapped',
+        undefined,
+        undefined,
+      ]);
+      expect(row.named?.map((n) => [n.name, n.state.kind])).toEqual([['Before the swap', 'state']]);
+      expect(row.opened.kind).toBe('state');
+      const back = roundTrip(row).history;
+      expect(back.kept.map((k) => [k.name, k.label, k.at])).toEqual([
+        ['Before the swap', 'step 3', 30],
+      ]);
+      expect(stateView(back.kept[0]?.state ?? plasmid)).toEqual(stateView(h.stateAt(3) ?? plasmid));
+    });
+
+    it('keeps a named state over the opened baseline when both do not fit', () => {
+      // Room for the present and one more state whole, and no step.
+      const budget = 2 * oneState + least / 2;
+      const row = encodeHistory('d', input(h.named(3, 'Before the swap')), budget);
+      if (row === null) throw new Error('no row');
+      expect(storedSize(row)).toBeLessThanOrEqual(budget);
+      expect(row.named?.map((n) => n.name)).toEqual(['Before the swap']);
+      // "Since opened" gave way instead, falling back to the oldest kept state.
+      expect(row.opened).toEqual({ kind: 'step', position: 0 });
+    });
+
+    it('refers to a named state that is the oldest kept state instead of storing it again', () => {
+      const budget = 2 * oneState + sum(stepSizes.slice(15)) + least / 2;
+      const row = encodeHistory('d', input(h.named(15, 'Fifteen')), budget);
+      if (row === null) throw new Error('no row');
+      expect(row.steps).toHaveLength(5);
+      expect(row.named).toEqual([
+        { name: 'Fifteen', label: 'step 15', at: 150, state: { kind: 'step', position: 0 } },
+      ]);
+      const back = roundTrip(row).history;
+      expect(back.kept[0]?.state).toBe(back.stateAt(0));
+    });
+
+    it('lets named states go, oldest first, only for the present', () => {
+      // Room for one state and three steps: nothing whole fits beside the present.
+      const budget = oneState + sum(stepSizes.slice(17)) + least / 2;
+      const row = encodeHistory('d', input(named), budget);
+      if (row === null) throw new Error('no row');
+      expect(row.steps.map((step) => step.label)).toEqual(['step 18', 'step 19', 'step 20']);
+      expect(row.steps[0]?.name).toBe('Swapped');
+      expect(row.named).toBeUndefined();
+      expect(storedSize(row)).toBeLessThanOrEqual(budget);
+    });
+
+    it('reads a row from before names, and drops one whose name is not one', () => {
+      const row = encodeHistory('d', input(named));
+      if (row === null) throw new Error('no row');
+      const { named: _named, ...older } = row;
+      const plain = { ...older, steps: older.steps.map(({ name: _name, ...step }) => step) };
+      expect(row.format).toBe(1);
+      expect(isStoredHistory(plain)).toBe(true);
+      expect(roundTrip(plain).history.labels).toEqual(h.labels);
+      for (const bad of ['', '  padded', 'x'.repeat(101), 7]) {
+        const steps = row.steps.map((step, i) => (i === 0 ? { ...step, name: bad } : step));
+        expect(decodeHistory({ ...row, steps }, null)).toBeNull();
+      }
+      const badNamed = [{ name: 'n', label: 'l', at: 0, state: { kind: 'none' } }];
+      expect(decodeHistory({ ...row, named: badNamed }, null)).toBeNull();
+      const pastEnd = [{ name: 'n', label: 'l', at: 0, state: { kind: 'step', position: 99 } }];
+      expect(decodeHistory({ ...row, named: pastEnd }, null)).toBeNull();
+    });
+  });
+
   describe('reading a row back', () => {
     const h = History.create(plasmid, { at: 0 }).push(plasmid.insert(3, 'A'), 'Insert', 1);
     const good = (): StoredHistory => {

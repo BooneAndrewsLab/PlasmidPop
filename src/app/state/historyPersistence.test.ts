@@ -296,3 +296,27 @@ describe('a merged tab is the stored entry reopened (#84)', () => {
     expect(editorStore.document?.sequence.toString()).toBe(plasmid.sequence.toString());
   });
 });
+
+describe('named states across a reload (#4)', () => {
+  afterEach(() => {
+    editorStore.closeAllDocuments();
+  });
+
+  it('come back, with those the limit dropped, and naming alone is written', async () => {
+    const { service } = freshService();
+    editorStore.openDocument(plasmid);
+    editorStore.apply({ type: 'insert', position: 0, text: 'GG' });
+    editorStore.nameHistoryState(1, 'Two Gs');
+    for (let i = 0; i < 200; i++) editorStore.apply({ type: 'insert', position: 0, text: 'A' });
+    editorStore.apply({ type: 'insert', position: 0, text: 'C' });
+    await service.autosave();
+    // Only a name changes: that is written too.
+    editorStore.nameHistoryState(active().history.size, 'Last');
+    await reload(service);
+    const h = active().history;
+    expect(h.kept.map((k) => k.name)).toEqual(['Two Gs']);
+    expect(h.kept[0]?.state.length).toBe(plasmid.length + 2);
+    expect(h.steps[h.size - 1]?.name).toBe('Last');
+    expect(h.size).toBe(200);
+  });
+});

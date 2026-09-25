@@ -4,6 +4,13 @@ interface Props {
   readonly value: string;
   readonly label: string;
   readonly className?: string;
+  /** Shown in the empty field. */
+  readonly placeholder?: string;
+  /**
+   * Whether an empty name is one to commit, for a name that may be cleared
+   * (a history state's, #4); otherwise emptying the field cancels.
+   */
+  readonly allowEmpty?: boolean;
   /** Called with the trimmed new name when it differs from the old one. */
   readonly onCommit: (name: string) => void;
   /** Called after committing or cancelling, so the parent can leave edit mode. */
@@ -11,7 +18,15 @@ interface Props {
 }
 
 /** A text field that replaces a name in place: Enter or blur commits, Escape cancels. */
-export function InlineRename({ value, label, className, onCommit, onDone }: Props) {
+export function InlineRename({
+  value,
+  label,
+  className,
+  placeholder,
+  allowEmpty = false,
+  onCommit,
+  onDone,
+}: Props) {
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
   const finished = useRef(false);
@@ -24,7 +39,7 @@ export function InlineRename({ value, label, className, onCommit, onDone }: Prop
     if (finished.current) return;
     finished.current = true;
     const name = draft.trim();
-    if (commit && name !== '' && name !== value) onCommit(name);
+    if (commit && (name !== '' || allowEmpty) && name !== value) onCommit(name);
     onDone();
   };
 
@@ -38,6 +53,7 @@ export function InlineRename({ value, label, className, onCommit, onDone }: Prop
       ref={inputRef}
       className={className}
       aria-label={label}
+      placeholder={placeholder}
       value={draft}
       onChange={(e) => {
         setDraft(e.target.value);

@@ -264,7 +264,10 @@ describe('App', () => {
       editorStore.apply({ type: 'setTopology', topology: 'linear' });
     });
     const list = screen.getByRole('list', { name: 'Changes' });
-    const rows = within(list).getAllByRole('button');
+    // Each row is its step's button and the "⋯" beside it (#4).
+    const rows = within(list)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('history-panel__item'));
     expect(rows.map((r) => r.textContent)).toEqual([
       expect.stringContaining('Make linear'),
       expect.stringContaining('Insert 2 bases'),

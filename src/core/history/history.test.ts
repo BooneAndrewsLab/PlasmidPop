@@ -1,4 +1,4 @@
-import { type Coalesce, History } from './history';
+import { type Coalesce, History, MAX_STATE_NAME, cleanStateName } from './history';
 
 describe('History', () => {
   it('pushes, undoes and redoes with labels', () => {
@@ -289,5 +289,126 @@ describe('History records', () => {
         steps: [...good.steps, { label: 'c', at: 2 }],
       }),
     ).toThrow(RangeError);
+  });
+});
+
+describe('History names (#4)', () => {
+  const typed = (before: number, after: number): Coalesce => ({
+    follows: `type@${before}`,
+    key: `type@${after}`,
+    relabel: (n) => `Insert ${n} bases`,
+  });
+  const names = <T>(h: History<T>) => h.steps.map((s) => s.name);
+
+  const abc = () =>
+    History.create('a', { at: 0 }).push('b', 'to b', 1).push('c', 'to c', 2).push('d', 'to d', 3);
+
+  it('names the state a step leads to, and nothing else changes', () => {
+    const h = abc();
+    const named = h.named(2, '  Before digest ');
+    expect(names(named)).toEqual([undefined, 'Before digest', undefined]);
+    expect(named.present).toBe(h.present);
+    expect(named.position).toBe(h.position);
+    expect(named.labels).toEqual(h.labels);
+    expect(named.steps.map((s) => s.state)).toEqual(h.steps.map((s) => s.state));
+    expect(named.steps.map((s) => s.at)).toEqual(h.steps.map((s) => s.at));
+  });
+
+  it('is immutable: naming gives a new history and leaves the old one as it was', () => {
+    const h = abc();
+    const named = h.named(1, 'one');
+    expect(named).not.toBe(h);
+    expect(names(h)).toEqual([undefined, undefined, undefined]);
+    // A name already there, a blank name on an unnamed step, and positions
+    // that are not a step's give the same history back.
+    expect(named.named(1, 'one')).toBe(named);
+    expect(named.named(1, ' one ')).toBe(named);
+    expect(h.named(2, '   ')).toBe(h);
+    expect(h.named(0, 'start')).toBe(h);
+    expect(h.named(4, 'past the end')).toBe(h);
+    expect(h.named(1.5, 'half')).toBe(h);
+  });
+
+  it('renames, and a blank name clears it', () => {
+    const h = abc().named(3, 'first').named(3, 'second');
+    expect(names(h)).toEqual([undefined, undefined, 'second']);
+    expect(names(h.named(3, ''))).toEqual([undefined, undefined, undefined]);
+    expect(h.named(3, '').toRecord().steps[2]).toEqual({ label: 'to d', at: 3 });
+  });
+
+  it('cuts a long name to the longest kept', () => {
+    const h = abc().named(1, 'x'.repeat(MAX_STATE_NAME + 20));
+    expect(h.steps[0]?.name).toBe('x'.repeat(MAX_STATE_NAME));
+    expect(cleanStateName(`  ${'y'.repeat(MAX_STATE_NAME - 1)} z`)).toBe(
+      'y'.repeat(MAX_STATE_NAME - 1),
+    );
+  });
+
+  it('survives undo, redo and jumps, and names undone steps too', () => {
+    let h = abc().named(1, 'one').named(3, 'three');
+    h = h.undo().undo();
+    expect(h.position).toBe(1);
+    expect(names(h)).toEqual(['one', undefined, 'three']);
+    h = h.named(2, 'two');
+    expect(names(h)).toEqual(['one', 'two', 'three']);
+    expect(names(h.redo())).toEqual(['one', 'two', 'three']);
+    expect(names(h.jumpTo(0))).toEqual(['one', 'two', 'three']);
+    expect(names(h.jumpTo(3))).toEqual(['one', 'two', 'three']);
+    // A new change drops the undone steps, names and all.
+    expect(names(h.push('x', 'to x', 9))).toEqual(['one', undefined]);
+  });
+
+  it('seals the step it names: typing on starts a step of its own', () => {
+    const run = History.create('', { at: 0 })
+      .push('A', 'Insert 1 base', 10, typed(0, 1))
+      .push('AC', 'Insert 1 base', 20, typed(1, 2));
+    expect(run.push('ACG', 'Insert 1 base', 30, typed(2, 3)).size).toBe(1);
+    const named = run.named(1, 'AC');
+    const on = named.push('ACG', 'Insert 1 base', 30, typed(2, 3));
+    expect(on.size).toBe(2);
+    expect(on.stateAt(1)).toBe('AC');
+    expect(on.steps[0]?.name).toBe('AC');
+    // Clearing the name leaves the step sealed.
+    expect(named.named(1, '').push('ACG', 'Insert 1 base', 30, typed(2, 3)).size).toBe(2);
+  });
+
+  it('keeps a named state the limit drops, whole and outside the steps', () => {
+    let h = History.create(0, { limit: 3, at: 0 });
+    for (let i = 1; i <= 3; i++) h = h.push(i, `step ${i}`, i * 10);
+    h = h.named(1, 'one').named(2, 'two');
+    for (let i = 4; i <= 6; i++) h = h.push(i, `step ${i}`, i * 10);
+    expect(h.stateAt(0)).toBe(3);
+    expect(h.truncated).toBe(true);
+    expect(h.kept).toEqual([
+      { name: 'one', label: 'step 1', at: 10, state: 1 },
+      { name: 'two', label: 'step 2', at: 20, state: 2 },
+    ]);
+    // Kept through everything the stack does.
+    expect(h.undo().redo().seal().jumpTo(0).kept).toEqual(h.kept);
+    // Renamed, or forgotten with a blank name.
+    expect(h.renamedKept(0, 'uno').kept[0]?.name).toBe('uno');
+    expect(h.renamedKept(1, ' ').kept.map((k) => k.name)).toEqual(['one']);
+    expect(h.renamedKept(0, 'one')).toBe(h);
+    expect(h.renamedKept(5, 'nothing')).toBe(h);
+    // Unnamed dropped steps are gone, as before.
+    expect(h.kept.map((k) => k.state)).not.toContain(3);
+  });
+
+  it('keeps names and kept states through a record', () => {
+    let h = History.create(0, { limit: 2, at: 0 });
+    h = h.push(1, 'step 1', 10).named(1, 'one');
+    h = h.push(2, 'step 2', 20).push(3, 'step 3', 30).named(2, 'three').undo();
+    const record = h.toRecord();
+    expect(record.steps).toEqual([
+      { label: 'step 2', at: 20 },
+      { label: 'step 3', at: 30, name: 'three' },
+    ]);
+    expect(record.kept).toEqual([{ name: 'one', label: 'step 1', at: 10, state: 1 }]);
+    const back = History.fromRecord(record);
+    expect(back.toRecord()).toEqual(record);
+    expect(back.redo().steps[1]?.name).toBe('three');
+    // A record without names, as one written before them, has none.
+    const { kept: _kept, ...unnamed } = record;
+    expect(History.fromRecord(unnamed).kept).toEqual([]);
   });
 });

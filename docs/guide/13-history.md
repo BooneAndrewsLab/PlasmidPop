@@ -26,6 +26,13 @@ The last row is where the history starts: **Opened document** for a file, or
 count it had then. Only the most recent 200 changes are kept, so in a long
 session the oldest row reads **Oldest kept state** instead.
 
+A [named](#naming-a-state) state is kept even then. When its step goes past
+the 200, it moves to **Named states from before the oldest kept** below the
+list, with its name, what the step was and when. Undo cannot reach it any
+more, but clicking it brings it back as a change of its own (_Back to
+“name”_, which Undo takes back as usual), and its **⋯** menu can rename it,
+mark changes since it, or **Forget** it.
+
 ## Runs of typing are one step
 
 Typing base after base is one thing you did, so it is recorded as one
@@ -55,6 +62,54 @@ does drop the changes above it, exactly as Undo followed by typing does.
 
 The selection is cleared on a jump, because positions from the old state may
 not exist in the new one.
+
+## Naming a state
+
+A state you will want to come back to — _before the Gibson_, _clean
+backbone_, _sent for sequencing_ — can be given a name, so it is found by
+what it is rather than by its step number.
+
+1. Click **⋯** at the right of the row and choose **Name…**.
+2. Type the name and press `Enter`. `Escape` leaves the row as it was.
+
+The name then heads the row, in the accent colour, with what the step did
+under it. **Rename…** in the same menu changes it; **Clear name**, or
+emptying the field and pressing `Enter`, takes it off. The row at the
+bottom — **Opened document** or **New document** — already has a name and
+cannot be given another; every step above it can.
+
+Once anything is named, **Named only** at the top of the panel lists just
+the named rows; click it again for the whole list.
+
+Naming is not an edit. It does not add a row, Undo does not take it off,
+and the document is not changed or marked as changed by it: a name is a
+note about the history, and an Undo step for it would leave Undo one step
+short of the state you just named. The name is kept with the history
+across reloads (see [After a reload](#after-a-reload)).
+
+A named row also ends a run of typing: if you name the row you are typing
+in and carry on typing, the new bases go into a row of their own, so the
+state you named stays as you named it.
+
+## What a step changed
+
+**⋯ ▸ What changed** shows what that one step did: the document just before
+it against the document just after it, in the same review a working copy's
+download and **Compare with…** show — the summary, the map with the change
+marked, each changed stretch of bases, and what became of the features. It
+is only a look: nothing is undone, and **Close** or `Escape` puts it away.
+The starting row has no step before it, so it has nothing to show.
+
+## Marking changes since a state
+
+**⋯ ▸ Mark changes since this** makes that state what the edit marks measure
+from, as **Mark in the views** does after **Compare with…**: the sequence
+view and the map mark everything that differs from it, the **Edits** menu
+reads _Compared with_ and the state's name (or _step 4_, or _the opened
+document_), and **Next change** / **Previous change** (`Alt+N`,
+`Alt+Shift+N`) go through those changes. Choose another baseline in the
+**Edits** menu to go back. Like a comparison, it is for this session: after
+a reload the marks measure **Since opened** again.
 
 ## The version you have a file of
 
@@ -99,6 +154,14 @@ The stored history is limited to the 200 most recent changes, like the
 list, and to about 4 MB per document. A long session on a very large
 document can go over that: the oldest rows are then left out of the stored
 copy, and after the next reload the list starts at **Oldest kept state**.
+Named states are kept longest. One whose row is left out comes back under
+**Named states from before the oldest kept**, stored whole, and it counts
+towards the 4 MB; to make room for named states, **Since opened** and the
+**on disk** tag give way first. Only when not even the current document
+would fit beside them are named states left out, the oldest first. On a
+plasmid none of this comes near the limit; on a document of a megabase or
+more, each named state that has left the list costs about as much as the
+document.
 A document of more than about four million bases keeps no stored history,
 and reopens with an empty list.
 

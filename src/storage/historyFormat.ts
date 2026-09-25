@@ -7,6 +7,7 @@ import {
   type SequencingRead,
   type StrandEnd,
   type Topology,
+  cleanStateName,
 } from '@/core';
 
 /**
@@ -92,6 +93,8 @@ export interface StoredStep {
   readonly label: string;
   readonly at: number;
   readonly merged?: number;
+  /** What the user called the state it leads to (#4); absent when unnamed, and in rows from before names. */
+  readonly name?: string;
   /** From the state before this step to the one it leads to. */
   readonly delta: StoredDelta;
 }
@@ -106,6 +109,18 @@ export type StoredLandmark =
   | { readonly kind: 'step'; readonly position: number }
   | { readonly kind: 'origin' }
   | { readonly kind: 'state'; readonly state: StoredState };
+
+/**
+ * A named state the row keeps outside its steps (#4): one whose step the
+ * History's limit or the size budget dropped. It is one of the kept states
+ * when it is (the oldest kept state often is), and otherwise stored whole.
+ */
+export interface StoredNamedState {
+  readonly name: string;
+  readonly label: string;
+  readonly at: number;
+  readonly state: Extract<StoredLandmark, { readonly kind: 'step' | 'state' }>;
+}
 
 /** One row of the `histories` table, keyed by the document's id. */
 export interface StoredHistory {
@@ -123,6 +138,12 @@ export interface StoredHistory {
   readonly opened: StoredLandmark;
   /** The version last downloaded (or read from a file), for the dot and **Since last download**. */
   readonly saved: StoredLandmark;
+  /**
+   * Named states outside the steps, oldest first (#4). Absent when there
+   * are none, and in rows written before states could be named, which read
+   * as they always did: the field is optional rather than a new format.
+   */
+  readonly named?: readonly StoredNamedState[];
   readonly updatedAt: number;
 }
 
@@ -319,12 +340,18 @@ function isState(v: unknown): v is StoredState {
   );
 }
 
+/** A state's name as `History` keeps one: trimmed, not blank, not over the longest. */
+function isStateName(v: unknown): v is string {
+  return isString(v) && v !== '' && cleanStateName(v) === v;
+}
+
 function isStep(v: unknown): v is StoredStep {
   return (
     isObject(v) &&
     isString(v['label']) &&
     isTime(v['at']) &&
     (v['merged'] === undefined || (isCount(v['merged']) && v['merged'] >= 1)) &&
+    (v['name'] === undefined || isStateName(v['name'])) &&
     isDelta(v['delta'])
   );
 }
@@ -344,6 +371,14 @@ function isLandmark(v: unknown): v is StoredLandmark {
   }
 }
 
+function isNamedState(v: unknown): v is StoredNamedState {
+  if (!isObject(v) || !isStateName(v['name']) || !isString(v['label']) || !isTime(v['at'])) {
+    return false;
+  }
+  const state = v['state'];
+  return isLandmark(state) && (state.kind === 'step' || state.kind === 'state');
+}
+
 /** Whether `v` is a history row of this format, down to the last field. */
 export function isStoredHistory(v: unknown): v is StoredHistory {
   return (
@@ -358,6 +393,7 @@ export function isStoredHistory(v: unknown): v is StoredHistory {
     isArrayOf(v['steps'], isStep) &&
     isLandmark(v['opened']) &&
     isLandmark(v['saved']) &&
+    (v['named'] === undefined || isArrayOf(v['named'], isNamedState)) &&
     isTime(v['updatedAt'])
   );
 }

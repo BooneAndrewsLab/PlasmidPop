@@ -18,6 +18,7 @@ import {
   History,
   SeqDocument,
   activeEnzymes,
+  cleanStateName,
   createFeature,
   defaultFragmentName,
   describeEditStep,
@@ -1346,6 +1347,65 @@ export class EditorStore {
     if (next === history) return;
     analytics.track('history', 'jump');
     this.setActive({ history: next.seal(), selection: null });
+  }
+
+  /**
+   * Names the state `position` changes lead to in the document in front, or
+   * clears its name when `name` is blank (#4). A name is not an undo step:
+   * it says something about the history rather than changing the document,
+   * and a step for it would put the named state itself one Undo back, so
+   * naming the present would make it the one state Undo leaves. It is kept
+   * with the history, though, and saved with it.
+   */
+  nameHistoryState(position: number, name: string): void {
+    const history = this.state.history;
+    if (history === null) return;
+    const next = history.named(position, name);
+    if (next === history) return;
+    analytics.track('history', 'name', cleanStateName(name) === '' ? 'clear' : 'set');
+    this.setActive({ history: next });
+  }
+
+  /** Renames a named state the limit has dropped from the steps, or forgets it with a blank name. */
+  nameKeptState(index: number, name: string): void {
+    const history = this.state.history;
+    if (history === null) return;
+    const next = history.renamedKept(index, name);
+    if (next === history) return;
+    analytics.track('history', 'name', cleanStateName(name) === '' ? 'clear' : 'set');
+    this.setActive({ history: next });
+  }
+
+  /**
+   * Makes a named state the limit dropped the present again. It is not in
+   * the undo stack any more, so this is a change of its own, and undoing it
+   * gives back the state it replaced.
+   */
+  bringBackKeptState(index: number): void {
+    const target = this.documentState();
+    const kept = target?.history.kept[index];
+    if (target === null || kept === undefined) return;
+    if (kept.state === target.history.present) return;
+    analytics.track('history', 'bring-back');
+    this.clearPreview();
+    this.setActive({
+      history: target.history.push(kept.state, `Back to “${kept.name}”`).seal(),
+      selection: null,
+    });
+  }
+
+  /**
+   * Makes a state of the history — one of its steps, or a named state kept
+   * outside them — what the edit marks measure from, through the same
+   * baseline Compare with… uses (#37): the views, Next and Previous change
+   * and the Edits menu then show what has changed since it. `name` is what
+   * the menu and the notes call it: the state's name, or its step number.
+   */
+  markChangesSince(doc: SeqDocument, name: string): void {
+    if (this.activeId === null) return;
+    analytics.track('history', 'mark-since');
+    this.shared = { ...this.shared, editsBaseline: 'compared' };
+    this.setActive({ compared: { name, doc } });
   }
 
   setSelection(selection: Range | null): void {

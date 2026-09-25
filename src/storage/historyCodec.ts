@@ -3,6 +3,7 @@ import {
   type DocumentMetadata,
   type Feature,
   type HistoryRecordStep,
+  type NamedState,
   type Segment,
   type SequenceText,
   type SequencingRead,
@@ -22,6 +23,7 @@ import {
   type StoredFeaturesDelta,
   type StoredHistory,
   type StoredLandmark,
+  type StoredNamedState,
   type StoredSequenceDelta,
   type StoredState,
   type StoredStep,
@@ -150,7 +152,10 @@ export function storedSize(row: StoredHistory | null): number {
   const landmark = (l: StoredLandmark): number =>
     l.kind === 'state' ? storedStateSize(l.state) : 0;
   let size = storedStateSize(row.base) + landmark(row.opened) + landmark(row.saved);
-  for (const step of row.steps) size += deltaSize(step.delta) + step.label.length;
+  for (const step of row.steps) {
+    size += deltaSize(step.delta) + step.label.length + (step.name?.length ?? 0);
+  }
+  for (const n of row.named ?? []) size += n.name.length + n.label.length + landmark(n.state);
   return size;
 }
 
@@ -670,40 +675,82 @@ export function encodeHistory(
     if (prev === undefined || next === undefined) return null;
     deltas.push(deltaBetween(prev, next));
   }
-  // prefix[i]: the size of the deltas that lead to states 1..i.
+  // prefix[i]: the size of the deltas that lead to states 1..i, with their labels and names.
   const prefix = [0];
-  deltas.forEach((d, i) => prefix.push((prefix[i] ?? 0) + d.size + (steps[i]?.label.length ?? 0)));
+  deltas.forEach((d, i) => {
+    const step = steps[i];
+    prefix.push((prefix[i] ?? 0) + d.size + (step?.label.length ?? 0) + (step?.name?.length ?? 0));
+  });
   const within = (doc: SeqDocument, lo: number, hi: number): number => {
     for (let i = lo; i <= hi; i++) if (states[i] === doc) return i;
     return -1;
+  };
+  /**
+   * Every named state, oldest first: those the History already keeps
+   * outside its steps, then the named steps. A named step inside the window
+   * keeps its name on the step; any other named state goes in `named`, as a
+   * reference when it is one of the kept states and whole when it is not.
+   */
+  const candidates: (NamedState<SeqDocument> & { readonly step: number | null })[] = [
+    ...(record.kept ?? []).map((k) => ({ ...k, step: null })),
+    ...steps.flatMap((step, i) => {
+      const state = states[i + 1];
+      return step.name === undefined || state === undefined
+        ? []
+        : [{ name: step.name, label: step.label, at: step.at, state, step: i + 1 }];
+    }),
+  ];
+  const onStep = (c: { readonly step: number | null }, lo: number, hi: number): boolean =>
+    c.step !== null && c.step > lo && c.step <= hi;
+  /** What the named states from `drop` on cost outside the steps; the older ones are left out. */
+  const namedCost = (lo: number, hi: number, drop: number): number => {
+    let size = 0;
+    for (let i = drop; i < candidates.length; i++) {
+      const c = candidates[i];
+      if (c === undefined || onStep(c, lo, hi)) continue;
+      size += c.name.length + c.label.length;
+      if (within(c.state, lo, hi) === -1) size += stateSize(c.state);
+    }
+    return size;
   };
   // A baseline outside the window is stored whole when `whole` is set;
   // without it, it is left out (see `landmark`).
   const landmarkCost = (doc: SeqDocument | null, lo: number, hi: number): number =>
     doc === null || doc === input.origin || within(doc, lo, hi) !== -1 ? 0 : stateSize(doc);
-  const cost = (lo: number, hi: number, whole: boolean): number => {
+  const cost = (lo: number, hi: number, whole: boolean, drop: number): number => {
     const base = states[lo];
     if (base === undefined) return Infinity;
     return (
       stateSize(base) +
       (prefix[hi] ?? 0) -
       (prefix[lo] ?? 0) +
-      (whole ? landmarkCost(input.opened, lo, hi) + landmarkCost(input.saved, lo, hi) : 0)
+      (whole ? landmarkCost(input.opened, lo, hi) + landmarkCost(input.saved, lo, hi) : 0) +
+      namedCost(lo, hi, drop)
     );
   };
   /** The longest window that fits: oldest steps dropped first, then redo steps from the far end. */
-  const window = (whole: boolean): { lo: number; hi: number } | null => {
-    for (let k = 0; k <= position; k++) if (cost(k, n, whole) <= budget) return { lo: k, hi: n };
-    for (let m = n; m >= position; m--)
-      if (cost(position, m, whole) <= budget) return { lo: position, hi: m };
+  const window = (whole: boolean, drop: number): { lo: number; hi: number } | null => {
+    for (let k = 0; k <= position; k++) {
+      if (cost(k, n, whole, drop) <= budget) return { lo: k, hi: n };
+    }
+    for (let m = n; m >= position; m--) {
+      if (cost(position, m, whole, drop) <= budget) return { lo: position, hi: m };
+    }
     return null;
   };
-  // The baselines are kept whole if that leaves room for the present; if
-  // not, they are what gives way.
-  const chosen = window(true) ?? window(false);
+  // Named states are what a user most wants kept (#4), so they give way
+  // last, the oldest first: the baselines are kept whole if that leaves room
+  // for the present and every named state, then left out, and only then do
+  // named states outside the window go.
+  let chosen: { lo: number; hi: number } | null = null;
+  let drop = 0;
+  for (; drop <= candidates.length && chosen === null; drop++) {
+    chosen = window(true, drop) ?? window(false, drop);
+  }
+  drop -= 1;
   if (chosen === null) return null;
   const { lo, hi } = chosen;
-  const whole = cost(lo, hi, true) <= budget;
+  const whole = cost(lo, hi, true, drop) <= budget;
   /**
    * Where a baseline is. One left out for lack of room comes back as
    * `fallback`: the opened state as the oldest kept one, a download as none.
@@ -722,12 +769,28 @@ export function encodeHistory(
     const step = steps[i];
     const delta = deltas[i];
     if (step === undefined || delta === undefined) return null;
-    kept.push(
-      step.merged === undefined
-        ? { label: step.label, at: step.at, delta: delta.delta }
-        : { label: step.label, at: step.at, merged: step.merged, delta: delta.delta },
-    );
+    kept.push({
+      label: step.label,
+      at: step.at,
+      ...(step.merged === undefined ? {} : { merged: step.merged }),
+      ...(step.name === undefined ? {} : { name: step.name }),
+      delta: delta.delta,
+    });
   }
+  const named: StoredNamedState[] = [];
+  candidates.forEach((c, i) => {
+    if (i < drop || onStep(c, lo, hi)) return;
+    const at = within(c.state, lo, hi);
+    named.push({
+      name: c.name,
+      label: c.label,
+      at: c.at,
+      state:
+        at === -1
+          ? { kind: 'state', state: storedState(c.state) }
+          : { kind: 'step', position: at - lo },
+    });
+  });
   return {
     id,
     format: HISTORY_FORMAT,
@@ -741,6 +804,7 @@ export function encodeHistory(
     steps: kept,
     opened: landmark(input.opened, { kind: 'step', position: 0 }),
     saved: landmark(input.saved, { kind: 'none' }),
+    ...(named.length === 0 ? {} : { named }),
     updatedAt: now,
   };
 }
@@ -761,13 +825,19 @@ export function decodeHistory(row: unknown, origin: SeqDocument | null): Restore
       const next = applyDelta(prev, step.delta);
       deltaCache.set(next, { prev, delta: step.delta, size: deltaSize(step.delta) });
       states.push(next);
-      steps.push(
-        step.merged === undefined
-          ? { label: step.label, at: step.at }
-          : { label: step.label, at: step.at, merged: step.merged },
-      );
+      steps.push({
+        label: step.label,
+        at: step.at,
+        ...(step.merged === undefined ? {} : { merged: step.merged }),
+        ...(step.name === undefined ? {} : { name: step.name }),
+      });
       prev = next;
     }
+    const kept = (row.named ?? []).map((k): NamedState<SeqDocument> => {
+      const state = k.state.kind === 'state' ? stateFrom(k.state.state) : states[k.state.position];
+      if (state === undefined) throw new RangeError('No such state to name');
+      return { name: k.name, label: k.label, at: k.at, state };
+    });
     const history = History.fromRecord({
       states,
       steps,
@@ -775,6 +845,7 @@ export function decodeHistory(row: unknown, origin: SeqDocument | null): Restore
       limit: row.limit,
       startedAt: row.startedAt,
       truncated: row.truncated,
+      ...(kept.length === 0 ? {} : { kept }),
     });
     const resolve = (l: StoredLandmark): SeqDocument | null | undefined => {
       switch (l.kind) {

@@ -63,7 +63,8 @@ stack out flat and rebuild it.
 
 ## Limits
 
-- **Steps:** the History's own limit, 200, as before.
+- **Steps:** the History's own limit, 200, as before. A named step past it
+  is kept outside the steps (item 5); see **Named states** below.
 - **Size:** `HISTORY_BUDGET`, 4 MiB of estimated bytes per document (one
   per base or character; the estimate is `storedSize`, and the encoder
   counts exactly that). Past it the oldest steps are left out of the stored
@@ -78,6 +79,40 @@ stack out flat and rebuild it.
   whole and a few megabytes of steps; a plasmid never comes near it, and
   it keeps the worst case for fifty stored genomes at a fifth of a
   gigabyte, which browsers grant.
+
+## Named states (#4)
+
+A step's name is an optional `name` on its `StoredStep`. Named states
+outside the stored steps — those the History already keeps in `kept`
+(item 5), and named steps the budget below drops — go in an optional
+`named` list on the row, oldest first: name, label, time, and the state as
+a reference to one of the kept states when it is one (the oldest kept
+state often is: dropping step _k_ leaves its state as the new start) and
+whole otherwise. Both fields are optional rather than a new format, so a
+row written before names reads as it did and the format stays 1; a name
+that is blank, untrimmed or too long, or a named state that points past the
+states, makes the row fail its check like any other bad field.
+
+**Named states are what the budget gives up last.** They are counted like
+the baselines: a named state inside the window costs its name, one outside
+costs its whole state. The window search tries, in order: every named
+state and both baselines whole; every named state without the baselines
+(which fall back as below); then the same again with the oldest named state
+allowed to go, then the two oldest, and so on. Within each it keeps the
+longest window as before. So to keep a named state, steps and the
+baselines go first, and a named state goes only when the present and the
+newer named states would not fit otherwise. The reasoning is the one for
+keeping them past the History's limit: a name is the user saying "this
+one", which neither an old step nor "since opened" is. The cost is only
+real on large documents: a named state stored whole is a document's worth
+of bytes, about a megabyte and a quarter on a megabase with a thousand
+features, so two or three of them outside the window on a genome take most
+of the 4 MiB, and the steps shrink to fit. On a plasmid nothing comes
+near it. `storedSize` counts names and named states exactly as the
+encoder does, and the property tests name random steps (and all of them at
+once, under limits of one to four, so named states fall off the end) and
+check that what comes back is what went in, and that any named states lost
+to a budget are the oldest.
 
 ## When it is written, and what it costs
 

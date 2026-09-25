@@ -1,6 +1,12 @@
 import { History, SeqDocument, createFeature, rangeSegment } from '@/core';
 
-import { describeEffect, historyRows, summarizeDocument } from './historyView';
+import {
+  describeEffect,
+  historyRows,
+  keptRows,
+  stateTitle,
+  summarizeDocument,
+} from './historyView';
 
 const base = SeqDocument.create({ name: 'p1', sequence: 'ACGTACGTAC' });
 
@@ -80,5 +86,37 @@ describe('historyRows', () => {
       .push(base.insert(0, 'A'), 'Insert 1 base')
       .push(base.insert(0, 'AA'), 'Insert 1 base');
     expect(historyRows(capped)[historyRows(capped).length - 1]?.label).toBe('Oldest kept state');
+  });
+});
+
+describe('named states in the rows (#4)', () => {
+  const one = base.insert(0, 'AA');
+  const two = withFeature(one);
+  const history = History.create(base, { at: 1000 })
+    .push(one, 'Insert 2 bases', 2000)
+    .push(two, 'Add feature', 3000)
+    .named(1, 'Two more');
+
+  it('carries each step name and the state before it', () => {
+    const rows = historyRows(history);
+    expect(rows.map((r) => r.name)).toEqual([undefined, 'Two more', undefined]);
+    expect(rows.map((r) => r.before)).toEqual([one, base, null]);
+  });
+
+  it('calls a state by its name, its step, or what the start row is', () => {
+    const rows = historyRows(history);
+    expect(rows.map(stateTitle)).toEqual(['step 2', 'Two more', 'the opened document']);
+  });
+
+  it('lists named states the limit dropped, newest first', () => {
+    let capped = History.create(base, { limit: 1, at: 0 });
+    capped = capped.push(one, 'Insert 2 bases', 1).named(1, 'first');
+    capped = capped.push(two, 'Add feature', 2).named(1, 'second');
+    capped = capped.push(two.insert(0, 'C'), 'Insert 1 base', 3);
+    expect(keptRows(capped).map((r) => [r.index, r.name, r.label, r.effect, r.current])).toEqual([
+      [1, 'second', 'Add feature', '12 bp · 1 feature', false],
+      [0, 'first', 'Insert 2 bases', '12 bp · 0 features', false],
+    ]);
+    expect(keptRows(null)).toEqual([]);
   });
 });

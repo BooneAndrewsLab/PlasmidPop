@@ -11,6 +11,31 @@ export interface HistoryEntry<T> {
   readonly coalesceKey?: string;
   /** How many changes this one step holds; absent means the usual one. */
   readonly merged?: number;
+  /**
+   * What the user called the state this change leads to (#4), absent when
+   * unnamed. A named step is sealed: nothing merges into it.
+   */
+  readonly name?: string;
+}
+
+/** Longest name a state may be given; a longer one is cut here. */
+export const MAX_STATE_NAME = 100;
+
+/**
+ * A named state that has left the steps — the limit dropped the change that
+ * led to it — kept whole with its name, what the change was and when, so a
+ * name is never lost to the limit (#4).
+ */
+export interface NamedState<T> {
+  readonly name: string;
+  readonly label: string;
+  readonly at: number;
+  readonly state: T;
+}
+
+/** A name as it is kept: trimmed and cut to `MAX_STATE_NAME`; empty means none. */
+export function cleanStateName(name: string): string {
+  return name.trim().slice(0, MAX_STATE_NAME).trim();
 }
 
 /**
@@ -63,6 +88,8 @@ export interface HistoryStep<T> {
   readonly at: number;
   /** The state with this change applied. */
   readonly state: T;
+  /** What the user called that state, if anything. */
+  readonly name?: string;
 }
 
 /** One change as a `HistoryRecord` keeps it: what it was called, when, and how many it holds. */
@@ -71,6 +98,8 @@ export interface HistoryRecordStep {
   readonly at: number;
   /** As `HistoryEntry.merged`: absent for a step of one change. */
   readonly merged?: number;
+  /** As `HistoryEntry.name`: absent for an unnamed step. */
+  readonly name?: string;
 }
 
 /**
@@ -89,6 +118,23 @@ export interface HistoryRecord<T> {
   readonly limit: number;
   readonly startedAt: number;
   readonly truncated: boolean;
+  /** Named states no longer among the steps, oldest first (`History.kept`); none when absent. */
+  readonly kept?: readonly NamedState<T>[];
+}
+
+/** A step's own fields for a record: absent ones stay absent. */
+function recordStep(e: {
+  readonly label: string;
+  readonly at: number;
+  readonly merged?: number;
+  readonly name?: string;
+}): HistoryRecordStep {
+  return {
+    label: e.label,
+    at: e.at,
+    ...(e.merged === undefined ? {} : { merged: e.merged }),
+    ...(e.name === undefined ? {} : { name: e.name }),
+  };
 }
 
 /**
@@ -97,7 +143,7 @@ export interface HistoryRecord<T> {
  */
 export class History<T> {
   static create<T>(present: T, options: HistoryOptions = {}): History<T> {
-    return new History(present, [], [], options.limit ?? 200, options.at ?? Date.now(), false);
+    return new History(present, [], [], options.limit ?? 200, options.at ?? Date.now(), false, []);
   }
 
   /**
@@ -119,9 +165,7 @@ export class History<T> {
     const entry = (i: number, state: T): HistoryEntry<T> => {
       const step = steps[i];
       if (step === undefined) throw new RangeError(`No step ${i}`);
-      return step.merged === undefined
-        ? { state, label: step.label, at: step.at }
-        : { state, label: step.label, at: step.at, merged: step.merged };
+      return { state, ...recordStep(step) };
     };
     const stateAt = (i: number): T => {
       const state = states[i];
@@ -133,27 +177,37 @@ export class History<T> {
     const past = Array.from({ length: position }, (_, i) => entry(i, stateAt(i)));
     const future: HistoryEntry<T>[] = [];
     for (let i = steps.length - 1; i >= position; i--) future.push(entry(i, stateAt(i + 1)));
-    return new History(stateAt(position), past, future, limit, record.startedAt, record.truncated);
+    const kept = (record.kept ?? []).map((k) => ({
+      name: k.name,
+      label: k.label,
+      at: k.at,
+      state: k.state,
+    }));
+    return new History(
+      stateAt(position),
+      past,
+      future,
+      limit,
+      record.startedAt,
+      record.truncated,
+      kept,
+    );
   }
 
   /** This history laid out flat, for `fromRecord` to rebuild; an open run is not kept. */
   toRecord(): HistoryRecord<T> {
     const states: T[] = [];
     const steps: HistoryRecordStep[] = [];
-    const step = (e: HistoryEntry<T>): HistoryRecordStep =>
-      e.merged === undefined
-        ? { label: e.label, at: e.at }
-        : { label: e.label, at: e.at, merged: e.merged };
     for (const e of this.past) {
       states.push(e.state);
-      steps.push(step(e));
+      steps.push(recordStep(e));
     }
     states.push(this.present);
     for (let i = this.future.length - 1; i >= 0; i--) {
       const e = this.future[i];
       if (e === undefined) continue;
       states.push(e.state);
-      steps.push(step(e));
+      steps.push(recordStep(e));
     }
     return {
       states,
@@ -162,6 +216,7 @@ export class History<T> {
       limit: this.limit,
       startedAt: this.startedAt,
       truncated: this.truncated,
+      ...(this.kept.length === 0 ? {} : { kept: this.kept }),
     };
   }
 
@@ -174,6 +229,12 @@ export class History<T> {
     readonly startedAt: number,
     /** Whether steps older than `limit` were dropped, so step 0 is not the opened state. */
     readonly truncated: boolean,
+    /**
+     * Named states whose steps the limit dropped, oldest first. They are
+     * kept whole, outside the undo stack: undo cannot reach them, but they
+     * can be looked at, marked from, or made the present again as a change.
+     */
+    readonly kept: readonly NamedState<T>[],
   ) {}
 
   get canUndo(): boolean {
@@ -225,19 +286,20 @@ export class History<T> {
   get steps(): readonly HistoryStep<T>[] {
     // `past[i]` keeps the state *before* change i + 1, so a change's own state
     // is the next entry's, and the last applied change leads to the present.
-    const applied = this.past.map((entry, i) => ({
-      position: i + 1,
+    const step = (entry: HistoryEntry<T>, position: number, state: T): HistoryStep<T> => ({
+      position,
       label: entry.label,
       at: entry.at,
-      state: this.past[i + 1]?.state ?? this.present,
-    }));
+      state,
+      ...(entry.name === undefined ? {} : { name: entry.name }),
+    });
+    const applied = this.past.map((entry, i) =>
+      step(entry, i + 1, this.past[i + 1]?.state ?? this.present),
+    );
     // `future` is a stack: its last element is the next redo.
-    const undone = [...this.future].reverse().map((entry, i) => ({
-      position: this.past.length + i + 1,
-      label: entry.label,
-      at: entry.at,
-      state: entry.state,
-    }));
+    const undone = [...this.future]
+      .reverse()
+      .map((entry, i) => step(entry, this.past.length + i + 1, entry.state));
     return [...applied, ...undone];
   }
 
@@ -277,15 +339,25 @@ export class History<T> {
     let past = [...this.past, entry];
     let startedAt = this.startedAt;
     let truncated = this.truncated;
+    let kept = this.kept;
     if (past.length > this.limit) {
       const dropped = past.length - this.limit;
+      // A named change leaving the steps takes its state into `kept`: the
+      // name is the user saying this state matters (#4).
+      const leaving: NamedState<T>[] = [];
+      for (let i = 0; i < dropped; i++) {
+        const e = past[i];
+        const state = past[i + 1]?.state ?? next;
+        if (e?.name !== undefined) leaving.push({ name: e.name, label: e.label, at: e.at, state });
+      }
+      if (leaving.length > 0) kept = [...kept, ...leaving];
       // The oldest kept state is now the starting point, so step 0 is dated
       // by the change that produced it and no longer is the opened document.
       startedAt = past[dropped - 1]?.at ?? startedAt;
       past = past.slice(dropped);
       truncated = true;
     }
-    return new History(next, past, [], this.limit, startedAt, truncated);
+    return new History(next, past, [], this.limit, startedAt, truncated, kept);
   }
 
   /**
@@ -298,7 +370,8 @@ export class History<T> {
     // A redo stack means the user has undone something: the run is over.
     if (this.future.length > 0) return null;
     // An unsealed step offers a key; a sealed one has none and matches nothing.
-    if (last.coalesceKey !== coalesce.follows) return null;
+    // A named step is sealed, and is checked as well: a name is for one state.
+    if (last.name !== undefined || last.coalesceKey !== coalesce.follows) return null;
     if (at - last.at > (coalesce.withinMs ?? DEFAULT_COALESCE_MS)) return null;
     const count = (last.merged ?? 1) + 1;
     if (coalesce.limit !== undefined && count > coalesce.limit) return null;
@@ -314,7 +387,7 @@ export class History<T> {
         merged: count,
       },
     ];
-    return new History(next, past, [], this.limit, this.startedAt, this.truncated);
+    return new History(next, past, [], this.limit, this.startedAt, this.truncated, this.kept);
   }
 
   /**
@@ -334,6 +407,81 @@ export class History<T> {
       this.limit,
       this.startedAt,
       this.truncated,
+      this.kept,
+    );
+  }
+
+  /**
+   * The history with the state `position` changes lead to called `name`, or
+   * no longer called anything when `name` is blank (`cleanStateName`). Only
+   * a change's state can be named, so `position` is 1 to `size`; anything
+   * else, or a name that is already the one it has, gives this history back.
+   *
+   * A name is metadata about the history, not a change: the present, the
+   * position and every state stay as they are. Naming the last applied step
+   * seals it, so typing on from a state the user has just named starts a
+   * step of its own rather than moving the name along with the run.
+   */
+  named(position: number, name: string): History<T> {
+    if (!Number.isInteger(position) || position < 1 || position > this.size) return this;
+    const clean = cleanStateName(name);
+    // Sealed either way: clearing a name does not reopen the run it ended.
+    const rename = (e: HistoryEntry<T>): HistoryEntry<T> => {
+      const { name: _old, coalesceKey: _key, ...rest } = e;
+      return clean === '' ? rest : { ...rest, name: clean };
+    };
+    if (position <= this.past.length) {
+      const e = this.past[position - 1];
+      if (e === undefined || (e.name ?? '') === clean) return this;
+      const past = [...this.past];
+      past[position - 1] = rename(e);
+      return new History(
+        this.present,
+        past,
+        this.future,
+        this.limit,
+        this.startedAt,
+        this.truncated,
+        this.kept,
+      );
+    }
+    const i = this.size - position;
+    const e = this.future[i];
+    if (e === undefined || (e.name ?? '') === clean) return this;
+    const future = [...this.future];
+    future[i] = rename(e);
+    return new History(
+      this.present,
+      this.past,
+      future,
+      this.limit,
+      this.startedAt,
+      this.truncated,
+      this.kept,
+    );
+  }
+
+  /**
+   * The history with the kept named state at `index` (of `kept`) renamed, or
+   * forgotten when `name` is blank: it is only kept for its name.
+   */
+  renamedKept(index: number, name: string): History<T> {
+    const k = this.kept[index];
+    if (k === undefined) return this;
+    const clean = cleanStateName(name);
+    if (clean === k.name) return this;
+    const kept =
+      clean === ''
+        ? this.kept.filter((_, i) => i !== index)
+        : this.kept.map((x, i) => (i === index ? { ...x, name: clean } : x));
+    return new History(
+      this.present,
+      this.past,
+      this.future,
+      this.limit,
+      this.startedAt,
+      this.truncated,
+      kept,
     );
   }
 
@@ -347,6 +495,7 @@ export class History<T> {
       this.limit,
       this.startedAt,
       this.truncated,
+      this.kept,
     );
   }
 
@@ -360,6 +509,7 @@ export class History<T> {
       this.limit,
       this.startedAt,
       this.truncated,
+      this.kept,
     );
   }
 }
