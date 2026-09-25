@@ -569,6 +569,19 @@ describe('preparePrimers', () => {
     expect(empty).toBe(1);
   });
 
+  it('trims a name, and names one that is only spaces', () => {
+    const { ready, duplicates } = preparePrimers(
+      [{ name: 'M13F', sequence: 'GTAAAACGACGGCCAGT' }],
+      [
+        { name: '  ', sequence: 'ACGTACGTAC', notes: '' },
+        { name: ' T7 ', sequence: 'TAATACGACTCACTATAGGG', notes: '' },
+        { name: '\tM13F ', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+      ],
+    );
+    expect(ready.map((p) => p.name)).toEqual(['Primer 1', 'T7']);
+    expect(duplicates).toBe(1);
+  });
+
   it('names from the first free number', () => {
     expect(nextPrimerName(new Set())).toBe('Primer 1');
     expect(nextPrimerName(new Set(['Primer 1', 'Primer 3']))).toBe('Primer 2');
@@ -616,6 +629,35 @@ describe('primerFromFeature', () => {
       primerFromFeature(doc, feature([{ name: 'note', value: 'sequence: ' }], 'forward')),
     ).toEqual({ name: 'M13F', sequence: 'ACGTTGCA', notes: 'sequence:' });
   });
+
+  it('takes the first sequence note, and keeps the rest as notes, blank ones left out', () => {
+    expect(
+      primerFromFeature(
+        doc,
+        feature(
+          [
+            { name: 'note', value: 'sequence: GGATCCACGTTGCA' },
+            { name: 'note', value: '  ' },
+            { name: 'note', value: 'PCR primer: AAGCTTACGTTGCA' },
+            { name: 'note', value: ' box 3 ' },
+          ],
+          'forward',
+        ),
+      ),
+    ).toEqual({
+      name: 'M13F',
+      sequence: 'GGATCCACGTTGCA',
+      notes: 'PCR primer: AAGCTTACGTTGCA; box 3',
+    });
+  });
+
+  it('is no primer when neither a note nor the feature has bases', () => {
+    const empty = { featureSequence: () => '' };
+    expect(primerFromFeature(empty, feature([], 'forward'))).toBeNull();
+    expect(
+      primerFromFeature(empty, feature([{ name: 'note', value: 'sequence: 123' }], 'forward')),
+    ).toBeNull();
+  });
 });
 
 describe('asPrimerSequence', () => {
@@ -632,6 +674,23 @@ describe('asPrimerSequence', () => {
     expect(asPrimerSequence('ACGTACG')).toBeNull();
     expect(asPrimerSequence('')).toBeNull();
   });
+
+  it('takes the ends marked with or without a dash, a prime or spaces', () => {
+    const want = 'GTAAAACGACGGCCAGT';
+    expect(asPrimerSequence("  5'-GTAAAACGACGGCCAGT-3'  ")).toBe(want);
+    expect(asPrimerSequence('5′GTAAAACGACGGCCAGT3′')).toBe(want);
+    expect(asPrimerSequence('5-GTAAAACGACGGCCAGT')).toBe(want);
+    expect(asPrimerSequence("5' GTAAAACGACGGCCAGT 3 '")).toBe(want);
+    expect(asPrimerSequence('GTAAAACG--ACGG CCAGT')).toBe(want);
+  });
+
+  it('reads a 5 or a 3 not marking an end as what it is, not a base', () => {
+    // A bare 5 before the bases (a row number, a well) is not a 5′ mark.
+    expect(asPrimerSequence('5 GTAAAACGACGGCCAGT')).toBeNull();
+    // Marks the wrong way round: the bases would be read backwards.
+    expect(asPrimerSequence("GTAAAACGACGGCCAGT 5'")).toBeNull();
+    expect(asPrimerSequence("3' GTAAAACGACGGCCAGT")).toBeNull();
+  });
 });
 
 describe('parsePrimerList', () => {
@@ -645,6 +704,102 @@ describe('parsePrimerList', () => {
       { name: 'M13R', sequence: 'CAGGAAACAGCTATGAC', notes: '' },
     ]);
     expect(parsed.skipped).toEqual([7]);
+  });
+
+  it('reads FASTA after blank lines, a byte-order mark, comments and odd spacing', () => {
+    const text =
+      '﻿  \n\n  > M13F   universal forward  \r; a comment: ACGT\rGTAA AACG\r  ACGGCCAGT\r  >M13R\rCAGGAAACAGCTATGAC\r';
+    const parsed = parsePrimerList(text);
+    expect(parsed).toEqual({
+      format: 'fasta',
+      primers: [
+        { name: 'M13F', sequence: 'GTAAAACGACGGCCAGT', notes: 'universal forward' },
+        { name: 'M13R', sequence: 'CAGGAAACAGCTATGAC', notes: '' },
+      ],
+      skipped: [],
+    });
+  });
+
+  it('reads lines ended by a lone carriage return, and nothing as a plain list', () => {
+    expect(parsePrimerList('GTAAAACGACGGCCAGT\rCAGGAAACAGCTATGAC\r').primers).toEqual([
+      { name: '', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+      { name: '', sequence: 'CAGGAAACAGCTATGAC', notes: '' },
+    ]);
+    expect(parsePrimerList('').format).toBe('lines');
+    expect(parsePrimerList(' \n\t\n').format).toBe('lines');
+  });
+
+  it('takes a lone comma in one line for part of a note, not a table', () => {
+    const parsed = parsePrimerList(
+      'T7 TAATACGACTCACTATAGGG promoter,strong\nGTAAAACGACGGCCAGT\n  \n  # indented comment\n',
+    );
+    expect(parsed).toEqual({
+      format: 'lines',
+      primers: [
+        { name: 'T7', sequence: 'TAATACGACTCACTATAGGG', notes: 'promoter,strong' },
+        { name: '', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+      ],
+      skipped: [],
+    });
+  });
+
+  it('reads the name after the bases, on a line or in a table', () => {
+    expect(parsePrimerList('GTAAAACGACGGCCAGT M13F\n').primers).toEqual([
+      { name: 'M13F', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+    ]);
+    expect(parsePrimerList('GTAAAACGACGGCCAGT,M13F\n,CAGGAAACAGCTATGAC,M13R\n').primers).toEqual([
+      { name: 'M13F', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+      { name: 'M13R', sequence: 'CAGGAAACAGCTATGAC', notes: '' },
+    ]);
+    // A row of bases and an empty cell has no name.
+    expect(parsePrimerList('GTAAAACGACGGCCAGT,\nCAGGAAACAGCTATGAC,\n').primers).toEqual([
+      { name: '', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+      { name: '', sequence: 'CAGGAAACAGCTATGAC', notes: '' },
+    ]);
+  });
+
+  it('follows a header without a name or notes column, or with short rows', () => {
+    expect(parsePrimerList('sequence,notes\nGTAAAACGACGGCCAGT,box 3\n').primers).toEqual([
+      { name: '', sequence: 'GTAAAACGACGGCCAGT', notes: 'box 3' },
+    ]);
+    expect(parsePrimerList('sequence,name\nGTAAAACGACGGCCAGT,M13F\n')).toEqual({
+      format: 'table',
+      primers: [{ name: 'M13F', sequence: 'GTAAAACGACGGCCAGT', notes: '' }],
+      skipped: [],
+    });
+    expect(parsePrimerList('sequence,notes,name\nGTAAAACGACGGCCAGT,x\n')).toEqual({
+      format: 'table',
+      primers: [{ name: '', sequence: 'GTAAAACGACGGCCAGT', notes: 'x' }],
+      skipped: [],
+    });
+    expect(parsePrimerList('sequence,name,notes\nGTAAAACGACGGCCAGT,M13F\n').primers).toEqual([
+      { name: 'M13F', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+    ]);
+  });
+
+  it('takes a first row with bases in it for data, and one naming no sequence column too', () => {
+    // A primer may be called "seq"; its row still holds a primer.
+    expect(parsePrimerList('seq,GTAAAACGACGGCCAGT\nT7,TAATACGACTCACTATAGGG\n').primers).toEqual([
+      { name: 'seq', sequence: 'GTAAAACGACGGCCAGT', notes: '' },
+      { name: 'T7', sequence: 'TAATACGACTCACTATAGGG', notes: '' },
+    ]);
+    // A header whose columns the reader does not know is a row with no primer.
+    expect(parsePrimerList('Primer,Oligo 5-3\nM13F,GTAAAACGACGGCCAGT\n')).toEqual({
+      format: 'table',
+      primers: [{ name: 'M13F', sequence: 'GTAAAACGACGGCCAGT', notes: '' }],
+      skipped: [1],
+    });
+  });
+
+  it('counts lines inside a quoted cell, so a skipped row is named by its own line', () => {
+    const parsed = parsePrimerList(
+      'name,sequence,notes\nA,GTAAAACGACGGCCAGT,"two\nlines"\nB,xx,\n" ",\n',
+    );
+    expect(parsed.primers).toEqual([
+      { name: 'A', sequence: 'GTAAAACGACGGCCAGT', notes: 'two\nlines' },
+    ]);
+    // Row B starts on line 4; a row of only a quoted space is nothing, not a skip.
+    expect(parsed.skipped).toEqual([4]);
   });
 
   it('reads a CSV with a header, in any column order, quoted cells and all', () => {
@@ -695,6 +850,13 @@ describe('parsePrimerList', () => {
 
   it('splits a row as CSV quotes it', () => {
     expect(splitRow('a, "b,c" ,"d""e"', ',')).toEqual(['a', 'b,c', 'd"e']);
+    // Unquoted cells are trimmed; quoted ones keep their spaces, and what
+    // follows the closing quote is dropped.
+    expect(splitRow(' a ,b\t', ',')).toEqual(['a', 'b']);
+    expect(splitRow('" a ","b"x', ',')).toEqual([' a ', 'b']);
+    // A quote inside a cell is a character, not the start of a quoted cell.
+    expect(splitRow('M13F,6" gel,x', ',')).toEqual(['M13F', '6" gel', 'x']);
+    expect(splitRow('', ',')).toEqual([]);
   });
 });
 
@@ -720,5 +882,24 @@ describe('writing the collection', () => {
       { name: 'T7', sequence: 'TAATACGACTCACTATAGGG', notes: '' },
       { name: 'NNK_lib', sequence: 'NNKNNKACGTACGT', notes: 'two lines' },
     ]);
+  });
+
+  it('writes a FASTA header with its spaces tidied, and a nameless primer as "primer"', () => {
+    expect(
+      writePrimerFasta([
+        { name: ' M13  F ', sequence: 'GTAAAACGACGGCCAGT', notes: '  box 3 \n\n shelf B ' },
+        { name: 'T7', sequence: 'TAATACGACTCACTATAGGG', notes: '' },
+        { name: '  ', sequence: 'ACGTACGTAC', notes: '' },
+      ]),
+    ).toBe(
+      '>M13_F box 3 shelf B\nGTAAAACGACGGCCAGT\n>T7\nTAATACGACTCACTATAGGG\n>primer\nACGTACGTAC\n',
+    );
+  });
+
+  it('quotes a CSV cell with spaces at its ends, so they read back', () => {
+    const padded = [{ name: ' T7', sequence: 'TAATACGACTCACTATAGGG', notes: 'strong ' }];
+    const csv = writePrimerCsv(padded);
+    expect(csv).toBe('name,sequence,notes\r\n" T7",TAATACGACTCACTATAGGG,"strong "\r\n');
+    expect(parsePrimerList(csv).primers).toEqual(padded);
   });
 });

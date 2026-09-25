@@ -357,10 +357,11 @@ function readRow(
 ): PrimerDraft | null {
   const sequence = asPrimerSequence(cells[columns.sequence] ?? '');
   if (sequence === null) return null;
+  // A column the header does not have is -1, which no cell is at.
   return {
-    name: columns.name < 0 ? '' : (cells[columns.name] ?? ''),
+    name: cells[columns.name] ?? '',
     sequence,
-    notes: columns.notes < 0 ? '' : (cells[columns.notes] ?? ''),
+    notes: cells[columns.notes] ?? '',
   };
 }
 
