@@ -20,7 +20,19 @@
     "src/core/primers/primerDesign.ts",
     "src/io/genbank/methylationComment.ts",
     "src/io/genbank/ownComments.ts",
-    "src/io/fasta/fasta.ts"
+    "src/io/fasta/fasta.ts",
+    "src/core/diff/documentDiff.ts",
+    "src/core/diff/removed.ts",
+    "src/core/document/extract.ts",
+    "src/core/history/history.ts",
+    "src/core/lineage/lineage.ts",
+    "src/core/lineage/record.ts",
+    "src/core/lineage/describe.ts",
+    "src/io/genbank/madeFromComment.ts",
+    "src/io/fastq/fastq.ts",
+    "src/io/share/link.ts",
+    "src/storage/historyCodec.ts",
+    "src/storage/historyFormat.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {
