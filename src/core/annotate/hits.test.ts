@@ -59,6 +59,15 @@ describe('duplicatesExisting', () => {
     expect(duplicatesExisting(hit(100, 961), AMP, [existing(0, 2000)], 5000, 'linear')).toBe(false);
   });
 
+  it('needs 90% of each, and exactly 90% is enough', () => {
+    // 90 of the hit's 100 bases.
+    expect(duplicatesExisting(hit(0, 100), AMP, [existing(10, 100)], 5000, 'linear')).toBe(true);
+    expect(duplicatesExisting(hit(0, 100), AMP, [existing(11, 100)], 5000, 'linear')).toBe(false);
+    // 90 of the feature's 100 bases.
+    expect(duplicatesExisting(hit(0, 90), AMP, [existing(0, 100)], 5000, 'linear')).toBe(true);
+    expect(duplicatesExisting(hit(0, 89), AMP, [existing(0, 100)], 5000, 'linear')).toBe(false);
+  });
+
   it('does not match one on the other strand', () => {
     const f = existing(100, 961, { strand: 'forward' });
     expect(duplicatesExisting(hit(100, 961), AMP, [f], 5000, 'linear')).toBe(false);
