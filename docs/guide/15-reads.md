@@ -15,7 +15,10 @@ in this browser, like the rest of the document:
 
 - The status bar says **Read, 92% Q20+**: the share of bases whose quality
   is 20 or more. Quality is on the Phred scale, where 20 means one error in
-  a hundred bases, 30 one in a thousand.
+  a hundred bases, 30 one in a thousand. The threshold is the Align tab's
+  **Confident from** (see
+  [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities)),
+  so with Q40 set it reads **Q40+**.
 - An AB1 read shows its **trace** in the sequence view, above the bases:
   the four dye signals (in the colours the bases are coloured in), each
   base's peak over its letter, and its quality as a faint bar behind. A

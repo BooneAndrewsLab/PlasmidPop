@@ -21,7 +21,8 @@ function describeSelection(doc: SeqDocument, selection: { start: number; end: nu
 }
 
 export function StatusBar({ doc }: Props) {
-  const { selection, warnings, error, errorCountdown, fileName, front } = useEditorState();
+  const { selection, warnings, error, errorCountdown, fileName, front, readConfidentQuality } =
+    useEditorState();
   const [showWarnings, setShowWarnings] = useState(false);
   const [copied, setCopied] = useState(false);
   // A SHA-1 over the sequence, which is microseconds even for a plasmid, but
@@ -117,9 +118,9 @@ export function StatusBar({ doc }: Props) {
           {read !== null && (
             <span
               className="statusbar__read"
-              title={`This document is a sequencing read: its base qualities${read.trace === null ? '' : ' and trace'} are kept with it. Q20 is one error in a hundred bases or fewer.`}
+              title={`This document is a sequencing read: its base qualities${read.trace === null ? '' : ' and trace'} are kept with it. Q20 is one error in a hundred bases or fewer, Q30 one in a thousand; the threshold is set in the Align tab.`}
             >
-              Read, {Math.round(fractionAtLeast(read, 20) * 100)}% Q20+
+              {`Read, ${String(Math.round(fractionAtLeast(read, readConfidentQuality) * 100))}% Q${String(readConfidentQuality)}+`}
             </span>
           )}
           {checksum !== null && (

@@ -210,6 +210,47 @@ describe('AlignPanel', () => {
       ).toBe(middle[10]);
     });
 
+    it('counts, lists and shades differences from the threshold set (#56)', async () => {
+      await alignDropped();
+      expect(document.querySelectorAll('.alignment__q-low')).toHaveLength(1);
+      // The Q10 base becomes confident at Q10, and the count follows at once.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Confident from' }), {
+        target: { value: '10' },
+      });
+      expect(editorStore.getState().readConfidentQuality).toBe(10);
+      expect(
+        screen.getByText(/^2 differences at confident bases \(Q10\+\)\.$/),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Mismatch at 21, Q10/ })).toBeInTheDocument();
+      expect(document.querySelectorAll('.alignment__q-low')).toHaveLength(0);
+      // At Q50 even the Q40 bases are doubtful.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Confident from' }), {
+        target: { value: '50' },
+      });
+      expect(screen.getByText(/No differences at confident bases \(Q50\+\)/)).toBeInTheDocument();
+      act(() => {
+        editorStore.setReadConfidentQuality(20);
+      });
+    });
+
+    it('trims at the cutoff set (#56)', async () => {
+      await alignDropped();
+      // At 0.1% the Q10 base ten bases in costs more than those ten earn.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Trim at' }), {
+        target: { value: '0.001' },
+      });
+      expect(editorStore.getState().readTrimCutoff).toBe(0.001);
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Trimmed 16 bases from the start of the read and 5 from the end/),
+        ).toBeInTheDocument();
+      });
+      act(() => {
+        editorStore.setReadTrimCutoff(0.05);
+      });
+    });
+
     it('forgets the qualities once the text is edited', async () => {
       await alignDropped();
       fireEvent.change(box(), { target: { value: `>read1\n${read}` } });

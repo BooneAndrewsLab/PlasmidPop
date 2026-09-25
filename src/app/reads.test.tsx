@@ -140,5 +140,13 @@ describe('sequencing reads in the app', () => {
     });
     render(<StatusBar doc={read} />);
     expect(screen.getByText('Read, 80% Q20+')).toBeInTheDocument();
+    // It follows the Align tab's threshold (#56).
+    act(() => {
+      editorStore.setReadConfidentQuality(50);
+    });
+    expect(screen.getByText('Read, 0% Q50+')).toBeInTheDocument();
+    act(() => {
+      editorStore.setReadConfidentQuality(20);
+    });
   });
 });

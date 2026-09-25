@@ -7,10 +7,12 @@ import {
   type ReadDifference,
   type SeqDocument,
   type SequencingRead,
-  CONFIDENT_QUALITY,
+  CONFIDENT_QUALITY_CHOICES,
+  TRIM_CUTOFF_CHOICES,
   columnQualities,
   isEmptyRange,
   normalizeSequenceInput,
+  qualityOfError,
   readDifferences,
   reverseComplementRead,
   trimByQuality,
@@ -98,20 +100,29 @@ async function readFile(file: File): Promise<LoadedFile> {
   return { text, records };
 }
 
-/** The read's quality class under a column: poor below Q20. */
-function qualityClass(q: number | undefined): string {
-  return q === undefined || q >= CONFIDENT_QUALITY ? '' : 'alignment__q-low';
+/** The read's quality class under a column: poor below the confident threshold. */
+function qualityClass(q: number | undefined, confidentFrom: number): string {
+  return q === undefined || q >= confidentFrom ? '' : 'alignment__q-low';
 }
 
 /**
- * The second sequence's line of a block, its poor bases (below Q20) marked
- * when there are qualities: runs of one class, so a block is a few spans.
+ * The second sequence's line of a block, its poor bases (below the
+ * confident threshold, Q20 unless set otherwise) marked when there are
+ * qualities: runs of one class, so a block is a few spans.
  */
-function ReadLine({ bases, qualities }: { bases: string; qualities: readonly number[] | null }) {
+function ReadLine({
+  bases,
+  qualities,
+  confidentFrom,
+}: {
+  bases: string;
+  qualities: readonly number[] | null;
+  confidentFrom: number;
+}) {
   if (qualities === null) return <>{bases}</>;
   const runs: { text: string; cls: string }[] = [];
   for (let k = 0; k < bases.length; k++) {
-    const cls = qualityClass(qualities[k]);
+    const cls = qualityClass(qualities[k], confidentFrom);
     const last = runs[runs.length - 1];
     if (last?.cls === cls) last.text += bases.charAt(k);
     else runs.push({ text: bases.charAt(k), cls });
@@ -140,6 +151,7 @@ function AlignmentBlocks({
   offsetB,
   wrap,
   qualities,
+  confidentFrom,
   trace,
   focus,
 }: {
@@ -150,6 +162,8 @@ function AlignmentBlocks({
   wrap: number | null;
   /** The read's quality under each column, or null without qualities. */
   qualities: readonly number[] | null;
+  /** The quality a read base counts as confident from. */
+  confidentFrom: number;
   /**
    * The read with its trace, turned the way it aligned and indexed as the
    * read's line is numbered, when there is a trace to draw under each block.
@@ -206,6 +220,7 @@ function AlignmentBlocks({
           <ReadLine
             bases={blk.b}
             qualities={qualities === null ? null : qualities.slice(blk.at, blk.at + BLOCK)}
+            confidentFrom={confidentFrom}
           />
           {'\n'}
           {trace !== null && blk.bases.length > 0 && (
@@ -231,18 +246,20 @@ const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
 
 /**
  * What the qualities say about the differences: how many sit on bases the
- * read was sure of (Q20+) and how many on poor ones, with each confident
+ * read was sure of (Q20+, or the threshold set, #56) and how many on poor ones, with each confident
  * one listed to be looked at in the document. "Does my clone match" comes
  * down to the first number.
  */
 function ReadSummary({
   differences,
+  confidentFrom,
   offset,
   wrap,
   docName,
   onPick,
 }: {
   differences: readonly ReadDifference[];
+  confidentFrom: number;
   offset: number;
   wrap: number | null;
   docName: string;
@@ -256,7 +273,7 @@ function ReadSummary({
       <p className="panel__note">
         {differences.length === 0
           ? `No differences from ${docName} over the aligned stretch.`
-          : `${confident.length === 0 ? 'No' : confident.length.toLocaleString()} ${confident.length === 1 ? 'difference' : 'differences'} at confident bases (Q${CONFIDENT_QUALITY}+)${poor === 0 ? '' : `, ${poor.toLocaleString()} at poor ones, shaded in the read`}.`}
+          : `${confident.length === 0 ? 'No' : confident.length.toLocaleString()} ${confident.length === 1 ? 'difference' : 'differences'} at confident bases (Q${confidentFrom}+)${poor === 0 ? '' : `, ${poor.toLocaleString()} at poor ones, shaded in the read`}.`}
       </p>
       {confident.length > 0 && (
         <ul className="read-summary__list">
@@ -287,8 +304,69 @@ function ReadSummary({
   );
 }
 
+/** An error rate as a percentage for a label: 5%, 0.1%. */
+function formatErrorRate(p: number): string {
+  return `${String(Number((p * 100).toPrecision(2)))}%`;
+}
+
+/**
+ * Where a read's bases count as confident and where its ends are trimmed
+ * (#56), remembered with the view preferences: Q20 and 5% suit Sanger
+ * reads, a nanopore consensus wants Q40, raw nanopore reads Q10.
+ */
+function QualitySettings({ trim }: { trim: boolean }) {
+  const { readConfidentQuality, readTrimCutoff } = useEditorState();
+  return (
+    <div className="panel__controls">
+      <label
+        className="panel__field"
+        title="A difference on a read base of at least this quality counts as confident; poorer bases are shaded. Q20 is one error in a hundred, Q30 one in a thousand."
+      >
+        <span>Confident from</span>
+        <select
+          className="panel__select"
+          aria-label="Confident from"
+          value={readConfidentQuality}
+          onChange={(e) => {
+            analytics.trackOnce('align', 'quality', 'confident');
+            editorStore.setReadConfidentQuality(Number(e.target.value));
+          }}
+        >
+          {CONFIDENT_QUALITY_CHOICES.map((q) => (
+            <option key={q} value={q}>
+              Q{q}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label
+        className="panel__field"
+        title="Trimming keeps the stretch whose bases are mostly better than this error rate"
+      >
+        <span>Trim at</span>
+        <select
+          className="panel__select"
+          aria-label="Trim at"
+          value={readTrimCutoff}
+          disabled={!trim}
+          onChange={(e) => {
+            analytics.trackOnce('align', 'quality', 'trim');
+            editorStore.setReadTrimCutoff(Number(e.target.value));
+          }}
+        >
+          {TRIM_CUTOFF_CHOICES.map((p) => (
+            <option key={p} value={p}>
+              Q{qualityOfError(p)} ({formatErrorRate(p)} error)
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
 export function AlignPanel({ doc }: Props) {
-  const { selection } = useEditorState();
+  const { selection, readConfidentQuality, readTrimCutoff } = useEditorState();
   const [other, setOther] = useState('');
   const [picked, setPicked] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -394,7 +472,9 @@ export function AlignPanel({ doc }: Props) {
     const readData = record?.read ?? null;
     const allQualities = readData?.qualities ?? null;
     const kept =
-      allQualities !== null && trim ? trimByQuality(allQualities) : { start: 0, end: full.length };
+      allQualities !== null && trim
+        ? trimByQuality(allQualities, readTrimCutoff)
+        : { start: 0, end: full.length };
     if (kept.end <= kept.start) {
       setError(
         'No stretch of this read is of good enough quality to align. Untick the trimming to align it all.',
@@ -558,7 +638,7 @@ export function AlignPanel({ doc }: Props) {
         {record?.read !== undefined && (
           <label
             className="toggle"
-            title="Mott's algorithm: keep the stretch whose bases are mostly better than Q13 (5% error)"
+            title={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
           >
             <input
               type="checkbox"
@@ -590,6 +670,7 @@ export function AlignPanel({ doc }: Props) {
           {busy ? 'Aligning…' : 'Align'}
         </button>
       </div>
+      {record?.read !== undefined && <QualitySettings trim={trim} />}
       {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
       {busy && progress !== null && (
         <div className="align-progress">
@@ -664,7 +745,12 @@ export function AlignPanel({ doc }: Props) {
           )}
           {result.qualities !== null && (
             <ReadSummary
-              differences={readDifferences(result.alignment, result.qualities)}
+              differences={readDifferences(
+                result.alignment,
+                result.qualities,
+                readConfidentQuality,
+              )}
+              confidentFrom={readConfidentQuality}
               offset={result.offset}
               wrap={result.wrap}
               docName={doc.name}
@@ -679,6 +765,7 @@ export function AlignPanel({ doc }: Props) {
             offsetB={result.offsetB}
             wrap={result.wrap}
             qualities={result.qualities}
+            confidentFrom={readConfidentQuality}
             trace={showTrace ? result.trace : null}
             focus={focus}
           />

@@ -120,7 +120,12 @@ export const EVENTS = {
   ],
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],
-  align: ['run'],
+  /**
+   * `run` names the mode (`global`/`local`); `quality` is a change to the
+   * confident threshold or the trimming cutoff (`confident`/`trim`, once
+   * per visit each, never the value chosen, #56).
+   */
+  align: ['run', 'quality'],
   cloning: [
     'ligate',
     'open-fragment',

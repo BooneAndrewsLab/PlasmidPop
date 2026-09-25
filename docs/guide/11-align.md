@@ -41,15 +41,26 @@ for what the qualities are.
 - **Trim poor ends**, on by default, cuts the read's unreliable start and
   tail before aligning — the first 20–50 bases and the end of a Sanger read,
   typically. It keeps the stretch whose bases are mostly better than Q13 (a
-  5% chance of error), by Mott's algorithm as phred uses it, so a single
+  5% chance of error; see **Trim at** below), by Mott's algorithm as phred uses it, so a single
   poor base inside a good stretch stays. The result says how many bases went
   from each end; untick it to align the whole read.
 - **The differences, by confidence.** Above the alignment, a line says how
   many differences from the document sit on bases the read was sure of
-  (Q20 or better, one error in a hundred) and how many on poor ones. Each
+  (Q20 or better, one error in a hundred, unless set otherwise) and how many
+  on poor ones. Each
   confident difference is listed with its position in the document and its
   quality; click one to select it there. Those are the ones worth a look;
   the poor ones are usually the sequencer, not the clone.
+- **Where confident starts, and where trimming cuts.** Under the controls,
+  **Confident from** sets the quality a base must have for a difference on
+  it to count as confident, from Q10 to Q50: Q20 suits Sanger reads, a
+  nanopore service's consensus (Q40 and up) wants Q40, raw nanopore reads
+  Q10 or Q13. The count, the list and the shading follow it at once, without
+  aligning again, and so does the status bar's share of good bases for an
+  opened read. **Trim at** sets the error rate trimming keeps bases better
+  than: Q13 (5%) is phred's usual, Q20 (1%) or Q30 (0.1%) trim harder, Q10
+  (10%) keeps more of a noisy read; it applies the next time you align. Both
+  are remembered in this browser with the view preferences.
 - **Poor bases are marked in the read's line** of the alignment, underlined
   and in the warning colour, so a mismatch on one reads as doubt.
 - **The trace, under the read.** An AB1 read shows its trace under each

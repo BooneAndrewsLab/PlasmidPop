@@ -17,6 +17,34 @@ export const CONFIDENT_QUALITY = 20;
 export const TRIM_CUTOFF = 0.05;
 
 /**
+ * The thresholds the Align panel offers for "confident" (#56). Q20 is the
+ * common Sanger QC line; a nanopore service's consensus reports Q40 and
+ * more, raw nanopore reads Q10–20, so the choice runs from Q10 to Q50.
+ */
+export const CONFIDENT_QUALITY_CHOICES: readonly number[] = [10, 13, 15, 20, 25, 30, 40, 50];
+
+export function isConfidentQuality(v: unknown): v is number {
+  return typeof v === 'number' && CONFIDENT_QUALITY_CHOICES.includes(v);
+}
+
+/**
+ * The trimming cutoffs offered beside it, as error probabilities per base:
+ * 10% (Q10), the usual 5% (about Q13), 2%, 1% (Q20) and 0.1% (Q30). Kept as
+ * probabilities, which is what Mott's algorithm scores with, so the default
+ * is exactly phred's 0.05 rather than Q13's 0.0501.
+ */
+export const TRIM_CUTOFF_CHOICES: readonly number[] = [0.1, 0.05, 0.02, 0.01, 0.001];
+
+export function isTrimCutoff(v: unknown): v is number {
+  return typeof v === 'number' && TRIM_CUTOFF_CHOICES.includes(v);
+}
+
+/** The Phred quality an error probability stands for, rounded: 0.05 is Q13. */
+export function qualityOfError(p: number): number {
+  return Math.round(-10 * Math.log10(p));
+}
+
+/**
  * The stretch of a read worth aligning, by Mott's trimming algorithm: each
  * base scores `cutoff` minus its error probability (10^(−q/10)), so a good
  * base adds a little and a poor one takes away, and the stretch kept is the

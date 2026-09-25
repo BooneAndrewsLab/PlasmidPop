@@ -88,8 +88,8 @@ alongside it.
   column's quality is the read base's; for a base the read lacks, the lower
   of its neighbours', since a missing base has none and it is the calls
   either side that vouch for the gap. Q20 (one error in a hundred) divides
-  confident from poor, the threshold Sanger QC commonly uses; a setting for
-  it is #56. For a read that aligned reversed, the qualities are reversed
+  confident from poor by default, the threshold Sanger QC commonly uses; it
+  is a setting since #56 (below). For a read that aligned reversed, the qualities are reversed
   with it and its numbering counts along the reverse complement, as before.
 - **Shown three ways**: a line of counts ("1 difference at confident bases
   (Q20+), 3 at poor ones"), the confident ones listed with their position
@@ -99,6 +99,30 @@ alongside it.
 - **The document's own read** is not used: when the open document is itself
   an AB1 and the box holds the reference, its qualities are ignored. Aligning
   the read into the reference is the usual way round (#57).
+
+## The thresholds as settings (#56)
+
+- **Confident from, Q10–Q50.** Q20 is right for Sanger and wrong for the
+  rest: a nanopore service's consensus reports Q40 and more, so at Q20
+  every call it makes is "confident", and raw nanopore reads sit at Q10–20,
+  so at Q20 half of a good read is "poor". A select of Q10, 13, 15, 20, 25,
+  30, 40, 50 rather than a number box: a half-typed value never reaches the
+  alignment, and a stored value is checked against the list on the way back
+  in, as the other view preferences are (`isConfidentQuality`).
+- **Trim at, beside it**, as the error rate Mott's algorithm scores with —
+  10%, 5%, 2%, 1%, 0.1%, labelled with their Q (10, 13, 17, 20, 30). Kept
+  as a probability rather than a Q so the default stays phred's exact 0.05;
+  Q13 would be 0.0501. Disabled while trimming is off.
+- **App settings, not the document's** (`SharedState.readConfidentQuality`,
+  `readTrimCutoff`), remembered with the view preferences: a lab reads the
+  same kind of reads day after day. Both are shown only when the box holds
+  a read.
+- **What follows the threshold**: the count, the list of confident
+  differences and the shading of poor bases, all worked out when drawn from
+  the column qualities the result keeps, so a change shows without
+  aligning again; the status bar's **Read, 92% Q20+** too, so the two never
+  disagree about what "good" is. The trim cutoff needs a new alignment,
+  since it decides what is aligned.
 
 ## Long reads (#51)
 
@@ -174,7 +198,7 @@ alongside it.
 ## Follow-ups filed
 
 #55 a toggle for the sequence view's trace; #56 a setting for the Q20
-threshold; #57 using the document's own read when it is the read; #58
+threshold (done, above); #57 using the document's own read when it is the read; #58
 exporting a read as FASTQ; #59 aligning every record of a file as a batch.
 
 ## Found on the way

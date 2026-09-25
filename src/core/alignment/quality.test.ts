@@ -1,5 +1,15 @@
 import { alignPairwise } from './pairwise';
-import { columnQualities, readDifferences, trimByQuality } from './quality';
+import {
+  CONFIDENT_QUALITY_CHOICES,
+  TRIM_CUTOFF,
+  TRIM_CUTOFF_CHOICES,
+  columnQualities,
+  isConfidentQuality,
+  isTrimCutoff,
+  qualityOfError,
+  readDifferences,
+  trimByQuality,
+} from './quality';
 
 describe('trimByQuality', () => {
   it('cuts poor ends and keeps the good middle', () => {
@@ -68,5 +78,41 @@ describe('read differences', () => {
     expect(alignment.startB).toBe(2);
     const q = [1, 1, 30, 31, 32, 33, 34, 35, 36, 37, 1, 1];
     expect(columnQualities(alignment, q)).toEqual([30, 31, 32, 33, 34, 35, 36, 37]);
+  });
+
+  it('calls a difference confident from the threshold given (#56)', () => {
+    const alignment = alignPairwise('ACGTACGTACGTACGT', 'ACGTACCTACGTTACGT');
+    const q = Array.from({ length: 17 }, (_, i) => (i === 6 ? 12 : i === 11 || i === 12 ? 25 : 40));
+    const cols = columnQualities(alignment, q);
+    const confident = (from: number) =>
+      readDifferences(alignment, cols, from).filter((d) => d.confident).length;
+    expect(confident(10)).toBe(2);
+    expect(confident(20)).toBe(1);
+    expect(confident(30)).toBe(0);
+    // The quality is its own boundary: Q25 is confident at Q25.
+    expect(confident(25)).toBe(1);
+  });
+});
+
+describe('quality settings (#56)', () => {
+  it('offers Q10 to Q50 for confident, Q20 among them', () => {
+    expect(CONFIDENT_QUALITY_CHOICES[0]).toBe(10);
+    expect(CONFIDENT_QUALITY_CHOICES.at(-1)).toBe(50);
+    expect(isConfidentQuality(20)).toBe(true);
+    expect(isConfidentQuality(21)).toBe(false);
+    expect(isConfidentQuality('20')).toBe(false);
+  });
+
+  it('offers trimming cutoffs as error rates, the usual 5% among them', () => {
+    expect(isTrimCutoff(TRIM_CUTOFF)).toBe(true);
+    expect(isTrimCutoff(0.5)).toBe(false);
+    expect(TRIM_CUTOFF_CHOICES.map(qualityOfError)).toEqual([10, 13, 17, 20, 30]);
+  });
+
+  it('trims harder at a stricter cutoff', () => {
+    const q = [...new Array<number>(10).fill(40), 10, ...new Array<number>(29).fill(40)];
+    expect(trimByQuality(q, 0.05)).toEqual({ start: 0, end: 40 });
+    // At 0.1% the Q10 base costs more than the ten before it earn.
+    expect(trimByQuality(q, 0.001)).toEqual({ start: 11, end: 40 });
   });
 });

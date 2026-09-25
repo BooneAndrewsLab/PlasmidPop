@@ -33,6 +33,8 @@ const DEFAULTS = {
   bench: DEFAULT_BENCH,
   geneticCode: 1,
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
+  readConfidentQuality: 20,
+  readTrimCutoff: 0.05,
 } as const;
 
 function reset(): void {
@@ -61,6 +63,8 @@ function reset(): void {
   editorStore.restoreBench(DEFAULTS.bench);
   editorStore.setGeneticCode(DEFAULTS.geneticCode);
   editorStore.setPrimerCriteria(DEFAULTS.primerCriteria);
+  editorStore.setReadConfidentQuality(DEFAULTS.readConfidentQuality);
+  editorStore.setReadTrimCutoff(DEFAULTS.readTrimCutoff);
 }
 
 describe('view preferences', () => {
@@ -111,6 +115,8 @@ describe('view preferences', () => {
         forwardRegion: { near: -30, far: 0 },
         requireGcClamp: true,
       },
+      readConfidentQuality: 40,
+      readTrimCutoff: 0.01,
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -169,6 +175,8 @@ describe('view preferences', () => {
       bench: { ...DEFAULT_BENCH, reaction: 'golden-gate' },
       geneticCode: 2,
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
+      readConfidentQuality: 30,
+      readTrimCutoff: 0.1,
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -201,6 +209,8 @@ describe('view preferences', () => {
       bench: { ...DEFAULT_BENCH, reaction: 'golden-gate' },
       geneticCode: 2,
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
+      readConfidentQuality: 30,
+      readTrimCutoff: 0.1,
     });
     stop();
   });
@@ -308,6 +318,22 @@ describe('view preferences', () => {
     stop();
     localStorage.setItem(KEY, JSON.stringify({ enzymeCutFilter: 'sometimes' }));
     expect(loadViewPrefs()).toEqual({});
+  });
+
+  it("remembers the Align tab's quality settings, but only values it offers (#56)", () => {
+    const stop = startViewPrefs();
+    editorStore.setReadConfidentQuality(40);
+    editorStore.setReadTrimCutoff(0.02);
+    expect(loadViewPrefs()).toMatchObject({ readConfidentQuality: 40, readTrimCutoff: 0.02 });
+    // The store will not take a value the select cannot show.
+    editorStore.setReadConfidentQuality(21);
+    expect(editorStore.getState().readConfidentQuality).toBe(40);
+    stop();
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ readConfidentQuality: 99, readTrimCutoff: '0.05', showCutSites: false }),
+    );
+    expect(loadViewPrefs()).toEqual({ showCutSites: false });
   });
 
   it('records where a splitter was left', () => {

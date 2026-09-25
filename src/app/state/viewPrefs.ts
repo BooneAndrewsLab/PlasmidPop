@@ -4,8 +4,10 @@ import {
   type PrimerCriteria,
   type TranslationTable,
   isAgarosePercent,
+  isConfidentQuality,
   isLadderChoice,
   isTranslationTable,
+  isTrimCutoff,
   normalizePrimerCriteria,
   samePrimerCriteria,
 } from '@/core';
@@ -76,6 +78,9 @@ export interface ViewPrefs {
   readonly geneticCode: TranslationTable;
   /** The Primers tab's settings; see `SharedState.primerCriteria`. */
   readonly primerCriteria: PrimerCriteria;
+  /** What a read's confident bases and trimmed ends are; see `SharedState.readConfidentQuality`. */
+  readonly readConfidentQuality: number;
+  readonly readTrimCutoff: number;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -161,6 +166,11 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (typeof record['primerCriteria'] === 'object' && record['primerCriteria'] !== null) {
     prefs.primerCriteria = normalizePrimerCriteria(record['primerCriteria']);
   }
+  // Only the values the Align tab offers, so its selects can always show them.
+  if (isConfidentQuality(record['readConfidentQuality'])) {
+    prefs.readConfidentQuality = record['readConfidentQuality'];
+  }
+  if (isTrimCutoff(record['readTrimCutoff'])) prefs.readTrimCutoff = record['readTrimCutoff'];
   const layout = record['layout'];
   if (typeof layout === 'object' && layout !== null) {
     const l = layout as Record<string, unknown>;
@@ -224,6 +234,8 @@ function snapshot(): ViewPrefs {
     bench,
     geneticCode,
     primerCriteria,
+    readConfidentQuality,
+    readTrimCutoff,
   } = editorStore.getState();
   return {
     view,
@@ -251,6 +263,8 @@ function snapshot(): ViewPrefs {
     bench,
     geneticCode,
     primerCriteria,
+    readConfidentQuality,
+    readTrimCutoff,
   };
 }
 
@@ -279,7 +293,9 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.sidebarReaction === b.sidebarReaction &&
     a.bench === b.bench &&
     a.geneticCode === b.geneticCode &&
-    samePrimerCriteria(a.primerCriteria, b.primerCriteria)
+    samePrimerCriteria(a.primerCriteria, b.primerCriteria) &&
+    a.readConfidentQuality === b.readConfidentQuality &&
+    a.readTrimCutoff === b.readTrimCutoff
   );
 }
 
@@ -323,6 +339,10 @@ export function startViewPrefs(): () => void {
   if (stored.bench !== undefined) editorStore.restoreBench(stored.bench);
   if (stored.geneticCode !== undefined) editorStore.setGeneticCode(stored.geneticCode);
   if (stored.primerCriteria !== undefined) editorStore.setPrimerCriteria(stored.primerCriteria);
+  if (stored.readConfidentQuality !== undefined) {
+    editorStore.setReadConfidentQuality(stored.readConfidentQuality);
+  }
+  if (stored.readTrimCutoff !== undefined) editorStore.setReadTrimCutoff(stored.readTrimCutoff);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();

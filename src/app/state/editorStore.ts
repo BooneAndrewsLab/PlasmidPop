@@ -13,10 +13,12 @@ import {
   type Range,
   type TranslationTable,
   BUNDLED_ENZYME_SET,
+  CONFIDENT_QUALITY,
   DEFAULT_PRIMER_CRITERIA,
   DEFAULT_TABLE,
   History,
   SeqDocument,
+  TRIM_CUTOFF,
   activeEnzymes,
   cleanStateName,
   createFeature,
@@ -25,7 +27,9 @@ import {
   featureExtent,
   documentChecksum,
   withPhosphates,
+  isConfidentQuality,
   isEmptyRange,
+  isTrimCutoff,
   isoschizomerGroups,
   newId,
   rangeSegment,
@@ -463,6 +467,19 @@ export interface SharedState {
    */
   readonly primerCriteria: PrimerCriteria;
   /**
+   * The Phred quality from which a read's base counts as confident (#56):
+   * the Align tab's count, list and shading of differences, and the status
+   * bar's share of good bases. Q20 by default, the common Sanger line; a
+   * lab working with nanopore consensus reads wants Q40 every time, so it is
+   * kept with the view preferences. One of `CONFIDENT_QUALITY_CHOICES`.
+   */
+  readonly readConfidentQuality: number;
+  /**
+   * The error probability per base the Align tab trims a read's ends at
+   * (#56); 0.05, about Q13, by default. One of `TRIM_CUTOFF_CHOICES`.
+   */
+  readonly readTrimCutoff: number;
+  /**
    * The fragment shelf: pieces collected for any of the Cloning tab's
    * reactions, in order. Independent of the open documents so pieces can be
    * gathered from several of them in turn (item 3).
@@ -684,6 +701,8 @@ const SHARED_INITIAL: SharedState = {
   orfMinCodons: 75,
   geneticCode: DEFAULT_TABLE,
   primerCriteria: DEFAULT_PRIMER_CRITERIA,
+  readConfidentQuality: CONFIDENT_QUALITY,
+  readTrimCutoff: TRIM_CUTOFF,
   shelf: [],
   downloadNotice: null,
   shareNotice: null,
@@ -1718,6 +1737,20 @@ export class EditorStore {
 
   setPrimerCriteria(criteria: PrimerCriteria): void {
     if (criteria !== this.state.primerCriteria) this.setShared({ primerCriteria: criteria });
+  }
+
+  /** Sets the quality a read's base counts as confident from; see `readConfidentQuality`. */
+  setReadConfidentQuality(q: number): void {
+    if (isConfidentQuality(q) && q !== this.state.readConfidentQuality) {
+      this.setShared({ readConfidentQuality: q });
+    }
+  }
+
+  /** Sets the error rate a read's ends are trimmed at; see `readTrimCutoff`. */
+  setReadTrimCutoff(cutoff: number): void {
+    if (isTrimCutoff(cutoff) && cutoff !== this.state.readTrimCutoff) {
+      this.setShared({ readTrimCutoff: cutoff });
+    }
   }
 
   /**
