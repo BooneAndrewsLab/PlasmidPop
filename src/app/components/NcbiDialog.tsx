@@ -7,7 +7,7 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
 /**
- * File ▸ Open from NCBI… (#65, item 58): accession numbers typed, checked,
+ * File ▸ Open from NCBI… (#65, #92, item 58): accession numbers typed, checked,
  * and fetched only when the user presses Open. The dialog says what is sent
  * and to whom before anything is.
  */
@@ -118,7 +118,7 @@ function NcbiForm() {
               type="text"
               value={input}
               disabled={busy}
-              placeholder="L09137, NC_001422"
+              placeholder="L09137, NC_001422, NP_000509"
               spellCheck={false}
               autoComplete="off"
               autoCapitalize="characters"
@@ -130,9 +130,9 @@ function NcbiForm() {
             />
           </label>
           <p id="ncbi-privacy" className="ncbi-open__hint">
-            One nucleotide accession or several, separated by spaces or commas; each opens in a tab
-            of its own. Only the accession numbers are sent, to NCBI (eutils.ncbi.nlm.nih.gov), and
-            nothing else leaves your browser.
+            One accession or several, nucleotide or protein, separated by spaces or commas; each
+            opens in a tab of its own. Only the accession numbers are sent, to NCBI
+            (eutils.ncbi.nlm.nih.gov), and nothing else leaves your browser.
           </p>
           {busy && (
             <p className="ncbi-open__status" role="status">
