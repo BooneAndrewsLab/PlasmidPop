@@ -218,6 +218,45 @@ describe('CloningPanel', () => {
     expect(order()).toEqual(['1,000 bp', '3,000 bp']);
   });
 
+  it('gives a fragment and a ligation what they were made from (#67)', () => {
+    setup(true);
+    for (const add of screen.getAllByRole('button', { name: 'Add' })) {
+      act(() => {
+        fireEvent.click(add);
+      });
+    }
+    const [part] = editorStore.getState().shelf;
+    expect(part?.fragment.lineage?.step).toMatchObject({ op: 'digest', enzymes: [enzyme] });
+    expect(part?.fragment.lineage?.step?.parents[0]?.name).toBe(doc.name);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Assemble' }));
+    });
+    const product = editorStore.document?.metadata.lineage;
+    expect(product?.step).toMatchObject({
+      op: 'ligation',
+      circular: true,
+      flipped: [false, false],
+    });
+    expect(product?.step?.parents.map((p) => p.step?.op)).toEqual(['digest', 'digest']);
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('opens a fragment made by a digest of the document (#67)', () => {
+    setup();
+    const [open] = screen.getAllByRole('button', { name: 'Open' });
+    act(() => {
+      if (open !== undefined) fireEvent.click(open);
+    });
+    const lineage = editorStore.document?.metadata.lineage;
+    expect(lineage?.step).toMatchObject({ op: 'digest', enzymes: [enzyme], uncut: 0 });
+    expect(lineage?.step?.parents[0]?.length).toBe(doc.length);
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
   it('lists a partial digest on request, drawing only the piece pointed at', () => {
     setup();
     act(() => {

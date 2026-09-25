@@ -46,6 +46,8 @@ export interface AssembledPart {
   readonly fragment: DigestFragment;
   /** Whether it had to be turned around for its overhangs to meet. */
   readonly flipped: boolean;
+  /** The document in the tube it was cut from, so the product can name its parents (#67). */
+  readonly document: SeqDocument;
 }
 
 export interface GoldenGateAssembly {
@@ -161,6 +163,8 @@ export function goldenGate(
   const enzymes = enzymesOf(options);
   const names = namesOf(enzymes);
   const usable: DigestFragment[] = [];
+  /** The document each usable piece was cut from, by index. */
+  const from: SeqDocument[] = [];
   const dropped: DroppedFragment[] = [];
   for (const doc of parts) {
     for (const fragment of digestWith(doc, enzymes)) {
@@ -171,6 +175,7 @@ export function goldenGate(
         dropped.push({ fragment, reason: 'blunt' });
       } else {
         usable.push(fragment);
+        from.push(doc);
       }
     }
   }
@@ -183,7 +188,8 @@ export function goldenGate(
   });
 
   const first = usable[0];
-  if (first === undefined) {
+  const firstFrom = from[0];
+  if (first === undefined || firstFrom === undefined) {
     return fail(
       `Nothing to assemble: no piece of the ${names} digest kept two sticky ends and lost its ${enzymes.length === 1 ? `${names} site` : 'sites'}.`,
     );
@@ -198,7 +204,7 @@ export function goldenGate(
     candidates.push({ index, fragment: flipFragment(fragment), flipped: true });
   }
 
-  const order: AssembledPart[] = [{ fragment: first, flipped: false }];
+  const order: AssembledPart[] = [{ fragment: first, flipped: false, document: firstFrom }];
   const used = new Set<number>([0]);
   while (used.size < usable.length) {
     const current = order[order.length - 1]?.fragment;
@@ -220,7 +226,11 @@ export function goldenGate(
           : `The overhang ${describeOverhang(current)} fits ${parts} parts, so the assembly is ambiguous. Golden Gate needs each overhang to be unique.`,
       );
     }
-    order.push({ fragment: only.fragment, flipped: only.flipped });
+    order.push({
+      fragment: only.fragment,
+      flipped: only.flipped,
+      document: from[only.index] ?? firstFrom,
+    });
     used.add(only.index);
   }
 

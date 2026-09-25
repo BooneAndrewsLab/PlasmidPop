@@ -14,6 +14,7 @@ import {
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { HistoryStepDialog } from './HistoryStepDialog';
+import { MadeFrom } from './MadeFrom';
 import { InlineRename } from './InlineRename';
 import { useMenu } from './useMenu';
 
@@ -122,7 +123,8 @@ function RowMenu({
  * document and where the file on disk sits. Clicking a row undoes or redoes
  * as far as it takes to get back to that state; its "⋯" names the state,
  * shows what the step changed, or marks the changes made since it (#4).
- * Named states the step limit has dropped are listed below the rest.
+ * Named states the step limit has dropped are listed below the rest. Above
+ * it all, for a product of a reaction, what it was made from (#67).
  */
 export function HistoryPanel() {
   const { history, savedDoc, fileName } = useEditorState();
@@ -174,6 +176,7 @@ export function HistoryPanel() {
 
   return (
     <div className="panel history-panel">
+      {history !== null && <MadeFrom doc={history.present} />}
       <h3 className="panel__heading history-panel__heading">
         Changes
         <span className="panel__heading-note">

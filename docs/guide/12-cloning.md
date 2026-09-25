@@ -517,6 +517,41 @@ circle: its two flanks come away as loose ends and are lost.
 
 One pair of sites at a time, so a multisite LR is done a fragment at a time.
 
+## What a product was made from
+
+Every product remembers how it was made: a fragment you **Open**, a PCR
+product, a ligation, a Golden Gate, Gibson, In-Fusion or NEBuilder
+assembly, a Gateway clone and a mutant. A part on the shelf remembers too,
+so a plasmid ligated from a shelved fragment of a PCR product goes all the
+way back to the template the PCR was run on. Each step keeps the reaction
+and what set it apart: the enzymes and where the fragment lay, how many
+sites a partial digest left uncut, the primers and polymerase, the order
+and which parts were turned over, the kit, the Gateway reaction, the
+mutation and how it was designed, and a dephosphorylation on the shelf. For
+each molecule it keeps the name, size, topology and
+[checksum](03-viewing.md#the-checksum), but not the sequence.
+
+To see it, open the **History** tab and expand **Made from** at the top.
+The tree is described in [History](13-history.md#made-from).
+
+Editing a product afterwards does not rewrite it. The tree says what the
+product was made from, and the History list says what has been done to it
+since; the top of the tree then reads **edited since**. If an edited product
+goes into another reaction, the new product's tree shows the edited version
+made from the original.
+
+The tree is saved with the document. GenBank has no field for it, so it
+travels as a block of `PlasmidPop-made-from:` comment lines. Other software
+sees an ordinary comment, and PlasmidPop reads it back. A share link
+carries it too, since a link carries the GenBank text. FASTA has no room for
+it, so a FASTA export leaves it out. A block edited by hand into something
+that no longer reads is kept as an ordinary comment. The tree keeps at most
+64 molecules; beyond that, the oldest steps are replaced by a line saying
+how many earlier molecules were left out.
+
+SnapGene keeps a history of its own in its `.dna` files, which PlasmidPop
+does not read yet.
+
 ## Not yet
 
 How much more readily a short product amplifies than a long one is not

@@ -6,6 +6,35 @@ any of them. It is the same history the **Undo** and **Redo** buttons walk
 through one step at a time, laid out so a whole editing session can be read
 at once.
 
+## Made from
+
+A document that came out of a simulated reaction, such as a fragment,
+a PCR product, a ligation or an assembly (see
+[What a product was made from](12-cloning.md#what-a-product-was-made-from)),
+has a **Made from** section at the top of the tab. Collapsed, it says how
+the document was made (_Ligation of 2 parts, circular_). Expanded, it shows
+the tree. The document is at the top, and under each molecule are the ones
+it was made from, then the ones those were made from, and so on. Each
+molecule shows:
+
+- its name, and how it was made: _Digest with BamHI and EcoRI · 397–3,082_,
+  _PCR with Forward and Reverse · proofreading_, with the primers under it;
+- its length, topology and the short form of its checksum;
+- **Open**, when this browser still holds that exact molecule: in an open
+  tab, which it brings to the front, or among the documents kept in this
+  browser, which it opens. A molecule is matched by its checksum, not its
+  name, so a file edited since it was used does not count, and a renamed
+  one still does. Otherwise it says **not in this browser**.
+
+At the top, **this document** means the document is still the molecule that
+was made; **edited since** means its bases have changed since. The list
+below says how.
+
+The section only appears for a document made in PlasmidPop, or read from a
+file that carries the `PlasmidPop-made-from:` block. Everything can also be
+used with the keyboard: `Tab` reaches the section and each **Open**, and
+`Enter` or `Space` expands and collapses it.
+
 ## Reading the list
 
 Each row is one recorded change:
@@ -166,5 +195,6 @@ A document of more than about four million bases keeps no stored history,
 and reopens with an empty list.
 
 The history lives only in this browser. It is not written to the files you
-download or into share links, and **Remove** on the start screen deletes it
+download or into share links (the [Made from](#made-from) tree is: it
+belongs to the molecule, not to the editing session), and **Remove** on the start screen deletes it
 with the document; closing a tab does not.

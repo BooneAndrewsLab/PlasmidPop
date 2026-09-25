@@ -8,6 +8,7 @@ import {
   type StrandEnd,
   type Topology,
   cleanStateName,
+  isLineageNode,
 } from '@/core';
 
 /**
@@ -242,6 +243,8 @@ function isHeaderEntry(v: unknown): boolean {
 function isMetadata(v: unknown): v is DocumentMetadata {
   if (!isObject(v)) return false;
   const derived = v['derivedFrom'];
+  // Absent on rows written before lineages were kept (#67), which read as none.
+  const lineage = v['lineage'];
   return (
     METADATA_STRINGS.every((k) => isString(v[k])) &&
     isArrayOf(v['dbLinks'], isString) &&
@@ -251,7 +254,8 @@ function isMetadata(v: unknown): v is DocumentMetadata {
     Array.isArray(v['extraHeaders']) &&
     v['extraHeaders'].every(isHeaderEntry) &&
     (derived === null ||
-      (isObject(derived) && isString(derived['checksum']) && isString(derived['fileName'])))
+      (isObject(derived) && isString(derived['checksum']) && isString(derived['fileName']))) &&
+    (lineage === undefined || lineage === null || isLineageNode(lineage))
   );
 }
 

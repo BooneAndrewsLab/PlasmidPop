@@ -24,6 +24,7 @@ import {
   describeEditStep,
   featureExtent,
   documentChecksum,
+  withPhosphates,
   isEmptyRange,
   isoschizomerGroups,
   newId,
@@ -1891,7 +1892,8 @@ export class EditorStore {
     }
     this.changeShelf(
       this.state.shelf.map((p) =>
-        p === part ? { ...p, fragment: { ...p.fragment, dephosphorylated } } : p,
+        // The treatment is a step of the part's lineage too (#67).
+        p === part ? { ...p, fragment: withPhosphates(p.fragment, dephosphorylated) } : p,
       ),
       `${dephosphorylated ? 'Dephosphorylate' : 'Phosphorylate'} ${defaultFragmentName(part.fragment)}`,
     );

@@ -6,6 +6,7 @@ import {
   type SeqDocument,
   designMutagenesis,
   isEmptyRange,
+  recordMutagenesis,
 } from '@/core';
 
 import { analytics } from '../analytics';
@@ -94,8 +95,9 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
     if (design === null) return;
     analytics.track('cloning', 'mutagenesis', method);
     // The mutant opens as the template renamed, with the change as its one
-    // edit: the edit marks show it and Undo takes it back.
-    editorStore.openDocument(doc.rename(`${doc.name} ${design.label}`));
+    // edit: the edit marks show it and Undo takes it back. It carries what
+    // it was made from, recorded for the mutant (#67).
+    editorStore.openDocument(recordMutagenesis(doc, design, `${doc.name} ${design.label}`));
     editorStore.apply(design.edit);
     editorStore.setSidebarTab('features');
   };

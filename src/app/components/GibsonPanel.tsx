@@ -6,6 +6,7 @@ import {
   type GibsonPart,
   describeGibsonDropped,
   gibson,
+  recordGibson,
 } from '@/core';
 
 import { analytics } from '../analytics';
@@ -114,7 +115,13 @@ export function GibsonPanel() {
       return;
     }
     analytics.track('cloning', 'gibson');
-    editorStore.openDocument(run.assembly.product);
+    editorStore.openDocument(
+      recordGibson(run.assembly, {
+        kit: 'gibson',
+        circular,
+        overlap: minOverlap,
+      }),
+    );
     editorStore.setSidebarTab('features');
     setName('');
   };

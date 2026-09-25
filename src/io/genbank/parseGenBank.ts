@@ -17,6 +17,7 @@ import {
 import { type ParseResult, type ParseWarning, FormatError, warning } from '../types';
 import { parseDerivedComment } from './derivedComment';
 import { parseEndsComment } from './endsComment';
+import { parseMadeFromComment } from './madeFromComment';
 import { parseMethylationComment } from './methylationComment';
 import { isOwnComment } from './ownComments';
 
@@ -498,11 +499,14 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   const derivedFrom = parsed.comments.map(parseDerivedComment).find((d) => d !== null) ?? null;
   // And so does the host the DNA was grown in (`methylationComment.ts`).
   const methylation = parsed.comments.map(parseMethylationComment).find((m) => m !== null) ?? null;
+  // And what it was made from, a block of lines of its own (`madeFromComment.ts`).
+  const lineage = parsed.comments.map(parseMadeFromComment).find((l) => l !== null) ?? null;
   // Only a line that was understood comes out of the comments: a damaged one
   // stays where it is rather than being silently swallowed.
   const metadata = {
     ...parsed,
     derivedFrom,
+    lineage,
     comments: parsed.comments.filter((c) => !isOwnComment(c)),
   };
   const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);

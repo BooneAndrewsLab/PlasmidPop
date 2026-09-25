@@ -1,6 +1,13 @@
 import Dexie, { type EntityTable } from 'dexie';
 
-import { type AssemblyPart, type Enzyme, type SequencingRead, type Topology } from '@/core';
+import {
+  type AssemblyPart,
+  type Enzyme,
+  type SequencingRead,
+  type Topology,
+  documentChecksum,
+} from '@/core';
+import { parseGenBank } from '@/io';
 
 import { type StoredHistory } from './historyFormat';
 
@@ -48,6 +55,13 @@ export interface StoredDocument {
    * arrays they are; IndexedDB keeps those as they are.
    */
   readonly read?: SequencingRead;
+  /**
+   * The molecule's checksum (`documentChecksum`, in full), so a lineage's
+   * node can find the stored document it names without every stored text
+   * being parsed (#67). Absent for an empty document, and on rows stored
+   * before version 6 until the upgrade fills it in.
+   */
+  readonly checksum?: string;
 }
 
 /**
@@ -119,6 +133,33 @@ export class PlasmidPopDb extends Dexie {
     this.version(5).stores({
       histories: 'id',
     });
+    // Version 6 indexes each document's checksum, for finding the version a
+    // node of a lineage names (#67). Rows already there get theirs from
+    // their text; one that will not parse is left without, and is only
+    // not found.
+    this.version(6)
+      .stores({
+        documents: 'id, updatedAt, name, checksum',
+      })
+      .upgrade((tx) =>
+        tx
+          .table<StoredDocument, string>('documents')
+          .toCollection()
+          .modify((row: { text: string; checksum?: string }) => {
+            const checksum = checksumOfText(row.text);
+            if (checksum !== null) row.checksum = checksum;
+          }),
+      );
+  }
+}
+
+/** The checksum of the document a stored GenBank text holds, or null when there is none to take. */
+export function checksumOfText(text: string): string | null {
+  try {
+    const doc = parseGenBank(text).documents[0];
+    return doc === undefined ? null : (documentChecksum(doc)?.text ?? null);
+  } catch {
+    return null;
   }
 }
 

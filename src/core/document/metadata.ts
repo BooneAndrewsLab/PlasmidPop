@@ -1,3 +1,5 @@
+import { type LineageNode } from '../lineage/lineage';
+
 /**
  * Descriptive metadata carried alongside the sequence. The field set mirrors
  * the GenBank header because that is the interchange format every tool
@@ -59,6 +61,13 @@ export interface DocumentMetadata {
   readonly extraHeaders: readonly HeaderEntry[];
   /** The molecule this one was forked from, when it was forked from one. */
   readonly derivedFrom: DerivedFrom | null;
+  /**
+   * What the molecule was made from, when it is the product of a simulated
+   * reaction (#67): the root is the document as it was made, with the
+   * checksum it had then (`core/lineage`). Edits leave it alone; the
+   * document's history says what happened since.
+   */
+  readonly lineage: LineageNode | null;
 }
 
 export const EMPTY_METADATA: DocumentMetadata = {
@@ -77,6 +86,7 @@ export const EMPTY_METADATA: DocumentMetadata = {
   comments: [],
   extraHeaders: [],
   derivedFrom: null,
+  lineage: null,
 };
 
 export function createMetadata(partial: Partial<DocumentMetadata> = {}): DocumentMetadata {

@@ -11,12 +11,14 @@ import {
   POLYMERASE_REACH,
   cleanPrimer,
   digest,
+  fragmentOfDocument,
   gelProfile,
   meltingTemperature,
   mismatchPositions,
   pcr,
   primerDimers,
   rangeWraps,
+  recordPcr,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
@@ -189,14 +191,22 @@ function preview(
  * digest with no cuts gives, so its ends are the product's own (blunt, as
  * the polymerase leaves them) and its features come along.
  */
-function shelve(product: PcrProduct, phosphorylated: boolean): void {
-  const [whole] = digest(product.document, []);
+function shelve(made: SeqDocument, phosphorylated: boolean): void {
+  const [cut] = digest(made, []);
+  // The whole molecule, so made the way the product was (#67).
+  const whole = cut === undefined ? undefined : fragmentOfDocument(cut, made);
   // An oligo is made without a 5′ phosphate unless ordered with one, and a
   // PCR product's 5′ ends are its primers' (#14), so it cannot be ligated
   // into a dephosphorylated vector unless they were.
   if (whole !== undefined) {
     editorStore.addToShelf(phosphorylated ? whole : { ...whole, dephosphorylated: true });
   }
+}
+
+function openProduct(doc: SeqDocument): void {
+  analytics.track('cloning', 'pcr');
+  editorStore.openDocument(doc);
+  editorStore.setSidebarTab('features');
 }
 
 /**
@@ -281,10 +291,12 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
     [],
   );
 
+  /** The product with what it was amplified from, and with which primers, on it (#67). */
+  const made = (product: PcrProduct): SeqDocument =>
+    recordPcr(product, template, primers, polymerase);
+
   const open = (product: PcrProduct): void => {
-    analytics.track('cloning', 'pcr');
-    editorStore.openDocument(product.document);
-    editorStore.setSidebarTab('features');
+    openProduct(made(product));
   };
 
   // A click on a previewed product in either view opens it, as clicking a
@@ -297,8 +309,8 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
     handled.current = activated.nonce;
     const index = Number(activated.id.replace('product-', ''));
     const product = products[index];
-    if (product !== undefined) open(product);
-  }, [activated, products]);
+    if (product !== undefined) openProduct(recordPcr(product, template, primers, polymerase));
+  }, [activated, products, template, primers, polymerase]);
 
   const show = (index: number): void => {
     if (!drawn) return;
@@ -494,7 +506,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                       title="Put the product on the shelf, for a ligation, Golden Gate or Gibson"
                       onClick={() => {
                         analytics.track('cloning', 'pcr');
-                        shelve(p, phosphorylated);
+                        shelve(made(p), phosphorylated);
                       }}
                     >
                       Shelve

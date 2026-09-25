@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { type GatewayReaction, type SeqDocument, attSites, gateway } from '@/core';
+import { type GatewayReaction, type SeqDocument, attSites, gateway, recordGateway } from '@/core';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
@@ -114,7 +114,12 @@ export function GatewayPanel() {
 
   const open = (doc: SeqDocument): void => {
     analytics.track('cloning', 'gateway', reaction);
-    editorStore.openDocument(doc);
+    // With the two molecules it recombined from (#67).
+    const made =
+      insert === undefined || vector === undefined
+        ? doc
+        : recordGateway(doc, insert, vector, reaction, doc === result?.byproduct);
+    editorStore.openDocument(made);
     editorStore.setSidebarTab('features');
   };
 

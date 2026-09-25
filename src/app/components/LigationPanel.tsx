@@ -1,6 +1,6 @@
 import { Fragment, useMemo } from 'react';
 
-import { type FragmentEnd, assemblyJunctions, describeEnd, ligate } from '@/core';
+import { type FragmentEnd, assemblyJunctions, describeEnd, ligate, recordLigation } from '@/core';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
@@ -94,10 +94,15 @@ export function LigationPanel() {
   const assemble = (): void => {
     try {
       analytics.track('cloning', 'ligate');
-      const product = ligate(parts, {
-        name: name.trim() === '' ? defaultName : name.trim(),
+      // With the parts it was joined from, in order and orientation (#67).
+      const product = recordLigation(
+        ligate(parts, {
+          name: name.trim() === '' ? defaultName : name.trim(),
+          circular,
+        }),
+        used,
         circular,
-      });
+      );
       // The shelf is left as it is: a vector cut once is often ligated to
       // one insert after another, and the other reactions may want its parts.
       editorStore.openDocument(product);

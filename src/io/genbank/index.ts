@@ -1,4 +1,5 @@
 export { formatEndsComment, isEndsComment, parseEndsComment } from './endsComment';
+export { formatMadeFromComment, isMadeFromComment, parseMadeFromComment } from './madeFromComment';
 export {
   formatMethylationComment,
   isMethylationComment,

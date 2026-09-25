@@ -63,6 +63,7 @@ piece of work needs its reasoning written down, with the next free number.
 49. [The Cloning Bench](49-cloning-bench.md)
 50. [Mutation testing before a release](50-mutation-testing.md)
 51. [The undo history survives a reload](51-persistent-history.md)
+52. [What a product was made from](52-made-from.md)
 
 ## Changelog to 1.1.0
 

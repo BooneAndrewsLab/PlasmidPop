@@ -237,6 +237,8 @@ function copyMetadata(m: DocumentMetadata): DocumentMetadata {
       m.derivedFrom === null
         ? null
         : { checksum: m.derivedFrom.checksum, fileName: m.derivedFrom.fileName },
+    // Plain, immutable data: shared rather than copied, as the sequence text is.
+    lineage: m.lineage,
   };
 }
 

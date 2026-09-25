@@ -12,6 +12,7 @@ import {
   digest,
   getEnzyme,
   documentFromFragment,
+  fragmentWithLineage,
   partialDigest,
   partialDigestSize,
 } from '@/core';
@@ -52,9 +53,12 @@ function EndTag({ end, side }: { readonly end: FragmentEnd; readonly side: 'left
   );
 }
 
-/** A listed fragment onto the shelf, without the partial digest's count, which is the list's. */
-function shelve(fragment: PartialFragment): void {
-  const { uncut: _uncut, ...piece } = fragment;
+/**
+ * A listed fragment onto the shelf, without the partial digest's count, which
+ * is the list's; the fragment keeps what it was cut from (#67).
+ */
+function shelve(fragment: PartialFragment, source: SeqDocument): void {
+  const { uncut: _uncut, ...piece } = fragmentWithLineage(fragment, source);
   editorStore.addToShelf(piece);
 }
 
@@ -63,6 +67,7 @@ const ADDED_MS = 1500;
 
 function FragmentRow({
   fragment,
+  source,
   seqLength,
   onShelf,
   onSelect,
@@ -71,6 +76,8 @@ function FragmentRow({
 }: {
   /** `uncut` is the sites inside it a partial digest left uncut; 0 for a complete one. */
   readonly fragment: PartialFragment;
+  /** The document it is cut from. */
+  readonly source: SeqDocument;
   readonly seqLength: number;
   /** Copies of this piece on the shelf now (`copiesOnShelf`). */
   readonly onShelf: number;
@@ -132,7 +139,7 @@ function FragmentRow({
               : 'Put this fragment on the shelf, for the reactions on the Bench'
           }
           onClick={() => {
-            shelve(fragment);
+            shelve(fragment, source);
             setAdded(true);
           }}
         >
@@ -309,8 +316,8 @@ export function CloningPanel({ doc }: Props) {
     if (activated.nonce === handledClick.current) return;
     handledClick.current = activated.nonce;
     const fragment = listed.find((f) => fragmentId(f) === activated.id);
-    if (fragment !== undefined) shelve(fragment);
-  }, [activated, listed]);
+    if (fragment !== undefined) shelve(fragment, doc);
+  }, [activated, listed, doc]);
   // Leaving the tab takes the fragments off the views with it.
   useEffect(
     () => () => {
@@ -434,6 +441,7 @@ export function CloningPanel({ doc }: Props) {
                 <FragmentRow
                   key={fragmentId(f)}
                   fragment={f}
+                  source={doc}
                   seqLength={doc.length}
                   onShelf={copiesOnShelf(shelf, f)}
                   onSelect={() => {
@@ -442,7 +450,7 @@ export function CloningPanel({ doc }: Props) {
                   }}
                   onOpen={() => {
                     analytics.track('cloning', 'open-fragment');
-                    editorStore.openDocument(documentFromFragment(f));
+                    editorStore.openDocument(documentFromFragment(fragmentWithLineage(f, doc)));
                     editorStore.setSidebarTab('features');
                   }}
                   onHover={(on) => {

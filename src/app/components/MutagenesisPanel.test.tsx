@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { SeqDocument } from '@/core';
+import { SeqDocument, editedSinceMade } from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { MutagenesisPanel } from './MutagenesisPanel';
@@ -56,10 +56,20 @@ describe('MutagenesisPanel', () => {
     const mutant = editorStore.document;
     expect(mutant?.name).toBe(`pTest ${old}801${next}`);
     expect(mutant?.sequence.charAt(800)).toBe(next);
+    // It is the molecule its lineage records, made from the template (#67).
+    expect(mutant?.metadata.lineage?.step).toMatchObject({
+      op: 'mutagenesis',
+      change: `${old}801${next}`,
+      method: 'overlapping',
+    });
+    expect(mutant?.metadata.lineage?.step?.parents[0]?.name).toBe('pTest');
+    expect(mutant !== null && editedSinceMade(mutant)).toBe(false);
     // The change is the mutant's one edit, so Undo gives the template back.
     act(() => {
       editorStore.undo();
     });
     expect(editorStore.document?.sequence.toString()).toBe(TEXT);
+    const undone = editorStore.document;
+    expect(undone !== null && editedSinceMade(undone)).toBe(true);
   });
 });

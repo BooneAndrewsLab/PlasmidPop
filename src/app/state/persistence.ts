@@ -416,6 +416,15 @@ export class PersistenceService {
     return this.repo.list();
   }
 
+  /** The stored documents holding each checksum, as checksum → id (#67); empty when storage fails. */
+  async findStoredByChecksums(checksums: readonly string[]): Promise<Map<string, string>> {
+    try {
+      return await this.repo.findByChecksums(checksums);
+    } catch {
+      return new Map();
+    }
+  }
+
   /**
    * Picks a file with the native picker when available — a better dialog
    * than an <input type="file">, and that is all it is for now that nothing

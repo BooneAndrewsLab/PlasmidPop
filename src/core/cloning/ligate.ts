@@ -2,6 +2,7 @@ import { METHYLATED_HOST } from '../analysis/methylation';
 import { codeMask } from '../analysis/search';
 import { type Feature, shiftFeature } from '../features';
 import { newId } from '../ids';
+import { lineageName } from '../lineage/lineage';
 import {
   type DocumentMetadata,
   SeqDocument,
@@ -227,11 +228,17 @@ export function documentFromFragment(
   // DNA's methylation. A ligation product of several pieces does not: it is
   // what gets transformed and grown, and comes back from an ordinary strain.
   const methylation = fragment.methylation ?? METHYLATED_HOST;
+  const name = options.name ?? defaultFragmentName(fragment);
   return ligate([fragment], {
-    name: options.name ?? defaultFragmentName(fragment),
+    name,
     circular: false,
     metadata: {
       description: `${fragment.sequence.length.toLocaleString()} bp fragment of ${fragment.source}: ${describeEnd(fragment.left)} to ${describeEnd(fragment.right)}`,
+      // The document is the fragment, so it was made the way the fragment
+      // was, under the name it opens with (#67).
+      ...(fragment.lineage === undefined
+        ? {}
+        : { lineage: { ...fragment.lineage, name: lineageName(name) } }),
     },
   }).setMethylation(methylation);
 }

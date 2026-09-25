@@ -104,9 +104,20 @@ export const EVENTS = {
    * `name` is a state named (`set`) or its name cleared (`clear`), never the
    * name; `what-changed` opened one step's review, `mark-since` made a state
    * the edit marks' baseline, `bring-back` made a named state the limit had
-   * dropped the present again (#4).
+   * dropped the present again (#4). `made-from` is the Made from tree
+   * opened (once per visit), `made-from-open` one of its molecules opened,
+   * named by where it was held (`tab` or `stored`), never which (#67).
    */
-  history: ['jump', 'restore', 'name', 'what-changed', 'mark-since', 'bring-back'],
+  history: [
+    'jump',
+    'restore',
+    'name',
+    'what-changed',
+    'mark-since',
+    'bring-back',
+    'made-from',
+    'made-from-open',
+  ],
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],
   align: ['run'],

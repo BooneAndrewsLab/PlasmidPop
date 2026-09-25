@@ -9,6 +9,7 @@ import {
   describeDropped,
   getEnzyme,
   goldenGate,
+  recordGoldenGate,
 } from '@/core';
 
 import { analytics } from '../analytics';
@@ -123,7 +124,12 @@ export function GoldenGatePanel() {
       return;
     }
     analytics.track('cloning', 'golden-gate', enzyme.name);
-    editorStore.openDocument(run.assembly.product);
+    editorStore.openDocument(
+      recordGoldenGate(
+        run.assembly,
+        second === undefined ? [enzyme.name] : [enzyme.name, second.name],
+      ),
+    );
     editorStore.setSidebarTab('features');
     setName('');
   };

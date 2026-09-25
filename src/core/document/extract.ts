@@ -90,6 +90,9 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
       description: `${from.toLocaleString()}-${to.toLocaleString()} of ${doc.name}${doc.metadata.description === '' ? '' : `: ${doc.metadata.description}`}`,
       accession: '',
       version: '',
+      // A stretch of a product is not the molecule its lineage describes,
+      // and extracting is not a reaction the tree has a step for (#67).
+      lineage: null,
     },
   });
 }

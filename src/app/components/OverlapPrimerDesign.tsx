@@ -10,6 +10,7 @@ import {
   designOverlapPrimers,
   featureExtent,
   isEmptyRange,
+  recordOverlapDesign,
 } from '@/core';
 
 import { analytics } from '../analytics';
@@ -237,7 +238,13 @@ export function OverlapPrimerDesign() {
                     className="button button--primary button--small"
                     title="Open the circle the amplicon and the vector would make"
                     onClick={() => {
-                      if (design.product !== null) open(design.product);
+                      // The circle with the vector and the amplicon it was made of, and the
+                      // amplicon with its template and primers (#67).
+                      const made =
+                        vector === undefined || template === undefined
+                          ? design.product
+                          : recordOverlapDesign(design, vector.doc, template.doc, kit);
+                      if (made !== null) open(made);
                     }}
                   >
                     Open product

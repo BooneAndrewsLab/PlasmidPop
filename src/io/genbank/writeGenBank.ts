@@ -2,6 +2,7 @@ import { type Feature, type Reference, type SeqDocument, formatLocation } from '
 
 import { formatDerivedComment } from './derivedComment';
 import { formatEndsComment } from './endsComment';
+import { formatMadeFromComment } from './madeFromComment';
 import { formatMethylationComment, needsMethylationComment } from './methylationComment';
 import { isOwnComment } from './ownComments';
 import { deriveFeatureName } from './parseGenBank';
@@ -139,6 +140,11 @@ function headerLines(doc: SeqDocument): string[] {
   // is treated the same way.
   if (m.derivedFrom !== null) {
     out.push(...headerBlock('COMMENT', formatDerivedComment(m.derivedFrom), '', true));
+  }
+  // What it was made from is a block of several lines (`madeFromComment.ts`),
+  // one per molecule of the tree, and is treated the same way (#67).
+  if (m.lineage !== null) {
+    out.push(...headerBlock('COMMENT', formatMadeFromComment(m.lineage), '', true));
   }
   for (const comment of m.comments) {
     // Ours, understood, is written afresh above; a damaged one stays (#72).

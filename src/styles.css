@@ -2761,6 +2761,110 @@ button {
   font-size: 10.5px;
 }
 
+/* Made from (#67): a product's lineage above its History list. Each molecule
+   is a card of three short lines; the ones it was made from hang under it on
+   a rule, so the levels read without arrows. */
+
+.made-from {
+  margin: 0 0 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.made-from__summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.made-from__title {
+  flex: none;
+  font-weight: 600;
+}
+
+.made-from__summary-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.made-from__tree,
+.made-from__parents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.made-from__tree {
+  margin-top: 8px;
+}
+
+.made-from__parents {
+  margin-left: 7px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.made-from__node {
+  padding: 4px 0;
+  min-width: 0;
+}
+
+.made-from__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.made-from__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.made-from__where {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.made-from__edited {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--warn);
+  font-size: 10.5px;
+}
+
+.made-from__open {
+  flex: none;
+}
+
+.made-from__step {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.made-from__meta,
+.made-from__primer {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.made-from__primer code {
+  word-break: break-all;
+}
+
 /* Find bar */
 
 .findbar {

@@ -6,6 +6,8 @@ import {
   type SeqDocument,
   type SequencingRead,
   describeEditOp,
+  documentChecksum,
+  isLineageNode,
 } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
@@ -143,11 +145,13 @@ export class DocumentRepository {
     now: number,
   ): StoredDocument {
     const origin = provenance.origin;
+    const checksum = documentChecksum(doc)?.text;
     return {
       id,
       name: doc.name,
       fileName,
       text,
+      ...(checksum === undefined ? {} : { checksum }),
       ...(doc.read === null ? {} : { read: doc.read }),
       length: doc.length,
       topology: doc.topology,
@@ -273,6 +277,23 @@ export class DocumentRepository {
     return true;
   }
 
+  /**
+   * The stored documents holding each of `checksums`, as checksum → id, for
+   * the nodes of a lineage (#67). One indexed lookup: no text is parsed. Of
+   * two stored documents with one checksum, the one written last wins.
+   */
+  async findByChecksums(checksums: readonly string[]): Promise<Map<string, string>> {
+    const found = new Map<string, string>();
+    if (checksums.length === 0) return found;
+    const rows = await this.db.documents
+      .where('checksum')
+      .anyOf([...checksums])
+      .toArray();
+    rows.sort((a, b) => a.updatedAt - b.updatedAt);
+    for (const row of rows) if (row.checksum !== undefined) found.set(row.checksum, row.id);
+    return found;
+  }
+
   /** Whether a document has a stored undo history row. */
   async hasHistory(id: string): Promise<boolean> {
     return (await this.db.histories.where('id').equals(id).count()) > 0;
@@ -339,7 +360,7 @@ export class DocumentRepository {
   async loadShelf(): Promise<AssemblyPart[]> {
     const stored = await this.db.shelf.get(SHELF_ID);
     if (stored === undefined) return [];
-    return stored.parts.filter((p): p is AssemblyPart => isAssemblyPart(p));
+    return stored.parts.filter((p): p is AssemblyPart => isAssemblyPart(p)).map(withUsableLineage);
   }
 
   /** Writes the shelf, removing the row altogether when it is empty. */
@@ -470,6 +491,18 @@ function isAssemblyPart(v: unknown): boolean {
 /** A host methylation state as a fragment stores it: two booleans. */
 function isMethylation(v: unknown): boolean {
   return isObject(v) && typeof v['dam'] === 'boolean' && typeof v['dcm'] === 'boolean';
+}
+
+/**
+ * A stored part whose lineage (#67) does not read back loses the lineage
+ * rather than the part: the fragment is still good, and a product made from
+ * it names it without its history.
+ */
+function withUsableLineage(part: AssemblyPart): AssemblyPart {
+  const lineage: unknown = part.fragment.lineage;
+  if (lineage === undefined || isLineageNode(lineage)) return part;
+  const { lineage: _dropped, ...fragment } = part.fragment;
+  return { ...part, fragment };
 }
 
 let shared: DocumentRepository | null = null;

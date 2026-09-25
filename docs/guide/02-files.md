@@ -42,6 +42,10 @@ Where the DNA was grown travels the same way, as
 `dam+ dcm+` plasmid (see
 [Where the DNA was grown](07-enzymes.md#where-the-dna-was-grown)).
 
+What a product of a simulated reaction was made from travels as a block of
+`PlasmidPop-made-from:` comment lines, one per molecule of its tree (see
+[What a product was made from](12-cloning.md#what-a-product-was-made-from)).
+
 A line of ours that cannot be read — edited by hand into something that no
 longer parses, say — is kept as an ordinary comment rather than dropped, in
 GenBank and in a FASTA header alike, so it is still there to fix.
@@ -52,7 +56,9 @@ used for the features.
 **FASTA** gives a bare sequence. A header ending in `[topology=circular]`
 makes the sequence circular. Sticky ends and where the DNA was grown travel
 in the header too, as `[PlasmidPop-ends: ...]` and
-`[PlasmidPop-methylation: ...]`, the same text as the GenBank comment lines. Gaps and digits are stripped with a warning;
+`[PlasmidPop-methylation: ...]`, the same text as the GenBank comment lines.
+What a product was made from does not: it is too long for a header line, so
+a FASTA export leaves it out. Gaps and digits are stripped with a warning;
 protein FASTA is rejected.
 
 **SnapGene `.dna`** files are read for sequence and topology, features

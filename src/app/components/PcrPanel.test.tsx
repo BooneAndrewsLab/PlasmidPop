@@ -71,6 +71,13 @@ describe('PcrPanel', () => {
     // Oligos carry no 5′ phosphate unless ordered with one, and the
     // product's 5′ ends are theirs.
     expect(part?.dephosphorylated).toBe(true);
+    // It remembers what it was amplified from, and with which primers (#67).
+    expect(part?.lineage?.step).toMatchObject({
+      op: 'pcr',
+      forward: { name: 'Forward', sequence: (TAIL + FWD).toUpperCase() },
+      polymerase: 'proofreading',
+    });
+    expect(part?.lineage?.step?.parents[0]?.name).toBe('pTest');
     act(() => {
       fireEvent.click(screen.getByRole('checkbox', { name: '5′-phosphorylated primers' }));
       fireEvent.click(screen.getByRole('button', { name: 'Shelve' }));
@@ -93,6 +100,10 @@ describe('PcrPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     });
     expect(editorStore.document?.ends?.right).toEqual({ kind: "3'", overhang: 'A', enzyme: null });
+    expect(editorStore.document?.metadata.lineage?.step).toMatchObject({
+      op: 'pcr',
+      polymerase: 'taq',
+    });
     // The primers belong to the template: the product's tab starts empty, and
     // going back finds them where they were (#32).
     expect(screen.getByLabelText('Forward primer')).toHaveValue('');

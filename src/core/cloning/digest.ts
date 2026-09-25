@@ -9,6 +9,7 @@ import {
   type SeqDocument,
 } from '../document';
 import { type Feature } from '../features';
+import { type LineageNode } from '../lineage/lineage';
 import { type Range, type Topology } from '../range';
 
 /**
@@ -52,6 +53,15 @@ export interface DigestFragment {
    * not come back methylated. Absent means an ordinary `dam+ dcm+` plasmid.
    */
   readonly methylation?: HostMethylationState;
+  /**
+   * The fragment as a molecule and how it was made (#67): cut out of which
+   * document, with which enzymes, and that document's own lineage. Set where
+   * a fragment leaves the digest for the shelf or a tab
+   * (`fragmentWithLineage`), not by `digest`, which is run on every render
+   * and inside the one-pot reactions. Turning the piece over keeps it: the
+   * checksum is of both strands, so it is the same molecule.
+   */
+  readonly lineage?: LineageNode;
 }
 
 /** A fragment of a partial digest, and how many cuts inside it were missed. */
