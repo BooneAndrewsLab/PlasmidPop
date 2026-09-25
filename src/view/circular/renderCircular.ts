@@ -1,10 +1,12 @@
 import {
   type CutSite,
+  type DeletionMark,
   type DocumentDiff,
   type Feature,
   type Range,
   type SeqDocument,
   describeEnds,
+  deletionThatTook,
   featureLength,
   rangePieces,
   sameFeatureLocation,
@@ -16,6 +18,7 @@ import { contrastingText, featureColor } from '../featureColors';
 import { type LaneAssignment } from '../linear/lanes';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { drawableFeatures, featuresToLabel } from '../visibleFeatures';
+import { type ChangeTarget, ghostFeatures, ghostLaneKey } from './diffRing';
 import {
   type CircularLayout,
   type LabelBox,
@@ -62,6 +65,12 @@ export interface CircularRenderParams {
   readonly hoveredFeatureId: string | null;
   /** Top-strand cut position under the pointer, if any; its label is kept. */
   readonly hoveredCut: number | null;
+  /**
+   * The change under the pointer, or the one a review's list is pointing at
+   * (#27): it says what it is in a floating label, and a ghost is drawn in a
+   * heavier line. Features, labels and cut sites under the pointer win.
+   */
+  readonly hoveredChange?: ChangeTarget | null;
   readonly width: number;
   readonly height: number;
   readonly devicePixelRatio: number;
@@ -111,8 +120,8 @@ export function labelMargin(sansFont: string): number {
  * twice the type size moves its rings out with it. At the screen's 12 px
  * these come out at the offsets the map has always used (7, 12, 26, 34).
  */
-function mapMetrics(p: CircularRenderParams): MapMetrics {
-  const fontSize = fontSizeOf(p.sansFont);
+function mapMetrics(sansFont: string): MapMetrics {
+  const fontSize = fontSizeOf(sansFont);
   return {
     fontSize,
     lineHeight: Math.max(12, fontSize * 1.15),
@@ -431,6 +440,60 @@ function drawFeature(
   }
 }
 
+/** Dash of a removed feature's outline: broken, since the feature is not there. */
+const GHOST_DASH = [4, 3];
+
+function ghostHovered(p: CircularRenderParams, featureId: string): boolean {
+  const h = p.hoveredChange;
+  return h?.kind === 'removed' && h.featureId === featureId;
+}
+
+/**
+ * Removed features, as ghosts (#27): a broken outline in the deletion's
+ * colour, the shape the feature had, where the diff maps it to now. In the
+ * feature lanes, since that is where a reader looks for a feature and where
+ * its absence reads as one, but after every live feature: a ghost takes a
+ * lane with room at that place or one of its own further in
+ * (`lanesWithGhosts`), never a live feature's. Outline only, no fill and no
+ * arrow, so a ghost cannot be read as a feature that is there.
+ */
+function drawGhosts(ctx: DrawingContext, p: CircularRenderParams): void {
+  const { edits, layout, lanes, theme, doc } = p;
+  if (edits === null || doc.length === 0) return;
+  const half = (layout.ringWidth - 4) / 2;
+  ctx.lineCap = 'butt';
+  ctx.strokeStyle = theme.editDelete;
+  for (const ghost of ghostFeatures(edits)) {
+    const lane = lanes.laneOf.get(ghostLaneKey(ghost.id));
+    if (lane === undefined) continue;
+    const r = layout.laneRadius(lane);
+    ctx.lineWidth = ghostHovered(p, ghost.id) ? 2 : 1.25;
+    ctx.setLineDash(GHOST_DASH);
+    for (const seg of ghost.segments) {
+      ctx.beginPath();
+      if (seg.kind === 'site') {
+        const a = layout.pointAt(seg.position, r - half);
+        const b = layout.pointAt(seg.position, r + half);
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+      } else {
+        if (seg.end <= seg.start) continue;
+        const sweep = selectionSweep(
+          layout.angleOf(seg.start),
+          layout.angleOf(seg.end),
+          r,
+          MIN_FEATURE_PX,
+        );
+        ctx.arc(layout.cx, layout.cy, r + half, sweep.start, sweep.end);
+        ctx.arc(layout.cx, layout.cy, r - half, sweep.end, sweep.start, true);
+        ctx.closePath();
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+}
+
 /** Dash for the outline of a feature whose bases did not change, only its label. */
 const EDIT_DASH = [3, 2];
 
@@ -499,6 +562,15 @@ function drawEditMarks(ctx: DrawingContext, p: CircularRenderParams, m: MapMetri
   for (const deletion of edits.deletions) drawDeletion(ctx, p, m, deletion.position);
 }
 
+/** Where a deletion's wedge begins and ends, radially: its tip just inside the band. */
+function deletionRadii(
+  layout: CircularLayout,
+  m: MapMetrics,
+): { readonly tipR: number; readonly baseR: number } {
+  const tipR = layout.radius - m.editRing / 2 - 1;
+  return { tipR, baseR: tipR - m.deletionWedge * 1.6 };
+}
+
 /**
  * Where bases closed up. A deletion has no width on the ring — the bases it
  * took are not on the molecule any more — so there is nothing to sweep, only
@@ -520,8 +592,7 @@ function drawDeletion(
     x: layout.cx + r * Math.cos(a),
     y: layout.cy + r * Math.sin(a),
   });
-  const tipR = layout.radius - m.editRing / 2 - 1;
-  const baseR = tipR - m.deletionWedge * 1.6;
+  const { tipR, baseR } = deletionRadii(layout, m);
   ctx.strokeStyle = theme.editDelete;
   ctx.fillStyle = theme.editDelete;
   ctx.lineCap = 'butt';
@@ -1155,6 +1226,172 @@ function fitTitle(
   return null;
 }
 
+/** What `changeAt` needs: the ring's geometry and what is drawn on it. */
+export interface ChangeHitInput {
+  readonly layout: CircularLayout;
+  /** The lanes the map was drawn with, ghosts and all (`lanesWithGhosts`). */
+  readonly lanes: LaneAssignment;
+  readonly edits: DocumentDiff | null;
+  readonly sansFont: string;
+}
+
+/** Slack around a change's drawn shape that still counts as on it, in pixels. */
+const CHANGE_HIT_PX = 3;
+
+/** Whether `angle` lies on the clockwise sweep from `start` to `end`. */
+function onSweep(angle: number, start: number, end: number): boolean {
+  const twoPi = Math.PI * 2;
+  let d = (angle - start) % twoPi;
+  if (d < 0) d += twoPi;
+  return d <= end - start;
+}
+
+/**
+ * The change drawn under a point of the map, or null (#27): a deletion's
+ * wedge first, the smallest target and one that sits at a mark's end, then a
+ * ghost, then a mark's band. It asks the questions the drawing answers —
+ * the same radii, the same widening of what is too short to see, a few
+ * pixels of slack — so what can be seen can be pointed at, and it needs no
+ * frame drawn to answer, as the label boxes do.
+ */
+export function changeAt(input: ChangeHitInput, x: number, y: number): ChangeTarget | null {
+  const { layout, lanes, edits } = input;
+  if (edits === null || layout.seqLength === 0) return null;
+  const m = mapMetrics(input.sansFont);
+  const r = Math.hypot(x - layout.cx, y - layout.cy);
+  const angle = Math.atan2(y - layout.cy, x - layout.cx);
+
+  const { baseR } = deletionRadii(layout, m);
+  if (r >= baseR - CHANGE_HIT_PX && r <= layout.radius + m.editRing / 2 + CHANGE_HIT_PX) {
+    let best: number | null = null;
+    let bestPx = m.deletionWedge + CHANGE_HIT_PX;
+    for (const [index, deletion] of edits.deletions.entries()) {
+      const px = angleGap(layout.angleOf(deletion.position), angle) * r;
+      if (px <= bestPx) {
+        bestPx = px;
+        best = index;
+      }
+    }
+    if (best !== null) return { kind: 'deletion', index: best };
+  }
+
+  const half = (layout.ringWidth - 4) / 2;
+  for (const ghost of ghostFeatures(edits)) {
+    const lane = lanes.laneOf.get(ghostLaneKey(ghost.id));
+    if (lane === undefined) continue;
+    const lr = layout.laneRadius(lane);
+    if (Math.abs(r - lr) > half + CHANGE_HIT_PX) continue;
+    for (const seg of ghost.segments) {
+      const hit =
+        seg.kind === 'site'
+          ? angleGap(layout.angleOf(seg.position), angle) * lr <= CHANGE_HIT_PX
+          : seg.end > seg.start &&
+            ((): boolean => {
+              const sweep = selectionSweep(
+                layout.angleOf(seg.start),
+                layout.angleOf(seg.end),
+                lr,
+                MIN_FEATURE_PX,
+              );
+              const slack = CHANGE_HIT_PX / Math.max(1, lr);
+              return onSweep(angle, sweep.start - slack, sweep.end + slack);
+            })();
+      if (hit) return { kind: 'removed', featureId: ghost.id };
+    }
+  }
+
+  if (Math.abs(r - layout.radius) <= m.editRing / 2 + CHANGE_HIT_PX) {
+    for (const [index, mark] of edits.marks.entries()) {
+      for (const piece of rangePieces({ start: mark.start, end: mark.end }, layout.seqLength)) {
+        if (piece.end <= piece.start) continue;
+        const sweep = selectionSweep(
+          layout.angleOf(piece.start),
+          layout.angleOf(piece.end),
+          layout.radius,
+          MIN_EDIT_PX,
+        );
+        if (onSweep(angle, sweep.start, sweep.end)) return { kind: 'mark', index };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * What a change is, in the few words its floating label has room for. A
+ * deletion that took features whole says how many, since it is what stands
+ * for them on the ring.
+ */
+export function describeChange(target: ChangeTarget, edits: DocumentDiff): string | null {
+  const bp = (n: number): string => `${n.toLocaleString()} bp`;
+  if (target.kind === 'mark') {
+    const mark = edits.marks[target.index];
+    if (mark === undefined) return null;
+    const n = mark.end - mark.start;
+    return mark.kind === 'inserted' ? `${bp(n)} inserted` : `${bp(n)} changed`;
+  }
+  if (target.kind === 'deletion') {
+    const deletion = edits.deletions[target.index];
+    if (deletion === undefined) return null;
+    const took = tookAt(edits, deletion);
+    const features =
+      took === 0 ? '' : `, with ${took.toLocaleString()} feature${took === 1 ? '' : 's'}`;
+    return `${bp(deletion.count)} deleted${features}`;
+  }
+  const feature = edits.featuresRemoved.get(target.featureId);
+  if (feature === undefined) return null;
+  return `${feature.name.trim() === '' ? feature.type : feature.name} removed`;
+}
+
+/** How many removed features the deletion at this boundary took whole. */
+function tookAt(edits: DocumentDiff, deletion: DeletionMark): number {
+  let n = 0;
+  for (const f of edits.featuresRemoved.values())
+    if (deletionThatTook(f, edits) === deletion.position) n++;
+  return n;
+}
+
+/**
+ * The hovered change's floating label, as a feature under the pointer gets
+ * one, with a leader back to the change. Only when nothing else is hovered:
+ * a feature, a label or a cut site under the pointer speaks first.
+ */
+function drawChangeLabel(ctx: DrawingContext, p: CircularRenderParams, m: MapMetrics): void {
+  const { edits, layout, theme, doc } = p;
+  const target = p.hoveredChange ?? null;
+  if (target === null || edits === null || doc.length === 0) return;
+  if (p.hoveredFeatureId !== null || p.hoveredCut !== null) return;
+  const text = describeChange(target, edits);
+  if (text === null) return;
+  let angle: number;
+  let start: { x: number; y: number };
+  let color: string;
+  if (target.kind === 'mark') {
+    const mark = edits.marks[target.index];
+    if (mark === undefined) return;
+    angle = layout.angleOf((mark.start + mark.end) / 2);
+    start = layout.pointAt((mark.start + mark.end) / 2, layout.radius);
+    color = mark.kind === 'inserted' ? theme.editInsert : theme.editChange;
+  } else if (target.kind === 'deletion') {
+    const deletion = edits.deletions[target.index];
+    if (deletion === undefined) return;
+    angle = layout.angleOf(deletion.position);
+    start = layout.pointAt(deletion.position, layout.radius);
+    color = theme.editDelete;
+  } else {
+    const ghost = edits.featuresRemoved.get(target.featureId);
+    const lane = p.lanes.laneOf.get(ghostLaneKey(target.featureId));
+    const mid = ghost === undefined ? null : featureMidAngle(ghost, layout, doc.length);
+    if (ghost === undefined || lane === undefined || mid === null) return;
+    angle = mid;
+    const r = layout.laneRadius(lane) + layout.ringWidth / 2;
+    start = { x: layout.cx + r * Math.cos(mid), y: layout.cy + r * Math.sin(mid) };
+    color = theme.editDelete;
+  }
+  ctx.font = p.sansFont;
+  drawFloatingLabel(ctx, p, m, text, angle, color, start);
+}
+
 /** A label as drawn, and what it names: a feature, or the cut sites at one position. */
 export interface DrawnLabel {
   readonly box: LabelBox;
@@ -1172,7 +1409,7 @@ export interface MapRenderResult {
 
 export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams): MapRenderResult {
   const { width, height, devicePixelRatio: dpr, doc, lanes } = p;
-  const m = mapMetrics(p);
+  const m = mapMetrics(p.sansFont);
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = p.theme.background;
@@ -1187,10 +1424,12 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
     const lane = lanes.laneOf.get(f.id);
     if (lane !== undefined) drawFeature(ctx, p, f, lane);
   }
+  drawGhosts(ctx, p);
   if (tinySelection) drawSelectionMarker(ctx, p);
   drawEditMarks(ctx, p, m);
   drawOverlays(ctx, p);
   const { dropped: droppedLabels, drawn } = drawLabels(ctx, p, m, features, ticks);
+  drawChangeLabel(ctx, p, m);
   drawCentre(ctx, p);
   drawDroppedCount(ctx, p, m, droppedLabels);
   ctx.restore();

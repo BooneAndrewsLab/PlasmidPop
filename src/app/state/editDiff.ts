@@ -9,7 +9,9 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
-import { changeStops, stepChange } from '../editsView';
+import { type ChangeTarget } from '@/view/circular';
+
+import { changeSelection, changeStops, stepChange } from '../editsView';
 import { type EditorState, editorStore, editsBaselineDocument } from './editorStore';
 import { useEditorState } from './useEditorStore';
 
@@ -61,5 +63,23 @@ export function goToChange(direction: 1 | -1): boolean {
   analytics.trackOnce('edits', direction === 1 ? 'next' : 'prev');
   editorStore.setSelection(stop);
   editorStore.revealPosition(stop.start);
+  return true;
+}
+
+/**
+ * A click on a change on the map (#27): selects it as Next change would —
+ * a mark's span, a deletion's caret, a removed feature's mapped span — and
+ * scrolls the views to it. False when the diff has no such change any more.
+ */
+export function selectChange(target: ChangeTarget): boolean {
+  const state = editorStore.getState();
+  const doc = state.history?.present ?? null;
+  const diff = editDiffOf(state);
+  if (doc === null || diff === null) return false;
+  const range = changeSelection(target, diff, doc.length, doc.topology === 'circular');
+  if (range === null) return false;
+  analytics.trackOnce('edits', 'map-click', target.kind);
+  editorStore.setSelection(range);
+  editorStore.revealPosition(range.start);
   return true;
 }

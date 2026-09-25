@@ -1,17 +1,17 @@
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type DiffHunk, type DocumentDiff, type SeqDocument, diffHunks } from '@/core';
+import { type ChangeTarget, ghostFeatures } from '@/view/circular';
 
+import { analytics } from '../analytics';
 import { describeEditDiff } from '../editsView';
 import { featureChangeRows } from '../featureChanges';
+import { MAX_STRIPS, MORE_PLACES, hunkKey, reviewKeyFor } from '../reviewLines';
 import { DiffMap } from './DiffMap';
 import { DiffStrip } from './DiffStrip';
 
-/**
- * How many neighbourhoods are drawn. A review is meant to be read, and past
- * a dozen pieces of sequence nobody reads it; the rest are counted instead.
- */
-const MAX_STRIPS = 12;
+/** How long a line the map pointed at stays lit, in milliseconds. */
+const FLASH_MS = 1600;
 
 /** How each kind of change is marked in the Features list. */
 const MARK_CLASS: Readonly<Record<'+' | '~' | '−', string>> = {
@@ -55,6 +55,47 @@ export function DiffReview({ doc, baseline, diff }: Props) {
   const hunks = useMemo(() => diffHunks(diff, doc.length), [diff, doc.length]);
   const featureRows = useMemo(() => featureChangeRows(diff, doc), [diff, doc]);
   const shown = hunks.slice(0, MAX_STRIPS);
+  const ghosts = useMemo(() => new Set(ghostFeatures(diff).map((f) => f.id)), [diff]);
+
+  // A click on the map finds its line and lights it for a moment; a
+  // removed feature's line points back at its ghost on the map.
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [flashed, setFlashed] = useState<string | null>(null);
+  const [pointed, setPointed] = useState<ChangeTarget | null>(null);
+  useEffect(() => {
+    if (flashed === null) return;
+    const timer = setTimeout(() => {
+      setFlashed(null);
+    }, FLASH_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [flashed]);
+  const lit = (key: string): string => (flashed === key ? ' is-flashed' : '');
+
+  const onPick = useCallback(
+    (target: ChangeTarget): void => {
+      const rowKeys = new Set(featureRows.map((r) => r.key));
+      const key = reviewKeyFor(target, diff, hunks, rowKeys);
+      if (key === null) return;
+      analytics.trackOnce('edits', 'review-click', target.kind);
+      // The review's lines are the map's siblings, each tagged with its key.
+      const el = [
+        ...(mapRef.current?.parentElement?.querySelectorAll('[data-review-line]') ?? []),
+      ].find((e) => e.getAttribute('data-review-line') === key);
+      // Guarded because jsdom, where the app's tests run, has no scrollIntoView.
+      if (typeof el?.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
+      setFlashed(key);
+    },
+    [diff, hunks, featureRows],
+  );
+
+  const pointAt = (featureId: string): void => {
+    analytics.trackOnce('edits', 'review-point');
+    setPointed({ kind: 'removed', featureId });
+    const map = mapRef.current;
+    if (typeof map?.scrollIntoView === 'function') map.scrollIntoView({ block: 'nearest' });
+  };
 
   return (
     <>
@@ -77,11 +118,15 @@ export function DiffReview({ doc, baseline, diff }: Props) {
           Made {doc.topology === 'circular' ? 'circular' : 'linear'}.
         </p>
       )}
-      <div className="diff-map">
-        <DiffMap doc={doc} diff={diff} />
+      <div className="diff-map" ref={mapRef}>
+        <DiffMap doc={doc} diff={diff} onPick={onPick} pointed={pointed} />
       </div>
       {shown.map((hunk) => (
-        <div key={`${hunk.start}-${hunk.end}`} className="diff-strip">
+        <div
+          key={`${hunk.start}-${hunk.end}`}
+          data-review-line={hunkKey(hunk)}
+          className={`diff-strip${lit(hunkKey(hunk))}`}
+        >
           <p className="diff-strip__label">
             <span className="diff-strip__where">
               around {(hunk.changeStart + 1).toLocaleString()}
@@ -94,7 +139,7 @@ export function DiffReview({ doc, baseline, diff }: Props) {
         </div>
       ))}
       {hunks.length > shown.length && (
-        <p className="save-review__note">
+        <p data-review-line={MORE_PLACES} className={`save-review__note${lit(MORE_PLACES)}`}>
           and {(hunks.length - shown.length).toLocaleString()} more{' '}
           {hunks.length - shown.length === 1 ? 'place' : 'places'} not shown.
         </p>
@@ -104,11 +149,27 @@ export function DiffReview({ doc, baseline, diff }: Props) {
           <h3 className="save-review__heading">Features</h3>
           <ul>
             {featureRows.map((row) => (
-              <li key={row.key}>
+              <li key={row.key} data-review-line={row.key} className={lit(row.key).trim()}>
                 {row.mark !== '' && (
                   <span className={`save-review__mark ${MARK_CLASS[row.mark]}`}>{row.mark}</span>
                 )}{' '}
-                {row.text}
+                {row.removedId !== undefined && ghosts.has(row.removedId) ? (
+                  <button
+                    type="button"
+                    className="save-review__point"
+                    title="Show where it was on the map"
+                    aria-pressed={
+                      pointed?.kind === 'removed' && pointed.featureId === row.removedId
+                    }
+                    onClick={() => {
+                      if (row.removedId !== undefined) pointAt(row.removedId);
+                    }}
+                  >
+                    {row.text}
+                  </button>
+                ) : (
+                  row.text
+                )}
                 {row.where !== '' && <span className="save-review__where"> {row.where}</span>}
               </li>
             ))}

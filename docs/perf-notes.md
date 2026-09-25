@@ -392,6 +392,26 @@ Myers diff and its re-alignment produce for anything a person typed, and it
 is still inside a frame. A diff too coarse to follow is one mark, not
 thousands, so the pathological case is bounded from the other side too.
 
+Removed features drawn as ghosts, and the ring made clickable (#27, item
+25), measured 2026-09-24 the same way (pBR322 at 900 × 700, mean of 150 runs
+after 30 to warm up). The ghosts are an outline each in a lane that
+`lanesWithGhosts` packs after the live features; the pointer test,
+`changeAt`, runs on every move over the map:
+
+| on the ring                           | render  | lanes   | pointer test |
+| ------------------------------------- | ------- | ------- | ------------ |
+| none                                  | 0.65 ms | —       | 1 µs         |
+| 10 marks, 10 deletions                | 0.62 ms | —       | 2 µs         |
+| 10 marks, 10 deletions, 10 ghosts     | 0.65 ms | 0.06 ms | 8 µs         |
+| 200 marks, 200 deletions              | 1.8 ms  | —       | 5 µs         |
+| 200 marks, 200 deletions, 50 ghosts   | 1.8 ms  | 0.09 ms | 20 µs        |
+| a session: 2 CDSs removed, 300 bp cut | 0.62 ms | 0.02 ms | 4 µs         |
+
+Nothing to see: an outline is two arcs, and the lanes are one greedy pass
+over the ghosts against what the live features already hold. Fifty ghosts
+scattered at random took the map from 4 lanes to 7; the session's two fit in
+the gaps the removed CDSs left.
+
 ## Molecule checksums (SEGUID v2)
 
 `documentChecksum` is taken on the document in front every time it changes —

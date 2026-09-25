@@ -7,7 +7,7 @@ import {
   rangeSegment,
 } from '@/core';
 
-import { changeStops, describeEditDiff, stepChange } from './editsView';
+import { changeSelection, changeStops, describeEditDiff, stepChange } from './editsView';
 import { editDiffBetween, editDiffOf } from './state/editDiff';
 import { EditorStore } from './state/editorStore';
 
@@ -239,5 +239,72 @@ describe('stepChange', () => {
     expect(stepChange(circle, { start: 1, end: 1 }, 1)).toEqual({ start: 50, end: 52 });
     expect(stepChange(circle, { start: 97, end: 103 }, 1)).toEqual({ start: 50, end: 52 });
     expect(stepChange(circle, { start: 50, end: 52 }, -1)).toEqual({ start: 97, end: 103 });
+  });
+});
+
+describe('changeSelection', () => {
+  const diff: DocumentDiff = {
+    ...EMPTY_DIFF,
+    marks: [
+      { kind: 'inserted', start: 0, end: 5 },
+      { kind: 'changed', start: 40, end: 48 },
+      { kind: 'inserted', start: 95, end: 100 },
+    ],
+    deletions: [
+      { position: 20, count: 3 },
+      { position: 100, count: 2 },
+    ],
+    featuresRemoved: new Map([
+      [
+        'gone',
+        createFeature({ id: 'gone', type: 'CDS', name: 'bla', segments: [rangeSegment(60, 80)] }),
+      ],
+    ]),
+  };
+
+  it('selects a mark as Next change would', () => {
+    expect(changeSelection({ kind: 'mark', index: 1 }, diff, 100, true)).toEqual({
+      start: 40,
+      end: 48,
+    });
+  });
+
+  it('selects both halves of a change across the origin as one, from either half', () => {
+    const across = { start: 95, end: 105 };
+    expect(changeSelection({ kind: 'mark', index: 0 }, diff, 100, true)).toEqual(across);
+    expect(changeSelection({ kind: 'mark', index: 2 }, diff, 100, true)).toEqual(across);
+    // A line has no origin to cross: each half is its own.
+    expect(changeSelection({ kind: 'mark', index: 0 }, diff, 100, false)).toEqual({
+      start: 0,
+      end: 5,
+    });
+  });
+
+  it('puts the caret at a deletion, the end of a circle being its start', () => {
+    expect(changeSelection({ kind: 'deletion', index: 0 }, diff, 100, true)).toEqual({
+      start: 20,
+      end: 20,
+    });
+    expect(changeSelection({ kind: 'deletion', index: 1 }, diff, 100, true)).toEqual({
+      start: 0,
+      end: 0,
+    });
+    expect(changeSelection({ kind: 'deletion', index: 1 }, diff, 100, false)).toEqual({
+      start: 100,
+      end: 100,
+    });
+  });
+
+  it('selects the span a removed feature maps to', () => {
+    expect(changeSelection({ kind: 'removed', featureId: 'gone' }, diff, 100, true)).toEqual({
+      start: 60,
+      end: 80,
+    });
+  });
+
+  it('selects nothing for a change the diff no longer has', () => {
+    expect(changeSelection({ kind: 'mark', index: 9 }, diff, 100, true)).toBeNull();
+    expect(changeSelection({ kind: 'deletion', index: 9 }, diff, 100, true)).toBeNull();
+    expect(changeSelection({ kind: 'removed', featureId: 'x' }, diff, 100, true)).toBeNull();
   });
 });

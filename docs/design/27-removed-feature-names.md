@@ -43,6 +43,9 @@ features removed`), which none of the three had: the sequence hunks above
   dialog, which now maps over them; `featureNames` is gone.
 - A changed feature's line said only `~ tet changed` until 2026-09-22; it
   names what changed now (item 35).
-- Not yet: nothing else shows the names — the Edits menu's tally and the
-  sequence view's marks are unchanged — and a removed feature's line is
-  not clickable, though its location is now known.
+- Not yet: the Edits menu's tally and the sequence view's marks still do
+  not name them. Since #27 (item 25) the map draws each removed feature as a
+  ghost at its mapped location and names it on hover, the rule above decides
+  which are left to the deletion's wedge instead (`deletionThatTook`, moved
+  to `src/core/diff/removed.ts` so both use it), and a removed feature's line
+  in the review points at its ghost on the review's map.

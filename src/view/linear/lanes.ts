@@ -45,6 +45,17 @@ function overlaps(a: Occupied, b: Occupied): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
+/** Items with something to place, longest first, then by where they start. */
+function longestFirst(items: readonly LaneItem[]): LaneItem[] {
+  const ordered = items.filter((item) => item.pieces.length > 0);
+  ordered.sort((a, b) => {
+    const la = a.pieces.reduce((n, p) => n + p.end - p.start, 0);
+    const lb = b.pieces.reduce((n, p) => n + p.end - p.start, 0);
+    return lb - la || (a.pieces[0]?.start ?? 0) - (b.pieces[0]?.start ?? 0);
+  });
+  return ordered;
+}
+
 /**
  * Greedy interval colouring: each item gets the lowest lane where none of
  * its pieces overlaps a piece already in that lane. Items are processed
@@ -54,12 +65,7 @@ function overlaps(a: Occupied, b: Occupied): boolean {
 export function packLanes(items: readonly LaneItem[]): LaneAssignment {
   const laneOf = new Map<string, number>();
   const lanes: Occupied[][] = [];
-  const ordered = items.filter((item) => item.pieces.length > 0);
-  ordered.sort((a, b) => {
-    const la = a.pieces.reduce((n, p) => n + p.end - p.start, 0);
-    const lb = b.pieces.reduce((n, p) => n + p.end - p.start, 0);
-    return lb - la || (a.pieces[0]?.start ?? 0) - (b.pieces[0]?.start ?? 0);
-  });
+  const ordered = longestFirst(items);
 
   for (const { id, pieces } of ordered) {
     let lane = 0;
@@ -73,6 +79,44 @@ export function packLanes(items: readonly LaneItem[]): LaneAssignment {
     laneOf.set(id, lane);
   }
   return { laneOf, laneCount: lanes.length };
+}
+
+/**
+ * `lanes` with `extra` items stacked after everything already in it: each
+ * gets the lowest lane where it overlaps nothing, placed or extra, and a new
+ * lane past the last only when none has room. What was in `lanes` keeps the
+ * lane it had, so adding the extras cannot move anything. `placed` are the
+ * items `lanes` was packed from, for where each one lies.
+ */
+export function packAfter(
+  lanes: LaneAssignment,
+  placed: readonly LaneItem[],
+  extra: readonly LaneItem[],
+): LaneAssignment {
+  if (extra.length === 0) return lanes;
+  const occupied: Occupied[][] = Array.from({ length: lanes.laneCount }, () => []);
+  for (const item of placed) {
+    const lane = lanes.laneOf.get(item.id);
+    if (lane !== undefined) occupied[lane]?.push(...item.pieces);
+  }
+  const laneOf = new Map(lanes.laneOf);
+  for (const { id, pieces } of longestFirst(extra)) {
+    let lane = 0;
+    for (; lane < occupied.length; lane++) {
+      const taken = occupied[lane] ?? [];
+      if (!pieces.some((p) => taken.some((o) => overlaps(o, p)))) break;
+    }
+    const target = occupied[lane] ?? [];
+    if (lane === occupied.length) occupied.push(target);
+    target.push(...pieces);
+    laneOf.set(id, lane);
+  }
+  return { laneOf, laneCount: occupied.length };
+}
+
+/** The lane items of a set of features: each one's id and the extent it really covers. */
+export function featureLaneItems(features: readonly Feature[], seqLength: number): LaneItem[] {
+  return laneItems(features, seqLength);
 }
 
 /** Lanes for a set of features, by the extent each one really covers. */

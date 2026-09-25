@@ -89,8 +89,14 @@ export const EVENTS = {
   find: ['open'],
   /** The kind of edit only: never where, how long, or what bases. */
   edit: [...(Object.keys(EDIT_OPS) as EditOp['type'][]), 'undo', 'redo'],
-  /** The Edits menu: which baseline was chosen, and Next or Previous change. */
-  edits: ['baseline', 'next', 'prev'],
+  /**
+   * The Edits menu: which baseline was chosen, and Next or Previous change.
+   * `map-click` is a change clicked on the editor's map and `review-click`
+   * one clicked on a review's map, named by kind (`mark`, `deletion`,
+   * `removed`); `review-point` is a removed feature's line in a review
+   * pointing at its ghost.
+   */
+  edits: ['baseline', 'next', 'prev', 'map-click', 'review-click', 'review-point'],
   history: ['jump'],
   enzymes: ['show', 'import', 'import-clear'],
   primers: ['design'],

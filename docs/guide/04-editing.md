@@ -95,6 +95,25 @@ drawn a little wider than it is, the way a short selection is. Features keep
 their outlines there too, broken or solid as in the sequence view. This is the view that answers _where_ a change
 landed: in the marker, in the origin, in nothing that matters.
 
+A feature you **removed** is drawn as a ghost: a broken red outline in the
+feature lanes where it was, with no fill and no arrow. A ghost never takes a
+live feature's place — it goes in a lane with room there, or in a lane of its
+own further in — and it has no name in the label ring, so turning the marks on
+never moves the other labels; point at it and its name comes up (`tet removed`).
+Features that went because their bases were deleted get no ghost: the red wedge
+stands for them, and pointing at the wedge says how many it took
+(`300 bp deleted, with 2 features`).
+
+The marks on the map are **clickable**. Click a green or amber band and its
+stretch is selected, a wedge puts the cursor where the bases closed up, and a
+ghost selects the bases the removed feature covered — the same selection
+**Next change** would make, so a change across the origin is selected whole.
+The pointer turns into a hand over a mark, and the mark says what it is (`40 bp
+inserted`). A feature, a label or a cut site under the pointer still comes
+first, and pressing on a band and dragging still selects a range as it does
+anywhere on the backbone. The sequence view's marks are not click targets: a
+changed base there is a base you may want to put the cursor in.
+
 The menu chooses what the marks are measured from:
 
 - **Since opened** (the default) compares against the document as it was

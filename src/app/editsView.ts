@@ -1,4 +1,5 @@
-import { type DocumentDiff, type Range } from '@/core';
+import { type DocumentDiff, type Range, featureExtent, outerExtent } from '@/core';
+import { type ChangeTarget } from '@/view/circular';
 
 import { type EditsBaseline } from './state/editorStore';
 
@@ -107,4 +108,41 @@ export function stepChange(
   let before: Range | null = null;
   for (const r of stops) if (order(r) < 0) before = r;
   return before ?? last;
+}
+
+/**
+ * What a click on a change on the map selects (#27): what Next change would
+ * select for it. A mark is its stop — the whole of a change across a
+ * circle's origin, as one — a deletion is a caret at its boundary, and a
+ * removed feature's ghost is the span it maps to now, as clicking a feature
+ * selects its extent. Null for a target the diff has no longer.
+ */
+export function changeSelection(
+  target: ChangeTarget,
+  diff: DocumentDiff,
+  length: number,
+  circular: boolean,
+): Range | null {
+  if (target.kind === 'removed') {
+    const feature = diff.featuresRemoved.get(target.featureId);
+    if (feature === undefined) return null;
+    const extent = featureExtent(feature);
+    if (extent !== null) return extent;
+    const { start } = outerExtent(feature);
+    return { start, end: start };
+  }
+  if (target.kind === 'deletion') {
+    const deletion = diff.deletions[target.index];
+    if (deletion === undefined) return null;
+    const at = circular && deletion.position === length ? 0 : deletion.position;
+    return { start: at, end: at };
+  }
+  const mark = diff.marks[target.index];
+  if (mark === undefined) return null;
+  const within = (stop: Range, shift: number): boolean =>
+    stop.start <= mark.start + shift && mark.end + shift <= stop.end;
+  const stop = changeStops(diff, length, circular).find(
+    (s) => s.end > s.start && (within(s, 0) || (circular && within(s, length))),
+  );
+  return stop ?? { start: mark.start, end: mark.end };
 }

@@ -1,4 +1,10 @@
-import { type DocumentDiff, type Feature, type SeqDocument } from '@/core';
+import {
+  type DocumentDiff,
+  type Feature,
+  type SeqDocument,
+  deletionThatTook,
+  outerExtent as extent,
+} from '@/core';
 
 /**
  * The Features section of a review: what a diff did to the annotation, one
@@ -25,40 +31,15 @@ export interface FeatureChangeRow {
   readonly text: string;
   /** Where it is, in the coordinates of the edited document; may be empty. */
   readonly where: string;
+  /**
+   * The removed feature a line is about, when it is about one alone: the
+   * review's map draws that one as a ghost and the line can point at it.
+   */
+  readonly removedId?: string;
 }
 
 function displayName(feature: Feature): string {
   return feature.name.trim() === '' ? feature.type : feature.name;
-}
-
-/** Outer extent of a feature, half-open, over all of its segments. */
-function extent(feature: Feature): { start: number; end: number } {
-  let start = Infinity;
-  let end = -Infinity;
-  for (const seg of feature.segments) {
-    const from = seg.kind === 'site' ? seg.position : seg.start;
-    const to = seg.kind === 'site' ? seg.position : seg.end;
-    start = Math.min(start, from);
-    end = Math.max(end, to);
-  }
-  return { start: Number.isFinite(start) ? start : 0, end: Number.isFinite(end) ? end : 0 };
-}
-
-/**
- * The deletion that took a removed feature, or null if none did. A feature
- * inside a deleted stretch has all of its bases mapped onto the boundary the
- * deletion left behind, so it comes back from the diff covering a base or
- * none at all — and seven of those are one thing that happened, not seven.
- * The deletion has to be there: a 1 bp feature deleted by hand also comes
- * back covering one base, and nothing swallowed it.
- */
-function swallowedBy(feature: Feature, diff: DocumentDiff): number | null {
-  const { start, end } = extent(feature);
-  if (end - start > 1) return null;
-  for (const deletion of diff.deletions) {
-    if (deletion.position >= start && deletion.position <= end) return deletion.position;
-  }
-  return null;
 }
 
 /** Where a feature is, as this dialog writes a position: `86..1,276`. */
@@ -84,7 +65,7 @@ function removedRows(diff: DocumentDiff): Line[] {
   const swallowed = new Map<number, Feature[]>();
   const alone: Feature[] = [];
   for (const feature of diff.featuresRemoved.values()) {
-    const at = swallowedBy(feature, diff);
+    const at = deletionThatTook(feature, diff);
     if (at === null) alone.push(feature);
     else swallowed.set(at, [...(swallowed.get(at) ?? []), feature]);
   }
@@ -108,6 +89,7 @@ function removedRows(diff: DocumentDiff): Line[] {
           mark: MINUS,
           text: displayName(feature),
           where: whereIs(feature),
+          removedId: feature.id,
         },
       },
     });

@@ -1,7 +1,21 @@
-import { useEffect, useMemo, useRef } from 'react';
+import {
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { type CutSite, type DocumentDiff, type SeqDocument } from '@/core';
-import { CircularLayout, renderCircularMap } from '@/view/circular';
+import {
+  type ChangeTarget,
+  CircularLayout,
+  changeAt,
+  ghostFeatures,
+  lanesWithGhosts,
+  renderCircularMap,
+  sameChange,
+} from '@/view/circular';
 import { NO_LANES, assignLanes } from '@/view/linear';
 import { NO_OVERLAY } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
@@ -25,6 +39,13 @@ interface Props {
   readonly size?: number;
   /** What the map is of, for a screen reader; hidden from one without it. */
   readonly label?: string;
+  /**
+   * A click on a change — a mark, a deletion's wedge, a removed feature's
+   * ghost (#27). Without it the map takes no pointer at all.
+   */
+  readonly onPick?: (target: ChangeTarget) => void;
+  /** A change to point at, drawn as a hovered one is: a review's list asks for it. */
+  readonly pointed?: ChangeTarget | null;
 }
 
 const NO_CUTS: readonly CutSite[] = [];
@@ -39,12 +60,26 @@ const NO_CUTS: readonly CutSite[] = [];
  * editor's own, at a fixed size and fitted to the whole circle, rather than
  * a second drawing routine.
  */
-export function DiffMap({ doc, diff = null, cutSites = NO_CUTS, size = SIZE, label }: Props) {
+export function DiffMap({
+  doc,
+  diff = null,
+  cutSites = NO_CUTS,
+  size = SIZE,
+  label,
+  onPick,
+  pointed = null,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hovered, setHovered] = useState<ChangeTarget | null>(null);
 
   const drawing = useMemo(() => {
     const features = drawableFeatures(doc.features.all());
-    const lanes = assignLanes(features, doc.length);
+    const lanes = lanesWithGhosts(
+      features,
+      assignLanes(features, doc.length),
+      ghostFeatures(diff),
+      doc.length,
+    );
     const layout = new CircularLayout(doc.length, doc.topology, {
       width: size,
       height: size,
@@ -53,7 +88,7 @@ export function DiffMap({ doc, diff = null, cutSites = NO_CUTS, size = SIZE, lab
       outerMargin: OUTER_MARGIN,
     });
     return { lanes, layout };
-  }, [doc, size]);
+  }, [doc, diff, size]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,6 +111,7 @@ export function DiffMap({ doc, diff = null, cutSites = NO_CUTS, size = SIZE, lab
       edits: diff,
       hoveredFeatureId: null,
       hoveredCut: null,
+      hoveredChange: hovered ?? pointed,
       width: size,
       height: size,
       devicePixelRatio: dpr,
@@ -83,13 +119,41 @@ export function DiffMap({ doc, diff = null, cutSites = NO_CUTS, size = SIZE, lab
       sansFont: SANS_FONT,
       titleFont: TITLE_FONT,
     });
-  }, [doc, diff, cutSites, drawing, size]);
+  }, [doc, diff, cutSites, drawing, size, hovered, pointed]);
+
+  const targetAt = (e: ReactPointerEvent<HTMLCanvasElement>): ChangeTarget | null => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return changeAt(
+      { layout: drawing.layout, lanes: drawing.lanes, edits: diff, sansFont: SANS_FONT },
+      e.clientX - rect.left,
+      e.clientY - rect.top,
+    );
+  };
+
+  const pointer =
+    onPick === undefined
+      ? {}
+      : {
+          onPointerMove: (e: ReactPointerEvent<HTMLCanvasElement>) => {
+            const next = targetAt(e);
+            setHovered((prev) => (sameChange(prev, next) ? prev : next));
+          },
+          onPointerLeave: () => {
+            setHovered(null);
+          },
+          onPointerDown: (e: ReactPointerEvent<HTMLCanvasElement>) => {
+            if (e.button !== 0) return;
+            const target = targetAt(e);
+            if (target !== null) onPick(target);
+          },
+        };
 
   return (
     <canvas
       ref={canvasRef}
       className="diff-map__canvas"
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, cursor: hovered === null ? 'default' : 'pointer' }}
+      {...pointer}
       {...(label === undefined ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
     />
   );

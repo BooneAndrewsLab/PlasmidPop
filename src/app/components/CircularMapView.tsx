@@ -11,12 +11,17 @@ import {
 
 import { type Feature, type SeqDocument, featureExtent, isEmptyRange } from '@/core';
 import {
+  type ChangeTarget,
   type DrawnLabel,
   type MapViewport,
   CircularLayout,
   FIT_VIEWPORT,
+  changeAt,
   clockwiseSelection,
+  sameChange,
   fitRange,
+  ghostFeatures,
+  lanesWithGhosts,
   MIN_FEATURE_PX,
   labelMargin,
   overlayRingRadius,
@@ -30,7 +35,7 @@ import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { selectionBetween } from '../editing';
 import { readCircularTheme } from './circularTheme';
-import { useEditDiff } from '../state/editDiff';
+import { selectChange, useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { recallView, rememberView } from '../state/viewMemory';
@@ -47,7 +52,18 @@ const ZOOM_STEP = 1.6;
 
 type Gesture =
   | { readonly kind: 'idle' }
-  | { readonly kind: 'select'; readonly anchor: number }
+  | {
+      readonly kind: 'select';
+      readonly anchor: number;
+      readonly from: { x: number; y: number };
+      moved: boolean;
+      /**
+       * The change pressed on, if any (#27). A mark lies on the backbone, so
+       * a press there still starts a drag selection; only a click that did
+       * not move selects the change, on release.
+       */
+      readonly change: ChangeTarget | null;
+    }
   | {
       readonly kind: 'pan';
       readonly button: number;
@@ -63,9 +79,11 @@ interface Hover {
   readonly cut: number | null;
   /** `label` when the pointer is on a label, which names what it is over (#25). */
   readonly kind: 'lane' | 'backbone' | 'label' | 'none';
+  /** The change under the pointer when nothing else is (#27); it says what it is. */
+  readonly change: ChangeTarget | null;
 }
 
-const NO_HOVER: Hover = { featureId: null, cut: null, kind: 'none' };
+const NO_HOVER: Hover = { featureId: null, cut: null, kind: 'none', change: null };
 
 /** Half-width of the band a cut site's tick is hit-tested in, in pixels. */
 const CUT_HIT_PX = 6;
@@ -109,7 +127,17 @@ export function CircularMapView({ doc }: Props) {
     setViewport(recallView(documentId).mapViewport ?? FIT_VIEWPORT);
   }
 
-  const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
+  const liveFeatures = useMemo(() => drawableFeatures(doc.features.all()), [doc]);
+  const liveLanes = useMemo(
+    () => assignLanes(liveFeatures, doc.length),
+    [liveFeatures, doc.length],
+  );
+  // Removed features are ghosts in the lanes after the live ones (#27), so
+  // the lanes follow the marks as well as the document.
+  const lanes = useMemo(
+    () => lanesWithGhosts(liveFeatures, liveLanes, ghostFeatures(edits), doc.length),
+    [liveFeatures, liveLanes, edits, doc.length],
+  );
   const layout = useMemo(() => {
     const options = {
       width: size.width,
@@ -260,6 +288,7 @@ export function CircularMapView({ doc }: Props) {
         edits,
         hoveredFeatureId: hover.featureId,
         hoveredCut: hover.cut,
+        hoveredChange: hover.change,
         width: size.width,
         height: size.height,
         devicePixelRatio: dpr,
@@ -283,6 +312,7 @@ export function CircularMapView({ doc }: Props) {
     edits,
     hover.featureId,
     hover.cut,
+    hover.change,
     size,
   ]);
 
@@ -362,6 +392,10 @@ export function CircularMapView({ doc }: Props) {
     setPanning(false);
   };
 
+  /** The change drawn under a point, if any: a mark, a deletion's wedge or a ghost (#27). */
+  const changeAtPoint = (x: number, y: number): ChangeTarget | null =>
+    changeAt({ layout, lanes, edits, sansFont: SANS_FONT }, x, y);
+
   /** The label under a point, if any: a label is a click target like the arc it names. */
   const labelAt = (x: number, y: number): DrawnLabel['target'] | null => {
     for (const { box, target } of drawnLabels.current)
@@ -393,7 +427,10 @@ export function CircularMapView({ doc }: Props) {
       return;
     }
     const hit = layout.hitTest(pt.x, pt.y);
-    if (e.button === 1 || (e.button === 0 && hit.kind === 'none')) {
+    // Changes come after features, labels and the preview: they are the
+    // lowest thing on the map to answer a click (#27).
+    const change = e.button === 0 ? changeAtPoint(pt.x, pt.y) : null;
+    if (e.button === 1 || (e.button === 0 && hit.kind === 'none' && change === null)) {
       if (e.button === 1) e.preventDefault(); // no middle-click autoscroll
       e.currentTarget.setPointerCapture(e.pointerId);
       gesture.current = { kind: 'pan', button: e.button, from: pt, last: pt, moved: false };
@@ -408,8 +445,9 @@ export function CircularMapView({ doc }: Props) {
         // A finger has no hover, so the tap does what a pointer resting
         // there does: the feature's label comes back if the ring dropped
         // it, and stays until the next tap (`onPointerLeave` lets it be).
-        if (e.pointerType === 'touch') setHover({ featureId: id, cut: null, kind: 'lane' });
-      }
+        if (e.pointerType === 'touch')
+          setHover({ featureId: id, cut: null, kind: 'lane', change: null });
+      } else if (change !== null) selectChange(change);
       return;
     }
     const spanId = overlayIdAt(pt.x, pt.y);
@@ -417,9 +455,12 @@ export function CircularMapView({ doc }: Props) {
       editorStore.activatePreview(spanId);
       return;
     }
-    if (hit.kind !== 'backbone') return;
+    if (hit.kind !== 'backbone') {
+      if (change !== null) selectChange(change);
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
-    gesture.current = { kind: 'select', anchor: hit.position };
+    gesture.current = { kind: 'select', anchor: hit.position, from: pt, moved: false, change };
     editorStore.setSelection({ start: hit.position, end: hit.position });
     editorStore.revealPosition(hit.position);
   };
@@ -456,6 +497,7 @@ export function CircularMapView({ doc }: Props) {
     }
     const hit = layout.hitTest(pt.x, pt.y);
     if (g.kind === 'select') {
+      if (Math.hypot(pt.x - g.from.x, pt.y - g.from.y) > CLICK_SLOP) g.moved = true;
       if (hit.kind === 'none') return;
       editorStore.setSelection(
         doc.isCircular
@@ -471,14 +513,19 @@ export function CircularMapView({ doc }: Props) {
             featureId: label.kind === 'feature' ? label.featureId : null,
             cut: label.kind === 'cut' ? label.position : null,
             kind: 'label',
+            change: null,
           }
-        : {
-            featureId: hit.kind === 'lane' ? featureAt(hit.lane, hit.position) : null,
-            cut: hit.kind === 'lane' ? null : cutAt(pt.x, pt.y),
-            kind: hit.kind,
-          };
+        : ((): Hover => {
+            const featureId = hit.kind === 'lane' ? featureAt(hit.lane, hit.position) : null;
+            const cut = hit.kind === 'lane' ? null : cutAt(pt.x, pt.y);
+            const change = featureId === null && cut === null ? changeAtPoint(pt.x, pt.y) : null;
+            return { featureId, cut, kind: hit.kind, change };
+          })();
     setHover((prev) =>
-      prev.featureId === next.featureId && prev.cut === next.cut && prev.kind === next.kind
+      prev.featureId === next.featureId &&
+      prev.cut === next.cut &&
+      prev.kind === next.kind &&
+      sameChange(prev.change, next.change)
         ? prev
         : next,
     );
@@ -499,6 +546,9 @@ export function CircularMapView({ doc }: Props) {
       editorStore.setSelection(null);
       setHover(NO_HOVER);
     }
+    // A click on a mark or a deletion's wedge that did not turn into a drag
+    // selects the change, where it would have put the caret (#27).
+    if (g.kind === 'select' && !g.moved && g.change !== null) selectChange(g.change);
     if (g.kind !== 'idle') endGesture();
   };
 
@@ -526,7 +576,7 @@ export function CircularMapView({ doc }: Props) {
 
   const cursor = panning
     ? 'grabbing'
-    : hover.featureId !== null || hover.kind === 'label'
+    : hover.featureId !== null || hover.kind === 'label' || hover.change !== null
       ? 'pointer'
       : hover.kind === 'none' && layout.zoom > 1
         ? 'grab'

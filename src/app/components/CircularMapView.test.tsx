@@ -4,6 +4,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { SeqDocument, createFeature } from '@/core';
 import { CircularLayout, overlayRingRadius } from '@/view/circular';
 
+import { goToChange } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { CircularMapView } from './CircularMapView';
 
@@ -163,5 +164,132 @@ describe('CircularMapView', () => {
     fireEvent.pointerMove(canvas, { ...EMPTY, clientX: 340 });
     fireEvent.pointerUp(canvas, { ...EMPTY, clientX: 340 });
     expect(editorStore.getState().selection).toEqual({ start: 10, end: 20 });
+  });
+});
+
+describe('CircularMapView edit marks', () => {
+  const annotated = SeqDocument.create({
+    name: 'marked',
+    sequence: 'ACGT'.repeat(1000),
+    topology: 'circular',
+    features: [
+      createFeature({
+        id: 'keep',
+        type: 'CDS',
+        name: 'kept',
+        segments: [{ kind: 'range', start: 100, end: 900, partialStart: false, partialEnd: false }],
+      }),
+      createFeature({
+        id: 'gone',
+        type: 'CDS',
+        name: 'lost',
+        segments: [
+          { kind: 'range', start: 2000, end: 2400, partialStart: false, partialEnd: false },
+        ],
+      }),
+    ],
+  });
+
+  /**
+   * The map of the document after three edits since it was opened: 40 bases
+   * inserted at 3,000, ten deleted at 3,600, and the feature at 2,000..2,400
+   * removed — a mark, a wedge and a ghost.
+   */
+  interface Marked {
+    readonly canvas: HTMLCanvasElement;
+    /** A pointer at a position, `offset` pixels outside the backbone (inside when negative). */
+    readonly at: (position: number, offset?: number) => object;
+    /** A pointer on the first feature lane at a position. */
+    readonly inLane: (position: number) => object;
+  }
+  function setupMarked(): Marked {
+    act(() => {
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(annotated);
+      editorStore.setEditsBaseline('opened');
+      editorStore.apply({ type: 'insert', position: 3000, text: 'T'.repeat(40) });
+      editorStore.apply({ type: 'delete', range: { start: 3600, end: 3610 } });
+      editorStore.apply({ type: 'removeFeature', id: 'gone' });
+    });
+    const present = editorStore.getState().history?.present;
+    if (present === undefined) throw new Error('no document');
+    const view = render(<CircularMapView doc={present} />);
+    const canvas = view.container.querySelector('canvas');
+    if (canvas === null) throw new Error('no canvas');
+    canvas.getBoundingClientRect = () => new DOMRect(0, 0, 600, 600);
+    canvas.setPointerCapture = () => undefined;
+    canvas.releasePointerCapture = () => undefined;
+    canvas.hasPointerCapture = () => false;
+    // The ghost fits beside the live feature, so the map still has one lane.
+    const layout = new CircularLayout(present.length, 'circular', {
+      width: 600,
+      height: 600,
+      laneCount: 1,
+      ringWidth: 14,
+      outerMargin: 110,
+    });
+    const pointer = (position: number, r: number): object => {
+      const pt = layout.pointAt(position, r);
+      return { clientX: pt.x, clientY: pt.y, button: 0, pointerId: 7, pointerType: 'mouse' };
+    };
+    return {
+      canvas,
+      at: (position, offset = 0) => pointer(position, layout.radius + offset),
+      inLane: (position) => pointer(position, layout.laneRadius(0)),
+    };
+  }
+  const click = (canvas: HTMLCanvasElement, at: object): void => {
+    fireEvent.pointerDown(canvas, at);
+    fireEvent.pointerUp(canvas, at);
+  };
+
+  it('selects an inserted stretch when its mark is clicked, as Next change would', () => {
+    const { canvas, at } = setupMarked();
+    act(() => {
+      editorStore.setSelection({ start: 2990, end: 2990 });
+      goToChange(1);
+    });
+    const next = editorStore.getState().selection;
+    expect(next?.start).toBe(3000);
+    act(() => {
+      editorStore.setSelection(null);
+    });
+    click(canvas, at(3020));
+    expect(editorStore.getState().selection).toEqual(next);
+  });
+
+  it('still drags a selection that starts on a mark', () => {
+    const { canvas, at } = setupMarked();
+    fireEvent.pointerDown(canvas, at(3020));
+    fireEvent.pointerMove(canvas, at(3300));
+    fireEvent.pointerUp(canvas, at(3300));
+    expect(editorStore.getState().selection).toEqual({ start: 3020, end: 3300 });
+  });
+
+  it('puts the caret where bases were deleted when the wedge is clicked', () => {
+    const { canvas, at } = setupMarked();
+    click(canvas, at(3640, -6));
+    expect(editorStore.getState().selection).toEqual({ start: 3640, end: 3640 });
+  });
+
+  it('selects where a removed feature was when its ghost is clicked', () => {
+    const { canvas, inLane } = setupMarked();
+    click(canvas, inLane(2200));
+    expect(editorStore.getState().selection).toEqual({ start: 2000, end: 2400 });
+    expect(editorStore.getState().selectedFeatureId).toBeNull();
+  });
+
+  it('lets a live feature win its own arc with marks on', () => {
+    const { canvas, inLane } = setupMarked();
+    click(canvas, inLane(500));
+    expect(editorStore.getState().selectedFeatureId).toBe('keep');
+  });
+
+  it('shows a pointer over a mark, and not beside it', () => {
+    const { canvas, at } = setupMarked();
+    fireEvent.pointerMove(canvas, at(3020));
+    expect(canvas.style.cursor).toBe('pointer');
+    fireEvent.pointerMove(canvas, at(1500));
+    expect(canvas.style.cursor).not.toBe('pointer');
   });
 });

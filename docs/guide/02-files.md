@@ -229,9 +229,16 @@ of your own plasmid is usually for.
   forward.
 - **The differences are in this document's coordinates**: what it has that
   the other does not. The map at the top marks them on the ring, so where they
-  fall is the first thing you see. Each neighbourhood of changed bases is
-  drawn the way the sequence view draws tracked changes, and the features
-  added, changed and removed are named below them.
+  fall is the first thing you see, with a feature the other has and this one
+  does not drawn as a broken red ghost where it would be. Each neighbourhood
+  of changed bases is drawn the way the sequence view draws tracked changes,
+  and the features added, changed and removed are named below them.
+- **The map points into the list.** Click a mark or a wedge on it and the
+  review scrolls to the stretch of sequence it is in and lights it for a
+  moment; click a ghost and it goes to that feature's line. The other way
+  round, a removed feature's name in the Features list is a link: click it and
+  its ghost is picked out on the map. Neither changes your selection — the
+  review is not the editor. The same holds in the review before a download.
 - **Features are matched by what they are**, since two files give the same
   feature different internal ids. A feature both agree on to the last
   qualifier is not reported. One that differs is matched to the feature it

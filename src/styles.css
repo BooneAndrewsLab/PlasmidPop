@@ -2449,6 +2449,50 @@ button {
   margin-bottom: 12px;
 }
 
+/* A removed feature the review's map draws as a ghost: its name points at
+   it (#27). A link's look, since it moves nothing but the map's highlight. */
+.save-review__point {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted var(--ink-3);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.save-review__point:hover,
+.save-review__point[aria-pressed='true'] {
+  color: var(--seq-edit-delete);
+}
+
+/* The line a click on the review's map stands for, lit for a moment. */
+.save-review .is-flashed {
+  border-radius: 6px;
+  animation: review-flash 1600ms ease-out;
+}
+
+@keyframes review-flash {
+  0%,
+  40% {
+    background: var(--seq-selection);
+    box-shadow: 0 0 0 4px var(--seq-selection);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-review .is-flashed {
+    animation: none;
+    background: var(--seq-selection);
+  }
+}
+
 .diff-strip__label {
   margin: 0 0 2px;
   font-size: 12px;

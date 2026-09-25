@@ -1,6 +1,12 @@
 import { type CutSite, type DocumentDiff, type SeqDocument } from '@/core';
 
-import { type CircularTheme, CircularLayout, renderCircularMap } from '../circular';
+import {
+  type CircularTheme,
+  CircularLayout,
+  ghostFeatures,
+  lanesWithGhosts,
+  renderCircularMap,
+} from '../circular';
 import { NO_LANES, assignLanes } from '../linear';
 import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
@@ -44,7 +50,14 @@ const PAD_STEPS = [0, 48, 120, 260];
 export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): string {
   const size = options.size ?? 900;
   const features = drawableFeatures(doc.features.all());
-  const lanes = assignLanes(features, doc.length);
+  const edits = options.edits ?? null;
+  // Removed features are drawn as ghosts in the lanes, after the live ones (#27).
+  const lanes = lanesWithGhosts(
+    features,
+    assignLanes(features, doc.length),
+    ghostFeatures(edits),
+    doc.length,
+  );
   const ringWidth = Math.max(12, size / 60);
 
   const render = (pad: number): { svg: string; dropped: number } => {
@@ -68,7 +81,7 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
       // As in the sequence-view export: a preview is not part of the document.
       overlay: NO_OVERLAY,
       overlayLanes: NO_LANES,
-      edits: options.edits ?? null,
+      edits,
       hoveredFeatureId: null,
       hoveredCut: null,
       width: canvas,
