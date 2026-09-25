@@ -1595,20 +1595,26 @@ button {
   }
 }
 
-/* A part arrived on the shelf: the Bench tab's count flashes once (#81). */
+/*
+ * A part arrived on the shelf: the Bench tab's count flashes once (#81).
+ * Colour and a ring only, never a size change: the tab's label cuts what
+ * overflows it with an ellipsis, and a pill scaled past its box was cut
+ * away whole ("Bench…") for as long as it was scaled. A box shadow is
+ * drawn outside the box without counting as overflow.
+ */
 .doctabs__count--pulse {
-  animation: doctabs-count-pulse 900ms ease-out;
+  animation: doctabs-count-pulse 1200ms ease-out;
 }
 
 @keyframes doctabs-count-pulse {
   0%,
-  30% {
+  40% {
     background: var(--accent);
     color: var(--accent-ink);
-    transform: scale(1.25);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
   }
   100% {
-    transform: scale(1);
+    box-shadow: 0 0 0 3px transparent;
   }
 }
 
