@@ -78,12 +78,60 @@ describe('protein properties, against ExPASy ProtParam (#66)', () => {
       expect(p.extinctionCystines).toBe(known.cystines);
       expect(p.extinctionReduced).toBe(known.reduced);
       expect(p.absorbanceCystines).toBeCloseTo(known.cystines / known.mw, 6);
+      expect(p.absorbanceReduced).toBeCloseTo(known.reduced / known.mw, 6);
       expect(p.ambiguous).toBe(0);
     });
   }
 });
 
+/**
+ * Short peptides and ProtParam's pI for each (2026-09-25). Those ending in
+ * Asp or Glu show ProtParam keeps the C-terminal pK at 3.55 after them,
+ * though Bjellqvist gives 4.55 and 4.75 (MKWVDDE would be 4.32 with them);
+ * those near neutral with His show the N-terminal pK of each first residue.
+ */
+const PROTPARAM_PEPTIDES = [
+  { sequence: 'MKWVDDE', pI: 4.03, mw: 922.02 },
+  { sequence: 'MKWVDDD', pI: 3.93 },
+  { sequence: 'MKWVEEE', pI: 4.25 },
+  { sequence: 'GGDDDDD', pI: 3.24 },
+  { sequence: 'MKHHCYE', pI: 6.69, mw: 947.09 },
+  { sequence: 'MKHHWYD', pI: 6.69, mw: 1016.14 },
+  { sequence: 'SKRRGAD', pI: 10.83, mw: 788.86 },
+  { sequence: 'AGHHGGC', pI: 6.95 },
+  { sequence: 'SGHHGGC', pI: 6.65 },
+  { sequence: 'PGHHGGC', pI: 7.28 },
+  { sequence: 'TGHHGGC', pI: 6.61 },
+  { sequence: 'VGHHGGC', pI: 6.88 },
+  { sequence: 'EGHHGGC', pI: 5.99 },
+  { sequence: 'GGHHGGC', pI: 6.91 },
+  { sequence: 'MGHHGGC', pI: 6.68 },
+];
+
+describe('protein properties of short peptides, against ProtParam', () => {
+  for (const known of PROTPARAM_PEPTIDES) {
+    it(`agrees for ${known.sequence}`, () => {
+      const p = proteinProperties(known.sequence);
+      expect(p.isoelectricPoint?.toFixed(2)).toBe(known.pI.toFixed(2));
+      if (known.mw !== undefined) expect(p.molecularWeight.toFixed(2)).toBe(known.mw.toFixed(2));
+    });
+  }
+});
+
 describe('protein properties', () => {
+  it('counts no stop as a residue, ambiguous or otherwise', () => {
+    const p = proteinProperties('MK*L**');
+    expect(p.ambiguous).toBe(0);
+    expect(p.stops).toBe(3);
+    expect(p.counts.has('*')).toBe(false);
+    expect([...p.counts.values()].reduce((a, b) => a + b, 0)).toBe(3);
+  });
+
+  it('weighs each of several copies of an ambiguous code', () => {
+    expect(proteinProperties('XXX').molecularWeight).toBeCloseTo(3 * 110 + 18.01524, 6);
+    expect(proteinProperties('XXX').ambiguous).toBe(3);
+  });
+
   it('reads either case, and leaves stops out of the chain', () => {
     const upper = proteinProperties('MVHLTPEEKS');
     const lower = proteinProperties('mvhltpeeks*');
@@ -116,8 +164,8 @@ describe('protein properties', () => {
     expect(proteinProperties('WYC').extinctionCystines).toBe(5500 + 1490);
   });
 
-  it('takes the terminal residue’s pK for each end', () => {
-    // The same composition, turned round: only the termini's pK differ.
+  it('takes the first residue’s pK for the N-terminus', () => {
+    // The same composition, turned round: only the N-terminus's pK differs.
     const ad = proteinProperties('AKKD');
     const da = proteinProperties('DKKA');
     expect(ad.isoelectricPoint).not.toBeCloseTo(da.isoelectricPoint ?? NaN, 3);

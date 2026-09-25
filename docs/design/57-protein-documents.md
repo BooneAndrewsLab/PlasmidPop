@@ -94,7 +94,11 @@ lysozyme, preproinsulin, GFP, polyubiquitin-B, BSA), to the second decimal.
 - **pI:** the **Bjellqvist** pK set (Bjellqvist et al. 1993, 1994) that
   ProtParam uses: K 10.0, R 12.0, H 5.98, D 4.05, E 4.45, C 9.0, Y 10.0,
   N-terminus 7.5 (7.59 A, 7.0 M, 6.93 S, 8.36 P, 6.82 T, 7.44 V, 7.7 E),
-  C-terminus 3.55 (4.55 D, 4.75 E). Bisection on [0, 14] to 10⁻⁴. EMBOSS's
+  C-terminus 3.55 after every residue. Bjellqvist gives 4.55 after D and
+  4.75 after E, and 1.7 first used them, but ProtParam does not: MKWVDDE is
+  4.03 there and was 4.32 here (found by mutation testing, item 50; peptides
+  ending in D or E are now among the test's ProtParam values). Bisection on
+  [0, 14] to 10⁻⁴. EMBOSS's
   set was the alternative; it gives different answers from ProtParam and
   would have been the one people saw disagree.
 - **Extinction coefficient at 280 nm** (Pace et al. 1995): 5500 per Trp,

@@ -47,8 +47,9 @@ The **Protein** tab gives, for the whole protein or the residues selected:
 
 - **Length** in residues.
 - **Molecular weight**, from average residue masses plus one water.
-- **Theoretical pI**, from the pK values of Bjellqvist et al., with the ends'
-  pK depending on the residue at each end, and the **charge at pH 7**.
+- **Theoretical pI**, from the pK values of Bjellqvist et al., with the
+  N-terminus's pK depending on the first residue, as ExPASy ProtParam
+  computes it, and the **charge at pH 7**.
 - **The extinction coefficient at 280 nm** in water (Pace et al., 1995):
   5500 per Trp and 1490 per Tyr, plus 125 per cystine when every pair of Cys
   forms one. Both values are given, with the absorbance of 1 g/L (Abs 0.1%)
