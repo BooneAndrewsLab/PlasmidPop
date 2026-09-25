@@ -96,9 +96,9 @@ alongside it.
   and quality to click to in the document (the first 50), and the poor
   read bases marked in the alignment. The count is the answer to "does my
   clone match"; the list is where to look.
-- **The document's own read** is not used: when the open document is itself
-  an AB1 and the box holds the reference, its qualities are ignored. Aligning
-  the read into the reference is the usual way round (#57).
+- **The document's own read** was not used at first: when the open
+  document was itself an AB1 and the box held the reference, its qualities
+  were ignored. It is since #57, below.
 
 ## The thresholds as settings (#56)
 
@@ -123,6 +123,39 @@ alongside it.
   aligning again; the status bar's **Read, 92% Q20+** too, so the two never
   disagree about what "good" is. The trim cutoff needs a new alignment,
   since it decides what is aligned.
+
+## The document as the read (#57)
+
+- **Swapped, not a second quality line.** When the open document has an
+  intact read (`doc.read`, which an edit to the bases drops) and the box's
+  record has none, the box is taken as the reference and the document as
+  the read: the pair is sent the other way round. The issue offered two
+  ways: qualities on the first sequence, or swapping. Swapping was chosen
+  because everything about a read — trimming before aligning, choosing and
+  turning its strand, the column qualities, the shading, the trace strip,
+  a difference's kind named from the read's side — is built for the second
+  sequence, and differences are counted against the reference whichever
+  one is open. Qualities on the first line would have meant a second copy
+  of each of those, mirrored. It is automatic rather than a button to swap
+  the text, since the document cannot go into the box; a checkbox, **This
+  document is the read**, ticked by default, gives the old way back.
+- **Positions go back to the document.** The list must select in the
+  document, which is now the read, so a difference also carries
+  `positionB`, its read base (or, for a base the read lacks, the one it
+  comes before). Along the read as aligned, from `offsetB`, it is mirrored
+  back when the read aligned reversed (`readRange`): base _o_ of the
+  reverse complement is base _L_ − 1 − _o_ of the read, the point before
+  it _L_ − _o_. The label names both: **Mismatch at 36 (pRef 41), Q40**.
+  **Select aligned region in this document** selects the aligned read.
+- **A circular reference** in the box (a GenBank record marked circular,
+  or a FASTA header saying so) wraps as a circular document does, so a
+  read through the plasmid's origin still aligns in one piece; the
+  records keep their topology for it. **Against selection only** is off in
+  this mode: a selection of the read has not been asked for.
+- **One path for both** (`app/readAlignment.ts`): trimming and building the
+  pair (`prepareReadAlignment`) and turning the answer into what is shown
+  (`finishReadAlignment`) moved out of the panel, so the usual way, this
+  way and a batch (#59) share them.
 
 ## Long reads (#51)
 
@@ -198,7 +231,7 @@ alongside it.
 ## Follow-ups filed
 
 #55 a toggle for the sequence view's trace; #56 a setting for the Q20
-threshold (done, above); #57 using the document's own read when it is the read; #58
+threshold (done, above); #57 using the document's own read when it is the read (done, above); #58
 exporting a read as FASTQ; #59 aligning every record of a file as a batch.
 
 ## Found on the way

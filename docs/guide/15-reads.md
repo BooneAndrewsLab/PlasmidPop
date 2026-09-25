@@ -31,6 +31,9 @@ in this browser, like the rest of the document:
 - To check a read against a plasmid with its qualities, open the plasmid
   and drop the read on the Align tab's box: see
   [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities).
+  Or, with the read open, drop the plasmid on the box: the read is aligned
+  to it with its own qualities and trace, see
+  [When the document is the read](11-align.md#when-the-document-is-the-read).
 
 A gzipped FASTQ (`.fastq.gz`), as nanopore runs usually come, opens without
 unpacking it first. A FASTQ file holds many reads and a tab holds one: the

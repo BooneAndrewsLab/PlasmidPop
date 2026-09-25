@@ -58,9 +58,9 @@ describe('read differences', () => {
     const q = Array.from({ length: 17 }, (_, i) => (i === 6 ? 12 : 40));
     const cols = columnQualities(alignment, q);
     const diffs = readDifferences(alignment, cols);
-    expect(diffs.map((d) => [d.kind, d.positionA, d.confident])).toEqual([
-      ['mismatch', 6, false],
-      ['insertion', 11, true],
+    expect(diffs.map((d) => [d.kind, d.positionA, d.positionB, d.confident])).toEqual([
+      ['mismatch', 6, 6, false],
+      ['insertion', 11, 11, true],
     ]);
   });
 
@@ -70,6 +70,11 @@ describe('read differences', () => {
     const diffs = readDifferences(alignment, columnQualities(alignment, q));
     expect(diffs).toHaveLength(1);
     expect(diffs[0]?.kind).toBe('deletion');
+    // One of the Cs at 4–7 is missing; the read base after the gap has the
+    // same index as the reference base missing, since all before it match.
+    expect(diffs[0]?.positionA).toBeGreaterThanOrEqual(4);
+    expect(diffs[0]?.positionA).toBeLessThanOrEqual(7);
+    expect(diffs[0]?.positionB).toBe(diffs[0]?.positionA);
     expect(diffs[0]?.quality).toBeLessThanOrEqual(40);
   });
 

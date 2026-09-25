@@ -123,9 +123,11 @@ export const EVENTS = {
   /**
    * `run` names the mode (`global`/`local`); `quality` is a change to the
    * confident threshold or the trimming cutoff (`confident`/`trim`, once
-   * per visit each, never the value chosen, #56).
+   * per visit each, never the value chosen, #56); `document-read` is a run
+   * with the open document as the read and the box as the reference (#57),
+   * once per visit.
    */
-  align: ['run', 'quality'],
+  align: ['run', 'quality', 'document-read'],
   cloning: [
     'ligate',
     'open-fragment',

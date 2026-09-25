@@ -4,18 +4,16 @@ import { type DragEvent, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import {
   type Alignment,
   type AlignmentMode,
+  type Range,
   type ReadDifference,
   type SeqDocument,
   type SequencingRead,
   CONFIDENT_QUALITY_CHOICES,
   TRIM_CUTOFF_CHOICES,
-  columnQualities,
   isEmptyRange,
   normalizeSequenceInput,
   qualityOfError,
   readDifferences,
-  reverseComplementRead,
-  trimByQuality,
 } from '@/core';
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
@@ -23,6 +21,14 @@ import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient
 import { measureCharWidth } from '@/view/linear';
 
 import { SEQUENCE_FILE_ACCEPT } from '../openFile';
+import {
+  type ReadAlignment,
+  type ReferenceInput,
+  alignedReferenceRange,
+  finishReadAlignment,
+  prepareReadAlignment,
+  readRange,
+} from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AlignmentTrace } from './AlignmentTrace';
@@ -36,6 +42,8 @@ const BLOCK = 60;
 interface SequenceRecord {
   readonly name: string;
   readonly sequence: string;
+  /** Whether it is a circle, for a record that is the reference (#57). */
+  readonly circular: boolean;
   /** Its qualities, and an AB1's trace, for a record read from a sequencing file. */
   readonly read?: SequencingRead;
 }
@@ -56,12 +64,15 @@ function readRecords(text: string): Records {
       const records = parseSequenceFile(trimmed).documents.map((d) => ({
         name: d.name,
         sequence: d.sequence.toString(),
+        circular: d.isCircular,
       }));
       return { ok: true, records };
     }
     return {
       ok: true,
-      records: [{ name: 'Pasted sequence', sequence: normalizeSequenceInput(trimmed) }],
+      records: [
+        { name: 'Pasted sequence', sequence: normalizeSequenceInput(trimmed), circular: false },
+      ],
     };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
@@ -95,6 +106,7 @@ async function readFile(file: File): Promise<LoadedFile> {
   const records = parsed.documents.map((d) => ({
     name: d.name,
     sequence: d.sequence.toString(),
+    circular: d.isCircular,
     ...(d.read === null ? {} : { read: d.read }),
   }));
   return { text, records };
@@ -244,25 +256,30 @@ const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
   deletion: 'Base missing from the read',
 };
 
+/** Where a difference is in the document, to select it, and how the list names it. */
+interface Located {
+  readonly range: Range;
+  readonly label: string;
+}
+
 /**
  * What the qualities say about the differences: how many sit on bases the
- * read was sure of (Q20+, or the threshold set, #56) and how many on poor ones, with each confident
- * one listed to be looked at in the document. "Does my clone match" comes
- * down to the first number.
+ * read was sure of (Q20+, or the threshold set, #56) and how many on poor
+ * ones, with each confident one listed to be looked at in the document.
+ * "Does my clone match" comes down to the first number.
  */
 function ReadSummary({
   differences,
   confidentFrom,
-  offset,
-  wrap,
-  docName,
+  referenceName,
+  locate,
   onPick,
 }: {
   differences: readonly ReadDifference[];
   confidentFrom: number;
-  offset: number;
-  wrap: number | null;
-  docName: string;
+  referenceName: string;
+  /** Where each difference is in the document, which is the reference or the read. */
+  locate: (d: ReadDifference) => Located;
   /** Told the column of a difference picked, to show it in the alignment. */
   onPick: (column: number) => void;
 }) {
@@ -272,27 +289,25 @@ function ReadSummary({
     <div className="read-summary">
       <p className="panel__note">
         {differences.length === 0
-          ? `No differences from ${docName} over the aligned stretch.`
+          ? `No differences from ${referenceName} over the aligned stretch.`
           : `${confident.length === 0 ? 'No' : confident.length.toLocaleString()} ${confident.length === 1 ? 'difference' : 'differences'} at confident bases (Q${confidentFrom}+)${poor === 0 ? '' : `, ${poor.toLocaleString()} at poor ones, shaded in the read`}.`}
       </p>
       {confident.length > 0 && (
         <ul className="read-summary__list">
           {confident.slice(0, 50).map((d) => {
-            const at = wrap === null ? offset + d.positionA : (offset + d.positionA) % wrap;
+            const { range, label } = locate(d);
             return (
               <li key={d.column}>
                 <button
                   type="button"
                   className="button button--quiet button--small"
                   onClick={() => {
-                    const end = d.kind === 'insertion' ? at : at + 1;
-                    editorStore.setSelection({ start: at, end });
-                    editorStore.revealPosition(at);
+                    editorStore.setSelection(range);
+                    editorStore.revealPosition(range.start);
                     onPick(d.column);
                   }}
                 >
-                  {KIND_LABEL[d.kind]} at {(d.kind === 'insertion' ? at : at + 1).toLocaleString()}
-                  {d.kind === 'insertion' ? ' (after)' : ''}, Q{d.quality}
+                  {label}, Q{d.quality}
                 </button>
               </li>
             );
@@ -302,6 +317,39 @@ function ReadSummary({
       )}
     </div>
   );
+}
+
+/**
+ * A difference located in the reference, which is the document: a base
+ * the read lacks or has instead is that base, an extra base in the read the
+ * point after the reference base it follows.
+ */
+function locateInReference(result: ReadAlignment, d: ReadDifference): Located {
+  const raw = result.offset + d.positionA;
+  const at = result.wrap === null ? raw : raw % result.wrap;
+  const point = d.kind === 'insertion';
+  return {
+    range: { start: at, end: point ? at : at + 1 },
+    label: `${KIND_LABEL[d.kind]} at ${(point ? at : at + 1).toLocaleString()}${point ? ' (after)' : ''}`,
+  };
+}
+
+/**
+ * A difference located in the read, which is the document (#57): the read
+ * base at the column, or for a base the read lacks the point before the
+ * read base it comes before, mirrored when the read aligned reversed; the
+ * reference position is named beside it.
+ */
+function locateInRead(result: ReadAlignment, d: ReadDifference, referenceName: string): Located {
+  const at = result.offsetB + d.positionB;
+  const point = d.kind === 'deletion';
+  const range = readRange(result, at, point ? at : at + 1);
+  const raw = result.offset + d.positionA;
+  const ref = (result.wrap === null ? raw : raw % result.wrap) + (d.kind === 'insertion' ? 0 : 1);
+  return {
+    range,
+    label: `${KIND_LABEL[d.kind]} at ${(point ? range.start : range.start + 1).toLocaleString()}${point ? ' (after)' : ''} (${referenceName} ${ref.toLocaleString()}${d.kind === 'insertion' ? ', after' : ''})`,
+  };
 }
 
 /** An error rate as a percentage for a label: 5%, 0.1%. */
@@ -365,18 +413,120 @@ function QualitySettings({ trim }: { trim: boolean }) {
   );
 }
 
+/**
+ * One alignment as the Align tab shows it: the heading with its numbers,
+ * a way to select what it covers, the trimming, the differences by
+ * confidence and the blocks. Its own focus and trace toggle, so a new
+ * result starts afresh.
+ */
+function AlignmentResult({ result, docName }: { result: ShownAlignment; docName: string }) {
+  const { readConfidentQuality } = useEditorState();
+  const [showTrace, setShowTrace] = useState(true);
+  const [focus, setFocus] = useState<{ readonly column: number; readonly nonce: number } | null>(
+    null,
+  );
+  const shownAs = result.docIsRead;
+  const referenceName = shownAs === null ? docName : shownAs.referenceName;
+  return (
+    <div className="panel__section">
+      <h3 className="panel__heading">
+        {result.alignment.mode === 'global' ? 'Global alignment' : 'Local alignment'}
+        <span className="panel__heading-note">
+          score {result.alignment.score}, identity {Math.round(result.alignment.identity * 100)}%
+          over {result.alignment.columns.toLocaleString()} columns, {result.alignment.gaps} gap{' '}
+          {result.alignment.gaps === 1 ? 'column' : 'columns'}
+          {result.strand === 'reverse'
+            ? shownAs === null
+              ? ', reverse complement of the pasted sequence'
+              : ', reverse complement of this read'
+            : ''}
+        </span>
+      </h3>
+      <button
+        type="button"
+        className="button button--quiet button--small"
+        onClick={() => {
+          const range =
+            shownAs === null
+              ? alignedReferenceRange(result)
+              : readRange(
+                  result,
+                  result.offsetB + result.alignment.startB,
+                  result.offsetB + result.alignment.endB,
+                );
+          if (range !== null && range.end > range.start) {
+            editorStore.setSelection(range);
+            editorStore.revealPosition(range.start);
+          }
+        }}
+      >
+        Select aligned region in this document
+      </button>
+      {result.trace !== null && (
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={showTrace}
+            onChange={(e) => {
+              setShowTrace(e.target.checked);
+            }}
+          />
+          Show the trace under the read
+        </label>
+      )}
+      {result.trimmed !== null && (
+        <p className="panel__note">
+          {result.trimmed.start + result.trimmed.end === 0
+            ? 'The read’s ends are of good quality; nothing was trimmed.'
+            : `Trimmed ${result.trimmed.start.toLocaleString()} ${result.trimmed.start === 1 ? 'base' : 'bases'} from the start of the read and ${result.trimmed.end.toLocaleString()} from the end, where the quality falls off.`}
+        </p>
+      )}
+      {result.qualities !== null && (
+        <ReadSummary
+          differences={readDifferences(result.alignment, result.qualities, readConfidentQuality)}
+          confidentFrom={readConfidentQuality}
+          referenceName={referenceName}
+          locate={(d) =>
+            shownAs === null
+              ? locateInReference(result, d)
+              : locateInRead(result, d, shownAs.referenceName)
+          }
+          onPick={(column) => {
+            setFocus((f) => ({ column, nonce: (f?.nonce ?? 0) + 1 }));
+          }}
+        />
+      )}
+      <AlignmentBlocks
+        alignment={result.alignment}
+        offsetA={result.offset}
+        offsetB={result.offsetB}
+        wrap={result.wrap}
+        qualities={result.qualities}
+        confidentFrom={readConfidentQuality}
+        trace={showTrace ? result.trace : null}
+        focus={focus}
+      />
+    </div>
+  );
+}
+
+/** An alignment on screen, and which of the two the document was. */
+interface ShownAlignment extends ReadAlignment {
+  /**
+   * Set when the document was the read and the box's record the reference
+   * (#57): the record's name, for the positions named beside the read's.
+   */
+  readonly docIsRead: { readonly referenceName: string } | null;
+}
+
 export function AlignPanel({ doc }: Props) {
-  const { selection, readConfidentQuality, readTrimCutoff } = useEditorState();
+  const { selection, readTrimCutoff } = useEditorState();
   const [other, setOther] = useState('');
   const [picked, setPicked] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<LoadedFile | null>(null);
   const [trim, setTrim] = useState(true);
-  const [showTrace, setShowTrace] = useState(true);
-  const [focus, setFocus] = useState<{ readonly column: number; readonly nonce: number } | null>(
-    null,
-  );
   const fileInput = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<AlignmentMode>('global');
   const [useSelection, setUseSelection] = useState(false);
@@ -384,22 +534,11 @@ export function AlignPanel({ doc }: Props) {
   /** Fraction of the running alignment done; null until it first reports. */
   const [progress, setProgress] = useState<number | null>(null);
   const running = useRef<AbortController | null>(null);
-  const [result, setResult] = useState<{
-    alignment: Alignment;
-    strand: 'forward' | 'reverse';
-    offset: number;
-    /** The document's length when the alignment may run past its origin, else null. */
-    wrap: number | null;
-    /** Where the aligned stretch of the other sequence starts, as numbered on screen. */
-    offsetB: number;
-    lengthB: number;
-    /** Bases trimmed from each end of a read before aligning. */
-    trimmed: { readonly start: number; readonly end: number } | null;
-    /** The read's quality under each column, when it had qualities. */
-    qualities: readonly number[] | null;
-    /** The read with its trace, turned the way it aligned, when it had a trace. */
-    trace: SequencingRead | null;
-  } | null>(null);
+  const [result, setResult] = useState<ShownAlignment | null>(null);
+  /** Counts results, so each new one is drawn afresh (no focus, the trace shown). */
+  const [resultKey, setResultKey] = useState(0);
+  /** Whether a document that is itself a read is aligned as the read (#57). */
+  const [docAsRead, setDocAsRead] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Leaving the tab stops an alignment nobody would see the end of.
@@ -458,86 +597,88 @@ export function AlignPanel({ doc }: Props) {
     load(e.dataTransfer.files[0]);
   };
 
+  // The document is itself a read (an opened AB1 or FASTQ, still as it came
+  // off the sequencer) and the box holds a plain sequence: the box is taken
+  // as the reference and the document as the read, so its qualities and
+  // trace are used (#57). A box that holds a read of its own keeps the usual
+  // way round.
+  const docRead = doc.read;
+  const docIsRead = docRead !== null && record?.read === undefined && docAsRead;
+  /** The qualities the alignment will use, if any: the record's or the document's. */
+  const readInUse = docIsRead ? docRead : (record?.read ?? null);
+
   const run = (): void => {
     if (!parsed.ok) {
       setError(parsed.message);
       return;
     }
-    const full = record?.sequence ?? '';
-    if (full === '') {
-      setError('Paste the sequence to align against this document.');
-      return;
-    }
-    // A read's unreliable ends are trimmed off before it is aligned (#50).
-    const readData = record?.read ?? null;
-    const allQualities = readData?.qualities ?? null;
-    const kept =
-      allQualities !== null && trim
-        ? trimByQuality(allQualities, readTrimCutoff)
-        : { start: 0, end: full.length };
-    if (kept.end <= kept.start) {
+    if (record === undefined || record.sequence === '') {
       setError(
-        'No stretch of this read is of good enough quality to align. Untick the trimming to align it all.',
+        docIsRead
+          ? 'Paste the reference to align this read against.'
+          : 'Paste the sequence to align against this document.',
       );
       return;
     }
-    const b = full.slice(kept.start, kept.end);
-    const qualities = allQualities === null ? null : allQualities.slice(kept.start, kept.end);
-    const trimmed =
-      allQualities !== null && trim ? { start: kept.start, end: full.length - kept.end } : null;
-    const target =
-      useSelection && selection !== null && hasSelection
-        ? selection
-        : { start: 0, end: doc.length };
-    // A read of a circular plasmid may run through its origin: a local
-    // alignment is made against the sequence with its start repeated after
-    // its end, far enough for the read to fit (#51).
-    const whole = target.start === 0 && target.end === doc.length;
-    const wrap = whole && doc.isCircular && mode === 'local' && doc.length > 1 ? doc.length : null;
-    const own = doc.subsequence(target);
-    const a = wrap === null ? own : own + own.slice(0, Math.min(b.length, own.length - 1));
+    let reference: ReferenceInput;
+    let prepared;
+    if (docIsRead) {
+      // A read of a circular reference may run through its origin, as below.
+      const wrap =
+        record.circular && mode === 'local' && record.sequence.length > 1
+          ? record.sequence.length
+          : null;
+      reference = { sequence: record.sequence, offset: 0, wrap };
+      prepared = prepareReadAlignment(
+        reference,
+        { sequence: doc.sequence.toString(), read: docRead },
+        trim ? readTrimCutoff : null,
+      );
+    } else {
+      const target =
+        useSelection && selection !== null && hasSelection
+          ? selection
+          : { start: 0, end: doc.length };
+      // A read of a circular plasmid may run through its origin: a local
+      // alignment is made against the sequence with its start repeated after
+      // its end, far enough for the read to fit (#51).
+      const whole = target.start === 0 && target.end === doc.length;
+      const wrap =
+        whole && doc.isCircular && mode === 'local' && doc.length > 1 ? doc.length : null;
+      reference = { sequence: doc.subsequence(target), offset: target.start, wrap };
+      // A read's unreliable ends are trimmed off before it is aligned (#50).
+      prepared = prepareReadAlignment(
+        reference,
+        { sequence: record.sequence, read: record.read ?? null },
+        trim ? readTrimCutoff : null,
+      );
+    }
+    if (!prepared.ok) {
+      setError(prepared.message);
+      return;
+    }
+    const { job } = prepared;
+    const shownAs = docIsRead ? { referenceName: record.name } : null;
     analytics.track('align', 'run', mode);
+    if (docIsRead) analytics.trackOnce('align', 'document-read');
     const controller = new AbortController();
     running.current = controller;
     setBusy(true);
     setProgress(null);
     setError(null);
     analysisClient
-      .alignEitherStrand(a, b, { mode }, { onProgress: setProgress, signal: controller.signal })
+      .alignEitherStrand(
+        job.a,
+        job.b,
+        { mode },
+        {
+          onProgress: setProgress,
+          signal: controller.signal,
+        },
+      )
       .then((best) => {
-        const reverse = best.strand === 'reverse';
-        // The reverse complement's qualities run the other way; so does its
-        // numbering, which counts along the reverse complement of the whole read.
-        const oriented =
-          qualities === null ? null : reverse ? qualities.slice().reverse() : qualities;
-        // Found wholly in the repeated start: the same alignment one turn back.
-        const turn = wrap !== null && best.alignment.startA >= wrap ? wrap : 0;
-        const alignment =
-          turn === 0
-            ? best.alignment
-            : {
-                ...best.alignment,
-                startA: best.alignment.startA - turn,
-                endA: best.alignment.endA - turn,
-              };
-        setFocus(null);
-        setResult({
-          ...best,
-          alignment,
-          offset: target.start,
-          wrap,
-          offsetB: reverse ? full.length - kept.end : kept.start,
-          lengthB: b.length,
-          trimmed,
-          qualities: oriented === null ? null : columnQualities(alignment, oriented),
-          // The whole read, so the trace keeps the read's own numbering.
-          trace:
-            readData?.trace === null || readData === null
-              ? null
-              : reverse
-                ? reverseComplementRead(readData)
-                : readData,
-        });
+        setResultKey((k) => k + 1);
+        setResult({ ...finishReadAlignment(job, best), docIsRead: shownAs });
       })
       .catch((e: unknown) => {
         if (e instanceof AnalysisCancelledError) return;
@@ -553,9 +694,25 @@ export function AlignPanel({ doc }: Props) {
   return (
     <div className="panel">
       <p className="panel__note">
-        Align another sequence to {useSelection && hasSelection ? 'the selection' : doc.name}.
-        Whichever orientation of it aligns better is shown.
+        {docIsRead
+          ? `${doc.name} is a read: it is aligned to the sequence in the box, as the reference, with its own qualities${docRead.trace === null ? '' : ' and trace'}. Whichever orientation of it aligns better is shown.`
+          : `Align another sequence to ${useSelection && hasSelection ? 'the selection' : doc.name}. Whichever orientation of it aligns better is shown.`}
       </p>
+      {docRead !== null && record?.read === undefined && (
+        <label
+          className="toggle"
+          title="Untick to align the box's sequence to this document instead, as to any other; the read's qualities are then not used"
+        >
+          <input
+            type="checkbox"
+            checked={docAsRead}
+            onChange={(e) => {
+              setDocAsRead(e.target.checked);
+            }}
+          />
+          This document is the read
+        </label>
+      )}
       <textarea
         className={`panel__textarea${dragging ? ' panel__textarea--over' : ''}`}
         rows={5}
@@ -635,7 +792,7 @@ export function AlignPanel({ doc }: Props) {
             <option value="local">Local (best region)</option>
           </select>
         </label>
-        {record?.read !== undefined && (
+        {readInUse !== null && (
           <label
             className="toggle"
             title={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
@@ -653,8 +810,8 @@ export function AlignPanel({ doc }: Props) {
         <label className="toggle">
           <input
             type="checkbox"
-            checked={useSelection && hasSelection}
-            disabled={!hasSelection}
+            checked={useSelection && hasSelection && !docIsRead}
+            disabled={!hasSelection || docIsRead}
             onChange={(e) => {
               setUseSelection(e.target.checked);
             }}
@@ -670,7 +827,7 @@ export function AlignPanel({ doc }: Props) {
           {busy ? 'Aligning…' : 'Align'}
         </button>
       </div>
-      {record?.read !== undefined && <QualitySettings trim={trim} />}
+      {readInUse !== null && <QualitySettings trim={trim} />}
       {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
       {busy && progress !== null && (
         <div className="align-progress">
@@ -695,82 +852,7 @@ export function AlignPanel({ doc }: Props) {
         </div>
       )}
       {error !== null && <p className="panel__error">{error}</p>}
-      {result !== null && (
-        <div className="panel__section">
-          <h3 className="panel__heading">
-            {result.alignment.mode === 'global' ? 'Global alignment' : 'Local alignment'}
-            <span className="panel__heading-note">
-              score {result.alignment.score}, identity {Math.round(result.alignment.identity * 100)}
-              % over {result.alignment.columns.toLocaleString()} columns, {result.alignment.gaps}{' '}
-              gap {result.alignment.gaps === 1 ? 'column' : 'columns'}
-              {result.strand === 'reverse' ? ', reverse complement of the pasted sequence' : ''}
-            </span>
-          </h3>
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            onClick={() => {
-              const start = result.offset + result.alignment.startA;
-              // Past the origin is fine (a wrapping range); round it more than once is not.
-              const end = Math.min(
-                result.offset + result.alignment.endA,
-                start + (result.wrap ?? Number.POSITIVE_INFINITY),
-              );
-              if (end > start) {
-                editorStore.setSelection({ start, end });
-                editorStore.revealPosition(start);
-              }
-            }}
-          >
-            Select aligned region in this document
-          </button>
-          {result.trace !== null && (
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={showTrace}
-                onChange={(e) => {
-                  setShowTrace(e.target.checked);
-                }}
-              />
-              Show the trace under the read
-            </label>
-          )}
-          {result.trimmed !== null && (
-            <p className="panel__note">
-              {result.trimmed.start + result.trimmed.end === 0
-                ? 'The read’s ends are of good quality; nothing was trimmed.'
-                : `Trimmed ${result.trimmed.start.toLocaleString()} ${result.trimmed.start === 1 ? 'base' : 'bases'} from the start of the read and ${result.trimmed.end.toLocaleString()} from the end, where the quality falls off.`}
-            </p>
-          )}
-          {result.qualities !== null && (
-            <ReadSummary
-              differences={readDifferences(
-                result.alignment,
-                result.qualities,
-                readConfidentQuality,
-              )}
-              confidentFrom={readConfidentQuality}
-              offset={result.offset}
-              wrap={result.wrap}
-              docName={doc.name}
-              onPick={(column) => {
-                setFocus((f) => ({ column, nonce: (f?.nonce ?? 0) + 1 }));
-              }}
-            />
-          )}
-          <AlignmentBlocks
-            alignment={result.alignment}
-            offsetA={result.offset}
-            offsetB={result.offsetB}
-            wrap={result.wrap}
-            qualities={result.qualities}
-            confidentFrom={readConfidentQuality}
-            trace={showTrace ? result.trace : null}
-            focus={focus}
-          />
-        </div>
-      )}
+      {result !== null && <AlignmentResult key={resultKey} result={result} docName={doc.name} />}
     </div>
   );
 }

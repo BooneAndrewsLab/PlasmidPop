@@ -93,6 +93,12 @@ export interface ReadDifference {
   /** 0-based position in the first sequence (the reference) the column is at or after. */
   readonly positionA: number;
   /**
+   * 0-based position in the second sequence (the read, as aligned) the
+   * column is at, or for a base missing from the read the read base it
+   * comes before.
+   */
+  readonly positionB: number;
+  /**
    * Quality of the read's base; for a deletion, the lower of the read bases
    * either side of it, since a base the read does not have has no quality.
    */
@@ -132,6 +138,7 @@ export function readDifferences(
 ): ReadDifference[] {
   const out: ReadDifference[] = [];
   let a = alignment.startA;
+  let b = alignment.startB;
   for (let c = 0; c < alignment.columns; c++) {
     const x = alignment.alignedA.charAt(c);
     const y = alignment.alignedB.charAt(c);
@@ -142,9 +149,17 @@ export function readDifferences(
     else if (y === '-') kind = 'deletion';
     else if (mark === '.') kind = 'mismatch';
     if (kind !== null) {
-      out.push({ column: c, kind, positionA: a, quality, confident: quality >= confidentFrom });
+      out.push({
+        column: c,
+        kind,
+        positionA: a,
+        positionB: b,
+        quality,
+        confident: quality >= confidentFrom,
+      });
     }
     if (x !== '-') a++;
+    if (y !== '-') b++;
   }
   return out;
 }

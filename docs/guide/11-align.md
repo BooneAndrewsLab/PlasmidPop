@@ -71,6 +71,31 @@ for what the qualities are.
   also brings its block into view and marks it. **Show the trace under the
   read** turns it off.
 
+## When the document is the read
+
+Opened the AB1 or FASTQ itself, and want to check it against the plasmid?
+Paste or drop the plasmid (or any reference) into the box. While the open
+document is a read — opened from an AB1 or FASTQ, its bases unedited — and
+the box holds a sequence without qualities of its own, the note above the
+box says **… is a read**, and the document is aligned _to_ the box: the box
+is the reference, the document the read. Its qualities and trace are then
+used as above — trimming, confident and poor differences, the shading, the
+trace under each block.
+
+- The top line of each block is the reference, numbered as the box's
+  sequence; the bottom is the read, numbered along the read (or along its
+  reverse complement, when that is what aligned).
+- Each confident difference is named at its place in the read, with the
+  reference position beside it: **Mismatch at 36 (pRef 41), Q40**.
+  Clicking it selects that base in the document, the read. **Select aligned
+  region in this document** selects the stretch of the read that aligned.
+- A GenBank reference marked circular is aligned through its origin, as a
+  circular document is.
+- **Against selection only** does not apply: the whole read is aligned.
+- Untick **This document is the read** to align the box's sequence to the
+  document the usual way round, without the qualities. A box that holds a
+  read of its own (a dropped AB1 or FASTQ) is always aligned the usual way.
+
 ## Scoring and limits
 
 Scores use match +5, mismatch −4, gap open −10 and gap extend −0.5 (the

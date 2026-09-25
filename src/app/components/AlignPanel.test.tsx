@@ -251,6 +251,103 @@ describe('AlignPanel', () => {
       });
     });
 
+    describe('when the document is the read (#57)', () => {
+      const qualities = Uint8Array.from(quality, (c) => c.charCodeAt(0) - 33);
+      const readDoc = SeqDocument.create({
+        name: 'read1',
+        sequence: read,
+        read: { qualities, trace: null },
+      });
+      const rcDoc = SeqDocument.create({
+        name: 'read1rc',
+        sequence: reverseComplement(read),
+        read: { qualities: qualities.slice().reverse(), trace: null },
+      });
+
+      async function alignToBox(d: SeqDocument): Promise<void> {
+        act(() => {
+          editorStore.openDocument(d);
+        });
+        render(<AlignPanel doc={d} />);
+        fireEvent.change(box(), { target: { value: `>pRef\n${reference}\n` } });
+        fireEvent.change(screen.getByRole('combobox', { name: '' }), {
+          target: { value: 'local' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+        await waitFor(() => {
+          expect(screen.getByText(/Local alignment/)).toBeInTheDocument();
+        });
+      }
+
+      it('aligns the document as the read, with its qualities, to the box', async () => {
+        await alignToBox(readDoc);
+        expect(
+          screen.getByText(/read1 is a read: it is aligned to the sequence in the box/),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'This document is the read' })).toBeChecked();
+        expect(
+          screen.getByText(/Trimmed 5 bases from the start of the read and 5 from the end/),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(/1 difference at confident bases \(Q20\+\), 1 at poor ones/),
+        ).toBeInTheDocument();
+        expect(
+          [...document.querySelectorAll('.alignment__q-low')].map((e) => e.textContent).join(''),
+        ).toBe(middle[10]);
+        // Named at its place in the read, which is the document, and in the reference.
+        fireEvent.click(screen.getByRole('button', { name: /Mismatch at 36 \(pRef 41\), Q40/ }));
+        expect(editorStore.getState().selection).toEqual({ start: 35, end: 36 });
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Select aligned region in this document' }),
+        );
+        expect(editorStore.getState().selection).toEqual({ start: 5, end: 45 });
+      });
+
+      it('finds a difference in a read that aligned reversed', async () => {
+        await alignToBox(rcDoc);
+        expect(screen.getByText(/reverse complement of this read/)).toBeInTheDocument();
+        // Base 35 of the read is base 50 − 1 − 35 = 14 of its reverse complement.
+        fireEvent.click(screen.getByRole('button', { name: /Mismatch at 15 \(pRef 41\), Q40/ }));
+        expect(editorStore.getState().selection).toEqual({ start: 14, end: 15 });
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Select aligned region in this document' }),
+        );
+        expect(editorStore.getState().selection).toEqual({ start: 5, end: 45 });
+      });
+
+      it('aligns the other way round, without qualities, when told to', async () => {
+        act(() => {
+          editorStore.openDocument(readDoc);
+        });
+        render(<AlignPanel doc={readDoc} />);
+        fireEvent.change(box(), { target: { value: `>pRef\n${reference}\n` } });
+        fireEvent.click(screen.getByRole('checkbox', { name: 'This document is the read' }));
+        expect(screen.getByText(/Align another sequence to read1/)).toBeInTheDocument();
+        expect(screen.queryByRole('checkbox', { name: 'Trim poor ends' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+        await waitFor(() => {
+          expect(screen.getByText(/Global alignment/)).toBeInTheDocument();
+        });
+        expect(document.querySelector('.read-summary')).toBeNull();
+      });
+
+      it('keeps the usual way round when the box holds a read of its own', async () => {
+        act(() => {
+          editorStore.openDocument(readDoc);
+        });
+        render(<AlignPanel doc={readDoc} />);
+        fireEvent.drop(
+          box(),
+          fileDrop(new File([`@read2\n${read}\n+\n${quality}\n`], 'read2.fastq')),
+        );
+        await waitFor(() => {
+          expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
+        });
+        expect(screen.queryByRole('checkbox', { name: 'This document is the read' })).toBeNull();
+        expect(screen.getByText(/Align another sequence to read1/)).toBeInTheDocument();
+      });
+    });
+
     it('forgets the qualities once the text is edited', async () => {
       await alignDropped();
       fireEvent.change(box(), { target: { value: `>read1\n${read}` } });
