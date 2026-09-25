@@ -489,6 +489,64 @@ describe('the anchor index', () => {
     expect(buildAnnealIndex('ACGTA', 'linear', 5)?.starts.length).toBe(1);
     expect(buildAnnealIndex('ACGTANACGT', 'linear', 5)?.irregular).toEqual([1, 2, 3, 4, 5]);
   });
+
+  it('keeps every plain window once, and the irregular ones apart', () => {
+    const plain = (index: ReturnType<typeof buildAnnealIndex>) =>
+      Array.from(index?.starts ?? []).sort((a, b) => a - b);
+    // Six windows on the line, five of them holding the N; on the circle
+    // four more run through the origin, all of them plain.
+    expect(plain(buildAnnealIndex('ACGTANACGT', 'linear', 5))).toEqual([0]);
+    expect(plain(buildAnnealIndex('ACGTANACGT', 'circular', 5))).toEqual([0, 6, 7, 8, 9]);
+    expect(buildAnnealIndex('ACGTANACGT', 'circular', 5)?.irregular).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('is not used for a circle when it was built for a line', () => {
+    // A line's index has no windows through the origin, so it would miss
+    // the sites whose 3′ anchor lies across it.
+    const L = TEMPLATE.length;
+    const index = buildAnnealIndex(TEMPLATE, 'linear');
+    for (const [strand, start] of [
+      ['forward', L - 18],
+      ['reverse', L - 2],
+    ] as const) {
+      const primer = primerAt(TEMPLATE, start, 20, strand);
+      const walked = findAnnealingSites(TEMPLATE, 'circular', primer);
+      expect(walked).toContainEqual(
+        expect.objectContaining({ range: { start, end: start + 20 }, strand }),
+      );
+      expect(findAnnealingSites(TEMPLATE, 'circular', primer, {}, index)).toEqual(walked);
+    }
+  });
+
+  it('is not used when the anchor asked for is shorter than its words', () => {
+    // Built for a five-base anchor; searched with two, a mismatch three
+    // bases from the 3′ end is allowed, and its site is in no word of the index.
+    const index = buildAnnealIndex(TEMPLATE, 'linear', 5);
+    const options = { exactThreePrime: 2, maxMismatches: 2 };
+    for (const strand of ['forward', 'reverse'] as const) {
+      const clean = primerAt(TEMPLATE, 200, 20, strand);
+      const primer = mutate(clean, 20 - 1 - 3);
+      const walked = findAnnealingSites(TEMPLATE, 'linear', primer, options);
+      expect(walked).toContainEqual(
+        expect.objectContaining({ range: { start: 200, end: 220 }, strand, mismatches: 1 }),
+      );
+      expect(findAnnealingSites(TEMPLATE, 'linear', primer, options, index)).toEqual(walked);
+    }
+  });
+
+  it('lists sites sharing a start in the order the walk does, through the origin too', () => {
+    // A repetitive circle where one start has a site ending at each of
+    // eleven places, some of them past the origin: the index's windows come
+    // grouped by word and unrolled, and must be put back in order.
+    const template = 'AAAAAACAACCAACCAACAAAAAAAA';
+    const primer = 'AAAACAAAAAAAAAAAAAAA';
+    const options = { exactThreePrime: 3, maxMismatches: 0, minAnneal: 4 };
+    const walked = findAnnealingSites(template, 'circular', primer, options);
+    expect(walked.map((s) => s.range.start)).toEqual(Array<number>(11).fill(18));
+    expect(walked.some((s) => s.range.end > template.length)).toBe(true);
+    const index = buildAnnealIndex(template, 'circular', 3);
+    expect(findAnnealingSites(template, 'circular', primer, options, index)).toEqual(walked);
+  });
 });
 
 describe('preparePrimers', () => {

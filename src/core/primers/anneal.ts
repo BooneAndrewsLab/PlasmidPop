@@ -233,8 +233,10 @@ export function buildAnnealIndex(
 
 /**
  * Starts of the windows whose plain bases the `k` codes of `anchor` pair
- * with, and the irregular windows, ascending. A code expands to each base it
- * stands for, so a degenerate anchor looks up each word of its mix.
+ * with, and the irregular windows, in no particular order: the forward ends
+ * made from them are sorted, and reverse starts, one site each at most, are
+ * put in order with the sites. A code expands to each base it stands for, so
+ * a degenerate anchor looks up each word of its mix.
  */
 function anchorWindows(index: AnnealIndex, anchor: string): number[] {
   let words = [0];
@@ -254,7 +256,7 @@ function anchorWindows(index: AnnealIndex, anchor: string): number[] {
     const to = index.offsets[w + 1] ?? 0;
     for (let i = from; i < to; i++) out.push(index.starts[i] ?? 0);
   }
-  return out.sort((a, b) => a - b);
+  return out;
 }
 
 /**
