@@ -4,6 +4,8 @@ import {
   type AnnealOptions,
   type CutSite,
   type EnzymeSet,
+  type FeatureHit,
+  type LibraryPart,
   type Orf,
   type OrfOptions,
   type PrimerSearch,
@@ -65,7 +67,27 @@ export type AnalysisRequest =
         readonly sequence: string;
       }[];
       readonly options: AnnealOptions;
+    }
+  | {
+      /** The bundled library's parts found in `sequence` (item 59). */
+      readonly id: number;
+      readonly kind: 'detectFeatures';
+      readonly sequence: string;
+      readonly topology: Topology;
+      readonly minIdentity?: number;
     };
+
+/**
+ * A part of the library as the main thread is told of it: everything but
+ * its bases, which only the worker needs (and which it alone loads).
+ */
+export type DetectedPart = Omit<LibraryPart, 'sequence'>;
+
+/** A hit with the part it is a hit of. */
+export interface Detection {
+  readonly hit: FeatureHit;
+  readonly part: DetectedPart;
+}
 
 export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'setEnzymes' }
@@ -78,6 +100,11 @@ export type AnalysisResponse =
       readonly result: StrandedAlignment;
     }
   | { readonly id: number; readonly kind: 'findPrimers'; readonly result: PrimerSearch }
+  | {
+      readonly id: number;
+      readonly kind: 'detectFeatures';
+      readonly detections: readonly Detection[];
+    }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

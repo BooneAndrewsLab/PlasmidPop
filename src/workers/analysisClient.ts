@@ -12,8 +12,13 @@ import {
   setActiveEnzymeSet,
 } from '@/core';
 
-import { handleAnalysisRequest } from './analysis.worker';
-import { type AnalysisRequest, type AnalysisResponse, unpackCutSites } from './analysisProtocol';
+import { handleAnalysisRequestAsync } from './analysis.worker';
+import {
+  type AnalysisRequest,
+  type AnalysisResponse,
+  type Detection,
+  unpackCutSites,
+} from './analysisProtocol';
 
 interface Pending {
   readonly request: AnalysisRequest;
@@ -91,7 +96,7 @@ export class AnalysisClient {
     const full: AnalysisRequest = { ...req, id };
     const worker = this.ensureWorker();
     // Inline, the work runs to the end before a signal could be looked at.
-    if (worker === null) return Promise.resolve(handleAnalysisRequest(full, onProgress));
+    if (worker === null) return handleAnalysisRequestAsync(full, onProgress);
     return new Promise((resolve, reject) => {
       this.pending.set(
         id,
@@ -187,6 +192,24 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'findPrimers') throw new Error('Unexpected analysis response');
     return res.result;
+  }
+
+  /** The bundled library's parts found in `sequence`, on both strands (item 59). */
+  async detectFeatures(
+    sequence: string,
+    topology: Topology,
+    minIdentity?: number,
+    long: LongRequestOptions = {},
+  ): Promise<readonly Detection[]> {
+    const res = await this.send(
+      minIdentity === undefined
+        ? { kind: 'detectFeatures', sequence, topology }
+        : { kind: 'detectFeatures', sequence, topology, minIdentity },
+      long,
+    );
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'detectFeatures') throw new Error('Unexpected analysis response');
+    return res.detections;
   }
 
   dispose(): void {

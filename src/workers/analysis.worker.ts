@@ -1,14 +1,25 @@
 import {
+  type FeatureLibrary,
   activeEnzymes,
   alignEitherStrand,
   alignPairwise,
   findCollectionPrimers,
+  detectFeatures,
   findCutSites,
   findOrfs,
+  loadFeatureLibrary,
   setActiveEnzymeSet,
 } from '@/core';
 
-import { type AnalysisRequest, type AnalysisResponse, packCutSites } from './analysisProtocol';
+import {
+  type AnalysisRequest,
+  type AnalysisResponse,
+  type DetectedPart,
+  packCutSites,
+} from './analysisProtocol';
+
+/** The feature library once loaded; Detect features loads it on first use. */
+let library: FeatureLibrary | null = null;
 
 /**
  * Pure function so the same code runs inline where Workers are unavailable
@@ -55,10 +66,47 @@ export function handleAnalysisRequest(
           kind: 'findPrimers',
           result: findCollectionPrimers(req.sequence, req.topology, req.primers, req.options),
         };
+      case 'detectFeatures': {
+        const lib = library;
+        if (lib === null) throw new Error('The feature library is not loaded');
+        const hits = detectFeatures(req.sequence, req.topology, lib, {
+          ...(req.minIdentity === undefined ? {} : { minIdentity: req.minIdentity }),
+          ...(onProgress === undefined ? {} : { onProgress }),
+        });
+        return {
+          id: req.id,
+          kind: 'detectFeatures',
+          detections: hits.flatMap((hit) => {
+            const found = lib.parts[hit.part];
+            if (found === undefined) return [];
+            const { sequence: _bases, ...part } = found;
+            return [{ hit, part: part satisfies DetectedPart }];
+          }),
+        };
+      }
     }
   } catch (e) {
     return { id: req.id, kind: 'error', message: e instanceof Error ? e.message : String(e) };
   }
+}
+
+/**
+ * `handleAnalysisRequest`, with what a request needs loaded first: the
+ * feature library, a chunk of its own fetched the first time Detect features
+ * runs, so no other request waits for it.
+ */
+export async function handleAnalysisRequestAsync(
+  req: AnalysisRequest,
+  onProgress?: (fraction: number) => void,
+): Promise<AnalysisResponse> {
+  if (req.kind === 'detectFeatures' && library === null) {
+    try {
+      library = await loadFeatureLibrary();
+    } catch (e) {
+      return { id: req.id, kind: 'error', message: e instanceof Error ? e.message : String(e) };
+    }
+  }
+  return handleAnalysisRequest(req, onProgress);
 }
 
 const scope = globalThis as {
@@ -68,11 +116,12 @@ const scope = globalThis as {
 if (typeof scope.postMessage === 'function' && typeof document === 'undefined') {
   scope.onmessage = (ev: MessageEvent<AnalysisRequest>) => {
     const { id } = ev.data;
-    const res = handleAnalysisRequest(ev.data, (fraction) => {
+    void handleAnalysisRequestAsync(ev.data, (fraction) => {
       scope.postMessage?.({ id, kind: 'progress', fraction });
+    }).then((res) => {
+      // The packed sites are handed over rather than copied.
+      if (res.kind === 'cutSites') scope.postMessage?.(res, [res.sites.data.buffer]);
+      else scope.postMessage?.(res);
     });
-    // The packed sites are handed over rather than copied.
-    if (res.kind === 'cutSites') scope.postMessage?.(res, [res.sites.data.buffer]);
-    else scope.postMessage?.(res);
   };
 }

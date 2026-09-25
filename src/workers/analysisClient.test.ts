@@ -1,3 +1,5 @@
+import pBR322 from '@/io/fixtures/J01749.gb?raw';
+import { parseSequenceFile } from '@/io';
 import { AnalysisCancelledError, AnalysisClient } from './analysisClient';
 import { packCutSites, unpackCutSites } from './analysisProtocol';
 
@@ -27,6 +29,21 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(result.hits.map((h) => [h.primerId, h.name, h.range.start, h.strand])).toEqual([
       ['f', 'fwd', 5, 'forward'],
     ]);
+  });
+
+  it('detects features, loading the library first, and names the parts it found', async () => {
+    const [doc] = parseSequenceFile(pBR322, 'J01749.gb').documents;
+    if (doc === undefined) throw new Error('no fixture');
+    const found = await client.detectFeatures(doc.sequence.toString(), doc.topology);
+    const amp = found.find((d) => d.part.name === 'AmpR');
+    // bla is complement(3293..4153) in J01749, the record the part is read from.
+    expect(amp?.hit).toMatchObject({
+      range: { start: 3292, end: 4153 },
+      strand: 'reverse',
+      mismatches: 0,
+    });
+    expect(amp?.part).toMatchObject({ accession: 'J01749.1', source: 'core' });
+    expect(amp?.part).not.toHaveProperty('sequence');
   });
 
   it('uses the worker when a factory is provided', async () => {
