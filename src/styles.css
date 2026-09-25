@@ -1207,8 +1207,37 @@ button {
   background: var(--seq-selection);
 }
 
-.frame__copy {
+.frame__actions {
+  display: flex;
+  gap: 4px;
   margin-left: auto;
+}
+
+/* The CDS features of the Translate panel, each one a protein away (#66). */
+.coding-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.coding-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.coding-list__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coding-list .button {
+  margin-left: auto;
+  flex: none;
 }
 
 .frame__protein {
@@ -2581,6 +2610,51 @@ button {
 .compare-checksums code {
   font-family: var(--font-mono);
   font-size: 11px;
+  color: var(--ink-2);
+}
+
+/* The Protein tab (#66): what ProtParam would say, one fact a line. */
+.protein-facts {
+  margin: 0 0 12px;
+  display: grid;
+  gap: 3px;
+  font-size: 12.5px;
+}
+
+.protein-facts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.protein-facts dt {
+  color: var(--ink-3);
+}
+
+.protein-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.protein-composition {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 8px;
+}
+
+.protein-composition th {
+  padding: 1px 10px 1px 0;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-align: left;
+}
+
+.protein-composition td {
+  padding: 1px 0 1px 12px;
+  text-align: right;
   color: var(--ink-2);
 }
 

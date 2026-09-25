@@ -92,6 +92,8 @@ export function isStaleTranslation(problem: TranslationProblem): boolean {
  * the origin — because the file's own author translated the same bases.
  */
 export function checkCdsTranslation(doc: SeqDocument, feature: Feature): TranslationProblem[] {
+  // A protein's CDS feature is the residues it came from, not codons to read (#66).
+  if (doc.isProtein) return [];
   const problems: TranslationProblem[] = [];
   const t = translateCds(doc, feature);
   if (t.unknownTable !== null) {

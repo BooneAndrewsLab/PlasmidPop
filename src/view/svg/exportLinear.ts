@@ -4,6 +4,7 @@ import {
   type Range,
   type SeqDocument,
   CdsTranslations,
+  formatLength,
   isCodingFeature,
   rangePieces,
   rangeWraps,
@@ -270,8 +271,8 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
   const { body, height } = stacked(p, p.runs);
   const shown =
     options.range == null
-      ? `${doc.length.toLocaleString()} bp`
-      : `bases ${spansOf(p.runs)} of ${doc.length.toLocaleString()} bp`;
+      ? formatLength(doc.length, doc.alphabet)
+      : `bases ${spansOf(p.runs)} of ${formatLength(doc.length, doc.alphabet)}`;
   const title = `<title>${escapeSvgText(`${doc.name} sequence`)}</title>`;
   const desc = `<desc>${escapeSvgText(`${shown}, ${doc.topology}. Exported from PlasmidPop.`)}</desc>`;
   return (
@@ -335,7 +336,7 @@ export function exportLinearSvgPages(
   return pages.map((runs, i) => {
     const { body, height } = stacked(p, runs);
     const scale = Math.min(fit, room / Math.max(1, height));
-    const label = `${doc.name} — bases ${spansOf(runs)} of ${doc.length.toLocaleString()} bp — page ${i + 1} of ${pages.length}`;
+    const label = `${doc.name} — bases ${spansOf(runs)} of ${formatLength(doc.length, doc.alphabet)} — page ${i + 1} of ${pages.length}`;
     const paper =
       options.transparent === true
         ? ''
@@ -343,7 +344,7 @@ export function exportLinearSvgPages(
     return (
       `<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 ${fmt(W)} ${fmt(H)}">` +
       `<title>${escapeSvgText(`${doc.name} sequence, page ${i + 1} of ${pages.length}`)}</title>` +
-      `<desc>${escapeSvgText(`Bases ${spansOf(runs)} of ${doc.length.toLocaleString()} bp, ${doc.topology}. Exported from PlasmidPop.`)}</desc>` +
+      `<desc>${escapeSvgText(`Bases ${spansOf(runs)} of ${formatLength(doc.length, doc.alphabet)}, ${doc.topology}. Exported from PlasmidPop.`)}</desc>` +
       paper +
       `<g transform="translate(${fmt(M)} ${fmt(M)}) scale(${fmt(Number(scale.toFixed(4)))})">${body}</g>` +
       `<text x="${fmt(M)}" y="${fmt(H - M)}" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="${PRINT_LINEAR_THEME.inkMuted}">${escapeSvgText(label)}</text>` +

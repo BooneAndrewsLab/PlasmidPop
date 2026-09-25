@@ -23,6 +23,11 @@ export function readSetAside(doc: SeqDocument, history: History<SeqDocument> | n
   return false;
 }
 
+const PROTEIN_EXTENSION: Readonly<Partial<Record<SaveFormat, string>>> = {
+  genbank: 'gp',
+  fasta: 'faa',
+};
+
 /** A file-system-safe name for the document with the right extension. */
 export function fileNameFor(doc: SeqDocument, format: SaveFormat): string {
   const stem =
@@ -30,7 +35,11 @@ export function fileNameFor(doc: SeqDocument, format: SaveFormat): string {
       .trim()
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, '_') || 'Untitled';
-  return `${stem}.${EXTENSION[format]}`;
+  // A protein goes as GenPept or protein FASTA, which have extensions of their own (#66).
+  const extension = doc.isProtein
+    ? (PROTEIN_EXTENSION[format] ?? EXTENSION[format])
+    : EXTENSION[format];
+  return `${stem}.${extension}`;
 }
 
 export function serialize(doc: SeqDocument, format: SaveFormat): string {

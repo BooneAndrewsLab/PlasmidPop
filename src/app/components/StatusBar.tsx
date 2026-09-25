@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 
-import { type SeqDocument, documentChecksum, fractionAtLeast } from '@/core';
+import {
+  type SeqDocument,
+  documentChecksum,
+  formatLength,
+  fractionAtLeast,
+  unitName,
+} from '@/core';
 
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
@@ -12,12 +18,12 @@ interface Props {
 
 function describeSelection(doc: SeqDocument, selection: { start: number; end: number }): string {
   if (selection.start === selection.end) {
-    return `Cursor after base ${selection.start.toLocaleString()}`;
+    return `Cursor after ${unitName(doc.alphabet)} ${selection.start.toLocaleString()}`;
   }
   const length = selection.end - selection.start;
   const from = selection.start + 1;
   const to = ((selection.end - 1) % doc.length) + 1;
-  return `${length.toLocaleString()} bp selected, ${from.toLocaleString()} to ${to.toLocaleString()}`;
+  return `${formatLength(length, doc.alphabet)} selected, ${from.toLocaleString()} to ${to.toLocaleString()}`;
 }
 
 export function StatusBar({ doc }: Props) {
@@ -127,7 +133,11 @@ export function StatusBar({ doc }: Props) {
             <button
               type="button"
               className="button button--quiet statusbar__checksum"
-              title={`${checksum.text}\nThe molecule's SEGUID v2 name: the same for this sequence whatever origin it is written from and whichever strand is on top. Click to copy it in full.`}
+              title={
+                doc?.isProtein === true
+                  ? `${checksum.text}\nThe protein's SEGUID v2 name: the same for these residues in either case. Click to copy it in full.`
+                  : `${checksum.text}\nThe molecule's SEGUID v2 name: the same for this sequence whatever origin it is written from and whichever strand is on top. Click to copy it in full.`
+              }
               onClick={() => {
                 copyText(checksum.text);
                 setCopied(true);

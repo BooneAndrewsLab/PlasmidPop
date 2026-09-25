@@ -4,7 +4,7 @@ import {
   type SeqFragment,
   type Range,
   type SeqDocument,
-  assertValidSequence,
+  assertFragmentFits,
   backspaceRun,
   deleteForwardRun,
   flipWindow,
@@ -53,7 +53,7 @@ export function clampPosition(doc: SeqDocument, position: number): number {
 
 /**
  * Typing or pasting: inserts at a caret, or replaces the selection. Throws
- * `InvalidSequenceError` for non-nucleotide text. Returns null when there is
+ * `InvalidSequenceError` for text outside the document's alphabet. Returns null when there is
  * nothing to do.
  */
 export function typeText(
@@ -61,7 +61,7 @@ export function typeText(
   selection: Range | null,
   rawText: string,
 ): EditPlan | null {
-  const text = normalizeSequenceInput(rawText);
+  const text = normalizeSequenceInput(rawText, doc.alphabet);
   if (text.length === 0 || selection === null) return null;
   if (isEmptyRange(selection)) {
     const p = normalizePosition(selection.start, doc.length, doc.topology);
@@ -99,9 +99,10 @@ export function pasteFragment(
   selection: Range | null,
   fragment: SeqFragment,
 ): EditPlan | null {
+  // Residues never paste into DNA, nor bases into a protein, even where the letters would do (#66).
+  assertFragmentFits(fragment, doc.alphabet);
   if (fragment.features.length === 0) return typeText(doc, selection, fragment.sequence);
   if (selection === null) return null;
-  assertValidSequence(fragment.sequence);
   const features = fragment.features.map((f) => ({ ...f, id: newFeatureId() }));
   const newLength = doc.length - (selection.end - selection.start) + fragment.sequence.length;
   const end = caretAfterDelete(doc, selection) + fragment.sequence.length;

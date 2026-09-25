@@ -1,7 +1,7 @@
 import { analytics } from '../analytics';
 import { type ReactNode, useCallback, useState } from 'react';
 
-import { type SeqDocument, extractRange, isEmptyRange } from '@/core';
+import { type SeqDocument, extractRange, hasTool, isEmptyRange } from '@/core';
 import { exportMapSvg } from '@/view/svg';
 
 import { EXAMPLES } from '../examples';
@@ -67,10 +67,11 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
    * comes out the same whatever the screen is set to.
    */
   const format = {
-    showComplement,
-    showTranslations,
+    // As the view draws it: a protein has no complement or translations (#66).
+    showComplement: showComplement && hasTool(doc, 'complement'),
+    showTranslations: showTranslations && hasTool(doc, 'translations'),
     numberComplement,
-    colorBases,
+    colorBases: colorBases && !doc.isProtein,
     baseColors,
     trace: traceSize,
   };
@@ -88,7 +89,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
       editorStore.fail(e instanceof Error ? e.message : String(e));
     });
   };
-  const stem = fileNameFor(doc, 'genbank').replace(/\.gb$/, '');
+  const stem = fileNameFor(doc, 'genbank').replace(/\.g[bp]$/, '');
   /** Runs an export, showing why it could not be written rather than throwing. */
   const attempt = (fn: () => void): void => {
     try {
@@ -149,14 +150,14 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             shortcut="Ctrl+S"
             title={
               derived
-                ? 'Write this copy out as a GenBank file, after a look at what changed'
-                : 'Write this document out as a GenBank file'
+                ? `Write this copy out as a ${doc.isProtein ? 'GenPept' : 'GenBank'} file, after a look at what changed`
+                : `Write this document out as a ${doc.isProtein ? 'GenPept' : 'GenBank'} file`
             }
             onClick={run(() => {
               report(persistence.download());
             })}
           >
-            Download GenBank…
+            {doc.isProtein ? 'Download GenPept…' : 'Download GenBank…'}
           </Item>
           <Item
             shortcut="Alt+L"
@@ -185,20 +186,23 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Compare with…
           </Item>
           <div className="menu__separator" role="separator" />
-          <Item
-            onClick={run(() => {
-              analytics.track('file', 'export', 'map-svg');
-              downloadText(
-                `${stem}_map.svg`,
-                exportMapSvg(doc, {
-                  cutSites: editorStore.visibleCutSites(),
-                  edits: editDiffOf(editorStore.getState()),
-                }),
-              );
-            })}
-          >
-            Export map as SVG
-          </Item>
+          {/* A protein has no map (#66). */}
+          {hasTool(doc, 'circular') && (
+            <Item
+              onClick={run(() => {
+                analytics.track('file', 'export', 'map-svg');
+                downloadText(
+                  `${stem}_map.svg`,
+                  exportMapSvg(doc, {
+                    cutSites: editorStore.visibleCutSites(),
+                    edits: editDiffOf(editorStore.getState()),
+                  }),
+                );
+              })}
+            >
+              Export map as SVG
+            </Item>
+          )}
           <Item
             title="The sequence rows — ruler, strands, features — as a vector file: all of them, the selection or a range, on A4 pages if you like"
             onClick={run(() => {
@@ -247,7 +251,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
               downloadText(fileNameFor(sub, 'genbank'), serialize(sub, 'genbank'));
             })}
           >
-            Export selection as GenBank
+            {doc.isProtein ? 'Export selection as GenPept' : 'Export selection as GenBank'}
           </Item>
           <Item
             disabled={!hasSelection}

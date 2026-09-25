@@ -203,6 +203,12 @@ export const EVENTS = {
    * of its buttons was used. Styling is counted as the edit it makes.
    */
   'selection-bar': ['add-feature', 'copy'],
+  /**
+   * Protein documents (#66): `open` is Translate ▸ Open as protein, named by
+   * what was translated (`cds` or `frame`); a protein file's own
+   * `file / open` says its format, as for DNA.
+   */
+  protein: ['open'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;

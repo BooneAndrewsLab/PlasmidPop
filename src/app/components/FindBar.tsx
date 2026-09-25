@@ -5,6 +5,7 @@ import {
   type SeqDocument,
   type Strand,
   featureExtent,
+  findResidueMatches,
   findSequenceMatches,
   looksLikeSequence,
 } from '@/core';
@@ -45,9 +46,20 @@ export function FindBar({ doc }: Props) {
   }, []);
 
   const trimmed = query.trim();
-  const sequenceMode = trimmed.length >= 3 && looksLikeSequence(trimmed);
+  const protein = doc.isProtein;
+  const sequenceMode = !protein && trimmed.length >= 3 && looksLikeSequence(trimmed);
   const hits = useMemo<Hit[]>(() => {
     if (trimmed === '') return [];
+    // In a protein every letter is a residue, so a word is looked for both
+    // ways: as residues, then as a feature's name (#66).
+    const residues: Hit[] =
+      protein && trimmed.length >= 2
+        ? findResidueMatches(doc.sequence.toString(), trimmed).map((range) => ({
+            range,
+            label: 'residues',
+            strand: 'none',
+          }))
+        : [];
     if (sequenceMode) {
       return findSequenceMatches(doc.sequence.toString(), doc.topology, trimmed).map((m) => ({
         range: m.range,
@@ -56,7 +68,7 @@ export function FindBar({ doc }: Props) {
       }));
     }
     const needle = trimmed.toLowerCase();
-    const out: Hit[] = [];
+    const out: Hit[] = [...residues];
     for (const f of doc.features) {
       if (!f.name.toLowerCase().includes(needle) && !f.type.toLowerCase().includes(needle))
         continue;
@@ -65,7 +77,7 @@ export function FindBar({ doc }: Props) {
         out.push({ range: extent, label: f.name === '' ? f.type : f.name, strand: 'none' });
     }
     return out;
-  }, [doc, trimmed, sequenceMode]);
+  }, [doc, trimmed, sequenceMode, protein]);
 
   const current =
     hits.length === 0 ? null : (hits[((index % hits.length) + hits.length) % hits.length] ?? null);
@@ -128,7 +140,9 @@ export function FindBar({ doc }: Props) {
         className="findbar__input"
         type="search"
         spellCheck={false}
-        placeholder="Find bases (IUPAC) or a feature name"
+        placeholder={
+          protein ? 'Find residues or a feature name' : 'Find bases (IUPAC) or a feature name'
+        }
         aria-label="Find"
         value={query}
         onChange={(e) => {

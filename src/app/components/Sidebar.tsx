@@ -3,7 +3,7 @@ import { type KeyboardEvent, useRef } from 'react';
 import { type SeqDocument } from '@/core';
 
 import { analytics } from '../analytics';
-import { SIDEBAR_TABS, type SidebarTab, editorStore } from '../state/editorStore';
+import { type SidebarTab, editorStore, sidebarTabsFor } from '../state/editorStore';
 import { SIDEBAR_STACKED_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
 import { AlignPanel } from './AlignPanel';
@@ -13,6 +13,7 @@ import { FeatureList } from './FeatureList';
 import { HistoryPanel } from './HistoryPanel';
 import { OrfPanel } from './OrfPanel';
 import { PrimerPanel } from './PrimerPanel';
+import { ProteinPanel } from './ProteinPanel';
 import { SidebarIcon } from './SidebarIcon';
 import { TranslatePanel } from './TranslatePanel';
 import { useMediaQuery } from './useMediaQuery';
@@ -23,6 +24,7 @@ interface Props {
 
 const LABELS: Readonly<Record<SidebarTab, string>> = {
   features: 'Features',
+  protein: 'Protein',
   orfs: 'ORFs',
   translate: 'Translate',
   primers: 'Primers',
@@ -31,8 +33,6 @@ const LABELS: Readonly<Record<SidebarTab, string>> = {
   align: 'Align',
   history: 'History',
 };
-
-const TABS: readonly [SidebarTab, string][] = SIDEBAR_TABS.map((tab) => [tab, LABELS[tab]]);
 
 /**
  * The panels, behind the tab rail on the window's outer edge. The rail is
@@ -47,6 +47,8 @@ export function Sidebar({ doc }: Props) {
   // A rail down the edge, or a strip across the top on a narrow window.
   const stacked = useMediaQuery(SIDEBAR_STACKED_QUERY);
   const rail = useRef<HTMLDivElement>(null);
+  // A protein has no Enzymes or Primers, and DNA no Protein panel (#66).
+  const tabs = sidebarTabsFor(doc);
 
   // The tabs pattern of WAI-ARIA (#35): one Tab stop for the whole rail, on
   // the tab the panel is on, and the arrow keys along it, which open the
@@ -54,8 +56,8 @@ export function Sidebar({ doc }: Props) {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     const back = stacked ? 'ArrowLeft' : 'ArrowUp';
     const on = stacked ? 'ArrowRight' : 'ArrowDown';
-    const at = SIDEBAR_TABS.indexOf(sidebarTab);
-    const n = SIDEBAR_TABS.length;
+    const at = tabs.indexOf(sidebarTab);
+    const n = tabs.length;
     const to =
       e.key === back
         ? (at - 1 + n) % n
@@ -66,7 +68,7 @@ export function Sidebar({ doc }: Props) {
             : e.key === 'End'
               ? n - 1
               : null;
-    const next = to === null ? undefined : SIDEBAR_TABS[to];
+    const next = to === null ? undefined : tabs[to];
     if (next === undefined || e.altKey || e.ctrlKey || e.metaKey) return;
     e.preventDefault();
     analytics.trackOnce('panel', 'open', next);
@@ -85,7 +87,8 @@ export function Sidebar({ doc }: Props) {
         ref={rail}
         onKeyDown={onKeyDown}
       >
-        {TABS.map(([tab, label]) => {
+        {tabs.map((tab) => {
+          const label = LABELS[tab];
           const active = sidebarOpen && sidebarTab === tab;
           return (
             <button
@@ -144,6 +147,8 @@ interface PanelProps {
  */
 export function SidebarPanel({ doc, tab, reader = false }: PanelProps) {
   switch (tab) {
+    case 'protein':
+      return <ProteinPanel doc={doc} />;
     case 'features':
       return <FeatureList doc={doc} reader={reader} />;
     case 'enzymes':

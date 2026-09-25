@@ -1,4 +1,5 @@
 import {
+  type Alphabet,
   type AssemblyPart,
   type CollectionPrimer,
   type Enzyme,
@@ -63,6 +64,7 @@ export interface DocumentSummary {
   readonly fileName: string | null;
   readonly length: number;
   readonly topology: StoredDocument['topology'];
+  readonly alphabet: Alphabet;
   readonly featureCount: number;
   readonly updatedAt: number;
 }
@@ -157,6 +159,7 @@ export class DocumentRepository {
       ...(doc.read === null ? {} : { read: doc.read }),
       length: doc.length,
       topology: doc.topology,
+      ...(doc.isProtein ? { alphabet: 'protein' as const } : {}),
       featureCount: doc.features.size,
       createdAt,
       updatedAt: now,
@@ -303,15 +306,18 @@ export class DocumentRepository {
 
   async list(): Promise<DocumentSummary[]> {
     const all = await this.db.documents.orderBy('updatedAt').reverse().toArray();
-    return all.map(({ id, name, fileName, length, topology, featureCount, updatedAt }) => ({
-      id,
-      name,
-      fileName,
-      length,
-      topology,
-      featureCount,
-      updatedAt,
-    }));
+    return all.map(
+      ({ id, name, fileName, length, topology, alphabet, featureCount, updatedAt }) => ({
+        id,
+        name,
+        fileName,
+        length,
+        topology,
+        alphabet: alphabet ?? 'nucleotide',
+        featureCount,
+        updatedAt,
+      }),
+    );
   }
 
   /** Deletes a document and its undo history; closing a tab deletes neither. */

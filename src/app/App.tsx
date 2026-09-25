@@ -1,5 +1,7 @@
 import { type DragEvent, useLayoutEffect, useState } from 'react';
 
+import { hasTool } from '@/core';
+
 import { Bench } from './components/Bench';
 import { CircularMapView } from './components/CircularMapView';
 import { DocumentTabs } from './components/DocumentTabs';
@@ -52,8 +54,18 @@ import {
 } from './state/usePersistence';
 
 export function App() {
-  const { history, view, findOpen, documentId, layout, sidebarOpen, front } = useEditorState();
+  const {
+    history,
+    view: chosenView,
+    findOpen,
+    documentId,
+    layout,
+    sidebarOpen,
+    front,
+  } = useEditorState();
   const doc = history?.present ?? null;
+  // A protein has no map (#66): its residues are the whole view, whatever DNA's switcher says.
+  const view = doc !== null && !hasTool(doc, 'circular') ? 'sequence' : chosenView;
   useAnalysis();
   useAutosave();
   useAutosaveShelf();

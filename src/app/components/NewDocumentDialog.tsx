@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
-/** The last topology chosen, for the next New in the same page load. */
-let lastTopology: 'linear' | 'circular' = 'linear';
+/** A linear or circular DNA sequence, or a protein (#66). */
+type NewKind = 'linear' | 'circular' | 'protein';
+
+/** The last kind chosen, for the next New in the same page load. */
+let lastTopology: NewKind = 'linear';
 
 /**
  * New sequence (#6): the name and whether the molecule is circular, asked
@@ -49,7 +52,8 @@ function NewDocumentForm() {
           e.preventDefault();
           lastTopology = topology;
           editorStore.dismissNewDocument();
-          editorStore.newDocument(topology, name);
+          if (topology === 'protein') editorStore.newDocument('linear', name, 'protein');
+          else editorStore.newDocument(topology, name);
         }}
       >
         <h2 id="new-document-title" className="dialog__title">
@@ -68,8 +72,8 @@ function NewDocumentForm() {
               }}
             />
           </label>
-          <div className="segmented" role="group" aria-label="Topology">
-            {(['linear', 'circular'] as const).map((t) => (
+          <div className="segmented" role="group" aria-label="Kind of sequence">
+            {(['linear', 'circular', 'protein'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -79,7 +83,7 @@ function NewDocumentForm() {
                   setTopology(t);
                 }}
               >
-                {t === 'linear' ? 'Linear' : 'Circular'}
+                {t === 'linear' ? 'Linear' : t === 'circular' ? 'Circular' : 'Protein'}
               </button>
             ))}
           </div>

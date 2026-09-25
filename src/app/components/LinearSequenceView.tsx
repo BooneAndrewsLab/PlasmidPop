@@ -20,6 +20,8 @@ import {
   codonSpan,
   fragmentFromRange,
   isCodingFeature,
+  formatLength,
+  hasTool,
   isEmptyRange,
 } from '@/core';
 import {
@@ -140,11 +142,12 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     preview,
     documentId,
   } = useEditorState();
-  const showComplement = complementPref && !reader;
-  const showTranslations = translationsPref && !reader;
+  // A protein has one strand, no CDS to translate and nothing to cut (#66).
+  const showComplement = complementPref && !reader && hasTool(doc, 'complement');
+  const showTranslations = translationsPref && !reader && hasTool(doc, 'translations');
   const cutSites = useMemo(
     () =>
-      showCutSites && analysis !== null && analysis.doc === doc
+      showCutSites && hasTool(doc, 'enzymes') && analysis !== null && analysis.doc === doc
         ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
         : [],
     [analysis, doc, shownEnzymes, showCutSites],
@@ -220,7 +223,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       showComplement,
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
-      cutSiteLabels: showCutSites && shownEnzymes.size > 0,
+      cutSiteLabels: showCutSites && hasTool(doc, 'enzymes') && shownEnzymes.size > 0,
       // A read's chromatogram, above its bases (#52), as tall as Format says (#55).
       trace: doc.read?.trace == null || traceSize === 'off' ? (false as const) : traceSize,
       extraLeftGutter: overhangs.leftBottom * charWidth,
@@ -397,7 +400,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         overlay,
         overlayLanes: previewLanes,
         edits,
-        colorBases,
+        // A, C, G and T colours would say nothing true of residues (#66).
+        colorBases: colorBases && !doc.isProtein,
         numberComplement,
         scrollTop,
         scrollLeft,
@@ -776,6 +780,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     // The first press takes the codon the caret is in, as Shift+arrow takes
     // the base it is on; the presses after that extend from there.
     if (run === null) {
+      // A protein's CDS feature is residues, not codons (#66).
+      if (!hasTool(doc, 'translations')) return false;
       for (const feature of doc.features.all()) {
         if (!isCodingFeature(feature)) continue;
         const translation = allTranslations.get(feature);
@@ -1027,7 +1033,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
           >
             {offer.copied
               ? 'Copied'
-              : `Copy ${(offer.range.end - offer.range.start).toLocaleString()} bp`}
+              : `Copy ${formatLength(offer.range.end - offer.range.start, doc.alphabet)}`}
           </button>
         )}
       </div>

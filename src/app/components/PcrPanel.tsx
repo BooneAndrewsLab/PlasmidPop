@@ -23,7 +23,7 @@ import {
 import { type OverlaySpan } from '@/view/overlay';
 
 import { analytics } from '../analytics';
-import { editorStore } from '../state/editorStore';
+import { cloningDocuments, editorStore } from '../state/editorStore';
 import { useGelOptions } from '../state/useGel';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
@@ -227,7 +227,9 @@ const POLYMERASES: readonly { value: Polymerase; label: string; ends: string }[]
 ];
 
 export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
-  const { previewActivated: activated, documents, documentId } = useEditorState();
+  const { previewActivated: activated, documents: openTabs, documentId } = useEditorState();
+  // A protein tab is no template (#66).
+  const documents = useMemo(() => cloningDocuments(openTabs), [openTabs]);
   // The template: another open tab when one is picked, the document in front
   // of you otherwise, and again when the picked tab is closed.
   // All of it remembered per document, so the primers typed are still there

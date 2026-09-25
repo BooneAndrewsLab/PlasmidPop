@@ -1,6 +1,6 @@
 import { type ChangeEvent, type RefObject, useRef, useState } from 'react';
 
-import { type SeqDocument, describeEnds } from '@/core';
+import { type SeqDocument, describeEnds, formatLength, hasTool } from '@/core';
 
 import { analytics } from '../analytics';
 import { compareWithFile } from '../compare';
@@ -157,9 +157,13 @@ export function Toolbar({ doc }: Props) {
             </button>
           )}
           <span className="toolbar__meta">
-            {doc.length.toLocaleString()} bp,{' '}
+            {formatLength(doc.length, doc.alphabet)},{' '}
             {shapeNote === null ? (
-              doc.topology
+              doc.isProtein ? (
+                'protein'
+              ) : (
+                doc.topology
+              )
             ) : (
               <span className="toolbar__changed" title={shapeNote}>
                 {doc.topology}
@@ -218,65 +222,71 @@ export function Toolbar({ doc }: Props) {
           <>
             <FileMenu doc={doc} onOpenFile={openViaPicker} onCompare={compare} />
             <HistoryMenu />
-            <div
-              className="segmented"
-              role="group"
-              aria-label="View"
-              title="Alt+V steps through the three"
-            >
-              {VIEWS.map(([mode, label]) => (
+            {/* A protein has no map to show beside its residues (#66). */}
+            {hasTool(doc, 'circular') && (
+              <div
+                className="segmented"
+                role="group"
+                aria-label="View"
+                title="Alt+V steps through the three"
+              >
+                {VIEWS.map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={segmentedClass(view === mode)}
+                    aria-pressed={view === mode}
+                    onClick={() => {
+                      analytics.trackOnce('view', 'mode', mode);
+                      editorStore.setView(mode);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* A protein has one strand, no CDS under it and no sites to cut (#66). */}
+            {hasTool(doc, 'complement') && (
+              <div className="segmented toolbar__show" role="group" aria-label="Show">
                 <button
-                  key={mode}
                   type="button"
-                  className={segmentedClass(view === mode)}
-                  aria-pressed={view === mode}
+                  className={segmentedClass(showComplement)}
+                  aria-pressed={showComplement}
+                  title="Show the complement strand (Alt+C)"
                   onClick={() => {
-                    analytics.trackOnce('view', 'mode', mode);
-                    editorStore.setView(mode);
+                    analytics.trackOnce('view', 'toggle', 'complement');
+                    editorStore.setShowComplement(!showComplement);
                   }}
                 >
-                  {label}
+                  Complement
                 </button>
-              ))}
-            </div>
-            <div className="segmented toolbar__show" role="group" aria-label="Show">
-              <button
-                type="button"
-                className={segmentedClass(showComplement)}
-                aria-pressed={showComplement}
-                title="Show the complement strand (Alt+C)"
-                onClick={() => {
-                  analytics.trackOnce('view', 'toggle', 'complement');
-                  editorStore.setShowComplement(!showComplement);
-                }}
-              >
-                Complement
-              </button>
-              <button
-                type="button"
-                className={segmentedClass(showTranslations)}
-                aria-pressed={showTranslations}
-                title="Show amino acids under CDS features (Alt+T)"
-                onClick={() => {
-                  analytics.trackOnce('view', 'toggle', 'translations');
-                  editorStore.setShowTranslations(!showTranslations);
-                }}
-              >
-                Translations
-              </button>
-              <button
-                type="button"
-                className={segmentedClass(showCutSites)}
-                aria-pressed={showCutSites}
-                title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks (Alt+R)"
-                onClick={() => {
-                  analytics.trackOnce('view', 'toggle', 'cut-sites');
-                  editorStore.setShowCutSites(!showCutSites);
-                }}
-              >
-                Cut sites
-              </button>
-            </div>
+                <button
+                  type="button"
+                  className={segmentedClass(showTranslations)}
+                  aria-pressed={showTranslations}
+                  title="Show amino acids under CDS features (Alt+T)"
+                  onClick={() => {
+                    analytics.trackOnce('view', 'toggle', 'translations');
+                    editorStore.setShowTranslations(!showTranslations);
+                  }}
+                >
+                  Translations
+                </button>
+                <button
+                  type="button"
+                  className={segmentedClass(showCutSites)}
+                  aria-pressed={showCutSites}
+                  title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks (Alt+R)"
+                  onClick={() => {
+                    analytics.trackOnce('view', 'toggle', 'cut-sites');
+                    editorStore.setShowCutSites(!showCutSites);
+                  }}
+                >
+                  Cut sites
+                </button>
+              </div>
+            )}
             <FormatMenu />
             <EditsMenu />
           </>

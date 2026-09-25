@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { formatLength } from '@/core';
 import { type DocumentSummary } from '@/storage';
 
 import { EXAMPLES } from '../examples';
@@ -157,7 +158,8 @@ export function EmptyState() {
                       )}
                     </span>
                     <span className="recent__meta">
-                      {d.length.toLocaleString()} bp, {d.topology}, {d.featureCount} features
+                      {formatLength(d.length, d.alphabet)},{' '}
+                      {d.alphabet === 'protein' ? 'protein' : d.topology}, {d.featureCount} features
                       {d.fileName === null ? '' : `, ${d.fileName}`}
                     </span>
                     <span className="recent__when">{formatWhen(d.updatedAt)}</span>

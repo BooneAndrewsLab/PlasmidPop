@@ -15,7 +15,7 @@ import {
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
-import { editorStore } from '../state/editorStore';
+import { cloningDocuments, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { ProductSummary } from './ProductSummary';
@@ -111,7 +111,7 @@ export function OverlapPrimerDesign() {
 
   const tabs = useMemo(
     () =>
-      documents.map((d) => ({
+      cloningDocuments(documents).map((d) => ({
         id: d.documentId,
         doc: d.history.present,
         selection: d.selection,

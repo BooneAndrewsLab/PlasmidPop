@@ -7,7 +7,7 @@ import {
   documentFromFragment,
 } from '@/core';
 
-import { type DocumentState } from '../state/editorStore';
+import { type DocumentState, cloningDocuments } from '../state/editorStore';
 
 /** One thing in the tube: an open document, or a fragment off the shelf. */
 export interface Ingredient {
@@ -46,7 +46,8 @@ export function shelfIngredients(assembly: readonly AssemblyPart[]): Ingredient[
 
 /** The open tabs as ingredients, in tab order and ahead of the shelf. */
 export function openIngredients(documents: readonly DocumentState[]): Ingredient[] {
-  return documents.map((d) => ({
+  // A protein tab is no ingredient (#66).
+  return cloningDocuments(documents).map((d) => ({
     id: d.documentId,
     document: d.history.present,
     detail: `${d.history.present.length.toLocaleString()} bp`,

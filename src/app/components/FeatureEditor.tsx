@@ -155,19 +155,22 @@ export function FeatureEditor({ doc, feature }: Props) {
           ))}
         </datalist>
       </label>
-      <label className="feature-editor__field">
-        <span>Strand</span>
-        <select
-          className="panel__select"
-          value={strand}
-          onChange={(e) => {
-            setStrand(e.target.value === 'reverse' ? 'reverse' : 'forward');
-          }}
-        >
-          <option value="forward">Forward (→)</option>
-          <option value="reverse">Reverse (←)</option>
-        </select>
-      </label>
+      {/* A protein has one strand (#66). */}
+      {!doc.isProtein && (
+        <label className="feature-editor__field">
+          <span>Strand</span>
+          <select
+            className="panel__select"
+            value={strand}
+            onChange={(e) => {
+              setStrand(e.target.value === 'reverse' ? 'reverse' : 'forward');
+            }}
+          >
+            <option value="forward">Forward (→)</option>
+            <option value="reverse">Reverse (←)</option>
+          </select>
+        </label>
+      )}
       <label className="feature-editor__field">
         <span>Thickness</span>
         <select

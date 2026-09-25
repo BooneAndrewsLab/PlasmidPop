@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { type DiffHunk, type DocumentDiff, type SeqDocument, diffHunks } from '@/core';
+import { type DiffHunk, type DocumentDiff, type SeqDocument, diffHunks, hasTool } from '@/core';
 import { type ChangeTarget, ghostFeatures } from '@/view/circular';
 
 import { analytics } from '../analytics';
@@ -118,9 +118,12 @@ export function DiffReview({ doc, baseline, diff }: Props) {
           Made {doc.topology === 'circular' ? 'circular' : 'linear'}.
         </p>
       )}
-      <div className="diff-map" ref={mapRef}>
-        <DiffMap doc={doc} diff={diff} onPick={onPick} pointed={pointed} />
-      </div>
+      {/* A protein has no map; its strips say where it changed (#66). */}
+      {hasTool(doc, 'circular') && (
+        <div className="diff-map" ref={mapRef}>
+          <DiffMap doc={doc} diff={diff} onPick={onPick} pointed={pointed} />
+        </div>
+      )}
       {shown.map((hunk) => (
         <div
           key={`${hunk.start}-${hunk.end}`}

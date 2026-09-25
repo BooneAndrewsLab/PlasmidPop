@@ -10,6 +10,9 @@ import { type SidebarTab } from '../state/editorStore';
 const PATHS: Readonly<Record<SidebarTab, string>> = {
   // An annotation arrow on a line of sequence.
   features: 'M1.5 12.5h13M3 6h7.5l2.5 2.5-2.5 2.5H3z',
+  // A chain of residues, beads on a string.
+  protein:
+    'M3 8a1.5 1.5 0 1 0 0 .01M8 5a1.5 1.5 0 1 0 0 .01M13 8a1.5 1.5 0 1 0 0 .01M4.3 7.2 6.7 5.8M9.3 5.8l2.4 1.4M8 12.5a1.5 1.5 0 1 0 0 .01M12 9.2 9.2 11.6',
   // A frame open from start to stop.
   orfs: 'M2 8h10M9 5l3 3-3 3M2 5v6',
   // Codons over the letters they make.

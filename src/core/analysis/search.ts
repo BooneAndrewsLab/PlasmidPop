@@ -118,6 +118,36 @@ export function findSequenceMatches(
   return out;
 }
 
+/** The residues each amino-acid code of a pattern stands for; any other letter is itself. */
+const RESIDUE_SETS: Readonly<Record<string, string>> = {
+  B: 'BDN',
+  Z: 'ZEQ',
+  J: 'JIL',
+};
+
+/**
+ * Where a residue pattern occurs in a protein (#66): one strand, no
+ * wrapping, case ignored. `X` in the pattern is any residue, and B, Z and J
+ * the two each stands for, as well as themselves.
+ */
+export function findResidueMatches(sequence: string, pattern: string): Range[] {
+  const p = pattern.toUpperCase();
+  const s = sequence.toUpperCase();
+  const n = p.length;
+  if (n === 0 || n > s.length || !/^[A-Z*]+$/.test(p)) return [];
+  const out: Range[] = [];
+  for (let start = 0; start + n <= s.length; start++) {
+    let hit = true;
+    for (let i = 0; i < n && hit; i++) {
+      const want = p.charAt(i);
+      const got = s.charAt(start + i);
+      hit = want === 'X' || want === got || (RESIDUE_SETS[want]?.includes(got) ?? false);
+    }
+    if (hit) out.push({ start, end: start + n });
+  }
+  return out;
+}
+
 /** Whether text can be a nucleotide search pattern (IUPAC codes only). */
 export function looksLikeSequence(text: string): boolean {
   return /^[ACGTURYSWKMBDHVN]+$/i.test(text.trim());

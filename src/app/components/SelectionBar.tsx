@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { type Range, type SeqDocument, fragmentFromRange, rangeLength } from '@/core';
+import { type Range, type SeqDocument, formatLength, fragmentFromRange, rangeLength } from '@/core';
 
 import { analytics } from '../analytics';
 import { copyFragment } from '../clipboard';
@@ -64,7 +64,7 @@ export function SelectionBar({ doc, selection, left, top, menuOpens }: Props) {
       >
         {isCopied ? 'Copied' : 'Copy'}
       </button>
-      <span className="selection-bar__length">{length.toLocaleString()} bp</span>
+      <span className="selection-bar__length">{formatLength(length, doc.alphabet)}</span>
     </div>
   );
 }

@@ -6,13 +6,21 @@ import {
   type SeqDocument,
   STOP,
   frameLabel,
+  cdsName,
+  featureExtent,
+  formatLocation,
+  isCodingFeature,
   isEmptyRange,
+  proteinFromCds,
+  proteinFromTranslation,
+  rangesOverlap,
   translateSixFrames,
 } from '@/core';
 
 import { copyText } from '../clipboard';
 import { downloadText } from '../saveFile';
 import { rangeBounds, sixFrameFasta, sixFrameFileName } from '../sixFrameExport';
+import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { GeneticCodeSelect } from './GeneticCodeSelect';
 
@@ -42,7 +50,13 @@ function highlightStops(protein: string): ReactNode[] {
   return out;
 }
 
-function FrameRow({ frame }: { readonly frame: FrameTranslation }) {
+interface FrameRowProps {
+  readonly frame: FrameTranslation;
+  /** Opens the frame's protein in a tab of its own (#66). */
+  readonly onOpen: () => void;
+}
+
+function FrameRow({ frame, onOpen }: FrameRowProps) {
   const label = frameLabel(frame.frame);
   const stops = frame.stops === 1 ? '1 stop' : `${frame.stops.toLocaleString()} stops`;
   return (
@@ -56,16 +70,27 @@ function FrameRow({ frame }: { readonly frame: FrameTranslation }) {
         <span className="panel__heading-note">
           {frame.protein.length.toLocaleString()} aa · {stops}
         </span>
-        <button
-          type="button"
-          className="button button--small frame__copy"
-          disabled={frame.protein === ''}
-          onClick={() => {
-            copyText(frame.protein);
-          }}
-        >
-          Copy
-        </button>
+        <span className="frame__actions">
+          <button
+            type="button"
+            className="button button--small"
+            disabled={frame.protein === ''}
+            title={`Open frame ${label} as a protein document of its own, stops and all`}
+            onClick={onOpen}
+          >
+            Open as protein
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            disabled={frame.protein === ''}
+            onClick={() => {
+              copyText(frame.protein);
+            }}
+          >
+            Copy
+          </button>
+        </span>
       </h3>
       {frame.protein === '' ? (
         <p className="panel__note">Fewer than three bases in this frame.</p>
@@ -90,10 +115,58 @@ export function TranslatePanel({ doc }: Props) {
   const dna = useMemo(() => doc.subsequence(range), [doc, range]);
   const frames = useMemo(() => translateSixFrames(dna, { table }), [dna, table]);
   const { from, to } = rangeBounds(range, doc.length);
+  // The CDS features the selection reaches, or all of them: each can be
+  // opened as the protein it codes for (#66).
+  const coding = useMemo(
+    () =>
+      doc.features.all().filter((f) => {
+        if (!isCodingFeature(f)) return false;
+        const extent = featureExtent(f);
+        return !hasSelection || (extent !== null && rangesOverlap(extent, range, doc.length));
+      }),
+    [doc, hasSelection, range],
+  );
+
+  const codingList = coding.length > 0 && (
+    <section aria-label="Coding features">
+      <h3 className="panel__heading">
+        CDS features
+        <span className="panel__heading-note">
+          {hasSelection ? 'in the selection' : 'in the sequence'}
+        </span>
+      </h3>
+      <ul className="coding-list">
+        {coding.map((f) => {
+          const name = cdsName(doc, f);
+          return (
+            <li key={f.id}>
+              <span className="coding-list__name" title={name}>
+                {name}
+              </span>
+              <span className="panel__heading-note">
+                {formatLocation(f, doc.length, doc.topology)}
+              </span>
+              <button
+                type="button"
+                className="button button--small"
+                title={`Translate ${name} with its own genetic code and open the protein in a tab of its own`}
+                onClick={() => {
+                  editorStore.openProtein(proteinFromCds(doc, f), 'cds');
+                }}
+              >
+                Open as protein
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 
   if (dna.length < 3) {
     return (
       <div className="panel">
+        {codingList}
         <p className="panel__note">
           {hasSelection
             ? 'Select at least three bases to translate them.'
@@ -102,6 +175,22 @@ export function TranslatePanel({ doc }: Props) {
       </div>
     );
   }
+
+  const openFrame = (f: FrameTranslation): void => {
+    const label = frameLabel(f.frame);
+    const ascii = f.frame > 0 ? `+${f.frame}` : `-${-f.frame}`;
+    const where = `${from.toLocaleString()}–${to.toLocaleString()}`;
+    editorStore.openProtein(
+      proteinFromTranslation(
+        doc,
+        f.protein,
+        `${doc.name}_${from}-${to}_${ascii}`,
+        `frame ${label} of ${where}`,
+        table,
+      ),
+      'frame',
+    );
+  };
 
   return (
     <div className="panel">
@@ -125,6 +214,7 @@ export function TranslatePanel({ doc }: Props) {
           </button>
         </div>
       </div>
+      {codingList}
       {!hasSelection && (
         <p className="panel__note">
           Nothing is selected, so the whole sequence is translated. Select a range in the sequence
@@ -132,7 +222,13 @@ export function TranslatePanel({ doc }: Props) {
         </p>
       )}
       {frames.map((f) => (
-        <FrameRow key={f.frame} frame={f} />
+        <FrameRow
+          key={f.frame}
+          frame={f}
+          onOpen={() => {
+            openFrame(f);
+          }}
+        />
       ))}
     </div>
   );

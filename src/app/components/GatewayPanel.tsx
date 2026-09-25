@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { type GatewayReaction, type SeqDocument, attSites, gateway, recordGateway } from '@/core';
 
 import { analytics } from '../analytics';
-import { editorStore } from '../state/editorStore';
+import { cloningDocuments, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { BenchProduct } from './BenchProduct';
@@ -98,7 +98,7 @@ export function GatewayPanel() {
   };
 
   const docs = useMemo(
-    () => documents.map((d) => ({ id: d.documentId, doc: d.history.present })),
+    () => cloningDocuments(documents).map((d) => ({ id: d.documentId, doc: d.history.present })),
     [documents],
   );
   const insert = docs.find((d) => d.id === insertId)?.doc;

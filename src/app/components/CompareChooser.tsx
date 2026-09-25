@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+import { formatLength } from '@/core';
+
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -32,7 +34,10 @@ export function CompareChooser({ onPickFile }: Props) {
   }, [choosing]);
 
   if (!choosing || history === null) return null;
-  const others = documents.filter((d) => d.documentId !== documentId);
+  // A protein is compared with proteins, and DNA with DNA (#66).
+  const others = documents.filter(
+    (d) => d.documentId !== documentId && d.history.present.alphabet === history.present.alphabet,
+  );
 
   return (
     <div className="dialog-backdrop">
@@ -66,7 +71,8 @@ export function CompareChooser({ onPickFile }: Props) {
                   <span className="compare-choices__name">{doc.name}</span>
                   <span className="compare-choices__meta">
                     {' '}
-                    {doc.length.toLocaleString()} bp, {doc.topology}
+                    {formatLength(doc.length, doc.alphabet)},{' '}
+                    {doc.isProtein ? 'protein' : doc.topology}
                   </span>
                 </button>
               </li>

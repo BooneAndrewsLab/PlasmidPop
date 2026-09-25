@@ -1,4 +1,5 @@
 import {
+  findResidueMatches,
   findSequenceMatches,
   looksLikeSequence,
   matchPositions,
@@ -78,5 +79,34 @@ describe('matchPositions', () => {
         );
       }
     }
+  });
+});
+
+describe('findResidueMatches (#66)', () => {
+  it('finds residues on the one strand there is, in either case', () => {
+    expect(findResidueMatches('MKVLEKVL', 'kvl')).toEqual([
+      { start: 1, end: 4 },
+      { start: 5, end: 8 },
+    ]);
+    // Overlapping matches are each found.
+    expect(findResidueMatches('AAAA', 'AA')).toHaveLength(3);
+  });
+
+  it('reads X as any residue, and B, Z and J as the two each stands for', () => {
+    expect(findResidueMatches('MKVLE', 'KXL')).toEqual([{ start: 1, end: 4 }]);
+    expect(findResidueMatches('DNE', 'B')).toEqual([
+      { start: 0, end: 1 },
+      { start: 1, end: 2 },
+    ]);
+    expect(findResidueMatches('EQD', 'Z')).toHaveLength(2);
+    expect(findResidueMatches('ILV', 'J')).toHaveLength(2);
+    // A code in the sequence is only itself.
+    expect(findResidueMatches('X', 'K')).toEqual([]);
+  });
+
+  it('finds nothing for a pattern that is no residues, or longer than the protein', () => {
+    expect(findResidueMatches('MKV', '')).toEqual([]);
+    expect(findResidueMatches('MKV', 'MKVL')).toEqual([]);
+    expect(findResidueMatches('MKV', 'M K')).toEqual([]);
   });
 });

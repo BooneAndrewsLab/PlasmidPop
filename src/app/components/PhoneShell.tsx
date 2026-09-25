@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { type SeqDocument } from '@/core';
+import { type SeqDocument, hasTool } from '@/core';
 
 import { analytics } from '../analytics';
-import { type PhonePane, type SidebarTab, editorStore } from '../state/editorStore';
+import { type PhonePane, type SidebarTab, editorStore, hasSidebarTab } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { CircularMapView } from './CircularMapView';
 import { LinearSequenceView } from './LinearSequenceView';
@@ -22,6 +22,7 @@ const PANES: readonly [PhonePane, string][] = [
  */
 const DETAIL_TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],
+  ['protein', 'Protein'],
   ['enzymes', 'Enzymes'],
 ];
 
@@ -43,9 +44,16 @@ interface Props {
  * raised while a view is already showing changes nothing.
  */
 export function PhoneShell({ doc }: Props) {
-  const { reveal, sidebarTab, phonePane: pane } = useEditorState();
+  const { reveal, sidebarTab, phonePane: chosen } = useEditorState();
+  // A protein has no map, and no enzymes; DNA has no Protein list (#66).
+  const hasMap = hasTool(doc, 'circular');
+  const pane: PhonePane = chosen === 'map' && !hasMap ? 'sequence' : chosen;
+  const panes = PANES.filter(([p]) => p !== 'map' || hasMap);
+  const detailTabs = DETAIL_TABS.filter(([t]) => hasSidebarTab(doc, t));
   // The shell is keyed by document, so this is the pane the tab came back on.
-  const lastView = useRef<Exclude<PhonePane, 'details'>>(pane === 'details' ? 'map' : pane);
+  const lastView = useRef<Exclude<PhonePane, 'details'>>(
+    pane === 'details' ? (hasMap ? 'map' : 'sequence') : pane,
+  );
   // The nonce this shell has already answered, so a reveal from before it
   // mounted — the selection a document was opened with — does not move it.
   const answered = useRef(reveal?.nonce ?? 0);
@@ -60,9 +68,9 @@ export function PhoneShell({ doc }: Props) {
     if (next !== 'details') lastView.current = next;
     editorStore.setPhonePane(next);
   };
-  const detailTab: SidebarTab = DETAIL_TABS.some(([t]) => t === sidebarTab)
+  const detailTab: SidebarTab = detailTabs.some(([t]) => t === sidebarTab)
     ? sidebarTab
-    : 'features';
+    : (detailTabs[0]?.[0] ?? 'features');
 
   return (
     <div className="phone">
@@ -73,7 +81,7 @@ export function PhoneShell({ doc }: Props) {
         {pane === 'details' && (
           <div className="phone__details">
             <div className="phone__subtabs" role="tablist" aria-label="Details">
-              {DETAIL_TABS.map(([tab, label]) => {
+              {detailTabs.map(([tab, label]) => {
                 const active = detailTab === tab;
                 return (
                   <button
@@ -100,7 +108,7 @@ export function PhoneShell({ doc }: Props) {
         )}
       </div>
       <nav className="phone__bar" role="tablist" aria-label="Panes">
-        {PANES.map(([p, label]) => (
+        {panes.map(([p, label]) => (
           <button
             key={p}
             type="button"

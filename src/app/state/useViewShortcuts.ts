@@ -5,9 +5,10 @@ import { isAltBlocked, isAltKey } from '../keys';
 import { focusNextSplitter } from '../components/splitterFocus';
 import { copyShareLink } from '../share';
 import { goToChange } from './editDiff';
+import { type DocumentTool, hasTool } from '@/core';
 import { FONT_SIZES } from '@/view/linear';
 
-import { type EditsBaseline, SIDEBAR_TABS, type ViewMode, editorStore } from './editorStore';
+import { type EditsBaseline, type ViewMode, editorStore, sidebarTabsFor } from './editorStore';
 
 /** `Alt+V` steps through the view switcher in its order. */
 const VIEW_ORDER: readonly ViewMode[] = ['sequence', 'map', 'both'];
@@ -16,12 +17,15 @@ const VIEW_ORDER: readonly ViewMode[] = ['sequence', 'map', 'both'];
 const TOGGLES: readonly {
   readonly code: string;
   readonly binding: Shortcut;
+  /** What the document in front needs for the toggle to mean anything (#66). */
+  readonly tool: DocumentTool;
   readonly read: (s: ReturnType<typeof editorStore.getState>) => boolean;
   readonly set: (on: boolean) => void;
 }[] = [
   {
     code: 'KeyC',
     binding: 'alt+c',
+    tool: 'complement',
     read: (s) => s.showComplement,
     set: (v) => {
       editorStore.setShowComplement(v);
@@ -30,6 +34,7 @@ const TOGGLES: readonly {
   {
     code: 'KeyT',
     binding: 'alt+t',
+    tool: 'translations',
     read: (s) => s.showTranslations,
     set: (v) => {
       editorStore.setShowTranslations(v);
@@ -38,6 +43,7 @@ const TOGGLES: readonly {
   {
     code: 'KeyR',
     binding: 'alt+r',
+    tool: 'enzymes',
     read: (s) => s.showCutSites,
     set: (v) => {
       editorStore.setShowCutSites(v);
@@ -86,8 +92,13 @@ export function useViewShortcuts(): void {
         }
       }
 
+      // What a protein in front has no use for is left to the browser (#66).
+      const doc = state.history?.present ?? null;
+      const has = (tool: DocumentTool): boolean => doc === null || hasTool(doc, tool);
+
       for (const toggle of TOGGLES) {
         if (!isAltKey(e, toggle.code)) continue;
+        if (!has(toggle.tool)) return;
         e.preventDefault();
         analytics.shortcut(toggle.binding);
         toggle.set(!toggle.read(state));
@@ -135,6 +146,7 @@ export function useViewShortcuts(): void {
 
       // Alt+V: the next of Sequence, Map and Both, as the view switcher has them.
       if (isAltKey(e, 'KeyV')) {
+        if (!has('circular')) return;
         e.preventDefault();
         analytics.shortcut('alt+v');
         const at = VIEW_ORDER.indexOf(state.view);
@@ -149,9 +161,10 @@ export function useViewShortcuts(): void {
         e.preventDefault();
         analytics.shortcut('alt+bracket');
         const step = e.code === 'BracketLeft' ? -1 : 1;
-        const at = SIDEBAR_TABS.indexOf(state.sidebarTab);
-        const n = SIDEBAR_TABS.length;
-        const next = state.sidebarOpen ? SIDEBAR_TABS[(at + step + n) % n] : state.sidebarTab;
+        const tabs = sidebarTabsFor(doc);
+        const at = tabs.indexOf(state.sidebarTab);
+        const n = tabs.length;
+        const next = state.sidebarOpen ? tabs[(at + step + n) % n] : state.sidebarTab;
         if (next !== undefined) editorStore.setSidebarTab(next);
         editorStore.setSidebarOpen(true);
         return;

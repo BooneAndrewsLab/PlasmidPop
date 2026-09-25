@@ -1,9 +1,11 @@
 import { analytics } from '../analytics';
 import {
+  type Alphabet,
   type AgarosePercent,
   type AssemblyPart,
   type Coalesce,
   type CutSite,
+  type DocumentTool,
   type DigestFragment,
   type EditOp,
   type FeatureId,
@@ -26,6 +28,7 @@ import {
   defaultFragmentName,
   describeEditStep,
   featureExtent,
+  hasTool,
   documentChecksum,
   withPhosphates,
   isConfidentQuality,
@@ -112,7 +115,15 @@ export function isTraceSize(v: unknown): v is TraceSize {
   return v === 'off' || v === 'short' || v === 'tall';
 }
 export type SidebarTab =
-  'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
+  | 'features'
+  | 'protein'
+  | 'enzymes'
+  | 'orfs'
+  | 'translate'
+  | 'primers'
+  | 'align'
+  | 'cloning'
+  | 'history';
 
 /** The three things the phone reader shows, one at a time (`PhoneShell`, item 15). */
 export type PhonePane = 'map' | 'sequence' | 'details';
@@ -133,6 +144,7 @@ export const MAX_REMEMBERED_PANES = 20;
 /** The sidebar's tabs in the rail's order, top to bottom, which `Alt+[` and `Alt+]` step through. */
 export const SIDEBAR_TABS: readonly SidebarTab[] = [
   'features',
+  'protein',
   'orfs',
   'translate',
   'primers',
@@ -141,6 +153,37 @@ export const SIDEBAR_TABS: readonly SidebarTab[] = [
   'align',
   'history',
 ];
+
+/** The tool a tab is the panel of, for the tabs a document may not have (#66). */
+const SIDEBAR_TAB_TOOLS: Readonly<Partial<Record<SidebarTab, DocumentTool>>> = {
+  protein: 'proteinProperties',
+  orfs: 'orfs',
+  translate: 'translate',
+  primers: 'primers',
+  enzymes: 'enzymes',
+  cloning: 'cloning',
+  align: 'align',
+};
+
+/** Whether a document has the panel `tab` is: a protein has no Enzymes, DNA no Protein. */
+export function hasSidebarTab(doc: SeqDocument | null, tab: SidebarTab): boolean {
+  const tool = SIDEBAR_TAB_TOOLS[tab];
+  return tool === undefined || doc === null || hasTool(doc, tool);
+}
+
+/**
+ * The tab a new tab for `doc` opens on, given the one the tab in front was
+ * on: the same when `doc` has it, else the panel for what `doc` is.
+ */
+function inheritedSidebarTab(doc: SeqDocument, tab: SidebarTab): SidebarTab {
+  if (hasSidebarTab(doc, tab)) return tab;
+  return doc.isProtein ? 'protein' : 'features';
+}
+
+/** The rail's tabs for a document, in `SIDEBAR_TABS` order. */
+export function sidebarTabsFor(doc: SeqDocument | null): readonly SidebarTab[] {
+  return SIDEBAR_TABS.filter((tab) => hasSidebarTab(doc, tab));
+}
 
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */
@@ -837,6 +880,14 @@ export function isDirty(d: DocumentState): boolean {
  * A document from "New" that nothing has happened to yet. Opening a file
  * takes its place rather than leaving an empty tab behind.
  */
+/**
+ * The open tabs that hold DNA, which is all a reaction of the bench can use:
+ * a protein is not a template, an insert or a vector (#66).
+ */
+export function cloningDocuments(documents: readonly DocumentState[]): DocumentState[] {
+  return documents.filter((d) => hasTool(d.history.present, 'cloning'));
+}
+
 export function isUntouchedNew(d: DocumentState): boolean {
   const doc = d.history.present;
   return (
@@ -1044,8 +1095,10 @@ export class EditorStore {
       editingFeatureId: null,
       findOpen: false,
       // A new tab opens on the panel the last one was on: opening the insert
-      // while setting up a digest should not send you back to Features.
-      sidebarTab: this.documentState()?.sidebarTab ?? 'features',
+      // while setting up a digest should not send you back to Features —
+      // unless this one has no such panel (#66): a protein opened from the
+      // Translate tab goes to the one that is about it.
+      sidebarTab: inheritedSidebarTab(doc, this.documentState()?.sidebarTab ?? 'features'),
       phonePane: this.takeRememberedPane(storage.id),
     };
     const active = this.documentState();
@@ -1090,16 +1143,37 @@ export class EditorStore {
    * unsaved-changes warning until something is typed) with a caret at the
    * start so the first keystroke lands.
    */
-  newDocument(topology: 'linear' | 'circular' = 'linear', name = 'Untitled'): string {
+  newDocument(
+    topology: 'linear' | 'circular' = 'linear',
+    name = 'Untitled',
+    alphabet: Alphabet = 'nucleotide',
+  ): string {
+    const protein = alphabet === 'protein';
     const doc = SeqDocument.create({
       name: name.trim() === '' ? 'Untitled' : name.trim(),
       sequence: '',
-      topology,
-      metadata: { moleculeType: 'DNA' },
+      alphabet,
+      // A protein is a chain with two ends.
+      topology: protein ? 'linear' : topology,
+      metadata: { moleculeType: protein ? '' : 'DNA' },
     });
     analytics.track('file', 'new');
     const id = this.openDocument(doc);
     this.setDocument(id, { savedDoc: doc, selection: { start: 0, end: 0 } });
+    return id;
+  }
+
+  /**
+   * Translate ▸ Open as protein (#66): the protein, made from a CDS or a
+   * translated frame, in a tab of its own on its Protein panel. It has no
+   * file behind it, so it is the user's to keep from the start, and it
+   * starts clean like a New document: nothing is lost by closing it that
+   * the DNA it came from does not still have.
+   */
+  openProtein(protein: SeqDocument, from: 'cds' | 'frame'): string {
+    analytics.track('protein', 'open', from);
+    const id = this.openDocument(protein);
+    this.setDocument(id, { savedDoc: protein, sidebarTab: 'protein' });
     return id;
   }
 
@@ -1563,7 +1637,10 @@ export class EditorStore {
   }
 
   setSidebarTab(tab: SidebarTab): void {
-    if (tab !== this.state.sidebarTab) this.setActive({ sidebarTab: tab });
+    // A protein has no Enzymes tab, and DNA no Protein one (#66).
+    if (tab !== this.state.sidebarTab && hasSidebarTab(this.document, tab)) {
+      this.setActive({ sidebarTab: tab });
+    }
   }
 
   setPhonePane(pane: PhonePane): void {
@@ -1805,7 +1882,17 @@ export class EditorStore {
 
   /** Shows what the document in front differs from in a file just read, or another tab. */
   showComparison(name: string, doc: SeqDocument, source: ComparisonSource): void {
-    if (this.activeId === null) return;
+    const front = this.document;
+    if (this.activeId === null || front === null) return;
+    // Residues and bases have nothing to line up (#66).
+    if (doc.alphabet !== front.alphabet) {
+      this.fail(
+        front.isProtein
+          ? `“${name}” is DNA and this is a protein; a protein is compared with a protein.`
+          : `“${name}” is a protein and this is DNA; translate it first, or compare it with a protein.`,
+      );
+      return;
+    }
     this.setShared({ comparison: { stage: 'review', name, doc, source } });
   }
 

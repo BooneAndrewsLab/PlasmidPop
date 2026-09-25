@@ -1,6 +1,6 @@
 import { type Ref, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { type SeqDocument } from '@/core';
+import { type SeqDocument, formatLength } from '@/core';
 
 import { analytics } from '../analytics';
 import {
@@ -19,7 +19,8 @@ import { InlineRename } from './InlineRename';
 import { useMenu } from './useMenu';
 
 function rowTitle(row: HistoryRow): string {
-  const state = `${row.state.length.toLocaleString()} bp, ${row.state.isCircular ? 'circular' : 'linear'}`;
+  const shape = row.state.isProtein ? 'protein' : row.state.isCircular ? 'circular' : 'linear';
+  const state = `${formatLength(row.state.length, row.state.alphabet)}, ${shape}`;
   if (row.current) return `Current state — ${state}`;
   if (row.undone) return `Redo up to this change — ${state}`;
   if (row.position === 0) return `Undo everything — ${state}`;

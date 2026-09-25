@@ -38,6 +38,8 @@ export interface StoredDocument {
   readonly text: string;
   readonly length: number;
   readonly topology: Topology;
+  /** 'protein' for a protein (#66); absent for DNA, and in every row from before proteins. */
+  readonly alphabet?: 'protein';
   readonly featureCount: number;
   readonly createdAt: number;
   readonly updatedAt: number;

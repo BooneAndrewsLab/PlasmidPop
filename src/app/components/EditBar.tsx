@@ -1,4 +1,4 @@
-import { type SeqDocument, hasOverhang, isEmptyRange } from '@/core';
+import { type SeqDocument, hasOverhang, hasTool, isEmptyRange, unitName } from '@/core';
 
 import { deleteSelection } from '../editing';
 import { BaseStyleMenu } from './BaseStyleMenu';
@@ -21,7 +21,7 @@ export function EditBar({ doc }: Props) {
         type="button"
         className="button button--small"
         disabled={!hasRange}
-        title="Annotate the selected bases as a new feature"
+        title={`Annotate the selected ${unitName(doc.alphabet, true)} as a new feature`}
         onClick={() => {
           editorStore.addFeatureFromSelection();
         }}
@@ -41,43 +41,52 @@ export function EditBar({ doc }: Props) {
       <BaseStyleMenu doc={doc} selection={selection} />
       <CaseMenu selection={selection} />
       <span className="editbar__divider" />
-      <button
-        type="button"
-        className="button button--small"
-        title="Reverse-complement the whole sequence; features follow"
-        onClick={() => {
-          editorStore.apply({ type: 'reverseComplement' });
-        }}
-      >
-        Reverse complement
-      </button>
-      {doc.isCircular && (
+      {hasTool(doc, 'reverseComplement') && (
         <button
           type="button"
           className="button button--small"
-          disabled={!hasCaret}
-          title="Make the base after the cursor (or the selection start) base 1"
+          title="Reverse-complement the whole sequence; features follow"
           onClick={() => {
-            if (selection !== null)
-              editorStore.apply({ type: 'setOrigin', position: selection.start });
+            editorStore.apply({ type: 'reverseComplement' });
           }}
         >
-          Set origin here
+          Reverse complement
         </button>
       )}
-      <button
-        type="button"
-        className="button button--small"
-        title={doc.isCircular ? 'Treat the sequence as linear' : 'Treat the sequence as circular'}
-        onClick={() => {
-          editorStore.apply({
-            type: 'setTopology',
-            topology: doc.isCircular ? 'linear' : 'circular',
-          });
-        }}
-      >
-        {doc.isCircular ? 'Make linear' : 'Make circular'}
-      </button>
+      {/* A protein is linear, and has one strand (#66). */}
+      {hasTool(doc, 'circular') && (
+        <>
+          {doc.isCircular && (
+            <button
+              type="button"
+              className="button button--small"
+              disabled={!hasCaret}
+              title="Make the base after the cursor (or the selection start) base 1"
+              onClick={() => {
+                if (selection !== null)
+                  editorStore.apply({ type: 'setOrigin', position: selection.start });
+              }}
+            >
+              Set origin here
+            </button>
+          )}
+          <button
+            type="button"
+            className="button button--small"
+            title={
+              doc.isCircular ? 'Treat the sequence as linear' : 'Treat the sequence as circular'
+            }
+            onClick={() => {
+              editorStore.apply({
+                type: 'setTopology',
+                topology: doc.isCircular ? 'linear' : 'circular',
+              });
+            }}
+          >
+            {doc.isCircular ? 'Make linear' : 'Make circular'}
+          </button>
+        </>
+      )}
       {/* Only a sticky-ended linear molecule has anything to blunt (#8). */}
       {hasOverhang(doc.ends) && (
         <>
@@ -106,7 +115,7 @@ export function EditBar({ doc }: Props) {
       <button
         type="button"
         className="button button--small"
-        title="Find bases or features (Ctrl+F)"
+        title={`Find ${unitName(doc.alphabet, true)} or features (Ctrl+F)`}
         onClick={() => {
           editorStore.setFindOpen(true);
         }}
@@ -114,8 +123,8 @@ export function EditBar({ doc }: Props) {
         Find
       </button>
       <span className="editbar__hint">
-        Type bases to insert, Backspace to delete. Ctrl+C copies the selection with its features,
-        Ctrl+V pastes.
+        Type {unitName(doc.alphabet, true)} to insert, Backspace to delete. Ctrl+C copies the
+        selection with its features, Ctrl+V pastes.
       </span>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { hasTool } from '@/core';
 import { analysisClient } from '@/workers/analysisClient';
 
 import { editorStore } from './editorStore';
@@ -20,6 +21,11 @@ export function useAnalysis(): void {
 
   useEffect(() => {
     if (doc === null || (analysis?.doc === doc && !analysis.provisional)) return;
+    // A protein has no sites to cut and no frames to read (#66).
+    if (!hasTool(doc, 'enzymes')) {
+      editorStore.setAnalysis(doc, [], []);
+      return;
+    }
     let cancelled = false;
     const timer = setTimeout(() => {
       const text = doc.sequence.toString();

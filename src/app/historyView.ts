@@ -1,4 +1,4 @@
-import { type History, type SeqDocument } from '@/core';
+import { type History, type SeqDocument, formatLength } from '@/core';
 
 /** A row of the history panel: one recorded change, or the state it started from. */
 export interface HistoryRow {
@@ -57,7 +57,7 @@ function signed(n: number, unit: string, plural = `${unit}s`): string {
 
 /** Size and annotation count of a document, for the row the history starts from. */
 export function summarizeDocument(doc: SeqDocument): string {
-  const bases = `${doc.length.toLocaleString()} bp`;
+  const bases = formatLength(doc.length, doc.alphabet);
   const n = doc.features.size;
   return `${bases} · ${n === 1 ? '1 feature' : `${n.toLocaleString()} features`}`;
 }
