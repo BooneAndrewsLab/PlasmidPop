@@ -886,6 +886,24 @@ describe('document tabs', () => {
     expect(editorStore.getState().front).toBe('files');
   });
 
+  it('takes the logo home from the Bench, and keeps it live on the file list', () => {
+    render(<App />);
+    const logo = () => screen.getByRole('button', { name: 'PlasmidPop' });
+    // On the file list it is home already: still a button, and clicking it stays put.
+    expect(editorStore.getState().front).toBe('files');
+    expect(logo()).toBeEnabled();
+    fireEvent.click(logo());
+    expect(editorStore.getState().front).toBe('files');
+    // From an empty Bench it is the way back to the file list.
+    act(() => {
+      editorStore.showBench();
+    });
+    expect(editorStore.getState().front).toBe('bench');
+    expect(logo()).toBeEnabled();
+    fireEvent.click(logo());
+    expect(editorStore.getState().front).toBe('files');
+  });
+
   it('does not pulse the Bench count for a shelf restored at load (#81)', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

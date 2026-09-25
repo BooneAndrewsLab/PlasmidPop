@@ -107,12 +107,16 @@ export function Toolbar({ doc }: Props) {
   return (
     <header className="toolbar">
       <h1 className="toolbar__brand">
-        {/* Logo as home: back to the file list, like a site's logo goes to its front page. */}
+        {/* Logo as home: back to the file list, like a site's logo goes to its
+            front page — from a document and from the Bench alike. On the file
+            list it is still a live button, as a site's logo is on its own
+            front page; there it simply stays put. */}
         <button
           type="button"
           className="toolbar__home"
-          title={doc === null ? 'PlasmidPop' : 'Show files (the open tabs stay open)'}
-          disabled={doc === null}
+          title={
+            front === 'files' ? 'PlasmidPop: the file list' : 'Show files (the open tabs stay open)'
+          }
           onClick={() => {
             editorStore.showFiles();
           }}

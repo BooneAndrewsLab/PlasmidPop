@@ -163,11 +163,7 @@ button {
   cursor: pointer;
 }
 
-.toolbar__home:disabled {
-  cursor: default;
-}
-
-.toolbar__home:hover:not(:disabled) {
+.toolbar__home:hover {
   background: var(--surface-3);
 }
 
