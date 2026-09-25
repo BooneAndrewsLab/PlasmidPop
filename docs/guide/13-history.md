@@ -78,7 +78,8 @@ such row: its history starts at the contents of the file it came from.
 
 The history is kept in this browser's storage beside the document, so a
 reload, a crash, or closing the tab and opening the document again from
-**Recent files** brings the list back as you left it: the same rows, times
+**Recent files** — or opening a file identical to it — brings the list back
+as you left it: the same rows, times
 and current state, with the undone rows still greyed above it and reachable
 with Redo or a click. What does change:
 

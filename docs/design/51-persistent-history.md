@@ -103,6 +103,25 @@ stored document, and reopening it from **Recent files** brings it back.
 A stored document renamed from the Files screen gets the rename as a step
 of its history, as a rename in a tab would.
 
+A newly opened document identical to a stored one that is not open (same
+name, file name and GenBank text) is merged into that entry by its first
+autosave, so reopening a file does not add a duplicate. That merge used to
+write the new tab's empty history over the entry's, redo steps and all
+(#84). Now the tab takes the entry's history over
+(`EditorStore.mergeIntoStored`): the entry's present has the same contents
+as what was opened, so nothing in the view moves, and the tab becomes the
+entry reopened, as **Recent files** would give it, with **Since opened**
+where the entry had it and the entry's provenance. That last matters: a
+tab read from a file forks a working copy on its first edit and starts a
+fresh history, so a merged tab that kept "read from this file" would have
+thrown the history away one keystroke later. A tab that was clean stays clean, since the file
+just read holds the present. A tab that already has steps of its own (it
+was edited back to the stored contents before its first autosave) is not
+merged at all and keeps an entry of its own: two histories cannot both be
+kept under one id, and a duplicate in the list is a smaller loss than
+either history. An entry with no steps, or with a history that does not
+read, is merged into as before; there is nothing in it to keep.
+
 ## A run being typed comes back sealed
 
 `coalesceKey` is not stored, so a restored history is sealed: the first

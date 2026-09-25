@@ -1081,6 +1081,49 @@ export class EditorStore {
   }
 
   /**
+   * Re-keys a tab that has no steps of its own into the stored entry it is
+   * identical to, and makes it that entry reopened, as **Recent files**
+   * would give it (#84): its undo history, **Since opened**, and where it
+   * came from, so the autosave that follows writes the entry's history back
+   * rather than the tab's empty one over it, and a first edit does not fork
+   * a working copy that throws the history away. `stored.history.present`
+   * has the same contents as the tab's present (the merge is only made when
+   * it has), so nothing in the view moves. A tab that was clean is still
+   * clean: the file it was just read from holds the present. Nothing
+   * happens when the tab is gone, has steps, or the new id is a tab of its own.
+   */
+  mergeIntoStored(
+    from: string,
+    to: string,
+    stored: {
+      readonly history: {
+        readonly history: History<SeqDocument>;
+        readonly opened: SeqDocument;
+        readonly saved: SeqDocument | null;
+      };
+      readonly origin: DocumentOrigin | null;
+      readonly derived: boolean;
+    },
+  ): void {
+    const d = this.documentState(from);
+    if (d === null || from === to || this.documentState(to) !== null || d.history.size > 0) return;
+    const { history, opened, saved } = stored.history;
+    const savedDoc = d.savedDoc === d.history.present ? history.present : saved;
+    const merged: DocumentState = {
+      ...d,
+      documentId: to,
+      history,
+      openedDoc: opened,
+      savedDoc,
+      origin: stored.origin,
+      derived: stored.derived,
+    };
+    this.docs = this.docs.map((x) => (x === d ? merged : x));
+    if (this.activeId === from) this.activeId = to;
+    this.commit();
+  }
+
+  /**
    * Records that a document has been written out under `fileName`: it is
    * what was last downloaded, so nothing is outstanding until the next edit.
    */

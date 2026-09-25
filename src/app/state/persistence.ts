@@ -185,23 +185,22 @@ export class PersistenceService {
     }
   }
 
-  private async autosaveDocument(d: DocumentState): Promise<void> {
-    const doc = d.history.present;
+  private async autosaveDocument(tab: DocumentState): Promise<void> {
+    let d = tab;
     if (isUnchanged(this.autosaved.get(d.documentId), d)) return;
     let id = d.documentId;
     if (!(await this.repo.has(id))) {
+      const opened = d.history.present;
       // A new document nobody has typed into yet is not worth a recent-files entry.
-      if (doc.length === 0 && doc.features.size === 0) return;
-      const existing = await this.repo.findIdentical(doc, d.fileName);
-      // Only merge into an entry that is not itself open in another tab.
-      if (existing !== null && editorStore.documentState(existing) === null) {
-        // Bail if the tab was closed while we were looking.
-        if (editorStore.documentState(id) === null) return;
-        editorStore.setDocumentId(id, existing);
-        this.autosaved.delete(id);
-        id = existing;
+      if (opened.length === 0 && opened.features.size === 0) return;
+      const merged = await this.mergeIntoIdentical(d);
+      if (merged === 'gone') return;
+      if (merged !== null) {
+        d = merged;
+        id = merged.documentId;
       }
     }
+    const doc = d.history.present;
     // The history goes with the document, in the same transaction: undo,
     // redo and the baselines come back after a reload (item 51).
     await this.repo.save(
@@ -213,6 +212,34 @@ export class PersistenceService {
     );
     this.autosaved.set(id, autosavedOf(d));
     void this.requestPersistentStorage();
+  }
+
+  /**
+   * The first save of a newly opened document reuses the entry of an
+   * identical stored one that is not open in a tab of its own, so reopening
+   * a file does not pile up duplicates. That entry's undo history is kept
+   * (#84): a tab with no steps of its own becomes the entry, history and
+   * provenance, as reopening it from Recent files would, and a tab with steps of its own keeps
+   * its own entry instead, so neither history is written over the other.
+   * Gives the tab as merged, null when it keeps its own id, or `gone` when
+   * it was closed while the entry was being looked up.
+   */
+  private async mergeIntoIdentical(d: DocumentState): Promise<DocumentState | 'gone' | null> {
+    const existing = await this.repo.findIdentical(d.history.present, d.fileName);
+    if (existing === null || editorStore.documentState(existing) !== null) return null;
+    const stored = await this.repo.load(existing);
+    const now = editorStore.documentState(d.documentId);
+    if (now === null) return 'gone';
+    const kept = stored?.history ?? null;
+    if (stored !== null && kept !== null && kept.history.size > 0) {
+      if (now.history.size > 0 || now.history.present !== d.history.present) return null;
+      editorStore.mergeIntoStored(d.documentId, existing, { ...stored, history: kept });
+    } else {
+      // Nothing stored worth keeping: an empty history, or none that reads.
+      editorStore.setDocumentId(d.documentId, existing);
+    }
+    this.autosaved.delete(d.documentId);
+    return editorStore.documentState(existing) ?? 'gone';
   }
 
   /**

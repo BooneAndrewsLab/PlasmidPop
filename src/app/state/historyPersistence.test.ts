@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { SeqDocument, createFeature, rangeSegment, typingRun } from '@/core';
+import { parseGenBank, writeGenBank } from '@/io';
 import { DocumentRepository, PlasmidPopDb } from '@/storage';
 import { stateView } from '@/test/historyViews';
 
@@ -165,5 +166,133 @@ describe('the undo history across a reload', () => {
     await reload(service);
     expect(active().history.position).toBe(0);
     expect(active().history.canRedo).toBe(true);
+  });
+});
+
+/** The same molecule read back from its GenBank text: equal, and not the same object. */
+function reread(doc: SeqDocument): SeqDocument {
+  const parsed = parseGenBank(writeGenBank(doc)).documents[0];
+  if (parsed === undefined) throw new Error('did not read back');
+  return parsed;
+}
+
+describe('opening a file identical to a stored document that is not open (#84)', () => {
+  afterEach(() => {
+    editorStore.closeAllDocuments();
+  });
+
+  /** A stored entry with three steps, one of them undone, downloaded (as `pUndo.gb`), its tab closed. */
+  async function storedWithRedo(
+    service: PersistenceService,
+    download: string | null = 'pUndo.gb',
+  ): Promise<{
+    id: string;
+    present: SeqDocument;
+    labels: readonly string[];
+  }> {
+    editorStore.openDocument(plasmid);
+    editorStore.apply({ type: 'insert', position: 4, text: 'GGG' });
+    editorStore.apply({ type: 'delete', range: { start: 0, end: 2 } });
+    editorStore.apply({ type: 'updateFeature', id: 'g', patch: { name: 'renamed' } });
+    editorStore.undo();
+    const { documentId: id, history } = active();
+    if (download !== null) editorStore.markDownloaded(id, download);
+    await service.autosave();
+    editorStore.closeDocument(id);
+    return { id, present: history.present, labels: history.labels };
+  }
+
+  it('keeps the stored history, redo steps included, through the merge and a reload', async () => {
+    const { repo, service } = freshService();
+    const { id, present, labels } = await storedWithRedo(service);
+
+    editorStore.openDocument(reread(present), 'pUndo.gb');
+    expect(active().documentId).not.toBe(id);
+    await service.autosave();
+    // Merged: one entry, the tab under its id, with its history.
+    expect((await repo.list()).map((d) => d.id)).toEqual([id]);
+    const merged = active();
+    expect(merged.documentId).toBe(id);
+    expect(merged.history.labels).toEqual(labels);
+    expect(merged.history.position).toBe(2);
+    expect(merged.history.canRedo).toBe(true);
+    expect(stateView(merged.history.present)).toEqual(stateView(present));
+    // The file just read is what is on disk: the tab is still clean.
+    expect(editorStore.getState().dirty).toBe(false);
+
+    await reload(service);
+    const after = active();
+    expect(after.documentId).toBe(id);
+    expect(after.history.labels).toEqual(labels);
+    expect(after.history.position).toBe(2);
+    editorStore.redo();
+    expect(editorStore.document?.features.get('g')?.name).toBe('renamed');
+    editorStore.jumpHistory(0);
+    expect(stateView(active().history.present)).toEqual(stateView(plasmid));
+  });
+
+  it('gives a tab with steps of its own its own entry, so neither history is lost', async () => {
+    const { repo, service } = freshService();
+    const { id, present, labels } = await storedWithRedo(service, null);
+
+    // Edited to the stored contents before the first autosave: steps of its own.
+    editorStore.openDocument(reread(present).insert(0, 'A'));
+    editorStore.apply({ type: 'delete', range: { start: 0, end: 1 } });
+    expect(active().history.size).toBe(1);
+    await service.autosave();
+    const own = active().documentId;
+    expect(own).not.toBe(id);
+    expect((await repo.list()).map((d) => d.id).sort()).toEqual([id, own].sort());
+
+    await service.openStored(id);
+    expect(active().history.labels).toEqual(labels);
+    expect(active().history.canRedo).toBe(true);
+  });
+
+  it('still merges into an entry with no steps to keep', async () => {
+    const { repo, service } = freshService();
+    editorStore.openDocument(plasmid, 'pUndo.gb');
+    const first = active().documentId;
+    await service.autosave();
+    editorStore.closeDocument(first);
+    editorStore.openDocument(reread(plasmid), 'pUndo.gb');
+    await service.autosave();
+    expect(active().documentId).toBe(first);
+    expect((await repo.list()).map((d) => d.id)).toEqual([first]);
+  });
+});
+
+describe('a merged tab is the stored entry reopened (#84)', () => {
+  afterEach(() => {
+    editorStore.closeAllDocuments();
+  });
+
+  it('keeps the history on the next edit: a downloaded working copy does not fork again', async () => {
+    const { service } = freshService();
+    // A working copy of a file, edited and downloaded under a name of its own.
+    editorStore.openDocument(plasmid, 'pUndo.gb');
+    editorStore.apply({ type: 'rename', name: 'pCopy' });
+    editorStore.apply({ type: 'insert', position: 0, text: 'T' });
+    editorStore.apply({ type: 'insert', position: 0, text: 'G' });
+    const { documentId: id } = active();
+    editorStore.markDownloaded(id, 'pCopy.gb');
+    const present = active().history.present;
+    expect(writeGenBank(reread(present))).toBe(writeGenBank(present));
+    await service.autosave();
+    editorStore.closeDocument(id);
+
+    // That download opened again.
+    editorStore.openDocument(reread(present), 'pCopy.gb');
+    await service.autosave();
+    expect(active().documentId).toBe(id);
+    expect(active().derived).toBe(true);
+    expect(active().origin?.fileName).toBe('pUndo.gb');
+    expect(active().history.size).toBe(2);
+    editorStore.apply({ type: 'insert', position: 0, text: 'C' });
+    expect(active().history.size).toBe(3);
+    await reload(service);
+    expect(active().history.size).toBe(3);
+    editorStore.jumpHistory(0);
+    expect(editorStore.document?.sequence.toString()).toBe(plasmid.sequence.toString());
   });
 });

@@ -346,7 +346,11 @@ or a crash loses nothing. Its undo history is written with it, so undo and
 redo still work after a reload. On the
 start screen (the **Files** tab), **Recent files** lists these documents with
 size, topology, feature count and when they were last changed. Opening the
-same file twice does not create a second entry.
+same file twice does not create a second entry: a file identical to a stored
+document whose tab is closed opens as that document, with its history, as if
+you had reopened it from the list. (If you edit the new tab back to the stored
+contents before it is first saved, it keeps an entry of its own instead, so
+neither history is lost.)
 
 - Click an entry to reopen it in a tab, or to go to its tab when it is
   already **open**. A working copy comes back as a working copy, under the
