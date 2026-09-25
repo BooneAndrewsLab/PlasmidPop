@@ -5,12 +5,14 @@ import {
   type Qualifier,
   type Reference,
   type Topology,
+  type Alphabet,
   SeqDocument,
   createFeature,
   createMetadata,
   createReference,
   LocationError,
   isValidSequence,
+  isValidProtein,
   parseLocation,
 } from '@/core';
 
@@ -101,6 +103,8 @@ interface LocusInfo {
   topology: Topology;
   division: string;
   date: string;
+  /** A GenPept record's LOCUS counts `aa` rather than `bp` (#66). */
+  alphabet: Alphabet;
 }
 
 const HEADER_KEYWORD = /^([A-Z]+)(?:\s+(.*))?$/;
@@ -158,25 +162,33 @@ function parseLocus(line: Line): LocusInfo {
     topology: 'linear',
     division: '',
     date: '',
+    alphabet: 'nucleotide',
   };
   const unitIdx = tokens.findIndex((t) => t === 'bp' || t === 'aa');
   if (unitIdx >= 1) {
-    if (tokens[unitIdx] === 'aa')
-      throw new FormatError('Protein records are not supported', line.number);
+    if (tokens[unitIdx] === 'aa') info.alphabet = 'protein';
     info.name = tokens.slice(0, unitIdx - 1).join(' ');
     info.length = Number.parseInt(tokens[unitIdx - 1] ?? '', 10);
     if (Number.isNaN(info.length)) info.length = null;
   } else {
     info.name = tokens[0] ?? '';
   }
+  // GenPept writes no molecule type, so a protein's first three capitals are its division.
+  const protein = info.alphabet === 'protein';
   for (const token of tokens.slice(unitIdx >= 0 ? unitIdx + 1 : 1)) {
     if (/^(linear|circular)$/i.test(token)) info.topology = token.toLowerCase() as Topology;
     else if (/^\d{2}-[A-Z]{3}-\d{4}$/i.test(token)) info.date = token.toUpperCase();
-    else if (/^[A-Z]{3}$/.test(token) && info.moleculeType !== '' && info.division === '')
+    else if (
+      /^[A-Z]{3}$/.test(token) &&
+      (info.moleculeType !== '' || protein) &&
+      info.division === ''
+    )
       info.division = token;
     else if (info.moleculeType === '' && /^[A-Za-z-]+$/.test(token)) info.moleculeType = token;
   }
-  if (info.moleculeType === '') info.moleculeType = 'DNA';
+  if (info.moleculeType === '' && !protein) info.moleculeType = 'DNA';
+  // A protein is a chain with two ends, whatever the line says.
+  if (protein) info.topology = 'linear';
   return info;
 }
 
@@ -434,12 +446,23 @@ function parseSequence(
   lines: readonly Line[],
   warnings: ParseWarning[],
   startLine: number,
+  alphabet: Alphabet,
 ): string {
   let text = '';
   for (const line of lines) text += line.text.replace(/[\s\d]/g, '');
   if (text.includes('-')) {
     warnings.push(warning('Gap characters ("-") removed from sequence', startLine));
     text = text.replace(/-/g, '');
+  }
+  if (alphabet === 'protein') {
+    if (!isValidProtein(text)) {
+      const bad = [...new Set(text.replace(/[A-Za-z*]/g, ''))];
+      throw new FormatError(
+        `Sequence contains characters outside the amino-acid alphabet: ${bad.map((c) => JSON.stringify(c)).join(', ')}`,
+        startLine,
+      );
+    }
+    return text;
   }
   if (!isValidSequence(text)) {
     const bad = [...new Set(text.replace(/[ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, ''))];
@@ -479,13 +502,14 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
           lines.slice(originStart + 1).filter((l) => !/^(BASE COUNT|CONTIG)/.test(l.text)),
           warnings,
           (lines[originStart]?.number ?? 0) + 1,
+          locus.alphabet,
         )
       : '';
 
   if (locus.length !== null && locus.length !== sequence.length) {
     warnings.push(
       warning(
-        `LOCUS says ${locus.length} bp but the sequence has ${sequence.length}; using ${sequence.length}`,
+        `LOCUS says ${locus.length} ${locus.alphabet === 'protein' ? 'aa' : 'bp'} but the sequence has ${sequence.length}; using ${sequence.length}`,
         first.number,
       ),
     );
@@ -521,6 +545,7 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
   };
   const features = buildFeatures(rawFeatures, sequence.length, locus.topology, warnings);
   return SeqDocument.create({
+    alphabet: locus.alphabet,
     name: locus.name === '' ? 'Untitled' : locus.name,
     sequence,
     topology: locus.topology,

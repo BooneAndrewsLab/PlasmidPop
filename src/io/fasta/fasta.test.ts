@@ -23,11 +23,15 @@ describe('FASTA', () => {
     ]);
   });
 
-  it('strips gaps and digits with a warning, ignores comment lines, and rejects protein', () => {
+  it('strips gaps and digits with a warning, ignores comment lines, and rejects junk', () => {
     const result = parseFasta('; a comment\n>x\n1 ACG-T\n11 ac.gt\n');
     expect(result.documents[0]?.sequence.toString()).toBe('ACGTacgt');
     expect(result.warnings[0]?.message).toMatch(/Gap/);
-    expect(() => parseFasta('>p\nMKVLLA*\n')).toThrow(FormatError);
+    // Mostly bases with a stray letter is damaged DNA, not a protein.
+    expect(() => parseFasta('>p\nACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTX\n')).toThrow(
+      FormatError,
+    );
+    expect(() => parseFasta('>p\nMKV#LLA\n')).toThrow(FormatError);
     expect(() => parseFasta('ACGT\n')).toThrow(/start with a ">"/);
     expect(() => parseFasta('')).toThrow(/No FASTA records/);
     expect(parseFasta('>\nACGT\n').documents[0]?.name).toBe('Untitled');
@@ -172,7 +176,8 @@ describe('FASTA, reading line by line', () => {
   it('names each character it cannot read, once, and the line of its header', () => {
     let error: unknown;
     try {
-      parseFasta('\n\n>p protein\nMKVLLA*\nLL**\n');
+      // Bases, mostly, with two letters no base has: damaged DNA, not a protein.
+      parseFasta('\n\n>p damaged\nACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT\nACGTACGTL*\n');
     } catch (e) {
       error = e;
     }

@@ -77,7 +77,9 @@ function headerBlock(keyword: string, value: string, indent = '', verbatim = fal
 
 function locusLine(doc: SeqDocument): string {
   const name = (doc.name.trim() === '' ? 'Untitled' : doc.name).replace(/\s+/g, '_');
-  const mol = doc.metadata.moleculeType === '' ? 'DNA' : doc.metadata.moleculeType;
+  // A protein is written as GenPept writes one (#66): `aa`, and no molecule type.
+  const protein = doc.isProtein;
+  const mol = protein ? '' : doc.metadata.moleculeType === '' ? 'DNA' : doc.metadata.moleculeType;
   const date = doc.metadata.date === '' ? genBankDate() : doc.metadata.date;
   // The division code is required: Biopython refuses a LOCUS line without
   // one. A document with none is almost always a construct made or edited
@@ -88,7 +90,7 @@ function locusLine(doc: SeqDocument): string {
     'LOCUS       ' +
     name.padEnd(16) +
     String(doc.length).padStart(12) +
-    ' bp    ' +
+    (protein ? ' aa    ' : ' bp    ') +
     mol.padEnd(7) +
     ' ' +
     tail.join(' ')

@@ -7,7 +7,7 @@ import { type OpenStorage, editorStore } from './state/editorStore';
 
 /** What the file pickers offer: every format `readSequenceData` reads. */
 export const SEQUENCE_FILE_ACCEPT =
-  '.gb,.gbk,.genbank,.gbff,.ape,.fa,.fasta,.fna,.seq,.txt,.dna,.ab1,.abi,.fastq,.fq,.gz';
+  '.gb,.gbk,.genbank,.gbff,.gp,.gpff,.ape,.fa,.fasta,.fna,.faa,.seq,.txt,.dna,.ab1,.abi,.fastq,.fq,.gz';
 
 const UNSUPPORTED: Readonly<Record<string, string>> = {
   geneious: 'Geneious files are not supported yet. Export as GenBank first.',

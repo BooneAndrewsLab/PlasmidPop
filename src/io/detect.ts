@@ -7,8 +7,8 @@ import { parseGenBank } from './genbank';
 import { isSnapGene, parseSnapGene } from './snapgene';
 import { type FormatId, type ParseResult, FormatError } from './types';
 
-const GENBANK_EXTENSIONS = new Set(['gb', 'gbk', 'genbank', 'gbff', 'ape']);
-const FASTA_EXTENSIONS = new Set(['fa', 'fasta', 'fna', 'ffn', 'fas', 'seq', 'txt']);
+const GENBANK_EXTENSIONS = new Set(['gb', 'gbk', 'genbank', 'gbff', 'ape', 'gp', 'gpff', 'gpept']);
+const FASTA_EXTENSIONS = new Set(['fa', 'fasta', 'fna', 'ffn', 'faa', 'fas', 'seq', 'txt']);
 const FASTQ_EXTENSIONS = new Set(['fastq', 'fq']);
 
 export function extensionOf(filename: string): string {

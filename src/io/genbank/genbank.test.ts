@@ -451,9 +451,12 @@ describe('GenBank parser edge cases', () => {
     expect(() =>
       parseGenBank('LOCUS       P 3 bp DNA linear\nORIGIN\n        1 MKV*\n//\n'),
     ).toThrow(FormatError);
-    expect(() =>
-      parseGenBank('LOCUS       P 3 aa PROTEIN linear\nORIGIN\n        1 MKV\n//\n'),
-    ).toThrow(/Protein/);
+    // A record counted in residues is a protein, and its letters are residues (#66).
+    const protein = parseGenBank('LOCUS       P 3 aa PROTEIN linear\nORIGIN\n        1 MKV\n//\n');
+    expect(protein.documents[0]?.alphabet).toBe('protein');
+    expect(() => parseGenBank('LOCUS       P 3 aa linear\nORIGIN\n        1 MK1V#\n//\n')).toThrow(
+      /amino-acid alphabet: "#"/,
+    );
     expect(() => parseGenBank('just some text')).toThrow(/No LOCUS/);
   });
 

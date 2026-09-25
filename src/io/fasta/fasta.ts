@@ -1,4 +1,4 @@
-import { SeqDocument, isValidSequence } from '@/core';
+import { SeqDocument, guessAlphabet, isValidSequence } from '@/core';
 
 import { formatEndsComment, parseEndsComment } from '../genbank/endsComment';
 import {
@@ -48,6 +48,25 @@ export function parseFasta(text: string): ParseResult {
       warnings.push(warning('Gap characters removed from sequence', header.line));
       cleaned = cleaned.replace(/[-.]/g, '');
     }
+    const body = header.text.slice(1).trim();
+    const space = body.search(/\s/);
+    const name = space < 0 ? body : body.slice(0, space);
+    let description = space < 0 ? '' : body.slice(space).trim();
+    // Each record says what it is by its letters (#66); `guessAlphabet` is
+    // careful never to take a nucleotide record for a protein.
+    if (guessAlphabet(cleaned) === 'protein') {
+      documents.push(
+        SeqDocument.create({
+          name: name === '' ? 'Untitled' : name,
+          sequence: cleaned,
+          alphabet: 'protein',
+          metadata: { description },
+        }),
+      );
+      header = null;
+      seq = '';
+      return;
+    }
     if (!isValidSequence(cleaned)) {
       const bad = [...new Set(cleaned.replace(/[ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, ''))];
       throw new FormatError(
@@ -55,10 +74,6 @@ export function parseFasta(text: string): ParseResult {
         header.line,
       );
     }
-    const body = header.text.slice(1).trim();
-    const space = body.search(/\s/);
-    const name = space < 0 ? body : body.slice(0, space);
-    let description = space < 0 ? '' : body.slice(space).trim();
     const tag = ENDS_TAG.exec(description);
     const ends = tag?.[1] === undefined ? null : parseEndsComment(tag[1]);
     // Only a tag that was understood leaves the description (#72).
