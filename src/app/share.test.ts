@@ -12,6 +12,8 @@ import {
   openSharedPayload,
   selectionForShare,
   shareLinkFor,
+  LONG_LINK_CHARS,
+  longLinkWarning,
   shareNoticeText,
   sharePayloadIn,
   shareUrlFor,
@@ -243,6 +245,26 @@ describe('a link to the selection (#39)', () => {
     expect(shareNoticeText(notice)).toMatch(
       /^Link to the selection copied — [\d,]+ characters\. The selection, with its features,/,
     );
+  });
+});
+
+describe('longLinkWarning (#41)', () => {
+  it('says nothing up to 2,000 characters', () => {
+    expect(longLinkWarning({ chars: 1_343, of: 'document', fullChars: null })).toBeNull();
+    expect(longLinkWarning({ chars: LONG_LINK_CHARS, of: 'document', fullChars: null })).toBeNull();
+  });
+
+  it('warns past it, naming Slack and Teams and what to do instead', () => {
+    const text = longLinkWarning({ chars: LONG_LINK_CHARS + 1, of: 'document', fullChars: null });
+    expect(text).toMatch(/Slack refuses to send one, and Teams makes it hard to click/);
+    expect(text).toMatch(/download the file and attach it/);
+    expect(text).toMatch(/File ▸ Copy link to selection/);
+  });
+
+  it('suggests a smaller selection for a link that already is one', () => {
+    const text = longLinkWarning({ chars: 7_256, of: 'selection', fullChars: null });
+    expect(text).toMatch(/a smaller selection/);
+    expect(text).not.toMatch(/Copy link to selection/);
   });
 });
 

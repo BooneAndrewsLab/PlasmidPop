@@ -126,3 +126,16 @@ URL fragment**.
   (pBR322's first kilobase: 7.3 k) until the fallback applies. None of the
   fixtures reaches the limit, so the fallback is for the documents that
   would have been refused: a record with a few dozen long references.
+
+- **Tested in chat apps, 2026-09-25 (#41):** Slack refused to send a
+  10k-character link outright, and Teams sent one but, on the other end,
+  showed a tooltip the height of the screen as soon as the pointer passed
+  over it, so it could hardly be clicked. That is the warning tier #40 left
+  open: past `LONG_LINK_CHARS` (2,000, the length links are generally safe
+  to, since the apps' own limits are not published) the share notice says
+  so, names both apps, and points to attaching the file or a link to a
+  selection, and it stays up 30 s instead of 12. The 32,000 limit stays:
+  mail and the address bar carry such links, and the warning, not a
+  refusal, is the right answer to one app's limit. A self-hosted,
+  end-to-end encrypted short-link service is the lasting answer, as an
+  optional build-time setting like Matomo's (#87).

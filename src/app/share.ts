@@ -123,6 +123,28 @@ export async function copyShareLink(
   });
 }
 
+/**
+ * Past this many characters a link does not survive every chat app (#41,
+ * tested 2026-09-25): Slack refused to send a 10k-character link, and Teams
+ * sent it but covered the screen with its tooltip when the pointer passed
+ * over it. 2,000 is the length links are generally safe to, until an app is
+ * measured more closely.
+ */
+export const LONG_LINK_CHARS = 2_000;
+
+/** What the notice adds for a link some chat apps will not carry; null for a short one. */
+export function longLinkWarning({ chars, of }: ShareNoticeInfo): string | null {
+  if (chars <= LONG_LINK_CHARS) return null;
+  const smaller =
+    of === 'selection'
+      ? 'a smaller selection'
+      : 'File ▸ Copy link to selection for just the part they need';
+  return (
+    `A link this long may not get through chat apps: Slack refuses to send one, and Teams ` +
+    `makes it hard to click. For those, download the file and attach it, or use ${smaller}.`
+  );
+}
+
 /** What the notice says: which link, how long, and what it left out (#39). */
 export function shareNoticeText({ chars, of, fullChars }: ShareNoticeInfo): string {
   const what = of === 'selection' ? 'Link to the selection' : 'Share link';

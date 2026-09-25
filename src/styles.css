@@ -2377,6 +2377,11 @@ button {
   color: var(--ink);
 }
 
+/* A share link too long for chat apps (#41): the part to read before pasting. */
+.copy-banner__text .copy-banner__warning {
+  color: var(--warn);
+}
+
 /* Sized to the name it holds, so the sentence around it does not jump. */
 .copy-banner__rename {
   min-width: 8em;

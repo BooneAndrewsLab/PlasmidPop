@@ -300,9 +300,14 @@ What follows from that is worth knowing.
   pointer to it. Treat it the way you would treat the file.
 - **A link cannot be withdrawn or updated.** It is a snapshot of the document
   as it was when you copied it; edit the document and copy a new one.
-- **Links are long.** An ordinary annotated plasmid makes one of four to
-  twelve thousand characters. Mail and chat clients cope, but such a link
-  wraps badly in plain text — paste it as a link where you can.
+- **Links are long, and chat apps do not all carry them.** An ordinary
+  annotated plasmid makes one of four to twelve thousand characters. Slack
+  refuses to send a link that long, and Teams sends it but covers the screen
+  with its tooltip when the pointer passes over it, so it is hard to click.
+  Past 2,000 characters the notice says so. For those apps, download the
+  file and attach it, or share a link to just the part that is needed (below).
+  In plain-text mail such a link wraps badly — paste it as a link where you
+  can.
 - **File ▸ Copy link to selection** makes a shorter one: a link to just the
   selected bases, as a linear document of their own with the features that
   fall inside them — what **Export selection as GenBank** writes. It may

@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 
 import { openGuide } from '../help/openGuide';
-import { shareNoticeText } from '../share';
+import { longLinkWarning, shareNoticeText } from '../share';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
 /** How long the notice stays up before it takes itself away. */
 const LINGER_MS = 12_000;
+/** Longer when it warns about the link's length: that is worth reading before pasting. */
+const LINGER_WARNING_MS = 30_000;
 
 /**
  * What a copied share link is, said once at the moment it matters.
@@ -19,18 +21,23 @@ export function ShareNotice() {
   const { shareNotice } = useEditorState();
   useEffect(() => {
     if (shareNotice === null) return;
+    const linger = longLinkWarning(shareNotice) === null ? LINGER_MS : LINGER_WARNING_MS;
     const timer = setTimeout(() => {
       editorStore.dismissShareNotice();
-    }, LINGER_MS);
+    }, linger);
     return () => {
       clearTimeout(timer);
     };
   }, [shareNotice]);
   if (shareNotice === null) return null;
+  const warning = longLinkWarning(shareNotice);
 
   return (
     <div className="copy-banner copy-banner--notice" role="status">
-      <span className="copy-banner__text">{shareNoticeText(shareNotice)}</span>
+      <span className="copy-banner__text">
+        {shareNoticeText(shareNotice)}
+        {warning !== null && <strong className="copy-banner__warning"> {warning}</strong>}
+      </span>
       <button
         type="button"
         className="copy-banner__link"
