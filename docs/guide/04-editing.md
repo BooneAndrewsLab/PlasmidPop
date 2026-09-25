@@ -36,6 +36,34 @@ step.
 - Pasting a whole GenBank or FASTA record into an **empty** document opens
   the record instead of inserting its text.
 
+## Colouring and enlarging bases
+
+To make a stretch of bases stand out, select it and open **Style ▾** in the
+edit bar (`Alt+Y`):
+
+- **Letters**: draw the bases in a colour. Click a swatch, or pick any
+  colour with the box beside them. **None** puts the ordinary colour back.
+- **Highlight**: a colour behind the bases, like a highlighter pen. The
+  letters on it are drawn dark or light, whichever reads.
+- **Bold**.
+- **Size**: _Larger_ (1¼×), _Large_ (1½×) or _Largest_ (2×). Larger letters
+  take more room, so their row holds fewer bases and is taller, and the rows
+  after it start where it stopped, just as larger words do in a paragraph.
+  The ruler still counts in tens from the start of the sequence.
+- **Clear style** takes all of it off the selected bases.
+
+The menu ticks what the whole selection has in common, and stays open so
+you can try one choice after another. Each choice is one undo step.
+
+A style belongs to its bases, not to a position. It moves when you type
+before it, grows when you type inside it, goes when its bases are deleted,
+comes along when you copy and paste them, and turns over with
+**Reverse complement**. A style is not a feature: it takes no lane, is not in
+the feature list and is not drawn on the map. It is kept with the document,
+in its GenBank file (as a comment other programs ignore) and in a share
+link. FASTA has nowhere to keep it. It shows in the sequence view and in its
+SVG export.
+
 ## Whole-sequence operations
 
 In the edit bar:

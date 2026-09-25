@@ -25,6 +25,7 @@ import {
 import {
   type Hit,
   LinearLayout,
+  RowBreaks,
   assignLanes,
   basesPerRowFor,
   endOverhangs,
@@ -35,6 +36,7 @@ import {
   monoFontOf,
   renderLinearView,
   sansFontOf,
+  sizedRuns,
 } from '@/view/linear';
 import {
   type OverlaySpan,
@@ -247,22 +249,17 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   // is what the keyboard reads to select a codon at a time.
   const allTranslations = useMemo(() => new CdsTranslations(doc), [doc]);
   const translations = showTranslations ? allTranslations : null;
+  // Larger bases (#91) take more of a row, so the rows break around them.
+  const breaks = useMemo(
+    () => new RowBreaks(doc.length, metrics.basesPerRow, sizedRuns(doc.styles)),
+    [doc.length, doc.styles, metrics.basesPerRow],
+  );
   const layout = useMemo(() => {
-    const perRow = lanesPerRow(
-      drawableFeatures(doc.features.all()),
-      lanes,
-      doc.length,
-      metrics.basesPerRow,
-    );
-    const translationsPerRow = lanesPerRow(
-      codingFeatures,
-      translationLanes,
-      doc.length,
-      metrics.basesPerRow,
-    );
-    const previewPerRow = overlaysPerRow(overlay, previewLanes, doc.length, metrics.basesPerRow);
-    return new LinearLayout(doc.length, metrics, perRow, translationsPerRow, previewPerRow);
-  }, [doc, lanes, codingFeatures, translationLanes, metrics, overlay, previewLanes]);
+    const perRow = lanesPerRow(drawableFeatures(doc.features.all()), lanes, doc.length, breaks);
+    const translationsPerRow = lanesPerRow(codingFeatures, translationLanes, doc.length, breaks);
+    const previewPerRow = overlaysPerRow(overlay, previewLanes, doc.length, breaks);
+    return new LinearLayout(doc.length, metrics, perRow, translationsPerRow, previewPerRow, breaks);
+  }, [doc, lanes, codingFeatures, translationLanes, metrics, overlay, previewLanes, breaks]);
 
   // Track the viewport size.
   useLayoutEffect(() => {
@@ -457,7 +454,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       layout.rowAtY(y) ??
       (y < metrics.topPadding ? layout.rows[0] : layout.rows[layout.rows.length - 1]);
     if (row === undefined) return null;
-    const column = Math.floor((x - metrics.leftGutter) / metrics.charWidth);
+    const column = Math.floor(layout.offsetAtX(row, x));
     return row.start + Math.min(row.end - row.start - 1, Math.max(0, column));
   };
 
@@ -847,9 +844,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
             ? -1
             : e.key === 'ArrowRight'
               ? 1
-              : e.key === 'ArrowUp'
-                ? -metrics.basesPerRow
-                : metrics.basesPerRow;
+              : layout.positionInRowBeside(focus, e.key === 'ArrowUp' ? -1 : 1) - focus;
         if (
           !e.shiftKey &&
           !isEmptyRange(selection) &&

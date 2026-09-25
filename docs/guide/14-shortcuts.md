@@ -48,6 +48,7 @@ left for the view.
 | `Alt+[`, `Alt+]` | The sidebar tab above or below (opens the sidebar)        |
 | `Alt+=`, `Alt+-` | Larger or smaller sequence text                           |
 | `Alt+O`          | Open the Format menu; Tab walks its items, Escape closes  |
+| `Alt+Y`          | Open the Style menu for the selected bases (colour, size) |
 
 ## Selecting and moving
 

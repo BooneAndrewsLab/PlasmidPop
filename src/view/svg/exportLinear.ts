@@ -14,10 +14,12 @@ import {
   type RowLayout,
   DEFAULT_FONT_SIZE,
   LinearLayout,
+  RowBreaks,
   NO_LANES,
   assignLanes,
   endOverhangs,
   lanesPerRow,
+  sizedRuns,
   linearMetrics,
   linearWidth,
   renderLinearView,
@@ -153,11 +155,14 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
   const lanes = assignLanes(features, doc.length);
   const coding = options.showTranslations === true ? features.filter(isCodingFeature) : [];
   const translationLanes = assignLanes(coding, doc.length);
+  const breaks = new RowBreaks(doc.length, basesPerRow, sizedRuns(doc.styles));
   const layout = new LinearLayout(
     doc.length,
     metrics,
-    lanesPerRow(features, lanes, doc.length, basesPerRow),
-    lanesPerRow(coding, translationLanes, doc.length, basesPerRow),
+    lanesPerRow(features, lanes, doc.length, breaks),
+    lanesPerRow(coding, translationLanes, doc.length, breaks),
+    [],
+    breaks,
   );
 
   const range = options.range ?? null;

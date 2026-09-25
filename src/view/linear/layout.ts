@@ -1,3 +1,5 @@
+import { type RowBreaks, type SizedRun, rowBreaksOf } from './rowBreaks';
+
 /**
  * Geometry of the linear sequence view: the sequence is broken into rows of
  * `basesPerRow` bases; every row shows a ruler, a sequencing read's trace
@@ -5,6 +7,11 @@
  * optionally the complement, one translation line per coding feature that
  * touches it, and as many feature lanes as it needs. Pure functions so the
  * maths is unit-testable without a canvas.
+ *
+ * Bases drawn larger (#91) take more of a row's width, so such a row holds
+ * fewer bases (`RowBreaks`), and its strands are as much taller as its
+ * largest base. Every horizontal position in a row therefore comes from
+ * `xOf(row, position)`, never from a column times `charWidth`.
  */
 
 export interface LinearMetrics {
@@ -46,6 +53,10 @@ export interface RowLayout {
   readonly lanes: number;
   /** Preview lanes drawn outside the feature lanes. */
   readonly overlays: number;
+  /** How much taller than ordinary the strands are: the size of the row's largest base. */
+  readonly scale: number;
+  /** The row's larger bases; empty in a row of ordinary ones. */
+  readonly sized: readonly SizedRun[];
 }
 
 export type Hit =
@@ -80,29 +91,34 @@ export class LinearLayout {
     lanesPerRow: readonly number[],
     translationsPerRow: readonly number[] = [],
     overlaysPerRow: readonly number[] = [],
+    breaks: RowBreaks = rowBreaksOf(seqLength, metrics.basesPerRow),
   ) {
+    this.breaks = breaks;
     const rows: RowLayout[] = [];
-    const rowCount = Math.max(1, Math.ceil(seqLength / metrics.basesPerRow));
     let y = metrics.topPadding;
-    for (let i = 0; i < rowCount; i++) {
+    for (let i = 0; i < breaks.rows.length; i++) {
+      const span = breaks.rows[i];
+      if (span === undefined) break;
       const lanes = lanesPerRow[i] ?? 0;
       const translations = translationsPerRow[i] ?? 0;
       const overlays = overlaysPerRow[i] ?? 0;
       const height =
-        this.baseBlockHeight() +
+        this.baseBlockHeight(span) +
         translations * metrics.translationHeight +
         lanes * metrics.laneHeight +
         overlays * metrics.overlayHeight +
         metrics.rowGap;
       rows.push({
         index: i,
-        start: i * metrics.basesPerRow,
-        end: Math.min(seqLength, (i + 1) * metrics.basesPerRow),
+        start: span.start,
+        end: span.end,
         top: y,
         height,
         translations,
         lanes,
         overlays,
+        scale: span.scale,
+        sized: span.sized,
       });
       y += height;
     }
@@ -111,15 +127,20 @@ export class LinearLayout {
   }
 
   /** Ruler, trace and strands, before any feature lane. */
-  baseBlockHeight(): number {
+  baseBlockHeight(row?: { readonly scale: number }): number {
     const m = this.metrics;
-    return m.rulerHeight + m.traceHeight + this.strandsHeight();
+    return m.rulerHeight + m.traceHeight + this.strandsHeight(row);
+  }
+
+  /** Height of one strand's line of bases in `row`: taller where its bases are larger. */
+  lineHeight(row?: { readonly scale: number }): number {
+    return Math.round(this.metrics.lineHeight * (row?.scale ?? 1));
   }
 
   /** The forward strand, and the complement under it when shown. */
-  strandsHeight(): number {
+  strandsHeight(row?: { readonly scale: number }): number {
     const m = this.metrics;
-    return m.lineHeight * (m.showComplement ? 2 : 1);
+    return this.lineHeight(row) * (m.showComplement ? 2 : 1);
   }
 
   /** Top of the chromatogram, between the ruler and the strands. */
@@ -132,12 +153,17 @@ export class LinearLayout {
   }
 
   complementTextTop(row: RowLayout): number {
-    return this.forwardTextTop(row) + this.metrics.lineHeight;
+    return this.forwardTextTop(row) + this.lineHeight(row);
+  }
+
+  /** Where the letters of a strand line starting at `top` sit, whatever their size. */
+  textBaseline(row: RowLayout, top: number): number {
+    return top + this.lineHeight(row) * 0.75;
   }
 
   /** Top of translation line `line` (0 = directly under the strands). */
   translationTop(row: RowLayout, line: number): number {
-    return row.top + this.baseBlockHeight() + line * this.metrics.translationHeight;
+    return row.top + this.baseBlockHeight(row) + line * this.metrics.translationHeight;
   }
 
   laneTop(row: RowLayout, lane: number): number {
@@ -149,14 +175,84 @@ export class LinearLayout {
     return this.laneTop(row, row.lanes) + lane * this.metrics.overlayHeight;
   }
 
+  /** Where the rows break, which the per-row counts were made from. */
+  readonly breaks: RowBreaks;
+
+  /**
+   * Left edge of column `column` of a row of ordinary bases. Only for rows
+   * known to have no larger base (and for the gutter to the left of a row);
+   * anything in a row of the document uses `xOf`.
+   */
   xOfColumn(column: number): number {
     return this.metrics.leftGutter + column * this.metrics.charWidth;
   }
 
+  /**
+   * Left edge of base `position` in `row` — the boundary before it, so
+   * `row.end` is the right edge of the row's last base. Positions outside
+   * the row carry on at the ordinary width, for a sticky end drawn past it.
+   */
+  xOf(row: RowLayout, position: number): number {
+    let columns = position - row.start;
+    for (const run of row.sized) {
+      if (run.start >= position) break;
+      columns += (Math.min(position, run.end) - run.start) * (run.size - 1);
+    }
+    return this.metrics.leftGutter + columns * this.metrics.charWidth;
+  }
+
+  /** How wide base `position` of `row` is drawn. */
+  widthOf(row: RowLayout, position: number): number {
+    for (const run of row.sized) {
+      if (run.start > position) break;
+      if (position < run.end) return run.size * this.metrics.charWidth;
+    }
+    return this.metrics.charWidth;
+  }
+
+  /**
+   * The base boundary nearest `x` in `row` as a fractional offset from
+   * `row.start`: the inverse of `xOf`, for hit testing. Clamped to the row.
+   */
+  offsetAtX(row: RowLayout, x: number): number {
+    const m = this.metrics;
+    const target = (x - m.leftGutter) / m.charWidth;
+    if (row.sized.length === 0) return target;
+    let columns = 0;
+    let position = row.start;
+    for (const run of row.sized) {
+      const plain = run.start - position;
+      if (target < columns + plain) return position - row.start + (target - columns);
+      columns += plain;
+      const wide = (run.end - run.start) * run.size;
+      if (target < columns + wide) {
+        return run.start - row.start + (target - columns) / run.size;
+      }
+      columns += wide;
+      position = run.end;
+    }
+    return position - row.start + (target - columns);
+  }
+
+  /**
+   * The position straight above (`-1`) or below (`1`) `position`, in the
+   * row before or after its own: where the caret goes on an arrow key.
+   * Past the first or last row it is a row's worth of bases on, for the
+   * caller to clamp.
+   */
+  positionInRowBeside(position: number, direction: -1 | 1): number {
+    const row = this.rowOfPosition(position);
+    const target = row === undefined ? undefined : this.rows[row.index + direction];
+    if (row === undefined || target === undefined) {
+      return position + direction * this.metrics.basesPerRow;
+    }
+    const offset = Math.round(this.offsetAtX(target, this.xOf(row, position)));
+    return target.start + Math.min(target.end - target.start, Math.max(0, offset));
+  }
+
   rowOfPosition(position: number): RowLayout | undefined {
     if (position < 0) return undefined;
-    const index = Math.min(this.rows.length - 1, Math.floor(position / this.metrics.basesPerRow));
-    return this.rows[index];
+    return this.rows[this.breaks.rowOf(position)];
   }
 
   /** Row containing vertical coordinate `y` (document space), by binary search. */
@@ -199,7 +295,7 @@ export class LinearLayout {
     const row = this.rowAtY(y);
     if (row === undefined) return { kind: 'none' };
     const m = this.metrics;
-    const column = (x - m.leftGutter) / m.charWidth;
+    const column = this.offsetAtX(row, x);
     const rowLength = row.end - row.start;
     const baseAt = row.start + Math.min(rowLength - 1, Math.max(0, Math.floor(column)));
     const translationsTop = this.translationTop(row, 0);

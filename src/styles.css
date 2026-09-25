@@ -2207,6 +2207,30 @@ button {
   background: none;
 }
 
+/* The Style menu's colours (#89): a letter in each colour, a patch of each highlight. */
+.style-menu__swatches {
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.style-menu__swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  font:
+    700 14px ui-monospace,
+    monospace;
+  cursor: pointer;
+}
+
+.style-menu__swatch[aria-checked='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .menu__item:hover:not(:disabled) {
   background: var(--surface-3);
 }

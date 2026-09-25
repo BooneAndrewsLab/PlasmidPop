@@ -1,6 +1,7 @@
 import { type Range, type Strand, rangePieces } from '@/core';
 
 import { type LaneAssignment, type LaneItem, itemLanesPerRow, packLanes } from './linear/lanes';
+import { type RowBreaks } from './linear/rowBreaks';
 
 /**
  * A transient span drawn beside the document's own annotation: a primer pair
@@ -81,7 +82,7 @@ export function overlaysPerRow(
   spans: readonly OverlaySpan[],
   lanes: LaneAssignment,
   seqLength: number,
-  basesPerRow: number,
+  rows: number | RowBreaks,
 ): number[] {
-  return itemLanesPerRow(overlayItems(spans, seqLength), lanes, seqLength, basesPerRow);
+  return itemLanesPerRow(overlayItems(spans, seqLength), lanes, seqLength, rows);
 }

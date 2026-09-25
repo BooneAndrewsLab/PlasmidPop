@@ -1,5 +1,7 @@
 import { type Feature, type Range, rangePieces } from '@/core';
 
+import { type RowBreaks, rowBreaksOf } from './rowBreaks';
+
 export interface LaneAssignment {
   /** Lane index per feature id (0 = closest to the sequence). */
   readonly laneOf: ReadonlyMap<string, number>;
@@ -125,24 +127,25 @@ export function assignLanes(features: readonly Feature[], seqLength: number): La
 }
 
 /**
- * For each row of `basesPerRow` bases, the number of lanes needed to draw
- * the items that touch it (0 when none do).
+ * For each row — of `basesPerRow` bases, or as `RowBreaks` has them — the
+ * number of lanes needed to draw the items that touch it (0 when none do).
  */
 export function itemLanesPerRow(
   items: readonly LaneItem[],
   lanes: LaneAssignment,
   seqLength: number,
-  basesPerRow: number,
+  rows: number | RowBreaks,
 ): number[] {
-  const rowCount = Math.max(1, Math.ceil(seqLength / basesPerRow));
+  const breaks = rowBreaksOf(seqLength, rows);
+  const rowCount = breaks.rows.length;
   const counts = new Array<number>(rowCount).fill(0);
   for (const item of items) {
     const lane = lanes.laneOf.get(item.id);
     if (lane === undefined) continue;
     for (const piece of item.pieces) {
       if (piece.end <= piece.start) continue;
-      const firstRow = Math.floor(piece.start / basesPerRow);
-      const lastRow = Math.floor((piece.end - 1) / basesPerRow);
+      const firstRow = breaks.rowOf(piece.start);
+      const lastRow = breaks.rowOf(piece.end - 1);
       for (let r = firstRow; r <= lastRow && r < rowCount; r++) {
         if ((counts[r] ?? 0) < lane + 1) counts[r] = lane + 1;
       }
@@ -152,14 +155,14 @@ export function itemLanesPerRow(
 }
 
 /**
- * For each row of `basesPerRow` bases, the number of lanes needed to draw the
- * features that touch it (0 when none do).
+ * For each row, the number of lanes needed to draw the features that touch
+ * it (0 when none do).
  */
 export function lanesPerRow(
   features: readonly Feature[],
   lanes: LaneAssignment,
   seqLength: number,
-  basesPerRow: number,
+  rows: number | RowBreaks,
 ): number[] {
-  return itemLanesPerRow(laneItems(features, seqLength), lanes, seqLength, basesPerRow);
+  return itemLanesPerRow(laneItems(features, seqLength), lanes, seqLength, rows);
 }

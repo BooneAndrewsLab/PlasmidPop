@@ -1,4 +1,5 @@
 import {
+  type BaseStyle,
   type CdsTranslations,
   type CutSite,
   type DocumentDiff,
@@ -105,7 +106,7 @@ function drawRuler(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   ctx.textAlign = 'right';
   ctx.textBaseline = 'alphabetic';
   const number = (row.start + 1).toLocaleString();
-  ctx.fillText(number, m.leftGutter - 10, layout.forwardTextTop(row) + m.lineHeight * 0.75);
+  ctx.fillText(number, m.leftGutter - 10, layout.textBaseline(row, layout.forwardTextTop(row)));
   // The complement is read from the same coordinates, so its number is the
   // same one repeated: on a wide row it saves tracking back to the top line.
   if (p.numberComplement && m.showComplement) {
@@ -115,7 +116,7 @@ function drawRuler(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
     ctx.fillText(
       number,
       m.leftGutter - 10 - clear,
-      layout.complementTextTop(row) + m.lineHeight * 0.75,
+      layout.textBaseline(row, layout.complementTextTop(row)),
     );
     ctx.fillStyle = theme.gutterText;
   }
@@ -124,14 +125,16 @@ function drawRuler(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   ctx.strokeStyle = theme.rulerLine;
   ctx.lineWidth = 1;
   ctx.textAlign = 'center';
-  for (let col = 10; col <= row.end - row.start; col += 10) {
-    const x = Math.round(layout.xOfColumn(col)) + 0.5;
+  // A tick after every tenth base, counted from the start of the sequence:
+  // a row after one of larger bases (#91) need not start on a ten.
+  for (let at = Math.ceil((row.start + 1) / 10) * 10; at <= row.end; at += 10) {
+    const x = Math.round(layout.xOf(row, at)) + 0.5;
     ctx.beginPath();
     ctx.moveTo(x, row.top + m.rulerHeight - 2);
     ctx.lineTo(x, row.top + m.rulerHeight + 2);
     ctx.stroke();
-    if ((row.start + col) % labelEvery === 0 && col < row.end - row.start) {
-      ctx.fillText((row.start + col).toLocaleString(), x, baseline - 3);
+    if (at % labelEvery === 0 && at < row.end) {
+      ctx.fillText(at.toLocaleString(), x, baseline - 3);
     }
   }
 }
@@ -147,12 +150,12 @@ function drawSelection(ctx: DrawingContext, p: RenderParams, row: RowLayout): vo
       selection.start >= row.start &&
       (selection.start < row.end || (selection.start === row.end && row.end === doc.length))
     ) {
-      const x = Math.round(layout.xOfColumn(selection.start - row.start)) + 0.5;
+      const x = Math.round(layout.xOf(row, selection.start)) + 0.5;
       ctx.strokeStyle = theme.caret;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(x, top);
-      ctx.lineTo(x, layout.forwardTextTop(row) + layout.strandsHeight());
+      ctx.lineTo(x, layout.forwardTextTop(row) + layout.strandsHeight(row));
       ctx.stroke();
     }
     return;
@@ -162,8 +165,8 @@ function drawSelection(ctx: DrawingContext, p: RenderParams, row: RowLayout): vo
     const s = Math.max(piece.start, row.start);
     const e = Math.min(piece.end, row.end);
     if (e <= s) continue;
-    const x0 = layout.xOfColumn(s - row.start);
-    const x1 = layout.xOfColumn(e - row.start);
+    const x0 = layout.xOf(row, s);
+    const x1 = layout.xOf(row, e);
     ctx.fillRect(x0, top, x1 - x0, bottom - top);
   }
 }
@@ -179,16 +182,15 @@ const DELETION_WEDGE = 4;
 function drawEdits(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, edits, layout, theme } = p;
   if (edits === null) return;
-  const m = layout.metrics;
   const top = layout.forwardTextTop(row);
-  const bottom = top + m.lineHeight * (m.showComplement ? 2 : 1);
+  const bottom = top + layout.strandsHeight(row);
   for (const mark of marksIn(edits.marks, row.start, row.end)) {
     const s = Math.max(mark.start, row.start);
     const e = Math.min(mark.end, row.end);
     if (e <= s) continue;
     const color = mark.kind === 'inserted' ? theme.editInsert : theme.editChange;
-    const x0 = layout.xOfColumn(s - row.start);
-    const x1 = layout.xOfColumn(e - row.start);
+    const x0 = layout.xOf(row, s);
+    const x1 = layout.xOf(row, e);
     ctx.fillStyle = withAlpha(color, 0.2);
     ctx.fillRect(x0, top, x1 - x0, bottom - top);
     ctx.fillStyle = color;
@@ -202,7 +204,7 @@ function drawEdits(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
     if (at === row.end && row.end !== doc.length) continue;
     // A wedge in the ruler band pointing at the gap, and a line down through
     // the strands to say exactly which boundary it is.
-    const x = Math.round(layout.xOfColumn(at - row.start)) + 0.5;
+    const x = Math.round(layout.xOf(row, at)) + 0.5;
     ctx.fillStyle = theme.editDelete;
     ctx.beginPath();
     ctx.moveTo(x - DELETION_WEDGE, top - DELETION_WEDGE - 2);
@@ -253,10 +255,9 @@ export function endOverhangs(doc: SeqDocument): EndOverhangs {
 function drawEndShading(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, layout, theme } = p;
   if (doc.ends === null) return;
-  const m = layout.metrics;
   const { leftTop, rightTop } = endOverhangs(doc);
   const top = layout.forwardTextTop(row);
-  const bottom = top + m.lineHeight * (m.showComplement ? 2 : 1);
+  const bottom = top + layout.strandsHeight(row);
   ctx.fillStyle = withAlpha(theme.inkMuted, 0.2);
   for (const span of [
     { start: 0, end: leftTop },
@@ -265,8 +266,8 @@ function drawEndShading(ctx: DrawingContext, p: RenderParams, row: RowLayout): v
     const s = Math.max(span.start, row.start);
     const e = Math.min(span.end, row.end);
     if (e <= s) continue;
-    const x0 = layout.xOfColumn(s - row.start);
-    ctx.fillRect(x0, top, layout.xOfColumn(e - row.start) - x0, bottom - top);
+    const x0 = layout.xOf(row, s);
+    ctx.fillRect(x0, top, layout.xOf(row, e) - x0, bottom - top);
   }
 }
 
@@ -284,12 +285,12 @@ function drawEndOverhangBases(ctx: DrawingContext, p: RenderParams, row: RowLayo
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = theme.inkMuted;
-  const y = layout.complementTextTop(row) + layout.metrics.lineHeight * 0.75;
+  const y = layout.textBaseline(row, layout.complementTextTop(row));
   if (leftBottom > 0 && row.index === 0) {
     ctx.fillText(complement(ends.left.overhang), layout.xOfColumn(-leftBottom), y);
   }
   if (rightBottom > 0 && row.end === doc.length) {
-    ctx.fillText(complement(ends.right.overhang), layout.xOfColumn(row.end - row.start), y);
+    ctx.fillText(complement(ends.right.overhang), layout.xOf(row, row.end), y);
   }
 }
 
@@ -316,23 +317,27 @@ function baseColor(colors: BaseColors, base: string): string {
 }
 
 /**
- * One line of bases, in ten-base chunks so the text stays anchored to the
- * column grid even where the font's advance width is not exactly
+ * Where a stretch of one line of bases is drawn: from `x`, each base
+ * `advance` wide, letters sitting on `y`.
+ */
+interface Stretch {
+  readonly x: number;
+  readonly advance: number;
+  readonly y: number;
+}
+
+/**
+ * One stretch of bases, in ten-base chunks so the text stays anchored to
+ * the column grid even where the font's advance width is not exactly
  * `charWidth`. Spaces in `s` leave a column empty — that is how the paired
  * base of a single-stranded overhang is left out.
  */
-function drawBaseChunks(
-  ctx: DrawingContext,
-  p: RenderParams,
-  s: string,
-  y: number,
-  color: string,
-): void {
+function drawBaseChunks(ctx: DrawingContext, s: string, at: Stretch, color: string): void {
   ctx.fillStyle = color;
   for (let i = 0; i < s.length; i += 10) {
     const chunk = s.slice(i, i + 10);
     if (chunk.trim() === '') continue;
-    ctx.fillText(chunk, p.layout.xOfColumn(i), y);
+    ctx.fillText(chunk, at.x + i * at.advance, at.y);
   }
 }
 
@@ -342,28 +347,108 @@ function distinctBaseColors(colors: BaseColors): string[] {
 }
 
 /**
- * A line of bases. Uncoloured it is one fill per ten bases; coloured, the
- * line is drawn once per colour with the other columns blanked out, which
- * costs a handful of passes instead of one fill per base and keeps every
- * letter exactly where the grid puts it.
+ * A stretch of bases in one style. Uncoloured it is one fill per ten bases;
+ * coloured, the stretch is drawn once per colour with the other columns
+ * blanked out, which costs a handful of passes instead of one fill per base
+ * and keeps every letter exactly where the grid puts it. A colour the user
+ * gave the bases (#89) is drawn instead of either.
  */
-function drawBaseLine(
+function drawBaseStretch(
   ctx: DrawingContext,
   p: RenderParams,
   s: string,
-  top: number,
+  at: Stretch,
   plain: string,
+  userColor: string | undefined,
 ): void {
-  const y = top + p.layout.metrics.lineHeight * 0.75;
-  if (!p.colorBases) {
-    drawBaseChunks(ctx, p, s, y, plain);
+  if (userColor !== undefined || !p.colorBases) {
+    drawBaseChunks(ctx, s, at, userColor ?? plain);
     return;
   }
   const colors = p.theme.baseColors;
   for (const color of distinctBaseColors(colors)) {
     let masked = '';
     for (const ch of s) masked += baseColor(colors, ch) === color && ch !== ' ' ? ch : ' ';
-    drawBaseChunks(ctx, p, masked, y, color);
+    drawBaseChunks(ctx, masked, at, color);
+  }
+}
+
+/**
+ * `font` (a CSS font string that starts with its size in px) at `scale`
+ * times the size, and bold when asked: how a styled base is drawn (#91).
+ */
+export function styledFont(font: string, scale: number, bold: boolean): string {
+  const sized =
+    scale === 1
+      ? font
+      : font.replace(/^(\d+(?:\.\d+)?)px/, (_, px: string) => `${Number(px) * scale}px`);
+  return bold ? `bold ${sized}` : sized;
+}
+
+/** The stretches of a row that share one style, the unstyled ones included (`style` null). */
+function styleStretches(
+  p: RenderParams,
+  row: RowLayout,
+): { start: number; end: number; style: BaseStyle | null }[] {
+  const out: { start: number; end: number; style: BaseStyle | null }[] = [];
+  let at = row.start;
+  for (const run of p.doc.styles.within(row.start, row.end)) {
+    if (run.start > at) out.push({ start: at, end: run.start, style: null });
+    out.push(run);
+    at = run.end;
+  }
+  if (at < row.end) out.push({ start: at, end: row.end, style: null });
+  return out;
+}
+
+/**
+ * A line of bases of `row`, `s` holding one letter per base. Each stretch
+ * of one style is drawn in its own font and colour, at its own size, every
+ * letter on the line's one baseline, the way larger words sit in a line of
+ * text.
+ */
+function drawBaseLine(
+  ctx: DrawingContext,
+  p: RenderParams,
+  row: RowLayout,
+  s: string,
+  top: number,
+  plain: string,
+): void {
+  const { layout } = p;
+  const y = layout.textBaseline(row, top);
+  for (const stretch of styleStretches(p, row)) {
+    const style = stretch.style;
+    const scale = style?.size ?? 1;
+    ctx.font = style === null ? p.monoFont : styledFont(p.monoFont, scale, style.bold === true);
+    drawBaseStretch(
+      ctx,
+      p,
+      s.slice(stretch.start - row.start, stretch.end - row.start),
+      { x: layout.xOf(row, stretch.start), advance: layout.metrics.charWidth * scale, y },
+      plain,
+      // Letters on a highlight are drawn to read on it, dark theme or light.
+      style?.color ??
+        (style?.highlight === undefined ? undefined : contrastingText(style.highlight)),
+    );
+  }
+  ctx.font = p.monoFont;
+}
+
+/**
+ * Highlights the user put behind runs of bases (#89): a band of the colour
+ * over both strands, under everything else drawn on them.
+ */
+function drawHighlights(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { layout } = p;
+  const top = layout.forwardTextTop(row);
+  const height = layout.strandsHeight(row);
+  for (const run of p.doc.styles.within(row.start, row.end)) {
+    const color = run.style.highlight;
+    if (color === undefined) continue;
+    const x0 = layout.xOf(row, run.start);
+    ctx.fillStyle = color;
+    ctx.fillRect(x0, top, layout.xOf(row, run.end) - x0, height);
   }
 }
 
@@ -391,11 +476,12 @@ function drawStrands(ctx: DrawingContext, p: RenderParams, row: RowLayout): void
   ctx.font = p.monoFont;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  drawBaseLine(ctx, p, text, layout.forwardTextTop(row), theme.ink);
+  drawBaseLine(ctx, p, row, text, layout.forwardTextTop(row), theme.ink);
   if (m.showComplement) {
     drawBaseLine(
       ctx,
       p,
+      row,
       pairedComplement(text, p, row),
       layout.complementTextTop(row),
       theme.inkMuted,
@@ -446,8 +532,8 @@ function drawTranslations(ctx: DrawingContext, p: RenderParams, row: RowLayout):
       if (runs.length === 0) continue;
       const middle = codon.positions[1];
       for (const run of runs) {
-        const x0 = layout.xOfColumn(run.start - row.start);
-        const x1 = layout.xOfColumn(run.end - row.start);
+        const x0 = layout.xOf(row, run.start);
+        const x1 = layout.xOf(row, run.end);
         ctx.fillStyle = fills[codon.index % 2] ?? color;
         ctx.fillRect(x0, top, x1 - x0, height);
         if (middle >= run.start && middle < run.end) {
@@ -532,7 +618,7 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
   feature.segments.forEach((seg, si) => {
     if (seg.kind === 'site') {
       if (seg.position >= row.start && seg.position <= row.end) {
-        const x = layout.xOfColumn(seg.position - row.start);
+        const x = layout.xOf(row, seg.position);
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.moveTo(x - 5, top);
@@ -562,8 +648,8 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
     const e = Math.min(piece.end, row.end);
     if (e <= s) continue;
     const ribbon: Ribbon = {
-      x0: layout.xOfColumn(s - row.start),
-      x1: layout.xOfColumn(e - row.start),
+      x0: layout.xOf(row, s),
+      x1: layout.xOf(row, e),
       arrowRight: feature.strand === 'forward' && piece.last && e === piece.end,
       arrowLeft: feature.strand === 'reverse' && piece.first && s === piece.start,
     };
@@ -629,8 +715,8 @@ function drawOverlays(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
       const s = Math.max(piece.start, row.start);
       const e = Math.min(piece.end, row.end);
       if (e <= s) return;
-      const x0 = layout.xOfColumn(s - row.start);
-      const x1 = layout.xOfColumn(e - row.start);
+      const x0 = layout.xOf(row, s);
+      const x1 = layout.xOf(row, e);
       const first = index === 0 && s === piece.start;
       const last = index === pieces.length - 1 && e === piece.end;
       ctx.strokeStyle = color;
@@ -670,8 +756,8 @@ function drawOverlays(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
       for (const mark of span.marks ?? []) {
         const at = ((mark % doc.length) + doc.length) % doc.length;
         if (at < s || at >= e) continue;
-        const mx0 = layout.xOfColumn(at - row.start);
-        const mx1 = layout.xOfColumn(at + 1 - row.start);
+        const mx0 = layout.xOf(row, at);
+        const mx1 = layout.xOf(row, at + 1);
         ctx.fillStyle = theme.editChange;
         ctx.fillRect(mx0, top, Math.max(2, mx1 - mx0), height);
       }
@@ -729,8 +815,8 @@ function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
   );
   if (sites.length === 0) return;
   const strandTop = layout.forwardTextTop(row);
-  const strandBottom = strandTop + m.lineHeight * (m.showComplement ? 2 : 1);
-  const mid = m.showComplement ? strandTop + m.lineHeight : strandBottom;
+  const strandBottom = strandTop + layout.strandsHeight(row);
+  const mid = m.showComplement ? strandTop + layout.lineHeight(row) : strandBottom;
   const labelBaseline = row.top + 11;
   ctx.font = p.sansFont;
   ctx.textAlign = 'center';
@@ -740,12 +826,9 @@ function drawCutSites(ctx: DrawingContext, p: RenderParams, row: RowLayout): voi
   const ordered = [...sites].sort((a, b) => a.cut - b.cut);
   for (const site of ordered) {
     const xTop =
-      Math.round(layout.xOfColumn(Math.min(Math.max(site.cut, row.start), row.end) - row.start)) +
-      0.5;
+      Math.round(layout.xOf(row, Math.min(Math.max(site.cut, row.start), row.end))) + 0.5;
     const xBottom =
-      Math.round(
-        layout.xOfColumn(Math.min(Math.max(site.cutBottom, row.start), row.end) - row.start),
-      ) + 0.5;
+      Math.round(layout.xOf(row, Math.min(Math.max(site.cutBottom, row.start), row.end))) + 0.5;
     ctx.strokeStyle = theme.cutSite;
     ctx.beginPath();
     ctx.moveTo(xTop, row.top + 14);
@@ -775,7 +858,7 @@ function drawReadTrace(ctx: DrawingContext, p: RenderParams, row: RowLayout): vo
   if (m.traceHeight === 0 || read?.trace == null) return;
   const bases = [];
   for (let k = row.start; k < row.end; k++) {
-    bases.push({ index: k, x: layout.xOfColumn(k - row.start) + m.charWidth / 2 });
+    bases.push({ index: k, x: layout.xOf(row, k) + layout.widthOf(row, k) / 2 });
   }
   drawTrace(ctx, {
     read,
@@ -797,6 +880,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   ctx.translate(-scrollLeft, -scrollTop);
 
   for (const row of layout.rowsInWindow(scrollTop, scrollTop + height)) {
+    drawHighlights(ctx, p, row);
     drawEndShading(ctx, p, row);
     drawEdits(ctx, p, row);
     drawSelection(ctx, p, row);

@@ -189,6 +189,7 @@ export type Shortcut =
   | 'alt+o'
   | 'alt+k'
   | 'alt+n'
+  | 'alt+y'
   | 'alt+shift+page'
   | 'ctrl+s'
   | 'ctrl+f'
