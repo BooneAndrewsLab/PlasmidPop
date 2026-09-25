@@ -8,6 +8,7 @@ import {
   DEFAULT_MIN_IDENTITY,
   SEED,
   detectFeatures,
+  isMinIdentityChoice,
   mismatchBudget,
   overlapLength,
 } from './detect';
@@ -227,7 +228,7 @@ describe('detectFeatures', () => {
       const flank = randomDna(rand, 50);
       // Five His codons: the 18-mer occurs at three offsets that overlap.
       const hits = detectFeatures(flank + his6 + 'CATCACCATCAC' + flank, 'linear', lib);
-      expect(hits).toHaveLength(1);
+      expect(only(hits).range).toEqual({ start: 50, end: 68 });
     });
 
     it('keeps two separate copies of a part', () => {
@@ -271,14 +272,117 @@ describe('detectFeatures', () => {
       expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['outer', 'inner']);
     });
 
-    it('orders hits along the sequence', () => {
+    it('orders hits along the sequence, the longer first where two start together', () => {
       const a = randomDna(rand, 80);
       const b = randomDna(rand, 90);
-      const lib = library(part('a', a), part('b', b));
-      const seq = randomDna(rand, 10) + b + randomDna(rand, 10) + a + randomDna(rand, 10);
-      expect(detectFeatures(seq, 'linear', lib).map((h) => h.range.start)).toEqual([10, 110]);
+      const lib = library(
+        part('a', a),
+        part('b', b),
+        part('a start', a.slice(0, 30), 'primer_bind'),
+      );
+      const seq = randomDna(rand, 10) + a + randomDna(rand, 10) + b + randomDna(rand, 10);
+      expect(detectFeatures(seq, 'linear', lib).map((h) => [h.part, h.range.start])).toEqual([
+        [0, 10],
+        [2, 10],
+        [1, 100],
+      ]);
+    });
+
+    it('keeps both of two parts of different types that start at the same base', () => {
+      const lib = library(part('primer', PART.slice(0, 40), 'primer_bind'), part('P', PART));
+      const hits = detectFeatures(randomDna(rand, 25) + PART, 'linear', lib);
+      expect(hits.map((h) => [h.part, h.range.start])).toEqual([
+        [1, 25],
+        [0, 25],
+      ]);
+    });
+
+    it('drops a part of the same type 90% inside another, but not 89%', () => {
+      const tail = randomDna(rand, 11);
+      const seq = PART + tail + randomDna(rand, 30);
+      // 100 bases, 90 of them the end of PART.
+      const at90 = library(
+        part('P', PART, 'CDS'),
+        part('end', PART.slice(210) + tail.slice(0, 10), 'CDS'),
+      );
+      expect(detectFeatures(seq, 'linear', at90).map((h) => h.part)).toEqual([0]);
+      const at89 = library(part('P', PART, 'CDS'), part('end', PART.slice(211) + tail, 'CDS'));
+      expect(detectFeatures(seq, 'linear', at89).map((h) => h.part)).toEqual([0, 1]);
+    });
+
+    it('weighs a mismatch and an ambiguous base alike, then keeps the first in the library', () => {
+      // The parts differ at base 100, A in one and C in the other; Y there
+      // rules the A out and allows the C.
+      const withA = PART.slice(0, 100) + 'A' + PART.slice(101);
+      const withC = PART.slice(0, 100) + 'C' + PART.slice(101);
+      const seq = PART.slice(0, 100) + 'Y' + PART.slice(101);
+      for (const [first, second] of [
+        [withA, withC],
+        [withC, withA],
+      ] as const) {
+        const lib = library(part('first', first), part('second', second));
+        const hit = only(detectFeatures(seq, 'linear', lib));
+        expect(hit.part).toBe(0);
+        expect(hit.mismatches + hit.ambiguous).toBe(1);
+      }
+    });
+
+    it('prefers the forward strand, then library order, among equals', () => {
+      const lib = library(part('reverse', reverseComplement(PART)), part('forward', PART));
+      expect(only(detectFeatures(PART, 'linear', lib))).toMatchObject({
+        part: 1,
+        strand: 'forward',
+      });
+      const twins = library(part('one', PART), part('two', PART), part('three', PART));
+      expect(only(detectFeatures(PART, 'linear', twins)).part).toBe(0);
+      // The second part is seeded first, at base 0, and the first only past its mismatch at 5.
+      const late = library(part('late', mutate(PART, [5])), part('early', mutate(PART, [250])));
+      expect(only(detectFeatures(PART, 'linear', late)).part).toBe(0);
     });
   });
+
+  it('finds a part of one base repeated, whichever the base', () => {
+    // Poly-T's 12-mers are the last in the index, poly-A's the first.
+    for (const base of 'ACGT') {
+      const flank = 'ACGT'.replace(base, '').slice(0, 2).repeat(15);
+      const lib = library(part(base, base.repeat(20)));
+      const hit = only(detectFeatures(flank + base.repeat(20) + flank, 'linear', lib));
+      expect(hit.range, base).toEqual({ start: 30, end: 50 });
+      expect(hit.strand, base).toBe('forward');
+    }
+  });
+
+  it('finds a part of exactly one seed, and each of two whose seeds differ in the last base', () => {
+    const a = 'ACGTTGCAGGTA';
+    const c = 'ACGTTGCAGGTC';
+    const lib = library(part('a', a), part('c', c));
+    const seq = 'GGGG' + a + 'CCCC' + c + 'GGGG';
+    expect(detectFeatures(seq, 'linear', lib).map((h) => [h.part, h.range.start])).toEqual([
+      [0, 4],
+      [1, 20],
+    ]);
+  });
+
+  it('finds nothing in a circle with a library of no usable parts', () => {
+    expect(detectFeatures(PART, 'circular', library())).toEqual([]);
+    expect(detectFeatures(PART, 'circular', library(part('tiny', PART.slice(0, 11))))).toEqual([]);
+  });
+
+  it('reports progress every 65,536 bases of what it reads, a circle and its overhang', () => {
+    const at = (total: number, ...ps: number[]): number[] => ps.map((p) => p / total);
+    const progress = (seq: string, topology: 'linear' | 'circular'): number[] => {
+      const fractions: number[] = [];
+      detectFeatures(seq, topology, LIB, { onProgress: (f) => fractions.push(f) });
+      return fractions;
+    };
+    const long = randomDna(rand, 200_000);
+    expect(progress(long, 'linear')).toEqual(at(200_000, 0, 65536, 131072, 196608));
+    // Never 1, however the length falls.
+    const even = long.slice(0, 131072);
+    expect(progress(even, 'linear')).toEqual(at(131072, 0, 65536));
+    // A circle is read on for the longest part, less a base: 299 bases.
+    expect(progress(even, 'circular')).toEqual(at(131072 + 299, 0, 65536, 131072));
+  }, 60_000);
 
   it('reports progress as it reads a long sequence', () => {
     const fractions: number[] = [];
@@ -294,6 +398,14 @@ describe('detectFeatures', () => {
   it('ignores parts shorter than a seed', () => {
     expect(detectFeatures('ACGTACGTAC', 'linear', library(part('tiny', 'ACGTACGTAC')))).toEqual([]);
     expect(SEED).toBe(12);
+  });
+});
+
+describe('isMinIdentityChoice', () => {
+  it('accepts the identities the Features tab offers, and nothing else', () => {
+    for (const v of [1, 0.98, 0.95, 0.9]) expect(isMinIdentityChoice(v)).toBe(true);
+    for (const v of [0.97, 0, 95, '0.95', null, undefined])
+      expect(isMinIdentityChoice(v)).toBe(false);
   });
 });
 
