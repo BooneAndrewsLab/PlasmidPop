@@ -20,9 +20,12 @@ import { type EnzymeSort, isEnzymeSort } from './enzymeSort';
 import {
   type CustomBaseColors,
   type EditsBaseline,
+  type PhonePane,
   type TraceSize,
   type ViewMode,
   editorStore,
+  MAX_REMEMBERED_PANES,
+  isPhonePane,
   isTraceSize,
   toBaseColors,
 } from './editorStore';
@@ -81,6 +84,13 @@ export interface ViewPrefs {
   /** What a read's confident bases and trimmed ends are; see `SharedState.readConfidentQuality`. */
   readonly readConfidentQuality: number;
   readonly readTrimCutoff: number;
+  /**
+   * The phone reader's pane per document, by the id it is stored under
+   * (#43), so a reload comes back to the pane each tab was left on. The one
+   * thing here that is about particular documents, and only a word about
+   * each; a document not listed opens on the map.
+   */
+  readonly phonePanes: Readonly<Record<string, PhonePane>>;
 }
 
 const KEY = 'plasmidpop.viewPrefs';
@@ -97,6 +107,31 @@ type StoredBaseline = Exclude<EditsBaseline, 'marked' | 'compared'>;
 
 function isStoredBaseline(v: unknown): v is StoredBaseline {
   return typeof v === 'string' && BASELINES.includes(v);
+}
+
+/**
+ * The stored panes that are panes, under ids that could be ids, no more of
+ * them than are kept.
+ */
+function toPhonePanes(v: unknown): Record<string, PhonePane> | null {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
+  const out: Record<string, PhonePane> = {};
+  let n = 0;
+  for (const [id, pane] of Object.entries(v as Record<string, unknown>)) {
+    if (n >= MAX_REMEMBERED_PANES) break;
+    if (id === '' || id.length > 64 || !isPhonePane(pane)) continue;
+    out[id] = pane;
+    n++;
+  }
+  return out;
+}
+
+function samePanes(
+  a: Readonly<Record<string, PhonePane>>,
+  b: Readonly<Record<string, PhonePane>>,
+): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
 }
 
 /**
@@ -171,6 +206,8 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     prefs.readConfidentQuality = record['readConfidentQuality'];
   }
   if (isTrimCutoff(record['readTrimCutoff'])) prefs.readTrimCutoff = record['readTrimCutoff'];
+  const panes = toPhonePanes(record['phonePanes']);
+  if (panes !== null) prefs.phonePanes = panes;
   const layout = record['layout'];
   if (typeof layout === 'object' && layout !== null) {
     const l = layout as Record<string, unknown>;
@@ -265,6 +302,7 @@ function snapshot(): ViewPrefs {
     primerCriteria,
     readConfidentQuality,
     readTrimCutoff,
+    phonePanes: editorStore.rememberedPhonePanes(),
   };
 }
 
@@ -295,7 +333,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.geneticCode === b.geneticCode &&
     samePrimerCriteria(a.primerCriteria, b.primerCriteria) &&
     a.readConfidentQuality === b.readConfidentQuality &&
-    a.readTrimCutoff === b.readTrimCutoff
+    a.readTrimCutoff === b.readTrimCutoff &&
+    samePanes(a.phonePanes, b.phonePanes)
   );
 }
 
@@ -343,6 +382,7 @@ export function startViewPrefs(): () => void {
     editorStore.setReadConfidentQuality(stored.readConfidentQuality);
   }
   if (stored.readTrimCutoff !== undefined) editorStore.setReadTrimCutoff(stored.readTrimCutoff);
+  if (stored.phonePanes !== undefined) editorStore.restorePhonePanes(stored.phonePanes);
   let last = snapshot();
   return editorStore.subscribe(() => {
     const now = snapshot();

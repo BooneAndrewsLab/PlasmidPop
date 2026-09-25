@@ -112,6 +112,22 @@ export function isTraceSize(v: unknown): v is TraceSize {
 export type SidebarTab =
   'features' | 'enzymes' | 'orfs' | 'translate' | 'primers' | 'align' | 'cloning' | 'history';
 
+/** The three things the phone reader shows, one at a time (`PhoneShell`, item 15). */
+export type PhonePane = 'map' | 'sequence' | 'details';
+
+export const PHONE_PANES: readonly PhonePane[] = ['map', 'sequence', 'details'];
+
+export function isPhonePane(v: unknown): v is PhonePane {
+  return typeof v === 'string' && (PHONE_PANES as readonly string[]).includes(v);
+}
+
+/**
+ * How many documents' phone panes are kept across a reload. The tabs a
+ * session reopens are what they are for; the cap keeps documents that were
+ * never reopened from piling up in the stored preferences.
+ */
+export const MAX_REMEMBERED_PANES = 20;
+
 /** The sidebar's tabs in the rail's order, top to bottom, which `Alt+[` and `Alt+]` step through. */
 export const SIDEBAR_TABS: readonly SidebarTab[] = [
   'features',
@@ -341,6 +357,14 @@ export interface DocumentState {
    * moved the whole app there for the new tab's sake.
    */
   readonly sidebarTab: SidebarTab;
+  /**
+   * Which pane the phone reader shows for this tab (#43): per document, like
+   * `sidebarTab`, so a switch of tabs comes back to it. A document opened
+   * fresh — a file, a share link — starts on the map, which is what a link
+   * is opened to see; one brought back from local storage gets the pane it
+   * was left on (`restorePhonePanes`).
+   */
+  readonly phonePane: PhonePane;
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
@@ -648,6 +672,7 @@ type ActiveDocumentFields = {
     // The sidebar is shown beside the file list too, so its tab always has a
     // value; `NO_DOCUMENT` carries the one a new tab would start on.
     | 'sidebarTab'
+    | 'phonePane'
     ? DocumentState[K]
     : DocumentState[K] | null;
 };
@@ -757,6 +782,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   editingFeatureId: null,
   findOpen: false,
   sidebarTab: 'features',
+  phonePane: 'map',
 };
 
 /**
@@ -838,6 +864,8 @@ export class EditorStore {
   private bench = false;
   private state: EditorState = compose(this.shared, this.docs, this.activeId, this.bench);
   private readonly listeners = new Set<Listener>();
+  /** See `restorePhonePanes`. */
+  private panesToRestore = new Map<string, PhonePane>();
   /** Pending auto-dismiss of a timed error, see `fail`. */
   private errorTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -978,6 +1006,7 @@ export class EditorStore {
       // A new tab opens on the panel the last one was on: opening the insert
       // while setting up a digest should not send you back to Features.
       sidebarTab: this.documentState()?.sidebarTab ?? 'features',
+      phonePane: this.takeRememberedPane(storage.id),
     };
     const active = this.documentState();
     this.docs =
@@ -1495,6 +1524,47 @@ export class EditorStore {
 
   setSidebarTab(tab: SidebarTab): void {
     if (tab !== this.state.sidebarTab) this.setActive({ sidebarTab: tab });
+  }
+
+  setPhonePane(pane: PhonePane): void {
+    if (pane !== this.state.phonePane) this.setActive({ phonePane: pane });
+  }
+
+  /**
+   * The panes documents were left on before a reload, from the stored view
+   * preferences: each is given to its document when that is reopened from
+   * local storage under the same id, and only then.
+   */
+  restorePhonePanes(panes: Readonly<Record<string, PhonePane>>): void {
+    this.panesToRestore = new Map(Object.entries(panes));
+  }
+
+  /**
+   * The panes to keep across a reload: every open tab's that is not the
+   * map, then those still waiting for their document to be reopened, up to
+   * `MAX_REMEMBERED_PANES`. The map is left out as the default it is.
+   */
+  rememberedPhonePanes(): Readonly<Record<string, PhonePane>> {
+    const out: Record<string, PhonePane> = {};
+    let n = 0;
+    const add = (id: string, pane: PhonePane): void => {
+      if (n >= MAX_REMEMBERED_PANES || pane === 'map' || id in out) return;
+      out[id] = pane;
+      n++;
+    };
+    for (const d of this.docs) add(d.documentId, d.phonePane);
+    for (const [id, pane] of this.panesToRestore) {
+      if (this.documentState(id) === null) add(id, pane);
+    }
+    return out;
+  }
+
+  /** The pane a document reopened under `id` was left on; the map for anything else. */
+  private takeRememberedPane(id: string | undefined): PhonePane {
+    if (id === undefined) return 'map';
+    const pane = this.panesToRestore.get(id);
+    this.panesToRestore.delete(id);
+    return pane ?? 'map';
   }
 
   /**

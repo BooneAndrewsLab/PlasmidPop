@@ -65,6 +65,7 @@ function reset(): void {
   editorStore.setPrimerCriteria(DEFAULTS.primerCriteria);
   editorStore.setReadConfidentQuality(DEFAULTS.readConfidentQuality);
   editorStore.setReadTrimCutoff(DEFAULTS.readTrimCutoff);
+  editorStore.restorePhonePanes({});
 }
 
 describe('view preferences', () => {
@@ -117,6 +118,7 @@ describe('view preferences', () => {
       },
       readConfidentQuality: 40,
       readTrimCutoff: 0.01,
+      phonePanes: { 'doc-1': 'sequence', 'doc-2': 'details' },
     } as const;
     saveViewPrefs(prefs);
     expect(loadViewPrefs()).toEqual(prefs);
@@ -177,6 +179,7 @@ describe('view preferences', () => {
       primerCriteria: { ...DEFAULT_PRIMER_CRITERIA, maxHairpin: 3 },
       readConfidentQuality: 30,
       readTrimCutoff: 0.1,
+      phonePanes: {},
     });
     const stop = startViewPrefs();
     expect(editorStore.getState()).toMatchObject({
@@ -392,5 +395,64 @@ describe('view preferences', () => {
     expect(localStorage.getItem(KEY)).toBeNull();
     stop();
     editorStore.closeDocument();
+  });
+
+  describe('the phone pane (#43)', () => {
+    afterEach(() => {
+      editorStore.closeAllDocuments();
+    });
+
+    it('keeps only panes under ids that could be ids, and no more than are kept', () => {
+      const many = Object.fromEntries(
+        Array.from({ length: 30 }, (_, i) => [`doc-${String(i)}`, 'sequence']),
+      );
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({
+          phonePanes: { a: 'sequence', b: 'sideways', '': 'details', ['x'.repeat(65)]: 'details' },
+        }),
+      );
+      expect(loadViewPrefs()).toEqual({ phonePanes: { a: 'sequence' } });
+      localStorage.setItem(KEY, JSON.stringify({ phonePanes: ['sequence'] }));
+      expect(loadViewPrefs()).toEqual({});
+      localStorage.setItem(KEY, JSON.stringify({ phonePanes: many }));
+      expect(Object.keys(loadViewPrefs().phonePanes ?? {})).toHaveLength(20);
+    });
+
+    it('records the pane each tab was left on, and not the map', () => {
+      const stop = startViewPrefs();
+      const a = editorStore.openDocument(SeqDocument.create({ sequence: 'ACGT' }), 'a.gb');
+      editorStore.setPhonePane('sequence');
+      const b = editorStore.openDocument(SeqDocument.create({ sequence: 'GGCC' }), 'b.gb');
+      // A new tab starts on the map, whatever the last one was on.
+      expect(editorStore.getState().phonePane).toBe('map');
+      editorStore.setPhonePane('details');
+      expect(loadViewPrefs().phonePanes).toEqual({ [a]: 'sequence', [b]: 'details' });
+      // Back to the first tab: its own pane.
+      editorStore.activateDocument(a);
+      expect(editorStore.getState().phonePane).toBe('sequence');
+      editorStore.setPhonePane('map');
+      expect(loadViewPrefs().phonePanes).toEqual({ [b]: 'details' });
+      stop();
+    });
+
+    it('gives a document reopened from storage the pane it was left on, and nothing else', () => {
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({ phonePanes: { 'stored-1': 'sequence', 'stored-2': 'details' } }),
+      );
+      const stop = startViewPrefs();
+      // Reopened from local storage under its id, as a reload does.
+      editorStore.openDocument(SeqDocument.create({ sequence: 'ACGT' }), 'a.gb', [], {
+        id: 'stored-1',
+      });
+      expect(editorStore.getState().phonePane).toBe('sequence');
+      // A file opened fresh, or a share link, starts on the map.
+      editorStore.openDocument(SeqDocument.create({ sequence: 'TTTT' }), null);
+      expect(editorStore.getState().phonePane).toBe('map');
+      // One not reopened yet keeps its pane for when it is.
+      expect(loadViewPrefs().phonePanes).toEqual({ 'stored-1': 'sequence', 'stored-2': 'details' });
+      stop();
+    });
   });
 });

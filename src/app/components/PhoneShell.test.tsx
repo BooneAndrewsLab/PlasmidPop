@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { SeqDocument, createFeature } from '@/core';
 
@@ -102,6 +102,43 @@ describe('PhoneShell', () => {
     fireEvent.click(pane('Details'));
     // No reveal since the switch: the list stays.
     expect(screen.getByRole('complementary', { name: 'Features' })).toBeInTheDocument();
+  });
+
+  it("comes back to a tab's own pane after a switch of tabs (#43)", () => {
+    const first = setup();
+    fireEvent.click(pane('Sequence'));
+    const firstId = editorStore.getState().documentId;
+    first.unmount();
+    // Another tab: the shell is keyed by document, so it mounts afresh.
+    const other = SeqDocument.create({ name: 'other', sequence: 'GGCC'.repeat(10) });
+    act(() => {
+      editorStore.openDocument(other);
+    });
+    const second = render(<PhoneShell doc={other} />);
+    expect(screen.queryByRole('img', { name: 'Map of other' })).toBeInTheDocument();
+    second.unmount();
+    act(() => {
+      editorStore.closeDocument();
+      editorStore.activateDocument(firstId);
+    });
+    render(<PhoneShell doc={doc} />);
+    expect(sequence()).toBeInTheDocument();
+    expect(pane('Sequence')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('answers a reveal with the map when the tab came back on Details', () => {
+    setup();
+    fireEvent.click(pane('Sequence'));
+    fireEvent.click(pane('Details'));
+    cleanup();
+    // Remounted on Details, as a switch of tabs or a reload brings it back.
+    render(<PhoneShell doc={doc} />);
+    act(() => {
+      editorStore.revealPosition(500);
+    });
+    // Details was the pane; the view it came from before was not seen by
+    // this mount, so the map is where it goes.
+    expect(map()).toBeInTheDocument();
   });
 
   it('says once that this is the reader', () => {

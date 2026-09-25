@@ -3,14 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { type SeqDocument } from '@/core';
 
 import { analytics } from '../analytics';
-import { type SidebarTab, editorStore } from '../state/editorStore';
+import { type PhonePane, type SidebarTab, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { CircularMapView } from './CircularMapView';
 import { LinearSequenceView } from './LinearSequenceView';
 import { SidebarPanel } from './Sidebar';
-
-/** The three things a phone shows, one at a time. */
-export type PhonePane = 'map' | 'sequence' | 'details';
 
 const PANES: readonly [PhonePane, string][] = [
   ['map', 'Map'],
@@ -36,8 +33,9 @@ interface Props {
  * The app on a phone: a reader for a link someone sent, not a smaller
  * editor. One pane at a time — the map, the sequence, or the Features and
  * Enzymes lists — behind a bar of three tabs within reach of a thumb. The
- * pane is local state on purpose: it is not a view preference, and it
- * starts on the map because that is what a link is opened to look at.
+ * pane is the document's (`phonePane` in the store, #43): a switch of tabs
+ * or a reload comes back to it, and a document opened fresh starts on the
+ * map, because that is what a link is opened to look at.
  *
  * Tapping a row in a list asks the views to reveal a position (every list
  * does, through `reveal`), and on a phone the view is on another pane, so
@@ -45,9 +43,9 @@ interface Props {
  * raised while a view is already showing changes nothing.
  */
 export function PhoneShell({ doc }: Props) {
-  const { reveal, sidebarTab } = useEditorState();
-  const [pane, setPane] = useState<PhonePane>('map');
-  const lastView = useRef<Exclude<PhonePane, 'details'>>('map');
+  const { reveal, sidebarTab, phonePane: pane } = useEditorState();
+  // The shell is keyed by document, so this is the pane the tab came back on.
+  const lastView = useRef<Exclude<PhonePane, 'details'>>(pane === 'details' ? 'map' : pane);
   // The nonce this shell has already answered, so a reveal from before it
   // mounted — the selection a document was opened with — does not move it.
   const answered = useRef(reveal?.nonce ?? 0);
@@ -55,12 +53,12 @@ export function PhoneShell({ doc }: Props) {
     const nonce = reveal?.nonce ?? 0;
     if (nonce === answered.current) return;
     answered.current = nonce;
-    setPane((current) => (current === 'details' ? lastView.current : current));
+    if (editorStore.getState().phonePane === 'details') editorStore.setPhonePane(lastView.current);
   }, [reveal]);
 
   const show = (next: PhonePane): void => {
     if (next !== 'details') lastView.current = next;
-    setPane(next);
+    editorStore.setPhonePane(next);
   };
   const detailTab: SidebarTab = DETAIL_TABS.some(([t]) => t === sidebarTab)
     ? sidebarTab

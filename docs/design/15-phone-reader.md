@@ -152,3 +152,23 @@ share-target-open`, once per share; each file's `file / open` gives its
   format. Verified from the build (the manifest block and the route in
   `dist/sw.js` under `BASE_PATH=/PlasmidPop/`) and by tests of both halves
   against an in-memory Cache Storage, not yet on a phone.
+- **The pane is remembered** per document: `phonePane` in `DocumentState`,
+  beside `sidebarTab` and for the same reason (a tab is a piece of work),
+  set by the shell's bar through `setPhonePane`. That undoes the note above
+  that it was deliberately local state: the reason given, that a link is
+  opened to see the map, is about how a document _starts_, and it still
+  starts there — every `openDocument` without a stored id (a file, a share
+  link, a paste, a Bench product) gets `'map'`. What was lost was the second
+  look: switch to another tab and back, and the reader was on the map again.
+  **Across a reload** the panes go with the view preferences as
+  `phonePanes`, id → pane, since a reload reopens every tab under the id it
+  is stored under; only panes other than the map are written, no more than
+  `MAX_REMEMBERED_PANES` (20), and on read an entry keeps only real panes
+  under plausible ids. A stored pane is handed to its document only when
+  that is reopened from local storage under that id (`restorePhonePanes`,
+  taken once), so a share link opened on top of a restored session still
+  opens on the map, and a pane still waiting for its tab is written back
+  until it is used. Not kept in the Dexie record: it is a view of the
+  document, not part of it, and would have made a pane change an autosave.
+  The shell's "last view" for a reveal from Details starts from the stored
+  pane, so a tab brought back on Details answers a reveal with the map.

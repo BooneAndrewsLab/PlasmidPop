@@ -79,6 +79,9 @@ message arrived.
   lift, a **Copy** button over the selection copies its bases, ready to paste
   into a message or another app. A quick drag is still a scroll and a quick
   tap still a tap. A tablet does the same.
+- Each tab remembers its pane: switch to another document and back, or
+  reload the page, and it is on the pane you left it on. A document you open
+  — a file, or a link someone sent — starts on the **Map**.
 - Tapping a row in a list takes you back to the view you were last in, with
   that feature selected. The Features list has no **Rename**, **Edit** or
   **Remove** on a phone, so a stray tap cannot turn a plasmid someone sent
