@@ -77,3 +77,29 @@ describe('alignEitherStrand', { timeout: 60_000 }, () => {
     expect(r.alignment.identity).toBeGreaterThan(0.9);
   });
 });
+
+describe('fast, for a batch of reads (#59)', () => {
+  it('gives the exact answer on noisy Sanger-length reads of either strand', () => {
+    const plasmid = randomSequence(5000, 59);
+    for (let r = 0; r < 6; r++) {
+      const start = (r * 691) % 4200;
+      const piece = noisyRead(plasmid.slice(start, start + 750));
+      const read = r % 2 === 0 ? piece : reverseComplement(piece);
+      for (const mode of ['local', 'global'] as const) {
+        const exact = alignEitherStrand(plasmid, read, { mode });
+        const fast = alignEitherStrand(plasmid, read, { mode, fast: true });
+        expect(fast.strand).toBe(exact.strand);
+        expect(fast.alignment.score).toBe(exact.alignment.score);
+        expect(fast.alignment.identity).toBe(exact.alignment.identity);
+      }
+    }
+  }, 30_000);
+
+  it('falls back to the full alignment for a pair with nothing to band around', () => {
+    const a = randomSequence(300, 1);
+    const b = randomSequence(120, 2);
+    expect(alignEitherStrand(a, b, { mode: 'local', fast: true }).alignment.score).toBe(
+      alignEitherStrand(a, b, { mode: 'local' }).alignment.score,
+    );
+  });
+});

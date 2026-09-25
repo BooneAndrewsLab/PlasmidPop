@@ -31,7 +31,9 @@ import {
 } from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { BATCH_LIMIT, type BatchRow, runReadBatch } from '../readBatch';
 import { AlignmentTrace } from './AlignmentTrace';
+import { ReadBatchList } from './ReadBatchList';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -419,7 +421,16 @@ function QualitySettings({ trim }: { trim: boolean }) {
  * confidence and the blocks. Its own focus and trace toggle, so a new
  * result starts afresh.
  */
-function AlignmentResult({ result, docName }: { result: ShownAlignment; docName: string }) {
+function AlignmentResult({
+  result,
+  docName,
+  title,
+}: {
+  result: ShownAlignment;
+  docName: string;
+  /** Named in the heading, for a read picked from a batch. */
+  title?: string;
+}) {
   const { readConfidentQuality } = useEditorState();
   const [showTrace, setShowTrace] = useState(true);
   const [focus, setFocus] = useState<{ readonly column: number; readonly nonce: number } | null>(
@@ -431,6 +442,7 @@ function AlignmentResult({ result, docName }: { result: ShownAlignment; docName:
     <div className="panel__section">
       <h3 className="panel__heading">
         {result.alignment.mode === 'global' ? 'Global alignment' : 'Local alignment'}
+        {title === undefined ? '' : ` of ${title}`}
         <span className="panel__heading-note">
           score {result.alignment.score}, identity {Math.round(result.alignment.identity * 100)}%
           over {result.alignment.columns.toLocaleString()} columns, {result.alignment.gaps} gap{' '}
@@ -520,7 +532,7 @@ interface ShownAlignment extends ReadAlignment {
 }
 
 export function AlignPanel({ doc }: Props) {
-  const { selection, readTrimCutoff } = useEditorState();
+  const { selection, readTrimCutoff, readConfidentQuality } = useEditorState();
   const [other, setOther] = useState('');
   const [picked, setPicked] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -540,6 +552,14 @@ export function AlignPanel({ doc }: Props) {
   /** Whether a document that is itself a read is aligned as the read (#57). */
   const [docAsRead, setDocAsRead] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Every record aligned at once (#59): the rows so far, and how many were asked for. */
+  const [batch, setBatch] = useState<{
+    readonly rows: readonly BatchRow[];
+    readonly total: number;
+    readonly cancelled: boolean;
+  } | null>(null);
+  /** The file index of the batch row whose alignment is shown. */
+  const [batchPicked, setBatchPicked] = useState<number | null>(null);
 
   // Leaving the tab stops an alignment nobody would see the end of.
   useEffect(
@@ -566,6 +586,7 @@ export function AlignPanel({ doc }: Props) {
     setOther(text);
     setPicked(0);
     setError(null);
+    setBatch(null);
   };
 
   const load = (file: File | undefined): void => {
@@ -607,6 +628,75 @@ export function AlignPanel({ doc }: Props) {
   /** The qualities the alignment will use, if any: the record's or the document's. */
   const readInUse = docIsRead ? docRead : (record?.read ?? null);
 
+  /** The document, or its selection, as the reference a read is aligned to. */
+  const documentReference = (): ReferenceInput => {
+    const target =
+      useSelection && selection !== null && hasSelection
+        ? selection
+        : { start: 0, end: doc.length };
+    // A read of a circular plasmid may run through its origin: a local
+    // alignment is made against the sequence with its start repeated after
+    // its end, far enough for the read to fit (#51).
+    const whole = target.start === 0 && target.end === doc.length;
+    const wrap = whole && doc.isCircular && mode === 'local' && doc.length > 1 ? doc.length : null;
+    return { sequence: doc.subsequence(target), offset: target.start, wrap };
+  };
+
+  /** Starts a request to the worker that the Cancel button and leaving the tab can stop. */
+  const begin = (): AbortController => {
+    const controller = new AbortController();
+    running.current = controller;
+    setBusy(true);
+    setProgress(null);
+    setError(null);
+    return controller;
+  };
+  const end = (controller: AbortController): void => {
+    if (running.current === controller) running.current = null;
+    setBusy(false);
+    setProgress(null);
+  };
+
+  /**
+   * Aligns every record against the document, one after another in the
+   * worker, listing each as it is done (#59). The document is the
+   * reference, whichever way round a single alignment would go.
+   */
+  const runAll = (): void => {
+    if (records.length > BATCH_LIMIT) return;
+    analytics.track('align', 'batch', mode);
+    const reference = documentReference();
+    const controller = begin();
+    setProgress(0);
+    setResult(null);
+    setBatchPicked(null);
+    setBatch({ rows: [], total: records.length, cancelled: false });
+    runReadBatch(
+      records.map((r) => ({ name: r.name, sequence: r.sequence, read: r.read ?? null })),
+      reference,
+      (a, b, options, long) => analysisClient.alignEitherStrand(a, b, options, long),
+      {
+        // Banded whatever the size: the same answers, three to five times sooner.
+        options: { mode, fast: true },
+        trimCutoff: trim ? readTrimCutoff : null,
+        onRow: (row) => {
+          setBatch((b) => (b === null ? b : { ...b, rows: [...b.rows, row] }));
+        },
+        onProgress: setProgress,
+        signal: controller.signal,
+      },
+    )
+      .then((outcome) => {
+        setBatch((b) => (b === null ? b : { ...b, cancelled: outcome.cancelled }));
+      })
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        end(controller);
+      });
+  };
+
   const run = (): void => {
     if (!parsed.ok) {
       setError(parsed.message);
@@ -635,17 +725,7 @@ export function AlignPanel({ doc }: Props) {
         trim ? readTrimCutoff : null,
       );
     } else {
-      const target =
-        useSelection && selection !== null && hasSelection
-          ? selection
-          : { start: 0, end: doc.length };
-      // A read of a circular plasmid may run through its origin: a local
-      // alignment is made against the sequence with its start repeated after
-      // its end, far enough for the read to fit (#51).
-      const whole = target.start === 0 && target.end === doc.length;
-      const wrap =
-        whole && doc.isCircular && mode === 'local' && doc.length > 1 ? doc.length : null;
-      reference = { sequence: doc.subsequence(target), offset: target.start, wrap };
+      reference = documentReference();
       // A read's unreliable ends are trimmed off before it is aligned (#50).
       prepared = prepareReadAlignment(
         reference,
@@ -661,11 +741,8 @@ export function AlignPanel({ doc }: Props) {
     const shownAs = docIsRead ? { referenceName: record.name } : null;
     analytics.track('align', 'run', mode);
     if (docIsRead) analytics.trackOnce('align', 'document-read');
-    const controller = new AbortController();
-    running.current = controller;
-    setBusy(true);
-    setProgress(null);
-    setError(null);
+    const controller = begin();
+    setBatch(null);
     analysisClient
       .alignEitherStrand(
         job.a,
@@ -685,11 +762,15 @@ export function AlignPanel({ doc }: Props) {
         setError(e instanceof Error ? e.message : String(e));
       })
       .finally(() => {
-        if (running.current === controller) running.current = null;
-        setBusy(false);
-        setProgress(null);
+        end(controller);
       });
   };
+
+  const anyReads = readInUse !== null || records.some((r) => r.read !== undefined);
+  const batchPickedRow =
+    batch === null || batchPicked === null
+      ? undefined
+      : batch.rows.find((r) => r.index === batchPicked);
 
   return (
     <div className="panel">
@@ -773,7 +854,11 @@ export function AlignPanel({ doc }: Props) {
         <p className="panel__note">
           {[
             fileNote,
-            records.length > 1 ? `${records.length} records; the one chosen is aligned.` : null,
+            records.length > BATCH_LIMIT
+              ? `${records.length.toLocaleString()} records; the one chosen is aligned. Align all takes at most ${BATCH_LIMIT} at a time (a plate): split the file to align them all.`
+              : records.length > 1
+                ? `${records.length} records; the one chosen is aligned, or Align all aligns each of them.`
+                : null,
           ]
             .filter((t) => t !== null)
             .join(' ')}
@@ -792,7 +877,7 @@ export function AlignPanel({ doc }: Props) {
             <option value="local">Local (best region)</option>
           </select>
         </label>
-        {readInUse !== null && (
+        {anyReads && (
           <label
             className="toggle"
             title={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
@@ -824,10 +909,25 @@ export function AlignPanel({ doc }: Props) {
           disabled={busy || other.trim() === ''}
           onClick={run}
         >
-          {busy ? 'Aligning…' : 'Align'}
+          {busy && batch === null ? 'Aligning…' : 'Align'}
         </button>
+        {records.length > 1 && (
+          <button
+            type="button"
+            className="button button--small"
+            disabled={busy || records.length > BATCH_LIMIT}
+            title={
+              records.length > BATCH_LIMIT
+                ? `At most ${BATCH_LIMIT} records are aligned at once`
+                : 'Align every record against this document, one after another, and list them'
+            }
+            onClick={runAll}
+          >
+            {busy && batch !== null ? 'Aligning all…' : 'Align all'}
+          </button>
+        )}
       </div>
-      {readInUse !== null && <QualitySettings trim={trim} />}
+      {anyReads && <QualitySettings trim={trim} />}
       {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
       {busy && progress !== null && (
         <div className="align-progress">
@@ -838,7 +938,9 @@ export function AlignPanel({ doc }: Props) {
             aria-label="Alignment progress"
           />
           <span className="align-progress__label" aria-live="polite">
-            {Math.floor(progress * 100)}%
+            {batch === null
+              ? `${Math.floor(progress * 100)}%`
+              : `${batch.rows.length} of ${batch.total}`}
           </span>
           <button
             type="button"
@@ -852,6 +954,37 @@ export function AlignPanel({ doc }: Props) {
         </div>
       )}
       {error !== null && <p className="panel__error">{error}</p>}
+      {batch !== null && (batch.rows.length > 0 || !busy) && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            {batch.total} reads
+            <span className="panel__heading-note">
+              {batch.cancelled
+                ? `cancelled after ${batch.rows.length}`
+                : batch.rows.length < batch.total
+                  ? `${batch.rows.length} aligned so far`
+                  : `against ${useSelection && hasSelection ? 'the selection' : doc.name}`}
+              {batch.rows.some((r) => r.status === 'failed')
+                ? `, ${batch.rows.filter((r) => r.status === 'failed').length} could not be aligned`
+                : ''}
+            </span>
+          </h3>
+          <ReadBatchList
+            rows={batch.rows}
+            confidentFrom={readConfidentQuality}
+            selected={batchPicked}
+            onSelect={setBatchPicked}
+          />
+          {batchPickedRow?.status === 'aligned' && (
+            <AlignmentResult
+              key={`batch-${String(batchPickedRow.index)}`}
+              result={{ ...batchPickedRow.result, docIsRead: null }}
+              docName={doc.name}
+              title={batchPickedRow.name}
+            />
+          )}
+        </div>
+      )}
       {result !== null && <AlignmentResult key={resultKey} result={result} docName={doc.name} />}
     </div>
   );

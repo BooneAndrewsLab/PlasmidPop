@@ -32,6 +32,31 @@ Decision: no WASM for v1. Plasmid-scale alignments finish in well under a
 second and a 10 kb read, banded, in a tenth of one. The limit was the
 quadratic algorithm, not the language.
 
+## A plate of reads (Align all, #59, 2026-09-24)
+
+96 Sanger-like reads of 700–900 bases (poor first 30 and last 80 bases,
+1% error between, half reversed, some through the origin) against a 5 kb
+circular plasmid, local, trimmed at 5%, one after another as the batch
+runs them (`readBatch.timing.test.ts`, Node 24, the worker's code run
+inline, three runs each):
+
+| Path                                                        | 96 reads    | per read |
+| ----------------------------------------------------------- | ----------- | -------- |
+| as a single alignment: both strands in full below 4 M cells | 12.9–13.0 s | 135 ms   |
+| `fast`: strand by 11-mers, then banded                      | 0.52–0.59 s | 6 ms     |
+
+A trimmed Sanger read against 5.8 kb (the plasmid with its start repeated
+for the origin) is about 4 M cells, just under the size where one strand is
+picked first, so a single alignment fills the whole matrix twice, about
+130 ms a strand. That is nothing for one read and 13 s for a plate, so a
+batch asks for `fast`: the strand is picked by shared 11-mers at any size
+and the read aligned in the band, checked by its edge as for long reads.
+On this plate the two paths gave the same strand, score and identity for
+all 96 reads, and `strands.test.ts` checks the same on noisy reads in both
+modes. The worker's round trip per read (a few kilobytes each way) is not
+in these numbers and is small beside them; in the browser the batch has
+not been timed.
+
 ## Edit marks (sequence diff)
 
 Myers' greedy O(ND) diff over the two versions, after stripping the common

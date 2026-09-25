@@ -355,6 +355,86 @@ describe('AlignPanel', () => {
     });
   });
 
+  describe('every record at once (#59)', () => {
+    const reference = 'GATTACAGCTTGACCGTAAGCTAGGCTTACGATCGATTGCAAGTCCGATGCATTGACCTA';
+    const refDoc = SeqDocument.create({ name: 'pRef', sequence: reference });
+    const fastq = [
+      `@clone1\n${reference.slice(5, 45)}\n+\n${'I'.repeat(40)}`,
+      `@clone2\n${reverseComplement(reference.slice(15, 55))}\n+\n${'I'.repeat(40)}`,
+      `@clone3\nACGTACGT\n+\n${'#'.repeat(8)}`,
+    ].join('\n');
+
+    async function dropBatch(): Promise<void> {
+      act(() => {
+        editorStore.openDocument(refDoc);
+      });
+      render(<AlignPanel doc={refDoc} />);
+      fireEvent.drop(box(), fileDrop(new File([fastq], 'plate.fastq')));
+      await waitFor(() => {
+        expect(
+          screen.getByText(/3 records; the one chosen is aligned, or Align all/),
+        ).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: '' }), { target: { value: 'local' } });
+    }
+
+    it('aligns them all, lists them, and shows the one picked', async () => {
+      await dropBatch();
+      fireEvent.click(screen.getByRole('button', { name: 'Align all' }));
+      await waitFor(() => {
+        expect(screen.getByText('3 reads')).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(screen.getAllByRole('row')).toHaveLength(4);
+      });
+      expect(screen.getByText(/1 could not be aligned/)).toBeInTheDocument();
+      expect(screen.getByText(/good enough quality/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'clone2' }));
+      expect(screen.getByText(/Local alignment of clone2/)).toBeInTheDocument();
+      expect(screen.getByText(/No differences from pRef/)).toBeInTheDocument();
+      // Its region is selected in the document, as for a single read.
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Select aligned region in this document' }),
+      );
+      expect(editorStore.getState().selection).toEqual({ start: 15, end: 55 });
+    });
+
+    it('shows its progress by reads, and cancels keeping what was done', async () => {
+      let calls = 0;
+      const spy = vi
+        .spyOn(analysisClient, 'alignEitherStrand')
+        .mockImplementation((_a, _b, _o, options = {}) => {
+          calls++;
+          return new Promise<StrandedAlignment>((_resolve, rej) => {
+            options.signal?.addEventListener('abort', () => {
+              rej(new AnalysisCancelledError());
+            });
+          });
+        });
+      await dropBatch();
+      fireEvent.click(screen.getByRole('button', { name: 'Align all' }));
+      expect(screen.getByRole('progressbar', { name: 'Alignment progress' })).toBeInTheDocument();
+      expect(screen.getByText('0 of 3')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => {
+        expect(screen.getByText(/cancelled after 0/)).toBeInTheDocument();
+      });
+      expect(calls).toBe(1);
+      expect(screen.getByRole('button', { name: 'Align all' })).toBeEnabled();
+      spy.mockRestore();
+    });
+
+    it('takes at most a plate of records, and says so', () => {
+      render(<AlignPanel doc={doc} />);
+      const many = Array.from({ length: 97 }, (_, i) => `>r${i}\nACGTACGT`).join('\n');
+      fireEvent.change(box(), { target: { value: many } });
+      expect(screen.getByRole('button', { name: 'Align all' })).toBeDisabled();
+      expect(
+        screen.getByText(/Align all takes at most 96 at a time \(a plate\)/),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('aligns a read through the origin of a circular document (#51)', async () => {
     let x = 11;
     let plasmid = '';

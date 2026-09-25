@@ -39,7 +39,8 @@ A gzipped FASTQ (`.fastq.gz`), as nanopore runs usually come, opens without
 unpacking it first. A FASTQ file holds many reads and a tab holds one: the
 first read is opened, and the status bar's warnings say how many were left.
 To align another one, drop the file on the [Align](11-align.md) tab's box
-and pick the read there.
+and pick the read there, or align every read in it at once with **Align
+all** (see [Aligning a batch of reads](11-align.md#aligning-a-batch-of-reads)).
 
 An AB1 file with no base calls (a fragment-analysis `.fsa` run) cannot be
 opened; there is no sequence in it.

@@ -11,7 +11,8 @@ design.
    file…**: GenBank, FASTA, SnapGene, AB1 and FASTQ files (gzipped too)
    are read into the box without opening a tab.
 2. If the box holds several records (a FASTA file of several reads, say),
-   pick the one to align from the list that appears.
+   pick the one to align from the list that appears — or align them all,
+   see [Aligning a batch of reads](#aligning-a-batch-of-reads).
 3. Choose **Global (end to end)** to align the whole of both sequences
    (Needleman–Wunsch), or **Local (best region)** to find the best-matching
    stretch (Smith–Waterman). Local is the right choice for a read against a
@@ -29,6 +30,39 @@ position (1-based) at the start of each line. `|` marks identical bases,
 `R` in the document against an `A`), `.` a mismatch and a space a gap.
 Identity counts only the `|` columns. **Select aligned region in this
 document** selects the covered bases so you can annotate or copy them.
+
+## Aligning a batch of reads
+
+A FASTQ file of reads, or a FASTA of several Sanger reads, can be aligned
+all at once — the usual way to check a batch of clones.
+
+1. Drop the file on the box, or click **Choose file…**. The note under the
+   box says how many records it has.
+2. Choose **Local (best region)** for reads against a plasmid, and tick
+   **Against selection only** if the reads should be looked for in part of
+   the document only.
+3. Click **Align all**. Each record is aligned against the document in turn,
+   in the background; the bar counts reads (**12 of 96**) and **Cancel**
+   stops the batch, keeping the reads already aligned. Leaving the Align tab
+   cancels it too.
+4. The reads are listed as they finish, one row each: the name, its length
+   and whether it aligned **reversed**, the **identity**, the number of
+   differences on confident bases (**Q20+ diffs**, following **Confident
+   from**; a read without qualities counts all of its differences, as
+   **Diffs**), and the stretch of the document it **covers**. Click
+   **Identity** to sort lowest first — the clones to look at — then highest
+   first, then back to the file's order.
+5. Click a read's name to see its alignment below the list, exactly as for
+   a single read: the differences by confidence, the shading, the trace of
+   an AB1 read.
+
+A read that could not be aligned (nothing good enough after trimming, too
+large) is listed with the reason, and the rest carry on. At most 96 records
+(a plate) are aligned at once; for a larger file the note says so and
+**Align all** is unavailable: pick one record, or split the file. A batch
+is aligned in a band around the words each read shares with the document,
+which gives the same alignments as one at a time and takes about half a
+second for a plate of Sanger reads against a 5 kb plasmid.
 
 ## Aligning a read with its qualities
 

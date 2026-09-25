@@ -2064,6 +2064,73 @@ button {
   overflow-y: auto;
 }
 
+/* A batch of reads (#59): one row a read, picked to show its alignment. */
+.read-batch {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 8px;
+  table-layout: fixed;
+}
+
+.read-batch th,
+.read-batch td {
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  vertical-align: top;
+}
+
+.read-batch thead th {
+  color: var(--ink-3);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.read-batch th:first-child {
+  width: 42%;
+  text-align: left;
+  font-weight: normal;
+  overflow-wrap: anywhere;
+}
+
+.read-batch__sort,
+.read-batch__pick {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.read-batch__pick {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.read-batch__pick:hover,
+.read-batch__sort:hover {
+  text-decoration: underline;
+}
+
+.read-batch__sub {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+.read-batch__row--picked {
+  background: var(--seq-selection);
+}
+
+.read-batch__row--failed td {
+  color: var(--danger);
+  text-align: left;
+}
+
 /* Dropdown menu */
 
 .menu {

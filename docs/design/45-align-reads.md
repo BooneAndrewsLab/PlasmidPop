@@ -56,7 +56,7 @@ with base qualities, banded alignment, a chromatogram — is milestone 1.3
 - **Several records.** The box used only the first record of a FASTA or
   GenBank text, silently. Now a list of the records (name and length)
   appears when there are several, and the chosen one is aligned. Aligning
-  all of them at once is left for reads in 1.3.
+  all of them at once came with #59 (item 46, "A batch of reads").
 - **Progress and Cancel (#54).** At 150 M cells an alignment takes seconds,
   with only "Aligning…" on the button to show for it. The fill reports the
   fraction of rows done every 2 M cells, so a plasmid-scale alignment never

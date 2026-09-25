@@ -46,7 +46,7 @@ export function alignLong(
 ): Alignment {
   const cells = (a.length + 1) * (b.length + 1);
   const maxCells = options.maxCells ?? DEFAULT_MAX_CELLS;
-  if (cells <= FULL_UP_TO) return alignPairwise(a, b, options, onProgress);
+  if (cells <= FULL_UP_TO && options.fast !== true) return alignPairwise(a, b, options, onProgress);
   const banded = alignBanded(a, b, options, onProgress);
   if (banded !== null && (!banded.touchedEdge || cells > maxCells)) return banded.alignment;
   if (banded === null && cells > maxCells) {
@@ -69,7 +69,7 @@ export function alignEitherStrand(
 ): StrandedAlignment {
   const rc = reverseComplement(b);
   const cells = (a.length + 1) * (b.length + 1);
-  if (cells >= BOTH_STRANDS_BELOW) {
+  if (cells >= BOTH_STRANDS_BELOW || options.fast === true) {
     const strand = likelyStrand(a, b, rc);
     if (strand !== null) {
       const alignment = alignLong(a, strand === 'forward' ? b : rc, options, onProgress);

@@ -24,6 +24,15 @@ export interface AlignmentOptions {
    * makes only identical codes match, for callers that compare text.
    */
   readonly iupac?: boolean;
+  /**
+   * For many alignments in a row (a batch of reads, #59): choose the strand
+   * by shared words and align in a band whatever the size, instead of
+   * aligning both strands in full while that takes under a second. The
+   * band is checked by its edge as always, so the answer is the same; a
+   * pair with too little in common to band is aligned in full as before.
+   * Read by `alignLong` and `alignEitherStrand`; the fill ignores it.
+   */
+  readonly fast?: boolean;
 }
 
 export interface Alignment {

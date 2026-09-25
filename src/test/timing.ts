@@ -20,7 +20,7 @@ export function expectWithin(ms: number, budget: number): void {
  * timeout before the budget is even reached, and a speed test says nothing
  * about whether a mutant is caught.
  */
-export function itTimed(name: string, fn: () => void, timeout?: number): void {
+export function itTimed(name: string, fn: () => void | Promise<void>, timeout?: number): void {
   if (TIMING_ASSERTED) it(name, fn, timeout);
   else it.skip(name, fn, timeout);
 }

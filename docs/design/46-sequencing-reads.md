@@ -180,6 +180,49 @@ alongside it.
 - **Download-only** like every export (item 24), `file / export / fastq` in
   the usage events. The GenBank download's notice now points to it.
 
+## A batch of reads (#59)
+
+- **Align all, beside picking one.** A box with several records gets an
+  **Align all** button next to the record picker; the picker and **Align**
+  work as before. Every record is aligned against the document (or its
+  selection) with the panel's mode, trimming and cutoff; the document is
+  the reference whichever way round a single alignment would go (#57 does
+  not apply: the records are the reads).
+- **One request a read, from the main thread** (`runReadBatch`,
+  `app/readBatch.ts`) rather than one worker request for the whole batch.
+  The worker does every alignment, so nothing blocks; a row appears as its
+  read is done instead of all at the end; and Cancel is the existing one —
+  abort the running request, which replaces the worker, and stop the loop —
+  keeping the rows already done. A read that fails (nothing left after
+  trimming, too large, a worker error) is a failed row with its reason and
+  the next goes on. The runner takes the alignment as a function, so its
+  tests drive it with the inline aligner, a failing one and a cancelling
+  one. Progress is by reads, with a running read's own fill reports
+  counted as its fraction.
+- **At most 96**, a plate (`BATCH_LIMIT`): a larger file is not refused but
+  **Align all** is disabled and the note says to pick one or split the
+  file. It keeps a mistaken drop of a run's 4,000-read FASTQ from queueing
+  minutes of work and a list nobody reads; the limit is a constant.
+- **`fast`, the banded path for every read.** A trimmed Sanger read against
+  a 5.8 kb unrolled plasmid is about 4 M cells, which a single alignment
+  fills in full, both strands: 135 ms a read, 13 s a plate. With the
+  `fast` alignment option the strand is picked by shared 11-mers and the
+  read aligned in the band of #51 at any size, falling back to the full
+  fill where there is no chain to band around: 6 ms a read, 0.55 s a
+  plate, with the same strand, score and identity for all 96 reads of the
+  measured plate (docs/perf-notes.md) and on the noisy reads of
+  `strands.test.ts`. A single alignment keeps the exact path.
+- **The list** (`ReadBatchList`): name, length and strand, identity to a
+  tenth of a percent, differences on confident bases (all differences for
+  a read without qualities, and the column says which), and the reference
+  stretch covered, wrapped round the origin. Identity sorts lowest first,
+  then highest, then the file's order, ties and failures kept in file order
+  (failures last). The counts follow **Confident from** as the single
+  alignment's do. Picking a name shows that read's alignment under the list
+  through the same component as a single result (`AlignmentResult`), so
+  the differences, trace and "Select aligned region" are the same.
+- **Usage**: `align / batch`, named by the mode; never how many reads.
+
 ## Long reads (#51)
 
 - **Banded, around anchors** (`core/alignment/banded.ts`). The read's
@@ -255,7 +298,7 @@ alongside it.
 
 #55 a toggle for the sequence view's trace; #56 a setting for the Q20
 threshold (done, above); #57 using the document's own read when it is the read (done, above); #58
-exporting a read as FASTQ (done, above); #59 aligning every record of a file as a batch.
+exporting a read as FASTQ (done, above); #59 aligning every record of a file as a batch (done, above).
 
 ## Found on the way
 
