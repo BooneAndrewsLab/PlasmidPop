@@ -49,6 +49,7 @@ left for the view.
 | `Alt+=`, `Alt+-` | Larger or smaller sequence text                           |
 | `Alt+O`          | Open the Format menu; Tab walks its items, Escape closes  |
 | `Alt+Y`          | Open the Style menu for the selected bases (colour, size) |
+| `Alt+U`          | Open the Case menu for the selected bases (upper, lower)  |
 
 ## Selecting and moving
 

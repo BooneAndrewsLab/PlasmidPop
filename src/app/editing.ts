@@ -201,6 +201,7 @@ export function selectionAfterOp(
     case 'setEnds':
     case 'setMethylation':
     case 'styleBases':
+    case 'changeCase':
     case 'insert':
     case 'delete':
     case 'replace':

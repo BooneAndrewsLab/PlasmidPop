@@ -2,6 +2,7 @@ import fc from 'fast-check';
 
 import {
   type BaseStylePatch,
+  type CaseMode,
   type EditOp,
   type Feature,
   type SeqFragment,
@@ -143,7 +144,8 @@ export type OpShape =
   | { readonly kind: 'setOrigin'; readonly at: number }
   | { readonly kind: 'toggleTopology' }
   | { readonly kind: 'addFeature'; readonly feature: FeatureShape }
-  | { readonly kind: 'style'; readonly at: number; readonly len: number; readonly pick: number };
+  | { readonly kind: 'style'; readonly at: number; readonly len: number; readonly pick: number }
+  | { readonly kind: 'case'; readonly at: number; readonly len: number; readonly pick: number };
 
 export const opShapeArb: fc.Arbitrary<OpShape> = fc.oneof(
   {
@@ -193,7 +195,18 @@ export const opShapeArb: fc.Arbitrary<OpShape> = fc.oneof(
     }),
     weight: 1,
   },
+  {
+    arbitrary: fc.record({
+      kind: fc.constant('case' as const),
+      at: fc.nat(),
+      len: fc.nat(),
+      pick: fc.nat(),
+    }),
+    weight: 1,
+  },
 );
+
+const CASE_MODES: readonly CaseMode[] = ['upper', 'lower', 'toggle'];
 
 /** The base styles a `style` shape picks from (#89): one of each kind, and taking them off. */
 const STYLE_PATCHES: readonly BaseStylePatch[] = [
@@ -263,6 +276,11 @@ export function resolveOp(doc: SeqDocument, shape: OpShape): EditOp | null {
       const range = shapeRange(doc, shape.at, shape.len, 1);
       const style = STYLE_PATCHES[shape.pick % STYLE_PATCHES.length] ?? CLEAR_BASE_STYLE;
       return range === null ? null : { type: 'styleBases', range, style };
+    }
+    case 'case': {
+      const range = shapeRange(doc, shape.at, shape.len, 1);
+      const mode = CASE_MODES[shape.pick % CASE_MODES.length] ?? 'upper';
+      return range === null ? null : { type: 'changeCase', range, mode };
     }
   }
 }
@@ -425,6 +443,24 @@ export class RefModel {
       case 'setTopology':
         this.topology = op.topology;
         return none;
+      case 'changeCase': {
+        // The same cells, only their letters rewritten.
+        const L = this.cells.length;
+        for (let i = op.range.start; i < op.range.end; i++) {
+          const cell = this.at(i % L);
+          const upper = cell.base.toUpperCase();
+          const base =
+            op.mode === 'upper'
+              ? upper
+              : op.mode === 'lower'
+                ? cell.base.toLowerCase()
+                : cell.base === upper
+                  ? cell.base.toLowerCase()
+                  : upper;
+          this.cells[i % L] = { id: cell.id, base };
+        }
+        return none;
+      }
       // The rest touch no bases. (`bluntEnds` would, but the documents
       // generated here have no sticky ends, so it leaves them alone.)
       case 'setEnds':

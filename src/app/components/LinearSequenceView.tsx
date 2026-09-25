@@ -118,7 +118,7 @@ interface Props {
 
 /** Room the selection bar takes, for placing it (px). */
 const SELECTION_BAR_HEIGHT = 34;
-const SELECTION_BAR_WIDTH = 300;
+const SELECTION_BAR_WIDTH = 370;
 /** Height of the open Style menu, for which way it opens (px). */
 const STYLE_MENU_HEIGHT = 420;
 

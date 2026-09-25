@@ -3519,6 +3519,11 @@ button {
   }
 }
 
+/* The case menu shows each choice written the way it writes the bases. */
+.case-menu__label {
+  font-family: ui-monospace, monospace;
+}
+
 .selection-bar__length {
   padding: 0 6px 0 2px;
   color: var(--accent);

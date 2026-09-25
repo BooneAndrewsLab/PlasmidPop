@@ -415,8 +415,20 @@ describe('diffDocuments on a real plasmid', () => {
       .replace({ start: 2000, end: 2010 }, 'TTTTTTTTTT')
       .delete({ start: 1000, end: 1100 });
     const diff = diffDocuments(base, edited);
-    expect(spans(diff.marks)).toEqual(['changed 1900-1910', 'inserted 2900-2904']);
+    // The tenth base replaced was a `t` already: `T` over it is no change (#90).
+    expect(spans(diff.marks)).toEqual(['changed 1900-1909', 'inserted 2900-2904']);
     expect(diff.deletions).toEqual([{ position: 1000, count: 100 }]);
+  });
+
+  it('marks no change for a change of case, and one for a base that differs (#90)', () => {
+    const before = SeqDocument.create({ sequence: 'acgtacgtacgtacgt' });
+    const upper = before.changeCase({ start: 0, end: 16 }, 'upper');
+    expect(upper.sequence.toString()).toBe('ACGTACGTACGTACGT');
+    const diff = diffDocuments(before, upper);
+    expect(diff.marks).toEqual([]);
+    expect(isEmptyDiff(diff)).toBe(true);
+    const edited = upper.replace({ start: 4, end: 5 }, 'G');
+    expect(spans(diffDocuments(before, edited).marks)).toEqual(['changed 4-5']);
   });
 
   describe('a molecule turned over', () => {

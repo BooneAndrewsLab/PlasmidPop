@@ -27,7 +27,7 @@ import {
 } from '../range';
 import { type SequenceText, Rope, assertValidSequence, reverseComplement } from '../sequence';
 import { type BaseStylePatch, BaseStyles, type StyleRun } from './baseStyles';
-import { type BluntMethod, type EditOp, type FeaturePatch } from './editOp';
+import { type BluntMethod, type CaseMode, type EditOp, type FeaturePatch } from './editOp';
 import {
   type DocumentEnds,
   BLUNT_END,
@@ -250,6 +250,8 @@ export class SeqDocument {
         return this.setMethylation(op.methylation);
       case 'styleBases':
         return this.styleBases(op.range, op.style);
+      case 'changeCase':
+        return this.changeCase(op.range, op.mode);
       case 'rename':
         return this.rename(op.name);
       case 'setMetadata':
@@ -533,6 +535,25 @@ export class SeqDocument {
   }
 
   /**
+   * The bases in `r` (which may run over the origin) written in upper or
+   * lower case, or each swapped (#90). The bases are the same ones, so
+   * features, styles, the ends and a read's qualities all stay; only the
+   * letters differ.
+   */
+  changeCase(r: Range, mode: CaseMode): SeqDocument {
+    assertValidRange(r, this.length, this.topology);
+    let sequence = this.sequence;
+    for (const piece of rangePieces(r, this.length)) {
+      const before = sequence.slice(piece.start, piece.end);
+      const after = withCase(before, mode);
+      if (after !== before) {
+        sequence = sequence.remove(piece.start, piece.end).insert(piece.start, after);
+      }
+    }
+    return sequence === this.sequence ? this : this.with({ sequence, read: this.read });
+  }
+
+  /**
    * `patch` applied to the style of every base in `r`, which may run over
    * the origin of a circle (#89).
    */
@@ -662,6 +683,18 @@ export class SeqDocument {
     }
     return position;
   }
+}
+
+/** `text` in the case `mode` asks for. */
+function withCase(text: string, mode: CaseMode): string {
+  if (mode === 'upper') return text.toUpperCase();
+  if (mode === 'lower') return text.toLowerCase();
+  let out = '';
+  for (const ch of text) {
+    const upper = ch.toUpperCase();
+    out += ch === upper ? ch.toLowerCase() : upper;
+  }
+  return out;
 }
 
 function validateFeature(feature: Feature, seqLength: number, topology: Topology): void {

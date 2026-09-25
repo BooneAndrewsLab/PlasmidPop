@@ -17,6 +17,13 @@ disappears.
   selection** in the edit bar does the same with the mouse.
 - On a circular sequence the cursor wraps: `Backspace` after base 1 deletes
   the last base.
+- **Case ▾**, on the bar beside a selection or in the edit bar (`Alt+U`),
+  writes the selected bases in UPPERCASE or lowercase, or swaps the case of
+  each (tOGGLE cASE). Many people use case to mark a stretch, such as an
+  insert in capitals in a lowercase vector. The bases stay the same, so
+  features, styles and a read's qualities stay too, and the edit marks and
+  **Compare** do not count a change of case as a change: `a` and `A` are
+  the same base. Each choice is one undo step.
 
 ## Copy, cut and paste
 

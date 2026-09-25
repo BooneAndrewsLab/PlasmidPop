@@ -158,7 +158,14 @@ function compare(
   current: SeqDocument,
   options: SequenceDiffOptions,
 ): DocumentDiff {
-  const diff = diffSequences(baseline.sequence.toString(), current.sequence.toString(), options);
+  // The case of a letter says nothing about the base (#90): `a` and `A` are
+  // one adenine, as the checksum has it too, so changing the case of a
+  // stretch is not an edit of its bases.
+  const diff = diffSequences(
+    baseline.sequence.toString().toUpperCase(),
+    current.sequence.toString().toUpperCase(),
+    options,
+  );
   const { marks, deletions, basesInserted, basesChanged, basesDeleted } = collectMarks(diff);
   const features = diffFeatures(baseline, current, diff);
   return {

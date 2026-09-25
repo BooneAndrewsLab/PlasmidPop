@@ -2,6 +2,7 @@ import { type SeqDocument, hasOverhang, isEmptyRange } from '@/core';
 
 import { deleteSelection } from '../editing';
 import { BaseStyleMenu } from './BaseStyleMenu';
+import { CaseMenu } from './CaseMenu';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -38,6 +39,7 @@ export function EditBar({ doc }: Props) {
         Delete selection
       </button>
       <BaseStyleMenu doc={doc} selection={selection} />
+      <CaseMenu selection={selection} />
       <span className="editbar__divider" />
       <button
         type="button"

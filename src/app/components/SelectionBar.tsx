@@ -6,6 +6,7 @@ import { analytics } from '../analytics';
 import { copyFragment } from '../clipboard';
 import { editorStore } from '../state/editorStore';
 import { BaseStyleMenu } from './BaseStyleMenu';
+import { CaseMenu } from './CaseMenu';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -19,7 +20,7 @@ interface Props {
 
 /**
  * What can be done with the selected bases, floating beside them (#89):
- * style them, annotate them, copy them. The same actions are in the edit
+ * style them, change their case (#90), annotate them, copy them. The same actions are in the edit
  * bar and on the keyboard; this is where the eye already is. Desktop only:
  * a phone has its own long-press Copy, and no room to spare over its bases.
  */
@@ -39,6 +40,7 @@ export function SelectionBar({ doc, selection, left, top, menuOpens }: Props) {
       }}
     >
       <BaseStyleMenu doc={doc} selection={selection} opens={menuOpens} shortcut={false} />
+      <CaseMenu selection={selection} opens={menuOpens} shortcut={false} />
       <button
         type="button"
         className="button button--small"

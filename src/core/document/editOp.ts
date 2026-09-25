@@ -33,6 +33,11 @@ export type EditOp =
   | { readonly type: 'bluntEnds'; readonly method: BluntMethod }
   /** Says where the DNA was grown, for the enzymes its methylation blocks. */
   | { readonly type: 'setMethylation'; readonly methylation: HostMethylationState }
+  /**
+   * Writes the letters of the bases in `range` in upper or lower case, or
+   * swaps the case of each (#90). The same bases, so nothing moves.
+   */
+  | { readonly type: 'changeCase'; readonly range: Range; readonly mode: CaseMode }
   /** Colours, highlights, emboldens or resizes the bases in `range` (#89, #91). */
   | { readonly type: 'styleBases'; readonly range: Range; readonly style: BaseStylePatch }
   | { readonly type: 'rename'; readonly name: string }
@@ -42,6 +47,9 @@ export type EditOp =
   | { readonly type: 'removeFeature'; readonly id: FeatureId };
 
 export type FeaturePatch = Partial<Omit<Feature, 'id'>>;
+
+/** How `changeCase` writes the letters: all capitals, all small, or each one swapped. */
+export type CaseMode = 'upper' | 'lower' | 'toggle';
 
 /**
  * How an overhang is made blunt (#8). `fill`: a polymerase (Klenow, T4 DNA
@@ -93,6 +101,8 @@ export function describeEditOp(op: EditOp): string {
       return 'Set the host methylation';
     case 'styleBases':
       return describeStylePatch(op.style);
+    case 'changeCase':
+      return op.mode === 'upper' ? 'Uppercase' : op.mode === 'lower' ? 'Lowercase' : 'Toggle case';
     case 'rename':
       return 'Rename';
     case 'setMetadata':

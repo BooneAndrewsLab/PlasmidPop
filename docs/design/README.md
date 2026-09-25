@@ -65,6 +65,7 @@ piece of work needs its reasoning written down, with the next free number.
 51. [The undo history survives a reload](51-persistent-history.md)
 52. [What a product was made from](52-made-from.md)
 53. [Base styles: colour, highlight, bold and size](53-base-styles.md)
+54. [Changing the case of bases](54-change-case.md)
 
 ## Changelog to 1.1.0
 

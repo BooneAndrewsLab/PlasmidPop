@@ -322,6 +322,7 @@ Cut, Export selection, Translate, Design primers, Align against selection.
 When you let go of a selection in the sequence view, a small bar appears
 beside it with the commonest of these: **Style ▾** (see
 [Colouring and enlarging bases](04-editing.md#colouring-and-enlarging-bases)),
+**Case ▾** (see [Typing, deleting, replacing](04-editing.md#typing-deleting-replacing)),
 **Add feature** and **Copy**, and how many bases are selected. It sits above
 the selection, or under it where there is no room above for the Style menu,
 so the selected bases stay in view while you work on them. While the mouse

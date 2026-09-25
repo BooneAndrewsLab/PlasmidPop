@@ -59,6 +59,7 @@ const EDIT_OPS: Readonly<Record<EditOp['type'], true>> = {
   bluntEnds: true,
   setMethylation: true,
   styleBases: true,
+  changeCase: true,
   rename: true,
   setMetadata: true,
   addFeature: true,
@@ -195,6 +196,7 @@ export type Shortcut =
   | 'alt+k'
   | 'alt+n'
   | 'alt+y'
+  | 'alt+u'
   | 'alt+shift+page'
   | 'ctrl+s'
   | 'ctrl+f'
