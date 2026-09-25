@@ -1,4 +1,5 @@
 import {
+  AlphabetMismatchError,
   InvalidResiduesError,
   InvalidSequenceError,
   complement,
@@ -58,6 +59,58 @@ describe('protein alphabet (#66)', () => {
     expect(formatLength(147, 'protein')).toBe('147 aa');
     expect(isAlphabet('protein')).toBe(true);
     expect(isAlphabet('rna')).toBe(false);
+  });
+});
+
+describe('alphabet errors and thresholds (mutation tests)', () => {
+  function thrown(f: () => unknown): unknown {
+    try {
+      f();
+    } catch (e) {
+      return e;
+    }
+    throw new Error('did not throw');
+  }
+
+  it('names each error class', () => {
+    expect(thrown(() => normalizeSequenceInput('AC#'))).toMatchObject({
+      name: 'InvalidSequenceError',
+    });
+    expect(thrown(() => normalizeSequenceInput('MK#', 'protein'))).toMatchObject({
+      name: 'InvalidResiduesError',
+    });
+    expect(new AlphabetMismatchError('protein').name).toBe('AlphabetMismatchError');
+  });
+
+  it('says which way a paste is mismatched, and names no character', () => {
+    const intoProtein = new AlphabetMismatchError('protein');
+    expect(intoProtein.message).toBe(
+      'These are bases; a protein takes amino-acid residues. Translate them first.',
+    );
+    expect(intoProtein.invalidCharacters).toEqual([]);
+    expect(intoProtein).toBeInstanceOf(InvalidSequenceError);
+    expect(new AlphabetMismatchError('nucleotide').message).toBe(
+      'These are amino-acid residues; a DNA sequence takes bases.',
+    );
+  });
+
+  it('lists up to five characters, and counts the rest', () => {
+    expect(() => normalizeSequenceInput('A#C-')).toThrow(
+      'Sequence contains characters outside the IUPAC nucleotide alphabet: "#", "-"',
+    );
+    const five = thrown(() => normalizeSequenceInput('A#-!?%')) as Error;
+    expect(five.message).toBe(
+      'Sequence contains characters outside the IUPAC nucleotide alphabet: "#", "-", "!", "?", "%"',
+    );
+    const six = thrown(() => normalizeSequenceInput('A#-!?%&', 'protein')) as Error;
+    expect(six.message).toBe(
+      'Sequence contains characters outside the amino-acid alphabet: "#", "-", "!", "?", "%", … (6 distinct)',
+    );
+  });
+
+  it('takes text exactly nine tenths plain bases for a nucleotide sequence', () => {
+    expect(guessAlphabet('AAAAAAAAAE')).toBe('nucleotide');
+    expect(guessAlphabet('AAAAAAAAEE')).toBe('protein');
   });
 });
 

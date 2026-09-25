@@ -177,11 +177,6 @@ export function formatLength(n: number, alphabet: Alphabet): string {
   return `${n.toLocaleString()} ${alphabet === 'protein' ? 'aa' : 'bp'}`;
 }
 
-/** Complement of one base. Unknown characters pass through unchanged. */
-export function complementBase(base: string): string {
-  return COMPLEMENT[base] ?? base;
-}
-
 export function complement(text: string): string {
   let out = '';
   for (let i = 0; i < text.length; i++) {
@@ -197,11 +192,5 @@ export function reverseComplement(text: string): string {
     const c = text.charAt(i);
     out += COMPLEMENT[c] ?? c;
   }
-  return out;
-}
-
-export function reverse(text: string): string {
-  let out = '';
-  for (let i = text.length - 1; i >= 0; i--) out += text.charAt(i);
   return out;
 }
