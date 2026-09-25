@@ -63,6 +63,41 @@ describe.runIf(out !== undefined)('export for the Biopython writer check', () =>
       }
       docs.push([`edited ${i}`, doc]);
     });
+    // A document carrying a "made from" tree (item 52): its COMMENT block has
+    // lines longer than GenBank's 79 columns when a primer is long, and
+    // another reader must still take the file.
+    const primer = { name: 'a long primer, with a 5′ tail', sequence: 'ACGT'.repeat(30) };
+    docs.push([
+      'made from',
+      SeqDocument.create({
+        name: 'pMADE',
+        sequence: 'ACGTTGCAAG'.repeat(40),
+        topology: 'circular',
+        metadata: {
+          lineage: {
+            name: 'pMADE',
+            checksum: null,
+            topology: 'circular',
+            length: 400,
+            step: {
+              op: 'pcr',
+              forward: primer,
+              reverse: primer,
+              polymerase: 'taq',
+              parents: [
+                {
+                  name: 'template with spaces',
+                  checksum: null,
+                  topology: 'circular',
+                  length: 5000,
+                  step: null,
+                },
+              ],
+            },
+          },
+        },
+      }),
+    ]);
     const manifest = docs.map(([label, doc], i) => {
       const file = `${i}.gb`;
       writeFileSync(join(out, file), writeGenBank(doc));
