@@ -4,7 +4,7 @@ import { AlphabetMismatchError, InvalidResiduesError, InvalidSequenceError } fro
 import { extractRange } from './extract';
 import { fragmentFromRange, fragmentToJSON, parseFragmentJSON } from './fragment';
 import { SeqDocument } from './seqDocument';
-import { type DocumentTool, hasTool } from './tools';
+import { type DocumentTool, hasTool, unitName } from './tools';
 
 const HBB = 'MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPK';
 
@@ -152,6 +152,7 @@ describe('the tools a document has (#66)', () => {
     'primers',
     'cloning',
     'align',
+    'detectFeatures',
     'reverseComplement',
     'circular',
     'ends',
@@ -166,5 +167,12 @@ describe('the tools a document has (#66)', () => {
     }
     expect(hasTool(protein(), 'proteinProperties')).toBe(true);
     expect(hasTool(dna, 'proteinProperties')).toBe(false);
+  });
+
+  it('calls a letter a base or a residue', () => {
+    expect(unitName('nucleotide')).toBe('base');
+    expect(unitName('nucleotide', true)).toBe('bases');
+    expect(unitName('protein')).toBe('residue');
+    expect(unitName('protein', true)).toBe('residues');
   });
 });

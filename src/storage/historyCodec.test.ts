@@ -192,6 +192,17 @@ describe('encodeHistory / decodeHistory', () => {
     expect(back.history.redo().present.styles.runs).toEqual(moved.styles.runs);
   });
 
+  it('counts 16 bytes and 48 a run for a state’s base styles', () => {
+    const styled = plasmid
+      .styleBases({ start: 5, end: 9 }, { bold: true })
+      .styleBases({ start: 20, end: 30 }, { color: '#d62728' });
+    const runs = styled.styles.runs.length;
+    expect(runs).toBe(2);
+    const size = (doc: SeqDocument): number =>
+      storedSize(encodeHistory('d', input(History.create(doc))));
+    expect(size(styled) - size(plasmid)).toBe(16 + runs * 48);
+  });
+
   it('keeps a protein a protein in every state, and takes residues in its splices (#66)', () => {
     const protein = SeqDocument.create({
       name: 'HBB',

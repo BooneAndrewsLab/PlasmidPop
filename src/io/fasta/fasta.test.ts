@@ -35,6 +35,10 @@ describe('FASTA', () => {
     expect(() => parseFasta('ACGT\n')).toThrow(/start with a ">"/);
     expect(() => parseFasta('')).toThrow(/No FASTA records/);
     expect(parseFasta('>\nACGT\n').documents[0]?.name).toBe('Untitled');
+    const protein = parseFasta('>\nMKVLEEL\n').documents[0];
+    expect(protein?.alphabet).toBe('protein');
+    expect(protein?.name).toBe('Untitled');
+    expect(parseFasta('>pep\nMKVLEEL\n').documents[0]?.name).toBe('pep');
   });
 
   it('writes 70-column records and round-trips', () => {
