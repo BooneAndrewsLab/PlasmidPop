@@ -78,11 +78,12 @@ came in twice — reopen the `.dna` file to get them right.
 
 **File ▸ Open from NCBI…** (or **From NCBI…** in the toolbar when nothing is
 open) fetches a GenBank record by its accession number, so a published
-plasmid or gene opens without downloading it first.
+plasmid, gene or protein opens without downloading it first.
 
 1. Type the accession: `L09137` (pUC19), `NC_001422` (phiX174),
-   `NM_000581.2`. The version after the dot is optional; without it you get
-   the current one. A pasted NCBI address such as
+   `NM_000581.2`, or a protein's, `NP_000509` (haemoglobin β). The version
+   after the dot is optional; without it you get the current one. A pasted
+   NCBI address such as
    `https://www.ncbi.nlm.nih.gov/nuccore/L09137.2` works too.
 2. Press **Open** (or `Enter`). The record opens in a tab of its own, as if
    you had downloaded it from NCBI and opened the file: every feature, the
@@ -96,14 +97,22 @@ plasmid or gene opens without downloading it first.
   named in the status bar; the others still open.
 - **Cancel** stops a fetch under way; press it again, or `Escape`, to close
   the dialog.
-- **Nucleotide records only.** A protein accession (`NP_000508`, `AAA12345`)
-  is refused before anything is sent, and so is anything that does not look
-  like an accession, so a typo costs no request.
+- **Proteins** (`NP_000509`, `XP_…`, `WP_…`, or a GenBank protein id such
+  as `AAA12345`) come from NCBI's protein database as GenPept and open as
+  [protein documents](16-proteins.md), their tab listed in **Recent files**
+  as from `NP_000509.gp`. Nucleotide and protein accessions can be mixed in
+  one list: PlasmidPop then sends two requests, one to each database, and
+  opens the nucleotide records first. If one of the two fails, the records
+  the other brought still open, and the status bar says which accessions
+  did not and why.
+- Anything that does not look like an accession is refused before anything
+  is sent, so a typo costs no request.
 - **Records up to 10 Mb.** A longer one — a bacterial chromosome's
   scaffold, a whole contig set — is turned away as soon as its first line
   arrives, since PlasmidPop is not a genome browser.
 - NCBI takes three requests a second from any one address without an API
-  key. PlasmidPop sends all the accessions typed in one request and tries
+  key. PlasmidPop sends all the accessions typed in one request (two when
+  they mix nucleotide and protein, spaced apart) and tries
   once more after two seconds if NCBI is busy; if it still is, the dialog
   says so. It needs a connection: offline, it says that instead.
 

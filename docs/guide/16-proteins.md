@@ -14,6 +14,10 @@ DNA.
 - **A GenPept file** (`.gp`, `.gpff`): an NCBI protein record, GenBank's
   format with `aa` in the LOCUS line. Its header, references and features
   are read as a GenBank file's are, with feature positions in residues.
+- **File ▸ Open from NCBI…** with a protein accession (`NP_000509`,
+  `AAA12345`): the GenPept record is fetched and opens as if you had
+  downloaded it (see
+  [Opening a record from NCBI](02-files.md#opening-a-record-from-ncbi)).
 - **Translate ▸ Open as protein**, from a CDS feature or a frame of a DNA
   document (see below).
 - **New**, and choose **Protein**, to type or paste one.

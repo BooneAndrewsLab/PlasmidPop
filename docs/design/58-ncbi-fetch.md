@@ -56,11 +56,9 @@ sent until Open.
   number is refused as not an accession: they are retired, and a bare
   number would be ambiguous between the two databases. A pasted NCBI address
   counts as its last path segment.
-- **Protein accessions are refused with a reason** (`NP_`, `XP_`, `WP_`,
-  `YP_`, `AP_`, and INSDC 3+5 / 3+7): efetch would serve GenPept with CORS
-  just the same, but a protein document is being built on another branch,
-  and wiring it here before it lands would mean guessing its interface. It
-  is one `db=protein&rettype=gp` away once it does (follow-up).
+- **Protein accessions** (`NP_`, `XP_`, `WP_`, `YP_`, `AP_`, and INSDC
+  3+5 / 3+7) were refused at first, since protein documents were still
+  being built; they open since #92 (below).
 - **Several accessions, one request**: separated by spaces, commas or
   semicolons, up to 20, as one comma-joined `id=`. Each record opens in a
   tab of its own, the last in front. Which ones NCBI left out is worked out
@@ -86,6 +84,46 @@ sent until Open.
   name on its LOCUS line (`L09137` is `SYNPUC19CV`), exactly as opening the
   downloaded file would, rather than being renamed to the accession: the
   record stays what NCBI wrote.
+
+## Protein accessions (#92)
+
+Added 2026-09-25, once protein documents (item 57) were in. A protein
+accession goes to `db=protein&rettype=gp&retmode=text` and the GenPept that
+comes back goes through the same `parseGenBank`, which reads `aa` on the
+LOCUS line as a protein; the file name is `<accession>.gp`. Checked with curl
+the same day: the protein database answers exactly as nuccore does — `200`
+with `access-control-allow-origin: *` for a record, `400` with the URL-encoded
+`CEFetchPApplication` body for a well-formed id it lacks (`XP_000001`), the
+spaced-out `Error: F a i l e d  t o  u n d e r s t a n d` with `200` for a
+nucleotide accession asked of it, and only the found records for a list.
+(`NP_999999` is a real rat protein, so it will not do as a missing one in
+tests.) Tried in the dev server against NCBI: `NP_000509 L09137 XP_000001`
+opened pUC19 and HBB (147 aa, protein) and named `XP_000001` as missing;
+`AB999999 XP_000001` kept the dialog open saying neither kind was found.
+
+- **A mixed list is two requests**, one per database, since efetch takes one
+  `db`. They go one after the other through the same `send`, so the 400 ms
+  gap and the retry after a failure or a `429` apply to each; nucleotide
+  first, then protein, and the tabs open in that order (the typed order
+  across the two kinds is not kept — not worth a merge for a rare list). The
+  20-accession cap is on the whole list.
+- **Reconciliation per database**: each answer's `ACCESSION`/`VERSION` lines
+  are matched against what was asked of that database, and a database that
+  answered "none of these" (`not-found`) counts all its accessions as
+  missing. One warning names them by kind: _NCBI has no nucleotide record
+  AB999999 and no protein record XP_000001._
+- **One request failing does not lose the other's records.** If the other
+  kind came back, its records open and the failed accessions are named with
+  the reason (`NP_000509 not opened: Could not reach NCBI…`); each failure is
+  counted as `open-ncbi-failed` by its kind. Only when nothing came back is
+  it an error in the dialog: both not found gives the combined message,
+  otherwise the failure that is not "not found". A cancel during either
+  request opens nothing.
+- **Size**: the LOCUS check reads `aa` as well as `bp`, and a protein past
+  the limit is refused in residues. Progress counts bytes across both
+  requests.
+- **What is sent** is unchanged: the accessions, `db`, `rettype`, `retmode`
+  and `tool=PlasmidPop`, now to one database or both.
 
 ## What is sent, and what is not
 
@@ -124,7 +162,5 @@ straight to the network, and offline it fails as `offline` above.
 
 ## Follow-ups
 
-- Protein accessions through `db=protein&rettype=gp`, once protein
-  documents (GenPept) exist.
 - Perhaps name the tab by the accession when the LOCUS name is an opaque
   one (`SYNPUC19CV`), if users find it confusing.

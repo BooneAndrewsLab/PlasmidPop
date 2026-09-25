@@ -129,7 +129,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <Item onClick={run(onOpenFile)}>Open file…</Item>
           <Item
-            title="Fetch GenBank records by accession number. Only the accessions are sent, to NCBI."
+            title="Fetch GenBank or GenPept records by accession number. Only the accessions are sent, to NCBI."
             onClick={run(() => {
               editorStore.requestNcbi();
             })}

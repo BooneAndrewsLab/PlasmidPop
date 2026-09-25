@@ -205,7 +205,7 @@ export function Toolbar({ doc }: Props) {
             <button
               type="button"
               className="button"
-              title="Fetch GenBank records by accession number. Only the accessions are sent, to NCBI."
+              title="Fetch GenBank or GenPept records by accession number. Only the accessions are sent, to NCBI."
               onClick={() => {
                 editorStore.requestNcbi();
               }}

@@ -24,7 +24,8 @@ Any of these gets you a sequence on screen:
   type straight away. `Enter` takes "Untitled" and the topology you chose
   last; `Escape` opens nothing.
 - **From NCBI…** in the toolbar (or **File ▸ Open from NCBI…**) fetches a
-  GenBank record by its accession number, such as `L09137`; see
+  GenBank record by its accession number, such as `L09137`, or a protein's
+  GenPept record, such as `NP_000509`; see
   [Opening a record from NCBI](02-files.md#opening-a-record-from-ncbi).
 - **Open example** loads pBR322 (4,361 bp, circular) to look around.
 
