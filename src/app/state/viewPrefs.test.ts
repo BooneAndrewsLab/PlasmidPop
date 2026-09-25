@@ -42,7 +42,9 @@ function reset(): void {
   editorStore.setView(DEFAULTS.view);
   editorStore.setShowComplement(DEFAULTS.showComplement);
   editorStore.setShowTranslations(DEFAULTS.showTranslations);
-  editorStore.setShowCutSites(DEFAULTS.showCutSites);
+  editorStore.setPhoneLayout(false);
+  editorStore.setShowCutSites(DEFAULTS.showCutSites, 'desktop');
+  editorStore.setShowCutSites(false, 'phone');
   editorStore.setSeqFontSize(DEFAULTS.seqFontSize);
   editorStore.setSeqBasesPerRow(DEFAULTS.seqBasesPerRow);
   editorStore.setNumberComplement(DEFAULTS.numberComplement);
@@ -81,6 +83,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: true,
       showCutSites: false,
+      phoneShowCutSites: true,
       seqFontSize: 16,
       seqBasesPerRow: 60,
       numberComplement: true,
@@ -152,6 +155,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       showCutSites: false,
+      phoneShowCutSites: true,
       seqFontSize: 11,
       seqBasesPerRow: 90,
       numberComplement: true,
@@ -187,6 +191,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       showCutSites: false,
+      phoneShowCutSites: true,
       seqFontSize: 11,
       seqBasesPerRow: 90,
       numberComplement: true,
@@ -453,6 +458,56 @@ describe('view preferences', () => {
       // One not reopened yet keeps its pane for when it is.
       expect(loadViewPrefs().phonePanes).toEqual({ 'stored-1': 'sequence', 'stored-2': 'details' });
       stop();
+    });
+  });
+
+  describe('cut sites on a phone (#43)', () => {
+    afterEach(() => {
+      editorStore.setPhoneLayout(false);
+    });
+
+    it('hides them on a phone by default, leaving the desktop preference alone', () => {
+      expect(editorStore.getState().showCutSites).toBe(true);
+      editorStore.setPhoneLayout(true);
+      expect(editorStore.getState().showCutSites).toBe(false);
+      // The link in the Enzymes tab shows them on the phone only.
+      editorStore.setShowCutSites(true);
+      expect(editorStore.getState().showCutSites).toBe(true);
+      editorStore.setPhoneLayout(false);
+      editorStore.setShowCutSites(false);
+      editorStore.setPhoneLayout(true);
+      expect(editorStore.getState().showCutSites).toBe(true);
+      editorStore.setPhoneLayout(false);
+      expect(editorStore.getState().showCutSites).toBe(false);
+    });
+
+    it('remembers each layout under its own name', () => {
+      const stop = startViewPrefs();
+      editorStore.setPhoneLayout(true);
+      editorStore.setShowCutSites(true);
+      expect(loadViewPrefs()).toMatchObject({ showCutSites: true, phoneShowCutSites: true });
+      editorStore.setPhoneLayout(false);
+      editorStore.setShowCutSites(false);
+      expect(loadViewPrefs()).toMatchObject({ showCutSites: false, phoneShowCutSites: true });
+      stop();
+      // Put back by name, whichever layout is on screen when they load.
+      editorStore.setShowCutSites(true, 'desktop');
+      editorStore.setShowCutSites(false, 'phone');
+      editorStore.setPhoneLayout(true);
+      startViewPrefs()();
+      expect(editorStore.getState()).toMatchObject({
+        desktopShowCutSites: false,
+        phoneShowCutSites: true,
+        showCutSites: true,
+      });
+    });
+
+    it('does not carry a desktop choice made before there was a phone setting to the phone', () => {
+      // An entry from before 1.6 has the desktop's alone: the phone keeps its default.
+      localStorage.setItem(KEY, JSON.stringify({ showCutSites: true }));
+      startViewPrefs()();
+      editorStore.setPhoneLayout(true);
+      expect(editorStore.getState().showCutSites).toBe(false);
     });
   });
 });

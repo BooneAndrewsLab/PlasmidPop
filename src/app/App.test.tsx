@@ -1509,4 +1509,28 @@ describe('App on a phone', () => {
     expect(screen.getByRole('img', { name: /^Map of/ })).toBeInTheDocument();
     expect(screen.getByText(/bp selected/)).toBeInTheDocument();
   });
+
+  it('hides cut sites until they are shown on the phone, leaving the desktop alone (#43)', () => {
+    act(() => {
+      editorStore.setShowCutSites(true, 'desktop');
+      editorStore.setShowCutSites(false, 'phone');
+    });
+    const view = render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /open pBR322/i }));
+    expect(editorStore.getState().showCutSites).toBe(false);
+    fireEvent.click(screen.getByRole('tab', { name: 'Details' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show cut sites' }));
+    expect(editorStore.getState()).toMatchObject({
+      showCutSites: true,
+      phoneShowCutSites: true,
+      desktopShowCutSites: true,
+    });
+    view.unmount();
+    // Off the phone layout, the desktop's own preference is the one drawn.
+    expect(editorStore.getState().phoneLayout).toBe(false);
+    act(() => {
+      editorStore.setShowCutSites(false, 'phone');
+    });
+  });
 });

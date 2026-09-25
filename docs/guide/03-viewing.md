@@ -79,6 +79,11 @@ message arrived.
   lift, a **Copy** button over the selection copies its bases, ready to paste
   into a message or another app. A quick drag is still a scroll and a quick
   tap still a tap. A tablet does the same.
+- **Cut sites are hidden** on a phone to begin with, so the map and the bases
+  show the features and a tap lands on what you meant. To see them, open
+  **Details ▸ Enzymes** and tap **Show cut sites**; the phone remembers that.
+  The choice is the phone's own: the **Cut sites** toggle on a wider window
+  keeps whatever it was set to there.
 - Each tab remembers its pane: switch to another document and back, or
   reload the page, and it is on the pane you left it on. A document you open
   — a file, or a link someone sent — starts on the **Map**.

@@ -420,8 +420,22 @@ export interface SharedState {
    * in the SVG exports without touching `shownEnzymes`, so a carefully chosen
    * set survives decluttering the map; the Cloning digest and the Enzymes
    * tab's fragment list keep following the ticks.
+   *
+   * Two preferences, one per layout (#43): the phone reader has its own,
+   * off by default, and the desktop's is left as it was chosen. Which one
+   * applies is `phoneLayout`; `EditorState.showCutSites` is that one.
    */
-  readonly showCutSites: boolean;
+  readonly desktopShowCutSites: boolean;
+  /**
+   * The phone reader's. Off by default: on a 390 px ring the site labels
+   * crowd the few feature names that fit, and a finger landing on the map
+   * or the bases meets a site as often as what it was after. Not for the
+   * label layout's sake — sites rank below features there and cost them
+   * nothing (item 15, measured) — but for what a small screen shows first.
+   */
+  readonly phoneShowCutSites: boolean;
+  /** Whether the app is laid out as the phone reader (`PHONE_QUERY`); set by `App`. */
+  readonly phoneLayout: boolean;
   /**
    * How often an enzyme may cut to be listed in the Enzymes tab, and whose
    * catalogue it must be in. Both describe what the user is looking for
@@ -697,6 +711,11 @@ export interface ShareNoticeInfo {
 }
 
 export interface EditorState extends SharedState, ActiveDocumentFields {
+  /**
+   * Whether the views draw cut sites: the phone's preference or the
+   * desktop's, whichever layout is on screen.
+   */
+  readonly showCutSites: boolean;
   /** What is in front; the document fields are empty unless it is a document. */
   readonly front: FrontTab;
   /** What the panels are pointing at in the document in front, for the views to draw. */
@@ -724,7 +743,9 @@ const SHARED_INITIAL: SharedState = {
   editsBaseline: 'opened',
   view: 'both',
   sidebarOpen: true,
-  showCutSites: true,
+  desktopShowCutSites: true,
+  phoneShowCutSites: false,
+  phoneLayout: false,
   enzymeCutFilter: 'any',
   enzymeSupplier: '',
   enzymeSort: 'name',
@@ -837,6 +858,7 @@ function compose(
   return {
     ...shared,
     ...(active ?? NO_DOCUMENT),
+    showCutSites: shared.phoneLayout ? shared.phoneShowCutSites : shared.desktopShowCutSites,
     front: active !== null ? 'document' : bench ? 'bench' : 'files',
     // A preview belongs to the tab it was computed for; behind another one
     // it is simply not there, and it comes back on the way back.
@@ -1671,8 +1693,25 @@ export class EditorStore {
     if (open !== this.state.sidebarOpen) this.setShared({ sidebarOpen: open });
   }
 
-  setShowCutSites(show: boolean): void {
-    if (show !== this.state.showCutSites) this.setShared({ showCutSites: show });
+  /**
+   * Shows or hides cut sites for the layout on screen, or for the one named:
+   * the toolbar toggle and the Enzymes tab's link change the one in use, and
+   * the stored preferences are put back into each by name.
+   */
+  setShowCutSites(show: boolean, layout: 'desktop' | 'phone' = this.layoutName()): void {
+    if (layout === 'phone') {
+      if (show !== this.shared.phoneShowCutSites) this.setShared({ phoneShowCutSites: show });
+    } else if (show !== this.shared.desktopShowCutSites) {
+      this.setShared({ desktopShowCutSites: show });
+    }
+  }
+
+  setPhoneLayout(phone: boolean): void {
+    if (phone !== this.shared.phoneLayout) this.setShared({ phoneLayout: phone });
+  }
+
+  private layoutName(): 'desktop' | 'phone' {
+    return this.shared.phoneLayout ? 'phone' : 'desktop';
   }
 
   /**

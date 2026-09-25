@@ -1,4 +1,4 @@
-import { type DragEvent, useState } from 'react';
+import { type DragEvent, useLayoutEffect, useState } from 'react';
 
 import { Bench } from './components/Bench';
 import { CircularMapView } from './components/CircularMapView';
@@ -69,6 +69,14 @@ export function App() {
   // On a phone the panes give way to one at a time (`PhoneShell`); the
   // toolbar and the document tabs above it cut themselves down on their own.
   const phone = useMediaQuery(PHONE_QUERY);
+  // The store picks the phone's cut-site preference while this is on (#43).
+  // Before paint, so the first frame on a phone is drawn without them.
+  useLayoutEffect(() => {
+    editorStore.setPhoneLayout(phone);
+    return () => {
+      editorStore.setPhoneLayout(false);
+    };
+  }, [phone]);
   const split = stackedViews ? layout.viewsSplitStacked : layout.viewsSplit;
   const percent = Math.round(split * 100);
   const tracks = `${split}fr ${SPLITTER_SIZE}px ${1 - split}fr`;

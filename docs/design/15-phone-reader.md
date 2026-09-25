@@ -46,7 +46,8 @@ centre of gravity moved from the map to the list.
 - **The reader shows the bases alone**: `LinearSequenceView`'s `reader`
   prop applies neither the Complement nor the Translations toggle, since
   each adds a line to every row and a phone has the height for neither.
-  The stored preferences are untouched. Cut sites are left to the toggle:
+  The stored preferences are untouched. Cut sites were left to the toggle
+  (until #43, below):
   they rank below features in the label layout, so they cost the features
   nothing (measured: pBR322 at 390×600 draws 24 feature labels with no cut
   sites and 24 with 35), and the Enzymes tab's own "Show cut sites" link
@@ -79,15 +80,13 @@ centre of gravity moved from the map to the list.
   "pBR322" stays at 15 px, "pLenti-CMV-EGFP1" steps down whole, "SYNPBR322
   copy" at a phone's size draws nothing, and no `textLength` is written.
 - **Not done from here: tested on a real device**, which the item asked
-  for and which a jsdom test cannot stand in for. Also not yet: long-press
-  to select a stretch of sequence for copying (the one editor-ish thing a
-  reader might want, and it fights the browser for the gesture); whether the messaging
-  apps people actually use pass a 10 k-character URL fragment intact
-  (Slack and email do; some SMS apps rewrite long links), which decides
-  whether the link case is real; a Web Share Target so a GenBank
-  attachment can be opened from a phone's mail app; hiding cut sites by
-  default on a phone; and the phone pane is not remembered across a tab
-  switch or a reload.
+  for and which a jsdom test cannot stand in for. Also not yet: whether the
+  messaging apps people actually use pass a 10 k-character URL fragment
+  intact (Slack and email do; some SMS apps rewrite long links), which
+  decides whether the link case is real. The rest of this list — long-press
+  selection, a Web Share Target, hiding cut sites by default and
+  remembering the pane — was built for #43, below; none of it has been on a
+  real phone yet either.
 
 ## Follow-ups (#43, 2026-09-25)
 
@@ -172,3 +171,22 @@ share-target-open`, once per share; each file's `file / open` gives its
   document, not part of it, and would have made a pane change an autosave.
   The shell's "last view" for a reveal from Details starts from the stored
   pane, so a tab brought back on Details answers a reveal with the map.
+- **Cut sites hidden by default on a phone.** A preference of the phone's
+  own rather than a different default for the one there was: the store
+  keeps `desktopShowCutSites` (stored as `showCutSites`, as before) and
+  `phoneShowCutSites` (off until chosen), `App` tells it which layout is on
+  screen (`setPhoneLayout`, in a layout effect so the first phone frame is
+  drawn without sites), and `EditorState.showCutSites` — what every view,
+  export and panel already reads — is the one in effect. `setShowCutSites`
+  changes the one on screen, so the Enzymes tab's **Show cut sites** link
+  on a phone shows them there and is remembered there, and the desktop's
+  toggle never finds its choice changed by a phone, nor the other way; the
+  stored values are put back by name. The alternative, applying "off" in
+  the shell until the user chose on the phone, needed the same "chosen on
+  the phone" bit and a second place deciding what is drawn. The reason is
+  not the label layout: as measured above, sites rank below features and
+  cost them nothing. It is what a small screen shows first — on a 390 px
+  ring the site names crowd the dozen feature names that fit, and on the
+  map and in the sequence a finger lands on a site as often as on the
+  feature it was after. A 1.5 entry, which has only the desktop's value,
+  leaves the phone on its default.

@@ -43,7 +43,10 @@ export interface ViewPrefs {
   readonly view: ViewMode;
   readonly showComplement: boolean;
   readonly showTranslations: boolean;
+  /** The desktop's; see `SharedState.desktopShowCutSites`. */
   readonly showCutSites: boolean;
+  /** The phone reader's, off until chosen there; see `SharedState.phoneShowCutSites`. */
+  readonly phoneShowCutSites: boolean;
   readonly seqFontSize: FontSize;
   /** Null means "fit the window", as in the store. */
   readonly seqBasesPerRow: number | null;
@@ -226,6 +229,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     'showComplement',
     'showTranslations',
     'showCutSites',
+    'phoneShowCutSites',
     'numberComplement',
     'colorBases',
     'sidebarOpen',
@@ -250,7 +254,8 @@ function snapshot(): ViewPrefs {
     view,
     showComplement,
     showTranslations,
-    showCutSites,
+    desktopShowCutSites,
+    phoneShowCutSites,
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
@@ -278,7 +283,8 @@ function snapshot(): ViewPrefs {
     view,
     showComplement,
     showTranslations,
-    showCutSites,
+    showCutSites: desktopShowCutSites,
+    phoneShowCutSites,
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
@@ -312,6 +318,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.showComplement === b.showComplement &&
     a.showTranslations === b.showTranslations &&
     a.showCutSites === b.showCutSites &&
+    a.phoneShowCutSites === b.phoneShowCutSites &&
     a.seqFontSize === b.seqFontSize &&
     a.seqBasesPerRow === b.seqBasesPerRow &&
     a.numberComplement === b.numberComplement &&
@@ -349,7 +356,12 @@ export function startViewPrefs(): () => void {
   if (stored.showTranslations !== undefined) {
     editorStore.setShowTranslations(stored.showTranslations);
   }
-  if (stored.showCutSites !== undefined) editorStore.setShowCutSites(stored.showCutSites);
+  if (stored.showCutSites !== undefined) {
+    editorStore.setShowCutSites(stored.showCutSites, 'desktop');
+  }
+  if (stored.phoneShowCutSites !== undefined) {
+    editorStore.setShowCutSites(stored.phoneShowCutSites, 'phone');
+  }
   if (stored.seqFontSize !== undefined) editorStore.setSeqFontSize(stored.seqFontSize);
   if (stored.seqBasesPerRow !== undefined) editorStore.setSeqBasesPerRow(stored.seqBasesPerRow);
   if (stored.numberComplement !== undefined) {
