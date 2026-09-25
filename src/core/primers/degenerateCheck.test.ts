@@ -56,7 +56,9 @@ describe('analyzePrimer on a degenerate primer', () => {
       }),
       { numRuns: 200 },
     );
-  });
+    // Up to 4,096 molecules a primer, a Tm each: under a second here, past
+    // Vitest's five seconds on a CI runner sharing its cores (2026-09-25).
+  }, 30_000);
 
   it('keeps the codes in place rather than joining their neighbours', () => {
     const report = analyzePrimer('acgtNNKgatcgatcgatc');

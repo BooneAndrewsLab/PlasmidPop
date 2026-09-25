@@ -133,7 +133,16 @@ function fromBase64Url(text: string): Uint8Array<ArrayBuffer> {
  * `ShareTooLargeError` when the result is longer than a link can carry.
  */
 export async function encodeSharePayload(text: string): Promise<string> {
-  const payload = PREFIX + toBase64Url(await deflate(text));
+  return checkSharePayload(PREFIX + toBase64Url(await deflate(text)));
+}
+
+/**
+ * The payload, if a link can carry it; else `ShareTooLargeError`. Apart from
+ * the encoding so the limit can be tested at its exact edge: what length a
+ * text deflates to depends on the zlib build, so no text can be relied on
+ * to land exactly on it.
+ */
+export function checkSharePayload(payload: string): string {
   if (payload.length > MAX_SHARE_PAYLOAD) throw new ShareTooLargeError(payload.length);
   return payload;
 }

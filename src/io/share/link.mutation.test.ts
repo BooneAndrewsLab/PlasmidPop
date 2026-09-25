@@ -1,9 +1,10 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   MAX_SHARE_PAYLOAD,
   ShareLinkError,
   ShareTooLargeError,
+  checkSharePayload,
   decodeSharePayload,
   encodeSharePayload,
 } from './link';
@@ -22,14 +23,6 @@ function bases(length: number): string {
 }
 
 /** The length of the payload `text` makes, whether or not a link may carry it. */
-async function payloadLength(text: string): Promise<number> {
-  try {
-    return (await encodeSharePayload(text)).length;
-  } catch (error) {
-    if (error instanceof ShareTooLargeError) return error.chars;
-    throw error;
-  }
-}
 
 describe('share link errors', () => {
   it('say what they are', () => {
@@ -55,41 +48,30 @@ describe('share link errors', () => {
 });
 
 describe('the payload limit', () => {
-  // Texts whose payloads are exactly at the limit and one past it, found by
-  // growing random bases a base at a time: deflate makes that exact
-  // arithmetic impossible to do ahead.
-  let atLimit = '';
-  let pastLimit = '';
-
-  beforeAll(async () => {
-    const all = bases(200_000);
-    let lo = 0;
-    let hi = all.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if ((await payloadLength(all.slice(0, mid))) < MAX_SHARE_PAYLOAD) lo = mid + 1;
-      else hi = mid;
-    }
-    for (let n = lo - 20; n < lo + 40 && (atLimit === '' || pastLimit === ''); n++) {
-      const length = await payloadLength(all.slice(0, n));
-      if (length === MAX_SHARE_PAYLOAD) atLimit = all.slice(0, n);
-      if (length === MAX_SHARE_PAYLOAD + 1 && pastLimit === '') pastLimit = all.slice(0, n);
-    }
-  }, 30_000);
-
-  it('allows a payload of exactly the limit', async () => {
-    expect(atLimit).not.toBe('');
-    const payload = await encodeSharePayload(atLimit);
-    expect(payload.length).toBe(MAX_SHARE_PAYLOAD);
-    expect(await decodeSharePayload(payload)).toBe(atLimit);
+  // Tested where it is decided. What length a text deflates to depends on the
+  // zlib build (CI's and a laptop's differ), so a text found to land exactly
+  // on the limit on one machine misses it on another.
+  it('allows a payload of exactly the limit', () => {
+    const payload = '1' + 'A'.repeat(MAX_SHARE_PAYLOAD - 1);
+    expect(checkSharePayload(payload)).toBe(payload);
   });
 
-  it('refuses a payload one character past it, saying how long it is', async () => {
-    expect(pastLimit).not.toBe('');
-    await expect(encodeSharePayload(pastLimit)).rejects.toMatchObject({
-      name: 'ShareTooLargeError',
-      chars: MAX_SHARE_PAYLOAD + 1,
-    });
+  it('refuses a payload one character past it, saying how long it is', () => {
+    const payload = '1' + 'A'.repeat(MAX_SHARE_PAYLOAD);
+    expect(() => checkSharePayload(payload)).toThrow(
+      expect.objectContaining({ name: 'ShareTooLargeError', chars: MAX_SHARE_PAYLOAD + 1 }),
+    );
+  });
+
+  it('applies it to what a text encodes to, either side of it', async () => {
+    // Random bases deflate to about two bits each: 200,000 of them encode to
+    // about twice the limit, 3,000 to a tenth of it, whatever the zlib build.
+    const big = bases(200_000);
+    await expect(encodeSharePayload(big)).rejects.toMatchObject({ name: 'ShareTooLargeError' });
+    const small = bases(3_000);
+    const payload = await encodeSharePayload(small);
+    expect(payload.length).toBeLessThan(MAX_SHARE_PAYLOAD);
+    expect(await decodeSharePayload(payload)).toBe(small);
   });
 });
 

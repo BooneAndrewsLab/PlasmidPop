@@ -234,6 +234,17 @@ interface Expected {
 }
 
 /**
+ * The lowest-penalty pairs under one key. Two pairs can tie exactly: in a run
+ * of A's a longer, warmer primer and a shorter one come out at the same
+ * penalty with different Tm differences, and either is the designer's right
+ * answer for that key.
+ */
+interface Tied {
+  readonly penalty: number;
+  readonly pairs: readonly Expected[];
+}
+
+/**
  * Every pair the designer's rules allow, listed the slow way: each site of
  * each allowed length in each region, kept if it meets the criteria, paired
  * with every other. Keyed as the designer dedupes, by forward start and
@@ -245,7 +256,7 @@ function allPairs(
   topology: Topology,
   target: Range,
   c: PrimerCriteria,
-): Map<string, Expected> {
+): Map<string, Tied> {
   const L = seq.length;
   const circular = topology === 'circular';
   const text = seq.toUpperCase();
@@ -275,7 +286,7 @@ function allPairs(
   const reverses = sites(rLo, rLo + width(c.reverseRegion), true);
   expect(forwards.length).toBeLessThan(40);
   expect(reverses.length).toBeLessThan(40);
-  const out = new Map<string, Expected>();
+  const out = new Map<string, Tied>();
   for (const f of forwards) {
     for (const r of reverses) {
       const tmDifference = Math.abs(f.report.tm - r.report.tm);
@@ -292,9 +303,12 @@ function allPairs(
       if (crossDimer > c.maxThreePrime) continue;
       const penalty = f.penalty + r.penalty + tmDifference + crossDimer * 0.3;
       const key = `${f.site.start}-${r.site.end}`;
+      const pair = { penalty, productLength, tmDifference, crossDimer };
       const kept = out.get(key);
       if (kept === undefined || penalty < kept.penalty) {
-        out.set(key, { penalty, productLength, tmDifference, crossDimer });
+        out.set(key, { penalty, pairs: [pair] });
+      } else if (penalty === kept.penalty) {
+        out.set(key, { penalty, pairs: [...kept.pairs, pair] });
       }
     }
   }
@@ -313,11 +327,14 @@ function expectAllPairs(
   expect(new Set(keys).size).toBe(keys.length);
   expect([...keys].sort()).toEqual([...expected.keys()].sort());
   for (const [i, p] of pairs.entries()) {
-    const e = expected.get(keys[i] ?? '');
+    const tied = expected.get(keys[i] ?? '');
+    expect(p.penalty).toBeCloseTo(tied?.penalty ?? NaN, 9);
+    // Where pairs tie on penalty under this key, the designer's is one of them.
+    const e =
+      tied?.pairs.find((t) => Math.abs(t.tmDifference - p.tmDifference) < 1e-9) ?? tied?.pairs[0];
     expect(p.productLength).toBe(e?.productLength);
     expect(p.crossDimer).toBe(e?.crossDimer);
     expect(p.tmDifference).toBeCloseTo(e?.tmDifference ?? NaN, 9);
-    expect(p.penalty).toBeCloseTo(e?.penalty ?? NaN, 9);
     expect(p.tmDifference).toBeCloseTo(Math.abs(p.forward.tm - p.reverse.tm), 9);
     if (i > 0) expect(p.penalty).toBeGreaterThanOrEqual(pairs[i - 1]?.penalty ?? Infinity);
   }
