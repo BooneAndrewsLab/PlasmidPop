@@ -358,6 +358,47 @@ describe('six-frame translation', () => {
     expect(sixFrameFileName(doc, { start: 0, end: 9 })).toBe('SYNPBR322_1-9_6frames.fasta');
   });
 
+  it('numbers each frame in blocks of ten from where it starts, unless numbers are off (#97)', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Translate' }));
+    act(() => {
+      editorStore.setSelection({ start: 0, end: 75 });
+    });
+    const frames = translateSixFrames(
+      editorStore.document?.subsequence({ start: 0, end: 75 }) ?? '',
+    );
+    for (const [label, frame] of [
+      ['+1', frames[0]],
+      ['−3', frames[5]],
+    ] as const) {
+      const shown = screen.getByRole('region', { name: `Frame ${label}` });
+      const blocks = [...shown.querySelectorAll('.frame__block')];
+      // 25 residues in +1, 24 in −3: blocks of 10, 10 and the rest.
+      expect(blocks.map((b) => b.textContent)).toEqual([
+        frame?.protein.slice(0, 10),
+        frame?.protein.slice(10, 20),
+        frame?.protein.slice(20),
+      ]);
+      expect(
+        blocks.map((b) => [b.getAttribute('data-first'), b.getAttribute('data-last')]),
+      ).toEqual([
+        ['1', '10'],
+        [null, '20'],
+        [null, null],
+      ]);
+      // The numbers are not text: the protein reads, and copies, as residues alone.
+      expect(shown.querySelector('.frame__protein')?.textContent).toBe(frame?.protein);
+    }
+    act(() => {
+      editorStore.setResidueNumbering('off');
+    });
+    expect(document.querySelectorAll('.frame__block')).toHaveLength(0);
+    act(() => {
+      editorStore.setResidueNumbering('tens');
+    });
+  });
+
   it('reads the frames with the chosen genetic code, and names it in the export', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));

@@ -14,6 +14,7 @@ import {
   proteinFromCds,
   proteinFromTranslation,
   rangesOverlap,
+  residueBlocks,
   translateSixFrames,
 } from '@/core';
 
@@ -50,13 +51,41 @@ function highlightStops(protein: string): ReactNode[] {
   return out;
 }
 
+/**
+ * Past this many residues a frame is shown as plain text: a span per ten
+ * residues is cheap for a plasmid and a burden for a genome.
+ */
+export const MAX_NUMBERED_RESIDUES = 20_000;
+
+/**
+ * The protein in blocks of ten, numbered as a sequence is printed (#97): each
+ * block by its last residue, the first by 1 too. The numbers are drawn by the
+ * stylesheet from the blocks' data attributes, so they are not text: copying
+ * the protein copies residues only.
+ */
+function numberedProtein(protein: string): ReactNode[] {
+  return residueBlocks(protein).map((block) => (
+    <span
+      key={block.start}
+      className="frame__block"
+      data-first={block.first ?? undefined}
+      data-last={block.last ?? undefined}
+    >
+      {highlightStops(block.residues)}
+    </span>
+  ));
+}
+
 interface FrameRowProps {
   readonly frame: FrameTranslation;
+  /** Residues numbered in blocks of ten; plain text when false or too long. */
+  readonly numbered: boolean;
   /** Opens the frame's protein in a tab of its own (#66). */
   readonly onOpen: () => void;
 }
 
-function FrameRow({ frame, onOpen }: FrameRowProps) {
+function FrameRow({ frame, numbered, onOpen }: FrameRowProps) {
+  const blocks = numbered && frame.protein.length <= MAX_NUMBERED_RESIDUES;
   const label = frameLabel(frame.frame);
   const stops = frame.stops === 1 ? '1 stop' : `${frame.stops.toLocaleString()} stops`;
   return (
@@ -95,7 +124,9 @@ function FrameRow({ frame, onOpen }: FrameRowProps) {
       {frame.protein === '' ? (
         <p className="panel__note">Fewer than three bases in this frame.</p>
       ) : (
-        <p className="panel__protein frame__protein">{highlightStops(frame.protein)}</p>
+        <p className={`panel__protein frame__protein${blocks ? ' frame__protein--numbered' : ''}`}>
+          {blocks ? numberedProtein(frame.protein) : highlightStops(frame.protein)}
+        </p>
       )}
     </section>
   );
@@ -107,7 +138,7 @@ function FrameRow({ frame, onOpen }: FrameRowProps) {
  * reverse complement starting from the 3′ end of the selection.
  */
 export function TranslatePanel({ doc }: Props) {
-  const { selection, geneticCode: table } = useEditorState();
+  const { selection, geneticCode: table, residueNumbering } = useEditorState();
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const start = hasSelection ? selection.start : 0;
   const end = hasSelection ? selection.end : doc.length;
@@ -225,6 +256,8 @@ export function TranslatePanel({ doc }: Props) {
         <FrameRow
           key={f.frame}
           frame={f}
+          // Numbered from where each frame's reading starts, in its own direction.
+          numbered={residueNumbering !== 'off'}
           onOpen={() => {
             openFrame(f);
           }}

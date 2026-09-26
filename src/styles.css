@@ -1249,6 +1249,43 @@ button {
   font-weight: 700;
 }
 
+/*
+ * Residue numbers over blocks of ten (#97): drawn from data attributes, so
+ * they are not in the text and copying the protein copies residues only.
+ */
+.frame__protein--numbered {
+  word-break: normal;
+  line-height: 1.4;
+  padding-top: 4px;
+}
+
+.frame__block {
+  position: relative;
+  display: inline-block;
+  margin: 10px 0.6ch 0 0;
+}
+
+.frame__block::before,
+.frame__block::after {
+  position: absolute;
+  top: -10px;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  line-height: 1;
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
+.frame__block::before {
+  left: 0;
+  content: attr(data-first);
+}
+
+.frame__block::after {
+  right: 0;
+  content: attr(data-last);
+}
+
 .frame__range {
   font-size: 13px;
   font-weight: 600;
