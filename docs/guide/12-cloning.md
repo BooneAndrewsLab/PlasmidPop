@@ -413,6 +413,30 @@ join the wrong ends:
 These are warnings: the product shown is the one the design intends, and
 **Assemble** still works, but the tube may give other products as well.
 
+### Measured fidelity
+
+The warnings above are design rules, and a rule cannot say how _much_ of the
+reaction goes wrong. A ligase end-joining table can: it counts how often
+every pair of overhangs was actually joined, so a set of junctions can be
+scored before the oligos are ordered.
+
+PlasmidPop does not ship one — the published tables are not ours to pass on
+— so bring your own, as you do for [REBASE enzymes](07-enzymes.md#importing-the-full-rebase-table):
+**Import a ligase fidelity table** under the assembly, then choose the file.
+It should be a square matrix — a first row of overhangs, then a row per
+overhang, each cell a count — which is the shape ligase-fidelity tables are
+published in. It is read in your browser, never uploaded, and kept for the
+next visit until you forget it again.
+
+With a table loaded the panel shows **Fidelity**, the share of assemblies
+expected to come out right, and names the pairs that cost the most — a
+mis-join, or an overhang that joins a copy of itself. It is measured
+end-joining for that table's ligase, temperature and time, not a prediction
+of your reaction, and it does not replace the warnings above: a palindromic
+overhang joins a copy of itself as readily as its partner, which no
+end-joining table can see, because to the experiment the two are the same
+pairing.
+
 **_N_ pieces left out** expands to say what was discarded and why. In a
 well-designed set that is the vector's stuffer and each part's two flanks.
 
@@ -599,8 +623,8 @@ How much more readily a short product amplifies than a long one is not
 modelled beyond the order the products are listed in, and a mismatched
 primer's first-cycle temperature leaves out what the mismatched stretch
 still contributes. Gibson does not model the chew-back itself, only the
-length rules above, and Golden Gate's overhang warnings follow design rules
-rather than measured ligation fidelity. In-Fusion and NEBuilder differ here only in how much homology
+length rules above. Golden Gate's overhang warnings follow design rules;
+measured fidelity needs a table you import. In-Fusion and NEBuilder differ here only in how much homology
 they ask for; their exonucleases are not modelled separately. Gateway reads
 att sites from a file's annotation rather than finding them by sequence, and runs one pair at
 a time, so a multisite LR takes several passes.

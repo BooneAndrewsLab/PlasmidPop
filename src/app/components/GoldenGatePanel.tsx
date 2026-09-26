@@ -18,6 +18,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
 import { PartsTube } from './PartsTube';
 import { BenchProduct } from './BenchProduct';
+import { FidelityReport } from './FidelityReport';
 import { ProductSummary } from './ProductSummary';
 import { useTube } from './tube';
 
@@ -59,7 +60,7 @@ function DroppedRow({ dropped }: { readonly dropped: DroppedFragment }) {
  * would do.
  */
 export function GoldenGatePanel() {
-  const { documents, shelf, bench, enzymeSetInfo } = useEditorState();
+  const { documents, shelf, bench, enzymeSetInfo, fidelityTable } = useEditorState();
   const settings = bench.goldenGate;
   // The default comes from the enzyme set in use, so it follows an imported
   // REBASE table; worked out once at import it stayed the bundled table's.
@@ -217,6 +218,12 @@ export function GoldenGatePanel() {
           </ol>
           <ProductSummary product={assembly.product} />
           <AssemblyWarnings texts={assembly.warnings.map((w) => w.text)} />
+          {/* What a measured end-joining table says about the same
+              junctions (#68), beside the design rules above. */}
+          <FidelityReport
+            overhangs={assembly.order.map((p) => p.fragment.left.overhang)}
+            table={fidelityTable}
+          />
         </>
       ) : (
         <p className="panel__error">{result?.problem}</p>

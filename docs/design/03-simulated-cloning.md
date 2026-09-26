@@ -181,6 +181,35 @@ overhangs would misligate.
     ligase and the temperature (published ligation-fidelity tables), which
     the app does not have. A table like that would turn the warning into a
     measured misligation rate.
+- **Measured fidelity, brought by the user, 2026-09-25** (#68, 1.8). The
+  design-rule warnings above cannot say how much of a reaction goes wrong;
+  a published end-joining table can, since it counts how often the ligase
+  joined every pair of overhangs. **The data is not bundled**: the table
+  people use is a paper's supporting information (the publisher's), its
+  makers' own viewer says all rights reserved, and the authors' repository
+  holds the analysis code under AGPL rather than the numbers. Copies are
+  passed around in other projects, but none of them with a permission this
+  project could point at, so — as with REBASE (item 7) — PlasmidPop ships
+  the arithmetic and reads a copy the user has got for themselves
+  (`parseFidelityCsv`, the square matrix those tables come in; kept in
+  IndexedDB, `fidelityTables`, database version 8). The user chose this
+  over bundling and citing it, 2026-09-25.
+  - `setFidelity` scores a set of junction overhangs: a junction's ends are
+    its overhang and that overhang's reverse complement, its own join is
+    the one between them, and every other join the table counts between one
+    of its ends and an end in the tube is a misligation. A cross-junction
+    mistake is charged to both junctions, since it spoils either way round,
+    and the set's fidelity is the junctions' shares multiplied — what the
+    published calculators report. On the real table (Potapov et al. 2018,
+    T4, 18 h at 37 °C) the MoClo six-overhang set scores 99.7 % and a pair
+    one base apart 98 %, which is where those numbers are known to sit.
+  - The tables are symmetric — a pair stands in both of its cells — so
+    `joined` takes the larger of the two rather than their sum, which also
+    reads a file giving only one half of the matrix.
+  - **The rules stay** beside the measurement, because they answer
+    different questions: a palindromic overhang joins a copy of itself as
+    readily as its partner, and no end-joining table can tell those two
+    apart — to the experiment they are the same pairing.
 - **Gibson II, 2026-09-23** (#12). `gibsonWarnings` on an assembly that
   worked: each junction's homology looked for in the rest of the tube, both
   strands, in windows of `minOverlap` bases; pieces under 200 bp; overlaps

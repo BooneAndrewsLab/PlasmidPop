@@ -1223,6 +1223,10 @@ describe('golden gate', () => {
     );
     // The five pieces that keep a BsaI site are reported, not silently dropped.
     expect(screen.getByText('5 pieces left out')).toBeInTheDocument();
+    // No fidelity table is bundled, so the panel offers to import one (#68).
+    expect(
+      screen.getByRole('button', { name: 'Import a ligase fidelity table' }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Assemble by Golden Gate' }));
     const product = editorStore.document;
