@@ -23,8 +23,17 @@ export interface LibraryPart {
   readonly type: string;
   /** Coarse group for the list: origin, marker, promoter, … */
   readonly category: string;
-  /** The part 5′→3′ as it reads, upper case A/C/G/T only. */
+  /**
+   * The part 5′→3′ as it reads, upper case A/C/G/T only; empty for a part
+   * that is only looked for in the translation (#93).
+   */
   readonly sequence: string;
+  /**
+   * What it codes for, one letter per residue, for the parts matched in the
+   * six frames (#93): the peptide tags no record spells in DNA, and the
+   * proteins a construct carries with synonymous changes.
+   */
+  readonly protein?: string;
   /** The NCBI nucleotide record the bases were read from, accession.version. */
   readonly accession: string;
   /** Where in that record, as a GenBank location. */
@@ -72,12 +81,21 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       sequence === undefined ||
       accession === undefined ||
       location === undefined ||
-      !/^[ACGT]+$/.test(sequence)
+      !/^[ACGT]*$/.test(sequence)
     ) {
       throw new Error(`Feature library (${source}): part ${i} is malformed`);
     }
     const note = text(entry, 'note');
     const fpbase = text(entry, 'fpbase');
+    const protein = text(entry, 'protein');
+    // A part is looked for by its bases, by its protein, or by both; one
+    // with neither would match nothing and is a fault in the build.
+    if (sequence === '' && (protein === undefined || protein === '')) {
+      throw new Error(`Feature library (${source}): part ${i} has neither bases nor a protein`);
+    }
+    if (protein !== undefined && !/^[A-Z]+$/.test(protein)) {
+      throw new Error(`Feature library (${source}): part ${i} has a malformed protein`);
+    }
     return {
       name,
       type,
@@ -88,6 +106,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       source,
       ...(note === undefined ? {} : { note }),
       ...(fpbase === undefined ? {} : { fpbase }),
+      ...(protein === undefined ? {} : { protein }),
     };
   });
 }

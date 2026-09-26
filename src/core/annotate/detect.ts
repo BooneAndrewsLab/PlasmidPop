@@ -1,6 +1,7 @@
 import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
 import { type FeatureLibrary } from './library';
+import { detectProteinFeatures } from './protein';
 
 /**
  * Finding the library's parts in a sequence (item 59): on both strands,
@@ -45,6 +46,11 @@ export interface DetectOptions {
   /** Least share of a part's bases that must match, 0–1; `DEFAULT_MIN_IDENTITY` by default. */
   readonly minIdentity?: number;
   readonly onProgress?: (fraction: number) => void;
+  /**
+   * Whether to look for the parts that carry a protein in the six frames
+   * too (#93). On by default; `detectProteinFeatures` is what it runs.
+   */
+  readonly protein?: boolean;
 }
 
 export interface FeatureHit {
@@ -59,6 +65,11 @@ export interface FeatureHit {
   readonly ambiguous: number;
   /** Share of the part's bases matched exactly, 0–1. */
   readonly identity: number;
+  /**
+   * Whether it was found by what it codes for rather than by its bases
+   * (#93): then `mismatches` and `identity` are of residues, not bases.
+   */
+  readonly viaProtein?: boolean;
 }
 
 /** A–T as bits of a mask, IUPAC codes as the bases they stand for; 0 is not a base. */
@@ -271,7 +282,15 @@ export function detectFeatures(
           onProgress(at / total);
         },
   );
-  return keepBest(raw, library, n, topology);
+  // The parts that are looked for by what they code for (#93): the short
+  // tags no record spells in DNA, and the proteins a construct carries with
+  // synonymous changes. Their hits join the rest and are reduced with them,
+  // so a part found both ways is offered once.
+  const withProtein =
+    options.protein === false
+      ? raw
+      : [...raw, ...detectProteinFeatures(sequence, topology, library)];
+  return keepBest(withProtein, library, n, topology);
 }
 
 /** Bases two ranges share, either of which may run over the origin of a circle. */
@@ -308,12 +327,17 @@ function keepBest(
   topology: Topology,
 ): FeatureHit[] {
   const size = (h: FeatureHit): number => h.range.end - h.range.start;
-  const matched = (h: FeatureHit): number => size(h) - h.mismatches - h.ambiguous;
-  // Best first: longer, then more bases matched, then forward, then library order.
+  // A protein hit's mismatches are residues, so its identity is the
+  // comparable number: what share of the part was matched.
+  const matched = (h: FeatureHit): number => size(h) * h.identity;
+  // Best first: longer, then more of the part matched, then a match on the
+  // bases before one on the translation (it is the more exacting), then
+  // forward, then library order.
   const ranked = [...hits].sort(
     (x, y) =>
       size(y) - size(x) ||
       matched(y) - matched(x) ||
+      Number(x.viaProtein ?? false) - Number(y.viaProtein ?? false) ||
       (x.strand === y.strand ? 0 : x.strand === 'forward' ? -1 : 1) ||
       x.part - y.part ||
       x.range.start - y.range.start,
