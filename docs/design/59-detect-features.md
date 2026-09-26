@@ -43,7 +43,7 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   the RNA elements that matter here (the ColE1-type origins' RNA I/RNA II
   region) are already in the core from the records they were described in.
   Matching an Rfam model would need Infernal-style search, a different tool.
-- **What is in it** (rebuilt 2026-09-25 for #93): 155 core parts (two of
+- **What is in it** (rebuilt 2026-09-26 for #98): 162 core parts (nine of
   them peptide tags with no DNA) and 100 fluorescent proteins, 26 of which
   are proteins without a coding sequence. Before #93 it was 153 core parts (markers 28, promoters
   25, primer sites 22, origins 16, regulatory 16, terminators 10, tags 8,
@@ -110,11 +110,19 @@ those in all six translations.
   same `keepBest`: a part found both ways is offered once, the DNA match
   preferred as the more exacting. The panel says which it was (`exact
 protein match`), and so does the note on the feature added.
-- **Not yet.** 6xHis: its peptide is a run of six histidines, which occurs
-  more than once in any record that carries eight of them, so the build's
-  "exactly once" check refuses it; it needs a rule of its own. Strep-tag II,
-  Avi-tag, HA and V5 need a record to cite that carries them exactly once,
-  which a search did not turn up quickly.
+- **The rest of the tags** (#98, 1.8). Each needed a public protein record
+  carrying the peptide exactly once, which the build checks; a search of
+  NCBI for engineered proteins, filtered to records of at least a hundred
+  residues so the citation is a real protein rather than a deposited tag,
+  found one for each: 6xHis and Avi-tag in `XZY19134.1` (a construct whose
+  own name is `AviTag-His6-…`), Strep-tag II in `AMR75014.1`, HA in an
+  anti-CD20 scFv (`AAO22134.1`), V5 in a tagged HCV polyprotein
+  (`AHD25925.1`), the S-tag in bovine pancreatic ribonuclease
+  (`NP_001014408.2`, where the S-peptide comes from), and the TEV site in
+  the TEV polyprotein itself (`P04517.1`). A Swiss-Prot header names the
+  record `sp|P04517.1|POLG_TEV`, so the build takes the accession out of
+  it. SUMO is still out: the "tag" is the whole SMT3 protein, which is a
+  sequence to fetch rather than a probe to check.
 
 ## Matching (`src/core/annotate/detect.ts`)
 

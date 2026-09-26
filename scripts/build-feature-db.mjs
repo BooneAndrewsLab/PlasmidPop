@@ -383,7 +383,10 @@ async function buildPeptide(spec) {
   const [header, ...rest] = fasta.trim().split('\n');
   const protein = rest.join('').replace(/\s/g, '').toUpperCase();
   if (protein === '') throw new Error(`${spec.name}: ${spec.accession} has no sequence`);
-  const version = /^>(\S+)/.exec(header ?? '')?.[1] ?? spec.accession;
+  // A FASTA header names the record; Swiss-Prot writes `sp|P04517.1|NAME`,
+  // whose middle field is the accession, and everything else names it plain.
+  const named = /^>(\S+)/.exec(header ?? '')?.[1] ?? spec.accession;
+  const version = named.includes('|') ? (named.split('|')[1] ?? spec.accession) : named;
   const at = protein.indexOf(peptide);
   if (at < 0) throw new Error(`${spec.name}: not found in ${version}`);
   if (protein.includes(peptide, at + 1)) {

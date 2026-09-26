@@ -105,12 +105,28 @@ describe('the bundled library, as loaded', () => {
     for (const p of lib.parts) {
       if (p.source === 'fpbase') expect((p.protein ?? '') !== '', p.name).toBe(true);
     }
-    // The tags every vector spells its own way are among them.
+    // The tags every vector spells its own way are among them, each cited
+    // to a protein record that carries it exactly once (#98).
     const byName = new Map(lib.parts.map((p) => [p.name, p]));
     expect(byName.get('FLAG')?.protein).toBe('DYKDDDDK');
     expect(byName.get('Myc')?.protein).toBe('EQKLISEEDL');
     expect(byName.get('SV40 NLS')).toMatchObject({ protein: 'PKKKRKV', sequence: '' });
     expect(byName.get('T7 tag')?.protein).toBe('MASMTGGQQMG');
+    for (const [name, peptide] of [
+      ['6xHis', 'HHHHHH'],
+      ['Avi-tag', 'GLNDIFEAQKIEWHE'],
+      ['Strep-tag II', 'WSHPQFEK'],
+      ['HA', 'YPYDVPDYA'],
+      ['V5', 'GKPIPNPLLGLDST'],
+      ['S-tag', 'KETAAAKFERQHMDS'],
+      ['TEV site', 'ENLYFQ'],
+    ] as const) {
+      const part = byName.get(name);
+      expect(part?.protein, name).toBe(peptide);
+      expect(part?.sequence, name).toBe('');
+      // The accession is a record, not a FASTA header (#98).
+      expect(part?.accession, name).toMatch(/^[A-Za-z0-9_]+\.\d+$/);
+    }
     // A protein-only part still cites where its sequence came from.
     for (const p of lib.parts) {
       if (p.sequence === '') expect(p.accession.length, p.name).toBeGreaterThan(0);
