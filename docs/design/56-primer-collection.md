@@ -88,9 +88,21 @@ What Find shows is a preview (a new owner, `collection`), like a designed
 pair. Nothing is in the document until **Add** makes a `primer_bind`
 feature, with the whole oligo in a `sequence:` note so it round-trips back
 into the list. **Add all** is one undo step: each feature after the first
-coalesces into the step before it under a key made for that click. The
+coalesces into the step before it under a key made for that click
+(`addFeaturesAsOneStep`, in `state/featureSteps.ts` since 1.8, where Check
+a primer's **Add sites** and a designed pair's **Add both** use it too,
+#96). The
 search runs again on every edit, so the list follows the document. At most
 200 sites are listed and drawn.
+
+## Shortest site (#96, 1.8)
+
+Primers under 15 bases were reported and not searched. **Shortest site**
+now sets `minAnneal`, remembered per document like **Mismatches**, from a
+short list: 10, 12, 15 (the default), 18 and 20. Nothing under 10: the 3′
+anchor alone is 5 bases, and a 10-mer turns up by chance about once in a
+million bases, an 8-mer once in 65 kb, so below it a plasmid is full of
+sites that mean nothing. The note on short primers names the setting.
 
 ## Handing a primer to PCR
 
@@ -105,8 +117,6 @@ each pick; a line says what PCR holds and **Open PCR** goes there.
 
 ## Not done
 
-- Short primers (under 15 bases) are reported, not searched; a lower
-  minimum for them is a setting nobody has asked for yet.
 - No sharing of a list between browsers other than the files.
 - If another branch also adds a database version 7, the two need
   renumbering when merged.

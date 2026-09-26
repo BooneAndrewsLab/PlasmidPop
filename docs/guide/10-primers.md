@@ -29,7 +29,7 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
 5. **Add both as features** annotates the pair as `primer_bind` features
    (the primer sequence goes in a `/note`), so the sites are on the map and
    saved with the file. Unlike **Show**, this is an edit: it goes into the
-   History and can be undone.
+   History as one step, and one **Undo** takes both back.
 6. **Save both** keeps the two primers in [My primers](#my-primers), named
    after the document (`pUC19 fwd 1`, `pUC19 rev 1`), with the target, Tm
    and GC content in their notes.
@@ -89,7 +89,8 @@ mismatches are allowed elsewhere. Every site found is previewed in both
 views at once, so off-target binding is visible at a glance, and a site's
 mismatches are marked on its arrow at the bases they fall on. Each site also
 shows its strand, position and mismatch count in the list; click one to
-select it, or **Add sites as primer_bind** to annotate them all. **Save to My
+select it, or **Add sites as primer_bind** to annotate them all, as one step
+a single **Undo** takes back. **Save to My
 primers** keeps the primer in [My primers](#my-primers).
 
 A **degenerate primer** — one with ambiguity codes, such as `NNK` for a codon
@@ -159,9 +160,12 @@ searched on both strands and, on a circular sequence, through the origin, the
 way [PCR](12-cloning.md#pcr) anneals a primer: by its 3′ end. The last five
 bases must match exactly; before them up to two mismatches are allowed
 (**Mismatches** sets it, from none to three), and a site needs at least 15
-annealed bases. What does not anneal at the 5′ end is reported as a tail, so a
-cloning primer with a restriction site or a homology arm on it is found by the
-part that binds. Primers shorter than 15 bases are counted but not searched.
+annealed bases (**Shortest site** sets it, from 10 to 20). What does not
+anneal at the 5′ end is reported as a tail, so a cloning primer with a
+restriction site or a homology arm on it is found by the part that binds.
+Primers shorter than the shortest site are counted but not searched; lower
+**Shortest site** to search a short sequencing primer. Under 15 bases a site
+is more likely to be there by chance, which is why it is not the default.
 
 Each site is listed with its strand, position, name, mismatches and tail,
 and every site is drawn on both views at once as a [preview](03-viewing.md#previews),

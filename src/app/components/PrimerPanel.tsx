@@ -3,6 +3,7 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type BindingSite,
+  type Feature,
   type PrimerPair,
   type Range,
   type SeqDocument,
@@ -19,6 +20,7 @@ import {
 import { type OverlaySpan } from '@/view/overlay';
 
 import { editorStore } from '../state/editorStore';
+import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
 import { savePrimers } from '../state/primerCollection';
@@ -93,20 +95,19 @@ function sitePreview(
   }));
 }
 
-function addPrimerFeature(
+function primerFeature(
   name: string,
   site: { start: number; end: number },
   strand: 'forward' | 'reverse',
   sequence: string,
-): void {
-  const feature = createFeature({
+): Feature {
+  return createFeature({
     type: 'primer_bind',
     name,
     strand,
     segments: [rangeSegment(site.start, site.end)],
     qualifiers: [{ name: 'note', value: `sequence: ${sequence}` }],
   });
-  editorStore.apply({ type: 'addFeature', feature }, site);
 }
 
 /**
@@ -302,17 +303,23 @@ export function PrimerPanel({ doc }: Props) {
                           type="button"
                           className="button button--quiet button--small"
                           onClick={() => {
-                            addPrimerFeature(
-                              `Fwd primer ${i + 1}`,
-                              p.forwardSite,
-                              'forward',
-                              p.forward.sequence,
-                            );
-                            addPrimerFeature(
-                              `Rev primer ${i + 1}`,
+                            // One click, so one Undo takes both back (#96).
+                            addFeaturesAsOneStep(
+                              [
+                                primerFeature(
+                                  `Fwd primer ${i + 1}`,
+                                  p.forwardSite,
+                                  'forward',
+                                  p.forward.sequence,
+                                ),
+                                primerFeature(
+                                  `Rev primer ${i + 1}`,
+                                  p.reverseSite,
+                                  'reverse',
+                                  p.reverse.sequence,
+                                ),
+                              ],
                               p.reverseSite,
-                              'reverse',
-                              p.reverse.sequence,
                             );
                           }}
                         >
@@ -434,8 +441,11 @@ export function PrimerPanel({ doc }: Props) {
                 type="button"
                 className="button button--small"
                 onClick={() => {
-                  for (const s of sites)
-                    addPrimerFeature('Primer', s.range, s.strand, report.sequence);
+                  // One click, so one Undo takes every site back (#96).
+                  addFeaturesAsOneStep(
+                    sites.map((s) => primerFeature('Primer', s.range, s.strand, report.sequence)),
+                    sites[sites.length - 1]?.range,
+                  );
                 }}
               >
                 Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind

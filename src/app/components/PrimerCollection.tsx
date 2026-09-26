@@ -11,7 +11,6 @@ import {
   cleanPrimer,
   createFeature,
   mismatchPositions,
-  newId,
   parsePrimerList,
   primerFromFeature,
   rangeSegment,
@@ -25,6 +24,7 @@ import { analytics } from '../analytics';
 import { type PcrSlot, openPcr, pcrChoice, sendToPcr } from '../primerToPcr';
 import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
+import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { useRemembered } from '../state/panelMemory';
 import {
   type AddReport,
@@ -79,20 +79,11 @@ function hitFeature(hit: PrimerHit, primer: CollectionPrimer | undefined): Featu
 }
 
 /**
- * Adds features as one undo step: each after the first merges into the step
- * before it, so **Add all** is taken back by one Undo.
+ * What **Shortest site** offers (#96). Under 10 nt a site is a word that
+ * turns up by chance in a plasmid (a 10-mer about once in a million bases,
+ * an 8-mer once in 65 kb), and the exact 3′ anchor is 5 of them.
  */
-function addFeaturesAsOneStep(features: readonly Feature[]): void {
-  const run = `primer-sites:${newId()}`;
-  features.forEach((feature, i) => {
-    editorStore.apply({ type: 'addFeature', feature }, undefined, undefined, {
-      follows: i === 0 ? `${run}:start` : run,
-      key: run,
-      withinMs: 60_000,
-      relabel: (n) => `Add ${n} primer sites`,
-    });
-  });
-}
+const MIN_ANNEAL_CHOICES = [10, 12, 15, 18, 20] as const;
 
 function hitSpans(hits: readonly PrimerHit[], template: string): OverlaySpan[] {
   return hits.slice(0, MAX_HITS_SHOWN).map((h, i) => ({
@@ -268,11 +259,18 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
     documentId,
     ANNEAL_DEFAULTS.maxMismatches,
   );
+  // Shorter primers are listed but not searched unless this is lowered (#96).
+  const [minAnneal, setMinAnneal] = useRemembered(
+    'collection.minAnneal',
+    documentId,
+    ANNEAL_DEFAULTS.minAnneal,
+  );
   /** The last answer, with what it was asked about, so a stale one is never shown. */
   const [search, setSearch] = useState<{
     readonly doc: SeqDocument;
     readonly primers: readonly CollectionPrimer[];
     readonly maxMismatches: number;
+    readonly minAnneal: number;
     readonly result: PrimerSearch | null;
     readonly error: string | null;
   } | null>(null);
@@ -293,9 +291,9 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
   useEffect(() => {
     if (!finding || primers.length === 0) return;
     let live = true;
-    const asked = { doc, primers, maxMismatches };
+    const asked = { doc, primers, maxMismatches, minAnneal };
     analysisClient
-      .findPrimers(doc.sequence.toString(), doc.topology, primers, { maxMismatches })
+      .findPrimers(doc.sequence.toString(), doc.topology, primers, { maxMismatches, minAnneal })
       .then((result) => {
         if (live) setSearch({ ...asked, result, error: null });
       })
@@ -307,14 +305,15 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
     return () => {
       live = false;
     };
-  }, [finding, doc, primers, maxMismatches]);
+  }, [finding, doc, primers, maxMismatches, minAnneal]);
 
   const answered =
     finding &&
     search !== null &&
     search.doc === doc &&
     search.primers === primers &&
-    search.maxMismatches === maxMismatches
+    search.maxMismatches === maxMismatches &&
+    search.minAnneal === minAnneal
       ? search
       : null;
   const current = answered?.result ?? null;
@@ -417,6 +416,24 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
             ))}
           </select>
         </label>
+        <label className="panel__field panel__field--row">
+          <span>Shortest site</span>
+          <select
+            className="panel__select"
+            aria-label="Shortest site searched"
+            title="The fewest bases a primer must anneal by to be called a site; shorter primers are not searched"
+            value={minAnneal}
+            onChange={(e) => {
+              setMinAnneal(Number(e.target.value));
+            }}
+          >
+            {MIN_ANNEAL_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n} nt{n === ANNEAL_DEFAULTS.minAnneal ? ' (default)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {finding && primers.length > 0 && (
         <FindResults
@@ -425,6 +442,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           error={searchError}
           byId={byId}
           maxMismatches={maxMismatches}
+          minAnneal={minAnneal}
           onPcr={toPcr}
         />
       )}
@@ -641,6 +659,7 @@ function FindResults({
   error,
   byId,
   maxMismatches,
+  minAnneal,
   onPcr,
 }: {
   readonly doc: SeqDocument;
@@ -648,6 +667,7 @@ function FindResults({
   readonly error: string | null;
   readonly byId: ReadonlyMap<string, CollectionPrimer>;
   readonly maxMismatches: number;
+  readonly minAnneal: number;
   readonly onPcr: (slot: PcrSlot, primer: { name: string; sequence: string }) => void;
 }) {
   if (error !== null) return <p className="panel__error">{error}</p>;
@@ -668,8 +688,9 @@ function FindResults({
       {tooShort.length > 0 && (
         <p className="panel__note panel__note--quiet">
           {tooShort.length === 1 ? 'One primer is' : `${tooShort.length} primers are`} shorter than
-          the {ANNEAL_DEFAULTS.minAnneal} bases a site needs and{' '}
-          {tooShort.length === 1 ? 'was' : 'were'} not searched.
+          the {minAnneal} bases a site needs and {tooShort.length === 1 ? 'was' : 'were'} not
+          searched; lower <strong>Shortest site</strong> to search{' '}
+          {tooShort.length === 1 ? 'it' : 'them'}.
         </p>
       )}
       {hits.length > 0 && (

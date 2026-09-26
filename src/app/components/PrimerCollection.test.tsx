@@ -158,6 +158,51 @@ describe('My primers', () => {
     expect(editorStore.document?.features.size).toBe(0);
   });
 
+  it('lists a short primer as not searched until Shortest site is lowered (#96)', async () => {
+    await setup();
+    const short = TEXT.slice(300, 312);
+    await paste(`fwd1 ${FWD}\nshorty ${short}\n`);
+    await findMine();
+    expect(await screen.findByText(/One primer is shorter than the 15 bases/)).toBeTruthy();
+    expect(screen.getByText(/1 primer binds at 1 site/)).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Shortest site searched' }), {
+        target: { value: '12' },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(await screen.findByText(/2 primers bind at 2 sites/)).toBeTruthy();
+    expect(screen.queryByText(/shorter than/)).toBeNull();
+    const rows = within(screen.getByRole('list', { name: 'Primer sites' })).getAllByRole(
+      'listitem',
+    );
+    expect(rows[1]?.textContent).toMatch(/^→shorty 301–312exact/);
+  });
+
+  it("takes Check a primer's sites back in one undo step (#96)", async () => {
+    // The forward primer's bases twice, so it binds at two places.
+    const twice = SeqDocument.create({
+      name: 'pTwice',
+      sequence: `${TEXT}${FWD}${template(60, 7)}`,
+      topology: 'circular',
+    });
+    await setup(twice);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Primer sequence' }), {
+      target: { value: FWD },
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add sites as primer_bind' }));
+    });
+    expect(editorStore.document?.features.all().map((f) => f.type)).toEqual([
+      'primer_bind',
+      'primer_bind',
+    ]);
+    act(() => {
+      editorStore.undo();
+    });
+    expect(editorStore.document?.features.size).toBe(0);
+  });
+
   it('respects the mismatch limit', async () => {
     // Ten bases from the 3′ end: with no mismatch allowed, too little is left to anneal.
     const mutated = `${TEXT.slice(0, 110)}${TEXT.charAt(110) === 'A' ? 'C' : 'A'}${TEXT.slice(111)}`;
