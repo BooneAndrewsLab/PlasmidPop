@@ -286,13 +286,32 @@ you, and opens the plasmid they would make.
 2. Type what they become in **Change to** (for a cursor, **Bases to
    insert**). Leave it empty to delete the selection. Ambiguity codes are
    accepted, for a degenerate codon.
+
+   Inside a CDS you can name the residue instead of the bases. **Change a
+   residue** says which codon the cursor is in (`tet V14 (GTC)`); pick the
+   new amino acid under **To** and the codons for it appear, the one your
+   **Host** uses most first and starred, each with its share of that
+   residue's codons in the host's genes and, on hover, how many bases it
+   changes. Click one and it selects the codon and fills **Change to** in
+   for you — complemented already if the CDS reads on the reverse strand.
+   The hosts are E. coli, yeast, _P. pastoris_, human, mouse and CHO, from
+   the [Codon Usage Database](https://www.kazusa.or.jp/codon/).
+
+   **Library** puts a degenerate codon there instead — **NNK**, **NNS**,
+   **NNN** or **NDT** — and says what it covers: how many codons, how many
+   amino acids, how many stops, and roughly how many colonies to screen to
+   be 95 % sure of meeting any one codon.
+
 3. Choose the design:
    - **Back to back** is NEB's Q5 site-directed mutagenesis: the primers
      point away from each other and meet at the change, which rides on the
      forward primer's 5′ end (a long insert is split between the two). Each
-     primer's annealing part grows until it reaches 60 °C. Amplify the
-     whole plasmid, then phosphorylate, ligate and digest the template
-     (KLD).
+     primer's annealing part grows until it reaches 60 °C by the
+     nearest-neighbour Tm the rest of the app uses. Beside it each primer
+     also carries **NEB Q5**, the Tm NEB's own calculator gives for Q5 —
+     it reads a few degrees higher, because Q5's buffer does — and the
+     panel says what to anneal at, which is NEB's number. Amplify the whole
+     plasmid, then phosphorylate, ligate and digest the template (KLD).
    - **Overlapping** is Agilent's QuikChange: two complementary primers
      with the change in the middle, grown until they reach 78 °C by
      Agilent's formula. Copy the plasmid round, digest the template with

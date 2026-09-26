@@ -37,8 +37,37 @@ use a tool for.
   AAA leaves AAG, still K), or as an in-frame gain or loss.
 - **The digest gives up the preview channel** while Mutate is picked, as it
   does for PCR: neither is about the fragments.
-- Follow-ups (NEB's Q5 Tm, codon changes by amino acid, degenerate codons)
-  are #69.
+- **NEB's Q5 Tm and annealing temperature** (#69, 1.8).
+  `q5MeltingTemperature` is NEB's documented method — SantaLucia (1998)
+  nearest neighbours with the whole primer concentration in the logarithm,
+  then Owczarzy et al. (2004)'s salt correction — at 150 mM monovalent,
+  which is the one number NEB does not publish. It was fitted to the
+  calculator itself: eleven primers of 17–32 nt and 9–90 % GC read off
+  https://tmcalculator.neb.com on 2026-09-25 all come out to the degree,
+  including two the fit did not use. It is 1–3 °C above
+  `meltingTemperature`, which is what NEB means when it says other
+  calculators underestimate the Tm for Q5. `q5AnnealingTemperature` is the
+  lower Tm plus one, capped at 72 °C, which held for every pair tried. Both
+  are shown only for the back-to-back design: the overlapping one is
+  Agilent's kit, whose own formula is its rule.
+- **Changing a residue rather than bases** (#69, 1.8). `codonSiteAt` finds
+  the codon a position falls in, through `translateCds`, so a `join(...)`,
+  the origin, `/codon_start` and the feature's own genetic code all apply
+  for free. Its `codon` is in reading order, which on the reverse strand
+  means each forward base complemented where it stands — not the three
+  reverse-complemented, which would reverse an asymmetric codon;
+  `codonOnForwardStrand` puts the new one back the same way. The panel
+  offers the residue only while the selection lies inside the one codon:
+  over more than that, the change is to the bases.
+- **Codon usage** (`codonUsage.ts`, #69, 1.8) is the Codon Usage Database's
+  counts (Nakamura et al. 2000) for six expression hosts, fetched
+  2026-09-25 and cited in `DATA-LICENSES.md`: counts of codons in
+  published genes are facts about genomes. `codonChoices` orders an amino
+  acid's codons by the host's share, ties going to the fewest bases
+  changed, so a K→R keeps to one base where it can. `libraryCoverage`
+  reads a degenerate codon with the same genetic code and reports codons,
+  amino acids, stops and the colonies for 95 % coverage of any one codon
+  (1 − (1 − 1/n)^T ≥ 0.95, about 3n).
 - **Fixed by the property tests, 2026-09-24.** Agilent's N had the
   deleted bases subtracted as well as the inserted ones, though a deletion's
   bases are not in the primer: a QuikChange deletion of 20 bases or more got

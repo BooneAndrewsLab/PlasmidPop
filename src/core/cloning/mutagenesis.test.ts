@@ -4,11 +4,19 @@ import {
   meltingTemperature,
   rangeSegment,
   reverseComplement,
+  translateCds,
 } from '@/core';
 
 import { digest } from './digest';
 import { ligate } from './ligate';
-import { compareProteins, describeChange, designMutagenesis, quikChangeTm } from './mutagenesis';
+import {
+  codonOnForwardStrand,
+  codonSiteAt,
+  compareProteins,
+  describeChange,
+  designMutagenesis,
+  quikChangeTm,
+} from './mutagenesis';
 import { pcr } from './pcr';
 
 /** A fixed pseudo-random plasmid, so every primer site is unique by accident. */
@@ -294,5 +302,80 @@ describe('protein changes, at the edges of a CDS', () => {
     const d = designMutagenesis(withCds('linear'), { start: 100, end: 115 }, '', 'back-to-back');
     expect(d.mutant.features.all()).toEqual([]);
     expect(d.proteinChanges).toEqual([]);
+  });
+});
+
+describe('codonSiteAt (#69)', () => {
+  // ATG AAA GAA TTC TAA: M K E F *, with the CDS on 0..15.
+  const coding = 'ATGAAAGAATTCTAA';
+  const withCds = (sequence: string, strand: 'forward' | 'reverse' = 'forward', start = 0) =>
+    SeqDocument.create({
+      name: 'p',
+      sequence,
+      topology: 'circular',
+      features: [
+        createFeature({
+          id: 'cds',
+          type: 'CDS',
+          name: 'gene',
+          strand,
+          segments: [rangeSegment(start, start + 15)],
+        }),
+      ],
+    });
+
+  it('finds the codon a position falls in, and its residue number', () => {
+    const doc = withCds(`${coding}TTTT`);
+    const site = codonSiteAt(doc, 4);
+    expect(site).toMatchObject({
+      index: 1,
+      residue: 2,
+      codon: 'AAA',
+      aminoAcid: 'K',
+      strand: 'forward',
+      span: { start: 3, end: 6 },
+    });
+    expect(codonSiteAt(doc, 3)?.residue).toBe(2);
+    expect(codonSiteAt(doc, 5)?.residue).toBe(2);
+    expect(codonSiteAt(doc, 6)?.residue).toBe(3);
+  });
+
+  it('reads a reverse-strand CDS in reading order, and writes back complemented', () => {
+    const doc = withCds(reverseComplement(coding), 'reverse');
+    // The second codon of the protein is AAA, read from the bottom strand.
+    const site = codonSiteAt(doc, 10);
+    expect(site).toMatchObject({ residue: 2, codon: 'AAA', aminoAcid: 'K', strand: 'reverse' });
+    expect(codonOnForwardStrand('CGT', 'reverse')).toBe('ACG');
+    expect(codonOnForwardStrand('CGT', 'forward')).toBe('CGT');
+    // Writing the new codon over the span makes the intended protein.
+    const changed = doc.apply({
+      type: 'replace',
+      range: site?.span ?? { start: 0, end: 0 },
+      text: codonOnForwardStrand('CGT', 'reverse'),
+    });
+    const feature = changed.features.all()[0];
+    if (feature === undefined) throw new Error('no CDS');
+    expect(translateCds(changed, feature).protein).toBe('MREF*');
+  });
+
+  it('is nothing outside a coding feature, or in the bases /codon_start skips', () => {
+    const doc = withCds(`TTTT${coding}`, 'forward', 4);
+    expect(codonSiteAt(doc, 0)).toBeNull();
+    expect(codonSiteAt(doc, 4)?.residue).toBe(1);
+    const shifted = SeqDocument.create({
+      name: 'p',
+      sequence: `A${coding}`,
+      features: [
+        createFeature({
+          id: 'cds',
+          type: 'CDS',
+          strand: 'forward',
+          segments: [rangeSegment(0, 16)],
+          qualifiers: [{ name: 'codon_start', value: '2' }],
+        }),
+      ],
+    });
+    expect(codonSiteAt(shifted, 0)).toBeNull();
+    expect(codonSiteAt(shifted, 1)?.residue).toBe(1);
   });
 });

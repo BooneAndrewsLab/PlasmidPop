@@ -166,7 +166,8 @@ describe('MutagenesisPanel', () => {
     const list = () => within(must(primerList(), 'the primers'));
     expect(
       list().getByText(
-        `${back.forward.sequence.length} nt, Tm ${back.forward.tm.toFixed(0)} °C over the ${back.forward.annealLength} that anneal`,
+        // NEB's own Tm for Q5 stands beside the nearest-neighbour one (#69).
+        `${back.forward.sequence.length} nt, Tm ${back.forward.tm.toFixed(0)} °C (NEB Q5 ${back.forward.q5Tm?.toFixed(0) ?? ''} °C) over the ${back.forward.annealLength} that anneal`,
       ),
     ).toBeInTheDocument();
     expect(

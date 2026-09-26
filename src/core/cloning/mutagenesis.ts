@@ -1,9 +1,15 @@
-import { translateCds } from '../analysis/cdsTranslation';
+import { codonIndexAt, codonSpan, isCodingFeature, translateCds } from '../analysis/cdsTranslation';
+import { type TranslationTable } from '../analysis/codons';
 import { type EditOp, type SeqDocument } from '../document';
 import { type Feature } from '../features';
-import { meltingTemperature } from '../primers/thermo';
+import {
+  meltingTemperature,
+  q5AnnealingTemperature,
+  q5MeltingTemperature,
+} from '../primers/thermo';
 import { type Range } from '../range';
-import { reverseComplement } from '../sequence';
+import { type Strand } from '../features';
+import { complement, reverseComplement } from '../sequence';
 
 /**
  * Site-directed mutagenesis: primers that carry a change, and the plasmid
@@ -39,6 +45,13 @@ export interface MutagenesisPrimer {
    * overlapping primers, which is the one QuikChange is designed to.
    */
   readonly tm: number;
+  /**
+   * The annealing part's Tm as NEB's calculator gives it for Q5 (#69), for
+   * a back-to-back design, which is NEB's; null for an overlapping one,
+   * where the kit is Agilent's and its own formula is the rule. It reads
+   * above `tm`, which is why NEB's annealing temperature is high.
+   */
+  readonly q5Tm: number | null;
 }
 
 export interface MutagenesisDesign {
@@ -52,6 +65,12 @@ export interface MutagenesisDesign {
   readonly label: string;
   /** What it does to each coding feature it falls in, e.g. `lacZ K12R`. */
   readonly proteinChanges: readonly string[];
+  /**
+   * NEB's annealing temperature for the pair (#69), from the two Q5 Tms;
+   * null for an overlapping design, which is not a Q5 protocol and whose
+   * QuikChange cycling anneals at a fixed 55 °C.
+   */
+  readonly annealAt: number | null;
   /** Why the design falls short, in a sentence; null when it meets its rules. */
   readonly problem: string | null;
 }
@@ -149,11 +168,13 @@ export function designMutagenesis(
       sequence: forwardTail + fAnneal,
       annealLength: fAnneal.length,
       tm: meltingTemperature(fAnneal),
+      q5Tm: q5MeltingTemperature(fAnneal),
     };
     reverse = {
       sequence: reverseTail + rAnneal,
       annealLength: rAnneal.length,
       tm: meltingTemperature(rAnneal),
+      q5Tm: q5MeltingTemperature(rAnneal),
     };
     if (forward.tm < opts.targetTm || reverse.tm < opts.targetTm) {
       problem = `The template next to the change is too AT-rich to reach ${opts.targetTm} °C within ${opts.maxPrimer} bases.`;
@@ -183,13 +204,20 @@ export function designMutagenesis(
       primer = build();
     }
     const tm = quikChangeTm(primer, mismatched, indel);
-    forward = { sequence: primer, annealLength: right, tm };
-    reverse = { sequence: reverseComplement(primer), annealLength: left, tm };
+    forward = { sequence: primer, annealLength: right, tm, q5Tm: null };
+    reverse = { sequence: reverseComplement(primer), annealLength: left, tm, q5Tm: null };
     if (tm < opts.overlapTm) {
       problem = `The primers reach only ${tm.toFixed(0)} °C at ${opts.maxPrimer} bases, short of the ${opts.overlapTm} °C QuikChange asks for.`;
     }
   }
-  return { method, forward, reverse, edit, mutant, label, proteinChanges, problem };
+  // NEB's own annealing temperature, from its own Tms (#69): the primers
+  // are annealed to the template, so it is the annealing parts that count,
+  // which is what `q5Tm` is of.
+  const annealAt =
+    forward.q5Tm === null || reverse.q5Tm === null
+      ? null
+      : q5AnnealingTemperature(forward.q5Tm, reverse.q5Tm);
+  return { method, forward, reverse, edit, mutant, label, proteinChanges, annealAt, problem };
 }
 
 function countDifferences(a: string, b: string): number {
@@ -277,4 +305,63 @@ export function compareProteins(before: string, after: string, frameshift = fals
   }
   const where = was.length <= 1 ? `${head + 1}` : `${head + 1}–${head + was.length}`;
   return `${where} ${was === '' ? '(none)' : was} → ${now === '' ? '(none)' : now}`;
+}
+
+/**
+ * The codon a mutation would fall in (#69): where `position` lands inside a
+ * coding feature, so a change can be made by naming the residue it becomes
+ * rather than the bases. The first coding feature that has a codon there
+ * wins; a position in an intron of a `join(...)`, in the bases
+ * `/codon_start` skips or in a trailing part-codon is in none.
+ */
+export interface CodonSite {
+  readonly feature: Feature;
+  /** Codon number in the protein, 0-based; `residue` is it, 1-based. */
+  readonly index: number;
+  readonly residue: number;
+  /** The codon's bases on the forward strand, which is what an edit replaces. */
+  readonly span: Range;
+  /** The codon in reading order, as it is translated (reverse-complemented if need be). */
+  readonly codon: string;
+  readonly aminoAcid: string;
+  readonly strand: Strand;
+  /** The genetic code the feature is read with. */
+  readonly table: TranslationTable;
+}
+
+export function codonSiteAt(doc: SeqDocument, position: number): CodonSite | null {
+  for (const feature of doc.features.all()) {
+    if (!isCodingFeature(feature)) continue;
+    const translation = translateCds(doc, feature);
+    const index = codonIndexAt(translation, position);
+    if (index < 0) continue;
+    const codon = translation.codons[index];
+    const span = codonSpan(translation, index, index, doc.length);
+    if (codon === undefined || span === null) continue;
+    // The codon's positions are in reading order, which descends on the
+    // reverse strand: the bases there are read from the bottom strand, so
+    // each is complemented where it stands rather than the three reversed.
+    const forward = codon.positions.map((p) => doc.sequence.slice(p, p + 1)).join('');
+    const bases = (translation.strand === 'reverse' ? complement(forward) : forward).toUpperCase();
+    return {
+      feature,
+      index,
+      residue: index + 1,
+      span,
+      codon: bases,
+      aminoAcid: codon.aminoAcid,
+      strand: translation.strand,
+      table: translation.table,
+    };
+  }
+  return null;
+}
+
+/**
+ * The bases to write on the forward strand for `codon`, which is in reading
+ * order: the same for a forward-strand feature, reverse-complemented for a
+ * reverse-strand one, where the codon reads along the bottom strand.
+ */
+export function codonOnForwardStrand(codon: string, strand: Strand): string {
+  return strand === 'reverse' ? reverseComplement(codon) : codon;
 }
