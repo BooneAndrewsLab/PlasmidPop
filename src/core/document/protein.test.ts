@@ -151,7 +151,6 @@ describe('the tools a document has (#66)', () => {
     'translate',
     'primers',
     'cloning',
-    'align',
     'detectFeatures',
     'reverseComplement',
     'circular',
@@ -167,6 +166,10 @@ describe('the tools a document has (#66)', () => {
     }
     expect(hasTool(protein(), 'proteinProperties')).toBe(true);
     expect(hasTool(dna, 'proteinProperties')).toBe(false);
+    // Aligning belongs to both: reads against DNA, a protein against a
+    // protein, scored by BLOSUM62 rather than by bases (#95).
+    expect(hasTool(dna, 'align')).toBe(true);
+    expect(hasTool(protein(), 'align')).toBe(true);
   });
 
   it('calls a letter a base or a residue', () => {

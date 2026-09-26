@@ -22,7 +22,7 @@ export type DocumentTool =
   | 'primers'
   /** PCR, digests to the shelf, mutagenesis, Gateway, the Cloning Bench. */
   | 'cloning'
-  /** Aligning sequencing reads to the document. */
+  /** Aligning a sequence to the document: reads to DNA, a protein to a protein. */
   | 'align'
   /** Detect features: the library of common parts is DNA (item 59). */
   | 'detectFeatures'
@@ -52,7 +52,11 @@ const NUCLEOTIDE_TOOLS: ReadonlySet<DocumentTool> = new Set<DocumentTool>([
   'methylation',
 ]);
 
-const PROTEIN_TOOLS: ReadonlySet<DocumentTool> = new Set<DocumentTool>(['proteinProperties']);
+const PROTEIN_TOOLS: ReadonlySet<DocumentTool> = new Set<DocumentTool>([
+  'proteinProperties',
+  // Two proteins align by BLOSUM62 rather than by bases (#95).
+  'align',
+]);
 
 /** Whether `tool` applies to a document of this alphabet. */
 export function hasTool(doc: { readonly alphabet: Alphabet }, tool: DocumentTool): boolean {

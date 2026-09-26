@@ -53,7 +53,8 @@ function plasmid(): SeqDocument {
 
 describe('the tools of a protein document (#66)', () => {
   it('has a Protein tab instead of the DNA ones, and DNA the other way about', () => {
-    expect(sidebarTabsFor(hbb())).toEqual(['features', 'protein', 'history']);
+    // Align is there since #95: two proteins align by BLOSUM62.
+    expect(sidebarTabsFor(hbb())).toEqual(['features', 'protein', 'align', 'history']);
     expect(sidebarTabsFor(plasmid())).not.toContain('protein');
     expect(sidebarTabsFor(plasmid())).toContain('enzymes');
   });
@@ -73,7 +74,7 @@ describe('the tools of a protein document (#66)', () => {
     const tabs = within(rail)
       .getAllByRole('tab')
       .map((t) => t.textContent);
-    expect(tabs).toEqual(['Features', 'Protein', 'History']);
+    expect(tabs).toEqual(['Features', 'Protein', 'Align', 'History']);
   });
 
   it('gives the properties on the Protein tab', () => {
@@ -110,6 +111,8 @@ describe('the tools of a protein document (#66)', () => {
     render(<App />);
     fireEvent.keyDown(window, { key: ']', code: 'BracketRight', altKey: true });
     expect(editorStore.getState().sidebarTab).toBe('protein');
+    fireEvent.keyDown(window, { key: ']', code: 'BracketRight', altKey: true });
+    expect(editorStore.getState().sidebarTab).toBe('align');
     fireEvent.keyDown(window, { key: ']', code: 'BracketRight', altKey: true });
     expect(editorStore.getState().sidebarTab).toBe('history');
   });

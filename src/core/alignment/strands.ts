@@ -67,6 +67,11 @@ export function alignEitherStrand(
   options: AlignmentOptions = {},
   onProgress?: AlignmentProgress,
 ): StrandedAlignment {
+  // A protein has one strand: there is nothing to turn over, and
+  // reverse-complementing residues would be nonsense (#95).
+  if (options.alphabet === 'protein') {
+    return { alignment: alignLong(a, b, options, onProgress), strand: 'forward' };
+  }
   const rc = reverseComplement(b);
   const cells = (a.length + 1) * (b.length + 1);
   if (cells >= BOTH_STRANDS_BELOW || options.fast === true) {

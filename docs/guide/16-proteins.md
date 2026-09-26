@@ -43,13 +43,28 @@ and `B`, `Z` and `J` either of the two they stand for.
 Everything that reads DNA is gone rather than greyed out: the map and the
 view switcher, the Complement, Translations and Cut sites toggles and their
 keys, Reverse complement and Make circular, and the Enzymes, ORFs, Translate,
-Primers, Cloning and Align tabs, and **Detect features**, whose parts are
+Primers and Cloning tabs, and **Detect features**, whose parts are
 DNA. A protein is not offered as a template,
 insert or vector on the Bench. Typing takes residues only, and residues do
 not paste into DNA, nor bases into a protein: translate DNA first.
 
 A protein downloads as GenPept (`.gp`) from **File ▸ Download GenPept…**, and
 as protein FASTA (`.faa`) from **Export sequence as FASTA**.
+
+## Aligning two proteins
+
+The [Align](11-align.md) tab works in front of a protein: paste or drop
+another protein — residues, a protein FASTA record or a GenPept file — and
+it is aligned against the document, globally or locally. Two differences
+from a DNA alignment:
+
+- **It is scored by BLOSUM62**, the matrix protein comparisons are usually
+  read against, so a conservative substitution counts in favour rather than
+  against. The match line says which is which: `|` the same residue, `:` a
+  substitution the matrix thinks likely (`K` against `R`, `L` against `I`),
+  `.` one it does not. Gaps cost what BLAST charges for a protein.
+- **There is no second strand** to try, so nothing is said about one and the
+  alignment is never reported as a reverse complement.
 
 ## The Protein tab
 

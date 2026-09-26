@@ -67,4 +67,22 @@ NCBI's, on the terms above.
   per-thousand frequencies and fractions the database also prints are not
   kept, since the shares the panel shows are computed from the counts.
 
+## BLOSUM62, for protein alignment
+
+`src/core/alignment/blosum62.ts`
+
+The substitution matrix a protein alignment is scored by (#95), exactly as
+the NCBI distributes it with BLAST
+(<https://ftp.ncbi.nlm.nih.gov/blast/matrices/BLOSUM62>), fetched
+2026-09-26 by `scripts/make-blosum.mjs`. A work of the United States
+government, free of copyright.
+
+- Attribution: Henikoff, S. and Henikoff, J.G. (1992) Amino acid
+  substitution matrices from protein blocks. _Proc. Natl. Acad. Sci. USA_
+  89, 10915–10919.
+  [doi:10.1073/pnas.89.22.10915](https://doi.org/10.1073/pnas.89.22.10915).
+- Changes: none. The 24 × 24 values are written into a TypeScript file in
+  the order the NCBI's own file has them; the generator refuses a file whose
+  rows and columns disagree.
+
 Neither Addgene's, SnapGene's nor pLannotate's feature databases were used.

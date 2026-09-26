@@ -79,8 +79,21 @@ only be noise.
   the short words of prose. `guessAlphabet` then decides which it is, by the
   same rule a FASTA record is read by, so anything written wholly in IUPAC
   nucleotide codes is still bases.
+- **Protein alignment** (#95, 1.8). Residues are not bases: a conservative
+  substitution is not a mismatch, so `alignPairwise` takes an `alphabet`
+  and scores a protein by **BLOSUM62** — the NCBI's own copy, fetched by
+  `scripts/make-blosum.mjs` rather than typed (`DATA-LICENSES.md`) — with
+  BLAST's gap costs for proteins (11 to open, 1 to extend) rather than
+  EMBOSS's for DNA. `U` and `O`, which the matrix predates, score as the
+  residues they stand in for (C and K); a letter that is no residue scores
+  the matrix's worst. The match line follows BLAST: `|` the same residue,
+  `:` a substitution the matrix scores positive, `.` one it does not.
+  `alignEitherStrand` returns the forward alignment at once for a protein —
+  there is no second strand, and reverse-complementing residues would be
+  nonsense — and the panel asks for _residues_, reads pasted letters with
+  the document's alphabet, and is a tab a protein has (`hasTool`).
 - **Still open** in #95: GenPept `order(...)` has no field in the feature
-  model, SnapGene `.prot` files, and protein alignment.
+  model, and SnapGene `.prot` files.
 
 ## Reading the alphabet from a file
 

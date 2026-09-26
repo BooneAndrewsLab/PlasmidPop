@@ -1,4 +1,13 @@
-import { CODES, encode, pairMark, scoreTable } from './scoring';
+import {
+  CODES,
+  PROTEIN_CODES,
+  encode,
+  encodeProtein,
+  pairMark,
+  proteinScoreTable,
+  residueMark,
+  scoreTable,
+} from './scoring';
 
 /**
  * Pairwise alignment with affine gap penalties (Gotoh 1982): global
@@ -33,6 +42,14 @@ export interface AlignmentOptions {
    * Read by `alignLong` and `alignEitherStrand`; the fill ignores it.
    */
   readonly fast?: boolean;
+  /**
+   * What the letters are (#95). Residues are not bases: a protein
+   * alignment is scored by BLOSUM62, where a conservative substitution is
+   * not a mismatch, and its gaps cost what BLAST charges for a protein
+   * (11 to open, 1 to extend) rather than what EMBOSS charges for DNA.
+   * `match`, `mismatch` and `iupac` are for bases and are ignored.
+   */
+  readonly alphabet?: 'nucleotide' | 'protein';
 }
 
 export interface Alignment {
@@ -157,21 +174,22 @@ export function alignInBand(
 ): BandedResult {
   const mode = options.mode ?? 'global';
   const local = mode === 'local';
+  const protein = options.alphabet === 'protein';
   const mismatch = Math.round((options.mismatch ?? -4) * SCALE);
-  const gapOpen = Math.round((options.gapOpen ?? -10) * SCALE);
-  const gapExtend = Math.round((options.gapExtend ?? -0.5) * SCALE);
+  // BLAST's protein defaults, which is what a protein alignment is read
+  // against; EMBOSS's DNA ones otherwise, as before.
+  const gapOpen = Math.round((options.gapOpen ?? (protein ? -11 : -10)) * SCALE);
+  const gapExtend = Math.round((options.gapExtend ?? (protein ? -1 : -0.5)) * SCALE);
   const maxCells = options.maxCells ?? DEFAULT_MAX_CELLS;
-  const scores = scoreTable(
-    options.match ?? 5,
-    options.mismatch ?? -4,
-    options.iupac ?? true,
-    SCALE,
-  );
+  const scores = protein
+    ? proteinScoreTable(SCALE)
+    : scoreTable(options.match ?? 5, options.mismatch ?? -4, options.iupac ?? true, SCALE);
+  const codeCount = protein ? PROTEIN_CODES : CODES;
 
   const A = a.toUpperCase();
   const B = b.toUpperCase();
-  const codesA = encode(A);
-  const codesB = encode(B);
+  const codesA = protein ? encodeProtein(A) : encode(A);
+  const codesB = protein ? encodeProtein(B) : encode(B);
   const n = A.length;
   const m = B.length;
   const { lo, hi } = band;
@@ -231,7 +249,7 @@ export function alignInBand(
   const rowsPerReport = Math.max(1, Math.floor(PROGRESS_EVERY / Math.max(1, cells / (n + 1))));
   for (let i = 1; i <= n; i++) {
     if (onProgress !== undefined && i % rowsPerReport === 0) onProgress(i / n);
-    const scoreRow = (codesA[i - 1] ?? 0) * CODES;
+    const scoreRow = (codesA[i - 1] ?? 0) * codeCount;
     const rowLo = lo[i] ?? 0;
     const rowHi = hi[i] ?? 0;
     const rowBase = (rowStart[i] ?? 0) - rowLo;
@@ -389,7 +407,7 @@ export function alignInBand(
       marks.push(' ');
       continue;
     }
-    const mark = pairMark(x, y);
+    const mark = protein ? residueMark(x, y) : pairMark(x, y);
     if (mark === '|') identities++;
     else if (mark === ':') ambiguous++;
     marks.push(mark);

@@ -4,6 +4,7 @@ import { type DragEvent, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import {
   type Alignment,
   type AlignmentMode,
+  type Alphabet,
   type Range,
   type ReadDifference,
   type SeqDocument,
@@ -14,6 +15,7 @@ import {
   normalizeSequenceInput,
   qualityOfError,
   readDifferences,
+  unitName,
 } from '@/core';
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
@@ -59,7 +61,7 @@ type Records =
  * The records in whatever the user pasted or dropped: raw bases (one
  * record), or every record of a FASTA or GenBank text (#46).
  */
-function readRecords(text: string): Records {
+function readRecords(text: string, alphabet: Alphabet = 'nucleotide'): Records {
   const trimmed = text.trim();
   if (trimmed === '') return { ok: true, records: [] };
   try {
@@ -74,7 +76,12 @@ function readRecords(text: string): Records {
     return {
       ok: true,
       records: [
-        { name: 'Pasted sequence', sequence: normalizeSequenceInput(trimmed), circular: false },
+        {
+          name: 'Pasted sequence',
+          // In front of a protein, pasted letters are residues (#95).
+          sequence: normalizeSequenceInput(trimmed, alphabet),
+          circular: false,
+        },
       ],
     };
   } catch (e) {
@@ -581,8 +588,8 @@ export function AlignPanel({ doc }: Props) {
     () =>
       loaded !== null && loaded.text === other
         ? { ok: true, records: loaded.records }
-        : readRecords(other),
-    [loaded, other],
+        : readRecords(other, doc.alphabet),
+    [loaded, other, doc.alphabet],
   );
   const records = parsed.ok ? parsed.records : [];
   const record = records[Math.min(picked, records.length - 1)];
@@ -767,7 +774,8 @@ export function AlignPanel({ doc }: Props) {
       .alignEitherStrand(
         job.a,
         job.b,
-        { mode },
+        // A protein is scored by BLOSUM62 and has no second strand (#95).
+        { mode, alphabet: doc.alphabet },
         {
           onProgress: setProgress,
           signal: controller.signal,
@@ -818,7 +826,7 @@ export function AlignPanel({ doc }: Props) {
         className={`panel__textarea${dragging ? ' panel__textarea--over' : ''}`}
         rows={5}
         spellCheck={false}
-        placeholder="Paste bases, FASTA or GenBank, or drop a file here"
+        placeholder={`Paste ${unitName(doc.alphabet, true)}, FASTA or GenBank, or drop a file here`}
         aria-label="Sequence to align"
         value={other}
         onChange={(e) => {

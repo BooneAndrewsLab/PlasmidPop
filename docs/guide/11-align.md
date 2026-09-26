@@ -2,7 +2,8 @@
 
 The **Align** tab aligns another sequence to the open document, for example
 a Sanger read against the plasmid, or a synthesised fragment against its
-design.
+design. In front of a [protein](16-proteins.md#aligning-two-proteins) it
+aligns two proteins, scored by BLOSUM62.
 
 ## How to align
 

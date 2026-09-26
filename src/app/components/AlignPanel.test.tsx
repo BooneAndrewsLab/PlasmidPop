@@ -552,3 +552,44 @@ describe('AlignPanel', () => {
     });
   });
 });
+
+describe('aligning two proteins (#95)', () => {
+  // The first residues of human haemoglobin beta, and the same with two
+  // substitutions: one conservative (V for I), one not (P for G).
+  const HBB = 'MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLS';
+  const OTHER = 'MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFVDLS';
+  const protein = SeqDocument.create({ name: 'HBB', sequence: HBB, alphabet: 'protein' });
+
+  afterEach(() => {
+    act(() => {
+      editorStore.closeAllDocuments();
+    });
+  });
+
+  it('asks for residues, scores by BLOSUM62 and never turns the sequence over', async () => {
+    act(() => {
+      editorStore.openDocument(protein);
+    });
+    render(<AlignPanel doc={protein} />);
+    expect(box()).toHaveAttribute('placeholder', expect.stringContaining('Paste residues'));
+    fireEvent.change(box(), { target: { value: OTHER } });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    const heading = await screen.findByText(/Global alignment/);
+    // 49 of the 50 residues are the same; a protein has no reverse strand,
+    // so nothing is said about one.
+    expect(heading.textContent).toContain('identity 98%');
+    expect(heading.textContent).not.toContain('reverse');
+    // The conservative substitution is marked as one, not as a mismatch.
+    expect(document.body.textContent).toContain(OTHER.slice(0, 40));
+  });
+
+  it('aligns a pasted protein FASTA record', async () => {
+    act(() => {
+      editorStore.openDocument(protein);
+    });
+    render(<AlignPanel doc={protein} />);
+    fireEvent.change(box(), { target: { value: `>variant\n${OTHER}\n` } });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    expect((await screen.findByText(/Global alignment/)).textContent).toContain('identity 98%');
+  });
+});

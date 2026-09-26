@@ -8,6 +8,8 @@
  * in the document would never match (#47).
  */
 
+import { BLOSUM62, BLOSUM62_ORDER } from './blosum62';
+
 /** Row and column order of the matrix below. */
 const ORDER = 'ATGCSWRYKMBVHDN';
 
@@ -113,4 +115,79 @@ export function pairMark(x: string, y: string): '|' | ':' | '.' {
   if ((bx & by) === 0) return '.';
   const definite = (bx & (bx - 1)) === 0;
   return bx === by && definite ? '|' : ':';
+}
+
+// ------------------------------------------------------------- proteins
+
+/**
+ * Scoring a protein alignment (#95). Residues are not bases: a
+ * conservative substitution is not a mismatch, so the score comes from
+ * BLOSUM62 (`blosum62.ts`, the NCBI's own copy) rather than from a match
+ * and a mismatch. `B`, `Z` and `X` are in the matrix; `U`
+ * (selenocysteine), `O` (pyrrolysine) and `*` (a stop, which a translated
+ * frame carries) are not part of BLOSUM62's twenty, so `U` is scored as
+ * `C` and `O` as `K`, the residues they stand in for, and `*` as the
+ * matrix's own stop row.
+ */
+export const PROTEIN_CODES = BLOSUM62_ORDER.length + 1;
+
+/** Character code (either case) to its row in BLOSUM62; unknown residues last. */
+const PROTEIN_CODE_OF = (() => {
+  const table = new Uint8Array(128).fill(BLOSUM62_ORDER.length);
+  const set = (letter: string, row: number): void => {
+    table[letter.charCodeAt(0)] = row;
+    table[letter.toLowerCase().charCodeAt(0)] = row;
+  };
+  for (let k = 0; k < BLOSUM62_ORDER.length; k++) set(BLOSUM62_ORDER.charAt(k), k);
+  // The two residues the matrix predates, as the residues they replace.
+  set('U', BLOSUM62_ORDER.indexOf('C'));
+  set('O', BLOSUM62_ORDER.indexOf('K'));
+  set('J', BLOSUM62_ORDER.indexOf('X')); // leucine or isoleucine: neither, here
+  return table;
+})();
+
+/** The protein sequence as matrix rows, one byte per residue. */
+export function encodeProtein(seq: string): Uint8Array {
+  const out = new Uint8Array(seq.length);
+  for (let k = 0; k < seq.length; k++) {
+    const c = seq.charCodeAt(k);
+    out[k] = c < 128 ? (PROTEIN_CODE_OF[c] ?? BLOSUM62_ORDER.length) : BLOSUM62_ORDER.length;
+  }
+  return out;
+}
+
+/**
+ * The PROTEIN_CODES × PROTEIN_CODES score table, multiplied by `scale`: the
+ * published matrix, with a row and a column for a letter that is not a
+ * residue at all, scored as the matrix scores its own worst case.
+ */
+export function proteinScoreTable(scale: number): Int32Array {
+  const n = PROTEIN_CODES;
+  const unknown = BLOSUM62_ORDER.length;
+  const worst = Math.min(...BLOSUM62.flatMap((row) => [...row]));
+  const table = new Int32Array(n * n);
+  for (let x = 0; x < n; x++) {
+    for (let y = 0; y < n; y++) {
+      const s = x === unknown || y === unknown ? worst : (BLOSUM62[x]?.[y] ?? worst);
+      table[x * n + y] = Math.round(s * scale);
+    }
+  }
+  return table;
+}
+
+/**
+ * How two aligned residues relate: `|` the same residue, `:` a
+ * substitution BLOSUM62 scores as likely (a positive score), `.` one it
+ * does not — the convention BLAST and Clustal print.
+ */
+export function residueMark(x: string, y: string): '|' | ':' | '.' {
+  const a = x.toUpperCase();
+  const b = y.toUpperCase();
+  if (a === b && a !== 'X' && PROTEIN_CODE_OF[a.charCodeAt(0)] !== BLOSUM62_ORDER.length) {
+    return '|';
+  }
+  const row = PROTEIN_CODE_OF[a.charCodeAt(0)] ?? BLOSUM62_ORDER.length;
+  const column = PROTEIN_CODE_OF[b.charCodeAt(0)] ?? BLOSUM62_ORDER.length;
+  if (row === BLOSUM62_ORDER.length || column === BLOSUM62_ORDER.length) return '.';
+  return (BLOSUM62[row]?.[column] ?? -1) > 0 ? ':' : '.';
 }
