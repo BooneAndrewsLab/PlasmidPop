@@ -43,8 +43,8 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   the RNA elements that matter here (the ColE1-type origins' RNA I/RNA II
   region) are already in the core from the records they were described in.
   Matching an Rfam model would need Infernal-style search, a different tool.
-- **What is in it** (rebuilt 2026-09-26 for #98): 162 core parts (nine of
-  them peptide tags with no DNA) and 100 fluorescent proteins, 26 of which
+- **What is in it** (rebuilt 2026-09-26 for #94 and #98): 169 core parts
+  (nine of them peptide tags with no DNA) and 100 fluorescent proteins, 26 of which
   are proteins without a coding sequence. Before #93 it was 153 core parts (markers 28, promoters
   25, primer sites 22, origins 16, regulatory 16, terminators 10, tags 8,
   recombination sites 8, reporters 8, operators 5, other 7) and 74
@@ -56,10 +56,15 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   annotate a part and its bounds were taken from neighbouring annotations
   (an intergenic promoter, a poly(A) signal downstream of a CDS) the part's
   note says so.
-- **What is not, yet.** No public record annotated the usual DNA of several
-  short tags (6xHis, HA, V5, Strep-tag II, TEV site, SV40 NLS…), TRE/tetO
-  arrays, SP6/T7lac/lacUV5/H1 promoters, R6K/RK2/oriP origins, or a
-  CDS-only Cas9, and they were left out rather than typed in. Of the FPs
+- **What is not, yet.** The short tags are in since #93 and #98, matched on
+  the protein. Of the parts #94 listed, seven came in from primary records
+  in 1.8: Cas9 (the CDS of `NC_002737`), CEN4 (`NC_001136`), the RSV 5' LTR
+  (`J02342`), oriP (`V01555`, the family of repeats through the dyad
+  symmetry), RK2's oriV (`BN000925`), R6K's gamma origin (`M65025`) and the
+  SP6 promoter (`X65327`, pSP64). Still out: TRE/tetO arrays, T7lac, lacUV5
+  and the H1 promoter, and ARSH4. Every vector record that annotates them
+  and was looked at carries SnapGene-generated annotation, which item 59
+  rules out as a source; they need a primary record or a probe against one. Of the FPs
   FPbase lists, those without a GenBank protein, with a partial `/coded_by`
   or whose CDS does not translate to FPbase's sequence (EYFP, ECFP,
   mTurquoise2, mScarlet, sfGFP, mKate2, TagBFP…) were dropped by the
