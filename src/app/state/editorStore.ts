@@ -40,7 +40,7 @@ import {
   rangeSegment,
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
-import { type FontSize } from '@/view/linear';
+import { type FontSize, type ResidueNumbering, DEFAULT_RESIDUE_NUMBERING } from '@/view/linear';
 import { type OverlaySpan } from '@/view/overlay';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
@@ -442,6 +442,11 @@ export interface SharedState {
   /** Whether bases are tinted by what they are (A/C/G/T). */
   readonly colorBases: boolean;
   /**
+   * Which residues of a CDS translation carry their number (#97): none, the
+   * first and every tenth, or every one.
+   */
+  readonly residueNumbering: ResidueNumbering;
+  /**
    * How tall a sequencing read's trace is drawn above its bases, or not at
    * all (#55): a read with features and translations has tall rows, and the
    * chromatogram is not always what is being read.
@@ -796,6 +801,7 @@ const SHARED_INITIAL: SharedState = {
   seqBasesPerRow: null,
   numberComplement: false,
   colorBases: false,
+  residueNumbering: DEFAULT_RESIDUE_NUMBERING,
   traceSize: 'short',
   baseColors: null,
   editsBaseline: 'opened',
@@ -2035,6 +2041,10 @@ export class EditorStore {
 
   setNumberComplement(show: boolean): void {
     if (show !== this.state.numberComplement) this.setShared({ numberComplement: show });
+  }
+
+  setResidueNumbering(numbering: ResidueNumbering): void {
+    if (numbering !== this.state.residueNumbering) this.setShared({ residueNumbering: numbering });
   }
 
   setColorBases(color: boolean): void {

@@ -1,3 +1,4 @@
+import { type ResidueNumbering } from './residueLabels';
 import { type RowBreaks, type SizedRun, rowBreaksOf } from './rowBreaks';
 
 /**
@@ -24,8 +25,16 @@ export interface LinearMetrics {
   /** Height of the chromatogram above the strands; 0 without one. */
   readonly traceHeight: number;
   readonly laneHeight: number;
-  /** Height of one amino-acid line drawn under the strands. */
+  /**
+   * Height of one amino-acid line drawn under the strands, its band of
+   * residue numbers included.
+   */
   readonly translationHeight: number;
+  /**
+   * The band at the top of each amino-acid line that holds its residue
+   * numbers (#97); 0 when residues are not numbered.
+   */
+  readonly residueNumberHeight: number;
   /** Height of one preview-overlay lane, drawn outside the feature lanes. */
   readonly overlayHeight: number;
   /** Vertical space after the last lane of a row. */
@@ -348,11 +357,19 @@ export interface MetricsOptions {
    * none, the 64 px it has always had at the default size, or twice that (#55).
    */
   readonly trace?: 'short' | 'tall' | false;
+  /**
+   * Whether the amino-acid lines keep a band above their letters for residue
+   * numbers (#97). Default off, for drawings with no translations.
+   */
+  readonly residueNumbering?: ResidueNumbering;
   /** Extra space before the first column, for a sticky end hanging off the left. */
   readonly extraLeftGutter?: number;
   /** Extra space after the last column, for a sticky end hanging off the right. */
   readonly extraRightGutter?: number;
 }
+
+/** Height at the default size of the band residue numbers are drawn in. */
+const RESIDUE_NUMBER_BAND = 11;
 
 /**
  * The row geometry for a font size. All the vertical measurements and the
@@ -363,6 +380,7 @@ export interface MetricsOptions {
 export function linearMetrics(o: MetricsOptions): LinearMetrics {
   const scale = o.fontSize / DEFAULT_FONT_SIZE;
   const at = (atDefault: number): number => Math.round(atDefault * scale);
+  const numberBand = (o.residueNumbering ?? 'off') === 'off' ? 0 : at(RESIDUE_NUMBER_BAND);
   return {
     basesPerRow: o.basesPerRow,
     charWidth: o.charWidth,
@@ -371,7 +389,8 @@ export function linearMetrics(o: MetricsOptions): LinearMetrics {
     rulerHeight: o.cutSiteLabels ? at(30) : at(16),
     traceHeight: o.trace === 'tall' ? at(128) : o.trace === 'short' ? at(64) : 0,
     laneHeight: at(20),
-    translationHeight: at(16),
+    translationHeight: at(16) + numberBand,
+    residueNumberHeight: numberBand,
     overlayHeight: at(18),
     rowGap: at(14),
     leftGutter: at(72) + (o.extraLeftGutter ?? 0),

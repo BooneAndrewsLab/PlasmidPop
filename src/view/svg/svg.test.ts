@@ -220,6 +220,30 @@ describe('exportLinearSvg', () => {
       height(exportLinearSvg(doc, { range: { start: 86, end: 200 } })),
     );
   });
+
+  it('numbers the residues as the view does (#97)', () => {
+    const { doc } = plasmid();
+    // The residue numbers are the only text at 0.85 of the 11 px label size.
+    const numbers = (svg: string): number[] =>
+      [...svg.matchAll(/font-size="9.35"[^>]*>([\d,]+)</g)].map((m) =>
+        Number((m[1] ?? '').replace(/,/g, '')),
+      );
+    // Rows 61–240 hold the first 52 codons of the CDS at 86..1276.
+    const range = { start: 86, end: 200 };
+    const tens = exportLinearSvg(doc, { range, showTranslations: true });
+    expect(numbers(tens)).toEqual([1, 10, 20, 30, 40, 50]);
+    const every = exportLinearSvg(doc, {
+      range,
+      showTranslations: true,
+      residueNumbering: 'every',
+    });
+    expect(numbers(every)).toEqual(Array.from({ length: 52 }, (_, i) => i + 1));
+    const off = exportLinearSvg(doc, { range, showTranslations: true, residueNumbering: 'off' });
+    expect(numbers(off)).toEqual([]);
+    // Without numbers the amino-acid lines give back their band.
+    expect(height(off)).toBeLessThan(height(tens));
+    expect(height(every)).toBe(height(tens));
+  });
 });
 
 describe('exportLinearSvgPages (#30)', () => {

@@ -10,6 +10,7 @@ describe('FormatMenu', () => {
       editorStore.setSeqBasesPerRow(null);
       editorStore.setBaseColors(null);
       editorStore.setColorBases(false);
+      editorStore.setResidueNumbering('tens');
     });
   });
 
@@ -46,5 +47,16 @@ describe('FormatMenu', () => {
     expect(Object.values(editorStore.getState().baseColors ?? {})).toHaveLength(4);
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
     expect(editorStore.getState().baseColors).toBeNull();
+  });
+
+  it('numbers residues every tenth by default, or every one, or not at all (#97)', () => {
+    open();
+    const item = (name: string) => screen.getByRole('menuitemradio', { name });
+    expect(item('Every 10th')).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(item('Every residue'));
+    expect(editorStore.getState().residueNumbering).toBe('every');
+    expect(item('Every residue')).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(item('Off'));
+    expect(editorStore.getState().residueNumbering).toBe('off');
   });
 });

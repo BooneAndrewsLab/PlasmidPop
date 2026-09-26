@@ -12,7 +12,12 @@ import {
   normalizePrimerCriteria,
   samePrimerCriteria,
 } from '@/core';
-import { type FontSize, isFontSize } from '@/view/linear';
+import {
+  type FontSize,
+  type ResidueNumbering,
+  isFontSize,
+  isResidueNumbering,
+} from '@/view/linear';
 
 import { type BenchSettings, normalizeBenchSettings } from './benchSettings';
 import { type SidebarReaction, isBenchReaction, isSidebarReaction } from './cloningReaction';
@@ -52,6 +57,8 @@ export interface ViewPrefs {
   /** Null means "fit the window", as in the store. */
   readonly seqBasesPerRow: number | null;
   readonly numberComplement: boolean;
+  /** Which residues are numbered; see `SharedState.residueNumbering`. */
+  readonly residueNumbering: ResidueNumbering;
   readonly colorBases: boolean;
   /** How tall a read's trace is drawn; see `SharedState.traceSize`. */
   readonly traceSize: TraceSize;
@@ -167,6 +174,9 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
   if (isFontSize(record['seqFontSize'])) prefs.seqFontSize = record['seqFontSize'];
   if (isTraceSize(record['traceSize'])) prefs.traceSize = record['traceSize'];
+  if (isResidueNumbering(record['residueNumbering'])) {
+    prefs.residueNumbering = record['residueNumbering'];
+  }
   if (record['baseColors'] === null) prefs.baseColors = null;
   else {
     const colors = toBaseColors(record['baseColors']);
@@ -267,6 +277,7 @@ function snapshot(): ViewPrefs {
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
+    residueNumbering,
     colorBases,
     traceSize,
     baseColors,
@@ -298,6 +309,7 @@ function snapshot(): ViewPrefs {
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
+    residueNumbering,
     colorBases,
     traceSize,
     baseColors,
@@ -334,6 +346,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.seqFontSize === b.seqFontSize &&
     a.seqBasesPerRow === b.seqBasesPerRow &&
     a.numberComplement === b.numberComplement &&
+    a.residueNumbering === b.residueNumbering &&
     a.colorBases === b.colorBases &&
     a.traceSize === b.traceSize &&
     a.baseColors === b.baseColors &&
@@ -380,6 +393,9 @@ export function startViewPrefs(): () => void {
   if (stored.seqBasesPerRow !== undefined) editorStore.setSeqBasesPerRow(stored.seqBasesPerRow);
   if (stored.numberComplement !== undefined) {
     editorStore.setNumberComplement(stored.numberComplement);
+  }
+  if (stored.residueNumbering !== undefined) {
+    editorStore.setResidueNumbering(stored.residueNumbering);
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
   if (stored.traceSize !== undefined) editorStore.setTraceSize(stored.traceSize);

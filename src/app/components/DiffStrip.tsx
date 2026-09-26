@@ -106,6 +106,7 @@ export function DiffStrip({ doc, diff, hunk }: Props) {
       edits: diff,
       colorBases: false,
       numberComplement: false,
+      residueNumbering: 'off',
       scrollTop: drawing.scrollTop,
       scrollLeft: 0,
       width: drawing.width,

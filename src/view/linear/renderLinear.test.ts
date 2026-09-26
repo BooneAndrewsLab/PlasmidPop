@@ -32,6 +32,7 @@ const metrics: LinearMetrics = {
   traceHeight: 0,
   laneHeight: 20,
   translationHeight: 20,
+  residueNumberHeight: 0,
   overlayHeight: 16,
   rowGap: 10,
   leftGutter: 100,
@@ -81,6 +82,7 @@ function render(
     overlayLanes: previewLanes,
     colorBases: false,
     numberComplement: false,
+    residueNumbering: 'off',
     scrollTop: 0,
     scrollLeft: 0,
     width: 300,
@@ -321,6 +323,7 @@ describe('renderLinearView format options', () => {
       edits: null,
       colorBases: false,
       numberComplement: true,
+      residueNumbering: 'off',
       scrollTop: 0,
       scrollLeft: 0,
       width: 300,
@@ -450,5 +453,137 @@ describe('renderLinearView preview overlay', () => {
     // One base wide, in the columns of bases 3 and 7.
     const xs = marked.map((r) => Number(/x="([\d.]+)"/.exec(r)?.[1])).sort((a, b) => a - b);
     expect(xs[1] !== undefined && xs[0] !== undefined && xs[1] - xs[0]).toBe(40);
+  });
+});
+
+describe('renderLinearView residue numbers', () => {
+  // Rows of 30 bases, 10 px each; the amino-acid line keeps an 11 px band
+  // above its letters for the numbers.
+  const numbered: LinearMetrics = {
+    ...metrics,
+    basesPerRow: 30,
+    translationHeight: 31,
+    residueNumberHeight: 11,
+  };
+  /** The numbers drawn, told from other text by their size (0.85 of the 11 px label font). */
+  function numbers(svg: string): { text: string; x: number; y: number }[] {
+    return [
+      ...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"[^>]*font-size="9.35"[^>]*>([^<]*)</g),
+    ].map((m) => ({ text: m[3] ?? '', x: Number(m[1]), y: Number(m[2]) }));
+  }
+  function draw(
+    doc: SeqDocument,
+    residueNumbering: RenderParams['residueNumbering'],
+    m: LinearMetrics = numbered,
+  ): string {
+    const features = doc.features.all();
+    const lanes = assignLanes(features, doc.length);
+    const layout = new LinearLayout(
+      doc.length,
+      m,
+      lanesPerRow(features, lanes, doc.length, m.basesPerRow),
+      lanesPerRow(features, lanes, doc.length, m.basesPerRow),
+    );
+    return render(doc, true, null, {
+      layout,
+      lanes,
+      translationLanes: lanes,
+      residueNumbering,
+      width: 500,
+      height: layout.totalHeight,
+    });
+  }
+  const orf = (init: Partial<Parameters<typeof createFeature>[0]> = {}) =>
+    createFeature({ type: 'CDS', name: 'orf', segments: [rangeSegment(0, 90)], ...init });
+  const bases = (n: number): string => 'ATGAAACCCGGGTTT'.repeat(Math.ceil(n / 15)).slice(0, n);
+  // Row 0: ruler 20 + strands 40, then the band; a row is that, the 31 px
+  // line, one 20 px lane and the 10 px gap.
+  const BASELINE = 60 + 11 - 2;
+  const ROW = 60 + 31 + 20 + 10;
+
+  it('numbers the first residue and every tenth over its letter, in the band', () => {
+    const doc = SeqDocument.create({ sequence: bases(90), features: [orf()] });
+    const svg = draw(doc, 'tens');
+    expect(numbers(svg)).toEqual([
+      { text: '1', x: 115, y: BASELINE },
+      { text: '10', x: 385, y: BASELINE },
+      { text: '20', x: 385, y: ROW + BASELINE },
+      { text: '30', x: 385, y: 2 * ROW + BASELINE },
+    ]);
+    // Each sits over its residue's letter, above it.
+    const letters = texts(svg).filter((t) => /^[A-Z*]$/.test(t.text));
+    for (const n of numbers(svg)) {
+      const letter = letters.find((l) => l.x === n.x && l.y > n.y && l.y - n.y < 20);
+      expect(letter).toBeDefined();
+    }
+  });
+
+  it('numbers a reverse-strand CDS from its right-hand end', () => {
+    const doc = SeqDocument.create({ sequence: bases(90), features: [orf({ strand: 'reverse' })] });
+    expect(numbers(draw(doc, 'tens'))).toEqual([
+      { text: '30', x: 115, y: BASELINE },
+      { text: '20', x: 115, y: ROW + BASELINE },
+      // Drawn in reading order: residue 1 first.
+      { text: '1', x: 385, y: 2 * ROW + BASELINE },
+      { text: '10', x: 115, y: 2 * ROW + BASELINE },
+    ]);
+  });
+
+  it('puts the number of a codon split by a row break where its letter is', () => {
+    // Residue 10 is bases 29 | 30, 31: its middle base, and its letter, in row 1.
+    const doc = SeqDocument.create({
+      sequence: bases(100),
+      features: [orf({ segments: [rangeSegment(2, 92)] })],
+    });
+    const svg = draw(doc, 'tens');
+    const ten = numbers(svg).find((n) => n.text === '10');
+    expect(ten).toEqual({ text: '10', x: 110, y: ROW + BASELINE });
+    const letters = texts(svg).filter((t) => /^[A-Z*]$/.test(t.text));
+    expect(letters.some((l) => l.x === 110 && l.y > ROW + BASELINE)).toBe(true);
+  });
+
+  it('counts straight on through the origin of a circle', () => {
+    // 45 bases from 45: residue 1 at 45..47 in row 1, residue 10 at 12..14 in row 0.
+    const doc = SeqDocument.create({
+      sequence: bases(60),
+      topology: 'circular',
+      features: [orf({ segments: [rangeSegment(45, 90)] })],
+    });
+    const drawn = numbers(draw(doc, 'tens'));
+    expect(drawn).toContainEqual({ text: '10', x: 235, y: BASELINE });
+    expect(drawn).toContainEqual({ text: '1', x: 265, y: ROW + BASELINE });
+    expect(drawn.map((n) => n.text).sort()).toEqual(['1', '10']);
+  });
+
+  it('numbers every residue when asked and there is room', () => {
+    const doc = SeqDocument.create({ sequence: bases(90), features: [orf()] });
+    const drawn = numbers(draw(doc, 'every'));
+    expect(drawn.map((n) => Number(n.text))).toEqual(Array.from({ length: 30 }, (_, i) => i + 1));
+  });
+
+  it('drops numbers that have no room rather than overlapping them, keeping the tens', () => {
+    // 4 px bases: a codon is 12 px and a two-digit number 10.4 px, so with
+    // the gap between them not every one fits.
+    const narrow = { ...numbered, charWidth: 4 };
+    const doc = SeqDocument.create({ sequence: bases(90), features: [orf()] });
+    const drawn = numbers(draw(doc, 'every', narrow));
+    const shown = drawn.map((n) => Number(n.text));
+    expect(shown.length).toBeLessThan(30);
+    expect(shown).toEqual(expect.arrayContaining([1, 10, 20, 30]));
+    // No two in one row closer than their half-widths and the gap.
+    const width = (s: string): number => s.length * 0.556 * 9.35;
+    for (const a of drawn) {
+      for (const b of drawn) {
+        if (a === b || a.y !== b.y) continue;
+        expect(Math.abs(a.x - b.x)).toBeGreaterThanOrEqual((width(a.text) + width(b.text)) / 2 + 4);
+      }
+    }
+  });
+
+  it('draws no numbers when they are off, or when the metrics keep no band', () => {
+    const doc = SeqDocument.create({ sequence: bases(90), features: [orf()] });
+    expect(numbers(draw(doc, 'off'))).toEqual([]);
+    const noBand = { ...numbered, translationHeight: 20, residueNumberHeight: 0 };
+    expect(numbers(draw(doc, 'tens', noBand))).toEqual([]);
   });
 });

@@ -32,22 +32,41 @@ export interface ResidueNumber {
    * the origin is numbered where it is lettered.
    */
   readonly position: number;
+  /**
+   * Whether it is the first residue or a tenth one. When every residue is
+   * numbered and they do not all fit, these are the ones kept.
+   */
+  readonly major: boolean;
 }
 
-const cache = new WeakMap<CdsTranslation, readonly ResidueNumber[]>();
+const cache = new WeakMap<CdsTranslation, Map<number, readonly ResidueNumber[]>>();
 
 /**
- * The numbered residues of a CDS translation, in reading order. Kept per
- * translation (which is itself kept per document version), since the view
- * asks for them once per row it draws.
+ * The numbered residues of a CDS translation, in reading order: the first and
+ * every `step`th, so a step of 1 numbers every residue. Kept per translation
+ * (which is itself kept per document version), since the view asks for them
+ * once per row it draws.
  */
-export function residueNumbers(t: CdsTranslation): readonly ResidueNumber[] {
-  let out = cache.get(t);
+export function residueNumbers(
+  t: CdsTranslation,
+  step: number = RESIDUE_NUMBER_EVERY,
+): readonly ResidueNumber[] {
+  let byStep = cache.get(t);
+  if (byStep === undefined) {
+    byStep = new Map();
+    cache.set(t, byStep);
+  }
+  let out = byStep.get(step);
   if (out === undefined) {
     out = t.codons
-      .filter((codon) => isNumberedResidue(codon.index + 1))
-      .map((codon) => ({ number: codon.index + 1, codon, position: codon.positions[1] }));
-    cache.set(t, out);
+      .filter((codon) => isNumberedResidue(codon.index + 1, step))
+      .map((codon) => ({
+        number: codon.index + 1,
+        codon,
+        position: codon.positions[1],
+        major: isNumberedResidue(codon.index + 1),
+      }));
+    byStep.set(step, out);
   }
   return out;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { type FontSize, FONT_SIZES } from '@/view/linear';
+import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
 import { type TraceSize, editorStore } from '../state/editorStore';
@@ -33,6 +33,17 @@ const TRACE_SIZES: readonly (readonly [TraceSize, string, string])[] = [
   ['tall', 'Tall', 'The chromatogram at twice the height, for reading close peaks'],
 ];
 
+/** Which residues of a CDS translation carry their number (#97). */
+const RESIDUE_NUMBERINGS: readonly (readonly [ResidueNumbering, string, string])[] = [
+  ['off', 'Off', 'Draw the amino acids without numbers, in lower rows'],
+  ['tens', 'Every 10th', 'Number the first residue and every tenth over the translations'],
+  [
+    'every',
+    'Every residue',
+    'Number every residue; those with no room are left out until the text is larger or the rows shorter',
+  ],
+];
+
 /**
  * How the sequence view draws: text size, how many bases go in a row,
  * whether the complement is numbered too and whether bases are coloured,
@@ -46,6 +57,7 @@ export function FormatMenu() {
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
+    residueNumbering,
     colorBases,
     traceSize,
     history,
@@ -81,6 +93,7 @@ export function FormatMenu() {
   };
   // The trace sizes can be set only while a read with a trace is in front.
   const hasTrace = history?.present.read?.trace != null;
+  const isProtein = history?.present.isProtein === true;
   // Every item leaves the menu open: the point is to try a size or a row
   // width and see the view change behind it. Escape or a click outside closes.
   const { open, toggle, ref } = useMenu();
@@ -248,6 +261,30 @@ export function FormatMenu() {
               </button>
             </div>
           )}
+          <div className="menu__separator" />
+          <p className="menu__group-label">
+            Residue numbers
+            {isProtein && <span className="menu__group-note"> · for CDS translations</span>}
+          </p>
+          {RESIDUE_NUMBERINGS.map(([numbering, label, title]) => (
+            <button
+              key={numbering}
+              type="button"
+              role="menuitemradio"
+              aria-checked={residueNumbering === numbering}
+              className="menu__item"
+              // A protein's ruler already counts its residues (#66).
+              disabled={isProtein}
+              title={isProtein ? "A protein's ruler already counts its residues" : title}
+              onClick={() => {
+                analytics.trackOnce('view', 'format', 'residue-numbers');
+                editorStore.setResidueNumbering(numbering);
+              }}
+            >
+              <span>{label}</span>
+              <Tick on={residueNumbering === numbering} />
+            </button>
+          ))}
           <div className="menu__separator" />
           <p className="menu__group-label">
             Trace

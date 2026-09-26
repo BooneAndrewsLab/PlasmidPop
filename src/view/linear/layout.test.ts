@@ -18,6 +18,7 @@ const metrics: LinearMetrics = {
   laneHeight: 18,
   overlayHeight: 16,
   translationHeight: 12,
+  residueNumberHeight: 0,
   rowGap: 6,
   leftGutter: 60,
   rightGutter: 24,
@@ -161,6 +162,7 @@ describe('linearMetrics', () => {
       lineHeight: 18,
       laneHeight: 20,
       translationHeight: 16,
+      residueNumberHeight: 0,
       rowGap: 14,
       rulerHeight: 16,
       traceHeight: 0,
@@ -168,6 +170,26 @@ describe('linearMetrics', () => {
       rightGutter: 24,
       topPadding: 12,
     });
+  });
+
+  it('keeps a band for residue numbers on each amino-acid line only while they are shown', () => {
+    const numbered = (residueNumbering: 'off' | 'tens' | 'every', fontSize = 13) =>
+      linearMetrics({
+        fontSize,
+        basesPerRow: 60,
+        charWidth: 8,
+        showComplement: true,
+        cutSiteLabels: false,
+        residueNumbering,
+      });
+    expect(numbered('off')).toMatchObject({ translationHeight: 16, residueNumberHeight: 0 });
+    expect(numbered('tens')).toMatchObject({ translationHeight: 27, residueNumberHeight: 11 });
+    expect(numbered('every')).toMatchObject({ translationHeight: 27, residueNumberHeight: 11 });
+    // Scaled with the text, like the rest of the row.
+    expect(numbered('tens', 16).residueNumberHeight).toBe(14);
+    // A row with two amino-acid lines is two bands taller.
+    const rows = (m: LinearMetrics) => new LinearLayout(60, m, [0], [2]).rows[0]?.height ?? 0;
+    expect(rows(numbered('tens')) - rows(numbered('off'))).toBe(22);
   });
 
   it('scales the rows with the text', () => {

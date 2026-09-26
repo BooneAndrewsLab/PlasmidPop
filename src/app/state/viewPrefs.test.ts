@@ -16,6 +16,7 @@ const DEFAULTS = {
   seqFontSize: 13,
   seqBasesPerRow: null,
   numberComplement: false,
+  residueNumbering: 'tens',
   colorBases: false,
   traceSize: 'short',
   baseColors: null,
@@ -50,6 +51,7 @@ function reset(): void {
   editorStore.setSeqFontSize(DEFAULTS.seqFontSize);
   editorStore.setSeqBasesPerRow(DEFAULTS.seqBasesPerRow);
   editorStore.setNumberComplement(DEFAULTS.numberComplement);
+  editorStore.setResidueNumbering(DEFAULTS.residueNumbering);
   editorStore.setColorBases(DEFAULTS.colorBases);
   editorStore.setTraceSize(DEFAULTS.traceSize);
   editorStore.setBaseColors(DEFAULTS.baseColors);
@@ -91,6 +93,7 @@ describe('view preferences', () => {
       seqFontSize: 16,
       seqBasesPerRow: 60,
       numberComplement: true,
+      residueNumbering: 'every',
       colorBases: true,
       traceSize: 'tall',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
@@ -147,6 +150,7 @@ describe('view preferences', () => {
         seqFontSize: 9,
         seqBasesPerRow: 4,
         colorBases: 1,
+        residueNumbering: 'all',
       }),
     );
     expect(loadViewPrefs()).toEqual({});
@@ -165,6 +169,7 @@ describe('view preferences', () => {
       seqFontSize: 11,
       seqBasesPerRow: 90,
       numberComplement: true,
+      residueNumbering: 'off',
       colorBases: true,
       traceSize: 'tall',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
@@ -203,6 +208,7 @@ describe('view preferences', () => {
       seqFontSize: 11,
       seqBasesPerRow: 90,
       numberComplement: true,
+      residueNumbering: 'off',
       colorBases: true,
       traceSize: 'tall',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },

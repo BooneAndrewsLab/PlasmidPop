@@ -20,6 +20,7 @@ const metrics: LinearMetrics = {
   laneHeight: 18,
   overlayHeight: 16,
   translationHeight: 12,
+  residueNumberHeight: 0,
   rowGap: 6,
   leftGutter: 60,
   rightGutter: 24,

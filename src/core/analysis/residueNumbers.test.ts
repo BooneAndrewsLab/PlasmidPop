@@ -233,9 +233,20 @@ describe('residueNumbers', () => {
     });
   });
 
-  it('is kept per translation', () => {
+  it('numbers every residue at a step of 1, marking the first and the tenths', () => {
+    const t = translateCds(doc, cds({ strand: 'reverse', segments: [rangeSegment(1, 70)] }));
+    const all = residueNumbers(t, 1);
+    expect(all.map((r) => r.number)).toEqual(t.codons.map((c) => c.index + 1));
+    expect(all.map((r) => r.position)).toEqual(t.codons.map((c) => c.positions[1]));
+    expect(all.filter((r) => r.major).map((r) => r.number)).toEqual([1, 10, 20]);
+    expect(residueNumbers(t).every((r) => r.major)).toBe(true);
+  });
+
+  it('is kept per translation and step', () => {
     const t = translateCds(doc, cds({ segments: [rangeSegment(0, 90)] }));
     expect(residueNumbers(t)).toBe(residueNumbers(t));
+    expect(residueNumbers(t, 1)).toBe(residueNumbers(t, 1));
+    expect(residueNumbers(t, 1)).not.toBe(residueNumbers(t));
   });
 
   it('numbers nothing when there is no whole codon', () => {

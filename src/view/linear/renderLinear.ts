@@ -1,5 +1,6 @@
 import {
   type BaseStyle,
+  type CdsTranslation,
   type CdsTranslations,
   type CutSite,
   type DocumentDiff,
@@ -8,6 +9,7 @@ import {
   type SeqDocument,
   complement,
   marksIn,
+  residueNumbers,
   rangePieces,
   sameFeatureLocation,
   topStrandOverhang,
@@ -20,6 +22,12 @@ import { thicknessFraction } from '../featureShape';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
+import {
+  type LabelCandidate,
+  type ResidueNumbering,
+  placeLabels,
+  residueStep,
+} from './residueLabels';
 
 /**
  * Colours for the four bases when base colouring is on, with `other` for the
@@ -65,6 +73,11 @@ export interface RenderParams {
    */
   readonly translations: CdsTranslations | null;
   readonly translationLanes: LaneAssignment;
+  /**
+   * Which residues of a translation carry their number, in the band the
+   * metrics keep above its letters (#97). Nothing is numbered without one.
+   */
+  readonly residueNumbering: ResidueNumbering;
   readonly selection: Range | null;
   /** Cut sites to mark above the strands (already filtered to the enzymes the user wants). */
   readonly cutSites: readonly CutSite[];
@@ -512,23 +525,27 @@ function runsInRow(positions: readonly number[], start: number, end: number): Ru
  * lightly tinted box over its bases (alternating shades so codon boundaries
  * read even where letters are omitted) with the one-letter code centred on
  * it. A codon split by a join or a row break is shaded wherever its bases
- * are and lettered once, over the piece holding its middle base.
+ * are and lettered once, over the piece holding its middle base. Residue
+ * numbers go in the band above the boxes.
  */
 function drawTranslations(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
   const { doc, layout, theme, translations, translationLanes } = p;
   if (translations === null || row.translations === 0) return;
   const m = layout.metrics;
-  const height = m.translationHeight - 2;
-  ctx.font = p.monoFont;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  const band = m.residueNumberHeight;
+  const height = m.translationHeight - band - 2;
   for (const feature of doc.features.overlapping({ start: row.start, end: row.end }, doc.length)) {
     const line = translationLanes.laneOf.get(feature.id);
     if (line === undefined || line >= row.translations) continue;
-    const top = layout.translationTop(row, line) + 1;
+    const lineTop = layout.translationTop(row, line);
+    const top = lineTop + band + 1;
     const color = featureColor(feature);
     const fills = [withAlpha(color, 0.16), withAlpha(color, 0.34)];
-    for (const codon of translations.get(feature).codons) {
+    const translation = translations.get(feature);
+    ctx.font = p.monoFont;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const codon of translation.codons) {
       const runs = runsInRow(codon.positions, row.start, row.end);
       if (runs.length === 0) continue;
       const middle = codon.positions[1];
@@ -543,8 +560,88 @@ function drawTranslations(ctx: DrawingContext, p: RenderParams, row: RowLayout):
         }
       }
     }
+    if (band > 0) drawResidueNumbers(ctx, p, row, translation, lineTop + band - 2);
   }
 }
+
+/**
+ * `n` as the ruler writes it, formatted once: with every residue numbered a
+ * screen asks for hundreds, and locale formatting is not free.
+ */
+const numberTexts: string[] = [];
+function numberText(n: number): string {
+  let text = numberTexts[n];
+  if (text === undefined) {
+    text = n.toLocaleString();
+    numberTexts[n] = text;
+  }
+  return text;
+}
+
+/** Space kept clear between two residue numbers. */
+const RESIDUE_NUMBER_GAP = 4;
+
+/**
+ * The numbers of a translation's residues whose letters are in `row`, each
+ * centred over its letter with its foot on `baseline`: the first residue and
+ * every tenth, or every one. One that would come too close to another is left
+ * out — the tens are kept first — so they never run together, whatever the
+ * text size or row width.
+ */
+function drawResidueNumbers(
+  ctx: DrawingContext,
+  p: RenderParams,
+  row: RowLayout,
+  translation: CdsTranslation,
+  baseline: number,
+): void {
+  const step = residueStep(p.residueNumbering);
+  if (step === null) return;
+  const { layout } = p;
+  const labels: (LabelCandidate & { readonly text: string })[] = [];
+  ctx.font = styledFont(p.sansFont, RESIDUE_NUMBER_SCALE, false);
+  for (const residue of residueNumbers(translation, step)) {
+    const at = residue.position;
+    if (at < row.start || at >= row.end) continue;
+    // Over the letter: the middle of the stretch of the codon holding its middle base.
+    const run = runAround(residue.codon.positions, at, row);
+    const text = numberText(residue.number);
+    labels.push({
+      text,
+      x: (layout.xOf(row, run.start) + layout.xOf(row, run.end)) / 2,
+      width: ctx.measureText(text).width,
+      major: residue.major,
+    });
+  }
+  if (labels.length === 0) return;
+  const kept = placeLabels(labels, RESIDUE_NUMBER_GAP);
+  ctx.fillStyle = p.theme.inkMuted;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  labels.forEach((label, i) => {
+    if (kept[i] === true) ctx.fillText(label.text, label.x, baseline);
+  });
+}
+
+/**
+ * The stretch of `positions` in `row` that holds `at`: what `runsInRow` would
+ * give for it, without building the list, since it is asked once per number.
+ */
+function runAround(positions: readonly number[], at: number, row: RowLayout): Run {
+  let start = at;
+  let end = at + 1;
+  // Three bases at most, so two passes reach both neighbours of the middle one.
+  for (let pass = 0; pass < 2; pass++) {
+    for (const q of positions) {
+      if (q === start - 1 && q >= row.start) start = q;
+      else if (q === end && q < row.end) end = q + 1;
+    }
+  }
+  return { start, end };
+}
+
+/** Residue numbers are drawn at this fraction of the label font. */
+const RESIDUE_NUMBER_SCALE = 0.85;
 
 interface Ribbon {
   readonly x0: number;

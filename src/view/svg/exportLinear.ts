@@ -12,8 +12,10 @@ import {
 
 import {
   type LinearTheme,
+  type ResidueNumbering,
   type RowLayout,
   DEFAULT_FONT_SIZE,
+  DEFAULT_RESIDUE_NUMBERING,
   LinearLayout,
   RowBreaks,
   NO_LANES,
@@ -79,6 +81,8 @@ export interface LinearExportOptions {
   readonly colorBases?: boolean;
   /** Repeat each row's position number beside the complement. */
   readonly numberComplement?: boolean;
+  /** Which residues of a translation are numbered, as on screen (#97). Default every tenth. */
+  readonly residueNumbering?: ResidueNumbering;
   /** The base colours the user chose, which a figure keeps (#29); the print palette's otherwise. */
   readonly baseColors?: {
     readonly a: string;
@@ -135,6 +139,10 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
   );
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cutSites = options.cutSites ?? [];
+  const numbering =
+    options.showTranslations === true
+      ? (options.residueNumbering ?? DEFAULT_RESIDUE_NUMBERING)
+      : 'off';
   const monoFont = monoFontOf(fontSize);
   const charWidth = charWidthFor(monoFont);
   const overhangs = endOverhangs(doc);
@@ -147,6 +155,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
     cutSiteLabels: cutSites.length > 0,
     // A read's chromatogram is exported with it, at the height it has on screen.
     trace: doc.read?.trace == null || options.trace === 'off' ? false : (options.trace ?? 'short'),
+    residueNumbering: numbering,
     // ...and for a sticky end drawn beside the first or last column.
     extraLeftGutter: overhangs.leftBottom * charWidth,
     extraRightGutter: overhangs.rightBottom * charWidth,
@@ -209,6 +218,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
       edits: options.edits ?? null,
       colorBases: options.colorBases ?? false,
       numberComplement: options.numberComplement ?? false,
+      residueNumbering: numbering,
       scrollTop: top,
       scrollLeft: 0,
       width,

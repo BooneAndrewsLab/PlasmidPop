@@ -133,6 +133,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
+    residueNumbering,
     colorBases,
     traceSize,
     baseColors,
@@ -226,6 +227,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       cutSiteLabels: showCutSites && hasTool(doc, 'enzymes') && shownEnzymes.size > 0,
       // A read's chromatogram, above its bases (#52), as tall as Format says (#55).
       trace: doc.read?.trace == null || traceSize === 'off' ? (false as const) : traceSize,
+      // Room above each amino-acid line for its residue numbers (#97).
+      residueNumbering: showTranslations ? residueNumbering : ('off' as const),
       extraLeftGutter: overhangs.leftBottom * charWidth,
       extraRightGutter: overhangs.rightBottom * charWidth,
     };
@@ -244,6 +247,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     showCutSites,
     shownEnzymes.size,
     traceSize,
+    showTranslations,
+    residueNumbering,
   ]);
   /** How wide the rows are; more than the viewport when a fixed width overflows. */
   const contentWidth = linearWidth(metrics);
@@ -403,6 +408,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         // A, C, G and T colours would say nothing true of residues (#66).
         colorBases: colorBases && !doc.isProtein,
         numberComplement,
+        residueNumbering,
         scrollTop,
         scrollLeft,
         width: size.width,
@@ -429,6 +435,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     edits,
     colorBases,
     numberComplement,
+    residueNumbering,
     scrollTop,
     scrollLeft,
     size,
