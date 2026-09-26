@@ -51,6 +51,13 @@ export interface DetectOptions {
    * too (#93). On by default; `detectProteinFeatures` is what it runs.
    */
   readonly protein?: boolean;
+  /**
+   * Whether a part may hang off the end of a linear sequence and be offered
+   * for the piece that is there (#94). On by default: a fragment cut out of
+   * a vector ends in the middle of whatever it ends in, and saying so is
+   * more use than saying nothing. A circle has no ends to hang off.
+   */
+  readonly partialEnds?: boolean;
 }
 
 export interface FeatureHit {
@@ -70,7 +77,23 @@ export interface FeatureHit {
    * (#93): then `mismatches` and `identity` are of residues, not bases.
    */
   readonly viaProtein?: boolean;
+  /**
+   * That the part runs off the start or the end of a linear sequence (#94),
+   * so only the piece inside it was matched. The feature made from it is
+   * marked partial there, as GenBank's `<`/`>` mean.
+   */
+  readonly partialStart?: boolean;
+  readonly partialEnd?: boolean;
 }
+
+/**
+ * Least of a part that must be inside a linear sequence for the piece to be
+ * offered (#94): more than two seeds' worth of bases, which do not line up
+ * by chance, and a fifth of the part, so a fragment is not annotated with
+ * something it holds a sliver of.
+ */
+export const MIN_PARTIAL_BASES = 30;
+export const MIN_PARTIAL_SHARE = 0.2;
 
 /** A–T as bits of a mask, IUPAC codes as the bases they stand for; 0 is not a base. */
 const MASKS = (() => {
@@ -237,18 +260,35 @@ export function detectFeatures(
   const tried = new Set<number>();
   const entryCount = index.entries.length;
   const raw: FeatureHit[] = [];
+  // A part may hang off either end of a linear sequence, and then only the
+  // piece inside it is compared (#94).
+  const partialEnds = options.partialEnds !== false && !circular;
   const check = (e: number, start: number): void => {
     const entry = index.entries[e];
     if (entry === undefined) return;
     const len = entry.masks.length;
-    if (start < 0 || start >= n || len > n || start + len > total) return;
+    // Where the part is inside the sequence: the whole of it, unless it is
+    // allowed to run off a linear end.
+    const from = Math.max(0, start);
+    const to = Math.min(start + len, circular ? total : n);
+    const overlap = to - from;
+    const whole = overlap === len && start >= 0;
+    if (!whole) {
+      if (!partialEnds) return;
+      if (overlap < MIN_PARTIAL_BASES || overlap < len * MIN_PARTIAL_SHARE) return;
+    }
+    if (start >= n || (whole && (len > n || start + len > total))) return;
     const key = start * entryCount + e;
     if (tried.has(key)) return;
     tried.add(key);
     let mismatches = 0;
     let ambiguous = 0;
-    const budget = budgets[e] ?? 0;
-    for (let i = 0; i < len; i++) {
+    // The budget is of the piece compared, so a part half inside is held to
+    // the same identity as one wholly inside.
+    const budget = whole
+      ? (budgets[e] ?? 0)
+      : Math.min(budgets[e] ?? 0, Math.floor((overlap / len) * (budgets[e] ?? 0)));
+    for (let i = from - start; i < to - start; i++) {
       const t = target[start + i] ?? 0;
       const q = entry.masks[i] ?? 0;
       if (t === q) continue;
@@ -258,24 +298,30 @@ export function detectFeatures(
     }
     raw.push({
       part: entry.part,
-      range: { start, end: start + len },
+      range: { start: from, end: to },
       strand: entry.strand,
       mismatches,
       ambiguous,
-      identity: (len - mismatches - ambiguous) / len,
+      identity: (overlap - mismatches - ambiguous) / overlap,
+      // Which end was cut off is a fact about the sequence, not the strand:
+      // a reverse-strand part missing its 5' end is missing it at the
+      // sequence's far end, and GenBank's `<`/`>` are in sequence order too.
+      ...(start < 0 ? { partialStart: true } : {}),
+      ...(start + len > to ? { partialEnd: true } : {}),
     });
   };
 
   const onProgress = options.onProgress;
+  const seedVisit = (word: number, at: number): void => {
+    if (((index.present[word >>> 3] ?? 0) & (1 << (word & 7))) === 0) return;
+    const list = index.seeds.get(word);
+    if (list === undefined) return;
+    for (let k = 0; k + 1 < list.length; k += 2) check(list[k] ?? 0, at - (list[k + 1] ?? 0));
+  };
   forEachSeed(
     target,
     total,
-    (word, at) => {
-      if (((index.present[word >>> 3] ?? 0) & (1 << (word & 7))) === 0) return;
-      const list = index.seeds.get(word);
-      if (list === undefined) return;
-      for (let k = 0; k + 1 < list.length; k += 2) check(list[k] ?? 0, at - (list[k + 1] ?? 0));
-    },
+    seedVisit,
     onProgress === undefined
       ? undefined
       : (at) => {
@@ -330,13 +376,16 @@ function keepBest(
   // A protein hit's mismatches are residues, so its identity is the
   // comparable number: what share of the part was matched.
   const matched = (h: FeatureHit): number => size(h) * h.identity;
-  // Best first: longer, then more of the part matched, then a match on the
-  // bases before one on the translation (it is the more exacting), then
-  // forward, then library order.
+  const cut = (h: FeatureHit): boolean => (h.partialStart ?? false) || (h.partialEnd ?? false);
+  // Best first: longer, then more of the part matched, then the whole of a
+  // part before a piece of one running off an end (#94), then a match on
+  // the bases before one on the translation (it is the more exacting),
+  // then forward, then library order.
   const ranked = [...hits].sort(
     (x, y) =>
       size(y) - size(x) ||
       matched(y) - matched(x) ||
+      Number(cut(x)) - Number(cut(y)) ||
       Number(x.viaProtein ?? false) - Number(y.viaProtein ?? false) ||
       (x.strand === y.strand ? 0 : x.strand === 'forward' ? -1 : 1) ||
       x.part - y.part ||

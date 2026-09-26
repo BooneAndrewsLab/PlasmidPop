@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
-import { type FeatureHit, MIN_IDENTITY_CHOICES, detectFeatures, mismatchBudget } from './detect';
+import {
+  type FeatureHit,
+  MIN_IDENTITY_CHOICES,
+  MIN_PARTIAL_BASES,
+  MIN_PARTIAL_SHARE,
+  detectFeatures,
+  mismatchBudget,
+} from './detect';
 import { type FeatureLibrary, type LibraryPart } from './library';
 
 /**
@@ -37,29 +44,43 @@ function slowHits(sequence: string, topology: Topology, lib: FeatureLibrary, min
   const hits: FeatureHit[] = [];
   lib.parts.forEach((p, part) => {
     const len = p.sequence.length;
-    if (len < 12 || len > n) return;
+    // A part longer than a linear sequence can still hang off both ends of
+    // it; on a circle it would cover a base twice, so it is not looked for.
+    if (len < 12 || (len > n && topology === 'circular')) return;
     const budget = mismatchBudget(len, minIdentity);
     for (const strand of ['forward', 'reverse'] as const) {
       const q = strand === 'forward' ? p.sequence : reverseComplement(p.sequence);
-      const last = topology === 'circular' ? n - 1 : n - len;
-      for (let start = 0; start <= last; start++) {
+      // A placement is anywhere the part overlaps the sequence at all: on a
+      // circle it starts inside it, on a linear sequence it may also hang
+      // off either end, and then only the piece inside is compared (#94).
+      const last = n - 1;
+      const first = topology === 'circular' ? 0 : -(len - 1);
+      for (let start = first; start <= last; start++) {
+        const from = Math.max(0, start);
+        const to = topology === 'circular' ? start + len : Math.min(start + len, n);
+        const overlap = to - from;
+        const whole = overlap === len && start >= 0;
+        if (!whole && (overlap < MIN_PARTIAL_BASES || overlap < len * MIN_PARTIAL_SHARE)) continue;
+        const allowed = whole ? budget : Math.min(budget, Math.floor((overlap / len) * budget));
         let mismatches = 0;
         let ambiguous = 0;
-        for (let i = 0; i < len; i++) {
+        for (let i = from - start; i < to - start; i++) {
           const t = seq.charAt((start + i) % n);
           const b = q.charAt(i);
           if (t === b) continue;
           if ((CODES[t] ?? '').includes(b)) ambiguous++;
           else mismatches++;
         }
-        if (mismatches + ambiguous > budget) continue;
+        if (mismatches + ambiguous > allowed) continue;
         hits.push({
           part,
-          range: { start, end: start + len },
+          range: { start: from, end: to },
           strand,
           mismatches,
           ambiguous,
-          identity: (len - mismatches - ambiguous) / len,
+          identity: (overlap - mismatches - ambiguous) / overlap,
+          ...(start < 0 ? { partialStart: true } : {}),
+          ...(start + len > to ? { partialEnd: true } : {}),
         });
       }
     }

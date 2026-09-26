@@ -47,6 +47,16 @@ export function formatIdentity(identity: number): string {
  * match" or "2 residues differ, 99.0% of the protein".
  */
 export function describeMatch(hit: FeatureHit): string {
+  // A part running off an end of a linear sequence is only partly there,
+  // which matters more than how well the piece that is there matched (#94).
+  const atStart = hit.partialStart ?? false;
+  const atEnd = hit.partialEnd ?? false;
+  if (atStart || atEnd) {
+    const how =
+      hit.mismatches === 0 && hit.ambiguous === 0 ? 'exact' : formatIdentity(hit.identity);
+    const where = atStart && atEnd ? 'both ends' : atStart ? 'the start' : 'the end';
+    return `${how} as far as it goes, cut off at ${where}`;
+  }
   if (hit.viaProtein === true) {
     if (hit.mismatches === 0) return 'exact protein match';
     const residues =
@@ -85,7 +95,14 @@ export function featureFromHit(
     type: part.type,
     name: part.name,
     strand: hit.strand,
-    segments: [rangeSegment(hit.range.start, hit.range.end)],
+    // A part running off the end of a linear sequence is annotated as the
+    // piece that is there, marked partial as GenBank's `<`/`>` mean (#94).
+    segments: [
+      rangeSegment(hit.range.start, hit.range.end, {
+        partialStart: hit.partialStart ?? false,
+        partialEnd: hit.partialEnd ?? false,
+      }),
+    ],
     qualifiers,
   });
 }

@@ -114,9 +114,35 @@ describe('detectFeatures', () => {
         const hit = only(detectFeatures(rotated, 'circular', LIB));
         expect(hit.range).toEqual({ start, end: start + 300 });
         expect(hit.strand).toBe(reverse ? 'reverse' : 'forward');
-        // Cut at the origin, a linear molecule has no whole part to find.
+        // Cut at the origin, a linear molecule has no whole part to find:
+        // it has the two pieces of one, each offered when enough of it is
+        // there to be sure of (#94), and none at all when they are not
+        // wanted.
         const wraps = start + 300 > n;
-        expect(detectFeatures(rotated, 'linear', LIB)).toHaveLength(wraps ? 0 : 1);
+        const linear = detectFeatures(rotated, 'linear', LIB);
+        expect(detectFeatures(rotated, 'linear', LIB, { partialEnds: false })).toHaveLength(
+          wraps ? 0 : 1,
+        );
+        if (!wraps) {
+          expect(linear).toHaveLength(1);
+          continue;
+        }
+        const head = n - start; // bases of the part before the sequence ends
+        const worthIt = (bases: number): boolean => bases >= 30 && bases >= 60;
+        const expected = [
+          ...(worthIt(300 - head) ? ['start'] : []),
+          ...(worthIt(head) ? ['end'] : []),
+        ];
+        expect(
+          linear.map((h) => ((h.partialStart ?? false) ? 'start' : 'end')).sort(),
+          `origin ${origin}`,
+        ).toEqual(expected.sort());
+        for (const hit of linear) {
+          // Each piece is where it lies, and says which end was cut off.
+          if (hit.partialStart === true) expect(hit.range.start).toBe(0);
+          if (hit.partialEnd === true) expect(hit.range.end).toBe(n);
+          expect(hit.identity).toBe(1);
+        }
       }
     }
   });
@@ -201,6 +227,28 @@ describe('detectFeatures', () => {
       };
       expect(only(detectFeatures(ns(15), 'linear', LIB)).ambiguous).toBe(15);
       expect(detectFeatures(ns(16), 'linear', LIB)).toEqual([]);
+    });
+
+    it('finds a part however its codes fall, while it is within the budget (#94)', () => {
+      // A word holding a code seeds nothing, so a sequence peppered with
+      // them looks as though it could hide a part. It cannot: a code costs
+      // the budget exactly as a mismatch does, and the budget is capped
+      // where a clean window of twelve is still certain (the q-gram lemma).
+      // Codes every thirteenth base, which is as dense as the budget allows
+      // at 90%, at every offset.
+      const every = 13;
+      for (let offset = 0; offset < every; offset++) {
+        const out = PART.split('');
+        let codes = 0;
+        for (let i = offset; i < out.length; i += every) {
+          out[i] = 'N';
+          codes++;
+        }
+        const seq = randomDna(rand, 40) + out.join('') + randomDna(rand, 40);
+        const hit = only(detectFeatures(seq, 'linear', LIB, { minIdentity: 0.9 }));
+        expect(hit, `offset ${offset}`).toMatchObject({ mismatches: 0, ambiguous: codes });
+        expect(hit.range).toEqual({ start: 40, end: 340 });
+      }
     });
 
     it('matches on the reverse strand through an ambiguity code', () => {

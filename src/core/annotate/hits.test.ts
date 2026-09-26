@@ -194,3 +194,44 @@ describe('describeMatch on a translation hit (#93)', () => {
     );
   });
 });
+
+describe('a part cut off by the end of a linear sequence (#94)', () => {
+  const hit = {
+    part: 0,
+    range: { start: 0, end: 300 },
+    strand: 'forward' as const,
+    mismatches: 0,
+    ambiguous: 0,
+    identity: 1,
+  };
+
+  it('says which end took it, and how well the piece that is there matched', () => {
+    expect(describeMatch({ ...hit, partialStart: true })).toBe(
+      'exact as far as it goes, cut off at the start',
+    );
+    expect(describeMatch({ ...hit, partialEnd: true })).toBe(
+      'exact as far as it goes, cut off at the end',
+    );
+    expect(describeMatch({ ...hit, partialStart: true, partialEnd: true })).toBe(
+      'exact as far as it goes, cut off at both ends',
+    );
+    expect(describeMatch({ ...hit, mismatches: 1, identity: 0.99, partialEnd: true })).toBe(
+      '99% as far as it goes, cut off at the end',
+    );
+  });
+
+  it('marks the feature partial there, as GenBank writes it', () => {
+    const part = {
+      name: 'AmpR',
+      type: 'CDS',
+      category: 'marker',
+      accession: 'J01749.1',
+      location: '1..861',
+      source: 'core' as const,
+    };
+    const [segment] = featureFromHit({ ...hit, partialEnd: true }, part).segments;
+    expect(segment).toMatchObject({ kind: 'range', partialStart: false, partialEnd: true });
+    const [whole] = featureFromHit(hit, part).segments;
+    expect(whole).toMatchObject({ partialStart: false, partialEnd: false });
+  });
+});

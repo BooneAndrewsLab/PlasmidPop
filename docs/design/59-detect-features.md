@@ -136,11 +136,30 @@ end passes the length.
 - **Substitutions only.** An indel in a part is not found. For plasmid parts
   copied from one vector to the next this is the common case; a gapped
   check (the banded fill of item 46 around the seed) is the step after.
+- **A part cut off by the end of a linear sequence** (#94, 1.8) is offered
+  for the piece that is there: a fragment cut out of a vector ends in the
+  middle of whatever it ends in, and saying "the first 380 bases of AmpR"
+  is more use than saying nothing. A placement may hang off either end of a
+  linear sequence (never a circle, which has no ends), the comparison and
+  the identity are of the overlapping piece, and the budget is scaled to it
+  so a piece is held to the same identity as a whole part. To keep chance
+  out, at least 30 bases and a fifth of the part must be there. The hit
+  carries `partialStart`/`partialEnd`, the feature is marked partial at that
+  end (GenBank's `<`/`>`), the list says "exact as far as it goes, cut off
+  at the end", and a whole part beats a piece over the same bases in
+  `keepBest`. The property test's slow listing enumerates the same
+  placements, so the two still agree hit for hit.
 - **IUPAC in the sequence.** A code that allows the part's base is counted
   as `ambiguous`, one that rules it out as a mismatch; both spend the
   budget, and identity counts only definite matches. A word containing a
-  code seeds nothing, so a sequence peppered with N can hide a part that the
-  budget would have allowed (said, not fixed).
+  code seeds nothing, which looked like a hole (#94): a sequence peppered
+  with N seemed able to hide a part the budget allowed. It cannot. A code
+  spends the budget exactly as a mismatch does, and the budget is capped at
+  `floor(L / 12) − 1`, so by the q-gram lemma a match within it always
+  leaves a window of twelve positions with neither — which is a seed. The
+  test puts a code every thirteenth base, as dense as 90% identity allows,
+  at each of the thirteen offsets, and the part is found every time. No
+  code was needed; the guarantee was already there.
 - **Overlaps.** A part found twice over the same bases (a palindrome on both
   strands, a repetitive tag a codon along) is kept once, where it fits best.
   Otherwise a hit is dropped when one of the same type, at least as long and

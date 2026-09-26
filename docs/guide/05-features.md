@@ -83,6 +83,13 @@ for the parts plasmids are made of and offers what it finds:
 What is found:
 
 - **Both strands**, and **through the origin** of a circular sequence.
+- **A part cut off by the end**: in a linear sequence — a fragment, a
+  sequencing read — a part may run past either end, and what is there is
+  offered for it, listed as _exact as far as it goes, cut off at the end_.
+  The feature is marked partial at that end, which is what GenBank's `<`
+  and `>` mean, so it stays partial when you save. At least 30 bases and a
+  fifth of the part must be there, so that a sliver is not annotated as a
+  gene.
 - **Near matches**: by default a part is found when at least 95% of its
   bases match. **Match at least** in the list changes that to 98%, 90% or
   exactly, and searches again. Mismatches are substitutions only: a copy of a
