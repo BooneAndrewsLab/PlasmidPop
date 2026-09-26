@@ -244,7 +244,7 @@ export class PersistenceService {
     const stored = await this.repo.load(existing);
     const now = editorStore.documentState(d.documentId);
     if (now === null) return 'gone';
-    const kept = stored?.history ?? null;
+    const kept = stored?.history() ?? null;
     if (stored !== null && kept !== null && kept.history.size > 0) {
       if (now.history.size > 0 || now.history.present !== d.history.present) return null;
       editorStore.mergeIntoStored(d.documentId, existing, { ...stored, history: kept });
@@ -434,11 +434,25 @@ export class PersistenceService {
       id,
       origin: stored.origin,
       derived: stored.derived,
-      ...(stored.history === null ? {} : { history: stored.history }),
     });
-    analytics.trackOnce('history', 'restore', stored.historyStatus);
     const state = editorStore.documentState(id);
     if (state !== null) this.autosaved.set(id, autosavedOf(state));
+    // Rebuilding the states is the expensive part of opening a stored
+    // document and the document is already in the tab without them (#83),
+    // so it waits until the tab is on screen. `restoreHistory` runs it
+    // sooner if the user reaches for Undo first.
+    editorStore.expectHistory(id, () => {
+      const restored = stored.history();
+      analytics.trackOnce('history', 'restore', stored.historyStatus());
+      return restored;
+    });
+    // Straight after, not much later: the tab has its document and has
+    // painted, and an idle callback would leave Undo empty for as long as
+    // the user is reading. A timeout rather than a microtask, which would
+    // run before the paint and save nothing.
+    setTimeout(() => {
+      editorStore.restoreHistory(id);
+    }, 0);
   }
 
   async removeStored(id: string): Promise<void> {

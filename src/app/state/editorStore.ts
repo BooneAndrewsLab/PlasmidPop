@@ -740,6 +740,16 @@ export interface PreviewActivation {
 }
 
 /** A one-line description of the active enzyme set, for the Enzymes tab. */
+/**
+ * A rebuilt undo history and the states its baselines point at, as the
+ * storage layer gives them back (#83); the same shape `openDocument` takes.
+ */
+export interface PendingHistory {
+  readonly history: History<SeqDocument>;
+  readonly opened: SeqDocument;
+  readonly saved: SeqDocument | null;
+}
+
 export interface EnzymeSetInfo {
   readonly label: string;
   readonly count: number;
@@ -1240,6 +1250,7 @@ export class EditorStore {
     const i = this.docs.findIndex((d) => d.documentId === id);
     if (i < 0) return;
     const docs = this.docs.filter((d) => d.documentId !== id);
+    this.pendingHistories.delete(id); // nothing to rebuild for a tab that is gone (#83)
     if (this.activeId === id) this.activeId = (docs[i] ?? docs[i - 1])?.documentId ?? null;
     this.docs = docs;
     this.shared = { ...this.shared, comparison: null };
@@ -1437,6 +1448,8 @@ export class EditorStore {
     id: string | null = this.activeId,
     coalesce?: Coalesce,
   ): void {
+    // An edit goes on top of the stored history, so it is wanted now (#83).
+    this.restoreHistory(id);
     const target = this.documentState(id);
     if (target === null) return;
     const doc = target.history.present;
@@ -1526,7 +1539,54 @@ export class EditorStore {
   // Undo, redo and a jump all seal the step they land on, so the next edit
   // starts a step of its own rather than joining a run the user has just
   // stepped out of.
+  /**
+   * The stored history of a tab, to be rebuilt when it is first wanted
+   * (#83). Rebuilding every state of a long history of a large document
+   * takes a third of a second, and none of it is needed to show the
+   * document, so the tab opens first and this is called straight after —
+   * or sooner, by `restoreHistory`, if an edit or an undo comes first.
+   */
+  private readonly pendingHistories = new Map<string, () => PendingHistory | null>();
+
+  /** Notes that a tab has a stored history waiting to be rebuilt. */
+  expectHistory(id: string, restore: () => PendingHistory | null): void {
+    this.pendingHistories.set(id, restore);
+  }
+
+  /**
+   * Rebuilds a tab's stored history if one is waiting and the tab is still
+   * on the state it was opened at. An edit before this would have started a
+   * history of its own; the stored one is then out of date and dropped,
+   * which is what the check on `size` says.
+   */
+  restoreHistory(id: string | null = this.activeId): void {
+    if (id === null) return;
+    const restore = this.pendingHistories.get(id);
+    if (restore === undefined) return;
+    this.pendingHistories.delete(id);
+    const target = this.documentState(id);
+    if (target === null || target.history.size > 0) return;
+    const restored = restore();
+    if (restored === null) return;
+    const { history, opened, saved } = restored;
+    const present = target.history.present;
+    // The rebuilt present must be the document the tab holds. The store
+    // does not read files, so the checksums of the two are the check.
+    if (documentChecksum(history.present)?.text !== documentChecksum(present)?.text) return;
+    // The rebuilt history is taken whole, its own present included: its
+    // states share the feature ids of that parse, and a present from
+    // another one would not be the same features as the states behind it.
+    // The baselines are the stored history's, as they were before it was
+    // rebuilt later than the document (#83): what the tab was opened at,
+    // and the state it was last downloaded as, which may be none.
+    this.docs = this.docs.map((d) =>
+      d.documentId === id ? { ...d, history, openedDoc: opened, savedDoc: saved } : d,
+    );
+    this.commit();
+  }
+
   undo(): void {
+    this.restoreHistory();
     const history = this.state.history;
     if (history?.canUndo !== true) return;
     analytics.trackOnce('edit', 'undo');
@@ -1534,6 +1594,7 @@ export class EditorStore {
   }
 
   redo(): void {
+    this.restoreHistory();
     const history = this.state.history;
     if (history?.canRedo !== true) return;
     analytics.trackOnce('edit', 'redo');
@@ -1542,6 +1603,7 @@ export class EditorStore {
 
   /** Undoes or redoes to the state with `position` changes applied (0 = as opened). */
   jumpHistory(position: number): void {
+    this.restoreHistory();
     const history = this.state.history;
     if (history === null) return;
     const next = history.jumpTo(position);

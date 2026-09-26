@@ -193,6 +193,44 @@ or none.
 - **Mark from here** and **Compared with** still come back as **Since
   opened**, as item 21 decided: they belong to one session's work.
 
+## Rebuilt after the tab opens, not before it (#83, 1.8)
+
+Reading a history back rebuilds every state by replaying its deltas: 14 ms
+for a 10 kb plasmid, 310 ms for a megabase with a thousand features and 200
+steps, against 38 ms to parse that document's GenBank
+(`docs/perf-notes.md`). None of that work is needed to _show_ the document,
+which comes from its own row; it is needed for Undo, the History panel and
+the baselines.
+
+So `DocumentRepository.load` hands back the history as a thunk. The row is
+read with the document — one storage round trip, so a caller needs no
+storage of its own — and the decoding waits. `PersistenceService.reopen`
+opens the tab and then schedules `editorStore.restoreHistory(id)` on a
+`setTimeout(0)`: after the paint, not on an idle callback, which could leave
+Undo empty for as long as the user is reading. Anything that needs the
+history sooner asks for it — `apply`, `undo`, `redo` and `jumpHistory` call
+`restoreHistory` first — so an edit within that window keeps its past
+rather than losing it.
+
+- **The rebuilt history is taken whole**, its own present included. Its
+  states share the feature ids of the parse that made them, and a present
+  from another parse would not be the same features as the states behind
+  it, which is what a first attempt got wrong: the ids differed by one
+  object and the edit marks compared features that were not the same.
+  Before swapping it in, the store checks that the rebuilt present is the
+  document the tab holds, by checksum.
+- **A tab edited before the rebuild lands** keeps the history it started:
+  `restoreHistory` leaves a tab alone once it has steps of its own, and the
+  pending thunk is dropped when the tab closes.
+- **The baselines come with it**: what the tab was opened at and the state
+  it was last downloaded as, so the dot and **Since opened** are the stored
+  history's, as before. For the instant before the rebuild a restored tab
+  reads as clean with no undo; the alternative was the whole wait on the
+  way in.
+
+Measured again in `docs/perf-notes.md`: opening the megabase document is
+50 ms, the rebuild 300–400 ms after it.
+
 ## Privacy
 
 Nothing leaves the browser: the rows are in this browser's IndexedDB like

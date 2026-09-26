@@ -93,8 +93,8 @@ describe('coming up from a database an older build wrote', () => {
     expect(stores).not.toContain('handles');
     // Version 5's histories table came with the same open, and is empty.
     expect(stores).toContain('histories');
-    expect(loaded?.history).toBeNull();
-    expect(loaded?.historyStatus).toBe('none');
+    expect(loaded?.history()).toBeNull();
+    expect(loaded?.historyStatus()).toBe('none');
   });
 
   it('adds the histories table under the documents a version 4 build left', async () => {
@@ -135,7 +135,7 @@ describe('coming up from a database an older build wrote', () => {
     const repo = new DocumentRepository(new PlasmidPopDb(name));
     const loaded = await repo.load('v4-doc');
     expect(loaded?.doc.length).toBe(5028);
-    expect(loaded?.historyStatus).toBe('none');
+    expect(loaded?.historyStatus()).toBe('none');
     expect(await storeNames(name)).toEqual(
       expect.arrayContaining(['documents', 'shelf', 'enzymeSets', 'histories']),
     );
@@ -149,8 +149,8 @@ describe('coming up from a database an older build wrote', () => {
       origin: null,
     });
     const again = await repo.load('v4-doc');
-    expect(again?.historyStatus).toBe('restored');
-    expect(again?.history?.history.undo().present.length).toBe(5028);
+    expect(again?.historyStatus()).toBe('restored');
+    expect(again?.history()?.history.undo().present.length).toBe(5028);
   });
 
   it('reopens the document the older build remembered', async () => {

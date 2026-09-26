@@ -539,6 +539,7 @@ circular document, single warm runs, Vitest on Node 24:
 | decode, all 200 states                         | 14 ms              | 310 ms               |
 | `writeGenBank`, the check on load              | 3 ms               | 27 ms                |
 | `parseGenBank` of the same, for scale          | 11 ms              | 38 ms                |
+| open the stored document, states deferred      | —                  | 50 ms                |
 | stored size (`storedSize`)                     | 42 KB              | 1.24 MB              |
 
 The encode from nothing never happens in use: each autosave works out only
@@ -550,7 +551,16 @@ keystroke. The decode is dominated by moving a thousand features for each
 of the replayed edits and validating each state, the same work the edits
 did in the session; it runs once per restored tab.
 `historyCodec.timing.test.ts` keeps budgets on the keystroke (1 Mb, 100
-features) and the 10 kb decode.
+features), the 10 kb decode and the deferred open.
+
+**The states are no longer rebuilt on the way in** (#83, 1.8). The document
+comes from its own row, parsed and checked, which is the 50 ms above; the
+200 states are rebuilt straight after the tab is on screen (`setTimeout`,
+not an idle callback, so Undo is not empty while the user reads), or sooner
+if an edit, an undo or a jump asks for them first. So a restored session
+pays a parse per tab before its first paint and the 300 ms after it, per
+tab, rather than before. Rebuilding is unchanged in cost: the work is the
+thousand features moved for each replayed edit.
 
 ## Finding a primer collection (#64, item 56, 2026-09-25)
 

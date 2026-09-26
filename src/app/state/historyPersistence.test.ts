@@ -28,10 +28,18 @@ const plasmid = SeqDocument.create({
 });
 
 /** What a reload does to the store, and what the page does after it. */
+/** Lets the deferred rebuild of a restored history run (#83). */
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 async function reload(service: PersistenceService): Promise<void> {
   await service.autosave();
   editorStore.closeAllDocuments();
   expect(await service.restoreLastSession()).toBe(true);
+  // The states are rebuilt just after the tab opens rather than on the way
+  // in (#83), so a reload is not over until that has run.
+  await settle();
 }
 
 function active() {
@@ -149,6 +157,7 @@ describe('the undo history across a reload', () => {
     expect(await repo.hasHistory(id)).toBe(true);
 
     await service.openStored(id);
+    await settle();
     expect(active().history.size).toBe(1);
     editorStore.undo();
     expect(editorStore.document?.length).toBe(plasmid.length);
@@ -245,6 +254,7 @@ describe('opening a file identical to a stored document that is not open (#84)',
     expect((await repo.list()).map((d) => d.id).sort()).toEqual([id, own].sort());
 
     await service.openStored(id);
+    await settle();
     expect(active().history.labels).toEqual(labels);
     expect(active().history.canRedo).toBe(true);
   });

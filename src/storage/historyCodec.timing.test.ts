@@ -1,7 +1,11 @@
+import 'fake-indexeddb/auto';
+
 import { type Feature, History, SeqDocument, createFeature, rangeSegment } from '@/core';
 import { randomDna, randomInt, seededRandom } from '@/test/random';
 import { expectWithin, itTimed } from '@/test/timing';
 
+import { DocumentRepository } from './documentRepository';
+import { PlasmidPopDb } from './db';
 import { decodeHistory, encodeHistory, storedSize } from './historyCodec';
 
 /**
@@ -54,6 +58,13 @@ function time(fn: () => void): number {
   return performance.now() - t0;
 }
 
+/** What the call gave back, and how long it took. */
+async function timeAsync<T>(fn: () => Promise<T>): Promise<{ value: T; ms: number }> {
+  const t0 = performance.now();
+  const value = await fn();
+  return { value, ms: performance.now() - t0 };
+}
+
 describe('stored history timing', () => {
   itTimed(
     'writes the next keystroke of a 1 Mb document with 200 steps in a few milliseconds',
@@ -90,5 +101,37 @@ describe('stored history timing', () => {
       expectWithin(ms, 200);
     },
     60_000,
+  );
+
+  itTimed(
+    'opens a stored document without rebuilding its states (#83)',
+    async () => {
+      const h = session(1_000_000, 1000);
+      const db = new PlasmidPopDb(`timing-${Date.now().toString()}`);
+      const repo = new DocumentRepository(db);
+      await repo.save(
+        'd',
+        h.present,
+        'big.gb',
+        { origin: null, derived: false },
+        { history: h, opened: h.present, saved: null, origin: null },
+      );
+      const { value: loaded, ms: open } = await timeAsync(() => repo.load('d'));
+      const rebuild = time(() => {
+        loaded?.history();
+      });
+      // eslint-disable-next-line no-console
+      console.info(
+        `[perf] 1 Mb, 1,000 features, 200 steps: open ${open.toFixed(0)} ms, ` +
+          `rebuild ${rebuild.toFixed(0)} ms`,
+      );
+      expect(loaded?.history()?.history.size).toBe(200);
+      // The document is in hand for a parse and a check, not for 200 replayed
+      // edits: that is the point of #83, and it is the load that has a user
+      // waiting on it.
+      expectWithin(open, 200);
+      expect(open).toBeLessThan(rebuild);
+    },
+    120_000,
   );
 });

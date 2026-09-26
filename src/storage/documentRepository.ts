@@ -61,9 +61,17 @@ export interface StoredLoad extends DocumentProvenance {
   /**
    * Its undo history, whose present is `doc`, with the baselines that point
    * into it; null when there is none to give back (`historyStatus` says why).
+   *
+   * It is a thunk because rebuilding every state is the expensive part of
+   * opening a stored document — 310 ms for a megabase with 200 steps, where
+   * parsing the document itself is 38 ms (#83, `docs/perf-notes.md`) — and
+   * the document is in hand without it. The caller opens the tab first and
+   * calls this straight after, so the cost is off the path to the first
+   * paint. Calling it twice gives the same answer; it is worked out once.
    */
-  readonly history: RestoredHistory | null;
-  readonly historyStatus: HistoryStatus;
+  readonly history: () => RestoredHistory | null;
+  /** What became of the stored history, known only once `history` is called. */
+  readonly historyStatus: () => HistoryStatus;
 }
 
 export interface DocumentSummary {
@@ -221,14 +229,29 @@ export class DocumentRepository {
       storedOrigin === undefined || originDoc === undefined
         ? null
         : { fileName: storedOrigin.fileName, doc: originDoc };
-    const { history, historyStatus } = await this.loadHistory(id, stored, origin?.doc ?? null);
+    // The row of the history is read here — it is the rebuilding that is
+    // deferred, not the read, so the caller needs no storage of its own.
+    let row: unknown;
+    let read = true;
+    try {
+      row = await this.db.histories.get(id);
+    } catch {
+      read = false;
+    }
+    let decoded: { history: RestoredHistory | null; historyStatus: HistoryStatus } | null = null;
+    const restore = (): { history: RestoredHistory | null; historyStatus: HistoryStatus } => {
+      decoded ??= read
+        ? this.decodeStoredHistory(id, stored, row, origin?.doc ?? null)
+        : { history: null, historyStatus: 'dropped' };
+      return decoded;
+    };
     return {
-      doc: history?.history.present ?? doc.rename(stored.name),
+      doc: doc.rename(stored.name),
       fileName: stored.fileName,
       origin,
       derived: stored.derived ?? false,
-      history,
-      historyStatus,
+      history: () => restore().history,
+      historyStatus: () => restore().historyStatus,
     };
   }
 
@@ -238,17 +261,12 @@ export class DocumentRepository {
    * from another build, a damaged one, one left out of step — costs the
    * history and never the document.
    */
-  private async loadHistory(
+  private decodeStoredHistory(
     id: string,
     stored: StoredDocument,
+    row: unknown,
     origin: SeqDocument | null,
-  ): Promise<{ history: RestoredHistory | null; historyStatus: HistoryStatus }> {
-    let row: unknown;
-    try {
-      row = await this.db.histories.get(id);
-    } catch {
-      return { history: null, historyStatus: 'dropped' };
-    }
+  ): { history: RestoredHistory | null; historyStatus: HistoryStatus } {
     if (row === undefined) return { history: null, historyStatus: 'none' };
     const decoded = decodeHistory(row, origin);
     const present = decoded?.history.present;
@@ -272,7 +290,8 @@ export class DocumentRepository {
     const stored = await this.load(id);
     if (stored === null) return false;
     const renamed = stored.doc.rename(name);
-    const kept = stored.history;
+    // A rename is a step of the history, so here it is wanted in full.
+    const kept = stored.history();
     await this.save(
       id,
       renamed,

@@ -92,9 +92,9 @@ describe('finding a stored document by its checksum (#67)', () => {
       origin: null,
     });
     const back = await repo.load('p');
-    expect(back?.historyStatus).toBe('restored');
+    expect(back?.historyStatus()).toBe('restored');
     expect(back?.doc.metadata.lineage).toEqual(product.metadata.lineage);
-    expect(back?.history?.history.undo().present.metadata.lineage).toEqual(
+    expect(back?.history()?.history.undo().present.metadata.lineage).toEqual(
       product.metadata.lineage,
     );
   });

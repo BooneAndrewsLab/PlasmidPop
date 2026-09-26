@@ -47,12 +47,15 @@ describe('DocumentRepository histories (item 51)', () => {
     });
     expect(await repo.hasHistory('d')).toBe(true);
     const loaded = await repo.load('d');
-    expect(loaded?.historyStatus).toBe('restored');
-    const back = loaded?.history;
+    expect(loaded?.historyStatus()).toBe('restored');
+    const back = loaded?.history();
     if (back === null || back === undefined) throw new Error('no history');
     expect(historyView(back.history)).toEqual(historyView(history));
-    // The document is the history's present, and the baselines are its states.
-    expect(loaded?.doc).toBe(back.history.present);
+    // The document is the history's present, though not the same object:
+    // the document comes from its own row and the states are rebuilt later
+    // (#83), so what is checked is that they are the same document.
+    expect(loaded?.doc.sequence.toString()).toBe(back.history.present.sequence.toString());
+    expect(loaded?.doc.name).toBe(back.history.present.name);
     expect(back.opened).toBe(back.history.stateAt(0));
     expect(back.saved).toBe(back.history.stateAt(1));
     // Undo and redo go on from where they were.
@@ -69,7 +72,7 @@ describe('DocumentRepository histories (item 51)', () => {
     expect(await repo.hasHistory('d')).toBe(true);
     await repo.save('d', history.present, null, undefined, null);
     expect(await repo.hasHistory('d')).toBe(false);
-    expect((await repo.load('d'))?.historyStatus).toBe('none');
+    expect((await repo.load('d'))?.historyStatus()).toBe('none');
 
     await repo.save('d', history.present, null, undefined, input);
     await repo.remove('d');
@@ -93,8 +96,8 @@ describe('DocumentRepository histories (item 51)', () => {
     if (row === undefined) throw new Error('no row');
     await db.histories.put({ ...row, base: { ...row.base, sequence: 'not DNA' } });
     let loaded = await repo.load('d');
-    expect(loaded?.historyStatus).toBe('dropped');
-    expect(loaded?.history).toBeNull();
+    expect(loaded?.historyStatus()).toBe('dropped');
+    expect(loaded?.history()).toBeNull();
     // The document itself is read from its GenBank text, as before histories were kept.
     expect(loaded?.doc.sequence.toString()).toBe(history.present.sequence.toString());
     expect(loaded?.doc.name).toBe(history.present.name);
@@ -103,7 +106,7 @@ describe('DocumentRepository histories (item 51)', () => {
     await repo.save('d', history.present, null, undefined, input);
     await repo.save('d', history.present.insert(0, 'G'), null);
     loaded = await repo.load('d');
-    expect(loaded?.historyStatus).toBe('dropped');
+    expect(loaded?.historyStatus()).toBe('dropped');
     expect(loaded?.doc.length).toBe(history.present.length + 1);
   });
 
@@ -117,7 +120,7 @@ describe('DocumentRepository histories (item 51)', () => {
       origin: null,
     });
     expect(await repo.rename('d', 'pNew')).toBe(true);
-    const back = (await repo.load('d'))?.history;
+    const back = (await repo.load('d'))?.history();
     expect(back?.history.present.name).toBe('pNew');
     expect(back?.history.undoLabel).toBe('Rename');
     // The rename replaced the undone step, as a rename in a tab would.
@@ -137,7 +140,7 @@ describe('DocumentRepository histories (item 51)', () => {
       { history, opened: doc, saved: null, origin: doc },
     );
     const loaded = await repo.load('d');
-    expect(loaded?.history?.opened).toBe(loaded?.origin?.doc);
-    expect(loaded?.history?.saved).toBeNull();
+    expect(loaded?.history()?.opened).toBe(loaded?.origin?.doc);
+    expect(loaded?.history()?.saved).toBeNull();
   });
 });
