@@ -1,4 +1,6 @@
 export * from './codons';
+export * from './codonUsage';
+export * from './codonUsageTables';
 export * from './orf';
 export * from './enzymeTable';
 export * from './restriction';

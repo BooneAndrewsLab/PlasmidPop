@@ -45,4 +45,25 @@ License, and anything made from it must be shared under the same terms.
   where it translates exactly to FPbase's protein sequence. Proteins for
   which that fails are left out.
 
+## Codon usage of the expression hosts
+
+`src/core/analysis/codonUsageTables.ts`
+
+The codon counts behind **Mutate**'s **Change a residue** (item 47) are the
+[Codon Usage Database](https://www.kazusa.or.jp/codon/)'s, fetched
+2026-09-25 for six hosts: _E. coli_ W3110, _S. cerevisiae_, _P. pastoris_,
+human, mouse and CHO (_C. griseus_). Each table is how often each codon
+occurs in the CDSs that database compiled from GenBank for that organism —
+counts of codons in published sequences, which are facts about those
+genomes rather than an authored work, and whose underlying records are
+NCBI's, on the terms above.
+
+- Attribution: Nakamura, Y., Gojobori, T. and Ikemura, T. (2000) Codon usage
+  tabulated from international DNA sequence databases: status for the year 2000. _Nucleic Acids Res._ 28, 292.
+  [doi:10.1093/nar/28.1.292](https://doi.org/10.1093/nar/28.1.292).
+- Changes: the counts are stored in the TCAG codon order, with the
+  organism, its NCBI taxon id and the number of CDSs counted; the
+  per-thousand frequencies and fractions the database also prints are not
+  kept, since the shares the panel shows are computed from the counts.
+
 Neither Addgene's, SnapGene's nor pLannotate's feature databases were used.
