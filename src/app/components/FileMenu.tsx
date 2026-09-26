@@ -12,6 +12,7 @@ import { editDiffOf } from '../state/editDiff';
 import { persistence } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { useBindingLabel } from './useAltKey';
 import { ExportSequenceDialog } from './ExportSequenceDialog';
 import { useMenu } from './useMenu';
 
@@ -49,6 +50,8 @@ function Item({ children, shortcut, title, disabled, onClick }: ItemProps) {
 
 /** Every file-level action for the open document, behind one "File" button. */
 export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
+  const shareKey = useBindingLabel('share-link');
+  const compareKey = useBindingLabel('compare-with');
   const {
     selection,
     derived,
@@ -162,7 +165,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             {doc.isProtein ? 'Download GenPept…' : 'Download GenBank…'}
           </Item>
           <Item
-            shortcut="Alt+L"
+            shortcut={shareKey}
             title="A link that carries this document inside it — nothing is uploaded"
             onClick={run(() => {
               report(copyShareLink(doc));
@@ -181,7 +184,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Copy link to selection
           </Item>
           <Item
-            shortcut="Alt+K"
+            shortcut={compareKey}
             title="Show how this document differs from another open document or a file on disk. Neither is changed and nothing is opened."
             onClick={run(onCompare)}
           >

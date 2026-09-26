@@ -299,3 +299,43 @@ describe('selecting by codon', () => {
     expect(editorStore.getState().selection).toEqual({ start: 10, end: 10 });
   });
 });
+
+describe('a rebound key (#79)', () => {
+  afterEach(() => {
+    act(() => {
+      editorStore.resetKeyBindings();
+    });
+  });
+
+  it('answers on the new key and no longer on the old one', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    const open = (): boolean => editorStore.getState().sidebarOpen;
+    expect(open()).toBe(true);
+    act(() => {
+      editorStore.setKeyBinding('toggle-sidebar', 'alt+KeyG');
+    });
+    alt('KeyS');
+    expect(open(), 'the old key does nothing').toBe(true);
+    alt('KeyG');
+    expect(open()).toBe(false);
+    alt('KeyG');
+    expect(open()).toBe(true);
+    // And the tooltip says the key it is on now.
+    expect(screen.getAllByTitle(/Hide the panel \(Alt\+G\)/).length).toBeGreaterThan(0);
+  });
+
+  it('leaves the action whose key was taken without one, rather than firing both', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setShowComplement(true);
+      editorStore.setSidebarOpen(true);
+      // The sidebar moves onto the complement's key.
+      editorStore.setKeyBinding('toggle-sidebar', 'alt+KeyC');
+    });
+    alt('KeyC');
+    expect(editorStore.getState().sidebarOpen).toBe(false);
+    expect(editorStore.getState().showComplement, 'the complement kept its state').toBe(true);
+  });
+});

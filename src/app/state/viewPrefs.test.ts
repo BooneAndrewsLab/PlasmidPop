@@ -130,6 +130,7 @@ describe('view preferences', () => {
       readTrimCutoff: 0.01,
       detectOnOpen: true,
       detectMinIdentity: 0.9,
+      keyBindings: { 'toggle-sidebar': 'alt+KeyG' },
       phonePanes: { 'doc-1': 'sequence', 'doc-2': 'details' },
     } as const;
     saveViewPrefs(prefs);
@@ -195,6 +196,7 @@ describe('view preferences', () => {
       readConfidentQuality: 30,
       readTrimCutoff: 0.1,
       detectOnOpen: true,
+      keyBindings: {},
       detectMinIdentity: 1,
       phonePanes: {},
     });

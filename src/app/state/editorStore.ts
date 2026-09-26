@@ -598,6 +598,15 @@ export interface SharedState {
    */
   readonly fidelityTable: FidelityTable | null;
   /**
+   * The key bindings the user has changed, action id → binding (#79).
+   * Only the changes are kept; `resolveBindings` puts them over the
+   * defaults, so a default that moves later moves for everyone who has not
+   * chosen otherwise.
+   */
+  readonly keyBindings: Readonly<Record<string, string>>;
+  /** Whether the keyboard-shortcuts dialog is up (#79). */
+  readonly keysDialog: boolean;
+  /**
    * The file name a save was last downloaded under, in a browser that cannot
    * write to files. Set because a download is not a save the app can repeat:
    * the browser owns the file from there on and numbers the next one, which
@@ -854,6 +863,8 @@ const SHARED_INITIAL: SharedState = {
     suppliers: [],
   },
   fidelityTable: null,
+  keyBindings: {},
+  keysDialog: false,
 };
 
 const NO_DOCUMENT: ActiveDocumentFields = {
@@ -1959,6 +1970,27 @@ export class EditorStore {
     const next = owner === undefined ? [] : this.shared.previews.filter((p) => p.owner !== owner);
     if (next.length === this.shared.previews.length) return;
     this.setShared({ previews: next });
+  }
+
+  /** Opens or closes the keyboard-shortcuts dialog (#79). */
+  showKeysDialog(open: boolean): void {
+    if (this.state.keysDialog === open) return;
+    this.setShared({ keysDialog: open });
+  }
+
+  /** Puts an action on another key, or back on its default with null (#79). */
+  setKeyBinding(actionId: string, binding: string | null): void {
+    const next = Object.fromEntries(
+      Object.entries(this.state.keyBindings).filter(([id]) => id !== actionId),
+    );
+    if (binding !== null) next[actionId] = binding;
+    this.setShared({ keyBindings: next });
+  }
+
+  /** Every binding back to its default. */
+  resetKeyBindings(): void {
+    if (Object.keys(this.state.keyBindings).length === 0) return;
+    this.setShared({ keyBindings: {} });
   }
 
   /** Installs the imported fidelity table, or forgets it (#68). */

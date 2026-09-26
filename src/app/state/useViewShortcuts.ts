@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 import { type Shortcut, analytics } from '../analytics';
-import { isAltBlocked, isAltKey } from '../keys';
+import { isAltBlocked } from '../keys';
+import { matchesBinding, resolveBindings, withShift } from '../keyBindings';
 import { focusNextSplitter } from '../components/splitterFocus';
 import { copyShareLink } from '../share';
 import { goToChange } from './editDiff';
@@ -10,12 +11,13 @@ import { FONT_SIZES } from '@/view/linear';
 
 import { type EditsBaseline, type ViewMode, editorStore, sidebarTabsFor } from './editorStore';
 
-/** `Alt+V` steps through the view switcher in its order. */
+/** The view switcher's order, which `cycle-view` steps through. */
 const VIEW_ORDER: readonly ViewMode[] = ['sequence', 'map', 'both'];
 
 /** Toggles the toolbar's three view switches go under. */
 const TOGGLES: readonly {
-  readonly code: string;
+  /** Its action in the bindings table (#79). */
+  readonly action: string;
   readonly binding: Shortcut;
   /** What the document in front needs for the toggle to mean anything (#66). */
   readonly tool: DocumentTool;
@@ -23,7 +25,7 @@ const TOGGLES: readonly {
   readonly set: (on: boolean) => void;
 }[] = [
   {
-    code: 'KeyC',
+    action: 'toggle-complement',
     binding: 'alt+c',
     tool: 'complement',
     read: (s) => s.showComplement,
@@ -32,7 +34,7 @@ const TOGGLES: readonly {
     },
   },
   {
-    code: 'KeyT',
+    action: 'toggle-translations',
     binding: 'alt+t',
     tool: 'translations',
     read: (s) => s.showTranslations,
@@ -41,7 +43,7 @@ const TOGGLES: readonly {
     },
   },
   {
-    code: 'KeyR',
+    action: 'toggle-cut-sites',
     binding: 'alt+r',
     tool: 'enzymes',
     read: (s) => s.showCutSites,
@@ -70,12 +72,19 @@ export function useViewShortcuts(): void {
     const onKey = (e: KeyboardEvent): void => {
       if (isAltBlocked(e.target)) return;
       const state = editorStore.getState();
+      // What each action is on, which the user may have changed (#79).
+      const bound = resolveBindings(state.keyBindings);
+      const on = (action: string): boolean => {
+        const binding = bound.get(action);
+        return binding !== undefined && matchesBinding(e, binding);
+      };
       // A modal has the user's attention; its own Escape is the way out.
       if (
         state.saveReview !== null ||
         state.comparison !== null ||
         state.newDialog ||
-        state.ncbiDialog
+        state.ncbiDialog ||
+        state.keysDialog
       )
         return;
 
@@ -97,7 +106,7 @@ export function useViewShortcuts(): void {
       const has = (tool: DocumentTool): boolean => doc === null || hasTool(doc, tool);
 
       for (const toggle of TOGGLES) {
-        if (!isAltKey(e, toggle.code)) continue;
+        if (!on(toggle.action)) continue;
         if (!has(toggle.tool)) return;
         e.preventDefault();
         analytics.shortcut(toggle.binding);
@@ -105,7 +114,7 @@ export function useViewShortcuts(): void {
         return;
       }
 
-      if (isAltKey(e, 'KeyE')) {
+      if (on('toggle-edits')) {
         e.preventDefault();
         analytics.shortcut('alt+e');
         if (state.editsBaseline === 'off') editorStore.setEditsBaseline(lastBaseline.current);
@@ -116,9 +125,14 @@ export function useViewShortcuts(): void {
         return;
       }
 
-      // Alt+N and Alt+Shift+N: the next or previous marked change (#37).
-      // With nothing marked the keys do nothing, and are left to the browser.
-      if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN') {
+      // The next or previous marked change (#37), the binding and the same
+      // with Shift. With nothing marked the keys do nothing, and are left
+      // to the browser.
+      const nextChange = bound.get('next-change');
+      if (
+        nextChange !== undefined &&
+        (matchesBinding(e, nextChange) || matchesBinding(e, withShift(nextChange)))
+      ) {
         if (state.history === null) return;
         if (goToChange(e.shiftKey ? -1 : 1)) {
           e.preventDefault();
@@ -127,14 +141,14 @@ export function useViewShortcuts(): void {
         return;
       }
 
-      if (isAltKey(e, 'KeyS')) {
+      if (on('toggle-sidebar')) {
         e.preventDefault();
         analytics.shortcut('alt+s');
         editorStore.setSidebarOpen(!state.sidebarOpen);
         return;
       }
 
-      if (isAltKey(e, 'KeyL')) {
+      if (on('share-link')) {
         if (state.history === null) return;
         e.preventDefault();
         analytics.shortcut('alt+l');
@@ -145,7 +159,7 @@ export function useViewShortcuts(): void {
       }
 
       // Alt+V: the next of Sequence, Map and Both, as the view switcher has them.
-      if (isAltKey(e, 'KeyV')) {
+      if (on('cycle-view')) {
         if (!has('circular')) return;
         e.preventDefault();
         analytics.shortcut('alt+v');
@@ -156,11 +170,11 @@ export function useViewShortcuts(): void {
 
       // Alt+[ and Alt+]: the sidebar tab above or below, opening the sidebar
       // if it was put away, and wrapping round at either end of the rail.
-      if (isAltKey(e, 'BracketLeft') || isAltKey(e, 'BracketRight')) {
+      if (on('sidebar-previous') || on('sidebar-next')) {
         if (state.documentId === null) return; // no sidebar beside the file list or the Bench
         e.preventDefault();
         analytics.shortcut('alt+bracket');
-        const step = e.code === 'BracketLeft' ? -1 : 1;
+        const step = on('sidebar-previous') ? -1 : 1;
         const tabs = sidebarTabsFor(doc);
         const at = tabs.indexOf(state.sidebarTab);
         const n = tabs.length;
@@ -171,17 +185,17 @@ export function useViewShortcuts(): void {
       }
 
       // Alt+= and Alt+-: the sequence view's text a size larger or smaller.
-      if (isAltKey(e, 'Equal') || isAltKey(e, 'Minus')) {
+      if (on('text-larger') || on('text-smaller')) {
         e.preventDefault();
         analytics.shortcut('alt+size');
         const at = FONT_SIZES.indexOf(state.seqFontSize);
-        const next = FONT_SIZES[at + (e.code === 'Equal' ? 1 : -1)];
+        const next = FONT_SIZES[at + (on('text-larger') ? 1 : -1)];
         if (next !== undefined) editorStore.setSeqFontSize(next);
         return;
       }
 
       // Alt+0: the Bench, which sits before the documents Alt+1..9 count.
-      if (isAltKey(e, 'Digit0')) {
+      if (on('bench')) {
         e.preventDefault();
         analytics.shortcut('alt+digit');
         editorStore.showBench('key');
@@ -190,7 +204,7 @@ export function useViewShortcuts(): void {
 
       // Alt+B: the keyboard to the next boundary between panes, where the
       // arrow keys move it; Escape gives it back (#36).
-      if (isAltKey(e, 'KeyB')) {
+      if (on('focus-splitter')) {
         if (focusNextSplitter()) {
           e.preventDefault();
           analytics.shortcut('alt+b');
@@ -199,7 +213,7 @@ export function useViewShortcuts(): void {
       }
 
       // Alt+W closes the front tab: Ctrl+W is the browser's, and closes the app.
-      if (isAltKey(e, 'KeyW')) {
+      if (on('close-tab')) {
         if (state.documentId === null) return;
         e.preventDefault();
         analytics.shortcut('alt+w');
@@ -229,7 +243,7 @@ export function useViewShortcuts(): void {
       // ninth rather than the last, because a strip of tabs is read by
       // position and counting to the end of a long one is not a shortcut.
       const digit = /^Digit([1-9])$/.exec(e.code);
-      if (digit !== null && isAltKey(e, e.code)) {
+      if (digit !== null && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         const target = state.documents[Number(digit[1]) - 1];
         if (target === undefined) return;
         e.preventDefault();

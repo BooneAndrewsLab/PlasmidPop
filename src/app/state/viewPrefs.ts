@@ -64,6 +64,8 @@ export interface ViewPrefs {
   readonly traceSize: TraceSize;
   /** The base colours the user chose; see `SharedState.baseColors`. */
   readonly baseColors: CustomBaseColors | null;
+  /** Key bindings the user has changed, action id → binding (#79). */
+  readonly keyBindings: Readonly<Record<string, string>>;
   /**
    * Which baseline the edit marks use. "Mark from here" is a point in one
    * session's work, and a comparison marked in the views is a file or tab of
@@ -176,6 +178,14 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isTraceSize(record['traceSize'])) prefs.traceSize = record['traceSize'];
   if (isResidueNumbering(record['residueNumbering'])) {
     prefs.residueNumbering = record['residueNumbering'];
+  }
+  const keys = record['keyBindings'];
+  if (typeof keys === 'object' && keys !== null) {
+    const bindings: Record<string, string> = {};
+    for (const [id, binding] of Object.entries(keys as Record<string, unknown>)) {
+      if (typeof binding === 'string') bindings[id] = binding;
+    }
+    prefs.keyBindings = bindings;
   }
   if (record['baseColors'] === null) prefs.baseColors = null;
   else {
@@ -298,6 +308,7 @@ function snapshot(): ViewPrefs {
     readConfidentQuality,
     readTrimCutoff,
     detectOnOpen,
+    keyBindings,
     detectMinIdentity,
   } = editorStore.getState();
   return {
@@ -332,6 +343,7 @@ function snapshot(): ViewPrefs {
     readTrimCutoff,
     detectOnOpen,
     detectMinIdentity,
+    keyBindings,
     phonePanes: editorStore.rememberedPhonePanes(),
   };
 }
@@ -367,6 +379,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.readConfidentQuality === b.readConfidentQuality &&
     a.readTrimCutoff === b.readTrimCutoff &&
     a.detectOnOpen === b.detectOnOpen &&
+    a.keyBindings === b.keyBindings &&
     a.detectMinIdentity === b.detectMinIdentity &&
     samePanes(a.phonePanes, b.phonePanes)
   );
@@ -398,6 +411,11 @@ export function startViewPrefs(): () => void {
     editorStore.setResidueNumbering(stored.residueNumbering);
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
+  if (stored.keyBindings !== undefined) {
+    for (const [id, binding] of Object.entries(stored.keyBindings)) {
+      editorStore.setKeyBinding(id, binding);
+    }
+  }
   if (stored.traceSize !== undefined) editorStore.setTraceSize(stored.traceSize);
   if (stored.baseColors !== undefined) editorStore.setBaseColors(stored.baseColors);
   if (stored.editsBaseline !== undefined) editorStore.setEditsBaseline(stored.editsBaseline);

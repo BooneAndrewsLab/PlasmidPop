@@ -5,7 +5,7 @@ import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear'
 import { analytics } from '../analytics';
 import { type TraceSize, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
-import { useAltKey } from './useAltKey';
+import { useAltKey, useBindingLabel } from './useAltKey';
 import { useMenu } from './useMenu';
 
 const SIZE_LABELS: Readonly<Record<FontSize, string>> = {
@@ -99,11 +99,12 @@ export function FormatMenu() {
   const { open, toggle, ref } = useMenu();
   // Alt+O opens it with its first item focused, so Tab walks the items (#34).
   const focusFirst = useRef(false);
-  useAltKey('KeyO', () => {
+  useAltKey('format-menu', () => {
     analytics.shortcut('alt+o');
     focusFirst.current = !open;
     toggle();
   });
+  const key = useBindingLabel('format-menu');
   useEffect(() => {
     if (!open || !focusFirst.current) return;
     focusFirst.current = false;
@@ -116,8 +117,8 @@ export function FormatMenu() {
         type="button"
         className="button"
         aria-label="Format"
-        aria-keyshortcuts="Alt+O"
-        title="Text size, bases per row, numbering and base colours in the sequence view, and the pane sizes (Alt+O)"
+        aria-keyshortcuts={key}
+        title={`Text size, bases per row, numbering and base colours in the sequence view, and the pane sizes (${key})`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -320,6 +321,18 @@ export function FormatMenu() {
             }}
           >
             <span>Reset the layout</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu__item"
+            title="See every shortcut, and put an action on another key (#79)"
+            onClick={() => {
+              toggle();
+              editorStore.showKeysDialog(true);
+            }}
+          >
+            <span>Keyboard shortcuts…</span>
           </button>
         </div>
       )}

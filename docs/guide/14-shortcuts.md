@@ -2,18 +2,28 @@
 
 On macOS use `Cmd` where `Ctrl` is written.
 
+The keys below are what the app starts with. **Format ▸ Keyboard shortcuts…**
+lists every one of them and lets you put an action on another key: click
+**Change** and press the keys you want. A shortcut needs `Alt` or `Ctrl` — a
+key on its own types a base in the sequence view — and the app refuses a key
+the browser keeps for itself or one another action already has, saying which.
+**Default** puts one action back, **All back to their defaults** the lot.
+`Ctrl+S`, `Ctrl+F`, `Ctrl+Z`, `Ctrl+Shift+←`/`→` and the ranges (`Alt+1`…`9`,
+`Alt+Shift+PageUp`/`PageDown`) are fixed. Your changes are kept with the rest
+of the view's settings, in this browser.
+
 ## Files
 
-| Keys                        | Action                                                         |
-| --------------------------- | -------------------------------------------------------------- |
-| `Ctrl+S`, `Ctrl+Shift+S`    | Download GenBank (a working copy's changes are reviewed first) |
-| `Alt+L`                     | Copy a share link                                              |
-| `Alt+1` … `Alt+9`           | Bring the first … ninth open document forward                  |
-| `Alt+0`                     | Bring the [Bench](12-cloning.md#the-bench) forward             |
-| `Alt+W`                     | Close the document in front (its tab)                          |
-| `Alt+Shift+PageUp`, `…Down` | Move the document in front one tab left or right               |
-| `Ctrl+V` with nothing open  | Open a pasted GenBank or FASTA record, or bare bases           |
-| `Alt+K`                     | Compare with another tab or a file (**File ▸ Compare with…**)  |
+| Keys                                     | Action                                                         |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| `Ctrl+S`, `Ctrl+Shift+S`                 | Download GenBank (a working copy's changes are reviewed first) |
+| `Alt+L`                                  | Copy a share link                                              |
+| `Alt+1` … `Alt+9`                        | Bring the first … ninth open document forward                  |
+| `Alt+0`                                  | Bring the [Bench](12-cloning.md#the-bench) forward             |
+| `Alt+W`                                  | Close the document in front (its tab)                          |
+| `Alt+Shift+PageUp`, `Alt+Shift+PageDown` | Move the document in front one tab left or right               |
+| `Ctrl+V` with nothing open               | Open a pasted GenBank or FASTA record, or bare bases           |
+| `Alt+K`                                  | Compare with another tab or a file (**File ▸ Compare with…**)  |
 
 ## Editing
 
@@ -49,26 +59,26 @@ it has.
 | `Alt+S`          | Collapse the sidebar to its rail, or bring the panel back |
 | `Alt+V`          | The next of the views: Sequence, Map, Both                |
 | `Alt+[`, `Alt+]` | The sidebar tab above or below (opens the sidebar)        |
-| `Alt+=`, `Alt+-` | Larger or smaller sequence text                           |
+| `Alt+=`, `Alt+−` | Larger or smaller sequence text                           |
 | `Alt+O`          | Open the Format menu; Tab walks its items, Escape closes  |
 | `Alt+Y`          | Open the Style menu for the selected bases (colour, size) |
 | `Alt+U`          | Open the Case menu for the selected bases (upper, lower)  |
 
 ## Selecting and moving
 
-| Keys                    | Action                                       |
-| ----------------------- | -------------------------------------------- |
-| `← →`                   | Move the cursor one base                     |
-| `↑ ↓`                   | Move the cursor one row                      |
-| `Shift` + arrows        | Extend the selection                         |
-| `Ctrl+Shift+← →`        | Extend the selection a codon at a time       |
-| `Home`, `End`           | Start or end of the row                      |
-| `Ctrl+Home`, `Ctrl+End` | Start or end of the sequence                 |
-| `Shift+click`           | Extend the selection to the clicked position |
-| `Ctrl+A`                | Select all                                   |
-| `Escape`                | Clear the selection                          |
-| `Alt+N`                 | Select the next marked change                |
-| `Alt+Shift+N`           | Select the previous marked change            |
+| Keys                           | Action                                       |
+| ------------------------------ | -------------------------------------------- |
+| `← →`                          | Move the cursor one base                     |
+| `↑ ↓`                          | Move the cursor one row                      |
+| `Shift` + arrows               | Extend the selection                         |
+| `Ctrl+Shift+←`, `Ctrl+Shift+→` | Extend the selection a codon at a time       |
+| `Home`, `End`                  | Start or end of the row                      |
+| `Ctrl+Home`, `Ctrl+End`        | Start or end of the sequence                 |
+| `Shift+click`                  | Extend the selection to the clicked position |
+| `Ctrl+A`                       | Select all                                   |
+| `Escape`                       | Clear the selection                          |
+| `Alt+N`                        | Select the next marked change                |
+| `Alt+Shift+N`                  | Select the previous marked change            |
 
 ## Find
 

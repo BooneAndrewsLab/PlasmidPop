@@ -10,6 +10,7 @@ import {
 } from '../editsView';
 import { goToChange, useEditDiff, useIdentityChange } from '../state/editDiff';
 import { useEditorState } from '../state/useEditorStore';
+import { useBindingLabel } from './useAltKey';
 import { useMenu } from './useMenu';
 
 /**
@@ -35,6 +36,9 @@ export function EditsMenu() {
   const diff = useEditDiff();
   const identity = useIdentityChange();
   const { open, toggle, close, ref } = useMenu();
+  const editsKey = useBindingLabel('toggle-edits');
+  const nextKey = useBindingLabel('next-change');
+  const previousKey = useBindingLabel('next-change', true);
   const doc = history?.present ?? null;
   const stops = useMemo(
     () => (doc === null ? [] : changeStops(diff, doc.length, doc.topology === 'circular')),
@@ -69,7 +73,7 @@ export function EditsMenu() {
       <button
         type="button"
         className="button"
-        title={`${status}. Click to choose what changes are measured from; Alt+E turns the marks off and on.`}
+        title={`${status}. Click to choose what changes are measured from; ${editsKey} turns the marks off and on.`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -137,7 +141,7 @@ export function EditsMenu() {
             }}
           >
             <span>Next change</span>
-            <span className="menu__shortcut">Alt+N</span>
+            <span className="menu__shortcut">{nextKey}</span>
           </button>
           <button
             type="button"
@@ -151,7 +155,7 @@ export function EditsMenu() {
             }}
           >
             <span>Previous change</span>
-            <span className="menu__shortcut">Alt+Shift+N</span>
+            <span className="menu__shortcut">{previousKey}</span>
           </button>
           <div className="menu__separator" />
           <p className="edits__summary">{summary === '' ? 'Nothing marked' : summary}</p>

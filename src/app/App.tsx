@@ -9,6 +9,7 @@ import { EditBar } from './components/EditBar';
 import { EmptyState } from './components/EmptyState';
 import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
+import { KeyBindingsDialog } from './components/KeyBindings';
 import { NcbiDialog } from './components/NcbiDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
@@ -276,6 +277,7 @@ export function App() {
       <CompareDialog />
       <NewDocumentDialog />
       <NcbiDialog />
+      <KeyBindingsDialog />
     </div>
   );
 }

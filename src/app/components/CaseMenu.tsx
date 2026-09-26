@@ -4,7 +4,7 @@ import { type CaseMode, type Range, isEmptyRange } from '@/core';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
-import { useAltKey } from './useAltKey';
+import { useAltKey, useBindingLabel } from './useAltKey';
 import { useMenu } from './useMenu';
 
 const MODES: readonly (readonly [CaseMode, string, string])[] = [
@@ -34,8 +34,9 @@ export function CaseMenu({ selection, opens = 'down', shortcut = true }: Props) 
   }, [hasRange, close]);
   // Alt+U ("upper") opens it with its first item focused.
   const focusFirst = useRef(false);
+  const key = useBindingLabel('case-menu');
   useAltKey(
-    'KeyU',
+    'case-menu',
     shortcut
       ? () => {
           if (!hasRange) return;
@@ -57,8 +58,8 @@ export function CaseMenu({ selection, opens = 'down', shortcut = true }: Props) 
         type="button"
         className="button button--small"
         disabled={!hasRange}
-        aria-keyshortcuts={shortcut ? 'Alt+U' : undefined}
-        title={`Upper, lower or swapped case for the selected bases${shortcut ? ' (Alt+U)' : ''}`}
+        aria-keyshortcuts={shortcut ? key : undefined}
+        title={`Upper, lower or swapped case for the selected bases${shortcut ? ` (${key})` : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}

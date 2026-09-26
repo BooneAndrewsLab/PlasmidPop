@@ -6,6 +6,7 @@ import { analytics } from '../analytics';
 import { type SidebarTab, editorStore, sidebarTabsFor } from '../state/editorStore';
 import { SIDEBAR_STACKED_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
+import { useBindingLabel } from './useAltKey';
 import { AlignPanel } from './AlignPanel';
 import { CloningPanel } from './CloningPanel';
 import { EnzymePanel } from './EnzymePanel';
@@ -44,6 +45,9 @@ const LABELS: Readonly<Record<SidebarTab, string>> = {
  */
 export function Sidebar({ doc }: Props) {
   const { sidebarTab, sidebarOpen } = useEditorState();
+  const sidebarKey = useBindingLabel('toggle-sidebar');
+  const prevKey = useBindingLabel('sidebar-previous');
+  const nextKey = useBindingLabel('sidebar-next');
   // A rail down the edge, or a strip across the top on a narrow window.
   const stacked = useMediaQuery(SIDEBAR_STACKED_QUERY);
   const rail = useRef<HTMLDivElement>(null);
@@ -101,7 +105,7 @@ export function Sidebar({ doc }: Props) {
               tabIndex={tab === sidebarTab ? 0 : -1}
               title={
                 active
-                  ? 'Hide the panel (Alt+S); Alt+[ and Alt+] step through the tabs'
+                  ? `Hide the panel (${sidebarKey}); ${prevKey} and ${nextKey} step through the tabs`
                   : `Show ${label}`
               }
               className={`sidebar__tab${active ? ' sidebar__tab--active' : ''}`}

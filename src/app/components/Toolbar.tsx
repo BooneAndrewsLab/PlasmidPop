@@ -12,7 +12,7 @@ import { CompareChooser } from './CompareChooser';
 import { EditsMenu } from './EditsMenu';
 import { FileMenu } from './FileMenu';
 import { FormatMenu } from './FormatMenu';
-import { useAltKey } from './useAltKey';
+import { useAltKey, useBindingLabel } from './useAltKey';
 import { HistoryMenu } from './HistoryMenu';
 import { InlineRename } from './InlineRename';
 import { Logo } from './Logo';
@@ -78,8 +78,9 @@ export function Toolbar({ doc }: Props) {
     else compareViaPicker();
   };
   // Alt+K: Compare with…, while there is a document to compare (#34).
+  const viewKey = useBindingLabel('cycle-view');
   useAltKey(
-    'KeyK',
+    'compare-with',
     doc === null
       ? null
       : () => {
@@ -228,7 +229,7 @@ export function Toolbar({ doc }: Props) {
                 className="segmented"
                 role="group"
                 aria-label="View"
-                title="Alt+V steps through the three"
+                title={`${viewKey} steps through the three`}
               >
                 {VIEWS.map(([mode, label]) => (
                   <button

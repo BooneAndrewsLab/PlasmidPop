@@ -13,7 +13,7 @@ import {
 import { analytics } from '../analytics';
 import { isUniformSize, sharedStyle } from '../baseStyleSelection';
 import { editorStore } from '../state/editorStore';
-import { useAltKey } from './useAltKey';
+import { useAltKey, useBindingLabel } from './useAltKey';
 import { useMenu } from './useMenu';
 
 /** Letter colours offered at a click; any other is a colour picker away. */
@@ -166,8 +166,9 @@ export function BaseStyleMenu({ doc, selection, opens = 'down', shortcut = true 
   }, [hasRange, close]);
   // Alt+Y ("style") opens it with its first item focused (#89).
   const focusFirst = useRef(false);
+  const key = useBindingLabel('style-menu');
   useAltKey(
-    'KeyY',
+    'style-menu',
     shortcut
       ? () => {
           if (!hasRange) return;
@@ -195,8 +196,8 @@ export function BaseStyleMenu({ doc, selection, opens = 'down', shortcut = true 
         type="button"
         className="button button--small"
         disabled={!hasRange}
-        aria-keyshortcuts={shortcut ? 'Alt+Y' : undefined}
-        title="Colour, highlight, bold or enlarge the selected bases (Alt+Y)"
+        aria-keyshortcuts={shortcut ? key : undefined}
+        title={`Colour, highlight, bold or enlarge the selected bases (${key})`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
