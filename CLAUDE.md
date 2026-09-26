@@ -91,7 +91,21 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-25)
 
-**1.6.0** (2026-09-25) is the current release: compare, history and sharing
+**1.7.0** (2026-09-25) is the current release: annotation and libraries
+(items 53–60). Detect features: 153 curated parts cited to NCBI records plus
+74 FPbase fluorescent proteins (CC BY-SA, own file, `DATA-LICENSES.md`),
+12-mer seeded near matches on both strands and through the origin, offered
+as a list and added as one edit. My primers: a primer collection in
+IndexedDB, Find my primers by PCR's 3′ annealing search, handed to PCR by
+name. Open from NCBI by accession (efetch, nucleotide and GenPept; only the
+accessions leave the browser, the one third-party request). Protein
+documents: an alphabet on the document, `hasTool` switching DNA tools off,
+protein FASTA/GenPept, Open as protein, ProtParam-matching properties.
+Numbered residues on translations (off / every 10th / every one). Base
+styles, a selection bar, change case, feature thickness. Phone fixes from a
+real Android device (#42). Mutation score 95.2% over the 1.4, 1.6 and 1.7
+modules.
+**1.6.0** (2026-09-25) was compare, history and sharing
 (items 11, 21, 25, 33, 35, 46, 51, 52). Compare with any tab, a "Compared
 with" edit-marks baseline and Next/Previous change (Alt+N); removed features
 as ghosts on the map and clickable marks; renames and topology marked in the
@@ -141,7 +155,7 @@ minor releases planned after 1.1. The GitHub milestones after it, reordered
 the same day on user feedback about Align: 1.2.1 Align fixes, 1.3
 sequencing reads, 1.4 cloning bench and 1.5 workspace and map with the
 Cloning Bench (#70) and 1.6 compare, history and sharing (all done), then 1.7
-annotation and libraries. 1.2.0 has
+annotation and libraries (done) and 1.8 bench and workspace follow-ups. 1.2.0 has
 isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
 ladder, double-digest partners (items 39–42), Dam/Dcm marks (item 44), CDS
 translations re-checked as you edit (item 1), SnapGene primers fixed and
