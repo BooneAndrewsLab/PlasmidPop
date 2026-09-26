@@ -79,6 +79,60 @@ export function meltingTemperature(sequence: string, conditions: ThermoCondition
   return (dH * 1000) / (dS + R * Math.log(effective)) - 273.15;
 }
 
+/**
+ * Monovalent cation concentration (M) that reproduces NEB's Tm Calculator
+ * for Q5 (#69). NEB does not publish its buffers; with its documented method
+ * (below) 150 mM gives every one of eleven primers from 17 to 32 nt and 9 to
+ * 90 % GC the Tm the calculator showed on 2026-09-25, to the degree.
+ */
+const Q5_MONOVALENT_M = 0.15;
+/** Primer concentration NEB assumes for Q5 (M). */
+const Q5_PRIMER_M = 500e-9;
+/** Q5's annealing temperature never goes above its extension temperature. */
+const Q5_MAX_ANNEAL = 72;
+
+/**
+ * Melting temperature in °C as NEB's Tm Calculator gives it for Q5 (#69).
+ * NEB documents the method: SantaLucia (1998) nearest neighbours at 1 M,
+ * with the whole primer concentration in the logarithm (the calculator
+ * divided it by four until 2016, and says so), then Owczarzy et al. (2004)'s
+ * monovalent salt correction to the buffer. It reads 1–3 °C above
+ * `meltingTemperature`, which is what NEB means by other calculators
+ * underestimating the Tm for use with Q5. NaN as `meltingTemperature` is.
+ */
+export function q5MeltingTemperature(sequence: string): number {
+  const seq = sequence.toUpperCase().replace(/U/g, 'T');
+  if (seq.length < 2 || /[^ACGT]/.test(seq)) return NaN;
+  let dH = 0;
+  let dS = 0;
+  for (let i = 0; i + 1 < seq.length; i++) {
+    const nn = NN_PARAMS[seq.slice(i, i + 2)];
+    if (nn === undefined) return NaN;
+    dH += nn.dH;
+    dS += nn.dS;
+  }
+  for (const end of [seq.charAt(0), seq.charAt(seq.length - 1)]) {
+    const init = end === 'G' || end === 'C' ? INIT_GC : INIT_AT;
+    dH += init.dH;
+    dS += init.dS;
+  }
+  const oneMolar = (dH * 1000) / (dS + R * Math.log(Q5_PRIMER_M));
+  const ln = Math.log(Q5_MONOVALENT_M);
+  const gc = gcFraction(seq);
+  return 1 / (1 / oneMolar + ((4.29 * gc - 3.95) * ln + 0.94 * ln * ln) * 1e-5) - 273.15;
+}
+
+/**
+ * NEB's annealing temperature for a Q5 PCR with primers of these Q5 Tms
+ * (`q5MeltingTemperature`): one degree over the lower, never above 72 °C.
+ * The rule is read off the calculator (#69), where it held for every pair
+ * tried; NEB's older advice of Tm + 3 °C was written for Tms 2 °C lower,
+ * before its 2016 correction, and its Ta values were left as they were.
+ */
+export function q5AnnealingTemperature(tmA: number, tmB: number): number {
+  return Math.min(Math.round(Math.min(tmA, tmB)) + 1, Q5_MAX_ANNEAL);
+}
+
 /** Fraction of G and C bases, 0–1 (0 for empty input). */
 export function gcFraction(sequence: string): number {
   if (sequence.length === 0) return 0;
