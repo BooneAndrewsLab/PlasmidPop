@@ -1147,8 +1147,17 @@ button {
   font-size: 12px;
 }
 
+/* Fixed, not absolute (#100). Absolute would put the box at its static
+   position with the nearest positioned ancestor as its containing block —
+   usually none, so the page. A hidden live region inside a list that scrolls
+   inside itself (a digest's fragments) then escapes the list's clipping and
+   sits hundreds of pixels down the document, which gives the whole window a
+   scrollbar. A fixed box is not part of the page's scrollable overflow at
+   all, so the utility no longer depends on what is positioned above it. */
 .visually-hidden {
-  position: absolute;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   padding: 0;
