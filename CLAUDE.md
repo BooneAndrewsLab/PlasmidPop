@@ -91,7 +91,12 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-26)
 
-**1.8.0** (2026-09-26) is the current release: bench and workspace
+**1.8.1** (2026-09-26) is the current release: a digest's fragment list no
+longer gives the window a scrollbar. `.visually-hidden` was absolutely
+positioned, so a row's hidden live region escaped the list that scrolls
+inside itself and sat far down the page; it is fixed-positioned now, which
+is outside the page's scrollable overflow whatever is above it (#100).
+**1.8.0** (2026-09-26) was bench and workspace
 follow-ups (item 61, and the follow-up halves of 3, 47, 49, 51, 52, 56, 57
 and 59). The Bench's check digest draws the empty vector's lane beside the
 product's and ranks enzymes by how well they differ; its product map hovers
