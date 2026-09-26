@@ -10,3 +10,4 @@ export * from './gel';
 export * from './methylation';
 export * from './proteinProperties';
 export * from './openAsProtein';
+export * from './residueNumbers';
