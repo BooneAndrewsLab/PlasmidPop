@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import { type Feature, type SeqDocument, featureExtent, isEmptyRange } from '@/core';
+import { type SeqDocument, featureExtent, isEmptyRange } from '@/core';
 import {
   type ChangeTarget,
   type DrawnLabel,
@@ -18,11 +18,11 @@ import {
   CircularLayout,
   FIT_VIEWPORT,
   clockwiseSelection,
+  featureAtLane,
   sameChange,
   fitRange,
   ghostFeatures,
   lanesWithGhosts,
-  MIN_FEATURE_PX,
   labelMargin,
   overlayRingRadius,
   panBy,
@@ -353,24 +353,8 @@ export function CircularMapView({ doc }: Props) {
     return null;
   };
 
-  const featureAt = (lane: number, position: number): string | null => {
-    const inLane = (x: Feature): boolean => lanes.laneOf.get(x.id) === lane;
-    const f = doc.features.at(position, doc.length).find(inLane);
-    if (f !== undefined) return f.id;
-    // A feature too short to see is drawn a few pixels wide (#26); it takes
-    // that much of the pointer too, or what can be seen could not be hovered.
-    const r = layout.laneRadius(lane);
-    // Bases per pixel of this lane's ring; the radius is on screen, zoom and all.
-    const bases = Math.ceil(MIN_FEATURE_PX / 2 / ((Math.PI * 2 * r) / Math.max(1, doc.length)));
-    if (bases < 1) return null;
-    const near = doc.features
-      .overlapping(
-        { start: Math.max(0, position - bases), end: Math.min(doc.length, position + bases + 1) },
-        doc.length,
-      )
-      .filter(inLane);
-    return near[0]?.id ?? null;
-  };
+  const featureAt = (lane: number, position: number): string | null =>
+    featureAtLane(doc, lanes, layout, lane, position);
 
   const endGesture = (): void => {
     gesture.current = { kind: 'idle' };
