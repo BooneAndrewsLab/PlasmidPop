@@ -61,9 +61,24 @@ describe('parseLibraryFile', () => {
   });
 
   it('throws on bases other than upper-case A, C, G and T, anywhere in the part', () => {
-    for (const sequence of ['', 'ACGTN', 'NACGT', 'ACGNT', 'acgt', 'ACGU']) {
+    for (const sequence of ['ACGTN', 'NACGT', 'ACGNT', 'acgt', 'ACGU']) {
       expect(() => parseLibraryFile(file({ ...GOOD, sequence }), 'core'), sequence).toThrow(
         'Feature library (core): part 0 is malformed',
+      );
+    }
+  });
+
+  it('takes a part looked for in the translation, and refuses one that is nothing (#93)', () => {
+    const tag = parseLibraryFile(file({ ...GOOD, sequence: '', protein: 'HHHHHH' }), 'core');
+    expect(tag[0]).toMatchObject({ sequence: '', protein: 'HHHHHH' });
+    // Both is allowed: a part may be looked for by its bases and its protein.
+    expect(parseLibraryFile(file({ ...GOOD, protein: 'MKV' }), 'core')[0]?.protein).toBe('MKV');
+    expect(() => parseLibraryFile(file({ ...GOOD, sequence: '' }), 'core')).toThrow(
+      'part 0 has neither bases nor a protein',
+    );
+    for (const protein of ['', 'mkv', 'MK V', 'MK1']) {
+      expect(() => parseLibraryFile(file({ ...GOOD, sequence: '', protein }), 'core')).toThrow(
+        /part 0 has (neither bases nor a protein|a malformed protein)/,
       );
     }
   });
@@ -74,8 +89,31 @@ describe('the bundled library, as loaded', () => {
     const lib = await loadFeatureLibrary();
     expect(lib.parts.some((p) => p.source === 'core' && p.note !== undefined)).toBe(true);
     for (const p of lib.parts) {
-      expect(/^[ACGT]+$/.test(p.sequence), p.name).toBe(true);
+      // Bases, a protein, or both; a part with neither would match nothing (#93).
+      expect(/^[ACGT]*$/.test(p.sequence), p.name).toBe(true);
+      expect(p.sequence !== '' || (p.protein ?? '') !== '', p.name).toBe(true);
       expect(p.fpbase !== undefined, p.name).toBe(p.source === 'fpbase');
+    }
+  });
+
+  it('has the fluorescent proteins and the peptide tags to match in a translation (#93)', async () => {
+    const lib = await loadFeatureLibrary();
+    const withProtein = lib.parts.filter((p) => (p.protein ?? '') !== '');
+    expect(withProtein.length).toBeGreaterThan(80);
+    // Every fluorescent protein is matched by its protein, whether or not a
+    // coding sequence was found for it.
+    for (const p of lib.parts) {
+      if (p.source === 'fpbase') expect((p.protein ?? '') !== '', p.name).toBe(true);
+    }
+    // The tags every vector spells its own way are among them.
+    const byName = new Map(lib.parts.map((p) => [p.name, p]));
+    expect(byName.get('FLAG')?.protein).toBe('DYKDDDDK');
+    expect(byName.get('Myc')?.protein).toBe('EQKLISEEDL');
+    expect(byName.get('SV40 NLS')).toMatchObject({ protein: 'PKKKRKV', sequence: '' });
+    expect(byName.get('T7 tag')?.protein).toBe('MASMTGGQQMG');
+    // A protein-only part still cites where its sequence came from.
+    for (const p of lib.parts) {
+      if (p.sequence === '') expect(p.accession.length, p.name).toBeGreaterThan(0);
     }
   });
 });

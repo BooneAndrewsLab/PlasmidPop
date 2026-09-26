@@ -13,6 +13,7 @@ import {
   overlapLength,
 } from './detect';
 import { type FeatureLibrary, type LibraryPart, loadFeatureLibrary } from './library';
+import { detectProteinFeatures } from './protein';
 
 function part(name: string, sequence: string, type = 'misc_feature'): LibraryPart {
   return {
@@ -430,6 +431,9 @@ describe('the bundled library', () => {
     expect(lib.parts.length).toBeGreaterThan(0);
     expect(lib.parts.some((p) => p.source === 'fpbase')).toBe(true);
     for (const [i, p] of lib.parts.entries()) {
+      // A part kept only as a protein (#93) has no bases to look for it in;
+      // the protein test below covers those.
+      if (p.sequence === '') continue;
       const hits = detectFeatures(p.sequence, 'linear', lib);
       const self = hits.find((h) => h.part === i);
       // A part may be displaced by a longer one of its type that contains it.
@@ -439,6 +443,45 @@ describe('the bundled library', () => {
       expect(covered, p.name).toBe(true);
       if (self !== undefined) expect(self.identity, p.name).toBe(1);
     }
+  });
+
+  it('finds every part that carries a protein in a sequence coding for it (#93)', async () => {
+    const lib = await loadFeatureLibrary();
+    const codon: Record<string, string> = {
+      A: 'GCG',
+      C: 'TGC',
+      D: 'GAT',
+      E: 'GAA',
+      F: 'TTT',
+      G: 'GGC',
+      H: 'CAT',
+      I: 'ATT',
+      K: 'AAA',
+      L: 'CTG',
+      M: 'ATG',
+      N: 'AAC',
+      P: 'CCG',
+      Q: 'CAG',
+      R: 'CGT',
+      S: 'AGC',
+      T: 'ACC',
+      V: 'GTG',
+      W: 'TGG',
+      Y: 'TAT',
+    };
+    let checked = 0;
+    for (const [i, p] of lib.parts.entries()) {
+      const protein = p.protein ?? '';
+      if (protein === '' || /[^ACDEFGHIKLMNPQRSTVWY]/.test(protein)) continue;
+      checked++;
+      // Spelled in codons of our own, so only a protein match can find it.
+      const dna = Array.from(protein, (aa) => codon[aa] ?? 'NNN').join('');
+      const hits = detectProteinFeatures(dna, 'linear', lib);
+      const self = hits.find((h) => h.part === i);
+      expect(self?.identity, p.name).toBe(1);
+      expect(self?.range, p.name).toEqual({ start: 0, end: protein.length * 3 });
+    }
+    expect(checked).toBeGreaterThan(80);
   });
 
   it('is loaded once', async () => {

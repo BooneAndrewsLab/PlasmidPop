@@ -89,6 +89,16 @@ What is found:
   part with bases inserted or deleted is not found. Parts shorter than 24
   bases (primer sites, short tags) are only found exactly, so that they do
   not turn up by chance.
+- **By what it codes for**, as well as by its bases. Every vector spells a
+  short tag — FLAG, Myc, the T7 tag, the SV40 nuclear localisation signal —
+  in its own codons, and a fluorescent protein carried from one construct to
+  the next picks up silent changes; neither is found by matching DNA. Those
+  parts are looked for in all six translations instead, and a hit says so:
+  _exact protein match_, or _2 residues differ, 99% of the protein_. This is
+  how the fluorescent proteins whose DNA is not in a public record (EYFP,
+  ECFP, mTurquoise2, mScarlet, Superfolder GFP, mKate2, TagBFP, Clover,
+  mRuby2 and mRuby3 among them) are found at all. A short peptide must match
+  exactly, for the same reason a short stretch of DNA must.
 - **Ambiguity codes** in your sequence (`N`, `R`, `Y`, …) count against a
   match like a mismatch, but are reported separately, as _1 ambiguous base_,
   when the code allows the part's base.

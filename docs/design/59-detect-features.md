@@ -43,7 +43,9 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   the RNA elements that matter here (the ColE1-type origins' RNA I/RNA II
   region) are already in the core from the records they were described in.
   Matching an Rfam model would need Infernal-style search, a different tool.
-- **What is in it** (built 2026-09-25): 153 core parts (markers 28, promoters
+- **What is in it** (rebuilt 2026-09-25 for #93): 155 core parts (two of
+  them peptide tags with no DNA) and 100 fluorescent proteins, 26 of which
+  are proteins without a coding sequence. Before #93 it was 153 core parts (markers 28, promoters
   25, primer sites 22, origins 16, regulatory 16, terminators 10, tags 8,
   recombination sites 8, reporters 8, operators 5, other 7) and 74
   fluorescent proteins, 131,847 bp. Classic vector records (pBR322 J01749,
@@ -64,6 +66,55 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   build's own checks. Most of these are short protein tags and FPs whose
   codons vary between vectors anyway, the case protein-level matching is
   for.
+
+## Matching what a part codes for (#93, 1.8)
+
+The DNA search cannot see two kinds of part: a short peptide tag, which
+every vector spells in its own codons and no public record annotates as
+DNA, and a protein carried between constructs with synonymous changes,
+which reads as a string of mismatches. So a part may carry a `protein` as
+well as (or instead of) its bases, and `detectProteinFeatures` looks for
+those in all six translations.
+
+- **The data is still never typed in.** A tag that exists in DNA somewhere
+  gets its peptide from its own cited bases (`alsoProtein` in the spec:
+  the build translates the part and checks it is whole codons with no stop
+  inside), so FLAG, Myc, 8xHis, the PreScission and thrombin sites, the 2A
+  peptide, GST and MBP are now matched either way. A tag with no DNA record
+  at all is a `proteinProbe`: the peptide must occur exactly once in the
+  protein record cited, which is how the SV40 NLS (NP_043127.1) and the T7
+  tag (NP_041998.1) came in. A misremembered peptide fails the build.
+- **FPbase without a coding sequence.** `buildFp` no longer drops a protein
+  whose `/coded_by` is missing, partial or disagrees with FPbase; it keeps
+  the protein alone, citing the GenBank protein record. That brought in 26
+  of the proteins people actually use — EYFP, ECFP, mTurquoise2, mScarlet,
+  Superfolder GFP, mKate2, TagBFP, Clover, mRuby2/3, Citrine, Venus,
+  Cerulean, YPet, mEmerald, Dendra2, mEos2 and others — which is what the
+  issue was mostly about. The bases are still only ever kept when they
+  translate to FPbase's protein.
+- **Seeded like the DNA search**, and for the same reason: five residues,
+  the q-gram lemma capping the budget at `floor(L / 5) − 1`, so a match
+  within the budget always shares a seed. Parts of 12 residues or fewer must
+  match exactly — a FLAG tag with one residue changed is not a FLAG tag, and
+  an inexact short peptide would be everywhere. The identity is stricter
+  than the DNA default (98%): a protein match is already a near-certain one.
+- **In codes, not strings.** The first version translated to six strings and
+  took a `slice` per position: 780 ms over the DNA search on a megabase,
+  nearly all of it allocation. The frames are now `Uint8Array`s of five-bit
+  residue codes, the seed is a rolling 25-bit word, and a 4 MB bitmap
+  answers "in no part" before the map is asked — 16 ms over the DNA search
+  (`docs/perf-notes.md`). A stop codon, or any codon with an ambiguous base,
+  is not a residue and breaks the run, so no match reads through a stop.
+- **The hits join the rest.** A protein hit is an ordinary `FeatureHit` with
+  `viaProtein` set, in bases on the forward strand, and goes through the
+  same `keepBest`: a part found both ways is offered once, the DNA match
+  preferred as the more exacting. The panel says which it was (`exact
+protein match`), and so does the note on the feature added.
+- **Not yet.** 6xHis: its peptide is a run of six histidines, which occurs
+  more than once in any record that carries eight of them, so the build's
+  "exactly once" check refuses it; it needs a rule of its own. Strep-tag II,
+  Avi-tag, HA and V5 need a record to cite that carries them exactly once,
+  which a search did not turn up quickly.
 
 ## Matching (`src/core/annotate/detect.ts`)
 

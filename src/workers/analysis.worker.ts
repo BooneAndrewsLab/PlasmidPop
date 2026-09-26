@@ -79,7 +79,7 @@ export function handleAnalysisRequest(
           detections: hits.flatMap((hit) => {
             const found = lib.parts[hit.part];
             if (found === undefined) return [];
-            const { sequence: _bases, ...part } = found;
+            const { sequence: _bases, protein: _protein, ...part } = found;
             return [{ hit, part: part satisfies DetectedPart }];
           }),
         };

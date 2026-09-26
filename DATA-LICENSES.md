@@ -42,8 +42,9 @@ License, and anything made from it must be shared under the same terms.
   belongs to those authors.
 - Changes: for each protein, the DNA is the coding sequence of the NCBI
   record named by FPbase's GenBank protein accession (`/coded_by`), kept only
-  where it translates exactly to FPbase's protein sequence. Proteins for
-  which that fails are left out.
+  where it translates exactly to FPbase's protein sequence. Where that fails
+  the protein sequence is kept on its own and matched in the translation
+  (#93), citing the GenBank protein record; no DNA is invented for it.
 
 ## Codon usage of the expression hosts
 

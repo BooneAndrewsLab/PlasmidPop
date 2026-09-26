@@ -81,7 +81,12 @@ export type AnalysisRequest =
  * A part of the library as the main thread is told of it: everything but
  * its bases, which only the worker needs (and which it alone loads).
  */
-export type DetectedPart = Omit<LibraryPart, 'sequence'>;
+/**
+ * A part as the main thread hears of it: without its bases, and without the
+ * protein a translation match was made against (#93) — the panel names and
+ * describes a hit, and neither sequence is wanted for that.
+ */
+export type DetectedPart = Omit<LibraryPart, 'sequence' | 'protein'>;
 
 /** A hit with the part it is a hit of. */
 export interface Detection {

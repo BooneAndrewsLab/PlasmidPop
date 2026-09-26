@@ -156,3 +156,41 @@ describe('featureFromHit', () => {
     expect(f.qualifiers).toHaveLength(2);
   });
 });
+
+describe('describeMatch on a translation hit (#93)', () => {
+  const hit = {
+    part: 0,
+    range: { start: 0, end: 30 },
+    strand: 'forward' as const,
+    ambiguous: 0,
+  };
+
+  it('says the match was on the protein, and how much of it', () => {
+    expect(describeMatch({ ...hit, mismatches: 0, identity: 1, viaProtein: true })).toBe(
+      'exact protein match',
+    );
+    expect(describeMatch({ ...hit, mismatches: 1, identity: 0.99, viaProtein: true })).toBe(
+      '1 residue differs, 99% of the protein',
+    );
+    expect(describeMatch({ ...hit, mismatches: 3, identity: 0.97, viaProtein: true })).toBe(
+      '3 residues differ, 97% of the protein',
+    );
+    // A hit on the bases still reads as it did.
+    expect(describeMatch({ ...hit, mismatches: 1, identity: 0.99 })).toBe('1 mismatch, 99%');
+  });
+
+  it('notes it in the feature it makes, so it can be told from a DNA match', () => {
+    const part = {
+      name: '6xHis',
+      type: 'CDS',
+      category: 'tag',
+      accession: 'NP_043127.1',
+      location: '1..7',
+      source: 'core' as const,
+    };
+    const feature = featureFromHit({ ...hit, mismatches: 0, identity: 1, viaProtein: true }, part);
+    expect(feature.qualifiers.filter((q) => q.name === 'note').at(-1)?.value).toBe(
+      'Detected by PlasmidPop: exact protein match to NP_043127.1 1..7',
+    );
+  });
+});

@@ -571,11 +571,13 @@ walks.
 
 ## Detect features (item 59, 2026-09-25)
 
-| Input                                  | Library               | Time   | Where                          |
-| -------------------------------------- | --------------------- | ------ | ------------------------------ |
-| 1 Mb random, circular, 8 parts planted | 109 parts (partial)   | 286 ms | Node 24, map lookup per 12-mer |
-| same                                   | 109 parts             | 47 ms  | Node 24, bitmap before the map |
-| same                                   | 227 parts, 131,847 bp | 127 ms | Node 24, `detect.test.ts`      |
+| Input                                  | Library                 | Time   | Where                                   |
+| -------------------------------------- | ----------------------- | ------ | --------------------------------------- |
+| 1 Mb random, circular, 8 parts planted | 109 parts (partial)     | 286 ms | Node 24, map lookup per 12-mer          |
+| same                                   | 109 parts               | 47 ms  | Node 24, bitmap before the map          |
+| same                                   | 227 parts, 131,847 bp   | 127 ms | Node 24, `detect.test.ts`               |
+| same                                   | 255 parts, 100 proteins | 888 ms | Node 24, protein match on strings (#93) |
+| same                                   | 255 parts, 100 proteins | 113 ms | Node 24, protein match in codes (#93)   |
 
 Both strands, 95% identity. Every 12-mer of the sequence is looked up;
 nearly all are in no part, and a 2 MB bitmap of the words the library holds
@@ -586,6 +588,15 @@ library's size. The index (the 12-mers at ~260,000 positions on both strands) is
 once per worker and kept. The library itself is a lazy chunk: 109 kB
 (31 kB gzipped) for the core and 70 kB (12.6 kB gzipped) for the FPbase
 file, fetched the first time Detect features runs.
+
+Matching the parts that carry a protein (#93, 1.8) translates the sequence
+in six frames and seeds on five residues. Written the obvious way — six
+strings and a `slice` per position — that cost 780 ms on top of the DNA
+search, most of it in allocating two million five-character strings. Filling
+the frames as arrays of five-bit residue codes and rolling the seed word
+through them, with the same kind of bitmap before the map, brought the whole
+search back to 113 ms: 16 ms over the DNA search alone, for a hundred more
+proteins.
 
 ## Residue numbers in the sequence view (item 60, 2026-09-25)
 

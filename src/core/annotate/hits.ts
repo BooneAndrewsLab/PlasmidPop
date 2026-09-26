@@ -41,8 +41,18 @@ export function formatIdentity(identity: number): string {
   return `${Number.isInteger(percent) ? percent.toFixed(0) : percent.toFixed(1)}%`;
 }
 
-/** What a hit is, in words: "exact", "2 mismatches, 99.8%", "1 ambiguous base, 99.9%". */
+/**
+ * What a hit is, in words: "exact", "2 mismatches, 99.8%", "1 ambiguous
+ * base, 99.9%", and for a hit made in the translation (#93) "exact protein
+ * match" or "2 residues differ, 99.0% of the protein".
+ */
 export function describeMatch(hit: FeatureHit): string {
+  if (hit.viaProtein === true) {
+    if (hit.mismatches === 0) return 'exact protein match';
+    const residues =
+      hit.mismatches === 1 ? '1 residue differs' : `${hit.mismatches} residues differ`;
+    return `${residues}, ${formatIdentity(hit.identity)} of the protein`;
+  }
   if (hit.mismatches === 0 && hit.ambiguous === 0) return 'exact';
   const parts: string[] = [];
   if (hit.mismatches > 0) {
@@ -60,7 +70,10 @@ export function describeMatch(hit: FeatureHit): string {
  * matched and which record it was matched against, so an annotation made by
  * the app is never mistaken for one the file came with.
  */
-export function featureFromHit(hit: FeatureHit, part: Omit<LibraryPart, 'sequence'>): Feature {
+export function featureFromHit(
+  hit: FeatureHit,
+  part: Omit<LibraryPart, 'sequence' | 'protein'>,
+): Feature {
   const qualifiers: Qualifier[] = [{ name: 'label', value: part.name }];
   if (part.note !== undefined) qualifiers.push({ name: 'note', value: part.note });
   const via = part.fpbase === undefined ? '' : ` via FPbase ${part.fpbase}`;
