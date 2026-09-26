@@ -136,6 +136,17 @@ export type LineageStep =
       readonly parents: readonly LineageNode[];
     }
   | {
+      /**
+       * A step another program recorded that has no kind of its own here
+       * (#85): SnapGene's history tree names operations PlasmidPop does not
+       * run, and its own name for one is better than dropping the node.
+       */
+      readonly op: 'other';
+      readonly parents: readonly LineageNode[];
+      /** What the program called it, e.g. `newFileFromSelection`. */
+      readonly name: string;
+    }
+  | {
       /** Earlier molecules left out to keep the tree small (`pruneLineage`). */
       readonly op: 'elided';
       readonly parents: readonly LineageNode[];
@@ -175,6 +186,7 @@ export function parentCount(op: LineageOp): number | 'some' {
     case 'ligation':
     case 'golden-gate':
     case 'gibson':
+    case 'other':
       return 'some';
     case 'elided':
       return 0;
@@ -218,11 +230,16 @@ export function lineageOf(doc: SeqDocument): LineageNode {
 /**
  * Whether a document has been edited since the lineage it carries was
  * recorded: its checksum is not the one taken when it was made. False for a
- * document with no lineage, which was not made here.
+ * document with no lineage, which was not made here, and for one whose
+ * lineage came from a program that records no checksum (#85).
  */
 export function editedSinceMade(doc: SeqDocument): boolean {
   const own = doc.metadata.lineage;
-  return own !== null && own.checksum !== lineageChecksum(doc);
+  // A root with no checksum cannot say: SnapGene records none (#85), so a
+  // tree read from one of its files would otherwise read as edited the
+  // moment it was opened.
+  if (own?.checksum == null) return false;
+  return own.checksum !== lineageChecksum(doc);
 }
 
 /**
@@ -349,18 +366,26 @@ function isPrimer(v: unknown): boolean {
   return isObject(v) && isString(v['name']) && isString(v['sequence']);
 }
 
-const OPS: ReadonlySet<string> = new Set<LineageOp>([
-  'digest',
-  'pcr',
-  'ligation',
-  'golden-gate',
-  'gibson',
-  'gateway',
-  'mutagenesis',
-  'phosphates',
-  'edited',
-  'elided',
-]);
+/**
+ * Every kind of step. A record of the union rather than a list, so that a
+ * kind added to `LineageStep` and left out here does not compile: one left
+ * out would make every tree carrying it unreadable, silently (#85).
+ */
+const OP_NAMES: Readonly<Record<LineageOp, true>> = {
+  digest: true,
+  pcr: true,
+  ligation: true,
+  'golden-gate': true,
+  gibson: true,
+  gateway: true,
+  mutagenesis: true,
+  phosphates: true,
+  edited: true,
+  other: true,
+  elided: true,
+};
+
+const OPS: ReadonlySet<string> = new Set(Object.keys(OP_NAMES));
 
 function isStep(v: unknown, depth: number): boolean {
   if (!isObject(v) || !isString(v['op']) || !OPS.has(v['op'])) return false;
@@ -414,6 +439,8 @@ function isStep(v: unknown, depth: number): boolean {
       return typeof v['removed'] === 'boolean';
     case 'edited':
       return true;
+    case 'other':
+      return isString(v['name']);
     case 'elided':
       return isCount(v['nodes']);
   }

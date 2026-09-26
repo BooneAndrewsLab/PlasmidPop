@@ -4,7 +4,7 @@ import { isAbif, parseAbif } from './abif';
 import { parseFasta } from './fasta';
 import { parseFastq } from './fastq';
 import { parseGenBank } from './genbank';
-import { isSnapGene, parseSnapGene } from './snapgene';
+import { isSnapGene, parseSnapGene, readSnapGeneHistory, snapGeneHistoryPacket } from './snapgene';
 import { type FormatId, type ParseResult, FormatError } from './types';
 
 const GENBANK_EXTENSIONS = new Set(['gb', 'gbk', 'genbank', 'gbff', 'ape', 'gp', 'gpff', 'gpept']);
@@ -132,6 +132,20 @@ function isGzip(bytes: Uint8Array): boolean {
  */
 export async function readSequenceData(data: ArrayBuffer, filename?: string): Promise<ParseResult> {
   const bytes = new Uint8Array(data);
+  // A SnapGene file keeps how it was made in a packet of its own, which is
+  // usually xz-compressed and so can only be read here, where waiting is
+  // allowed (#85). A history that will not read costs the tree, not the file.
+  if (isSnapGene(bytes)) {
+    const result = parseSequenceData(bytes, filename);
+    const packet = snapGeneHistoryPacket(bytes);
+    if (packet === null) return result;
+    const lineage = await readSnapGeneHistory(packet);
+    if (lineage === null) return result;
+    return {
+      ...result,
+      documents: result.documents.map((doc, i) => (i === 0 ? doc.setMetadata({ lineage }) : doc)),
+    };
+  }
   if (!isGzip(bytes)) return parseSequenceData(bytes, filename);
   let inflated: ArrayBuffer;
   try {

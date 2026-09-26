@@ -66,6 +66,9 @@ export function describeLineageStep(step: LineageStep): string {
       return step.removed ? 'Dephosphorylated' : 'Phosphorylated';
     case 'edited':
       return 'Edited after it was made';
+    case 'other':
+      // Another program's word for what it did (#85), left as it wrote it.
+      return `${step.name} of ${parts(step.parents.length)}`;
     case 'elided':
       return `${step.nodes.toLocaleString()} earlier ${step.nodes === 1 ? 'molecule' : 'molecules'} not kept`;
   }

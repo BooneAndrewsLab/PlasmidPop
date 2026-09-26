@@ -317,3 +317,30 @@ describe('describeLineageStep', () => {
     expect(describeLineageRange({ start: 0, end: 100 }, 100)).toBe('1–100');
   });
 });
+
+describe('editedSinceMade with a lineage from elsewhere (#85)', () => {
+  const doc = SeqDocument.create({ name: 'p', sequence: 'ACGTACGTACGT' });
+
+  it('says nothing about a root that carries no checksum', () => {
+    const parent = {
+      name: 'a',
+      checksum: null,
+      topology: 'linear' as const,
+      length: 6,
+      step: null,
+    };
+    const fromSnapGene = doc.setMetadata({
+      lineage: {
+        name: 'p',
+        // SnapGene records no checksum, so neither does the tree read from it.
+        checksum: null,
+        topology: 'linear' as const,
+        length: doc.length,
+        step: { op: 'other' as const, parents: [parent], name: 'flip' },
+      },
+    });
+    expect(editedSinceMade(fromSnapGene)).toBe(false);
+    // Edited or not, there is nothing to compare it with.
+    expect(editedSinceMade(fromSnapGene.insert(0, 'A'))).toBe(false);
+  });
+});

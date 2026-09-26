@@ -65,8 +65,14 @@ A record whose letters are amino acids opens as a protein; see
 
 **SnapGene `.dna`** files are read for sequence and topology, features
 (including segmented features and their colours), primers (as `primer_bind`
-features), sticky ends and notes (description, organism, references). Enzyme
-sets, history, alignments and appearance settings are skipped. PlasmidPop
+features), sticky ends, notes (description, organism, references) and the
+file's own **history**: how SnapGene recorded the construct being made shows
+in [Made from](13-history.md#made-from), with the oligos of a PCR and a
+mutagenesis, and SnapGene's own word for anything PlasmidPop does not run
+(`flip`, `newFileFromSelection`, `changeMethylation`). SnapGene stores no
+checksums, so each molecule in that tree reads as _not in this browser_
+unless you have the file yourself. Enzyme sets, alignments and appearance
+settings are skipped. PlasmidPop
 cannot write `.dna`; download GenBank instead. Files from current SnapGene
 versions are what is tested; before version 1.2, primers were placed one base
 to the left of where SnapGene has them, and a primer SnapGene stores twice

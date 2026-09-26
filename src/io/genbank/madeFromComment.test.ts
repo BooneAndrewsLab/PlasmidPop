@@ -340,6 +340,10 @@ function stepArb(parentArb: fc.Arbitrary<LineageNode>): fc.Arbitrary<LineageStep
       .tuple(one, fc.boolean())
       .map(([parents, removed]): LineageStep => ({ op: 'phosphates', parents, removed })),
     one.map((parents): LineageStep => ({ op: 'edited', parents })),
+    // A step another program recorded, under its own name (#85).
+    fc
+      .tuple(some, fc.string({ minLength: 1, maxLength: 40 }))
+      .map(([parents, name]): LineageStep => ({ op: 'other', parents, name })),
     fc.nat(999_999_999).map((nodes): LineageStep => ({ op: 'elided', parents: [], nodes })),
   );
 }

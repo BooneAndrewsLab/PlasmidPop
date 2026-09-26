@@ -154,6 +154,9 @@ function settings(step: LineageStep): string[] {
       return [`removed=${yesNo(step.removed)}`];
     case 'edited':
       return [];
+    case 'other':
+      // Another program's name for the step (#85); escaped like any token.
+      return [`name=${escapeToken(step.name)}`];
     case 'elided':
       return [`nodes=${String(step.nodes)}`];
   }
@@ -205,18 +208,27 @@ interface Draft {
   readonly parents: Draft[];
 }
 
-const OPS: ReadonlySet<string> = new Set<LineageOp>([
-  'digest',
-  'pcr',
-  'ligation',
-  'golden-gate',
-  'gibson',
-  'gateway',
-  'mutagenesis',
-  'phosphates',
-  'edited',
-  'elided',
-]);
+/**
+ * Every op the block may name. Typed as a record of the union rather than a
+ * list so that a kind added to `LineageStep` and left out here does not
+ * compile: leaving one out means a tree this app wrote would not read back
+ * (as `other` did not, #85).
+ */
+const OP_NAMES: Readonly<Record<LineageOp, true>> = {
+  digest: true,
+  pcr: true,
+  ligation: true,
+  'golden-gate': true,
+  gibson: true,
+  gateway: true,
+  mutagenesis: true,
+  phosphates: true,
+  edited: true,
+  other: true,
+  elided: true,
+};
+
+const OPS: ReadonlySet<string> = new Set(Object.keys(OP_NAMES));
 
 function count(text: string | undefined): number | null {
   if (text === undefined || !/^\d{1,9}$/.test(text)) return null;
@@ -380,6 +392,11 @@ function finish(draft: Draft): LineageNode | null {
       }
       case 'edited':
         return { op, parents };
+      case 'other': {
+        const nameText = s('name');
+        const name = nameText === undefined ? null : unescapeToken(nameText);
+        return name === null || name === '' ? null : { op, parents, name };
+      }
       case 'elided': {
         const nodes = count(s('nodes'));
         return nodes === null ? null : { op, parents, nodes };

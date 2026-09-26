@@ -193,8 +193,38 @@ document, xz-compressed in 10 of the 12 bundled SnapGene 8.2 samples that
 have one. Its nodes have names, lengths, topology, operations
 (`insertFragments`, `amplifyFragment`, `primerDirectedMutagenesis`, …) and
 oligos. The ancestors' sequences are in `0x0B` packets, in an encoding not
-worked out. Reading it needs an xz (LZMA2) decoder, which the browser does not
-have, and it carries no checksums. Filed as #85 rather than blocking this.
+worked out.
+
+**Read since 1.8** (#85, `src/io/snapgene/historyTree.ts`): a `.dna` file
+opens with its own tree in the same panel.
+
+- **xz** is a dependency, `xz-decompress` (MIT, WebAssembly, no dependencies
+  of its own, 28 kB with the decoder inlined), imported where it is used so
+  a session that opens no SnapGene file never fetches it. The user chose a
+  vetted package over writing an LZMA2 decoder, 2026-09-25.
+- **Reading it has to wait**, so it is not part of `parseSnapGene`, which is
+  synchronous and stays so: `snapGeneHistoryPacket` hands the packet over
+  and `readSequenceData` — already asynchronous, for gzip — attaches the
+  lineage. A history that will not decompress or parse costs the tree,
+  never the file.
+- **Operations map** to our steps where they mean the same thing:
+  `insertFragments` and `replaceFragment` to a ligation, `amplifyFragment`
+  to a PCR (with its `Oligo`s as the primers), `primerDirectedMutagenesis`
+  to a mutagenesis. Everything else — `flip`, `newFileFromSelection`,
+  `changeMethylation` — keeps SnapGene's own word under a new step,
+  **`other`**, which is more use than dropping the node: a tree that says
+  `newFileFromSelection` tells the reader where the piece came from. What
+  SnapGene does not record, we do not invent: no piece is said to be
+  flipped, and a PCR is put down as proofreading.
+- **No checksums**, because SnapGene stores none. Every node comes back
+  `checksum: null`, so the tree says "not in this browser" for each, and
+  `editedSinceMade` now answers false for a root without one — otherwise a
+  file would read as edited the moment it was opened.
+- **Adding a step kind touched three lists**, and two of them were found by
+  a file that would not read back: the reader's `OPS` and the shape check's.
+  Both are now records of the union (`OP_NAMES`), so leaving a kind out does
+  not compile, and the property test generates the new kind as it does the
+  rest.
 
 ## Usage events
 

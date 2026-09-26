@@ -37,7 +37,12 @@ import { type XmlElement, childElements, firstChild, parseXml, stripHtml, textOf
  *                     <UpstreamStickiness>/<DownstreamStickiness> give a
  *                     linear molecule's overhangs (see `stickyEnds`)
  *
- * Everything else (enzyme sets, history, alignments, appearance) is skipped.
+ *   0x07  history     the <HistoryTree> of how the file was made, usually
+ *                     xz-compressed; read by `snapGeneHistoryPacket` and
+ *                     `readSnapGeneHistory` (#85), which need to await the
+ *                     decompression and so are not part of this reader.
+ *
+ * Everything else (enzyme sets, alignments, appearance) is skipped.
  */
 
 const COOKIE = 'SnapGene';
@@ -49,6 +54,7 @@ const Packet = {
   Properties: 0x08,
   Cookie: 0x09,
   Features: 0x0a,
+  History: 0x07,
 } as const;
 
 export function isSnapGene(data: ArrayBuffer | Uint8Array): boolean {
@@ -411,4 +417,19 @@ function stickyEnds(doc: SeqDocument, xml: string, warnings: ParseWarning[]): Se
   if (down > 0) out = out.apply({ type: 'delete', range: { start: L - down, end: L } });
   if (up < 0) out = out.apply({ type: 'delete', range: { start: 0, end: -up } });
   return out.apply({ type: 'setEnds', ends: { left, right } });
+}
+
+/**
+ * The history packet of a SnapGene file, or null when it has none (#85).
+ * Separate from `parseSnapGene` because reading it means decompressing xz,
+ * which is asynchronous; `readSnapGeneHistory` takes it from here.
+ */
+export function snapGeneHistoryPacket(data: ArrayBuffer | Uint8Array): Uint8Array | null {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (!isSnapGene(bytes)) return null;
+  try {
+    return readPackets(bytes).find((p) => p.type === Packet.History)?.payload ?? null;
+  } catch {
+    return null;
+  }
 }

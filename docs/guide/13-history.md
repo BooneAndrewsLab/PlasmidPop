@@ -30,8 +30,13 @@ At the top, **this document** means the document is still the molecule that
 was made; **edited since** means its bases have changed since. The list
 below says how.
 
-The section only appears for a document made in PlasmidPop, or read from a
-file that carries the `PlasmidPop-made-from:` block. Everything can also be
+The section only appears for a document made in PlasmidPop, read from a file
+that carries the `PlasmidPop-made-from:` block, or opened from a
+[SnapGene `.dna` file](02-files.md#formats) that carries SnapGene's own
+history. SnapGene's tree reads the same way, with two differences: it keeps
+no checksums, so every molecule in it says **not in this browser**, and what
+it did that PlasmidPop does not — `flip`, `newFileFromSelection`,
+`changeMethylation` — is shown under SnapGene's own word for it. Everything can also be
 used with the keyboard: `Tab` reaches the section and each **Open**, and
 `Enter` or `Space` expands and collapses it.
 
