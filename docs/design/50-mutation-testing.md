@@ -52,3 +52,16 @@ every site and pair), removed three pieces of dead code and fixed one
 fault ("1 other products"). The rerun scored 94.0%, with 179 survivors and
 18 uncovered left, about as many as triage judged equivalent, dead or not
 worth a test.
+
+## At 1.7
+
+With the 1.7 modules added the run scored 91.9% (699 survived, 84 not
+covered; the weakest were the feature library's file checks at 49% and the
+NCBI client at 70%). Triage, one group of modules at a time, wrote tests
+for about 300 of the 1.7 survivors, judged about 90 equivalent, removed
+dead code in the alphabet and the anneal index, and found one fault: the
+pI of a chain ending in D or E used Bjellqvist's C-terminal pKs, where
+ProtParam uses 3.55 after every residue. The rerun scored 95.2% overall
+and 95.5% over the 1.7 modules. The initial run also needed room for
+Taq's A-tailing property tests (under a second here, over 10 s
+instrumented).
