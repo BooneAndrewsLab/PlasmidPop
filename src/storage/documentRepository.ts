@@ -4,6 +4,7 @@ import {
   type CollectionPrimer,
   type Enzyme,
   type EnzymeSet,
+  type FidelityTable,
   type OverhangKind,
   type SeqDocument,
   type SequencingRead,
@@ -14,7 +15,14 @@ import {
 } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
-import { type PlasmidPopDb, type StoredDocument, ENZYME_SET_ID, SHELF_ID, getDb } from './db';
+import {
+  type PlasmidPopDb,
+  type StoredDocument,
+  ENZYME_SET_ID,
+  FIDELITY_TABLE_ID,
+  SHELF_ID,
+  getDb,
+} from './db';
 import {
   type HistoryToStore,
   type RestoredHistory,
@@ -467,6 +475,50 @@ export class DocumentRepository {
     await this.db.primers.bulkDelete([...ids]);
   }
 
+  /** The imported ligation-fidelity table (#68), or null when there is none. */
+  async loadFidelityTable(): Promise<FidelityTable | null> {
+    const stored = await this.db.fidelityTables.get(FIDELITY_TABLE_ID);
+    if (stored === undefined) return null;
+    const rows = stored.counts as readonly unknown[];
+    const counts = new Map<string, Map<string, number>>();
+    for (const row of rows) {
+      if (!Array.isArray(row)) continue;
+      const [overhang, pairs] = row as [unknown, unknown];
+      if (!isString(overhang) || !Array.isArray(pairs)) continue;
+      const values = new Map<string, number>();
+      for (const pair of pairs as readonly unknown[]) {
+        if (!Array.isArray(pair)) continue;
+        const [partner, count] = pair as [unknown, unknown];
+        if (!isString(partner) || typeof count !== 'number' || !Number.isFinite(count)) continue;
+        values.set(partner, count);
+      }
+      counts.set(overhang, values);
+    }
+    if (counts.size === 0) return null;
+    return {
+      label: isString(stored.label) ? stored.label : 'Imported table',
+      fileName: isString(stored.fileName) ? stored.fileName : null,
+      overhangLength: typeof stored.overhangLength === 'number' ? stored.overhangLength : 4,
+      counts,
+    };
+  }
+
+  /** Keeps the imported fidelity table, or forgets it when given null. */
+  async saveFidelityTable(table: FidelityTable | null): Promise<void> {
+    if (table === null) {
+      await this.db.fidelityTables.delete(FIDELITY_TABLE_ID);
+      return;
+    }
+    await this.db.fidelityTables.put({
+      id: FIDELITY_TABLE_ID,
+      label: table.label,
+      fileName: table.fileName,
+      overhangLength: table.overhangLength,
+      counts: [...table.counts].map(([overhang, pairs]) => [overhang, [...pairs]] as const),
+      importedAt: Date.now(),
+    });
+  }
+
   setLastDocumentId(id: string | null): void {
     try {
       if (id === null) globalThis.localStorage.removeItem(LAST_DOCUMENT_KEY);
@@ -494,7 +546,7 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null;
 }
 
-function isString(v: unknown): boolean {
+function isString(v: unknown): v is string {
   return typeof v === 'string';
 }
 

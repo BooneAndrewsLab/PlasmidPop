@@ -99,6 +99,13 @@ export function useRestoreSession(): boolean {
       } catch {
         // No import, or storage unavailable: the bundled table stands.
       }
+      try {
+        // The fidelity table the Bench scores overhangs with (#68), if the
+        // user imported one; without it Golden Gate keeps its design rules.
+        await persistence.restoreFidelityTable();
+      } catch {
+        // No import, or storage unavailable: the rules stand alone.
+      }
       if (editorStore.getState().documents.length === 0) {
         try {
           await persistence.restoreLastSession();

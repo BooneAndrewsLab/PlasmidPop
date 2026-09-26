@@ -103,6 +103,25 @@ export interface StoredEnzymeSet {
 export const ENZYME_SET_ID = 'active';
 
 /**
+ * The ligation-fidelity table the user imported (#68), one row. The data is
+ * not bundled (its terms do not let this project redistribute it), so what
+ * is stored is the user's own copy, kept here so it survives a reload as an
+ * imported enzyme table does.
+ */
+export interface StoredFidelityTable {
+  readonly id: string;
+  readonly label: string;
+  readonly fileName: string | null;
+  readonly overhangLength: number;
+  /** The matrix as rows of `[overhang, [[partner, count], …]]`. */
+  readonly counts: readonly (readonly [string, readonly (readonly [string, number])[]])[];
+  readonly importedAt: number;
+}
+
+/** Key of the single `fidelityTables` row. */
+export const FIDELITY_TABLE_ID = 'active';
+
+/**
  * One primer of the user's collection (#64, item 56), a row each so that
  * adding or editing one writes one row. Like the documents it stays in this
  * browser: it leaves only as a download the user asks for.
@@ -125,6 +144,8 @@ export class PlasmidPopDb extends Dexie {
   declare histories: EntityTable<StoredHistory, 'id'>;
   /** The primer collection, a row per primer (#64). */
   declare primers: EntityTable<StoredPrimer, 'id'>;
+  /** The imported ligation-fidelity table (#68), one row. */
+  declare fidelityTables: EntityTable<StoredFidelityTable, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -172,6 +193,10 @@ export class PlasmidPopDb extends Dexie {
     // Version 7 adds the primer collection (#64).
     this.version(7).stores({
       primers: 'id, addedAt',
+    });
+    // Version 8 adds the imported ligation-fidelity table (#68).
+    this.version(8).stores({
+      fidelityTables: 'id',
     });
   }
 }

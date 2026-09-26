@@ -9,6 +9,7 @@ import {
   type DigestFragment,
   type EditOp,
   type FeatureId,
+  type FidelityTable,
   type LadderChoice,
   type Orf,
   type PrimerCriteria,
@@ -591,6 +592,12 @@ export interface SharedState {
    */
   readonly enzymeSetInfo: EnzymeSetInfo;
   /**
+   * The ligation-fidelity table the user imported, which Golden Gate scores
+   * its overhangs against (#68). Null until one is imported: the data is
+   * not bundled, so without it the panel has only its design rules.
+   */
+  readonly fidelityTable: FidelityTable | null;
+  /**
    * The file name a save was last downloaded under, in a browser that cannot
    * write to files. Set because a download is not a save the app can repeat:
    * the browser owns the file from there on and numbers the next one, which
@@ -846,6 +853,7 @@ const SHARED_INITIAL: SharedState = {
     fileName: null,
     suppliers: [],
   },
+  fidelityTable: null,
 };
 
 const NO_DOCUMENT: ActiveDocumentFields = {
@@ -1951,6 +1959,11 @@ export class EditorStore {
     const next = owner === undefined ? [] : this.shared.previews.filter((p) => p.owner !== owner);
     if (next.length === this.shared.previews.length) return;
     this.setShared({ previews: next });
+  }
+
+  /** Installs the imported fidelity table, or forgets it (#68). */
+  setFidelityTable(table: FidelityTable | null): void {
+    this.setShared({ fidelityTable: table });
   }
 
   setEnzymeSetInfo(info: EnzymeSetInfo): void {

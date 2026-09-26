@@ -1,4 +1,10 @@
-import { type AssemblyPart, type EnzymeSet, type SeqDocument, BUNDLED_ENZYME_SET } from '@/core';
+import {
+  type AssemblyPart,
+  type EnzymeSet,
+  type SeqDocument,
+  BUNDLED_ENZYME_SET,
+  parseFidelityCsv,
+} from '@/core';
 import { type RebaseSkipped, parseRebaseWithRefM, writeGenBank } from '@/io';
 import {
   type DocumentRepository,
@@ -23,6 +29,14 @@ export interface RebaseImportSummary {
   readonly count: number;
   readonly released: string | null;
   readonly skipped: RebaseSkipped;
+}
+
+/** What a fidelity import turned out to hold, for the panel to report (#68). */
+export interface FidelityImportSummary {
+  readonly label: string;
+  readonly overhangs: number;
+  readonly overhangLength: number;
+  readonly events: number;
 }
 
 /**
@@ -312,6 +326,38 @@ export class PersistenceService {
       released: parsed.released,
       skipped: parsed.skipped,
     };
+  }
+
+  /** Reads back a fidelity table imported in an earlier session (#68). */
+  async restoreFidelityTable(): Promise<void> {
+    const table = await this.repo.loadFidelityTable();
+    if (table !== null) editorStore.setFidelityTable(table);
+  }
+
+  /**
+   * Reads a ligation-fidelity matrix the user has got for themselves and
+   * keeps it in this browser. As with REBASE, the data is not ours to
+   * redistribute (see `docs/design/03-simulated-cloning.md`), so the app
+   * ships the arithmetic and the user brings the numbers.
+   */
+  async importFidelityFile(file: File): Promise<FidelityImportSummary> {
+    const parsed = parseFidelityCsv(await file.text(), file.name);
+    await this.repo.saveFidelityTable(parsed.table);
+    editorStore.setFidelityTable(parsed.table);
+    analytics.track('cloning', 'fidelity-import');
+    return {
+      label: parsed.table.label,
+      overhangs: parsed.overhangs,
+      overhangLength: parsed.table.overhangLength,
+      events: parsed.events,
+    };
+  }
+
+  /** Forgets the imported fidelity table; the design rules stand alone again. */
+  async forgetFidelityTable(): Promise<void> {
+    await this.repo.saveFidelityTable(null);
+    editorStore.setFidelityTable(null);
+    analytics.track('cloning', 'fidelity-clear');
   }
 
   /** Goes back to the table that ships with the app and forgets the import. */

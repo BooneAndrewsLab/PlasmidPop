@@ -185,6 +185,9 @@ export const EVENTS = {
     'bench',
     'shelf-undo',
     'shelf-redo',
+    /** A ligation-fidelity table was imported, or forgotten again (#68). */
+    'fidelity-import',
+    'fidelity-clear',
   ],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],
