@@ -377,6 +377,16 @@ button {
   margin: 8px 0;
 }
 
+/* The zoom buttons in a row under the map (#80): over a corner, as on the
+   editor's map, they hid the ruler of a zoomed-in product in this column. */
+.diff-map--explore .map-view__controls {
+  position: static;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-top: 4px;
+}
+
 /* The column is its frame; the review's card border would be one inside it. */
 .bench__map .diff-map__canvas {
   border: 0;

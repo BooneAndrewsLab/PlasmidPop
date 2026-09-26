@@ -228,8 +228,14 @@ columns:
   reload;
 - **what it makes** on the right, once the parts go together: the product's
   map, drawn as the editor draws one, with the check digest's cuts marked
-  on it, and **Check by digest**: the product cut with one enzyme, beside
-  the **empty vector** cut with the same one. What a miniprep screen asks
+  on it. Hover a feature or a cut site to bring back a label the ring had no
+  room for; zoom with the mouse wheel, a pinch or the **+**/**−** buttons
+  under the map, drag a zoomed map to pan it, double-click a feature to fit
+  it, and **Fit** to see the whole circle again. There is nothing to select
+  until you **Assemble** and the product opens as a document.
+
+  Under the map is **Check by digest**: the product cut with one enzyme,
+  beside the **empty vector** cut with the same one. What a miniprep screen asks
   is whether a colony took the insert or carries the vector without it, so
   the enzyme list (every enzyme that cuts the product between once and six
   times, with the product's own methylation allowed for) puts first the

@@ -88,6 +88,9 @@ it has.
 | Double-click elsewhere        | Zoom in one step       |
 | Drag empty space, middle-drag | Pan when zoomed in     |
 
+The Bench's product map takes the same, and a drag anywhere on it pans,
+since there is nothing on it to select.
+
 ## Panes
 
 `Alt+B` takes the keyboard to the next boundary between two panes (see

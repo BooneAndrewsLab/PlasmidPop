@@ -72,7 +72,15 @@ split follows:
   (`DiffMap`, the save review's read-only map, which takes cut sites and a
   size now), in the app's theme and with the check digest's cuts marked. The
   full interactive map was not the answer: the product is not a document, so
-  there is nothing to select or edit; hover and zoom there are #80. Before
+  there is nothing to select or edit. Hover and zoom came in 1.8 (#80):
+  `DiffMap` takes `explore`, and then hovers features, cut sites and labels
+  as the editor's map does (the hit test for a feature, `featureAtLane`,
+  moved to `@/view/circular` for both), and zooms and pans with the wheel,
+  a pinch, a drag, a double-click and +/−/Fit buttons. The buttons are in a
+  row under the map rather than over its corner: in a 360 px square they
+  hid the ruler of a zoomed product. The view goes back to the whole
+  circle when the product's length or topology changes, not on every new
+  object, since a reaction works its product out on every render. Before
   that it was drawn with `exportMapSvg` (25 ms for pBR322, and only
   when the product changes), and a check digest: every enzyme that cuts
   the product 1–6 times, with its methylation allowed for, ranked by

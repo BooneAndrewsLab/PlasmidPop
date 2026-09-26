@@ -144,6 +144,7 @@ function ProductView({
           cutSites={check?.sites ?? NO_SITES}
           size={360}
           label={`Map of ${product.name}`}
+          explore
         />
       </div>
       <div className="panel__section">
