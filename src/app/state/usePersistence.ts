@@ -91,6 +91,10 @@ export function useRestoreSession(): boolean {
   useEffect(() => {
     const shared = takeShareFragment();
     const sharedFiles = takeShareTargetMarker();
+    // The restore outlives the effect: reading storage and decompressing a
+    // link both take a moment, and nothing here can be called off partway.
+    // What can be called off is the state at the end of it (#101).
+    let mounted = true;
     void (async () => {
       // The enzymes first, and awaited, so a restored document's first scan
       // already uses the imported set rather than scanning twice.
@@ -116,8 +120,11 @@ export function useRestoreSession(): boolean {
       if (shared !== null) await openSharedPayload(shared);
       if (sharedFiles !== null) await openSharedFiles(sharedFiles);
     })().finally(() => {
-      setOpening(false);
+      if (mounted) setOpening(false);
     });
+    return () => {
+      mounted = false;
+    };
   }, []);
   return opening;
 }
