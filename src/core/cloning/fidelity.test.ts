@@ -123,3 +123,63 @@ describe('formatFidelity', () => {
     expect(formatFidelity(0.061)).toBe('6.1 %');
   });
 });
+
+describe('reading the file people actually have', () => {
+  it('splits on commas when a line has both, and on tabs when it has none', () => {
+    // A comma-separated line with a stray tab in it is still
+    // comma-separated; the cells are trimmed either way.
+    const commas = ['Overhang,AAAA,TTTT\t', 'AAAA,0,7', 'TTTT,7,0'].join('\n');
+    expect(parseFidelityCsv(commas).table.counts.get('AAAA')?.get('TTTT')).toBe(7);
+    // With no comma anywhere, the tab is the separator.
+    const tabs = ['Overhang\tAAAA\tTTTT', 'AAAA\t0\t7', 'TTTT\t7\t0'].join('\n');
+    expect(parseFidelityCsv(tabs).table.counts.get('AAAA')?.get('TTTT')).toBe(7);
+  });
+
+  it('refuses a table that names an overhang twice, in a column or a row', () => {
+    expect(() => parseFidelityCsv('Overhang,AAAA,AAAA\nAAAA,1,1\nTTTT,1,1')).toThrow(
+      /same overhang in two columns/,
+    );
+    expect(() => parseFidelityCsv('Overhang,AAAA,TTTT\nAAAA,0,5\nAAAA,5,0')).toThrow(
+      /two rows for AAAA/,
+    );
+  });
+
+  it('refuses a count that is not one, and keeps a zero out of the table', () => {
+    expect(() => parseFidelityCsv('Overhang,AAAA,TTTT\nAAAA,0,-5\nTTTT,-5,0')).toThrow(
+      /is not a count/,
+    );
+    const { table } = parseFidelityCsv('Overhang,AAAA,TTTT\nAAAA,0,9\nTTTT,9,0');
+    // A zero is no ligation: it is left out rather than stored.
+    expect(table.counts.get('AAAA')?.has('AAAA')).toBe(false);
+    expect(table.counts.get('AAAA')?.get('TTTT')).toBe(9);
+  });
+
+  it('reads a table that fills only one half of the matrix', () => {
+    // Some tables give the upper triangle and leave the rest at zero; the
+    // pair is counted whichever cell holds it.
+    const text = ['Overhang,AAAA,TTTT,ACGT', 'AAAA,0,900,0', 'TTTT,0,0,0', 'ACGT,0,0,40'].join(
+      '\n',
+    );
+    const { table, events } = parseFidelityCsv(text);
+    expect(events).toBe(940);
+    const scored = setFidelity(['AAAA'], table);
+    expect(scored.junctions[0]?.onTarget).toBe(900);
+  });
+
+  it('names the table after the file, extension and all removed', () => {
+    expect(
+      parseFidelityCsv('Overhang,AAAA,TTTT\nAAAA,0,1\nTTTT,1,0', 'T4.18h.37C.csv').table,
+    ).toMatchObject({ label: 'T4.18h.37C', fileName: 'T4.18h.37C.csv' });
+    expect(parseFidelityCsv('Overhang,AAAA,TTTT\nAAAA,0,1\nTTTT,1,0', 'plain').table.label).toBe(
+      'plain',
+    );
+  });
+
+  it('holds an overhang to the length the table covers', () => {
+    const { table } = parseFidelityCsv('Overhang,AAA,TTT\nAAA,0,5\nTTT,5,0');
+    // Four bases against a table of three: not scored rather than mis-scored.
+    const scored = setFidelity(['AAAA', 'AAA'], table);
+    expect(scored.unknown).toEqual(['AAAA']);
+    expect(scored.junctions.map((j) => j.overhang)).toEqual(['AAA']);
+  });
+});

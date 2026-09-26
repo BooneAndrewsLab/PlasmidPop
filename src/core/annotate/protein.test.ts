@@ -173,3 +173,124 @@ describe('detectFeatures with the protein parts (#93)', () => {
     expect(hits[0]?.viaProtein).toBeUndefined();
   });
 });
+
+describe('what the protein matcher will not match', () => {
+  const lib = library(
+    part({ name: 'tag', protein: HIS }),
+    part({ name: 'tiny', protein: 'MKV' }),
+    part({ name: 'FP', protein: LONG, category: 'reporter' }),
+  );
+
+  it('never looks for a part with fewer residues than a seed', () => {
+    // MKV is three residues: too short to seed, so it is not in the index.
+    const sequence = `${PAD}${encode('MKV')}${PAD}`;
+    expect(detectProteinFeatures(sequence, 'linear', lib)).toEqual([]);
+  });
+
+  it('breaks a frame at a codon it cannot read, on either strand', () => {
+    const codons = encode(HIS);
+    const broken = `${codons.slice(0, 6)}CAN${codons.slice(9)}`;
+    expect(detectProteinFeatures(`${PAD}${broken}${PAD}`, 'linear', lib)).toEqual([]);
+    expect(
+      detectProteinFeatures(reverseComplement(`${PAD}${broken}${PAD}`), 'linear', lib),
+    ).toEqual([]);
+    // The same bases without the ambiguity code are found.
+    expect(detectProteinFeatures(`${PAD}${codons}${PAD}`, 'linear', lib)).toHaveLength(1);
+  });
+
+  it('reads lower-case bases as bases', () => {
+    const sequence = `${PAD}${encode(HIS)}${PAD}`.toLowerCase();
+    expect(detectProteinFeatures(sequence, 'linear', lib)).toHaveLength(1);
+  });
+
+  it('finds a reverse-strand part at every frame of a circle', () => {
+    const codons = encode(TEV);
+    for (const offset of ['', 'A', 'AC']) {
+      const forward = `${offset}${PAD}${codons}${PAD}`;
+      const sequence = reverseComplement(forward);
+      const [hit] = detectProteinFeatures(
+        sequence,
+        'circular',
+        library(part({ name: 'TEV site', protein: TEV })),
+      );
+      expect(hit?.strand, `offset ${offset.length}`).toBe('reverse');
+      const { start, end } = hit?.range ?? { start: 0, end: 0 };
+      expect(
+        translate(reverseComplement(sequence.slice(start, end))),
+        `offset ${offset.length}`,
+      ).toBe(TEV);
+    }
+  });
+
+  it('reads a circle on by the longest part, and never twice round a short one', () => {
+    // A circle shorter than the part it carries: the part cannot be there
+    // twice, and the sequence is not read round more than once.
+    const short = encode(TEV).slice(0, 12);
+    const hits = detectProteinFeatures(
+      short,
+      'circular',
+      library(part({ name: 'TEV site', protein: TEV })),
+    );
+    expect(hits).toEqual([]);
+  });
+});
+
+describe('the index the protein matcher builds', () => {
+  it('looks for a part of exactly a seed, and no shorter', () => {
+    const exact = 'MKVLT'; // five residues: a seed, and a part
+    const lib = library(
+      part({ name: 'five', protein: exact }),
+      part({ name: 'four', protein: 'MKVL' }),
+    );
+    const hits = detectProteinFeatures(`${PAD}${encode(exact)}${PAD}`, 'linear', lib);
+    expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['five']);
+    expect(detectProteinFeatures(`${PAD}${encode('MKVL')}${PAD}`, 'linear', lib)).toEqual([]);
+  });
+
+  it('keeps every part that shares a seed word', () => {
+    // Both parts start with the same five residues, so one seed names two.
+    const a = 'MKVLTAAAAAAAAA';
+    const b = 'MKVLTCCCCCCCCC';
+    const lib = library(part({ name: 'a', protein: a }), part({ name: 'b', protein: b }));
+    expect(detectProteinFeatures(`${PAD}${encode(a)}${PAD}`, 'linear', lib)).toHaveLength(1);
+    expect(detectProteinFeatures(`${PAD}${encode(b)}${PAD}`, 'linear', lib)).toHaveLength(1);
+    // Both of them, in one sequence.
+    const both = detectProteinFeatures(`${PAD}${encode(a)}${PAD}${encode(b)}${PAD}`, 'linear', lib);
+    expect(both.map((h) => lib.parts[h.part]?.name).sort()).toEqual(['a', 'b']);
+  });
+
+  it('answers the same when the library is searched twice', () => {
+    const lib = library(part({ name: 'TEV site', protein: TEV }));
+    const sequence = `${PAD}${encode(TEV)}${PAD}`;
+    const first = detectProteinFeatures(sequence, 'linear', lib);
+    // The index is kept per library: the second search is the same answer.
+    expect(detectProteinFeatures(sequence, 'linear', lib)).toEqual(first);
+  });
+
+  it('reads a circle on far enough for its longest part', () => {
+    const lib = library(part({ name: 'tag', protein: HIS }), part({ name: 'FP', protein: LONG }));
+    // The long part straddles the origin, with the short one also in the
+    // library: the sequence must be read on by the longest, not the shortest.
+    const codons = encode(LONG);
+    const cut = 90;
+    const sequence = `${codons.slice(cut)}${PAD}${codons.slice(0, cut)}`;
+    const [hit] = detectProteinFeatures(sequence, 'circular', lib);
+    expect(lib.parts[hit?.part ?? 0]?.name).toBe('FP');
+    expect(hit?.range.start).toBe(sequence.length - cut);
+  });
+
+  it('counts a codon it cannot read as a residue that differs', () => {
+    const codons = encode(LONG);
+    // An ambiguous codon in the middle of a long part: no seed spans it,
+    // but the seeds on either side still place the part, and the residue
+    // it could not read is one that differs — which the budget allows.
+    const broken = `${codons.slice(0, 90)}NNN${codons.slice(93)}`;
+    const lib = library(part({ name: 'FP', protein: LONG }));
+    const [hit] = detectProteinFeatures(`${PAD}${broken}${PAD}`, 'linear', lib);
+    expect(hit).toMatchObject({ mismatches: 1 });
+    // Asked for every residue, it is not that part.
+    expect(
+      detectProteinFeatures(`${PAD}${broken}${PAD}`, 'linear', lib, { minIdentity: 1 }),
+    ).toEqual([]);
+  });
+});

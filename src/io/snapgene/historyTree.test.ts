@@ -1,4 +1,7 @@
-import { readHistoryTree } from './historyTree';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { historyXml, readHistoryTree, readSnapGeneHistory } from './historyTree';
 
 /**
  * A history tree in the shape SnapGene writes, shortened: the sample
@@ -101,5 +104,125 @@ describe("SnapGene's history tree (#85)", () => {
     );
     expect(tree).toMatchObject({ name: 'a file', topology: 'linear', length: 12 });
     expect(tree?.step?.parents[0]?.name).toBe('Untitled');
+  });
+});
+
+describe('the history packet, compressed or not (#85)', () => {
+  const fixture = (name: string): Uint8Array =>
+    new Uint8Array(readFileSync(join(__dirname, '..', 'fixtures', 'snapgene', name)));
+
+  it('decompresses an xz packet, and reads a plain one as it is', async () => {
+    const xz = fixture('history-tree.xml.xz');
+    // The magic the reader looks for, so the fixture is what it claims.
+    expect([...xz.slice(0, 6)]).toEqual([0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00]);
+    const fromXz = await historyXml(xz);
+    const plain = new TextDecoder().decode(fixture('history-tree.xml'));
+    expect(fromXz).toBe(plain);
+    expect(await historyXml(fixture('history-tree.xml'))).toBe(plain);
+  });
+
+  it('reads the tree of a packet either way round', async () => {
+    for (const name of ['history-tree.xml.xz', 'history-tree.xml']) {
+      const tree = await readSnapGeneHistory(fixture(name));
+      expect(tree, name).toMatchObject({ name: 'product.dna', length: 120, topology: 'circular' });
+      expect(tree?.step?.op, name).toBe('ligation');
+      const pcr = tree?.step?.parents[1]?.step;
+      expect(pcr?.op, name).toBe('pcr');
+      if (pcr?.op !== 'pcr') throw new Error('not a PCR');
+      expect(pcr.forward.name).toBe('fwd');
+      expect(pcr.parents[0]?.length).toBe(5000);
+    }
+  });
+
+  it('costs the tree and never the file when the packet is rubbish', async () => {
+    // xz magic, then nothing that decompresses.
+    const broken = new Uint8Array([0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00, 1, 2, 3, 4]);
+    expect(await historyXml(broken)).toBeNull();
+    expect(await readSnapGeneHistory(broken)).toBeNull();
+    // Plain bytes that are not XML read as text, and are no tree.
+    expect(await readSnapGeneHistory(new TextEncoder().encode('not xml'))).toBeNull();
+  });
+});
+
+describe('what the tree reader keeps and drops', () => {
+  const tree = (body: string): ReturnType<typeof readHistoryTree> =>
+    readHistoryTree(`<HistoryTree>${body}</HistoryTree>`);
+
+  it('takes a length it can use and nothing else', () => {
+    const node = tree(
+      '<Node name="a" seqLen="many" operation="flip"><Node name="b" seqLen="-5"/></Node>',
+    );
+    // Not a count of bases: nothing rather than a guess.
+    expect(node?.length).toBe(0);
+    expect(node?.step?.parents[0]?.length).toBe(0);
+    expect(
+      tree('<Node name="a" seqLen="12.7" operation="flip"><Node name="b"/></Node>')?.length,
+    ).toBe(12);
+  });
+
+  it('is linear unless the node says circular, and reads only circular="1"', () => {
+    expect(
+      tree('<Node name="a" circular="0" operation="flip"><Node name="b"/></Node>')?.topology,
+    ).toBe('linear');
+    expect(
+      tree('<Node name="a" circular="true" operation="flip"><Node name="b"/></Node>')?.topology,
+    ).toBe('linear');
+    expect(
+      tree('<Node name="a" circular="1" operation="flip"><Node name="b"/></Node>')?.topology,
+    ).toBe('circular');
+  });
+
+  it('needs both oligos to call a node a PCR', () => {
+    const one = tree(
+      '<Node name="a" operation="amplifyFragment"><Oligo name="f" sequence="ACGT"/><Node name="b"/></Node>',
+    );
+    // One oligo is not a PCR we can describe: the operation is kept by name.
+    expect(one?.step).toMatchObject({ op: 'other', name: 'amplifyFragment' });
+    const none = tree(
+      '<Node name="a" operation="amplifyFragment"><Oligo name="f" sequence=""/><Oligo name="r" sequence="TTTT"/><Node name="b"/></Node>',
+    );
+    // An oligo with no bases is not an oligo.
+    expect(none?.step).toMatchObject({ op: 'other' });
+  });
+
+  it('takes the manipulation as what a mutagenesis changed, or says who made it', () => {
+    const named = tree(
+      '<Node name="a" operation="primerDirectedMutagenesis"><InputSummary manipulation="insert"/><Node name="b"/></Node>',
+    );
+    expect(named?.step).toMatchObject({ op: 'mutagenesis', change: 'insert' });
+    const plain = tree(
+      '<Node name="a" operation="primerDirectedMutagenesis"><Node name="b"/></Node>',
+    );
+    expect(plain?.step).toMatchObject({ change: 'as SnapGene made it' });
+  });
+
+  it('calls a step with no operation, or an invalid one, what SnapGene made', () => {
+    expect(tree('<Node name="a"><Node name="b"/></Node>')?.step).toMatchObject({
+      op: 'other',
+      name: 'made in SnapGene',
+    });
+    expect(tree('<Node name="a" operation="invalid"><Node name="b"/></Node>')?.step).toMatchObject({
+      name: 'made in SnapGene',
+    });
+  });
+
+  it('stops at the depth and the size a lineage keeps', () => {
+    // A chain deeper than MAX_LINEAGE_DEPTH: the tail is not kept.
+    let body = '<Node name="deep-25"/>';
+    for (let i = 24; i >= 0; i--)
+      body = `<Node name="deep-${String(i)}" operation="flip">${body}</Node>`;
+    const deep = tree(body);
+    let depth = 0;
+    for (let n = deep; n?.step?.parents[0] !== undefined; n = n.step.parents[0]) depth++;
+    expect(depth).toBeLessThanOrEqual(24);
+    // And a tree wider than MAX_LINEAGE_NODES keeps that many.
+    const wide = tree(
+      `<Node name="root" operation="insertFragments">${'<Node name="p"/>'.repeat(80)}</Node>`,
+    );
+    expect(wide?.step?.parents.length).toBeLessThanOrEqual(63);
+  });
+
+  it('is nothing when the root element is not a HistoryTree', () => {
+    expect(readHistoryTree('<Nodes><Node name="a" operation="flip"/></Nodes>')).toBeNull();
   });
 });

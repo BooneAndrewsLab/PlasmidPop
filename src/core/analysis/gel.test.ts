@@ -431,3 +431,59 @@ describe('the picture of a gel', () => {
     expect(bands.map(bandLabel)).toEqual(['2,181 \u00d72', '400']);
   });
 });
+
+describe('the edges of a lane contrast (#78)', () => {
+  it('counts a band exactly at the limit of what a gel shows', () => {
+    const { minVisible } = DEFAULT_GEL;
+    // A band at `minVisible` is on the gel; one a base shorter is not.
+    const at = laneContrast(gelProfile([4000, minVisible]), gelProfile([4000]));
+    expect(at.contrast).toBeGreaterThan(1);
+    expect(at.band).toBe(minVisible);
+    const under = laneContrast(gelProfile([4000, minVisible - 1]), gelProfile([4000]));
+    expect(under.contrast).toBe(1);
+  });
+
+  it('sees a band the empty vector has and the product does not', () => {
+    // The difference is in the second lane this time: the walk goes both
+    // ways, so it is found either way round.
+    const product = gelProfile([4000]);
+    const empty = gelProfile([4000, 900]);
+    expect(laneContrast(product, empty)).toEqual(laneContrast(empty, product));
+    expect(laneContrast(product, empty).contrast).toBeCloseTo(4000 / 900);
+  });
+
+  it('is one when either lane has nothing a gel would show', () => {
+    expect(laneContrast(gelProfile([]), gelProfile([3000])).contrast).toBe(1);
+    expect(laneContrast(gelProfile([3000]), gelProfile([])).contrast).toBe(1);
+    // Two lanes of bands too short to see are two empty lanes.
+    expect(laneContrast(gelProfile([50]), gelProfile([60])).contrast).toBe(1);
+  });
+});
+
+describe('the edges of compareCheck (#78)', () => {
+  const pair = (product: number[], empty: number[]) => ({
+    product: gelProfile(product),
+    empty: gelProfile(empty),
+  });
+
+  it('holds a difference to what the gel resolves', () => {
+    const { resolution } = DEFAULT_GEL;
+    // Just resolved beats just unresolved, whatever the lanes look like.
+    const resolved = pair([4000, 1000], [4000, Math.ceil(1000 / resolution) + 2]);
+    const not = pair([4000, 1000], [4000, 995]);
+    expect(compareCheck(resolved, not)).toBeLessThan(0);
+    expect(compareCheck(not, resolved)).toBeGreaterThan(0);
+  });
+
+  it('counts no more difference than plenty, and no more brightness than bright', () => {
+    const { plenty, bright } = DEFAULT_GEL;
+    // Both differ by more than `plenty`: the wider one is no better.
+    const wide = pair([4000, 4000 / (plenty * 4)], [4000]);
+    const wider = pair([4000, 4000 / (plenty * 8)], [4000]);
+    expect(compareCheck(wide, wider)).toBeLessThan(0); // the brighter band wins
+    // Both bands are bright enough: brightness stops separating them.
+    const a = pair([4000, bright * 2], [4000]);
+    const b = pair([4000, bright * 3], [4000]);
+    expect(compareCheck(a, b)).toBe(compareDiagnostic(a.product, b.product));
+  });
+});

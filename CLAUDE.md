@@ -89,9 +89,26 @@ working with no account and no server round-trip.
 10. Primer design, pairwise alignment (first TS, then WASM if needed).
 11. ~~Optional backend~~ — dropped (see Stack); share links instead, item 11.
 
-## Status (2026-09-25)
+## Status (2026-09-26)
 
-**1.7.0** (2026-09-25) is the current release: annotation and libraries
+**1.8.0** (2026-09-26) is the current release: bench and workspace
+follow-ups (item 61, and the follow-up halves of 3, 47, 49, 51, 52, 56, 57
+and 59). The Bench's check digest draws the empty vector's lane beside the
+product's and ranks enzymes by how well they differ; its product map hovers
+and zooms; Golden Gate reports measured fidelity from an end-joining table
+the user imports (not bundled: the published ones may not be redistributed).
+Mutate changes a residue by name, with codon usage for six hosts (Kazusa),
+NNK/NNS/NNN/NDT libraries, and NEB's Q5 Tm and annealing temperature fitted
+to their calculator. Detect features matches in the six frames as well as on
+the bases — the peptide tags every vector spells its own way, and 26 FPbase
+proteins with no usable CDS — offers a part cut off by a linear end as
+partial, and has seven more curated parts (169 and 100 now). Proteins carry
+the CDS's features onto their residues, open from pasted residues, and align
+by BLOSUM62. Key bindings live in one table and can be changed (Format ▸
+Keyboard shortcuts…). A SnapGene file's own history tree is read into Made
+from, xz and all. A stored history is rebuilt after the tab paints, so a
+megabase document with 200 steps opens in 50 ms rather than 350.
+**1.7.0** (2026-09-25) was annotation and libraries
 (items 53–60). Detect features: 153 curated parts cited to NCBI records plus
 74 FPbase fluorescent proteins (CC BY-SA, own file, `DATA-LICENSES.md`),
 12-mer seeded near matches on both strands and through the origin, offered

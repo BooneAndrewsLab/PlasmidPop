@@ -8,6 +8,7 @@ import {
   keyAction,
   matchesBinding,
   resolveBindings,
+  withShift,
 } from './keyBindings';
 
 /** A key event as the browser would send it. */
@@ -140,5 +141,61 @@ describe('the shortcuts page', () => {
 
   it('says where the keys can be changed', () => {
     expect(shortcutsPage).toMatch(/Keyboard shortcuts…/);
+  });
+});
+
+describe('printing every key the table can hold', () => {
+  it('names the punctuation and the keys that are not letters', () => {
+    const printed: [string, string][] = [
+      ['alt+BracketLeft', 'Alt+['],
+      ['alt+BracketRight', 'Alt+]'],
+      ['alt+Equal', 'Alt+='],
+      ['alt+Minus', 'Alt+−'],
+      ['alt+Comma', 'Alt+,'],
+      ['alt+Period', 'Alt+.'],
+      ['alt+Slash', 'Alt+/'],
+      ['alt+Backslash', 'Alt+\\'],
+      ['alt+Semicolon', 'Alt+;'],
+      ['alt+Quote', "Alt+'"],
+      ['alt+Backquote', 'Alt+`'],
+      ['alt+Space', 'Alt+Space'],
+      ['alt+PageUp', 'Alt+Page Up'],
+      ['alt+PageDown', 'Alt+Page Down'],
+      ['alt+ArrowLeft', 'Alt+←'],
+      ['alt+ArrowRight', 'Alt+→'],
+      ['alt+ArrowUp', 'Alt+↑'],
+      ['alt+ArrowDown', 'Alt+↓'],
+      ['alt+KeyZ', 'Alt+Z'],
+      ['alt+Digit7', 'Alt+7'],
+      // A key with no name of its own is printed as the browser has it.
+      ['alt+F5', 'Alt+F5'],
+      ['ctrl+meta+alt+shift+KeyA', 'Ctrl+Meta+Alt+Shift+A'],
+    ];
+    for (const [binding, shown] of printed) expect(formatBinding(binding), binding).toBe(shown);
+  });
+
+  it('writes the modifiers of an event in one order, Meta included', () => {
+    const press = (mods: Partial<KeyboardEvent>): string =>
+      bindingOf({
+        code: 'KeyA',
+        key: 'a',
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        ...mods,
+      } as KeyboardEvent);
+    expect(press({ metaKey: true })).toBe('meta+KeyA');
+    expect(press({ ctrlKey: true, metaKey: true, altKey: true, shiftKey: true })).toBe(
+      'ctrl+meta+alt+shift+KeyA',
+    );
+    expect(press({})).toBe('KeyA');
+  });
+
+  it('adds Shift to a binding once', () => {
+    expect(withShift('alt+KeyN')).toBe('alt+shift+KeyN');
+    // Already held with Shift: the same binding, not two Shifts.
+    expect(withShift('alt+shift+KeyN')).toBe('alt+shift+KeyN');
+    expect(withShift('ctrl+ArrowLeft')).toBe('ctrl+shift+ArrowLeft');
   });
 });

@@ -116,3 +116,31 @@ describe('aligning two proteins (#95)', () => {
     expect(result.identities).toBe(shared.length);
   });
 });
+
+describe('the edges of the protein score table', () => {
+  it('scores the unknown row and the unknown column alike', () => {
+    const table = proteinScoreTable(1);
+    const n = BLOSUM62_ORDER.length + 1;
+    const unknown = BLOSUM62_ORDER.length;
+    const worst = Math.min(...BLOSUM62.flatMap((row) => [...row]));
+    for (let k = 0; k < n; k++) {
+      expect(table[unknown * n + k], `row ${k}`).toBe(worst);
+      expect(table[k * n + unknown], `column ${k}`).toBe(worst);
+    }
+  });
+
+  it('marks a pair the matrix scores zero as unlikely, not likely', () => {
+    // A against C is 0 in BLOSUM62: not a substitution worth marking.
+    expect(blosum('A', 'C')).toBe(0);
+    expect(residueMark('A', 'C')).toBe('.');
+    // And one it scores above zero is marked.
+    expect(blosum('S', 'T')).toBeGreaterThan(0);
+    expect(residueMark('S', 'T')).toBe(':');
+  });
+
+  it('aligns letters it does not know without pretending they match', () => {
+    const result = alignPairwise('ACDEF', 'ACDE?', { alphabet: 'protein' });
+    expect(result.matchLine.charAt(4)).toBe('.');
+    expect(result.identities).toBe(4);
+  });
+});

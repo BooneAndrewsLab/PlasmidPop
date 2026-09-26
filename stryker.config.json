@@ -44,7 +44,14 @@
     "src/core/analysis/proteinProperties.ts",
     "src/core/analysis/openAsProtein.ts",
     "src/core/sequence/alphabet.ts",
-    "src/core/document/tools.ts"
+    "src/core/document/tools.ts",
+    "src/core/analysis/gel.ts",
+    "src/core/analysis/codonUsage.ts",
+    "src/core/cloning/fidelity.ts",
+    "src/core/annotate/protein.ts",
+    "src/io/snapgene/historyTree.ts",
+    "src/app/keyBindings.ts",
+    "src/core/alignment/scoring.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {
