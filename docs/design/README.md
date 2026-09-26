@@ -76,7 +76,10 @@ piece of work needs its reasoning written down, with the next free number.
 
 ## Changelog to 1.1.0
 
-The status paragraph `CLAUDE.md` carried until 1.1.0, kept as it was.
+The status paragraph `CLAUDE.md` carried until 1.1.0, kept as it was. It is
+**not kept up to date**: what each release since holds is in its
+[GitHub Release notes](https://github.com/BooneAndrewsLab/PlasmidPop/releases),
+and where the project stands is the Status section of `CLAUDE.md`.
 
 **1.0.0 is the first public release** (2026-09-22), the version the repo went
 public at and the first to be archived on Zenodo for a citable DOI. Bump
@@ -214,7 +217,12 @@ Perf measurements live in `docs/perf-notes.md`.
 
 ## Open questions at 1.1.0
 
-Moved to GitHub Issues; kept here as they stood.
+Moved to GitHub Issues; kept here as they stood, so several have since been
+answered: the SnapGene versions to support and their fixtures (current
+versions, with public samples in `src/io/fixtures/snapgene/` and the
+installed SnapGene's own beside them, gitignored), the `/translation` check
+following edits (item 1, done in 1.2.0), and the shelf's home (it belongs to
+the Bench, item 49). The rest stand.
 
 - Enzyme database source: settled and built (item 7). REBASE data is all
   rights reserved, so it is imported from the user's own download rather

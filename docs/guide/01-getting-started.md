@@ -10,18 +10,19 @@ that sends NCBI the accession numbers you typed and nothing else.
 
 Any of these gets you a sequence on screen:
 
-- **Drop a file** anywhere on the page. GenBank, FASTA and SnapGene `.dna`
-  files are recognised by their content, so the extension does not matter much.
+- **Drop a file** anywhere on the page. GenBank, GenPept, FASTA, SnapGene
+  `.dna`, AB1 and FASTQ files are recognised by their content, so the
+  extension does not matter much.
   (A file dropped on the [Align](11-align.md) box or the enzyme import is
   read there instead of opening a tab.)
 - **Open file** in the toolbar (or **File ▸ Open file…** once a document is
   open) shows the usual file picker.
-- **Paste** (`Ctrl+V`) a GenBank record, a FASTA record or bare bases while
-  nothing is open. A record opens as such; bare bases become a new untitled
-  sequence.
-- **New** asks for the new sequence's **Name** and whether it is **Linear**
-  or **Circular**, then opens it empty with the cursor placed, so you can
-  type straight away. `Enter` takes "Untitled" and the topology you chose
+- **Paste** (`Ctrl+V`) a GenBank record, a FASTA record, bare bases or bare
+  protein residues while nothing is open. A record opens as such; bare
+  letters become a new untitled sequence, DNA or protein as they read.
+- **New** asks for the new sequence's **Name** and whether it is **Linear**,
+  **Circular** or a **Protein**, then opens it empty with the cursor placed,
+  so you can type straight away. `Enter` takes "Untitled" and the topology you chose
   last; `Escape` opens nothing.
 - **From NCBI…** in the toolbar (or **File ▸ Open from NCBI…**) fetches a
   GenBank record by its accession number, such as `L09137`, or a protein's
@@ -42,14 +43,15 @@ See [Files and storage](02-files.md).
   **Complement**, **Translations** and **Cut sites** toggles, the
   **Format** and **Edits** menus, and the **?** button that opens this
   guide.
-- **Document tabs** (under the toolbar): **Files**, then one tab per open
-  document, and **+** for a new one.
+- **Document tabs** (under the toolbar): **Files**, the
+  [**Bench**](12-cloning.md#the-bench), then one tab per open document, and
+  **+** for a new one. Tabs can be dragged into another order.
 - **Edit bar** (under the tabs): Add feature, Delete selection, Reverse
   complement, Set origin here, Make circular / linear, Find.
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
 - **Sidebar** (right): tabs for Features, ORFs, Translate, Primers, Enzymes,
-  Cloning, Align and History, in a narrow rail down the right-hand edge,
+  Cloning, Align and History (and Protein in front of a protein), in a narrow rail down the right-hand edge,
   each an icon above its label turned on its side. On a narrow window the
   rail becomes a row of tabs above the panel. From the keyboard the rail is
   one Tab stop: the arrow keys move along it and open the tab they reach,

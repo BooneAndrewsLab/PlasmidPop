@@ -10,36 +10,52 @@ no account, no upload and no server round-trip. Works offline once loaded.
 
 ## What it does
 
-- **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA and SnapGene `.dna`,
-  or a GenBank record from NCBI by accession;
+- **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA, SnapGene `.dna`,
+  GenPept and protein FASTA, sequencing reads (AB1 with their traces, FASTQ,
+  gzipped or not), or a record from NCBI by accession;
   **download** GenBank (the file you opened is never written to), export
-  FASTA, export the map or the sequence view as SVG, export a selection
-  with its features.
-- **View** a linear sequence with complement, ruler, feature lanes and
-  amino acids under CDS features, next to a zoomable circular map with
-  labels and cut sites.
-- **Edit** by typing: insert, delete, replace, copy and paste with
-  features, reverse complement, set the origin, switch between circular and
-  linear, with full undo, a history list and tracked-changes marks over
-  what you changed.
-- **Annotate**: a feature list and editor with GenBank locations
-  (`join`, `complement`, wrapping the origin, partial ends) and
-  qualifiers.
+  FASTA or FASTQ, export the map or the sequence view as SVG, export a
+  selection with its features.
+- **View** a linear sequence with complement, ruler, feature lanes and amino
+  acids under CDS features — numbered, if you like — next to a zoomable
+  circular map with labels spread around crowding, cut sites and a second
+  ring where it needs one.
+- **Edit** by typing: insert, delete, replace, copy and paste with features,
+  reverse complement, set the origin, switch between circular and linear,
+  with full undo, a history list that **survives a reload**, named states
+  and tracked-changes marks over what you changed. **Compare with…** any
+  other tab or a file on disk.
+- **Annotate**: a feature list and editor with GenBank locations (`join`,
+  `complement`, wrapping the origin, partial ends) and qualifiers, and
+  **Detect features** — a bundled library of common parts, fluorescent
+  proteins and tags, matched on both strands, through the origin, and in the
+  six translations for the parts every vector spells its own way.
 - **Analyse**: restriction sites for about 130 bundled enzymes — or the
-  whole of REBASE, imported from your own download — with fragment sizes,
-  open reading frames, six-frame translation, primer design and primer
-  checking with binding sites, pairwise alignment (global and local).
-- **Clone in silico**: digest with chosen enzymes, collect fragments from
-  several open documents, check every junction and ligate into a new
-  construct, or run a Golden Gate reaction over the open parts.
-- **Several documents at once**, each in its own tab, with the file list as
-  a tab of its own.
+  whole of REBASE, imported from your own download — with fragment sizes, a
+  drawn gel and diagnostic-digest ranking, open reading frames, six-frame
+  translation, primer design and checking, a collection of **My primers**
+  searched against any document, pairwise alignment (global and local), and
+  protein properties for a protein document.
+- **Clone in silico** on the **Bench**: digest (complete or partial) with
+  chosen enzymes, collect fragments from several documents on a shelf, and
+  ligate, assemble by Golden Gate, Gibson, In-Fusion or NEBuilder, or
+  recombine by Gateway — every junction checked, with host methylation,
+  dephosphorylation and misligation warnings. PCR with Taq or a
+  proofreading polymerase, site-directed mutagenesis (Q5 or QuikChange), and
+  a check digest of the product beside the empty vector before you pick
+  colonies.
+- **Made from**: every product records how it was made, kept in the GenBank
+  file it is saved to, and a SnapGene file's own history is read into the
+  same tree.
+- **Several documents at once**, each in its own tab, with the file list and
+  the Bench as tabs of their own.
 - **Share** a document as a link that carries it whole in the URL fragment,
   so the sequence goes to the person you send it to without being uploaded
   anywhere. There is no backend at all.
-- **Local first**: documents autosave to the browser, the open tabs are
-  restored on reload, and the app installs as a PWA that opens sequence
-  files from the file manager.
+- **Local first**: documents autosave to the browser, the open tabs and the
+  undo history are restored on reload, and the app installs as a PWA that
+  opens sequence files from the file manager. On a phone it opens as a
+  reader.
 
 The **user guide** lives in [`docs/guide`](./docs/guide/README.md) and
 opens inside the app from the **?** button at the right of the toolbar.
@@ -56,11 +72,9 @@ work, and planned work and ideas are in the
 
 ## Development
 
-Requires Node 24 (see `.nvmrc`). On this machine Node lives in the
-`node` conda env:
+Requires Node 24 (see `.nvmrc`):
 
 ```sh
-conda activate node
 npm install
 npm run dev
 ```
@@ -83,41 +97,56 @@ npm run dev
 manifest, icons included). Serve it from any static host; `npm run preview`
 serves the build locally. For a sub-path deployment set `BASE_PATH`, e.g.
 `BASE_PATH=/PlasmidPop/ npm run build`. The `deploy.yml` workflow publishes
-`dist/` to GitHub Pages on every push to `main`:
-https://booneandrewslab.github.io/PlasmidPop/ (the site is public even
-though the repository is private; the org plan cannot restrict it).
+`dist/` to https://booneandrewslab.github.io/PlasmidPop/ **when a GitHub
+Release is published**, not on every push: `main` can move without the site
+moving with it, and each release is archived on Zenodo with a DOI of its
+own.
 
 ## Layout
 
 ```
 src/
-  app/          React shell: editor store, toolbar, sequence view, feature list
+  app/          React shell: editor store, toolbar, views, panels, the Bench
+    components/ Every panel and dialog; the sequence view and the map live here
+    state/      The store, persistence, view preferences, panel memory
+    help/       The user guide rendered in the app, from docs/guide
   core/         Pure-TS domain model, no React, worker-safe
     range/      0-based half-open "unrolled" ranges, wraparound-aware shifting
-    sequence/   IUPAC alphabet helpers, persistent rope (SequenceText)
+    sequence/   IUPAC alphabet helpers (DNA and protein), persistent rope
     features/   Segment/Feature types, FeatureSet with interval-tree index
     document/   Immutable SeqDocument + EditOp vocabulary
-    history/    Generic undo/redo stack
+    history/    Generic undo/redo stack, with coalescing and named states
     diff/       Myers diff of two document versions, for the edit marks
-    cloning/    Digest into fragments, ligation and Golden Gate assembly
-    analysis/   Genetic code + translation, ORF finder, enzyme table, cut-site scanner
-    primers/    Nearest-neighbour Tm, primer QC, pair design, binding-site search
-    alignment/  Gotoh affine-gap pairwise alignment (global/local), see docs/perf-notes.md
+    cloning/    Digest, ligation, Golden Gate, Gibson, Gateway, PCR, mutagenesis
+    analysis/   Genetic codes, ORFs, enzymes and cut sites, gels, codon usage
+    annotate/   Detect features: the bundled part library and the matcher
+    primers/    Nearest-neighbour and NEB Q5 Tm, primer QC, design, binding sites
+    alignment/  Gotoh affine-gap pairwise alignment (global/local)
+    lineage/    "Made from": how a product was made, as a tree
+    checksum/   SEGUID v2 checksums of a document
   view/         Canvas rendering (pure; no React)
     linear/     Row layout, feature lane assignment, linear view renderer
     circular/   Plasmid map geometry, label placement, map renderer
     svg/        The same renderers against an SVG context, for the exports
   workers/      Analysis Web Worker + client (inline fallback where Workers are missing)
-  storage/      Dexie (IndexedDB) document store, file picker / save dialog wrappers
+  storage/      Dexie (IndexedDB) document store, history codec, file pickers
   io/           File formats behind one interface (parseSequenceFile)
-    genbank/    GenBank flat-file parser + writer, location grammar
+    genbank/    GenBank and GenPept parser + writer, location grammar
     fasta/      FASTA parser + writer
-    snapgene/   SnapGene .dna reader (packets + XML), plus a tiny XML parser in io/xml.ts
+    fastq/      FASTQ reader and writer, gzip-aware
+    abif/       AB1 chromatograms: bases, qualities and the trace
+    snapgene/   SnapGene .dna reader (packets, XML, its history tree)
     rebase/     Reader for a REBASE withrefm file the user imports
+    ncbi/       Fetching a record by accession (the one third-party request)
+    share/      A document packed into a URL fragment
     fixtures/   Public NCBI records used by round-trip tests
   test/         Vitest setup and shared test helpers
+scripts/        Build-time tools: the feature database, icons, genetic codes
 fixtures/local/ Private test files (gitignored); tests use them when present
-  main.tsx      Entry point
+docs/
+  guide/        The user guide, also rendered in the app
+  design/       One note per numbered piece of work, and why it is that way
+  perf-notes.md Measurements, with what was tried and what it cost
 ```
 
 Persistence: open documents autosave to IndexedDB (as GenBank text) and the
@@ -165,6 +194,9 @@ same citation in APA and BibTeX, read from `CITATION.cff`.
 
 PlasmidPop is released under the [MIT License](LICENSE).
 
-The bundled data Detect features matches against is not code and comes with
-its own terms: the curated parts from NCBI records, and the fluorescent
-proteins from FPbase under CC BY-SA 4.0. See [DATA-LICENSES.md](DATA-LICENSES.md).
+The bundled data is not code and comes with its own terms: the curated parts
+from NCBI records, the fluorescent proteins from FPbase under CC BY-SA 4.0,
+and the codon usage of the expression hosts from the Codon Usage Database.
+See [DATA-LICENSES.md](DATA-LICENSES.md). Data this project may not
+redistribute — a REBASE enzyme table, a ligase fidelity table — is not
+bundled at all: the app reads a copy you bring yourself.
