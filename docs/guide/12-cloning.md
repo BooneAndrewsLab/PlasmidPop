@@ -228,12 +228,24 @@ columns:
   reload;
 - **what it makes** on the right, once the parts go together: the product's
   map, drawn as the editor draws one, with the check digest's cuts marked
-  on it, and **Check by digest**, a gel lane of the product cut with one
-  enzyme. The enzyme list offers every enzyme that cuts the product between
-  once and six times, the clearest lane first — the order the Enzymes tab's
-  [band separation](07-enzymes.md) sort uses — and the product's own
-  methylation is allowed for. It is the digest to run on a miniprep before
-  sending it for sequencing.
+  on it, and **Check by digest**: the product cut with one enzyme, beside
+  the **empty vector** cut with the same one. What a miniprep screen asks
+  is whether a colony took the insert or carries the vector without it, so
+  the enzyme list (every enzyme that cuts the product between once and six
+  times, with the product's own methylation allowed for) puts first the
+  one whose two lanes differ most clearly, and says of each what the empty
+  vector gives, **(same)** where it gives the product's bands.
+
+  The empty vector is taken from the longest part in the tube; **Against**
+  picks another. A circular vector is the empty vector as it went in (an
+  uncut destination vector in Golden Gate, Gibson or Gateway); a cut one
+  is that piece closed on itself, when its two ends join. A vector cut
+  with two enzymes, or dephosphorylated, cannot close, and a PCR product
+  has no phosphates to close with: then the Bench says so and ranks the
+  product's lane alone, clearest first, as the Enzymes tab's
+  [band separation](07-enzymes.md) sort does. An enzyme that does not cut
+  the empty vector leaves it uncut, and a supercoiled circle does not run
+  at its size, so that lane is not drawn.
 
 The phone reader has no Bench.
 

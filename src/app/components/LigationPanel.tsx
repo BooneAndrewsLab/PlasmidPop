@@ -115,7 +115,7 @@ export function LigationPanel() {
 
   return (
     <>
-      <BenchProduct product={preview} />
+      <BenchProduct product={preview} parts={ingredients.filter((i) => !excluded.has(i.id))} />
       <PartsTube
         ingredients={ingredients}
         excluded={excluded}

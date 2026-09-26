@@ -83,6 +83,29 @@ split follows:
   lane: supercoiled DNA does not run at its size. Each panel sends its
   product there through a portal (`BenchProductSlot`), so it keeps working
   its product out itself and still renders alone in tests.
+- **The check digest compares the product with the empty vector** (#78,
+  1.8). One lane of the product answered "is this the construct" but not
+  the question a miniprep screen asks: did this colony take the insert, or
+  is it the vector without it. So the lane is drawn beside the empty
+  vector's, and the enzymes are ranked by `compareCheck`: whether the two
+  lanes differ by a band a gel resolves, then by how much (capped at
+  `plenty`), then how bright the differing band is (capped at `bright`),
+  then the product's lane by `compareDiagnostic`. The difference is
+  `laneContrast`, the largest ratio from a band of one lane to the nearest
+  band of the other, counting only bands a gel shows (anything over
+  `maxResolved` sits at the well, so two of those are one place).
+  What the empty vector is comes from `emptyVector`: a circular ingredient
+  as it is (uncut destination vectors are the Golden Gate and Gateway
+  background); a cut piece closed on itself by `ligate`, which refuses
+  mismatched and dephosphorylated ends, which is exactly when a vector
+  cannot close; a linear molecule without ends of its own (a PCR product)
+  not at all, having no 5′ phosphates. The shelf's documents lose the
+  dephosphorylation their fragments carry, so a shelf ingredient carries
+  its fragment. The longest part is the default vector, with a picker for
+  the rest. An enzyme that misses the empty circle leaves it uncut; that is
+  not a lane (supercoiled DNA does not run at its size), so it counts as
+  telling nothing apart, though in practice an uncut plasmid often looks
+  different from a linear one — a gel read by size should not rely on it.
 - **No Bench on the phone reader**, which is for reading.
 - **Add says it worked, and that the piece is already there** (#81, user
   feedback 2026-09-24). With the shelf on another tab an Add changed

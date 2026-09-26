@@ -88,7 +88,7 @@ export function GibsonPanel() {
     editorStore.updateBench('gibson', { name: next });
   };
 
-  const { ingredients, docs } = useTube(documents, shelf, excluded);
+  const { ingredients, used, docs } = useTube(documents, shelf, excluded);
   // Finding the junctions is a handful of string comparisons per pair of
   // ends, so it is done here rather than in a worker, like the Golden Gate
   // above it (docs/perf-notes.md).
@@ -139,7 +139,7 @@ export function GibsonPanel() {
 
   return (
     <>
-      <BenchProduct product={assembly?.product ?? null} />
+      <BenchProduct product={assembly?.product ?? null} parts={used} />
       <div className="panel__controls">
         <label className="panel__field">
           <span>Overlap</span>

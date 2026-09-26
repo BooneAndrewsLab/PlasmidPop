@@ -155,7 +155,14 @@ export function GatewayPanel() {
 
   return (
     <>
-      <BenchProduct product={result?.problem === null ? result.product : null} />
+      <BenchProduct
+        product={result?.problem === null ? result.product : null}
+        parts={[insert, vector].flatMap((d, i) =>
+          d === undefined
+            ? []
+            : [{ id: i === 0 ? insertId : vectorId, document: d, detail: describe(d) }],
+        )}
+      />
       <div className="panel__controls">
         <div className="segmented" role="group" aria-label="Reaction type">
           {REACTIONS.map((r) => (

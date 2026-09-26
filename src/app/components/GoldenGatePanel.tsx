@@ -99,7 +99,7 @@ export function GoldenGatePanel() {
   // out of a plasmid is a part like any other: the reaction digests it with
   // the Type IIS enzyme like everything else, and if it carries no site it
   // survives whole, joining on the sticky ends it already has.
-  const { ingredients, docs } = useTube(documents, shelf, excluded);
+  const { ingredients, used, docs } = useTube(documents, shelf, excluded);
 
   // Digesting every part and working out the order is done here rather than
   // in a worker: it is one enzyme over a few plasmids, and the panel has to
@@ -147,7 +147,7 @@ export function GoldenGatePanel() {
 
   return (
     <>
-      <BenchProduct product={assembly?.product ?? null} />
+      <BenchProduct product={assembly?.product ?? null} parts={used} />
       <div className="panel__controls">
         <label className="panel__field panel__field--row">
           <span>Enzyme</span>

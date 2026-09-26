@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import {
   type AssemblyPart,
+  type DigestFragment,
   type SeqDocument,
   defaultFragmentName,
   documentFromFragment,
@@ -16,6 +17,11 @@ export interface Ingredient {
   readonly document: SeqDocument;
   /** What it is, beside the name: its length, and where it came from. */
   readonly detail: string;
+  /**
+   * The shelf part's fragment, which knows what its document does not:
+   * whether its ends were dephosphorylated (#78).
+   */
+  readonly fragment?: DigestFragment;
 }
 
 /**
@@ -40,6 +46,7 @@ export function shelfIngredients(assembly: readonly AssemblyPart[]): Ingredient[
       id: part.id,
       document: documentFromFragment(part.fragment, { name }),
       detail: `${part.fragment.sequence.length.toLocaleString()} bp from the shelf`,
+      fragment: part.fragment,
     };
   });
 }
@@ -59,15 +66,21 @@ export function useTube(
   documents: readonly DocumentState[],
   assembly: readonly AssemblyPart[],
   excluded: ReadonlySet<string>,
-): { readonly ingredients: Ingredient[]; readonly docs: SeqDocument[] } {
+): {
+  readonly ingredients: Ingredient[];
+  /** The ingredients left ticked, which the reaction runs over. */
+  readonly used: Ingredient[];
+  readonly docs: SeqDocument[];
+} {
   const fromShelf = useMemo(() => shelfIngredients(assembly), [assembly]);
   const ingredients = useMemo(
     () => [...openIngredients(documents), ...fromShelf],
     [documents, fromShelf],
   );
-  const docs = useMemo(
-    () => ingredients.filter((i) => !excluded.has(i.id)).map((i) => i.document),
+  const used = useMemo(
+    () => ingredients.filter((i) => !excluded.has(i.id)),
     [ingredients, excluded],
   );
-  return { ingredients, docs };
+  const docs = useMemo(() => used.map((i) => i.document), [used]);
+  return { ingredients, used, docs };
 }
