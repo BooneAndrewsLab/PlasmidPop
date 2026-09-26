@@ -11,7 +11,7 @@ toolbar.
 6. [Find](06-find.md)
 7. [Restriction enzymes](07-enzymes.md)
 8. [Open reading frames](08-orfs.md)
-9. [Translation](09-translate.md): under CDS features and in six frames
+9. [Translation](09-translate.md): under CDS features and in six frames, residues numbered
 10. [Primers](10-primers.md): design, preview and checking; My primers, a list kept in the browser, and finding where its primers bind
 11. [Pairwise alignment](11-align.md): a read or a batch of reads against the document, with qualities
 12. [Simulated cloning](12-cloning.md): digest, PCR and site-directed mutagenesis in the Cloning tab; the Bench, with the shelf, ligation, Golden Gate, Gibson and Gateway; what a product was made from

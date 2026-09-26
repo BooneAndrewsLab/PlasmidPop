@@ -194,10 +194,16 @@ effect at once and the menu stays open, so you can try one and look.
   on, the four swatches under it choose the colours, for the sequence view,
   a read's trace and the SVG export alike; **Reset** goes back to the
   theme's, which differ between light and dark.
+- **Residue numbers** — **Every 10th** (the default) numbers the first
+  residue and every tenth one above the amino acids under each CDS; **Every
+  residue** numbers them all; **Off** leaves the numbers out and gives the
+  rows back the room they took. See
+  [Numbered residues](09-translate.md#numbered-residues).
 - **Reset the layout** is not about the sequence view: it puts the panes back
   to the sizes they started at, see [Sizing the panes](#sizing-the-panes).
 
-The SVG exports follow the bases-per-row, numbering and colour choices,
+The SVG exports follow the bases-per-row, numbering (residue numbers
+included) and colour choices,
 chosen colours included. They keep their own text size and font so the file
 looks the same whatever the screen is set to. All of these are remembered in
 this browser.

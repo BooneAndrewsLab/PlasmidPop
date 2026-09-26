@@ -46,6 +46,30 @@ in the status bar says which feature asked for what. So does a
 `/transl_except` that names no codon of its feature, such as one out of
 frame; that codon is read with the genetic code.
 
+### Numbered residues
+
+Above the amino acids, the first residue of each CDS and every tenth one
+(10, 20, 30, …) carry their number, centred over the letter. Residue 1 is the
+first whole codon — after the bases a `/codon_start` of 2 or 3 skips — and the
+count runs on through every piece of a `join(...)`, however the exons split
+the codons, and straight through the origin of a circular sequence. On the
+reverse strand the count runs right to left, the way the gene is read, so
+residue 1 is at the right-hand end.
+
+**Format ▸ Residue numbers** chooses how many are numbered:
+
+- **Every 10th**, the default;
+- **Every residue**, for reading a protein position off the sequence
+  directly. Where the numbers are wider than their codons — four-digit
+  numbers at the Small text size, say — some are left out rather than drawn
+  over each other, the tens always kept first. A larger text size or fewer
+  bases per row brings them back;
+- **Off**, which also gives the rows back the room the numbers take.
+
+The sequence SVG export numbers the residues the same way. The **Translate**
+tab numbers its frames too, see below. A protein document has no such
+numbers: its ruler already counts residues.
+
 ## Checking a record against itself
 
 Most records state the protein they expect: a CDS carries a `/translation`
@@ -116,6 +140,15 @@ theirs whatever is chosen here.
 
 **Export FASTA** names the code in each description line when it is not the
 standard one.
+
+Each frame's protein is set in blocks of ten, numbered as a sequence is
+printed: the first block by 1 and by 10 at its end, each block after by its
+last residue (20, 30, …). The count starts afresh in every frame, at the
+frame's first codon — at the left of the selection for +1 to +3 and at its
+right for −1 to −3, since those read the other strand. The numbers are not
+part of the text, so selecting and copying a frame copies residues only.
+**Format ▸ Residue numbers ▸ Off** shows the frames as plain text, and so does
+a frame of more than 20,000 residues.
 
 ## How to find the reading frame of a fragment
 

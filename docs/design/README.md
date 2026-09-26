@@ -71,6 +71,7 @@ piece of work needs its reasoning written down, with the next free number.
 57. [Protein documents](57-protein-documents.md)
 58. [Open a GenBank record from NCBI by accession](58-ncbi-fetch.md)
 59. [Detect common features](59-detect-features.md)
+60. [Numbered residues](60-numbered-residues.md)
 
 ## Changelog to 1.1.0
 

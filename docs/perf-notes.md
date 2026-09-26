@@ -586,3 +586,25 @@ library's size. The index (the 12-mers at ~260,000 positions on both strands) is
 once per worker and kept. The library itself is a lazy chunk: 109 kB
 (31 kB gzipped) for the core and 70 kB (12.6 kB gzipped) for the FPbase
 file, fetched the first time Detect features runs.
+
+## Residue numbers in the sequence view (item 60, 2026-09-25)
+
+One 900 px screen of a 200 kb circular sequence with a CDS every 1.2 kb (a
+third of them two-exon joins), 100 bases per row, median of 50 screens down
+the sequence, drawn through a context that does nothing
+(`residueNumbers.timing.test.ts`, Node 24, a mutation run busy on the same
+machine):
+
+| Residue numbers | One screen   |
+| --------------- | ------------ |
+| Off             | 0.78–0.82 ms |
+| Every 10th      | 0.83–0.88 ms |
+| Every residue   | 1.02–1.05 ms |
+
+Before the change the same screen took 0.73–0.95 ms, the band of numbers
+off. Every residue first measured 1.4–1.6 ms: the number's text was
+formatted with `toLocaleString` each time and its codon's stretch found with
+`runsInRow`, which builds and sorts a list. Formatting each number once and
+walking the codon's three bases for the stretch took it to about 1 ms. What
+is left is the existing walk over every codon of each CDS that reaches a
+row, which the numbers do once more.
