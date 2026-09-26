@@ -55,6 +55,33 @@ the residues it came from, not codons.
 Hidden, not greyed out: a protein never has these, so a disabled button would
 only be noise.
 
+## Follow-ups done in 1.8 (#95)
+
+- **Features come with the protein.** `featuresOntoProtein` puts what was
+  annotated inside the CDS onto the residues it codes for: a domain, a site,
+  a signal or mature peptide, a `misc_feature` marking a motif. Each base of
+  the CDS knows its codon (from `translateCds`, so a join, the reverse
+  strand and `/codon_start` are already right), and a segment becomes the
+  residues its bases fall in — a feature covering part of a codon covers
+  that residue, since a domain boundary mid-codon means the residue. A
+  feature running past the CDS keeps the piece inside and is marked partial
+  there, and so is one covering the stop, which is not a residue. What is
+  left out is a denylist of the types that are about the DNA (promoter,
+  intron, primer_bind, the UTRs…), since an allowlist would drop an unusual
+  but meaningful annotation. Positions are walked in reading order, which
+  descends for a reverse-strand CDS, so partial-at-the-start means the
+  protein's start.
+- **Pasted residues open as a protein.** Bare text with no FASTA header was
+  read as bases or refused; now it may be a protein. The catch the issue
+  named is real — nearly every letter is an amino acid, so any English text
+  is valid residues — so the text must also be _shaped_ like a sequence:
+  blocks of at least ten letters, as a copied sequence comes, rather than
+  the short words of prose. `guessAlphabet` then decides which it is, by the
+  same rule a FASTA record is read by, so anything written wholly in IUPAC
+  nucleotide codes is still bases.
+- **Still open** in #95: GenPept `order(...)` has no field in the feature
+  model, SnapGene `.prot` files, and protein alignment.
+
 ## Reading the alphabet from a file
 
 **FASTA** (`guessAlphabet`): a record is a protein only when it has a letter

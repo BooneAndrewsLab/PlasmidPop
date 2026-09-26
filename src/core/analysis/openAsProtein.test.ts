@@ -163,3 +163,114 @@ describe('Open as protein: the product (mutation tests)', () => {
     expect(whole?.qualifiers).toEqual([]);
   });
 });
+
+describe('features carried onto the protein (#95)', () => {
+  // M K L E V C D F stop, the CDS at 6..33 of a 40 bp molecule.
+  const coding = 'ATGAAACTGGAAGTGTGCGATTTTTAA';
+  const dna = `GGGGGG${coding}GGGGGGG`;
+  const cdsAt = (segments = [rangeSegment(6, 33)], strand: 'forward' | 'reverse' = 'forward') =>
+    cds({ id: 'cds', name: 'gene', strand, segments });
+
+  function proteinOf(features: readonly ReturnType<typeof createFeature>[], sequence = dna) {
+    const doc = SeqDocument.create({ name: 'pX', sequence, features });
+    const feature = doc.getFeature('cds');
+    if (feature === undefined) throw new Error('no CDS');
+    return proteinFromCds(doc, feature);
+  }
+
+  const carried = (protein: SeqDocument) =>
+    protein.features.all().filter((f) => f.type !== 'Protein');
+
+  it('places a domain inside the CDS on the residues it codes for', () => {
+    // Bases 12..21 are codons 2, 3 and 4 (L, E, V).
+    const domain = createFeature({
+      type: 'misc_feature',
+      name: 'domain',
+      segments: [rangeSegment(12, 21)],
+      qualifiers: [{ name: 'note', value: 'a domain' }],
+    });
+    const [onProtein] = carried(proteinOf([cdsAt(), domain]));
+    expect(onProtein).toMatchObject({ type: 'misc_feature', name: 'domain' });
+    expect(onProtein?.segments[0]).toMatchObject({
+      start: 2,
+      end: 5,
+      partialStart: false,
+      partialEnd: false,
+    });
+    expect(onProtein?.qualifiers).toEqual([{ name: 'note', value: 'a domain' }]);
+  });
+
+  it('covers a whole residue when only part of its codon is annotated', () => {
+    // One base of codon 1 and two of codon 2.
+    const site = createFeature({
+      type: 'misc_feature',
+      name: 'site',
+      segments: [rangeSegment(11, 14)],
+    });
+    expect(carried(proteinOf([cdsAt(), site]))[0]?.segments[0]).toMatchObject({ start: 1, end: 3 });
+  });
+
+  it('keeps the piece inside the CDS and marks it partial there', () => {
+    const over = createFeature({
+      type: 'sig_peptide',
+      name: 'signal',
+      segments: [rangeSegment(0, 15)], // starts before the CDS
+    });
+    const [onProtein] = carried(proteinOf([cdsAt(), over]));
+    expect(onProtein?.segments[0]).toMatchObject({ start: 0, end: 3, partialStart: true });
+    const past = createFeature({
+      type: 'mat_peptide',
+      name: 'mature',
+      segments: [rangeSegment(27, 40)], // runs past the CDS
+    });
+    const [tail] = carried(proteinOf([cdsAt(), past]));
+    expect(tail?.segments[0]).toMatchObject({ partialEnd: true });
+    // The stop is not a residue, so nothing covers it: the protein is 8 long.
+    expect(tail?.segments[0]).toMatchObject({ kind: 'range', end: 8 });
+  });
+
+  it('reads a reverse-strand CDS in its own direction', () => {
+    const sequence = reverseComplement(dna);
+    // The same molecule the other way round: the CDS is at 7..34 reversed.
+    const rc = cdsAt([rangeSegment(7, 34)], 'reverse');
+    // The end of the protein is at the low bases here: 7..9 is the stop,
+    // 10..12 the last residue (F) and 13..15 the one before it (D).
+    const domain = createFeature({
+      type: 'misc_feature',
+      name: 'domain',
+      segments: [rangeSegment(7, 16)],
+    });
+    const [onProtein] = carried(proteinOf([rc, domain], sequence));
+    // The stop is not a residue, so the feature is D and F, cut off there.
+    expect(onProtein?.segments[0]).toMatchObject({ start: 6, end: 8, partialEnd: true });
+  });
+
+  it('leaves out what is about the DNA, and what is not inside the CDS', () => {
+    const promoter = createFeature({
+      type: 'promoter',
+      name: 'p',
+      segments: [rangeSegment(6, 15)],
+    });
+    const elsewhere = createFeature({
+      type: 'misc_feature',
+      name: 'far',
+      segments: [rangeSegment(0, 6)],
+    });
+    const gene = createFeature({ type: 'gene', name: 'gene', segments: [rangeSegment(6, 33)] });
+    expect(carried(proteinOf([cdsAt(), promoter, elsewhere, gene]))).toEqual([]);
+  });
+
+  it('maps each piece of a join through the intron between them', () => {
+    // Codons 0-1 from 6..12, then 18..33: the protein is M K V C D F.
+    const spliced = cdsAt([rangeSegment(6, 12), rangeSegment(18, 33)]);
+    const domain = createFeature({
+      type: 'misc_feature',
+      name: 'spans',
+      segments: [rangeSegment(9, 21)],
+    });
+    const protein = proteinOf([spliced, domain]);
+    expect(protein.sequence.toString()).toBe('MKVCDF');
+    // The bases in the intron map to nothing; the two ends map to residues.
+    expect(carried(protein)[0]?.segments[0]).toMatchObject({ start: 1, end: 3 });
+  });
+});

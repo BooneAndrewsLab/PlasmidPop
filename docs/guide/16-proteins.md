@@ -19,8 +19,18 @@ DNA.
   downloaded it (see
   [Opening a record from NCBI](02-files.md#opening-a-record-from-ncbi)).
 - **Translate ▸ Open as protein**, from a CDS feature or a frame of a DNA
-  document (see below).
+  document (see below). What the DNA had annotated inside the CDS — a
+  domain, a site, a signal or mature peptide, a `misc_feature` marking a
+  motif — comes with it, on the residues those bases code for. A feature
+  that runs past the CDS keeps the part inside it and is marked partial
+  there. What is about the DNA itself (a promoter, an intron, a primer site)
+  is left behind.
 - **New**, and choose **Protein**, to type or paste one.
+- **Pasting residues** with nothing open, without a FASTA header at all:
+  they open as a protein when the text is shaped like a sequence — one block
+  or wrapped lines, of at least ten letters. Nearly every letter is an amino
+  acid, so a sentence would pass the alphabet; the shape is what keeps
+  prose out. Text written only in nucleotide codes is still bases.
 
 ## What a protein has, and what it does not
 

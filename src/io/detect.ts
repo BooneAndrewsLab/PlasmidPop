@@ -1,4 +1,4 @@
-import { SeqDocument, normalizeSequenceInput } from '@/core';
+import { SeqDocument, guessAlphabet, isValidProtein, normalizeSequenceInput } from '@/core';
 
 import { isAbif, parseAbif } from './abif';
 import { parseFasta } from './fasta';
@@ -10,6 +10,14 @@ import { type FormatId, type ParseResult, FormatError } from './types';
 const GENBANK_EXTENSIONS = new Set(['gb', 'gbk', 'genbank', 'gbff', 'ape', 'gp', 'gpff', 'gpept']);
 const FASTA_EXTENSIONS = new Set(['fa', 'fasta', 'fna', 'ffn', 'faa', 'fas', 'seq', 'txt']);
 const FASTQ_EXTENSIONS = new Set(['fastq', 'fq']);
+
+/**
+ * Shortest run of letters that reads as a piece of sequence rather than a
+ * word (#95). A pasted protein arrives as one block or as wrapped lines of
+ * sixty; prose arrives as words of a few letters, and every letter but J is
+ * an amino acid, so the shape is what tells them apart.
+ */
+const SEQUENCE_RUN = 10;
 
 export function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf('.');
@@ -26,8 +34,18 @@ export function detectFormat(text: string, filename?: string): FormatId | null {
   if (/^\s*LOCUS\s/.test(head) || /^(LOCUS|FEATURES|ORIGIN)\b/m.test(head)) return 'genbank';
   if (/^\s*>/.test(head)) return 'fasta';
   if (/^\s*@/.test(head)) return 'fastq';
-  if (text.trim() !== '' && /^[\sA-Za-z0-9]+$/.test(text) && !/[EFIJLOPQXZefijlopqxz]/.test(text)) {
-    return 'raw';
+  // Bare letters: bases, or the residues of a protein (#95). Bases are
+  // taken as they always were. Residues need more care, because nearly
+  // every letter is an amino acid and so is any English word: the text must
+  // also be shaped like a sequence — blocks of at least `SEQUENCE_RUN`
+  // letters, as a copied sequence comes, rather than the short words of
+  // prose. `guessAlphabet` decides which of the two it is when it is parsed.
+  if (text.trim() !== '' && /^[\sA-Za-z0-9*]+$/.test(text)) {
+    const letters = text.replace(/[\s0-9]/g, '');
+    if (!/[EFIJLOPQXZefijlopqxz*]/.test(letters)) return 'raw';
+    const words = text.trim().split(/[\s0-9]+/);
+    const runs = words.every((w) => w.length >= SEQUENCE_RUN);
+    if (runs && letters.length >= SEQUENCE_RUN && isValidProtein(letters)) return 'raw';
   }
   if (filename !== undefined) {
     const ext = extensionOf(filename);
@@ -75,17 +93,22 @@ export function parseSequenceFile(text: string, filename?: string): ParseResult 
       return parseFasta(text);
     case 'fastq':
       return parseFastq(text);
-    case 'raw':
+    case 'raw': {
+      // The letters say what they are, by the same rule a FASTA record
+      // without a header would be read by (#66, #95).
+      const alphabet = guessAlphabet(text.replace(/[^A-Za-z*]/g, ''));
       return {
         format,
         documents: [
           SeqDocument.create({
             name: nameFromFilename(filename),
-            sequence: normalizeSequenceInput(text),
+            sequence: normalizeSequenceInput(text, alphabet),
+            alphabet,
           }),
         ],
         warnings: [],
       };
+    }
     case 'snapgene':
     case 'abif':
       throw new FormatError('This format is binary; pass the file bytes to parseSequenceData');

@@ -31,3 +31,38 @@ describe('parseSequenceFile', () => {
     expect(() => parseSequenceFile('hello world', 'x.dna')).toThrow(FormatError);
   });
 });
+
+describe('bare residues without a FASTA header (#95)', () => {
+  // The first residues of human serum albumin: protein-only letters (E, F,
+  // I, L, P, Q), in one block as a sequence is copied.
+  const peptide = 'MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGEENFKALVLIAFAQYLQQCPF';
+
+  it('opens as a protein document, in one block or wrapped', () => {
+    for (const text of [peptide, `${peptide.slice(0, 30)}\n${peptide.slice(30)}\n`]) {
+      expect(detectFormat(text)).toBe('raw');
+      const [doc] = parseSequenceFile(text).documents;
+      expect(doc?.alphabet).toBe('protein');
+      expect(doc?.sequence.toString()).toBe(peptide);
+    }
+  });
+
+  it('still opens bases as bases, whatever ambiguity codes they carry', () => {
+    const [doc] = parseSequenceFile('acgt acgt\n 11 nnry\n').documents;
+    expect(doc?.alphabet).toBe('nucleotide');
+    // Every letter of MKRS is an IUPAC code, so it is bases, as it always was.
+    expect(parseSequenceFile('MKRSMKRSMKRS').documents[0]?.alphabet).toBe('nucleotide');
+  });
+
+  it('does not take prose for a protein, however amino-acid its letters', () => {
+    // Every letter but J is an amino acid, so the shape has to answer.
+    for (const prose of [
+      'hello world',
+      'the quick brown fox jumps over the lazy dog',
+      'REMEMBER to check this sequence',
+    ]) {
+      expect(detectFormat(prose), prose).toBeNull();
+    }
+    // And a peptide too short to tell from a word is not offered either.
+    expect(detectFormat('MKWVTFIS')).toBeNull();
+  });
+});
