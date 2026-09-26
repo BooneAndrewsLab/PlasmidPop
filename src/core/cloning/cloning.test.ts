@@ -7,6 +7,7 @@ import {
   defaultFragmentName,
   digest,
   documentFromFragment,
+  emptyVector,
   endsCompatible,
   flipFragment,
   ligate,
@@ -346,5 +347,49 @@ describe('a fragment as a document', () => {
     );
     const closed = ligate(circle, { name: 'closed', circular: true });
     expect(closed.ends).toBeNull();
+  });
+});
+
+describe('emptyVector', () => {
+  // EcoRI at 0 and 26, BamHI at 62: a 78 bp circle.
+  const circle = SeqDocument.create({
+    name: 'pVec',
+    topology: 'circular',
+    sequence: `GAATTC${'A'.repeat(20)}GAATTC${'T'.repeat(30)}GGATCC${'C'.repeat(10)}`,
+  });
+
+  it('is a circular vector as it went in', () => {
+    expect(emptyVector(circle)).toBe(circle);
+  });
+
+  it('closes a vector cut once or out of a pair of sites on itself', () => {
+    const backbone = cutWith(circle, 'EcoRI').sort(
+      (a, b) => b.sequence.length - a.sequence.length,
+    )[0];
+    if (backbone === undefined) throw new Error('no backbone');
+    const empty = emptyVector(documentFromFragment(backbone));
+    expect(empty?.isCircular).toBe(true);
+    // The 26 bp piece between the two sites is gone, and one site is left.
+    expect(empty?.length).toBe(52);
+    expect(empty?.name).toBe('pVec EcoRI fragment closed on itself');
+    const text = empty?.sequence.toString() ?? '';
+    expect(`${text}${text.slice(0, 5)}`.split('GAATTC').length - 1).toBe(1);
+  });
+
+  it('cannot close ends that do not match, or were dephosphorylated', () => {
+    const pieces = cutWith(circle, 'EcoRI', 'BamHI');
+    const mixed = pieces.find((f) => f.left.enzyme !== f.right.enzyme);
+    if (mixed === undefined) throw new Error('no EcoRI-BamHI piece');
+    expect(emptyVector(documentFromFragment(mixed))).toBeNull();
+    const [one] = cutWith(circle, 'BamHI');
+    if (one === undefined) throw new Error('no BamHI piece');
+    expect(emptyVector(documentFromFragment(one))?.length).toBe(78);
+    expect(emptyVector(one)?.name).toBe('pVec BamHI fragment closed on itself');
+    expect(emptyVector({ ...one, dephosphorylated: true })).toBeNull();
+  });
+
+  it('leaves out a linear molecule with no ends of its own', () => {
+    const pcr = SeqDocument.create({ name: 'pcr', sequence: 'ACGTACGTACGT' });
+    expect(emptyVector(pcr)).toBeNull();
   });
 });

@@ -8,11 +8,13 @@ import {
   bandLabel,
   bandProblems,
   chooseLadder,
+  compareCheck,
   compareDiagnostic,
   describeBands,
   digestProfile,
   gelForAgarose,
   gelProfile,
+  laneContrast,
   migration,
 } from './gel';
 
@@ -154,6 +156,59 @@ describe('compareDiagnostic', () => {
     const three = gelProfile([4000, 2000, 1000]);
     const two = gelProfile([4000, 2000]);
     expect(compareDiagnostic(two, three)).toBeLessThan(0);
+  });
+});
+
+describe('laneContrast', () => {
+  it('is the widest gap between a band of one lane and the nearest of the other', () => {
+    // The 3,000 bands run together; the 1,000 has the 400 as its nearest.
+    const c = laneContrast(gelProfile([3000, 1000]), gelProfile([3000, 400]));
+    expect(c.contrast).toBeCloseTo(2.5);
+    expect(c.band).toBe(1000);
+  });
+
+  it('sees no difference between lanes whose bands sit together', () => {
+    expect(laneContrast(gelProfile([4000, 1000]), gelProfile([4000, 1000])).contrast).toBe(1);
+  });
+
+  it('ignores bands off the gel and compares bands at the well as one', () => {
+    // A 60 bp band is off the bottom, and 12 and 15 kb both sit at the well.
+    expect(laneContrast(gelProfile([12_000, 60]), gelProfile([15_000])).contrast).toBe(1);
+  });
+
+  it('tells nothing apart when a lane has no band', () => {
+    expect(laneContrast(gelProfile([3000]), gelProfile([])).contrast).toBe(1);
+  });
+});
+
+describe('compareCheck', () => {
+  const check = (product: number[], empty: number[]) => ({
+    product: gelProfile(product),
+    empty: gelProfile(empty),
+  });
+
+  it('puts an enzyme that tells the product from the empty vector first', () => {
+    // A clear product lane that the empty vector gives too, against a
+    // plainer one that differs.
+    const same = check([4000, 1500], [4000, 1500]);
+    const differs = check([5500], [4000]);
+    expect(compareCheck(differs, same)).toBeLessThan(0);
+  });
+
+  it('counts the difference up to plenty, then prefers the brighter band', () => {
+    const wide = check([4000, 1500], [4000, 600]);
+    const narrow = check([4000, 1500], [4000, 1200]);
+    expect(compareCheck(wide, narrow)).toBeLessThan(0);
+    // Both differ plenty; the one whose differing band is a sliver loses.
+    const sliver = check([4000, 150], [4000]);
+    const bright = check([4000, 1500], [4000]);
+    expect(compareCheck(bright, sliver)).toBeLessThan(0);
+  });
+
+  it('falls back to the product lane when the difference is the same', () => {
+    const readable = check([3000, 1000], [3000, 400]);
+    const oneBand = check([1000], [400]);
+    expect(compareCheck(readable, oneBand)).toBeLessThan(0);
   });
 });
 

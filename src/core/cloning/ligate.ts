@@ -12,7 +12,7 @@ import {
   flipEnd,
   flipWindow,
 } from '../document';
-import { type DigestFragment, type FragmentEnd } from './digest';
+import { type DigestFragment, type FragmentEnd, digest } from './digest';
 
 /**
  * A digest fragment set aside for ligation, in the orientation it will be
@@ -250,4 +250,42 @@ export function defaultFragmentName(fragment: DigestFragment): string {
   );
   const cut = enzymes.length === 0 ? '' : ` ${enzymes.join('-')}`;
   return `${fragment.source}${cut} fragment`;
+}
+
+/**
+ * What a colony carries when the vector took no insert (#78): the molecule
+ * a miniprep check digest has to tell the product from.
+ *
+ * - A circular document is the vector as it went in: in Golden Gate,
+ *   Gibson or Gateway an uncut destination vector is the background.
+ * - A cut vector (a linear document with the ends of a digest) closes on
+ *   itself when its two ends join, as a ligase would join them; one whose
+ *   ends do not match, or were dephosphorylated, cannot, which is what
+ *   cutting with two enzymes or treating with CIP is for.
+ * - A linear document with no ends of its own (a PCR product) is left out:
+ *   it has no 5′ phosphates to close with.
+ *
+ * Like a ligation product, the closed circle is what grows in the host, so
+ * it takes the host's methylation rather than the cut vector's.
+ * A shelf part is passed as its fragment, which knows whether it was
+ * dephosphorylated; a document does not. `null` when it cannot close.
+ */
+export function emptyVector(vector: SeqDocument | DigestFragment): SeqDocument | null {
+  let whole: DigestFragment | undefined;
+  let name: string;
+  if (vector instanceof SeqDocument) {
+    if (vector.isCircular) return vector;
+    if (vector.ends === null) return null;
+    [whole] = digest(vector, []);
+    name = vector.name;
+  } else {
+    whole = vector;
+    name = defaultFragmentName(vector);
+  }
+  if (whole === undefined) return null;
+  try {
+    return ligate([whole], { name: `${name} closed on itself`, circular: true });
+  } catch {
+    return null;
+  }
 }

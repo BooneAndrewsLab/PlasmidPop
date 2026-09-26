@@ -270,6 +270,79 @@ export function compareDiagnostic(
 }
 
 /**
+ * How far apart two lanes are at the place they differ most (#78): for
+ * every band either lane shows, the ratio of its length to the nearest band
+ * of the other lane, and the largest of those. A band with nothing near it
+ * in the other lane is what tells the two molecules apart on the gel; two
+ * lanes whose bands all sit together are the same picture, whatever the
+ * fragments under them. `band` is the length of the band that differs.
+ *
+ * Only bands a gel shows count: one under `minVisible` is off the bottom,
+ * and every band over `maxResolved` runs at the same place near the well,
+ * so two of those are compared as equal. A lane with no band at all (an
+ * uncut circle is not drawn as one) tells nothing apart: contrast 1.
+ */
+export function laneContrast(
+  a: DigestProfile,
+  b: DigestProfile,
+  options: GelOptions = {},
+): { readonly contrast: number; readonly band: number } {
+  const { minVisible, maxResolved } = { ...DEFAULT_GEL, ...options };
+  const seen = (p: DigestProfile): number[] =>
+    p.bands.map((x) => x.length).filter((n) => n >= minVisible);
+  const as = seen(a);
+  const bs = seen(b);
+  let best = { contrast: 1, band: 0 };
+  if (as.length === 0 || bs.length === 0) return best;
+  const at = (n: number): number => Math.min(n, maxResolved);
+  const consider = (from: readonly number[], to: readonly number[]): void => {
+    for (const n of from) {
+      let nearest = Infinity;
+      for (const m of to) {
+        const ratio = Math.max(at(n), at(m)) / Math.min(at(n), at(m));
+        nearest = Math.min(nearest, ratio);
+      }
+      if (nearest > best.contrast) best = { contrast: nearest, band: n };
+    }
+  };
+  consider(as, bs);
+  consider(bs, as);
+  return best;
+}
+
+/**
+ * Orders two check digests by how well they tell a colony that carries the
+ * product from one that carries the empty vector (#78), best first. Each
+ * candidate is the product's lane and the empty vector's lane, both cut
+ * with the same enzyme.
+ *
+ * 1. A pair whose lanes differ by a band a gel resolves (`resolution`)
+ *    beats one that does not.
+ * 2. A wider difference beats a narrower one, up to `plenty`, as in
+ *    `compareDiagnostic`.
+ * 3. A brighter differing band beats a fainter one, up to `bright`: a
+ *    difference that is a sliver at the foot of the lane is easily missed.
+ * 4. Then the product's lane by `compareDiagnostic`, so that among enzymes
+ *    that tell the two apart equally well the clearer lane comes first.
+ */
+export function compareCheck(
+  a: { readonly product: DigestProfile; readonly empty: DigestProfile },
+  b: { readonly product: DigestProfile; readonly empty: DigestProfile },
+  options: GelOptions = {},
+): number {
+  const { resolution, plenty, bright } = { ...DEFAULT_GEL, ...options };
+  const ca = laneContrast(a.product, a.empty, options);
+  const cb = laneContrast(b.product, b.empty, options);
+  const apart = (c: typeof ca): boolean => c.contrast >= resolution;
+  if (apart(ca) !== apart(cb)) return apart(ca) ? -1 : 1;
+  const wider = Math.min(cb.contrast, plenty) - Math.min(ca.contrast, plenty);
+  if (wider !== 0) return wider;
+  const brighter = Math.min(cb.band, bright) - Math.min(ca.band, bright);
+  if (brighter !== 0) return brighter;
+  return compareDiagnostic(a.product, b.product, options);
+}
+
+/**
  * The lengths `digestFragments` would give for sorted, distinct cuts, without
  * building a fragment for each: this is the inner loop of `bestPairs`.
  */
