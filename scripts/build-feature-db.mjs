@@ -60,8 +60,13 @@ async function cached(key, url) {
       writeFileSync(file, text);
       return text;
     }
-    if (attempt >= 4) throw new Error(`${url}: HTTP ${res.status} ${text.slice(0, 200)}`);
-    await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+    if (attempt >= 6) throw new Error(`${url}: HTTP ${res.status} ${text.slice(0, 200)}`);
+    // A throttled service says when it will take another request (FPbase
+    // asks for up to half a minute); waiting less only spends the next
+    // attempt. Otherwise back off a little further each time.
+    const asked = res.status === 429 ? /available in (\d+) second/.exec(text)?.[1] : undefined;
+    const pause = asked === undefined ? 2000 * attempt : (Number(asked) + 1) * 1000;
+    await new Promise((resolve) => setTimeout(resolve, pause));
   }
 }
 
@@ -78,6 +83,14 @@ function fetchProtein(accession) {
   return cached(
     `protein-${accession}.gp`,
     `${EUTILS}?db=protein&id=${encodeURIComponent(accession)}&rettype=gp&retmode=text`,
+  );
+}
+
+/** @param {string} accession */
+function fetchProteinFasta(accession) {
+  return cached(
+    `protein-${accession}.fasta`,
+    `${EUTILS}?db=protein&id=${encodeURIComponent(accession)}&rettype=fasta&retmode=text`,
   );
 }
 
@@ -277,13 +290,18 @@ function translate(dna) {
  * @property {{ feature: string, where?: Record<string, string>, nth?: number }} [select]
  * @property {string} [location]
  * @property {string} [probe]
+ * @property {string} [proteinProbe] a peptide matched in the translation (#93), which must
+ *   occur exactly once in the cited protein record; the part carries no DNA
  * @property {boolean} [allowPartial] a partial (`<`/`>`) record location is fine
+ * @property {boolean} [alsoProtein] look for it in the translation too (#93): the peptide is
+ *   what the part's own bases code for, so nothing is typed in
  *
  * @typedef {object} BuiltPart
  * @property {string} name
  * @property {string} type
  * @property {string} category
- * @property {string} sequence
+ * @property {string} sequence the bases, or '' for a part matched only in the translation (#93)
+ * @property {string} [protein] the peptide, for a part matched in the six frames (#93)
  * @property {string} accession
  * @property {string} location
  * @property {string} [note]
@@ -344,11 +362,51 @@ function locateProbe(rec, probe, name) {
   return unique[0] ?? '';
 }
 
+/** Residues of a peptide tag below which it would turn up by chance. */
+const MIN_PEPTIDE = 6;
+
+/**
+ * A part matched in the translation (#93): the peptide must occur exactly
+ * once in the protein record cited, so a tag misremembered fails the build
+ * rather than shipping. The part carries no DNA — the whole point is that
+ * every vector spells these in its own codons.
+ * @param {CorePartSpec} spec
+ * @returns {Promise<BuiltPart>}
+ */
+async function buildPeptide(spec) {
+  const peptide = (spec.proteinProbe ?? '').toUpperCase();
+  if (!/^[A-Z]+$/.test(peptide)) throw new Error(`${spec.name}: not a peptide`);
+  if (peptide.length < MIN_PEPTIDE) {
+    throw new Error(`${spec.name}: only ${peptide.length} residues`);
+  }
+  const fasta = await fetchProteinFasta(spec.accession);
+  const [header, ...rest] = fasta.trim().split('\n');
+  const protein = rest.join('').replace(/\s/g, '').toUpperCase();
+  if (protein === '') throw new Error(`${spec.name}: ${spec.accession} has no sequence`);
+  const version = /^>(\S+)/.exec(header ?? '')?.[1] ?? spec.accession;
+  const at = protein.indexOf(peptide);
+  if (at < 0) throw new Error(`${spec.name}: not found in ${version}`);
+  if (protein.includes(peptide, at + 1)) {
+    throw new Error(`${spec.name}: found more than once in ${version}`);
+  }
+  return {
+    name: spec.name,
+    type: spec.type,
+    category: spec.category,
+    sequence: '',
+    protein: peptide,
+    accession: version,
+    location: `${at + 1}..${at + peptide.length}`,
+    ...(spec.note === undefined ? {} : { note: spec.note }),
+  };
+}
+
 /**
  * @param {CorePartSpec} spec
  * @returns {Promise<BuiltPart>}
  */
 async function buildCorePart(spec) {
+  if (spec.proteinProbe !== undefined) return buildPeptide(spec);
   const rec = parseGenBank(await fetchGenBank(spec.accession));
   let location;
   if (spec.select !== undefined) {
@@ -378,11 +436,27 @@ async function buildCorePart(spec) {
   if (!/^[ACGT]+$/.test(sequence))
     throw new Error(`${spec.name}: ambiguous bases in ${rec.version}`);
   if (sequence.length < MIN_LENGTH) throw new Error(`${spec.name}: only ${sequence.length} bp`);
+  // A part that is also looked for in the translation (#93) carries what
+  // its own bases code for, so the peptide is the record's, not ours: a
+  // tag spelled in other codons, or a protein with synonymous changes, is
+  // then found where the DNA match fails.
+  let protein;
+  if (spec.alsoProtein === true) {
+    if (sequence.length % 3 !== 0) {
+      throw new Error(`${spec.name}: ${sequence.length} bases is not whole codons`);
+    }
+    protein = translate(sequence).replace(/\*$/, '');
+    if (protein.includes('*')) throw new Error(`${spec.name}: a stop codon inside the part`);
+    if (protein.length < MIN_PEPTIDE) {
+      throw new Error(`${spec.name}: only ${protein.length} residues`);
+    }
+  }
   return {
     name: spec.name,
     type: spec.type,
     category: spec.category,
     sequence,
+    ...(protein === undefined ? {} : { protein }),
     accession: rec.version,
     location: location.replace(/\s+/g, ''),
     ...(spec.note === undefined ? {} : { note: spec.note }),
@@ -398,7 +472,8 @@ async function buildCorePart(spec) {
  * @property {string} name
  * @property {string} type
  * @property {string} category
- * @property {string} sequence
+ * @property {string} sequence the coding sequence, or '' when only the protein is kept (#93)
+ * @property {string} protein the protein as FPbase gives it, matched in the six frames (#93)
  * @property {string} accession
  * @property {string} location
  * @property {string} fpbase FPbase page
@@ -412,37 +487,55 @@ async function buildCorePart(spec) {
  */
 async function buildFp(spec) {
   const fp = await fetchFpbase(spec.slug);
-  const proteinAcc = spec.accession ?? fp.genbank;
-  if (proteinAcc === null || proteinAcc === '') throw new Error(`${fp.name}: no GenBank protein`);
-  const gp = await fetchProtein(proteinAcc);
-  const codedBy = /\/coded_by="([^"]+)"/.exec(gp.replace(/\n\s+/g, ''))?.[1];
-  if (codedBy === undefined) throw new Error(`${fp.name}: ${proteinAcc} has no /coded_by`);
-  const m = /^(complement\()?([A-Z0-9_]+\.\d+):(.*?)\)?$/.exec(codedBy);
-  if (m?.[2] === undefined || m[3] === undefined) {
-    throw new Error(`${fp.name}: /coded_by not understood: ${codedBy}`);
-  }
-  const rec = parseGenBank(await fetchGenBank(m[2]));
-  const location = m[1] === undefined ? m[3] : `complement(${m[3]})`;
-  if (/[<>]/.test(location)) throw new Error(`${fp.name}: ${location} is partial`);
-  const sequence = readLocation(location, rec.sequence);
-  const protein = translate(sequence).replace(/\*$/, '');
   const expected = (fp.seq ?? '').toUpperCase();
-  if (protein !== expected) {
-    throw new Error(`${fp.name}: ${m[2]} ${location} does not translate to FPbase's protein`);
-  }
-  if (!/^[ACGT]+$/.test(sequence)) throw new Error(`${fp.name}: ambiguous bases`);
+  if (!/^[A-Z]+$/.test(expected)) throw new Error(`${fp.name}: FPbase gives no protein sequence`);
   const emMax = fp.states.find((s) => s.em_max !== null)?.em_max ?? undefined;
-  return {
+  const common = {
     name: fp.name,
     type: 'CDS',
     category: 'fluorescent protein',
-    sequence,
-    accession: rec.version,
-    location,
+    protein: expected,
     fpbase: `https://www.fpbase.org/protein/${fp.slug}/`,
     ...(fp.doi === null || fp.doi === '' ? {} : { doi: fp.doi }),
     ...(emMax === undefined ? {} : { emMax }),
   };
+  const proteinAcc = spec.accession ?? fp.genbank;
+  // The DNA is a bonus: a protein whose coding sequence cannot be found or
+  // checked is still worth having, since it is matched in the translation
+  // (#93). What is never done is to keep bases that do not translate to
+  // FPbase's protein — those would be some other protein's.
+  try {
+    if (proteinAcc === null || proteinAcc === '') throw new Error('no GenBank protein');
+    const gp = await fetchProtein(proteinAcc);
+    const codedBy = /\/coded_by="([^"]+)"/.exec(gp.replace(/\n\s+/g, ''))?.[1];
+    if (codedBy === undefined) throw new Error(`${proteinAcc} has no /coded_by`);
+    const m = /^(complement\()?([A-Z0-9_]+\.\d+):(.*?)\)?$/.exec(codedBy);
+    if (m?.[2] === undefined || m[3] === undefined) {
+      throw new Error(`/coded_by not understood: ${codedBy}`);
+    }
+    const rec = parseGenBank(await fetchGenBank(m[2]));
+    const location = m[1] === undefined ? m[3] : `complement(${m[3]})`;
+    if (/[<>]/.test(location)) throw new Error(`${location} is partial`);
+    const sequence = readLocation(location, rec.sequence);
+    const protein = translate(sequence).replace(/\*$/, '');
+    if (protein !== expected) {
+      throw new Error(`${m[2]} ${location} does not translate to FPbase's protein`);
+    }
+    if (!/^[ACGT]+$/.test(sequence)) throw new Error('ambiguous bases');
+    return { ...common, sequence, accession: rec.version, location };
+  } catch (e) {
+    // Protein only: cite the GenBank protein record where there is one, and
+    // FPbase itself where there is not, so the match can still be checked.
+    const why = e instanceof Error ? e.message : String(e);
+    process.stdout.write(`  ${fp.name}: protein only (${why})\n`);
+    const known = typeof proteinAcc === 'string' && proteinAcc !== '';
+    return {
+      ...common,
+      sequence: '',
+      accession: known ? proteinAcc : 'FPbase',
+      location: known ? `1..${expected.length}` : fp.slug,
+    };
+  }
 }
 
 // ---------------------------------------------------------------------- main
@@ -479,13 +572,24 @@ function checkUnique(parts) {
   const names = new Set();
   /** @type {Map<string, string>} */
   const seqs = new Map();
+  /** @type {Map<string, string>} */
+  const proteins = new Map();
   for (const p of parts) {
     if (names.has(p.name.toLowerCase())) problems.push(`  duplicate name ${p.name}`);
     names.add(p.name.toLowerCase());
-    const key = [p.sequence, reverseComplement(p.sequence)].sort()[0] ?? '';
-    const other = seqs.get(key);
-    if (other !== undefined) problems.push(`  ${p.name} has the same bases as ${other}`);
-    seqs.set(key, p.name);
+    // Bases and proteins are checked apart: two parts may share neither.
+    if (p.sequence !== '') {
+      const key = [p.sequence, reverseComplement(p.sequence)].sort()[0] ?? '';
+      const other = seqs.get(key);
+      if (other !== undefined) problems.push(`  ${p.name} has the same bases as ${other}`);
+      seqs.set(key, p.name);
+    }
+    const protein = 'protein' in p ? String(p.protein) : '';
+    if (protein !== '') {
+      const other = proteins.get(protein);
+      if (other !== undefined) problems.push(`  ${p.name} has the same protein as ${other}`);
+      proteins.set(protein, p.name);
+    }
   }
   return problems;
 }
@@ -546,6 +650,8 @@ writeFileSync(
   ),
 );
 const bases = [...core.out, ...fps.out].reduce((n, p) => n + p.sequence.length, 0);
+const proteinOnly = fps.out.filter((p) => p.sequence === '').length;
 process.stdout.write(
-  `Wrote ${core.out.length} core parts and ${fps.out.length} fluorescent proteins (${bases.toLocaleString()} bp) to ${OUT_DIR}\n`,
+  `Wrote ${core.out.length} core parts and ${fps.out.length} fluorescent proteins ` +
+    `(${proteinOnly} of them protein only, ${bases.toLocaleString()} bp) to ${OUT_DIR}\n`,
 );
