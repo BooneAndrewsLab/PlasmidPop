@@ -10,7 +10,11 @@ aligns two proteins, scored by BLOSUM62.
 1. Paste the other sequence into the box: bare bases, a FASTA record or a
    GenBank record all work. Or drop a file on the box, or click **Choose
    file…**: GenBank, FASTA, SnapGene, AB1 and FASTQ files (gzipped too)
-   are read into the box without opening a tab. Choose or drop several
+   are read into the box without opening a tab. To align against a
+   document already open in another tab, pick it from **Open tab…** (the
+   same kind only: protein against protein); its current sequence is used,
+   unsaved edits, topology and, for a read, its qualities and trace
+   included. Choose or drop several
    files at once to align all of their records together (below).
 2. If the box holds several records (a FASTA file of several reads, say),
    pick the one to align from the list that appears — or align them all,

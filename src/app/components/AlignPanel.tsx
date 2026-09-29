@@ -542,7 +542,13 @@ interface ShownAlignment extends ReadAlignment {
 }
 
 export function AlignPanel({ doc }: Props) {
-  const { selection, readTrimCutoff, readConfidentQuality } = useEditorState();
+  const {
+    selection,
+    readTrimCutoff,
+    readConfidentQuality,
+    documents: openTabs,
+    documentId,
+  } = useEditorState();
   const [other, setOther] = useState('');
   const [picked, setPicked] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -597,6 +603,31 @@ export function AlignPanel({ doc }: Props) {
   const record = records[Math.min(picked, records.length - 1)];
   /** Records from more than one file, each named with its file in the batch. */
   const several = new Set(records.map((r) => r.file)).size > 1;
+
+  // The other open tabs of the same alphabet, to align against (#105).
+  const otherTabs = useMemo(
+    () =>
+      openTabs.filter(
+        (t) => t.documentId !== documentId && t.history.present.alphabet === doc.alphabet,
+      ),
+    [openTabs, documentId, doc.alphabet],
+  );
+
+  /** Takes a tab's current sequence, unsaved edits and read included, as the sample. */
+  const loadTab = (id: string): void => {
+    const tab = otherTabs.find((t) => t.documentId === id);
+    if (tab === undefined) return;
+    const d = tab.history.present;
+    const record: SequenceRecord = {
+      name: d.name,
+      sequence: d.sequence.toString(),
+      circular: d.isCircular,
+      ...(d.read === null ? {} : { read: d.read }),
+    };
+    setText(writeFastaRecords([d]));
+    setLoaded({ text: writeFastaRecords([d]), records: [record] });
+    setFileNote(`From the open tab ${d.name}${d.read === null ? '' : ', with base qualities'}.`);
+  };
 
   const setText = (text: string): void => {
     setOther(text);
@@ -900,6 +931,25 @@ export function AlignPanel({ doc }: Props) {
             e.target.value = '';
           }}
         />
+        {otherTabs.length > 0 && (
+          <label className="panel__field">
+            <select
+              className="panel__select"
+              aria-label="Open tab to align"
+              value=""
+              onChange={(e) => {
+                loadTab(e.target.value);
+              }}
+            >
+              <option value="">Open tab…</option>
+              {otherTabs.map((t) => (
+                <option key={t.documentId} value={t.documentId}>
+                  {t.history.present.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {records.length > 1 && (
           <label className="panel__field">
             <select

@@ -128,6 +128,24 @@ describe('AlignPanel', () => {
     expect(screen.getByText(/Could not read "paper.pdf"/)).toBeInTheDocument();
   });
 
+  it('takes the sequence of another open tab as the sample', async () => {
+    const other = SeqDocument.create({ name: 'pOther', sequence: 'TTGGCCAATT' });
+    act(() => {
+      editorStore.openDocument(other);
+      editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
+    });
+    render(<AlignPanel doc={doc} />);
+    const picker = screen.getByRole('combobox', { name: 'Open tab to align' });
+    expect(screen.getAllByRole('option', { name: 'pOther' })).toHaveLength(1);
+    fireEvent.change(picker, {
+      target: { value: editorStore.getState().documents[1]?.documentId },
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/From the open tab pOther/)).toBeInTheDocument();
+    });
+    expect((box() as HTMLTextAreaElement).value).toContain('TTGGCCAATT');
+  });
+
   it('says why a dropped file could not be read', async () => {
     render(<AlignPanel doc={doc} />);
     fireEvent.drop(box(), fileDrop(new File(['%PDF-1.7 not a sequence'], 'paper.pdf')));
