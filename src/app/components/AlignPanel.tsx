@@ -1,8 +1,7 @@
 import { analytics } from '../analytics';
-import { type DragEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  type Alignment,
   type AlignmentMode,
   type Alphabet,
   type Range,
@@ -20,8 +19,6 @@ import {
 import { parseSequenceFile, readSequenceData, writeFastaRecords } from '@/io';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 
-import { measureCharWidth } from '@/view/linear';
-
 import { SEQUENCE_FILE_ACCEPT } from '../openFile';
 import {
   type ReadAlignment,
@@ -36,14 +33,11 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { BATCH_LIMIT, type BatchRow, runReadBatch } from '../readBatch';
 import { AlignmentDialog } from './AlignmentDialog';
-import { AlignmentTrace } from './AlignmentTrace';
 import { ReadBatchList } from './ReadBatchList';
 
 interface Props {
   readonly doc: SeqDocument;
 }
-
-const BLOCK = 60;
 
 interface SequenceRecord {
   readonly name: string;
@@ -125,144 +119,6 @@ async function readFile(file: File): Promise<LoadedFile> {
   return { text, records };
 }
 
-/** The read's quality class under a column: poor below the confident threshold. */
-function qualityClass(q: number | undefined, confidentFrom: number): string {
-  return q === undefined || q >= confidentFrom ? '' : 'alignment__q-low';
-}
-
-/**
- * The second sequence's line of a block, its poor bases (below the
- * confident threshold, Q20 unless set otherwise) marked when there are
- * qualities: runs of one class, so a block is a few spans.
- */
-function ReadLine({
-  bases,
-  qualities,
-  confidentFrom,
-}: {
-  bases: string;
-  qualities: readonly number[] | null;
-  confidentFrom: number;
-}) {
-  if (qualities === null) return <>{bases}</>;
-  const runs: { text: string; cls: string }[] = [];
-  for (let k = 0; k < bases.length; k++) {
-    const cls = qualityClass(qualities[k], confidentFrom);
-    const last = runs[runs.length - 1];
-    if (last?.cls === cls) last.text += bases.charAt(k);
-    else runs.push({ text: bases.charAt(k), cls });
-  }
-  return (
-    <>
-      {runs.map((r, i) =>
-        r.cls === '' ? (
-          r.text
-        ) : (
-          <span key={i} className={r.cls}>
-            {r.text}
-          </span>
-        ),
-      )}
-    </>
-  );
-}
-
-/** Characters before a block's first column: seven for the position and a space. */
-const INDENT = 8;
-
-function AlignmentBlocks({
-  alignment,
-  offsetA,
-  offsetB,
-  wrap,
-  qualities,
-  confidentFrom,
-  trace,
-  focus,
-}: {
-  alignment: Alignment;
-  offsetA: number;
-  offsetB: number;
-  /** A circular document's length, when positions past its end go round again. */
-  wrap: number | null;
-  /** The read's quality under each column, or null without qualities. */
-  qualities: readonly number[] | null;
-  /** The quality a read base counts as confident from. */
-  confidentFrom: number;
-  /**
-   * The read with its trace, turned the way it aligned and indexed as the
-   * read's line is numbered, when there is a trace to draw under each block.
-   */
-  trace: SequencingRead | null;
-  /** A column to bring into view and mark, with a nonce to do it again. */
-  focus: { readonly column: number; readonly nonce: number } | null;
-}) {
-  const pre = useRef<HTMLPreElement>(null);
-  const [charWidth, setCharWidth] = useState(7);
-  useLayoutEffect(() => {
-    const el = pre.current;
-    if (el !== null) setCharWidth(measureCharWidth(getComputedStyle(el).font));
-  }, []);
-  useEffect(() => {
-    if (focus === null) return;
-    const block = pre.current?.children[Math.floor(focus.column / BLOCK)];
-    // Guarded because jsdom, where the app's tests run, has no scrollIntoView.
-    if (typeof block?.scrollIntoView === 'function') block.scrollIntoView({ block: 'nearest' });
-  }, [focus]);
-
-  const blocks: {
-    a: string;
-    m: string;
-    b: string;
-    posA: number;
-    posB: number;
-    at: number;
-    bases: { index: number; column: number }[];
-  }[] = [];
-  let posA = alignment.startA + offsetA;
-  let posB = alignment.startB + offsetB;
-  for (let i = 0; i < alignment.columns; i += BLOCK) {
-    const a = alignment.alignedA.slice(i, i + BLOCK);
-    const b = alignment.alignedB.slice(i, i + BLOCK);
-    const bases: { index: number; column: number }[] = [];
-    let index = posB;
-    for (let c = 0; c < b.length; c++) {
-      if (b.charAt(c) !== '-') bases.push({ index: index++, column: c });
-    }
-    blocks.push({ a, m: alignment.matchLine.slice(i, i + BLOCK), b, posA, posB, at: i, bases });
-    posA += a.replace(/-/g, '').length;
-    posB = index;
-  }
-  const focusBlock = focus === null ? -1 : Math.floor(focus.column / BLOCK);
-  return (
-    <pre className="alignment" ref={pre}>
-      {blocks.map((blk, k) => (
-        <div
-          key={`${blk.posA}-${blk.posB}`}
-          className={`alignment__block${k === focusBlock ? ' alignment__block--focus' : ''}`}
-        >
-          {`${String((wrap === null ? blk.posA : blk.posA % wrap) + 1).padStart(7)} ${blk.a}\n${' '.repeat(INDENT)}${blk.m}\n${String(blk.posB + 1).padStart(7)} `}
-          <ReadLine
-            bases={blk.b}
-            qualities={qualities === null ? null : qualities.slice(blk.at, blk.at + BLOCK)}
-            confidentFrom={confidentFrom}
-          />
-          {'\n'}
-          {trace !== null && blk.bases.length > 0 && (
-            <AlignmentTrace
-              read={trace}
-              bases={blk.bases}
-              columns={blk.b.length}
-              indent={INDENT}
-              charWidth={charWidth}
-            />
-          )}
-        </div>
-      ))}
-    </pre>
-  );
-}
-
 const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
   mismatch: 'Mismatch',
   insertion: 'Extra base in the read',
@@ -286,15 +142,12 @@ function ReadSummary({
   confidentFrom,
   referenceName,
   locate,
-  onPick,
 }: {
   differences: readonly ReadDifference[];
   confidentFrom: number;
   referenceName: string;
   /** Where each difference is in the document, which is the reference or the read. */
   locate: (d: ReadDifference) => Located;
-  /** Told the column of a difference picked, to show it in the alignment. */
-  onPick: (column: number) => void;
 }) {
   const confident = differences.filter((d) => d.confident);
   const poor = differences.length - confident.length;
@@ -303,7 +156,7 @@ function ReadSummary({
       <p className="panel__note">
         {differences.length === 0
           ? `No differences from ${referenceName} over the aligned stretch.`
-          : `${confident.length === 0 ? 'No' : confident.length.toLocaleString()} ${confident.length === 1 ? 'difference' : 'differences'} at confident bases (Q${confidentFrom}+)${poor === 0 ? '' : `, ${poor.toLocaleString()} at poor ones, shaded in the read`}.`}
+          : `${confident.length === 0 ? 'No' : confident.length.toLocaleString()} ${confident.length === 1 ? 'difference' : 'differences'} at confident bases (Q${confidentFrom}+)${poor === 0 ? '' : `, ${poor.toLocaleString()} at poor ones`}.`}
       </p>
       {confident.length > 0 && (
         <ul className="read-summary__list">
@@ -317,7 +170,6 @@ function ReadSummary({
                   onClick={() => {
                     editorStore.setSelection(range);
                     editorStore.revealPosition(range.start);
-                    onPick(d.column);
                   }}
                 >
                   {label}, Q{d.quality}
@@ -429,8 +281,8 @@ function QualitySettings({ trim }: { trim: boolean }) {
 /**
  * One alignment as the Align tab shows it: the heading with its numbers,
  * a way to select what it covers, the trimming, the differences by
- * confidence and the blocks. Its own focus and trace toggle, so a new
- * result starts afresh.
+ * confidence, and the Large view, which is where the alignment itself is
+ * read.
  */
 function AlignmentResult({
   result,
@@ -446,10 +298,6 @@ function AlignmentResult({
   onOpenLarge: () => void;
 }) {
   const { readConfidentQuality } = useEditorState();
-  const [showTrace, setShowTrace] = useState(true);
-  const [focus, setFocus] = useState<{ readonly column: number; readonly nonce: number } | null>(
-    null,
-  );
   const shownAs = result.docIsRead;
   const referenceName = shownAs === null ? docName : shownAs.referenceName;
   return (
@@ -483,24 +331,12 @@ function AlignmentResult({
       </button>
       <button
         type="button"
-        className="button button--quiet button--small"
+        className="button button--primary button--small"
         title="Show the alignment in a window of its own, wide enough to read along a long sequence"
         onClick={onOpenLarge}
       >
         Large view
       </button>
-      {result.trace !== null && (
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={showTrace}
-            onChange={(e) => {
-              setShowTrace(e.target.checked);
-            }}
-          />
-          Show the trace under the read
-        </label>
-      )}
       {result.trimmed !== null && (
         <p className="panel__note">
           {result.trimmed.start + result.trimmed.end === 0
@@ -518,21 +354,8 @@ function AlignmentResult({
               ? locateInReference(result, d)
               : locateInRead(result, d, shownAs.referenceName)
           }
-          onPick={(column) => {
-            setFocus((f) => ({ column, nonce: (f?.nonce ?? 0) + 1 }));
-          }}
         />
       )}
-      <AlignmentBlocks
-        alignment={result.alignment}
-        offsetA={result.offset}
-        offsetB={result.offsetB}
-        wrap={result.wrap}
-        qualities={result.qualities}
-        confidentFrom={readConfidentQuality}
-        trace={showTrace ? result.trace : null}
-        focus={focus}
-      />
     </div>
   );
 }

@@ -35,12 +35,11 @@ aligns two proteins, scored by BLOSUM62.
    complement.
 
 The result reports the score, percent identity, the number of columns and
-of gap columns, then the alignment in blocks of 60 with the document
-position (1-based) at the start of each line. `|` marks identical bases,
-`:` a base matched only through an ambiguity code (an `N` in a read, or
-`R` in the document against an `A`), `.` a mismatch and a space a gap.
-Identity counts only the `|` columns. **Select aligned region in this
-document** selects the covered bases so you can annotate or copy them.
+of gap columns. It does not print the alignment itself, which is too wide
+for a side panel: click **Large view** to read it in a window of its own,
+along the whole sequence (see below). Identity counts only the identical
+columns. **Select aligned region in this document** selects the covered
+bases so you can annotate or copy them.
 
 ## Aligning a batch of reads
 
@@ -73,8 +72,8 @@ all at once — the usual way to check a batch of clones.
    **Identity** to sort lowest first — the clones to look at — then highest
    first, then back to the file's order.
 5. Click a read's name to see its alignment below the list, exactly as for
-   a single read: the differences by confidence, the shading, the trace of
-   an AB1 read.
+   a single read: the score line, the differences by confidence and
+   **Large view** for that read (**Large view of all** stacks every read).
 
 A read that could not be aligned (nothing good enough after trimming, too
 large) is listed with the reason, and the rest carry on. At most 96 records
@@ -98,7 +97,7 @@ for what the qualities are.
   5% chance of error; see **Trim at** below), by Mott's algorithm as phred uses it, so a single
   poor base inside a good stretch stays. The result says how many bases went
   from each end; untick it to align the whole read.
-- **The differences, by confidence.** Above the alignment, a line says how
+- **The differences, by confidence.** Under the score line, a line says how
   many differences from the document sit on bases the read was sure of
   (Q20 or better, one error in a hundred, unless set otherwise) and how many
   on poor ones. Each
@@ -109,21 +108,15 @@ for what the qualities are.
   **Confident from** sets the quality a base must have for a difference on
   it to count as confident, from Q10 to Q50: Q20 suits Sanger reads, a
   nanopore service's consensus (Q40 and up) wants Q40, raw nanopore reads
-  Q10 or Q13. The count, the list and the shading follow it at once, without
+  Q10 or Q13. The count and the list follow it at once, without
   aligning again, and so does the status bar's share of good bases for an
   opened read. **Trim at** sets the error rate trimming keeps bases better
   than: Q13 (5%) is phred's usual, Q20 (1%) or Q30 (0.1%) trim harder, Q10
   (10%) keeps more of a noisy read; it applies the next time you align. Both
   are remembered in this browser with the view preferences.
-- **Poor bases are marked in the read's line** of the alignment, underlined
-  and in the warning colour, so a mismatch on one reads as doubt.
-- **The trace, under the read.** An AB1 read shows its trace under each
-  block of the alignment, each base's peak under its letter and stretched
-  across a gap in the read, so a mismatch can be checked against the
-  signal it was called from: one clean peak of the read's base, or two
-  peaks on top of each other. Clicking a confident difference in the list
-  also brings its block into view and marks it. **Show the trace under the
-  read** turns it off.
+
+The panel no longer draws a read's poor bases or an AB1 trace, since both
+were part of the text alignment; the large view does not show them yet.
 
 ## When the document is the read
 
@@ -133,12 +126,10 @@ document is a read — opened from an AB1 or FASTQ, its bases unedited — and
 the box holds a sequence without qualities of its own, the note above the
 box says **… is a read**, and the document is aligned _to_ the box: the box
 is the reference, the document the read. Its qualities and trace are then
-used as above — trimming, confident and poor differences, the shading, the
-trace under each block.
+used as above — trimming, confident and poor differences.
 
-- The top line of each block is the reference, numbered as the box's
-  sequence; the bottom is the read, numbered along the read (or along its
-  reverse complement, when that is what aligned).
+- The reference is the box's sequence and the read the document, which is
+  turned into its reverse complement when that is what aligned.
 - Each confident difference is named at its place in the read, with the
   reference position beside it: **Mismatch at 36 (pRef 41), Q40**.
   Clicking it selects that base in the document, the read. **Select aligned
@@ -184,7 +175,8 @@ region in this document** selects across the origin.
 
 ## Large view
 
-**Large view** on a result opens the alignment in a window of its own, and
+**Large view** on a result (the highlighted button under the score line)
+opens the alignment in a window of its own, and
 **Large view of all** on an Align all batch stacks every aligned read at
 once. The document sits at the top with a position ruler and each sample is
 a row under it, all moving together under one scroll, so a column reads
@@ -227,5 +219,5 @@ once the ORFs panel has found them. With no document behind the reference
 An insertion in one sample opens gap columns in the document row and in
 every other sample, so the rows stay in register. This is each sample
 aligned to the document alone, laid side by side; it is not a multiple
-sequence alignment, and two samples are not aligned to each other. A read's
-trace is shown in the Align tab, not in the large view.
+sequence alignment, and two samples are not aligned to each other. The
+large view does not draw an AB1 read's trace or mark its poor bases.

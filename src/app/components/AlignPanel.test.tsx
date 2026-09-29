@@ -1,11 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
-import { parseAbif } from '@/io';
 import {
   AnalysisCancelledError,
   type LongRequestOptions,
@@ -292,9 +288,6 @@ describe('AlignPanel', () => {
       // The confident mismatch is reference base 41 (1-based).
       fireEvent.click(screen.getByRole('button', { name: /Mismatch at 41, Q40/ }));
       expect(editorStore.getState().selection).toEqual({ start: 40, end: 41 });
-      // The poor base is marked in the read's line.
-      const poor = document.querySelectorAll('.alignment__q-low');
-      expect([...poor].map((e) => e.textContent).join('')).toBe(middle[10]);
     });
 
     it('turns the qualities round with a read that aligns reversed', async () => {
@@ -316,14 +309,10 @@ describe('AlignPanel', () => {
         expect(screen.getByText(/reverse complement/)).toBeInTheDocument();
       });
       expect(screen.getByRole('button', { name: /Mismatch at 41, Q40/ })).toBeInTheDocument();
-      expect(
-        [...document.querySelectorAll('.alignment__q-low')].map((e) => e.textContent).join(''),
-      ).toBe(middle[10]);
     });
 
-    it('counts, lists and shades differences from the threshold set (#56)', async () => {
+    it('counts and lists differences from the threshold set (#56)', async () => {
       await alignDropped();
-      expect(document.querySelectorAll('.alignment__q-low')).toHaveLength(1);
       // The Q10 base becomes confident at Q10, and the count follows at once.
       fireEvent.change(screen.getByRole('combobox', { name: 'Confident from' }), {
         target: { value: '10' },
@@ -333,7 +322,6 @@ describe('AlignPanel', () => {
         screen.getByText(/^2 differences at confident bases \(Q10\+\)\.$/),
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Mismatch at 21, Q10/ })).toBeInTheDocument();
-      expect(document.querySelectorAll('.alignment__q-low')).toHaveLength(0);
       // At Q50 even the Q40 bases are doubtful.
       fireEvent.change(screen.getByRole('combobox', { name: 'Confident from' }), {
         target: { value: '50' },
@@ -402,9 +390,6 @@ describe('AlignPanel', () => {
         expect(
           screen.getByText(/1 difference at confident bases \(Q20\+\), 1 at poor ones/),
         ).toBeInTheDocument();
-        expect(
-          [...document.querySelectorAll('.alignment__q-low')].map((e) => e.textContent).join(''),
-        ).toBe(middle[10]);
         // Named at its place in the read, which is the document, and in the reference.
         fireEvent.click(screen.getByRole('button', { name: /Mismatch at 36 \(pRef 41\), Q40/ }));
         expect(editorStore.getState().selection).toEqual({ start: 35, end: 36 });
@@ -575,60 +560,9 @@ describe('AlignPanel', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Select aligned region in this document' }));
     expect(editorStore.getState().selection).toEqual({ start: 700, end: 1400 });
-    // Numbered as the document is, round the origin: blocks of 60 from 701
-    // reach 941, and the next begins at base 1 again.
-    const starts = [...document.querySelectorAll('.alignment__block')].map((b) =>
-      Number(b.textContent.trim().split(/\s+/)[0]),
-    );
-    expect(starts.slice(0, 7)).toEqual([701, 761, 821, 881, 941, 1, 61]);
-  });
-
-  describe('with an AB1 trace (#52)', () => {
-    const bytes = new Uint8Array(
-      readFileSync(join(process.cwd(), 'src/io/fixtures/abif/sanger.ab1')),
-    );
-    const called = parseAbif(bytes).documents[0]?.sequence.toString() ?? '';
-    // The reference differs from the read at 200 (0-based), where the read is Q47.
-    const reference = called.slice(0, 200) + (called[200] === 'A' ? 'C' : 'A') + called.slice(201);
-    const refDoc = SeqDocument.create({ name: 'pRef', sequence: reference.replace(/N/g, 'A') });
-
-    async function alignTrace(): Promise<void> {
-      act(() => {
-        editorStore.openDocument(refDoc);
-      });
-      render(<AlignPanel doc={refDoc} />);
-      fireEvent.drop(box(), fileDrop(new File([bytes.slice()], 'clone3.ab1')));
-      await waitFor(() => {
-        expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
-      });
-      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
-        target: { value: 'local' },
-      });
-      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
-      await waitFor(() => {
-        expect(screen.getByText(/Local alignment/)).toBeInTheDocument();
-      });
-    }
-
-    it('draws a trace under every block of the alignment, and hides it on request', async () => {
-      await alignTrace();
-      const blocks = document.querySelectorAll('.alignment__block').length;
-      expect(blocks).toBeGreaterThan(0);
-      expect(document.querySelectorAll('.alignment__trace')).toHaveLength(blocks);
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Show the trace under the read' }));
-      expect(document.querySelectorAll('.alignment__trace')).toHaveLength(0);
-    });
-
-    it('brings a picked difference’s block into view and marks it', async () => {
-      await alignTrace();
-      fireEvent.click(screen.getByRole('button', { name: /Mismatch at 201, Q47/ }));
-      const marked = document.querySelector('.alignment__block--focus');
-      expect(marked?.textContent).toMatch(/^\s*\d+/);
-      // The block holds position 201.
-      const first = Number((marked?.textContent ?? '').trim().split(/\s+/)[0]);
-      expect(first).toBeLessThanOrEqual(201);
-      expect(first + 60).toBeGreaterThan(201);
-    });
+    // The alignment is read in the large view, not printed in the panel.
+    expect(document.querySelector('pre')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Large view' })).toBeInTheDocument();
   });
 });
 

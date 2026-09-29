@@ -20,7 +20,7 @@ overview of differences.
   for differences). Opened from a single result or, for Align all, with
   every aligned read.
 
-**Not yet:** the AB1 trace is only in the panel; a phone-specific layout
+**Not yet:** the AB1 trace and the poor-base marks (#110); a phone-specific layout
 beyond the full-window dialog; #102 feature track and #104 difference
 colours by feature class build on the stack (`Stack.refIndex` maps a
 column to a reference position).
@@ -53,3 +53,19 @@ mismatch is a plain block, and an ambiguity-only match a paler one (it is
 not in `stack.differences` nor counted). Without a document every difference
 uses the `None` colour and there is no legend. The canvas drawing was not
 checked by eye.
+
+## The panel's text alignment removed (#109)
+
+The Align tab no longer prints the alignment (blocks of 60 with `|`
+markers): the large view is the one place it is read. The result keeps its
+heading and numbers, the confident-difference list (a click still selects
+the base in the document, but no longer scrolls a block, there being none),
+**Select aligned region** (until #108) and **Large view**, now the primary
+button. It is not opened automatically for a single result: an alignment is
+often re-run while settings are tuned, and a window opening each time would
+be in the way. The block renderer, `AlignmentTrace`, the `.alignment*` CSS
+and their tests went. That took the AB1 trace under the read and the dotted
+marks on poor read bases with them, and the large view has neither; #110
+tracks bringing both back there. Batch rows and phone layout are unchanged
+(the row list and the result above still stack in the panel). Not checked
+by eye.
