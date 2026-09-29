@@ -66,19 +66,19 @@ it has.
 
 ## Selecting and moving
 
-| Keys                           | Action                                       |
-| ------------------------------ | -------------------------------------------- |
-| `← →`                          | Move the cursor one base                     |
-| `↑ ↓`                          | Move the cursor one row                      |
-| `Shift` + arrows               | Extend the selection                         |
-| `Ctrl+Shift+←`, `Ctrl+Shift+→` | Extend the selection a codon at a time       |
-| `Home`, `End`                  | Start or end of the row                      |
-| `Ctrl+Home`, `Ctrl+End`        | Start or end of the sequence                 |
-| `Shift+click`                  | Extend the selection to the clicked position |
-| `Ctrl+A`                       | Select all                                   |
-| `Escape`                       | Clear the selection                          |
-| `Alt+N`                        | Select the next marked change                |
-| `Alt+Shift+N`                  | Select the previous marked change            |
+| Keys                           | Action                                                   |
+| ------------------------------ | -------------------------------------------------------- |
+| `← →`                          | Move the cursor one base                                 |
+| `↑ ↓`                          | Move the cursor one row                                  |
+| `Shift` + arrows               | Extend the selection                                     |
+| `Ctrl+Shift+←`, `Ctrl+Shift+→` | Extend the selection a codon at a time                   |
+| `Home`, `End`                  | Start or end of the row                                  |
+| `Ctrl+Home`, `Ctrl+End`        | Start or end of the sequence                             |
+| `Shift+click`                  | Extend the selection to the clicked position             |
+| `Ctrl+A`                       | Select all                                               |
+| `Escape`                       | Clear the selection                                      |
+| `Alt+N`                        | Select the next marked change                            |
+| `Alt+Shift+N`                  | Select the previous marked change                        |
 | `Alt+N`, `Alt+Shift+N`         | In the alignment's large view: next, previous difference |
 
 ## Find

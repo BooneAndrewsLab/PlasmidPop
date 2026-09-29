@@ -5,6 +5,7 @@ against a plasmid, with Benchling-style stacked tracks, one scroll, and an
 overview of differences.
 
 **Built:**
+
 - `src/app/alignmentStack.ts` lays several pairwise alignments (each to the
   same reference) in one column space. Boundary `p` (before reference base
   `p`) gets as many columns as the longest insertion any sample has there;
