@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { SeqDocument } from '@/core';
@@ -9,7 +10,13 @@ import {
   stackAlignments,
   type StackSample,
 } from '../alignmentStack';
-import { annotationsOf, buildTrack } from '../alignmentTrack';
+import {
+  annotationsOf,
+  buildTrack,
+  classifyColumns,
+  countByClass,
+  differencesText,
+} from '../alignmentTrack';
 import { alignedRegionInDocument, type ReferenceInput } from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -17,6 +24,12 @@ import { AlignmentStackView } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
 const MAX_LANES = 8;
+
+const LEGEND: readonly (readonly [string, string])[] = [
+  ['In a CDS or ORF', 'var(--diff-cds)'],
+  ['In another feature', 'var(--diff-feature)'],
+  ['Outside features', 'var(--diff-none)'],
+];
 
 interface Props {
   /** What every sample was aligned to. */
@@ -68,6 +81,22 @@ export function AlignmentDialog({
     );
     return buildTrack(stack, annotations, source.isCircular ? source.length : 0, MAX_LANES);
   }, [source, stack, showFeatures, showOrfs, orfs]);
+  // Where each column falls in the document, whatever the Features and ORFs boxes show (#104).
+  const classes = useMemo(
+    () =>
+      source === null
+        ? null
+        : classifyColumns(
+            stack,
+            annotationsOf(source.features.all(), orfs ?? []),
+            source.isCircular ? source.length : 0,
+          ),
+    [source, stack, orfs],
+  );
+  const counts = useMemo(
+    () => (classes === null ? null : countByClass(stack.differences, classes)),
+    [stack, classes],
+  );
   const [selected, setSelected] = useState<number | null>(
     initialRow ?? (samples.length === 1 ? 0 : null),
   );
@@ -138,11 +167,25 @@ export function AlignmentDialog({
         <div className="astack-tools">
           <span className="astack-tools__note" aria-live="polite">
             {shown === null
-              ? `${stack.differences.length.toLocaleString()} differing columns. Click a name to see its score.`
+              ? `${differencesText(stack.differences.length, counts)}. Click a name to see its score.`
               : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
           </span>
           {source !== null && (
             <>
+              <span
+                className="astack-legend"
+                aria-label="Differences are coloured by where they fall"
+              >
+                {LEGEND.map(([label, colour]) => (
+                  <span key={label} className="astack-legend__item">
+                    <span
+                      className="astack-legend__swatch"
+                      style={{ '--swatch': colour } as CSSProperties}
+                    />
+                    {label}
+                  </span>
+                ))}
+              </span>
               <label className="astack-tools__check">
                 <input
                   type="checkbox"
@@ -220,6 +263,7 @@ export function AlignmentDialog({
           confidentFrom={readConfidentQuality}
           selectedRow={selected}
           track={track}
+          classes={classes}
           onSelectRow={setSelected}
           focus={focus}
         />

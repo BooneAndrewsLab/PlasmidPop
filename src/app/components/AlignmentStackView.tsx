@@ -4,8 +4,8 @@ import { measureCharWidth, monoFontOf, sansFontOf } from '@/view/linear';
 
 import { contrastingText } from '@/view/featureColors';
 
-import { Cell, columnPosition, type Stack } from '../alignmentStack';
-import { itemAt, type Track } from '../alignmentTrack';
+import { Cell, columnPosition, isDifference, type Stack } from '../alignmentStack';
+import { ColumnClass, itemAt, type Track } from '../alignmentTrack';
 import { readLinearTheme } from './linearTheme';
 
 const FONT_SIZE = 13;
@@ -26,6 +26,12 @@ interface Props {
   readonly selectedRow: number | null;
   /** The reference's features and ORFs, drawn between the ruler and the reference row; null for none. */
   readonly track: Track | null;
+  /**
+   * Per column, a `ColumnClass`: where it falls in the reference document,
+   * which colours a difference (#104); null when the reference has no
+   * document, and every difference is then coloured as outside a feature.
+   */
+  readonly classes: Uint8Array | null;
   readonly onSelectRow: (row: number) => void;
   /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
   readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
@@ -38,9 +44,8 @@ interface Colours {
   readonly background: string;
   readonly bases: Readonly<Record<string, string>>;
   readonly other: string;
-  readonly mismatch: string;
-  readonly deletion: string;
-  readonly insertion: string;
+  /** Difference colours by `ColumnClass`. */
+  readonly byClass: readonly [string, string, string];
   readonly accent: string;
 }
 
@@ -60,25 +65,48 @@ function readColours(el: HTMLElement): Colours {
       U: t.baseColors.t,
     },
     other: t.baseColors.other,
-    mismatch: t.editChange,
-    deletion: t.editDelete,
-    insertion: t.editInsert,
+    byClass: [
+      css.getPropertyValue('--diff-none').trim() || '#a67c00',
+      css.getPropertyValue('--diff-feature').trim() || '#0072b2',
+      css.getPropertyValue('--diff-cds').trim() || '#d55e00',
+    ],
     accent: css.getPropertyValue('--accent').trim() || t.caret,
   };
 }
 
-/** A fill for a cell that differs, or null. */
-function differenceFill(cell: number, c: Colours): string | null {
-  switch (cell) {
-    case Cell.Mismatch:
-      return c.mismatch;
-    case Cell.Deletion:
-      return c.deletion;
-    case Cell.Insertion:
-      return c.insertion;
-    default:
-      return null;
+/** The colour of a column's class. */
+function classColour(c: Colours, k: number): string {
+  return c.byClass[k] ?? c.byClass[ColumnClass.None];
+}
+
+/**
+ * Paints a cell that differs: the class colour behind it, and a mark that
+ * tells the kinds apart without it. A mismatch is a plain block, a deletion
+ * has a bar along its foot, an insertion one along its head; an ambiguity
+ * match is the lightest block.  */
+function paintDifference(
+  ctx: CanvasRenderingContext2D,
+  cell: number,
+  colour: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  if (cell === Cell.Ambiguous) {
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, y, width, height);
+  } else if (isDifference(cell)) {
+    ctx.globalAlpha = 0.34;
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, y, width, height);
+    if (cell !== Cell.Mismatch) {
+      ctx.globalAlpha = 1;
+      ctx.fillRect(x, cell === Cell.Deletion ? y + height - 3 : y, width, 3);
+    }
   }
+  ctx.globalAlpha = 1;
 }
 
 /** The feature track: bars with arrows for strand, names kept in view, ORFs outlined. */
@@ -177,6 +205,7 @@ export function AlignmentStackView({
   confidentFrom,
   selectedRow,
   track,
+  classes,
   onSelectRow,
   focus,
 }: Props) {
@@ -294,12 +323,15 @@ export function AlignmentStackView({
       const to = Math.min(last, row.endColumn);
       for (let c = from; c < to; c++) {
         const cell = row.cells[c] ?? Cell.Blank;
-        const fill = differenceFill(cell, colours);
-        if (fill !== null) {
-          ctx.globalAlpha = 0.28;
-          ctx.fillStyle = fill;
-          ctx.fillRect(x(c), y, charWidth, ROW_HEIGHT);
-        }
+        paintDifference(
+          ctx,
+          cell,
+          classColour(colours, classes?.[c] ?? ColumnClass.None),
+          x(c),
+          y,
+          charWidth,
+          ROW_HEIGHT,
+        );
         const ch = row.bases.charAt(c);
         const q = row.qualities?.[c];
         const poor = q !== undefined && !Number.isNaN(q) && q < confidentFrom;
@@ -408,6 +440,7 @@ export function AlignmentStackView({
     referenceName,
     confidentFrom,
     track,
+    classes,
     headerHeight,
     trackHeight,
   ]);
@@ -442,16 +475,7 @@ export function AlignmentStackView({
     // Every difference, at least a pixel wide, by the worst cell in that column.
     const tick = Math.max(1, perColumn);
     for (const c of stack.differences) {
-      let fill = colours.insertion;
-      for (const row of stack.rows) {
-        const cell = row.cells[c] ?? Cell.Blank;
-        if (cell === Cell.Mismatch) {
-          fill = colours.mismatch;
-          break;
-        }
-        if (cell === Cell.Deletion) fill = colours.deletion;
-      }
-      ctx.fillStyle = fill;
+      ctx.fillStyle = classColour(colours, classes?.[c] ?? ColumnClass.None);
       ctx.fillRect(c * perColumn, 0, tick, OVERVIEW_HEIGHT);
     }
     if (marked !== null) {
@@ -478,7 +502,17 @@ export function AlignmentStackView({
     ctx.lineWidth = 1.5;
     ctx.strokeRect(left + 0.75, 0.75, Math.max(1, width - 1.5), OVERVIEW_HEIGHT - 1.5);
     ctx.lineWidth = 1;
-  }, [stack, overviewWidth, size.width, scroll.left, marked, colours, charWidth, contentWidth]);
+  }, [
+    stack,
+    classes,
+    overviewWidth,
+    size.width,
+    scroll.left,
+    marked,
+    colours,
+    charWidth,
+    contentWidth,
+  ]);
 
   const jumpFromOverview = (clientX: number): void => {
     const el = overview.current;

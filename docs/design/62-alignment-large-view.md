@@ -34,3 +34,22 @@ origin appears at both ends of a read that runs through it). Annotations are
 packed into lanes by first fit, features above ORFs, capped at eight.
 `AlignmentStackView` pins the track between the ruler and the reference row.
 Not yet: the other sequence's own features on its row.
+
+**Difference colours (#104):** `classifyColumns` in `alignmentTrack.ts`
+gives every stack column a class, the highest of the annotations covering
+it: a `CDS` feature or a found ORF is `Cds`, any other feature (not
+`source`) `Feature`, else `None`. It reuses the track's `spansOf` mapping,
+so insertion columns inside a feature take its class, a selection offset
+applies and a feature over a circle's origin is found on both sides. It
+takes all the document's features and ORFs, so the colours do not change with
+the Features/ORFs boxes (an unfinished ORF search just means fewer CDS
+columns until it lands). Classes depend on the reference only, so the
+overview's "worst class in a column" is simply that column's class.
+`countByClass` counts `stack.differences` (per differing column, not per
+cell) for the heading. Colours are `--diff-cds/-feature/-none` in
+`styles.css` (Okabe-Ito hues, lighter in the dark scheme). Kinds are told
+apart without colour by a bar: foot for a deletion, head for an insertion;
+mismatch is a plain block, and an ambiguity-only match a paler one (it is
+not in `stack.differences` nor counted). Without a document every difference
+uses the `None` colour and there is no legend. The canvas drawing was not
+checked by eye.

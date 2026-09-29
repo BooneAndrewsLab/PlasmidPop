@@ -1,7 +1,15 @@
 import { alignEitherStrand } from '@/core';
 
 import { stackAlignments } from './alignmentStack';
-import { buildTrack, itemAt, type TrackAnnotation } from './alignmentTrack';
+import {
+  buildTrack,
+  classifyColumns,
+  ColumnClass,
+  countByClass,
+  differencesText,
+  itemAt,
+  type TrackAnnotation,
+} from './alignmentTrack';
 import { finishReadAlignment, prepareReadAlignment } from './readAlignment';
 
 const reference = 'GATTACAGCTTGACCGTAAGCTAGGCTTACGATCGATTGCAAGTCCGATGCATTGACCTA';
@@ -103,5 +111,83 @@ describe('annotations on the alignment columns', () => {
     expect(track.hidden).toBe(1);
     expect(itemAt(track, 1, 15)?.start).toBe(10);
     expect(itemAt(track, 1, 5)).toBeNull();
+  });
+});
+
+describe('classifying columns by what they fall in (#104)', () => {
+  const ref = { sequence: reference, offset: 0, wrap: null };
+  const other = (start: number, end: number): TrackAnnotation =>
+    note(start, end, { type: 'promoter' });
+
+  it('gives a CDS or ORF the top class, another feature the middle, the rest none', () => {
+    const stack = stackOf(ref, [reference]);
+    const k = classifyColumns(
+      stack,
+      [other(5, 25), note(15, 30), note(40, 45, { type: 'ORF', orf: true })],
+      0,
+    );
+    expect(k[2]).toBe(ColumnClass.None);
+    expect(k[10]).toBe(ColumnClass.Feature);
+    expect(k[20]).toBe(ColumnClass.Cds);
+    expect(k[29]).toBe(ColumnClass.Cds);
+    expect(k[30]).toBe(ColumnClass.None);
+    expect(k[42]).toBe(ColumnClass.Cds);
+    expect(k).toHaveLength(stack.columns);
+  });
+
+  it('is all none without annotations', () => {
+    const stack = stackOf(ref, [reference]);
+    expect(classifyColumns(stack, [], 0).every((c) => c === ColumnClass.None)).toBe(true);
+  });
+
+  it('gives a column inserted inside a feature its class, and not one beside it', () => {
+    const inserted = reference.slice(10, 40);
+    const withExtra = `${inserted.slice(0, 15)}TTT${inserted.slice(15)}`;
+    const stack = stackOf(ref, [withExtra]);
+    const k = classifyColumns(stack, [note(20, 30)], 0);
+    expect([...k.slice(20, 33)].every((c) => c === ColumnClass.Cds)).toBe(true);
+    expect(k[19]).toBe(ColumnClass.None);
+    expect(k[33]).toBe(ColumnClass.None);
+  });
+
+  it('shifts by a selection used as the reference', () => {
+    const sel = { sequence: reference.slice(20, 50), offset: 20, wrap: null };
+    const stack = stackOf(sel, [reference.slice(20, 50)]);
+    const k = classifyColumns(stack, [note(25, 30), other(0, 22)], 0);
+    expect(k[0]).toBe(ColumnClass.Feature);
+    expect(k[1]).toBe(ColumnClass.Feature);
+    expect(k[2]).toBe(ColumnClass.None);
+    expect(k[5]).toBe(ColumnClass.Cds);
+    expect(k[9]).toBe(ColumnClass.Cds);
+    expect(k[10]).toBe(ColumnClass.None);
+  });
+
+  it('follows a feature across the origin of a circle', () => {
+    const wrapRef = { sequence: reference, offset: 0, wrap: reference.length };
+    const read = reference.slice(45) + reference.slice(0, 15);
+    const stack = stackOf(wrapRef, [read]);
+    const over = note(reference.length - 6, reference.length + 4);
+    const k = classifyColumns(stack, [over], reference.length);
+    const cds = [...k].flatMap((c, i) =>
+      c === ColumnClass.Cds ? [stack.reference.charAt(i)] : [],
+    );
+    // A read through the origin sees the feature at both ends of the reference row.
+    expect(cds.join('')).toContain(reference.slice(-6));
+    expect(cds.join('')).toContain(reference.slice(0, 4));
+    expect(k[20]).toBe(ColumnClass.None);
+  });
+
+  it('counts differing columns per class', () => {
+    const classes = Uint8Array.from([0, 1, 2, 2, 1, 0]);
+    expect(countByClass([0, 2, 3, 4, 5], classes)).toEqual({ cds: 2, feature: 1, none: 2 });
+    expect(countByClass([], classes)).toEqual({ cds: 0, feature: 0, none: 0 });
+  });
+
+  it('words the counts for the heading', () => {
+    expect(differencesText(12, { cds: 3, feature: 5, none: 4 })).toBe(
+      '12 differing columns: 3 in a CDS or ORF, 5 in other features, 4 outside features',
+    );
+    expect(differencesText(1, null)).toBe('1 differing column');
+    expect(differencesText(0, { cds: 0, feature: 0, none: 0 })).toBe('0 differing columns');
   });
 });

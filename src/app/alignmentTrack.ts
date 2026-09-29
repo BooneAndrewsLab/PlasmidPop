@@ -197,3 +197,66 @@ export function annotationsOf(
   }
   return out;
 }
+
+/** Where a column falls in the reference document (#104). */
+export const ColumnClass = {
+  /** In no feature. */
+  None: 0,
+  /** In a feature that is not a CDS. */
+  Feature: 1,
+  /** In an annotated CDS or a found ORF. */
+  Cds: 2,
+} as const;
+export type ColumnClassValue = (typeof ColumnClass)[keyof typeof ColumnClass];
+
+/**
+ * The class of every column of `stack`, the highest of the annotations
+ * covering it: a CDS feature or an ORF is `Cds`, any other annotation
+ * `Feature`. Columns inserted inside an annotation take its class, as the
+ * track draws them. Independent of what the track shows.
+ */
+export function classifyColumns(
+  stack: Stack,
+  annotations: readonly TrackAnnotation[],
+  period: number,
+): Uint8Array {
+  const classes = new Uint8Array(stack.columns);
+  const columns = columnsOfIndex(stack);
+  for (const a of annotations) {
+    const value = a.orf || a.type === 'CDS' ? ColumnClass.Cds : ColumnClass.Feature;
+    for (const span of spansOf(stack, columns, a.ranges, period)) {
+      for (let c = span.start; c < span.end; c++) {
+        if ((classes[c] ?? 0) < value) classes[c] = value;
+      }
+    }
+  }
+  return classes;
+}
+
+export interface ClassCounts {
+  readonly cds: number;
+  readonly feature: number;
+  readonly none: number;
+}
+
+/** How many of the differing `columns` fall in each class. */
+export function countByClass(columns: readonly number[], classes: Uint8Array): ClassCounts {
+  let cds = 0;
+  let feature = 0;
+  let none = 0;
+  for (const c of columns) {
+    const k = classes[c] ?? 0;
+    if (k === ColumnClass.Cds) cds++;
+    else if (k === ColumnClass.Feature) feature++;
+    else none++;
+  }
+  return { cds, feature, none };
+}
+
+/** "12 differing columns: 3 in a CDS or ORF, 5 in other features, 4 outside features." */
+export function differencesText(total: number, counts: ClassCounts | null): string {
+  const noun = total === 1 ? 'differing column' : 'differing columns';
+  const head = `${total.toLocaleString()} ${noun}`;
+  if (counts === null || total === 0) return head;
+  return `${head}: ${counts.cds.toLocaleString()} in a CDS or ORF, ${counts.feature.toLocaleString()} in other features, ${counts.none.toLocaleString()} outside features`;
+}

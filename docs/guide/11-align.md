@@ -189,11 +189,20 @@ region in this document** selects across the origin.
 once. The document sits at the top with a position ruler and each sample is
 a row under it, all moving together under one scroll, so a column reads
 straight down through the document and every sample. Differences from the
-document are tinted: a changed base, a base the sample lacks, a base the
-sample adds.
+document have a coloured background, by where the column falls in the
+document: orange in a CDS or an ORF (a difference that may change a
+protein), blue in any other feature, yellow outside every feature. A column
+in several features takes the highest, CDS first. A key sits in the toolbar,
+and the heading counts the differing columns in each. Colour is not the only
+cue: a changed base is a plain block, a base the sample lacks (a dash) has a
+bar along its foot, a base the sample adds has one along its head, and a
+match through an ambiguity code is a paler block. The colours are from the
+whole document, whether or not **Features** and **ORFs** are on; ORFs count
+once the ORFs panel has found them. With no document behind the reference
+(a pasted sequence) every difference is yellow and there is no key.
 
 - The strip above the rows spans the whole alignment. It marks every
-  difference and shows the stretch now in view as a rectangle; click or
+  difference, in the same three colours, and shows the stretch now in view as a rectangle; click or
   drag on it to move there.
 - **Next difference** and **Previous difference** (`Alt+N`, `Alt+Shift+N`)
   go from one difference to the next and wrap round at the ends. A run of
