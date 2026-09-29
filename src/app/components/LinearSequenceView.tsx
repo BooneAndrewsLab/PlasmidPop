@@ -323,6 +323,24 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     setScrollLeft(el.scrollLeft);
   }, [measured, layout, doc.length, documentId]);
 
+  // A preview adds a lane to every row it covers, so the rows under it grow
+  // and shrink as it comes and goes (#108). Keep the row at the top of the
+  // view, and how far into it the view is, where they were.
+  const shown = useRef({ layout, overlay });
+  useLayoutEffect(() => {
+    const before = shown.current;
+    shown.current = { layout, overlay };
+    const el = containerRef.current;
+    if (el === null || before.overlay === overlay || before.layout === layout) return;
+    const row = before.layout.rowAtY(el.scrollTop);
+    const now = row === undefined ? undefined : layout.rowOfPosition(row.start);
+    if (row === undefined || now === undefined) return;
+    const top = Math.max(0, now.top + (el.scrollTop - row.top));
+    if (top === el.scrollTop) return;
+    el.scrollTop = top;
+    setScrollTop(top);
+  }, [layout, overlay]);
+
   // Scroll to a requested position.
   useEffect(() => {
     const el = containerRef.current;
