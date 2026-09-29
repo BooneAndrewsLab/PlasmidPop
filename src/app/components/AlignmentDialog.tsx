@@ -70,6 +70,7 @@ export function AlignmentDialog({
   const { readConfidentQuality, analysis, orfMinCodons } = useEditorState();
   const [showFeatures, setShowFeatures] = useState(true);
   const [showOrfs, setShowOrfs] = useState(false);
+  const [showTrace, setShowTrace] = useState(true);
   const stack = useMemo(() => stackAlignments(reference, samples), [reference, samples]);
   // The ORFs the app has already found in the open document, at its own minimum length.
   const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
@@ -101,6 +102,7 @@ export function AlignmentDialog({
     initialRow ?? (samples.length === 1 ? 0 : null),
   );
   const [focus, setFocus] = useState<{ start: number; end: number; nonce: number } | null>(null);
+  const hasTrace = stack.rows.some((r) => r.readIndex !== null);
   const regions = useMemo(() => differenceRegions(stack.differences), [stack.differences]);
   const current = useRef(0);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -219,6 +221,18 @@ export function AlignmentDialog({
               </span>
             </>
           )}
+          {hasTrace && (
+            <label className="astack-tools__check">
+              <input
+                type="checkbox"
+                checked={showTrace}
+                onChange={(e) => {
+                  setShowTrace(e.target.checked);
+                }}
+              />{' '}
+              Trace
+            </label>
+          )}
           <span className="astack-tools__actions">
             <button
               type="button"
@@ -266,6 +280,7 @@ export function AlignmentDialog({
           selectedRow={selected}
           track={track}
           classes={classes}
+          showTrace={showTrace}
           onSelectRow={setSelected}
           focus={focus}
         />

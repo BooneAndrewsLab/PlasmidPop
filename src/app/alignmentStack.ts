@@ -39,6 +39,11 @@ export interface StackRow {
   readonly cells: Uint8Array;
   /** Per column, the sample's quality, or null when it had none. */
   readonly qualities: Float32Array | null;
+  /**
+   * Per column, the index in `result.trace`'s read of the base there, or -1
+   * where the sample has none; null when the sample has no trace (#110).
+   */
+  readonly readIndex: Int32Array | null;
   /** The columns the sample covers, half-open. */
   readonly firstColumn: number;
   readonly endColumn: number;
@@ -110,6 +115,9 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
     const chars = new Array<string>(columns).fill(' ');
     const cells = new Uint8Array(columns);
     const q = qualities === null ? null : new Float32Array(columns).fill(Number.NaN);
+    const readIndex = s.result.trace === null ? null : new Int32Array(columns).fill(-1);
+    // The read's own numbering, as the trace keeps it: the aligned stretch starts at offsetB.
+    let index = alignment.startB + s.result.offsetB;
     // The stretch this sample covers: padding wherever it has no base of its own.
     const from = at(boundaryColumn, alignment.startA);
     const to = at(boundaryColumn, alignment.endA) + (runsOf[k]?.get(alignment.endA) ?? 0);
@@ -131,6 +139,10 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
       }
       chars[c] = b;
       if (q !== null) q[c] = qualities?.[i] ?? Number.NaN;
+      if (b !== '-') {
+        if (readIndex !== null) readIndex[c] = index;
+        index++;
+      }
       if (a === '-') cells[c] = Cell.Insertion;
       else if (b === '-') cells[c] = Cell.Deletion;
       else {
@@ -144,6 +156,7 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
       bases: chars.join(''),
       cells,
       qualities: q,
+      readIndex,
       firstColumn: from,
       endColumn: to,
       result: s.result,

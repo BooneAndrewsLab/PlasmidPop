@@ -1,4 +1,4 @@
-import { alignEitherStrand } from '@/core';
+import { alignEitherStrand, reverseComplement, type SequencingRead } from '@/core';
 
 import {
   Cell,
@@ -120,6 +120,60 @@ describe('stacking alignments against one reference', () => {
     const row = rowOf(stackAlignments(ref, [{ name: 'q', result }]), 0);
     expect(row.qualities?.[10]).toBe(30);
     expect(row.qualities?.[0]).toBeNaN();
+  });
+});
+
+describe('the trace under a read', () => {
+  /** A read of `sequence` with a flat trace, one peak per base. */
+  function withTrace(sequence: string): SequencingRead {
+    const n = sequence.length;
+    const flat = () => new Int16Array(n * 4);
+    return {
+      qualities: new Uint8Array(n).fill(30),
+      trace: {
+        channels: { A: flat(), C: flat(), G: flat(), T: flat() },
+        peaks: Int32Array.from({ length: n }, (_, i) => i * 4 + 2),
+      },
+    };
+  }
+  function traced(sequence: string) {
+    const prepared = prepareReadAlignment(ref, { sequence, read: withTrace(sequence) }, null);
+    if (!prepared.ok) throw new Error(prepared.message);
+    const { job } = prepared;
+    return {
+      name: 't',
+      result: finishReadAlignment(job, alignEitherStrand(job.a, job.b, { mode: 'local' })),
+    };
+  }
+
+  it('has no read index for a read without a trace', () => {
+    expect(
+      rowOf(stackAlignments(ref, [sample('a', reference.slice(10, 40))]), 0).readIndex,
+    ).toBeNull();
+  });
+
+  it('numbers each column by the read base in it', () => {
+    const row = rowOf(stackAlignments(ref, [traced(reference.slice(10, 40))]), 0);
+    expect(row.readIndex?.[9]).toBe(-1);
+    expect(row.readIndex?.[10]).toBe(0);
+    expect(row.readIndex?.[39]).toBe(29);
+    expect(row.readIndex?.[40]).toBe(-1);
+  });
+
+  it('numbers along the reverse complement when the read aligned reversed', () => {
+    const result = traced(reverseComplement(reference.slice(10, 40)));
+    expect(result.result.strand).toBe('reverse');
+    const row = rowOf(stackAlignments(ref, [result]), 0);
+    expect(row.readIndex?.[10]).toBe(0);
+    expect(row.readIndex?.[39]).toBe(29);
+  });
+
+  it('skips the columns where the read has a gap and counts on past an insertion', () => {
+    const read = reference.slice(10, 25) + 'TTT' + reference.slice(25, 40);
+    const stack = stackAlignments(ref, [traced(read)]);
+    const row = rowOf(stack, 0);
+    const indices = [...(row.readIndex ?? [])].filter((i) => i >= 0);
+    expect(indices).toEqual(Array.from({ length: read.length }, (_, i) => i));
   });
 });
 

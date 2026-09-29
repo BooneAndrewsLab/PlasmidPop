@@ -20,7 +20,7 @@ overview of differences.
   for differences). Opened from a single result or, for Align all, with
   every aligned read.
 
-**Not yet:** the AB1 trace and the poor-base marks (#110); a phone-specific layout
+**Not yet:** a phone-specific layout
 beyond the full-window dialog; #102 feature track and #104 difference
 colours by feature class build on the stack (`Stack.refIndex` maps a
 column to a reference position).
@@ -65,8 +65,8 @@ button. It is not opened automatically for a single result: an alignment is
 often re-run while settings are tuned, and a window opening each time would
 be in the way. The block renderer, `AlignmentTrace`, the `.alignment*` CSS
 and their tests went. That took the AB1 trace under the read and the dotted
-marks on poor read bases with them, and the large view has neither; #110
-tracks bringing both back there. Batch rows and phone layout are unchanged
+marks on poor read bases with them; #110 brought both back into the large
+view (below). Batch rows and phone layout are unchanged
 (the row list and the result above still stack in the panel). Not checked
 by eye.
 
@@ -123,3 +123,20 @@ changed but layout, labels and grouping. The form stays in AlignPanel.tsx;
 moving it out would have meant threading some twenty pieces of state. The
 fieldsets use the panel's flex rows, so they wrap in the narrow sidebar and
 at 390 px. Not checked by eye.
+
+## Trace and poor bases in the large view (#110)
+
+A `StackRow` carries `readIndex`, per column the index of the read base there
+in the trace's own numbering (`alignment.startB + offsetB`, counting up
+through the read's bases only, so a gap column has -1); null without a
+trace. A read that aligned reversed has its trace reverse-complemented by
+`finishReadAlignment`, so the same numbering holds for both strands.
+
+With the toolbar's **Trace** ticked, a row whose read has a trace is taller
+by `TRACE_HEIGHT` and `drawTrace` (`src/view/trace.ts`, unchanged) draws the
+columns in view, each base centred on its column. Rows therefore have
+different heights: `AlignmentStackView` keeps a `tops` table, and picking a
+row and the visible range use a binary search on it instead of dividing by
+`ROW_HEIGHT`. The overview still spaces rows evenly. Poor bases (below the
+confident quality) get a grey block behind the letter as well as the fade,
+which had been the only mark. Not checked by eye.

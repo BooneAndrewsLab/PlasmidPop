@@ -131,8 +131,8 @@ a read.
   (10%) keeps more of a noisy read; it applies the next time you align. Both
   are remembered in this browser with the view preferences.
 
-The panel no longer draws a read's poor bases or an AB1 trace, since both
-were part of the text alignment; the large view does not show them yet.
+The panel does not draw a read's poor bases or an AB1 trace; the large
+view does (below).
 
 ## When the document is the read
 
@@ -236,4 +236,8 @@ An insertion in one sample opens gap columns in the document row and in
 every other sample, so the rows stay in register. This is each sample
 aligned to the document alone, laid side by side; it is not a multiple
 sequence alignment, and two samples are not aligned to each other. The
-large view does not draw an AB1 read's trace or mark its poor bases.
+A read's bases below the confident quality sit on a grey block, faded, so a
+difference there is easy to discount. A read opened from an AB1 file has its
+chromatogram drawn under its row, each base's peak under its letter and the
+base qualities as faint bars behind; tick **Trace** in the window's toolbar
+(shown when any sample has one, on by default) to hide it and see more rows.

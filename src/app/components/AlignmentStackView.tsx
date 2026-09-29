@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { measureCharWidth, monoFontOf, sansFontOf } from '@/view/linear';
+import { drawTrace, type TraceBaseAt } from '@/view/trace';
 
 import { contrastingText } from '@/view/featureColors';
 
@@ -15,6 +16,8 @@ const RULER_HEIGHT = 18;
 const LANE_HEIGHT = 16;
 const NAME_WIDTH = 168;
 const OVERVIEW_HEIGHT = 44;
+/** The chromatogram under a read's row (#110). */
+const TRACE_HEIGHT = 40;
 
 interface Props {
   readonly stack: Stack;
@@ -32,6 +35,8 @@ interface Props {
    * document, and every difference is then coloured as outside a feature.
    */
   readonly classes: Uint8Array | null;
+  /** Draw each AB1 read's chromatogram under its row (#110). */
+  readonly showTrace: boolean;
   readonly onSelectRow: (row: number) => void;
   /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
   readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
@@ -47,6 +52,13 @@ interface Colours {
   /** Difference colours by `ColumnClass`. */
   readonly byClass: readonly [string, string, string];
   readonly accent: string;
+  readonly trace: {
+    readonly a: string;
+    readonly c: string;
+    readonly g: string;
+    readonly t: string;
+    readonly quality: string;
+  };
 }
 
 function readColours(el: HTMLElement): Colours {
@@ -71,6 +83,7 @@ function readColours(el: HTMLElement): Colours {
       css.getPropertyValue('--diff-cds').trim() || '#d81b3c',
     ],
     accent: css.getPropertyValue('--accent').trim() || t.caret,
+    trace: { ...t.baseColors, quality: t.traceQuality },
   };
 }
 
@@ -206,6 +219,7 @@ export function AlignmentStackView({
   selectedRow,
   track,
   classes,
+  showTrace,
   onSelectRow,
   focus,
 }: Props) {
@@ -225,7 +239,34 @@ export function AlignmentStackView({
   const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
   const [hover, setHover] = useState<string | null>(null);
   const contentWidth = NAME_WIDTH + stack.columns * charWidth;
-  const contentHeight = headerHeight + stack.rows.length * ROW_HEIGHT;
+  // Each row's top below the header; a read with a trace is taller by the trace's strip.
+  const tops = useMemo(() => {
+    const out = new Array<number>(stack.rows.length + 1);
+    let y = 0;
+    stack.rows.forEach((row, r) => {
+      out[r] = y;
+      y += ROW_HEIGHT + (showTrace && row.readIndex !== null ? TRACE_HEIGHT : 0);
+    });
+    out[stack.rows.length] = y;
+    return out;
+  }, [stack, showTrace]);
+  const rowsHeight = tops[stack.rows.length] ?? 0;
+  const contentHeight = headerHeight + rowsHeight;
+  /** The row under `y` below the header, or -1. */
+  const rowAt = useCallback(
+    (y: number): number => {
+      if (y < 0 || y >= rowsHeight) return -1;
+      let lo = 0;
+      let hi = stack.rows.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if ((tops[mid] ?? 0) <= y) lo = mid;
+        else hi = mid - 1;
+      }
+      return lo;
+    },
+    [tops, rowsHeight, stack.rows.length],
+  );
 
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -281,11 +322,12 @@ export function AlignmentStackView({
     const first = Math.max(0, Math.floor(scroll.left / charWidth));
     const last = Math.min(stack.columns, Math.ceil((scroll.left + size.width) / charWidth));
     const x = (c: number): number => NAME_WIDTH + c * charWidth - scroll.left;
-    const firstRow = Math.max(0, Math.floor((scroll.top - 0) / ROW_HEIGHT));
+    const firstRow = Math.max(0, rowAt(scroll.top));
     const lastRow = Math.min(
       stack.rows.length,
-      Math.ceil((scroll.top + size.height - headerHeight) / ROW_HEIGHT),
+      rowAt(scroll.top + size.height - headerHeight) + 1 || stack.rows.length,
     );
+    const rowHeightOf = (r: number): number => (tops[r + 1] ?? 0) - (tops[r] ?? 0);
 
     // The columns, clipped so they slide under the names.
     ctx.save();
@@ -311,12 +353,12 @@ export function AlignmentStackView({
     for (let r = firstRow; r < lastRow; r++) {
       const row = stack.rows[r];
       if (row === undefined) continue;
-      const y = headerHeight + r * ROW_HEIGHT - scroll.top;
-      if (y + ROW_HEIGHT < headerHeight) continue;
+      const y = headerHeight + (tops[r] ?? 0) - scroll.top;
+      if (y + rowHeightOf(r) < headerHeight) continue;
       if (r === selectedRow) {
         ctx.fillStyle = colours.accent;
         ctx.globalAlpha = 0.08;
-        ctx.fillRect(NAME_WIDTH, y, size.width - NAME_WIDTH, ROW_HEIGHT);
+        ctx.fillRect(NAME_WIDTH, y, size.width - NAME_WIDTH, rowHeightOf(r));
         ctx.globalAlpha = 1;
       }
       const from = Math.max(first, row.firstColumn);
@@ -335,6 +377,13 @@ export function AlignmentStackView({
         const ch = row.bases.charAt(c);
         const q = row.qualities?.[c];
         const poor = q !== undefined && !Number.isNaN(q) && q < confidentFrom;
+        if (poor && ch !== '-') {
+          // A poor base sits on a grey block, whatever else is behind it.
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = colours.muted;
+          ctx.fillRect(x(c), y, charWidth, ROW_HEIGHT);
+          ctx.globalAlpha = 1;
+        }
         drawText(
           ch,
           c,
@@ -344,6 +393,31 @@ export function AlignmentStackView({
         );
       }
       ctx.globalAlpha = 1;
+      if (showTrace && row.readIndex !== null && row.result.trace !== null) {
+        // The chromatogram under the row: each base's peak under its letter.
+        const bases: TraceBaseAt[] = [];
+        for (
+          let c = Math.max(row.firstColumn, first - 1);
+          c < Math.min(row.endColumn, last + 1);
+          c++
+        ) {
+          const index = row.readIndex[c] ?? -1;
+          if (index >= 0) bases.push({ index, x: x(c) + charWidth / 2 });
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(NAME_WIDTH, y + ROW_HEIGHT, size.width - NAME_WIDTH, TRACE_HEIGHT);
+        ctx.clip();
+        drawTrace(ctx, {
+          read: row.result.trace,
+          bases,
+          top: y + ROW_HEIGHT + 2,
+          height: TRACE_HEIGHT - 4,
+          charWidth,
+          colors: colours.trace,
+        });
+        ctx.restore();
+      }
     }
 
     // The pinned top over anything scrolled beneath it.
@@ -416,7 +490,7 @@ export function AlignmentStackView({
     ctx.rect(0, headerHeight, NAME_WIDTH, size.height - headerHeight);
     ctx.clip();
     for (let r = firstRow; r < lastRow; r++) {
-      const y = headerHeight + r * ROW_HEIGHT - scroll.top;
+      const y = headerHeight + (tops[r] ?? 0) - scroll.top;
       ctx.fillStyle = r === selectedRow ? colours.accent : colours.ink;
       ctx.fillText(clip(stack.rows[r]?.name ?? ''), 8, y + ROW_HEIGHT / 2);
     }
@@ -443,6 +517,9 @@ export function AlignmentStackView({
     classes,
     headerHeight,
     trackHeight,
+    showTrace,
+    tops,
+    rowAt,
   ]);
 
   // The overview.
@@ -580,8 +657,8 @@ export function AlignmentStackView({
               const y = e.clientY - rect.top;
               const x = e.clientX - rect.left;
               if (y >= headerHeight) {
-                const row = Math.floor((y - headerHeight + scroll.top) / ROW_HEIGHT);
-                if (row >= 0 && row < stack.rows.length) onSelectRow(row);
+                const row = rowAt(y - headerHeight + scroll.top);
+                if (row >= 0) onSelectRow(row);
               }
               if (x >= NAME_WIDTH) {
                 const at = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
