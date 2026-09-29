@@ -600,7 +600,9 @@ export function AlignPanel({ doc }: Props) {
     [loaded, other, doc.alphabet],
   );
   const records = parsed.ok ? parsed.records : [];
-  const record = records[Math.min(picked, records.length - 1)];
+  /** "All records" chosen in the picker: the one button then aligns each of them. */
+  const all = picked === -1 && records.length > 1 && records.length <= BATCH_LIMIT;
+  const record = records[all ? 0 : Math.min(Math.max(picked, 0), records.length - 1)];
   /** Records from more than one file, each named with its file in the batch. */
   const several = new Set(records.map((r) => r.file)).size > 1;
 
@@ -671,6 +673,8 @@ export function AlignPanel({ doc }: Props) {
           );
           setText('');
           setLoaded({ text: '', records });
+          // Several files are a batch: align them all unless one is picked.
+          setPicked(-1);
           setFileNote(
             `${good.length} files, ${records.length} ${records.length === 1 ? 'record' : 'records'}.`,
           );
@@ -932,7 +936,7 @@ export function AlignPanel({ doc }: Props) {
           }}
         />
         {otherTabs.length > 0 && (
-          <label className="panel__field">
+          <label className="panel__field panel__field--row">
             <select
               className="panel__select"
               aria-label="Open tab to align"
@@ -951,15 +955,18 @@ export function AlignPanel({ doc }: Props) {
           </label>
         )}
         {records.length > 1 && (
-          <label className="panel__field">
+          <label className="panel__field panel__field--row">
             <select
               className="panel__select"
               aria-label="Record to align"
-              value={Math.min(picked, records.length - 1)}
+              value={all ? -1 : Math.min(Math.max(picked, 0), records.length - 1)}
               onChange={(e) => {
                 setPicked(Number(e.target.value));
               }}
             >
+              {records.length <= BATCH_LIMIT && (
+                <option value={-1}>All {records.length.toLocaleString()} records</option>
+              )}
               {records.map((r, i) => (
                 <option key={i} value={i}>
                   {several ? `${r.name} (${r.file ?? ''})` : r.name} (
@@ -975,9 +982,9 @@ export function AlignPanel({ doc }: Props) {
           {[
             fileNote,
             records.length > BATCH_LIMIT
-              ? `${records.length.toLocaleString()} records; the one chosen is aligned. Align all takes at most ${BATCH_LIMIT} at a time (a plate): split the file to align them all.`
+              ? `${records.length.toLocaleString()} records; the one chosen is aligned. Aligning all takes at most ${BATCH_LIMIT} at a time (a plate): split the file to align them all.`
               : records.length > 1
-                ? `${records.length} records; the one chosen is aligned, or Align all aligns each of them.`
+                ? `${records.length} records; the one chosen is aligned, or choose All records to align each of them.`
                 : null,
           ]
             .filter((t) => t !== null)
@@ -1027,31 +1034,21 @@ export function AlignPanel({ doc }: Props) {
         <button
           type="button"
           className="button button--small"
-          disabled={busy || other.trim() === ''}
-          onClick={run}
+          disabled={busy || (!all && other.trim() === '' && record === undefined)}
+          title={
+            all
+              ? 'Align every record against this document, one after another, and list them'
+              : undefined
+          }
+          onClick={all ? runAll : run}
         >
-          {busy && batch === null ? 'Aligning…' : 'Align'}
+          {busy ? (all ? 'Aligning all…' : 'Aligning…') : all ? 'Align all' : 'Align'}
         </button>
-        {records.length > 1 && (
-          <button
-            type="button"
-            className="button button--small"
-            disabled={busy || records.length > BATCH_LIMIT}
-            title={
-              records.length > BATCH_LIMIT
-                ? `At most ${BATCH_LIMIT} records are aligned at once`
-                : 'Align every record against this document, one after another, and list them'
-            }
-            onClick={runAll}
-          >
-            {busy && batch !== null ? 'Aligning all…' : 'Align all'}
-          </button>
-        )}
       </div>
       {pickedMode === null && suggested.reason !== null && (
         <p className="panel__note">
           {`Local, since ${docIsRead ? 'this document' : 'the sequence in the box'} is ${suggested.reason}: Global would score it across the whole of the other. Choose Global to align end to end anyway.`}
-          {records.length > 1 ? ' Align all chooses for each record the same way.' : ''}
+          {records.length > 1 ? ' Aligning all chooses for each record the same way.' : ''}
         </p>
       )}
       {anyReads && <QualitySettings trim={trim} />}

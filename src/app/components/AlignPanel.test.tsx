@@ -109,6 +109,8 @@ describe('AlignPanel', () => {
       expect(screen.getByText(/2 files, 3 records/)).toBeInTheDocument();
     });
     expect(box()).toHaveValue('');
+    // With the box empty, the batch is what is chosen and its button is live.
+    expect(screen.getByRole('button', { name: 'Align all' })).toBeEnabled();
     expect(screen.getByRole('option', { name: 'b (two.fa) (8 bp)' })).toBeInTheDocument();
   });
 
@@ -458,11 +460,14 @@ describe('AlignPanel', () => {
       fireEvent.drop(box(), fileDrop(new File([fastq], 'plate.fastq')));
       await waitFor(() => {
         expect(
-          screen.getByText(/3 records; the one chosen is aligned, or Align all/),
+          screen.getByText(/3 records; the one chosen is aligned, or choose All records/),
         ).toBeInTheDocument();
       });
       fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
         target: { value: 'local' },
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
+        target: { value: '-1' },
       });
     }
 
@@ -516,9 +521,10 @@ describe('AlignPanel', () => {
       render(<AlignPanel doc={doc} />);
       const many = Array.from({ length: 97 }, (_, i) => `>r${i}\nACGTACGT`).join('\n');
       fireEvent.change(box(), { target: { value: many } });
-      expect(screen.getByRole('button', { name: 'Align all' })).toBeDisabled();
+      expect(screen.queryByRole('option', { name: /All 97 records/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Align' })).toBeEnabled();
       expect(
-        screen.getByText(/Align all takes at most 96 at a time \(a plate\)/),
+        screen.getByText(/Aligning all takes at most 96 at a time \(a plate\)/),
       ).toBeInTheDocument();
     });
   });

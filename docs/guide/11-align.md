@@ -60,7 +60,8 @@ all at once — the usual way to check a batch of clones.
    document's length, Global otherwise. A mode you choose is used for every
    record. Tick **Against selection only** if the reads should be looked
    for in part of the document only.
-3. Click **Align all**. Each record is aligned against the document in turn,
+3. Choose **All N records** in the record list under the box; the **Align**
+   button then reads **Align all**. Click it. Each record is aligned against the document in turn,
    in the background; the bar counts reads (**12 of 96**) and **Cancel**
    stops the batch, keeping the reads already aligned. Leaving the Align tab
    cancels it too.
@@ -78,7 +79,7 @@ all at once — the usual way to check a batch of clones.
 A read that could not be aligned (nothing good enough after trimming, too
 large) is listed with the reason, and the rest carry on. At most 96 records
 (a plate) are aligned at once; for a larger file the note says so and
-**Align all** is unavailable: pick one record, or split the file. A batch
+the list has no **All records** choice: pick one record, or split the file. A batch
 is aligned in a band around the words each read shares with the document,
 which gives the same alignments as one at a time and takes about half a
 second for a plate of Sanger reads against a 5 kb plasmid.
