@@ -190,8 +190,7 @@ export function differenceRegions(differences: readonly number[]): DifferenceReg
   const regions: DifferenceRegion[] = [];
   for (const d of differences) {
     const last = regions[regions.length - 1];
-    if (last !== undefined && last.end === d)
-      regions[regions.length - 1] = { start: last.start, end: d + 1 };
+    if (last?.end === d) regions[regions.length - 1] = { start: last.start, end: d + 1 };
     else regions.push({ start: d, end: d + 1 });
   }
   return regions;
