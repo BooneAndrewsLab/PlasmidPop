@@ -196,7 +196,9 @@ sample adds.
   difference and shows the stretch now in view as a rectangle; click or
   drag on it to move there.
 - **Next difference** and **Previous difference** (`Alt+N`, `Alt+Shift+N`)
-  go through the differing columns and wrap round at the ends.
+  go from one difference to the next and wrap round at the ends. A run of
+  neighbouring differing columns (a 5-base gap, say) is one stop, and the
+  whole run is marked.
 - Click a name to see that sample's score and identity, and to use
   **Select aligned region in this document** for it.
 - `Esc` closes the window and returns you to where you were.

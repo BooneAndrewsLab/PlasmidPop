@@ -3,6 +3,7 @@ import { alignEitherStrand } from '@/core';
 import {
   Cell,
   columnPosition,
+  differenceRegions,
   isDifference,
   nextDifference,
   stackAlignments,
@@ -123,12 +124,22 @@ describe('stacking alignments against one reference', () => {
 });
 
 describe('going through the differences', () => {
-  it('finds the next and previous, going round at the ends', () => {
-    const d = [3, 8, 20];
-    expect(nextDifference(d, 3, false)).toBe(8);
-    expect(nextDifference(d, 20, false)).toBe(3);
-    expect(nextDifference(d, 8, true)).toBe(3);
-    expect(nextDifference(d, 3, true)).toBe(20);
+  it('gathers adjacent differing columns into one region', () => {
+    expect(differenceRegions([3, 4, 5, 6, 7, 20, 22, 23])).toEqual([
+      { start: 3, end: 8 },
+      { start: 20, end: 21 },
+      { start: 22, end: 24 },
+    ]);
+    expect(differenceRegions([])).toEqual([]);
+  });
+
+  it('finds the next and previous region, going round at the ends', () => {
+    const r = differenceRegions([3, 4, 5, 8, 20]);
+    expect(nextDifference(r, 3, false)).toEqual({ start: 8, end: 9 });
+    expect(nextDifference(r, 4, false)).toEqual({ start: 8, end: 9 });
+    expect(nextDifference(r, 20, false)).toEqual({ start: 3, end: 6 });
+    expect(nextDifference(r, 8, true)).toEqual({ start: 3, end: 6 });
+    expect(nextDifference(r, 3, true)).toEqual({ start: 20, end: 21 });
     expect(nextDifference([], 3, false)).toBeNull();
   });
 

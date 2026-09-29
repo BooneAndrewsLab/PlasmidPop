@@ -22,8 +22,8 @@ interface Props {
   /** The row picked, an index into `stack.rows`. */
   readonly selectedRow: number | null;
   readonly onSelectRow: (row: number) => void;
-  /** A column to bring to the middle of the view and mark, with a nonce to do it again. */
-  readonly focus: { readonly column: number; readonly nonce: number } | null;
+  /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
+  readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
 }
 
 interface Colours {
@@ -98,7 +98,7 @@ export function AlignmentStackView({
   const [size, setSize] = useState({ width: 600, height: 300 });
   const [overviewWidth, setOverviewWidth] = useState(600);
   const [scroll, setScroll] = useState({ left: 0, top: 0 });
-  const [marked, setMarked] = useState<number | null>(null);
+  const [marked, setMarked] = useState<{ start: number; end: number } | null>(null);
   const [colours, setColours] = useState<Colours | null>(null);
 
   const monoFont = monoFontOf(FONT_SIZE);
@@ -124,7 +124,8 @@ export function AlignmentStackView({
   }, []);
 
   const scrollToColumn = useCallback(
-    (column: number): void => {
+    (start: number, end: number): void => {
+      const column = (start + end - 1) / 2;
       const el = scroller.current;
       if (el === null) return;
       const view = el.clientWidth - NAME_WIDTH;
@@ -137,10 +138,10 @@ export function AlignmentStackView({
   const [seenFocus, setSeenFocus] = useState(focus);
   if (focus !== seenFocus) {
     setSeenFocus(focus);
-    if (focus !== null) setMarked(focus.column);
+    if (focus !== null) setMarked({ start: focus.start, end: focus.end });
   }
   useEffect(() => {
-    if (focus !== null) scrollToColumn(focus.column);
+    if (focus !== null) scrollToColumn(focus.start, focus.end);
   }, [focus, scrollToColumn]);
 
   // The main canvas.
@@ -171,10 +172,10 @@ export function AlignmentStackView({
     ctx.rect(NAME_WIDTH, 0, size.width - NAME_WIDTH, size.height);
     ctx.clip();
 
-    if (marked !== null && marked >= first && marked < last) {
+    if (marked !== null && marked.end > first && marked.start < last) {
       ctx.fillStyle = colours.accent;
       ctx.globalAlpha = 0.16;
-      ctx.fillRect(x(marked), 0, charWidth, size.height);
+      ctx.fillRect(x(marked.start), 0, (marked.end - marked.start) * charWidth, size.height);
       ctx.globalAlpha = 1;
     }
 
@@ -229,10 +230,10 @@ export function AlignmentStackView({
     ctx.moveTo(NAME_WIDTH, HEADER_HEIGHT - 0.5);
     ctx.lineTo(size.width, HEADER_HEIGHT - 0.5);
     ctx.stroke();
-    if (marked !== null && marked >= first && marked < last) {
+    if (marked !== null && marked.end > first && marked.start < last) {
       ctx.fillStyle = colours.accent;
       ctx.globalAlpha = 0.16;
-      ctx.fillRect(x(marked), 0, charWidth, HEADER_HEIGHT);
+      ctx.fillRect(x(marked.start), 0, (marked.end - marked.start) * charWidth, HEADER_HEIGHT);
       ctx.globalAlpha = 1;
     }
     ctx.font = sansFontOf(FONT_SIZE);
@@ -344,7 +345,12 @@ export function AlignmentStackView({
     }
     if (marked !== null) {
       ctx.fillStyle = colours.accent;
-      ctx.fillRect(marked * perColumn - 1, 0, 2, OVERVIEW_HEIGHT);
+      ctx.fillRect(
+        marked.start * perColumn - 1,
+        0,
+        Math.max(2, (marked.end - marked.start) * perColumn + 2),
+        OVERVIEW_HEIGHT,
+      );
     }
     // The stretch in view.
     const view = Math.max(0, size.width - NAME_WIDTH);
@@ -368,7 +374,8 @@ export function AlignmentStackView({
     if (el === null) return;
     const rect = el.getBoundingClientRect();
     const column = ((clientX - rect.left) / Math.max(1, rect.width)) * stack.columns;
-    scrollToColumn(Math.min(stack.columns - 1, Math.max(0, Math.floor(column))));
+    const at = Math.min(stack.columns - 1, Math.max(0, Math.floor(column)));
+    scrollToColumn(at, at + 1);
   };
   const dragging = useRef(false);
 
@@ -416,7 +423,8 @@ export function AlignmentStackView({
                 if (row >= 0 && row < stack.rows.length) onSelectRow(row);
               }
               if (x >= NAME_WIDTH) {
-                setMarked(Math.floor((x - NAME_WIDTH + scroll.left) / charWidth));
+                const at = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
+                setMarked({ start: at, end: at + 1 });
               }
             }}
           />

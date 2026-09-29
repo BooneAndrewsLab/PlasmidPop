@@ -179,19 +179,37 @@ function insertionRuns(result: ReadAlignment): Map<number, number> {
   return runs;
 }
 
-/** The first difference after `column` (or before it, going back), wrapping round; null when there are none. */
+/** A run of neighbouring differing columns, `[start, end)`. */
+export interface DifferenceRegion {
+  readonly start: number;
+  readonly end: number;
+}
+
+/** The sorted differing columns gathered into runs of adjacent ones, so a 5-base gap is one stop. */
+export function differenceRegions(differences: readonly number[]): DifferenceRegion[] {
+  const regions: DifferenceRegion[] = [];
+  for (const d of differences) {
+    const last = regions[regions.length - 1];
+    if (last !== undefined && last.end === d)
+      regions[regions.length - 1] = { start: last.start, end: d + 1 };
+    else regions.push({ start: d, end: d + 1 });
+  }
+  return regions;
+}
+
+/** The first region starting after `column` (or before it, going back), wrapping round; null when there are none. */
 export function nextDifference(
-  differences: readonly number[],
+  regions: readonly DifferenceRegion[],
   column: number,
   backwards: boolean,
-): number | null {
-  if (differences.length === 0) return null;
-  if (!backwards) return differences.find((d) => d > column) ?? differences[0] ?? null;
-  for (let i = differences.length - 1; i >= 0; i--) {
-    const d = differences[i];
-    if (d !== undefined && d < column) return d;
+): DifferenceRegion | null {
+  if (regions.length === 0) return null;
+  if (!backwards) return regions.find((r) => r.start > column) ?? regions[0] ?? null;
+  for (let i = regions.length - 1; i >= 0; i--) {
+    const r = regions[i];
+    if (r !== undefined && r.start < column) return r;
   }
-  return differences[differences.length - 1] ?? null;
+  return regions[regions.length - 1] ?? null;
 }
 
 /** The reference position (1-based, as numbered on screen) of a column, or null in an inserted one. */

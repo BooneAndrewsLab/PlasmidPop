@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { nextDifference, stackAlignments, type StackSample } from '../alignmentStack';
+import {
+  differenceRegions,
+  nextDifference,
+  stackAlignments,
+  type StackSample,
+} from '../alignmentStack';
 import { alignedRegionInDocument, type ReferenceInput } from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -41,7 +46,8 @@ export function AlignmentDialog({
   const [selected, setSelected] = useState<number | null>(
     initialRow ?? (samples.length === 1 ? 0 : null),
   );
-  const [focus, setFocus] = useState<{ column: number; nonce: number } | null>(null);
+  const [focus, setFocus] = useState<{ start: number; end: number; nonce: number } | null>(null);
+  const regions = useMemo(() => differenceRegions(stack.differences), [stack.differences]);
   const current = useRef(0);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -55,12 +61,12 @@ export function AlignmentDialog({
 
   const go = useCallback(
     (backwards: boolean): void => {
-      const column = nextDifference(stack.differences, current.current, backwards);
-      if (column === null) return;
-      current.current = column;
-      setFocus((f) => ({ column, nonce: (f?.nonce ?? 0) + 1 }));
+      const region = nextDifference(regions, current.current, backwards);
+      if (region === null) return;
+      current.current = region.start;
+      setFocus((f) => ({ ...region, nonce: (f?.nonce ?? 0) + 1 }));
     },
-    [stack.differences],
+    [regions],
   );
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
