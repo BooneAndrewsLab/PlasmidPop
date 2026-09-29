@@ -8,6 +8,7 @@ import {
   reverseComplementRead,
   trimByQuality,
 } from '@/core';
+import { type OverlaySpan } from '@/view/overlay';
 
 /**
  * One read aligned to one reference, the steps either side of the worker's
@@ -195,6 +196,30 @@ export function alignedRegionInDocument(
       )
     : alignedReferenceRange(result);
   return range !== null && range.end > range.start ? range : null;
+}
+
+/**
+ * The aligned region as a span to point at in the views (#108): the range of
+ * `alignedRegionInDocument`, brought into the document (a range that runs
+ * past the end of a circle is unrolled from a start inside it, so the views
+ * draw both ends) and never longer than one turn of it.
+ */
+export function alignedRegionSpan(
+  result: ReadAlignment,
+  documentIsRead: boolean,
+  docLength: number,
+): OverlaySpan | null {
+  const range = alignedRegionInDocument(result, documentIsRead);
+  if (range === null || docLength <= 0) return null;
+  const length = Math.min(range.end - range.start, docLength);
+  const start = ((range.start % docLength) + docLength) % docLength;
+  return {
+    id: 'region',
+    label: 'Aligned region',
+    range: { start, end: start + length },
+    strand: 'none',
+    shape: 'span',
+  };
 }
 
 /** The mode an alignment starts in, and why when it is not the usual Global. */

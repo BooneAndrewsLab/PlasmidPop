@@ -60,7 +60,7 @@ The Align tab no longer prints the alignment (blocks of 60 with `|`
 markers): the large view is the one place it is read. The result keeps its
 heading and numbers, the confident-difference list (a click still selects
 the base in the document, but no longer scrolls a block, there being none),
-**Select aligned region** (until #108) and **Large view**, now the primary
+the heading, which finds the aligned region (#108, below), and **Large view**, now the primary
 button. It is not opened automatically for a single result: an alignment is
 often re-run while settings are tuned, and a window opening each time would
 be in the way. The block renderer, `AlignmentTrace`, the `.alignment*` CSS
@@ -69,3 +69,24 @@ marks on poor read bases with them, and the large view has neither; #110
 tracks bringing both back there. Batch rows and phone layout are unchanged
 (the row list and the result above still stack in the panel). Not checked
 by eye.
+
+## Pointing at a result finds its region (#108)
+
+The panel's **Select aligned region in this document** button is gone (the
+large view keeps its own). The result's heading is a button instead, and so
+is each batch row's read name. Hovering or focusing it draws the aligned
+region in both views without changing the selection; clicking or Enter
+selects and reveals it (a batch row also shows its alignment, as before).
+
+The transient highlight reuses the existing preview channel (the dashed
+purple spans the Primers, Find and ORF panels use) with a new owner,
+`'align'`, rather than a new store field: it is already outside history,
+per document, cleared by any edit, and drawn by both the Canvas linear view
+and the circular map. `alignedRegionSpan` (readAlignment.ts) makes the span
+from `alignedRegionInDocument`: a range through the origin stays unrolled
+(start inside the sequence, end past it) which both views already draw at
+both ends; a start past the end is brought back in and the length capped at
+one turn. It cannot stick: the effect holding it cleans up on pointer leave,
+blur, click (the selection shows the region then), the result being
+replaced or removed, unmount and leaving the tab. A touch pointer does not
+hover, so a tap only selects. Not checked by eye.

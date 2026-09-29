@@ -1037,6 +1037,20 @@ describe('EditorStore preview', () => {
     shape: 'arrow' as const,
   };
 
+  it('keeps an alignment highlight apart from the selection and from other panels (#108)', () => {
+    const store = new EditorStore();
+    const id = store.openDocument(doc, 'x.gb');
+    store.setSelection({ start: 1, end: 3 });
+    store.setPreview('primers', [span]);
+    store.setPreview('align', [{ ...span, id: 'region', shape: 'span', strand: 'none' }]);
+    expect(store.getState().selection).toEqual({ start: 1, end: 3 });
+    expect(store.getState().preview?.owners).toEqual(['primers', 'align']);
+    store.clearPreview('align');
+    expect(store.getState().preview?.owners).toEqual(['primers']);
+    expect(store.getState().preview?.documentId).toBe(id);
+    expect(store.getState().selection).toEqual({ start: 1, end: 3 });
+  });
+
   it('points the views at spans and takes them away again', () => {
     const store = new EditorStore();
     const id = store.openDocument(doc, 'x.gb');

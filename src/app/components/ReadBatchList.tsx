@@ -18,12 +18,15 @@ export function ReadBatchList({
   confidentFrom,
   selected,
   onSelect,
+  onPoint,
 }: {
   rows: readonly BatchRow[];
   confidentFrom: number;
   /** The index (in the file) of the row whose alignment is shown. */
   selected: number | null;
   onSelect: (index: number) => void;
+  /** The row under the pointer or holding focus, or null when none is (#108). */
+  onPoint?: (index: number | null) => void;
 }) {
   const [order, setOrder] = useState<BatchOrder>('file');
   const sorted = sortRows(rows, order, confidentFrom);
@@ -88,6 +91,19 @@ export function ReadBatchList({
                   type="button"
                   className="read-batch__pick"
                   aria-pressed={picked}
+                  title="Point at the region this read covers; click to select it and show its alignment"
+                  onPointerEnter={(e) => {
+                    if (e.pointerType !== 'touch') onPoint?.(row.index);
+                  }}
+                  onPointerLeave={() => {
+                    onPoint?.(null);
+                  }}
+                  onFocus={() => {
+                    onPoint?.(row.index);
+                  }}
+                  onBlur={() => {
+                    onPoint?.(null);
+                  }}
                   onClick={() => {
                     onSelect(row.index);
                   }}

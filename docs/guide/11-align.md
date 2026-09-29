@@ -38,8 +38,17 @@ The result reports the score, percent identity, the number of columns and
 of gap columns. It does not print the alignment itself, which is too wide
 for a side panel: click **Large view** to read it in a window of its own,
 along the whole sequence (see below). Identity counts only the identical
-columns. **Select aligned region in this document** selects the covered
-bases so you can annotate or copy them.
+columns.
+
+Point at the result's heading (hover it, or Tab to it) to see where the
+alignment sits: the region it covers is drawn in the map and the sequence
+view, in the same dashed purple as other previews, without touching your
+selection. A region that runs through the origin of a circular plasmid is
+drawn at both ends. Click the heading (or press Enter) to select the
+covered bases, so you can annotate or copy them, and scroll to them; the
+highlight steps aside for the selection. On a phone, tap to select. The
+highlight goes when the pointer or focus leaves, when you edit, or when you
+leave the tab. The same works for each read in a batch's list.
 
 ## Aligning a batch of reads
 
@@ -213,7 +222,7 @@ once the ORFs panel has found them. With no document behind the reference
   document is the read and the reference is the sequence in the box, there is
   no track, since a pasted sequence brings none of its own.
 - Click a name to see that sample's score and identity, and to use
-  **Select aligned region in this document** for it.
+  **Select aligned region in this document** (a button in the window) for it.
 - `Esc` closes the window and returns you to where you were.
 
 An insertion in one sample opens gap columns in the document row and in

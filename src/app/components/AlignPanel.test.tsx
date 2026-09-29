@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
 import {
@@ -393,9 +393,7 @@ describe('AlignPanel', () => {
         // Named at its place in the read, which is the document, and in the reference.
         fireEvent.click(screen.getByRole('button', { name: /Mismatch at 36 \(pRef 41\), Q40/ }));
         expect(editorStore.getState().selection).toEqual({ start: 35, end: 36 });
-        fireEvent.click(
-          screen.getByRole('button', { name: 'Select aligned region in this document' }),
-        );
+        fireEvent.click(screen.getByRole('button', { name: /^(Global|Local) alignment/ }));
         expect(editorStore.getState().selection).toEqual({ start: 5, end: 45 });
       });
 
@@ -405,9 +403,7 @@ describe('AlignPanel', () => {
         // Base 35 of the read is base 50 − 1 − 35 = 14 of its reverse complement.
         fireEvent.click(screen.getByRole('button', { name: /Mismatch at 15 \(pRef 41\), Q40/ }));
         expect(editorStore.getState().selection).toEqual({ start: 14, end: 15 });
-        fireEvent.click(
-          screen.getByRole('button', { name: 'Select aligned region in this document' }),
-        );
+        fireEvent.click(screen.getByRole('button', { name: /^(Global|Local) alignment/ }));
         expect(editorStore.getState().selection).toEqual({ start: 5, end: 45 });
       });
 
@@ -493,10 +489,21 @@ describe('AlignPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'clone2' }));
       expect(screen.getByText(/Local alignment of clone2/)).toBeInTheDocument();
       expect(screen.getByText(/No differences from pRef/)).toBeInTheDocument();
+      // Pointing at a row draws its region without selecting it (#108).
+      act(() => {
+        editorStore.setSelection({ start: 1, end: 2 });
+      });
+      const pick = screen.getByRole('button', { name: 'clone2' });
+      fireEvent.pointerEnter(pick, { pointerType: 'mouse' });
+      expect(editorStore.getState().preview?.items[0]?.range).toEqual({ start: 15, end: 55 });
+      expect(editorStore.getState().selection).toEqual({ start: 1, end: 2 });
+      fireEvent.pointerLeave(pick);
+      expect(editorStore.getState().preview).toBeNull();
+      // Clicking it selects the region.
+      fireEvent.click(pick);
+      expect(editorStore.getState().selection).toEqual({ start: 15, end: 55 });
       // Its region is selected in the document, as for a single read.
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Select aligned region in this document' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /^(Global|Local) alignment/ }));
       expect(editorStore.getState().selection).toEqual({ start: 15, end: 55 });
     });
 
@@ -558,11 +565,36 @@ describe('AlignPanel', () => {
     await waitFor(() => {
       expect(screen.getByText(/identity 100% over 700 columns/)).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Select aligned region in this document' }));
+    fireEvent.click(screen.getByRole('button', { name: /^(Global|Local) alignment/ }));
     expect(editorStore.getState().selection).toEqual({ start: 700, end: 1400 });
+    // Pointing at the heading draws the region in the views, through the origin,
+    // and leaves the selection alone (#108).
+    const heading = screen.getByRole('button', { name: /^(Global|Local) alignment/ });
+    act(() => {
+      editorStore.setSelection({ start: 5, end: 9 });
+    });
+    fireEvent.pointerEnter(heading, { pointerType: 'mouse' });
+    expect(editorStore.getState().preview?.items).toEqual([
+      expect.objectContaining({ range: { start: 700, end: 1400 } }),
+    ]);
+    expect(editorStore.getState().selection).toEqual({ start: 5, end: 9 });
+    fireEvent.pointerLeave(heading);
+    expect(editorStore.getState().preview).toBeNull();
+    fireEvent.focus(heading);
+    expect(editorStore.getState().preview).not.toBeNull();
+    fireEvent.blur(heading);
+    expect(editorStore.getState().preview).toBeNull();
+    // A touch has no hover; and unmounting while pointed leaves nothing behind.
+    fireEvent.pointerEnter(heading, { pointerType: 'touch' });
+    expect(editorStore.getState().preview).toBeNull();
+    fireEvent.focus(heading);
+    expect(editorStore.getState().preview).not.toBeNull();
     // The alignment is read in the large view, not printed in the panel.
     expect(document.querySelector('pre')).toBeNull();
     expect(screen.getByRole('button', { name: 'Large view' })).toBeInTheDocument();
+    // Unmounting while pointed leaves no highlight behind.
+    cleanup();
+    expect(editorStore.getState().preview).toBeNull();
   });
 });
 

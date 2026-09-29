@@ -1181,6 +1181,23 @@ button {
   color: var(--ink-2);
 }
 
+/* The alignment heading is a button: pointing at it finds the region (#108). */
+.panel__heading-pick {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.panel__heading-pick:hover,
+.panel__heading-pick:focus-visible {
+  text-decoration: underline;
+  text-decoration-color: var(--seq-preview, currentColor);
+}
+
 .panel__heading-note {
   margin-left: 8px;
   font-weight: 500;

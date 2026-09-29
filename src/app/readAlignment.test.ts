@@ -2,6 +2,7 @@ import { alignEitherStrand, reverseComplement } from '@/core';
 
 import {
   alignedReferenceRange,
+  alignedRegionSpan,
   finishReadAlignment,
   prepareReadAlignment,
   readRange,
@@ -101,5 +102,43 @@ describe('suggestAlignMode (#86)', () => {
     expect(suggestAlignMode({ length: 4361, isRead: false }, 4361).mode).toBe('global');
     expect(suggestAlignMode({ length: 9000, isRead: false }, 4361).mode).toBe('global');
     expect(suggestAlignMode({ length: 0, isRead: false }, 4361).mode).toBe('global');
+  });
+});
+
+describe('alignedRegionSpan (#108)', () => {
+  it('unrolls a region through the origin so both ends are drawn', () => {
+    const { result } = run(reference.slice(50) + reference.slice(0, 15), null, reference.length);
+    const span = alignedRegionSpan(result, false, reference.length);
+    expect(span?.range).toEqual({ start: 50, end: 75 });
+    expect(span?.range.end).toBeGreaterThan(reference.length);
+    expect(span?.shape).toBe('span');
+  });
+
+  it('brings a start past the end back inside, and never draws more than a turn', () => {
+    const { result } = run(reference.slice(10, 40), null);
+    const shifted = { ...result, offset: result.offset + reference.length };
+    expect(alignedRegionSpan(shifted, false, reference.length)?.range).toEqual({
+      start: 10,
+      end: 40,
+    });
+    const long = {
+      ...result,
+      alignment: { ...result.alignment, startA: 0, endA: reference.length * 2 },
+    };
+    const range = alignedRegionSpan(long, false, reference.length)?.range;
+    expect((range?.end ?? 0) - (range?.start ?? 0)).toBe(reference.length);
+  });
+
+  it('follows the read when the document is the read, reverse strand included', () => {
+    const { result } = run(reverseComplement(reference.slice(10, 40)), null);
+    expect(result.strand).toBe('reverse');
+    const span = alignedRegionSpan(result, true, result.readLength);
+    expect(span?.range).toEqual(readRange(result, result.offsetB, result.offsetB + 30));
+    expect(span?.range.end).toBeLessThanOrEqual(result.readLength);
+  });
+
+  it('has nothing to draw for an empty document or alignment', () => {
+    const { result } = run(reference.slice(10, 40), null);
+    expect(alignedRegionSpan(result, false, 0)).toBeNull();
   });
 });
