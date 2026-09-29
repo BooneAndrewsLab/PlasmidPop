@@ -1,5 +1,13 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  renderHook,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 
 import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
 import {
@@ -9,7 +17,10 @@ import {
 } from '@/workers/analysisClient';
 
 import { editorStore } from '../state/editorStore';
+import type { PointerEvent } from 'react';
+import type { ReadAlignment } from '../readAlignment';
 import { AlignPanel } from './AlignPanel';
+import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 
 const doc = SeqDocument.create({ name: 'target', sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT' });
 
@@ -520,8 +531,11 @@ describe('AlignPanel', () => {
       expect(screen.getByText(/1 could not be aligned/)).toBeInTheDocument();
       expect(screen.getByText(/good enough quality/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'clone2' }));
-      expect(screen.getByText(/Local alignment of clone2/)).toBeInTheDocument();
-      expect(screen.getByText(/No differences from pRef/)).toBeInTheDocument();
+      // The picked read has no section of its own; the large view shows it.
+      expect(screen.queryByText(/Local alignment of clone2/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Large view of all' }));
+      expect(screen.getByRole('dialog')).toHaveTextContent(/clone2: local, score/);
+      fireEvent.keyDown(document, { key: 'Escape' });
       // Pointing at a row draws its region without selecting it (#108).
       act(() => {
         editorStore.setSelection({ start: 1, end: 2 });
@@ -534,9 +548,6 @@ describe('AlignPanel', () => {
       expect(editorStore.getState().preview).toBeNull();
       // Clicking it selects the region.
       fireEvent.click(pick);
-      expect(editorStore.getState().selection).toEqual({ start: 15, end: 55 });
-      // Its region is selected in the document, as for a single read.
-      fireEvent.click(screen.getByRole('button', { name: /^(Global|Local) alignment/ }));
       expect(editorStore.getState().selection).toEqual({ start: 15, end: 55 });
     });
 
@@ -628,6 +639,36 @@ describe('AlignPanel', () => {
     // Unmounting while pointed leaves no highlight behind.
     cleanup();
     expect(editorStore.getState().preview).toBeNull();
+  });
+});
+
+describe('useAlignedRegionPointer', () => {
+  it('does not loop when the result is a new object on every render', () => {
+    const base = {
+      alignment: { startA: 2, endA: 8, startB: 0, endB: 6 },
+      strand: 'forward',
+      offset: 0,
+      wrap: null,
+      offsetB: 0,
+      lengthB: 6,
+      readLength: 6,
+    };
+    act(() => {
+      editorStore.openDocument(doc);
+    });
+    const { result, rerender } = renderHook(() =>
+      // A fresh object each render, as a batch row's result once was.
+      useAlignedRegionPointer(JSON.parse(JSON.stringify(base)) as ReadAlignment, false, 28),
+    );
+    act(() => {
+      result.current.handlers.onPointerEnter({ pointerType: 'mouse' } as PointerEvent<HTMLElement>);
+    });
+    rerender();
+    expect(editorStore.getState().preview?.items[0]?.range).toEqual({ start: 2, end: 8 });
+    cleanup();
+    act(() => {
+      editorStore.closeDocument();
+    });
   });
 });
 

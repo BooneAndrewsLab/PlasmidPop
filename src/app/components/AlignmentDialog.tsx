@@ -219,43 +219,45 @@ export function AlignmentDialog({
               </span>
             </>
           )}
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            disabled={stack.differences.length === 0}
-            title="Alt+Shift+N"
-            onClick={() => {
-              go(true);
-            }}
-          >
-            Previous difference
-          </button>
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            disabled={stack.differences.length === 0}
-            title="Alt+N"
-            onClick={() => {
-              go(false);
-            }}
-          >
-            Next difference
-          </button>
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            disabled={row === null}
-            onClick={() => {
-              if (row === null) return;
-              const range = alignedRegionInDocument(row.result, documentIsRead);
-              if (range !== null) {
-                editorStore.setSelection(range);
-                editorStore.revealPosition(range.start);
-              }
-            }}
-          >
-            Select aligned region in this document
-          </button>
+          <span className="astack-tools__actions">
+            <button
+              type="button"
+              className="button button--small"
+              disabled={stack.differences.length === 0}
+              title="Alt+Shift+N"
+              onClick={() => {
+                go(true);
+              }}
+            >
+              Previous difference
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              disabled={stack.differences.length === 0}
+              title="Alt+N"
+              onClick={() => {
+                go(false);
+              }}
+            >
+              Next difference
+            </button>
+            <button
+              type="button"
+              className="button button--small"
+              disabled={row === null}
+              onClick={() => {
+                if (row === null) return;
+                const range = alignedRegionInDocument(row.result, documentIsRead);
+                if (range !== null) {
+                  editorStore.setSelection(range);
+                  editorStore.revealPosition(range.start);
+                }
+              }}
+            >
+              Select aligned region in this document
+            </button>
+          </span>
         </div>
         <AlignmentStackView
           stack={stack}

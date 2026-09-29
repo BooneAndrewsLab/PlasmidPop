@@ -83,9 +83,9 @@ all at once — the usual way to check a batch of clones.
    **Diffs**), and the stretch of the document it **covers**. Click
    **Identity** to sort lowest first — the clones to look at — then highest
    first, then back to the file's order.
-5. Click a read's name to see its alignment below the list, exactly as for
-   a single read: the score line, the differences by confidence and
-   **Large view** for that read (**Large view of all** stacks every read).
+5. Click a read's name to pick it, then click **Large view of all** (the
+   highlighted button above the list): the window stacks every read, with
+   the one you picked already selected, its score line showing.
 
 A read that could not be aligned (nothing good enough after trimming, too
 large) is listed with the reason, and the rest carry on. At most 96 records
@@ -193,7 +193,7 @@ region in this document** selects across the origin.
 **Large view** on a result (the highlighted button under the score line)
 opens the alignment in a window of its own, and
 **Large view of all** on an Align all batch stacks every aligned read at
-once. The document sits at the top with a position ruler and each sample is
+once, starting with the read picked in the list selected. The document sits at the top with a position ruler and each sample is
 a row under it, all moving together under one scroll, so a column reads
 straight down through the document and every sample. Differences from the
 document have a coloured background, by where the column falls in the

@@ -1,5 +1,5 @@
 import { analytics } from '../analytics';
-import { type DragEvent, type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type AlignmentMode,
@@ -34,6 +34,7 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { BATCH_LIMIT, type BatchRow, runReadBatch } from '../readBatch';
 import { AlignmentDialog } from './AlignmentDialog';
+import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 import { ReadBatchList } from './ReadBatchList';
 
 interface Props {
@@ -280,58 +281,6 @@ function QualitySettings({ trim }: { trim: boolean }) {
 }
 
 /**
- * Pointing at an alignment finds where it is (#108): hovering or focusing
- * its heading draws the aligned region in both views without touching the
- * selection; clicking selects it and scrolls to it. The highlight is the
- * preview channel's 'align' span, so an edit, leaving the tab, the result
- * going away or the pointer or focus leaving all take it off again. A touch
- * has no hover, so a tap only selects.
- */
-function useAlignedRegionPointer(
-  result: ReadAlignment,
-  documentIsRead: boolean,
-  docLength: number,
-) {
-  const [pointed, setPointed] = useState(false);
-  const span = useMemo(
-    () => alignedRegionSpan(result, documentIsRead, docLength),
-    [result, documentIsRead, docLength],
-  );
-  useEffect(() => {
-    if (!pointed || span === null) return;
-    editorStore.setPreview('align', [span]);
-    return () => {
-      editorStore.clearPreview('align');
-    };
-  }, [pointed, span]);
-  return {
-    handlers: {
-      onPointerEnter: (e: PointerEvent<HTMLElement>) => {
-        if (e.pointerType !== 'touch') setPointed(true);
-      },
-      onPointerLeave: () => {
-        setPointed(false);
-      },
-      onFocus: () => {
-        setPointed(true);
-      },
-      onBlur: () => {
-        setPointed(false);
-      },
-    },
-    select: () => {
-      // The selection shows the region now, so the pointer's highlight steps aside.
-      setPointed(false);
-      const range = alignedRegionInDocument(result, documentIsRead);
-      if (range !== null) {
-        editorStore.setSelection(range);
-        editorStore.revealPosition(range.start);
-      }
-    },
-  };
-}
-
-/**
  * One alignment as the Align tab shows it: the heading with its numbers,
  * a way to select what it covers, the trimming, the differences by
  * confidence, and the Large view, which is where the alignment itself is
@@ -341,15 +290,12 @@ function AlignmentResult({
   result,
   docName,
   docLength,
-  title,
   onOpenLarge,
 }: {
   result: ShownAlignment;
   docName: string;
   /** For drawing the region in the document's views. */
   docLength: number;
-  /** Named in the heading, for a read picked from a batch. */
-  title?: string;
   /** Opens the alignment in the large view. */
   onOpenLarge: () => void;
 }) {
@@ -368,7 +314,6 @@ function AlignmentResult({
           onClick={pointing.select}
         >
           {result.alignment.mode === 'global' ? 'Global alignment' : 'Local alignment'}
-          {title === undefined ? '' : ` of ${title}`}
           <span className="panel__heading-note">
             score {result.alignment.score}, identity {Math.round(result.alignment.identity * 100)}%
             over {result.alignment.columns.toLocaleString()} columns, {result.alignment.gaps} gap{' '}
@@ -1051,10 +996,12 @@ export function AlignPanel({ doc }: Props) {
           {batch.rows.some((r) => r.status === 'aligned') && (
             <button
               type="button"
-              className="button button--quiet button--small"
-              title="Show every aligned read at once, stacked under the document, in a window of its own"
+              className="button button--primary button--small"
+              title="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
               onClick={() => {
-                openBatchLarge(undefined);
+                openBatchLarge(
+                  batchPickedRow?.status === 'aligned' ? batchPickedRow.index : undefined,
+                );
               }}
             >
               Large view of all
@@ -1067,18 +1014,6 @@ export function AlignPanel({ doc }: Props) {
             onSelect={pickBatchRow}
             onPoint={setPointedRow}
           />
-          {batchPickedRow?.status === 'aligned' && (
-            <AlignmentResult
-              key={`batch-${String(batchPickedRow.index)}`}
-              result={{ ...batchPickedRow.result, docIsRead: null, reference: batch.reference }}
-              docName={doc.name}
-              docLength={doc.length}
-              title={batchPickedRow.name}
-              onOpenLarge={() => {
-                openBatchLarge(batchPickedRow.index);
-              }}
-            />
-          )}
         </div>
       )}
       {result !== null && (
