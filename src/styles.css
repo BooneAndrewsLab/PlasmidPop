@@ -2336,6 +2336,14 @@ button {
   font-size: 11px;
 }
 
+.read-batch__row--live {
+  cursor: pointer;
+}
+
+.read-batch__row--live:not(.read-batch__row--picked):hover {
+  background: var(--hover-bg, rgba(127, 127, 127, 0.12));
+}
+
 .read-batch__row--picked {
   background: var(--seq-selection);
 }

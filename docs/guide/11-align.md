@@ -51,7 +51,8 @@ drawn at both ends. Click the heading (or press Enter) to select the
 covered bases, so you can annotate or copy them, and scroll to them; the
 highlight steps aside for the selection. On a phone, tap to select. The
 highlight goes when the pointer or focus leaves, when you edit, or when you
-leave the tab. The same works for each read in a batch's list.
+leave the tab. The same works for each read in a batch's list, where the
+whole row is the target, not just the name.
 
 ## Aligning a batch of reads
 

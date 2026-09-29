@@ -74,7 +74,7 @@ by eye.
 
 The panel's **Select aligned region in this document** button is gone (the
 large view keeps its own). The result's heading is a button instead, and so
-is each batch row's read name. Hovering or focusing it draws the aligned
+is each batch row (the whole row, so it is easy to hit; the name button keeps keyboard focus). Hovering or focusing it draws the aligned
 region in both views without changing the selection; clicking or Enter
 selects and reveals it (a batch row also shows its alignment, as before).
 

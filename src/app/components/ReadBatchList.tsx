@@ -84,28 +84,28 @@ export function ReadBatchList({
           return (
             <tr
               key={row.index}
-              className={`read-batch__row${picked ? ' read-batch__row--picked' : ''}`}
+              className={`read-batch__row read-batch__row--live${picked ? ' read-batch__row--picked' : ''}`}
+              onPointerEnter={(e) => {
+                if (e.pointerType !== 'touch') onPoint?.(row.index);
+              }}
+              onPointerLeave={() => {
+                onPoint?.(null);
+              }}
+              onClick={() => {
+                onSelect(row.index);
+              }}
             >
               <th scope="row">
                 <button
                   type="button"
                   className="read-batch__pick"
                   aria-pressed={picked}
-                  title="Point at the region this read covers; click to select it and show its alignment"
-                  onPointerEnter={(e) => {
-                    if (e.pointerType !== 'touch') onPoint?.(row.index);
-                  }}
-                  onPointerLeave={() => {
-                    onPoint?.(null);
-                  }}
+                  title="Point at the region this read covers; click the row to select it and show its alignment"
                   onFocus={() => {
                     onPoint?.(row.index);
                   }}
                   onBlur={() => {
                     onPoint?.(null);
-                  }}
-                  onClick={() => {
-                    onSelect(row.index);
                   }}
                 >
                   {row.name}
