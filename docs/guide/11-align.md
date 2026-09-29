@@ -10,7 +10,8 @@ aligns two proteins, scored by BLOSUM62.
 1. Paste the other sequence into the box: bare bases, a FASTA record or a
    GenBank record all work. Or drop a file on the box, or click **Choose
    file…**: GenBank, FASTA, SnapGene, AB1 and FASTQ files (gzipped too)
-   are read into the box without opening a tab.
+   are read into the box without opening a tab. Choose or drop several
+   files at once to align all of their records together (below).
 2. If the box holds several records (a FASTA file of several reads, say),
    pick the one to align from the list that appears — or align them all,
    see [Aligning a batch of reads](#aligning-a-batch-of-reads).
@@ -43,7 +44,13 @@ A FASTQ file of reads, or a FASTA of several Sanger reads, can be aligned
 all at once — the usual way to check a batch of clones.
 
 1. Drop the file on the box, or click **Choose file…**. The note under the
-   box says how many records it has.
+   box says how many records it has. To check clones sequenced as separate
+   files, pick or drop all the files at once, in any mix of formats: their
+   records become the samples, in file order, and the box is emptied (its
+   text would be unwieldy). Rows are named by record and file. A new pick
+   replaces the samples loaded, as does typing in the box; a file that
+   cannot be read is named and the others kept. The 96-record limit counts
+   across all the files.
 2. Leave the mode as it is, and each record is aligned in the mode it
    would get on its own: Local for a read or anything under half the
    document's length, Global otherwise. A mode you choose is used for every

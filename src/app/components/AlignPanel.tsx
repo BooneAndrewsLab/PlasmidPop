@@ -51,6 +51,8 @@ interface SequenceRecord {
   readonly circular: boolean;
   /** Its qualities, and an AB1's trace, for a record read from a sequencing file. */
   readonly read?: SequencingRead;
+  /** The file it came from, when several files were loaded together (#106). */
+  readonly file?: string;
 }
 
 type Records =
@@ -593,6 +595,8 @@ export function AlignPanel({ doc }: Props) {
   );
   const records = parsed.ok ? parsed.records : [];
   const record = records[Math.min(picked, records.length - 1)];
+  /** Records from more than one file, each named with its file in the batch. */
+  const several = new Set(records.map((r) => r.file)).size > 1;
 
   const setText = (text: string): void => {
     setOther(text);
@@ -601,17 +605,49 @@ export function AlignPanel({ doc }: Props) {
     setBatch(null);
   };
 
-  const load = (file: File | undefined): void => {
-    if (file === undefined) return;
-    readFile(file)
-      .then((read) => {
-        setText(read.text);
-        setLoaded(read);
-        const withQualities = read.records.some((r) => r.read !== undefined);
-        setFileNote(`From ${file.name}${withQualities ? ', with base qualities' : ''}.`);
+  const load = (files: readonly File[]): void => {
+    if (files.length === 0) return;
+    // Every file is read; one that cannot be is named and the rest are kept.
+    Promise.all(
+      files.map((file) =>
+        readFile(file).then(
+          (read) => ({ file, read }),
+          (e: unknown) => ({
+            file,
+            failure: `Could not read "${file.name}": ${e instanceof Error ? e.message : String(e)}`,
+          }),
+        ),
+      ),
+    )
+      .then((results) => {
+        const good = results.flatMap((r) => ('read' in r ? [{ file: r.file, read: r.read }] : []));
+        const failures = results.flatMap((r) => ('failure' in r ? [r.failure] : []));
+        if (good.length === 0) {
+          setError(failures.join(' '));
+          return;
+        }
+        const [only] = good;
+        if (good.length === 1 && only !== undefined) {
+          setText(only.read.text);
+          setLoaded(only.read);
+          const withQualities = only.read.records.some((r) => r.read !== undefined);
+          setFileNote(`From ${only.file.name}${withQualities ? ', with base qualities' : ''}.`);
+        } else {
+          // Several files: their records are the samples, file order then record
+          // order. The box is emptied; its text would be unwieldy (AB1 especially).
+          const records = good.flatMap((g) =>
+            g.read.records.map((r) => ({ ...r, file: g.file.name })),
+          );
+          setText('');
+          setLoaded({ text: '', records });
+          setFileNote(
+            `${good.length} files, ${records.length} ${records.length === 1 ? 'record' : 'records'}.`,
+          );
+        }
+        if (failures.length > 0) setError(failures.join(' '));
       })
       .catch((e: unknown) => {
-        setError(`Could not read "${file.name}": ${e instanceof Error ? e.message : String(e)}`);
+        setError(e instanceof Error ? e.message : String(e));
       });
   };
 
@@ -627,7 +663,7 @@ export function AlignPanel({ doc }: Props) {
     if (!e.dataTransfer.types.includes('Files')) return;
     e.preventDefault();
     setDragging(false);
-    load(e.dataTransfer.files[0]);
+    load(Array.from(e.dataTransfer.files));
   };
 
   // The document is itself a read (an opened AB1 or FASTQ, still as it came
@@ -697,7 +733,11 @@ export function AlignPanel({ doc }: Props) {
     setBatchPicked(null);
     setBatch({ rows: [], total: records.length, cancelled: false });
     runReadBatch(
-      records.map((r) => ({ name: r.name, sequence: r.sequence, read: r.read ?? null })),
+      records.map((r) => ({
+        name: several ? `${r.name} (${r.file ?? ''})` : r.name,
+        sequence: r.sequence,
+        read: r.read ?? null,
+      })),
       reference,
       (a, b, options, long) => analysisClient.alignEitherStrand(a, b, options, long),
       {
@@ -805,7 +845,7 @@ export function AlignPanel({ doc }: Props) {
       <p className="panel__note">
         {docIsRead
           ? `${doc.name} is a read: it is aligned to the sequence in the box, as the reference, with its own qualities${docRead.trace === null ? '' : ' and trace'}. Whichever orientation of it aligns better is shown.`
-          : `Align another sequence to ${useSelection && hasSelection ? 'the selection' : doc.name}. Whichever orientation of it aligns better is shown.`}
+          : `Align sequences to ${useSelection && hasSelection ? 'the selection' : doc.name}. Paste one below, or choose or drop files. Pick several at once to align them all together; a new pick replaces the ones loaded. Whichever orientation of each aligns better is shown.`}
       </p>
       {docRead !== null && record?.read === undefined && (
         <label
@@ -826,7 +866,7 @@ export function AlignPanel({ doc }: Props) {
         className={`panel__textarea${dragging ? ' panel__textarea--over' : ''}`}
         rows={5}
         spellCheck={false}
-        placeholder={`Paste ${unitName(doc.alphabet, true)}, FASTA or GenBank, or drop a file here`}
+        placeholder={`Paste ${unitName(doc.alphabet, true)}, FASTA or GenBank, or drop one or more files here`}
         aria-label="Sequence to align"
         value={other}
         onChange={(e) => {
@@ -853,9 +893,10 @@ export function AlignPanel({ doc }: Props) {
           type="file"
           accept={SEQUENCE_FILE_ACCEPT}
           aria-label="File to align"
+          multiple
           hidden
           onChange={(e) => {
-            load(e.target.files?.[0]);
+            load(Array.from(e.target.files ?? []));
             e.target.value = '';
           }}
         />
@@ -871,7 +912,8 @@ export function AlignPanel({ doc }: Props) {
             >
               {records.map((r, i) => (
                 <option key={i} value={i}>
-                  {r.name} ({r.sequence.length.toLocaleString()} bp)
+                  {several ? `${r.name} (${r.file ?? ''})` : r.name} (
+                  {r.sequence.length.toLocaleString()} bp)
                 </option>
               ))}
             </select>

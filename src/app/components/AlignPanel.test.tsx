@@ -21,8 +21,8 @@ function box(): HTMLElement {
   return screen.getByRole('textbox', { name: 'Sequence to align' });
 }
 
-function fileDrop(file: File) {
-  return { dataTransfer: { files: [file], types: ['Files'] } };
+function fileDrop(...files: File[]) {
+  return { dataTransfer: { files, types: ['Files'] } };
 }
 
 describe('AlignPanel', () => {
@@ -94,6 +94,38 @@ describe('AlignPanel', () => {
       expect(box()).toHaveValue('>read\nACGTACGT\n');
     });
     expect(screen.getByText('From read.fa.')).toBeInTheDocument();
+  });
+
+  it('takes the records of several dropped files as the samples, naming each by its file', async () => {
+    render(<AlignPanel doc={SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' })} />);
+    fireEvent.drop(
+      box(),
+      fileDrop(
+        new File(['>a\nACGTACGT\n'], 'one.fa'),
+        new File(['>b\nTTGGCCAA\n>c\nGGCCTTAA\n'], 'two.fa'),
+      ),
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/2 files, 3 records/)).toBeInTheDocument();
+    });
+    expect(box()).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'b (two.fa) (8 bp)' })).toBeInTheDocument();
+  });
+
+  it('keeps the readable files and names one that cannot be read', async () => {
+    render(<AlignPanel doc={SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' })} />);
+    fireEvent.drop(
+      box(),
+      fileDrop(
+        new File(['>a\nACGTACGT\n'], 'one.fa'),
+        new File(['>b\nTTGGCCAA\n'], 'two.fa'),
+        new File(['%PDF-1.7 not a sequence'], 'paper.pdf'),
+      ),
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/2 files, 2 records/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Could not read "paper.pdf"/)).toBeInTheDocument();
   });
 
   it('says why a dropped file could not be read', async () => {
@@ -358,7 +390,7 @@ describe('AlignPanel', () => {
         render(<AlignPanel doc={readDoc} />);
         fireEvent.change(box(), { target: { value: `>pRef\n${reference}\n` } });
         fireEvent.click(screen.getByRole('checkbox', { name: 'This document is the read' }));
-        expect(screen.getByText(/Align another sequence to read1/)).toBeInTheDocument();
+        expect(screen.getByText(/Align sequences to read1/)).toBeInTheDocument();
         expect(screen.queryByRole('checkbox', { name: 'Trim poor ends' })).toBeNull();
         fireEvent.click(screen.getByRole('button', { name: 'Align' }));
         await waitFor(() => {
@@ -380,7 +412,7 @@ describe('AlignPanel', () => {
           expect(screen.getByText(/with base qualities/)).toBeInTheDocument();
         });
         expect(screen.queryByRole('checkbox', { name: 'This document is the read' })).toBeNull();
-        expect(screen.getByText(/Align another sequence to read1/)).toBeInTheDocument();
+        expect(screen.getByText(/Align sequences to read1/)).toBeInTheDocument();
       });
     });
 
