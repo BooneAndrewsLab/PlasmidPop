@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import type { SeqDocument } from '@/core';
+
 import {
   differenceRegions,
   nextDifference,
   stackAlignments,
   type StackSample,
 } from '../alignmentStack';
+import { annotationsOf, buildTrack } from '../alignmentTrack';
 import { alignedRegionInDocument, type ReferenceInput } from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AlignmentStackView } from './AlignmentStackView';
+
+/** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
+const MAX_LANES = 8;
 
 interface Props {
   /** What every sample was aligned to. */
@@ -19,6 +25,12 @@ interface Props {
   readonly samples: readonly StackSample[];
   /** Whether the document is the read and the reference the box's record (#57). */
   readonly documentIsRead: boolean;
+  /**
+   * The document the reference was cut from, whose features and ORFs are
+   * drawn above the alignment (#102); null when the reference is a record
+   * pasted in the box, which brings none.
+   */
+  readonly document: SeqDocument | null;
   /** The sample to start on, an index into `samples`. */
   readonly initialRow?: number;
   readonly onClose: () => void;
@@ -38,11 +50,24 @@ export function AlignmentDialog({
   referenceName,
   samples,
   documentIsRead,
+  document: source,
   initialRow,
   onClose,
 }: Props) {
-  const { readConfidentQuality } = useEditorState();
+  const { readConfidentQuality, analysis, orfMinCodons } = useEditorState();
+  const [showFeatures, setShowFeatures] = useState(true);
+  const [showOrfs, setShowOrfs] = useState(false);
   const stack = useMemo(() => stackAlignments(reference, samples), [reference, samples]);
+  // The ORFs the app has already found in the open document, at its own minimum length.
+  const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
+  const track = useMemo(() => {
+    if (source === null) return null;
+    const annotations = annotationsOf(
+      showFeatures ? source.features.all() : [],
+      showOrfs ? (orfs ?? []) : [],
+    );
+    return buildTrack(stack, annotations, source.isCircular ? source.length : 0, MAX_LANES);
+  }, [source, stack, showFeatures, showOrfs, orfs]);
   const [selected, setSelected] = useState<number | null>(
     initialRow ?? (samples.length === 1 ? 0 : null),
   );
@@ -116,6 +141,41 @@ export function AlignmentDialog({
               ? `${stack.differences.length.toLocaleString()} differing columns. Click a name to see its score.`
               : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
           </span>
+          {source !== null && (
+            <>
+              <label className="astack-tools__check">
+                <input
+                  type="checkbox"
+                  checked={showFeatures}
+                  onChange={(e) => {
+                    setShowFeatures(e.target.checked);
+                  }}
+                />{' '}
+                Features
+              </label>
+              <label
+                className="astack-tools__check"
+                title={
+                  orfs === null
+                    ? 'The open reading frames are still being found.'
+                    : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={showOrfs}
+                  disabled={orfs === null}
+                  onChange={(e) => {
+                    setShowOrfs(e.target.checked);
+                  }}
+                />{' '}
+                ORFs
+              </label>
+              {track !== null && track.hidden > 0 && (
+                <span className="astack-tools__note">{track.hidden} not shown</span>
+              )}
+            </>
+          )}
           <button
             type="button"
             className="button button--quiet button--small"
@@ -159,6 +219,7 @@ export function AlignmentDialog({
           referenceName={referenceName}
           confidentFrom={readConfidentQuality}
           selectedRow={selected}
+          track={track}
           onSelectRow={setSelected}
           focus={focus}
         />

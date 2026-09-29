@@ -199,6 +199,18 @@ sample adds.
   go from one difference to the next and wrap round at the ends. A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
   whole run is marked.
+- Between the ruler and the document row runs a **feature track**: the
+  document's features as bars, an arrow for the strand, a join tied by a
+  line, and one across the origin of a circular document drawn where a read
+  through the origin sees it. Read a difference against the bar above it to
+  see whether it falls in a gene, a promoter or nothing; hover a bar for its
+  name and type. **Features** and **ORFs** in the toolbar switch each on.
+  ORFs are the ones the ORFs panel finds (at its minimum length), outlined
+  and dashed in their own lanes under the features. A feature that an
+  insertion in a sample splits round is drawn across the gap columns. Up to
+  eight lanes are drawn; the toolbar counts what did not fit. When the
+  document is the read and the reference is the sequence in the box, there is
+  no track, since a pasted sequence brings none of its own.
 - Click a name to see that sample's score and identity, and to use
   **Select aligned region in this document** for it.
 - `Esc` closes the window and returns you to where you were.

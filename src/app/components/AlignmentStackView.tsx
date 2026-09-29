@@ -2,14 +2,17 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import { measureCharWidth, monoFontOf, sansFontOf } from '@/view/linear';
 
+import { contrastingText } from '@/view/featureColors';
+
 import { Cell, columnPosition, type Stack } from '../alignmentStack';
+import { itemAt, type Track } from '../alignmentTrack';
 import { readLinearTheme } from './linearTheme';
 
 const FONT_SIZE = 13;
 const ROW_HEIGHT = 20;
 const RULER_HEIGHT = 18;
-/** The pinned top: ruler and the reference row. */
-const HEADER_HEIGHT = RULER_HEIGHT + ROW_HEIGHT;
+/** One lane of the feature track. */
+const LANE_HEIGHT = 16;
 const NAME_WIDTH = 168;
 const OVERVIEW_HEIGHT = 44;
 
@@ -21,6 +24,8 @@ interface Props {
   readonly confidentFrom: number;
   /** The row picked, an index into `stack.rows`. */
   readonly selectedRow: number | null;
+  /** The reference's features and ORFs, drawn between the ruler and the reference row; null for none. */
+  readonly track: Track | null;
   readonly onSelectRow: (row: number) => void;
   /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
   readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
@@ -76,6 +81,88 @@ function differenceFill(cell: number, c: Colours): string | null {
   }
 }
 
+/** The feature track: bars with arrows for strand, names kept in view, ORFs outlined. */
+function drawTrack(
+  g: CanvasRenderingContext2D,
+  t: Track,
+  colours: Colours,
+  monoFont: string,
+  firstColumn: number,
+  lastColumn: number,
+  xOf: (column: number) => number,
+): void {
+  g.font = sansFontOf(FONT_SIZE - 1);
+  g.textBaseline = 'middle';
+  const barHeight = LANE_HEIGHT - 3;
+  for (const item of t.items) {
+    if (item.end <= firstColumn || item.start >= lastColumn) continue;
+    const { annotation: a } = item;
+    const y = RULER_HEIGHT + item.lane * LANE_HEIGHT + 1;
+    let labelled = false;
+    // The pieces of a join are tied by a line through the gaps.
+    for (let k = 1; k < item.spans.length; k++) {
+      const before = item.spans[k - 1];
+      const after = item.spans[k];
+      if (before === undefined || after === undefined) continue;
+      g.strokeStyle = a.colour;
+      g.beginPath();
+      g.moveTo(xOf(before.end), y + barHeight / 2);
+      g.lineTo(xOf(after.start), y + barHeight / 2);
+      g.stroke();
+    }
+    for (const span of item.spans) {
+      if (span.end <= firstColumn || span.start >= lastColumn) continue;
+      const left = xOf(span.start);
+      const right = xOf(span.end);
+      const point = Math.min(6, (right - left) / 2);
+      g.beginPath();
+      if (a.strand === 'forward') {
+        g.moveTo(left, y);
+        g.lineTo(right - point, y);
+        g.lineTo(right, y + barHeight / 2);
+        g.lineTo(right - point, y + barHeight);
+        g.lineTo(left, y + barHeight);
+      } else {
+        g.moveTo(right, y);
+        g.lineTo(left + point, y);
+        g.lineTo(left, y + barHeight / 2);
+        g.lineTo(left + point, y + barHeight);
+        g.lineTo(right, y + barHeight);
+      }
+      g.closePath();
+      if (a.orf) {
+        g.globalAlpha = 0.16;
+        g.fillStyle = a.colour;
+        g.fill();
+        g.globalAlpha = 1;
+        g.strokeStyle = a.colour;
+        g.lineWidth = 1.5;
+        g.setLineDash([4, 2]);
+        g.stroke();
+        g.setLineDash([]);
+        g.lineWidth = 1;
+      } else {
+        g.fillStyle = a.colour;
+        g.fill();
+      }
+      // The name starts at the visible edge, so a long feature stays labelled while scrolled.
+      const from = Math.max(left, NAME_WIDTH) + 4;
+      const room = right - from - point;
+      if (!labelled && room > 24) {
+        g.save();
+        g.beginPath();
+        g.rect(from, y, room, barHeight);
+        g.clip();
+        g.fillStyle = a.orf ? colours.ink : contrastingText(a.colour);
+        g.fillText(a.name, from, y + barHeight / 2 + 0.5);
+        g.restore();
+        labelled = true;
+      }
+    }
+  }
+  g.font = monoFont;
+}
+
 /**
  * The stacked alignment (#103): a ruler and the reference pinned at the top,
  * each sample a row under it, names pinned at the left, one scroller for all.
@@ -89,6 +176,7 @@ export function AlignmentStackView({
   referenceName,
   confidentFrom,
   selectedRow,
+  track,
   onSelectRow,
   focus,
 }: Props) {
@@ -103,8 +191,12 @@ export function AlignmentStackView({
 
   const monoFont = monoFontOf(FONT_SIZE);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
+  const trackHeight = track === null ? 0 : track.lanes * LANE_HEIGHT + (track.lanes > 0 ? 4 : 0);
+  /** The pinned top: ruler, the feature track, and the reference row. */
+  const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
+  const [hover, setHover] = useState<string | null>(null);
   const contentWidth = NAME_WIDTH + stack.columns * charWidth;
-  const contentHeight = HEADER_HEIGHT + stack.rows.length * ROW_HEIGHT;
+  const contentHeight = headerHeight + stack.rows.length * ROW_HEIGHT;
 
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -163,7 +255,7 @@ export function AlignmentStackView({
     const firstRow = Math.max(0, Math.floor((scroll.top - 0) / ROW_HEIGHT));
     const lastRow = Math.min(
       stack.rows.length,
-      Math.ceil((scroll.top + size.height - HEADER_HEIGHT) / ROW_HEIGHT),
+      Math.ceil((scroll.top + size.height - headerHeight) / ROW_HEIGHT),
     );
 
     // The columns, clipped so they slide under the names.
@@ -190,8 +282,8 @@ export function AlignmentStackView({
     for (let r = firstRow; r < lastRow; r++) {
       const row = stack.rows[r];
       if (row === undefined) continue;
-      const y = HEADER_HEIGHT + r * ROW_HEIGHT - scroll.top;
-      if (y + ROW_HEIGHT < HEADER_HEIGHT) continue;
+      const y = headerHeight + r * ROW_HEIGHT - scroll.top;
+      if (y + ROW_HEIGHT < headerHeight) continue;
       if (r === selectedRow) {
         ctx.fillStyle = colours.accent;
         ctx.globalAlpha = 0.08;
@@ -224,16 +316,16 @@ export function AlignmentStackView({
 
     // The pinned top over anything scrolled beneath it.
     ctx.fillStyle = colours.background;
-    ctx.fillRect(NAME_WIDTH, 0, size.width - NAME_WIDTH, HEADER_HEIGHT);
+    ctx.fillRect(NAME_WIDTH, 0, size.width - NAME_WIDTH, headerHeight);
     ctx.strokeStyle = colours.line;
     ctx.beginPath();
-    ctx.moveTo(NAME_WIDTH, HEADER_HEIGHT - 0.5);
-    ctx.lineTo(size.width, HEADER_HEIGHT - 0.5);
+    ctx.moveTo(NAME_WIDTH, headerHeight - 0.5);
+    ctx.lineTo(size.width, headerHeight - 0.5);
     ctx.stroke();
     if (marked !== null && marked.end > first && marked.start < last) {
       ctx.fillStyle = colours.accent;
       ctx.globalAlpha = 0.16;
-      ctx.fillRect(x(marked.start), 0, (marked.end - marked.start) * charWidth, HEADER_HEIGHT);
+      ctx.fillRect(x(marked.start), 0, (marked.end - marked.start) * charWidth, headerHeight);
       ctx.globalAlpha = 1;
     }
     ctx.font = sansFontOf(FONT_SIZE);
@@ -252,9 +344,15 @@ export function AlignmentStackView({
     ctx.font = monoFont;
     for (let c = first; c < last; c++) {
       const ch = stack.reference.charAt(c);
-      drawText(ch, c, RULER_HEIGHT + ROW_HEIGHT / 2, ch === '-' ? colours.muted : baseColour(ch));
+      drawText(
+        ch,
+        c,
+        RULER_HEIGHT + trackHeight + ROW_HEIGHT / 2,
+        ch === '-' ? colours.muted : baseColour(ch),
+      );
     }
     ctx.globalAlpha = 1;
+    if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x);
     ctx.restore();
 
     // The names, pinned.
@@ -269,14 +367,24 @@ export function AlignmentStackView({
     };
     ctx.fillStyle = colours.ink;
     ctx.font = `600 ${sansFontOf(FONT_SIZE + 1)}`;
-    ctx.fillText(clip(referenceName), 8, RULER_HEIGHT + ROW_HEIGHT / 2);
+    ctx.fillText(clip(referenceName), 8, RULER_HEIGHT + trackHeight + ROW_HEIGHT / 2);
+    if (track !== null && track.lanes > 0) {
+      ctx.fillStyle = colours.muted;
+      ctx.font = sansFontOf(FONT_SIZE - 1);
+      if (track.orfLane > 0) ctx.fillText('Features', 8, RULER_HEIGHT + LANE_HEIGHT / 2 + 2);
+      if (track.orfLane < track.lanes) {
+        ctx.fillText('ORFs', 8, RULER_HEIGHT + track.orfLane * LANE_HEIGHT + LANE_HEIGHT / 2 + 2);
+      }
+      ctx.font = `600 ${sansFontOf(FONT_SIZE + 1)}`;
+      ctx.fillStyle = colours.ink;
+    }
     ctx.font = sansFontOf(FONT_SIZE + 1);
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, HEADER_HEIGHT, NAME_WIDTH, size.height - HEADER_HEIGHT);
+    ctx.rect(0, headerHeight, NAME_WIDTH, size.height - headerHeight);
     ctx.clip();
     for (let r = firstRow; r < lastRow; r++) {
-      const y = HEADER_HEIGHT + r * ROW_HEIGHT - scroll.top;
+      const y = headerHeight + r * ROW_HEIGHT - scroll.top;
       ctx.fillStyle = r === selectedRow ? colours.accent : colours.ink;
       ctx.fillText(clip(stack.rows[r]?.name ?? ''), 8, y + ROW_HEIGHT / 2);
     }
@@ -285,8 +393,8 @@ export function AlignmentStackView({
     ctx.beginPath();
     ctx.moveTo(NAME_WIDTH - 0.5, 0);
     ctx.lineTo(NAME_WIDTH - 0.5, size.height);
-    ctx.moveTo(0, HEADER_HEIGHT - 0.5);
-    ctx.lineTo(NAME_WIDTH, HEADER_HEIGHT - 0.5);
+    ctx.moveTo(0, headerHeight - 0.5);
+    ctx.lineTo(NAME_WIDTH, headerHeight - 0.5);
     ctx.stroke();
   }, [
     stack,
@@ -299,6 +407,9 @@ export function AlignmentStackView({
     monoFont,
     referenceName,
     confidentFrom,
+    track,
+    headerHeight,
+    trackHeight,
   ]);
 
   // The overview.
@@ -414,12 +525,28 @@ export function AlignmentStackView({
             ref={canvas}
             className="astack__canvas"
             style={{ width: size.width, height: size.height }}
+            title={hover ?? undefined}
+            onPointerMove={(e) => {
+              if (track === null) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const lane = Math.floor((e.clientY - rect.top - RULER_HEIGHT) / LANE_HEIGHT);
+              const x = e.clientX - rect.left;
+              const item =
+                lane >= 0 && lane < track.lanes && x >= NAME_WIDTH
+                  ? itemAt(track, lane, Math.floor((x - NAME_WIDTH + scroll.left) / charWidth))
+                  : null;
+              const text =
+                item === null
+                  ? null
+                  : `${item.annotation.name} (${item.annotation.type}, ${item.annotation.strand} strand)`;
+              if (text !== hover) setHover(text);
+            }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const y = e.clientY - rect.top;
               const x = e.clientX - rect.left;
-              if (y >= HEADER_HEIGHT) {
-                const row = Math.floor((y - HEADER_HEIGHT + scroll.top) / ROW_HEIGHT);
+              if (y >= headerHeight) {
+                const row = Math.floor((y - headerHeight + scroll.top) / ROW_HEIGHT);
                 if (row >= 0 && row < stack.rows.length) onSelectRow(row);
               }
               if (x >= NAME_WIDTH) {

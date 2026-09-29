@@ -24,3 +24,13 @@ overview of differences.
 beyond the full-window dialog; #102 feature track and #104 difference
 colours by feature class build on the stack (`Stack.refIndex` maps a
 column to a reference position).
+
+**Feature track (#102):** `src/app/alignmentTrack.ts` maps the document's
+features and the ORFs the app already found onto stack columns through
+`Stack.refIndex` (a document range becomes the columns of its first and
+last base, so insertion columns inside it are covered; a circular document
+also tries the range shifted by its length, which is how a feature over the
+origin appears at both ends of a read that runs through it). Annotations are
+packed into lanes by first fit, features above ORFs, capped at eight.
+`AlignmentStackView` pins the track between the ruler and the reference row.
+Not yet: the other sequence's own features on its row.

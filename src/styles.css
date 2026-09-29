@@ -4123,6 +4123,14 @@ button {
   font-size: 12px;
 }
 
+.astack-tools__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
 .astack {
   display: flex;
   flex: 1;

@@ -593,6 +593,7 @@ export function AlignPanel({ doc }: Props) {
     readonly reference: ReferenceInput;
     readonly referenceName: string;
     readonly documentIsRead: boolean;
+    readonly document: SeqDocument | null;
     readonly samples: readonly { readonly name: string; readonly result: ReadAlignment }[];
     readonly initialRow?: number;
   } | null>(null);
@@ -893,6 +894,7 @@ export function AlignPanel({ doc }: Props) {
       reference: batch.reference,
       referenceName: doc.name,
       documentIsRead: false,
+      document: doc,
       samples: aligned.map((r) => ({ name: r.name, result: r.result })),
       ...(index === undefined ? {} : { initialRow: aligned.findIndex((r) => r.index === index) }),
     });
@@ -1163,6 +1165,7 @@ export function AlignPanel({ doc }: Props) {
               reference: result.reference,
               referenceName: result.docIsRead?.referenceName ?? doc.name,
               documentIsRead: result.docIsRead !== null,
+              document: result.docIsRead === null ? doc : null,
               samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
             });
           }}
