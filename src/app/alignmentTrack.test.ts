@@ -1,7 +1,9 @@
-import { alignEitherStrand } from '@/core';
+import { alignEitherStrand, createFeature, rangeSegment, siteSegment } from '@/core';
+import { featureColor } from '@/view/featureColors';
 
 import { stackAlignments } from './alignmentStack';
 import {
+  annotationsOf,
   buildTrack,
   classifyColumns,
   ColumnClass,
@@ -112,6 +114,141 @@ describe('annotations on the alignment columns', () => {
     expect(itemAt(track, 1, 15)?.start).toBe(10);
     expect(itemAt(track, 1, 5)).toBeNull();
   });
+
+  it('gives a circular feature its columns on both sides of a read through the origin, in order', () => {
+    const wrapRef = { sequence: reference, offset: 0, wrap: reference.length };
+    const read = reference.slice(45) + reference.slice(0, 15);
+    const stack = stackOf(wrapRef, [read]);
+    const over = note(reference.length - 6, reference.length + 4);
+    const item = buildTrack(stack, [over], reference.length, 8).items[0];
+    expect(item?.spans).toEqual([
+      { start: 0, end: 4 },
+      { start: 54, end: 64 },
+    ]);
+    expect([item?.start, item?.end]).toEqual([0, 64]);
+    // Without a period the range is only where it is written.
+    const flat = buildTrack(stack, [over], 0, 8).items[0];
+    expect(flat?.spans).toEqual([{ start: 54, end: 64 }]);
+  });
+
+  it('sorts the pieces of a join by column and spans from the first start to the last end', () => {
+    const stack = stackOf(ref, [reference]);
+    const join = note(0, 0, {
+      ranges: [
+        { start: 40, end: 45 },
+        { start: 30, end: 35 },
+        { start: 5, end: 10 },
+      ],
+    });
+    const item = buildTrack(stack, [join], 0, 8).items[0];
+    expect(item?.spans).toEqual([
+      { start: 5, end: 10 },
+      { start: 30, end: 35 },
+      { start: 40, end: 45 },
+    ]);
+    expect([item?.start, item?.end]).toEqual([5, 45]);
+  });
+
+  it('places the first and last bases of the reference, and nothing for an empty range', () => {
+    const stack = stackOf(ref, [reference]);
+    expect(buildTrack(stack, [note(0, 1)], 0, 8).items[0]?.spans).toEqual([{ start: 0, end: 1 }]);
+    const last = reference.length;
+    expect(buildTrack(stack, [note(last - 10, last)], 0, 8).items[0]?.spans).toEqual([
+      { start: last - 10, end: last },
+    ]);
+    expect(buildTrack(stack, [note(10, 10)], 0, 8).items).toEqual([]);
+  });
+
+  it('still places a feature at the end when the stack ends in an inserted column', () => {
+    const prepared = prepareReadAlignment(ref, { sequence: `${reference}TTT`, read: null }, null);
+    if (!prepared.ok) throw new Error(prepared.message);
+    const { job } = prepared;
+    const result = finishReadAlignment(job, alignEitherStrand(job.a, job.b, { mode: 'global' }));
+    const stack = stackAlignments(ref, [{ name: 'g', result }]);
+    expect(stack.columns).toBe(reference.length + 3);
+    const item = buildTrack(stack, [note(50, 60)], 0, 8).items[0];
+    expect(item?.spans).toEqual([{ start: 50, end: 60 }]);
+  });
+
+  it('shares a lane between annotations that do not overlap, whatever order they come in', () => {
+    const stack = stackOf(ref, [reference]);
+    const apart = buildTrack(stack, [note(30, 40), note(0, 10), note(11, 20)], 0, 8);
+    expect(apart.items.map((i) => i.lane)).toEqual([0, 0, 0]);
+    expect(apart.lanes).toBe(1);
+    // A column apart shares a lane; touching ones (one ends where the next starts) do not.
+    const touching = buildTrack(stack, [note(0, 10), note(10, 20)], 0, 8);
+    expect(touching.items.map((i) => i.lane)).toEqual([0, 1]);
+    expect(touching.lanes).toBe(2);
+  });
+
+  it('finds the item at a column by its half-open spans, in its own lane', () => {
+    const stack = stackOf(ref, [reference]);
+    const join = note(0, 0, {
+      ranges: [
+        { start: 5, end: 10 },
+        { start: 30, end: 40 },
+      ],
+    });
+    const track = buildTrack(stack, [join], 0, 8);
+    expect(itemAt(track, 0, 5)).not.toBeNull();
+    expect(itemAt(track, 0, 9)).not.toBeNull();
+    expect(itemAt(track, 0, 10)).toBeNull();
+    expect(itemAt(track, 0, 20)).toBeNull();
+    expect(itemAt(track, 0, 30)).not.toBeNull();
+    expect(itemAt(track, 0, 39)).not.toBeNull();
+    expect(itemAt(track, 0, 40)).toBeNull();
+    expect(itemAt(track, 1, 7)).toBeNull();
+  });
+});
+
+describe('turning a document into annotations', () => {
+  it('takes features but not the source, and skips a feature of sites alone', () => {
+    const gene = createFeature({
+      type: 'gene',
+      name: 'lacZ',
+      strand: 'reverse',
+      segments: [rangeSegment(10, 20), siteSegment(25), rangeSegment(30, 40)],
+    });
+    const source = createFeature({ type: 'source', segments: [rangeSegment(0, 60)] });
+    const sites = createFeature({ type: 'misc_feature', segments: [siteSegment(5)] });
+    const out = annotationsOf([source, gene, sites], []);
+    expect(out).toEqual([
+      {
+        name: 'lacZ',
+        type: 'gene',
+        strand: 'reverse',
+        colour: featureColor(gene),
+        ranges: [
+          { start: 10, end: 20 },
+          { start: 30, end: 40 },
+        ],
+        orf: false,
+      },
+    ]);
+  });
+
+  it('names an unnamed feature by its type', () => {
+    const f = createFeature({ type: 'promoter', segments: [rangeSegment(1, 5)] });
+    expect(annotationsOf([f], [])[0]?.name).toBe('promoter');
+  });
+
+  it('adds ORFs after the features, named by their length', () => {
+    const f = createFeature({ type: 'CDS', name: 'x', segments: [rangeSegment(1, 5)] });
+    const out = annotationsOf(
+      [f],
+      [{ range: { start: 100, end: 4000 }, strand: 'reverse', frame: 1, codons: 1299 }],
+    );
+    expect(out).toHaveLength(2);
+    expect(out[0]?.orf).toBe(false);
+    expect(out[1]).toEqual({
+      name: `ORF ${(1299).toLocaleString()} aa`,
+      type: 'ORF',
+      strand: 'reverse',
+      colour: '#b455a8',
+      ranges: [{ start: 100, end: 4000 }],
+      orf: true,
+    });
+  });
 });
 
 describe('classifying columns by what they fall in (#104)', () => {
@@ -133,6 +270,14 @@ describe('classifying columns by what they fall in (#104)', () => {
     expect(k[30]).toBe(ColumnClass.None);
     expect(k[42]).toBe(ColumnClass.Cds);
     expect(k).toHaveLength(stack.columns);
+  });
+
+  it('keeps a CDS class where a plain feature is met after it', () => {
+    const stack = stackOf(ref, [reference]);
+    const k = classifyColumns(stack, [note(10, 30), other(5, 25)], 0);
+    expect(k[7]).toBe(ColumnClass.Feature);
+    expect(k[15]).toBe(ColumnClass.Cds);
+    expect(k[27]).toBe(ColumnClass.Cds);
   });
 
   it('is all none without annotations', () => {

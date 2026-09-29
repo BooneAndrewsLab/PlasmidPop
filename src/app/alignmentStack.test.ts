@@ -102,6 +102,85 @@ describe('stacking alignments against one reference', () => {
     expect(columnPosition(stack, at + 2)).toBe(101 + 25);
   });
 
+  it('ends a row at the last column of its stretch and pads nothing past it', () => {
+    const stack = stackAlignments(ref, [sample('r', reference.slice(10, 40))]);
+    const row = rowOf(stack, 0);
+    expect(row.cells[40]).toBe(Cell.Blank);
+    expect(row.bases.charAt(40)).toBe(' ');
+    const tail = rowOf(stackAlignments(ref, [sample('t', reference.slice(30))]), 0);
+    expect([tail.firstColumn, tail.endColumn]).toEqual([30, reference.length]);
+  });
+
+  it('opens columns for an insertion after the last reference base', () => {
+    const stack = stackAlignments(ref, [sample('g', `${reference}TTT`, 'global')]);
+    expect(stack.columns).toBe(reference.length + 3);
+    expect(stack.reference.slice(-3)).toBe('---');
+    const row = rowOf(stack, 0);
+    expect(row.bases.slice(-3)).toBe('TTT');
+    expect(row.endColumn).toBe(reference.length + 3);
+    expect(stack.differences).toEqual([
+      reference.length,
+      reference.length + 1,
+      reference.length + 2,
+    ]);
+  });
+
+  it('takes the longer insertion whichever sample comes first', () => {
+    const inserted = reference.slice(10, 40);
+    const stack = stackAlignments(ref, [
+      sample('b', `${inserted.slice(0, 15)}AAAA${inserted.slice(15)}`),
+      sample('a', `${inserted.slice(0, 15)}AA${inserted.slice(15)}`),
+    ]);
+    expect(stack.columns).toBe(reference.length + 4);
+  });
+
+  it('marks an ambiguity code compatible with the base as no difference', () => {
+    const changed = reference.slice(10, 40).split('');
+    // Column 22 of the reference is an A, which R (A or G) allows.
+    changed[12] = 'R';
+    const stack = stackAlignments(ref, [sample('r', changed.join(''))]);
+    expect(rowOf(stack, 0).cells[22]).toBe(Cell.Ambiguous);
+    expect(stack.differences).toEqual([]);
+  });
+
+  it('lists the differences of several samples in ascending order', () => {
+    const mutate = (from: number, at: number) => {
+      const bases = reference.slice(from, from + 30).split('');
+      bases[at] = bases[at] === 'A' ? 'C' : 'A';
+      return bases.join('');
+    };
+    const stack = stackAlignments(ref, [
+      sample('late', mutate(25, 20)),
+      sample('mid', mutate(10, 20)),
+      sample('early', mutate(0, 9)),
+    ]);
+    expect(stack.differences).toEqual([9, 30, 45]);
+  });
+
+  it('gives a read without qualities none', () => {
+    expect(
+      rowOf(stackAlignments(ref, [sample('r', reference.slice(10, 40))]), 0).qualities,
+    ).toBeNull();
+  });
+
+  it('numbers columns on a circle round to the start, and none past the stack', () => {
+    const wrapRef = { sequence: reference, offset: 0, wrap: reference.length };
+    const read = reference.slice(45) + reference.slice(0, 15);
+    const prepared = prepareReadAlignment(wrapRef, { sequence: read, read: null }, null);
+    if (!prepared.ok) throw new Error(prepared.message);
+    const { job } = prepared;
+    const result = finishReadAlignment(job, alignEitherStrand(job.a, job.b, { mode: 'local' }));
+    const stack = stackAlignments(wrapRef, [{ name: 'r', result }]);
+    expect(stack.columns).toBeGreaterThan(reference.length);
+    const column = stack.refIndex.indexOf(reference.length + 2);
+    expect(column).toBeGreaterThan(0);
+    expect(columnPosition(stack, column)).toBe(3);
+    expect(columnPosition(stack, 50)).toBe(51);
+    expect(columnPosition(stack, stack.columns + 5)).toBeNull();
+    const shifted = { ...stack, offset: 10 };
+    expect(columnPosition(shifted, 50)).toBe(61 - 60);
+  });
+
   it('keeps qualities under the read’s columns', () => {
     const inserted = reference.slice(10, 40);
     const prepared = prepareReadAlignment(
@@ -166,6 +245,31 @@ describe('the trace under a read', () => {
     const row = rowOf(stackAlignments(ref, [result]), 0);
     expect(row.readIndex?.[10]).toBe(0);
     expect(row.readIndex?.[39]).toBe(29);
+  });
+
+  it('numbers from the read’s own start when its poor end was trimmed', () => {
+    const sequence = reference.slice(10, 40);
+    const qualities = new Uint8Array(30).fill(30);
+    qualities.fill(2, 0, 5);
+    const read = { ...withTrace(sequence), qualities };
+    const prepared = prepareReadAlignment(ref, { sequence, read }, 0.05);
+    if (!prepared.ok) throw new Error(prepared.message);
+    const { job } = prepared;
+    const result = finishReadAlignment(job, alignEitherStrand(job.a, job.b, { mode: 'local' }));
+    expect(result.offsetB).toBe(5);
+    const row = rowOf(stackAlignments(ref, [{ name: 't', result }]), 0);
+    expect(row.readIndex?.[15]).toBe(5);
+    expect(row.readIndex?.[39]).toBe(29);
+  });
+
+  it('gives a deleted base no read index and does not count it', () => {
+    const inserted = reference.slice(10, 40);
+    const read = `${inserted.slice(0, 15)}${inserted.slice(16)}`;
+    const row = rowOf(stackAlignments(ref, [traced(read)]), 0);
+    expect(row.cells[25]).toBe(Cell.Deletion);
+    expect(row.readIndex?.[25]).toBe(-1);
+    expect(row.readIndex?.[24]).toBe(14);
+    expect(row.readIndex?.[26]).toBe(15);
   });
 
   it('skips the columns where the read has a gap and counts on past an insertion', () => {

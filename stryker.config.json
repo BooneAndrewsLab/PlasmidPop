@@ -51,7 +51,9 @@
     "src/core/annotate/protein.ts",
     "src/io/snapgene/historyTree.ts",
     "src/app/keyBindings.ts",
-    "src/core/alignment/scoring.ts"
+    "src/core/alignment/scoring.ts",
+    "src/app/alignmentStack.ts",
+    "src/app/alignmentTrack.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {

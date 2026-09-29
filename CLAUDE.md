@@ -91,7 +91,17 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-26)
 
-**1.8.1** (2026-09-26) is the current release: a digest's fragment list no
+**1.9.0** (2026-09-29) is the current release: alignment in a large view
+(item 62, #102–#111). Align's results open in a dialog with samples stacked
+under one scroll, an overview strip of differences and a viewport rectangle,
+and next/previous difference; the document's features and ORFs sit in a track
+above the reference; differences are shaded by CDS, other feature or no
+feature; an AB1 read's trace is drawn under its row with poor bases shaded.
+Align takes another open tab, or several files chosen or dropped at once, as
+the samples; the panel's form is regrouped, its text alignment dropped, and a
+result points at its region in the document and selects it. Mutation score
+92.4% over all modules, 96% and 91% for the two new alignment ones.
+**1.8.1** (2026-09-26) was: a digest's fragment list no
 longer gives the window a scrollbar. `.visually-hidden` was absolutely
 positioned, so a row's hidden live region escaped the list that scrolls
 inside itself and sat far down the page; it is fixed-positioned now, which
