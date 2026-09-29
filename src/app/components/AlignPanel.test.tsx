@@ -33,6 +33,39 @@ describe('AlignPanel', () => {
     });
   });
 
+  it('puts the common path first and the rest in labelled groups (#107)', () => {
+    render(<AlignPanel doc={doc} />);
+    const align = screen.getByRole('button', { name: 'Align' });
+    const choose = screen.getByRole('button', { name: 'Choose file…' });
+    const options = screen.getByRole('group', { name: 'Options' });
+    // Box, then Choose file, then Align, then the options: the tab order.
+    const before = (a: Node, b: Node): boolean =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(before(box(), choose)).toBe(true);
+    expect(before(choose, align)).toBe(true);
+    expect(before(align, options)).toBe(true);
+    // Every option is reachable inside its group, and named.
+    expect(options).toContainElement(screen.getByRole('combobox', { name: 'Alignment mode' }));
+    const selection = screen.getByRole('checkbox', { name: 'Against selection only' });
+    expect(options).toContainElement(selection);
+    expect(selection).toBeDisabled(); // nothing selected
+    expect(screen.queryByRole('group', { name: 'Reads' })).toBeNull();
+    expect(align).toBeDisabled(); // nothing to align yet
+  });
+
+  it('groups the read settings apart from the options (#107)', async () => {
+    render(<AlignPanel doc={doc} />);
+    const fastq = new File(['@r\nACGTACGTACGT\n+\nIIIIIIIIIIII\n'], 'r.fastq');
+    fireEvent.drop(box(), fileDrop(fastq));
+    const reads = await screen.findByRole('group', { name: 'Reads' });
+    expect(reads).toContainElement(screen.getByRole('checkbox', { name: 'Trim poor ends' }));
+    expect(reads).toContainElement(screen.getByRole('combobox', { name: 'Confident from' }));
+    expect(reads).toContainElement(screen.getByRole('combobox', { name: 'Trim at' }));
+    expect(screen.getByRole('group', { name: 'Options' })).toContainElement(
+      screen.getByRole('combobox', { name: 'Alignment mode' }),
+    );
+  });
+
   it('offers every record of a multi-record FASTA and aligns the one chosen', async () => {
     render(<AlignPanel doc={doc} />);
     fireEvent.change(box(), { target: { value: '>one\nCCCCCCCC\n>two\nGGCCAATTGGCC\n' } });

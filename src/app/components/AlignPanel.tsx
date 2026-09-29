@@ -815,21 +815,6 @@ export function AlignPanel({ doc }: Props) {
           ? `${doc.name} is a read: it is aligned to the sequence in the box, as the reference, with its own qualities${docRead.trace === null ? '' : ' and trace'}. Whichever orientation of it aligns better is shown.`
           : `Align sequences to ${useSelection && hasSelection ? 'the selection' : doc.name}. Paste one below, or choose or drop files. Pick several at once to align them all together; a new pick replaces the ones loaded. Whichever orientation of each aligns better is shown.`}
       </p>
-      {docRead !== null && record?.read === undefined && (
-        <label
-          className="toggle"
-          title="Untick to align the box's sequence to this document instead, as to any other; the read's qualities are then not used"
-        >
-          <input
-            type="checkbox"
-            checked={docAsRead}
-            onChange={(e) => {
-              setDocAsRead(e.target.checked);
-            }}
-          />
-          This document is the read
-        </label>
-      )}
       <textarea
         className={`panel__textarea${dragging ? ' panel__textarea--over' : ''}`}
         rows={5}
@@ -924,46 +909,7 @@ export function AlignPanel({ doc }: Props) {
             .join(' ')}
         </p>
       )}
-      <div className="panel__controls">
-        <label className="panel__field">
-          <select
-            className="panel__select"
-            aria-label="Alignment mode"
-            value={mode}
-            onChange={(e) => {
-              setPickedMode(e.target.value as AlignmentMode);
-            }}
-          >
-            <option value="global">Global (end to end)</option>
-            <option value="local">Local (best region)</option>
-          </select>
-        </label>
-        {anyReads && (
-          <label
-            className="toggle"
-            title={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
-          >
-            <input
-              type="checkbox"
-              checked={trim}
-              onChange={(e) => {
-                setTrim(e.target.checked);
-              }}
-            />
-            Trim poor ends
-          </label>
-        )}
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={useSelection && hasSelection && !docIsRead}
-            disabled={!hasSelection || docIsRead}
-            onChange={(e) => {
-              setUseSelection(e.target.checked);
-            }}
-          />
-          Against selection only
-        </label>
+      <div className="panel__controls align-run">
         <button
           type="button"
           className="button button--small"
@@ -978,13 +924,6 @@ export function AlignPanel({ doc }: Props) {
           {busy ? (all ? 'Aligning all…' : 'Aligning…') : all ? 'Align all' : 'Align'}
         </button>
       </div>
-      {pickedMode === null && suggested.reason !== null && (
-        <p className="panel__note">
-          {`Local, since ${docIsRead ? 'this document' : 'the sequence in the box'} is ${suggested.reason}: Global would score it across the whole of the other. Choose Global to align end to end anyway.`}
-          {records.length > 1 ? ' Aligning all chooses for each record the same way.' : ''}
-        </p>
-      )}
-      {anyReads && <QualitySettings trim={trim} />}
       {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
       {busy && progress !== null && (
         <div className="align-progress">
@@ -1011,6 +950,89 @@ export function AlignPanel({ doc }: Props) {
         </div>
       )}
       {error !== null && <p className="panel__error">{error}</p>}
+      <fieldset className="align-options">
+        <legend>Options</legend>
+        {docRead !== null && record?.read === undefined && (
+          <label
+            className="toggle"
+            title="Untick to align the box's sequence to this document instead, as to any other; the read's qualities are then not used"
+          >
+            <input
+              type="checkbox"
+              checked={docAsRead}
+              onChange={(e) => {
+                setDocAsRead(e.target.checked);
+              }}
+            />
+            This document is the read
+          </label>
+        )}
+        <div className="panel__controls">
+          <label className="panel__field panel__field--row">
+            <span>Mode</span>
+            <select
+              className="panel__select"
+              aria-label="Alignment mode"
+              value={mode}
+              onChange={(e) => {
+                setPickedMode(e.target.value as AlignmentMode);
+              }}
+            >
+              <option value="global">Global (end to end)</option>
+              <option value="local">Local (best region)</option>
+            </select>
+          </label>
+          <label
+            className="toggle"
+            title={
+              docIsRead
+                ? 'Not used: the whole read is aligned'
+                : hasSelection
+                  ? undefined
+                  : 'Select part of the document first'
+            }
+          >
+            <input
+              type="checkbox"
+              checked={useSelection && hasSelection && !docIsRead}
+              disabled={!hasSelection || docIsRead}
+              onChange={(e) => {
+                setUseSelection(e.target.checked);
+              }}
+            />
+            Against selection only
+          </label>
+        </div>
+        {pickedMode === null && suggested.reason !== null && (
+          <p className="panel__note">
+            {`Local, since ${docIsRead ? 'this document' : 'the sequence in the box'} is ${suggested.reason}: Global would score it across the whole of the other. Choose Global to align end to end anyway.`}
+            {records.length > 1 ? ' Aligning all chooses for each record the same way.' : ''}
+          </p>
+        )}
+      </fieldset>
+      {anyReads && (
+        <fieldset className="align-options">
+          <legend>Reads</legend>
+          <div className="panel__controls">
+            {
+              <label
+                className="toggle"
+                title={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
+              >
+                <input
+                  type="checkbox"
+                  checked={trim}
+                  onChange={(e) => {
+                    setTrim(e.target.checked);
+                  }}
+                />
+                Trim poor ends
+              </label>
+            }
+          </div>
+          <QualitySettings trim={trim} />
+        </fieldset>
+      )}
       {batch !== null && (batch.rows.length > 0 || !busy) && (
         <div className="panel__section">
           <h3 className="panel__heading">

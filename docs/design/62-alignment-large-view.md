@@ -90,3 +90,36 @@ one turn. It cannot stick: the effect holding it cleans up on pointer leave,
 blur, click (the selection shows the region then), the result being
 replaced or removed, unmount and leaving the tab. A touch pointer does not
 hover, so a tap only selects. Not checked by eye.
+
+## The form's layout (#107)
+
+The form had grown by accretion. Inventory before the change, in DOM order:
+this document is the read (toggle, only when the document is a read); the
+sequence box; Choose file…; Open tab… (select, only with other tabs); the
+record picker (only with several records); a note; then one wrapped row of
+Alignment mode (select), Trim poor ends (toggle, only with reads), Against
+selection only (toggle, disabled without a selection or for a read) and the
+Align / Align all button; the "Local, since…" note; Confident from and Trim
+at (selects, only with reads); progress with Cancel; the error.
+
+After, in DOM (and tab) order:
+
+- The note, the box, then Choose file… / Open tab… / the record picker and
+  their note: getting a sequence in.
+- Align / Align all on a row of its own, straight after, then progress with
+  Cancel and any error: the common path ends here.
+- A fieldset **Options**: This document is the read, Mode (now with a
+  visible label), Against selection only (with a title saying why it is
+  disabled), and the "Local, since…" note, which sits with the mode it is
+  about.
+- A fieldset **Reads** (only with reads in play): Trim poor ends,
+  Confident from, Trim at.
+
+Decisions: fieldsets with legends, as the feature editor's qualifiers use,
+rather than a collapsible `<details>`: Mode is used often and its auto-choice
+note must not be hidden, and the app has no pattern for remembering a
+`<details>` state. Everything stays reachable and visible, and nothing
+changed but layout, labels and grouping. The form stays in AlignPanel.tsx;
+moving it out would have meant threading some twenty pieces of state. The
+fieldsets use the panel's flex rows, so they wrap in the narrow sidebar and
+at 390 px. Not checked by eye.

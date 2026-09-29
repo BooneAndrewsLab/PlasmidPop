@@ -19,20 +19,23 @@ aligns two proteins, scored by BLOSUM62.
 2. If the box holds several records (a FASTA file of several reads, say),
    pick the one to align from the list that appears — or align them all,
    see [Aligning a batch of reads](#aligning-a-batch-of-reads).
-3. Choose **Global (end to end)** to align the whole of both sequences
+3. Click **Align**, the button just under the box and the file controls.
+   Both orientations of the other sequence are considered and the better
+   one is shown; the heading says when it was the reverse complement. The
+   defaults suit most sequences; the **Options** group under the button
+   holds the rest:
+4. In **Options**, choose **Global (end to end)** to align the whole of both sequences
    (Needleman–Wunsch), or **Local (best region)** to find the best-matching
    stretch (Smith–Waterman). Local is the right choice for a read against a
    plasmid, and is chosen for you when the box holds a read (a file with
    base qualities) or a sequence under half as long as what it is aligned
-   to; the note under the controls says so. Global would score such a
+   to; the note in the Options group says so. Global would score such a
    sequence across the whole of the plasmid and report a perfect read at
    17% identity. A mode you choose yourself stays chosen while the Align
    tab is open, whatever you then put in the box.
-4. Tick **Against selection only** to align against the selected part of
-   the document instead of all of it.
-5. Click **Align**. Both orientations of the other sequence are considered
-   and the better one is shown; the heading says when it was the reverse
-   complement.
+5. Tick **Against selection only** to align against the selected part of
+   the document instead of all of it (it is greyed out until something is
+   selected). Click **Align** again to re-run with the new options.
 
 The result reports the score, percent identity, the number of columns and
 of gap columns. It does not print the alignment itself, which is too wide
@@ -100,6 +103,9 @@ keeps its base qualities for the alignment; the note under the box says
 it and it is read as plain bases again. See [Sequencing reads](15-reads.md)
 for what the qualities are.
 
+A **Reads** group, under Options, appears when the box (or the document) holds
+a read.
+
 - **Trim poor ends**, on by default, cuts the read's unreliable start and
   tail before aligning — the first 20–50 bases and the end of a Sanger read,
   typically. It keeps the stretch whose bases are mostly better than Q13 (a
@@ -113,7 +119,7 @@ for what the qualities are.
   confident difference is listed with its position in the document and its
   quality; click one to select it there. Those are the ones worth a look;
   the poor ones are usually the sequencer, not the clone.
-- **Where confident starts, and where trimming cuts.** Under the controls,
+- **Where confident starts, and where trimming cuts.** In the Reads group,
   **Confident from** sets the quality a base must have for a difference on
   it to count as confident, from Q10 to Q50: Q20 suits Sanger reads, a
   nanopore service's consensus (Q40 and up) wants Q40, raw nanopore reads
@@ -145,8 +151,8 @@ used as above — trimming, confident and poor differences.
   region in this document** selects the stretch of the read that aligned.
 - A GenBank reference marked circular is aligned through its origin, as a
   circular document is.
-- **Against selection only** does not apply: the whole read is aligned.
-- Untick **This document is the read** to align the box's sequence to the
+- **Against selection only** (in Options) does not apply: the whole read is aligned.
+- Untick **This document is the read** (in Options) to align the box's sequence to the
   document the usual way round, without the qualities. A box that holds a
   read of its own (a dropped AB1 or FASTQ) is always aligned the usual way.
 

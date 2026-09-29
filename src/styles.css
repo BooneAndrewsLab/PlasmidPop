@@ -4189,3 +4189,17 @@ button {
   left: 0;
   display: block;
 }
+
+/* The Align form: the common path (box, files, Align) first, the rest in labelled groups. */
+.align-options {
+  min-width: 0;
+  margin: 0 0 8px;
+  padding: 6px 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.align-options legend {
+  padding: 0 4px;
+  color: var(--ink-2);
+}
