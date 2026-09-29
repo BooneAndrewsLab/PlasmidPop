@@ -214,9 +214,9 @@ export function AlignmentDialog({
                 />{' '}
                 ORFs
               </label>
-              {track !== null && track.hidden > 0 && (
-                <span className="astack-tools__note">{track.hidden} not shown</span>
-              )}
+              <span className="astack-tools__hidden">
+                {track !== null && track.hidden > 0 ? `${track.hidden} not shown` : ''}
+              </span>
             </>
           )}
           <button

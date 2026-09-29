@@ -66,9 +66,9 @@ function readColours(el: HTMLElement): Colours {
     },
     other: t.baseColors.other,
     byClass: [
-      css.getPropertyValue('--diff-none').trim() || '#a67c00',
-      css.getPropertyValue('--diff-feature').trim() || '#0072b2',
-      css.getPropertyValue('--diff-cds').trim() || '#d55e00',
+      css.getPropertyValue('--diff-none').trim() || '#6b7280',
+      css.getPropertyValue('--diff-feature').trim() || '#1f5fd0',
+      css.getPropertyValue('--diff-cds').trim() || '#d81b3c',
     ],
     accent: css.getPropertyValue('--accent').trim() || t.caret,
   };

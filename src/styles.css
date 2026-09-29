@@ -26,9 +26,9 @@
   --seq-edit-change: #a86200;
   --seq-edit-delete: #b3261e;
   /* Alignment differences by where they fall in the reference (#104): a CDS or ORF, another feature, no feature. */
-  --diff-cds: #d55e00;
-  --diff-feature: #0072b2;
-  --diff-none: #a67c00;
+  --diff-cds: #d81b3c;
+  --diff-feature: #1f5fd0;
+  --diff-none: #6b7280;
   /* Previews: a primer pair being weighed up, every match of a find. A
      colour of its own, because nothing drawn in it is in the document. */
   --seq-preview: #6b4fd8;
@@ -79,9 +79,9 @@
     --seq-edit-insert: #5fd196;
     --seq-edit-change: #e0a458;
     --seq-edit-delete: #ff8a80;
-    --diff-cds: #ff9a4d;
-    --diff-feature: #56b4e9;
-    --diff-none: #e8c84a;
+    --diff-cds: #ff5a6e;
+    --diff-feature: #5a9cff;
+    --diff-none: #a0a8b4;
     --seq-preview: #b9a6ff;
 
     --seq-base-a: #6fcf7a;
@@ -4087,12 +4087,23 @@ button {
 .astack-tools {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: 6px 8px;
 }
 
+/* The summary has a row to itself, so the controls never share it and never move when it re-wraps. */
 .astack-tools__note {
-  flex: 1 1 18rem;
+  flex: 1 0 100%;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+/* "N not shown": reserved width, so ticking Features and ORFs moves nothing. */
+.astack-tools__hidden {
+  flex: none;
+  min-width: 8ch;
   color: var(--ink-2);
   font-size: 12px;
 }

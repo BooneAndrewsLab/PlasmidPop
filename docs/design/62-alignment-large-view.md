@@ -47,7 +47,7 @@ columns until it lands). Classes depend on the reference only, so the
 overview's "worst class in a column" is simply that column's class.
 `countByClass` counts `stack.differences` (per differing column, not per
 cell) for the heading. Colours are `--diff-cds/-feature/-none` in
-`styles.css` (Okabe-Ito hues, lighter in the dark scheme). Kinds are told
+`styles.css` (red, blue and grey, lighter in the dark scheme; chosen for CIEDE2000 distance also under protanopia and deuteranopia, issue #111). Kinds are told
 apart without colour by a bar: foot for a deletion, head for an insertion;
 mismatch is a plain block, and an ambiguity-only match a paler one (it is
 not in `stack.differences` nor counted). Without a document every difference
