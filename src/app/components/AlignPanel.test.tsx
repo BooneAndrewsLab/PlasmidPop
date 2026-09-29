@@ -56,6 +56,29 @@ describe('AlignPanel', () => {
     });
   });
 
+  it('opens the alignment in a large view that Esc closes, focus going back (#103)', async () => {
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
+    });
+    const open = screen.getByRole('button', { name: 'Large view' });
+    open.focus();
+    fireEvent.click(open);
+    const dialog = screen.getByRole('dialog', { name: /Alignment of one sequence to target/ });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+    // Nothing differs, so there is nothing to go to.
+    expect(screen.getByRole('button', { name: 'Next difference' })).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(open).toHaveFocus();
+  });
+
   it('starts in Local for a much shorter sequence, saying why, and keeps a mode picked by hand (#86)', () => {
     render(<AlignPanel doc={doc} />);
     const mode = (): HTMLElement => screen.getByRole('combobox', { name: 'Alignment mode' });

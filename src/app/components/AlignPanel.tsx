@@ -26,7 +26,7 @@ import { SEQUENCE_FILE_ACCEPT } from '../openFile';
 import {
   type ReadAlignment,
   type ReferenceInput,
-  alignedReferenceRange,
+  alignedRegionInDocument,
   finishReadAlignment,
   prepareReadAlignment,
   readRange,
@@ -35,6 +35,7 @@ import {
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { BATCH_LIMIT, type BatchRow, runReadBatch } from '../readBatch';
+import { AlignmentDialog } from './AlignmentDialog';
 import { AlignmentTrace } from './AlignmentTrace';
 import { ReadBatchList } from './ReadBatchList';
 
@@ -435,11 +436,14 @@ function AlignmentResult({
   result,
   docName,
   title,
+  onOpenLarge,
 }: {
   result: ShownAlignment;
   docName: string;
   /** Named in the heading, for a read picked from a batch. */
   title?: string;
+  /** Opens the alignment in the large view. */
+  onOpenLarge: () => void;
 }) {
   const { readConfidentQuality } = useEditorState();
   const [showTrace, setShowTrace] = useState(true);
@@ -468,21 +472,22 @@ function AlignmentResult({
         type="button"
         className="button button--quiet button--small"
         onClick={() => {
-          const range =
-            shownAs === null
-              ? alignedReferenceRange(result)
-              : readRange(
-                  result,
-                  result.offsetB + result.alignment.startB,
-                  result.offsetB + result.alignment.endB,
-                );
-          if (range !== null && range.end > range.start) {
+          const range = alignedRegionInDocument(result, shownAs !== null);
+          if (range !== null) {
             editorStore.setSelection(range);
             editorStore.revealPosition(range.start);
           }
         }}
       >
         Select aligned region in this document
+      </button>
+      <button
+        type="button"
+        className="button button--quiet button--small"
+        title="Show the alignment in a window of its own, wide enough to read along a long sequence"
+        onClick={onOpenLarge}
+      >
+        Large view
       </button>
       {result.trace !== null && (
         <label className="toggle">
@@ -539,6 +544,8 @@ interface ShownAlignment extends ReadAlignment {
    * (#57): the record's name, for the positions named beside the read's.
    */
   readonly docIsRead: { readonly referenceName: string } | null;
+  /** What it was aligned to, for the large view (#103). */
+  readonly reference: ReferenceInput;
 }
 
 export function AlignPanel({ doc }: Props) {
@@ -577,9 +584,18 @@ export function AlignPanel({ doc }: Props) {
     readonly rows: readonly BatchRow[];
     readonly total: number;
     readonly cancelled: boolean;
+    readonly reference: ReferenceInput;
   } | null>(null);
   /** The file index of the batch row whose alignment is shown. */
   const [batchPicked, setBatchPicked] = useState<number | null>(null);
+  /** The large view (#103): the rows it stacks, and the one to start on. */
+  const [large, setLarge] = useState<{
+    readonly reference: ReferenceInput;
+    readonly referenceName: string;
+    readonly documentIsRead: boolean;
+    readonly samples: readonly { readonly name: string; readonly result: ReadAlignment }[];
+    readonly initialRow?: number;
+  } | null>(null);
 
   // Leaving the tab stops an alignment nobody would see the end of.
   useEffect(
@@ -766,7 +782,7 @@ export function AlignPanel({ doc }: Props) {
     setProgress(0);
     setResult(null);
     setBatchPicked(null);
-    setBatch({ rows: [], total: records.length, cancelled: false });
+    setBatch({ rows: [], total: records.length, cancelled: false, reference });
     runReadBatch(
       records.map((r) => ({
         name: several ? `${r.name} (${r.file ?? ''})` : r.name,
@@ -858,7 +874,7 @@ export function AlignPanel({ doc }: Props) {
       )
       .then((best) => {
         setResultKey((k) => k + 1);
-        setResult({ ...finishReadAlignment(job, best), docIsRead: shownAs });
+        setResult({ ...finishReadAlignment(job, best), docIsRead: shownAs, reference });
       })
       .catch((e: unknown) => {
         if (e instanceof AnalysisCancelledError) return;
@@ -867,6 +883,19 @@ export function AlignPanel({ doc }: Props) {
       .finally(() => {
         end(controller);
       });
+  };
+
+  /** Every read aligned so far in the large view, starting on `index` when one is picked. */
+  const openBatchLarge = (index: number | undefined): void => {
+    if (batch === null) return;
+    const aligned = batch.rows.flatMap((r) => (r.status === 'aligned' ? [r] : []));
+    setLarge({
+      reference: batch.reference,
+      referenceName: doc.name,
+      documentIsRead: false,
+      samples: aligned.map((r) => ({ name: r.name, result: r.result })),
+      ...(index === undefined ? {} : { initialRow: aligned.findIndex((r) => r.index === index) }),
+    });
   };
 
   const anyReads = readInUse !== null || records.some((r) => r.read !== undefined);
@@ -1093,6 +1122,18 @@ export function AlignPanel({ doc }: Props) {
                 : ''}
             </span>
           </h3>
+          {batch.rows.some((r) => r.status === 'aligned') && (
+            <button
+              type="button"
+              className="button button--quiet button--small"
+              title="Show every aligned read at once, stacked under the document, in a window of its own"
+              onClick={() => {
+                openBatchLarge(undefined);
+              }}
+            >
+              Large view of all
+            </button>
+          )}
           <ReadBatchList
             rows={batch.rows}
             confidentFrom={readConfidentQuality}
@@ -1102,14 +1143,39 @@ export function AlignPanel({ doc }: Props) {
           {batchPickedRow?.status === 'aligned' && (
             <AlignmentResult
               key={`batch-${String(batchPickedRow.index)}`}
-              result={{ ...batchPickedRow.result, docIsRead: null }}
+              result={{ ...batchPickedRow.result, docIsRead: null, reference: batch.reference }}
               docName={doc.name}
               title={batchPickedRow.name}
+              onOpenLarge={() => {
+                openBatchLarge(batchPickedRow.index);
+              }}
             />
           )}
         </div>
       )}
-      {result !== null && <AlignmentResult key={resultKey} result={result} docName={doc.name} />}
+      {result !== null && (
+        <AlignmentResult
+          key={resultKey}
+          result={result}
+          docName={doc.name}
+          onOpenLarge={() => {
+            setLarge({
+              reference: result.reference,
+              referenceName: result.docIsRead?.referenceName ?? doc.name,
+              documentIsRead: result.docIsRead !== null,
+              samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
+            });
+          }}
+        />
+      )}
+      {large !== null && (
+        <AlignmentDialog
+          {...large}
+          onClose={() => {
+            setLarge(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -178,6 +178,25 @@ export function alignedReferenceRange(result: ReadAlignment): Range | null {
   return end > start ? { start, end } : null;
 }
 
+/**
+ * What "Select aligned region in this document" selects: the stretch of the
+ * reference the alignment covers, or, when the document is the read (#57),
+ * the stretch of the read.
+ */
+export function alignedRegionInDocument(
+  result: ReadAlignment,
+  documentIsRead: boolean,
+): Range | null {
+  const range = documentIsRead
+    ? readRange(
+        result,
+        result.offsetB + result.alignment.startB,
+        result.offsetB + result.alignment.endB,
+      )
+    : alignedReferenceRange(result);
+  return range !== null && range.end > range.start ? range : null;
+}
+
 /** The mode an alignment starts in, and why when it is not the usual Global. */
 export interface SuggestedMode {
   readonly mode: AlignmentMode;

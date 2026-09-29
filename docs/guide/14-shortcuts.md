@@ -79,6 +79,7 @@ it has.
 | `Escape`                       | Clear the selection                          |
 | `Alt+N`                        | Select the next marked change                |
 | `Alt+Shift+N`                  | Select the previous marked change            |
+| `Alt+N`, `Alt+Shift+N`         | In the alignment's large view: next, previous difference |
 
 ## Find
 

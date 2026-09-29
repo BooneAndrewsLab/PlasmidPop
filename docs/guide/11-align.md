@@ -181,3 +181,28 @@ finds a read that runs through the origin, such as a whole-plasmid nanopore
 read that happens to start in the middle. Positions are numbered as the
 document's, going from its last base back to 1, and **Select aligned
 region in this document** selects across the origin.
+
+## Large view
+
+**Large view** on a result opens the alignment in a window of its own, and
+**Large view of all** on an Align all batch stacks every aligned read at
+once. The document sits at the top with a position ruler and each sample is
+a row under it, all moving together under one scroll, so a column reads
+straight down through the document and every sample. Differences from the
+document are tinted: a changed base, a base the sample lacks, a base the
+sample adds.
+
+- The strip above the rows spans the whole alignment. It marks every
+  difference and shows the stretch now in view as a rectangle; click or
+  drag on it to move there.
+- **Next difference** and **Previous difference** (`Alt+N`, `Alt+Shift+N`)
+  go through the differing columns and wrap round at the ends.
+- Click a name to see that sample's score and identity, and to use
+  **Select aligned region in this document** for it.
+- `Esc` closes the window and returns you to where you were.
+
+An insertion in one sample opens gap columns in the document row and in
+every other sample, so the rows stay in register. This is each sample
+aligned to the document alone, laid side by side; it is not a multiple
+sequence alignment, and two samples are not aligned to each other. A read's
+trace is shown in the Align tab, not in the large view.
