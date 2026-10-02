@@ -7,7 +7,7 @@
 | GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape`     | yes  | yes                  |
 | GenPept    | `.gp` `.gpff`                              | yes  | yes, for a protein   |
 | FASTA      | `.fa` `.fasta` `.fna` `.faa` `.seq` `.txt` | yes  | export               |
-| SnapGene   | `.dna`                                     | yes  | no                   |
+| SnapGene   | `.dna`, and `.prot` for a protein          | yes  | no                   |
 | AB1        | `.ab1` `.abi`                              | yes  | as GenBank, or FASTQ |
 | FASTQ      | `.fastq` `.fq`, gzipped or not             | yes  | as GenBank, or FASTQ |
 | Bare bases | `.txt`, or pasted                          | yes  | as GenBank           |
@@ -81,6 +81,11 @@ cannot write `.dna`; download GenBank instead. Files from current SnapGene
 versions are what is tested; before version 1.2, primers were placed one base
 to the left of where SnapGene has them, and a primer SnapGene stores twice
 came in twice — reopen the `.dna` file to get them right.
+
+**SnapGene `.prot`** files open as [protein documents](16-proteins.md): the
+residues, every feature (domains, regions, sites, with their colours) on the
+residues SnapGene shows them on, and the notes, as a `.dna` file's are. A
+protein downloads as GenPept. SnapGene's RNA files (`.rna`) are not read yet.
 
 **Geneious** files are not supported. Export them as GenBank first.
 

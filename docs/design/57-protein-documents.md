@@ -93,6 +93,7 @@ only be noise.
   nonsense — and the panel asks for _residues_, reads pasted letters with
   the document's alphabet, and is a tab a protein has (`hasTool`).
 - **`order(...)` kept** (#95, 1.10); see below.
+- **SnapGene `.prot` files** (#95, 1.10); see below.
 
 ## Reading the alphabet from a file
 
@@ -160,6 +161,39 @@ segments }`, so shifts, deletions, the origin, reverse complement and a
   every reader takes nested operators.
 
 A protein downloads as `.gp` and `.faa`.
+
+**SnapGene `.prot`** (#95) is the `.dna` container with a protein in it,
+worked out from the only real files to hand — the two SnapGene 8.2 ships as
+samples (`KPYK1_ECOLI.prot`, `THYX_MYCTU.prot`, 470 and 250 residues, from
+UniProt P0AD61 and P9WG57) — and nothing assumed beyond them. Neither can
+be committed; `parseSnapGeneProtein.test.ts` builds a file of the same
+layout and reads the real two when SnapGene is installed.
+
+- **The cookie says which.** Its first short after `SnapGene` is 1 in all
+  203 bundled `.dna` files and 2 in both `.prot` files (an `.rna` has 7), so
+  that, not the extension or which packets are there, decides. Biopython
+  reads the short and ignores it, and has no reader for a protein at all, so
+  it could not be the oracle here that it is for `.dna` (item 43).
+- **Residues in packet 0x15**, in place of 0x00: a flags byte, 0 in both
+  files and not read (the DNA's bits are topology and methylation, which a
+  protein has neither of), then the residues in ASCII.
+- **Everything else is a `.dna`'s:** features in 0x0A with 1-based inclusive
+  `range`s counted in residues, notes in 0x06, properties in 0x08 (both
+  stickinesses 0; not read for a protein), display settings in 0x0D
+  (skipped). There are no primers. A feature's direction is dropped, since a
+  protein has one strand, and the molecule type is blank, as GenPept's is.
+- **Checked against SnapGene itself.** Every feature carries SnapGene's
+  `/calculated_mol_wt` of the residues it covers ("26.4 kDa"); the local
+  test computes the same weight ProtParam's way (above) over the range as
+  read and requires it within 0.05 kDa, for every one-piece feature of both
+  files. An off-by-one in the range or a wrong residue would show there.
+  Multi-piece `Site`s are read as joined, the default: SnapGene keeps no
+  operator, and the same sites in GenPept would be `order(...)`, but nothing
+  in the file says so.
+- **Found on the way:** SnapGene's notes hold line breaks (`&#10;`), which
+  the GenBank writer wrote as they were, so a GenPept download lost every
+  feature after the first such note. The writer now writes a break as the
+  space a GenBank reader joins lines with.
 
 ## Properties: what ProtParam computes
 

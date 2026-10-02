@@ -37,3 +37,8 @@ reads them — the same assumptions on both sides.
     we imported it as a second primer. The copy is now dropped when it is
     the same site, as Biopython does.
 - After both, zero disagreements on all 203 files.
+- **`.prot`** (#95): the same container with cookie kind 2 and the
+  residues in packet 0x15; read as a protein document. Biopython has no
+  protein reader, so the check there is SnapGene's own `/calculated_mol_wt`
+  on every feature against ours (item 57, "Reading the alphabet from a
+  file").

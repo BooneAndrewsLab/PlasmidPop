@@ -251,7 +251,7 @@ export function formatOfFileName(fileName: string): string {
   const ext = dot === -1 ? '' : fileName.slice(dot + 1).toLowerCase();
   if (['gb', 'gbk', 'genbank', 'gbff', 'ape'].includes(ext)) return 'genbank';
   if (['fa', 'fasta', 'fna', 'fas', 'ffn', 'faa'].includes(ext)) return 'fasta';
-  if (ext === 'dna') return 'snapgene';
+  if (ext === 'dna' || ext === 'prot') return 'snapgene';
   if (ext === 'ab1' || ext === 'abi') return 'abif';
   if (['fastq', 'fq', 'gz'].includes(ext)) return 'fastq';
   if (ext === 'geneious') return 'geneious';

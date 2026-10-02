@@ -53,3 +53,23 @@ export function listLocalSnapGeneFiles(limit = 12): { name: string; data: Uint8A
   }
   return out;
 }
+
+/**
+ * Real SnapGene .prot files (#95): the two SnapGene ships as samples, and any
+ * under fixtures/local. Never committed; tests using them skip elsewhere.
+ */
+export function listLocalSnapGeneProteinFiles(): { name: string; data: Uint8Array }[] {
+  const out: { name: string; data: Uint8Array }[] = [];
+  const dirs = [
+    join(SNAPGENE_RESOURCES, 'sampleData/Sample project/4. Sample Files/Protein Files'),
+    join(root, 'fixtures/local'),
+  ];
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)
+      .filter((x) => x.toLowerCase().endsWith('.prot'))
+      .sort())
+      out.push({ name: f, data: new Uint8Array(readFileSync(join(dir, f))) });
+  }
+  return out;
+}

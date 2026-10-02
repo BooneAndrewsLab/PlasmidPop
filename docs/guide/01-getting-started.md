@@ -11,7 +11,7 @@ that sends NCBI the accession numbers you typed and nothing else.
 Any of these gets you a sequence on screen:
 
 - **Drop a file** anywhere on the page. GenBank, GenPept, FASTA, SnapGene
-  `.dna`, AB1 and FASTQ files are recognised by their content, so the
+  `.dna` and `.prot`, AB1 and FASTQ files are recognised by their content, so the
   extension does not matter much.
   (A file dropped on the [Align](11-align.md) box or the enzyme import is
   read there instead of opening a tab.)

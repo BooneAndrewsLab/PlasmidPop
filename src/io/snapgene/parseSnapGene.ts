@@ -13,6 +13,7 @@ import {
   createFeature,
   createMetadata,
   createReference,
+  isValidProtein,
   isValidSequence,
   rangeSegment,
   unrollRange,
@@ -22,14 +23,18 @@ import { type ParseResult, type ParseWarning, FormatError, warning } from '../ty
 import { type XmlElement, childElements, firstChild, parseXml, stripHtml, textOf } from '../xml';
 
 /**
- * SnapGene .dna reader.
+ * SnapGene .dna and .prot reader.
  *
  * A file is a sequence of packets: one type byte, a 4-byte big-endian
  * length, then the payload. The packets we use:
  *
- *   0x09  cookie      "SnapGene" + version numbers (must come first)
+ *   0x09  cookie      "SnapGene", then three big-endian shorts: the kind of
+ *                     sequence (1 DNA, 2 protein), the export and the
+ *                     import version (must come first)
  *   0x00  sequence    flags byte (bit 0 = circular, 1 = Dam, 2 = Dcm,
  *                            3 = EcoKI) followed by ASCII bases
+ *   0x15  residues    a .prot file's sequence in place of 0x00: a flags
+ *                     byte (0 in every sample; not read) and ASCII residues
  *   0x0A  features    XML <Features><Feature><Segment/><Q><V/></Q></Feature>…
  *   0x05  primers     XML <Primers><Primer><BindingSite/></Primer>…
  *   0x06  notes       XML <Notes> with description, organism, references…
@@ -49,6 +54,7 @@ const COOKIE = 'SnapGene';
 
 const Packet = {
   Sequence: 0x00,
+  ProteinSequence: 0x15,
   Primers: 0x05,
   Notes: 0x06,
   Properties: 0x08,
@@ -85,6 +91,16 @@ function readPackets(bytes: Uint8Array): RawPacket[] {
 }
 
 const utf8 = new TextDecoder('utf-8');
+
+/** The cookie's kind of sequence for a protein: 2 in a .prot, 1 in every .dna (#95). */
+const PROTEIN_COOKIE = 2;
+
+/** The kind of sequence the cookie names; the caller has checked the cookie is there. */
+function cookieKind(packets: readonly RawPacket[]): number {
+  const cookie = packets[0]?.payload;
+  if (cookie === undefined || cookie.length < COOKIE.length + 2) return 0;
+  return ((cookie[COOKIE.length] ?? 0) << 8) | (cookie[COOKIE.length + 1] ?? 0);
+}
 
 function parseRange(
   text: string,
@@ -160,6 +176,7 @@ function parseFeatures(
   seqLength: number,
   topology: Topology,
   warnings: ParseWarning[],
+  protein = false,
 ): Feature[] {
   const root = parseXml(xml);
   const out: Feature[] = [];
@@ -199,7 +216,8 @@ function parseFeatures(
       createFeature({
         name,
         type,
-        strand: strandOf(el.attributes['directionality']),
+        // A protein has one strand, whatever a feature says.
+        strand: protein ? 'forward' : strandOf(el.attributes['directionality']),
         segments,
         qualifiers,
       }),
@@ -263,7 +281,10 @@ function genBankDateFrom(snapgeneDate: string): string {
   return `${(m[3] ?? '1').padStart(2, '0')}-${month}-${m[1] ?? ''}`;
 }
 
-function parseNotes(xml: string): { metadata: Partial<DocumentMetadata>; name: string | null } {
+function parseNotes(
+  xml: string,
+  protein: boolean,
+): { metadata: Partial<DocumentMetadata>; name: string | null } {
   const root = parseXml(xml);
   const text = (tag: string): string => stripHtml(textOf(firstChild(root, tag)));
   const references: Reference[] = childElements(
@@ -292,26 +313,39 @@ function parseNotes(xml: string): { metadata: Partial<DocumentMetadata>; name: s
     date: created === undefined ? '' : genBankDateFrom(textOf(created)),
     references,
     comments,
-    moleculeType: 'DNA',
+    // GenPept has no molecule type, and a protein written back as one has none.
+    moleculeType: protein ? '' : 'DNA',
   };
   const label = text('CustomMapLabel');
   return { metadata, name: label === '' ? null : label };
 }
 
 /**
- * Parses a SnapGene .dna file. `fileName` (without extension) becomes the
- * document name unless the file carries a custom map label.
+ * Parses a SnapGene .dna or .prot file. `fileName` (without extension)
+ * becomes the document name unless the file carries a custom map label.
+ *
+ * A .prot file (#95) is the same container: its cookie names a protein and
+ * its residues come in packet 0x15 instead of 0x00, with the features and
+ * notes in the packets a .dna uses, ranges counted in residues. It opens as
+ * a protein document; there are no primers, ends or methylation to read.
  */
 export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string): ParseResult {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  if (!isSnapGene(bytes))
-    throw new FormatError('Not a SnapGene .dna file (missing SnapGene cookie)');
+  if (!isSnapGene(bytes)) throw new FormatError('Not a SnapGene file (missing SnapGene cookie)');
   const warnings: ParseWarning[] = [];
   const packets = readPackets(bytes);
+  const protein = cookieKind(packets) === PROTEIN_COOKIE;
 
-  const seqPacket = packets.find((p) => p.type === Packet.Sequence);
-  if (seqPacket === undefined) throw new FormatError('SnapGene file has no DNA sequence packet');
-  const flags = seqPacket.payload[0] ?? 0;
+  const seqPacket = packets.find(
+    (p) => p.type === (protein ? Packet.ProteinSequence : Packet.Sequence),
+  );
+  if (seqPacket === undefined)
+    throw new FormatError(
+      protein
+        ? 'SnapGene protein file has no residues packet'
+        : 'SnapGene file has no DNA sequence packet',
+    );
+  const flags = protein ? 0 : (seqPacket.payload[0] ?? 0);
   const topology: Topology = (flags & 0x01) !== 0 ? 'circular' : 'linear';
   /**
    * SnapGene keeps the methylation the DNA is taken to carry in the same
@@ -324,11 +358,13 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
     dcm: (flags & 0x04) !== 0,
   };
   let sequence = utf8.decode(seqPacket.payload.subarray(1));
-  if (!isValidSequence(sequence)) {
-    const cleaned = sequence.replace(/[^ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, '');
+  if (protein ? !isValidProtein(sequence) : !isValidSequence(sequence)) {
+    const cleaned = protein
+      ? sequence.replace(/[^A-Za-z*]/g, '')
+      : sequence.replace(/[^ACGTURYSWKMBDHVNacgturyswkmbdhvn]/g, '');
     warnings.push(
       warning(
-        `${sequence.length - cleaned.length} non-nucleotide characters removed from the sequence`,
+        `${sequence.length - cleaned.length} ${protein ? 'non-residue' : 'non-nucleotide'} characters removed from the sequence`,
       ),
     );
     sequence = cleaned;
@@ -339,8 +375,10 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
   for (const p of packets) {
     try {
       if (p.type === Packet.Features)
-        features.push(...parseFeatures(utf8.decode(p.payload), seqLength, topology, warnings));
-      else if (p.type === Packet.Primers)
+        features.push(
+          ...parseFeatures(utf8.decode(p.payload), seqLength, topology, warnings, protein),
+        );
+      else if (p.type === Packet.Primers && !protein)
         features.push(...parsePrimers(utf8.decode(p.payload), seqLength, topology, warnings));
     } catch (e) {
       warnings.push(
@@ -351,12 +389,12 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
     }
   }
 
-  let metadata: Partial<DocumentMetadata> = { moleculeType: 'DNA' };
+  let metadata: Partial<DocumentMetadata> = { moleculeType: protein ? '' : 'DNA' };
   let name: string | null = null;
   const notes = packets.find((p) => p.type === Packet.Notes);
   if (notes !== undefined) {
     try {
-      ({ metadata, name } = parseNotes(utf8.decode(notes.payload)));
+      ({ metadata, name } = parseNotes(utf8.decode(notes.payload), protein));
     } catch (e) {
       warnings.push(warning(`Could not read notes: ${e instanceof Error ? e.message : String(e)}`));
     }
@@ -369,11 +407,11 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
     sequence,
     topology,
     features,
-    methylation,
+    ...(protein ? { alphabet: 'protein' } : { methylation }),
     metadata: createMetadata(metadata),
   });
   const properties = packets.find((p) => p.type === Packet.Properties);
-  if (properties !== undefined && topology === 'linear') {
+  if (properties !== undefined && topology === 'linear' && !protein) {
     doc = stickyEnds(doc, utf8.decode(properties.payload), warnings);
   }
   return { format: 'snapgene', documents: [doc], warnings };
