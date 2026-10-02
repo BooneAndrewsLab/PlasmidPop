@@ -197,62 +197,60 @@ export function AlignmentDialog({
                   </span>
                 ))}
               </span>
-              <label className="astack-tools__check">
-                <input
-                  type="checkbox"
-                  checked={showFeatures}
-                  onChange={(e) => {
-                    setShowFeatures(e.target.checked);
-                  }}
-                />{' '}
+              <button
+                type="button"
+                className="button button--small astack-tools__toggle"
+                aria-pressed={showFeatures}
+                onClick={() => {
+                  setShowFeatures((on) => !on);
+                }}
+              >
                 Features
-              </label>
+              </button>
               {frames.length > 0 && (
-                <label className="astack-tools__check">
-                  <input
-                    type="checkbox"
-                    checked={showResidues}
-                    onChange={(e) => {
-                      setShowResidues(e.target.checked);
-                    }}
-                  />{' '}
+                <button
+                  type="button"
+                  className="button button--small astack-tools__toggle"
+                  aria-pressed={showResidues}
+                  onClick={() => {
+                    setShowResidues((on) => !on);
+                  }}
+                >
                   Amino acids
-                </label>
+                </button>
               )}
-              <label
-                className="astack-tools__check"
+              <button
+                type="button"
+                className="button button--small astack-tools__toggle"
+                aria-pressed={showOrfs}
+                disabled={orfs === null}
                 title={
                   orfs === null
                     ? 'The open reading frames are still being found.'
                     : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
                 }
+                onClick={() => {
+                  setShowOrfs((on) => !on);
+                }}
               >
-                <input
-                  type="checkbox"
-                  checked={showOrfs}
-                  disabled={orfs === null}
-                  onChange={(e) => {
-                    setShowOrfs(e.target.checked);
-                  }}
-                />{' '}
                 ORFs
-              </label>
+              </button>
               <span className="astack-tools__hidden">
                 {track !== null && track.hidden > 0 ? `${track.hidden} not shown` : ''}
               </span>
             </>
           )}
           {hasTrace && (
-            <label className="astack-tools__check">
-              <input
-                type="checkbox"
-                checked={showTrace}
-                onChange={(e) => {
-                  setShowTrace(e.target.checked);
-                }}
-              />{' '}
+            <button
+              type="button"
+              className="button button--small astack-tools__toggle"
+              aria-pressed={showTrace}
+              onClick={() => {
+                setShowTrace((on) => !on);
+              }}
+            >
               Trace
-            </label>
+            </button>
           )}
           <span className="astack-tools__actions">
             <button

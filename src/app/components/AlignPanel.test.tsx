@@ -119,6 +119,30 @@ describe('AlignPanel', () => {
     expect(open).toHaveFocus();
   });
 
+  it("switches the large view's display options with toggle buttons (#114)", async () => {
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const features = screen.getByRole('button', { name: 'Features' });
+    expect(features).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(features);
+    expect(features).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(features);
+    expect(features).toHaveAttribute('aria-pressed', 'true');
+    const orfs = screen.getByRole('button', { name: 'ORFs' });
+    expect(orfs).toHaveAttribute('aria-pressed', 'false');
+    // No CDS in this document, so there are no amino acids to show.
+    expect(screen.queryByRole('button', { name: 'Amino acids' })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Features' })).toBeNull();
+  });
+
   it('starts in Local for a much shorter sequence, saying why, and keeps a mode picked by hand (#86)', () => {
     render(<AlignPanel doc={doc} />);
     const mode = (): HTMLElement => screen.getByRole('combobox', { name: 'Alignment mode' });

@@ -221,14 +221,14 @@ once the ORFs panel has found them. With no document behind the reference
   line, and one across the origin of a circular document drawn where a read
   through the origin sees it. Read a difference against the bar above it to
   see whether it falls in a gene, a promoter or nothing; hover a bar for its
-  name and type. **Features** and **ORFs** in the toolbar switch each on.
+  name and type. The **Features** and **ORFs** toggle buttons in the toolbar (pressed means on) switch each on.
   ORFs are the ones the ORFs panel finds (at its minimum length), outlined
   and dashed in their own lanes under the features. A feature that an
   insertion in a sample splits round is drawn across the gap columns. Up to
   eight lanes are drawn; the toolbar counts what did not fit. When the
   document is the read and the reference is the sequence in the box, there is
   no track, since a pasted sequence brings none of its own.
-- **Amino acids** (shown when the document has a CDS in the alignment) draws a
+- The **Amino acids** toggle (shown when the document has a CDS in the alignment) draws a
   strip of residues under the document row and under each sample: the
   document's own, then what the sample's bases make of the same codons, read
   with the feature's genetic code and strand. A residue that changed is shaded
@@ -248,5 +248,5 @@ sequence alignment, and two samples are not aligned to each other. The
 A read's bases below the confident quality sit on a grey block, faded, so a
 difference there is easy to discount. A read opened from an AB1 file has its
 chromatogram drawn under its row, each base's peak under its letter and the
-base qualities as faint bars behind; tick **Trace** in the window's toolbar
+base qualities as faint bars behind; press **Trace** in the window's toolbar
 (shown when any sample has one, on by default) to hide it and see more rows.
