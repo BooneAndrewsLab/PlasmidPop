@@ -197,61 +197,67 @@ export function AlignmentDialog({
                   </span>
                 ))}
               </span>
-              <button
-                type="button"
-                className="button button--small astack-tools__toggle"
-                aria-pressed={showFeatures}
-                onClick={() => {
-                  setShowFeatures((on) => !on);
-                }}
-              >
-                Features
-              </button>
-              {frames.length > 0 && (
+            </>
+          )}
+          <span className="astack-tools__views">
+            {source !== null && (
+              <>
                 <button
                   type="button"
                   className="button button--small astack-tools__toggle"
-                  aria-pressed={showResidues}
+                  aria-pressed={showFeatures}
                   onClick={() => {
-                    setShowResidues((on) => !on);
+                    setShowFeatures((on) => !on);
                   }}
                 >
-                  Amino acids
+                  Features
                 </button>
-              )}
+                {frames.length > 0 && (
+                  <button
+                    type="button"
+                    className="button button--small astack-tools__toggle"
+                    aria-pressed={showResidues}
+                    onClick={() => {
+                      setShowResidues((on) => !on);
+                    }}
+                  >
+                    Amino acids
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="button button--small astack-tools__toggle"
+                  aria-pressed={showOrfs}
+                  disabled={orfs === null}
+                  title={
+                    orfs === null
+                      ? 'The open reading frames are still being found.'
+                      : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
+                  }
+                  onClick={() => {
+                    setShowOrfs((on) => !on);
+                  }}
+                >
+                  ORFs
+                </button>
+                <span className="astack-tools__hidden">
+                  {track !== null && track.hidden > 0 ? `${track.hidden} not shown` : ''}
+                </span>
+              </>
+            )}
+            {hasTrace && (
               <button
                 type="button"
                 className="button button--small astack-tools__toggle"
-                aria-pressed={showOrfs}
-                disabled={orfs === null}
-                title={
-                  orfs === null
-                    ? 'The open reading frames are still being found.'
-                    : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
-                }
+                aria-pressed={showTrace}
                 onClick={() => {
-                  setShowOrfs((on) => !on);
+                  setShowTrace((on) => !on);
                 }}
               >
-                ORFs
+                Trace
               </button>
-              <span className="astack-tools__hidden">
-                {track !== null && track.hidden > 0 ? `${track.hidden} not shown` : ''}
-              </span>
-            </>
-          )}
-          {hasTrace && (
-            <button
-              type="button"
-              className="button button--small astack-tools__toggle"
-              aria-pressed={showTrace}
-              onClick={() => {
-                setShowTrace((on) => !on);
-              }}
-            >
-              Trace
-            </button>
-          )}
+            )}
+          </span>
           <span className="astack-tools__actions">
             <button
               type="button"

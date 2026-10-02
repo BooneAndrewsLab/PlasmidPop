@@ -4133,12 +4133,20 @@ button {
   font-size: 12px;
 }
 
+/* Features / Amino acids / ORFs / Trace: centred in the row, apart from the colour legend. */
+.astack-tools__views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-inline: auto;
+}
+
 /* Prev / next / select: real buttons, pinned to the right edge. */
 .astack-tools__actions {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-left: auto;
 }
 
 .astack-legend {
