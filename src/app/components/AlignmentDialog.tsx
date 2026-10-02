@@ -207,6 +207,18 @@ export function AlignmentDialog({
                 />{' '}
                 Features
               </label>
+              {frames.length > 0 && (
+                <label className="astack-tools__check">
+                  <input
+                    type="checkbox"
+                    checked={showResidues}
+                    onChange={(e) => {
+                      setShowResidues(e.target.checked);
+                    }}
+                  />{' '}
+                  Amino acids
+                </label>
+              )}
               <label
                 className="astack-tools__check"
                 title={
@@ -229,18 +241,6 @@ export function AlignmentDialog({
                 {track !== null && track.hidden > 0 ? `${track.hidden} not shown` : ''}
               </span>
             </>
-          )}
-          {frames.length > 0 && (
-            <label className="astack-tools__check">
-              <input
-                type="checkbox"
-                checked={showResidues}
-                onChange={(e) => {
-                  setShowResidues(e.target.checked);
-                }}
-              />{' '}
-              Amino acids
-            </label>
           )}
           {hasTrace && (
             <label className="astack-tools__check">
