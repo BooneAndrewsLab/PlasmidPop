@@ -74,7 +74,8 @@ for the parts plasmids are made of and offers what it finds:
    megabase well under a second).
 2. The hits are listed under the button, every one ticked, each with its
    type, its location, and how well it matched: _exact_, or the number of
-   mismatches and the identity, such as _2 mismatches, 99.7%_. Hover over a
+   mismatches and the identity, such as _2 mismatches, 99.7%_, with bases
+   inserted or deleted named first, such as _1 base deleted, 99.8%_. Hover over a
    row to see what the part is and the record it was matched against; click
    it to select those bases in the views.
 3. Untick any you do not want (or **Untick all** and tick a few), then click
@@ -94,10 +95,16 @@ What is found:
   gene.
 - **Near matches**: by default a part is found when at least 95% of its
   bases match. **Match at least** in the list changes that to 98%, 90% or
-  exactly, and searches again. Mismatches are substitutions only: a copy of a
-  part with bases inserted or deleted is not found. Parts shorter than 24
-  bases (primer sites, short tags) are only found exactly, so that they do
-  not turn up by chance.
+  exactly, and searches again. Parts shorter than 24 bases (primer sites,
+  short tags) are only found exactly, so that they do not turn up by chance.
+- **Bases inserted or deleted**: a copy of a part with a small indel — a
+  frameshift, a filled-in site — is found too, up to 8 bases inserted or
+  deleted in all. Each one counts against **Match at least** as a mismatch
+  does, and the list says what was found, as _3 bases inserted, 1 mismatch,
+  98.7%_, so it is never mistaken for a copy with substitutions only. Where
+  substitutions alone explain a copy well enough, that is how it is shown:
+  an indel in the last few bases of a part reads as a mismatch or two
+  there. Parts shorter than 36 bases are not looked for with indels.
 - **By what it codes for**, as well as by its bases. Every vector spells a
   short tag — FLAG, Myc, the T7 tag, the SV40 nuclear localisation signal —
   in its own codons, and a fluorescent protein carried from one construct to

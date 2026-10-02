@@ -6,8 +6,11 @@ import { expectWithin, itTimed } from '@/test/timing';
 import {
   type FeatureHit,
   DEFAULT_MIN_IDENTITY,
+  GAPPED_OVERHANG,
+  MAX_INDEL,
   SEED,
   detectFeatures,
+  indelBudget,
   isMinIdentityChoice,
   mismatchBudget,
   overlapLength,
@@ -429,8 +432,11 @@ describe('detectFeatures', () => {
     // Never 1, however the length falls.
     const even = long.slice(0, 131072);
     expect(progress(even, 'linear')).toEqual(at(131072, 0, 65536));
-    // A circle is read on for the longest part, less a base: 299 bases.
-    expect(progress(even, 'circular')).toEqual(at(131072 + 299, 0, 65536, 131072));
+    // A circle is read on for the longest part, less a base, and as far
+    // again as a gapped match may need (#94).
+    expect(progress(even, 'circular')).toEqual(
+      at(131072 + 299 + GAPPED_OVERHANG, 0, 65536, 131072),
+    );
   }, 60_000);
 
   it('reports progress as it reads a long sequence', () => {
@@ -447,6 +453,112 @@ describe('detectFeatures', () => {
   it('ignores parts shorter than a seed', () => {
     expect(detectFeatures('ACGTACGTAC', 'linear', library(part('tiny', 'ACGTACGTAC')))).toEqual([]);
     expect(SEED).toBe(12);
+  });
+});
+
+describe('detectFeatures with indels (#94)', () => {
+  const flankA = randomDna(rand, 150);
+  const flankB = randomDna(rand, 150);
+  /** PART with `del` bases deleted at `at` and `ins` inserted there. */
+  const indel = (at: number, del: number, ins = ''): string =>
+    PART.slice(0, at) + ins + PART.slice(at + del);
+
+  it('finds a part with a base deleted, and says so', () => {
+    const hit = only(detectFeatures(flankA + indel(150, 1) + flankB, 'linear', LIB));
+    expect(hit.range).toEqual({ start: 150, end: 449 });
+    expect(hit).toMatchObject({ strand: 'forward', mismatches: 0, insertions: 0, deletions: 1 });
+    expect(hit.identity).toBeCloseTo(299 / 300, 9);
+  });
+
+  it('finds a part with bases inserted, on the reverse strand', () => {
+    const copy = indel(100, 0, 'GAT');
+    const seq = flankA + reverseComplement(copy) + flankB;
+    const hit = only(detectFeatures(seq, 'linear', LIB));
+    expect(hit.range).toEqual({ start: 150, end: 453 });
+    expect(hit).toMatchObject({ strand: 'reverse', insertions: 3, deletions: 0 });
+    // Identity is of the alignment's columns: 300 matched of 303.
+    expect(hit.identity).toBeCloseTo(300 / 303, 9);
+  });
+
+  it('finds a gapped part through the origin of a circle, on both strands', () => {
+    const copy = mutate(indel(200, 2), [40]);
+    for (const reverse of [false, true]) {
+      const plasmid = (reverse ? reverseComplement(copy) : copy) + flankA;
+      const n = plasmid.length;
+      for (const origin of [1, 60, 150, 250, 297]) {
+        const rotated = plasmid.slice(origin) + plasmid.slice(0, origin);
+        const hit = only(detectFeatures(rotated, 'circular', LIB));
+        const start = n - origin;
+        expect(hit.range).toEqual({ start, end: start + 298 });
+        expect(hit).toMatchObject({
+          strand: reverse ? 'reverse' : 'forward',
+          mismatches: 1,
+          deletions: 2,
+        });
+      }
+    }
+  });
+
+  it('counts each inserted or deleted base against the budget, as a mismatch', () => {
+    // 300 bases at 95%: 15 edits.
+    const within = mutate(indel(150, 6), [20, 40, 60, 80, 100, 120, 200, 220, 240]);
+    const over = mutate(indel(150, 6), [20, 40, 60, 80, 100, 120, 200, 220, 240, 260]);
+    expect(only(detectFeatures(flankA + within + flankB, 'linear', LIB))).toMatchObject({
+      mismatches: 9,
+      deletions: 6,
+    });
+    expect(detectFeatures(flankA + over + flankB, 'linear', LIB)).toEqual([]);
+    // Exact means exact.
+    expect(
+      detectFeatures(flankA + indel(150, 1) + flankB, 'linear', LIB, { minIdentity: 1 }),
+    ).toEqual([]);
+  });
+
+  it(`allows up to ${MAX_INDEL} bases of indel, and no more`, () => {
+    expect(
+      only(detectFeatures(flankA + indel(150, MAX_INDEL) + flankB, 'linear', LIB)).deletions,
+    ).toBe(MAX_INDEL);
+    expect(detectFeatures(flankA + indel(150, MAX_INDEL + 1) + flankB, 'linear', LIB)).toEqual([]);
+    // In two places, the bases add up: the band is of how far the
+    // alignment strays from the diagonal, both indels together.
+    const twice = (d: number): string =>
+      PART.slice(0, 100) + PART.slice(100 + d, 200) + PART.slice(200 + d);
+    expect(only(detectFeatures(flankA + twice(4) + flankB, 'linear', LIB)).deletions).toBe(8);
+    expect(detectFeatures(flankA + twice(5) + flankB, 'linear', LIB)).toEqual([]);
+  });
+
+  it('finds nothing gapped when asked not to', () => {
+    const seq = flankA + indel(150, 1) + flankB;
+    expect(detectFeatures(seq, 'linear', LIB, { gapped: false })).toEqual([]);
+  });
+
+  it('reads an indel near an end of the part as the substitutions it costs', () => {
+    // Two bases from the end, the diagonal check finds it with two
+    // mismatches at most; that is offered, not a gapped reading.
+    const hit = only(detectFeatures(flankA + indel(297, 1) + flankB, 'linear', LIB));
+    expect(hit.insertions).toBeUndefined();
+    expect(hit.range).toEqual({ start: 150, end: 450 });
+  });
+
+  it('never reads a part cut off by the end of a linear sequence as gapped', () => {
+    for (let cut = 1; cut <= MAX_INDEL + 2; cut++) {
+      const seq = flankA + PART.slice(0, 300 - cut);
+      const hits = detectFeatures(seq, 'linear', LIB);
+      expect(hits.every((h) => h.insertions === undefined)).toBe(true);
+      expect(only(hits).partialEnd).toBe(true);
+    }
+  });
+
+  it('finds no indel in a part too short to have the seeds to be sure of it', () => {
+    // 35 bases: an edit would be allowed at 90%, but not with an indel.
+    const short = randomDna(rand, 35);
+    const lib = library(part('S', short));
+    const seq = flankA + short.slice(0, 17) + short.slice(18) + flankB;
+    expect(detectFeatures(seq, 'linear', lib, { minIdentity: 0.9 })).toEqual([]);
+    expect(indelBudget(35, 0.9)).toBe(0);
+    expect(indelBudget(36, 0.9)).toBe(1);
+    expect(indelBudget(300, 0.95)).toBe(15);
+    expect(indelBudget(300, 0.9)).toBe(23);
   });
 });
 

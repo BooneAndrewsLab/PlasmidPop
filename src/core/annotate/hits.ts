@@ -43,8 +43,9 @@ export function formatIdentity(identity: number): string {
 
 /**
  * What a hit is, in words: "exact", "2 mismatches, 99.8%", "1 ambiguous
- * base, 99.9%", and for a hit made in the translation (#93) "exact protein
- * match" or "2 residues differ, 99.0% of the protein".
+ * base, 99.9%", a hit with indels (#94) "1 base deleted, 99.7%" or "3 bases
+ * inserted, 1 mismatch, 98.7%", and for a hit made in the translation (#93)
+ * "exact protein match" or "2 residues differ, 99.0% of the protein".
  */
 export function describeMatch(hit: FeatureHit): string {
   // A part running off an end of a linear sequence is only partly there,
@@ -63,8 +64,16 @@ export function describeMatch(hit: FeatureHit): string {
       hit.mismatches === 1 ? '1 residue differs' : `${hit.mismatches} residues differ`;
     return `${residues}, ${formatIdentity(hit.identity)} of the protein`;
   }
-  if (hit.mismatches === 0 && hit.ambiguous === 0) return 'exact';
+  const inserted = hit.insertions ?? 0;
+  const deleted = hit.deletions ?? 0;
+  if (hit.mismatches === 0 && hit.ambiguous === 0 && inserted === 0 && deleted === 0) {
+    return 'exact';
+  }
   const parts: string[] = [];
+  // Indels first: they are what sets such a hit apart from the rest.
+  const count = (k: number, what: string): string => `${k} base${k === 1 ? '' : 's'} ${what}`;
+  if (inserted > 0) parts.push(count(inserted, 'inserted'));
+  if (deleted > 0) parts.push(count(deleted, 'deleted'));
   if (hit.mismatches > 0) {
     parts.push(hit.mismatches === 1 ? '1 mismatch' : `${hit.mismatches} mismatches`);
   }

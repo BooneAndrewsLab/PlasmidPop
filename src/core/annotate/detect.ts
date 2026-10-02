@@ -1,11 +1,13 @@
 import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
+import { alignNearDiagonal, bandCells } from './gapped';
 import { type FeatureLibrary } from './library';
 import { detectProteinFeatures } from './protein';
 
 /**
  * Finding the library's parts in a sequence (item 59): on both strands,
- * exactly or with a few substitutions, through the origin of a circle.
+ * exactly or with a few substitutions or small indels, through the origin of
+ * a circle.
  *
  * The parts are indexed once by every 12-mer they contain, on both strands.
  * The sequence is read 12-mer by 12-mer; each word it shares with a part
@@ -19,8 +21,15 @@ import { detectProteinFeatures } from './protein';
  * L + 1 − 12(m + 1) words in common with the sequence (the q-gram lemma), at
  * least one when m < L / 12, so the budget is capped there and a match within
  * it is never missed for want of a seed. Parts shorter than 24 bases must
- * match exactly. Mismatches are substitutions only; a part with an insertion
- * or deletion is not found.
+ * match exactly.
+ *
+ * Indels (#94, `gapped.ts`): after the scan, wherever a part's seeds gather
+ * on a few neighbouring diagonals in the numbers a match within its budget
+ * must leave, a banded fill looks for it with up to `MAX_INDEL` bases
+ * inserted or deleted, each spending the budget as a mismatch does. The
+ * q-gram lemma holds for edits as well as substitutions, so with the budget
+ * one lower (`indelBudget`) such a match is sure to leave at least 13 seeds,
+ * which a chance word never does.
  *
  * Align's banded seeding (items 45, 46) answers a different question — one
  * long read against one reference, anchors chained along a diagonal — and
@@ -58,7 +67,28 @@ export interface DetectOptions {
    * more use than saying nothing. A circle has no ends to hang off.
    */
   readonly partialEnds?: boolean;
+  /**
+   * Whether a part may match with bases inserted or deleted (#94), up to
+   * `MAX_INDEL` of them and within the same budget as mismatches. On by
+   * default.
+   */
+  readonly gapped?: boolean;
 }
+
+/**
+ * Most bases a match may have inserted and deleted in all (#94), which is
+ * also the half-width of the band it is looked for in. A part's budget caps
+ * it too (`indelBudget`), so a short part gets a narrower band, and one
+ * under 36 bases none.
+ */
+export const MAX_INDEL = 8;
+
+/**
+ * How much further than the longest part a circle is read on, for gapped
+ * matching: an insertion's worth, and the flank and band that keep a hit
+ * starting just past the origin clear of the array's end.
+ */
+export const GAPPED_OVERHANG = 2 * MAX_INDEL + SEED;
 
 export interface FeatureHit {
   /** Index of the part in the library. */
@@ -84,6 +114,13 @@ export interface FeatureHit {
    */
   readonly partialStart?: boolean;
   readonly partialEnd?: boolean;
+  /**
+   * Bases of the sequence with no base of the part opposite them, and bases
+   * of the part missing from the sequence (#94); absent for a match with
+   * substitutions only. Then `identity` is of the alignment's columns.
+   */
+  readonly insertions?: number;
+  readonly deletions?: number;
 }
 
 /**
@@ -250,19 +287,24 @@ export function detectFeatures(
   if (n === 0 || index.entries.length === 0) return [];
   const circular = topology === 'circular';
   // A circle is read on past its origin far enough for the longest part
-  // (and never so far that a part could cover a base twice).
-  const extra = circular ? Math.min(index.longest - 1, n - 1) : 0;
+  // (and never so far that a part could cover a base twice), and for a
+  // gapped one (#94) as far again as an insertion lengthens it and its flank
+  // keeps it from the array's end (see `gappedHits`).
+  const extra = circular ? Math.min(index.longest - 1 + GAPPED_OVERHANG, n - 1) : 0;
   const target = new Uint8Array(n + extra);
   target.set(masksOf(sequence));
   for (let i = 0; i < extra; i++) target[n + i] = target[i % n] ?? 0;
   const total = target.length;
 
   const tried = new Set<number>();
+  // The diagonals a whole part was found on with substitutions only.
+  const found = new Set<number>();
   const entryCount = index.entries.length;
   const raw: FeatureHit[] = [];
   // A part may hang off either end of a linear sequence, and then only the
   // piece inside it is compared (#94).
   const partialEnds = options.partialEnds !== false && !circular;
+  const limit = circular ? total : n;
   const check = (e: number, start: number): void => {
     const entry = index.entries[e];
     if (entry === undefined) return;
@@ -270,7 +312,7 @@ export function detectFeatures(
     // Where the part is inside the sequence: the whole of it, unless it is
     // allowed to run off a linear end.
     const from = Math.max(0, start);
-    const to = Math.min(start + len, circular ? total : n);
+    const to = Math.min(start + len, limit);
     const overlap = to - from;
     const whole = overlap === len && start >= 0;
     if (!whole) {
@@ -296,6 +338,7 @@ export function detectFeatures(
       else ambiguous++;
       if (mismatches + ambiguous > budget) return;
     }
+    if (whole) found.add(key);
     raw.push({
       part: entry.part,
       range: { start: from, end: to },
@@ -311,12 +354,25 @@ export function detectFeatures(
     });
   };
 
+  // Every seed of a part that may match with indels, as (entry, diagonal),
+  // for the gapped pass after the scan (#94).
+  const gapped = options.gapped !== false;
+  const indelBudgets = index.entries.map((e) =>
+    gapped ? indelBudget(e.masks.length, minIdentity) : 0,
+  );
+  const seeded: number[] = [];
+
   const onProgress = options.onProgress;
   const seedVisit = (word: number, at: number): void => {
     if (((index.present[word >>> 3] ?? 0) & (1 << (word & 7))) === 0) return;
     const list = index.seeds.get(word);
     if (list === undefined) return;
-    for (let k = 0; k + 1 < list.length; k += 2) check(list[k] ?? 0, at - (list[k + 1] ?? 0));
+    for (let k = 0; k + 1 < list.length; k += 2) {
+      const e = list[k] ?? 0;
+      const start = at - (list[k + 1] ?? 0);
+      check(e, start);
+      if ((indelBudgets[e] ?? 0) > 0) seeded.push(e, start);
+    }
   };
   forEachSeed(
     target,
@@ -328,15 +384,189 @@ export function detectFeatures(
           onProgress(at / total);
         },
   );
+  if (seeded.length > 0) {
+    const onFoundDiagonal = (e: number, start: number): boolean =>
+      found.has(start * entryCount + e);
+    raw.push(...gappedHits(index, target, n, limit, seeded, indelBudgets, onFoundDiagonal));
+  }
   // The parts that are looked for by what they code for (#93): the short
   // tags no record spells in DNA, and the proteins a construct carries with
   // synonymous changes. Their hits join the rest and are reduced with them,
   // so a part found both ways is offered once.
+  const dna = substitutionsFirst(raw, n, topology);
   const withProtein =
     options.protein === false
-      ? raw
-      : [...raw, ...detectProteinFeatures(sequence, topology, library)];
+      ? dna
+      : [...dna, ...detectProteinFeatures(sequence, topology, library)];
   return keepBest(withProtein, library, n, topology);
+}
+
+/**
+ * The most edits a part of `length` bases may have when some are indels
+ * (#94): what the identity allows, capped one lower than `mismatchBudget`.
+ * The lower cap leaves a match within it sharing at least 13 seeds with the
+ * part (the q-gram lemma again: L + 1 − 12(k + 1) of them), all within
+ * `MAX_INDEL` diagonals of each other, so the gapped pass only looks where
+ * that many have gathered — which a chance word never does. At the default
+ * 95% the identity binds first for any part over 60 bases, and the cap
+ * changes nothing; parts under 36 bases match without indels.
+ */
+export function indelBudget(length: number, minIdentity: number): number {
+  const byIdentity = Math.floor(length * (1 - minIdentity) + 1e-9);
+  const bySeed = Math.floor(length / SEED) - 2;
+  return Math.max(0, Math.min(byIdentity, bySeed));
+}
+
+/** Seeds a match of `length` bases with `edits` edits shares with the part, at least. */
+function seedsAtLeast(length: number, edits: number): number {
+  return length + 1 - SEED * (edits + 1);
+}
+
+/**
+ * The gapped pass (#94). The seeds of each entry, in order of diagonal, are
+ * swept by a window `MAX_INDEL` (or the entry's budget) diagonals wide; where
+ * a window holds as many seeds as a match within the budget must have, a
+ * banded fill around its middle looks for the part with indels. A hit with
+ * no indel is left to the diagonal check, which has found it already. One
+ * copy is often found from several windows (a run of one base seeds every
+ * diagonal), so of overlapping readings the one with fewest edits is kept.
+ */
+function gappedHits(
+  index: FeatureIndex,
+  target: Uint8Array,
+  n: number,
+  limit: number,
+  seeded: readonly number[],
+  budgets: readonly number[],
+  onFoundDiagonal: (entry: number, diagonal: number) => boolean,
+): FeatureHit[] {
+  // (entry, diagonal) as one sortable number; a diagonal can be negative on
+  // a linear sequence, by up to the longest part.
+  const shift = index.longest;
+  const stride = limit + 2 * index.longest + 1;
+  const keys = new Float64Array(seeded.length / 2);
+  for (let k = 0; k < keys.length; k++) {
+    keys[k] = (seeded[2 * k] ?? 0) * stride + (seeded[2 * k + 1] ?? 0) + shift;
+  }
+  keys.sort();
+  const cells = new Uint16Array(bandCells(index.longest, MAX_INDEL));
+  const hits: FeatureHit[] = [];
+  let from = 0;
+  while (from < keys.length) {
+    const e = Math.floor((keys[from] ?? 0) / stride);
+    let to = from;
+    while (to < keys.length && Math.floor((keys[to] ?? 0) / stride) === e) to++;
+    const entry = index.entries[e];
+    const budget = budgets[e] ?? 0;
+    if (entry !== undefined && budget > 0) {
+      const len = entry.masks.length;
+      const width = Math.min(budget, MAX_INDEL);
+      const need = seedsAtLeast(len, budget);
+      const diagonal = (k: number): number => (keys[k] ?? 0) - e * stride - shift;
+      // The band last filled: a window inside it has been looked at.
+      let bandLo = -Infinity;
+      let bandHi = -Infinity;
+      const readings: FeatureHit[] = [];
+      let lo = from;
+      for (let hi = from; hi < to; hi++) {
+        while (diagonal(hi) - diagonal(lo) > width) lo++;
+        if (hi - lo + 1 < need) continue;
+        const first = diagonal(lo);
+        const last = diagonal(hi);
+        if (first >= bandLo && last <= bandHi) continue;
+        // A copy that substitutions alone explain was found on its own
+        // diagonal; an indel is only offered where they cannot.
+        let explained = false;
+        for (let d = first; d <= last && !explained; d++) explained = onFoundDiagonal(e, d);
+        if (explained) continue;
+        const middle = Math.floor((first + last) / 2);
+        bandLo = middle - width;
+        bandHi = middle + width;
+        if (len > n) continue;
+        const found = alignNearDiagonal(
+          target,
+          0,
+          limit,
+          entry.masks,
+          middle,
+          width,
+          budget,
+          cells,
+          SEED,
+        );
+        if (found === null) continue;
+        // None is a substitution-only hit, found on its own diagonal; more
+        // than the width is past what the band is sure to hold (it reaches
+        // `width` either side of a window up to `width` wide).
+        const gaps = found.insertions + found.deletions;
+        if (gaps === 0 || gaps > width) continue;
+        // One turn of a circle at most, starting in the first. A reading
+        // starting at the array's start may be a part running in from
+        // before it, which the flank rule turns away; the copy a turn on
+        // (the overhang is long enough for it) is then the one found, and
+        // is moved back a turn.
+        if (found.end - found.start > n) continue;
+        const turn = found.start >= n ? n : 0;
+        const edits = found.mismatches + found.ambiguous + found.insertions + found.deletions;
+        readings.push({
+          part: entry.part,
+          range: { start: found.start - turn, end: found.end - turn },
+          strand: entry.strand,
+          mismatches: found.mismatches,
+          ambiguous: found.ambiguous,
+          identity: 1 - edits / (len + found.insertions),
+          insertions: found.insertions,
+          deletions: found.deletions,
+        });
+      }
+      hits.push(...fewestEdits(readings));
+    }
+    from = to;
+  }
+  return hits;
+}
+
+/** Readings of one entry, overlapping ones reduced to the one with fewest edits, then first. */
+function fewestEdits(readings: readonly FeatureHit[]): FeatureHit[] {
+  const edits = (h: FeatureHit): number =>
+    h.mismatches + h.ambiguous + (h.insertions ?? 0) + (h.deletions ?? 0);
+  const kept: FeatureHit[] = [];
+  const ranked = [...readings].sort(
+    (x, y) => edits(x) - edits(y) || x.range.start - y.range.start || x.range.end - y.range.end,
+  );
+  for (const h of ranked) {
+    if (!kept.some((k) => k.range.start < h.range.end && h.range.start < k.range.end)) kept.push(h);
+  }
+  return kept;
+}
+
+/**
+ * A gapped hit dropped where a hit of the same part and strand with
+ * substitutions only overlaps it (#94): an indel is offered only where
+ * substitutions cannot explain the copy within the budget. Near an end of
+ * the part both readings can be within it, and `keepBest`, which goes by
+ * length first, would otherwise keep whichever the indel made longer.
+ */
+function substitutionsFirst(
+  hits: readonly FeatureHit[],
+  length: number,
+  topology: Topology,
+): FeatureHit[] {
+  const isGapped = (h: FeatureHit): boolean => h.insertions !== undefined;
+  if (!hits.some(isGapped)) return [...hits];
+  const whole = hits.filter(
+    (h) => !isGapped(h) && h.partialStart !== true && h.partialEnd !== true,
+  );
+  return hits.filter(
+    (h) =>
+      !isGapped(h) ||
+      !whole.some(
+        (u) =>
+          u.part === h.part &&
+          u.strand === h.strand &&
+          overlapLength(u.range, h.range, length, topology) > 0,
+      ),
+  );
 }
 
 /** Bases two ranges share, either of which may run over the origin of a circle. */

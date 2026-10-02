@@ -5,10 +5,12 @@ import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
 import {
   type FeatureHit,
+  MAX_INDEL,
   MIN_IDENTITY_CHOICES,
   MIN_PARTIAL_BASES,
   MIN_PARTIAL_SHARE,
   detectFeatures,
+  indelBudget,
   mismatchBudget,
 } from './detect';
 import { type FeatureLibrary, type LibraryPart } from './library';
@@ -233,7 +235,12 @@ describe('detectFeatures, against a slow listing of every placement', () => {
           seq = seq.slice(r) + seq.slice(0, r);
         }
         if (c.lower) seq = seq.toLowerCase();
-        const got = detectFeatures(seq, c.topology, lib, { minIdentity: c.minIdentity });
+        // Substitutions only: the listing does not align (gapped matches have
+        // their own test below).
+        const got = detectFeatures(seq, c.topology, lib, {
+          minIdentity: c.minIdentity,
+          gapped: false,
+        });
         const all = slowHits(seq, c.topology, lib, c.minIdentity);
         expect(got).toEqual(slowKeepBest(all, lib, seq.length));
         seen.hits += got.length;
@@ -251,6 +258,129 @@ describe('detectFeatures, against a slow listing of every placement', () => {
     // 98 with mismatches, 39 ambiguous, 69 over the origin, 206 reverse, and
     // 92 cases where hits were dropped).
     expect(seen.hits).toBeGreaterThan(300);
+    for (const [k, v] of Object.entries(seen)) expect(v, k).toBeGreaterThan(20);
+  }, 120_000);
+});
+
+/** Fewest edits turning `a` into `b`: substitutions and single-base indels, one each. */
+function editDistance(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const same = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+      row.push(Math.min((prev[j - 1] ?? 0) + same, (prev[j] ?? 0) + 1, (row[j - 1] ?? 0) + 1));
+    }
+    prev = row;
+  }
+  return prev[b.length] ?? 0;
+}
+
+const editArb = fc.record({
+  /** Where along the part, as a share of what lies between its flanks. */
+  at: fc.double({ min: 0, max: 1, noNaN: true, maxExcluded: true }),
+  kind: fc.constantFrom('sub', 'del', 'ins'),
+  size: fc.integer({ min: 1, max: 4 }),
+  bases: dnaArb(4, 4),
+});
+
+function spentOn(h: FeatureHit): number {
+  return h.mismatches + h.ambiguous + (h.insertions ?? 0) + (h.deletions ?? 0);
+}
+
+describe('detectFeatures with indels, against an alignment of what it reports (#94)', () => {
+  it('finds a copy with indels within the budget, and reports its edits truly', () => {
+    const seen = { gapped: 0, reverse: 0, overOrigin: 0 };
+    fc.assert(
+      fc.property(
+        dnaArb(60, 220),
+        fc.array(editArb, { minLength: 1, maxLength: 4 }),
+        // Flanks: enough after it that a copy with bases deleted is still not
+        // a whole circle shorter than the part, which is never looked for;
+        // and on a linear sequence, enough either side that the copy is not
+        // at an end, where an indel slid along a run of one base can leave
+        // too short a flank to be told from a part cut off (`gapped.ts`).
+        dnaArb(20, 60),
+        dnaArb(20, 60),
+        fc.boolean(),
+        fc.constantFrom<Topology>('linear', 'circular'),
+        fc.nat(),
+        fc.constantFrom(0.95, 0.9),
+        (part, edits, left, right, reverse, topology, rotate, minIdentity) => {
+          const budget = indelBudget(part.length, minIdentity);
+          // Edits kept clear of the part's ends by more than a seed, as the
+          // gapped check needs (`alignNearDiagonal`'s flank), and applied
+          // from the end so that earlier positions stay put.
+          let copy = part;
+          let spent = 0;
+          let gaps = 0;
+          const placed = edits
+            .map((e) => ({ ...e, pos: 13 + Math.floor(e.at * (part.length - 30)) }))
+            .sort((x, y) => y.pos - x.pos);
+          for (const e of placed) {
+            const size = e.kind === 'sub' ? 1 : e.size;
+            if (spent + size > budget) continue;
+            if (e.kind !== 'sub' && gaps + size > Math.min(budget, MAX_INDEL)) continue;
+            const was = copy.charAt(e.pos);
+            if (e.kind === 'sub') {
+              copy = copy.slice(0, e.pos) + (was === 'A' ? 'C' : 'A') + copy.slice(e.pos + 1);
+            } else if (e.kind === 'del') {
+              copy = copy.slice(0, e.pos) + copy.slice(e.pos + size);
+            } else {
+              copy = copy.slice(0, e.pos) + e.bases.slice(0, size) + copy.slice(e.pos);
+            }
+            spent += size;
+            if (e.kind !== 'sub') gaps += size;
+          }
+          let seq = left + (reverse ? reverseComplement(copy) : copy) + right;
+          const r = topology === 'circular' ? rotate % seq.length : 0;
+          seq = seq.slice(r) + seq.slice(0, r);
+          const n = seq.length;
+          const lib = libraryOf([part], ['misc_feature']);
+          const hits = detectFeatures(seq, topology, lib, { minIdentity, protein: false });
+          // Found: on its strand, over the copy, with no more edits than it has.
+          const copyStart = (left.length - r + n) % n;
+          const planted: FeatureHit = {
+            part: 0,
+            range: { start: copyStart, end: copyStart + copy.length },
+            strand: reverse ? 'reverse' : 'forward',
+            mismatches: 0,
+            ambiguous: 0,
+            identity: 1,
+          };
+          const found = hits.find(
+            (h) => h.strand === planted.strand && sharedBases(h, planted, n) > 0,
+          );
+          expect(found).toBeDefined();
+          // A gapped reading is the best one; substitutions are preferred
+          // whenever they explain the copy within the budget, even at more
+          // edits (an indel slid to the end of a run reads as a mismatch
+          // or two there).
+          if (found?.insertions !== undefined) {
+            expect(spentOn(found)).toBeLessThanOrEqual(spent);
+          }
+          // Every whole hit's edits are what an alignment of its bases needs.
+          const unrolled = seq + seq;
+          for (const h of hits) {
+            if (h.partialStart === true || h.partialEnd === true) continue;
+            const q = h.strand === 'forward' ? part : reverseComplement(part);
+            const bases = unrolled.slice(h.range.start, h.range.end);
+            expect(spentOn(h)).toBeLessThanOrEqual(mismatchBudget(part.length, minIdentity));
+            // The part is within the edits it reports of the bases it names.
+            expect(editDistance(q, bases)).toBeLessThanOrEqual(spentOn(h));
+            if (h.insertions === undefined) continue;
+            const gapped = h.insertions + (h.deletions ?? 0);
+            expect(gapped).toBeGreaterThan(0);
+            expect(gapped).toBeLessThanOrEqual(MAX_INDEL);
+            expect(h.identity).toBeGreaterThanOrEqual(minIdentity);
+            seen.gapped++;
+            if (h.strand === 'reverse') seen.reverse++;
+            if (h.range.end > n) seen.overOrigin++;
+          }
+        },
+      ),
+      { seed: 94, numRuns: 400 },
+    );
     for (const [k, v] of Object.entries(seen)) expect(v, k).toBeGreaterThan(20);
   }, 120_000);
 });

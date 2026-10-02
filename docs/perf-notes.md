@@ -581,13 +581,15 @@ walks.
 
 ## Detect features (item 59, 2026-09-25)
 
-| Input                                  | Library                 | Time   | Where                                   |
-| -------------------------------------- | ----------------------- | ------ | --------------------------------------- |
-| 1 Mb random, circular, 8 parts planted | 109 parts (partial)     | 286 ms | Node 24, map lookup per 12-mer          |
-| same                                   | 109 parts               | 47 ms  | Node 24, bitmap before the map          |
-| same                                   | 227 parts, 131,847 bp   | 127 ms | Node 24, `detect.test.ts`               |
-| same                                   | 255 parts, 100 proteins | 888 ms | Node 24, protein match on strings (#93) |
-| same                                   | 255 parts, 100 proteins | 113 ms | Node 24, protein match in codes (#93)   |
+| Input                                  | Library                 | Time   | Where                                      |
+| -------------------------------------- | ----------------------- | ------ | ------------------------------------------ |
+| 1 Mb random, circular, 8 parts planted | 109 parts (partial)     | 286 ms | Node 24, map lookup per 12-mer             |
+| same                                   | 109 parts               | 47 ms  | Node 24, bitmap before the map             |
+| same                                   | 227 parts, 131,847 bp   | 127 ms | Node 24, `detect.test.ts`                  |
+| same                                   | 255 parts, 100 proteins | 888 ms | Node 24, protein match on strings (#93)    |
+| same                                   | 255 parts, 100 proteins | 113 ms | Node 24, protein match in codes (#93)      |
+| same                                   | 269 parts, 100 proteins | 538 ms | Node 24, gapped fill per failed seed (#94) |
+| same                                   | 275 parts, 100 proteins | 171 ms | Node 24, gapped where seeds gather (#94)   |
 
 Both strands, 95% identity. Every 12-mer of the sequence is looked up;
 nearly all are in no part, and a 2 MB bitmap of the words the library holds
@@ -607,6 +609,27 @@ the frames as arrays of five-bit residue codes and rolling the seed word
 through them, with the same kind of bitmap before the map, brought the whole
 search back to 113 ms: 16 ms over the DNA search alone, for a hundred more
 proteins.
+
+Gapped matching (#94, 1.10), measured 2026-10-02 on one machine against
+the code before it with the same 275-part library, alternating runs:
+
+| Run (1 Mb, circular, 8 parts planted) | Before (substitutions) | With indels |
+| ------------------------------------- | ---------------------- | ----------- |
+| First full run (50 kb warm-up before) | 146–154 ms             | 169–174 ms  |
+| Warm, median of 7                     | 99–103 ms              | 101–103 ms  |
+| Warm, DNA search only, median of 7    | 41–42 ms               | 46–52 ms    |
+
+The first version ran a banded edit-distance fill (17 cells a row) wherever
+a seed's diagonal failed its check: 538 ms (against 146 ms then). A chance
+seed against a long part fails its diagonal in a few dozen bases, but the
+fill, with the whole of a long part's budget to spend, runs hundreds of
+rows before it gives up, and a megabase has ~26,000 chance seeds. Now the
+seeds of parts that may match with indels are recorded during the scan,
+sorted by (part, diagonal) afterwards, and the fill runs only where a
+window of neighbouring diagonals holds as many seeds as a match within the
+budget must leave (at least 13): on real copies only. The sort is ~2.5 ms;
+the first run's extra ~20 ms is the fill running cold on those copies,
+which a warm worker does not pay.
 
 ## Residue numbers in the sequence view (item 60, 2026-09-25)
 

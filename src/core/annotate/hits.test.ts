@@ -113,6 +113,30 @@ describe('describing a match', () => {
     );
   });
 
+  it('names the bases inserted and deleted first, so a gapped hit stands out (#94)', () => {
+    expect(describeMatch(hit(0, 99, { insertions: 0, deletions: 1, identity: 99 / 100 }))).toBe(
+      '1 base deleted, 99%',
+    );
+    expect(
+      describeMatch(
+        hit(0, 304, { mismatches: 1, insertions: 4, deletions: 0, identity: 1 - 5 / 304 }),
+      ),
+    ).toBe('4 bases inserted, 1 mismatch, 98.3%');
+    expect(
+      describeMatch(
+        hit(0, 300, { ambiguous: 1, insertions: 2, deletions: 2, identity: 1 - 5 / 302 }),
+      ),
+    ).toBe('2 bases inserted, 2 bases deleted, 1 ambiguous base, 98.3%');
+    // And in the note on the feature it becomes.
+    const f = featureFromHit(
+      hit(0, 860, { insertions: 0, deletions: 1, identity: 860 / 861 }),
+      AMP,
+    );
+    expect(f.qualifiers.at(-1)?.value).toBe(
+      'Detected by PlasmidPop: 1 base deleted, 99.8% to J01749.1 complement(3293..4153)',
+    );
+  });
+
   it('never rounds a near match up to 100%', () => {
     expect(formatIdentity(0.9999)).toBe('99.9%');
     expect(formatIdentity(1)).toBe('100%');

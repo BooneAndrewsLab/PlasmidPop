@@ -43,7 +43,8 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   the RNA elements that matter here (the ColE1-type origins' RNA I/RNA II
   region) are already in the core from the records they were described in.
   Matching an Rfam model would need Infernal-style search, a different tool.
-- **What is in it** (rebuilt 2026-09-26 for #94 and #98): 169 core parts
+- **What is in it** (rebuilt 2026-09-26 for #94 and #98, and again for
+  #94 in 1.10, six parts more): 175 core parts
   (nine of them peptide tags with no DNA) and 100 fluorescent proteins, 26 of which
   are proteins without a coding sequence. Before #93 it was 153 core parts (markers 28, promoters
   25, primer sites 22, origins 16, regulatory 16, terminators 10, tags 8,
@@ -84,13 +85,13 @@ are out: GPL-3.0, and its main set is SnapGene's features.
     annotates as ARS209, "originally referred to as H4 ARS". The pRS
     CEN/ARS vectors carry a longer stretch around it, which is found as
     containing this one.
-  Of the FPs
-  FPbase lists, those without a GenBank protein, with a partial `/coded_by`
-  or whose CDS does not translate to FPbase's sequence (EYFP, ECFP,
-  mTurquoise2, mScarlet, sfGFP, mKate2, TagBFP…) were dropped by the
-  build's own checks. Most of these are short protein tags and FPs whose
-  codons vary between vectors anyway, the case protein-level matching is
-  for.
+    Of the FPs
+    FPbase lists, those without a GenBank protein, with a partial `/coded_by`
+    or whose CDS does not translate to FPbase's sequence (EYFP, ECFP,
+    mTurquoise2, mScarlet, sfGFP, mKate2, TagBFP…) were dropped by the
+    build's own checks. Most of these are short protein tags and FPs whose
+    codons vary between vectors anyway, the case protein-level matching is
+    for.
 
 ## Matching what a part codes for (#93, 1.8)
 
@@ -166,9 +167,9 @@ end passes the length.
   than that always shares a 12-mer with the part, so the search never misses
   a match within its budget. The consequence is that parts under 24 bp match
   exactly, which is also what keeps a primer site from turning up by chance.
-- **Substitutions only.** An indel in a part is not found. For plasmid parts
-  copied from one vector to the next this is the common case; a gapped
-  check (the banded fill of item 46 around the seed) is the step after.
+- **Substitutions first.** The diagonal check counts substitutions only;
+  a copy with an indel is found by the gapped pass below (#94, 1.10), which
+  offers an indel only where substitutions cannot explain the copy.
 - **A part cut off by the end of a linear sequence** (#94, 1.8) is offered
   for the piece that is there: a fragment cut out of a vector ends in the
   middle of whatever it ends in, and saying "the first 380 bases of AmpR"
@@ -207,6 +208,98 @@ alignment; here there are hundreds of short queries against one long
 target, so the index is of the queries and each diagonal is verified
 directly. Only the idea (words of definite bases, rolled two bits at a time)
 is shared.
+
+## Indels (#94, 1.10)
+
+A part with a base or two inserted or deleted — a frameshift, a filled-in
+site, a vector's own small change — was not found at all: past the indel
+every base is off the diagonal the seed named. The issue suggested
+verifying seeds with a banded fill around them, as item 46 aligns reads.
+
+- **A fill per seed was too slow.** The first version ran a banded
+  edit-distance fill wherever a diagonal failed its check: 538 ms on the
+  megabase against 146. A chance seed against a long part fails its
+  diagonal after a few dozen bases, but in a band of 17 cells with the
+  whole of a long part's budget to spend (43 edits for AmpR, 205 for Cas9)
+  a fill runs hundreds of rows before giving up, and there are some 26,000
+  chance seeds in a megabase.
+- **So the fill only goes where the seeds have gathered.** The q-gram
+  lemma holds for edit distance too: a match of L bases with k edits leaves
+  at least L + 1 − 12(k + 1) of the part's 12-mers intact, all on diagonals
+  within the indels' reach of each other. The seeds of each part are
+  recorded during the scan and, after it, sorted by diagonal and swept with
+  a window as wide as the band; only where a window holds that many seeds
+  is the fill run, around the window's middle. A chance word never brings
+  thirteen friends, so in practice the fill runs only on real copies.
+- **The budget for a match with indels is one lower** where the seed cap
+  binds (`indelBudget`: `floor(L / 12) − 2` against `− 1`), which is what
+  makes the count at least 13 rather than 1, and a count of 1 would gate
+  nothing. At the default 95% the identity binds first for any part over
+  60 bases, so nothing changes there; at 90% a short part loses one edit
+  when it has an indel; parts under 36 bases are not looked for with
+  indels at all, as parts under 24 are only found exactly.
+- **Up to 8 bases inserted and deleted in all** (`MAX_INDEL`), and never
+  more than the part's budget: every one spends the budget as a mismatch
+  does, so the identity setting still means what it says. The band is 8
+  either side of the window's middle; a hit whose indels add up to more is
+  dropped, since the band is not sure to hold such a match whole.
+- **The fill is its own** (`gapped.ts`), not `alignInBand`: that one scores
+  reads (affine gaps, a matrix), builds its band from a chain of anchors and
+  allocates per call. Here only the count of edits matters, on the masks
+  the diagonal check already uses, in one buffer kept for the search, and
+  the fill gives up on the first row already over the budget. The whole
+  part is aligned; the sequence's ends are free.
+- **Substitutions first.** A window whose diagonals include one where the
+  part was already found with substitutions only is skipped, and a gapped
+  reading overlapping such a hit of the same part is dropped: an indel in
+  the last few bases of a part costs no more as mismatches, and saying
+  "2 mismatches" there is as true and less surprising. Of several gapped
+  readings of one copy (a run of one base seeds every diagonal) the one
+  with fewest edits is kept.
+- **Not a cut-off part.** At the end of a linear sequence, a part running
+  off it could be read as a run of deletions followed by a base or two
+  that match by chance. Near an end, a gapped reading needs at least 12
+  paired bases outside its outermost indels, and the partial match (#94,
+  1.8) says what is really there. Away from the ends there is no such
+  rule: an indel in a run of one base is placed as early in the run as it
+  can go (or, if that leaves too short a flank at an end, as late), which
+  can be anywhere. The cost is that a part at the very end of a linear
+  sequence whose indel slides along a run to within 12 bases of that end
+  is not found; the property test keeps its copies off the ends for that
+  reason.
+- **A circle's array has edges too.** A copy through the origin was at
+  first also read at the array's start, as the part less its first bases,
+  deleted, and preferred for being longer than the true copy found by
+  substitutions a turn earlier. So the rule at the edges holds on a circle
+  as on a line, the overhang is long enough (`GAPPED_OVERHANG`, the band
+  twice and a seed past the longest part) for the copy a turn on to be
+  found instead, which is moved back a turn, and `substitutionsFirst`
+  compares ranges round the circle.
+- **Through the origin** as before: a hit starts in the first turn and
+  covers no base twice.
+- **What the list says.** A gapped hit carries `insertions` and
+  `deletions` (absent on every other hit), its range is where it lies in
+  the sequence, and its identity is of the alignment's columns, so an
+  insertion counts against it too. `describeMatch` names the indels first —
+  "1 base deleted, 99.8%", "3 bases inserted, 1 mismatch, 98.7%" — so a
+  gapped hit reads differently from a substitution-only one in the list
+  and in the note on the feature it becomes.
+- **Tests.** The slow listing of every placement still checks the
+  substitution-only search hit for hit (with `gapped: false`); a second
+  property test plants a part with random substitutions and indels within
+  the budget, on either strand and through the origin, and checks it is
+  found, that a gapped reading has no more edits than were planted, and
+  that the part is within the edits each hit reports of the bases it
+  names (an unbanded edit distance). fast-check's strings run to long runs
+  of one base, where every diagonal is seeded and an indel can sit anywhere
+  along the run; that is what found the faults at the edges, and 12,000
+  runs over six seeds pass.
+- **Measured** (`docs/perf-notes.md`): the megabase against the whole
+  library, now 275 parts, takes 169–174 ms on its first full run (after a 50 kb warm-up)
+  it against 146–154 ms before, and 101–103 ms against 99–103 ms once warm.
+  Recording the seeds and sorting them (~26,000 in a megabase) is a few
+  milliseconds; the rest of the first run's cost is the fill itself
+  running cold on the few real copies.
 
 ## The worker and the lazy chunk
 
