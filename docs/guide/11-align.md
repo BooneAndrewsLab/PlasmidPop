@@ -56,7 +56,7 @@ whole row is the target, not just the name.
 
 ## A result belongs to its input
 
-A result stays on screen only while it describes what is in the panel.
+A result, under its **Result** header, stays on screen only while it describes what is in the panel.
 Pasting or editing the sequence box, choosing or dropping a file, taking
 another open tab or picking another record **clears** the result (or the
 batch's list) and stops an alignment that is still running, so an old
@@ -64,7 +64,7 @@ result never looks like the new input's. Changing **Mode** or **Against
 selection only** is different, since people tweak these while comparing:
 the result stays but is dimmed and marked "Input changed, align again", and
 its summary line and Large view buttons are disabled until you click
-**Align** again. A Large view window that is already open keeps its own
+**Align** again; the **Result** header above it dims with it. A Large view window that is already open keeps its own
 result until you close it.
 
 ## Aligning a batch of reads

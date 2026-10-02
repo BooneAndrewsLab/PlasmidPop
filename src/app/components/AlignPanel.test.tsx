@@ -305,6 +305,7 @@ describe('AlignPanel', () => {
       fireEvent.change(box(), { target: { value: 'GGCCAATTGGCCA' } });
       expect(screen.queryByText(/identity/)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
+      expect(screen.queryByText('Result', { selector: 'legend' })).toBeNull();
     });
 
     it('clears the result when a file is dropped', async () => {
@@ -354,10 +355,13 @@ describe('AlignPanel', () => {
       await alignedOnce();
       expect(screen.getByRole('button', { name: 'Large view' })).toBeEnabled();
       expect(screen.queryByText(/Input changed, align again/)).toBeNull();
+      const header = screen.getByText('Result', { selector: 'legend' });
+      expect(header.closest('fieldset')).toBeEnabled();
       fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
         target: { value: 'global' },
       });
       expect(screen.getByText(/Input changed, align again/)).toBeInTheDocument();
+      expect(header.closest('fieldset')).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Large view' })).toBeDisabled();
       expect(screen.getByText(/identity 100%/).closest('button')).toBeDisabled();
       // Aligning again makes it current.

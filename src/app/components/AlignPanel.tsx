@@ -1006,6 +1006,7 @@ export function AlignPanel({ doc }: Props) {
           className={`align-results${stale ? ' align-results--stale' : ''}`}
           disabled={stale}
         >
+          <legend>Result</legend>
           <div className="panel__section">
             <h3 className="panel__heading">
               {batch.total} reads
@@ -1049,6 +1050,7 @@ export function AlignPanel({ doc }: Props) {
           className={`align-results${stale ? ' align-results--stale' : ''}`}
           disabled={stale}
         >
+          <legend>Result</legend>
           <AlignmentResult
             key={resultKey}
             result={result}

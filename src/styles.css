@@ -4260,7 +4260,8 @@ button {
   border-radius: 6px;
 }
 
-.align-options legend {
+.align-options legend,
+.align-results legend {
   padding: 0 4px;
   color: var(--ink-2);
 }
