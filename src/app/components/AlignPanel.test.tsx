@@ -287,6 +287,127 @@ describe('AlignPanel', () => {
     spy.mockRestore();
   });
 
+  describe('a result belongs to the input it was made from (#117)', () => {
+    async function alignedOnce(text = 'GGCCAATTGGCC') {
+      render(<AlignPanel doc={doc} />);
+      fireEvent.change(box(), { target: { value: text } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+        target: { value: 'local' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
+      });
+    }
+
+    it('clears the result when the box is edited', async () => {
+      await alignedOnce();
+      fireEvent.change(box(), { target: { value: 'GGCCAATTGGCCA' } });
+      expect(screen.queryByText(/identity/)).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
+    });
+
+    it('clears the result when a file is dropped', async () => {
+      await alignedOnce();
+      fireEvent.drop(box(), fileDrop(new File(['>f\nGGCCAATT\n'], 'f.fa')));
+      await waitFor(() => {
+        expect(screen.queryByText(/identity/)).toBeNull();
+      });
+    });
+
+    it('clears the result when an open tab is chosen', async () => {
+      const other = SeqDocument.create({ name: 'tab two', sequence: 'GGCCAATTGGCC' });
+      act(() => {
+        editorStore.openDocument(other);
+        editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
+      });
+      render(<AlignPanel doc={doc} />);
+      fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
+      });
+      const tab = screen.getByRole('combobox', { name: 'Open tab to align' });
+      fireEvent.change(tab, {
+        target: { value: editorStore.getState().documents[1]?.documentId },
+      });
+      expect(screen.queryByText(/identity/)).toBeNull();
+    });
+
+    it('clears the result when another record is picked', async () => {
+      render(<AlignPanel doc={doc} />);
+      fireEvent.change(box(), { target: { value: '>one\nGGCCAATTGGCC\n>two\nCCCCCCCC\n' } });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
+        target: { value: '0' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/score/)).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
+        target: { value: '1' },
+      });
+      expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
+    });
+
+    it('marks the result stale, with its actions disabled, when the mode changes', async () => {
+      await alignedOnce();
+      expect(screen.getByRole('button', { name: 'Large view' })).toBeEnabled();
+      expect(screen.queryByText(/Input changed, align again/)).toBeNull();
+      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+        target: { value: 'global' },
+      });
+      expect(screen.getByText(/Input changed, align again/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Large view' })).toBeDisabled();
+      expect(screen.getByText(/identity 100%/).closest('button')).toBeDisabled();
+      // Aligning again makes it current.
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.queryByText(/Input changed, align again/)).toBeNull();
+      });
+      expect(screen.getByRole('button', { name: 'Large view' })).toBeEnabled();
+    });
+
+    it('marks the result stale when Against selection only changes', async () => {
+      act(() => {
+        editorStore.setSelection({ start: 4, end: 12 });
+      });
+      render(<AlignPanel doc={doc} />);
+      fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      await waitFor(() => {
+        expect(screen.getByText(/identity/)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Against selection only' }));
+      expect(screen.getByText(/Input changed, align again/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Large view' })).toBeDisabled();
+    });
+
+    it('stops a running alignment when the input changes, and shows no result', async () => {
+      let long: LongRequestOptions = {};
+      const spy = vi
+        .spyOn(analysisClient, 'alignEitherStrand')
+        .mockImplementation((_a, _b, _o, options = {}) => {
+          long = options;
+          return new Promise<StrandedAlignment>((_resolve, rej) => {
+            options.signal?.addEventListener('abort', () => {
+              rej(new AnalysisCancelledError());
+            });
+          });
+        });
+      render(<AlignPanel doc={doc} />);
+      fireEvent.change(box(), { target: { value: 'ACGTACGT' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+      fireEvent.change(box(), { target: { value: 'ACGTACGTA' } });
+      expect(long.signal?.aborted).toBe(true);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Align' })).toBeEnabled();
+      });
+      expect(screen.queryByText(/identity/)).toBeNull();
+      spy.mockRestore();
+    });
+  });
+
   it('stops a running alignment when the panel goes away', () => {
     let long: LongRequestOptions = {};
     const spy = vi

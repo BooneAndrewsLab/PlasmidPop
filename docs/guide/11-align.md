@@ -54,6 +54,19 @@ highlight goes when the pointer or focus leaves, when you edit, or when you
 leave the tab. The same works for each read in a batch's list, where the
 whole row is the target, not just the name.
 
+## A result belongs to its input
+
+A result stays on screen only while it describes what is in the panel.
+Pasting or editing the sequence box, choosing or dropping a file, taking
+another open tab or picking another record **clears** the result (or the
+batch's list) and stops an alignment that is still running, so an old
+result never looks like the new input's. Changing **Mode** or **Against
+selection only** is different, since people tweak these while comparing:
+the result stays but is dimmed and marked "Input changed, align again", and
+its summary line and Large view buttons are disabled until you click
+**Align** again. A Large view window that is already open keeps its own
+result until you close it.
+
 ## Aligning a batch of reads
 
 A FASTQ file of reads, or a FASTA of several Sanger reads, can be aligned
