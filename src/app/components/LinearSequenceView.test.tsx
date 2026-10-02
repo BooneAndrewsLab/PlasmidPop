@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render } from '@testing-library/react';
 
-import { SeqDocument } from '@/core';
+import { SeqDocument, createFeature } from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { LONG_PRESS_MS, LinearSequenceView } from './LinearSequenceView';
@@ -73,6 +73,32 @@ describe('LinearSequenceView', () => {
     // A caret has nothing for it to act on.
     clickColumn(canvas, LEFT_GUTTER + 5 * CHAR_WIDTH);
     expect(bar()).toBeNull();
+  });
+
+  it('puts the selection bar under the translations of a row, not over them (#115)', () => {
+    const barTop = (d: SeqDocument): number => {
+      act(() => {
+        editorStore.openDocument(d);
+        editorStore.setSeqBasesPerRow(120);
+        editorStore.setSelection({ start: 100, end: 150 });
+      });
+      const view = render(<LinearSequenceView doc={d} />);
+      const bar = view.container.querySelector<HTMLElement>('.selection-bar');
+      if (bar === null) throw new Error('no bar');
+      const top = parseFloat(bar.style.top);
+      view.unmount();
+      return top;
+    };
+    const cds = createFeature({
+      id: 'c',
+      type: 'CDS',
+      name: 'orf',
+      segments: [{ kind: 'range', start: 0, end: 600, partialStart: false, partialEnd: false }],
+    });
+    const plain = barTop(doc);
+    const withCds = barTop(SeqDocument.create({ sequence: 'ACGT'.repeat(500), features: [cds] }));
+    // The translation and the feature lane make the row taller; the bar clears both.
+    expect(withCds).toBeGreaterThan(plain + 20);
   });
 
   it('shows no selection bar in the phone reader', () => {

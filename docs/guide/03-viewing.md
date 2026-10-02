@@ -331,7 +331,8 @@ beside it with the commonest of these: **Style ▾** (see
 [Colouring and enlarging bases](04-editing.md#colouring-and-enlarging-bases)),
 **Case ▾** (see [Typing, deleting, replacing](04-editing.md#typing-deleting-replacing)),
 **Add feature** and **Copy**, and how many bases are selected. It sits above
-the selection, or under it where there is no room above for the Style menu,
+the selection, or under its last row, below that row's translations and feature
+lanes, where there is no room above for the Style menu,
 so the selected bases stay in view while you work on them. While the mouse
 is elsewhere (a selection made on the map or from a panel) the bar is faded;
 it comes back in full as soon as the mouse is over the sequence. Clicking a single

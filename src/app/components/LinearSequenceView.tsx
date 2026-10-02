@@ -939,7 +939,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
    * Where the selection bar goes (#89). Above the selection's first row,
    * over its ruler, with the Style menu opening upwards, when there is room
    * for the menu there; otherwise under the selection's last row with the
-   * menu opening downwards. Either way the menu leaves the selected bases in
+   * menu opening downwards. The lower place is under the row's translations
+   * and feature lanes, never over them (#115). Either way the menu leaves the selected bases in
    * sight while it restyles them. Failing both, above with the menu down.
    * Null when there is no range selected, or neither place is on screen.
    */
@@ -957,7 +958,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       top >= scrollTop + 4 && top <= bottom - SELECTION_BAR_HEIGHT;
     const above = first.top + metrics.rulerHeight - SELECTION_BAR_HEIGHT;
     const aboveAt = { left: clampLeft(layout.xOf(first, start)), top: above };
-    const below = layout.forwardTextTop(end) + layout.strandsHeight(end) + 4;
+    // Under the whole row, its translations and feature lanes included (#115).
+    const below = end.top + end.height + 2;
     const belowAt = { left: clampLeft(layout.xOf(end, last)), top: below };
     if (onScreen(above) && above - scrollTop >= STYLE_MENU_HEIGHT) {
       return { ...aboveAt, menuOpens: 'up' };
