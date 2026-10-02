@@ -90,7 +90,7 @@ protein downloads as GenPept.
 **SnapGene `.rna`** files open as a nucleotide document with the molecule type
 RNA: the bases, every feature (rRNA, tRNA, modified bases, variations) and the
 notes, as a `.dna` file's are. SnapGene writes an RNA with T where the RNA has
-U, and so does the editor, as GenBank does; a GenBank download names the
+U, and so does the editor for now, as GenBank does; a GenBank download names the
 molecule `RNA` on its LOCUS line. The file does not say whether the RNA is
 single- or double-stranded, so nothing here does either, and it opens linear.
 

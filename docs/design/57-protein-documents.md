@@ -223,6 +223,7 @@ show:
   changes behaviour (translation, digests and so on act on the bases as they
   do for DNA). Converting to U for display, or a real RNA alphabet, would be
   a larger change with no sample to say what it should do; not done.
+  Decided 2026-10-02 to keep T for now; showing U is #113.
 - **Checked against SnapGene itself.** Both files annotate single bases by
   what they are: a `modified_base` is named for the base it modifies (`m1a`,
   `m2g`, `cm`, `um`, `p` for pseudouridine), and each of the 16S file's 18
