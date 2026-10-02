@@ -638,6 +638,8 @@ describe('AlignPanel', () => {
     // Pointing at the heading draws the region in the views, through the origin,
     // and leaves the selection alone (#108).
     const heading = screen.getByRole('button', { name: /^(Global|Local) alignment/ });
+    // It says what it does (#116).
+    expect(heading).toHaveAttribute('title', expect.stringContaining('Show in document'));
     act(() => {
       editorStore.setSelection({ start: 5, end: 9 });
     });

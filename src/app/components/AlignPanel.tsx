@@ -309,7 +309,7 @@ function AlignmentResult({
         <button
           type="button"
           className="panel__heading-pick"
-          title="Point at the aligned region in the document; click to select it"
+          title="Show in document: hover to see the aligned region, click to select it"
           {...pointing.handlers}
           onClick={pointing.select}
         >

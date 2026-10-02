@@ -43,11 +43,11 @@ for a side panel: click **Large view** to read it in a window of its own,
 along the whole sequence (see below). Identity counts only the identical
 columns.
 
-Point at the result's heading (hover it, or Tab to it) to see where the
+Point at the result's summary line (a bordered button with a › at its end; hover it, or Tab to it) to see where the
 alignment sits: the region it covers is drawn in the map and the sequence
 view, in the same dashed purple as other previews, without touching your
 selection. A region that runs through the origin of a circular plasmid is
-drawn at both ends. Click the heading (or press Enter) to select the
+drawn at both ends. Click it (or press Enter) to select the
 covered bases, so you can annotate or copy them, and scroll to them; the
 highlight steps aside for the selection. On a phone, tap to select. The
 highlight goes when the pointer or focus leaves, when you edit, or when you

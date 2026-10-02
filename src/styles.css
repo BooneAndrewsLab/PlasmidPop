@@ -1181,21 +1181,47 @@ button {
   color: var(--ink-2);
 }
 
-/* The alignment heading is a button: pointing at it finds the region (#108). */
+/* The alignment heading is a button: pointing at it finds the region (#108),
+   so it looks like one, as the batch list's rows do (#116). */
 .panel__heading-pick {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   font: inherit;
   color: inherit;
   background: none;
-  border: 0;
-  padding: 0;
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.3));
+  border-radius: 4px;
+  padding: 4px 22px 4px 6px;
+  position: relative;
   cursor: pointer;
   text-align: inherit;
 }
 
+.panel__heading-pick::after {
+  content: '\203A';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--ink-3);
+}
+
 .panel__heading-pick:hover,
 .panel__heading-pick:focus-visible {
-  text-decoration: underline;
-  text-decoration-color: var(--seq-preview, currentColor);
+  background: var(--hover-bg, rgba(127, 127, 127, 0.12));
+  border-color: var(--seq-preview, currentColor);
+}
+
+.panel__heading-pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.panel__heading-pick .panel__heading-note {
+  margin-left: 0;
+  display: block;
 }
 
 .panel__heading-note {
