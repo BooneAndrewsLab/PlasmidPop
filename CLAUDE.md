@@ -91,7 +91,18 @@ working with no account and no server round-trip.
 
 ## Status (2026-09-26)
 
-**1.9.0** (2026-09-29) is the current release: alignment in a large view
+**1.10.0** (2026-10-02) is the current release: follow-ups to detection and
+protein documents (#94, #95, #112). Detect features finds a part with small
+indels (up to 8 bases, banded fill around shared 12-mer seeds), takes parts
+that must match exactly (lacUV5) and has the tet operator, TRE, T7lac, H1
+promoter and ARSH4. SnapGene .prot opens as a protein document and .rna as an
+RNA one (kept as T for now, #113); the GenBank writer keeps `order(...)` on a
+feature and writes a qualifier's line break as a space. The alignment window
+gains an Amino acids option: the document's CDS residues under the reference
+and under each sample, shaded where a codon changes the residue (item 62).
+Mutation score 92.45% over all modules; `detect.ts` 79.1% after tests for its
+survivors, most of the rest shadowed by `keepBest` or performance-only.
+**1.9.0** (2026-09-29) was: alignment in a large view
 (item 62, #102–#111). Align's results open in a dialog with samples stacked
 under one scroll, an overview strip of differences and a viewport rectangle,
 and next/previous difference; the document's features and ORFs sit in a track
