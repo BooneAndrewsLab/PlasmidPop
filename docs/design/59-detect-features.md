@@ -89,9 +89,12 @@ are out: GPL-3.0, and its main set is SnapGene's features.
     — a convention, said so in the note. It stops short because pSUPER-type
     vectors replace those last 8 bases with their cloning site: in
     `HQ416701` the full 223 bp was found at 98% with 4 mismatches, all in
-    the 8, and missed at 100%. `MH749464` is an H1/TO promoter with a tet
-    operator inside its 3′ end, so it is left unmatched at 95%, which is
-    right: it is a different promoter, not the H1 with a change;
+    the 8, and missed at 100%; the 215 bp part is found there exactly at
+    every setting. `MH749464` is an H1/TO promoter with a tet operator
+    inside its 3′ end: the full 223 bp was missed at 95%, and the shorter
+    part is found there at 95% and 90% as a gapped near match (6 edits at
+    95%), listed beside the tet operator. That reads right for an H1-derived
+    promoter: the indel wording shows it is not the plain H1;
   - **ARSH4**, the 86 bp `rep_origin` the chromosome II RefSeq (`NC_001134`)
     annotates as ARS209, "originally referred to as H4 ARS". The pRS
     CEN/ARS vectors carry a longer stretch around it, which is found as
