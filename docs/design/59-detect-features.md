@@ -61,10 +61,30 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   in 1.8: Cas9 (the CDS of `NC_002737`), CEN4 (`NC_001136`), the RSV 5' LTR
   (`J02342`), oriP (`V01555`, the family of repeats through the dyad
   symmetry), RK2's oriV (`BN000925`), R6K's gamma origin (`M65025`) and the
-  SP6 promoter (`X65327`, pSP64). Still out: TRE/tetO arrays, T7lac, lacUV5
-  and the H1 promoter, and ARSH4. Every vector record that annotates them
-  and was looked at carries SnapGene-generated annotation, which item 59
-  rules out as a source; they need a primary record or a probe against one. Of the FPs
+  SP6 promoter (`X65327`, pSP64). The last six came in for #94 (1.10), 175
+  core parts now, none from a SnapGene-annotated record:
+  - the **tet operator**, a probe of the 19 bp TetR site found once in Tn10
+    (`J01830`; the second operator differs in one base);
+  - the **TRE**, the seven-operator array as annotated in Gossen and Bujard's
+    own pTRE (pUHD10-3, `U89931`, Clontech 1997);
+  - **lacUV5**, as annotated in the primary sequence of prophage DE3
+    (`NC_042057`), where it drives T7 RNA polymerase;
+  - **T7lac**, the T7 promoter running into the lac operator, from
+    `Z32692` (pT7T7, Chen 1994): a vector record, but one with no
+    annotation of its own whose reference table places the T7 promoter and
+    the lac operator (citing Dubendorff and Studier 1991); its 44 bases are
+    those pET-11c annotates as T7lac. The weakest citation in the core, and
+    the note says where the bounds came from;
+  - the **H1 promoter**, from the human H1 RNA gene (`X16612`), which
+    annotates only its TATA box and transcript: the part ends at the base
+    before the transcript, and starts where the H1 promoters of two shRNA
+    vector records (`HQ416701`, `MH749464`) start — a convention, said so
+    in the note;
+  - **ARSH4**, the 86 bp `rep_origin` the chromosome II RefSeq (`NC_001134`)
+    annotates as ARS209, "originally referred to as H4 ARS". The pRS
+    CEN/ARS vectors carry a longer stretch around it, which is found as
+    containing this one.
+  Of the FPs
   FPbase lists, those without a GenBank protein, with a partial `/coded_by`
   or whose CDS does not translate to FPbase's sequence (EYFP, ECFP,
   mTurquoise2, mScarlet, sfGFP, mKate2, TagBFP…) were dropped by the
