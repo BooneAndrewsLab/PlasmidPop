@@ -93,7 +93,7 @@ only be noise.
   nonsense — and the panel asks for _residues_, reads pasted letters with
   the document's alphabet, and is a tab a protein has (`hasTool`).
 - **`order(...)` kept** (#95, 1.10); see below.
-- **SnapGene `.prot` files** (#95, 1.10); see below.
+- **SnapGene `.prot` files** (#95, 1.10) and **`.rna`** (#112); see below.
 
 ## Reading the alphabet from a file
 
@@ -194,6 +194,48 @@ layout and reads the real two when SnapGene is installed.
   the GenBank writer wrote as they were, so a GenPept download lost every
   feature after the first such note. The writer now writes a break as the
   space a GenBank reader joins lines with.
+
+**SnapGene `.rna`** (#112) is the same container again, from the two
+SnapGene 8.2 samples (`ECO 16S rRNA.rna`, 1541 nt, J01859; `Homo sapiens
+mitochondrial tRNA-Ala.rna`, 72 nt, LC530712), not committed. What the bytes
+show:
+
+- Cookie kind **7** (export 15, import 19, as in the others). The bases are in
+  packet **0x20** (0x00 is absent), after a flags byte that is 0 in both files
+  and is not read: the DNA's bits are topology and methylation, and nothing
+  shows what an RNA's would be, so a document opens linear with the default
+  methylation (a `.dna` bit 0 set would otherwise make a circle).
+- **T, never U**: neither file has a `U` anywhere in its sequence. The 16S
+  file's bases are lowercase, the tRNA's uppercase; both are read as written.
+- Features (0x0A), notes (0x06), properties (0x08, stickiness 0 and
+  Unmodified; not read for an RNA), an empty primers packet (0x05) and display
+  settings (0x0D) are a `.dna`'s, ranges in bases. The history packets 0x07
+  and 0x0B of the tRNA are carried as in a `.dna`. The source feature's
+  `mol_type` is `rRNA` / `tRNA`; the notes' `SequenceClass` is `UNA`, as in
+  every file. No packet says single- or double-stranded.
+- **Representation.** There is no RNA alphabet: the model's nucleotide
+  alphabet already takes `U` (IUPAC, complement `U` to `A`, restriction
+  patterns map `U` to `T`), but SnapGene and GenBank both spell an RNA's bases
+  with T, so the sequence stays as read and the **molecule type `RNA`** is
+  what says it is RNA, the way a GenBank record's LOCUS does. It is a field
+  of the metadata, already kept from GenBank, so a download writes `RNA`
+  on the LOCUS line and a reopened file keeps it, and nothing in the editor
+  changes behaviour (translation, digests and so on act on the bases as they
+  do for DNA). Converting to U for display, or a real RNA alphabet, would be
+  a larger change with no sample to say what it should do; not done.
+- **Checked against SnapGene itself.** Both files annotate single bases by
+  what they are: a `modified_base` is named for the base it modifies (`m1a`,
+  `m2g`, `cm`, `um`, `p` for pseudouridine), and each of the 16S file's 18
+  `variation` features has a note beginning with the base found there ("g in
+  major species; c in undetermined species"). The local test requires the
+  base we read under every such feature to match (all 25 do, so the packet
+  and the ranges are right to the base). A reader-independent oracle does not
+  exist: Biopython's SnapGene parser needs packet 0x00.
+- **The other two open points of #112 stay as documented.** The samples have
+  no multi-segment `Site` and no `.prot`, so they shed no light on whether a
+  split site is `order(...)` (still read as a join) or on the `.prot` flags
+  byte (still 0 in both samples, not read). The `.rna` flags byte is likewise
+  0 in both and not read.
 
 ## Properties: what ProtParam computes
 

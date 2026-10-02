@@ -7,7 +7,7 @@
 | GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape`     | yes  | yes                  |
 | GenPept    | `.gp` `.gpff`                              | yes  | yes, for a protein   |
 | FASTA      | `.fa` `.fasta` `.fna` `.faa` `.seq` `.txt` | yes  | export               |
-| SnapGene   | `.dna`, and `.prot` for a protein          | yes  | no                   |
+| SnapGene   | `.dna`, `.rna`, and `.prot` for a protein  | yes  | no                   |
 | AB1        | `.ab1` `.abi`                              | yes  | as GenBank, or FASTQ |
 | FASTQ      | `.fastq` `.fq`, gzipped or not             | yes  | as GenBank, or FASTQ |
 | Bare bases | `.txt`, or pasted                          | yes  | as GenBank           |
@@ -85,7 +85,14 @@ came in twice — reopen the `.dna` file to get them right.
 **SnapGene `.prot`** files open as [protein documents](16-proteins.md): the
 residues, every feature (domains, regions, sites, with their colours) on the
 residues SnapGene shows them on, and the notes, as a `.dna` file's are. A
-protein downloads as GenPept. SnapGene's RNA files (`.rna`) are not read yet.
+protein downloads as GenPept.
+
+**SnapGene `.rna`** files open as a nucleotide document with the molecule type
+RNA: the bases, every feature (rRNA, tRNA, modified bases, variations) and the
+notes, as a `.dna` file's are. SnapGene writes an RNA with T where the RNA has
+U, and so does the editor, as GenBank does; a GenBank download names the
+molecule `RNA` on its LOCUS line. The file does not say whether the RNA is
+single- or double-stranded, so nothing here does either, and it opens linear.
 
 **Geneious** files are not supported. Export them as GenBank first.
 

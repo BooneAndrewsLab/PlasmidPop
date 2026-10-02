@@ -35,7 +35,7 @@ export const SEQUENCE_FILE_TYPES: readonly FilePickerType[] = [
     accept: {
       'chemical/seq-na-genbank': ['.gb', '.gbk', '.genbank', '.gbff', '.ape'],
       'chemical/seq-na-fasta': ['.fa', '.fasta', '.fna', '.seq'],
-      'application/vnd.snapgene': ['.dna', '.prot'],
+      'application/vnd.snapgene': ['.dna', '.prot', '.rna'],
     },
   },
 ];

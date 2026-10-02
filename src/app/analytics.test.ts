@@ -169,6 +169,7 @@ describe('formatOfFileName', () => {
     expect(formatOfFileName('x.fasta')).toBe('fasta');
     expect(formatOfFileName('my plasmid.dna')).toBe('snapgene');
     expect(formatOfFileName('KPYK1_ECOLI.prot')).toBe('snapgene');
+    expect(formatOfFileName('ECO 16S rRNA.rna')).toBe('snapgene');
     expect(formatOfFileName('lab-notes-for-project-x.docx')).toBe('other');
     expect(formatOfFileName('no-extension')).toBe('other');
   });

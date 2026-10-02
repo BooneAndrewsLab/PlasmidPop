@@ -42,3 +42,7 @@ reads them — the same assumptions on both sides.
   protein reader, so the check there is SnapGene's own `/calculated_mol_wt`
   on every feature against ours (item 57, "Reading the alphabet from a
   file").
+- **`.rna`** (#112): cookie kind 7, bases in packet 0x20; read as a
+  nucleotide document whose molecule type is RNA. Biopython does not read
+  it either (no 0x00 packet), so the check is SnapGene's own annotations
+  against the bases we read (item 57, "SnapGene `.rna`").
