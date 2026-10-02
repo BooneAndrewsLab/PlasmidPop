@@ -73,3 +73,23 @@ export function listLocalSnapGeneProteinFiles(): { name: string; data: Uint8Arra
   }
   return out;
 }
+
+/**
+ * Real SnapGene .rna files (#112): the two SnapGene ships as samples, and any
+ * under fixtures/local. Never committed; tests using them skip elsewhere.
+ */
+export function listLocalSnapGeneRnaFiles(): { name: string; data: Uint8Array }[] {
+  const out: { name: string; data: Uint8Array }[] = [];
+  const dirs = [
+    join(SNAPGENE_RESOURCES, 'sampleData/Sample project/4. Sample Files/RNA files'),
+    join(root, 'fixtures/local'),
+  ];
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)
+      .filter((x) => x.toLowerCase().endsWith('.rna'))
+      .sort())
+      out.push({ name: f, data: new Uint8Array(readFileSync(join(dir, f))) });
+  }
+  return out;
+}
