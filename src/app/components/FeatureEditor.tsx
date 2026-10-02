@@ -95,9 +95,12 @@ export function FeatureEditor({ doc, feature }: Props) {
 
   let locationError: string | null = null;
   let segments = feature.segments;
+  let joining = feature.joining;
   try {
     const parsed = parseLocation(location, doc.length, doc.topology);
     segments = parsed.segments;
+    // Typing join(…) for an order(…), or the other way round, changes it (#95).
+    joining = parsed.joining;
     if (parsed.strand === 'reverse')
       locationError = 'Choose the strand with the selector instead of complement(…).';
     else if (parsed.warnings.length > 0) locationError = parsed.warnings[0] ?? null;
@@ -119,7 +122,14 @@ export function FeatureEditor({ doc, feature }: Props) {
     editorStore.apply({
       type: 'updateFeature',
       id: feature.id,
-      patch: { name: name.trim(), type: type.trim(), strand, segments, qualifiers: cleaned },
+      patch: {
+        name: name.trim(),
+        type: type.trim(),
+        strand,
+        segments,
+        joining,
+        qualifiers: cleaned,
+      },
     });
     editorStore.editFeature(null);
   };

@@ -103,8 +103,14 @@ describe('GenPept (#66)', () => {
     expect(region?.segments[0]).toMatchObject({ start: 7, end: 146 });
     const cds = doc.features.all().find((f) => f.type === 'CDS');
     expect(cds?.qualifiers).toContainEqual({ name: 'coded_by', value: 'NM_000518.5:51..494' });
-    // No LOCUS length mismatch, no unreadable feature.
-    expect(result.warnings.filter((w) => !w.message.includes('order('))).toEqual([]);
+    // No LOCUS length mismatch, no unreadable feature, and order(...) is kept
+    // rather than warned about (#95).
+    expect(result.warnings).toEqual([]);
+    const sites = doc.features.all().filter((f) => f.type === 'Site');
+    expect(sites.length).toBeGreaterThan(0);
+    expect(sites.filter((f) => f.segments.length > 1).every((f) => f.joining === 'order')).toBe(
+      true,
+    );
   });
 
   it('writes a GenPept LOCUS line, in NCBI’s columns', () => {
@@ -124,6 +130,11 @@ describe('GenPept (#66)', () => {
     const back = only(parseGenBank(written).documents);
     expect(fingerprint(back)).toEqual(fingerprint(doc));
     expect(writeGenBank(back)).toBe(written);
+    // The Sites go back out as the order(...) they came in as.
+    expect(written).toContain(
+      '     Site            order(31,34..35,38,41,98,100,103,109,112..113,116..117,',
+    );
+    expect(written).not.toMatch(/Site {12}join\(/);
     const insulin = only(parseGenBank(readFixture('NP_000198.gp')).documents);
     expect(fingerprint(only(parseGenBank(writeGenBank(insulin)).documents))).toEqual(
       fingerprint(insulin),

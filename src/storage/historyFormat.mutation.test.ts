@@ -212,6 +212,7 @@ describe('isStoredHistory', () => {
     ['a landmark of none', () => row({ opened: { kind: 'none' }, saved: { kind: 'origin' } })],
     ['no named states', () => row({ named: undefined })],
     ['a range beside a site', () => withSegment(range({}))],
+    ['a feature listed as an order(...)', () => withFeature({ joining: 'order' })],
     ['a named state of its own', () => withNamed({})],
   ])('accepts %s', (_, make) => {
     expect(isStoredHistory(make())).toBe(true);
@@ -238,6 +239,7 @@ describe('isStoredHistory', () => {
     ['a feature that is not an object', () => row({ base: state({ features: [null] }) })],
     ['a feature without an id', () => withFeature({ id: 1 })],
     ['a feature without a type', () => withFeature({ type: undefined })],
+    ['a feature joined some other way', () => withFeature({ joining: 'join' })],
     ['a feature without a name', () => withFeature({ name: null })],
     ['a feature on no strand', () => withFeature({ strand: 'both' })],
     ['a feature whose segments are not a list', () => withFeature({ segments: { kind: 'site' } })],

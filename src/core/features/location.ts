@@ -1,5 +1,5 @@
 import { type Topology, rangePieces } from '../range';
-import { type Strand } from './feature';
+import { type SegmentJoining, type Strand } from './feature';
 import { type Segment, rangeSegment, siteSegment } from './segment';
 
 /**
@@ -127,6 +127,8 @@ class LocationParser {
 export interface FeatureLocation {
   readonly strand: Strand;
   readonly segments: readonly Segment[];
+  /** `'order'` for GenBank's `order(...)`; absent for `join(...)` (#95). */
+  readonly joining?: SegmentJoining | undefined;
 }
 
 export interface ParsedLocation extends FeatureLocation {
@@ -138,17 +140,33 @@ interface FlatPart {
   readonly complemented: boolean;
 }
 
-function flatten(node: LocNode, complemented: boolean, out: FlatPart[], warnings: string[]): void {
+/**
+ * The parts of a location in the order it lists them. `top` is the list the
+ * location is made of (under any outer `complement`), whose operator becomes
+ * the feature's `joining`; a list of the other kind nested inside it cannot
+ * be kept, since a feature has one operator for all its segments, and is
+ * flattened into it with a warning.
+ */
+function flatten(
+  node: LocNode,
+  complemented: boolean,
+  top: LocNode,
+  out: FlatPart[],
+  warnings: string[],
+): void {
   switch (node.kind) {
     case 'complement':
-      flatten(node.inner, !complemented, out, warnings);
+      flatten(node.inner, !complemented, top, out, warnings);
       return;
     case 'order':
-      warnings.push('order(...) location treated as join(...)');
-      for (const part of node.parts) flatten(part, complemented, out, warnings);
-      return;
     case 'join':
-      for (const part of node.parts) flatten(part, complemented, out, warnings);
+      if (node !== top && top.kind !== node.kind)
+        warnings.push(
+          top.kind === 'order'
+            ? 'join(...) inside order(...) flattened into the order'
+            : 'order(...) inside join(...) treated as join(...)',
+        );
+      for (const part of node.parts) flatten(part, complemented, top, out, warnings);
       return;
     case 'range':
     case 'point':
@@ -240,15 +258,16 @@ export function parseLocation(text: string, seqLength: number, topology: Topolog
   let strand: Strand = 'forward';
   let reverseOrder = false;
 
+  const top = root.kind === 'complement' ? root.inner : root;
   if (root.kind === 'complement') {
     // complement(join(a..b, c..d)): parts are listed in forward order.
     strand = 'reverse';
-    flatten(root.inner, false, parts, warnings);
+    flatten(root.inner, false, top, parts, warnings);
     if (parts.some((p) => p.complemented)) {
       warnings.push('nested complement() inside complement(); inner strands ignored');
     }
   } else {
-    flatten(root, false, parts, warnings);
+    flatten(root, false, top, parts, warnings);
     const complemented = parts.filter((p) => p.complemented).length;
     if (complemented === parts.length && parts.length > 0) {
       // join(complement(c..d), complement(a..b)): listed in transcript order,
@@ -265,7 +284,9 @@ export function parseLocation(text: string, seqLength: number, topology: Topolog
   const ordered = reverseOrder ? [...parts].reverse() : parts;
   const raw = ordered.map((p) => simpleToSegment(p.node, seqLength, topology, warnings));
   const segments = topology === 'circular' ? mergeOriginSpanning(raw, seqLength) : raw;
-  return { strand, segments, warnings };
+  return top.kind === 'order'
+    ? { strand, segments, joining: 'order', warnings }
+    : { strand, segments, warnings };
 }
 
 // ------------------------------------------------------------------ writing
@@ -300,13 +321,19 @@ function formatSegment(seg: Segment, seqLength: number, topology: Topology): str
   );
 }
 
-/** Location string for a feature, using `join(...)` for multi-part and origin-spanning locations. */
+/**
+ * Location string for a feature, using `join(...)` for multi-part and
+ * origin-spanning locations, or `order(...)` for a feature whose `joining`
+ * says so. An origin-spanning segment of an `order` is written as its two
+ * pieces in the list, which `parseLocation` merges back into one.
+ */
 export function formatLocation(
   feature: FeatureLocation,
   seqLength: number,
   topology: Topology,
 ): string {
   const pieces = feature.segments.flatMap((seg) => formatSegment(seg, seqLength, topology));
-  const body = pieces.length === 1 ? (pieces[0] ?? '') : `join(${pieces.join(',')})`;
+  const operator = feature.joining === 'order' ? 'order' : 'join';
+  const body = pieces.length === 1 ? (pieces[0] ?? '') : `${operator}(${pieces.join(',')})`;
   return feature.strand === 'reverse' ? `complement(${body})` : body;
 }

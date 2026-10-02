@@ -190,6 +190,8 @@ export function featuresOntoProtein(
         // the DNA is on it either way, as its codons are.
         strand: 'forward',
         segments: segments.sort((a, b) => a.start - b.start),
+        // A DNA feature's order(...) of sites is an order of residues too.
+        joining: feature.joining,
         qualifiers: feature.qualifiers,
       }),
     );

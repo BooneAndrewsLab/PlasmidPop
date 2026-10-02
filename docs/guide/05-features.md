@@ -9,8 +9,10 @@ anything you annotate travels with the file.
 
 Each row shows the feature's colour, its name (or type when it has no name),
 its type and its location in GenBank notation: `complement(1234..1500)` for a
-reverse-strand feature, `join(...)` for a feature in several pieces, and a
-range like `4200..150` for one that wraps the origin of a circular sequence.
+reverse-strand feature, `join(...)` for a feature in several pieces,
+`order(...)` for pieces listed but not joined (a binding site's residues, as
+GenPept has them), and a range like `4200..150` for one that wraps the origin
+of a circular sequence.
 
 - **Click** a row to select the feature. Both views scroll to it and
   highlight its bases.
@@ -161,7 +163,9 @@ protein or tag written with other codons is not found, and some short tags
 - **Location**, 1-based inclusive, in GenBank syntax without the
   `complement(...)` wrapper (use the strand selector for that):
   `100..450` for a range, `join(100..200,300..450)` for several pieces,
-  `4000..120` to wrap the origin of a circular sequence, `<100..450` or
+  `order(100..200,300..450)` for pieces that are listed together but not
+  one stretch of sequence, `4000..120` to wrap the origin of a circular
+  sequence, `<100..450` or
   `100..>450` for partial ends. Invalid input is explained under the field
   and disables saving.
 - **Qualifiers**: the `/name="value"` pairs of the GenBank table, such as

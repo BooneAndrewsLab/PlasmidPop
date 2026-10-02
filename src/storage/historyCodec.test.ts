@@ -153,6 +153,22 @@ describe('encodeHistory / decodeHistory', () => {
     expect(historyView(roundTrip(row).history)).toEqual(historyView(h));
   });
 
+  it('stores a join turned into an order(...) and back as an edit of that feature (#95)', () => {
+    const ordered = plasmid.updateFeature('split', { joining: 'order' });
+    const joined = ordered.updateFeature('split', { joining: undefined });
+    const h = History.create(plasmid, { at: 0 })
+      .push(ordered, 'Edit feature', 1)
+      .push(joined, 'Edit feature', 2);
+    const row = encodeHistory('d', input(h));
+    const features = row?.steps.map((s) => s.delta.features);
+    expect(features?.[0]).toMatchObject({ upserted: [{ id: 'split', joining: 'order' }] });
+    expect(features?.[1]).toMatchObject({ upserted: [{ id: 'split' }] });
+    expect(features?.[1]).not.toMatchObject({ upserted: [{ joining: 'order' }] });
+    const back = roundTrip(row).history;
+    expect(back.stateAt(1)?.getFeature('split')?.joining).toBe('order');
+    expect(back.present.getFeature('split')?.joining).toBeUndefined();
+  });
+
   it('keeps the name, topology, description, ends and host of every state', () => {
     const linear = plasmid.setTopology('linear');
     const ended = linear.setEnds({

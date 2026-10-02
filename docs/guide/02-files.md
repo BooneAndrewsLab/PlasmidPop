@@ -20,7 +20,11 @@ base: see [Sequencing reads](15-reads.md).
 
 **GenBank** is the native format: sequence, topology, definition, accession,
 references, and every feature with its full location (`complement(...)`,
-`join(...)`, partial ends, ranges that wrap the origin) and qualifiers.
+`join(...)`, `order(...)`, partial ends, ranges that wrap the origin) and
+qualifiers. An `order(...)` stays one, through edits and back out to a file;
+the one location PlasmidPop cannot keep is one operator nested inside the
+other, such as a `join(...)` inside an `order(...)`, which is read as the
+outer one with a warning.
 A download writes a standard GenBank flat file that other programs can read.
 Anything PlasmidPop does not understand in a record is reported as a warning
 in the status bar rather than silently dropped. So is a record that

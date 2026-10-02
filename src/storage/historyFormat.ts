@@ -210,6 +210,8 @@ export function isStoredFeature(v: unknown): v is Feature {
     Array.isArray(v['segments']) &&
     v['segments'].length > 0 &&
     v['segments'].every(isSegment) &&
+    // Absent before #95, and for every join(...) since.
+    (v['joining'] === undefined || v['joining'] === 'order') &&
     Array.isArray(v['qualifiers']) &&
     v['qualifiers'].every(isQualifier)
   );

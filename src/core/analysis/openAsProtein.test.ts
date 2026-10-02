@@ -273,4 +273,22 @@ describe('features carried onto the protein (#95)', () => {
     // The bases in the intron map to nothing; the two ends map to residues.
     expect(carried(protein)[0]?.segments[0]).toMatchObject({ start: 1, end: 3 });
   });
+
+  it('keeps an order(...) of sites an order of residues', () => {
+    // Codons 1 and 4 (K and C), listed rather than joined.
+    const sites = createFeature({
+      type: 'misc_feature',
+      name: 'contacts',
+      joining: 'order',
+      segments: [rangeSegment(9, 12), rangeSegment(21, 24)],
+    });
+    const [onProtein] = carried(proteinOf([cdsAt(), sites]));
+    expect(onProtein?.joining).toBe('order');
+    expect(onProtein?.segments).toMatchObject([
+      { start: 1, end: 2 },
+      { start: 5, end: 6 },
+    ]);
+    const joined = createFeature({ ...sites, joining: undefined });
+    expect(carried(proteinOf([cdsAt(), joined]))[0]?.joining).toBeUndefined();
+  });
 });

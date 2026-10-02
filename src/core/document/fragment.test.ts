@@ -63,6 +63,33 @@ describe('fragment JSON', () => {
     ]);
   });
 
+  it('keeps an order(...) feature an order, and refuses a joining it does not know (#95)', () => {
+    const sites = createFeature({
+      id: 'o',
+      type: 'Site',
+      joining: 'order',
+      segments: [rangeSegment(0, 1), rangeSegment(3, 4)],
+    });
+    const frag = { sequence: 'ACGTACGT', features: [sites] };
+    const back = parseFragmentJSON(fragmentToJSON(frag));
+    expect(back?.features[0]?.joining).toBe('order');
+    expect(back).toEqual(frag);
+    const plain = parseFragmentJSON(
+      fragmentToJSON({
+        sequence: 'ACGT',
+        features: [createFeature({ ...sites, joining: undefined })],
+      }),
+    );
+    expect(plain?.features[0]).not.toHaveProperty('joining');
+    const odd = JSON.stringify({
+      format: 'plasmidpop-fragment',
+      version: 1,
+      sequence: 'ACGTACGT',
+      features: [{ ...sites, joining: 'splice' }],
+    });
+    expect(parseFragmentJSON(odd)).toBeNull();
+  });
+
   it('accepts a fragment without features', () => {
     expect(parseFragmentJSON(fragmentToJSON({ sequence: 'ACGT', features: [] }))).toEqual({
       sequence: 'ACGT',

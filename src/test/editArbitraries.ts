@@ -44,6 +44,8 @@ export interface FeatureShape {
   readonly type: string;
   /** A site between two bases (GenBank `5^6`) rather than a range. */
   readonly site: boolean;
+  /** GenBank `order(...)` rather than `join(...)` (#95): every edit must keep it. */
+  readonly order: boolean;
 }
 
 const featureShapeArb: fc.Arbitrary<FeatureShape> = fc.record({
@@ -54,6 +56,10 @@ const featureShapeArb: fc.Arbitrary<FeatureShape> = fc.record({
   type: fc.constantFrom('gene', 'CDS', 'misc_feature', 'promoter'),
   site: fc.oneof(
     { arbitrary: fc.constant(false), weight: 6 },
+    { arbitrary: fc.constant(true), weight: 1 },
+  ),
+  order: fc.oneof(
+    { arbitrary: fc.constant(false), weight: 3 },
     { arbitrary: fc.constant(true), weight: 1 },
   ),
 });
@@ -72,7 +78,12 @@ export function layFeature(
 ): Feature | null {
   if (shape.site) {
     const gaps = topology === 'circular' ? Math.max(length, 1) : length + 1;
-    return createFeature({ id, type: shape.type, segments: [siteSegment(shape.start % gaps)] });
+    return createFeature({
+      id,
+      type: shape.type,
+      segments: [siteSegment(shape.start % gaps)],
+      joining: shape.order ? 'order' : undefined,
+    });
   }
   if (length === 0) return null;
   const start = shape.start % length;
@@ -97,6 +108,7 @@ export function layFeature(
     type: shape.type,
     strand: shape.reverse ? 'reverse' : 'forward',
     segments,
+    joining: shape.order ? 'order' : undefined,
   });
 }
 
@@ -551,6 +563,7 @@ export function checkEdit(
     if (found.type !== f.type) throw new Error(`${f.id}: type changed to ${found.type}`);
     const strand = step.reversed ? flipStrand(f.strand) : f.strand;
     if (found.strand !== strand) throw new Error(`${f.id}: strand ${found.strand}`);
+    if (found.joining !== f.joining) throw new Error(`${f.id}: joining ${found.joining}`);
 
     const covered = model.covered(found);
     sameIds(

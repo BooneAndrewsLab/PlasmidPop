@@ -149,8 +149,9 @@ function isIndex(value: unknown, max: number): value is number {
 
 function readFeature(value: unknown, length: number): Feature | null {
   if (!isRecord(value)) return null;
-  const { id, type, name, strand, segments, qualifiers } = value;
+  const { id, type, name, strand, segments, qualifiers, joining } = value;
   if (typeof id !== 'string' || typeof type !== 'string' || typeof name !== 'string') return null;
+  if (joining !== undefined && joining !== 'order') return null;
   if (!isStrand(strand) || !Array.isArray(segments) || !Array.isArray(qualifiers)) return null;
   const segs: Segment[] = [];
   for (const s of segments) {
@@ -166,7 +167,9 @@ function readFeature(value: unknown, length: number): Feature | null {
     if (typeof v !== 'string' && v !== null) return null;
     quals.push({ name: q['name'], value: v });
   }
-  return { id, type, name, strand, segments: segs, qualifiers: quals };
+  return joining === 'order'
+    ? { id, type, name, strand, segments: segs, joining, qualifiers: quals }
+    : { id, type, name, strand, segments: segs, qualifiers: quals };
 }
 
 function isStrand(value: unknown): value is Strand {

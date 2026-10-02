@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 
-import { SeqDocument } from '@/core';
+import { SeqDocument, formatLocation } from '@/core';
 import { docShapeArb, layFeatures, opShapeArb, resolveOp } from '@/test/editArbitraries';
 
 import { parseGenBank } from './parseGenBank';
@@ -46,6 +46,12 @@ describe('GenBank round trip after random editing', () => {
           const original = wrote[i];
           if (original === undefined) throw new Error('feature count differs');
           expect(f.strand).toBe(original.strand);
+          // order(...) comes back an order wherever it was written as a list;
+          // one piece is written bare and so reads as the default (#95).
+          const listed = /^(complement\()?(join|order)\(/.test(
+            formatLocation(original, doc.length, doc.topology),
+          );
+          expect(f.joining).toBe(listed ? original.joining : undefined);
           expect(back.featureSequence(f)).toBe(doc.featureSequence(original));
         });
       }),

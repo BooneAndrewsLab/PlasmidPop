@@ -33,8 +33,19 @@ export interface Feature {
    * Always non-empty.
    */
   readonly segments: readonly Segment[];
+  /**
+   * How the segments go together. Absent, they are one molecule read end to
+   * end, GenBank's `join(...)` (and a single segment needs nothing). `'order'`
+   * is GenBank's `order(...)`: the pieces are listed but not joined, as
+   * GenPept lists the residues of a binding site. Nothing but GenBank and
+   * GenPept I/O reads it; every edit carries it with the feature (#95).
+   */
+  readonly joining?: SegmentJoining | undefined;
   readonly qualifiers: readonly Qualifier[];
 }
+
+/** The only value `Feature.joining` holds; `join(...)` is its absence. */
+export type SegmentJoining = 'order';
 
 export interface FeatureInit {
   readonly id?: FeatureId;
@@ -42,6 +53,7 @@ export interface FeatureInit {
   readonly name?: string;
   readonly strand?: Strand;
   readonly segments: readonly Segment[];
+  readonly joining?: SegmentJoining | undefined;
   readonly qualifiers?: readonly Qualifier[];
 }
 
@@ -59,6 +71,7 @@ export function createFeature(init: FeatureInit): Feature {
     name: init.name ?? '',
     strand: init.strand ?? 'forward',
     segments: init.segments,
+    ...(init.joining === 'order' ? { joining: 'order' } : {}),
     qualifiers: init.qualifiers ?? [],
   };
 }

@@ -45,7 +45,7 @@ describe('parseLocation', () => {
     expect(b).toEqual({ ...a, warnings: [] });
   });
 
-  it('parses sites, fuzzy ranges and order() with warnings where meaning is lost', () => {
+  it('parses sites and fuzzy ranges with warnings where meaning is lost', () => {
     expect(segs('5^6')).toMatchObject({ segments: [['site', 5]], warnings: [] });
     expect(segs('100^1', 'circular')).toMatchObject({ segments: [['site', 0]] });
     expect(segs('100^101')).toMatchObject({ segments: [['site', 100]] });
@@ -53,9 +53,39 @@ describe('parseLocation', () => {
     const fuzzy = segs('3.5');
     expect(fuzzy.segments).toEqual([[2, 5, '', '']]);
     expect(fuzzy.warnings[0]).toMatch(/fuzzy/);
-    const order = segs('order(1..3,7..9)');
+  });
+
+  it('keeps order() as the joining, without a warning (#95)', () => {
+    const order = parseLocation('order(1..3,7..9)', L, 'linear');
     expect(order.segments).toHaveLength(2);
-    expect(order.warnings[0]).toMatch(/order/);
+    expect(order.joining).toBe('order');
+    expect(order.warnings).toEqual([]);
+    expect(parseLocation('join(1..3,7..9)', L, 'linear').joining).toBeUndefined();
+    expect(parseLocation('complement(order(1..3,7..9))', L, 'linear')).toMatchObject({
+      strand: 'reverse',
+      joining: 'order',
+    });
+    // Every part complemented: still an order, read on the reverse strand.
+    expect(parseLocation('order(complement(7..9),complement(1..3))', L, 'linear')).toMatchObject({
+      strand: 'reverse',
+      joining: 'order',
+      segments: [{ start: 0 }, { start: 6 }],
+    });
+    // An origin-spanning pair in an order is one segment, as in a join.
+    const round = parseLocation('order(5..8,95..100,1..3)', L, 'circular');
+    expect(round.segments).toHaveLength(2);
+    expect(round.segments[1]).toMatchObject({ start: 94, end: 103 });
+  });
+
+  it('flattens a list of the other kind nested inside, and says so', () => {
+    const inner = parseLocation('order(join(1..3,7..9),20..22)', L, 'linear');
+    expect(inner).toMatchObject({ joining: 'order', segments: [{}, {}, {}] });
+    expect(inner.warnings[0]).toMatch(/join\(\.\.\.\) inside order/);
+    const outer = parseLocation('join(order(1..3,7..9),20..22)', L, 'linear');
+    expect(outer.joining).toBeUndefined();
+    expect(outer.warnings[0]).toMatch(/order\(\.\.\.\) inside join/);
+    // The same kind nested is no loss.
+    expect(parseLocation('join(join(1..3,7..9),20..22)', L, 'linear').warnings).toEqual([]);
   });
 
   it('unrolls origin-spanning locations on circular sequences', () => {
@@ -99,7 +129,8 @@ describe('formatLocation', () => {
   const f = (
     segments: Parameters<typeof createFeature>[0]['segments'],
     strand: 'forward' | 'reverse' = 'forward',
-  ) => createFeature({ type: 'misc', segments, strand });
+    joining?: 'order',
+  ) => createFeature({ type: 'misc', segments, strand, joining });
 
   it('formats every shape and round-trips through the parser', () => {
     const cases: [string, 'linear' | 'circular'][] = [
@@ -114,12 +145,24 @@ describe('formatLocation', () => {
       ['5^6', 'linear'],
       ['100^1', 'circular'],
       ['join(5^6,10..12)', 'linear'],
+      ['order(1..3,7..9)', 'linear'],
+      ['order(31,34..35,38)', 'linear'],
+      ['complement(order(1..3,7..9))', 'linear'],
+      ['order(5..8,95..100,1..3)', 'circular'],
+      ['order(5^6,10..12)', 'linear'],
     ];
     for (const [text, topology] of cases) {
       const parsed = parseLocation(text, L, topology);
-      const feature = f(parsed.segments, parsed.strand);
+      const feature = f(parsed.segments, parsed.strand, parsed.joining);
       expect(formatLocation(feature, L, topology)).toBe(text);
     }
+  });
+
+  it('writes one piece bare whatever the joining, and join() by default', () => {
+    expect(formatLocation(f([rangeSegment(4, 9)], 'forward', 'order'), L, 'linear')).toBe('5..9');
+    expect(formatLocation(f([rangeSegment(0, 3), rangeSegment(6, 9)]), L, 'linear')).toBe(
+      'join(1..3,7..9)',
+    );
   });
 
   it('writes a single-base range with partial markers in a..b form', () => {

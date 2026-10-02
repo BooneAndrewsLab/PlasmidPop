@@ -217,6 +217,7 @@ function copyFeature(f: Feature): Feature {
     name: f.name,
     strand: f.strand,
     segments: f.segments.map(copySegment),
+    ...(f.joining === 'order' ? { joining: 'order' } : {}),
     qualifiers: f.qualifiers.map((q) => ({ name: q.name, value: q.value })),
   };
 }
@@ -282,6 +283,7 @@ function featureEqual(a: Feature, b: Feature): boolean {
     a.type === b.type &&
     a.name === b.name &&
     a.strand === b.strand &&
+    a.joining === b.joining &&
     a.segments.length === b.segments.length &&
     a.segments.every((s, i) => {
       const t = b.segments[i];

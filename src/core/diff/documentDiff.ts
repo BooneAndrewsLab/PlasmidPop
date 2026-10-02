@@ -485,6 +485,7 @@ function sameFeature(
     before.type === after.type &&
     before.name === after.name &&
     before.strand === after.strand &&
+    before.joining === after.joining &&
     sameQualifiers(qualifiersOf(before), after.qualifiers) &&
     sameLocation(before, after, map)
   );

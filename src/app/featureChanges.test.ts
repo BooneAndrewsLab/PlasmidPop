@@ -59,6 +59,20 @@ describe('featureChangeRows', () => {
     ]);
   });
 
+  it('says when a location becomes an order(...) or a join(...) (#95)', () => {
+    const before = doc([
+      createFeature({
+        id: 'f1',
+        type: 'Site',
+        name: 'contacts',
+        segments: [rangeSegment(4, 6), rangeSegment(10, 12)],
+      }),
+    ]);
+    const ordered = before.updateFeature('f1', { joining: 'order' });
+    expect(lines(before, ordered)).toEqual(['~ contacts now order(…) 5..12']);
+    expect(lines(ordered, before)).toEqual(['~ contacts now join(…) 5..12']);
+  });
+
   it('falls back to the type, which is all an unnamed feature has', () => {
     const before = doc([feature('f1', 4, 12)]);
     expect(lines(before, before.removeFeature('f1'))).toEqual(['− misc_binding 5..12']);

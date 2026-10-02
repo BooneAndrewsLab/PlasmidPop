@@ -92,8 +92,7 @@ only be noise.
   there is no second strand, and reverse-complementing residues would be
   nonsense — and the panel asks for _residues_, reads pasted letters with
   the document's alphabet, and is a tab a protein has (`hasTool`).
-- **Still open** in #95: GenPept `order(...)` has no field in the feature
-  model, and SnapGene `.prot` files.
+- **`order(...)` kept** (#95, 1.10); see below.
 
 ## Reading the alphabet from a file
 
@@ -116,8 +115,49 @@ division. It is written back in NCBI's columns with `aa` and blank molecule
 type, and Biopython 1.8x reads what we write as a protein with every feature
 (checked by hand on NP_000509). Fixtures: NP_000509 (HBB) and NP_000198
 (INS), with `.gp` so the DNA fixture loops do not pick them up. GenPept's
-many `order(...)` `Site` locations are read as `join(...)` with a warning, as
-they always were for DNA: the feature model has no operator to keep.
+many `order(...)` `Site` locations are kept as `order(...)` (below).
+
+## `order(...)`: a joining on the feature
+
+GenPept lists a binding site's residues as `order(31,34..35,38,…)`: pieces
+that belong together but are not one stretch of sequence, unlike `join(...)`,
+whose pieces are spliced into one. Until #95 the parser flattened both into
+segments and wrote everything back as `join`, with a warning, for DNA too.
+
+- **The model:** `Feature.joining?: 'order'` (and the same field on
+  `FeatureLocation`, which `parseLocation` returns and `formatLocation`
+  takes). Absent is `join`, so every feature made before, every stored row
+  and every fragment on a clipboard means what it did, and nothing that
+  makes a one-piece feature has to say anything. A one-value field rather
+  than `'join' | 'order'` so there is one way to spell the default:
+  `createFeature` and the history codec drop anything but `'order'`.
+- **Nothing computes with it.** Translation, the views, Find and the
+  cloning code read segments in order whichever it is; an `order` CDS
+  would be nonsense, and nobody writes one. It is carried, not consulted —
+  which is why it is a field that every copy keeps rather than a qualifier.
+- **Every copy keeps it.** Edits move a feature with `{ ...feature,
+segments }`, so shifts, deletions, the origin, reverse complement and a
+  paste keep it unasked; the places that build a feature field by field were
+  found by making the field required for a moment and reading the compiler's
+  errors: the GenBank parser, the history codec's `copyFeature` and its
+  equality, the stored-row check (`isStoredFeature`, which refuses any
+  other value), the clipboard fragment reader, and `featuresOntoProtein`
+  (an `order` of sites on a CDS is an `order` of residues). Compare and What
+  changed treat a change of joining as a change of the feature ("now
+  order(…)"). The Feature editor shows and takes `order(...)` in its
+  location field, so typing `join` for `order` changes it. Share links,
+  stored documents and Made from carry GenBank text, so they needed nothing.
+- **Tests:** the edit arbitraries now lay a quarter of their features as
+  `order`, and the editing, history and GenBank property tests check it
+  survives every op; GenBank's round trip writes it back only where the
+  location is a list, a single piece being bare either way.
+- **What is still lost:** one operator nested inside the other
+  (`order(join(1..3,5..7),9..10)`), since a feature has one operator for
+  all its segments. The outer one wins and the parser says so. An
+  origin-spanning piece of an `order` is written as its two halves in the
+  list (`order(5..8,95..100,1..3)`), which `parseLocation` merges back, the
+  same as it does for a `join`; nesting a `join` would be stricter, but not
+  every reader takes nested operators.
 
 A protein downloads as `.gp` and `.faa`.
 

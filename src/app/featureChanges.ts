@@ -161,6 +161,8 @@ export function describeFeatureChange(before: Feature, after: Feature): string {
     );
   }
   if (before.strand !== after.strand) parts.push(`now ${strandWord(after.strand)}`);
+  if (before.joining !== after.joining)
+    parts.push(after.joining === 'order' ? 'now order(…)' : 'now join(…)');
   if (!sameExtent(before, after)) parts.push('moved');
   const n = qualifiersChanged(before, after);
   if (n > 0) parts.push(`${n} qualifier${n === 1 ? '' : 's'} changed`);

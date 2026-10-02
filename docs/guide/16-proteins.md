@@ -13,7 +13,9 @@ DNA.
   happens to be spelt that way, so a DNA file is never taken for a protein.
 - **A GenPept file** (`.gp`, `.gpff`): an NCBI protein record, GenBank's
   format with `aa` in the LOCUS line. Its header, references and features
-  are read as a GenBank file's are, with feature positions in residues.
+  are read as a GenBank file's are, with feature positions in residues. A
+  site listed as `order(...)` (the residues a ligand touches, say) stays an
+  `order(...)` and is written back as one.
 - **File ▸ Open from NCBI…** with a protein accession (`NP_000509`,
   `AAA12345`): the GenPept record is fetched and opens as if you had
   downloaded it (see

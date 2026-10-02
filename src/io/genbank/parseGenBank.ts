@@ -435,6 +435,7 @@ function buildFeatures(
         name: deriveFeatureName(rf.key, qualifiers),
         strand: parsed.strand,
         segments: parsed.segments,
+        joining: parsed.joining,
         qualifiers,
       }),
     );
