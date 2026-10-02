@@ -167,9 +167,14 @@ function isUnquoted(name: string, value: string): boolean {
   return UNQUOTED_QUALIFIERS.has(name) || /^\d+$/.test(value) || /^\[\d+\]$/.test(value);
 }
 
-function qualifierLines(name: string, value: string | null): string[] {
+function qualifierLines(name: string, raw: string | null): string[] {
   const indent = ' '.repeat(QUALIFIER_INDENT);
-  if (value === null) return [`${indent}/${name}`];
+  if (raw === null) return [`${indent}/${name}`];
+  // A value cannot hold a line break: the parser joins a qualifier's lines
+  // with a space, so that is what one becomes. Written as it was, the text
+  // after it started a line of its own and broke the rest of the table — a
+  // SnapGene .prot's notes have them (#95).
+  const value = raw.replace(/[ \t]*(?:\r\n|\r|\n)[ \t]*/g, ' ');
   if (isUnquoted(name, value)) return [`${indent}/${name}=${value}`];
 
   const escaped = `"${value.replace(/"/g, '""')}"`;

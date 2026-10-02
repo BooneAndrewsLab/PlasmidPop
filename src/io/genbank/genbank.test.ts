@@ -1,4 +1,11 @@
-import { type SeqDocument, documentChecksum, formatLocation } from '@/core';
+import {
+  SeqDocument as Doc,
+  type SeqDocument,
+  createFeature,
+  documentChecksum,
+  formatLocation,
+  rangeSegment,
+} from '@/core';
 import { listFixtures, listLocalFixtures, readFixture } from '@/test/fixtures';
 
 import { type ParseResult, FormatError } from '../types';
@@ -258,6 +265,33 @@ describe('GenBank parser edge cases', () => {
 
     const bare = parseGenBank(record('LOCUS       NAME', '')).documents[0];
     expect(bare).toMatchObject({ name: 'NAME', topology: 'linear', length: 20 });
+  });
+
+  it('writes a line break in a qualifier as a space, so the table stays whole (#95)', () => {
+    // SnapGene's notes carry line breaks; written as they were, the text after
+    // one started a line of its own and every feature after it was lost.
+    const doc = Doc.create({
+      name: 'breaks',
+      sequence: 'ACGTACGTACGT',
+      features: [
+        createFeature({
+          type: 'misc_feature',
+          segments: [rangeSegment(0, 4)],
+          qualifiers: [
+            { name: 'note', value: 'G -> S (in Ref. 6; AA\nsequence).\r\n/evidence=x.' },
+          ],
+        }),
+        createFeature({ type: 'misc_feature', name: 'after', segments: [rangeSegment(5, 8)] }),
+      ],
+    });
+    const written = writeGenBank(doc);
+    expect(written).not.toMatch(/^\/evidence/m);
+    const back = only(parseGenBank(written));
+    expect(back.features.size).toBe(2);
+    expect(back.features.all()[0]?.qualifiers).toContainEqual({
+      name: 'note',
+      value: 'G -> S (in Ref. 6; AA sequence). /evidence=x.',
+    });
   });
 
   it('parses qualifier values: escaped quotes, wrapping, translation, flags, numbers', () => {
