@@ -292,6 +292,7 @@ function translate(dna) {
  * @property {string} [probe]
  * @property {string} [proteinProbe] a peptide matched in the translation (#93), which must
  *   occur exactly once in the cited protein record; the part carries no DNA
+ * @property {boolean} [exact] report the part only when every base matches (#94 follow-up)
  * @property {boolean} [allowPartial] a partial (`<`/`>`) record location is fine
  * @property {boolean} [alsoProtein] look for it in the translation too (#93): the peptide is
  *   what the part's own bases code for, so nothing is typed in
@@ -305,6 +306,7 @@ function translate(dna) {
  * @property {string} accession
  * @property {string} location
  * @property {string} [note]
+ * @property {boolean} [exact]
  */
 
 /**
@@ -463,6 +465,7 @@ async function buildCorePart(spec) {
     accession: rec.version,
     location: location.replace(/\s+/g, ''),
     ...(spec.note === undefined ? {} : { note: spec.note }),
+    ...(spec.exact === true ? { exact: true } : {}),
   };
 }
 

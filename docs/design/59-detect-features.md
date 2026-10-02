@@ -69,18 +69,29 @@ are out: GPL-3.0, and its main set is SnapGene's features.
   - the **TRE**, the seven-operator array as annotated in Gossen and Bujard's
     own pTRE (pUHD10-3, `U89931`, Clontech 1997);
   - **lacUV5**, as annotated in the primary sequence of prophage DE3
-    (`NC_042057`), where it drives T7 RNA polymerase;
+    (`NC_042057`), where it drives T7 RNA polymerase; an _exact_ part (see
+    below);
   - **T7lac**, the T7 promoter running into the lac operator, from
     `Z32692` (pT7T7, Chen 1994): a vector record, but one with no
     annotation of its own whose reference table places the T7 promoter and
     the lac operator (citing Dubendorff and Studier 1991); its 44 bases are
-    those pET-11c annotates as T7lac. The weakest citation in the core, and
-    the note says where the bounds came from;
+    those pET-11c annotates as T7lac. The vector record is only where the
+    bounds were read; the bases themselves rest on primary records, and the
+    note says so: the first 20 bp equal the T7 phi10 promoter of the T7
+    genome (`V01146` 22887..22906; it annotates promoter phi10 at 22904, the
+    transcription start), the next 22 (`GAATTGTGAGCGGATAACAATT`) equal the
+    natural lac operator of the E. coli lac operon (`J01636` 1250..1271),
+    and the last 2 (`CC`) are the vector junction;
   - the **H1 promoter**, from the human H1 RNA gene (`X16612`), which
     annotates only its TATA box and transcript: the part ends at the base
-    before the transcript, and starts where the H1 promoters of two shRNA
-    vector records (`HQ416701`, `MH749464`) start — a convention, said so
-    in the note;
+    8 bases short of the transcript (152..366, 215 bp), and starts where the
+    H1 promoters of two shRNA vector records (`HQ416701`, `MH749464`) start
+    — a convention, said so in the note. It stops short because pSUPER-type
+    vectors replace those last 8 bases with their cloning site: in
+    `HQ416701` the full 223 bp was found at 98% with 4 mismatches, all in
+    the 8, and missed at 100%. `MH749464` is an H1/TO promoter with a tet
+    operator inside its 3′ end, so it is left unmatched at 95%, which is
+    right: it is a different promoter, not the H1 with a change;
   - **ARSH4**, the 86 bp `rep_origin` the chromosome II RefSeq (`NC_001134`)
     annotates as ARS209, "originally referred to as H4 ARS". The pRS
     CEN/ARS vectors carry a longer stretch around it, which is found as
@@ -208,6 +219,32 @@ alignment; here there are hundreds of short queries against one long
 target, so the index is of the queries and each diagonal is verified
 directly. Only the idea (words of definite bases, rolled two bits at a time)
 is shared.
+
+## Exact parts (follow-up of #94)
+
+At the default 95% the 43 bp lacUV5 matched every wild-type lac promoter
+with 2 mismatches, exactly the two -10 box changes (`TATGTT` to `TATAAT`)
+that define it, so a plain lac promoter was also reported as lacUV5 (seen
+in `HQ416701` and `Z32692`). A part that is a few-base variant of what
+people usually have cannot be told from it by identity, so a spec entry may
+say `"exact": true` (build script → data JSON → `LibraryPart.exact` →
+`detect.ts`): the part is reported only when every base matches.
+
+- No mismatches and no indels, at every **Match at least** choice: the part's
+  mismatch budget and indel budget are both 0.
+- An ambiguity code in the sequence where the part has a base rules it out
+  too. A plain part reports it as an ambiguous base; here the point is that
+  the variant bases are confirmed, and an `N` confirms nothing. (The part's
+  own bases are always A/C/G/T, the build refuses others.)
+- A hit cut off by a linear end is not offered: it cannot be shown to match in
+  full, and the variant bases may be the ones missing.
+- The plain parts are untouched. lacUV5 is the only part marked: a survey of
+  every core part searched for in the whole library at 95% found no other
+  pair of few-base variants. The cross hits it showed are one part inside
+  another (CMV enhancer in CMV enhancer and promoter, 1 mismatch; SV40 ori
+  in the SV40 promoter, 1 mismatch) or a primer/operator inside a longer part,
+  none of them a variant of the same sequence. There is no lacI promoter part,
+  so lacIq has no wild-type neighbour to be mistaken for.
 
 ## Indels (#94, 1.10)
 

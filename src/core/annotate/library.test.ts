@@ -32,6 +32,18 @@ describe('parseLibraryFile', () => {
     expect(odd).toEqual({ ...GOOD, source: 'core' });
   });
 
+  it('reads exact as a flag, kept only when true', () => {
+    const [yes] = parseLibraryFile(file({ ...GOOD, exact: true }), 'core');
+    expect(yes).toEqual({ ...GOOD, exact: true, source: 'core' });
+    for (const exact of [false, undefined]) {
+      const [no] = parseLibraryFile(file({ ...GOOD, exact }), 'core');
+      expect(no).not.toHaveProperty('exact');
+    }
+    for (const exact of ['true', 1, null]) {
+      expect(() => parseLibraryFile(file({ ...GOOD, exact }), 'core')).toThrow('malformed exact');
+    }
+  });
+
   it('throws on a file without a list of parts', () => {
     for (const json of ['null', '[]', '"parts"', '{}', '{"parts":{}}']) {
       expect(() => parseLibraryFile(json, 'core'), json).toThrow(
@@ -85,6 +97,13 @@ describe('parseLibraryFile', () => {
 });
 
 describe('the bundled library, as loaded', () => {
+  it('marks lacUV5 exact and the plain lac promoter not', async () => {
+    const lib = await loadFeatureLibrary();
+    expect(lib.parts.find((p) => p.name === 'lacUV5 promoter')?.exact).toBe(true);
+    expect(lib.parts.find((p) => p.name === 'lac promoter')).not.toHaveProperty('exact');
+    expect(lib.parts.find((p) => p.name === 'H1 promoter')?.location).toBe('152..366');
+  });
+
   it('carries notes, and FPbase pages on the fluorescent proteins alone', async () => {
     const lib = await loadFeatureLibrary();
     expect(lib.parts.some((p) => p.source === 'core' && p.note !== undefined)).toBe(true);

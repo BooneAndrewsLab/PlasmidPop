@@ -188,6 +188,8 @@ interface Entry {
   readonly strand: Strand;
   /** The part as it lies on the forward strand of a hit. */
   readonly masks: Uint8Array;
+  /** The part is reported only when every base matches (`LibraryPart.exact`). */
+  readonly exact: boolean;
 }
 
 interface FeatureIndex {
@@ -235,7 +237,7 @@ function indexFor(library: FeatureLibrary): FeatureIndex {
       ['reverse', reverse],
     ] as const) {
       const e = entries.length;
-      entries.push({ part: index, strand, masks });
+      entries.push({ part: index, strand, masks, exact: part.exact === true });
       forEachSeed(masks, masks.length, (word, at) => {
         present[word >>> 3] = (present[word >>> 3] ?? 0) | (1 << (word & 7));
         const list = seeds.get(word);
@@ -282,7 +284,11 @@ export function detectFeatures(
 ): FeatureHit[] {
   const minIdentity = options.minIdentity ?? DEFAULT_MIN_IDENTITY;
   const index = indexFor(library);
-  const budgets = index.entries.map((e) => mismatchBudget(e.masks.length, minIdentity));
+  // An exact part (#94 follow-up) has no budget at any identity: a mismatch,
+  // an ambiguity code in the sequence and an indel all rule it out.
+  const budgets = index.entries.map((e) =>
+    e.exact ? 0 : mismatchBudget(e.masks.length, minIdentity),
+  );
   const n = sequence.length;
   if (n === 0 || index.entries.length === 0) return [];
   const circular = topology === 'circular';
@@ -316,7 +322,8 @@ export function detectFeatures(
     const overlap = to - from;
     const whole = overlap === len && start >= 0;
     if (!whole) {
-      if (!partialEnds) return;
+      // A part cut off by a linear end cannot be shown to match in full.
+      if (!partialEnds || entry.exact) return;
       if (overlap < MIN_PARTIAL_BASES || overlap < len * MIN_PARTIAL_SHARE) return;
     }
     if (start >= n || (whole && (len > n || start + len > total))) return;
@@ -358,7 +365,7 @@ export function detectFeatures(
   // for the gapped pass after the scan (#94).
   const gapped = options.gapped !== false;
   const indelBudgets = index.entries.map((e) =>
-    gapped ? indelBudget(e.masks.length, minIdentity) : 0,
+    gapped && !e.exact ? indelBudget(e.masks.length, minIdentity) : 0,
   );
   const seeded: number[] = [];
 

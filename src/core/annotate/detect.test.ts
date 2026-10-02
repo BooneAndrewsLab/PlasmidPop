@@ -8,6 +8,7 @@ import {
   DEFAULT_MIN_IDENTITY,
   GAPPED_OVERHANG,
   MAX_INDEL,
+  MIN_IDENTITY_CHOICES,
   SEED,
   detectFeatures,
   indelBudget,
@@ -668,5 +669,76 @@ describe('the bundled library', () => {
     );
     for (const p of planted) expect(hits.some((h) => lib.parts[h.part] === p)).toBe(true);
     expectWithin(ms, 2000);
+  });
+});
+
+describe('exact parts (#94 follow-up)', () => {
+  const EXACT = { ...part('E', PART.slice(0, 43)), exact: true };
+  const EXACT_LIB = library(EXACT);
+  const flank = randomDna(seededRandom(94), 200);
+
+  it('are found on a perfect copy, on either strand and through the origin', () => {
+    const seq = flank + EXACT.sequence + flank;
+    expect(only(detectFeatures(seq, 'linear', EXACT_LIB)).identity).toBe(1);
+    expect(only(detectFeatures(reverseComplement(seq), 'linear', EXACT_LIB)).strand).toBe(
+      'reverse',
+    );
+    const round = EXACT.sequence.slice(20) + flank + EXACT.sequence.slice(0, 20);
+    expect(only(detectFeatures(round, 'circular', EXACT_LIB)).identity).toBe(1);
+  });
+
+  it('are not reported with one mismatch, at any identity choice', () => {
+    const seq = flank + mutate(EXACT.sequence, [20]) + flank;
+    const loose = library({ ...EXACT, exact: false });
+    for (const minIdentity of MIN_IDENTITY_CHOICES) {
+      expect(
+        detectFeatures(seq, 'linear', EXACT_LIB, { minIdentity }),
+        String(minIdentity),
+      ).toEqual([]);
+      // The same part, not marked exact, is found at the looser choices.
+      expect(
+        detectFeatures(seq, 'linear', loose, { minIdentity }).length > 0,
+        String(minIdentity),
+      ).toBe(minIdentity <= 0.95);
+    }
+  });
+
+  it('are not reported across an indel, an ambiguity code or a linear end', () => {
+    const options = { minIdentity: 0.9 };
+    const cut = EXACT.sequence.slice(0, 20) + EXACT.sequence.slice(21);
+    expect(detectFeatures(flank + cut + flank, 'linear', EXACT_LIB, options)).toEqual([]);
+    const withN = EXACT.sequence.slice(0, 20) + 'N' + EXACT.sequence.slice(21);
+    expect(detectFeatures(flank + withN + flank, 'linear', EXACT_LIB, options)).toEqual([]);
+    expect(detectFeatures(EXACT.sequence.slice(0, 30), 'linear', EXACT_LIB)).toEqual([]);
+    expect(detectFeatures(EXACT.sequence.slice(10), 'linear', EXACT_LIB)).toEqual([]);
+  });
+});
+
+describe('lacUV5 and the wild-type lac promoter (#94 follow-up)', () => {
+  const UV5_10 = 'TATAAT';
+  const WILD_10 = 'TATGTT';
+
+  it('lacUV5 is found on itself, and not on the wild-type lac promoter, at every choice', async () => {
+    const lib = await loadFeatureLibrary();
+    const at = lib.parts.findIndex((p) => p.name === 'lacUV5 promoter');
+    const uv5 = lib.parts[at];
+    if (uv5 === undefined) throw new Error('no lacUV5 part');
+    expect(uv5.exact).toBe(true);
+    expect(uv5.sequence).toContain(UV5_10);
+    const wild = uv5.sequence.replace(UV5_10, WILD_10);
+    const flank = randomDna(seededRandom(95), 150);
+    for (const minIdentity of MIN_IDENTITY_CHOICES) {
+      const onUv5 = detectFeatures(flank + uv5.sequence + flank, 'linear', lib, { minIdentity });
+      expect(
+        onUv5.some((h) => h.part === at && h.identity === 1),
+        `UV5 at ${minIdentity}`,
+      ).toBe(true);
+      for (const seq of [flank + wild + flank, reverseComplement(flank + wild + flank)]) {
+        const names = detectFeatures(seq, 'linear', lib, { minIdentity }).map(
+          (h) => lib.parts[h.part]?.name,
+        );
+        expect(names, `wild type at ${minIdentity}`).not.toContain('lacUV5 promoter');
+      }
+    }
   });
 });

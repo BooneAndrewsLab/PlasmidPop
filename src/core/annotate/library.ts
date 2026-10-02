@@ -39,6 +39,13 @@ export interface LibraryPart {
   /** Where in that record, as a GenBank location. */
   readonly location: string;
   readonly note?: string;
+  /**
+   * Reported only when every base matches: no mismatches, no indels, no
+   * ambiguity code in the sequence where the part has a base, and not when a
+   * linear end cuts it off. For a part that is a few-base variant of another
+   * (lacUV5 of the lac promoter), which would otherwise match it.
+   */
+  readonly exact?: boolean;
   readonly source: LibrarySource;
   /** FPbase page of a fluorescent protein. */
   readonly fpbase?: string;
@@ -88,6 +95,10 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
     const note = text(entry, 'note');
     const fpbase = text(entry, 'fpbase');
     const protein = text(entry, 'protein');
+    const exact = entry['exact'];
+    if (exact !== undefined && typeof exact !== 'boolean') {
+      throw new Error(`Feature library (${source}): part ${i} has a malformed exact`);
+    }
     // A part is looked for by its bases, by its protein, or by both; one
     // with neither would match nothing and is a fault in the build.
     if (sequence === '' && (protein === undefined || protein === '')) {
@@ -107,6 +118,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       ...(note === undefined ? {} : { note }),
       ...(fpbase === undefined ? {} : { fpbase }),
       ...(protein === undefined ? {} : { protein }),
+      ...(exact === true ? { exact } : {}),
     };
   });
 }

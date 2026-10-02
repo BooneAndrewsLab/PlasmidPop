@@ -97,6 +97,12 @@ What is found:
   bases match. **Match at least** in the list changes that to 98%, 90% or
   exactly, and searches again. Parts shorter than 24 bases (primer sites,
   short tags) are only found exactly, so that they do not turn up by chance.
+- **Variants that must match in full**: a few parts differ from the usual
+  sequence by a base or two, and a near match would report both. _lacUV5_ is
+  one: the wild-type lac promoter differs from it by two bases in the -10
+  box, so it is only found where every base matches, whatever **Match at
+  least** says. An ambiguity code where it has a base, a missing base or a
+  cut-off end rules it out.
 - **Bases inserted or deleted**: a copy of a part with a small indel — a
   frameshift, a filled-in site — is found too, up to 8 bases inserted or
   deleted in all. Each one counts against **Match at least** as a mismatch
