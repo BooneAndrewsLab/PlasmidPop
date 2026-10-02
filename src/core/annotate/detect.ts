@@ -425,7 +425,7 @@ export function indelBudget(length: number, minIdentity: number): number {
 }
 
 /** Seeds a match of `length` bases with `edits` edits shares with the part, at least. */
-function seedsAtLeast(length: number, edits: number): number {
+export function seedsAtLeast(length: number, edits: number): number {
   return length + 1 - SEED * (edits + 1);
 }
 

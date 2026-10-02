@@ -15,6 +15,7 @@ import {
   isMinIdentityChoice,
   mismatchBudget,
   overlapLength,
+  seedsAtLeast,
 } from './detect';
 import { type FeatureLibrary, type LibraryPart, loadFeatureLibrary } from './library';
 import { detectProteinFeatures } from './protein';
@@ -740,5 +741,137 @@ describe('lacUV5 and the wild-type lac promoter (#94 follow-up)', () => {
         expect(names, `wild type at ${minIdentity}`).not.toContain('lacUV5 promoter');
       }
     }
+  });
+});
+
+describe('detectFeatures: ranking and gapped readings (mutation survivors)', () => {
+  const r = seededRandom(1010);
+  const flank = (n: number): string => randomDna(r, n);
+
+  it('prefers a part wholly in the sequence to an equal piece of a longer one running off the end', () => {
+    // The sequence starts with the last 100 bases of P, which is also Q whole.
+    const q = randomDna(r, 100);
+    const p = randomDna(r, 200) + q;
+    const lib = library(part('P', p), part('Q', q));
+    const hits = detectFeatures(q + flank(300), 'linear', lib);
+    expect(hits.map((h) => h.part)).toEqual([1]);
+    expect(hits[0]?.partialStart).toBeUndefined();
+  });
+
+  it('lists hits by start, the longer first where two start together', () => {
+    // A part and its own first 120 bases, of another type: neither displaces the other.
+    const long = randomDna(r, 200);
+    const lib = library(part('long', long, 'promoter'), part('short', long.slice(0, 120), 'CDS'));
+    const hits = detectFeatures(flank(100) + long + flank(100), 'linear', lib);
+    expect(hits.map((h) => h.part)).toEqual([0, 1]);
+    expect(hits.map((h) => h.range.end - h.range.start)).toEqual([200, 120]);
+  });
+
+  it('prefers the better match of two overlapping readings of a part', () => {
+    // Of a part found twice over the same bases, the one with fewer mismatches is kept.
+    const lib = library(part('P', PART));
+    const seq = flank(80) + mutate(PART, [10, 150]) + flank(80);
+    const hit = only(detectFeatures(seq, 'linear', lib));
+    expect(hit.mismatches).toBe(2);
+    expect(hit.range).toEqual({ start: 80, end: 380 });
+  });
+
+  it('counts mismatches, an ambiguity code and the indel in a gapped hit’s identity', () => {
+    const lib = library(part('P', PART));
+    const withIndel = PART.slice(0, 120) + 'GAT' + PART.slice(120);
+    const edited = mutate(withIndel, [30]).split('');
+    edited[200] = 'N';
+    const seq = flank(120) + edited.join('') + flank(120);
+    const hit = only(detectFeatures(seq, 'linear', lib));
+    expect(hit).toMatchObject({ mismatches: 1, ambiguous: 1, insertions: 3, deletions: 0 });
+    // 300 part bases and 3 inserted: 5 edits in 303 columns.
+    expect(hit.identity).toBeCloseTo(1 - 5 / 303, 9);
+  });
+
+  it('keeps the reading with fewest edits where one copy is read two ways', () => {
+    // A run of one base seeds every diagonal; one copy must still be one hit.
+    const run = 'A'.repeat(40);
+    const p = randomDna(r, 80) + run + randomDna(r, 80);
+    const lib = library(part('P', p));
+    const seq = flank(100) + p.slice(0, 100) + p.slice(103) + flank(100);
+    const hits = detectFeatures(seq, 'linear', lib);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.deletions).toBe(3);
+    expect(hits[0]?.range).toEqual({ start: 100, end: 100 + p.length - 3 });
+  });
+
+  it('reports a gapped hit that sits in the sequence’s first turn, not a turn on', () => {
+    const lib = library(part('P', PART));
+    const copy = PART.slice(0, 150) + PART.slice(152);
+    const plasmid = copy + flank(200);
+    const hit = only(detectFeatures(plasmid, 'circular', lib));
+    expect(hit.range).toEqual({ start: 0, end: 298 });
+    expect(hit.deletions).toBe(2);
+  });
+});
+
+describe('substitutionsFirst, seedsAtLeast and the seed threshold (mutation survivors)', () => {
+  const r = seededRandom(2020);
+  const flank = (n: number): string => randomDna(r, n);
+  const lib = library(part('P', PART));
+
+  it('offers substitutions, not an indel, where an insertion near the end makes the gapped reading longer', () => {
+    // 301 bases against the part's 300: keepBest, going by length, would take the gapped reading.
+    const copy = PART.slice(0, 297) + 'T' + PART.slice(297);
+    const hit = only(detectFeatures(flank(150) + copy + flank(150), 'linear', lib));
+    expect(hit.insertions).toBeUndefined();
+    expect(hit.range.end - hit.range.start).toBe(300);
+  });
+
+  it('keeps a gapped copy beside an exact one of the same part', () => {
+    const gapped = PART.slice(0, 120) + PART.slice(122);
+    const seq = flank(100) + PART + flank(200) + gapped + flank(100);
+    const hits = detectFeatures(seq, 'linear', lib);
+    expect(hits.map((h) => h.insertions)).toEqual([undefined, 0]);
+    expect(hits.map((h) => h.mismatches)).toEqual([0, 0]);
+  });
+
+  it('keeps a gapped part where another part, exact, lies inside it', () => {
+    const inner = PART.slice(100, 200);
+    const both = library(part('P', PART), part('Q', inner));
+    const gapped = PART.slice(0, 40) + PART.slice(42);
+    const hits = detectFeatures(flank(100) + gapped + flank(100), 'linear', both);
+    expect(hits.map((h) => h.part)).toEqual([0, 1]);
+    expect(hits[0]?.deletions).toBe(2);
+  });
+
+  it('finds a copy with exactly as many seeds as the budget guarantees', () => {
+    // An insertion and 14 mismatches 12 bases apart: 15 edits, each spoiling
+    // 12 seeds, none shared, leaving exactly the 109 a match of 15 edits must.
+    expect(seedsAtLeast(300, 15)).toBe(109);
+    const edited = PART.split('');
+    for (let j = 0; j < 7; j++) {
+      for (const base of [13 + 12 * j, 215 + 12 * j]) {
+        edited[base] = edited[base] === 'A' ? 'C' : 'A';
+      }
+    }
+    const copy = edited.slice(0, 150).join('') + 'T' + edited.slice(150).join('');
+    const hit = only(detectFeatures(flank(150) + copy + flank(150), 'linear', lib));
+    expect(hit).toMatchObject({ mismatches: 14, insertions: 1, deletions: 0 });
+  });
+});
+
+describe('seedsAtLeast', () => {
+  it('is what a match of that many edits shares: L + 1 - SEED(edits + 1)', () => {
+    expect(seedsAtLeast(100, 0)).toBe(89);
+    expect(seedsAtLeast(100, 2)).toBe(65);
+    expect(seedsAtLeast(300, 15)).toBe(109);
+  });
+});
+
+describe('overlapLength', () => {
+  it('counts the bases two ranges share, in a line and over the origin of a circle', () => {
+    expect(overlapLength({ start: 10, end: 30 }, { start: 20, end: 50 }, 100, 'linear')).toBe(10);
+    expect(overlapLength({ start: 10, end: 30 }, { start: 30, end: 50 }, 100, 'linear')).toBe(0);
+    expect(overlapLength({ start: 10, end: 30 }, { start: 40, end: 50 }, 100, 'linear')).toBe(0);
+    expect(overlapLength({ start: 90, end: 110 }, { start: 5, end: 20 }, 100, 'circular')).toBe(5);
+    expect(overlapLength({ start: 90, end: 110 }, { start: 20, end: 40 }, 100, 'circular')).toBe(0);
+    // The same ranges are not wrapped on a line.
+    expect(overlapLength({ start: 90, end: 110 }, { start: 5, end: 20 }, 100, 'linear')).toBe(0);
   });
 });
