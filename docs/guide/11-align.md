@@ -228,6 +228,15 @@ once the ORFs panel has found them. With no document behind the reference
   eight lanes are drawn; the toolbar counts what did not fit. When the
   document is the read and the reference is the sequence in the box, there is
   no track, since a pasted sequence brings none of its own.
+- **Amino acids** (shown when the document has a CDS in the alignment) draws a
+  strip of residues under the document row and under each sample: the
+  document's own, then what the sample's bases make of the same codons, read
+  with the feature's genetic code and strand. A residue that changed is shaded
+  (another residue, a stop gained or lost); one the same letter from other
+  bases is shaded faintly; a `-` marks a codon with a base missing or inserted
+  inside it; a codon the sample does not reach is left empty. The codons are
+  the document's, so a frameshift shows as `-` where it starts and as changed
+  residues after it, not as a re-read frame.
 - Click a name to see that sample's score and identity, and to use
   **Select aligned region in this document** (a button in the window) for it.
 - `Esc` closes the window and returns you to where you were.

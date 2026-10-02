@@ -51,7 +51,7 @@ export interface Track {
 }
 
 /** For each reference index (position along the reference), the column it sits in. */
-function columnsOfIndex(stack: Stack): Int32Array {
+export function columnsOfIndex(stack: Stack): Int32Array {
   let top = 0;
   for (const i of stack.refIndex) if (i + 1 > top) top = i + 1;
   const columns = new Int32Array(top).fill(-1);

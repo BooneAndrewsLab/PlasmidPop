@@ -20,6 +20,7 @@ import {
 import { alignedRegionInDocument, type ReferenceInput } from '../readAlignment';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { buildFrames } from '../alignmentResidues';
 import { AlignmentStackView } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
@@ -71,6 +72,7 @@ export function AlignmentDialog({
   const [showFeatures, setShowFeatures] = useState(true);
   const [showOrfs, setShowOrfs] = useState(false);
   const [showTrace, setShowTrace] = useState(true);
+  const [showResidues, setShowResidues] = useState(false);
   const stack = useMemo(() => stackAlignments(reference, samples), [reference, samples]);
   // The ORFs the app has already found in the open document, at its own minimum length.
   const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
@@ -93,6 +95,13 @@ export function AlignmentDialog({
             source.isCircular ? source.length : 0,
           ),
     [source, stack, orfs],
+  );
+  const frames = useMemo(
+    () =>
+      source === null
+        ? []
+        : buildFrames(stack, source, source.features.all(), source.isCircular ? source.length : 0),
+    [source, stack],
   );
   const counts = useMemo(
     () => (classes === null ? null : countByClass(stack.differences, classes)),
@@ -221,6 +230,18 @@ export function AlignmentDialog({
               </span>
             </>
           )}
+          {frames.length > 0 && (
+            <label className="astack-tools__check">
+              <input
+                type="checkbox"
+                checked={showResidues}
+                onChange={(e) => {
+                  setShowResidues(e.target.checked);
+                }}
+              />{' '}
+              Amino acids
+            </label>
+          )}
           {hasTrace && (
             <label className="astack-tools__check">
               <input
@@ -281,6 +302,7 @@ export function AlignmentDialog({
           track={track}
           classes={classes}
           showTrace={showTrace}
+          residues={showResidues && frames.length > 0 ? frames : null}
           onSelectRow={setSelected}
           focus={focus}
         />

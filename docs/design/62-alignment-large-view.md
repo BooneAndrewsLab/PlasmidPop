@@ -140,3 +140,17 @@ row and the visible range use a binary search on it instead of dividing by
 `ROW_HEIGHT`. The overview still spaces rows evenly. Poor bases (below the
 confident quality) get a grey block behind the letter as well as the fade,
 which had been the only mark. Not checked by eye.
+
+## Amino acids (1.10)
+
+The toolbar's **Amino acids** draws, under the reference row and under each
+sample's, the residues of the document's CDS features (`alignmentResidues.ts`).
+Codons come from `translateCds`, so `/codon_start`, `/transl_table`,
+`/transl_except` and the strand are honoured, and each is placed on the three
+columns its bases sit in (also through a circle's origin, as `buildTrack`
+does). A sample's residue is its three aligned bases translated in the
+reference's frame, so a deletion or insertion inside a codon is a `-`
+(`Change.Indel`) and a frameshift is not re-read downstream: that would need
+the sample's own ORF, which is a different question. The strips add
+`AA_HEIGHT` to the pinned header and to every row, taken into the `tops`
+table like the trace. Not checked by eye.

@@ -5,7 +5,14 @@ import { drawTrace, type TraceBaseAt } from '@/view/trace';
 
 import { contrastingText } from '@/view/featureColors';
 
-import { Cell, columnPosition, isDifference, type Stack } from '../alignmentStack';
+import {
+  Change,
+  codonSpan,
+  residueOf,
+  type ChangeValue,
+  type ResidueFrame,
+} from '../alignmentResidues';
+import { Cell, columnPosition, isDifference, type Stack, type StackRow } from '../alignmentStack';
 import { ColumnClass, itemAt, type Track } from '../alignmentTrack';
 import { readLinearTheme } from './linearTheme';
 
@@ -18,6 +25,8 @@ const NAME_WIDTH = 168;
 const OVERVIEW_HEIGHT = 44;
 /** The chromatogram under a read's row (#110). */
 const TRACE_HEIGHT = 40;
+/** The amino-acid strip under the reference's row and under each sample's. */
+const AA_HEIGHT = 16;
 
 interface Props {
   readonly stack: Stack;
@@ -37,6 +46,8 @@ interface Props {
   readonly classes: Uint8Array | null;
   /** Draw each AB1 read's chromatogram under its row (#110). */
   readonly showTrace: boolean;
+  /** The CDS frames to draw residues for, under the reference and each sample; null for none. */
+  readonly residues: readonly ResidueFrame[] | null;
   readonly onSelectRow: (row: number) => void;
   /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
   readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
@@ -212,6 +223,49 @@ function drawTrack(
  * spans every column in one width, marking each difference and the stretch
  * now in view; a click or drag on it moves the view.
  */
+/**
+ * The amino acids of each CDS frame in view, one letter centred over its
+ * codon's columns: the reference's own when `row` is null, else what the
+ * sample's bases make of the codon, tinted by how it differs.
+ */
+function drawResidues(
+  ctx: CanvasRenderingContext2D,
+  frames: readonly ResidueFrame[],
+  colours: Colours,
+  font: string,
+  first: number,
+  last: number,
+  x: (column: number) => number,
+  charWidth: number,
+  top: number,
+  row: StackRow | null,
+): void {
+  ctx.font = font;
+  ctx.textAlign = 'center';
+  for (const frame of frames) {
+    if (frame.end <= first || frame.start >= last) continue;
+    for (const codon of frame.codons) {
+      const { start, end } = codonSpan(codon);
+      if (end <= first || start >= last) continue;
+      const residue =
+        row === null
+          ? { letter: codon.reference, change: Change.Same as ChangeValue }
+          : residueOf(frame, codon, row);
+      if (residue.change === Change.Blank) continue;
+      const left = x(start);
+      const width = (end - start) * charWidth;
+      const loud = residue.change >= Change.Missense;
+      ctx.globalAlpha = loud ? 0.35 : residue.change === Change.Synonymous ? 0.14 : 0.07;
+      ctx.fillStyle = loud ? colours.byClass[2] : colours.accent;
+      ctx.fillRect(left + 1, top + 1, width - 2, AA_HEIGHT - 2);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = loud ? colours.ink : colours.muted;
+      ctx.fillText(residue.letter, left + width / 2, top + AA_HEIGHT / 2);
+    }
+  }
+  ctx.textAlign = 'left';
+}
+
 export function AlignmentStackView({
   stack,
   referenceName,
@@ -220,6 +274,7 @@ export function AlignmentStackView({
   track,
   classes,
   showTrace,
+  residues,
   onSelectRow,
   focus,
 }: Props) {
@@ -236,7 +291,8 @@ export function AlignmentStackView({
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
   const trackHeight = track === null ? 0 : track.lanes * LANE_HEIGHT + (track.lanes > 0 ? 4 : 0);
   /** The pinned top: ruler, the feature track, and the reference row. */
-  const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
+  const aaHeight = residues !== null && residues.length > 0 ? AA_HEIGHT : 0;
+  const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT + aaHeight;
   const [hover, setHover] = useState<string | null>(null);
   const contentWidth = NAME_WIDTH + stack.columns * charWidth;
   // Each row's top below the header; a read with a trace is taller by the trace's strip.
@@ -245,11 +301,11 @@ export function AlignmentStackView({
     let y = 0;
     stack.rows.forEach((row, r) => {
       out[r] = y;
-      y += ROW_HEIGHT + (showTrace && row.readIndex !== null ? TRACE_HEIGHT : 0);
+      y += ROW_HEIGHT + aaHeight + (showTrace && row.readIndex !== null ? TRACE_HEIGHT : 0);
     });
     out[stack.rows.length] = y;
     return out;
-  }, [stack, showTrace]);
+  }, [stack, showTrace, aaHeight]);
   const rowsHeight = tops[stack.rows.length] ?? 0;
   const contentHeight = headerHeight + rowsHeight;
   /** The row under `y` below the header, or -1. */
@@ -393,6 +449,20 @@ export function AlignmentStackView({
         );
       }
       ctx.globalAlpha = 1;
+      if (residues !== null && aaHeight > 0) {
+        drawResidues(
+          ctx,
+          residues,
+          colours,
+          monoFont,
+          first,
+          last,
+          x,
+          charWidth,
+          y + ROW_HEIGHT,
+          row,
+        );
+      }
       if (showTrace && row.readIndex !== null && row.result.trace !== null) {
         // The chromatogram under the row: each base's peak under its letter.
         const bases: TraceBaseAt[] = [];
@@ -406,12 +476,12 @@ export function AlignmentStackView({
         }
         ctx.save();
         ctx.beginPath();
-        ctx.rect(NAME_WIDTH, y + ROW_HEIGHT, size.width - NAME_WIDTH, TRACE_HEIGHT);
+        ctx.rect(NAME_WIDTH, y + ROW_HEIGHT + aaHeight, size.width - NAME_WIDTH, TRACE_HEIGHT);
         ctx.clip();
         drawTrace(ctx, {
           read: row.result.trace,
           bases,
-          top: y + ROW_HEIGHT + 2,
+          top: y + ROW_HEIGHT + aaHeight + 2,
           height: TRACE_HEIGHT - 4,
           charWidth,
           colors: colours.trace,
@@ -458,6 +528,10 @@ export function AlignmentStackView({
       );
     }
     ctx.globalAlpha = 1;
+    if (residues !== null && aaHeight > 0) {
+      const top = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
+      drawResidues(ctx, residues, colours, monoFont, first, last, x, charWidth, top, null);
+    }
     if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x);
     ctx.restore();
 
@@ -518,6 +592,8 @@ export function AlignmentStackView({
     headerHeight,
     trackHeight,
     showTrace,
+    residues,
+    aaHeight,
     tops,
     rowAt,
   ]);
