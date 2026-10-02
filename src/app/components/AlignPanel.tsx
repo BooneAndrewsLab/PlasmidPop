@@ -396,6 +396,8 @@ export function AlignPanel({ doc }: Props) {
   const [result, setResult] = useState<ShownAlignment | null>(null);
   /** Counts results, so each new one is drawn afresh (no focus, the trace shown). */
   const [resultKey, setResultKey] = useState(0);
+  /** The options the result on screen was aligned with; a change of either marks it stale (#117). */
+  const [alignedWith, setAlignedWith] = useState<string | null>(null);
   /** Whether a document that is itself a read is aligned as the read (#57). */
   const [docAsRead, setDocAsRead] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -468,7 +470,18 @@ export function AlignPanel({ doc }: Props) {
     setFileNote(`From the open tab ${d.name}${d.read === null ? '' : ', with base qualities'}.`);
   };
 
+  /**
+   * The input changed, so what was aligned no longer belongs to it (#117):
+   * stop a running alignment and drop the result or the batch.
+   */
+  const clearResults = (): void => {
+    running.current?.abort();
+    setResult(null);
+    setBatch(null);
+    setBatchPicked(null);
+  };
   const setText = (text: string): void => {
+    clearResults();
     setOther(text);
     setPicked(0);
     setError(null);
@@ -560,6 +573,7 @@ export function AlignPanel({ doc }: Props) {
           target.end - target.start,
         );
   const mode = pickedMode ?? suggested.mode;
+  const optionsKey = `${mode}|${useSelection && hasSelection && !docIsRead}`;
 
   /**
    * The document, or its selection, as the reference a read is aligned to;
@@ -596,6 +610,7 @@ export function AlignPanel({ doc }: Props) {
    */
   const runAll = (): void => {
     if (records.length > BATCH_LIMIT) return;
+    setAlignedWith(optionsKey);
     analytics.track('align', 'batch', pickedMode ?? 'auto');
     // Wrapping for the reads aligned locally; runReadBatch drops it for the rest.
     const reference = documentReference(true);
@@ -680,6 +695,7 @@ export function AlignPanel({ doc }: Props) {
     const shownAs = docIsRead ? { referenceName: record.name } : null;
     analytics.track('align', 'run', mode);
     if (docIsRead) analytics.trackOnce('align', 'document-read');
+    setAlignedWith(optionsKey);
     const controller = begin();
     setBatch(null);
     analysisClient
@@ -748,6 +764,7 @@ export function AlignPanel({ doc }: Props) {
   };
 
   const anyReads = readInUse !== null || records.some((r) => r.read !== undefined);
+  const stale = (result !== null || batch !== null) && alignedWith !== optionsKey;
   const batchPickedRow =
     batch === null || batchPicked === null
       ? undefined
@@ -824,6 +841,7 @@ export function AlignPanel({ doc }: Props) {
               aria-label="Record to align"
               value={all ? -1 : Math.min(Math.max(picked, 0), records.length - 1)}
               onChange={(e) => {
+                clearResults();
                 setPicked(Number(e.target.value));
               }}
             >
@@ -978,60 +996,75 @@ export function AlignPanel({ doc }: Props) {
           <QualitySettings trim={trim} />
         </fieldset>
       )}
+      {stale && (
+        <p className="panel__note align-stale-note" role="status">
+          Input changed, align again.
+        </p>
+      )}
       {batch !== null && (batch.rows.length > 0 || !busy) && (
-        <div className="panel__section">
-          <h3 className="panel__heading">
-            {batch.total} reads
-            <span className="panel__heading-note">
-              {batch.cancelled
-                ? `cancelled after ${batch.rows.length}`
-                : batch.rows.length < batch.total
-                  ? `${batch.rows.length} aligned so far`
-                  : `against ${useSelection && hasSelection ? 'the selection' : doc.name}`}
-              {batch.rows.some((r) => r.status === 'failed')
-                ? `, ${batch.rows.filter((r) => r.status === 'failed').length} could not be aligned`
-                : ''}
-            </span>
-          </h3>
-          {batch.rows.some((r) => r.status === 'aligned') && (
-            <button
-              type="button"
-              className="button button--primary button--small"
-              title="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
-              onClick={() => {
-                openBatchLarge(
-                  batchPickedRow?.status === 'aligned' ? batchPickedRow.index : undefined,
-                );
-              }}
-            >
-              Large view of all
-            </button>
-          )}
-          <ReadBatchList
-            rows={batch.rows}
-            confidentFrom={readConfidentQuality}
-            selected={batchPicked}
-            onSelect={pickBatchRow}
-            onPoint={setPointedRow}
-          />
-        </div>
+        <fieldset
+          className={`align-results${stale ? ' align-results--stale' : ''}`}
+          disabled={stale}
+        >
+          <div className="panel__section">
+            <h3 className="panel__heading">
+              {batch.total} reads
+              <span className="panel__heading-note">
+                {batch.cancelled
+                  ? `cancelled after ${batch.rows.length}`
+                  : batch.rows.length < batch.total
+                    ? `${batch.rows.length} aligned so far`
+                    : `against ${useSelection && hasSelection ? 'the selection' : doc.name}`}
+                {batch.rows.some((r) => r.status === 'failed')
+                  ? `, ${batch.rows.filter((r) => r.status === 'failed').length} could not be aligned`
+                  : ''}
+              </span>
+            </h3>
+            {batch.rows.some((r) => r.status === 'aligned') && (
+              <button
+                type="button"
+                className="button button--primary button--small"
+                title="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
+                onClick={() => {
+                  openBatchLarge(
+                    batchPickedRow?.status === 'aligned' ? batchPickedRow.index : undefined,
+                  );
+                }}
+              >
+                Large view of all
+              </button>
+            )}
+            <ReadBatchList
+              rows={batch.rows}
+              confidentFrom={readConfidentQuality}
+              selected={batchPicked}
+              onSelect={pickBatchRow}
+              onPoint={setPointedRow}
+            />
+          </div>
+        </fieldset>
       )}
       {result !== null && (
-        <AlignmentResult
-          key={resultKey}
-          result={result}
-          docName={doc.name}
-          docLength={doc.length}
-          onOpenLarge={() => {
-            setLarge({
-              reference: result.reference,
-              referenceName: result.docIsRead?.referenceName ?? doc.name,
-              documentIsRead: result.docIsRead !== null,
-              document: result.docIsRead === null ? doc : null,
-              samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
-            });
-          }}
-        />
+        <fieldset
+          className={`align-results${stale ? ' align-results--stale' : ''}`}
+          disabled={stale}
+        >
+          <AlignmentResult
+            key={resultKey}
+            result={result}
+            docName={doc.name}
+            docLength={doc.length}
+            onOpenLarge={() => {
+              setLarge({
+                reference: result.reference,
+                referenceName: result.docIsRead?.referenceName ?? doc.name,
+                documentIsRead: result.docIsRead !== null,
+                document: result.docIsRead === null ? doc : null,
+                samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
+              });
+            }}
+          />
+        </fieldset>
       )}
       {large !== null && (
         <AlignmentDialog
