@@ -37,8 +37,8 @@ aligns two proteins, scored by BLOSUM62.
    the document instead of all of it (it is greyed out until something is
    selected). Click **Align** again to re-run with the new options.
 
-The result reports the score, percent identity, the number of columns and
-of gap columns. It does not print the alignment itself, which is too wide
+The result appears in a **Result** group under Options, and reports the
+score, percent identity, the number of columns and of gap columns. It does not print the alignment itself, which is too wide
 for a side panel: click **Large view** to read it in a window of its own,
 along the whole sequence (see below). Identity counts only the identical
 columns.
@@ -56,15 +56,15 @@ whole row is the target, not just the name.
 
 ## A result belongs to its input
 
-A result, under its **Result** header, stays on screen only while it describes what is in the panel.
+A result stays on screen only while it describes what is in the panel.
 Pasting or editing the sequence box, choosing or dropping a file, taking
-another open tab or picking another record **clears** the result (or the
+another open tab or picking another record **clears** the result and its group (or the
 batch's list) and stops an alignment that is still running, so an old
 result never looks like the new input's. Changing **Mode** or **Against
 selection only** is different, since people tweak these while comparing:
-the result stays but is dimmed and marked "Input changed, align again", and
-its summary line and Large view buttons are disabled until you click
-**Align** again; the **Result** header above it dims with it. A Large view window that is already open keeps its own
+the result stays but is dimmed, "Input changed, align again" shows under
+the Result group's name, and its summary line and Large view buttons are
+disabled until you click **Align** again. A Large view window that is already open keeps its own
 result until you close it.
 
 ## Aligning a batch of reads
@@ -90,7 +90,7 @@ all at once — the usual way to check a batch of clones.
    in the background; the bar counts reads (**12 of 96**) and **Cancel**
    stops the batch, keeping the reads already aligned. Leaving the Align tab
    cancels it too.
-4. The reads are listed as they finish, one row each: the name, its length
+4. The reads are listed as they finish, in a **Results** group, one row each: the name, its length
    and whether it aligned **reversed**, the **identity**, the number of
    differences on confident bases (**Q20+ diffs**, following **Confident
    from**; a read without qualities counts all of its differences, as

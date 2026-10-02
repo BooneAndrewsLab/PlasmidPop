@@ -77,6 +77,21 @@ describe('AlignPanel', () => {
     );
   });
 
+  it('puts the result in a group of its own under the options (#118)', async () => {
+    render(<AlignPanel doc={doc} />);
+    expect(screen.queryByRole('group', { name: 'Result' })).toBeNull();
+    fireEvent.change(box(), { target: { value: 'GGCCAATTGGCC' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    const result = await screen.findByRole('group', { name: 'Result' });
+    const options = screen.getByRole('group', { name: 'Options' });
+    expect(
+      Boolean(options.compareDocumentPosition(result) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+    expect(options).not.toContainElement(result);
+    expect(result).toContainElement(screen.getByRole('button', { name: 'Large view' }));
+    expect(result).toContainElement(screen.getByText(/identity 100%/));
+  });
+
   it('offers every record of a multi-record FASTA and aligns the one chosen', async () => {
     render(<AlignPanel doc={doc} />);
     fireEvent.change(box(), { target: { value: '>one\nCCCCCCCC\n>two\nGGCCAATTGGCC\n' } });
@@ -305,7 +320,7 @@ describe('AlignPanel', () => {
       fireEvent.change(box(), { target: { value: 'GGCCAATTGGCCA' } });
       expect(screen.queryByText(/identity/)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Large view' })).toBeNull();
-      expect(screen.queryByText('Result', { selector: 'legend' })).toBeNull();
+      expect(screen.queryByRole('group', { name: 'Result' })).toBeNull();
     });
 
     it('clears the result when a file is dropped', async () => {
@@ -355,15 +370,16 @@ describe('AlignPanel', () => {
       await alignedOnce();
       expect(screen.getByRole('button', { name: 'Large view' })).toBeEnabled();
       expect(screen.queryByText(/Input changed, align again/)).toBeNull();
-      const header = screen.getByText('Result', { selector: 'legend' });
-      expect(header.closest('fieldset')).toBeEnabled();
       fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
         target: { value: 'global' },
       });
       expect(screen.getByText(/Input changed, align again/)).toBeInTheDocument();
-      expect(header.closest('fieldset')).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Large view' })).toBeDisabled();
       expect(screen.getByText(/identity 100%/).closest('button')).toBeDisabled();
+      // The mark sits in the Result group, under its header (#118).
+      expect(screen.getByRole('group', { name: 'Result' })).toContainElement(
+        screen.getByText(/Input changed, align again/),
+      );
       // Aligning again makes it current.
       fireEvent.click(screen.getByRole('button', { name: 'Align' }));
       await waitFor(() => {
@@ -679,6 +695,10 @@ describe('AlignPanel', () => {
       });
       expect(screen.getByText(/1 could not be aligned/)).toBeInTheDocument();
       expect(screen.getByText(/good enough quality/)).toBeInTheDocument();
+      // A batch's list is its own group, named for more than one (#118).
+      expect(screen.getByRole('group', { name: 'Results' })).toContainElement(
+        screen.getByRole('button', { name: 'Large view of all' }),
+      );
       fireEvent.click(screen.getByRole('button', { name: 'clone2' }));
       // The picked read has no section of its own; the large view shows it.
       expect(screen.queryByText(/Local alignment of clone2/)).not.toBeInTheDocument();

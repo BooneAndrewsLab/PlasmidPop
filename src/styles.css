@@ -2051,16 +2051,6 @@ button {
   margin-bottom: 8px;
 }
 
-.align-results {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-.align-results--stale {
-  opacity: 0.5;
-}
-
 .align-progress__bar {
   flex: 1;
   min-width: 0;
@@ -4260,8 +4250,24 @@ button {
   border-radius: 6px;
 }
 
-.align-options legend,
-.align-results legend {
+.align-options legend {
   padding: 0 4px;
   color: var(--ink-2);
+}
+
+/* The result is a group of its own under the form (#118): the group draws the rule. */
+.align-results {
+  padding-bottom: 8px;
+}
+.align-results > .panel__section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.align-results > .align-stale-note {
+  margin-top: 0;
+}
+/* A stale result is dimmed under its header and mark, which stay readable (#117). */
+.align-results--stale > :not(legend, .align-stale-note) {
+  opacity: 0.5;
 }

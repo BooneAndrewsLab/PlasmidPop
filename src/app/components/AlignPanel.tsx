@@ -765,6 +765,8 @@ export function AlignPanel({ doc }: Props) {
 
   const anyReads = readInUse !== null || records.some((r) => r.read !== undefined);
   const stale = (result !== null || batch !== null) && alignedWith !== optionsKey;
+  /** The batch's list is shown once a read is in it, or when the batch has ended with none. */
+  const showBatch = batch !== null && (batch.rows.length > 0 || !busy);
   const batchPickedRow =
     batch === null || batchPicked === null
       ? undefined
@@ -996,76 +998,72 @@ export function AlignPanel({ doc }: Props) {
           <QualitySettings trim={trim} />
         </fieldset>
       )}
-      {stale && (
-        <p className="panel__note align-stale-note" role="status">
-          Input changed, align again.
-        </p>
-      )}
-      {batch !== null && (batch.rows.length > 0 || !busy) && (
+      {(showBatch || result !== null) && (
         <fieldset
-          className={`align-results${stale ? ' align-results--stale' : ''}`}
+          className={`align-options align-results${stale ? ' align-results--stale' : ''}`}
           disabled={stale}
         >
-          <legend>Result</legend>
-          <div className="panel__section">
-            <h3 className="panel__heading">
-              {batch.total} reads
-              <span className="panel__heading-note">
-                {batch.cancelled
-                  ? `cancelled after ${batch.rows.length}`
-                  : batch.rows.length < batch.total
-                    ? `${batch.rows.length} aligned so far`
-                    : `against ${useSelection && hasSelection ? 'the selection' : doc.name}`}
-                {batch.rows.some((r) => r.status === 'failed')
-                  ? `, ${batch.rows.filter((r) => r.status === 'failed').length} could not be aligned`
-                  : ''}
-              </span>
-            </h3>
-            {batch.rows.some((r) => r.status === 'aligned') && (
-              <button
-                type="button"
-                className="button button--primary button--small"
-                title="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
-                onClick={() => {
-                  openBatchLarge(
-                    batchPickedRow?.status === 'aligned' ? batchPickedRow.index : undefined,
-                  );
-                }}
-              >
-                Large view of all
-              </button>
-            )}
-            <ReadBatchList
-              rows={batch.rows}
-              confidentFrom={readConfidentQuality}
-              selected={batchPicked}
-              onSelect={pickBatchRow}
-              onPoint={setPointedRow}
+          <legend>{showBatch ? 'Results' : 'Result'}</legend>
+          {stale && (
+            <p className="panel__note align-stale-note" role="status">
+              Input changed, align again.
+            </p>
+          )}
+          {showBatch && (
+            <div className="panel__section">
+              <h3 className="panel__heading">
+                {batch.total} reads
+                <span className="panel__heading-note">
+                  {batch.cancelled
+                    ? `cancelled after ${batch.rows.length}`
+                    : batch.rows.length < batch.total
+                      ? `${batch.rows.length} aligned so far`
+                      : `against ${useSelection && hasSelection ? 'the selection' : doc.name}`}
+                  {batch.rows.some((r) => r.status === 'failed')
+                    ? `, ${batch.rows.filter((r) => r.status === 'failed').length} could not be aligned`
+                    : ''}
+                </span>
+              </h3>
+              {batch.rows.some((r) => r.status === 'aligned') && (
+                <button
+                  type="button"
+                  className="button button--primary button--small"
+                  title="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
+                  onClick={() => {
+                    openBatchLarge(
+                      batchPickedRow?.status === 'aligned' ? batchPickedRow.index : undefined,
+                    );
+                  }}
+                >
+                  Large view of all
+                </button>
+              )}
+              <ReadBatchList
+                rows={batch.rows}
+                confidentFrom={readConfidentQuality}
+                selected={batchPicked}
+                onSelect={pickBatchRow}
+                onPoint={setPointedRow}
+              />
+            </div>
+          )}
+          {result !== null && (
+            <AlignmentResult
+              key={resultKey}
+              result={result}
+              docName={doc.name}
+              docLength={doc.length}
+              onOpenLarge={() => {
+                setLarge({
+                  reference: result.reference,
+                  referenceName: result.docIsRead?.referenceName ?? doc.name,
+                  documentIsRead: result.docIsRead !== null,
+                  document: result.docIsRead === null ? doc : null,
+                  samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
+                });
+              }}
             />
-          </div>
-        </fieldset>
-      )}
-      {result !== null && (
-        <fieldset
-          className={`align-results${stale ? ' align-results--stale' : ''}`}
-          disabled={stale}
-        >
-          <legend>Result</legend>
-          <AlignmentResult
-            key={resultKey}
-            result={result}
-            docName={doc.name}
-            docLength={doc.length}
-            onOpenLarge={() => {
-              setLarge({
-                reference: result.reference,
-                referenceName: result.docIsRead?.referenceName ?? doc.name,
-                documentIsRead: result.docIsRead !== null,
-                document: result.docIsRead === null ? doc : null,
-                samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
-              });
-            }}
-          />
+          )}
         </fieldset>
       )}
       {large !== null && (
