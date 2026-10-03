@@ -288,7 +288,8 @@ once the ORFs panel has found them. With no document behind the reference
   sample, **Samples** sorts and hides them (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
   when you open the window again. The forms under the toolbar (Go to, Find, Export, Samples) close when
-  you click anywhere outside them, or on `Esc`; the List and All features
+  you click anywhere outside them, on `Esc`, or with **×** at the end of
+  their heading; the List and All features
   tables stay open until you press their button again. Under the toolbar, the status row has,
   at the left, the picked sample's score line and buttons, and at the right
   the colour key.
@@ -300,7 +301,8 @@ once the ORFs panel has found them. With no document behind the reference
   equal ones keep their aligned order. Pick a sample and press **Hide** in
   the status row to take it out of the window; the button then reads
   "Samples (1 hidden)" and the status line says "1 hidden". The form lists
-  the hidden samples, each with **Show**, and **Show all**. The last sample
+  the hidden samples under "Hidden: 1 of 4", each with **Show**, and
+  **Show all**. The last sample
   shown cannot be hidden. The rows you see are the only rows everything
   else works on: `↑` and `↓` walk them in the order shown, the differences
   and their count, the list, the coverage band, the marks where samples

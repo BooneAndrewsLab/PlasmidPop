@@ -4160,54 +4160,235 @@ button {
   position: relative;
 }
 
-.astack-find {
+/* The toolbar's popovers (Go to, Find, Export, Samples), one family: a
+   heading with the close button at its end, a form whose labels line up in
+   a column, then a status line. Controls are one height, 28 px, the same as
+   the toolbar's buttons, and drawn like the sidebar's (`.panel__select`). */
+.astack-pop {
   position: absolute;
   z-index: 5;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 32px);
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 10%),
+    0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.astack-pop--goto {
+  width: 21rem;
+}
+
+.astack-pop--find {
+  width: 24rem;
+}
+
+.astack-pop--export {
+  width: 30rem;
+}
+
+.astack-pop--samples {
+  width: 22rem;
+}
+
+.astack-pop__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 -6px 0 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.astack-pop__title {
+  font-weight: 600;
+}
+
+.astack-pop__close {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.astack-pop__close:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+/* Labels in one column, their controls filling the other (as .panel__form). */
+.astack-pop__form {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--ink-2);
+}
+
+.astack-pop__form > label {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+.astack-pop__line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
-  width: max-content;
-  max-width: min(36rem, calc(100vw - 32px));
-  padding: 8px 10px;
+  min-width: 0;
+  color: var(--ink-2);
+}
+
+.astack-pop__inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.astack-pop__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+  color: var(--ink);
+  font: inherit;
 }
 
-.astack-find__label {
+.astack-pop__line > .astack-pop__input {
+  flex: 1 1 8rem;
+  width: auto;
+}
+
+.astack-pop__line > .astack-pop__input--number,
+.astack-pop__input--number {
+  flex: 0 0 auto;
+  width: 7ch;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.astack-pop__input--mono {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.astack-pop__input--mono::placeholder {
+  font-family: var(--font-ui);
+  text-transform: none;
+}
+
+.astack-pop__input::placeholder {
+  color: var(--ink-3);
+}
+
+.astack-pop__input:focus-visible {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+}
+
+.astack-pop__button {
+  box-sizing: border-box;
+  height: 28px;
+  padding-block: 0;
+  white-space: nowrap;
+}
+
+.astack-pop__step {
+  box-sizing: border-box;
+  height: 26px;
+  min-width: 30px;
+  padding-block: 0;
+  white-space: nowrap;
+}
+
+.astack-pop__foot {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* With nothing to say and no buttons the status line takes no room, but it
+   stays rendered so that a screen reader still hears what it says next. */
+.astack-pop__foot:has(.astack-pop__status:empty):not(:has(button)) {
+  height: 0;
+  margin-top: -10px;
+  overflow: hidden;
+}
+
+.astack-pop__status {
+  min-width: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.astack-pop__section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.astack-pop__subhead {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.astack-pop__hint {
+  margin: -6px 0 0;
+  color: var(--ink-2);
   font-size: 12px;
 }
 
-.astack-find__input {
-  width: 14ch;
+.astack-pop__list {
+  max-height: 12rem;
+  margin: -4px 0 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  list-style: none;
 }
 
-.astack-find__select {
-  max-width: 16ch;
-}
-
-.astack-export__input {
-  width: 7ch;
-}
-
-.astack-export__row {
+.astack-pop__list li {
   display: flex;
-  flex-basis: 100%;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 2px 10px;
 }
 
-.astack-export__message {
-  flex: 1 1 100%;
-  min-height: 1lh;
+.astack-pop__list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.astack-pop__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The reading row: the summary left, the colour key right; no control shares it. */
@@ -4494,24 +4675,4 @@ button {
 .astack-verdict-table__row--not-covered .astack-verdict-table__status {
   color: var(--ink-2);
   font-style: italic;
-}
-
-.astack-samples {
-  max-width: min(26rem, calc(100vw - 32px));
-}
-
-.astack-samples__list {
-  flex-basis: 100%;
-  max-height: 12rem;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.astack-samples__list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
 }

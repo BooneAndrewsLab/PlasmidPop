@@ -17,6 +17,7 @@ import {
 } from '../alignmentText';
 import { copyText } from '../clipboard';
 import { downloadBlob } from '../saveFile';
+import { AlignmentPopover } from './AlignmentPopover';
 import type { StackDrawing } from './alignmentStackDraw';
 
 interface Props {
@@ -124,116 +125,124 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
   };
 
   return (
-    <div className="astack-find astack-export" role="group" aria-label="Export the alignment">
-      <label className="astack-find__label">
-        Columns
-        <input
-          className="input astack-export__input"
-          aria-label="From column"
-          inputMode="numeric"
-          value={from}
-          onChange={(e) => {
-            setFrom(e.target.value);
-          }}
-        />
-        to
-        <input
-          className="input astack-export__input"
-          aria-label="To column"
-          inputMode="numeric"
-          value={to}
-          onChange={(e) => {
-            setTo(e.target.value);
-          }}
-        />
-      </label>
-      <button
-        type="button"
-        className="button button--quiet button--small"
-        onClick={() => {
-          set(getVisible());
-        }}
-      >
-        On screen
-      </button>
-      <button
-        type="button"
-        className="button button--quiet button--small"
-        onClick={() => {
-          set({ start: 0, end: stack.columns });
-        }}
-      >
-        All {stack.columns.toLocaleString()}
-      </button>
-      <div className="astack-export__row">
-        <span className="astack-tools__note">Picture</span>
-        <button
-          type="button"
-          className="button button--small"
-          title="Names, ruler, features, differences and amino acids as shown, as a vector file"
-          onClick={() => {
-            save('svg');
-          }}
-        >
-          Save SVG
-        </button>
-        <button
-          type="button"
-          className="button button--small"
-          title="The same as an image file"
-          onClick={() => {
-            save('png');
-          }}
-        >
-          Save PNG
-        </button>
-      </div>
-      <div className="astack-export__row">
-        <span className="astack-tools__note">Copy</span>
-        <button
-          type="button"
-          className="button button--small"
-          title="Blocks of columns with names, positions and a match line"
-          onClick={() => {
-            copy('text');
-          }}
-        >
-          As text
-        </button>
-        <label className="astack-find__label">
-          in blocks of
+    <AlignmentPopover
+      title="Export the alignment"
+      closeLabel="Close export"
+      onClose={onClose}
+      className="astack-pop--export"
+    >
+      <div className="astack-pop__form">
+        <span>Columns</span>
+        <span className="astack-pop__line">
           <input
-            className="input astack-export__input"
-            aria-label="Columns per block"
+            className="astack-pop__input astack-pop__input--number"
+            aria-label="From column"
             inputMode="numeric"
-            value={block}
+            value={from}
             onChange={(e) => {
-              setBlock(e.target.value);
+              setFrom(e.target.value);
             }}
           />
-        </label>
-        <button
-          type="button"
-          className="button button--small"
-          title="Every sequence at the full width of the range, gaps as -"
-          onClick={() => {
-            copy('fasta');
-          }}
-        >
-          As aligned FASTA
-        </button>
+          <span aria-hidden="true">to</span>
+          <input
+            className="astack-pop__input astack-pop__input--number"
+            aria-label="To column"
+            inputMode="numeric"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+            }}
+          />
+          <span className="segmented" role="group" aria-label="Set the columns">
+            <button
+              type="button"
+              className="segmented__button astack-pop__step"
+              title="The columns in view now"
+              onClick={() => {
+                set(getVisible());
+              }}
+            >
+              On screen
+            </button>
+            <button
+              type="button"
+              className="segmented__button astack-pop__step"
+              title="Every column of the alignment"
+              onClick={() => {
+                set({ start: 0, end: stack.columns });
+              }}
+            >
+              All {stack.columns.toLocaleString()}
+            </button>
+          </span>
+        </span>
+        <span>Picture</span>
+        <span className="astack-pop__line">
+          <button
+            type="button"
+            className="button astack-pop__button"
+            title="Names, ruler, features, differences and amino acids as shown, as a vector file"
+            onClick={() => {
+              save('svg');
+            }}
+          >
+            Save SVG
+          </button>
+          <button
+            type="button"
+            className="button astack-pop__button"
+            title="The same as an image file"
+            onClick={() => {
+              save('png');
+            }}
+          >
+            Save PNG
+          </button>
+        </span>
+        <span>Copy</span>
+        <span className="astack-pop__line">
+          <button
+            type="button"
+            className="button astack-pop__button"
+            title="Blocks of columns with names, positions and a match line"
+            onClick={() => {
+              copy('text');
+            }}
+          >
+            As text
+          </button>
+          <label className="astack-pop__inline">
+            in blocks of
+            <input
+              className="astack-pop__input astack-pop__input--number"
+              aria-label="Columns per block"
+              inputMode="numeric"
+              value={block}
+              onChange={(e) => {
+                setBlock(e.target.value);
+              }}
+            />
+          </label>
+        </span>
+        <span aria-hidden="true" />
+        <span className="astack-pop__line">
+          <button
+            type="button"
+            className="button astack-pop__button"
+            title="Every sequence at the full width of the range, gaps as -"
+            onClick={() => {
+              copy('fasta');
+            }}
+          >
+            As aligned FASTA
+          </button>
+        </span>
       </div>
-      <span className="astack-tools__note astack-export__message" aria-live="polite">
-        {message}
-      </span>
-      <button
-        type="button"
-        className="button button--quiet button--small"
-        aria-label="Close export"
-        onClick={onClose}
-      >
-        ×
-      </button>
-    </div>
+      <div className="astack-pop__foot">
+        <span className="astack-pop__status" aria-live="polite">
+          {message}
+        </span>
+      </div>
+    </AlignmentPopover>
   );
 }

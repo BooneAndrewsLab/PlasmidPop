@@ -477,7 +477,7 @@ export function AlignmentDialog({
             )}
           </div>
           {samples.length > 1 && (
-            <span className="astack-tools__search">
+            <div className="astack-tools__search">
               <div className="segmented" role="group" aria-label="Samples">
                 <button
                   type="button"
@@ -507,9 +507,12 @@ export function AlignmentDialog({
                   onShowAll={() => {
                     setHidden(new Set());
                   }}
+                  onClose={() => {
+                    setPopover(null);
+                  }}
                 />
               )}
-            </span>
+            </div>
           )}
           {(source !== null || hasTrace) && (
             <div className="segmented astack-tools__show" role="group" aria-label="Show">

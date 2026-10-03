@@ -9,6 +9,7 @@ import {
   positionMessage,
   stepMatch,
 } from '../alignmentSearch';
+import { AlignmentPopover } from './AlignmentPopover';
 
 export type SearchMode = 'goto' | 'find';
 
@@ -98,39 +99,46 @@ export function AlignmentFind({ stack, mode, row, getFrom, onRow, onJump, onClos
   const strand = match === undefined ? '' : match.strand === 'reverse' ? ' · reverse strand' : '';
 
   return (
-    <div
-      className="astack-find"
-      role="group"
-      aria-label={mode === 'goto' ? 'Go to a position' : 'Find a motif'}
+    <AlignmentPopover
+      title={mode === 'goto' ? 'Go to a position' : 'Find a motif'}
+      closeLabel="Close search"
+      onClose={onClose}
+      className={mode === 'goto' ? 'astack-pop--goto' : 'astack-pop--find'}
     >
       {mode === 'goto' ? (
-        <>
-          <label className="astack-find__label">
+        <div className="astack-pop__form">
+          <label>
             Position
-            <input
-              ref={input}
-              className="input astack-find__input"
-              inputMode="numeric"
-              value={text}
-              placeholder="1-based"
-              onChange={(e) => {
-                setText(e.target.value);
-                setMessage('');
-              }}
-              onKeyDown={onKeyDown}
-            />
+            <span className="astack-pop__line">
+              <input
+                ref={input}
+                className="astack-pop__input"
+                inputMode="numeric"
+                value={text}
+                placeholder="As on the ruler"
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setMessage('');
+                }}
+                onKeyDown={onKeyDown}
+              />
+              <button
+                type="button"
+                className="button button--primary astack-pop__button"
+                onClick={go}
+              >
+                Go
+              </button>
+            </span>
           </label>
-          <button type="button" className="button button--small" onClick={go}>
-            Go
-          </button>
-        </>
+        </div>
       ) : (
-        <>
-          <label className="astack-find__label">
+        <div className="astack-pop__form">
+          <label>
             Motif
             <input
               ref={input}
-              className="input astack-find__input"
+              className="astack-pop__input astack-pop__input--mono"
               value={text}
               placeholder="GAATTC, RGATCY"
               spellCheck={false}
@@ -141,10 +149,10 @@ export function AlignmentFind({ stack, mode, row, getFrom, onRow, onJump, onClos
               onKeyDown={onKeyDown}
             />
           </label>
-          <label className="astack-find__label">
+          <label>
             In
             <select
-              className="input astack-find__select"
+              className="astack-pop__input"
               value={row === null ? 'ref' : String(row)}
               onChange={(e) => {
                 onRow(e.target.value === 'ref' ? null : Number(e.target.value));
@@ -158,41 +166,41 @@ export function AlignmentFind({ stack, mode, row, getFrom, onRow, onJump, onClos
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={matches.length === 0}
-            aria-label="Previous match"
-            onClick={() => {
-              step(true);
-            }}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={matches.length === 0}
-            aria-label="Next match"
-            onClick={() => {
-              step(false);
-            }}
-          >
-            ›
-          </button>
-        </>
+        </div>
       )}
-      <span className="astack-tools__note" aria-live="polite">
-        {mode === 'goto' ? message : `${status}${strand}`}
-      </span>
-      <button
-        type="button"
-        className="button button--quiet button--small"
-        aria-label="Close search"
-        onClick={onClose}
-      >
-        ×
-      </button>
-    </div>
+      <div className="astack-pop__foot">
+        <span className="astack-pop__status" aria-live="polite">
+          {mode === 'goto' ? message : `${status}${strand}`}
+        </span>
+        {mode === 'find' && (
+          <span className="segmented" role="group" aria-label="Matches">
+            <button
+              type="button"
+              className="segmented__button astack-pop__step"
+              disabled={matches.length === 0}
+              aria-label="Previous match"
+              title="Previous match (Shift+Enter)"
+              onClick={() => {
+                step(true);
+              }}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="segmented__button astack-pop__step"
+              disabled={matches.length === 0}
+              aria-label="Next match"
+              title="Next match (Enter)"
+              onClick={() => {
+                step(false);
+              }}
+            >
+              ›
+            </button>
+          </span>
+        )}
+      </div>
+    </AlignmentPopover>
   );
 }

@@ -460,3 +460,36 @@ one document listener while one is open, ignoring anything inside
 `.astack-tools__search`, which holds a popover's button and its form. The two
 tables (List, All features) deliberately stay open until their own button, so
 Next/Previous and clicks on the alignment can be used with a table showing.
+
+### The toolbar's popovers redrawn
+
+Go to, Find, Export and Samples looked unfinished: their inputs and selects
+carried a class, `input`, that the stylesheet never defined, so they were the
+browser's own controls (a light grey select in the dark theme, each a
+different height); labels sat inline wherever the wrapping put them; Find's
+‹ › were 20 px targets; Export's × was left alone on a last line under an
+empty message line, and Export ran past the window's right edge at 640 px;
+Samples had no close button at all and its "No samples hidden" in the body
+size beside 12 px labels.
+
+They now share one frame, `AlignmentPopover`: a heading (the text that was
+already the group's accessible name, now its `aria-labelledby`) with × at
+its end, a two-column form whose labels line up as the sidebar's
+`.panel__form` does, then a status line (Find's count with ‹ › as a
+segmented pair at its right; a line with nothing in it and no buttons takes
+no room but stays in the page, so its live region still speaks). Every
+control is 28 px high and drawn like `.panel__select`; Go is the primary
+button; Find's motif is in the monospace face, shown upper case. Export's
+On screen / All is a segmented pair beside the range, and its Picture and
+Copy rows start under Columns. Samples gets a Close (the same
+`setPopover(null)` as the others), a "Hidden: 2 of 5" heading with Show all
+at its right, and the hidden names in a bordered list, cut with an ellipsis.
+Each popover has a fixed width (21, 24, 30 and 22 rem, never past the window
+less 32 px) and is moved left after layout by as much as it would pass the
+window's right edge. Behaviour (one at a time, click outside, Esc) and every
+control's accessible name are unchanged.
+
+Checked by eye in a headless Chromium (Playwright) on pBR322 with five reads
+made from it, two hidden: all four popovers in the dark theme at 1,400 px and
+the light theme at 1,400 and 640 px (the narrowest the window is shown at;
+below 600 px the phone layout has no large view).
