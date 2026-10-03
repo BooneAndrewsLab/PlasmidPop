@@ -4155,6 +4155,44 @@ button {
   margin-inline-start: auto;
 }
 
+/* Go to and Find: two buttons in the toolbar, their form a popover beneath. */
+.astack-tools__search {
+  position: relative;
+}
+
+.astack-find {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  width: max-content;
+  max-width: min(36rem, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+}
+
+.astack-find__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.astack-find__input {
+  width: 14ch;
+}
+
+.astack-find__select {
+  max-width: 16ch;
+}
+
 /* The reading row: the summary left, the colour key right; no control shares it. */
 .astack-status {
   display: flex;

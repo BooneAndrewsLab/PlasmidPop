@@ -25,6 +25,7 @@ import { buildFrames } from '../alignmentResidues';
 import { confidentDifferences, coverageOf, verdictsOf, verdictText } from '../alignmentVerdict';
 import { disagreementColumns } from '../alignmentDisagreement';
 import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
+import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentStackView } from './AlignmentStackView';
 
@@ -174,6 +175,11 @@ export function AlignmentDialog({
     [showList, stack, regions, source, orfs, frames, disagreement],
   );
   const current = useRef(0);
+  const [search, setSearch] = useState<SearchMode | null>(null);
+  const searchOpen = useRef(false);
+  useEffect(() => {
+    searchOpen.current = search !== null;
+  }, [search]);
   const [stop, setStop] = useState<number | null>(null);
   const bindings = resolveBindings(keyBindings);
   const nextBinding = bindings.get('next-change') ?? 'alt+KeyN';
@@ -198,6 +204,12 @@ export function AlignmentDialog({
     },
     [regions],
   );
+  // A column span to show from Go to or Find: it is not a difference, so no stop.
+  const jump = useCallback((start: number, end: number): void => {
+    current.current = start;
+    setStop(null);
+    setFocus((f) => ({ start, end, nonce: (f?.nonce ?? 0) + 1 }));
+  }, []);
   const pick = useCallback((diff: DifferenceRow): void => {
     current.current = diff.start;
     setStop(diff.index);
@@ -209,7 +221,18 @@ export function AlignmentDialog({
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        // The search popover closes first, the window on a second Esc.
+        if (searchOpen.current) setSearch(null);
+        else onClose();
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        (e.code === 'KeyF' || e.code === 'KeyG')
+      ) {
+        // The editor's Find (Ctrl+F) is this window's Find; Go to has no key there.
+        e.preventDefault();
+        e.stopPropagation();
+        setSearch(e.code === 'KeyF' ? 'find' : 'goto');
       } else if (matchesBinding(e, nextBinding) || matchesBinding(e, withShift(nextBinding))) {
         e.preventDefault();
         e.stopPropagation();
@@ -302,6 +325,45 @@ export function AlignmentDialog({
             >
               List
             </button>
+          </div>
+          <div className="astack-tools__search">
+            <div className="segmented" role="group" aria-label="Search">
+              <button
+                type="button"
+                className={segmentedClass(search === 'goto')}
+                aria-pressed={search === 'goto'}
+                title="Go to a position of the reference (Ctrl+G)"
+                onClick={() => {
+                  setSearch((m) => (m === 'goto' ? null : 'goto'));
+                }}
+              >
+                Go to
+              </button>
+              <button
+                type="button"
+                className={segmentedClass(search === 'find')}
+                aria-pressed={search === 'find'}
+                title="Find a motif in the reference or a sample (Ctrl+F)"
+                onClick={() => {
+                  setSearch((m) => (m === 'find' ? null : 'find'));
+                }}
+              >
+                Find
+              </button>
+            </div>
+            {search !== null && (
+              <AlignmentFind
+                stack={stack}
+                mode={search}
+                row={selected}
+                getFrom={() => current.current}
+                onRow={setSelected}
+                onJump={jump}
+                onClose={() => {
+                  setSearch(null);
+                }}
+              />
+            )}
           </div>
           {(source !== null || hasTrace) && (
             <div className="segmented astack-tools__show" role="group" aria-label="Show">

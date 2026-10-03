@@ -256,16 +256,37 @@ once the ORFs panel has found them. With no document behind the reference
   A feature across the origin of a circle counts each base once. These lines
   say what the alignment shows, not that the construct is right: a base no
   read covers is unchecked, not good.
-- The toolbar has three groups. At the left, **‹ Prev** and **Next ›**
+- The toolbar has four groups. At the left, **‹ Prev** and **Next ›**
   (`Alt+N`, `Alt+Shift+N`, or whatever Next change is bound to in
   Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap
   round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
   whole run is marked. Beside the count, **List** opens the table of
-  differences described below. At the right, the **Show** group switches **Features**, **ORFs**,
+  differences described below, and **Go to** and **Find** open a small
+  form under the toolbar (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
   when you open the window again. Under the toolbar, the sample's score
   line sits at the left and the colour key at the right.
+- **Go to** (`Ctrl+G`) takes a 1-based position, numbered as the ruler
+  numbers the document, and scrolls to its column and marks it, however many
+  columns another sample's insertion has opened before it. A position past
+  the end of the document (or of a circular one) is refused with the last
+  position; one in the document but outside the stretch the alignment covers
+  (when the document's selection was aligned) says which positions are. When
+  the document is the read, positions are those of the reference you pasted.
+  **Find** (`Ctrl+F`, the editor's Find key, which here belongs to the
+  window) looks for a motif, IUPAC codes allowed (`GAATTC`, `RGATCY`), at
+  least three bases, on both strands, in the **Reference** or in the sample
+  chosen in **In** (the sample you picked on the alignment; choosing another
+  there picks it). A sample is searched on its own bases, so a motif is found
+  across a deletion, and the marked columns include the gap they span; the
+  reference is searched across another sample's insertion the same way. The
+  form says "2 of 5"; **‹** and **›**, `Enter` and `Shift+Enter` step through
+  the matches, wrapping round, and each is marked and scrolled into view
+  (a match on the reverse strand says so). A motif across a circle's origin
+  is found in the reference only when a sample reads through the origin,
+  which makes the reference run on. `Esc` closes the form first and the window
+  on the second press; neither key reaches the editor underneath.
 - Between the ruler and the document row runs a **feature track**: the
   document's features as bars, an arrow for the strand, a join tied by a
   line, and one across the origin of a circular document drawn where a read

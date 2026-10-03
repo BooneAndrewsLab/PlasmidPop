@@ -256,6 +256,62 @@ describe('AlignPanel', () => {
     expect(within(table).getByText('samples agree')).toBeVisible();
   });
 
+  it('goes to a position and finds a motif in the large view, keys staying in the window (#125)', async () => {
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const dialog = screen.getByRole('dialog');
+    const leaked = vi.fn();
+    window.addEventListener('keydown', leaked);
+    // Ctrl+F is this window's Find, and does not reach the editor's handler on window.
+    fireEvent.keyDown(document, { key: 'f', code: 'KeyF', ctrlKey: true });
+    window.removeEventListener('keydown', leaked);
+    expect(leaked).not.toHaveBeenCalled();
+    const find = within(dialog).getByRole('group', { name: 'Find a motif' });
+    const motif = within(find).getByLabelText('Motif');
+    expect(motif).toHaveFocus();
+    // GGCC in the document's GGCCAATTGGCC is at both ends; the sample has GGAC there.
+    // The one sample is picked, so it is searched until the reference is chosen.
+    expect(within(find).getByLabelText('In')).toHaveValue('0');
+    fireEvent.change(within(find).getByLabelText('In'), { target: { value: 'ref' } });
+    fireEvent.change(motif, { target: { value: 'ggcc' } });
+    expect(within(find).getByText('1 of 2')).toBeInTheDocument();
+    fireEvent.click(within(find).getByRole('button', { name: 'Next match' }));
+    expect(within(find).getByText('2 of 2')).toBeInTheDocument();
+    fireEvent.keyDown(motif, { key: 'Enter', shiftKey: true });
+    expect(within(find).getByText('1 of 2')).toBeInTheDocument();
+    // In the sample the motif is not there.
+    fireEvent.change(within(find).getByLabelText('In'), { target: { value: '0' } });
+    expect(within(find).getByText('No match')).toBeInTheDocument();
+    fireEvent.change(motif, { target: { value: 'GG' } });
+    expect(within(find).getByText(/At least 3 bases/)).toBeInTheDocument();
+    fireEvent.change(motif, { target: { value: 'GGXX' } });
+    expect(within(find).getByText(/IUPAC/)).toBeInTheDocument();
+    // Ctrl+G swaps to Go to; a position past the end is said so.
+    fireEvent.keyDown(document, { key: 'g', code: 'KeyG', ctrlKey: true });
+    const goto = within(dialog).getByRole('group', { name: 'Go to a position' });
+    const position = within(goto).getByLabelText('Position');
+    fireEvent.change(position, { target: { value: '99' } });
+    fireEvent.keyDown(position, { key: 'Enter' });
+    expect(within(goto).getByText(/Past the end: the last position is 28/)).toBeInTheDocument();
+    fireEvent.change(position, { target: { value: '5' } });
+    fireEvent.keyDown(position, { key: 'Enter' });
+    expect(within(goto).queryByText(/Past the end/)).toBeNull();
+    // Esc closes the popover first and the window on the second.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(within(dialog).queryByRole('group', { name: 'Go to a position' })).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {
     render(<AlignPanel doc={doc} />);
     // Two bases differ from the document's GGCCAATTGGCC, a run apart.

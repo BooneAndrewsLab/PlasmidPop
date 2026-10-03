@@ -268,3 +268,38 @@ the pinned header, the AA strip and the picking code for something the foot
 and the list already say; left for a request); disagreement among samples
 at columns the document has no base for beyond the plain insertion case;
 nothing for a column only one sample covers. Not checked by eye.
+
+## Go to and Find (#125)
+
+`alignmentSearch.ts` answers both in columns. `columnOfPosition` is the
+inverse of `columnPosition`: a 1-based position goes to a reference index
+(less the stack's `offset`, modulo `wrap` on a circle) and from there to the
+column, through the gap columns other samples opened. A circle's position that
+a read through the origin reaches twice goes to the first copy. Failures are
+named: invalid, past the end (the document's length on a circle, else the last
+reference base), outside the stretch the alignment covers. When the document
+is the read the numbering is the pasted reference's, the one the ruler shows.
+
+`findMotif` reuses the editor's `findSequenceMatches` (IUPAC, both strands,
+and `looksLikeSequence`, three bases at least as in the find bar) on one row's
+bases with its gap and blank columns taken out, then maps a match back to
+columns `[first, last + 1)`, so the highlight includes the gaps the match spans.
+A sample is searched on its own bases. The reference is searched ungapped, on
+its extended length when a read runs through a circle's origin (so a motif
+across the origin is found then, once: the repeated start is deduplicated by
+`index mod wrap`). Not done: a wraparound match in a circle's reference
+that no read crosses, since its columns would be two separate runs and the
+highlight is one span.
+
+UI: **Go to** and **Find** are one small segmented group in the toolbar and
+their form (`AlignmentFind`) a popover under it, so the toolbar gains no zone
+and does not wrap. Find's target is the picked sample or, with none, the
+reference: the select writes the pick, so there is one state. A new query
+lands on the first match from the view's last position; stepping goes through
+`stepMatch` (as `nextDifference` does, a match starting at the column is not
+stepped to). Matches mark and scroll through the same `focus` as the
+differences, with no difference stop. Ctrl+F is the editor's fixed Find key
+and is taken in the window's capturing handler, as Alt+N and Alt+T are. The
+editor has no Go to key, so Ctrl+G is local to the window and not in the
+binding table (and not reported in the usage statistics). Esc closes the
+popover before the window. Not checked by eye.
