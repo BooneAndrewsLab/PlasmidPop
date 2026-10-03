@@ -225,23 +225,30 @@ once the ORFs panel has found them. With no document behind the reference
 - The strip above the rows spans the whole alignment. It marks every
   difference, in the same three colours, and shows the stretch now in view as a rectangle; click or
   drag on it to move there.
-- **Next difference** and **Previous difference** (`Alt+N`, `Alt+Shift+N`)
-  go from one difference to the next and wrap round at the ends. A run of
+- The toolbar has three groups. At the left, **‹ Prev** and **Next ›**
+  (`Alt+N`, `Alt+Shift+N`, or whatever Next change is bound to in
+  Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap
+  round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
-  whole run is marked.
+  whole run is marked. In the middle, the **Sample** list picks a sample
+  without the mouse and **Select in document** selects its aligned region.
+  At the right, the **Show** group switches **Features**, **ORFs**,
+  **Amino acids** and **Trace** on and off; they stay as you left them
+  when you open the window again. Under the toolbar, the sample's score
+  line sits at the left and the colour key at the right.
 - Between the ruler and the document row runs a **feature track**: the
   document's features as bars, an arrow for the strand, a join tied by a
   line, and one across the origin of a circular document drawn where a read
   through the origin sees it. Read a difference against the bar above it to
   see whether it falls in a gene, a promoter or nothing; hover a bar for its
-  name and type. The **Features** and **ORFs** toggle buttons in the toolbar (pressed means on) switch each on.
+  name and type. The **Features** and **ORFs** buttons in the Show group (pressed means on) switch each on.
   ORFs are the ones the ORFs panel finds (at its minimum length), outlined
   and dashed in their own lanes under the features. A feature that an
   insertion in a sample splits round is drawn across the gap columns. Up to
-  eight lanes are drawn; the toolbar counts what did not fit. When the
+  eight lanes are drawn; the score line counts what did not fit. When the
   document is the read and the reference is the sequence in the box, there is
   no track, since a pasted sequence brings none of its own.
-- The **Amino acids** toggle (shown when the document has a CDS in the alignment) draws a
+- The **Amino acids** button (shown when the document has a CDS in the alignment; `Alt+T` in this window, as Translations is in the views) draws a
   strip of residues under the document row and under each sample: the
   document's own, then what the sample's bases make of the same codons, read
   with the feature's genetic code and strand. A residue that changed is shaded
@@ -250,8 +257,8 @@ once the ORFs panel has found them. With no document behind the reference
   inside it; a codon the sample does not reach is left empty. The codons are
   the document's, so a frameshift shows as `-` where it starts and as changed
   residues after it, not as a re-read frame.
-- Click a name to see that sample's score and identity, and to use
-  **Select aligned region in this document** (a button in the window) for it.
+- Click a name, or choose it in the **Sample** list, to see that sample's
+  score and identity, and to use **Select in document** for it.
 - `Esc` closes the window and returns you to where you were.
 
 An insertion in one sample opens gap columns in the document row and in

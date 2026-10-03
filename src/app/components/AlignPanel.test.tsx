@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 
 import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
@@ -156,6 +157,44 @@ describe('AlignPanel', () => {
     // No CDS in this document, so there are no amino acids to show.
     expect(screen.queryByRole('button', { name: 'Amino acids' })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: 'Features' })).toBeNull();
+  });
+
+  it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {
+    render(<AlignPanel doc={doc} />);
+    // Two bases differ from the document's GGCCAATTGGCC, a run apart.
+    fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('group', { name: 'Differences' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: 'Show' })).toBeInTheDocument();
+    const counter = within(dialog).getByText('2 differences');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+    expect(counter).toHaveTextContent('1 of 2');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+    expect(counter).toHaveTextContent('2 of 2');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Previous difference' }));
+    expect(counter).toHaveTextContent('1 of 2');
+    // The one sample is already picked, so its region can be selected.
+    expect(within(dialog).getByRole('combobox', { name: 'Sample' })).toHaveValue('0');
+    expect(within(dialog).getByRole('button', { name: 'Select in document' })).toBeEnabled();
+    // The key is the one bound to Next change, wherever the user moved it.
+    act(() => {
+      editorStore.setKeyBinding('next-change', 'alt+KeyJ');
+    });
+    fireEvent.keyDown(document, { code: 'KeyN', altKey: true });
+    expect(counter).toHaveTextContent('1 of 2');
+    fireEvent.keyDown(document, { code: 'KeyJ', altKey: true });
+    expect(counter).toHaveTextContent('2 of 2');
+    act(() => {
+      editorStore.resetKeyBindings();
+    });
   });
 
   it('starts in Local for a much shorter sequence, saying why, and keeps a mode picked by hand (#86)', () => {

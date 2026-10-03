@@ -154,3 +154,20 @@ reference's frame, so a deletion or insertion inside a codon is a `-`
 the sample's own ORF, which is a different question. The strips add
 `AA_HEIGHT` to the pinned header and to every row, taken into the `tops`
 table like the trace. Not checked by eye.
+
+## Controls regrouped (#119)
+
+The toolbar had Next/Previous at the far right after a centred block, long
+labels that wrapped it to three rows, its own toggle style, no position
+count, and no way for a keyboard user to pick a sample (only a click on the
+canvas). It is now three zones in one row: Navigate (the `.segmented` pair
+and a "3 of 41" counter from `differenceRegions`), Sample (a labelled select
+kept in step with canvas clicks, and a shorter "Select in document") and Show
+(the main toolbar's `.segmented` group, remembered between openings in a
+module-level object, not the store, since it is a per-session convenience).
+The summary and the colour key moved to a status row beneath, so no control
+shares a row with reading text. "N not shown" moved into that row and the
+Features title. Alt+N now goes through the `next-change` binding and Alt+T
+through `toggle-translations` (stopping the event so the editor underneath
+does not also toggle). Not done: the proposed "Show ▾" menu on a phone; the
+group simply wraps below 720px. Not checked by eye.

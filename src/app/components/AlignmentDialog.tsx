@@ -18,6 +18,7 @@ import {
   differencesText,
 } from '../alignmentTrack';
 import { alignedRegionInDocument, type ReferenceInput } from '../readAlignment';
+import { formatBinding, matchesBinding, resolveBindings, withShift } from '../keyBindings';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
@@ -31,6 +32,13 @@ const LEGEND: readonly (readonly [string, string])[] = [
   ['In another feature', 'var(--diff-feature)'],
   ['Outside features', 'var(--diff-none)'],
 ];
+
+/** The Show toggles as the last window left them, so reopening does not reset them. */
+const remembered = { features: true, orfs: false, trace: true, residues: false };
+
+function segmentedClass(active: boolean): string {
+  return `segmented__button${active ? ' segmented__button--active' : ''}`;
+}
 
 interface Props {
   /** What every sample was aligned to. */
@@ -68,11 +76,19 @@ export function AlignmentDialog({
   initialRow,
   onClose,
 }: Props) {
-  const { readConfidentQuality, analysis, orfMinCodons } = useEditorState();
-  const [showFeatures, setShowFeatures] = useState(true);
-  const [showOrfs, setShowOrfs] = useState(false);
-  const [showTrace, setShowTrace] = useState(true);
-  const [showResidues, setShowResidues] = useState(false);
+  const { readConfidentQuality, analysis, orfMinCodons, keyBindings } = useEditorState();
+  const [showFeatures, setShowFeatures] = useState(remembered.features);
+  const [showOrfs, setShowOrfs] = useState(remembered.orfs);
+  const [showTrace, setShowTrace] = useState(remembered.trace);
+  const [showResidues, setShowResidues] = useState(remembered.residues);
+  useEffect(() => {
+    Object.assign(remembered, {
+      features: showFeatures,
+      orfs: showOrfs,
+      trace: showTrace,
+      residues: showResidues,
+    });
+  }, [showFeatures, showOrfs, showTrace, showResidues]);
   const stack = useMemo(() => stackAlignments(reference, samples), [reference, samples]);
   // The ORFs the app has already found in the open document, at its own minimum length.
   const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
@@ -111,9 +127,14 @@ export function AlignmentDialog({
     initialRow ?? (samples.length === 1 ? 0 : null),
   );
   const [focus, setFocus] = useState<{ start: number; end: number; nonce: number } | null>(null);
+  const hasFrames = frames.length > 0;
   const hasTrace = stack.rows.some((r) => r.readIndex !== null);
   const regions = useMemo(() => differenceRegions(stack.differences), [stack.differences]);
   const current = useRef(0);
+  const [stop, setStop] = useState<number | null>(null);
+  const bindings = resolveBindings(keyBindings);
+  const nextBinding = bindings.get('next-change') ?? 'alt+KeyN';
+  const translationsBinding = bindings.get('toggle-translations');
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -129,6 +150,7 @@ export function AlignmentDialog({
       const region = nextDifference(regions, current.current, backwards);
       if (region === null) return;
       current.current = region.start;
+      setStop(regions.findIndex((r) => r.start === region.start));
       setFocus((f) => ({ ...region, nonce: (f?.nonce ?? 0) + 1 }));
     },
     [regions],
@@ -138,16 +160,26 @@ export function AlignmentDialog({
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose();
-      } else if (e.altKey && e.code === 'KeyN') {
+      } else if (matchesBinding(e, nextBinding) || matchesBinding(e, withShift(nextBinding))) {
         e.preventDefault();
+        e.stopPropagation();
         go(e.shiftKey);
+      } else if (
+        hasFrames &&
+        translationsBinding !== undefined &&
+        matchesBinding(e, translationsBinding)
+      ) {
+        // The editor's Translations key is this window's Amino acids.
+        e.preventDefault();
+        e.stopPropagation();
+        setShowResidues((on) => !on);
       }
     };
     document.addEventListener('keydown', onKey, true);
     return () => {
       document.removeEventListener('keydown', onKey, true);
     };
-  }, [onClose, go]);
+  }, [onClose, go, nextBinding, translationsBinding, hasFrames]);
 
   const row = selected === null ? null : (stack.rows[selected] ?? null);
   const shown = row?.result.alignment ?? null;
@@ -176,127 +208,165 @@ export function AlignmentDialog({
           </button>
         </div>
         <div className="astack-tools">
-          <span className="astack-tools__note" aria-live="polite">
-            {shown === null
-              ? `${differencesText(stack.differences.length, counts)}. Click a name to see its score.`
-              : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
-          </span>
-          {source !== null && (
-            <>
-              <span
-                className="astack-legend"
-                aria-label="Differences are coloured by where they fall"
-              >
-                {LEGEND.map(([label, colour]) => (
-                  <span key={label} className="astack-legend__item">
-                    <span
-                      className="astack-legend__swatch"
-                      style={{ '--swatch': colour } as CSSProperties}
-                    />
-                    {label}
-                  </span>
-                ))}
-              </span>
-            </>
-          )}
-          <span className="astack-tools__views">
-            {source !== null && (
-              <>
-                <button
-                  type="button"
-                  className="button button--small astack-tools__toggle"
-                  aria-pressed={showFeatures}
-                  onClick={() => {
-                    setShowFeatures((on) => !on);
-                  }}
-                >
-                  Features
-                </button>
-                {frames.length > 0 && (
-                  <button
-                    type="button"
-                    className="button button--small astack-tools__toggle"
-                    aria-pressed={showResidues}
-                    onClick={() => {
-                      setShowResidues((on) => !on);
-                    }}
-                  >
-                    Amino acids
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="button button--small astack-tools__toggle"
-                  aria-pressed={showOrfs}
-                  disabled={orfs === null}
-                  title={
-                    orfs === null
-                      ? 'The open reading frames are still being found.'
-                      : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
-                  }
-                  onClick={() => {
-                    setShowOrfs((on) => !on);
-                  }}
-                >
-                  ORFs
-                </button>
-                <span className="astack-tools__hidden">
-                  {track !== null && track.hidden > 0 ? `${track.hidden} not shown` : ''}
-                </span>
-              </>
-            )}
-            {hasTrace && (
-              <button
-                type="button"
-                className="button button--small astack-tools__toggle"
-                aria-pressed={showTrace}
-                onClick={() => {
-                  setShowTrace((on) => !on);
-                }}
-              >
-                Trace
-              </button>
-            )}
-          </span>
-          <span className="astack-tools__actions">
+          <div className="segmented" role="group" aria-label="Differences">
             <button
               type="button"
-              className="button button--small"
-              disabled={stack.differences.length === 0}
-              title="Alt+Shift+N"
+              className={segmentedClass(false)}
+              disabled={regions.length === 0}
+              aria-label="Previous difference"
+              title={`Previous difference (${formatBinding(withShift(nextBinding))})`}
               onClick={() => {
                 go(true);
               }}
             >
-              Previous difference
+              ‹ Prev
             </button>
             <button
               type="button"
-              className="button button--small"
-              disabled={stack.differences.length === 0}
-              title="Alt+N"
+              className={segmentedClass(false)}
+              disabled={regions.length === 0}
+              aria-label="Next difference"
+              title={`Next difference (${formatBinding(nextBinding)})`}
               onClick={() => {
                 go(false);
               }}
             >
-              Next difference
+              Next ›
             </button>
-            <button
-              type="button"
-              className="button button--small"
-              disabled={row === null}
-              onClick={() => {
-                if (row === null) return;
-                const range = alignedRegionInDocument(row.result, documentIsRead);
-                if (range !== null) {
-                  editorStore.setSelection(range);
-                  editorStore.revealPosition(range.start);
-                }
+          </div>
+          <span className="astack-tools__counter" aria-live="polite">
+            {stop === null
+              ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
+              : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
+          </span>
+          <label className="astack-tools__sample">
+            Sample
+            <select
+              className="panel__select"
+              value={selected ?? ''}
+              onChange={(e) => {
+                setSelected(e.target.value === '' ? null : Number(e.target.value));
               }}
             >
-              Select aligned region in this document
-            </button>
+              {selected === null && <option value="">Pick one</option>}
+              {stack.rows.map((r, i) => (
+                <option key={i} value={i}>
+                  {r.name}
+                  {r.result.strand === 'reverse' ? ' (reverse)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="button button--small"
+            disabled={row === null}
+            title={
+              row === null ? 'Pick a sample first' : 'Select the aligned region in this document'
+            }
+            onClick={() => {
+              if (row === null) return;
+              const range = alignedRegionInDocument(row.result, documentIsRead);
+              if (range !== null) {
+                editorStore.setSelection(range);
+                editorStore.revealPosition(range.start);
+              }
+            }}
+          >
+            Select in document
+          </button>
+          {(source !== null || hasTrace) && (
+            <div className="segmented astack-tools__show" role="group" aria-label="Show">
+              {source !== null && (
+                <>
+                  <button
+                    type="button"
+                    className={segmentedClass(showFeatures)}
+                    aria-pressed={showFeatures}
+                    title={
+                      track !== null && track.hidden > 0
+                        ? `${track.hidden} lanes not shown`
+                        : 'The features above the reference'
+                    }
+                    onClick={() => {
+                      setShowFeatures((on) => !on);
+                    }}
+                  >
+                    Features
+                  </button>
+                  <button
+                    type="button"
+                    className={segmentedClass(showOrfs)}
+                    aria-pressed={showOrfs}
+                    disabled={orfs === null}
+                    title={
+                      orfs === null
+                        ? 'The open reading frames are still being found.'
+                        : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
+                    }
+                    onClick={() => {
+                      setShowOrfs((on) => !on);
+                    }}
+                  >
+                    ORFs
+                  </button>
+                  {hasFrames && (
+                    <button
+                      type="button"
+                      className={segmentedClass(showResidues)}
+                      aria-pressed={showResidues}
+                      title={
+                        translationsBinding === undefined
+                          ? 'The CDS residues under each row'
+                          : `The CDS residues under each row (${formatBinding(translationsBinding)})`
+                      }
+                      onClick={() => {
+                        setShowResidues((on) => !on);
+                      }}
+                    >
+                      Amino acids
+                    </button>
+                  )}
+                </>
+              )}
+              {hasTrace && (
+                <button
+                  type="button"
+                  className={segmentedClass(showTrace)}
+                  aria-pressed={showTrace}
+                  onClick={() => {
+                    setShowTrace((on) => !on);
+                  }}
+                >
+                  Trace
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="astack-status">
+          <span className="astack-tools__note" aria-live="polite">
+            {shown === null
+              ? `${differencesText(stack.differences.length, counts)}. Pick a sample to see its score.`
+              : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
+            {track !== null && track.hidden > 0 ? ` · ${track.hidden} lanes not shown` : ''}
           </span>
+          {source !== null && (
+            <span
+              className="astack-legend"
+              aria-label="Differences are coloured by where they fall"
+            >
+              {LEGEND.map(([label, colour]) => (
+                <span key={label} className="astack-legend__item">
+                  <span
+                    className="astack-legend__swatch"
+                    style={{ '--swatch': colour } as CSSProperties}
+                  />
+                  {label}
+                </span>
+              ))}
+            </span>
+          )}
         </div>
         <AlignmentStackView
           stack={stack}
