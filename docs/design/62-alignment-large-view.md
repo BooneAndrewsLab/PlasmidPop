@@ -455,9 +455,8 @@ The feature table's box now wraps its columns (the header row stopped partway
 across a wider box when only the table was shrunk), and the Samples button
 moved from the status row into the toolbar after Export. Not checked by eye.
 
-A pointerdown outside closes whichever popover or table is open: one document
-listener while any is open, which ignores anything inside `.astack-tools__search`
-(Go to, Find, Export, Samples with their forms), `.astack-diffs` (the two
-tables) or marked `data-astack-keep` (List, All features, "and N more", whose
-own click toggles them). Cost: Next/Previous or a click on the alignment also
-closes an open table.
+A pointerdown outside closes the open popover (Go to, Find, Export, Samples):
+one document listener while one is open, ignoring anything inside
+`.astack-tools__search`, which holds a popover's button and its form. The two
+tables (List, All features) deliberately stay open until their own button, so
+Next/Previous and clicks on the alignment can be used with a table showing.

@@ -287,9 +287,9 @@ once the ORFs panel has found them. With no document behind the reference
   saving or copying the alignment (see below), and, with more than one
   sample, **Samples** sorts and hides them (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
-  when you open the window again. The forms and tables under the toolbar
-  (Go to, Find, Export, Samples, List, All features) close when you click
-  anywhere outside them, as well as on `Esc` for the forms. Under the toolbar, the status row has,
+  when you open the window again. The forms under the toolbar (Go to, Find, Export, Samples) close when
+  you click anywhere outside them, or on `Esc`; the List and All features
+  tables stay open until you press their button again. Under the toolbar, the status row has,
   at the left, the picked sample's score line and buttons, and at the right
   the colour key.
 - **Sort and hide samples.** With more than one sample, **Samples** (in the

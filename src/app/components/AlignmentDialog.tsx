@@ -243,28 +243,19 @@ export function AlignmentDialog({
   useEffect(() => {
     searchOpen.current = popover !== null;
   }, [popover]);
-  // A click anywhere else closes the popovers and the tables. A control that opens or
-  // toggles one is marked `data-astack-keep`, so its own click is not undone first.
-  const layerOpen = popover !== null || showList || showVerdicts;
+  // A click anywhere outside the open popover closes it. The tables stay until their button.
   useEffect(() => {
-    if (!layerOpen) return;
+    if (popover === null) return;
     const onDown = (e: PointerEvent): void => {
       const target = e.target;
-      if (
-        target instanceof Element &&
-        target.closest('.astack-tools__search, .astack-diffs, [data-astack-keep]') !== null
-      ) {
-        return;
-      }
+      if (target instanceof Element && target.closest('.astack-tools__search') !== null) return;
       setPopover(null);
-      setShowList(false);
-      setShowVerdicts(false);
     };
     document.addEventListener('pointerdown', onDown);
     return () => {
       document.removeEventListener('pointerdown', onDown);
     };
-  }, [layerOpen]);
+  }, [popover]);
   const [stop, setStop] = useState<number | null>(null);
   const bindings = resolveBindings(keyBindings);
   const nextBinding = bindings.get('next-change') ?? 'alt+KeyN';
@@ -402,7 +393,7 @@ export function AlignmentDialog({
               ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
               : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
           </span>
-          <div className="segmented" role="group" aria-label="Difference list" data-astack-keep>
+          <div className="segmented" role="group" aria-label="Difference list">
             <button
               type="button"
               className={segmentedClass(showList)}
@@ -681,7 +672,6 @@ export function AlignmentDialog({
               <button
                 type="button"
                 className="astack-verdict astack-verdict--more"
-                data-astack-keep
                 title="Open the table of all features with the ones needing a look first"
                 onClick={() => {
                   setVerdictOrder('status');
@@ -695,7 +685,6 @@ export function AlignmentDialog({
             <button
               type="button"
               className={`${segmentedClass(showVerdicts)} astack-verify__all`}
-              data-astack-keep
               aria-pressed={showVerdicts}
               title="A table of every feature: status, position, reads and strands"
               onClick={() => {

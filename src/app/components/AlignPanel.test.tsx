@@ -556,7 +556,7 @@ describe('AlignPanel', () => {
     });
   });
 
-  it("closes the large view's popovers and tables on a click outside, not on their own button", async () => {
+  it("closes the large view's popovers on a click outside, and leaves its tables open", async () => {
     render(<AlignPanel doc={doc} />);
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
@@ -575,12 +575,16 @@ describe('AlignPanel', () => {
     expect(within(dialog).getByRole('group', { name: 'Go to a position' })).toBeInTheDocument();
     fireEvent.pointerDown(within(dialog).getByRole('heading', { level: 2 }));
     expect(within(dialog).queryByRole('group', { name: 'Go to a position' })).toBeNull();
-    // The List button toggles its table by itself, and a click outside closes it.
+    // A table stays open on a click outside; its own button closes it.
     const list = within(dialog).getByRole('button', { name: 'List' });
-    fireEvent.pointerDown(list);
+    // The List setting is remembered between openings, so start from closed.
+    if (within(dialog).queryByRole('table', { name: 'Differences' }) !== null)
+      fireEvent.click(list);
     fireEvent.click(list);
     expect(within(dialog).getByRole('table', { name: 'Differences' })).toBeInTheDocument();
     fireEvent.pointerDown(within(dialog).getByRole('heading', { level: 2 }));
+    expect(within(dialog).getByRole('table', { name: 'Differences' })).toBeInTheDocument();
+    fireEvent.click(list);
     expect(within(dialog).queryByRole('table', { name: 'Differences' })).toBeNull();
   });
 
