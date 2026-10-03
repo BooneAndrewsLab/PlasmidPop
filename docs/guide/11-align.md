@@ -244,18 +244,19 @@ once the ORFs panel has found them. With no document behind the reference
   document has A) is not marked: that agreement is what makes it credible,
   and the list notes it as "samples agree".
 - Under the toolbar, when the reference is a document, a **verification
-  line** per feature (the source feature and ORFs are left out) says what the
-  reads show: "lacZα confirmed by 2 reads" when every base of it is covered
-  at good quality and nothing differs, with ", forward strand only" (or
-  reverse) when all the covering reads are on one strand; "AmpR: 1
-  difference" when a column inside it differs (a poor-quality base does not
-  count either way); "x: 17 of 20 bases covered" when only part is reached
-  and nothing in that part differs; and "ori: not covered". The number of
-  reads is the fewest over the feature's bases, so one read covering only
-  half of it does not raise it. Click a line to bring the feature into view.
-  A feature across the origin of a circle counts each base once. These lines
-  say what the alignment shows, not that the construct is right: a base no
-  read covers is unchecked, not good.
+  line** sums up the features (the source feature and ORFs are left out) in
+  one sentence: "All 27 features confirmed by all 5 reads", or "24 of 27
+  features confirmed by at least 3 reads, forward strand only". A feature
+  is confirmed when every base of it is covered at good quality and nothing
+  differs; the number of reads is the fewest over the bases of any
+  confirmed feature. Only the features that need a look follow it, each
+  clickable to bring it into view: "AmpR: 1 difference" (a poor-quality
+  base does not count either way), "x: 17 of 20 bases covered" when only
+  part is reached and nothing in that part differs, and "ori: not covered".
+  **All features** opens the full list, one line per feature with its own
+  read count. A feature across the origin of a circle counts each base once.
+  These lines say what the alignment shows, not that the construct is right:
+  a base no read covers is unchecked, not good.
 - The toolbar has five groups. At the left, **‹ Prev** and **Next ›**
   (`Alt+N`, `Alt+Shift+N`, or whatever Next change is bound to in
   Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap

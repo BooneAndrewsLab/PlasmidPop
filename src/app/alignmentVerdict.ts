@@ -197,3 +197,47 @@ export function verdictText(v: FeatureVerdict): string {
       return `${v.name}: not covered`;
   }
 }
+
+/** The verdicts boiled down to one sentence and the features that need a look. */
+export interface VerdictSummary {
+  readonly total: number;
+  readonly confirmed: number;
+  /** The fewest reads over the confirmed features, 0 when none is confirmed. */
+  readonly reads: number;
+  /** Every confirmed feature is covered on one strand only: 'forward' or 'reverse'. */
+  readonly oneStrand: 'forward' | 'reverse' | null;
+  /** Everything but `Confirmed`, in the order given. */
+  readonly exceptions: readonly FeatureVerdict[];
+}
+
+export function summariseVerdicts(verdicts: readonly FeatureVerdict[]): VerdictSummary {
+  const confirmed = verdicts.filter((v) => v.kind === VerdictKind.Confirmed);
+  const strands = new Set(confirmed.map((v) => v.oneStrand));
+  const only = strands.size === 1 ? ([...strands][0] ?? null) : null;
+  return {
+    total: verdicts.length,
+    confirmed: confirmed.length,
+    reads: confirmed.length === 0 ? 0 : Math.min(...confirmed.map((v) => v.reads)),
+    oneStrand: only,
+    exceptions: verdicts.filter((v) => v.kind !== VerdictKind.Confirmed),
+  };
+}
+
+/**
+ * "All 27 features confirmed by all 5 reads", "24 of 27 features confirmed by
+ * at least 3 reads, forward strand only". `samples` is how many are shown.
+ */
+export function verdictSummaryText(s: VerdictSummary, samples: number): string {
+  if (s.confirmed === 0) return `No feature confirmed (of ${s.total.toLocaleString()})`;
+  const count =
+    s.confirmed === s.total
+      ? `All ${s.total.toLocaleString()} features`
+      : `${s.confirmed.toLocaleString()} of ${s.total.toLocaleString()} features`;
+  const reads =
+    s.reads >= samples
+      ? samples === 1
+        ? 'the read'
+        : `all ${samples.toLocaleString()} reads`
+      : `at least ${s.reads.toLocaleString()} ${s.reads === 1 ? 'read' : 'reads'}`;
+  return `${count} confirmed by ${reads}${s.oneStrand === null ? '' : `, ${s.oneStrand} strand only`}`;
+}

@@ -186,10 +186,24 @@ describe('AlignPanel', () => {
       expect(screen.getByText(/identity/)).toBeInTheDocument();
     });
     fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
-    const list = screen.getByRole('list', { name: 'Verification of each feature' });
-    expect(within(list).getByText('gfp confirmed by 1 read, forward strand only')).toBeVisible();
-    expect(within(list).getByText('pro: not covered')).toBeVisible();
-    expect(within(list).getByText('term: not covered')).toBeVisible();
+    const verify = screen.getByLabelText('Verification of each feature');
+    // One sentence for what is confirmed, then only the features that need a look.
+    expect(
+      within(verify).getByText('1 of 3 features confirmed by the read, forward strand only'),
+    ).toBeVisible();
+    const lines = within(verify)
+      .getAllByRole('button')
+      .filter((b) => b.closest('details') === null);
+    expect(lines.map((b) => b.textContent)).toEqual(
+      expect.arrayContaining(['pro: not covered', 'term: not covered']),
+    );
+    expect(lines.map((b) => b.textContent)).not.toContain(
+      'gfp confirmed by 1 read, forward strand only',
+    );
+    // The full list is behind the disclosure.
+    expect(
+      within(verify).getByText('gfp confirmed by 1 read, forward strand only'),
+    ).toBeInTheDocument();
   });
 
   it('lists the differences in a table that jumps to a row and copies as text (#121)', async () => {

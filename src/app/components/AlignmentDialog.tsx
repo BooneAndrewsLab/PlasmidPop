@@ -22,7 +22,14 @@ import { formatBinding, matchesBinding, resolveBindings, withShift } from '../ke
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
-import { confidentDifferences, coverageOf, verdictsOf, verdictText } from '../alignmentVerdict';
+import {
+  confidentDifferences,
+  coverageOf,
+  summariseVerdicts,
+  verdictsOf,
+  verdictSummaryText,
+  verdictText,
+} from '../alignmentVerdict';
 import { hiddenNote, shownSamples, type SampleSort } from '../alignmentOrder';
 import { disagreementColumns } from '../alignmentDisagreement';
 import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
@@ -164,6 +171,7 @@ export function AlignmentDialog({
           ),
     [source, stack, coverage, readConfidentQuality],
   );
+  const summary = useMemo(() => summariseVerdicts(verdicts), [verdicts]);
   // Columns where samples carry different bases from each other (#124).
   const disagreement = useMemo(
     () => disagreementColumns(stack, readConfidentQuality),
@@ -613,22 +621,47 @@ export function AlignmentDialog({
           </div>
         )}
         {verdicts.length > 0 && (
-          <ul className="astack-verdicts" aria-label="Verification of each feature">
-            {verdicts.map((v, i) => (
-              <li key={i}>
-                <button
-                  type="button"
-                  className={`astack-verdict astack-verdict--${v.kind}`}
-                  title="Show this feature in the alignment"
-                  onClick={() => {
-                    setFocus((f) => ({ start: v.start, end: v.end, nonce: (f?.nonce ?? 0) + 1 }));
-                  }}
-                >
-                  {verdictText(v)}
-                </button>
-              </li>
+          <div className="astack-verify" aria-label="Verification of each feature">
+            <span className="astack-verify__summary">
+              {verdictSummaryText(summary, shownIndices.length)}
+            </span>
+            {summary.exceptions.map((v, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`astack-verdict astack-verdict--${v.kind}`}
+                title="Show this feature in the alignment"
+                onClick={() => {
+                  setFocus((f) => ({ start: v.start, end: v.end, nonce: (f?.nonce ?? 0) + 1 }));
+                }}
+              >
+                {verdictText(v)}
+              </button>
             ))}
-          </ul>
+            <details className="astack-verify__all">
+              <summary>All features</summary>
+              <ul className="astack-verdicts">
+                {verdicts.map((v, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      className={`astack-verdict astack-verdict--${v.kind}`}
+                      title="Show this feature in the alignment"
+                      onClick={() => {
+                        setFocus((f) => ({
+                          start: v.start,
+                          end: v.end,
+                          nonce: (f?.nonce ?? 0) + 1,
+                        }));
+                      }}
+                    >
+                      {verdictText(v)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </div>
         )}
         {showList && <AlignmentDifferencesList rows={rows} current={stop} onPick={pick} />}
         <AlignmentStackView

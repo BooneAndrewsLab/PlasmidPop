@@ -4238,6 +4238,37 @@ button {
   }
 }
 
+.astack-verify {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  font-size: 12px;
+}
+
+.astack-verify__summary {
+  color: var(--ink-2);
+}
+
+.astack-verify__all {
+  margin-inline-start: auto;
+  color: var(--ink-2);
+}
+
+.astack-verify__all[open] {
+  flex: 1 0 100%;
+}
+
+.astack-verify__all summary {
+  cursor: pointer;
+}
+
+.astack-verify__all .astack-verdicts {
+  max-height: 96px;
+  margin-top: 4px;
+  overflow-y: auto;
+}
+
 .astack-verdicts {
   display: flex;
   flex-wrap: wrap;
@@ -4263,6 +4294,7 @@ button {
 
 .astack-verdict--differences {
   color: var(--danger);
+  font-weight: 600;
 }
 
 .astack-verdict--partial {

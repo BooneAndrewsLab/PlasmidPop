@@ -389,3 +389,13 @@ and acts on the picked sample. The toolbar did not gain a group. State is per
 opening, not remembered. Not checked by eye; covered by a component test
 (sort orders, hide, show by name, show all, Up/Down following the order, the
 last sample kept).
+
+### Verdicts collapsed to a summary
+
+On a real vector (27 features, five reads) the one line per feature was a
+wall of identical "confirmed by 5 reads, forward strand only" that buried the
+one feature with 8 differences. The verdict is now one sentence
+(`summariseVerdicts`, `verdictSummaryText`) followed by only the features that
+are not confirmed; the full per-feature list is behind an **All features**
+disclosure, capped in height. The strand note moved into the sentence and
+shows only when every confirmed feature is on one strand. Not checked by eye.

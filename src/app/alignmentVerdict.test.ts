@@ -7,8 +7,11 @@ import {
   coverageBand,
   coverageOf,
   type FeatureVerdict,
+  summariseVerdicts,
   VerdictKind,
+  type VerdictKindValue,
   verdictsOf,
+  verdictSummaryText,
   verdictText,
 } from './alignmentVerdict';
 import { finishReadAlignment, prepareReadAlignment } from './readAlignment';
@@ -193,5 +196,40 @@ describe('a verdict per feature', () => {
       reference.length,
     );
     expect(v[0]).toMatchObject({ kind: VerdictKind.Confirmed, bases: 11, reads: 1 });
+  });
+});
+
+describe('summariseVerdicts', () => {
+  const v = (kind: VerdictKindValue, reads = 0, oneStrand: 'forward' | 'reverse' | null = null) =>
+    ({
+      name: 'x',
+      type: 'gene',
+      kind,
+      differences: kind === VerdictKind.Differences ? 2 : 0,
+      reads,
+      oneStrand,
+      covered: 0,
+      bases: 0,
+      start: 0,
+      end: 1,
+    }) satisfies FeatureVerdict;
+
+  it('says all, with the fewest reads, and names the exceptions only', () => {
+    const s = summariseVerdicts([v('confirmed', 5, 'forward'), v('confirmed', 5, 'forward')]);
+    expect(verdictSummaryText(s, 5)).toBe(
+      'All 2 features confirmed by all 5 reads, forward strand only',
+    );
+    expect(s.exceptions).toEqual([]);
+    const t = summariseVerdicts([v('confirmed', 3), v('confirmed', 5), v('differences')]);
+    expect(verdictSummaryText(t, 5)).toBe('2 of 3 features confirmed by at least 3 reads');
+    expect(t.exceptions).toHaveLength(1);
+  });
+
+  it('leaves the strand out when the confirmed features differ, and copes with none', () => {
+    const s = summariseVerdicts([v('confirmed', 2, 'forward'), v('confirmed', 2)]);
+    expect(s.oneStrand).toBeNull();
+    expect(verdictSummaryText(summariseVerdicts([v('not-covered')]), 2)).toBe(
+      'No feature confirmed (of 1)',
+    );
   });
 });
