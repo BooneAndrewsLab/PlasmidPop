@@ -393,7 +393,7 @@ export function AlignmentDialog({
               ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
               : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
           </span>
-          <div className="segmented" role="group" aria-label="Difference list">
+          <div className="segmented" role="group" aria-label="Tables">
             <button
               type="button"
               className={segmentedClass(showList)}
@@ -406,6 +406,20 @@ export function AlignmentDialog({
               }}
             >
               List
+            </button>
+            <button
+              type="button"
+              className={segmentedClass(showVerdicts)}
+              aria-pressed={showVerdicts}
+              disabled={verdicts.length === 0}
+              title="A table of every feature: status, position, reads and strands"
+              onClick={() => {
+                setShowVerdicts((on) => !on);
+                // One table at a time under the toolbar: this one or the differences.
+                setShowList(false);
+              }}
+            >
+              All features
             </button>
           </div>
           <div className="astack-tools__search">
@@ -685,19 +699,6 @@ export function AlignmentDialog({
                 and {moreExceptions.toLocaleString()} more
               </button>
             )}
-            <button
-              type="button"
-              className={`${segmentedClass(showVerdicts)} astack-verify__all`}
-              aria-pressed={showVerdicts}
-              title="A table of every feature: status, position, reads and strands"
-              onClick={() => {
-                setShowVerdicts((on) => !on);
-                // One table at a time under the toolbar: this one or the differences.
-                setShowList(false);
-              }}
-            >
-              All features
-            </button>
           </div>
         )}
         {showList && <AlignmentDifferencesList rows={rows} current={stop} onPick={pick} />}

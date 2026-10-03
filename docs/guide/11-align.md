@@ -256,10 +256,10 @@ once the ORFs panel has found them. With no document behind the reference
   Differences come first, then partly covered, then not covered; with more
   than five, the first four are named and **and N more** opens the table
   below with the problems first.
-  The **All features** button at the end of the line opens a table of every
-  feature, one row each, between the line and the alignment (it scrolls
-  inside itself and closes again from the same button; opening it closes the
-  **List** of differences, and List closes it). Its columns are the
+  The **All features** button, beside **List** in the toolbar, opens a table
+  of every feature, one row each, between the line and the alignment (it
+  scrolls inside itself and closes again from the same button; opening it
+  closes the **List** of differences, and List closes it). Its columns are the
   **Status** with a mark (✓ Confirmed, ✕ and the number of differences,
   ~ Partly covered, ○ Not covered), the **Feature** and its **Type**, the
   **Position** in the document (1-based and inclusive, as the ruler numbers
@@ -282,7 +282,8 @@ once the ORFs panel has found them. With no document behind the reference
   round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
   whole run is marked. Beside the count, **List** opens the table of
-  differences described below, and **Go to** and **Find** open a small
+  differences described below and **All features** the table of features
+  (one at a time), and **Go to** and **Find** open a small
   form under the toolbar (see below), **Export** opens another for
   saving or copying the alignment (see below), and, with more than one
   sample, **Samples** sorts and hides them (see below). At the right, the **Show** group switches **Features**, **ORFs**,

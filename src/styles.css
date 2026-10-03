@@ -4431,15 +4431,6 @@ button {
   color: var(--ink-2);
 }
 
-/* The All features toggle closes the line, at its end when there is room. */
-.astack-verify__all {
-  margin-inline-start: auto;
-  padding: 2px 8px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font-size: 12px;
-}
-
 .astack-verdict {
   padding: 0;
   border: 0;

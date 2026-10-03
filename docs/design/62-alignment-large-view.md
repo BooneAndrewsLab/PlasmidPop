@@ -493,3 +493,9 @@ Checked by eye in a headless Chromium (Playwright) on pBR322 with five reads
 made from it, two hidden: all four popovers in the dark theme at 1,400 px and
 the light theme at 1,400 and 640 px (the narrowest the window is shown at;
 below 600 px the phone layout has no large view).
+
+The **All features** button left the end of the summary line (it was smaller
+than the toolbar's buttons and read as stray) for the toolbar, joined to
+**List** in one segmented "Tables" group: the two tables are mutually
+exclusive and both are lists of rows to click. It is disabled when there are no
+features. "and N more" still opens it.

@@ -194,11 +194,11 @@ describe('AlignPanel', () => {
     const lines = within(verify)
       .getAllByRole('button')
       .map((b) => b.textContent);
-    expect(lines).toEqual(['pro: not covered', 'term: not covered', 'All features']);
+    expect(lines).toEqual(['pro: not covered', 'term: not covered']);
     // Every feature is in a table behind All features, one row each in document order.
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).queryByRole('table', { name: 'Feature verification' })).toBeNull();
-    const all = within(verify).getByRole('button', { name: 'All features' });
+    const all = within(dialog).getByRole('button', { name: 'All features' });
     fireEvent.click(all);
     expect(all).toHaveAttribute('aria-pressed', 'true');
     const table = within(dialog).getByRole('table', { name: 'Feature verification' });
@@ -299,7 +299,6 @@ describe('AlignPanel', () => {
       'm1: not covered',
       'm2: not covered',
       'and 3 more',
-      'All features',
     ]);
     fireEvent.click(within(verify).getByRole('button', { name: 'and 3 more' }));
     const dialog = screen.getByRole('dialog');
@@ -309,7 +308,7 @@ describe('AlignPanel', () => {
     );
     const table = within(dialog).getByRole('table', { name: 'Feature verification' });
     expect(within(table).getAllByRole('row')).toHaveLength(8);
-    expect(within(verify).getByRole('button', { name: 'All features' })).toHaveAttribute(
+    expect(within(dialog).getByRole('button', { name: 'All features' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
