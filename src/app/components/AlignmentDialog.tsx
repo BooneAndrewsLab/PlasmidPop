@@ -25,7 +25,9 @@ import { buildFrames } from '../alignmentResidues';
 import {
   confidentDifferences,
   coverageOf,
+  sortVerdicts,
   summariseVerdicts,
+  type VerdictOrder,
   verdictsOf,
   verdictSummaryText,
   verdictText,
@@ -37,6 +39,7 @@ import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentExport } from './AlignmentExport';
 import { AlignmentSamples } from './AlignmentSamples';
+import { AlignmentVerdictTable } from './AlignmentVerdictTable';
 import { AlignmentStackView, type StackHandle } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
@@ -50,6 +53,9 @@ const LEGEND: readonly (readonly [string, string])[] = [
 
 /** The Show toggles as the last window left them, so reopening does not reset them. */
 const remembered = { features: true, orfs: false, trace: true, residues: false, list: false };
+
+/** The most features needing a look named on the verification line; past it, "and N more". */
+const MAX_EXCEPTIONS = 5;
 
 function segmentedClass(active: boolean): string {
   return `segmented__button${active ? ' segmented__button--active' : ''}`;
@@ -97,6 +103,9 @@ export function AlignmentDialog({
   const [showTrace, setShowTrace] = useState(remembered.trace);
   const [showResidues, setShowResidues] = useState(remembered.residues);
   const [showList, setShowList] = useState(remembered.list);
+  // The table of every feature's verdict (#120): per opening, not remembered.
+  const [showVerdicts, setShowVerdicts] = useState(false);
+  const [verdictOrder, setVerdictOrder] = useState<VerdictOrder>('position');
   useEffect(() => {
     Object.assign(remembered, {
       features: showFeatures,
@@ -172,6 +181,11 @@ export function AlignmentDialog({
     [source, stack, coverage, readConfidentQuality],
   );
   const summary = useMemo(() => summariseVerdicts(verdicts), [verdicts]);
+  // The features needing a look, differences first; past a handful, the rest are counted.
+  const exceptions = useMemo(() => sortVerdicts(summary.exceptions, 'status'), [summary]);
+  const shownExceptions =
+    exceptions.length > MAX_EXCEPTIONS ? exceptions.slice(0, MAX_EXCEPTIONS - 1) : exceptions;
+  const moreExceptions = exceptions.length - shownExceptions.length;
   // Columns where samples carry different bases from each other (#124).
   const disagreement = useMemo(
     () => disagreementColumns(stack, readConfidentQuality),
@@ -375,6 +389,7 @@ export function AlignmentDialog({
               title="A table of the differences, with their effect on the protein, to copy"
               onClick={() => {
                 setShowList((on) => !on);
+                setShowVerdicts(false);
               }}
             >
               List
@@ -625,7 +640,7 @@ export function AlignmentDialog({
             <span className="astack-verify__summary">
               {verdictSummaryText(summary, shownIndices.length)}
             </span>
-            {summary.exceptions.map((v, i) => (
+            {shownExceptions.map((v, i) => (
               <button
                 key={i}
                 type="button"
@@ -638,32 +653,46 @@ export function AlignmentDialog({
                 {verdictText(v)}
               </button>
             ))}
-            <details className="astack-verify__all">
-              <summary>All features</summary>
-              <ul className="astack-verdicts">
-                {verdicts.map((v, i) => (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      className={`astack-verdict astack-verdict--${v.kind}`}
-                      title="Show this feature in the alignment"
-                      onClick={() => {
-                        setFocus((f) => ({
-                          start: v.start,
-                          end: v.end,
-                          nonce: (f?.nonce ?? 0) + 1,
-                        }));
-                      }}
-                    >
-                      {verdictText(v)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </details>
+            {moreExceptions > 0 && (
+              <button
+                type="button"
+                className="astack-verdict astack-verdict--more"
+                title="Open the table of all features with the ones needing a look first"
+                onClick={() => {
+                  setVerdictOrder('status');
+                  setShowVerdicts(true);
+                  setShowList(false);
+                }}
+              >
+                and {moreExceptions.toLocaleString()} more
+              </button>
+            )}
+            <button
+              type="button"
+              className={`${segmentedClass(showVerdicts)} astack-verify__all`}
+              aria-pressed={showVerdicts}
+              title="A table of every feature: status, position, reads and strands"
+              onClick={() => {
+                setShowVerdicts((on) => !on);
+                // One table at a time under the toolbar: this one or the differences.
+                setShowList(false);
+              }}
+            >
+              All features
+            </button>
           </div>
         )}
         {showList && <AlignmentDifferencesList rows={rows} current={stop} onPick={pick} />}
+        {showVerdicts && verdicts.length > 0 && (
+          <AlignmentVerdictTable
+            verdicts={verdicts}
+            order={verdictOrder}
+            onOrder={setVerdictOrder}
+            onPick={(v) => {
+              setFocus((f) => ({ start: v.start, end: v.end, nonce: (f?.nonce ?? 0) + 1 }));
+            }}
+          />
+        )}
         <AlignmentStackView
           stack={stack}
           referenceName={referenceName}

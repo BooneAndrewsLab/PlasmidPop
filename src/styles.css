@@ -4250,32 +4250,12 @@ button {
   color: var(--ink-2);
 }
 
+/* The All features toggle closes the line, at its end when there is room. */
 .astack-verify__all {
   margin-inline-start: auto;
-  color: var(--ink-2);
-}
-
-.astack-verify__all[open] {
-  flex: 1 0 100%;
-}
-
-.astack-verify__all summary {
-  cursor: pointer;
-}
-
-.astack-verify__all .astack-verdicts {
-  max-height: 96px;
-  margin-top: 4px;
-  overflow-y: auto;
-}
-
-.astack-verdicts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 14px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
   font-size: 12px;
 }
 
@@ -4299,6 +4279,11 @@ button {
 
 .astack-verdict--partial {
   color: var(--warn);
+}
+
+.astack-verdict--more {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .astack-verdict--not-covered {
@@ -4458,6 +4443,51 @@ button {
   color: var(--accent);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* The table of every feature's verdict (#120), on the differences list's table:
+   as wide as its columns, so a name and its numbers stay close on a wide window. */
+.astack-verdict-table {
+  width: auto;
+}
+
+.astack-verdict-table th,
+.astack-verdict-table td {
+  padding-inline: 8px 16px;
+}
+
+.astack-verdict-table .astack-verdict-table__num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.astack-verdict-table__mark {
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+
+.astack-verdict-table__row--confirmed .astack-verdict-table__status {
+  color: var(--ink-2);
+}
+
+.astack-verdict-table__row--confirmed .astack-verdict-table__mark {
+  color: var(--seq-edit-insert);
+}
+
+.astack-verdict-table__row--differences .astack-verdict-table__status {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.astack-verdict-table__row--partial .astack-verdict-table__status {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.astack-verdict-table__row--not-covered .astack-verdict-table__status {
+  color: var(--ink-2);
+  font-style: italic;
 }
 
 .astack-samples {

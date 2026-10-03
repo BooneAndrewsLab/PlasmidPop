@@ -253,8 +253,27 @@ once the ORFs panel has found them. With no document behind the reference
   clickable to bring it into view: "AmpR: 1 difference" (a poor-quality
   base does not count either way), "x: 17 of 20 bases covered" when only
   part is reached and nothing in that part differs, and "ori: not covered".
-  **All features** opens the full list, one line per feature with its own
-  read count. A feature across the origin of a circle counts each base once.
+  Differences come first, then partly covered, then not covered; with more
+  than five, the first four are named and **and N more** opens the table
+  below with the problems first.
+  The **All features** button at the end of the line opens a table of every
+  feature, one row each, between the line and the alignment (it scrolls
+  inside itself and closes again from the same button; opening it closes the
+  **List** of differences, and List closes it). Its columns are the
+  **Status** with a mark (✓ Confirmed, ✕ and the number of differences,
+  ~ Partly covered, ○ Not covered), the **Feature** and its **Type**, the
+  **Position** in the document (1-based and inclusive, as the ruler numbers
+  it; a feature through the origin of a circle reads, say, `6801–120`; a
+  join runs from its first part to its last), **Reads** (the fewest reads
+  at good quality over its bases, 0 when some base has none), **Strands**
+  (both, forward only, reverse only, or mixed when every base is read but
+  neither strand reaches them all; empty when some base is not covered) and
+  **Bases covered** ("17 of 20"). The rows are in document order; **Problems
+  first** puts differences, then partly covered and not covered features
+  above the confirmed ones. Click a row, or its name (a button, so Tab and
+  Enter reach it), to bring the feature into view. **Copy** writes the table
+  as tab-separated text, in the order shown. A feature across the origin of
+  a circle counts each base once.
   These lines say what the alignment shows, not that the construct is right:
   a base no read covers is unchecked, not good.
 - The toolbar has five groups. At the left, **‹ Prev** and **Next ›**

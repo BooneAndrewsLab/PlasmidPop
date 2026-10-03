@@ -75,27 +75,45 @@ export const VerdictKind = {
 } as const;
 export type VerdictKindValue = (typeof VerdictKind)[keyof typeof VerdictKind];
 
+/**
+ * Which strands the reads over a fully covered feature come from: `both` when
+ * every base is read on each strand, `forward` or `reverse` when every base is
+ * read on that strand and some not on the other, `mixed` when every base is
+ * read but neither strand reaches all of them.
+ */
+export type VerdictStrands = 'both' | 'forward' | 'reverse' | 'mixed';
+
 export interface FeatureVerdict {
   readonly name: string;
   readonly type: string;
   readonly kind: VerdictKindValue;
   /** Differing columns inside the feature (`Differences`). */
   readonly differences: number;
-  /** Reads covering every base of the feature (`Confirmed`): the fewest over its columns, either strand. */
+  /**
+   * Reads covering every base of the feature: the fewest over its bases,
+   * either strand. 0 when some base is not covered.
+   */
   readonly reads: number;
-  /** Confirmed, but every covering read is on one strand: 'forward' or 'reverse'. */
-  readonly oneStrand: 'forward' | 'reverse' | null;
+  /** Where the covering reads come from; null when some base is not covered. */
+  readonly strands: VerdictStrands | null;
   /** Reference bases covered / in the feature. */
   readonly covered: number;
   readonly bases: number;
+  /**
+   * The document positions of the feature's first and last base, 1-based and
+   * inclusive as the ruler numbers them (GenBank's convention). On a circle a
+   * feature through the origin has `position > endPosition`.
+   */
+  readonly position: number;
+  readonly endPosition: number;
   /** First column of the feature, to bring it into view. */
   readonly start: number;
   readonly end: number;
 }
 
 /**
- * A verdict for each annotation that is not an ORF, in the order given.
- * Annotations that do not fall in the alignment are left out. Only
+ * A verdict for each annotation that is not an ORF, in document order (by
+ * first base, then last; a tie keeps the order given). Annotations that do not fall in the alignment are left out. Only
  * reference columns count towards coverage, since another sample's insertion
  * is padding in the rest. `period` is the document's length when it is
  * circular, as for `buildTrack`.
@@ -159,26 +177,136 @@ export function verdictsOf(
           : covered > 0
             ? VerdictKind.Partial
             : VerdictKind.NotCovered;
-    const confirmed = kind === VerdictKind.Confirmed;
+    const full = covered === bases;
+    const first = a.ranges[0];
+    const last = a.ranges[a.ranges.length - 1];
+    if (first === undefined || last === undefined) continue;
     out.push({
       name: a.name,
       type: a.type,
       kind,
       differences: diffs,
-      reads: confirmed ? fewest : 0,
-      oneStrand:
-        confirmed && fewestReverse === 0 && fewestForward > 0
-          ? 'forward'
-          : confirmed && fewestForward === 0 && fewestReverse > 0
-            ? 'reverse'
-            : null,
+      reads: full ? fewest : 0,
+      strands: !full
+        ? null
+        : fewestForward > 0 && fewestReverse > 0
+          ? 'both'
+          : fewestForward > 0
+            ? 'forward'
+            : fewestReverse > 0
+              ? 'reverse'
+              : 'mixed',
       covered,
       bases,
+      position: documentPosition(first.start, period),
+      endPosition: documentPosition(last.end - 1, period),
       start,
       end,
     });
   }
-  return out;
+  return out
+    .map((v, i) => ({ v, i }))
+    .sort((x, y) => x.v.position - y.v.position || x.v.endPosition - y.v.endPosition || x.i - y.i)
+    .map(({ v }) => v);
+}
+
+/** A 0-based document index as the 1-based position the ruler shows, wrapped on a circle. */
+function documentPosition(index: number, period: number): number {
+  return (period > 0 ? ((index % period) + period) % period : index) + 1;
+}
+
+/** The order of the table of verdicts: the document's, or the ones needing a look first. */
+export type VerdictOrder = 'position' | 'status';
+
+const STATUS_RANK: Record<VerdictKindValue, number> = {
+  [VerdictKind.Differences]: 0,
+  [VerdictKind.Partial]: 1,
+  [VerdictKind.NotCovered]: 2,
+  [VerdictKind.Confirmed]: 3,
+};
+
+/**
+ * The verdicts in `order`; `verdicts` is taken to be in document order (as
+ * `verdictsOf` gives it), which breaks ties when sorting by status.
+ */
+export function sortVerdicts(
+  verdicts: readonly FeatureVerdict[],
+  order: VerdictOrder,
+): FeatureVerdict[] {
+  if (order === 'position') return [...verdicts];
+  return verdicts
+    .map((v, i) => ({ v, i }))
+    .sort((x, y) => STATUS_RANK[x.v.kind] - STATUS_RANK[y.v.kind] || x.i - y.i)
+    .map(({ v }) => v);
+}
+
+/** "Confirmed", "8 differences", "Partly covered", "Not covered": the status column. */
+export function statusText(v: FeatureVerdict): string {
+  switch (v.kind) {
+    case VerdictKind.Confirmed:
+      return 'Confirmed';
+    case VerdictKind.Differences:
+      return `${v.differences.toLocaleString()} ${v.differences === 1 ? 'difference' : 'differences'}`;
+    case VerdictKind.Partial:
+      return 'Partly covered';
+    case VerdictKind.NotCovered:
+      return 'Not covered';
+  }
+}
+
+/** "12–40", "6801–120" through a circle's origin, "7" for one base: as the differences list writes it. */
+export function verdictPositionText(v: FeatureVerdict): string {
+  return v.position === v.endPosition ? `${v.position}` : `${v.position}–${v.endPosition}`;
+}
+
+/** "both", "forward only", "reverse only", "mixed", or "" when some base is not covered. */
+export function strandsText(v: FeatureVerdict): string {
+  switch (v.strands) {
+    case null:
+      return '';
+    case 'forward':
+    case 'reverse':
+      return `${v.strands} only`;
+    case 'both':
+    case 'mixed':
+      return v.strands;
+  }
+}
+
+/** "17 of 20". */
+export function coveredText(v: FeatureVerdict): string {
+  return `${v.covered.toLocaleString()} of ${v.bases.toLocaleString()}`;
+}
+
+const TABLE_HEADER = [
+  'Status',
+  'Feature',
+  'Type',
+  'Position',
+  'Reads',
+  'Strands',
+  'Differences',
+  'Bases covered',
+];
+
+/** The table as tab-separated text, a header line first. */
+export function verdictsTsv(verdicts: readonly FeatureVerdict[]): string {
+  const clean = (s: string): string => s.replace(/[\t\r\n]+/g, ' ');
+  const lines = verdicts.map((v) =>
+    [
+      statusText(v),
+      v.name,
+      v.type,
+      verdictPositionText(v),
+      `${v.reads}`,
+      strandsText(v),
+      `${v.differences}`,
+      coveredText(v),
+    ]
+      .map(clean)
+      .join('\t'),
+  );
+  return [TABLE_HEADER.join('\t'), ...lines].join('\n');
 }
 
 /** "lacZα confirmed by 2 reads", "AmpR: 1 difference", "ori: not covered". */
@@ -187,7 +315,8 @@ export function verdictText(v: FeatureVerdict): string {
   switch (v.kind) {
     case VerdictKind.Confirmed: {
       const by = `${v.reads.toLocaleString()} ${plural(v.reads, 'read', 'reads')}`;
-      return `${v.name} confirmed by ${by}${v.oneStrand === null ? '' : `, ${v.oneStrand} strand only`}`;
+      const one = v.strands === 'forward' || v.strands === 'reverse' ? v.strands : null;
+      return `${v.name} confirmed by ${by}${one === null ? '' : `, ${one} strand only`}`;
     }
     case VerdictKind.Differences:
       return `${v.name}: ${v.differences.toLocaleString()} ${plural(v.differences, 'difference', 'differences')}`;
@@ -212,7 +341,9 @@ export interface VerdictSummary {
 
 export function summariseVerdicts(verdicts: readonly FeatureVerdict[]): VerdictSummary {
   const confirmed = verdicts.filter((v) => v.kind === VerdictKind.Confirmed);
-  const strands = new Set(confirmed.map((v) => v.oneStrand));
+  const strands = new Set(
+    confirmed.map((v) => (v.strands === 'forward' || v.strands === 'reverse' ? v.strands : null)),
+  );
   const only = strands.size === 1 ? ([...strands][0] ?? null) : null;
   return {
     total: verdicts.length,

@@ -193,17 +193,126 @@ describe('AlignPanel', () => {
     ).toBeVisible();
     const lines = within(verify)
       .getAllByRole('button')
-      .filter((b) => b.closest('details') === null);
-    expect(lines.map((b) => b.textContent)).toEqual(
-      expect.arrayContaining(['pro: not covered', 'term: not covered']),
-    );
-    expect(lines.map((b) => b.textContent)).not.toContain(
-      'gfp confirmed by 1 read, forward strand only',
-    );
-    // The full list is behind the disclosure.
+      .map((b) => b.textContent);
+    expect(lines).toEqual(['pro: not covered', 'term: not covered', 'All features']);
+    // Every feature is in a table behind All features, one row each in document order.
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryByRole('table', { name: 'Feature verification' })).toBeNull();
+    const all = within(verify).getByRole('button', { name: 'All features' });
+    fireEvent.click(all);
+    expect(all).toHaveAttribute('aria-pressed', 'true');
+    const table = within(dialog).getByRole('table', { name: 'Feature verification' });
+    const text = (row: HTMLElement): string[] =>
+      within(row)
+        .getAllByRole('cell')
+        .map((c) => c.textContent.trim());
+    const body = within(table).getAllByRole('row').slice(1);
+    // Positions are 1-based and inclusive, as the ruler numbers them.
+    expect(body.map(text)).toEqual([
+      ['○ Not covered', 'pro', 'promoter', '5–8', '0', '', '0 of 4'],
+      ['✓ Confirmed', 'gfp', 'CDS', '13–24', '1', 'forward only', '12 of 12'],
+      ['○ Not covered', 'term', 'terminator', '25–28', '0', '', '0 of 4'],
+    ]);
+    // Problems first puts the confirmed feature last.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Problems first' }));
     expect(
-      within(verify).getByText('gfp confirmed by 1 read, forward strand only'),
-    ).toBeInTheDocument();
+      within(table)
+        .getAllByRole('row')
+        .slice(1)
+        .map((r) => text(r)[1]),
+    ).toEqual(['pro', 'term', 'gfp']);
+    // A row's name is a button that shows the feature; the row is marked as the current one.
+    fireEvent.click(within(table).getByRole('button', { name: 'gfp' }));
+    expect(within(table).getByRole('button', { name: 'gfp' }).closest('tr')).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    fireEvent.click(all);
+    expect(within(dialog).queryByRole('table', { name: 'Feature verification' })).toBeNull();
+    expect(all).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shows one table at a time: the features or the differences (#120, #121)', async () => {
+    const featured = SeqDocument.create({
+      name: 'target',
+      sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT',
+      features: [createFeature({ type: 'CDS', name: 'gfp', segments: [rangeSegment(12, 24)] })],
+    });
+    render(<AlignPanel doc={featured} />);
+    // One base of the CDS changed (G at 18 of the document read as C).
+    fireEvent.change(box(), { target: { value: 'ACGTGGCCAACTGGCC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'All features' }));
+    const table = within(dialog).getByRole('table', { name: 'Feature verification' });
+    expect(within(table).getByText('1 difference')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
+    expect(within(dialog).getByRole('table', { name: 'Differences' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('table', { name: 'Feature verification' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'All features' }));
+    expect(within(dialog).queryByRole('table', { name: 'Differences' })).toBeNull();
+    expect(within(dialog).getByRole('table', { name: 'Feature verification' })).toBeInTheDocument();
+  });
+
+  it('names at most five features needing a look, the rest behind "and N more" (#120)', async () => {
+    const featured = SeqDocument.create({
+      name: 'target',
+      sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT',
+      features: [
+        ...[0, 1, 2, 3, 24, 25].map((at) =>
+          createFeature({
+            type: 'misc_feature',
+            name: `m${at}`,
+            segments: [rangeSegment(at, at + 1)],
+          }),
+        ),
+        createFeature({ type: 'CDS', name: 'gfp', segments: [rangeSegment(12, 24)] }),
+      ],
+    });
+    render(<AlignPanel doc={featured} />);
+    // Covers 8..24, with the base at 17 changed inside gfp.
+    fireEvent.change(box(), { target: { value: 'ACGTGGCCAACTGGCC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const verify = screen.getByLabelText('Verification of each feature');
+    // Seven need a look: the one with a difference first, then three more, then a count.
+    expect(
+      within(verify)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual([
+      'gfp: 1 difference',
+      'm0: not covered',
+      'm1: not covered',
+      'm2: not covered',
+      'and 3 more',
+      'All features',
+    ]);
+    fireEvent.click(within(verify).getByRole('button', { name: 'and 3 more' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'Problems first' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const table = within(dialog).getByRole('table', { name: 'Feature verification' });
+    expect(within(table).getAllByRole('row')).toHaveLength(8);
+    expect(within(verify).getByRole('button', { name: 'All features' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('lists the differences in a table that jumps to a row and copies as text (#121)', async () => {

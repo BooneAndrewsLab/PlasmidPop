@@ -399,3 +399,52 @@ one feature with 8 differences. The verdict is now one sentence
 are not confirmed; the full per-feature list is behind an **All features**
 disclosure, capped in height. The strand note moved into the sentence and
 shows only when every confirmed feature is on one strand. Not checked by eye.
+
+### All features as a table
+
+The disclosure's list was the same wall in a smaller box: 27 flowing lines of
+"X confirmed by 5 reads, forward strand only" with nothing aligned, so a
+reader could neither scan a column nor find the odd one out. It is now
+`AlignmentVerdictTable`, built on the differences list's table (#121) and its
+classes: one feature per row, columns **Status** (a mark and a word, ✓ ✕ ~ ○,
+so colour is not the only cue; differences and partly covered in bold red
+and amber, confirmed in the muted ink), **Feature** (a button, as the
+differences table's Position, so Tab and Enter reach it; the row is
+clickable too and marked `aria-current` once picked), **Type**, **Position**,
+**Reads**, **Strands** and **Bases covered**. Numbers are right-aligned in
+tabular figures and the table is only as wide as its columns, so a name and
+its numbers stay close on a wide window. **By position / Problems first**
+orders it (`sortVerdicts`: differences, partly covered, not covered,
+confirmed; document order within each), and **Copy** writes `verdictsTsv`.
+
+Data. `verdictsOf` now returns document order (first base, then last, ties
+keep the given order; `source.features.all()` is not positional) and each
+verdict carries `position`/`endPosition`, the 1-based inclusive document
+positions of the feature's first and last base as the ruler and the
+differences list number them: the first segment's start + 1 and the last
+segment's end, taken modulo the length on a circle, so a feature through
+the origin reads `6801–120` (segments are in forward order as GenBank's
+`join` lists them). `reads` is now the fewest over the bases for every
+kind, 0 when some base has none, and `oneStrand` became `strands`
+(`both`, `forward`, `reverse`, `mixed` when every base is read but neither
+strand reads them all, null when not fully covered), so a feature with
+differences shows its reads too. The summary sentence is unchanged.
+
+Arrangement. The table sits where the differences list does, between the
+verification line and the overview, capped at a third of the window and
+scrolling inside itself. Decision: **one table at a time** — opening All
+features closes List and List closes All features, since two capped tables
+left the alignment a sliver. A popover was rejected: seven columns do not fit
+the toolbar popovers' 36 rem, and a table that covers the alignment cannot be
+used to walk it. The toggle stayed on the verification line (at its end), not
+beside List: the toolbar's Features already means the track, and the table
+belongs with the sentence that summarises it. Its open state and order are per
+opening. The sentence and the exceptions stay, as the at-a-glance answer, but
+the exceptions are now differences first and, past five, the first four plus
+**and N more**, which opens the table with Problems first: pBR322 against
+reads covering two thirds of it had 14 exceptions, the same wall again.
+
+Checked by eye in Chrome (dark theme, 1489 px wide) on pBR322 (J01749, 48
+features) with six reads made from its sequence: the line, the table in both
+orders and "and 10 more". Not checked: a phone-width layout, the light
+theme, and a real vector with AB1 reads like the one that prompted it.
