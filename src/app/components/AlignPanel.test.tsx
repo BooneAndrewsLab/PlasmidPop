@@ -959,6 +959,86 @@ describe('AlignPanel', () => {
       });
     }
 
+    it('sorts and hides the samples of the large view, the keys and verdicts following the shown rows (#127)', async () => {
+      const mutate = (seq: string, at: number): string =>
+        seq.slice(0, at) + (seq[at] === 'A' ? 'C' : 'A') + seq.slice(at + 1);
+      const reads = [
+        ['zeta', reference.slice(5, 45)],
+        ['alpha', mutate(reference.slice(15, 55), 20)],
+        ['mid', reference.slice(0, 30)],
+      ] as const;
+      const text = reads.map(([n, q]) => `@${n}\n${q}\n+\n${'I'.repeat(q.length)}`).join('\n');
+      act(() => {
+        editorStore.openDocument(refDoc);
+      });
+      render(<AlignPanel doc={refDoc} />);
+      fireEvent.drop(box(), fileDrop(new File([text], 'plate.fastq')));
+      await waitFor(() => {
+        expect(screen.getByRole('combobox', { name: 'Record to align' })).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+        target: { value: 'local' },
+      });
+      fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
+        target: { value: '-1' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Align all' }));
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Large view of all' })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Large view of all' }));
+      const dialog = screen.getByRole('dialog');
+      const alignment = within(dialog).getByLabelText(/Up and Down pick a sample/);
+      /** The names top to bottom, by walking the picked row from the first to the last. */
+      const order = (count = 3): string[] => {
+        const names: string[] = [];
+        for (let i = 0; i < 5; i++) fireEvent.keyDown(alignment, { key: 'ArrowUp' });
+        for (let i = 0; i < count; i++) {
+          names.push(/(zeta|alpha|mid): local, score/.exec(dialog.textContent)?.[1] ?? '?');
+          fireEvent.keyDown(alignment, { key: 'ArrowDown' });
+        }
+        return names;
+      };
+      const sortBy = (value: string): void => {
+        fireEvent.change(within(dialog).getByRole('combobox', { name: 'Sort samples by' }), {
+          target: { value },
+        });
+      };
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Samples' }));
+      expect(order()).toEqual(['zeta', 'alpha', 'mid']);
+      sortBy('name');
+      expect(order()).toEqual(['alpha', 'mid', 'zeta']);
+      sortBy('identity');
+      expect(order()).toEqual(['zeta', 'mid', 'alpha']);
+      sortBy('position');
+      expect(order()).toEqual(['mid', 'zeta', 'alpha']);
+      sortBy('original');
+
+      // The walk ended on the last row, alpha (the position sort's): hide it.
+      expect(within(dialog).getByText(/No samples hidden/)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Hide' }));
+      expect(within(dialog).getByRole('button', { name: /Samples \(1 hidden\)/ })).toBeVisible();
+      expect(dialog.textContent).toContain('1 hidden');
+      // The pick went with it, and the rows are the two that remain.
+      expect(within(dialog).queryByRole('button', { name: 'Hide' })).toBeNull();
+      expect(order(2)).toEqual(['zeta', 'mid']);
+      // Bring it back by name, to its place.
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Show alpha' }));
+      expect(order(3)).toEqual(['zeta', 'alpha', 'mid']);
+      // Hide two, and the one left cannot be hidden.
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Hide' }));
+      fireEvent.keyDown(alignment, { key: 'ArrowUp' });
+      fireEvent.keyDown(alignment, { key: 'ArrowUp' });
+      fireEvent.keyDown(alignment, { key: 'ArrowUp' });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Hide' }));
+      expect(within(dialog).getByRole('button', { name: /Samples \(2 hidden\)/ })).toBeVisible();
+      fireEvent.keyDown(alignment, { key: 'ArrowDown' });
+      expect(within(dialog).queryByRole('button', { name: 'Hide' })).toBeNull();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Show all' }));
+      expect(within(dialog).getByRole('button', { name: 'Samples' })).toBeVisible();
+      expect(order(3)).toEqual(['zeta', 'alpha', 'mid']);
+    });
+
     it('aligns them all, lists them, and shows the one picked', async () => {
       await dropBatch();
       fireEvent.click(screen.getByRole('button', { name: 'Align all' }));

@@ -266,8 +266,27 @@ once the ORFs panel has found them. With no document behind the reference
   form under the toolbar (see below), and **Export** opens another for
   saving or copying the alignment (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
-  when you open the window again. Under the toolbar, the sample's score
-  line sits at the left and the colour key at the right.
+  when you open the window again. Under the toolbar, the status row has,
+  at the left, the **Samples** button and the picked sample's score line
+  and buttons, and at the right the colour key.
+- **Sort and hide samples.** With more than one sample, **Samples** (in the
+  status row) opens a small form. **Sort by** orders the rows: **As
+  aligned** (the order they were given), **Identity, highest first**,
+  **Name** (numbers in names count as numbers, so read2 comes before
+  read10) or **Position on the reference** (where the alignment starts);
+  equal ones keep their aligned order. Pick a sample and press **Hide** in
+  the status row to take it out of the window; the button then reads
+  "Samples (1 hidden)" and the status line says "1 hidden". The form lists
+  the hidden samples, each with **Show**, and **Show all**. The last sample
+  shown cannot be hidden. The rows you see are the only rows everything
+  else works on: `↑` and `↓` walk them in the order shown, the differences
+  and their count, the list, the coverage band, the marks where samples
+  disagree, Find, Export and the verification lines are all computed from
+  the shown samples alone. A hidden sample therefore does **not** count
+  towards a verification: with some hidden, a note above the lines says
+  "Verification from 3 of 4 samples". A column that only a hidden sample's
+  insertion opened is not in the picture either. Sort and hidden samples
+  are for this opening of the window and are not remembered.
 - **Go to** (`Ctrl+G`) takes a 1-based position, numbered as the ruler
   numbers the document, and scrolls to its column and marks it, however many
   columns another sample's insertion has opened before it. A position past

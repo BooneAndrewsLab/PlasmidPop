@@ -4427,3 +4427,23 @@ button {
   text-decoration: underline;
   cursor: pointer;
 }
+
+.astack-samples {
+  max-width: min(26rem, calc(100vw - 32px));
+}
+
+.astack-samples__list {
+  flex-basis: 100%;
+  max-height: 12rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.astack-samples__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

@@ -357,3 +357,35 @@ with a light palette on a dark theme, and a consensus line. Checked by eye: an
 `SvgContext` render of a three-row alignment rasterised with rsvg (names,
 ruler, differences, deletion, disagreement mark all drawn as in the window);
 the popover itself was not looked at in a browser.
+
+## Sort and hide samples (#127)
+
+**One place for the shown order.** `alignmentOrder.ts` (pure, tested) turns
+each sample's name, identity and start on the reference into the indices to
+show: `sortedIndices` (original, identity descending, name with a natural
+collator, position; ties keep the aligned order, so the sort is stable and
+total) and `shownSamples`, which drops the hidden set. The dialog never
+reorders `samples`; it stacks `shownIndices.map(i => samples[i])`. Because
+`stackAlignments` is run over the shown samples only, every consumer of
+`stack.rows` (drawing, row picking, Up/Down, overview, differences and their
+Next/Previous stops, the list, coverage, disagreement, Find, export) follows
+without a mapping of its own. The picked sample is held as an index into
+`samples` (`pickedSample`, which is also what Align all's `initialRow` is),
+and `selected`, the row in the shown stack, is derived from it; `setSelected`
+maps a row back, so Find's picker and the list's carriers, which speak in
+rows, still work. Hiding the picked sample leaves nothing picked.
+
+**Decision: hidden samples do not count.** A hidden sample is out of the
+verdicts and coverage, not only the picture, since the point of hiding a bad
+read is to see what the rest show. The cost is that the stack is rebuilt (the
+alignment's columns are recomputed, so an insertion only a hidden sample made
+is gone). The verdict lines carry a note, "Verification from 3 of 4
+samples", whenever any are hidden. The last shown sample cannot be hidden.
+
+**Controls.** A **Samples** button in the status row opens a popover (the same
+kind as Go to, Find and Export; one at a time) with the sort select and the
+hidden list with Show and Show all; **Hide** sits beside Select in document
+and acts on the picked sample. The toolbar did not gain a group. State is per
+opening, not remembered. Not checked by eye; covered by a component test
+(sort orders, hide, show by name, show all, Up/Down following the order, the
+last sample kept).

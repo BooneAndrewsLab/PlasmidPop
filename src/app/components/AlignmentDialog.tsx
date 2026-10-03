@@ -23,11 +23,13 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
 import { confidentDifferences, coverageOf, verdictsOf, verdictText } from '../alignmentVerdict';
+import { hiddenNote, shownSamples, type SampleSort } from '../alignmentOrder';
 import { disagreementColumns } from '../alignmentDisagreement';
 import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
 import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentExport } from './AlignmentExport';
+import { AlignmentSamples } from './AlignmentSamples';
 import { AlignmentStackView, type StackHandle } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
@@ -97,7 +99,31 @@ export function AlignmentDialog({
       list: showList,
     });
   }, [showFeatures, showOrfs, showTrace, showResidues, showList]);
-  const stack = useMemo(() => stackAlignments(reference, samples), [reference, samples]);
+  // Which samples are shown and in what order (#127). Everything below works over the
+  // stack of the shown ones, so a hidden sample is out of the verdicts as well.
+  const [sort, setSort] = useState<SampleSort>('original');
+  const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
+  const shownIndices = useMemo(
+    () =>
+      shownSamples(
+        samples.map((s) => ({
+          name: s.name,
+          identity: s.result.alignment.identity,
+          start: s.result.alignment.startA,
+        })),
+        sort,
+        hidden,
+      ),
+    [samples, sort, hidden],
+  );
+  const stack = useMemo(
+    () =>
+      stackAlignments(
+        reference,
+        shownIndices.flatMap((i) => samples[i] ?? []),
+      ),
+    [reference, samples, shownIndices],
+  );
   // The ORFs the app has already found in the open document, at its own minimum length.
   const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
   const track = useMemo(() => {
@@ -154,8 +180,19 @@ export function AlignmentDialog({
     () => (classes === null ? null : countByClass(stack.differences, classes)),
     [stack, classes],
   );
-  const [selected, setSelected] = useState<number | null>(
+  // The picked sample, as an index into `samples`; `selected` is its row in the shown stack.
+  const [pickedSample, setPickedSample] = useState<number | null>(
     initialRow ?? (samples.length === 1 ? 0 : null),
+  );
+  const selected = useMemo(() => {
+    const r = pickedSample === null ? -1 : shownIndices.indexOf(pickedSample);
+    return r < 0 ? null : r;
+  }, [pickedSample, shownIndices]);
+  const setSelected = useCallback(
+    (r: number | null): void => {
+      setPickedSample(r === null ? null : (shownIndices[r] ?? null));
+    },
+    [shownIndices],
   );
   const [focus, setFocus] = useState<{ start: number; end: number; nonce: number } | null>(null);
   const hasFrames = frames.length > 0;
@@ -176,9 +213,9 @@ export function AlignmentDialog({
     [showList, stack, regions, source, orfs, frames, disagreement],
   );
   const current = useRef(0);
-  // One popover under the toolbar at a time: Go to, Find or Export.
-  const [popover, setPopover] = useState<SearchMode | 'export' | null>(null);
-  const search = popover === 'export' ? null : popover;
+  // One popover at a time: Go to, Find, Export or Samples.
+  const [popover, setPopover] = useState<SearchMode | 'export' | 'samples' | null>(null);
+  const search = popover === 'export' || popover === 'samples' ? null : popover;
   const stackHandle = useRef<StackHandle>(null);
   const searchOpen = useRef(false);
   useEffect(() => {
@@ -214,13 +251,18 @@ export function AlignmentDialog({
     setStop(null);
     setFocus((f) => ({ start, end, nonce: (f?.nonce ?? 0) + 1 }));
   }, []);
-  const pick = useCallback((diff: DifferenceRow): void => {
-    current.current = diff.start;
-    setStop(diff.index);
-    setFocus((f) => ({ start: diff.start, end: diff.end, nonce: (f?.nonce ?? 0) + 1 }));
-    // Keep the picked sample when it carries this one, else the first that does.
-    setSelected((s) => (diff.carriers.some((c) => c.row === s) ? s : (diff.carriers[0]?.row ?? s)));
-  }, []);
+  const pick = useCallback(
+    (diff: DifferenceRow): void => {
+      current.current = diff.start;
+      setStop(diff.index);
+      setFocus((f) => ({ start: diff.start, end: diff.end, nonce: (f?.nonce ?? 0) + 1 }));
+      // Keep the picked sample when it carries this one, else the first that does.
+      const keep = diff.carriers.some((c) => c.row === selected);
+      const row = keep ? selected : (diff.carriers[0]?.row ?? selected);
+      if (row !== null) setSelected(row);
+    },
+    [selected, setSelected],
+  );
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
@@ -469,12 +511,58 @@ export function AlignmentDialog({
         </div>
         <div className="astack-status">
           <span className="astack-status__sample">
+            {samples.length > 1 && (
+              <span className="astack-tools__search">
+                <button
+                  type="button"
+                  className={segmentedClass(popover === 'samples' || hidden.size > 0)}
+                  aria-pressed={popover === 'samples'}
+                  title="Sort the samples, or bring back hidden ones"
+                  onClick={() => {
+                    setPopover((m) => (m === 'samples' ? null : 'samples'));
+                  }}
+                >
+                  {hidden.size > 0 ? `Samples (${hidden.size.toLocaleString()} hidden)` : 'Samples'}
+                </button>
+                {popover === 'samples' && (
+                  <AlignmentSamples
+                    names={samples.map((s) => s.name)}
+                    sort={sort}
+                    onSort={setSort}
+                    hidden={hidden}
+                    onShow={(i) => {
+                      setHidden((h) => {
+                        const next = new Set(h);
+                        next.delete(i);
+                        return next;
+                      });
+                    }}
+                    onShowAll={() => {
+                      setHidden(new Set());
+                    }}
+                  />
+                )}
+              </span>
+            )}
             <span className="astack-tools__note" aria-live="polite">
               {shown === null
                 ? `${differencesText(stack.differences.length, counts)}. Click a name, or use ↑ and ↓, to see a sample's score.`
                 : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
               {track !== null && track.hidden > 0 ? ` · ${track.hidden} lanes not shown` : ''}
+              {hidden.size > 0 ? ` · ${hidden.size.toLocaleString()} hidden` : ''}
             </span>
+            {row !== null && pickedSample !== null && stack.rows.length > 1 && (
+              <button
+                type="button"
+                className="button button--small"
+                title={`Take ${row.name} out of the alignment; Samples brings it back`}
+                onClick={() => {
+                  setHidden((h) => new Set(h).add(pickedSample));
+                }}
+              >
+                Hide
+              </button>
+            )}
             {row !== null && (
               <button
                 type="button"
@@ -518,6 +606,12 @@ export function AlignmentDialog({
             </span>
           )}
         </div>
+        {verdicts.length > 0 && hidden.size > 0 && (
+          <div className="astack-tools__note">
+            Verification {hiddenNote(samples.length, shownIndices.length)}; hidden samples do not
+            count.
+          </div>
+        )}
         {verdicts.length > 0 && (
           <ul className="astack-verdicts" aria-label="Verification of each feature">
             {verdicts.map((v, i) => (
