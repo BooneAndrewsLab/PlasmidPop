@@ -22,6 +22,7 @@ import { formatBinding, matchesBinding, resolveBindings, withShift } from '../ke
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
+import { confidentDifferences, coverageOf, verdictsOf, verdictText } from '../alignmentVerdict';
 import { AlignmentStackView } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
@@ -111,6 +112,24 @@ export function AlignmentDialog({
             source.isCircular ? source.length : 0,
           ),
     [source, stack, orfs],
+  );
+  // Reads at good quality per column, and a verdict for each feature of the document (#120).
+  const coverage = useMemo(
+    () => coverageOf(stack, readConfidentQuality),
+    [stack, readConfidentQuality],
+  );
+  const verdicts = useMemo(
+    () =>
+      source === null
+        ? []
+        : verdictsOf(
+            stack,
+            annotationsOf(source.features.all(), []),
+            coverage,
+            confidentDifferences(stack, readConfidentQuality),
+            source.isCircular ? source.length : 0,
+          ),
+    [source, stack, coverage, readConfidentQuality],
   );
   const frames = useMemo(
     () =>
@@ -350,6 +369,24 @@ export function AlignmentDialog({
             </span>
           )}
         </div>
+        {verdicts.length > 0 && (
+          <ul className="astack-verdicts" aria-label="Verification of each feature">
+            {verdicts.map((v, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  className={`astack-verdict astack-verdict--${v.kind}`}
+                  title="Show this feature in the alignment"
+                  onClick={() => {
+                    setFocus((f) => ({ start: v.start, end: v.end, nonce: (f?.nonce ?? 0) + 1 }));
+                  }}
+                >
+                  {verdictText(v)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <AlignmentStackView
           stack={stack}
           referenceName={referenceName}
@@ -357,6 +394,7 @@ export function AlignmentDialog({
           selectedRow={selected}
           track={track}
           classes={classes}
+          coverage={coverage}
           showTrace={showTrace}
           residues={showResidues && frames.length > 0 ? frames : null}
           onSelectRow={setSelected}

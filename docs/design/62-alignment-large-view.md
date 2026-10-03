@@ -178,3 +178,29 @@ Down on the focused alignment pick a row instead (the keyboard gap the
 select was for), scrolling it clear of the pinned header, and **Select in
 document** sits at the end of the picked sample's score line in the status
 row, beside what it acts on, shown only once a sample is picked.
+
+## Verification verdict and coverage (#120)
+
+`alignmentVerdict.ts` turns a stack into an answer to "is the construct
+right?". `coverageOf` counts, per column and per strand, the rows that stand
+behind the column: a base (or a deletion the read spans) at or above
+`readConfidentQuality`; a read with no qualities counts wherever it reaches,
+and a gap's NaN quality counts as the read spanning it. `coverageBand` folds
+that to 0, 1 or 2+ for a band of `COVERAGE_HEIGHT` under the overview's
+marks. `verdictsOf` gives each non-ORF annotation (reusing `spansOf`, now
+exported) one of Confirmed, Differences, Partial or NotCovered. Partial is
+not in the issue's three: a feature half-read with no difference is neither
+confirmed nor missed, and saying "not covered" would hide the half that is.
+
+Decisions. Only reference columns count towards coverage, since an insertion
+in one sample is padding in the others and would otherwise read as a gap. A
+difference counts only where the differing row's base is itself good, so a
+poor stretch neither confirms nor condemns (`confidentDifferences`); the
+view still shows it faded. The read count is the fewest over the feature's
+bases, the number a reader can rely on end to end. "One strand only" is
+said when every covering read is forward or every one reversed. Bases are
+keyed by `refIndex mod length` on a circle so a feature across the origin,
+seen at both ends of the reference row, counts each base once, taking the
+better copy. The verdicts are a list of buttons between the status row and
+the stack (click to scroll to the feature); they follow the document's
+features even when the Features box is off. Not checked by eye.

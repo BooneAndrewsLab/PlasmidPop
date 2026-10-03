@@ -10,7 +10,13 @@ import {
   within,
 } from '@testing-library/react';
 
-import { type StrandedAlignment, SeqDocument, reverseComplement } from '@/core';
+import {
+  type StrandedAlignment,
+  SeqDocument,
+  createFeature,
+  rangeSegment,
+  reverseComplement,
+} from '@/core';
 import {
   AnalysisCancelledError,
   type LongRequestOptions,
@@ -157,6 +163,33 @@ describe('AlignPanel', () => {
     // No CDS in this document, so there are no amino acids to show.
     expect(screen.queryByRole('button', { name: 'Amino acids' })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: 'Features' })).toBeNull();
+  });
+
+  it('says per feature whether the read confirms it, differs in it or misses it (#120)', async () => {
+    const featured = SeqDocument.create({
+      name: 'target',
+      sequence: 'TTTTACGTACGTGGCCAATTGGCCTTTT',
+      features: [
+        createFeature({ type: 'CDS', name: 'gfp', segments: [rangeSegment(12, 24)] }),
+        createFeature({ type: 'promoter', name: 'pro', segments: [rangeSegment(4, 8)] }),
+        createFeature({ type: 'terminator', name: 'term', segments: [rangeSegment(24, 28)] }),
+      ],
+    });
+    render(<AlignPanel doc={featured} />);
+    // Covers 8..24 of the document, with one base changed in the promoter-free part.
+    fireEvent.change(box(), { target: { value: 'ACGTGGCCAATTGGCC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const list = screen.getByRole('list', { name: 'Verification of each feature' });
+    expect(within(list).getByText('gfp confirmed by 1 read, forward strand only')).toBeVisible();
+    expect(within(list).getByText('pro: not covered')).toBeVisible();
+    expect(within(list).getByText('term: not covered')).toBeVisible();
   });
 
   it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {

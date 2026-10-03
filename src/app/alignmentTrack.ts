@@ -67,7 +67,7 @@ export function columnsOfIndex(stack: Stack): Int32Array {
  * its end, and a read that runs through the origin sees a feature twice),
  * else 0.
  */
-function spansOf(
+export function spansOf(
   stack: Stack,
   columns: Int32Array,
   ranges: TrackAnnotation['ranges'],

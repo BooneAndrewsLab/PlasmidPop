@@ -4183,6 +4183,42 @@ button {
   }
 }
 
+.astack-verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.astack-verdict {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.astack-verdict:hover {
+  text-decoration: underline;
+}
+
+.astack-verdict--differences {
+  color: var(--danger);
+}
+
+.astack-verdict--partial {
+  color: var(--warn);
+}
+
+.astack-verdict--not-covered {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
 .astack-legend {
   display: inline-flex;
   flex-wrap: wrap;

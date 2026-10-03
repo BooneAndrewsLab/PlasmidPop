@@ -14,6 +14,7 @@ import {
 } from '../alignmentResidues';
 import { Cell, columnPosition, isDifference, type Stack, type StackRow } from '../alignmentStack';
 import { ColumnClass, itemAt, type Track } from '../alignmentTrack';
+import { coverageBand, type Coverage } from '../alignmentVerdict';
 import { readLinearTheme } from './linearTheme';
 
 const FONT_SIZE = 13;
@@ -23,6 +24,8 @@ const RULER_HEIGHT = 18;
 const LANE_HEIGHT = 16;
 const NAME_WIDTH = 168;
 const OVERVIEW_HEIGHT = 44;
+/** The coverage band under the overview's marks (#120). */
+const COVERAGE_HEIGHT = 6;
 /** The chromatogram under a read's row (#110). */
 const TRACE_HEIGHT = 40;
 /** The amino-acid strip under the reference's row and under each sample's. */
@@ -44,6 +47,8 @@ interface Props {
    * document, and every difference is then coloured as outside a feature.
    */
   readonly classes: Uint8Array | null;
+  /** Reads covering each column at good quality; drawn as a band under the overview (#120). */
+  readonly coverage: Coverage | null;
   /** Draw each AB1 read's chromatogram under its row (#110). */
   readonly showTrace: boolean;
   /** The CDS frames to draw residues for, under the reference and each sample; null for none. */
@@ -273,6 +278,7 @@ export function AlignmentStackView({
   selectedRow,
   track,
   classes,
+  coverage,
   showTrace,
   residues,
   onSelectRow,
@@ -605,10 +611,10 @@ export function AlignmentStackView({
     if (el === null || ctx === null || colours === null) return;
     const dpr = window.devicePixelRatio || 1;
     el.width = Math.max(1, Math.floor(overviewWidth * dpr));
-    el.height = Math.floor(OVERVIEW_HEIGHT * dpr);
+    el.height = Math.floor((OVERVIEW_HEIGHT + COVERAGE_HEIGHT) * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = colours.background;
-    ctx.fillRect(0, 0, overviewWidth, OVERVIEW_HEIGHT);
+    ctx.fillRect(0, 0, overviewWidth, OVERVIEW_HEIGHT + COVERAGE_HEIGHT);
     const perColumn = overviewWidth / Math.max(1, stack.columns);
     // The stretch each sample covers, as a faint bar behind the marks.
     const barHeight = Math.max(
@@ -630,6 +636,29 @@ export function AlignmentStackView({
     for (const c of stack.differences) {
       ctx.fillStyle = classColour(colours, classes?.[c] ?? ColumnClass.None);
       ctx.fillRect(c * perColumn, 0, tick, OVERVIEW_HEIGHT);
+    }
+    // Coverage: none stays bare, one read is light, two or more dark.
+    if (coverage !== null) {
+      ctx.fillStyle = colours.line;
+      ctx.fillRect(0, OVERVIEW_HEIGHT + COVERAGE_HEIGHT - 1, overviewWidth, 1);
+      ctx.fillStyle = colours.ink;
+      let from = 0;
+      for (let c = 1; c <= stack.columns; c++) {
+        const band = c < stack.columns ? coverageBand(coverage, c) : -1;
+        if (c < stack.columns && band === coverageBand(coverage, from)) continue;
+        const level = coverageBand(coverage, from);
+        if (level > 0) {
+          ctx.globalAlpha = level === 1 ? 0.3 : 0.75;
+          ctx.fillRect(
+            from * perColumn,
+            OVERVIEW_HEIGHT + 1,
+            Math.max(1, (c - from) * perColumn),
+            COVERAGE_HEIGHT - 2,
+          );
+        }
+        from = c;
+      }
+      ctx.globalAlpha = 1;
     }
     if (marked !== null) {
       ctx.fillStyle = colours.accent;
@@ -658,6 +687,7 @@ export function AlignmentStackView({
   }, [
     stack,
     classes,
+    coverage,
     overviewWidth,
     size.width,
     scroll.left,
@@ -682,9 +712,9 @@ export function AlignmentStackView({
       <canvas
         ref={overview}
         className="astack__overview"
-        style={{ width: '100%', height: OVERVIEW_HEIGHT }}
+        style={{ width: '100%', height: OVERVIEW_HEIGHT + COVERAGE_HEIGHT }}
         role="img"
-        aria-label={`Overview of the alignment: ${stack.differences.length.toLocaleString()} differing columns. Click or drag to move.`}
+        aria-label={`Overview of the alignment: ${stack.differences.length.toLocaleString()} differing columns${coverage === null ? '' : ', and a band of how many reads cover each column at good quality'}. Click or drag to move.`}
         onPointerDown={(e) => {
           dragging.current = true;
           e.currentTarget.setPointerCapture(e.pointerId);
