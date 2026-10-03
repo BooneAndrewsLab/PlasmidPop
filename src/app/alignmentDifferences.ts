@@ -56,8 +56,14 @@ export interface DifferenceRow {
   readonly reference: string;
   readonly carriers: readonly DifferenceCarrier[];
   readonly featureKind: FeatureKind;
+  /** Two or more samples at good quality carry different bases in a column of the region (#124). */
+  readonly disagree: boolean;
   /** The names of the annotations of the highest class the region touches. */
   readonly feature: string;
+}
+
+function columnsOf(region: DifferenceRegion): number[] {
+  return Array.from({ length: region.end - region.start }, (_, i) => region.start + i);
 }
 
 /** Bases with gaps and blanks dropped, '-' when nothing is left. */
@@ -211,7 +217,9 @@ export function differenceRows(
   annotations: readonly TrackAnnotation[],
   frames: readonly ResidueFrame[],
   source: SeqDocument | null,
+  disagreeing: readonly number[] = [],
 ): DifferenceRow[] {
+  const disagreeingSet = new Set(disagreeing);
   const period = source?.isCircular === true ? source.length : 0;
   return regions.map((region, index) => {
     const { position, endPosition } = positionsOf(stack, region);
@@ -243,6 +251,7 @@ export function differenceRows(
       reference: basesOf(sliceOf(stack.reference, region.start, region.end)),
       carriers,
       featureKind: kind,
+      disagree: columnsOf(region).some((c) => disagreeingSet.has(c)),
       feature: name,
     };
   });
@@ -291,13 +300,40 @@ export function effectText(row: DifferenceRow): string {
   return effects.map((x) => `${x.c.name}: ${x.e.text}`).join('; ');
 }
 
-const HEADER = ['Position', 'Change', 'Samples', 'Feature', 'Quality', 'Protein effect'] as const;
+/**
+ * "samples disagree" when samples at good quality carry different bases in
+ * the region, "samples agree" when two or more carry the same change and
+ * none disagrees, else ''. Agreement is what makes a difference credible.
+ */
+export function noteText(row: DifferenceRow): string {
+  if (row.disagree) return 'samples disagree';
+  const changes = new Set(row.carriers.map((c) => c.bases));
+  return row.carriers.length >= 2 && changes.size === 1 ? 'samples agree' : '';
+}
+
+const HEADER = [
+  'Position',
+  'Change',
+  'Samples',
+  'Feature',
+  'Quality',
+  'Protein effect',
+  'Note',
+] as const;
 
 /** The table as tab-separated text with a header, for pasting into a notebook or spreadsheet. */
 export function differencesTsv(rows: readonly DifferenceRow[]): string {
   const clean = (s: string): string => s.replace(/[\t\r\n]+/g, ' ');
   const lines = rows.map((r) =>
-    [positionText(r), changeText(r), samplesText(r), featureText(r), qualityText(r), effectText(r)]
+    [
+      positionText(r),
+      changeText(r),
+      samplesText(r),
+      featureText(r),
+      qualityText(r),
+      effectText(r),
+      noteText(r),
+    ]
       .map(clean)
       .join('\t'),
   );

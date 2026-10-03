@@ -239,3 +239,32 @@ row clickable; both go through the same path as Next (`pick` in the dialog),
 which also selects a carrying sample, keeping the current one if it carries
 the region. Copy writes `differencesTsv` through `copyText`. Not checked by
 eye.
+
+## Samples that disagree (#124)
+
+`alignmentDisagreement.ts` finds the columns where samples differ from each
+other, which a difference from the document cannot tell (a base-calling
+error in one read shows as a difference from the document just as a real
+change does). A row takes part in a column with a call: A, C, G or T (U read
+as T), or `-` for a deletion; Blank and Padding cells (outside the sample's
+stretch, or another sample's insertion) take none, a base below
+`readConfidentQuality` takes none, and an ambiguity code takes none since it
+is compatible with more than one base. A column disagrees when at least two
+rows call and the calls are not all the same. That includes one sample
+matching the document and another not, and a deletion against a base.
+`agreementColumns` is the converse (two or more samples differ from the
+document and all in the same way, none disagreeing); it is not drawn, only
+noted in the list as "samples agree".
+
+Drawn three ways: a solid foot under the overview's differences (2 px wide
+at least), a small triangle under the ruler, and a faint ink tint down the
+column in the body, all in the ink colour so they do not collide with the
+class colours of the differences. The status row counts the columns. The
+differences list gets a **Note** column (and in the TSV): "samples
+disagree" when any column of the region disagrees, "samples agree" when two
+or more carriers share the same bases and none disagrees. Not done: a
+consensus row under the reference (it would add a row type to the stack,
+the pinned header, the AA strip and the picking code for something the foot
+and the list already say; left for a request); disagreement among samples
+at columns the document has no base for beyond the plain insertion case;
+nothing for a column only one sample covers. Not checked by eye.

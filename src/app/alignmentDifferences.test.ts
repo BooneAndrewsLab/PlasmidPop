@@ -14,6 +14,7 @@ import {
   differencesTsv,
   effectText,
   featureText,
+  noteText,
   positionText,
   qualityText,
   samplesText,
@@ -136,13 +137,26 @@ describe('differenceRows', () => {
   });
 });
 
+describe('noteText', () => {
+  it('says samples agree when two carry the same change, disagree when told so, else nothing', () => {
+    const { stack, rows } = setup([mutate(sequence, 5, 'C'), mutate(sequence, 5, 'C')]);
+    expect(noteText(one(rows))).toBe('samples agree');
+    const regions = differenceRegions(stack.differences);
+    const disagreeing = differenceRows(stack, regions, [], [], null, [5]);
+    expect(noteText(one(disagreeing))).toBe('samples disagree');
+    expect(differencesTsv(disagreeing).split('\n')[1]).toMatch(/\tsamples disagree$/);
+    const lone = setup([mutate(sequence, 5, 'C')]);
+    expect(noteText(one(lone.rows))).toBe('');
+  });
+});
+
 describe('differencesTsv', () => {
   it('writes a header and one tab-separated line per region', () => {
     const { rows } = setup([mutate(sequence, 5, 'C'), mutate(sequence, 30, 'A')]);
     const lines = differencesTsv(rows).split('\n');
-    expect(lines[0]).toBe('Position\tChange\tSamples\tFeature\tQuality\tProtein effect');
-    expect(lines[1]).toBe('6\tA→C\tr0\tCDS g\t\tp.K2Q');
-    expect(lines[2]).toBe('31\tT→A\tr1\tnone\t\t');
+    expect(lines[0]).toBe('Position\tChange\tSamples\tFeature\tQuality\tProtein effect\tNote');
+    expect(lines[1]).toBe('6\tA→C\tr0\tCDS g\t\tp.K2Q\t');
+    expect(lines[2]).toBe('31\tT→A\tr1\tnone\t\t\t');
     expect(lines).toHaveLength(3);
   });
 });

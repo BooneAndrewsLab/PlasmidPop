@@ -217,10 +217,43 @@ describe('AlignPanel', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
     expect(writeText).toHaveBeenCalledTimes(1);
     const text = String(writeText.mock.calls[0]?.[0]);
-    expect(text.split('\n')[0]).toBe('Position\tChange\tSamples\tFeature\tQuality\tProtein effect');
+    expect(text.split('\n')[0]).toBe(
+      'Position\tChange\tSamples\tFeature\tQuality\tProtein effect\tNote',
+    );
     expect(text.split('\n')).toHaveLength(3);
     fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
     expect(within(dialog).queryByRole('table', { name: 'Differences' })).toBeNull();
+  });
+
+  it('marks a column where samples disagree with each other and notes it in the list (#124)', async () => {
+    const reference = 'GATTACAGCTTGACCGTAAGCTAGGCTTACGATCGATTGCAAGTCCGATGCATTGACCTA';
+    const refDoc = SeqDocument.create({ name: 'pRef', sequence: reference });
+    const at = (base: string): string => reference.slice(0, 20) + base + reference.slice(21);
+    // Two reads differ from the document at base 21 in different ways, two share one change at 41.
+    const shared = (s: string): string => s.slice(0, 40) + 'T' + s.slice(41);
+    const fasta = `>a\n${shared(at('C'))}\n>b\n${shared(at('T'))}\n`;
+    render(<AlignPanel doc={refDoc} />);
+    fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Record to align' })).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Record to align' }), {
+      target: { value: '-1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align all' }));
+    await waitFor(() => {
+      expect(screen.getByText('2 reads')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view of all' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/1 column where samples disagree/)).toBeVisible();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
+    const table = within(dialog).getByRole('table', { name: 'Differences' });
+    expect(within(table).getByText('samples disagree')).toBeVisible();
+    expect(within(table).getByText('samples agree')).toBeVisible();
   });
 
   it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {

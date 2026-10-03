@@ -230,6 +230,19 @@ once the ORFs panel has found them. With no document behind the reference
   where its base is at or above the confident quality (Confident from, in
   the Reads options); a read with no qualities counts everywhere it
   reaches, and a read of either strand counts.
+- **Samples that disagree.** With two or more samples, a column where
+  samples carry different bases from each other (not only from the
+  document) is marked three ways: a solid foot under the strip's marks, a
+  small triangle under the ruler and a faint tint down the column. The
+  status row counts them ("3 columns where samples disagree"). Only bases at
+  or above Confident from count (a read with no qualities counts
+  everywhere), a deletion in one sample against a base in another is a
+  disagreement, an ambiguity code such as N takes no part, and the empty
+  cells a sample's insertion leaves in the others are ignored. Disagreement
+  between reads is more often a base-calling error than a real change. A
+  difference that every covering sample shares (they all read G where the
+  document has A) is not marked: that agreement is what makes it credible,
+  and the list notes it as "samples agree".
 - Under the toolbar, when the reference is a document, a **verification
   line** per feature (the source feature and ORFs are left out) says what the
   reads show: "lacZα confirmed by 2 reads" when every base of it is covered
@@ -284,8 +297,11 @@ once the ORFs panel has found them. With no document behind the reference
   their ends and a length), the **Samples** that carry it (with several
   carrying different bases, each change is listed), the **Feature** it falls
   in (a CDS or ORF first, then any other feature, else `none`), the lowest
-  read **Quality** over the differing columns (reads with qualities only)
-  and the **Protein effect** inside a CDS: `silent`, a missense such as
+  read **Quality** over the differing columns (reads with qualities only),
+  the **Protein effect** inside a CDS and a **Note** ("samples disagree"
+  where the region has a column marked as above, "samples agree" where two
+  or more samples carry the same change and none disagrees, else blank). The
+  effect is `silent`, a missense such as
   `p.K42R`, a nonsense `p.K42*`, a stop lost `p.*42K`, `frameshift` for an
   insertion or deletion that is not a multiple of three bases, or
   `in-frame indel`. Codons are read in the CDS's own frame, strand and

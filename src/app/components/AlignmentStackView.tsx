@@ -49,6 +49,8 @@ interface Props {
   readonly classes: Uint8Array | null;
   /** Reads covering each column at good quality; drawn as a band under the overview (#120). */
   readonly coverage: Coverage | null;
+  /** Columns where samples carry different bases from each other, ascending (#124). */
+  readonly disagreement: readonly number[];
   /** Draw each AB1 read's chromatogram under its row (#110). */
   readonly showTrace: boolean;
   /** The CDS frames to draw residues for, under the reference and each sample; null for none. */
@@ -279,6 +281,7 @@ export function AlignmentStackView({
   track,
   classes,
   coverage,
+  disagreement,
   showTrace,
   residues,
   onSelectRow,
@@ -286,6 +289,7 @@ export function AlignmentStackView({
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const disagreeing = useMemo(() => new Set(disagreement), [disagreement]);
   const overview = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 600, height: 300 });
   const [overviewWidth, setOverviewWidth] = useState(600);
@@ -401,6 +405,16 @@ export function AlignmentStackView({
       ctx.fillStyle = colours.accent;
       ctx.globalAlpha = 0.16;
       ctx.fillRect(x(marked.start), 0, (marked.end - marked.start) * charWidth, size.height);
+      ctx.globalAlpha = 1;
+    }
+
+    // Columns where samples disagree with each other: a faint tint down the column (#124).
+    if (disagreement.length > 0) {
+      ctx.fillStyle = colours.ink;
+      ctx.globalAlpha = 0.08;
+      for (let c = first; c < last; c++) {
+        if (disagreeing.has(c)) ctx.fillRect(x(c), 0, charWidth, size.height);
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -522,6 +536,18 @@ export function AlignmentStackView({
       ctx.lineTo(x(c) + charWidth / 2, RULER_HEIGHT);
       ctx.stroke();
     }
+    // A mark under the ruler where samples disagree (#124).
+    ctx.fillStyle = colours.ink;
+    for (let c = first; c < last; c++) {
+      if (!disagreeing.has(c)) continue;
+      const mid = x(c) + charWidth / 2;
+      ctx.beginPath();
+      ctx.moveTo(mid - 3, RULER_HEIGHT - 6);
+      ctx.lineTo(mid + 3, RULER_HEIGHT - 6);
+      ctx.lineTo(mid, RULER_HEIGHT);
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.textAlign = 'left';
     ctx.font = monoFont;
     for (let c = first; c < last; c++) {
@@ -600,6 +626,8 @@ export function AlignmentStackView({
     showTrace,
     residues,
     aaHeight,
+    disagreement,
+    disagreeing,
     tops,
     rowAt,
   ]);
@@ -636,6 +664,11 @@ export function AlignmentStackView({
     for (const c of stack.differences) {
       ctx.fillStyle = classColour(colours, classes?.[c] ?? ColumnClass.None);
       ctx.fillRect(c * perColumn, 0, tick, OVERVIEW_HEIGHT);
+    }
+    // Columns where samples disagree: a solid foot under the differences (#124).
+    ctx.fillStyle = colours.ink;
+    for (const c of disagreement) {
+      ctx.fillRect(c * perColumn, OVERVIEW_HEIGHT - 5, Math.max(2, perColumn), 5);
     }
     // Coverage: none stays bare, one read is light, two or more dark.
     if (coverage !== null) {
@@ -688,6 +721,7 @@ export function AlignmentStackView({
     stack,
     classes,
     coverage,
+    disagreement,
     overviewWidth,
     size.width,
     scroll.left,
@@ -714,7 +748,7 @@ export function AlignmentStackView({
         className="astack__overview"
         style={{ width: '100%', height: OVERVIEW_HEIGHT + COVERAGE_HEIGHT }}
         role="img"
-        aria-label={`Overview of the alignment: ${stack.differences.length.toLocaleString()} differing columns${coverage === null ? '' : ', and a band of how many reads cover each column at good quality'}. Click or drag to move.`}
+        aria-label={`Overview of the alignment: ${stack.differences.length.toLocaleString()} differing columns${disagreement.length === 0 ? '' : `, ${disagreement.length.toLocaleString()} where samples disagree with each other (marked at the foot)`}${coverage === null ? '' : ', and a band of how many reads cover each column at good quality'}. Click or drag to move.`}
         onPointerDown={(e) => {
           dragging.current = true;
           e.currentTarget.setPointerCapture(e.pointerId);

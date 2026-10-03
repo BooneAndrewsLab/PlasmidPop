@@ -23,6 +23,7 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
 import { confidentDifferences, coverageOf, verdictsOf, verdictText } from '../alignmentVerdict';
+import { disagreementColumns } from '../alignmentDisagreement';
 import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentStackView } from './AlignmentStackView';
@@ -135,6 +136,11 @@ export function AlignmentDialog({
           ),
     [source, stack, coverage, readConfidentQuality],
   );
+  // Columns where samples carry different bases from each other (#124).
+  const disagreement = useMemo(
+    () => disagreementColumns(stack, readConfidentQuality),
+    [stack, readConfidentQuality],
+  );
   const frames = useMemo(
     () =>
       source === null
@@ -162,9 +168,10 @@ export function AlignmentDialog({
             source === null ? [] : annotationsOf(source.features.all(), orfs ?? []),
             frames,
             source,
+            disagreement,
           )
         : [],
-    [showList, stack, regions, source, orfs, frames],
+    [showList, stack, regions, source, orfs, frames, disagreement],
   );
   const current = useRef(0);
   const [stop, setStop] = useState<number | null>(null);
@@ -406,6 +413,15 @@ export function AlignmentDialog({
               ))}
             </span>
           )}
+          {disagreement.length > 0 && (
+            <span
+              className="astack-tools__note"
+              title="Columns where two or more samples, at good quality, carry different bases from each other: more often a base-calling error than a real change. A difference every sample shares is not marked."
+            >
+              {'\u25BC'} {disagreement.length.toLocaleString()}{' '}
+              {disagreement.length === 1 ? 'column' : 'columns'} where samples disagree
+            </span>
+          )}
         </div>
         {verdicts.length > 0 && (
           <ul className="astack-verdicts" aria-label="Verification of each feature">
@@ -434,6 +450,7 @@ export function AlignmentDialog({
           track={track}
           classes={classes}
           coverage={coverage}
+          disagreement={disagreement}
           showTrace={showTrace}
           residues={showResidues && frames.length > 0 ? frames : null}
           onSelectRow={setSelected}

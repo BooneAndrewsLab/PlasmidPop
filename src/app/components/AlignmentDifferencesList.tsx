@@ -5,6 +5,7 @@ import {
   differencesTsv,
   effectText,
   featureText,
+  noteText,
   positionText,
   qualityText,
   samplesText,
@@ -62,6 +63,7 @@ export function AlignmentDifferencesList({ rows, current, onPick }: Props) {
                 <th scope="col">Feature</th>
                 <th scope="col">Quality</th>
                 <th scope="col">Protein effect</th>
+                <th scope="col">Note</th>
               </tr>
             </thead>
             <tbody>
@@ -92,6 +94,7 @@ export function AlignmentDifferencesList({ rows, current, onPick }: Props) {
                   <td>{featureText(row)}</td>
                   <td>{qualityText(row)}</td>
                   <td>{effectText(row)}</td>
+                  <td>{noteText(row)}</td>
                 </tr>
               ))}
             </tbody>
