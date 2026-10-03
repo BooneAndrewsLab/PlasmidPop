@@ -303,3 +303,57 @@ and is taken in the window's capturing handler, as Alt+N and Alt+T are. The
 editor has no Go to key, so Ctrl+G is local to the window and not in the
 binding table (and not reported in the usage statistics). Esc closes the
 popover before the window. Not checked by eye.
+
+## Export and copy (#126)
+
+Three ways out of the window, behind one **Export** button and its popover
+(`AlignmentExport`, the same kind of popover as Go to and Find; the dialog's
+`popover` state holds one of goto, find or export, so only one is open and Esc
+closes it before the window).
+
+**One drawing path.** The canvas drawing that lived in an effect of
+`AlignmentStackView` is now `drawStack(ctx, drawing, view)` in
+`components/alignmentStackDraw.ts`, together with the colours, the layout
+(`stackLayout`: header, per-row tops) and the helpers it used. It takes a
+`StackContext`: the shared `DrawingContext` plus `globalAlpha`, `rect()` and
+`clip()`, which the canvas has and `SvgContext` now has too (alpha becomes
+`fill-opacity` / `stroke-opacity`; `clip()` emits a `<clipPath>` and opens a
+`<g>` that the matching `restore()` closes, and `toSvg()` closes any left
+open). The window passes its scroll offset and size as the `view`; an export
+passes a view scrolled to the range's first column and as wide as the range,
+so it is the same code and the same pixels, whatever is switched on (features,
+ORFs, amino acids, traces, disagreement tints). The export draws with nothing
+picked or marked. `drawStack` now computes the last column from the width less
+the names; before it drew the 21 columns hidden under the names and clipped
+them, which would have put them in the SVG. The view hands the dialog a
+`StackHandle` (`visibleColumns()`, `drawing()`) through a ref, so the dialog
+owns the form and the view owns what it draws from.
+
+**Pictures** (`alignmentExport.ts`). SVG is `drawStack` into an `SvgContext`,
+PNG the same into a canvas at 2x (1x if 2x is too large), encoded by
+`toBlob`; no SVG-to-image round trip, so fonts are the page's own. Both are
+saved with the new `downloadBlob` (the download helper, now also under
+`downloadText`; item 24). Each base is an SVG text element, so the SVG is
+capped at 100,000 cells (columns times rows, the reference row counted; about
+15 MB), a PNG at 400,000 cells and 16,000 px a side and 100 M pixels; the
+refusal names the numbers and points at the text forms, which have no cap. The
+export takes the current theme's colours, so a dark theme gives a dark picture;
+not offered a light override.
+
+**Text** (`alignmentText.ts`, pure). `alignmentText` writes blocks of N
+columns (60, at least 10 in the form): the reference, a match line, then each
+sample, each led by its name (cut at 24) and the 1-based number of the first
+and last base in the block. The reference is numbered as the ruler is
+(`columnPosition`, blank in an inserted column); a sample along its own
+aligned bases from `startB + offsetB`, so a read's numbers start at 1 at its
+first aligned base and ignore any trimmed or reverse-strand orientation of the
+original. The match line has `|` where every row that has a character agrees
+(gap with gap, case-insensitive) and at least two do. `alignedFasta` writes
+the reference then each sample at full width, `-` for a gap and for columns
+outside the stretch, wrapped at 60. Both take a column range; copying goes
+through `copyText`. Not done: writing the file as a download (FASTA is a
+paste away), positions on the sample in the reference's numbering, a PNG
+with a light palette on a dark theme, and a consensus line. Checked by eye: an
+`SvgContext` render of a three-row alignment rasterised with rsvg (names,
+ruler, differences, deletion, disagreement mark all drawn as in the window);
+the popover itself was not looked at in a browser.

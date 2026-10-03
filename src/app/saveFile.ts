@@ -55,7 +55,11 @@ export function serialize(doc: SeqDocument, format: SaveFormat): string {
 
 /** Triggers a browser download of `text`. */
 export function downloadText(fileName: string, text: string): void {
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  downloadBlob(fileName, new Blob([text], { type: 'text/plain;charset=utf-8' }));
+}
+
+/** Triggers a browser download of `blob`: a document leaves the app this way and no other (item 24). */
+export function downloadBlob(fileName: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

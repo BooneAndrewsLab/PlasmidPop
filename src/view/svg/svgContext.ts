@@ -43,8 +43,10 @@ function num(x: number): string {
 function paintAttr(
   name: 'fill' | 'stroke',
   style: string | CanvasGradient | CanvasPattern,
+  alpha = 1,
 ): string {
-  return `${name}="${typeof style === 'string' ? esc(style) : 'currentColor'}"`;
+  const opacity = alpha >= 1 ? '' : ` ${name}-opacity="${num(Math.max(0, alpha))}"`;
+  return `${name}="${typeof style === 'string' ? esc(style) : 'currentColor'}"${opacity}`;
 }
 
 /**
@@ -107,6 +109,8 @@ function advance(ch: string): number {
 interface State {
   tx: number;
   ty: number;
+  /** Clip groups open since the context began; `restore` closes those opened after its `save`. */
+  clips: number;
 }
 
 export class SvgContext implements DrawingContext {
@@ -114,6 +118,8 @@ export class SvgContext implements DrawingContext {
   strokeStyle: string | CanvasGradient | CanvasPattern = '#000000';
   lineWidth = 1;
   lineCap: CanvasLineCap = 'butt';
+  /** Applied as opacity to fills, strokes and text, as on a canvas. */
+  globalAlpha = 1;
   font = '10px sans-serif';
   textAlign: CanvasTextAlign = 'start';
   textBaseline: CanvasTextBaseline = 'alphabetic';
@@ -122,7 +128,8 @@ export class SvgContext implements DrawingContext {
   private readonly parts: string[] = [];
   private path: string[] = [];
   private hasCurrentPoint = false;
-  private state: State = { tx: 0, ty: 0 };
+  private state: State = { tx: 0, ty: 0, clips: 0 };
+  private clipIds = 0;
   private readonly stack: State[] = [];
 
   constructor(
@@ -136,16 +143,19 @@ export class SvgContext implements DrawingContext {
 
   restore(): void {
     const s = this.stack.pop();
-    if (s !== undefined) this.state = s;
+    if (s === undefined) return;
+    // Groups opened by `clip` since the matching `save` end here.
+    for (let i = this.state.clips; i > s.clips; i--) this.parts.push('</g>');
+    this.state = s;
   }
 
   /** Only translations are honoured; renderers use setTransform for device-pixel scaling, which SVG does not need. */
   setTransform(_a: number, _b: number, _c: number, _d: number, e: number, f: number): void {
-    this.state = { tx: e, ty: f };
+    this.state = { tx: e, ty: f, clips: this.state.clips };
   }
 
   translate(x: number, y: number): void {
-    this.state = { tx: this.state.tx + x, ty: this.state.ty + y };
+    this.state = { ...this.state, tx: this.state.tx + x, ty: this.state.ty + y };
   }
 
   private px(x: number): string {
@@ -159,6 +169,24 @@ export class SvgContext implements DrawingContext {
   beginPath(): void {
     this.path = [];
     this.hasCurrentPoint = false;
+  }
+
+  /** Adds a rectangle to the path, to fill, stroke or clip to. */
+  rect(x: number, y: number, w: number, h: number): void {
+    this.path.push(
+      `M${this.px(x)} ${this.py(y)}H${this.px(x + w)}V${this.py(y + h)}H${this.px(x)}Z`,
+    );
+    this.hasCurrentPoint = false;
+  }
+
+  /** Clips what is drawn from here to the matching `restore` to the current path. */
+  clip(): void {
+    if (this.path.length === 0) return;
+    const id = `clip${++this.clipIds}`;
+    this.parts.push(
+      `<clipPath id="${id}"><path d="${this.path.join(' ')}"/></clipPath><g clip-path="url(#${id})">`,
+    );
+    this.state = { ...this.state, clips: this.state.clips + 1 };
   }
 
   closePath(): void {
@@ -218,7 +246,7 @@ export class SvgContext implements DrawingContext {
   fill(): void {
     if (this.path.length === 0) return;
     this.parts.push(
-      `<path d="${this.path.join(' ')}" ${paintAttr('fill', this.fillStyle)} stroke="none"/>`,
+      `<path d="${this.path.join(' ')}" ${paintAttr('fill', this.fillStyle, this.globalAlpha)} stroke="none"/>`,
     );
   }
 
@@ -228,14 +256,14 @@ export class SvgContext implements DrawingContext {
     const dash =
       this.dash.length === 0 ? '' : ` stroke-dasharray="${this.dash.map(num).join(' ')}"`;
     this.parts.push(
-      `<path d="${this.path.join(' ')}" fill="none" ${paintAttr('stroke', this.strokeStyle)} stroke-width="${num(this.lineWidth)}"${cap}${dash}/>`,
+      `<path d="${this.path.join(' ')}" fill="none" ${paintAttr('stroke', this.strokeStyle, this.globalAlpha)} stroke-width="${num(this.lineWidth)}"${cap}${dash}/>`,
     );
   }
 
   fillRect(x: number, y: number, w: number, h: number): void {
     if (w <= 0 || h <= 0) return;
     this.parts.push(
-      `<rect x="${this.px(x)}" y="${this.py(y)}" width="${num(w)}" height="${num(h)}" ${paintAttr('fill', this.fillStyle)}/>`,
+      `<rect x="${this.px(x)}" y="${this.py(y)}" width="${num(w)}" height="${num(h)}" ${paintAttr('fill', this.fillStyle, this.globalAlpha)}/>`,
     );
   }
 
@@ -266,7 +294,7 @@ export class SvgContext implements DrawingContext {
     // those runs have to survive or every letter after them shifts left.
     const space = /^\s|\s$|\s\s/.test(text) ? ' xml:space="preserve"' : '';
     this.parts.push(
-      `<text x="${this.px(x)}" y="${this.py(y)}" font-family="${esc(f.family)}" font-size="${num(f.size)}"${weight} text-anchor="${anchor}"${baseline}${space} ${paintAttr('fill', this.fillStyle)}${fit}>${esc(text)}</text>`,
+      `<text x="${this.px(x)}" y="${this.py(y)}" font-family="${esc(f.family)}" font-size="${num(f.size)}"${weight} text-anchor="${anchor}"${baseline}${space} ${paintAttr('fill', this.fillStyle, this.globalAlpha)}${fit}>${esc(text)}</text>`,
     );
   }
 
@@ -278,7 +306,12 @@ export class SvgContext implements DrawingContext {
 
   /** The drawing alone, without an `<svg>` around it, to be placed in another (#30). */
   body(): string {
-    return this.parts.join('');
+    return this.closed();
+  }
+
+  /** The parts, with any clip group left open closed. */
+  private closed(): string {
+    return this.parts.join('') + '</g>'.repeat(this.state.clips);
   }
 
   toSvg(options: { readonly title?: string; readonly description?: string } = {}): string {
@@ -287,7 +320,7 @@ export class SvgContext implements DrawingContext {
       options.description === undefined ? '' : `<desc>${esc(options.description)}</desc>`;
     return (
       `<svg xmlns="http://www.w3.org/2000/svg" width="${num(this.width)}" height="${num(this.height)}" viewBox="0 0 ${num(this.width)} ${num(this.height)}">` +
-      `${title}${desc}${this.parts.join('')}</svg>`
+      `${title}${desc}${this.closed()}</svg>`
     );
   }
 }

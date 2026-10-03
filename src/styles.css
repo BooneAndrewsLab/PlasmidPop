@@ -4193,6 +4193,23 @@ button {
   max-width: 16ch;
 }
 
+.astack-export__input {
+  width: 7ch;
+}
+
+.astack-export__row {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.astack-export__message {
+  flex: 1 1 100%;
+  min-height: 1lh;
+}
+
 /* The reading row: the summary left, the colour key right; no control shares it. */
 .astack-status {
   display: flex;

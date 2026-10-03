@@ -294,3 +294,58 @@ describe('exportLinearSvgPages (#30)', () => {
     expect(pages[0]).toContain('bases 4,261–4,361, 1–60 of 4,361 bp — page 1 of 1');
   });
 });
+
+describe('SvgContext alpha and clipping (#126)', () => {
+  it('writes the alpha as opacity on fills, strokes and text, and not at 1', () => {
+    const ctx = new SvgContext(50, 50);
+    ctx.fillStyle = '#ff0000';
+    ctx.globalAlpha = 0.25;
+    ctx.fillRect(0, 0, 5, 5);
+    ctx.fillText('A', 1, 1);
+    ctx.strokeStyle = '#00f';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(4, 4);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillRect(6, 6, 2, 2);
+    const svg = ctx.toSvg();
+    expect(svg.match(/fill-opacity="0.25"/g)).toHaveLength(2);
+    expect(svg).toContain('stroke-opacity="0.25"');
+    expect(svg.match(/opacity/g)).toHaveLength(3);
+  });
+
+  it('clips what is drawn until the matching restore, and closes a group left open', () => {
+    const ctx = new SvgContext(50, 50);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(10, 10, 20, 20);
+    ctx.clip();
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.restore();
+    ctx.fillRect(1, 1, 2, 2);
+    ctx.beginPath();
+    ctx.rect(0, 0, 5, 5);
+    ctx.clip();
+    ctx.fillRect(2, 2, 2, 2);
+    const svg = ctx.toSvg();
+    expect(svg).toContain(
+      '<clipPath id="clip1"><path d="M10 10H30V30H10Z"/></clipPath><g clip-path="url(#clip1)">',
+    );
+    // The first group ends before the unclipped rectangle; the second is closed at the end.
+    expect(svg).toMatch(/<\/g><rect x="1" y="1"/);
+    expect(svg.match(/<g /g)).toHaveLength(2);
+    expect(svg.match(/<\/g>/g)).toHaveLength(2);
+    expect(ctx.body().match(/<\/g>/g)).toHaveLength(2);
+  });
+
+  it('ignores a clip with no path and keeps the translation across it', () => {
+    const ctx = new SvgContext(50, 50);
+    ctx.beginPath();
+    ctx.clip();
+    ctx.translate(5, 5);
+    ctx.fillRect(0, 0, 1, 1);
+    expect(ctx.toSvg()).not.toContain('<g ');
+    expect(ctx.toSvg()).toContain('<rect x="5" y="5"');
+  });
+});

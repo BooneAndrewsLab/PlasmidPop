@@ -27,7 +27,8 @@ import { disagreementColumns } from '../alignmentDisagreement';
 import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
 import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
-import { AlignmentStackView } from './AlignmentStackView';
+import { AlignmentExport } from './AlignmentExport';
+import { AlignmentStackView, type StackHandle } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
 const MAX_LANES = 8;
@@ -175,11 +176,14 @@ export function AlignmentDialog({
     [showList, stack, regions, source, orfs, frames, disagreement],
   );
   const current = useRef(0);
-  const [search, setSearch] = useState<SearchMode | null>(null);
+  // One popover under the toolbar at a time: Go to, Find or Export.
+  const [popover, setPopover] = useState<SearchMode | 'export' | null>(null);
+  const search = popover === 'export' ? null : popover;
+  const stackHandle = useRef<StackHandle>(null);
   const searchOpen = useRef(false);
   useEffect(() => {
-    searchOpen.current = search !== null;
-  }, [search]);
+    searchOpen.current = popover !== null;
+  }, [popover]);
   const [stop, setStop] = useState<number | null>(null);
   const bindings = resolveBindings(keyBindings);
   const nextBinding = bindings.get('next-change') ?? 'alt+KeyN';
@@ -221,8 +225,8 @@ export function AlignmentDialog({
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        // The search popover closes first, the window on a second Esc.
-        if (searchOpen.current) setSearch(null);
+        // The popover closes first, the window on a second Esc.
+        if (searchOpen.current) setPopover(null);
         else onClose();
       } else if (
         (e.ctrlKey || e.metaKey) &&
@@ -232,7 +236,7 @@ export function AlignmentDialog({
         // The editor's Find (Ctrl+F) is this window's Find; Go to has no key there.
         e.preventDefault();
         e.stopPropagation();
-        setSearch(e.code === 'KeyF' ? 'find' : 'goto');
+        setPopover(e.code === 'KeyF' ? 'find' : 'goto');
       } else if (matchesBinding(e, nextBinding) || matchesBinding(e, withShift(nextBinding))) {
         e.preventDefault();
         e.stopPropagation();
@@ -334,7 +338,7 @@ export function AlignmentDialog({
                 aria-pressed={search === 'goto'}
                 title="Go to a position of the reference (Ctrl+G)"
                 onClick={() => {
-                  setSearch((m) => (m === 'goto' ? null : 'goto'));
+                  setPopover((m) => (m === 'goto' ? null : 'goto'));
                 }}
               >
                 Go to
@@ -345,7 +349,7 @@ export function AlignmentDialog({
                 aria-pressed={search === 'find'}
                 title="Find a motif in the reference or a sample (Ctrl+F)"
                 onClick={() => {
-                  setSearch((m) => (m === 'find' ? null : 'find'));
+                  setPopover((m) => (m === 'find' ? null : 'find'));
                 }}
               >
                 Find
@@ -360,7 +364,36 @@ export function AlignmentDialog({
                 onRow={setSelected}
                 onJump={jump}
                 onClose={() => {
-                  setSearch(null);
+                  setPopover(null);
+                }}
+              />
+            )}
+          </div>
+          <div className="astack-tools__search">
+            <div className="segmented" role="group" aria-label="Export">
+              <button
+                type="button"
+                className={segmentedClass(popover === 'export')}
+                aria-pressed={popover === 'export'}
+                aria-label="Export"
+                title="Save the alignment as SVG or PNG, or copy it as text or aligned FASTA"
+                onClick={() => {
+                  setPopover((m) => (m === 'export' ? null : 'export'));
+                }}
+              >
+                Export
+              </button>
+            </div>
+            {popover === 'export' && (
+              <AlignmentExport
+                stack={stack}
+                referenceName={referenceName}
+                getVisible={() =>
+                  stackHandle.current?.visibleColumns() ?? { start: 0, end: stack.columns }
+                }
+                getDrawing={() => stackHandle.current?.drawing() ?? null}
+                onClose={() => {
+                  setPopover(null);
                 }}
               />
             )}
@@ -517,6 +550,7 @@ export function AlignmentDialog({
           residues={showResidues && frames.length > 0 ? frames : null}
           onSelectRow={setSelected}
           focus={focus}
+          handle={stackHandle}
         />
       </div>
     </div>,

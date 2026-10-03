@@ -256,14 +256,15 @@ once the ORFs panel has found them. With no document behind the reference
   A feature across the origin of a circle counts each base once. These lines
   say what the alignment shows, not that the construct is right: a base no
   read covers is unchecked, not good.
-- The toolbar has four groups. At the left, **‹ Prev** and **Next ›**
+- The toolbar has five groups. At the left, **‹ Prev** and **Next ›**
   (`Alt+N`, `Alt+Shift+N`, or whatever Next change is bound to in
   Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap
   round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
   whole run is marked. Beside the count, **List** opens the table of
   differences described below, and **Go to** and **Find** open a small
-  form under the toolbar (see below). At the right, the **Show** group switches **Features**, **ORFs**,
+  form under the toolbar (see below), and **Export** opens another for
+  saving or copying the alignment (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
   when you open the window again. Under the toolbar, the sample's score
   line sits at the left and the colour key at the right.
@@ -287,6 +288,34 @@ once the ORFs panel has found them. With no document behind the reference
   is found in the reference only when a sample reads through the origin,
   which makes the reference run on. `Esc` closes the form first and the window
   on the second press; neither key reaches the editor underneath.
+- **Export** takes the alignment out of the window for a notebook, a slide or
+  an email. The form's **Columns** are those on screen when it opens (1-based
+  alignment columns, the gap columns another sample opened included); type a
+  range, or press **On screen** or **All**. **Save SVG** and **Save PNG**
+  download a picture of those columns as the window draws them: the names,
+  the ruler, the feature track, the reference and every sample with the
+  differences shaded, the marks where samples disagree, and the amino-acid
+  strips and chromatograms when they are switched on. The picture uses the
+  window's colours and theme, and nothing picked or marked in the window. It
+  is named from the document and the columns (`pUC19-alignment-1-120.svg`).
+  A picture is drawn whole, so a very large one is refused with the reason:
+  an SVG up to 100,000 bases (columns times rows, the document's row
+  counted), a PNG up to 400,000 and about 16,000 pixels on a side (it is
+  drawn at twice the size when that fits, for sharp text). Choose fewer
+  columns, or copy the text. **As text** copies the columns in blocks of the
+  width in **in blocks of** (60 by default, 10 at least): in each block the
+  document's row and a row per sample, each with its name and the 1-based
+  number of its first and last base in the block, then a match line under the
+  document where `|` marks a column in which every sequence that reaches it
+  has the same base (a gap agrees with a gap, case is ignored). The
+  document's numbers are the ruler's; a sample's count its own bases along
+  the stretch aligned, so a read's numbers start at 1 for its first aligned
+  base, and are left blank where the sample has no base in a block. Names are
+  cut to 24 characters. **As aligned FASTA** copies the same columns as one
+  record per sequence, the document first, all the same length with `-`
+  for a gap and for the columns a sample does not cover, 60 to a line, ready
+  for any tool that reads an alignment. A file leaves the app as a download;
+  copying is to the clipboard.
 - Between the ruler and the document row runs a **feature track**: the
   document's features as bars, an arrow for the strand, a join tied by a
   line, and one across the origin of a circular document drawn where a read

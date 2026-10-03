@@ -312,6 +312,85 @@ describe('AlignPanel', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('exports the large view: copy as text and aligned FASTA, save as SVG, refuse what is too large (#126)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const blobs: Blob[] = [];
+    const createObjectURL = vi.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:alignment';
+    });
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryByRole('group', { name: 'Export the alignment' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Export' }));
+    const form = within(dialog).getByRole('group', { name: 'Export the alignment' });
+    // The columns begin as those on screen (jsdom has no layout, so one); All takes every column.
+    expect(within(form).getByLabelText('From column')).toHaveValue('1');
+    expect(within(form).getByLabelText('To column')).toHaveValue('1');
+    fireEvent.click(within(form).getByRole('button', { name: 'All 28' }));
+    expect(within(form).getByLabelText('To column')).toHaveValue('28');
+
+    // Text: the document's bases, a match line, the sample at its own numbering.
+    fireEvent.click(within(form).getByRole('button', { name: 'As text' }));
+    expect(writeText).toHaveBeenLastCalledWith(
+      expect.stringContaining('TTTTACGTACGTGGCCAATTGGCCTTTT 28'),
+    );
+    const text = String(writeText.mock.lastCall?.[0]);
+    expect(text).toMatch(/^target\s+1 TTTT/);
+    expect(text.split('\n')[1]).toContain('||||');
+    expect(within(form).getByText(/Copied the alignment, columns 1 to 28/)).toBeInTheDocument();
+    // A narrower range, and aligned FASTA of exactly it.
+    fireEvent.change(within(form).getByLabelText('From column'), { target: { value: '13' } });
+    fireEvent.change(within(form).getByLabelText('To column'), { target: { value: '20' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'As aligned FASTA' }));
+    expect(String(writeText.mock.lastCall?.[0])).toBe('>target\nGGCCAATT\n>Sequence\nGGACAATT\n');
+    // Blocks of fewer than ten columns are refused, as is a range that is not one.
+    fireEvent.change(within(form).getByLabelText('Columns per block'), { target: { value: '3' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'As text' }));
+    expect(within(form).getByText('Blocks are 10 columns or more.')).toBeInTheDocument();
+    fireEvent.change(within(form).getByLabelText('To column'), { target: { value: 'x' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'As aligned FASTA' }));
+    expect(within(form).getByText('Columns are whole numbers.')).toBeInTheDocument();
+    fireEvent.change(within(form).getByLabelText('From column'), { target: { value: '90' } });
+    fireEvent.change(within(form).getByLabelText('To column'), { target: { value: '99' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Save SVG' }));
+    expect(within(form).getByText('Choose columns from 1 to 28.')).toBeInTheDocument();
+    // On screen puts the visible columns back; All the whole alignment.
+    fireEvent.click(within(form).getByRole('button', { name: 'On screen' }));
+    expect(within(form).getByLabelText('To column')).toHaveValue('1');
+    fireEvent.click(within(form).getByRole('button', { name: 'All 28' }));
+
+    // SVG: a download of a vector file with the names and the columns asked for.
+    fireEvent.click(within(form).getByRole('button', { name: 'Save SVG' }));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(blobs[0]?.type).toContain('image/svg+xml');
+    const svg = await blobs[0]?.text();
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('target');
+    expect(within(form).getByText('Saved target-alignment-1-28.svg.')).toBeInTheDocument();
+
+    // Esc closes the popover first and the window on the second.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(within(dialog).queryByRole('group', { name: 'Export the alignment' })).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    click.mockRestore();
+  });
+
   it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {
     render(<AlignPanel doc={doc} />);
     // Two bases differ from the document's GGCCAATTGGCC, a run apart.
