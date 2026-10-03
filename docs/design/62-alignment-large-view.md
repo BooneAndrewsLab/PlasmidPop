@@ -204,3 +204,38 @@ seen at both ends of the reference row, counts each base once, taking the
 better copy. The verdicts are a list of buttons between the status row and
 the stack (click to scroll to the feature); they follow the document's
 features even when the Features box is off. Not checked by eye.
+
+## List of differences (#121)
+
+`alignmentDifferences.ts` turns the difference regions into rows: columns
+`[start, end)` (0-based), the position of the first and last reference base
+the region touches (1-based through `columnPosition`, so a circle's wrap is
+taken modulo its length; an insertion-only region sits after the base before
+it), the reference's bases and each carrying sample's, the lowest quality
+over that sample's differing columns, and the feature class. A sample
+"carries" a region when any of its cells there is a difference
+(`isDifference`), so a poor-quality base is listed (with its Q) rather than
+hidden. The feature is the highest class the region overlaps by `spansOf`,
+a CDS before the ORFs on it, as the shading classes it.
+
+The protein effect reuses `buildFrames` and `residueOf` and does not
+translate again, so the reverse strand (reverse complement before
+translating) and `/transl_except` come for free. `CodonColumns` gained
+`index`, the codon's number in reading order, because frames drop codons that
+fall outside the alignment and an array position is not the residue number.
+Decisions: an indel anywhere in a region that overlaps a frame is a
+frameshift unless the region's net inserted minus deleted bases is a multiple
+of three ("in-frame indel"); it takes precedence over a mismatch beside it.
+Otherwise each touched codon is read: synonymous is `silent`, and the worst
+of the others is named (`p.K42R`, `p.K42*`, `p.*42K`), several joined by a
+comma. Where carriers differ the effect and change are listed per sample.
+Not done: HGVS three-letter codes or nucleotide notation (c.), and
+effects per sample at positions a sample does not cover.
+
+The **List** toggle sits beside the counter and is remembered with the Show
+buttons. The table is `AlignmentDifferencesList`, capped at a third of the
+window and scrolling, each row's position a button (keyboard access) and the
+row clickable; both go through the same path as Next (`pick` in the dialog),
+which also selects a carrying sample, keeping the current one if it carries
+the region. Copy writes `differencesTsv` through `copyText`. Not checked by
+eye.

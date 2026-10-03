@@ -27,6 +27,8 @@ export interface CodonColumns {
   readonly columns: readonly [number, number, number];
   /** The reference's residue, `*` for a stop. */
   readonly reference: string;
+  /** The codon's number in the feature's reading order, from 0 (so residue `index + 1`). */
+  readonly index: number;
   /** Whether it is the feature's first codon, which a start codon makes `M`. */
   readonly first: boolean;
 }
@@ -91,6 +93,7 @@ export function buildFrames(
         if (a < 0 || b < 0 || c < 0) continue;
         codons.push({
           columns: [a, b, c],
+          index: codon.index,
           reference: codon.aminoAcid,
           first: codon.index === 0,
         });

@@ -243,12 +243,13 @@ once the ORFs panel has found them. With no document behind the reference
   A feature across the origin of a circle counts each base once. These lines
   say what the alignment shows, not that the construct is right: a base no
   read covers is unchecked, not good.
-- The toolbar has two groups. At the left, **‹ Prev** and **Next ›**
+- The toolbar has three groups. At the left, **‹ Prev** and **Next ›**
   (`Alt+N`, `Alt+Shift+N`, or whatever Next change is bound to in
   Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap
   round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
-  whole run is marked. At the right, the **Show** group switches **Features**, **ORFs**,
+  whole run is marked. Beside the count, **List** opens the table of
+  differences described below. At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
   when you open the window again. Under the toolbar, the sample's score
   line sits at the left and the colour key at the right.
@@ -273,6 +274,28 @@ once the ORFs panel has found them. With no document behind the reference
   inside it; a codon the sample does not reach is left empty. The codons are
   the document's, so a frameshift shows as `-` where it starts and as changed
   residues after it, not as a re-read frame.
+- **List** opens a table of the differences, one row per run of differing
+  columns, between the verification lines and the alignment (it is closed by
+  default and remembered like the Show buttons). Its columns are the
+  **Position** in the document (1-based, as the ruler numbers it; an
+  insertion is put at the base before it, and on a circular document a read
+  through the origin counts on from 1 again), the **Change** from the
+  document's bases to the sample's (`A→G`, `-` for none, long runs cut to
+  their ends and a length), the **Samples** that carry it (with several
+  carrying different bases, each change is listed), the **Feature** it falls
+  in (a CDS or ORF first, then any other feature, else `none`), the lowest
+  read **Quality** over the differing columns (reads with qualities only)
+  and the **Protein effect** inside a CDS: `silent`, a missense such as
+  `p.K42R`, a nonsense `p.K42*`, a stop lost `p.*42K`, `frameshift` for an
+  insertion or deletion that is not a multiple of three bases, or
+  `in-frame indel`. Codons are read in the CDS's own frame, strand and
+  genetic code, so a reverse-strand CDS is translated after reverse
+  complementing. Outside a CDS the effect is blank, and where a region
+  crosses more than one CDS each is named. Click a row, or press Enter on its
+  position, to go to it as **Next** does and pick a sample that carries it.
+  **Copy** puts the whole table on the clipboard as tab-separated text with a
+  header line, ready for a lab notebook or a spreadsheet. With no document
+  behind the reference there is no feature or effect.
 - Click a name, or click into the alignment and press `↑` or `↓`, to pick
   a sample. Its score and identity show under the toolbar, with
   **Select in document** beside them to select the region it aligned to.

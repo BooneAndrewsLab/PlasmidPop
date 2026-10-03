@@ -4306,3 +4306,69 @@ button {
 .align-results--stale > :not(legend, .align-stale-note) {
   opacity: 0.5;
 }
+
+.astack-diffs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 32%;
+  min-height: 0;
+  flex: 0 1 auto;
+}
+
+.astack-diffs__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astack-diffs__scroll {
+  overflow: auto;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.astack-diffs__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.astack-diffs__table th,
+.astack-diffs__table td {
+  padding: 2px 8px;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.astack-diffs__table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.astack-diffs__table tbody tr {
+  cursor: pointer;
+}
+
+.astack-diffs__table tbody tr:hover,
+.astack-diffs__row--current {
+  background: var(--surface-3);
+}
+
+.astack-diffs__bases {
+  font-family: var(--font-mono);
+}
+
+.astack-diffs__go {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}

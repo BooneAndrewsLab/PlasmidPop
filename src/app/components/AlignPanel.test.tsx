@@ -192,6 +192,37 @@ describe('AlignPanel', () => {
     expect(within(list).getByText('term: not covered')).toBeVisible();
   });
 
+  it('lists the differences in a table that jumps to a row and copies as text (#121)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryByRole('table', { name: 'Differences' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
+    const table = within(dialog).getByRole('table', { name: 'Differences' });
+    // The header row and the two differences, at positions 15 and 23 of the document.
+    expect(within(table).getAllByRole('row')).toHaveLength(3);
+    expect(within(table).getByRole('button', { name: '15' })).toBeInTheDocument();
+    fireEvent.click(within(table).getByRole('button', { name: '23' }));
+    expect(within(dialog).getByText('2 of 2')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const text = String(writeText.mock.calls[0]?.[0]);
+    expect(text.split('\n')[0]).toBe('Position\tChange\tSamples\tFeature\tQuality\tProtein effect');
+    expect(text.split('\n')).toHaveLength(3);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
+    expect(within(dialog).queryByRole('table', { name: 'Differences' })).toBeNull();
+  });
+
   it("groups the large view's controls, counts differences and follows a rebound key (#119)", async () => {
     render(<AlignPanel doc={doc} />);
     // Two bases differ from the document's GGCCAATTGGCC, a run apart.

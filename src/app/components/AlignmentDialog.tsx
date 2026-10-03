@@ -23,6 +23,8 @@ import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
 import { confidentDifferences, coverageOf, verdictsOf, verdictText } from '../alignmentVerdict';
+import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
+import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentStackView } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
@@ -35,7 +37,7 @@ const LEGEND: readonly (readonly [string, string])[] = [
 ];
 
 /** The Show toggles as the last window left them, so reopening does not reset them. */
-const remembered = { features: true, orfs: false, trace: true, residues: false };
+const remembered = { features: true, orfs: false, trace: true, residues: false, list: false };
 
 function segmentedClass(active: boolean): string {
   return `segmented__button${active ? ' segmented__button--active' : ''}`;
@@ -82,14 +84,16 @@ export function AlignmentDialog({
   const [showOrfs, setShowOrfs] = useState(remembered.orfs);
   const [showTrace, setShowTrace] = useState(remembered.trace);
   const [showResidues, setShowResidues] = useState(remembered.residues);
+  const [showList, setShowList] = useState(remembered.list);
   useEffect(() => {
     Object.assign(remembered, {
       features: showFeatures,
       orfs: showOrfs,
       trace: showTrace,
       residues: showResidues,
+      list: showList,
     });
-  }, [showFeatures, showOrfs, showTrace, showResidues]);
+  }, [showFeatures, showOrfs, showTrace, showResidues, showList]);
   const stack = useMemo(() => stackAlignments(reference, samples), [reference, samples]);
   // The ORFs the app has already found in the open document, at its own minimum length.
   const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
@@ -149,6 +153,19 @@ export function AlignmentDialog({
   const hasFrames = frames.length > 0;
   const hasTrace = stack.rows.some((r) => r.readIndex !== null);
   const regions = useMemo(() => differenceRegions(stack.differences), [stack.differences]);
+  const rows = useMemo(
+    () =>
+      showList
+        ? differenceRows(
+            stack,
+            regions,
+            source === null ? [] : annotationsOf(source.features.all(), orfs ?? []),
+            frames,
+            source,
+          )
+        : [],
+    [showList, stack, regions, source, orfs, frames],
+  );
   const current = useRef(0);
   const [stop, setStop] = useState<number | null>(null);
   const bindings = resolveBindings(keyBindings);
@@ -174,6 +191,13 @@ export function AlignmentDialog({
     },
     [regions],
   );
+  const pick = useCallback((diff: DifferenceRow): void => {
+    current.current = diff.start;
+    setStop(diff.index);
+    setFocus((f) => ({ start: diff.start, end: diff.end, nonce: (f?.nonce ?? 0) + 1 }));
+    // Keep the picked sample when it carries this one, else the first that does.
+    setSelected((s) => (diff.carriers.some((c) => c.row === s) ? s : (diff.carriers[0]?.row ?? s)));
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
@@ -258,6 +282,20 @@ export function AlignmentDialog({
               ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
               : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
           </span>
+          <div className="segmented" role="group" aria-label="Difference list">
+            <button
+              type="button"
+              className={segmentedClass(showList)}
+              aria-pressed={showList}
+              disabled={regions.length === 0}
+              title="A table of the differences, with their effect on the protein, to copy"
+              onClick={() => {
+                setShowList((on) => !on);
+              }}
+            >
+              List
+            </button>
+          </div>
           {(source !== null || hasTrace) && (
             <div className="segmented astack-tools__show" role="group" aria-label="Show">
               {source !== null && (
@@ -387,6 +425,7 @@ export function AlignmentDialog({
             ))}
           </ul>
         )}
+        {showList && <AlignmentDifferencesList rows={rows} current={stop} onPick={pick} />}
         <AlignmentStackView
           stack={stack}
           referenceName={referenceName}
