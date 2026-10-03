@@ -181,9 +181,13 @@ describe('AlignPanel', () => {
     expect(counter).toHaveTextContent('2 of 2');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Previous difference' }));
     expect(counter).toHaveTextContent('1 of 2');
-    // The one sample is already picked, so its region can be selected.
-    expect(within(dialog).getByRole('combobox', { name: 'Sample' })).toHaveValue('0');
+    // The one sample is already picked, so its region can be selected; no list repeats the rows.
+    expect(within(dialog).queryByRole('combobox', { name: 'Sample' })).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Select in document' })).toBeEnabled();
+    // Down on the alignment keeps the one sample: the pick stops at the ends.
+    const alignment = within(dialog).getByLabelText(/Up and Down pick a sample/);
+    fireEvent.keyDown(alignment, { key: 'ArrowDown' });
+    expect(within(dialog).getByText(/: local, score/)).toBeInTheDocument();
     // The key is the one bound to Next change, wherever the user moved it.
     act(() => {
       editorStore.setKeyBinding('next-change', 'alt+KeyJ');

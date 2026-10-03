@@ -239,42 +239,6 @@ export function AlignmentDialog({
               ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
               : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
           </span>
-          <label className="astack-tools__sample">
-            Sample
-            <select
-              className="panel__select"
-              value={selected ?? ''}
-              onChange={(e) => {
-                setSelected(e.target.value === '' ? null : Number(e.target.value));
-              }}
-            >
-              {selected === null && <option value="">Pick one</option>}
-              {stack.rows.map((r, i) => (
-                <option key={i} value={i}>
-                  {r.name}
-                  {r.result.strand === 'reverse' ? ' (reverse)' : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="button button--small"
-            disabled={row === null}
-            title={
-              row === null ? 'Pick a sample first' : 'Select the aligned region in this document'
-            }
-            onClick={() => {
-              if (row === null) return;
-              const range = alignedRegionInDocument(row.result, documentIsRead);
-              if (range !== null) {
-                editorStore.setSelection(range);
-                editorStore.revealPosition(range.start);
-              }
-            }}
-          >
-            Select in document
-          </button>
           {(source !== null || hasTrace) && (
             <div className="segmented astack-tools__show" role="group" aria-label="Show">
               {source !== null && (
@@ -345,11 +309,29 @@ export function AlignmentDialog({
           )}
         </div>
         <div className="astack-status">
-          <span className="astack-tools__note" aria-live="polite">
-            {shown === null
-              ? `${differencesText(stack.differences.length, counts)}. Pick a sample to see its score.`
-              : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
-            {track !== null && track.hidden > 0 ? ` · ${track.hidden} lanes not shown` : ''}
+          <span className="astack-status__sample">
+            <span className="astack-tools__note" aria-live="polite">
+              {shown === null
+                ? `${differencesText(stack.differences.length, counts)}. Click a name, or use ↑ and ↓, to see a sample's score.`
+                : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
+              {track !== null && track.hidden > 0 ? ` · ${track.hidden} lanes not shown` : ''}
+            </span>
+            {row !== null && (
+              <button
+                type="button"
+                className="button button--small astack-status__select"
+                title={`Select the region ${row.name} aligned to in this document`}
+                onClick={() => {
+                  const range = alignedRegionInDocument(row.result, documentIsRead);
+                  if (range !== null) {
+                    editorStore.setSelection(range);
+                    editorStore.revealPosition(range.start);
+                  }
+                }}
+              >
+                Select in document
+              </button>
+            )}
           </span>
           {source !== null && (
             <span

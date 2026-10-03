@@ -225,14 +225,12 @@ once the ORFs panel has found them. With no document behind the reference
 - The strip above the rows spans the whole alignment. It marks every
   difference, in the same three colours, and shows the stretch now in view as a rectangle; click or
   drag on it to move there.
-- The toolbar has three groups. At the left, **‹ Prev** and **Next ›**
+- The toolbar has two groups. At the left, **‹ Prev** and **Next ›**
   (`Alt+N`, `Alt+Shift+N`, or whatever Next change is bound to in
   Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap
   round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
-  whole run is marked. In the middle, the **Sample** list picks a sample
-  without the mouse and **Select in document** selects its aligned region.
-  At the right, the **Show** group switches **Features**, **ORFs**,
+  whole run is marked. At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
   when you open the window again. Under the toolbar, the sample's score
   line sits at the left and the colour key at the right.
@@ -257,8 +255,9 @@ once the ORFs panel has found them. With no document behind the reference
   inside it; a codon the sample does not reach is left empty. The codons are
   the document's, so a frameshift shows as `-` where it starts and as changed
   residues after it, not as a re-read frame.
-- Click a name, or choose it in the **Sample** list, to see that sample's
-  score and identity, and to use **Select in document** for it.
+- Click a name, or click into the alignment and press `↑` or `↓`, to pick
+  a sample. Its score and identity show under the toolbar, with
+  **Select in document** beside them to select the region it aligned to.
 - `Esc` closes the window and returns you to where you were.
 
 An insertion in one sample opens gap columns in the document row and in

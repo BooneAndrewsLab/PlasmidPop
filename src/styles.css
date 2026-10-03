@@ -4151,17 +4151,6 @@ button {
   font-size: 12px;
 }
 
-.astack-tools__sample {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.astack-tools__sample select {
-  max-width: 24ch;
-}
-
 .astack-tools__show {
   margin-inline-start: auto;
 }
@@ -4175,8 +4164,15 @@ button {
   gap: 2px 16px;
 }
 
-.astack-tools__note {
+.astack-status__sample {
+  display: flex;
   flex: 1 1 30ch;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.astack-tools__note {
   color: var(--ink-2);
   font-size: 12px;
 }

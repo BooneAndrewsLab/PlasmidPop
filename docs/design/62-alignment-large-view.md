@@ -171,3 +171,10 @@ Features title. Alt+N now goes through the `next-change` binding and Alt+T
 through `toggle-translations` (stopping the event so the editor underneath
 does not also toggle). Not done: the proposed "Show ▾" menu on a phone; the
 group simply wraps below 720px. Not checked by eye.
+
+The Sample select was taken out again after a try: it repeated the canvas,
+and put a choice about the view in the toolbar among the actions. Up and
+Down on the focused alignment pick a row instead (the keyboard gap the
+select was for), scrolling it clear of the pinned header, and **Select in
+document** sits at the end of the picked sample's score line in the status
+row, beside what it acts on, shown only once a sample is picked.

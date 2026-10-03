@@ -81,6 +81,7 @@ it has.
 | `Alt+Shift+N`                  | Select the previous marked change                                                                     |
 | `Alt+N`, `Alt+Shift+N`         | In the alignment's large view: next, previous difference (a whole run); follows a rebound Next change |
 | `Alt+T`                        | In the alignment's large view: Amino acids on or off (follows a rebound Translations)                 |
+| `↑`, `↓`                       | In the alignment's large view, with the alignment focused: pick the sample above or below             |
 
 ## Find
 

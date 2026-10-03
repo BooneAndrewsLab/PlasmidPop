@@ -701,7 +701,28 @@ export function AlignmentStackView({
         ref={scroller}
         className="astack__scroller"
         tabIndex={0}
-        aria-label="Alignment, all sequences"
+        aria-label="Alignment, all sequences; Up and Down pick a sample"
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+          if (e.altKey || e.ctrlKey || e.metaKey || stack.rows.length === 0) return;
+          e.preventDefault();
+          const last = stack.rows.length - 1;
+          const up = e.key === 'ArrowUp';
+          const row =
+            selectedRow === null
+              ? up
+                ? last
+                : 0
+              : Math.min(last, Math.max(0, selectedRow + (up ? -1 : 1)));
+          onSelectRow(row);
+          // Keep the picked row in the part below the pinned header.
+          const el = e.currentTarget;
+          const top = tops[row] ?? 0;
+          const bottom = tops[row + 1] ?? top;
+          const visible = el.clientHeight - headerHeight;
+          if (top < el.scrollTop) el.scrollTop = top;
+          else if (bottom > el.scrollTop + visible) el.scrollTop = bottom - visible;
+        }}
         onScroll={(e) => {
           const el = e.currentTarget;
           setScroll({ left: el.scrollLeft, top: el.scrollTop });
