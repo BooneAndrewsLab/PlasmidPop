@@ -4451,6 +4451,12 @@ button {
   width: auto;
 }
 
+/* The box wraps the table, so the header row spans the whole box. */
+.astack-verdict-table__scroll {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
 .astack-verdict-table th,
 .astack-verdict-table td {
   padding-inline: 8px 16px;

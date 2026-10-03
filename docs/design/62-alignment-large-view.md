@@ -382,10 +382,10 @@ alignment's columns are recomputed, so an insertion only a hidden sample made
 is gone). The verdict lines carry a note, "Verification from 3 of 4
 samples", whenever any are hidden. The last shown sample cannot be hidden.
 
-**Controls.** A **Samples** button in the status row opens a popover (the same
+**Controls.** A **Samples** button opens a popover (the same
 kind as Go to, Find and Export; one at a time) with the sort select and the
 hidden list with Show and Show all; **Hide** sits beside Select in document
-and acts on the picked sample. The toolbar did not gain a group. State is per
+and acts on the picked sample. (It first sat at the start of the status row, which read as clutter next to the score line; it is now the toolbar's group after Export.) State is per
 opening, not remembered. Not checked by eye; covered by a component test
 (sort orders, hide, show by name, show all, Up/Down following the order, the
 last sample kept).
@@ -448,3 +448,16 @@ Checked by eye in Chrome (dark theme, 1489 px wide) on pBR322 (J01749, 48
 features) with six reads made from its sequence: the line, the table in both
 orders and "and 10 more". Not checked: a phone-width layout, the light
 theme, and a real vector with AB1 reads like the one that prompted it.
+
+### Feature table and Samples placement, after a trial
+
+The feature table's box now wraps its columns (the header row stopped partway
+across a wider box when only the table was shrunk), and the Samples button
+moved from the status row into the toolbar after Export. Not checked by eye.
+
+A pointerdown outside closes whichever popover or table is open: one document
+listener while any is open, which ignores anything inside `.astack-tools__search`
+(Go to, Find, Export, Samples with their forms), `.astack-diffs` (the two
+tables) or marked `data-astack-keep` (List, All features, "and N more", whose
+own click toggles them). Cost: Next/Previous or a click on the alignment also
+closes an open table.

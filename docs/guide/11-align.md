@@ -283,14 +283,17 @@ once the ORFs panel has found them. With no document behind the reference
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
   whole run is marked. Beside the count, **List** opens the table of
   differences described below, and **Go to** and **Find** open a small
-  form under the toolbar (see below), and **Export** opens another for
-  saving or copying the alignment (see below). At the right, the **Show** group switches **Features**, **ORFs**,
+  form under the toolbar (see below), **Export** opens another for
+  saving or copying the alignment (see below), and, with more than one
+  sample, **Samples** sorts and hides them (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
-  when you open the window again. Under the toolbar, the status row has,
-  at the left, the **Samples** button and the picked sample's score line
-  and buttons, and at the right the colour key.
+  when you open the window again. The forms and tables under the toolbar
+  (Go to, Find, Export, Samples, List, All features) close when you click
+  anywhere outside them, as well as on `Esc` for the forms. Under the toolbar, the status row has,
+  at the left, the picked sample's score line and buttons, and at the right
+  the colour key.
 - **Sort and hide samples.** With more than one sample, **Samples** (in the
-  status row) opens a small form. **Sort by** orders the rows: **As
+  toolbar, after Export) opens a small form. **Sort by** orders the rows: **As
   aligned** (the order they were given), **Identity, highest first**,
   **Name** (numbers in names count as numbers, so read2 comes before
   read10) or **Position on the reference** (where the alignment starts);

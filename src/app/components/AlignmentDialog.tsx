@@ -243,6 +243,28 @@ export function AlignmentDialog({
   useEffect(() => {
     searchOpen.current = popover !== null;
   }, [popover]);
+  // A click anywhere else closes the popovers and the tables. A control that opens or
+  // toggles one is marked `data-astack-keep`, so its own click is not undone first.
+  const layerOpen = popover !== null || showList || showVerdicts;
+  useEffect(() => {
+    if (!layerOpen) return;
+    const onDown = (e: PointerEvent): void => {
+      const target = e.target;
+      if (
+        target instanceof Element &&
+        target.closest('.astack-tools__search, .astack-diffs, [data-astack-keep]') !== null
+      ) {
+        return;
+      }
+      setPopover(null);
+      setShowList(false);
+      setShowVerdicts(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [layerOpen]);
   const [stop, setStop] = useState<number | null>(null);
   const bindings = resolveBindings(keyBindings);
   const nextBinding = bindings.get('next-change') ?? 'alt+KeyN';
@@ -380,7 +402,7 @@ export function AlignmentDialog({
               ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
               : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
           </span>
-          <div className="segmented" role="group" aria-label="Difference list">
+          <div className="segmented" role="group" aria-label="Difference list" data-astack-keep>
             <button
               type="button"
               className={segmentedClass(showList)}
@@ -463,6 +485,41 @@ export function AlignmentDialog({
               />
             )}
           </div>
+          {samples.length > 1 && (
+            <span className="astack-tools__search">
+              <div className="segmented" role="group" aria-label="Samples">
+                <button
+                  type="button"
+                  className={segmentedClass(popover === 'samples' || hidden.size > 0)}
+                  aria-pressed={popover === 'samples'}
+                  title="Sort the samples, or bring back hidden ones"
+                  onClick={() => {
+                    setPopover((m) => (m === 'samples' ? null : 'samples'));
+                  }}
+                >
+                  {hidden.size > 0 ? `Samples (${hidden.size.toLocaleString()} hidden)` : 'Samples'}
+                </button>
+              </div>
+              {popover === 'samples' && (
+                <AlignmentSamples
+                  names={samples.map((s) => s.name)}
+                  sort={sort}
+                  onSort={setSort}
+                  hidden={hidden}
+                  onShow={(i) => {
+                    setHidden((h) => {
+                      const next = new Set(h);
+                      next.delete(i);
+                      return next;
+                    });
+                  }}
+                  onShowAll={() => {
+                    setHidden(new Set());
+                  }}
+                />
+              )}
+            </span>
+          )}
           {(source !== null || hasTrace) && (
             <div className="segmented astack-tools__show" role="group" aria-label="Show">
               {source !== null && (
@@ -534,39 +591,6 @@ export function AlignmentDialog({
         </div>
         <div className="astack-status">
           <span className="astack-status__sample">
-            {samples.length > 1 && (
-              <span className="astack-tools__search">
-                <button
-                  type="button"
-                  className={segmentedClass(popover === 'samples' || hidden.size > 0)}
-                  aria-pressed={popover === 'samples'}
-                  title="Sort the samples, or bring back hidden ones"
-                  onClick={() => {
-                    setPopover((m) => (m === 'samples' ? null : 'samples'));
-                  }}
-                >
-                  {hidden.size > 0 ? `Samples (${hidden.size.toLocaleString()} hidden)` : 'Samples'}
-                </button>
-                {popover === 'samples' && (
-                  <AlignmentSamples
-                    names={samples.map((s) => s.name)}
-                    sort={sort}
-                    onSort={setSort}
-                    hidden={hidden}
-                    onShow={(i) => {
-                      setHidden((h) => {
-                        const next = new Set(h);
-                        next.delete(i);
-                        return next;
-                      });
-                    }}
-                    onShowAll={() => {
-                      setHidden(new Set());
-                    }}
-                  />
-                )}
-              </span>
-            )}
             <span className="astack-tools__note" aria-live="polite">
               {shown === null
                 ? `${differencesText(stack.differences.length, counts)}. Click a name, or use ↑ and ↓, to see a sample's score.`
@@ -657,6 +681,7 @@ export function AlignmentDialog({
               <button
                 type="button"
                 className="astack-verdict astack-verdict--more"
+                data-astack-keep
                 title="Open the table of all features with the ones needing a look first"
                 onClick={() => {
                   setVerdictOrder('status');
@@ -670,6 +695,7 @@ export function AlignmentDialog({
             <button
               type="button"
               className={`${segmentedClass(showVerdicts)} astack-verify__all`}
+              data-astack-keep
               aria-pressed={showVerdicts}
               title="A table of every feature: status, position, reads and strands"
               onClick={() => {

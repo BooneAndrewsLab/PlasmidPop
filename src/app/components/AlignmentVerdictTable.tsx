@@ -94,7 +94,7 @@ export function AlignmentVerdictTable({ verdicts, order, onOrder, onPick }: Prop
           {copied ? 'Copied.' : ''}
         </span>
       </div>
-      <div className="astack-diffs__scroll">
+      <div className="astack-diffs__scroll astack-verdict-table__scroll">
         <table
           className="astack-diffs__table astack-verdict-table"
           aria-label="Feature verification"

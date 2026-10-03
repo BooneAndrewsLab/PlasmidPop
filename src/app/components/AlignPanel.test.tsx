@@ -556,6 +556,34 @@ describe('AlignPanel', () => {
     });
   });
 
+  it("closes the large view's popovers and tables on a click outside, not on their own button", async () => {
+    render(<AlignPanel doc={doc} />);
+    fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Go to' }));
+    expect(within(dialog).getByRole('group', { name: 'Go to a position' })).toBeInTheDocument();
+    // Inside the popover nothing closes.
+    fireEvent.pointerDown(within(dialog).getByRole('group', { name: 'Go to a position' }));
+    expect(within(dialog).getByRole('group', { name: 'Go to a position' })).toBeInTheDocument();
+    fireEvent.pointerDown(within(dialog).getByRole('heading', { level: 2 }));
+    expect(within(dialog).queryByRole('group', { name: 'Go to a position' })).toBeNull();
+    // The List button toggles its table by itself, and a click outside closes it.
+    const list = within(dialog).getByRole('button', { name: 'List' });
+    fireEvent.pointerDown(list);
+    fireEvent.click(list);
+    expect(within(dialog).getByRole('table', { name: 'Differences' })).toBeInTheDocument();
+    fireEvent.pointerDown(within(dialog).getByRole('heading', { level: 2 }));
+    expect(within(dialog).queryByRole('table', { name: 'Differences' })).toBeNull();
+  });
+
   it('starts in Local for a much shorter sequence, saying why, and keeps a mode picked by hand (#86)', () => {
     render(<AlignPanel doc={doc} />);
     const mode = (): HTMLElement => screen.getByRole('combobox', { name: 'Alignment mode' });
