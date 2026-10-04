@@ -1,60 +1,53 @@
 # PlasmidPop — Project Handoff
 
+This file is loaded into every session, so it holds only what changes how
+the code is worked on: decisions, rules, conventions, pointers. It is not a
+changelog or a status report. A release updates its one version line and
+nothing else; what a release did goes in the GitHub Release notes, why in a
+design note, what is left in an issue. `src/claudeMd.test.ts` fails the
+build if it grows past its budget or regains a per-release paragraph.
+
 ## What this is
 
-PlasmidPop is a fully browser-based DNA sequence editor and plasmid viewer,
-comparable in scope to SnapGene. Core capabilities: open/edit/save sequences,
-annotate features, view linear and circular maps, find restriction sites,
-ORFs, primers, and run pairwise alignments — all client-side. Cloud sync,
-sharing and team libraries are optional add-ons, not requirements.
-
-Design principle: a scientist should be able to open a GenBank file and start
-working with no account and no server round-trip.
+PlasmidPop is a browser-based DNA sequence editor and plasmid viewer,
+comparable in scope to SnapGene: open/edit/save sequences, annotate
+features, linear and circular maps, restriction analysis, ORFs, primers,
+pairwise alignment, sequencing reads, a cloning bench — all client-side.
+A scientist opens a GenBank file and starts working with no account and no
+server round-trip.
 
 ## Stack (decided)
 
-- **Language:** TypeScript everywhere (UI, workers, backend). Strict mode on.
-- **UI:** React + Vite. Reference implementations to study, not depend on:
-  Teselagen Open Vector Editor, Lattice seqviz. Verify licenses before
+- **Language:** TypeScript everywhere, strict mode, no `any`.
+- **UI:** React + Vite. Teselagen Open Vector Editor and Lattice seqviz are
+  reference implementations to study, not depend on; check licenses before
   copying anything.
-- **Rendering:** Canvas 2D for the linear sequence view and circular map.
-  Do NOT render the sequence with DOM or SVG — it will not scale past
-  ~50 kb. SVG is used only for exporting publication-quality plasmid maps.
-  Escalate to PixiJS/WebGL only if Canvas 2D is measured to be too slow.
-- **Compute:** Plain TS first. Move hot paths to Rust → WebAssembly
-  (wasm-pack / wasm-bindgen) when profiling justifies it. Expected WASM
-  candidates: pairwise alignment (Needleman-Wunsch, Smith-Waterman),
-  restriction scanning on genome-scale inputs. All compute runs in Web
-  Workers; the main thread never blocks.
-- **Data model:** Immutable document with undo/redo. Sequence stored in a
-  rope or piece table; features in an interval tree. Feature coordinates
-  must update correctly on insert/delete, including features that span the
-  origin of a circular sequence.
-- **Collaboration (future):** Yjs. Design the document model so a CRDT can
-  be layered on later; do not retrofit.
-- **Storage:** Local-first. IndexedDB via Dexie (or OPFS for large files).
-  Nothing on the user's disk is ever written to: a
-  document leaves the app as a download, never through a kept file handle
-  (item 24, `docs/design/24-download-only.md`).
-- **Backend: none** (decided and built 2026-09-21). The app is a static site and
-  stays one, so it deploys to GitHub Pages with nothing behind it. Auth,
-  sync and team libraries are dropped rather than deferred; sharing, the
-  one piece wanted from them, is a link that carries the document in its
-  URL fragment and needs no server (item 11,
-  `docs/design/11-share-links.md`). Server-side computation was never a goal and still is not.
-- **File formats:** GenBank, FASTA, SnapGene .dna are required from day one.
-  Geneious and ApE are nice-to-haves. Teselagen `bio-parsers` is an
-  acceptable starting point; plan to own the GenBank writer eventually
-  because round-tripping is where third-party parsers break.
-- **Distribution:** PWA. No Electron/Tauri for v1. A Tauri wrapper may come
-  later for enterprise/local-install demands.
-- **Analytics:** Matomo (self-hosted). Usage tracking is a feature to
-  include: page views and coarse feature-usage events (e.g. "opened
-  GenBank", "ran restriction analysis"), never sequence content, file
-  names or other scientific data. No user-facing toggle (decided
-  2026-09-18); honours Do-Not-Track, cookieless, IP anonymisation on. Instance URL and site id are
-  build-time config (`VITE_MATOMO_URL`, `VITE_MATOMO_SITE_ID`); when
-  unset the tracker is a no-op, so local-first use never phones home.
+- **Rendering:** Canvas 2D for the sequence view and the circular map. Never
+  render the sequence with DOM or SVG — it will not scale past ~50 kb. SVG
+  is only for publication-quality export. PixiJS/WebGL only if Canvas 2D
+  is measured to be too slow.
+- **Compute:** Plain TS in Web Workers; the main thread never blocks. Rust →
+  WASM only where profiling justifies it (pairwise alignment and
+  genome-scale restriction scans are the candidates); none shipped so far.
+- **Data model:** Immutable document with undo/redo; sequence in a rope or
+  piece table, features in an interval tree. Keep it CRDT-friendly so Yjs
+  can be layered on later rather than retrofitted.
+- **Storage:** Local-first, IndexedDB via Dexie. The app never writes to the
+  user's disk: a document leaves as a download, never through a kept file
+  handle (item 24).
+- **Backend: none.** A static site on GitHub Pages, and it stays one. Auth,
+  sync and team libraries are dropped, not deferred. Sharing is a link that
+  carries the document in its URL fragment (item 11). The one third-party
+  request is NCBI efetch by accession; only the accessions leave the browser.
+- **File formats:** GenBank, FASTA, SnapGene .dna/.prot/.rna, AB1, FASTQ
+  (gzipped too), protein FASTA/GenPept. The parsers and writers are ours;
+  round-tripping is where third-party ones break.
+- **Distribution:** PWA. No Electron/Tauri for v1.
+- **Analytics:** Matomo, self-hosted. Page views and coarse feature events
+  only, never sequence content or file names; no user-facing toggle;
+  honours Do-Not-Track, cookieless, IP anonymised. `VITE_MATOMO_URL` and
+  `VITE_MATOMO_SITE_ID` are build-time config; unset, the tracker is a
+  no-op (item 38 catalogues the events).
 
 ## Domain rules that cause bugs
 
@@ -64,205 +57,56 @@ working with no account and no server round-trip.
   is 0-based half-open `[start, end)`; GenBank I/O is 1-based inclusive.
 - Reverse-strand features have coordinates on the forward strand but read
   in reverse; translations must reverse-complement first.
-- Features can be multi-segment (GenBank `join(...)`). Preserve segments on
-  round-trip.
+- Features can be multi-segment (GenBank `join(...)`, `order(...)`).
+  Preserve segments on round-trip.
 - IUPAC ambiguity codes (N, R, Y, etc.) must be accepted in input and in
   restriction-site recognition sequences.
 - Restriction enzymes: model recognition sequence, cut position on both
   strands (can be outside the recognition site, e.g. Type IIS), and
-  palindromic vs. non-palindromic behavior.
+  palindromic vs. non-palindromic behavior. Digests respect the document's
+  host methylation (dam/dcm).
 
-## Suggested build order
+## Releasing
 
-1. Repo scaffold: Vite + React + TS strict, Vitest, ESLint, Prettier, CI.
-2. Core document model (sequence + features + undo) with exhaustive unit
-   tests, especially circular/wraparound and coordinate-shift cases.
-3. GenBank + FASTA parser/writer with round-trip tests against real files.
-4. Canvas linear sequence view: bases, complement, features, ruler,
-   selection, virtualized scrolling.
-5. Editing: insert, delete, replace, reverse-complement, set origin.
-6. Circular map view.
-7. Restriction analysis (bundled enzyme table), ORF finding, translation.
-8. SnapGene .dna import.
-9. Local persistence (Dexie), PWA manifest, file open/save via File System
-   Access API with download fallback. Matomo tracking (see Stack).
-10. Primer design, pairwise alignment (first TS, then WASM if needed).
-11. ~~Optional backend~~ — dropped (see Stack); share links instead, item 11.
-
-## Status (2026-09-26)
-
-**1.10.0** (2026-10-02) is the current release: follow-ups to detection and
-protein documents (#94, #95, #112). Detect features finds a part with small
-indels (up to 8 bases, banded fill around shared 12-mer seeds), takes parts
-that must match exactly (lacUV5) and has the tet operator, TRE, T7lac, H1
-promoter and ARSH4. SnapGene .prot opens as a protein document and .rna as an
-RNA one (kept as T for now, #113); the GenBank writer keeps `order(...)` on a
-feature and writes a qualifier's line break as a space. The alignment window
-gains an Amino acids option: the document's CDS residues under the reference
-and under each sample, shaded where a codon changes the residue (item 62).
-Mutation score 92.45% over all modules; `detect.ts` 79.1% after tests for its
-survivors, most of the rest shadowed by `keepBest` or performance-only.
-**1.9.0** (2026-09-29) was: alignment in a large view
-(item 62, #102–#111). Align's results open in a dialog with samples stacked
-under one scroll, an overview strip of differences and a viewport rectangle,
-and next/previous difference; the document's features and ORFs sit in a track
-above the reference; differences are shaded by CDS, other feature or no
-feature; an AB1 read's trace is drawn under its row with poor bases shaded.
-Align takes another open tab, or several files chosen or dropped at once, as
-the samples; the panel's form is regrouped, its text alignment dropped, and a
-result points at its region in the document and selects it. Mutation score
-92.4% over all modules, 96% and 91% for the two new alignment ones.
-**1.8.1** (2026-09-26) was: a digest's fragment list no
-longer gives the window a scrollbar. `.visually-hidden` was absolutely
-positioned, so a row's hidden live region escaped the list that scrolls
-inside itself and sat far down the page; it is fixed-positioned now, which
-is outside the page's scrollable overflow whatever is above it (#100).
-**1.8.0** (2026-09-26) was bench and workspace
-follow-ups (item 61, and the follow-up halves of 3, 47, 49, 51, 52, 56, 57
-and 59). The Bench's check digest draws the empty vector's lane beside the
-product's and ranks enzymes by how well they differ; its product map hovers
-and zooms; Golden Gate reports measured fidelity from an end-joining table
-the user imports (not bundled: the published ones may not be redistributed).
-Mutate changes a residue by name, with codon usage for six hosts (Kazusa),
-NNK/NNS/NNN/NDT libraries, and NEB's Q5 Tm and annealing temperature fitted
-to their calculator. Detect features matches in the six frames as well as on
-the bases — the peptide tags every vector spells its own way, and 26 FPbase
-proteins with no usable CDS — offers a part cut off by a linear end as
-partial, and has seven more curated parts (169 and 100 now). Proteins carry
-the CDS's features onto their residues, open from pasted residues, and align
-by BLOSUM62. Key bindings live in one table and can be changed (Format ▸
-Keyboard shortcuts…). A SnapGene file's own history tree is read into Made
-from, xz and all. A stored history is rebuilt after the tab paints, so a
-megabase document with 200 steps opens in 50 ms rather than 350.
-**1.7.0** (2026-09-25) was annotation and libraries
-(items 53–60). Detect features: 153 curated parts cited to NCBI records plus
-74 FPbase fluorescent proteins (CC BY-SA, own file, `DATA-LICENSES.md`),
-12-mer seeded near matches on both strands and through the origin, offered
-as a list and added as one edit. My primers: a primer collection in
-IndexedDB, Find my primers by PCR's 3′ annealing search, handed to PCR by
-name. Open from NCBI by accession (efetch, nucleotide and GenPept; only the
-accessions leave the browser, the one third-party request). Protein
-documents: an alphabet on the document, `hasTool` switching DNA tools off,
-protein FASTA/GenPept, Open as protein, ProtParam-matching properties.
-Numbered residues on translations (off / every 10th / every one). Base
-styles, a selection bar, change case, feature thickness. Phone fixes from a
-real Android device (#42). Mutation score 95.2% over the 1.4, 1.6 and 1.7
-modules.
-**1.6.0** (2026-09-25) was compare, history and sharing
-(items 11, 21, 25, 33, 35, 46, 51, 52). Compare with any tab, a "Compared
-with" edit-marks baseline and Next/Previous change (Alt+N); removed features
-as ghosts on the map and clickable marks; renames and topology marked in the
-toolbar; a moved-and-renamed feature paired by its bases. Undo history kept
-across reloads (deltas in IndexedDB), named states, "What changed" per step;
-a "Made from" tree recording how each cloning product was made, carried in a
-PlasmidPop-made-from GenBank block. Reads: a confidence threshold, the
-document as the read, FASTQ export, Align all for a batch, Local by default.
-Share links to a selection and without references, and a warning past 2,000
-characters (Slack and Teams choke on long links, #41; encrypted short links
-are #87). Sequence SVG export with a range, bases per row and A4 pages. Phone:
-long-press select, Web Share Target, pane remembered, cut sites off. Mutation
-score 95.1% over the 1.4 and 1.6 modules.
-**1.5.0** (2026-09-24) was workspace and map (items
-49, 50). The Cloning Bench, a fixed tab beside Files with the shelf (its own
-undo), the joining reactions and a column showing the product's map and a
-check digest, while Digest, PCR and Mutate stay in the sidebar; map labels
-spread about a crowd, with a second ring and 0 crossing leaders, clickable,
-and tiny features widened to be seen; a gene and CDS of one name drawn as
-one bar; previews per panel; tabs reordered by drag and coming back where
-left; splitters that collapse a pane; a rail with icons and arrow keys; many
-more Alt bindings; Format's bases per row, base colours and trace height;
-New asks for a name and topology. Stryker mutation testing now runs before
-each release (item 50): 77.8% at first, 94.0% after its survivors got tests.
-**1.4.0** (2026-09-24) was the cloning bench (items 3,
-36, 47, 48). The shelf belongs to the bench and takes PCR products; PCR from
-any tab, with Taq's A overhangs, dimers and two Tms; blunting; partial
-digests and dephosphorylation; Golden Gate with IUPAC overhangs, a second
-enzyme and misligation warnings; Gibson repeat and length warnings;
-site-directed mutagenesis (Q5 and QuikChange designs); Gateway BP and LR from
-annotated att sites; In-Fusion/NEBuilder insert primers; a Product line
-before assembling; host methylation (dam/dcm) as a document property that
-digests respect. Exhaustive and property tests found and fixed a dozen faults
-before release.
-**1.3.0** (2026-09-23) was sequencing reads (item 46).
-AB1 and FASTQ files (gzipped too) open as documents that keep their base
-qualities and trace; Align trims a read's poor ends, weighs each difference
-by its quality and draws the trace under the alignment; long reads align in
-a band around shared words (a 10 kb read in ~60 ms), and through the origin
-of a circular plasmid; an opened AB1 shows its chromatogram above its bases.
-**1.2.1** (2026-09-23) was fixes to Align from user
-feedback (item 45): files dropped or picked into the Align box, with a
-choice among several records; IUPAC codes scored by EDNAFULL; a 150 M-cell
-limit (10 kb reads) with the strand picked first; a progress bar with
-Cancel. **1.2.0** (2026-09-23) was the first of the themed
-minor releases planned after 1.1. The GitHub milestones after it, reordered
-the same day on user feedback about Align: 1.2.1 Align fixes, 1.3
-sequencing reads, 1.4 cloning bench and 1.5 workspace and map with the
-Cloning Bench (#70) and 1.6 compare, history and sharing (all done), then 1.7
-annotation and libraries (done) and 1.8 bench and workspace follow-ups. 1.2.0 has
-isoschizomers share a row, double cutters, a 4× faster scan, gel agarose and
-ladder, double-digest partners (items 39–42), Dam/Dcm marks (item 44), CDS
-translations re-checked as you edit (item 1), SnapGene primers fixed and
-the reader checked against Biopython (item 43), sticky ends through FASTA
-and SnapGene (item 10), a reverse complement that says what it changed
-(item 34), and cross-tab paste with features (item 2).
-**1.1.2** (2026-09-23): CDS translations read
-`/transl_except`, so selenocysteine and pyrrolysine show instead of a stop
-(item 1), and usage statistics carry a catalogue of every event (item 38).
-**1.1.1** (2026-09-23) fixed two GenBank export faults: a LOCUS line
-without a division, which Biopython refuses, and a site feature left off
-the end of a circle by an edit (item 37). **1.0.0**
-(2026-09-22) was the first public one, the version the repo went public at and the first archived
-on Zenodo for a citable DOI. Before a release, run `npm run mutate`
-(Stryker, incremental, never in CI; item 50) and triage its survivors.
-Bump `package.json` and `CITATION.cff` together;
-each GitHub Release gets a DOI of its own, and the concept DOI in
-`CITATION.cff` stands for all of them. **The site deploys only when a GitHub
-Release is published** (`deploy.yml`; the `github-pages` environment allows
-`main` and tags `v*`), so a push to main reaches no user until a release
-carries it. The guide's header shows the version (`__APP_VERSION__`, defined
-from `package.json` in `vite.config.ts`).
-
-Build order steps 1–10 are implemented; step 11 (backend) is dropped. Well
-beyond it: tabs, working copies and download-only saving, share links in the
-URL fragment, tracked-changes marks on both views, Compare with…, SEGUID
-checksums, restriction-ligation / Golden Gate / Gibson / PCR simulation, a
-drawn gel with diagnostic-digest ranking, primer settings, every NCBI genetic
-code, REBASE import, a phone reader, Matomo usage statistics. Perf
-measurements live in `docs/perf-notes.md`.
+Few, large, themed releases, one GitHub milestone each; current is 1.10.0
+(2026-10-02). Each GitHub Release gets a Zenodo DOI; the concept DOI in
+`CITATION.cff` stands for all of them. Before a release run
+`npm run mutate` (Stryker, incremental, never in CI; item 50) and triage
+its survivors. Bump `package.json` and `CITATION.cff` together. **The site
+deploys only when a GitHub Release is published** (`deploy.yml`); a push to
+main reaches no user until a release carries it. The guide's header shows
+`__APP_VERSION__`, defined from `package.json` in `vite.config.ts`.
 
 ## Where things are written down
 
-- **Design notes: `docs/design/`.** One file per numbered item of work, with
-  what was asked, what was built and why — read the relevant one before
-  changing that area. "Item N" in code comments and in this file means
-  `docs/design/NN-*.md`. `docs/design/README.md` indexes them and keeps the
-  changelog and open questions as they stood at 1.1.0.
-- **Open work: GitHub Issues** (`gh issue list`, `gh issue view N`). Bugs,
-  feature ideas, the "Not yet" follow-ups of the design notes and open
-  questions live there, not in this file.
+- **Design notes: `docs/design/`**, one file per numbered item of work —
+  what was asked, what was built and why. "Item N" in code comments and
+  here means `docs/design/NN-*.md`; read the relevant one before changing
+  that area. `docs/design/README.md` indexes them.
+- **What each release did:** GitHub Releases (`gh release view vX.Y.Z`).
+- **Open work:** GitHub Issues (`gh issue list`, `gh issue view N`), not
+  this file.
+- **User guide:** `docs/guide/*.md`, rendered in the app by `src/app/help/`.
+- **Perf measurements:** `docs/perf-notes.md`.
 
-## Non-goals for v1
+## Non-goals
 
-- Real-time multi-user editing
-- Server-side computation
-- Native desktop packaging
-- Genome-browser-scale (>10 Mb) sequences
+Real-time multi-user editing, server-side computation, native desktop
+packaging, genome-browser-scale (>10 Mb) sequences.
 
 ## Conventions
 
 - Small, reviewable commits. Each domain-model change ships with tests.
-- No `any`. Prefer discriminated unions for feature/segment types.
-- Profile before adding WASM or WebGL; write down the measurement.
-- Keep third-party bio libraries behind our own interfaces so they can be
-  swapped out.
-- Keep the user guide (`docs/guide/*.md`, rendered in the app by
-  `src/app/help/`) in step with the code. Any change a user can notice
+  Prefer discriminated unions for feature/segment types. Profile before
+  adding WASM or WebGL; write down the measurement. Keep third-party bio
+  libraries behind our own interfaces.
+- Keep the user guide in step with the code. Any change a user can notice
   (new feature, changed behaviour, new shortcut, bugfix that alters what
-  the UI does or says) updates the relevant page in the same commit; a new
-  feature gets a page or a section with a short how-to, plus an entry in
-  `docs/guide/README.md` and `src/app/help/guide.ts`. Check `14-shortcuts.md`
-  whenever a key binding is touched. `guide.test.ts` catches broken links
-  between pages but not stale prose: reread the page.
+  the UI does or says) updates the relevant guide page in the same commit;
+  a new feature gets a page or a section with a short how-to, plus an entry
+  in `docs/guide/README.md` and `src/app/help/guide.ts`. Check
+  `14-shortcuts.md` whenever a key binding is touched. `guide.test.ts`
+  catches broken links between pages but not stale prose: reread the page.
 - When a piece of work closes an issue, reference it in the commit
   (`Fixes #N`). When its reasoning is worth keeping, add or extend a design
   note in `docs/design/` in the same commit (next free number for new work,

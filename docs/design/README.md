@@ -79,8 +79,9 @@ piece of work needs its reasoning written down, with the next free number.
 
 The status paragraph `CLAUDE.md` carried until 1.1.0, kept as it was. It is
 **not kept up to date**: what each release since holds is in its
-[GitHub Release notes](https://github.com/BooneAndrewsLab/PlasmidPop/releases),
-and where the project stands is the Status section of `CLAUDE.md`.
+[GitHub Release notes](https://github.com/BooneAndrewsLab/PlasmidPop/releases)
+(`CLAUDE.md` carried a paragraph per release until 1.10.0, then was trimmed
+to decisions and rules on 2026-10-04; it names only the current version).
 
 **1.0.0 is the first public release** (2026-09-22), the version the repo went
 public at and the first to be archived on Zenodo for a citable DOI. Bump
