@@ -58,6 +58,19 @@ describe('the picture of the stack', () => {
   const changed = `${part.slice(0, 10)}${part.charAt(10) === 'A' ? 'C' : 'A'}${part.slice(11)}`;
   const d = drawingOf(changed);
 
+  it('fades a difference marked reviewed (#123)', () => {
+    const column = d.stack.differences[0] ?? -1;
+    const plainSvg = alignmentSvg(d, { start: 10, end: 30 }, 'Alignment');
+    const faded = alignmentSvg(
+      { ...d, reviewed: new Set([column]) },
+      { start: 10, end: 30 },
+      'Alignment',
+    );
+    expect(plainSvg).toContain('fill-opacity="0.34"');
+    expect(faded).not.toContain('fill-opacity="0.34"');
+    expect(faded).toContain('fill-opacity="0.12"');
+  });
+
   it('is sized by the names and the columns drawn', () => {
     const size = pictureSize(d, { start: 10, end: 30 });
     expect(size.width).toBe(168 + 20 * 8);

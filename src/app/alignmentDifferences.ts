@@ -304,11 +304,18 @@ export function effectText(row: DifferenceRow): string {
  * "samples disagree" when samples at good quality carry different bases in
  * the region, "samples agree" when two or more carry the same change and
  * none disagrees, else ''. Agreement is what makes a difference credible.
+ * A difference marked in the large view (#123) adds "reviewed" or "taken".
  */
-export function noteText(row: DifferenceRow): string {
-  if (row.disagree) return 'samples disagree';
+export function noteText(row: DifferenceRow, mark?: 'reviewed' | 'taken'): string {
   const changes = new Set(row.carriers.map((c) => c.bases));
-  return row.carriers.length >= 2 && changes.size === 1 ? 'samples agree' : '';
+  const note = row.disagree
+    ? 'samples disagree'
+    : row.carriers.length >= 2 && changes.size === 1
+      ? 'samples agree'
+      : '';
+  const marked =
+    mark === undefined ? '' : mark === 'taken' ? 'taken into the document' : 'reviewed';
+  return [note, marked].filter((t) => t !== '').join('; ');
 }
 
 const HEADER = [
@@ -321,8 +328,14 @@ const HEADER = [
   'Note',
 ] as const;
 
-/** The table as tab-separated text with a header, for pasting into a notebook or spreadsheet. */
-export function differencesTsv(rows: readonly DifferenceRow[]): string {
+/**
+ * The table as tab-separated text with a header, for pasting into a notebook
+ * or spreadsheet. `marks` are the large view's, by region index (#123).
+ */
+export function differencesTsv(
+  rows: readonly DifferenceRow[],
+  marks: ReadonlyMap<number, 'reviewed' | 'taken'> = new Map(),
+): string {
   const clean = (s: string): string => s.replace(/[\t\r\n]+/g, ' ');
   const lines = rows.map((r) =>
     [
@@ -332,7 +345,7 @@ export function differencesTsv(rows: readonly DifferenceRow[]): string {
       featureText(r),
       qualityText(r),
       effectText(r),
-      noteText(r),
+      noteText(r, marks.get(r.index)),
     ]
       .map(clean)
       .join('\t'),

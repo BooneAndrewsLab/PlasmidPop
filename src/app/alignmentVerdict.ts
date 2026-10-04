@@ -87,8 +87,10 @@ export interface FeatureVerdict {
   readonly name: string;
   readonly type: string;
   readonly kind: VerdictKindValue;
-  /** Differing columns inside the feature (`Differences`). */
+  /** Differing columns inside the feature (`Differences`), the reviewed ones left out. */
   readonly differences: number;
+  /** Differing columns inside the feature marked reviewed or taken (#123): not held against it. */
+  readonly reviewed: number;
   /**
    * Reads covering every base of the feature: the fewest over its bases,
    * either strand. 0 when some base is not covered.
@@ -116,7 +118,8 @@ export interface FeatureVerdict {
  * first base, then last; a tie keeps the order given). Annotations that do not fall in the alignment are left out. Only
  * reference columns count towards coverage, since another sample's insertion
  * is padding in the rest. `period` is the document's length when it is
- * circular, as for `buildTrack`.
+ * circular, as for `buildTrack`. A difference in a `reviewed` column (#123)
+ * is counted apart and does not stop a feature being confirmed.
  */
 export function verdictsOf(
   stack: Stack,
@@ -124,6 +127,7 @@ export function verdictsOf(
   coverage: Coverage,
   differences: readonly number[],
   period: number,
+  reviewed: ReadonlySet<number> = new Set(),
 ): FeatureVerdict[] {
   const indexColumns = columnsOfIndex(stack);
   const out: FeatureVerdict[] = [];
@@ -166,7 +170,10 @@ export function verdictsOf(
     }
     const bases = best.size;
     const diffKeys = new Set<number>();
-    for (const c of differences) if (inside.has(c)) diffKeys.add(key(c));
+    const reviewedKeys = new Set<number>();
+    for (const c of differences) {
+      if (inside.has(c)) (reviewed.has(c) ? reviewedKeys : diffKeys).add(key(c));
+    }
     const diffs = diffKeys.size;
     if (bases === 0) continue;
     const kind =
@@ -186,6 +193,7 @@ export function verdictsOf(
       type: a.type,
       kind,
       differences: diffs,
+      reviewed: reviewedKeys.size,
       reads: full ? fewest : 0,
       strands: !full
         ? null
@@ -240,8 +248,13 @@ export function sortVerdicts(
     .map(({ v }) => v);
 }
 
-/** "Confirmed", "8 differences", "Partly covered", "Not covered": the status column. */
+/** "Confirmed", "8 differences", "Partly covered", "Not covered": the status column; "(1 reviewed)" after. */
 export function statusText(v: FeatureVerdict): string {
+  const status = kindText(v);
+  return v.reviewed === 0 ? status : `${status} (${v.reviewed.toLocaleString()} reviewed)`;
+}
+
+function kindText(v: FeatureVerdict): string {
   switch (v.kind) {
     case VerdictKind.Confirmed:
       return 'Confirmed';
@@ -309,8 +322,13 @@ export function verdictsTsv(verdicts: readonly FeatureVerdict[]): string {
   return [TABLE_HEADER.join('\t'), ...lines].join('\n');
 }
 
-/** "lacZα confirmed by 2 reads", "AmpR: 1 difference", "ori: not covered". */
+/** "lacZα confirmed by 2 reads", "AmpR: 1 difference", "ori: not covered"; ", 1 reviewed" after. */
 export function verdictText(v: FeatureVerdict): string {
+  const text = verdictKindText(v);
+  return v.reviewed === 0 ? text : `${text}, ${v.reviewed.toLocaleString()} reviewed`;
+}
+
+function verdictKindText(v: FeatureVerdict): string {
   const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
   switch (v.kind) {
     case VerdictKind.Confirmed: {

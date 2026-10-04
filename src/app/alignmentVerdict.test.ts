@@ -154,6 +154,38 @@ describe('a verdict per feature', () => {
     expect(outside?.kind).toBe(VerdictKind.Confirmed);
   });
 
+  it('counts a reviewed difference apart, confirming a feature with no other (#123)', () => {
+    const changed = reference.slice(0, 40).split('');
+    changed[12] = changed[12] === 'A' ? 'C' : 'A';
+    changed[15] = changed[15] === 'A' ? 'C' : 'A';
+    const stack = stackOf([{ sequence: changed.join('') }]);
+    const coverage = coverageOf(stack, 20);
+    const differences = confidentDifferences(stack, 20);
+    const column = differences[0] ?? -1;
+    const [one] = verdictsOf(
+      stack,
+      [note('in', 10, 14)],
+      coverage,
+      differences,
+      0,
+      new Set([column]),
+    );
+    expect(one).toMatchObject({ kind: VerdictKind.Confirmed, differences: 0, reviewed: 1 });
+    expect(say(one)).toBe('in confirmed by 1 read, forward strand only, 1 reviewed');
+    if (one === undefined) throw new Error('no verdict');
+    expect(statusText(one)).toBe('Confirmed (1 reviewed)');
+    const [both] = verdictsOf(
+      stack,
+      [note('in', 10, 20)],
+      coverage,
+      differences,
+      0,
+      new Set([column]),
+    );
+    expect(both).toMatchObject({ kind: VerdictKind.Differences, differences: 1, reviewed: 1 });
+    expect(say(both)).toBe('in: 1 difference, 1 reviewed');
+  });
+
   it('does not count a difference in a poor stretch of a read, nor cover it', () => {
     const changed = reference.slice(0, 40).split('');
     changed[12] = changed[12] === 'A' ? 'C' : 'A';
@@ -292,6 +324,7 @@ describe('summariseVerdicts', () => {
       type: 'gene',
       kind,
       differences: kind === VerdictKind.Differences ? 2 : 0,
+      reviewed: 0,
       reads,
       strands,
       covered: kind === VerdictKind.Partial ? 17 : 0,

@@ -27,6 +27,8 @@ export const COVERAGE_HEIGHT = 6;
 export const TRACE_HEIGHT = 40;
 /** The amino-acid strip under the reference's row and under each sample's. */
 export const AA_HEIGHT = 16;
+/** How strongly a reviewed difference is drawn, against an unreviewed one (#123). */
+export const REVIEWED_DIM = 0.35;
 
 /**
  * What the stack's drawing needs of a context: the shared drawing subset and
@@ -93,7 +95,8 @@ export function classColour(c: Colours, k: number): string {
  * Paints a cell that differs: the class colour behind it, and a mark that
  * tells the kinds apart without it. A mismatch is a plain block, a deletion
  * has a bar along its foot, an insertion one along its head; an ambiguity
- * match is the lightest block.  */
+ * match is the lightest block. A difference marked reviewed (#123) is
+ * painted at `dim` of its strength.  */
 function paintDifference(
   ctx: StackContext,
   cell: number,
@@ -102,17 +105,18 @@ function paintDifference(
   y: number,
   width: number,
   height: number,
+  dim = 1,
 ): void {
   if (cell === Cell.Ambiguous) {
     ctx.globalAlpha = 0.14;
     ctx.fillStyle = colour;
     ctx.fillRect(x, y, width, height);
   } else if (isDifference(cell)) {
-    ctx.globalAlpha = 0.34;
+    ctx.globalAlpha = 0.34 * dim;
     ctx.fillStyle = colour;
     ctx.fillRect(x, y, width, height);
     if (cell !== Cell.Mismatch) {
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
       ctx.fillRect(x, cell === Cell.Deletion ? y + height - 3 : y, width, 3);
     }
   }
@@ -314,6 +318,8 @@ export interface StackDrawing {
   readonly showTrace: boolean;
   readonly residues: readonly ResidueFrame[] | null;
   readonly marked: { readonly start: number; readonly end: number } | null;
+  /** Columns of differences marked reviewed or taken (#123), drawn faded; none in an export. */
+  readonly reviewed?: ReadonlySet<number>;
   readonly colours: Colours;
   readonly charWidth: number;
   readonly monoFont: string;
@@ -347,6 +353,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     showTrace,
     residues,
     marked,
+    reviewed,
     colours,
     charWidth,
     monoFont,
@@ -425,6 +432,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
         y,
         charWidth,
         ROW_HEIGHT,
+        reviewed?.has(c) === true ? REVIEWED_DIM : 1,
       );
       const ch = row.bases.charAt(c);
       const q = row.qualities?.[c];

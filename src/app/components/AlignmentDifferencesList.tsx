@@ -19,6 +19,10 @@ interface Props {
   readonly current: number | null;
   /** Go to a region and pick one of the samples that carries it. */
   readonly onPick: (row: DifferenceRow) => void;
+  /** The regions marked reviewed or taken, by index (#123). */
+  readonly marks: ReadonlyMap<number, 'reviewed' | 'taken'>;
+  /** Mark a region reviewed, or take the mark off. */
+  readonly onMark: (row: DifferenceRow, reviewed: boolean) => void;
 }
 
 /**
@@ -26,7 +30,7 @@ interface Props {
  * list is reachable and usable from the keyboard; clicking anywhere on the
  * row does the same. Copy writes the whole table as tab-separated text.
  */
-export function AlignmentDifferencesList({ rows, current, onPick }: Props) {
+export function AlignmentDifferencesList({ rows, current, onPick, marks, onMark }: Props) {
   const [copied, setCopied] = useState(false);
   return (
     <section className="astack-diffs" aria-label="List of differences">
@@ -42,7 +46,7 @@ export function AlignmentDifferencesList({ rows, current, onPick }: Props) {
           disabled={rows.length === 0}
           title="Copy the table as tab-separated text"
           onClick={() => {
-            copyText(differencesTsv(rows));
+            copyText(differencesTsv(rows, marks));
             setCopied(true);
           }}
         >
@@ -64,13 +68,21 @@ export function AlignmentDifferencesList({ rows, current, onPick }: Props) {
                 <th scope="col">Quality</th>
                 <th scope="col">Protein effect</th>
                 <th scope="col">Note</th>
+                <th scope="col">Reviewed</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr
                   key={row.index}
-                  className={row.index === current ? 'astack-diffs__row--current' : undefined}
+                  className={
+                    [
+                      row.index === current ? 'astack-diffs__row--current' : '',
+                      marks.has(row.index) ? 'astack-diffs__row--reviewed' : '',
+                    ]
+                      .filter((c) => c !== '')
+                      .join(' ') || undefined
+                  }
                   aria-current={row.index === current ? 'true' : undefined}
                   onClick={() => {
                     onPick(row);
@@ -94,7 +106,26 @@ export function AlignmentDifferencesList({ rows, current, onPick }: Props) {
                   <td>{featureText(row)}</td>
                   <td>{qualityText(row)}</td>
                   <td>{effectText(row)}</td>
-                  <td>{noteText(row)}</td>
+                  <td>{noteText(row, marks.get(row.index))}</td>
+                  <td className="astack-diffs__check">
+                    <input
+                      type="checkbox"
+                      aria-label={`Reviewed: ${positionText(row) === '' ? 'insertion' : positionText(row)}`}
+                      checked={marks.has(row.index)}
+                      disabled={marks.get(row.index) === 'taken'}
+                      title={
+                        marks.get(row.index) === 'taken'
+                          ? 'Taken into the document'
+                          : 'Mark reviewed: dimmed, and counted apart in the verdict'
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      onChange={(e) => {
+                        onMark(row, e.target.checked);
+                      }}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

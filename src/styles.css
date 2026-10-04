@@ -4422,6 +4422,20 @@ button {
   gap: 2px 16px;
 }
 
+/* The difference stopped at, and what can be done with it (#123). */
+.astack-status__stop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.astack-status__stop .button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 .astack-status__sample {
   display: flex;
   flex: 1 1 30ch;
@@ -4623,6 +4637,20 @@ button {
 .astack-diffs__table tbody tr:hover,
 .astack-diffs__row--current {
   background: var(--surface-3);
+}
+
+/* A difference marked reviewed or taken (#123): still listed, but quieter. */
+.astack-diffs__row--reviewed td {
+  color: var(--ink-2);
+  opacity: 0.6;
+}
+
+.astack-diffs__check {
+  text-align: center;
+}
+
+.astack-diffs__check input {
+  margin: 0;
 }
 
 .astack-diffs__bases {

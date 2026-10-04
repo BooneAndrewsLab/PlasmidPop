@@ -526,3 +526,75 @@ count ("12 of 41 differences") instead of a position. The control is a
 Esc) rather than switches in the toolbar, which would wrap it again (#119);
 the button reads **Filter (on)** while it removes anything. The filter is
 remembered between openings with the Show buttons.
+
+## Reviewed differences and taking a sample's bases (#123)
+
+`alignmentReview.ts` (pure apart from a per-result store, tested). **What is
+marked.** A mark belongs to a difference region (one Next stop, one List
+row), not to one sample's cell: "this difference is a known poor call" is
+said of the stop. It is keyed by `regionKey`, the region's first and last
+column anchored on the reference (`p`, or `p+k` for the k-th inserted column
+after reference index p), because hiding a sample rebuilds the stack (#127)
+and renumbers both columns and regions; an index or a column would point
+at another difference afterwards. A region that hiding splits or merges
+loses its mark while it is hidden and finds it again when shown. Two marks:
+`reviewed` (toggled from the status row or the List's box) and `taken`.
+
+**What a mark does.** Faded to 35 % in the body and the overview
+(`REVIEWED_DIM`; an export draws without marks, as it draws nothing
+picked); skipped by Next/Previous through the filter's **Skip reviewed**,
+on by default, which is the issue's "optionally"; noted in the List's Note
+and its TSV; and in the verdict `verdictsOf` takes the marked columns and
+counts them in `reviewed` rather than `differences`, so a feature whose
+only difference is reviewed is Confirmed, "(1 reviewed)". The verdict TSV
+carries that in its Status column rather than a new column.
+
+**How long it lasts.** For the life of the alignment result, as the issue
+asks: a module `WeakMap` keyed by the result's `ReferenceInput` (each Align
+run makes a new one, a batch shares one), so closing and reopening the
+window keeps the marks and aligning again drops them with the old result.
+Decision: **not persisted with the document.** A mark is about one set of
+reads against one state of the document, which the document model has no
+place for, and a GenBank file would have to carry it; it would also go
+stale with the first edit. If wanted later it belongs with a saved
+alignment, not the sequence.
+
+**Take sample's bases.** `takeEdit` turns the picked sample's bases over
+the region into one document range: the reference columns of the region
+(through `refIndex` plus the stack's `offset`, wrapped on a circle) are
+replaced by the sample's bases with gaps dropped, so a deletion removes,
+an insertion-only region inserts before the next reference base, and a
+mixed region (insertion plus mismatch) is one replace. It is applied with
+`editorStore.apply` as an ordinary `insert`/`delete`/`replace`, so it is one
+undo step, gets the edit marks, moves features, and forks a file into a
+working copy like any first edit; the written bases are selected. Refused
+with the reason on the button: the sample does not reach every column
+(Blank), it carries no difference there, the region runs through a circle's
+origin (an edit op is one range), the document is the read, or the
+document is not the one expected.
+
+Decisions. The alignment is **not redone** after a take: the window keeps
+showing what was aligned, now with that difference marked taken, and Align
+again shows the edited document. To take several in a row the window keeps
+the edits made (`DocumentEdit`, in the coordinates of the document at the
+time) and maps each next region through them (`mapThroughEdits`; an overlap
+with one already taken is refused). It must then know the document it is
+writing into is the one it last made: the first document is held when the
+window opens and `documentHoldsReference` confirms it still has the
+reference's bases at the offset (otherwise taking is off: the document was
+edited between Align and opening the window), and after each take the
+resulting document is kept; any other change, an undo included, makes the
+open document a different object and taking stops until the next Align.
+The held document is also what the window draws features and classes from,
+so after an indel taken here, reopening the window does not draw the
+edited document's shifted features against the old columns. The bases are
+written in the document's case (lower case beside lower-case bases), so a
+SnapGene file in lower case does not get a stray capital. Not done: the
+ORFs the app found belong to the open document, so after a take they no
+longer match the held one and the ORFs button and their CDS shading are off
+until the next Align.
+
+Checked by eye: an `SvgContext` render of a two-row stack with a reviewed
+deletion and mismatch beside an unreviewed one, rasterised with rsvg (the
+reviewed ones clearly fainter, the kind bars too). The status-row buttons
+and the List's box were not looked at in a browser.

@@ -9,6 +9,8 @@ interface Props {
   /** The picked sample's name, or null when none is picked. */
   readonly picked: string | null;
   readonly confidentFrom: number;
+  /** How many differences are marked reviewed or taken (#123). */
+  readonly reviewed: number;
   /** "12 of 41 differences", as the counter has it. */
   readonly status: string;
   readonly onClose: () => void;
@@ -25,6 +27,7 @@ export function AlignmentFilter({
   hasDocument,
   picked,
   confidentFrom,
+  reviewed,
   status,
   onClose,
 }: Props) {
@@ -79,6 +82,17 @@ export function AlignmentFilter({
             }}
           />
           {picked === null ? 'In the picked sample only' : `In ${picked} only`}
+        </label>
+        <label className="astack-pop__check">
+          <input
+            type="checkbox"
+            checked={filter.skipReviewed}
+            onChange={(e) => {
+              set({ skipReviewed: e.target.checked });
+            }}
+          />
+          Skip reviewed
+          {reviewed > 0 ? ` (${reviewed.toLocaleString()})` : ''}
         </label>
       </div>
       {filter.pickedOnly && picked === null && (

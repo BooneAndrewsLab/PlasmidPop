@@ -555,6 +555,70 @@ describe('AlignPanel', () => {
     });
   });
 
+  it('marks a difference reviewed and takes a sample base into the document (#123)', async () => {
+    render(<AlignPanel doc={doc} />);
+    // Two bases differ from the document's GGCCAATTGGCC: positions 15 and 23.
+    fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Alignment mode' }), {
+      target: { value: 'local' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Align' }));
+    await waitFor(() => {
+      expect(screen.getByText(/identity/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    let dialog = screen.getByRole('dialog');
+    const counter = within(dialog).getByText('2 differences');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+    expect(counter).toHaveTextContent('1 of 2');
+    const actions = within(dialog).getByRole('group', { name: 'This difference' });
+    fireEvent.click(within(actions).getByRole('button', { name: 'Reviewed' }));
+    expect(within(actions).getByRole('button', { name: 'Reviewed' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    // Skipped from now on: one stop left, and the stop just marked is no longer among them.
+    expect(counter).toHaveTextContent('1 of 2 differences');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+    expect(counter).toHaveTextContent('1 of 1');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+    expect(counter).toHaveTextContent('1 of 1');
+    // Take the sample's A at 23 into the document: one edit, undoable.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Take Sequence’s bases' }));
+    expect(editorStore.document?.sequence.toString()).toBe('TTTTACGTACGTGGCCAATTGGACTTTT');
+    expect(editorStore.getState().selection).toEqual({ start: 22, end: 23 });
+    expect(within(dialog).getByRole('button', { name: 'Taken' })).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Next difference' })).toBeDisabled();
+    expect(counter).toHaveTextContent('0 of 2 differences');
+    // The list keeps both, noted, and its box takes the review mark off. (List is
+    // remembered between openings, so it may be open already.)
+    if (within(dialog).queryByRole('table', { name: 'Differences' }) === null)
+      fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
+    const table = within(dialog).getByRole('table', { name: 'Differences' });
+    expect(within(table).getByText('reviewed')).toBeInTheDocument();
+    expect(within(table).getByText('taken into the document')).toBeInTheDocument();
+    expect(within(table).getByRole('checkbox', { name: 'Reviewed: 23' })).toBeDisabled();
+    fireEvent.click(within(table).getByRole('checkbox', { name: 'Reviewed: 15' }));
+    expect(counter).toHaveTextContent('1 of 2 differences');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'List' }));
+    // The marks last as long as the result: closing and opening again finds them.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+    dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('1 of 2 differences')).toBeInTheDocument();
+    // An edit the window did not make stops a further take: the positions may have moved.
+    act(() => {
+      editorStore.undo();
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+    const take = within(dialog).getByRole('button', { name: 'Take Sequence’s bases' });
+    expect(take).toBeDisabled();
+    expect(take).toHaveAttribute(
+      'title',
+      'The document has changed since; align again to take more',
+    );
+  });
+
   it("closes the large view's popovers on a click outside, and leaves its tables open", async () => {
     render(<AlignPanel doc={doc} />);
     fireEvent.change(box(), { target: { value: 'GGACAATTGGAC' } });

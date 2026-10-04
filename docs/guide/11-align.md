@@ -304,10 +304,38 @@ once the ORFs panel has found them. With no document behind the reference
   deletion, count as good); **In the picked sample only** only at the
   differences the picked sample carries (with none picked, every sample
   counts). They combine: with both of the last two, the picked sample's own
-  base must be good. The count then reads "12 of 41 differences", and "3 of
-  12" on a stop; the button reads **Filter (on)**. The filter only narrows
+  base must be good. **Skip reviewed** (on unless you turn it off) passes
+  over the differences marked reviewed or taken (see below). The count then
+  reads "12 of 41 differences", and "3 of 12" on a stop; the button reads
+  **Filter (on)** when the first three leave anything out. The filter only narrows
   the stops: the overview, the alignment and the List still show every
   difference. It is remembered between openings like the Show buttons.
+- **Acting on a difference.** Once Next, Previous or the List has stopped
+  at a difference, the status row shows two buttons for it. **Reviewed**
+  marks it as looked at (a known poor call, say): it is drawn faded in the
+  alignment and the overview, Next and Previous skip it (unless Skip reviewed
+  is off in Filter), the List notes it "reviewed", and the verification no
+  longer holds it against its feature but counts it apart ("AmpR confirmed
+  by 2 reads, 1 reviewed"; "Confirmed (1 reviewed)" in the table). Press it
+  again to take the mark off. The List has a **Reviewed** box on each row
+  that does the same. **Take _sample_'s bases** writes the picked sample's
+  bases over that difference into the document as one ordinary edit:
+  Undo takes it back, it is marked as a change like any other, and features
+  move with it. A gap in the sample deletes the document's bases there; bases
+  the sample has and the document lacks are inserted. The bases are written
+  in the document's case. The difference is then marked "taken into the
+  document", faded and skipped like a reviewed one, and the bases written are
+  selected in the document. You can take several differences one after another;
+  the window keeps track of how each edit moved the positions after it. It
+  refuses (and says why, on the button and beside it) when the sample does
+  not reach the whole difference or matches the document there, when the
+  difference runs through the origin of a circle, when the document is the
+  read, and when the document has been changed in any other way since the
+  last take (undo included): Align again to go on. The alignment itself is
+  not redone, so it still shows the document as it was aligned. Marks last
+  as long as the alignment result: closing the window and opening it again
+  keeps them, and aligning again starts afresh. They are not saved with the
+  document.
 - **Sort and hide samples.** With more than one sample, **Samples** (in the
   toolbar, after Export) opens a small form. **Sort by** orders the rows: **As
   aligned** (the order they were given), **Identity, highest first**,
@@ -409,7 +437,9 @@ once the ORFs panel has found them. With no document behind the reference
   read **Quality** over the differing columns (reads with qualities only),
   the **Protein effect** inside a CDS and a **Note** ("samples disagree"
   where the region has a column marked as above, "samples agree" where two
-  or more samples carry the same change and none disagrees, else blank). The
+  or more samples carry the same change and none disagrees, else blank;
+  "reviewed" or "taken into the document" is added for a marked difference),
+  and a **Reviewed** box (see above). The
   effect is `silent`, a missense such as
   `p.K42R`, a nonsense `p.K42*`, a stop lost `p.*42K`, `frameshift` for an
   insertion or deletion that is not a multiple of three bases, or

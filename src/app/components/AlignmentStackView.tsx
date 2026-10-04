@@ -22,6 +22,7 @@ import {
   LANE_HEIGHT,
   NAME_WIDTH,
   OVERVIEW_HEIGHT,
+  REVIEWED_DIM,
   RULER_HEIGHT,
   classColour,
   drawStack,
@@ -31,6 +32,9 @@ import {
   type Colours,
   type StackDrawing,
 } from './alignmentStackDraw';
+
+/** No difference reviewed: one set, so a render without the prop is not a new one each time. */
+const NONE_REVIEWED: ReadonlySet<number> = new Set();
 
 /** What the window lets its owner reach: the columns in view, and the drawing to export. */
 export interface StackHandle {
@@ -68,6 +72,8 @@ interface Props {
   readonly handle?: Ref<StackHandle>;
   /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
   readonly focus: { readonly start: number; readonly end: number; readonly nonce: number } | null;
+  /** Columns of differences marked reviewed or taken, drawn faded here and in the overview (#123). */
+  readonly reviewed?: ReadonlySet<number>;
 }
 
 /**
@@ -93,6 +99,7 @@ export function AlignmentStackView({
   onSelectRow,
   focus,
   handle,
+  reviewed = NONE_REVIEWED,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -119,7 +126,12 @@ export function AlignmentStackView({
     [layout, stack.rows.length],
   );
   const drawing = useCallback(
-    (c: Colours, picked: number | null, mark: { start: number; end: number } | null) =>
+    (
+      c: Colours,
+      picked: number | null,
+      mark: { start: number; end: number } | null,
+      faded: ReadonlySet<number>,
+    ) =>
       ({
         stack,
         referenceName,
@@ -132,6 +144,7 @@ export function AlignmentStackView({
         showTrace,
         residues,
         marked: mark,
+        reviewed: faded,
         colours: c,
         charWidth,
         monoFont,
@@ -163,7 +176,7 @@ export function AlignmentStackView({
           end: Math.min(stack.columns, Math.max(1, Math.ceil(left + width - 1e-6))),
         };
       },
-      drawing: () => (colours === null ? null : drawing(colours, null, null)),
+      drawing: () => (colours === null ? null : drawing(colours, null, null, NONE_REVIEWED)),
     }),
     [scroll.left, size.width, charWidth, stack.columns, colours, drawing],
   );
@@ -215,13 +228,13 @@ export function AlignmentStackView({
     el.width = Math.max(1, Math.floor(size.width * dpr));
     el.height = Math.max(1, Math.floor(size.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawStack(ctx, drawing(colours, selectedRow, marked), {
+    drawStack(ctx, drawing(colours, selectedRow, marked, reviewed), {
       left: scroll.left,
       top: scroll.top,
       width: size.width,
       height: size.height,
     });
-  }, [size, scroll, marked, selectedRow, colours, drawing]);
+  }, [size, scroll, marked, selectedRow, colours, drawing, reviewed]);
 
   // The overview.
   useEffect(() => {
@@ -254,8 +267,10 @@ export function AlignmentStackView({
     const tick = Math.max(1, perColumn);
     for (const c of stack.differences) {
       ctx.fillStyle = classColour(colours, classes?.[c] ?? ColumnClass.None);
+      ctx.globalAlpha = reviewed.has(c) ? REVIEWED_DIM : 1;
       ctx.fillRect(c * perColumn, 0, tick, OVERVIEW_HEIGHT);
     }
+    ctx.globalAlpha = 1;
     // Columns where samples disagree: a solid foot under the differences (#124).
     ctx.fillStyle = colours.ink;
     for (const c of disagreement) {
@@ -320,6 +335,7 @@ export function AlignmentStackView({
     colours,
     charWidth,
     contentWidth,
+    reviewed,
   ]);
 
   const jumpFromOverview = (clientX: number): void => {

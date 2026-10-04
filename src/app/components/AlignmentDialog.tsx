@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 
-import type { SeqDocument } from '@/core';
+import type { EditOp, SeqDocument } from '@/core';
 
 import {
   differenceRegions,
@@ -42,6 +42,20 @@ import {
   filterRegions,
   narrows,
 } from '../alignmentFilter';
+import {
+  holdAlignedDocument,
+  inDocumentCase,
+  mapThroughEdits,
+  markedColumns,
+  marksOf,
+  regionKey,
+  type ReviewMark,
+  recordTaken,
+  reviewStateFor,
+  setReviewMark,
+  takeEdit,
+  type TakeResult,
+} from '../alignmentReview';
 import { AlignmentFilter } from './AlignmentFilter';
 import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
@@ -115,11 +129,28 @@ export function AlignmentDialog({
   referenceName,
   samples,
   documentIsRead,
-  document: source,
+  document: shownDocument,
   initialRow,
   onClose,
 }: Props) {
-  const { readConfidentQuality, analysis, orfMinCodons, keyBindings } = useEditorState();
+  const { readConfidentQuality, analysis, orfMinCodons, keyBindings, history } = useEditorState();
+  // What was done with each difference, and the edits taken, kept for the life of this
+  // alignment result (#123). The document it was aligned against is held once it is
+  // checked to hold the reference: it is what the features are drawn from and what a
+  // taken base is written into, even after an edit taken here changed the open one.
+  const [aligned] = useState(() =>
+    documentIsRead ? null : holdAlignedDocument(reference, shownDocument),
+  );
+  const source = aligned ?? shownDocument;
+  const [marks, setMarks] = useState<ReadonlyMap<string, ReviewMark>>(
+    () => new Map(reviewStateFor(reference).marks),
+  );
+  const setMark = useCallback(
+    (key: string, mark: ReviewMark | null): void => {
+      setMarks(setReviewMark(reference, key, mark));
+    },
+    [reference],
+  );
   const [showFeatures, setShowFeatures] = useState(remembered.features);
   const [showOrfs, setShowOrfs] = useState(remembered.orfs);
   const [showTrace, setShowTrace] = useState(remembered.trace);
@@ -165,6 +196,11 @@ export function AlignmentDialog({
       ),
     [reference, samples, shownIndices],
   );
+  const regions = useMemo(() => differenceRegions(stack.differences), [stack.differences]);
+  // The regions marked reviewed or taken, by index, and their columns.
+  const marked = useMemo(() => marksOf(stack, regions, marks), [stack, regions, marks]);
+  const markedCols = useMemo(() => markedColumns(regions, marked), [regions, marked]);
+  const reviewedRegions = useMemo(() => new Set(marked.keys()), [marked]);
   // The ORFs the app has already found in the open document, at its own minimum length.
   const orfs = source !== null && analysis?.doc === source ? analysis.orfs : null;
   const track = useMemo(() => {
@@ -202,8 +238,9 @@ export function AlignmentDialog({
             coverage,
             confidentDifferences(stack, readConfidentQuality),
             source.isCircular ? source.length : 0,
+            markedCols,
           ),
-    [source, stack, coverage, readConfidentQuality],
+    [source, stack, coverage, readConfidentQuality, markedCols],
   );
   const summary = useMemo(() => summariseVerdicts(verdicts), [verdicts]);
   // The features needing a look, differences first; past a handful, the rest are counted.
@@ -244,7 +281,6 @@ export function AlignmentDialog({
   const [focus, setFocus] = useState<{ start: number; end: number; nonce: number } | null>(null);
   const hasFrames = frames.length > 0;
   const hasTrace = stack.rows.some((r) => r.readIndex !== null);
-  const regions = useMemo(() => differenceRegions(stack.differences), [stack.differences]);
   const rows = useMemo(
     () =>
       showList
@@ -271,9 +307,9 @@ export function AlignmentDialog({
         classes,
         confidentFrom: readConfidentQuality,
         pickedRow: selected,
-        reviewed: new Set<number>(),
+        reviewed: reviewedRegions,
       }),
-    [stack, regions, effectiveFilter, classes, readConfidentQuality, selected],
+    [stack, regions, effectiveFilter, classes, readConfidentQuality, selected, reviewedRegions],
   );
   const passingRegions = useMemo(
     () => passing.flatMap((i) => regions[i] ?? []),
@@ -385,6 +421,44 @@ export function AlignmentDialog({
   const stopAt = stop === null ? -1 : passing.indexOf(stop);
   const stopPosition = stopAt < 0 ? null : stopAt;
   const filtering = narrows(effectiveFilter, selected !== null);
+  // The difference stopped at, and what can be done with it (#123).
+  const stopRegion = stop === null ? null : (regions[stop] ?? null);
+  const stopMark = stop === null ? undefined : marked.get(stop);
+  const live = history?.present ?? null;
+  const take = useMemo((): TakeResult | null => {
+    if (stopRegion === null || row === null) return null;
+    if (aligned === null || documentIsRead)
+      return {
+        ok: false,
+        reason: documentIsRead
+          ? 'The document is the read here; there is no document to write into'
+          : 'The document no longer holds the sequence that was aligned; align again',
+      };
+    if (stopMark === 'taken') return { ok: false, reason: 'Already taken into the document' };
+    const review = reviewStateFor(reference);
+    if (live !== (review.latest ?? aligned))
+      return { ok: false, reason: 'The document has changed since; align again to take more' };
+    const result = takeEdit(stack, stopRegion, row, aligned.length, aligned.isCircular);
+    if (!result.ok) return result;
+    const range = mapThroughEdits(review.edits, result.edit);
+    if (range === null) return { ok: false, reason: 'A change already taken overlaps this one' };
+    return { ok: true, edit: { ...range, text: result.edit.text } };
+  }, [stopRegion, row, aligned, documentIsRead, stopMark, live, reference, stack]);
+  const takeIt = (): void => {
+    if (take?.ok !== true || live === null || stopRegion === null) return;
+    const { start, end } = take.edit;
+    const beside = live.sequence.slice(Math.max(0, start - 1), Math.min(live.length, end + 1));
+    const text = inDocumentCase(take.edit.text, beside);
+    const op: EditOp =
+      start === end
+        ? { type: 'insert', position: start, text }
+        : text === ''
+          ? { type: 'delete', range: { start, end } }
+          : { type: 'replace', range: { start, end }, text };
+    editorStore.apply(op, { start, end: start + text.length });
+    recordTaken(reference, { start, end, text }, editorStore.document);
+    setMark(regionKey(stack, stopRegion), 'taken');
+  };
   const shown = row?.result.alignment ?? null;
   const reads =
     samples.length === 1 ? 'one sequence' : `${samples.length.toLocaleString()} sequences`;
@@ -459,6 +533,7 @@ export function AlignmentDialog({
               <AlignmentFilter
                 filter={filter}
                 onFilter={setFilter}
+                reviewed={marked.size}
                 hasDocument={source !== null}
                 picked={row?.name ?? null}
                 confidentFrom={readConfidentQuality}
@@ -711,6 +786,49 @@ export function AlignmentDialog({
               </button>
             )}
           </span>
+          {stopRegion !== null && (
+            <span className="astack-status__stop" role="group" aria-label="This difference">
+              <button
+                type="button"
+                className="button button--small"
+                aria-pressed={stopMark !== undefined}
+                disabled={stopMark === 'taken'}
+                title={
+                  stopMark === 'taken'
+                    ? 'Taken into the document'
+                    : stopMark === 'reviewed'
+                      ? 'Unmark: count this difference again'
+                      : 'Mark this difference reviewed: dimmed, counted apart in the verdict, and skipped by Next unless the filter says otherwise'
+                }
+                onClick={() => {
+                  setMark(
+                    regionKey(stack, stopRegion),
+                    stopMark === 'reviewed' ? null : 'reviewed',
+                  );
+                }}
+              >
+                {stopMark === 'taken' ? 'Taken' : 'Reviewed'}
+              </button>
+              {take !== null && (
+                <button
+                  type="button"
+                  className="button button--small"
+                  disabled={!take.ok}
+                  title={
+                    take.ok
+                      ? `Write ${row?.name ?? ''}'s bases here into the document, as one edit to undo`
+                      : take.reason
+                  }
+                  onClick={takeIt}
+                >
+                  Take {row?.name ?? 'sample'}’s bases
+                </button>
+              )}
+              {take !== null && !take.ok && stopMark !== 'taken' && (
+                <span className="astack-tools__note">{take.reason}</span>
+              )}
+            </span>
+          )}
           {source !== null && (
             <span
               className="astack-legend"
@@ -777,7 +895,19 @@ export function AlignmentDialog({
             )}
           </div>
         )}
-        {showList && <AlignmentDifferencesList rows={rows} current={stop} onPick={pick} />}
+        {showList && (
+          <AlignmentDifferencesList
+            rows={rows}
+            current={stop}
+            marks={marked}
+            onPick={pick}
+            onMark={(r, reviewed) => {
+              const region = regions[r.index];
+              if (region !== undefined)
+                setMark(regionKey(stack, region), reviewed ? 'reviewed' : null);
+            }}
+          />
+        )}
         {showVerdicts && verdicts.length > 0 && (
           <AlignmentVerdictTable
             verdicts={verdicts}
@@ -801,6 +931,7 @@ export function AlignmentDialog({
           residues={showResidues && frames.length > 0 ? frames : null}
           onSelectRow={setSelected}
           focus={focus}
+          reviewed={markedCols}
           handle={stackHandle}
         />
       </div>
