@@ -281,19 +281,33 @@ once the ORFs panel has found them. With no document behind the reference
   Format ▸ Keyboard shortcuts…) go from one difference to the next and wrap
   round at the ends, with a count beside them ("3 of 41"). A run of
   neighbouring differing columns (a 5-base gap, say) is one stop, and the
-  whole run is marked. Beside the count, **List** opens the table of
+  whole run is marked. Beside the count, **Filter** chooses which
+  differences they stop at (see below), **List** opens the table of
   differences described below and **All features** the table of features
   (one at a time), and **Go to** and **Find** open a small
   form under the toolbar (see below), **Export** opens another for
   saving or copying the alignment (see below), and, with more than one
   sample, **Samples** sorts and hides them (see below). At the right, the **Show** group switches **Features**, **ORFs**,
   **Amino acids** and **Trace** on and off; they stay as you left them
-  when you open the window again. The forms under the toolbar (Go to, Find, Export, Samples) close when
+  when you open the window again. The forms under the toolbar (Filter, Go to, Find, Export, Samples) close when
   you click anywhere outside them, on `Esc`, or with **×** at the end of
   their heading; the List and All features
   tables stay open until you press their button again. Under the toolbar, the status row has,
   at the left, the picked sample's score line and buttons, and at the right
   the colour key.
+- **Filter** (beside the count) narrows the differences **‹ Prev** and
+  **Next ›** stop at, for when most of them are poor calls at the ends of
+  reads. **Where** stops only at differences **In a feature** (any feature,
+  a CDS included) or **In a CDS or ORF**, as the shading classes them;
+  **Good quality only** only where a sample carrying the difference has its
+  base there at or above Confident from (a read with no qualities, and a
+  deletion, count as good); **In the picked sample only** only at the
+  differences the picked sample carries (with none picked, every sample
+  counts). They combine: with both of the last two, the picked sample's own
+  base must be good. The count then reads "12 of 41 differences", and "3 of
+  12" on a stop; the button reads **Filter (on)**. The filter only narrows
+  the stops: the overview, the alignment and the List still show every
+  difference. It is remembered between openings like the Show buttons.
 - **Sort and hide samples.** With more than one sample, **Samples** (in the
   toolbar, after Export) opens a small form. **Sort by** orders the rows: **As
   aligned** (the order they were given), **Identity, highest first**,

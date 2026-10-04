@@ -4201,6 +4201,28 @@ button {
   width: 22rem;
 }
 
+.astack-pop--filter {
+  width: 22rem;
+}
+
+/* The Filter popover's switches (#122, #123), one per line under the form. */
+.astack-pop__checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astack-pop__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+}
+
+.astack-pop__check input {
+  margin: 0;
+}
+
 .astack-pop__head {
   display: flex;
   align-items: center;

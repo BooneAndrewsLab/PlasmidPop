@@ -499,3 +499,30 @@ than the toolbar's buttons and read as stray) for the toolbar, joined to
 **List** in one segmented "Tables" group: the two tables are mutually
 exclusive and both are lists of rows to click. It is disabled when there are no
 features. "and N more" still opens it.
+
+## Filtered Next/Previous (#122)
+
+`alignmentFilter.ts` (pure, tested) picks the difference regions the walk
+stops at: `filterRegions` returns indices into `differenceRegions`, and the
+dialog runs `nextDifference` over just those. A region passes when its
+highest column class (`classifyColumns`, so a found ORF counts as a CDS, as
+the shading has it) is at least the one asked for, and when one of the rows
+considered has a differing cell in it that is, if asked, good by the same
+`isGood` the verdict uses (now exported): a deletion and a read with no
+qualities count as good. "Picked sample only" narrows the rows considered to
+the picked one, so with both it is the picked sample's own base that must
+be good, not any sample's. With no sample picked that switch does nothing
+rather than stopping nowhere, and the popover says so; without a document
+"Where" is disabled and treated as Anywhere, so a remembered "In a CDS"
+cannot leave a pasted reference with no stops.
+
+Decisions. The filter narrows the **stops and the counter only**: the
+overview, the body and the List keep every difference, since the List is
+also the record that gets copied into a notebook and a filtered copy would
+silently drop rows. The stop stays a region index, so a row picked in the
+List that the filter leaves out is still marked; the counter then shows the
+count ("12 of 41 differences") instead of a position. The control is a
+**Filter** popover in the toolbar's family (one at a time, click outside,
+Esc) rather than switches in the toolbar, which would wrap it again (#119);
+the button reads **Filter (on)** while it removes anything. The filter is
+remembered between openings with the Show buttons.

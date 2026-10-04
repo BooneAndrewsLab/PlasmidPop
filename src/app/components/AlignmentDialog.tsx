@@ -35,6 +35,14 @@ import {
 import { hiddenNote, shownSamples, type SampleSort } from '../alignmentOrder';
 import { disagreementColumns } from '../alignmentDisagreement';
 import { differenceRows, type DifferenceRow } from '../alignmentDifferences';
+import {
+  counterText,
+  DEFAULT_FILTER,
+  type DifferenceFilter,
+  filterRegions,
+  narrows,
+} from '../alignmentFilter';
+import { AlignmentFilter } from './AlignmentFilter';
 import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentExport } from './AlignmentExport';
@@ -51,8 +59,22 @@ const LEGEND: readonly (readonly [string, string])[] = [
   ['Outside features', 'var(--diff-none)'],
 ];
 
-/** The Show toggles as the last window left them, so reopening does not reset them. */
-const remembered = { features: true, orfs: false, trace: true, residues: false, list: false };
+/** The Show toggles and the filter as the last window left them, so reopening does not reset them. */
+const remembered: {
+  features: boolean;
+  orfs: boolean;
+  trace: boolean;
+  residues: boolean;
+  list: boolean;
+  filter: DifferenceFilter;
+} = {
+  features: true,
+  orfs: false,
+  trace: true,
+  residues: false,
+  list: false,
+  filter: DEFAULT_FILTER,
+};
 
 /** The most features needing a look named on the verification line; past it, "and N more". */
 const MAX_EXCEPTIONS = 5;
@@ -103,6 +125,8 @@ export function AlignmentDialog({
   const [showTrace, setShowTrace] = useState(remembered.trace);
   const [showResidues, setShowResidues] = useState(remembered.residues);
   const [showList, setShowList] = useState(remembered.list);
+  // Which differences Next/Previous stop at (#122).
+  const [filter, setFilter] = useState(remembered.filter);
   // The table of every feature's verdict (#120): per opening, not remembered.
   const [showVerdicts, setShowVerdicts] = useState(false);
   const [verdictOrder, setVerdictOrder] = useState<VerdictOrder>('position');
@@ -113,8 +137,9 @@ export function AlignmentDialog({
       trace: showTrace,
       residues: showResidues,
       list: showList,
+      filter,
     });
-  }, [showFeatures, showOrfs, showTrace, showResidues, showList]);
+  }, [showFeatures, showOrfs, showTrace, showResidues, showList, filter]);
   // Which samples are shown and in what order (#127). Everything below works over the
   // stack of the shown ones, so a hidden sample is out of the verdicts as well.
   const [sort, setSort] = useState<SampleSort>('original');
@@ -234,10 +259,30 @@ export function AlignmentDialog({
         : [],
     [showList, stack, regions, source, orfs, frames, disagreement],
   );
+  // The stops Next/Previous walk: indices into `regions` that pass the filter. Without a
+  // document there are no features, so where a difference falls is not asked.
+  const effectiveFilter = useMemo(
+    () => (source === null ? { ...filter, where: 'any' as const } : filter),
+    [source, filter],
+  );
+  const passing = useMemo(
+    () =>
+      filterRegions(stack, regions, effectiveFilter, {
+        classes,
+        confidentFrom: readConfidentQuality,
+        pickedRow: selected,
+        reviewed: new Set<number>(),
+      }),
+    [stack, regions, effectiveFilter, classes, readConfidentQuality, selected],
+  );
+  const passingRegions = useMemo(
+    () => passing.flatMap((i) => regions[i] ?? []),
+    [passing, regions],
+  );
   const current = useRef(0);
-  // One popover at a time: Go to, Find, Export or Samples.
-  const [popover, setPopover] = useState<SearchMode | 'export' | 'samples' | null>(null);
-  const search = popover === 'export' || popover === 'samples' ? null : popover;
+  // One popover at a time: Go to, Find, Export, Samples or Filter.
+  const [popover, setPopover] = useState<SearchMode | 'export' | 'samples' | 'filter' | null>(null);
+  const search = popover === 'goto' || popover === 'find' ? popover : null;
   const stackHandle = useRef<StackHandle>(null);
   const searchOpen = useRef(false);
   useEffect(() => {
@@ -272,13 +317,13 @@ export function AlignmentDialog({
 
   const go = useCallback(
     (backwards: boolean): void => {
-      const region = nextDifference(regions, current.current, backwards);
+      const region = nextDifference(passingRegions, current.current, backwards);
       if (region === null) return;
       current.current = region.start;
       setStop(regions.findIndex((r) => r.start === region.start));
       setFocus((f) => ({ ...region, nonce: (f?.nonce ?? 0) + 1 }));
     },
-    [regions],
+    [regions, passingRegions],
   );
   // A column span to show from Go to or Find: it is not a difference, so no stop.
   const jump = useCallback((start: number, end: number): void => {
@@ -336,6 +381,10 @@ export function AlignmentDialog({
   }, [onClose, go, nextBinding, translationsBinding, hasFrames]);
 
   const row = selected === null ? null : (stack.rows[selected] ?? null);
+  // The stop's place among those passing the filter; null off a stop or on one it leaves out.
+  const stopAt = stop === null ? -1 : passing.indexOf(stop);
+  const stopPosition = stopAt < 0 ? null : stopAt;
+  const filtering = narrows(effectiveFilter, selected !== null);
   const shown = row?.result.alignment ?? null;
   const reads =
     samples.length === 1 ? 'one sequence' : `${samples.length.toLocaleString()} sequences`;
@@ -366,7 +415,7 @@ export function AlignmentDialog({
             <button
               type="button"
               className={segmentedClass(false)}
-              disabled={regions.length === 0}
+              disabled={passing.length === 0}
               aria-label="Previous difference"
               title={`Previous difference (${formatBinding(withShift(nextBinding))})`}
               onClick={() => {
@@ -378,7 +427,7 @@ export function AlignmentDialog({
             <button
               type="button"
               className={segmentedClass(false)}
-              disabled={regions.length === 0}
+              disabled={passing.length === 0}
               aria-label="Next difference"
               title={`Next difference (${formatBinding(nextBinding)})`}
               onClick={() => {
@@ -389,10 +438,37 @@ export function AlignmentDialog({
             </button>
           </div>
           <span className="astack-tools__counter" aria-live="polite">
-            {stop === null
-              ? `${regions.length.toLocaleString()} ${regions.length === 1 ? 'difference' : 'differences'}`
-              : `${(stop + 1).toLocaleString()} of ${regions.length.toLocaleString()}`}
+            {counterText(passing.length, regions.length, stopPosition)}
           </span>
+          <div className="astack-tools__search">
+            <div className="segmented" role="group" aria-label="Filter">
+              <button
+                type="button"
+                className={segmentedClass(popover === 'filter' || filtering)}
+                aria-pressed={popover === 'filter'}
+                disabled={regions.length === 0}
+                title="Choose which differences Next and Previous stop at"
+                onClick={() => {
+                  setPopover((m) => (m === 'filter' ? null : 'filter'));
+                }}
+              >
+                {filtering ? 'Filter (on)' : 'Filter'}
+              </button>
+            </div>
+            {popover === 'filter' && (
+              <AlignmentFilter
+                filter={filter}
+                onFilter={setFilter}
+                hasDocument={source !== null}
+                picked={row?.name ?? null}
+                confidentFrom={readConfidentQuality}
+                status={counterText(passing.length, regions.length, null)}
+                onClose={() => {
+                  setPopover(null);
+                }}
+              />
+            )}
+          </div>
           <div className="segmented" role="group" aria-label="Tables">
             <button
               type="button"

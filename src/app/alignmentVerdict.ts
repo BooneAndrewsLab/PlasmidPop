@@ -22,7 +22,7 @@ export interface Coverage {
  * `confidentFrom` or better. A gap carries no quality, so a deletion is
  * trusted as the read spanning it.
  */
-function isGood(cell: number, quality: number | undefined, confidentFrom: number): boolean {
+export function isGood(cell: number, quality: number | undefined, confidentFrom: number): boolean {
   if (cell === Cell.Blank || cell === Cell.Padding) return false;
   if (cell === Cell.Deletion || quality === undefined || Number.isNaN(quality)) return true;
   return quality >= confidentFrom;

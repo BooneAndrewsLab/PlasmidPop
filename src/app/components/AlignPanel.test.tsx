@@ -949,6 +949,39 @@ describe('AlignPanel', () => {
       expect(screen.getByRole('button', { name: /Mismatch at 41, Q40/ })).toBeInTheDocument();
     });
 
+    it('lets Next and Previous skip poor differences, the counter counting what is left (#122)', async () => {
+      await alignDropped();
+      fireEvent.click(screen.getByRole('button', { name: 'Large view' }));
+      const dialog = screen.getByRole('dialog');
+      const counter = within(dialog).getByText('2 differences');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Filter' }));
+      const pop = within(dialog).getByRole('group', { name: 'Stop at differences' });
+      const good = within(pop).getByRole('checkbox', { name: /Good quality only \(Q20/ });
+      fireEvent.click(good);
+      expect(counter).toHaveTextContent('1 of 2 differences');
+      expect(within(dialog).getByRole('button', { name: 'Filter (on)' })).toBeInTheDocument();
+      // Next goes to the confident one, and again to it: the poor one is skipped.
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+      expect(counter).toHaveTextContent('1 of 1');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Next difference' }));
+      expect(counter).toHaveTextContent('1 of 1');
+      // The document is there, so where a difference falls can be asked.
+      expect(
+        within(pop).getByRole('combobox', { name: 'Stop at differences where' }),
+      ).toBeEnabled();
+      fireEvent.change(within(pop).getByRole('combobox', { name: 'Stop at differences where' }), {
+        target: { value: 'cds' },
+      });
+      // pRef has no CDS: nothing to stop at, and the buttons say so.
+      expect(within(dialog).getByRole('button', { name: 'Next difference' })).toBeDisabled();
+      fireEvent.change(within(pop).getByRole('combobox', { name: 'Stop at differences where' }), {
+        target: { value: 'any' },
+      });
+      // The filter is remembered between openings; put it back for the tests after.
+      fireEvent.click(good);
+      expect(within(dialog).getByRole('button', { name: 'Filter' })).toBeInTheDocument();
+    });
+
     it('counts and lists differences from the threshold set (#56)', async () => {
       await alignDropped();
       // The Q10 base becomes confident at Q10, and the count follows at once.
