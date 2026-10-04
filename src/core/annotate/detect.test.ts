@@ -875,3 +875,27 @@ describe('overlapLength', () => {
     expect(overlapLength({ start: 90, end: 110 }, { start: 5, end: 20 }, 100, 'linear')).toBe(0);
   });
 });
+
+describe('keepBest ties (mutation survivors)', () => {
+  it('prefers the match on the bases to the one on the translation, before library order', () => {
+    // The same 66 bases, found by their bases as part 1 and by their protein
+    // as part 0, of one type: every earlier rule ties, and part 0 would win
+    // on library order alone.
+    const codon: Record<string, string> = {
+      M: 'ATG',
+      K: 'AAA',
+      T: 'ACC',
+      A: 'GCG',
+      Y: 'TAT',
+      I: 'ATT',
+    };
+    const protein = 'MKTAYIAKTAYIMKTAYIAKTA';
+    const dna = Array.from(protein, (aa) => codon[aa] ?? 'NNN').join('');
+    const byProtein: LibraryPart = { ...part('byProtein', '', 'CDS'), protein };
+    const byBases = part('byBases', dna, 'CDS');
+    const seq = randomDna(seededRandom(77), 120) + dna + randomDna(seededRandom(78), 120);
+    const hits = detectFeatures(seq, 'linear', library(byProtein, byBases));
+    expect(hits.map((h) => h.part)).toEqual([1]);
+    expect(hits[0]?.viaProtein).toBeUndefined();
+  });
+});

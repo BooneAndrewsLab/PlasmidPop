@@ -48,6 +48,7 @@ export const DEFAULT_MIN_IDENTITY = 0.95;
 export const MIN_IDENTITY_CHOICES: readonly number[] = [1, 0.98, 0.95, 0.9];
 
 export function isMinIdentityChoice(value: unknown): value is number {
+  // Stryker disable next-line ConditionalExpression: equivalent, `includes` on the number list is false for any non-number
   return typeof value === 'number' && MIN_IDENTITY_CHOICES.includes(value);
 }
 
@@ -371,13 +372,17 @@ export function detectFeatures(
 
   const onProgress = options.onProgress;
   const seedVisit = (word: number, at: number): void => {
+    // Stryker disable next-line all: performance only, the present-seeds bitmap skips a lookup that would find no list
     if (((index.present[word >>> 3] ?? 0) & (1 << (word & 7))) === 0) return;
     const list = index.seeds.get(word);
+    // Stryker disable next-line all: performance only, a seed with no list has nothing to visit
     if (list === undefined) return;
+    // Stryker disable next-line all: equivalent, the lists hold (entry, start) pairs so the bound is only ever hit on an even length
     for (let k = 0; k + 1 < list.length; k += 2) {
       const e = list[k] ?? 0;
       const start = at - (list[k + 1] ?? 0);
       check(e, start);
+      // Stryker disable next-line all: performance only, seeds of a part with no indel budget are not offered to the gapped pass
       if ((indelBudgets[e] ?? 0) > 0) seeded.push(e, start);
     }
   };
@@ -391,6 +396,7 @@ export function detectFeatures(
           onProgress(at / total);
         },
   );
+  // Stryker disable next-line all: performance only, the gapped pass has nothing to do without seeds
   if (seeded.length > 0) {
     const onFoundDiagonal = (e: number, start: number): boolean =>
       found.has(start * entryCount + e);
@@ -465,30 +471,41 @@ function gappedHits(
     while (to < keys.length && Math.floor((keys[to] ?? 0) / stride) === e) to++;
     const entry = index.entries[e];
     const budget = budgets[e] ?? 0;
+    // Stryker disable next-line all: performance only, a part with no budget holds no indel and an entry is always defined
     if (entry !== undefined && budget > 0) {
       const len = entry.masks.length;
       const width = Math.min(budget, MAX_INDEL);
       const need = seedsAtLeast(len, budget);
       const diagonal = (k: number): number => (keys[k] ?? 0) - e * stride - shift;
       // The band last filled: a window inside it has been looked at.
+      // Stryker disable next-line all: performance only, the band last filled only spares a repeated fill
       let bandLo = -Infinity;
       let bandHi = -Infinity;
       const readings: FeatureHit[] = [];
       let lo = from;
+      // Stryker disable next-line all: performance only, seed windowing
       for (let hi = from; hi < to; hi++) {
+        // Stryker disable next-line all: performance only, seed windowing decides where a banded fill is tried, not what it finds
         while (diagonal(hi) - diagonal(lo) > width) lo++;
+        // Stryker disable next-line all: performance only, the seed count is a prefilter that a fill which finds nothing would agree with
         if (hi - lo + 1 < need) continue;
         const first = diagonal(lo);
         const last = diagonal(hi);
+        // Stryker disable next-line all: performance only, a window inside the band last filled has been looked at
         if (first >= bandLo && last <= bandHi) continue;
         // A copy that substitutions alone explain was found on its own
         // diagonal; an indel is only offered where they cannot.
         let explained = false;
+        // Stryker disable next-line all: performance only, a copy substitutions explain is otherwise read again as a gapped hit and dropped for having no gaps
         for (let d = first; d <= last && !explained; d++) explained = onFoundDiagonal(e, d);
+        // Stryker disable next-line all: performance only, as above
         if (explained) continue;
         const middle = Math.floor((first + last) / 2);
+        // Stryker disable next-line all: performance only, the band last filled only spares a repeated fill
         bandLo = middle - width;
+        // Stryker disable next-line all: performance only, the band last filled only spares a repeated fill
         bandHi = middle + width;
+        // Stryker disable next-line all: performance only, a reading longer than the sequence is dropped again below
         if (len > n) continue;
         const found = alignNearDiagonal(
           target,
@@ -535,6 +552,7 @@ function gappedHits(
 
 /** Readings of one entry, overlapping ones reduced to the one with fewest edits, then first. */
 function fewestEdits(readings: readonly FeatureHit[]): FeatureHit[] {
+  // Stryker disable all: performance only, `keepBest` keeps one hit of a part over the same bases whichever way these were ordered; reducing them here only spares it the rest, and the order and the overlap test decide only which of equal readings goes first
   const edits = (h: FeatureHit): number =>
     h.mismatches + h.ambiguous + (h.insertions ?? 0) + (h.deletions ?? 0);
   const kept: FeatureHit[] = [];
@@ -546,6 +564,7 @@ function fewestEdits(readings: readonly FeatureHit[]): FeatureHit[] {
   }
   return kept;
 }
+// Stryker restore all
 
 /**
  * A gapped hit dropped where a hit of the same part and strand with
@@ -560,6 +579,7 @@ function substitutionsFirst(
   topology: Topology,
 ): FeatureHit[] {
   const isGapped = (h: FeatureHit): boolean => h.insertions !== undefined;
+  // Stryker disable next-line all: performance only, the early return spares the filter below, which returns the same hits where none is gapped
   if (!hits.some(isGapped)) return [...hits];
   const whole = hits.filter(
     (h) => !isGapped(h) && h.partialStart !== true && h.partialEnd !== true,
@@ -630,15 +650,18 @@ function keepBest(
   );
   const kept: FeatureHit[] = [];
   for (const h of ranked) {
+    // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const type = library.parts[h.part]?.type;
     const displaced = kept.some((k) => {
       const shared = overlapLength(k.range, h.range, length, topology);
       if (k.part === h.part) return shared > 0;
       return (
+        // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
         library.parts[k.part]?.type === type && k.identity >= h.identity && shared >= 0.9 * size(h)
       );
     });
     if (!displaced) kept.push(h);
   }
+  // Stryker disable next-line ArithmeticOperator: equivalent, `kept` is already longest first, and the sort is stable
   return kept.sort((x, y) => x.range.start - y.range.start || size(y) - size(x));
 }

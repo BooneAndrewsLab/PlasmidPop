@@ -65,3 +65,37 @@ ProtParam uses 3.55 after every residue. The rerun scored 95.2% overall
 and 95.5% over the 1.7 modules. The initial run also needed room for
 Taq's A-tailing property tests (under a second here, over 10 s
 instrumented).
+
+## detect.ts after 1.10 (#129)
+
+Run on `detect.ts` alone (`npx stryker run --mutate src/core/annotate/detect.ts`,
+from scratch) it scored 79.08% with 126 survivors. The survivors fell into
+the groups the issue guessed, and the triage convention for the ones that
+cannot be killed is a `// Stryker disable next-line <mutators>: <reason>`
+comment in the source, so the reason sits beside the code and the score
+counts only mutants a test could see:
+
+- **Performance only, ignored (about 70 mutants):** the present-seeds
+  bitmap and the seed lists' bounds, the indel-budget filter on seeds, the
+  seed windowing in `gappedHits` (window width, the seed-count prefilter,
+  the band last filled, the diagonal-explained skip), `fewestEdits` as a
+  whole (`keepBest` keeps one hit of a part over the same bases anyway) and
+  `substitutionsFirst`'s early return. Each changes where a banded fill is
+  tried or how many hits reach `keepBest`, not which hit comes out.
+- **Equivalent, ignored:** `?.` on `library.parts[...]` (a hit's part is
+  always in the library), the final sort's size tie-break (the list is
+  already longest first and the sort is stable), `isMinIdentityChoice`'s
+  `typeof` guard.
+- **Shadowed by `keepBest`, tested:** the one tie that can be built is a
+  part found by its bases and another by its translation over the same
+  bases, of one type; the match on the bases must win before library order
+  does.
+
+The rerun scored 88.50% with 55 survivors. What is left is mostly
+`substitutionsFirst`'s filter and the `explained` diagonal check, which
+guard each other (either alone keeps a substitution-only copy ahead of a
+gapped reading of it, so a fixture has to defeat the one and reach the
+other), the seed walk's reset on an ambiguity code (`forEachSeed`), and
+the circular overhang arithmetic in `check` and `gappedHits`, where the
+duplicate is dropped later by `keepBest`. Those are left to a later fixture
+rather than ignored, since a test could in principle see them.
