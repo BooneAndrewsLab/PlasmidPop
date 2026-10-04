@@ -415,6 +415,18 @@ once the ORFs panel has found them. With no document behind the reference
   eight lanes are drawn; the score line counts what did not fit. When the
   document is the read and the reference is the sequence in the box, there is
   no track, since a pasted sequence brings none of its own.
+- A sample that has **features of its own** (an open tab, a GenBank or
+  SnapGene file, or the document when it is the read) gets them drawn in
+  lanes under its row, marked **Own features** beside its name, with the
+  same **Features** button. They are placed through the sample's alignment:
+  each bar sits over the columns its bases aligned to, so a feature the
+  sample carries at another place than the document does stands offset from
+  the bar in the track above, and one the sample lacks has no bar under it.
+  A sample that aligned reversed has its features turned with it, strand
+  included. Only the part of a feature the sample aligned over is drawn; one
+  wholly in a trimmed or unaligned stretch is left out. Hover a bar for its
+  name; up to three lanes per sample, and the status line says how many of
+  the picked sample's features did not fit.
 - The **Amino acids** button (shown when the document has a CDS in the alignment; `Alt+T` in this window, as Translations is in the views) draws a
   strip of residues under the document row and under each sample: the
   document's own, then what the sample's bases make of the same codons, read

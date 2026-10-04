@@ -1,4 +1,4 @@
-import { alignEitherStrand } from '@/core';
+import { alignEitherStrand, createFeature, rangeSegment } from '@/core';
 
 import { stackAlignments } from './alignmentStack';
 import {
@@ -9,9 +9,15 @@ import {
   pictureSize,
   pngScale,
 } from './alignmentExport';
+import { buildSampleTrack } from './alignmentSampleTrack';
 import { ColumnClass } from './alignmentTrack';
 import { finishReadAlignment, prepareReadAlignment } from './readAlignment';
-import { stackLayout, type Colours, type StackDrawing } from './components/alignmentStackDraw';
+import {
+  LANE_HEIGHT,
+  stackLayout,
+  type Colours,
+  type StackDrawing,
+} from './components/alignmentStackDraw';
 
 const reference = 'GATTACAGCTTGACCGTAAGCTAGGCTTACGATCGATTGCAAGTCCGATGCATTGACCTA';
 const plain = { sequence: reference, offset: 0, wrap: null };
@@ -131,5 +137,29 @@ describe('export file names', () => {
       'pUC_19_x-alignment-1-120.svg',
     );
     expect(exportFileName('  ', { start: 4, end: 9 }, 'png')).toBe('alignment-alignment-5-9.png');
+  });
+});
+
+describe("a sample's own features in the picture (#128)", () => {
+  const d = drawingOf(reference.slice(10, 50));
+  const row = d.stack.rows[0];
+  if (row === undefined) throw new Error('no row');
+  const lacZ = createFeature({ type: 'CDS', name: 'lacZ alpha', segments: [rangeSegment(5, 30)] });
+  const own = buildSampleTrack(row, { features: [lacZ], circular: false }, 3);
+  const withOwn: StackDrawing = {
+    ...d,
+    sampleTracks: [own],
+    layout: stackLayout(d.stack, null, false, false, [own]),
+  };
+
+  it('makes the row taller by its lanes', () => {
+    expect(withOwn.layout.contentHeight).toBe(d.layout.contentHeight + LANE_HEIGHT + 2);
+  });
+
+  it('draws the feature under the row, labelled', () => {
+    const svg = alignmentSvg(withOwn, { start: 10, end: 50 }, 'Alignment');
+    expect(svg).toContain('lacZ alpha');
+    expect(svg).toContain('Own features');
+    expect(alignmentSvg(d, { start: 10, end: 50 }, 'Alignment')).not.toContain('lacZ alpha');
   });
 });

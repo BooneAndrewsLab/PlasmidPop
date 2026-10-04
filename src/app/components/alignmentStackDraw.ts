@@ -123,7 +123,11 @@ function paintDifference(
   ctx.globalAlpha = 1;
 }
 
-/** The feature track: bars with arrows for strand, names kept in view, ORFs outlined. */
+/**
+ * A feature track: bars with arrows for strand, names kept in view, ORFs
+ * outlined. `top` is where its first lane starts: under the ruler for the
+ * reference's track, under a row for a sample's own (#128).
+ */
 function drawTrack(
   g: StackContext,
   t: Track,
@@ -132,6 +136,7 @@ function drawTrack(
   firstColumn: number,
   lastColumn: number,
   xOf: (column: number) => number,
+  top: number,
 ): void {
   g.font = sansFontOf(FONT_SIZE - 1);
   g.textBaseline = 'middle';
@@ -139,7 +144,7 @@ function drawTrack(
   for (const item of t.items) {
     if (item.end <= firstColumn || item.start >= lastColumn) continue;
     const { annotation: a } = item;
-    const y = RULER_HEIGHT + item.lane * LANE_HEIGHT + 1;
+    const y = top + item.lane * LANE_HEIGHT + 1;
     let labelled = false;
     // The pieces of a join are tied by a line through the gaps.
     for (let k = 1; k < item.spans.length; k++) {
@@ -267,11 +272,17 @@ export interface StackLayout {
   readonly contentHeight: number;
 }
 
+/** The height of a sample's own feature lanes under its row (#128): none without one. */
+export function sampleTrackHeight(t: Track | null | undefined): number {
+  return t == null || t.lanes === 0 ? 0 : t.lanes * LANE_HEIGHT + 2;
+}
+
 export function stackLayout(
   stack: Stack,
   track: Track | null,
   hasResidues: boolean,
   showTrace: boolean,
+  sampleTracks: readonly (Track | null)[] | null = null,
 ): StackLayout {
   const trackHeight = track === null ? 0 : track.lanes * LANE_HEIGHT + (track.lanes > 0 ? 4 : 0);
   const aaHeight = hasResidues ? AA_HEIGHT : 0;
@@ -280,7 +291,11 @@ export function stackLayout(
   let y = 0;
   stack.rows.forEach((row, r) => {
     tops[r] = y;
-    y += ROW_HEIGHT + aaHeight + (showTrace && row.readIndex !== null ? TRACE_HEIGHT : 0);
+    y +=
+      ROW_HEIGHT +
+      aaHeight +
+      sampleTrackHeight(sampleTracks?.[r]) +
+      (showTrace && row.readIndex !== null ? TRACE_HEIGHT : 0);
   });
   tops[stack.rows.length] = y;
   return {
@@ -312,6 +327,8 @@ export interface StackDrawing {
   readonly confidentFrom: number;
   readonly selectedRow: number | null;
   readonly track: Track | null;
+  /** Each row's sample's own features (#128), by row; null where it has none. */
+  readonly sampleTracks?: readonly (Track | null)[] | null;
   readonly classes: Uint8Array | null;
   readonly disagreement: readonly number[];
   readonly disagreeing: ReadonlySet<number>;
@@ -347,6 +364,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     confidentFrom,
     selectedRow,
     track,
+    sampleTracks,
     classes,
     disagreement,
     disagreeing,
@@ -467,6 +485,12 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
         row,
       );
     }
+    const own = sampleTracks?.[r] ?? null;
+    const ownHeight = sampleTrackHeight(own);
+    if (own !== null && ownHeight > 0) {
+      drawTrack(ctx, own, colours, monoFont, first, last, x, y + ROW_HEIGHT + aaHeight + 1);
+    }
+    const traceTop = y + ROW_HEIGHT + aaHeight + ownHeight;
     if (showTrace && row.readIndex !== null && row.result.trace !== null) {
       // The chromatogram under the row: each base's peak under its letter.
       const bases: TraceBaseAt[] = [];
@@ -480,12 +504,12 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
       }
       ctx.save();
       ctx.beginPath();
-      ctx.rect(NAME_WIDTH, y + ROW_HEIGHT + aaHeight, view.width - NAME_WIDTH, TRACE_HEIGHT);
+      ctx.rect(NAME_WIDTH, traceTop, view.width - NAME_WIDTH, TRACE_HEIGHT);
       ctx.clip();
       drawTrace(ctx, {
         read: row.result.trace,
         bases,
-        top: y + ROW_HEIGHT + aaHeight + 2,
+        top: traceTop + 2,
         height: TRACE_HEIGHT - 4,
         charWidth,
         colors: colours.trace,
@@ -548,7 +572,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     const top = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
     drawResidues(ctx, residues, colours, monoFont, first, last, x, charWidth, top, null);
   }
-  if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x);
+  if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x, RULER_HEIGHT);
   ctx.restore();
 
   // The names, pinned.
@@ -583,6 +607,13 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     const y = headerHeight + (tops[r] ?? 0) - view.top;
     ctx.fillStyle = r === selectedRow ? colours.accent : colours.ink;
     ctx.fillText(clip(stack.rows[r]?.name ?? ''), 8, y + ROW_HEIGHT / 2);
+    if (sampleTrackHeight(sampleTracks?.[r]) > 0) {
+      // Its own features' lanes, told from the reference's track above.
+      ctx.fillStyle = colours.muted;
+      ctx.font = sansFontOf(FONT_SIZE - 1);
+      ctx.fillText('Own features', 16, y + ROW_HEIGHT + aaHeight + LANE_HEIGHT / 2 + 2);
+      ctx.font = sansFontOf(FONT_SIZE + 1);
+    }
   }
   ctx.restore();
   ctx.strokeStyle = colours.line;

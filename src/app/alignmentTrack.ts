@@ -123,11 +123,32 @@ export function buildTrack(
   maxLanes: number,
 ): Track {
   const columns = columnsOfIndex(stack);
-  const placed = annotations.flatMap((annotation) => {
-    const spans = spansOf(stack, columns, annotation.ranges, period);
+  return packTrack(
+    annotations.map((annotation) => ({
+      annotation,
+      spans: spansOf(stack, columns, annotation.ranges, period),
+    })),
+    maxLanes,
+  );
+}
+
+/**
+ * Annotations already mapped to their column spans, packed into lanes: the
+ * features in the first ones, the ORFs under them. One with no span is not
+ * in the alignment and is dropped; past `maxLanes` one is left out and
+ * counted in `hidden`. Shared by the reference's track and each sample's
+ * own (#128).
+ */
+export function packTrack(
+  mapped: readonly {
+    readonly annotation: TrackAnnotation;
+    readonly spans: readonly ColumnSpan[];
+  }[],
+  maxLanes: number,
+): Track {
+  const placed = mapped.flatMap(({ annotation, spans }) => {
     const first = spans[0];
-    const last = spans[spans.length - 1];
-    if (first === undefined || last === undefined) return [];
+    if (first === undefined) return [];
     return [{ annotation, spans, start: first.start, end: Math.max(...spans.map((s) => s.end)) }];
   });
   const items: TrackItem[] = [];

@@ -33,7 +33,7 @@ also tries the range shifted by its length, which is how a feature over the
 origin appears at both ends of a read that runs through it). Annotations are
 packed into lanes by first fit, features above ORFs, capped at eight.
 `AlignmentStackView` pins the track between the ruler and the reference row.
-Not yet: the other sequence's own features on its row.
+A sample's own features on its row came with #128 (below).
 
 **Difference colours (#104):** `classifyColumns` in `alignmentTrack.ts`
 gives every stack column a class, the highest of the annotations covering
@@ -598,3 +598,48 @@ Checked by eye: an `SvgContext` render of a two-row stack with a reviewed
 deletion and mismatch beside an unreviewed one, rasterised with rsvg (the
 reviewed ones clearly fainter, the kind bars too). The status-row buttons
 and the List's box were not looked at in a browser.
+
+## A sample's own features on its row (#128)
+
+**What carries them.** A `SequenceRecord` in the Align panel keeps the
+features of the document it came from (a GenBank or SnapGene record in the
+box, a file, an open tab); a raw paste or FASTA has none. They reach the
+window as `StackSample.features` (`SampleFeatures`: the features and
+whether the sample is circular): the single result keeps them on
+`ShownAlignment.sampleFeatures`, a batch keeps one per record index beside
+its rows, and when the document is the read its own features are the
+sample's. `ReadAlignment` is unchanged; features are not the worker's
+business.
+
+**Mapping.** `alignmentSampleTrack.ts` (pure, tested). `sampleColumns`
+lists the column of each of the row's bases in the read's numbering as
+shown (`startB + offsetB`, counting the row's non-gap characters), which
+needs no trace, unlike `readIndex`. A feature range in the sample's own
+coordinates is mirrored (`L - end, L - start`) when the sample aligned
+reversed, and its strand flipped, since the row shows the reverse
+complement. A circular sample tries the range shifted by `±L`, as
+`spansOf` does for the reference, so a feature written over its origin is
+found at both ends of the stretch. Each range is clipped to the aligned
+bases and becomes the columns of its first and last base, so the sample's
+own insertions inside it are covered; one with no aligned base is dropped
+before packing and takes no lane. Lane packing is the reference track's,
+split out of `buildTrack` as `packTrack`; features only (no ORFs are found
+in a sample), `source` left out, at most `MAX_SAMPLE_LANES` (3) per row.
+
+**Drawing.** Under the row and its residue strip, above the trace: the
+lanes add `sampleTrackHeight` to the row in `stackLayout`, so `tops`,
+picking and the export follow without change. `drawTrack` takes the top of
+its first lane, so the same bars, arrows and labels serve both tracks; the
+name column says "Own features" beside the lanes. Hovering a bar names it
+("Sample feature: …"). Decision: **the Features button switches both**,
+the reference's track and every sample's own, rather than a fourth Show
+button; it now also appears when only the samples have features (the
+document is the read). Hidden counts: the status line names how many of
+the picked sample's own did not fit, rather than a sum over 96 rows.
+
+Not done: a sample's features take no part in the verdicts, classes or
+difference colours, which stay the reference's; a sample's ORFs are not
+found. Checked by eye: an `SvgContext` export of a three-row stack (a
+sample whose CDS sits five bases off the document's, a reversed sample, a
+sample without features), rasterised with rsvg; the canvas in a browser was
+not looked at.

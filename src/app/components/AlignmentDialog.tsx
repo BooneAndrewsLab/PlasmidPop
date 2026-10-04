@@ -17,6 +17,7 @@ import {
   countByClass,
   differencesText,
 } from '../alignmentTrack';
+import { buildSampleTrack, MAX_SAMPLE_LANES } from '../alignmentSampleTrack';
 import { alignedRegionInDocument, type ReferenceInput } from '../readAlignment';
 import { formatBinding, matchesBinding, resolveBindings, withShift } from '../keyBindings';
 import { editorStore } from '../state/editorStore';
@@ -211,6 +212,17 @@ export function AlignmentDialog({
     );
     return buildTrack(stack, annotations, source.isCircular ? source.length : 0, MAX_LANES);
   }, [source, stack, showFeatures, showOrfs, orfs]);
+  // Each sample's own features under its row, with the Features box (#128).
+  const sampleTracks = useMemo(() => {
+    if (!showFeatures) return null;
+    const tracks = stack.rows.map((row, k) => {
+      const own = samples[shownIndices[k] ?? -1]?.features;
+      return own === undefined || own.features.length === 0
+        ? null
+        : buildSampleTrack(row, own, MAX_SAMPLE_LANES);
+    });
+    return tracks.some((t) => t !== null && t.lanes > 0) ? tracks : null;
+  }, [showFeatures, stack, samples, shownIndices]);
   // Where each column falls in the document, whatever the Features and ORFs boxes show (#104).
   const classes = useMemo(
     () =>
@@ -281,6 +293,9 @@ export function AlignmentDialog({
   const [focus, setFocus] = useState<{ start: number; end: number; nonce: number } | null>(null);
   const hasFrames = frames.length > 0;
   const hasTrace = stack.rows.some((r) => r.readIndex !== null);
+  const samplesHaveFeatures = samples.some((s) => (s.features?.features.length ?? 0) > 0);
+  // Features of a picked sample's own left out past its lanes (#128).
+  const ownHidden = selected === null ? 0 : (sampleTracks?.[selected]?.hidden ?? 0);
   const rows = useMemo(
     () =>
       showList
@@ -679,25 +694,31 @@ export function AlignmentDialog({
               )}
             </div>
           )}
-          {(source !== null || hasTrace) && (
+          {(source !== null || hasTrace || samplesHaveFeatures) && (
             <div className="segmented astack-tools__show" role="group" aria-label="Show">
+              {(source !== null || samplesHaveFeatures) && (
+                <button
+                  type="button"
+                  className={segmentedClass(showFeatures)}
+                  aria-pressed={showFeatures}
+                  title={
+                    track !== null && track.hidden > 0
+                      ? `${track.hidden} lanes not shown`
+                      : source === null
+                        ? "Each sample's own features under its row"
+                        : samplesHaveFeatures
+                          ? "The features above the reference, and each sample's own under its row"
+                          : 'The features above the reference'
+                  }
+                  onClick={() => {
+                    setShowFeatures((on) => !on);
+                  }}
+                >
+                  Features
+                </button>
+              )}
               {source !== null && (
                 <>
-                  <button
-                    type="button"
-                    className={segmentedClass(showFeatures)}
-                    aria-pressed={showFeatures}
-                    title={
-                      track !== null && track.hidden > 0
-                        ? `${track.hidden} lanes not shown`
-                        : 'The features above the reference'
-                    }
-                    onClick={() => {
-                      setShowFeatures((on) => !on);
-                    }}
-                  >
-                    Features
-                  </button>
                   <button
                     type="button"
                     className={segmentedClass(showOrfs)}
@@ -755,6 +776,9 @@ export function AlignmentDialog({
                 ? `${differencesText(stack.differences.length, counts)}. Click a name, or use ↑ and ↓, to see a sample's score.`
                 : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
               {track !== null && track.hidden > 0 ? ` · ${track.hidden} lanes not shown` : ''}
+              {ownHidden > 0
+                ? ` · ${ownHidden.toLocaleString()} of its own ${ownHidden === 1 ? 'feature' : 'features'} not shown`
+                : ''}
               {hidden.size > 0 ? ` · ${hidden.size.toLocaleString()} hidden` : ''}
             </span>
             {row !== null && pickedSample !== null && stack.rows.length > 1 && (
@@ -924,6 +948,7 @@ export function AlignmentDialog({
           confidentFrom={readConfidentQuality}
           selectedRow={selected}
           track={track}
+          sampleTracks={sampleTracks}
           classes={classes}
           coverage={coverage}
           disagreement={disagreement}

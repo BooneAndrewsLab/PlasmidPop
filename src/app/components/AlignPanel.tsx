@@ -4,6 +4,7 @@ import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type AlignmentMode,
   type Alphabet,
+  type Feature,
   type Range,
   type ReadDifference,
   type SeqDocument,
@@ -33,6 +34,8 @@ import {
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { BATCH_LIMIT, type BatchRow, runReadBatch } from '../readBatch';
+import type { StackSample } from '../alignmentStack';
+import type { SampleFeatures } from '../alignmentSampleTrack';
 import { AlignmentDialog } from './AlignmentDialog';
 import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 import { ReadBatchList } from './ReadBatchList';
@@ -50,6 +53,21 @@ interface SequenceRecord {
   readonly read?: SequencingRead;
   /** The file it came from, when several files were loaded together (#106). */
   readonly file?: string;
+  /** Its own features, for a GenBank or SnapGene record or an open tab (#128). */
+  readonly features?: readonly Feature[];
+}
+
+/** A record's own features, kept only when it has some (#128). */
+function featuresOf(d: SeqDocument): { readonly features?: readonly Feature[] } {
+  const all = d.features.all();
+  return all.length === 0 ? {} : { features: all };
+}
+
+/** What a sample brings to the large view's rows (#128), from the record it was aligned as. */
+function sampleFeaturesOf(r: SequenceRecord): { readonly features?: SampleFeatures } {
+  return r.features === undefined
+    ? {}
+    : { features: { features: r.features, circular: r.circular } };
 }
 
 type Records =
@@ -69,6 +87,7 @@ function readRecords(text: string, alphabet: Alphabet = 'nucleotide'): Records {
         name: d.name,
         sequence: d.sequence.toString(),
         circular: d.isCircular,
+        ...featuresOf(d),
       }));
       return { ok: true, records };
     }
@@ -117,6 +136,7 @@ async function readFile(file: File): Promise<LoadedFile> {
     sequence: d.sequence.toString(),
     circular: d.isCircular,
     ...(d.read === null ? {} : { read: d.read }),
+    ...featuresOf(d),
   }));
   return { text, records };
 }
@@ -366,6 +386,8 @@ interface ShownAlignment extends ReadAlignment {
   readonly docIsRead: { readonly referenceName: string } | null;
   /** What it was aligned to, for the large view (#103). */
   readonly reference: ReferenceInput;
+  /** The sample's own features for its row in the large view (#128): the record's, or the document's when it is the read. */
+  readonly sampleFeatures: { readonly features?: SampleFeatures };
 }
 
 export function AlignPanel({ doc }: Props) {
@@ -407,6 +429,8 @@ export function AlignPanel({ doc }: Props) {
     readonly total: number;
     readonly cancelled: boolean;
     readonly reference: ReferenceInput;
+    /** Each record's own features, by its index, for the large view's rows (#128). */
+    readonly features: readonly { readonly features?: SampleFeatures }[];
   } | null>(null);
   /** The file index of the batch row whose alignment is shown. */
   const [batchPicked, setBatchPicked] = useState<number | null>(null);
@@ -416,7 +440,7 @@ export function AlignPanel({ doc }: Props) {
     readonly referenceName: string;
     readonly documentIsRead: boolean;
     readonly document: SeqDocument | null;
-    readonly samples: readonly { readonly name: string; readonly result: ReadAlignment }[];
+    readonly samples: readonly StackSample[];
     readonly initialRow?: number;
   } | null>(null);
 
@@ -464,6 +488,7 @@ export function AlignPanel({ doc }: Props) {
       sequence: d.sequence.toString(),
       circular: d.isCircular,
       ...(d.read === null ? {} : { read: d.read }),
+      ...featuresOf(d),
     };
     setText(writeFastaRecords([d]));
     setLoaded({ text: writeFastaRecords([d]), records: [record] });
@@ -618,7 +643,13 @@ export function AlignPanel({ doc }: Props) {
     setProgress(0);
     setResult(null);
     setBatchPicked(null);
-    setBatch({ rows: [], total: records.length, cancelled: false, reference });
+    setBatch({
+      rows: [],
+      total: records.length,
+      cancelled: false,
+      reference,
+      features: records.map(sampleFeaturesOf),
+    });
     runReadBatch(
       records.map((r) => ({
         name: several ? `${r.name} (${r.file ?? ''})` : r.name,
@@ -693,6 +724,14 @@ export function AlignPanel({ doc }: Props) {
     }
     const { job } = prepared;
     const shownAs = docIsRead ? { referenceName: record.name } : null;
+    const sampleFeatures = docIsRead
+      ? sampleFeaturesOf({
+          name: doc.name,
+          sequence: '',
+          circular: doc.isCircular,
+          ...featuresOf(doc),
+        })
+      : sampleFeaturesOf(record);
     analytics.track('align', 'run', mode);
     if (docIsRead) analytics.trackOnce('align', 'document-read');
     setAlignedWith(optionsKey);
@@ -711,7 +750,12 @@ export function AlignPanel({ doc }: Props) {
       )
       .then((best) => {
         setResultKey((k) => k + 1);
-        setResult({ ...finishReadAlignment(job, best), docIsRead: shownAs, reference });
+        setResult({
+          ...finishReadAlignment(job, best),
+          docIsRead: shownAs,
+          reference,
+          sampleFeatures,
+        });
       })
       .catch((e: unknown) => {
         if (e instanceof AnalysisCancelledError) return;
@@ -731,7 +775,11 @@ export function AlignPanel({ doc }: Props) {
       referenceName: doc.name,
       documentIsRead: false,
       document: doc,
-      samples: aligned.map((r) => ({ name: r.name, result: r.result })),
+      samples: aligned.map((r) => ({
+        name: r.name,
+        result: r.result,
+        ...batch.features[r.index],
+      })),
       ...(index === undefined ? {} : { initialRow: aligned.findIndex((r) => r.index === index) }),
     });
   };
@@ -1059,7 +1107,13 @@ export function AlignPanel({ doc }: Props) {
                   referenceName: result.docIsRead?.referenceName ?? doc.name,
                   documentIsRead: result.docIsRead !== null,
                   document: result.docIsRead === null ? doc : null,
-                  samples: [{ name: result.docIsRead === null ? 'Sequence' : doc.name, result }],
+                  samples: [
+                    {
+                      name: result.docIsRead === null ? 'Sequence' : doc.name,
+                      result,
+                      ...result.sampleFeatures,
+                    },
+                  ],
                 });
               }}
             />

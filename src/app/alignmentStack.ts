@@ -1,3 +1,4 @@
+import type { SampleFeatures } from './alignmentSampleTrack';
 import type { ReadAlignment, ReferenceInput } from './readAlignment';
 
 /**
@@ -13,6 +14,8 @@ import type { ReadAlignment, ReferenceInput } from './readAlignment';
 export interface StackSample {
   readonly name: string;
   readonly result: ReadAlignment;
+  /** The sample's own features, when it is a document that has them (#128). */
+  readonly features?: SampleFeatures;
 }
 
 /** How one sample stands against the reference in one column. */

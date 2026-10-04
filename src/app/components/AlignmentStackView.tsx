@@ -12,7 +12,7 @@ import {
 import { measureCharWidth, monoFontOf } from '@/view/linear';
 
 import { type Stack } from '../alignmentStack';
-import { ColumnClass, itemAt, type Track } from '../alignmentTrack';
+import { ColumnClass, itemAt, type Track, type TrackItem } from '../alignmentTrack';
 import { coverageBand, type Coverage } from '../alignmentVerdict';
 import type { ResidueFrame } from '../alignmentResidues';
 import type { ColumnRange } from '../alignmentText';
@@ -23,6 +23,7 @@ import {
   NAME_WIDTH,
   OVERVIEW_HEIGHT,
   REVIEWED_DIM,
+  ROW_HEIGHT,
   RULER_HEIGHT,
   classColour,
   drawStack,
@@ -54,6 +55,8 @@ interface Props {
   readonly selectedRow: number | null;
   /** The reference's features and ORFs, drawn between the ruler and the reference row; null for none. */
   readonly track: Track | null;
+  /** Each row's sample's own features, drawn under its row (#128); null for none. */
+  readonly sampleTracks?: readonly (Track | null)[] | null;
   /**
    * Per column, a `ColumnClass`: where it falls in the reference document,
    * which colours a difference (#104); null when the reference has no
@@ -91,6 +94,7 @@ export function AlignmentStackView({
   confidentFrom,
   selectedRow,
   track,
+  sampleTracks = null,
   classes,
   coverage,
   disagreement,
@@ -114,8 +118,9 @@ export function AlignmentStackView({
   const monoFont = monoFontOf(FONT_SIZE);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
   const layout = useMemo(
-    () => stackLayout(stack, track, residues !== null && residues.length > 0, showTrace),
-    [stack, track, residues, showTrace],
+    () =>
+      stackLayout(stack, track, residues !== null && residues.length > 0, showTrace, sampleTracks),
+    [stack, track, residues, showTrace, sampleTracks],
   );
   const { headerHeight, tops, contentHeight } = layout;
   const [hover, setHover] = useState<string | null>(null);
@@ -125,6 +130,22 @@ export function AlignmentStackView({
     (y: number): number => rowAtOffset(layout, stack.rows.length, y),
     [layout, stack.rows.length],
   );
+  /** The feature under `y` (on the canvas) at `column`: the reference's track, or a row's own lanes (#128). */
+  const trackItemAt = (y: number, column: number): { item: TrackItem; own: boolean } | null => {
+    if (y < headerHeight) {
+      if (track === null) return null;
+      const lane = Math.floor((y - RULER_HEIGHT) / LANE_HEIGHT);
+      const item = lane >= 0 && lane < track.lanes ? itemAt(track, lane, column) : null;
+      return item === null ? null : { item, own: false };
+    }
+    const r = rowAt(y - headerHeight + scroll.top);
+    const own = r < 0 ? null : (sampleTracks?.[r] ?? null);
+    if (own === null) return null;
+    const below = y - headerHeight + scroll.top - (tops[r] ?? 0) - ROW_HEIGHT - layout.aaHeight - 1;
+    const lane = Math.floor(below / LANE_HEIGHT);
+    const item = lane >= 0 && lane < own.lanes ? itemAt(own, lane, column) : null;
+    return item === null ? null : { item, own: true };
+  };
   const drawing = useCallback(
     (
       c: Colours,
@@ -138,6 +159,7 @@ export function AlignmentStackView({
         confidentFrom,
         selectedRow: picked,
         track,
+        sampleTracks,
         classes,
         disagreement,
         disagreeing,
@@ -155,6 +177,7 @@ export function AlignmentStackView({
       referenceName,
       confidentFrom,
       track,
+      sampleTracks,
       classes,
       disagreement,
       disagreeing,
@@ -406,18 +429,15 @@ export function AlignmentStackView({
             style={{ width: size.width, height: size.height }}
             title={hover ?? undefined}
             onPointerMove={(e) => {
-              if (track === null) return;
               const rect = e.currentTarget.getBoundingClientRect();
-              const lane = Math.floor((e.clientY - rect.top - RULER_HEIGHT) / LANE_HEIGHT);
               const x = e.clientX - rect.left;
-              const item =
-                lane >= 0 && lane < track.lanes && x >= NAME_WIDTH
-                  ? itemAt(track, lane, Math.floor((x - NAME_WIDTH + scroll.left) / charWidth))
-                  : null;
+              const y = e.clientY - rect.top;
+              const column = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
+              const item = x < NAME_WIDTH ? null : trackItemAt(y, column);
               const text =
                 item === null
                   ? null
-                  : `${item.annotation.name} (${item.annotation.type}, ${item.annotation.strand} strand)`;
+                  : `${item.own ? 'Sample feature: ' : ''}${item.item.annotation.name} (${item.item.annotation.type}, ${item.item.annotation.strand} strand)`;
               if (text !== hover) setHover(text);
             }}
             onClick={(e) => {
