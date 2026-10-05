@@ -280,6 +280,25 @@ describe('overhangWarnings', () => {
     expect(texts(['AANG'])).toEqual(['AANG']);
     expect(texts(['AATG', 'GCTT', 'CGCT'])).toEqual([]);
   });
+
+  it('names an overhang that stands at two junctions (#144)', () => {
+    const warned = overhangWarnings(['AGGA', 'AGGA', 'TTCG']);
+    expect(warned.map((w) => w.overhangs)).toEqual([['AGGA', 'AGGA']]);
+    expect(warned[0]?.text).toBe(
+      'AGGA stands at two junctions, so the parts at those junctions can swap.',
+    );
+    // A palindrome twice: named as one, and as standing twice.
+    expect(overhangWarnings(['GATC', 'GATC']).map((w) => w.overhangs)).toEqual([
+      ['GATC'],
+      ['GATC'],
+      ['GATC', 'GATC'],
+    ]);
+    // An ambiguity code that could be the other overhang.
+    expect(overhangWarnings(['AGGN', 'AGGA']).map((w) => w.text)).toEqual([
+      'AGGN has an ambiguity code, so it pairs with every overhang it could stand for.',
+      'AGGN and AGGA can be the same overhang, so the parts at those junctions can swap.',
+    ]);
+  });
 });
 
 describe('overhangsMatch', () => {

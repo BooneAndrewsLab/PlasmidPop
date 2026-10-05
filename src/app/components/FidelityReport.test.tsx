@@ -54,6 +54,21 @@ describe('FidelityReport (#68)', () => {
     );
   });
 
+  it('names a mis-join charged to both its junctions once (#144)', () => {
+    render(<FidelityReport overhangs={['AAAA', 'AAAT']} table={TABLE} />);
+    const worst = within(screen.getByRole('list', { name: 'Worst overhang pairs' }));
+    expect(worst.getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('does not score a set whose junctions can be one another (#144)', () => {
+    render(<FidelityReport overhangs={['AAAA', 'TTTT', 'AAAT']} table={TABLE} />);
+    expect(screen.getByText('Fidelity not scored')).toBeInTheDocument();
+    expect(
+      screen.getByText(/AAAA and TTTT can be the same junction, so the parts there can go/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Fidelity \d/)).not.toBeInTheDocument();
+  });
+
   it('says when nothing mis-joins, and which overhangs it could not score', () => {
     render(<FidelityReport overhangs={['GGCC', 'CCCC']} table={TABLE} />);
     expect(screen.getByText(/Fidelity 100 %/)).toBeInTheDocument();

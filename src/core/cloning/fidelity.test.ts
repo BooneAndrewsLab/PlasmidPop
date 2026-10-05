@@ -105,8 +105,9 @@ describe('setFidelity', () => {
 
   it('leaves out an overhang the table does not cover, and scores the rest', () => {
     const { table } = tableOf(['AAAA', 'TTTT'], { 'AAAA/TTTT': 10 });
-    const scored = setFidelity(['AAAA', 'NNNN', 'AAA'], table);
-    expect(scored.unknown).toEqual(['NNNN', 'AAA']);
+    // ACNG could not be AAAA either way round; NNNN could, and is #144's.
+    const scored = setFidelity(['AAAA', 'ACNG', 'AAA'], table);
+    expect(scored.unknown).toEqual(['ACNG', 'AAA']);
     expect(scored.junctions.map((j) => j.overhang)).toEqual(['AAAA']);
     expect(scored.fidelity).toBe(1);
   });
@@ -116,6 +117,60 @@ describe('setFidelity', () => {
     expect(setFidelity([], table).fidelity).toBe(1);
     const never = setFidelity(['ACGT'], table);
     expect(never.junctions[0]).toMatchObject({ onTarget: 0, offTarget: 0, fidelity: 1 });
+  });
+});
+
+describe('setFidelity on a set that is not one (#144)', () => {
+  // Two clean junctions, GGAG/CTCC and AATG/CATT, plus a third, AGGT/ACCT.
+  const { table } = tableOf(['GGAG', 'CTCC', 'AATG', 'CATT', 'AGGT', 'ACCT', 'GATC'], {
+    'GGAG/CTCC': 100,
+    'AATG/CATT': 1000,
+    'AGGT/ACCT': 1000,
+    'GATC/GATC': 1000,
+    'GGAG/CATT': 1,
+  });
+
+  it('scores a clean set near one, and names no ambiguity', () => {
+    const clean = setFidelity(['GGAG', 'AATG', 'AGGT'], table);
+    expect(clean.fidelity).toBeCloseTo((100 / 101) * (1000 / 1001));
+    expect(clean.ambiguous).toEqual([]);
+  });
+
+  it('is zero when one junction is another read the other way round', () => {
+    const turned = setFidelity(['GGAG', 'CTCC', 'AATG', 'AGGT'], table);
+    expect(turned.fidelity).toBe(0);
+    expect(turned.ambiguous).toEqual([['GGAG', 'CTCC']]);
+  });
+
+  it('is zero when the same overhang stands at two junctions', () => {
+    const twice = setFidelity(['GGAG', 'GGAG', 'AATG', 'AGGT'], table);
+    expect(twice.fidelity).toBe(0);
+    expect(twice.ambiguous).toEqual([['GGAG', 'GGAG']]);
+    // A palindrome twice is the same flaw; once, it is only a palindrome.
+    expect(setFidelity(['GATC', 'GATC'], table).ambiguous).toEqual([['GATC', 'GATC']]);
+    expect(setFidelity(['GATC', 'AATG'], table).ambiguous).toEqual([]);
+  });
+
+  it('counts an ambiguity code that could be another junction, either way round', () => {
+    // GGAN could be GGAG; CTCN turned around is NGAG, which could be too.
+    expect(setFidelity(['GGAG', 'GGAN', 'AATG'], table)).toMatchObject({
+      fidelity: 0,
+      ambiguous: [['GGAG', 'GGAN']],
+    });
+    expect(setFidelity(['GGAG', 'NTCC'], table).ambiguous).toEqual([['GGAG', 'NTCC']]);
+    expect(setFidelity(['GGAG', 'NNNN'], table).ambiguous).toEqual([['GGAG', 'NNNN']]);
+    // An N that cannot be either is not a collision, and blunt ends are none.
+    expect(setFidelity(['GGAG', 'AATN'], table).ambiguous).toEqual([]);
+    expect(setFidelity(['GGAG', '', ''], table).ambiguous).toEqual([]);
+  });
+
+  it('names one mis-join once, at the rate of the junction it costs most', () => {
+    // GGAG joined CATT once: charged to both junctions, it is a hundredth
+    // of GGAG's ligations and a thousandth of AATG's, and listed once.
+    const scored = setFidelity(['AATG', 'GGAG'], table);
+    expect(scored.worst).toHaveLength(1);
+    expect(scored.worst[0]).toMatchObject({ a: 'GGAG', b: 'CATT' });
+    expect(scored.worst[0]?.rate).toBeCloseTo(1 / 101);
   });
 });
 

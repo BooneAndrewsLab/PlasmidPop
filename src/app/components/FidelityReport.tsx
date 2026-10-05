@@ -177,15 +177,29 @@ export function FidelityReport({
 
   const scored = setFidelity(overhangs, table);
   const named = scored.worst.filter((w) => w.rate >= WORTH_NAMING).slice(0, NAMED);
+  // Two junctions that can be one another leave the ligase two right
+  // answers, which no share of right assemblies describes (#144).
+  const ambiguous = scored.ambiguous.length > 0;
   return (
     <div className="fidelity">
-      <p className="panel__note">
-        <strong>Fidelity {formatFidelity(scored.fidelity)}</strong>{' '}
-        <span className="panel__heading-note">
-          by {table.label}, over {scored.junctions.length}{' '}
-          {scored.junctions.length === 1 ? 'junction' : 'junctions'}
-        </span>
-      </p>
+      {ambiguous ? (
+        <p className="panel__note">
+          <strong>Fidelity not scored</strong>{' '}
+          <span className="panel__heading-note">
+            {scored.ambiguous.map(([a, b]) => `${a} and ${b}`).join(', ')}{' '}
+            {scored.ambiguous.length === 1 ? 'can be' : 'can each be'} the same junction, so the
+            parts there can go in either order.
+          </span>
+        </p>
+      ) : (
+        <p className="panel__note">
+          <strong>Fidelity {formatFidelity(scored.fidelity)}</strong>{' '}
+          <span className="panel__heading-note">
+            by {table.label}, over {scored.junctions.length}{' '}
+            {scored.junctions.length === 1 ? 'junction' : 'junctions'}
+          </span>
+        </p>
+      )}
       {named.length > 0 && (
         <ul className="fidelity__worst" aria-label="Worst overhang pairs">
           {named.map((w) => (

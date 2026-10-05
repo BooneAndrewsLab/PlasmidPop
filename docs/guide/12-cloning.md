@@ -419,6 +419,9 @@ When the parts assemble, the panel also checks the set of overhangs the
 product joins on, as a designer would, and lists what could make a ligase
 join the wrong ends:
 
+- the same overhang at two junctions, or an ambiguity code that could be
+  another junction's overhang (`AGGN` and `AGGA`), so the parts there can
+  swap;
 - two overhangs one base apart, like `AATG` and `AATC`;
 - an overhang one base (or none) from another one read the other way round,
   since a ligase pairs an overhang with the complement of the other's too;
@@ -466,6 +469,14 @@ of your reaction, and it does not replace the warnings above: a palindromic
 overhang joins a copy of itself as readily as its partner, which no
 end-joining table can see, because to the experiment the two are the same
 pairing.
+
+A set in which two junctions can be the same one — an overhang twice, an
+overhang and its reverse complement (`GGAG` and `CTCC`), or an ambiguity
+code that could be either — is not scored: the panel says **Fidelity not
+scored** and names the pair, since the parts at those junctions can go in
+either order and no share of right assemblies describes that. Each mis-join
+is named once, at the rate of the junction it costs most, although it counts
+against both junctions it joins.
 
 **_N_ pieces left out** expands to say what was discarded and why. In a
 well-designed set that is the vector's stuffer and each part's two flanks.

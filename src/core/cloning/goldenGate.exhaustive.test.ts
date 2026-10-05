@@ -90,7 +90,7 @@ function distance(a: string, b: string): number {
 type Expected =
   | { readonly rule: 'ambiguous' | 'palindrome'; readonly overhangs: readonly [string] }
   | {
-      readonly rule: 'one-base' | 'turned' | 'turned-one-base';
+      readonly rule: 'same' | 'one-base' | 'turned' | 'turned-one-base';
       readonly overhangs: readonly [string, string];
     };
 
@@ -105,6 +105,7 @@ function expectedSingle(o: string): Expected | null {
 function expectedPair(a: string, b: string): Expected | null {
   if (a.length !== b.length || a.length === 0) return null;
   const turned = distance(a, flip(b));
+  if (distance(a, b) === 0) return { rule: 'same', overhangs: [a, b] };
   if (distance(a, b) === 1) return { rule: 'one-base', overhangs: [a, b] };
   if (turned === 0) return { rule: 'turned', overhangs: [a, b] };
   if (turned === 1) return { rule: 'turned-one-base', overhangs: [a, b] };
@@ -115,6 +116,9 @@ function expectedPair(a: string, b: string): Expected | null {
 function ruleOf(text: string): Expected['rule'] {
   if (text.includes('ambiguity code')) return 'ambiguous';
   if (text.includes('own reverse complement')) return 'palindrome';
+  if (text.includes('stands at two junctions') || text.includes('can be the same overhang')) {
+    return 'same';
+  }
   if (text.includes('differ at one base')) return 'one-base';
   if (text.includes('is one base from')) return 'turned-one-base';
   if (text.includes('turned around')) return 'turned';
@@ -208,10 +212,10 @@ describe('overhangWarnings over every overhang', () => {
     expect(disagreements(THREE)).toEqual([]);
   });
 
-  it('says nothing about a pair of identical overhangs that is not a palindrome', () => {
-    // A duplicate overhang is not a ligase's mistake but the designer's, and
-    // `goldenGate` refuses the assembly as ambiguous rather than warning.
-    expect(overhangWarnings(['AATG', 'AATG'])).toEqual([]);
+  it('names a pair of identical overhangs, palindrome or not (#144)', () => {
+    // `goldenGate` refuses such an assembly as ambiguous, but the rules are
+    // exported for any set, and a duplicate is the worst flaw a set can have.
+    expect(overhangWarnings(['AATG', 'AATG']).map((w) => w.overhangs)).toEqual([['AATG', 'AATG']]);
     expect(overhangWarnings(['GATC', 'GATC']).map((w) => w.overhangs)).toEqual([
       ['GATC'],
       ['GATC'],

@@ -286,7 +286,8 @@ function mismatches(a: string, b: string): number {
 
 /**
  * What in a set of junction overhangs could make a ligase join the wrong
- * ends (#11). The rules are the usual design ones: an overhang that is its
+ * ends (#11). The rules are the usual design ones: the same overhang at two
+ * junctions (#144), which leaves the ligase two right answers; an overhang that is its
  * own reverse complement lets a part join a copy of itself back to front;
  * two overhangs one base apart, read either way (a ligase pairs an overhang
  * with the complement of the other's too), are mis-joined at a measurable
@@ -317,7 +318,16 @@ export function overhangWarnings(overhangs: readonly string[]): OverhangWarning[
       if (a.length !== b.length || a.length === 0) continue;
       const same = mismatches(a, b);
       const turned = mismatches(a, reverseComplement(b));
-      if (same === 1) {
+      if (same === 0) {
+        // The same overhang twice, or a code that could be the other (#144).
+        out.push({
+          overhangs: [a, b],
+          text:
+            a === b
+              ? `${a} stands at two junctions, so the parts at those junctions can swap.`
+              : `${a} and ${b} can be the same overhang, so the parts at those junctions can swap.`,
+        });
+      } else if (same === 1) {
         out.push({
           overhangs: [a, b],
           text: `${a} and ${b} differ at one base, so a ligase may join one in place of the other.`,

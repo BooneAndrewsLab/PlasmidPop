@@ -1,4 +1,5 @@
 import { reverseComplement } from '../sequence';
+import { overhangsMatch } from './ligate';
 
 /**
  * Measured ligation fidelity (#68): how often a ligase joins one overhang to
@@ -208,6 +209,10 @@ export interface SetFidelity {
    * The share of assemblies that come out right, if each junction is
    * independent: the junctions' fidelities multiplied. This is what the
    * published calculators report for a set of overhangs.
+   *
+   * 0 when the set is `ambiguous`: two junctions that can be the same
+   * overhang give the ligase two right answers, and the product multiplied
+   * from their own joins would claim the parts go in one order (#144).
    */
   readonly fidelity: number;
   readonly junctions: readonly JunctionFidelity[];
@@ -215,6 +220,32 @@ export interface SetFidelity {
   readonly worst: readonly Misligation[];
   /** Overhangs the table does not cover (a different length, or an ambiguity code). */
   readonly unknown: readonly string[];
+  /**
+   * Pairs of junctions that can be the same junction: the same overhang
+   * twice, one the reverse complement of the other, or an ambiguity code
+   * that could be either (#144). The parts at those junctions can swap, so
+   * no table can score the set.
+   */
+  readonly ambiguous: readonly (readonly [string, string])[];
+}
+
+/**
+ * Junctions of a set that can be one another: equal, or equal once one is
+ * turned around, allowing for ambiguity codes. Blunt ends and overhangs of
+ * different lengths are never the same junction.
+ */
+export function sameJunctions(overhangs: readonly string[]): [string, string][] {
+  const set = overhangs.map((o) => o.toUpperCase());
+  const out: [string, string][] = [];
+  for (let i = 0; i < set.length; i++) {
+    for (let j = i + 1; j < set.length; j++) {
+      const a = set[i] ?? '';
+      const b = set[j] ?? '';
+      if (a.length === 0 || a.length !== b.length) continue;
+      if (overhangsMatch(a, b) || overhangsMatch(a, reverseComplement(b))) out.push([a, b]);
+    }
+  }
+  return out;
 }
 
 /**
@@ -242,7 +273,7 @@ export function setFidelity(overhangs: readonly string[], table: FidelityTable):
   // Every end in the tube: each junction's overhang and its partner.
   const ends = [...new Set(known.flatMap((o) => [o, reverseComplement(o)]))];
   const junctions: JunctionFidelity[] = [];
-  const worst: Misligation[] = [];
+  const worst = new Map<string, Misligation>();
   const pairKey = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
   for (const overhang of known) {
     const partner = reverseComplement(overhang);
@@ -273,14 +304,26 @@ export function setFidelity(overhangs: readonly string[], table: FidelityTable):
     });
     // A rate is of everything this junction's ends joined to, so junctions
     // the experiment saw very different numbers of times can be compared.
-    if (total > 0) for (const m of mistakes) worst.push({ ...m, rate: m.rate / total });
+    // A mis-join between two junctions is charged to both, but named once,
+    // at the rate of the junction it costs most (#144).
+    if (total > 0) {
+      for (const m of mistakes) {
+        const key = pairKey(m.a, m.b);
+        const rate = m.rate / total;
+        const before = worst.get(key);
+        if (before === undefined || rate > before.rate) worst.set(key, { ...m, rate });
+      }
+    }
   }
-  worst.sort((a, b) => b.rate - a.rate || a.a.localeCompare(b.a) || a.b.localeCompare(b.b));
+  const ambiguous = sameJunctions(set);
   return {
-    fidelity: junctions.reduce((p, j) => p * j.fidelity, 1),
+    fidelity: ambiguous.length > 0 ? 0 : junctions.reduce((p, j) => p * j.fidelity, 1),
     junctions,
-    worst,
+    worst: [...worst.values()].sort(
+      (a, b) => b.rate - a.rate || a.a.localeCompare(b.a) || a.b.localeCompare(b.b),
+    ),
     unknown,
+    ambiguous,
   };
 }
 
