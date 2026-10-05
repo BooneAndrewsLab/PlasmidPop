@@ -1,0 +1,1155 @@
+LOCUS       MT919250                 771 bp    mRNA    linear   INV 17-NOV-2021
+DEFINITION  Drosophila simulans odorant receptor 59b mRNA, partial cds.
+ACCESSION   MT919250
+VERSION     MT919250.1
+KEYWORDS    .
+SOURCE      Drosophila simulans
+  ORGANISM  Drosophila simulans
+            Eukaryota; Metazoa; Ecdysozoa; Arthropoda; Altocrustacea;
+            Allotriocarida; Hexapoda; Insecta; Pterygota; Neoptera; Eumetabola;
+            Endopterygota; Aparaglossata; Panorpida; Diptera; Brachycera;
+            Muscomorpha; Ephydroidea; Drosophilidae; Drosophila; Sophophora.
+REFERENCE   1  (bases 1 to 771)
+  AUTHORS   Zhang,J.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (22-AUG-2020) Department of Evolutionary Neuroethology,
+            Max Planck Institute of Chemical Ecology, Hans-Knoll-Strasse 8,
+            Jena 07745, Germany
+COMMENT     ##Assembly-Data-START##
+            Assembly Method       :: de novo assembly v. CLC Genomics Workbench
+                                     5.0.1
+            Sequencing Technology :: Illumina
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..771
+                     /organism="Drosophila simulans"
+                     /mol_type="mRNA"
+                     /db_xref="taxon:7240"
+     CDS             1..>771
+                     /codon_start=1
+                     /product="odorant receptor 59b"
+                     /protein_id="UEP53723.1"
+                     /translation="MAVFELIKPAPLTEKVQSRQGNIYLYRAMWLIGWIPPKEGILRY
+                     VYLFWTCVPFAFGVFYLPVGFIISYVQEFKNFTPGEFLTSLQVCINVYGASVKSTITY
+                     LFLWRLRKTEILLDSLDKRLANDNDRERIHNMVARCNYAFLIYSFIYCGYAGSTFLSY
+                     ALSGRPPWSVYNPFIDWRDGMGSLWIQAIFEYITMSFAVLQDQLSDTYPLMFTIMFRA
+                     HMEVLKDHVRSLRMDPERSEADNYQDLVNCVLDHKTILK"
+ORIGIN      
+        1 atggcggtgt tcgagctgat caaaccggct ccgttgacgg agaaagtgca gtcccgccag
+       61 gggaatatat atctgtaccg ggccatgtgg ctgatcggat ggataccgcc gaaggaggga
+      121 atcctgcgct acgtgtatct cttctggacc tgcgtgccct tcgccttcgg ggtgttctac
+      181 ctgcccgtgg gcttcatcat cagctacgtg caggagttca agaacttcac gcccggtgag
+      241 ttcctcacct cgctgcaggt gtgcatcaat gtgtacggcg cctcggtgaa gtcaaccatc
+      301 acctacctct tcctctggcg actgcgcaag acggagatcc tgctggactc cctggacaag
+      361 aggctggcga acgacaacga tcgcgagagg atccacaaca tggtggcgcg ctgcaactac
+      421 gcctttctga tctacagctt catatactgc ggatacgctg gttccacttt cctgtcctac
+      481 gccctcagtg gtcgtcctcc gtggtccgtc tacaatccct tcatcgactg gcgcgatggc
+      541 atgggcagcc tgtggatcca ggccatattc gagtacatca ccatgtcctt cgccgtgctg
+      601 caggaccagc tatccgacac gtatcccctg atgttcacca ttatgttccg cgcccacatg
+      661 gaggtcctca aggatcacgt gcggagcctg cgcatggatc ccgagcgcag cgaggcagac
+      721 aactaccagg atctggtgaa ctgcgtgctg gaccacaaga ctatactgaa g
+//
+LOCUS       ATU66462                6815 bp    DNA     linear   PLN 25-JUL-2016
+DEFINITION  Arabidopsis thaliana Myb transcription factor homolog (ATR1) gene,
+            complete cds, receptor-like protein kinase (RLK1) gene, partial
+            cds.
+ACCESSION   U66462
+VERSION     U66462.1
+KEYWORDS    .
+SOURCE      Arabidopsis thaliana (thale cress)
+  ORGANISM  Arabidopsis thaliana
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliopsida; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
+REFERENCE   1  (sites)
+  AUTHORS   Walker,J.C.
+  TITLE     Receptor-like protein kinase genes of Arabidopsis thaliana
+  JOURNAL   Plant J. 3 (3), 451-456 (1993)
+   PUBMED   8220453
+REFERENCE   2  (bases 1 to 6815)
+  AUTHORS   Bender,J. and Fink,G.R.
+  TITLE     A Myb homologue, ATR1, activates tryptophan gene expression in
+            Arabidopsis
+  JOURNAL   Proc. Natl. Acad. Sci. U.S.A. 95 (10), 5655-5660 (1998)
+   PUBMED   9576939
+REFERENCE   3  (bases 1 to 6815)
+  AUTHORS   Bender,J. and Fink.,G.R.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (08-AUG-1996) Biochemistry, Johns Hopkins Univ., 615 N.
+            Wolfe St., Baltimore, MD 21205, USA
+FEATURES             Location/Qualifiers
+     source          1..6815
+                     /organism="Arabidopsis thaliana"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:3702"
+                     /chromosome="5"
+                     /map="133 cM"
+                     /ecotype="Columbia"
+     gene            3075..4266
+                     /gene="ATR1"
+     mRNA            join(<3075..3207,3300..3429,3642..>4266)
+                     /gene="ATR1"
+                     /note="Myb transcription factor homolog; Myb-homolog
+                     regulator"
+     CDS             join(3075..3207,3300..3429,3642..4266)
+                     /gene="ATR1"
+                     /function="activator of Arabidopsis tryptophan gene ASA1"
+                     /note="Myb transcription factor homolog; Myb-homolog
+                     regulator"
+                     /codon_start=1
+                     /product="ATR1"
+                     /protein_id="AAC16897.1"
+                     /translation="MVRTPCCKEEGIKKGAWTPEEDQKLIAYLHLHGEGGWRTLPEKA
+                     GLKRCGKSCRLRWANYLRPDIKRGEFSPEEDDTIIKLHALKGNKWAAIATSLAGRTDN
+                     EIKNYWNTNLKKRLKQKGIDAITHKPINSTGQTGFEPKVNKPVYSSGSARLLNRVASK
+                     YAVELNRDLLTGIISGNSTVAEDSQNSGDVDSPTSTLLNKMAATSVLINTTTTYSGFS
+                     DNCSFTDEFNEFFNNEEISDIYTTVDNFGFMEELKSILSYGDASAGVIENSPEVNVAD
+                     AMEFIDSWNEDDNMVGVFV"
+     exon            <3075..3207
+                     /gene="ATR1"
+                     /number=1
+     intron          3208..3299
+                     /gene="ATR1"
+                     /number=1
+     exon            3300..3429
+                     /gene="ATR1"
+                     /number=2
+     intron          3430..3641
+                     /gene="ATR1"
+                     /number=2
+     exon            3642..>4266
+                     /gene="ATR1"
+                     /number=3
+     gene            complement(6513..6815)
+                     /gene="RLK1"
+     CDS             complement(6513..>6815)
+                     /gene="RLK1"
+                     /citation=[1]
+                     /codon_start=1
+                     /product="receptor-like protein kinase"
+                     /protein_id="AAC16898.1"
+                     /translation="VDLEDNVILINWAYDCFRQGRLEDLTEDDSEAMNDMETVERYVK
+                     IAIWCIQEEHGMRPNMRNVTQMLEGVIQVFDPPNPSPYSTFTWSDESLSSDPVSLV"
+ORIGIN      
+        1 gaattcttcc gaaggaaaag tggtcaaact tgtatatata aagatatacc ttatatttat
+       61 tttattttgt tcacaaaaga tcgaccttgt ttagattcag atattgatac ataaaatgtg
+      121 tagtgtccgt gcgacatgtc tattagtgga cttcttcgaa ttagctatgg cctatggact
+      181 atggagtatg ttggtgtaac tgtggatctc tcttacattc ttttcagaaa tatgttcgtc
+      241 gtgtcttatt attagctgtc tatcgacaaa atattttgaa tgtattcttg tttgttaaag
+      301 aataaaaata aaaatataag ctctaattga tatgcatata tttaattagt tgtgtctctt
+      361 ctgataaccg atattgtaga ccacccctta tgacacaata atgctgataa aatatttaaa
+      421 aaataaaaat aaaatattcg agaattattg tcatgcatcc aatgattcaa caagatttta
+      481 tcatttaagc tctaattgag tattcttgaa atagattacc caccaaatta aagtgagtga
+      541 gaattacttc aagaatacca caagtggtgg atcattgtgc tgttatactt tatatagccg
+      601 aaaagtacta gaacagaaca agatgataca ttattgatta aatgggactc ttgtgtagca
+      661 aagatgaata tccaaattca gattaatatt tgaagtctac atattttcaa tctctagcaa
+      721 agatccatat gtcactgact actaaactaa tattatactt gattactctt ctttggttta
+      781 taaaagttat tattgagtat gctttctaaa agagttgtta tgatatattt aataaatgat
+      841 attttgttta attacgcagt aaaagaaact gtaaaacttt ctattctttt gtcagaggaa
+      901 aaatattagt gggtgcaaat tgttagatag tggagttgaa ctcctcactt tgaaggcttt
+      961 gcgggagaat ctcaaacaac tttgccactt aactgatttt tctaaaaact ttttttggtt
+     1021 caagaagata tgcttgtaag aactttacag tagagtttaa cgtgttatct cactaattaa
+     1081 aatcaataaa atcacatggg aatacttttt gccagtattt tttgatcatt tgttaataaa
+     1141 ctatatacca agttgtgatc ttttgtgtgt gttggtttta tcaatttcct aagaattata
+     1201 aatatgcact atatcttgtc agagcttatc ttcgacaaca attttaggtt tccaactgct
+     1261 cgattttaca ttcttgtgct ttgcaatggg ttgatttatc ttattgcatc gggaatcaga
+     1321 aaggatccaa catgtaccac aaccacatga gatcttcacg tcagtccctc gtagtttaca
+     1381 tacgtgcaat aactttttta ctaagaactt aaaatccaaa atataatatg ttcgtatagc
+     1441 ggatgttgga agacatatat attaattcat acacaaggtt tttagaccct tttaactttc
+     1501 tatccttttt ttttttttta ttacaattct acacatatag tttgatataa ggacgaagac
+     1561 ttttttttga taaaggatgt aaacttataa ctaaaggtga gcacaaactt gtgttttcat
+     1621 atatgtcgtc ctgtttttaa tttcaaacct catcccatat aaaattaata tccaacaaaa
+     1681 aatttgtatc acaaaaagca aatttttgct aacaaaagaa gagtttttga attatcaaag
+     1741 aaaaaaagat ttttgtatca aaataaattc gtcttggatc acaacggtcc ggttcaccag
+     1801 tccaaataac ttcaccattg tagaggatac ttgatcccaa aagaagtgat atatatttta
+     1861 atttggtaga cctttttttt tgctaagata tttgacccca aaaaaatgta tatcacccca
+     1921 aaagacgttt ctgtagactt ataattatta ttagaccgca atcatttttt cttggtatat
+     1981 caaatcctcc agacatacat ttatcagtga tcttacaatc acattttttt ttgttaaatg
+     2041 gtttttcctt gtttaatagt taatcaatga tcatactagc ttcccttaat catactagct
+     2101 ataaaattaa agatgaaaaa aggttgtgcc tttaaaatca aatcctccag acctatgcta
+     2161 taaaatatcc gatacatttt aaaatataat gtcatagtca tggactcata gttcaacctt
+     2221 cactagtatt aaaagtcagt aatattattt tgaaagaata caaatagcaa tagtataatg
+     2281 atagtagcat taattattga ttgaatgaat caattattat tttagctgaa caatttttgt
+     2341 gaacaccgta tctcctagaa tcgataaaaa cttttaccca aaatctcaat gttccttgat
+     2401 ctcgcaagaa acaaactaaa acggacaaga gcatcagaac agtgtcatca ctcatcagta
+     2461 tatgcatttc cgtgtgaccg cgaactctga cagatgctca actgatccaa tgacaacact
+     2521 gcacgtggca tttccccaca gtgacttagt ggcctgtgta tagaaagatt taaagaacgt
+     2581 gtaatcccaa ccattcctcc atcaaagata tatcgatcat ttctttttga cagcaataat
+     2641 ttttaatcat tttatctgtc tctctgttct ttctctctcc cgcagtccct ctcgtaattt
+     2701 tgctatataa gagcacctct ataatctgtg tgagacagaa ttataaaaaa aaaacattga
+     2761 tagttttgta tctaaactca atatataatg ataacacgtt cacgtgttca tcgtcaaaag
+     2821 agtgtctcag tgagtacaat cttcaggtgt cttctagttt tgatcagacg ctctattcaa
+     2881 ttctcttaat tagtcatatc tttctttctt ttttcctcgt ttcgtgttaa ttttatttta
+     2941 aaacaaagga ttaaagagtc gttctttctt ttggtaacat ggagccttaa tgatcctttg
+     3001 ttagctctag ctaggatttt acgtactact tagggtattc aaactaaaat aaaatcaaga
+     3061 agaagagcag agagatggtg aggacaccat gttgcaaaga agaaggaata aagaaaggag
+     3121 cttggactcc tgaggaagat caaaagctta ttgcttatct tcacctacat ggtgaaggtg
+     3181 gatggcgtac tctccctgaa aaagctggta tatatttttt tttgtcatat ataggtttaa
+     3241 atattagcta ctttttaatt aaaagaaatt attgttatag tgtgtgtaaa tgtatatagg
+     3301 attgaagaga tgtggaaaga gttgtagatt gagatgggct aattacttaa gacccgacat
+     3361 taagagagga gagtttagtc ctgaagaaga cgacactatc atcaagcttc atgctcttaa
+     3421 gggtaacaag taagtatctc tttttttctt tctttcttaa ttcagtttgg attagataat
+     3481 cattactata tgtgtaatgt tgcatgaaaa tactttactt ttcatctcaa atgccaacca
+     3541 taacttttta aatctttttt gataaagatt ccaaatcttc attagaataa aataatattt
+     3601 gttagtatta ttttattgat agttgtgttt gattattgaa ggtgggccgc aatcgccact
+     3661 agcttggcgg gacgaactga caacgaaata aaaaactatt ggaacacaaa tctcaagaag
+     3721 cggttgaagc aaaaaggcat cgatgcaatc actcacaaac cgatcaattc aaccggtcaa
+     3781 accggtttcg aaccaaaagt aaataaaccg gtatattcat ccggttccgc taggcttctt
+     3841 aaccgcgtcg caagcaaata cgcggttgaa ttaaaccggg acttactgac cgggatcatc
+     3901 agtggaaact ccaccgtcgc cgaagattca caaaactccg gcgacgttga ttctccgacc
+     3961 tccacattgc tcaacaaaat ggcggcaaca tcagttttga tcaacactac gactacatat
+     4021 tccggcttct ccgacaactg ttctttcact gatgaattca acgaattctt taacaatgaa
+     4081 gagatctccg atatttacac gactgtcgat aattttgggt ttatggaaga gttaaagagt
+     4141 attttaagct acggcgatgc cagcgccgga gttattgaaa attcgccgga ggtcaatgta
+     4201 gctgatgcaa tggagttcat tgattcctgg aacgaagatg acaatatggt tggagtcttt
+     4261 gtctgacgag tcagactaaa atcaatctta cgttggtttt ttctttaata agctgtgata
+     4321 gattcgtgta atcgtcacgt agtcaaaata atgtgctgtt gtaaaaatta ataataataa
+     4381 atatttctac ttacatgaat ttgtttacaa atccggaaaa aaacacgttt tttacgaaaa
+     4441 tacatatgtt ttgttaattt catatgacat gccactaacg gaattgataa gtctgttaca
+     4501 catttttaga gtctcataag tcataaacta tataaaaatt ttaaaatgac atatactgac
+     4561 caccgttttc tatcaaaaca ataaaattat ttcccaatta ttggtataaa agagctttta
+     4621 aaaatcctga tttgacaaaa aatattattg cggatagagt ccagggctaa ttcttctttt
+     4681 ttgcttacat ataattaatt ctagattttt aatgatgata tctaacgaat gatgtagatt
+     4741 aatctgcccg tggtcaattt ttgtttccgt taccattaac aaaattgtgt atgcagaaga
+     4801 gcgtttaaca gaaaaaaaaa cattaaattt tgttcgaggc actaaaatta aacaattaca
+     4861 tattgttgtt tggactcata ccatttaaaa ctaatgtttt gcacaccgtg aattttattg
+     4921 gtgatacatt ggaaagagaa aaagcaataa caaataaaga gataaataaa tggtattact
+     4981 acttttggta ccacatattt tttttggtgc aaaactttag gtaccactat aatttaaagt
+     5041 ttttaacatg caattttgaa cctagcgatt ttgaccaagc taacaacatt tgacctacac
+     5101 aatctccaaa ttgagatatc catgacttaa ttaggcacac tttgatcttt aacttttaaa
+     5161 atcactggta gtatatttaa attcgaaatg caaatttgct ttaacgtaat aaatcaaatt
+     5221 tagatcaata attaaagtgt tgaaaaaact taaaaacaaa gtatattcct ctgcgaagac
+     5281 tgcaatattc cctaacaagt gaaactccca ttccgtatta taatattcct actacaatta
+     5341 ttttcatatt ttggtggatt cacgtgaata cgtaatcttt acaaatatat cactcatact
+     5401 agtatatgca gaacacacca atcaagaatc gtcagcagca ctttttgatt agtttcgaaa
+     5461 ttcttatttt tcctaatact agctatttaa tccgtagttc atgatgtata tataaaactg
+     5521 atattcaatt gtgtgtatta ataatcttag tggaggttta gagtttgcac gaaaataaaa
+     5581 aaagtggagg tttagagata aagtttacct aataaattat tttgcagcca ctatccctag
+     5641 tttgatttct ttatttaaaa gaaaattaat taatatttta tatagtcaaa gtaattaata
+     5701 attttgatat ttacaccttc gcacaacaaa taaaaaaaac aatgtatact aatatgttta
+     5761 tttgaaacgg aattgttcct tttaatataa aaaacaacct tcatgacttc atctagaact
+     5821 tcatccatgg aataatattt atctattgca aacaacgcaa gtaacttcat tttgataatc
+     5881 ttcgttttta gtattaaaaa atgatatgaa cttttcgaaa aaaaaaaaaa atcatgataa
+     5941 aaacattgaa aatttgtcat ttaaaaaaaa aagccaaaat catgagagtt acaggtcaac
+     6001 gatcgtaggc tacttttctg ctcccagtac tatccatcca tacggtacgc tcaagcaaaa
+     6061 ttactcattt ttatgaatca attcatatat ataactcatg aataaaacgt gttcgacatt
+     6121 ggaactaccg actacgatct ataactgtct tccatgtatt cttgccttct gaacattact
+     6181 aacgtcgaaa ttgaaggatt ttccttagtt tactaagagt tatgttattg gaaattctac
+     6241 gttaatttat taagaaaaat aaattccgaa tcttttaaaa gaattacaca attagtttaa
+     6301 ccattcattt aacccgattg catagccagt tctgaaattt gtagcagtgt caattttgtt
+     6361 taacgaaatt gtaatagttg caatttgtgt cataccgtgc tggttatatc aacataatta
+     6421 aaaaaaggtg tgattattta acgtaatatt aatgattgga gtttattcca tacaaaagta
+     6481 taataacttt attttgtttt tttatcaact tatcaaacaa gtgacactgg atcactagac
+     6541 aaagattcat cagaccaagt gaaagtgcta taaggagacg gatttggagg atcaaaaact
+     6601 tgaatcacac cttcaagcat ctgtgtaaca tttctcatgt taggtctcat cccatgctct
+     6661 tcttgtatac accatatcgc tattttcaca tatctctcca cagtttccat gtcattcatt
+     6721 gcctctgaat cgtcctcagt cagatcttcc aaccttcctt gtcgaaaaca atcgtaagcc
+     6781 caattgatga gaatcacgtt atcctcaagg tcgac
+//
+LOCUS       ATU11254                2093 bp    DNA     linear   PLN 30-NOV-1995
+DEFINITION  Arabidopsis thaliana Columbia ecotype metallothionein (MT1b) gene,
+            complete cds.
+ACCESSION   U11254
+VERSION     U11254.1
+KEYWORDS    .
+SOURCE      Arabidopsis thaliana (thale cress)
+  ORGANISM  Arabidopsis thaliana
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliopsida; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
+REFERENCE   1  (bases 1 to 2093)
+  AUTHORS   Zhou,J. and Goldsbrough,P.B.
+  TITLE     Structure, organization and expression of the metallothionein gene
+            family in Arabidopsis
+  JOURNAL   Mol. Gen. Genet. 248 (3), 318-328 (1995)
+   PUBMED   7565594
+REFERENCE   2  (bases 1 to 2093)
+  AUTHORS   Zhou,J.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (23-JUN-1994) Jianmin Zhou, Department of Horticulture,
+            Purdue University, 1165 Horticulture Building, West Lafayette, IN
+            47907, USA
+FEATURES             Location/Qualifiers
+     source          1..2093
+                     /organism="Arabidopsis thaliana"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:3702"
+                     /ecotype="Columbia"
+     gene            712..1084
+                     /gene="MT1b"
+     CDS             join(712..785,1021..1084)
+                     /gene="MT1b"
+                     /function="metal binding protein"
+                     /codon_start=1
+                     /product="metallothionein"
+                     /protein_id="AAA82210.1"
+                     /translation="MGLILTRMILNCGCGSSCKCGDSCSCEKNYNKECDNCSCGSNCN
+                     F"
+     exon            <712..785
+                     /gene="MT1b"
+                     /number=1
+     intron          786..1020
+                     /gene="MT1b"
+     exon            1021..>1084
+                     /gene="MT1b"
+                     /number=2
+ORIGIN      
+        1 ccaatgccta ctacgcaagc tacgcgcaat gtttgggatc cataacacga ctcgatactc
+       61 acctcagaga gatcaaacca agggttatcc aatggattga tgatgtaatc caatggattg
+      121 atgacggcac ttagtagtcc aaaacttttt ttttgtgtca acatttttaa aaaaatctta
+      181 aaacggatat ctgatgtaat atatggatcg taagaaactc atatataata ttaataagta
+      241 gtagaagagc gtagaccatg tcctgggtcg tcgtccaaat gaccacaaga agatttcaaa
+      301 acagaggaaa atatttctca ttaaataagt tttcctgcct cttttttggg tcggctgccg
+      361 tttactattg gcaattgcga tagttatctt cttgcgtgta cgactttttt tgttttttac
+      421 atattcgcca ataatttgac gttttctatt agtttgtttg atactctgtt gtcttgctaa
+      481 aactctaaca ttaaattact ttcttgaatg aagctggaac aaatctaaca taaaaagaaa
+      541 aggatgggca agttgatgtt attcgtaaat ttatttggat tatgtataaa gtgatccgaa
+      601 tctctctctt cttctataaa tagtggccat tcccattggt tgaaatcaca aaagcatcat
+      661 aagaagaaga agaaactaca gaagttaatc aatcaaagac aagtaagaga aatgggactg
+      721 attctaacca ggatgattct taattgtgga tgtggctcct cctgcaaatg tggtgactct
+      781 tgcaggtaac ccccttgatc ctctctctcg tctttacctt taatggcttc atggtacaaa
+      841 attcaataaa ctcttcttat gacttacgtt tacaattgtg ttagtgagta gacacaaaaa
+      901 catttggcct gttctgcata tatgctgatc agaatcagat gcatgtggtt gactaatctt
+      961 taatctcatc atattaatta ctaatttttt gtttgtttga ttaatttgtg tgtggtatag
+     1021 ttgcgagaag aactacaaca aggagtgcga caactgtagc tgtgggtcaa actgtaactt
+     1081 ttgatgaaat tattatggtc taaaatcata tatatggcag aaaaattggg gaaaatatgt
+     1141 gttttatgct aagagatgtg tgtgttgttg gaataaagac gtgaccgttg tgttgcgtat
+     1201 caactctctt aagcttttga cttttcccag ctttgtatca aagctgaggc atacattacc
+     1261 cttgtaacgt ctcttcacat tcgaacaagt cccactctca ccaattcgtc atttgggaat
+     1321 tgatataaac cctaattacg aactggtttt ctcaaactgg cccattaacc agacccatca
+     1381 gctcttgcgt ttaccaattc tatttctttc aaagataggg ataatatttg taaaataaca
+     1441 gacatgacat ctctatagta tagtatattt tctaagattt tttggtggat ggggcaaaat
+     1501 gctgtctgaa accctcttgc cccgctgaaa ggtttgaatt ttgaccagtc aaccaatcgg
+     1561 ttcaaccaat aacctcaatt attcagactt taaccggcca tgaatctatg aaatgtaaaa
+     1621 atctcaacaa actttagttg aatctttgtc tcattaacaa attttacata tacaaaagca
+     1681 aaactcattt aaaaagctgt aatagtaacc ctaaatagtg tacaaactcc ctaagaagaa
+     1741 ttttccttgt gaagcttctt ctatattgga ttcatgacaa cgtctccttc taacatccgc
+     1801 aacaccttca atgagaagac acagattcca tagacaaaaa gaaatattaa cactcagaaa
+     1861 atttcgattg taagttatta acttgtaagt gtttttgaga tgtgagcaaa cctgagacat
+     1921 tcgtggcctt gagttagggt caacggcgaa tgcagaggta agcacatagc tcgatacaat
+     1981 aacttcttgc tcacagtagc aattcattag acgcgatcaa gaagttcgtt aatggcttgt
+     2041 ttctgcaaca atggtcttgc ctgcagaaaa tgtttcttct tagtaaagcc ttc
+//
+LOCUS       ATHTUB6B                2061 bp    DNA     linear   PLN 27-APR-1993
+DEFINITION  Arabidopsis thaliana beta-6 tubulin (TUB6) gene, complete cds.
+ACCESSION   M84703
+VERSION     M84703.1
+KEYWORDS    beta-6 tubulin.
+SOURCE      Arabidopsis thaliana (thale cress)
+  ORGANISM  Arabidopsis thaliana
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliopsida; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
+REFERENCE   1  (sites)
+  AUTHORS   Snustad,D.P., Haas,N.A., Kopczak,S.D. and Silflow,C.D.
+  TITLE     The small genome of Arabidopsis contains at least nine expressed
+            beta-tubulin genes
+  JOURNAL   Plant Cell 4 (5), 549-556 (1992)
+   PUBMED   1498609
+COMMENT     Original source text: Arabidopsis thaliana (strain Columbia)
+            (library: lambda sep6 lac5; Meyerowitz) DNA.
+FEATURES             Location/Qualifiers
+     source          1..2061
+                     /organism="Arabidopsis thaliana"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:3702"
+                     /ecotype="Columbia"
+                     /tissue_lib="lambda sep6 lac5; Meyerowitz"
+     gene            join(218..611,706..975,1187..1872)
+                     /gene="TUB6"
+     CDS             join(218..611,706..975,1187..1872)
+                     /gene="TUB6"
+                     /codon_start=1
+                     /product="beta-6 tubulin"
+                     /protein_id="AAA32884.1"
+                     /translation="MREILHIQGGQCGNQIGSKFWEVVCDEHGIDPTGRYVGNSDLQL
+                     ERVNVYYNEASCGRYVPRAILMDLEPGTMDSVRTGPYGQIFRPDNFVFGQSGAGNNWA
+                     KGHYTEGAELIDAVLDVVRKEAENCDCLQGFQVCHSLGGGTGSGMGTLLISKIREEYP
+                     DRMMLTFSVFPSPKVSDTVVEPYNATLSVHQLVENADECMVLDNEALYDICFRTLKLT
+                     TPSFGDLNHLISATMSGVTCCLRFPGQLNSDLRKLAVNLIPFPRLHFFMVGFAPLTSR
+                     GSQQYRALTVPELTQQMWDSKNMMCAADPRHGRYLTASAMFRGKMSTKEVDEQMINVQ
+                     NKNSSYFVEWIPNNVKSSVCDIAPRGLSMASTFIGNSTSIQEMFRRVSEQFTAMFRRK
+                     AFLHWYTGEGMDEMEFTEAESNMNDLVSEYQQYQDATADDEGEYEEDEDEEEILDHE"
+     intron          612..705
+                     /number=1
+     exon            706..975
+                     /gene="TUB6"
+                     /number=2
+     intron          976..1186
+                     /number=2
+ORIGIN      
+        1 aagaatttga aatcggagtt ttcttctctg cggcgttgtg tttttttccg attgatttgt
+       61 tttgggatct gatacagatt gtttgatttc agatcttcga gatttagttg ttgacattcg
+      121 atataatttc atttggatct gatacagatt cttttgcttt caaaatccgt tgtttactgt
+      181 tttgttcatg taatgttgat ttcagataaa atagaagatg agagaaatcc ttcacattca
+      241 aggtggtcaa tgtgggaacc agattggttc caagttctgg gaagttgtat gtgatgagca
+      301 tggtattgat cccactggtc gttacgttgg aaactctgat ctgcagttgg agcgtgtcaa
+      361 tgtttactat aacgaggcat cctgcggaag atatgttccc cgtgcaattc tcatggatct
+      421 tgagcctggt actatggaca gtgtcagaac tggaccttat ggtcaaatct tcaggcctga
+      481 caactttgtt ttcgggcaat ctggtgctgg aaacaactgg gctaaagggc attacactga
+      541 aggagctgag cttattgatg ctgtactcga tgttgtacgc aaagaggctg agaattgcga
+      601 ctgtcttcaa ggtgtgtaat cctaagaaag tttattgaag gtctttaaat tgtggttttg
+      661 aacattttgt tctaacagtg atatgtataa ttatgaattt ctcaggtttc caagtatgtc
+      721 actcacttgg tggaggcacc gggtctggaa tgggaactct gctcatatct aagatcaggg
+      781 aagagtatcc tgatagaatg atgcttacat tttctgtctt cccatcacca aaggtctctg
+      841 acacagtggt tgagccatac aatgcgacac tttcagttca tcagctggtg gaaaatgctg
+      901 atgagtgtat ggttttggac aatgaagccc tttacgacat ctgttttaga acacttaagc
+      961 ttaccactcc tagctgtaag tccctttcca tgtcctttct tctctgcagt ggttttgtga
+     1021 aaattgaatc actgatcttg gtaaccatga atggtgtgtt tggttgtgac caaaataaaa
+     1081 aatgtttctg tttggaaata tcaacgtatc cttgatccaa tctccagttt tgactcatcc
+     1141 tgcatcaact gtttgctaat gttttgtgat gggttgattg caacagttgg tgatctgaat
+     1201 catcttatct ctgcaaccat gagtggagtt acatgctgtc ttaggttccc gggtcagctc
+     1261 aactctgatc tgaggaagct cgcagtgaac ctcattcctt tccctcgtct ccactttttc
+     1321 atggttggtt ttgcccctct cacctcccgt gggtctcagc agtaccgtgc actcactgtc
+     1381 cctgagctga cccaacagat gtgggattca aagaacatga tgtgcgcagc agacccgcgc
+     1441 cacgggcggt acctaactgc ctcggccatg ttccgtggca agatgagcac aaaagaagtg
+     1501 gacgagcaga tgataaacgt acagaacaaa aactcttcct actttgtgga atggattcca
+     1561 aacaacgtga agtcaagcgt ctgtgacata gctccccgag gtctctcaat ggcatcgaca
+     1621 tttattggga attccacatc gatccaagag atgtttaggc gggtgagcga gcagttcact
+     1681 gctatgttca ggaggaaagc tttcttgcat tggtacacag gtgaaggaat ggacgagatg
+     1741 gagtttactg aagctgagag caacatgaac gatctagtct cagagtacca gcaataccaa
+     1801 gacgcaactg cagatgacga aggcgagtat gaagaagacg aggatgaaga agagatattg
+     1861 gatcatgagt gagtgaaaag agctgatatt accgattttt aaatacctct cttatcttct
+     1921 tttcgtttgg tcggtatatg tttattgagt ttcatgtatt gtttgtgatg gtctgtgtgt
+     1981 aatagtgagg tcggatctaa acttttatgc gtggttttta tatgaattgt ccattgtggt
+     2041 ttttatgctc ttcctacctt c
+//
+LOCUS       PV855603                2741 bp    DNA     linear   PLN 07-JUL-2026
+DEFINITION  Saccharomyces paradoxus isolate JM49 Ubp3 (UBP3) gene, partial cds.
+ACCESSION   PV855603
+VERSION     PV855603.1
+KEYWORDS    .
+SOURCE      Saccharomyces paradoxus
+  ORGANISM  Saccharomyces paradoxus
+            Eukaryota; Fungi; Dikarya; Ascomycota; Saccharomycotina;
+            Saccharomycetes; Saccharomycetales; Saccharomycetaceae;
+            Saccharomyces.
+REFERENCE   1  (bases 1 to 2741)
+  AUTHORS   Molinet,J. and Stelkens,R.
+  TITLE     Evolutionary tuning of negative charge on UBP24 modulates
+            heat-triggered stomatal opening
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 2741)
+  AUTHORS   Molinet,J. and Stelkens,R.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (25-JUN-2025) Department of Zoology, Stockholm
+            University, Svante Arrhenius vag 18B, Stockholm 114 18, Sweden
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..2741
+                     /organism="Saccharomyces paradoxus"
+                     /mol_type="genomic DNA"
+                     /isolate="JM49"
+                     /specimen_voucher="IFO1804"
+                     /db_xref="taxon:27291"
+     gene            complement(<1..>2741)
+                     /gene="UBP3"
+     mRNA            complement(<1..>2741)
+                     /gene="UBP3"
+                     /product="Ubp3"
+     CDS             complement(<1..2741)
+                     /gene="UBP3"
+                     /EC_number="3.4.19.12"
+                     /codon_start=1
+                     /product="Ubp3"
+                     /protein_id="YFQ72714.1"
+                     /translation="MNMQDANKEESYSMYPKTSSPPPPTPTNIQIPIYQAPLQMYGYT
+                     QAPYLYPTQIPAYSFNMVNQNQPIYHQGSSPHHLPPQNNLSGGNSTNNSNINKKKWHS
+                     NGIANNNGNNSSNQGANSGANGMNYNKSHTYHHNYSNNHIPMMNSPNNGNSVGLKKQA
+                     NFSNGNGSSATSPSYSSYNSSSQYELYKFDVTKLKILKENSSNSIQLPLFINTTEAEF
+                     AAASAQRYELNLKALNLNSESLENPCVEKGSVRHYAKSHSIPKHNEETKTETHGEEED
+                     VNDKKPHASKDTHEHKRKIEVKKEDSKQDHNEKVMQESQPTALPVVDKKEPEEPVEDD
+                     TSKTSSPSPSSPAVKSWSAIASDAIKSRQASNKPASGSIVTKTPTSGTTAGVSPTSTA
+                     AATIGKSSPPLLSKQPQRKDKKYVPPSTKGIEPLGSIALRMCFDPDFISYVLRNKDAE
+                     NKIPVHSIIPRGIINRANICFMSSVLQVLLYCQPFIDVINVLSTRNTNSRIGTSSCKL
+                     LDACLTMYKQFDKETYEKKFIENAEDTEKSTETDTKKPSKSKNFQHNAVADAVKPDEF
+                     YKTLSTIPKFKDLQWGHQEDAEEFLTHLLDQLHEELISAIDGLTDNEIQNMLQSINDE
+                     QLKVFFIRNLSRYGKAEFIKNASPRLKELIEKYGVINDDSTEENGWHEVSGSSKRGKK
+                     TKTAAKRTVEIVPSPISKLFGGQFRSVLDIPNNKESQSITLDPFQTIQLDISDSSVND
+                     LETAFKKFSEYELLPFKSSSGNDVEAKKQTFIDKLPQVLLIQFKRFSFINNVNKDNAM
+                     TNYNAYNGRIEKIRKKIKYDHELIIPEESMSSVTLKNHTSGIDDRRYKLTGVIYHHGV
+                     SSDGGHYTADVYHSEHNKWYRIDDVKITELEDDDVLKGGEEASDSRTAYILMYQKRS"
+ORIGIN      
+        1 taacttctct tttggtacat taaaatgtag gcagttctcg aatcggaagc ttcttctcca
+       61 cccttcaaaa cgtcatcgtc ctccaactcg gtgattttta catcatctat tctgtaccat
+      121 ttattatgct cgctatgata aacatccgcc gtgtaatgac cgccgtcgga acttacccca
+      181 tgatggtata tcaccccagt taacttatat cttctatcat caatccctga agtatggttc
+      241 tttagtgtta cggaagacat tgattcttca ggtatgatta attcatgatc atatttaatt
+      301 tttttcctga tcttctcaat acgtccattg tatgcgttat agttcgtcat tgcgttatct
+      361 ttattcacat tatttatgaa tgaaaatctc ttaaactgga tcaaaagaac ttgtggtaat
+      421 ttatcgataa aagtttgctt cttggcctca acatcattgc ctgatgagga cttaaatgga
+      481 agtaattcgt attcgctgaa ttttttgaat gcagtttcta aatcattcac actagagtct
+      541 gaaatgtcta actgaattgt ttggaaggga tctagtgtaa ttgattgaga ttccttattg
+      601 ttcggtatat ctaaaacaga tctgaactgt ccaccaaaga gtttggaaat tggtgatgga
+      661 acaatctcca cggttctctt cgcggcagtc ttggttttct tgcctcgttt gctagatcca
+      721 cttacttcat gccaaccatt ctcttcagtg gagtcgtcat taatcacgcc atatttttct
+      781 atcaactcct tcaacctagg actagcattt ttgataaact ccgcttttcc ataacgtgat
+      841 aggtttctaa tgaagaaaac ttttaattgt tcatcattaa tactttgcaa catattttga
+      901 atctcattat ccgttaaacc atcaattgcg gaaattaact cttcatgtaa ttggtctaac
+      961 aaatgagtca aaaattcttc tgcgtcttcc tgatggcccc attgcaagtc cttaaatttt
+     1021 ggtatagtag acaaagtttt gtaaaattca tcaggtttga ccgcatcggc aacggcgttg
+     1081 tgttggaaat tcttggattt tgatggtttc tttgtatcag tttcggtgga tttttcagta
+     1141 tcttcggcat tttctataaa ttttttctca taggtttcct tatcgaattg cttatacata
+     1201 gtcaaacagg catctaataa tttacaagat gatgtgccga ttcttgaatt ggtgttccgt
+     1261 gtactaagaa cgttaattac atcgataaat ggctgacagt aaagtaaaac ttgtaacacg
+     1321 gaactcataa agcaaatatt agctctgttg attatgcctc ttggaataat ggaatggact
+     1381 gggattttgt tttcggcgtc cttattccgt aatacgtaac taatgaaatc aggatcaaaa
+     1441 cacattctta atgcaatcga acccagtggt tcgatgccct ttgtagaagg tggaacgtac
+     1501 tttttatcct ttctttgagg ctgcttggac aacagtggag ggctagattt ccctatagtt
+     1561 gccgcggctg tgcttgttgg tgaaacaccc gcagtcgtac cagaggtggg tgttttagta
+     1621 acgatcgaac cggaggctgg cttgttactt gcttgtctac tcttgatcgc atctgatgct
+     1681 atggcagacc aggatttcac tgctggagac gagggtgaag gtgaagatgt tttggaggta
+     1741 tcatcttcaa caggctcctc tggttctttt ttatctacca cgggtaaagc agtaggttga
+     1801 gattcctgca taaccttttc attatggtcc tgcttagaat cctctttctt tacttctatt
+     1861 ttccttttat gttcatgagt atccttgctc gcatgtggtt ttttatcatt tacatcttct
+     1921 tcttccccgt gtgtttccgt ctttgtttct tcattatgct ttggtatact atggcttttt
+     1981 gcgtaatgac ggacggagcc cttttctaca catggatttt ccaagctttc ggagttcagg
+     2041 tttagagctt tcaagtttaa ttcgtacctc tgggcacttg ctgcggcaaa ttctgcttcc
+     2101 gtcgtgttta tgaagagtgg taattggatg gagtttgatg aattttcctt gaggatcttt
+     2161 agtttagtta catcaaactt gtataactca tactgtgatg aagagttgta agaagagtat
+     2221 gacggtgaag tagccgaaga accgttgccg ttggaaaaat tggcctgttt cttcaggccc
+     2281 acactgttgc cattgtttgg agagttcatc atgggaatat gattgttcga gtaattgtga
+     2341 tggtatgtgt gagatttgtt gtagttcatg ccgttagcgc cggagttggc tccttgatta
+     2401 ctgctgttgt ttccgttgtt gttggcaatg ccattagagt gccacttttt cttgtttatg
+     2461 ttgctgttat tggtactgtt cccaccgcta agattgtttt gaggaggcaa gtggtgtggg
+     2521 ctgctacctt gatggtaaat tggctggttt tggttgacca tgttaaacga gtaagcaggt
+     2581 atttgtgtag ggtataaata tggggcctgg gtgtagccgt acatctgcaa aggcgcttgg
+     2641 taaataggaa tctgaatgtt ggttggtgta ggtggtggtg gagaagaggt ttttggatac
+     2701 attgagtacg actcctcttt gttggcgtct tgcatgttca t
+//
+LOCUS       PZ470312                 396 bp    DNA     linear   ROD 30-SEP-2026
+DEFINITION  Chinchilla chinchilla isolate SM05 cytochrome b (Cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   PZ470312
+VERSION     PZ470312.1
+KEYWORDS    .
+SOURCE      mitochondrion Chinchilla chinchilla (short-tailed chinchilla)
+  ORGANISM  Chinchilla chinchilla
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Euarchontoglires; Glires; Rodentia;
+            Hystricomorpha; Chinchillidae; Chinchilla.
+REFERENCE   1  (bases 1 to 396)
+  AUTHORS   Valladares,M.A., Saez,P.A., Zepeda,P.A., Novoa,F. and Mendez,M.A.
+  TITLE     Genetic structure and demographic decline in the endangered
+            short-tailed chinchilla (Chinchilla chinchilla) of the Atacama
+            Region
+  JOURNAL   Sci Rep (2026) In press
+REFERENCE   2  (bases 1 to 396)
+  AUTHORS   Saez,P.A.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (28-MAY-2026) Ciencias Ecologicas, Universidad de Chile,
+            Las Palmeras 3425, Santiago, Santiago 7800003, Chile
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..396
+                     /organism="Chinchilla chinchilla"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="SM05"
+                     /db_xref="taxon:10152"
+                     /geo_loc_name="Chile: Salar Maricunga"
+                     /collection_date="2023"
+     gene            17..>396
+                     /gene="Cytb"
+     CDS             17..>396
+                     /gene="Cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="YGX81753.1"
+                     /translation="MTNMRKSHPLLKMINHSFIDLPTPSNISAWWNFGSLLGVCLILQ
+                     IITGLFLAMHYTADTTTAFSSVTHICRDVNYGWLIRYLHANGASMFFIFLYFHVGRGI
+                     YYGSYLFLETWNIGVILLLTVMATA"
+ORIGIN      
+        1 tcaactacaa gaactaatga ccaatatacg taaatcacac cccctactca aaataatcaa
+       61 ccactcattc atcgacctac caaccccatc caacatctca gcctgatgaa atttcggctc
+      121 tttattgggt gtatgcctaa ttttacaaat tatcaccgga ttattcctag cgatacacta
+      181 taccgcggac accactacgg ccttctcatc agtcacccac atctgccgag acgtaaacta
+      241 cggctggcta atccgatacc tccatgctaa cggagcatct atattcttta tcttccttta
+      301 cttccacgta ggacgtggaa tttattacgg atcatatcta ttcctagaaa cctgaaacat
+      361 cggagtcatc ctactgttaa cggtcatagc aacagc
+//
+LOCUS       PZ661791                1110 bp    DNA     linear   MAM 30-SEP-2026
+DEFINITION  Pipistrellus dhofarensis isolate NRC-AB-1629 cytochrome b (cytB)
+            gene, partial cds; mitochondrial.
+ACCESSION   PZ661791
+VERSION     PZ661791.1
+KEYWORDS    .
+SOURCE      mitochondrion Pipistrellus dhofarensis
+  ORGANISM  Pipistrellus dhofarensis
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Laurasiatheria; Chiroptera; Yangochiroptera;
+            Vespertilionidae; Pipistrellus.
+REFERENCE   1  (bases 1 to 1110)
+  AUTHORS   Puttaswamaiah,R., Sreenivas,D., Kiran,V., Devnikar,S., Ginoya,D.
+            and Ahamed,N.
+  TITLE     Integrative taxonomy reveals an Arabian-Western Ghats connection in
+            the Dhofar pipistrelle (Alionoctula dhofarensis)
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 1110)
+  AUTHORS   Puttaswamaiah,R., Sreenivas,D., Kiran,V., Devnikar,S., Ginoya,D.
+            and Ahamed,N.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (06-JUL-2026) Molecular Ecology Lab, National Centre for
+            Biological Sciences-TIFR, Bellary Road, Bengaluru, Karnataka
+            560065, India
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..1110
+                     /organism="Pipistrellus dhofarensis"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="NRC-AB-1629"
+                     /db_xref="taxon:1928620"
+                     /geo_loc_name="India: Belagavi, Karnataka"
+                     /collection_date="07-May-2025"
+     gene            complement(<1..>1110)
+                     /gene="cytB"
+     CDS             complement(<1..>1110)
+                     /gene="cytB"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="YGX69500.1"
+                     /translation="SHPLIKIINNSFIDLPTPSNISAWWNFGSLLGICLALQILTGLF
+                     LAMHYTSDTATAFSSVTHICRDVNYGWVLRYLHANGASMFFICLYLHVGRGLYYGSYL
+                     FKETWNMGVVLLFAVMATAFMGYVLPWGQMSFWGATVITNLLSAIPYIGTDLVEWIWG
+                     GFSVDKATLTRFFAFHFLLPFIISALVMVHLLFLHETGSNNPTGIPSDMDMIPFHPYY
+                     TIKDILGLSVMILALLSLVLFSPDMLGDPDNYTPANPLNTPPHIKPEWYFLFAYAILR
+                     SIPNKLGGVLALVLSILILIIIPLLHTSKQRSMTFRPISQCLFWLLTADLLTLTWIGG
+                     QPVEHPYVIIGQLASILYFMIIIVMMPLASLMENHL"
+ORIGIN      
+        1 taggtggttt tctataagac tggctagtgg tattattaca atgataatta taaagtatag
+       61 gatagaggct aattgtccga taattacgta gggatgttcg actggttgtc ctccgattca
+      121 tgtcagggtt aaaagatctg ctgttaatag tcagaatagg cattgactaa tgggtcgaaa
+      181 agtcatgctt cgttgcttgg aagtgtggag gagggggata atgatgagga tgagaattga
+      241 gaggactagg gctagcactc ctcctagttt attgggaatt gatcgtagga ttgcatatgc
+      301 aaataggaaa taccattcag gtttaatatg agggggtgta ttgagtgggt ttgctggtgt
+      361 ataattatcg ggatctccta atatgtcagg cgagaatagt actagggata atagggctaa
+      421 gattatcaca gaaagtccta ggatatcctt gattgtatag tacgggtgga aggggattat
+      481 atctatgtca gaggggatgc ctgttgggtt gttagatcct gtttcgtgta ggaatagtaa
+      541 atggaccatt actagggctg aaatgataaa tggtaagagg aagtgaaagg caaagaatcg
+      601 agtcaaagtg gctttgtcca cagaaaatcc acctcagatt cattctacta agtctgttcc
+      661 aatataaggg atggcggaga ggagattggt aattactgtg gcccctcaga aagatatttg
+      721 tcctcatggt aggacgtagc ctataaaagc tgttgctatt acagcgaata gtagtacaac
+      781 tcctatgttt caagtttctt tgaataggta ggatccatag taaagtcctc ggcctacatg
+      841 tagatataga cagatgaaaa atatagaagc cccgttggca tgtaggtatc gtagtactca
+      901 gccataattt acatctcggc agatgtgtgt tacagagctg aaggcggtgg ctgtatctga
+      961 cgtgtaatgt atggcgagaa ataggcctgt taagatttgt aatgctaagc aaatgcctag
+     1021 aagggagcca aagtttcatc atgctgagat atttgatggg gttggtaggt caatgaatga
+     1081 gttgttaatg attttaatta aagggtgaga
+//
+LOCUS       KF699190                 524 bp    DNA     linear   MAM 30-SEP-2026
+DEFINITION  Crocidura olivieri voucher MNHN:2012-1153 cytochrome b (cytb) gene,
+            partial cds; mitochondrial.
+ACCESSION   KF699190
+VERSION     KF699190.1
+KEYWORDS    .
+SOURCE      mitochondrion Crocidura olivieri (Olivier's shrew)
+  ORGANISM  Crocidura olivieri
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Laurasiatheria; Eulipotyphla; Soricidae;
+            Crocidurinae; Crocidura.
+REFERENCE   1  (bases 1 to 524)
+  AUTHORS   Jacquet,F., Denys,C., Verheyen,E., Bryja,J., Hutterer,R., Kerbis
+            Peterhans,J.C., Stanley,W.T., Goodman,S.M., Couloux,A., Colyn,M.
+            and Nicolas,V.
+  TITLE     Phylogeography and evolutionary history of the Crocidura olivieri
+            complex (Mammalia, Soricomorpha): from a forest origin to broad
+            ecological expansion across Africa
+  JOURNAL   BMC Evol. Biol. 15 (1), 71 (2015)
+   PUBMED   25900417
+REFERENCE   2  (bases 1 to 524)
+  AUTHORS   Jacquet,F.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (23-SEP-2013) Systematics and Evolution, Museum National
+            d'Histoire Naturelle, 55, rue buffon, Paris 75005, France
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..524
+                     /organism="Crocidura olivieri"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="MNHN:2012-1153"
+                     /db_xref="taxon:214449"
+                     /geo_loc_name="Guinea"
+                     /PCR_primers="fwd_name: cytbcroc3f, fwd_seq:
+                     ttcttcgccttccactttatt, rev_name: cytbcroc3r, rev_seq:
+                     cagtgtattgattrtactactaaggc"
+     gene            <1..519
+                     /gene="cytb"
+     CDS             <1..519
+                     /gene="cytb"
+                     /codon_start=1
+                     /transl_table=2
+                     /product="cytochrome b"
+                     /protein_id="AHA95163.1"
+                     /translation="PSGLNSDTDKIPFHPYYTIKDILGALIMITMLSSLVLFSPDMLG
+                     DPDNYTPANPLNTPPHIKPEWYFLFAYAILRSIPNKLGGVLALVLSILILAVIPLLHT
+                     AKQRSMMFRPLSQCMFWILVADLFTLTWIGGQPVEYPFVMIGQLASIIYFLMILLIMP
+                     ITSLIENRLLKW"
+ORIGIN      
+        1 ccatcaggac taaactcgga cacagataaa attccattcc acccttatta tactatcaaa
+       61 gatattctag gagcattaat tataattact atattatcct cactagttct attttcccca
+      121 gacatattag gagatcccga taattacacc cctgctaacc ccctcaacac tccaccacat
+      181 attaaaccag aatgatattt cctatttgcc tacgctattc tccgatcgat tcctaataaa
+      241 cttggtggtg tcctagcact cgttctatca attttaatct tagcagttat tcctctcctt
+      301 cacacagcta aacaacgaag tataatattc cgaccactaa gccaatgcat attctgaatt
+      361 ctagtggctg acttatttac actaacatga attggaggac aaccagttga atatccattt
+      421 gtcataattg gtcaattggc ctccattatt tatttcttaa taatcctttt aattatacca
+      481 attacaagcc taattgaaaa ccgactttta aaatgaagat caga
+//
+LOCUS       PV241678                 782 bp    DNA     linear   BCT 19-MAR-2025
+DEFINITION  Mycoplasma ovis strain Suffolk_1 hypothetical protein gene, partial
+            cds.
+ACCESSION   PV241678
+VERSION     PV241678.1
+KEYWORDS    .
+SOURCE      Mycoplasma ovis
+  ORGANISM  Mycoplasma ovis
+            Bacteria; Bacillati; Mycoplasmatota; Mollicutes; Mycoplasmataceae;
+            Mycoplasma.
+REFERENCE   1  (bases 1 to 782)
+  AUTHORS   Zhuravleva,E.A., Malceva,O.E., Loschinin,M.N. and Alexeyenkova,S.V.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (28-FEB-2025) Virology, Protozoology, Federal State
+            Budget Institution 'Federal Scientific Center Viev', Ryazanskiy
+            Avenu 24-1, Moscow, Moscow 109428, Russia
+COMMENT     ##Assembly-Data-START##
+            Assembly Method       :: Sequencher v. 5.4.6
+            Sequencing Technology :: Illumina
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..782
+                     /organism="Mycoplasma ovis"
+                     /mol_type="genomic DNA"
+                     /strain="Suffolk_1"
+                     /isolation_source="serum"
+                     /host="Ovis aries"
+                     /db_xref="taxon:171632"
+                     /geo_loc_name="Russia"
+                     /collection_date="15-Sep-2024"
+     CDS             <1..>782
+                     /codon_start=1
+                     /transl_table=4
+                     /product="hypothetical protein"
+                     /protein_id="XPZ14565.1"
+                     /translation="MSLFSKSLLSFLGLGSGVVGALLGIMKESWSGRGMSQVQVEAVS
+                     NVLSEGSVTNLQFDSQSRPDVDVGKREDSSSEGELGLSDSQKSHSDETTKSIEDGEEP
+                     KLGKEPRVQANLPEKVEAQLEEAKESSESGDVVSKPKVSQDEVREAEPEISSTDLREG
+                     EDRNNLDELSEISTSISGASEYVDVSSSGENRKGLKSGSFKMDSKFYDSLEENELAPE
+                     DCQRQEREEQITFSCRWELSKPETNISFSFSKSEVPKLEGKR"
+ORIGIN      
+        1 atgtccttat tttcaaaatc tttactttct tttttaggat tgggcagtgg agttgtggga
+       61 gctctacttg gaattatgaa ggagagttgg tcaggaaggg gcatgtcaca agttcaagtt
+      121 gaagctgttt caaatgtttt gtcagagggg agtgtgacaa acttacagtt cgatagtcag
+      181 agtcgccctg atgttgacgt tgggaaaaga gaagattctt cttctgaggg agagttggga
+      241 ttgtctgatt ctcaaaaatc acattcggat gaaacaacta agtctataga agatggagaa
+      301 gaacctaaat taggtaaaga gccaagggta caagctaatt taccagagaa agttgaagcg
+      361 caactagaag aggcgaaaga aagttcagag tctggggatg tggtttcgaa acctaaagtt
+      421 tcccaagatg aagtgagaga agctgagcca gaaataagtt ctacagactt aagagaaggt
+      481 gaagatagaa ataatctcga cgaactttct gagatttcta catctatatc tggagcgagt
+      541 gaatacgtag atgtgtcctc ttctggagaa aaccgtaaag gtttgaagag cggttcattt
+      601 aagatggact caaaatttta cgacagtttg gaagaaaatg aattagcacc tgaggattgt
+      661 caaaggcaag aaagagaaga acaaattaca ttttcttgtc gttgggagct ttcaaagcct
+      721 gaaactaata taagtttttc tttttctaag tcagaggtcc ctaaactaga agggaaacga
+      781 tg
+//
+LOCUS       PZ652735                 478 bp    DNA     linear   INV 23-SEP-2026
+DEFINITION  Paragastrostyla terricola isolate LLJ2024112201 cytochrome c
+            oxidase subunit 1 (COX1) gene, partial cds; mitochondrial.
+ACCESSION   PZ652735
+VERSION     PZ652735.1
+KEYWORDS    .
+SOURCE      mitochondrion Paragastrostyla terricola
+  ORGANISM  Paragastrostyla terricola
+            Eukaryota; Sar; Alveolata; Ciliophora; Intramacronucleata;
+            Spirotrichea; Stichotrichia; Urostylida; Bakuellidae;
+            Paragastrostyla.
+REFERENCE   1  (bases 1 to 478)
+  AUTHORS   Liao,L. and Hu,X.
+  TITLE     Phylogeny of the bakuellid-related ciliate (Alveolata, Ciliophora)
+            genera, with establishment of three new families and note on
+            morphogenesis of Holostichides heterotypicus
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 478)
+  AUTHORS   Liao,L. and Hu,X.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (02-JUL-2026) aquaculture, Ocean university of China,
+            Yushan road, Qingdao 266003, China
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..478
+                     /organism="Paragastrostyla terricola"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="LLJ2024112201"
+                     /db_xref="taxon:3683516"
+                     /geo_loc_name="China: Ningbo"
+                     /collection_date="22-Nov-2024"
+     gene            <1..>478
+                     /gene="COX1"
+                     /gene_synonym="COI"
+     CDS             <1..>478
+                     /gene="COX1"
+                     /gene_synonym="COI"
+                     /codon_start=2
+                     /transl_table=4
+                     /product="cytochrome c oxidase subunit 1"
+                     /protein_id="YGW94340.1"
+                     /translation="FSSRTRFTAIGKVDIGLMGVLLVLNSSIISGANFLVTYRYLSTL
+                     NNRKMRDARSFFAEGVMVTSWMMILANPMLVIGIIMLLSDRHWQTSFFDYSGGGDTVL
+                     FQHMFWFFGHPEVYIIMIPVFGFVNTILSYYLRKRVSARASLIYSMYTIAFLGFFVW"
+ORIGIN      
+        1 cttttcctca cgaactcgat ttactgcaat tggaaaagta gatattgggt taatgggtgt
+       61 actcttagtt ctaaattctt cgattattag tggtgctaat tttttagtta cttatcgtta
+      121 tctctctact ttaaataaca gaaaaatgcg cgatgctcgt tcattttttg cagaaggggt
+      181 aatggtaact tcttgaatga tgatcctagc taaccctatg ttagtgattg gtataataat
+      241 gttactttcg gatcgtcatt gacaaacttc attttttgat tactcaggtg gaggtgatac
+      301 agtattattt caacatatgt tttgattttt tggtcacccc gaagtttata ttattatgat
+      361 tcctgttttt ggttttgtaa atactatttt atcttattat ttacgaaaac gagtttcagc
+      421 aagagctagt ttaatttatt cgatgtacac tatcgccttt ttgggttttt ttgtatga
+//
+LOCUS       PZ393266                 822 bp    mRNA    linear   PRI 29-JUL-2026
+DEFINITION  Homo sapiens MHC class I antigen (HLA-B) mRNA, HLA-B*13:01:01
+            allele, partial cds.
+ACCESSION   PZ393266
+VERSION     PZ393266.1
+KEYWORDS    .
+SOURCE      Homo sapiens (human)
+  ORGANISM  Homo sapiens
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini;
+            Catarrhini; Hominidae; Homo.
+REFERENCE   1  (bases 1 to 822)
+  AUTHORS   Liu,N.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (11-MAY-2026) HLA Lab, Beijing Red Cross Blood Center,
+            No. 37 North Third Ring Road, Beijing 100088, China
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..822
+                     /organism="Homo sapiens"
+                     /mol_type="mRNA"
+                     /db_xref="taxon:9606"
+     gene            <1..>822
+                     /gene="HLA-B"
+                     /allele="HLA-B*13:01:01"
+     CDS             <1..>822
+                     /gene="HLA-B"
+                     /allele="HLA-B*13:01:01"
+                     /codon_start=3
+                     /product="MHC class I antigen"
+                     /protein_id="YFZ40577.1"
+                     /translation="SHSMRYFYTAMSRPGRGEPRFITVGYVDDTQFVRFDSDATSPRM
+                     APRAPWIEQEGPEYWDRETQISKTNTQTYRENLRTALRYYNQSEAGSHIIQRMYGCDL
+                     GPDGRLLRGHNQLAYDGKDYIALNEDLSSWTAADTAAQITQLKWEAARVAEQLRAYLE
+                     GECVEWLRRYLENGKETLQRADPPKTHVTHHPISDHEATLRCWALGFYPAEITLTWQR
+                     DGEDQTQDTELVETRPAGDRTFQKWAAVVVPSGEEQRYTCHVQHEGLPKPLTLRW"
+ORIGIN      
+        1 gctcccactc catgaggtat ttctacaccg ccatgtcccg gcccggccgc ggggagcccc
+       61 gcttcatcac cgtgggctac gtggacgaca cgcagttcgt gaggttcgac agcgacgcca
+      121 cgagtccgag gatggcgccc cgggcgccat ggatagagca ggaggggccg gagtattggg
+      181 accgggagac acagatctcc aagaccaaca cacagactta ccgagagaac ctgcgcaccg
+      241 cgctccgcta ctacaaccag agcgaggccg ggtctcacat catccagagg atgtatggct
+      301 gcgacctggg gccggacggg cgcctcctcc gcgggcataa ccagttagcc tacgacggca
+      361 aggattacat cgccctgaac gaggacctga gctcctggac cgcggcggac accgcggctc
+      421 agatcaccca gctcaagtgg gaggcggccc gtgtggcgga gcagctgaga gcctacctgg
+      481 agggcgagtg cgtggagtgg ctccgcagat acctggagaa cgggaaggag acgctgcagc
+      541 gcgcggaccc cccaaagaca cacgtgaccc accaccccat ctctgaccat gaggccaccc
+      601 tgaggtgctg ggccctgggc ttctaccctg cggagatcac actgacctgg cagcgggatg
+      661 gcgaggacca aactcaggac actgagcttg tggagaccag accagcagga gatagaacct
+      721 tccagaagtg ggcagctgtg gtggtgcctt ctggagaaga gcagagatac acatgccatg
+      781 tacagcatga ggggctgccg aagcccctca ccctgagatg gg
+//
+LOCUS       PZ426519                 691 bp    mRNA    linear   PRI 29-JUL-2026
+DEFINITION  Homo sapiens truncated alpha -1,3-N-acetylgalactosaminyltransferase
+            (ABO) mRNA, partial cds.
+ACCESSION   PZ426519
+VERSION     PZ426519.1
+KEYWORDS    .
+SOURCE      Homo sapiens (human)
+  ORGANISM  Homo sapiens
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini;
+            Catarrhini; Hominidae; Homo.
+REFERENCE   1  (bases 1 to 691)
+  AUTHORS   Feng,Z. and Han,B.
+  TITLE     A week A variant allele was identified in a Chinese female
+            individual
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 691)
+  AUTHORS   Feng,Z. and Han,B.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (11-MAY-2026) Qingdao Biood Center, Institute of
+            Transfusion Medision, Longde Road 9, Qingdao, Shandong 266071,
+            China
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..691
+                     /organism="Homo sapiens"
+                     /mol_type="mRNA"
+                     /db_xref="taxon:9606"
+     gene            <1..691
+                     /gene="ABO"
+     CDS             <1..691
+                     /gene="ABO"
+                     /codon_start=2
+                     /product="truncated alpha
+                     -1,3-N-acetylgalactosaminyltransferase"
+                     /protein_id="YFZ40576.1"
+                     /translation="YVAFLKLFLETAEKHFMVGHRVHYYVFTDQLAAVPRVTLGTGRQ
+                     LSVLEVRAYKRWQDVSMRRMEMISDFCERRFLSEVDYLVCVDVDMEFRDHVGVEILTP
+                     LFGTLHPGFYGSSREAFTYERRPQSQAYIPKDEGDFYYLGGFFGGSVQEVQRLTRACH
+                     QAMMVDQANGIEAVWHDESHLNKYLLRHKPTKVLSPEYLWDQQLLGWPAVLRKLRFTA
+                     VPKKPPGGPEP"
+ORIGIN      
+        1 atacgtggct ttcctgaagc tgttcctgga gacggcggag aagcacttca tggtgggcca
+       61 ccgtgtccac tactatgtct tcaccgacca gctggccgcg gtgccccgcg tgacgctggg
+      121 gaccggtcgg cagctgtcag tgctggaggt gcgcgcctac aagcgctggc aggacgtgtc
+      181 catgcgccgc atggagatga tcagtgactt ctgcgagcgg cgcttcctca gcgaggtgga
+      241 ttacctggtg tgcgtggacg tggacatgga gttccgcgac cacgtgggcg tggagatcct
+      301 gactccgctg ttcggcaccc tgcaccccgg cttctacgga agcagccggg aggccttcac
+      361 ctacgagcgc cggccccagt cccaggccta catccccaag gacgagggcg atttctacta
+      421 cctggggggg ttcttcgggg ggtcggtgca agaggtgcag cggctcacca gggcctgcca
+      481 ccaggccatg atggtcgacc aggccaacgg catcgaggcc gtgtggcacg acgagagcca
+      541 cctgaacaag tacctgctgc gccacaaacc caccaaggtg ctctcccccg agtacttgtg
+      601 ggaccagcag ctgctgggct ggcccgccgt cctgaggaag ctgaggttca ctgcggtgcc
+      661 caagaaacca ccaggcggtc cggaaccgtg a
+//
+LOCUS       QB063966                 304 bp    DNA     linear   INV 30-SEP-2026
+DEFINITION  Mycetaspis personata isolate MYPSM cytochrome c oxidase subunit I
+            (COX1) gene, partial cds; mitochondrial.
+ACCESSION   QB063966
+VERSION     QB063966.1
+KEYWORDS    .
+SOURCE      mitochondrion Mycetaspis personata
+  ORGANISM  Mycetaspis personata
+            Eukaryota; Metazoa; Ecdysozoa; Arthropoda; Altocrustacea;
+            Allotriocarida; Hexapoda; Insecta; Pterygota; Neoptera; Eumetabola;
+            Paraneoptera; Hemiptera; Sternorrhyncha; Coccoidea; Diaspididae;
+            Mycetaspis.
+REFERENCE   1  (bases 1 to 304)
+  AUTHORS   Nafeesa,M., Haseena,B., Joshi,S. and Henna,M.K.
+  TITLE     Mycetaspis personata isolate MYPSM cytochrome c oxidase subunit I
+            (COX1) gene, partial cds; mitochondrial
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 304)
+  AUTHORS   Nafeesa,M., Haseena,B., Joshi,S. and Henna,M.K.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (25-SEP-2026) AGRICULTURAL ENTOMOLOGY, KERALA
+            AGRICULTURAL UNIVERSITY, COA, VELLANIKKARA, THRISSUR, KERALA
+            680656, India
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..304
+                     /organism="Mycetaspis personata"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="MYPSM"
+                     /host="Swietenia macrophylla"
+                     /db_xref="taxon:340595"
+                     /geo_loc_name="India"
+                     /lat_lon="11.601186 N 76.293869 E"
+                     /collection_date="29-Mar-2026"
+                     /collected_by="Nafeesa M."
+     gene            <1..>304
+                     /gene="COX1"
+     CDS             <1..>304
+                     /gene="COX1"
+                     /codon_start=1
+                     /transl_table=5
+                     /product="cytochrome c oxidase subunit I"
+                     /protein_id="YGX69076.1"
+                     /translation="TGWTLYPPLINQNNLSINFIIFSLHINGLSSILSSMNFILTMIY
+                     LKNSNYNFMSLNLFCWSIMITSILLILSLPVLASGITMTLTDMNFKTMFFNPNGNGN"
+ORIGIN      
+        1 actggttgaa cattataccc acctttaatt aatcaaaata atctatcaat taattttatt
+       61 attttttccc tccatattaa tggtctttct tcaattttaa gttcaataaa ttttatttta
+      121 acaataattt atttaaaaaa ttccaattat aattttataa gattaaattt attttgttga
+      181 tcaatcataa ttacttcaat tttactaatt ctttctttac cagttttagc aagagggatc
+      241 accataacat taacagatat aaattttaaa actatatttt ttaatccaaa tggaaatggt
+      301 aacc
+//
+LOCUS       PZ842303                 676 bp    DNA     linear   INV 30-SEP-2026
+DEFINITION  Helcyra subalba subalba voucher HSS4 cytochrome c oxidase subunit I
+            (COX1) gene, partial cds; mitochondrial.
+ACCESSION   PZ842303
+VERSION     PZ842303.1
+KEYWORDS    .
+SOURCE      mitochondrion Helcyra subalba subalba
+  ORGANISM  Helcyra subalba subalba
+            Eukaryota; Metazoa; Ecdysozoa; Arthropoda; Altocrustacea;
+            Allotriocarida; Hexapoda; Insecta; Pterygota; Neoptera; Eumetabola;
+            Endopterygota; Aparaglossata; Panorpida; Lepidoptera; Glossata;
+            Ditrysia; Papilionoidea; Nymphalidae; Apaturinae; Helcyra.
+REFERENCE   1  (bases 1 to 676)
+  AUTHORS   Li,H.-Z.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (17-AUG-2026) Independent research, Independent research,
+            Jinchuan County, Aba Prefecture 624199, China
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..676
+                     /organism="Helcyra subalba subalba"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /specimen_voucher="HSS4"
+                     /db_xref="taxon:3739512"
+                     /geo_loc_name="China: Chongqing"
+                     /collection_date="13-Jul-2026"
+     gene            <1..>676
+                     /gene="COX1"
+     CDS             <1..>676
+                     /gene="COX1"
+                     /codon_start=3
+                     /transl_table=5
+                     /product="cytochrome c oxidase subunit I"
+                     /protein_id="YGH50045.1"
+                     /translation="DIGTLYFIFGIWAGMVGTSLSLLIRSELGNPGSLIGDDQIYNTI
+                     VTAHAFIMIFFMVMPIMIGGFGNWLVPLMLGAPDMAFPRMNNMSFWLLPPSLVLLISS
+                     SIVENGAGTGWTVYPPLSSNIAHGGSSVDLAIFSLHLAGISSILGAINFITTIINMRI
+                     NSLSFDQMPLFVWAVGITALLLLLSLPVLAGAITMLLTDRNINTSFFDPAGGGDPILY
+                     QHLFWF"
+ORIGIN      
+        1 aagatattgg tactttatat tttatttttg gaatttgagc aggaatagta ggtacttctc
+       61 ttagtttatt aattcgatct gaattaggta atccaggatc attaattgga gatgatcaaa
+      121 tttataatac tattgttaca gctcatgctt ttattataat tttttttata gttataccta
+      181 ttataattgg aggatttggt aattgattag tgcctttaat attaggagct cctgatatag
+      241 cttttcctcg tataaataat ataagttttt gattacttcc cccctcatta gttcttttaa
+      301 tttctagaag aattgtagaa aatggagcag gtacaggatg aacagtttat cccccacttt
+      361 catctaatat tgctcatgga ggttcttcag ttgacttagc aattttttcc ttacatttag
+      421 caggtatttc ttcaattcta ggagctatta attttattac tacaattatt aatatacgaa
+      481 ttaatagctt atctttcgat caaatacctt tatttgtttg agcagtagga attactgctt
+      541 tacttttatt attatcttta cctgttttag ctggagctat tactatgtta ttaactgatc
+      601 gaaatattaa tacatcattt tttgatcctg caggaggagg tgatcctatt ttataccaac
+      661 atttattctg attttt
+//
+LOCUS       QB065089                 386 bp    DNA     linear   INV 30-SEP-2026
+DEFINITION  Senga lucknowensis isolate sl1 cytochrome c oxidase subunit I
+            (COX1) gene, partial cds; mitochondrial.
+ACCESSION   QB065089
+VERSION     QB065089.1
+KEYWORDS    .
+SOURCE      mitochondrion Senga lucknowensis
+  ORGANISM  Senga lucknowensis
+            Eukaryota; Metazoa; Spiralia; Lophotrochozoa; Platyhelminthes;
+            Rhabditophora; Neodermata; Cestoda; Eucestoda; Bothriocephalidea;
+            Bothriocephalidae; Senga.
+REFERENCE   1  (bases 1 to 386)
+  AUTHORS   Basu,L. and Bhowmik,B.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (25-SEP-2026) Zoology, Diamond Harbour Women's
+            University, Diamond Harbour Road, Diamond Harbour, West Bengal
+            743368, India
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..386
+                     /organism="Senga lucknowensis"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="sl1"
+                     /db_xref="taxon:1684401"
+                     /geo_loc_name="India: West Bengal, Sarisha"
+                     /collection_date="Jun-2026"
+     gene            <1..>386
+                     /gene="COX1"
+     CDS             <1..>386
+                     /gene="COX1"
+                     /codon_start=2
+                     /transl_table=9
+                     /product="cytochrome c oxidase subunit I"
+                     /protein_id="YGX69456.1"
+                     /translation="FFGHPEVYVLILPGFGAISHVCMNLGCSPDAFGFYGLLFAMFSI
+                     VCLGSIVWGHHMFTVGLDVKTAVFFSSVTMIIGVPTGIKVFSWLYMIMNSRVSLMEPV
+                     FWWIMSFIILFTIGGVTGIILSACVL"
+ORIGIN      
+        1 tttttttggg catcctgagg tttatgtgtt aattttacct gggtttggtg caataagaca
+       61 tgtttgtatg aaattggggt gttcaccaga cgcttttggg ttttatggct tgttgtttgc
+      121 tatgttttca attgtttgtt taggtagtat agtgtggggt catcacatgt ttactgtagg
+      181 gctggatgta aagactgctg tgttttttag ttctgtgact atgataattg gtgtccctac
+      241 ggggattaag gttttttctt gattatacat gattatgaaa agtcgggttt ctttgatgga
+      301 acccgttttt tggtggataa tgtcatttat aattttgttt actatagggg gggtcactgg
+      361 cattatttta tccgcttgtg tgttag
+//
+LOCUS       PZ765732                 362 bp    DNA     linear   INV 30-SEP-2026
+DEFINITION  Clinostomum cichlidorum isolate Y1327 cytochrome c oxidase subunit
+            I (COX1) gene, partial cds; mitochondrial.
+ACCESSION   PZ765732
+VERSION     PZ765732.1
+KEYWORDS    .
+SOURCE      mitochondrion Clinostomum cichlidorum
+  ORGANISM  Clinostomum cichlidorum
+            Eukaryota; Metazoa; Spiralia; Lophotrochozoa; Platyhelminthes;
+            Rhabditophora; Neodermata; Trematoda; Digenea; Strigeidida;
+            Clinostomoidea; Clinostomidae; Clinostomum.
+REFERENCE   1  (bases 1 to 362)
+  AUTHORS   Mata Marcano,C., Andrade Gomez,L., Perez Ortega,B. and Perez Ponce
+            de Leon,G.
+  TITLE     Revisiting the diversity of freshwater fish trematode metacercariae
+            in cenotes (sinkholes) of Yucatan: molecular characterization and
+            comments on their phylogenetic interrelationships
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 362)
+  AUTHORS   Mata Marcano,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (29-JUL-2026) Laboratorio de Parasitologia y Medicina de
+            las Conservacion, ENES-Merida Universidad Nacional Autonoma de
+            Mexico, Carretera Merida-Tetiz, Km 4.5 Municipio de Ucu, Merida
+            97357, Mexico
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..362
+                     /organism="Clinostomum cichlidorum"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="Y1327"
+                     /host="Mayaheros urophthalmus"
+                     /db_xref="taxon:2883079"
+                     /geo_loc_name="Mexico: Cenote Chen Vazquez, Yucatan"
+                     /collection_date="Oct-2025"
+     gene            <1..>362
+                     /gene="COX1"
+     CDS             <1..>362
+                     /gene="COX1"
+                     /codon_start=3
+                     /transl_table=9
+                     /product="cytochrome c oxidase subunit I"
+                     /protein_id="YGA55482.1"
+                     /translation="FVITNHGIAMIFFFLMPVLIGGFGNYLLPLLLGLADLNLPRLNA
+                     LSAWLLLPSIVCLSLSMFYGAGVGWTFYPPLSSFGYSGVGTDFLMFALHLAGVSSLLG
+                     SINFICTIMGCMDHWFSM"
+ORIGIN      
+        1 attttgttat tactaaccac gggattgcta tgatattttt ctttttaatg cccgtgttaa
+       61 ttggggggtt tggaaattat ttacttccgt tacttttggg tctggcggat ttaaatttgc
+      121 ctcgtttaaa agctttgagt gcttggttat tgttgccatc aatcgtttgt ttgagtctaa
+      181 gtatgttcta tggggcgggg gttggttgga cgttttatcc gccgttgtcc aggtttggtt
+      241 attctggagt tggtacagat tttttgatgt ttgcgttgca tttggcggga gtttcgagct
+      301 tgttgggttc tattaatttt atttgtacga taatgggttg tatggatcat tgatttagga
+      361 tg
+//
