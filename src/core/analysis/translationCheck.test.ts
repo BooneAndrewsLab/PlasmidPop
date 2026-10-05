@@ -1,6 +1,6 @@
 import { SeqDocument } from '../document';
 import { type Feature, type Qualifier, createFeature, rangeSegment } from '../features';
-import { checkCdsTranslation, checkTranslations } from './translationCheck';
+import { checkCdsTranslation, checkTranslations, translationFor } from './translationCheck';
 
 //                0         1         2
 //                012345678901234567890123456789
@@ -145,5 +145,30 @@ describe('checkCdsTranslation', () => {
     expect(checkTranslations(d)).toEqual([
       { kind: 'length', featureId: 'cds2', stored: 3, computed: 4 },
     ]);
+  });
+});
+
+describe('a 3′-partial CDS ending in two bases (#142)', () => {
+  // PZ765744.1 in small: <1..>8 on ATG AAA GT, stored as NCBI writes it, MKV.
+  const doc = SeqDocument.create({ sequence: 'ATGAAAGTC', topology: 'linear' });
+  const partial = (value: string): Feature =>
+    createFeature({
+      id: 'cds',
+      type: 'CDS',
+      name: 'orf',
+      segments: [rangeSegment(0, 8, { partialStart: true, partialEnd: true })],
+      qualifiers: [{ name: 'translation', value }],
+    });
+
+  it('agrees with the residue NCBI reads from them', () => {
+    expect(checkCdsTranslation(doc, partial('MKV'))).toEqual([]);
+    // Without it the file is one residue short of what the bases give.
+    expect(checkCdsTranslation(doc, partial('MK'))).toEqual([
+      { kind: 'length', featureId: 'cds', stored: 2, computed: 3 },
+    ]);
+  });
+
+  it('keeps the residue when the translation is updated', () => {
+    expect(translationFor(doc, partial('MK'))).toBe('MKV');
   });
 });

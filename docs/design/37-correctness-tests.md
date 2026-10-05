@@ -78,12 +78,13 @@ generator happening to find it.
   is recorded (pydna 5.5.7, the last release that fits Biopython 1.85).
   `seguid.json`: the `seguid` package and pydna's `Dseq.seguid()` for ls, cs,
   ld and cd checksums, sticky-ended fragments included. `cds.json`: the CDS in
-  the NCBI fixtures and in `ncbi-cds.gbk` (sixteen small real records for
-  codon_start 2 and 3, tables 2, 4, 5 and 9, complement and join) against
-  NCBI's own `/translation`. The cases that hit known bugs (#133 Gateway
+  the NCBI fixtures and in `ncbi-cds.gbk` (nineteen small real records for
+  codon_start 2 and 3, tables 2, 4, 5 and 9, complement, join and the
+  two-base end of a 3′-partial CDS, item 66) against NCBI's own
+  `/translation`. The cases that hit known bugs (#133 Gateway
   circle choice, #134 Gibson overlaps over 60 bp, #135 host methylation, #136
-  REBASE-imported enzymes, #140 Q5 Tm of self-complementary primers, #142 the
-  trailing two-base codon) are left out until their fixes add them. The scripts
+  REBASE-imported enzymes, #140 Q5 Tm of self-complementary primers) are left
+  out until their fixes add them. The scripts
   of the one-off correctness audit of 2026-10-05 that found them, with notes
   on what each checked and found clean, are kept in `scripts/oracle/audit/`;
   they are not run by anything.

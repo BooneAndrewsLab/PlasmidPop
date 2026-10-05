@@ -292,3 +292,11 @@ describe('features carried onto the protein (#95)', () => {
     expect(carried(proteinOf([cdsAt(), joined]))[0]?.joining).toBeUndefined();
   });
 });
+
+describe('Open as protein: a 3′-partial CDS ending in two bases (#142)', () => {
+  it('ends in the residue the two bases fix, as NCBI’s /translation does', () => {
+    const doc = SeqDocument.create({ name: 'p', sequence: 'ATGAAACCA' });
+    const feature = cds({ segments: [rangeSegment(0, 8, { partialEnd: true })] });
+    expect(proteinFromCds(doc, feature).sequence.toString()).toBe('MKP');
+  });
+});

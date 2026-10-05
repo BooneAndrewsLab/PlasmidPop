@@ -11,11 +11,12 @@ import oracle from './cds.json';
 /**
  * Conceptual translation of CDS features against NCBI's own /translation
  * qualifiers (scripts/oracle/cds.py): every CDS with a protein_id in the NCBI
- * fixtures and in ncbi-cds.gbk, sixteen small real records chosen for
+ * fixtures and in ncbi-cds.gbk, nineteen small real records chosen for
  * /codon_start 2 and 3, /transl_table 2, 4, 5 and 9, complement, multi-exon
  * join and partial ends. Biopython translates the same features in the
  * generator and has to agree, except where /transl_except applies. A
- * 3'-partial CDS ending in a two-base codon is left out (issue #142).
+ * 3'-partial CDS cut short after two bases of its last codon ends in the
+ * residue those two fix, when they do, as NCBI's does (issue #142).
  */
 
 interface Case {
@@ -25,6 +26,7 @@ interface Case {
   readonly recordId: string;
   readonly proteinId: string;
   readonly translation: string;
+  readonly partCodon: boolean;
 }
 
 function textOf(c: Case): string {
@@ -40,6 +42,12 @@ describe('CDS translation against NCBI /translation', () => {
     expect(cases.length).toBeGreaterThan(30);
     const kinds = new Set(oracle.cases.map((c) => `${c.codonStart}/${c.translTable}`));
     for (const k of ['2/1', '3/1', '1/2', '1/4', '2/4', '3/5', '2/9']) expect(kinds).toContain(k);
+    // Two-base ends NCBI reads (GT, CC, GG under codon_start 1, 2 and 3) and
+    // ones it cannot, on both strands (#142).
+    const ends = cases.filter((c) => c.partCodon).map((c) => c.recordId);
+    for (const id of ['PZ765744.1', 'OQ554331.1', 'QB063967.1', 'PZ470312.1', 'PV855603.1']) {
+      expect(ends).toContain(id);
+    }
   });
 
   it('translates every CDS as NCBI did', () => {

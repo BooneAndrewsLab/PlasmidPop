@@ -1,5 +1,6 @@
 import { SeqDocument } from '../document';
 import { type Feature, createFeature, rangeSegment, siteSegment } from '../features';
+import { reverseComplement } from '../sequence';
 import {
   CdsTranslations,
   codonIndexAt,
@@ -249,6 +250,121 @@ describe('translateCds', () => {
     expect(isCodingFeature(createFeature({ type: 'gene', segments: [rangeSegment(0, 6)] }))).toBe(
       false,
     );
+  });
+});
+
+describe('translateCds: two bases ending a 3′-partial CDS (#142)', () => {
+  // NCBI's /translation ends in the residue two bases at a partial 3' end fix
+  // whatever the third: PZ765744.1 (GT, valine), OQ554331.1 (CC, proline).
+  //                    0123456789
+  const tailGT = SeqDocument.create({ sequence: 'ATGAAAGTC', topology: 'linear' });
+  const open = { partialEnd: true };
+
+  it('reads them when both bases fix the residue', () => {
+    const t = translateCds(tailGT, cds({ segments: [rangeSegment(0, 8, open)] }));
+    expect(t.protein).toBe('MKV');
+    expect(t.codons[2]).toEqual({ index: 2, positions: [6, 7], aminoAcid: 'V' });
+    expect(codonIndexAt(t, 7)).toBe(2);
+    expect(codonSpan(t, 1, 2, tailGT.length)).toEqual({ start: 3, end: 8 });
+  });
+
+  it('drops them when the 3′ end is complete, ambiguous, or one base', () => {
+    expect(translateCds(tailGT, cds({ segments: [rangeSegment(0, 8)] })).protein).toBe('MK');
+    // TA: TAA and TAG stop, TAT and TAC are tyrosine.
+    const ta = SeqDocument.create({ sequence: 'ATGAAATAC' });
+    expect(translateCds(ta, cds({ segments: [rangeSegment(0, 8, open)] })).protein).toBe('MK');
+    // A partial 5' end is not a partial 3' end.
+    expect(
+      translateCds(tailGT, cds({ segments: [rangeSegment(0, 8, { partialStart: true })] })).protein,
+    ).toBe('MK');
+    expect(translateCds(tailGT, cds({ segments: [rangeSegment(0, 7, open)] })).protein).toBe('MK');
+    // N in either base leaves the residue open too.
+    const n = SeqDocument.create({ sequence: 'ATGAAAGNC' });
+    expect(translateCds(n, cds({ segments: [rangeSegment(0, 8, open)] })).protein).toBe('MK');
+  });
+
+  it('reads them with the feature’s genetic code', () => {
+    // AGN: R or S under the standard code, always S under table 9 (PZ765728.1).
+    const ag = SeqDocument.create({ sequence: 'ATGAAAAGC' });
+    const feature = (table: string) =>
+      cds({
+        segments: [rangeSegment(0, 8, open)],
+        qualifiers: [{ name: 'transl_table', value: table }],
+      });
+    expect(translateCds(ag, feature('1')).protein).toBe('MK');
+    // (AAA is asparagine there too.)
+    expect(translateCds(ag, feature('9')).protein).toBe('MNS');
+  });
+
+  it('counts them from /codon_start', () => {
+    // codon_start=3 skips TT; AAA GG|T → K G
+    const doc = SeqDocument.create({ sequence: 'TTAAAGGT' });
+    const t = translateCds(
+      doc,
+      cds({
+        segments: [rangeSegment(0, 7, { partialStart: true, partialEnd: true })],
+        qualifiers: [{ name: 'codon_start', value: '3' }],
+      }),
+    );
+    expect(t.protein).toBe('KG');
+    expect(t.codons[1]?.positions).toEqual([5, 6]);
+    // codon_start=2 on 2..7: T|AAA GG → K G
+    const two = translateCds(
+      doc,
+      cds({
+        segments: [rangeSegment(1, 7, { partialStart: true, partialEnd: true })],
+        qualifiers: [{ name: 'codon_start', value: '2' }],
+      }),
+    );
+    expect(two.protein).toBe('KG');
+  });
+
+  it('finds the 3′ end of a reverse-strand CDS at its first segment’s start', () => {
+    // complement(<2..10): reading the bottom strand, ATG AAA GT then the cut.
+    const doc = SeqDocument.create({ sequence: `C${reverseComplement('ATGAAAGT')}` });
+    const t = translateCds(
+      doc,
+      cds({ strand: 'reverse', segments: [rangeSegment(1, 9, { partialStart: true })] }),
+    );
+    expect(t.protein).toBe('MKV');
+    expect(t.codons[2]?.positions).toEqual([2, 1]);
+    expect(codonSpan(t, 2, 2, doc.length)).toEqual({ start: 1, end: 3 });
+    // The other end partial is the 5' end, and the part-codon is dropped.
+    expect(
+      translateCds(
+        doc,
+        cds({ strand: 'reverse', segments: [rangeSegment(1, 9, { partialEnd: true })] }),
+      ).protein,
+    ).toBe('MK');
+  });
+
+  it('follows them across a join and around the origin', () => {
+    // join(1..5,7..>9) on ATGAA T CCT reads ATG AAC CT: CTN is leucine.
+    const joined = SeqDocument.create({ sequence: 'ATGAATCCT' });
+    const t = translateCds(
+      joined,
+      cds({ segments: [rangeSegment(0, 5), rangeSegment(6, 9, open)] }),
+    );
+    expect(t.protein).toBe('MNL');
+    expect(t.codons[2]?.positions).toEqual([7, 8]);
+    // Around the origin of a circle: ATG AAA from 6, GT at 0..1.
+    const circ = SeqDocument.create({ sequence: 'GTCCCCATGAAA', topology: 'circular' });
+    const wrapped = translateCds(circ, cds({ segments: [rangeSegment(6, 14, open)] }));
+    expect(wrapped.protein).toBe('MKV');
+    expect(wrapped.codons[2]?.positions).toEqual([0, 1]);
+    expect(codonSpan(wrapped, 1, 2, circ.length)).toEqual({ start: 9, end: 14 });
+  });
+
+  it('takes a /transl_except naming the two bases', () => {
+    const t = translateCds(
+      tailGT,
+      cds({
+        segments: [rangeSegment(0, 8, open)],
+        qualifiers: [{ name: 'transl_except', value: '(pos:7..8,aa:Ala)' }],
+      }),
+    );
+    expect(t.protein).toBe('MKA');
+    expect(t.unusedExceptions).toEqual([]);
   });
 });
 

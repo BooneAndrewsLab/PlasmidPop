@@ -1,4 +1,10 @@
-import { codonIndexAt, codonSpan, isCodingFeature, translateCds } from '../analysis/cdsTranslation';
+import {
+  codonIndexAt,
+  codonSpan,
+  isCodingFeature,
+  isPartCodon,
+  translateCds,
+} from '../analysis/cdsTranslation';
 import { type TranslationTable } from '../analysis/codons';
 import { type EditOp, type SeqDocument } from '../document';
 import { type Feature } from '../features';
@@ -348,7 +354,8 @@ export function codonSiteAt(doc: SeqDocument, position: number): CodonSite | nul
     if (index < 0) continue;
     const codon = translation.codons[index];
     const span = codonSpan(translation, index, index, doc.length);
-    if (codon === undefined || span === null) continue;
+    // The two bases ending a 3'-partial CDS are no codon to change (#142).
+    if (codon === undefined || span === null || isPartCodon(codon)) continue;
     // The codon's positions are in reading order, which descends on the
     // reverse strand: the bases there are read from the bottom strand, so
     // each is complemented where it stands rather than the three reversed.

@@ -99,8 +99,10 @@ In a DNA document's **Translate** tab:
    CDS's translation as drawn under it in the sequence view: its own genetic
    code (`/transl_table`), `/codon_start`, `/transl_except` (a
    selenocysteine shows as `U`), every piece of a `join`, and the reverse
-   strand read from its reverse complement. The stop that ends it is left
-   off; a stop inside it stays, as `*`, since it is what the bases say.
+   strand read from its reverse complement, and the residue two bases at a
+   partial 3′ end give when they fix it (see
+   [Translation](09-translate.md)). The stop that ends it is left off; a stop
+   inside it stays, as `*`, since it is what the bases say.
 2. Or select a stretch of DNA and click **Open as protein** on one of the six
    frames. That frame's translation opens as it stands, stops and all, named
    after the document, the range and the frame, and read with the genetic

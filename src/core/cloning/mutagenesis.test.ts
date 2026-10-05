@@ -311,6 +311,29 @@ describe('protein changes, at the edges of a CDS', () => {
   });
 });
 
+describe('codonSiteAt: the two bases ending a 3′-partial CDS (#142)', () => {
+  it('offers no codon there to change, though the residue is shown', () => {
+    const doc = SeqDocument.create({
+      name: 'p',
+      sequence: 'ATGAAAGTC',
+      features: [
+        createFeature({
+          id: 'cds',
+          type: 'CDS',
+          name: 'gene',
+          segments: [rangeSegment(0, 8, { partialEnd: true })],
+        }),
+      ],
+    });
+    const feature = doc.features.all()[0];
+    if (feature === undefined) throw new Error('no CDS');
+    expect(translateCds(doc, feature).protein).toBe('MKV');
+    expect(codonSiteAt(doc, 4)?.residue).toBe(2);
+    expect(codonSiteAt(doc, 6)).toBeNull();
+    expect(codonSiteAt(doc, 7)).toBeNull();
+  });
+});
+
 describe('codonSiteAt (#69)', () => {
   // ATG AAA GAA TTC TAA: M K E F *, with the CDS on 0..15.
   const coding = 'ATGAAAGAATTCTAA';

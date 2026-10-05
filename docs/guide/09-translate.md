@@ -20,6 +20,12 @@ frame is easy to follow. The translation honours:
 - reverse-strand features, translated from the reverse complement and drawn
   right to left;
 - partial ends (`<` and `>`), which suppress the start-codon `M`;
+- the bases left over after the last whole codon, which are dropped, except
+  two at a partial 3′ end that give the same residue whatever the third base
+  would have been: `GT` is valine, `CC` proline, so the gene ends in `V` or
+  `P` as NCBI's own `/translation` does. Where the third base would decide
+  (`TA` could be a stop or tyrosine) they are dropped too. Clicking that
+  residue selects its two bases; Mutate offers no codon there;
 - `/transl_except`, which reads one codon as a residue the genetic code
   would not give it: `(pos:220..222,aa:Sec)` makes that UGA selenocysteine,
   `U`, instead of a stop. Pyrrolysine shows as `O`;

@@ -28,9 +28,11 @@ export interface Codon {
    * Forward-strand positions (`0 <= p < length`) of the three bases in
    * reading order. Ascending for forward-strand features, descending for
    * reverse-strand ones; not necessarily contiguous across a join or the
-   * origin of a circular sequence.
+   * origin of a circular sequence. Only two for the last codon of a
+   * 3'-partial CDS that the sequence cuts short after two bases, which is
+   * read when both bases fix the residue whatever the third (#142).
    */
-  readonly positions: readonly [number, number, number];
+  readonly positions: readonly [number, number, number] | readonly [number, number];
   /** One-letter amino acid, `*` for a stop, `X` when it cannot be determined. */
   readonly aminoAcid: string;
 }
@@ -159,13 +161,12 @@ function applyExceptions(doc: SeqDocument, feature: Feature, codons: Codon[]): s
     }
     const bases = readingPositions(parsed.location, doc.length);
     if (bases.length < 3 && residue === STOP) continue;
-    const i = bases.length === 3 ? byFirstBase.get(bases[0] ?? -1) : undefined;
+    const i = byFirstBase.get(bases[0] ?? -1);
     const codon = i === undefined ? undefined : codons[i];
     if (
       i === undefined ||
-      codon === undefined ||
-      codon.positions[1] !== bases[1] ||
-      codon.positions[2] !== bases[2]
+      codon?.positions.length !== bases.length ||
+      codon.positions.some((p, k) => p !== bases[k])
     ) {
       unused.push(value);
       continue;
@@ -182,13 +183,34 @@ function fivePrimePartial(feature: Feature): boolean {
   return ranges[0]?.partialStart ?? false;
 }
 
+/** Whether the biological 3' end of the feature is marked partial (`>`, or `<` on the reverse strand). */
+function threePrimePartial(feature: Feature): boolean {
+  const ranges = feature.segments.filter((s) => s.kind === 'range');
+  if (feature.strand === 'reverse') return ranges[0]?.partialStart ?? false;
+  return ranges[ranges.length - 1]?.partialEnd ?? false;
+}
+
+/**
+ * The residue two bases at the end of a 3'-partial CDS stand for, or null.
+ * NCBI translates such a part-codon when every base that could complete it
+ * gives the same residue — GT is valine, CC proline — and leaves it out
+ * otherwise; its `/translation` carries that residue (#142). Biopython drops
+ * it in either case.
+ */
+function partCodonResidue(bases: string, table: TranslationTable): string | null {
+  const aminoAcid = translateCodon(`${bases}N`, table);
+  return aminoAcid === UNKNOWN_AA ? null : aminoAcid;
+}
+
 /**
  * Conceptual translation of a coding feature, codon by codon, computed from
  * the current sequence rather than a stored `/translation`. Range segments
  * are read in order (reverse-complemented for reverse-strand features),
  * `/codon_start` skips leading bases, and the first full codon is shown as
  * `M` when it is a start codon of the feature's `/transl_table` and the 5'
- * end is not partial. Trailing bases that do not fill a codon are dropped.
+ * end is not partial. Trailing bases that do not fill a codon are dropped,
+ * except two at a partial 3' end that fix the residue on their own, which
+ * are read as NCBI reads them (see `partCodonResidue`).
  *
  * Every NCBI genetic code is understood; a `/transl_table` that names none of
  * them falls back to the standard code and says so in `unknownTable`.
@@ -225,6 +247,16 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
     const c = positions[i + 2];
     if (a === undefined || b === undefined || c === undefined) break;
     codons.push({ index, positions: [a, b, c], aminoAcid });
+  }
+  const tail = text.length - (codonStart - 1) - index * 3;
+  if (tail === 2 && threePrimePartial(feature)) {
+    const i = text.length - 2;
+    const aminoAcid = partCodonResidue(text.slice(i), table);
+    const a = positions[i];
+    const b = positions[i + 1];
+    if (aminoAcid !== null && a !== undefined && b !== undefined) {
+      codons.push({ index, positions: [a, b], aminoAcid });
+    }
   }
   const unusedExceptions = applyExceptions(doc, feature, codons);
   const protein = codons.map((codon) => codon.aminoAcid).join('');
@@ -269,6 +301,16 @@ export function codonIndexAt(t: CdsTranslation, position: number): number {
   return t.codons.findIndex((codon) => codon.positions.includes(position));
 }
 
+/** Forward-strand position of a codon's last base in reading order. */
+export function lastBaseOf(codon: Codon): number {
+  return codon.positions.length === 3 ? codon.positions[2] : codon.positions[1];
+}
+
+/** Whether a codon is the two-base end of a 3'-partial CDS rather than a whole codon. */
+export function isPartCodon(codon: Codon): boolean {
+  return codon.positions.length === 2;
+}
+
 /**
  * Forward-strand range covering codons `from` through `to` (given in either
  * order), or `null` if either index is out of range. The span runs from the
@@ -286,8 +328,8 @@ export function codonSpan(
   const first = t.codons[Math.min(from, to)];
   const last = t.codons[Math.max(from, to)];
   if (first === undefined || last === undefined) return null;
-  const start = t.strand === 'reverse' ? last.positions[2] : first.positions[0];
-  const lastBase = t.strand === 'reverse' ? first.positions[0] : last.positions[2];
+  const start = t.strand === 'reverse' ? lastBaseOf(last) : first.positions[0];
+  const lastBase = t.strand === 'reverse' ? first.positions[0] : lastBaseOf(last);
   let span = lastBase + 1 - start;
   if (span <= 0) span += seqLength; // the span crosses the origin
   return range(start, start + span);

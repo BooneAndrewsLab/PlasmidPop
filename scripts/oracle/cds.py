@@ -3,19 +3,19 @@
 NCBI writes the protein it derived from each coding sequence into the record
 as /translation. That is the authority; this file lists, for every CDS with a
 /protein_id in the repository's NCBI fixtures (src/io/fixtures/*.gb) and in
-src/test/oracle/ncbi-cds.gbk (sixteen small real records picked to cover
+src/test/oracle/ncbi-cds.gbk (nineteen small real records picked to cover
 /codon_start 2 and 3, /transl_table 2, 4, 5 and 9, complement, multi-exon
-join and partial ends), the translation PlasmidPop has to reproduce.
+join, partial ends and a 3'-partial CDS cut short after two bases of its
+last codon), the translation PlasmidPop has to reproduce.
 
 Biopython is the second opinion: it extracts the CDS and translates it with
 the record's table, and the generator notes whether it reaches NCBI's
-answer. Two kinds of CDS are left out:
-
-* a 3'-partial CDS whose last codon is only two bases, which NCBI translates
-  when every completion codes the same residue and we, like Biopython, do
-  not (issue #142);
-* a trans-spliced CDS (join over several records or order()), which the
-  location model does not cover; none is present.
+answer. Biopython drops the two bases that end a 3'-partial CDS cut short;
+NCBI translates them when every completion codes the same residue (GT is
+valine, CC proline), so the second opinion pads them with N and keeps the
+residue when it is not X, as NCBI does (issue #142). A trans-spliced CDS
+(join over several records or order()), which the location model does not
+cover, is left out; none is present.
 """
 import glob
 import os
@@ -24,7 +24,7 @@ import warnings
 from Bio import SeqIO
 from Bio.Data import CodonTable
 from Bio.Seq import Seq
-from Bio.SeqFeature import BeforePosition
+from Bio.SeqFeature import AfterPosition, BeforePosition
 
 from common import FIXTURES, ROOT
 
@@ -39,11 +39,22 @@ def cds_sequence(record, feature):
     return seq[start:]
 
 
+def three_prime_partial(feature):
+    parts = feature.location.parts  # in reading order, the reverse strand's too
+    if feature.location.strand == -1:
+        return isinstance(parts[-1].start, BeforePosition)
+    return isinstance(parts[-1].end, AfterPosition)
+
+
 def biopython_translation(record, feature):
     table_id = int(feature.qualifiers.get('transl_table', ['1'])[0])
-    seq = cds_sequence(record, feature)
-    seq = seq[: len(seq) - len(seq) % 3]
+    full = cds_sequence(record, feature)
+    seq = full[: len(full) - len(full) % 3]
     protein = str(seq.translate(table=table_id))
+    if len(full) % 3 == 2 and three_prime_partial(feature):
+        last = str((full[-2:] + 'N').translate(table=table_id))
+        if last != 'X':
+            protein += last
     if protein.endswith('*'):
         protein = protein[:-1]
     # a complete 5' end starts with Met whatever start codon the table allows
@@ -62,7 +73,7 @@ def sources():
 
 
 def generate():
-    cases, excluded = [], []
+    cases = []
     disagreements = []
     for name, where, path in sources():
         for index, record in enumerate(SeqIO.parse(path, 'genbank')):
@@ -76,10 +87,6 @@ def generate():
                 ours = biopython_translation(record, feature)
                 label = f'{record.id} {protein_id}'
                 if ours != expected:
-                    # the one shape NCBI differs in: a trailing two-base codon it could translate
-                    if '>' in str(feature.location) and expected.startswith(ours) and len(expected) == len(ours) + 1:
-                        excluded.append({'record': record.id, 'proteinId': protein_id, 'reason': 'trailing two-base codon (#142)'})
-                        continue
                     # Biopython does not apply /transl_except (selenocysteine, completed stops)
                     if 'transl_except' not in feature.qualifiers:
                         disagreements.append(label)
@@ -91,6 +98,7 @@ def generate():
                     'translation': expected,
                     'translExcept': 'transl_except' in feature.qualifiers,
                     'biopythonAgrees': ours == expected,
+                    'partCodon': len(cds_sequence(record, feature)) % 3 == 2 and three_prime_partial(feature),
                 })
     assert not disagreements, f'Biopython and NCBI disagree on {disagreements}'
-    return {'cases': cases, 'excluded': excluded}
+    return {'cases': cases}

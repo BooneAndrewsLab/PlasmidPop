@@ -1153,3 +1153,204 @@ ORIGIN
       301 tgttgggttc tattaatttt atttgtacga taatgggttg tatggatcat tgatttagga
       361 tg
 //
+LOCUS       PZ765744                 778 bp    DNA     linear   INV 30-SEP-2026
+DEFINITION  Schwartzitrema sp. isolate Y1248 cytochrome c oxidase subunit I
+            (COX1) gene, partial cds; mitochondrial.
+ACCESSION   PZ765744
+VERSION     PZ765744.1
+KEYWORDS    .
+SOURCE      mitochondrion Schwartzitrema sp.
+  ORGANISM  Schwartzitrema sp.
+            Eukaryota; Metazoa; Spiralia; Lophotrochozoa; Platyhelminthes;
+            Rhabditophora; Neodermata; Trematoda; Digenea; Diplostomida;
+            Diplostomoidea; Strigeidae; Schwartzitrema.
+REFERENCE   1  (bases 1 to 778)
+  AUTHORS   Mata Marcano,C., Andrade Gomez,L., Perez Ortega,B. and Perez Ponce
+            de Leon,G.
+  TITLE     Revisiting the diversity of freshwater fish trematode metacercariae
+            in cenotes (sinkholes) of Yucatan: molecular characterization and
+            comments on their phylogenetic interrelationships
+  JOURNAL   Unpublished
+REFERENCE   2  (bases 1 to 778)
+  AUTHORS   Mata Marcano,C.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (29-JUL-2026) Laboratorio de Parasitologia y Medicina de
+            las Conservacion, ENES-Merida Universidad Nacional Autonoma de
+            Mexico, Carretera Merida-Tetiz, Km 4.5 Municipio de Ucu, Merida
+            97357, Mexico
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..778
+                     /organism="Schwartzitrema sp."
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="Y1248"
+                     /host="Mayaheros urophthalmus"
+                     /db_xref="taxon:3648525"
+                     /geo_loc_name="Mexico: Cenote Hotzo, Yucatan"
+                     /collection_date="Sep-2025"
+     gene            <1..>778
+                     /gene="COX1"
+     CDS             <1..>778
+                     /gene="COX1"
+                     /codon_start=3
+                     /transl_table=9
+                     /product="cytochrome c oxidase subunit I"
+                     /protein_id="YGA55494.1"
+                     /translation="YMVMGLWGGILGLSLSFLLRLNFADPYYNLISPEVYNYIITSHG
+                     LAMIFFFLMPVIIGGFGNFLLPXLXGMPDLSLPRLNALSAWLMLPSVVCFGVSLFIGS
+                     GVGWTFYPPLSSFPYSGIGVDYLMFALHLAGLSSILGSLNFITTIFSSIFFFISTRVS
+                     IIVWAYLFTSFLLLSSLPVLAAAITMLLFDRNFSSSFFDPTGGGDPVLFQHMFWFFGH
+                     PEVYVLILPGFGMISHICLIFTNNDSVFSYMGLVGAMFSIV"
+ORIGIN      
+        1 tttacatggt tatgggattg tgaggtggaa tattgggttt atcgttgagt tttttacttc
+       61 gtttaaaatt tgctgatccg tattataatt taattagtcc tgaggtttat aattatatta
+      121 ttactagtca tggcttggct atgatttttt tttttcttat gccggttatt attggtgggt
+      181 ttggtaaatt tttgcttccc tkgttatkgg gtatgcctga tttgagtttg cctcggttga
+      241 atgctttgag tgcttggttg atgttacctt ctgtggtttg ttttggtgtt agtttattta
+      301 ttggttctgg ggtaggttgg actttttatc cacctttgtc taggtttcct tatagtggga
+      361 ttggtgttga ttatttgatg tttgctttac atttggcggg tttgtctagt attttgggtt
+      421 ctttgaattt tataactaca attttttcct ctatattttt ttttattagt acccgtgttt
+      481 ctataattgt ttgggcttat ttgtttacat ccttcctttt gttgtcttct ttacctgttt
+      541 tagctgctgc tattactatg cttttatttg atcgtaaatt tagctcttct ttttttgatc
+      601 ccacaggtgg tggggatcct gttttatttc aacatatgtt ctggtttttt ggtcatccag
+      661 aggtttatgt tttaatttta cctggttttg gtatgattag tcatatttgt ttgattttta
+      721 ctaaaaaaga ttctgttttt agttatatgg gtttggttgg ggctatgttc tctattgt
+//
+LOCUS       OQ554331                1281 bp    DNA     linear   ENV 16-DEC-2024
+DEFINITION  Candidatus Mycoplasma haematomolossi clone A48 DNA-directed RNA
+            polymerase subunit beta gene, partial cds.
+ACCESSION   OQ554331
+VERSION     OQ554331.1
+KEYWORDS    ENV.
+SOURCE      Candidatus Mycoplasma haematomolossi
+  ORGANISM  Candidatus Mycoplasma haematomolossi
+            Bacteria; Bacillati; Mycoplasmatota; Mollicutes; Mycoplasmataceae;
+            Mycoplasma.
+REFERENCE   1  (bases 1 to 1281)
+  AUTHORS   Becker,D.J., Dyer,K.E., Lock,L.R., Olbrys,B.L., Pladas,S.A.,
+            Sukhadia,A.A., Demory,B., Nunes Batista,J.M., Pineda,M.,
+            Simmons,N.B., Adams,A.M., Frick,W.F., O'Mara,M.T. and Volokhov,D.V.
+  TITLE     Geographically widespread and novel hemotropic mycoplasmas and
+            bartonellae in Mexican free-tailed bats and sympatric North
+            American bat species
+  JOURNAL   mSphere, e0011624 (2024) In press
+   PUBMED   39660872
+  REMARK    Publication Status: Available-Online prior to print
+REFERENCE   2  (bases 1 to 1281)
+  AUTHORS   Volokhov,D.V.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (25-FEB-2023) Center for Biologics Evaluation and
+            Research, LMD, US Food and Drug Administration, 10903 New Hampshire
+            Avenue, Silver Spring, MD 20993-0002, USA
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..1281
+                     /organism="Candidatus Mycoplasma haematomolossi"
+                     /mol_type="genomic DNA"
+                     /isolation_source="blood"
+                     /host="Molossus rufus"
+                     /db_xref="taxon:3385524"
+                     /clone="A48"
+                     /environmental_sample
+                     /geo_loc_name="Belize"
+                     /collection_date="2017"
+                     /identified_by="Dmitriy V. Volokhov"
+     CDS             <1..>1281
+                     /codon_start=2
+                     /transl_table=4
+                     /product="DNA-directed RNA polymerase subunit beta"
+                     /protein_id="WGM49057.1"
+                     /translation="SHYGKICPVETPEGMNIGLIMALASFAQINEFGFLITPYYKVVN
+                     GRVTNEIHWLSALQEDIYIISEANVAKDSEGKLQGSITVRYKDSIETVPPTAVDYIDI
+                     GCHQLVSVSTSLIPFLEHNDANRALMGANMQRQAVPLLKPHAPLVGTGVEYKIATDSG
+                     LSVIAEKDGTVLSVEGKEVVVQYDGDKEPTRHRLYKFERSNQNTCKNQVPLVRPAQKI
+                     KANEVIASGPAMQNGELALGQNLLIAFTTWYGYNYEDAIILSSRLIEEDVYTSVHIQE
+                     HSVECMRTKIGDEEITRQLPYATDQEKKYLDENGIIMVGAEVKEGDILVGKTSPIANT
+                     EQSSEEKLLQAIFSEKVKSVKDTSLKVPSGGGGVVTKIMRMSIYKGDKLNDDVIEVVK
+                     VFITQKRKIQVGDKMAGRHGNKGIVSKIALKEDMP"
+ORIGIN      
+        1 ttcccattat ggaaagattt gtcctgttga aacacctgag ggtatgaaca ttggtcttat
+       61 catggctcta gcctcttttg ctcaaattaa tgaatttggt ttcttaatca ccccttacta
+      121 caaagtggtt aatggtagag taactaacga gattcattga ctatctgctc tacaagaaga
+      181 catatacata atctctgagg ctaatgttgc taaagactct gaaggaaaac tacaaggatc
+      241 aataactgtt agatacaaag actccattga gactgttcct ccgacagctg ttgattatat
+      301 agatatcggt tgtcaccaat tggtgtctgt atctacttcc ttaattcctt tcctagaaca
+      361 caacgatgcc aacagggcgt tgatgggtgc aaacatgcaa aggcaggcag tgcctctatt
+      421 aaaacctcat gctcctttag tgggtactgg tgttgaatac aaaattgcaa cagactccgg
+      481 tttatctgtt attgcagaaa aagatggaac agttctatct gtagaaggta aagaagtagt
+      541 agttcaatac gacggagaca aagaacctac aagacacaga ctttacaaat ttgaaagatc
+      601 taaccaaaac acatgcaaaa accaagtgcc acttgtaaga cctgcacaaa aaattaaagc
+      661 taatgaagtt atcgctagtg gtcctgcaat gcagaatgga gaacttgccc taggtcaaaa
+      721 cttactgatt gcctttacta cttgatacgg ttacaactac gaggatgcga taatcctgtc
+      781 ttctcgatta atagaggagg atgtatatac ctctgtacat attcaagagc attctgttga
+      841 atgtatgaga acaaaaattg gtgatgagga gattactaga cagttacctt atgcaacaga
+      901 tcaagagaag aaatatcttg atgaaaacgg aatcattatg gttggtgcgg aagttaaaga
+      961 gggagatatt cttgtaggta agacctctcc tattgctaat acagaacaaa gctcagaaga
+     1021 gaaactgctt caagcaatct tctctgaaaa agttaaatca gttaaggaca cttctctaaa
+     1081 agttccttct ggtggtggag gggttgtaac aaagattatg agaatgtcaa tctacaaagg
+     1141 agacaaatta aatgatgacg tgattgaagt ggtgaaagtg tttattactc aaaaacgaaa
+     1201 aattcaagta ggtgataaga tggctggacg tcacggtaac aagggtattg tttcaaaaat
+     1261 tgctcttaaa gaagatatgc c
+//
+LOCUS       QB063967                 585 bp    DNA     linear   INV 30-SEP-2026
+DEFINITION  Darthula hardwickii isolate DH1 cytochrome c oxidase subunit I
+            (COX1) gene, partial cds; mitochondrial.
+ACCESSION   QB063967
+VERSION     QB063967.1
+KEYWORDS    .
+SOURCE      mitochondrion Darthula hardwickii
+  ORGANISM  Darthula hardwickii
+            Eukaryota; Metazoa; Ecdysozoa; Arthropoda; Altocrustacea;
+            Allotriocarida; Hexapoda; Insecta; Pterygota; Neoptera; Eumetabola;
+            Paraneoptera; Hemiptera; Auchenorrhyncha; Membracoidea;
+            Aetalionidae; Darthula.
+REFERENCE   1  (bases 1 to 585)
+  AUTHORS   Bonysana,R., Rajashekar,Y. and Sharma,N.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (25-SEP-2026) Animal resources, Institute of Bioresources
+            and Sustainable development, Takyelpat, Imphal West, Imphal,
+            Manipur 795001, India
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..585
+                     /organism="Darthula hardwickii"
+                     /organelle="mitochondrion"
+                     /mol_type="genomic DNA"
+                     /isolate="DH1"
+                     /db_xref="taxon:1264638"
+                     /geo_loc_name="India: Manipur, Mao, Senapati District"
+                     /collection_date="19-May-2026"
+                     /PCR_primers="fwd_name: LCO, fwd_seq:
+                     ggtcaacaaatcataaagatattgg, rev_name: HCO, rev_seq:
+                     taaacttcagggtgaccaaaaaatca"
+     gene            <1..>585
+                     /gene="COX1"
+     CDS             <1..>585
+                     /gene="COX1"
+                     /codon_start=2
+                     /transl_table=5
+                     /product="cytochrome c oxidase subunit I"
+                     /protein_id="YGX69077.1"
+                     /translation="MFSMLIRIELAQPGPLLNNDQAYNTIITSHAFIMIFFMVMPIMI
+                     GGFGNWLLPLMIGAPDMAFPRLNNLSFWMLPPSMTMLLMSSMVEMGVGTGWTLYPPLS
+                     ANMAHSSSSVDLSIFSLHLAGISSILGAINFITTVINMRTMNMNMDKMPLFVWSVFIT
+                     AILLLLSLPVLAGAITMLLTDRNMNTTFFDPSGGG"
+ORIGIN      
+        1 gatgtttaga atattaattc gaattgagct agctcaacca ggaccactat taaataatga
+       61 tcaagcatat aatacaatca ttacttctca tgcatttatt ataatcttct ttatagttat
+      121 accaatcata attggcggat tcggtaactg attattacca ttaatgattg gagccccaga
+      181 tatagcattc ccacgattaa ataacttaag attctgaata ctaccaccat ctataacaat
+      241 actattaata agatccatag ttgagatagg agtaggtact gggtgaacat tatatcctcc
+      301 attatcagct aacatagcac actccagatc aagagtagat ttatcaatct tttctctaca
+      361 tttagctggt atttcatcaa ttctaggagc aattaacttt atcacaacag taattaatat
+      421 acgaaccatg aacataaata tagacaaaat accattattt gtatgatcag tttttattac
+      481 agcaattcta cttttattat cccttcctgt attagcaggg gccattacaa tattactgac
+      541 agatcgaaat ataaacacca cattctttga tccttctgga ggagg
+//
