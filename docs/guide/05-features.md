@@ -55,10 +55,17 @@ other) in the Features tab and the name is written back as a `/label`.
 ## Adding a feature
 
 1. Select the bases to annotate in either view.
-2. Click **Add feature** in the edit bar.
-3. A `misc_feature` called _New feature_ appears in the list with its name
-   ready to be typed over. Press `Enter` to confirm.
-4. Click **Edit** to change the type, strand or anything else.
+2. Click **Add feature** in the edit bar, or in the bar that floats beside
+   the selection.
+3. The Features tab opens on a new `misc_feature` called _New feature_, with
+   its full editor (see [Editing a feature](#editing-a-feature)) open under
+   it and scrolled into view. The name is ready to be typed over.
+4. Set what you need and press `Enter` (or **Save changes**). **Cancel**,
+   `Escape` or **Remove feature** takes the new feature away again as if it
+   had never been added, with no undo step left behind.
+
+The new feature is the selected one, even when the bases were selected by
+clicking a feature that already covers them.
 
 The ORFs and Primers tabs add features of their own: an ORF as a `CDS` with
 its translation, primers as `primer_bind` sites.
@@ -159,11 +166,13 @@ protein or tag written with other codons is not found, and some short tags
 
 ## Editing a feature
 
-**Edit** opens the full editor under the row:
+**Edit** opens the full editor under the row, with the name selected for
+typing over:
 
 - **Name** and **Type**. The type field suggests common GenBank keys (CDS,
   gene, promoter, terminator, rep_origin, primer_bind, misc_feature, …) but
-  accepts anything.
+  accepts anything. One of those typed in another case (`cds`, `polya_signal`)
+  becomes that key, spelled as GenBank spells it, when you leave the field.
 - **Strand**: forward or reverse. Reverse-strand features are drawn with an
   arrow pointing left and are translated from the reverse complement.
 - **Thickness**: how thick the feature's bar is drawn in the sequence view
@@ -186,8 +195,9 @@ protein or tag written with other codons is not found, and some short tags
   `translation`. Add, edit or remove rows; a qualifier with no value is
   written as a flag (`/pseudo`).
 
-**Save changes** applies everything as one undo step. **Remove feature**
-deletes it.
+**Save changes** (or `Enter`) applies everything as one undo step.
+**Cancel** (or `Escape`) closes the editor and leaves the feature as it was.
+**Remove feature** deletes it.
 
 ## Features and edits
 

@@ -118,9 +118,11 @@ describe('EditorStore', () => {
     );
   });
 
-  it('annotates the selection and asks for a name', () => {
+  it('annotates the selection and opens it in the full editor on the Features tab', () => {
     const store = new EditorStore();
     store.openDocument(doc);
+    store.setSidebarTab('primers');
+    store.setSidebarOpen(false);
     store.addFeatureFromSelection();
     expect(store.document?.features.size).toBe(1);
     store.setSelection({ start: 3, end: 9 });
@@ -128,12 +130,97 @@ describe('EditorStore', () => {
     expect(store.document?.features.size).toBe(2);
     const added = store.document?.features.all()[1];
     expect(added).toMatchObject({ type: 'misc_feature', name: 'New feature' });
-    expect(store.getState().renameRequest?.id).toBe(added?.id);
-    expect(store.getState().selection).toEqual({ start: 3, end: 9 });
-    store.finishRename();
+    expect(store.getState().editingFeatureId).toBe(added?.id);
     expect(store.getState().renameRequest).toBeNull();
+    expect(store.getState().sidebarTab).toBe('features');
+    expect(store.getState().sidebarOpen).toBe(true);
+    expect(store.getState().selection).toEqual({ start: 3, end: 9 });
     store.applyPlan(null);
     expect(store.getState().history?.undoDepth).toBe(1);
+  });
+});
+
+describe('EditorStore add feature', () => {
+  it('cancelling a just-added feature leaves the tab as it was before the add', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSelection({ start: 0, end: 2 });
+    store.applyPlan(deleteForward(store.document ?? doc, { start: 0, end: 2 }));
+    store.undo();
+    const before = store.getState().history;
+    store.setSelection({ start: 3, end: 9 });
+    store.addFeatureFromSelection();
+    expect(store.document?.features.size).toBe(2);
+    store.cancelFeatureEdit();
+    // No step for the add, nor one for taking it away; the redo is still there.
+    expect(store.getState().history).toBe(before);
+    expect(store.getState().history?.canRedo).toBe(true);
+    expect(store.document?.features.size).toBe(1);
+    expect(store.getState().editingFeatureId).toBeNull();
+    expect(store.getState().selection).toEqual({ start: 3, end: 9 });
+  });
+
+  it('takes back the fork a first add made of a file', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    const name = store.document?.name;
+    const derived = store.documentState()?.derived;
+    store.setSelection({ start: 3, end: 9 });
+    store.addFeatureFromSelection();
+    // The add forked the file into a working copy under a name of its own.
+    expect(store.documentState()?.derived).toBe(true);
+    expect(store.document?.name).not.toBe(name);
+    store.cancelFeatureEdit();
+    expect(store.document?.name).toBe(name);
+    expect(store.documentState()?.derived).toBe(derived);
+  });
+
+  it('removes a just-added feature as an edit of its own once something else happened', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    store.setSelection({ start: 3, end: 9 });
+    store.addFeatureFromSelection();
+    store.applyPlan(typeText(store.document ?? doc, { start: 0, end: 0 }, 'A'));
+    const depth = store.getState().history?.undoDepth ?? 0;
+    store.cancelFeatureEdit();
+    expect(store.document?.features.size).toBe(1);
+    expect(store.getState().history?.undoDepth).toBe(depth + 1);
+  });
+
+  it('Remove feature on a just-added one cancels the add', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const before = store.getState().history;
+    store.setSelection({ start: 3, end: 9 });
+    store.addFeatureFromSelection();
+    store.removeEditedFeature();
+    expect(store.getState().history).toBe(before);
+  });
+
+  it('keeps an existing feature as it was when its edit is cancelled, and keeps a saved new one', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    store.editFeature('f');
+    store.cancelFeatureEdit();
+    expect(store.document?.features.size).toBe(1);
+    expect(store.getState().editingFeatureId).toBeNull();
+    store.setSelection({ start: 3, end: 9 });
+    store.addFeatureFromSelection();
+    // Save changes closes the editor; a later cancel has nothing to take back.
+    store.editFeature(null);
+    store.editFeature('f');
+    store.cancelFeatureEdit();
+    expect(store.document?.features.size).toBe(2);
+  });
+
+  it('selects the new feature, not an existing one over the same bases', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    store.selectFeature('f');
+    store.addFeatureFromSelection();
+    const added = store.getState().editingFeatureId;
+    expect(added).not.toBe('f');
+    expect(store.getState().selectedFeatureId).toBe(added);
   });
 });
 

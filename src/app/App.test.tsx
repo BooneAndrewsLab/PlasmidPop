@@ -110,7 +110,10 @@ describe('App', () => {
     // The edit bar's, not the one on the bar floating beside the selection.
     const editBar = screen.getByRole('toolbar', { name: 'Edit' });
     fireEvent.click(within(editBar).getByRole('button', { name: /Add feature/ }));
-    expect(screen.getByRole('textbox', { name: 'Feature name' })).toHaveValue('New feature');
+    // The new feature opens in the full editor, its name up to be typed over.
+    const name = screen.getByRole('textbox', { name: 'Name' });
+    expect(name).toHaveValue('New feature');
+    expect(name).toHaveFocus();
   });
 
   it('starts a new sequence from the empty state and types into it', () => {

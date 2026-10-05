@@ -1520,7 +1520,11 @@ export class EditorStore {
     if (plan !== null) this.apply(plan.op, plan.selectionAfter, this.activeId, plan.coalesce);
   }
 
-  /** Annotates the current selection as a new feature and asks the panel to name it. */
+  /**
+   * Annotates the current selection as a new feature and opens it in the
+   * Features tab's full editor, so its name, type, strand, location and
+   * qualifiers can all be set at once.
+   */
   addFeatureFromSelection(): void {
     const doc = this.document;
     const selection = this.state.selection;
@@ -1530,10 +1534,88 @@ export class EditorStore {
       name: 'New feature',
       segments: [rangeSegment(selection.start, selection.end)],
     });
+    this.restoreHistory();
+    const before = this.documentState();
+    if (before === null) return;
     this.apply({ type: 'addFeature', feature }, selection);
+    const after = this.documentState();
+    if (after === null || after.history === before.history) return;
+    this.pendingAdd = {
+      documentId: before.documentId,
+      featureId: feature.id,
+      after: after.history,
+      before: {
+        history: before.history,
+        selection: before.selection,
+        selectedFeatureId: before.selectedFeatureId,
+        reveal: before.reveal,
+        analysis: before.analysis,
+        derived: before.derived,
+        savedDoc: before.savedDoc,
+      },
+    };
+    // The new feature is the selected one, not another that happens to cover
+    // the same bases (a feature clicked just before, say).
     this.setActive({
-      renameRequest: { id: feature.id, nonce: (this.state.renameRequest?.nonce ?? 0) + 1 },
+      editingFeatureId: feature.id,
+      selectedFeatureId: feature.id,
+      renameRequest: null,
     });
+    this.setSidebarTab('features');
+    this.setSidebarOpen(true);
+  }
+
+  /**
+   * The feature Add feature has just made, and the tab's state from before
+   * it, while the editor it opened in is still open: cancelling that editor
+   * takes the feature back out as if it had never been added, no undo step
+   * left behind and the redo steps there were kept.
+   */
+  private pendingAdd: {
+    readonly documentId: string;
+    readonly featureId: string;
+    /** The history the add left, to tell whether anything has happened since. */
+    readonly after: History<SeqDocument>;
+    readonly before: Pick<
+      DocumentState,
+      'history' | 'selection' | 'selectedFeatureId' | 'reveal' | 'analysis' | 'derived' | 'savedDoc'
+    >;
+  } | null = null;
+
+  /**
+   * Closes the feature editor without saving (Cancel, or Escape). A feature
+   * Add feature has just made goes again: with nothing done since, the tab
+   * goes back to how it was before the add; otherwise it is removed as an
+   * edit of its own. An existing feature keeps what it had.
+   */
+  cancelFeatureEdit(): void {
+    const id = this.state.editingFeatureId;
+    const pending = this.pendingAdd;
+    this.pendingAdd = null;
+    if (id === null) return;
+    const target = this.documentState();
+    if (pending === null || target === null || pending.featureId !== id) {
+      this.editFeature(null);
+      return;
+    }
+    if (pending.documentId === target.documentId && target.history === pending.after) {
+      this.setActive({ ...pending.before, editingFeatureId: null, renameRequest: null });
+      return;
+    }
+    this.editFeature(null);
+    this.apply({ type: 'removeFeature', id });
+  }
+
+  /** Removes the feature open in the editor; one Add feature has just made goes as Cancel takes it. */
+  removeEditedFeature(): void {
+    const id = this.state.editingFeatureId;
+    if (id === null) return;
+    if (this.pendingAdd?.featureId === id) {
+      this.cancelFeatureEdit();
+      return;
+    }
+    this.editFeature(null);
+    this.apply({ type: 'removeFeature', id });
   }
 
   // Undo, redo and a jump all seal the step they land on, so the next edit
@@ -1705,6 +1787,8 @@ export class EditorStore {
 
   editFeature(id: string | null): void {
     if (id !== this.state.editingFeatureId) {
+      // Saved, or another feature opened: the new one stays.
+      this.pendingAdd = null;
       this.setActive({ editingFeatureId: id, renameRequest: null });
     }
   }

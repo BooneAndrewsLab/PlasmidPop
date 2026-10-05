@@ -118,6 +118,16 @@ since there is nothing on it to select.
 | `Escape`                  | Back to where the keyboard was before `Alt+B`       |
 | Double-click the boundary | Put that boundary back where it was                 |
 
+## Feature editor
+
+In the editor under a feature in the Features tab (see
+[Features](05-features.md#editing-a-feature)):
+
+| Keys     | Action                                                  |
+| -------- | ------------------------------------------------------- |
+| `Enter`  | Save changes                                            |
+| `Escape` | Cancel; a feature just made with Add feature goes again |
+
 ## Help
 
 | Keys                            | Action          |

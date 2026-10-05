@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   type Feature,
@@ -54,6 +54,16 @@ const COMMON_TYPES = [
   'source',
 ];
 
+/**
+ * The common type `typed` names, in that type's own spelling (`cds` → `CDS`,
+ * `PolyA_Signal` → `polyA_signal`), or `typed` as it is when it names none:
+ * any other key is the user's to choose.
+ */
+function commonType(typed: string): string {
+  const key = typed.trim().toLowerCase();
+  return COMMON_TYPES.find((t) => t.toLowerCase() === key) ?? typed;
+}
+
 interface Props {
   readonly doc: SeqDocument;
   readonly feature: Feature;
@@ -92,6 +102,20 @@ export function FeatureEditor({ doc, feature }: Props) {
   const [nextKey, setNextKey] = useState(feature.qualifiers.length);
   /** What saving a primer_bind feature to My primers came to (#64). */
   const [savedPrimer, setSavedPrimer] = useState('');
+
+  // Opening the editor (Edit, or Add feature on a fresh one) brings the
+  // whole of it into view, a new feature's at the foot of the list included,
+  // and puts the name up to be typed over.
+  const formRef = useRef<HTMLFormElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const form = formRef.current;
+    const item = form?.closest('.feature-item') ?? form;
+    // Guarded because jsdom, where the app's tests run, has no scrollIntoView.
+    if (typeof item?.scrollIntoView === 'function') item.scrollIntoView({ block: 'nearest' });
+    nameRef.current?.focus({ preventScroll: true });
+    nameRef.current?.select();
+  }, []);
 
   let locationError: string | null = null;
   let segments = feature.segments;
@@ -139,10 +163,22 @@ export function FeatureEditor({ doc, feature }: Props) {
   };
 
   return (
-    <form className="feature-editor" onSubmit={submit}>
+    <form
+      ref={formRef}
+      className="feature-editor"
+      onSubmit={submit}
+      onKeyDown={(e) => {
+        // Escape is Cancel: a feature just added goes, an existing one keeps what it had.
+        if (e.key !== 'Escape') return;
+        e.preventDefault();
+        e.stopPropagation();
+        editorStore.cancelFeatureEdit();
+      }}
+    >
       <label className="feature-editor__field">
         <span>Name</span>
         <input
+          ref={nameRef}
           className="panel__search"
           value={name}
           onChange={(e) => {
@@ -158,6 +194,9 @@ export function FeatureEditor({ doc, feature }: Props) {
           value={type}
           onChange={(e) => {
             setType(e.target.value);
+          }}
+          onBlur={() => {
+            setType((t) => commonType(t));
           }}
         />
         <datalist id="feature-types">
@@ -294,7 +333,7 @@ export function FeatureEditor({ doc, feature }: Props) {
           type="button"
           className="button button--small"
           onClick={() => {
-            editorStore.editFeature(null);
+            editorStore.cancelFeatureEdit();
           }}
         >
           Cancel
@@ -303,8 +342,7 @@ export function FeatureEditor({ doc, feature }: Props) {
           type="button"
           className="button button--quiet button--small feature-editor__remove"
           onClick={() => {
-            editorStore.editFeature(null);
-            editorStore.apply({ type: 'removeFeature', id: feature.id });
+            editorStore.removeEditedFeature();
           }}
         >
           Remove feature

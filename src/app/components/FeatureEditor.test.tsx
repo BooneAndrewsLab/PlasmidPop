@@ -54,3 +54,44 @@ describe('FeatureEditor thickness', () => {
     expect(saved()).toEqual([{ name: 'note', value: 'kept' }]);
   });
 });
+
+describe('FeatureEditor', () => {
+  const setup = () => {
+    const doc = SeqDocument.create({
+      name: 'p',
+      sequence: 'ACGT'.repeat(20),
+      features: [
+        createFeature({ id: 'g', type: 'gene', name: 'lacZ', segments: [rangeSegment(10, 30)] }),
+      ],
+    });
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.editFeature('g');
+    });
+    const present = editorStore.getState().history?.present ?? doc;
+    render(<FeatureEditor doc={present} feature={present.requireFeature('g')} />);
+  };
+
+  it('takes a typed common type in its own spelling once the field is left', () => {
+    setup();
+    const type = screen.getByRole('combobox', { name: 'Type' });
+    fireEvent.change(type, { target: { value: ' polya_SIGNAL ' } });
+    fireEvent.blur(type);
+    expect(type).toHaveValue('polyA_signal');
+    fireEvent.change(type, { target: { value: 'my_part' } });
+    fireEvent.blur(type);
+    expect(type).toHaveValue('my_part');
+  });
+
+  it('drops the edits of an existing feature on Escape, as Cancel does', () => {
+    setup();
+    const depth = editorStore.getState().history?.undoDepth;
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'changed' },
+    });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Escape' });
+    expect(editorStore.getState().editingFeatureId).toBeNull();
+    expect(editorStore.getState().history?.present.requireFeature('g').name).toBe('lacZ');
+    expect(editorStore.getState().history?.undoDepth).toBe(depth);
+  });
+});
