@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { getEnzyme } from '@/core';
+import { findCutSites } from '@/core/analysis/restriction';
+import { digest } from '@/core/cloning/digest';
+import { SeqDocument } from '@/core/document';
 
 import { RebaseParseError, parseRebaseWithRefM } from './withrefm';
 
@@ -213,5 +216,34 @@ describe('parseRebaseWithRefM', () => {
 
   it('refuses text that is not a REBASE file', () => {
     expect(() => parseRebaseWithRefM('LOCUS  pBR322  4361 bp')).toThrow(RebaseParseError);
+  });
+
+  describe('trailing N padding before the caret', () => {
+    const text = (site: string) =>
+      `REBASE version 610   withrefm.610\nRich Roberts    Sep 28 2026\n\n<1>TspRI\n<2>\n<3>${site}\n<4>\n<5>x\n<6>x\n<7>\n<8>ref\n`;
+    const tsp = parseRebaseWithRefM(text('CASTGNN^')).enzymes[0];
+
+    it('keeps the core as the site and mirrors the bottom cut around it', () => {
+      expect(tsp).toMatchObject({ site: 'CASTG', cutTop: 7, cutBottom: -2 });
+    });
+
+    it('cuts once per site, leaving a 9-nt 3 prime overhang', () => {
+      if (tsp === undefined) throw new Error('TspRI missing');
+      const seq = 'AAAAAAAAAACAGTGTTGGGGGGGGGGGGGG';
+      const doc = SeqDocument.create({ name: 't', sequence: seq, topology: 'linear' });
+      const sites = findCutSites(seq, 'linear', [tsp]);
+      expect(sites).toHaveLength(1);
+      const frags = digest(doc, sites);
+      expect(frags).toHaveLength(2);
+      expect(frags[0]?.sequence.startsWith('AAAAAAAAAACAGTGTT')).toBe(true);
+    });
+
+    it('strips padding on both sides', () => {
+      expect(parseRebaseWithRefM(text('NNCASTGNN^')).enzymes[0]).toMatchObject({
+        site: 'CASTG',
+        cutTop: 7,
+        cutBottom: -2,
+      });
+    });
   });
 });

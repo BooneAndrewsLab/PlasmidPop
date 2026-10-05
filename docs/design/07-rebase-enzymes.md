@@ -79,3 +79,9 @@ sequence.
     the way out (said so in the guide).
   - `getEnzyme`'s fallback to the bundled table is a map built beside it
     rather than a linear scan.
+
+- A caret after N padding (`TspRI` `CASTGNN^`) is read as the core site
+  (`CASTG`) with the cut converted to the core's coordinates and the
+  bottom cut mirrored around the core (+7 / -2). Keeping the padding made
+  the site non-palindromic and added a second cut on the reverse strand
+  (#136).

@@ -170,6 +170,17 @@ function readSite(
   const caret = site.indexOf('^');
   if (caret < 0) return 'cutUnknown';
   if (site.includes('^', caret + 1)) return 'cutUnknown';
+  // N padding is not part of the site: REBASE writes `CASTGNN^` for a site
+  // CASTG cut two bases past its end, and the bottom strand is cut as far
+  // before the core as the top is after it. Keeping the padding would make
+  // the site non-palindromic and add a second cut on the other strand.
+  const padL = /^N*/.exec(bare)?.[0].length ?? 0;
+  const padR = /N*$/.exec(bare)?.[0].length ?? 0;
+  if (padL + padR < bare.length && padL + padR > 0) {
+    const core = bare.slice(padL, bare.length - padR);
+    const top = caret - padL;
+    return { site: core, cutTop: top, cutBottom: core.length - top };
+  }
   return { site: bare, cutTop: caret, cutBottom: bare.length - caret };
 }
 
