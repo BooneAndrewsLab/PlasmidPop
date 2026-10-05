@@ -43,6 +43,7 @@ from Bio.SeqRecord import SeqRecord
 
 import assembly
 import digest
+import gateway
 import pcr
 import thermo
 
@@ -486,6 +487,7 @@ def main():
     write('pcr.json', pcr.generate())
     write('assembly.json', assembly.generate())
     write('digest.json', digest.generate())
+    write('gateway.json', gateway.generate())
 
 
 if __name__ == '__main__':
