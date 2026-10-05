@@ -333,7 +333,9 @@ beside it with the commonest of these: **Style ▾** (see
 **Add feature** and **Copy**, and how many bases are selected. It sits above
 the selection, or under its last row, below that row's translations and feature
 lanes, where there is no room above for the Style menu,
-so the selected bases stay in view while you work on them. While the mouse
+so the selected bases stay in view while you work on them. A selection
+whose first and last rows are both out of view (`Ctrl+A` on a long sequence,
+say) keeps the bar at the top of the view as you scroll. While the mouse
 is elsewhere (a selection made on the map or from a panel) the bar is faded;
 it comes back in full as soon as the mouse is over the sequence. Clicking a single
 position, or selecting nothing, puts it away. The phone reader has its own

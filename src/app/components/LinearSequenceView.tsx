@@ -23,6 +23,8 @@ import {
   formatLength,
   hasTool,
   isEmptyRange,
+  rangeContains,
+  rangesOverlap,
 } from '@/core';
 import {
   type Hit,
@@ -942,7 +944,10 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
    * menu opening downwards. The lower place is under the row's translations
    * and feature lanes, never over them (#115). Either way the menu leaves the selected bases in
    * sight while it restyles them. Failing both, above with the menu down.
-   * Null when there is no range selected, or neither place is on screen.
+   * A selection whose first and last rows are both off screen (Ctrl+A on a
+   * long sequence, or a long drag) pins the bar to the top of the view, over
+   * the first visible row it covers, with the menu down.
+   * Null when there is no range selected, or none of it is on screen.
    */
   function selectionBarPlace(): { left: number; top: number; menuOpens: 'up' | 'down' } | null {
     if (selection === null || isEmptyRange(selection) || doc.length === 0) return null;
@@ -969,7 +974,12 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     }
     if (onScreen(above)) return { ...aboveAt, menuOpens: 'down' };
     if (onScreen(below)) return { ...belowAt, menuOpens: 'down' };
-    return null;
+    const shown = layout
+      .rowsInWindow(scrollTop, bottom)
+      .find((row) => rangesOverlap(selection, { start: row.start, end: row.end }, doc.length));
+    if (shown === undefined) return null;
+    const from = rangeContains(selection, shown.start, doc.length) ? shown.start : start;
+    return { left: clampLeft(layout.xOf(shown, from)), top: scrollTop + 4, menuOpens: 'down' };
   }
 
   const onCopy = (e: ReactClipboardEvent<HTMLDivElement>): void => {

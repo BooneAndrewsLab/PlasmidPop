@@ -101,6 +101,57 @@ describe('LinearSequenceView', () => {
     expect(withCds).toBeGreaterThan(plain + 20);
   });
 
+  it('shows the selection bar for Ctrl+A on a sequence longer than the view', () => {
+    const { container } = setup();
+    expect(container.querySelector('.selection-bar')).toBeNull();
+    fireEvent.keyDown(container, { key: 'a', ctrlKey: true });
+    expect(editorStore.getState().selection).toEqual({ start: 0, end: doc.length });
+    const bar = container.querySelector<HTMLElement>('.selection-bar');
+    expect(bar?.textContent).toContain('2,000 bp');
+    // Neither the first row's ruler nor the last row's foot is in view, so
+    // the bar is pinned to the top of the view.
+    expect(parseFloat(bar?.style.top ?? '')).toBe(4);
+  });
+
+  it('keeps the pinned bar in view as a whole-sequence selection scrolls', () => {
+    const { container } = setup();
+    fireEvent.keyDown(container, { key: 'a', ctrlKey: true });
+    Object.defineProperty(container, 'scrollTop', {
+      value: 500,
+      configurable: true,
+      writable: true,
+    });
+    fireEvent.scroll(container);
+    const bar = container.querySelector<HTMLElement>('.selection-bar');
+    expect(parseFloat(bar?.style.top ?? '')).toBe(504);
+  });
+
+  it('pins the bar for a wrapping selection whose ends are both off screen', () => {
+    const circular = SeqDocument.create({ sequence: 'ACGT'.repeat(500), topology: 'circular' });
+    act(() => {
+      editorStore.openDocument(circular);
+      editorStore.setSeqBasesPerRow(120);
+      // From near the end, across the origin, to well past the view's foot.
+      editorStore.setSelection({ start: 1900, end: 2000 + 1500 });
+    });
+    const view = render(<LinearSequenceView doc={circular} />);
+    const bar = view.container.querySelector<HTMLElement>('.selection-bar');
+    expect(bar?.textContent).toContain('1,600 bp');
+    expect(parseFloat(bar?.style.top ?? '')).toBe(4);
+  });
+
+  it('shows the selection bar for Ctrl+A on a short sequence', () => {
+    const short = SeqDocument.create({ sequence: 'ACGTACGTAC' });
+    act(() => {
+      editorStore.openDocument(short);
+    });
+    const view = render(<LinearSequenceView doc={short} />);
+    const container = view.container.querySelector('.seq-view');
+    if (container === null) throw new Error('no view');
+    fireEvent.keyDown(container, { key: 'a', ctrlKey: true });
+    expect(view.container.querySelector('.selection-bar')?.textContent).toContain('10 bp');
+  });
+
   it('shows no selection bar in the phone reader', () => {
     act(() => {
       editorStore.openDocument(doc);
