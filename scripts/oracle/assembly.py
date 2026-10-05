@@ -38,7 +38,12 @@ def same_circle(a, b):
 
 def circular_gibson(rng, name, n, k, overlap, cuts=None, flip=(), shift=0):
     target = random_dna(rng, n)
-    cuts = cuts or sorted(rng.sample(range(n), k))
+    while cuts is None:
+        # parts must be longer than two overlaps, or an end would match two parts
+        drawn = sorted(rng.sample(range(n), k))
+        gaps = [(drawn[(i + 1) % k] - drawn[i]) % n for i in range(k)]
+        if min(gaps) > 2 * overlap + 40:
+            cuts = drawn
     k = len(cuts)
     parts = []
     for i, start in enumerate(cuts):
@@ -56,7 +61,11 @@ def circular_gibson(rng, name, n, k, overlap, cuts=None, flip=(), shift=0):
 
 def linear_gibson(rng, name, n, k, overlap, flip=(), shift=0):
     target = random_dna(rng, n)
-    cuts = [0] + sorted(rng.sample(range(60, n - 60), k - 1))
+    while True:
+        cuts = [0] + sorted(rng.sample(range(60, n - 60), k - 1))
+        gaps = [b - a for a, b in zip(cuts, cuts[1:] + [n])]
+        if min(gaps) > 2 * overlap + 40:
+            break
     parts = [target[s : (cuts[i + 1] + overlap if i + 1 < k else n)] for i, s in enumerate(cuts)]
     order = list(range(k))
     order = order[shift:] + order[:shift]
@@ -86,14 +95,14 @@ def gibson_cases(rng):
         circular_gibson(rng, 'circ-2-parts-20bp', 1200, 2, 20),
         circular_gibson(rng, 'circ-3-parts-20bp', 1500, 3, 20),
         circular_gibson(rng, 'circ-4-parts-25bp', 2000, 4, 25),
-        circular_gibson(rng, 'circ-5-parts-30bp', 2500, 5, 30),
+        circular_gibson(rng, 'circ-5-parts-30bp', 2000, 5, 30),
         circular_gibson(rng, 'circ-2-parts-15bp', 1000, 2, 15),
-        circular_gibson(rng, 'circ-3-parts-40bp', 1800, 3, 40),
-        circular_gibson(rng, 'circ-4-parts-60bp', 2400, 4, 60),
-        circular_gibson(rng, 'circ-3-parts-one-reversed', 1500, 3, 25, flip=(1,)),
+        circular_gibson(rng, 'circ-3-parts-40bp', 1500, 3, 40),
+        circular_gibson(rng, 'circ-4-parts-60bp', 1800, 4, 60),
+        circular_gibson(rng, 'circ-3-parts-one-reversed', 1200, 3, 25, flip=(1,)),
         circular_gibson(rng, 'circ-4-parts-two-reversed', 2000, 4, 25, flip=(1, 3)),
         circular_gibson(rng, 'circ-3-parts-out-of-order', 1500, 3, 25, shift=1),
-        circular_gibson(rng, 'circ-5-parts-reversed-and-shifted', 2500, 5, 30, flip=(2,), shift=2),
+        circular_gibson(rng, 'circ-5-parts-reversed-and-shifted', 2000, 5, 30, flip=(2,), shift=2),
         # the overlap of the last and first parts straddles the origin of the target
         circular_gibson(rng, 'circ-3-parts-overlap-across-origin', 1500, 3, 30, cuts=[1485, 400, 900]),
         circular_gibson(rng, 'circ-2-parts-overlap-across-origin', 1200, 2, 24, cuts=[1190, 600]),
@@ -184,10 +193,21 @@ def chain(frags):
 
 
 def golden_gate_case(rng, name, enzyme_name, n_inserts, rot=0, flip=()):
+    # random parts occasionally make a stray recognition site where parts join, which
+    # the digest then cuts; draw again until pydna can rebuild the construct
+    for _ in range(25):
+        try:
+            return _golden_gate_case(rng, name, enzyme_name, n_inserts, rot, flip)
+        except AssertionError:
+            continue
+    raise AssertionError(f'pydna does not rebuild {name}')
+
+
+def _golden_gate_case(rng, name, enzyme_name, n_inserts, rot=0, flip=()):
     _, site, spacer, ohlen = ENZYMES[enzyme_name]
     sp = 'A' * spacer
     o = overhangs(rng, n_inserts + 1, ohlen)
-    backbone = clean_body(rng, 500, site)
+    backbone = clean_body(rng, 300, site)
     dropout = clean_body(rng, 120, site)
     # vector: ... [o_1][sp][rc site][dropout][site][sp][o_0] backbone ...
     vector = o[1] + sp + rc(site) + dropout + site + sp + o[0] + backbone

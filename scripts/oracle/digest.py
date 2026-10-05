@@ -197,7 +197,10 @@ def ligation_case(name, circular, specs, orient=None):
     flips = [bool(a) != bool(b) for a, b in zip(flips, orient or [False] * len(parts))]
     case = {'name': name, 'circular': circular, 'parts': refs, 'flips': flips}
     top = str(product.seq.watson).upper() if not circular else str(product.seq).upper()
-    case['product'] = top
+    # the product by its SEGUID, which says the same molecule whichever way round and from
+    # wherever a circle is read (the SEGUID tests pin the checksum itself)
+    case['seguid'] = product.seq.seguid().split('=')[1]
+    case['length'] = len(top)
     if not circular:
         case['ends'] = dict(zip(('left', 'right'), describe_ends(product.seq)))
     return case

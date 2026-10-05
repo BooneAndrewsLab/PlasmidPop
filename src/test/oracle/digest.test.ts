@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 
-import { SeqDocument, reverseComplement } from '@/core';
+import { SeqDocument } from '@/core';
 import { ENZYMES, findCutSites } from '@/core/analysis/restriction';
+import { documentChecksum } from '@/core/checksum';
 import { digest } from '@/core/cloning/digest';
 import { flipFragment, ligate } from '@/core/cloning/ligate';
 import { parseGenBank } from '@/io';
@@ -63,12 +64,6 @@ function fragmentsOf(s: Source) {
 
 const describe1 = (e: End): End => ({ kind: e.kind, overhang: e.overhang.toUpperCase() });
 
-function sameCircle(a: string, b: string): boolean {
-  const x = a.toUpperCase();
-  const y = b.toUpperCase();
-  return x.length === y.length && ((x + x).includes(y) || (x + x).includes(reverseComplement(y)));
-}
-
 describe('digests against pydna', () => {
   for (const c of oracle.digests) {
     const label = `${c.source} ${c.topology}${c.rotation ? ` rotated ${c.rotation}` : ''} ${c.enzymes.join('+')}`;
@@ -100,11 +95,13 @@ describe('ligation against pydna', () => {
         return c.flips[i] ? flipFragment(fragment) : fragment;
       });
       const product = ligate(fragments, { name: c.name, circular: c.circular });
-      if (c.circular) {
-        expect(product.isCircular).toBe(true);
-        expect(sameCircle(product.sequence.toString(), c.product)).toBe(true);
-      } else {
-        expect(product.sequence.toString().toUpperCase()).toBe(c.product);
+      // The product is compared by its SEGUID, which names a molecule whichever way
+      // round it is written and wherever a circle starts (seguid.test.ts pins the
+      // checksum itself against the seguid package).
+      expect(product.isCircular).toBe(c.circular);
+      expect(product.sequence.length).toBe(c.length);
+      expect(documentChecksum(product)?.value).toBe(c.seguid);
+      if (!c.circular) {
         const ends = (c as { ends?: { left: End; right: End } }).ends;
         expect(describe1(product.ends.left)).toEqual(ends?.left);
         expect(describe1(product.ends.right)).toEqual(ends?.right);

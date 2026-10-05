@@ -83,7 +83,7 @@ def generate():
 
     # 1. Plain primers, random linear and circular templates, optional 5' tails.
     for i in range(24):
-        L = rng.randint(300, 1200)
+        L = rng.randint(300, 700)
         text = random_dna(rng, L)
         circular = i % 2 == 1
         flen, rlen = rng.randint(18, 28), rng.randint(18, 28)
@@ -95,10 +95,10 @@ def generate():
 
     # 2. Circular, the product spans the origin.
     for i in range(14):
-        L = rng.randint(500, 1000)
+        L = rng.randint(400, 600)
         text = random_dna(rng, L)
         flen = rlen = rng.randint(20, 26)
-        fs = L - rng.randint(40, 120)
+        fs = L - rng.randint(40, 100)
         rs = rng.randint(30, 120)  # past the origin
         ftail = random_dna(rng, 10) if i % 2 == 0 else ''
         rtail = random_dna(rng, 12) if i % 3 == 0 else ''
@@ -123,9 +123,9 @@ def generate():
 
     # 4. Inverse PCR round a circle (back to back), and primers inserting bases.
     for i in range(6):
-        L = 1000
+        L = 600
         text = random_dna(rng, L)
-        at = 250 + i * 90
+        at = 150 + i * 60
         flen = rlen = 22
         insert = random_dna(rng, 9 + i) if i % 2 else ''
         add(build(f'inverse-{i}', text, True, at, flen, at - rlen, rlen, insert, ''), text)

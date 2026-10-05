@@ -42,6 +42,7 @@ from Bio.SeqIO.InsdcIO import _insdc_location_string
 from Bio.SeqRecord import SeqRecord
 
 import assembly
+import checksums
 import digest
 import gateway
 import pcr
@@ -488,6 +489,7 @@ def main():
     write('assembly.json', assembly.generate())
     write('digest.json', digest.generate())
     write('gateway.json', gateway.generate())
+    write('seguid.json', checksums.generate())
 
 
 if __name__ == '__main__':
