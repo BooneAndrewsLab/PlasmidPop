@@ -60,9 +60,45 @@ describe('terminalOverlap', () => {
     // Case is not a difference between two pieces of DNA.
     expect(terminalOverlap('aaaaGGGttt', 'TTTaaaa', 3, 60)).toBe(3);
   });
+
+  it('finds an aperiodic shared end longer than 60 bases (#134)', () => {
+    const shared = template(200, 777);
+    for (const n of [61, 65, 80, 200]) {
+      const a = template(300, 1) + shared.slice(0, n);
+      const b = shared.slice(0, n) + template(300, 2);
+      expect(terminalOverlap(a, b, 15)).toBe(n);
+    }
+  });
+
+  it('takes the longest shared end within a cap, not just the cap', () => {
+    // 'ACGTTACG' shares 'ACG' (3) and 'ACGTTACG' (8): capped at 6, the
+    // answer is the longest border that fits, 3, not a refusal.
+    expect(terminalOverlap('TTACGTTACG', 'ACGTTACGAA', 2, 6)).toBe(3);
+    expect(terminalOverlap('TTACGTTACG', 'ACGTTACGAA', 2)).toBe(8);
+  });
 });
 
 describe('gibson', () => {
+  it.each([40, 60, 61, 65, 80, 150])(
+    'joins parts that share %i bases, however long the homology (#134)',
+    (overlap) => {
+      const parts = pieces(PLASMID, [0, 1000, 2000], overlap);
+      const result = gibson(parts);
+      expect(result.problem).toBeNull();
+      const assembly = result.assembly;
+      if (assembly === null) throw new Error('no assembly');
+      expect(assembly.joins.map((j) => j.length)).toEqual([overlap, overlap, overlap]);
+      expect(assembly.product.sequence.toString()).toBe(PLASMID);
+    },
+  );
+
+  it('joins a linear product across a long overlap (#134)', () => {
+    const linear = template(2000, 99);
+    const result = gibson(linearPieces(linear, [0, 1000], 70), { circular: false });
+    expect(result.problem).toBeNull();
+    expect(result.assembly?.product.sequence.toString()).toBe(linear);
+  });
+
   it('puts a plasmid back together from three overlapping pieces', () => {
     const parts = pieces(PLASMID, [0, 1000, 2000], 25);
     const result = gibson(parts);

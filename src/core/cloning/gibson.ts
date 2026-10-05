@@ -85,10 +85,10 @@ export interface GibsonOptions {
   /** Shortest homology to accept. NEB's kit asks for 15 or more. */
   readonly minOverlap?: number;
   /**
-   * Longest stretch to look for. Not a limit on the design — a longer shared
-   * end is simply reported at this length — but a bound on the search, and a
-   * guard against two parts that share hundreds of bases being read as a
-   * junction when what they really share is a whole feature.
+   * Longest homology to accept; unbounded by default. Shared ends are found
+   * at their full length however long they are (#134): a junction inside a
+   * feature both parts carry can share hundreds of bases, and a cap on the
+   * search used to miss it altogether rather than report it shorter.
    */
   readonly maxOverlap?: number;
   /** Whether the product closes into a circle. A plasmid does. */
@@ -98,7 +98,7 @@ export interface GibsonOptions {
 
 export const GIBSON_DEFAULTS = {
   minOverlap: 15,
-  maxOverlap: 60,
+  maxOverlap: Number.POSITIVE_INFINITY,
   circular: true,
 } as const;
 
@@ -107,13 +107,33 @@ export const GIBSON_DEFAULTS = {
  * bounds; 0 when there is none. Longest first, because a designed overlap of
  * 30 bases also has a 15-base suffix that matches, and the designed one is
  * the true junction.
+ *
+ * Linear in the two lengths: the prefix function of `b + sep + a` gives the
+ * longest border at its end, and following the border chain down gives every
+ * shorter one, so a `max` takes the longest that fits rather than the
+ * suffix and prefix of exactly `max` bases, which are different windows of
+ * a longer shared stretch and match only by accident (#134).
  */
-export function terminalOverlap(a: string, b: string, min: number, max: number): number {
-  const limit = Math.min(max, a.length, b.length);
-  for (let n = limit; n >= min; n--) {
-    if (a.slice(a.length - n).toUpperCase() === b.slice(0, n).toUpperCase()) return n;
+export function terminalOverlap(
+  a: string,
+  b: string,
+  min: number,
+  max: number = Number.POSITIVE_INFINITY,
+): number {
+  const limit = Math.min(a.length, b.length);
+  if (limit < min) return 0;
+  // Only the last `limit` bases of `a` and first `limit` of `b` can take part.
+  const s = `${b.slice(0, limit).toUpperCase()}\u0000${a.slice(a.length - limit).toUpperCase()}`;
+  const pi = new Int32Array(s.length);
+  for (let i = 1; i < s.length; i++) {
+    let k = pi[i - 1] ?? 0;
+    while (k > 0 && s.charCodeAt(i) !== s.charCodeAt(k)) k = pi[k - 1] ?? 0;
+    if (s.charCodeAt(i) === s.charCodeAt(k)) k++;
+    pi[i] = k;
   }
-  return 0;
+  let n = pi[s.length - 1] ?? 0;
+  while (n > max) n = pi[n - 1] ?? 0;
+  return n >= min ? n : 0;
 }
 
 /** One oriented candidate: a part as itself or turned around. */
@@ -240,7 +260,10 @@ export function gibson(parts: readonly SeqDocument[], options: GibsonOptions = {
   if (last === undefined || start === undefined) return fail('Nothing to assemble.');
   let closing = 0;
   if (circular) {
-    closing = terminalOverlap(last.sequence, start.sequence, minOverlap, maxOverlap);
+    // A part closing on itself shares its whole length with itself; the
+    // homology is a proper end of it, so at most one base shorter.
+    const cap = order.length === 1 ? Math.min(maxOverlap, last.sequence.length - 1) : maxOverlap;
+    closing = terminalOverlap(last.sequence, start.sequence, minOverlap, cap);
     if (closing === 0) {
       return fail(
         `The parts do not close into a circle: ${last.document.name} does not end in the bases ${start.document.name} starts with.`,

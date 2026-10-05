@@ -35,9 +35,24 @@ overhangs would misligate.
   exonuclease, a polymerase and a ligase join them in one tube. So there
   is nothing to digest and no overhang table to consult — the whole
   question is which end matches which, and whether that order is forced.
-  `terminalOverlap` takes the _longest_ shared stretch within
-  `minOverlap`..`maxOverlap`, because a designed 30-mer also has a
-  matching 15-base suffix and the designed one is the true junction.
+  `terminalOverlap` takes the _longest_ shared stretch of at least
+  `minOverlap`, because a designed 30-mer also has a matching 15-base
+  suffix and the designed one is the true junction.
+  - **There is no upper bound on the search (#134).** It used to walk
+    down from `maxOverlap` = 60 comparing an `n`-base suffix with an
+    `n`-base prefix. When two parts share 61 bases or more, those are two
+    different windows of the shared stretch, so they match only in a
+    periodic sequence: the junction was not found at all and the user was
+    told nothing follows the part. Long overlaps are ordinary (a junction
+    inside a feature both parts carry). It is now the prefix function of
+    `b + sep + a`, linear, and an explicit `maxOverlap` follows the border
+    chain down to the longest one that fits instead of testing one length.
+    The worry that cap stood for, two parts sharing a whole feature being
+    read as a junction, is left to the checks that already exist: a part
+    with nothing left between its two homologies is refused, and a second
+    part that also fits is reported as ambiguous. A part closing on itself
+    is bounded at its length minus one, since every sequence is a border
+    of itself.
   - **The product is seamless**, which is the whole point: every shared
     stretch is in it once. Each part gives up the homology it shares with
     the part before it, _except_ the closing one of a circle, which is

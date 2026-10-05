@@ -473,7 +473,8 @@ then:
    shortest homology to accept; 15 bp is the default and what NEB's protocol
    asks for.
 3. The panel finds the longest shared stretch between the end of one part
-   and the start of another, follows the chain, and reports the order. A
+   and the start of another, however long it is, follows the chain, and
+   reports the order. A
    part whose ends only fit the other way round is turned around for you and
    says **(flipped)**.
 4. Each junction line gives the length of the homology and its melting
