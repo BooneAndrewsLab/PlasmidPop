@@ -27,8 +27,9 @@ export type HostMethylation = 'Dam' | 'Dcm';
  *
  * Where REBASE gives one configuration both "cut" and "impaired" from
  * different tests, it is read as cut unless it is also "blocked": the
- * impairment in those rows (FokI, HaeIII, BslI's single Dcm base) was
- * measured with M.HpaII or M.SssI, not Dcm.
+ * impairment in those rows (HaeIII, BslI's single Dcm base) was measured
+ * with M.HpaII or M.SssI, not Dcm. FokI's is too, but NEB's own chart lists
+ * FokI as impaired by overlapping Dcm, so FokI is in the table (#149).
  */
 export type Configuration = readonly [top: readonly number[], bottom: readonly number[]];
 
@@ -127,6 +128,10 @@ export const REBASE_CONFIGURATIONS: Readonly<
       [[5], [1]],
     ],
   },
+  // NEB's chart and FokI page: "dcm methylation: Impaired by Overlapping"
+  // (#149). The one way CCWGG reaches GGATG is ending in its first GG, as in
+  // CCAGGATG, methylating the base opposite that G.
+  FokI: { Dcm: [[[], [0]]] },
   FseI: { Dcm: [[[7], [0]]] },
   HphI: { Dam: [[[4], []]] },
   Hpy188I: {

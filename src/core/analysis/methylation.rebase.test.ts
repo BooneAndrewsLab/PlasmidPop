@@ -36,9 +36,8 @@ describe('overlap on one side only is cut', () => {
     ['SfoI', `${A}GGCGCCAGG${A}`],
     ['BstXI', `${A}CCAGGAAAATGG${A}`],
     ['SfiI', `${A}GGCCAAAAAGGCCAGG${A}`],
-    // lambda @30472, pBR322 @133 and lambda @30043 in the audit
+    // lambda @30472 in the audit
     ['BsaHI', `${A}ACCAGGGGCGTC${A}`],
-    ['FokI', `${A}CCCTGGGGATG${A}`],
   ])('%s', (enzyme, sequence) => {
     expect(marks(sequence, enzyme)).toEqual([]);
   });
@@ -84,10 +83,24 @@ describe('a site on the reverse strand', () => {
 });
 
 describe('FokI', () => {
-  it('is not Dcm-sensitive: REBASE’s impairment is M.HpaII and M.MspI, not Dcm', () => {
-    // Decided on #135: the "impaired" rows in REBASE for the base Dcm
-    // methylates are tests with M.HpaII (50% cleaved) and M.SssI (cut).
-    expect(isHostMethylationSensitive('FokI')).toBe(false);
+  // NEB's chart and FokI page (#149): "dcm methylation: Impaired by
+  // Overlapping". REBASE's own rows for that base test M.HpaII and M.SssI.
+  it('is impaired by a CCWGG ending in its first GG, from either strand', () => {
+    expect(isHostMethylationSensitive('FokI')).toBe(true);
+    expect(marks(`${A}CCAGGATG${A}`, 'FokI')).toEqual(['Dcm']);
+    expect(marks(`${A}CATCCTGG${A}`, 'FokI')).toEqual(['Dcm']);
+  });
+
+  it('is cut with CCWGG beside its site but not in it', () => {
+    expect(marks(`${A}CCCTGGGGATG${A}`, 'FokI')).toEqual([]);
+    expect(marks(`${A}GGATGCCAGG${A}`, 'FokI')).toEqual([]);
+  });
+
+  it('marks lambda’s site at 30043 (J02459), CCAGGATG', () => {
+    // The reference digest (Biopython 1.85) finds GGATG at 30043..30047 and
+    // cuts after 30056; it is lambda's one FokI site with a CCWGG in it.
+    const s = 'GGAGTCTTCCCAGGATGGCGAACAACAAGA';
+    expect(marks(`${A}${s}${A}`, 'FokI')).toEqual(['Dcm']);
   });
 });
 
@@ -102,9 +115,9 @@ describe('on pBR322 (J01749) grown dam+/dcm+', () => {
     return [all.length, kept.length];
   };
 
-  it('keeps all 12 FokI sites, the one in CCTGGATG at 133 included', () => {
+  it('drops the FokI site in CCTGGATG at 133 and keeps the other 11', () => {
     expect(seq.slice(127, 137)).toBe('ACCCTGGATG');
-    expect(cuttable('FokI')).toEqual([12, 12]);
+    expect(cuttable('FokI')).toEqual([12, 11]);
   });
 
   it('still drops the MscI site inside CCTGG', () => {

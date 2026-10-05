@@ -113,9 +113,32 @@ FokI to a CCWGG on one side only. Dam's and Dcm's bases were right.
   REBASE draws, which the audit found cut in pBR322 and lambda, is cut, and
   FokI leaves the table. Revisit if NEB's chart is later seen to say
   otherwise. HaeIII is likewise not added (cut with Dcm), and FseI is.
+  _Reversed by #149, below._
 - **Enzymes REBASE has no table for** (BclI, DpnII, BssKI, BcgI, FspI,
   PhoI) keep NEB's note: any methylated base of the methylase named, or
   either for the three the note leaves unnamed (`ANY_OVERLAP`). REBASE
   lists no Dam table row for BclI or DpnII at all.
 - Still not modelled: blocked from impaired; imported REBASE enzymes under
   other names.
+
+Added 2026-10-05 (#149): **FokI is impaired by overlapping Dcm, per NEB.**
+neb.com still refuses automated reads, but the Wayback Machine's copies
+can be read: the "Dam-Dcm and CpG Methylation" selection chart
+(`web.archive.org/web/20250907211349/https://www.neb.com/en-us/tools-and-resources/selection-charts/dam-dcm-and-cpg-methylation`)
+gives FokI `GGATG(9/13)` Dam not sensitive, Dcm and CpG "impaired by
+overlapping", and the FokI R0109 product page
+(`web.archive.org/web/20260116204035/https://www.neb.com/en-us/products/r0109-foki`)
+says "dcm methylation: Impaired by Overlapping" and "Impaired by
+overlapping dcm methylation and by overlapping CpG methylation". NEB names
+no configuration, but only one exists: a CCWGG can put its methyl group
+inside `GGATG` only by ending in the site's first GG (`CCWGGATG`, or
+`CATCCWGG` read from the other strand), which methylates the base opposite
+that G, `[[], [0]]`, as for BsaI and BsmFI. FokI is in
+`REBASE_CONFIGURATIONS` with that entry. REBASE's 50% M.HpaII row for the
+same base agrees with "impaired"; it is NEB's word that it applies to Dcm.
+The model does not tell impaired from blocked, so these sites are marked
+like any other. pBR322's site at 133 (`CCTGGATG`) and lambda's at 30043
+(J02459, `CCCAGGATG`; Biopython 1.85 finds that site and cuts after 30056,
+lambda's only FokI site with a CCWGG in it, 150 in all) are now marked. Not read: NEB's FAQ
+"Is FokI blocked by methylation?" (no archived copy); NEB's FokI datasheet
+PDF (not tried, since the chart and product page agree).
