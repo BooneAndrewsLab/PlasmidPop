@@ -41,6 +41,8 @@ from Bio.SeqFeature import (
 from Bio.SeqIO.InsdcIO import _insdc_location_string
 from Bio.SeqRecord import SeqRecord
 
+import thermo
+
 ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'src', 'test', 'oracle')
 FIXTURES = os.path.join(ROOT, 'src', 'io', 'fixtures')
@@ -477,6 +479,7 @@ def main():
     translation()
     snapgene()
     abif()
+    write('thermo.json', thermo.generate())
 
 
 if __name__ == '__main__':
