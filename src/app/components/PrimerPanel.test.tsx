@@ -139,6 +139,18 @@ describe('a design made before the sequence changed (#132)', () => {
     );
   });
 
+  it.each([
+    ['reverse complement', { type: 'reverseComplement' }],
+    ['topology change', { type: 'setTopology', topology: 'circular' }],
+  ] as const)('drops the pairs after a %s too', (_, op) => {
+    const view = setup();
+    act(() => {
+      editorStore.apply(op);
+    });
+    view.rerender(<PrimerPanel doc={editorStore.document ?? doc} />);
+    expect(screen.queryByRole('button', { name: 'Add both as features' })).toBeNull();
+  });
+
   it('keeps the pairs when only the annotations change', () => {
     const view = setup();
     act(() => {

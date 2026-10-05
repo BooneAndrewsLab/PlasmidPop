@@ -1,4 +1,7 @@
-import { hostMethylationAt, isHostMethylationSensitive } from './methylation';
+import { parseGenBank } from '@/io';
+import { readFixture } from '@/test/fixtures';
+
+import { cuttableSites, hostMethylationAt, isHostMethylationSensitive } from './methylation';
 import { findCutSites, getEnzyme } from './restriction';
 
 /**
@@ -85,5 +88,26 @@ describe('FokI', () => {
     // Decided on #135: the "impaired" rows in REBASE for the base Dcm
     // methylates are tests with M.HpaII (50% cleaved) and M.SssI (cut).
     expect(isHostMethylationSensitive('FokI')).toBe(false);
+  });
+});
+
+describe('on pBR322 (J01749) grown dam+/dcm+', () => {
+  const record = parseGenBank(readFixture('J01749.gb')).documents[0];
+  const seq = record?.sequence.toString().toUpperCase() ?? '';
+  const cuttable = (name: string) => {
+    const e = getEnzyme(name);
+    if (e === undefined) throw new Error(name);
+    const all = findCutSites(seq, 'circular', [e]);
+    const kept = cuttableSites(seq, 'circular', { dam: true, dcm: true }, all, () => e.site.length);
+    return [all.length, kept.length];
+  };
+
+  it('keeps all 12 FokI sites, the one in CCTGGATG at 133 included', () => {
+    expect(seq.slice(127, 137)).toBe('ACCCTGGATG');
+    expect(cuttable('FokI')).toEqual([12, 12]);
+  });
+
+  it('still drops the MscI site inside CCTGG', () => {
+    expect(cuttable('MscI')).toEqual([1, 0]);
   });
 });

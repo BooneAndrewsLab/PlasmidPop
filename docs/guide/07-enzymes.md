@@ -297,7 +297,9 @@ Enzymes tab looks at the bases around each site. Which methylase matters,
 and how much of the site it must reach, is per enzyme, taken from REBASE's
 tables of overlapping methylation: BstXI, AlwNI and PflMI ignore a GATC
 inside their N bases, and SfoI is blocked only when CCWGG methylates both
-ends of its site, not one. A cut position whose site a Dam or Dcm methyl
+ends of its site, not one. A few enzymes NEB lists as sensitive have no
+such table in REBASE (BclI, DpnII, BssKI, BcgI, FspI and PhoI); for those,
+any Dam or Dcm methyl group inside the site counts. A cut position whose site a Dam or Dcm methyl
 group would fall in, in a way that enzyme is sensitive to, is marked with a small **m** and
 written in the warning colour; hovering it says which. The row says how many
 of its sites are affected — _1 of 2 sites may be blocked by Dam/Dcm
