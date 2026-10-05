@@ -5,6 +5,13 @@ and run in frame to the first stop codon, on both strands, including frames
 that cross the origin of a circular sequence. The list updates in the
 background whenever the sequence changes.
 
+Starts that share a stop are one ORF, listed from the farthest start — also
+when that start is on the other side of the origin, so an `ATG` just after
+the origin is not listed a second time inside the ORF that comes round to
+it. On a circle an ORF is at most as long as the sequence: a start whose
+reading would come all the way round before it stops is skipped for the
+next start that fits, and a reading with no stop at all is no ORF.
+
 Each row shows the strand (→ forward, ← reverse), the range in 1-based
 coordinates (including the stop codon) and the length of the protein in
 amino acids. The list is sorted by position.
