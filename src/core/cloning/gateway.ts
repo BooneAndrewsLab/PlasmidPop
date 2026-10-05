@@ -108,6 +108,32 @@ function insertOrder([a, b]: readonly [AttSite, AttSite]): {
   };
 }
 
+/**
+ * Whether a feature is the ccdB gene itself, the only name the clone is
+ * ever chosen by (and then only when the sites' strands do not say, see
+ * `insertOrder`). Its promoter, terminator or a primer site on it is not
+ * the gene: a backbone feature called `ccdB promoter` must not swap the
+ * circles (#133).
+ */
+const NOT_A_GENE_TYPES = new Set([
+  'promoter',
+  'terminator',
+  'regulatory',
+  'RBS',
+  'enhancer',
+  'primer_bind',
+  'protein_bind',
+  'misc_binding',
+  'rep_origin',
+]);
+function isCcdbGene(f: Feature): boolean {
+  return (
+    /ccdb/i.test(f.name) &&
+    !NOT_A_GENE_TYPES.has(f.type) &&
+    !/promoter|terminator|primer|operator|enhancer|\brbs\b/i.test(f.name)
+  );
+}
+
 export type GatewayReaction = 'BP' | 'LR';
 
 /** Which kinds each reaction takes, and what the two products carry. */
@@ -304,7 +330,7 @@ export function gateway(
 
   const productName = options.name ?? `${insert.name} × ${vector.name} ${reaction}`;
   const carriesCcdb = (pieces: readonly { readonly features: readonly Feature[] }[]): boolean =>
-    pieces.some((p) => p.features.some((f) => /ccdb/i.test(f.name)));
+    pieces.some((p) => p.features.some(isCcdbGene));
 
   // The two circles the crossover makes. The clone wanted is the first of
   // them: the insert's piece between its sites, joined to the vector's
@@ -361,6 +387,11 @@ export function gateway(
       });
 
   const warnings = gatewayWarnings(product, vector, reaction, first.core, second.core);
+  if (rescue) {
+    warnings.push(
+      `The att sites of ${insert.name} are both drawn on one strand, so they do not say which piece moves, and their numbering would have made the clone the circle with the ccdB gene. The other circle is given as the clone instead: check the sites' strands if that is not what you expect.`,
+    );
+  }
   if (wanted.ccdB && !spare.ccdB) {
     warnings.push(
       `The circle the sites make the ${reaction === 'BP' ? 'entry' : 'expression'} clone carries a feature named ccdB and the other one does not, which is the wrong way round for a Gateway reaction: check that the att sites of ${insert.name} are numbered and drawn the way its map says, since they are what says which piece moves.`,

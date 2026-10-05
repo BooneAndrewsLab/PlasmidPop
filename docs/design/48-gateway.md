@@ -50,6 +50,13 @@ system that Invitrogen's kits are built on.
   warning: a clone that carries ccdB when the byproduct does not is said to
   be the wrong way round rather than quietly swapped.
 
+  Follow-up (#133, re-checked against the pydna oracle cases with the sites
+  renamed): the name test that overrules the guess was any feature matching
+  `ccdb`, so a backbone feature called `ccdB promoter` swapped the circles
+  back to the byproduct, silently. It now counts only the ccdB gene — not a
+  feature typed or named as a promoter, terminator, primer or binding site —
+  and when it does overrule the numbering, a warning says so.
+
 - **The recombinant sites are annotated fresh.** Each parent site is cut in
   half by the crossover, so carrying the parents' features over would leave
   two half-features with the old names on either side of every junction.
