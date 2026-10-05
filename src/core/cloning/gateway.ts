@@ -71,6 +71,43 @@ export function attSites(doc: SeqDocument): AttSite[] {
   return out.sort((a, b) => a.range.start - b.range.start);
 }
 
+/** A site's place in the numbering, with `2r` just after `2`. */
+function siteRank(site: AttSite): number {
+  return Number.parseInt(site.number, 10) * 2 + (site.number.endsWith('r') ? 1 : 0);
+}
+
+/**
+ * Which of the insert's two sites the DNA that moves runs *from* (#133).
+ * The piece that changes hands is the arc forward from the first site to
+ * the second, so reading this off the wrong way hands back the byproduct as
+ * the clone.
+ *
+ * Position cannot say which is first: on a circle the insert may wrap the
+ * origin, which puts site 2 earlier in the sequence than site 1. Two things
+ * can. A site drawn on the reverse strand faces back along the molecule, so
+ * when the two lie on opposite strands — attL1 forward, attL2 reverse, as a
+ * real entry clone is drawn — the forward one is where the insert starts.
+ * When both are drawn on the same strand the drawing has lost that — the
+ * two sites of a real pair face opposite ways — and only the numbering is
+ * left: attB1–insert–attB2 is the convention, read backwards when the
+ * molecule itself is written backwards. That is a guess, and the one case
+ * where the ccdB cassette's name is still allowed to overrule it below.
+ */
+function insertOrder([a, b]: readonly [AttSite, AttSite]): {
+  readonly sites: readonly [AttSite, AttSite];
+  /** False when the drawing does not say and the numbering was guessed from. */
+  readonly certain: boolean;
+} {
+  if (a.strand !== b.strand) {
+    return { sites: a.strand === 'forward' ? [a, b] : [b, a], certain: true };
+  }
+  const ascending = siteRank(a) < siteRank(b);
+  return {
+    sites: ascending === (a.strand === 'forward') ? [a, b] : [b, a],
+    certain: false,
+  };
+}
+
 export type GatewayReaction = 'BP' | 'LR';
 
 /** Which kinds each reaction takes, and what the two products carry. */
@@ -200,7 +237,8 @@ export function gateway(
     );
   }
 
-  const [i1, i2] = inserts as [AttSite, AttSite];
+  const order = insertOrder(inserts as [AttSite, AttSite]);
+  const [i1, i2] = order.sites;
   // The vector's partners, matched by number rather than by position: a
   // destination vector often carries attR2 before attR1 on the forward strand.
   const v1 = vectors.find((s) => s.number === i1.number);
@@ -268,10 +306,12 @@ export function gateway(
   const carriesCcdb = (pieces: readonly { readonly features: readonly Feature[] }[]): boolean =>
     pieces.some((p) => p.features.some((f) => /ccdb/i.test(f.name)));
 
-  // The two circles the crossover makes. Which of them is the clone wanted
-  // is not a matter of geometry — the sites can be annotated in either order
-  // and one of them may wrap the origin — but of selection: the cassette
-  // goes to the byproduct, and the circle without it is what grows.
+  // The two circles the crossover makes. The clone wanted is the first of
+  // them: the insert's piece between its sites, joined to the vector's
+  // backbone outside the cassette. `insertOrder` is what makes that true
+  // whichever way round the sites are drawn, so no feature name is consulted
+  // to choose (#133); a cassette that ends up on the clone all the same is
+  // worth saying, but it is a sanity check, not the decision.
   const crossed = {
     pieces: [asFragment(insertPiece, insert.name), asFragment(vectorPiece, vector.name)],
     sites: [
@@ -298,7 +338,10 @@ export function gateway(
     ],
     ccdB: carriesCcdb([cassette, leftover]),
   };
-  const [wanted, spare] = crossed.ccdB && !other.ccdB ? [other, crossed] : [crossed, other];
+  // Only where the sites were drawn too poorly to say does selection get a
+  // vote: a cassette the vector calls ccdB is then the better evidence.
+  const rescue = !order.certain && crossed.ccdB && !other.ccdB;
+  const [wanted, spare] = rescue ? [other, crossed] : [crossed, other];
 
   const product = recombinant(wanted.pieces, {
     name: productName,
@@ -317,10 +360,17 @@ export function gateway(
         sites: spare.sites,
       });
 
+  const warnings = gatewayWarnings(product, vector, reaction, first.core, second.core);
+  if (wanted.ccdB && !spare.ccdB) {
+    warnings.push(
+      `The circle the sites make the ${reaction === 'BP' ? 'entry' : 'expression'} clone carries a feature named ccdB and the other one does not, which is the wrong way round for a Gateway reaction: check that the att sites of ${insert.name} are numbered and drawn the way its map says, since they are what says which piece moves.`,
+    );
+  }
+
   return {
     product,
     byproduct,
-    warnings: gatewayWarnings(product, vector, reaction, first.core, second.core),
+    warnings,
     problem: null,
   };
 }

@@ -1,4 +1,11 @@
-import { type Segment, SeqDocument, createFeature, rangeSegment, siteSegment } from '@/core';
+import {
+  type Segment,
+  SeqDocument,
+  createFeature,
+  rangeSegment,
+  reverseComplement,
+  siteSegment,
+} from '@/core';
 
 import { attSites, gateway } from './gateway';
 
@@ -330,9 +337,11 @@ describe('the circles a reaction makes (#77)', () => {
     expect(named.product?.name).toBe('pENTR-gene');
     expect(named.byproduct?.name).toBe('pENTR-gene byproduct');
 
+    // The entry clone's attL1 wraps the origin, so attL2 is written first;
+    // the sites are still read 1 then 2, which is what moves the gene (#133).
     const lr = gateway(product, destination, 'LR');
     expect(lr.product?.metadata.description).toBe(
-      'Expression clone from a LR reaction of pEntrySource × pDONR BP and pDEST: attB2 and attB1',
+      'Expression clone from a LR reaction of pEntrySource × pDONR BP and pDEST: attB1 and attB2',
     );
   });
 
@@ -502,5 +511,151 @@ describe('fusions out of frame (#77)', () => {
 
   it('says nothing of a CDS that meets one of its own name across the site', () => {
     expect(acrossB1([{ name: 'gene', segments: [rangeSegment(0, 300)] }])).toEqual([]);
+  });
+});
+
+/**
+ * Which circle the reaction hands back as the clone (#133). The piece that
+ * moves is the arc from the insert's first site to its second, and on a
+ * circle that piece can wrap the origin, which puts the sites in the other
+ * order along the sequence. None of the vectors below names its cassette
+ * ccdB, so nothing but the sites themselves can tell the circles apart.
+ */
+describe('the clone, when the insert wraps the origin (#133)', () => {
+  const CASSETTE = { text: filler(900, 33), name: 'lethal cassette' };
+  const KAN = { text: filler(1500, 44), name: 'kanR' };
+  const AMP = { text: filler(1200, 22), name: 'ampR' };
+  const SPEC = { text: filler(1700, 66), name: 'specR' };
+
+  /** `[site 1][middle][site 2][rest]`, site 2 drawn on the reverse strand. */
+  function facing(
+    name: string,
+    kind: 'B' | 'P' | 'R',
+    middle: { readonly text: string; readonly name: string },
+    rest: { readonly text: string; readonly name: string },
+  ): SeqDocument {
+    const one = site(kind, 1);
+    const two = reverseComplement(site(kind, 2));
+    return assemble(name, [
+      { text: one, name: `att${kind}1`, type: 'protein_bind' },
+      { text: middle.text, name: middle.name, type: 'CDS' },
+      { text: two, name: `att${kind}2`, type: 'protein_bind', strand: 'reverse' },
+      { text: rest.text, name: rest.name, type: 'CDS' },
+    ]);
+  }
+
+  /**
+   * The same molecule written starting halfway through its middle part, so
+   * the part that moves wraps the origin and site 2 comes first.
+   */
+  function rotated(
+    name: string,
+    kind: 'B' | 'P' | 'R',
+    middle: { readonly text: string; readonly name: string },
+    rest: { readonly text: string; readonly name: string },
+    secondStrand: 'forward' | 'reverse',
+  ): SeqDocument {
+    const one = site(kind, 1);
+    const two = secondStrand === 'reverse' ? reverseComplement(site(kind, 2)) : site(kind, 2);
+    const cut = Math.floor(middle.text.length / 2);
+    return assemble(name, [
+      { text: middle.text.slice(cut), name: middle.name, type: 'CDS' },
+      { text: two, name: `att${kind}2`, type: 'protein_bind', strand: secondStrand },
+      { text: rest.text, name: rest.name, type: 'CDS' },
+      { text: one, name: `att${kind}1`, type: 'protein_bind' },
+      { text: middle.text.slice(0, cut), name: middle.name, type: 'CDS' },
+    ]);
+  }
+
+  /** Lays parts end to end and annotates each one. */
+  function assemble(
+    name: string,
+    parts: readonly {
+      readonly text: string;
+      readonly name: string;
+      readonly type: string;
+      readonly strand?: 'forward' | 'reverse';
+    }[],
+  ): SeqDocument {
+    let sequence = '';
+    const features = parts.map((p) => {
+      const feature = createFeature({
+        type: p.type,
+        name: p.name,
+        strand: p.strand ?? 'forward',
+        segments: [rangeSegment(sequence.length, sequence.length + p.text.length)],
+      });
+      sequence += p.text;
+      return feature;
+    });
+    return SeqDocument.create({ name, sequence, topology: 'circular', features });
+  }
+
+  const donorNoName = (): SeqDocument => facing('pDONR', 'P', CASSETTE, KAN);
+  const destNoName = (): SeqDocument => facing('pDEST', 'R', CASSETTE, SPEC);
+  const carries = (doc: SeqDocument, text: string): boolean =>
+    doc.sequence.toString().includes(text) ||
+    doc.sequence.toString().includes(reverseComplement(text));
+
+  it('keeps the gene, not the cassette, when the sites sit in order', () => {
+    const run = gateway(facing('pSource', 'B', GENE, AMP), donorNoName(), 'BP');
+    const entry = must(run.product, 'a product');
+    expect(carries(entry, GENE.text)).toBe(true);
+    expect(carries(entry, CASSETTE.text)).toBe(false);
+    expect(names(entry)).toEqual(['attL1', 'attL2', 'gene', 'kanR']);
+  });
+
+  it('keeps the gene when the gene wraps the origin and attB2 comes first', () => {
+    const run = gateway(rotated('pSource', 'B', GENE, AMP, 'reverse'), donorNoName(), 'BP');
+    const entry = must(run.product, 'a product');
+    expect(carries(entry, GENE.text)).toBe(true);
+    expect(carries(entry, CASSETTE.text)).toBe(false);
+    expect(names(must(run.byproduct, 'a byproduct'))).toEqual([
+      'ampR',
+      'attR1',
+      'attR2',
+      'lethal cassette',
+    ]);
+  });
+
+  it('goes by the numbering when both sites are drawn on the same strand', () => {
+    const run = gateway(
+      rotated('pSource', 'B', GENE, AMP, 'forward'),
+      molecule('pDONR', 'P', CASSETTE, KAN),
+      'BP',
+    );
+    const entry = must(run.product, 'a product');
+    expect(carries(entry, GENE.text)).toBe(true);
+    expect(carries(entry, CASSETTE.text)).toBe(false);
+    expect(names(entry)).toEqual(['attL1', 'attL2', 'gene', 'gene', 'kanR']);
+  });
+
+  it('carries a rotated entry clone on into the right expression clone', () => {
+    const entry = must(
+      gateway(rotated('pSource', 'B', GENE, AMP, 'reverse'), donorNoName(), 'BP').product,
+      'an entry clone',
+    );
+    const run = gateway(entry, destNoName(), 'LR');
+    const expression = must(run.product, 'an expression clone');
+    expect(run.problem).toBeNull();
+    expect(carries(expression, GENE.text)).toBe(true);
+    expect(carries(expression, CASSETTE.text)).toBe(false);
+    expect(carries(expression, SPEC.text)).toBe(true);
+    expect(names(must(run.byproduct, 'a byproduct'))).toEqual([
+      'attP1',
+      'attP2',
+      'kanR',
+      'lethal cassette',
+    ]);
+  });
+
+  it('warns when the clone it picks is the one named ccdB, and picks it anyway', () => {
+    const run = gateway(
+      facing('pSource', 'B', { text: GENE.text, name: 'ccdB' }, AMP),
+      donorNoName(),
+      'BP',
+    );
+    expect(carries(must(run.product, 'a product'), GENE.text)).toBe(true);
+    expect(run.warnings.join(' ')).toMatch(/named ccdB/);
   });
 });

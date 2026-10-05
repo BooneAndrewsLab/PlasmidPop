@@ -25,14 +25,31 @@ system that Invitrogen's kits are built on.
   is compared reverse-complemented. This also checks the labels: two sites
   that claim to be partners but share no core would not recombine, and that
   is said rather than assumed.
-- **Which circle is the clone is decided by ccdB, not by geometry.** Both
-  circles are made either way — that is what a crossover does — but which
-  one is wanted is a matter of selection, and the cassette goes to the
-  byproduct. Deciding it by position fails as soon as a recombinant site
-  wraps the origin, which an entry clone's `attL1` routinely does: sorting
-  the sites by position then puts them in the wrong order and the two
-  circles come out swapped. Caught by the BP → LR round-trip test, not by
-  reading.
+- **Which circle is the clone is decided by the sites, not by a name**
+  (#133). Both circles are made either way — that is what a crossover does
+  — and the clone wanted is always the same one: the insert's piece between
+  its two sites, joined to the vector's backbone outside the cassette. What
+  has to be got right is which of the insert's sites the piece runs _from_,
+  and position cannot say, because a recombinant site routinely wraps the
+  origin — an entry clone's `attL1` does — which puts site 2 first in the
+  sequence. The strands say: the two sites of a real pair face opposite
+  ways, so where one is drawn forward and the other reverse, the forward
+  one is where the insert starts, under any rotation and whichever way the
+  molecule itself is written.
+
+  Where a file draws both on the same strand that evidence is gone, and the
+  numbering is guessed from instead (`attB1`–insert–`attB2`, read backwards
+  on a molecule written backwards). Only in that case does a cassette the
+  vector names `ccdB` still get to overrule the guess — numbering is a
+  convention, and MultiSite pairs such as `attB4`/`attB1r` do not follow it.
+
+  This was the original rule for every case, and it was wrong: an entry
+  clone whose insert wrapped the origin handed back the byproduct as the
+  expression clone whenever nothing happened to be named `ccdB`, silently,
+  since the warning used the same test. The ccdB test stays as a sanity
+  warning: a clone that carries ccdB when the byproduct does not is said to
+  be the wrong way round rather than quietly swapped.
+
 - **The recombinant sites are annotated fresh.** Each parent site is cut in
   half by the crossover, so carrying the parents' features over would leave
   two half-features with the old names on either side of every junction.

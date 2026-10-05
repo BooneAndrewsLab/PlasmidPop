@@ -561,10 +561,22 @@ sites share a core, so the longest stretch they have in common is it — and
 each recombinant site is half of each parent's, named for what it has
 become.
 
+Which of the two circles is the clone is read off the att sites, not off
+what anything is called. The piece that moves is the one between site 1 and
+site 2 of the insert, and the two sites of a real pair face opposite ways,
+so a map that draws `attL1` on the forward strand and `attL2` on the reverse
+is read correctly however the plasmid is rotated — including when the insert
+wraps the origin, which an entry clone made here routinely does. If a file
+draws both sites on the same strand, the numbering is used instead, so check
+the sites' strands when a clone comes out looking like the byproduct.
+
 It also tells you:
 
 - that the **ccdB** cassette leaves on the byproduct, so the clone that
   grows in an ordinary strain is the one you want;
+- when the clone itself carries a feature named **ccdB** and the byproduct
+  does not, which is the wrong way round and usually means the att sites of
+  the insert are mislabelled;
 - when a pair shares less than a full att core, which usually means a site
   is annotated over only part of its length;
 - when a **tag in the backbone reads out of frame** into the insert across
