@@ -31,6 +31,23 @@ ATT = {
 }
 
 
+# The MultiSite variants differ only in this seven-base specificity core (the
+# thirteen bases around it are what tells them apart in pydna's consensus).
+CORES = {
+    '1': 'TTTGTACAAAAAA',
+    '2': 'TTTGTACAAGAAA',
+    '3': 'TTTGTATAATAAA',
+    '4': 'TTTGTATAGAAAA',
+    '5': 'TTTGTATACAAAA',
+}
+
+
+def att(kind, number):
+    """attB4, attP1r, attL3 ... from the site of the same kind numbered 1."""
+    site = ATT[f'att{kind}1'].replace(CORES['1'], CORES[number.rstrip('r')])
+    return rc(site) if number.endswith('r') else site
+
+
 def build(parts):
     """parts: [(name, sequence, kind, strand)] -> (sequence, features)."""
     seq, feats = '', []
@@ -107,6 +124,46 @@ def generate():
                        ('attR2', rc(ATT['attR2']), 'att', rev), ('ampR', dna(800), 'filler', fwd),
                        ('ori', dna(600), 'filler', fwd)])
 
+    # MultiSite (#147). The variants differ from attB1/attP1/attL1/attR1 only
+    # in the seven-base specificity core, which is how Invitrogen's manual and
+    # pydna's own consensus sites (pydna.gateway) describe them, so each one is
+    # made by swapping that core in; find_gateway_sites recognises the results.
+    # The fragments are the kit's: attB4-attB1r (5' element) and attB2r-attB3
+    # (3' element), each with its matching pDONR, and a one-fragment LR into a
+    # pDEST R4-R3. Both sites of each pair are drawn on one strand, which is
+    # the case the names have to answer.
+    # pydna's gateway_overlap only looks for the numbers 1 to 4, so the pairs
+    # that use attB5 (attB1-attB5r, attB5-attB2) cannot be checked against it;
+    # they are in gateway.test.ts instead.
+    ms_pairs = [
+        ('5prime', '4', '1r'),
+        ('3prime', '2r', '3'),
+    ]
+    multisite = []
+    for name, left, right in ms_pairs:
+        frag = 'ATG' + dna(147) + 'TAA'
+        cassette = 'ATG' + dna(147) + 'TGA'
+        insert = build([(f'attB{left}', att('B', left), 'att', fwd), ('gene', frag, 'gene', fwd),
+                        (f'attB{right}', att('B', right), 'att', fwd),
+                        ('ampR', dna(400), 'filler', fwd)])
+        pdonr = build([(f'attP{left}', att('P', left), 'att', fwd), ('ccdB', cassette, 'gene', fwd),
+                       (f'attP{right}', att('P', right), 'att', fwd),
+                       ('kanR', dna(500), 'filler', fwd)])
+        multisite.append(case(f'BP-multisite-{name}', 'BP', insert, pdonr))
+        if name == '5prime':
+            # the same molecules written the other way round: the sites then
+            # lie on the reverse strand, and the order has to read backwards.
+            multisite.append(case(f'BP-multisite-{name}-reversed', 'BP',
+                                  reverse_molecule(insert), reverse_molecule(pdonr)))
+            # and with the fragment wrapping the origin.
+            multisite.append(case(f'BP-multisite-{name}-wraps-origin', 'BP',
+                                  rotate_molecule(insert, 80), pdonr))
+    ms_entry = build([('attL4', att('L', '4'), 'att', fwd), ('gene', gene, 'gene', fwd),
+                      ('attL3', att('L', '3'), 'att', fwd), ('kanR', dna(650), 'filler', fwd)])
+    ms_dest = build([('attR4', att('R', '4'), 'att', fwd), ('ccdB', ccdb, 'gene', fwd),
+                     ('attR3', att('R', '3'), 'att', fwd), ('ampR', dna(800), 'filler', fwd)])
+    multisite.append(case('LR-multisite-R4-R3', 'LR', ms_entry, ms_dest))
+
     cases = [
         case('BP-forward', 'BP', sub, donor),
         case('LR-forward', 'LR', entry, dest),
@@ -116,5 +173,5 @@ def generate():
         case('LR-vector-reversed', 'LR', entry, reverse_molecule(dest)),
         case('LR-realistic-attB2', 'LR', entry_real, dest_real),
         case('LR-realistic-entry-rotated', 'LR', rotate_molecule(entry_real, 250), dest_real),
-    ]
+    ] + multisite
     return {'cases': cases}

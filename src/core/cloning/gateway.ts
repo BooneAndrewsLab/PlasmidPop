@@ -71,9 +71,28 @@ export function attSites(doc: SeqDocument): AttSite[] {
   return out.sort((a, b) => a.range.start - b.range.start);
 }
 
-/** A site's place in the numbering, with `2r` just after `2`. */
+/**
+ * The order the att numbers lie in along a finished clone, which is not the
+ * order they count in (#147). Invitrogen's MultiSite kits put the extra
+ * numbers outside and between the original pair: a four-fragment expression
+ * clone reads attB4–attB1–attB5–attB2–attB3, built from the fragments
+ * attB4–attB1r, attB1–attB5r, attB5–attB2 and attB2r–attB3. So `4` comes
+ * before `1`, and `3` last, however they sort as numbers.
+ */
+const SITE_ORDER = ['4', '1', '5', '2', '3'];
+
+/**
+ * A site's place in that order, with `2r` just after `2`: the `r` names the
+ * same site written the other way round, so it belongs beside its own
+ * number, and which of a pair carries it is no guide to which comes first
+ * (`attB4`–insert–`attB1r`, but `attB2r`–insert–`attB3`).
+ */
 function siteRank(site: AttSite): number {
-  return Number.parseInt(site.number, 10) * 2 + (site.number.endsWith('r') ? 1 : 0);
+  const number = site.number.replace(/r$/, '');
+  const known = SITE_ORDER.indexOf(number);
+  // A number no kit uses (`att6`) keeps counting after the ones that do.
+  const place = known >= 0 ? known : SITE_ORDER.length + Number.parseInt(number, 10);
+  return place * 2 + (site.number.endsWith('r') ? 1 : 0);
 }
 
 /**
@@ -88,10 +107,12 @@ function siteRank(site: AttSite): number {
  * when the two lie on opposite strands — attL1 forward, attL2 reverse, as a
  * real entry clone is drawn — the forward one is where the insert starts.
  * When both are drawn on the same strand the drawing has lost that — the
- * two sites of a real pair face opposite ways — and only the numbering is
- * left: attB1–insert–attB2 is the convention, read backwards when the
- * molecule itself is written backwards. That is a guess, and the one case
- * where the ccdB cassette's name is still allowed to overrule it below.
+ * two sites of a real pair face opposite ways — and only the names are
+ * left: the insert runs from the earlier of the two in the order the kits
+ * lay their sites out (`SITE_ORDER`, which is not 1, 2, 3, 4, 5: #147),
+ * read backwards when the molecule itself is written backwards. That is a
+ * guess, and the one case where the ccdB cassette's name is still allowed
+ * to overrule it below.
  */
 function insertOrder([a, b]: readonly [AttSite, AttSite]): {
   readonly sites: readonly [AttSite, AttSite];

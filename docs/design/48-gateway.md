@@ -38,10 +38,12 @@ system that Invitrogen's kits are built on.
   molecule itself is written.
 
   Where a file draws both on the same strand that evidence is gone, and the
-  numbering is guessed from instead (`attB1`–insert–`attB2`, read backwards
-  on a molecule written backwards). Only in that case does a cassette the
-  vector names `ccdB` still get to overrule the guess — numbering is a
-  convention, and MultiSite pairs such as `attB4`/`attB1r` do not follow it.
+  names are guessed from instead: the insert runs from the earlier of the
+  two in the order the kits lay their sites out, read backwards on a
+  molecule written backwards. That order is not the counting order —
+  `attB4` comes before `attB1` — see #147 and `71-multisite-att-order.md`.
+  Only in that case does a cassette the vector names `ccdB` still get to
+  overrule the guess.
 
   This was the original rule for every case, and it was wrong: an entry
   clone whose insert wrapped the origin handed back the byproduct as the

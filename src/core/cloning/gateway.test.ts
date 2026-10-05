@@ -659,3 +659,246 @@ describe('the clone, when the insert wraps the origin (#133)', () => {
     expect(run.warnings.join(' ')).toMatch(/named ccdB/);
   });
 });
+
+/**
+ * MultiSite (#147). Invitrogen's MultiSite kits flank each fragment with a
+ * pair the original numbering does not describe: a four-fragment expression
+ * clone reads attB4–attB1–attB5–attB2–attB3, so its fragments are
+ * attB4–attB1r, attB1–attB5r, attB5–attB2 and attB2r–attB3. Where a file
+ * draws both sites of such a pair on one strand, nothing but the names says
+ * which way the DNA runs, and reading them as attB1–insert–attB2 handed the
+ * byproduct back as the clone.
+ *
+ * The sites here are authentic: attB1, attP1, attL1 and attR1 as published
+ * (Hartley et al. 2000, Genome Res. 10:1788; the sequences pydna's own
+ * doctests use), and the other numbers made from them by swapping the seven
+ * base specificity core, which is the only part that differs. No vector file
+ * is copied — these are the sites themselves, laid out around random filler.
+ */
+describe('MultiSite pairs (#147)', () => {
+  const ATT = {
+    B1: 'ACAACTTTGTACAAAAAAGCAGAAG',
+    P1: 'AAAATAATGATTTTATTTGACTGATAGTGACCTGTTCGTTGCAACAAATTGATGAGCAATGCTTTTTTATAATGCCAACTTTGTACAAAAAAGCTGAACGAGAAGCGTAAAATGATATAAATATCAATATATTAAATTAGATTTTGCATAAAAAACAGACTACATAATACTGTAAAACACAACATATCCAGTCACTATGAATCAACTACTTAGATGGTATTAGTGACCTGTA',
+    L1: 'CAAATAATGATTTTATTTTGACTGATAGTGACCTGTTCGTTGCAACAAATTGATAAGCAATGCTTTCTTATAATGCCAACTTTGTACAAAAAAGCAGGCT',
+    R1: 'ACAACTTTGTACAAAAAAGCTGAACGAGAAACGTAAAATGATATAAATATCAATATATTAAATTAGATTTTGCATAAAAAACAGACTACATAATACTGTAAAACACAACATATGCAGTCACTATG',
+  } as const;
+  const CORES: Record<string, string> = {
+    '1': 'TTTGTACAAAAAA',
+    '2': 'TTTGTACAAGAAA',
+    '3': 'TTTGTATAATAAA',
+    '4': 'TTTGTATAGAAAA',
+    '5': 'TTTGTATACAAAA',
+  };
+  /** `attB4`, `attP1r`, `attL3` … from the site of the same kind numbered 1. */
+  function attText(kind: 'B' | 'P' | 'L' | 'R', number: string): string {
+    const core = CORES[number.replace(/r$/, '')];
+    if (core === undefined) throw new Error(number);
+    const text = ATT[`${kind}1`].replace(CORES['1'] ?? '', core);
+    return number.endsWith('r') ? reverseComplement(text) : text;
+  }
+
+  interface Part {
+    readonly text: string;
+    readonly name: string;
+    readonly type: string;
+    readonly strand?: 'forward' | 'reverse';
+  }
+  /** Lays the parts end to end round a circle, opened `rotation` bases in. */
+  function circle(name: string, parts: readonly Part[], rotation = 0): SeqDocument {
+    let sequence = '';
+    const placed = parts.map((p) => {
+      const start = sequence.length;
+      sequence += p.text;
+      return { p, start };
+    });
+    const length = sequence.length;
+    const shift = ((rotation % length) + length) % length;
+    const features = placed.map(({ p, start }) =>
+      createFeature({
+        type: p.type,
+        name: p.name,
+        strand: p.strand ?? 'forward',
+        segments: [rangeSegment((start - shift + length) % length, 0)].map((s) =>
+          rangeSegment(s.start, s.start + p.text.length),
+        ),
+      }),
+    );
+    return SeqDocument.create({
+      name,
+      sequence: sequence.slice(shift) + sequence.slice(0, shift),
+      topology: 'circular',
+      features,
+    });
+  }
+
+  const PAYLOAD = filler(450, 77);
+  const CASSETTE = filler(500, 88);
+  const REST = filler(400, 99);
+  /** The attB substrate of one MultiSite fragment, and its pDONR. */
+  function pair(
+    left: string,
+    right: string,
+    options: {
+      readonly rotation?: number;
+      readonly strands?: readonly ['forward' | 'reverse', 'forward' | 'reverse'];
+      readonly flipped?: boolean;
+    } = {},
+  ): { insert: SeqDocument; vector: SeqDocument } {
+    const [sl = 'forward', sr = 'forward'] = options.strands ?? [];
+    const text = (kind: 'B' | 'P', number: string, strand: 'forward' | 'reverse'): string => {
+      const t = attText(kind, number);
+      return strand === 'reverse' ? reverseComplement(t) : t;
+    };
+    const insert = circle(
+      `attB${left}-attB${right} product`,
+      [
+        { text: text('B', left, sl), name: `attB${left}`, type: 'protein_bind', strand: sl },
+        { text: PAYLOAD, name: 'element', type: 'CDS' },
+        { text: text('B', right, sr), name: `attB${right}`, type: 'protein_bind', strand: sr },
+        { text: REST, name: 'ampR', type: 'CDS' },
+      ],
+      options.rotation ?? 0,
+    );
+    const vector = circle(`pDONR P${left}-P${right}`, [
+      { text: text('P', left, sl), name: `attP${left}`, type: 'protein_bind', strand: sl },
+      { text: CASSETTE, name: 'lethal cassette', type: 'CDS' },
+      { text: text('P', right, sr), name: `attP${right}`, type: 'protein_bind', strand: sr },
+      { text: filler(600, 111), name: 'kanR', type: 'CDS' },
+    ]);
+    return options.flipped === true
+      ? { insert: insert.reverseComplement(), vector: vector.reverseComplement() }
+      : { insert, vector };
+  }
+
+  const holds = (doc: SeqDocument, text: string): boolean => {
+    const s = doc.sequence.toString();
+    return (s + s).includes(text) || (s + s).includes(reverseComplement(text));
+  };
+
+  /** Every pair the kits use, in the order the fragment's DNA runs. */
+  const FRAGMENTS = [
+    ["5' element", '4', '1r'],
+    ['middle, before a 5 fragment', '1', '5r'],
+    ['middle, after a 5 fragment', '5', '2'],
+    ["3' element", '2r', '3'],
+    ['single fragment', '1', '2'],
+  ] as const;
+
+  for (const [what, left, right] of FRAGMENTS) {
+    it(`a ${what} (attB${left}–attB${right}) moves its own DNA, both sites drawn forward`, () => {
+      const { insert, vector } = pair(left, right);
+      const run = gateway(insert, vector, 'BP');
+      expect(run.problem).toBeNull();
+      const entry = must(run.product, 'an entry clone');
+      expect(holds(entry, PAYLOAD)).toBe(true);
+      expect(holds(entry, CASSETTE)).toBe(false);
+      expect(holds(must(run.byproduct, 'a byproduct'), CASSETTE)).toBe(true);
+      // Nothing had to be rescued by a name: the cassette is not called ccdB.
+      expect(run.warnings.join(' ')).not.toMatch(/ccdB|one strand/);
+    });
+
+    it(`a ${what} still does when the molecule is written the other way round`, () => {
+      const { insert, vector } = pair(left, right, { flipped: true });
+      const entry = must(gateway(insert, vector, 'BP').product, 'an entry clone');
+      expect(holds(entry, PAYLOAD)).toBe(true);
+      expect(holds(entry, CASSETTE)).toBe(false);
+    });
+
+    it(`a ${what} still does when its DNA wraps the origin`, () => {
+      const { insert, vector } = pair(left, right, { rotation: 200 });
+      const entry = must(gateway(insert, vector, 'BP').product, 'an entry clone');
+      expect(holds(entry, PAYLOAD)).toBe(true);
+      expect(holds(entry, CASSETTE)).toBe(false);
+    });
+
+    it(`a ${what} drawn with its sites facing each other goes by the strands`, () => {
+      const { insert, vector } = pair(left, right, { strands: ['forward', 'reverse'] });
+      const run = gateway(insert, vector, 'BP');
+      expect(run.problem).toBeNull();
+      const entry = must(run.product, 'an entry clone');
+      expect(holds(entry, PAYLOAD)).toBe(true);
+      expect(holds(entry, CASSETTE)).toBe(false);
+    });
+
+    it(`a ${what} drawn facing outward moves the other arc: the strands outrank the names`, () => {
+      // Sites drawn the other way about are a different molecule, not the
+      // same one relabelled, and what lies between them is then the arc
+      // through the origin. The strands say so and are believed (#133);
+      // the names only answer where both sites are drawn on one strand.
+      const { insert, vector } = pair(left, right, { strands: ['reverse', 'forward'] });
+      const run = gateway(insert, vector, 'BP');
+      expect(run.problem).toBeNull();
+      const entry = must(run.product, 'an entry clone');
+      expect(holds(entry, REST)).toBe(true);
+      expect(holds(entry, PAYLOAD)).toBe(false);
+    });
+  }
+
+  it('does every fragment of a four-fragment assembly, one at a time', () => {
+    for (const [, left, right] of FRAGMENTS.slice(0, 4)) {
+      const { insert, vector } = pair(left, right);
+      const entry = must(gateway(insert, vector, 'BP').product, `entry clone ${left}-${right}`);
+      expect(holds(entry, PAYLOAD), `${left}-${right}`).toBe(true);
+      expect(holds(entry, CASSETTE), `${left}-${right}`).toBe(false);
+    }
+  });
+
+  it('refuses a molecule carrying three sites of a kind, as a one-pass MultiSite would', () => {
+    const { insert, vector } = pair('4', '1r');
+    const three = insert.addFeature(
+      createFeature({
+        type: 'protein_bind',
+        name: 'attB3',
+        segments: [rangeSegment(10, 10 + attText('B', '3').length)],
+      }),
+    );
+    expect(gateway(three, vector, 'BP').problem).toMatch(/a fragment at a time/);
+  });
+
+  it('takes an entry clone of a MultiSite destination pair (attL4 and attL3) on into the expression clone', () => {
+    const entry = circle('pENTR L4-L3', [
+      { text: attText('L', '4'), name: 'attL4', type: 'protein_bind' },
+      { text: PAYLOAD, name: 'element', type: 'CDS' },
+      { text: attText('L', '3'), name: 'attL3', type: 'protein_bind' },
+      { text: filler(500, 123), name: 'kanR', type: 'CDS' },
+    ]);
+    const dest = circle('pDEST R4-R3', [
+      { text: attText('R', '4'), name: 'attR4', type: 'protein_bind' },
+      { text: CASSETTE, name: 'lethal cassette', type: 'CDS' },
+      { text: attText('R', '3'), name: 'attR3', type: 'protein_bind' },
+      { text: filler(700, 231), name: 'ampR', type: 'CDS' },
+    ]);
+    const run = gateway(entry, dest, 'LR');
+    expect(run.problem).toBeNull();
+    const expression = must(run.product, 'an expression clone');
+    expect(holds(expression, PAYLOAD)).toBe(true);
+    expect(holds(expression, CASSETTE)).toBe(false);
+  });
+
+  it('warns, and lets a cassette named ccdB overrule it, when the names run the other way', () => {
+    // attB1r before attB4 is not a layout any kit uses, so the order the
+    // names give is the wrong one and only the cassette's name is left.
+    const { insert } = pair('4', '1r');
+    const sites = attSites(insert);
+    const [a, b] = [must(sites[0], 'attB4'), must(sites[1], 'attB1r')];
+    const renamed = insert
+      .updateFeature(a.feature.id, { name: 'attB1r' })
+      .updateFeature(b.feature.id, { name: 'attB4' });
+    const vector = pair('4', '1r').vector;
+    const vSites = attSites(vector);
+    const vRenamed = vector
+      .updateFeature(must(vSites[0], 'attP4').feature.id, { name: 'attP1r' })
+      .updateFeature(must(vSites[1], 'attP1r').feature.id, { name: 'attP4' })
+      .updateFeature(
+        must(
+          vector.features.all().find((f) => f.name === 'lethal cassette'),
+          'the cassette',
+        ).id,
+        { name: 'ccdB' },
+      );
+    const run = gateway(renamed, vRenamed, 'BP');
+    const entry = must(run.product, 'an entry clone');
+    expect(holds(entry, PAYLOAD)).toBe(true);
+    expect(run.warnings.join(' ')).toMatch(/both drawn on one strand/);
+  });
+});

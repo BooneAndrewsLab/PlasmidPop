@@ -124,23 +124,41 @@ describe('Gateway against pydna: the product is the clone (#133)', () => {
 });
 
 describe('Gateway against pydna: sites numbered against the convention (#133)', () => {
-  /** Swaps the numbers 1 and 2 of every att site, keeping where they are. */
-  const swapped = (m: Spec): Spec => ({
+  const numberOf = (name: string): string => /^att[BPLR](\d+r?)$/i.exec(name)?.[1] ?? '';
+  /**
+   * Exchanges the two numbers of a molecule's att sites, keeping where they
+   * are: whatever order the names would have given, this is the other one.
+   * Both molecules are relabelled alike, so the partners still pair (#147 —
+   * the old version swapped the numbers 1 and 2, which left a MultiSite pair
+   * such as attB4/attB1r untouched).
+   */
+  const swapped = (m: Spec, [a, b]: readonly [string, string]): Spec => ({
     ...m,
     features: m.features.map((f) =>
-      /^att[BPLR][12]$/.test(f.name)
-        ? { ...f, name: f.name.replace(/[12]$/, (d) => (d === '1' ? '2' : '1')) }
-        : f,
+      f.kind !== 'att'
+        ? f
+        : {
+            ...f,
+            name: f.name.replace(/\d+r?$/, (n) => (n === a ? b : n === b ? a : n)),
+          },
     ),
   });
   const sameStrand = (m: Spec): boolean =>
     new Set(m.features.filter((f) => f.kind === 'att').map((f) => f.strand)).size === 1;
+  const pairOf = (m: Spec): readonly [string, string] => {
+    const [a, b] = [
+      ...new Set(m.features.filter((f) => f.kind === 'att').map((f) => numberOf(f.name))),
+    ];
+    if (a === undefined || b === undefined) throw new Error('two att numbers');
+    return [a, b];
+  };
 
   for (const c of oracle.cases.filter((x) => sameStrand(x.insert as Spec))) {
     it(`${c.id}: the ccdB gene decides, and says so`, () => {
+      const pair = pairOf(c.insert as Spec);
       const run = gateway(
-        build('insert', swapped(c.insert as Spec)),
-        build('vector', swapped(c.vector as Spec)),
+        build('insert', swapped(c.insert as Spec, pair)),
+        build('vector', swapped(c.vector as Spec, pair)),
         c.reaction as GatewayReaction,
       );
       const product = run.product;
