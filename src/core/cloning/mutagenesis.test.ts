@@ -220,7 +220,7 @@ describe('designMutagenesis, the edit and the primers’ lengths', () => {
     const text = template(600);
     const linear = SeqDocument.create({ name: 'p', sequence: text, topology: 'linear' });
     const problem =
-      'The template next to the change is too AT-rich to reach 60 °C within 60 bases.';
+      'The change is too near the end of the linear sequence: a primer would have fewer than 15 template bases to anneal to.';
     const nearStart = designMutagenesis(linear, { start: 3, end: 4 }, 'G', 'back-to-back');
     expect(nearStart.reverse.sequence).toBe(reverseComplement(text.slice(0, 3)).toLowerCase());
     expect(nearStart.forward.tm).toBeGreaterThanOrEqual(60);
@@ -377,5 +377,43 @@ describe('codonSiteAt (#69)', () => {
     });
     expect(codonSiteAt(shifted, 0)).toBeNull();
     expect(codonSiteAt(shifted, 1)?.residue).toBe(1);
+  });
+});
+
+describe('designMutagenesis at a linear end (#137)', () => {
+  const LINEAR = SeqDocument.create({ name: 'lin', sequence: TEXT, topology: 'linear' });
+  const L = TEXT.length;
+
+  it('flags a back-to-back substitution at the last base', () => {
+    const d = designMutagenesis(LINEAR, { start: L - 1, end: L }, 'A', 'back-to-back');
+    expect(d.forward.annealLength).toBe(0);
+    expect(d.problem).toMatch(/end of the linear sequence/);
+  });
+
+  it('flags a back-to-back insertion at the end and at the start', () => {
+    expect(
+      designMutagenesis(LINEAR, { start: L, end: L }, 'ACGTAC', 'back-to-back').problem,
+    ).not.toBeNull();
+    expect(
+      designMutagenesis(LINEAR, { start: 0, end: 0 }, 'ACGTAC', 'back-to-back').problem,
+    ).not.toBeNull();
+  });
+
+  it('flags an overlapping design with no flank and reports real flanks', () => {
+    const d = designMutagenesis(LINEAR, { start: 0, end: 1 }, 'A', 'overlapping');
+    expect(d.reverse.annealLength).toBe(0);
+    expect(d.problem).toMatch(/end of the linear sequence/);
+  });
+
+  it('reports no problem in the middle of a linear sequence', () => {
+    for (const method of ['back-to-back', 'overlapping'] as const) {
+      const d = designMutagenesis(LINEAR, { start: 1000, end: 1001 }, 'A', method);
+      expect(d.problem).toBeNull();
+    }
+  });
+
+  it('does not flag the same change on a circle', () => {
+    const d = designMutagenesis(PLASMID, { start: 0, end: 1 }, 'A', 'back-to-back');
+    expect(d.problem).toBeNull();
   });
 });

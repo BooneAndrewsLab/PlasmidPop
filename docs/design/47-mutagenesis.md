@@ -75,3 +75,13 @@ use a tool for.
   A CDS running over the origin of a circle got no protein change for an
   edit just after the origin. And back-to-back insertions mostly failed to
   amplify, which was PCR's (item 36).
+- **Linear ends, fixed 2026-10-05 (#137, from the correctness audit).** On a
+  linear template a change at or near an end gave a back-to-back primer with
+  an empty (or short) annealing part and a NaN Tm, and `NaN < target` is
+  false, so no problem was reported. Now a back-to-back primer with fewer
+  than `minAnneal` template bases, or a Tm that is not `>=` the target
+  (NaN included), sets `problem`. The overlapping design clamps each flank
+  to the bases the template has, grows the other side when one runs out,
+  reports the true `annealLength`, and sets `problem` for a flank under the
+  initial 10 bases. Designs are still returned (Copy works) rather than
+  refused, so the user sees why. Circular designs are unchanged.

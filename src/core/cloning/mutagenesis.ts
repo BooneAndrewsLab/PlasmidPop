@@ -176,7 +176,10 @@ export function designMutagenesis(
       tm: meltingTemperature(rAnneal),
       q5Tm: q5MeltingTemperature(rAnneal),
     };
-    if (forward.tm < opts.targetTm || reverse.tm < opts.targetTm) {
+    if (fAnneal.length < opts.minAnneal || rAnneal.length < opts.minAnneal) {
+      // Only a linear end leaves less than minAnneal (the circle wraps).
+      problem = `The change is too near the end of the linear sequence: a primer would have fewer than ${opts.minAnneal} template bases to anneal to.`;
+    } else if (!(forward.tm >= opts.targetTm) || !(reverse.tm >= opts.targetTm)) {
       problem = `The template next to the change is too AT-rich to reach ${opts.targetTm} °C within ${opts.maxPrimer} bases.`;
     }
   } else {
@@ -188,8 +191,12 @@ export function designMutagenesis(
     // are not in it to leave out, so a deletion counts none (subtracting
     // them took N to zero or below past 20 bases, and the Tm to NaN).
     const indel = removed === inserted.length ? 0 : inserted.length;
-    let left = 10;
-    let right = 10;
+    // A linear template has only so many bases on each side of the change.
+    const room = (n: number): number => (circular ? Infinity : Math.max(0, n));
+    const roomLeft = room(range.start);
+    const roomRight = room(L - range.end);
+    let left = Math.min(10, roomLeft);
+    let right = Math.min(10, roomRight);
     const build = (): string =>
       stretch(range.start - left, range.start).toLowerCase() +
       inserted +
@@ -199,14 +206,18 @@ export function designMutagenesis(
       quikChangeTm(primer, mismatched, indel) < opts.overlapTm &&
       primer.length < opts.maxPrimer
     ) {
-      if (left <= right) left++;
+      const growLeft = (left <= right && left < roomLeft) || right >= roomRight;
+      if (growLeft && left >= roomLeft) break; // both sides are used up
+      if (growLeft) left++;
       else right++;
       primer = build();
     }
     const tm = quikChangeTm(primer, mismatched, indel);
     forward = { sequence: primer, annealLength: right, tm, q5Tm: null };
     reverse = { sequence: reverseComplement(primer), annealLength: left, tm, q5Tm: null };
-    if (tm < opts.overlapTm) {
+    if (left < 10 || right < 10) {
+      problem = `The change is too near the end of the linear sequence: a primer would have only ${Math.min(left, right)} template bases on one side of it, fewer than the 10 QuikChange asks for.`;
+    } else if (!(tm >= opts.overlapTm)) {
       problem = `The primers reach only ${tm.toFixed(0)} °C at ${opts.maxPrimer} bases, short of the ${opts.overlapTm} °C QuikChange asks for.`;
     }
   }

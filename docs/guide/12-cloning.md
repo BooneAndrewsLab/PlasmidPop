@@ -302,6 +302,10 @@ you, and opens the plasmid they would make.
    amino acids, how many stops, and roughly how many colonies to screen to
    be 95 % sure of meeting any one codon.
 
+   On a linear sequence a change at or near an end leaves a primer too
+   few bases to anneal to; the design then says so rather than showing a
+   primer with no annealing part.
+
 3. Choose the design:
    - **Back to back** is NEB's Q5 site-directed mutagenesis: the primers
      point away from each other and meet at the change, which rides on the
