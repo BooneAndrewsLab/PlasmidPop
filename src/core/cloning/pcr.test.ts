@@ -1,4 +1,4 @@
-import { expectWithin, itTimed } from '@/test/timing';
+import { expectWithin, itTimed, medianMs } from '@/test/timing';
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 
 import { gibson } from './gibson';
@@ -235,17 +235,19 @@ describe('pcr', () => {
       { name: 'F', sequence: long.slice(10_000, 10_022) },
       { name: 'R', sequence: reverseComplement(long.slice(14_000, 14_022)) },
     ];
-    const t0 = performance.now();
+    // The median of 20 runs, so one run a busy CI runner stalled (#148)
+    // cannot fail the test while a real slowdown, which moves every run, can.
     let found = 0;
-    for (let run = 0; run < 20; run++) found += pcr(big, primers).products.length;
-    const ms = (performance.now() - t0) / 20;
+    const ms = medianMs(20, () => {
+      found += pcr(big, primers).products.length;
+    });
     // Over 100 kb of searchable strand a 15-base 3′ match with two
     // mismatches turns up by chance, so a long template really does give
     // spurious products; they sort below the exact one.
     expect(found).toBeGreaterThanOrEqual(20);
     expectWithin(ms, 200);
     // eslint-disable-next-line no-console
-    console.info(`[perf] PCR over a 50 kb template: ${ms.toFixed(2)} ms`);
+    console.info(`[perf] PCR over a 50 kb template (median of 20): ${ms.toFixed(2)} ms`);
   });
 });
 

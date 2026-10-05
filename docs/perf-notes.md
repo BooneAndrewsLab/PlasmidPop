@@ -656,3 +656,14 @@ formatted with `toLocaleString` each time and its codon's stretch found with
 walking the codon's three bases for the stretch took it to about 1 ms. What
 is left is the existing walk over every codon of each CDS that reaches a
 row, which the numbers do once more.
+
+## Timing tests and shared runners (#148, 2026-10-05)
+
+A budget on a mean lets one run that a busy CI runner stalled fail a test
+that is not slow: the 50 kb PCR test read 202 ms against its 200 ms budget
+once, after ~135 ms locally. It now times its 20 runs one by one and compares
+their median (`medianMs` in `src/test/timing.ts`); a real slowdown moves every
+run, so the median still catches it. The other timing tests were checked and
+sit below ~30% of their budgets (the next closest is the 10 kb history decode,
+28–57 ms of 200), so they are left as they were. Use `medianMs` for any new
+budget that is within about 40% of its limit.
