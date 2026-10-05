@@ -85,3 +85,10 @@ sequence.
   bottom cut mirrored around the core (+7 / -2). Keeping the padding made
   the site non-palindromic and added a second cut on the reverse strand
   (#136).
+  The caret marks the top-strand cut only, and the mirror is not always
+  right: REBASE's own enzyme page, `emboss_e.610` and Biopython give HauII
+  `TGGCCANNNNNNNNNNN^` as TGGCCA(11/9), +17/+15, not the mirrored +17/−11.
+  Against `emboss_e.610` HauII was the one disagreement in the 711 enzymes
+  both files cut, so it is corrected by name (`PADDED_CARET_BOTTOM`, only
+  while REBASE still writes that notation for it). TspRI and TscAI are
+  mirrored, as REBASE draws them.

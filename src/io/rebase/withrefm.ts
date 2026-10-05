@@ -127,8 +127,22 @@ function fields(block: string): Map<string, string> {
  *   before the site, and `secondCut` `length + 12`/`length + 10` after it.
  * - Anything with a `?` in it has no determined cut and is left out.
  */
+/**
+ * Bottom-strand cuts that an N-padded caret does not determine, by enzyme
+ * and the notation REBASE writes for it. The caret marks the top-strand cut
+ * only; for TspRI `CASTGNN^` the bottom cut is the mirror image (-2), but
+ * HauII `TGGCCANNNNNNNNNNN^` is TGGCCA(11/9), a 2-nt 3' overhang at +17/+15,
+ * not a 28-nt one at +17/-11. REBASE's enzyme page, its `emboss_e` export
+ * and Biopython all give +17/+15. Checked against `emboss_e.610`: of the 711
+ * enzymes both files cut, HauII was the only one the mirror got wrong.
+ */
+const PADDED_CARET_BOTTOM: ReadonlyMap<string, { notation: string; cutBottom: number }> = new Map([
+  ['HAUII', { notation: 'TGGCCANNNNNNNNNNN^', cutBottom: 15 }],
+]);
+
 function readSite(
   raw: string,
+  name = '',
 ):
   | { site: string; cutTop: number; cutBottom: number; secondCut?: CutOffsets }
   | keyof RebaseSkipped {
@@ -172,14 +186,17 @@ function readSite(
   if (site.includes('^', caret + 1)) return 'cutUnknown';
   // N padding is not part of the site: REBASE writes `CASTGNN^` for a site
   // CASTG cut two bases past its end, and the bottom strand is cut as far
-  // before the core as the top is after it. Keeping the padding would make
-  // the site non-palindromic and add a second cut on the other strand.
+  // before the core as the top is after it, unless `PADDED_CARET_BOTTOM`
+  // knows better. Keeping the padding would make the site non-palindromic
+  // and add a second cut on the other strand.
   const padL = /^N*/.exec(bare)?.[0].length ?? 0;
   const padR = /N*$/.exec(bare)?.[0].length ?? 0;
   if (padL + padR < bare.length && padL + padR > 0) {
     const core = bare.slice(padL, bare.length - padR);
     const top = caret - padL;
-    return { site: core, cutTop: top, cutBottom: core.length - top };
+    const known = PADDED_CARET_BOTTOM.get(name.toUpperCase());
+    const bottom = known?.notation === s ? known.cutBottom : core.length - top;
+    return { site: core, cutTop: top, cutBottom: bottom };
   }
   return { site: bare, cutTop: caret, cutBottom: bare.length - caret };
 }
@@ -241,7 +258,7 @@ export function parseRebaseWithRefM(text: string): RebaseImport {
     if (name === '' || name.startsWith('M.') || name.startsWith('V.')) continue;
     if (seen.has(name.toLowerCase())) continue;
 
-    const read = readSite(f.get('3') ?? '');
+    const read = readSite(f.get('3') ?? '', name);
     if (typeof read === 'string') {
       skipped[read]++;
       continue;

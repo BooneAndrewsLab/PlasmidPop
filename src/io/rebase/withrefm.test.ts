@@ -245,5 +245,40 @@ describe('parseRebaseWithRefM', () => {
         cutBottom: -2,
       });
     });
+
+    // Expected values from REBASE's emboss_e.610 (`TspRI CASTG 5 2 0 7 -3`,
+    // `HauII tggcca 6 2 0 17 15`), its enzyme pages' cut diagrams and
+    // Biopython 1.85 (`N_NNCASTGNN^N`, `TGGCCANNNNNNNNN_NN^N`).
+    const named = (name: string, site: string) =>
+      parseRebaseWithRefM(text(site).replace('<1>TspRI', `<1>${name}`)).enzymes[0];
+
+    it('reads TscAI like TspRI', () => {
+      expect(named('TscAI', 'CASTGNN^')).toMatchObject({ site: 'CASTG', cutTop: 7, cutBottom: -2 });
+    });
+
+    it('gives HauII the 2-nt 3 prime overhang REBASE records, not a mirrored cut', () => {
+      expect(named('HauII', 'TGGCCANNNNNNNNNNN^')).toMatchObject({
+        site: 'TGGCCA',
+        cutTop: 17,
+        cutBottom: 15,
+        palindromic: true,
+      });
+    });
+
+    it('cuts HauII once per site', () => {
+      const hau = named('HauII', 'TGGCCANNNNNNNNNNN^');
+      if (hau === undefined) throw new Error('HauII missing');
+      const seq = 'AAAAAAAAAATGGCCACCCCCCCCCCCCCCCCCCCC';
+      const sites = findCutSites(seq, 'linear', [hau]);
+      expect(sites).toHaveLength(1);
+      const frags = digest(
+        SeqDocument.create({ name: 't', sequence: seq, topology: 'linear' }),
+        sites,
+      );
+      expect(frags).toHaveLength(2);
+      // Top strand cut after the 17th base of the site, bottom after the 15th.
+      expect(frags[0]?.sequence).toBe('AAAAAAAAAATGGCCACCCCCCCCCCC');
+      expect(frags[0]?.right).toMatchObject({ kind: "3'", overhang: 'CC' });
+    });
   });
 });
