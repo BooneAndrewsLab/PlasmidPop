@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs the Biopython oracle in a pinned virtualenv (.venv-oracle, gitignored).
-#   scripts/oracle/run.sh generate   rewrite src/test/oracle/*.json
+#   scripts/oracle/run.sh generate   rewrite src/test/oracle/*.json (Biopython, primer3-py,
+#                                    pydna and seguid answers; needs Python 3.10+)
 #   scripts/oracle/run.sh writer     have Biopython read every file our GenBank writer produces
 #   scripts/oracle/run.sh snapgene-local [dir]
 #                                    compare our SnapGene reader with Biopython's on every .dna
@@ -12,7 +13,15 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 venv="$root/.venv-oracle"
 if [ ! -x "$venv/bin/python" ]; then
-  python3 -m venv "$venv"
+  # pydna needs Python 3.10 or later; ORACLE_PYTHON overrides the search.
+  py="${ORACLE_PYTHON:-}"
+  if [ -z "$py" ]; then
+    for c in python3.13 python3.12 python3.11 python3.10 python3.14; do
+      if command -v "$c" >/dev/null 2>&1; then py="$c"; break; fi
+    done
+  fi
+  [ -n "$py" ] || { echo "need Python 3.10+ (set ORACLE_PYTHON)" >&2; exit 1; }
+  "$py" -m venv "$venv"
   "$venv/bin/pip" install -q -r "$root/scripts/oracle/requirements.txt"
 fi
 case "${1:-}" in

@@ -1,3 +1,7 @@
-# The oracle's answers depend on this exact version; bump it deliberately
+# The oracle's answers depend on these exact versions; bump them deliberately
 # and review the diff in src/test/oracle/*.json.
 biopython==1.85
+# pydna 5.5.8 and later need a newer Biopython than 1.85; 5.5.7 is the last
+# that fits it. pydna needs Python 3.10 or later (see run.sh).
+pydna==5.5.7
+primer3-py==2.2.0
