@@ -6,7 +6,8 @@ import {
   type Enzyme,
   type HostMethylation,
   type HostMethylationState,
-  DAM_DCM_SENSITIVE,
+  ANY_OVERLAP,
+  REBASE_CONFIGURATIONS,
   ENZYMES,
   History,
   METHYLATED_HOST,
@@ -99,10 +100,11 @@ function concrete(site: string, last: boolean): string {
 const siteLength = (name: string): number => getEnzyme(name)?.site.length ?? 0;
 
 /**
- * The oracle for `hostMethylationAt`: every GATC and CCWGG anywhere in the
- * molecule (read round the origin of a circle), and whether one of its
- * methylated bases — the As of GATC, the internal Cs of CCWGG on either
- * strand — is one of the site's own bases.
+ * The oracle for `hostMethylationAt` (#135): flag every methylated base of
+ * the whole molecule on each strand (every GATC and CCWGG, read round the
+ * origin of a circle), then read off the flags under the site and ask the
+ * enzyme's REBASE configurations whether they are all there. A site found
+ * on the reverse strand swaps the strands and reverses the offsets.
  */
 function naiveMarks(
   sequence: string,
@@ -110,30 +112,59 @@ function naiveMarks(
   enzyme: string,
   siteStart: number,
   length: number,
+  strand: 'forward' | 'reverse' = 'forward',
 ): HostMethylation[] {
-  if (!DAM_DCM_SENSITIVE.has(enzyme.toLowerCase())) return [];
+  const name = enzyme.toLowerCase();
+  const table = Object.entries(REBASE_CONFIGURATIONS).find(([n]) => n.toLowerCase() === name)?.[1];
+  const any = Object.entries(ANY_OVERLAP).find(([n]) => n.toLowerCase() === name)?.[1];
+  if (table === undefined && any === undefined) return [];
   const S = sequence.toUpperCase();
   const L = S.length;
   const circular = topology === 'circular';
   const mod = (i: number) => ((i % L) + L) % L;
-  const site = new Set<number>();
-  for (let i = 0; i < length; i++) site.add(circular ? mod(siteStart + i) : siteStart + i);
   const read = (i: number, n: number): string => {
     let out = '';
     for (let k = 0; k < n; k++) out += circular ? S.charAt(mod(i + k)) : S.charAt(i + k);
     return out;
   };
-  const hit = (test: (text: string) => boolean, n: number, methylated: readonly number[]) => {
+  const out: HostMethylation[] = [];
+  const kinds: [HostMethylation, (t: string) => boolean, number][] = [
+    ['Dam', (t) => t === 'GATC', 4],
+    ['Dcm', (t) => t === 'CCAGG' || t === 'CCTGG', 5],
+  ];
+  for (const [kind, test, n] of kinds) {
+    // flags[strand][offset in the site]
+    const top = new Set<number>();
+    const bottom = new Set<number>();
     const last = circular ? L - 1 : L - n;
     for (let i = 0; i <= last; i++) {
       if (!test(read(i, n))) continue;
-      if (methylated.some((k) => site.has(circular ? mod(i + k) : i + k))) return true;
+      const bases: [Set<number>, number][] = [
+        [top, i + 1],
+        [bottom, i + (kind === 'Dam' ? 2 : 3)],
+      ];
+      for (const [strandSet, at] of bases) {
+        // Where this base is relative to the site, wrapping on a circle.
+        let rel = at - siteStart;
+        if (circular) rel = ((rel % L) + L) % L;
+        if (rel < 0 || rel >= length) continue;
+        if (strand === 'reverse') {
+          (strandSet === top ? bottom : top).add(length - 1 - rel);
+        } else strandSet.add(rel);
+      }
     }
-    return false;
-  };
-  const out: HostMethylation[] = [];
-  if (hit((t) => t === 'GATC', 4, [1, 2])) out.push('Dam');
-  if (hit((t) => t === 'CCAGG' || t === 'CCTGG', 5, [1, 3])) out.push('Dcm');
+    if (top.size + bottom.size === 0) continue;
+    const configs = table?.[kind];
+    const fits = (t: Set<number>, b: Set<number>) =>
+      configs !== undefined
+        ? configs.some(([ct, cb]) => ct.every((p) => t.has(p)) && cb.every((p) => b.has(p)))
+        : (any?.includes(kind) ?? false);
+    const flip = (set: Set<number>) => new Set([...set].map((p) => length - 1 - p));
+    const hit =
+      fits(top, bottom) ||
+      (getEnzyme(enzyme)?.palindromic === true && fits(flip(bottom), flip(top)));
+    if (hit) out.push(kind);
+  }
   return out;
 }
 
@@ -199,7 +230,14 @@ describe('which sites cut, for every sensitive enzyme and every host', () => {
         for (const site of sites) {
           const marks = hostMethylationAt(c.sequence, c.topology, site, enzyme.site.length);
           expect(marks, `${enzyme.name} in ${c.sequence} (${c.topology})`).toEqual(
-            naiveMarks(c.sequence, c.topology, enzyme.name, site.siteStart, enzyme.site.length),
+            naiveMarks(
+              c.sequence,
+              c.topology,
+              enzyme.name,
+              site.siteStart,
+              enzyme.site.length,
+              site.strand,
+            ),
           );
           for (const m of marks) tally.marked.add(m);
         }
@@ -263,7 +301,7 @@ describe('which sites cut, for every sensitive enzyme and every host', () => {
           const want = sites.filter((s) =>
             oracleKeeps(
               state,
-              naiveMarks(sequence, topology, s.enzyme, s.siteStart, siteLength(s.enzyme)),
+              naiveMarks(sequence, topology, s.enzyme, s.siteStart, siteLength(s.enzyme), s.strand),
             ),
           );
           expect(kept).toEqual(want);

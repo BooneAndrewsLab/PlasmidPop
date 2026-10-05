@@ -83,3 +83,39 @@ Added 2026-09-23 (#45): **the host, and digests that respect it.**
 dam-; dcm-]` in the header beside the ends tag, written only when the host
   is not the default. A tag that cannot be read stays in the description and
   survives a save, as a user's own text.
+
+Added 2026-10-05 (#135): **per methylase and per overlap, from REBASE.**
+The correctness audit found the name list too coarse: any Dam or Dcm base
+inside the site blocked it, whichever methylase the enzyme minds and
+however little of the site the methyl group touched. BstXI, AlwNI, PflMI and
+SfiI were lost to a GATC inside their N bases; SfoI, BstXI, SfiI, BsaHI and
+FokI to a CCWGG on one side only. Dam's and Dcm's bases were right.
+
+- **Decided:** `hostMethylationAt` now compares the methylated bases the
+  sequence puts inside the site with the configurations REBASE's "Effects of
+  overlapping methylation" tables list for NEB's enzymes
+  (`rebase.neb.com/cgi-bin/damlist?mM.EcoKDam+sN`, `mM.EcoKDcm+sN`), 41
+  enzymes, kept as `REBASE_CONFIGURATIONS`. A configuration is the offsets of
+  methylated bases on each strand within the site; the enzyme is affected
+  when the DNA has at least those bases. Facts, cited, not REBASE's
+  pages; nothing bundled that the policy forbids.
+- **Mirror images.** REBASE draws a palindromic site once, and MscI's
+  `TGGCCAGG` and `CCTGGCCA` are one configuration, so a palindromic site is
+  matched both ways. A non-palindromic site found on the reverse strand is
+  read mirrored, so the configuration follows the enzyme's own spelling.
+- **Statuses.** A configuration counts if REBASE records it blocked, or
+  impaired with no "cut" beside it. Cut and impaired together is read as
+  cut: the impairment rows are tests with M.HpaII or M.SssI, not Dcm.
+- **FokI is not Dcm-sensitive.** NEB's own pages refuse automated reads
+  (403), so the evidence is REBASE's FokI record: the only impaired entry
+  for the base Dcm methylates is "overlapping M.HpaII methylated sites"
+  (50% cleaved); the M.SssI test is cut. No Dcm test. The configuration
+  REBASE draws, which the audit found cut in pBR322 and lambda, is cut, and
+  FokI leaves the table. Revisit if NEB's chart is later seen to say
+  otherwise. HaeIII is likewise not added (cut with Dcm), and FseI is.
+- **Enzymes REBASE has no table for** (BclI, DpnII, BssKI, BcgI, FspI,
+  PhoI) keep NEB's note: any methylated base of the methylase named, or
+  either for the three the note leaves unnamed (`ANY_OVERLAP`). REBASE
+  lists no Dam table row for BclI or DpnII at all.
+- Still not modelled: blocked from impaired; imported REBASE enzymes under
+  other names.
