@@ -607,8 +607,8 @@ each recombinant site is half of each parent's, named for what it has
 become.
 
 Which of the two circles is the clone is read off the att sites, not off
-what anything is called. The piece that moves is the one between site 1 and
-site 2 of the insert, and the two sites of a real pair face opposite ways,
+what anything is called. The piece that moves is the one between the
+insert's two sites, and the two sites of a real pair face opposite ways,
 so a map that draws `attL1` on the forward strand and `attL2` on the reverse
 is read correctly however the plasmid is rotated — including when the insert
 wraps the origin, which an entry clone made here routinely does. If a file
@@ -616,9 +616,9 @@ draws both sites on the same strand, the names are used instead, in the
 order the kits lay their sites out rather than the order they count in: a
 MultiSite expression clone reads `attB4`–`attB1`–`attB5`–`attB2`–`attB3`, so
 `attB4`–element–`attB1r` and `attB5`–element–`attB2` run the way they are
-written. Unless that would put the vector's **ccdB** gene on the clone, in
-which case the other circle is taken and a warning says so. Check the sites'
-strands when a clone comes out looking like the byproduct.
+written. That is a guess, so if it would put the vector's **ccdB** gene on
+the clone the other circle is taken instead and a warning says so. Check the
+sites' strands when a clone comes out looking like the byproduct.
 
 A MultiSite reaction is run one fragment at a time: each attB-flanked
 element with its own pDONR (`attB4`/`attB1r` with pDONR P4-P1R, and so on),
