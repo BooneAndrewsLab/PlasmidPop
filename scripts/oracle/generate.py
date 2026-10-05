@@ -42,6 +42,7 @@ from Bio.SeqIO.InsdcIO import _insdc_location_string
 from Bio.SeqRecord import SeqRecord
 
 import assembly
+import digest
 import pcr
 import thermo
 
@@ -484,6 +485,7 @@ def main():
     write('thermo.json', thermo.generate())
     write('pcr.json', pcr.generate())
     write('assembly.json', assembly.generate())
+    write('digest.json', digest.generate())
 
 
 if __name__ == '__main__':
