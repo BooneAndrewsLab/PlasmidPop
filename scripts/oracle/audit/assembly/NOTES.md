@@ -18,6 +18,7 @@ Scope: `src/core/cloning/gibson.ts`, `goldenGate.ts`, `overlapPrimers.ts`,
 ## DONE — verified clean (no bugs found in any of these)
 
 ### 1. Gibson / HiFi product sequence — 15 cases, clean (14 usable)
+
 - Script `gen_gibson.py` (builds cases + pydna `Assembly` cross-check),
   harness `gibson.audit.test.ts`, diff `check_gibson.py`.
 - Covered: circular products of 2, 3, 4, 5, 6 fragments; linear products of
@@ -34,6 +35,7 @@ Scope: `src/core/cloning/gibson.ts`, `goldenGate.ts`, `overlapPrimers.ts`,
   pydna also produced the spurious 18 bp product. Not a bug.
 
 ### 2. Golden Gate product sequence — 23 cases, clean
+
 - Linear parts: `gen_gg.py` + `oracle_gg.py` + `gg.audit.test.ts` (14 cases).
 - Circular destination vector: `gen_gg2.py` + `oracle_gg2.py` +
   `gg2.audit.test.ts` (9 cases). Diff with `cmp.py`.
@@ -58,6 +60,7 @@ Scope: `src/core/cloning/gibson.ts`, `goldenGate.ts`, `overlapPrimers.ts`,
   exercise it (every part has one forward and one reverse site).
 
 ### 3. In-Fusion / NEBuilder overlap primers — 10 cases, clean
+
 - `gen_op.py`, `op.audit.test.ts`, `check_op.py`.
 - Checked for every case: forward tail == vector's last 15 (In-Fusion) /
   20 (NEBuilder) bases; reverse tail == rc(vector's first 15/20); both tails
@@ -74,18 +77,20 @@ Scope: `src/core/cloning/gibson.ts`, `goldenGate.ts`, `overlapPrimers.ts`,
 - Result: **10/10 clean.**
 
 ### 4. fidelity.ts — parsing and scoring, clean
+
 Potapov et al. 2018, ACS Synth Biol 7:2665, doi 10.1021/acssynbio.8b00333,
 SI at `fixtures/local/potapov2018/Supplemental Data/` (gitignored).
 
 **Layout of the real files** (checked with pandas):
+
 - FileS01–S04, S06, S08 are 257×257: header row `Overhang,AAAA,AAAC,…`
   (256 columns), then 256 rows whose **labels are the reverse complements of
   the column labels in the same order** (`TTTT, GTTT, CTTT, ATTT, …`).
-  So cell (row `TTTT`, col `AAAA`) = 830 is the *correct* Watson–Crick pair.
+  So cell (row `TTTT`, col `AAAA`) = 830 is the _correct_ Watson–Crick pair.
 - Accessed **by label**, the matrix is exactly symmetric:
-  f(a,b) == f(b,a) for 2000/2000 sampled pairs. (It is *not* symmetric as a
+  f(a,b) == f(b,a) for 2000/2000 sampled pairs. (It is _not_ symmetric as a
   raw array, because the row order differs from the column order — a trap
-  PlasmidPop avoids by keying `counts` on labels.) It is *not* rc-symmetric:
+  PlasmidPop avoids by keying `counts` on labels.) It is _not_ rc-symmetric:
   f(a,b) == f(rc(b),rc(a)) only 92 % of the time (measurement noise).
 - `parseFidelityCsv` reads the converted CSV correctly: 256 overhangs,
   overhangLength 4, `counts.get('TTTT').get('AAAA') == 830` and
@@ -130,7 +135,7 @@ SI at `fixtures/local/potapov2018/Supplemental Data/` (gitignored).
    same as if the clash were not there. Cause: `fidelity.ts:182`
    `ends = [...new Set(known.flatMap(o => [o, rc(o)]))]` collapses the two
    junctions onto the same pair of ends, and `fidelity.ts:188` makes the
-   cross-junction join the *own* pair, so it is scored as on-target.
+   cross-junction join the _own_ pair, so it is scored as on-target.
    My independent implementation of the same published formula reproduces
    this, so it is a limitation of the metric as much as of the code — but
    the number shown is false confidence. Mitigation in practice: these sets
@@ -221,14 +226,17 @@ No commits, no issues filed, no `npm run mutate`.
 # RESUMED 2026-10-05 — all STATE.md next steps 1-3 now DONE
 
 ## Step 1 DONE — `extra.audit.test.ts` + new `extra2.audit.test.ts`
+
 (import fixed: top-level `import { goldenGate, overhangWarnings }`.)
 Outputs: `extra_out.json`, `extra2_out.json`.
 
 ### 1a. Case-insensitivity of `designOverlapPrimers` — CLEAN
+
 Same vector+template upper vs lower: identical oligos, identical Tm
 (60.4556091171705 both), identical product.
 
 ### 1b. 3'-overhang Gibson question — RESOLVED, NOT A BUG
+
 - 5' overhang, single-cut circular vector (EcoRI): vtop 1910 = full plasmid
   length, product 2410 = 1910 + 500 insert. **Nothing lost** — for a single
   cut on a circle the top strand already spans the whole molecule.
@@ -239,7 +247,7 @@ Same vector+template upper vs lower: identical oligos, identical Tm
 - **This is the right answer.** Those 4 bases sit on the vector's left-end
   3' protrusion. T5 exonuclease is 5'->3' and does not touch a 3' end, and
   the amplicon's homology (reverse tail = rc of the vector's first 20
-  *top*-strand bases) does not cover them, so they remain a 3' flap at the
+  _top_-strand bases) does not cover them, so they remain a 3' flap at the
   junction. Gibson 2009 (Nat Methods 6:343-345) uses Phusion, and NEBuilder
   HiFi likewise uses a proofreading polymerase, whose 3'->5' exonuclease
   removes a 3' flap before Taq ligase seals. The bench product is therefore
@@ -250,6 +258,7 @@ Same vector+template upper vs lower: identical oligos, identical Tm
   carried into the primer. Correct.
 
 ### 1c. Golden Gate with an internal BsaI site — CLEAN
+
 Control (3 site-free parts): assembles, product 1212 bp = 3 x (4+400). Exact.
 Same set with one extra internal `GGTCTCACCCC` in p3: p3's 211 bp piece is
 dropped with reason `site`, and the reaction is **refused** —
@@ -257,6 +266,7 @@ dropped with reason `site`, and the reaction is **refused** —
 never reached." No silent wrong product.
 
 ### 1d. `overhangWarnings` — one gap found
+
 - palindromes AATT, GCGC -> both warned. Correct.
 - overhang + its reverse complement (AGGA, TCCT) -> "AGGA pairs with TCCT
   turned around, so the parts at those junctions can swap." Correct.
@@ -272,6 +282,7 @@ never reached." No silent wrong product.
   an exported function; severity low.
 
 ### 1e. `gibsonWarnings` repeat positions — CLEAN
+
 Planted junction-1's 20 bp overlap forward inside part C at 0-based 300, and
 the reverse complement of junction-2's overlap inside part A at 0-based 100.
 Reported exactly: "...also occurs in C at 301" and "...also occurs in A at
@@ -279,6 +290,7 @@ Reported exactly: "...also occurs in C at 301" and "...also occurs in A at
 coordinate flip (`gibson.ts:412`, `text.length - start - k`) are right.
 
 ## Step 2 DONE — Potapov FileS05 `table_02` through the parser: STRONG REFERENCE MATCH
+
 `potapov_set.py` (fixed: drop the trailing `Sequence` column before the
 numeric conversion) builds an 18x18 CSV for the 9-junction set
 (AAGG ACTC AGGA AGTG ATCA GCCG CTGA GCGA GGAA) from the paper's own measured
@@ -291,23 +303,24 @@ per-set end-joining matrix; `fid2.audit.test.ts` feeds it to
   (FileS05 `table_05`, the {A:B:C:D:E:F:G:H:I:J} row). Absolute error 0.00036.
   Displayed as "99.9 %".
 - Same comparison for all 8 per-set files in the SI:
-  | file | predicted | observed |
-  |---|---|---|
-  | FileS05 HF cycled    | 0.998523 | 0.998885 |
-  | FileS11 HF 01h 37C   | 0.998907 | 0.999489 |
-  | FileS10 FP cycled    | 0.998130 | 0.998586 |
-  | FileS14 FP 18h 37C   | 0.998520 | 0.998758 |
-  | FileS13 DP 18h 37C   | 0.855389 | 0.913252 |
-  | FileS09 DP cycled    | 0.719672 | 0.816098 |
-  | FileS12 LF 18h 37C   | 0.203038 | 0.680664 |
-  | FileS07 LF cycled    | 0.034664 | 0.258921 |
-  The four high-fidelity conditions agree to <0.001 absolute. The
-  low-fidelity ones under-predict, as expected: the product-of-independent-
-  junctions metric is a conservative lower bound (a mis-ligation can still
-  end in a correct circle). Nothing here is a PlasmidPop bug — the same
-  pattern comes out of the independent Python implementation.
+  | file                                                                      | predicted | observed |
+  | ------------------------------------------------------------------------- | --------- | -------- |
+  | FileS05 HF cycled                                                         | 0.998523  | 0.998885 |
+  | FileS11 HF 01h 37C                                                        | 0.998907  | 0.999489 |
+  | FileS10 FP cycled                                                         | 0.998130  | 0.998586 |
+  | FileS14 FP 18h 37C                                                        | 0.998520  | 0.998758 |
+  | FileS13 DP 18h 37C                                                        | 0.855389  | 0.913252 |
+  | FileS09 DP cycled                                                         | 0.719672  | 0.816098 |
+  | FileS12 LF 18h 37C                                                        | 0.203038  | 0.680664 |
+  | FileS07 LF cycled                                                         | 0.034664  | 0.258921 |
+  | The four high-fidelity conditions agree to <0.001 absolute. The           |
+  | low-fidelity ones under-predict, as expected: the product-of-independent- |
+  | junctions metric is a conservative lower bound (a mis-ligation can still  |
+  | end in a correct circle). Nothing here is a PlasmidPop bug — the same     |
+  | pattern comes out of the independent Python implementation.               |
 
 ## Step 3 — NEW minor finding (cosmetic)
+
 `setFidelity`'s `worst` list reports a symmetric mis-join twice, once from
 each junction's point of view with slightly different denominators: for the
 FileS05 set it yields `('CCTT','AGTG',0.000315)` and
@@ -316,11 +329,13 @@ FileS05 set it yields `('CCTT','AGTG',0.000315)` and
 three named rows. Cosmetic; no wrong number.
 
 ## Remaining (optional, low value)
+
 - `terminalOverlap` when the true homology exceeds `maxOverlap` 60.
 - A real Addgene MoClo/YTK plasmid (confirmatory only; synthetic cases are
   already checked against pydna/Biopython).
 
 ## New files since the pause
+
 Scratch: `extra_out.json`, `extra2_out.json`, `potapov_set.py` (fixed),
 `potapov_S05_set.csv`, `potapov_S05_set.json`, `fid2_out.json`.
 Repo (untracked): `src/__audit__/assembly/extra2.audit.test.ts`,
@@ -331,18 +346,18 @@ Repo (untracked): `src/__audit__/assembly/extra2.audit.test.ts`,
 `extra3.audit.test.ts` -> `extra3_out.json`. Two halves of a 2000 bp circle
 sharing N bases at each junction, `minOverlap: 20`, default `maxOverlap`:
 
-| shared homology | joins | product | terminalOverlap(...,60) | terminalOverlap(...,200) |
-|---|---|---|---|---|
-| 40 | 40,40 | 2000 OK | 40 | 40 |
-| 55 | 55,55 | 2000 OK | 55 | 55 |
-| 60 | 60,60 | 2000 OK | 60 | 60 |
-| **61** | — FAIL | null | **0** | 61 |
-| 65 | — FAIL | null | 0 | 65 |
-| 70 | — FAIL | null | 0 | 70 |
-| 80 | — FAIL | null | 0 | 80 |
+| shared homology | joins  | product | terminalOverlap(...,60) | terminalOverlap(...,200) |
+| --------------- | ------ | ------- | ----------------------- | ------------------------ |
+| 40              | 40,40  | 2000 OK | 40                      | 40                       |
+| 55              | 55,55  | 2000 OK | 55                      | 55                       |
+| 60              | 60,60  | 2000 OK | 60                      | 60                       |
+| **61**          | — FAIL | null    | **0**                   | 61                       |
+| 65              | — FAIL | null    | 0                       | 65                       |
+| 70              | — FAIL | null    | 0                       | 70                       |
+| 80              | — FAIL | null    | 0                       | 80                       |
 
-Message at 61 bp: *"Nothing follows A: no other part starts with its last 20
-bases or more. 1 of 2 parts were never reached."* — which is **false**: B
+Message at 61 bp: _"Nothing follows A: no other part starts with its last 20
+bases or more. 1 of 2 parts were never reached."_ — which is **false**: B
 starts with A's last 61 bases.
 
 Cause: `gibson.ts:111-117` `terminalOverlap` walks n from
@@ -352,8 +367,8 @@ suffix of A is S[1..61) while the 60-base prefix of B is S[0..60) — equal
 only if S is periodic. So the overlap is not "reported at the cap", it is
 not found at all.
 
-`gibson.ts:87-92` documents the opposite: *"Not a limit on the design — a
-longer shared end is simply reported at this length."* That is wrong for
+`gibson.ts:87-92` documents the opposite: _"Not a limit on the design — a
+longer shared end is simply reported at this length."_ That is wrong for
 every non-periodic sequence. The existing unit test that appears to cover it
 (`gibson.test.ts:58`, `terminalOverlap('ACGTACGT','ACGTACGT',2,4) === 4`)
 passes only because `ACGTACGT` has period 4 — which is why this was never

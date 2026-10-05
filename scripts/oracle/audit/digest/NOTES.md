@@ -5,6 +5,7 @@ Scratch dir: this directory (`audit/digest/`). Vitest dump: `src/__audit__/diges
 Python: `/home/matej/Programs/miniconda3/envs/primer3/bin/python <script>` in this dir.
 
 ## Reference data fetched (in `ref/`)
+
 - NCBI GenBank: L09137 (pUC19), J01749 (pBR322), J02459 (lambda, 48502 linear), J02482 (phiX174) via efetch.
 - REBASE withrefm 610 (`withrefm.txt`, http://rebase.neb.com/rebase/link_withrefm) and emboss_e 610 (`emboss_e.txt`, link_emboss_e).
 - REBASE overlapping-methylation tables (Dam/Dcm, NEB + Thermo enzymes): `rebase_dam_N.html`, `rebase_dcm_N.html`, `rebase_dam_V.html`, `rebase_dcm_V.html`
@@ -15,6 +16,7 @@ Python: `/home/matej/Programs/miniconda3/envs/primer3/bin/python <script>` in th
   not yet cited from NEB; Chrome tab 330503857 is still open (close with tabs_close_mcp).
 
 ## Done + results
+
 1. `compare_sites.py` (Biopython 1.88 Bio.Restriction oracle):
    - Bundled ENZYME_TABLE: 127/127 enzymes match Biopython/REBASE site, cutTop (fst5) and cutBottom (size+fst3). 0 mismatches.
    - findCutSites vs RestrictionBatch.search: 17 sequences (pUC19/pBR322/phiX circ+lin, lambda lin+circ, random circ/lin, lowercase,
@@ -49,6 +51,7 @@ Python: `/home/matej/Programs/miniconda3/envs/primer3/bin/python <script>` in th
    partialDigest circular/linear HaeII on pUC19: fragment set + uncut counts exactly the expected n² / (n+2)(n+1)/2 sets.
 
 ## Dumps regenerated but NOT yet analysed (JSON in this dir)
+
 - `rotations.json`: pBR322 rotated by 21 offsets (incl. L−1…L−26): sites + methylation marks → check invariance under shift
   (origin handling for all enzymes incl. Type IIS, and hostMethylationAt across the origin). Write `compare_rotations.py`.
 - `digests.json` now has pBR322/lambda cases with features (`sourceFeatures`, per-fragment `features` with segments
@@ -58,6 +61,7 @@ Python: `/home/matej/Programs/miniconda3/envs/primer3/bin/python <script>` in th
 - `sensitive.json`: DAM_DCM_SENSITIVE list dumped for the Python side.
 
 ## Next step (resume here)
+
 1. Run `compare_methylation.py` (written, not yet run): A1 = REBASE says CUT but PP blocks (false block → site silently dropped from
    digests in dam+/dcm+); A2 = REBASE blocked but enzyme not in list; A3 = blocked with methylated base outside the recognition site
    (PP looks only inside the site — suspected for Type IIS e.g. BsaI GGTCTCCWGG where the Dcm C sits in the cut region; REBASE's BsaI Dcm
@@ -69,6 +73,7 @@ Python: `/home/matej/Programs/miniconda3/envs/primer3/bin/python <script>` in th
 4. Close Chrome tab 330503857. Write final report (SubagentHandback) per BRIEF.md format.
 
 ## RESUMED 2026-10-05 — all checks complete, final report delivered via SubagentHandback
+
 - compare_methylation.py + meth_detail.py: Dam/Dcm model over-blocks (see report). Real-sequence false drops: pBR322 FokI site@133
   (cut 146; CCTGG|GGATG, REBASE: cut), lambda FokI@30043, lambda BsaHI@30472 (CCAGG|GGCGTC, REBASE: cut). Synthetic: BstXI/AlwNI/PflMI
   marked Dam for GATC inside their N's (REBASE/NEB: no Dam sensitivity); SfoI/BstXI/SfiI marked Dcm for one-sided CCWGG (REBASE: cut).

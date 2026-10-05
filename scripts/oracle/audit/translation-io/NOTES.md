@@ -17,7 +17,7 @@ Reference data: `gc.prt` (NCBI), `gb/*.gb` (NCBI efetch, incl. esearch batches +
 7. CDS translation vs NCBI /translation: 6276/6295 agree (X excused). 19 disagreements:
    - A. 17 are 3'-partial CDS (`<1..>N`) where NCBI translates an unambiguous trailing 2-base codon (GT->V, CC->P, GG->G) and PlasmidPop (and Biopython) drop it. Convention difference; effect: spurious translation ⚠ and "Update /translation" would delete a residue NCBI considers valid. LOW-MEDIUM. Examples: flatworm_mito.gb PZ765744.1 `<1..>778` codon_start=3 tail GT, stored ...SIV vs ours ...SI; partial_myco.gb OQ554331.1 `<1..>1281` cs=2 tail CC.
    - 2 = NC_000932 rps12 trans-spliced `join(complement(69611..69724),139856..140087,140625..140650)`: mixed-strand treated as forward (warned "trans-splicing not supported"). Known limitation, documented by warning. Biopython translates it right.
-   All origin-spanning CDS (forward and complement, with codon_start, transl_except TERM in NC_012920) translated correctly. transl_except Sec (NM_000581) correct.
+     All origin-spanning CDS (forward and complement, with codon_start, transl_except TERM in NC_012920) translated correctly. transl_except Sec (NM_000581) correct.
 8. Round trip writeGenBank -> Biopython: 957/957 sequences identical, 18216/18216 features identical, 0 location changes. One rewritten file Biopython cannot read: bad_origin_wrap_CDS.gb (original has malformed `REFERENCE   .`; PlasmidPop writes `REFERENCE   2 .` which Biopython's scanner asserts on). LOW.
    - B. qualifier_escaping_read.gb (Biopython test): `/note="One missing ""quotation mark" here"` (odd quote count) makes PlasmidPop swallow the following 3 features (sig_peptide, Region, misc_feature) into the note; only warning is "Unterminated quoted value for /note"; Biopython reads all 5 features. parseGenBank.ts parseFeatureTable: FEATURE_KEY match is suppressed while a quote is open. MEDIUM (silent feature loss on unbalanced quotes).
 9. Biopython site `a^b` -> SimpleLocation(a,a) == PlasmidPop siteSegment(a): consistent; `L^1` circular ok.
@@ -25,21 +25,23 @@ Reference data: `gc.prt` (NCBI), `gb/*.gb` (NCBI efetch, incl. esearch batches +
 11. reads_dump.test.ts ran (out/reads.json written: AB1 from biopy/Abi + fixtures/local/abif, FASTQ from biopy/Quality incl. example.fastq.gz via readSequenceData) — Python comparison NOT yet written/run.
 
 ## Left / next steps
-- Write `compare_reads.py`: AB1 seq/phred (SeqIO 'abi': seq, letter_annotations phred_quality, abif_raw PLOC2/DATA9-12 lengths+sums, SMPL1) and FASTQ (SeqIO 'fastq' = Sanger phred+33; check how PlasmidPop handles Illumina-1.3/Solexa files — it assumes +33, so *_original_illumina/solexa will differ by design; check records count, ids/descriptions, wrapping, zero_length, tricky.fastq, dos line endings, error_* files raise).
+
+- Write `compare_reads.py`: AB1 seq/phred (SeqIO 'abi': seq, letter_annotations phred_quality, abif_raw PLOC2/DATA9-12 lengths+sums, SMPL1) and FASTQ (SeqIO 'fastq' = Sanger phred+33; check how PlasmidPop handles Illumina-1.3/Solexa files — it assumes +33, so _*original_illumina/solexa will differ by design; check records count, ids/descriptions, wrapping, zero_length, tricky.fastq, dos line endings, error*_ files raise).
 - Sticky-end SEGUID vs pydna: build SeqDocument with ends and compare `documentChecksum` to pydna values. Ends convention: `overhang` = top-strand bases 5'->3' over the overhang region. pydna oracle (Dseq.cut on 'AAGGAATTCGATCGCTGCAGTTGGATCCAAGGTACCTTCCCGGGAAGGTCTCAAGCTTAACC'):
   EcoRI frag2 watson AATTCGATCGCTGCAGTTGGATCCAAGGTACCTTCCCGGGAAGGTCTCAAGCTTAACC crick GGTTAAGCTTGAGACCTTCCCGGGAAGGTACCTTGGATCCAACTGCAGCGATCG ovhg -4 -> ldseguid=h_CKwptYaxYq3ICzFkeWce809zU (left 5' AATT, right blunt);
   PstI frag2 watson GTTGGATCCAAGGTACCTTCCCGGGAAGGTCTCAAGCTTAACC crick GGTTAAGCTTGAGACCTTCCCGGGAAGGTACCTTGGATCCAACTGCA ovhg 4 -> ymlSC2nkLlcJPirHwuKzCK2XRdY (left 3' overhang TGCA on bottom; top-strand terms: 'TGCA');
   EcoRI+PstI (circular cut) watson AATTCGATCGCTGCA crick GCGATCG ovhg -4 -> 2jF-S2gLRsqw7bpEbIbttHirLDI (left 5' AATT, right 3' TGCA);
   BsaI frag2 watson AGCTTAACC crick GGTTA ovhg -4 -> NplbAbkuYhsZXd8702lFnF-0fm4;
   circular whole molecule cdseguid=BUY5A9O91WrnGV3Lor6CETd-1jU.
-  pydna canonical form: w = '-'*ovhg + watson + '-'*(-ovhg+len(crick)-len(watson)); c = '-'*(ovhg+len(watson)-len(crick)) + crick + '-'*(-ovhg).
+  pydna canonical form: w = '-'_ovhg + watson + '-'_(-ovhg+len(crick)-len(watson)); c = '-'_(ovhg+len(watson)-len(crick)) + crick + '-'_(-ovhg).
 - Optional: codon usage table counts vs Kazusa (kazusa_316407.html downloaded for E. coli W3110; shipped counts in src/core/analysis/codonUsageTables.ts, order TTT,TTC,TTA,TTG,TCT...; Kazusa html lists UUU etc. with counts in parentheses).
 - Optional: openAsProtein.proteinFromCds / featuresOntoProtein vs stored translation (quick: add to genbank_dump).
 - Then write final report via SubagentHandback (format per BRIEF.md: confirmed bugs A/B/ORF-dup/REFERENCE, suspicious, verified clean, file paths).
 
 ## Update (resumed)
+
 - AB1 vs Biopython (8 files: biopy/Abi + fixtures/local/abif): sequence, phred qualities, PLOC peaks, DATA9-12 channels, SMPL1 all identical; fake.ab1 and test.fsa rejected with clear errors (Biopython too). CLEAN.
 - FASTQ vs Biopython (18 files incl. example.fastq.gz via readSequenceData, DOS endings, wrapping, tricky, zero_length): sequences/qualities/ids identical for every Sanger file. Differences: (a) PlasmidPop uppercases bases (fastq.ts:49, deliberate; 454 lowercase adaptor marks lost) — cosmetic; (b) Illumina-1.3 (+64) and Solexa files are read as Phred+33 with NO warning (qualities 31..93) — LOW, obsolete encodings; (c) error_qual_space.fastq accepted with warning 'Quality characters below "!" read as 0' where Biopython rejects — lenient, fine; error_double_seq/error_trunc_in_qual rejected. CLEAN apart from (b).
-- Sticky-end SEGUID vs pydna 5.5.16 Dseq.seguid(): 9 linear fragments (5'/3' overhangs on either end, blunt) + circular cdseguid all match (src/__audit__/translation-io/seguid_ends.test.ts, 10/10). CLEAN.
+- Sticky-end SEGUID vs pydna 5.5.16 Dseq.seguid(): 9 linear fragments (5'/3' overhangs on either end, blunt) + circular cdseguid all match (src/**audit**/translation-io/seguid_ends.test.ts, 10/10). CLEAN.
 - Codon usage: shipped E. coli W3110 table (codonUsageTables.ts) = Kazusa species 316407, 64/64 counts identical (sum 1372057). CLEAN. (Other hosts not checked.)
 - AUDIT COMPLETE; final report delivered via SubagentHandback.

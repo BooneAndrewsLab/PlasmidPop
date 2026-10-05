@@ -6,8 +6,8 @@ holds what the last one had to discover, so the next one need not.
 
 ## Baseline
 
-| Audit | Commit audited | Issues filed | Areas |
-|---|---|---|---|
+| Audit      | Commit audited     | Issues filed                 | Areas     |
+| ---------- | ------------------ | ---------------------------- | --------- |
 | 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | all below |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
@@ -53,14 +53,14 @@ Add a row here when an audit finishes.
 
 ## Areas
 
-| Area | Code | Design notes | Reference |
-|---|---|---|---|
-| Primers, Tm, mutagenesis | `core/primers/*`, `core/cloning/mutagenesis.ts` | 36, 47, 56 | primer3-py; Biopython `Tm_NN` (Q5); NEB Tm API `tmapi.neb.com/tm/q5/0.5/<primer>`; NEB E0554 and Agilent 200523 manuals |
-| Gibson, Golden Gate, overlap primers, fidelity | `core/cloning/{gibson,goldenGate,overlapPrimers,fidelity}.ts` | 03, 49 | pydna `Assembly`, `Dseq.cut`, `amplify.pcr`; Potapov 2018 SI |
-| Digest, ligation, methylation, REBASE | `core/analysis/{restriction,methylation,enzymeTable}.ts`, `core/cloning/{digest,ligate,partial}.ts`, `io/rebase/` | 07, 30, 40, 42, 44 | Biopython `Restriction`; pydna; REBASE `withrefm`, `emboss_e` and damlist overlap tables |
-| PCR, Gateway | `core/cloning/{pcr,gateway}.ts` | 36, 48 | pydna `amplify.pcr`, `assembly2.gateway_assembly`; Invitrogen attB sequences |
-| Translation, file formats | `core/analysis/{cdsTranslation,sixFrame,orf,geneticCodes}.ts`, `io/*`, `core/checksum` | 01, 04, 43, 57 | NCBI `gc.prt`; NCBI `/translation`; Biopython parsers and test files; `seguid` |
-| UI-to-core wiring | `app/components/*Panel.tsx`, `app/clipboard.ts`, `workers/*` | — | none needed: the panel's own invariants (feature bases equal the primer in its note; results belong to the current document) |
+| Area                                           | Code                                                                                                              | Design notes       | Reference                                                                                                                    |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Primers, Tm, mutagenesis                       | `core/primers/*`, `core/cloning/mutagenesis.ts`                                                                   | 36, 47, 56         | primer3-py; Biopython `Tm_NN` (Q5); NEB Tm API `tmapi.neb.com/tm/q5/0.5/<primer>`; NEB E0554 and Agilent 200523 manuals      |
+| Gibson, Golden Gate, overlap primers, fidelity | `core/cloning/{gibson,goldenGate,overlapPrimers,fidelity}.ts`                                                     | 03, 49             | pydna `Assembly`, `Dseq.cut`, `amplify.pcr`; Potapov 2018 SI                                                                 |
+| Digest, ligation, methylation, REBASE          | `core/analysis/{restriction,methylation,enzymeTable}.ts`, `core/cloning/{digest,ligate,partial}.ts`, `io/rebase/` | 07, 30, 40, 42, 44 | Biopython `Restriction`; pydna; REBASE `withrefm`, `emboss_e` and damlist overlap tables                                     |
+| PCR, Gateway                                   | `core/cloning/{pcr,gateway}.ts`                                                                                   | 36, 48             | pydna `amplify.pcr`, `assembly2.gateway_assembly`; Invitrogen attB sequences                                                 |
+| Translation, file formats                      | `core/analysis/{cdsTranslation,sixFrame,orf,geneticCodes}.ts`, `io/*`, `core/checksum`                            | 01, 04, 43, 57     | NCBI `gc.prt`; NCBI `/translation`; Biopython parsers and test files; `seguid`                                               |
+| UI-to-core wiring                              | `app/components/*Panel.tsx`, `app/clipboard.ts`, `workers/*`                                                      | —                  | none needed: the panel's own invariants (feature bases equal the primer in its note; results belong to the current document) |
 
 ## Conventions and false positives
 
@@ -98,12 +98,12 @@ reporting one.
 
 ## Reference sources that work from here
 
-| Works | Blocked (as of 2026-10-05) |
-|---|---|
-| NCBI efetch | neb.com marker and methylation pages (403) |
-| REBASE (`rebase.neb.com`) | Addgene `sequences.addgene.org` (404) |
+| Works                                   | Blocked (as of 2026-10-05)                  |
+| --------------------------------------- | ------------------------------------------- |
+| NCBI efetch                             | neb.com marker and methylation pages (403)  |
+| REBASE (`rebase.neb.com`)               | Addgene `sequences.addgene.org` (404)       |
 | NEB Tm API, NEB and Agilent manual PDFs | `tools.thermofisher.com` vector files (403) |
-| GitHub (Biopython test files) | |
+| GitHub (Biopython test files)           |                                             |
 
 For Gateway vectors use NCBI records (PQ197128, LC217877) and pydna's
 bundled att sequences instead of Addgene or Thermo files.

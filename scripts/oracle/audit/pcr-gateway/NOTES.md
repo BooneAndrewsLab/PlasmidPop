@@ -8,18 +8,20 @@ Python oracle: `/home/matej/Programs/miniconda3/envs/primer3/bin/python`.
 ## Done so far
 
 ### Source read
+
 - `src/core/cloning/pcr.ts` (414 l), `src/core/cloning/gateway.ts` (481 l),
   `src/core/primers/anneal.ts` (366 l) read in full.
 - Design notes 36-pcr, 48-gateway read; 49-cloning-bench grepped.
 
 ### PCR — verified clean (no bug found yet)
+
 - `src/__audit__/pcr-gateway/pcrDump.test.ts` → `pcr-results.json`
   (~100 cases: random linear/circular, origin-spanning products, anneal-region
   mismatches, wrong orientation, repeated binding sites, IUPAC primers, Taq,
   inverse PCR, mutagenic 5' inserts, lowercase template, tiny circles).
 - `check_pcr.py` compares every product against:
   - oracle A, the canonical assembly `fwd_primer + template[f.end:r.start] +
-    revcomp(rev_primer)` taken round the circle — **111/111 products identical**
+revcomp(rev_primer)` taken round the circle — **111/111 products identical**
     (so: tails, mismatch carry-in, IUPAC carry-in, origin wrap, whole-circle
     inverse products, Taq A-tail all correct);
   - oracle B, `pydna.amplify.pcr` (limit=15) — **60 cases, 0 mismatches**. The
@@ -35,6 +37,7 @@ Python oracle: `/home/matej/Programs/miniconda3/envs/primer3/bin/python`.
   `[0, |fwd|)` and `[len-|rev|, len)`. **All correct.**
 
 ### Reasoned-through, not yet confirmed either way (low-severity candidates)
+
 - `PCR_DEFAULTS.maxProduct` (20 000) appears unused: `pcr()` uses
   `options.maxProduct ?? POLYMERASE_REACH[polymerase]`. Cosmetic/dead constant.
 - `describeFailure` says "Both primers anneal to the same strand" even when a
@@ -93,12 +96,14 @@ Python oracle: `/home/matej/Programs/miniconda3/envs/primer3/bin/python`.
    vector files came from NCBI and from pydna's bundled consensus sequences.
 
 ## Cleanup note
+
 `src/__audit__/` is untracked scratch; nothing outside it and the scratch dir
 has been modified.
 
 ## RESUMED 2026-10-05
 
 ### Gateway vs pydna — DONE, clean
+
 `make_gateway_cases.py` run, `gatewayDump.test.ts` + `check_gateway.py` written and run.
 **6/6 cases: product AND byproduct sequences identical to pydna**
 (`gateway_assembly(..., multi_site_only=True)`), compared rotation- and
@@ -108,6 +113,7 @@ BP-linear-substrate (product only, correct), LR-attL1-wraps-origin,
 LR-vector-reversed. ccdB warning fired in all.
 
 Observations from the dump (NOT yet bugs):
+
 - Recombinant site features can run past the end of the circle, e.g. BP-forward
   product is 1260 bp and carries attL1 at segment [1176, 1275]. Need to check
   this is a valid wrapped feature (text + GenBank round-trip).
@@ -120,11 +126,13 @@ Observations from the dump (NOT yet bugs):
   (= revcomp of the Invitrogen attB2 ACCCAGCTTTCTTGTACAAAGTGGT).
 
 ### Still to do
+
 (2) ccdB annotated outside the cassette -> circles swapped? (3) one-sided
 orientation refusal. (4) wrapped recombinant-site feature validity.
 (5) realistic full-length att fixture checking attB1/attB2 are 25 bp.
 
 ### Edge results (gatewayEdge.test.ts -> gateway-edge.json)
+
 - **realistic-LR CLEAN and authoritative**: entry attL1-gene-rc(attL2)-kanR x
   dest attR1-ccdB-rc(attR2)-ampR-ori gives product 1153 bp = gene+ampR+ori with
   **attB2 text exactly ACCCAGCTTTCTTGTACAAAGTGGT, the Invitrogen attB2**, and a
@@ -143,6 +151,7 @@ orientation refusal. (4) wrapped recombinant-site feature validity.
   gene+ampR+ori (that is the real expression clone). Sites mislabelled too.
 
 ### Circle-choice: REALISTIC TRIGGER FOUND (gatewayCircleChoice.test.ts)
+
 `attSites` sorts by position (gateway.ts:71) and `gateway` takes
 `[i1, i2] = inserts` in that order (gateway.ts:203). An entry clone whose
 insert spans the origin therefore presents attL2 first, and then the
@@ -150,11 +159,11 @@ geometric default circle (`crossed`, gateway.ts:274-287) is the WRONG one;
 only the ccdB test at gateway.ts:301 rescues it. With no feature whose name
 matches /ccdb/i the rescue does not happen:
 
-  rotated entry + cassette named "Gateway cassette"
-    product   = 1352 bp, kanR + Gateway cassette, labelled attB1/attB2  <-- WRONG
-    byproduct =  853 bp, gene + ampR                                    <-- the real clone
-  rotated entry + cassette named "ccdB"           -> correct (853 bp product)
-  plain   entry + either name                     -> correct
+rotated entry + cassette named "Gateway cassette"
+product = 1352 bp, kanR + Gateway cassette, labelled attB1/attB2 <-- WRONG
+byproduct = 853 bp, gene + ampR <-- the real clone
+rotated entry + cassette named "ccdB" -> correct (853 bp product)
+plain entry + either name -> correct
 
 No warning is emitted in the failing case (the ccdB warning is also keyed on
 the name). PlasmidPop's own BP product has its sites in reversed positional
@@ -164,6 +173,7 @@ Severity: high. Both sequences are right; which one is called the product is
 wrong, and the att labels follow the wrong circle.
 
 ### Also clean
+
 - BP-then-LR round trip from a linear attB PCR product: expression clone
   carries the gene whole and attB1/attB2 **exactly 25 bp matching the
   Invitrogen sites** (attB2 = ACCCAGCTTTCTTGTACAAAGTGGT).

@@ -1,6 +1,7 @@
 # ui-wiring audit — STATE (paused by orchestrator)
 
 ## Done (code reading, all by grep/scoped reads — no tests run yet)
+
 Traced UI→core→display for: PrimerPanel (design/check/add features/save), PrimerCollection
 (worker search, hitFeature, primerFromFeature, CSV/FASTA export), PrimerSettings (GC %→fraction,
 number boxes), PcrPanel + primerToPcr (template = history.present, useMemo on pcr()), MutagenesisPanel
@@ -15,6 +16,7 @@ share.ts + io/share/link.ts (GenBank deflate/base64url; selection via extractRan
 (identity check `history.present === doc`), carryAnalysis (provisional carry-over).
 
 ## Findings so far (from reading; tests written but NOT yet executed)
+
 1. PrimerPanel designed pairs are remembered per documentId only (useRemembered 'primers.pairs',
    src/app/components/PrimerPanel.tsx:135) and never invalidated by an edit. After inserting/deleting
    bases, the old pairs stay listed; "Add both as features" (lines 302-327) places primer_bind at the
@@ -32,6 +34,7 @@ share.ts + io/share/link.ts (GenBank deflate/base64url; selection via extractRan
 5. useAnalysis: if the worker request fails, provisional analysis persists indefinitely (no retry). Low.
 
 ## Verified clean by reading (no bug seen)
+
 PCR panel recomputes from current template; Gibson/GG/Ligation/Gateway preview == run options;
 setAnalysis identity check prevents stale worker results; PrimerCollection guards stale answers by
 (doc, primers, limits) identity; featureSequence reverse-complements reverse features (primerFromFeature);
@@ -39,7 +42,8 @@ cut position display = `cut` (bases before cut, SnapGene convention); EnzymePane
 siteStart..siteStart+len; export/share use extractRange; GenBank parser merges origin-spanning joins.
 
 ## Test file written (not yet run)
-/home/matej/code/WebstormProjects/PlasmidPop/src/__audit__/ui-wiring/seam.audit.test.tsx
+
+/home/matej/code/WebstormProjects/PlasmidPop/src/**audit**/ui-wiring/seam.audit.test.tsx
 Covers: stale pairs after edit; wrapped target note; add-feature for site over origin;
 rotation invariance of designPrimers/designMutagenesis with wrapped ranges; MutagenesisPanel codon
 change on forward/reverse CDS incl. over the origin (render + Open mutant → translateCds);
@@ -48,12 +52,14 @@ pack/unpack cut sites. NOTE: the share test guesses `readShareLink`'s name/retur
 from src/app/share.ts (grep export) before running.
 
 ## Next step
+
 export PATH=/home/matej/Programs/miniconda3/envs/node/bin:$PATH
-npx vitest run src/__audit__/ui-wiring   # fix import names, read console.log evidence, then
+npx vitest run src/**audit**/ui-wiring # fix import names, read console.log evidence, then
 confirm/refute findings 1-3, add a PCR-panel check (product sequence/dephosphorylated flag) if cheap,
 then write the final report via SubagentHandback.
 
 ## RESUMED 09:38 — tests executed
+
 `npx vitest run src/__audit__/ui-wiring` → 16/16 pass (assertions encode the findings).
 Finding 1 CONFIRMED end to end (Rev primer feature at [470,494) reads TGTGTGACGCTTGCAGACCAAGTG, note says CAACTCTTCTTGTGTGACGCTTGC after a 10 bp insert).
 Finding 2 CONFIRMED (provisional digest offers 2 fragments; shelved fragment ends BamHI/EcoRI though GAATTC no longer exists).
