@@ -174,7 +174,7 @@ describe('MutagenesisPanel: changing a residue (#69)', () => {
     });
     const primers = within(screen.getByRole('list', { name: 'Mutagenesis primers' }));
     expect(primers.getAllByText(/NEB Q5 \d+ °C/)).toHaveLength(2);
-    expect(screen.getByText(/annealing at \d+ °C \(NEB's for Q5\)/)).toBeInTheDocument();
+    expect(screen.getByText(/annealing at \d+(\.\d)? °C \(NEB's for Q5\)/)).toBeInTheDocument();
     // Agilent's design is not a Q5 protocol, so neither is said of it.
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Overlapping' }));

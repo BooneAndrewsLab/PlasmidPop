@@ -321,7 +321,10 @@ you, and opens the plasmid they would make.
      nearest-neighbour Tm the rest of the app uses. Beside it each primer
      also carries **NEB Q5**, the Tm NEB's own calculator gives for Q5 —
      it reads a few degrees higher, because Q5's buffer does — and the
-     panel says what to anneal at, which is NEB's number. Amplify the whole
+     panel says what to anneal at, which is NEB's number: a degree over the
+     lower primer's Q5 Tm, to a tenth of a degree, and no more than 72 °C.
+     A self-complementary primer (one that reads the same on both strands)
+     gets the lower Tm NEB gives it. Amplify the whole
      plasmid, then phosphorylate, ligate and digest the template (KLD).
    - **Overlapping** is Agilent's QuikChange: two complementary primers
      with the change in the middle, grown until they reach 78 °C by

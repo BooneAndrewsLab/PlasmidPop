@@ -6,9 +6,9 @@ primer3-py 2.x defaults formamide_conc to a non-zero value, so it is zeroed.
 
 q5MeltingTemperature is NEB's calculator as we read it: nearest-neighbour at
 500 nM of primer, Owczarzy 2004 salt correction at 150 mM sodium. That is
-Biopython's Tm_NN with DNA_NN3, saltcorr=6, dnac1=500, dnac2=0. Self-
-complementary primers are left out of that comparison: our Q5 value does not
-apply the symmetry correction (issue #140) while Biopython does.
+Biopython's Tm_NN with DNA_NN3, saltcorr=6, dnac1=500, dnac2=0, and
+selfcomp=True for a self-complementary primer, whose symmetry term NEB's
+calculator applies too (issue #140).
 """
 import random
 
@@ -77,11 +77,12 @@ def generate():
             for na, nm in CONDITIONS
         ]
         row = {'seq': seq, 'tm': tm}
-        if not is_self_complementary(seq) and len(seq) >= 8:
+        if len(seq) >= 8:
             row['q5'] = round(
                 mt.Tm_NN(
                     seq, nn_table=mt.DNA_NN3, Na=150, K=0, Tris=0, Mg=0, dNTPs=0,
-                    dnac1=500, dnac2=0, saltcorr=6, selfcomp=False,
+                    dnac1=500, dnac2=0, saltcorr=6,
+                    selfcomp=is_self_complementary(seq),
                 ),
                 4,
             )

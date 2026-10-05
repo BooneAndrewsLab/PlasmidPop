@@ -63,6 +63,20 @@ describe('q5MeltingTemperature (#69)', () => {
       expect(q5MeltingTemperature(primer)).toBeGreaterThan(meltingTemperature(primer));
   });
 
+  it('takes the symmetry term off a self-complementary primer, as NEB does (#140)', () => {
+    // NEB's API (tmapi.neb.com/tm/q5/0.5/<primer>), 2026-10-05, and
+    // Biopython Tm_NN(selfcomp=True, saltcorr=6) at 150 mM and 500 nM.
+    const selfComplementary: readonly (readonly [string, number, number])[] = [
+      ['TCTGCTCGCTAGCGAGCAGA', 70, 70.0061],
+      ['GCAGAGAGGCGCCTCTCTGC', 73, 72.67],
+      ['ATGTTCGCTCGCGAGCGAACAT', 71, 71.0495],
+    ];
+    for (const [primer, neb, biopython] of selfComplementary) {
+      expect(Math.round(q5MeltingTemperature(primer))).toBe(neb);
+      expect(q5MeltingTemperature(primer)).toBeCloseTo(biopython, 3);
+    }
+  });
+
   it('takes lower case and U, and refuses what it cannot pair', () => {
     expect(q5MeltingTemperature('atgaccatgauuacgccaagc')).toBeCloseTo(
       q5MeltingTemperature('ATGACCATGATTACGCCAAGC'),
@@ -81,6 +95,17 @@ describe('q5AnnealingTemperature (#69)', () => {
     expect(q5AnnealingTemperature(59, 80)).toBe(60);
     expect(q5AnnealingTemperature(78, 80)).toBe(72);
     expect(q5AnnealingTemperature(91, 90)).toBe(72);
+  });
+
+  it('adds the degree to the unrounded lower Tm and keeps a tenth (#140)', () => {
+    // NEB's API gives the annealing temperature to 0.1 °C, from Tms it does
+    // not round first.
+    expect(q5AnnealingTemperature(68.83, 78.44)).toBe(69.8);
+    expect(q5AnnealingTemperature(70.47, 72.32)).toBe(71.5);
+    expect(q5AnnealingTemperature(72.32, 70.47)).toBe(71.5);
+    expect(q5AnnealingTemperature(70.96, 75)).toBe(72);
+    expect(q5AnnealingTemperature(71.04, 75)).toBe(72);
+    expect(q5AnnealingTemperature(60.04, 61)).toBe(61);
   });
 });
 

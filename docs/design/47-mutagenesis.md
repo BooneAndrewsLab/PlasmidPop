@@ -50,6 +50,20 @@ use a tool for.
   lower Tm plus one, capped at 72 °C, which held for every pair tried. Both
   are shown only for the back-to-back design: the overlapping one is
   Agilent's kit, whose own formula is its rule.
+- **Two corrections from the correctness audit** (#140, 1.11.2). NEB's API
+  (`tmapi.neb.com/tm/q5/0.5/<primer>`, queried 2026-10-05) showed that
+  the calculator applies SantaLucia's symmetry entropy (−1.4 cal/K·mol) to
+  a self-complementary primer, as `meltingTemperature` always did and
+  `q5MeltingTemperature` did not: `TCTGCTCGCTAGCGAGCAGA` is 70 there, and
+  was 71 here. The concentration term needs no change, since the whole
+  primer concentration is already used. The oracle (`scripts/oracle/thermo.py`,
+  Biopython `Tm_NN(selfcomp=True, saltcorr=6)`) now covers self-complementary
+  primers too, which it had left out. The same API gives the annealing
+  temperature to 0.1 °C as the unrounded lower Tm plus one (Tms 68.83 and
+  78.44 give 69.8, where rounding first gave 70), so
+  `q5AnnealingTemperature` no longer rounds the Tm and keeps a tenth. The
+  web calculator's own page could not be fetched (NEB answers fetchers with
+  403); the API values are from the audit.
 - **Changing a residue rather than bases** (#69, 1.8). `codonSiteAt` finds
   the codon a position falls in, through `translateCds`, so a `join(...)`,
   the origin, `/codon_start` and the feature's own genetic code all apply

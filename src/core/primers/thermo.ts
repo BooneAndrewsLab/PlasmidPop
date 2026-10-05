@@ -116,6 +116,11 @@ export function q5MeltingTemperature(sequence: string): number {
     dH += init.dH;
     dS += init.dS;
   }
+  // A self-complementary primer pairs with itself, which costs it the
+  // symmetry entropy as in meltingTemperature; NEB's calculator applies it
+  // too (#140). Its concentration term is unchanged, being the whole primer
+  // concentration either way.
+  if (isSelfComplementary(seq)) dS += SYMMETRY_DS;
   const oneMolar = (dH * 1000) / (dS + R * Math.log(Q5_PRIMER_M));
   const ln = Math.log(Q5_MONOVALENT_M);
   const gc = gcFraction(seq);
@@ -124,13 +129,15 @@ export function q5MeltingTemperature(sequence: string): number {
 
 /**
  * NEB's annealing temperature for a Q5 PCR with primers of these Q5 Tms
- * (`q5MeltingTemperature`): one degree over the lower, never above 72 °C.
- * The rule is read off the calculator (#69), where it held for every pair
- * tried; NEB's older advice of Tm + 3 °C was written for Tms 2 °C lower,
- * before its 2016 correction, and its Ta values were left as they were.
+ * (`q5MeltingTemperature`): one degree over the lower, never above 72 °C,
+ * to a tenth of a degree. The rule is read off the calculator (#69), where
+ * it held for every pair tried; NEB's older advice of Tm + 3 °C was written
+ * for Tms 2 °C lower, before its 2016 correction, and its Ta values were
+ * left as they were. The lower Tm is not rounded first: NEB's API gives
+ * 69.8 for Tms of 68.83 and 78.44, not 70 (#140).
  */
 export function q5AnnealingTemperature(tmA: number, tmB: number): number {
-  return Math.min(Math.round(Math.min(tmA, tmB)) + 1, Q5_MAX_ANNEAL);
+  return Math.min(Math.round((Math.min(tmA, tmB) + 1) * 10) / 10, Q5_MAX_ANNEAL);
 }
 
 /** Fraction of G and C bases, 0–1 (0 for empty input). */

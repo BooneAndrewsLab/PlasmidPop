@@ -7,8 +7,8 @@ import oracle from './thermo.json';
  * (scripts/oracle/thermo.py). meltingTemperature is SantaLucia 1998 with
  * SantaLucia's salt correction (primer3's calc_tm with those methods) over
  * five salt and primer concentrations; q5MeltingTemperature is Biopython's
- * Tm_NN at 500 nM primer and 150 mM sodium with the Owczarzy 2004 correction.
- * Self-complementary primers are not compared for Q5 (issue #140).
+ * Tm_NN at 500 nM primer and 150 mM sodium with the Owczarzy 2004 correction,
+ * self-complementary primers with its symmetry term (issue #140).
  */
 
 interface Row {

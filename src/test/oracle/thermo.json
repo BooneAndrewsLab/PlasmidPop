@@ -1785,6 +1785,7 @@
    ]
   },
   {
+   "q5": 58.6825,
    "seq": "TCGTGCGCACGA",
    "tm": [
     51.0962,
@@ -1795,6 +1796,7 @@
    ]
   },
   {
+   "q5": 71.3808,
    "seq": "ACATTCCCGGCCGGGAATGT",
    "tm": [
     62.6601,
@@ -1805,6 +1807,7 @@
    ]
   },
   {
+   "q5": 68.5571,
    "seq": "GGCGCTTAGACTATATATAGTCTAAGCGCC",
    "tm": [
     61.2192,
@@ -1815,6 +1818,7 @@
    ]
   },
   {
+   "q5": 61.683,
    "seq": "AGTAGTACAGACTAGTCTGTACTACT",
    "tm": [
     54.6252,
@@ -1825,6 +1829,7 @@
    ]
   },
   {
+   "q5": 34.9162,
    "seq": "TTCACGTGAA",
    "tm": [
     29.1797,
@@ -1835,6 +1840,7 @@
    ]
   },
   {
+   "q5": 65.7702,
    "seq": "ATTCAAATGGGGATCCCCATTTGAAT",
    "tm": [
     58.4764,
@@ -1845,6 +1851,7 @@
    ]
   },
   {
+   "q5": 66.6417,
    "seq": "GTTACAGCTCCGGAGCTGTAAC",
    "tm": [
     58.9268,
@@ -1855,6 +1862,7 @@
    ]
   },
   {
+   "q5": 57.818,
    "seq": "TACTATCTGTACATGTACAGATAGTA",
    "tm": [
     51.4083,
@@ -1865,6 +1873,7 @@
    ]
   },
   {
+   "q5": 70.0234,
    "seq": "CTCGGTGAGTTGAAATTTCAACTCACCGAG",
    "tm": [
     62.801,
@@ -1875,6 +1884,7 @@
    ]
   },
   {
+   "q5": 65.6475,
    "seq": "TGAACGATTCCAATTGGAATCGTTCA",
    "tm": [
     58.981,
@@ -1885,6 +1895,7 @@
    ]
   },
   {
+   "q5": 32.3652,
    "seq": "TAGCATGCTA",
    "tm": [
     26.222,
@@ -1895,6 +1906,7 @@
    ]
   },
   {
+   "q5": 34.7496,
    "seq": "GAAAAAATTTTTTC",
    "tm": [
     30.7434,
@@ -1905,6 +1917,7 @@
    ]
   },
   {
+   "q5": 67.6954,
    "seq": "CGCTTCCACATATGTGGAAGCG",
    "tm": [
     60.1332,
@@ -1915,6 +1928,7 @@
    ]
   },
   {
+   "q5": 26.2815,
    "seq": "ACAGCTGT",
    "tm": [
     19.8538,
@@ -1925,6 +1939,7 @@
    ]
   },
   {
+   "q5": 56.1894,
    "seq": "TGTTGCAATATATATTGCAACA",
    "tm": [
     50.4443,
@@ -1935,6 +1950,7 @@
    ]
   },
   {
+   "q5": 71.5228,
    "seq": "TACGTGAATACTGGCGCCAGTATTCACGTA",
    "tm": [
     64.1486,
@@ -1945,6 +1961,7 @@
    ]
   },
   {
+   "q5": 72.4368,
    "seq": "TGAACAGGAGACCGGTCTCCTGTTCA",
    "tm": [
     64.0886,
@@ -1955,6 +1972,7 @@
    ]
   },
   {
+   "q5": 58.8161,
    "seq": "ACTACTATGCATGCATAGTAGT",
    "tm": [
     52.1404,
@@ -1965,6 +1983,7 @@
    ]
   },
   {
+   "q5": 52.981,
    "seq": "GGACATCGATGTCC",
    "tm": [
     45.5819,
@@ -1975,6 +1994,7 @@
    ]
   },
   {
+   "q5": 89.0834,
    "seq": "TCGCCGGCGCTTCCGGAAGCGCCGGCGA",
    "tm": [
     79.0192,
@@ -2156,6 +2176,7 @@
    ]
   },
   {
+   "q5": 63.9459,
    "seq": "ACGTACGTACGTACGTACGT",
    "tm": [
     57.0595,
@@ -2166,6 +2187,7 @@
    ]
   },
   {
+   "q5": 26.0612,
    "seq": "ATATATATATATATAT",
    "tm": [
     21.5501,
@@ -2176,6 +2198,7 @@
    ]
   },
   {
+   "q5": 74.2058,
    "seq": "GCGCGCGCGCGC",
    "tm": [
     64.668,
@@ -2239,6 +2262,7 @@
    ]
   },
   {
+   "q5": 50.1841,
    "seq": "GGATCCGGATCC",
    "tm": [
     41.9486,

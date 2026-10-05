@@ -72,6 +72,12 @@ describe('designMutagenesis, back to back', () => {
     expect(d.label).toBe(`${TEXT.charAt(1000).toUpperCase()}1,001G`);
   });
 
+  it('anneals a degree over the lower unrounded Q5 Tm, to a tenth (#140)', () => {
+    const d = designMutagenesis(PLASMID, { start: 1000, end: 1001 }, 'G', 'back-to-back');
+    const lower = Math.min(d.forward.q5Tm ?? NaN, d.reverse.q5Tm ?? NaN);
+    expect(d.annealAt).toBe(Math.min(72, Math.round((lower + 1) * 10) / 10));
+  });
+
   it('deletes, and inserts, splitting a long insert between the primers', () => {
     const del = designMutagenesis(PLASMID, { start: 1000, end: 1030 }, '', 'back-to-back');
     expect(del.mutant.length).toBe(TEXT.length - 30);
