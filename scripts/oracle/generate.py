@@ -41,6 +41,7 @@ from Bio.SeqFeature import (
 from Bio.SeqIO.InsdcIO import _insdc_location_string
 from Bio.SeqRecord import SeqRecord
 
+import pcr
 import thermo
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -480,6 +481,7 @@ def main():
     snapgene()
     abif()
     write('thermo.json', thermo.generate())
+    write('pcr.json', pcr.generate())
 
 
 if __name__ == '__main__':
