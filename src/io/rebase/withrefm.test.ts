@@ -238,14 +238,6 @@ describe('parseRebaseWithRefM', () => {
       expect(frags[0]?.sequence.startsWith('AAAAAAAAAACAGTGTT')).toBe(true);
     });
 
-    it('strips padding on both sides', () => {
-      expect(parseRebaseWithRefM(text('NNCASTGNN^')).enzymes[0]).toMatchObject({
-        site: 'CASTG',
-        cutTop: 7,
-        cutBottom: -2,
-      });
-    });
-
     // Expected values from REBASE's emboss_e.610 (`TspRI CASTG 5 2 0 7 -3`,
     // `HauII tggcca 6 2 0 17 15`), its enzyme pages' cut diagrams and
     // Biopython 1.85 (`N_NNCASTGNN^N`, `TGGCCANNNNNNNNN_NN^N`).
@@ -279,6 +271,72 @@ describe('parseRebaseWithRefM', () => {
       // Top strand cut after the 17th base of the site, bottom after the 15th.
       expect(frags[0]?.sequence).toBe('AAAAAAAAAATGGCCACCCCCCCCCCC');
       expect(frags[0]?.right).toMatchObject({ kind: "3'", overhang: 'CC' });
+    });
+
+    it('warns of nothing when every padded caret is one it has checked', () => {
+      expect(parseRebaseWithRefM(text('CASTGNN^')).warnings).toEqual([]);
+      expect(parsed.warnings).toEqual([]);
+    });
+  });
+
+  // #150: the bottom cuts above hold only for the notation they were checked
+  // against. A changed record must not quietly get a guessed cut.
+  describe('a padded caret REBASE has changed or added', () => {
+    const file = (records: string) =>
+      `REBASE version 699   withrefm.699\nRich Roberts    Jan 01 2030\n\n${records}`;
+    const rec = (name: string, site: string) =>
+      `<1>${name}\n<2>\n<3>${site}\n<4>\n<5>x\n<6>x\n<7>\n<8>ref\n\n`;
+    const ECORI = rec('EcoRI', 'G^AATTC');
+
+    it('leaves HauII out, and says why, when its padding changes', () => {
+      const r = parseRebaseWithRefM(file(ECORI + rec('HauII', 'TGGCCANNNNNNNNNNNN^')));
+      expect(r.enzymes.map((e) => e.name)).toEqual(['EcoRI']);
+      expect(r.skipped.cutUnknown).toBe(1);
+      expect(r.warnings).toHaveLength(1);
+      expect(r.warnings[0]).toMatch(
+        /^HauII: REBASE now writes TGGCCANNNNNNNNNNNN\^, not TGGCCANNNNNNNNNNN\^/,
+      );
+      expect(r.warnings[0]).toMatch(/left out/);
+    });
+
+    it('takes a cut REBASE writes out in full, and says the check no longer applies', () => {
+      const r = parseRebaseWithRefM(file(rec('HauII', 'TGGCCA(11/9)')));
+      expect(r.enzymes[0]).toMatchObject({
+        name: 'HauII',
+        site: 'TGGCCA',
+        cutTop: 17,
+        cutBottom: 15,
+      });
+      expect(r.warnings).toEqual([
+        'HauII: REBASE now writes TGGCCA(11/9), not TGGCCANNNNNNNNNNN^; cut read as written.',
+      ]);
+    });
+
+    it('does not mirror the cut of TspRI written another way', () => {
+      const r = parseRebaseWithRefM(file(ECORI + rec('TspRI', 'NNCASTGNN^')));
+      expect(r.enzymes.map((e) => e.name)).toEqual(['EcoRI']);
+      expect(r.warnings[0]).toMatch(/^TspRI: REBASE now writes NNCASTGNN\^/);
+    });
+
+    it('leaves out a padded caret it has never checked, by name', () => {
+      const r = parseRebaseWithRefM(file(ECORI + rec('NewI', 'GACGTCNNNNNNNN^')));
+      expect(r.enzymes.map((e) => e.name)).toEqual(['EcoRI']);
+      expect(r.skipped.cutUnknown).toBe(1);
+      expect(r.warnings).toEqual([
+        'NewI: GACGTCNNNNNNNN^ gives only the top-strand cut; left out.',
+      ]);
+    });
+
+    it('does not warn of one left out anyway as too unspecific', () => {
+      const r = parseRebaseWithRefM(file(ECORI + rec('SgeI', 'CNNGNNNNNNNNN^')));
+      expect(r.skipped.tooUnspecific).toBe(1);
+      expect(r.warnings).toEqual([]);
+    });
+
+    it('is quiet when a checked enzyme is not in the file at all', () => {
+      const r = parseRebaseWithRefM(file(ECORI));
+      expect(r.enzymes.map((e) => e.name)).toEqual(['EcoRI']);
+      expect(r.warnings).toEqual([]);
     });
   });
 });

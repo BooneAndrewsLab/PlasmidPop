@@ -124,6 +124,19 @@ export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
           {describeSkipped(summary.skipped)}
         </p>
       )}
+      {summary !== null && summary.warnings.length > 0 && (
+        <div className="panel__note panel__note--error" role="status">
+          <p>
+            Read differently from how this version of PlasmidPop expects, so check these against
+            REBASE before relying on them:
+          </p>
+          <ul>
+            {summary.warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {!enzymeSetInfo.bundled && (
         <p className="panel__note">
           <button

@@ -30,6 +30,8 @@ export interface RebaseImportSummary {
   readonly count: number;
   readonly released: string | null;
   readonly skipped: RebaseSkipped;
+  /** Records read differently from how REBASE wrote them, or left out (#150). */
+  readonly warnings: readonly string[];
 }
 
 /** What a fidelity import turned out to hold, for the panel to report (#68). */
@@ -326,6 +328,7 @@ export class PersistenceService {
       count: parsed.enzymes.length,
       released: parsed.released,
       skipped: parsed.skipped,
+      warnings: parsed.warnings,
     };
   }
 

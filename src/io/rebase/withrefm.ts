@@ -43,6 +43,12 @@ export interface RebaseImport {
   readonly suppliers: readonly RebaseSupplier[];
   /** Records read but left out, counted by why, for the UI to own up to. */
   readonly skipped: RebaseSkipped;
+  /**
+   * Sentences for the user about records read differently from how they are
+   * written, or left out because this reader no longer knows how to read
+   * them (#150). Empty for an ordinary file.
+   */
+  readonly warnings: readonly string[];
 }
 
 export interface RebaseSkipped {
@@ -128,39 +134,75 @@ function fields(block: string): Map<string, string> {
  * - Anything with a `?` in it has no determined cut and is left out.
  */
 /**
- * Bottom-strand cuts that an N-padded caret does not determine, by enzyme
- * and the notation REBASE writes for it. The caret marks the top-strand cut
- * only; for TspRI `CASTGNN^` the bottom cut is the mirror image (-2), but
- * HauII `TGGCCANNNNNNNNNNN^` is TGGCCA(11/9), a 2-nt 3' overhang at +17/+15,
- * not a 28-nt one at +17/-11. REBASE's enzyme page, its `emboss_e` export
- * and Biopython all give +17/+15. Checked against `emboss_e.610`: of the 711
- * enzymes both files cut, HauII was the only one the mirror got wrong.
+ * Bottom-strand cuts that an N-padded caret does not determine, by enzyme,
+ * with the notation REBASE wrote when the cut was checked. The caret marks
+ * the top-strand cut only. For TspRI and TscAI `CASTGNN^` the bottom cut is
+ * the mirror image (-2), but HauII `TGGCCANNNNNNNNNNN^` is TGGCCA(11/9), a
+ * 2-nt 3' overhang at +17/+15, not a 28-nt one at +17/-11. REBASE's enzyme
+ * pages, its `emboss_e` export and Biopython agree on all three. Against
+ * `emboss_e.610`, of the 711 enzymes both files cut, HauII was the only one
+ * the mirror got wrong.
+ *
+ * An entry holds only while REBASE writes the notation it names. A padded
+ * caret that is not listed here, or whose notation has changed, has no
+ * bottom cut we know, so it is left out with a warning rather than given a
+ * guessed one (#150; docs/design/07-rebase-enzymes.md).
  */
 const PADDED_CARET_BOTTOM: ReadonlyMap<string, { notation: string; cutBottom: number }> = new Map([
   ['HAUII', { notation: 'TGGCCANNNNNNNNNNN^', cutBottom: 15 }],
+  ['TSCAI', { notation: 'CASTGNN^', cutBottom: -2 }],
+  ['TSPRI', { notation: 'CASTGNN^', cutBottom: -2 }],
 ]);
 
-function readSite(
-  raw: string,
-  name = '',
-):
-  | { site: string; cutTop: number; cutBottom: number; secondCut?: CutOffsets }
-  | keyof RebaseSkipped {
+/** What `readSite` makes of a record, and anything the user should be told. */
+type ReadSite =
+  | {
+      site: string;
+      cutTop: number;
+      cutBottom: number;
+      secondCut?: CutOffsets;
+      warning?: string;
+    }
+  | { skip: keyof RebaseSkipped; warning?: string };
+
+function readSite(raw: string, name = ''): ReadSite {
   const s = raw.trim().toUpperCase();
-  if (s === '') return 'noSite';
-  if (s.includes('?')) return 'cutUnknown';
+  const known = PADDED_CARET_BOTTOM.get(name.toUpperCase());
+  const read = readNotation(s, name, known);
+  // A listed enzyme REBASE now writes some other way: the entry was checked
+  // against the old notation only, so it is not applied, and saying so lets
+  // someone notice the table here needs another look.
+  if (known !== undefined && known.notation !== s && read.warning === undefined) {
+    return {
+      ...read,
+      warning:
+        'skip' in read
+          ? `${name}: REBASE now writes ${s}, not ${known.notation}; left out.`
+          : `${name}: REBASE now writes ${s}, not ${known.notation}; cut read as written.`,
+    };
+  }
+  return read;
+}
+
+function readNotation(
+  s: string,
+  name: string,
+  known: { notation: string; cutBottom: number } | undefined,
+): ReadSite {
+  if (s === '') return { skip: 'noSite' };
+  if (s.includes('?')) return { skip: 'cutUnknown' };
 
   const lead = /^\((-?\d+)\/(-?\d+)\)/.exec(s);
   const trail = /\((-?\d+)\/(-?\d+)\)$/.exec(s);
 
   const site = s.replace(/^\(-?\d+\/-?\d+\)/, '').replace(/\(-?\d+\/-?\d+\)$/, '');
   const bare = site.replace(/\^/g, '');
-  if (bare === '' || !/^[ACGTRYSWKMBDHVN]+$/.test(bare)) return 'noSite';
+  if (bare === '' || !/^[ACGTRYSWKMBDHVN]+$/.test(bare)) return { skip: 'noSite' };
 
   if (lead !== null && trail !== null) {
     const offsets = [lead[1], lead[2], trail[1], trail[2]].map(Number);
     const [a = NaN, b = NaN, c = NaN, d = NaN] = offsets;
-    if (!offsets.every(Number.isFinite)) return 'cutUnknown';
+    if (!offsets.every(Number.isFinite)) return { skip: 'cutUnknown' };
     return {
       site: bare,
       cutTop: -a,
@@ -171,32 +213,40 @@ function readSite(
   if (trail !== null) {
     const top = Number(trail[1]);
     const bottom = Number(trail[2]);
-    if (!Number.isFinite(top) || !Number.isFinite(bottom)) return 'cutUnknown';
+    if (!Number.isFinite(top) || !Number.isFinite(bottom)) return { skip: 'cutUnknown' };
     return { site: bare, cutTop: bare.length + top, cutBottom: bare.length + bottom };
   }
   if (lead !== null) {
     const top = Number(lead[1]);
     const bottom = Number(lead[2]);
-    if (!Number.isFinite(top) || !Number.isFinite(bottom)) return 'cutUnknown';
+    if (!Number.isFinite(top) || !Number.isFinite(bottom)) return { skip: 'cutUnknown' };
     // A cut before the site: the offsets are how far upstream, so negative here.
     return { site: bare, cutTop: -top, cutBottom: -bottom };
   }
   const caret = site.indexOf('^');
-  if (caret < 0) return 'cutUnknown';
-  if (site.includes('^', caret + 1)) return 'cutUnknown';
+  if (caret < 0) return { skip: 'cutUnknown' };
+  if (site.includes('^', caret + 1)) return { skip: 'cutUnknown' };
   // N padding is not part of the site: REBASE writes `CASTGNN^` for a site
-  // CASTG cut two bases past its end, and the bottom strand is cut as far
-  // before the core as the top is after it, unless `PADDED_CARET_BOTTOM`
-  // knows better. Keeping the padding would make the site non-palindromic
-  // and add a second cut on the other strand.
+  // CASTG cut two bases past its end. Keeping the padding would make the
+  // site non-palindromic and add a second cut on the other strand. Where the
+  // bottom strand is cut is not in the notation; `PADDED_CARET_BOTTOM` says
+  // for the enzymes checked, and anything else is left out.
   const padL = /^N*/.exec(bare)?.[0].length ?? 0;
   const padR = /N*$/.exec(bare)?.[0].length ?? 0;
   if (padL + padR < bare.length && padL + padR > 0) {
     const core = bare.slice(padL, bare.length - padR);
     const top = caret - padL;
-    const known = PADDED_CARET_BOTTOM.get(name.toUpperCase());
-    const bottom = known?.notation === s ? known.cutBottom : core.length - top;
-    return { site: core, cutTop: top, cutBottom: bottom };
+    if (known?.notation === s) return { site: core, cutTop: top, cutBottom: known.cutBottom };
+    // Left out anyway, so not worth a warning: SgeI `CNNGNNNNNNNNN^`, whose
+    // bottom cut is +17 and not the mirrored -9.
+    if (siteBits(core) < MIN_SITE_BITS) return { skip: 'tooUnspecific' };
+    return {
+      skip: 'cutUnknown',
+      warning:
+        known === undefined
+          ? `${name}: ${s} gives only the top-strand cut; left out.`
+          : `${name}: REBASE now writes ${s}, not ${known.notation} as when its bottom-strand cut was checked; left out rather than given a guessed cut.`,
+    };
   }
   return { site: bare, cutTop: caret, cutBottom: bare.length - caret };
 }
@@ -243,6 +293,7 @@ export function parseRebaseWithRefM(text: string): RebaseImport {
 
   const enzymes: Enzyme[] = [];
   const skipped = { cutUnknown: 0, noSite: 0, tooUnspecific: 0 };
+  const warnings: string[] = [];
   const seen = new Set<string>();
 
   const starts: number[] = [];
@@ -259,8 +310,9 @@ export function parseRebaseWithRefM(text: string): RebaseImport {
     if (seen.has(name.toLowerCase())) continue;
 
     const read = readSite(f.get('3') ?? '', name);
-    if (typeof read === 'string') {
-      skipped[read]++;
+    if (read.warning !== undefined) warnings.push(read.warning);
+    if ('skip' in read) {
+      skipped[read.skip]++;
       continue;
     }
     if (siteBits(read.site) < MIN_SITE_BITS) {
@@ -288,5 +340,5 @@ export function parseRebaseWithRefM(text: string): RebaseImport {
     throw new RebaseParseError('No enzymes with a known cut position were found in this file.');
   }
   enzymes.sort((a, b) => a.name.localeCompare(b.name));
-  return { version, released, enzymes, suppliers: readSuppliers(header), skipped };
+  return { version, released, enzymes, suppliers: readSuppliers(header), skipped, warnings };
 }

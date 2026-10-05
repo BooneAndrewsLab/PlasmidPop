@@ -92,3 +92,34 @@ sequence.
   both files cut, so it is corrected by name (`PADDED_CARET_BOTTOM`, only
   while REBASE still writes that notation for it). TspRI and TscAI are
   mirrored, as REBASE draws them.
+
+- The padded-caret table fails safe (#150). Its entries are keyed by name
+  _and_ the notation they were checked against, and since the mirror is
+  not a rule REBASE follows, it is no longer a default either: TspRI and
+  TscAI are listed with their −2 like HauII with its +15. A padded caret
+  is read only when name and notation both match an entry. Otherwise:
+  - a listed enzyme still written as a padded caret, but differently
+    (say HauII with one more N), or an enzyme never checked, is **left
+    out** (counted with the cut-unknown ones) and named in a warning. A
+    missing enzyme is visible and costs a user one enzyme; a guessed
+    bottom cut is silent and puts a wrong overhang into a digest, a
+    ligation and a Golden Gate design. Using the record "as written" is
+    not an option for this notation, because it does not say where the
+    bottom strand is cut.
+  - a listed enzyme REBASE now writes out in full (`TGGCCA(11/9)`, an
+    interior caret) is read as written, since that notation determines
+    both cuts, with a warning that the check no longer applies, so the
+    entry can be retired.
+  - a listed enzyme absent from the file says nothing: REBASE dropping an
+    enzyme is not ours to report.
+  - a padded caret whose core is too unspecific is left out as such
+    without a warning. SgeI `CNNGNNNNNNNNN^` is one, and another case
+    where the mirror would be wrong (REBASE and Biopython give +13/+17,
+    the mirror −9).
+
+  Warnings travel in `RebaseImport.warnings`, a list of sentences, and the
+  Enzymes tab lists them under the import's summary. On REBASE 610 there
+  are none, and the parsed table is identical to the one before the change
+  (checked by a one-off run on the real file, not committed). Nothing else
+  in the reader is keyed to a name; the other notations carry both cuts
+  themselves, so a change in them is read as written.

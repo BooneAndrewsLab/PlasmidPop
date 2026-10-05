@@ -259,6 +259,12 @@ determined, and the ones that cut at a modified base rather than at a
 sequence (AbaSI, MspJI and kin), whose REBASE site is a base or two and
 would otherwise appear to cut everywhere.
 
+A few enzymes are written in REBASE with only their top-strand cut
+(HauII's `TGGCCANNNNNNNNNNN^`); PlasmidPop knows the other cut for the ones
+it has checked. If a later REBASE writes one of them differently, or adds a
+new one, the import leaves it out rather than guess, and lists it under the
+summary as a warning. Such an enzyme is worth reporting as an issue.
+
 About 27 of them — BcgI, BaeI, CspCI, BsaXI and kin — cut on _both_ sides
 of their recognition site, cutting it out on a piece of about 30 bp. Each
 site of theirs is two cuts, so such an enzyme with one site in your plasmid
