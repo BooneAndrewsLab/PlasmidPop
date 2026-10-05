@@ -31,6 +31,10 @@ in the status bar rather than silently dropped. So is a record that
 contradicts itself: a CDS whose stored `/translation` is not the protein its
 own bases give (see
 [Checking a record against itself](09-translate.md#checking-a-record-against-itself)).
+A qualifier whose quotes do not pair up — `/note="One missing ""quotation
+mark" here"`, written by hand or by another program — is closed at the next
+feature, or at the next qualifier when its line ends in a quote, with a
+warning naming where; the features after it are read as usual.
 
 A molecule with sticky ends — a fragment from a digest, say — has something
 GenBank cannot express, so the ends travel as a `PlasmidPop-ends:` comment

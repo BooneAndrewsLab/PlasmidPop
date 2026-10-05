@@ -294,6 +294,95 @@ describe('GenBank parser edge cases', () => {
     });
   });
 
+  it('closes a value with an unescaped quote instead of swallowing what follows (#139)', () => {
+    // Biopython's Tests/GenBank/qualifier_escaping_read.gb: the odd quote kept
+    // the /note open and every later feature went into it. Expected values
+    // are Biopython 1.85's (.venv-oracle) for the same lines.
+    const text = record(
+      'LOCUS       X 20 bp DNA linear',
+      [
+        '     Protein         1..9',
+        '                     /product="interferon beta, fibroblast"',
+        '                     /note="One missing ""quotation mark" here"',
+        '     sig_peptide     1..5',
+        '                     /note="End not properly "escaped""',
+        '     misc_feature    1..9',
+        '                     /note="Again one ""missing" here"',
+        '                     /gene="lacZ"',
+        '     misc_feature    2..5',
+        '                     /note="say ""hi""',
+        '                     /path/to"',
+        '                     /label=second',
+        '     mobile_element  3..4',
+        '                     /note="open "x',
+        '     misc_feature    4..6',
+        '                     /label=after',
+        '',
+      ].join('\n'),
+    );
+    const result = parseGenBank(text);
+    const features = only(result).features.all();
+    expect(features.map((f) => f.type)).toEqual([
+      'Protein',
+      'sig_peptide',
+      'misc_feature',
+      'misc_feature',
+      'mobile_element',
+      'misc_feature',
+    ]);
+    const quals = features.map((f) => f.qualifiers);
+    expect(quals[0]).toContainEqual({ name: 'note', value: 'One missing "quotation mark" here' });
+    expect(quals[1]).toEqual([{ name: 'note', value: 'End not properly "escaped"' }]);
+    // A qualifier after a line that ends as a closed value does is a qualifier.
+    expect(quals[2]).toEqual([
+      { name: 'note', value: 'Again one "missing" here' },
+      { name: 'gene', value: 'lacZ' },
+    ]);
+    // An escaped quote that wrapped (an even run) keeps the value open, where
+    // Biopython closes it and reads /path/to" as a qualifier.
+    expect(quals[3]).toEqual([
+      { name: 'note', value: 'say "hi" /path/to' },
+      { name: 'label', value: 'second' },
+    ]);
+    // Biopython refuses this record; the next feature still closes the value.
+    expect(quals[4]).toEqual([{ name: 'note', value: 'open "x' }]);
+    expect(features[5]?.name).toBe('after');
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      'Quoted value for /note has an unescaped quote; closed it at the next feature (sig_peptide)',
+      'Quoted value for /note has an unescaped quote; closed it at the next qualifier (/gene)',
+      'Quoted value for /note has an unescaped quote; closed it at the next feature (misc_feature)',
+    ]);
+  });
+
+  it('keeps a continuation line in an open quote that is not laid out as a feature key', () => {
+    const text = record(
+      'LOCUS       X 20 bp DNA linear',
+      [
+        '     misc_feature    1..9',
+        '                     /note="one ""two',
+        '     three four"',
+        '     misc_feature    4..6',
+        // An even count that does not end in a quote is still open.
+        '                     /note="a "b',
+        '                     c d"',
+        '                     /label=x',
+        '',
+      ].join('\n'),
+    );
+    const result = parseGenBank(text);
+    const features = only(result).features.all();
+    expect(features).toHaveLength(2);
+    expect(features[0]?.qualifiers).toEqual([{ name: 'note', value: 'one "two three four' }]);
+    // Biopython 1.85 reads the same: a "b c d, then /label.
+    expect(features[1]?.qualifiers).toEqual([
+      { name: 'note', value: 'a "b c d' },
+      { name: 'label', value: 'x' },
+    ]);
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      'Quoted value for /note has an unescaped quote; closed it at the next qualifier (/label)',
+    ]);
+  });
+
   it('parses qualifier values: escaped quotes, wrapping, translation, flags, numbers', () => {
     const text = record(
       'LOCUS       X 20 bp DNA linear',

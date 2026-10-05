@@ -75,6 +75,7 @@ piece of work needs its reasoning written down, with the next free number.
 61. [Configurable key bindings](61-configurable-keys.md)
 62. [Alignment in a large view](62-alignment-large-view.md)
 63. [Analysis results after an edit](63-analysis-after-an-edit.md)
+64. [GenBank qualifiers with unpaired quotes](64-genbank-unpaired-quotes.md)
 
 ## Changelog to 1.1.0
 

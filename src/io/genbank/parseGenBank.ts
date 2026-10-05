@@ -111,11 +111,45 @@ const HEADER_KEYWORD = /^([A-Z]+)(?:\s+(.*))?$/;
 const SUB_KEYWORD = /^ {2,3}([A-Z]+)\s+(.*)$/;
 const FEATURE_KEY = /^ {5}(\S+)\s+(\S.*)$/;
 const QUALIFIER = /^\/([^=\s]+)(?:=(.*))?$/;
+/** The 0-based column where a feature's location and qualifiers start. */
+const QUALIFIER_COLUMN = 21;
 
 function countQuotes(s: string): number {
   let n = 0;
   for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) === 34) n++;
   return n;
+}
+
+/**
+ * Whether a quoted value is complete: an even count of quotes that ends in
+ * one. `"open "x` has an even count but no closing quote, and was once cut
+ * to `open "` (#139).
+ */
+function isClosedQuote(value: string): boolean {
+  return value.length > 1 && value.endsWith('"') && countQuotes(value) % 2 === 0;
+}
+
+/**
+ * Whether a quoted value still open by its count of quotes nonetheless ends
+ * the way a closed one does: in an odd run of quotes after the opening one
+ * (`here"`, `escaped"""`), where an even run (`""hi""`) is an escaped quote
+ * that wrapped. Biopython closes a quoted value at any line that ends in a
+ * quote; this is that rule, made safe for a wrapped escape (#139).
+ */
+function endsLikeClosed(value: string): boolean {
+  let run = 0;
+  for (let i = value.length - 1; i > 0 && value.charCodeAt(i) === 34; i--) run++;
+  return run % 2 === 1;
+}
+
+/**
+ * Whether a line is laid out as a feature key: five spaces, the key, and the
+ * location at column 22 (or one space after a key too long for that). A
+ * continuation line is indented to column 22, so none can look like this.
+ */
+function isFeatureKeyLayout(key: string, text: string, location: string): boolean {
+  const at = text.length - location.length;
+  return at === QUALIFIER_COLUMN || (key.length >= QUALIFIER_COLUMN - 6 && at === key.length + 6);
 }
 
 function stripIndent(text: string, width: number): string {
@@ -330,12 +364,24 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
   let feature: RawFeature | null = null;
   let qualifier: RawQualifier | null = null;
 
-  const finishQualifier = (): void => {
+  // A quoted value with an odd count of quotes stays open over the lines
+  // after it. Left open, it once swallowed every later feature (#139): a line
+  // laid out as a feature key, or a qualifier after a line that ends the way
+  // a closed value does, now closes it by force, as Biopython does.
+  const finishQualifier = (closedBy?: { line: number; what: string }): void => {
     if (qualifier === null) return;
     if (qualifier.quoted && qualifier.value !== null) {
       if (!qualifier.closed) {
-        warnings.push(warning(`Unterminated quoted value for /${qualifier.name}`, feature?.line));
-        qualifier.value = qualifier.value.slice(1);
+        warnings.push(
+          closedBy === undefined
+            ? warning(`Unterminated quoted value for /${qualifier.name}`, feature?.line)
+            : warning(
+                `Quoted value for /${qualifier.name} has an unescaped quote; closed it at the ${closedBy.what}`,
+                closedBy.line,
+              ),
+        );
+        const end = qualifier.value.length > 1 && qualifier.value.endsWith('"') ? -1 : undefined;
+        qualifier.value = qualifier.value.slice(1, end);
       } else {
         qualifier.value = qualifier.value.slice(1, -1);
       }
@@ -348,8 +394,14 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
     const text = line.text;
     if (text.length === 0) continue;
     const keyMatch = FEATURE_KEY.exec(text);
-    if (keyMatch !== null && !(qualifier?.quoted === true && !qualifier.closed)) {
-      finishQualifier();
+    const openQuote = qualifier?.quoted === true && !qualifier.closed;
+    if (
+      keyMatch !== null &&
+      (!openQuote || isFeatureKeyLayout(keyMatch[1] ?? '', text, keyMatch[2] ?? ''))
+    ) {
+      finishQualifier(
+        openQuote ? { line: line.number, what: `next feature (${keyMatch[1] ?? ''})` } : undefined,
+      );
       feature = {
         key: keyMatch[1] ?? '',
         location: keyMatch[2] ?? '',
@@ -361,9 +413,18 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
     }
     if (feature === null || !text.startsWith(' ')) continue;
     const body = text.trim();
-    const inOpenQuote = qualifier?.quoted === true && !qualifier.closed;
-    if (body.startsWith('/') && !inOpenQuote) {
-      finishQualifier();
+    const forceClose =
+      openQuote &&
+      body.startsWith('/') &&
+      qualifier?.value != null &&
+      endsLikeClosed(qualifier.value) &&
+      QUALIFIER.test(body);
+    if (body.startsWith('/') && (!openQuote || forceClose)) {
+      finishQualifier(
+        forceClose
+          ? { line: line.number, what: `next qualifier (${body.split('=')[0] ?? ''})` }
+          : undefined,
+      );
       const m = QUALIFIER.exec(body);
       if (m === null) {
         warnings.push(warning(`Malformed qualifier "${body}"`, line.number));
@@ -374,7 +435,7 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
         name: m[1] ?? '',
         value: value ?? null,
         quoted: value?.startsWith('"') ?? false,
-        closed: value === undefined || !value.startsWith('"') || countQuotes(value) % 2 === 0,
+        closed: value === undefined || !value.startsWith('"') || isClosedQuote(value),
       };
       feature.qualifiers.push(qualifier);
       continue;
@@ -389,7 +450,7 @@ function parseFeatureTable(lines: readonly Line[], warnings: ParseWarning[]): Ra
       const separator = qualifier.name === 'translation' ? '' : ' ';
       qualifier.value += separator + body;
     }
-    if (qualifier.quoted) qualifier.closed = countQuotes(qualifier.value) % 2 === 0;
+    if (qualifier.quoted) qualifier.closed = isClosedQuote(qualifier.value);
   }
   finishQualifier();
   return features;
