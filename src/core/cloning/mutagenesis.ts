@@ -13,7 +13,7 @@ import {
   q5AnnealingTemperature,
   q5MeltingTemperature,
 } from '../primers/thermo';
-import { type Range } from '../range';
+import { type Range, oneBasedEnd } from '../range';
 import { type Strand } from '../features';
 import { complement, reverseComplement } from '../sequence';
 
@@ -247,12 +247,19 @@ function countDifferences(a: string, b: string): number {
 export function describeChange(template: string, range: Range, inserted: string): string {
   const from = range.start + 1;
   const removed = range.end - range.start;
-  const old = template.slice(range.start, range.end).toUpperCase();
+  // A range through the origin of a circle has its end past the template's
+  // length; its bases and its last position come round to the start (#143).
+  const L = template.length;
+  const old = (
+    range.end > L
+      ? template.slice(range.start) + template.slice(0, range.end - L)
+      : template.slice(range.start, range.end)
+  ).toUpperCase();
   if (removed === 0) return `+${inserted} after ${range.start.toLocaleString()}`;
   const span =
     removed === 1
       ? from.toLocaleString()
-      : `${from.toLocaleString()}–${range.end.toLocaleString()}`;
+      : `${from.toLocaleString()}–${oneBasedEnd(range.end, L).toLocaleString()}`;
   if (inserted === '') return `Δ${span}`;
   return `${old}${span}${inserted}`;
 }

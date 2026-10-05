@@ -331,7 +331,9 @@ you, and opens the plasmid they would make.
      Agilent's formula. Copy the plasmid round, digest the template with
      DpnI, and transform.
 4. The panel names the change (`A801G`, `Δ1,001–1,030`, `+GACTAC… after
-1,500`) and what it does to every CDS it falls in — the residue changed
+1,500`; through the origin of a 2,500 bp plasmid, `TTCT2,499–2CATG`, the
+   old bases read round the origin and the end counted from 1 again) and
+   what it does to every CDS it falls in — the residue changed
    (`lacZ K12R`), a silent change, or a frameshift — read with the
    feature's own genetic code and strand. Each primer is written 5′ to 3′
    as you would order it, new bases in upper case, with **Copy**.

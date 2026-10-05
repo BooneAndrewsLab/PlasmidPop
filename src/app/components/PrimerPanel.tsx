@@ -12,6 +12,7 @@ import {
   describePrimerCriteria,
   designPrimers,
   findPrimerBindingSites,
+  formatSpan,
   isEmptyRange,
   mismatchPositions,
   rangeSegment,
@@ -225,7 +226,7 @@ export function PrimerPanel({ doc }: Props) {
     // The selection is the target being designed for now, not a product
     // this panel put there; forget it rather than clearing it.
     ownedSelection.current = null;
-    setDesignedFor(`${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()}`);
+    setDesignedFor(formatSpan(selection, doc.length));
   };
 
   /** Holds a pair's preview on screen and selects what it would amplify. */
@@ -248,7 +249,7 @@ export function PrimerPanel({ doc }: Props) {
         <h3 className="panel__heading">Design primers for the selection</h3>
         <p className="panel__note">
           {hasTarget
-            ? `Target ${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()} (${(selection.end - selection.start).toLocaleString()} bp). Primers ${describePrimerCriteria(primerCriteria)}.`
+            ? `Target ${formatSpan(selection, doc.length)} (${(selection.end - selection.start).toLocaleString()} bp). Primers ${describePrimerCriteria(primerCriteria)}.`
             : 'Select the region to amplify, then design.'}
         </p>
         <PrimerSettings criteria={primerCriteria} />

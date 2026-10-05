@@ -94,6 +94,24 @@ export function rangePieces(r: Range, seqLength: number): readonly Range[] {
 }
 
 /**
+ * The last base a non-empty range covers, 1-based, as the views, the status
+ * bar and GenBank write it: `end` itself unless the range wraps past the
+ * origin, where the unrolled `end` is folded back onto the circle (a 600 bp
+ * circle's `[589, 620)` ends at base 20, not 620). Issue #143.
+ */
+export function oneBasedEnd(end: number, seqLength: number): number {
+  return seqLength > 0 && end > seqLength ? ((end - 1) % seqLength) + 1 : end;
+}
+
+/**
+ * A non-empty range as a person reads it, 1-based inclusive: `591–20` on a
+ * 600 bp circle for `[590, 620)`, `86–1,276` for one that does not wrap.
+ */
+export function formatSpan(r: Range, seqLength: number, separator = '–'): string {
+  return `${(r.start + 1).toLocaleString()}${separator}${oneBasedEnd(r.end, seqLength).toLocaleString()}`;
+}
+
+/**
  * Builds an unrolled range from real start and *exclusive* real end. If the
  * end is before the start the range wraps. `start === endExclusive` yields an
  * empty range; callers that mean "full circle" must say so explicitly by

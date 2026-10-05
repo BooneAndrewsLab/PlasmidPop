@@ -3,6 +3,7 @@ import {
   type Feature,
   type SeqDocument,
   deletionThatTook,
+  oneBasedEnd,
   outerExtent as extent,
 } from '@/core';
 
@@ -42,12 +43,16 @@ function displayName(feature: Feature): string {
   return feature.name.trim() === '' ? feature.type : feature.name;
 }
 
-/** Where a feature is, as this dialog writes a position: `86..1,276`. */
-function whereIs(feature: Feature): string {
+/**
+ * Where a feature is, as this dialog writes a position: `86..1,276`, or
+ * `4,301..120` across the origin of a circle (#143).
+ */
+function whereIs(feature: Feature, seqLength: number): string {
   const { start, end } = extent(feature);
   if (end <= start) return (start + 1).toLocaleString();
-  if (end - start === 1) return end.toLocaleString();
-  return `${(start + 1).toLocaleString()}..${end.toLocaleString()}`;
+  const last = oneBasedEnd(end, seqLength);
+  if (end - start === 1) return last.toLocaleString();
+  return `${(start + 1).toLocaleString()}..${last.toLocaleString()}`;
 }
 
 function countOf(n: number, unit: string, plural = `${unit}s`): string {
@@ -61,7 +66,7 @@ interface Line {
 }
 
 /** One line per removal, with the ones a single deletion took said once. */
-function removedRows(diff: DocumentDiff): Line[] {
+function removedRows(diff: DocumentDiff, seqLength: number): Line[] {
   const swallowed = new Map<number, Feature[]>();
   const alone: Feature[] = [];
   for (const feature of diff.featuresRemoved.values()) {
@@ -88,7 +93,7 @@ function removedRows(diff: DocumentDiff): Line[] {
           key: `-${feature.id}`,
           mark: MINUS,
           text: displayName(feature),
-          where: whereIs(feature),
+          where: whereIs(feature, seqLength),
           removedId: feature.id,
         },
       },
@@ -198,19 +203,24 @@ export function featureChangeRows(
     current.features.all().filter((f) => ids.has(f.id));
   const added = of(diff.featuresAdded).map((f): Line => ({
     count: 1,
-    row: { key: `+${f.id}`, mark: '+', text: displayName(f), where: whereIs(f) },
+    row: { key: `+${f.id}`, mark: '+', text: displayName(f), where: whereIs(f, current.length) },
   }));
   const changed = of(new Set(diff.featuresChanged.keys())).map((f): Line => {
     const before = diff.featuresChanged.get(f.id);
     const what = before === undefined ? 'changed' : describeFeatureChange(before, f);
     return {
       count: 1,
-      row: { key: `~${f.id}`, mark: '~', text: `${displayName(f)} ${what}`, where: whereIs(f) },
+      row: {
+        key: `~${f.id}`,
+        mark: '~',
+        text: `${displayName(f)} ${what}`,
+        where: whereIs(f, current.length),
+      },
     };
   });
   return [
     ...capped(added, 'added'),
     ...capped(changed, 'changed'),
-    ...capped(removedRows(diff), 'removed'),
+    ...capped(removedRows(diff, current.length), 'removed'),
   ];
 }

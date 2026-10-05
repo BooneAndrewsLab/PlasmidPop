@@ -252,3 +252,34 @@ describe('checking a degenerate primer (#76)', () => {
     expect(screen.queryByText(/Degenerate:/)).toBeNull();
   });
 });
+
+describe('a target through the origin (#143)', () => {
+  afterEach(() => {
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('writes the target with its end wrapped onto the circle', () => {
+    const circle = SeqDocument.create({ sequence: template(), topology: 'circular' });
+    act(() => {
+      editorStore.openDocument(circle);
+      editorStore.setSelection({ start: 590, end: 620 });
+    });
+    render(<PrimerPanel doc={circle} />);
+    expect(screen.getByText(/^Target 591–20 \(30 bp\)\./)).toBeInTheDocument();
+  });
+
+  it('says which target found no pairs the same way', () => {
+    const poly = SeqDocument.create({ sequence: 'A'.repeat(600), topology: 'circular' });
+    act(() => {
+      editorStore.openDocument(poly);
+      editorStore.setSelection({ start: 590, end: 620 });
+    });
+    render(<PrimerPanel doc={poly} />);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
+    });
+    expect(screen.getByText(/No suitable pairs for 591–20\./)).toBeInTheDocument();
+  });
+});

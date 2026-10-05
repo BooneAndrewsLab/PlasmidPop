@@ -3,7 +3,9 @@
 The toolbar's view switcher shows the **Sequence** view, the **Map**, or
 **Both** side by side. The two views share one selection: whatever you select
 in one is highlighted in the other and reported in the status bar as
-`N bp selected, from to to` (1-based, inclusive).
+`N bp selected, from to to` (1-based, inclusive). A selection through the
+origin of a circle ends at a small number (`591 to 20` on a 600 bp plasmid),
+and every panel that names a range writes it the same way.
 
 The switcher, the **Complement** (`Alt+C`), **Translations** (`Alt+T`) and
 **Cut sites** (`Alt+R`) toggles next to it, the **Format** menu's choices, the **Edits** baseline and the

@@ -1,6 +1,8 @@
 import {
   flipRange,
+  formatSpan,
   isValidRange,
+  oneBasedEnd,
   range,
   rangeContains,
   rangePieces,
@@ -227,5 +229,22 @@ describe('flipRange', () => {
     for (const r of [range(2, 5), range(8, 12), range(0, 10), range(3, 13), range(9, 10)]) {
       expect(flipRange(flipRange(r, 10, 'circular'), 10, 'circular')).toEqual(r);
     }
+  });
+});
+
+describe('oneBasedEnd / formatSpan (#143)', () => {
+  it('folds the end of a range through the origin back onto the circle', () => {
+    expect(oneBasedEnd(620, 600)).toBe(20);
+    expect(oneBasedEnd(600, 600)).toBe(600);
+    expect(oneBasedEnd(350, 600)).toBe(350);
+    // A full circle from 591 ends at 590.
+    expect(oneBasedEnd(1190, 600)).toBe(590);
+    expect(oneBasedEnd(5, 0)).toBe(5);
+  });
+
+  it('writes a range 1-based inclusive, the end wrapped', () => {
+    expect(formatSpan(range(590, 620), 600)).toBe('591–20');
+    expect(formatSpan(range(85, 1276), 5000)).toBe('86–1,276');
+    expect(formatSpan(range(4300, 4481), 4361, '..')).toBe('4,301..120');
   });
 });

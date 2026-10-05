@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { type SeqDocument, isEmptyRange, proteinProperties } from '@/core';
+import { type SeqDocument, formatSpan, isEmptyRange, proteinProperties } from '@/core';
 
 import { useEditorState } from '../state/useEditorStore';
 
@@ -66,7 +66,7 @@ export function ProteinPanel({ doc }: Props) {
     <div className="panel protein-panel">
       <p className="panel__note panel__note--quiet">
         {hasSelection
-          ? `Of the ${p.length.toLocaleString()} residues selected, ${(selection.start + 1).toLocaleString()}–${selection.end.toLocaleString()}.`
+          ? `Of the ${p.length.toLocaleString()} residues selected, ${formatSpan(selection, doc.length)}.`
           : 'Of the whole protein. Select residues for the properties of just those.'}
       </p>
       <dl className="protein-facts" aria-label="Protein properties">

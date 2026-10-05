@@ -85,4 +85,26 @@ describe('OverlapPrimerDesign', () => {
       `All of it (1–${source.length.toLocaleString()}, ${source.length.toLocaleString()} bp)`,
     ]);
   });
+
+  it('writes a selection through the origin of a circular template with its end wrapped (#143)', () => {
+    const plasmid = SeqDocument.create({
+      name: 'pSrc',
+      sequence: filler(600, 5),
+      topology: 'circular',
+    });
+    act(() => {
+      editorStore.openDocument(vector);
+      editorStore.openDocument(plasmid);
+      editorStore.setSelection({ start: 590, end: 620 });
+    });
+    render(<OverlapPrimerDesign />);
+    const ids = editorStore.getState().documents.map((d) => d.documentId);
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Insert from'), { target: { value: ids[1] } });
+    });
+    const insert = screen.getByRole('combobox', { name: 'Insert' });
+    expect(within(insert).getAllByRole('option')[0]?.textContent).toBe(
+      'The selection (591–20, 30 bp)',
+    );
+  });
 });

@@ -108,4 +108,17 @@ describe('featureChangeRows', () => {
     const before = doc([feature('f1', 4, 12, 'tet', 'CDS')]);
     expect(lines(before, before.insert(40, 'GGG'))).toEqual([]);
   });
+
+  it('writes a feature through the origin of a circle with its end wrapped (#143)', () => {
+    const circular = (features: ReturnType<typeof feature>[]): SeqDocument =>
+      SeqDocument.create({ name: 'test', sequence: SEQ, topology: 'circular', features });
+    const before = circular([feature('f1', 40, 60, 'ori')]);
+    const after = before
+      .updateFeature('f1', { name: 'pUC ori' })
+      .addFeature(feature('f2', 45, 55, 'site'))
+      .removeFeature('f1');
+    expect(lines(before, after)).toEqual(['+ site 46..5', '− ori 41..10']);
+    const renamed = before.updateFeature('f1', { name: 'pUC ori' });
+    expect(lines(before, renamed)).toEqual(['~ pUC ori renamed from ori 41..10']);
+  });
 });

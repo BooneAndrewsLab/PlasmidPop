@@ -78,6 +78,7 @@ piece of work needs its reasoning written down, with the next free number.
 64. [GenBank qualifiers with unpaired quotes](64-genbank-unpaired-quotes.md)
 65. [Fidelity tables as Excel workbooks](65-fidelity-workbooks.md)
 66. [The two-base end of a 3′-partial CDS](66-partial-cds-last-codon.md)
+67. [Ranges through the origin, as a person reads them](67-ranges-through-the-origin.md)
 
 ## Changelog to 1.1.0
 

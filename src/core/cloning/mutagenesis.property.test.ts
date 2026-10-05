@@ -371,6 +371,16 @@ describe('describeChange', () => {
     );
     expect(describeChange(long, { start: 9_999, end: 10_000 }, 'G')).toBe(`A${commas(10_000)}G`);
   });
+
+  it('reads the bases of a change through the origin, and wraps its end (#143)', () => {
+    // A 2,500 bp circle ending ...TT and starting CT...: [2498, 2502) is TTCT.
+    const circle = 'CT' + 'a'.repeat(2_496) + 'TT';
+    expect(describeChange(circle, { start: 2_498, end: 2_502 }, 'CATG')).toBe(
+      `TTCT${commas(2_499)}–2CATG`,
+    );
+    expect(describeChange(circle, { start: 2_498, end: 2_502 }, '')).toBe(`Δ${commas(2_499)}–2`);
+    expect(describeChange(circle, { start: 2_499, end: 2_501 }, 'G')).toBe(`TC${commas(2_500)}–1G`);
+  });
 });
 
 const AMINO: readonly string[] = 'ACDEFGHIKLMNPQRSTVWY*'.split('');

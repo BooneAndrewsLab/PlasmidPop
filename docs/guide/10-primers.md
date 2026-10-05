@@ -11,7 +11,9 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
 ## Designing primers for a region
 
 1. Select the region to amplify in either view. It can be a feature (click
-   it in the Features tab) or any range.
+   it in the Features tab) or any range, through the origin of a circle
+   too: the panel then gives the target as the status bar does, `Target
+591–20 (30 bp)` on a 600 bp plasmid.
 2. Open **Primers** and click **Design primers**.
 3. Up to ten pairs are listed, best first. Each shows the forward and
    reverse primer with its Tm and GC content, the product size and the Tm
