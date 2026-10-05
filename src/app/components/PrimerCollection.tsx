@@ -334,7 +334,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (q === '') return primers;
-    const bases = q.toUpperCase().replace(/[^ACGTRYSWKMBDHVN]/g, '');
+    const bases = cleanPrimer(q);
     return primers.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||

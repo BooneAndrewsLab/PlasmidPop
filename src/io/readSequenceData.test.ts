@@ -34,6 +34,11 @@ describe('reads (#49)', () => {
     expect(r.documents[0]?.sequence.toString()).toBe('ACGT');
   });
 
+  it('warns about Phred + 64 qualities in a gzipped FASTQ too (#146)', async () => {
+    const r = await readSequenceData(buffer(gzipSync('@r1\nACGT\n+\nhhhh\n')), 'old.fq.gz');
+    expect(r.warnings.map((w) => w.message)).toEqual([expect.stringMatching(/Phred \+ 64/)]);
+  });
+
   it('says so when handed gzip it cannot decompress', async () => {
     const broken = Uint8Array.from([0x1f, 0x8b, 1, 2, 3, 4]);
     await expect(readSequenceData(buffer(broken), 'x.gz')).rejects.toThrow(

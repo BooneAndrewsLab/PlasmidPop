@@ -35,6 +35,10 @@ A qualifier whose quotes do not pair up — `/note="One missing ""quotation
 mark" here"`, written by hand or by another program — is closed at the next
 feature, or at the next qualifier when its line ends in a quote, with a
 warning naming where; the features after it are read as usual.
+A REFERENCE line that gives no number or no location in parentheses
+(`REFERENCE   .`) is written back as a plain numbered reference, and loose
+text on it goes to the reference's REMARK with a warning, so the file
+written is one other programs (Biopython among them) read.
 
 A molecule with sticky ends — a fragment from a digest, say — has something
 GenBank cannot express, so the ends travel as a `PlasmidPop-ends:` comment

@@ -113,6 +113,32 @@ export function quikChangeTm(primer: string, mismatched: number, indelBases: num
   return 81.5 + 0.41 * gc * 100 - 675 / n - mismatch;
 }
 
+/** What the "Change to" box holds, read as bases, and what reading it changed. */
+export interface ChangeBases {
+  /** Upper-case IUPAC nucleotide codes, U as T. */
+  readonly bases: string;
+  /** Whether a U was read as T: an RNA-style change, made in DNA. */
+  readonly fromU: boolean;
+  /** Characters that are not bases and were left out, each once, in order seen. */
+  readonly rejected: readonly string[];
+}
+
+/**
+ * Reads the bases typed for a change (#146): U becomes T, as primers take it
+ * (`cleanPrimer`); spaces and digits, as in a pasted numbered block, are
+ * dropped quietly; anything else is left out and named, so a change that
+ * came out shorter than typed says why.
+ */
+export function readChangeBases(text: string): ChangeBases {
+  const upper = text.toUpperCase();
+  const rejected = [...new Set(upper.replace(/[\s\d]/g, '').match(/[^ACGTURYKMSWBDHVN]/g) ?? [])];
+  return {
+    bases: upper.replace(/U/g, 'T').replace(/[^ACGTRYKMSWBDHVN]/g, ''),
+    fromU: upper.includes('U'),
+    rejected,
+  };
+}
+
 /**
  * Designs the primers for replacing `range` of `doc` with `replacement`: an
  * empty range inserts at its start, an empty replacement deletes. Positions

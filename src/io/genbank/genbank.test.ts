@@ -2,6 +2,7 @@ import {
   SeqDocument as Doc,
   type SeqDocument,
   createFeature,
+  createReference,
   documentChecksum,
   formatLocation,
   rangeSegment,
@@ -624,6 +625,62 @@ describe('GenBank parser edge cases', () => {
       title: 'Direct Submission',
     });
     expectRoundTrip(text, 'header fixture');
+  });
+
+  it('writes a malformed REFERENCE line as one Biopython reads (#146)', () => {
+    // Biopython's bad_origin_wrap_CDS.gb has "REFERENCE   ." with no number.
+    // Written back as "REFERENCE   2 ." it made Biopython 1.85 assert; it
+    // reads "REFERENCE   2" (checked with .venv-oracle).
+    const text = record(
+      'LOCUS       R 20 bp DNA linear SYN 01-JAN-2020',
+      '',
+      [
+        'REFERENCE   1  (bases 1 to 20)',
+        '  AUTHORS   .',
+        '  TITLE     .',
+        '  JOURNAL   .',
+        'REFERENCE   .',
+        '  AUTHORS   .',
+        '  TITLE     Direct Submission',
+        '  JOURNAL   .',
+        'REFERENCE   3  ad hoc',
+        '  TITLE     Loose text',
+        '  REMARK    kept',
+        '',
+      ].join('\n'),
+    );
+    const result = parseGenBank(text);
+    const refs = only(result).metadata.references;
+    expect(refs.map((r) => [r.number, r.location, r.remark])).toEqual([
+      [1, '(bases 1 to 20)', ''],
+      [2, '', ''],
+      [3, '', 'ad hoc kept'],
+    ]);
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      'REFERENCE text "ad hoc" is not a location; kept in REMARK',
+    ]);
+    const written = writeGenBank(only(result));
+    expect(written).toMatch(/^REFERENCE {3}2\n {2}AUTHORS/m);
+    expect(written).toMatch(/^REFERENCE {3}3\n/m);
+    expect(written).not.toMatch(/^REFERENCE {3}\d+ +[^ (]/m);
+    expectRoundTrip(text, 'malformed REFERENCE');
+  });
+
+  it('never writes loose text after a reference number', () => {
+    const doc = only(parseGenBank(record('LOCUS       R 20 bp DNA linear', '')));
+    const withRefs = Doc.create({
+      name: 'R',
+      sequence: doc.sequence.toString(),
+      metadata: {
+        references: [
+          createReference({ number: 1, location: '.' }),
+          createReference({ number: 2, location: 'sites', remark: 'r' }),
+        ],
+      },
+    });
+    const written = writeGenBank(withRefs);
+    expect(written).toContain('REFERENCE   1\n');
+    expect(written).toContain('REFERENCE   2\n  REMARK    sites r\n');
   });
 
   it('writes a LOCUS line in NCBI layout with sensible defaults', () => {

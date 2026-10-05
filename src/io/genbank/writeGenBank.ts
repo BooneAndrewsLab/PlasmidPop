@@ -98,7 +98,18 @@ function locusLine(doc: SeqDocument): string {
 }
 
 function referenceBlock(ref: Reference): string[] {
-  const head = ref.location === '' ? String(ref.number) : `${ref.number}  ${ref.location}`;
+  // Only a parenthesised location may follow the number: Biopython asserts
+  // on anything else ("REFERENCE   2 ."), so loose text is written as a
+  // REMARK instead (item 70).
+  const location = ref.location.trim() === '.' ? '' : ref.location.trim();
+  const fits = /^\(.*\)$/s.test(location);
+  const head = fits ? `${ref.number}  ${location}` : String(ref.number);
+  const remark =
+    fits || location === ''
+      ? ref.remark
+      : ref.remark === ''
+        ? location
+        : `${location} ${ref.remark}`;
   const out = headerBlock('REFERENCE', head);
   const sub = (keyword: string, value: string, indent: string): void => {
     if (value !== '') out.push(...headerBlock(keyword, value, indent));
@@ -108,7 +119,7 @@ function referenceBlock(ref: Reference): string[] {
   sub('TITLE', ref.title, '  ');
   sub('JOURNAL', ref.journal, '  ');
   sub('PUBMED', ref.pubmed, '   ');
-  sub('REMARK', ref.remark, '  ');
+  sub('REMARK', remark, '  ');
   return out;
 }
 

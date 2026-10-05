@@ -19,6 +19,13 @@ in this browser, like the rest of the document:
   **Confident from** (see
   [Aligning a read with its qualities](11-align.md#aligning-a-read-with-its-qualities)),
   so with Q40 set it reads **Q40+**.
+- FASTQ qualities are read as Phred + 33, which every current sequencer
+  writes. A file in one of the old encodings, Phred + 64 (Illumina 1.3–1.7)
+  or Solexa, would read about 31 too high; when its quality characters look
+  like one (none below `@` and some above `J`, or a Solexa range from `;`
+  to past `h`) a warning says so, in the status bar or, for a file dropped
+  into Align, in the note under the box. Convert such a file to Phred + 33
+  (for example with `seqtk seq -Q64 -V`) before relying on its qualities.
 - An AB1 read shows its **trace** in the sequence view, above the bases:
   the four dye signals (in the colours the bases are coloured in), each
   base's peak over its letter, and its quality as a faint bar behind. A

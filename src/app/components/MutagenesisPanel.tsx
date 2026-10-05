@@ -16,6 +16,7 @@ import {
   designMutagenesis,
   isEmptyRange,
   libraryCoverage,
+  readChangeBases,
   recordMutagenesis,
 } from '@/core';
 
@@ -242,7 +243,7 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
     documentId,
     CODON_USAGE_TABLES[0]?.id ?? '',
   );
-  const bases = change.toUpperCase().replace(/[^ACGTRYKMSWBDHVN]/g, '');
+  const { bases, fromU, rejected } = useMemo(() => readChangeBases(change), [change]);
   const insertion = selection !== null && isEmptyRange(selection);
   const current = selection === null || insertion ? '' : doc.subsequence(selection).toUpperCase();
 
@@ -313,6 +314,18 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
             }}
           />
         </label>
+        {(fromU || rejected.length > 0) && (
+          <p className="panel__note panel__note--warn" role="status" style={{ flexBasis: '100%' }}>
+            {[
+              fromU ? 'U read as T.' : '',
+              rejected.length > 0
+                ? `Left out, not bases: ${rejected.map((c) => `“${c}”`).join(' ')}.`
+                : '',
+            ]
+              .filter((s) => s !== '')
+              .join(' ')}
+          </p>
+        )}
         <div className="segmented" role="group" aria-label="Primer design">
           {METHODS.map((m) => (
             <button

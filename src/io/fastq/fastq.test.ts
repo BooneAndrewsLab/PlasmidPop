@@ -33,6 +33,28 @@ describe('parseFastq', () => {
     const r = parseFastq('@a\r\nAC\r\n+\r\nII\r\n\r\n@b\r\nG\r\n+\r\nI\r\n');
     expect(r.documents).toHaveLength(2);
   });
+
+  it('warns when the qualities look like the old Phred + 64 encoding (#146)', () => {
+    // Biopython's illumina_full_range: "@" (Q0 in + 64) up to "~".
+    const r = parseFastq('@r1\nACGT\n+\n@Ah~\n@r2\nGG\n+\nhh\n');
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]?.message).toMatch(/Phred \+ 64 \(Illumina 1\.3–1\.7\)/);
+    // Still read as Phred + 33, as every reader does without being told.
+    expect([...(r.documents[0]?.read?.qualities ?? [])]).toEqual([31, 32, 71, 93]);
+  });
+
+  it('warns about Solexa qualities, which go down to ";"', () => {
+    const r = parseFastq('@r1\nACGT\n+\n;?h~\n');
+    expect(r.warnings.map((w) => w.message)).toEqual([expect.stringMatching(/Solexa/)]);
+  });
+
+  it('does not warn about Phred + 33 files, poor or very good', () => {
+    expect(parseFastq('@r1\nACGT\n+\n!5?I\n@r2\nGGA\n+\n@@@\n').warnings).toEqual([]);
+    // Reads of Q26 and up, and of Q31 and up, as Illumina 1.8 writes them
+    // ("J" is Q41, the most it writes).
+    expect(parseFastq('@r1\nACGT\n+\n;?FJ\n').warnings).toEqual([]);
+    expect(parseFastq('@r1\nACGT\n+\n@FIJ\n').warnings).toEqual([]);
+  });
 });
 
 describe('writeFastq (#58)', () => {

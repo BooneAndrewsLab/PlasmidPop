@@ -81,6 +81,7 @@ piece of work needs its reasoning written down, with the next free number.
 67. [Ranges through the origin, as a person reads them](67-ranges-through-the-origin.md)
 68. [Overhang sets with two of one junction](68-degenerate-overhang-sets.md)
 69. [One ORF per stop on a circle](69-circular-orf-per-stop.md)
+70. [Small input and output edge cases](70-input-output-edge-cases.md)
 
 ## Changelog to 1.1.0
 

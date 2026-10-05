@@ -16,6 +16,7 @@ import {
   describeChange,
   designMutagenesis,
   quikChangeTm,
+  readChangeBases,
 } from './mutagenesis';
 import { pcr } from './pcr';
 
@@ -444,5 +445,21 @@ describe('designMutagenesis at a linear end (#137)', () => {
   it('does not flag the same change on a circle', () => {
     const d = designMutagenesis(PLASMID, { start: 0, end: 1 }, 'A', 'back-to-back');
     expect(d.problem).toBeNull();
+  });
+});
+
+describe('readChangeBases (#146)', () => {
+  it('reads U as T and says so', () => {
+    expect(readChangeBases('gcu')).toEqual({ bases: 'GCT', fromU: true, rejected: [] });
+    expect(readChangeBases('NNK')).toEqual({ bases: 'NNK', fromU: false, rejected: [] });
+  });
+
+  it('drops spaces and digits quietly and names anything else it leaves out', () => {
+    expect(readChangeBases('1 acg tga')).toEqual({ bases: 'ACGTGA', fromU: false, rejected: [] });
+    expect(readChangeBases("5'-ACxG-x3'")).toEqual({
+      bases: 'ACG',
+      fromU: false,
+      rejected: ["'", '-', 'X'],
+    });
   });
 });

@@ -992,6 +992,16 @@ describe('AlignPanel', () => {
       expect(editorStore.getState().selection).toEqual({ start: 40, end: 41 });
     });
 
+    it('says when a dropped FASTQ looks like the old Phred + 64 encoding (#146)', async () => {
+      render(<AlignPanel doc={refDoc} />);
+      const old = quality.replace(/#/g, 'B').replace(/\+/g, 'J').replace(/I/g, 'h');
+      fireEvent.drop(box(), fileDrop(new File([`@read1\n${read}\n+\n${old}\n`], 'old.fastq')));
+      await waitFor(() => {
+        expect(screen.getByText(/^From old\.fastq, with base qualities\. /)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/looks like the old Phred \+ 64/)).toBeInTheDocument();
+    });
+
     it('turns the qualities round with a read that aligns reversed', async () => {
       const rc = reverseComplement(read);
       const reversedQuality = quality.split('').reverse().join('');

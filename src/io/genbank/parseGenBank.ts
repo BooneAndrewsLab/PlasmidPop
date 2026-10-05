@@ -307,9 +307,22 @@ function buildMetadata(
       case 'REFERENCE': {
         const head = joined(block.lines);
         const m = /^(\d+)\s*(.*)$/.exec(head);
+        // The location is "(bases 1 to 20)", "(residues …)" or "(sites)", in
+        // parentheses. A malformed line ("REFERENCE   ." in Biopython's
+        // bad_origin_wrap_CDS.gb) has none: a "." is a placeholder, and other
+        // loose text goes to REMARK, since written after a number it is a line
+        // Biopython refuses (item 70).
+        const rest = dotToEmpty((m === null ? head : (m[2] ?? '')).trim());
+        const parenthesised = rest === '' || /^\(.*\)$/s.test(rest);
+        if (!parenthesised) {
+          warnings.push(
+            warning(`REFERENCE text "${rest}" is not a location; kept in REMARK`, block.line),
+          );
+        }
         const ref: { -readonly [K in keyof Reference]: Reference[K] } = createReference({
           number: m === null ? meta.references.length + 1 : Number.parseInt(m[1] ?? '1', 10),
-          location: m === null ? head : (m[2] ?? ''),
+          location: parenthesised ? rest : '',
+          remark: parenthesised ? '' : rest,
         });
         for (const sub of block.subs) {
           const value = joined(sub.lines);
@@ -330,7 +343,7 @@ function buildMetadata(
               ref.pubmed = value;
               break;
             case 'REMARK':
-              ref.remark = value;
+              ref.remark = ref.remark === '' ? value : `${ref.remark} ${value}`;
               break;
             default:
               ref.remark =

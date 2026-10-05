@@ -113,6 +113,12 @@ const TEXT_FORMATS: readonly string[] = ['genbank', 'fasta', 'raw'];
 interface LoadedFile {
   readonly text: string;
   readonly records: readonly SequenceRecord[];
+  /**
+   * What the reader warned about, such as a FASTQ in the old Phred + 64
+   * encoding (#146): the qualities weigh each difference, so a note under
+   * the box says so rather than the warning being dropped.
+   */
+  readonly warnings?: readonly string[];
 }
 
 /**
@@ -138,7 +144,14 @@ async function readFile(file: File): Promise<LoadedFile> {
     ...(d.read === null ? {} : { read: d.read }),
     ...featuresOf(d),
   }));
-  return { text, records };
+  return { text, records, warnings: parsed.warnings.map((w) => w.message) };
+}
+
+/** The reader's warnings about a loaded file, as sentences after the note. */
+function warned(read: LoadedFile, fileName?: string): string {
+  return (read.warnings ?? [])
+    .map((w) => ` ${fileName === undefined ? '' : `${fileName}: `}${w}.`)
+    .join('');
 }
 
 const KIND_LABEL: Readonly<Record<ReadDifference['kind'], string>> = {
@@ -539,7 +552,10 @@ export function AlignPanel({ doc }: Props) {
           setText(only.read.text);
           setLoaded(only.read);
           const withQualities = only.read.records.some((r) => r.read !== undefined);
-          setFileNote(`From ${only.file.name}${withQualities ? ', with base qualities' : ''}.`);
+          setFileNote(
+            `From ${only.file.name}${withQualities ? ', with base qualities' : ''}.` +
+              warned(only.read),
+          );
         } else {
           // Several files: their records are the samples, file order then record
           // order. The box is emptied; its text would be unwieldy (AB1 especially).
@@ -551,7 +567,8 @@ export function AlignPanel({ doc }: Props) {
           // Several files are a batch: align them all unless one is picked.
           setPicked(-1);
           setFileNote(
-            `${good.length} files, ${records.length} ${records.length === 1 ? 'record' : 'records'}.`,
+            `${good.length} files, ${records.length} ${records.length === 1 ? 'record' : 'records'}.` +
+              good.map((g) => warned(g.read, g.file.name)).join(''),
           );
         }
         if (failures.length > 0) setError(failures.join(' '));

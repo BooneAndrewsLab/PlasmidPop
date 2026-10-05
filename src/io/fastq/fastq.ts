@@ -16,6 +16,8 @@ export function parseFastq(text: string): ParseResult {
   const documents: SeqDocument[] = [];
   const warnings: ParseWarning[] = [];
   let k = 0;
+  let lowest = Infinity;
+  let highest = -Infinity;
   const skipBlank = (): void => {
     while (k < lines.length && (lines[k] ?? '').trim() === '') k++;
   };
@@ -53,7 +55,10 @@ export function parseFastq(text: string): ParseResult {
     const qualities = new Uint8Array(sequence.length);
     let belowZero = false;
     for (let q = 0; q < quality.length; q++) {
-      const value = quality.charCodeAt(q) - 33;
+      const code = quality.charCodeAt(q);
+      lowest = Math.min(lowest, code);
+      highest = Math.max(highest, code);
+      const value = code - 33;
       if (value < 0) belowZero = true;
       qualities[q] = Math.max(0, Math.min(93, value));
     }
@@ -72,7 +77,35 @@ export function parseFastq(text: string): ParseResult {
     skipBlank();
   }
   if (documents.length === 0) throw new FormatError('No FASTQ records found');
+  const offset = oldEncoding(lowest, highest);
+  if (offset !== null) warnings.unshift(warning(offset));
   return { format: 'fastq', documents, warnings };
+}
+
+/**
+ * The obsolete encodings are not read, only noticed (#146, item 70):
+ * Illumina 1.3–1.7 wrote Phred + 64, whose lowest character is `@`, and
+ * Solexa/Illumina 1.0 a log-odds score + 64 that goes down to `;`. Read as
+ * Phred + 33 they come out 31 too high. A Phred + 33 file with nothing below
+ * `@` (Q31) is possible — a good Illumina 1.8+ run tops out at `J`, Q41 —
+ * so the warning also wants a character above `J`, which Illumina 1.8 never
+ * writes and + 64 does from Q11 up. Below `@` but not below `;`, and
+ * reaching `h` (Q40 in + 64, Q71 in + 33), is Solexa. Either way the file
+ * is read as Phred + 33, with the warning.
+ */
+function oldEncoding(lowest: number, highest: number): string | null {
+  const semicolon = 59;
+  const at = 64;
+  const j = 74;
+  const h = 104;
+  if (!Number.isFinite(lowest)) return null;
+  if (lowest >= at && highest > j) {
+    return 'No quality character is below "@" and some are above "J": this looks like the old Phred + 64 (Illumina 1.3–1.7) or Solexa encoding, but it was read as Phred + 33, so qualities are about 31 too high';
+  }
+  if (lowest >= semicolon && highest >= h) {
+    return 'Quality characters run from ";" up past "h": this looks like the old Solexa encoding, but it was read as Phred + 33, so qualities are about 31 too high';
+  }
+  return null;
 }
 
 /**

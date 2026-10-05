@@ -72,6 +72,31 @@ describe('MutagenesisPanel', () => {
     const undone = editorStore.document;
     expect(undone !== null && editedSinceMade(undone)).toBe(true);
   });
+
+  it('reads a U as T and names what it leaves out (#146)', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+    });
+    render(<MutagenesisPanel doc={doc} />);
+    act(() => {
+      editorStore.setSelection({ start: 800, end: 801 });
+    });
+    const old = TEXT.charAt(800).toUpperCase();
+    const typed = old === 'T' ? 'G' : 'T';
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Change to'), {
+        target: { value: typed === 'T' ? 'u' : 'g#' },
+      });
+    });
+    expect(screen.getByText(`${old}801${typed}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(typed === 'T' ? 'U read as T.' : 'Left out, not bases: “#”.'),
+    ).toBeInTheDocument();
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Change to'), { target: { value: 'gu!' } });
+    });
+    expect(screen.getByText('U read as T. Left out, not bases: “!”.')).toBeInTheDocument();
+  });
 });
 
 /** The first of the elements found, which a test expects to be there. */

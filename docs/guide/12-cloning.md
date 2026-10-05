@@ -292,7 +292,10 @@ you, and opens the plasmid they would make.
 1. Select the bases to change, or put the cursor where new bases go.
 2. Type what they become in **Change to** (for a cursor, **Bases to
    insert**). Leave it empty to delete the selection. Ambiguity codes are
-   accepted, for a degenerate codon.
+   accepted, for a degenerate codon. A **U** is read as T, and spaces and
+   digits are ignored; anything else that is not a base is left out, and a
+   note under the box says what was (_U read as T. Left out, not bases:
+   “#”._).
 
    Inside a CDS you can name the residue instead of the bases. **Change a
    residue** says which codon the cursor is in (`tet V14 (GTC)`); pick the
