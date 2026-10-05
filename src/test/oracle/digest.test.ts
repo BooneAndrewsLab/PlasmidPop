@@ -103,8 +103,9 @@ describe('ligation against pydna', () => {
       expect(documentChecksum(product)?.value).toBe(c.seguid);
       if (!c.circular) {
         const ends = (c as { ends?: { left: End; right: End } }).ends;
-        expect(describe1(product.ends.left)).toEqual(ends?.left);
-        expect(describe1(product.ends.right)).toEqual(ends?.right);
+        expect(product.ends).not.toBeNull();
+        expect(describe1(product.ends?.left ?? { kind: '?', overhang: '' })).toEqual(ends?.left);
+        expect(describe1(product.ends?.right ?? { kind: '?', overhang: '' })).toEqual(ends?.right);
       }
     });
   }

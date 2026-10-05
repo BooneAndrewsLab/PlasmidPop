@@ -77,7 +77,6 @@ describe('overlap primers (In-Fusion, NEBuilder) against pydna', () => {
       expect(design.problem).toBeNull();
       const forward = design.forward;
       const reverse = design.reverse;
-      if (forward === undefined || reverse === undefined) throw new Error('no primers');
 
       // The kit's tail is the vector's end, and what follows it is the insert.
       const tail = c.kit === 'in-fusion' ? 15 : 20;

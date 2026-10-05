@@ -27,7 +27,7 @@ function templateOf(c: Case): SeqDocument {
   if (c.template !== undefined) {
     return SeqDocument.create({ name: c.id, sequence: c.template, topology });
   }
-  const doc = parseGenBank(readFixture(c.fixture as string)).documents[0];
+  const doc = parseGenBank(readFixture(c.fixture ?? '')).documents[0];
   if (doc === undefined) throw new Error(`${c.fixture}: no record`);
   return SeqDocument.create({ name: c.id, sequence: doc.sequence.toString(), topology });
 }

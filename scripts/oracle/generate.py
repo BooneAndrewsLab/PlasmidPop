@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Writes Biopython's answers to src/test/oracle/*.json for the oracle tests.
 
-Biopython is an independent, widely used implementation of the same
-biology. Whatever it says about a GenBank file, a restriction digest or a
+Biopython (and primer3-py, pydna and seguid for the thermodynamics, cloning
+and checksum areas, in sibling modules here) is an independent, widely used
+implementation of the same biology. Whatever it says about a GenBank file, a restriction digest or a
 translation is recorded here once, committed, and compared against
 PlasmidPop's own answers by ordinary Vitest tests (src/test/oracle/), so CI
 never needs Python. Rerun this after upgrading Biopython or adding cases;

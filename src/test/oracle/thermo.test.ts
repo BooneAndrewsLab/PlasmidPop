@@ -25,7 +25,7 @@ describe('melting temperature against primer3-py and Biopython', () => {
     const problems: string[] = [];
     for (const row of rows) {
       oracle.conditions.forEach((conditions, i) => {
-        const expected = row.tm[i] as number;
+        const expected = row.tm[i] ?? NaN;
         const ours = meltingTemperature(row.seq, conditions);
         if (!(Math.abs(ours - expected) <= TOLERANCE)) {
           problems.push(
