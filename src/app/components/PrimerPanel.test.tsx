@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { DEFAULT_PRIMER_CRITERIA, SeqDocument } from '@/core';
+import { createFeature, DEFAULT_PRIMER_CRITERIA, rangeSegment, SeqDocument } from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { PrimerPanel } from './PrimerPanel';
@@ -104,6 +104,53 @@ describe('PrimerPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
     });
     expect(editorStore.getState().selection).not.toBeNull();
+  });
+});
+
+describe('a design made before the sequence changed (#132)', () => {
+  afterEach(() => {
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('drops the pairs when the bases are edited, so nothing stale can be added', () => {
+    const view = setup();
+    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
+      0,
+    );
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 240, text: 'GGGGGGGGGG' });
+    });
+    const edited = editorStore.document;
+    if (edited === null) throw new Error('no document');
+    view.rerender(<PrimerPanel doc={edited} />);
+    expect(screen.queryByRole('button', { name: 'Add both as features' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save both' })).toBeNull();
+    // Designing again works on the new template.
+    act(() => {
+      editorStore.setSelection({ start: 260, end: 360 });
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
+    });
+    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it('keeps the pairs when only the annotations change', () => {
+    const view = setup();
+    act(() => {
+      editorStore.apply({
+        type: 'addFeature',
+        feature: createFeature({ type: 'gene', name: 'g', segments: [rangeSegment(10, 20)] }),
+      });
+    });
+    view.rerender(<PrimerPanel doc={editorStore.document ?? doc} />);
+    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
+      0,
+    );
   });
 });
 

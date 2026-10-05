@@ -37,6 +37,11 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
 If nothing qualifies, select more flanking sequence, look further from the
 selection, or loosen the settings.
 
+A design belongs to the sequence it was made on. If you edit the bases, reverse
+complement, or change the topology or origin, the list is cleared, because
+the coordinates and oligos no longer fit; select the target and design
+again. Adding or editing annotations leaves it alone.
+
 ## Settings
 
 **Settings**, under the target, sets what a designed primer has to be. Every

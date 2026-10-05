@@ -120,3 +120,13 @@ each pick; a line says what PCR holds and **Open PCR** goes there.
 - No sharing of a list between browsers other than the files.
 - If another branch also adds a database version 7, the two need
   renumbering when merged.
+
+## Designed pairs and edits (#132)
+
+The Primers tab remembers the designed pairs per document so a tab switch
+does not lose them. That key said nothing about the sequence, so an edit
+left pairs whose coordinates and oligos belonged to the old template, and
+**Add both as features** / **Save both** handed them out. The panel now
+remembers the template (topology and bases) the pairs were designed on and
+shows none when it differs from the document in front, clearing the held
+pair and the selection it made. Annotation-only edits keep the design.

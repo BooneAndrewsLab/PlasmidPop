@@ -132,7 +132,17 @@ export function PrimerPanel({ doc }: Props) {
   // Remembered per document, so leaving the tab and coming back finds the
   // design, the primer being checked and the pair shown still there (#32).
   const [probe, setProbe] = useRemembered('primers.probe', documentId, '');
-  const [pairs, setPairs] = useRemembered<PrimerPair[] | null>('primers.pairs', documentId, null);
+  const [storedPairs, setPairs] = useRemembered<PrimerPair[] | null>(
+    'primers.pairs',
+    documentId,
+    null,
+  );
+  // The template the pairs were designed against. Their coordinates and
+  // oligos mean nothing once the bases or the topology have changed, so a
+  // design made on anything else is dropped, never offered (#132).
+  const [designedOn, setDesignedOn] = useRemembered('primers.template', documentId, '');
+  const template = useMemo(() => `${doc.topology}:${doc.sequence.toString()}`, [doc]);
+  const pairs = designedOn === template ? storedPairs : null;
   const [designedFor, setDesignedFor] = useRemembered('primers.designedFor', documentId, '');
   /** The pair whose preview is held on screen, and the one under the pointer. */
   const [shown, setShown] = useRemembered<number | null>('primers.shown', documentId, null);
@@ -186,6 +196,12 @@ export function PrimerPanel({ doc }: Props) {
   }, [shown, hovered, pairs, sites, doc, report]);
 
   useEffect(() => {
+    if (storedPairs === null || designedOn === template) return;
+    setPairs(null);
+    setShown(null);
+    releaseSelection(ownedSelection);
+  }, [storedPairs, designedOn, template, setPairs, setShown]);
+  useEffect(() => {
     editorStore.setPreview('primers', previewed);
   }, [previewed]);
   // Leaving the tab takes this panel's preview with it, and nobody else's,
@@ -203,6 +219,7 @@ export function PrimerPanel({ doc }: Props) {
     analytics.track('primers', 'design');
     const result = designPrimers(doc.sequence.toString(), doc.topology, selection, primerCriteria);
     setPairs(result);
+    setDesignedOn(template);
     setShown(null);
     setHovered(null);
     // The selection is the target being designed for now, not a product
