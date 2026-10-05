@@ -48,6 +48,23 @@ function cells(line: string): string[] {
 }
 
 /**
+ * The overhangs a first row names, past its corner cell. A spreadsheet may
+ * carry empty cells after the last column; they are not overhangs.
+ */
+function headerColumns(row: readonly string[] | undefined): string[] {
+  const columns = (row ?? []).slice(1).map((c) => c.trim().toUpperCase());
+  while (columns.length > 0 && columns[columns.length - 1] === '') columns.pop();
+  return columns;
+}
+
+/** Whether a first row reads as a fidelity table's header: a corner cell, then overhangs. */
+function isOverhangHeader(row: readonly string[] | undefined): boolean {
+  const columns = headerColumns(row);
+  const length = columns[0]?.length ?? 0;
+  return columns.length > 0 && columns.every((c) => OVERHANG.test(c) && c.length === length);
+}
+
+/**
  * Reads a ligation-fidelity matrix. Throws with a sentence a user can act on
  * when the file is not one: this is fed by a file picker, so the common case
  * is the wrong file rather than a broken one.
@@ -56,12 +73,57 @@ export function parseFidelityCsv(
   text: string,
   fileName: string | null = null,
 ): FidelityParseResult {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
-  const header = lines[0] === undefined ? [] : cells(lines[0]);
+  return parseFidelityRows(
+    text
+      .split(/\r?\n/)
+      .filter((l) => l.trim() !== '')
+      .map(cells),
+    fileName,
+  );
+}
+
+/**
+ * Reads the fidelity matrix in a spreadsheet workbook (#141): the first
+ * sheet that starts with a row of overhangs. The published workbooks keep
+ * one table per file, but a workbook of assembly results has several sheets
+ * and none of them is an end-joining matrix, which is said in so many words
+ * rather than as a complaint about the first sheet's first row.
+ */
+export function parseFidelityWorkbook(
+  sheets: readonly { readonly name: string; readonly rows: readonly (readonly string[])[] }[],
+  fileName: string | null = null,
+): FidelityParseResult {
+  const nonEmpty = (rows: readonly (readonly string[])[]) =>
+    rows.filter((r) => r.some((c) => c.trim() !== ''));
+  const sheet = sheets.find((s) => isOverhangHeader(nonEmpty(s.rows)[0]));
+  if (sheet === undefined) {
+    const names = sheets.map((s) => `“${s.name}”`).join(', ');
+    throw new Error(
+      sheets.length === 1
+        ? `This workbook's sheet ${names} is not a ligation fidelity table: its first row should list the overhangs, one per column.`
+        : `None of this workbook's sheets (${names}) is a ligation fidelity table: none has a first row listing the overhangs, one per column.`,
+    );
+  }
+  // A workbook leaves an empty cell out altogether, where CSV writes it as
+  // nothing between two commas; padded, the two read alike.
+  const rows = nonEmpty(sheet.rows);
+  const width = rows[0]?.length ?? 0;
+  return parseFidelityRows(
+    rows.map((r) => (r.length < width ? [...r, ...Array<string>(width - r.length).fill('')] : r)),
+    fileName,
+  );
+}
+
+function parseFidelityRows(
+  rows: readonly (readonly string[])[],
+  fileName: string | null,
+): FidelityParseResult {
+  const lines = rows.map((r) => r.map((c) => c.trim()));
+  const header = lines[0];
   // The corner cell names the row labels ("Overhang"), and is not an overhang.
-  const columns = header.slice(1).map((c) => c.toUpperCase());
+  const columns = headerColumns(header);
   const length = columns[0]?.length ?? 0;
-  if (columns.length === 0 || !columns.every((c) => OVERHANG.test(c) && c.length === length)) {
+  if (!isOverhangHeader(header)) {
     throw new Error(
       'This is not a ligation fidelity table: its first row should list the overhangs, one per column.',
     );
@@ -70,8 +132,7 @@ export function parseFidelityCsv(
     throw new Error('The table lists the same overhang in two columns.');
   }
   const counts = new Map<string, Map<string, number>>();
-  for (const line of lines.slice(1)) {
-    const row = cells(line);
+  for (const row of lines.slice(1)) {
     const label = (row[0] ?? '').toUpperCase();
     if (!OVERHANG.test(label) || label.length !== length) {
       throw new Error(`"${row[0] ?? ''}" is not an overhang of ${length} bases.`);

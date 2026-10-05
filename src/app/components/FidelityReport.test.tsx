@@ -7,6 +7,8 @@ import { parseFidelityCsv } from '@/core';
 
 import { getRepository } from '@/storage';
 
+import { xlsx } from '@/test/xlsx';
+
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { FidelityReport } from './FidelityReport';
@@ -105,5 +107,67 @@ describe('FidelityReport (#68)', () => {
     });
     expect(await screen.findByText(/not a ligation fidelity table/)).toBeInTheDocument();
     expect(editorStore.getState().fidelityTable).toBeNull();
+  });
+
+  it('opens an Excel workbook, as the published tables come, picked or dropped (#141)', async () => {
+    render(<FidelityReport overhangs={['AAAA']} table={null} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Import a ligase fidelity table' }));
+    const input = document.querySelector('input[type="file"]');
+    if (input === null) throw new Error('no file input');
+    // The picker offers workbooks rather than greying them out.
+    expect(input.getAttribute('accept')).toContain('.xlsx');
+    expect(
+      screen.getByText(/An Excel workbook \(\.xlsx\) as published, or the table saved as CSV/),
+    ).toBeInTheDocument();
+    const rows = TEXT.split('\n').map((line) =>
+      line.split(',').map((c, i) => (i > 0 && /^\d+$/.test(c) ? Number(c) : c)),
+    );
+    const book = await xlsx([{ name: '18h @ 37C', rows }]);
+    const workbook = new File([book], 'FileS04_T4_18h_37C.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [workbook] } });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    const said = await screen.findByText(/overhangs of/);
+    expect(said.textContent).toContain(
+      'FileS04_T4_18h_37C: 5 overhangs of 4 bases, 2,500 ligations counted',
+    );
+    await waitFor(() => {
+      expect(editorStore.getState().fidelityTable?.counts.get('AAAA')?.get('TTTT')).toBe(900);
+    });
+
+    // Dropped, a file skips the picker's filter: an old .xls is told how to convert.
+    const drop = document.querySelector('.enzyme-import__drop');
+    if (drop === null) throw new Error('no drop zone');
+    const xls = new File(
+      [new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0])],
+      'FileS04.xls',
+    );
+    await act(async () => {
+      fireEvent.drop(drop, { dataTransfer: { files: [xls] } });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(
+      await screen.findByText(/old-style Excel workbook \(\.xls\); save it as an Excel workbook/),
+    ).toBeInTheDocument();
+    // The table already imported stands.
+    expect(editorStore.getState().fidelityTable?.label).toBe('FileS04_T4_18h_37C');
+
+    // And a workbook dropped there whose sheets are not a matrix says so.
+    const results = await xlsx([
+      { name: 'table_01', rows: [['Insert', 'Count', 'Fraction']] },
+      { name: 'table_02', rows: [['Overhang', 1, "1'"]] },
+    ]);
+    await act(async () => {
+      fireEvent.drop(drop, {
+        dataTransfer: { files: [new File([results], 'FileS05_HF_cycled.xlsx')] },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(
+      await screen.findByText(/None of this workbook's sheets \(“table_01”, “table_02”\)/),
+    ).toBeInTheDocument();
   });
 });

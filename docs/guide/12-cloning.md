@@ -436,11 +436,25 @@ scored before the oligos are ordered.
 
 PlasmidPop does not ship one — the published tables are not ours to pass on
 — so bring your own, as you do for [REBASE enzymes](07-enzymes.md#importing-the-full-rebase-table):
-**Import a ligase fidelity table** under the assembly, then choose the file.
-It should be a square matrix — a first row of overhangs, then a row per
-overhang, each cell a count — which is the shape ligase-fidelity tables are
-published in. It is read in your browser, never uploaded, and kept for the
-next visit until you forget it again.
+**Import a ligase fidelity table** under the assembly, then choose the file
+or drop it on the box. It should be a square matrix — a first row of
+overhangs, then a row per overhang, each cell a count — which is the shape
+ligase-fidelity tables are published in. It is read in your browser, never
+uploaded, and kept for the next visit until you forget it again.
+
+The file can be an Excel workbook (`.xlsx`), as most published tables come,
+or the table saved as CSV or tab-separated text. In a workbook the first
+sheet that starts with a row of overhangs is read. An old-style `.xls`
+workbook or an OpenDocument `.ods` one has to be saved as `.xlsx` or CSV
+first; PlasmidPop says so if you open one.
+
+In the supporting information of Potapov et al. 2018 (doi
+[10.1021/acssynbio.8b00333](https://doi.org/10.1021/acssynbio.8b00333)),
+the end-joining tables are files S01–S04 (T4 DNA ligase, 1 h or 18 h, 25 °C
+or 37 °C; S04, 18 h at 37 °C, is the one NEB's tools are built on) and S06
+and S08 (T7 DNA ligase). The other files are the results of whole
+assemblies, with their overhangs numbered rather than spelled out, and none
+of their sheets is a table to import.
 
 With a table loaded the panel shows **Fidelity**, the share of assemblies
 expected to come out right, and names the pairs that cost the most — a

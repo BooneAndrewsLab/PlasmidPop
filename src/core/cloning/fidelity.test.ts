@@ -1,6 +1,12 @@
 import { reverseComplement } from '@/core';
 
-import { type FidelityTable, formatFidelity, parseFidelityCsv, setFidelity } from './fidelity';
+import {
+  type FidelityTable,
+  formatFidelity,
+  parseFidelityCsv,
+  parseFidelityWorkbook,
+  setFidelity,
+} from './fidelity';
 
 /**
  * A table in the shape the published ones come in: a header of overhangs,
@@ -181,5 +187,70 @@ describe('reading the file people actually have', () => {
     const scored = setFidelity(['AAAA', 'AAA'], table);
     expect(scored.unknown).toEqual(['AAAA']);
     expect(scored.junctions.map((j) => j.overhang)).toEqual(['AAA']);
+  });
+});
+
+describe('parseFidelityWorkbook (#141)', () => {
+  /** Rows as a workbook reader gives them: text cells, empty ones left short. */
+  const MATRIX = [
+    ['Overhang', 'AAAA', 'TTTT', 'ACGT'],
+    ['TTTT', '830', '1'],
+    ['AAAA', '1', '', '4'],
+    ['ACGT', '', '4', '60'],
+  ];
+
+  it('reads the matrix of a one-sheet workbook as it reads the same table as CSV', () => {
+    const fromBook = parseFidelityWorkbook([{ name: '18h @ 37C', rows: MATRIX }], 'S04.xlsx');
+    // Saved as CSV, the empty cells are nothing between two commas.
+    const csv = MATRIX.map((r) => [...r, '', '', ''].slice(0, 4).join(',')).join('\n');
+    const fromCsv = parseFidelityCsv(csv, 'S04.xlsx');
+    expect(fromBook).toEqual(fromCsv);
+    expect(fromBook.table.label).toBe('S04');
+    // An empty cell, left out of the row altogether, is no ligation.
+    expect(fromBook.table.counts.get('TTTT')?.has('ACGT')).toBe(false);
+    expect(fromBook.events).toBe(830 + 1 + 1 + 4 + 4 + 60);
+  });
+
+  it('takes the first sheet that is a matrix, past notes and empty rows', () => {
+    const parsed = parseFidelityWorkbook([
+      { name: 'Read me', rows: [['Counts of ligation events'], ['T4 ligase, 18 h, 37 °C']] },
+      { name: 'Empty', rows: [] },
+      { name: 'Matrix', rows: [[], ['', ''], ...MATRIX, []] },
+    ]);
+    expect(parsed.overhangs).toBe(3);
+  });
+
+  it('ignores empty columns after the last overhang', () => {
+    const padded = MATRIX.map((r, i) => (i === 0 ? [...r, '', ' '] : r));
+    expect(parseFidelityWorkbook([{ name: 'S', rows: padded }]).overhangs).toBe(3);
+    // The same in CSV, where a spreadsheet saved one more column than it held.
+    expect(parseFidelityCsv('Overhang,AAAA,TTTT,\nAAAA,0,3,\nTTTT,3,0,').events).toBe(3);
+  });
+
+  it('says when no sheet of the workbook is a fidelity table, naming them', () => {
+    // A workbook of assembly results: its pairing table numbers the overhangs.
+    const results = [
+      { name: 'table_01', rows: [['Insert', 'Count', 'Fraction']] },
+      {
+        name: 'table_02',
+        rows: [
+          ['Overhang', '1', "1'"],
+          ['1', '0', '12707'],
+        ],
+      },
+    ];
+    expect(() => parseFidelityWorkbook(results)).toThrow(
+      /None of this workbook's sheets \(“table_01”, “table_02”\) is a ligation fidelity table/,
+    );
+    expect(() => parseFidelityWorkbook([{ name: 'Sheet1', rows: [['name', 'site']] }])).toThrow(
+      /sheet “Sheet1” is not a ligation fidelity table/,
+    );
+  });
+
+  it('reports a matrix sheet that is wrong as the CSV reader would', () => {
+    const broken = MATRIX.map((r) => (r[0] === 'ACGT' ? ['ACGT', '', '4', 'lots'] : r));
+    expect(() => parseFidelityWorkbook([{ name: 'S', rows: broken }])).toThrow(
+      /ACGT × ACGT is not a count/,
+    );
   });
 });

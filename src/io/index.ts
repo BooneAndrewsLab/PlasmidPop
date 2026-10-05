@@ -9,3 +9,4 @@ export * from './share';
 export * from './xml';
 export * from './detect';
 export * from './ncbi';
+export * from './spreadsheet';

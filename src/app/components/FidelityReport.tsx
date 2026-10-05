@@ -4,6 +4,27 @@ import { type FidelityTable, formatFidelity, setFidelity } from '@/core';
 
 import { type FidelityImportSummary, persistence } from '../state/persistence';
 
+/**
+ * What the picker offers (#141): most published tables are Excel workbooks,
+ * and the rest are CSV. Older `.xls` and `.ods` files are let through so that
+ * reading them can say how to convert them, rather than the picker greying
+ * them out without a word.
+ */
+const FIDELITY_FILE_ACCEPT = [
+  '.xlsx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.xls',
+  'application/vnd.ms-excel',
+  '.ods',
+  'application/vnd.oasis.opendocument.spreadsheet',
+  '.csv',
+  'text/csv',
+  '.tsv',
+  'text/tab-separated-values',
+  '.txt',
+  'text/plain',
+].join(',');
+
 /** Mis-joins under this share of a junction's ligations are not worth naming. */
 const WORTH_NAMING = 0.001;
 /** How many of them to name. */
@@ -52,8 +73,9 @@ function FidelityImport({ onClose }: { readonly onClose: () => void }) {
         paper, or your ligase supplier&rsquo;s own tool — and open it here.
       </p>
       <p className="panel__note panel__note--quiet">
-        It should be a square matrix: a first row of overhangs, then one row per overhang, each cell
-        a count. It is read in your browser and never uploaded.
+        An Excel workbook (.xlsx) as published, or the table saved as CSV or tab-separated text. It
+        should be a square matrix: a first row of overhangs, then one row per overhang, each cell a
+        count. It is read in your browser and never uploaded.
       </p>
       <div
         className={`enzyme-import__drop${dragging ? ' enzyme-import__drop--over' : ''}`}
@@ -74,7 +96,7 @@ function FidelityImport({ onClose }: { readonly onClose: () => void }) {
           ref={input}
           type="file"
           className="visually-hidden"
-          accept="text/csv,text/plain,.csv,.tsv,.txt"
+          accept={FIDELITY_FILE_ACCEPT}
           onChange={(e) => {
             take(e.target.files?.[0]);
             e.target.value = '';

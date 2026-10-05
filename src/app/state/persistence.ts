@@ -4,8 +4,9 @@ import {
   type SeqDocument,
   BUNDLED_ENZYME_SET,
   parseFidelityCsv,
+  parseFidelityWorkbook,
 } from '@/core';
-import { type RebaseSkipped, parseRebaseWithRefM, writeGenBank } from '@/io';
+import { type RebaseSkipped, parseRebaseWithRefM, readTableFile, writeGenBank } from '@/io';
 import {
   type DocumentRepository,
   type StoredLoad,
@@ -341,7 +342,13 @@ export class PersistenceService {
    * ships the arithmetic and the user brings the numbers.
    */
   async importFidelityFile(file: File): Promise<FidelityImportSummary> {
-    const parsed = parseFidelityCsv(await file.text(), file.name);
+    // By its bytes, not its name: the published tables are mostly Excel
+    // workbooks, and a dropped file skips the picker's filter (#141).
+    const read = await readTableFile(new Uint8Array(await file.arrayBuffer()));
+    const parsed =
+      read.kind === 'workbook'
+        ? parseFidelityWorkbook(read.sheets, file.name)
+        : parseFidelityCsv(read.text, file.name);
     await this.repo.saveFidelityTable(parsed.table);
     editorStore.setFidelityTable(parsed.table);
     analytics.track('cloning', 'fidelity-import');
