@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { type CutSite, SeqDocument, getEnzyme } from '@/core';
+import { type CutSite, SeqDocument, findCutSites, getEnzyme } from '@/core';
 
 import { DEFAULT_BENCH } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
@@ -334,5 +334,69 @@ describe('CloningPanel', () => {
       view.unmount();
     });
     expect(preview()).toBeNull();
+  });
+
+  describe('after an edit, before the rescan (#138)', () => {
+    // 1,006 bp circle with one EcoRI site at 300 and one BamHI site at 606.
+    const filler = (n: number, seed: number) => {
+      let out = '';
+      let x = seed;
+      for (let i = 0; i < n; i++) {
+        x = (x * 1103515245 + 12345) % 2147483648;
+        out += 'ACGT'.charAt((x >> 16) % 4);
+      }
+      return out.replace(/GAATTC|GGATCC/g, 'AAAAAA');
+    };
+    const right = filler(694, 42);
+    const text = filler(300, 41) + 'GAATTC' + right.slice(0, 300) + 'GGATCC' + right.slice(300);
+    const plasmid = SeqDocument.create({ name: 'pE', sequence: text, topology: 'circular' });
+    const both = ['EcoRI', 'BamHI'].map((n) => {
+      const e = getEnzyme(n);
+      if (e === undefined) throw new Error(n);
+      return e;
+    });
+
+    function edited(op: Parameters<typeof editorStore.apply>[0]) {
+      act(() => {
+        editorStore.openDocument(plasmid);
+        editorStore.setAnalysis(plasmid, findCutSites(text, 'circular', both), []);
+        editorStore.setShownEnzymes(['EcoRI', 'BamHI']);
+        editorStore.apply(op);
+      });
+      const present = editorStore.document;
+      if (present === null) throw new Error('no document');
+      expect(editorStore.getState().analysis?.provisional).toBe(true);
+      return present;
+    }
+
+    it('neither lists nor shelves fragments cut at a site the edit destroyed', () => {
+      const doc2 = edited({ type: 'replace', range: { start: 300, end: 306 }, text: 'GAATTA' });
+      expect(doc2.sequence.toString()).not.toContain('GAATTC');
+      const view = render(<CloningPanel doc={doc2} />);
+      expect(screen.getByText('Scanning for restriction sites…')).toBeInTheDocument();
+      expect(screen.queryAllByRole('button', { name: 'Add' })).toHaveLength(0);
+      // The worker answers: BamHI alone opens the circle into one piece.
+      act(() => {
+        editorStore.setAnalysis(doc2, findCutSites(doc2.sequence.toString(), 'circular', both), []);
+      });
+      view.rerender(<CloningPanel doc={doc2} />);
+      const adds = screen.getAllByRole('button', { name: 'Add' });
+      expect(adds).toHaveLength(1);
+      const [add] = adds;
+      if (add === undefined) throw new Error('no Add');
+      act(() => {
+        fireEvent.click(add);
+      });
+      const frag = editorStore.getState().shelf[0]?.fragment;
+      expect([frag?.left.enzyme, frag?.right.enzyme]).toEqual(['BamHI', 'BamHI']);
+      expect(frag?.sequence.length).toBe(1006);
+    });
+
+    it('waits for the rescan rather than miss a site the edit made', () => {
+      const doc2 = edited({ type: 'replace', range: { start: 100, end: 106 }, text: 'GAATTC' });
+      render(<CloningPanel doc={doc2} />);
+      expect(screen.getByText('Scanning for restriction sites…')).toBeInTheDocument();
+      expect(screen.queryAllByRole('button', { name: 'Add' })).toHaveLength(0);
+    });
   });
 });

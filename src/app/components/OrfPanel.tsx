@@ -58,6 +58,7 @@ export function OrfPanel({ doc }: Props) {
   const [pending, setPending] = useState(String(orfMinCodons));
   const ready = analysis !== null && analysis.doc === doc;
   const orfs = ready ? analysis.orfs : NO_ORFS;
+  const provisional = ready && analysis.provisional;
 
   // Every ORF listed is drawn on both views while the tab is open (#32), an
   // arrow on its own strand, and a click on one selects it as its row does.
@@ -193,6 +194,10 @@ export function OrfPanel({ doc }: Props) {
               <button
                 type="button"
                 className="button button--small"
+                // An ORF carried through an edit may have grown or shrunk
+                // since (#138): wait for the rescan before annotating it.
+                disabled={provisional}
+                title={provisional ? 'Rescanning after the edit…' : undefined}
                 onClick={() => {
                   const feature = createFeature({
                     type: 'CDS',

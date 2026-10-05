@@ -46,6 +46,13 @@ first, each with:
 An uncut linear molecule is one fragment with the ends the molecule already
 has; an uncut circular molecule gives nothing to work with.
 
+Right after an edit the list gives way to **Scanning for restriction
+sites…** until the document has been scanned again, usually in a fraction
+of a second. The views keep drawing the sites the edit left alone in the
+meantime, but an edit can make a site as well as break one, so the digest
+waits rather than list or shelve fragments the tube would not give. If the
+scan fails it is tried twice more, and then an error says so.
+
 **Partial digest** lists every piece a digest that misses some of the sites
 can give, not only the complete digest's: each stretch from one cut to any
 later one, with the sites between left uncut, and on a circle the whole

@@ -28,6 +28,8 @@ import {
   createFeature,
   defaultFragmentName,
   describeEditStep,
+  findCutSites,
+  getEnzyme,
   featureExtent,
   hasTool,
   documentChecksum,
@@ -39,6 +41,8 @@ import {
   isoschizomerGroups,
   newId,
   rangeSegment,
+  rangesOverlap,
+  siteStillMatches,
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
 import { type FontSize, type ResidueNumbering, DEFAULT_RESIDUE_NUMBERING } from '@/view/linear';
@@ -241,12 +245,16 @@ const ANNOTATION_OPS: ReadonlySet<EditOp['type']> = new Set([
 ]);
 
 /** Ops whose effect on positions `mapPositionThrough` knows how to follow. */
-const MAPPABLE_OPS: ReadonlySet<EditOp['type']> = new Set([
-  'insert',
-  'delete',
-  'replace',
-  'insertFragment',
-]);
+type MappableOp = Extract<EditOp, { type: 'insert' | 'delete' | 'replace' | 'insertFragment' }>;
+
+function isMappable(op: EditOp): op is MappableOp {
+  return (
+    op.type === 'insert' ||
+    op.type === 'delete' ||
+    op.type === 'replace' ||
+    op.type === 'insertFragment'
+  );
+}
 
 /**
  * Analysis results for `next`, derived from the results for `doc` without
@@ -254,6 +262,14 @@ const MAPPABLE_OPS: ReadonlySet<EditOp['type']> = new Set([
  * position through the op and drop sites and ORFs the edit touched; the
  * result is provisional and replaced when the worker answers. Whole-document
  * ops (reverse complement, set origin, set topology) are not followed.
+ *
+ * "Touched" is checked on the bases, not only on the positions (#138): a
+ * same-length substitution moves nothing, so a site it rewrote, or an ORF it
+ * put a stop into, would otherwise be carried as if it were still there. A
+ * site is kept only while its recognition sequence is still spelled where it
+ * was; an ORF only while no replaced base lies inside it. What a provisional
+ * result cannot know is what the edit created, so a carried result is never
+ * the whole truth: the digest and Add as CDS wait for the worker.
  */
 function carryAnalysis(
   analysis: AnalysisState | null,
@@ -263,8 +279,13 @@ function carryAnalysis(
 ): AnalysisState | null {
   if (analysis?.doc !== doc) return null;
   if (ANNOTATION_OPS.has(op.type)) return { ...analysis, doc: next };
-  if (!MAPPABLE_OPS.has(op.type)) return null;
+  if (!isMappable(op)) return null;
   const map = (p: number) => doc.mapPositionThrough(op, p);
+  // Where the edit wrote, in `doc`'s coordinates, a base wider on each side
+  // so an insertion between two bases of a site counts. Only sites that
+  // reach into it can have lost their bases; the rest moved whole.
+  const at = op.type === 'insert' ? { start: op.position, end: op.position } : op.range;
+  const edited = { start: at.start - 1, end: at.end + 1 };
   const cutSites: CutSite[] = [];
   for (const s of analysis.cutSites) {
     const cut = map(s.cut);
@@ -274,12 +295,25 @@ function carryAnalysis(
     if (cut - siteStart !== s.cut - s.siteStart || cutBottom - cut !== s.cutBottom - s.cut)
       continue;
     if (siteStart < 0 || siteStart >= next.length || cut > next.length) continue;
-    cutSites.push({ ...s, cut, cutBottom, siteStart });
+    const moved = { ...s, cut, cutBottom, siteStart };
+    const enzyme = getEnzyme(s.enzyme);
+    if (enzyme === undefined) continue;
+    const span = { start: s.siteStart, end: s.siteStart + enzyme.site.length };
+    if (
+      rangesOverlap(span, edited, doc.length) &&
+      !siteStillMatches(next.sequence, next.topology, moved, enzyme)
+    )
+      continue;
+    cutSites.push(moved);
   }
+  // The bases a replace or a paste wrote over, in `doc`'s coordinates. An
+  // insert or a delete inside an ORF changes its length and is caught below.
+  const rewritten = op.type === 'replace' || op.type === 'insertFragment' ? op.range : null;
   const orfs: Orf[] = [];
   for (const o of analysis.orfs) {
     // Unrolled ranges past the end cannot be mapped reliably; let the worker redo them.
     if (o.range.end > doc.length) continue;
+    if (rewritten !== null && rangesOverlap(o.range, rewritten, doc.length)) continue;
     const start = map(o.range.start);
     const end = map(o.range.end);
     if (end - start !== o.range.end - o.range.start || end > next.length) continue;
@@ -2204,8 +2238,17 @@ export class EditorStore {
    */
   visibleCutSites(): readonly CutSite[] {
     const a = this.state.analysis;
-    if (a?.doc !== this.document || !this.state.showCutSites) return [];
-    return a.cutSites.filter((s) => this.state.shownEnzymes.has(s.enzyme));
+    const doc = this.document;
+    if (doc === null || a?.doc !== doc || !this.state.showCutSites) return [];
+    const shown = this.state.shownEnzymes;
+    // A carried result can lack a site the edit just made (#138), and an
+    // export is kept: scan the ticked enzymes afresh. They are a handful,
+    // and this runs once per export, not per frame.
+    if (a.provisional) {
+      const enzymes = activeEnzymes().filter((e) => shown.has(e.name));
+      return findCutSites(doc.sequence.toString(), doc.topology, enzymes);
+    }
+    return a.cutSites.filter((s) => shown.has(s.enzyme));
   }
 
   setView(view: ViewMode): void {

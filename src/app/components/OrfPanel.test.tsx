@@ -43,4 +43,32 @@ describe('OrfPanel', () => {
     view.unmount();
     expect(editorStore.getState().preview).toBeNull();
   });
+
+  it('waits for the rescan after an edit before adding an ORF as a CDS (#138)', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setAnalysis(doc, [], orfs);
+      editorStore.setSelection({ start: 10, end: 310 });
+    });
+    const view = render(<OrfPanel doc={doc} />);
+    expect(screen.getByRole('button', { name: 'Add as CDS feature' })).toBeEnabled();
+    // An edit upstream leaves the ORF's bases alone, but could have taken out
+    // the stop that bounded it, so the carried ORF is not to be trusted yet.
+    act(() => {
+      editorStore.apply({ type: 'replace', range: { start: 5, end: 6 }, text: 'A' });
+    });
+    const present = editorStore.document;
+    if (present === null) throw new Error('no document');
+    expect(editorStore.getState().analysis?.provisional).toBe(true);
+    act(() => {
+      editorStore.setSelection({ start: 10, end: 310 });
+    });
+    view.rerender(<OrfPanel doc={present} />);
+    expect(screen.getByRole('button', { name: 'Add as CDS feature' })).toBeDisabled();
+    act(() => {
+      editorStore.setAnalysis(present, [], orfs);
+    });
+    view.rerender(<OrfPanel doc={present} />);
+    expect(screen.getByRole('button', { name: 'Add as CDS feature' })).toBeEnabled();
+  });
 });

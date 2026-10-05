@@ -44,6 +44,8 @@ affected: those are always read with their own `/transl_table`.
    and the `/translation`, opens the Features tab and lets you type the
    name straight away. When the code is not the standard one it writes
    `/transl_table` too, so the feature reads back the way it was found.
+   Right after an edit it is greyed out until the ORFs have been found
+   again: an edit outside an ORF can still move where it starts or ends.
 
 If some other range is selected (not an ORF from the list), the tab shows
 the translation of that selection in frame +1 instead, so you can check any

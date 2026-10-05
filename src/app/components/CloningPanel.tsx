@@ -239,7 +239,10 @@ export function CloningPanel({ doc }: Props) {
   } = useEditorState();
   const [hovered, setHovered] = useState<string | null>(null);
   const [partial, setPartial] = useRemembered('cloning.partial', documentId, false);
-  const ready = analysis !== null && analysis.doc === doc;
+  // Sites carried through an edit are provisional (#138): they lack any site
+  // the edit made, so the digest waits for the worker's scan rather than
+  // list, or shelve, fragments the tube would not give.
+  const ready = analysis !== null && analysis.doc === doc && !analysis.provisional;
 
   // The ticked enzymes' sites, less the ones this DNA's own methylation
   // would block (#45): a digest cuts what the tube would cut. The Enzymes

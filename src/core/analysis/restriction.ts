@@ -294,6 +294,38 @@ export function findCutSites(
   return out;
 }
 
+/** What `siteStillMatches` reads bases from: a string or the document's rope. */
+export interface BaseSource {
+  readonly length: number;
+  slice(start: number, end: number): string;
+}
+
+/**
+ * Whether `site`'s recognition sequence is still spelled at its `siteStart`
+ * in `sequence` (through the origin on a circle), on the strand it was
+ * found on. A cut site carried through an edit by shifting its positions
+ * (#138) keeps its place even when a same-length substitution, or an
+ * insertion inside the site, has rewritten the bases it was found on.
+ */
+export function siteStillMatches(
+  sequence: BaseSource,
+  topology: Topology,
+  site: CutSite,
+  enzyme: Pick<Enzyme, 'site'>,
+): boolean {
+  const L = sequence.length;
+  const n = enzyme.site.length;
+  if (n === 0 || n > L || site.siteStart < 0 || site.siteStart >= L) return false;
+  const end = site.siteStart + n;
+  let bases: string;
+  if (end <= L) bases = sequence.slice(site.siteStart, end);
+  else if (topology === 'circular')
+    bases = sequence.slice(site.siteStart, L) + sequence.slice(0, end - L);
+  else return false;
+  const pattern = site.strand === 'forward' ? enzyme.site : reverseComplement(enzyme.site);
+  return matchPositions(sequenceMasks(bases), patternMasks(pattern), 0).length === 1;
+}
+
 export interface EnzymeSummary {
   readonly enzyme: Enzyme;
   readonly sites: readonly CutSite[];

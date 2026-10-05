@@ -9,6 +9,7 @@ import {
   isoschizomerGroups,
   overhangKind,
   overhangLength,
+  siteStillMatches,
   summarizeEnzymes,
 } from './restriction';
 
@@ -214,5 +215,45 @@ describe('isoschizomerGroups', () => {
     // HpaII and MspI are the classic pair: C^CGG both, one blocked by CpG methylation.
     expect(shared.some((g) => g.members.some((e) => e.name === 'MspI'))).toBe(true);
     expect(groups.length).toBeGreaterThan(ENZYMES.length - 10);
+  });
+});
+
+describe('siteStillMatches (#138)', () => {
+  const enzyme = (name: string) => {
+    const e = getEnzyme(name);
+    if (e === undefined) throw new Error(name);
+    return e;
+  };
+
+  it('checks every site the scan finds, on either strand and over the origin', () => {
+    let x = 7;
+    let body = '';
+    for (let i = 0; i < 3000; i++) {
+      x = (x * 1103515245 + 12345) % 2147483648;
+      body += 'ACGTN'.charAt(i % 97 === 0 ? 4 : (x >> 16) % 4);
+    }
+    const text = 'TTC' + body + 'GAA';
+    for (const topology of ['linear', 'circular'] as const) {
+      const sites = findCutSites(text, topology);
+      expect(new Set(sites.map((s) => s.strand))).toEqual(new Set(['forward', 'reverse']));
+      for (const s of sites)
+        expect(siteStillMatches(text, topology, s, enzyme(s.enzyme))).toBe(true);
+    }
+    const over = findCutSites(text, 'circular', [enzyme('EcoRI')]).find(
+      (s) => s.siteStart === text.length - 3,
+    );
+    if (over === undefined) throw new Error('no EcoRI site over the origin');
+    expect(siteStillMatches(text, 'circular', over, enzyme('EcoRI'))).toBe(true);
+    expect(siteStillMatches('C' + text.slice(1), 'circular', over, enzyme('EcoRI'))).toBe(false);
+    expect(siteStillMatches(text, 'linear', over, enzyme('EcoRI'))).toBe(false);
+  });
+
+  it('turns a site down once a base of it changed', () => {
+    const bsaI = enzyme('BsaI');
+    const rev = { enzyme: 'BsaI', cut: 3, cutBottom: 7, siteStart: 10, strand: 'reverse' as const };
+    expect(siteStillMatches('AAAAAAAAAAGAGACCAA', 'linear', rev, bsaI)).toBe(true);
+    expect(siteStillMatches('AAAAAAAAAAGAGACAAA', 'linear', rev, bsaI)).toBe(false);
+    expect(siteStillMatches('AAAAAAAAAAGGTCTCAA', 'linear', rev, bsaI)).toBe(false);
+    expect(siteStillMatches('aaaaaaaaaagagaccaa', 'linear', rev, bsaI)).toBe(true);
   });
 });
