@@ -250,7 +250,7 @@ interface FeatureDiff {
  */
 function mapFeature(
   feature: Feature,
-  map: (position: number) => number,
+  map: PositionMap,
   from: SequenceSpace,
   to: SequenceSpace,
 ): Feature {
@@ -261,10 +261,32 @@ function mapFeature(
     eachSegment((seg) =>
       seg.kind === 'site'
         ? { ...seg, position: map(seg.position) }
-        : { ...seg, start: map(seg.start), end: Math.max(map(seg.start), map(seg.end)) },
+        : isWholeCircle(seg, map)
+          ? // A feature around the whole circle stays around it: its end is
+            // its start, one turn on, wherever an insert at the origin put it (#168).
+            { ...seg, start: map(0), end: map(0) + to.length }
+          : { ...seg, start: map(seg.start), end: Math.max(map(seg.start), map(seg.end)) },
     ),
   );
   return createFeature(moved ?? feature);
+}
+
+/**
+ * Maps a position of the older document into the newer one. On two circles it
+ * also says how long each is, so a feature that covers a whole circle can be
+ * told from one that merely ends at the last base.
+ */
+type PositionMap = ((position: number) => number) & {
+  readonly circle?: { readonly from: number; readonly to: number } | undefined;
+};
+
+function isWholeCircle(seg: Segment, map: PositionMap): boolean {
+  return (
+    map.circle !== undefined &&
+    seg.kind === 'range' &&
+    seg.start === 0 &&
+    seg.end === map.circle.from
+  );
 }
 
 function diffFeatures(
@@ -275,8 +297,16 @@ function diffFeatures(
   const map = positionMapper(diff, baseline.length, current.length);
   // Feature locations are unrolled, so a segment that wraps the origin ends
   // past the sequence; map the wrapped part and put it back past the end.
-  const mapUnrolled = (position: number): number =>
-    position > baseline.length ? map(position - baseline.length) + current.length : map(position);
+  const mapUnrolled: PositionMap = Object.assign(
+    (position: number): number =>
+      position > baseline.length ? map(position - baseline.length) + current.length : map(position),
+    {
+      circle:
+        baseline.topology === 'circular' && current.topology === 'circular'
+          ? { from: baseline.length, to: current.length }
+          : undefined,
+    },
+  );
   const mapped = (f: Feature): Feature => mapFeature(f, mapUnrolled, baseline, current);
   const qualifiersOf = (f: Feature): readonly Qualifier[] => mapped(f).qualifiers;
 
@@ -409,7 +439,7 @@ interface ContentPairs {
 function pairByContent(
   removed: readonly Feature[],
   added: readonly Feature[],
-  map: (position: number) => number,
+  map: PositionMap,
   qualifiersOf: (before: Feature) => readonly Qualifier[],
 ): ContentPairs {
   const same = new Set<Feature>();
@@ -467,7 +497,7 @@ export function sameFeatureLocation(before: Feature, after: Feature): boolean {
   return sameLocation(before, after, (position) => position);
 }
 
-function sameLocation(before: Feature, after: Feature, map: (position: number) => number): boolean {
+function sameLocation(before: Feature, after: Feature, map: PositionMap): boolean {
   return (
     before.segments.length === after.segments.length &&
     before.segments.every((seg, i) => sameSegment(seg, after.segments[i], map))
@@ -478,7 +508,7 @@ function sameLocation(before: Feature, after: Feature, map: (position: number) =
 function sameFeature(
   before: Feature,
   after: Feature,
-  map: (position: number) => number,
+  map: PositionMap,
   qualifiersOf: (before: Feature) => readonly Qualifier[],
 ): boolean {
   return (
@@ -502,11 +532,7 @@ function sameQualifiers(before: readonly Qualifier[], after: readonly Qualifier[
   );
 }
 
-function sameSegment(
-  before: Segment,
-  after: Segment | undefined,
-  map: (position: number) => number,
-): boolean {
+function sameSegment(before: Segment, after: Segment | undefined, map: PositionMap): boolean {
   if (after?.kind !== before.kind) return false;
   if (before.kind === 'site') {
     return after.kind === 'site' && map(before.position) === after.position;
@@ -517,6 +543,9 @@ function sameSegment(
   // a deletion that swallowed that base only comes out right the first way.
   // Either answer counts, so an edit *beside* a feature does not mark it.
   const ends = [map(before.end), map(before.end - 1) + 1];
+  // A whole circle stays one: if an insert at the origin moved its start it
+  // moved its end the same turn on (#168).
+  if (isWholeCircle(before, map)) ends.push(map(0) + (map.circle?.to ?? 0));
   return (
     map(before.start) === after.start &&
     ends.includes(after.end) &&

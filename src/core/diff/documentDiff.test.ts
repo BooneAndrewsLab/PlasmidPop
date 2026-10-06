@@ -510,3 +510,62 @@ describe('a feature at the start of the sequence (#159)', () => {
     expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
   });
 });
+
+describe('a feature around the whole circle (#168)', () => {
+  const sequence = 'ACGTTGCAAGGCTTAACCGG'.repeat(3);
+  const whole = (topology: 'circular' | 'linear', start = 0, end = sequence.length) =>
+    SeqDocument.create({
+      sequence,
+      topology,
+      features: [
+        createFeature({
+          id: 'f',
+          type: 'misc_feature',
+          name: 'f',
+          segments: [rangeSegment(start, end)],
+        }),
+      ],
+    });
+
+  it('is not changed by bases inserted at the origin, where the editor moves it along', () => {
+    const base = whole('circular');
+    const edited = base.insert(0, 'NNN');
+    expect(edited.getFeature('f')?.segments[0]).toMatchObject({ start: 3, end: 66 });
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+  });
+
+  it.each([1, 30, 59])('is not changed by bases inserted at %i', (at) => {
+    const base = whole('circular');
+    expect(diffDocuments(base, base.insert(at, 'NNN')).featuresChanged.size).toBe(0);
+  });
+
+  it('is not changed by a deletion at the origin', () => {
+    const base = whole('circular');
+    const edited = base.delete({ start: 0, end: 3 });
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+  });
+
+  it('still reports a feature that ends at the last base but starts later', () => {
+    const base = whole('circular', 10);
+    const edited = base.insert(0, 'NNN');
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+    const moved = SeqDocument.create({
+      sequence: edited.sequence.toString(),
+      topology: 'circular',
+      features: [
+        createFeature({
+          id: 'f',
+          type: 'misc_feature',
+          name: 'f',
+          segments: [rangeSegment(3, 66)],
+        }),
+      ],
+    });
+    expect(diffDocuments(base, moved).featuresChanged.has('f')).toBe(true);
+  });
+
+  it('is not changed on a linear sequence either', () => {
+    const base = whole('linear');
+    expect(diffDocuments(base, base.insert(0, 'NNN')).featuresChanged.size).toBe(0);
+  });
+});

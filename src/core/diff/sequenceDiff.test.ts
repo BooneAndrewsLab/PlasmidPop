@@ -149,6 +149,37 @@ describe('positionMapper', () => {
     expect(map(8)).toBe(5);
     expect(map(11)).toBe(8);
   });
+
+  it('puts every position where a single insertion or deletion left it, at any place in the sequence', () => {
+    const wrong: string[] = [];
+    for (const length of [1, 2, 5, 40]) {
+      const a = randomDna(seededRandom(length * 7 + 1), length);
+      for (let at = 0; at <= length; at++) {
+        for (const k of [1, 3]) {
+          const inserted = a.slice(0, at) + 'N'.repeat(k) + a.slice(at);
+          const mapIn = positionMapper(diffSequences(a, inserted), a.length, inserted.length);
+          for (let p = 0; p <= length; p++) {
+            const want = p < at ? p : p + k;
+            if (mapIn(p) !== want)
+              wrong.push(`insert ${k} at ${at} of ${length}: ${p} -> ${mapIn(p)}`);
+          }
+          if (at + k > length) continue;
+          // A deletion beside an identical base can be drawn either way.
+          if ((at > 0 && a[at - 1] === a[at + k - 1]) || (at + k < length && a[at] === a[at + k])) {
+            continue;
+          }
+          const deleted = a.slice(0, at) + a.slice(at + k);
+          const mapDel = positionMapper(diffSequences(a, deleted), a.length, deleted.length);
+          for (let p = 0; p <= length; p++) {
+            const want = p < at ? p : p < at + k ? at : p - k;
+            if (mapDel(p) !== want)
+              wrong.push(`delete ${k} at ${at} of ${length}: ${p} -> ${mapDel(p)}`);
+          }
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
 });
 
 describe('diff performance', () => {
