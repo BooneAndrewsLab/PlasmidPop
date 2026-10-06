@@ -6,10 +6,11 @@ holds what the last one had to discover, so the next one need not.
 
 ## Baseline
 
-| Audit      | Commit audited     | Issues filed                 | Areas                                             |
-| ---------- | ------------------ | ---------------------------- | ------------------------------------------------- |
-| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                             |
-| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry |
+| Audit      | Commit audited     | Issues filed                 | Areas                                                                                        |
+| ---------- | ------------------ | ---------------------------- | -------------------------------------------------------------------------------------------- |
+| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                                                                        |
+| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry                                            |
+| 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
@@ -33,6 +34,18 @@ Add a row here when an audit finishes.
   one issue per root cause with the repro and the reference that proves it.
 - **Freeze what came out clean** as oracle answers (`scripts/oracle/generate.py`
   and its modules), so the next audit can skip it.
+- **Check the area map against the tree first.** List `src/core/*`,
+  `src/io/*` and `src/app/*` and make sure every directory that computes
+  something a user acts on has a row below. Editing and region copy were
+  missing until the third audit, which found three bugs there (#162, #163).
+- **Close an audit issue only after its repro and near-variants pass.**
+  #153 was reported for readingFrame ±2/±3, fixed for the positive values
+  only, and its fixture also carried the matching codon_start, so the test
+  passed without reading a negative frame (#164). Re-run the audit's own
+  probe, not just the new unit test.
+- **A line in "Conventions" needs the cases that support it.** "Global
+  banded always equals it" came from junk-flank cases only; tandem repeats
+  break it (#167).
 - Rank by cost to the user: wrong oligo or construct sequence → wrong
   positions/sizes that mislead a design → refusals and false warnings →
   cosmetics.
@@ -61,6 +74,7 @@ Add a row here when an audit finishes.
 | Digest, ligation, methylation, REBASE          | `core/analysis/{restriction,methylation,enzymeTable}.ts`, `core/cloning/{digest,ligate,partial}.ts`, `io/rebase/` | 07, 30, 40, 42, 44 | Biopython `Restriction`; pydna; REBASE `withrefm`, `emboss_e` and damlist overlap tables                                     |
 | PCR, Gateway                                   | `core/cloning/{pcr,gateway}.ts`                                                                                   | 36, 48             | pydna `amplify.pcr`, `assembly2.gateway_assembly`; Invitrogen attB sequences                                                 |
 | Translation, file formats                      | `core/analysis/{cdsTranslation,sixFrame,orf,geneticCodes}.ts`, `io/*`, `core/checksum`                            | 01, 04, 43, 57     | NCBI `gc.prt`; NCBI `/translation`; Biopython parsers and test files; `seguid`                                               |
+| Editing, region copy, undo                     | `core/document/*` (`seqDocument.ts`, `extract.ts`), `core/features/*`                                             | 51, 66             | Biopython `SeqRecord` slicing, `+`, `reverse_complement(features=True)`; pydna `shifted()`; a base-identity model in Python  |
 | Pairwise alignment, diff                       | `core/alignment/*`, `core/diff/*`                                                                                 | 45                 | Biopython `PairwiseAligner` (EDNAFULL −10/−0.5; BLOSUM62 −11/−1); an independent LCS for diffs                               |
 | Sequencing reads                               | `io/fastq/*`, `io/abif/*`, `view/trace.ts`, `core/alignment/quality.ts`                                           | 45, 46, 70         | Biopython `SeqIO` fastq/abi and its `Tests/Quality`, `Tests/Abi` files                                                       |
 | SnapGene files                                 | `io/snapgene/*`                                                                                                   | —                  | The 203 sample files' own `/translation` qualifiers; a raw packet parser; Biopython `snapgene` (reads only the circular bit) |
@@ -101,8 +115,17 @@ reporting one.
 - **Trans-spliced mixed-strand CDS** (NC_000932 rps12) are known to be
   unsupported, with a warning.
 
-- **Banded local alignment** may score ≤0.2% below the full optimum when
-  junk flanks surround the homology; global banded always equals it (#159).
+- **Banded alignment** (local and global) is not exact: with tandem
+  repeats or a long insertion near a read end it can score a few percent
+  below the optimum (#167). Without those, 0 deficits in 480 cases.
+- **Local alignment runs on through junk flanks** with EDNAFULL −10/−0.5:
+  a read past the end of the reference shows its overhang as differences.
+  Biopython does the same; accepted.
+- **Feature labels outrank cut labels** on a crowded map, so cut labels can
+  all be dropped (none of 114 survive at 10,000 features). By design.
+- **First codon of a CDS** always translates as M here; SnapGene does so
+  only with `translateFirstCodonAsMet`. TA/TOPO vectors with a 1-base 3′
+  overhang lose their first lacZα residue under the #154 rule (correct).
 - **Refined diffs** (`refine: true`) keep fewer equal bases than the LCS by
   design (affine-gap re-alignment); raw Myers equals the LCS.
 - **Peaks above 32,767** in ABIF are read unsigned; Biopython reads them
@@ -111,8 +134,8 @@ reporting one.
   `<Comments>`; ours does not.
 - **SnapGene sample files** live in `~/Programs/snapgene_8.2.2_linux`
   (203 .dna); they may not be committed. `fixtures/local` has none.
-- **Circular and origin-spanning alignment** is in the guide
-  (`11-align.md`) but not in `core/alignment`; not yet audited.
+- **Circular read mapping** lives in `app/readAlignment.ts` (a doubled
+  reference), not in `core/alignment`. Audited 2026-10-06; see #165, #166.
 
 ## Reference sources that work from here
 

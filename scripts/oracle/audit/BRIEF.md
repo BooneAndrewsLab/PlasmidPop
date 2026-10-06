@@ -28,3 +28,11 @@ Rank by "costs the user money if wrong": anything that ends up in an oligo seque
 2. **Suspicious but unconfirmed** items (short).
 3. **What you verified clean**: which functions, against which oracle, how many cases. This is as important as the bugs.
 4. Paths of your audit test files and scripts.
+
+## Rules added in later audits
+
+- Read `docs/audit.md` "Conventions and false positives" before reporting anything; those are not bugs.
+- Issues filed by earlier audits may be closed: verify each fix in your area against the original repro and its near-variants, and look for regressions it introduced.
+- **Update `<scratchpad>/audit/<area>/STATE.md` after every completed check** (findings with evidence, what is done, the exact next step). You may be stopped without warning and resumed by message.
+- The saved oracle answers in `src/test/oracle/` already cover what earlier audits verified clean; spend effort on what they don't cover.
+- Replace the scratchpad path above with the current session's scratchpad.
