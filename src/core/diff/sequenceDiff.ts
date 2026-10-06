@@ -325,7 +325,7 @@ export function positionMapper(
   const spans = diff.ops.filter((op) => op.aEnd > op.aStart);
   return (position: number): number => {
     if (position >= aLength) return bLength;
-    if (position <= 0) return 0;
+    if (position < 0) return 0;
     let lo = 0;
     let hi = spans.length - 1;
     while (lo <= hi) {

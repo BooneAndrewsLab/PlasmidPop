@@ -492,3 +492,21 @@ describe('diffDocuments on a real plasmid', () => {
     });
   });
 });
+
+describe('a feature at the start of the sequence (#159)', () => {
+  it('#159: bases inserted before a feature at 0 do not change the feature', () => {
+    const f = (s: number, e: number) =>
+      createFeature({ id: 'f', type: 'CDS', name: 'f', segments: [rangeSegment(s, e)] });
+    const base = SeqDocument.create({
+      sequence: 'ACGTTGCAAGGCTTAACCGG',
+      topology: 'linear',
+      features: [f(0, 10)],
+    });
+    const edited = SeqDocument.create({
+      sequence: 'TTTTTACGTTGCAAGGCTTAACCGG',
+      topology: 'linear',
+      features: [f(5, 15)],
+    });
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+  });
+});
