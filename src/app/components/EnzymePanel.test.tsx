@@ -695,4 +695,35 @@ describe('host methylation (#45)', () => {
     });
     expect(current().methylation).toEqual({ dam: true, dcm: true });
   });
+
+  describe('a cut at the origin (#168)', () => {
+    const cutAt = (cut: number): CutSite => ({
+      enzyme: activeEnzymes()[0]?.name ?? '',
+      cut,
+      cutBottom: cut,
+      siteStart: 0,
+      strand: 'forward',
+    });
+    const show = (topology: 'circular' | 'linear', cut: number) => {
+      const d = SeqDocument.create({ sequence: 'ACGT'.repeat(1000), topology });
+      act(() => {
+        editorStore.openDocument(d);
+        editorStore.setAnalysis(d, [cutAt(cut)], []);
+      });
+      render(<EnzymePanel doc={d} />);
+      return [...document.querySelectorAll('.enzyme-row__cuts .link')].map((n) => n.textContent);
+    };
+
+    it('reads as after the last base on a circle', () => {
+      expect(show('circular', 0)).toEqual(['4,000']);
+    });
+
+    it('reads 0 on a line, where it is before the first base', () => {
+      expect(show('linear', 0)).toEqual(['0']);
+    });
+
+    it('leaves any other cut as it is', () => {
+      expect(show('circular', 1)).toEqual(['1']);
+    });
+  });
 });

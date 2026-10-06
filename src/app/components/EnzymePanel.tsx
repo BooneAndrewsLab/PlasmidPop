@@ -11,6 +11,7 @@ import {
   bandProblems,
   bestPairs,
   bestPartners,
+  cutLabel,
   compareDiagnostic,
   describeBands,
   digestFragments,
@@ -107,8 +108,8 @@ function describeBandFragments(band: GelBand): string {
   return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(' and ');
 }
 
-function describeSite(site: CutSite): string {
-  return site.cut.toLocaleString();
+function describeSite(site: CutSite, doc: SeqDocument): string {
+  return cutLabel(site.cut, doc.length, doc.topology).toLocaleString();
 }
 
 /** Tooltip for an enzyme: the overhang, and whatever an import added. */
@@ -911,7 +912,7 @@ export function EnzymePanel({ doc }: Props) {
                           key={i}
                           type="button"
                           className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
-                          title={`Select the ${enzyme.name} site cut after base ${describeSite(s)}${
+                          title={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
                             host.length > 0
                               ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
                               : ''
@@ -920,7 +921,7 @@ export function EnzymePanel({ doc }: Props) {
                             selectSite(s);
                           }}
                         >
-                          {describeSite(s)}
+                          {describeSite(s, doc)}
                           {host.length > 0 && <sup>m</sup>}
                         </button>
                       );

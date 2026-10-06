@@ -5,6 +5,7 @@ import {
   type Feature,
   type Range,
   type SeqDocument,
+  cutLabel,
   describeEnds,
   deletionThatTook,
   featureLength,
@@ -962,7 +963,7 @@ function drawLabels(
     cutsPerEnzyme.set(s.enzyme, (cutsPerEnzyme.get(s.enzyme) ?? 0) + 1);
   }
   for (const [cut, names] of cutsByPosition) {
-    const text = `${names.join(', ')} (${cut.toLocaleString()})`;
+    const text = `${names.join(', ')} (${cutLabel(cut, doc.length, doc.topology).toLocaleString()})`;
     const rarity = Math.min(...names.map((n) => cutsPerEnzyme.get(n) ?? 1));
     const rank = RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
     add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank);
@@ -1133,7 +1134,7 @@ function drawLabels(
           ctx,
           p,
           m,
-          `${names.join(', ')} (${(p.hoveredCut + 1).toLocaleString()})`,
+          `${names.join(', ')} (${cutLabel(p.hoveredCut, doc.length, doc.topology).toLocaleString()})`,
           layout.angleOf(p.hoveredCut),
           theme.cutSite,
           layout.pointAt(p.hoveredCut, layout.radius - 6),

@@ -908,3 +908,21 @@ describe('hit-testing a feature lane (#159)', () => {
     });
   });
 });
+
+describe('the label of a cut at the origin (#168)', () => {
+  const svgWith = (topology: 'circular' | 'linear', cut: number): string => {
+    const doc = SeqDocument.create({ sequence: 'ACGT'.repeat(25), topology });
+    return exportMapSvg(doc, {
+      cutSites: [{ enzyme: 'EcoRI', cut, cutBottom: cut, siteStart: 0, strand: 'forward' }],
+    });
+  };
+
+  it('says after the last base on a circle', () => {
+    expect(svgWith('circular', 0)).toContain('EcoRI (100)');
+  });
+
+  it('keeps counting from the first base elsewhere', () => {
+    expect(svgWith('circular', 1)).toContain('EcoRI (1)');
+    expect(svgWith('circular', 99)).toContain('EcoRI (99)');
+  });
+});

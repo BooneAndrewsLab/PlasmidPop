@@ -21,8 +21,10 @@ sharing a row, every enzyme that cuts it identically (see
   (hover it for their names);
 - the **recognition site**, 5′→3′ on the top strand (hover to see whether it
   leaves a blunt end, a 5′ overhang or a 3′ overhang);
-- the **cut positions**: the base after which the top strand is cut. Click
-  one to select that recognition site in the views;
+- the **cut positions**: the base after which the top strand is cut (a cut
+  exactly at the origin of a circle is after its last base, so it reads as
+  the sequence's length). Click one to select that recognition site in the
+  views;
 - the **bands** this enzyme alone would give, largest first, as a gel would
   show them. Fragments within about 15 % of each other are written as one
   band (`2,181 ×2`), because that is what you would see. A ⚠ means the lane

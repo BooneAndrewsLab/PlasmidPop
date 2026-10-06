@@ -204,6 +204,15 @@ export interface CutSite {
   readonly strand: 'forward' | 'reverse';
 }
 
+/**
+ * The number a cut is called by: the base after which the top strand is
+ * cut. On a circle a cut at index 0 falls after the last base, so that is
+ * what it reads; on a line index 0 is before the first base and stays 0 (#168).
+ */
+export function cutLabel(cut: number, length: number, topology: Topology): number {
+  return topology === 'circular' && cut === 0 ? length : cut;
+}
+
 function wrap(position: number, length: number, topology: Topology): number | null {
   if (topology === 'circular') return length === 0 ? 0 : ((position % length) + length) % length;
   return position < 0 || position > length ? null : position;

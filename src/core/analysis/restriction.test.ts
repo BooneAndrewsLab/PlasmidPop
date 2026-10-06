@@ -3,6 +3,7 @@ import { ENZYME_TABLE } from './enzymeTable';
 import {
   type Enzyme,
   ENZYMES,
+  cutLabel,
   digestFragments,
   findCutSites,
   getEnzyme,
@@ -255,5 +256,28 @@ describe('siteStillMatches (#138)', () => {
     expect(siteStillMatches('AAAAAAAAAAGAGACAAA', 'linear', rev, bsaI)).toBe(false);
     expect(siteStillMatches('AAAAAAAAAAGGTCTCAA', 'linear', rev, bsaI)).toBe(false);
     expect(siteStillMatches('aaaaaaaaaagagaccaa', 'linear', rev, bsaI)).toBe(true);
+  });
+});
+
+describe('cutLabel (#168)', () => {
+  it('calls a cut at the origin of a circle "after the last base"', () => {
+    expect(cutLabel(0, 4000, 'circular')).toBe(4000);
+  });
+
+  it('leaves every other cut, and a cut before the first base of a line, alone', () => {
+    expect(cutLabel(1, 4000, 'circular')).toBe(1);
+    expect(cutLabel(3999, 4000, 'circular')).toBe(3999);
+    expect(cutLabel(0, 4000, 'linear')).toBe(0);
+    expect(cutLabel(4000, 4000, 'linear')).toBe(4000);
+  });
+
+  it('is what findCutSites reports for a cut that lands exactly on the origin', () => {
+    // G^AATTC with the G last: the cut falls between the last base and the first.
+    const sequence = 'AATTC' + 'ACGT'.repeat(50) + 'G';
+    const ecoRI = getEnzyme('EcoRI');
+    if (ecoRI === undefined) throw new Error('EcoRI is in the table');
+    const [site] = findCutSites(sequence, 'circular', [ecoRI]);
+    expect(site?.cut).toBe(0);
+    expect(cutLabel(site?.cut ?? -1, sequence.length, 'circular')).toBe(sequence.length);
   });
 });
