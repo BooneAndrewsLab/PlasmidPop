@@ -28,8 +28,18 @@ export function escapeSvgText(text: string): string {
   return esc(text);
 }
 
+/**
+ * Characters XML 1.0 cannot carry, even escaped: the C0 controls but tab,
+ * newline and return, the non-characters U+FFFE/U+FFFF, and lone surrogates.
+ * One in a feature name would make the whole file unparseable (#158).
+ */
+const XML_INVALID =
+  // eslint-disable-next-line no-control-regex
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g;
+
 function esc(text: string): string {
   return text
+    .replace(XML_INVALID, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

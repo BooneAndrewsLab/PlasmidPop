@@ -296,7 +296,9 @@ The SVG map export does not leave labels out — a figure has nothing to hover.
 It grows its canvas around the same circle until they all fit instead, so an
 exported map may be a little wider than it is tall, and it lets a label sit
 further from its feature than the map on screen would, for the same reason:
-on paper a name that did not fit is gone for good.
+on paper a name that did not fit is gone for good. A map with hundreds of
+feature lanes gets a canvas big enough for the whole circle, so it is never
+exported blank.
 
 ## Selecting
 

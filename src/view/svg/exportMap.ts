@@ -60,7 +60,15 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
   );
   const ringWidth = Math.max(12, size / 60);
 
-  const render = (pad: number): { svg: string; dropped: number } => {
+  // Every lane needs its own ring, so a map with hundreds of lanes has a
+  // circle bigger than `size`. The layout then centres it on a canvas it
+  // overflows and every label anchors off the page, which is not counted as
+  // dropped: the export came out blank and said nothing (#158). Buy the room
+  // for the whole circle first; the steps below add the room for the labels.
+  const basePad = Math.max(0, 40 + lanes.laneCount * ringWidth - size / 3);
+
+  const render = (step: number): { svg: string; dropped: number } => {
+    const pad = basePad + step;
     const canvas = size + 2 * pad;
     const layout = new CircularLayout(doc.length, doc.topology, {
       width: canvas,

@@ -112,5 +112,14 @@ holds every label at once.
   38.7 ms there; a cluster now keeps its span and the sum it is centred
   on, so a merge costs nothing per member.
 
+- **A map with hundreds of lanes exported blank (#158).** The circle must be
+  at least `40 + lanes * ringWidth` in radius, so with ~100 lanes it was
+  larger than the 900 px canvas; every label then anchored off the canvas,
+  which is deliberately not counted as dropped, so the SVG held no names
+  and no "not shown" note. `exportMapSvg` now grows the canvas by the
+  overflow before the label-room steps, keeping the circle's margin. The
+  SVG writer also strips characters XML 1.0 cannot carry (C0 controls,
+  U+FFFE/F, lone surrogates), which made a name like `^A` unparseable.
+
 - Not yet: item 29's second label ring (#23), which is what would raise how
   much a crowded map can hold rather than how well it shares its room.

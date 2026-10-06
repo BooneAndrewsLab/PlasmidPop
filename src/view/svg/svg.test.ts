@@ -1,4 +1,4 @@
-import { SeqDocument, findCutSites } from '@/core';
+import { SeqDocument, createFeature, findCutSites, rangeSegment } from '@/core';
 import { ENZYMES } from '@/core/analysis/restriction';
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
@@ -66,6 +66,37 @@ describe('SvgContext', () => {
 });
 
 describe('exportMapSvg', () => {
+  const feat = (id: string, name: string, segs: [number, number][]) =>
+    createFeature({
+      id,
+      type: 'CDS',
+      name,
+      segments: segs.map(([a, b]) => rangeSegment(a, b)),
+    });
+
+  it('(#158) control characters are not written into the SVG', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(100),
+      name: 'a\u0001x',
+      topology: 'circular',
+      features: [feat('a', 'A \u0001\u0008 b', [[10, 50]])],
+    });
+    // eslint-disable-next-line no-control-regex
+    expect(exportMapSvg(doc)).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/);
+  });
+
+  it('(#158) a crowded map still exports some labels', () => {
+    const features = Array.from({ length: 10000 }, (_, i) =>
+      feat(`f${i}`, `feat${i}`, [[(i * 2) % 20000, ((i * 2) % 20000) + 1 + (i % 300)]]),
+    );
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(5000),
+      topology: 'circular',
+      features,
+    });
+    expect(exportMapSvg(doc).match(/<text/g)?.length ?? 0).toBeGreaterThan(1);
+  });
+
   it('labels a cut site with the same number as the enzyme panel (#155)', () => {
     const seq = 'A'.repeat(10) + 'GAATTC' + 'A'.repeat(100) + 'GGATCC' + 'T'.repeat(84);
     const doc = SeqDocument.create({ sequence: seq, topology: 'circular' });
