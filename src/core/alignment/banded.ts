@@ -147,9 +147,46 @@ export function anchorChain(reference: string, read: string): readonly Anchor[] 
   return links.length >= MIN_CHAIN ? links : null;
 }
 
+/** What a local path can earn and must pay, as positive magnitudes. */
+export interface FlankScoring {
+  /** The most one aligned pair can score. */
+  readonly gain: number;
+  /** The cost of the first base of a gap. */
+  readonly gapOpen: number;
+  /** The cost of each further base of a gap; 0 means gaps cost no more once open. */
+  readonly gapExtend: number;
+}
+
+/** EMBOSS DNAfull defaults, as `alignPairwise` has them. */
+const DNA_SCORING: FlankScoring = { gain: 5, gapOpen: 10, gapExtend: 0.5 };
+
+/** The scoring `options` imply, for the widest a flank can be. */
+export function flankScoring(options: AlignmentOptions): FlankScoring {
+  const protein = options.alphabet === 'protein';
+  return {
+    // Ambiguity codes never score above 5 (EDNAFULL); BLOSUM62 tops out at 11.
+    gain: Math.max(options.match ?? 0, protein ? 11 : DNA_SCORING.gain),
+    gapOpen: Math.abs(options.gapOpen ?? (protein ? -11 : -10)),
+    gapExtend: Math.abs(options.gapExtend ?? (protein ? -1 : -0.5)),
+  };
+}
+
+/**
+ * How far from the chain's end diagonal a local path through a flank of
+ * `span` aligned pairs can wander and still score above zero: with G gap
+ * bases it earns at most span*gain and pays at least open + (G-1)*extend.
+ * Infinity when gaps are free to extend, so no bound holds.
+ */
+function flankDrift(span: number, scoring: FlankScoring): number {
+  if (scoring.gapExtend <= 0) return Infinity;
+  return Math.max(0, Math.ceil((span * scoring.gain - scoring.gapOpen) / scoring.gapExtend) + 1);
+}
+
 /**
  * The band around a chain: the rectangles between consecutive anchors, the
- * diagonal past its ends, `margin` either side, made monotone.
+ * diagonal past its ends, `margin` either side, made monotone. Past the
+ * ends of a local chain it is a parallelogram about the end diagonal, as
+ * wide as the scoring lets a path drift (see the design note, #159).
  */
 export function bandAround(
   links: readonly Anchor[],
@@ -157,6 +194,7 @@ export function bandAround(
   m: number,
   mode: AlignmentMode,
   margin: number,
+  scoring: FlankScoring = DNA_SCORING,
 ): Band {
   const lo = new Int32Array(n + 1).fill(m + 1);
   const hi = new Int32Array(n + 1).fill(-1);
@@ -182,12 +220,28 @@ export function bandAround(
     if (p === undefined || q === undefined) continue;
     for (let i = p.i; i <= q.i; i++) cover(i, p.j - margin, q.j + margin);
   }
-  // Past the chain's ends (only a local alignment has any): the corner
-  // rectangles in full. A local path need not stop where the shared words do;
-  // it runs on through whatever flank still scores, indels and all, and a
-  // band along the diagonal clipped it (#159).
-  for (let i = 0; i < first.i; i++) cover(i, 0, first.j + margin);
-  for (let i = last.i + 1; i <= n; i++) cover(i, last.j - margin, m);
+  // Past the chain's ends (only a local alignment has any): a local path
+  // need not stop where the shared words do; it runs on through whatever
+  // flank still scores, indels and all, and a band along the diagonal
+  // clipped it (#159). It can drift from the end diagonal by at most
+  // `drift` + margin, since each pair earns at most `gain` and the pairs
+  // before the anchor number at most min(rows, columns) of the flank.
+  if (mode === 'local') {
+    const leadDrift = flankDrift(Math.min(first.i, first.j + margin), scoring);
+    const leadShift = first.j - first.i;
+    for (let i = 0; i < first.i; i++) {
+      const to = Math.min(first.j + margin, i + leadShift + leadDrift + margin);
+      const from = i + leadShift - leadDrift - margin;
+      if (to >= 0 && from <= m) cover(i, from, to);
+    }
+    const tailDrift = flankDrift(Math.min(n - last.i, m - last.j + margin), scoring);
+    const tailShift = last.j - last.i;
+    for (let i = last.i + 1; i <= n; i++) {
+      const from = Math.max(last.j - margin, i + tailShift - tailDrift - margin);
+      const to = i + tailShift + tailDrift + margin;
+      if (to >= 0 && from <= m) cover(i, from, to);
+    }
+  }
   // Monotone, never narrower: the lower edge from below, the upper from above.
   for (let i = n - 1; i >= 0; i--) lo[i] = Math.min(lo[i] ?? 0, lo[i + 1] ?? 0);
   for (let i = 1; i <= n; i++) hi[i] = Math.max(hi[i] ?? 0, hi[i - 1] ?? 0);
@@ -223,9 +277,10 @@ export function alignBanded(
   const links = anchorChain(reference, read);
   if (links === null) return null;
   const mode = options.mode ?? 'global';
+  const scoring = flankScoring(options);
   let result: BandedResult | null = null;
   for (const margin of MARGINS) {
-    const band = bandAround(links, reference.length, read.length, mode, margin);
+    const band = bandAround(links, reference.length, read.length, mode, margin, scoring);
     result = alignInBand(reference, read, band, options, onProgress);
     if (!result.touchedEdge) return result;
   }

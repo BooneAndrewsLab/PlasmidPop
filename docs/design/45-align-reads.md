@@ -79,6 +79,36 @@ flanks on a read it runs on through them, indels and all, for whatever still
 scores. A band that followed the diagonal past the last anchor clipped that
 extension and scored 4-32 points under the full matrix with `touchedEdge`
 still false (the best path inside the band never reached its edge). Past the
-chain's ends a local band is now the whole corner rectangle, so the banded
-score equals the full one; the extra cells are bounded by the unmatched
-flanks, not by the read.
+chain's ends a local band is now a parallelogram about the end diagonal,
+wide enough that no path that could score is clipped, so the banded score
+equals the full one. (The first fix, the whole corner rectangle, was sound
+but cost 2.5x on a plate of reads, where the reference side of the corner
+is thousands of rows long.)
+
+Why the width is sound. Take the leading flank, the cells before the first
+anchor `(fi, fj)`, and a path that is optimal and reaches the chain. Its
+prefix up to the anchor scores above zero (a prefix at or below zero could be
+dropped for a path at least as good). Let `c = min(fi, fj + margin)`: the
+prefix consumes at most that many rows and, since the path is monotone and
+enters the chain within `margin` of the anchor's column, at most that many
+columns, so it has at most `c` aligned pairs, each worth at most `gain`
+(the larger of the match score and 5, the EDNAFULL ceiling; 11 for
+protein). If it uses `G` gap bases it pays at least `open + (G-1)*extend`,
+so `c*gain - open - (G-1)*extend > 0` and `G < 1 + (c*gain - open)/extend`.
+The path ends within `margin` of the anchor's diagonal and a gap base moves
+it one diagonal, so every cell on it, whichever diagonal it started on,
+lies within `drift + margin` of that diagonal, with `drift` the bound on
+`G`. Rows past the chain mirror this with the trailing anchor. Columns
+are also clamped to the corner (`<= fj + margin` leading, `>= lj - margin`
+trailing). If `extend` is zero no bound exists and the whole corner is
+covered. The scoring comes from the options (`flankScoring`) and is passed
+to `bandAround`.
+
+The bound is still loose at the default scoring, since a gap base costs
+only 0.5 against 5 earned: `drift` is about `10c`. The saving comes from
+the rows it drops: those more than about `fj + drift + margin` above the
+anchor can only be reached by a path with more gaps than it can pay for.
+The plate timing went from 1.3 s (rectangle) to 0.75 s (the diagonal-only
+band was 0.5 s). Only paths that reach the chain are covered, as before:
+an alignment wholly inside a flank that outscores the chain is not the
+chain's alignment, and the edge check does not look for it.
