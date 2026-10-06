@@ -69,6 +69,31 @@ export interface Residue {
 }
 
 /**
+ * A codon's positions in reading order with a step across a circle's origin
+ * carried on rather than wrapped: [1498, 1499, 0] on a 1500 bp circle is
+ * [1498, 1499, 1500], the three adjacent columns a read that wraps puts the
+ * codon in (a reverse codon's descending [1, 0, 1499] is [1, 0, -1]).
+ */
+function unrolled(
+  positions: readonly number[],
+  period: number,
+  strand: 'forward' | 'reverse',
+): number[] {
+  if (period <= 0) return [...positions];
+  const out: number[] = [];
+  let shift = 0;
+  positions.forEach((p, i) => {
+    const before = positions[i - 1];
+    if (before !== undefined) {
+      if (strand === 'forward' && p < before) shift += period;
+      else if (strand === 'reverse' && p > before) shift -= period;
+    }
+    out.push(p + shift);
+  });
+  return out;
+}
+
+/**
  * The frames of `features`' CDSs that fall in the alignment. `period` is the
  * document's length when it is circular, else 0, as for `buildTrack`.
  */
@@ -87,7 +112,9 @@ export function buildFrames(
     for (const shift of shifts) {
       const codons: CodonColumns[] = [];
       for (const codon of translation.codons) {
-        const cols = codon.positions.map((p) => columns[p - stack.offset + shift] ?? -1);
+        const cols = unrolled(codon.positions, period, translation.strand).map(
+          (p) => columns[p - stack.offset + shift] ?? -1,
+        );
         const [a, b, c] = cols;
         if (a === undefined || b === undefined || c === undefined) continue;
         if (a < 0 || b < 0 || c < 0) continue;
