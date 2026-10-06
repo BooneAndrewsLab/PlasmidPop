@@ -1,5 +1,5 @@
 import { SeqDocument, createFeature, findCutSites, rangeSegment } from '@/core';
-import { ENZYMES } from '@/core/analysis/restriction';
+import { ENZYMES, cutLabel } from '@/core/analysis/restriction';
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
 
@@ -11,6 +11,27 @@ import {
 } from './exportLinear';
 import { exportMapSvg } from './exportMap';
 import { SvgContext } from './svgContext';
+
+/** Deterministic random bases from an integer LCG (no double-precision drift). */
+function randomBases(n: number, seed: number): string {
+  let s = seed >>> 0;
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+    out += 'ACGT'.charAt((s >>> 16) & 3);
+  }
+  return out;
+}
+
+/** The text and position of every `<text>` element of an SVG. */
+function svgLabels(svg: string): { x: number; y: number; text: string }[] {
+  const re = /<text x="([-\d.]+)" y="([-\d.]+)"[^>]*>([^<]*)<\/text>/g;
+  return [...svg.matchAll(re)].map((m) => ({
+    x: Number(m[1]),
+    y: Number(m[2]),
+    text: m[3] ?? '',
+  }));
+}
 
 describe('SvgContext', () => {
   it('records rectangles, paths, arcs and text', () => {
@@ -107,6 +128,140 @@ describe('exportMapSvg', () => {
     );
     expect(cuts[0]?.cut).toBe(11); // "cut after base 11" in the panel
     expect(exportMapSvg(doc, { cutSites: cuts })).toContain('EcoRI (11)');
+  });
+
+  // Folded in from the 2026-10-06 audit's map sweep: sites at, across and
+  // cutting exactly at the origin, Type IIS on either strand, and a linear map.
+  it.each([
+    {
+      name: 'EcoRI at 0',
+      seq: 'GAATTC' + randomBases(300, 1),
+      topology: 'circular',
+      enzymes: ['EcoRI'],
+    },
+    {
+      name: 'EcoRI across the origin',
+      seq: 'ATTC' + randomBases(300, 2) + 'GA',
+      topology: 'circular',
+      enzymes: ['EcoRI'],
+    },
+    {
+      name: 'EcoRI cutting at the origin',
+      seq: 'AATTC' + randomBases(300, 3) + 'G',
+      topology: 'circular',
+      enzymes: ['EcoRI'],
+    },
+    {
+      name: 'BsaI forward',
+      seq: randomBases(100, 4) + 'GGTCTC' + randomBases(200, 5),
+      topology: 'circular',
+      enzymes: ['BsaI'],
+    },
+    {
+      name: 'BsaI reverse',
+      seq: randomBases(100, 6) + 'GAGACC' + randomBases(200, 7),
+      topology: 'circular',
+      enzymes: ['BsaI'],
+    },
+    {
+      name: 'BsaI cutting past the origin',
+      seq: randomBases(303, 8) + 'GGTCTC',
+      topology: 'circular',
+      enzymes: ['BsaI'],
+    },
+    {
+      name: 'BsaI reverse cutting before the origin',
+      seq: 'GAGACC' + randomBases(300, 10),
+      topology: 'circular',
+      enzymes: ['BsaI'],
+    },
+    {
+      name: 'linear BsaI both ways and EcoRI',
+      seq: randomBases(100, 11) + 'GAGACC' + randomBases(50, 12) + 'GGTCTC' + randomBases(20, 13),
+      topology: 'linear',
+      enzymes: ['BsaI', 'EcoRI'],
+    },
+    {
+      name: 'linear EcoRI at the end',
+      seq: randomBases(200, 14) + 'GAATTC',
+      topology: 'linear',
+      enzymes: ['EcoRI'],
+    },
+  ] as const)('labels every cut as the panel does: $name', ({ seq, topology, enzymes }) => {
+    const doc = SeqDocument.create({ sequence: seq, topology });
+    const sites = findCutSites(
+      seq,
+      topology,
+      ENZYMES.filter((e) => (enzymes as readonly string[]).includes(e.name)),
+    );
+    expect(sites.length).toBeGreaterThan(0);
+    const texts = svgLabels(exportMapSvg(doc, { cutSites: sites })).map((l) => l.text);
+    for (const s of sites) {
+      const n = cutLabel(s.cut, seq.length, topology);
+      expect(n).toBeGreaterThan(0);
+      expect(texts.some((t) => t.includes(`${s.enzyme} (${n.toLocaleString()})`))).toBe(true);
+    }
+    expect(texts.some((t) => t.endsWith('(0)'))).toBe(false);
+  });
+
+  // A multi-segment or origin-wrapping feature's label sits at the middle
+  // of what the feature covers, not at a segment end or across the circle.
+  describe.each([
+    {
+      name: 'split at the origin',
+      segs: [
+        [980, 1000],
+        [0, 10],
+      ],
+      mid: 990,
+    },
+    { name: 'unrolled across the origin', segs: [[980, 1030]], mid: 5 },
+    {
+      name: 'unrolled plus a segment',
+      segs: [
+        [990, 1040],
+        [100, 110],
+      ],
+      mid: 15,
+    },
+    {
+      name: 'two equal segments',
+      segs: [
+        [100, 120],
+        [500, 520],
+      ],
+      mid: 110,
+    },
+    { name: 'single segment', segs: [[200, 400]], mid: 300 },
+    { name: 'nearly the whole circle', segs: [[10, 1005]], mid: 507.5 },
+  ] as const)('label angle of a feature $name', ({ segs, mid }) => {
+    it.each(['forward', 'reverse'] as const)('%s', (strand) => {
+      const L = 1000;
+      const doc = SeqDocument.create({
+        sequence: randomBases(L, 42),
+        topology: 'circular',
+        features: [
+          createFeature({
+            id: 'a',
+            type: 'misc_feature',
+            name: 'Lbl',
+            strand,
+            segments: segs.map(([a, b]) => rangeSegment(a, b)),
+          }),
+        ],
+      });
+      const svg = exportMapSvg(doc);
+      const size = Number(/viewBox="0 0 ([\d.]+)/.exec(svg)?.[1]);
+      const label = svgLabels(svg).find((l) => l.text === 'Lbl');
+      expect(label).toBeDefined();
+      const c = size / 2;
+      const turn =
+        (Math.atan2((label?.y ?? 0) - c, (label?.x ?? 0) - c) + Math.PI / 2) / (2 * Math.PI);
+      const at = (turn - Math.floor(turn)) * L;
+      const d = Math.abs(at - mid);
+      // The label is pushed sideways by collision layout, so allow a margin.
+      expect(Math.min(d, L - d)).toBeLessThan(60);
+    });
   });
 
   it('produces a standalone SVG of a real plasmid with labels', () => {

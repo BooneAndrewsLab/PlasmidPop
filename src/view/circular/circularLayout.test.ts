@@ -65,6 +65,51 @@ describe('CircularLayout', () => {
   });
 });
 
+// Folded in from the 2026-10-06 audit's map sweep.
+describe.each([1, 2, 3, 7, 100, 1000, 48_502, 10_000_000])(
+  'CircularLayout round trip, L=%i',
+  (L) => {
+    const lay = new CircularLayout(L, 'circular', {
+      width: 600,
+      height: 600,
+      laneCount: 1,
+      ringWidth: 14,
+      outerMargin: 60,
+    });
+    const huge = L >= 10_000_000;
+    const probe =
+      L > 5000
+        ? [0, 1, 2, L - 3, L - 2, L - 1, Math.floor(L / 2), Math.floor(L / 4)]
+        : Array.from({ length: L }, (_, i) => i);
+
+    it('baseOf recovers the base from the angle of a point, as the UI does', () => {
+      const bad: string[] = [];
+      for (const b of probe) {
+        for (const frac of [0.01, 0.5, 0.99]) {
+          const a = lay.angleOf(b + frac);
+          const got = lay.baseOf(Math.atan2(200 * Math.sin(a), 200 * Math.cos(a)));
+          // At 10 Mb one base is below double-precision angle resolution.
+          if (huge ? Math.abs(got - b) > 1 : got !== b) bad.push(`${b}+${frac}->${got}`);
+        }
+        const p = lay.positionOf(lay.angleOf(b));
+        if (p !== b % L) bad.push(`pos ${b}->${p}`);
+      }
+      expect(bad.slice(0, 20)).toEqual([]);
+    });
+
+    it('hitTest on the lane gives the same base', () => {
+      const r = lay.laneRadius(0);
+      const bad: string[] = [];
+      for (const b of probe.slice(0, 50)) {
+        const a = lay.angleOf(b + 0.5);
+        const h = lay.hitTest(lay.cx + r * Math.cos(a), lay.cy + r * Math.sin(a));
+        if (h.kind !== 'lane' || (!huge && h.position !== b)) bad.push(`${b} ${JSON.stringify(h)}`);
+      }
+      expect(bad.slice(0, 20)).toEqual([]);
+    });
+  },
+);
+
 describe('tickInterval', () => {
   it('keeps the tick count reasonable', () => {
     expect(tickInterval(100)).toBe(10);
