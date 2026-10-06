@@ -856,4 +856,55 @@ describe('hit-testing a feature lane (#159)', () => {
     }
     expect(wrong).toEqual([]);
   });
+
+  describe('the slop around a feature too short to see (#168)', () => {
+    const N = 48_502;
+    const layout = new CircularLayout(N, 'circular', {
+      width: 600,
+      height: 600,
+      laneCount: 1,
+      ringWidth: 14,
+      outerMargin: 60,
+    });
+    const hits = (topology: 'circular' | 'linear', start: number, positions: number[]) => {
+      const doc = SeqDocument.create({
+        sequence: 'ACGT'.repeat(N / 4) + 'AC',
+        topology,
+        features: [feat('f', 'f', [[start, start + 1]])],
+      });
+      const lanes = assignLanes(doc.features.all(), N);
+      return positions.map((p) => featureAtLane(doc, lanes, layout, 0, p) !== null);
+    };
+
+    // How far from the feature the pointer still finds it, away from any origin.
+    const slop = (() => {
+      let d = 0;
+      while (hits('circular', 1000, [1000 + d + 1])[0] === true) d++;
+      return d;
+    })();
+    const around = (start: number): number[] => {
+      const out: number[] = [];
+      for (let d = -slop - 2; d <= slop + 2; d++) out.push((((start + d) % N) + N) % N);
+      return out;
+    };
+    const reaches = (start: number): number[] =>
+      around(start).filter((_, i) => hits('circular', start, around(start))[i] === true);
+
+    it('is a few bases either side of a feature away from the origin', () => {
+      expect(slop).toBeGreaterThan(1);
+    });
+
+    it.each([0, N - 1, 1, N - 2, 1000])(
+      'is as wide across the origin as anywhere: a feature at %i',
+      (start) => {
+        const want = Array.from({ length: 2 * slop + 1 }, (_, i) => (start + i - slop + N) % N);
+        expect(reaches(start).sort((x, y) => x - y)).toEqual(want.sort((x, y) => x - y));
+      },
+    );
+
+    it('stops at the end of a line', () => {
+      const got = hits('linear', N - 1, [N - 1 - slop - 1, N - 1 - slop, N - 1, 0, 1]);
+      expect(got).toEqual([false, true, true, false, false]);
+    });
+  });
 });
