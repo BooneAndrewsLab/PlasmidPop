@@ -1,0 +1,6 @@
+These small FASTQ files are copied unchanged from Biopython's Tests/Quality
+directory (https://github.com/biopython/biopython), which is distributed under
+the Biopython License Agreement (see LICENSE.rst there; Copyright the
+Biopython contributors). They are test data only and are read by
+src/test/oracle/fastq.test.ts, with the answers scripts/oracle/fastq.py
+records from Biopython.

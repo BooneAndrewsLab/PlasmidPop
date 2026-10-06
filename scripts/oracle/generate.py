@@ -42,10 +42,12 @@ from Bio.SeqFeature import (
 from Bio.SeqIO.InsdcIO import _insdc_location_string
 from Bio.SeqRecord import SeqRecord
 
+import alignment
 import assembly
 import cds
 import checksums
 import digest
+import fastq
 import gateway
 import pcr
 import thermo
@@ -493,6 +495,8 @@ def main():
     write('gateway.json', gateway.generate())
     write('seguid.json', checksums.generate())
     write('cds.json', cds.generate())
+    write('alignment.json', alignment.generate())
+    write('fastq.json', fastq.generate())
 
 
 if __name__ == '__main__':

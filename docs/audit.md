@@ -6,9 +6,10 @@ holds what the last one had to discover, so the next one need not.
 
 ## Baseline
 
-| Audit      | Commit audited     | Issues filed                 | Areas     |
-| ---------- | ------------------ | ---------------------------- | --------- |
-| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | all below |
+| Audit      | Commit audited     | Issues filed                 | Areas                                             |
+| ---------- | ------------------ | ---------------------------- | ------------------------------------------------- |
+| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                             |
+| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
@@ -60,6 +61,10 @@ Add a row here when an audit finishes.
 | Digest, ligation, methylation, REBASE          | `core/analysis/{restriction,methylation,enzymeTable}.ts`, `core/cloning/{digest,ligate,partial}.ts`, `io/rebase/` | 07, 30, 40, 42, 44 | Biopython `Restriction`; pydna; REBASE `withrefm`, `emboss_e` and damlist overlap tables                                     |
 | PCR, Gateway                                   | `core/cloning/{pcr,gateway}.ts`                                                                                   | 36, 48             | pydna `amplify.pcr`, `assembly2.gateway_assembly`; Invitrogen attB sequences                                                 |
 | Translation, file formats                      | `core/analysis/{cdsTranslation,sixFrame,orf,geneticCodes}.ts`, `io/*`, `core/checksum`                            | 01, 04, 43, 57     | NCBI `gc.prt`; NCBI `/translation`; Biopython parsers and test files; `seguid`                                               |
+| Pairwise alignment, diff                       | `core/alignment/*`, `core/diff/*`                                                                                 | 45                 | Biopython `PairwiseAligner` (EDNAFULL −10/−0.5; BLOSUM62 −11/−1); an independent LCS for diffs                               |
+| Sequencing reads                               | `io/fastq/*`, `io/abif/*`, `view/trace.ts`, `core/alignment/quality.ts`                                           | 45, 46, 70         | Biopython `SeqIO` fastq/abi and its `Tests/Quality`, `Tests/Abi` files                                                       |
+| SnapGene files                                 | `io/snapgene/*`                                                                                                   | —                  | The 203 sample files' own `/translation` qualifiers; a raw packet parser; Biopython `snapgene` (reads only the circular bit) |
+| Circular map, SVG export, linear layout        | `view/circular/*`, `view/svg/*`, `view/linear/*`                                                                  | —                  | Own invariants: angle/position round trips, arc endpoints from the exported SVG, panel numbers                               |
 | UI-to-core wiring                              | `app/components/*Panel.tsx`, `app/clipboard.ts`, `workers/*`                                                      | —                  | none needed: the panel's own invariants (feature bases equal the primer in its note; results belong to the current document) |
 
 ## Conventions and false positives
@@ -95,6 +100,19 @@ reporting one.
   equals `−ovhg`.
 - **Trans-spliced mixed-strand CDS** (NC_000932 rps12) are known to be
   unsupported, with a warning.
+
+- **Banded local alignment** may score ≤0.2% below the full optimum when
+  junk flanks surround the homology; global banded always equals it (#159).
+- **Refined diffs** (`refine: true`) keep fewer equal bases than the LCS by
+  design (affine-gap re-alignment); raw Myers equals the LCS.
+- **Peaks above 32,767** in ABIF are read unsigned; Biopython reads them
+  signed. Ours is right (item 46).
+- **Biopython `snapgene`** takes record name and description from
+  `<Comments>`; ours does not.
+- **SnapGene sample files** live in `~/Programs/snapgene_8.2.2_linux`
+  (203 .dna); they may not be committed. `fixtures/local` has none.
+- **Circular and origin-spanning alignment** is in the guide
+  (`11-align.md`) but not in `core/alignment`; not yet audited.
 
 ## Reference sources that work from here
 
