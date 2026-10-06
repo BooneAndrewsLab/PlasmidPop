@@ -88,3 +88,8 @@ whole codon left; frame 1 is the default and its qualifier is dropped rather
 than written as `1`. `replace` and a paste over a selection delete through
 the same path (a replacement keeps the first bases of its range, so only
 the bases it actually removes count). The importer's own workaround went.
+
+Added 2026-10-06 (#163): the same `advanceCodonStart` step also marks the
+5′ end partial (`partialStart` on the first segment, `partialEnd` on the
+last of a reverse CDS), as `extractRange` does, so what is left reads from
+its first whole codon instead of treating a TTG/CTG there as `M`.

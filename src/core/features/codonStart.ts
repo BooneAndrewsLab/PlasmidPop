@@ -42,7 +42,9 @@ export function basesLostFromReadingStart(
  * `feature` with `/codon_start` moved past `lost` bases taken off the front
  * of its reading, to the first whole codon that is left. A frame of 1 is
  * the default and is not written, so the qualifier goes rather than reading
- * `1`. The feature itself when nothing was lost or it is not a CDS.
+ * `1`. The 5' end is marked partial too (#163): what is left has no start
+ * codon of its own, so its first codon must not read as `M`, as in
+ * `extractRange`. The feature itself when nothing was lost or it is not a CDS.
  */
 export function advanceCodonStart(feature: Feature, lost: number): Feature {
   if (lost <= 0 || feature.type !== 'CDS') return feature;
@@ -51,5 +53,21 @@ export function advanceCodonStart(feature: Feature, lost: number): Feature {
   const remaining = lost <= skip ? skip - lost : (3 - ((lost - skip) % 3)) % 3;
   const qualifiers = feature.qualifiers.filter((x) => x.name !== 'codon_start');
   if (remaining > 0) qualifiers.push({ name: 'codon_start', value: String(remaining + 1) });
-  return { ...feature, qualifiers };
+  return { ...feature, qualifiers, segments: markFivePrimePartial(feature) };
+}
+
+/** The segments with the biological 5' end (low coordinate forward, high reverse) marked partial. */
+function markFivePrimePartial(feature: Feature): Feature['segments'] {
+  const reverse = feature.strand === 'reverse';
+  let at = -1;
+  feature.segments.forEach((s, i) => {
+    if (s.kind === 'range' && (reverse || at < 0)) at = i;
+  });
+  return feature.segments.map((s, i) =>
+    i === at && s.kind === 'range'
+      ? reverse
+        ? { ...s, partialEnd: true }
+        : { ...s, partialStart: true }
+      : s,
+  );
 }

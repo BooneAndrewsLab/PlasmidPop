@@ -5,7 +5,9 @@ type. Features keep their places: a feature after an insertion moves along,
 a feature around it grows, a feature whose bases are deleted shrinks or
 disappears. A CDS that loses bases from the start of its reading (its left
 end, or its right end on the reverse strand) has its `/codon_start` moved on
-to the first whole codon left, so the translation keeps its frame.
+to the first whole codon left, so the translation keeps its frame, and is
+marked 5′-partial, since what is left has no start codon of its own: the
+next codon is read as itself, not as `M`.
 
 ## Typing, deleting, replacing
 

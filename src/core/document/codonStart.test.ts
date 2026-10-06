@@ -213,3 +213,97 @@ describe('undo and redo', () => {
     expect(frame(undone.redo().present)).toBe('3');
   });
 });
+
+// #163: what is left of a CDS whose start was cut has no start codon of its
+// own, so it is marked 5'-partial and its first codon is not read as M.
+describe('delete marks a CDS cut at the start of its reading 5-prime partial', () => {
+  const LEAD = 'CCCCCCCCCC';
+  const body = 'ATGTTGAAACCCTAA'; // M L K P *
+  const partial = (doc: SeqDocument): { start: boolean[]; end: boolean[] } => {
+    const segs = (doc.features.get('c')?.segments ?? []).flatMap((s) =>
+      s.kind === 'range' ? [s] : [],
+    );
+    return { start: segs.map((s) => s.partialStart), end: segs.map((s) => s.partialEnd) };
+  };
+
+  it('forward: deleting the whole start codon reads LKP*', () => {
+    const doc = SeqDocument.create({
+      sequence: LEAD + body + LEAD,
+      features: [cds({ segments: [rangeSegment(10, 25)] })],
+    });
+    const d = doc.delete({ start: 10, end: 13 });
+    expect(partial(d)).toEqual({ start: [true], end: [false] });
+    expect(protein(d)).toBe('LKP*');
+  });
+
+  it('forward: deleting part of the start codon also marks it', () => {
+    const doc = SeqDocument.create({
+      sequence: LEAD + body + LEAD,
+      features: [cds({ segments: [rangeSegment(10, 25)] })],
+    });
+    const d = doc.delete({ start: 10, end: 11 });
+    expect(partial(d).start).toEqual([true]);
+    expect(protein(d)).toBe('LKP*');
+  });
+
+  it('forward: a replace that removes the start codon marks it', () => {
+    const doc = SeqDocument.create({
+      sequence: LEAD + body + LEAD,
+      features: [cds({ segments: [rangeSegment(10, 25)] })],
+    });
+    const d = doc.replace({ start: 10, end: 13 }, '');
+    expect(protein(d)).toBe('LKP*');
+  });
+
+  it('forward: deleting elsewhere leaves it complete', () => {
+    const doc = SeqDocument.create({
+      sequence: LEAD + body + LEAD,
+      features: [cds({ segments: [rangeSegment(10, 25)] })],
+    });
+    expect(partial(doc.delete({ start: 13, end: 16 })).start).toEqual([false]);
+    expect(partial(doc.delete({ start: 0, end: 5 })).start).toEqual([false]);
+  });
+
+  it('reverse: marks the high end partial', () => {
+    const doc = SeqDocument.create({
+      sequence: LEAD + reverseComplement(body) + LEAD,
+      features: [cds({ strand: 'reverse', segments: [rangeSegment(10, 25)] })],
+    });
+    const d = doc.delete({ start: 22, end: 25 });
+    expect(partial(d)).toEqual({ start: [false], end: [true] });
+    expect(protein(d)).toBe('LKP*');
+  });
+
+  it('multi-segment: a join whose first segment goes whole marks the next one', () => {
+    // exons ATGTTG | AAACCCTAA joined, the first exon deleted entirely
+    const doc = SeqDocument.create({
+      sequence: 'ATGTTG' + 'GGG' + 'AAACCCTAA',
+      features: [cds({ segments: [rangeSegment(0, 6), rangeSegment(9, 18)] })],
+    });
+    const d = doc.delete({ start: 0, end: 9 });
+    expect(partial(d)).toEqual({ start: [true], end: [false] });
+    expect(protein(d)).toBe('KP*');
+  });
+
+  it('circular: a delete across the origin that takes the start marks it', () => {
+    const doc = SeqDocument.create({
+      sequence: body.slice(3) + LEAD + body.slice(0, 3),
+      topology: 'circular',
+      features: [cds({ segments: [rangeSegment(12 + 10, 12 + 10 + 3), rangeSegment(0, 12)] })],
+    });
+    const d = doc.delete({ start: 22, end: 25 });
+    expect(partial(d).start[0]).toBe(true);
+  });
+
+  it('undo and redo carry the mark', () => {
+    const doc = SeqDocument.create({
+      sequence: LEAD + body + LEAD,
+      features: [cds({ segments: [rangeSegment(10, 25)] })],
+    });
+    const h = History.create(doc).push(doc.delete({ start: 10, end: 13 }), 'Delete');
+    const undone = h.undo();
+    expect(partial(undone.present).start).toEqual([false]);
+    expect(protein(undone.present)).toBe('MLKP*');
+    expect(partial(undone.redo().present).start).toEqual([true]);
+  });
+});
