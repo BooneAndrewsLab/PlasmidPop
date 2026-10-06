@@ -57,7 +57,9 @@ describe('a plate of reads', () => {
       expect(rows.every((r) => r.status === 'aligned' && r.result.alignment.identity > 0.95)).toBe(
         true,
       );
-      expectWithin(ms, 10_000);
+      // 0.9-1.2 s here, 4.8-9.9 s on CI runners since the band is checked
+      // (#167); aligning both strands in full is 13 s here and far more there.
+      expectWithin(ms, 20_000);
     },
     60_000,
   );

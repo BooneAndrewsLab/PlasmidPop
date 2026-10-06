@@ -79,7 +79,10 @@ one process (the first is cold), single alignments a median of three.
 | 10 kb read, 12 kb, Local (not checked: region 118 M cells)   | 39 / 41 ms        | 42 / 47 ms         |
 
 `readBatch.timing.test.ts` alone (one cold run): 0.96 s before, 1.15 s
-after. In `banded.test.ts`, "the cost of checking a band": a 1 kb read
+after; on GitHub's runner 4.8 s before and 9.9 s on the first run after,
+a run in which unrelated timings were 1.5-1.7 times their usual too. Its
+budget went from 10 to 20 s, still far under aligning both strands in
+full. In `banded.test.ts`, "the cost of checking a band": a 1 kb read
 against a 300 kb circle unrolled, checked, 466 ms cold; a 10 kb Global
 read 361 ms.
 

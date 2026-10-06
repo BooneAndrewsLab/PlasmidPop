@@ -116,7 +116,8 @@ describe('pairwise alignment against Biopython', () => {
       }
     }
     expect(problems).toEqual([]);
-  }, 60_000);
+    // 4 s here; 43 s on a busy CI runner.
+  }, 180_000);
 });
 
 interface CircularCase {
@@ -222,5 +223,6 @@ describe('circular read mapping against Biopython', () => {
       }
     }
     expect(problems).toEqual([]);
-  }, 120_000);
+    // 50-78 s on CI runners; give a busy one room.
+  }, 240_000);
 });

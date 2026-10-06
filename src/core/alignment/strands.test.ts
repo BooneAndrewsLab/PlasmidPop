@@ -93,7 +93,8 @@ describe('fast, for a batch of reads (#59)', () => {
         expect(fast.alignment.identity).toBe(exact.alignment.identity);
       }
     }
-  }, 30_000);
+    // 3 s here, 33 s on a busy CI runner once the band was checked (#167).
+  }, 120_000);
 
   it('falls back to the full alignment for a pair with nothing to band around', () => {
     const a = randomSequence(300, 1);
