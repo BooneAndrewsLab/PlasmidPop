@@ -1396,15 +1396,17 @@ export function featureAtLane(
   const f = doc.features.at(position, doc.length).find(inLane);
   if (f !== undefined) return f.id;
   const r = layout.laneRadius(lane);
-  // Bases per pixel of this lane's ring; the radius is on screen, zoom and all.
-  const bases = Math.ceil(MIN_FEATURE_PX / 2 / ((Math.PI * 2 * r) / Math.max(1, doc.length)));
+  const pxPerBase = (Math.PI * 2 * r) / Math.max(1, doc.length);
+  const bases = Math.ceil(MIN_FEATURE_PX / 2 / pxPerBase);
   if (bases < 1) return null;
+  // Only a feature drawn at the minimum width is widened; one that is wider
+  // than that already holds exactly the bases it covers (#159).
   const near = doc.features
     .overlapping(
       { start: Math.max(0, position - bases), end: Math.min(doc.length, position + bases + 1) },
       doc.length,
     )
-    .filter(inLane);
+    .filter((x) => inLane(x) && featureLength(x) * pxPerBase < MIN_FEATURE_PX);
   return near[0]?.id ?? null;
 }
 

@@ -9,7 +9,7 @@ import { PRINT_THEME } from '../svg/exportMap';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout } from './circularLayout';
-import { renderCircularMap, selectionSweep } from './renderCircular';
+import { featureAtLane, renderCircularMap, selectionSweep } from './renderCircular';
 import { exportMapSvg } from '../svg';
 
 const opts = { width: 600, height: 600, laneCount: 2, ringWidth: 14, outerMargin: 60 };
@@ -824,5 +824,36 @@ describe('renderCircularMap label angle', () => {
       (Math.atan2(Number(m?.[2]) - 450, Number(m?.[1]) - 450) + Math.PI / 2) / (2 * Math.PI);
     const pos = (t - Math.floor(t)) * 1000;
     expect(Math.min(Math.abs(pos - 995), 1000 - Math.abs(pos - 995))).toBeLessThan(40);
+  });
+});
+
+describe('hit-testing a feature lane (#159)', () => {
+  const feat = (id: string, name: string, segs: [number, number][]) =>
+    createFeature({ id, type: 'CDS', name, segments: segs.map(([a, b]) => rangeSegment(a, b)) });
+
+  it('#159: a pointer on the centre of a base hits that base', () => {
+    const N = 100;
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(25),
+      topology: 'circular',
+      features: [feat('f', 'f', [[20, 40]])],
+    });
+    const lanes = assignLanes(doc.features.all(), N);
+    const L = new CircularLayout(N, 'circular', {
+      width: 600,
+      height: 600,
+      laneCount: 1,
+      ringWidth: 14,
+      outerMargin: 60,
+    });
+    const r = L.laneRadius(0);
+    const wrong: number[] = [];
+    for (let b = 0; b < N; b++) {
+      const a = L.angleOf(b + 0.5);
+      const h = L.hitTest(L.cx + r * Math.cos(a), L.cy + r * Math.sin(a));
+      const got = h.kind === 'lane' ? featureAtLane(doc, lanes, L, h.lane, h.position) : null;
+      if ((got !== null) !== (b >= 20 && b < 40)) wrong.push(b);
+    }
+    expect(wrong).toEqual([]);
   });
 });

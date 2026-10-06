@@ -10,6 +10,7 @@ import { type MapViewport, type ViewportBounds, FIT_VIEWPORT, maxZoomFor } from 
 
 export type CircularHit =
   | { readonly kind: 'backbone'; readonly position: number }
+  /** `position` of a lane hit is the base under the pointer; of a backbone hit, the nearest boundary. */
   | { readonly kind: 'lane'; readonly lane: number; readonly position: number }
   | { readonly kind: 'none' };
 
@@ -93,6 +94,19 @@ export class CircularLayout {
     return Math.round(turns * this.seqLength) % this.seqLength;
   }
 
+  /**
+   * The base an angle falls on, in [0, seqLength): the one whose arc holds
+   * it, where `positionOf` gives the nearer boundary. A feature is hit by
+   * the base under the pointer, not by the boundary nearest it, which for
+   * the half of every base nearer its far edge is the neighbour (#159).
+   */
+  baseOf(angle: number): number {
+    if (this.seqLength === 0) return 0;
+    let turns = (angle + Math.PI / 2) / TWO_PI;
+    turns -= Math.floor(turns);
+    return Math.min(this.seqLength - 1, Math.floor(turns * this.seqLength));
+  }
+
   pointAt(position: number, r: number): { x: number; y: number } {
     const a = this.angleOf(position);
     return { x: this.cx + r * Math.cos(a), y: this.cy + r * Math.sin(a) };
@@ -107,14 +121,15 @@ export class CircularLayout {
     const dx = x - this.cx;
     const dy = y - this.cy;
     const r = Math.hypot(dx, dy);
-    const position = this.positionOf(Math.atan2(dy, dx));
+    const angle = Math.atan2(dy, dx);
+    const position = this.positionOf(angle);
     if (Math.abs(r - this.radius) <= 10) return { kind: 'backbone', position };
     if (this.laneCount > 0) {
       const outer = this.laneRadius(0) + this.ringWidth / 2;
       const inner = this.laneRadius(this.laneCount - 1) - this.ringWidth / 2;
       if (r <= outer && r >= inner) {
         const lane = Math.min(this.laneCount - 1, Math.floor((outer - r) / this.ringWidth));
-        return { kind: 'lane', lane, position };
+        return { kind: 'lane', lane, position: this.baseOf(angle) };
       }
     }
     return { kind: 'none' };

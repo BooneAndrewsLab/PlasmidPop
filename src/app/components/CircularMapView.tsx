@@ -342,7 +342,7 @@ export function CircularMapView({ doc }: Props) {
   const overlayIdAt = (x: number, y: number): string | null => {
     if (overlay.length === 0 || doc.length === 0) return null;
     const r = Math.hypot(x - layout.cx, y - layout.cy);
-    const position = layout.positionOf(Math.atan2(y - layout.cy, x - layout.cx));
+    const position = layout.baseOf(Math.atan2(y - layout.cy, x - layout.cx));
     for (const span of overlay) {
       if (span.clickable !== true) continue;
       const lane = previewLanes.laneOf.get(span.id) ?? 0;
