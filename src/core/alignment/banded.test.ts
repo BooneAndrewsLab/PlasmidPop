@@ -38,10 +38,10 @@ function noisy(seq: string, rate: number, next: () => number): string {
 const FULL_ALIGNMENT_MS = 60_000;
 
 describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
-  it.each([1, 2, 3])('scores a noisy read as the full alignment does (seed %i)', (seed) => {
+  it.each([1, 2])('scores a noisy read as the full alignment does (seed %i)', (seed) => {
     const next = rng(seed);
-    const reference = randomSequence(5000, next);
-    const read = noisy(reference.slice(700, 4200), 0.04, next);
+    const reference = randomSequence(3000, next);
+    const read = noisy(reference.slice(400, 2500), 0.04, next);
     const full = alignPairwise(reference, read, { mode: 'local' });
     const banded = alignBanded(reference, read, { mode: 'local' });
     expect(banded).not.toBeNull();
@@ -98,7 +98,8 @@ describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
     expect(r.strand).toBe('reverse');
     expect(r.alignment.endA - r.alignment.startA).toBeGreaterThan(10_000);
     process.stderr.write(`[perf] banded 12000x${read.length}: ${ms.toFixed(0)} ms\n`);
-    expectWithin(ms, 8000);
+    // A full fill is 110 M cells, 3-4 s here: the limit sits well under it.
+    expectWithin(ms, 2000);
   });
 
   it('keeps the band narrow: a small share of the matrix', () => {
@@ -117,41 +118,39 @@ describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
 
 describe('a local alignment with flanks that do not match (#159)', () => {
   it('#159: banded local alignment with junk flanks scores as the full matrix', () => {
-    let st = 987654321;
-    const rnd = (): number => {
-      st = (Math.imul(st, 1664525) + 1013904223) >>> 0;
-      return st / 4294967296;
-    };
-    const seq = (n: number): string =>
-      Array.from({ length: n }, () => 'ACGT'[Math.floor(rnd() * 4)]).join('');
+    const next = ints(987654321);
     const mut = (s: string, p: number): string => {
+      // About p substitutions, p deletions and p short insertions per base.
+      const permille = Math.round(p * 1000);
       let o = '';
       for (const c of s) {
-        const r = rnd();
-        if (r < p / 3) continue;
-        if (r < (2 * p) / 3) o += 'ACGT'.charAt(Math.floor(rnd() * 4));
+        const r = next(1000);
+        if (r < permille / 3) continue;
+        if (r < (2 * permille) / 3) o += 'ACGT'.charAt(next(4));
         else {
           o += c;
-          if (r > 1 - p / 3) o += seq(1 + Math.floor(rnd() * 3));
+          if (r >= 1000 - permille / 3) o += bases(1 + next(3), next);
         }
       }
       return o;
     };
+    // Each trial is a full alignment of about 9 M cells beside the banded
+    // one, and the junk flanks leave the check a wide region to fill: ~1 s
+    // here. Without the flank band 8 of 12 trials fail,
+    // trials 0 and 3 among them (found by reverting it).
     let below = 0;
-    for (let t = 0; t < 12; t++) {
-      const ref = seq(2500 + Math.floor(rnd() * 1500));
+    for (let t = 0; t < 3; t++) {
+      const ref = bases(2500 + next(1500), next);
       const read =
-        seq(300) +
-        mut(ref.slice(Math.floor(rnd() * 300), ref.length - Math.floor(rnd() * 300)), 0.04) +
-        seq(300);
+        bases(300, next) +
+        mut(ref.slice(next(300), ref.length - next(300)), 0.04) +
+        bases(300, next);
       const full = alignPairwise(ref, read, { mode: 'local' });
       const bd = alignBanded(ref, read, { mode: 'local' });
       if (bd !== null && bd.alignment.score < full.score) below++;
     }
     expect(below).toBe(0);
-    // Checking each band fills the region its junk flanks leave open: 6 s
-    // here, over a minute on a busy CI runner.
-  }, 300_000);
+  }, 120_000);
 });
 
 /** An integer stream (Mulberry32): `next(k)` is 0 to k-1, the same on every run. */
@@ -236,15 +235,24 @@ function pathCells(r: Alignment): [number, number][] {
   return out;
 }
 
-// Each case is a full alignment of about 2 M cells beside the banded one:
-// a second or two here, ten times that on a busy CI runner. The Biopython
-// oracle holds 24 more such pairs (src/test/oracle/alignment.test.ts).
+// Each case is a full alignment of about 2 M cells beside the banded one.
+// The Biopython oracle holds 24 more such pairs (src/test/oracle/alignment.test.ts),
+// so each kind and mode runs one seed, picked as one the band gets wrong
+// without the check (found by switching the check off): 3 for a tandem in
+// the read and for an insertion near the end, 4 near the start. A tandem in
+// the reference misses nowhere in this matrix, only in "fast Align all" below.
+const MISSED_BY_SEED: Record<Kind, number> = {
+  'tandem in read': 3,
+  'tandem in reference': 1,
+  'insertion near start': 4,
+  'insertion near end': 3,
+};
 describe('a band led astray by repeats or an end insertion (#167)', { timeout: 180_000 }, () => {
   it.each(KINDS.flatMap((kind) => (['local', 'global'] as const).map((mode) => [kind, mode])))(
     '%s, %s: the banded score is the full one',
     (kind, mode) => {
       const below: string[] = [];
-      for (let seed = 1; seed <= 4; seed++) {
+      for (const seed of [MISSED_BY_SEED[kind as Kind]]) {
         const { reference, read } = astray(kind as Kind, seed * 7919);
         const options = { mode: mode as 'local' | 'global' };
         const banded = alignBanded(reference, read, options);
@@ -263,20 +271,25 @@ describe('a band led astray by repeats or an end insertion (#167)', { timeout: 1
 
   it('fast Align all reaches the score of aligning both strands in full', () => {
     const below: string[] = [];
-    for (const [k, kind] of KINDS.entries()) {
-      for (let seed = 1; seed <= 2; seed++) {
-        const { reference, read } = astray(kind, seed * 104_729 + k);
-        const turned = seed % 2 === 0 ? reverseComplement(read) : read;
-        const fast = alignEitherStrand(reference, turned, { mode: 'local', fast: true });
-        const full = Math.max(
-          alignPairwise(reference, turned, { mode: 'local' }).score,
-          alignPairwise(reference, reverseComplement(turned), { mode: 'local' }).score,
+    // Without the check these three miss; the others do not.
+    const cases: [number, number][] = [
+      [1, 1],
+      [2, 2],
+      [3, 1],
+    ];
+    for (const [k, seed] of cases) {
+      const kind = KINDS[k] ?? 'tandem in read';
+      const { reference, read } = astray(kind, seed * 104_729 + k);
+      const turned = seed % 2 === 0 ? reverseComplement(read) : read;
+      const fast = alignEitherStrand(reference, turned, { mode: 'local', fast: true });
+      const full = Math.max(
+        alignPairwise(reference, turned, { mode: 'local' }).score,
+        alignPairwise(reference, reverseComplement(turned), { mode: 'local' }).score,
+      );
+      if (fast.alignment.score !== full) {
+        below.push(
+          `${kind} seed ${String(seed)}: ${String(fast.alignment.score)} < ${String(full)}`,
         );
-        if (fast.alignment.score !== full) {
-          below.push(
-            `${kind} seed ${String(seed)}: ${String(fast.alignment.score)} < ${String(full)}`,
-          );
-        }
       }
     }
     expect(below).toEqual([]);
@@ -290,7 +303,7 @@ describe('a band led astray by repeats or an end insertion (#167)', { timeout: 1
     (mode) => {
       const scoring = flankScoring({ mode });
       let checked = 0;
-      for (let seed = 1; seed <= 20; seed++) {
+      for (let seed = 1; seed <= 8; seed++) {
         const { reference, read } = astray(KINDS[seed % 4] ?? 'tandem in read', seed, 1500);
         const links = anchorChain(reference, read);
         if (links === null) continue;
@@ -312,7 +325,7 @@ describe('a band led astray by repeats or an end insertion (#167)', { timeout: 1
         }
         checked++;
       }
-      expect(checked).toBeGreaterThan(15);
+      expect(checked).toBeGreaterThan(5);
     },
   );
 });
@@ -341,7 +354,8 @@ describe('the cost of checking a band (#167)', () => {
     const ms = performance.now() - t0;
     expect(banded?.exact).toBe(true);
     process.stderr.write(`[perf] checked 10 kb global: ${ms.toFixed(0)} ms\n`);
-    expectWithin(ms, 8000);
+    // A full fill is 110 M cells, 3-4 s here: the limit sits well under it.
+    expectWithin(ms, 2000);
   });
 
   it('leaves a long noisy read in local mode unchecked rather than fill most of the matrix', () => {

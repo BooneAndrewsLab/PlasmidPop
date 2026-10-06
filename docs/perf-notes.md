@@ -719,3 +719,26 @@ run, so the median still catches it. The other timing tests were checked and
 sit below ~30% of their budgets (the next closest is the 10 kb history decode,
 28–57 ms of 200), so they are left as they were. Use `medianMs` for any new
 budget that is within about 40% of its limit.
+
+## banded.test.ts run time (#172, 2026-10-06)
+
+Since #167 every banded alignment is checked, so each test that compares it
+with a full alignment pays for both. The file took about 4 minutes on CI
+(Node 24, shared runner, other test files running alongside) and 21 s here
+(`vitest run`, tests alone ~20 s), of which the #159 junk-flank test was 5.1 s,
+the 20-seed region tests 3 s and the 4-seed kind-by-mode matrix 5 s.
+
+Each regression case now runs at the size it already had, with only as many
+seeds as it takes to fail without its fix, each found by reverting the fix:
+the #159 test runs 3 of its 12 trials (0 and 3 miss without the flank band),
+the #167 matrix one seed per kind and mode, "fast Align all" the three cases
+that miss, the region tests 8 seeds. The two #51 noisy-read tests use a 3 kb
+reference, not 5 kb, and two seeds, not three. The Biopython oracle still
+holds the broad pair sets. The 10 kb global check's budget went from 8 s to
+2 s: a full fill is 110 M cells, 3-4 s here, so the old limit would not have
+caught a fall-back to it.
+
+|                         | Before | After               |
+| ----------------------- | ------ | ------------------- |
+| `banded.test.ts`, local | 21.3 s | 11.4 s (tests ~9 s) |
+| #159 test               | 5.1 s  | 1.6 s               |
