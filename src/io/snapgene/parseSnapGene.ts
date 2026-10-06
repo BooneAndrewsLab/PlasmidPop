@@ -121,6 +121,9 @@ function parseRange(
   const b = Number.parseInt(m[2] ?? '0', 10);
   if (a < 1 || b < 1 || a > seqLength || b > seqLength) return null;
   if (b < a && topology === 'linear') return null;
+  // `5-4` on a circle is the whole circle starting at 5; unrollRange alone
+  // would read it as empty.
+  if (b === a - 1) return { start: a - 1, end: a - 1 + seqLength };
   return unrollRange(a - 1, b, seqLength);
 }
 
@@ -142,6 +145,7 @@ function parsePrimerRange(
   const b = Number.parseInt(m[2] ?? '0', 10);
   if (a >= seqLength || b >= seqLength) return null;
   if (b < a && topology === 'linear') return null;
+  if (b + 1 === a) return { start: a, end: a + seqLength };
   return unrollRange(a, b + 1, seqLength);
 }
 

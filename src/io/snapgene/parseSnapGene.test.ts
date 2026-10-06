@@ -268,6 +268,34 @@ describe('reading frame', () => {
   });
 });
 
+describe('full-circle ranges', () => {
+  const seq = 'ATGAAACCCGGGTTTTAGCATCGATCGATTTGCGCGCATATATGGCC';
+
+  it('#157: a range that runs once round the circle ("5-4") opens', () => {
+    const doc = parseSnapGene(
+      buildFile({
+        sequence: seq,
+        circular: true,
+        features:
+          '<Features><Feature name="w" type="misc_feature"><Segment range="5-4"/></Feature></Features>',
+      }),
+    ).documents[0];
+    expect(doc?.features.all()).toHaveLength(1);
+  });
+
+  it('#157: a primer site that runs once round the circle opens', () => {
+    const doc = parseSnapGene(
+      buildFile({
+        sequence: seq,
+        circular: true,
+        primers:
+          '<Primers><Primer name="p" sequence="ATG"><BindingSite location="5-4" boundStrand="0"/></Primer></Primers>',
+      }),
+    ).documents[0];
+    expect(doc?.features.all()).toHaveLength(1);
+  });
+});
+
 describe('sticky ends', () => {
   const props = (up: number, down: number) =>
     `<AdditionalSequenceProperties><UpstreamStickiness>${up}</UpstreamStickiness><DownstreamStickiness>${down}</DownstreamStickiness></AdditionalSequenceProperties>`;
