@@ -211,7 +211,12 @@ alongside it.
   fill where there is no chain to band around: 6 ms a read, 0.55 s a
   plate, with the same strand, score and identity for all 96 reads of the
   measured plate (docs/perf-notes.md) and on the noisy reads of
-  `strands.test.ts`. A single alignment keeps the exact path.
+  `strands.test.ts`. A single alignment keeps the exact path. That "same
+  score" rested on the edge check until #167 showed a band can miss with
+  its path nowhere near the edge; since then a Sanger read's banded score
+  is checked against every path that could beat it (below), about 0.9 s a
+  plate. The strand is still chosen by 11-mers, which no audit has caught
+  choosing wrong.
 - **The list** (`ReadBatchList`): name, length and strand, identity to a
   tenth of a percent, differences on confident bases (all differences for
   a read without qualities, and the column says which), and the reference
@@ -272,11 +277,10 @@ Local gave 100%.
   padded by a margin (64 first) for anchors slightly off the path; past
   the chain's ends the band follows the diagonal; a global alignment adds
   the matrix corners as anchors. Made monotone, it is what the fill needs.
-- **Checked by its edge.** A path that touches the band's edge (not the
-  matrix's) may have been cut off, so the margin is widened (256, 1024) and
-  the fill run again; at the widest, the full alignment replaces it if it
-  fits. Tests compare the banded score with the full one on noisy reads,
-  a 400-base insertion and a repeated segment.
+- **Checked by its edge** (until #167). A path that touches the band's edge
+  (not the matrix's) may have been cut off, so the margin is widened (256, 1024) and the fill run again; at the widest, the full alignment replaces
+  it if it fits. This is now only the fallback when the bound below is too
+  large to fill: a path that never touches the edge proves nothing.
 - **One fill** (`alignInBand`): the full alignment is the band of every
   cell, same visiting order and tie-breaking, checked identical on 800
   random pairs before the old fill was removed; 5% slower in full, which
@@ -284,6 +288,54 @@ Local gave 100%.
 - **When**: up to 25 M cells the full fill, exact and under a second;
   past it the band. Too little in common to band and too large in full is
   refused, saying which.
+
+### Checked against a bound (#167)
+
+The rectangles are only right when the anchors lie on the best path, and
+the chain can sit off it: a tandem duplication in the read or the reference
+(the chain takes one copy, the best path the other), or a long insertion a
+few bases from a read's end. The path the band finds then never comes near
+the band's edge, so the edge check passed it. The audit found banded scores
+up to 6.7% under Biopython's local optimum and 1.2% under its global one,
+and probes built for the purpose (a 20-300 base unit, an insertion of
+30-330 bases within 40 of an end, 0.3-2.8% noise) found 77 misses in 339
+pairs, local ones up to 12% under.
+
+- **The bound** (`gapBound`, `boundBand`). A path that scores at least the
+  band's score S has few enough gap bases to pay for: each pair earns at
+  most `gain` (5, or the match score if larger; 11 for protein) and G gap
+  bases cost at least open + (G-1)·extend' with extend' = min(open,
+  extend), however split into runs. A global path has (n+m-G)/2 pairs, so
+  G <= (gain·(n+m)/2 - open + extend' - S) / (gain/2 + extend'); a local
+  one at most min(n, m) pairs, so G <= (gain·min(n,m) - open - S)/extend'
+  - 1. A gap base moves the path one diagonal, so a global path stays on
+       the diagonals d with |d| + |d - (n-m)| <= G, and a local path that meets
+       a diagonal of the chain stays within G of the chain's diagonals.
+- **The check** fills that region, score only (no traceback, and for a
+  local region only the rows it has cells in, so a 600 kb unrolled
+  reference costs nothing outside the read's window). When it finds
+  nothing better the band's alignment stands unchanged, so every pair the
+  band already got right gives the same answer as before; when it does,
+  the region is filled again with traceback and that alignment is given.
+- **What it guarantees.** Global: the optimum. Local: the optimum among
+  alignments that meet a diagonal of the chain. One that lies wholly on
+  other diagonals is somewhere else in the reference, not the chain's
+  alignment (as before, #159).
+- **Its budget is the full fill's**, 25 M cells (`CHECK_UP_TO`). Past it a
+  check would cost what the full alignment it was meant to avoid costs, so
+  the band is widened by its edge as before and the result is marked
+  unchecked (`exact: false`); `alignLong` still falls back to the full
+  alignment when that path touched the edge and the full one fits. The
+  region grows with the gap a band's score leaves below a perfect match,
+  divided by the gap extension (0.5 at the defaults) for a local path: a
+  trimmed Sanger read's is around 0.1-2 M cells, a global 10 kb read's
+  13 M, but a local 10 kb nanopore read with 3% errors leaves most of the
+  matrix (118 M of 127 M) reachable by a path deleting enough reference,
+  and stays unchecked. Measurements in `docs/perf-notes.md`.
+- **Tested** against the full matrix on tandem repeats in either sequence
+  and insertions near either end, both modes (`banded.test.ts`), on the
+  region holding every cell of the best path, and against Biopython on 24
+  such pairs (`alignment.json`, `banded`).
 - **Through the origin.** A local alignment against a whole circular
   document is made against the sequence with its start repeated after its
   end, all but one base of it (#165: a deletion in the read lengthens the

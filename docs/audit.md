@@ -115,9 +115,12 @@ reporting one.
 - **Trans-spliced mixed-strand CDS** (NC_000932 rps12) are known to be
   unsupported, with a warning.
 
-- **Banded alignment** (local and global) is not exact: with tandem
-  repeats or a long insertion near a read end it can score a few percent
-  below the optimum (#167). Without those, 0 deficits in 480 cases.
+- **Banded alignment** is checked since #167: the band's score bounds the
+  region a better path could reach, and that region is filled. Global is
+  exact; local is exact among paths meeting the chain's diagonals. Unchecked
+  (and so not exact) only when the region exceeds 25 M cells, which in
+  practice is a long noisy read in local mode. Probe tandem repeats and
+  insertions near read ends, not only junk flanks.
 - **Local alignment runs on through junk flanks** with EDNAFULL −10/−0.5:
   a read past the end of the reference shows its overhang as differences.
   Biopython does the same; accepted.

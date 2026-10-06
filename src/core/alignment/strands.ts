@@ -1,7 +1,7 @@
 import { type Strand } from '../features/feature';
 import { reverseComplement } from '../sequence/alphabet';
 
-import { alignBanded } from './banded';
+import { CHECK_UP_TO, alignBanded } from './banded';
 import {
   type Alignment,
   type AlignmentOptions,
@@ -29,14 +29,15 @@ const BOTH_STRANDS_BELOW = 4_000_000;
  * well under a second; past it, in a band around the words the two share
  * (#51), which is what makes a 10 kb read against its plasmid cheap.
  */
-const FULL_UP_TO = 25_000_000;
+const FULL_UP_TO = CHECK_UP_TO;
 
 /**
- * One alignment: in full when that is small, else in a band. The band is
- * dropped for the full alignment when its path ran along the band's edge
- * even at its widest and the full one fits, and when the two share too
- * little to band around; a pair too large for either is refused saying
- * which.
+ * One alignment: in full when that is small, else in a band, whose answer
+ * is checked to be the best (#167) unless the check would cost more than a
+ * full alignment under `FULL_UP_TO`. An unchecked band is dropped for the
+ * full alignment when its path ran along the band's edge even at its
+ * widest and the full one fits, and when the two share too little to band
+ * around; a pair too large for either is refused saying which.
  */
 export function alignLong(
   a: string,
@@ -48,7 +49,9 @@ export function alignLong(
   const maxCells = options.maxCells ?? DEFAULT_MAX_CELLS;
   if (cells <= FULL_UP_TO && options.fast !== true) return alignPairwise(a, b, options, onProgress);
   const banded = alignBanded(a, b, options, onProgress);
-  if (banded !== null && (!banded.touchedEdge || cells > maxCells)) return banded.alignment;
+  if (banded !== null && (banded.exact || !banded.touchedEdge || cells > maxCells)) {
+    return banded.alignment;
+  }
   if (banded === null && cells > maxCells) {
     throw new AlignmentTooLargeError(cells, maxCells, 'unanchored');
   }

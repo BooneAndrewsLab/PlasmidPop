@@ -676,7 +676,8 @@ export function AlignPanel({ doc }: Props) {
       reference,
       (a, b, options, long) => analysisClient.alignEitherStrand(a, b, options, long),
       {
-        // Banded whatever the size: the same answers, three to five times sooner.
+        // Banded whatever the size, the band checked against any better path
+        // (#167): the same scores, several times sooner.
         options: { fast: true },
         // Each read by the same rule as a single one, unless a mode was picked.
         mode: pickedMode,

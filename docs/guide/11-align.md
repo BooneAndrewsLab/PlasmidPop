@@ -106,8 +106,12 @@ large) is listed with the reason, and the rest carry on. At most 96 records
 (a plate) are aligned at once; for a larger file the note says so and
 the list has no **All records** choice: pick one record, or split the file. A batch
 is aligned in a band around the words each read shares with the document,
-which gives the same alignments as one at a time and takes about half a
-second for a plate of Sanger reads against a 5 kb plasmid.
+then checked against every alignment there that could score higher (see
+long reads below), which takes about a second for a plate of Sanger reads
+against a 5 kb plasmid. A read gets the score it would get aligned on its
+own, unless it matched better somewhere else in the document that its
+words do not point to; where two alignments score the same (an indel in a
+repeat can sit in either copy), the batch may show the other one.
 
 ## Aligning a read with its qualities
 
@@ -188,11 +192,19 @@ aligned.
 A long read against the plasmid it came from — a nanopore read of 10 kb,
 say — is aligned in a band around the words the two share rather than over
 every pair of bases, which takes a fraction of a second rather than
-several. The answer is the same: when the best path runs along the edge of
-the band, the band is widened and the alignment done again. Two sequences
-that share too little for a band, and would need more than 150 million
-cells in full (about 12 kb × 12 kb), are refused to protect the browser's
-memory; align against a selection for those.
+several. The answer is then checked: the score found limits how many gaps
+any better alignment could have, and so how far from the band it could
+stray, and that whole region is searched too. A Global alignment is then
+the best there is; a Local one is the best among alignments that run
+through the stretch the shared words point to. The check is skipped when
+it would cost as much as aligning in full, mostly for a long, noisy read
+in Local (a 10 kb nanopore read, say): its alignment is then the best the
+band found, which is usually but not always the best there is, since a
+tandem repeat or a long insertion near an end of the read can lead the
+band astray. Two sequences that share too little for a band, and would
+need more than 150 million cells in full (about 12 kb × 12 kb), are
+refused to protect the browser's memory; align against a selection for
+those.
 
 ## Reads through the origin
 

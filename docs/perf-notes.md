@@ -57,6 +57,55 @@ modes. The worker's round trip per read (a few kilobytes each way) is not
 in these numbers and is small beside them; in the browser the batch has
 not been timed.
 
+## Checking a band's answer (#167, 2026-10-06)
+
+The band can miss the optimum without its path touching the edge (tandem
+repeats, a long insertion near a read end), so its score is now checked:
+the region any better path could reach (design note 46, "Checked against a
+bound") is filled, score only, when it is at most 25 M cells. Node 24,
+before and after the check, same inputs; plates are three runs each in
+one process (the first is cold), single alignments a median of three.
+
+| Input                                                        | Before            | After              |
+| ------------------------------------------------------------ | ----------------- | ------------------ |
+| Plate, 96 Sanger reads, 5 kb circle, trimmed at 5% (default) | 1.0, 0.71, 0.69 s | 1.19, 0.99, 0.87 s |
+| same, untrimmed (30 + 80 poor bases a read)                  | 1.2, 0.99, 0.99 s | 2.1, 2.1, 2.1 s    |
+| same, untrimmed, 250 poor bases at the end                   | 1.2, 1.2, 1.3 s   | 3.7, 3.7, 3.7 s    |
+| Plate, 96 reads, 300 kb circle, trimmed                      | 28-29 s           | 28-29 s            |
+| Plate, 96 reads, 300 kb linear, trimmed                      | 10.0-10.2 s       | 11.2-11.6 s        |
+| 1 kb read (3% errors), 300 kb linear, one alignment          | 102 ms            | 268 ms             |
+| same, 300 kb circle unrolled to 600 kb                       | 220 ms            | 289 ms             |
+| 10 kb read (3% and 5% errors), 10.5 kb, Global               | 68 / 37 ms        | 371 / 397 ms       |
+| 10 kb read, 12 kb, Local (not checked: region 118 M cells)   | 39 / 41 ms        | 42 / 47 ms         |
+
+`readBatch.timing.test.ts` alone (one cold run): 0.96 s before, 1.15 s
+after. In `banded.test.ts`, "the cost of checking a band": a 1 kb read
+against a 300 kb circle unrolled, checked, 466 ms cold; a 10 kb Global
+read 361 ms.
+
+What it costs is the region, which grows with how far the band's score
+falls short of a perfect match: a trimmed Sanger read leaves 0.1-2 M
+cells (2.1 M for the 1 kb read above, filled in about 42 ms, ~20 ns a
+cell), an untrimmed one with poor ends several times that. A local path
+pays only 0.5 for each further base it deletes from the reference, so a
+noisy 10 kb read in Local could in principle reach almost any cell, and
+checking it would cost a full alignment (2.2-2.6 s measured when the
+budget was the 150 M limit); past 25 M cells the check is skipped and the
+band's answer kept, marked unchecked. Global pays for every gap base in
+pairs it can no longer have as well, which keeps a 10 kb read's region at
+13 M of 111 M cells.
+
+Decision: check whenever the region is under 25 M cells, the size the
+full fill is already used up to. A default plate costs about 0.2 s more
+and is exact; untrimmed reads with poor ends cost more (up to 3.7 s for
+250 poor bases on every read), still well under the 13 s of aligning both
+strands in full. The score-only fill was barely faster than the fill with
+traceback (the per-cell work is the three-state recurrence, not the
+traceback byte) but needs no memory a cell and reads only the rows the
+region has. The 300 kb plates' 0.1-0.3 s a read is not the check: it is
+the per-read 15-mer index and encoding of the whole unrolled reference,
+done again for every read.
+
 ## Edit marks (sequence diff)
 
 Myers' greedy O(ND) diff over the two versions, after stripping the common

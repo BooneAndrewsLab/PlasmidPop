@@ -37,7 +37,8 @@ export interface AlignmentOptions {
    * For many alignments in a row (a batch of reads, #59): choose the strand
    * by shared words and align in a band whatever the size, instead of
    * aligning both strands in full while that takes under a second. The
-   * band is checked by its edge as always, so the answer is the same; a
+   * band's answer is checked against every path that could beat it (#167),
+   * so the score is the same wherever that check fits (any Sanger read); a
    * pair with too little in common to band is aligned in full as before.
    * Read by `alignLong` and `alignEitherStrand`; the fill ignores it.
    */
@@ -172,6 +173,44 @@ export function alignInBand(
   options: AlignmentOptions = {},
   onProgress?: AlignmentProgress,
 ): BandedResult {
+  const filled = fillBand(a, b, band, options, onProgress, true);
+  return traceBack(filled, band, options);
+}
+
+/**
+ * The best score in `band`, as `alignInBand` would give it, without the
+ * traceback, so no byte a cell (#167 checks a band's answer with it and
+ * traces back only when the check finds better).
+ */
+export function scoreInBand(
+  a: string,
+  b: string,
+  band: Band,
+  options: AlignmentOptions = {},
+  onProgress?: AlignmentProgress,
+): number {
+  return fillBand(a, b, band, options, onProgress, false).best / SCALE;
+}
+
+interface Filled {
+  readonly A: string;
+  readonly B: string;
+  readonly tb: Uint8Array;
+  readonly rowStart: Float64Array;
+  readonly best: number;
+  readonly bestI: number;
+  readonly bestJ: number;
+  readonly bestState: number;
+}
+
+function fillBand(
+  a: string,
+  b: string,
+  band: Band,
+  options: AlignmentOptions,
+  onProgress: AlignmentProgress | undefined,
+  keep: boolean,
+): Filled {
   const mode = options.mode ?? 'global';
   const local = mode === 'local';
   const protein = options.alphabet === 'protein';
@@ -201,11 +240,11 @@ export function alignInBand(
   for (let i = 0; i <= n; i++)
     rowStart[i + 1] = (rowStart[i] ?? 0) + (hi[i] ?? 0) - (lo[i] ?? 0) + 1;
   const cells = rowStart[n + 1] ?? 0;
-  if (cells > maxCells) throw new AlignmentTooLargeError(cells, maxCells);
+  if (keep && cells > maxCells) throw new AlignmentTooLargeError(cells, maxCells);
 
   let tb: Uint8Array;
   try {
-    tb = new Uint8Array(cells);
+    tb = new Uint8Array(keep ? cells : 0);
   } catch {
     throw new AlignmentTooLargeError(cells, maxCells, 'memory');
   }
@@ -227,12 +266,12 @@ export function alignInBand(
       prevM[0] = 0;
       prevX[0] = NEG;
       prevY[0] = NEG;
-      tb[at] = local ? STOP : M;
+      if (keep) tb[at] = local ? STOP : M;
     } else {
       prevM[j] = local ? 0 : NEG;
       prevX[j] = NEG;
       prevY[j] = local ? NEG : gapOpen + (j - 1) * gapExtend;
-      tb[at] = (local ? STOP : M) | ((j === 1 ? M : Y) << 4);
+      if (keep) tb[at] = (local ? STOP : M) | ((j === 1 ? M : Y) << 4);
     }
   }
   if (lo0 > 0) {
@@ -276,7 +315,7 @@ export function alignInBand(
       curM[0] = local ? 0 : NEG;
       curX[0] = local ? NEG : gapOpen + (i - 1) * gapExtend;
       curY[0] = NEG;
-      tb[rowBase] = (local ? STOP : M) | ((i === 1 ? M : X) << 2);
+      if (keep) tb[rowBase] = (local ? STOP : M) | ((i === 1 ? M : X) << 2);
       first = 1;
     }
 
@@ -329,7 +368,7 @@ export function alignInBand(
         curY[j] = xToY;
         moves |= X << 4;
       }
-      tb[rowBase + j] = moves;
+      if (keep) tb[rowBase + j] = moves;
 
       if (local && mScore > best) {
         best = mScore;
@@ -358,6 +397,15 @@ export function alignInBand(
     }
   }
 
+  return { A, B, tb, rowStart, best, bestI, bestJ, bestState };
+}
+
+function traceBack(filled: Filled, band: Band, options: AlignmentOptions): BandedResult {
+  const { A, B, tb, rowStart, best, bestI, bestJ, bestState } = filled;
+  const mode = options.mode ?? 'global';
+  const protein = options.alphabet === 'protein';
+  const m = B.length;
+  const { lo, hi } = band;
   const outA: string[] = [];
   const outB: string[] = [];
   let i = bestI;

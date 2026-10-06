@@ -4,7 +4,10 @@ import {
   type AlignmentProgress,
   type Band,
   type BandedResult,
+  DEFAULT_MAX_CELLS,
   alignInBand,
+  bandCells,
+  scoreInBand,
 } from './pairwise';
 
 /**
@@ -26,8 +29,13 @@ import {
  *    anchors that are slightly off it. Past the ends of the chain it follows
  *    the diagonal. A global alignment has the matrix's corners as anchors.
  *
- * If the path found touches the band's edge, a better one may lie outside,
- * and `alignLong` widens the margin and tries again.
+ * 4. The check (#167): the band can miss the optimum when the chain sits
+ *    off the best path (a tandem repeat, a long insertion near a read end),
+ *    and the path found then never touches the band's edge. Its score bounds
+ *    how many gap bases a better path could have, and so which diagonals it
+ *    could reach; that region is filled too, and the better answer kept.
+ *    Global: exact. Local: exact among paths that meet a diagonal of the
+ *    chain (one wholly elsewhere is not the chain's alignment).
  */
 
 const K = 15;
@@ -261,28 +269,164 @@ export function bandAround(
   return { lo, hi };
 }
 
+/**
+ * The most gap bases a path can hold and still score at least `score`.
+ * Each aligned pair earns at most `gain` and G gap bases cost at least
+ * open + (G-1)*extend' with extend' = min(open, extend), however they are
+ * split into runs. A global path has (n+m-G)/2 pairs, so a gap base costs
+ * it gain/2 in pairs it can no longer have on top; a local path has at most
+ * min(n, m). Infinity when nothing bounds it (gaps free to extend, local).
+ */
+export function gapBound(
+  n: number,
+  m: number,
+  mode: AlignmentMode,
+  score: number,
+  scoring: FlankScoring,
+): number {
+  const { gain, gapOpen } = scoring;
+  const extend = Math.min(gapOpen, scoring.gapExtend);
+  if (mode === 'global') {
+    return Math.max(
+      Math.abs(n - m),
+      Math.floor((gain * ((n + m) / 2) - gapOpen + extend - score) / (gain / 2 + extend)),
+    );
+  }
+  if (extend <= 0) return Infinity;
+  return Math.max(0, Math.floor((gain * Math.min(n, m) - gapOpen - score) / extend) + 1);
+}
+
+/**
+ * The cells a path scoring at least `score` can reach (#167), as a band of
+ * diagonals d = i - j. A path's diagonal moves by one with each gap base,
+ * so all of a path with at most G gap bases lies within G of any one of its
+ * cells' diagonals. Global: the path runs from diagonal 0 to n - m, so a
+ * diagonal d costs it |d| + |d - (n - m)| gap bases at least. Local: the
+ * path meets a diagonal of the chain, [first, last] of its anchors', so it
+ * lies within G of that span. Rows of the matrix with no cell in it keep
+ * one, at its edge, which no path through the region uses.
+ */
+export function boundBand(
+  links: readonly Anchor[],
+  n: number,
+  m: number,
+  mode: AlignmentMode,
+  score: number,
+  scoring: FlankScoring = DNA_SCORING,
+): Band {
+  const gaps = gapBound(n, m, mode, score, scoring);
+  let low: number;
+  let high: number;
+  if (mode === 'global') {
+    low = Math.floor((n - m - gaps) / 2);
+    high = Math.ceil((n - m + gaps) / 2);
+  } else {
+    low = Infinity;
+    high = -Infinity;
+    for (const a of links) {
+      low = Math.min(low, a.i - a.j);
+      high = Math.max(high, a.i - a.j);
+    }
+    low -= gaps;
+    high += gaps;
+  }
+  low = Math.max(low, -m);
+  high = Math.min(high, n);
+  const lo = new Int32Array(n + 1);
+  const hi = new Int32Array(n + 1);
+  for (let i = 0; i <= n; i++) {
+    lo[i] = Math.min(m, Math.max(0, i - high));
+    hi[i] = Math.min(m, Math.max(0, i - low));
+  }
+  return { lo, hi };
+}
+
+/** An alignment in a band, and whether it is checked to be the best. */
+export interface CheckedResult extends BandedResult {
+  /**
+   * The region `boundBand` gives was filled, so no path that could score
+   * higher was left out. False when that region is larger than
+   * `CHECK_UP_TO` (a long noisy read in local mode, typically): the band's
+   * answer is then the best found, as before #167, and the caller may
+   * still align in full.
+   */
+  readonly exact: boolean;
+}
+
+/**
+ * The most cells spent checking a band's answer: what a full alignment may
+ * take before a band is used instead (`alignLong`), under a second. Past
+ * it a check would cost as much as the full alignment it replaces.
+ */
+export const CHECK_UP_TO = 25_000_000;
+
 /** The margins tried in turn while the path runs along the band's edge. */
-const MARGINS = [64, 256, 1024];
+const MARGINS = [64, 256, 1024] as const;
 
 /**
  * A banded alignment of a long read, or null when the two share too few
  * words to band around (the caller then aligns them in full, if it can).
+ * The band's answer is checked against the region a better path could
+ * reach, which is filled when it is at most `CHECK_UP_TO` cells; when it
+ * is larger, the band is widened while its path runs along the edge.
  */
 export function alignBanded(
   reference: string,
   read: string,
   options: AlignmentOptions = {},
   onProgress?: AlignmentProgress,
-): BandedResult | null {
+): CheckedResult | null {
   const links = anchorChain(reference, read);
   if (links === null) return null;
   const mode = options.mode ?? 'global';
   const scoring = flankScoring(options);
-  let result: BandedResult | null = null;
-  for (const margin of MARGINS) {
-    const band = bandAround(links, reference.length, read.length, mode, margin, scoring);
-    result = alignInBand(reference, read, band, options, onProgress);
-    if (!result.touchedEdge) return result;
+  const n = reference.length;
+  const m = read.length;
+  const budget = Math.min(CHECK_UP_TO, options.maxCells ?? DEFAULT_MAX_CELLS);
+  const first = alignInBand(
+    reference,
+    read,
+    bandAround(links, n, m, mode, MARGINS[0], scoring),
+    options,
+  );
+  const region = boundBand(links, n, m, mode, first.alignment.score, scoring);
+  if (bandCells(region) <= budget) {
+    if (regionScore(reference, read, region, options, onProgress) <= first.alignment.score) {
+      return { ...first, exact: true };
+    }
+    // Found better: the path, once more. No progress: the bar would run
+    // back to the start for what takes at most about half a second.
+    return { ...alignInBand(reference, read, region, options), exact: true };
   }
-  return result;
+  let result = first;
+  for (const margin of MARGINS.slice(1)) {
+    if (!result.touchedEdge) break;
+    const band = bandAround(links, n, m, mode, margin, scoring);
+    result = alignInBand(reference, read, band, options, onProgress);
+  }
+  return { ...result, exact: false };
+}
+
+/**
+ * The best score in `region`, without traceback. A local region is filled
+ * over only the rows it has cells in: a path cannot start above them or
+ * end below, so the reference outside them is never read.
+ */
+function regionScore(
+  reference: string,
+  read: string,
+  region: Band,
+  options: AlignmentOptions,
+  onProgress?: AlignmentProgress,
+): number {
+  if ((options.mode ?? 'global') === 'global') {
+    return scoreInBand(reference, read, region, options, onProgress);
+  }
+  const m = read.length;
+  let top = 0;
+  while (top < reference.length && (region.hi[top + 1] ?? 0) === 0) top++;
+  let bottom = reference.length;
+  while (bottom > top && (region.lo[bottom - 1] ?? 0) === m) bottom--;
+  const rows = { lo: region.lo.subarray(top, bottom + 1), hi: region.hi.subarray(top, bottom + 1) };
+  return scoreInBand(reference.slice(top, bottom), read, rows, options, onProgress);
 }
