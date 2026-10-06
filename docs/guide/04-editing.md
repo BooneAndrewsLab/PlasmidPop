@@ -3,7 +3,9 @@
 The sequence view is a text editor for DNA. Click to place the cursor, then
 type. Features keep their places: a feature after an insertion moves along,
 a feature around it grows, a feature whose bases are deleted shrinks or
-disappears.
+disappears. A CDS that loses bases from the start of its reading (its left
+end, or its right end on the reverse strand) has its `/codon_start` moved on
+to the first whole codon left, so the translation keeps its frame.
 
 ## Typing, deleting, replacing
 

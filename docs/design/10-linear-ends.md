@@ -35,12 +35,10 @@ Added 2026-09-23 (#9):
   from the sequence with an ordinary `delete`, which clips any feature on
   them, and the end records them. All 203 files import and round-trip their
   ends through GenBank. Import only; there is no .dna writer.
-  A plain `delete` clips a CDS but leaves its `/codon_start`; the importer
-  therefore moves `codon_start` past the bases the clip took off the front
-  of the reading (the right end for a reverse CDS), so a frame-1 CDS clipped
-  by one base becomes `codon_start=3` (#154). Consistent with #153, which
-  reads SnapGene's `readingFrame` as `codon_start`. An ordinary user delete
-  in the editor still does not adjust the frame.
+  The clip is an ordinary `delete`, which since #160 also moves `codon_start`
+  of a CDS past the bases it took off the front of the reading, so a frame-1
+  CDS clipped by one base becomes `codon_start=3` (#154). Consistent with
+  #153, which reads SnapGene's `readingFrame` as `codon_start`.
 - **The circular map** strokes both tips of the open ring in the cut-site
   colour and writes `describeEnds` under the length in the centre, whole or
   not at all like the title. Inside the ring beside the gap was the first
@@ -78,3 +76,14 @@ for both, by parsing: a line that parses is regenerated from the document,
 one that does not is an ordinary comment both ways. FASTA's header tags
 follow the same rule, which reverses the earlier choice to drop a damaged
 ends tag: it is not read half-way, and it is no longer lost either.
+
+Added 2026-10-06 (#160): `SeqDocument.delete` keeps a CDS in frame
+(`src/core/features/codonStart.ts`). It counts the bases the deletion takes
+off the front of the reading: the left end of the first segment for a forward
+CDS, the right end of the last for a reverse one, on through every segment
+the deletion removes whole, across the origin of a circle. Cuts in the middle
+or at the far end change nothing. `codon_start` then advances to the first
+whole codon left; frame 1 is the default and its qualifier is dropped rather
+than written as `1`. `replace` and a paste over a selection delete through
+the same path (a replacement keeps the first bases of its range, so only
+the bases it actually removes count). The importer's own workaround went.

@@ -2,7 +2,9 @@ import {
   type Feature,
   type FeatureId,
   FeatureSet,
+  advanceCodonStart,
   assertValidSegment,
+  basesLostFromReadingStart,
   closeSiteOnCircle,
   eachSegment,
   flipSegment,
@@ -350,19 +352,23 @@ export class SeqDocument {
     }
     return this.with({
       sequence,
-      features: this.features.map((f) =>
-        moveFeature(
+      features: this.features.map((f) => {
+        const moved = moveFeature(
           f,
           this,
           { length: sequence.length, topology: this.topology },
           eachSegment((seg) => {
-            const moved = shiftSegmentForDelete(seg, r, oldLength);
-            return moved !== null && this.isCircular
-              ? closeSiteOnCircle(moved, sequence.length)
-              : moved;
+            const shifted = shiftSegmentForDelete(seg, r, oldLength);
+            return shifted !== null && this.isCircular
+              ? closeSiteOnCircle(shifted, sequence.length)
+              : shifted;
           }),
-        ),
-      ),
+        );
+        // A CDS cut at the start of its reading must still read in frame (#160).
+        return moved === null || f.type !== 'CDS'
+          ? moved
+          : advanceCodonStart(moved, basesLostFromReadingStart(f, r, oldLength));
+      }),
       ends: this.endsAfterEdit(r),
       styles,
     });

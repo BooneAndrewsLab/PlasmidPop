@@ -452,44 +452,6 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
   return { format: 'snapgene', documents: [doc], warnings };
 }
 
-/**
- * A linear `delete` that also moves each CDS's `codon_start` past the bases
- * the deletion took off the front of its reading (#154). The delete clips
- * the feature but leaves its frame as it was, which would then read from the
- * wrong base; a `codon_start` of 1 on a CDS clipped by one base must become
- * 3, the first whole codon after the clip.
- */
-function deleteKeepingFrames(doc: SeqDocument, range: { start: number; end: number }): SeqDocument {
-  const frames = new Map<string, 1 | 2 | 3>();
-  for (const f of doc.features.all()) {
-    if (f.type !== 'CDS') continue;
-    const ranges = f.segments.filter((s) => s.kind === 'range');
-    if (f.strand === 'reverse') ranges.reverse();
-    // Bases lost from the start of the reading, through the first segment
-    // that survives; later losses are in the middle or at the end.
-    let clipped = 0;
-    for (const seg of ranges) {
-      const lost = Math.max(0, Math.min(seg.end, range.end) - Math.max(seg.start, range.start));
-      clipped += lost;
-      if (lost < seg.end - seg.start) break;
-    }
-    if (clipped === 0) continue;
-    const q = f.qualifiers.find((x) => x.name === 'codon_start')?.value;
-    const skip = q === '2' ? 1 : q === '3' ? 2 : 0;
-    const remaining = clipped <= skip ? skip - clipped : (3 - ((clipped - skip) % 3)) % 3;
-    frames.set(f.id, (remaining + 1) as 1 | 2 | 3);
-  }
-  let out = doc.apply({ type: 'delete', range });
-  for (const [id, frame] of frames) {
-    const f = out.features.get(id);
-    if (f === undefined) continue;
-    const qualifiers = f.qualifiers.filter((x) => x.name !== 'codon_start');
-    if (frame !== 1) qualifiers.push({ name: 'codon_start', value: String(frame) });
-    out = out.updateFeature(id, { qualifiers });
-  }
-  return out;
-}
-
 function stickiness(xml: string, tag: string): number {
   const m = new RegExp(`<${tag}>\\s*(-?\\d+)\\s*</${tag}>`).exec(xml);
   return m?.[1] === undefined ? 0 : Number(m[1]);
@@ -525,8 +487,8 @@ function stickyEnds(doc: SeqDocument, xml: string, warnings: ParseWarning[]): Se
       : { kind: down > 0 ? "5'" : "3'", overhang: seq.slice(L - Math.abs(down)), enzyme: null };
   let out = doc;
   // The end goes first so the start of the sequence is still where it was.
-  if (down > 0) out = deleteKeepingFrames(out, { start: L - down, end: L });
-  if (up < 0) out = deleteKeepingFrames(out, { start: 0, end: -up });
+  if (down > 0) out = out.apply({ type: 'delete', range: { start: L - down, end: L } });
+  if (up < 0) out = out.apply({ type: 'delete', range: { start: 0, end: -up } });
   return out.apply({ type: 'setEnds', ends: { left, right } });
 }
 

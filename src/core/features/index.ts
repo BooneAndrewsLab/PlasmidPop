@@ -4,3 +4,4 @@ export * from './intervalTree';
 export * from './featureSet';
 export * from './location';
 export * from './locatedQualifiers';
+export * from './codonStart';
