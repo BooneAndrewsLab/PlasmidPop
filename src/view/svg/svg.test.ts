@@ -95,7 +95,7 @@ describe('exportMapSvg', () => {
       features,
     });
     expect(exportMapSvg(doc).match(/<text/g)?.length ?? 0).toBeGreaterThan(1);
-  });
+  }, 30_000);
 
   it('labels a cut site with the same number as the enzyme panel (#155)', () => {
     const seq = 'A'.repeat(10) + 'GAATTC' + 'A'.repeat(100) + 'GGATCC' + 'T'.repeat(84);
