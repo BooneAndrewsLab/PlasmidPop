@@ -1,4 +1,5 @@
-import { alignBanded, alignLong, alignPairwise } from '@/core/alignment';
+import { finishReadAlignment, prepareReadAlignment } from '@/app/readAlignment';
+import { alignBanded, alignEitherStrand, alignLong, alignPairwise } from '@/core/alignment';
 import type { AlignmentMode, AlignmentOptions } from '@/core/alignment';
 
 import oracle from './alignment.json';
@@ -90,4 +91,99 @@ describe('pairwise alignment against Biopython', () => {
       if (banded !== null && !banded.touchedEdge) expect(banded.alignment.score).toBe(c.global);
     }
   }, 30_000);
+});
+
+interface CircularCase {
+  readonly kind: string;
+  readonly ref: string;
+  readonly read: string;
+  readonly score: number;
+  readonly strand: 'forward' | 'reverse';
+  readonly start: number;
+  readonly last: number;
+  readonly regions: readonly (readonly [number, string, string])[];
+}
+
+/** Differences of an alignment: (1-based position on the circle, reference bases, read bases). */
+function regions(a: string, b: string, start: number, length: number): string[] {
+  const out: string[] = [];
+  let cur: { first: number; last: number; ref: string; read: string } | null = null;
+  let p = start;
+  const flush = (): void => {
+    if (cur === null) return;
+    const pos = (cur.ref === '' ? cur.last : cur.first) % length;
+    out.push(`${String(pos + 1)} ${cur.ref || '-'} ${cur.read || '-'}`);
+    cur = null;
+  };
+  for (let i = 0; i < a.length; i++) {
+    const x = a.charAt(i);
+    const y = b.charAt(i);
+    if (x !== y) {
+      cur ??= { first: p, last: p - 1, ref: '', read: '' };
+      if (x !== '-') cur.last = p;
+      cur.ref += x === '-' ? '' : x;
+      cur.read += y === '-' ? '' : y;
+    } else flush();
+    if (x !== '-') p++;
+  }
+  flush();
+  return out;
+}
+
+/**
+ * Reads mapped onto a circular reference as the Align tab does it, against a
+ * Biopython local alignment to the reference rotated so the read lies inside
+ * it: reads across the origin on both strands, a deletion before the origin,
+ * an insertion at it, reads inside either end, and reads the length of the
+ * whole plasmid. Deletion after the origin (#165) and banded tandem or
+ * end-insertion cases (#167) are left out.
+ */
+describe('circular read mapping against Biopython', () => {
+  const circular = oracle.circular as unknown as readonly CircularCase[];
+
+  it('has reads of every kind', () => {
+    expect(circular.length).toBeGreaterThanOrEqual(40);
+    const kinds = new Set(circular.map((c) => c.kind));
+    for (const k of ['span', 'span_rc', 'bigdel_before', 'bigins_origin', 'whole', 'whole_rc']) {
+      expect(kinds.has(k), k).toBe(true);
+    }
+  });
+
+  it('gives Biopython score, strand, span and differences', () => {
+    const problems: string[] = [];
+    for (const [i, c] of circular.entries()) {
+      const reference = { sequence: c.ref, offset: 0, wrap: c.ref.length };
+      const prep = prepareReadAlignment(reference, { sequence: c.read, read: null }, null);
+      if (!prep.ok) {
+        problems.push(`#${String(i)} ${c.kind}: ${prep.message}`);
+        continue;
+      }
+      const res = finishReadAlignment(
+        prep.job,
+        alignEitherStrand(prep.job.a, prep.job.b, { mode: 'local' }),
+      );
+      const al = res.alignment;
+      const L = c.ref.length;
+      const got = {
+        score: al.score,
+        strand: res.strand,
+        start: al.startA % L,
+        last: (al.endA - 1) % L,
+        regions: regions(al.alignedA, al.alignedB, al.startA, L),
+      };
+      const want = {
+        score: c.score,
+        strand: c.strand,
+        start: c.start,
+        last: c.last,
+        regions: c.regions.map((r) => r.join(' ')),
+      };
+      if (JSON.stringify(got) !== JSON.stringify(want)) {
+        problems.push(
+          `#${String(i)} ${c.kind}: ${JSON.stringify(got).slice(0, 200)} vs ${JSON.stringify(want).slice(0, 200)}`,
+        );
+      }
+    }
+    expect(problems).toEqual([]);
+  }, 120_000);
 });

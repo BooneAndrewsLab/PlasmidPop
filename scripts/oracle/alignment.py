@@ -13,10 +13,21 @@ tandem repeats, length 1, local alignments with flanks, and two pairs
 of about 3 kb that the banded path of alignLong takes. It left out
 banded-local alignments with junk flanks, where the band can score below the
 full matrix (#159), and empty sequences, which Biopython refuses to align.
+
+The 'circular' cases map reads onto a circular reference the way the Align
+tab does: reads that run across the origin on either strand, a deletion
+before the origin, an insertion at it, reads inside either end, and reads
+the length of the whole plasmid. The expected answer is Biopython's local
+alignment (both strands tried, the better kept) against the reference
+rotated so that the read lies inside it, with the difference regions
+(position, reference bases, read bases) it implies. Left out: a deletion
+after the origin that makes the reference span exceed the read's length
+(#165), and banded alignments of tandem repeats or of reads ending in a long
+insertion (#167).
 """
 from Bio.Align import PairwiseAligner, substitution_matrices
 
-from common import random_dna, rng_for
+from common import random_dna, rc, rng_for
 
 SEED = 20261006
 PROTEIN = 'ACDEFGHIKLMNPQRSTVWY'
@@ -121,4 +132,104 @@ def generate():
         p = len(read) // 2
         read = read[:p] + read[p + 150:] if len(long_cases) else read
         long_cases.append({'a': ref, 'b': read, 'global': aligner(False, 'global').score(ref, read)})
-    return {'cases': cases, 'long': long_cases}
+    return {'cases': cases, 'long': long_cases, 'circular': circular_cases()}
+
+
+def circ_slice(ref, start, n):
+    return ''.join(ref[(start + k) % len(ref)] for k in range(n))
+
+
+def read_mutate(rng, s, sub=0.01, indel=0.003):
+    out = []
+    for c in s:
+        r = rng.random()
+        if r < indel:
+            continue
+        if r < 2 * indel:
+            out += [c, rng.choice('ACGT')]
+        elif r < 2 * indel + sub:
+            out.append(rng.choice([x for x in 'ACGT' if x != c]))
+        else:
+            out.append(c)
+    return ''.join(out)
+
+
+def regions(a, b, start, length):
+    """Differences of an alignment as (1-based position on the circle, ref bases, read bases)."""
+    out, cur, p = [], None, start
+    for x, y in zip(a, b):
+        if x != y:
+            if cur is None:
+                cur = [p, p - 1, '', '']
+            if x != '-':
+                cur[1] = p
+            cur[2] += x if x != '-' else ''
+            cur[3] += y if y != '-' else ''
+        elif cur is not None:
+            out.append(cur)
+            cur = None
+        if x != '-':
+            p += 1
+    if cur is not None:
+        out.append(cur)
+    return [[(c[0] if c[2] else c[1]) % length + 1, c[2] or '-', c[3] or '-'] for c in out]
+
+
+def circular_cases():
+    rng = rng_for(SEED + 1)
+    al = aligner(False, 'local')
+    kinds = ['span', 'span_rc', 'bigdel_before', 'inside_start', 'inside_end', 'whole', 'whole_rc', 'bigins_origin']
+    cases = []
+    k = -1
+    while len(cases) < 48:
+        k += 1
+        kind = kinds[k % len(kinds)]
+        L = rng.randint(800, 2500)
+        ref = random_dna(rng, L)
+        if kind in ('span', 'span_rc'):
+            n = rng.randint(150, 600)
+            x = rng.randint(20, n - 20)
+            o, read = L - x, read_mutate(rng, circ_slice(ref, L - x, n))
+        elif kind == 'bigdel_before':
+            x, d, y = rng.randint(100, 400), rng.randint(50, 400), rng.randint(30, 200)
+            o, read = L - x - d, read_mutate(rng, ref[L - x - d:L - d] + ref[:y])
+        elif kind == 'inside_start':
+            n = rng.randint(150, 500)
+            o = rng.randint(0, 200)
+            read = read_mutate(rng, ref[o:o + n])
+        elif kind == 'inside_end':
+            n = rng.randint(150, 500)
+            o = L - n - rng.randint(0, 50)
+            read = read_mutate(rng, ref[o:o + n])
+        elif kind in ('whole', 'whole_rc'):
+            o = rng.randint(0, L - 1)
+            read = read_mutate(rng, circ_slice(ref, o, L))
+        else:  # bigins_origin
+            x, y = rng.randint(50, 300), rng.randint(50, 300)
+            o, read = L - x, read_mutate(rng, ref[L - x:] + random_dna(rng, rng.randint(20, 200)) + ref[:y])
+        if kind.endswith('_rc') or (kind == 'inside_start' and k % 2):
+            read = rc(read)
+        # Rotate so the read lies inside the reference: at its start, with room before it.
+        rot = (o if kind.startswith('whole') else o - 100) % L
+        rotated = ref[rot:] + ref[:rot]
+        best = None
+        for strand, b in (('forward', read), ('reverse', rc(read))):
+            score = al.score(rotated, b)
+            if best is None or score > best[0]:
+                best = (score, strand, b)
+        score, strand, b = best
+        found = al.align(rotated, b)
+        origin = (L - rot) % L
+        start, end = int(found[0].coordinates[0][0]), int(found[0].coordinates[0][-1])
+        if start < origin < end and end - origin > len(b):
+            # More reference past the origin than the read is long (#165).
+            continue
+        case = {'kind': kind, 'ref': ref, 'read': read, 'score': score, 'strand': strand, 'unique': len(found) == 1}
+        # Ties between equally good alignments are rare here; the first is recorded.
+        aln = found[0]
+        a_row, b_row = [r for r in aln.format('fasta').split('\n') if r and not r.startswith('>')]
+        case['start'] = (start + rot) % L
+        case['last'] = (end - 1 + rot) % L
+        case['regions'] = regions(a_row, b_row, start + rot, L)
+        cases.append(case)
+    return cases
