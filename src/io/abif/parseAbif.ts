@@ -157,13 +157,13 @@ export function parseAbif(data: ArrayBuffer | Uint8Array, filename?: string): Pa
   }
   const preferred = calls.number;
   const other = preferred === 2 ? 1 : 2;
-  /** The tag of the same copy as the calls, or the other copy if its length fits. */
+  /** The tag of the same copy as the calls, or the other copy if its length fits (and, for `sameCalls`, its calls are the same). */
   const matching = (name: string, sameCalls = false): Entry | undefined => {
     const own = tags.get(`${name}${preferred}`);
     if (own?.count === sequence.length) return own;
     const alt = tags.get(`${name}${other}`);
     if (alt?.count !== sequence.length) return undefined;
-    // Qualities belong to the base calls they were made for: the other copy's
+    // Qualities and peak positions belong to the base calls they were made for: the other copy's
     // only count when its calls are the same bases, not merely as many (#159).
     if (sameCalls) {
       const otherCalls = tags.get(`PBAS${other}`);
@@ -189,7 +189,7 @@ export function parseAbif(data: ArrayBuffer | Uint8Array, filename?: string): Pa
     if (sequence.length > 0) warnings.push(warning('This AB1 file has no base qualities'));
   }
 
-  const trace = readTrace(view, tags, matching('PLOC'), sequence.length, warnings);
+  const trace = readTrace(view, tags, matching('PLOC', true), sequence.length, warnings);
   const read: SequencingRead = { qualities, trace };
   const sample = tags.get('SMPL1');
   const document = SeqDocument.create({
