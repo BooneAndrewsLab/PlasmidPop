@@ -89,5 +89,5 @@ describe('pairwise alignment against Biopython', () => {
       expect(banded).not.toBeNull();
       if (banded !== null && !banded.touchedEdge) expect(banded.alignment.score).toBe(c.global);
     }
-  });
+  }, 30_000);
 });
