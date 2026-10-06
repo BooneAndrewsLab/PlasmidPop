@@ -10,6 +10,7 @@ import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout } from './circularLayout';
 import { renderCircularMap, selectionSweep } from './renderCircular';
+import { exportMapSvg } from '../svg';
 
 const opts = { width: 600, height: 600, laneCount: 2, ringWidth: 14, outerMargin: 60 };
 
@@ -800,5 +801,28 @@ describe('renderCircularMap ends of a linear molecule', () => {
     const plain = draw(SeqDocument.create({ name: 'frag', sequence }));
     expect(plain).not.toContain('blunt');
     expect(plain).not.toContain(`stroke="${PRINT_THEME.cutSite}"`);
+  });
+});
+
+describe('renderCircularMap label angle', () => {
+  it('#156: the label of a feature split at the origin sits by the origin', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(250),
+      topology: 'circular',
+      features: [
+        createFeature({
+          id: 'a',
+          type: 'CDS',
+          name: 'Lbl',
+          segments: [rangeSegment(980, 1000), rangeSegment(0, 10)],
+        }),
+      ],
+    });
+    const m = /<text x="([-\d.]+)" y="([-\d.]+)"[^>]*>Lbl<\/text>/.exec(exportMapSvg(doc));
+    expect(m).not.toBeNull();
+    const t =
+      (Math.atan2(Number(m?.[2]) - 450, Number(m?.[1]) - 450) + Math.PI / 2) / (2 * Math.PI);
+    const pos = (t - Math.floor(t)) * 1000;
+    expect(Math.min(Math.abs(pos - 995), 1000 - Math.abs(pos - 995))).toBeLessThan(40);
   });
 });

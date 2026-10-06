@@ -729,16 +729,21 @@ function featureMidAngle(
   layout: CircularLayout,
   seqLength: number,
 ): number | null {
-  let total = 0;
-  let weighted = 0;
+  // The midpoint of the longest segment: an arithmetic mean of segment
+  // midpoints is wrong across the origin (980..1000 + 0..10 averages to the
+  // far side of the circle). Issue #156.
+  let bestLen = 0;
+  let bestMid = 0;
   for (const seg of feature.segments) {
     if (seg.kind !== 'range') continue;
     const len = seg.end - seg.start;
-    total += len;
-    weighted += len * (seg.start + len / 2);
+    if (len > bestLen) {
+      bestLen = len;
+      bestMid = seg.start + len / 2;
+    }
   }
-  if (total === 0) return null;
-  return layout.angleOf((weighted / total) % Math.max(1, seqLength));
+  if (bestLen === 0) return null;
+  return layout.angleOf(bestMid % Math.max(1, seqLength));
 }
 
 const CUT_PREFIX = 'cut:';
