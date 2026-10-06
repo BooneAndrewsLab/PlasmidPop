@@ -7,6 +7,7 @@ import {
   type DifferenceRegion,
   isDifference,
   type Stack,
+  type StackRow,
 } from './alignmentStack';
 import { ColumnClass, columnsOfIndex, spansOf, type TrackAnnotation } from './alignmentTrack';
 
@@ -156,6 +157,19 @@ function effectOf(
   return { kind: severe.effect.kind, text: texts.join('; ') };
 }
 
+/** The region's copy across a circle's origin where `row` differs, or null. */
+function twinRegion(
+  stack: Stack,
+  row: StackRow,
+  region: DifferenceRegion,
+): DifferenceRegion | null {
+  const columns = columnsOf(region)
+    .map((c) => stack.twin[c] ?? -1)
+    .filter((t) => t >= 0 && isDifference(row.cells[t] ?? 0));
+  if (columns.length === 0) return null;
+  return { start: Math.min(...columns), end: Math.max(...columns) + 1 };
+}
+
 /** Position of the region's first and last reference base. */
 function positionsOf(
   stack: Stack,
@@ -225,17 +239,19 @@ export function differenceRows(
     const { position, endPosition } = positionsOf(stack, region);
     const carriers: DifferenceCarrier[] = [];
     stack.rows.forEach((row, r) => {
-      const differing: number[] = [];
-      for (let c = region.start; c < region.end; c++) {
-        if (isDifference(row.cells[c] ?? 0)) differing.push(c);
-      }
+      // The columns this row differs in: the region's, or where the base's
+      // copy across a circle's origin is, when that is where the row is.
+      const own = columnsOf(region).filter((c) => isDifference(row.cells[c] ?? 0));
+      const there = own.length > 0 ? null : twinRegion(stack, row, region);
+      const where = there ?? region;
+      const differing = there === null ? own : columnsOf(there);
       if (differing.length === 0) return;
       carriers.push({
         row: r,
         name: row.name,
-        bases: basesOf(sliceOf(row.bases, region.start, region.end)),
+        bases: basesOf(sliceOf(row.bases, where.start, where.end)),
         quality: lowestQuality(row.qualities, differing),
-        effect: source === null ? null : effectOf(frames, stack, r, region),
+        effect: source === null ? null : effectOf(frames, stack, r, where),
       });
     });
     const { kind, name } =

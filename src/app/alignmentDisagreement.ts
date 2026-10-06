@@ -1,4 +1,4 @@
-import { Cell, type Stack } from './alignmentStack';
+import { Cell, isDifference, type Stack, type StackRow } from './alignmentStack';
 
 /**
  * Columns where the samples disagree with each other (#124). A difference
@@ -28,15 +28,18 @@ function callOf(
 export function callsAt(stack: Stack, c: number, confidentFrom: number): string[] {
   const calls: string[] = [];
   for (const row of stack.rows) {
-    const call = callOf(
-      row.cells[c] ?? Cell.Blank,
-      row.bases.charAt(c),
-      row.qualities?.[c],
-      confidentFrom,
-    );
+    // On a circle a read's base is in this column or its twin across the origin.
+    const call =
+      rowCall(stack, row, c, confidentFrom) ??
+      rowCall(stack, row, stack.twin[c] ?? -1, confidentFrom);
     if (call !== null) calls.push(call);
   }
   return calls;
+}
+
+function rowCall(stack: Stack, row: StackRow, c: number, confidentFrom: number): string | null {
+  if (c < 0 || c >= stack.columns) return null;
+  return callOf(row.cells[c] ?? Cell.Blank, row.bases.charAt(c), row.qualities?.[c], confidentFrom);
 }
 
 /** Whether two or more samples cover column `c` at good quality and do not all carry the same base. */
@@ -64,10 +67,12 @@ export function agreementColumns(stack: Stack, confidentFrom: number): number[] 
   if (stack.rows.length < 2) return columns;
   for (const c of stack.differences) {
     const differing = stack.rows.flatMap((row) => {
-      const cell = row.cells[c] ?? Cell.Blank;
-      if (cell !== Cell.Mismatch && cell !== Cell.Deletion && cell !== Cell.Insertion) return [];
-      const call = callOf(cell, row.bases.charAt(c), row.qualities?.[c], confidentFrom);
-      return call === null ? [] : [call];
+      for (const col of [c, stack.twin[c] ?? -1]) {
+        if (col < 0 || !isDifference(row.cells[col] ?? Cell.Blank)) continue;
+        const call = rowCall(stack, row, col, confidentFrom);
+        if (call !== null) return [call];
+      }
+      return [];
     });
     if (
       differing.length >= 2 &&

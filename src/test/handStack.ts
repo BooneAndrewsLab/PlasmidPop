@@ -59,6 +59,7 @@ export function handStack(
     columns,
     reference: reference.toUpperCase(),
     refIndex,
+    twin: new Int32Array(columns).fill(-1),
     rows: stackRows,
     differences: [...differences].sort((x, y) => x - y),
     offset: options.offset ?? 0,

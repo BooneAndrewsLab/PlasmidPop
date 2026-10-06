@@ -293,6 +293,13 @@ Local gave 100%.
   selection is the unrolled range the document model already has for a
   range across the origin. A read longer than the circle (a concatemer)
   selects the circle once.
+- **One base, two columns** (#166). Through the origin the stack's reference
+  row runs past the circle's length, so a read that wraps and one that does
+  not put the same base in two columns, p and p + length. `Stack.twin` pairs
+  them, and everything that combines reads by base looks at both: coverage
+  (a read counts once on each copy), the disagreement and agreement calls,
+  the confident differences, and the carriers of a difference row. A base
+  differing in both copies is listed once, at the first.
 
 ## The chromatogram (#52)
 

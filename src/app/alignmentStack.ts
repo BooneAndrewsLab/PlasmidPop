@@ -63,6 +63,14 @@ export interface Stack {
    * sequence's length only when a sample runs through a circle's origin.
    */
   readonly refIndex: Int32Array;
+  /**
+   * Per column, the column showing the same reference base from the other
+   * side of a circle's origin (p and p + length), or -1: in a column no
+   * sample reaches round the origin, in an inserted column, on a linear
+   * reference. Reads over the origin that do and do not wrap put one base in
+   * these two columns, so whatever combines reads by base looks at both.
+   */
+  readonly twin: Int32Array;
   readonly rows: readonly StackRow[];
   /** Every column where some sample is not a match, ascending. */
   readonly differences: readonly number[];
@@ -110,6 +118,16 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
     const c = refColumn(p);
     refChars[c] = reference.sequence.charAt(p % Math.max(length, 1)).toUpperCase();
     refIndex[c] = p;
+  }
+
+  const twin = new Int32Array(columns).fill(-1);
+  if (reference.wrap !== null && length > 0) {
+    for (let p = length; p < hi; p++) {
+      const high = refColumn(p);
+      const low = refColumn(p - length);
+      twin[high] = low;
+      twin[low] = high;
+    }
   }
 
   const differenceColumns = new Set<number>();
@@ -170,8 +188,15 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
     columns,
     reference: refChars.join(''),
     refIndex,
+    twin,
     rows,
-    differences: [...differenceColumns].sort((x, y) => x - y),
+    // A base differing in both of its copies is one difference, listed at the first.
+    differences: [...differenceColumns]
+      .filter((c) => {
+        const t = twin[c] ?? -1;
+        return !(t >= 0 && t < c && differenceColumns.has(t));
+      })
+      .sort((x, y) => x - y),
     offset: reference.offset,
     wrap: reference.wrap,
   };

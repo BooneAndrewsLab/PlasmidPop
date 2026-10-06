@@ -34,10 +34,16 @@ export function coverageOf(stack: Stack, confidentFrom: number): Coverage {
   const reverse = new Uint16Array(stack.columns);
   for (const row of stack.rows) {
     const side = row.result.strand === 'reverse' ? reverse : forward;
+    const good = (c: number): boolean =>
+      c >= row.firstColumn &&
+      c < row.endColumn &&
+      isGood(row.cells[c] ?? Cell.Blank, row.qualities?.[c], confidentFrom);
     for (let c = row.firstColumn; c < row.endColumn; c++) {
-      if (isGood(row.cells[c] ?? Cell.Blank, row.qualities?.[c], confidentFrom)) {
-        side[c] = (side[c] ?? 0) + 1;
-      }
+      if (!good(c)) continue;
+      side[c] = (side[c] ?? 0) + 1;
+      // The same base across a circle's origin is covered here too, once per read.
+      const t = stack.twin[c] ?? -1;
+      if (t >= 0 && !good(t)) side[t] = (side[t] ?? 0) + 1;
     }
   }
   return { forward, reverse };
@@ -55,13 +61,14 @@ export function coverageBand(coverage: Coverage, column: number): 0 | 1 | 2 {
  * left out here (it still shows in the view, faded).
  */
 export function confidentDifferences(stack: Stack, confidentFrom: number): number[] {
-  return stack.differences.filter((c) =>
+  const confident = (c: number): boolean =>
     stack.rows.some(
       (row) =>
         isDifference(row.cells[c] ?? Cell.Blank) &&
         isGood(row.cells[c] ?? Cell.Blank, row.qualities?.[c], confidentFrom),
-    ),
-  );
+    );
+  // A base across a circle's origin is one difference, whichever copy a read has it in.
+  return stack.differences.filter((c) => confident(c) || confident(stack.twin[c] ?? -1));
 }
 
 export const VerdictKind = {

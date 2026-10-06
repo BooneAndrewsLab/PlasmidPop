@@ -202,6 +202,11 @@ read that happens to start in the middle. Positions are numbered as the
 document's, going from its last base back to 1, and **Select aligned
 region in this document** selects across the origin.
 
+In the large view, reads that run through the origin and reads that stop
+short of it are combined by base: coverage, the feature verdicts' read and
+strand counts, and the "samples disagree" flag treat a base as one base
+whichever side of the origin a read reaches it from.
+
 ## Large view
 
 **Large view** on a result (the highlighted button under the score line)
