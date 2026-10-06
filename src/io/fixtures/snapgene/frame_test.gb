@@ -1,0 +1,23 @@
+LOCUS       frame_test               240 bp    DNA     circular SYN 06-OCT-2026
+DEFINITION  codon_start test for PlasmidPop #153.
+FEATURES             Location/Qualifiers
+     source          1..240
+                     /organism="synthetic construct"
+     CDS             1..57
+                     /label=fwd_frame2
+                     /codon_start=2
+     CDS             61..117
+                     /label=fwd_frame3
+                     /codon_start=3
+     CDS             complement(121..177)
+                     /label=rev_frame2
+                     /codon_start=2
+     CDS             complement(181..237)
+                     /label=rev_frame3
+                     /codon_start=3
+ORIGIN
+        1 gctaaagaca attacataac atacacgtca gcacgaaact tgttggccca gtgtgaatcg
+       61 cttaagggtt aagtaagtgt gatgcatacg cctttacttg ctgtgtccac cccatcggac
+      121 tggcattttt attacactca gaaacagaac tcgggtaatt ttgacaggtc acgcagaggc
+      181 gcgccctcct gaagtgcgtg gacactcgct atgaatctct gatttaccca ctctgccaaa
+//

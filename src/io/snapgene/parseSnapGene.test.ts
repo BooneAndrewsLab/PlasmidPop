@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { parseGenBank, writeGenBank } from '@/io/genbank';
+import type { Feature } from '@/core';
 import { translateCds } from '@/core/analysis/cdsTranslation';
 import { listLocalSnapGeneFiles } from '@/test/fixtures';
 
@@ -265,6 +267,34 @@ describe('reading frame', () => {
   it('adds nothing for frame 1', () => {
     const { feature } = parse(cds(' readingFrame="1"'));
     expect(feature.qualifiers.some((q) => q.name === 'codon_start')).toBe(false);
+  });
+});
+
+describe('frame_test fixture (#153)', () => {
+  const dir = new URL('../fixtures/snapgene/', import.meta.url);
+  const names = ['fwd_frame2', 'fwd_frame3', 'rev_frame2', 'rev_frame3'];
+  const cdsOf = (doc: { features: { all(): readonly Feature[] } }) =>
+    names.map((n) => {
+      const f = doc.features.all().find((x) => x.type === 'CDS' && x.name === n);
+      if (f === undefined) throw new Error(`no CDS ${n}`);
+      return f;
+    });
+
+  it('.dna and .gb agree on codon_start and translation, on both strands', () => {
+    const dna = parseSnapGene(new Uint8Array(readFileSync(new URL('frame_test.dna', dir))))
+      .documents[0];
+    const gb = parseGenBank(readFileSync(new URL('frame_test.gb', dir), 'utf8')).documents[0];
+    if (dna === undefined || gb === undefined) throw new Error('no document');
+    const fromDna = cdsOf(dna);
+    const fromGb = cdsOf(gb);
+    expect(fromDna.map((f) => f.strand)).toEqual(['forward', 'forward', 'reverse', 'reverse']);
+    const frame = (f: Feature) => f.qualifiers.find((q) => q.name === 'codon_start')?.value;
+    expect(fromDna.map(frame)).toEqual(['2', '3', '2', '3']);
+    expect(fromGb.map(frame)).toEqual(['2', '3', '2', '3']);
+    const proteins = (d: typeof dna, fs: readonly Feature[]) =>
+      fs.map((f) => translateCds(d, f).protein);
+    expect(proteins(dna, fromDna)).toEqual(proteins(gb, fromGb));
+    for (const p of proteins(gb, fromGb)) expect(p.length).toBeGreaterThan(5);
   });
 });
 
