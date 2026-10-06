@@ -1,4 +1,4 @@
-import { type Range, rangePieces } from '../range';
+import type { Range } from '../range';
 import type { Feature } from './feature';
 
 /**
@@ -70,40 +70,4 @@ function markFivePrimePartial(feature: Feature): Feature['segments'] {
         : { ...s, partialStart: true }
       : s,
   );
-}
-
-/**
- * How many bases of a CDS's reading come before its first base inside
- * `kept`, the pieces of a region as `rangePieces` gives them (real
- * coordinates, no wrap): the count `advanceCodonStart` wants for an extract.
- * Reading runs through the segments in reading order, so a reverse CDS
- * starts at the high end of its last segment. Zero when the first base is
- * kept; the whole length when no base is.
- */
-export function basesLostBeforeKept(
-  feature: Feature,
-  kept: readonly { start: number; end: number }[],
-  seqLength: number,
-): number {
-  const ranges = feature.segments.filter((s) => s.kind === 'range');
-  const reverse = feature.strand === 'reverse';
-  if (reverse) ranges.reverse();
-  let lost = 0;
-  for (const seg of ranges) {
-    const parts = [...rangePieces(seg, seqLength)];
-    if (reverse) parts.reverse();
-    for (const part of parts) {
-      let first = -1;
-      for (const k of kept) {
-        const s = Math.max(part.start, k.start);
-        const e = Math.min(part.end, k.end);
-        if (e <= s) continue;
-        const at = reverse ? part.end - e : s - part.start;
-        if (first < 0 || at < first) first = at;
-      }
-      if (first >= 0) return lost + first;
-      lost += part.end - part.start;
-    }
-  }
-  return lost;
 }

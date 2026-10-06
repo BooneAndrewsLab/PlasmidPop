@@ -3,7 +3,6 @@ import {
   type FeatureLocation,
   type Segment,
   advanceCodonStart,
-  basesLostBeforeKept,
   moveFeature,
   rangeSegment,
 } from '../features';
@@ -33,9 +32,22 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     acc += p.end - p.start;
   }
 
-  // A location's bases inside the region, in extract coordinates.
-  const clip = (location: FeatureLocation): FeatureLocation | null => {
-    const segments: Segment[] = [];
+  /**
+   * A location's bases inside the region, in extract coordinates and in the
+   * location's own segment order. Each range piece carries `from`/`to`, the
+   * offsets of its bases along the location's range segments laid end to end
+   * (source gaps between segments do not count, a segment across the origin
+   * is continuous), so two consecutive pieces with `to < from` have bases
+   * between them that the region dropped (#169).
+   */
+  interface Piece {
+    seg: Segment;
+    from: number;
+    to: number;
+  }
+  const keptPieces = (location: FeatureLocation): Piece[] => {
+    const out: Piece[] = [];
+    let along = 0;
     for (const seg of location.segments) {
       if (seg.kind === 'site') {
         for (const o of offsets) {
@@ -44,7 +56,11 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
           // range runs across, which has bases on both sides.
           const from = o.offset > 0 ? o.start - 1 : o.start;
           if (seg.position > from && seg.position < o.end) {
-            segments.push({ kind: 'site', position: seg.position - o.start + o.offset });
+            out.push({
+              seg: { kind: 'site', position: seg.position - o.start + o.offset },
+              from: -1,
+              to: -1,
+            });
           }
         }
         continue;
@@ -53,25 +69,30 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         // The part's bases in the region, in the part's own order: a region
         // across the origin lists its pieces in extract order, which is not
         // the order the feature reads them in.
-        const inside: { from: number; seg: Segment }[] = [];
+        const inside: Piece[] = [];
         for (const o of offsets) {
           const s = Math.max(part.start, o.start);
           const e = Math.min(part.end, o.end);
           if (e <= s) continue;
           inside.push({
-            from: s,
+            from: along + s - part.start,
+            to: along + e - part.start,
             seg: rangeSegment(s - o.start + o.offset, e - o.start + o.offset, {
               partialStart: seg.partialStart || s > part.start,
               partialEnd: seg.partialEnd || e < part.end,
             }),
           });
         }
-        inside.sort((a, b) => a.from - b.from);
-        segments.push(...inside.map((x) => x.seg));
+        inside.sort((x, y) => x.from - y.from);
+        out.push(...inside);
+        along += part.end - part.start;
       }
     }
-    if (segments.length === 0) return null;
-    // Consecutive pieces that abut inside the extract merge back into one segment.
+    return out;
+  };
+
+  // Consecutive pieces that abut inside the extract merge back into one segment.
+  const mergeAbutting = (segments: readonly Segment[]): Segment[] => {
     const merged: Segment[] = [];
     for (const seg of segments) {
       const prev = merged[merged.length - 1];
@@ -82,7 +103,13 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         });
       } else merged.push(seg);
     }
-    return { strand: location.strand, segments: merged };
+    return merged;
+  };
+
+  const clip = (location: FeatureLocation): FeatureLocation | null => {
+    const segments = keptPieces(location).map((x) => x.seg);
+    if (segments.length === 0) return null;
+    return { strand: location.strand, segments: mergeAbutting(segments) };
   };
 
   const into = { length: sequence.length, topology: 'linear' } as const;
@@ -90,10 +117,57 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
   for (const f of doc.features) {
     const moved = moveFeature(f, doc, into, clip);
     if (moved === null) continue;
-    // A CDS that loses the start of its reading is read from the first whole
-    // codon left, as when a delete takes it (#160, #162).
-    const lost = basesLostBeforeKept(f, pieces, L);
-    features.push({ ...advanceCodonStart(moved, lost), id: newId() });
+    // Where the region drops bases from the middle of a feature but keeps
+    // both sides, the kept stretches are separate features (#169): a join
+    // across the gap would read the far side out of frame.
+    const pieces = keptPieces(f);
+    const runs: Piece[][] = [];
+    let reach = -1; // where the last range piece ended, along the location
+    for (const piece of pieces) {
+      const isRange = piece.seg.kind === 'range';
+      if (runs.length === 0 || (isRange && reach >= 0 && piece.from > reach)) runs.push([]);
+      runs[runs.length - 1]?.push(piece);
+      if (isRange) reach = piece.to;
+    }
+    const totalLength = f.segments.reduce(
+      (n, x) => n + (x.kind === 'range' ? x.end - x.start : 0),
+      0,
+    );
+    runs.forEach((run, i) => {
+      // A CDS that loses the start of its reading is read from the first whole
+      // codon left, as when a delete takes it (#160, #162). Each stretch of a
+      // split one counts the bases that precede it in the whole reading.
+      const ranges = run.filter((x) => x.seg.kind === 'range');
+      const head = ranges[0];
+      const tail = ranges[ranges.length - 1];
+      const lost =
+        head === undefined || tail === undefined
+          ? 0
+          : f.strand === 'reverse'
+            ? totalLength - tail.to
+            : head.from;
+      if (runs.length === 1) {
+        features.push({ ...advanceCodonStart(moved, lost), id: newId() });
+        return;
+      }
+      if (head === undefined || tail === undefined) return; // only a split run of ranges gets here
+      const first = run.indexOf(head);
+      const last = run.lastIndexOf(tail);
+      const segments = run.map((x, k) => {
+        const seg = x.seg;
+        if (seg.kind !== 'range') return seg;
+        return rangeSegment(seg.start, seg.end, {
+          partialStart: seg.partialStart || (i > 0 && k === first),
+          partialEnd: seg.partialEnd || (i < runs.length - 1 && k === last),
+        });
+      });
+      const part: Feature = {
+        ...moved,
+        segments: mergeAbutting(segments),
+        qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation'),
+      };
+      features.push({ ...advanceCodonStart(part, lost), id: newId() });
+    });
   }
 
   // The styles the bases had go with them.

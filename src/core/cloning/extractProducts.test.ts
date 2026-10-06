@@ -55,11 +55,43 @@ describe('cloning products keep features whole and in frame (#162)', () => {
     const frags = digest(doc, findCutSites(seq, 'circular', enz('EcoRI', 'BamHI')));
     const backbone = frags.reduce((a, b) => (a.sequence.length > b.sequence.length ? a : b));
     const bb = documentFromFragment(backbone);
-    const f = def(bb.features.all().find((x) => x.type === 'misc_feature'));
-    // feature's kept bases, forward order: from 20 to the EcoRI cut, then BamHI cut to end.
-    const fwd = f.segments.map((s) => (s.kind === 'range' ? bb.subsequence(s) : '')).join('');
-    // The part left of the excised MCS must come before the part right of it.
-    expect(fwd.indexOf('TTTTTCCCCCAAAAA')).toBeLessThan(fwd.indexOf('CCCCCTTTTTAAAAA'));
+    // The excised MCS splits the feature into the two halves of the backbone (#169).
+    const halves = bb.features.all().filter((x) => x.type === 'misc_feature');
+    expect(halves).toHaveLength(2);
+    const bases = halves.map((h) =>
+      h.segments.map((x) => (x.kind === 'range' ? bb.subsequence(x) : '')).join(''),
+    );
+    // One half is the stretch left of the excised MCS, the other the stretch right of it.
+    expect(bases.some((b) => b.includes('TTTTTCCCCCAAAAA'))).toBe(true);
+    expect(bases.some((b) => b.includes('CCCCCTTTTTAAAAA'))).toBe(true);
+  });
+
+  it('B3: a digest backbone around a lacZ-like CDS gives two CDS halves, each in frame (#169)', () => {
+    // CDS = 15 + 17 (EcoRI..BamHI) + 19 bases = 51, so 17 codons without a stop.
+    const cds = 'ATGCGAATTCCGAAA' + 'GAATTCAAAAAGGATCC' + 'ACTGTTTGCATGGGACCAT';
+    const seq = 'G'.repeat(20) + cds + 'G'.repeat(20);
+    const doc = SeqDocument.create({
+      sequence: seq,
+      topology: 'circular',
+      features: [createFeature({ type: 'CDS', name: 'lacZa', segments: [rangeSegment(20, 71)] })],
+    });
+    const whole = translateCds(doc, def(doc.features.all()[0])).protein;
+    expect(whole).toHaveLength(17);
+    const frags = digest(doc, findCutSites(seq, 'circular', enz('EcoRI', 'BamHI')));
+    const backbone = frags.reduce((a, b) => (a.sequence.length > b.sequence.length ? a : b));
+    const bb = documentFromFragment(backbone);
+    const halves = bb.features.all().filter((x) => x.type === 'CDS');
+    expect(halves).toHaveLength(2);
+    expect(halves.map((h) => h.name)).toEqual(['lacZa', 'lacZa']);
+    for (const h of halves) {
+      const bases = bb.featureSequence(h);
+      const k = cds.indexOf(bases);
+      expect(k).toBeGreaterThanOrEqual(0);
+      // Each half reads as the original does over the same bases.
+      // (a trailing partial codon may still translate where its third base is a wobble)
+      const expected = whole.slice(Math.ceil(k / 3), Math.floor((k + bases.length) / 3));
+      expect(translateCds(bb, h).protein.slice(0, expected.length)).toBe(expected);
+    }
   });
 
   it('A4: ligation product of a fragment cut inside a CDS reads it in frame', () => {

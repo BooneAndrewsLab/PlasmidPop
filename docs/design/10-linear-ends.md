@@ -96,7 +96,31 @@ its first whole codon instead of treating a TTG/CTG there as `M`.
 
 Added 2026-10-06 (#162): `extractRange`, under copy and every cloning
 product, does the same for a CDS whose reading start falls outside the
-region (`basesLostBeforeKept`, then `advanceCodonStart`). It also lists the
+region (counting the bases of the reading that precede it, then `advanceCodonStart`). It also lists the
 pieces of a feature inside a region across the origin in the feature's own
 order, not the region's, so a feature cut by the region's gap keeps the
 order of its `join`.
+
+Added 2026-10-06 (#169): a region that keeps both ends of a feature but drops
+bases from its middle gives one feature per kept stretch, not a `join`
+across the gap, whose far side would read out of frame (the usual case is a
+digest backbone, or a region across the origin of a circle, whose gap is
+inside a CDS). Decisions:
+
+- A drop is a gap in the feature's own bases: pieces are laid end to end
+  along the feature's range segments, and two consecutive pieces with bases
+  between them split. A gap that is the source's own space between join
+  segments does not count, nor does the origin inside a wrapping segment, so
+  an intron-style `join` that is kept whole stays one feature, and a source
+  join that loses a middle stretch splits at that drop only (three or more
+  stretches give that many features). A whole-circle region drops nothing.
+- Each stretch keeps the name, type, strand and qualifiers, with a new id.
+  `/translation` is removed, since the stored protein is the whole one's
+  and would disagree with every piece. Stretches are listed in the
+  feature's own order. The cut sides are marked partial (`<`/`>`).
+- A CDS stretch counts the bases of the reading before its first base
+  (the low end for forward, the high end for reverse) and goes through
+  `advanceCodonStart`, so a reverse stretch's 5′-partial is `partialEnd` on
+  its last range. The same count replaces the old per-region helper; for a
+  region that drops no middle it gives the same answer.
+- Sites (`a^b`) keep the old behaviour and never split a feature.

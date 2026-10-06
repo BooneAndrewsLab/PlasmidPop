@@ -14,7 +14,11 @@ frame is easy to follow. The translation honours:
   from the start of a CDS moves it, so the codons after the cut stay in frame,
   and marks the CDS 5′-partial so the first codon left is not shown as `M`.
   Copying a region, extracting it, or a cloning product (digest fragment, PCR,
-  Gibson, Gateway, ligation) that starts inside a CDS does the same;
+  Gibson, Gateway, ligation) that starts inside a CDS does the same. When the
+  region keeps both ends of a CDS but drops its middle (a digest backbone cut
+  inside a CDS, a region across the origin), the two kept stretches become two
+  CDS features, each marked partial on the cut side and each with its own
+  `/codon_start`, so each translates in its own correct frame;
 - `/transl_table`: every genetic code NCBI numbers (1–6, 9–16 and 21–33), not
   only the standard and bacterial ones. The code decides the amino acids as
   well as the start codons — TGA is a stop under the standard code and

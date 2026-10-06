@@ -51,7 +51,7 @@ describe('extractRange keeps clipped features in frame and in order (#162)', () 
     expect(translateCds(ex, f).protein).toBe('IPKLFAW*');
   });
 
-  it('B1: a region across the origin whose gap is inside a feature keeps the feature in order', () => {
+  it('B1: a region across the origin whose gap is inside a feature splits it, in the feature order', () => {
     // 60 bp circle, misc feature [10, 50); copy [40, 20+60) i.e. 40..59,0..19, gap 20..39 inside it
     const seq = Array.from({ length: 60 }, (_, i) => 'ACGT'[(i * 7 + (i >> 2)) % 4]).join('');
     const doc = SeqDocument.create({
@@ -60,9 +60,10 @@ describe('extractRange keeps clipped features in frame and in order (#162)', () 
       features: [createFeature({ type: 'misc_feature', segments: [rangeSegment(10, 50)] })],
     });
     const ex = extractRange(doc, { start: 40, end: 80 });
-    const f = def(ex.features.all()[0]);
-    // Bases the feature keeps, in its own order: 10..19 then 40..49.
-    expect(ex.featureSequence(f)).toBe(seq.slice(10, 20) + seq.slice(40, 50));
+    // The gap splits it (#169): 10..19 then 40..49, each its own feature.
+    const [a, b] = ex.features.all();
+    expect(ex.featureSequence(def(a))).toBe(seq.slice(10, 20));
+    expect(ex.featureSequence(def(b))).toBe(seq.slice(40, 50));
   });
 
   it.each([
@@ -128,8 +129,10 @@ describe('extractRange keeps clipped features in frame and in order (#162)', () 
       ],
     });
     const ex = extractRange(doc, { start: 40, end: 80 });
-    const [join, wrap] = ex.features.all();
-    expect(ex.featureSequence(def(join))).toBe(seq.slice(10, 20) + seq.slice(40, 50));
+    // The join loses 20..39, so it splits (#169); the wrapping gene is whole.
+    const [ja, jb, wrap] = ex.features.all();
+    expect(ex.featureSequence(def(ja))).toBe(seq.slice(10, 20));
+    expect(ex.featureSequence(def(jb))).toBe(seq.slice(40, 50));
     expect(ex.featureSequence(def(wrap))).toBe(seq.slice(50, 60) + seq.slice(0, 10));
     const whole = extractRange(doc, { start: 25, end: 85 });
     const [j2, w2] = whole.features.all();
