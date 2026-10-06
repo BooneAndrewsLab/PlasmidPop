@@ -47,6 +47,7 @@ import assembly
 import cds
 import checksums
 import digest
+import editing
 import fastq
 import gateway
 import pcr
@@ -497,6 +498,7 @@ def main():
     write('cds.json', cds.generate())
     write('alignment.json', alignment.generate())
     write('fastq.json', fastq.generate())
+    write('editing.json', editing.generate())
 
 
 if __name__ == '__main__':
