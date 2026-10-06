@@ -957,7 +957,7 @@ function drawLabels(
     cutsPerEnzyme.set(s.enzyme, (cutsPerEnzyme.get(s.enzyme) ?? 0) + 1);
   }
   for (const [cut, names] of cutsByPosition) {
-    const text = `${names.join(', ')} (${(cut + 1).toLocaleString()})`;
+    const text = `${names.join(', ')} (${cut.toLocaleString()})`;
     const rarity = Math.min(...names.map((n) => cutsPerEnzyme.get(n) ?? 1));
     const rank = RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
     add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank);
