@@ -83,6 +83,7 @@ piece of work needs its reasoning written down, with the next free number.
 69. [One ORF per stop on a circle](69-circular-orf-per-stop.md)
 70. [Small input and output edge cases](70-input-output-edge-cases.md)
 71. [The order a MultiSite att pair runs in](71-multisite-att-order.md)
+72. [Primer lists from Excel workbooks](72-primer-workbooks.md)
 
 ## Changelog to 1.1.0
 

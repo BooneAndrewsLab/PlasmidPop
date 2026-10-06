@@ -223,6 +223,15 @@ function columnOf(ref: string): number | null {
 }
 
 /**
+ * A number cell as it would be typed (#151): Excel keeps 58.3 as
+ * `58.299999999999997`, which is the same double, written the shortest way.
+ */
+function number(raw: string): string {
+  const n = Number(raw);
+  return raw.trim() === '' || !Number.isFinite(n) ? raw : String(n);
+}
+
+/**
  * A worksheet's values. Rows and cells that hold nothing may be left out of
  * the XML, so each is placed by its reference (`r="C5"`) when it has one;
  * a gap between rows is kept as an empty row.
@@ -246,7 +255,12 @@ function sheetRows(xml: string, shared: readonly string[]): string[][] {
         value = texts(inlinePattern.exec(body)?.[1] ?? '');
       } else {
         const raw = decodeEntities(valuePattern.exec(body)?.[1] ?? '');
-        value = type === 's' ? (shared[Number(raw)] ?? '') : raw;
+        value =
+          type === 's'
+            ? (shared[Number(raw)] ?? '')
+            : type === null || type === 'n'
+              ? number(raw)
+              : raw;
       }
       const ref = attribute(tag, 'r');
       const column = ref === null ? row.length : (columnOf(ref) ?? row.length);

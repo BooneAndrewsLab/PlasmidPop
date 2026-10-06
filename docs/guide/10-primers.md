@@ -140,12 +140,25 @@ open.
     semicolon-separated: with a header naming `name`, `sequence` and `notes`
     columns in any order, or without one, when the column of bases is the
     sequence, the first other column the name and the rest notes;
-  - one primer per line, the bases alone or after a name.
+  - one primer per line, the bases alone or after a name;
+  - an Excel workbook (`.xlsx`), such as an oligo order sheet. Its sheets
+    are tried in order and the first one with a primer in it is read, as a
+    table is; the report says which sheet when there are several. Sheets are
+    not added together. A workbook in which no sheet has a primer is turned
+    away with the names of its sheets. An old `.xls` workbook or an
+    OpenDocument `.ods` one is not read: save it as `.xlsx` or CSV first.
 
-  `5′-…-3′` and spaces between the bases are fine. Lines with no primer in
-  them are named in the report under the box. A primer already in the list
-  under the same name and with the same bases is left out rather than added
-  twice; the same bases under another name are added.
+  The header need not be the first row: a title or address above it is
+  passed over. Order-sheet headers such as `Oligo Name`, `Sequence Name`,
+  `Sequence (5' to 3')` or `Sequence 5'->3'` are understood, and a
+  `5' Modification` column is added to the notes. `5′-…-3′`, spaces
+  between the bases and IDT's modification codes (`/5Phos/ACGT…`, which go
+  into the notes) are fine. You can also drop the file on the **Paste many**
+  box; a file is read by what is in it, whatever its name. Lines (or a
+  sheet's rows) with no primer in them are named in the report under the
+  box. A primer already in the list under the same name and with the same
+  bases is left out rather than added twice; the same bases under another
+  name are added.
 
 - **Save both** under a designed pair, and **Save to My primers** under
   **Check a primer**.

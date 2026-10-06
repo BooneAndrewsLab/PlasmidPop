@@ -11,12 +11,15 @@ import {
   cleanPrimer,
   createFeature,
   mismatchPositions,
+  type ParsedPrimerList,
   parsePrimerList,
+  parsePrimerWorkbook,
   primerFromFeature,
   rangeSegment,
   writePrimerCsv,
   writePrimerFasta,
 } from '@/core';
+import { readTableFile } from '@/io';
 import { type OverlaySpan } from '@/view/overlay';
 import { analysisClient } from '@/workers/analysisClient';
 
@@ -96,7 +99,21 @@ function hitSpans(hits: readonly PrimerHit[], template: string): OverlaySpan[] {
   }));
 }
 
-function sayAdded(report: AddReport, skippedLines: readonly number[] = []): string {
+/**
+ * The files the import offers (#151): text lists and `.xlsx` workbooks, and
+ * `.xls`/`.ods` too, so that picking one says how to convert it rather than
+ * the picker greying it out without a word.
+ */
+const PRIMER_FILE_ACCEPT = '.csv,.tsv,.txt,.fasta,.fa,.fas,.fna,.xlsx,.xls,.ods';
+
+/** What a skipped place is called: a line of text, or a row of a workbook's sheet. */
+type SkippedIn = 'line' | 'row';
+
+function sayAdded(
+  report: AddReport,
+  skippedLines: readonly number[] = [],
+  unit: SkippedIn = 'line',
+): string {
   const parts: string[] = [];
   const n = report.added.length;
   parts.push(n === 0 ? 'No primer added' : `Added ${n} ${n === 1 ? 'primer' : 'primers'}`);
@@ -108,7 +125,7 @@ function sayAdded(report: AddReport, skippedLines: readonly number[] = []): stri
   if (skippedLines.length > 0) {
     const shown = skippedLines.slice(0, 5).join(', ');
     parts.push(
-      `${skippedLines.length === 1 ? 'line' : 'lines'} ${shown}${skippedLines.length > 5 ? '…' : ''} held no primer`,
+      `${skippedLines.length === 1 ? unit : `${unit}s`} ${shown}${skippedLines.length > 5 ? '…' : ''} held no primer`,
     );
   }
   return `${parts.join('; ')}.`;
@@ -249,6 +266,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
   const [single, setSingle] = useState({ name: '', sequence: '', notes: '' });
   const [pasted, setPasted] = useState('');
   const [said, setSaid] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   // Whether Find is on for this document, and how strict it is, kept with
@@ -353,11 +371,36 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
     setPcrSent((n) => n + 1);
   };
 
-  const addText = async (text: string, source: 'paste' | 'file'): Promise<void> => {
-    const parsed = parsePrimerList(text);
+  const addParsed = async (
+    parsed: ParsedPrimerList,
+    source: 'paste' | 'file',
+    unit: SkippedIn = 'line',
+    lead = '',
+  ): Promise<void> => {
+    setFileError(null);
     const report = await savePrimers(parsed.primers, source);
-    setSaid(sayAdded(report, parsed.skipped));
+    setSaid(lead + sayAdded(report, parsed.skipped, unit));
     if (report.added.length > 0 && source === 'paste') setPasted('');
+  };
+
+  /**
+   * A file is read by what its bytes are, not by its name (#151): a
+   * workbook's first sheet that holds primers, or text as pasted text is.
+   */
+  const addFile = async (file: File): Promise<void> => {
+    try {
+      const read = await readTableFile(new Uint8Array(await file.arrayBuffer()));
+      if (read.kind === 'text') {
+        await addParsed(parsePrimerList(read.text), 'file');
+        return;
+      }
+      const parsed = parsePrimerWorkbook(read.sheets);
+      const lead = read.sheets.length > 1 ? `From sheet “${parsed.sheet}”: ` : '';
+      await addParsed(parsed, 'file', 'row', lead);
+    } catch (e) {
+      setSaid(null);
+      setFileError(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   };
 
   const download = (format: 'csv' | 'fasta'): void => {
@@ -536,10 +579,23 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
             className="panel__textarea"
             rows={4}
             spellCheck={false}
-            placeholder={'FASTA, CSV (name,sequence,notes),\nor one sequence per line'}
+            placeholder={
+              'FASTA, CSV (name,sequence,notes),\nor one sequence per line;\nor drop a file here'
+            }
             value={pasted}
             onChange={(e) => {
               setPasted(e.target.value);
+            }}
+            // A file dropped here is imported, rather than opened as a tab (#151);
+            // dragged text is still dropped in as text.
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+            }}
+            onDrop={(e) => {
+              const file = e.dataTransfer.files[0];
+              if (file === undefined) return;
+              e.preventDefault();
+              void addFile(file);
             }}
           />
         </label>
@@ -549,7 +605,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
             className="button button--small"
             disabled={pasted.trim() === ''}
             onClick={() => {
-              void addText(pasted, 'paste');
+              void addParsed(parsePrimerList(pasted), 'paste');
             }}
           >
             Add pasted
@@ -564,13 +620,13 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           <input
             ref={fileInput}
             type="file"
-            accept=".csv,.tsv,.txt,.fasta,.fa,.fas,.fna"
+            accept={PRIMER_FILE_ACCEPT}
             aria-label="Primer list file"
             hidden
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = '';
-              if (file !== undefined) void file.text().then((text) => addText(text, 'file'));
+              if (file !== undefined) void addFile(file);
             }}
           />
           {docPrimers.length > 0 && (
@@ -592,6 +648,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           )}
         </div>
       </details>
+      {fileError !== null && <p className="panel__error">{fileError}</p>}
       {said !== null && <p className="panel__note panel__note--quiet">{said}</p>}
 
       {primers.length > 0 && (

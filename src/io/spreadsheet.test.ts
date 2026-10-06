@@ -63,6 +63,16 @@ describe('readTableFile (#141)', () => {
     expect((await sheetsOf(bytes))[0]?.rows).toEqual([['Overhang', '', '1', '2']]);
   });
 
+  it('writes a number the shortest way, as it was typed, and leaves other values be (#151)', async () => {
+    const MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    const bytes = await zip({
+      'xl/workbook.xml': `<workbook xmlns="${MAIN}" xmlns:r="r"><sheets><sheet name="A" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+      'xl/_rels/workbook.xml.rels': `<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>`,
+      'xl/worksheets/sheet1.xml': `<worksheet xmlns="${MAIN}"><sheetData><row r="1"><c r="A1"><v>58.299999999999997</v></c><c r="B1" t="n"><v>1.0E-3</v></c><c r="C1" t="str"><v>0012</v></c><c r="D1" t="e"><v>#N/A</v></c><c r="E1"><v>0170</v></c></row></sheetData></worksheet>`,
+    });
+    expect((await sheetsOf(bytes))[0]?.rows).toEqual([['58.3', '0.001', '0012', '#N/A', '170']]);
+  });
+
   it('reads text as UTF-8, or as UTF-16 when it starts with a byte-order mark', async () => {
     const text = 'Overhang\tAAAA\nTTTT\t5\n';
     expect(await readTableFile(new TextEncoder().encode(text))).toEqual({ kind: 'text', text });

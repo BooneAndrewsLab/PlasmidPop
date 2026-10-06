@@ -1,7 +1,9 @@
 import { createFeature, rangeSegment } from '../features';
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
+import { readTableFile } from '@/io';
 import { randomDna, randomInt, seededRandom } from '@/test/random';
+import { type TestSheet, xlsx } from '@/test/xlsx';
 
 import { ANNEAL_DEFAULTS, buildAnnealIndex, findAnnealingSites } from './anneal';
 import {
@@ -10,6 +12,8 @@ import {
   findCollectionPrimers,
   nextPrimerName,
   parsePrimerList,
+  parsePrimerRows,
+  parsePrimerWorkbook,
   preparePrimers,
   primerFromFeature,
   splitRow,
@@ -857,6 +861,167 @@ describe('parsePrimerList', () => {
     // A quote inside a cell is a character, not the start of a quoted cell.
     expect(splitRow('M13F,6" gel,x', ',')).toEqual(['M13F', '6" gel', 'x']);
     expect(splitRow('', ',')).toEqual([]);
+  });
+});
+
+/** A workbook built as Excel writes one, read back as the import reads it (#151). */
+async function workbook(
+  sheets: readonly TestSheet[],
+): Promise<ReturnType<typeof parsePrimerWorkbook>> {
+  const read = await readTableFile(await xlsx(sheets));
+  if (read.kind !== 'workbook') throw new Error('not read as a workbook');
+  return parsePrimerWorkbook(read.sheets);
+}
+
+const M13F = 'GTAAAACGACGGCCAGT';
+const M13R = 'CAGGAAACAGCTATGAC';
+const T7 = 'TAATACGACTCACTATAGGG';
+
+describe('primer lists from a workbook (#151)', () => {
+  it('takes the first sheet that holds a primer, not the instructions before it', async () => {
+    const parsed = await workbook([
+      {
+        name: 'Instructions',
+        rows: [['Fill in the Order sheet.'], ['Scale: 25 nmol unless stated', null, 'v2.1']],
+      },
+      {
+        name: 'Order',
+        rows: [
+          ['Oligo order form — Smith lab'],
+          [],
+          ['Well Position', 'Name', 'Sequence', 'Scale', 'Purification'],
+          ['A1', 'M13F', M13F, '25nm', 'STD'],
+          ['A2', 'M13R', M13R, '25nm', 'STD'],
+          [],
+          ['A3', 'blank', null, '25nm', 'STD'],
+        ],
+      },
+      {
+        name: 'Old order',
+        rows: [
+          ['Name', 'Sequence'],
+          ['T7', T7],
+        ],
+      },
+    ]);
+    expect(parsed.sheet).toBe('Order');
+    // Sheets are not merged: the old order's T7 is not taken.
+    expect(parsed.primers).toEqual([
+      { name: 'M13F', sequence: M13F, notes: '' },
+      { name: 'M13R', sequence: M13R, notes: '' },
+    ]);
+    // Rows are named as the sheet numbers them; the title above the header is no skip.
+    expect(parsed.skipped).toEqual([7]);
+  });
+
+  it('refuses a workbook in which no sheet holds a primer, naming the sheets', async () => {
+    await expect(
+      workbook([
+        {
+          name: 'Prices',
+          rows: [
+            ['Scale', 'Price'],
+            ['25 nmol', 12.5],
+          ],
+        },
+        {
+          name: 'Order',
+          rows: [
+            ['Name', 'Sequence'],
+            ['M13F', 'ACGT'],
+          ],
+        },
+      ]),
+    ).rejects.toThrow(
+      /None of this workbook's sheets \(“Prices”, “Order”\) holds a primer: no row has a sequence of at least 8 bases/,
+    );
+    await expect(workbook([{ name: 'Sheet1', rows: [] }])).rejects.toThrow(
+      /This workbook's sheet “Sheet1” holds no primer/,
+    );
+  });
+
+  it("reads the vendors' headers, wrapped, with modifications in their own column", async () => {
+    // Sigma's and Thermo's style: "Oligo Name", "Sequence (5' to 3')", modification columns.
+    const sigma = await workbook([
+      {
+        name: 'Sheet1',
+        rows: [
+          ['Oligo Name', "Sequence\n(5' to 3')", "5' Modification", "3' Modification", 'Comments'],
+          ['M13F', M13F, 'Phosphate', null, 'box 3'],
+          ['T7', `5'-${T7}-3'`],
+        ],
+      },
+    ]);
+    expect(sigma.primers).toEqual([
+      { name: 'M13F', sequence: M13F, notes: "box 3; 5' Modification: Phosphate" },
+      { name: 'T7', sequence: T7, notes: '' },
+    ]);
+    // Eurofins' style: "Sequence Name" is the name, not the sequence.
+    const eurofins = await workbook([
+      {
+        name: 'Oligos',
+        rows: [
+          ['Sequence Name', "Sequence 5'->3'", 'Length'],
+          ['M13R', 'cag gaa aca gct atg ac', 17],
+        ],
+      },
+    ]);
+    expect(eurofins.primers).toEqual([{ name: 'M13R', sequence: M13R, notes: '' }]);
+  });
+
+  it("passes over IDT's inline modification codes, and says them in the notes", async () => {
+    const idt = await workbook([
+      {
+        name: 'Plate',
+        rows: [
+          ['Name', 'Sequence', 'Scale', 'Purification'],
+          ['M13F-P', `/5Phos/${M13F}`, '25nm', 'STD'],
+          ['probe', `/56-FAM/${T7}/3BHQ_1/`, '100nm', 'HPLC'],
+        ],
+      },
+    ]);
+    expect(idt.primers).toEqual([
+      { name: 'M13F-P', sequence: M13F, notes: 'modifications: /5Phos/' },
+      { name: 'probe', sequence: T7, notes: 'modifications: /56-FAM/ /3BHQ_1/' },
+    ]);
+  });
+
+  it('keeps a cell with a line break, a tab or a quote one cell, and numbers as typed', async () => {
+    const parsed = await workbook([
+      {
+        name: 'Sheet1',
+        rows: [
+          ['Name', 'Sequence', 'Notes'],
+          ['M13\nforward', M13F, 'said "old",\tbox 3'],
+          [17, M13R, 58.3],
+        ],
+      },
+    ]);
+    expect(parsed.primers).toEqual([
+      { name: 'M13 forward', sequence: M13F, notes: 'said "old", box 3' },
+      { name: '17', sequence: M13R, notes: '58.3' },
+    ]);
+  });
+
+  it('reads a sheet without a header as a pasted table is read', () => {
+    expect(parsePrimerRows([['M13F', M13F, 'universal'], [], ['', T7], ['not a primer']])).toEqual({
+      format: 'table',
+      primers: [
+        { name: 'M13F', sequence: M13F, notes: 'universal' },
+        { name: '', sequence: T7, notes: '' },
+      ],
+      skipped: [4],
+    });
+  });
+
+  it('finds a header under a title row in text too, and not one after the first primer', () => {
+    expect(parsePrimerList(`Order 12,,\nSequence,Name,\n${M13F},M13F,\n`)).toEqual({
+      format: 'table',
+      primers: [{ name: 'M13F', sequence: M13F, notes: '' }],
+      skipped: [],
+    });
+    // A row naming columns after a primer is a row with no primer.
+    expect(parsePrimerList(`M13F,${M13F}\nName,Sequence\nT7,${T7}\n`).skipped).toEqual([2]);
   });
 });
 

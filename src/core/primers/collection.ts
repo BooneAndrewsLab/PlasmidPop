@@ -180,12 +180,31 @@ export interface ParsedPrimerList {
 export const MIN_LISTED_PRIMER = 8;
 
 /**
+ * A modification written inside the bases the way IDT's order sheets write
+ * one, `/5Phos/ACGT…` or `…/3BHQ_1/` (#151): it is not a base, so it is left
+ * out of the sequence, and said in the primer's notes instead.
+ */
+const MODIFICATION_CODE = /\/[A-Za-z0-9_+-]+\//g;
+
+/** The modification codes in a sequence cell, as notes; nothing when it has none. */
+function modificationNote(cell: string): string {
+  const codes = cell.match(MODIFICATION_CODE) ?? [];
+  return codes.length === 0 ? '' : `modifications: ${codes.join(' ')}`;
+}
+
+function joinNotes(...notes: readonly string[]): string {
+  return notes.filter((n) => n !== '').join('; ');
+}
+
+/**
  * A cell as a primer sequence, or null when it is not one. `5′-…-3′` and
  * spaces between codons are allowed, as a paper or an order sheet writes
- * them; anything else that is not a nucleotide code means it is a name.
+ * them, and IDT's `/5Phos/`-style modification codes are passed over;
+ * anything else that is not a nucleotide code means it is a name.
  */
 export function asPrimerSequence(cell: string): string | null {
   const bare = cell
+    .replace(MODIFICATION_CODE, '')
     .trim()
     .replace(/^5\s*['′’]?\s*-?\s*/, (m) => (/['′’-]/.test(m) ? '' : m))
     .replace(/\s*-?\s*3\s*['′’]$/, '')
@@ -326,24 +345,73 @@ const NAME_HEADER = /^(name|primer|primer name|oligo|oligo name|id)$/i;
 const SEQUENCE_HEADER =
   /^(seq|sequence|bases|primer sequence|oligo sequence|sequence \(5'?-?3'?\))$/i;
 const NOTES_HEADER = /^(notes?|description|comments?|remarks?)$/i;
+/**
+ * Looser forms, tried when no header is spelled as above, for the headers
+ * order sheets use (#151): "Sequence (5′ to 3′)", "Sequence 5'->3'",
+ * "Oligo Name", "Sequence Name" — a column naming a sequence's name, ID or
+ * length is not the sequence.
+ */
+const LOOSE_SEQUENCE_HEADER = /\b(seq|sequence)\b/i;
+const NOT_SEQUENCE_HEADER = /\b(name|id|length|len|no|number|count|type|mw)\b|#/i;
+const LOOSE_NAME_HEADER = /\bname\b/i;
+const LOOSE_NOTES_HEADER = /\b(notes?|description|comments?|remarks?)\b/i;
+/** A column of modifications ("5' Modification", "3′ Mod"), as Sigma's and Eurofins' sheets keep them. */
+const MODIFICATION_HEADER = /\bmod(ification)?s?\b/i;
+
+interface TableColumns {
+  readonly name: number;
+  readonly sequence: number;
+  readonly notes: number;
+  /** Modification columns, whose cells go into the notes under their header. */
+  readonly modifications: readonly { readonly at: number; readonly header: string }[];
+}
+
+/** The columns a header row names, or null when it names no sequence column. */
+function headerColumns(cells: readonly string[]): TableColumns | null {
+  if (cells.some((c) => asPrimerSequence(c) !== null)) return null;
+  const heads = cells.map((c) => c.replace(/\s+/g, ' ').trim());
+  const find = (strict: RegExp, loose: RegExp, not: (i: number) => boolean): number => {
+    const exact = heads.findIndex((h, i) => strict.test(h) && !not(i));
+    return exact >= 0 ? exact : heads.findIndex((h, i) => loose.test(h) && !not(i));
+  };
+  const sequence = find(SEQUENCE_HEADER, LOOSE_SEQUENCE_HEADER, (i) =>
+    NOT_SEQUENCE_HEADER.test(heads[i] ?? ''),
+  );
+  if (sequence < 0) return null;
+  const name = find(NAME_HEADER, LOOSE_NAME_HEADER, (i) => i === sequence);
+  const notes = find(NOTES_HEADER, LOOSE_NOTES_HEADER, (i) => i === sequence || i === name);
+  const modifications = heads.flatMap((header, at) =>
+    at !== sequence && at !== name && at !== notes && MODIFICATION_HEADER.test(header)
+      ? [{ at, header }]
+      : [],
+  );
+  return { sequence, name, notes, modifications };
+}
 
 function parseTable(text: string, delimiter: string): ParsedPrimerList {
-  const rows = splitRecords(text, delimiter);
-  const head = rows[0];
-  let columns: { name: number; sequence: number; notes: number } | null = null;
-  if (head?.cells.every((c) => asPrimerSequence(c) === null) === true) {
-    const sequence = head.cells.findIndex((c) => SEQUENCE_HEADER.test(c));
-    if (sequence >= 0) {
-      columns = {
-        sequence,
-        name: head.cells.findIndex((c) => NAME_HEADER.test(c)),
-        notes: head.cells.findIndex((c) => NOTES_HEADER.test(c)),
-      };
+  return parseRecords(splitRecords(text, delimiter));
+}
+
+/**
+ * The rows of a table, read by its header when it has one. The header need
+ * not be the first row: an order sheet often has a title or the lab's
+ * address above it (#151). Any row before the first one holding a primer
+ * may be it, and the rows above it are passed over, not reported.
+ */
+function parseRecords(rows: readonly TableRecord[]): ParsedPrimerList {
+  let columns: TableColumns | null = null;
+  let body = rows;
+  for (const [i, row] of rows.entries()) {
+    if (row.cells.some((c) => asPrimerSequence(c) !== null)) break;
+    columns = headerColumns(row.cells);
+    if (columns !== null) {
+      body = rows.slice(i + 1);
+      break;
     }
   }
   const primers: PrimerDraft[] = [];
   const skipped: number[] = [];
-  for (const row of columns === null ? rows : rows.slice(1)) {
+  for (const row of body) {
     const draft = columns === null ? guessRow(row.cells) : readRow(row.cells, columns);
     if (draft === null) skipped.push(row.line);
     else primers.push(draft);
@@ -351,17 +419,19 @@ function parseTable(text: string, delimiter: string): ParsedPrimerList {
   return { primers, skipped, format: 'table' };
 }
 
-function readRow(
-  cells: readonly string[],
-  columns: { name: number; sequence: number; notes: number },
-): PrimerDraft | null {
-  const sequence = asPrimerSequence(cells[columns.sequence] ?? '');
+function readRow(cells: readonly string[], columns: TableColumns): PrimerDraft | null {
+  const cell = cells[columns.sequence] ?? '';
+  const sequence = asPrimerSequence(cell);
   if (sequence === null) return null;
+  const modifications = columns.modifications.flatMap(({ at, header }) => {
+    const value = (cells[at] ?? '').trim();
+    return value === '' ? [] : [`${header}: ${value}`];
+  });
   // A column the header does not have is -1, which no cell is at.
   return {
     name: cells[columns.name] ?? '',
     sequence,
-    notes: cells[columns.notes] ?? '',
+    notes: joinNotes(cells[columns.notes] ?? '', modificationNote(cell), ...modifications),
   };
 }
 
@@ -383,7 +453,59 @@ function guessRow(cells: readonly string[]): PrimerDraft | null {
   }
   if (at < 0) return null;
   const others = cells.filter((c, i) => i !== at && c !== '');
-  return { name: others[0] ?? '', sequence, notes: others.slice(1).join('; ') };
+  return {
+    name: others[0] ?? '',
+    sequence,
+    notes: joinNotes(...others.slice(1), modificationNote(cells[at] ?? '')),
+  };
+}
+
+/** A worksheet's rows, as `readTableFile` gives them. */
+export interface PrimerSheet {
+  readonly name: string;
+  readonly rows: readonly (readonly string[])[];
+}
+
+/** A primer list read from a workbook: the sheet it came from, and rows numbered as the sheet numbers them. */
+export interface ParsedPrimerWorkbook extends ParsedPrimerList {
+  readonly sheet: string;
+}
+
+/**
+ * Reads the primers in a spreadsheet workbook (#151): the first sheet, in
+ * the workbook's order, from which at least one primer is read — an order
+ * form's instructions or price sheet before its list of oligos is passed
+ * over. Sheets are not merged: a second sheet of primers is as likely an
+ * old order as more of this one. A workbook in which no sheet holds a
+ * primer is refused with an error naming its sheets.
+ *
+ * The cells go to the same table reader as a CSV's, but as cells, never
+ * through delimited text, so a cell with a line break, a tab or a quote in
+ * it stays one cell; line breaks and runs of spaces inside a cell, as a
+ * wrapped header has, are read as one space.
+ */
+export function parsePrimerWorkbook(sheets: readonly PrimerSheet[]): ParsedPrimerWorkbook {
+  for (const sheet of sheets) {
+    const parsed = parsePrimerRows(sheet.rows);
+    if (parsed.primers.length > 0) return { ...parsed, sheet: sheet.name };
+  }
+  const names = sheets.map((s) => `“${s.name}”`).join(', ');
+  const why = `a sequence of at least ${MIN_LISTED_PRIMER} bases, under a header such as “Sequence” or alone in its row`;
+  throw new Error(
+    sheets.length === 1
+      ? `This workbook's sheet ${names} holds no primer: no row has ${why}.`
+      : `None of this workbook's sheets (${names}) holds a primer: no row has ${why}.`,
+  );
+}
+
+/** The rows of one sheet as a primer table; rows are numbered from 1, as the sheet numbers them. */
+export function parsePrimerRows(rows: readonly (readonly string[])[]): ParsedPrimerList {
+  const records: TableRecord[] = [];
+  rows.forEach((cells, i) => {
+    const tidy = cells.map((c) => c.replace(/\s+/g, ' ').trim());
+    if (tidy.some((c) => c !== '')) records.push({ cells: tidy, line: i + 1 });
+  });
+  return parseRecords(records);
 }
 
 function parseLines(lines: readonly string[]): ParsedPrimerList {

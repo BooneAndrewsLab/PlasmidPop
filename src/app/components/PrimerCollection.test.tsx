@@ -5,6 +5,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
 import { getRepository } from '@/storage';
+import { xlsx, zip } from '@/test/xlsx';
 
 import type * as SaveFile from '../saveFile';
 import { downloadText } from '../saveFile';
@@ -317,5 +318,75 @@ describe('My primers', () => {
     expect((await getRepository().loadPrimers()).map((p) => [p.name, p.sequence])).toEqual([
       ['BamHI-fwd', `GGATCC${FWD}`],
     ]);
+  });
+  it('imports a workbook by its contents, from its first sheet holding primers (#151)', async () => {
+    await setup();
+    const input = screen.getByLabelText('Primer list file');
+    // The picker offers workbooks, and .xls/.ods so as to say how to convert them.
+    expect(input.getAttribute('accept')).toContain('.xlsx');
+    expect(input.getAttribute('accept')).toContain('.ods');
+    const book = await xlsx([
+      { name: 'Instructions', rows: [['Fill in the Order sheet']] },
+      {
+        name: 'Order',
+        rows: [
+          ['Primer order'],
+          ['Name', 'Sequence', 'Scale'],
+          ['fwd1', FWD, '25nm'],
+          ['rev1', REV, '25nm'],
+          ['none', 'tbd', '25nm'],
+        ],
+      },
+    ]);
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [new File([book], 'order.xlsx')] } });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(
+      await screen.findByText('From sheet “Order”: Added 2 primers; row 5 held no primer.'),
+    ).toBeTruthy();
+    expect((await getRepository().loadPrimers()).map((p) => [p.name, p.sequence])).toEqual([
+      ['fwd1', FWD],
+      ['rev1', REV],
+    ]);
+
+    // Dropped on the paste box, a file is judged by its bytes, not its name.
+    const box = screen.getByPlaceholderText(/FASTA, CSV/);
+    const drop = async (file: File): Promise<void> => {
+      await act(async () => {
+        fireEvent.drop(box, { dataTransfer: { files: [file], types: ['Files'] } });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    };
+    const one = await xlsx([{ name: 'Sheet1', rows: [['ori', ORIGIN]] }]);
+    await drop(new File([one], 'primers.txt'));
+    expect(await screen.findByText('Added 1 primer.')).toBeTruthy();
+    expect(primerCollection.getState().primers.map((p) => p.name)).toContain('ori');
+
+    // A workbook with no primer in any sheet is refused, naming its sheets.
+    const prices = await xlsx([
+      { name: 'Prices', rows: [['Scale', 'Price']] },
+      { name: 'Notes', rows: [['none yet']] },
+    ]);
+    await drop(new File([prices], 'prices.xlsx'));
+    expect(
+      await screen.findByText(
+        /prices\.xlsx: None of this workbook's sheets \(“Prices”, “Notes”\) holds a primer/,
+      ),
+    ).toBeTruthy();
+
+    // An old .xls and an OpenDocument sheet are told how to convert.
+    const xls = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0]);
+    await drop(new File([xls], 'primers.xls'));
+    expect(
+      await screen.findByText(/old-style Excel workbook \(\.xls\); save it as an Excel workbook/),
+    ).toBeTruthy();
+    const ods = await zip({
+      mimetype: 'application/vnd.oasis.opendocument.spreadsheet',
+      'content.xml': '<office:document-content/>',
+    });
+    await drop(new File([ods], 'primers.ods'));
+    expect(await screen.findByText(/OpenDocument spreadsheet; save it as/)).toBeTruthy();
+    expect(primerCollection.getState().primers).toHaveLength(3);
   });
 });

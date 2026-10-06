@@ -67,4 +67,5 @@ CRCs, which openpyxl opens) rather than commit a published table.
 
 **Not done:** the primer list import (`PrimerCollection.tsx`) also takes
 only text, though primer order sheets are often workbooks; the reader is
-generic enough to serve it, filed as #151 rather than changed here.
+generic enough to serve it, filed as #151 rather than changed here (done:
+item 72).
