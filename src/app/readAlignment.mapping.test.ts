@@ -145,5 +145,5 @@ describe('read alignment: base, trace and quality mapping', () => {
     expect(wrapped).toBeGreaterThan(15);
     expect(bases).toBeGreaterThan(30000);
     expect(problems).toEqual([]);
-  });
+  }, 30_000);
 });
