@@ -14,6 +14,12 @@ of about 3 kb that the banded path of alignLong takes. It left out
 banded-local alignments with junk flanks, where the band can score below the
 full matrix (#159), and empty sequences, which Biopython refuses to align.
 
+The 'banded' cases are the ones a band around shared words can miss (#167):
+a tandem duplication in the read or in the reference, and a long insertion
+a few bases from either end of the read, each a Sanger-length read of a
+3 kb reference. Both optimal scores are recorded; the banded path has to
+reach them, the global one exactly and the local one through either strand.
+
 The 'circular' cases map reads onto a circular reference the way the Align
 tab does: reads that run across the origin on either strand, a deletion
 before the origin, an insertion at it, reads inside either end, and reads
@@ -22,10 +28,7 @@ alignment (both strands tried, the better kept) against the reference
 rotated so that the read lies inside it, with the difference regions
 (position, reference bases, read bases) it implies. Also covered: a deletion
 or insertion just after the origin, which makes the reference span past it
-differ from the read's length (#165), on a long and on a short circle. Left
-out: banded alignments of tandem repeats or of reads ending in a long
-insertion (#167).
-"""
+differ from the read's length (#165), on a long and on a short circle. """
 from Bio.Align import PairwiseAligner, substitution_matrices
 
 from common import random_dna, rc, rng_for
@@ -133,7 +136,47 @@ def generate():
         p = len(read) // 2
         read = read[:p] + read[p + 150:] if len(long_cases) else read
         long_cases.append({'a': ref, 'b': read, 'global': aligner(False, 'global').score(ref, read)})
-    return {'cases': cases, 'long': long_cases, 'circular': circular_cases()}
+    return {'cases': cases, 'long': long_cases, 'circular': circular_cases(), 'banded': banded_cases()}
+
+
+def banded_cases():
+    """Pairs whose best path leaves the band the shared words give (#167)."""
+    rng = rng_for(SEED + 2)
+    dna = 'ACGT'
+    kinds = ['tandem_read', 'tandem_ref', 'insert_start', 'insert_end']
+    cases = []
+    for k in range(24):
+        kind = kinds[k % len(kinds)]
+        noise = rng.choice([0.003, 0.01, 0.02])
+        unit = random_dna(rng, rng.randint(20, 300))
+        at = rng.randint(400, 800)
+        left = random_dna(rng, at)
+        right = random_dna(rng, 3000 - at)
+        if kind == 'tandem_read':
+            ref = left + unit + right
+            read = left[-rng.randint(200, 400):] + unit + mutate(rng, unit, 0.02, 0, 0, dna) + right[:rng.randint(200, 600)]
+        elif kind == 'tandem_ref':
+            ref = left + unit + mutate(rng, unit, 0.02, 0, 0, dna) + right
+            read = left[-rng.randint(200, 400):] + unit + right[:rng.randint(200, 600)]
+        else:
+            ref = left + right
+            start = rng.randint(0, 2000)
+            body = ref[start:start + rng.randint(500, 1000)]
+            near = rng.randint(5, 40)
+            ins = random_dna(rng, rng.randint(30, 330))
+            if kind == 'insert_start':
+                read = body[:near] + ins + body[near:]
+            else:
+                read = body[:len(body) - near] + ins + body[len(body) - near:]
+        read = mutate(rng, read, noise, noise / 2, noise / 2, dna)
+        cases.append({
+            'kind': kind,
+            'a': ref,
+            'b': read,
+            'global': aligner(False, 'global').score(ref, read),
+            'local': max(aligner(False, 'local').score(ref, read), aligner(False, 'local').score(ref, rc(read))),
+        })
+    return cases
 
 
 def circ_slice(ref, start, n):

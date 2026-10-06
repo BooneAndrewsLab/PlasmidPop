@@ -11,7 +11,9 @@ import oracle from './alignment.json';
  * BLOSUM62 with -11/-1), and, where Biopython's best alignment is unique, the
  * span of each sequence it covers. Which of several equally good alignments
  * is reported is no one's rule, so ties are held to the score alone. Two
- * pairs of about 3 kb go through the banded path as well.
+ * pairs of about 3 kb go through the banded path as well, and 24 pairs
+ * built to lead the band astray (tandem repeats, an insertion near a read
+ * end, #167).
  */
 
 interface Answer {
@@ -88,9 +90,33 @@ describe('pairwise alignment against Biopython', () => {
       expect(alignLong(c.a, c.b, { mode: 'global', fast: true }).score).toBe(c.global);
       const banded = alignBanded(c.a, c.b, { mode: 'global' });
       expect(banded).not.toBeNull();
-      if (banded !== null && !banded.touchedEdge) expect(banded.alignment.score).toBe(c.global);
+      expect(banded?.exact).toBe(true);
+      expect(banded?.alignment.score).toBe(c.global);
     }
   }, 30_000);
+
+  // Tandem duplications and long insertions near a read's end, where the
+  // band around shared words misses the best path (#167): the check after
+  // the band has to find Biopython's optimum, global and local.
+  it('reaches the optimum where the band alone misses it (#167)', () => {
+    const banded = oracle.banded;
+    expect(banded).toHaveLength(24);
+    const problems: string[] = [];
+    for (const [i, c] of banded.entries()) {
+      const label = `#${String(i)} ${c.kind}`;
+      const global = alignBanded(c.a, c.b, { mode: 'global' });
+      if (global !== null && global.alignment.score !== c.global) {
+        problems.push(
+          `${label} global: ${String(global.alignment.score)}, Biopython ${String(c.global)}`,
+        );
+      }
+      const local = alignEitherStrand(c.a, c.b, { mode: 'local', fast: true }).alignment.score;
+      if (local !== c.local) {
+        problems.push(`${label} local: ${String(local)}, Biopython ${String(c.local)}`);
+      }
+    }
+    expect(problems).toEqual([]);
+  }, 60_000);
 });
 
 interface CircularCase {
