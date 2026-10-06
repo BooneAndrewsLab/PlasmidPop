@@ -46,3 +46,11 @@ reads them — the same assumptions on both sides.
   nucleotide document whose molecule type is RNA. Biopython does not read
   it either (no 0x00 packet), so the check is SnapGene's own annotations
   against the bases we read (item 57, "SnapGene `.rna`").
+- **A range that cannot be built** (#161): every feature segment and primer
+  binding site is checked with the document's own `isValidSegment` before
+  `SeqDocument.create` sees it, so one bad one is dropped with a warning
+  naming the feature or primer ("Primer "x": binding site "40-99" is
+  invalid; skipped") and the rest of the file opens. Checking beforehand
+  rather than catching around `create` keeps the good features, because
+  `create` would reject the whole set. A primer site that was unreadable used
+  to be dropped silently; it now warns too.

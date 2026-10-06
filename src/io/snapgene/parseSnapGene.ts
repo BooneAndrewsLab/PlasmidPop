@@ -16,6 +16,7 @@ import {
   isValidProtein,
   isValidSequence,
   rangeSegment,
+  isValidSegment,
   unrollRange,
 } from '@/core';
 
@@ -149,6 +150,21 @@ function parsePrimerRange(
   return unrollRange(a, b + 1, seqLength);
 }
 
+/**
+ * `r` when the document will accept it as a feature segment (the same rule
+ * SeqDocument.create enforces), else null. Checked here so that one feature
+ * or primer that cannot be built is dropped with a warning rather than
+ * making the whole file fail to open (#161).
+ */
+function usable(
+  r: { start: number; end: number } | null,
+  seqLength: number,
+  topology: Topology,
+): { start: number; end: number } | null {
+  if (r === null) return null;
+  return isValidSegment(rangeSegment(r.start, r.end), seqLength, topology) ? r : null;
+}
+
 function strandOf(directionality: string | undefined): Strand {
   return directionality === '2' ? 'reverse' : 'forward';
 }
@@ -199,7 +215,11 @@ function parseFeatures(
     let color: string | undefined;
     for (const seg of childElements(el, 'Segment')) {
       if (seg.attributes['type'] === 'gap') continue;
-      const r = parseRange(seg.attributes['range'] ?? '', seqLength, topology);
+      const r = usable(
+        parseRange(seg.attributes['range'] ?? '', seqLength, topology),
+        seqLength,
+        topology,
+      );
       if (r === null) {
         warnings.push(
           warning(
@@ -267,8 +287,19 @@ function parsePrimers(
     }
     const seen = new Set<string>();
     for (const site of sites) {
-      const r = parsePrimerRange(site.attributes['location'] ?? '', seqLength, topology);
-      if (r === null) continue;
+      const r = usable(
+        parsePrimerRange(site.attributes['location'] ?? '', seqLength, topology),
+        seqLength,
+        topology,
+      );
+      if (r === null) {
+        warnings.push(
+          warning(
+            `Primer "${name}": binding site "${site.attributes['location'] ?? ''}" is invalid; skipped`,
+          ),
+        );
+        continue;
+      }
       // SnapGene writes a site twice, once marked simplified="1", when it
       // keeps a simplified form of it for display; the second copy is the
       // same binding site, and imported it is a duplicate primer (#44).

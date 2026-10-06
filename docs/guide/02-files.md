@@ -88,7 +88,10 @@ settings are skipped. PlasmidPop
 cannot write `.dna`; download GenBank instead. Files from current SnapGene
 versions are what is tested; before version 1.2, primers were placed one base
 to the left of where SnapGene has them, and a primer SnapGene stores twice
-came in twice — reopen the `.dna` file to get them right.
+came in twice — reopen the `.dna` file to get them right. A feature or primer
+whose position cannot be placed on the sequence (outside it, or backwards on a
+linear one) is left out, and a warning in the status bar names it; the rest
+of the file opens as usual.
 
 **SnapGene `.prot`** files open as [protein documents](16-proteins.md): the
 residues, every feature (domains, regions, sites, with their colours) on the

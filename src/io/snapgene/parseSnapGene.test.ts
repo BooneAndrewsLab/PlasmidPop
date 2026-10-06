@@ -296,6 +296,70 @@ describe('full-circle ranges', () => {
   });
 });
 
+describe('a feature or primer that cannot be built (#161)', () => {
+  const seq = 'ATGAAACCCGGGTTTTAGCATCGATCGATTTGCGCGCATATATGGCC'; // 47 bp
+  const feature = (name: string, range: string): string =>
+    `<Feature name="${name}" type="misc_feature"><Segment range="${range}"/></Feature>`;
+
+  it.each([
+    ['past the end of the sequence', '40-99', false],
+    ['starting at 0', '0-5', true],
+    ['running backwards on a linear sequence', '20-10', false],
+  ])('drops a feature with a range %s and keeps the others', (_why, range, circular) => {
+    const result = parseSnapGene(
+      buildFile({
+        sequence: seq,
+        circular,
+        features: `<Features>${feature('before', '1-6')}${feature('bad', range)}${feature('after', '10-18')}</Features>`,
+      }),
+    );
+    expect(
+      result.documents[0]?.features
+        .all()
+        .map((f) => f.name)
+        .sort(),
+    ).toEqual(['after', 'before']);
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      `Feature "bad": segment range "${range}" is invalid; skipped`,
+      'Feature "bad" has no usable segments; skipped',
+    ]);
+  });
+
+  it('keeps the good segments of a feature with one bad one', () => {
+    const result = parseSnapGene(
+      buildFile({
+        sequence: seq,
+        circular: false,
+        features: `<Features><Feature name="split" type="misc_feature"><Segment range="1-6"/><Segment range="40-99"/></Feature></Features>`,
+      }),
+    );
+    expect(result.documents[0]?.features.all()).toHaveLength(1);
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it('drops a primer binding site that is out of range, names it, and keeps the rest', () => {
+    const result = parseSnapGene(
+      buildFile({
+        sequence: seq,
+        circular: false,
+        features: `<Features>${feature('good', '1-6')}</Features>`,
+        primers:
+          '<Primers><Primer name="ok" sequence="ATG"><BindingSite location="0-2" boundStrand="0"/></Primer>' +
+          '<Primer name="bad" sequence="ATG"><BindingSite location="40-99" boundStrand="0"/></Primer></Primers>',
+      }),
+    );
+    expect(
+      result.documents[0]?.features
+        .all()
+        .map((f) => f.name)
+        .sort(),
+    ).toEqual(['good', 'ok']);
+    expect(result.warnings.map((w) => w.message)).toEqual([
+      'Primer "bad": binding site "40-99" is invalid; skipped',
+    ]);
+  });
+});
+
 describe('sticky ends', () => {
   const props = (up: number, down: number) =>
     `<AdditionalSequenceProperties><UpstreamStickiness>${up}</UpstreamStickiness><DownstreamStickiness>${down}</DownstreamStickiness></AdditionalSequenceProperties>`;
