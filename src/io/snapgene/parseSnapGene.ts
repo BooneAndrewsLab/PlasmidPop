@@ -213,7 +213,17 @@ function parseFeatures(
       warnings.push(warning(`Feature "${name}" has no usable segments; skipped`));
       continue;
     }
-    const qualifiers = qualifiersOf(el);
+    let qualifiers = qualifiersOf(el);
+    // SnapGene's readingFrame (1-3) is GenBank's codon_start. It wins over a
+    // codon_start qualifier of the file's own; a frame of 1 adds nothing.
+    const frame = el.attributes['readingFrame'];
+    if (frame === '1' || frame === '2' || frame === '3') {
+      const had = qualifiers.some((q) => q.name === 'codon_start');
+      if (had || frame !== '1') {
+        qualifiers = qualifiers.filter((q) => q.name !== 'codon_start');
+        qualifiers.push({ name: 'codon_start', value: frame });
+      }
+    }
     if (
       color !== undefined &&
       !qualifiers.some((q) => q.name === 'note' && q.value?.includes('color:') === true)

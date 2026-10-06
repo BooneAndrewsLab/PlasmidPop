@@ -1,4 +1,5 @@
 import { parseGenBank, writeGenBank } from '@/io/genbank';
+import { translateCds } from '@/core/analysis/cdsTranslation';
 import { listLocalSnapGeneFiles } from '@/test/fixtures';
 
 import { parseSequenceData } from '../detect';
@@ -197,6 +198,36 @@ describe('parseSnapGene (synthetic file)', () => {
     expect(() => parseSnapGene(truncated)).toThrow(/Truncated/);
     const noSeq = concat([packet(0x09, concat([enc.encode('SnapGene'), new Uint8Array(6)]))]);
     expect(() => parseSnapGene(noSeq)).toThrow(/no DNA sequence/);
+  });
+});
+
+describe('reading frame', () => {
+  const cds = (attrs: string, q = ''): string =>
+    `<Features><Feature name="c" type="CDS" directionality="1"${attrs}><Segment range="1-13"/>${q}</Feature></Features>`;
+  const parse = (features: string) => {
+    const doc = parseSnapGene(buildFile({ sequence: 'GATGAAACCCTAA', circular: false, features }))
+      .documents[0];
+    if (doc === undefined) throw new Error('no document');
+    const feature = doc.features.all()[0];
+    if (feature === undefined) throw new Error('no feature');
+    return { doc, feature };
+  };
+
+  it('#153: readingFrame 2 starts the CDS at its second base', () => {
+    // G + ATG AAA CCC TAA: read from offset 1 this is MKP*
+    const { doc, feature } = parse(cds(' readingFrame="2"'));
+    expect(translateCds(doc, feature).protein).toMatch(/^MKP/);
+  });
+
+  it("replaces the file's own codon_start rather than adding a second", () => {
+    const { feature } = parse(cds(' readingFrame="2"', '<Q name="codon_start"><V int="1"/></Q>'));
+    const starts = feature.qualifiers.filter((q) => q.name === 'codon_start');
+    expect(starts.map((q) => q.value)).toEqual(['2']);
+  });
+
+  it('adds nothing for frame 1', () => {
+    const { feature } = parse(cds(' readingFrame="1"'));
+    expect(feature.qualifiers.some((q) => q.name === 'codon_start')).toBe(false);
   });
 });
 
