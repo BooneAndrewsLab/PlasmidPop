@@ -238,10 +238,11 @@ function parseFeatures(
       continue;
     }
     let qualifiers = qualifiersOf(el);
-    // SnapGene's readingFrame (1-3) is GenBank's codon_start. It wins over a
+    // SnapGene's readingFrame is GenBank's codon_start. A reverse-strand CDS
+    // carries it negated (-1..-3); the magnitude is the frame. It wins over a
     // codon_start qualifier of the file's own; a frame of 1 adds nothing.
-    const frame = el.attributes['readingFrame'];
-    if (frame === '1' || frame === '2' || frame === '3') {
+    const frame = /^-?([123])$/.exec(el.attributes['readingFrame'] ?? '')?.[1];
+    if (frame !== undefined) {
       const had = qualifiers.some((q) => q.name === 'codon_start');
       if (had || frame !== '1') {
         qualifiers = qualifiers.filter((q) => q.name !== 'codon_start');

@@ -38,7 +38,8 @@ Added 2026-09-23 (#9):
   The clip is an ordinary `delete`, which since #160 also moves `codon_start`
   of a CDS past the bases it took off the front of the reading, so a frame-1
   CDS clipped by one base becomes `codon_start=3` (#154). Consistent with
-  #153, which reads SnapGene's `readingFrame` as `codon_start`.
+  #153, which reads SnapGene's `readingFrame` as `codon_start`; a reverse
+  CDS carries it negated (-1..-3), and the magnitude is the frame (#164).
 - **The circular map** strokes both tips of the open ring in the cut-site
   colour and writes `describeEnds` under the length in the centre, whole or
   not at all like the title. Inside the ring beside the gap was the first

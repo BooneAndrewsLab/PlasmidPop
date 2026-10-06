@@ -258,6 +258,44 @@ describe('reading frame', () => {
     expect(feature.qualifiers.find((q) => q.name === 'codon_start')?.value).toBe('3');
   });
 
+  it('#164: a reverse CDS with readingFrame -2 reads from its second base', () => {
+    // revcomp = N + ATG AAA CCC TAA; the stale codon_start says 1, only the frame says 2
+    const doc = parseSnapGene(
+      buildFile({
+        sequence: 'TTAGGGTTTCATN' + 'A'.repeat(20),
+        circular: false,
+        features: cds(' readingFrame="-2"', '<Q name="codon_start"><V int="1"/></Q>').replace(
+          'directionality="1"',
+          'directionality="2"',
+        ),
+      }),
+    ).documents[0];
+    const feature = doc?.features.all()[0];
+    if (doc === undefined || feature === undefined) throw new Error('no feature');
+    expect(translateCds(doc, feature).protein).toBe('MKP*');
+  });
+
+  it.each([1, 2, 3, -1, -2, -3])(
+    '#164: readingFrame %i sets codon_start to its magnitude on either strand, over a stale one',
+    (frame) => {
+      for (const dir of ['1', '2']) {
+        const { feature } = parse(
+          cds(` readingFrame="${frame}"`, '<Q name="codon_start"><V int="2"/></Q>').replace(
+            'directionality="1"',
+            `directionality="${dir}"`,
+          ),
+        );
+        const starts = feature.qualifiers.filter((q) => q.name === 'codon_start');
+        expect(starts.map((q) => q.value)).toEqual([String(Math.abs(frame))]);
+      }
+    },
+  );
+
+  it('#164: readingFrame -1 adds nothing without a codon_start', () => {
+    const { feature } = parse(cds(' readingFrame="-1"'));
+    expect(feature.qualifiers.some((q) => q.name === 'codon_start')).toBe(false);
+  });
+
   it("replaces the file's own codon_start rather than adding a second", () => {
     const { feature } = parse(cds(' readingFrame="2"', '<Q name="codon_start"><V int="1"/></Q>'));
     const starts = feature.qualifiers.filter((q) => q.name === 'codon_start');
