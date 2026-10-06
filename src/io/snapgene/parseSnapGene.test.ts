@@ -219,6 +219,43 @@ describe('reading frame', () => {
     expect(translateCds(doc, feature).protein).toMatch(/^MKP/);
   });
 
+  it('#154: clipping a -1 sticky end advances codon_start of a CDS it overlaps', () => {
+    // N + ATGAAACCCTAA, frame 1 from the N. The N is clipped, so the first whole codon is GAA: ETL
+    const doc = parseSnapGene(
+      buildFile({
+        sequence: 'NATGAAACCCTAA',
+        circular: false,
+        features: cds(''),
+        properties:
+          '<AdditionalSequenceProperties><UpstreamStickiness>-1</UpstreamStickiness><DownstreamStickiness>0</DownstreamStickiness></AdditionalSequenceProperties>',
+      }),
+    ).documents[0];
+    if (doc === undefined) throw new Error('no document');
+    const feature = doc.features.all()[0];
+    if (feature === undefined) throw new Error('no feature');
+    expect(doc.sequence.toString()).toBe('ATGAAACCCTAA');
+    expect(translateCds(doc, feature).protein).toMatch(/^ETL/);
+  });
+
+  it('#154: a reverse CDS clipped at the downstream end moves its codon_start too', () => {
+    // The reading starts at the right end, where the clipped N is: frame 1 becomes 3.
+    const doc = parseSnapGene(
+      buildFile({
+        sequence: 'TTAGGGTTTCATN',
+        circular: false,
+        features: cds('').replace('directionality="1"', 'directionality="2"'),
+        properties:
+          '<AdditionalSequenceProperties><UpstreamStickiness>0</UpstreamStickiness><DownstreamStickiness>1</DownstreamStickiness></AdditionalSequenceProperties>',
+      }),
+    ).documents[0];
+    if (doc === undefined) throw new Error('no document');
+    const feature = doc.features.all()[0];
+    if (feature === undefined) throw new Error('no feature');
+    expect(feature.strand).toBe('reverse');
+    expect(doc.sequence.toString()).toBe('TTAGGGTTTCAT');
+    expect(feature.qualifiers.find((q) => q.name === 'codon_start')?.value).toBe('3');
+  });
+
   it("replaces the file's own codon_start rather than adding a second", () => {
     const { feature } = parse(cds(' readingFrame="2"', '<Q name="codon_start"><V int="1"/></Q>'));
     const starts = feature.qualifiers.filter((q) => q.name === 'codon_start');

@@ -35,6 +35,12 @@ Added 2026-09-23 (#9):
   from the sequence with an ordinary `delete`, which clips any feature on
   them, and the end records them. All 203 files import and round-trip their
   ends through GenBank. Import only; there is no .dna writer.
+  A plain `delete` clips a CDS but leaves its `/codon_start`; the importer
+  therefore moves `codon_start` past the bases the clip took off the front
+  of the reading (the right end for a reverse CDS), so a frame-1 CDS clipped
+  by one base becomes `codon_start=3` (#154). Consistent with #153, which
+  reads SnapGene's `readingFrame` as `codon_start`. An ordinary user delete
+  in the editor still does not adjust the frame.
 - **The circular map** strokes both tips of the open ring in the cut-site
   colour and writes `describeEnds` under the length in the centre, whole or
   not at all like the title. Inside the ring beside the gap was the first
