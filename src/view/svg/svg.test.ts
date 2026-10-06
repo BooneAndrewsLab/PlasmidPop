@@ -69,7 +69,11 @@ describe('exportMapSvg', () => {
   it('labels a cut site with the same number as the enzyme panel (#155)', () => {
     const seq = 'A'.repeat(10) + 'GAATTC' + 'A'.repeat(100) + 'GGATCC' + 'T'.repeat(84);
     const doc = SeqDocument.create({ sequence: seq, topology: 'circular' });
-    const cuts = findCutSites(seq, 'circular', ENZYMES.filter((e) => e.name === 'EcoRI'));
+    const cuts = findCutSites(
+      seq,
+      'circular',
+      ENZYMES.filter((e) => e.name === 'EcoRI'),
+    );
     expect(cuts[0]?.cut).toBe(11); // "cut after base 11" in the panel
     expect(exportMapSvg(doc, { cutSites: cuts })).toContain('EcoRI (11)');
   });
