@@ -5,11 +5,11 @@ import { parseSnapGene } from './parseSnapGene';
 
 /**
  * The flags byte at the head of a SnapGene sequence packet (#45, item 44):
- * bit 0 circular, bit 1 Dam, bit 2 Dcm, bit 3 EcoKI. Every one of the 16
- * low-nibble values is read, from a synthetic file built in memory (the
+ * 0x01 circular, 0x02 double-stranded, 0x04 Dam, 0x08 Dcm, 0x10 EcoKI
+ * (#152: 0x02 was once read as Dam). Every one of the 32 five-bit values is read, from a synthetic file built in memory (the
  * same packet layout `parseSnapGene.test.ts` builds; no SnapGene file is
- * read): topology from bit 0 alone, the host from bits 1 and 2 alone, and
- * bit 3 changing nothing, since no enzyme in the table is blocked by
+ * read): topology from bit 0 alone, the host from 0x04 and 0x08 alone, and
+ * 0x02 and 0x10 changing nothing, since no enzyme in the table is blocked by
  * EcoKI. The setting then survives the trip out through GenBank.
  */
 
@@ -50,20 +50,29 @@ function must<T>(value: T | null | undefined, what: string): T {
   return value;
 }
 
-const FLAGS = Array.from({ length: 16 }, (_, n) => n);
+const FLAGS = Array.from({ length: 32 }, (_, n) => n);
 
 describe('the SnapGene sequence flags', () => {
   it.each(FLAGS)('reads flags %i bit by bit', (flags) => {
     const doc = must(parseSnapGene(file(flags), 'x.dna').documents[0], 'a document');
     expect(doc.sequence.toString()).toBe(SEQ);
     expect(doc.topology).toBe((flags & 1) !== 0 ? 'circular' : 'linear');
-    expect(doc.methylation).toEqual({ dam: (flags & 2) !== 0, dcm: (flags & 4) !== 0 });
+    expect(doc.methylation).toEqual({ dam: (flags & 4) !== 0, dcm: (flags & 8) !== 0 });
   });
 
-  it('ignores bit 3 (EcoKI): each value reads as the one without it', () => {
-    for (const flags of FLAGS.filter((f) => (f & 8) !== 0)) {
+  it('reads the SnapGene-saved host settings: 0x02 none, 0x06 Dam, 0x0a Dcm, 0x1f both', () => {
+    const host = (flags: number) =>
+      must(parseSnapGene(file(flags), 'x.dna').documents[0], 'a document').methylation;
+    expect(host(0x02)).toEqual({ dam: false, dcm: false });
+    expect(host(0x06)).toEqual({ dam: true, dcm: false });
+    expect(host(0x0a)).toEqual({ dam: false, dcm: true });
+    expect(host(0x1f)).toEqual({ dam: true, dcm: true });
+  });
+
+  it('ignores 0x02 and 0x10 (double-stranded, EcoKI): each value reads as the one without them', () => {
+    for (const flags of FLAGS.filter((f) => (f & 0x12) !== 0)) {
       const withIt = must(parseSnapGene(file(flags)).documents[0], 'a document');
-      const without = must(parseSnapGene(file(flags & 7)).documents[0], 'a document');
+      const without = must(parseSnapGene(file(flags & 0x0d)).documents[0], 'a document');
       expect(withIt.topology).toBe(without.topology);
       expect(withIt.methylation).toEqual(without.methylation);
       expect(withIt.features.all()).toEqual(without.features.all());
@@ -73,7 +82,7 @@ describe('the SnapGene sequence flags', () => {
   it('reads the same through format detection, and keeps the host through GenBank', () => {
     for (const flags of FLAGS) {
       const doc = must(parseSequenceData(file(flags), 'x.dna').documents[0], 'a document');
-      expect(doc.methylation).toEqual({ dam: (flags & 2) !== 0, dcm: (flags & 4) !== 0 });
+      expect(doc.methylation).toEqual({ dam: (flags & 4) !== 0, dcm: (flags & 8) !== 0 });
       const back = must(parseGenBank(writeGenBank(doc)).documents[0], 'a record');
       expect(back.methylation).toEqual(doc.methylation);
       expect(back.topology).toBe(doc.topology);

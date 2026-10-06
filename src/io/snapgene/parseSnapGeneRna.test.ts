@@ -122,7 +122,7 @@ describe('SnapGene .rna (#112)', () => {
     expect(doc.subsequence({ start: 8, end: 9 })).toBe('A');
   });
 
-  it('does not read the flags byte: bit 0 is not a circle, nor bit 1 Dam', () => {
+  it('does not read the flags byte: bit 0 is not a circle, nor 0x02 double-stranded', () => {
     const { doc } = only(buildRna({ flags: 3 }));
     expect(doc.topology).toBe('linear');
     expect(doc.methylation).toEqual(only(buildRna()).doc.methylation);

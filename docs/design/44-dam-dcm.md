@@ -59,9 +59,14 @@ Added 2026-09-23 (#45): **the host, and digests that respect it.**
   of ours (`PlasmidPop-methylation: dam-; dcm+`, `methylationComment.ts`),
   written only when it is not the default and taken out of the comments on
   read so a file does not collect copies — the pattern item 10 set for
-  sticky ends. SnapGene's own flags byte carries it (bit 1 Dam, bit 2 Dcm,
-  bit 3 EcoKI), so its files bring their setting with them; EcoKI is read
-  and dropped, since no enzyme in the table is blocked by it.
+  sticky ends. SnapGene's own flags byte carries it (0x04 Dam, 0x08 Dcm,
+  0x10 EcoKI; 0x01 is circular and 0x02 double-stranded), so its files
+  bring their setting with them; EcoKI is read and dropped, since no
+  enzyme in the table is blocked by it. **Corrected 2026-10-06 (#152):**
+  the first reading took 0x02 as Dam and 0x04 as Dcm, which opened every
+  unmethylated double-stranded file as Dam-on. Ground truth: 203 sample
+  files (only `ssDNA.dna` lacks 0x02) and a Dam+ Dcm- save (0x06). Dcm =
+  0x08 is by elimination, as no sample isolates it.
 - Still not modelled: blocked from impaired, and which of Dam or Dcm per
   enzyme, neither of which NEB's note gives (see above); CpG and other
   methylation; an enzyme's own methyltransferase.

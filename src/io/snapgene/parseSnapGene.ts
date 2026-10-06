@@ -31,8 +31,9 @@ import { type XmlElement, childElements, firstChild, parseXml, stripHtml, textOf
  *   0x09  cookie      "SnapGene", then three big-endian shorts: the kind of
  *                     sequence (1 DNA, 2 protein, 7 RNA), the export and the
  *                     import version (must come first)
- *   0x00  sequence    flags byte (bit 0 = circular, 1 = Dam, 2 = Dcm,
- *                            3 = EcoKI) followed by ASCII bases
+ *   0x00  sequence    flags byte (0x01 circular, 0x02 double-
+ *                            stranded, 0x04 Dam, 0x08 Dcm, 0x10 EcoKI)
+ *                            followed by ASCII bases
  *   0x20  RNA bases   a .rna file's sequence in place of 0x00: a flags byte
  *                     (0 in both samples; not read) and ASCII bases, with T
  *                     for U
@@ -366,13 +367,16 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
   const topology: Topology = (flags & 0x01) !== 0 ? 'circular' : 'linear';
   /**
    * SnapGene keeps the methylation the DNA is taken to carry in the same
-   * flags byte: bit 1 Dam, bit 2 Dcm, bit 3 EcoKI (#45). EcoKI blocks no
-   * restriction enzyme in our table, so it is read and dropped rather than
-   * stored as something nothing consults.
+   * flags byte: 0x04 Dam, 0x08 Dcm, 0x10 EcoKI (#45, #152). 0x02 is
+   * "double-stranded", set on every file but a single-stranded one, so it
+   * says nothing about methylation. EcoKI blocks no restriction enzyme in
+   * our table, so it is read and dropped rather than stored as something
+   * nothing consults. Dam is confirmed by a Dam+ Dcm- save (0x06); Dcm is
+   * 0x08 by elimination, the one bit no sample isolates.
    */
   const methylation: HostMethylationState = {
-    dam: (flags & 0x02) !== 0,
-    dcm: (flags & 0x04) !== 0,
+    dam: (flags & 0x04) !== 0,
+    dcm: (flags & 0x08) !== 0,
   };
   let sequence = utf8.decode(seqPacket.payload.subarray(1));
   if (protein ? !isValidProtein(sequence) : !isValidSequence(sequence)) {
