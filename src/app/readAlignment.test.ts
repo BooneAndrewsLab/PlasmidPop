@@ -142,3 +142,47 @@ describe('alignedRegionSpan (#108)', () => {
     expect(alignedRegionSpan(result, false, 0)).toBeNull();
   });
 });
+
+describe('a read through the origin of a circle with an indel beside it (#165)', () => {
+  // A deterministic pseudo-random circle.
+  let s = 7;
+  const next = (): number => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const circle = Array.from({ length: 3000 }, () => 'ACGT'.charAt(Math.floor(next() * 4))).join('');
+  const L = circle.length;
+
+  // Reads: [name, read]. Each carries a deletion or an insertion just after
+  // or just before the origin, some longer than the read's overhang.
+  const reads: [string, string][] = [
+    ['deletion after the origin', circle.slice(2900) + circle.slice(400, 600)],
+    ['short deletion after', circle.slice(2900) + circle.slice(30, 230)],
+    ['deletion 1.5 kb after', circle.slice(2800) + circle.slice(1500, 1700)],
+    ['deletion just before', circle.slice(2600, 2700) + circle.slice(2900) + circle.slice(0, 150)],
+    ['insertion after', circle.slice(2900) + 'ACGTTGCATGCAGGCATTTACG' + circle.slice(0, 200)],
+    [
+      'insertion before',
+      circle.slice(2900, 2950) + 'TTGACCAGTGGCAATCCAG' + circle.slice(2950) + circle.slice(0, 150),
+    ],
+    ['reversed, deletion after', reverseComplement(circle.slice(2900) + circle.slice(400, 600))],
+    ['not wrapping, deletion', circle.slice(500, 600) + circle.slice(1000, 1150)],
+  ];
+
+  it.each(reads)('%s maps as on the circle rotated so the read lies inside it', (_name, read) => {
+    const prep = prepareReadAlignment(
+      { sequence: circle, offset: 0, wrap: L },
+      { sequence: read, read: null },
+      null,
+    );
+    if (!prep.ok) throw new Error(prep.message);
+    const got = finishReadAlignment(
+      prep.job,
+      alignEitherStrand(prep.job.a, prep.job.b, { mode: 'local' }),
+    );
+    const rot = 2500;
+    const rotated = circle.slice(rot) + circle.slice(0, rot);
+    const truth = alignEitherStrand(rotated, read, { mode: 'local' });
+    expect(got.alignment.score).toBe(truth.alignment.score);
+    expect(got.strand).toBe(truth.strand);
+    expect((got.alignment.startA + L) % L).toBe((truth.alignment.startA + rot) % L);
+    expect((got.alignment.endA + L) % L).toBe((truth.alignment.endA + rot) % L);
+  });
+});

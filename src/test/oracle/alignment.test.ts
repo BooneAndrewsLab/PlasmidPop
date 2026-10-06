@@ -134,9 +134,9 @@ function regions(a: string, b: string, start: number, length: number): string[] 
  * Reads mapped onto a circular reference as the Align tab does it, against a
  * Biopython local alignment to the reference rotated so the read lies inside
  * it: reads across the origin on both strands, a deletion before the origin,
- * an insertion at it, reads inside either end, and reads the length of the
- * whole plasmid. Deletion after the origin (#165) and banded tandem or
- * end-insertion cases (#167) are left out.
+ * an insertion at it, a deletion or insertion just after it (#165), reads
+ * inside either end, and reads the length of the whole plasmid. Banded
+ * tandem or end-insertion cases (#167) are left out.
  */
 describe('circular read mapping against Biopython', () => {
   const circular = oracle.circular as unknown as readonly CircularCase[];
@@ -144,7 +144,18 @@ describe('circular read mapping against Biopython', () => {
   it('has reads of every kind', () => {
     expect(circular.length).toBeGreaterThanOrEqual(40);
     const kinds = new Set(circular.map((c) => c.kind));
-    for (const k of ['span', 'span_rc', 'bigdel_before', 'bigins_origin', 'whole', 'whole_rc']) {
+    for (const k of [
+      'span',
+      'span_rc',
+      'bigdel_before',
+      'bigins_origin',
+      'del_after',
+      'del_after_rc',
+      'del_after_short',
+      'ins_after',
+      'whole',
+      'whole_rc',
+    ]) {
       expect(kinds.has(k), k).toBe(true);
     }
   });

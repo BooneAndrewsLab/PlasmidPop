@@ -82,7 +82,10 @@ export function prepareReadAlignment(
   }
   const b = full.slice(kept.start, kept.end);
   const own = reference.sequence;
-  const a = reference.wrap === null ? own : own + own.slice(0, Math.min(b.length, own.length - 1));
+  // A circle is repeated in full (less one base): a deletion in the read
+  // lengthens its reference span past the read's own length, so repeating
+  // only as far as the read is long could cut the span short (#165).
+  const a = reference.wrap === null ? own : own + own.slice(0, own.length - 1);
   return {
     ok: true,
     job: {

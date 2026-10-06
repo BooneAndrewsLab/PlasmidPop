@@ -20,9 +20,10 @@ before the origin, an insertion at it, reads inside either end, and reads
 the length of the whole plasmid. The expected answer is Biopython's local
 alignment (both strands tried, the better kept) against the reference
 rotated so that the read lies inside it, with the difference regions
-(position, reference bases, read bases) it implies. Left out: a deletion
-after the origin that makes the reference span exceed the read's length
-(#165), and banded alignments of tandem repeats or of reads ending in a long
+(position, reference bases, read bases) it implies. Also covered: a deletion
+or insertion just after the origin, which makes the reference span past it
+differ from the read's length (#165), on a long and on a short circle. Left
+out: banded alignments of tandem repeats or of reads ending in a long
 insertion (#167).
 """
 from Bio.Align import PairwiseAligner, substitution_matrices
@@ -178,13 +179,18 @@ def regions(a, b, start, length):
 def circular_cases():
     rng = rng_for(SEED + 1)
     al = aligner(False, 'local')
-    kinds = ['span', 'span_rc', 'bigdel_before', 'inside_start', 'inside_end', 'whole', 'whole_rc', 'bigins_origin']
+    kinds = ['span', 'span_rc', 'bigdel_before', 'inside_start', 'inside_end', 'whole', 'whole_rc', 'bigins_origin',
+             'del_after', 'del_after_rc', 'del_after_short', 'ins_after']
     cases = []
     k = -1
-    while len(cases) < 48:
+    while len(cases) < 80:
         k += 1
         kind = kinds[k % len(kinds)]
         L = rng.randint(800, 2500)
+        if kind == 'del_after':
+            L = rng.randint(1200, 2500)
+        elif kind == 'del_after_short':
+            L = rng.randint(600, 900)
         ref = random_dna(rng, L)
         if kind in ('span', 'span_rc'):
             n = rng.randint(150, 600)
@@ -204,6 +210,14 @@ def circular_cases():
         elif kind in ('whole', 'whole_rc'):
             o = rng.randint(0, L - 1)
             read = read_mutate(rng, circ_slice(ref, o, L))
+        elif kind in ('del_after', 'del_after_rc', 'del_after_short'):
+            # A deletion starting at or just after the origin: x bases before it, then reference d..d+y.
+            short = kind == 'del_after_short'
+            x, d, y = rng.randint(20, 100 if short else 300), rng.randint(5, 300 if short else 600), rng.randint(30, 150 if short else 250)
+            o, read = L - x, read_mutate(rng, ref[L - x:] + ref[d:d + y])
+        elif kind == 'ins_after':
+            x, z, y = rng.randint(30, 300), rng.randint(0, 60), rng.randint(30, 300)
+            o, read = L - x, read_mutate(rng, ref[L - x:] + ref[:z] + random_dna(rng, rng.randint(10, 150)) + ref[z:z + y])
         else:  # bigins_origin
             x, y = rng.randint(50, 300), rng.randint(50, 300)
             o, read = L - x, read_mutate(rng, ref[L - x:] + random_dna(rng, rng.randint(20, 200)) + ref[:y])
@@ -219,11 +233,7 @@ def circular_cases():
                 best = (score, strand, b)
         score, strand, b = best
         found = al.align(rotated, b)
-        origin = (L - rot) % L
         start, end = int(found[0].coordinates[0][0]), int(found[0].coordinates[0][-1])
-        if start < origin < end and end - origin > len(b):
-            # More reference past the origin than the read is long (#165).
-            continue
         case = {'kind': kind, 'ref': ref, 'read': read, 'score': score, 'strand': strand, 'unique': len(found) == 1}
         # Ties between equally good alignments are rare here; the first is recorded.
         aln = found[0]

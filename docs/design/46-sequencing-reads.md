@@ -286,7 +286,9 @@ Local gave 100%.
   refused, saying which.
 - **Through the origin.** A local alignment against a whole circular
   document is made against the sequence with its start repeated after its
-  end, as far as the read is long; an alignment found wholly in the repeat
+  end, all but one base of it (#165: a deletion in the read lengthens the
+  reference span it covers past its own length, so repeating only as far as
+  the read is long cut the alignment short); an alignment found wholly in the repeat
   is moved one turn back, positions are shown modulo the length, and the
   selection is the unrolled range the document model already has for a
   range across the origin. A read longer than the circle (a concatemer)
