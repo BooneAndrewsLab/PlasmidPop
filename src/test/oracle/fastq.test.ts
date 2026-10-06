@@ -20,7 +20,7 @@ const text = (file: string): string => readFileSync(join(dir, file), 'utf8');
 
 describe('FASTQ reader against Biopython', () => {
   it('has files of both kinds to compare', () => {
-    expect(oracle.valid.length).toBeGreaterThanOrEqual(7);
+    expect(oracle.valid.length).toBeGreaterThanOrEqual(30);
     expect(oracle.refused.length).toBeGreaterThanOrEqual(14);
   });
 

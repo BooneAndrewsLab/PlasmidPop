@@ -9,7 +9,9 @@ reason it gives is recorded; the test only requires that we refuse too).
 Left out: files Biopython refuses and we read (a space, tab, NUL, escape,
 DEL or other control character as a quality, a '+' line whose id differs
 from the header) and files with a '-' or '.' in the bases, which Biopython
-reads and we refuse (#159).
+reads and we refuse (#159). Biopython's misc_rna_* files (U for T, which
+we read as T with a warning and Biopython keeps) and its gzipped and BGZF
+copies are not included.
 """
 import glob
 import os
