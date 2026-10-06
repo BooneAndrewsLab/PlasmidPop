@@ -352,6 +352,13 @@ pairs, local ones up to 12% under.
   (a read counts once on each copy), the disagreement and agreement calls,
   the confident differences, and the carriers of a difference row. A base
   differing in both copies is listed once, at the first.
+  The residue frames follow the same rule (#173): `buildFrames` carries a
+  codon's positions on across the origin (`[1498, 1499, 1500]`, a reverse
+  codon's `[1, 0, 1499]` as `[L+1, L, L-1]` under the high shift) so a codon
+  split by the origin is three adjacent columns of a wrapping read. Before
+  that its columns were `[1498, 1499, 0]`, which no read covers whole, and
+  every difference in such a codon had no protein effect. A read that
+  stops at the origin holds part of the codon only and still has none.
 
 ## The chromatogram (#52)
 

@@ -217,7 +217,11 @@ region in this document** selects across the origin.
 In the large view, reads that run through the origin and reads that stop
 short of it are combined by base: coverage, the feature verdicts' read and
 strand counts, and the "samples disagree" flag treat a base as one base
-whichever side of the origin a read reaches it from.
+whichever side of the origin a read reaches it from. The protein effect of
+a difference in a coding sequence across the origin is read the same way,
+including a codon split by the origin, when the read that carries the
+difference runs through it; a read that stops at the origin holds only part
+of such a codon and shows no effect for it.
 
 ## Large view
 
