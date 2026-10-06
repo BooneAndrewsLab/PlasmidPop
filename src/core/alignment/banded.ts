@@ -182,15 +182,12 @@ export function bandAround(
     if (p === undefined || q === undefined) continue;
     for (let i = p.i; i <= q.i; i++) cover(i, p.j - margin, q.j + margin);
   }
-  // Past the chain's ends, along the diagonal (only a local alignment has any).
-  for (let i = 0; i < first.i; i++) {
-    const j = first.j - (first.i - i);
-    cover(i, j - margin, j + margin);
-  }
-  for (let i = last.i + 1; i <= n; i++) {
-    const j = last.j + (i - last.i);
-    cover(i, j - margin, j + margin);
-  }
+  // Past the chain's ends (only a local alignment has any): the corner
+  // rectangles in full. A local path need not stop where the shared words do;
+  // it runs on through whatever flank still scores, indels and all, and a
+  // band along the diagonal clipped it (#159).
+  for (let i = 0; i < first.i; i++) cover(i, 0, first.j + margin);
+  for (let i = last.i + 1; i <= n; i++) cover(i, last.j - margin, m);
   // Monotone, never narrower: the lower edge from below, the upper from above.
   for (let i = n - 1; i >= 0; i--) lo[i] = Math.min(lo[i] ?? 0, lo[i + 1] ?? 0);
   for (let i = 1; i <= n; i++) hi[i] = Math.max(hi[i] ?? 0, hi[i - 1] ?? 0);

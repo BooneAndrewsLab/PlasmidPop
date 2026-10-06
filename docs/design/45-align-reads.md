@@ -71,3 +71,14 @@ with base qualities, banded alignment, a chromatogram — is milestone 1.3
   way. Other analysis still queues behind a running alignment on the one
   worker; a worker of its own for alignment would fix that and was not
   needed yet.
+
+## Local flanks in the band (#159)
+
+A local alignment does not stop where the shared words do: with unrelated
+flanks on a read it runs on through them, indels and all, for whatever still
+scores. A band that followed the diagonal past the last anchor clipped that
+extension and scored 4-32 points under the full matrix with `touchedEdge`
+still false (the best path inside the band never reached its edge). Past the
+chain's ends a local band is now the whole corner rectangle, so the banded
+score equals the full one; the extra cells are bounded by the unmatched
+flanks, not by the read.

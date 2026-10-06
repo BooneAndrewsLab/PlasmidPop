@@ -113,3 +113,40 @@ describe('banded alignment (#51)', { timeout: FULL_ALIGNMENT_MS }, () => {
     expect(alignBanded(reference, read, { mode: 'local' })?.touchedEdge).toBe(false);
   });
 });
+
+describe('a local alignment with flanks that do not match (#159)', () => {
+  it('#159: banded local alignment with junk flanks scores as the full matrix', () => {
+    let st = 987654321;
+    const rnd = (): number => {
+      st = (Math.imul(st, 1664525) + 1013904223) >>> 0;
+      return st / 4294967296;
+    };
+    const seq = (n: number): string =>
+      Array.from({ length: n }, () => 'ACGT'[Math.floor(rnd() * 4)]).join('');
+    const mut = (s: string, p: number): string => {
+      let o = '';
+      for (const c of s) {
+        const r = rnd();
+        if (r < p / 3) continue;
+        if (r < (2 * p) / 3) o += 'ACGT'.charAt(Math.floor(rnd() * 4));
+        else {
+          o += c;
+          if (r > 1 - p / 3) o += seq(1 + Math.floor(rnd() * 3));
+        }
+      }
+      return o;
+    };
+    let below = 0;
+    for (let t = 0; t < 12; t++) {
+      const ref = seq(2500 + Math.floor(rnd() * 1500));
+      const read =
+        seq(300) +
+        mut(ref.slice(Math.floor(rnd() * 300), ref.length - Math.floor(rnd() * 300)), 0.04) +
+        seq(300);
+      const full = alignPairwise(ref, read, { mode: 'local' });
+      const bd = alignBanded(ref, read, { mode: 'local' });
+      if (bd !== null && !bd.touchedEdge && bd.alignment.score < full.score - 1e-9) below++;
+    }
+    expect(below).toBe(0);
+  }, 120000);
+});
