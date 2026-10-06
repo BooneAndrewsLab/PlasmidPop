@@ -41,6 +41,69 @@
   {
    "features": [
     {
+     "label": "source",
+     "parts": [
+      [
+       0,
+       240
+      ]
+     ],
+     "strand": "forward",
+     "type": "source"
+    },
+    {
+     "label": "fwd_frame2",
+     "parts": [
+      [
+       0,
+       57
+      ]
+     ],
+     "strand": "forward",
+     "type": "CDS"
+    },
+    {
+     "label": "fwd_frame3",
+     "parts": [
+      [
+       60,
+       117
+      ]
+     ],
+     "strand": "forward",
+     "type": "CDS"
+    },
+    {
+     "label": "rev_frame2",
+     "parts": [
+      [
+       120,
+       177
+      ]
+     ],
+     "strand": "reverse",
+     "type": "CDS"
+    },
+    {
+     "label": "rev_frame3",
+     "parts": [
+      [
+       180,
+       237
+      ]
+     ],
+     "strand": "reverse",
+     "type": "CDS"
+    }
+   ],
+   "file": "frame_test.dna",
+   "length": 240,
+   "sequence": "gctaaagacaattacataacatacacgtcagcacgaaacttgttggcccagtgtgaatcgcttaagggttaagtaagtgtgatgcatacgcctttacttgctgtgtccaccccatcggactggcatttttattacactcagaaacagaactcgggtaattttgacaggtcacgcagaggcgcgccctcctgaagtgcgtggacactcgctatgaatctctgatttacccactctgccaaa",
+   "topology": "circular"
+  },
+  {
+   "features": [
+    {
      "label": "split CDS",
      "parts": [
       [
