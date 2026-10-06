@@ -734,9 +734,11 @@ the #159 test runs 3 of its 12 trials (0 and 3 miss without the flank band),
 the #167 matrix one seed per kind and mode, "fast Align all" the three cases
 that miss, the region tests 8 seeds. The two #51 noisy-read tests use a 3 kb
 reference, not 5 kb, and two seeds, not three. The Biopython oracle still
-holds the broad pair sets. The 10 kb global check's budget went from 8 s to
-2 s: a full fill is 110 M cells, 3-4 s here, so the old limit would not have
-caught a fall-back to it.
+holds the broad pair sets. The 10 kb global check now also asserts its region is under 20% of the
+matrix, since the clock cannot tell: CI took 3.7 s for what takes 0.3 s here
+(12x), about what a full fill (110 M cells, 3-4 s here) would take locally,
+so its limit stays at 15 s and the region size is the exact guard. CI after
+this change: banded.test.ts 100 s, down from about 240 s.
 
 |                         | Before | After               |
 | ----------------------- | ------ | ------------------- |
