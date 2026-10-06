@@ -2,6 +2,8 @@ import {
   type Feature,
   type FeatureLocation,
   type Segment,
+  advanceCodonStart,
+  basesLostBeforeKept,
   moveFeature,
   rangeSegment,
 } from '../features';
@@ -48,17 +50,24 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         continue;
       }
       for (const part of rangePieces(seg, L)) {
+        // The part's bases in the region, in the part's own order: a region
+        // across the origin lists its pieces in extract order, which is not
+        // the order the feature reads them in.
+        const inside: { from: number; seg: Segment }[] = [];
         for (const o of offsets) {
           const s = Math.max(part.start, o.start);
           const e = Math.min(part.end, o.end);
           if (e <= s) continue;
-          segments.push(
-            rangeSegment(s - o.start + o.offset, e - o.start + o.offset, {
+          inside.push({
+            from: s,
+            seg: rangeSegment(s - o.start + o.offset, e - o.start + o.offset, {
               partialStart: seg.partialStart || s > part.start,
               partialEnd: seg.partialEnd || e < part.end,
             }),
-          );
+          });
         }
+        inside.sort((a, b) => a.from - b.from);
+        segments.push(...inside.map((x) => x.seg));
       }
     }
     if (segments.length === 0) return null;
@@ -80,7 +89,11 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
   const features: Feature[] = [];
   for (const f of doc.features) {
     const moved = moveFeature(f, doc, into, clip);
-    if (moved !== null) features.push({ ...moved, id: newId() });
+    if (moved === null) continue;
+    // A CDS that loses the start of its reading is read from the first whole
+    // codon left, as when a delete takes it (#160, #162).
+    const lost = basesLostBeforeKept(f, pieces, L);
+    features.push({ ...advanceCodonStart(moved, lost), id: newId() });
   }
 
   // The styles the bases had go with them.

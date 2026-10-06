@@ -93,3 +93,10 @@ Added 2026-10-06 (#163): the same `advanceCodonStart` step also marks the
 5′ end partial (`partialStart` on the first segment, `partialEnd` on the
 last of a reverse CDS), as `extractRange` does, so what is left reads from
 its first whole codon instead of treating a TTG/CTG there as `M`.
+
+Added 2026-10-06 (#162): `extractRange`, under copy and every cloning
+product, does the same for a CDS whose reading start falls outside the
+region (`basesLostBeforeKept`, then `advanceCodonStart`). It also lists the
+pieces of a feature inside a region across the origin in the feature's own
+order, not the region's, so a feature cut by the region's gap keeps the
+order of its `join`.

@@ -60,6 +60,8 @@ describe('fragment JSON', () => {
     expect(back?.features[1]?.qualifiers).toEqual([
       { name: 'note', value: 'x' },
       { name: 'pseudo', value: null },
+      // The region drops the reverse CDS's first base (#162).
+      { name: 'codon_start', value: '2' },
     ]);
   });
 

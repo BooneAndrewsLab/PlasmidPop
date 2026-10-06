@@ -12,7 +12,9 @@ frame is easy to follow. The translation honours:
 
 - `/codon_start` (1, 2 or 3) for features that begin mid-codon. Deleting bases
   from the start of a CDS moves it, so the codons after the cut stay in frame,
-  and marks the CDS 5′-partial so the first codon left is not shown as `M`;
+  and marks the CDS 5′-partial so the first codon left is not shown as `M`.
+  Copying a region, extracting it, or a cloning product (digest fragment, PCR,
+  Gibson, Gateway, ligation) that starts inside a CDS does the same;
 - `/transl_table`: every genetic code NCBI numbers (1–6, 9–16 and 21–33), not
   only the standard and bacterial ones. The code decides the amino acids as
   well as the start codons — TGA is a stop under the standard code and
