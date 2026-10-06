@@ -26,6 +26,15 @@ in this browser, like the rest of the document:
   to past `h`) a warning says so, in the status bar or, for a file dropped
   into Align, in the note under the box. Convert such a file to Phred + 33
   (for example with `seqtk seq -Q64 -V`) before relying on its qualities.
+- A FASTQ file is read leniently where the meaning is clear, with a warning
+  that counts what was changed: `U` in the bases is read as `T`, `-` and `.`
+  as `N`, quality characters below `!` as Q0, and the DEL character (0x7f)
+  as Q93, the highest the encoding has. Any other character in the bases
+  still refuses the file.
+- An AB1 file keeps two copies of the base calls, as called and as edited.
+  Qualities are used only from a copy of the same bases as the calls shown;
+  if the edited calls differ from the original and have no qualities of
+  their own, the read has none and the status bar says so.
 - An AB1 read shows its **trace** in the sequence view, above the bases:
   the four dye signals (in the colours the bases are coloured in), each
   base's peak over its letter, and its quality as a faint bar behind. A

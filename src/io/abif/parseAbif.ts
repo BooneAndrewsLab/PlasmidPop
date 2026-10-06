@@ -158,14 +158,26 @@ export function parseAbif(data: ArrayBuffer | Uint8Array, filename?: string): Pa
   const preferred = calls.number;
   const other = preferred === 2 ? 1 : 2;
   /** The tag of the same copy as the calls, or the other copy if its length fits. */
-  const matching = (name: string): Entry | undefined => {
+  const matching = (name: string, sameCalls = false): Entry | undefined => {
     const own = tags.get(`${name}${preferred}`);
     if (own?.count === sequence.length) return own;
     const alt = tags.get(`${name}${other}`);
-    return alt?.count === sequence.length ? alt : undefined;
+    if (alt?.count !== sequence.length) return undefined;
+    // Qualities belong to the base calls they were made for: the other copy's
+    // only count when its calls are the same bases, not merely as many (#159).
+    if (sameCalls) {
+      const otherCalls = tags.get(`PBAS${other}`);
+      const same =
+        otherCalls !== undefined &&
+        textOf(view, otherCalls)
+          .toUpperCase()
+          .replace(/[\s\0]/g, '') === sequence;
+      if (!same) return undefined;
+    }
+    return alt;
   };
 
-  const qualityTag = matching('PCON');
+  const qualityTag = matching('PCON', true);
   let qualities: Uint8Array;
   if (
     qualityTag !== undefined &&

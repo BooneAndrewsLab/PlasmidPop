@@ -38,3 +38,16 @@ input was changed or misread without a word.
   Align's file box used to drop the reader's warnings, and now appends them
   to its note, which matters there because qualities weigh each difference.
   AB1 stores qualities as bytes, so it has no encoding to mistake.
+- **FASTQ bases and qualities, AB1 quality fallback (#159).** Decided:
+  `U` reads as `T` and `-` or `.` as `N`, each with a warning giving the
+  count per record (the quality array stays one per base, so a `-` keeps
+  its quality); other characters still refuse the file. Quality characters
+  below `!` already warned and read as 0 (pinned by a test now). DEL
+  (0x7f) is still clamped to Q93 but with its own warning, since the generic
+  encoding hint did not say it. Biopython refuses `-` and `.` and control
+  characters, so those files stay out of the oracle comparison. In AB1 the
+  PCON of the other copy was used when only its length fitted; PBAS2 edited
+  to different bases of the same length would then carry PCON1's qualities
+  of other bases. The fallback now needs the other copy's calls to equal
+  the calls read; otherwise no qualities and the existing "no base
+  qualities" warning.

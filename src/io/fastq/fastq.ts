@@ -48,21 +48,45 @@ export function parseFastq(text: string): ParseResult {
         headerLine,
       );
     }
-    const sequence = bases.toUpperCase();
+    let sequence = bases.toUpperCase();
+    // Reads from RNA-aware tools carry U, and some tools write a gap or
+    // an unknown base as '-' or '.'. Read them as T and N, with a count (#159);
+    // the quality array stays one per base.
+    const uracils = sequence.match(/U/g)?.length ?? 0;
+    const gaps = sequence.match(/[-.]/g)?.length ?? 0;
+    if (uracils > 0 || gaps > 0) sequence = sequence.replace(/U/g, 'T').replace(/[-.]/g, 'N');
+    if (uracils > 0) {
+      warnings.push(warning(`${uracils} U base${uracils === 1 ? '' : 's'} read as T`, headerLine));
+    }
+    if (gaps > 0) {
+      warnings.push(
+        warning(`${gaps} "-" or "." base${gaps === 1 ? '' : 's'} read as N`, headerLine),
+      );
+    }
     if (!isValidSequence(sequence)) {
       throw new FormatError('FASTQ sequence is not nucleotide IUPAC', headerLine);
     }
     const qualities = new Uint8Array(sequence.length);
     let belowZero = false;
+    let deletes = 0;
     for (let q = 0; q < quality.length; q++) {
       const code = quality.charCodeAt(q);
       lowest = Math.min(lowest, code);
       highest = Math.max(highest, code);
+      if (code === 0x7f) deletes++;
       const value = code - 33;
       if (value < 0) belowZero = true;
       qualities[q] = Math.max(0, Math.min(93, value));
     }
     if (belowZero) warnings.push(warning('Quality characters below "!" read as 0', headerLine));
+    if (deletes > 0) {
+      warnings.push(
+        warning(
+          `${deletes} quality character${deletes === 1 ? '' : 's'} are DEL (0x7f), above Q93; read as Q93`,
+          headerLine,
+        ),
+      );
+    }
     const body = header.slice(1);
     const space = body.search(/\s/);
     const name = space < 0 ? body : body.slice(0, space);

@@ -57,6 +57,48 @@ describe('parseFastq', () => {
   });
 });
 
+describe('parseFastq odd bases and qualities (#159)', () => {
+  const quals = (r: ReturnType<typeof parseFastq>): number[] => [
+    ...(r.documents[0]?.read?.qualities ?? []),
+  ];
+
+  it('reads U as T and says how many', () => {
+    const r = parseFastq('@r1\nACUUG\n+\nIIIII\n');
+    expect(r.documents[0]?.sequence.toString()).toBe('ACTTG');
+    expect(r.warnings.map((w) => w.message)).toEqual(['2 U bases read as T']);
+    expect(quals(r)).toEqual([40, 40, 40, 40, 40]);
+  });
+
+  it('reads - and . as N, with a count, keeping one quality per base', () => {
+    const r = parseFastq('@r1\nA-C.G\n+\n!5?I5\n');
+    expect(r.documents[0]?.sequence.toString()).toBe('ANCNG');
+    expect(r.warnings.map((w) => w.message)).toEqual(['2 "-" or "." bases read as N']);
+    expect(quals(r)).toEqual([0, 20, 30, 40, 20]);
+  });
+
+  it('warns once for a single U', () => {
+    expect(parseFastq('@r1\nAU\n+\nII\n').warnings[0]?.message).toBe('1 U base read as T');
+  });
+
+  it('still refuses other characters in the bases', () => {
+    expect(() => parseFastq('@r1\nA*C\n+\nIII\n')).toThrow(FormatError);
+  });
+
+  it('reads quality characters below "!" as 0, with a warning', () => {
+    const r = parseFastq('@r1\nACG\n+\n\x1e\x1fI\n');
+    expect(quals(r)).toEqual([0, 0, 40]);
+    expect(r.warnings.map((w) => w.message)).toEqual(['Quality characters below "!" read as 0']);
+  });
+
+  it('clamps DEL (0x7f) to Q93 and says so', () => {
+    const r = parseFastq('@r1\nACG\n+\nI\x7f\x7f\n');
+    expect(quals(r)).toEqual([40, 93, 93]);
+    expect(r.warnings.map((w) => w.message)).toContain(
+      '2 quality characters are DEL (0x7f), above Q93; read as Q93',
+    );
+  });
+});
+
 describe('writeFastq (#58)', () => {
   const qualities = Uint8Array.from({ length: 94 }, (_, i) => i);
   const bases = 'ACGTN'.repeat(19).slice(0, 94);
