@@ -462,7 +462,7 @@ def snapgene():
                 ],
             }
         )
-    write('snapgene.json', {'files': files})
+    write('snapgene.json', {'files': files, 'frames': snapgene_fixtures.frames()})
 
 
 def abif():

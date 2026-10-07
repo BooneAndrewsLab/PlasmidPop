@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { type SeqDocument, rangePieces } from '@/core';
+import { type SeqDocument, rangePieces, translateCds } from '@/core';
 import { parseSnapGene } from '@/io';
 
 import oracle from './snapgene.json';
@@ -97,6 +97,41 @@ describe('SnapGene reader against Biopython', () => {
       enzyme: null,
     });
     expect(read('plasmid.dna')?.ends).toBeNull();
+  });
+});
+
+/**
+ * readingFrame -3 to 3 on both strands (#153, #164): synthetic circular files
+ * (src/io/fixtures/snapgene/frames/, written by snapgene_fixtures.py), each CDS
+ * with no, a matching or a stale /codon_start and one segment, a join, or a
+ * join or segment across the origin. The protein is Biopython translating the
+ * bases the feature reads from base |readingFrame|; /codon_start does not
+ * move it.
+ */
+describe('SnapGene readingFrame', () => {
+  const frames = (
+    oracle as unknown as {
+      frames: readonly {
+        file: string;
+        frame: number;
+        cds: readonly { name: string; protein: string }[];
+      }[];
+    }
+  ).frames;
+
+  it('has every frame on both strands', () => {
+    expect(frames.length).toBe(12);
+    expect(new Set(frames.map((f) => f.frame)).size).toBe(6);
+  });
+
+  it.each(frames.map((f) => [f.file, f] as const))('%s', (file, expected) => {
+    const doc = parseSnapGene(new Uint8Array(readFileSync(join(dir, file))), file).documents[0];
+    if (doc === undefined) throw new Error('no document');
+    const got = new Map(doc.features.all().map((f) => [f.name, translateCds(doc, f).protein]));
+    expect(expected.cds.length).toBe(15);
+    expect(Object.fromEntries(got)).toEqual(
+      Object.fromEntries(expected.cds.map((c) => [c.name, c.protein])),
+    );
   });
 });
 

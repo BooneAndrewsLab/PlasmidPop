@@ -221,5 +221,811 @@
    "sequence": "ACATGGTGGTCAGCGAAGTGAGTCTTTTTGACTTAGCTTCAATCGTACTCAAGTCTGTCTCGAGTAACTGTGACGAAGCACAAGGAAACGCAAAGAGTTATTTTGTCTATGCGGATCACTAGTGGTGCAAACCAGTTGTACCCGCTTCAT",
    "topology": "circular"
   }
+ ],
+ "frames": [
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "EPNVPFKVACL*TRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "EPNVPFKVACG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "RIPRRASHLREPNVPFKVAC"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "DVHRILESLTCPL"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "*SAENSDASHLRCPLKSLACKQG*D"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "EPNVPFKVACL*TRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "EPNVPFKVACG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "RIPRRASHLREPNVPFKVAC"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "DVHRILESLTCPL"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "*SAENSDASHLRCPLKSLACKQG*D"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "EPNVPFKVACL*TRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "EPNVPFKVACG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "RIPRRASHLREPNVPFKVAC"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "DVHRILESLTCPL"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "*SAENSDASHLRCPLKSLACKQG*D"
+    }
+   ],
+   "file": "frames/frame+1-fwd.dna",
+   "frame": 1,
+   "strand": "forward"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "SLTCPLKSLACKQG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "SLTCPLKSLAAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "EFRDVHRILESLTCPLKSL"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "TCIAS*RA*RAL*"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "KAPRIPMHRILDAL*SRLLVNKAEI"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "SLTCPLKSLACKQG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "SLTCPLKSLAAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "EFRDVHRILESLTCPLKSL"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "TCIAS*RA*RAL*"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "KAPRIPMHRILDAL*SRLLVNKAEI"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "SLTCPLKSLACKQG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "SLTCPLKSLAAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "EFRDVHRILESLTCPLKSL"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "TCIAS*RA*RAL*"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "KAPRIPMHRILDAL*SRLLVNKAEI"
+    }
+   ],
+   "file": "frames/frame+2-fwd.dna",
+   "frame": 2,
+   "strand": "forward"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "A*RAL*SRLLVNKAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "A*RAL*SRLRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "NSETCIAS*RA*RAL*SRL"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "RASHLREPNVPF"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "KRREFRCIAS*MPFKVACL*TRLR"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "A*RAL*SRLLVNKAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "A*RAL*SRLRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "NSETCIAS*RA*RAL*SRL"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "RASHLREPNVPF"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "KRREFRCIAS*MPFKVACL*TRLR"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "A*RAL*SRLLVNKAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "A*RAL*SRLRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "NSETCIAS*RA*RAL*SRL"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "RASHLREPNVPF"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "KRREFRCIAS*MPFKVACL*TRLR"
+    }
+   ],
+   "file": "frames/frame+3-fwd.dna",
+   "frame": 3,
+   "strand": "forward"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "EPNVPFKVACL*TRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "EPNVPFKVACG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "RIPRRASHLREPNVPFKVAC"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "DVHRILESLTCPL"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "*SAENSDASHLRCPLKSLACKQG*D"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "EPNVPFKVACL*TRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "EPNVPFKVACG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "RIPRRASHLREPNVPFKVAC"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "DVHRILESLTCPL"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "*SAENSDASHLRCPLKSLACKQG*D"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "EPNVPFKVACL*TRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "EPNVPFKVACG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "RIPRRASHLREPNVPFKVAC"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "DVHRILESLTCPL"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "*SAENSDASHLRCPLKSLACKQG*D"
+    }
+   ],
+   "file": "frames/frame-1-fwd.dna",
+   "frame": -1,
+   "strand": "forward"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "SLTCPLKSLACKQG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "SLTCPLKSLAAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "EFRDVHRILESLTCPLKSL"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "TCIAS*RA*RAL*"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "KAPRIPMHRILDAL*SRLLVNKAEI"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "SLTCPLKSLACKQG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "SLTCPLKSLAAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "EFRDVHRILESLTCPLKSL"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "TCIAS*RA*RAL*"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "KAPRIPMHRILDAL*SRLLVNKAEI"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "SLTCPLKSLACKQG*DLLSGRNSLSGIDP"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "SLTCPLKSLAAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "EFRDVHRILESLTCPLKSL"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "TCIAS*RA*RAL*"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "KAPRIPMHRILDAL*SRLLVNKAEI"
+    }
+   ],
+   "file": "frames/frame-2-fwd.dna",
+   "frame": -2,
+   "strand": "forward"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "A*RAL*SRLLVNKAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "A*RAL*SRLRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "NSETCIAS*RA*RAL*SRL"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "RASHLREPNVPF"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "KRREFRCIAS*MPFKVACL*TRLR"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "A*RAL*SRLLVNKAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "A*RAL*SRLRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "NSETCIAS*RA*RAL*SRL"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "RASHLREPNVPF"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "KRREFRCIAS*MPFKVACL*TRLR"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "A*RAL*SRLLVNKAEISCPDVTPYQESTP"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "A*RAL*SRLRLRSLVRT*LPIRNRPL"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "NSETCIAS*RA*RAL*SRL"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "RASHLREPNVPF"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "KRREFRCIAS*MPFKVACL*TRLR"
+    }
+   ],
+   "file": "frames/frame-3-fwd.dna",
+   "frame": -3,
+   "strand": "forward"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "*GSIPDRELRPDKRSQPCLQASDFKGHVRL"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "*GSIPDRELRPDKRSQPQATLKGTLG"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "ASDFKGHVRLSKMRCTSRNS"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "LKGTLGSLRCDAR"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "DLSLVYKQATLKGI*DAMHRNSRRF"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "*GSIPDRELRPDKRSQPCLQASDFKGHVRL"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "*GSIPDRELRPDKRSQPQATLKGTLG"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "ASDFKGHVRLSKMRCTSRNS"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "LKGTLGSLRCDAR"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "DLSLVYKQATLKGI*DAMHRNSRRF"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "*GSIPDRELRPDKRSQPCLQASDFKGHVRL"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "*GSIPDRELRPDKRSQPQATLKGTLG"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "ASDFKGHVRLSKMRCTSRNS"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "LKGTLGSLRCDAR"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "DLSLVYKQATLKGI*DAMHRNSRRF"
+    }
+   ],
+   "file": "frames/frame+1-rev.dna",
+   "frame": 1,
+   "strand": "reverse"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "RGRFLIGSYVRTRDLSLVYKQATLKGTLG"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "RGRFLIGSYVRTRDLSRKRL*RAR*A"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "QATLKGTLGSLRCDARLGI"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "*RAR*AL*DAMHV"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "ISALFTSKRL*RASKMRCIGILGAL"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "RGRFLIGSYVRTRDLSLVYKQATLKGTLG"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "RGRFLIGSYVRTRDLSRKRL*RAR*A"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "QATLKGTLGSLRCDARLGI"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "*RAR*AL*DAMHV"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "ISALFTSKRL*RASKMRCIGILGAL"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "RGRFLIGSYVRTRDLSLVYKQATLKGTLG"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "RGRFLIGSYVRTRDLSRKRL*RAR*A"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "QATLKGTLGSLRCDARLGI"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "*RAR*AL*DAMHV"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "ISALFTSKRL*RASKMRCIGILGAL"
+    }
+   ],
+   "file": "frames/frame+2-rev.dna",
+   "frame": 2,
+   "strand": "reverse"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "GVDS**GVTSGQEISALFTSKRL*RAR*A"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "GVDS**GVTSGQEISAASDFKGHVRL"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "KRL*RAR*AL*DAMHVSEF"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "KGHVRLSKMRCT"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "SQPCLQASDFKGHLRCDASEFSAL"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "GVDS**GVTSGQEISALFTSKRL*RAR*A"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "GVDS**GVTSGQEISAASDFKGHVRL"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "KRL*RAR*AL*DAMHVSEF"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "KGHVRLSKMRCT"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "SQPCLQASDFKGHLRCDASEFSAL"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "GVDS**GVTSGQEISALFTSKRL*RAR*A"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "GVDS**GVTSGQEISAASDFKGHVRL"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "KRL*RAR*AL*DAMHVSEF"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "KGHVRLSKMRCT"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "SQPCLQASDFKGHLRCDASEFSAL"
+    }
+   ],
+   "file": "frames/frame+3-rev.dna",
+   "frame": 3,
+   "strand": "reverse"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "*GSIPDRELRPDKRSQPCLQASDFKGHVRL"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "*GSIPDRELRPDKRSQPQATLKGTLG"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "ASDFKGHVRLSKMRCTSRNS"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "LKGTLGSLRCDAR"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "DLSLVYKQATLKGI*DAMHRNSRRF"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "*GSIPDRELRPDKRSQPCLQASDFKGHVRL"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "*GSIPDRELRPDKRSQPQATLKGTLG"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "ASDFKGHVRLSKMRCTSRNS"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "LKGTLGSLRCDAR"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "DLSLVYKQATLKGI*DAMHRNSRRF"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "*GSIPDRELRPDKRSQPCLQASDFKGHVRL"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "*GSIPDRELRPDKRSQPQATLKGTLG"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "ASDFKGHVRLSKMRCTSRNS"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "LKGTLGSLRCDAR"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "DLSLVYKQATLKGI*DAMHRNSRRF"
+    }
+   ],
+   "file": "frames/frame-1-rev.dna",
+   "frame": -1,
+   "strand": "reverse"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "RGRFLIGSYVRTRDLSLVYKQATLKGTLG"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "RGRFLIGSYVRTRDLSRKRL*RAR*A"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "QATLKGTLGSLRCDARLGI"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "*RAR*AL*DAMHV"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "ISALFTSKRL*RASKMRCIGILGAL"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "RGRFLIGSYVRTRDLSLVYKQATLKGTLG"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "RGRFLIGSYVRTRDLSRKRL*RAR*A"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "QATLKGTLGSLRCDARLGI"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "*RAR*AL*DAMHV"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "ISALFTSKRL*RASKMRCIGILGAL"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "RGRFLIGSYVRTRDLSLVYKQATLKGTLG"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "RGRFLIGSYVRTRDLSRKRL*RAR*A"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "QATLKGTLGSLRCDARLGI"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "*RAR*AL*DAMHV"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "ISALFTSKRL*RASKMRCIGILGAL"
+    }
+   ],
+   "file": "frames/frame-2-rev.dna",
+   "frame": -2,
+   "strand": "reverse"
+  },
+  {
+   "cds": [
+    {
+     "name": "csNone_11-100",
+     "protein": "GVDS**GVTSGQEISALFTSKRL*RAR*A"
+    },
+    {
+     "name": "csNone_11-40_51-100",
+     "protein": "GVDS**GVTSGQEISAASDFKGHVRL"
+    },
+    {
+     "name": "csNone_281-300_1-40",
+     "protein": "KRL*RAR*AL*DAMHVSEF"
+    },
+    {
+     "name": "csNone_291-30",
+     "protein": "KGHVRLSKMRCT"
+    },
+    {
+     "name": "csNone_271-290_295-10_21-60",
+     "protein": "SQPCLQASDFKGHLRCDASEFSAL"
+    },
+    {
+     "name": "cs1_11-100",
+     "protein": "GVDS**GVTSGQEISALFTSKRL*RAR*A"
+    },
+    {
+     "name": "cs1_11-40_51-100",
+     "protein": "GVDS**GVTSGQEISAASDFKGHVRL"
+    },
+    {
+     "name": "cs1_281-300_1-40",
+     "protein": "KRL*RAR*AL*DAMHVSEF"
+    },
+    {
+     "name": "cs1_291-30",
+     "protein": "KGHVRLSKMRCT"
+    },
+    {
+     "name": "cs1_271-290_295-10_21-60",
+     "protein": "SQPCLQASDFKGHLRCDASEFSAL"
+    },
+    {
+     "name": "cs3_11-100",
+     "protein": "GVDS**GVTSGQEISALFTSKRL*RAR*A"
+    },
+    {
+     "name": "cs3_11-40_51-100",
+     "protein": "GVDS**GVTSGQEISAASDFKGHVRL"
+    },
+    {
+     "name": "cs3_281-300_1-40",
+     "protein": "KRL*RAR*AL*DAMHVSEF"
+    },
+    {
+     "name": "cs3_291-30",
+     "protein": "KGHVRLSKMRCT"
+    },
+    {
+     "name": "cs3_271-290_295-10_21-60",
+     "protein": "SQPCLQASDFKGHLRCDASEFSAL"
+    }
+   ],
+   "file": "frames/frame-3-rev.dna",
+   "frame": -3,
+   "strand": "reverse"
+  }
  ]
 }

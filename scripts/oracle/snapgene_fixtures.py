@@ -55,7 +55,7 @@ def html(text):
     return f'<html><body>{text}</body></html>'
 
 
-def feature(name, kind, directionality, segments, qualifiers=()):
+def feature(name, kind, directionality, segments, qualifiers=(), reading_frame=None):
     segs = ''.join(
         f'<Segment range="{a}-{b}" color="#993366" type="{t}"/>' for a, b, t in segments
     )
@@ -64,7 +64,9 @@ def feature(name, kind, directionality, segments, qualifiers=()):
     )
     return (
         f'<Feature recentID="0" name={quoteattr(name)} directionality="{directionality}" '
-        f'type={quoteattr(kind)} allowSegmentOverlaps="0">{segs}{quals}</Feature>'
+        f'type={quoteattr(kind)} allowSegmentOverlaps="0"'
+        + (f' readingFrame="{reading_frame}"' if reading_frame is not None else '')
+        + f'>{segs}{quals}</Feature>'
     )
 
 
@@ -195,6 +197,50 @@ def main():
         features(feature('β-lactamase', 'CDS', 2, [(10, 90, 'standard')], [('note', 'text', html('résumé — 5′→3′'))])),
     )
     write('bare.dna', sequence(seq[:80], circular=False))
+
+
+def frames():
+    """Synthetic files whose CDSs carry every readingFrame, -3 to 3, on both strands.
+
+    SnapGene's readingFrame (1-3 forward, -1 to -3 reverse) says where the
+    codons start, and a stale /codon_start beside it does not (#153, #164). One
+    circular file per strand and frame holds a CDS for every codon_start (none,
+    1, 3) and segment layout: one segment, a join with a gap, a join in natural
+    order across the origin, a single segment across the origin, and a
+    three-part join across it. The expected protein is Biopython translating the
+    bases the feature reads, from base `abs(readingFrame)`.
+    """
+    from Bio.Seq import Seq
+
+    rng = random.Random(SEED + 1)
+    seq = ''.join(rng.choice('ACGT') for _ in range(300))
+    layouts = [['11-100'], ['11-40', '51-100'], ['281-300', '1-40'], ['291-30'], ['271-290', '295-10', '21-60']]
+    folder = os.path.join(OUT, 'frames')
+    os.makedirs(folder, exist_ok=True)
+    manifest = []
+    for directionality in (1, 2):
+        for frame in (1, 2, 3, -1, -2, -3):
+            items, expected = [], []
+            for cs in (None, 1, 3):
+                for layout in layouts:
+                    name = f'cs{cs}_' + '_'.join(layout)
+                    quals = [('codon_start', 'int', str(cs))] if cs else []
+                    segments = [tuple(map(int, r.split('-'))) + ('standard',) for r in layout]
+                    items.append(feature(name, 'CDS', directionality, segments, quals, reading_frame=frame))
+                    text = ''
+                    for a, b, _ in segments:
+                        text += seq[a - 1:b] if b >= a else seq[a - 1:] + seq[:b]
+                    if directionality == 2:
+                        text = rc(text)
+                    body = text[abs(frame) - 1:]
+                    body = body[: len(body) // 3 * 3]
+                    expected.append({'name': name, 'protein': str(Seq(body).translate(table=1))})
+            file = f'frame{"+" if frame > 0 else "-"}{abs(frame)}-{"fwd" if directionality == 1 else "rev"}.dna'
+            with open(os.path.join(folder, file), 'wb') as f:
+                f.write(cookie() + sequence(seq, circular=True) + features(*items))
+            manifest.append({'file': f'frames/{file}', 'strand': 'forward' if directionality == 1 else 'reverse',
+                             'frame': frame, 'cds': expected})
+    return manifest
 
 
 if __name__ == '__main__':
