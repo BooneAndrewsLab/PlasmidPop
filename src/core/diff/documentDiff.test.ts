@@ -852,3 +852,83 @@ describe('an indel in a repeat at a feature boundary (#184)', () => {
     expect(changed(base, edited)).toBe(false);
   });
 });
+
+describe('a replace the diff draws another way (#185)', () => {
+  const R = 'CGTTGCAGTCCATGCAGTCAGCTAGCGTCATGCAGTACGTCAGTACGGTCAT';
+  function withFeature(
+    sequence: string,
+    topology: 'linear' | 'circular',
+    segments: readonly [number, number][],
+  ): SeqDocument {
+    return SeqDocument.create({
+      sequence,
+      topology,
+      features: [
+        createFeature({
+          id: 'f',
+          type: 'misc_feature',
+          name: 'f',
+          strand: 'forward',
+          segments: segments.map(([a, b]) => rangeSegment(a, b)),
+        }),
+      ],
+    });
+  }
+  const changed = (before: SeqDocument, after: SeqDocument): boolean =>
+    diffDocuments(before, after).featuresChanged.has('f');
+  const location = (d: SeqDocument): number[][] =>
+    (d.getFeature('f')?.segments ?? []).map((s) => (s.kind === 'range' ? [s.start, s.end] : []));
+
+  describe('by longer text, drawn as a pure insertion', () => {
+    it.each(['linear', 'circular'] as const)('keeps a one-base feature it overwrote (%s)', (t) => {
+      // T replaced by CT: the editor overwrites T with C and inserts T after.
+      const base = withFeature(`GCAT${R}`, t, [[3, 4]]);
+      const edited = base.replace({ start: 3, end: 4 }, 'CT');
+      expect(location(edited)).toEqual([[3, 4]]);
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it('keeps a feature that starts at the replaced base', () => {
+      const base = withFeature(`GCAT${R}`, 'linear', [[3, 20]]);
+      const edited = base.replace({ start: 3, end: 4 }, 'GGT');
+      expect(location(edited)).toEqual([[3, 22]]);
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it('keeps a feature that ends a few bases past the insertion', () => {
+      const base = withFeature(`GCATTA${R}`, 'linear', [[0, 5]]);
+      const edited = base.replace({ start: 3, end: 5 }, 'CTT');
+      expect(location(edited)).toEqual([[0, 5]]);
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it('still marks an edge further past the insertion that did not follow it', () => {
+      const base = withFeature(`GCAT${R}`, 'linear', [[20, 30]]);
+      const edited = base.insert(3, 'C');
+      expect(location(edited)).toEqual([[21, 31]]);
+      expect(changed(base, withFeature(edited.sequence.toString(), 'linear', [[20, 30]]))).toBe(
+        true,
+      );
+    });
+  });
+
+  it('keeps a feature through a replace drawn as an insertion and a deletion apart', () => {
+    // TATG replaced by TTAT: T inserted, AT kept, G deleted.
+    const base = withFeature(`GCATATG${R}`, 'linear', [[0, 5]]);
+    const edited = base.replace({ start: 3, end: 7 }, 'TTAT');
+    expect(location(edited)).toEqual([[0, 5]]);
+    expect(changed(base, edited)).toBe(false);
+  });
+
+  describe('across the origin of a circle', () => {
+    const CIRC = `T${R}C`; // the replace takes the C before the origin and the T after it
+    it.each([
+      ['a feature from the origin', 12],
+      ['a feature over the whole circle', CIRC.length],
+    ])('keeps %s', (_label, end) => {
+      const base = withFeature(CIRC, 'circular', [[0, end]]);
+      const edited = base.replace({ start: CIRC.length - 1, end: CIRC.length + 1 }, 'GCT');
+      expect(changed(base, edited)).toBe(false);
+    });
+  });
+});

@@ -368,7 +368,10 @@ function slideRange(text: string, at: number, length: number): { left: number; r
   return { left, right };
 }
 
-/** The most equal bases between two edits that still read as one replaced stretch. */
+/**
+ * The most equal bases between two edits that still read as one replaced
+ * stretch, and the most an overwrite that added bases can reach past them.
+ */
 const MERGE_GAP = 8;
 
 /**
@@ -379,12 +382,14 @@ const MERGE_GAP = 8;
  * the same feature under whichever the editor did. `a` and `b` are the first
  * and second input. A start that meets an insertion lies after it, so an end
  * is offered both ways: the insertion beside it may lie inside or outside.
+ * On a `circular` pair, edits either side of the origin are one stretch.
  */
 export function equivalentMappings(
   diff: SequenceDiff,
   a: string,
   b: string,
   map: (position: number) => number,
+  circular = false,
 ): {
   readonly starts: (position: number) => readonly number[];
   readonly ends: (position: number) => readonly number[];
@@ -418,48 +423,82 @@ export function equivalentMappings(
     return position < d ? position : position < d + n ? d : position - n;
   };
   // Runs of edits a few equal bases apart read as one replaced stretch, which
-  // an editor that overwrites in place maps one to one and not as the diff drew it.
+  // an editor that overwrites in place maps one to one and not as the diff
+  // drew it. A replace by longer text overwrites the selection and inserts
+  // the rest after it, so a stretch that only added bases (T replaced by CT,
+  // drawn as C inserted before T) may have overwritten up to MERGE_GAP of the
+  // equal bases after it too: which, the sequences do not say (#185).
   interface Stretch {
-    readonly aStart: number;
-    readonly aEnd: number;
-    readonly bStart: number;
-    readonly bEnd: number;
+    aStart: number;
+    aEnd: number;
+    bStart: number;
+    bEnd: number;
+    inserts: boolean;
   }
   const stretches: Stretch[] = [];
-  let open:
-    | { aStart: number; aEnd: number; bStart: number; bEnd: number; ops: number; pair: boolean }
-    | undefined;
+  let open: Stretch | undefined;
   const close = (): void => {
-    if (open?.pair === true && open.ops > 2) stretches.push(open);
+    if (open?.inserts === true) stretches.push(open);
     open = undefined;
   };
-  diff.ops.forEach((op, i) => {
+  for (const op of diff.ops) {
     if (op.kind === 'equal') {
       if (op.aEnd - op.aStart > MERGE_GAP) close();
-      return;
+      continue;
     }
     open ??= {
       aStart: op.aStart,
       aEnd: op.aStart,
       bStart: op.bStart,
       bEnd: op.bStart,
-      ops: 0,
-      pair: false,
+      inserts: false,
     };
     open.aEnd = Math.max(open.aEnd, op.aEnd);
     open.bEnd = Math.max(open.bEnd, op.bEnd);
-    open.ops++;
-    // A delete beside an insert is what overwriting leaves; two far-apart edits do not.
-    if (diff.ops[i + 1]?.kind === (op.kind === 'delete' ? 'insert' : 'delete')) open.pair = true;
-  });
+    if (op.kind === 'insert') open.inserts = true;
+  }
   close();
+  // On a circle the linear diff cuts a stretch over the origin in two: the
+  // last one runs on, a turn later, into the first.
+  const equalRun = (op: DiffOp | undefined): number =>
+    op?.kind === 'equal' ? op.aEnd - op.aStart : 0;
+  const lead = equalRun(diff.ops[0]);
+  const trail = equalRun(diff.ops[diff.ops.length - 1]);
+  const head = stretches[0];
+  const tail = stretches[stretches.length - 1];
+  if (
+    circular &&
+    head !== undefined &&
+    tail !== undefined &&
+    head !== tail &&
+    head.aStart === lead &&
+    tail.aEnd === a.length - trail &&
+    lead + trail <= MERGE_GAP
+  ) {
+    tail.aEnd = head.aEnd + a.length;
+    tail.bEnd = head.bEnd + b.length;
+    tail.inserts ||= head.inserts;
+    stretches.shift();
+  }
   const overwritten = (position: number, found: Set<number>): void => {
+    // From the end of `b` on is a turn on; the end itself also ends a range.
+    const add = (p: number): void => {
+      if (p <= b.length) found.add(p);
+      if (circular && p >= b.length) found.add(p - b.length);
+    };
     for (const run of stretches) {
-      if (position < run.aStart || position > run.aEnd) continue;
       const common = Math.min(run.aEnd - run.aStart, run.bEnd - run.bStart);
-      const into = position - run.aStart;
-      if (into <= common) found.add(run.bStart + into);
-      if (into >= common) found.add(position === run.aEnd ? run.bEnd : run.bStart + common);
+      const grew = run.bEnd - run.bStart > run.aEnd - run.aStart;
+      const reach = run.aEnd + (grew ? MERGE_GAP : 0);
+      // A stretch over the origin holds the positions after it a turn on.
+      for (const at of circular ? [position, position + a.length] : [position]) {
+        if (at < run.aStart || at > reach) continue;
+        const into = at - run.aStart;
+        if (into <= common || at > run.aEnd) add(run.bStart + into);
+        if (into >= common && at <= run.aEnd) {
+          add(at === run.aEnd ? run.bEnd : run.bStart + common);
+        }
+      }
     }
   };
   const place = (position: number, end: boolean): readonly number[] => {

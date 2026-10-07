@@ -83,6 +83,21 @@ an indel), the shape an editor's replace leaves; without that pair two
 nearby, separate edits would hide a shift. A stretch of one pure insert is
 deliberately not read as an overwrite, since it would hide a real shift.
 
-Not covered (follow-up issue): a replace the diff draws as a pure insertion
-of the text before the replaced base (`T` replaced by `CT`), and a replace
-that spans the origin of a circle, where the linear diff cuts at the origin.
+## A replace the diff draws another way (#185)
+
+A replace by longer text overwrites the selection one to one and inserts
+the rest after it; the shortest diff of `T` replaced by `CT` is `C` inserted
+before `T`, which moves a feature on that base the editor kept. The
+overwrite rule now takes any stretch that added bases (a lone insertion
+too), and such a stretch may also have overwritten up to `MERGE_GAP` (8)
+equal bases after it: an edge there may stay put. Which the editor did is
+not in the sequences, so both readings count. The cost is deliberate: in a
+compare of two files, an edge within 8 bases after an insertion whose
+coordinates failed to follow it is not marked. An edge further on still is.
+
+A stretch no longer needs a delete beside an insert: an insertion and a
+deletion a few bases apart (`TATG` replaced by `TTAT`: `T` inserted, `G`
+deleted) are the same overwrite. On a circle, stretches either side of the
+origin within `MERGE_GAP` of each other are one stretch a turn long, so a
+replace over the origin maps as the editor did; a small rotation of the
+origin reads this way too and keeps its features.

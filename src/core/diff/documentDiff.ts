@@ -312,11 +312,13 @@ function diffFeatures(
   diff: SequenceDiff,
 ): FeatureDiff {
   const map = positionMapper(diff, baseline.length, current.length);
+  const circular = baseline.topology === 'circular' && current.topology === 'circular';
   const equivalent = equivalentMappings(
     diff,
     baseline.sequence.toString().toUpperCase(),
     current.sequence.toString().toUpperCase(),
     map,
+    circular,
   );
   // Feature locations are unrolled, so a segment that wraps the origin ends
   // past the sequence; map the wrapped part and put it back past the end.
@@ -332,10 +334,7 @@ function diffFeatures(
         : position <= 0
           ? [unrolled(position)]
           : equivalent.ends(position),
-    circle:
-      baseline.topology === 'circular' && current.topology === 'circular'
-        ? { from: baseline.length, to: current.length }
-        : undefined,
+    circle: circular ? { from: baseline.length, to: current.length } : undefined,
   });
   const mapped = (f: Feature): Feature => mapFeature(f, mapUnrolled, baseline, current);
   const qualifiersOf = (f: Feature): readonly Qualifier[] => mapped(f).qualifiers;
