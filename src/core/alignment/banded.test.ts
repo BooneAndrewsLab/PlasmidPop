@@ -357,16 +357,9 @@ describe('the cost of checking a band (#167)', () => {
     // 3.7 s for the 0.3 s the check needs, so the clock only guards the order
     // of magnitude; the region's size below is what is exact.
     expectWithin(ms, 15_000);
-    const links = anchorChain(plasmid, read);
-    const region = boundBand(
-      links ?? [],
-      plasmid.length,
-      read.length,
-      'global',
-      banded?.alignment.score ?? 0,
-      flankScoring({ mode: 'global' }),
-    );
-    expect(bandCells(region)).toBeLessThan(0.2 * plasmid.length * read.length);
+    // Every cell the band and its check filled, not a region recomputed here.
+    expect(banded?.filled).toBeGreaterThan(0);
+    expect(banded?.filled).toBeLessThan(0.2 * plasmid.length * read.length);
   });
 
   it('leaves a long noisy read in local mode unchecked rather than fill most of the matrix', () => {
@@ -378,3 +371,96 @@ describe('the cost of checking a band (#167)', () => {
     expect(banded?.alignment.endA).toBeGreaterThan(11_000);
   });
 });
+
+describe(
+  'a read just before the origin of a circle, banded (#175)',
+  { timeout: FULL_ALIGNMENT_MS },
+  () => {
+    // A circle as a whole-plasmid read alignment sends it: its start repeated
+    // after its end, all but one base.
+    const L = 3000;
+    const plasmid = randomSequence(L, rng(175));
+    const unrolled = plasmid + plasmid.slice(0, L - 1);
+    const flip = (c: string): string => (c === 'A' ? 'C' : 'A');
+    /** `before` bases of the end, the one at `at` changed, then `after` of the start. */
+    function across(before: number, after: number, at: number): string {
+      const read = plasmid.slice(L - before) + plasmid.slice(0, after);
+      return read.slice(0, at) + flip(read.charAt(at)) + read.slice(at + 1);
+    }
+
+    it.each([2, 3, 4, 8, 10, 13, 14, 20])(
+      'keeps the %i bases before the origin and the difference among them',
+      (before) => {
+        // The difference is the last base before the origin: no 15-mer of the
+        // read crosses it, so the read's words are all in both copies. (One
+        // base before it would be the difference alone, which a local
+        // alignment rightly leaves out.)
+        const read = across(before, 900, before - 1);
+        const full = alignPairwise(unrolled, read, { mode: 'local' });
+        const banded = alignBanded(unrolled, read, { mode: 'local', wrap: L });
+        expect(banded?.exact).toBe(true);
+        expect(banded?.alignment.score).toBe(full.score);
+        expect(banded?.alignment.startA).toBe(L - before);
+        expect(banded?.alignment.startB).toBe(0);
+      },
+    );
+
+    it('missed it without being told the circle, as before', () => {
+      const read = across(4, 900, 3);
+      const banded = alignBanded(unrolled, read, { mode: 'local' });
+      expect(banded?.alignment.startB).toBe(4);
+    });
+
+    it.each([0, 2, 6])('keeps a read whose first base differs, %i bases further in', (shift) => {
+      const read = across(12 + shift, 600, 0);
+      const full = alignPairwise(unrolled, read, { mode: 'local' });
+      const banded = alignBanded(unrolled, read, { mode: 'local', wrap: L });
+      expect(banded?.alignment.score).toBe(full.score);
+      expect(banded?.alignment.startA).toBe(full.startA);
+    });
+
+    it.each([2, 4, 10])(
+      'keeps the %i bases after the origin of a read that ends there',
+      (after) => {
+        const read = across(900, after, 900);
+        const full = alignPairwise(unrolled, read, { mode: 'local' });
+        const banded = alignBanded(unrolled, read, { mode: 'local', wrap: L });
+        expect(banded?.alignment.score).toBe(full.score);
+        expect(banded?.alignment.endB).toBe(read.length);
+      },
+    );
+
+    it.each([2, 4, 10])(
+      'does the same for a reverse read, %i bases before the origin',
+      (before) => {
+        const read = reverseComplement(across(before, 900, before - 1));
+        const full = alignPairwise(unrolled, reverseComplement(read), { mode: 'local' });
+        const best = alignEitherStrand(unrolled, read, { mode: 'local', fast: true, wrap: L });
+        expect(best.strand).toBe('reverse');
+        expect(best.alignment.score).toBe(full.score);
+        expect(best.alignment.startA).toBe(L - before);
+      },
+    );
+
+    it('keeps a read with an indel just before the origin', () => {
+      const clean = plasmid.slice(L - 6) + plasmid.slice(0, 900);
+      for (const read of [
+        clean.slice(0, 4) + clean.slice(5),
+        clean.slice(0, 4) + 'G' + clean.slice(4),
+      ]) {
+        const full = alignPairwise(unrolled, read, { mode: 'local' });
+        const banded = alignBanded(unrolled, read, { mode: 'local', wrap: L });
+        expect(banded?.alignment.score).toBe(full.score);
+        expect(banded?.alignment.startA).toBe(full.startA);
+      }
+    });
+
+    it('checks the turn on as well, at no more than twice the cells', () => {
+      const read = plasmid.slice(100, 1000);
+      const without = alignBanded(unrolled, read, { mode: 'local' });
+      const withWrap = alignBanded(unrolled, read, { mode: 'local', wrap: L });
+      expect(withWrap?.alignment).toEqual(without?.alignment);
+      expect(withWrap?.filled).toBeLessThanOrEqual(2 * (without?.filled ?? 0));
+    });
+  },
+);

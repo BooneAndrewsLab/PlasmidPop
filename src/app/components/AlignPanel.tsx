@@ -760,7 +760,11 @@ export function AlignPanel({ doc }: Props) {
         job.a,
         job.b,
         // A protein is scored by BLOSUM62 and has no second strand (#95).
-        { mode, alphabet: doc.alphabet },
+        {
+          mode,
+          alphabet: doc.alphabet,
+          ...(job.reference.wrap === null ? {} : { wrap: job.reference.wrap }),
+        },
         {
           onProgress: setProgress,
           signal: controller.signal,

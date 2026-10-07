@@ -35,7 +35,8 @@ import {
  *    how many gap bases a better path could have, and so which diagonals it
  *    could reach; that region is filled too, and the better answer kept.
  *    Global: exact. Local: exact among paths that meet a diagonal of the
- *    chain (one wholly elsewhere is not the chain's alignment).
+ *    chain (one wholly elsewhere is not the chain's alignment), or, against
+ *    a repeated circle (`wrap`), the chain one turn on or back (#175).
  */
 
 const K = 15;
@@ -351,6 +352,8 @@ export interface CheckedResult extends BandedResult {
    * still align in full.
    */
   readonly exact: boolean;
+  /** The cells filled to get here, every band and region counted. */
+  readonly filled: number;
 }
 
 /**
@@ -362,6 +365,42 @@ export const CHECK_UP_TO = 25_000_000;
 
 /** The margins tried in turn while the path runs along the band's edge. */
 const MARGINS = [64, 256, 1024] as const;
+
+/**
+ * The regions a better path could lie in: the one about the chain's
+ * diagonals and, for a local alignment against a repeated circle (`wrap`),
+ * the same about the chain one turn on and one back (#175). A read that
+ * starts a few bases before the origin shares its words with both copies
+ * of the start, the chain takes the first, and the read's own path, through
+ * the end of the first copy into the second, lies a turn on from it.
+ */
+function checkRegions(
+  links: readonly Anchor[],
+  n: number,
+  m: number,
+  mode: AlignmentMode,
+  score: number,
+  scoring: FlankScoring,
+  wrap: number | undefined,
+): Band[] {
+  const regions = [boundBand(links, n, m, mode, score, scoring)];
+  if (mode !== 'local' || wrap === undefined || wrap <= 0 || wrap >= n) return regions;
+  const gaps = gapBound(n, m, mode, score, scoring);
+  let low = Infinity;
+  let high = -Infinity;
+  for (const a of links) {
+    low = Math.min(low, a.i - a.j);
+    high = Math.max(high, a.i - a.j);
+  }
+  for (const turn of [wrap, -wrap]) {
+    // Diagonals d = i - j run from -m to n; a turn that leaves them all has
+    // no path in the matrix.
+    if (high + turn + gaps < -m || low + turn - gaps > n) continue;
+    const shifted = links.map((a) => ({ i: a.i + turn, j: a.j }));
+    regions.push(boundBand(shifted, n, m, mode, score, scoring));
+  }
+  return regions;
+}
 
 /**
  * A banded alignment of a long read, or null when the two share too few
@@ -383,34 +422,49 @@ export function alignBanded(
   const n = reference.length;
   const m = read.length;
   const budget = Math.min(CHECK_UP_TO, options.maxCells ?? DEFAULT_MAX_CELLS);
-  const first = alignInBand(
-    reference,
-    read,
-    bandAround(links, n, m, mode, MARGINS[0], scoring),
-    options,
-  );
-  const region = boundBand(links, n, m, mode, first.alignment.score, scoring);
-  if (bandCells(region) <= budget) {
-    if (regionScore(reference, read, region, options, onProgress) <= first.alignment.score) {
-      return { ...first, exact: true };
+  const firstBand = bandAround(links, n, m, mode, MARGINS[0], scoring);
+  const first = alignInBand(reference, read, firstBand, options);
+  let filled = bandCells(firstBand);
+  const regions = checkRegions(links, n, m, mode, first.alignment.score, scoring, options.wrap);
+  if (regions.reduce((sum, r) => sum + bandCells(r), 0) <= budget) {
+    let best = first.alignment.score;
+    let better: Band | null = null;
+    for (const [k, region] of regions.entries()) {
+      // Each region reports its share of the way.
+      const share: AlignmentProgress | undefined =
+        onProgress === undefined
+          ? undefined
+          : (f) => {
+              onProgress((k + f) / regions.length);
+            };
+      const checked = regionScore(reference, read, region, options, share);
+      filled += checked.cells;
+      if (checked.score > best) {
+        best = checked.score;
+        better = region;
+      }
     }
+    if (better === null) return { ...first, exact: true, filled };
     // Found better: the path, once more. No progress: the bar would run
     // back to the start for what takes at most about half a second.
-    return { ...alignInBand(reference, read, region, options), exact: true };
+    filled += bandCells(better);
+    return { ...alignInBand(reference, read, better, options), exact: true, filled };
   }
   let result = first;
   for (const margin of MARGINS.slice(1)) {
     if (!result.touchedEdge) break;
     const band = bandAround(links, n, m, mode, margin, scoring);
+    filled += bandCells(band);
     result = alignInBand(reference, read, band, options, onProgress);
   }
-  return { ...result, exact: false };
+  return { ...result, exact: false, filled };
 }
 
 /**
- * The best score in `region`, without traceback. A local region is filled
- * over only the rows it has cells in: a path cannot start above them or
- * end below, so the reference outside them is never read.
+ * The best score in `region`, without traceback, and the cells filled for
+ * it. A local region is filled over only the rows it has cells in: a path
+ * cannot start above them or end below, so the reference outside them is
+ * never read.
  */
 function regionScore(
   reference: string,
@@ -418,9 +472,12 @@ function regionScore(
   region: Band,
   options: AlignmentOptions,
   onProgress?: AlignmentProgress,
-): number {
+): { readonly score: number; readonly cells: number } {
   if ((options.mode ?? 'global') === 'global') {
-    return scoreInBand(reference, read, region, options, onProgress);
+    return {
+      score: scoreInBand(reference, read, region, options, onProgress),
+      cells: bandCells(region),
+    };
   }
   const m = read.length;
   let top = 0;
@@ -428,5 +485,8 @@ function regionScore(
   let bottom = reference.length;
   while (bottom > top && (region.lo[bottom - 1] ?? 0) === m) bottom--;
   const rows = { lo: region.lo.subarray(top, bottom + 1), hi: region.hi.subarray(top, bottom + 1) };
-  return scoreInBand(reference.slice(top, bottom), read, rows, options, onProgress);
+  return {
+    score: scoreInBand(reference.slice(top, bottom), read, rows, options, onProgress),
+    cells: bandCells(rows),
+  };
 }

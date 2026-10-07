@@ -122,7 +122,11 @@ export async function runReadBatch(
         const best = await align(
           job.a,
           job.b,
-          { ...options, mode: rowMode },
+          {
+            ...options,
+            mode: rowMode,
+            ...(job.reference.wrap === null ? {} : { wrap: job.reference.wrap }),
+          },
           {
             ...(onProgress === undefined
               ? {}

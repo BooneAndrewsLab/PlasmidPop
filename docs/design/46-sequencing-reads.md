@@ -345,6 +345,25 @@ pairs, local ones up to 12% under.
   selection is the unrolled range the document model already has for a
   range across the origin. A read longer than the circle (a concatemer)
   selects the circle once.
+- **The chain one turn on** (#175). A read starting a few bases before the
+  origin, with no 15-mer across it (a difference in its last bases before
+  the origin is enough), shares every anchor with both copies of the start;
+  the chain takes the first, and the check, which covers only paths within
+  G of the chain's diagonals, never met the read's own path through the
+  end of the first copy into the second, a whole turn away. The band's
+  answer dropped those bases and any difference among them and was marked
+  exact: in **Align all**, and for a single read past the full fill's 25 M
+  cells. The caller now says the reference is a circle of length L repeated
+  (`AlignmentOptions.wrap`), and a local check also fills the region about
+  the chain shifted by +L and -L (each kept only when it reaches the
+  matrix), the better score winning. The guarantee becomes: the optimum
+  among paths that meet a diagonal of the chain or of the chain one turn
+  either way. The budget counts all the regions; for a Sanger read the
+  shifted one is the size of the first, so the check costs about twice
+  what it did. `CheckedResult.filled` counts every cell a call fills, which
+  is what the 20% region guard in `banded.test.ts` now measures (it used to
+  recompute a region from the final score, and could not see a call
+  filling more than it, or none of it).
 - **One base, two columns** (#166). Through the origin the stack's reference
   row runs past the circle's length, so a read that wraps and one that does
   not put the same base in two columns, p and p + length. `Stack.twin` pairs

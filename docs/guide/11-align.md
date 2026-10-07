@@ -210,9 +210,11 @@ those.
 
 On a circular document, a **Local** alignment against the whole document
 finds a read that runs through the origin, such as a whole-plasmid nanopore
-read that happens to start in the middle. Positions are numbered as the
-document's, going from its last base back to 1, and **Select aligned
-region in this document** selects across the origin.
+read that happens to start in the middle. That holds for a read with only
+a few bases before the origin too, singly or in **Align all**: those bases,
+and any difference among them, are part of the alignment. Positions are
+numbered as the document's, going from its last base back to 1, and
+**Select aligned region in this document** selects across the origin.
 
 In the large view, reads that run through the origin and reads that stop
 short of it are combined by base: coverage, the feature verdicts' read and

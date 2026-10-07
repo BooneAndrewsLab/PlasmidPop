@@ -170,6 +170,34 @@ describe('runReadBatch (#59)', () => {
     expect(modes).toEqual(['global', 'global', 'global']);
   });
 
+  it('tells the band the circle it aligns through, so a read just before the origin keeps its start (#175)', async () => {
+    let seed = 7;
+    let circle = '';
+    for (let i = 0; i < 3000; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      circle += 'ACGT'.charAt(seed >>> 30);
+    }
+    const L = circle.length;
+    // The last base before the origin differs, and no 15-mer crosses it.
+    const sequence = withMismatch(circle.slice(L - 4) + circle.slice(0, 900), 3);
+    const seen: (number | undefined)[] = [];
+    const spy: AlignRequest = (a, b, options, long) => {
+      seen.push(options.wrap);
+      return inline(a, b, options, long);
+    };
+    const { rows } = await runReadBatch(
+      [{ name: 'origin', sequence, read: null }],
+      { sequence: circle, offset: 0, wrap: L },
+      spy,
+      { options: { fast: true }, mode: 'local', trimCutoff: null },
+    );
+    expect(seen).toEqual([L]);
+    const row = rows[0];
+    if (row?.status !== 'aligned') throw new Error('not aligned');
+    expect(row.result.alignment.startA).toBe(L - 4);
+    expect(row.result.alignment.score).toBe(3 * 5 - 4 + 900 * 5);
+  });
+
   it('refuses more reads than a plate', async () => {
     const many = Array.from({ length: BATCH_LIMIT + 1 }, (_, i) => ({
       name: `r${i}`,

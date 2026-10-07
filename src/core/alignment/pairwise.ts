@@ -51,6 +51,13 @@ export interface AlignmentOptions {
    * `match`, `mismatch` and `iupac` are for bases and are ignored.
    */
   readonly alphabet?: 'nucleotide' | 'protein';
+  /**
+   * The first sequence is a circle of this length with its start repeated
+   * after its end (a read against a whole plasmid, #51), so a path one turn
+   * on is the same alignment. A local band then also checks its chain one
+   * turn either way (#175). The fill ignores it.
+   */
+  readonly wrap?: number;
 }
 
 export interface Alignment {
