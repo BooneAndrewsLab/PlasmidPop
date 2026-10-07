@@ -409,3 +409,70 @@ describe('a lengthening edit near the origin of a circle (#191)', () => {
     },
   );
 });
+
+describe('a replace the refined diff draws as a base deleted between insertions (#192)', () => {
+  // The affine re-alignment may draw a replace as bases inserted, the old
+  // base deleted, and more inserted. The editor overwrites the selection
+  // from its first base, so the deleted base is drawn where the first of
+  // those insertions starts, not where the next one does.
+  it.each([
+    ['GCCTGCCTAGAGAGAGCGTAAGCC', 'linear', 12, 13, 'CGAT', [[12, 14]], [[15, 17]]],
+    [
+      'TTTTTTTGCGTGG',
+      'linear',
+      6,
+      8,
+      'ACTCC',
+      [
+        [2, 3],
+        [6, 11],
+      ],
+      [
+        [2, 3],
+        [9, 14],
+      ],
+    ],
+    [
+      'TATATATAGGAGCGAGCGAGCGATTATT',
+      'linear',
+      12,
+      14,
+      'CCGCT',
+      [
+        [13, 15],
+        [17, 18],
+      ],
+      [
+        [16, 18],
+        [20, 21],
+      ],
+    ],
+    [
+      'ATAATAATACCA',
+      'circular',
+      0,
+      1,
+      'CAT',
+      [
+        [0, 1],
+        [2, 5],
+      ],
+      [
+        [2, 3],
+        [4, 7],
+      ],
+    ],
+  ] as const)(
+    'calls the feature changed off the editor’s place after %s (%s) has [%i, %i) replaced by %s',
+    (sequence, topology, start, end, text, before, moved) => {
+      const base = withFeature(sequence, before, topology);
+      const edited = base.replace({ start, end }, text);
+      const kept = edited.getFeature(only(base))?.segments ?? [];
+      const segments = kept.map((s) =>
+        s.kind === 'range' ? ([s.start, s.end] as const) : ([0, 0] as const),
+      );
+      expect(changed(base, edited, segments)).toBe(false);
+      expect(changed(base, edited, moved)).toBe(true);
+    },
+  );
+});

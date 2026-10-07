@@ -205,3 +205,22 @@ reaching the origin shortened a feature round the whole circle by the bases
 added. The round-6 probe's false "unchanged" fell from 26/33/43 to 3/1/4 of
 400 cases; what is left is #192 and the diff as drawn (an insertion drawn
 at the origin, a second edit, puts a whole circle's start after it).
+
+## A base deleted between insertions (#192)
+
+The affine re-alignment (`refine.ts`) may draw a replace as bases inserted,
+the old base deleted and more inserted: `A` replaced by `CGAT` in
+`…GAGAGAG…` comes out as `CGA` inserted, `A` deleted, `T` inserted, since
+one gap and a mismatch beat two gaps. The position mapper paired a deleted
+base with the insertion after it, so the diff as drawn put the `A` on the
+`T`, and a feature on it read unchanged three bases on, where no editor
+puts it. A replaced run is now every delete and insert with no equal bases
+between, and its deleted bases map one to one onto its new ones from the
+run's start, as the editor overwrites; for a lone delete beside an insert
+nothing changes. The same drawing at the origin of a circle (`ATAATAATACCA`
+with `[0, 1)` replaced by `CAT`) is fixed with it. The round-6 probe's false
+"unchanged" fell from 3/1/4 to 2/1/0 of 400 cases, all left a feature
+round the whole circle (#194). Its count of locations some shortest
+alignment allows but the diff calls changed rose by 2 on two seeds: each
+was accepted only through that pairing, and no single replace short of the
+whole sequence puts a feature there.

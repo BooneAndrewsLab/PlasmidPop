@@ -314,9 +314,12 @@ function backtrack(
  * Where a position of the first input lands in the second. Bases that were
  * deleted map to the boundary the deletion left behind, so a range whose
  * inside was removed still comes back as a range. A run that was replaced
- * (a delete beside an insert) maps its bases one to one onto the new ones
- * while both last, as an editor does that overwrites in place, and the rest
- * onto the boundary after the run.
+ * (deletes and inserts with no equal bases between) maps its bases one to
+ * one onto the new ones from the run's start while both last, as an editor
+ * does that overwrites in place, and the rest onto the boundary after the
+ * run. The refined diff may draw a replace as bases inserted, the old base
+ * deleted and more inserted; the deleted base is still overwritten first
+ * (#192).
  */
 export function positionMapper(
   diff: SequenceDiff,
@@ -326,15 +329,25 @@ export function positionMapper(
   // Only `equal` and `delete` runs cover the first input, and they do so in
   // order, so their starts are a sorted key for binary search.
   const spans = diff.ops.filter((op) => op.aEnd > op.aStart);
-  // The new bases a delete run was replaced by, when an insert sits beside it.
-  const replacement = new Map<DiffOp, DiffOp>();
-  diff.ops.forEach((op, i) => {
-    if (op.kind !== 'delete') return;
-    const next = diff.ops[i + 1];
-    const prev = diff.ops[i - 1];
-    if (next?.kind === 'insert') replacement.set(op, next);
-    else if (prev?.kind === 'insert') replacement.set(op, prev);
-  });
+  // Where in the second input a delete run's first base is overwritten, and
+  // where the replaced run it is part of ends, when that run inserted any.
+  const replacement = new Map<DiffOp, { readonly bStart: number; readonly bEnd: number }>();
+  for (let from = 0; from < diff.ops.length;) {
+    let to = from;
+    while (to < diff.ops.length && diff.ops[to]?.kind !== 'equal') to++;
+    const run = diff.ops.slice(from, to);
+    const first = run[0];
+    const last = run[run.length - 1];
+    if (first !== undefined && last !== undefined && run.some((op) => op.kind === 'insert')) {
+      let bStart = first.bStart;
+      for (const op of run) {
+        if (op.kind !== 'delete') continue;
+        replacement.set(op, { bStart, bEnd: last.bEnd });
+        bStart += op.aEnd - op.aStart;
+      }
+    }
+    from = to + 1;
+  }
   return (position: number): number => {
     if (position >= aLength) return bLength;
     if (position < 0) return 0;
