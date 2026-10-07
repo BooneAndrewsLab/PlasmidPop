@@ -187,3 +187,21 @@ would shift one stretch's edges and not its neighbours'.
 
 Not covered: a circle whose untouched part is no longer than `MERGE_GAP`
 reads as one stretch, which is never split at the origin.
+
+## A lengthening edit near the origin (#191)
+
+A stretch that gained bases reached over the origin of a circle with no
+condition, but the editor does not put what it adds after the last base.
+A replace inserts the bases it gained right after those it overwrote,
+counted a turn on: one whose overwrite ends exactly at the origin puts them
+at 0, and one over the origin puts them just after it. So an overwrite of a
+stretch that grew now reaches the origin only past it, and only where the
+diff drew every base gained before the stretch (the front of the second
+sequence holds them), as for one that lost bases. Without that, an insertion
+the diff drew at the end of the sequence read as an overwrite of the bases
+after the origin and moved a start back a base (`CACACACACAGGCATTTTTT` with
+`T` inserted at 18 accepted `[7, 17)` at `[6, 17)`), and an insertion
+reaching the origin shortened a feature round the whole circle by the bases
+added. The round-6 probe's false "unchanged" fell from 26/33/43 to 3/1/4 of
+400 cases; what is left is #192 and the diff as drawn (an insertion drawn
+at the origin, a second edit, puts a whole circle's start after it).

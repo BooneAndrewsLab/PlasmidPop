@@ -546,7 +546,11 @@ export function equivalentMappings(
   };
   /**
    * Whether an overwrite of `run` may reach `x` bases past it. One that added
-   * bases may reach over the origin, the way a small rotation reads (#185).
+   * bases may reach over the origin, the way a small rotation reads (#185),
+   * but the editor inserts what it added right after the overwritten bases
+   * counted a turn on: one that ends at the origin adds them at 0, and one
+   * over it adds them before the stretch's place in the second input, so the
+   * diff must have drawn every base gained before that place (#191).
    * One that lost bases deletes them right after what it overwrote, and that
    * deletion may not start at the origin or run over it, since it would have
    * moved the origin (a reading of its own, below). It may lie wholly past
@@ -555,13 +559,13 @@ export function equivalentMappings(
    * deletion shifted by all the bases lost, as the diff drew them (#190).
    */
   const reaches = (run: Stretch, x: number): boolean => {
-    if (!circular || x === 0 || run.bEnd - run.bStart > run.aEnd - run.aStart) return true;
+    if (!circular || x === 0) return true;
+    const shifted = run.bStart - run.aStart === b.length - a.length;
+    if (run.bEnd - run.bStart > run.aEnd - run.aStart) {
+      return run.aEnd + x < a.length || (run.aEnd + x > a.length && shifted);
+    }
     if (run.aEnd + x <= a.length) return true;
-    return (
-      run.aEnd > a.length &&
-      run.aStart + (run.bEnd - run.bStart) + x > a.length &&
-      run.bStart - run.aStart === b.length - a.length
-    );
+    return run.aEnd > a.length && run.aStart + (run.bEnd - run.bStart) + x > a.length && shifted;
   };
   const overwrites = (run: Stretch): Choice[] => {
     const choices: Choice[] = [];

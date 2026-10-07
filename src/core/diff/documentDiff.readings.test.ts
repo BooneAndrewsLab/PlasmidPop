@@ -387,3 +387,25 @@ describe('a replace by shorter text, at random (#190)', () => {
     );
   });
 });
+
+describe('a lengthening edit near the origin of a circle (#191)', () => {
+  // An overwrite that added bases reaches over the origin only as the editor
+  // does it: the bases it adds go right after the origin, so one that ends
+  // there puts them at 0, and one the diff drew at the end of the sequence
+  // added none at 0.
+  it.each([
+    ['CACACACACAGGCATTTTTT', 'T', 18, [7, 17], [[6, 17]]],
+    ['GAATGAATCCC', 'G', 3, [0, 11], [[0, 11]]],
+  ] as const)(
+    'calls a feature moved off the editor’s place changed after %s gains "%s" at %i',
+    (sequence, text, at, before, moved) => {
+      const base = withFeature(sequence, [before], 'circular');
+      const edited = base.insert(at, text);
+      const kept = edited.getFeature(only(base))?.segments[0];
+      expect(kept?.kind).toBe('range');
+      if (kept?.kind !== 'range') return;
+      expect(changed(base, edited, [[kept.start, kept.end]])).toBe(false);
+      for (const segment of moved) expect(changed(base, edited, [segment])).toBe(true);
+    },
+  );
+});
