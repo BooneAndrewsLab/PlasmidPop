@@ -43414,7 +43414,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACTCCGAACTGGA|1|P|c|?YAVACGNSEL",
+      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACTCCGAACTGGA|1|P|c|IYAVACGNSEL",
       "CDS|f1|reverse|ACCCGTGATCAATGCCACT|1|c|P|TUDQCH",
       "CDS|f2|forward|GGCATTGACGTGTCCGTC|1|c|c|GIDVSV"
      ],
@@ -43428,7 +43428,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACT|1|P|P|?YAVACGN",
+      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACT|1|P|P|IYAVACGN",
       "CDS|f0|forward|CCGAACTGGA|3|P|c|EL",
       "CDS|f1|reverse|ACCCGTGATCAATGCCACT|1|c|P|TUDQCH",
       "CDS|f2|forward|GGCATTGACGTGTCCGTC|1|c|c|GIDVSV"
@@ -43443,7 +43443,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACTCCGAACTGGA|1|P|c|?YAVACGNSEL",
+      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACTCCGAACTGGA|1|P|c|IYAVACGNSEL",
       "CDS|f1|reverse|ACCCGTGATCAATGCCACT|1|c|P|TUDQCH",
       "CDS|f2|forward|GGCATTGACGTGTCCGTC|1|c|c|GIDVSV"
      ],
@@ -43457,7 +43457,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACTCCGAACTGGA|1|P|c|?YAVACGNSEL",
+      "CDS|f0|forward|ATTTATGCAGTGGCCTGTGGGAACTCCGAACTGGA|1|P|c|IYAVACGNSEL",
       "CDS|f1|reverse|ACCCGTGATCAATGCCACT|1|c|P|TUDQCH",
       "CDS|f2|forward|GGCATTGACGTGTCCGTC|1|c|c|GIDVSV"
      ],
@@ -43558,7 +43558,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|reverse|ATGGGTCGCGTC|1|P|c|?GRV",
+      "CDS|f0|reverse|ATGGGTCGCGTC|1|P|c|MGRV",
       "CDS|f0|reverse|TCAGCAAACCTGACTATGCGGCGTAACCTTA|2|c|P|QQT*LCGVUL",
       "CDS|f1|forward|TGGCCGTATCCCGCA|1|c|c|UPYPA",
       "CDS|f2|forward|GACGCGACCCAT|1|c|P|DATH",
@@ -43641,7 +43641,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|reverse|ACTTGTCTTGAGCCTAGAATCACAGAGATGCGTTCACAAGGCAA|3|P|c|?S*A*NURDAFTRQ",
+      "CDS|f0|reverse|ACTTGTCTTGAGCCTAGAATCACAGAGATGCGTTCACAAGGCAA|3|P|c|LS*A*NURDAFTRQ",
       "CDS|f0|reverse|CAGC|1|c|P|Q",
       "CDS|f1|reverse|TAAGACTACCCAGACCCCTTGCCCGGACCTTGCTA|1|c|c|*DYPDPLPGPC",
       "misc_feature|misc|forward|GGGTCTGGGTAGTCTT|-|c|c|-"
@@ -43845,7 +43845,7 @@
      "expect": [
       "CDS|f0|reverse|GTGCCTAAATGCTATGGTA|3|P|c|A*ULW",
       "CDS|f1|reverse|CTAACAGCAACTATATGGTACGACTGCTTAACTTCGTACTCATGACTAACGCT|3|c|P|NSNYMVRLLNFULMTNA",
-      "CDS|f2|reverse|GTGTCGCCTAAATGCTAACAGCAACTATATGGTACGACTGCTTAACTTCGTACTCATGAC|1|P|P|?SPKC*QQLYGTTA*LRTHD",
+      "CDS|f2|reverse|GTGTCGCCTAAATGCTAACAGCAACTATATGGTACGACTGCTTAACTTCGTACTCATGAC|1|P|P|VSPKC*QQLYGTTA*LRTHD",
       "misc_feature|misc|reverse|ACTTCGTACTCATGACTAACGCTTGCGATGTTTTGAGAGATGGAGACCGATCCCGATGCAT|-|c|c|-"
      ],
      "parts": [
@@ -43873,7 +43873,7 @@
       "CDS|f0|reverse|GTGCCTAAATGCTATGGTA|3|P|c|A*ULW",
       "CDS|f0|reverse|TGGTCAAGTACTCATG|1|c|P|WSSTH",
       "CDS|f1|reverse|CTAACAGCAACTATATGGTACGACTGCTTAACTTCGTACTCATGACTAACGCT|3|c|P|NSNYMVRLLNFULMTNA",
-      "CDS|f2|reverse|GTGTCGCCTAAATGCTAACAGCAACTATATGGTACGACTGCTTAACTTCGTACTCATGAC|1|P|P|?SPKC*QQLYGTTA*LRTHD",
+      "CDS|f2|reverse|GTGTCGCCTAAATGCTAACAGCAACTATATGGTACGACTGCTTAACTTCGTACTCATGAC|1|P|P|VSPKC*QQLYGTTA*LRTHD",
       "CDS|f2|reverse|TTTGGTCAAGTACTCATG|1|c|P|FGQVLU",
       "misc_feature|misc|reverse|ACTTCGTACTCATGACTAACGCTTGCGATGTTTTGAGAGATGGAGACCGATCCCGATGCAT|-|c|c|-"
      ],
@@ -46536,8 +46536,8 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|TGGTGTGTGCTCCTGCGTTGTCCCTCTCGCAT|1|P|c|WCVLLRCPUR",
-      "CDS|f1|forward|CATGGTGTGTGCTCCTGCGTTGTCCCTCT|2|P|c|?VCAPALSL",
-      "CDS|f2|forward|CATGGTGTGTG|2|P|c|?VC"
+      "CDS|f1|forward|CATGGTGTGTGCTCCTGCGTTGTCCCTCT|2|P|c|MVCAPALSL",
+      "CDS|f2|forward|CATGGTGTGTG|2|P|c|MVC"
      ],
      "parts": [
       "0"
@@ -47015,7 +47015,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|GGCGGCATGC|3|c|P|RHA",
-      "CDS|f0|forward|TATTCAGCCGGATTGGGTAATGAGCATACACC|2|P|c|?QPDWVMSIH",
+      "CDS|f0|forward|TATTCAGCCGGATTGGGTAATGAGCATACACC|2|P|c|IQPDWVMSIH",
       "CDS|f1|forward|CTCCCTGGGCACTGGCGGCA|2|c|c|SLGTGG",
       "CDS|f2|forward|TCCCTGGGCGGCA|3|c|c|PGR"
      ],
@@ -48200,7 +48200,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|GATCTATTGAGATAGG|2|P|c|?Y*DR",
+      "CDS|f0|forward|GATCTATTGAGATAGG|2|P|c|IY*DR",
       "CDS|f1|forward|GA|3|P|c|",
       "CDS|f2|forward|GCAGCCGAAAT|1|c|P|AAE"
      ],
@@ -48230,7 +48230,7 @@
      "expect": [
       "CDS|f0|forward|GTGCCCAAGAGGACCTTGTCGGATCTATTGAGATAGG|2|c|c|CPRUPCRIY*DR",
       "CDS|f1|forward|AAATCTAAAACACAGTATCTACCCCTGTGCCCCCTTGTCGGA|1|c|c|KSKTQYLPLCPLVG",
-      "CDS|f2|forward|GATCTCGGTATTGTTAAATCTAAAACACAGT|2|P|c|?SVLLNLKHS",
+      "CDS|f2|forward|GATCTCGGTATTGTTAAATCTAAAACACAGT|2|P|c|ISVLLNLKHS",
       "CDS|f2|forward|GCAGCCGAAAT|1|c|P|AAE",
       "misc_feature|misc|reverse|AGGAAAAGGCAACAATACCCATCGGGCGAGAGAT|-|c|P|-"
      ],
@@ -48244,7 +48244,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|GATCTATTGAGATAGG|2|P|c|?Y*DR",
+      "CDS|f0|forward|GATCTATTGAGATAGG|2|P|c|IY*DR",
       "CDS|f0|forward|GTGCCCAAGAGGACCTTGTCG|2|c|P|CPRUPCR",
       "CDS|f1|forward|AAATCTAAAACACAGTATCTACCCCTGTGCCCCCTTGTCG|1|c|P|KSKTQYLPLCPLV",
       "CDS|f1|forward|GA|3|P|c|",
@@ -52933,7 +52933,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|AATTTGGACTGTC|2|P|c|?WTV",
+      "CDS|f0|forward|AATTTGGACTGTC|2|P|c|IWTV",
       "CDS|f0|forward|ACCGTATCTAT|1|P|P|TVS",
       "CDS|f1|forward|TTGTGGTCGTCAGTTCCTGGTG|3|c|c|MVUSSW",
       "CDS|f2|forward|AAGACTCCTGCAAGCG|3|c|c|DUCK",
@@ -55353,7 +55353,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATGGAAGAAATGGTCGTGATGCTGTAACCGGTGGTGCCCAACCGCA|1|P|c|?EEMVVML*PVVPNR",
+      "CDS|f0|forward|ATGGAAGAAATGGTCGTGATGCTGTAACCGGTGGTGCCCAACCGCA|1|P|c|MEEMVVML*PVVPNR",
       "misc_feature|misc|reverse|GGTTGGGCACCACCGGTTACAGCATCACGACCATTTCTTCCATTCCGCCACGCCTTTGCGTTTGAAT|-|c|c|-"
      ],
      "parts": [
@@ -55365,7 +55365,7 @@
      "circular": true,
      "empty": true,
      "expect": [
-      "CDS|f0|forward|ATGGAAGAAATGGTCGTGATGCTGTAACCGGTGGTGCCCAACCGCA|1|P|c|?EEMVVML*PVVPNR",
+      "CDS|f0|forward|ATGGAAGAAATGGTCGTGATGCTGTAACCGGTGGTGCCCAACCGCA|1|P|c|MEEMVVML*PVVPNR",
       "misc_feature|misc|reverse|GGTTGGGCACCACCGGTTACAGCATCACGACCATTTCTTCCATTCCGCCACGCCTTTGCGTTTGAAT|-|c|c|-"
      ],
      "parts": [
@@ -55377,7 +55377,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATGGAAGAAATGGTCGTGATGCTGTAACCGGTGGTGCCCAACCGCA|1|P|c|?EEMVVML*PVVPNR",
+      "CDS|f0|forward|ATGGAAGAAATGGTCGTGATGCTGTAACCGGTGGTGCCCAACCGCA|1|P|c|MEEMVVML*PVVPNR",
       "misc_feature|misc|reverse|GGTTGGGCACCACCGGTTACAGCATCACGACCATTTCTTCCATTCCGCCACGCCTTTGCGTTTGAAT|-|c|c|-"
      ],
      "parts": [
@@ -55630,10 +55630,10 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|reverse|CATGAGAAAGACTCGGGAACGGGGG|2|P|c|?RKURERG",
+      "CDS|f0|reverse|CATGAGAAAGACTCGGGAACGGGGG|2|P|c|MRKURERG",
       "CDS|f0|reverse|CCTG|3|c|P|",
       "CDS|f1|reverse|GGGGACAACGGCATGATCTATCTCTCCCTCTTCCTTGATACTTTTAG|1|c|c|GDUGMIYLSLFLDTF",
-      "CDS|f2|reverse|CATGAGAAAGACTCGGGAACG|2|P|c|?*KTRE",
+      "CDS|f2|reverse|CATGAGAAAGACTCGGGAACG|2|P|c|M*KTRE",
       "CDS|f2|reverse|TATCGTCGCTACCCTG|3|c|P|SSLP",
       "misc_feature|misc|forward|GAGAGATAGATCATGCCGTTGTCCCCCAAAGTCCAAGCCCCCGT|-|P|c|-"
      ],
@@ -56780,7 +56780,7 @@
       "CDS|f0|reverse|GCTATTTGCCGATATTACCCCTGTG|2|c|c|LFADITPV",
       "CDS|f1|forward|GCGCTGGCAATACGGCCTAGTCCGTGTGCGCCACAG|1|c|c|ALAMRPSPCAPQ",
       "CDS|f2|forward|CTTGTTG|3|c|P|C",
-      "CDS|f2|forward|GATGGTTCGCGCTGGCAATAC|2|P|c|?VRAGN",
+      "CDS|f2|forward|GATGGTTCGCGCTGGCAATAC|2|P|c|UVRAGN",
       "misc_feature|misc|reverse|AACAAGGTCACCGTATCTCAGGC|-|c|c|-"
      ],
      "parts": [
@@ -56812,7 +56812,7 @@
      "expect": [
       "CDS|f0|reverse|CTGTG|3|P|c|V",
       "CDS|f1|forward|GCGCTGGCAATACGGCCTAGTCCGTGTGCGCCACAG|1|c|c|ALAMRPSPCAPQ",
-      "CDS|f2|forward|GATGGTTCGCGCTGGCAATAC|2|P|c|?VRAGN"
+      "CDS|f2|forward|GATGGTTCGCGCTGGCAATAC|2|P|c|UVRAGN"
      ],
      "parts": [
       "1"
@@ -56827,7 +56827,7 @@
       "CDS|f0|reverse|GCTATTTGCCGATATTACCC|2|c|P|LFADIT",
       "CDS|f1|reverse|GCGCTGGCAATACGGCCTAGTCCGTGTGCGCCACAG|1|c|c|ALAMRPSPCAPQ",
       "CDS|f2|forward|CTTGTTG|3|c|P|C",
-      "CDS|f2|reverse|GATGGTTCGCGCTGGCAATAC|2|P|c|?VRAGN",
+      "CDS|f2|reverse|GATGGTTCGCGCTGGCAATAC|2|P|c|UVRAGN",
       "misc_feature|misc|reverse|AACAAGGTCACCGTATCTCAGGC|-|c|c|-"
      ],
      "parts": [
@@ -57297,7 +57297,7 @@
      "expect": [
       "CDS|f0|reverse|GAGCAATTGTAAGTGGTATGTACGATAAATTCCTT|1|c|c|EQL*VVCTINS",
       "CDS|f1|forward|CGAAAGGAATTTAACATACACAATTGCTCTTCTTTC|1|c|c|RKEFNIHNCSSF",
-      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|P|c|?KEEUL*VV",
+      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|P|c|LKEEUL*VV",
       "CDS|f2|reverse|TG|3|c|P|",
       "misc_feature|misc|reverse|AAATTCCTTTCGCGATCCATGG|-|c|c|-"
      ],
@@ -57344,7 +57344,7 @@
      "expect": [
       "CDS|f0|reverse|GAGCAATTGTAAGTGGTATGTACGATAAATTCCTT|1|c|c|EQL*VVCTINS",
       "CDS|f1|forward|CGAAAGGAATTTAACATACACAATTGCTCTTCTTTC|1|c|c|RKEFNIHNCSSF",
-      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|P|c|?KEEUL*VV",
+      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|P|c|LKEEUL*VV",
       "misc_feature|misc|reverse|AAATTCCTTTCGCGATCCATG|-|c|P|-"
      ],
      "parts": [
@@ -57891,7 +57891,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|reverse|AGAGACCCT|2|c|P|ETL",
-      "CDS|f0|reverse|CATTCGTGATCGTACGTCTTG|2|P|c|?RDRTS"
+      "CDS|f0|reverse|CATTCGTGATCGTACGTCTTG|2|P|c|IRDRTS"
      ],
      "parts": [
       "1",
@@ -58759,7 +58759,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|reverse|AGAGACGGAGC|1|c|P|RDGA",
-      "CDS|f0|reverse|CATGTCAAGTGGGGGACTGGAGTCGGGTACTATGCATGGACAAGTGTCC|2|P|c|?SSGGLESGTMHGQVS",
+      "CDS|f0|reverse|CATGTCAAGTGGGGGACTGGAGTCGGGTACTATGCATGGACAAGTGTCC|2|P|c|MSSGGLESGTMHGQVS",
       "CDS|f1|forward|GCTCCGTCTCTAGAGGAAAGGCCAACCCCTGCCGCCAGAATGGGACAGCCGGAGTCCATGT|3|c|c|SVSRGKANPCRUNGTAGVH",
       "CDS|f2|forward|ACTTGACATG|3|P|P|LT",
       "CDS|f2|forward|GCTCCGTCTCTAGAGGAAAGGCCAACCCCTGCCGCCAGAATGGGACAGCCG|2|P|c|LRL**KGQPUPPEWDS",
@@ -58843,7 +58843,7 @@
      "expect": [
       "CDS|f0|forward|AATTTAGACCCTG|2|P|c|I*TL",
       "CDS|f0|forward|TCGGTAACGAAAAATAGTACTGTGGAGGACTCTGCAGG|1|P|P|SVTKNSTVEDSAG",
-      "CDS|f1|forward|AATTTAGACCCTGTAACCCCGTGGCGACAGGTAGAACAT|2|P|c|?*TL*PRGDR*N",
+      "CDS|f1|forward|AATTTAGACCCTGTAACCCCGTGGCGACAGGTAGAACAT|2|P|c|I*TL*PRGDR*N",
       "CDS|f1|forward|GACTCTGCAGG|1|c|P|DSAG",
       "CDS|f2|reverse|GCCACGGGGTTACAGGGT|1|c|c|ATGLQG"
      ],
@@ -59885,7 +59885,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|CATCAGACCTATTGT|2|P|c|?RPI",
+      "CDS|f0|forward|CATCAGACCTATTGT|2|P|c|IRPI",
       "CDS|f0|forward|GATATTATGCCGTAATTCGACACTAGGCCGAACGGACTTGGTGAATT|1|c|P|DIMP*FDTRPNGLGE",
       "misc_feature|misc|reverse|AATTCACCAAGTCCGTTCGGCCTAGTGTCGAATTACGGCATAA|-|P|P|-",
       "misc_feature|misc|reverse|GTCTGATG|-|c|P|-"
@@ -60333,7 +60333,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|TTCCACCACATAGCTGCCCGAACAATTACATTAAC|3|P|P|PPHSCPNNYIN",
-      "CDS|f2|forward|GATCAAATTGAAATACAGCAAATT|2|P|c|?KLKYUK"
+      "CDS|f2|forward|GATCAAATTGAAATACAGCAAATT|2|P|c|IKLKYUK"
      ],
      "parts": [
       "2"
@@ -60605,7 +60605,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|AGTGGACGTCACGT|3|c|P|WTSU",
-      "CDS|f0|forward|ATGTGATGGGGGG|1|P|c|?*WG"
+      "CDS|f0|forward|ATGTGATGGGGGG|1|P|c|M*WG"
      ],
      "parts": [
       "0",
@@ -60688,7 +60688,7 @@
      "expect": [
       "CDS|f0|reverse|TCCGAGGCGGTAACTT|3|P|c|RGGN",
       "CDS|f1|forward|CAGGATCCGCCCGTAAGGAAGTT|1|c|c|QDPPURK",
-      "CDS|f2|forward|CCATGAGCTCTTTTAGTTGTAGTAG|3|P|c|?USFSCS",
+      "CDS|f2|forward|CCATGAGCTCTTTTAGTTGTAGTAG|3|P|c|MUSFSCS",
       "misc_feature|misc|reverse|CAACATACCTACTACAACTAAAAGAGCTCATGG|-|c|P|-"
      ],
      "parts": [
@@ -60751,7 +60751,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|GGTTTGTGTGTAAGCCAT|1|P|c|GUCVSH",
-      "CDS|f1|forward|GCTG|2|P|c|?",
+      "CDS|f1|forward|GCTG|2|P|c|L",
       "CDS|f2|reverse|TCTATAGT|2|P|P|L*"
      ],
      "parts": [
@@ -60925,8 +60925,8 @@
      "empty": false,
      "expect": [
       "CDS|f0|reverse|AGACTATCATGCG|1|c|P|RUSC",
-      "CDS|f0|reverse|GAATGCACTAAGGCATCTCCC|3|P|c|?H*GIS",
-      "CDS|f1|reverse|GAATGCACTAAGGCGAACATCC|3|P|c|?H*GUH",
+      "CDS|f0|reverse|GAATGCACTAAGGCATCTCCC|3|P|c|MH*GIS",
+      "CDS|f1|reverse|GAATGCACTAAGGCGAACATCC|3|P|c|MH*GUH",
       "CDS|f1|reverse|TCCAAGAGCG|1|c|P|SKS"
      ],
      "parts": [
@@ -61225,7 +61225,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f2|reverse|CATG|2|P|c|?"
+      "CDS|f2|reverse|CATG|2|P|c|M"
      ],
      "parts": [
       "0"
@@ -62211,7 +62211,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|?PRLS*MGLVMK*HLRQP",
+      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|IPRLS*MGLVMK*HLRQP",
       "CDS|f1|reverse|CTTCATTACCAGCCCCTTAGGCGCGGGATC|3|c|c|ULPAP*ARD",
       "CDS|f2|forward|ACT|2|P|c|",
       "CDS|f2|forward|GCGCACGTCGGAACTATAGCATGCCACTTGTAAGGCACTATTCATAGGAACATAGTGCGATAAACCGTGTGATGCAGGAT|1|c|P|AHVGTUACHL*GTIHRNIVR*TV*CR",
@@ -62228,7 +62228,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|?PRLS*MGLVMK*HLRQP",
+      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|IPRLS*MGLVMK*HLRQP",
       "CDS|f1|reverse|CTTCATTACCAGCCCCTTAGGCGCGGGATC|3|c|c|ULPAP*ARD",
       "CDS|f2|forward|GCGCACGTCGGAACTATAGCATGCCACTTGTAAGGCACTATTCATAGGAACATAGTGCGATAAACCGTGTGATGCAGGATACT|1|c|c|AHVGTUACHL*GTIHRNIVR*TV*CRI",
       "misc_feature|misc|forward|TACTGGTACGGGATCCCGCGCC|-|P|c|-"
@@ -62243,7 +62243,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|?PRLS*MGLVMK*HLRQP",
+      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|IPRLS*MGLVMK*HLRQP",
       "CDS|f1|reverse|CTTCATTACCAGCCCCTTAGGCGCGGGATC|3|c|c|ULPAP*ARD",
       "CDS|f2|forward|GCGCACGTCGGAACTATAGCATGCCACTTGTAAGGCACTATTCATAGGAACATAGTGCGATAAACCGTGTGATGCAGGATACT|1|c|c|AHVGTUACHL*GTIHRNIVR*TV*CRI",
       "misc_feature|misc|forward|TACTGGTACGGGATCCCGCGCC|-|P|c|-"
@@ -62258,9 +62258,9 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|?PRLS*MGLVMK*HLRQP",
+      "CDS|f0|forward|ATCCCGCGCCTAAGCTAGATGGGGCTGGTAATGAAGTAGCACCTCAGACAGCCC|1|P|c|IPRLS*MGLVMK*HLRQP",
       "CDS|f1|reverse|CTTCATTACCAGCCCCTTAGGCGCGGGATC|3|c|c|ULPAP*ARD",
-      "CDS|f2|forward|CCGTGTGATGCAGGATACT|3|P|c|?*CRI",
+      "CDS|f2|forward|CCGTGTGATGCAGGATACT|3|P|c|V*CRI",
       "CDS|f2|forward|GCGCACGTCGGAACTATAGCATGCCACTTGTAAGGCACTATTCATAGGAACATAGTGCGATAAA|1|c|P|AHVGTUACHL*GTIHRNIVR*",
       "misc_feature|misc|forward|TACTGGTACGGGATCCCGCGCC|-|P|c|-"
      ],
@@ -62465,7 +62465,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|TAGGAA|1|P|c|*E",
-      "CDS|f1|reverse|GATCCCTAGGTTTGACAGATTGCCTCTCCATCTCAAAAATCGCCTTG|2|P|c|?PRFDRLULHLKNRL",
+      "CDS|f1|reverse|GATCCCTAGGTTTGACAGATTGCCTCTCCATCTCAAAAATCGCCTTG|2|P|c|IPRFDRLULHLKNRL",
       "misc_feature|misc|forward|GATGGAGAGGCAATCTGTCAAACCT|-|c|c|-"
      ],
      "parts": [
@@ -63092,7 +63092,7 @@
       "CDS|f0|forward|GAATCGGATGGAGGTCCTCCAAATGGGAGGCGATTTTGATCTGATCCTGATCGGCCTGGACATGAAGTC|1|c|c|ESDGGPPNGRRF*SDPDUPGHEV",
       "CDS|f1|forward|AC|3|P|c|",
       "CDS|f1|forward|CAACCGCGCATTCTATACATCAAGCCGGTGGTCAGGGCAGTGCTTTTCACAGAGTCCCTTCGCTCATA|2|P|P|NRAFYTSSRWSGQCFSQSUFAH",
-      "CDS|f2|reverse|TATGAGCGAAGGGACTCTGTGAAAAGCACTGCCCTGA|2|P|c|?SEGTL*KALP*",
+      "CDS|f2|reverse|TATGAGCGAAGGGACTCTGTGAAAAGCACTGCCCTGA|2|P|c|MSEGTL*KALP*",
       "CDS|f2|reverse|TCCGATTCAGT|1|c|P|SDSV",
       "misc_feature|misc|forward|ACTGAA|-|P|c|-",
       "misc_feature|misc|forward|CAACCGCGCATTCTATACATCAAGCCGGTGGTCAGGGCAGTGCTTTTCACAGAGTCCCTTCGCTCATA|-|c|P|-"
@@ -64064,7 +64064,7 @@
       "CDS|f0|forward|TGTACTGGAGTGTATCCCTTGTTTTCGTACGACCTTAG|2|c|c|VLECIPCFRUTL",
       "CDS|f1|reverse|ACGGCACG|1|P|c|TA",
       "CDS|f1|reverse|GATACACTCCAGTACAGCATAGGCGCCTGTGTTACTGGGAAATT|3|c|P|YTPVQHRRLCYWEI",
-      "CDS|f2|forward|AATTTCCCAGGCCCTGATTAACACAGGCGCCTATGCACAGA|2|P|c|?SUALINTGAYAQ",
+      "CDS|f2|forward|AATTTCCCAGGCCCTGATTAACACAGGCGCCTATGCACAGA|2|P|c|ISUALINTGAYAQ",
       "CDS|f2|forward|TCAGCTGTGAGCCCGCGTGCCGT|1|c|P|SAVSPRAV"
      ],
      "parts": [
@@ -65832,7 +65832,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|TCCGATCAAAGACTGGCTTTTCCAGCACGGCACGAAATGCCTTGGGGTGATC|1|c|P|SDQ*LAFPARHEMPWGD",
-      "CDS|f0|forward|TTATATCGCAGGTTTTTA|3|P|c|?SQVF",
+      "CDS|f0|forward|TTATATCGCAGGTTTTTA|3|P|c|USQVF",
       "CDS|f1|forward|TAGGTTTTAGGTCAGCAGCACCTTCCGATCAAAGACTGGCTTTTCCAGCACGGCACGAAATGCCTTGGG|2|c|c|*F*VSSTFRSKTGFSSTURNAL",
       "misc_feature|misc|reverse|ATCGGAAGGTGCTGCTGACCTAAAA|-|c|c|-"
      ],
@@ -65847,7 +65847,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|TTATATCGCAGGTTTTTA|3|P|c|?SQVF"
+      "CDS|f0|forward|TTATATCGCAGGTTTTTA|3|P|c|USQVF"
      ],
      "parts": [
       "1"
@@ -66179,7 +66179,7 @@
      "expect": [
       "CDS|f0|forward|AAGGTGCGTATACCTAGCGTTTTAGGATC|2|c|c|UCVYLAF*D",
       "CDS|f1|forward|ATCTTCCAAATAAGG|2|P|P|SSK*G",
-      "CDS|f1|forward|GATCACTCCTTCATCGGATTCCGGAAAATGCTCCATAAGTG|2|P|c|?TPSSDSGKCSMS"
+      "CDS|f1|forward|GATCACTCCTTCATCGGATTCCGGAAAATGCTCCATAAGTG|2|P|c|ITPSSDSGKCSMS"
      ],
      "parts": [
       "0"
@@ -66512,7 +66512,7 @@
       "CDS|f0|reverse|TCACAAGGGTTACGCAATTCACAGGTACTGGG|2|c|P|HKUYAIH*YW",
       "CDS|f1|reverse|TGATGCCCGCAGACGGGTCGACGCGTCT|1|c|c|*CPQTURRV",
       "CDS|f2|reverse|AGGGTTACGCAATTCACAGGTACTGGG|1|c|P|RVTQFTGTG",
-      "CDS|f2|reverse|ATGAAAGCGGGATATC|1|P|P|?KAGY",
+      "CDS|f2|reverse|ATGAAAGCGGGATATC|1|P|P|MKAGY",
       "misc_feature|misc|reverse|GGTCGCATCGGTTCGACGCGTCTGTC|-|c|c|-"
      ],
      "parts": [

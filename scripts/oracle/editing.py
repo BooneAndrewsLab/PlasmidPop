@@ -908,10 +908,9 @@ def lig_expect(case, parts, circular):
                     if a0 <= tes[0] and tes[2] <= a1 and (tes[0] - a0 - (ecs - 1)) % 3 == 0:
                         te = (tes[0] - a0 - (ecs - 1)) // 3
                 piece['cs'] = ecs
-                piece['protein'] = lig_protein(bases, ecs, a0 + ecs - 1 == f0 and not five, e3, f['table'], te)
-                if e5 and bases[ecs - 1:ecs + 2] in CodonTable.unambiguous_dna_by_id[f['table']].start_codons:
-                    # a start-like first codon of a piece cut off at its start: M or the plain residue (#163)
-                    piece['protein'] = '?' + piece['protein'][1:]
+                # A piece cut off at its 5' end is 5'-partial: its first codon is no
+                # initiator and reads as its plain residue (INSDC; #163, #176).
+                piece['protein'] = lig_protein(bases, ecs, a0 + ecs - 1 == f0 and not e5, e3, f['table'], te)
             out.append(piece)
     return sorted(
         '|'.join([p['type'], p['name'], p['strand'], p['bases'], str(p.get('cs', '-')),
@@ -957,9 +956,8 @@ def ligation_cases():
     partial marks of its ends, and for a CDS the protein, Biopython
     translating the bases it reads (M for a start codon at the CDS's own start,
     U for a transl_except codon kept whole, a last codon of two bases completed
-    only when every third base gives the same residue; the first residue of a
-    piece cut off at its start, when that codon is a start codon, is '?', M or
-    the plain residue being accepted, #163).
+    only when every third base gives the same residue; a piece cut off at its
+    start is 5'-partial, so its first codon reads as its plain residue, #163).
 
     Left out, because the editor has a known gap there (#182): a
     /transl_except whose codon a cut splits (it is dropped from both pieces

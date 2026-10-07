@@ -463,19 +463,9 @@ describe('features through a digest and a ligation', () => {
     ].join('|');
   }
 
-  /** Equal as lists; an expected protein that starts with '?' accepts M or any first residue. */
+  /** Equal as lists, in any order. */
   function sameFeatures(got: readonly string[], expect: readonly string[]): boolean {
-    if (got.length !== expect.length) return false;
-    const left = [...expect];
-    for (const g of got) {
-      const fields = g.split('|');
-      const protein = fields[7] ?? '';
-      const wild = [...fields.slice(0, 7), `?${protein.slice(1)}`].join('|');
-      const at = left.findIndex((e) => e === g || e === wild);
-      if (at < 0) return false;
-      left.splice(at, 1);
-    }
-    return true;
+    return JSON.stringify([...got].sort()) === JSON.stringify([...expect].sort());
   }
 
   const kept = (doc: SeqDocument): string[] =>
