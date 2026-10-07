@@ -363,7 +363,7 @@ describe('deleting a region that trims a CDS', () => {
  *
  * Left out (#182): a /transl_except whose codon a cut splits, a rejoin over
  * lost bases or of same-named pieces of different features, a join cut in its
- * intron and religated. Not covered: bluntEnds then emptyVector (#183), and a
+ * intron and religated. Not covered: bluntEnds then emptyVector (see blunt.test.ts), and a
  * flipped fragment with an overhang, which drops the annotation on those
  * bases by design (item 34).
  */

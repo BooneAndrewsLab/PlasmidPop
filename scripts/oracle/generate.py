@@ -44,6 +44,7 @@ from Bio.SeqRecord import SeqRecord
 
 import alignment
 import assembly
+import blunt
 import cds
 import checksums
 import digest
@@ -507,6 +508,7 @@ def main():
     write('alignment.json', alignment.generate())
     write('fastq.json', fastq.generate())
     write('editing.json', editing.generate())
+    write('blunt.json', blunt.generate())
 
 
 if __name__ == '__main__':
