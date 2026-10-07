@@ -245,3 +245,20 @@ repeat over the origin can still let the diff draw the edit flush against
 it, untouched bases or not (#195). The round-6 probe is unchanged: false
 "unchanged" 2/1/0, false "changed" editor results 5/3/3, as its cases
 rarely leave so little of a circle.
+
+## A whole circle's start after a drawn insertion at the origin (#194)
+
+The round-6 probe's last false "unchanged" are all features round the whole
+circle after a lengthening replace over the origin. `AACCAAAAACC` with
+`[9, 14)` replaced by `TACCAAC`: the editor keeps `[0, 11)` as `[0, 13)`,
+but the diff draws `CC` inserted at 0 and a replace at the end, and under
+that drawing the insertion moves the start to 2 (#168), so `[2, 15)` reads
+unchanged. This is kept, by design. Two edits, an insertion at the origin
+and then that replace, put the feature exactly there, and the review sees
+only two versions, never the edits between them: "unchanged" means some
+history consistent with the diff carries the feature there, and the diff as
+drawn is always one of its readings. Rejecting it would drop that for whole
+circles and call the two-edit history changed. Unlike #189 the location is
+one an editor reaches, and the feature still covers the whole circle; only
+where its start sits differs. The probe's single-replace oracle counts it as
+a false "unchanged"; read those cases as expected.
