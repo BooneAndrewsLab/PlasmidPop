@@ -143,7 +143,8 @@ def generate():
         read = read[:p] + read[p + 150:] if len(long_cases) else read
         long_cases.append({'a': ref, 'b': read, 'global': aligner(False, 'global').score(ref, read)})
     return {'cases': cases, 'long': long_cases, 'circular': circular_cases(), 'banded': banded_cases(),
-            'circularScores': circular_score_cases(), 'effects': effect_cases()}
+            'circularScores': circular_score_cases(), 'effects': effect_cases(),
+            'circularReads': circular_read_cases()}
 
 
 def banded_cases():
@@ -432,3 +433,90 @@ def effect_cases():
                     subs.append({'at': at, 'base': base, 'expected': expected})
                 out.append({'loc': name, 'cs': cs, 'seq': seq, 'genbank': handle.getvalue(), 'subs': subs})
     return out
+
+
+def read_mutate_near(rng, s, near, count, region):
+    """count substitutions, insertions or deletions within region bases of near."""
+    s = list(s)
+    for _ in range(count):
+        p = max(0, min(len(s) - 1, near + rng.randint(-region, region)))
+        k = rng.choice('sid')
+        if k == 's':
+            s[p] = rng.choice([b for b in 'ACGT' if b != s[p]])
+        elif k == 'i':
+            s.insert(p, rng.choice('ACGT'))
+        else:
+            del s[p]
+    return ''.join(s)
+
+
+def circular_read_cases():
+    """Where a read across the origin maps, and its score, on a circle (#175).
+
+    Three circles (4 kb and 12 kb random, a 3.5 kb one whose ends carry
+    a 37 bp tandem repeat) and reads of 600 and 1500 bases that start 25 bases
+    before the origin to 5 after it (and a few that centre on it), some with
+    substitutions, indels or a mismatch just before the origin, some reverse
+    complemented, plus a read of the whole circle and 0, 5 or 40 bases more, and
+    one substitution, insertion or deletion exactly at the origin. The score is
+    Biopython's local alignment of the read, both strands, against the reference
+    written twice less its last base. The position is the local alignment to
+    the reference rotated to put the read in the middle, for reads shorter
+    than half of it: where the read starts on the circle, how many reference bases it
+    spans, and the span of the read. Left out: the document diff (#184).
+    """
+    rng = rng_for(SEED + 4)
+    al = aligner(False, 'local')
+    unit = random_dna(rng, 37)
+    refs = {
+        'rand4k': random_dna(rng, 4000),
+        'rand12k': random_dna(rng, 12000),
+        'tandem': unit * 8 + random_dna(rng, 3000) + unit * 6,
+    }
+    cases = []
+    for name, ref in refs.items():
+        L = len(ref)
+        dbl = ref + ref
+        reads = []  # (read, offset, kind)
+        for m in (600, 1500):
+            offs = list(range(L - 25, L)) + list(range(0, 6)) + [L - m // 2, L - m + 3, L - m - 2]
+            for k, o in enumerate(offs):
+                o %= L
+                read = (dbl + dbl)[o:o + m]
+                near = (L - o) % L
+                variant = k % 4
+                if variant == 1:
+                    read = read_mutate_near(rng, read, near if near < m else 0, 3, 8)
+                elif variant == 2:
+                    read = read_mutate_near(rng, read, max(0, near - 3), 1, 2)
+                elif variant == 3:
+                    read = read_mutate_near(rng, read, rng.randint(0, m - 1), 6, 400)
+                reads.append((read, o, 'near_origin'))
+        for extra in (0, 5, 40):
+            if L < 5000:
+                reads.append(((dbl + dbl)[L - 10:L - 10 + L + extra], L - 10, 'whole'))
+        for kind in ('ins', 'del', 'sub'):
+            body = dbl[L - 300:L + 300]
+            if kind == 'ins':
+                body = body[:300] + 'T' + body[300:]
+            elif kind == 'del':
+                body = body[:300] + body[301:]
+            else:
+                body = body[:300] + ('A' if body[300] != 'A' else 'C') + body[301:]
+            reads.append((body, L - 300, 'at_origin_' + kind))
+        doubled = ref + ref[:L - 1]
+        for read, o, kind in reads:
+            if rng.random() < 0.5:
+                read = rc(read)
+            fwd, rev = al.score(doubled, read), al.score(doubled, rc(read))
+            strand = 'forward' if fwd >= rev else 'reverse'
+            q = read if strand == 'forward' else rc(read)
+            case = {'ref': name, 'read': read, 'kind': kind, 'score': max(fwd, rev), 'strand': strand}
+            if len(read) < L // 2:
+                r = (o + len(read) // 2 - L // 2) % L
+                rot = ref[r:] + ref[:r]
+                co = al.align(rot, q)[0].coordinates
+                case['position'] = [int((co[0][0] + r) % L), int(co[0][-1] - co[0][0]),
+                                    int(co[1][0]), int(co[1][-1])]
+            cases.append(case)
+    return {'refs': refs, 'cases': cases}

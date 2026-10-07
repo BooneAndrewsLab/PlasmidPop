@@ -3,6 +3,7 @@ import { buildFrames } from '@/app/alignmentResidues';
 import { differenceRegions, stackAlignments } from '@/app/alignmentStack';
 import { annotationsOf } from '@/app/alignmentTrack';
 import { finishReadAlignment, prepareReadAlignment } from '@/app/readAlignment';
+import { runReadBatch } from '@/app/readBatch';
 import { alignBanded, alignEitherStrand, alignLong, alignPairwise } from '@/core/alignment';
 import type { AlignmentMode, AlignmentOptions } from '@/core/alignment';
 import { reverseComplement } from '@/core/sequence/alphabet';
@@ -377,4 +378,95 @@ describe('protein effect across the origin against Biopython translation', () =>
     }
     expect(problems.slice(0, 20)).toEqual([]);
   }, 240_000);
+});
+
+/**
+ * Where a read across the origin maps, and its score, on a circle
+ * (scripts/oracle/alignment.py): 4 kb and 12 kb random circles and one with a
+ * tandem repeat across the origin, reads of 600 and 1500 bases starting from
+ * 25 bases before the origin to 5 after it, with substitutions, indels or a
+ * mismatch next to it, either strand, the whole circle and a little more, and
+ * a change exactly at the origin (#175). The score is Biopython's local
+ * alignment to the reference written twice; the position is its alignment to
+ * the reference rotated to put the read in the middle. Both the single
+ * alignment and the batch ("Align all") path must agree. Left out: the
+ * document diff (#184).
+ */
+describe('circular read mapping across the origin, single and batch paths', () => {
+  interface ReadCase {
+    readonly ref: string;
+    readonly read: string;
+    readonly kind: string;
+    readonly score: number;
+    readonly strand: 'forward' | 'reverse';
+    readonly position?: readonly number[];
+  }
+  const data = (
+    oracle as unknown as {
+      circularReads: { refs: Record<string, string>; cases: readonly ReadCase[] };
+    }
+  ).circularReads;
+
+  it('has reads near the origin on every circle', () => {
+    expect(data.cases.length).toBeGreaterThanOrEqual(200);
+    expect(new Set(data.cases.map((c) => c.ref)).size).toBe(3);
+    expect(data.cases.filter((c) => c.position !== undefined).length).toBeGreaterThan(150);
+  });
+
+  it('scores and places each read as Biopython does', async () => {
+    const problems: string[] = [];
+    const place = (
+      a: {
+        startA: number;
+        endA: number;
+        startB: number;
+        endB: number;
+      },
+      L: number,
+    ): string => [((a.startA % L) + L) % L, a.endA - a.startA, a.startB, a.endB].join(',');
+    for (const [i, c] of data.cases.entries()) {
+      const sequence = data.refs[c.ref] ?? '';
+      const L = sequence.length;
+      const reference = { sequence, offset: 0, wrap: L };
+      const prep = prepareReadAlignment(reference, { sequence: c.read, read: null }, null);
+      if (!prep.ok) {
+        problems.push(`#${String(i)} ${c.ref}: ${prep.message}`);
+        continue;
+      }
+      const single = finishReadAlignment(
+        prep.job,
+        alignEitherStrand(prep.job.a, prep.job.b, { mode: 'local', wrap: L }),
+      );
+      const batch = await runReadBatch(
+        [{ name: 'r', sequence: c.read, read: null }],
+        reference,
+        (a, b, o) => Promise.resolve(alignEitherStrand(a, b, o)),
+        { options: { fast: true }, mode: 'local', trimCutoff: null },
+      );
+      const row = batch.rows[0];
+      const results = [
+        ['single', single],
+        ['batch', row?.status === 'aligned' ? row.result : null],
+      ] as const;
+      for (const [path, res] of results) {
+        if (res === null) {
+          problems.push(`#${String(i)} ${c.ref} ${c.kind} ${path}: not aligned`);
+          continue;
+        }
+        if (Math.abs(res.alignment.score - c.score) > 1e-6) {
+          problems.push(
+            `#${String(i)} ${c.ref} ${c.kind} ${path}: score ${String(res.alignment.score)} vs ${String(c.score)}`,
+          );
+        } else if (c.position !== undefined && res.strand === c.strand) {
+          const got = place(res.alignment, L);
+          if (got !== c.position.join(',')) {
+            problems.push(
+              `#${String(i)} ${c.ref} ${c.kind} ${path}: at ${got} vs ${c.position.join(',')}`,
+            );
+          }
+        }
+      }
+    }
+    expect(problems.slice(0, 20)).toEqual([]);
+  }, 600_000);
 });
