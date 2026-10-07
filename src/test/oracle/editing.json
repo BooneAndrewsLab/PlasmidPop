@@ -27216,7 +27216,7 @@
      "bases": "CA",
      "codon_start": 2,
      "cut3": false,
-     "cut5": true,
+     "cut5": false,
      "min": 4,
      "protein": "",
      "tail2": false
@@ -41214,35 +41214,6 @@
   },
   {
    "after": {
-    "bases": "GCCCCG",
-    "codon_start": 2,
-    "cut5": true,
-    "gone": false,
-    "protein": "P"
-   },
-   "after_seq": "CCCAACTAGTATGAGCCCGGGGC",
-   "feature": {
-    "codon_start": 3,
-    "segments": [
-     [
-      17,
-      24,
-      false,
-      false
-     ]
-    ],
-    "strand": "reverse",
-    "type": "CDS"
-   },
-   "range": [
-    23,
-    32
-   ],
-   "seq": "CCCAACTAGTATGAGCCCGGGGCGTAAGGGAC",
-   "topology": "circular"
-  },
-  {
-   "after": {
     "bases": "AT",
     "codon_start": 1,
     "cut5": true,
@@ -43048,6 +43019,41 @@
    ],
    "seq": "CTCTGTAGTCCCGTATGGTAATATTTA",
    "topology": "circular"
+  },
+  {
+   "after": {
+    "bases": "TTGGTC",
+    "codon_start": 2,
+    "cut5": true,
+    "gone": false,
+    "protein": "W"
+   },
+   "after_seq": "TTGGTC",
+   "feature": {
+    "codon_start": 0,
+    "segments": [
+     [
+      32,
+      40,
+      false,
+      false
+     ],
+     [
+      9,
+      21,
+      false,
+      false
+     ]
+    ],
+    "strand": "forward",
+    "type": "CDS"
+   },
+   "range": [
+    6,
+    34
+   ],
+   "seq": "TTGGTCGAATCAGCCAGGCCTCTAAGGACTGGAG",
+   "topology": "circular"
   }
  ],
  "ligation": [
@@ -44478,7 +44484,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|reverse|AGTCTTTAATCCCCAAGTTGTCTGTCTTTCTCATACTCGAC|1|P|c|SL*SPSCLSFSYS",
+      "CDS|f0|reverse|AGTCTTTAATCCCCAAGTTGTCTGTCTTTCTCATACTCGAC|1|c|c|SL*SPSCLSFSYS",
       "CDS|f0|reverse|G|2|c|P|"
      ],
      "parts": [
@@ -47374,7 +47380,7 @@
      "expect": [
       "CDS|f0|forward|AACAATCCTTTAATACTGTCTAATAGTT|2|c|P|TIL*YCLIV",
       "CDS|f0|forward|CCTATA|1|P|c|PI",
-      "CDS|f1|forward|CCTATATTGTGCGCAGGTACAACT|1|P|c|PILCAGTT",
+      "CDS|f1|forward|CCTATATTGTGCGCAGGTACAACT|1|c|c|PILCAGTT",
       "CDS|f1|forward|TT|3|c|P|"
      ],
      "parts": [
@@ -50541,7 +50547,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|reverse|A|2|c|P|",
-      "CDS|f0|reverse|GCGTGAGATCCCTATTGTGGGTTGA|1|P|c|AWDUYCGL",
+      "CDS|f0|reverse|GCGTGAGATCCCTATTGTGGGTTGA|1|c|c|AWDUYCGL",
       "CDS|f1|forward|AGTAAGAATACCCCCTCGATAGAGTATG|1|c|c|UKNTPSMEY",
       "CDS|f2|forward|AATACCCCCTCGATAGAGTATGGAGTCAATAG|1|c|c|NTPSIEYGVU",
       "misc_feature|misc|forward|TTCATAGCCGTAGGTGACAGCGGGCATTGGGTATTCGATATTGACTT|-|c|c|-"
@@ -52747,7 +52753,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|CTATCCTTTCTGCGGCGGGTAGACG|1|P|c|LSFLRRVD",
+      "CDS|f0|forward|CTATCCTTTCTGCGGCGGGTAGACG|1|c|c|LSFLRRVD",
       "CDS|f0|forward|GT|3|c|P|",
       "misc_feature|misc|forward|GAAGTCATCAGTGAGTAGTAATTGGTACCCAGGTTGAAACAATAAGTTGACCAAAAT|-|c|c|-"
      ],
@@ -57297,7 +57303,7 @@
      "expect": [
       "CDS|f0|reverse|GAGCAATTGTAAGTGGTATGTACGATAAATTCCTT|1|c|c|EQL*VVCTINS",
       "CDS|f1|forward|CGAAAGGAATTTAACATACACAATTGCTCTTCTTTC|1|c|c|RKEFNIHNCSSF",
-      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|P|c|LKEEUL*VV",
+      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|c|c|MKEEUL*VV",
       "CDS|f2|reverse|TG|3|c|P|",
       "misc_feature|misc|reverse|AAATTCCTTTCGCGATCCATGG|-|c|c|-"
      ],
@@ -57344,7 +57350,7 @@
      "expect": [
       "CDS|f0|reverse|GAGCAATTGTAAGTGGTATGTACGATAAATTCCTT|1|c|c|EQL*VVCTINS",
       "CDS|f1|forward|CGAAAGGAATTTAACATACACAATTGCTCTTCTTTC|1|c|c|RKEFNIHNCSSF",
-      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|P|c|LKEEUL*VV",
+      "CDS|f2|reverse|CTGAAAGAAGAGCAATTGTAAGTGGTA|1|c|c|MKEEUL*VV",
       "misc_feature|misc|reverse|AAATTCCTTTCGCGATCCATG|-|c|P|-"
      ],
      "parts": [
@@ -57424,7 +57430,7 @@
      "circular": true,
      "empty": false,
      "expect": [
-      "CDS|f0|reverse|ACTCAGCTCGGGGACCTTGTTTCCGTTCCACATGATGACCGTTAGATCACT|1|P|c|TQLGDLVSVPHDDR*IT",
+      "CDS|f0|reverse|ACTCAGCTCGGGGACCTTGTTTCCGTTCCACATGATGACCGTTAGATCACT|1|c|c|TQLGDLVSVPHDDR*IT",
       "CDS|f1|reverse|TGTAAACTGGGATC|3|c|P|*TGI",
       "misc_feature|misc|forward|GTGATCTAACGGTCATCATGTGGAACGGAAACAAGGTCCCCGAGC|-|c|c|-"
      ],
@@ -57437,7 +57443,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|reverse|ACTCAGCTCGGGGACCTTGTTTCCGTTCCACATGATGACCGTTAGATCACT|1|P|c|TQLGDLVSVPHDDR*IT",
+      "CDS|f0|reverse|ACTCAGCTCGGGGACCTTGTTTCCGTTCCACATGATGACCGTTAGATCACT|1|c|c|TQLGDLVSVPHDDR*IT",
       "CDS|f0|reverse|C|2|c|P|",
       "CDS|f1|reverse|TGTAAACTGGGATCACCAGGTCCCCTATGCGTGCACCTTTTAACTTCGAGGCGACATAGGGTTGCT|3|c|c|*TGIT*SPMRAUFNFEAT*GC",
       "misc_feature|misc|forward|GTGATCTAACGGTCATCATGTGGAACGGAAACAAGGTCCCCGAGC|-|c|c|-"
@@ -62465,7 +62471,7 @@
      "empty": false,
      "expect": [
       "CDS|f0|forward|TAGGAA|1|P|c|*E",
-      "CDS|f1|reverse|GATCCCTAGGTTTGACAGATTGCCTCTCCATCTCAAAAATCGCCTTG|2|P|c|IPRFDRLULHLKNRL",
+      "CDS|f1|reverse|GATCCCTAGGTTTGACAGATTGCCTCTCCATCTCAAAAATCGCCTTG|2|c|c|MPRFDRLULHLKNRL",
       "misc_feature|misc|forward|GATGGAGAGGCAATCTGTCAAACCT|-|c|c|-"
      ],
      "parts": [
@@ -64078,7 +64084,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|GTACTGGAGTGTATCCCTTGTTTTCGTACGACCTTAG|1|P|c|VLECIPCFRUTL",
+      "CDS|f0|forward|GTACTGGAGTGTATCCCTTGTTTTCGTACGACCTTAG|1|c|c|VLECIPCFRUTL",
       "CDS|f0|forward|T|2|c|P|",
       "CDS|f1|reverse|AGCATAGGCGCCTGTGTTACTGGGAAATTACGGCACG|3|P|c|HRRLCYWEITA",
       "CDS|f1|reverse|GATACACTCCAGTAC|3|c|P|YTPV",
@@ -65080,7 +65086,7 @@
      "circular": false,
      "empty": false,
      "expect": [
-      "CDS|f0|forward|CTCCGTAAGCGCAGCAATAAGACGGCTTATTTTGCCTCTCACA|2|P|c|SVSAAIRRLILPLT",
+      "CDS|f0|forward|CTCCGTAAGCGCAGCAATAAGACGGCTTATTTTGCCTCTCACA|2|c|c|SVSAAIRRLILPLT",
       "CDS|f0|forward|C|3|c|P|"
      ],
      "parts": [

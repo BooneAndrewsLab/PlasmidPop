@@ -372,7 +372,7 @@ export class SeqDocument {
         return moved === null || f.type !== 'CDS'
           ? moved
           : markReadingEndLost(
-              advanceCodonStart(moved, basesLostFromReadingStart(f, r, oldLength)),
+              advanceCodonStart(moved, basesLostFromReadingStart(f, r, oldLength), f),
               basesLostFromReadingEnd(f, r, oldLength),
             );
       }),

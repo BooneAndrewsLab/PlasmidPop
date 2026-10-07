@@ -82,20 +82,40 @@ export function markReadingEndLost(feature: Feature, lost: number): Feature {
  * the default and is not written, so the qualifier goes rather than reading
  * `1`. The 5' end is marked partial too (#163): what is left has no start
  * codon of its own, so its first codon must not read as `M`, as in
- * `extractRange`. The feature itself when nothing was lost or it is not a CDS.
+ * `extractRange`. Unless only skipped bases went (#186): they are not read, so
+ * the first codon is whole and the end is as `original` (the feature before
+ * the cut, which the cut's own partial marks must not overrule) had it, as when
+ * a fragment is turned over and its overhang takes the skip base off. The
+ * feature itself when nothing was lost or it is not a CDS.
  */
-export function advanceCodonStart(feature: Feature, lost: number): Feature {
+export function advanceCodonStart(
+  feature: Feature,
+  lost: number,
+  original: Feature = feature,
+): Feature {
   if (lost <= 0 || feature.type !== 'CDS') return feature;
   const q = feature.qualifiers.find((x) => x.name === 'codon_start')?.value;
   const skip = q === '2' ? 1 : q === '3' ? 2 : 0;
   const remaining = lost <= skip ? skip - lost : (3 - ((lost - skip) % 3)) % 3;
   const qualifiers = feature.qualifiers.filter((x) => x.name !== 'codon_start');
   if (remaining > 0) qualifiers.push({ name: 'codon_start', value: String(remaining + 1) });
-  return { ...feature, qualifiers, segments: markFivePrimePartial(feature) };
+  const segments =
+    lost <= skip
+      ? setFivePrimePartial(feature, fivePrimePartial(original))
+      : setFivePrimePartial(feature, true);
+  return { ...feature, qualifiers, segments };
 }
 
-/** The segments with the biological 5' end (low coordinate forward, high reverse) marked partial. */
-function markFivePrimePartial(feature: Feature): Feature['segments'] {
+/** Whether the biological 5' end (low coordinate forward, high reverse) is marked partial. */
+function fivePrimePartial(feature: Feature): boolean {
+  const ranges = feature.segments.filter((s) => s.kind === 'range');
+  const seg = feature.strand === 'reverse' ? ranges[ranges.length - 1] : ranges[0];
+  if (seg === undefined) return false;
+  return feature.strand === 'reverse' ? seg.partialEnd : seg.partialStart;
+}
+
+/** The segments with the biological 5' end marked partial or not as given. */
+function setFivePrimePartial(feature: Feature, partial: boolean): Feature['segments'] {
   const reverse = feature.strand === 'reverse';
   let at = -1;
   feature.segments.forEach((s, i) => {
@@ -104,8 +124,8 @@ function markFivePrimePartial(feature: Feature): Feature['segments'] {
   return feature.segments.map((s, i) =>
     i === at && s.kind === 'range'
       ? reverse
-        ? { ...s, partialEnd: true }
-        : { ...s, partialStart: true }
+        ? { ...s, partialEnd: partial }
+        : { ...s, partialStart: partial }
       : s,
   );
 }

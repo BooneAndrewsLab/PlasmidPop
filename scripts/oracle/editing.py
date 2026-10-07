@@ -489,18 +489,20 @@ def region_copy_case(rng, stats):
                 return None
     out = []
     src5, src3 = src_ends(f)
+    skip5 = (f['codon_start'] or 1) - 1 if f['type'] == 'CDS' else 0
     for run in runs:
         lost = run[0]
         bases = comp_if(f['strand'], ''.join(seq[R[j]] for j in run))
         rec = {
             'min': min(ext[R[j]] for j in run),
             'bases': bases,
-            'cut5': lost > 0 and cut_inside_segment(seg_of, lost - 1, lost, L, circular),
+            # A cut that takes only the bases /codon_start skips leaves the start whole (#186).
+            'cut5': lost > skip5 and cut_inside_segment(seg_of, lost - 1, lost, L, circular),
             'cut3': run[-1] < len(R) - 1 and cut_inside_segment(seg_of, run[-1], run[-1] + 1, L, circular),
         }
         if f['type'] == 'CDS':
             ocs, prot, tail2 = cds_expectation(f, bases, lost, False)
-            exp5 = lost > 0 or src5
+            exp5 = lost > skip5 or src5
             if prot and not exp5 and bases[ocs - 1:ocs + 2] in START_CODONS:
                 prot = 'M' + prot[1:]
             rec.update({'codon_start': ocs, 'protein': prot, 'tail2': tail2})
@@ -544,7 +546,8 @@ def delete_case(rng, stats):
         if f['type'] == 'CDS' and prefix:
             lost = keep[0]
             ocs, prot, _ = cds_expectation(f, rec['bases'], lost, False)
-            rec.update({'codon_start': ocs, 'protein': prot, 'cut5': lost > 0 or src5})
+            rec.update({'codon_start': ocs, 'protein': prot,
+                        'cut5': lost > (f['codon_start'] or 1) - 1 or src5})
     return {
         'topology': 'circular' if circular else 'linear',
         'seq': seq,
@@ -895,7 +898,7 @@ def lig_expect(case, parts, circular):
             bases = ''.join(prod[pos] if fwd else prod[pos].translate(COMP) for pos, _, _, _ in ordered)
             five = f['partialStart'] if f['strand'] == 'forward' else False
             three = f['partialStart'] if f['strand'] == 'reverse' else False
-            e5 = a0 > 0 or five
+            e5 = a0 > (f['codon_start'] - 1 if f['type'] == 'CDS' else 0) or five
             e3 = a1 < n_r - 1 or three
             piece = {'type': f['type'], 'name': f['name'], 'strand': 'forward' if fwd else 'reverse',
                      'bases': bases, 'p5': e5, 'p3': e3}

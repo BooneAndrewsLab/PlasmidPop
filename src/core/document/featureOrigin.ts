@@ -222,7 +222,11 @@ function ownPiece(origin: FeatureOrigin, from: number, to: number): Feature {
     segments,
     qualifiers: origin.whole.qualifiers.filter((q) => q.name !== 'translation'),
   };
-  return advanceCodonStart(keepLocatedWithinOwnSegments(piece, ownSpace(origin.span)), from);
+  return advanceCodonStart(
+    keepLocatedWithinOwnSegments(piece, ownSpace(origin.span)),
+    from,
+    origin.whole,
+  );
 }
 
 /** `feature` on the sequence of `p`, or null when some of it falls off a linear one. */

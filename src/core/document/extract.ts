@@ -205,14 +205,16 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
           0,
         );
         if (keptLength === totalLength) {
-          features.push({ ...advanceCodonStart(moved, lost), id: newId() });
+          features.push({ ...advanceCodonStart(moved, lost, f), id: newId() });
           return;
         }
         const clipped =
           moved.type === 'CDS'
             ? { ...moved, qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation') }
             : moved;
-        features.push(withOrigin({ ...advanceCodonStart(clipped, lost), id: newId() }, origin()));
+        features.push(
+          withOrigin({ ...advanceCodonStart(clipped, lost, f), id: newId() }, origin()),
+        );
         return;
       }
       if (head === undefined || tail === undefined) return; // only a split run of ranges gets here
@@ -234,7 +236,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
       // A /transl_except stays with the stretch that holds its codon (#179).
       features.push(
         withOrigin(
-          { ...advanceCodonStart(keepLocatedWithinOwnSegments(part, into), lost), id: newId() },
+          { ...advanceCodonStart(keepLocatedWithinOwnSegments(part, into), lost, f), id: newId() },
           origin(),
         ),
       );

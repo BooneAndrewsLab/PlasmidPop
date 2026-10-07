@@ -125,3 +125,19 @@ Feature provenance is unaffected: the closed circle's pieces still carry their
 junction, which the exact-reassembly test rejects. Tests:
 `cloning/emptyVector.blunt.test.ts`; `document/blunt*.test.ts` now expect the
 kept enzymes.
+
+## Addendum: losing only the skip bases is not losing the start (#186)
+
+A fragment with a sticky end cut off the front of a CDS's reading when it was
+turned over: the overhang's bases are top-strand only, so `flipFragment` trims
+them with `extractRange`, and when they were the `/codon_start` skip base the
+piece came out 5′-partial with its `/codon_start` gone, so a GTG start read
+`V` instead of `M` (6 cases in the round-5 sweep; a plain cut or delete that
+took only the skip base did the same). `advanceCodonStart` marked the 5′ end
+partial for any loss, but skipped bases are not read: the first codon is
+whole. It now takes the feature as it was before the cut (`original`) and,
+when `lost <= skip`, only moves `/codon_start` and gives the 5′ end back the
+mark the original had (the region clip's own geometric partial flag is
+overruled). A loss into the reading marks partial as before. The sweep's
+partial-mark oracle expected a mark on any loss and was changed to match.
+Tests: `cloning/flipCodonStart.test.ts`.
