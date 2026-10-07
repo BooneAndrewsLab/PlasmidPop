@@ -97,6 +97,24 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         along += part.end - part.start;
       }
     }
+    // The feature goes on past the first and last bases kept when whole
+    // segments or the far side of the origin were dropped, even though the
+    // region cuts no kept part inside (#176).
+    const ranges = out.filter((x) => x.seg.kind === 'range');
+    const head = ranges[0];
+    const tail = ranges[ranges.length - 1];
+    const total = location.segments.reduce(
+      (n, x) => n + (x.kind === 'range' ? x.end - x.start : 0),
+      0,
+    );
+    for (const piece of [head, tail]) {
+      if (piece?.seg.kind !== 'range') continue;
+      const { start, end, partialStart, partialEnd } = piece.seg;
+      piece.seg = rangeSegment(start, end, {
+        partialStart: partialStart || (piece === head && piece.from > 0),
+        partialEnd: partialEnd || (piece === tail && piece.to < total),
+      });
+    }
     return out;
   };
 

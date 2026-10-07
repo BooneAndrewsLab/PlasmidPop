@@ -7,7 +7,9 @@ disappears. A CDS that loses bases from the start of its reading (its left
 end, or its right end on the reverse strand) has its `/codon_start` moved on
 to the first whole codon left, so the translation keeps its frame, and is
 marked 5′-partial, since what is left has no start codon of its own: the
-next codon is read as itself, not as `M`.
+next codon is read as itself, not as `M`. A CDS that loses bases from the end
+of its reading is marked 3′-partial in the same way, since what is left has
+no stop codon of its own.
 
 ## Typing, deleting, replacing
 

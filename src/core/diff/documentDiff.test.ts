@@ -329,10 +329,20 @@ describe('diffDocuments features', () => {
     expect(diffDocuments(base, grown).featuresChanged.size).toBe(0);
   });
 
-  it('leaves a feature alone when an edit trimmed it', () => {
-    const trimmed = base.delete({ start: 10, end: 12 });
+  it('leaves a feature alone when an edit trimmed it inside', () => {
+    const trimmed = base.delete({ start: 6, end: 8 });
     expect(trimmed.getFeature('f1')?.segments[0]).toMatchObject({ start: 4, end: 10 });
     expect(diffDocuments(base, trimmed).featuresChanged.size).toBe(0);
+  });
+
+  it("marks a CDS whose end an edit trimmed, as it gained a 3' mark (#176)", () => {
+    const trimmed = base.delete({ start: 10, end: 12 });
+    expect(trimmed.getFeature('f1')?.segments[0]).toMatchObject({
+      start: 4,
+      end: 10,
+      partialEnd: true,
+    });
+    expect([...diffDocuments(base, trimmed).featuresChanged.keys()]).toEqual(['f1']);
   });
 
   it('leaves a feature alone when bases were inserted right at its edges', () => {

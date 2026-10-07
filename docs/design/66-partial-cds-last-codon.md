@@ -44,3 +44,17 @@ two bases with `N` the same way, and `ncbi-cds.gbk` gained `PZ765744.1`,
 Re-running the audit, 6,293 of 6,295 CDS match their `/translation`; the two
 left are the trans-spliced rps12 of NC_000932, which the location model does
 not cover.
+
+## Partial marks on a kept piece (#176)
+
+A 3' mark matters here because it is what lets the two-base end residue be
+read at all, so it must not be lost. `extractRange` used to mark a piece
+partial only where the region cut inside it. Now the first and last kept range
+pieces, in the feature's own order along its segments, are marked on the side
+where bases of the location are not kept (`from > 0`, `to < total`), which
+covers a dropped whole join segment and the far side of the origin of a
+wrapping segment; the run-splitting of #169/#174 builds on those marks.
+A delete likewise marks a CDS 3'-partial (`markReadingEndLost`,
+`basesLostFromReadingEnd`, the mirror of the 5' pair from #160/#163) when
+bases leave the end of its reading, including a dropped last segment that
+carried the mark. Non-CDS features are not marked by a delete; they never were.

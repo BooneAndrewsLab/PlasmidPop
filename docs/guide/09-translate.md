@@ -18,7 +18,10 @@ frame is easy to follow. The translation honours:
   region keeps both ends of a CDS but drops its middle (a digest backbone cut
   inside a CDS, a region across the origin), the two kept stretches become two
   CDS features, each marked partial on the cut side and each with its own
-  `/codon_start`, so each translates in its own correct frame;
+  `/codon_start`, so each translates in its own correct frame. A kept piece
+  is marked partial on every side where the feature goes on past it, also
+  where the region dropped a whole join segment or the far side of the
+  origin; deleting the end of a CDS's reading marks it 3′-partial;
 - `/transl_table`: every genetic code NCBI numbers (1–6, 9–16 and 21–33), not
   only the standard and bacterial ones. The code decides the amino acids as
   well as the start codons — TGA is a stop under the standard code and

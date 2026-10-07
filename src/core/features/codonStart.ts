@@ -39,6 +39,44 @@ export function basesLostFromReadingStart(
 }
 
 /**
+ * How many bases of a CDS's reading a deletion takes off the end of it: the
+ * mirror of `basesLostFromReadingStart`, counted from the last base read.
+ */
+export function basesLostFromReadingEnd(
+  feature: Feature,
+  deletion: Range,
+  seqLength: number,
+): number {
+  const mirrored = { ...feature, strand: feature.strand === 'reverse' ? 'forward' : 'reverse' };
+  return basesLostFromReadingStart(mirrored as Feature, deletion, seqLength);
+}
+
+/**
+ * `feature` with its 3' end marked partial (#176) when `lost` bases went off
+ * the end of its reading: what is left has no stop of its own, and the
+ * mark that a dropped last segment carried must not go with it. The feature
+ * itself when nothing was lost or it is not a CDS.
+ */
+export function markReadingEndLost(feature: Feature, lost: number): Feature {
+  if (lost <= 0 || feature.type !== 'CDS') return feature;
+  const reverse = feature.strand === 'reverse';
+  let at = -1;
+  feature.segments.forEach((s, i) => {
+    if (s.kind === 'range' && (!reverse || at < 0)) at = i;
+  });
+  return {
+    ...feature,
+    segments: feature.segments.map((s, i) =>
+      i === at && s.kind === 'range'
+        ? reverse
+          ? { ...s, partialStart: true }
+          : { ...s, partialEnd: true }
+        : s,
+    ),
+  };
+}
+
+/**
  * `feature` with `/codon_start` moved past `lost` bases taken off the front
  * of its reading, to the first whole codon that is left. A frame of 1 is
  * the default and is not written, so the qualifier goes rather than reading

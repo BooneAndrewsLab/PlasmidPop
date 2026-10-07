@@ -4,11 +4,13 @@ import {
   FeatureSet,
   advanceCodonStart,
   assertValidSegment,
+  basesLostFromReadingEnd,
   basesLostFromReadingStart,
   closeSiteOnCircle,
   eachSegment,
   flipSegment,
   flipStrand,
+  markReadingEndLost,
   moveFeature,
   rotateSegment,
   shiftFeature,
@@ -365,9 +367,13 @@ export class SeqDocument {
           }),
         );
         // A CDS cut at the start of its reading must still read in frame (#160).
+        // and a CDS cut at the end of its reading has no stop left (#176).
         return moved === null || f.type !== 'CDS'
           ? moved
-          : advanceCodonStart(moved, basesLostFromReadingStart(f, r, oldLength));
+          : markReadingEndLost(
+              advanceCodonStart(moved, basesLostFromReadingStart(f, r, oldLength)),
+              basesLostFromReadingEnd(f, r, oldLength),
+            );
       }),
       ends: this.endsAfterEdit(r),
       styles,
