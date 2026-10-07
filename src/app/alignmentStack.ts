@@ -66,9 +66,10 @@ export interface Stack {
   /**
    * Per column, the column showing the same reference base from the other
    * side of a circle's origin (p and p + length), or -1: in a column no
-   * sample reaches round the origin, in an inserted column, on a linear
-   * reference. Reads over the origin that do and do not wrap put one base in
-   * these two columns, so whatever combines reads by base looks at both.
+   * sample reaches round the origin, on a linear reference. An inserted
+   * column pairs with the same one of the insertion at the twin boundary.
+   * Reads over the origin that do and do not wrap put one base in these two
+   * columns, so whatever combines reads by base looks at both.
    */
   readonly twin: Int32Array;
   readonly rows: readonly StackRow[];
@@ -102,6 +103,16 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
   for (const runs of runsOf) {
     for (const [p, n] of runs) if (n > at(slot, p)) slot[p] = n;
   }
+  // Past the origin an insertion's boundary has a twin at p - length: both
+  // get the wider slot, so the same insertion seen from either side sits in
+  // matching columns (#177).
+  if (reference.wrap !== null && hi > length) {
+    for (let p = length; p <= hi; p++) {
+      const wide = Math.max(at(slot, p), at(slot, p - length));
+      slot[p] = wide;
+      slot[p - length] = wide;
+    }
+  }
   // First column of each boundary's slot, and of each reference base.
   const boundaryColumn = new Int32Array(hi + 2);
   let columns = 0;
@@ -127,6 +138,15 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
       const low = refColumn(p - length);
       twin[high] = low;
       twin[low] = high;
+    }
+    // The columns of an insertion at the twin boundaries pair up in order.
+    for (let p = length; hi > length && p <= hi; p++) {
+      const high = at(boundaryColumn, p);
+      const low = at(boundaryColumn, p - length);
+      for (let j = 0; j < at(slot, p); j++) {
+        twin[high + j] = low + j;
+        twin[low + j] = high + j;
+      }
     }
   }
 

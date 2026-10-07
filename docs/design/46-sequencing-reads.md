@@ -371,6 +371,11 @@ pairs, local ones up to 12% under.
   (a read counts once on each copy), the disagreement and agreement calls,
   the confident differences, and the carriers of a difference row. A base
   differing in both copies is listed once, at the first.
+  An insertion's columns are twinned too (#177): a boundary past the origin
+  and its twin at p - length get the wider of their two slots, so the same
+  insertion seen by a wrapping and a non-wrapping read sits in matching
+  columns, paired in order. Before, each read's copy stayed a separate,
+  unconfirmed difference.
   The residue frames follow the same rule (#173): `buildFrames` carries a
   codon's positions on across the origin (`[1498, 1499, 1500]`, a reverse
   codon's `[1, 0, 1499]` as `[L+1, L, L-1]` under the high shift) so a codon
