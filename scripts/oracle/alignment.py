@@ -453,9 +453,10 @@ def read_mutate_near(rng, s, near, count, region):
 def circular_read_cases():
     """Where a read across the origin maps, and its score, on a circle (#175).
 
-    Three circles (4 kb and 12 kb random, a 3.5 kb one whose ends carry
-    a 37 bp tandem repeat) and reads of 600 and 1500 bases that start 25 bases
-    before the origin to 5 after it (and a few that centre on it), some with
+    Two circles (4 kb random, a 3.5 kb one whose ends carry a 37 bp tandem
+    repeat; a larger one made CI's coverage run overrun its time limit) and
+    reads of 600 and 1500 bases that start every third base from 25 before the
+    origin to 5 after it (and a few that centre on it), some with
     substitutions, indels or a mismatch just before the origin, some reverse
     complemented, plus a read of the whole circle and 0, 5 or 40 bases more, and
     one substitution, insertion or deletion exactly at the origin. The score is
@@ -470,7 +471,6 @@ def circular_read_cases():
     unit = random_dna(rng, 37)
     refs = {
         'rand4k': random_dna(rng, 4000),
-        'rand12k': random_dna(rng, 12000),
         'tandem': unit * 8 + random_dna(rng, 3000) + unit * 6,
     }
     cases = []
@@ -479,7 +479,7 @@ def circular_read_cases():
         dbl = ref + ref
         reads = []  # (read, offset, kind)
         for m in (600, 1500):
-            offs = list(range(L - 25, L)) + list(range(0, 6)) + [L - m // 2, L - m + 3, L - m - 2]
+            offs = list(range(L - 25, L, 3)) + [0, 1, 5] + [L - m // 2, L - m + 3, L - m - 2]
             for k, o in enumerate(offs):
                 o %= L
                 read = (dbl + dbl)[o:o + m]
