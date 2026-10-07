@@ -6,11 +6,11 @@ holds what the last one had to discover, so the next one need not.
 
 ## Baseline
 
-| Audit      | Commit audited     | Issues filed                 | Areas                                                                                        |
-| ---------- | ------------------ | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                                                                        |
-| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry                                            |
-| 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes |
+| Audit      | Commit audited     | Issues filed                 | Areas                                                                                          |
+| ---------- | ------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                                                                          |
+| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry                                              |
+| 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes   |
 | 2026-10-07 | `97059b0`          | #174–#180 (milestone 1.11.2) | scoped: region copy and CDS translation, circular reads and diff, sweep of the #162–#173 fixes |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
