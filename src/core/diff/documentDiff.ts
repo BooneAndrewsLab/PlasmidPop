@@ -13,6 +13,7 @@ import {
   type SequenceDiff,
   type SequenceDiffOptions,
   diffSequences,
+  equivalentMappings,
   positionMapper,
 } from './sequenceDiff';
 
@@ -265,10 +266,22 @@ function mapFeature(
           ? // A feature around the whole circle stays around it: its end is
             // its start, one turn on, wherever an insert at the origin put it (#168).
             { ...seg, start: map(0), end: map(0) + to.length }
-          : { ...seg, start: map(seg.start), end: Math.max(map(seg.start), map(seg.end)) },
+          : mappedRange(seg, map),
     ),
   );
   return createFeature(moved ?? feature);
+}
+
+/**
+ * A range segment at the newer document's coordinates. On a circle a start
+ * the diff puts at the new length is the origin (what is left of the sequence
+ * past it wrapped round to the front), so the range moves back a turn.
+ */
+function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segment {
+  const start = map(seg.start);
+  const end = Math.max(start, map(seg.end));
+  const turn = start === map.circle?.to && end > start ? start : 0;
+  return { ...seg, start: start - turn, end: end - turn };
 }
 
 /**
@@ -278,6 +291,8 @@ function mapFeature(
  */
 type PositionMap = ((position: number) => number) & {
   readonly circle?: { readonly from: number; readonly to: number } | undefined;
+  /** Every place a start can land under an equally good diff, the mapped one first. */
+  readonly starts?: (position: number) => readonly number[];
 };
 
 function isWholeCircle(seg: Segment, map: PositionMap): boolean {
@@ -295,12 +310,15 @@ function diffFeatures(
   diff: SequenceDiff,
 ): FeatureDiff {
   const map = positionMapper(diff, baseline.length, current.length);
+  const equivalent = equivalentMappings(diff, baseline.sequence.toString().toUpperCase(), map);
   // Feature locations are unrolled, so a segment that wraps the origin ends
   // past the sequence; map the wrapped part and put it back past the end.
   const mapUnrolled: PositionMap = Object.assign(
     (position: number): number =>
       position > baseline.length ? map(position - baseline.length) + current.length : map(position),
     {
+      starts: (position: number): readonly number[] =>
+        position >= baseline.length || position < 0 ? [map(position)] : equivalent(position),
       circle:
         baseline.topology === 'circular' && current.topology === 'circular'
           ? { from: baseline.length, to: current.length }
@@ -546,11 +564,15 @@ function sameSegment(before: Segment, after: Segment | undefined, map: PositionM
   // A whole circle stays one: if an insert at the origin moved its start it
   // moved its end the same turn on (#168).
   if (isWholeCircle(before, map)) ends.push(map(0) + (map.circle?.to ?? 0));
+  const starts = map.starts?.(before.start) ?? [map(before.start)];
+  const placed = starts.some((start) =>
+    ends.some((end) => {
+      const turn = start === map.circle?.to && end > start ? start : 0;
+      return start - turn === after.start && end - turn === after.end;
+    }),
+  );
   return (
-    map(before.start) === after.start &&
-    ends.includes(after.end) &&
-    before.partialStart === after.partialStart &&
-    before.partialEnd === after.partialEnd
+    placed && before.partialStart === after.partialStart && before.partialEnd === after.partialEnd
   );
 }
 

@@ -313,7 +313,10 @@ function backtrack(
 /**
  * Where a position of the first input lands in the second. Bases that were
  * deleted map to the boundary the deletion left behind, so a range whose
- * inside was removed still comes back as a range.
+ * inside was removed still comes back as a range. A run that was replaced
+ * (a delete beside an insert) maps its bases one to one onto the new ones
+ * while both last, as an editor does that overwrites in place, and the rest
+ * onto the boundary after the run.
  */
 export function positionMapper(
   diff: SequenceDiff,
@@ -323,6 +326,15 @@ export function positionMapper(
   // Only `equal` and `delete` runs cover the first input, and they do so in
   // order, so their starts are a sorted key for binary search.
   const spans = diff.ops.filter((op) => op.aEnd > op.aStart);
+  // The new bases a delete run was replaced by, when an insert sits beside it.
+  const replacement = new Map<DiffOp, DiffOp>();
+  diff.ops.forEach((op, i) => {
+    if (op.kind !== 'delete') return;
+    const next = diff.ops[i + 1];
+    const prev = diff.ops[i - 1];
+    if (next?.kind === 'insert') replacement.set(op, next);
+    else if (prev?.kind === 'insert') replacement.set(op, prev);
+  });
   return (position: number): number => {
     if (position >= aLength) return bLength;
     if (position < 0) return 0;
@@ -335,9 +347,58 @@ export function positionMapper(
       if (position < span.aStart) hi = mid - 1;
       else if (position >= span.aEnd) lo = mid + 1;
       else {
-        return span.kind === 'equal' ? span.bStart + (position - span.aStart) : span.bStart;
+        if (span.kind === 'equal') return span.bStart + (position - span.aStart);
+        const by = replacement.get(span);
+        if (by === undefined) return span.bStart;
+        return Math.min(by.bStart + (position - span.aStart), by.bEnd);
       }
     }
     return bLength;
+  };
+}
+
+/** How far a run of `length` bases at `at` in `text` can slide left and right and read the same. */
+function slideRange(text: string, at: number, length: number): { left: number; right: number } {
+  let left = 0;
+  while (at - left > 0 && text[at - left - 1] === text[at + length - left - 1]) left++;
+  let right = 0;
+  while (at + length + right < text.length && text[at + right] === text[at + length + right]) {
+    right++;
+  }
+  return { left, right };
+}
+
+/**
+ * Every place a start position of the first input can land in the second
+ * under an equally good diff. A deletion inside a run of equal bases can be
+ * drawn at any point along it, and which one an editor made is not in the
+ * sequences; a feature whose first base sits by such a deletion is the same
+ * feature under whichever the editor did. `a` is the first input.
+ */
+export function equivalentMappings(
+  diff: SequenceDiff,
+  a: string,
+  map: (position: number) => number,
+): (position: number) => readonly number[] {
+  const deletions = diff.ops.filter(
+    (op, i) =>
+      op.kind === 'delete' &&
+      diff.ops[i - 1]?.kind !== 'insert' &&
+      diff.ops[i + 1]?.kind !== 'insert',
+  );
+  return (position: number): readonly number[] => {
+    const found = new Set<number>([map(position)]);
+    const where = (d: number, n: number): number =>
+      position < d ? position : position < d + n ? d : position - n;
+    for (const op of deletions) {
+      const length = op.aEnd - op.aStart;
+      const { left, right } = slideRange(a, op.aStart, length);
+      if (position < op.aStart - left || position > op.aEnd + right) continue;
+      const drawn = where(op.aStart, length);
+      for (let d = op.aStart - left; d <= op.aStart + right; d++) {
+        found.add(map(position) + where(d, length) - drawn);
+      }
+    }
+    return [...found];
   };
 }

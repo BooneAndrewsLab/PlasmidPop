@@ -150,6 +150,19 @@ describe('positionMapper', () => {
     expect(map(11)).toBe(8);
   });
 
+  it('maps a substituted run one to one while both sides last', () => {
+    const a = 'ACGTTGCAAGGCTTAACCGG';
+    const same = a.slice(0, 3) + 'NNN' + a.slice(6);
+    const mapSame = positionMapper(diffSequences(a, same), a.length, same.length);
+    expect([3, 4, 5, 6].map(mapSame)).toEqual([3, 4, 5, 6]);
+    const longer = a.slice(0, 3) + 'NNNNN' + a.slice(6);
+    const mapLonger = positionMapper(diffSequences(a, longer), a.length, longer.length);
+    expect([3, 4, 5, 6].map(mapLonger)).toEqual([3, 4, 5, 8]);
+    const shorter = a.slice(0, 3) + 'N' + a.slice(6);
+    const mapShorter = positionMapper(diffSequences(a, shorter), a.length, shorter.length);
+    expect([3, 4, 5, 6].map(mapShorter)).toEqual([3, 4, 4, 4]);
+  });
+
   it('puts every position where a single insertion or deletion left it, at any place in the sequence', () => {
     const wrong: string[] = [];
     for (const length of [1, 2, 5, 40]) {

@@ -579,3 +579,117 @@ describe('a feature around the whole circle (#168)', () => {
     expect(diffDocuments(base, base.insert(0, 'NNN')).featuresChanged.size).toBe(0);
   });
 });
+
+describe('an edit the editor carried a feature through unchanged (#178)', () => {
+  const LONG = 'ACGTTGCAAGGCTTAACCGGATCGATCGTAGCTAGCTAGGCATCGAT'; // 47 bp
+  function withFeature(
+    sequence: string,
+    topology: 'linear' | 'circular',
+    start: number,
+    end: number,
+  ): SeqDocument {
+    return SeqDocument.create({
+      sequence,
+      topology,
+      features: [
+        createFeature({
+          id: 'f',
+          type: 'misc_feature',
+          name: 'f',
+          segments: [rangeSegment(start, end)],
+        }),
+      ],
+    });
+  }
+  const changed = (before: SeqDocument, after: SeqDocument): boolean =>
+    diffDocuments(before, after).featuresChanged.has('f');
+
+  describe('a substituted run', () => {
+    it.each([
+      ['over the start', 3, 6],
+      ['over the end', 25, 33],
+      ['inside', 10, 14],
+    ])('keeps a feature when the run is %s', (_label, from, to) => {
+      const base = withFeature(LONG, 'linear', 5, 30);
+      const edited = base.replace({ start: from, end: to }, 'N'.repeat(to - from));
+      expect(edited.getFeature('f')?.segments).toEqual(base.getFeature('f')?.segments);
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it('keeps it on a circle', () => {
+      const base = withFeature(LONG, 'circular', 5, 30);
+      expect(changed(base, base.replace({ start: 3, end: 6 }, 'NNN'))).toBe(false);
+    });
+
+    it('keeps a feature the editor shifted with a longer or shorter run', () => {
+      const base = withFeature(LONG, 'linear', 5, 30);
+      expect(changed(base, base.replace({ start: 3, end: 6 }, 'NNNNN'))).toBe(false);
+      expect(changed(base, base.replace({ start: 3, end: 6 }, 'N'))).toBe(false);
+    });
+
+    it('still reports a feature that is somewhere else afterwards', () => {
+      const base = withFeature(LONG, 'linear', 5, 30);
+      const edited = base.replace({ start: 3, end: 6 }, 'NNN');
+      const moved = withFeature(edited.sequence.toString(), 'linear', 3, 30);
+      expect(changed(base, moved)).toBe(true);
+    });
+  });
+
+  describe('a start that wraps to the origin', () => {
+    it('keeps a feature over the origin whose start went with a deletion', () => {
+      const base = withFeature(LONG, 'circular', 46, 48);
+      const edited = base.delete({ start: 44, end: 47 });
+      expect(edited.getFeature('f')?.segments).toEqual([rangeSegment(0, 1)]);
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it('keeps it for deletions of other lengths', () => {
+      for (const n of [1, 2, 3, 5]) {
+        const base = withFeature(LONG, 'circular', 45, 49);
+        const edited = base.delete({ start: 47 - n, end: 47 });
+        expect(changed(base, edited)).toBe(false);
+      }
+    });
+
+    it('reports a feature whose start did not follow the origin', () => {
+      const base = withFeature(LONG, 'circular', 46, 48);
+      const edited = withFeature(
+        base.delete({ start: 44, end: 47 }).sequence.toString(),
+        'circular',
+        1,
+        3,
+      );
+      expect(changed(base, edited)).toBe(true);
+    });
+  });
+
+  describe('a deletion drawn at another place in a run of equal bases', () => {
+    const HOMO = 'CAAAG' + LONG.slice(5);
+    it.each([
+      [2, 3],
+      [3, 4],
+      [1, 2],
+    ])('keeps a feature at 3 when [%i,%i) is deleted', (from, to) => {
+      const base = withFeature(HOMO, 'linear', 3, 12);
+      if (HOMO.slice(from, to) !== 'A') return;
+      const edited = base.delete({ start: from, end: to });
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it('does the same for a longer run and for the end of the sequence', () => {
+      const seq = 'GCTT' + 'AAAA' + 'CGTAGCATCG';
+      for (let at = 4; at < 8; at++) {
+        const base = withFeature(seq, 'linear', 5, 14);
+        expect(changed(base, base.delete({ start: at, end: at + 1 }))).toBe(false);
+      }
+    });
+
+    it('still reports a feature that lost its first base to a different one', () => {
+      const base = withFeature(LONG, 'linear', 3, 12);
+      const edited = base.delete({ start: 3, end: 4 });
+      expect(changed(base, edited)).toBe(false); // the editor trims it: same place
+      const moved = withFeature(edited.sequence.toString(), 'linear', 1, 10);
+      expect(changed(base, moved)).toBe(true);
+    });
+  });
+});

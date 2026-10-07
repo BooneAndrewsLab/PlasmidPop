@@ -49,3 +49,20 @@ features removed`), which none of the three had: the sequence hunks above
   which are left to the deletion's wedge instead (`deletionThatTook`, moved
   to `src/core/diff/removed.ts` so both use it), and a removed feature's line
   in the review points at its ghost on the review's map.
+
+## Edits the editor carried a feature through (#178)
+
+The diff must call a feature unchanged exactly when the editor kept it, so
+its position map answers the way the editor does:
+
+- A **replaced run** (a delete beside an insert) maps its bases one to one
+  onto the new ones while both last, then onto the boundary after the run;
+  mapping every base to the run's start made an overwrite look like a move.
+- On a circle a **start mapped to the new length is the origin**: the range
+  moves back a turn (`[44,45)` on a 44 bp circle is `[0,1)`), in
+  `mapFeature` and `sameSegment` alike.
+- A **deletion in a run of equal bases** may be drawn at any point along
+  it, so `sameSegment` accepts every start such a slide gives
+  (`equivalentMappings`), as it already accepted two ends. Sequences with no
+  such run get only the one answer, so a feature that really moved is still
+  reported.
