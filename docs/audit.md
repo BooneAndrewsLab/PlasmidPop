@@ -6,12 +6,13 @@ holds what the last one had to discover, so the next one need not.
 
 ## Baseline
 
-| Audit      | Commit audited     | Issues filed                 | Areas                                                                                          |
-| ---------- | ------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------- |
-| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                                                                          |
-| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry                                              |
-| 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes   |
-| 2026-10-07 | `97059b0`          | #174–#180 (milestone 1.11.2) | scoped: region copy and CDS translation, circular reads and diff, sweep of the #162–#173 fixes |
+| Audit      | Commit audited     | Issues filed                 | Areas                                                                                                                    |
+| ---------- | ------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                                                                                                    |
+| 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry                                                                        |
+| 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes                             |
+| 2026-10-07 | `97059b0`          | #174–#180 (milestone 1.11.2) | scoped: region copy and CDS translation, circular reads and diff, sweep of the #162–#173 fixes                           |
+| 2026-10-07 | `07bd28a`          | #182–#184 (milestone 1.11.2) | scoped: features through cut and ligation (incl. the #181 rejoin), circular reads and diff, sweep of the #174–#181 fixes |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
@@ -146,6 +147,11 @@ reporting one.
   `restriction.test.ts` records it as a known difference; accepted.
 - **Circular read mapping** lives in `app/readAlignment.ts` (a doubled
   reference), not in `core/alignment`. Audited 2026-10-06; see #165, #166.
+- **A flipped sticky fragment drops annotation on its overhang bases**
+  (item 34), so a flipped single-cut vector closed on itself shows two pieces
+  with a 1–4 bp gap; by design.
+- **Under Set Origin every feature reads as changed in the diff**: a rotation
+  is a wholesale change (`sequenceDiff.ts`); by design.
 
 ## Reference sources that work from here
 
