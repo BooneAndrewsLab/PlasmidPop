@@ -4774,5 +4774,5587 @@
    ],
    "seguid": "ng0JefsI3gyBp4qm7A-Flj8igRs"
   }
+ ],
+ "originDigests": [
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 59,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "39002a699fae"
+    }
+   ],
+   "seq": "GAATTCACGACCACTGGGGAGGCGGTAACCGGTCTCTCCCGCACTAATTCAATGGGTTA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 52,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "1875e7abc1ae"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 56,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "c4cb620bf717"
+    }
+   ],
+   "seq": "GGAATTCGTGACGGTTACAACGTGCCTGTCGAGCCGAATCCGCGAGGAGTCGCGAATTCTACGGATCGCGCATCTCCATCTTTACGCCCAGTGCTGACCGACTATTCG"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 53,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "c2662897382c"
+    }
+   ],
+   "seq": "TTCGCCTAGCTGGTAGCGAATTACGCCTCGTTATTCAATATCCGAAAAAAGAA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 45,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "c0a66eeb735a"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 38,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "f9570010d03f"
+    }
+   ],
+   "seq": "TTCCGATTTCTCCTGTCTAATCCGTGGAGCACCCTGAATTCTTATCAAGTTAAGAACAGTCCCCATCTGGGGGTTAGCAGGAA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 45,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "a47b287800f4"
+    }
+   ],
+   "seq": "GGAATTCCGTAAGGAACTCTCAGTTTCCCAGTTCTCCATAGAGTG"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 58,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "5e26994fd658"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 60,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "c23c58f5dc75"
+    }
+   ],
+   "seq": "TTCTAGTAACGGGTAAGCATGTCCGTCCGCAAGCACGGCGTTCAGCGTGCGCACGGAATTCGCTCCCCAGGACAGAGTACGGTTTCCGCTGATGTCGTCATGTGACAGATGACTTGAA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 53,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "fb357f601aac"
+    }
+   ],
+   "seq": "TAACCACGCCACATGGTTCGACCGCTCTCATAGAGCGTTGGGACTGGGAATTC"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 47,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "86e549fde43f"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 49,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "9eaea94fa928"
+    }
+   ],
+   "seq": "AGTCCGCGTGAACTGGTGACTCTCTGTCGGATCTTGCGGAGAATTCACGTATCCATACGCATCGCTCTATTAAATATCGAGCCGAACATGAATTCA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 48,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "e5d7f83c4056"
+    }
+   ],
+   "seq": "ATTCTACTCTCCGCGGGCCAGATTTTGGGTTGATGATCCAAAACAGGA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 57,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "1bb98ddd7c3d"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 45,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "bd8df3dcdb06"
+    }
+   ],
+   "seq": "ATTCGTCTTACTGTAACAAGTCTCCTAACACGCTCACACAGCAGAATTCCATCTATTAGTGGAGGCCGAATTGCGCTACTCTCGAAACATCATCCGCACCGA"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 49,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "9a3772add90c"
+    }
+   ],
+   "seq": "TTACAAAGTTCTGGCTGCTCACGCATTCGCGCATAGGGCGGGGAATTCG"
+  },
+  {
+   "enzyme": "EcoRI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 65,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "832c5557dcc3"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "length": 48,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATT"
+     },
+     "sha": "9c8fa0c9a738"
+    }
+   ],
+   "seq": "TTCTCGTCAACGGACAAGCGGCCGGCGGATCCTCTAGTACCTGGACAGAGTCGCGACTAGCCGAATTCCGTATCAGCCACACGTTCGGATTAGTCAGTGCACTCAAGGGTGAA"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTGC"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTGC"
+     },
+     "sha": "1ca5cee6b1cd"
+    }
+   ],
+   "seq": "TTGCCGAGACCATTTACTGATCTCGGATTCAGATTCA"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TAAA"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGGA"
+     },
+     "sha": "5df6d53680d6"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGGA"
+     },
+     "length": 64,
+     "right": {
+      "kind": "5'",
+      "overhang": "TAAA"
+     },
+     "sha": "91a41d75d014"
+    }
+   ],
+   "seq": "TAAACGAGACCATCTCCGTTTGCTAACGTAAAACAGTTGGATGAGACCGAGAGCACACTCGTATGACTTGGGTGGGAGTCCTCAGCATCGGGAGAGGACAT"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGAT"
+     },
+     "length": 43,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGAT"
+     },
+     "sha": "b2f745e2da68"
+    }
+   ],
+   "seq": "AACATCTTTCCGATAAATGATTCAAGAATTGGGTCTCTAGATT"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGTC"
+     },
+     "length": 64,
+     "right": {
+      "kind": "5'",
+      "overhang": "AAGC"
+     },
+     "sha": "ae6b39143090"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AAGC"
+     },
+     "length": 50,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGTC"
+     },
+     "sha": "b90c5da2a6cf"
+    }
+   ],
+   "seq": "AGACCGATCCTAAGCTGAGAGGTGCGTAAGCTGGCCGTGCCCTCTCCGTCCTAGACGCAAGCGGAGACCAGGAAAGAAGGTCGTCTCGCTGGCGAGGAGATAGTTAGGAGTCAG"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATG"
+     },
+     "length": 41,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATG"
+     },
+     "sha": "dab0555f731f"
+    }
+   ],
+   "seq": "CAATGCGAGACCTTGATGCAGTATTTAGGATCGACATCCGG"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAAC"
+     },
+     "length": 64,
+     "right": {
+      "kind": "5'",
+      "overhang": "CGTA"
+     },
+     "sha": "b54e6d90cdd7"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CGTA"
+     },
+     "length": 50,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAAC"
+     },
+     "sha": "eed12455b986"
+    }
+   ],
+   "seq": "CACGTAATTTGATGCTTCTCAAGACTTATTGATGGCACATAATGCAGGTCCCGAACGGAGACCCGTCGATAGCATTAAGGTATTTGCGAGATCTCTATTAATTGACCTAGGTCT"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TAGG"
+     },
+     "length": 58,
+     "right": {
+      "kind": "5'",
+      "overhang": "TAGG"
+     },
+     "sha": "37b514ec76f7"
+    }
+   ],
+   "seq": "GTCATATGACATTGGCAGCTTGACCGATATTTGAGCAGATTGCCCCGGTCTCCTAGGA"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CAGC"
+     },
+     "length": 78,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCTG"
+     },
+     "sha": "1a03290fcc76"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCTG"
+     },
+     "length": 27,
+     "right": {
+      "kind": "5'",
+      "overhang": "CAGC"
+     },
+     "sha": "fc92881f1a65"
+    }
+   ],
+   "seq": "GCTGATCATTTACCTCTATGAAATCAGCCGAGACCTGGAGGACTTGGTCAGCACATGCAGGCATATCCTGACTGAGAACGTAGGTACGCCGCAACGGTCTCTGCT"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CAGA"
+     },
+     "length": 66,
+     "right": {
+      "kind": "5'",
+      "overhang": "CAGA"
+     },
+     "sha": "aec3e7219151"
+    }
+   ],
+   "seq": "CAGAGGAGACCGTGTATGCACGTCGGATCCACCGAGGCGGCAACCAATCGTCGGGGCCACAGTACT"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATAA"
+     },
+     "length": 54,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAAA"
+     },
+     "sha": "419305ee2154"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAAA"
+     },
+     "length": 61,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATAA"
+     },
+     "sha": "6bf067d5b725"
+    }
+   ],
+   "seq": "ACGAAAGGAGACCTTGGTGTATGGCAACGAACAAAGAGTTTCGTTGGAGTTGCCCCGGTCCGGATAAGGAGACCCGAAGGGGTCCAGCCTTCGCGGGTCGAGAACTACCTCACCT"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CACA"
+     },
+     "length": 55,
+     "right": {
+      "kind": "5'",
+      "overhang": "CACA"
+     },
+     "sha": "ce97b309e7fd"
+    }
+   ],
+   "seq": "GAGACCAGAGCAACGCAGCGTTGTAGCAGGGCTGTCTTGGCTCGTCGTGGCACAC"
+  },
+  {
+   "enzyme": "BsaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGGA"
+     },
+     "length": 47,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTCG"
+     },
+     "sha": "25310f58a328"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTCG"
+     },
+     "length": 52,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGGA"
+     },
+     "sha": "8b563ffb676d"
+    }
+   ],
+   "seq": "GGTCCTACACGTTAATGACGACAAGTCGACGCACGAGTGGGTCTCTTGGAAATCGAATGAATGTACATACAACAGGAGCCAATGCTGGTCTCATTCGGA"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGCC"
+     },
+     "length": 66,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGCC"
+     },
+     "sha": "5f218ee13e80"
+    }
+   ],
+   "seq": "AGCCTGAGACGTTGAGCGGTTTCTCGGATCTTGTCCAATCCCAGTCGCACTGTCGCCAAGAACATC"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CATT"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGCC"
+     },
+     "sha": "9b90740c8b0f"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGCC"
+     },
+     "length": 38,
+     "right": {
+      "kind": "5'",
+      "overhang": "CATT"
+     },
+     "sha": "f39040ef42d1"
+    }
+   ],
+   "seq": "ATCATTAGAGACGCGGGTTCGCTTTATTTATGCTTAACGAGCCTGAGACGATGACGAGGGTTGCTACAAGCTGAC"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAAA"
+     },
+     "length": 51,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAAA"
+     },
+     "sha": "fa32a2c88b97"
+    }
+   ],
+   "seq": "TGAGACGCCCTTTCATATTCCTGTCTCTTTTGTCAATGCGGAAGCAGGAAA"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAGA"
+     },
+     "length": 59,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCAT"
+     },
+     "sha": "22f42d8a5f01"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCAT"
+     },
+     "length": 59,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAGA"
+     },
+     "sha": "26fb8955176a"
+    }
+   ],
+   "seq": "GGAGACGCCCTACCTCTACGAAGTCCCAGCCGAATCATATCCCGATCTCCTACCCTCATAGAGACGTAGAGAATCCGTGCGGGAAAGCATCACATACCAGAGGGGCCGTTTACTGAGA"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGAA"
+     },
+     "length": 39,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGAA"
+     },
+     "sha": "e2e014854f8b"
+    }
+   ],
+   "seq": "ATGAAACCGAAGCCCTCTGATCGCATAACGTCACGTCTC"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATGC"
+     },
+     "length": 39,
+     "right": {
+      "kind": "5'",
+      "overhang": "CAGA"
+     },
+     "sha": "67207674fac7"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CAGA"
+     },
+     "length": 53,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATGC"
+     },
+     "sha": "b41508c1c524"
+    }
+   ],
+   "seq": "GCAGAGTGAGAGGCGCGTCTACAAGACACAATATGGCCCGCCTAGTACGTCTCCATGCTCTCAGTACGTGGGCATAATCTCAACCCCGTCTC"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TACA"
+     },
+     "length": 39,
+     "right": {
+      "kind": "5'",
+      "overhang": "TACA"
+     },
+     "sha": "0f033a33103b"
+    }
+   ],
+   "seq": "CCCTGTCGACTACATACCTTTTCTAGTCGTCTCGTACAT"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAGT"
+     },
+     "length": 55,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCTG"
+     },
+     "sha": "1638db0b2662"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCTG"
+     },
+     "length": 56,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAGT"
+     },
+     "sha": "9038eaa75c36"
+    }
+   ],
+   "seq": "TCGGCATCAGAAAACGAATCTACGCTGGAACATAAAGGATCCCCACGTCTCAGCTGCTAGCGGAAGAGTGCACAAAAATTTAATTGGATAAAATGTAATGGCGTCTCCGAG"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AACA"
+     },
+     "length": 62,
+     "right": {
+      "kind": "5'",
+      "overhang": "AACA"
+     },
+     "sha": "e022bd36efbe"
+    }
+   ],
+   "seq": "AACATGAGACGCGAGTGAAGCCGGTAAGCCACCTGGCACTCATTAGCAAGGCTGGGCATTCG"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGGG"
+     },
+     "length": 55,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCAA"
+     },
+     "sha": "d64b26fc4210"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCAA"
+     },
+     "length": 66,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGGG"
+     },
+     "sha": "ebd5f29acc3a"
+    }
+   ],
+   "seq": "GGGTTCTCGCACACGCCGACTGGCGACCTAACTTAGTCCAGCTCTTCGTCTCTGCAAAATTGTGCTCTAGATTTACACGAGGCTCCGAAGGAGCGACCCACTGCTCCTCAAACGTCTCTTG"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CCTC"
+     },
+     "length": 53,
+     "right": {
+      "kind": "5'",
+      "overhang": "CCTC"
+     },
+     "sha": "94a2b46db111"
+    }
+   ],
+   "seq": "CGAGACGGCTGACACGTCATTATCCGCCTTTGCTCCGGGTCGAGAGTTTCCTC"
+  },
+  {
+   "enzyme": "BsmBI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAAC"
+     },
+     "length": 51,
+     "right": {
+      "kind": "5'",
+      "overhang": "ACAG"
+     },
+     "sha": "ae38cd91d933"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ACAG"
+     },
+     "length": 45,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAAC"
+     },
+     "sha": "e1fba922c46d"
+    }
+   ],
+   "seq": "ACTCTGTCCGTGGGTCTTCAAACCGTGACTAGATACAGAGGGCGTCTCTACAGCCATTCTTCTCCCCGTAACCACATACACACGTTACGTCTCGGA"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATA"
+     },
+     "length": 43,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATA"
+     },
+     "sha": "62fa155b01d8"
+    }
+   ],
+   "seq": "CGATACGTTTCGAACCGTCATAGCACATGTCCCTACAGCTCTT"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ACA"
+     },
+     "length": 39,
+     "right": {
+      "kind": "5'",
+      "overhang": "AAG"
+     },
+     "sha": "7ed62762f44e"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AAG"
+     },
+     "length": 67,
+     "right": {
+      "kind": "5'",
+      "overhang": "ACA"
+     },
+     "sha": "cdcc68b13dff"
+    }
+   ],
+   "seq": "ACAGGTCCAGATCTTTGCCCTTCACGCTGTGGCTCTTCAAAGAATCTAGCTACTCTCGCCGCCTTTACTTGGGCACCGAACATTTGGGCGACCAAATCGCTCTTCA"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGG"
+     },
+     "length": 56,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGG"
+     },
+     "sha": "510b3aa53cc3"
+    }
+   ],
+   "seq": "GGAAGAGCTCGCGACGGCAGCCTATACACTGTCTCGCCTAGTAACAAAGAAACTGG"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CCA"
+     },
+     "length": 40,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAT"
+     },
+     "sha": "75e58a821461"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAT"
+     },
+     "length": 64,
+     "right": {
+      "kind": "5'",
+      "overhang": "CCA"
+     },
+     "sha": "cefbe89da66e"
+    }
+   ],
+   "seq": "CACTAGTCTGTTGGCCTTGACGTGTGAGGTGCCGGTAGATAGAAGAGCGCGAGACACAGGTTACGCGGACAATTGACCCATCCCCTAAAATACGCTCTTCTCCA"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAT"
+     },
+     "length": 51,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAT"
+     },
+     "sha": "6c90a7e2a7f9"
+    }
+   ],
+   "seq": "ATACGAGTTGGTGCGCATATGAGTCGGTGTTCTTGTCTTGCAGCTCTTCCG"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAC"
+     },
+     "length": 27,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGC"
+     },
+     "sha": "48dde5cfda90"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGC"
+     },
+     "length": 67,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAC"
+     },
+     "sha": "671cbed4d594"
+    }
+   ],
+   "seq": "GACGTTTTACACGGTGAAAATCTATGGAGCTGAAGAGCCGCCTCGCACTAGATCTTTAAACGGCAGCTCGCTCCACAACCTCGATTGCTCTTCG"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCA"
+     },
+     "length": 44,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCA"
+     },
+     "sha": "a8e6cdcc4540"
+    }
+   ],
+   "seq": "ATATCATGCCCCTTTTGACGGGCCTCGCTCCGCCGCTCTTCTGC"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGA"
+     },
+     "length": 35,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGA"
+     },
+     "sha": "a9607661692c"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGA"
+     },
+     "length": 61,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGA"
+     },
+     "sha": "ec906cc9afb4"
+    }
+   ],
+   "seq": "AGTAAGTGATTGTCCGTATGGCGAATCCGCATTGAGGAAGAGCGAATAAAGCTGCGACGAAATCCGCTTGGGTATAACGACCCTGGCTCTTCTAGA"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCT"
+     },
+     "length": 63,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCT"
+     },
+     "sha": "05df43a51d48"
+    }
+   ],
+   "seq": "CCGCTCGAAGAGCACTGTGACCATCCCAGATGTAGCCCTGACGAGTTTCAACAGTACTCCGAT"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TAA"
+     },
+     "length": 25,
+     "right": {
+      "kind": "5'",
+      "overhang": "CTA"
+     },
+     "sha": "ae8b69cfa686"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CTA"
+     },
+     "length": 58,
+     "right": {
+      "kind": "5'",
+      "overhang": "TAA"
+     },
+     "sha": "f77a6351d519"
+    }
+   ],
+   "seq": "GTAACTGACGGGCTGAATGTGGAGTTCTAGGAAGAGCGCGAGCTAGTTGGTACCGGCCAGTTCAAAGCGACCGAGAGCTCTTC"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTA"
+     },
+     "length": 51,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTA"
+     },
+     "sha": "95c89dfae873"
+    }
+   ],
+   "seq": "TAGTAGGGCCCCTGTAAAGGGTGTTTTCTCAGCTGTGGTGAGGCTCTTCAT"
+  },
+  {
+   "enzyme": "SapI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCG"
+     },
+     "length": 46,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGT"
+     },
+     "sha": "333d1fba0256"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGT"
+     },
+     "length": 78,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCG"
+     },
+     "sha": "c0198a410b06"
+    }
+   ],
+   "seq": "GAAGGTAGATCACCTAGTAAGCAATGAATAACAGAACAGCTCAAAGTCGAAGAGCGCTCCGCATCACGTTTTAACTGAAGTAACCTCTGAAACCCCGTTATCGCCACGTAAAAAGCTCTTCCTC"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCTA"
+     },
+     "length": 55,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCTA"
+     },
+     "sha": "2ee3949a6a17"
+    }
+   ],
+   "seq": "TAACGTCTTCGAGCAGTACTCATAGCACTGGGGCTCAACACGCTAGCACCCCAGC"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCAA"
+     },
+     "length": 46,
+     "right": {
+      "kind": "5'",
+      "overhang": "TAGG"
+     },
+     "sha": "240aec47a886"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TAGG"
+     },
+     "length": 50,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCAA"
+     },
+     "sha": "c6a78ec4cc84"
+    }
+   ],
+   "seq": "AATCAAGTGCCAACAAGCACCACACATTTACCAGGCGACCGAAGACTGTAGGACCCAGTTGAGAGTGCCGGGAACATTGGGTGGTCTATCGAAGAC"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CCGT"
+     },
+     "length": 61,
+     "right": {
+      "kind": "5'",
+      "overhang": "CCGT"
+     },
+     "sha": "2f9064304955"
+    }
+   ],
+   "seq": "AATCGCCGCGCCGGTACAGTGTATGATGGGGCACATTTACTGGTAGTGAAGACTGCCGTAG"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GGAT"
+     },
+     "length": 46,
+     "right": {
+      "kind": "5'",
+      "overhang": "CATG"
+     },
+     "sha": "9a02782d6f89"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CATG"
+     },
+     "length": 53,
+     "right": {
+      "kind": "5'",
+      "overhang": "GGAT"
+     },
+     "sha": "de33becd5ad8"
+    }
+   ],
+   "seq": "CTCGAGCTGTGTGTAGTTCCATCTGCTATCCCATGAAGACGCCATGCAAAAGGGAGGCCCACCATCGTAAACGGGGCTAGCTACCGCGAAGACATGGAT"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GGTC"
+     },
+     "length": 58,
+     "right": {
+      "kind": "5'",
+      "overhang": "GGTC"
+     },
+     "sha": "746a793510c8"
+    }
+   ],
+   "seq": "GTCCAGTCTTCGCGTGCTTCTTATAAACGAAGCTGAGATCTTTGTGCGCCGTATTCTG"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CTGA"
+     },
+     "length": 50,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTTG"
+     },
+     "sha": "04bddf7bbe25"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTTG"
+     },
+     "length": 54,
+     "right": {
+      "kind": "5'",
+      "overhang": "CTGA"
+     },
+     "sha": "294f721ea2e7"
+    }
+   ],
+   "seq": "TGAGGCAGAAAACACCGATGCTATGCGCTATAGCATTCCCGGATTTAGGTTTGATGTCTTCAGCTTGCACGGCCATGTAGCTGAAAGGAGGTGCTGAAGACCGC"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CACG"
+     },
+     "length": 58,
+     "right": {
+      "kind": "5'",
+      "overhang": "CACG"
+     },
+     "sha": "3f5a3e8b0ce1"
+    }
+   ],
+   "seq": "CGCTGTCTTCAACTAAATCATATGCGAAATTCCGGACGATCACGTATAGATTGTTTCA"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CTGT"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTTC"
+     },
+     "sha": "318e47433438"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTTC"
+     },
+     "length": 50,
+     "right": {
+      "kind": "5'",
+      "overhang": "CTGT"
+     },
+     "sha": "8d9882f6c3a8"
+    }
+   ],
+   "seq": "CGACATTTTCGTCCTAAGTGTGCCATACGGGCATCGTCAGAAGACTACTGTTTTTTTGTCAGGTCCAACGTAAGGTGAAGACTTTTT"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ACCT"
+     },
+     "length": 56,
+     "right": {
+      "kind": "5'",
+      "overhang": "ACCT"
+     },
+     "sha": "9a6055194465"
+    }
+   ],
+   "seq": "CTCGGTCTTCTTTGACTCGAGAGCACGAAAGCGTCCACCTGCGGTGCATCGTCAAC"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATAA"
+     },
+     "length": 64,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATTA"
+     },
+     "sha": "8ae08a028b13"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATTA"
+     },
+     "length": 48,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATAA"
+     },
+     "sha": "ed0867482449"
+    }
+   ],
+   "seq": "ATATTACAAAGTTGCCTCTAACTTAACGAGGTCTACAAATATTCAGAAAGATAAAAGTCTTCCATGAAAGCTTATCCGCTCGCCGATTTGGGCAAAGTCATGTGGGGAAGAC"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GTTA"
+     },
+     "length": 42,
+     "right": {
+      "kind": "5'",
+      "overhang": "GTTA"
+     },
+     "sha": "546df1a2e345"
+    }
+   ],
+   "seq": "TCGTCTTCTTCCCTAGTCGCAAGCAAGTGCTTGCCGAGGTTA"
+  },
+  {
+   "enzyme": "BbsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCGG"
+     },
+     "length": 34,
+     "right": {
+      "kind": "5'",
+      "overhang": "GTAC"
+     },
+     "sha": "30ff99a03461"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GTAC"
+     },
+     "length": 60,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCGG"
+     },
+     "sha": "bcac7af9b5ad"
+    }
+   ],
+   "seq": "GGCTCGCCCACGTAGTTGCTTAATTGATGTACTGGTCTTCGCAACAGAACTAGGTCAACGCGTAGGGAGCGAGATTTTACGAAGACGATCGGTA"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTAA"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTAA"
+     },
+     "sha": "5306aa22b113"
+    }
+   ],
+   "seq": "ATTAACCTGACGCGTTAATGGACGGGATGAAGCCCGA"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTGA"
+     },
+     "length": 64,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTTG"
+     },
+     "sha": "04e1fb8f4414"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTTG"
+     },
+     "length": 42,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTGA"
+     },
+     "sha": "c9142e3d23d4"
+    }
+   ],
+   "seq": "TTGATTGTCTAGCATCCATTAGCCTACTCCCCTGTAATAGGTTGAGTCCTACCTCATCCCGTGAATAGGATATGTATCATTCGAAAAACCTCGGTATGTTGATCAT"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AACC"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "AACC"
+     },
+     "sha": "ffcee9b853ff"
+    }
+   ],
+   "seq": "AACACAGTAGGTGTTGCGGGATGTCTAACTGTAACCC"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGCA"
+     },
+     "length": 30,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGAC"
+     },
+     "sha": "1f83cf7388a5"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGAC"
+     },
+     "length": 83,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGCA"
+     },
+     "sha": "bcfedc75ca74"
+    }
+   ],
+   "seq": "ACTTAACCCTGGTAAGCCGGCTATAAGACTACAGTGACCATCCGGCATCAGAGAGGCAAAGTGCTATTACGGCGCGGATAGATGCGGCTGCCAAGGATGGAGGACAACAGCAG"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTCA"
+     },
+     "length": 38,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTCA"
+     },
+     "sha": "7b65d8af6b93"
+    }
+   ],
+   "seq": "CACAAATGGACCATCCTAGGGTGAAAGGCAGCAGTATT"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCGG"
+     },
+     "length": 10,
+     "right": {
+      "kind": "5'",
+      "overhang": "TTTT"
+     },
+     "sha": "911b99c07c4d"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TTTT"
+     },
+     "length": 90,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCGG"
+     },
+     "sha": "b0c2414da4dc"
+    }
+   ],
+   "seq": "ATTCGGGGGTTATTTTTCTGTTCTACATCCAGTCTAGAACAACTTTGCGTGGGTGTCTCACGCTAATGCGAGCTATCGATTGGACATTGGATGGAGAAGA"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATC"
+     },
+     "length": 62,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATC"
+     },
+     "sha": "a8551f6176e1"
+    }
+   ],
+   "seq": "TTCCCGCGCCGTAGAGCTCGGGGCATGGAGAATCTGCCAAAGGGATGCGCGATGCGAATCGG"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AAGC"
+     },
+     "length": 52,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATA"
+     },
+     "sha": "d03f91bcc958"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATA"
+     },
+     "length": 43,
+     "right": {
+      "kind": "5'",
+      "overhang": "AAGC"
+     },
+     "sha": "ff3179818f3c"
+    }
+   ],
+   "seq": "ACGTGGGACCGGTACATGGTATTTATGGATGCCGTGTGTAAAGCCACTGATGCAATTGAGACGGTCCCTATCCAAGTTGGATGGGACCTCCGAAT"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CGTT"
+     },
+     "length": 36,
+     "right": {
+      "kind": "5'",
+      "overhang": "CGTT"
+     },
+     "sha": "78d35a1834ee"
+    }
+   ],
+   "seq": "TCGTTAAAGAGGCTCAGCCGCCGGGATGGCATTATA"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATGG"
+     },
+     "length": 86,
+     "right": {
+      "kind": "5'",
+      "overhang": "CCAG"
+     },
+     "sha": "2a370125df57"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CCAG"
+     },
+     "length": 27,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATGG"
+     },
+     "sha": "f9b960d9a673"
+    }
+   ],
+   "seq": "CAGGATAGGCCGTATGCCGAGTGTAGATGGTGCAATAAACATCCAGCCATCGGCTTTGAATTATACGGTACCGTGACGCCGGCTCCAACAGGTAGACGGGATGTTAACTTCGC"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TATT"
+     },
+     "length": 62,
+     "right": {
+      "kind": "5'",
+      "overhang": "TATT"
+     },
+     "sha": "9e5b44cf7312"
+    }
+   ],
+   "seq": "GAGCTTTCCATCCAGGCCCCTGCAAAAATATATTGTGCAGAGACAGTAGTGCCGCTGTATTA"
+  },
+  {
+   "enzyme": "FokI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CTGC"
+     },
+     "length": 65,
+     "right": {
+      "kind": "5'",
+      "overhang": "GAAT"
+     },
+     "sha": "c3f28bab3e55"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GAAT"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "CTGC"
+     },
+     "sha": "dce169c2db07"
+    }
+   ],
+   "seq": "TCCCGCGGGATCACTCAGGATCAAGGGTTCTGCTCTGCTGAAGACCGCATCCGATGATGAACAGCCCGTAAAGGGACCCAGATTCGGATGCGCCCCGATGAA"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GGC"
+     },
+     "length": 59,
+     "right": {
+      "kind": "3'",
+      "overhang": "GGC"
+     },
+     "sha": "fc4928457d2b"
+    }
+   ],
+   "seq": "CCGGCGATTATCCACTAGCCACAAGGCGTCAATTTGATCCCCAAGTTGATATCGCCGGG"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CGC"
+     },
+     "length": 66,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTG"
+     },
+     "sha": "43169a20d4b2"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTG"
+     },
+     "length": 62,
+     "right": {
+      "kind": "3'",
+      "overhang": "CGC"
+     },
+     "sha": "a69a7a985169"
+    }
+   ],
+   "seq": "GGCTATTTTCGTATGTTCTCGTGCTGTTTAATCACCCCGTCAGCCAAGACTAGCTTCTGCCGGTGAGGCGCAGCACGCTGGCGACATAAGTAGTACTCAAAACGCCTCAACGGTCACGGAGCCGCGCG"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AAA"
+     },
+     "length": 43,
+     "right": {
+      "kind": "3'",
+      "overhang": "AAA"
+     },
+     "sha": "8bc6e76915e4"
+    }
+   ],
+   "seq": "AACGGCAATCCATGATGTTTATATTGCAGTTTGCTGTTGCCAA"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TTT"
+     },
+     "length": 60,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGA"
+     },
+     "sha": "39b9dd7105b9"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGA"
+     },
+     "length": 45,
+     "right": {
+      "kind": "3'",
+      "overhang": "TTT"
+     },
+     "sha": "f6d8b33bc411"
+    }
+   ],
+   "seq": "GACGGCTATTAGGGCCTCCTGTACGTTGCCAGACATCAAAGCCATTTGGGCCGACGATAGCTTGCTGGGGCTTTCAACGGGGTTCATGGACCGAGCCAATGCCGT"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "ACA"
+     },
+     "length": 71,
+     "right": {
+      "kind": "3'",
+      "overhang": "ACA"
+     },
+     "sha": "8c552a808cdf"
+    }
+   ],
+   "seq": "TGGCTACCTTTGACCACTCCCACTTGAACGCTCACTTGTCATTTCCGTCCGCACTATACCGGGGGCCAACA"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AGT"
+     },
+     "length": 70,
+     "right": {
+      "kind": "3'",
+      "overhang": "GAT"
+     },
+     "sha": "283c90c68307"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GAT"
+     },
+     "length": 71,
+     "right": {
+      "kind": "3'",
+      "overhang": "AGT"
+     },
+     "sha": "ecca217c76ea"
+    }
+   ],
+   "seq": "TTGGCGGCTAAAAAGAGCAAGAGCGCCAACTAGCACGAACCTCGAAGTCACCAGATACAAGGAAGGCCTAGTGGGCCGCTGGATTGAACGTCAATTTCAGGAGAAAGCACCGGGCCGTTGGTATGGCCTAGTGGCGCCGGA"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CAC"
+     },
+     "length": 50,
+     "right": {
+      "kind": "3'",
+      "overhang": "CAC"
+     },
+     "sha": "81a01a9aba9c"
+    }
+   ],
+   "seq": "ACACCGGCAGCGCCGCACAGACAATCCAAGTAAGTGGTCTGAATGACGCC"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GAA"
+     },
+     "length": 49,
+     "right": {
+      "kind": "3'",
+      "overhang": "CTC"
+     },
+     "sha": "8e56331935a6"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CTC"
+     },
+     "length": 59,
+     "right": {
+      "kind": "3'",
+      "overhang": "GAA"
+     },
+     "sha": "eb9a8d5e3a34"
+    }
+   ],
+   "seq": "TCTGGCTTTGGGTGCTGACGGCCTTAGGTACAATTAAAGGAGCATGGCGCACCTGCCGGAACGGCCACACTGCTCTGCAATGAAAGTTCGAATAAAGAACCAAGCCGC"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AAG"
+     },
+     "length": 61,
+     "right": {
+      "kind": "3'",
+      "overhang": "AAG"
+     },
+     "sha": "f60106e8e57a"
+    }
+   ],
+   "seq": "TGGCGTCCGTTGTCACCTGCAGCATAGCACTGAAGGATGTAGGTACTACAATTAGCCAAAG"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CGG"
+     },
+     "length": 71,
+     "right": {
+      "kind": "3'",
+      "overhang": "TTC"
+     },
+     "sha": "635a4e1e6bf5"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TTC"
+     },
+     "length": 48,
+     "right": {
+      "kind": "3'",
+      "overhang": "CGG"
+     },
+     "sha": "aba77db1e743"
+    }
+   ],
+   "seq": "CTGGCGATTTTGCTTTTCGACCTTCGAGTAAGTGACATCTAAGCCCCGGCGGCTCGCCTGGAAACTCTAAATCGGATTCAAAGTAGGAATCCAAAGACAACTGTGGCCCTTGGGCCCTT"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CCG"
+     },
+     "length": 61,
+     "right": {
+      "kind": "3'",
+      "overhang": "CCG"
+     },
+     "sha": "d67fb8e8b880"
+    }
+   ],
+   "seq": "CTCCGCGGCGGGTTTAAAATTGCAGCTCGGACGGAGGGAGCCGACCAGCAAGGTCTCCAGC"
+  },
+  {
+   "enzyme": "BglI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "ACC"
+     },
+     "length": 63,
+     "right": {
+      "kind": "3'",
+      "overhang": "CTA"
+     },
+     "sha": "178b3c40da7e"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CTA"
+     },
+     "length": 46,
+     "right": {
+      "kind": "3'",
+      "overhang": "ACC"
+     },
+     "sha": "d6c66b09c2c0"
+    }
+   ],
+   "seq": "CGACCCGGCAAGATCGACCAGTCCCCAAATCGCCGGAACGGGAACTGCCAAGGCTCCAGACGCCCCTAAGGCGGCACATAGAACGACGCCCGGCCTGAATACAAGGTGC"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 52,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "6a0a165730a7"
+    }
+   ],
+   "seq": "AGGGGAATAGCTATGTGCAGCGGGCTGTTGATTGGTCGGGAGTACCCCCTGC"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 58,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "9556e1b3cf96"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 39,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "e09cee6239ed"
+    }
+   ],
+   "seq": "CAGTGCCGCCCGGCTCGTAGGGGGTGCATCATCATTCTGCAGATGTCCGGTGTACCCGCTATCTTCACGGCAGACAAGAATGTTATCTAGCATTCTG"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 61,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "ef23852160f5"
+    }
+   ],
+   "seq": "CTGCAGGGGCAATTGAAGATGTTTCGAAGCTGTAGGCTGGCACTGGTCATATGGTCGCCGC"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 53,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "1d61be27fb49"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 38,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "65ce503ce528"
+    }
+   ],
+   "seq": "GCAGTCAAGCTTTTACTTAGGGCAGTACAAATATTCAGCCTCGTACAACAACTGCAGCTGATGGACCGGGCGAATTGCCCGGACGAATACT"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 36,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "d28f84356f27"
+    }
+   ],
+   "seq": "CAGAGAGTTTTGGACTTAGTTGTGTGTCCCTGGCTG"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 40,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "630d2af02929"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 66,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "db26438abae7"
+    }
+   ],
+   "seq": "GCGGAGTTTGGCAATTTAATCCAACACTGAAGACTTAGCCCTTAGTATCTGCTCTCGTCGACTGCAGGGTGCCACGTGTCTGAACGTTGCGCGACTGTATTCTGCA"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 40,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "b3e780d31c03"
+    }
+   ],
+   "seq": "CTGCAGCGGATGTAAGTCTCTCCGCCTCTTATTTACTCAG"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 65,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "170a13da11d5"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 56,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "80d316c02b42"
+    }
+   ],
+   "seq": "TGCAGATGCGGAATACCGGTGGATCATAGATAAGACTCAATTCGTTGTAGTCTCACTGCAGTTTGGGGCATAGTAGCCTTCGATACAAGAAACATAACTAGGCGTTTGGTATTGGAAGTGC"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 59,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "6bfc2127b193"
+    }
+   ],
+   "seq": "TACGGAGAGCTTCCCCACTGTCTGTGTGCAAATCGGTCAATCTGTTGGTTGTCTGCAGT"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 52,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "b5e898bc9095"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 53,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "c73c3ce480c3"
+    }
+   ],
+   "seq": "AGGAGTTGATGAAACCGTTGTCCCCTGCACAAAAGTTCTGTGGACGTGTCTGCAGTAACGCGGGTGGTCATATCAGTAATCTCTCGACATAAGAATTATCACTGC"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 52,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "3ce3fd77edb0"
+    }
+   ],
+   "seq": "TGCAGATCAATTTTTAAAGTGATTACGCCCCAAGAAGCGATGAGTCCACCAC"
+  },
+  {
+   "enzyme": "PstI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 52,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "95a77d942d9d"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "length": 46,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGCA"
+     },
+     "sha": "c8401cee9782"
+    }
+   ],
+   "seq": "CAGTGGGTCTGAATGGCCATACCGAGTCTTATAGCGTGATGACCTGCAGATGTAGGTCCCGGTAGGTGTTGAAGCAAGCTAGGATCTGTCAGTTACTG"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 54,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "053699ed3885"
+    }
+   ],
+   "seq": "CATCTCTGCGCCTAGTGCAGAAGTGCAGTAATCGGGATGAACGCGGCGGTACCC"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 39,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "139a746cf07a"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 54,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "4a9217c9f041"
+    }
+   ],
+   "seq": "CCCGTTAAGGCATTTATATCTCTTACATCTGCAGGGGTACCGAATAATGTCTACTAGTACGCTGCTCACGTTTCGTTATGCGTGTGTCTGGTA"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 64,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "6cbe28307bb5"
+    }
+   ],
+   "seq": "GGGTACCCTGAGGAAAAGTCCGTTTTGGAGAAAACACGCGATGGAATGTGTCTCCGGATACGGT"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 40,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "4b281847458f"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 38,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "a52e614447c0"
+    }
+   ],
+   "seq": "GTACCTTTAAAAGGTCTTCAGGTCAGCACACTGGCAAGGTACCGCCCTAGGCCGGCTTTATGCATCAATTTGGTCGGG"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 40,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "3a6534ee189f"
+    }
+   ],
+   "seq": "GGACTGTATTTTCGGATGATCCTCAAGTCTCACTGGTACC"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 55,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "c99bf21cc26a"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 39,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "dee9e5791d1c"
+    }
+   ],
+   "seq": "CCGGGTGGGGGGTAGAAGCGCTAAAAAGAACCGGTACCCGCGTACTAGTTTAGCCAGGAGCTGGTGAGCACTTTAATATGCCAGGACGGTACCT"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 38,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "47aae5ac57e1"
+    }
+   ],
+   "seq": "TACCAGTACAGATCCTCTGCTTGTAAACTGTATGCAGG"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 66,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "2bd3cb47d3df"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 37,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "362bdb411bdf"
+    }
+   ],
+   "seq": "GGTACCGGCATCGGCCCGGCGCAGCCCACTTCGTCGTGGTACCCCCGGCATATGCGGAACGCGCGGGAAGGACCTATACCTAGTAGCAAGAAGCATGTCCAGA"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 59,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "e2aac15f34af"
+    }
+   ],
+   "seq": "CGTCCGATCAACGTGGGTCTAATGTCCTATGCGCAATTGCTTGCACGTAGGCGTGGTAC"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 42,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "4d873802a304"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 65,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "947cd1b12bbf"
+    }
+   ],
+   "seq": "ACCTAGAAGCACCGCTTGACGCAGACCTTCGTGTTCAGCGGTACCAATATCTTTAGTATCGACATCAAAGGCGTGCGCCATTTTCACTTTAACCCCGAGAGCGAGGT"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 50,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "e59e3cf257a2"
+    }
+   ],
+   "seq": "AGGTACCGGGAAACGGCGTGAAATAGCTAATGATTCCCGCGTCTTAGTTC"
+  },
+  {
+   "enzyme": "KpnI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 41,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "255124084119"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "length": 47,
+     "right": {
+      "kind": "3'",
+      "overhang": "GTAC"
+     },
+     "sha": "54d5001fa93c"
+    }
+   ],
+   "seq": "ACCCGGAGATCCATAACGGCCATCGCAGAGTATGTTTGGCGGCTGGTACCACTACCTCTTGCTTACGGCCGCTACGAGTAAGCCTGGT"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 45,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "a70ea6dd0146"
+    }
+   ],
+   "seq": "CCGGGACATCCACGCACCGCAAATGATCTTCTCGTGCTTTGAGTC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 57,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "6e60314e5e99"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 47,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "dbaaab351c95"
+    }
+   ],
+   "seq": "CCGGGAGGAATTTAGGGGAGTGACCTAGGGGGAGCCAGCATTCCGCCCCGGGGCGGCTTAATGAACTGATTCTTTAACTTAATTAGACTTCCAACCTATGAAGC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 60,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "7f2651547e71"
+    }
+   ],
+   "seq": "GCTGGTGCAATTATTATTCTTCATCAGGACCTCTCAAGGGAGTCATTTGCATTGGCCCGG"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 63,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "5f79b4839c1f"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 58,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "fef0dd074137"
+    }
+   ],
+   "seq": "GATCAAACAGGCCCTAAACTCGTAAGAACGTACGGGCTGTCTCCCGCCCGTCCCCACTCCCGGGTCATTCGAGCGAGTGCCACCTATTCGCGGATTGGCCATACCCCAACTTGCGGCCCGG"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 64,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "016310018517"
+    }
+   ],
+   "seq": "CCGGGTGTCAGGCAGTCCACACGTGCAGGCCGGTAATGACACCGCATGTACGTGGAAGAAAAAC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 38,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "69c647a582c3"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 66,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "ccc8f8f2f57f"
+    }
+   ],
+   "seq": "CGGGTATGCGAAGAGCCAAGTCTTTTCCCTCGCCCCAGGTCGGCAGGATTTCGGGTGGTTCAAACCCGGGGCGTAGTAGAAGCCAAACAGAGTCGATCGGAGCC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 44,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "a250e5b07424"
+    }
+   ],
+   "seq": "GCAGGCTGTTCTATCCACGAAGCAACCGCGCAACCGGTGCCCGG"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 64,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "3b7d46f73d24"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 46,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "e9172bf7b356"
+    }
+   ],
+   "seq": "CGGGGAGAGTAGGTGTCTACCCCCAGAGAACTCAAGAGCACGGGATGCTAGACGAGATTTTCCCCGGGGCGAGTCTCTAAACACCAATGACGTCTCCCTCCGCACGATCC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 45,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "93ef87d15dd8"
+    }
+   ],
+   "seq": "CCGGGTGGTGATCACGCGTGGGCTAGCTGCAACTGCCCCTTAAGC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 43,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "22da48be5fc2"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 65,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "9df87d561975"
+    }
+   ],
+   "seq": "GGGGAGCGCCTCTTCTAGCACGGCCCAGACATAGGGTGCTTACAAAGAGGCGCGAACAAACACCCGGGGTGGGAATATCCTAAAAAAGGACTGTGCATAAGGGAGCCC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 56,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "26c19e091674"
+    }
+   ],
+   "seq": "CCGGGCGTGGAGTTCGGTGGGTCCCGAGCGCATGCACGATCTATGAGTATTATAAC"
+  },
+  {
+   "enzyme": "SmaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 45,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "3d423c5c9326"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 45,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "3e3bc3459e43"
+    }
+   ],
+   "seq": "GGGAACTATTCTAGCCGACATTCGTCGCAGTTTGCCCCGAGACCCGGGAGCACACCGAAACTGACTACTTGTGGCTCGCCTTGCGTCCCC"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "ATTTC"
+     },
+     "length": 58,
+     "right": {
+      "kind": "5'",
+      "overhang": "ATTTC"
+     },
+     "sha": "ac42914aec4b"
+    }
+   ],
+   "seq": "GATTTCGTACTGCGTCTCGGTAGGGAAGTGCCTTGATCGGTGTGCCCCTATCGAGCAT"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AATAC"
+     },
+     "length": 63,
+     "right": {
+      "kind": "5'",
+      "overhang": "GACGA"
+     },
+     "sha": "513854b5b615"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GACGA"
+     },
+     "length": 61,
+     "right": {
+      "kind": "5'",
+      "overhang": "AATAC"
+     },
+     "sha": "7c2e85f3c158"
+    }
+   ],
+   "seq": "CGATCTCGGCCATGCACCAACAAAAGACGTCATCGGAGCCCGGTGCCAGGACGCGTAGTAATACACGTTGACCTCGTGCCCGTAATACCGTCAATAAAAGACTTAGTACACTGACGCCCATGGA"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GACTT"
+     },
+     "length": 48,
+     "right": {
+      "kind": "5'",
+      "overhang": "GACTT"
+     },
+     "sha": "54ab4ac375fb"
+    }
+   ],
+   "seq": "GCAGGCGTCCGAGCTTCCCTACGGTGATTGCAGGCTCGGGCTGACTTG"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TACTA"
+     },
+     "length": 52,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGTGG"
+     },
+     "sha": "1481fc5c20fc"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGTGG"
+     },
+     "length": 36,
+     "right": {
+      "kind": "5'",
+      "overhang": "TACTA"
+     },
+     "sha": "c7b7729c6743"
+    }
+   ],
+   "seq": "GGAGACCTGTCAAAGACTTGTAGGACGCTGCTATACTAGTGCCAGATACGCTTGCAAGATTTGGGCGAGACTTTGGACGCAACTCTGT"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GCAAA"
+     },
+     "length": 41,
+     "right": {
+      "kind": "5'",
+      "overhang": "GCAAA"
+     },
+     "sha": "a6354a2ba77c"
+    }
+   ],
+   "seq": "AAAAGAAGGCGTCAAAACTAACTTTCGGAAATTGTCAAGGC"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CAAAA"
+     },
+     "length": 57,
+     "right": {
+      "kind": "5'",
+      "overhang": "AAGGT"
+     },
+     "sha": "18ecbcfa76a5"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CGGAA"
+     },
+     "length": 49,
+     "right": {
+      "kind": "5'",
+      "overhang": "CAAAA"
+     },
+     "sha": "7d799b24c335"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AAGGT"
+     },
+     "length": 14,
+     "right": {
+      "kind": "5'",
+      "overhang": "CGGAA"
+     },
+     "sha": "dfc25478c110"
+    }
+   ],
+   "seq": "TAAGGTGATCGCTGACGGAATCTTCGCGTCGCCGGCTCCACCTAATGCTGTTAGGACGCTTATTCAAAAGGCTACTGACCTAAACCCTGCACCATAGAGCCTGTATGTGTCGACGCCACC"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AGCCA"
+     },
+     "length": 41,
+     "right": {
+      "kind": "5'",
+      "overhang": "AGCCA"
+     },
+     "sha": "efedec8f9c9e"
+    }
+   ],
+   "seq": "AGGCGGCAAATGTCCAGCTCATGTTGAGACGCTAGTTAGCC"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCGCT"
+     },
+     "length": 20,
+     "right": {
+      "kind": "5'",
+      "overhang": "CCCCG"
+     },
+     "sha": "151a033686de"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CCCCG"
+     },
+     "length": 17,
+     "right": {
+      "kind": "5'",
+      "overhang": "CTACT"
+     },
+     "sha": "3f64803e6105"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "CTACT"
+     },
+     "length": 47,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCGCT"
+     },
+     "sha": "a691e5b52d66"
+    }
+   ],
+   "seq": "ACCATCTAAACAAGCCCCGACGACGCGTCGACTACTCTTAGGAGGGTATGATGTATTTGGATTTATATGACGCCTCGCTCGCTA"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TCTCG"
+     },
+     "length": 37,
+     "right": {
+      "kind": "5'",
+      "overhang": "TCTCG"
+     },
+     "sha": "dacd01ec7cf3"
+    }
+   ],
+   "seq": "GTCTCGCCGTCAAGACGTTTCGCGAAGGGACGCTGTA"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "AAGTG"
+     },
+     "length": 45,
+     "right": {
+      "kind": "5'",
+      "overhang": "TGTGG"
+     },
+     "sha": "108f122d4dbb"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TAGAC"
+     },
+     "length": 12,
+     "right": {
+      "kind": "5'",
+      "overhang": "AAGTG"
+     },
+     "sha": "db653d6f7877"
+    },
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "TGTGG"
+     },
+     "length": 60,
+     "right": {
+      "kind": "5'",
+      "overhang": "TAGAC"
+     },
+     "sha": "f6e4aa219fd9"
+    }
+   ],
+   "seq": "GTGTCCCAGCCCCTAAGAACTCTGTTCCAGCAATAGTGGTGGGTGTGGTTGATGCGTCCCACTACTGGTACTACCCGACCGCAATCATGGAAGGACGCGAGATTAGACGCATCTCAA"
+  },
+  {
+   "enzyme": "HgaI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "5'",
+      "overhang": "GGCAC"
+     },
+     "length": 35,
+     "right": {
+      "kind": "5'",
+      "overhang": "GGCAC"
+     },
+     "sha": "cb1448cc3ce7"
+    }
+   ],
+   "seq": "TGACAGCGTCCGGTCCCGGCAATGATAGCTGGCAC"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CTA"
+     },
+     "length": 41,
+     "right": {
+      "kind": "3'",
+      "overhang": "CTA"
+     },
+     "sha": "6f322adec37c"
+    }
+   ],
+   "seq": "GAGGCAGTATTGTCCGCTTAAAGAGCTCGCCTTCAGCTACT"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "ATG"
+     },
+     "length": 57,
+     "right": {
+      "kind": "3'",
+      "overhang": "CGT"
+     },
+     "sha": "5e159819f1ad"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CGT"
+     },
+     "length": 42,
+     "right": {
+      "kind": "3'",
+      "overhang": "ATG"
+     },
+     "sha": "7fa27c495bf2"
+    }
+   ],
+   "seq": "TCTGAGCTCTGGTAGTGCTAAGATATGCTCTGGCCCACAGATGCTGAGTACAGGCCTTGTGTCTAACACAGGCACGTGTGCTACCGTTAACTATCAGCG"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGC"
+     },
+     "length": 67,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGC"
+     },
+     "sha": "db8fd5f4fc15"
+    }
+   ],
+   "seq": "CCTGACGCTAAGTTGACGGGTTCCTTTGCAACCCCACTGTACATCTACACATAATCGGCTGACAGTG"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TAT"
+     },
+     "length": 47,
+     "right": {
+      "kind": "3'",
+      "overhang": "GAT"
+     },
+     "sha": "94ec650bd6b6"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GAT"
+     },
+     "length": 50,
+     "right": {
+      "kind": "3'",
+      "overhang": "TAT"
+     },
+     "sha": "da254fb7122e"
+    }
+   ],
+   "seq": "TATCTGTAGGACGCCTACTTCTAGCGTCGACAAGTTATTGAGCCCAGGATCTGTACGCTAACTTGATGTCAGGGTGAATTATCATTTGTGTGCCCAG"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AAT"
+     },
+     "length": 55,
+     "right": {
+      "kind": "3'",
+      "overhang": "AAT"
+     },
+     "sha": "92271efc3e86"
+    }
+   ],
+   "seq": "CTGAATCTAGCGTCGTAGGATGGCTCATAGAGTTGAATGATAAGCCAAACAGAAT"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TTA"
+     },
+     "length": 51,
+     "right": {
+      "kind": "3'",
+      "overhang": "TTA"
+     },
+     "sha": "0c5717811ffc"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TTA"
+     },
+     "length": 64,
+     "right": {
+      "kind": "3'",
+      "overhang": "TTA"
+     },
+     "sha": "359089a652a2"
+    }
+   ],
+   "seq": "ACTGACTCACGTGAACTGCTCGGCGTTGACCGTCCTCGGGGCCGTTCAGTTACTGAACAATGTGCTATAAAGTAAGCTCCTGCGGCCAGTGCCCGTCACAGTTGGTACATCAGTT"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TGT"
+     },
+     "length": 50,
+     "right": {
+      "kind": "3'",
+      "overhang": "TGT"
+     },
+     "sha": "51550c0c795e"
+    }
+   ],
+   "seq": "TCTGTACACCCACCACCACGGTAAAAAAGGGGTAAGCTTCTTAAGCAGTG"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TAA"
+     },
+     "length": 58,
+     "right": {
+      "kind": "3'",
+      "overhang": "TAT"
+     },
+     "sha": "6dea743f5fcc"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TAT"
+     },
+     "length": 56,
+     "right": {
+      "kind": "3'",
+      "overhang": "TAA"
+     },
+     "sha": "abe768d9a387"
+    }
+   ],
+   "seq": "ATCTGCGGGTTGTGGTGTCTCCTCACTCCGGTTCCCATCGCACAGAGCCCGACAGTAACTGCGGTGCTGGGGTAAACTTCGGATGTATGTGGGCGGATGGCGCAGATTTTCAGT"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TAT"
+     },
+     "length": 59,
+     "right": {
+      "kind": "3'",
+      "overhang": "TAT"
+     },
+     "sha": "e609d5690230"
+    }
+   ],
+   "seq": "CTGTCAGGCTACGGACCCAAGCTAGTGAAGGACTGACTGAACCCTTGCGCATACAGTAT"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "ATG"
+     },
+     "length": 54,
+     "right": {
+      "kind": "3'",
+      "overhang": "TAA"
+     },
+     "sha": "5abb73802f19"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TAA"
+     },
+     "length": 40,
+     "right": {
+      "kind": "3'",
+      "overhang": "ATG"
+     },
+     "sha": "b4be1ba08b1b"
+    }
+   ],
+   "seq": "ACTGAGGATTCTAAGGCCTGCCTGACTGGTTAGTCCAGATGCTGGCGAGAGCAAGTCACAGAACTCCATCTTCACTGATGCGAGCCGTTCAGTA"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AAC"
+     },
+     "length": 62,
+     "right": {
+      "kind": "3'",
+      "overhang": "AAC"
+     },
+     "sha": "9997bb2408c9"
+    }
+   ],
+   "seq": "CCTGTTTTCCTTAAAGTACATATATCTGGTCGAAGGTTCCAGACGAATACAAGGTGACAGAA"
+  },
+  {
+   "enzyme": "AlwNI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GAT"
+     },
+     "length": 67,
+     "right": {
+      "kind": "3'",
+      "overhang": "TCC"
+     },
+     "sha": "2c04f6103470"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TCC"
+     },
+     "length": 53,
+     "right": {
+      "kind": "3'",
+      "overhang": "GAT"
+     },
+     "sha": "d2c11ba1ccd6"
+    }
+   ],
+   "seq": "ATCTGAATTGAGACCTGATTATGGAACAAAAGGATCGCAGTCGGAAGTTACTTTCAGGCACCTCAGTCCCTGCCGGTCCCTCGATCAATGTAATTTGAGAAGATGAGGACTACTCCCAGG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 43,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "a49396b7009a"
+    }
+   ],
+   "seq": "AGGGCCCTTCGTCCCAGTGCCCCCCGTCAAAAAGAGTCGTGGC"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 40,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "3754550f31a8"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 50,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "e3bbf8acd2dd"
+    }
+   ],
+   "seq": "GCTGAAAAATTTCGGAACTAGCGAGCTCGCTTTATCGCTGAGTCAACCGCCCTTTATCGCCAGTGGCATACTTCGCTTCGAGTCGTTCGT"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 39,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "73269f428357"
+    }
+   ],
+   "seq": "GACGACTCTCCCTACCCGTTCAGTTAGATCCGGAGCGTA"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 54,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "3d5aec37e009"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 40,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "b17a3bec8060"
+    }
+   ],
+   "seq": "ATGAAATTTATCTGTAAACCTAGACCCTAGCAGATCCTTCGTGATTGACTCGGTCATCCGCGCCTCCGTAACTTTAAGGGGTAACGAGTCCTCG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 43,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "efd8eb25cd14"
+    }
+   ],
+   "seq": "CCGCAGACTCGTCTCAGCGCGCTCCGGATAGGAAAGGCAGAGG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 48,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "0ca207e306ac"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 40,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "440c441e0361"
+    }
+   ],
+   "seq": "TGCGTTATCTGCTAGGCGGCAATGCAAGCGTCGAAGGAGTCCTGTCTATCGCCCTCTGGGTATACCGCAGTATGCGGAGTCCGCGTGA"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 65,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "609ffd0c8b9b"
+    }
+   ],
+   "seq": "CGAATAGCACGCCACCGCACCTATATTATGTGCAACTACGAAGCCGCAAGAAAGAGTCTACTCAG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 61,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "83abd1c00c8f"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 46,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "ef75fe095dd8"
+    }
+   ],
+   "seq": "GTACGTCGACTCCTGGTCTTAAAACGTGTTAGTGATGGGAGATAGAAAACGTCGACTCGGTAGCTTTGGAAATTAGACCACCTATAGCACGTTTAAAGACACTATAG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 40,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "ca12db06e46b"
+    }
+   ],
+   "seq": "ATGGACTCCAGGGCCCCGGTGCTGGACAAGCAGGGTGAAG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 60,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "a28df5ef280e"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 37,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "f3b8011ef4e9"
+    }
+   ],
+   "seq": "ACATAGACTCTAGTTCTCCGTTAAATTGCTCATAATCTTTTGGACTCAGCTATCCTCCTCGTGCGTAGCTAGGTAGAGCCTAACAATCACTGTTTGG"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 65,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "96aaf08ad7d0"
+    }
+   ],
+   "seq": "CAAAGCGCGATAGTTGAGTGCATAGCTCAGTCCTTTCGCAAACCGTGCTTATGGAGTCACTACCA"
+  },
+  {
+   "enzyme": "MlyI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 63,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "2d8530884720"
+    },
+    {
+     "left": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "length": 39,
+     "right": {
+      "kind": "blunt",
+      "overhang": ""
+     },
+     "sha": "7277bb983b3c"
+    }
+   ],
+   "seq": "TCCGGGCGCTCATGTGCCGACCCCATTCTCCACAACATCCGCAGAGACTCGCTGTTCCGAGTAGATATGTACCACAAGTCGTAGCTCCGTGTGGAGTCAGTG"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GC"
+     },
+     "length": 43,
+     "right": {
+      "kind": "3'",
+      "overhang": "GC"
+     },
+     "sha": "25acd4610b43"
+    }
+   ],
+   "seq": "AATGTTGCACTGAGTCCCTTTGCGAATCACGTCCGCAGTGGCG"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GA"
+     },
+     "length": 41,
+     "right": {
+      "kind": "3'",
+      "overhang": "GA"
+     },
+     "sha": "56cb69da1553"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GA"
+     },
+     "length": 57,
+     "right": {
+      "kind": "3'",
+      "overhang": "GA"
+     },
+     "sha": "f73133722e95"
+    }
+   ],
+   "seq": "ACACTGCCGATCGGGCCCAAAAAAGCCGTCAGTATTGTGTGACACTGCCTCAACCAACTAGGATACATGCGATTCGGCTGCCAAACACTAGAATATTG"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GA"
+     },
+     "length": 58,
+     "right": {
+      "kind": "3'",
+      "overhang": "GA"
+     },
+     "sha": "0708f95fc372"
+    }
+   ],
+   "seq": "GAACTTCCCACCCCTTGGTTAGAACTGTGGCGACAAGCTGTGATTGCCCTGAGCAGTG"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AT"
+     },
+     "length": 46,
+     "right": {
+      "kind": "3'",
+      "overhang": "TA"
+     },
+     "sha": "371a498cc153"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TA"
+     },
+     "length": 47,
+     "right": {
+      "kind": "3'",
+      "overhang": "AT"
+     },
+     "sha": "9cc51d14cf5d"
+    }
+   ],
+   "seq": "CATCACTGCTTGCCTCCCCGGCCTCCTATTACAAGGAAGTTGCAGTGTAGGATTAGACTAACCGTCTCCAGATGGAAGTAGGACATCTCTGGC"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "GC"
+     },
+     "length": 50,
+     "right": {
+      "kind": "3'",
+      "overhang": "GC"
+     },
+     "sha": "e1a635362569"
+    }
+   ],
+   "seq": "TGTTTAGCGGGCTAACATTGGGTAGTTGGCAGTTAGTTATGAGCAGTGGC"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TA"
+     },
+     "length": 48,
+     "right": {
+      "kind": "3'",
+      "overhang": "AA"
+     },
+     "sha": "8cf1e6bc12e5"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AA"
+     },
+     "length": 68,
+     "right": {
+      "kind": "3'",
+      "overhang": "TA"
+     },
+     "sha": "a6ea5b933838"
+    }
+   ],
+   "seq": "CACTGCCCCAACGAACGGGACGGAGGAGTCGGTGACGGCCGCGAGCGTCGCTGGGGACGAGCAGTGTAGTGCTAACGGCCGGCGCGAAGTGCTTGTGATTGTCCTGTCCCTTCTAA"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AT"
+     },
+     "length": 42,
+     "right": {
+      "kind": "3'",
+      "overhang": "AT"
+     },
+     "sha": "cd2f54d03775"
+    }
+   ],
+   "seq": "GGATCACTGCGTAGCCGGGCCAAGCATTGTCCCCGCTAATCA"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AA"
+     },
+     "length": 36,
+     "right": {
+      "kind": "3'",
+      "overhang": "TG"
+     },
+     "sha": "b22af878b772"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TG"
+     },
+     "length": 61,
+     "right": {
+      "kind": "3'",
+      "overhang": "AA"
+     },
+     "sha": "e98e09f47b67"
+    }
+   ],
+   "seq": "CACTGCATTTCGGGGGCGGGCCATGTTCCGGTTGCGCAGGTGCTCCCGCTTAGGCAGTGAAACGAACGCTCATTTCACGCGCTTATGTCATCTAGTG"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AG"
+     },
+     "length": 54,
+     "right": {
+      "kind": "3'",
+      "overhang": "AG"
+     },
+     "sha": "90ffec547fe2"
+    }
+   ],
+   "seq": "CTGCATCAGGTCAGGTGTGACTGAGTACGTGCCCGGGTTGCATGAGACCTAGCA"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "CG"
+     },
+     "length": 44,
+     "right": {
+      "kind": "3'",
+      "overhang": "TC"
+     },
+     "sha": "41687b5aa952"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TC"
+     },
+     "length": 72,
+     "right": {
+      "kind": "3'",
+      "overhang": "CG"
+     },
+     "sha": "5fe6f7a859bb"
+    }
+   ],
+   "seq": "CCACTGCCCAGGCAATTGATTCATCCGCCACCCTCTCCTCATCTATATAACTGTGAGTGCCAGCGGCAGTGCGCGTTACCAATAGAGGAAGTGGTCGTAAGAGGTACGAGAGGGTT"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AG"
+     },
+     "length": 59,
+     "right": {
+      "kind": "3'",
+      "overhang": "AG"
+     },
+     "sha": "360197353f24"
+    }
+   ],
+   "seq": "GTTCGTTACTCGTACAGAGTTAAACGCACCTGATCTCTCTCTGCAACAGATCGCAGTGA"
+  },
+  {
+   "enzyme": "BtsI",
+   "fragments": [
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "TG"
+     },
+     "length": 53,
+     "right": {
+      "kind": "3'",
+      "overhang": "AC"
+     },
+     "sha": "cf8e656629c5"
+    },
+    {
+     "left": {
+      "kind": "3'",
+      "overhang": "AC"
+     },
+     "length": 50,
+     "right": {
+      "kind": "3'",
+      "overhang": "TG"
+     },
+     "sha": "d54789190541"
+    }
+   ],
+   "seq": "GTGTCGAATAACGCTCAGAGAGAGCAGCGAGATTAGTTCCACCGCGGGGCAGTGACAACTTGTACGAGTTTCGTATCCCTTCGCTGTTCCCAGACAGGGCAGT"
+  }
+ ],
+ "originLabels": [
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "EcoRI",
+   "seq": "GAATTCACCTGTCCTTGGTTCTCTGCTGGCACAGTCCTCCGGCATAGCTCAGATCACTGCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    43
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TTAACCGCCTGGGGAAGCTGAACCGGACGGGCCGTCAAGTTAGAATTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TGAATTCGATCTATACACTCTGGATAAATCATTCGGGGCCCTATAACAGCAAGCCGTAGAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    37
+   ],
+   "enzyme": "EcoRI",
+   "seq": "CATTGCCTTCTCGCCATACTTATGCATTGATTATCCGAATTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    36
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TTCACTATAGACGCAAAGGTCCTCCGGGGGCTAGGGAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    48
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TCCGCTGCCAAACAATAGTTCTGTATGGAACACGGTGTTCTGCGGGTGAAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "EcoRI",
+   "seq": "GAATTCCTTCTTGAACTCACAAGAGCCTAACTTGCCACGCGCTTACG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    45
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TCTGGTAATTCGTTTAGTCGGGCTCACGTACATTATCAGCCCTGGAAT"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    66
+   ],
+   "enzyme": "EcoRI",
+   "seq": "AATTCAAGTGCCCGATCACCCCCACTAAACAGACTCAGCACGACCTCGTAAAAAAAGAAACACACG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    46
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TTGAAACGCCAGGCAGTTATCCTATACGTATATTCGCTCGTATTTGAATTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    56
+   ],
+   "enzyme": "EcoRI",
+   "seq": "ATTCGCGCCACTTGTTATGATCACACATACTGAAGCTGTGGAGATAATTACAATGGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    53
+   ],
+   "enzyme": "EcoRI",
+   "seq": "TTCTAACAGAGAGCGTAACCCCTCGGGGGAGGGTAAGCACTGGTCAACTCGCGAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    46
+   ],
+   "enzyme": "BsaI",
+   "seq": "CCACGTAAACACTGGTGTCCCACTTCCCGTACGTATTTAGGTCTCTTA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    34
+   ],
+   "enzyme": "BsaI",
+   "seq": "ACTGAGACCAAGCGATTTTTGTAATATCGAATCCAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    48
+   ],
+   "enzyme": "BsaI",
+   "seq": "CCCAGAGACCGCCACGGATATAGTTCCGCCATTTCCCCTGTGTTGGTTA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    48
+   ],
+   "enzyme": "BsaI",
+   "seq": "GAGACCCTGCGCCCCAGACAGGCTTTAGCAGATTCGACCCGGGGTCTATCAAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    51
+   ],
+   "enzyme": "BsaI",
+   "seq": "TGCTAGTAGGTCATAGTTACCGCAGGTAAAAATCTTACTCAAAGGGTCTCGAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    59
+   ],
+   "enzyme": "BsaI",
+   "seq": "GAGACCTGCGTCGAGTGAACACCCTGCACTACCCGTGTTGGTGTCGTCCGATGTATGCGTGCCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    55
+   ],
+   "enzyme": "BsaI",
+   "seq": "AGTAAGAGACCAGTGTTCGGGCGGGTAATAGAGATGAATAGTATTTGGGCGTATC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    56
+   ],
+   "enzyme": "BsaI",
+   "seq": "GATTCGCCGGATGAGGGCGTGATCGCCCTTAAGCATTTAACTGTTGGGGGGTCTCGGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    52
+   ],
+   "enzyme": "BsaI",
+   "seq": "GGGGGAGACCGCTATCACAGTTCTGGTAGGTACAGCTATATCCCTCTGGCTTA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    48
+   ],
+   "enzyme": "BsaI",
+   "seq": "CAGAGACCCTTGACCACCGTCGCAACACGGGCTTAGCGTAACGTCGCGTAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "BsaI",
+   "seq": "TCCTCCGCTAGAGGGCAAATGGTGTTAGAAACGTCACTTATGGTCTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    36
+   ],
+   "enzyme": "BsaI",
+   "seq": "TGGGAGACCAGTACTTCGAGGCTGGCTCGTTCATAGCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BsmBI",
+   "seq": "CAATTAGGCACTTTTACAGATTAGGCCGAACGAACGCCGGCACGGACACAATCAGTCGCGTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    61
+   ],
+   "enzyme": "BsmBI",
+   "seq": "AGGAGACGGCTAAGGAGGACGGGTGATAACAACGAGCATCAATGTCTGCTATAAGGTTTTTTTA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BsmBI",
+   "seq": "CGACACGCTCTAAGTTGCTCTGTTTTTCTGTCGTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    31
+   ],
+   "enzyme": "BsmBI",
+   "seq": "GAGACGGCAGCTTACCGTTGCACAGGGGTCTCTCTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "BsmBI",
+   "seq": "TCCGCTAATGGTTTTTTAGAGGACCACGGACGAATCCAGAAAAGGTTTACTAACGTCTCAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    37
+   ],
+   "enzyme": "BsmBI",
+   "seq": "GAGACGTACATTCCGGAGTTGCGTCCCTGTGTGTCTCGGAGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    42
+   ],
+   "enzyme": "BsmBI",
+   "seq": "CGATGAGACGAGATTCTATACTGACCGTGATGGTTCCTGGAGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3,
+    34
+   ],
+   "enzyme": "BsmBI",
+   "seq": "GATAGGAAGAGACGGACAGTCATGCCTCGTCTCCGGTA"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    46
+   ],
+   "enzyme": "BsmBI",
+   "seq": "TGCTATACAGTAGTAAAAAGATATAGCATTACGCCTACGCGTCTCG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    52
+   ],
+   "enzyme": "BsmBI",
+   "seq": "GAGACGGTAATGTACCCAGGATGACCTAGGATATTTCGATTCTCTCTATTAATATCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BsmBI",
+   "seq": "CTTCGTCGTCTGCATCCGCACCGCCCCCTTCCGGGCATCGTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    52
+   ],
+   "enzyme": "BsmBI",
+   "seq": "GAGACGTAGTCAATTCGAGAACATGACGTACGCAAACTACGTGAGAATTGCGATAGC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "SapI",
+   "seq": "CCCAGGTATGTAGGACGAGGTATAGAGATAATAGGGGCTAAGGTACTACTTAGCTCTTCTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    51
+   ],
+   "enzyme": "SapI",
+   "seq": "CCACAGTTTGGACCCCAGTATCGGATGCGAGAGCGCAGACATTGCTCTTCAAAATA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    35
+   ],
+   "enzyme": "SapI",
+   "seq": "TTGAAGAGCGCTGCACCTGTAACTTTTAAACGAGCGC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    54
+   ],
+   "enzyme": "SapI",
+   "seq": "CGGGATAATCAAGTAGCCTAGGGTTTGAGATCCGACAGAGTAGATCGCTCTTCACAAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SapI",
+   "seq": "TTGAAGAAGAGCCAAAATTCAGTGGGGGTCAGTCTGGGATC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    56
+   ],
+   "enzyme": "SapI",
+   "seq": "GGGCCGCGAAGCTCGAAGGGAGCACGGTCGGCTAAAATATCTCTGTGTGCTCTTCCCGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    47
+   ],
+   "enzyme": "SapI",
+   "seq": "ACGCTACGGGCGGTGAGTTCAGACGGCATCGAAGCCATAGCTCTTCAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    46
+   ],
+   "enzyme": "SapI",
+   "seq": "CCGTATTAGGATCTATTACAGCGCCAAGAAAGGAAAGTGCTCTTCCCGTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SapI",
+   "seq": "CGGCCGCCTTAACACAGTCCATCGAGGCCCTTAGTTAGGCTCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    49
+   ],
+   "enzyme": "SapI",
+   "seq": "AAGAGCTTAGTAAAAGTGTCCAGGGAACCCCTGTCCTGCCTAAGAAACCATTTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SapI",
+   "seq": "GATAGGGGATGCCACCTAACACACACCCACACGTTTCAGCTCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    59
+   ],
+   "enzyme": "SapI",
+   "seq": "CGAAGAGCACATCACAGAGTTTCCCTGATTTTTTGGCGGTAGTACGGGATGTCTCAACACCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    44
+   ],
+   "enzyme": "BbsI",
+   "seq": "CACATGAAGCGCCAACGCGGGGGGGGGCCTGCGCGCGAAGACCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    47
+   ],
+   "enzyme": "BbsI",
+   "seq": "GCTGATCTGCACAAATGCGAACTGAATATTATCCTACAAGAAGACCGATGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "BbsI",
+   "seq": "CTAAGAAGTCTTCGTTGTGGAGATGAGTAGCAACGAGGGGACCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    54
+   ],
+   "enzyme": "BbsI",
+   "seq": "TTACGTATGCCTATGTAAGCAGCGGAACCAAATCACTTATTCCAAGGAAGACCCCTGTAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    35
+   ],
+   "enzyme": "BbsI",
+   "seq": "ATGACCGGCACACACGGACTTGAGGACGAAGACGAGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    52
+   ],
+   "enzyme": "BbsI",
+   "seq": "GTCTTCCTAGGCTCCACGTCGCGGGCGAAGCCGTCGAAGTAACTGAATGGAGAAGTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    56
+   ],
+   "enzyme": "BbsI",
+   "seq": "GTTGTCAACGTGATTGTGATGGGGCTGGTTTGCTGTCTCGGATCACCCGAAGACCAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    52
+   ],
+   "enzyme": "BbsI",
+   "seq": "ACGTCTTCGTAGGAAGTGCGACTGTGTAATAAGCTATATACAGCTGTCGGGGTGAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "BbsI",
+   "seq": "CGCGTAAGTCTTCGGCTGTTGCGGTCGACAACGTTCCGACGCGCATACGCGTGCTCTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    35
+   ],
+   "enzyme": "BbsI",
+   "seq": "CCGTCTTCGGGTTGCAGTGTAAATATGGCCCACTCCGAA"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    52
+   ],
+   "enzyme": "BbsI",
+   "seq": "CTAAGATTCGATACCAAGGACACGAACCTCGACCATCTCTTCAAGAAGACTT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    35
+   ],
+   "enzyme": "BbsI",
+   "seq": "GTTGTCTTCTAGGAGTGCCAGAGTAAGATGTCATGGGC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "MmeI",
+   "seq": "ACAAGGGATGCAGCGGTGGCTTGAATGGCAGTCTCCAACGAGGAGCCCTATAGATGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    4
+   ],
+   "enzyme": "MmeI",
+   "seq": "ATGAGGACTTCCGCTAGGTAGATCGTCAGCAGGGTCTTGATTCCGACAGGAAACTCTTGGCTA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "MmeI",
+   "seq": "CCCTCAACTCACTACGCTCCAACAGAGTCAAACCCGTATTAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "MmeI",
+   "seq": "TAAGCGATTTCTTTTGTAGGTCGGATGCCAAAAGTGCGGACCGAACGTCGCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    36
+   ],
+   "enzyme": "MmeI",
+   "seq": "CAGAATCCATTCCGACAGTATGCTGTGACGTGTAAC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    43
+   ],
+   "enzyme": "MmeI",
+   "seq": "GAAACCAACTCTTTTGGTCCAACCGGTGTAATCCGCTTAAACG"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    60
+   ],
+   "enzyme": "MmeI",
+   "seq": "GCCAGCCGCGGGAAAGCCTGTAAGCTCTAGACGTTCCGACACCTGTAGCAACACGGGGAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "MmeI",
+   "seq": "CCGAATGCCTCCGGCCATCAGTCGGAAATGGCTTTTGATCTGCGATTAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    35
+   ],
+   "enzyme": "MmeI",
+   "seq": "ATAAAGGACTCCAACAAGCTAAGGTTTAAAAACCCGA"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    44
+   ],
+   "enzyme": "MmeI",
+   "seq": "TCAGTTATTTCGACACTAGTTGGATACTGGTAGTCATACGGGCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    45
+   ],
+   "enzyme": "MmeI",
+   "seq": "TACTACTCGCCGCGAACCATCCGACCAAGTACACGCAATTATTCTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "MmeI",
+   "seq": "TTGAGCGACGACCTAATGTTGTCGGAGGAAGTGCTGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    43
+   ],
+   "enzyme": "FokI",
+   "seq": "TATATACGTGAGGATCCCGTCTGAGGACGGGATGAAGATATAGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    33
+   ],
+   "enzyme": "FokI",
+   "seq": "GCCGGTTAGTCGGAAGCTCGGATGCGATGTCAGTGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "FokI",
+   "seq": "CTTGACGCCCGATTGGCCACCCGACGTTACTTGAGTGTTCGGGCGAGGATGTCAATCGGCAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    40
+   ],
+   "enzyme": "FokI",
+   "seq": "ACGCGCGATCCTGGGGAAGATGTACCGGATGGGAGGGAGCTCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    56
+   ],
+   "enzyme": "FokI",
+   "seq": "GGTAAGGGTACCCGTTCTTTTCGTTGGTGAATTCTATTCGTCGGATGAGCCTTCTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "FokI",
+   "seq": "GCGCGCTCTGCTAAGGAAAATTTGCACAATCTCCTACCGTTATCTCGGATGCAGATGTCCCTGTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    39
+   ],
+   "enzyme": "FokI",
+   "seq": "AAGCGTGTAACCATCCTCATCTTGACCGTGGTGTGGTTCTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    43
+   ],
+   "enzyme": "FokI",
+   "seq": "GCGAGATGCCCATCCCTACCCAGACTTGGTGCCCCGGGCTTGTTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    53
+   ],
+   "enzyme": "FokI",
+   "seq": "CTGCGTATGACCATCCCTGATGTTTAGAAGGGGGTTGCCGGCAATGCAACCCGTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    55
+   ],
+   "enzyme": "FokI",
+   "seq": "GGTGACACAATCATCCGCGTGTTTCCACCCCGTTCGTCTTAAGCAACTACGTGGTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "FokI",
+   "seq": "TATGGATCCCACGGCATCCTGACGATCCCGATGTAGCCG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    48
+   ],
+   "enzyme": "FokI",
+   "seq": "ACTCACTCCTCTTGAGTGGGCGTAAGTCTTGGCAGGATGGCGGAATGTCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    42
+   ],
+   "enzyme": "BglI",
+   "seq": "GCACACGGAGCAGCAAGTACCTTTCACGCCATCGCGCCATCATG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    4
+   ],
+   "enzyme": "BglI",
+   "seq": "GCCGTGGCTCTTAATCAGTACCTCTTACCTGTCGGTAAGCCCGGTCATAAGGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    47
+   ],
+   "enzyme": "BglI",
+   "seq": "GGCGTTAATGCTTGGCTGAAACCACTTTAGATATTTAGTCGCCCATGC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    4
+   ],
+   "enzyme": "BglI",
+   "seq": "CACCGGGCAGGTTGCTACTTATAATTGTTAGCATTGTCTGCAAAGCTGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    59
+   ],
+   "enzyme": "BglI",
+   "seq": "GGCTCCGTTTACCAGTCACCCTCATGTTGAGTTAACCTGGAGCAAAGGTGTAGCCAAATT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    4
+   ],
+   "enzyme": "BglI",
+   "seq": "ATCGCGGCTGCCACGCGTGCATATGCTATGGCATTTTTCAATGCTCGGCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    50
+   ],
+   "enzyme": "BglI",
+   "seq": "CGGCCCTGCGGGGCGTGTCGATCGACAAAGCGTCCAACTCCCAGCCGGCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "BglI",
+   "seq": "ATCCGGCAGCCGCTTCTTGGTAGTACGTCCACCCAAAGACCTCGCGTAAGCCGCCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    55
+   ],
+   "enzyme": "BglI",
+   "seq": "GGCGCGCTAGGTAGGAGATGCGATGATAGGATTTTGTTTATAGGCCTAGCCGCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "BglI",
+   "seq": "CATCGGCGTCGGGTAGCAAGATAACAGCAGCGCCCAAGGTTGTACTTGAAGCCA"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    67
+   ],
+   "enzyme": "BglI",
+   "seq": "CGGCTTGGGCGTAGGACGATCAATACTATGAGATCGTAAATGGATCGAGTCGAGCGGGAAGCCTAAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "BglI",
+   "seq": "AATGGGCTAAGCGGCGTGAATAGCGGTGTATCAATTTATGGTTAGACGAACCAGCGCCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    66
+   ],
+   "enzyme": "SfiI",
+   "seq": "GGCCGGCAGGTTCAGCGGTTCATGGGCAAGATAAGCGAACTCGTGGGCCTGCCGTATTGGCCTGACG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "SfiI",
+   "seq": "TCGTGGCCTGTTGGTGACTGAGGCTTCAACGCATCCGTTCTATCACCATTTTCAAACGGCCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SfiI",
+   "seq": "CCGGCCACGTAGCCAAATGAATGTCTATGAGCAGTCGCGGCAGGCCGGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "SfiI",
+   "seq": "AATTGGCCTCCAGTGAAGTCTAATCATTACTGTTTACGCTTTCCTCTTTGCACAGGTGTAGACATGGCCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    68
+   ],
+   "enzyme": "SfiI",
+   "seq": "CGGCCGAGACTCGGCCGGATGACGCCCAGCAGCCGCGAGGTCGAATACTAATCGATTCAGGGCCTCCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "SfiI",
+   "seq": "AAGGGCCCGCTGAATCGCCGGGGTTGTAGTCGGCTGAGGAAGGAACCGAGTAGATGGCCTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "SfiI",
+   "seq": "AGTGGCCTGGAGTTTAGTCCTACCTTGTGGTTTATTTACTACGTGGGTTTTCGTTGCAGGGCCAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "SfiI",
+   "seq": "GGCCGGCCGCACCGAGGGTAGAGCCCTGTATATATTCAGAGAACTAAGGGCCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SfiI",
+   "seq": "GAGGCCTACAGTCCATTGTCTAGCCTCACGGAAAGATCATCGGCCTAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SfiI",
+   "seq": "TCGGCCTGACCCTAGTAGGTGGATAATAAGTGCCCCGTCGAGGCATGCGGCTATGTCTCGATTAGGCCTAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "SfiI",
+   "seq": "GGCCCTTAGGGACTCTCGTGACGTCATCCTTAATATCCACTAGCTGGAACCCGGCCCCAAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    5
+   ],
+   "enzyme": "SfiI",
+   "seq": "CCGTACGGCCGTCAGAAGCGCGGTCTGAATGTTCGCTCCTAGTTGCATACGCACGCGATCCGGC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    47
+   ],
+   "enzyme": "PstI",
+   "seq": "GAGGTCAAGAAAGTCGCATTGTTATAAAGTGTATGGGGGCGCCTGCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    6
+   ],
+   "enzyme": "PstI",
+   "seq": "CCTGCAGTAATCCGTGTCAGGGATCGTCGTGGGATGGCAGCTAAGTATCCGTGGGCTGACA"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    38
+   ],
+   "enzyme": "PstI",
+   "seq": "GTCCCTACCCGGGGGATACAACGTTTTCGTGAGCTGCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    4
+   ],
+   "enzyme": "PstI",
+   "seq": "TGCAGACCATGATCCAGTTATGGCCCGGGATGAAAATGATCTCGTAACAAGCTATCGGGCCGTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "PstI",
+   "seq": "CAGTGTGTCTTCATCCTCATATCAAAAGGCTCGTGGTAGATCGCTCTCCCTCTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    6
+   ],
+   "enzyme": "PstI",
+   "seq": "CCTGCAGTGCTGATTAGCTCTATAACAGCAGATAATGATGCACCTGGTCCGAAGCTCCTGCATTCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    49
+   ],
+   "enzyme": "PstI",
+   "seq": "GTTATACAGTCGCCTATTATCTAGGCTCCTCAAAGCCGGTGAACCTGCAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "PstI",
+   "seq": "CAGGCCAGCACGACGTCCACACTTGCGTTTTCTGACTTGGCACCACCAGACTGTCGATCTCACTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    38
+   ],
+   "enzyme": "PstI",
+   "seq": "CACTGCTTGCGGAAGCGCCAATGGGGCCCGTTACTGCAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "PstI",
+   "seq": "GCAGCACCAAGCCGCGCTGGGCGCTACAAAGACTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "PstI",
+   "seq": "CAGTTTCCTATGATGAGATTCCTTTCCGACAGGCCGACGTGCCGTAGGCTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    6
+   ],
+   "enzyme": "PstI",
+   "seq": "TCTGCAGCCCACATACTCTGTTGCTCAAGCCACTTGTAAGGCTTGTGCCACTTCGTACCGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "KpnI",
+   "seq": "ACCCAGGTCTTATATGCTACAGTATGTCGATCTCAGCAACTTGCGGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "KpnI",
+   "seq": "TACCCGACCAGGCCGCTTTATTTCACATCTCCTCACTCACCGAGCGATACCAGGTGCCCTGTGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    56
+   ],
+   "enzyme": "KpnI",
+   "seq": "CGTACATTATCCGGCAAGCATAGTCGAGAACCATGTTCTGGTCGGAAACTAGGTACC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    5
+   ],
+   "enzyme": "KpnI",
+   "seq": "GGTACCGACTGTTACGGCTGCACCCTTAAGGTCCATTTTAGACTTT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    40
+   ],
+   "enzyme": "KpnI",
+   "seq": "TGAAGCGAACTGTCCTCTACCACTACAAGTTATGTGGTACC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "KpnI",
+   "seq": "TACCATGCCAAAAGTTCGGATAATATAAATCGCGAGGCGCGGTAGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    64
+   ],
+   "enzyme": "KpnI",
+   "seq": "GAAGATAACGGCTTACAAACGAAACGAAGTCTTGCGCGCTTACAAAGATGTCACCAGGAGGTACCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "KpnI",
+   "seq": "ACCGTTGTGGGAGCGCGTACGTTATACACGGGGTGAGTGATTCGGGGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    46
+   ],
+   "enzyme": "KpnI",
+   "seq": "TCAGACCTGTTACCACACCAGGATGTTAACGTGATTCAAGTGGTACC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "KpnI",
+   "seq": "TACCATCCTGCGCCCCCCAGATAGACACAACTCGGATCAAAGTCGGTCTTCGATGTTTGGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    49
+   ],
+   "enzyme": "KpnI",
+   "seq": "CGAAGTTTCAGGACGTAGCAGCCGGGCCCAGTAACTCTAGCAACGGTACCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    6
+   ],
+   "enzyme": "KpnI",
+   "seq": "CGGTACCCGGAAACTAAGTGATGACGGAGGGCTGTTT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    64
+   ],
+   "enzyme": "SmaI",
+   "seq": "GTTTTGCAATCAAGATGTAGGTTCATGGGCAAACCGCTATCATCAGTCTCCGATCCCTTGCCCCGG"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    65
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGGTAAGGTTTGTCACCAGGGTTACACGACATATTTTGGCGCGAGAAACTGCGAATCGACCTCCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    40
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGGGTCACCGTCCTCTAAAGTCGCATGCCAAGCGGCCCCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SmaI",
+   "seq": "CGGGCCCAAGAGATTAAAGGCCGAAACGCAATGACCGCGGCGTTCGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    54
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGGGATTCCACAAGTGGAACCTTGGGTTTCGAGGGAGAGACACTAGTTTGACCCGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    57
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGTAAGCACAAAGAGAGTCGGAAGGCCTACTTAAGCGGCACTAAACTAGTCATACCCG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    59
+   ],
+   "enzyme": "SmaI",
+   "seq": "GCTAGCACAGACTGGCGTCTACTACCTGGACTGGCCCAACTGTCGTTCAAAACAGCCCCGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGCTTGATACAATGACACAAGCGTTATCTTGAGTGCTCTCACACTATGTGTGTAACGCCCGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    49
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGTGGAGGGGACTCCCTATTCCCACACGGGCGCCGAAATTTAAATTCCCG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "SmaI",
+   "seq": "CCGGGTGGAGCAGATTTTTCTTCCAACAATTTCCTCGCGCAATAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    53
+   ],
+   "enzyme": "SmaI",
+   "seq": "GGCCCTGAGGTCGCGCATGCCAGATTATTACTTCCACCTACGCCTCGGACCCCG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "SmaI",
+   "seq": "CGGGACCCATTCGGCTGCGAAGGTTCGGTGTTTGTATTAATTGTGTGGGGAACC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "HgaI",
+   "seq": "CTGGCCTGTACGCGTCTTATGAGTCTCAAAGGTCAGGAGGCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    58
+   ],
+   "enzyme": "HgaI",
+   "seq": "GGACTTAGCGTCAGGCCGCCTATGAAACAACGGGCCCCTATTTTATTGTTCTAAAGCTGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    50
+   ],
+   "enzyme": "HgaI",
+   "seq": "CTACCGGCTGCGTCCTTTAGCTAACTCCGCTACACTTATTTGCGGGGATGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    34
+   ],
+   "enzyme": "HgaI",
+   "seq": "TGCGCGTCCATATAGGAGATGCGGGAGGATCGCCAGGTATT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "HgaI",
+   "seq": "GGCGATCGCGCGCGTCCATTGCTATTGTTCGACTTCGAACGATTGGGCGTATCAACACA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    57
+   ],
+   "enzyme": "HgaI",
+   "seq": "TTCCGGCGCATACAAGGATAATGTAAAGCGTAGTGACGATATCACCTGACGCCCTGGAACG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    53
+   ],
+   "enzyme": "HgaI",
+   "seq": "AGTTGCCCGCGTCTTTGTTGTCAGTCACTGTCCGTCGTCCGACTTATCTAACCTA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "HgaI",
+   "seq": "TCTCTGCGTCTTTTAGTACCGCAATACGACTTAGGGTACTTGAGAGTAGTCGGTGCATTGATTCC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    35
+   ],
+   "enzyme": "HgaI",
+   "seq": "AATCGCCGCAGCGTCTTACACGAGTAACTACCCCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    33
+   ],
+   "enzyme": "HgaI",
+   "seq": "CATGACGGGTCCCGGCCGACACTGACGCCACCAACTGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "HgaI",
+   "seq": "CACTTGTGATTGGCGTCTAACGATCTATCTGTTGCAACCGAGGCGCTGCTGTCTGTCCCCG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    37
+   ],
+   "enzyme": "HgaI",
+   "seq": "CGAGTCGCGTCGAAGCTCTGGCGTGGCCTTCGAACTTTCAT"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    59
+   ],
+   "enzyme": "AlwNI",
+   "seq": "CTGATTATAATTGATTGCAACCACATTAGTGCCCGAGTGGTTGCGGCCGCCATCAGTGC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    5
+   ],
+   "enzyme": "AlwNI",
+   "seq": "AGAATCTGTTCATAATAAATCGCATCCTTCGAAATTCGACCCTTGATTTGTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "AlwNI",
+   "seq": "ACTGGAGTAACAGGTGTTCTCTTCAAACCAGGATGATATGGAACCACTGACCATATTCAGAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    5
+   ],
+   "enzyme": "AlwNI",
+   "seq": "AGAGACTGAACCTTTATGCACTGATAATTGTGCGGCGCTGTCCCCACCTGGGCTCTACGGGTTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    60
+   ],
+   "enzyme": "AlwNI",
+   "seq": "TGAACTCACGCGCATGATGTGTCGTAGGGCCGCCGGTTCAGCACGACCGCATTACAGACTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "AlwNI",
+   "seq": "GCTGGACTAGTTCCGTCCCCTACGGTGTCCGTCGACTTGAATATCCAGCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    51
+   ],
+   "enzyme": "AlwNI",
+   "seq": "GGAGTTGCAGTTACCCAGGATCATACACCCTACGTCTGCGTGTGCCAGTTTCT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "AlwNI",
+   "seq": "TGCTGTGAGGACAGCGATACGCCCATAAGTCAACTCCCCCAGTGGTCGATTAATGATAGCAGTTACAGT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    55
+   ],
+   "enzyme": "AlwNI",
+   "seq": "TGTGGCTGAACATGGAGATCAGCGGCCTCTCGGAATTTAAATGCTGACACAGCAAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "AlwNI",
+   "seq": "CTCTGTCATTAACTTCCACAAGGGTACAATACACAAGCGAGATGACTACCAGA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    43
+   ],
+   "enzyme": "AlwNI",
+   "seq": "GAGTGACTGGATTGTTTACAGAACGTGCTATAGTATACAGGGACT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    4
+   ],
+   "enzyme": "AlwNI",
+   "seq": "GGACCTGGCATCATATCTCCTGATGCAGGGGCTCTTTGGTAACA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1,
+    40
+   ],
+   "enzyme": "EarI",
+   "seq": "TCTCTGGTCAATAAATACCATGATATGCTTGAACTCTTCTAGCTCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    39
+   ],
+   "enzyme": "EarI",
+   "seq": "CCGAAGAGAGGCATGTAGACTCTTGCTCGGACGGCGCGCTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    59
+   ],
+   "enzyme": "EarI",
+   "seq": "ACGACAGAGGGTAGCCCGGACCGCGAAGGCGGTTTATACGATACTAACCGAACTCTTCTG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    62
+   ],
+   "enzyme": "EarI",
+   "seq": "AGTGTACTTGACCACCACGACAGAAAGGCGGCTAACAAAAAACGCCTTCAATAATCTCTTCAT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    65
+   ],
+   "enzyme": "EarI",
+   "seq": "CTGCCTCCATCACAGTGAGGCACACGCTTGTTACTTAACGATGCACTAGCCAATGGTGCTCTTCAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    43
+   ],
+   "enzyme": "EarI",
+   "seq": "TAATAACCGACTTTAATAATAATATATAAGTCGGATCTCTTCAA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "EarI",
+   "seq": "CATAGGCTCTGTCTAGAACCGAAGGTAGGTAACGAACCTCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    48
+   ],
+   "enzyme": "EarI",
+   "seq": "TGGGAAGAGATGGCCATTATTGTTCGTGAGGACCAAAATTCACCAGGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    52
+   ],
+   "enzyme": "EarI",
+   "seq": "TACGAAGAGATTAATGTTCCAAAAAGGACGTCTAGCCCCGCGGAGTCGTCACA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    36
+   ],
+   "enzyme": "EarI",
+   "seq": "AAGAGCATGTATTTGTGGCCGGGGTGATTTAATCTCGAGGG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "EarI",
+   "seq": "TTTTAGGGCGGTTAGACTCAGCATAACCTAGTGCAATCTAGTGCTGAGCAGGTCGCGCTCTCTTC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    34
+   ],
+   "enzyme": "EarI",
+   "seq": "GCGAAGAGAACCGACTTTTGGGTAGTTATATCAACG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    42
+   ],
+   "enzyme": "BseRI",
+   "seq": "GGATCTCCGTTTGAGGTTTTATTCAGGAGGAGATCTAAAGGTAC"
+  },
+  {
+   "at_origin": true,
+   "cuts": [
+    66
+   ],
+   "enzyme": "BseRI",
+   "seq": "GGCCGACGGGTATTTGCGTCAAAATACCCTGCCTACGGCGATCATAGCGTGAGGAGCTAGAATCCA"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BseRI",
+   "seq": "TCACAATAAGCTCCTCCTTCTTGCCGGCGCACGTGCCCTACTCCGGGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1
+   ],
+   "enzyme": "BseRI",
+   "seq": "GTTTGTTCGCTCCTCAATGTTTGACCCATCAGATAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    1,
+    4,
+    7
+   ],
+   "enzyme": "BseRI",
+   "seq": "TCCCGAACTAGTAGTCGCGCAAAATGGAGAGGAGGAGGAGACT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    3
+   ],
+   "enzyme": "BseRI",
+   "seq": "GGACCCGTATGCTCCTCACCTCAAATCATGTATCTGTCCGGCGGATGAAGTACG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    51
+   ],
+   "enzyme": "BseRI",
+   "seq": "TAGGCACTCCTCCAGCAACTGGACCCGGCCAACCCTGCGGACACCCAGATTGC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BseRI",
+   "seq": "GGCCATACAGCTCCTCGCGGGAAGCATAAGTTTGTATACGCCGCTAG"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    38
+   ],
+   "enzyme": "BseRI",
+   "seq": "CACTCGCCTCCTCGGCTCCGGTCCCCTTGGAGCACGAAC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BseRI",
+   "seq": "AACAAGTGAGCGTTAGGTTCAAAACTGCTCAATCTTAACCCGCTAGAGGAGCCTGTCTT"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    42
+   ],
+   "enzyme": "BseRI",
+   "seq": "ACCTGTCTCAAGGTTGCTGGCAAGTTGAGGAGCCGTTCACGCC"
+  },
+  {
+   "at_origin": false,
+   "cuts": [
+    2
+   ],
+   "enzyme": "BseRI",
+   "seq": "TCACTCAGTGCTCCTCAACCGCTAGGGTAACATATATCGTCACACT"
+  }
  ]
 }

@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 
 import { SeqDocument } from '@/core';
-import { ENZYMES, findCutSites } from '@/core/analysis/restriction';
+import { ENZYMES, cutLabel, findCutSites, getEnzyme } from '@/core/analysis/restriction';
 import { documentChecksum } from '@/core/checksum';
 import { digest } from '@/core/cloning/digest';
 import { flipFragment, ligate } from '@/core/cloning/ligate';
 import { parseGenBank } from '@/io';
 import { readFixture } from '@/test/fixtures';
+import { exportMapSvg } from '@/view/svg';
 
 import oracle from './digest.json';
 
@@ -18,6 +19,12 @@ import oracle from './digest.json';
  * of them, including hybrid sites, blunt ends, 3' overhangs, Type IIS ends,
  * and a vector whose origin has been moved. Host methylation and REBASE
  * imports are not covered (issues #135, #136).
+ *
+ * Cuts at the origin of a circle: random circles turned so a top or bottom
+ * cut lands within two bases of the origin, 16 enzymes (Type IIS and
+ * non-palindromic ones included). The cut labels, in the table and on the
+ * exported map, come from Bio.Restriction search(linear=False); the digest
+ * fragments from pydna's Dseqrecord(circular=True).cut.
  */
 
 interface End {
@@ -109,4 +116,69 @@ describe('ligation against pydna', () => {
       }
     });
   }
+});
+
+describe('cuts at the origin of a circle', () => {
+  const enzymeOf = (name: string) => {
+    const e = getEnzyme(name);
+    if (e === undefined) throw new Error(`${name} is not known`);
+    return e;
+  };
+
+  it('has cuts exactly at the origin and Type IIS enzymes', () => {
+    expect(oracle.originLabels.length).toBeGreaterThanOrEqual(150);
+    expect(oracle.originLabels.filter((c) => c.at_origin).length).toBeGreaterThanOrEqual(15);
+    expect(oracle.originLabels.some((c) => c.enzyme === 'BsaI')).toBe(true);
+    expect(oracle.originDigests.length).toBeGreaterThanOrEqual(150);
+  });
+
+  it('labels each cut as Bio.Restriction places it, 0 as the length', () => {
+    const problems: string[] = [];
+    for (const [i, c] of oracle.originLabels.entries()) {
+      const e = enzymeOf(c.enzyme);
+      const L = c.seq.length;
+      const sites = findCutSites(c.seq, 'circular', [e]);
+      const labels = [...new Set(sites.map((s) => cutLabel(s.cut, L, 'circular')))].sort(
+        (a, b) => a - b,
+      );
+      if (labels.join() !== c.cuts.join()) {
+        problems.push(`#${String(i)} ${c.enzyme}: ${labels.join()} vs ${c.cuts.join()}`);
+        continue;
+      }
+      const doc = SeqDocument.create({ sequence: c.seq, topology: 'circular' });
+      const svg = exportMapSvg(doc, { cutSites: sites });
+      const drawn = [
+        ...svg.matchAll(new RegExp(`${c.enzyme}[^<(]*\\(([0-9,]+)\\)`, 'g')),
+      ].map((m) => Number((m[1] ?? '').replace(/,/g, '')));
+      if ([...new Set(drawn)].sort((a, b) => a - b).join() !== c.cuts.join()) {
+        problems.push(`#${String(i)} ${c.enzyme}: map shows ${drawn.join()}`);
+      }
+    }
+    expect(problems.slice(0, 20)).toEqual([]);
+  });
+
+  it('digests a circle cut at the origin into the fragments pydna makes', () => {
+    const problems: string[] = [];
+    for (const [i, c] of oracle.originDigests.entries()) {
+      const doc = SeqDocument.create({ sequence: c.seq, topology: 'circular' });
+      const frags = digest(doc, findCutSites(c.seq, 'circular', [enzymeOf(c.enzyme)]));
+      const ours: Piece[] = frags.map((f) => ({
+        length: f.sequence.length,
+        sha: sha(f.sequence),
+        left: describe1(f.left),
+        right: describe1(f.right),
+      }));
+      const key = (p: Piece): string => `${p.sha}/${p.length}`;
+      ours.sort((a, b) => (key(a) < key(b) ? -1 : 1));
+      const expected = [...(c.fragments as readonly Piece[])].sort((a, b) =>
+        key(a) < key(b) ? -1 : 1,
+      );
+      try {
+        expect(ours).toEqual(expected);
+      } catch {
+        problems.push(`#${String(i)} ${c.enzyme} L=${String(c.seq.length)}`);
+      }
+    }
+    expect(problems.slice(0, 20)).toEqual([]);
+  });
 });

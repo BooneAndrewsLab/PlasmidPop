@@ -13,9 +13,11 @@ from REBASE (issue #136).
 import hashlib
 
 from Bio import Restriction
+from Bio.Data.IUPACData import ambiguous_dna_values
+from Bio.Seq import Seq
 from pydna.dseqrecord import Dseqrecord
 
-from common import fixture_sequence, rc, rng_for, rotate
+from common import fixture_sequence, random_dna, rc, rng_for, rotate
 
 SEED = 20261007
 FIXTURES = {
@@ -143,6 +145,82 @@ def digest_cases():
     return cases
 
 
+# --- cuts at the origin of a circle ----------------------------------------------
+
+ORIGIN_LABEL_ENZYMES = ['EcoRI', 'BsaI', 'BsmBI', 'SapI', 'BbsI', 'MmeI', 'FokI', 'BglI',
+                        'SfiI', 'PstI', 'KpnI', 'SmaI', 'HgaI', 'AlwNI', 'EarI', 'BseRI']
+ORIGIN_DIGEST_ENZYMES = ['EcoRI', 'BsaI', 'BsmBI', 'SapI', 'BbsI', 'FokI', 'BglI', 'PstI',
+                         'KpnI', 'SmaI', 'HgaI', 'AlwNI', 'MlyI', 'BtsI']
+
+
+def random_site(rng, e):
+    site = ''.join(rng.choice(ambiguous_dna_values[c]) for c in str(e.site))
+    return site if rng.random() < 0.5 else rc(site)
+
+
+def top_cuts(e, seq):
+    """0-based cut positions on the top strand of a circle, both orientations
+    of the site, by Bio.Restriction (search is 1-based: the first base after the cut)."""
+    L = len(seq)
+    found = {(p - 1) % L for p in e.search(Seq(seq), linear=False)}
+    if not e.is_palindromic():
+        # a site on the bottom strand cuts the top strand `bottom - top` bases the other way
+        top5, bottom = e.charac[0], e.size + e.charac[1]
+        for p in e.search(Seq(seq).reverse_complement(), linear=False):
+            found.add((L - (p - 1 + bottom - top5)) % L)
+    return sorted(found)
+
+
+def origin_sequence(rng, e, sites, t, bottom_anchor):  # t: 0..4, the turn from the cut
+    """A random circle with `sites` sites, turned so a cut lands within two
+    bases of the origin (both strands' cuts are used as the anchor)."""
+    filler = lambda n: random_dna(rng, n)
+    lin = random_site(rng, e) + filler(rng.randint(30, 60))
+    if sites == 2:
+        lin += random_site(rng, e) + filler(rng.randint(30, 60))
+    L = len(lin)
+    cuts = top_cuts(e, lin)
+    if not cuts:
+        return None
+    anchor = cuts[0]
+    if bottom_anchor and e.ovhg:
+        anchor -= e.ovhg  # the bottom-strand cut, in top-strand coordinates
+    rot = (anchor + t - 2) % L
+    return rotate(lin, rot)
+
+
+def origin_cases():
+    rng = rng_for(SEED + 2)
+    labels, digests = [], []
+    for name in ORIGIN_LABEL_ENZYMES:
+        e = enzyme(name)
+        for t in range(12):
+            seq = origin_sequence(rng, e, 1, rng.randint(0, 4), t % 2 == 1)
+            if seq is None:
+                continue
+            L = len(seq)
+            cuts = top_cuts(e, seq)
+            labels.append({'enzyme': name, 'seq': seq,
+                           'cuts': sorted(L if c == 0 else c for c in cuts),
+                           'at_origin': 0 in cuts})
+    for name in ORIGIN_DIGEST_ENZYMES:
+        e = enzyme(name)
+        for t in range(12):
+            seq = origin_sequence(rng, e, 1 + t % 2, rng.randint(0, 4), t % 4 >= 2)
+            if seq is None:
+                continue
+            try:
+                frags = Dseqrecord(seq, circular=True).cut(e)
+            except Exception:
+                continue  # pydna refuses overlapping adjacent cuts
+            digests.append({
+                'enzyme': name, 'seq': seq,
+                'fragments': sorted((fragment_record(f.seq) for f in frags),
+                                    key=lambda r: (r['sha'], r['length'])),
+            })
+    return labels, digests
+
+
 # --- ligation ------------------------------------------------------------------
 
 
@@ -245,4 +323,6 @@ def ligation_cases():
 
 
 def generate():
-    return {'digests': digest_cases(), 'ligations': ligation_cases()}
+    labels, origin = origin_cases()
+    return {'digests': digest_cases(), 'ligations': ligation_cases(),
+            'originLabels': labels, 'originDigests': origin}
