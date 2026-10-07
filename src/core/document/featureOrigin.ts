@@ -181,7 +181,9 @@ export function originRecord(
     if (text === null) return null;
     gaps.push(basesHash(text));
   }
-  return { key: feature.id, whole, span, gaps };
+  const all = ownBases(0, span, p, bases);
+  if (all === null) return null;
+  return { key: feature.id, whole, span, gaps, bases: basesHash(all) };
 }
 
 /** Bases in the original's range segments, laid end to end. */
@@ -276,6 +278,7 @@ function isOrigin(value: unknown): value is FeatureOrigin {
     typeof o['from'] === 'number' &&
     typeof o['to'] === 'number' &&
     Array.isArray(o['gaps']) &&
+    typeof o['bases'] === 'number' &&
     typeof whole === 'object' &&
     whole !== null &&
     Array.isArray(whole['segments']) &&
@@ -328,6 +331,32 @@ export function pieceOrigin(
   return record === null ? null : { ...record, from, to };
 }
 
+/**
+ * `after`, what an edit that took bases off only one tip (`start` or `end`)
+ * of a linear sequence left of `before` (on `space`, before the edit), with
+ * its record narrowed to the bases it still holds, as `extractRange` would
+ * narrow it. A record that did not place before the edit is left as it is.
+ */
+export function narrowedAtTip(
+  before: Feature,
+  space: SequenceSpace,
+  after: Feature,
+  tip: 'start' | 'end',
+): Feature {
+  const origin = before.origin;
+  if (origin === undefined || after.origin !== origin || placementOf(before, space) === null) {
+    return after;
+  }
+  const count = (f: Feature): number =>
+    f.segments.reduce((n, s) => n + (s.kind === 'range' ? s.end - s.start : 0), 0);
+  const lost = count(before) - count(after);
+  if (lost <= 0) return after;
+  const fivePrime = (tip === 'start') === (before.strand !== 'reverse');
+  const from = fivePrime ? origin.from + lost : origin.from;
+  const to = fivePrime ? origin.to : origin.to - lost;
+  return withOrigin(after, to > from ? { ...origin, from, to } : null);
+}
+
 /** `feature` with `origin` as its record, or with none. */
 export function withOrigin(feature: Feature, origin: FeatureOrigin | null): Feature {
   if (origin !== null) return { ...feature, origin };
@@ -369,7 +398,7 @@ const segmentKey = (s: Segment): unknown =>
  */
 function sameOriginal(a: FeatureOrigin, b: FeatureOrigin): boolean {
   if (a === b) return true;
-  if (a.key !== b.key || a.span !== b.span) return false;
+  if (a.key !== b.key || a.span !== b.span || a.bases !== b.bases) return false;
   if (a.gaps.length !== b.gaps.length || a.gaps.some((g, i) => g !== b.gaps[i])) return false;
   const shape = (w: Feature): string =>
     JSON.stringify([
@@ -398,7 +427,8 @@ interface Candidate {
  * no base was lost or gained between them), on the same strand, and any
  * intron the cut fell in has its own bases back. Pieces that add up to the
  * whole original give the original back, `/translation`, `/transl_except`
- * and all; fewer give one larger piece. Everything else is left as it is.
+ * and all, when every base of it is the original's again; fewer give one
+ * larger piece. Everything else is left as it is.
  */
 export function rejoinPieces(
   features: readonly Feature[],
@@ -472,6 +502,17 @@ export function rejoinPieces(
       continue;
     }
     const whole = from === 0 && to === totalOf(origin);
+    // The original comes back, `/translation` and all, only over its own
+    // bases: one changed inside a piece since the cut (an edit, a PCR
+    // mismatch) leaves the pieces apart (#188). A larger piece has no
+    // `/translation` to be wrong, and is checked when it is completed.
+    const own = whole ? ownBases(0, origin.span, placement, bases) : null;
+    if (whole && (own === null || basesHash(own) !== origin.bases)) {
+      for (let c: Candidate | undefined = head; c !== undefined; c = next.get(c.index)) {
+        used.delete(c.index);
+      }
+      continue;
+    }
     out.set(
       head.index,
       withOrigin({ ...joined, id: newId() }, whole ? null : { ...origin, from, to }),

@@ -44,7 +44,9 @@ first, each with:
   exactly as they were cut, as closing the vector on itself does, or
   religating a digest's fragments in their own order: no base lost or
   gained between them (a dropout, a fill-in or a chewed-back end leaves
-  them apart), and a cut in an intron gets its own bases back. The
+  them apart), a cut in an intron gets its own bases back, and every
+  base of the feature is its own again (a base edited in a piece since
+  the cut, or a PCR primer's mismatch, leaves them apart). The
   feature comes back whole, with its `/translation` and a
   `/transl_except` whose codon the cut had split. Pieces of two features
   that merely look alike (the same name in two plasmids) stay apart. The

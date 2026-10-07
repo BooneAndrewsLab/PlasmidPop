@@ -74,6 +74,12 @@ export interface FeatureOrigin {
    * joined back only across the same bases.
    */
   readonly gaps: readonly number[];
+  /**
+   * A hash of all the original's bases, `[0, span)` of its own space read
+   * 5′ to 3′, so pieces whose bases changed since the cut (an edit, a PCR
+   * primer's mismatch) never give back the original's `/translation` (#188).
+   */
+  readonly bases: number;
   /** The piece's bases, `[from, to)` along the original's own bases from its 5′ end. */
   readonly from: number;
   readonly to: number;

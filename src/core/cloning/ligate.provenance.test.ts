@@ -347,3 +347,79 @@ describe('pieces of two versions of one feature stay apart (#187)', () => {
     expect(cdsOf(product)).toHaveLength(3);
   });
 });
+
+describe('pieces whose bases changed since the cut stay apart (#188)', () => {
+  // The #187 CDS with its /translation: ATG AAA GAA TTC AAA AAA AAA AAA GGA
+  // TCC AAA TGA AAA TAA at [20, 62), BamHI cutting it between GGA and TCC.
+  const cds = 'ATGAAAGAATTCAAAAAAAAAAAAGGATCCAAATGAAAATAA';
+  const wild = SeqDocument.create({
+    name: 'P',
+    sequence: 'C'.repeat(20) + cds + 'C'.repeat(40),
+    topology: 'circular',
+    features: [
+      createFeature({
+        type: 'CDS',
+        name: 'gene',
+        segments: [rangeSegment(20, 62)],
+        qualifiers: [
+          { name: 'transl_except', value: '(pos:54..56,aa:Sec)' },
+          { name: 'translation', value: 'MKEFKKKKGSKUK' },
+        ],
+      }),
+    ],
+  });
+  const translations = (doc: SeqDocument): (string | undefined)[] =>
+    cdsOf(doc).map((f) => firstQualifier(f, 'translation'));
+
+  for (const [label, turn] of [
+    ['forward', (d: SeqDocument) => d],
+    ['reverse', (d: SeqDocument) => d.reverseComplement()],
+  ] as const) {
+    it(`a base changed inside a piece leaves no stale /translation (${label})`, () => {
+      const [frag] = cut(turn(wild), 'BamHI');
+      const opened = documentFromFragment(def(frag));
+      // Unchanged, the fragment closes to the whole CDS, /translation and all.
+      const closed = def(emptyVector(opened));
+      expect(proteins(closed)).toEqual(['MKEFKKKKGSKUK*']);
+      expect(translations(closed)).toEqual(['MKEFKKKKGSKUK']);
+      // One base changed inside a piece (the fragment starts at the cut): the
+      // pieces stay apart, so nothing claims the old protein.
+      const edited = opened.replace({ start: 6, end: 7 }, 'G');
+      const product = def(emptyVector(edited));
+      expect(cdsOf(product)).toHaveLength(2);
+      expect(translations(product)).toEqual([undefined, undefined]);
+      for (const piece of cdsOf(product)) expect(piece.origin).toBeDefined();
+    });
+  }
+
+  it('a same-length substitution in the insert keeps the pieces apart', () => {
+    // K -> R (AAA -> AGA) inside the EcoRI–BamHI insert, same feature id.
+    const mutant = wild.replace({ start: 36, end: 37 }, 'G');
+    const both = (doc: SeqDocument): DigestFragment[] =>
+      [
+        ...digest(
+          doc,
+          findCutSites(doc.sequence.toString(), doc.topology, [enzyme('EcoRI'), enzyme('BamHI')]),
+        ),
+      ].sort((a, b) => a.sequence.length - b.sequence.length);
+    const [, backbone] = both(wild);
+    const [insert] = both(mutant);
+    const product = ligate([def(backbone), def(insert)], { name: 'swap', circular: true });
+    expect(cdsOf(product)).toHaveLength(3);
+    expect(translations(product).every((t) => t === undefined)).toBe(true);
+  });
+
+  it('turning a sticky fragment over as a document narrows its pieces’ records like flipFragment', () => {
+    for (const doc of [wild, wild.reverseComplement()]) {
+      const frag = def(cut(doc, 'BamHI')[0]);
+      const records = (fs: readonly Feature[]): [number, number][] =>
+        fs
+          .flatMap((f): [number, number][] =>
+            f.origin === undefined ? [] : [[f.origin.from, f.origin.to]],
+          )
+          .sort((x, y) => x[0] - y[0]);
+      const turned = documentFromFragment(frag).reverseComplement();
+      expect(records(turned.features.all())).toEqual(records(flipFragment(frag).features));
+    }
+  });
+});

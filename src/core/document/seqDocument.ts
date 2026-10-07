@@ -50,6 +50,7 @@ import {
   normalizeEnds,
   topStrandOverhang,
 } from './ends';
+import { narrowedAtTip } from './featureOrigin';
 import { type SeqFragment } from './fragment';
 import { type DocumentMetadata, EMPTY_METADATA } from './metadata';
 import { type SequencingRead, assertValidRead, reverseComplementRead } from './read';
@@ -508,12 +509,29 @@ export class SeqDocument {
     const { head, tail, trimStart, trimEnd } = window;
     // Each step is a no-op when its end has nothing to move, so all four run.
     const framed = this.insert(this.length, tail).insert(0, head);
-    const trimmed = framed
-      .delete({ start: framed.length - trimEnd, end: framed.length })
-      .delete({ start: 0, end: trimStart });
+    const atEnd = SeqDocument.trimTip(framed, 'end', trimEnd);
+    const trimmed = SeqDocument.trimTip(atEnd, 'start', trimStart);
     // Every one of those edits reached a tip and so blunted the end it
     // reached; the molecule itself is the one it was.
     return trimmed.with({ ends: this.ends });
+  }
+
+  /**
+   * `doc` without `count` bases at one tip, a piece of a feature trimmed
+   * there keeping a record of just the bases it still holds, as
+   * `flipFragment`'s `extractRange` keeps it (#188).
+   */
+  private static trimTip(doc: SeqDocument, tip: 'start' | 'end', count: number): SeqDocument {
+    if (count === 0) return doc;
+    const trimmed = doc.delete(
+      tip === 'start' ? { start: 0, end: count } : { start: doc.length - count, end: doc.length },
+    );
+    return trimmed.with({
+      features: trimmed.features.map((f) => {
+        const before = doc.features.get(f.id);
+        return before === undefined ? f : narrowedAtTip(before, doc, f, tip);
+      }),
+    });
   }
 
   /** Rotates a circular sequence so that the base at `position` becomes base 0. */

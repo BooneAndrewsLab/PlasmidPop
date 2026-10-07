@@ -33,6 +33,8 @@ joins pieces back only when they meet again exactly as they were cut. The
   along its own bases from the 5′ end.
 - `gaps`: a hash (FNV-1a, case folded) of the bases of each intron, so two
   pieces cut apart in an intron join back only across the same bases.
+- `bases`: a hash of all the original's bases, so the whole original comes
+  back only over its own bases (#188, see the addendum).
 
 `extractRange` (every digest, copy and cloning product) gives the record
 to every feature it clips, whether into one piece or several. A piece cut
@@ -156,3 +158,31 @@ strand, joining, segments, qualifiers). Pieces of two versions stay honest
 partial pieces. A substitution that keeps every one of those the same is
 not caught here (#188). Tests: the #187 block in
 `cloning/ligate.provenance.test.ts`.
+
+## Addendum: the bases inside the pieces count too (#188)
+
+The rejoin compared where the pieces lie and the bases of any intron between
+them, never the bases inside them. A base changed after the cut (an edit in
+the fragment's document, a same-length substitution in one version of the
+plasmid, a PCR primer's mismatch, since PCR copies the template's pieces with
+their records) rejoined as the original and brought back its `/translation`,
+which was then wrong and was saved.
+
+The record now also holds `bases`, a hash (the same FNV-1a) of all the
+original's bases over its own span, read 5′ to 3′, introns included. Two
+records of different `bases` are not of the same original. And a chain of
+pieces that adds up to the whole original gives it back only when the
+product's bases over that span hash to `bases`; otherwise the pieces stay
+apart, honest partial pieces with no `/translation`. A chain that adds up to
+less is not checked: the larger piece has no `/translation` to be wrong, and
+it is checked when it is completed. A hash rather than the bases themselves
+keeps every record small; a collision would need a different sequence of the
+same length placed exactly where the pieces fit. Records made before this
+(a shelf stored earlier) have no `bases` and are never joined back.
+
+Also: a document's `reverseComplement` trims the overhang bases only the old
+top strand had with delete edits, which left a trimmed piece's `from`/`to`
+as they were (a 13-bp piece kept `from 25, to 42`). `placementOf` rejected
+it, so nothing joined wrongly, but it never joined either. The trims now
+narrow the record as `flipFragment`'s `extractRange` does (`narrowedAtTip`).
+Tests: the #188 block in `cloning/ligate.provenance.test.ts`.
