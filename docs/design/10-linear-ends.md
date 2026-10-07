@@ -113,7 +113,8 @@ inside a CDS). Decisions:
   segments does not count, nor does the origin inside a wrapping segment, so
   an intron-style `join` that is kept whole stays one feature, and a source
   join that loses a middle stretch splits at that drop only (three or more
-  stretches give that many features). A whole-circle region drops nothing.
+  stretches give that many features). A whole-circle region drops nothing,
+  but see #174 below.
 - Each stretch keeps the name, type, strand and qualifiers, with a new id.
   `/translation` is removed, since the stored protein is the whole one's
   and would disagree with every piece. Stretches are listed in the
@@ -124,3 +125,23 @@ inside a CDS). Decisions:
   its last range. The same count replaces the old per-region helper; for a
   region that drops no middle it gives the same answer.
 - Sites (`a^b`) keep the old behaviour and never split a feature.
+
+Added 2026-10-07 (#174): a whole-circle region that starts inside a
+feature (a single-cutter digest, or copying the whole circle from a point
+inside one) drops none of its bases, yet puts them at the two ends of the
+linear product. Kept as one `join(…end, start…)`, the feature skipped
+whatever was later ligated at the cut, so a CDS with an insert in its
+MCS still translated as the intact protein (pydna drops such a feature
+on `looped()`; we keep the pieces). Decisions:
+
+- Two consecutive pieces of a feature whose bases follow each other in
+  the source (round the circle, so a segment across the origin counts)
+  but do not abut in the extract split, exactly as a #169 drop does: cut
+  sides partial, `/translation` removed, each CDS stretch with its own
+  `codon_start`. A join's own gap, or two source segments that meet at the
+  cut, are told apart by source position, not by segment.
+- This includes a feature across the origin of a circle taken whole from
+  0, which used to stay a `join` across the product's ends.
+- Ligation re-joins nothing: closing the cut vector on itself (the empty
+  vector) gives the two partial pieces side by side, not the feature it
+  was cut from.

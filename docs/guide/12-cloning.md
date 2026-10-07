@@ -34,7 +34,11 @@ first, each with:
 - its **length** (click it to select the fragment in the views) and range;
 - its two **ends**: the enzyme that made the cut, whether the end is blunt
   or has a 5′ or 3′ overhang, and the overhang bases;
-- the **features** it carries;
+- the **features** it carries. A feature a cut runs through is trimmed to
+  the part in the fragment and marked partial. A circle cut once opens up
+  inside such a feature, so the linear piece has it at both ends, as two
+  partial features rather than one joined across the ends: an insert
+  ligated at the cut then sits between them instead of being skipped;
 - **Add**, which puts it on the [shelf](#the-shelf), and **Open**,
   which opens it as a document of its own. Add reads **Added ✓** for a
   moment, and the Bench tab's count flashes. While the fragment is on the

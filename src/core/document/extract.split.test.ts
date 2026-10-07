@@ -3,8 +3,13 @@ import {
   type Segment,
   SeqDocument,
   createFeature,
+  digest,
+  documentFromFragment,
   extractRange,
+  findCutSites,
   firstQualifier,
+  getEnzyme,
+  ligate,
   rangeSegment,
   translateCds,
 } from '@/core';
@@ -179,8 +184,149 @@ describe('extractRange splits a feature whose middle the region drops (#169)', (
     expect(ranges(def(rest))[0]?.ps).toBe(true);
   });
 
-  it('a whole-circle region never splits', () => {
-    const ex = extractRange(circle('forward'), { start: 30, end: 90 });
-    expect(ex.features.all()).toHaveLength(1);
+  it('a whole-circle region that starts outside every feature splits none', () => {
+    for (const start of [0, 5, 10, 46, 50]) {
+      const ex = extractRange(circle('forward'), { start, end: start + 60 });
+      const [f, ...rest] = ex.features.all();
+      expect(rest).toHaveLength(0);
+      expect(ranges(def(f))).toEqual([
+        { start: (10 - start + 60) % 60, end: ((10 - start + 60) % 60) + 36, ps: false, pe: false },
+      ]);
+      expect(translateCds(ex, def(f)).protein).toBe(PROTEIN);
+    }
+  });
+});
+
+describe('extractRange splits a feature across the one cut of a circle (#174)', () => {
+  /** The pieces of the orf in `ex`, in reading order. */
+  const reading = (ex: SeqDocument, strand: 'forward' | 'reverse') => {
+    const fs = ex.features.all();
+    return strand === 'forward' ? fs : [...fs].reverse();
+  };
+
+  it.each(['forward', 'reverse'] as const)(
+    '%s CDS, whole circle cut at every base inside it: two pieces, each in frame',
+    (strand) => {
+      const doc = circle(strand);
+      for (let cut = 11; cut < 46; cut++) {
+        const ex = extractRange(doc, { start: cut, end: cut + 60 });
+        const fs = ex.features.all();
+        expect(fs, `cut ${cut}`).toHaveLength(2);
+        // Listed in the feature's own order: the low source stretch (at the
+        // product's right end) first, the high one (at its left end) second.
+        const [low, high] = fs.map((f) => ranges(f));
+        expect(low).toEqual([{ start: 60 - cut + 10, end: 60, ps: false, pe: true }]);
+        expect(high).toEqual([{ start: 0, end: 46 - cut, ps: true, pe: false }]);
+        for (const f of fs) expect(firstQualifier(f, 'translation')).toBeUndefined();
+        // The two stretches together are the whole reading, each in frame.
+        const [head, tail] = reading(ex, strand);
+        const headBases = ex.featureSequence(def(head));
+        const tailBases = ex.featureSequence(def(tail));
+        expect(headBases + tailBases).toBe(ORF);
+        expect(firstQualifier(def(head), 'codon_start')).toBeUndefined();
+        // A last codon cut short reads as its residue when its two bases
+        // decide it (item 66), so the head may show one residue more.
+        const whole = Math.floor(headBases.length / 3);
+        expect([PROTEIN.slice(0, whole), PROTEIN.slice(0, whole + 1)]).toContain(
+          translateCds(ex, def(head)).protein,
+        );
+        expect(translateBases(headBases, 1)).toBe(PROTEIN.slice(0, whole));
+        const frame = ((3 - (headBases.length % 3)) % 3) + 1;
+        expect(firstQualifier(def(tail), 'codon_start') ?? '1').toBe(String(frame));
+        expect(translateCds(ex, def(tail)).protein).toBe(translateBases(tailBases, frame));
+      }
+    },
+  );
+
+  it('a feature across the origin splits when the whole circle is taken from 0', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(15),
+      topology: 'circular',
+      features: [createFeature({ type: 'misc_feature', segments: [rangeSegment(55, 65)] })],
+    });
+    const ex = extractRange(doc, { start: 0, end: 60 });
+    expect(ex.features.all().map((f) => ranges(f))).toEqual([
+      [{ start: 55, end: 60, ps: false, pe: true }],
+      [{ start: 0, end: 5, ps: true, pe: false }],
+    ]);
+    // Taken from anywhere else, the origin is inside the product and the feature is whole.
+    const whole = extractRange(doc, { start: 30, end: 90 });
+    expect(whole.features.all().map((f) => ranges(f))).toEqual([
+      [{ start: 25, end: 35, ps: false, pe: false }],
+    ]);
+  });
+
+  it('a join splits only at the cut, never at its own gap', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(15),
+      topology: 'circular',
+      features: [
+        createFeature({
+          type: 'misc_feature',
+          segments: [rangeSegment(10, 20), rangeSegment(30, 50)],
+        }),
+      ],
+    });
+    // Cut inside the second segment: 10..19 and 30..39 stay joined at the
+    // product's right end, 40..49 is a piece of its own at the left.
+    const ex = extractRange(doc, { start: 40, end: 100 });
+    expect(ex.features.all().map((f) => ranges(f))).toEqual([
+      [
+        { start: 30, end: 40, ps: false, pe: false },
+        { start: 50, end: 60, ps: false, pe: true },
+      ],
+      [{ start: 0, end: 10, ps: true, pe: false }],
+    ]);
+    // Cut in the join's own gap, or between two segments that abut in the
+    // source: nothing splits.
+    expect(extractRange(doc, { start: 25, end: 85 }).features.all()).toHaveLength(1);
+    const abut = SeqDocument.create({
+      sequence: 'ACGT'.repeat(15),
+      topology: 'circular',
+      features: [
+        createFeature({
+          type: 'misc_feature',
+          segments: [rangeSegment(10, 20), rangeSegment(20, 30)],
+        }),
+      ],
+    });
+    expect(
+      extractRange(abut, { start: 20, end: 80 })
+        .features.all()
+        .map((f) => ranges(f)),
+    ).toEqual([
+      [{ start: 50, end: 60, ps: false, pe: true }],
+      [{ start: 0, end: 10, ps: true, pe: false }],
+    ]);
+  });
+
+  it('the issue repro: an insert ligated into a single-cut CDS is not skipped', () => {
+    const cds = 'ATGCGAATTCCGAAACTGTTTGCATGGTAA';
+    const vseq = 'C'.repeat(10) + cds + 'G'.repeat(20);
+    const vector = SeqDocument.create({
+      sequence: vseq,
+      topology: 'circular',
+      features: [createFeature({ type: 'CDS', name: 'gene', segments: [rangeSegment(10, 40)] })],
+    });
+    const ecoRI = [def(getEnzyme('EcoRI'))];
+    const [cut, ...others] = digest(vector, findCutSites(vseq, 'circular', ecoRI));
+    expect(others).toHaveLength(0);
+    const linear = documentFromFragment(def(cut));
+    expect(linear.features.all().map((f) => translateCds(linear, f).protein)).toEqual([
+      'MR',
+      'IPKLFAW*',
+    ]);
+    const iseq = `GAATTC${'T'.repeat(20)}GAATTC`;
+    const insert = SeqDocument.create({ sequence: iseq, topology: 'linear' });
+    const [, mid] = digest(insert, findCutSites(iseq, 'linear', ecoRI));
+    const product = ligate([def(cut), def(mid)], { name: 'p', circular: true });
+    expect(product.length).toBe(86);
+    // The two pieces sit on either side of the insert, not joined across it.
+    const fs = product.features.all();
+    expect(fs.map((f) => ranges(f))).toEqual([
+      [{ start: 55, end: 60, ps: false, pe: true }],
+      [{ start: 0, end: 25, ps: true, pe: false }],
+    ]);
+    expect(fs.map((f) => translateCds(product, f).protein)).toEqual(['MR', 'IPKLFAW*']);
   });
 });

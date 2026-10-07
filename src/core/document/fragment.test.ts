@@ -42,7 +42,13 @@ describe('fragmentFromRange', () => {
   it('leaves whole-record source features behind', () => {
     const frag = fragmentFromRange(doc, { start: 0, end: 20 });
     expect(frag.features.some((f) => f.type === 'source')).toBe(false);
-    expect(frag.features).toHaveLength(4);
+    // The feature across the origin lies at both ends of the linear
+    // fragment, so it is two partial pieces, not a join across them (#174).
+    expect(frag.features).toHaveLength(5);
+    expect(frag.features.filter((f) => f.name === 'wrapped').map((f) => f.segments)).toEqual([
+      [rangeSegment(17, 20, { partialEnd: true })],
+      [rangeSegment(0, 3, { partialStart: true })],
+    ]);
   });
 
   it('follows the sequence around the origin', () => {

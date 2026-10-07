@@ -38,12 +38,17 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
    * offsets of its bases along the location's range segments laid end to end
    * (source gaps between segments do not count, a segment across the origin
    * is continuous), so two consecutive pieces with `to < from` have bases
-   * between them that the region dropped (#169).
+   * between them that the region dropped (#169). A range piece also carries
+   * `at`, the source position of its first base, and `next`, the one just
+   * past its last (taken round a circle), so a piece whose `at` is the last
+   * one's `next` holds the bases that follow it in the source.
    */
   interface Piece {
     seg: Segment;
     from: number;
     to: number;
+    at: number;
+    next: number;
   }
   const keptPieces = (location: FeatureLocation): Piece[] => {
     const out: Piece[] = [];
@@ -60,6 +65,8 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
               seg: { kind: 'site', position: seg.position - o.start + o.offset },
               from: -1,
               to: -1,
+              at: -1,
+              next: -1,
             });
           }
         }
@@ -77,6 +84,8 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
           inside.push({
             from: along + s - part.start,
             to: along + e - part.start,
+            at: s,
+            next: doc.isCircular ? e % L : e,
             seg: rangeSegment(s - o.start + o.offset, e - o.start + o.offset, {
               partialStart: seg.partialStart || s > part.start,
               partialEnd: seg.partialEnd || e < part.end,
@@ -119,15 +128,27 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
     if (moved === null) continue;
     // Where the region drops bases from the middle of a feature but keeps
     // both sides, the kept stretches are separate features (#169): a join
-    // across the gap would read the far side out of frame.
+    // across the gap would read the far side out of frame. So are bases that
+    // follow each other in the source but land at the two ends of the
+    // extract, as a feature across the one cut of a circle does (#174): a
+    // join across the product's ends would skip whatever is later put
+    // between them.
     const pieces = keptPieces(f);
     const runs: Piece[][] = [];
-    let reach = -1; // where the last range piece ended, along the location
+    let last: Piece | undefined; // the last range piece
     for (const piece of pieces) {
       const isRange = piece.seg.kind === 'range';
-      if (runs.length === 0 || (isRange && reach >= 0 && piece.from > reach)) runs.push([]);
+      const split =
+        isRange &&
+        last !== undefined &&
+        (piece.from > last.to ||
+          (piece.at === last.next &&
+            piece.seg.kind === 'range' &&
+            last.seg.kind === 'range' &&
+            piece.seg.start !== last.seg.end));
+      if (runs.length === 0 || split) runs.push([]);
       runs[runs.length - 1]?.push(piece);
-      if (isRange) reach = piece.to;
+      if (isRange) last = piece;
     }
     const totalLength = f.segments.reduce(
       (n, x) => n + (x.kind === 'range' ? x.end - x.start : 0),
