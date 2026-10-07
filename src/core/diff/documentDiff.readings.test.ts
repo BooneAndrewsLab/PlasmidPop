@@ -1,0 +1,222 @@
+import fc from 'fast-check';
+
+import { SeqDocument } from '../document';
+import { type Segment, createFeature, rangeSegment } from '../features';
+import { diffDocuments } from './documentDiff';
+
+/**
+ * A feature's edges, every segment's included, are placed by one reading of
+ * the diff at a time (#189). An indel in a repeat can be drawn at any point
+ * along it, and the diff accepts a feature wherever one of those drawings
+ * carries it — but a start read under one drawing and an end under another
+ * is a feature no editor kept.
+ */
+
+/** Bases from a fixed seed, so a test's sequence is the same every run. */
+function bases(n: number, seed: number): string {
+  let s = seed;
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    out += 'ACGT'.charAt((s >> 16) & 3);
+  }
+  return out;
+}
+
+function withFeature(
+  sequence: string,
+  segments: readonly (readonly [number, number])[],
+  topology: 'linear' | 'circular' = 'linear',
+  id?: string,
+): SeqDocument {
+  return SeqDocument.create({
+    sequence,
+    topology,
+    features: [
+      createFeature({
+        ...(id === undefined ? {} : { id }),
+        type: 'misc_feature',
+        name: 'f',
+        segments: segments.map(([start, end]) => rangeSegment(start, end)),
+      }),
+    ],
+  });
+}
+
+const only = (doc: SeqDocument): string => [...doc.features][0]?.id ?? '';
+
+/** Whether `after`, the sequence of `edited` with the feature at `segments`, reads as changed. */
+function changed(
+  base: SeqDocument,
+  edited: SeqDocument,
+  segments: readonly (readonly [number, number])[],
+): boolean {
+  const moved = edited.updateFeature(only(edited), {
+    segments: segments.map(([start, end]) => rangeSegment(start, end)),
+  });
+  return diffDocuments(base, moved).featuresChanged.has(only(edited));
+}
+
+/** Every single-segment location in `[lo, hi]` the diff calls unchanged. */
+function accepted(base: SeqDocument, edited: SeqDocument, lo: number, hi: number): string[] {
+  const out: string[] = [];
+  for (let s = lo; s < hi; s++) {
+    for (let e = s + 1; e <= hi; e++) if (!changed(base, edited, [[s, e]])) out.push(`${s}-${e}`);
+  }
+  return out;
+}
+
+describe('one reading for a whole feature (#189)', () => {
+  it('reports a feature hand-moved after one copy of a duplicate was deleted', () => {
+    const copy = bases(300, 3);
+    const base = withFeature(bases(100, 5) + copy + copy + bases(100, 6), [[350, 450]]);
+    const edited = base.delete({ start: 400, end: 700 });
+    expect(edited.getFeature(only(base))?.segments).toEqual([rangeSegment(350, 400)]);
+    expect(changed(base, edited, [[350, 400]])).toBe(false);
+    // Its start read as if the other copy went, its end as if this one did.
+    expect(changed(base, edited, [[150, 401]])).toBe(true);
+  });
+
+  it('reports it in a compare of two files too, where ids do not pair', () => {
+    const copy = bases(300, 3);
+    const a = bases(100, 5) + copy + copy + bases(100, 6);
+    const b = a.slice(0, 400) + a.slice(700);
+    const diff = diffDocuments(withFeature(a, [[350, 450]]), withFeature(b, [[150, 401]]));
+    expect(diff.featuresAdded.size).toBe(1);
+    expect(diff.featuresRemoved.size).toBe(1);
+  });
+
+  it('accepts exactly the places the deleted copy could have been drawn', () => {
+    const copy = bases(30, 3);
+    const base = withFeature(bases(40, 5) + copy + copy + bases(40, 6), [[55, 85]]);
+    const edited = base.delete({ start: 70, end: 100 });
+    // Deleting at d in [40, 70] leaves [d, 55) or [55, d).
+    const expected = [
+      ...Array.from({ length: 15 }, (_, i) => `${40 + i}-55`),
+      ...Array.from({ length: 15 }, (_, i) => `55-${56 + i}`),
+    ];
+    expect(accepted(base, edited, 30, 110)).toEqual(expected);
+  });
+
+  it('does not grow a feature by a base deleted from a homopolymer', () => {
+    const base = withFeature(`GCTAGC${'A'.repeat(20)}GCTTGC`, [[10, 20]]);
+    const edited = base.delete({ start: 15, end: 16 });
+    expect(accepted(base, edited, 0, 31)).toEqual(['9-19', '10-19', '10-20']);
+  });
+
+  it('reads every segment of a join under the same drawing', () => {
+    const base = withFeature(`GCTAGC${'A'.repeat(20)}GCTTGC`, [
+      [10, 14],
+      [18, 24],
+    ]);
+    const edited = base.delete({ start: 15, end: 16 });
+    expect(
+      changed(base, edited, [
+        [10, 14],
+        [17, 23],
+      ]),
+    ).toBe(false);
+    // The first segment as if the A went before it, the second as if after it.
+    expect(
+      changed(base, edited, [
+        [9, 13],
+        [18, 24],
+      ]),
+    ).toBe(true);
+  });
+
+  it('does not read an insertion as overwritten for one edge and inserted for the other', () => {
+    const base = withFeature(bases(40, 9), [[0, 8]]);
+    const edited = base.insert(0, 'GAG');
+    expect(edited.getFeature(only(base))?.segments).toEqual([rangeSegment(3, 11)]);
+    expect(changed(base, edited, [[3, 11]])).toBe(false);
+    expect(changed(base, edited, [[3, 8]])).toBe(true);
+  });
+
+  it('does not shrink a feature at the origin to the bases an insertion slid past', () => {
+    const base = withFeature('GGGCCGACGA', [[0, 4]], 'circular');
+    const edited = base.insert(6, 'ACG');
+    expect(edited.getFeature(only(base))?.segments).toEqual([rangeSegment(0, 4)]);
+    expect(changed(base, edited, [[0, 4]])).toBe(false);
+    expect(changed(base, edited, [[0, 1]])).toBe(true);
+  });
+
+  it('does not place an end past the end of the sequence', () => {
+    const base = withFeature(`AGAGTCAG${'T'.repeat(11)}`, [[14, 19]], 'circular');
+    const edited = base.replace({ start: 15, end: 19 }, 'GCG');
+    expect(edited.getFeature(only(base))?.segments).toEqual([rangeSegment(14, 18)]);
+    expect(changed(base, edited, [[14, 18]])).toBe(false);
+    expect(changed(base, edited, [[14, 19]])).toBe(true);
+  });
+});
+
+/** Where the editor puts each feature for every single replace that turns `base` into `b`. */
+function reachable(base: SeqDocument, b: string): Set<string> {
+  const a = base.sequence.toString();
+  const out = new Set<string>();
+  for (let start = 0; start <= a.length && a.slice(0, start) === b.slice(0, start); start++) {
+    for (let end = start; end <= a.length; end++) {
+      const textEnd = b.length - (a.length - end);
+      if (textEnd < start || a.slice(end) !== b.slice(textEnd)) continue;
+      const text = b.slice(start, textEnd);
+      if (end === start && text === '') continue;
+      for (const f of base.replace({ start, end }, text).features) out.add(key(f.segments));
+    }
+  }
+  return out;
+}
+
+const key = (segments: readonly Segment[]): string =>
+  JSON.stringify(segments.map((s) => (s.kind === 'range' ? [s.start, s.end] : [s.position])));
+
+/** A sequence of short repeats, where an indel can be drawn in many places. */
+const repeatsArb = fc
+  .array(fc.tuple(fc.stringMatching(/^[ACGT]{1,3}$/), fc.integer({ min: 1, max: 4 })), {
+    minLength: 3,
+    maxLength: 8,
+  })
+  .map((runs) => runs.map(([unit, times]) => unit.repeat(times)).join(''))
+  .filter((s) => s.length >= 8 && s.length <= 30);
+
+describe('one reading for a whole feature, at random (#189)', () => {
+  it('calls a location next to an indel in a repeat unchanged only where an editor could have put it', () => {
+    fc.assert(
+      fc.property(
+        repeatsArb,
+        fc.nat(),
+        fc.nat(),
+        fc.nat(),
+        fc.boolean(),
+        fc.integer({ min: 1, max: 4 }),
+        (sequence, f, g, at, insert, n) => {
+          const length = sequence.length;
+          const start = f % (length - 1);
+          const end = start + 1 + (g % (length - start - 1));
+          const base = withFeature(sequence, [[start, end]]);
+          const p = at % length;
+          // An indel of a copy of the bases there, so it can slide.
+          const edited = insert
+            ? base.insert(p, sequence.slice(p, p + n) || 'A')
+            : base.delete({ start: p, end: Math.min(length, p + n) });
+          const b = edited.sequence.toString();
+          if (b === sequence || b.length < 2) return;
+          const kept = edited.getFeature(only(base));
+          if (kept?.segments[0]?.kind !== 'range') return;
+          const reach = reachable(base, b);
+          const s0 = kept.segments[0].start;
+          const e0 = kept.segments[0].end;
+          for (let ds = -3; ds <= 3; ds++) {
+            for (let de = -3; de <= 3; de++) {
+              const s = s0 + ds;
+              const e = e0 + de;
+              if (s < 0 || e <= s || e > b.length) continue;
+              if (!changed(base, edited, [[s, e]]))
+                expect(reach).toContain(key([rangeSegment(s, e)]));
+            }
+          }
+        },
+      ),
+      { numRuns: 150 },
+    );
+  });
+});

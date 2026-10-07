@@ -130,7 +130,8 @@ first can break a construct and the second cannot, which is the one
 distinction a line can carry. A base added to or removed from a run of
 identical bases (`AAAA`) beside a feature's edge does not outline the
 feature, wherever in the run the edit is drawn: it covers the same bases
-either way. Nor does replacing a few bases with longer text (`T` with
+either way. Its ends must still agree on one place for the edit, so a
+feature whose start or end was then moved by hand is outlined. Nor does replacing a few bases with longer text (`T` with
 `CT`) outline a feature the editor left where it was, though the bare
 sequences would also read that edit as `C` inserted before the feature.
 The dot on the button says something is marked; its tooltip,

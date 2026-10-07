@@ -10,6 +10,7 @@ import {
 } from '../features';
 import { type SeqDocument } from '../document';
 import {
+  type Edge,
   type SequenceDiff,
   type SequenceDiffOptions,
   diffSequences,
@@ -291,10 +292,11 @@ function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segmen
  */
 type PositionMap = ((position: number) => number) & {
   readonly circle?: { readonly from: number; readonly to: number } | undefined;
-  /** Every place a start can land under an equally good diff, the mapped one first. */
-  readonly starts?: (position: number) => readonly number[];
-  /** The same for an exclusive end. */
-  readonly ends?: (position: number) => readonly number[];
+  /**
+   * Where a feature's edges land under each equally good reading of the
+   * diff, one array per reading (see `equivalentMappings`).
+   */
+  readonly readings?: (edges: readonly Edge[]) => Iterable<readonly number[]>;
 };
 
 function isWholeCircle(seg: Segment, map: PositionMap): boolean {
@@ -325,15 +327,7 @@ function diffFeatures(
   const unrolled = (position: number): number =>
     position > baseline.length ? map(position - baseline.length) + current.length : map(position);
   const mapUnrolled: PositionMap = Object.assign(unrolled, {
-    starts: (position: number): readonly number[] =>
-      position >= baseline.length || position < 0 ? [map(position)] : equivalent.starts(position),
-    ends: (position: number): readonly number[] =>
-      position > baseline.length
-        ? // A segment that wraps the origin ends a turn on: slide its end there.
-          equivalent.ends(position - baseline.length).map((p) => p + current.length)
-        : position <= 0
-          ? [unrolled(position)]
-          : equivalent.ends(position),
+    readings: equivalent.readings,
     circle: circular ? { from: baseline.length, to: current.length } : undefined,
   });
   const mapped = (f: Feature): Feature => mapFeature(f, mapUnrolled, baseline, current);
@@ -526,11 +520,50 @@ export function sameFeatureLocation(before: Feature, after: Feature): boolean {
   return sameLocation(before, after, (position) => position);
 }
 
+/**
+ * Whether `after` is where `before` went. Every edge of every segment is read
+ * through one reading of the diff at a time: an edge placed by one reading
+ * and another edge by a different one would accept a moved or resized
+ * feature as kept (#189).
+ */
 function sameLocation(before: Feature, after: Feature, map: PositionMap): boolean {
-  return (
-    before.segments.length === after.segments.length &&
-    before.segments.every((seg, i) => sameSegment(seg, after.segments[i], map))
-  );
+  if (before.segments.length !== after.segments.length) return false;
+  const ranges: [Segment & { kind: 'range' }, Segment & { kind: 'range' }][] = [];
+  for (const [i, seg] of before.segments.entries()) {
+    const other = after.segments[i];
+    if (other?.kind !== seg.kind) return false;
+    if (seg.kind === 'site') {
+      if (map(seg.position) !== (other.kind === 'site' ? other.position : -1)) return false;
+    } else if (other.kind === 'range') {
+      if (seg.partialStart !== other.partialStart || seg.partialEnd !== other.partialEnd) {
+        return false;
+      }
+      ranges.push([seg, other]);
+    }
+  }
+  if (ranges.length === 0) return true;
+  const edges = ranges.flatMap(([seg]): Edge[] => [
+    { position: seg.start, end: false },
+    { position: seg.end, end: true },
+  ]);
+  // An exclusive end the diff drew an insertion at lies outside it, as the
+  // editor leaves one; a deletion that swallowed the last base leaves it at
+  // the deletion's boundary.
+  const drawn = (edge: Edge): number =>
+    edge.end && edge.position > 0
+      ? Math.min(map(edge.position - 1) + 1, map(edge.position))
+      : map(edge.position);
+  const readings = map.readings?.(edges) ?? [edges.map(drawn)];
+  for (const placed of readings) {
+    if (
+      ranges.every(([seg, other], i) =>
+        sameRange(seg, other, placed[2 * i] ?? -1, placed[2 * i + 1] ?? -1, map),
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** `qualifiersOf` gives the older feature's qualifiers moved into the newer document. */
@@ -561,30 +594,24 @@ function sameQualifiers(before: readonly Qualifier[], after: readonly Qualifier[
   );
 }
 
-function sameSegment(before: Segment, after: Segment | undefined, map: PositionMap): boolean {
-  if (after?.kind !== before.kind) return false;
-  if (before.kind === 'site') {
-    return after.kind === 'site' && map(before.position) === after.position;
-  }
-  if (after.kind !== 'range') return false;
-  // An exclusive end is ambiguous: mapping the boundary itself follows an
-  // insertion that happens to sit there, mapping the last base does not, and
-  // a deletion that swallowed that base only comes out right the first way.
-  // Either answer counts, so an edit *beside* a feature does not mark it.
-  const ends = [map(before.end), map(before.end - 1) + 1, ...(map.ends?.(before.end) ?? [])];
+/** Whether `before`, its edges placed at `start` and `end`, is `after`. */
+function sameRange(
+  before: Segment & { kind: 'range' },
+  after: Segment & { kind: 'range' },
+  start: number,
+  end: number,
+  map: PositionMap,
+): boolean {
+  // On a circle a start mapped to the new length is the origin, and an end
+  // past it moves back the same turn.
+  const fits = (s: number, e: number): boolean => {
+    const turn = s === map.circle?.to ? s : 0;
+    return s - turn === after.start && (e > s ? e - turn : e) === after.end;
+  };
   // A whole circle stays one: if an insert at the origin moved its start it
   // moved its end the same turn on (#168).
-  const starts = map.starts?.(before.start) ?? [map(before.start)];
-  if (isWholeCircle(before, map))
-    ends.push(...starts.map((start) => start + (map.circle?.to ?? 0)));
-  const placed = starts.some((start) =>
-    ends.some((end) => {
-      const turn = start === map.circle?.to && end > start ? start : 0;
-      return start - turn === after.start && end - turn === after.end;
-    }),
-  );
   return (
-    placed && before.partialStart === after.partialStart && before.partialEnd === after.partialEnd
+    fits(start, end) || (isWholeCircle(before, map) && fits(start, start + (map.circle?.to ?? 0)))
   );
 }
 

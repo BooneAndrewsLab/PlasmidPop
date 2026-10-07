@@ -101,3 +101,49 @@ deleted) are the same overwrite. On a circle, stretches either side of the
 origin within `MERGE_GAP` of each other are one stretch a turn long, so a
 replace over the origin maps as the editor did; a small rotation of the
 origin reads this way too and keeps its features.
+
+## One reading for a whole feature (#189)
+
+The readings above were offered edge by edge: `sameSegment` took any start
+from `starts` and any end from `ends`, and judged each segment of a join on
+its own. Nothing tied the two to one drawing, so a start read with an indel
+slid one way and an end read with it slid the other — or with a stretch
+overwritten for one edge and inserted for the other — passed as unchanged.
+Delete one copy of a 300 bp tandem duplicate and a 50 bp feature could be
+hand-edited to 251 bp without the review or Compare noticing.
+
+`equivalentMappings` now returns `readings(edges)`: every edge of a feature,
+all its segments' included, placed together under one reading at a time,
+the diff as drawn first. Each ambiguous edit is a group with its choices
+(the indel slid along its repeat, or the stretch read as an overwrite
+reaching `x` equal bases past it — an indel inside a stretch belongs to the
+stretch's group, since both are readings of the same edit), and a reading
+picks one choice per group. Readings of different edits combine, but an
+edge is moved by at most one of them: each choice is measured from where
+the diff drew the others, so two moving the same edge would not add up to a
+place. A slide only needs trying near an edge (elsewhere it moves every edge
+as its neighbour does), which keeps a 10 kb poly-A run with 2,000 features
+at ~50 ms instead of 1.4 s; past 4,096 combinations the groups are read one
+at a time.
+
+As drawn, an exclusive end sits outside an insertion right at it, as the
+editor leaves one — `min(map(end - 1) + 1, map(end))`, which also keeps it
+within the sequence (a replaced run that took the last base used to give
+`length + 1`). That replaces offering both `map(end)` and
+`map(end - 1) + 1`, which was itself a second reading per edge. What the
+second answer used to catch by accident — a replace by shorter text that
+overwrote one more base than the diff drew, `GAA` by `CA` drawn as `GA` by
+`C` — is now an overwrite reading: a stretch that lost bases may also reach
+up to `MERGE_GAP` past itself, like one that grew (#185), but not over the
+origin of a circle, since what it deleted there would have moved the
+origin. A start mapped to the new length of a circle is its origin whatever
+the end does. A shortening replace across the origin is not read as an
+overwrite (#190), and some such edits the per-edge answers happened to
+accept are now marked.
+
+Two consequences of the readings worth saying plainly. The overwrite reading
+accepts an insertion of any length at an edge: an edge within `MERGE_GAP`
+after an insertion may stay put however much was inserted, because a
+replace by longer text does exactly that. And the "was" location shown for
+a changed or removed feature is the diff as drawn, one valid drawing in a
+repeat and not always the editor's.

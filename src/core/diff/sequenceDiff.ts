@@ -370,19 +370,31 @@ function slideRange(text: string, at: number, length: number): { left: number; r
 
 /**
  * The most equal bases between two edits that still read as one replaced
- * stretch, and the most an overwrite that added bases can reach past them.
+ * stretch, and the most an overwrite can reach past them.
  */
 const MERGE_GAP = 8;
 
+/** A range's first base (`end` false) or its exclusive end (`end` true). */
+export interface Edge {
+  readonly position: number;
+  readonly end: boolean;
+}
+
+/** The most combined readings tried for one feature before trying them one at a time. */
+const MAX_READINGS = 4096;
+
 /**
- * Every place a position of the first input can land in the second under an
- * equally good diff. An insertion or deletion inside a run of repeated bases
- * can be drawn at any point along it, and which one an editor made is not in
- * the sequences; a feature whose first or last base sits by such an indel is
- * the same feature under whichever the editor did. `a` and `b` are the first
- * and second input. A start that meets an insertion lies after it, so an end
- * is offered both ways: the insertion beside it may lie inside or outside.
- * On a `circular` pair, edits either side of the origin are one stretch.
+ * Where the edges of one feature can land in the second input, one array per
+ * reading of the diff (the diff as drawn first), each giving every edge's
+ * place in the order asked. An insertion or deletion inside a run of
+ * repeated bases can be drawn at any point along it, and a stretch of edits
+ * may be an editor's overwrite (#185); which the editor did is not in the
+ * sequences, so every reading counts — but a feature's edges, all its
+ * segments' included, move together under one reading: a start slid one way
+ * and an end the other is a feature no editor kept (#189). `a` and `b` are
+ * the first and second input. On a `circular` pair, edits either side of
+ * the origin are one stretch, and an end past the sequence (a segment over
+ * the origin) is the same edge a turn on.
  */
 export function equivalentMappings(
   diff: SequenceDiff,
@@ -390,10 +402,7 @@ export function equivalentMappings(
   b: string,
   map: (position: number) => number,
   circular = false,
-): {
-  readonly starts: (position: number) => readonly number[];
-  readonly ends: (position: number) => readonly number[];
-} {
+): { readonly readings: (edges: readonly Edge[]) => Iterable<readonly number[]> } {
   interface Indel {
     readonly insert: boolean;
     /** Where in `a` it sits, and how many bases. */
@@ -480,48 +489,181 @@ export function equivalentMappings(
     tail.inserts ||= head.inserts;
     stretches.shift();
   }
-  const overwritten = (position: number, found: Set<number>): void => {
-    // From the end of `b` on is a turn on; the end itself also ends a range.
-    const add = (p: number): void => {
-      if (p <= b.length) found.add(p);
-      if (circular && p >= b.length) found.add(p - b.length);
-    };
-    for (const run of stretches) {
-      const common = Math.min(run.aEnd - run.aStart, run.bEnd - run.bStart);
-      const grew = run.bEnd - run.bStart > run.aEnd - run.aStart;
-      const reach = run.aEnd + (grew ? MERGE_GAP : 0);
-      // A stretch over the origin holds the positions after it a turn on.
-      for (const at of circular ? [position, position + a.length] : [position]) {
-        if (at < run.aStart || at > reach) continue;
-        const into = at - run.aStart;
-        if (into <= common || at > run.aEnd) add(run.bStart + into);
-        if (into >= common && at <= run.aEnd) {
-          add(at === run.aEnd ? run.bEnd : run.bStart + common);
+  /** Where an exclusive end lands as the diff drew it: an insertion right at it lies outside. */
+  const drawnEnd = (position: number): number =>
+    position > 0 ? Math.min(map(position - 1) + 1, map(position)) : map(position);
+  const drawnAt = (position: number, end: boolean): number =>
+    end ? drawnEnd(position) : map(position);
+
+  // Each ambiguous edit is one group, and a reading picks one choice per
+  // group: the diff as drawn, an indel slid to another point of its repeat,
+  // or a stretch read as an editor's overwrite reaching `x` bases past it.
+  // An indel inside an overwritten stretch is the same edit, so it is a
+  // choice of that stretch's group and the two are never combined. A choice
+  // says how far it moves a position from where the diff drew it.
+  type Choice = (position: number, end: boolean) => number;
+  interface Group {
+    readonly near: (position: number) => boolean;
+    readonly choices: (positions: readonly number[]) => readonly Choice[];
+  }
+  const inStretch = (at: number, run: Stretch): boolean =>
+    (at >= run.aStart && at <= run.aEnd) ||
+    (circular && at + a.length >= run.aStart && at + a.length <= run.aEnd);
+  const slideNear = (indel: Indel) => (position: number) =>
+    position >= indel.at - indel.left &&
+    position <= indel.at + indel.right + (indel.insert ? 0 : indel.length);
+  /**
+   * The slides of `indel` that place the edges at `positions` differently.
+   * Away from an edge a slide moves it the same as its neighbours do, so a
+   * slide is tried only near an edge (and at the run's start), not at every
+   * point of a run that may be thousands of bases long.
+   */
+  const slides = (indel: Indel, positions: readonly number[]): Choice[] => {
+    const near = slideNear(indel);
+    const lo = indel.at - indel.left;
+    const hi = indel.at + indel.right;
+    const tried = new Set<number>([lo]);
+    for (const p of positions) {
+      if (!near(p)) continue;
+      const from = Math.max(lo, p - (indel.insert ? 1 : indel.length + 1));
+      for (let d = from; d <= Math.min(hi, p + 2); d++) tried.add(d);
+    }
+    tried.delete(indel.at);
+    return [...tried].map(
+      (d) => (position, end) =>
+        near(position) ? where(indel, d, position, end) - where(indel, indel.at, position, end) : 0,
+    );
+  };
+  /**
+   * Where the base `into` bases into `run` lands when an editor replaced the
+   * stretch and `x` equal bases after it: it overwrites the common length in
+   * place, then inserts or deletes the difference right after that.
+   */
+  const overwrite = (run: Stretch, x: number, into: number, end: boolean): number => {
+    const from = run.aEnd - run.aStart + x;
+    const to = run.bEnd - run.bStart + x;
+    const common = Math.min(from, to);
+    if (into < common) return run.bStart + into;
+    if (into > common) return run.bStart + to;
+    // An insertion at an end lies outside it; at a start, before it.
+    return run.bStart + into + (to > from && !end ? to - from : 0);
+  };
+  /**
+   * The furthest an overwrite of `run` may reach. One that added bases may
+   * reach over the origin, the way a small rotation reads (#185); one that
+   * lost bases stops at it, since what it deleted past the origin would
+   * have moved the origin.
+   */
+  const reach = (run: Stretch): number =>
+    run.aEnd +
+    (circular && run.bEnd - run.bStart <= run.aEnd - run.aStart
+      ? Math.min(MERGE_GAP, Math.max(0, a.length - run.aEnd))
+      : MERGE_GAP);
+  const overwrites = (run: Stretch): Choice[] => {
+    const choices: Choice[] = [];
+    for (let x = 0; x <= reach(run) - run.aEnd; x++) {
+      choices.push((position, end) => {
+        // A stretch over the origin holds the positions after it a turn on.
+        for (const at of circular ? [position, position + a.length] : [position]) {
+          if (at < run.aStart || at > run.aEnd + x) continue;
+          const landed = overwrite(run, x, at - run.aStart, end);
+          // Past the end of `b` is a turn on; the end itself also ends a range.
+          return landed - (circular && landed > b.length ? b.length : 0) - drawnAt(position, end);
         }
+        return 0;
+      });
+    }
+    return choices;
+  };
+  const groups: Group[] = stretches.map((run) => {
+    const members = indels.filter((indel) => inStretch(indel.at, run));
+    const last = reach(run);
+    return {
+      near: (position) =>
+        members.some((indel) => slideNear(indel)(position)) ||
+        (position >= run.aStart && position <= last) ||
+        (circular && position + a.length >= run.aStart && position + a.length <= last),
+      choices: (positions) => [
+        ...members.flatMap((indel) => slides(indel, positions)),
+        ...overwrites(run),
+      ],
+    };
+  });
+  for (const indel of indels) {
+    if (stretches.some((run) => inStretch(indel.at, run))) continue;
+    groups.push({ near: slideNear(indel), choices: (positions) => slides(indel, positions) });
+  }
+
+  function* readings(edges: readonly Edge[]): Generator<readonly number[]> {
+    // An end past the sequence wraps the origin: it reads as the same edge a
+    // turn on. A start there, or anything before 0, is only mapped.
+    const local = edges.map(({ position, end }) => {
+      const turned = end && position > a.length;
+      const fixed = position < 0 || (end ? position <= 0 : position >= a.length);
+      const at = turned ? position - a.length : position;
+      const limit = turned ? 2 * b.length : b.length;
+      const drawn = fixed ? map(position) : drawnAt(at, end) + (turned ? b.length : 0);
+      return { at, end, fixed, limit, drawn };
+    });
+    // Per group, each distinct way its readings move these edges.
+    const effects: (readonly number[])[][] = [];
+    for (const group of groups) {
+      if (!local.some((edge) => !edge.fixed && group.near(edge.at))) continue;
+      const still = local.map(() => 0);
+      const seen = new Set<string>([still.join()]);
+      const ways: (readonly number[])[] = [still];
+      for (const choice of group.choices(local.map((edge) => edge.at))) {
+        const way = local.map((edge) => (edge.fixed ? 0 : choice(edge.at, edge.end)));
+        const key = way.join();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        ways.push(way);
+      }
+      if (ways.length > 1) effects.push(ways);
+    }
+    const place = (picked: readonly (readonly number[])[]): readonly number[] =>
+      local.map((edge, i) =>
+        Math.max(
+          0,
+          Math.min(
+            edge.limit,
+            picked.reduce((sum, way) => sum + (way[i] ?? 0), edge.drawn),
+          ),
+        ),
+      );
+    const combinations = effects.reduce((n, ways) => n * ways.length, 1);
+    if (combinations > MAX_READINGS) {
+      // Too many to try together: read one group at a time, the others as drawn.
+      yield place([]);
+      for (const ways of effects) for (const way of ways.slice(1)) yield place([way]);
+      return;
+    }
+    // Readings of different edits combine, but one edge is moved by at most
+    // one of them: two readings of nearby edits moving the same edge would
+    // each be measured from where the diff drew the other.
+    const picked: (readonly number[])[] = [];
+    const moved = local.map(() => false);
+    function* every(group: number): Generator<readonly number[]> {
+      const ways = effects[group];
+      if (ways === undefined) {
+        yield place(picked);
+        return;
+      }
+      for (const way of ways) {
+        if (way.some((delta, i) => delta !== 0 && moved[i])) continue;
+        const now = way.map((delta, i) => delta !== 0 && !moved[i]);
+        now.forEach((set, i) => {
+          if (set) moved[i] = true;
+        });
+        picked.push(way);
+        yield* every(group + 1);
+        picked.pop();
+        now.forEach((set, i) => {
+          if (set) moved[i] = false;
+        });
       }
     }
-  };
-  const place = (position: number, end: boolean): readonly number[] => {
-    const found = new Set<number>([map(position)]);
-    overwritten(position, found);
-    for (const indel of indels) {
-      if (
-        position < indel.at - indel.left ||
-        position > indel.at + indel.right + (indel.insert ? 0 : indel.length)
-      ) {
-        continue;
-      }
-      // `map` reads an insertion beside a position as lying before it.
-      const drawn = where(indel, indel.at, position, false);
-      for (let d = indel.at - indel.left; d <= indel.at + indel.right; d++) {
-        found.add(map(position) + where(indel, d, position, false) - drawn);
-        if (end) found.add(map(position) + where(indel, d, position, true) - drawn);
-      }
-    }
-    return [...found];
-  };
-  return {
-    starts: (position) => place(position, false),
-    ends: (position) => place(position, true),
-  };
+    yield* every(0);
+  }
+  return { readings };
 }
