@@ -3,6 +3,7 @@ import {
   type FeatureLocation,
   type Segment,
   advanceCodonStart,
+  keepLocatedWithinOwnSegments,
   moveFeature,
   rangeSegment,
 } from '../features';
@@ -186,7 +187,17 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
             ? totalLength - tail.to
             : head.from;
       if (runs.length === 1) {
-        features.push({ ...advanceCodonStart(moved, lost), id: newId() });
+        // A CDS the region clipped no longer has the bases its stored
+        // /translation was read from (#179).
+        const keptLength = moved.segments.reduce(
+          (n, x) => n + (x.kind === 'range' ? x.end - x.start : 0),
+          0,
+        );
+        const clipped = moved.type === 'CDS' && keptLength !== totalLength;
+        const whole: Feature = clipped
+          ? { ...moved, qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation') }
+          : moved;
+        features.push({ ...advanceCodonStart(whole, lost), id: newId() });
         return;
       }
       if (head === undefined || tail === undefined) return; // only a split run of ranges gets here
@@ -205,7 +216,11 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         segments: mergeAbutting(segments),
         qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation'),
       };
-      features.push({ ...advanceCodonStart(part, lost), id: newId() });
+      // A /transl_except stays with the stretch that holds its codon (#179).
+      features.push({
+        ...advanceCodonStart(keepLocatedWithinOwnSegments(part, into), lost),
+        id: newId(),
+      });
     });
   }
 

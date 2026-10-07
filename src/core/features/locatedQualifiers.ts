@@ -122,6 +122,30 @@ function moveQualifier(
 }
 
 /**
+ * `feature` keeping only the located qualifiers whose bases all lie inside
+ * its own segments, `space` being the sequence it is on. A feature split
+ * into stretches (#169, #174) copies its qualifiers to each, but a
+ * `/transl_except` names one codon, which belongs to the stretch that holds
+ * it; on the others it would read as an exception that matches nothing.
+ * One whose value we cannot read is kept.
+ */
+export function keepLocatedWithinOwnSegments(feature: Feature, space: SequenceSpace): Feature {
+  const ranges = feature.segments.filter((s) => s.kind === 'range');
+  const inside = (q: Qualifier): boolean => {
+    if (!LOCATED_QUALIFIERS.has(q.name) || q.value === null) return true;
+    const parsed = parseLocatedValue(q.value, space);
+    if (parsed === null) return true;
+    return parsed.location.segments.every((seg) =>
+      seg.kind === 'range'
+        ? ranges.some((r) => seg.start >= r.start && seg.end <= r.end)
+        : ranges.some((r) => seg.position >= r.start && seg.position <= r.end),
+    );
+  };
+  if (feature.qualifiers.every(inside)) return feature;
+  return { ...feature, qualifiers: feature.qualifiers.filter(inside) };
+}
+
+/**
  * A `move` for `moveFeature` that maps each segment on its own, dropping the
  * ones `fn` returns null for. Keeps the segments array when nothing changed.
  */

@@ -58,3 +58,14 @@ A delete likewise marks a CDS 3'-partial (`markReadingEndLost`,
 `basesLostFromReadingEnd`, the mirror of the 5' pair from #160/#163) when
 bases leave the end of its reading, including a dropped last segment that
 carried the mark. Non-CDS features are not marked by a delete; they never were.
+
+## Stored qualifiers on a clipped or split CDS (#179)
+
+`extractRange` now drops `/translation` from a CDS whose bases the region
+trimmed (the one-piece case, as the split pieces already did in #169), so the
+GenBank writer cannot export a protein the bases no longer give. A delete
+still keeps it: the edit happens in the document the user is looking at, where
+the feature list flags it stale and offers **Update /translation** (#2). Each
+split piece keeps a `/transl_except` or `/anticodon` only when its location
+lies inside the piece's own segments (`keepLocatedWithinOwnSegments`); a codon
+cut apart by the region was already dropped by `moveFeature`'s length check.

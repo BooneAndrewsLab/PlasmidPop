@@ -48,7 +48,10 @@ A `/transl_except` names its codon by position in the sequence, so it moves
 with its feature: insert bases upstream, reverse-complement the molecule, set
 a new origin or copy the gene into another tab, and it still names the same
 codon. An edit to that codon's own bases removes it. The same goes for
-`/anticodon` on a tRNA.
+`/anticodon` on a tRNA. Copying a region that clips a CDS drops its stored
+`/translation`, which no longer matches the bases; where the copy splits the
+CDS into stretches, a `/transl_except` stays only on the stretch that holds its
+codon.
 
 Clicking an amino acid selects its codon — the three bases it is read from —
 and dragging along the line extends the selection codon by codon, which is a
