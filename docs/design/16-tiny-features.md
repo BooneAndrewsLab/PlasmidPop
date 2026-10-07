@@ -16,3 +16,8 @@ should not look like something longer — and the map view's `featureAt`
 takes the same width of the pointer, looking a few bases either side when
 nothing is under it exactly, so a mark that can be seen can be hovered and
 clicked. Both are drawn and tested through a recording `DrawingContext`.
+
+**A tiny piece of a join** (#180). The widening is drawn per segment, so the
+pointer's slop is per segment too: `featureAtLane` widens any range segment
+under `MIN_FEATURE_PX` of arc, not only a feature whose total length is.
+A 1 bp exon of a long `join(...)` could be seen but not hovered or clicked.

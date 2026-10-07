@@ -4,12 +4,15 @@ import {
   type DocumentDiff,
   type Feature,
   type Range,
+  type Segment,
   type SeqDocument,
   cutLabel,
   describeEnds,
   deletionThatTook,
   featureLength,
   rangePieces,
+  rangesOverlap,
+  segmentLength,
   sameFeatureLocation,
 } from '@/core';
 
@@ -1400,20 +1403,26 @@ export function featureAtLane(
   const pxPerBase = (Math.PI * 2 * r) / Math.max(1, doc.length);
   const bases = Math.ceil(MIN_FEATURE_PX / 2 / pxPerBase);
   if (bases < 1) return null;
-  // Only a feature drawn at the minimum width is widened; one that is wider
-  // than that already holds exactly the bases it covers (#159).
+  // Only a segment drawn at the minimum width is widened; one that is wider
+  // than that already holds exactly the bases it covers (#159). The width is
+  // drawn per segment, so a tiny piece of a join takes the slop too (#180).
   // On a circle the slop runs on past the origin (#168); on a line it stops.
   const circular = doc.topology === 'circular';
   const reach = {
     start: circular ? position - bases : Math.max(0, position - bases),
     end: circular ? position + bases + 1 : Math.min(doc.length, position + bases + 1),
   };
+  const isWidenedSegment = (seg: Segment, within: Range): boolean => {
+    if (segmentLength(seg) * pxPerBase >= MIN_FEATURE_PX) return false;
+    const at: Range = seg.kind === 'range' ? seg : { start: seg.position, end: seg.position + 1 };
+    return rangesOverlap(at, within, doc.length);
+  };
   const near = doc.features
     .overlapping(
       circular && reach.end - reach.start >= doc.length ? { start: 0, end: doc.length } : reach,
       doc.length,
     )
-    .filter((x) => inLane(x) && featureLength(x) * pxPerBase < MIN_FEATURE_PX);
+    .filter((x) => inLane(x) && x.segments.some((seg) => isWidenedSegment(seg, reach)));
   return near[0]?.id ?? null;
 }
 

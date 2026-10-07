@@ -9,7 +9,7 @@ import { PRINT_THEME } from '../svg/exportMap';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout } from './circularLayout';
-import { featureAtLane, renderCircularMap, selectionSweep } from './renderCircular';
+import { MIN_FEATURE_PX, featureAtLane, renderCircularMap, selectionSweep } from './renderCircular';
 import { exportMapSvg } from '../svg';
 
 const opts = { width: 600, height: 600, laneCount: 2, ringWidth: 14, outerMargin: 60 };
@@ -905,6 +905,132 @@ describe('hit-testing a feature lane (#159)', () => {
     it('stops at the end of a line', () => {
       const got = hits('linear', N - 1, [N - 1 - slop - 1, N - 1 - slop, N - 1, 0, 1]);
       expect(got).toEqual([false, true, true, false, false]);
+    });
+  });
+
+  describe('the slop around a tiny segment of a join (#180)', () => {
+    const N = 1_000_000;
+    const layout = new CircularLayout(N, 'circular', {
+      width: 600,
+      height: 600,
+      laneCount: 1,
+      ringWidth: 14,
+      outerMargin: 60,
+    });
+    const joined = (
+      strand: 'forward' | 'reverse',
+      segs: [number, number][],
+    ): { doc: SeqDocument; lanes: ReturnType<typeof assignLanes>; id: string } => {
+      const f = createFeature({
+        name: 'f',
+        type: 'CDS',
+        strand,
+        segments: segs.map(([a, b]) => rangeSegment(a, b)),
+      });
+      const doc = SeqDocument.create({
+        sequence: 'A'.repeat(N),
+        topology: 'circular',
+        features: [f],
+      });
+      return { doc, lanes: assignLanes(doc.features.all(), N), id: f.id };
+    };
+    // Whether a point on the arc the tiny segment is drawn over finds the feature.
+    const drawnHits = (
+      t: ReturnType<typeof joined>,
+      seg: [number, number],
+    ): { hit: number; n: number } => {
+      const sweep = selectionSweep(
+        layout.angleOf(seg[0]),
+        layout.angleOf(seg[1]),
+        layout.laneRadius(0),
+        MIN_FEATURE_PX,
+      );
+      let hit = 0;
+      const n = 21;
+      for (let k = 0; k < n; k++) {
+        const a = sweep.start + ((sweep.end - sweep.start) * (k + 0.5)) / n;
+        if (featureAtLane(t.doc, t.lanes, layout, 0, layout.baseOf(a)) === t.id) hit++;
+      }
+      return { hit, n };
+    };
+
+    it.each([
+      [
+        'first',
+        'forward',
+        [
+          [100, 101],
+          [1000, 30000],
+        ],
+        [100, 101],
+      ],
+      [
+        'middle',
+        'forward',
+        [
+          [1000, 30000],
+          [50000, 50001],
+          [90000, 120000],
+        ],
+        [50000, 50001],
+      ],
+      [
+        'last',
+        'forward',
+        [
+          [1000, 30000],
+          [90000, 90001],
+        ],
+        [90000, 90001],
+      ],
+      [
+        'last, reverse strand',
+        'reverse',
+        [
+          [1000, 30000],
+          [90000, 90001],
+        ],
+        [90000, 90001],
+      ],
+      [
+        'across the origin',
+        'forward',
+        [
+          [500_000, 600_000],
+          [N - 1, N],
+        ],
+        [N - 1, N],
+      ],
+      [
+        'at the origin',
+        'forward',
+        [
+          [0, 1],
+          [500_000, 600_000],
+        ],
+        [0, 1],
+      ],
+    ] as const)('finds the feature over a tiny %s segment (%s)', (_name, strand, segs, tiny) => {
+      const t = joined(
+        strand,
+        segs.map(([a, b]) => [a, b]),
+      );
+      const { hit, n } = drawnHits(t, [tiny[0], tiny[1]]);
+      expect(hit).toBe(n);
+    });
+
+    it('does not widen a long segment of the same join', () => {
+      const t = joined('forward', [
+        [100, 101],
+        [1000, 30000],
+      ]);
+      expect(featureAtLane(t.doc, t.lanes, layout, 0, 200_000)).toBeNull();
+      expect(featureAtLane(t.doc, t.lanes, layout, 0, 999_000)).toBeNull();
+    });
+
+    it('still finds a single-segment tiny feature', () => {
+      const t = joined('forward', [[5000, 5001]]);
+      expect(drawnHits(t, [5000, 5001])).toEqual({ hit: 21, n: 21 });
     });
   });
 });
