@@ -42,6 +42,41 @@ export interface Feature {
    */
   readonly joining?: SegmentJoining | undefined;
   readonly qualifiers: readonly Qualifier[];
+  /**
+   * The feature this one is a piece of, when a cut or a region left only
+   * some of its bases (#182). Ligation reads it to put the pieces back
+   * together when they meet again exactly as they were. In-session
+   * bookkeeping: GenBank, the clipboard and stored history do not carry it.
+   */
+  readonly origin?: FeatureOrigin | undefined;
+}
+
+/**
+ * Where a piece of a feature came from (#182): the whole feature it was cut
+ * from, and which of that feature's bases the piece holds.
+ *
+ * `whole` is the original laid out on its own, read 5′ to 3′ whichever
+ * strand it was on: a forward-strand feature in a linear space of `span`
+ * bases whose base 0 is the original's first base of reading, its located
+ * qualifiers (`/transl_except`, `/anticodon`) moved along with it. That
+ * makes the record the same whichever way round the piece is later turned,
+ * and wherever it lands.
+ */
+export interface FeatureOrigin {
+  /** The original's id; every piece of one feature carries the same key. */
+  readonly key: FeatureId;
+  /** The original, on the forward strand of its own `span`-base space, with no origin of its own. */
+  readonly whole: Feature;
+  readonly span: number;
+  /**
+   * A hash of the bases between each pair of consecutive segments of
+   * `whole` (an intron, read 5′ to 3′), so two pieces cut apart there are
+   * joined back only across the same bases.
+   */
+  readonly gaps: readonly number[];
+  /** The piece's bases, `[from, to)` along the original's own bases from its 5′ end. */
+  readonly from: number;
+  readonly to: number;
 }
 
 /** The only value `Feature.joining` holds; `join(...)` is its absence. */

@@ -11,6 +11,7 @@ import { newId } from '../ids';
 import { type Range, rangePieces } from '../range';
 import { type StyleRun } from './baseStyles';
 import { type DocumentEnds, BLUNT_END, topStrandOverhang } from './ends';
+import { pieceOrigin, withOrigin } from './featureOrigin';
 import { SeqDocument } from './seqDocument';
 
 /**
@@ -141,6 +142,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
   };
 
   const into = { length: sequence.length, topology: 'linear' } as const;
+  const bases = (x: Range): string => doc.subsequence(x);
   const features: Feature[] = [];
   for (const f of doc.features) {
     const moved = moveFeature(f, doc, into, clip);
@@ -186,6 +188,15 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
           : f.strand === 'reverse'
             ? totalLength - tail.to
             : head.from;
+      // A piece keeps a record of the feature it was cut from (#182), which
+      // its bases are counted in from the 5' end, so that ligation can put
+      // the pieces back together.
+      const origin = (): ReturnType<typeof pieceOrigin> =>
+        head === undefined || tail === undefined
+          ? null
+          : f.strand === 'reverse'
+            ? pieceOrigin(f, totalLength - tail.to, totalLength - head.from, doc, bases)
+            : pieceOrigin(f, head.from, tail.to, doc, bases);
       if (runs.length === 1) {
         // A CDS the region clipped no longer has the bases its stored
         // /translation was read from (#179).
@@ -193,11 +204,15 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
           (n, x) => n + (x.kind === 'range' ? x.end - x.start : 0),
           0,
         );
-        const clipped = moved.type === 'CDS' && keptLength !== totalLength;
-        const whole: Feature = clipped
-          ? { ...moved, qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation') }
-          : moved;
-        features.push({ ...advanceCodonStart(whole, lost), id: newId() });
+        if (keptLength === totalLength) {
+          features.push({ ...advanceCodonStart(moved, lost), id: newId() });
+          return;
+        }
+        const clipped =
+          moved.type === 'CDS'
+            ? { ...moved, qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation') }
+            : moved;
+        features.push(withOrigin({ ...advanceCodonStart(clipped, lost), id: newId() }, origin()));
         return;
       }
       if (head === undefined || tail === undefined) return; // only a split run of ranges gets here
@@ -217,10 +232,12 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation'),
       };
       // A /transl_except stays with the stretch that holds its codon (#179).
-      features.push({
-        ...advanceCodonStart(keepLocatedWithinOwnSegments(part, into), lost),
-        id: newId(),
-      });
+      features.push(
+        withOrigin(
+          { ...advanceCodonStart(keepLocatedWithinOwnSegments(part, into), lost), id: newId() },
+          origin(),
+        ),
+      );
     });
   }
 

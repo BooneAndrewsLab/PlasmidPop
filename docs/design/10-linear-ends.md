@@ -144,7 +144,7 @@ on `looped()`; we keep the pieces). Decisions:
   0, which used to stay a `join` across the product's ends.
 - Ligation re-joins nothing: closing the cut vector on itself (the empty
   vector) gives the two partial pieces side by side, not the feature it
-  was cut from. Superseded by #181 below.
+  was cut from. Superseded by #181 and #182 below.
 
 Added 2026-10-07 (#181): ligation joins the two pieces back into one
 feature wherever a junction (the circular product's origin included)
@@ -159,3 +159,11 @@ fill-in, a different overhang) leaves them apart. The joined feature keeps
 the outer partial marks, the 5' piece's qualifiers and the 3' piece's
 located ones. `/translation` is not restored: the pieces no longer hold
 it, and whether the original had one cannot be told from them.
+
+Added 2026-10-07 (#182): superseded. Joining by what the pieces look like
+missed a `join` cut in its intron, joined pieces across a junction that
+had lost bases, and could not bring back a `/transl_except` whose codon
+the cut split. Each piece now carries a record of the feature it was cut
+from, and ligation joins pieces only when they meet again exactly as they
+were cut, restoring the feature whole, `/translation` and located
+qualifiers included. See item 73.

@@ -84,6 +84,7 @@ piece of work needs its reasoning written down, with the next free number.
 70. [Small input and output edge cases](70-input-output-edge-cases.md)
 71. [The order a MultiSite att pair runs in](71-multisite-att-order.md)
 72. [Primer lists from Excel workbooks](72-primer-workbooks.md)
+73. [A piece of a feature remembers what it was cut from](73-feature-provenance.md)
 
 ## Changelog to 1.1.0
 

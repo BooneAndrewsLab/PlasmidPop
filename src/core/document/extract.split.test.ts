@@ -413,7 +413,7 @@ describe('ligation joins back the pieces a cut split (#181)', () => {
     }
   });
 
-  it('leaves pieces apart when the junction is not the one they were cut from', () => {
+  it('leaves apart pieces with no record of a cut, however well they would fit (#182)', () => {
     const piece = (start: number, end: number, ps: boolean, pe: boolean, codonStart?: string) =>
       createFeature({
         type: 'CDS',
@@ -425,17 +425,11 @@ describe('ligation joins back the pieces a cut split (#181)', () => {
       const doc = SeqDocument.create({ sequence: 'A'.repeat(40), topology: 'linear', features });
       return ligate([def(digest(doc, [])[0])], { name: 'c', circular: true }).features.all();
     };
-    // 10 bases read from the start leave one over: the far piece starts in frame 3.
-    expect(close([piece(30, 40, false, true), piece(0, 5, true, false, '3')])).toHaveLength(1);
-    // A base gained or lost at the junction puts it out of frame.
+    // Pieces that only look like the two sides of one cut are not taken
+    // for them: in frame, partial where they meet, same name and all.
+    expect(close([piece(30, 40, false, true), piece(0, 5, true, false, '3')])).toHaveLength(2);
     expect(close([piece(30, 40, false, true), piece(0, 5, true, false, '2')])).toHaveLength(2);
     expect(close([piece(30, 40, false, true), piece(0, 5, true, false)])).toHaveLength(2);
-    // Not partial where they meet: two features that only sit side by side.
     expect(close([piece(31, 40, false, false), piece(0, 5, false, false)])).toHaveLength(2);
-    expect(close([piece(31, 40, false, true), piece(0, 5, false, false)])).toHaveLength(2);
-    // Another name is another feature.
-    expect(
-      close([piece(31, 40, false, true), { ...piece(0, 5, true, false), name: 'other' }]),
-    ).toHaveLength(2);
   });
 });

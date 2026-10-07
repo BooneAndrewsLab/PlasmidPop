@@ -1,5 +1,6 @@
 import { createFeature, rangeSegment, siteSegment } from '../features';
 import { fragmentFromRange, fragmentToJSON, parseFragmentJSON } from './fragment';
+import { withOrigin } from './featureOrigin';
 import { SeqDocument } from './seqDocument';
 
 const SEQ = 'ACGTTGCAAGGCTTAACCGG'; // 20 bp
@@ -62,7 +63,10 @@ describe('fragment JSON', () => {
   it('round-trips features, qualifiers and partial markers', () => {
     const frag = fragmentFromRange(doc, { start: 5, end: 12 });
     const back = parseFragmentJSON(fragmentToJSON(frag));
-    expect(back).toEqual(frag);
+    // A piece's record of the feature it was cut from (#182) is in-session
+    // bookkeeping and does not travel through the clipboard.
+    expect(back).toEqual({ ...frag, features: frag.features.map((f) => withOrigin(f, null)) });
+    expect(frag.features[1]?.origin?.key).toBe('span');
     expect(back?.features[1]?.qualifiers).toEqual([
       { name: 'note', value: 'x' },
       { name: 'pseudo', value: null },

@@ -39,11 +39,18 @@ first, each with:
   inside such a feature, so the linear piece has it at both ends, as two
   partial features rather than one joined across the ends: an insert
   ligated at the cut then sits between them instead of being skipped.
-  Ligation puts the two back together as the one feature they were where
-  it joins them again exactly as they were cut, as closing the vector on
-  itself does: same name and qualifiers, partial where they meet, and a
-  CDS still in frame across the join (a stored `/translation` is not
-  restored);
+  Each piece remembers the feature it was cut from, and ligation puts
+  the pieces back together as that feature only where they meet again
+  exactly as they were cut, as closing the vector on itself does, or
+  religating a digest's fragments in their own order: no base lost or
+  gained between them (a dropout, a fill-in or a chewed-back end leaves
+  them apart), and a cut in an intron gets its own bases back. The
+  feature comes back whole, with its `/translation` and a
+  `/transl_except` whose codon the cut had split. Pieces of two features
+  that merely look alike (the same name in two plasmids) stay apart. The
+  memory lasts while the app is open and through the shelf; a fragment
+  saved and reopened as a file starts afresh, its pieces then staying
+  apart;
 - **Add**, which puts it on the [shelf](#the-shelf), and **Open**,
   which opens it as a document of its own. Add reads **Added ✓** for a
   moment, and the Bench tab's count flashes. While the fragment is on the

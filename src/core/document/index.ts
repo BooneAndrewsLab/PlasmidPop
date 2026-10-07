@@ -8,3 +8,4 @@ export * from './extract';
 export * from './fragment';
 export * from './read';
 export * from './tools';
+export * from './featureOrigin';
