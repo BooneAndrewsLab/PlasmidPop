@@ -147,9 +147,9 @@ describe('cuts at the origin of a circle', () => {
       }
       const doc = SeqDocument.create({ sequence: c.seq, topology: 'circular' });
       const svg = exportMapSvg(doc, { cutSites: sites });
-      const drawn = [
-        ...svg.matchAll(new RegExp(`${c.enzyme}[^<(]*\\(([0-9,]+)\\)`, 'g')),
-      ].map((m) => Number((m[1] ?? '').replace(/,/g, '')));
+      const drawn = [...svg.matchAll(new RegExp(`${c.enzyme}[^<(]*\\(([0-9,]+)\\)`, 'g'))].map(
+        (m) => Number((m[1] ?? '').replace(/,/g, '')),
+      );
       if ([...new Set(drawn)].sort((a, b) => a - b).join() !== c.cuts.join()) {
         problems.push(`#${String(i)} ${c.enzyme}: map shows ${drawn.join()}`);
       }

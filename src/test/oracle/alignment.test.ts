@@ -302,7 +302,11 @@ describe('protein effect across the origin against Biopython translation', () =>
     readonly cs: number;
     readonly seq: string;
     readonly genbank: string;
-    readonly subs: readonly { readonly at: number; readonly base: string; readonly expected: string }[];
+    readonly subs: readonly {
+      readonly at: number;
+      readonly base: string;
+      readonly expected: string;
+    }[];
   }
   const effects = (oracle as unknown as { effects: readonly EffectCase[] }).effects;
 
@@ -333,7 +337,10 @@ describe('protein effect across the origin against Biopython translation', () =>
           ['forward', wrapping],
           ['reverse', reverseComplement(wrapping)],
         ] as const) {
-          const reads = [{ sequence: read, name: 'r0' }, ...(label === 'forward' ? [{ sequence: clean, name: 'r1' }] : [])];
+          const reads = [
+            { sequence: read, name: 'r0' },
+            ...(label === 'forward' ? [{ sequence: clean, name: 'r1' }] : []),
+          ];
           const aligned = reads.map(({ sequence, name }) => {
             const prep = prepareReadAlignment(reference, { sequence, read: null }, null);
             if (!prep.ok) throw new Error(prep.message);
@@ -356,9 +363,14 @@ describe('protein effect across the origin against Biopython translation', () =>
             [],
           );
           const hit = rows.filter((r) => r.position === sub.at + 1);
-          const got = hit.length === 1 && hit[0] !== undefined ? effectText(hit[0]) : `${String(hit.length)} rows`;
+          const got =
+            hit.length === 1 && hit[0] !== undefined
+              ? effectText(hit[0])
+              : `${String(hit.length)} rows`;
           if (got !== sub.expected) {
-            problems.push(`#${String(i)} ${c.loc} cs${String(c.cs)} ${label} at ${String(sub.at)}: ${got} vs ${sub.expected}`);
+            problems.push(
+              `#${String(i)} ${c.loc} cs${String(c.cs)} ${label} at ${String(sub.at)}: ${got} vs ${sub.expected}`,
+            );
           }
         }
       }

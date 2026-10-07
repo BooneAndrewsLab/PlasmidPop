@@ -276,7 +276,8 @@ describe('copying a region against a base-identity model and Biopython translati
         }
         const protein = translateCds(ex, f).protein;
         // A 2-base partial codon at the 3' end reads as one more residue (#142).
-        const ok = protein === e.protein || (e.tail2 === true && protein.slice(0, -1) === e.protein);
+        const ok =
+          protein === e.protein || (e.tail2 === true && protein.slice(0, -1) === e.protein);
         if (!ok) problems.push(`${label}: protein ${protein}, expected ${e.protein}`);
       }
     }
@@ -287,7 +288,9 @@ describe('copying a region against a base-identity model and Biopython translati
 describe('deleting a region that trims a CDS', () => {
   it('has trimmed CDSs on both strands and topologies', () => {
     expect(deletes.length).toBeGreaterThanOrEqual(200);
-    const trimmed = deletes.filter((d) => d.after.cut5 === true && d.after.codon_start !== undefined);
+    const trimmed = deletes.filter(
+      (d) => d.after.cut5 === true && d.after.codon_start !== undefined,
+    );
     expect(trimmed.length).toBeGreaterThanOrEqual(90);
     expect(new Set(trimmed.map((d) => d.feature.strand)).size).toBe(2);
     expect(new Set(trimmed.map((d) => d.topology)).size).toBe(2);
@@ -324,7 +327,9 @@ describe('deleting a region that trims a CDS', () => {
       if (d.after.codon_start === undefined) continue;
       const cs = Number(firstQualifier(f, 'codon_start') ?? '1');
       if (cs !== d.after.codon_start) {
-        problems.push(`${label}: codon_start ${String(cs)}, expected ${String(d.after.codon_start)}`);
+        problems.push(
+          `${label}: codon_start ${String(cs)}, expected ${String(d.after.codon_start)}`,
+        );
       }
       if (partialEnds(f)[0] !== d.after.cut5) problems.push(`${label}: 5' mark`);
       const protein = translateCds(after, f).protein;
