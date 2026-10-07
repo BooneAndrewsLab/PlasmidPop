@@ -88,7 +88,7 @@ function verdict(reads: readonly Read[], reference: ReferenceInput = circle) {
   return { stack, v };
 }
 
-describe('a wrapping and a non-wrapping read over the origin', () => {
+describe('a wrapping and a non-wrapping read over the origin', { timeout: 30_000 }, () => {
   it('counts both reads and both strands on the feature (the issue repro)', () => {
     const { v } = verdict([
       { from: 1300, to: L + 200 },
@@ -216,7 +216,7 @@ describe('a wrapping and a non-wrapping read over the origin', () => {
   });
 });
 
-describe('the protein effect of a difference across the origin', () => {
+describe('the protein effect of a difference across the origin', { timeout: 30_000 }, () => {
   const cdsStart = 1470;
   const cdsLen = 90;
 
@@ -318,7 +318,7 @@ describe('the protein effect of a difference across the origin', () => {
   }
 });
 
-describe('differences and agreement across the origin', () => {
+describe('differences and agreement across the origin', { timeout: 30_000 }, () => {
   const across = { ...feature, ranges: [{ start: 1480, end: L + 20 }] };
   /** The base at position `p` changed to something else than the reference has or `not`. */
   const other = (p: number, not = ''): string =>

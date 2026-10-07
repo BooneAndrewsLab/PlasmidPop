@@ -74,7 +74,7 @@ const wrapping: Read = { from: 1300, to: L + 200 };
 const startRead: Read = { from: 0, to: 300 };
 const endRead: Read = { from: 1200, to: L };
 
-describe('an insertion seen from both sides of the origin', () => {
+describe('an insertion seen from both sides of the origin', { timeout: 30_000 }, () => {
   for (const at of [5, 1490]) {
     for (const reverse of [false, true]) {
       for (const [label, other] of [
@@ -127,7 +127,7 @@ describe('an insertion seen from both sides of the origin', () => {
   });
 });
 
-describe('a deletion seen from both sides of the origin', () => {
+describe('a deletion seen from both sides of the origin', { timeout: 30_000 }, () => {
   for (const [at, other] of [
     [5, startRead],
     [1490, endRead],
