@@ -1,10 +1,16 @@
 import {
+  type DigestFragment,
   type EditOp,
   type Feature,
   SeqDocument,
   createFeature,
+  digest,
+  documentFromFragment,
+  emptyVector,
   extractRange,
+  flipFragment,
   firstQualifier,
+  ligate,
   rangeSegment,
   reverseComplement,
   translateCds,
@@ -340,4 +346,217 @@ describe('deleting a region that trims a CDS', () => {
     }
     expect(problems.slice(0, 20)).toEqual([]);
   });
+});
+
+/**
+ * Features through a digest and a ligation against a base-identity model
+ * (scripts/oracle/editing.py, ligation_cases): circular plasmids with CDSs
+ * (joins, both strands, across the origin, /codon_start 1-3, other tables,
+ * /transl_except, partial starts) cut at one to three sites with blunt, 5'
+ * or 3' ends, then self-closed, joined in order or swapped, closed one
+ * fragment at a time with the rest dropped out, or made an empty vector. The
+ * product must read the sequence the identity model says and each feature the
+ * bases, strand, /codon_start, partial marks and (Biopython-translated)
+ * protein it says, with its other qualifiers kept (so a CDS clipped by a cut
+ * keeps its frame and gets partial ends, and one a ligation rejoins is whole
+ * again).
+ *
+ * Left out (#182): a /transl_except whose codon a cut splits, a rejoin over
+ * lost bases or of same-named pieces of different features, a join cut in its
+ * intron and religated. Not covered: bluntEnds then emptyVector (#183), and a
+ * flipped fragment with an overhang, which drops the annotation on those
+ * bases by design (item 34).
+ */
+describe('features through a digest and a ligation', () => {
+  interface LigFeature {
+    readonly type: string;
+    readonly name: string;
+    readonly strand: 'forward' | 'reverse';
+    readonly segments: string;
+    readonly partialStart: boolean;
+    readonly codon_start?: number;
+    readonly table?: number;
+    readonly te?: readonly number[] | null;
+  }
+  interface LigPlan {
+    readonly parts: readonly string[];
+    readonly circular: boolean;
+    readonly empty: boolean;
+    readonly sequence: string;
+    readonly expect: readonly string[];
+  }
+  interface LigCase {
+    readonly seq: string;
+    readonly features: readonly LigFeature[];
+    readonly cuts: readonly string[];
+    readonly plans: readonly LigPlan[];
+  }
+  const cases = (oracle as unknown as { ligation: readonly LigCase[] }).ligation;
+  const COMPLEMENT: Record<string, string> = { A: 'T', C: 'G', G: 'C', T: 'A' };
+
+  function sourceDocument(c: LigCase): SeqDocument {
+    return SeqDocument.create({
+      name: 'src',
+      sequence: c.seq,
+      topology: 'circular',
+      features: c.features.map((f) =>
+        createFeature({
+          type: f.type,
+          name: f.name,
+          strand: f.strand,
+          segments: f.segments.split(',').map((t, i) => {
+            const [a, b] = t.split('-').map(Number);
+            return rangeSegment(a ?? 0, b ?? 0, { partialStart: i === 0 && f.partialStart });
+          }),
+          qualifiers:
+            f.type !== 'CDS'
+              ? []
+              : [
+                  { name: 'codon_start', value: String(f.codon_start) },
+                  ...(f.table !== 1 ? [{ name: 'transl_table', value: String(f.table) }] : []),
+                  { name: 'translation', value: 'XXXX' },
+                  { name: 'note', value: `n-${f.name}` },
+                  ...(f.te
+                    ? [
+                        {
+                          name: 'transl_except',
+                          value: `(pos:${
+                            f.strand === 'forward'
+                              ? `${String(f.te[0])}..${String(f.te[2])}`
+                              : `complement(${String(f.te[0])}..${String(f.te[2])})`
+                          },aa:Sec)`,
+                        },
+                      ]
+                    : []),
+                ],
+        }),
+      ),
+    });
+  }
+
+  /** What a feature of the product reads, as the oracle writes it. */
+  function describe_(doc: SeqDocument, f: Feature): string {
+    const seq = doc.sequence.toString().toUpperCase();
+    const L = seq.length;
+    const ranges = f.segments.flatMap((s) => (s.kind === 'range' ? [s] : []));
+    let pos = ranges.flatMap((s) =>
+      Array.from({ length: s.end - s.start }, (_, k) => (s.start + k) % L),
+    );
+    if (f.strand === 'reverse') pos = pos.reverse();
+    const bases = pos
+      .map((p) => (f.strand === 'forward' ? seq[p] : (COMPLEMENT[seq[p] ?? ''] ?? '')))
+      .join('');
+    const first = ranges[0];
+    const last = ranges[ranges.length - 1];
+    const five = f.strand === 'reverse' ? last?.partialEnd : first?.partialStart;
+    const three = f.strand === 'reverse' ? first?.partialStart : last?.partialEnd;
+    const t = f.type === 'CDS' ? translateCds(doc, f) : null;
+    return [
+      f.type,
+      f.name,
+      f.strand,
+      bases,
+      t === null ? '-' : String(t.codonStart),
+      five === true ? 'P' : 'c',
+      three === true ? 'P' : 'c',
+      t === null ? '-' : t.protein,
+    ].join('|');
+  }
+
+  /** Equal as lists; an expected protein that starts with '?' accepts M or any first residue. */
+  function sameFeatures(got: readonly string[], expect: readonly string[]): boolean {
+    if (got.length !== expect.length) return false;
+    const left = [...expect];
+    for (const g of got) {
+      const fields = g.split('|');
+      const protein = fields[7] ?? '';
+      const wild = [...fields.slice(0, 7), `?${protein.slice(1)}`].join('|');
+      const at = left.findIndex((e) => e === g || e === wild);
+      if (at < 0) return false;
+      left.splice(at, 1);
+    }
+    return true;
+  }
+
+  const kept = (doc: SeqDocument): string[] =>
+    doc.features
+      .all()
+      .filter((f) => f.type === 'CDS')
+      .flatMap((f) => [
+        `${f.name}:${firstQualifier(f, 'note') ?? ''}:${firstQualifier(f, 'transl_table') ?? ''}`,
+      ]);
+
+  it('covers every cut count, strand and a good number of CDSs', () => {
+    expect(cases.length).toBeGreaterThanOrEqual(250);
+    expect(new Set(cases.map((c) => c.cuts.length))).toEqual(new Set([1, 2, 3]));
+    expect(cases.flatMap((c) => c.plans).length).toBeGreaterThanOrEqual(900);
+    expect(new Set(cases.flatMap((c) => c.features.map((f) => f.strand))).size).toBe(2);
+    expect(cases.flatMap((c) => c.plans).some((p) => p.empty)).toBe(true);
+  });
+
+  it('carries each feature through the cut and the ligation as the identity model says', () => {
+    const problems: string[] = [];
+    for (const [ci, c] of cases.entries()) {
+      const doc = sourceDocument(c);
+      const fragments = digest(
+        doc,
+        c.cuts.map((t) => {
+          const [cut, bottom] = t.split(':').map(Number);
+          return {
+            enzyme: 'X',
+            cut: cut ?? 0,
+            cutBottom: bottom ?? 0,
+            siteStart: cut ?? 0,
+            strand: 'forward' as const,
+          };
+        }),
+      );
+      for (const [pi, plan] of c.plans.entries()) {
+        const tag = `case ${String(ci)} plan ${String(pi)} ${plan.parts.join(',')}`;
+        try {
+          const parts: DigestFragment[] = plan.parts.map((p) => {
+            const fragment = fragments[Number.parseInt(p, 10)];
+            if (fragment === undefined) throw new Error('no such fragment');
+            return p.endsWith('!') ? flipFragment(fragment) : fragment;
+          });
+          const first = parts[0];
+          if (first === undefined) throw new Error('no fragments');
+          const products = plan.empty
+            ? [emptyVector(documentFromFragment(first)), emptyVector(first)]
+            : [ligate(parts, { name: 'p', circular: plan.circular })];
+          for (const product of products) {
+            if (product === null) {
+              problems.push(`${tag}: no product`);
+              continue;
+            }
+            if (product.sequence.toString().toUpperCase() !== plan.sequence.toUpperCase()) {
+              problems.push(`${tag}: wrong sequence`);
+              continue;
+            }
+            const got = product.features
+              .all()
+              .map((f) => describe_(product, f))
+              .sort();
+            if (!sameFeatures(got, plan.expect)) {
+              problems.push(
+                `${tag}:\n  got ${got.join('\n      ')}\n  exp ${plan.expect.join('\n      ')}`,
+              );
+            }
+            // CDS qualifiers other than the frame ones ride along on every piece
+            const expectedKept = kept(doc).map((k) => k.split(':'));
+            for (const entry of kept(product)) {
+              const [name, note, table] = entry.split(':');
+              const src = expectedKept.find((k) => k[0] === name);
+              if (src === undefined || src[1] !== note || src[2] !== table) {
+                problems.push(`${tag}: qualifiers of ${String(name)} changed`);
+              }
+            }
+          }
+        } catch (e) {
+          problems.push(`${tag}: ${String(e)}`);
+        }
+      }
+    }
+    expect(problems.slice(0, 10)).toEqual([]);
+  }, 120_000);
 });
