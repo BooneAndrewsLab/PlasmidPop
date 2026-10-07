@@ -13,6 +13,7 @@ holds what the last one had to discover, so the next one need not.
 | 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes                             |
 | 2026-10-07 | `97059b0`          | #174–#180 (milestone 1.11.2) | scoped: region copy and CDS translation, circular reads and diff, sweep of the #162–#173 fixes                           |
 | 2026-10-07 | `07bd28a`          | #182–#184 (milestone 1.11.2) | scoped: features through cut and ligation (incl. the #181 rejoin), circular reads and diff, sweep of the #174–#181 fixes |
+| 2026-10-07 | `a2734eb`          | #187–#190 (milestone 1.11.2) | scoped: feature provenance and rejoin (#182–#186 fixes), document diff after #184/#185                                   |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
@@ -48,6 +49,9 @@ Add a row here when an audit finishes.
 - **A line in "Conventions" needs the cases that support it.** "Global
   banded always equals it" came from junk-flank cases only; tandem repeats
   break it (#167).
+- **Pieces share a key across document versions:** test provenance with two
+  versions of one plasmid (an edited copy, Open mutant), not just one source
+  (#187).
 - Rank by cost to the user: wrong oligo or construct sequence → wrong
   positions/sizes that mislead a design → refusals and false warnings →
   cosmetics.
@@ -152,6 +156,14 @@ reporting one.
   with a 1–4 bp gap; by design.
 - **Under Set Origin every feature reads as changed in the diff**: a rotation
   is a wholesale change (`sequenceDiff.ts`); by design.
+- **The edit review's "unchanged"** means where the editor would have carried
+  the feature (design note 27), not "any optimal alignment": locations
+  consistent with an optimal alignment that no editor op produces are reported
+  changed, by design.
+- **#185's overwrite reading** accepts an insertion of any length at a feature
+  edge; by design.
+- **A changed or removed feature's "was" location inside a repeat** is one
+  valid drawing, not always the editor's.
 
 ## Reference sources that work from here
 
