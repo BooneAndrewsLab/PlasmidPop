@@ -394,7 +394,9 @@ const MAX_READINGS = 4096;
  * and an end the other is a feature no editor kept (#189). `a` and `b` are
  * the first and second input. On a `circular` pair, edits either side of
  * the origin are one stretch, and an end past the sequence (a segment over
- * the origin) is the same edge a turn on.
+ * the origin) is the same edge a turn on. Edges come a range at a time, its
+ * start then its end, so a reading that moves the origin can keep each
+ * range in one piece.
  */
 export function equivalentMappings(
   diff: SequenceDiff,
@@ -436,18 +438,20 @@ export function equivalentMappings(
   // drew it. A replace by longer text overwrites the selection and inserts
   // the rest after it, so a stretch that only added bases (T replaced by CT,
   // drawn as C inserted before T) may have overwritten up to MERGE_GAP of the
-  // equal bases after it too: which, the sequences do not say (#185).
+  // equal bases after it too: which, the sequences do not say (#185). One
+  // that only lost bases likewise (GAA replaced by A, drawn as GA deleted,
+  // moves a feature on the G to the new A), and is one stretch with the edits
+  // either side of the origin like any other (#190).
   interface Stretch {
     aStart: number;
     aEnd: number;
     bStart: number;
     bEnd: number;
-    inserts: boolean;
   }
   const stretches: Stretch[] = [];
   let open: Stretch | undefined;
   const close = (): void => {
-    if (open?.inserts === true) stretches.push(open);
+    if (open !== undefined) stretches.push(open);
     open = undefined;
   };
   for (const op of diff.ops) {
@@ -455,16 +459,9 @@ export function equivalentMappings(
       if (op.aEnd - op.aStart > MERGE_GAP) close();
       continue;
     }
-    open ??= {
-      aStart: op.aStart,
-      aEnd: op.aStart,
-      bStart: op.bStart,
-      bEnd: op.bStart,
-      inserts: false,
-    };
+    open ??= { aStart: op.aStart, aEnd: op.aStart, bStart: op.bStart, bEnd: op.bStart };
     open.aEnd = Math.max(open.aEnd, op.aEnd);
     open.bEnd = Math.max(open.bEnd, op.bEnd);
-    if (op.kind === 'insert') open.inserts = true;
   }
   close();
   // On a circle the linear diff cuts a stretch over the origin in two: the
@@ -486,7 +483,6 @@ export function equivalentMappings(
   ) {
     tail.aEnd = head.aEnd + a.length;
     tail.bEnd = head.bEnd + b.length;
-    tail.inserts ||= head.inserts;
     stretches.shift();
   }
   /** Where an exclusive end lands as the diff drew it: an insertion right at it lies outside. */
@@ -549,19 +545,28 @@ export function equivalentMappings(
     return run.bStart + into + (to > from && !end ? to - from : 0);
   };
   /**
-   * The furthest an overwrite of `run` may reach. One that added bases may
-   * reach over the origin, the way a small rotation reads (#185); one that
-   * lost bases stops at it, since what it deleted past the origin would
-   * have moved the origin.
+   * Whether an overwrite of `run` may reach `x` bases past it. One that added
+   * bases may reach over the origin, the way a small rotation reads (#185).
+   * One that lost bases deletes them right after what it overwrote, and that
+   * deletion may not start at the origin or run over it, since it would have
+   * moved the origin (a reading of its own, below). It may lie wholly past
+   * the origin of a stretch the diff drew over it, where the editor leaves
+   * the overwritten bases after the origin in place and what follows the
+   * deletion shifted by all the bases lost, as the diff drew them (#190).
    */
-  const reach = (run: Stretch): number =>
-    run.aEnd +
-    (circular && run.bEnd - run.bStart <= run.aEnd - run.aStart
-      ? Math.min(MERGE_GAP, Math.max(0, a.length - run.aEnd))
-      : MERGE_GAP);
+  const reaches = (run: Stretch, x: number): boolean => {
+    if (!circular || x === 0 || run.bEnd - run.bStart > run.aEnd - run.aStart) return true;
+    if (run.aEnd + x <= a.length) return true;
+    return (
+      run.aEnd > a.length &&
+      run.aStart + (run.bEnd - run.bStart) + x > a.length &&
+      run.bStart - run.aStart === b.length - a.length
+    );
+  };
   const overwrites = (run: Stretch): Choice[] => {
     const choices: Choice[] = [];
-    for (let x = 0; x <= reach(run) - run.aEnd; x++) {
+    for (let x = 0; x <= MERGE_GAP; x++) {
+      if (!reaches(run, x)) continue;
       choices.push((position, end) => {
         // A stretch over the origin holds the positions after it a turn on.
         for (const at of circular ? [position, position + a.length] : [position]) {
@@ -577,7 +582,7 @@ export function equivalentMappings(
   };
   const groups: Group[] = stretches.map((run) => {
     const members = indels.filter((indel) => inStretch(indel.at, run));
-    const last = reach(run);
+    const last = run.aEnd + MERGE_GAP;
     return {
       near: (position) =>
         members.some((indel) => slideNear(indel)(position)) ||
@@ -594,7 +599,64 @@ export function equivalentMappings(
     groups.push({ near: slideNear(indel), choices: (positions) => slides(indel, positions) });
   }
 
+  // A replace by shorter text across the origin of a circle deletes over it
+  // and so moves the origin: the bases that start the second input are those
+  // right after the selection. In a repeat the diff may draw that edit as
+  // some other one of the same cost, with no stretch at either end to merge
+  // (#190). Read in the first input turned to start `turn` bases on, it is
+  // one stretch at the end, kept bases first. Every turn is a reading of its
+  // own whose stretch costs no more than the diff as drawn plus an overwrite
+  // of MERGE_GAP bases, as far as an overwrite may reach past a stretch.
+  const cost =
+    diff.ops.reduce(
+      (sum, op) => sum + (op.kind === 'equal' ? 0 : op.aEnd - op.aStart + op.bEnd - op.bStart),
+      0,
+    ) +
+    2 * MERGE_GAP;
+  const turns: { readonly turn: number; readonly run: Stretch }[] = [];
+  // The deletion must start at or before the origin (`turn + b.length <=
+  // a.length`), and the stretch costs at least the bases deleted after it.
+  for (let turn = 1; circular && turn <= Math.min(cost - 1, a.length - b.length); turn++) {
+    // Kept bases: the longest run from `turn` on that starts `b`, short of a
+    // whole turn so the selection still starts before the origin.
+    const most = Math.min(b.length, a.length - turn - 1);
+    let kept = 0;
+    while (kept < most && a[turn + kept] === b[kept]) kept++;
+    if (a.length - kept + (b.length - kept) > cost) continue;
+    turns.push({ turn, run: { aStart: kept, aEnd: a.length, bStart: kept, bEnd: b.length } });
+  }
+  /** Where an edge lands when the edit was a replace over the origin turned by `turn`. */
+  const rotated = (turn: number, run: Stretch, position: number, end: boolean): number => {
+    // The base at `turn` is the new origin; an end there closes a whole turn.
+    const at = position - turn + (position > turn || (!end && position === turn) ? 0 : a.length);
+    return at < run.aStart ? at : overwrite(run, 0, at - run.aStart, end);
+  };
+
   function* readings(edges: readonly Edge[]): Generator<readonly number[]> {
+    yield* drawings(edges);
+    for (const { turn, run } of turns) {
+      const placed = edges.map(({ position, end }) => {
+        const fixed = position < 0 || (end ? position <= 0 : position >= a.length);
+        return fixed
+          ? map(position)
+          : rotated(turn, run, position > a.length ? position - a.length : position, end);
+      });
+      // A range that held the base the new origin is at now ends a turn on.
+      for (let i = 1; i < edges.length; i++) {
+        const start = edges[i - 1];
+        const end = edges[i];
+        const from = placed[i - 1];
+        const to = placed[i];
+        if (start?.end !== false || end?.end !== true || from === undefined || to === undefined)
+          continue;
+        if (to < from || (to === from && end.position - start.position >= a.length))
+          placed[i] = to + b.length;
+      }
+      yield placed;
+    }
+  }
+
+  function* drawings(edges: readonly Edge[]): Generator<readonly number[]> {
     // An end past the sequence wraps the origin: it reads as the same edge a
     // turn on. A start there, or anything before 0, is only mapped.
     const local = edges.map(({ position, end }) => {

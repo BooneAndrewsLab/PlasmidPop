@@ -147,3 +147,43 @@ after an insertion may stay put however much was inserted, because a
 replace by longer text does exactly that. And the "was" location shown for
 a changed or removed feature is the diff as drawn, one valid drawing in a
 repeat and not always the editor's.
+
+## A replace by shorter text (#190)
+
+Only stretches that gained bases were read as overwrites, so two shapes of
+editor result were marked changed. A replace by shorter text that the diff
+draws as a plain deletion (`GAA` by `A`, drawn as `GA` deleted, moves a
+feature on the G to the new A) now reads like any stretch: every stretch of
+edits is one, whether it gained or lost bases, and may reach `MERGE_GAP`
+past itself. The cost: a deletion's edge may now sit up to `MERGE_GAP`
+bases further on, where a replace of the deleted bases and those after it
+by the latter would leave it.
+
+The other shape is a replace by shorter text across the origin of a
+circle. Its deletion runs over the origin, so the editor's result starts
+with the bases right after the selection: the origin moved. Outside a
+repeat the diff draws that as a deletion at the start and a replace at the
+end, which merge into one stretch over the origin. In a repeat it often
+draws an edit of the same cost somewhere else entirely (`TTCGTTCGTTCG`
+with `[8, 13)` replaced by `C` is drawn as `TCGTT` deleted after the first
+base), and in a circle of poly-A every feature was marked. So a circle
+also gets one reading per turn `t`: the first sequence turned to start at
+`t`, the bases that still start the second kept, the rest one stretch
+overwritten as the editor does. A turn counts when the deletion starts at
+or before the origin (`t + newLength <= oldLength`; one that starts after
+it does not move the origin) and its stretch costs no more than the diff
+as drawn plus an overwrite of `MERGE_GAP` bases — the most an overwrite
+may reach past a stretch, and enough for the selection's first base to be
+overwritten by a different one. A turn is a whole reading, never combined
+with the others: it moves every base.
+
+A stretch that lost bases still stops at the origin, since a deletion
+starting at or running over it moves it (a turn's reading now). It may
+reach past the origin only where the diff drew it over the origin
+already, with the deletion wholly past it, and the bases before it drawn
+shifted by all that was lost: then the editor's overwrite leaves the bases
+after the origin in place, as the reading has it. Elsewhere that reading
+would shift one stretch's edges and not its neighbours'.
+
+Not covered: a circle whose untouched part is no longer than `MERGE_GAP`
+reads as one stretch, which is never split at the origin.

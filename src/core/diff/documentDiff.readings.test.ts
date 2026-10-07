@@ -86,14 +86,15 @@ describe('one reading for a whole feature (#189)', () => {
     expect(diff.featuresRemoved.size).toBe(1);
   });
 
-  it('accepts exactly the places the deleted copy could have been drawn', () => {
+  it('accepts exactly the places the deleted copy could have been drawn or overwritten', () => {
     const copy = bases(30, 3);
     const base = withFeature(bases(40, 5) + copy + copy + bases(40, 6), [[55, 85]]);
     const edited = base.delete({ start: 70, end: 100 });
-    // Deleting at d in [40, 70] leaves [d, 55) or [55, d).
+    // Deleting at d in [40, 70] leaves [d, 55) or [55, d); replacing the
+    // copy and up to 8 bases after it by those bases leaves [55, 71..78).
     const expected = [
       ...Array.from({ length: 15 }, (_, i) => `${40 + i}-55`),
-      ...Array.from({ length: 15 }, (_, i) => `55-${56 + i}`),
+      ...Array.from({ length: 23 }, (_, i) => `55-${56 + i}`),
     ];
     expect(accepted(base, edited, 30, 110)).toEqual(expected);
   });
@@ -148,6 +149,98 @@ describe('one reading for a whole feature (#189)', () => {
     expect(changed(base, edited, [[14, 18]])).toBe(false);
     expect(changed(base, edited, [[14, 19]])).toBe(true);
   });
+});
+
+describe('a replace by shorter text (#190)', () => {
+  it.each([
+    // In a repeat the diff draws the edit away from the origin, with no
+    // stretch either side of it to merge.
+    ['TTCGTTCGTTCG', 8, 13, 'C', [[0, 6]], [[0, 5]]],
+    ['ACCACCCCCCCCCCC', 14, 18, '', [[10, 14]], [[7, 11]]],
+    ['GGCGGCGGCATAGGGGG', 14, 20, 'C', [[13, 21]], [[10, 13]]],
+    [
+      'TTTTTTTTTTTTT',
+      9,
+      16,
+      'T',
+      [
+        [2, 5],
+        [6, 10],
+      ],
+      [
+        [0, 2],
+        [3, 7],
+      ],
+    ],
+    // The A is overwritten by C where the diff only deletes.
+    ['GGGGGGGGCGCACGC', 11, 16, 'C', [[11, 12]], [[10, 11]]],
+  ] as const)(
+    'keeps a feature through %s with [%i, %i) replaced over the origin by "%s"',
+    (sequence, start, end, text, before, after) => {
+      const base = withFeature(sequence, before, 'circular');
+      const edited = base.replace({ start, end }, text);
+      expect(edited.getFeature(only(base))?.segments).toEqual(
+        after.map(([s, e]) => rangeSegment(s, e)),
+      );
+      expect(changed(base, edited, after)).toBe(false);
+    },
+  );
+
+  it('keeps every feature of a poly-A circle through a deletion over its origin', () => {
+    const base = SeqDocument.create({
+      sequence: 'A'.repeat(200),
+      topology: 'circular',
+      features: Array.from({ length: 18 }, (_, i) =>
+        createFeature({
+          type: 'misc_feature',
+          name: `f${i}`,
+          segments: [rangeSegment(15 + i * 10, 20 + i * 10)],
+        }),
+      ),
+    });
+    const edited = base.delete({ start: 190, end: 215 });
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+  });
+
+  it('keeps a feature over the origin through a replace there outside a repeat', () => {
+    const sequence = bases(40, 11);
+    const base = withFeature(sequence, [[30, 44]], 'circular');
+    const edited = base.replace({ start: 36, end: 43 }, 'GA');
+    const kept = edited.getFeature(only(base))?.segments[0];
+    expect(kept?.kind).toBe('range');
+    if (kept?.kind !== 'range') return;
+    expect(changed(base, edited, [[kept.start, kept.end]])).toBe(false);
+    expect(changed(base, edited, [[kept.start, kept.end - 1]])).toBe(true);
+    expect(changed(base, edited, [[kept.start + 1, kept.end]])).toBe(true);
+  });
+
+  it.each([
+    ['ATTATTATTAATATATATGGGGGG', 17, 20, 'G', [[19, 24]], [[18, 22]]],
+    [
+      'ACCGCAAACTTGACA',
+      0,
+      4,
+      'CG',
+      [
+        [1, 3],
+        [4, 5],
+      ],
+      [
+        [1, 2],
+        [2, 3],
+      ],
+    ],
+  ] as const)(
+    'keeps a feature in %s with [%i, %i) overwritten by "%s"',
+    (sequence, start, end, text, before, after) => {
+      const base = withFeature(sequence, before);
+      const edited = base.replace({ start, end }, text);
+      expect(edited.getFeature(only(base))?.segments).toEqual(
+        after.map(([s, e]) => rangeSegment(s, e)),
+      );
+      expect(changed(base, edited, after)).toBe(false);
+    },
+  );
 });
 
 /** Where the editor puts each feature for every single replace that turns `base` into `b`. */
@@ -216,6 +309,80 @@ describe('one reading for a whole feature, at random (#189)', () => {
           }
         },
       ),
+      { numRuns: 150 },
+    );
+  });
+});
+
+describe('a replace by shorter text, at random (#190)', () => {
+  const replaceArb = fc.record({
+    sequence: repeatsArb,
+    circular: fc.boolean(),
+    f: fc.nat(),
+    g: fc.nat(),
+    at: fc.nat(),
+    length: fc.integer({ min: 1, max: 8 }),
+    // Kept bases of the selection, or new ones: a replace by shorter text.
+    text: fc.oneof(fc.nat(), fc.stringMatching(/^[ACGT]{0,3}$/)),
+  });
+
+  it('keeps every feature where the editor put it, over the origin too', () => {
+    fc.assert(
+      fc.property(replaceArb, ({ sequence, circular, f, g, at, length, text }) => {
+        const n = sequence.length;
+        const start = f % (n - 1);
+        const end = start + 1 + (g % (n - start - 1));
+        const base = withFeature(sequence, [[start, end]], circular ? 'circular' : 'linear');
+        const from = at % n;
+        const to = circular ? from + length : Math.min(n, from + length);
+        const selected = (sequence + sequence).slice(from, to);
+        const by = typeof text === 'number' ? selected.slice(0, text % selected.length) : text;
+        if (by.length >= to - from) return;
+        // Edits fewer than 9 equal bases apart are one stretch, so on a circle
+        // with no more left untouched the diff cannot tell where it was cut.
+        if (circular && n - (to - from) <= 8) return;
+        const edited = base.replace({ start: from, end: to }, by);
+        if (edited.length < 2) return;
+        const kept = edited.getFeature(only(base));
+        const diff = diffDocuments(base, edited);
+        // A short sequence mostly replaced may read better reverse-complemented.
+        if (kept === undefined || diff.reversed) return;
+        expect(diff.featuresChanged.has(kept.id)).toBe(false);
+      }),
+      { numRuns: 300 },
+    );
+  });
+
+  // With new bases the diff as drawn can keep a base the editor overwrote,
+  // which no single replace gives; keeping the selection's first bases, every
+  // drawing is a deletion and some editor's.
+  it('calls a location next to an overwrite by kept bases unchanged only where an editor could have put it', () => {
+    fc.assert(
+      fc.property(replaceArb, ({ sequence, f, g, at, length, text }) => {
+        const n = sequence.length;
+        const start = f % (n - 1);
+        const end = start + 1 + (g % (n - start - 1));
+        const base = withFeature(sequence, [[start, end]]);
+        const from = at % n;
+        const to = Math.min(n, from + length);
+        const selected = sequence.slice(from, to);
+        if (typeof text !== 'number') return;
+        const by = selected.slice(0, text % selected.length);
+        const edited = base.replace({ start: from, end: to }, by);
+        const kept = edited.getFeature(only(base))?.segments[0];
+        if (kept?.kind !== 'range' || edited.length < 2) return;
+        if (diffDocuments(base, edited).reversed) return;
+        const reach = reachable(base, edited.sequence.toString());
+        for (let ds = -3; ds <= 3; ds++) {
+          for (let de = -3; de <= 3; de++) {
+            const s = kept.start + ds;
+            const e = kept.end + de;
+            if (s < 0 || e <= s || e > edited.length) continue;
+            if (!changed(base, edited, [[s, e]]))
+              expect(reach).toContain(key([rangeSegment(s, e)]));
+          }
+        }
+      }),
       { numRuns: 150 },
     );
   });
