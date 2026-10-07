@@ -364,6 +364,241 @@ def targeted_cases(rng):
     return cases
 
 
+# ------------------------------------------------------- region copy, delete
+
+START_CODONS = set(TABLE1.start_codons)
+
+
+def copy_feature(rng, L, circular):
+    """One feature in a small plasmid: one to three segments with gaps, maybe
+    across the origin, maybe partial at its ends, either strand."""
+    for _ in range(100):
+        pos = rng.randrange(L) if circular else rng.randrange(max(1, L - 12))
+        limit = pos + L - 1 if circular else L
+        segs = []
+        for k in range(rng.randint(1, 3)):
+            n = 2 + rng.randrange(12)
+            if pos + n > limit:
+                break
+            segs.append([pos, pos + n])
+            pos += n + 1 + rng.randrange(4)
+        if segs:
+            break
+    else:
+        return None
+    segs = [[a - L, b - L] if a >= L else [a, b] for a, b in segs]
+    ps = rng.random() < 0.2
+    pe = rng.random() < 0.2
+    cds = rng.random() >= 0.25
+    cs = rng.randint(1, 3) if rng.random() < 0.33 else 0
+    return {
+        'type': 'CDS' if cds else 'misc_feature',
+        'strand': 'forward' if rng.random() < 0.5 else 'reverse',
+        'segments': [[a, b, ps and i == 0, pe and i == len(segs) - 1] for i, (a, b) in enumerate(segs)],
+        'codon_start': cs,
+    }
+
+
+def copy_region(rng, L, circular):
+    mode = rng.randrange(6)
+    if mode == 0 and circular:
+        rs = rng.randrange(L)
+        return rs, rs + L
+    if mode == 1:
+        return 0, 1 + rng.randrange(L)
+    if mode == 2:
+        rs = rng.randrange(L)
+        return rs, L
+    rs = rng.randrange(L)
+    return rs, rs + 1 + rng.randrange(L if circular else L - rs)
+
+
+def source_reading(f, L, circular):
+    """Unrolled source positions in reading order, with each one's segment."""
+    R, seg_of = [], []
+    for i, (a, b, _, _) in enumerate(f['segments']):
+        for p in range(a, b):
+            R.append(p % L if circular else p)
+            seg_of.append((i, p))
+    order = list(range(len(R)))
+    if f['strand'] == 'reverse':
+        order.reverse()
+    return [R[j] for j in order], [seg_of[j] for j in order]
+
+
+def runs_of(idx):
+    runs = []
+    for j in idx:
+        if runs and runs[-1][-1] == j - 1:
+            runs[-1].append(j)
+        else:
+            runs.append([j])
+    return runs
+
+
+def src_ends(f):
+    ps = f['segments'][0][2]
+    pe = f['segments'][-1][3]
+    return (pe, ps) if f['strand'] == 'reverse' else (ps, pe)  # (5', 3')
+
+
+def cut_inside_segment(seg_of, j, k, L, circular):
+    """True when reading bases j and k are neighbours in one segment, not
+    across the origin: dropping one of them cuts that segment."""
+    (si, p), (sj, q) = seg_of[j], seg_of[k]
+    if si != sj or abs(p - q) != 1:
+        return False
+    return not (circular and max(p, q) % L == 0)
+
+
+def comp_if(strand, text):
+    return text.translate(COMP) if strand == 'reverse' else text
+
+
+def cds_expectation(f, bases, lost, cut5):
+    """/codon_start and the protein of a CDS read from `lost` bases into the source."""
+    cs = f['codon_start'] or 1
+    skip = cs - 1
+    first = skip if lost <= skip else lost + (skip - lost) % 3
+    ocs = first - lost + 1
+    body = bases[ocs - 1:]
+    whole = body[: len(body) // 3 * 3]
+    prot = str(Seq(whole).translate(table=1)) if whole else ''
+    return ocs, prot, len(body) % 3 == 2
+
+
+def region_copy_case(rng, stats):
+    L = rng.randint(24, 63)
+    circular = rng.random() < 0.5
+    seq = rnd_bases(rng, L)
+    f = copy_feature(rng, L, circular)
+    if f is None:
+        return None
+    rs, re = copy_region(rng, L, circular)
+    R, seg_of = source_reading(f, L, circular)
+    ext = {p % L: k for k, p in enumerate(range(rs, re))}
+    runs = runs_of([j for j in range(len(R)) if R[j] in ext])
+    whole_circle = circular and re - rs >= L
+    if whole_circle and runs:
+        # A feature reading across the cut of a whole-circle region keeps interior
+        # partial marks and a join across the new ends (#174): not asserted here.
+        step = -1 if f['strand'] == 'reverse' else 1
+        for run in runs:
+            e = [ext[R[j]] for j in run]
+            if any(b - a != step for a, b in zip(e, e[1:])):
+                return None
+    out = []
+    src5, src3 = src_ends(f)
+    for run in runs:
+        lost = run[0]
+        bases = comp_if(f['strand'], ''.join(seq[R[j]] for j in run))
+        rec = {
+            'min': min(ext[R[j]] for j in run),
+            'bases': bases,
+            'cut5': lost > 0 and cut_inside_segment(seg_of, lost - 1, lost, L, circular),
+            'cut3': run[-1] < len(R) - 1 and cut_inside_segment(seg_of, run[-1], run[-1] + 1, L, circular),
+        }
+        if f['type'] == 'CDS':
+            ocs, prot, tail2 = cds_expectation(f, bases, lost, False)
+            exp5 = lost > 0 or src5
+            if prot and not exp5 and bases[ocs - 1:ocs + 2] in START_CODONS:
+                prot = 'M' + prot[1:]
+            rec.update({'codon_start': ocs, 'protein': prot, 'tail2': tail2})
+        out.append(rec)
+    out.sort(key=lambda r: r['min'])
+    return {
+        'topology': 'circular' if circular else 'linear',
+        'seq': seq,
+        'feature': f,
+        'region': [rs, re],
+        'extract': ''.join(seq[p % L] for p in range(rs, re)),
+        'out': out,
+    }
+
+
+def delete_case(rng, stats):
+    L = rng.randint(24, 63)
+    circular = rng.random() < 0.5
+    seq = rnd_bases(rng, L)
+    f = copy_feature(rng, L, circular)
+    if f is None:
+        return None
+    rs, re = copy_region(rng, L, circular)
+    re = min(re, rs + L - 1)
+    kill = {p % L for p in range(rs, re)}
+    new_seq = ''.join(b for i, b in enumerate(seq) if i not in kill)
+    new_index, k = {}, 0
+    for i in range(L):
+        if i not in kill:
+            new_index[i] = k
+            k += 1
+    R, _ = source_reading(f, L, circular)
+    keep = [j for j in range(len(R)) if R[j] not in kill]
+    src5, _ = src_ends(f)
+    rec = {'gone': not keep}
+    if keep:
+        # The bases the feature reads afterwards, from the edited sequence.
+        text = ''.join(new_seq[new_index[R[j]]] for j in keep)
+        rec['bases'] = comp_if(f['strand'], text)
+        prefix = keep == list(range(keep[0], keep[0] + len(keep)))
+        if f['type'] == 'CDS' and prefix:
+            lost = keep[0]
+            ocs, prot, _ = cds_expectation(f, rec['bases'], lost, False)
+            rec.update({'codon_start': ocs, 'protein': prot, 'cut5': lost > 0 or src5})
+    return {
+        'topology': 'circular' if circular else 'linear',
+        'seq': seq,
+        'feature': f,
+        'range': [rs, re],
+        'after_seq': new_seq,
+        'after': rec,
+    }
+
+
+def generate_region_cases(stats):
+    rng = rng_for(SEED + 1)
+    copies, deletes = [], []
+    # Splits (#169) and regions across the origin are rare among random draws;
+    # take all of them up to a quota and fill the rest with the plain cases.
+    special, plain = 0, 0
+    while special < 120 or plain < 160:
+        c = region_copy_case(rng, stats)
+        if c is None or not c['out']:
+            continue
+        rare = len(c['out']) > 1 or c['region'][1] > len(c['seq'])
+        if rare and special < 120:
+            special += 1
+        elif not rare and plain < 160:
+            plain += 1
+        else:
+            continue
+        copies.append(c)
+        L = len(c['seq'])
+        f = c['feature']
+        stats['copy'] += 1
+        stats['copy_split'] += len(c['out']) > 1
+        stats['copy_wrap_region'] += c['region'][1] > L
+        stats['copy_wrap_feature'] += any(b > L or a < 0 for a, b, _, _ in f['segments'])
+        stats['copy_reverse'] += f['strand'] == 'reverse'
+        stats['copy_cds'] += f['type'] == 'CDS'
+    # A delete that trims a CDS's start is the case that matters (#160): quota it.
+    trimmed, other = 0, 0
+    while trimmed < 100 or other < 120:
+        c = delete_case(rng, stats)
+        if c is None:
+            continue
+        hit = c['after'].get('cut5') is True and c['feature']['type'] == 'CDS'
+        if hit and trimmed < 100:
+            trimmed += 1
+        elif not hit and other < 120:
+            other += 1
+        else:
+            continue
+        deletes.append(c)
+        stats['delete'] += 1
+    return copies, deletes
+
+
 def generate():
     rng = rng_for(SEED)
     class Counter(dict):
@@ -389,4 +624,5 @@ def generate():
                 'after': expectation(seq, circular, features, op, stats),
             }
         )
-    return {'cases': cases, 'stats': dict(stats)}
+    copies, deletes = generate_region_cases(stats)
+    return {'cases': cases, 'copies': copies, 'deletes': deletes, 'stats': dict(stats)}
