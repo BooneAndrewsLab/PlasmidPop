@@ -224,3 +224,24 @@ round the whole circle (#194). Its count of locations some shortest
 alignment allows but the diff calls changed rose by 2 on two seeds: each
 was accepted only through that pairing, and no single replace short of the
 whole sequence puts a feature there.
+
+## A circle with few bases untouched (#193)
+
+Edits no more than `MERGE_GAP` (8) equal bases apart read as one stretch,
+so on a circle with no longer equal run the stretch runs all round, and the
+diff cut it at the origin. The editor's selection starts after the bases it
+left, wherever that is: `GCGCCGCTT` with `[8, 15)` replaced by `CCG` keeps
+`CT`, overwrites `TGC` over the origin and deletes the rest, so a feature
+on `GC` at `[5, 7)` lands on the `C` at `[2, 3)`, but read from 0 the
+stretch put it at `[1, 3)`. Such a circle now also reads as the stretch cut
+after each equal run inside it, a turn on, overwritten like any stretch
+over the origin: only where the diff drew the bases past the deletion
+shifted by all it lost (`reaches`), or a feature round the whole circle
+would start anywhere. A cut whose stretch costs more than the diff as drawn
+plus an overwrite of `MERGE_GAP` bases is not tried, the bound #190's turns
+use, so a large circle changed every few bases costs no more than before.
+The #190 property test runs without its skip, on a fixed seed, since a
+repeat over the origin can still let the diff draw the edit flush against
+it, untouched bases or not (#195). The round-6 probe is unchanged: false
+"unchanged" 2/1/0, false "changed" editor results 5/3/3, as its cases
+rarely leave so little of a circle.

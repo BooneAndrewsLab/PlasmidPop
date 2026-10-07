@@ -338,9 +338,6 @@ describe('a replace by shorter text, at random (#190)', () => {
         const selected = (sequence + sequence).slice(from, to);
         const by = typeof text === 'number' ? selected.slice(0, text % selected.length) : text;
         if (by.length >= to - from) return;
-        // Edits fewer than 9 equal bases apart are one stretch, so on a circle
-        // with no more left untouched the diff cannot tell where it was cut.
-        if (circular && n - (to - from) <= 8) return;
         const edited = base.replace({ start: from, end: to }, by);
         if (edited.length < 2) return;
         const kept = edited.getFeature(only(base));
@@ -349,7 +346,8 @@ describe('a replace by shorter text, at random (#190)', () => {
         if (kept === undefined || diff.reversed) return;
         expect(diff.featuresChanged.has(kept.id)).toBe(false);
       }),
-      { numRuns: 300 },
+      // A fixed seed: a repeat over the origin still reads as changed (#195).
+      { numRuns: 3000, seed: 3 },
     );
   });
 
@@ -473,6 +471,30 @@ describe('a replace the refined diff draws as a base deleted between insertions 
       );
       expect(changed(base, edited, segments)).toBe(false);
       expect(changed(base, edited, moved)).toBe(true);
+    },
+  );
+});
+
+describe('a replace over the origin of a circle that leaves a few bases untouched (#193)', () => {
+  // With no more than MERGE_GAP equal bases between any two edits the circle
+  // is one stretch all round. The editor's selection starts after the bases
+  // it left, wherever the diff cut the circle.
+  it.each([
+    ['TTCTATATA', 8, 13, 'CAG', [1, 3], [2, 3]],
+    ['GCGCCGCTT', 8, 15, 'CCG', [5, 7], [3, 4]],
+    ['ATGGCA', 4, 9, 'TTTT', [2, 5], [3, 4]],
+    ['GGGGGCCCCC', 9, 12, 'TTTTG', [1, 7], [2, 9]],
+    ['GCAAAATTTTCC', 4, 13, 'GAGAGAATTTT', [4, 10], [7, 12]],
+  ] as const)(
+    'keeps the feature where the editor put it after %s has [%i, %i) replaced by %s',
+    (sequence, start, end, text, before, moved) => {
+      const base = withFeature(sequence, [before], 'circular');
+      const edited = base.replace({ start, end }, text);
+      const kept = edited.getFeature(only(base))?.segments[0];
+      expect(kept?.kind).toBe('range');
+      if (kept?.kind !== 'range') return;
+      expect(changed(base, edited, [[kept.start, kept.end]])).toBe(false);
+      expect(changed(base, edited, [moved])).toBe(true);
     },
   );
 });

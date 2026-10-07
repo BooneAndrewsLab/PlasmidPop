@@ -498,6 +498,34 @@ export function equivalentMappings(
     tail.bEnd = head.bEnd + b.length;
     stretches.shift();
   }
+  // What the diff as drawn costs, plus an overwrite of MERGE_GAP bases, as
+  // far as an overwrite may reach past a stretch: the most a reading that
+  // redraws the stretches themselves may cost.
+  const cost =
+    diff.ops.reduce(
+      (sum, op) => sum + (op.kind === 'equal' ? 0 : op.aEnd - op.aStart + op.bEnd - op.bStart),
+      0,
+    ) +
+    2 * MERGE_GAP;
+  // A circle with no more than MERGE_GAP equal bases between any two edits
+  // is one stretch all round, and the diff cuts it at the origin, which the
+  // editor need not have: the stretch may start after any equal run and end,
+  // a turn on, before it, where that costs no more than `cost` (#193).
+  const cuts: Stretch[] = [];
+  const whole = stretches[0];
+  if (circular && whole !== undefined && stretches.length === 1 && lead + trail <= MERGE_GAP) {
+    for (const op of diff.ops) {
+      if (op.kind !== 'equal' || op.aStart <= whole.aStart || op.aEnd >= whole.aEnd) continue;
+      const kept = op.aEnd - op.aStart;
+      if (a.length - kept + (b.length - kept) > cost) continue;
+      cuts.push({
+        aStart: op.aEnd,
+        aEnd: op.aStart + a.length,
+        bStart: op.bEnd,
+        bEnd: op.bStart + b.length,
+      });
+    }
+  }
   /** Where an exclusive end lands as the diff drew it: an insertion right at it lies outside. */
   const drawnEnd = (position: number): number =>
     position > 0 ? Math.min(map(position - 1) + 1, map(position)) : map(position);
@@ -570,9 +598,11 @@ export function equivalentMappings(
    * the origin of a stretch the diff drew over it, where the editor leaves
    * the overwritten bases after the origin in place and what follows the
    * deletion shifted by all the bases lost, as the diff drew them (#190).
+   * A stretch cut after an equal run (`cut`) is over the origin even
+   * reaching no further (#193).
    */
-  const reaches = (run: Stretch, x: number): boolean => {
-    if (!circular || x === 0) return true;
+  const reaches = (run: Stretch, x: number, cut: boolean): boolean => {
+    if (!circular || (x === 0 && !cut)) return true;
     const shifted = run.bStart - run.aStart === b.length - a.length;
     if (run.bEnd - run.bStart > run.aEnd - run.aStart) {
       return run.aEnd + x < a.length || (run.aEnd + x > a.length && shifted);
@@ -580,10 +610,10 @@ export function equivalentMappings(
     if (run.aEnd + x <= a.length) return true;
     return run.aEnd > a.length && run.aStart + (run.bEnd - run.bStart) + x > a.length && shifted;
   };
-  const overwrites = (run: Stretch): Choice[] => {
+  const overwrites = (run: Stretch, cut = false): Choice[] => {
     const choices: Choice[] = [];
     for (let x = 0; x <= MERGE_GAP; x++) {
-      if (!reaches(run, x)) continue;
+      if (!reaches(run, x, cut)) continue;
       choices.push((position, end) => {
         // A stretch over the origin holds the positions after it a turn on.
         for (const at of circular ? [position, position + a.length] : [position]) {
@@ -597,6 +627,7 @@ export function equivalentMappings(
     }
     return choices;
   };
+  const cutChoices = cuts.flatMap((cut) => overwrites(cut, true));
   const groups: Group[] = stretches.map((run) => {
     const members = indels.filter((indel) => inStretch(indel.at, run));
     const last = run.aEnd + MERGE_GAP;
@@ -608,6 +639,7 @@ export function equivalentMappings(
       choices: (positions) => [
         ...members.flatMap((indel) => slides(indel, positions)),
         ...overwrites(run),
+        ...cutChoices,
       ],
     };
   });
@@ -622,14 +654,7 @@ export function equivalentMappings(
   // some other one of the same cost, with no stretch at either end to merge
   // (#190). Read in the first input turned to start `turn` bases on, it is
   // one stretch at the end, kept bases first. Every turn is a reading of its
-  // own whose stretch costs no more than the diff as drawn plus an overwrite
-  // of MERGE_GAP bases, as far as an overwrite may reach past a stretch.
-  const cost =
-    diff.ops.reduce(
-      (sum, op) => sum + (op.kind === 'equal' ? 0 : op.aEnd - op.aStart + op.bEnd - op.bStart),
-      0,
-    ) +
-    2 * MERGE_GAP;
+  // own whose stretch costs no more than `cost`.
   const turns: { readonly turn: number; readonly run: Stretch }[] = [];
   // The deletion must start at or before the origin (`turn + b.length <=
   // a.length`), and the stretch costs at least the bases deleted after it.
