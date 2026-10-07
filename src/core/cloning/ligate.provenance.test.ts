@@ -277,3 +277,73 @@ describe('pieces of three', () => {
     expect(cdsOf(closed).map((f) => translateCds(closed, f).protein)).toEqual(['MDIKDIFAW*']);
   });
 });
+
+describe('pieces of two versions of one feature stay apart (#187)', () => {
+  // ATG AAA GAA TTC AAA AAA AAA AAA GGA TCC AAA TGA AAA TAA at [20, 62),
+  // the TGA at 54..56 read as Sec. The mutant (as "Open mutant" makes it:
+  // same feature id) has an in-frame Ala6 inside the EcoRI–BamHI insert.
+  const cds = 'ATGAAAGAATTCAAAAAAAAAAAAGGATCCAAATGAAAATAA';
+  const wild = SeqDocument.create({
+    name: 'P',
+    sequence: 'C'.repeat(20) + cds + 'C'.repeat(40),
+    topology: 'circular',
+    features: [
+      createFeature({
+        type: 'CDS',
+        name: 'gene',
+        segments: [rangeSegment(20, 62)],
+        qualifiers: [{ name: 'transl_except', value: '(pos:54..56,aa:Sec)' }],
+      }),
+    ],
+  });
+  const mutant = wild.insert(35, 'GCT'.repeat(6));
+  const cutBoth = (doc: SeqDocument): DigestFragment[] =>
+    digest(
+      doc,
+      findCutSites(doc.sequence.toString(), doc.topology, [enzyme('EcoRI'), enzyme('BamHI')]),
+    );
+  const bySize = (fs: DigestFragment[]): DigestFragment[] =>
+    [...fs].sort((a, b) => a.sequence.length - b.sequence.length);
+
+  it('the wild-type pieces still close to the whole CDS', () => {
+    const [insert, backbone] = bySize(cutBoth(wild));
+    const product = ligate([def(backbone), def(insert)], { name: 'wt', circular: true });
+    expect(cdsOf(product).map(ranges)).toEqual([[[77, 119, false, false]]]);
+    expect(proteins(product)).toEqual(['MKEFKKKKGSKUK*']);
+  });
+
+  for (const [label, turn] of [
+    ['forward', (d: SeqDocument) => d],
+    ['reverse', (d: SeqDocument) => d.reverseComplement()],
+  ] as const) {
+    it(`a mutant insert in the wild-type backbone gives partial pieces, not a false join (${label})`, () => {
+      const [, backbone] = bySize(cutBoth(turn(wild)));
+      const [insert] = bySize(cutBoth(turn(mutant)));
+      for (const order of [
+        [backbone, insert],
+        [insert, backbone],
+      ]) {
+        const product = ligate(order.map(def), { name: 'swap', circular: true });
+        const pieces = cdsOf(product);
+        expect(pieces).toHaveLength(3);
+        for (const piece of pieces) {
+          expect(piece.origin).toBeDefined();
+          const [first] = ranges(piece);
+          const last = ranges(piece).at(-1);
+          expect(def(first)[2] || def(last)[3]).toBe(true);
+        }
+        // The one /transl_except stays on the piece holding the real Sec codon.
+        const located = pieces.filter((f) => firstQualifier(f, 'transl_except') !== undefined);
+        expect(located).toHaveLength(1);
+        expect(translateCds(product, def(located[0])).protein).toContain('U');
+      }
+    });
+  }
+
+  it('the mutant backbone with the wild-type insert stays apart too', () => {
+    const [, backbone] = bySize(cutBoth(mutant));
+    const [insert] = bySize(cutBoth(wild));
+    const product = ligate([def(backbone), def(insert)], { name: 'swap2', circular: true });
+    expect(cdsOf(product)).toHaveLength(3);
+  });
+});

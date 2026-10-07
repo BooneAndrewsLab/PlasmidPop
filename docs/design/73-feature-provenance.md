@@ -141,3 +141,18 @@ mark the original had (the region clip's own geometric partial flag is
 overruled). A loss into the reading marks partial as before. The sweep's
 partial-mark oracle expected a mark on any loss and was changed to match.
 Tests: `cloning/flipCodonStart.test.ts`.
+
+## Addendum: one key, two versions (#187)
+
+`key` is the original's feature id, and ids survive edits: "Open mutant"
+opens the template under a new name with the same ids, and a document
+digested before and after an edit does the same. `rejoinPieces` matched on
+`key` alone and built the joined feature from the head piece's record, so a
+wild-type backbone ligated to a mutant insert (an in-frame insertion) closed
+to a 42-bp CDS where the gene is 60 bp, with its `/transl_except` on the
+wrong codon. Two pieces now join only when their records are of the same
+original: same `key`, `span` and `gaps`, and the same `whole` (type, name,
+strand, joining, segments, qualifiers). Pieces of two versions stay honest
+partial pieces. A substitution that keeps every one of those the same is
+not caught here (#188). Tests: the #187 block in
+`cloning/ligate.provenance.test.ts`.

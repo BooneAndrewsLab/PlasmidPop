@@ -358,6 +358,31 @@ function unchanged(piece: Feature, origin: FeatureOrigin): boolean {
   );
 }
 
+/** A segment as plain data, for comparing two records' originals. */
+const segmentKey = (s: Segment): unknown =>
+  s.kind === 'site' ? ['site', s.position] : [s.start, s.end, s.partialStart, s.partialEnd];
+
+/**
+ * Whether two records are of the same original, not just of one feature id
+ * (#187): ids survive edits, so "Open mutant" or a digest of one document
+ * before and after an edit gives pieces of two versions under one key.
+ */
+function sameOriginal(a: FeatureOrigin, b: FeatureOrigin): boolean {
+  if (a === b) return true;
+  if (a.key !== b.key || a.span !== b.span) return false;
+  if (a.gaps.length !== b.gaps.length || a.gaps.some((g, i) => g !== b.gaps[i])) return false;
+  const shape = (w: Feature): string =>
+    JSON.stringify([
+      w.type,
+      w.name,
+      w.strand,
+      w.joining ?? null,
+      w.segments.map(segmentKey),
+      w.qualifiers.map((q) => [q.name, q.value]),
+    ]);
+  return shape(a.whole) === shape(b.whole);
+}
+
 interface Candidate {
   readonly index: number;
   readonly piece: Feature;
@@ -396,7 +421,7 @@ export function rejoinPieces(
 
   // Whether `b` carries on exactly where `a` stops.
   const follows = (a: Candidate, b: Candidate): boolean => {
-    if (a.origin.key !== b.origin.key || a.origin.to !== b.origin.from) return false;
+    if (a.origin.to !== b.origin.from || !sameOriginal(a.origin, b.origin)) return false;
     if (a.placement.reverse !== b.placement.reverse || a.placement.at !== b.placement.at)
       return false;
     // A cut between two segments of the original: the bases between must be its intron's.
