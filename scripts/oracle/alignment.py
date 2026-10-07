@@ -29,7 +29,13 @@ rotated so that the read lies inside it, with the difference regions
 (position, reference bases, read bases) it implies. Also covered: a deletion
 or insertion just after the origin, which makes the reference span past it
 differ from the read's length (#165), on a long and on a short circle. """
+import io
+
+from Bio import SeqIO
 from Bio.Align import PairwiseAligner, substitution_matrices
+from Bio.Seq import Seq
+from Bio.SeqFeature import CompoundLocation, SeqFeature, SimpleLocation
+from Bio.SeqRecord import SeqRecord
 
 from common import random_dna, rc, rng_for
 
@@ -136,7 +142,8 @@ def generate():
         p = len(read) // 2
         read = read[:p] + read[p + 150:] if len(long_cases) else read
         long_cases.append({'a': ref, 'b': read, 'global': aligner(False, 'global').score(ref, read)})
-    return {'cases': cases, 'long': long_cases, 'circular': circular_cases(), 'banded': banded_cases()}
+    return {'cases': cases, 'long': long_cases, 'circular': circular_cases(), 'banded': banded_cases(),
+            'circularScores': circular_score_cases(), 'effects': effect_cases()}
 
 
 def banded_cases():
@@ -286,3 +293,142 @@ def circular_cases():
         case['regions'] = regions(a_row, b_row, start + rot, L)
         cases.append(case)
     return cases
+
+
+def sprinkle(rng, s, k):
+    s = list(s)
+    for _ in range(k):
+        j = rng.randrange(len(s))
+        s[j] = rng.choice([x for x in 'ACGT' if x != s[j]])
+    return ''.join(s)
+
+
+def circular_score_cases():
+    """Local score of a read on a circle against the doubled reference.
+
+    Biopython aligns the read (both strands, the better kept) to the reference
+    written twice, less its last base, so that any read up to the plasmid's
+    length plus a little lies inside it. Reads: a tiny circle, a read over half
+    of it, a deletion or an insertion before the origin and a deletion just
+    after it, a tandem repeat across the origin with a unit lost or gained, and a
+    read longer than the circle. Left out: a read starting within 15 bases before the
+    origin with a mismatch at the junction, which the banded path (a reference
+    over 12 kb, or fast mode) can place one copy along and score too low (#175).
+    """
+    rng = rng_for(SEED + 2)
+    al = aligner(False, 'local')
+    kinds = ['tiny', 'half', 'del_origin', 'ins_before', 'tandem_origin', 'whole_plus']
+    cases = []
+    k = -1
+    while len(cases) < 60:
+        k += 1
+        kind = kinds[k % len(kinds)]
+        L = rng.randint(300, 1500)
+        ref = random_dna(rng, L)
+        if kind == 'tiny':
+            L = rng.randint(40, 150)
+            ref = random_dna(rng, L)
+            o = rng.randint(0, L - 16)
+            read = sprinkle(rng, circ_slice(ref, o, rng.randint(L // 2, L)), rng.randint(0, 2))
+        elif kind == 'half':
+            o = rng.randint(0, L - 16)
+            read = sprinkle(rng, circ_slice(ref, o, rng.randint(L // 2, L - 1)), rng.randint(0, 5))
+        elif kind == 'whole_plus':
+            o = rng.randint(0, L - 16)
+            read = sprinkle(rng, circ_slice(ref, o, L + rng.randint(5, 200)), rng.randint(0, 3))
+        elif kind == 'del_origin':
+            x, y = rng.randint(40, 300), rng.randint(40, 300)
+            body = circ_slice(ref, L - x, x + y)
+            at = x + rng.choice([0, 1, 2, 3, 5, -1, -2, -3, -5])
+            read = sprinkle(rng, body[:at] + body[at + rng.randint(1, 3):], rng.randint(0, 3))
+        elif kind == 'ins_before':
+            x, y = rng.randint(40, 300), rng.randint(40, 300)
+            body = circ_slice(ref, L - x, x + y)
+            at = x - rng.choice([1, 2, 3, 5, 8])
+            read = sprinkle(rng, body[:at] + random_dna(rng, rng.randint(1, 3)) + body[at:], rng.randint(0, 3))
+        else:  # tandem_origin
+            unit = random_dna(rng, rng.randint(2, 12))
+            tr = unit * rng.randint(4, 12)
+            cut = rng.randint(1, len(tr) - 1)
+            ref = tr[cut:] + random_dna(rng, L - len(tr)) + tr[:cut]
+            L = len(ref)
+            x, y = rng.randint(100, 300), rng.randint(100, 300)
+            body = circ_slice(ref, L - x - (len(tr) - cut), x + len(tr) + y)
+            p = x + rng.randint(0, len(tr) - len(unit))
+            read = body[:p] + unit + body[p:] if rng.random() < 0.5 else body[:p] + body[p + len(unit):]
+        if rng.random() < 0.5:
+            read = rc(read)
+        doubled = ref + ref[:L - 1]
+        score = max(al.score(doubled, read), al.score(doubled, rc(read)))
+        cases.append({'kind': kind, 'ref': ref, 'read': read, 'score': score})
+    return cases
+
+
+def effect_cases():
+    """The protein effect of one substitution, read across the origin.
+
+    A 600 bp circle with a CDS across its origin (a join of two or four
+    segments, either strand, /codon_start 1 to 3), written as GenBank by Biopython.
+    A read from 250 bases before the origin to 250 after it carries one
+    substitution at a base near the origin or a segment boundary, forward and
+    reverse complemented. The expected 'p.X{n}Y' (or 'silent') is Biopython
+    translating the CDS of the plasmid with and without the substitution.
+    Left out: reads that start within 15 bases before the origin (#175) and
+    insertions just after it (#177).
+    """
+    rng = rng_for(SEED + 3)
+    L = 600
+    locs = {
+        'fwd_join': [(570, 600, 1), (0, 60, 1)],
+        'rev_join': [(570, 600, -1), (0, 60, -1)],
+        'fwd_multi': [(540, 560, 1), (580, 600, 1), (0, 30, 1), (40, 70, 1)],
+        'rev_multi': [(540, 560, -1), (580, 600, -1), (0, 30, -1), (40, 70, -1)],
+        'fwd_short': [(598, 600, 1), (0, 61, 1)],
+        'rev_short': [(599, 600, -1), (0, 62, -1)],
+    }
+    out = []
+    for name, parts in locs.items():
+        for cs in (1, 2, 3):
+            for _ in range(2):
+                seq = random_dna(rng, L)
+                strand = parts[0][2]
+                pieces = [SimpleLocation(a, b, strand=st) for a, b, st in parts]
+                if strand == -1:
+                    pieces = pieces[::-1]  # Biopython stores complement(join(a,b)) reversed
+                loc = CompoundLocation(pieces)
+                f = SeqFeature(loc, type='CDS',
+                               qualifiers={'codon_start': [str(cs)], 'transl_table': ['11'], 'label': ['g']})
+                rec = SeqRecord(Seq(seq), id='T', name='T',
+                                annotations={'molecule_type': 'DNA', 'topology': 'circular'}, features=[f])
+                handle = io.StringIO()
+                SeqIO.write(rec, handle, 'genbank')
+
+                def protein(s):
+                    nt = str(f.extract(Seq(s)))
+                    return str(Seq(nt[cs - 1:][:(len(nt) - cs + 1) // 3 * 3]).translate(table=11))
+
+                ref_aa = protein(seq)
+                order = []  # genomic positions in reading order
+                for piece in pieces:
+                    r = list(range(piece.start, piece.end))
+                    order += r if strand == 1 else r[::-1]
+                order = order[cs - 1:]
+                near = [p for p in order if min(p, L - p) <= 8 or p in (559, 560, 580, 581, 29, 30, 39, 40)]
+                rng.shuffle(near)
+                subs = []
+                for at in near:
+                    idx = order.index(at) // 3
+                    if idx == 0 or idx >= len(ref_aa) or len(subs) == 4:
+                        continue
+                    base = rng.choice([c for c in 'ACGT' if c != seq[at]])
+                    mut = protein(seq[:at] + base + seq[at + 1:])
+                    diff = [i for i in range(len(ref_aa)) if ref_aa[i] != mut[i]]
+                    if not diff:
+                        expected = 'silent'
+                    else:
+                        i = diff[0]
+                        x, y = ref_aa[i], mut[i]
+                        expected = f'p.{x}{i + 1}*' if y == '*' else f'p.*{i + 1}{y}' if x == '*' else f'p.{x}{i + 1}{y}'
+                    subs.append({'at': at, 'base': base, 'expected': expected})
+                out.append({'loc': name, 'cs': cs, 'seq': seq, 'genbank': handle.getvalue(), 'subs': subs})
+    return out

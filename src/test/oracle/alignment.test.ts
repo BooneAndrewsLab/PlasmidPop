@@ -1,6 +1,12 @@
+import { differenceRows, effectText } from '@/app/alignmentDifferences';
+import { buildFrames } from '@/app/alignmentResidues';
+import { differenceRegions, stackAlignments } from '@/app/alignmentStack';
+import { annotationsOf } from '@/app/alignmentTrack';
 import { finishReadAlignment, prepareReadAlignment } from '@/app/readAlignment';
 import { alignBanded, alignEitherStrand, alignLong, alignPairwise } from '@/core/alignment';
 import type { AlignmentMode, AlignmentOptions } from '@/core/alignment';
+import { reverseComplement } from '@/core/sequence/alphabet';
+import { parseGenBank } from '@/io/genbank/parseGenBank';
 
 import oracle from './alignment.json';
 
@@ -224,5 +230,139 @@ describe('circular read mapping against Biopython', () => {
     }
     expect(problems).toEqual([]);
     // 50-78 s on CI runners; give a busy one room.
+  }, 240_000);
+});
+
+/**
+ * Read mapping score on a circle against Biopython's local alignment to the
+ * reference written twice (scripts/oracle/alignment.py): a tiny circle, half
+ * of one, a deletion or an insertion before the origin, a deletion just after
+ * it, a tandem repeat across it, and a read longer than the circle. Left out:
+ * a read that starts within 15 bases before the origin with a mismatch at the
+ * junction, which a banded path can place one copy along (#175).
+ */
+describe('circular read mapping score on the doubled reference', () => {
+  const scored = (oracle as unknown as { circularScores: readonly ScoreCase[] }).circularScores;
+  interface ScoreCase {
+    readonly kind: string;
+    readonly ref: string;
+    readonly read: string;
+    readonly score: number;
+  }
+
+  it('has reads of every kind', () => {
+    expect(scored.length).toBeGreaterThanOrEqual(50);
+    expect(new Set(scored.map((c) => c.kind)).size).toBe(6);
+  });
+
+  it('scores each read as Biopython does and aligns the circle bases it says', () => {
+    const problems: string[] = [];
+    for (const [i, c] of scored.entries()) {
+      const L = c.ref.length;
+      const prep = prepareReadAlignment(
+        { sequence: c.ref, offset: 0, wrap: L },
+        { sequence: c.read, read: null },
+        null,
+      );
+      if (!prep.ok) {
+        problems.push(`#${String(i)} ${c.kind}: ${prep.message}`);
+        continue;
+      }
+      const res = finishReadAlignment(
+        prep.job,
+        alignEitherStrand(prep.job.a, prep.job.b, { mode: 'local' }),
+      );
+      const al = res.alignment;
+      if (Math.abs(al.score - c.score) > 1e-6) {
+        problems.push(`#${String(i)} ${c.kind}: score ${String(al.score)} vs ${String(c.score)}`);
+      }
+      // The aligned reference bases are the circle's, read on from startA.
+      let circle = '';
+      const aligned = al.alignedA.replace(/-/g, '');
+      for (let k = 0; k < aligned.length; k++) circle += c.ref[(al.startA + k) % L] ?? '';
+      if (circle.toUpperCase() !== aligned.toUpperCase()) {
+        problems.push(`#${String(i)} ${c.kind}: aligned reference is not the circle`);
+      }
+    }
+    expect(problems).toEqual([]);
+  }, 240_000);
+});
+
+/**
+ * The protein effect of one substitution in a read across the origin, in
+ * the Align tab's difference table, against Biopython translating the CDS of
+ * the plasmid with and without it: a CDS that is a join across the origin,
+ * two or four segments, either strand, /codon_start 1 to 3, the plasmid
+ * written as GenBank by Biopython. Left out: reads that start within 15 bases
+ * before the origin (#175) and insertions just after it (#177).
+ */
+describe('protein effect across the origin against Biopython translation', () => {
+  interface EffectCase {
+    readonly loc: string;
+    readonly cs: number;
+    readonly seq: string;
+    readonly genbank: string;
+    readonly subs: readonly { readonly at: number; readonly base: string; readonly expected: string }[];
+  }
+  const effects = (oracle as unknown as { effects: readonly EffectCase[] }).effects;
+
+  it('has joins on both strands and every codon_start', () => {
+    expect(effects.length).toBeGreaterThanOrEqual(30);
+    expect(effects.reduce((n, c) => n + c.subs.length, 0)).toBeGreaterThanOrEqual(120);
+    expect(new Set(effects.map((c) => c.cs)).size).toBe(3);
+    expect(effects.some((c) => c.loc.startsWith('rev'))).toBe(true);
+  });
+
+  it('reads p.X{n}Y from a read across the origin, forward and reverse complemented', () => {
+    const problems: string[] = [];
+    for (const [i, c] of effects.entries()) {
+      const doc = parseGenBank(c.genbank).documents[0];
+      if (doc === undefined) throw new Error('no document');
+      const L = c.seq.length;
+      const reference = { sequence: c.seq, offset: 0, wrap: L };
+      const circle = (text: string, from: number, to: number): string => {
+        let out = '';
+        for (let k = from; k < to; k++) out += text[((k % L) + L) % L] ?? '';
+        return out;
+      };
+      for (const sub of c.subs) {
+        const mutated = c.seq.slice(0, sub.at) + sub.base + c.seq.slice(sub.at + 1);
+        const wrapping = circle(mutated, L - 250, L + 250);
+        const clean = circle(c.seq, 100, 400);
+        for (const [label, read] of [
+          ['forward', wrapping],
+          ['reverse', reverseComplement(wrapping)],
+        ] as const) {
+          const reads = [{ sequence: read, name: 'r0' }, ...(label === 'forward' ? [{ sequence: clean, name: 'r1' }] : [])];
+          const aligned = reads.map(({ sequence, name }) => {
+            const prep = prepareReadAlignment(reference, { sequence, read: null }, null);
+            if (!prep.ok) throw new Error(prep.message);
+            return {
+              name,
+              result: finishReadAlignment(
+                prep.job,
+                alignEitherStrand(prep.job.a, prep.job.b, { mode: 'local' }),
+              ),
+            };
+          });
+          const stack = stackAlignments(reference, aligned);
+          const frames = buildFrames(stack, doc, doc.features, L);
+          const rows = differenceRows(
+            stack,
+            differenceRegions(stack.differences),
+            annotationsOf([...doc.features], []),
+            frames,
+            doc,
+            [],
+          );
+          const hit = rows.filter((r) => r.position === sub.at + 1);
+          const got = hit.length === 1 && hit[0] !== undefined ? effectText(hit[0]) : `${String(hit.length)} rows`;
+          if (got !== sub.expected) {
+            problems.push(`#${String(i)} ${c.loc} cs${String(c.cs)} ${label} at ${String(sub.at)}: ${got} vs ${sub.expected}`);
+          }
+        }
+      }
+    }
+    expect(problems.slice(0, 20)).toEqual([]);
   }, 240_000);
 });
