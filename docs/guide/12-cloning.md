@@ -146,6 +146,9 @@ blunt one end only, do it before cutting the other: digest with the first
 enzyme, **Open** the fragment, blunt it, then digest that with the second.
 To put the blunted piece on the shelf, untick every enzyme: an uncut linear
 document is one fragment, with the ends it has, and **Add** shelves it.
+A blunted end is still the enzyme's end, shown as, say, "KpnI blunt": the
+molecule is still a cut vector that can close on itself, so the Bench's
+empty-vector lane works for it, unlike for a PCR product.
 
 ## PCR
 

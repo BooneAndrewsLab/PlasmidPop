@@ -35,6 +35,15 @@ export interface DocumentEnds {
 export const BLUNT_END: StrandEnd = { kind: 'blunt', overhang: '', enzyme: null };
 export const BLUNT_ENDS: DocumentEnds = { left: BLUNT_END, right: BLUNT_END };
 
+/**
+ * The end after its overhang is trimmed or filled in. Blunt, but still the
+ * enzyme's end: a plain blunt end (`enzyme` null) is what a PCR product has,
+ * and that one is not ligatable.
+ */
+export function bluntedEnd(end: StrandEnd): StrandEnd {
+  return end.kind === 'blunt' ? end : { kind: 'blunt', overhang: '', enzyme: end.enzyme };
+}
+
 /** A plain flush end with nothing to say about it: the default for any linear molecule. */
 function isPlainBlunt(end: StrandEnd): boolean {
   return end.kind === 'blunt' && end.enzyme === null;

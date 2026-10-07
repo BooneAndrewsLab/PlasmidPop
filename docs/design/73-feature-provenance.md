@@ -99,3 +99,29 @@ cut/flip/ligate sweep against the Biopython base-identity oracle (circular,
 two-source, tandem and linear sources) has no false rejoin, no missed
 rejoin and no lost `/transl_except`. Regression tests:
 `cloning/ligate.provenance.test.ts`, `document/featureOrigin.test.ts`.
+
+## Addendum: blunted vectors keep their ends (#183)
+
+`bluntEnds()` used to end with `setEnds(null)`. But `null` is also how a
+description-less blunt molecule (a PCR product, a FASTA file) is stored, as
+`normalizeEnds` collapses two plain blunt ends to it, and `emptyVector` reads
+`null` as "no 5′ phosphates, cannot close". So a KpnI vector blunted with T4
+polymerase lost its empty-vector background.
+
+The model has no phosphorylation flag, and `null` cannot be told apart from a
+PCR product, so the fix is in what blunting writes, not in `emptyVector`
+(treating `null` as ligatable would give PCR products a background they do not
+have). A blunted end now becomes `{ kind: 'blunt', overhang: '', enzyme }`,
+keeping the enzyme that made the cut (`bluntedEnd` in `ends.ts`). That is not a
+plain blunt end, so it is stored, round-trips through GenBank like SmaI's, and
+`digest` hands `ligate` a cut fragment whose ends are blunt and compatible. A
+cut end stays a cut end; the label reads "KpnI blunt". A mixed pair (one cut
+end blunted, one already blunt) stays non-null as well. Known limit: an end
+whose enzyme is unknown (null) blunts to a plain blunt end, so a vector with
+two such ends still has no background.
+
+Feature provenance is unaffected: the closed circle's pieces still carry their
+`origin` and stay apart, because trimming or filling loses or adds bases at the
+junction, which the exact-reassembly test rejects. Tests:
+`cloning/emptyVector.blunt.test.ts`; `document/blunt*.test.ts` now expect the
+kept enzymes.

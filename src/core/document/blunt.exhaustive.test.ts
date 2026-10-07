@@ -6,7 +6,7 @@ import { parseGenBank, writeGenBank } from '@/io';
 import { type Feature, createFeature, rangeSegment } from '../features';
 import { History } from '../history';
 import { type BluntMethod, type EditOp } from './editOp';
-import { type DocumentEnds, type StrandEnd } from './ends';
+import { type DocumentEnds, type StrandEnd, bluntedEnd, normalizeEnds } from './ends';
 import { SeqDocument } from './seqDocument';
 
 /**
@@ -206,6 +206,14 @@ const cycle =
   (i: number): string =>
     alphabet.charAt((i * 3 + salt) % alphabet.length);
 
+/** A blunted molecule keeps the enzymes of its cut ends (#183). */
+function bluntedEnds(doc: SeqDocument): DocumentEnds | null {
+  const { ends } = doc;
+  return ends === null
+    ? null
+    : normalizeEnds({ left: bluntedEnd(ends.left), right: bluntedEnd(ends.right) }, 'linear');
+}
+
 function label(left: EndShape, right: EndShape, core: number, method: BluntMethod): string {
   const s = (e: EndShape): string =>
     e.kind === "5'" || e.kind === "3'" ? `${e.kind}${e.n}` : e.kind;
@@ -220,7 +228,7 @@ function checkBlunt(built: Built, method: BluntMethod, what: string): void {
   const blunt = doc.bluntEnds(method);
 
   expect(blunt.sequence.toString(), what).toBe(want.sequence);
-  expect(blunt.ends, what).toBeNull();
+  expect(blunt.ends, what).toEqual(bluntedEnds(doc));
   expect(blunt.topology).toBe('linear');
   expect(doc.apply(op).sequence.toString(), what).toBe(want.sequence);
 
@@ -318,7 +326,7 @@ describe('bluntEnds, every pair of ends', () => {
     expect(circle.bluntEnds('trim')).toBe(circle);
   });
 
-  it('writes a blunted molecule to GenBank and reads it back with no ends', () => {
+  it('writes a blunted molecule to GenBank and reads it back with its blunted ends', () => {
     for (const left of END_SHAPES)
       for (const right of END_SHAPES)
         for (const method of METHODS) {
@@ -331,7 +339,7 @@ describe('bluntEnds, every pair of ends', () => {
           const blunt = doc.bluntEnds(method);
           const [back] = parseGenBank(writeGenBank(blunt)).documents;
           const read = must(back, `${what}: a parsed record`);
-          expect(read.ends, what).toBeNull();
+          expect(read.ends, what).toEqual(bluntedEnds(doc));
           expect(read.sequence.toString().toUpperCase(), what).toBe(
             blunt.sequence.toString().toUpperCase(),
           );

@@ -572,7 +572,10 @@ describe('toolbar', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Blunt (fill in)' }));
     expect(editorStore.document?.sequence.toString()).toBe('aattcGGGCCCggatc');
-    expect(editorStore.document?.ends).toBeNull();
+    expect(editorStore.document?.ends).toEqual({
+      left: { kind: 'blunt', overhang: '', enzyme: 'EcoRI' },
+      right: { kind: 'blunt', overhang: '', enzyme: 'BamHI' },
+    });
     // Nothing left to blunt, so the buttons go.
     expect(screen.queryByRole('button', { name: 'Blunt (trim)' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));

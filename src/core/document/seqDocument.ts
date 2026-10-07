@@ -42,6 +42,7 @@ import { type BluntMethod, type CaseMode, type EditOp, type FeaturePatch } from 
 import {
   type DocumentEnds,
   BLUNT_END,
+  bluntedEnd,
   endsEqual,
   flipEnds,
   flipWindow,
@@ -681,7 +682,10 @@ export class SeqDocument {
       left.kind === "5'" && method === 'trim'
         ? afterRight.delete({ start: 0, end: Math.min(left.overhang.length, afterRight.length) })
         : afterRight;
-    return doc.setEnds(null);
+    // A cut end stays a cut end: it keeps the enzyme that made it, so the
+    // molecule is still a cut one (phosphorylated, able to close) and not a
+    // description-less blunt one (a PCR product, `normalizeEnds` -> null).
+    return doc.setEnds({ left: bluntedEnd(left), right: bluntedEnd(right) });
   }
 
   /**

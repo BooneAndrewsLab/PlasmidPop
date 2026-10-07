@@ -265,6 +265,8 @@ export function defaultFragmentName(fragment: DigestFragment): string {
  *   itself when its two ends join, as a ligase would join them; one whose
  *   ends do not match, or were dephosphorylated, cannot, which is what
  *   cutting with two enzymes or treating with CIP is for.
+ * - A cut vector blunted by trimming or filling keeps the enzyme on its ends
+ *   (`bluntedEnd`), so it is still a cut vector and closes (#183).
  * - A linear document with no ends of its own (a PCR product) is left out:
  *   it has no 5′ phosphates to close with.
  *

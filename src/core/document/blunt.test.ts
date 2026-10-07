@@ -38,6 +38,12 @@ function orf(doc: SeqDocument): string {
   return doc.sequence.toString().slice(seg.start, seg.end);
 }
 
+// A blunted end is still the enzyme's end (#183), just flush.
+const cutBlunt = (left: string, right: string) => ({
+  left: { kind: 'blunt', overhang: '', enzyme: left },
+  right: { kind: 'blunt', overhang: '', enzyme: right },
+});
+
 describe('bluntEnds', () => {
   // EcoRI leaves 5′ AATT on both ends: in the sequence on the left, off the
   // bottom strand on the right.
@@ -56,14 +62,14 @@ describe('bluntEnds', () => {
   it('fills a 5′ overhang in: the left one pairs, the right one is added', () => {
     const blunt = ecoRI.bluntEnds('fill');
     expect(blunt.sequence.toString()).toBe(`aatt${CORE}aatt`);
-    expect(blunt.ends).toBeNull();
+    expect(blunt.ends).toEqual(cutBlunt('EcoRI', 'EcoRI'));
     expect(orf(blunt)).toBe('ATGAAAtag');
   });
 
   it('trims a 5′ overhang away, moving everything after the left one', () => {
     const blunt = ecoRI.bluntEnds('trim');
     expect(blunt.sequence.toString()).toBe(CORE);
-    expect(blunt.ends).toBeNull();
+    expect(blunt.ends).toEqual(cutBlunt('EcoRI', 'EcoRI'));
     expect(orf(blunt)).toBe('ATGAAAtag');
   });
 
@@ -71,7 +77,7 @@ describe('bluntEnds', () => {
     for (const method of ['fill', 'trim'] as const) {
       const blunt = pstI.bluntEnds(method);
       expect(blunt.sequence.toString()).toBe(CORE);
-      expect(blunt.ends).toBeNull();
+      expect(blunt.ends).toEqual(cutBlunt('PstI', 'PstI'));
       expect(orf(blunt)).toBe('ATGAAAtag');
     }
   });
@@ -80,7 +86,7 @@ describe('bluntEnds', () => {
     const mixed = molecule({ left: end('blunt', '', 'SmaI'), right: end("5'", 'gatc', 'BamHI') });
     expect(mixed.bluntEnds('fill').sequence.toString()).toBe(`${CORE}gatc`);
     expect(mixed.bluntEnds('trim').sequence.toString()).toBe(CORE);
-    expect(mixed.bluntEnds('trim').ends).toBeNull();
+    expect(mixed.bluntEnds('trim').ends).toEqual(cutBlunt('SmaI', 'BamHI'));
   });
 
   it('leaves a blunt or circular molecule alone', () => {
