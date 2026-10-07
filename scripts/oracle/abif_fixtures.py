@@ -157,6 +157,159 @@ def traces_only(rng):
     return abif(tags)
 
 
+# --- which copy of the calls, qualities and peaks is read (#159, #168) ------------
+#
+# An instrument writes the base calls twice, PBAS1 as called and PBAS2 as edited, each
+# with its own PCON (qualities) and PLOC (peak positions). The rule held to the
+# ABIF note and #159/#168: the calls are PBAS2 if present, else PBAS1; qualities and
+# peaks come from the same copy when its count matches the calls, otherwise from the
+# other copy only if that copy's calls are the very same bases, otherwise none.
+# Variants of two small files (one where both copies agree, one where they differ)
+# are written to src/io/fixtures/abif/copies/ and the expected answer recorded.
+
+
+def directory(b):
+    count = struct.unpack('>i', b[18:22])[0]
+    start = struct.unpack('>i', b[26:30])[0]
+    entries = []
+    for k in range(count):
+        at = start + 28 * k
+        name = b[at:at + 4].decode('latin1')
+        num, kind, _, cnt, size = struct.unpack('>ihhii', b[at + 4:at + 20])
+        off = at + 20 if size <= 4 else struct.unpack('>i', b[at + 20:at + 24])[0]
+        entries.append(dict(at=at, name=name, num=num, kind=kind, count=cnt, size=size, off=off))
+    return entries
+
+
+def entry(b, key):
+    for e in directory(b):
+        if f"{e['name']}{e['num']}" == key:
+            return e
+    return None
+
+
+def payload(b, e):
+    return bytes(b[e['off']:e['off'] + e['size']])
+
+
+def rename(b, key, new):
+    b[entry(b, key)['at']:entry(b, key)['at'] + 4] = new.encode()
+
+
+def replace(b, key, data, count):
+    e = entry(b, key)
+    offset = len(b)
+    b.extend(data)
+    struct.pack_into('>i', b, e['at'] + 12, count)
+    struct.pack_into('>i', b, e['at'] + 16, len(data))
+    struct.pack_into('>i', b, e['at'] + 20, offset)
+
+
+def calls_of(b, key):
+    return payload(b, entry(b, key)).decode('latin1').upper().replace('\0', '').replace(' ', '')
+
+
+def copy_expectation(b):
+    pbas = 'PBAS2' if entry(b, 'PBAS2') else 'PBAS1' if entry(b, 'PBAS1') else None
+    if pbas is None:
+        return {'error': True}
+    seq = calls_of(b, pbas)
+    pref = pbas[-1]
+    other = '1' if pref == '2' else '2'
+
+    def pick(name):
+        own = entry(b, name + pref)
+        if own and own['count'] == len(seq):
+            return own
+        alt = entry(b, name + other)
+        if not alt or alt['count'] != len(seq):
+            return None
+        return alt if entry(b, 'PBAS' + other) and calls_of(b, 'PBAS' + other) == seq else None
+
+    q, p = pick('PCON'), pick('PLOC')
+    peaks = None
+    if p:
+        width = 2 if p['kind'] == SHORT else 4
+        raw = payload(b, p)
+        peaks = [int.from_bytes(raw[i * width:(i + 1) * width], 'big', signed=True) for i in range(p['count'])]
+    return {'sequence': seq, 'qualities': list(payload(b, q)[:len(seq)]) if q else None, 'peaks': peaks}
+
+
+def copy_base(rng, same):
+    n = 70
+    called = ''.join(rng.choice('ACGT') for _ in range(n))
+    edited = called if same else called[:30] + ('C' if called[30] != 'C' else 'G') + called[31:55] + 'N' + called[56:]
+    channels, peaks = traces(rng, edited, 6, 'GATC')
+    qual = lambda k: 5 + (k * 7) % 50
+    tags = [shorts('DATA', 9 + k, channels[k]) for k in range(4)] + [
+        chars('FWO_', 1, 'GATC'),
+        chars('PBAS', 1, called),
+        chars('PBAS', 2, edited),
+        Tag('PCON', 1, CHAR, 1, [qual(k) + 1 for k in range(n)]),
+        Tag('PCON', 2, CHAR, 1, [qual(k) for k in range(n)]),
+        shorts('PLOC', 1, [x + 1 for x in peaks]),
+        shorts('PLOC', 2, peaks),
+    ]
+    return bytearray(abif(tags))
+
+
+def copy_variants():
+    rng = random.Random(SEED + 1)
+    folder = os.path.join(OUT, 'copies')
+    os.makedirs(folder, exist_ok=True)
+    manifest = []
+    for label, same in (('agree', True), ('differ', False)):
+        orig = copy_base(rng, same)
+        s1, s2 = calls_of(orig, 'PBAS1'), calls_of(orig, 'PBAS2')
+        variants = {'orig': bytearray(orig)}
+
+        def drop_own(v):
+            rename(v, 'PLOC2', 'ZLOC')
+            rename(v, 'PCON2', 'ZCON')
+
+        # PBAS2 edited by an insertion and a deletion, no PLOC2/PCON2 of its own to match:
+        # the other copy's peaks belong to different bases, so none are read.
+        v = bytearray(orig)
+        indel = s2[:5] + 'A' + s2[5:10] + s2[11:]
+        replace(v, 'PBAS2', indel.encode(), len(indel))
+        drop_own(v)
+        variants['indel-no-own'] = v
+        # PBAS2 the very same bases as PBAS1 and no PLOC2/PCON2 of its own: copy 1's are read.
+        v = bytearray(orig)
+        replace(v, 'PBAS2', s1.encode(), len(s1))
+        drop_own(v)
+        variants['same-no-own'] = v
+        # ... and the other copy's calls in lower case
+        v = bytearray(v)
+        replace(v, 'PBAS1', s1.lower().encode(), len(s1))
+        variants['same-no-own-lower'] = v
+        # PBAS2 shortened, with PLOC2/PCON2 cut to match
+        cut = s2[:-7]
+        v = bytearray(orig)
+        replace(v, 'PBAS2', cut.encode(), len(cut))
+        replace(v, 'PLOC2', payload(orig, entry(orig, 'PLOC2'))[:len(cut) * 2], len(cut))
+        replace(v, 'PCON2', payload(orig, entry(orig, 'PCON2'))[:len(cut)], len(cut))
+        variants['shorter-own'] = v
+        # a PLOC2 of the wrong length: falls back to PLOC1 only where the calls are the same
+        v = bytearray(orig)
+        replace(v, 'PLOC2', payload(orig, entry(orig, 'PLOC2'))[:-4], entry(orig, 'PLOC2')['count'] - 2)
+        variants['own-wrong-length'] = v
+        # a trailing NUL in PBAS2 (count + 1), PLOC2 and PCON2 unchanged
+        v = bytearray(orig)
+        replace(v, 'PBAS2', s2.encode() + b'\0', len(s2) + 1)
+        variants['trailing-nul'] = v
+        # no PBAS2 at all: copy 1 throughout
+        v = bytearray(orig)
+        rename(v, 'PBAS2', 'ZBAS')
+        variants['no-pbas2'] = v
+        for name, v in variants.items():
+            file = f'{label}-{name}.ab1'
+            with open(os.path.join(folder, file), 'wb') as f:
+                f.write(v)
+            manifest.append({'file': f'copies/{file}', **copy_expectation(v)})
+    return manifest
+
+
 def main():
     rng = random.Random(SEED)
     os.makedirs(OUT, exist_ok=True)

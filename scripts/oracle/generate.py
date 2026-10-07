@@ -476,7 +476,15 @@ def abif():
         abif_local.describe(path, os.path.basename(path))
         for path in sorted(glob.glob(os.path.join(FIXTURES, 'abif', '*.ab1')))
     ]
-    write('abif.json', {'files': files})
+    copies = abif_fixtures.copy_variants()
+    for c in copies:
+        # Biopython reads the calls of the file untouched: PBAS2, else PBAS1.
+        if c['file'].endswith('-orig.ab1'):
+            ref = abif_local.describe(os.path.join(FIXTURES, 'abif', c['file']), c['file'])
+            assert ref['sequence'].upper() == c['sequence'], c['file']
+            assert ref['qualities'] == c['qualities'], c['file']
+            assert ref['raw']['PLOC2'] == c['peaks'], c['file']
+    write('abif.json', {'files': files, 'copies': copies})
 
 
 def main():

@@ -105,6 +105,46 @@ describe('AB1 reader against Biopython', () => {
 });
 
 /**
+ * Which copy of the calls, qualities and peaks is read (#159, #168), over
+ * variants of two small files (src/io/fixtures/abif/copies/, written by
+ * abif_fixtures.py): PBAS2 else PBAS1; qualities and peaks from the same copy
+ * when its count fits the calls, else from the other copy only if its calls
+ * are the same bases, else none. Biopython reads the untouched files.
+ */
+interface CopyExpected {
+  readonly file: string;
+  readonly error?: boolean;
+  readonly sequence?: string;
+  readonly qualities?: readonly number[] | null;
+  readonly peaks?: readonly number[] | null;
+}
+
+describe('AB1 copy selection', () => {
+  const copies = (oracle as unknown as { copies: readonly CopyExpected[] }).copies;
+
+  it('has variants of both kinds of file', () => {
+    expect(copies.length).toBeGreaterThanOrEqual(14);
+    expect(copies.some((c) => c.peaks === null)).toBe(true);
+    expect(copies.some((c) => c.peaks !== null && c.file.includes('same-no-own'))).toBe(true);
+  });
+
+  it.each(copies.map((c) => [c.file, c] as const))('%s', (file, expected) => {
+    const bytes = new Uint8Array(readFileSync(join(dir, file)));
+    if (expected.error === true) {
+      expect(() => parseAbif(bytes)).toThrow();
+      return;
+    }
+    const doc = parseAbif(bytes).documents[0];
+    expect(doc?.sequence.toString()).toBe(expected.sequence);
+    const read = doc?.read;
+    const zero = new Array<number>((expected.sequence ?? '').length).fill(0);
+    expect([...(read?.qualities ?? zero)]).toEqual(expected.qualities ?? zero);
+    const peaks = read?.trace?.peaks;
+    expect(peaks === undefined ? null : [...peaks]).toEqual(expected.peaks);
+  });
+});
+
+/**
  * The same comparison over real files, run by `scripts/oracle/run.sh
  * abif-local`, which sets ABIF_ORACLE to Biopython's reading of them.
  * Skipped everywhere else.
