@@ -368,37 +368,121 @@ function slideRange(text: string, at: number, length: number): { left: number; r
   return { left, right };
 }
 
+/** The most equal bases between two edits that still read as one replaced stretch. */
+const MERGE_GAP = 8;
+
 /**
- * Every place a start position of the first input can land in the second
- * under an equally good diff. A deletion inside a run of equal bases can be
- * drawn at any point along it, and which one an editor made is not in the
- * sequences; a feature whose first base sits by such a deletion is the same
- * feature under whichever the editor did. `a` is the first input.
+ * Every place a position of the first input can land in the second under an
+ * equally good diff. An insertion or deletion inside a run of repeated bases
+ * can be drawn at any point along it, and which one an editor made is not in
+ * the sequences; a feature whose first or last base sits by such an indel is
+ * the same feature under whichever the editor did. `a` and `b` are the first
+ * and second input. A start that meets an insertion lies after it, so an end
+ * is offered both ways: the insertion beside it may lie inside or outside.
  */
 export function equivalentMappings(
   diff: SequenceDiff,
   a: string,
+  b: string,
   map: (position: number) => number,
-): (position: number) => readonly number[] {
-  const deletions = diff.ops.filter(
-    (op, i) =>
-      op.kind === 'delete' &&
-      diff.ops[i - 1]?.kind !== 'insert' &&
-      diff.ops[i + 1]?.kind !== 'insert',
-  );
-  return (position: number): readonly number[] => {
-    const found = new Set<number>([map(position)]);
-    const where = (d: number, n: number): number =>
-      position < d ? position : position < d + n ? d : position - n;
-    for (const op of deletions) {
+): {
+  readonly starts: (position: number) => readonly number[];
+  readonly ends: (position: number) => readonly number[];
+} {
+  interface Indel {
+    readonly insert: boolean;
+    /** Where in `a` it sits, and how many bases. */
+    readonly at: number;
+    readonly length: number;
+    readonly left: number;
+    readonly right: number;
+  }
+  const indels: Indel[] = [];
+  diff.ops.forEach((op, i) => {
+    // A delete beside an insert is a replaced run, whose bases map one to one.
+    if (op.kind === 'equal') return;
+    const pair = op.kind === 'insert' ? 'delete' : 'insert';
+    if (diff.ops[i - 1]?.kind === pair || diff.ops[i + 1]?.kind === pair) return;
+    if (op.kind === 'delete') {
       const length = op.aEnd - op.aStart;
-      const { left, right } = slideRange(a, op.aStart, length);
-      if (position < op.aStart - left || position > op.aEnd + right) continue;
-      const drawn = where(op.aStart, length);
-      for (let d = op.aStart - left; d <= op.aStart + right; d++) {
-        found.add(map(position) + where(d, length) - drawn);
+      indels.push({ insert: false, at: op.aStart, length, ...slideRange(a, op.aStart, length) });
+    } else {
+      const length = op.bEnd - op.bStart;
+      indels.push({ insert: true, at: op.aStart, length, ...slideRange(b, op.bStart, length) });
+    }
+  });
+  /** Where `position` lands when the indel is drawn at `d`; `end` is an exclusive end. */
+  const where = (indel: Indel, d: number, position: number, end: boolean): number => {
+    const n = indel.length;
+    if (indel.insert) return (end ? position <= d : position < d) ? position : position + n;
+    return position < d ? position : position < d + n ? d : position - n;
+  };
+  // Runs of edits a few equal bases apart read as one replaced stretch, which
+  // an editor that overwrites in place maps one to one and not as the diff drew it.
+  interface Stretch {
+    readonly aStart: number;
+    readonly aEnd: number;
+    readonly bStart: number;
+    readonly bEnd: number;
+  }
+  const stretches: Stretch[] = [];
+  let open:
+    | { aStart: number; aEnd: number; bStart: number; bEnd: number; ops: number; pair: boolean }
+    | undefined;
+  const close = (): void => {
+    if (open?.pair === true && open.ops > 2) stretches.push(open);
+    open = undefined;
+  };
+  diff.ops.forEach((op, i) => {
+    if (op.kind === 'equal') {
+      if (op.aEnd - op.aStart > MERGE_GAP) close();
+      return;
+    }
+    open ??= {
+      aStart: op.aStart,
+      aEnd: op.aStart,
+      bStart: op.bStart,
+      bEnd: op.bStart,
+      ops: 0,
+      pair: false,
+    };
+    open.aEnd = Math.max(open.aEnd, op.aEnd);
+    open.bEnd = Math.max(open.bEnd, op.bEnd);
+    open.ops++;
+    // A delete beside an insert is what overwriting leaves; two far-apart edits do not.
+    if (diff.ops[i + 1]?.kind === (op.kind === 'delete' ? 'insert' : 'delete')) open.pair = true;
+  });
+  close();
+  const overwritten = (position: number, found: Set<number>): void => {
+    for (const run of stretches) {
+      if (position < run.aStart || position > run.aEnd) continue;
+      const common = Math.min(run.aEnd - run.aStart, run.bEnd - run.bStart);
+      const into = position - run.aStart;
+      if (into <= common) found.add(run.bStart + into);
+      if (into >= common) found.add(position === run.aEnd ? run.bEnd : run.bStart + common);
+    }
+  };
+  const place = (position: number, end: boolean): readonly number[] => {
+    const found = new Set<number>([map(position)]);
+    overwritten(position, found);
+    for (const indel of indels) {
+      if (
+        position < indel.at - indel.left ||
+        position > indel.at + indel.right + (indel.insert ? 0 : indel.length)
+      ) {
+        continue;
+      }
+      // `map` reads an insertion beside a position as lying before it.
+      const drawn = where(indel, indel.at, position, false);
+      for (let d = indel.at - indel.left; d <= indel.at + indel.right; d++) {
+        found.add(map(position) + where(indel, d, position, false) - drawn);
+        if (end) found.add(map(position) + where(indel, d, position, true) - drawn);
       }
     }
     return [...found];
+  };
+  return {
+    starts: (position) => place(position, false),
+    ends: (position) => place(position, true),
   };
 }

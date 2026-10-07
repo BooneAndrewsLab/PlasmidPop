@@ -693,3 +693,162 @@ describe('an edit the editor carried a feature through unchanged (#178)', () => 
     });
   });
 });
+
+describe('an indel in a repeat at a feature boundary (#184)', () => {
+  // Any non-repetitive tail, so the only ambiguity is the repeat under test.
+  const R = 'CGTTGCAGTCCATGCAGTCAGCTAGCGTCATGCAGTACGTCAGTACGGTCAT';
+  const MONO = 'GCAT' + 'CAAAAG' + R; // A run at 5..9
+  const DI = 'GCTT' + 'CATATATG' + R; // AT repeat at 5..11
+  function withFeature(
+    sequence: string,
+    topology: 'linear' | 'circular',
+    segments: readonly [number, number][],
+    strand: 'forward' | 'reverse' = 'forward',
+  ): SeqDocument {
+    return SeqDocument.create({
+      sequence,
+      topology,
+      features: [
+        createFeature({
+          id: 'f',
+          type: 'misc_feature',
+          name: 'f',
+          strand,
+          segments: segments.map(([a, b]) => rangeSegment(a, b)),
+        }),
+      ],
+    });
+  }
+  const changed = (before: SeqDocument, after: SeqDocument): boolean =>
+    diffDocuments(before, after).featuresChanged.has('f');
+  const location = (d: SeqDocument): number[][] =>
+    (d.getFeature('f')?.segments ?? []).map((s) => (s.kind === 'range' ? [s.start, s.end] : []));
+
+  describe.each(['forward', 'reverse'] as const)('on the %s strand', (strand) => {
+    it.each(['linear', 'circular'] as const)('a base deleted from a run at the end (%s)', (t) => {
+      const base = withFeature(MONO, t, [[0, 8]], strand);
+      const edited = base.delete({ start: 5, end: 6 });
+      expect(location(edited)).toEqual([[0, 7]]);
+      expect(changed(base, edited)).toBe(false);
+    });
+
+    it.each(['linear', 'circular'] as const)(
+      'a base inserted into a run at the start (%s)',
+      (t) => {
+        const base = withFeature(MONO, t, [[7, 30]], strand);
+        const edited = base.insert(5, 'A');
+        expect(location(edited)).toEqual([[8, 31]]);
+        expect(changed(base, edited)).toBe(false);
+      },
+    );
+
+    it('a base inserted into a run at the end', () => {
+      const base = withFeature(MONO, 'linear', [[0, 7]], strand);
+      expect(changed(base, base.insert(8, 'A'))).toBe(false);
+      expect(changed(base, base.insert(5, 'A'))).toBe(false);
+    });
+
+    it('a base deleted from a run at the start', () => {
+      const base = withFeature(MONO, 'linear', [[7, 30]], strand);
+      expect(changed(base, base.delete({ start: 5, end: 6 }))).toBe(false);
+      expect(changed(base, base.delete({ start: 8, end: 9 }))).toBe(false);
+    });
+  });
+
+  describe('a repeat of more than one base', () => {
+    it.each([
+      ['inserted at the start', [9, 30], 'insert', 5],
+      ['inserted at the end', [0, 8], 'insert', 9],
+      ['deleted at the start', [9, 30], 'delete', 5],
+      ['deleted at the end', [0, 8], 'delete', 9],
+    ] as const)('an AT %s', (_label, [from, to], op, at) => {
+      const base = withFeature(DI, 'linear', [[from, to]]);
+      const edited =
+        op === 'insert' ? base.insert(at, 'AT') : base.delete({ start: at, end: at + 2 });
+      expect(changed(base, edited)).toBe(false);
+    });
+  });
+
+  describe('across the origin of a circle', () => {
+    const CIRC = `AAAG${R}CAAA`; // the A run wraps: ...CAAA|AAAG...
+    it.each([
+      ['a base inserted at the origin', (d: SeqDocument) => d.insert(0, 'A')],
+      ['a base inserted before the run', (d: SeqDocument) => d.insert(CIRC.length - 2, 'A')],
+      ['a base deleted at the origin', (d: SeqDocument) => d.delete({ start: 0, end: 1 })],
+      [
+        'a base deleted from the run before it',
+        (d: SeqDocument) => d.delete({ start: CIRC.length - 2, end: CIRC.length - 1 }),
+      ],
+    ])('keeps a feature over the origin through %s', (_label, edit) => {
+      const base = withFeature(CIRC, 'circular', [[CIRC.length - 6, CIRC.length + 2]]);
+      expect(changed(base, edit(base))).toBe(false);
+    });
+
+    it('keeps a feature around the whole circle when the insertion slides over the origin', () => {
+      const base = withFeature(CIRC, 'circular', [[0, CIRC.length]]);
+      expect(changed(base, base.insert(0, 'A'))).toBe(false);
+    });
+  });
+
+  it('keeps a feature of several segments', () => {
+    const base = withFeature(MONO, 'linear', [
+      [0, 8],
+      [20, 30],
+    ]);
+    const edited = base.delete({ start: 5, end: 6 });
+    expect(location(edited)).toEqual([
+      [0, 7],
+      [19, 29],
+    ]);
+    expect(changed(base, edited)).toBe(false);
+    const joined = withFeature(MONO, 'linear', [
+      [7, 12],
+      [20, 30],
+    ]);
+    expect(changed(joined, joined.insert(5, 'A'))).toBe(false);
+  });
+
+  describe('a real change is still reported', () => {
+    it('a feature the editor did not carry along', () => {
+      const base = withFeature(MONO, 'linear', [[7, 30]]);
+      const edited = base.insert(5, 'A');
+      // Two bases off, not an equivalent drawing of the same insertion.
+      const moved = withFeature(edited.sequence.toString(), 'linear', [[10, 31]]);
+      expect(changed(base, moved)).toBe(true);
+      const stretched = withFeature(edited.sequence.toString(), 'linear', [[8, 33]]);
+      expect(changed(base, stretched)).toBe(true);
+    });
+
+    it('an insertion beside a start that is not part of the repeat', () => {
+      const base = withFeature(MONO, 'linear', [[5, 30]]);
+      const edited = base.insert(5, 'T');
+      expect(location(edited)).toEqual([[6, 31]]);
+      expect(changed(base, withFeature(edited.sequence.toString(), 'linear', [[5, 30]]))).toBe(
+        true,
+      );
+    });
+
+    it('an edit inside the feature is not read as a change of its location', () => {
+      const base = withFeature(MONO, 'linear', [[0, 8]]);
+      expect(changed(base, base.delete({ start: 6, end: 7 }))).toBe(false);
+      const shrunk = withFeature(base.delete({ start: 6, end: 7 }).sequence.toString(), 'linear', [
+        [0, 3],
+      ]);
+      expect(changed(base, shrunk)).toBe(true);
+    });
+  });
+
+  it('keeps a feature through a replacement drawn as several edits around a matching base', () => {
+    const seq = 'ATCACACACACACACACAGCGCGCGCCACACACAATATATATATATAT';
+    const base = withFeature(seq, 'linear', [
+      [3, 9],
+      [14, 22],
+    ]);
+    const edited = base.replace({ start: 3, end: 5 }, 'CGAA');
+    expect(location(edited)).toEqual([
+      [3, 11],
+      [16, 24],
+    ]);
+    expect(changed(base, edited)).toBe(false);
+  });
+});

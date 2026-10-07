@@ -125,7 +125,10 @@ same colours, and the line says which kind of edit it was: a solid outline
 means the feature covers different bases than it did, a broken one means the
 same bases described differently — retyped, renamed, a qualifier edited. The
 first can break a construct and the second cannot, which is the one
-distinction a line can carry. The dot on the button says something is marked; its tooltip,
+distinction a line can carry. A base added to or removed from a run of
+identical bases (`AAAA`) beside a feature's edge does not outline the
+feature, wherever in the run the edit is drawn: it covers the same bases
+either way. The dot on the button says something is marked; its tooltip,
 and the foot of its menu, count it up (`+12 bp · 4 bp changed · −3 bp`).
 
 A new **name** or a change between **linear and circular** touches no base,

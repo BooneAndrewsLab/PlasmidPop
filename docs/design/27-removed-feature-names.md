@@ -66,3 +66,23 @@ its position map answers the way the editor does:
   (`equivalentMappings`), as it already accepted two ends. Sequences with no
   such run get only the one answer, so a feature that really moved is still
   reported.
+
+## An indel in a repeat at a feature's edge (#184)
+
+#178 slid only a deletion, and only a segment's start. An insertion or a
+deletion in a run of repeated bases (mono- or multi-base) can be drawn at any
+point along it, so `equivalentMappings` now slides every lone insertion
+(along the _newer_ sequence) and deletion (along the older), and offers both
+`starts` and `ends`: an end is offered the insertion both inside and
+outside, as `sameSegment` already read it. A segment that wraps the origin
+slides its end a turn on, and a whole circle takes every slid start.
+
+A stretch of edits at most 8 equal bases apart that contains a delete beside
+an insert is read as one overwritten stretch (prefix one to one, the rest as
+an indel), the shape an editor's replace leaves; without that pair two
+nearby, separate edits would hide a shift. A stretch of one pure insert is
+deliberately not read as an overwrite, since it would hide a real shift.
+
+Not covered (follow-up issue): a replace the diff draws as a pure insertion
+of the text before the replaced base (`T` replaced by `CT`), and a replace
+that spans the origin of a circle, where the linear diff cuts at the origin.
