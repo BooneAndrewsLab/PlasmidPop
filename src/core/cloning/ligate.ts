@@ -1,6 +1,13 @@
 import { METHYLATED_HOST } from '../analysis/methylation';
 import { codeMask } from '../analysis/search';
-import { type Feature, shiftFeature } from '../features';
+import {
+  type Feature,
+  type Qualifier,
+  type Segment,
+  isLocatedQualifier,
+  rangeSegment,
+  shiftFeature,
+} from '../features';
 import { newId } from '../ids';
 import { lineageName } from '../lineage/lineage';
 import {
@@ -185,13 +192,18 @@ export function ligate(fragments: readonly DigestFragment[], options: LigateOpti
       features.push({ ...shiftFeature(feature, offset, from, product), id: newId() });
     }
   }
+  // Every place two fragments meet, the product's ends included on a circle.
+  const junctions: number[] = [];
+  let at = 0;
+  for (const f of fragments.slice(0, -1)) junctions.push((at += f.sequence.length));
+  if (options.circular) junctions.push(product.length);
   const first = fragments[0];
   const last = fragments[fragments.length - 1];
   return SeqDocument.create({
     name: options.name,
     sequence,
     topology: options.circular ? 'circular' : 'linear',
-    features,
+    features: rejoinAtJunctions(features, junctions, product.length),
     // A linear product still has the two outermost ends of the assembly: it
     // can go on to be ligated into something else.
     ends:
@@ -205,6 +217,101 @@ export function ligate(fragments: readonly DigestFragment[], options: LigateOpti
       ...options.metadata,
     }),
   });
+}
+
+/**
+ * The features with the two pieces of one feature that a cut split (#174,
+ * #181) joined back into it wherever a junction brings them together again,
+ * as closing a single-cut vector on itself does. Two pieces are one feature
+ * when they meet at the junction, both marked partial there, with the same
+ * type, name, strand and qualifiers (a `/codon_start` and the located
+ * qualifiers each piece kept aside), and, for a CDS, the far piece is read
+ * in the frame the near one leaves off in: a junction that adds or loses
+ * bases is not the one they were cut from. A junction at `length` is the
+ * origin of a circular product; the joined piece wraps it.
+ */
+function rejoinAtJunctions(
+  features: readonly Feature[],
+  junctions: readonly number[],
+  length: number,
+): Feature[] {
+  const out = [...features];
+  for (const j of junctions) {
+    for (let i = 0; i < out.length; i++) {
+      const left = out[i];
+      if (left === undefined) continue;
+      const k = out.findIndex((right, n) => n !== i && rejoined(left, right, j, length) !== null);
+      const right = out[k];
+      if (right === undefined) continue;
+      const joined = rejoined(left, right, j, length);
+      if (joined === null) continue;
+      out[i] = joined;
+      out.splice(k, 1);
+      if (k < i) i--;
+    }
+  }
+  return out;
+}
+
+/** `left` and `right` as one feature across the junction at `j`, or null when they are not one. */
+function rejoined(left: Feature, right: Feature, j: number, length: number): Feature | null {
+  const a = left.segments[left.segments.length - 1];
+  const b = right.segments[0];
+  const start = j === length ? 0 : j;
+  if (a?.kind !== 'range' || b?.kind !== 'range') return null;
+  if (a.end !== j || b.start !== start || !a.partialEnd || !b.partialStart) return null;
+  if (
+    left.type !== right.type ||
+    left.name !== right.name ||
+    left.strand !== right.strand ||
+    left.joining !== right.joining ||
+    !sameQualifiers(left.qualifiers, right.qualifiers)
+  ) {
+    return null;
+  }
+  // The reading runs from the 5' piece into the 3' one.
+  const [five, three] = left.strand === 'reverse' ? [right, left] : [left, right];
+  if (left.type === 'CDS') {
+    const read = basesIn(five) - skipped(five);
+    if (skipped(three) !== (3 - (read % 3)) % 3) return null;
+  }
+  const segments: Segment[] = [
+    ...left.segments.slice(0, -1),
+    rangeSegment(a.start, b.end + (j === length ? length : 0), {
+      partialStart: a.partialStart,
+      partialEnd: b.partialEnd,
+    }),
+    ...right.segments.slice(1),
+  ];
+  // The 5' piece's qualifiers, /codon_start included, and the 3' piece's
+  // located ones it does not have.
+  const extra = three.qualifiers.filter(
+    (q) =>
+      isLocatedQualifier(q.name) &&
+      !five.qualifiers.some((x) => x.name === q.name && x.value === q.value),
+  );
+  return { ...left, segments, qualifiers: [...five.qualifiers, ...extra] };
+}
+
+/** Whether the qualifiers are the same but for those a split gives each piece its own of. */
+function sameQualifiers(a: readonly Qualifier[], b: readonly Qualifier[]): boolean {
+  const shared = (qs: readonly Qualifier[]) =>
+    JSON.stringify(
+      qs
+        .filter((q) => q.name !== 'codon_start' && !isLocatedQualifier(q.name))
+        .map((q) => [q.name, q.value]),
+    );
+  return shared(a) === shared(b);
+}
+
+function basesIn(feature: Feature): number {
+  return feature.segments.reduce((n, s) => n + (s.kind === 'range' ? s.end - s.start : 0), 0);
+}
+
+/** The bases before the first codon: a /codon_start of 2 or 3 skips one or two. */
+function skipped(feature: Feature): number {
+  const q = feature.qualifiers.find((x) => x.name === 'codon_start')?.value;
+  return q === '2' ? 1 : q === '3' ? 2 : 0;
 }
 
 function describeAssembly(fragments: readonly DigestFragment[], circular: boolean): string {

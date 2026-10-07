@@ -38,7 +38,12 @@ first, each with:
   the part in the fragment and marked partial. A circle cut once opens up
   inside such a feature, so the linear piece has it at both ends, as two
   partial features rather than one joined across the ends: an insert
-  ligated at the cut then sits between them instead of being skipped;
+  ligated at the cut then sits between them instead of being skipped.
+  Ligation puts the two back together as the one feature they were where
+  it joins them again exactly as they were cut, as closing the vector on
+  itself does: same name and qualifiers, partial where they meet, and a
+  CDS still in frame across the join (a stored `/translation` is not
+  restored);
 - **Add**, which puts it on the [shelf](#the-shelf), and **Open**,
   which opens it as a document of its own. Add reads **Added ✓** for a
   moment, and the Bench tab's count flashes. While the fragment is on the

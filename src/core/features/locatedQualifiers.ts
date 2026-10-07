@@ -13,6 +13,11 @@ import { type Segment, segmentLength, shiftSegmentBy } from './segment';
  */
 const LOCATED_QUALIFIERS: ReadonlySet<string> = new Set(['transl_except', 'anticodon']);
 
+/** Whether a qualifier of this name holds a location (`/transl_except`, `/anticodon`). */
+export function isLocatedQualifier(name: string): boolean {
+  return LOCATED_QUALIFIERS.has(name);
+}
+
 /** The length and shape of a sequence, which is what reading or writing a location needs. */
 export interface SequenceSpace {
   readonly length: number;

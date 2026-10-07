@@ -5,6 +5,7 @@ import {
   createFeature,
   digest,
   documentFromFragment,
+  emptyVector,
   extractRange,
   findCutSites,
   firstQualifier,
@@ -328,5 +329,113 @@ describe('extractRange splits a feature across the one cut of a circle (#174)', 
       [{ start: 0, end: 25, ps: true, pe: false }],
     ]);
     expect(fs.map((f) => translateCds(product, f).protein)).toEqual(['MR', 'IPKLFAW*']);
+  });
+});
+
+describe('ligation joins back the pieces a cut split (#181)', () => {
+  /** `doc` taken whole from `cut` and closed on itself, blunt. */
+  const reclose = (doc: SeqDocument, cut: number) => {
+    const linear = extractRange(doc, { start: cut, end: cut + doc.length });
+    return ligate([def(digest(linear, [])[0])], { name: 'closed', circular: true });
+  };
+
+  it.each(['forward', 'reverse'] as const)(
+    '%s CDS, closed again at every cut inside it: the intact feature',
+    (strand) => {
+      const doc = circle(strand);
+      for (let cut = 11; cut < 46; cut++) {
+        const closed = reclose(doc, cut);
+        const fs = closed.features.all();
+        expect(fs, `cut ${cut}`).toHaveLength(1);
+        const f = def(fs[0]);
+        expect(ranges(f)).toEqual([{ start: 60 - cut + 10, end: 106 - cut, ps: false, pe: false }]);
+        expect(firstQualifier(f, 'codon_start')).toBeUndefined();
+        expect(translateCds(closed, f).protein).toBe(PROTEIN);
+      }
+    },
+  );
+
+  it('the issue repro: a single-cut vector closed on itself is the plasmid it was cut from', () => {
+    const cds = 'ATGCGAATTCCGAAACTGTTTGCATGGTAA';
+    const vseq = 'C'.repeat(10) + cds + 'G'.repeat(20);
+    const vector = SeqDocument.create({
+      sequence: vseq,
+      topology: 'circular',
+      features: [createFeature({ type: 'CDS', name: 'gene', segments: [rangeSegment(10, 40)] })],
+    });
+    const [cut] = digest(vector, findCutSites(vseq, 'circular', [def(getEnzyme('EcoRI'))]));
+    for (const product of [
+      emptyVector(documentFromFragment(def(cut))),
+      emptyVector(def(cut)),
+      ligate([def(cut)], { name: 'p', circular: true }),
+    ]) {
+      const closed = def(product ?? undefined);
+      const fs = closed.features.all();
+      expect(fs.map((f) => ranges(f))).toEqual([[{ start: 55, end: 85, ps: false, pe: false }]]);
+      expect(translateCds(closed, def(fs[0])).protein).toBe('MRIPKLFAW*');
+    }
+  });
+
+  it('a join cut inside a segment closes to the same join', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(15),
+      topology: 'circular',
+      features: [
+        createFeature({
+          type: 'misc_feature',
+          segments: [rangeSegment(10, 20), rangeSegment(30, 50)],
+        }),
+      ],
+    });
+    expect(
+      reclose(doc, 40)
+        .features.all()
+        .map((f) => ranges(f)),
+    ).toEqual([
+      [
+        { start: 30, end: 40, ps: false, pe: false },
+        { start: 50, end: 70, ps: false, pe: false },
+      ],
+    ]);
+  });
+
+  it('keeps a /transl_except with the joined feature, once', () => {
+    // The codon at [16, 19) (CGA's neighbour ATT) read as Sec.
+    const doc = circle('forward', {
+      qualifiers: [{ name: 'transl_except', value: '(pos:17..19,aa:Sec)' }],
+    });
+    for (const cut of [13, 30]) {
+      const f = def(reclose(doc, cut).features.all()[0]);
+      expect(
+        f.qualifiers.filter((q) => q.name === 'transl_except'),
+        `cut ${cut}`,
+      ).toHaveLength(1);
+    }
+  });
+
+  it('leaves pieces apart when the junction is not the one they were cut from', () => {
+    const piece = (start: number, end: number, ps: boolean, pe: boolean, codonStart?: string) =>
+      createFeature({
+        type: 'CDS',
+        name: 'orf',
+        segments: [rangeSegment(start, end, { partialStart: ps, partialEnd: pe })],
+        qualifiers: codonStart === undefined ? [] : [{ name: 'codon_start', value: codonStart }],
+      });
+    const close = (features: Feature[]) => {
+      const doc = SeqDocument.create({ sequence: 'A'.repeat(40), topology: 'linear', features });
+      return ligate([def(digest(doc, [])[0])], { name: 'c', circular: true }).features.all();
+    };
+    // 10 bases read from the start leave one over: the far piece starts in frame 3.
+    expect(close([piece(30, 40, false, true), piece(0, 5, true, false, '3')])).toHaveLength(1);
+    // A base gained or lost at the junction puts it out of frame.
+    expect(close([piece(30, 40, false, true), piece(0, 5, true, false, '2')])).toHaveLength(2);
+    expect(close([piece(30, 40, false, true), piece(0, 5, true, false)])).toHaveLength(2);
+    // Not partial where they meet: two features that only sit side by side.
+    expect(close([piece(31, 40, false, false), piece(0, 5, false, false)])).toHaveLength(2);
+    expect(close([piece(31, 40, false, true), piece(0, 5, false, false)])).toHaveLength(2);
+    // Another name is another feature.
+    expect(
+      close([piece(31, 40, false, true), { ...piece(0, 5, true, false), name: 'other' }]),
+    ).toHaveLength(2);
   });
 });
