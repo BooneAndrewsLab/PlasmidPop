@@ -346,8 +346,7 @@ describe('a replace by shorter text, at random (#190)', () => {
         if (kept === undefined || diff.reversed) return;
         expect(diff.featuresChanged.has(kept.id)).toBe(false);
       }),
-      // A fixed seed: a repeat over the origin still reads as changed (#195).
-      { numRuns: 3000, seed: 3 },
+      { numRuns: 3000 },
     );
   });
 
@@ -485,6 +484,34 @@ describe('a replace over the origin of a circle that leaves a few bases untouche
     ['ATGGCA', 4, 9, 'TTTT', [2, 5], [3, 4]],
     ['GGGGGCCCCC', 9, 12, 'TTTTG', [1, 7], [2, 9]],
     ['GCAAAATTTTCC', 4, 13, 'GAGAGAATTTT', [4, 10], [7, 12]],
+  ] as const)(
+    'keeps the feature where the editor put it after %s has [%i, %i) replaced by %s',
+    (sequence, start, end, text, before, moved) => {
+      const base = withFeature(sequence, [before], 'circular');
+      const edited = base.replace({ start, end }, text);
+      const kept = edited.getFeature(only(base))?.segments[0];
+      expect(kept?.kind).toBe('range');
+      if (kept?.kind !== 'range') return;
+      expect(changed(base, edited, [[kept.start, kept.end]])).toBe(false);
+      expect(changed(base, edited, [moved])).toBe(true);
+    },
+  );
+});
+
+describe('a replace over the origin of a circle drawn elsewhere along a repeat (#195)', () => {
+  // The editor leaves the origin where it was when its overwrite runs past
+  // it, but a repeat lets the diff draw the edit flush against the origin or
+  // at the other end of the run. The #190 property test found the last case.
+  it.each([
+    ['TTTTTTTTTTT', 9, 13, 'GCT', [1, 3], [4, 7]],
+    ['GGGGGGGG', 6, 10, 'CTG', [1, 3], [4, 7]],
+    ['AAAAAAAAATC', 9, 13, 'CAA', [1, 3], [4, 7]],
+    ['ACACACTTTTTTTTTTTG', 16, 24, 'CGT', [0, 1], [1, 2]],
+    ['CAAAAAAA', 3, 9, 'TTGAGGCA', [1, 4], [2, 6]],
+    ['GGGGGGCC', 4, 9, 'TTGGGGG', [4, 5], [7, 8]],
+    ['CCCCCCCCCAA', 5, 12, 'ATGGGGGG', [5, 8], [7, 10]],
+    // The whole circle, none of it left untouched.
+    ['GGGTTTTA', 7, 15, 'GGA', [1, 3], [2, 3]],
   ] as const)(
     'keeps the feature where the editor put it after %s has [%i, %i) replaced by %s',
     (sequence, start, end, text, before, moved) => {

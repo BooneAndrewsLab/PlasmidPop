@@ -507,23 +507,31 @@ export function equivalentMappings(
       0,
     ) +
     2 * MERGE_GAP;
-  // A circle with no more than MERGE_GAP equal bases between any two edits
-  // is one stretch all round, and the diff cuts it at the origin, which the
-  // editor need not have: the stretch may start after any equal run and end,
-  // a turn on, before it, where that costs no more than `cost` (#193).
-  const cuts: Stretch[] = [];
-  const whole = stretches[0];
-  if (circular && whole !== undefined && stretches.length === 1 && lead + trail <= MERGE_GAP) {
-    for (const op of diff.ops) {
-      if (op.kind !== 'equal' || op.aStart <= whole.aStart || op.aEnd >= whole.aEnd) continue;
-      const kept = op.aEnd - op.aStart;
-      if (a.length - kept + (b.length - kept) > cost) continue;
-      cuts.push({
-        aStart: op.aEnd,
-        aEnd: op.aStart + a.length,
-        bStart: op.bEnd,
-        bEnd: op.bStart + b.length,
-      });
+  // A replace over the origin of a circle that leaves the origin in place
+  // (its deletion wholly past it, or what it adds just after it) overwrites
+  // its selection one to one, so it moves the bases as an indel of all it
+  // gained or lost at `r` would: those before `r` stay, those from `r` on
+  // shift by the difference, and a deletion takes the bases just before `r`.
+  // Its untouched bases, from `r` to the selection's start, read the same
+  // shifted, and the replace costs no more than `cost`. The diff may draw it
+  // anywhere along a repeat, flush against the origin or at the other end of
+  // the run (#195), or as one stretch all round a circle with few bases
+  // untouched (#193); each `r` the sequences allow is a reading of its own.
+  const shift = b.length - a.length;
+  const untouched = Math.max(0, Math.ceil((2 * a.length + shift - cost) / 2));
+  const keeps: { readonly from: number; readonly to: number }[] = [];
+  if (circular) {
+    // What it deletes lies past the origin, and what it adds after it: an
+    // insertion at the length is at 0, a turn on.
+    const first = Math.max(1, 1 - shift);
+    const last = shift > 0 ? a.length - 1 : a.length;
+    let run = Math.max(0, -shift);
+    for (let p = run; p <= a.length; p++) {
+      if (p < a.length && a[p] === b[p + shift]) continue;
+      const from = Math.max(run, first);
+      const to = Math.min(p - untouched, last);
+      if (from <= to) keeps.push({ from, to });
+      run = p + 1;
     }
   }
   /** Where an exclusive end lands as the diff drew it: an insertion right at it lies outside. */
@@ -598,11 +606,9 @@ export function equivalentMappings(
    * the origin of a stretch the diff drew over it, where the editor leaves
    * the overwritten bases after the origin in place and what follows the
    * deletion shifted by all the bases lost, as the diff drew them (#190).
-   * A stretch cut after an equal run (`cut`) is over the origin even
-   * reaching no further (#193).
    */
-  const reaches = (run: Stretch, x: number, cut: boolean): boolean => {
-    if (!circular || (x === 0 && !cut)) return true;
+  const reaches = (run: Stretch, x: number): boolean => {
+    if (!circular || x === 0) return true;
     const shifted = run.bStart - run.aStart === b.length - a.length;
     if (run.bEnd - run.bStart > run.aEnd - run.aStart) {
       return run.aEnd + x < a.length || (run.aEnd + x > a.length && shifted);
@@ -610,10 +616,10 @@ export function equivalentMappings(
     if (run.aEnd + x <= a.length) return true;
     return run.aEnd > a.length && run.aStart + (run.bEnd - run.bStart) + x > a.length && shifted;
   };
-  const overwrites = (run: Stretch, cut = false): Choice[] => {
+  const overwrites = (run: Stretch): Choice[] => {
     const choices: Choice[] = [];
     for (let x = 0; x <= MERGE_GAP; x++) {
-      if (!reaches(run, x, cut)) continue;
+      if (!reaches(run, x)) continue;
       choices.push((position, end) => {
         // A stretch over the origin holds the positions after it a turn on.
         for (const at of circular ? [position, position + a.length] : [position]) {
@@ -627,7 +633,6 @@ export function equivalentMappings(
     }
     return choices;
   };
-  const cutChoices = cuts.flatMap((cut) => overwrites(cut, true));
   const groups: Group[] = stretches.map((run) => {
     const members = indels.filter((indel) => inStretch(indel.at, run));
     const last = run.aEnd + MERGE_GAP;
@@ -639,7 +644,6 @@ export function equivalentMappings(
       choices: (positions) => [
         ...members.flatMap((indel) => slides(indel, positions)),
         ...overwrites(run),
-        ...cutChoices,
       ],
     };
   });
@@ -674,8 +678,37 @@ export function equivalentMappings(
     return at < run.aStart ? at : overwrite(run, 0, at - run.aStart, end);
   };
 
+  /** Where an edge lands when the edit was a replace over the origin that kept it, at `r`. */
+  const kept = (r: number, position: number, end: boolean): number => {
+    if (shift >= 0) return position < r || (end && position === r) ? position : position + shift;
+    return position < r + shift ? position : position < r ? r + shift : position + shift;
+  };
+
   function* readings(edges: readonly Edge[]): Generator<readonly number[]> {
     yield* drawings(edges);
+    // Away from an edge `r` moves it as its neighbours do: try it only near
+    // one, and at each end of the bases it may be.
+    const tried = new Set<string>();
+    for (const { from, to } of keeps) {
+      const near = new Set<number>([from, to]);
+      for (const { position } of edges) {
+        const at = position > a.length ? position - a.length : position;
+        for (let r = Math.max(from, at - 1); r <= Math.min(to, at + Math.max(0, -shift) + 1); r++)
+          near.add(r);
+      }
+      for (const r of near) {
+        const placed = edges.map(({ position, end }) => {
+          if (position < 0 || (end ? position <= 0 : position >= a.length)) return map(position);
+          return position > a.length
+            ? kept(r, position - a.length, end) + b.length
+            : kept(r, position, end);
+        });
+        const key = placed.join();
+        if (tried.has(key)) continue;
+        tried.add(key);
+        yield placed;
+      }
+    }
     for (const { turn, run } of turns) {
       const placed = edges.map(({ position, end }) => {
         const fixed = position < 0 || (end ? position <= 0 : position >= a.length);

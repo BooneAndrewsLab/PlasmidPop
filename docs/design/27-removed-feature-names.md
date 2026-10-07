@@ -262,3 +262,35 @@ circles and call the two-edit history changed. Unlike #189 the location is
 one an editor reaches, and the feature still covers the whole circle; only
 where its start sits differs. The probe's single-replace oracle counts it as
 a false "unchanged"; read those cases as expected.
+
+## A replace over the origin drawn along a repeat (#195)
+
+A replace over the origin of a circle that leaves the origin in place (its
+deletion wholly past it, or what it adds after it) was read only where the
+diff drew its stretch over the origin (`reaches`). In a repeat the diff may
+draw it flush against the origin or at the other end of the run instead:
+`TTTTTTTTTTT` with `[9, 13)` replaced by `GCT` is drawn as `TTT` replaced by
+`GC` at the end, and a feature on `[1, 3)`, which the editor keeps as
+`[1, 2)`, was marked changed. A replace by longer text, `CAAAAAAA` with
+`[3, 9)` replaced by `TTGAGGCA`, did the same.
+
+Such a replace overwrites its selection one to one, so it moves the bases
+exactly as an indel of all it gained or lost at the end of what it
+overwrote past the origin, `r`, would: bases before `r` stay, those from
+`r` on shift by the difference, and a deletion takes the bases just before
+`r`. It is the editor's result whenever the bases from `r` to some start
+of the selection read the same shifted, so each such `r` is now a reading
+of its own (whole, like #190's turns), where the replace costs no more
+than `cost`. `r` must be past the origin, and for a replace by longer text
+short of the length, where the editor would insert at 0. Away from a
+feature's edges `r` moves them as their neighbours do, so only `r` near an
+edge is tried, as for slides; a 2 kb circle changed every 5 bases and a
+10 kb poly-A circle with 2,000 features time as before.
+
+This subsumes #193's cuts, which were the same reading with the selection
+starting right after an equal run the diff drew, and also covers a whole
+circle replaced (nothing left untouched), which the #190 property test
+found unseeded about once in 150k runs. That test runs unseeded again; a
+million runs pass. The round-6 probe is unchanged on false "unchanged"
+(2/1/0, all #194) and false "changed" editor results (5/3/3); seeds 4 to 9
+lose 4 false "changed" editor results and add no false "unchanged".
