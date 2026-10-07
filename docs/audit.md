@@ -11,6 +11,7 @@ holds what the last one had to discover, so the next one need not.
 | 2026-10-05 | `9a336fa` (1.11.1) | #132–#146 (milestone 1.11.2) | first six areas below                                                                        |
 | 2026-10-06 | `7a7b988`          | #152–#159 (milestone 1.11.2) | alignment and diff, reads, SnapGene, map geometry                                            |
 | 2026-10-06 | `5b324ba`          | #162–#168 (milestone 1.11.2) | editing (first time), SnapGene, alignment incl. circular reads, sweep of the #152–#161 fixes |
+| 2026-10-07 | `97059b0`          | #174–#180 (milestone 1.11.2) | scoped: region copy and CDS translation, circular reads and diff, sweep of the #162–#173 fixes |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
@@ -117,7 +118,9 @@ reporting one.
 
 - **Banded alignment** is checked since #167: the band's score bounds the
   region a better path could reach, and that region is filled. Global is
-  exact; local is exact among paths meeting the chain's diagonals. Unchecked
+  exact; local is exact among paths meeting the chain's diagonals. On a
+  doubled circle that includes the same chain one turn on (±L), which
+  the band missed for reads starting just before the origin (#175). Unchecked
   (and so not exact) only when the region exceeds 25 M cells, which in
   practice is a long noisy read in local mode. Probe tandem repeats and
   insertions near read ends, not only junk flanks.
@@ -137,6 +140,10 @@ reporting one.
   `<Comments>`; ours does not.
 - **SnapGene sample files** live in `~/Programs/snapgene_8.2.2_linux`
   (203 .dna); they may not be committed. `fixtures/local` has none.
+- **A cut exactly at the end of a linear sequence** (e.g. MboI `^GATC` at
+  base 0) is listed by the enzyme panel ("cut after base 0") and counts
+  toward its Cuts filter, but `digest()` drops it, as it cuts nothing.
+  `restriction.test.ts` records it as a known difference; accepted.
 - **Circular read mapping** lives in `app/readAlignment.ts` (a doubled
   reference), not in `core/alignment`. Audited 2026-10-06; see #165, #166.
 
