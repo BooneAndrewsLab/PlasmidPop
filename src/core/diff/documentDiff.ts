@@ -280,13 +280,22 @@ function mapFeature(
  */
 function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segment {
   const start = map(seg.start);
-  const end = Math.max(start, map(seg.end));
+  const end = Math.max(start, drawnEnd(seg.end, map));
   if (start === map.circle?.to && end === start) {
     // Collapsed at the origin: all of it, or none of it (#197).
     return { ...seg, start: 0, end: keepsWholeCircle(seg, map.circle) ? start : 0 };
   }
   const turn = start === map.circle?.to && end > start ? start : 0;
   return { ...seg, start: start - turn, end: end - turn };
+}
+
+/**
+ * Where the diff as drawn puts an exclusive end. An insertion drawn right at
+ * it lies outside it, as the editor leaves one (#200); a deletion that
+ * swallowed the last base leaves it at the deletion's boundary.
+ */
+function drawnEnd(end: number, map: PositionMap): number {
+  return end > 0 ? Math.min(map(end - 1) + 1, map(end)) : map(end);
 }
 
 /**
@@ -595,13 +604,8 @@ function sameLocation(before: Feature, after: Feature, map: PositionMap): boolea
     { position: seg.start, end: false },
     { position: seg.end, end: true },
   ]);
-  // An exclusive end the diff drew an insertion at lies outside it, as the
-  // editor leaves one; a deletion that swallowed the last base leaves it at
-  // the deletion's boundary.
   const drawn = (edge: Edge): number =>
-    edge.end && edge.position > 0
-      ? Math.min(map(edge.position - 1) + 1, map(edge.position))
-      : map(edge.position);
+    edge.end ? drawnEnd(edge.position, map) : map(edge.position);
   const readings = map.readings?.(edges) ?? [edges.map(drawn)];
   for (const placed of readings) {
     if (

@@ -363,3 +363,15 @@ histories. On the round-7 history probe (seeds 1 to 8 × 300) the 5 whole
 circles are gone. No editor result is newly marked changed, and one the
 repros found is no longer: `[500, 1500)` with 50 bp inserted at 500, which
 the editor keeps as `[550, 1600)`.
+
+## The "was" location's end (#200)
+
+`sameLocation` read an exclusive end as drawn, outside an insertion right at
+it (#189), but `mappedRange`, which gives a changed or removed feature's
+"was" location, still used `map(end)`. An insertion drawn at the end landed
+inside it: `[2, 6)` with `TT` inserted at 6 was "− 3..8", and a rename there
+read "renamed from f, moved". Both now take the end from one helper,
+`drawnEnd`, so the "was" location is where the diff as drawn and the editor
+both put the feature. The #197 collapsed-at-origin and #198 whole-circle
+branches are unchanged: an end that lost its last base still lands at the
+deletion's boundary, and a whole circle's end is still its start one turn on.

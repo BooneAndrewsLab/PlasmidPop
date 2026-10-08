@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 
 import { SeqDocument } from '../document';
-import { type Segment, createFeature, rangeSegment } from '../features';
+import { type Feature, type Segment, createFeature, rangeSegment } from '../features';
 import { diffDocuments } from './documentDiff';
 
 /**
@@ -701,5 +701,69 @@ describe('a feature round the whole circle after an edit (#198)', () => {
     const moved = edited.updateFeature(only(base), { segments: [rangeSegment(306, 1306)] });
     const was = diffDocuments(base, moved).featuresChanged.get(only(base));
     expect(was?.segments).toMatchObject([{ start: 306, end: 1606 }]);
+  });
+});
+
+describe('the "was" location of a feature an insertion was drawn right after (#200)', () => {
+  // The editor leaves an insertion at a feature's exclusive end outside the
+  // feature, so the "was" location of a removed or changed feature does too.
+  const removedWas = (base: SeqDocument, edited: SeqDocument): readonly Segment[] | undefined =>
+    diffDocuments(base, edited.removeFeature(only(base))).featuresRemoved.get(only(base))?.segments;
+  const renamedWas = (base: SeqDocument, edited: SeqDocument): Feature | undefined =>
+    diffDocuments(base, edited.updateFeature(only(base), { name: 'g' })).featuresChanged.get(
+      only(base),
+    );
+
+  it.each([
+    ['linear, inserted at the end', 'ACGTACGTAC', [[2, 6]], 'linear', 6, 'TT', [[2, 6]]],
+    ['linear, inserted at the start', 'ACGTACGTAC', [[2, 6]], 'linear', 2, 'TT', [[4, 8]]],
+    ['circular, 10 bp at the end', 'ACGTACGTAC', [[2, 6]], 'circular', 6, 'TTTTTTTTTT', [[2, 6]]],
+    ['linear, appended', 'ACGTACGTAC', [[6, 10]], 'linear', 10, 'GG', [[6, 10]]],
+    [
+      'two segments',
+      'ACGTACGTACGTACGT',
+      [
+        [2, 6],
+        [9, 12],
+      ],
+      'linear',
+      12,
+      'TT',
+      [
+        [2, 6],
+        [9, 12],
+      ],
+    ],
+    [
+      'two segments, between them',
+      'ACGTACGTACGTACGT',
+      [
+        [2, 6],
+        [9, 12],
+      ],
+      'linear',
+      6,
+      'TT',
+      [
+        [2, 6],
+        [11, 14],
+      ],
+    ],
+  ] as const)('%s', (_, sequence, segments, topology, at, text, was) => {
+    const base = withFeature(sequence, segments, topology);
+    const edited = base.insert(at, text);
+    const expected = was.map(([start, end]) => ({ start, end }));
+    // The editor's own result, the reference.
+    expect(edited.getFeature(only(base))?.segments).toMatchObject(expected);
+    expect(removedWas(base, edited)).toMatchObject(expected);
+    expect(renamedWas(base, edited)?.segments).toMatchObject(expected);
+  });
+
+  it('keeps a feature that ends at the origin of a circle off an insertion there', () => {
+    const base = withFeature('ACGTACGTAC', [[6, 10]], 'circular');
+    const edited = base.insert(10, 'GG');
+    const kept = edited.getFeature(only(base))?.segments;
+    expect(removedWas(base, edited)).toMatchObject(kept ?? []);
+    expect(renamedWas(base, edited)?.segments).toMatchObject(kept ?? []);
   });
 });

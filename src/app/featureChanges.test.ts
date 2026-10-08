@@ -20,6 +20,15 @@ function lines(before: SeqDocument, after: SeqDocument): string[] {
 }
 
 describe('featureChangeRows', () => {
+  it('keeps an insertion right after a feature out of where it was (#200)', () => {
+    const before = doc([feature('f1', 2, 6, 'f', 'misc_feature')], 'ACGTACGTAC');
+    const inserted = before.insert(6, 'TT');
+    expect(lines(before, inserted.removeFeature('f1'))).toEqual(['− f 3..6']);
+    expect(lines(before, inserted.updateFeature('f1', { name: 'g' }))).toEqual([
+      '~ g renamed from f 3..6',
+    ]);
+  });
+
   it('names what was added, changed and removed, and says where', () => {
     const before = doc([feature('f1', 4, 12, 'tet', 'CDS'), feature('f2', 20, 24)]);
     const after = before
