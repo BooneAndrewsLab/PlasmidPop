@@ -525,3 +525,68 @@ describe('a replace over the origin of a circle drawn elsewhere along a repeat (
     },
   );
 });
+
+describe('a stretch the diff drew over the origin of a circle (#196)', () => {
+  // Edits either side of the origin merge into one stretch over it, read as
+  // an overwrite like any other. One that lost bases deletes over the origin,
+  // which moves it, and one that gained bases adds them past it: the
+  // overwrite as drawn leaves neither, so it no longer reads as one.
+  it.each([
+    ['AACTAACTAACTCCCATCTCA', 17, 22, 'A', [0, 8], [1, 7]],
+    ['AACTAACTAACTCCCATCTCA', 17, 22, 'A', [0, 18], [1, 17]],
+    ['TTTTTTTTTCCCCATCAAAAGA', 20, 25, 'G', [0, 22], [1, 19]],
+    ['TTATTATTAAAGAGAGGCGCGCGC', 20, 25, 'A', [0, 24], [1, 21]],
+    ['GTAGGTAG', 7, 10, 'TTTTA', [0, 8], [0, 8]],
+  ] as const)(
+    'keeps the feature where the editor put it after %s has [%i, %i) replaced by %s',
+    (sequence, start, end, text, before, moved) => {
+      const base = withFeature(sequence, [before], 'circular');
+      const edited = base.replace({ start, end }, text);
+      const kept = edited.getFeature(only(base))?.segments[0];
+      expect(kept?.kind).toBe('range');
+      if (kept?.kind !== 'range') return;
+      expect(changed(base, edited, [[kept.start, kept.end]])).toBe(false);
+      expect(changed(base, edited, [moved])).toBe(true);
+    },
+  );
+
+  // Two replaces, as the diff draws them, put the feature there: a reading of
+  // the diff as drawn, kept by design like #194.
+  it.each([
+    [
+      'GGCCACACACACTTTTTTTT',
+      5,
+      9,
+      'TCC',
+      [
+        [6, 8],
+        [11, 12],
+      ],
+      [
+        [6, 7],
+        [10, 11],
+      ],
+    ],
+    [
+      'GCATCTCACACACAA',
+      7,
+      11,
+      'TGTAA',
+      [
+        [4, 6],
+        [9, 10],
+      ],
+      [
+        [4, 6],
+        [10, 11],
+      ],
+    ],
+  ] as const)(
+    'reads %s with [%i, %i) replaced by %s as two replaces',
+    (sequence, start, end, text, before, drawn) => {
+      const base = withFeature(sequence, before, 'linear');
+      const edited = base.replace({ start, end }, text);
+      expect(changed(base, edited, drawn)).toBe(false);
+    },
+  );
+});

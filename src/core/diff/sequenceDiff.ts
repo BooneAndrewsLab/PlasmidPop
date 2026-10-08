@@ -606,9 +606,11 @@ export function equivalentMappings(
    * the origin of a stretch the diff drew over it, where the editor leaves
    * the overwritten bases after the origin in place and what follows the
    * deletion shifted by all the bases lost, as the diff drew them (#190).
+   * Both hold with no bases past the stretch (`x` 0) too: a stretch drawn
+   * over the origin is no overwrite the editor makes otherwise (#196).
    */
   const reaches = (run: Stretch, x: number): boolean => {
-    if (!circular || x === 0) return true;
+    if (!circular) return true;
     const shifted = run.bStart - run.aStart === b.length - a.length;
     if (run.bEnd - run.bStart > run.aEnd - run.aStart) {
       return run.aEnd + x < a.length || (run.aEnd + x > a.length && shifted);

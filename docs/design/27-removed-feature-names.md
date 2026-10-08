@@ -294,3 +294,25 @@ found unseeded about once in 150k runs. That test runs unseeded again; a
 million runs pass. The round-6 probe is unchanged on false "unchanged"
 (2/1/0, all #194) and false "changed" editor results (5/3/3); seeds 4 to 9
 lose 4 false "changed" editor results and add no false "unchanged".
+
+## A stretch drawn over the origin (#196)
+
+Of the round-6 probe's false "unchanged" on seeds 4 to 9 that were not
+#194's shape, two are on linear sequences and are the diff as drawn:
+`GGCCACACACACTTTTTTTT` with `[5, 9)` replaced by `TCC` is drawn as `CA`
+replaced by `T` and `A` by `C`, and those two replaces put a join's
+`[6, 8)` on `[6, 7)`. A history of two edits that the diff draws is a
+reading, as for #194, so these stay unchanged.
+
+The third was a bug. Edits either side of a circle's origin merge into one
+stretch over it (#185), and `reaches` let every stretch be overwritten
+with nothing past it (`x` 0) without the conditions it sets for reaching
+over the origin. `AACTAACTAACTCCCATCTCA` with `[17, 22)` replaced by `A`
+is drawn as `A` deleted at 1 and `CTC` at 17, one stretch over the origin,
+and overwriting it in place keeps the origin while deleting over it, so
+`[0, 8)` read unchanged at `[1, 7)`; the editor moves the origin and keeps
+`[0, 7)`. Those conditions (#190, #191) now hold at `x` 0 too. On seeds 1
+to 9 false "unchanged" fell from 17 to 11, all left #194's whole circles
+or the two linear cases above. Four of the six removed had been counted as
+#194's, but they accepted a whole circle at a location that no longer
+covers the circle. No editor result is newly marked changed.
