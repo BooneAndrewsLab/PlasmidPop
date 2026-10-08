@@ -14,6 +14,7 @@ holds what the last one had to discover, so the next one need not.
 | 2026-10-07 | `97059b0`          | #174–#180 (milestone 1.11.2) | scoped: region copy and CDS translation, circular reads and diff, sweep of the #162–#173 fixes                           |
 | 2026-10-07 | `07bd28a`          | #182–#184 (milestone 1.11.2) | scoped: features through cut and ligation (incl. the #181 rejoin), circular reads and diff, sweep of the #174–#181 fixes |
 | 2026-10-07 | `a2734eb`          | #187–#190 (milestone 1.11.2) | scoped: feature provenance and rejoin (#182–#186 fixes), document diff after #184/#185                                   |
+| 2026-10-07 | `bb8ecd7`          | #197–#199 (milestone 1.11.2) | scoped: document diff after #189, feature provenance (`featureOrigin`); two highs, so another round is due               |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
@@ -164,6 +165,10 @@ reporting one.
   edge; by design.
 - **A changed or removed feature's "was" location inside a repeat** is one
   valid drawing, not always the editor's.
+- **Linear diff-as-drawn histories and #194's whole-circle shifts** still read
+  unchanged in the round-6 probe (seeds 1-24 x 400: 32 false-unchanged before
+  the #197/#198 fixes, 18 after, 15 whole-circle shifts at the new length and 3
+  two-replace linear histories); by design.
 
 ## Reference sources that work from here
 
