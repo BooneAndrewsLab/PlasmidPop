@@ -277,6 +277,44 @@ describe('pcr', () => {
   });
 });
 
+describe('pcr back-to-back overlap on a circle (#201)', () => {
+  const circle = (from: number, extra: number) =>
+    TEXT.slice(from) + TEXT.slice(0, from) + TEXT.slice(from, from + extra);
+
+  it('accepts a reverse run longer than the span between the 5′ ends', () => {
+    // Forward [1000,1019), reverse [991,1020) plus a 2-nt tail: span 20 is
+    // below the reverse run (29) but not the forward one (19).
+    const result = pcr(PLASMID, [fwd(1000, 1019), rev(991, 1020, 'GG')]);
+    const expected = circle(1000, 20) + 'CC';
+    expect(one(result)).toBe(expected);
+    expect(expected).toHaveLength(3022);
+  });
+
+  it('accepts the mirror, a forward run longer than the span', () => {
+    const result = pcr(PLASMID, [fwd(1000, 1029, 'GG'), rev(1000, 1019)]);
+    expect(one(result)).toBe('GG' + circle(1000, 19));
+  });
+
+  it('still accepts an even overlap, both runs longer than the span', () => {
+    const result = pcr(PLASMID, [fwd(1000, 1030), rev(990, 1020)]);
+    expect(one(result)).toBe(circle(1000, 20));
+  });
+
+  it('still refuses primers on top of each other', () => {
+    const facing = pcr(PLASMID, [fwd(1000, 1020), rev(1010, 1030)]);
+    expect(facing.products).toHaveLength(0);
+    expect(facing.problem).not.toBeNull();
+    const identical = pcr(PLASMID, [fwd(1000, 1020), rev(1000, 1020)]);
+    expect(identical.products).toHaveLength(0);
+  });
+
+  it('leaves a linear template unchanged', () => {
+    const result = pcr(LINEAR, [fwd(1000, 1019), rev(991, 1020, 'GG')]);
+    expect(result.products).toHaveLength(0);
+    expect(result.problem).not.toBeNull();
+  });
+});
+
 describe('pcr II (#14)', () => {
   it('lets Taq add a 3′ A to each strand, which a TA vector joins by', () => {
     const [product] = pcr(LINEAR, [fwd(100, 122), rev(500, 522)], { polymerase: 'taq' }).products;

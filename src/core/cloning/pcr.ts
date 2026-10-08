@@ -180,12 +180,17 @@ export function pcr(
         // Back-to-back primers whose ends meet exactly amplify the whole
         // circle, not nothing.
         if (span === 0) span = L;
-        // Back-to-back primers whose 5′ ends overlap — neither 3′ end inside
-        // the other's site — still point away from each other: they copy the
-        // whole circle and the overlap twice. A mutagenic insert does this
-        // whenever its bases happen to continue the template before it, which
-        // is one time in four for its last base alone.
-        else if (span < f.annealLength && span < r.annealLength) span += L;
+        // Back-to-back primers whose 5′ ends overlap still point away from
+        // each other: they copy the whole circle and the overlap twice. In
+        // the span's own coordinates the forward site is [0, fa) and the
+        // reverse site [span - ra, span), so the reverse 3′ end lies before
+        // the forward site when span < ra, and the forward 3′ end lies past
+        // the reverse site when span < fa. Either one turns the pair away
+        // (a tail or a trimmed 5′ mismatch can lengthen only one run). Pairs
+        // whose 3′ ends both sit inside the other's site face each other on
+        // top of one another and stay refused below. A mutagenic insert does
+        // this whenever its bases happen to continue the template before it.
+        else if (span < f.annealLength || span < r.annealLength) span += L;
       }
       if (span <= 0) continue;
       // Overlapping annealing regions are not an amplicon: the two primers

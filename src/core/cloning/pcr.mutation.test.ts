@@ -107,18 +107,16 @@ describe('pcr, its limits', () => {
   });
 
   it('amplifies nothing from primers on top of each other on a circle, however long each is', () => {
-    // Only when the 5′ ends overlap by less than *both* annealing parts do
-    // the primers point away from each other and copy the whole circle.
-    // Otherwise one 3′ end is inside the other's site: they overlap.
+    // A pair points away from each other when either 3′ end lies outside the
+    // other primer's site (#201). When each 3′ end is inside the other's
+    // site, or the sites coincide, they overlap.
     const text = template(3000);
     const plasmid = SeqDocument.create({ name: 'pTest', sequence: text, topology: 'circular' });
     const pairs: [PcrPrimer, PcrPrimer][] = [
-      // Forward 22 bases, reverse 30, 25 apart and 22 apart.
-      [fwd(text, 100, 122), rev(text, 95, 125)],
-      [fwd(text, 100, 122), rev(text, 92, 122)],
-      // Forward 30 bases, reverse 22.
-      [fwd(text, 100, 130), rev(text, 103, 125)],
-      [fwd(text, 100, 130), rev(text, 100, 122)],
+      [fwd(text, 100, 122), rev(text, 105, 130)],
+      [fwd(text, 100, 122), rev(text, 100, 122)],
+      [fwd(text, 100, 130), rev(text, 110, 140)],
+      [fwd(text, 100, 130), rev(text, 100, 130)],
     ];
     for (const pair of pairs) {
       const result = pcr(plasmid, pair);
