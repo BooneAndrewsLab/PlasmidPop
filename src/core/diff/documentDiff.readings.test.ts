@@ -646,3 +646,60 @@ describe('a range that lost every base at the end of a circle (#197)', () => {
     expect(removed?.segments).toMatchObject([{ start: 0, end: 0 }]);
   });
 });
+
+describe('a feature round the whole circle after an edit (#198)', () => {
+  // The editor keeps a feature that covers the whole circle round the whole
+  // circle under every edit, from wherever it starts, so it is unchanged only
+  // at a location that covers the whole new circle.
+  const a = bases(1000, 198);
+  it.each([
+    [[6, 1006], 0, 300],
+    [[6, 1006], 0, 1],
+    [[500, 1500], 495, 300],
+    [[500, 1500], 500, 50],
+    [[3, 1003], 0, 200],
+  ] as const)('keeps [%j] whole after inserting at %i (%i bp)', (before, at, n) => {
+    const base = withFeature(a, [before], 'circular');
+    const edited = base.insert(at, bases(n, 1980 + n));
+    const kept = edited.getFeature(only(base))?.segments[0];
+    if (kept?.kind !== 'range') throw new Error('expected a range');
+    expect(kept.end - kept.start).toBe(1000 + n);
+    expect(changed(base, edited, [[kept.start, kept.end]])).toBe(false);
+    // The old length, from the same start or the end's, is not the whole circle.
+    expect(changed(base, edited, [[kept.start, kept.end - n]])).toBe(true);
+    expect(changed(base, edited, [[kept.start + n, kept.end]])).toBe(true);
+  });
+
+  it('reads an insertion slid onto the origin as moving the whole circle, never shortening it', () => {
+    const sequence = 'G' + bases(999, 1981).replace(/^G+/, 'A');
+    const base = withFeature(sequence, [[0, 1000]], 'circular');
+    const text = 'T'.repeat(299) + 'G';
+    const edited = base.insert(1, text);
+    expect(edited.getFeature(only(base))?.segments).toMatchObject([{ start: 0, end: 1300 }]);
+    expect(changed(base, edited, [[0, 1300]])).toBe(false);
+    expect(changed(base, edited, [[300, 1300]])).toBe(true);
+    // The same sequence comes of inserting G and the Ts at the origin, which
+    // moves the whole circle's start past them: a reading, as for #194.
+    const atOrigin = base.insert(0, 'G' + 'T'.repeat(299));
+    expect(atOrigin.sequence.toString()).toBe(edited.sequence.toString());
+    expect(atOrigin.getFeature(only(base))?.segments).toMatchObject([{ start: 300, end: 1600 }]);
+    expect(changed(base, edited, [[300, 1600]])).toBe(false);
+  });
+
+  it("rejects the #194 repro's shortened circle but keeps its shifted one", () => {
+    const base = withFeature('AACCAAAAACC', [[0, 11]], 'circular');
+    const edited = base.replace({ start: 9, end: 14 }, 'TACCAAC');
+    expect(edited.getFeature(only(base))?.segments).toMatchObject([{ start: 0, end: 13 }]);
+    expect(changed(base, edited, [[0, 13]])).toBe(false);
+    expect(changed(base, edited, [[2, 15]])).toBe(false);
+    expect(changed(base, edited, [[2, 13]])).toBe(true);
+  });
+
+  it('says a changed whole circle was round the whole new circle', () => {
+    const base = withFeature(a, [[6, 1006]], 'circular');
+    const edited = base.insert(0, bases(300, 1982));
+    const moved = edited.updateFeature(only(base), { segments: [rangeSegment(306, 1306)] });
+    const was = diffDocuments(base, moved).featuresChanged.get(only(base));
+    expect(was?.segments).toMatchObject([{ start: 306, end: 1606 }]);
+  });
+});

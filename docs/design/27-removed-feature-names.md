@@ -337,3 +337,29 @@ same way, `[0, 0)` rather than an empty range past the end. On the round-7
 history probe (seeds 1 to 8, 300 cases) no false "unchanged" remains where
 the accepted location covers the whole circle and the old one did not, and
 no editor result is newly marked changed.
+
+## A whole circle read by its length (#198)
+
+`sameRange` kept a whole circle's end one turn past its start only for a
+feature on `[0, L)`, and still let the end's own reading through, so after
+an insertion a whole circle read unchanged at its old length: `[6, 1006)`
+with 300 bp inserted at 0, which the editor keeps as `[306, 1606)`,
+accepted `[306, 1306)`; a slide of an insertion onto the origin moved a
+`[0, L)` feature's start but not its end; and #194's repro accepted
+`[2, 13)`, 11 bp of a 13 bp circle. The editor keeps a feature that covers
+the whole circle round the whole circle under every edit, so a whole circle
+is now told by its length, from any start, and is unchanged only if it
+covers the whole new circle from where a reading puts its start; the end's
+reading no longer counts. Its "was" location is the same, start and one new
+turn on. #194's shifted `[2, 15)` stays a reading, and so does `[300, 1600)`
+after `T`×299 + `G` is inserted after a leading `G`: inserting `G` and the
+`T`s at the origin gives the same sequence and puts the feature there.
+
+On the round-6 probe (seeds 1 to 24 × 400) false "unchanged" fell from 32
+to 18: the 13 whole circles from a start past the origin and the one from
+the origin at a shorter length are gone, and what is left is #194's shifted
+whole circles (15, all of the new length) and the three linear two-replace
+histories. On the round-7 history probe (seeds 1 to 8 × 300) the 5 whole
+circles are gone. No editor result is newly marked changed, and one the
+repros found is no longer: `[500, 1500)` with 50 bp inserted at 500, which
+the editor keeps as `[550, 1600)`.

@@ -265,8 +265,8 @@ function mapFeature(
         ? { ...seg, position: map(seg.position) }
         : isWholeCircle(seg, map)
           ? // A feature around the whole circle stays around it: its end is
-            // its start, one turn on, wherever an insert at the origin put it (#168).
-            { ...seg, start: map(0), end: map(0) + to.length }
+            // its start, one turn on, wherever an edit put that (#168, #198).
+            { ...seg, start: wholeStart(seg, map), end: wholeStart(seg, map) + to.length }
           : mappedRange(seg, map),
     ),
   );
@@ -331,13 +331,23 @@ function equalBases(diff: SequenceDiff): number {
   return diff.ops.reduce((n, op) => n + (op.kind === 'equal' ? op.aEnd - op.aStart : 0), 0);
 }
 
-function isWholeCircle(seg: Segment, map: PositionMap): boolean {
+/**
+ * Whether a segment goes once round the whole older circle, from wherever it
+ * starts: told by its length, not by a start at the origin (#198).
+ */
+function isWholeCircle(seg: Segment, map: PositionMap): seg is Segment & { kind: 'range' } {
   return (
     map.circle !== undefined &&
+    map.circle.from > 0 &&
     seg.kind === 'range' &&
-    seg.start === 0 &&
-    seg.end === map.circle.from
+    seg.end - seg.start === map.circle.from
   );
+}
+
+/** Where a whole circle's start lands, at the origin rather than one turn on. */
+function wholeStart(seg: Segment & { kind: 'range' }, map: PositionMap): number {
+  const start = map(seg.start);
+  return start === map.circle?.to ? 0 : start;
 }
 
 function diffFeatures(
@@ -652,11 +662,15 @@ function sameRange(
     const turn = s === circle?.to ? s : 0;
     return s - turn === after.start && (e > s ? e - turn : e) === after.end;
   };
-  // A whole circle stays one: if an insert at the origin moved its start it
-  // moved its end the same turn on (#168).
-  return (
-    fits(start, end) || (isWholeCircle(before, map) && fits(start, start + (map.circle?.to ?? 0)))
-  );
+  // A whole circle stays one: the editor keeps a feature round the whole
+  // circle round it under every edit, so only its start is read and its end
+  // is the start one new turn on (#168), whatever the end's own reading says
+  // and wherever the start was (#198).
+  if (isWholeCircle(before, map)) {
+    const to = map.circle?.to ?? 0;
+    return (start === to ? 0 : start) === after.start && after.end - after.start === to;
+  }
+  return fits(start, end);
 }
 
 /** The marks that overlap `[start, end)`, by binary search on the sorted list. */
