@@ -285,6 +285,7 @@ function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segmen
     // Collapsed at the origin: all of it, or none of it (#197).
     return { ...seg, start: 0, end: keepsWholeCircle(seg, map.circle) ? start : 0 };
   }
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: past the collapsed case above, a start at the origin always has end > start
   const turn = start === map.circle?.to && end > start ? start : 0;
   return { ...seg, start: start - turn, end: end - turn };
 }
@@ -295,6 +296,7 @@ function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segmen
  * swallowed the last base leaves it at the deletion's boundary.
  */
 function drawnEnd(end: number, map: PositionMap): number {
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: a segment is never empty, so its end is never 0
   return end > 0 ? Math.min(map(end - 1) + 1, map(end)) : map(end);
 }
 
@@ -310,7 +312,9 @@ function drawnEnd(end: number, map: PositionMap): number {
  */
 function keepsWholeCircle(seg: Segment & { kind: 'range' }, circle: Circle): boolean {
   const length = seg.end - seg.start;
-  return length + circle.gained >= circle.to && circle.lost < length;
+  // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a range collapsed at the origin always has length + lost >= the older length, which is this test
+  const fills = length + circle.gained >= circle.to;
+  return fills && circle.lost < length;
 }
 
 interface Circle {
@@ -347,7 +351,9 @@ function equalBases(diff: SequenceDiff): number {
 function isWholeCircle(seg: Segment, map: PositionMap): seg is Segment & { kind: 'range' } {
   return (
     map.circle !== undefined &&
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: a segment is never empty, so it is never as long as an empty circle
     map.circle.from > 0 &&
+    // Stryker disable next-line ConditionalExpression: a site has no end, so NaN is never the circle's length
     seg.kind === 'range' &&
     seg.end - seg.start === map.circle.from
   );
@@ -356,6 +362,7 @@ function isWholeCircle(seg: Segment, map: PositionMap): seg is Segment & { kind:
 /** Where a whole circle's start lands, at the origin rather than one turn on. */
 function wholeStart(seg: Segment & { kind: 'range' }, map: PositionMap): number {
   const start = map(seg.start);
+  // Stryker disable next-line OptionalChaining: only called on a whole circle, so there is a circle
   return start === map.circle?.to ? 0 : start;
 }
 
@@ -383,6 +390,7 @@ function diffFeatures(
       ? {
           from: baseline.length,
           to: current.length,
+          // Stryker disable next-line ArithmeticOperator: gained only feeds the `fills` test of keepsWholeCircle, which a collapsed range always passes
           gained: diff.ops.reduce((n, op) => n + op.bEnd - op.bStart, 0) - equalBases(diff),
           lost: diff.ops.reduce((n, op) => n + op.aEnd - op.aStart, 0) - equalBases(diff),
         }
@@ -589,9 +597,12 @@ function sameLocation(before: Feature, after: Feature, map: PositionMap): boolea
   const ranges: [Segment & { kind: 'range' }, Segment & { kind: 'range' }][] = [];
   for (const [i, seg] of before.segments.entries()) {
     const other = after.segments[i];
+    // Stryker disable next-line OptionalChaining: the segment counts were checked equal above
     if (other?.kind !== seg.kind) return false;
     if (seg.kind === 'site') {
+      // Stryker disable next-line ConditionalExpression,UnaryOperator: `other` is a site too (same kind as `seg`); the test only narrows its type
       if (map(seg.position) !== (other.kind === 'site' ? other.position : -1)) return false;
+      // Stryker disable next-line ConditionalExpression: `other` is a range too (same kind as `seg`); the test only narrows its type
     } else if (other.kind === 'range') {
       if (seg.partialStart !== other.partialStart || seg.partialEnd !== other.partialEnd) {
         return false;
@@ -599,6 +610,7 @@ function sameLocation(before: Feature, after: Feature, map: PositionMap): boolea
       ranges.push([seg, other]);
     }
   }
+  // Stryker disable next-line ConditionalExpression: performance only, the readings of no range edges all hold
   if (ranges.length === 0) return true;
   const edges = ranges.flatMap(([seg]): Edge[] => [
     { position: seg.start, end: false },
@@ -610,6 +622,7 @@ function sameLocation(before: Feature, after: Feature, map: PositionMap): boolea
   for (const placed of readings) {
     if (
       ranges.every(([seg, other], i) =>
+        // Stryker disable next-line UnaryOperator: every reading places every edge, so the fallback is never used
         sameRange(seg, other, placed[2 * i] ?? -1, placed[2 * i + 1] ?? -1, map),
       )
     ) {
@@ -664,13 +677,16 @@ function sameRange(
       return after.start === 0 && after.end === (keepsWholeCircle(before, circle) ? s : 0);
     }
     const turn = s === circle?.to ? s : 0;
-    return s - turn === after.start && (e > s ? e - turn : e) === after.end;
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: an end below the start, or level with it, is never moved back a turn, as a turn only comes with a start at the origin and an end past it
+    const back = e > s ? e - turn : e;
+    return s - turn === after.start && back === after.end;
   };
   // A whole circle stays one: the editor keeps a feature round the whole
   // circle round it under every edit, so only its start is read and its end
   // is the start one new turn on (#168), whatever the end's own reading says
   // and wherever the start was (#198).
   if (isWholeCircle(before, map)) {
+    // Stryker disable next-line OptionalChaining: only reached for a whole circle, so there is a circle
     const to = map.circle?.to ?? 0;
     return (start === to ? 0 : start) === after.start && after.end - after.start === to;
   }

@@ -123,8 +123,10 @@ export function terminalOverlap(
   const limit = Math.min(a.length, b.length);
   if (limit < min) return 0;
   // Only the last `limit` bases of `a` and first `limit` of `b` can take part.
+  // Stryker disable next-line MethodExpression: performance only; a border never reaches past the separator, so the whole of either string gives the same answer
   const s = `${b.slice(0, limit).toUpperCase()}\u0000${a.slice(a.length - limit).toUpperCase()}`;
   const pi = new Int32Array(s.length);
+  // Stryker disable next-line EqualityOperator: equivalent; at i = s.length the read is NaN, k falls to 0 and the write to the typed array is dropped
   for (let i = 1; i < s.length; i++) {
     let k = pi[i - 1] ?? 0;
     while (k > 0 && s.charCodeAt(i) !== s.charCodeAt(k)) k = pi[k - 1] ?? 0;

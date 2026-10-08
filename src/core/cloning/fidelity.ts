@@ -53,7 +53,9 @@ function cells(line: string): string[] {
  * carry empty cells after the last column; they are not overhangs.
  */
 function headerColumns(row: readonly string[] | undefined): string[] {
+  // Stryker disable next-line ArrayDeclaration: a missing row slices to no columns either way
   const columns = (row ?? []).slice(1).map((c) => c.trim().toUpperCase());
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: past the last column, `undefined === ''` stops the loop anyway
   while (columns.length > 0 && columns[columns.length - 1] === '') columns.pop();
   return columns;
 }
@@ -108,8 +110,10 @@ export function parseFidelityWorkbook(
   // A workbook leaves an empty cell out altogether, where CSV writes it as
   // nothing between two commas; padded, the two read alike.
   const rows = nonEmpty(sheet.rows);
+  // Stryker disable next-line OptionalChaining: the sheet was picked for its first row, so there is one
   const width = rows[0]?.length ?? 0;
   return parseFidelityRows(
+    // Stryker disable next-line EqualityOperator,ArithmeticOperator: padding by none, or by more cells than the columns read, changes nothing
     rows.map((r) => (r.length < width ? [...r, ...Array<string>(width - r.length).fill('')] : r)),
     fileName,
   );
@@ -237,10 +241,15 @@ export interface SetFidelity {
 export function sameJunctions(overhangs: readonly string[]): [string, string][] {
   const set = overhangs.map((o) => o.toUpperCase());
   const out: [string, string][] = [];
+  // Stryker disable next-line EqualityOperator: no pair starts at the last index
   for (let i = 0; i < set.length; i++) {
+    // Stryker disable next-line EqualityOperator: `set[j]` past the end reads as '' and is skipped below
     for (let j = i + 1; j < set.length; j++) {
+      // Stryker disable next-line StringLiteral: unreachable fallback, i < set.length
       const a = set[i] ?? '';
+      // Stryker disable next-line StringLiteral: unreachable fallback, j < set.length
       const b = set[j] ?? '';
+      // Stryker disable next-line ConditionalExpression: `overhangsMatch` refuses lengths that differ itself
       if (a.length === 0 || a.length !== b.length) continue;
       if (overhangsMatch(a, b) || overhangsMatch(a, reverseComplement(b))) out.push([a, b]);
     }
@@ -306,6 +315,7 @@ export function setFidelity(overhangs: readonly string[], table: FidelityTable):
     // the experiment saw very different numbers of times can be compared.
     // A mis-join between two junctions is charged to both, but named once,
     // at the rate of the junction it costs most (#144).
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: no mistakes are listed when total is 0
     if (total > 0) {
       for (const m of mistakes) {
         const key = pairKey(m.a, m.b);

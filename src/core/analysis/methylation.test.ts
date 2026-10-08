@@ -45,4 +45,32 @@ describe('host methylation', () => {
     expect(at(circle, 'XbaI', 'circular')).toEqual([['Dam']]);
     expect(at(circle, 'XbaI', 'linear')).toEqual([[]]);
   });
+
+  it('does not count a methylated base just past the end of the site', () => {
+    // PhoI GGCC is hit by any Dcm base inside it; the CCAGG here starts on
+    // its last C, so its methylated inner C is the first base after the site.
+    const site = (enzyme: string, siteStart: number, length: number, strand?: 'reverse') =>
+      hostMethylationAt(
+        'AAAAGGCCCAGG',
+        'linear',
+        { enzyme, siteStart, ...(strand && { strand }) },
+        length,
+      );
+    expect(site('PhoI', 4, 4)).toEqual([]);
+    expect(site('PhoI', 4, 5)).toEqual(['Dcm']);
+    expect(site('PhoI', 4, 4, 'reverse')).toEqual([]);
+  });
+
+  it('reads a reverse-strand hit of a non-palindromic enzyme mirrored, not as its own mirror image', () => {
+    // AlwI GGATC (blocked by the Dam base on the bottom strand of its GATC)
+    // is not its own reverse complement, so the mirror reading must not be
+    // tried for it, whether or not the enzyme is in the restriction table.
+    const reverse = (sequence: string, enzyme: string, length: number) =>
+      hostMethylationAt(sequence, 'linear', { enzyme, siteStart: 4, strand: 'reverse' }, length);
+    expect(reverse('AAAAGGATCAAAA', 'AlwI', 5)).toEqual([]);
+    expect(reverse('ACCAGGGACAAAA', 'BsmFI', 5)).toEqual([]);
+    expect(reverse('AAAAGGCGGATCAA', 'EciI', 6)).toEqual([]);
+    expect(reverse('AAAAGGTGATCAA', 'HphI', 5)).toEqual([]);
+    expect(reverse('AAAAGAAGATCAA', 'MboII', 5)).toEqual([]);
+  });
 });

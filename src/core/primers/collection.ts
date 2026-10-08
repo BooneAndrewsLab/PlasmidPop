@@ -368,22 +368,24 @@ interface TableColumns {
 
 /** The columns a header row names, or null when it names no sequence column. */
 function headerColumns(cells: readonly string[]): TableColumns | null {
-  if (cells.some((c) => asPrimerSequence(c) !== null)) return null;
   const heads = cells.map((c) => c.replace(/\s+/g, ' ').trim());
   const find = (strict: RegExp, loose: RegExp, not: (i: number) => boolean): number => {
     const exact = heads.findIndex((h, i) => strict.test(h) && !not(i));
     return exact >= 0 ? exact : heads.findIndex((h, i) => loose.test(h) && !not(i));
   };
   const sequence = find(SEQUENCE_HEADER, LOOSE_SEQUENCE_HEADER, (i) =>
+    // Stryker disable next-line StringLiteral: heads[i] is always there, the fallback is for the type
     NOT_SEQUENCE_HEADER.test(heads[i] ?? ''),
   );
   if (sequence < 0) return null;
+  // Stryker disable next-line ArrowFunction,ConditionalExpression: no header is both a name and the sequence column
   const name = find(NAME_HEADER, LOOSE_NAME_HEADER, (i) => i === sequence);
   const notes = find(NOTES_HEADER, LOOSE_NOTES_HEADER, (i) => i === sequence || i === name);
   const modifications = heads.flatMap((header, at) =>
     at !== sequence && at !== name && at !== notes && MODIFICATION_HEADER.test(header)
       ? [{ at, header }]
-      : [],
+      : // Stryker disable next-line ArrayDeclaration: a stray entry has no column, readRow reads it as an empty cell
+        [],
   );
   return { sequence, name, notes, modifications };
 }
@@ -456,6 +458,7 @@ function guessRow(cells: readonly string[]): PrimerDraft | null {
   return {
     name: others[0] ?? '',
     sequence,
+    // Stryker disable next-line StringLiteral: at indexes a cell, the fallback is for the type
     notes: joinNotes(...others.slice(1), modificationNote(cells[at] ?? '')),
   };
 }

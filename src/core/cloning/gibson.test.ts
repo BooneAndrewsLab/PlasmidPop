@@ -70,6 +70,12 @@ describe('terminalOverlap', () => {
     }
   });
 
+  it('takes a shared end as long as both pieces, when that is the minimum', () => {
+    expect(terminalOverlap('ACGT', 'ACGT', 4, 60)).toBe(4);
+    expect(terminalOverlap('TACGT', 'ACGTA', 4, 60)).toBe(4);
+    expect(terminalOverlap('TACG', 'ACGTA', 5, 60)).toBe(0);
+  });
+
   it('takes the longest shared end within a cap, not just the cap', () => {
     // 'ACGTTACG' shares 'ACG' (3) and 'ACGTTACG' (8): capped at 6, the
     // answer is the longest border that fits, 3, not a refusal.
@@ -175,6 +181,24 @@ describe('gibson', () => {
     if (assembly === null) throw new Error('no assembly');
     expect(assembly.joins).toHaveLength(1);
     expect(assembly.product.sequence.toString()).toBe(PLASMID);
+  });
+
+  it('closes several parts on the longest end of the last, even all of it', () => {
+    // C is a repeat R-m-R that A also starts with. B ends in R. Only a part
+    // closing on itself is held to a proper end of it (see the one-part
+    // test); here the longest shared end is all of C, which leaves nothing
+    // of it, so the assembly is refused rather than closed on R.
+    const r = template(15, 4242);
+    const c = r + template(10, 3) + r;
+    const joint = template(30, 5151);
+    const parts = [
+      SeqDocument.create({ name: 'A', sequence: c + template(80, 1) + joint }),
+      SeqDocument.create({ name: 'B', sequence: joint + template(80, 2) + r }),
+      SeqDocument.create({ name: 'C', sequence: c }),
+    ];
+    const result = gibson(parts);
+    expect(result.assembly).toBeNull();
+    expect(result.problem).toMatch(/C is shorter than the homology at its two ends/);
   });
 
   it('refuses when the parts do not close into a circle', () => {

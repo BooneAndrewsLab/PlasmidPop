@@ -119,3 +119,142 @@ describe('extractRange, metadata', () => {
     expect(sub.metadata.version).toBe('');
   });
 });
+
+describe('extractRange, features with a site segment among their ranges', () => {
+  const strip = (f: { segments: unknown; origin?: unknown }) => f.segments;
+
+  it('keeps a feature whole, with no record of a cut, when its sites and ranges all fit', () => {
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: SEQ,
+      topology: 'linear',
+      features: [
+        createFeature({
+          id: 'j',
+          type: 'misc_feature',
+          segments: [rangeSegment(2, 6), siteSegment(8), rangeSegment(10, 14)],
+        }),
+      ],
+    });
+    const [f] = extractRange(doc, { start: 0, end: 20 }).features.all();
+    expect(f?.segments).toEqual([rangeSegment(2, 6), siteSegment(8), rangeSegment(10, 14)]);
+    expect(f?.origin).toBeUndefined();
+  });
+
+  it('marks the last range partial when whole later segments are dropped, whatever sites it has', () => {
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: SEQ,
+      topology: 'linear',
+      features: [
+        createFeature({
+          id: 'j',
+          type: 'misc_feature',
+          segments: [rangeSegment(2, 6), rangeSegment(8, 12), siteSegment(15)],
+        }),
+      ],
+    });
+    const fs = extractRange(doc, { start: 0, end: 7 }).features.all();
+    expect(fs.map(strip)).toEqual([[rangeSegment(2, 6, { partialEnd: true })]]);
+  });
+
+  it('counts a forward CDS from its first range, not from a leading site', () => {
+    // The 4 bases of the dropped range come before B in the reading.
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: SEQ,
+      topology: 'linear',
+      features: [
+        createFeature({
+          id: 'c',
+          type: 'CDS',
+          segments: [siteSegment(14), rangeSegment(2, 6), rangeSegment(10, 17)],
+        }),
+      ],
+    });
+    const [f] = extractRange(doc, { start: 8, end: 20 }).features.all();
+    expect(f?.segments).toEqual([siteSegment(6), rangeSegment(2, 9, { partialStart: true })]);
+    expect(f?.qualifiers).toEqual([{ name: 'codon_start', value: '3' }]);
+  });
+
+  it('marks the first range partial when whole earlier segments are dropped, whatever sites it has', () => {
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: SEQ,
+      topology: 'linear',
+      features: [
+        createFeature({
+          id: 'j',
+          type: 'misc_feature',
+          segments: [siteSegment(14), rangeSegment(2, 6), rangeSegment(10, 17)],
+        }),
+      ],
+    });
+    const [f] = extractRange(doc, { start: 8, end: 20 }).features.all();
+    expect(f?.segments).toEqual([siteSegment(6), rangeSegment(2, 9, { partialStart: true })]);
+  });
+
+  it('counts a reverse CDS from its last range, not from a trailing site', () => {
+    // Read from B's far end, the reverse CDS lost the 4 bases of the range before it.
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: SEQ,
+      topology: 'linear',
+      features: [
+        createFeature({
+          id: 'c',
+          type: 'CDS',
+          strand: 'reverse',
+          segments: [rangeSegment(10, 17), rangeSegment(2, 6), siteSegment(14)],
+        }),
+      ],
+    });
+    const [f] = extractRange(doc, { start: 8, end: 20 }).features.all();
+    expect(f?.qualifiers).toEqual([{ name: 'codon_start', value: '3' }]);
+  });
+
+  it('keeps a site and every range of a stretch together when a circle region splits the feature', () => {
+    // On a 60 bp circle the region 22..72 drops the start of A, and the 8
+    // bases of the feature between A's kept two and B's kept four.
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: 'ACGT'.repeat(15),
+      topology: 'circular',
+      features: [
+        createFeature({
+          id: 'j',
+          type: 'misc_feature',
+          segments: [
+            rangeSegment(10, 16),
+            rangeSegment(20, 26),
+            siteSegment(28),
+            rangeSegment(30, 36),
+          ],
+        }),
+      ],
+    });
+    const fs = extractRange(doc, { start: 22, end: 72 }).features.all();
+    expect(fs.map(strip)).toEqual([
+      [rangeSegment(48, 50, { partialEnd: true })],
+      [rangeSegment(0, 4, { partialStart: true }), siteSegment(6), rangeSegment(8, 14)],
+    ]);
+  });
+
+  it('leaves the /translation of a clipped feature that is not a CDS', () => {
+    const doc = SeqDocument.create({
+      name: 'pX',
+      sequence: SEQ,
+      topology: 'linear',
+      features: [
+        createFeature({
+          id: 'm',
+          type: 'mat_peptide',
+          segments: [rangeSegment(2, 12)],
+          qualifiers: [{ name: 'translation', value: 'MKLV' }],
+        }),
+      ],
+    });
+    const [f] = extractRange(doc, { start: 0, end: 8 }).features.all();
+    expect(f?.qualifiers).toEqual([{ name: 'translation', value: 'MKLV' }]);
+  });
+});

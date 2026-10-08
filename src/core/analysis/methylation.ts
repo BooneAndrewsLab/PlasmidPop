@@ -288,6 +288,7 @@ export function hostMethylationAt(
   const name = site.enzyme.toLowerCase();
   const configurations = CONFIGURATIONS.get(name);
   const any = ANY.get(name);
+  // Stryker disable next-line ConditionalExpression: early exit only; with no table entry nothing below can fit
   if (configurations === undefined && any === undefined) return [];
   const L = sequence.length;
   const reach = 4;

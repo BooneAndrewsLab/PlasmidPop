@@ -50,6 +50,12 @@ describe('parseFidelityCsv (#68)', () => {
     expect(parsed.table.counts.get('AAA')?.get('TTT')).toBe(9);
   });
 
+  it('skips blank and whitespace-only lines, and reads CRLF line ends', () => {
+    const { text } = tableOf(['AAA', 'TTT'], { 'AAA/TTT': 9 });
+    const messy = `\n${text.replaceAll('\n', '\r\n\r\n   \r\n')}\r\n\r\n`;
+    expect(parseFidelityCsv(messy)).toEqual(parseFidelityCsv(text));
+  });
+
   it('says what is wrong with a file that is not one', () => {
     expect(() => parseFidelityCsv('name,site\nEcoRI,GAATTC\n')).toThrow(/not a ligation fidelity/);
     expect(() => parseFidelityCsv('')).toThrow(/not a ligation fidelity/);
@@ -245,6 +251,32 @@ describe('reading the file people actually have', () => {
   });
 });
 
+describe('setFidelity worst list order (#144)', () => {
+  const { table } = tableOf(['GGAG', 'CTCC', 'AATG', 'CATT'], {
+    'GGAG/CTCC': 100,
+    'AATG/CATT': 100,
+    'GGAG/AATG': 1,
+    'GGAG/CATT': 1,
+    'CTCC/AATG': 1,
+    'CTCC/CATT': 3,
+  });
+
+  it('lists the worst first, then ties by the first end and by the second', () => {
+    const { worst } = setFidelity(['GGAG', 'AATG'], table);
+    // Each mis-join is a share of 106 ligations for both junctions, so a
+    // tie keeps the first junction's way round.
+    expect(worst.map((m) => `${m.a}/${m.b}`)).toEqual([
+      'CTCC/CATT',
+      'CTCC/AATG',
+      'GGAG/AATG',
+      'GGAG/CATT',
+    ]);
+    [3, 1, 1, 1].forEach((n, i) => {
+      expect((worst[i]?.rate ?? 0) * 106).toBeCloseTo(n);
+    });
+  });
+});
+
 describe('parseFidelityWorkbook (#141)', () => {
   /** Rows as a workbook reader gives them: text cells, empty ones left short. */
   const MATRIX = [
@@ -273,6 +305,26 @@ describe('parseFidelityWorkbook (#141)', () => {
       { name: 'Matrix', rows: [[], ['', ''], ...MATRIX, []] },
     ]);
     expect(parsed.overhangs).toBe(3);
+  });
+
+  it('skips a sheet whose header is not all overhangs of one length', () => {
+    const real = { name: 'Matrix', rows: MATRIX };
+    // One cell that is no overhang, then one of another length, in sheets
+    // that come first: neither is the table.
+    const notAll = { name: 'A', rows: [['Overhang', 'AAAA', 'name'], ['AAAA']] };
+    const mixed = { name: 'B', rows: [['Overhang', 'AAAA', 'TTT'], ['AAAA']] };
+    expect(parseFidelityWorkbook([notAll, mixed, real]).overhangs).toBe(3);
+  });
+
+  it('skips rows of blank cells, and reads cells padded with spaces', () => {
+    const rows = [[' ', '  '], ...MATRIX.map((r) => r.map((c) => ` ${c} `))];
+    expect(parseFidelityWorkbook([{ name: 'S', rows }]).events).toBe(830 + 1 + 1 + 4 + 4 + 60);
+  });
+
+  it('reads a row with more cells than the header names', () => {
+    const rows = MATRIX.map((r) => [...r, '', '']);
+    rows[0] = MATRIX[0] ?? [];
+    expect(parseFidelityWorkbook([{ name: 'S', rows }]).overhangs).toBe(3);
   });
 
   it('ignores empty columns after the last overhang', () => {

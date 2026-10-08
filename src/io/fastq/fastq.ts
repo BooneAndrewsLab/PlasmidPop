@@ -54,6 +54,7 @@ export function parseFastq(text: string): ParseResult {
     // the quality array stays one per base.
     const uracils = sequence.match(/U/g)?.length ?? 0;
     const gaps = sequence.match(/[-.]/g)?.length ?? 0;
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: the replaces are no-ops when nothing matches
     if (uracils > 0 || gaps > 0) sequence = sequence.replace(/U/g, 'T').replace(/[-.]/g, 'N');
     if (uracils > 0) {
       warnings.push(warning(`${uracils} U base${uracils === 1 ? '' : 's'} read as T`, headerLine));
@@ -82,7 +83,7 @@ export function parseFastq(text: string): ParseResult {
     if (deletes > 0) {
       warnings.push(
         warning(
-          `${deletes} quality character${deletes === 1 ? '' : 's'} are DEL (0x7f), above Q93; read as Q93`,
+          `${deletes} quality character${deletes === 1 ? ' is' : 's are'} DEL (0x7f), above Q93; read as Q93`,
           headerLine,
         ),
       );
@@ -122,6 +123,7 @@ function oldEncoding(lowest: number, highest: number): string | null {
   const at = 64;
   const j = 74;
   const h = 104;
+  // Stryker disable next-line ConditionalExpression: with no quality characters (Infinity, -Infinity) neither range test passes anyway
   if (!Number.isFinite(lowest)) return null;
   if (lowest >= at && highest > j) {
     return 'No quality character is below "@" and some are above "J": this looks like the old Phred + 64 (Illumina 1.3–1.7) or Solexa encoding, but it was read as Phred + 33, so qualities are about 31 too high';

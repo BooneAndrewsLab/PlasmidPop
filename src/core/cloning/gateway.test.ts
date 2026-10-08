@@ -657,6 +657,40 @@ describe('the clone, when the insert wraps the origin (#133)', () => {
     );
     expect(carries(must(run.product, 'a product'), GENE.text)).toBe(true);
     expect(run.warnings.join(' ')).toMatch(/named ccdB/);
+    expect(run.warnings.join(' ')).toContain('the sites make the entry clone carries');
+  });
+
+  it('calls it the expression clone in an LR', () => {
+    const entry = must(
+      gateway(facing('pSource', 'B', { text: GENE.text, name: 'ccdB' }, AMP), donorNoName(), 'BP')
+        .product,
+      'an entry clone',
+    );
+    const run = gateway(entry, destNoName(), 'LR');
+    expect(run.warnings.join(' ')).toContain('the sites make the expression clone carries');
+  });
+
+  it('puts a site number no kit uses after the ones that do', () => {
+    // attB6 before attB2 along the molecule: by the kits' order 2 comes
+    // first, so the DNA that moves runs from attB2 round to attB6.
+    const renamed = (doc: SeqDocument, kind: string): SeqDocument => {
+      const one = must(
+        doc.features.all().find((f) => f.name === `att${kind}1`),
+        'site 1',
+      );
+      return doc.updateFeature(one.id, { name: `att${kind}6` });
+    };
+    const plainDonor = molecule(
+      'pDONR',
+      'P',
+      { text: filler(900, 33), name: 'cassette' },
+      { text: filler(1500, 44), name: 'kanR' },
+    );
+    const run = gateway(renamed(substrate, 'B'), renamed(plainDonor, 'P'), 'BP');
+    expect(run.problem).toBeNull();
+    const entry = must(run.product, 'an entry clone');
+    expect(carries(entry, filler(1200, 22).slice(100, 200))).toBe(true);
+    expect(carries(entry, GENE.text)).toBe(false);
   });
 });
 
@@ -833,6 +867,21 @@ describe('MultiSite pairs (#147)', () => {
       expect(holds(entry, PAYLOAD)).toBe(false);
     });
   }
+
+  it('puts a site written the other way round just after its own number', () => {
+    // attB1r follows attB1, so a pair read 1–1r moves what lies between them.
+    const forward = pair('1', '1r');
+    const run = gateway(forward.insert, forward.vector, 'BP');
+    expect(run.problem).toBeNull();
+    const entry = must(run.product, 'an entry clone');
+    expect(holds(entry, PAYLOAD)).toBe(true);
+    expect(holds(entry, REST)).toBe(false);
+    // Written 1r–1 the pair runs the other way and moves the arc round the origin.
+    const swapped = pair('1r', '1');
+    const back = must(gateway(swapped.insert, swapped.vector, 'BP').product, 'an entry clone');
+    expect(holds(back, REST)).toBe(true);
+    expect(holds(back, PAYLOAD)).toBe(false);
+  });
 
   it('does every fragment of a four-fragment assembly, one at a time', () => {
     for (const [, left, right] of FRAGMENTS.slice(0, 4)) {

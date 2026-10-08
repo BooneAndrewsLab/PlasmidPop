@@ -55,6 +55,14 @@ describe('parseFastq', () => {
     expect(parseFastq('@r1\nACGT\n+\n;?FJ\n').warnings).toEqual([]);
     expect(parseFastq('@r1\nACGT\n+\n@FIJ\n').warnings).toEqual([]);
   });
+
+  it('wants both a low and a high character before it calls an encoding old', () => {
+    // A wide Phred + 33 range reaches "h" and past "J" but starts at "!".
+    expect(parseFastq('@r1\nACGT\n+\n!5Kh\n').warnings).toEqual([]);
+    expect(parseFastq('@r1\nACGT\n+\n:5Kh\n').warnings).toEqual([]);
+    // Solexa's top is "h" itself, not above it.
+    expect(parseFastq('@r1\nAC\n+\n;h\n').warnings).toHaveLength(1);
+  });
 });
 
 describe('parseFastq odd bases and qualities (#159)', () => {
@@ -78,6 +86,16 @@ describe('parseFastq odd bases and qualities (#159)', () => {
 
   it('warns once for a single U', () => {
     expect(parseFastq('@r1\nAU\n+\nII\n').warnings[0]?.message).toBe('1 U base read as T');
+  });
+
+  it('says "base" for a single - or .', () => {
+    expect(parseFastq('@r1\nA-\n+\nII\n').warnings[0]?.message).toBe('1 "-" or "." base read as N');
+  });
+
+  it('counts a single DEL as one quality character', () => {
+    expect(parseFastq('@r1\nAC\n+\n!\x7f\n').warnings[0]?.message).toMatch(
+      /^1 quality character (is|are) DEL \(0x7f\), above Q93; read as Q93$/,
+    );
   });
 
   it('still refuses other characters in the bases', () => {

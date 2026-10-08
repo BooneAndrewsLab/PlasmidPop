@@ -1014,6 +1014,73 @@ describe('primer lists from a workbook (#151)', () => {
     });
   });
 
+  it('reads header cells with runs of spaces, and picks the exact header over a looser one', () => {
+    // "Oligo   Name" is the exact "oligo name" once its spaces are one; "Name" after it is not the name.
+    expect(parsePrimerList(`Oligo   Name\tName\tSequence\nF\tx\t${M13F}\n`).primers).toEqual([
+      { name: 'F', sequence: M13F, notes: '' },
+    ]);
+    // An exact "ID" beats a looser "Full Name" before and after it, and at the first column.
+    expect(parsePrimerList(`ID\tFull Name\tSequence\n7\tFwd\t${M13F}\n`).primers[0]?.name).toBe(
+      '7',
+    );
+    expect(parsePrimerList(`Full Name\tID\tSequence\nFwd\t7\t${M13F}\n`).primers[0]?.name).toBe(
+      '7',
+    );
+    // Padding around a header is no part of it.
+    expect(parsePrimerList(`  Name  \t Sequence \nF\t${M13F}\n`).primers).toEqual([
+      { name: 'F', sequence: M13F, notes: '' },
+    ]);
+  });
+
+  it('gives a column named for two things to the first one only', () => {
+    expect(parsePrimerList(`Sequence description\n${M13F}\n`).primers).toEqual([
+      { name: '', sequence: M13F, notes: '' },
+    ]);
+    expect(parsePrimerList(`Name description\tSequence\nF\t${M13F}\n`).primers).toEqual([
+      { name: 'F', sequence: M13F, notes: '' },
+    ]);
+    expect(parsePrimerList(`Sequence mod\n${M13F}\n`).primers[0]?.notes).toBe('');
+    expect(parsePrimerList(`Oligo Name Mod\tSequence\nF\t${M13F}\n`).primers).toEqual([
+      { name: 'F', sequence: M13F, notes: '' },
+    ]);
+    expect(parsePrimerList(`Comments mod\tSequence\nfine\t${M13F}\n`).primers[0]?.notes).toBe(
+      'fine',
+    );
+  });
+
+  it('trims a modification cell, and skips a row too short to reach the sequence', () => {
+    const parsed = parsePrimerList(
+      `Name\tSequence\t5' Modification\nA\t\nB\t${M13F}\t  6-FAM  \nC\t${T7}\t   \n`,
+    );
+    expect(parsed.skipped).toEqual([2]);
+    expect(parsed.primers).toEqual([
+      { name: 'B', sequence: M13F, notes: "5' Modification: 6-FAM" },
+      { name: 'C', sequence: T7, notes: '' },
+    ]);
+    // No name column: the name is empty.
+    expect(parsePrimerList(`Sequence\n${M13F}\n`).primers[0]?.name).toBe('');
+  });
+
+  it('keeps inline modification codes of a sequence read without a header', () => {
+    expect(parsePrimerList(`F\t/5Phos/${M13F}\n`).primers).toEqual([
+      { name: 'F', sequence: M13F, notes: 'modifications: /5Phos/' },
+    ]);
+  });
+
+  it('reads a sheet cell with line breaks and runs of spaces as one tidy cell', () => {
+    expect(
+      parsePrimerRows([
+        ['  Primer\n  Name ', 'Sequence'],
+        ['', ' '],
+        ['  F \n  1  ', M13F],
+      ]),
+    ).toEqual({
+      format: 'table',
+      primers: [{ name: 'F 1', sequence: M13F, notes: '' }],
+      skipped: [],
+    });
+  });
+
   it('finds a header under a title row in text too, and not one after the first primer', () => {
     expect(parsePrimerList(`Order 12,,\nSequence,Name,\n${M13F},M13F,\n`)).toEqual({
       format: 'table',

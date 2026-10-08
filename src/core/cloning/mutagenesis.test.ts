@@ -259,6 +259,76 @@ describe('designMutagenesis, the edit and the primers’ lengths', () => {
   });
 });
 
+describe('designMutagenesis, at the limits of the template', () => {
+  const linear = (sequence: string) =>
+    SeqDocument.create({ name: 'p', sequence, topology: 'linear' });
+  const GC = 'GC'.repeat(40);
+  const AT = 'A'.repeat(80);
+
+  it('stops at the shortest primer that anneals at the target, on either side', () => {
+    // 15 G/C bases melt over 60 °C, so no primer grows past the shortest.
+    const d = designMutagenesis(linear(GC + 'A' + GC), { start: 80, end: 81 }, 'T', 'back-to-back');
+    expect(d.forward.annealLength).toBe(15);
+    expect(d.reverse.annealLength).toBe(15);
+    expect(d.problem).toBeNull();
+  });
+
+  it('names whichever side is too AT-rich, either one alone', () => {
+    const tooRich =
+      'The template next to the change is too AT-rich to reach 60 °C within 60 bases.';
+    const right = designMutagenesis(
+      linear(GC + 'A' + AT),
+      { start: 80, end: 81 },
+      'T',
+      'back-to-back',
+    );
+    expect(right.reverse.tm).toBeGreaterThanOrEqual(60);
+    expect(right.forward.tm).toBeLessThan(60);
+    expect(right.problem).toBe(tooRich);
+    const left = designMutagenesis(
+      linear(AT + 'A' + GC),
+      { start: 80, end: 81 },
+      'T',
+      'back-to-back',
+    );
+    expect(left.forward.tm).toBeGreaterThanOrEqual(60);
+    expect(left.reverse.tm).toBeLessThan(60);
+    expect(left.problem).toBe(tooRich);
+  });
+
+  it('uses up a short linear template on both sides of the change, and stops', () => {
+    const d = designMutagenesis(
+      linear('A'.repeat(15) + 'A' + 'A'.repeat(15)),
+      { start: 15, end: 16 },
+      'G',
+      'overlapping',
+    );
+    expect(d.forward.annealLength).toBe(15);
+    expect(d.reverse.annealLength).toBe(15);
+    expect(d.forward.sequence).toHaveLength(31);
+    expect(d.problem).toMatch(/^The primers reach only/);
+  });
+
+  it('keeps growing on the side that still has template when the other is used up', () => {
+    const left = designMutagenesis(linear(AT + AT), { start: 12, end: 13 }, 'G', 'overlapping');
+    expect(left.reverse.annealLength).toBe(12);
+    expect(left.forward.annealLength).toBe(47);
+    const right = designMutagenesis(linear(AT + AT), { start: 147, end: 148 }, 'G', 'overlapping');
+    expect(right.forward.annealLength).toBe(12);
+    expect(right.reverse.annealLength).toBe(47);
+  });
+
+  it('counts the template left on the right of the change, and names the shorter side', () => {
+    const text = AT + AT;
+    const nearEnd = designMutagenesis(linear(text), { start: 156, end: 157 }, 'G', 'overlapping');
+    expect(nearEnd.forward.annealLength).toBe(3);
+    expect(nearEnd.problem).toMatch(/would have only 3 template bases/);
+    const nearStart = designMutagenesis(linear(text), { start: 3, end: 4 }, 'G', 'overlapping');
+    expect(nearStart.reverse.annealLength).toBe(3);
+    expect(nearStart.problem).toMatch(/would have only 3 template bases/);
+  });
+});
+
 describe('protein changes, at the edges of a CDS', () => {
   // ATG AAA GAA TTT TAA, in a linear molecule and in a circle.
   function withCds(topology: 'linear' | 'circular', segments = [rangeSegment(100, 115)]) {

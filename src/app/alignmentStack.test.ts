@@ -181,6 +181,87 @@ describe('stacking alignments against one reference', () => {
     expect(columnPosition(shifted, 50)).toBe(61 - 60);
   });
 
+  describe('on a circle, with reads over the origin', () => {
+    const wrapRef = { sequence: reference, offset: 0, wrap: reference.length };
+    // The origin's neighbourhood with its first base changed and "TT" opened after base 5.
+    const changed = (from: number, to: number, insert: boolean) => {
+      const bases = ('C' + reference.slice(1, 6) + (insert ? 'TT' : '') + reference.slice(6)).slice(
+        from,
+        to + (insert ? 2 : 0),
+      );
+      return bases;
+    };
+
+    function circular(name: string, sequence: string, mode: 'local' | 'global' = 'local') {
+      const prepared = prepareReadAlignment(wrapRef, { sequence, read: null }, null);
+      if (!prepared.ok) throw new Error(prepared.message);
+      const { job } = prepared;
+      return {
+        name,
+        result: finishReadAlignment(job, alignEitherStrand(job.a, job.b, { mode })),
+      };
+    }
+
+    it('gives an insertion seen from either side of the origin the same columns, paired', () => {
+      const over = circular('over', reference.slice(45) + changed(0, 20, true));
+      const plain = circular('plain', changed(0, 60, false), 'global');
+      const stack = stackAlignments(wrapRef, [over, plain]);
+      // The insertion is in the read over the origin only; the plain read gets
+      // padding in the twin boundary's columns too, so both boundaries are two wide.
+      const inserted = [...stack.refIndex].flatMap((p, c) => (p < 0 ? [c] : []));
+      expect(inserted).toHaveLength(4);
+      const [lowA, lowB, highA, highB] = inserted;
+      expect([stack.twin[lowA ?? 0], stack.twin[lowB ?? 0]]).toEqual([highA, highB]);
+      expect([stack.twin[highA ?? 0], stack.twin[highB ?? 0]]).toEqual([lowA, lowB]);
+      // Both boundaries pad the read that has no insertion there.
+      const plainRow = rowOf(stack, 1);
+      expect(plainRow.cells[lowA ?? 0]).toBe(Cell.Padding);
+      expect(plainRow.cells[lowB ?? 0]).toBe(Cell.Padding);
+      expect(rowOf(stack, 0).cells[highA ?? 0]).toBe(Cell.Insertion);
+      expect(rowOf(stack, 0).cells[lowA ?? 0]).toBe(Cell.Blank);
+      // Every reference base from the origin on has a twin one length on.
+      const c0 = stack.refIndex.indexOf(0);
+      const c60 = stack.refIndex.indexOf(reference.length);
+      expect(stack.twin[c0]).toBe(c60);
+      expect(stack.twin[c60]).toBe(c0);
+    });
+
+    it('opens the insertion of a read that stays inside the sequence at its twin boundary too', () => {
+      const over = circular('over', reference.slice(45) + reference.slice(0, 20));
+      const plain = circular('plain', reference.slice(0, 20) + 'TT' + reference.slice(20, 40));
+      const stack = stackAlignments(wrapRef, [over, plain]);
+      const inserted = [...stack.refIndex].flatMap((p, c) => (p < 0 ? [c] : []));
+      expect(inserted).toHaveLength(4);
+      const [lowA, lowB, highA, highB] = inserted;
+      // The twin boundary is the last one, so its columns close the stack.
+      expect(highB).toBe(stack.columns - 1);
+      expect([stack.twin[lowA ?? 0], stack.twin[lowB ?? 0]]).toEqual([highA, highB]);
+      expect([stack.twin[highA ?? 0], stack.twin[highB ?? 0]]).toEqual([lowA, lowB]);
+      // The reference ends at base 79, so base 20 has no copy in the stack.
+      expect(stack.twin[stack.refIndex.indexOf(20)]).toBe(-1);
+      expect(stack.twin[stack.refIndex.indexOf(19)]).toBe(stack.refIndex.indexOf(79));
+    });
+
+    it('lists a base differing in both its copies once, at the first', () => {
+      const over = circular('over', reference.slice(45) + changed(0, 20, false));
+      const plain = circular('plain', changed(0, 60, false), 'global');
+      const stack = stackAlignments(wrapRef, [over, plain]);
+      const c0 = stack.refIndex.indexOf(0);
+      const c60 = stack.refIndex.indexOf(reference.length);
+      expect(isDifference(rowOf(stack, 0).cells[c60] ?? 0)).toBe(true);
+      expect(isDifference(rowOf(stack, 1).cells[c0] ?? 0)).toBe(true);
+      expect(stack.differences).toContain(c0);
+      expect(stack.differences).not.toContain(c60);
+    });
+
+    it('lists a base differing in only one copy at its own column', () => {
+      const over = circular('over', reference.slice(45) + changed(0, 20, false));
+      const stack = stackAlignments(wrapRef, [over]);
+      const c60 = stack.refIndex.indexOf(reference.length);
+      expect(stack.differences).toEqual([c60]);
+    });
+  });
+
   it('keeps qualities under the read’s columns', () => {
     const inserted = reference.slice(10, 40);
     const prepared = prepareReadAlignment(

@@ -65,10 +65,12 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
           if (seg.position > from && seg.position < o.end) {
             out.push({
               seg: { kind: 'site', position: seg.position - o.start + o.offset },
+              // Stryker disable UnaryOperator: placeholders, a site piece's span is never read
               from: -1,
               to: -1,
               at: -1,
               next: -1,
+              // Stryker restore UnaryOperator
             });
           }
         }
@@ -137,6 +139,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
 
   const clip = (location: FeatureLocation): FeatureLocation | null => {
     const segments = keptPieces(location).map((x) => x.seg);
+    // Stryker disable next-line ConditionalExpression: an empty clip is dropped by moveFeature and leaves no pieces, so no run
     if (segments.length === 0) return null;
     return { strand: location.strand, segments: mergeAbutting(segments) };
   };
@@ -146,6 +149,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
   const features: Feature[] = [];
   for (const f of doc.features) {
     const moved = moveFeature(f, doc, into, clip);
+    // Stryker disable next-line ConditionalExpression: no kept piece means no run, so a null `moved` pushes nothing either way
     if (moved === null) continue;
     // Where the region drops bases from the middle of a feature but keeps
     // both sides, the kept stretches are separate features (#169): a join
@@ -164,10 +168,13 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         last !== undefined &&
         (piece.from > last.to ||
           (piece.at === last.next &&
+            // Stryker disable next-line ConditionalExpression: type narrowing, `isRange` already holds
             piece.seg.kind === 'range' &&
+            // Stryker disable next-line ConditionalExpression: type narrowing, `last` is only ever a range piece
             last.seg.kind === 'range' &&
             piece.seg.start !== last.seg.end));
       if (runs.length === 0 || split) runs.push([]);
+      // Stryker disable next-line OptionalChaining: runs is never empty here
       runs[runs.length - 1]?.push(piece);
       if (isRange) last = piece;
     }
@@ -183,6 +190,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
       const head = ranges[0];
       const tail = ranges[ranges.length - 1];
       const lost =
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: head and tail are both set or both unset
         head === undefined || tail === undefined
           ? 0
           : f.strand === 'reverse'
@@ -192,6 +200,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
       // its bases are counted in from the 5' end, so that ligation can put
       // the pieces back together.
       const origin = (): ReturnType<typeof pieceOrigin> =>
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: head and tail are both set or both unset
         head === undefined || tail === undefined
           ? null
           : f.strand === 'reverse'
@@ -217,6 +226,7 @@ export function extractRange(doc: SeqDocument, r: Range, name?: string): SeqDocu
         );
         return;
       }
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: every run of a split feature holds a range, and head and tail are both set or both unset
       if (head === undefined || tail === undefined) return; // only a split run of ranges gets here
       const first = run.indexOf(head);
       const last = run.lastIndexOf(tail);

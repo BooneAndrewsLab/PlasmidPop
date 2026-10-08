@@ -106,6 +106,7 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
   // Past the origin an insertion's boundary has a twin at p - length: both
   // get the wider slot, so the same insertion seen from either side sits in
   // matching columns (#177).
+  // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: an insertion at boundary 0 or length needs a base beyond it, so hi > length whenever the twin loop would change anything
   if (reference.wrap !== null && hi > length) {
     for (let p = length; p <= hi; p++) {
       const wide = Math.max(at(slot, p), at(slot, p - length));
@@ -132,6 +133,7 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
   }
 
   const twin = new Int32Array(columns).fill(-1);
+  // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: a linear reference or an empty one has hi == length, so both twin loops below run no iteration
   if (reference.wrap !== null && length > 0) {
     for (let p = length; p < hi; p++) {
       const high = refColumn(p);
@@ -140,9 +142,11 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
       twin[low] = high;
     }
     // The columns of an insertion at the twin boundaries pair up in order.
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: with hi == length the loop pairs one empty slot
     for (let p = length; hi > length && p <= hi; p++) {
       const high = at(boundaryColumn, p);
       const low = at(boundaryColumn, p - length);
+      // Stryker disable next-line EqualityOperator: j == slot pairs the base columns after the slot, already twins
       for (let j = 0; j < at(slot, p); j++) {
         twin[high + j] = low + j;
         twin[low + j] = high + j;
@@ -213,7 +217,9 @@ export function stackAlignments(reference: ReferenceInput, samples: readonly Sta
     // A base differing in both of its copies is one difference, listed at the first.
     differences: [...differenceColumns]
       .filter((c) => {
+        // Stryker disable next-line UnaryOperator: twin[c] is always in range
         const t = twin[c] ?? -1;
+        // Stryker disable next-line ConditionalExpression,EqualityOperator: t is never c, and -1 is never a difference column
         return !(t >= 0 && t < c && differenceColumns.has(t));
       })
       .sort((x, y) => x - y),

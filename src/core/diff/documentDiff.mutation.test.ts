@@ -325,3 +325,107 @@ describe('diffDocuments, pairing features across two files', () => {
     });
   });
 });
+
+describe('diffDocuments, a feature on a circle an edit took the tail of', () => {
+  const circle = (sequence: string, segments: readonly (readonly [number, number])[]) =>
+    SeqDocument.create({
+      sequence,
+      topology: 'circular',
+      features: [
+        createFeature({
+          id: 'f',
+          type: 'misc_feature',
+          name: 'f',
+          segments: segments.map(([start, end]) => rangeSegment(start, end)),
+        }),
+      ],
+    });
+  /** Where the older feature was, in the newer document, once it is renamed there. */
+  const was = (base: SeqDocument, edited: SeqDocument): readonly unknown[] | undefined =>
+    diffDocuments(base, edited.updateFeature('f', { name: 'g' })).featuresChanged.get('f')
+      ?.segments;
+  const removedWas = (base: SeqDocument, edited: SeqDocument): readonly unknown[] | undefined =>
+    diffDocuments(base, edited.removeFeature('f')).featuresRemoved.get('f')?.segments;
+
+  it('puts a feature that wrapped the origin back at the origin when its start is deleted', () => {
+    // The start lands at the new length, the origin, and the end is past it:
+    // one turn back, not a collapsed range and not left past the end.
+    const base = circle(bases(20), [[14, 26]]);
+    const edited = base.delete({ start: 14, end: 20 });
+    expect(edited.getFeature('f')?.segments).toMatchObject([{ start: 0, end: 6 }]);
+    expect(was(base, edited)).toMatchObject([{ start: 0, end: 6 }]);
+    expect(removedWas(base, edited)).toMatchObject([{ start: 0, end: 6 }]);
+  });
+
+  it('does not read a range as the whole circle when it holds exactly the bases deleted', () => {
+    // More than half the circle, so the range is as long as what is left.
+    const base = circle(bases(40, 3), [[15, 40]]);
+    const edited = base.delete({ start: 15, end: 40 });
+    expect(edited.getFeature('f')).toBeUndefined();
+    const whole = circle(edited.sequence.toString(), [[0, 15]]);
+    expect(diffDocuments(base, whole).featuresChanged.has('f')).toBe(true);
+    expect(removedWas(base, edited)).toMatchObject([{ start: 0, end: 0 }]);
+  });
+
+  it('does not read a join as unchanged when its second segment is round the shorter circle', () => {
+    // The second segment of the join lost more bases than it holds.
+    const base = circle('AATTTT', [
+      [0, 3],
+      [1, 4],
+    ]);
+    const edited = base.delete({ start: 2, end: 6 });
+    const kept = edited.getFeature('f')?.segments;
+    expect(kept).toMatchObject([
+      { start: 0, end: 2 },
+      { start: 1, end: 2 },
+    ]);
+    const moved = edited.updateFeature('f', {
+      segments: [rangeSegment(0, 2), rangeSegment(0, 2)],
+    });
+    expect(diffDocuments(base, moved).featuresChanged.has('f')).toBe(true);
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+  });
+
+  it('reads a whole circle left by a start that was deleted as unchanged', () => {
+    // [8, 18) goes once round a circle of 10; the edit takes its first two
+    // bases, which puts its start at the origin of the shorter circle.
+    const base = circle(bases(10), [[8, 18]]);
+    const edited = base.delete({ start: 8, end: 10 });
+    expect(edited.getFeature('f')?.segments).toMatchObject([{ start: 0, end: 8 }]);
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+    expect(was(base, edited)).toMatchObject([{ start: 0, end: 8 }]);
+  });
+
+  it('says a whole circle that lost its start was round the whole new circle, from the origin', () => {
+    const base = circle('AAAAAACCCCCC', [[6, 18]]);
+    const edited = base.delete({ start: 6, end: 12 });
+    expect(was(base, edited)).toMatchObject([{ start: 0, end: 6 }]);
+  });
+
+  it('only wraps a feature back a turn when both documents are circular', () => {
+    const sequence = 'ACGTTGCAGGATCCATGC';
+    const tail = (topology: 'linear' | 'circular') =>
+      SeqDocument.create({
+        sequence,
+        topology,
+        features: [
+          createFeature({
+            id: 'f',
+            type: 'misc_feature',
+            name: 'f',
+            segments: [rangeSegment(12, 18)],
+          }),
+        ],
+      });
+    const shorter = (topology: 'linear' | 'circular') =>
+      SeqDocument.create({ sequence: sequence.slice(0, 12), topology });
+    for (const [from, to] of [
+      ['circular', 'linear'],
+      ['linear', 'circular'],
+      ['linear', 'linear'],
+    ] as const) {
+      const removed = diffDocuments(tail(from), shorter(to)).featuresRemoved.get('f');
+      expect(removed?.segments).toMatchObject([{ start: 12, end: 12 }]);
+    }
+  });
+});

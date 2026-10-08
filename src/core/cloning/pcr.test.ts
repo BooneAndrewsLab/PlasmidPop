@@ -1,5 +1,5 @@
 import { expectWithin, itTimed, medianMs } from '@/test/timing';
-import { SeqDocument, createFeature, rangeSegment, reverseComplement } from '@/core';
+import { SeqDocument, createFeature, rangeSegment, reverseComplement, siteSegment } from '@/core';
 
 import { gibson } from './gibson';
 import { type PcrPrimer, pcr, primerDimers } from './pcr';
@@ -113,6 +113,52 @@ describe('pcr', () => {
         ?.qualifiers.some((q) => q.name === 'translation');
     expect(translation('hit')).toBe(false);
     expect(translation('clear')).toBe(true);
+  });
+
+  it('drops a /translation only from a CDS a primer rewrote, and only that', () => {
+    const feature = (
+      type: string,
+      name: string,
+      segments: (ReturnType<typeof rangeSegment> | ReturnType<typeof siteSegment>)[],
+    ) =>
+      createFeature({
+        type,
+        name,
+        segments,
+        qualifiers: [
+          { name: 'translation', value: 'MKX' },
+          { name: 'product', value: 'thing' },
+        ],
+      });
+    const doc = SeqDocument.create({
+      name: 'strip',
+      sequence: TEXT,
+      features: [
+        feature('CDS', 'hit', [rangeSegment(105, 135)]),
+        // Only its first part is under the mismatch.
+        feature('CDS', 'joined', [rangeSegment(105, 114), rangeSegment(300, 330)]),
+        feature('CDS', 'clear', [rangeSegment(300, 330)]),
+        // A site between bases has no bases of its own to have rewritten.
+        feature('CDS', 'sited', [rangeSegment(300, 330), siteSegment(340)]),
+        // Not a CDS: its /translation is its own business.
+        feature('gene', 'other', [rangeSegment(105, 135)]),
+      ],
+    });
+    const annealing = TEXT.slice(100, 122).split('');
+    annealing[8] = annealing[8] === 'A' ? 'C' : 'A';
+    // The tail moves every feature along, so the check has to as well.
+    const mutagenic: PcrPrimer = { name: 'F*', sequence: 'GATTACA' + annealing.join('') };
+    const product = pcr(doc, [mutagenic, rev(500, 522)]).products[0]?.document;
+    const qualifiers = (name: string) =>
+      product?.features
+        .all()
+        .find((f) => f.name === name)
+        ?.qualifiers.map((q) => q.name);
+    expect(qualifiers('hit')).toEqual(['product']);
+    expect(qualifiers('joined')).toEqual(['product']);
+    expect(qualifiers('clear')).toEqual(['translation', 'product']);
+    expect(qualifiers('sited')).toEqual(['translation', 'product']);
+    expect(qualifiers('other')).toEqual(['translation', 'product']);
   });
 
   it('writes in upper case only what did not come from the template', () => {

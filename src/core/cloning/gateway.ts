@@ -88,6 +88,7 @@ const SITE_ORDER = ['4', '1', '5', '2', '3'];
  * (`attB4`–insert–`attB1r`, but `attB2r`–insert–`attB3`).
  */
 function siteRank(site: AttSite): number {
+  // Stryker disable next-line Regex: a number holds an `r` only at its end
   const number = site.number.replace(/r$/, '');
   const known = SITE_ORDER.indexOf(number);
   // A number no kit uses (`att6`) keeps counting after the ones that do.
@@ -122,6 +123,7 @@ function insertOrder([a, b]: readonly [AttSite, AttSite]): {
   if (a.strand !== b.strand) {
     return { sites: a.strand === 'forward' ? [a, b] : [b, a], certain: true };
   }
+  // Stryker disable next-line EqualityOperator: equal ranks mean one number twice, which `gateway` refuses either way round
   const ascending = siteRank(a) < siteRank(b);
   return {
     sites: ascending === (a.strand === 'forward') ? [a, b] : [b, a],

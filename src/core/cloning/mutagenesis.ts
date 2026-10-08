@@ -276,8 +276,10 @@ export function describeChange(template: string, range: Range, inserted: string)
   // A range through the origin of a circle has its end past the template's
   // length; its bases and its last position come round to the start (#143).
   const L = template.length;
+  // Stryker disable next-line EqualityOperator: equivalent; at range.end === L the wrapped part is the empty slice(0, 0)
+  const wraps = range.end > L;
   const old = (
-    range.end > L
+    wraps
       ? template.slice(range.start) + template.slice(0, range.end - L)
       : template.slice(range.start, range.end)
   ).toUpperCase();
@@ -387,8 +389,10 @@ export function codonSiteAt(doc: SeqDocument, position: number): CodonSite | nul
     if (index < 0) continue;
     const codon = translation.codons[index];
     const span = codonSpan(translation, index, index, doc.length);
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: type narrowing only; the index is a codon's, so neither is ever missing
+    if (codon === undefined || span === null) continue;
     // The two bases ending a 3'-partial CDS are no codon to change (#142).
-    if (codon === undefined || span === null || isPartCodon(codon)) continue;
+    if (isPartCodon(codon)) continue;
     // The codon's positions are in reading order, which descends on the
     // reverse strand: the bases there are read from the bottom strand, so
     // each is complemented where it stands rather than the three reversed.
