@@ -308,17 +308,6 @@ button {
   margin-left: 2px;
 }
 
-.button--danger {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: var(--surface);
-}
-
-.button--danger:hover:not(:disabled) {
-  background: var(--danger);
-  filter: brightness(1.08);
-}
-
 .link {
   border: 0;
   padding: 0;
@@ -493,32 +482,6 @@ button {
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
-}
-
-/* Six reactions in a 300 px sidebar: one row cut "Gateway" off the end, so
-   they sit in two rows of three, every cell the same width, and the borders
-   are drawn between cells rather than after each button. */
-.segmented--grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 100%;
-}
-
-.segmented--grid .segmented__button {
-  padding-inline: 2px;
-  text-align: center;
-}
-
-.segmented--grid .segmented__button + .segmented__button {
-  border-left: 0;
-}
-
-.segmented--grid .segmented__button:not(:nth-child(3n + 1)) {
-  border-left: 1px solid var(--line);
-}
-
-.segmented--grid .segmented__button:nth-child(n + 4) {
-  border-top: 1px solid var(--line);
 }
 
 /* 5px padding inside the group's 1px border matches the height of .button. */
@@ -2111,7 +2074,7 @@ button {
 }
 
 .keybindings__key {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 12px;
   white-space: nowrap;
   color: var(--ink-2);
