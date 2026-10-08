@@ -186,3 +186,18 @@ as they were (a 13-bp piece kept `from 25, to 42`). `placementOf` rejected
 it, so nothing joined wrongly, but it never joined either. The trims now
 narrow the record as `flipFragment`'s `extractRange` does (`narrowedAtTip`).
 Tests: the #188 block in `cloning/ligate.provenance.test.ts`.
+
+## Addendum: trims and primers rewrite a CDS too (#199)
+
+Two more ways a CDS lost the bases its `/translation` was read from without
+losing the qualifier. `bluntEnds('trim')` and the flip's `trimTip` deleted
+overhang bases with a plain delete, which marks the CDS partial but keeps
+`/translation`; they now go through one `trimTip`, and `narrowedAtTip` drops
+`/translation` from a CDS that lost bases, as `extractRange` does (#179). It
+also makes the piece's record when the feature had none (it only narrowed an
+existing one, so a whole CDS clipped at a cut end could never rejoin), via
+`pieceOrigin`. PCR copied the template's qualifiers unchanged though the
+bases under an annealing region come from the primer; a CDS whose product
+bases differ from the template's now loses `/translation` (its record's
+`bases` hash already kept it from rejoining as the original, #188).
+Tests: `document/blunt.test.ts`, `cloning/pcr.test.ts`.

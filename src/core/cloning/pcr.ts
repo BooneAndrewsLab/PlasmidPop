@@ -246,10 +246,22 @@ function amplify(
   const shift = f.tail.length;
   const from = { length: body.length, topology: 'linear' } as const;
   const to = { length: sequence.length, topology: 'linear' } as const;
-  const features = copied.features.map((feature) => ({
-    ...shiftFeature(feature, shift, from, to),
-    id: newId(),
-  }));
+  const features = copied.features.map((feature) => {
+    const moved = { ...shiftFeature(feature, shift, from, to), id: newId() };
+    // A CDS whose bases a primer rewrote no longer reads as the template's
+    // /translation says (#199); the others keep their qualifiers.
+    if (moved.type !== 'CDS' || !moved.qualifiers.some((q) => q.name === 'translation')) {
+      return moved;
+    }
+    const mutated = moved.segments.some(
+      (seg) =>
+        seg.kind === 'range' &&
+        sequence.slice(seg.start, seg.end) !== body.slice(seg.start - shift, seg.end - shift),
+    );
+    return mutated
+      ? { ...moved, qualifiers: moved.qualifiers.filter((q) => q.name !== 'translation') }
+      : moved;
+  });
   // Taq's untemplated A sits on each strand's 3′ end: past the top strand's
   // end on the right, and past the bottom strand's on the left, where the
   // top strand would read T. Upper case, being from no template.

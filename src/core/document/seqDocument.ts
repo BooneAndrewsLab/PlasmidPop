@@ -529,7 +529,9 @@ export class SeqDocument {
     return trimmed.with({
       features: trimmed.features.map((f) => {
         const before = doc.features.get(f.id);
-        return before === undefined ? f : narrowedAtTip(before, doc, f, tip);
+        return before === undefined
+          ? f
+          : narrowedAtTip(before, doc, f, tip, (r) => doc.subsequence(r));
       }),
     });
   }
@@ -692,13 +694,17 @@ export class SeqDocument {
     const { left, right } = ends;
     const afterRight =
       right.kind === "3'"
-        ? this.delete({ start: Math.max(0, this.length - right.overhang.length), end: this.length })
+        ? SeqDocument.trimTip(this, 'end', Math.min(this.length, right.overhang.length))
         : right.kind === "5'" && method === 'fill'
           ? this.insert(this.length, right.overhang)
           : this;
     const doc =
       left.kind === "5'" && method === 'trim'
-        ? afterRight.delete({ start: 0, end: Math.min(left.overhang.length, afterRight.length) })
+        ? SeqDocument.trimTip(
+            afterRight,
+            'start',
+            Math.min(left.overhang.length, afterRight.length),
+          )
         : afterRight;
     // A cut end stays a cut end: it keeps the enzyme that made it, so the
     // molecule is still a cut one (phosphorylated, able to close) and not a

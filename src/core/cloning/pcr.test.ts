@@ -89,6 +89,32 @@ describe('pcr', () => {
     expect(result.products[0]?.mismatches).toBe(1);
   });
 
+  it('drops a CDS /translation the primer mismatch made wrong, keeps the others (#199)', () => {
+    const cds = (name: string, start: number, end: number) =>
+      createFeature({
+        type: 'CDS',
+        name,
+        segments: [rangeSegment(start, end)],
+        qualifiers: [{ name: 'translation', value: 'MKX' }],
+      });
+    const doc = SeqDocument.create({
+      name: 'strip',
+      sequence: TEXT,
+      features: [cds('hit', 105, 135), cds('clear', 300, 330)],
+    });
+    const annealing = TEXT.slice(100, 122).split('');
+    annealing[8] = annealing[8] === 'A' ? 'C' : 'A';
+    const mutagenic: PcrPrimer = { name: 'F*', sequence: annealing.join('') };
+    const product = pcr(doc, [mutagenic, rev(500, 522)]).products[0]?.document;
+    const translation = (name: string) =>
+      product?.features
+        .all()
+        .find((f) => f.name === name)
+        ?.qualifiers.some((q) => q.name === 'translation');
+    expect(translation('hit')).toBe(false);
+    expect(translation('clear')).toBe(true);
+  });
+
   it('writes in upper case only what did not come from the template', () => {
     // A GenBank ORIGIN block is lower case and a primer is cleaned to upper,
     // so writing the oligo over the template would shout the whole annealing

@@ -105,4 +105,27 @@ describe('bluntEnds', () => {
     expect(ecoRI.mapPositionThrough(op, 2)).toBe(0);
     expect(ecoRI.mapPositionThrough({ type: 'bluntEnds', method: 'fill' }, 10)).toBe(10);
   });
+
+  it('drops the /translation of a CDS a trim clips and records the piece (#199)', () => {
+    // The CDS's last two bases sit on a 3' overhang.
+    const doc = SeqDocument.create({
+      name: 'frag',
+      sequence: 'ccccATGAAATTTCGGTACcc',
+      topology: 'linear',
+      features: [
+        createFeature({
+          type: 'CDS',
+          name: 'g',
+          segments: [rangeSegment(4, 19)],
+          qualifiers: [{ name: 'translation', value: 'MKFRY' }],
+        }),
+      ],
+      ends: { left: end('blunt', '', ''), right: end("3'", 'GTAC', 'KpnI') },
+    });
+    const trimmed = doc.bluntEnds('trim');
+    const f = trimmed.features.all()[0];
+    expect(f?.segments[0]).toMatchObject({ start: 4, end: 17, partialEnd: true });
+    expect(f?.qualifiers.some((q) => q.name === 'translation')).toBe(false);
+    expect(f?.origin).toMatchObject({ from: 0, to: 13 });
+  });
 });

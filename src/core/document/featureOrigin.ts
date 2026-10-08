@@ -333,28 +333,33 @@ export function pieceOrigin(
 
 /**
  * `after`, what an edit that took bases off only one tip (`start` or `end`)
- * of a linear sequence left of `before` (on `space`, before the edit), with
- * its record narrowed to the bases it still holds, as `extractRange` would
- * narrow it. A record that did not place before the edit is left as it is.
+ * of a linear sequence left of `before` (on `space`, before the edit), as
+ * `extractRange` would leave it: a CDS that lost bases has no `/translation`
+ * (#179), and the piece keeps a record of just the bases it still holds,
+ * made here when `before` was a whole feature (#199) and narrowed when it
+ * already was a piece.
  */
 export function narrowedAtTip(
   before: Feature,
   space: SequenceSpace,
   after: Feature,
   tip: 'start' | 'end',
+  bases: (r: Range) => string,
 ): Feature {
-  const origin = before.origin;
-  if (origin === undefined || after.origin !== origin || placementOf(before, space) === null) {
-    return after;
-  }
   const count = (f: Feature): number =>
     f.segments.reduce((n, s) => n + (s.kind === 'range' ? s.end - s.start : 0), 0);
-  const lost = count(before) - count(after);
+  const total = count(before);
+  const lost = total - count(after);
   if (lost <= 0) return after;
+  const clipped: Feature =
+    after.type === 'CDS' && after.qualifiers.some((q) => q.name === 'translation')
+      ? { ...after, qualifiers: after.qualifiers.filter((q) => q.name !== 'translation') }
+      : after;
+  if (after.origin !== before.origin) return clipped;
   const fivePrime = (tip === 'start') === (before.strand !== 'reverse');
-  const from = fivePrime ? origin.from + lost : origin.from;
-  const to = fivePrime ? origin.to : origin.to - lost;
-  return withOrigin(after, to > from ? { ...origin, from, to } : null);
+  const from = fivePrime ? lost : 0;
+  const to = fivePrime ? total : total - lost;
+  return withOrigin(clipped, to > from ? pieceOrigin(before, from, to, space, bases) : null);
 }
 
 /** `feature` with `origin` as its record, or with none. */
