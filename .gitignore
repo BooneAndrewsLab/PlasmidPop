@@ -42,3 +42,6 @@ reports/mutation
 
 # Records fetched by scripts/build-feature-db.mjs
 scripts/feature-db/.cache/
+
+# Local landscape survey notes, not part of the project
+/LANDSCAPE.md
