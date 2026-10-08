@@ -316,3 +316,24 @@ to 9 false "unchanged" fell from 17 to 11, all left #194's whole circles
 or the two linear cases above. Four of the six removed had been counted as
 #194's, but they accepted a whole circle at a location that no longer
 covers the circle. No editor result is newly marked changed.
+
+## A range collapsed at the origin (#197)
+
+A start the diff puts at the new length of a circle is its origin, and
+`sameRange` turns it back to 0. #189 began turning the start of a range
+whose end lands there too, but not the end, so a range that lost every
+base at the end of the circle, `[Lb, Lb)`, matched `[0, Lb)`: a feature
+whose bases were all deleted read unchanged at the whole circle, in Edit
+review and in Compare. On a circle `[Lb, Lb)` is either nothing or the
+whole circle, and positions do not say which. The whole circle is real:
+#196's `[0, 18)` with `[17, 22)` replaced by `A` collapses so, and the
+editor keeps `[0, 17)`. So a collapsed range is now read by counting
+bases: it can be the whole circle only if it holds, with every base the
+diff adds, at least the new length, and it can be emptied only if the diff
+removes at least as many bases as it holds. If both are possible it reads
+as emptied, which at worst calls changed a feature the editor kept. The
+"was" location of a removed or changed feature collapsed there is read the
+same way, `[0, 0)` rather than an empty range past the end. On the round-7
+history probe (seeds 1 to 8, 300 cases) no false "unchanged" remains where
+the accepted location covers the whole circle and the old one did not, and
+no editor result is newly marked changed.

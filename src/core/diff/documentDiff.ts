@@ -281,8 +281,36 @@ function mapFeature(
 function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segment {
   const start = map(seg.start);
   const end = Math.max(start, map(seg.end));
+  if (start === map.circle?.to && end === start) {
+    // Collapsed at the origin: all of it, or none of it (#197).
+    return { ...seg, start: 0, end: keepsWholeCircle(seg, map.circle) ? start : 0 };
+  }
   const turn = start === map.circle?.to && end > start ? start : 0;
   return { ...seg, start: start - turn, end: end - turn };
+}
+
+/**
+ * Whether a range whose edges both land at the origin of the newer circle,
+ * `[length, length)`, went all the way round it rather than lost all its
+ * bases: positions on a circle do not say which (#197). An overwrite over
+ * the origin can leave a feature covering the whole circle that way (#196),
+ * but only one of the two is possible unless the edit removed as many bases
+ * as the range holds and the range is as long as what is left, give or take
+ * what was added. Neither ruled out, it reads as emptied, which at worst
+ * reports as changed a feature the editor kept.
+ */
+function keepsWholeCircle(seg: Segment & { kind: 'range' }, circle: Circle): boolean {
+  const length = seg.end - seg.start;
+  return length + circle.gained >= circle.to && circle.lost < length;
+}
+
+interface Circle {
+  /** The lengths of the older and the newer circle. */
+  readonly from: number;
+  readonly to: number;
+  /** How many bases the diff adds and removes in all. */
+  readonly gained: number;
+  readonly lost: number;
 }
 
 /**
@@ -291,13 +319,17 @@ function mappedRange(seg: Segment & { kind: 'range' }, map: PositionMap): Segmen
  * told from one that merely ends at the last base.
  */
 type PositionMap = ((position: number) => number) & {
-  readonly circle?: { readonly from: number; readonly to: number } | undefined;
+  readonly circle?: Circle | undefined;
   /**
    * Where a feature's edges land under each equally good reading of the
    * diff, one array per reading (see `equivalentMappings`).
    */
   readonly readings?: (edges: readonly Edge[]) => Iterable<readonly number[]>;
 };
+
+function equalBases(diff: SequenceDiff): number {
+  return diff.ops.reduce((n, op) => n + (op.kind === 'equal' ? op.aEnd - op.aStart : 0), 0);
+}
 
 function isWholeCircle(seg: Segment, map: PositionMap): boolean {
   return (
@@ -328,7 +360,14 @@ function diffFeatures(
     position > baseline.length ? map(position - baseline.length) + current.length : map(position);
   const mapUnrolled: PositionMap = Object.assign(unrolled, {
     readings: equivalent.readings,
-    circle: circular ? { from: baseline.length, to: current.length } : undefined,
+    circle: circular
+      ? {
+          from: baseline.length,
+          to: current.length,
+          gained: diff.ops.reduce((n, op) => n + op.bEnd - op.bStart, 0) - equalBases(diff),
+          lost: diff.ops.reduce((n, op) => n + op.aEnd - op.aStart, 0) - equalBases(diff),
+        }
+      : undefined,
   });
   const mapped = (f: Feature): Feature => mapFeature(f, mapUnrolled, baseline, current);
   const qualifiersOf = (f: Feature): readonly Qualifier[] => mapped(f).qualifiers;
@@ -603,9 +642,14 @@ function sameRange(
   map: PositionMap,
 ): boolean {
   // On a circle a start mapped to the new length is the origin, and an end
-  // past it moves back the same turn.
+  // past it moves back the same turn. One whose edges both land there is
+  // either the whole circle or nothing, never both (#197).
   const fits = (s: number, e: number): boolean => {
-    const turn = s === map.circle?.to ? s : 0;
+    const circle = map.circle;
+    if (circle?.to === s && e === s) {
+      return after.start === 0 && after.end === (keepsWholeCircle(before, circle) ? s : 0);
+    }
+    const turn = s === circle?.to ? s : 0;
     return s - turn === after.start && (e > s ? e - turn : e) === after.end;
   };
   // A whole circle stays one: if an insert at the origin moved its start it

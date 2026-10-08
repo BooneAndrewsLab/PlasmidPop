@@ -590,3 +590,59 @@ describe('a stretch the diff drew over the origin of a circle (#196)', () => {
     },
   );
 });
+
+describe('a range that lost every base at the end of a circle (#197)', () => {
+  // Both its edges land at the new length, the origin: on a circle that is
+  // either nothing or the whole circle, and only an overwrite over the origin
+  // (#196) makes the whole circle of one. A range whose bases were all
+  // deleted is gone, and the whole circle is not where the editor put it.
+  const a = bases(1000, 197);
+  const repeat = bases(200, 1970) + 'CG'.repeat(150);
+  it.each([
+    ['its bases deleted', a, [[900, 1000]], 900, 1000, [[0, 900]]],
+    ['more than its bases deleted', a, [[950, 1000]], 900, 1000, [[0, 900]]],
+    [
+      'one segment of a join',
+      a,
+      [
+        [100, 200],
+        [900, 1000],
+      ],
+      900,
+      1000,
+      [
+        [100, 200],
+        [0, 900],
+      ],
+    ],
+    ['a 4 bp circle', 'ACGA', [[3, 4]], 2, 4, [[0, 2]]],
+    ['a deletion a repeat lets the diff draw over it', repeat, [[400, 500]], 250, 350, [[0, 400]]],
+  ] as const)(
+    'does not read the whole circle as unchanged: %s',
+    (_, sequence, before, start, end, after) => {
+      const id = 'x';
+      const base = withFeature(sequence, before, 'circular', id);
+      const edited = base.delete({ start, end });
+      const whole = withFeature(edited.sequence.toString(), after, 'circular', id);
+      expect(diffDocuments(base, whole).featuresChanged.has(id)).toBe(true);
+      // Parsed separately, with ids of their own, it is a removal and an addition.
+      const fresh = withFeature(edited.sequence.toString(), after, 'circular');
+      const compared = diffDocuments(base, fresh);
+      expect(compared.featuresRemoved.size + compared.featuresChanged.size).toBe(1);
+    },
+  );
+
+  it('still reads the editor result in the repeat as unchanged', () => {
+    const base = withFeature(repeat, [[400, 500]], 'circular');
+    const edited = base.delete({ start: 250, end: 350 });
+    expect(edited.getFeature(only(base))?.segments).toMatchObject([{ start: 300, end: 400 }]);
+    expect(diffDocuments(base, edited).featuresChanged.size).toBe(0);
+  });
+
+  it('says a removed feature was at the origin, not past the end', () => {
+    const base = withFeature(a, [[900, 1000]], 'circular');
+    const edited = base.delete({ start: 900, end: 1000 });
+    const removed = diffDocuments(base, edited).featuresRemoved.get(only(base));
+    expect(removed?.segments).toMatchObject([{ start: 0, end: 0 }]);
+  });
+});
