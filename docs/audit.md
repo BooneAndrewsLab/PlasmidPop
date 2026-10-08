@@ -15,6 +15,7 @@ holds what the last one had to discover, so the next one need not.
 | 2026-10-07 | `07bd28a`          | #182–#184 (milestone 1.11.2) | scoped: features through cut and ligation (incl. the #181 rejoin), circular reads and diff, sweep of the #174–#181 fixes |
 | 2026-10-07 | `a2734eb`          | #187–#190 (milestone 1.11.2) | scoped: feature provenance and rejoin (#182–#186 fixes), document diff after #184/#185                                   |
 | 2026-10-07 | `bb8ecd7`          | #197–#199 (milestone 1.11.2) | scoped: document diff after #189, feature provenance (`featureOrigin`); two highs, so another round is due               |
+| 2026-10-08 | `d2a4a50`          | #200–#201 (milestone 1.11.2) | scoped: document diff after #197/#198, provenance, trims and PCR after #199; no high, so the rounds stop                 |
 
 The next audit starts from `git diff <last commit audited>..HEAD`:
 audit only the areas whose files changed or are new. Everything verified
