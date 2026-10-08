@@ -105,7 +105,7 @@ rather than ignored, since a test could in principle see them.
 The incremental run before 1.11.2 scored 91.99% (963 survived, 92 not
 covered). Triage was scoped to the 229 survivors on lines changed since
 1.11.1, the audit's fixes, one group of modules per agent; the rest had
-been triaged at earlier releases. About 125 got tests and the others
+been triaged at earlier releases. About 135 got tests and the others
 `Stryker disable` comments (type-narrowing guards, `?? ''` fallbacks for
 the type, bounds whose extra iteration reads nothing). No fault turned up.
 The rerun scored 93.60%, with 8 of the 229 still reported. Two of those
