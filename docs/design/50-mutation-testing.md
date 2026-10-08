@@ -99,3 +99,22 @@ other), the seed walk's reset on an ambiguity code (`forEachSeed`), and
 the circular overhang arithmetic in `check` and `gappedHits`, where the
 duplicate is dropped later by `keepBest`. Those are left to a later fixture
 rather than ignored, since a test could in principle see them.
+
+## At 1.11.2
+
+The incremental run before 1.11.2 scored 91.99% (963 survived, 92 not
+covered). Triage was scoped to the 229 survivors on lines changed since
+1.11.1, the audit's fixes, one group of modules per agent; the rest had
+been triaged at earlier releases. About 125 got tests and the others
+`Stryker disable` comments (type-narrowing guards, `?? ''` fallbacks for
+the type, bounds whose extra iteration reads nothing). No fault turned up.
+The rerun scored 93.60%, with 8 of the 229 still reported. Two of those
+(`collection.ts` header columns) fail the tests when applied by hand, so
+the report can lag on a mutant; check one by hand before writing a test
+for it.
+
+Agents running narrow Stryker runs side by side in one tree break each
+other: each sandbox copies the others' `.stryker-tmp-*` directories
+mid-write, and every dry run runs the whole suite, so one agent's
+half-written test fails all of them. Run them one at a time, in their own
+worktrees, or check mutants by applying them by hand.
