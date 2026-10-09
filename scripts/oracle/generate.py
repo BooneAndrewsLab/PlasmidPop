@@ -47,6 +47,7 @@ import assembly
 import blunt
 import cds
 import checksums
+import crispr
 import digest
 import editing
 import fastq
@@ -509,6 +510,7 @@ def main():
     write('fastq.json', fastq.generate())
     write('editing.json', editing.generate())
     write('blunt.json', blunt.generate())
+    write('crispr.json', crispr.generate())
 
 
 if __name__ == '__main__':

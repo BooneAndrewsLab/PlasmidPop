@@ -744,3 +744,32 @@ this change: banded.test.ts 100 s, down from about 240 s.
 | ----------------------- | ------ | ------------------- |
 | `banded.test.ts`, local | 21.3 s | 11.4 s (tests ~9 s) |
 | #159 test               | 5.1 s  | 1.6 s               |
+
+## CRISPR guide scan (item 74, #206, 2026-10-09)
+
+The guide finder's two halves cost very differently. Finding the guides is
+one pass per strand with a PAM window at each base — linear, and never the
+problem. Counting off-targets compares each guide with the other
+PAM-adjacent sites, and there are about as many sites as guides, so done
+plainly it is quadratic: a random 200 kb circle has ~25,000 SpCas9 sites and
+625 M comparisons.
+
+A seed index fixes it. Two spacers that differ in at most _k_ places must
+share one of any _k_ + 1 equal blocks, so the sites are bucketed by each of
+their _k_ + 1 blocks and a guide is only compared with the sites sharing a
+block with it. Sites whose spacer has an ambiguous base belong to no bucket
+and are compared with every guide; there are few of them in a real record.
+
+Measured here (`crispr.timing.test.ts`, SpCas9, circular, off-targets to
+three mismatches, the whole record):
+
+| Length | Guides | All pairs | Seed index |
+| ------ | ------ | --------- | ---------- |
+| 5 kb   | 608    | 64 ms     | 39 ms      |
+| 20 kb  | 2,515  | 184 ms    | 77 ms      |
+| 50 kb  | 6,282  | 671 ms    | 161 ms     |
+| 200 kb | 25,104 | 8,237 ms  | 818 ms     |
+
+The Biopython oracle (`src/test/oracle/crispr.test.ts`) passes unchanged
+either way, which is what says the index only skips comparisons that could
+not have matched.
