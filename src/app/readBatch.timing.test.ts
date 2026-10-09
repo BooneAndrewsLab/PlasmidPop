@@ -64,26 +64,33 @@ describe('a plate of reads', () => {
     60_000,
   );
 
-  itTimed(
-    'aligns 96 reads against a 300 kb circle without indexing it for each read (#170)',
-    async () => {
-      const { plasmid, reads } = plate(300_000);
-      const t0 = performance.now();
-      const { rows } = await runReadBatch(
+  it('aligns reads against a 300 kb circle without indexing it for each read (#170)', async () => {
+    const { plasmid, reads } = plate(300_000, 12);
+    // The reference's word index puts one entry in a Map for each distinct
+    // word of the circle (about 300 000), so counting `Map.set`
+    // calls counts index builds without a wall-clock budget, which a CI
+    // runner 3-9x slower than this machine cannot meet. An index built per
+    // read would make 12 times that; one for the batch, about once.
+    const set = vi.spyOn(Map.prototype, 'set');
+    let sets: number;
+    let rows;
+    try {
+      ({ rows } = await runReadBatch(
         reads,
         { sequence: plasmid, offset: 0, wrap: plasmid.length },
         (a, b, options) => Promise.resolve(alignEitherStrand(a, b, options)),
         { options: { fast: true }, mode: 'local', trimCutoff: 0.05 },
-      );
-      const ms = performance.now() - t0;
-      process.stderr.write(`[perf] 96 Sanger reads against 300 kb circle: ${ms.toFixed(0)} ms\n`);
-      // A read of mostly poor bases may share too few words with 300 kb to
-      // be banded, and fail as too large for a full fill: not what this measures.
-      const aligned = rows.filter((r) => r.status === 'aligned');
-      expect(aligned.length).toBeGreaterThanOrEqual(94);
-      expect(aligned.every((r) => r.result.alignment.identity > 0.9)).toBe(true);
-      expectWithin(ms, 60_000);
-    },
-    180_000,
-  );
+      ));
+    } finally {
+      sets = set.mock.calls.length;
+      set.mockRestore();
+    }
+    // A read of mostly poor bases may share too few words with 300 kb to
+    // be banded, and fail as too large for a full fill: not what this measures.
+    const aligned = rows.filter((r) => r.status === 'aligned');
+    expect(aligned.length).toBeGreaterThanOrEqual(11);
+    expect(aligned.every((r) => r.result.alignment.identity > 0.9)).toBe(true);
+    expect(sets).toBeGreaterThan(200_000); // the spy sees the index at all
+    expect(sets).toBeLessThan(2 * 300_000);
+  }, 120_000);
 });

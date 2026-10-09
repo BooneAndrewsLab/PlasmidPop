@@ -498,5 +498,7 @@ describe('the reference kept between reads (#170)', () => {
     }
     expect(expectedOne?.startA).toBe(5000);
     expect(expectedTwo?.startA).toBe(9000);
-  });
+    // About 5 s on a shared CI runner (under 1 s here), past vitest's default
+    // 5 s timeout.
+  }, 60_000);
 });

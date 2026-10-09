@@ -126,6 +126,10 @@ unrolled to 600 kb:
 | 96 reads, 300 kb circle | 27.3 s    | 12.9-13.3 s |
 | 96 reads, 5 kb circle   | 1.1-1.4 s | 1.1-1.3 s   |
 
+The timing test no longer asserts a wall clock (CI runners took 83-121 s for
+the 96-read plate); it runs 12 reads and counts the word index's `Map.set`
+calls, so an index built per read fails it. The table is a local measurement.
+
 The word index took 200+ ms for the first read and now 1-2 ms for the rest.
 What remains is the real work of each read: the band (about 0.8 M cells, 40
 ms), its check (about 0.2 M cells, 15-30 ms) and the O(reference) row
