@@ -8,7 +8,8 @@ open documents, and oligos to clone a guide. On-target scoring only if it
 could be checked against a published implementation.
 
 **Decided: a scan in `core/analysis/crispr.ts` behind the usual worker
-request, a `CRISPR` sidebar tab, and no efficiency score at all.**
+request, a `CRISPR` sidebar tab, and no on-target efficiency score at all.
+A specificity score was added later (see the end).**
 
 ## No score
 
@@ -128,3 +129,20 @@ new array on every selection change, the list of other documents was
 rebuilt from it, and the worker request keyed on that list. The list is now
 state replaced only when a document's name, sequence or topology differs,
 and a test counts the worker calls across a click.
+
+## Specificity score (2026-10-09)
+
+Asked for guide scores, the line this note drew was kept: only what is a
+published formula, not a trained model. The MIT off-target score (Hsu 2013)
+is one: twenty position weights, a mean-distance damping and 1/n², summed
+over off-target sites as `100 / (100 + Σ)`. It is computed in the same
+loop that counts off-targets, from the bit planes' mismatch positions, over
+every site found, not the 50 listed. SpCas9 NGG with a 20 nt spacer only;
+every other nuclease gets `null` and the panel hides the row.
+
+It is an upper bound: it sees only the sites within the chosen mismatch
+limit (default 3) and only the open documents. The guide page says so. The
+unit tests pin the formula by hand arithmetic, not against another
+implementation, so the weights are the one thing checked by reading, not by
+an oracle. On-target scores (Rule Set 2, CRISPRscan) stay out until a
+reference implementation with test vectors is available.

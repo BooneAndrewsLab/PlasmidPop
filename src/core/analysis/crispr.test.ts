@@ -6,10 +6,12 @@ import { reverseComplement } from '../sequence';
 import {
   type Nuclease,
   MAX_LISTED_SITES,
+  MIT_WEIGHTS,
   NUCLEASES,
   OLIGO_SCHEMES,
   findCrisprGuides,
   guideOligos,
+  mitSiteScore,
   nucleaseProblem,
   oligoSchemesFor,
 } from './crispr';
@@ -98,6 +100,7 @@ describe('findCrisprGuides', () => {
         polyT: false,
         longestRun: 20,
         offTargets: [0, 0, 0, 0],
+        specificity: 100,
         sites: [],
       },
     ]);
@@ -330,5 +333,61 @@ describe('a region and the oligos', () => {
     const spacer = 'ACGTACGTACGTACGTACGTA';
     const guides = findCrisprGuides(`${spacer}CCGAAT${'A'.repeat(5)}`, 'linear', custom);
     expect(guides.find((g) => g.strand === 'forward')).toMatchObject({ spacer, pam: 'CCGAAT' });
+  });
+});
+
+describe('MIT specificity', () => {
+  it('scores the published formula by hand', () => {
+    const w = MIT_WEIGHTS;
+    expect(mitSiteScore([])).toBe(1);
+    // One mismatch: just 1 - weight.
+    expect(mitSiteScore([13])).toBeCloseTo(1 - (w[13] ?? 0), 12);
+    // Two at 5 and 15: mean distance 10, so 1 / ((9/19)*4 + 1), then 1/4.
+    const expected =
+      (1 - (w[5] ?? 0)) * (1 - (w[15] ?? 0)) * (1 / (((19 - 10) / 19) * 4 + 1)) * (1 / 4);
+    expect(mitSiteScore([5, 15])).toBeCloseTo(expected, 12);
+    // Three at 2, 4, 10: mean consecutive distance (2 + 6) / 2 = 4.
+    const three =
+      ((1 - (w[2] ?? 0)) *
+        (1 - (w[4] ?? 0)) *
+        (1 - (w[10] ?? 0)) *
+        (1 / (((19 - 4) / 19) * 4 + 1))) /
+      9;
+    expect(mitSiteScore([2, 4, 10])).toBeCloseTo(three, 12);
+  });
+
+  const twice = `${UNIT}${'A'.repeat(13)}${UNIT}`;
+
+  it('is 100 with no other site and 50 with one exact copy', () => {
+    expect(findCrisprGuides(`${UNIT}${'A'.repeat(10)}`, 'linear', SPCAS9)[0]?.specificity).toBe(
+      100,
+    );
+    expect(findCrisprGuides(twice, 'linear', SPCAS9)[0]?.specificity).toBe(50);
+  });
+
+  it('sums over every site, not only the listed ones', () => {
+    const copies = Array.from({ length: MAX_LISTED_SITES + 10 }, () => UNIT).join('A'.repeat(13));
+    const g = findCrisprGuides(copies, 'linear', SPCAS9)[0];
+    expect(g?.sites).toHaveLength(MAX_LISTED_SITES);
+    expect(g?.specificity).toBeCloseTo(100 / (1 + (g?.offTargets[0] ?? 0)), 9);
+  });
+
+  it('weights a mismatch by its position from the 5′ end', () => {
+    const at = (pos: number): number | null | undefined => {
+      const mutated = `${A20.slice(0, pos)}C${A20.slice(pos + 1)}`;
+      const seq = `${UNIT}${'A'.repeat(13)}${mutated}TGG`;
+      return findCrisprGuides(seq, 'linear', SPCAS9).find((x) => x.range.start === 0)?.specificity;
+    };
+    // PAM-proximal mismatch (weight .583) leaves a lower score than a
+    // distal one (weight 0).
+    expect(at(19)).toBeCloseTo(100 / (1 + 1 - 0.583), 9);
+    expect(at(0)).toBeCloseTo(50, 9);
+  });
+
+  it('is null for a nuclease the weights do not describe', () => {
+    const sa = NUCLEASES.find((n) => n.id === 'sacas9');
+    if (sa === undefined) throw new Error('no SaCas9 preset');
+    const seq = `${'A'.repeat(21)}TGGGGT${'A'.repeat(10)}`;
+    for (const g of findCrisprGuides(seq, 'linear', sa)) expect(g.specificity).toBeNull();
   });
 });

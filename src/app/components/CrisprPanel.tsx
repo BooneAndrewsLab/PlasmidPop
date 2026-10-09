@@ -33,6 +33,7 @@ import { analysisClient } from '@/workers/analysisClient';
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
 import { editorStore } from '../state/editorStore';
+import { rememberSeen, wasSeen } from '../state/seenOnce';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -42,6 +43,11 @@ interface Props {
 
 /** As the ORF list does, past this many the views are left alone (#32). */
 const MAX_PREVIEWED = 200;
+
+/** The off-target disclaimer is said once; afterwards the label keeps it as a tooltip. */
+const NOTE_SEEN_KEY = 'plasmidpop.crisprOffTargetNoteSeen';
+const OFF_TARGET_NOTE =
+  'Off-targets are counted in the open documents only. PlasmidPop has no genome to search, so this says nothing about specificity in a cell: check a guide against the host genome with a genome-wide tool before ordering it.';
 
 const guideId = (g: CrisprGuide): string => `${g.strand}:${String(g.range.start)}`;
 
@@ -61,7 +67,7 @@ function flagsOf(g: CrisprGuide): string[] {
   return flags;
 }
 
-type SortBy = 'position' | 'offTargets' | 'gc';
+type SortBy = 'position' | 'offTargets' | 'gc' | 'specificity';
 
 /** Fewest exact hits first, then fewest near ones, then along the molecule. */
 function byOffTargets(a: CrisprGuide, b: CrisprGuide): number {
@@ -129,7 +135,9 @@ export function CrisprPanel({ doc }: Props) {
   // The filters sit on the result, not the scan: changing one is instant.
   const [spacerFilter, setSpacerFilter] = useState('');
   const [pamFilter, setPamFilter] = useState('');
-  const [hideFlagged, setHideFlagged] = useState(false);
+  // Flagged guides are hidden until asked for: the clean ones are the shortlist.
+  const [showFlagged, setShowFlagged] = useState(false);
+  const [noteSeen, setNoteSeen] = useState(() => wasSeen(NOTE_SEEN_KEY));
   const [schemeId, setSchemeId] = useState(OLIGO_SCHEMES[0]?.id ?? 'none');
   const [answer, setAnswer] = useState<Answer | null>(null);
   /**
@@ -255,7 +263,7 @@ export function CrisprPanel({ doc }: Props) {
     const masks = pattern === '' ? null : patternMasks(pattern);
     const list = (guides ?? []).filter((g) => {
       if (pamChosen !== '' && g.pam !== pamChosen) return false;
-      if (hideFlagged && flagsOf(g).length > 0) return false;
+      if (!showFlagged && flagsOf(g).length > 0) return false;
       if (masks === null) return true;
       // IUPAC, so "GRCC" or "N" work as they do in Find; an unknown letter
       // is a mask of nothing and matches no guide.
@@ -264,8 +272,13 @@ export function CrisprPanel({ doc }: Props) {
     });
     if (sortBy === 'offTargets') list.sort(byOffTargets);
     else if (sortBy === 'gc') list.sort((a, b) => b.gc - a.gc || a.range.start - b.range.start);
+    else if (sortBy === 'specificity') {
+      list.sort(
+        (a, b) => (b.specificity ?? -1) - (a.specificity ?? -1) || a.range.start - b.range.start,
+      );
+    }
     return list;
-  }, [guides, sortBy, spacerFilter, pamChosen, hideFlagged]);
+  }, [guides, sortBy, spacerFilter, pamChosen, showFlagged]);
   const filtered = guides !== null && sorted.length !== guides.length;
 
   const covered = sorted.filter(
@@ -322,259 +335,308 @@ export function CrisprPanel({ doc }: Props) {
 
   return (
     <div className="panel">
-      <div className="panel__controls">
-        <label className="panel__field panel__field--row">
-          <span>Nuclease</span>
-          <select
-            className="panel__select"
-            value={nucleaseId}
-            onChange={(e) => {
-              setNucleaseId(e.target.value);
-            }}
+      <fieldset className="panel__group">
+        <legend>Options</legend>
+        <div className="panel__controls">
+          <label className="panel__field panel__field--row">
+            <span>Nuclease</span>
+            <select
+              className="panel__select"
+              value={nucleaseId}
+              onChange={(e) => {
+                setNucleaseId(e.target.value);
+              }}
+            >
+              {NUCLEASES.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.name}
+                </option>
+              ))}
+              <option value="custom">Custom PAM…</option>
+            </select>
+          </label>
+          {custom && (
+            <>
+              <label className="panel__field panel__field--row">
+                <span>PAM</span>
+                <input
+                  className="panel__number crispr-pam"
+                  value={pam}
+                  size={8}
+                  onChange={(e) => {
+                    setPam(e.target.value);
+                  }}
+                  aria-label="PAM in IUPAC codes"
+                />
+              </label>
+              <label className="panel__field panel__field--row">
+                <span>Spacer (nt)</span>
+                <input
+                  className="panel__number"
+                  type="number"
+                  min={MIN_SPACER}
+                  max={MAX_SPACER}
+                  value={spacerLength}
+                  onChange={(e) => {
+                    setSpacerLength(e.target.value);
+                  }}
+                />
+              </label>
+            </>
+          )}
+          <label className="panel__field panel__field--row">
+            {noteSeen ? (
+              <span className="panel__hint" title={OFF_TARGET_NOTE}>
+                Off-targets up to
+              </span>
+            ) : (
+              <span>Off-targets up to</span>
+            )}
+            <select
+              className="panel__select"
+              value={maxMismatches}
+              onChange={(e) => {
+                setMaxMismatches(Number.parseInt(e.target.value, 10));
+              }}
+            >
+              {[0, 1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>
+                  {n} {n === 1 ? 'mismatch' : 'mismatches'}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={searchOthers}
+              onChange={(e) => {
+                setSearchOthers(e.target.checked);
+                if (e.target.checked) analytics.track('crispr', 'background');
+              }}
+            />
+            Count off-targets in the other open documents too
+          </label>
+          <label
+            className="toggle"
+            title={
+              region === null && usableSelection === null
+                ? 'Select part of the document first'
+                : undefined
+            }
           >
-            {NUCLEASES.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.name}
-              </option>
-            ))}
-            <option value="custom">Custom PAM…</option>
-          </select>
-        </label>
-        {custom && (
-          <>
-            <label className="panel__field">
-              PAM
-              <input
-                className="crispr-pam"
-                value={pam}
-                size={8}
-                onChange={(e) => {
-                  setPam(e.target.value);
-                }}
-                aria-label="PAM in IUPAC codes"
-              />
-            </label>
-            <label className="panel__field">
-              Spacer
-              <input
-                className="panel__number"
-                type="number"
-                min={MIN_SPACER}
-                max={MAX_SPACER}
-                value={spacerLength}
-                onChange={(e) => {
-                  setSpacerLength(e.target.value);
-                }}
-              />
-              nt
-            </label>
-          </>
-        )}
-        <label className="panel__field">
-          Off-targets to
-          <select
-            value={maxMismatches}
-            onChange={(e) => {
-              setMaxMismatches(Number.parseInt(e.target.value, 10));
-            }}
-          >
-            {[0, 1, 2, 3, 4].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-          mismatches
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={searchOthers}
-            onChange={(e) => {
-              setSearchOthers(e.target.checked);
-              if (e.target.checked) analytics.track('crispr', 'background');
-            }}
-          />
-          Count off-targets in the other open documents too
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={region !== null}
-            disabled={region === null && usableSelection === null}
-            onChange={(e) => {
-              narrowTo(e.target.checked ? usableSelection : null);
-            }}
-          />
-          Only cuts in the selection
-        </label>
-        {region !== null && (
+            <input
+              type="checkbox"
+              checked={region !== null}
+              disabled={region === null && usableSelection === null}
+              onChange={(e) => {
+                narrowTo(e.target.checked ? usableSelection : null);
+              }}
+            />
+            Only cuts in the selection
+          </label>
+          {region !== null && (
+            <p className="panel__note">
+              Cuts in {formatSpan(region, doc.length)}
+              {usableSelection !== null &&
+                !rangesEqual(usableSelection, region) &&
+                covered.length === 0 && (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className="button button--quiet button--small"
+                      onClick={() => {
+                        narrowTo(usableSelection);
+                      }}
+                    >
+                      Use the selection now
+                    </button>
+                  </>
+                )}
+            </p>
+          )}
+        </div>
+        {!noteSeen && (
           <p className="panel__note">
-            Cuts in {formatSpan(region, doc.length)}
-            {usableSelection !== null &&
-              !rangesEqual(usableSelection, region) &&
-              covered.length === 0 && (
-                <>
-                  {' '}
-                  <button
-                    type="button"
-                    className="button button--quiet button--small"
-                    onClick={() => {
-                      narrowTo(usableSelection);
-                    }}
-                  >
-                    Use the selection now
-                  </button>
-                </>
-              )}
+            {OFF_TARGET_NOTE}{' '}
+            <button
+              type="button"
+              className="button button--quiet button--small"
+              title="Hide this; the Off-targets label keeps it as a tooltip"
+              onClick={() => {
+                rememberSeen(NOTE_SEEN_KEY);
+                setNoteSeen(true);
+              }}
+            >
+              Got it
+            </button>
           </p>
         )}
-      </div>
+      </fieldset>
 
       {problem !== null && <p className="panel__note panel__note--warn">{problem}</p>}
       {error !== null && <p className="panel__note panel__note--warn">{error}</p>}
-      <p className="panel__note">
-        Off-targets are counted in the open documents only. PlasmidPop has no genome to search, so
-        this says nothing about specificity in a cell — check a guide against the host genome with a
-        genome-wide tool before ordering it.
-      </p>
-
-      {problem === null &&
-        (scanning && guides === null ? (
-          <p className="panel__note">Looking for guides…</p>
-        ) : guides === null || guides.length === 0 ? (
-          <p className="panel__note">
-            No guides{region !== null ? ' cutting in the selection' : ''}. Another nuclease or a
-            custom PAM may find some.
-          </p>
-        ) : (
-          <>
-            <h3 className="panel__heading">
-              Guides
+      {problem === null && (
+        <fieldset className="panel__group">
+          <legend>
+            Guides
+            {guides !== null && guides.length > 0 && (
               <span className="panel__heading-note">
                 {filtered
                   ? `${sorted.length.toLocaleString()} of ${guides.length.toLocaleString()}`
                   : guides.length.toLocaleString()}
               </span>
-            </h3>
-            <div className="panel__controls crispr-filters">
-              <input
-                className="panel__search panel__mono-input"
-                value={spacerFilter}
-                placeholder="Spacer contains… (IUPAC)"
-                aria-label="Spacer contains"
-                spellCheck={false}
-                onChange={(e) => {
-                  setSpacerFilter(e.target.value);
-                }}
-              />
-              {pams.length > 1 && (
-                <label className="panel__field">
-                  PAM
-                  <select
-                    value={pamChosen}
-                    onChange={(e) => {
-                      setPamFilter(e.target.value);
-                    }}
-                  >
-                    <option value="">any</option>
-                    {pams.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <label className="panel__field">
-                Sort by
-                <select
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value as SortBy);
-                  }}
-                >
-                  <option value="position">Position</option>
-                  <option value="offTargets">Fewest off-targets</option>
-                  <option value="gc">GC, high to low</option>
-                </select>
-              </label>
-              <label className="toggle">
+            )}
+          </legend>
+          {scanning && guides === null ? (
+            <p className="panel__note">Looking for guides…</p>
+          ) : guides === null || guides.length === 0 ? (
+            <p className="panel__note">
+              No guides{region !== null ? ' cutting in the selection' : ''}. Another nuclease or a
+              custom PAM may find some.
+            </p>
+          ) : (
+            <>
+              <div className="panel__controls crispr-filters">
                 <input
-                  type="checkbox"
-                  checked={hideFlagged}
+                  className="panel__search panel__mono-input"
+                  value={spacerFilter}
+                  placeholder="Spacer contains… (IUPAC)"
+                  aria-label="Spacer contains"
+                  spellCheck={false}
                   onChange={(e) => {
-                    setHideFlagged(e.target.checked);
+                    setSpacerFilter(e.target.value);
                   }}
                 />
-                Hide flagged guides
-              </label>
-            </div>
-            {sorted.length === 0 ? (
-              <p className="panel__note">No guides match the filters.</p>
-            ) : (
-              <ul className="crispr-list">
-                {sorted.slice(0, MAX_PREVIEWED).map((g) => {
-                  const flags = flagsOf(g);
-                  const active = guideId(g) === selectedId;
-                  return (
-                    <li key={guideId(g)} ref={active ? selectedRow : null}>
-                      <button
-                        type="button"
-                        className={`crispr-row${active ? ' crispr-row--selected' : ''}`}
-                        onClick={() => {
-                          setClicked(guideId(g));
-                          editorStore.setSelection(g.range);
-                          editorStore.revealPosition(g.range.start);
-                        }}
-                      >
-                        <span
-                          className="crispr-row__strand"
-                          aria-label={g.strand === 'forward' ? 'forward strand' : 'reverse strand'}
+                {pams.length > 1 && (
+                  <label className="panel__field panel__field--row">
+                    <span>PAM</span>
+                    <select
+                      className="panel__select"
+                      value={pamChosen}
+                      onChange={(e) => {
+                        setPamFilter(e.target.value);
+                      }}
+                    >
+                      <option value="">any</option>
+                      {pams.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className="panel__field panel__field--row">
+                  <span>Sort by</span>
+                  <select
+                    className="panel__select"
+                    value={sortBy}
+                    onChange={(e) => {
+                      setSortBy(e.target.value as SortBy);
+                    }}
+                  >
+                    <option value="position">Position</option>
+                    <option value="offTargets">Fewest off-targets</option>
+                    <option value="gc">GC, high to low</option>
+                    <option value="specificity">Specificity, high to low</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="button button--small button--toggle"
+                  aria-pressed={showFlagged}
+                  title={
+                    showFlagged
+                      ? 'Press to hide the guides marked with a ! again'
+                      : 'Guides marked with a ! are hidden; press to list them too'
+                  }
+                  onClick={() => {
+                    setShowFlagged((on) => !on);
+                  }}
+                >
+                  Show flagged
+                </button>
+              </div>
+              {sorted.length === 0 ? (
+                <p className="panel__note">No guides match the filters.</p>
+              ) : (
+                <ul className="crispr-list">
+                  {sorted.slice(0, MAX_PREVIEWED).map((g) => {
+                    const flags = flagsOf(g);
+                    const active = guideId(g) === selectedId;
+                    return (
+                      <li key={guideId(g)} ref={active ? selectedRow : null}>
+                        <button
+                          type="button"
+                          className={`crispr-row${active ? ' crispr-row--selected' : ''}`}
+                          aria-expanded={active}
+                          title={active ? 'Close the guide and clear the selection' : undefined}
+                          onClick={() => {
+                            // The open row closes on a second click, and its
+                            // selection goes with it, so the views are clear again.
+                            if (active) {
+                              setClicked(null);
+                              editorStore.setSelection(null);
+                              return;
+                            }
+                            setClicked(guideId(g));
+                            editorStore.setSelection(g.range);
+                            editorStore.revealPosition(g.range.start);
+                          }}
                         >
-                          {g.strand === 'forward' ? '→' : '←'}
-                        </span>
-                        <span className="crispr-row__spacer">
-                          {g.spacer}
-                          <span className="crispr-row__pam">{g.pam}</span>
-                        </span>
-                        <span className="crispr-row__gc" title="GC content">
-                          {Math.round(g.gc * 100)}%
-                        </span>
-                        <span
-                          className="crispr-row__off"
-                          title="Off-targets: exact, then by mismatch"
-                        >
-                          {offTargetSummary(g)}
-                        </span>
-                        <span className="crispr-row__warning" title={flags.join('; ')}>
-                          {flags.length > 0 ? '!' : ''}
-                        </span>
-                      </button>
-                      {active && selected !== null && scheme !== undefined && (
-                        <GuideDetail
-                          doc={doc}
-                          guide={selected}
-                          flags={flags}
-                          others={others}
-                          schemes={schemes}
-                          scheme={scheme}
-                          onScheme={setSchemeId}
-                        />
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {sorted.length > MAX_PREVIEWED && (
-              <p className="panel__note">
-                Showing the first {MAX_PREVIEWED} of {sorted.length.toLocaleString()}. Filter the
-                list or narrow the scan to a selection to see the rest.
-              </p>
-            )}
-          </>
-        ))}
+                          <span
+                            className="crispr-row__strand"
+                            aria-label={
+                              g.strand === 'forward' ? 'forward strand' : 'reverse strand'
+                            }
+                          >
+                            {g.strand === 'forward' ? '→' : '←'}
+                          </span>
+                          <span className="crispr-row__spacer">
+                            {g.spacer}
+                            <span className="crispr-row__pam">{g.pam}</span>
+                          </span>
+                          <span className="crispr-row__gc" title="GC content">
+                            {Math.round(g.gc * 100)}%
+                          </span>
+                          <span
+                            className="crispr-row__off"
+                            title="Off-targets: exact, then by mismatch"
+                          >
+                            {offTargetSummary(g)}
+                          </span>
+                          <span className="crispr-row__warning" title={flags.join('; ')}>
+                            {flags.length > 0 ? '!' : ''}
+                          </span>
+                        </button>
+                        {active && selected !== null && scheme !== undefined && (
+                          <GuideDetail
+                            doc={doc}
+                            guide={selected}
+                            flags={flags}
+                            others={others}
+                            schemes={schemes}
+                            scheme={scheme}
+                            onScheme={setSchemeId}
+                          />
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {sorted.length > MAX_PREVIEWED && (
+                <p className="panel__note">
+                  Showing the first {MAX_PREVIEWED} of {sorted.length.toLocaleString()}. Filter the
+                  list or narrow the scan to a selection to see the rest.
+                </p>
+              )}
+            </>
+          )}
+        </fieldset>
+      )}
     </div>
   );
 }
@@ -614,6 +676,14 @@ function GuideDetail({ doc, guide, flags, others, schemes, scheme, onScheme }: D
         </dd>
         <dt>GC</dt>
         <dd>{Math.round(guide.gc * 100)}%</dd>
+        {guide.specificity !== null && (
+          <>
+            <dt>Specificity</dt>
+            <dd title="MIT score (Hsu 2013) over the off-target sites counted here; 100 is no other site">
+              {guide.specificity.toFixed(0)} / 100
+            </dd>
+          </>
+        )}
         <dt>Flags</dt>
         <dd className={flags.length > 0 ? 'crispr-detail__flags' : undefined}>
           {flags.length > 0 ? flags.join('; ') : 'none'}

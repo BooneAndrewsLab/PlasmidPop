@@ -16,7 +16,12 @@ function docOf(sequence: string, topology: 'linear' | 'circular' = 'linear'): Se
   return SeqDocument.create({ sequence, topology, name: 'test' });
 }
 
-async function openPanel(doc: SeqDocument) {
+/**
+ * Opens the panel on the document and waits for its scan. The all-A spacer
+ * most tests use is flagged, and flagged guides are hidden until asked for,
+ * so by default this asks for them; pass false to test the default list.
+ */
+async function openPanel(doc: SeqDocument, showFlagged = true) {
   act(() => {
     editorStore.openDocument(doc);
   });
@@ -27,6 +32,8 @@ async function openPanel(doc: SeqDocument) {
   await waitFor(() => {
     expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
   });
+  const flagged = screen.queryByRole('button', { name: 'Show flagged' });
+  if (showFlagged && flagged !== null) fireEvent.click(flagged);
   return view;
 }
 
@@ -81,13 +88,17 @@ describe('CrisprPanel', () => {
     // Two clean guides with different PAMs, and a third that is all one base.
     const clean1 = 'ACGTACGTACGTACGTACGT';
     const clean2 = 'GATCGATCGATCGATCGATC';
-    await openPanel(docOf(`${clean1}AGG${FILLER}${clean2}TGG${FILLER}${UNIT}`));
+    await openPanel(docOf(`${clean1}AGG${FILLER}${clean2}TGG${FILLER}${UNIT}`), false);
     const rows = () => screen.getAllByTitle('Off-targets: exact, then by mismatch');
-    expect(rows()).toHaveLength(3);
-
-    fireEvent.click(screen.getByLabelText('Hide flagged guides'));
+    // The flagged one is hidden until asked for, and the title says so.
     expect(rows()).toHaveLength(2);
     expect(screen.getByText('2 of 3')).toBeInTheDocument();
+    const flagged = screen.getByRole('button', { name: 'Show flagged' });
+    expect(flagged).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(flagged);
+    expect(rows()).toHaveLength(3);
+    fireEvent.click(flagged);
+    expect(rows()).toHaveLength(2);
 
     fireEvent.change(screen.getByLabelText('PAM'), { target: { value: 'TGG' } });
     expect(rows()).toHaveLength(1);
@@ -117,11 +128,29 @@ describe('CrisprPanel', () => {
       expect(second.parentElement?.querySelector('.crispr-detail')).not.toBeNull();
     });
     expect(first.parentElement?.querySelector('.crispr-detail')).toBeNull();
+    expect(second).toHaveAttribute('aria-expanded', 'true');
+
+    // A second click on the open row closes it and clears the selection.
+    fireEvent.click(second);
+    await waitFor(() => {
+      expect(second.parentElement?.querySelector('.crispr-detail')).toBeNull();
+    });
+    expect(second).toHaveAttribute('aria-expanded', 'false');
+    expect(editorStore.getState().selection).toBeNull();
   });
 
-  it('says plainly that it has no genome to search', async () => {
-    await openPanel(docOf(`${UNIT}${FILLER}`));
-    expect(screen.getByText(/no genome to search/)).toBeInTheDocument();
+  it('says plainly that it has no genome to search, once, then as a tooltip', async () => {
+    globalThis.localStorage.clear();
+    try {
+      await openPanel(docOf(`${UNIT}${FILLER}`));
+      expect(screen.getByText(/no genome to search/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+      expect(screen.queryByText(/no genome to search/)).not.toBeInTheDocument();
+      expect(screen.getByTitle(/no genome to search/)).toHaveTextContent('Off-targets up to');
+      expect(globalThis.localStorage.getItem('plasmidpop.crisprOffTargetNoteSeen')).toBe('1');
+    } finally {
+      globalThis.localStorage.clear();
+    }
   });
 
   it('refuses a custom PAM that is not IUPAC, and scans once it is', async () => {
@@ -185,6 +214,8 @@ describe('CrisprPanel', () => {
   it('drops the Cas9 sgRNA overhangs for a nuclease they would not clone', async () => {
     await openPanel(docOf(`TTTA${'A'.repeat(23)}${FILLER}`));
     fireEvent.change(screen.getByLabelText('Nuclease'), { target: { value: 'ascas12a' } });
+    // The all-A guide is flagged, and SpCas9 found none for the helper to ask for.
+    fireEvent.click(await screen.findByRole('button', { name: 'Show flagged' }));
     fireEvent.click(await screen.findByRole('button', { name: /A{23}/ }));
 
     const overhangs = await screen.findByLabelText('Overhangs');

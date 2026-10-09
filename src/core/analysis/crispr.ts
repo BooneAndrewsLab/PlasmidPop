@@ -112,6 +112,15 @@ export interface CrisprGuide {
    * `offTargets[0]` is how many exact copies there are besides this one.
    */
   readonly offTargets: readonly number[];
+  /**
+   * The MIT specificity score (Hsu 2013), 0–100, higher is more specific:
+   * 100 / (100 + the summed off-target scores of every site counted in
+   * `offTargets`). `null` unless the nuclease is a 20 nt NGG SpCas9, the
+   * only one the weights were measured for. It sees only the sites within
+   * `maxMismatches` and only the documents searched, so it is an upper
+   * bound on the guide's real specificity.
+   */
+  readonly specificity: number | null;
   /** The off-target sites, fewest mismatches first, at most `MAX_LISTED_SITES`. */
   readonly sites: readonly OffTargetSite[];
 }
@@ -339,6 +348,35 @@ class SeedIndex {
   }
 }
 
+/**
+ * Position weights of the MIT off-target score, 1 = the PAM-distal base
+ * (Hsu et al. 2013, Nat Biotechnol 31:827, Fig. 2 / Supplementary).
+ */
+export const MIT_WEIGHTS: readonly number[] = [
+  0, 0, 0.014, 0, 0, 0.395, 0.317, 0, 0.389, 0.079, 0.445, 0.508, 0.613, 0.851, 0.732, 0.828, 0.615,
+  0.804, 0.685, 0.583,
+];
+
+/**
+ * The MIT score of one off-target site with mismatches at `positions`
+ * (0-based from the spacer's 5' end, 20 nt), as a fraction of a perfect
+ * copy: the product of (1 - weight) over the mismatches, damped by their
+ * mean pairwise distance and by 1/n². No mismatches scores 1.
+ */
+export function mitSiteScore(positions: readonly number[]): number {
+  const n = positions.length;
+  let score = 1;
+  for (const p of positions) score *= 1 - (MIT_WEIGHTS[p] ?? 0);
+  if (n > 1) {
+    let sum = 0;
+    for (let i = 1; i < n; i++) sum += (positions[i] ?? 0) - (positions[i - 1] ?? 0);
+    const d = sum / (n - 1);
+    score *= 1 / (((19 - d) / 19) * 4 + 1);
+  }
+  if (n > 0) score /= n * n;
+  return score;
+}
+
 const PLAIN_BASES = /^[ACGT]+$/;
 
 /**
@@ -366,7 +404,7 @@ export function findCrisprGuides(
 
   // The guides themselves.
   interface Found {
-    readonly guide: Omit<CrisprGuide, 'offTargets' | 'sites'>;
+    readonly guide: Omit<CrisprGuide, 'offTargets' | 'sites' | 'specificity'>;
     readonly spacerAt: number;
     readonly packed: Packed;
   }
@@ -426,6 +464,7 @@ export function findCrisprGuides(
   ];
   const index = new SeedIndex(sites, blockBounds(N, maxMismatches + 1));
   const guides: CrisprGuide[] = [];
+  const scored = nuclease.pam === 'NGG' && nuclease.pamSide === '3prime' && N === 20;
   const step = Math.max(1, Math.floor(found.length / 50));
   found.forEach((f, gi) => {
     if (options.onProgress !== undefined && gi % step === 0) {
@@ -434,6 +473,7 @@ export function findCrisprGuides(
     const counts = new Array<number>(maxMismatches + 1).fill(0);
     const hits: OffTargetSite[] = [];
     const g = f.packed;
+    let siteScores = 0;
     for (const s of index.candidates(f.guide.spacer, gi)) {
       if (s.doc === 0 && s.strand === f.guide.strand && s.spacerAt === f.spacerAt) continue;
       const same =
@@ -441,6 +481,11 @@ export function findCrisprGuides(
       const mm = N - popcount(same);
       if (mm > maxMismatches) continue;
       counts[mm] = (counts[mm] ?? 0) + 1;
+      if (scored) {
+        const positions: number[] = [];
+        for (let j = 0; j < N; j++) if (((same >>> j) & 1) === 0) positions.push(j);
+        siteScores += mitSiteScore(positions);
+      }
       hits.push({
         doc: s.doc,
         strand: s.strand,
@@ -451,7 +496,12 @@ export function findCrisprGuides(
     hits.sort(
       (a, b) => a.mismatches - b.mismatches || a.doc - b.doc || a.range.start - b.range.start,
     );
-    guides.push({ ...f.guide, offTargets: counts, sites: hits.slice(0, MAX_LISTED_SITES) });
+    guides.push({
+      ...f.guide,
+      offTargets: counts,
+      specificity: scored ? 100 / (1 + siteScores) : null,
+      sites: hits.slice(0, MAX_LISTED_SITES),
+    });
   });
   options.onProgress?.(1);
   guides.sort(

@@ -9,7 +9,8 @@ Each row shows the strand (→ forward, ← reverse), the spacer with its PAM
 run on in grey, the GC content, and the off-target counts. A row with a `!`
 has something worth a look — hover it for what. Clicking a row selects the
 protospacer in the views and opens the guide's details right under the row,
-so the list stays in view; clicking another row moves them there.
+so the list stays in view; clicking another row moves them there, and
+clicking the open row again closes it and clears the selection.
 
 While the tab is open, every guide listed is drawn on the map and in the
 sequence view as an arrow on its own strand labelled with its PAM (see
@@ -20,15 +21,19 @@ the rest.
 
 ## Filtering the list
 
-The filters above the list work on the guides already found, so they are
-instant and the heading says how many are shown, as in **139 of 345**:
+The tab is two groups: **Options** sets what is scanned for, and **Guides**
+lists what was found. The filters at the top of **Guides** work on the
+guides already found, so they are instant and the group's title says how
+many are shown, as in **139 of 345**:
 
 - **Spacer contains…** keeps the guides whose spacer has the bases typed, in
   IUPAC codes as in Find — `GRCC` or `TTTN` work — which is how to find a
   guide from a paper, or one starting with a `G` for a U6 promoter.
 - **PAM** keeps one PAM out of those found: SpCas9's `NGG` is four of them,
   and the CRISPR literature prefers some over others.
-- **Hide flagged guides** drops every row with a `!`.
+- **Show flagged** lists the guides with a `!` too. They are hidden until
+  it is pressed, so the list opens on the clean ones and the title's
+  **139 of 345** says how many were set aside.
 
 Spacer length is not a filter: it is fixed by the nuclease, so every guide
 in a list has the same one.
@@ -40,7 +45,9 @@ genome and makes no network request to search one, so the counts say where
 else a guide would cut _this plasmid_ — which is what matters when the guide
 has to leave the backbone alone — and nothing whatever about specificity in
 a cell. Check a guide against the host genome with a genome-wide tool
-(CRISPOR, CHOPCHOP, Benchling) before ordering it.
+(CRISPOR, CHOPCHOP, Benchling) before ordering it. The panel says this under
+the options until **Got it** is pressed; from then on the dotted
+**Off-targets up to** label keeps it as a tooltip.
 
 There is no on-target efficiency score. The published scores are trained
 models, and PlasmidPop ships a number only when it can be checked against
@@ -70,7 +77,7 @@ guide as a possible off-target, so an ambiguity never hides one.
 
 ## Off-targets
 
-**Off-targets to _n_ mismatches** sets how different another site may be and
+**Off-targets up to _n_ mismatches** sets how different another site may be and
 still be counted, from 0 to 4. The counts in a row read exact, then one
 mismatch, then two, and so on: `1 · 0 · 2 · 0` is one exact second site and
 two sites differing in two bases. Only places with a real PAM are counted —
@@ -84,7 +91,22 @@ to the ones in this one.
 
 **Sort by** orders the list along the molecule, worst-first by off-targets
 — fewest exact hits, then fewest near ones — or by GC content, highest
-first.
+first, or by specificity, highest first (SpCas9 only; guides without a score
+go last).
+
+## Specificity score
+
+For SpCas9 (NGG, 20 nt) a guide's details show a **Specificity** from 0 to
+100: the MIT score of Hsu et al. (2013). Each off-target site is weighted by
+where its mismatches fall (mismatches near the PAM hurt most, and a few
+spread-out ones count less than a cluster), and 100 means no other site was
+found. Two exact copies of a guide score 50.
+
+Read it as an upper bound. It sees only the sites within **Off-targets up to
+_n_ mismatches** and only the open documents, so a guide that scores 100
+here is not known to be specific genome-wide. It is not an efficiency
+score, which PlasmidPop does not give. Other nucleases show none, because
+the weights were measured for SpCas9 only.
 
 ## Flags
 
