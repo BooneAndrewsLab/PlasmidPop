@@ -16,8 +16,11 @@ import {
   formatSpan,
   guideOligos,
   isEmptyRange,
+  isValidRange,
   nucleaseProblem,
+  oligoSchemesFor,
   rangeSegment,
+  rangesEqual,
 } from '@/core';
 
 import { type OverlaySpan } from '@/view/overlay';
@@ -81,7 +84,13 @@ export function CrisprPanel({ doc }: Props) {
   const [pam, setPam] = useState('NGG');
   const [spacerLength, setSpacerLength] = useState('20');
   const [maxMismatches, setMaxMismatches] = useState(3);
-  const [inSelection, setInSelection] = useState(false);
+  /**
+   * The region the scan is narrowed to, taken from the selection when the
+   * box is ticked and kept until it is ticked again: a guide clicked in the
+   * list selects its protospacer, and narrowing to that would empty the
+   * list it was clicked in.
+   */
+  const [narrowed, setNarrowed] = useState<{ documentId: string; range: Range } | null>(null);
   const [searchOthers, setSearchOthers] = useState(false);
   const [sortBy, setSortBy] = useState<SortBy>('position');
   const [schemeId, setSchemeId] = useState(OLIGO_SCHEMES[0]?.id ?? 'none');
@@ -116,10 +125,18 @@ export function CrisprPanel({ doc }: Props) {
     };
   }, [custom, nucleaseId, pam, length, problem]);
 
-  const region = useMemo(
-    () => (inSelection && selection !== null && !isEmptyRange(selection) ? selection : null),
-    [inSelection, selection],
-  );
+  const usableSelection = selection !== null && !isEmptyRange(selection) ? selection : null;
+  // Dropped with the document it was taken in, or once an edit leaves it off the end.
+  const region =
+    narrowed !== null &&
+    narrowed.documentId === documentId &&
+    isValidRange(narrowed.range, doc.length, doc.topology)
+      ? narrowed.range
+      : null;
+  const narrowTo = (range: Range | null): void => {
+    setNarrowed(range === null || documentId === null ? null : { documentId, range });
+    if (range !== null) analytics.track('crispr', 'region');
+  };
   const others = useMemo(
     () =>
       searchOthers
@@ -180,15 +197,11 @@ export function CrisprPanel({ doc }: Props) {
   const error = answered?.error ?? null;
   const scanning = request !== null && answered === null;
 
+  // Once per nuclease chosen, not once per keystroke of a custom PAM.
+  const nucleaseKind = nuclease?.id ?? null;
   useEffect(() => {
-    if (nuclease !== null) analytics.track('crispr', 'scan', nuclease.id);
-  }, [nuclease]);
-  useEffect(() => {
-    if (region !== null) analytics.track('crispr', 'region');
-  }, [region]);
-  useEffect(() => {
-    if (others.length > 0) analytics.track('crispr', 'background');
-  }, [others.length]);
+    if (nucleaseKind !== null) analytics.track('crispr', 'scan', nucleaseKind);
+  }, [nucleaseKind]);
 
   const sorted = useMemo(() => {
     const list = [...(guides ?? [])];
@@ -244,7 +257,8 @@ export function CrisprPanel({ doc }: Props) {
     editorStore.revealPosition(g.range.start);
   }, [activated, sorted]);
 
-  const scheme = OLIGO_SCHEMES.find((s) => s.id === schemeId) ?? OLIGO_SCHEMES[0];
+  const schemes = nuclease === null ? OLIGO_SCHEMES : oligoSchemesFor(nuclease);
+  const scheme = schemes.find((s) => s.id === schemeId) ?? schemes[0];
   const oligos =
     selected !== null && scheme !== undefined ? guideOligos(selected.spacer, scheme) : null;
 
@@ -328,20 +342,42 @@ export function CrisprPanel({ doc }: Props) {
         <label className="toggle">
           <input
             type="checkbox"
-            checked={inSelection}
-            disabled={selection === null || isEmptyRange(selection)}
+            checked={region !== null}
+            disabled={region === null && usableSelection === null}
             onChange={(e) => {
-              setInSelection(e.target.checked);
+              narrowTo(e.target.checked ? usableSelection : null);
             }}
           />
           Only cuts in the selection
         </label>
+        {region !== null && (
+          <p className="panel__note">
+            Cuts in {formatSpan(region, doc.length)}
+            {usableSelection !== null &&
+              !rangesEqual(usableSelection, region) &&
+              covered.length === 0 && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="button button--quiet button--small"
+                    onClick={() => {
+                      narrowTo(usableSelection);
+                    }}
+                  >
+                    Use the selection now
+                  </button>
+                </>
+              )}
+          </p>
+        )}
         <label className="toggle">
           <input
             type="checkbox"
             checked={searchOthers}
             onChange={(e) => {
               setSearchOthers(e.target.checked);
+              if (e.target.checked) analytics.track('crispr', 'background');
             }}
           />
           Count off-targets in the other open documents too
@@ -499,12 +535,12 @@ export function CrisprPanel({ doc }: Props) {
           <label className="panel__field">
             Overhangs
             <select
-              value={schemeId}
+              value={scheme?.id}
               onChange={(e) => {
                 setSchemeId(e.target.value);
               }}
             >
-              {OLIGO_SCHEMES.map((s) => (
+              {schemes.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
@@ -531,7 +567,7 @@ export function CrisprPanel({ doc }: Props) {
                   type="button"
                   className="button button--small"
                   onClick={() => {
-                    analytics.track('crispr', 'oligos', schemeId);
+                    analytics.track('crispr', 'oligos', scheme?.id);
                     const at = (selected.range.start + 1).toLocaleString();
                     void savePrimers(
                       [

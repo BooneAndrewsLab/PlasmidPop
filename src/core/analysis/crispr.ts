@@ -356,7 +356,8 @@ export function findCrisprGuides(
   nuclease: Nuclease,
   options: CrisprOptions = {},
 ): CrisprGuide[] {
-  const maxMismatches = Math.max(0, Math.min(4, options.maxMismatches ?? 3));
+  const asked = Math.trunc(options.maxMismatches ?? 3);
+  const maxMismatches = Number.isFinite(asked) ? Math.max(0, Math.min(4, asked)) : 3;
   const upper = sequence.toUpperCase();
   const L = upper.length;
   const N = nuclease.spacerLength;
@@ -482,12 +483,16 @@ export interface OligoScheme {
   readonly bottom: string;
   /** A G is put in front of a spacer that does not start with one, for the U6 promoter. */
   readonly leadingG: boolean;
+  /** The nucleases it is for, by PAM side: a Cas9 sgRNA vector is no use to Cas12a. */
+  readonly pamSides: readonly Nuclease['pamSide'][];
 }
 
 /**
  * pX330 and lentiCRISPRv2 take BbsI or BsmBI overhangs CACC/AAAC with a
- * leading G for U6 (Zhang lab protocols, Ran 2013); "none" is the bare
- * spacer and its reverse complement.
+ * leading G for U6 (Zhang lab protocols, Ran 2013), as SaCas9's pX601 does
+ * with BsaI; a Cas12a crRNA vector takes others, so that scheme is for the
+ * 3'-PAM nucleases only. "none" is the bare spacer and its reverse
+ * complement, for any.
  */
 export const OLIGO_SCHEMES: readonly OligoScheme[] = [
   {
@@ -496,9 +501,22 @@ export const OLIGO_SCHEMES: readonly OligoScheme[] = [
     top: 'CACC',
     bottom: 'AAAC',
     leadingG: true,
+    pamSides: ['3prime'],
   },
-  { id: 'none', name: 'No overhangs', top: '', bottom: '', leadingG: false },
+  {
+    id: 'none',
+    name: 'No overhangs',
+    top: '',
+    bottom: '',
+    leadingG: false,
+    pamSides: ['3prime', '5prime'],
+  },
 ];
+
+/** The oligo schemes that fit `nuclease`. */
+export function oligoSchemesFor(nuclease: Pick<Nuclease, 'pamSide'>): readonly OligoScheme[] {
+  return OLIGO_SCHEMES.filter((s) => s.pamSides.includes(nuclease.pamSide));
+}
 
 /** The two oligos to order for `spacer`, 5'→3'. */
 export function guideOligos(

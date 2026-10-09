@@ -86,7 +86,13 @@ are efficiency predictions:
 selected range — select a feature in the feature list, or a stretch in
 either view, to get the guides that cut there. The cut, not the protospacer,
 is what has to be in the range, so a guide reading into the region from
-outside it still counts if it cuts inside.
+outside it still counts if it cuts inside. For AsCas12a, whose two strands
+are cut five bases apart, it is the break on the PAM strand that counts.
+
+The region is taken when you tick the box, and the panel shows it under the
+box. Clicking a guide afterwards selects that guide without narrowing the
+list to it. To narrow to a different stretch, select it and press **Use the
+selection now**, or untick and tick the box again.
 
 ## Ordering and annotating a guide
 
@@ -96,8 +102,10 @@ both strands are cut, GC and flags.
 **Oligos to order** writes the two oligos to anneal and clone, 5′→3′.
 **pX330 / lentiCRISPRv2** adds the `CACC` and `AAAC` overhangs those vectors'
 BbsI and BsmBI sites take, and a `G` in front of a spacer that has not got
-one, since the U6 promoter starts with G. **No overhangs** gives the bare
-spacer and its reverse complement. **Copy oligos** puts both on the
+one, since the U6 promoter starts with G. These are Cas9 sgRNA vectors, so
+the choice is offered for SpCas9, SaCas9 and custom PAMs but not for
+AsCas12a, whose crRNA vectors take other overhangs. **No overhangs** gives
+the bare spacer and its reverse complement, for any nuclease. **Copy oligos** puts both on the
 clipboard; **Save oligos to My primers** puts them in
 [My primers](10-primers.md#my-primers), where they can be exported with the
 rest of an order.

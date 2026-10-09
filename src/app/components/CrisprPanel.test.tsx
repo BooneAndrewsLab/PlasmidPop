@@ -105,6 +105,49 @@ describe('CrisprPanel', () => {
     expect(screen.getByText('AAACAATGCAATGCCAATGCAGGTC')).toBeInTheDocument();
   });
 
+  it('holds the region it was narrowed to while guides in it are clicked', async () => {
+    // Three guides, cutting at 17, 50 and 83; a selection over the last two.
+    await openPanel(docOf([UNIT, UNIT, UNIT].join(FILLER)));
+    act(() => {
+      editorStore.setSelection({ start: 40, end: 89 });
+    });
+    fireEvent.click(screen.getByLabelText('Only cuts in the selection'));
+    await waitFor(() => {
+      expect(screen.getAllByTitle('Exact, then by mismatch')).toHaveLength(2);
+    });
+
+    // Clicking a guide selects its protospacer. Were the region read from
+    // the selection, the other guide would drop out of the list it was
+    // clicked in and the selection to get back to would be gone.
+    const [first] = screen.getAllByRole('button', { name: /AAAAAAAAAAAAAAAAAAAA/ });
+    if (first === undefined) throw new Error('no guide was listed');
+    fireEvent.click(first);
+    expect(editorStore.getState().selection).toEqual({ start: 33, end: 53 });
+    expect(await screen.findByText('Oligos to order')).toBeInTheDocument();
+    expect(screen.getAllByTitle('Exact, then by mismatch')).toHaveLength(2);
+    expect(screen.getByLabelText('Only cuts in the selection')).toBeChecked();
+
+    // A new selection is taken up only when asked for.
+    act(() => {
+      editorStore.setSelection({ start: 0, end: 30 });
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Use the selection now' }));
+    await waitFor(() => {
+      expect(screen.getAllByTitle('Exact, then by mismatch')).toHaveLength(1);
+    });
+  });
+
+  it('drops the Cas9 sgRNA overhangs for a nuclease they would not clone', async () => {
+    await openPanel(docOf(`TTTA${'A'.repeat(23)}${FILLER}`));
+    fireEvent.change(screen.getByLabelText('Nuclease'), { target: { value: 'ascas12a' } });
+    fireEvent.click(await screen.findByRole('button', { name: /A{23}/ }));
+
+    const overhangs = await screen.findByLabelText('Overhangs');
+    expect([...overhangs.querySelectorAll('option')].map((o) => o.textContent)).toEqual([
+      'No overhangs',
+    ]);
+  });
+
   it('adds the chosen guide to the document as a feature', async () => {
     const doc = docOf(`${UNIT}${FILLER}`);
     await openPanel(doc);

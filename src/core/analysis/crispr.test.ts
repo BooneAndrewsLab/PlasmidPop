@@ -11,6 +11,7 @@ import {
   findCrisprGuides,
   guideOligos,
   nucleaseProblem,
+  oligoSchemesFor,
 } from './crispr';
 import { codeMask } from './search';
 
@@ -227,6 +228,16 @@ describe('findCrisprGuides off-targets', () => {
     ]);
   });
 
+  it('takes a fractional or missing-number limit as a whole one', () => {
+    const seq = `${UNIT}${FILLER}CC${'A'.repeat(18)}TGG`;
+    expect(findCrisprGuides(seq, 'linear', SPCAS9, { maxMismatches: 2.5 })[0]?.offTargets).toEqual([
+      0, 0, 1,
+    ]);
+    expect(findCrisprGuides(seq, 'linear', SPCAS9, { maxMismatches: NaN })[0]?.offTargets).toEqual([
+      0, 0, 1, 0,
+    ]);
+  });
+
   it('never lets an ambiguous base hide an off-target', () => {
     // An N in the second site: it is not a guide itself, but it could be
     // the same spacer, so it is still counted against the first.
@@ -290,6 +301,12 @@ describe('a region and the oligos', () => {
       top: spacer,
       bottom: reverseComplement(spacer),
     });
+  });
+
+  it('offers the Cas9 sgRNA overhangs to Cas9-like nucleases only', () => {
+    expect(oligoSchemesFor(SPCAS9).map((s) => s.id)).toEqual(['px330', 'none']);
+    expect(oligoSchemesFor(nuclease('sacas9')).map((s) => s.id)).toEqual(['px330', 'none']);
+    expect(oligoSchemesFor(ASCAS12A).map((s) => s.id)).toEqual(['none']);
   });
 
   it('says why a custom nuclease cannot be used', () => {
