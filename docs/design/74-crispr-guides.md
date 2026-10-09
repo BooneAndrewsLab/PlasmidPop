@@ -143,6 +143,7 @@ every other nuclease gets `null` and the panel hides the row.
 It is an upper bound: it sees only the sites within the chosen mismatch
 limit (default 3) and only the open documents. The guide page says so. The
 unit tests pin the formula by hand arithmetic, not against another
-implementation, so the weights are the one thing checked by reading, not by
-an oracle. On-target scores (Rule Set 2, CRISPRscan) stay out until a
+implementation. The weights were compared by eye with `hitScoreM` in
+CRISPOR's `crispor.py` (identical, as is the formula in `calcHitScore` and
+the `100 / (100 + Σ)` aggregation); they are not pinned by an oracle file. On-target scores (Rule Set 2, CRISPRscan) stay out until a
 reference implementation with test vectors is available.
