@@ -46,6 +46,7 @@ export const PRINT_LINEAR_THEME: LinearTheme = {
   editDelete: '#b3261e',
   preview: '#6b4fd8',
   traceQuality: 'rgba(27, 110, 140, 0.12)',
+  gc: '#2a8f7a',
   baseColors: {
     a: '#2f7d32',
     c: '#1b6ec8',
@@ -217,6 +218,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
       overlayLanes: NO_LANES,
       edits: options.edits ?? null,
       colorBases: options.colorBases ?? false,
+      gc: null,
       numberComplement: options.numberComplement ?? false,
       residueNumbering: numbering,
       scrollTop: top,

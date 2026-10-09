@@ -158,6 +158,14 @@ export class AnalysisClient {
     return unpackCutSites(res.sites);
   }
 
+  /** The GC fraction in a window centred on each base (item 75). */
+  async gcProfile(sequence: string, window: number, circular: boolean): Promise<Float32Array> {
+    const res = await this.send({ kind: 'gcProfile', sequence, window, circular });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'gcProfile') throw new Error('Unexpected analysis response');
+    return res.profile;
+  }
+
   async orfs(sequence: string, topology: Topology, options: OrfOptions = {}): Promise<Orf[]> {
     const res = await this.send({ kind: 'orfs', sequence, topology, options });
     if (res.kind === 'error') throw new Error(res.message);

@@ -35,6 +35,10 @@ export interface LinearMetrics {
    * numbers (#97); 0 when residues are not numbered.
    */
   readonly residueNumberHeight: number;
+  /**
+   * Height of the GC track drawn under the strands (item 75); 0 without one.
+   */
+  readonly gcHeight: number;
   /** Height of one preview-overlay lane, drawn outside the feature lanes. */
   readonly overlayHeight: number;
   /** Vertical space after the last lane of a row. */
@@ -88,6 +92,7 @@ export type Hit =
       readonly lane: number;
       readonly position: number;
     }
+  | { readonly kind: 'gc'; readonly row: RowLayout; readonly position: number }
   | { readonly kind: 'none' };
 
 export class LinearLayout {
@@ -138,7 +143,7 @@ export class LinearLayout {
   /** Ruler, trace and strands, before any feature lane. */
   baseBlockHeight(row?: { readonly scale: number }): number {
     const m = this.metrics;
-    return m.rulerHeight + m.traceHeight + this.strandsHeight(row);
+    return m.rulerHeight + m.traceHeight + this.strandsHeight(row) + m.gcHeight;
   }
 
   /** Height of one strand's line of bases in `row`: taller where its bases are larger. */
@@ -168,6 +173,11 @@ export class LinearLayout {
   /** Where the letters of a strand line starting at `top` sit, whatever their size. */
   textBaseline(row: RowLayout, top: number): number {
     return top + this.lineHeight(row) * 0.75;
+  }
+
+  /** Top of the GC track, directly under the strands. */
+  gcTop(row: RowLayout): number {
+    return row.top + this.baseBlockHeight(row) - this.metrics.gcHeight;
   }
 
   /** Top of translation line `line` (0 = directly under the strands). */
@@ -307,6 +317,9 @@ export class LinearLayout {
     const column = this.offsetAtX(row, x);
     const rowLength = row.end - row.start;
     const baseAt = row.start + Math.min(rowLength - 1, Math.max(0, Math.floor(column)));
+    if (m.gcHeight > 0 && y >= this.gcTop(row) && y < this.translationTop(row, 0)) {
+      return { kind: 'gc', row, position: baseAt };
+    }
     const translationsTop = this.translationTop(row, 0);
     if (row.translations > 0 && y >= translationsTop && y < this.laneTop(row, 0)) {
       const line = Math.floor((y - translationsTop) / m.translationHeight);
@@ -362,6 +375,8 @@ export interface MetricsOptions {
    * numbers (#97). Default off, for drawings with no translations.
    */
   readonly residueNumbering?: ResidueNumbering;
+  /** Whether room is kept under the strands for the GC track (item 75). */
+  readonly gc?: boolean;
   /** Extra space before the first column, for a sticky end hanging off the left. */
   readonly extraLeftGutter?: number;
   /** Extra space after the last column, for a sticky end hanging off the right. */
@@ -391,6 +406,7 @@ export function linearMetrics(o: MetricsOptions): LinearMetrics {
     laneHeight: at(20),
     translationHeight: at(16) + numberBand,
     residueNumberHeight: numberBand,
+    gcHeight: o.gc === true ? at(30) : 0,
     overlayHeight: at(18),
     rowGap: at(14),
     leftGutter: at(72) + (o.extraLeftGutter ?? 0),

@@ -105,6 +105,7 @@ export function DiffStrip({ doc, diff, hunk }: Props) {
       overlayLanes: drawing.noLanes,
       edits: diff,
       colorBases: false,
+      gc: null,
       numberComplement: false,
       residueNumbering: 'off',
       scrollTop: drawing.scrollTop,

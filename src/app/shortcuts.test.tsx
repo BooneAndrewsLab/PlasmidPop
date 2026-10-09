@@ -36,6 +36,11 @@ describe('view shortcuts', () => {
     alt('KeyR');
     expect(editorStore.getState().showCutSites).toBe(false);
 
+    alt('KeyG');
+    expect(editorStore.getState().showGc).toBe(true);
+    alt('KeyG');
+    expect(editorStore.getState().showGc).toBe(false);
+
     alt('KeyS');
     expect(editorStore.getState().sidebarOpen).toBe(false);
     alt('KeyS');

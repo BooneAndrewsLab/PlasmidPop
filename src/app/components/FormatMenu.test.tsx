@@ -49,6 +49,23 @@ describe('FormatMenu', () => {
     expect(editorStore.getState().baseColors).toBeNull();
   });
 
+  it('turns the GC track on and sets its window (item 75)', () => {
+    open();
+    expect(screen.queryByRole('combobox', { name: 'GC window' })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'GC content track' }));
+    expect(editorStore.getState().showGc).toBe(true);
+    fireEvent.change(screen.getByRole('combobox', { name: 'GC window' }), {
+      target: { value: '200' },
+    });
+    expect(editorStore.getState().gcWindow).toBe(200);
+    fireEvent.change(screen.getByRole('combobox', { name: 'GC window' }), {
+      target: { value: 'auto' },
+    });
+    expect(editorStore.getState().gcWindow).toBeNull();
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'GC content track' }));
+    expect(editorStore.getState().showGc).toBe(false);
+  });
+
   it('numbers residues every tenth by default, or every one, or not at all (#97)', () => {
     open();
     const item = (name: string) => screen.getByRole('menuitemradio', { name });

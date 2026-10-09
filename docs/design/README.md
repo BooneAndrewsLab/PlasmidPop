@@ -86,6 +86,7 @@ piece of work needs its reasoning written down, with the next free number.
 72. [Primer lists from Excel workbooks](72-primer-workbooks.md)
 73. [A piece of a feature remembers what it was cut from](73-feature-provenance.md)
 74. [CRISPR guide finder](74-crispr-guides.md)
+75. [GC content track](75-gc-track.md)
 
 ## Changelog to 1.1.0
 

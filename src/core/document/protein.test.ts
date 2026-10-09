@@ -145,6 +145,7 @@ describe('a protein document (#66)', () => {
 describe('the tools a document has (#66)', () => {
   const nucleotideOnly: readonly DocumentTool[] = [
     'complement',
+    'gc',
     'translations',
     'enzymes',
     'orfs',

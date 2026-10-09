@@ -1,4 +1,5 @@
 import {
+  GC_WINDOW_CHOICES,
   type AgarosePercent,
   type LadderChoice,
   type PrimerCriteria,
@@ -60,6 +61,9 @@ export interface ViewPrefs {
   /** Which residues are numbered; see `SharedState.residueNumbering`. */
   readonly residueNumbering: ResidueNumbering;
   readonly colorBases: boolean;
+  /** The GC track; see `SharedState.showGc` and `gcWindow`. */
+  readonly showGc: boolean;
+  readonly gcWindow: number | null;
   /** How tall a read's trace is drawn; see `SharedState.traceSize`. */
   readonly traceSize: TraceSize;
   /** The base colours the user chose; see `SharedState.baseColors`. */
@@ -223,6 +227,10 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (typeof record['enzymeSupplier'] === 'string') {
     prefs.enzymeSupplier = record['enzymeSupplier'].slice(0, 8);
   }
+  const gcWindow = record['gcWindow'];
+  if (gcWindow === null) prefs.gcWindow = null;
+  // Only the windows the Format menu offers, so its select can always show it.
+  else if (GC_WINDOW_CHOICES.some((w) => w === gcWindow)) prefs.gcWindow = gcWindow as number;
   const code = record['geneticCode'];
   if (typeof code === 'number' && isTranslationTable(code)) prefs.geneticCode = code;
   if (typeof record['primerCriteria'] === 'object' && record['primerCriteria'] !== null) {
@@ -259,6 +267,7 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
     'phoneShowCutSites',
     'numberComplement',
     'colorBases',
+    'showGc',
     'sidebarOpen',
     'enzymeGroupIsoschizomers',
     'enzymeSortReversed',
@@ -289,6 +298,8 @@ function snapshot(): ViewPrefs {
     numberComplement,
     residueNumbering,
     colorBases,
+    showGc,
+    gcWindow,
     traceSize,
     baseColors,
     editsBaseline,
@@ -322,6 +333,8 @@ function snapshot(): ViewPrefs {
     numberComplement,
     residueNumbering,
     colorBases,
+    showGc,
+    gcWindow,
     traceSize,
     baseColors,
     editsBaseline:
@@ -360,6 +373,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.numberComplement === b.numberComplement &&
     a.residueNumbering === b.residueNumbering &&
     a.colorBases === b.colorBases &&
+    a.showGc === b.showGc &&
+    a.gcWindow === b.gcWindow &&
     a.traceSize === b.traceSize &&
     a.baseColors === b.baseColors &&
     a.editsBaseline === b.editsBaseline &&
@@ -411,6 +426,8 @@ export function startViewPrefs(): () => void {
     editorStore.setResidueNumbering(stored.residueNumbering);
   }
   if (stored.colorBases !== undefined) editorStore.setColorBases(stored.colorBases);
+  if (stored.showGc !== undefined) editorStore.setShowGc(stored.showGc);
+  if (stored.gcWindow !== undefined) editorStore.setGcWindow(stored.gcWindow);
   if (stored.keyBindings !== undefined) {
     for (const [id, binding] of Object.entries(stored.keyBindings)) {
       editorStore.setKeyBinding(id, binding);

@@ -87,6 +87,14 @@ export type AnalysisRequest =
       readonly topology: Topology;
       readonly nuclease: Nuclease;
       readonly options: Omit<CrisprOptions, 'onProgress'>;
+    }
+  | {
+      /** The sliding-window GC fraction at every base (item 75). */
+      readonly id: number;
+      readonly kind: 'gcProfile';
+      readonly sequence: string;
+      readonly window: number;
+      readonly circular: boolean;
     };
 
 /**
@@ -123,6 +131,7 @@ export type AnalysisResponse =
       readonly detections: readonly Detection[];
     }
   | { readonly id: number; readonly kind: 'crispr'; readonly guides: readonly CrisprGuide[] }
+  | { readonly id: number; readonly kind: 'gcProfile'; readonly profile: Float32Array }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

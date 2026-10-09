@@ -18,6 +18,8 @@ const DEFAULTS = {
   numberComplement: false,
   residueNumbering: 'tens',
   colorBases: false,
+  showGc: false,
+  gcWindow: null,
   traceSize: 'short',
   baseColors: null,
   editsBaseline: 'opened',
@@ -53,6 +55,8 @@ function reset(): void {
   editorStore.setNumberComplement(DEFAULTS.numberComplement);
   editorStore.setResidueNumbering(DEFAULTS.residueNumbering);
   editorStore.setColorBases(DEFAULTS.colorBases);
+  editorStore.setShowGc(DEFAULTS.showGc);
+  editorStore.setGcWindow(DEFAULTS.gcWindow);
   editorStore.setTraceSize(DEFAULTS.traceSize);
   editorStore.setBaseColors(DEFAULTS.baseColors);
   editorStore.setEditsBaseline(DEFAULTS.editsBaseline);
@@ -95,6 +99,8 @@ describe('view preferences', () => {
       numberComplement: true,
       residueNumbering: 'every',
       colorBases: true,
+      showGc: true,
+      gcWindow: 200,
       traceSize: 'tall',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
       editsBaseline: 'saved',
@@ -172,6 +178,8 @@ describe('view preferences', () => {
       numberComplement: true,
       residueNumbering: 'off',
       colorBases: true,
+      showGc: true,
+      gcWindow: 200,
       traceSize: 'tall',
       baseColors: { a: '#00aa00', c: '#0000ff', g: '#000000', t: '#ff0000' },
       editsBaseline: 'off',

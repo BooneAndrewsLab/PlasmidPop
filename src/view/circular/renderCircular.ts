@@ -20,6 +20,7 @@ import { type DrawingContext } from '../drawingContext';
 import { isTransparent } from '../svg/svgContext';
 import { contrastingText, featureColor } from '../featureColors';
 import { thicknessFraction } from '../featureShape';
+import { type GcTrack } from '../linear/renderLinear';
 import { type LaneAssignment } from '../linear/lanes';
 import { type OverlaySpan, overlayPieces } from '../overlay';
 import { drawableFeatures, featuresToLabel } from '../visibleFeatures';
@@ -50,6 +51,8 @@ export interface CircularTheme {
   readonly editInsert: string;
   readonly editChange: string;
   readonly editDelete: string;
+  /** The GC ring's line and fill. */
+  readonly gc: string;
 }
 
 export interface CircularRenderParams {
@@ -67,6 +70,11 @@ export interface CircularRenderParams {
    * question the same way. Null when there is nothing to mark.
    */
   readonly edits: DocumentDiff | null;
+  /**
+   * The GC ring just inside the feature lanes (item 75); null draws none.
+   * The profile is per base and wraps the origin already.
+   */
+  readonly gc?: GcTrack | null;
   readonly hoveredFeatureId: string | null;
   /** Top-strand cut position under the pointer, if any; its label is kept. */
   readonly hoveredCut: number | null;
@@ -283,6 +291,79 @@ function innerRadius(layout: CircularLayout): number {
       ? layout.laneRadius(layout.laneCount - 1) - layout.ringWidth
       : layout.radius - 20;
   return Math.max(4, r);
+}
+
+/** Radial thickness of the GC ring at the map's 12 px type (item 75). */
+const GC_RING = 26;
+/** Room kept between the last feature lane and the GC ring. */
+const GC_GAP = 6;
+/** The most points the GC ring is sampled at. */
+const GC_MAX_SAMPLES = 20_000;
+
+/**
+ * Where the GC ring sits: just inside the feature lanes, `outer` the radius
+ * of 100 % and `inner` that of 0 %. Null when the map is too small for it to
+ * be more than a speck. Exported so hit-testing asks what the drawing does.
+ */
+export function gcRingBounds(layout: CircularLayout): { outer: number; inner: number } | null {
+  const outer = innerRadius(layout) - GC_GAP;
+  const inner = outer - GC_RING;
+  return inner >= 12 ? { outer, inner } : null;
+}
+
+/**
+ * The GC ring: the window's GC fraction at each point round the map, as a
+ * line, with the 0 and 50 % levels as a hairline circle. The
+ * profile was made with the origin wrapped, so the ring closes on itself.
+ * Sampled about every 3 px of arc rather than per base, so a megabase map
+ * costs what a plasmid does.
+ */
+function drawGcRing(ctx: DrawingContext, p: CircularRenderParams): void {
+  const { gc, layout, theme, doc } = p;
+  if (gc === null || gc === undefined || doc.length === 0) return;
+  if (gc.profile.length !== doc.length) return;
+  const band = gcRingBounds(layout);
+  if (band === null) return;
+  const n = doc.length;
+  const circular = doc.isCircular;
+  const bins = Math.max(8, Math.min(n, GC_MAX_SAMPLES, Math.round((2 * Math.PI * band.outer) / 3)));
+  ctx.strokeStyle = theme.tick;
+  ctx.lineWidth = 1;
+  for (const r of [band.inner, (band.inner + band.outer) / 2]) {
+    ctx.beginPath();
+    ctx.arc(layout.cx, layout.cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = theme.gc;
+  ctx.lineWidth = 1.2;
+  const span = band.outer - band.inner;
+  let open = false;
+  const close = (): void => {
+    if (!open) return;
+    ctx.stroke();
+    open = false;
+  };
+  for (let i = 0; i <= bins; i++) {
+    const wrapped = i === bins;
+    // A linear sequence is not a loop: the ring stops where it ends.
+    if (wrapped && !circular) break;
+    const base = Math.min(n - 1, Math.floor(((wrapped ? 0 : i) * n) / bins));
+    const f = gc.profile[base];
+    if (f === undefined || Number.isNaN(f)) {
+      close();
+      continue;
+    }
+    const angle = layout.angleOf(wrapped ? n : (i * n) / bins);
+    const r = band.inner + span * f;
+    const x = layout.cx + r * Math.cos(angle);
+    const y = layout.cy + r * Math.sin(angle);
+    if (!open) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      open = true;
+    } else ctx.lineTo(x, y);
+  }
+  close();
 }
 
 /** Returns whether the band was too thin to stand on its own. */
@@ -1185,10 +1266,13 @@ function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = theme.ink;
   ctx.font = p.titleFont;
-  const innerRadius =
+  const lanesInner =
     layout.laneCount > 0
       ? layout.laneRadius(layout.laneCount - 1) - layout.ringWidth
       : layout.radius - 20;
+  // The GC ring takes the room just inside the lanes; the name goes inside it.
+  const gcBand = p.gc === null || p.gc === undefined ? null : gcRingBounds(layout);
+  const innerRadius = gcBand === null ? lanesInner : gcBand.inner;
   const maxWidth = Math.max(40, innerRadius * 1.8);
   // The room inside the lanes is what it is. A name wider than it is set
   // smaller, down to a floor, and past that it is left out: the toolbar has
@@ -1536,6 +1620,7 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   drawGhosts(ctx, p);
   if (tinySelection) drawSelectionMarker(ctx, p);
   drawEditMarks(ctx, p, m);
+  drawGcRing(ctx, p);
   drawOverlays(ctx, p);
   const { dropped: droppedLabels, drawn } = drawLabels(ctx, p, m, features, ticks);
   drawChangeLabel(ctx, p, m);

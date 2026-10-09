@@ -51,6 +51,15 @@ const TOGGLES: readonly {
       editorStore.setShowCutSites(v);
     },
   },
+  {
+    action: 'toggle-gc',
+    binding: 'alt+g',
+    tool: 'gc',
+    read: (s) => s.showGc,
+    set: (v) => {
+      editorStore.setShowGc(v);
+    },
+  },
 ];
 
 /**

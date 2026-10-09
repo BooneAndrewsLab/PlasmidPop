@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { GC_WINDOW_CHOICES } from '@/core';
 import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
@@ -59,6 +60,8 @@ export function FormatMenu() {
     numberComplement,
     residueNumbering,
     colorBases,
+    showGc,
+    gcWindow,
     traceSize,
     history,
     baseColors,
@@ -105,6 +108,7 @@ export function FormatMenu() {
     toggle();
   });
   const key = useBindingLabel('format-menu');
+  const gcKey = useBindingLabel('toggle-gc');
   useEffect(() => {
     if (!open || !focusFirst.current) return;
     focusFirst.current = false;
@@ -260,6 +264,50 @@ export function FormatMenu() {
               >
                 Reset
               </button>
+            </div>
+          )}
+          <div className="menu__separator" />
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={showGc}
+            className="menu__item"
+            disabled={isProtein}
+            title={
+              isProtein
+                ? 'GC content is a property of DNA'
+                : `A GC content track under the strands and inside the map (${gcKey})`
+            }
+            onClick={() => {
+              analytics.trackOnce('view', 'format', 'gc');
+              editorStore.setShowGc(!showGc);
+            }}
+          >
+            <span>GC content track</span>
+            <Tick on={showGc} />
+          </button>
+          {showGc && !isProtein && (
+            <div className="menu__item menu__item--field" role="group" aria-label="GC window">
+              <label title="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map">
+                Window
+                <select
+                  aria-label="GC window"
+                  value={gcWindow === null ? 'auto' : String(gcWindow)}
+                  onChange={(e) => {
+                    analytics.trackOnce('view', 'format', 'gc-window');
+                    editorStore.setGcWindow(
+                      e.target.value === 'auto' ? null : Number(e.target.value),
+                    );
+                  }}
+                >
+                  <option value="auto">Automatic</option>
+                  {GC_WINDOW_CHOICES.map((w) => (
+                    <option key={w} value={w}>
+                      {w} bp
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           )}
           <div className="menu__separator" />

@@ -21,6 +21,7 @@ import {
   fragmentFromRange,
   isCodingFeature,
   formatLength,
+  gcWindowFor,
   hasTool,
   isEmptyRange,
   rangeContains,
@@ -69,7 +70,9 @@ import { useEditDiff } from '../state/editDiff';
 import { readLinearTheme } from './linearTheme';
 import { SelectionBar } from './SelectionBar';
 import { editorStore } from '../state/editorStore';
+import { gcTip as describeGc } from '../gcTip';
 import { useEditorState } from '../state/useEditorStore';
+import { useGcProfile } from '../state/useGcProfile';
 import { recallView, rememberView } from '../state/viewMemory';
 
 /** How long a notice about rejected input stays after the last rejected keystroke. */
@@ -137,6 +140,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     numberComplement,
     residueNumbering,
     colorBases,
+    showGc,
+    gcWindow,
     traceSize,
     baseColors,
     reveal,
@@ -148,6 +153,17 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   // A protein has one strand, no CDS to translate and nothing to cut (#66).
   const showComplement = complementPref && !reader && hasTool(doc, 'complement');
   const showTranslations = translationsPref && !reader && hasTool(doc, 'translations');
+  // The GC track is DNA's, and the phone's reader has the room for bases only.
+  const gcOn = showGc && !reader && hasTool(doc, 'gc');
+  const gcWindowBases = gcWindowFor(gcWindow, doc.length, false);
+  const gcValues = useGcProfile(doc, gcWindowBases, gcOn);
+  const gcTrack = useMemo(
+    () =>
+      gcOn && gcValues !== null && gcValues.length === doc.length
+        ? { profile: gcValues, window: gcWindowBases }
+        : null,
+    [gcOn, gcValues, gcWindowBases, doc.length],
+  );
   const cutSites = useMemo(
     () =>
       showCutSites && hasTool(doc, 'enzymes') && analysis !== null && analysis.doc === doc
@@ -180,6 +196,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const [scrollLeft, setScrollLeft] = useState(0);
   /** What the pointer is over: the feature and translation tracks are click
       targets, the bases are text. */
+  /** What the GC track says under the pointer, as the canvas's tooltip. */
+  const [gcTip, setGcTip] = useState<string | undefined>(undefined);
   const [cursor, setCursor] = useState<'text' | 'pointer' | 'default'>('text');
   const dragAnchor = useRef<number | null>(null);
   /** While a mouse drag is making the selection, the selection bar waits for it to end. */
@@ -224,6 +242,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       basesPerRow: 10,
       charWidth,
       showComplement,
+      gc: gcOn,
       // Tall enough for enzyme labels whenever any enzyme is shown, so rows keep
       // their height while sites are recomputed after an edit.
       cutSiteLabels: showCutSites && hasTool(doc, 'enzymes') && shownEnzymes.size > 0,
@@ -246,6 +265,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     seqFontSize,
     seqBasesPerRow,
     showComplement,
+    gcOn,
     showCutSites,
     shownEnzymes.size,
     traceSize,
@@ -427,6 +447,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         edits,
         // A, C, G and T colours would say nothing true of residues (#66).
         colorBases: colorBases && !doc.isProtein,
+        gc: gcTrack,
         numberComplement,
         residueNumbering,
         scrollTop,
@@ -454,6 +475,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     previewLanes,
     edits,
     colorBases,
+    gcTrack,
     numberComplement,
     residueNumbering,
     scrollTop,
@@ -597,6 +619,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const updateCursor = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
+    const tip = hit.kind === 'gc' ? describeGc(gcTrack, hit.position, doc) : undefined;
+    setGcTip((was) => (was === tip ? was : tip));
     if (hit.kind === 'overlay') setCursor(spanAtHit(hit) === undefined ? 'default' : 'pointer');
     else if (hit.kind !== 'lane' && hit.kind !== 'translation') setCursor('text');
     else setCursor(featureAtHit(hit) === undefined ? 'default' : 'pointer');
@@ -1031,11 +1055,13 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
           ref={canvasRef}
           className="seq-view__canvas"
           style={{ width: size.width, height: size.height, cursor }}
+          title={gcTip}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           onPointerLeave={() => {
+            setGcTip(undefined);
             setCursor('text');
           }}
           onContextMenu={(e) => {

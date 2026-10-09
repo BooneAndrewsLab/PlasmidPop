@@ -70,3 +70,38 @@ describe('the status bar checksum', () => {
     expect(container.textContent).toBe(before);
   });
 });
+
+describe("the selection's GC in the status bar (item 75)", () => {
+  const open = (doc: SeqDocument, start: number, end: number): void => {
+    act(() => {
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(doc);
+      editorStore.setSelection({ start, end });
+    });
+  };
+
+  it('gives the GC of what is selected', () => {
+    open(SeqDocument.create({ sequence: 'GGCCAATT', topology: 'linear' }), 0, 6);
+    const { container } = render(
+      <StatusBar doc={editorStore.getState().history?.present ?? null} />,
+    );
+    expect(container.textContent).toContain('GC 66.7 %');
+  });
+
+  it('counts a selection across the origin of a circle across it', () => {
+    // Bases 6, 7, 0, 1 = T, T, G, G.
+    open(SeqDocument.create({ sequence: 'GGCCAATT', topology: 'circular' }), 6, 10);
+    const { container } = render(
+      <StatusBar doc={editorStore.getState().history?.present ?? null} />,
+    );
+    expect(container.textContent).toContain('GC 50.0 %');
+  });
+
+  it('says nothing of GC for a caret', () => {
+    open(SeqDocument.create({ sequence: 'GGCCAATT', topology: 'linear' }), 3, 3);
+    const { container } = render(
+      <StatusBar doc={editorStore.getState().history?.present ?? null} />,
+    );
+    expect(container.textContent).not.toContain('GC');
+  });
+});

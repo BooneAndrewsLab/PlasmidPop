@@ -17,6 +17,7 @@ const metrics: LinearMetrics = {
   traceHeight: 0,
   laneHeight: 18,
   overlayHeight: 16,
+  gcHeight: 0,
   translationHeight: 12,
   residueNumberHeight: 0,
   rowGap: 6,

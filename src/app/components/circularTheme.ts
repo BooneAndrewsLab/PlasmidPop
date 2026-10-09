@@ -24,5 +24,6 @@ export function readCircularTheme(el: HTMLElement): CircularTheme {
     editInsert: v('--seq-edit-insert', '#1d7a4c'),
     editChange: v('--seq-edit-change', '#a86200'),
     editDelete: v('--seq-edit-delete', '#b3261e'),
+    gc: v('--seq-gc', '#2a8f7a'),
   };
 }

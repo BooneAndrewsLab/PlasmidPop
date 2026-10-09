@@ -19,6 +19,11 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(aln.identity).toBe(1);
   });
 
+  it('makes a GC profile without a worker (item 75)', async () => {
+    const profile = await client.gcProfile('GGAA', 1, true);
+    expect(Array.from(profile)).toEqual([1, 1, 0, 0]);
+  });
+
   it('finds a collection of primers without a worker (#64)', async () => {
     const template = 'TTGACAGCTAGCTCAGTCCTAGGTATAATGCTAGCGAATTCGGATCCAAGCTTGGG';
     const result = await client.findPrimers(template, 'circular', [

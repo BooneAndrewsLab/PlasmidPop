@@ -3,12 +3,13 @@
 The toolbar's view switcher shows the **Sequence** view, the **Map**, or
 **Both** side by side. The two views share one selection: whatever you select
 in one is highlighted in the other and reported in the status bar as
-`N bp selected, from to to` (1-based, inclusive). A selection through the
+`N bp selected, from to to, GC p %` (1-based, inclusive). A selection through the
 origin of a circle ends at a small number (`591 to 20` on a 600 bp plasmid),
 and every panel that names a range writes it the same way.
 
 The switcher, the **Complement** (`Alt+C`), **Translations** (`Alt+T`) and
-**Cut sites** (`Alt+R`) toggles next to it, the **Format** menu's choices, the **Edits** baseline and the
+**Cut sites** (`Alt+R`) toggles next to it, the **Format** menu's choices (the
+GC track and its window among them), the **Edits** baseline and the
 sizes of the panes are remembered in the browser, so the views come back the
 way you left them the next time you open PlasmidPop. They are settings of the
 app, not of a document: they do not change with the file you open and are not
@@ -119,6 +120,9 @@ position of its first base. Below each row:
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
   enzyme name, unless **Cut sites** is off in the toolbar (see
   [Restriction enzymes](07-enzymes.md));
+- the **GC content** track, when **Format ▸ GC content track** (`Alt+G`) is
+  on: a line of the GC fraction under the strands, one point per base, with
+  a hairline at 50 %; see [GC content](#gc-content);
 - **edit marks** over the bases you have changed, when **Edits** is on in the
   toolbar (see [Editing the sequence](04-editing.md));
 - a **preview**, outside everything else: dashed spans in a colour of their
@@ -140,6 +144,31 @@ regions.
 **File ▸ Export sequence view as SVG** writes what you see as a vector file
 for figures — the whole sequence, the selection or a range, at a chosen
 number of bases per row, on A4 pages if you like; see [Exporting](02-files.md#exporting).
+
+## GC content
+
+**Format ▸ GC content track** (`Alt+G`) adds a track of GC content. In the
+sequence view it is a band under the strands of each row, with a line for the
+fraction of G and C in a window centred on each base and a hairline at 50 %.
+On the map it is a ring just inside the feature lanes, with hairlines at 0
+and 50 %; the name in the centre makes room for it. Hover the track for the
+exact value, the window and the base. It is for DNA and RNA; a protein has
+none, and the phone's reader leaves it out.
+
+The window is **Automatic** until you choose one under the toggle (10 to 1,000
+bases): 50 bases in the sequence view, and about 1 % of the sequence (at
+least 10 bases) on the map, where a window as short as the sequence's
+resolution would be noise. On a circular sequence the window wraps the origin,
+so the line is continuous across it; at the ends of a linear sequence it is
+the half window that exists. Ambiguity codes count for what they could be: S
+is GC, W is not, R, Y, K and M are half, and N says nothing and is left out.
+Both the track and the window are remembered in this browser. A long sequence
+(over 200 kb) is worked out in the background, and the track appears when it
+is ready.
+
+The status bar also gives the **GC** of whatever is selected, whether or not
+the track is on: `1,200 bp selected, 101 to 1,300, GC 52.3 %`. On a
+circular sequence a selection across the origin is counted across it.
 
 ## Previews
 
@@ -196,6 +225,9 @@ effect at once and the menu stays open, so you can try one and look.
   on, the four swatches under it choose the colours, for the sequence view,
   a read's trace and the SVG export alike; **Reset** goes back to the
   theme's, which differ between light and dark.
+- **GC content track** (`Alt+G`) draws the GC content under the strands in
+  the sequence view and as a ring inside the map; **Window** under it sets
+  how many bases it is averaged over. See [GC content](#gc-content).
 - **Residue numbers** — **Every 10th** (the default) numbers the first
   residue and every tenth one above the amino acids under each CDS; **Every
   residue** numbers them all; **Off** leaves the numbers out and gives the

@@ -62,7 +62,7 @@ describe('what a binding may be', () => {
   const bound = resolveBindings();
 
   it('refuses a key with no modifier: a bare letter types a base', () => {
-    expect(bindingProblem('KeyG', 'toggle-sidebar', bound)).toMatch(/needs Alt or Ctrl/);
+    expect(bindingProblem('KeyJ', 'toggle-sidebar', bound)).toMatch(/needs Alt or Ctrl/);
     expect(bindingProblem('', 'toggle-sidebar', bound)).toMatch(/needs Alt or Ctrl/);
   });
 
@@ -87,8 +87,8 @@ describe('what a binding may be', () => {
   });
 
   it('takes a free key', () => {
-    expect(bindingProblem('alt+KeyG', 'toggle-sidebar', bound)).toBeNull();
-    expect(bindingProblem('ctrl+alt+KeyG', 'toggle-sidebar', bound)).toBeNull();
+    expect(bindingProblem('alt+KeyJ', 'toggle-sidebar', bound)).toBeNull();
+    expect(bindingProblem('ctrl+alt+KeyJ', 'toggle-sidebar', bound)).toBeNull();
   });
 });
 
@@ -100,16 +100,16 @@ describe('resolveBindings', () => {
   });
 
   it('puts a change over its default', () => {
-    const bound = resolveBindings({ 'toggle-sidebar': 'alt+KeyG' });
-    expect(bound.get('toggle-sidebar')).toBe('alt+KeyG');
+    const bound = resolveBindings({ 'toggle-sidebar': 'alt+KeyJ' });
+    expect(bound.get('toggle-sidebar')).toBe('alt+KeyJ');
     expect(bound.get('toggle-complement')).toBe('alt+KeyC');
   });
 
   it('drops a change that is not one, or that names an action or a key we do not have', () => {
     const bound = resolveBindings({
-      'toggle-sidebar': 'KeyG', // no modifier
-      'no-such-action': 'alt+KeyG',
-      undo: 'alt+KeyG', // fixed
+      'toggle-sidebar': 'KeyJ', // no modifier
+      'no-such-action': 'alt+KeyJ',
+      undo: 'alt+KeyJ', // fixed
     });
     expect(bound.get('toggle-sidebar')).toBe('alt+KeyS');
     expect(bound.has('no-such-action')).toBe(false);

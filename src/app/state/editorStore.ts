@@ -479,6 +479,10 @@ export interface SharedState {
   readonly numberComplement: boolean;
   /** Whether bases are tinted by what they are (A/C/G/T). */
   readonly colorBases: boolean;
+  /** Whether the GC track is drawn under the sequence view and inside the map (item 75). */
+  readonly showGc: boolean;
+  /** The GC window in bases, or null for the automatic one: 50, and about 1 % on the map. */
+  readonly gcWindow: number | null;
   /**
    * Which residues of a CDS translation carry their number (#97): none, the
    * first and every tenth, or every one.
@@ -865,6 +869,8 @@ const SHARED_INITIAL: SharedState = {
   seqBasesPerRow: null,
   numberComplement: false,
   colorBases: false,
+  showGc: false,
+  gcWindow: null,
   residueNumbering: DEFAULT_RESIDUE_NUMBERING,
   traceSize: 'short',
   baseColors: null,
@@ -2283,6 +2289,16 @@ export class EditorStore {
 
   setResidueNumbering(numbering: ResidueNumbering): void {
     if (numbering !== this.state.residueNumbering) this.setShared({ residueNumbering: numbering });
+  }
+
+  setShowGc(show: boolean): void {
+    if (show !== this.state.showGc) this.setShared({ showGc: show });
+  }
+
+  /** Fixes the GC window in bases, or null for the automatic one. */
+  setGcWindow(window: number | null): void {
+    const value = window === null ? null : Math.min(100_000, Math.max(2, Math.round(window)));
+    if (value !== this.state.gcWindow) this.setShared({ gcWindow: value });
   }
 
   setColorBases(color: boolean): void {

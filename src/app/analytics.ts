@@ -232,6 +232,7 @@ export type Shortcut =
   | 'alt+t'
   | 'alt+r'
   | 'alt+e'
+  | 'alt+g'
   | 'alt+s'
   | 'alt+l'
   | 'alt+digit'

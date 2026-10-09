@@ -32,6 +32,8 @@
   /* Previews: a primer pair being weighed up, every match of a find. A
      colour of its own, because nothing drawn in it is in the document. */
   --seq-preview: #6b4fd8;
+  /* The GC track: a line and a faint fill, in a colour no base uses. */
+  --seq-gc: #2a8f7a;
 
   /* Base colours, used only while "Colour the bases" is on. Chosen to stay
      apart for the common forms of colour blindness and to keep contrast on
@@ -83,6 +85,7 @@
     --diff-feature: #5a9cff;
     --diff-none: #a0a8b4;
     --seq-preview: #b9a6ff;
+    --seq-gc: #4cc2a8;
 
     --seq-base-a: #6fcf7a;
     --seq-base-c: #6ab8ff;

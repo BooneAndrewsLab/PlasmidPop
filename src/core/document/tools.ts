@@ -14,6 +14,8 @@ export type DocumentTool =
   | 'complement'
   /** Amino acids drawn under CDS features. */
   | 'translations'
+  /** The GC content track and the selection's GC (item 75). */
+  | 'gc'
   /** Restriction sites: the Enzymes panel, cut sites on the views, digests. */
   | 'enzymes'
   | 'orfs'
@@ -41,6 +43,7 @@ export type DocumentTool =
 const NUCLEOTIDE_TOOLS: ReadonlySet<DocumentTool> = new Set<DocumentTool>([
   'complement',
   'translations',
+  'gc',
   'enzymes',
   'orfs',
   'translate',

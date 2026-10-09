@@ -29,6 +29,7 @@ export function readLinearTheme(
     editDelete: v('--seq-edit-delete', '#b3261e'),
     preview: v('--seq-preview', '#6b4fd8'),
     traceQuality: v('--seq-trace-quality', 'rgba(27, 110, 140, 0.12)'),
+    gc: v('--seq-gc', '#2a8f7a'),
     // The user's own colours for the four bases win over the theme's (#29);
     // an ambiguity code keeps the theme's muted one.
     baseColors: {

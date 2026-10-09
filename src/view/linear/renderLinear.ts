@@ -60,7 +60,16 @@ export interface LinearTheme {
   readonly preview: string;
   /** The base-quality bars behind a sequencing read's trace. */
   readonly traceQuality: string;
+  /** The GC track's line and fill. */
+  readonly gc: string;
   readonly baseColors: BaseColors;
+}
+
+/** A sliding-window GC profile to draw: `profile[i]` is the fraction at base i, NaN for none. */
+export interface GcTrack {
+  readonly profile: Float32Array;
+  /** The window it was made with, in bases, for the label. */
+  readonly window: number;
 }
 
 export interface RenderParams {
@@ -93,6 +102,11 @@ export interface RenderParams {
    * around the features they touched. `null` leaves the view unmarked.
    */
   readonly edits: DocumentDiff | null;
+  /**
+   * The GC track under the strands (item 75): one value per base, or null to
+   * draw none. The layout's `gcHeight` is the room kept for it.
+   */
+  readonly gc: GcTrack | null;
   /** Tint each base by what it is instead of drawing the strands in one ink. */
   readonly colorBases: boolean;
   /** Repeat the row's position number beside the complement strand. */
@@ -974,6 +988,60 @@ function drawReadTrace(ctx: DrawingContext, p: RenderParams, row: RowLayout): vo
   });
 }
 
+/**
+ * The GC track: the fraction as a line over a faint fill, with the 50 % level
+ * ruled in, one point per base across the row. A circular sequence's window
+ * at the origin was made with the wrap already, so the line is continuous
+ * across it. Bases with no value (all N) break the line.
+ */
+function drawGcTrack(ctx: DrawingContext, p: RenderParams, row: RowLayout): void {
+  const { gc, layout, theme } = p;
+  const m = layout.metrics;
+  if (gc === null || m.gcHeight === 0) return;
+  const top = layout.gcTop(row) + 3;
+  const height = m.gcHeight - 6;
+  const y = (f: number): number => top + height * (1 - f);
+  const left = layout.xOf(row, row.start);
+  const right = layout.xOf(row, row.end);
+  ctx.strokeStyle = theme.rulerLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(left, Math.round(y(0.5)) + 0.5);
+  ctx.lineTo(right, Math.round(y(0.5)) + 0.5);
+  ctx.stroke();
+  ctx.fillStyle = withAlpha(theme.gc, 0.15);
+  ctx.strokeStyle = theme.gc;
+  ctx.lineWidth = 1.5;
+  let open = false;
+  let startX = 0;
+  let lastX = 0;
+  const close = (): void => {
+    if (!open) return;
+    ctx.stroke();
+    ctx.lineTo(lastX, y(0));
+    ctx.lineTo(startX, y(0));
+    ctx.closePath();
+    ctx.fill();
+    open = false;
+  };
+  for (let k = row.start; k < row.end; k++) {
+    const f = gc.profile[k];
+    if (f === undefined || Number.isNaN(f)) {
+      close();
+      continue;
+    }
+    const x = layout.xOf(row, k) + layout.widthOf(row, k) / 2;
+    if (!open) {
+      ctx.beginPath();
+      ctx.moveTo(x, y(f));
+      startX = x;
+      open = true;
+    } else ctx.lineTo(x, y(f));
+    lastX = x;
+  }
+  close();
+}
+
 /** Draws the visible part of the linear view onto a canvas that covers the viewport. */
 export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   const { layout, doc, scrollTop, scrollLeft, width, height, devicePixelRatio: dpr } = p;
@@ -991,6 +1059,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
     drawRuler(ctx, p, row);
     drawReadTrace(ctx, p, row);
     drawStrands(ctx, p, row);
+    drawGcTrack(ctx, p, row);
     drawEndOverhangBases(ctx, p, row);
     drawTranslations(ctx, p, row);
     drawCutSites(ctx, p, row);

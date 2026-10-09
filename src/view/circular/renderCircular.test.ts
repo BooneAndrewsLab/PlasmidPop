@@ -499,6 +499,7 @@ describe('renderCircularMap tracked changes', () => {
     editInsert: '#00aa00',
     editChange: '#aa8800',
     editDelete: '#ff00ff',
+    gc: '#00aa88',
   };
   const layout = new CircularLayout(doc.length, doc.topology, {
     ...opts,

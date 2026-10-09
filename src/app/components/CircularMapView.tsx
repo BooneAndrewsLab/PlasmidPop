@@ -9,7 +9,8 @@ import {
   useState,
 } from 'react';
 
-import { type SeqDocument, featureExtent, isEmptyRange } from '@/core';
+import { type SeqDocument, featureExtent, gcWindowFor, hasTool, isEmptyRange } from '@/core';
+import { type GcTrack } from '@/view/linear';
 import {
   type ChangeTarget,
   type DrawnLabel,
@@ -21,6 +22,7 @@ import {
   featureAtLane,
   sameChange,
   fitRange,
+  gcRingBounds,
   ghostFeatures,
   lanesWithGhosts,
   labelMargin,
@@ -38,7 +40,9 @@ import { selectionBetween } from '../editing';
 import { readCircularTheme } from './circularTheme';
 import { selectChange, useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
+import { gcTip as describeGc } from '../gcTip';
 import { useEditorState } from '../state/useEditorStore';
+import { useGcProfile } from '../state/useGcProfile';
 import { recallView, rememberView } from '../state/viewMemory';
 
 const SANS_FONT = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
@@ -95,9 +99,46 @@ interface Props {
   readonly doc: SeqDocument;
 }
 
+/** What the GC ring says where the pointer is on it: the value, the window and the base. */
+function gcTipAt(
+  layout: CircularLayout,
+  track: GcTrack | null,
+  pt: { x: number; y: number },
+  doc: SeqDocument,
+): string | undefined {
+  if (track === null) return undefined;
+  const band = gcRingBounds(layout);
+  if (band === null) return undefined;
+  const r = Math.hypot(pt.x - layout.cx, pt.y - layout.cy);
+  if (r < band.inner - 4 || r > band.outer + 4) return undefined;
+  const base = layout.baseOf(Math.atan2(pt.y - layout.cy, pt.x - layout.cx));
+  return describeGc(track, base, doc);
+}
+
 export function CircularMapView({ doc }: Props) {
-  const { selection, analysis, shownEnzymes, showCutSites, documentId, reveal, preview } =
-    useEditorState();
+  const {
+    selection,
+    analysis,
+    shownEnzymes,
+    showCutSites,
+    documentId,
+    reveal,
+    preview,
+    showGc,
+    gcWindow,
+  } = useEditorState();
+  const gcOn = showGc && hasTool(doc, 'gc');
+  const gcWindowBases = gcWindowFor(gcWindow, doc.length, true);
+  const gcValues = useGcProfile(doc, gcWindowBases, gcOn);
+  const gcTrack = useMemo(
+    () =>
+      gcOn && gcValues !== null && gcValues.length === doc.length
+        ? { profile: gcValues, window: gcWindowBases }
+        : null,
+    [gcOn, gcValues, gcWindowBases, doc.length],
+  );
+  /** What the GC ring says under the pointer, as the canvas's tooltip. */
+  const [gcTip, setGcTip] = useState<string | undefined>(undefined);
   const overlay = preview?.items ?? NO_OVERLAY;
   const edits = useEditDiff();
   const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
@@ -296,6 +337,7 @@ export function CircularMapView({ doc }: Props) {
         overlay,
         overlayLanes: previewLanes,
         edits,
+        gc: gcTrack,
         hoveredFeatureId: hover.featureId,
         hoveredCut: hover.cut,
         hoveredChange: hover.change,
@@ -313,6 +355,7 @@ export function CircularMapView({ doc }: Props) {
     };
   }, [
     doc,
+    gcTrack,
     layout,
     lanes,
     selection,
@@ -502,6 +545,8 @@ export function CircularMapView({ doc }: Props) {
       );
       return;
     }
+    const tip = gcTipAt(layout, gcTrack, pt, doc);
+    setGcTip((was) => (was === tip ? was : tip));
     const label = labelAt(pt.x, pt.y);
     const next: Hover =
       label !== null
@@ -599,6 +644,7 @@ export function CircularMapView({ doc }: Props) {
         role="img"
         aria-label={`Map of ${doc.name}`}
         style={{ width: size.width, height: size.height, cursor }}
+        title={gcTip}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -610,6 +656,7 @@ export function CircularMapView({ doc }: Props) {
         onPointerLeave={(e) => {
           // A finger leaves the moment it lifts, and the label it brought
           // back would go with it.
+          setGcTip(undefined);
           if (e.pointerType !== 'touch') setHover(NO_HOVER);
         }}
       />

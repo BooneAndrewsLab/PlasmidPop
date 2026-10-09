@@ -67,6 +67,13 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
     shortcut: 'alt+r',
   },
   {
+    id: 'toggle-gc',
+    label: 'GC content track',
+    group: 'View',
+    defaultBinding: 'alt+KeyG',
+    shortcut: 'alt+g',
+  },
+  {
     id: 'cycle-view',
     label: 'The next of the views: Sequence, Map, Both',
     group: 'View',

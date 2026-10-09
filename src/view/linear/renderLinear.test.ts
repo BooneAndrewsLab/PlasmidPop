@@ -20,6 +20,7 @@ const theme: LinearTheme = {
   editDelete: '#ff0000',
   preview: '#6b4fd8',
   traceQuality: '#dddddd',
+  gc: '#2a8f7a',
   baseColors: { a: '#00aa00', c: '#0000ff', g: '#aa5500', t: '#cc0000', other: '#666666' },
 };
 
@@ -34,6 +35,7 @@ const metrics: LinearMetrics = {
   translationHeight: 20,
   residueNumberHeight: 0,
   overlayHeight: 16,
+  gcHeight: 0,
   rowGap: 10,
   leftGutter: 100,
   rightGutter: 24,
@@ -81,6 +83,7 @@ function render(
     overlay,
     overlayLanes: previewLanes,
     colorBases: false,
+    gc: null,
     numberComplement: false,
     residueNumbering: 'off',
     scrollTop: 0,
@@ -322,6 +325,7 @@ describe('renderLinearView format options', () => {
       overlayLanes: NO_LANES,
       edits: null,
       colorBases: false,
+      gc: null,
       numberComplement: true,
       residueNumbering: 'off',
       scrollTop: 0,

@@ -49,10 +49,10 @@ describe('changing a key binding (#79)', () => {
     );
     expect(within(row('The sidebar, away and back')).getByText('Press a key…')).toBeInTheDocument();
     act(() => {
-      fireEvent.keyDown(window, { code: 'KeyG', key: 'g', altKey: true });
+      fireEvent.keyDown(window, { code: 'KeyJ', key: 'j', altKey: true });
     });
-    expect(editorStore.getState().keyBindings).toEqual({ 'toggle-sidebar': 'alt+KeyG' });
-    expect(within(row('The sidebar, away and back')).getByText('Alt+G')).toBeInTheDocument();
+    expect(editorStore.getState().keyBindings).toEqual({ 'toggle-sidebar': 'alt+KeyJ' });
+    expect(within(row('The sidebar, away and back')).getByText('Alt+J')).toBeInTheDocument();
 
     fireEvent.click(
       within(row('The sidebar, away and back')).getByRole('button', { name: /Put .* back on/ }),
@@ -69,7 +69,7 @@ describe('changing a key binding (#79)', () => {
     };
     change();
     act(() => {
-      fireEvent.keyDown(window, { code: 'KeyG', key: 'g' });
+      fireEvent.keyDown(window, { code: 'KeyJ', key: 'j' });
     });
     // The intro says the same thing, so the warning is looked for by its class.
     const warning = (): string => document.querySelector('.panel__note--warn')?.textContent ?? '';
@@ -85,9 +85,9 @@ describe('changing a key binding (#79)', () => {
     // None of them was taken, and it is still listening.
     expect(editorStore.getState().keyBindings).toEqual({});
     act(() => {
-      fireEvent.keyDown(window, { code: 'KeyG', key: 'g', altKey: true });
+      fireEvent.keyDown(window, { code: 'KeyJ', key: 'j', altKey: true });
     });
-    expect(editorStore.getState().keyBindings).toEqual({ 'toggle-sidebar': 'alt+KeyG' });
+    expect(editorStore.getState().keyBindings).toEqual({ 'toggle-sidebar': 'alt+KeyJ' });
   });
 
   it('leaves the binding alone on Escape, and puts them all back', () => {
@@ -102,7 +102,7 @@ describe('changing a key binding (#79)', () => {
     expect(screen.queryByText('Press a key…')).toBeNull();
 
     act(() => {
-      editorStore.setKeyBinding('toggle-sidebar', 'alt+KeyG');
+      editorStore.setKeyBinding('toggle-sidebar', 'alt+KeyJ');
       editorStore.setKeyBinding('close-tab', 'alt+KeyX');
     });
     fireEvent.click(screen.getByRole('button', { name: 'All back to their defaults' }));
@@ -120,10 +120,10 @@ describe('changing a key binding (#79)', () => {
       within(row('The sidebar, away and back')).getByRole('button', { name: /Change the key/ }),
     );
     act(() => {
-      fireEvent.keyDown(window, { code: 'KeyG', key: 'g', altKey: true });
+      fireEvent.keyDown(window, { code: 'KeyJ', key: 'j', altKey: true });
     });
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(editorStore.getState().keysDialog).toBe(false);
-    expect(editorStore.getState().keyBindings['toggle-sidebar']).toBe('alt+KeyG');
+    expect(editorStore.getState().keyBindings['toggle-sidebar']).toBe('alt+KeyJ');
   });
 });

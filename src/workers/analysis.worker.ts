@@ -8,6 +8,7 @@ import {
   detectFeatures,
   findCutSites,
   findOrfs,
+  gcProfile,
   loadFeatureLibrary,
   setActiveEnzymeSet,
 } from '@/core';
@@ -61,6 +62,12 @@ export function handleAnalysisRequest(
             ...req.options,
             ...(onProgress === undefined ? {} : { onProgress }),
           }),
+        };
+      case 'gcProfile':
+        return {
+          id: req.id,
+          kind: 'gcProfile',
+          profile: gcProfile(req.sequence, req.window, req.circular),
         };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
@@ -131,6 +138,7 @@ if (typeof scope.postMessage === 'function' && typeof document === 'undefined') 
     }).then((res) => {
       // The packed sites are handed over rather than copied.
       if (res.kind === 'cutSites') scope.postMessage?.(res, [res.sites.data.buffer]);
+      else if (res.kind === 'gcProfile') scope.postMessage?.(res, [res.profile.buffer]);
       else scope.postMessage?.(res);
     });
   };

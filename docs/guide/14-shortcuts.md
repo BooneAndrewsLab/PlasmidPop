@@ -55,6 +55,7 @@ it has.
 | `Alt+C`          | Complement strand on or off                               |
 | `Alt+T`          | Translations under CDS features on or off                 |
 | `Alt+R`          | Cut sites on or off (the ticked enzymes are kept)         |
+| `Alt+G`          | GC content track on or off                                |
 | `Alt+E`          | Edit marks off, and back to the baseline that was chosen  |
 | `Alt+S`          | Collapse the sidebar to its rail, or bring the panel back |
 | `Alt+V`          | The next of the views: Sequence, Map, Both                |

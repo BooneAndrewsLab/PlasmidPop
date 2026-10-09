@@ -45,6 +45,7 @@ const THEME = {
   editDelete: '#f00',
   preview: '#63d',
   traceQuality: '#ddd',
+  gc: '#2a8f7a',
   baseColors: { a: '#0a0', c: '#00f', g: '#a50', t: '#c00', other: '#666' },
 };
 
@@ -100,6 +101,7 @@ function screenTime(doc: SeqDocument, residueNumbering: ResidueNumbering): numbe
       overlayLanes: NO_LANES,
       edits: null,
       colorBases: false,
+      gc: null,
       numberComplement: false,
       scrollTop,
       scrollLeft: 0,

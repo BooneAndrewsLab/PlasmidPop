@@ -3,8 +3,11 @@ import { useMemo, useState } from 'react';
 import {
   type SeqDocument,
   documentChecksum,
+  formatGc,
   formatLength,
   fractionAtLeast,
+  gcContentOfRange,
+  hasTool,
   unitName,
 } from '@/core';
 
@@ -14,6 +17,21 @@ import { useEditorState } from '../state/useEditorStore';
 
 interface Props {
   readonly doc: SeqDocument | null;
+}
+
+/**
+ * The selection's GC content for the status bar, or '' for a protein, a
+ * caret, or a selection of bases that say nothing (all N). The range may run
+ * on past the end of a circular sequence.
+ */
+function selectionGc(
+  text: string,
+  doc: SeqDocument,
+  selection: { start: number; end: number },
+): string {
+  if (selection.end <= selection.start || !hasTool(doc, 'gc')) return '';
+  const gc = gcContentOfRange(text, selection.start, selection.end, doc.isCircular);
+  return gc === null ? '' : `, GC ${formatGc(gc)}`;
 }
 
 function describeSelection(doc: SeqDocument, selection: { start: number; end: number }): string {
@@ -35,6 +53,15 @@ export function StatusBar({ doc }: Props) {
   // it is taken on every render of the status bar without this.
   const checksum = useMemo(() => (doc === null ? null : documentChecksum(doc)), [doc]);
   const read = doc?.read ?? null;
+  // The text is fetched only while something is selected, and the count is a
+  // single pass over the selection.
+  const gcText = useMemo(
+    () =>
+      doc !== null && selection !== null && selection.end > selection.start
+        ? selectionGc(doc.sequence.toString(), doc, selection)
+        : '',
+    [doc, selection],
+  );
 
   return (
     <footer className="statusbar">
@@ -56,7 +83,7 @@ export function StatusBar({ doc }: Props) {
               ? 'No sequence open'
               : selection === null
                 ? 'Nothing selected'
-                : describeSelection(doc, selection)}
+                : `${describeSelection(doc, selection)}${gcText}`}
         </span>
         {error === null ? (
           <span />

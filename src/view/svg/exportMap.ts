@@ -27,6 +27,7 @@ export const PRINT_THEME: CircularTheme = {
   editInsert: '#1d7a4c',
   editChange: '#a86200',
   editDelete: '#b3261e',
+  gc: '#2a8f7a',
 };
 
 export interface MapExportOptions {
