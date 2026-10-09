@@ -709,6 +709,33 @@ describe('AlignPanel', () => {
     expect(screen.getByRole('option', { name: 'b (two.fa) (8 bp)' })).toBeInTheDocument();
   });
 
+  it('assembles the records into a contig and saves the consensus as a document (#208)', async () => {
+    // Integer-only, so the genome is the same everywhere.
+    let x = 2463534242;
+    let genome = '';
+    for (let i = 0; i < 160; i++) {
+      x ^= x << 13;
+      x >>>= 0;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      x >>>= 0;
+      genome += 'ACGT'.charAt((x >>> 8) % 4);
+    }
+    const fasta = `>a\n${genome.slice(0, 80)}\n>b\n${reverseComplement(genome.slice(50, 130))}\n>c\n${genome.slice(100)}\n`;
+    render(<AlignPanel doc={doc} />);
+    fireEvent.drop(box(), fileDrop(new File([fasta], 'reads.fa')));
+    fireEvent.click(await screen.findByRole('button', { name: 'Assemble reads' }));
+    await screen.findByText('3 reads in 1 contig', undefined, { timeout: 30_000 });
+    expect(screen.getByText('The reads agree wherever they overlap.')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Save consensus as document' }));
+    const saved = editorStore.getState().history?.present;
+    expect(saved?.sequence.toString()).toBe(genome);
+    expect(saved?.name).toBe('a consensus');
+    act(() => {
+      editorStore.closeDocument();
+    });
+  }, 60_000);
+
   it('keeps the readable files and names one that cannot be read', async () => {
     render(<AlignPanel doc={SeqDocument.create({ name: 'pRef', sequence: 'ACGTACGTAC' })} />);
     fireEvent.drop(

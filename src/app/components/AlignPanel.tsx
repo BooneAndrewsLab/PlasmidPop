@@ -4,6 +4,8 @@ import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type AlignmentMode,
   type Alphabet,
+  type Assembly,
+  assembleReads,
   type Feature,
   type Range,
   type ReadDifference,
@@ -39,6 +41,7 @@ import type { SampleFeatures } from '../alignmentSampleTrack';
 import { AlignmentDialog } from './AlignmentDialog';
 import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 import { ReadBatchList } from './ReadBatchList';
+import { AssemblyResult } from './AssemblyResult';
 import { UNCHECKED_NOTE } from '../readAlignment';
 
 interface Props {
@@ -449,6 +452,11 @@ export function AlignPanel({ doc }: Props) {
   } | null>(null);
   /** The file index of the batch row whose alignment is shown. */
   const [batchPicked, setBatchPicked] = useState<number | null>(null);
+  /** Records assembled into contigs (#208), with the names of the reads it was made from. */
+  const [assembly, setAssembly] = useState<{
+    readonly assembly: Assembly;
+    readonly names: readonly string[];
+  } | null>(null);
   /** The large view (#103): the rows it stacks, and the one to start on. */
   const [large, setLarge] = useState<{
     readonly reference: ReferenceInput;
@@ -519,6 +527,7 @@ export function AlignPanel({ doc }: Props) {
     setResult(null);
     setBatch(null);
     setBatchPicked(null);
+    setAssembly(null);
   };
   const setText = (text: string): void => {
     clearResults();
@@ -695,6 +704,47 @@ export function AlignPanel({ doc }: Props) {
         setBatch((b) => (b === null ? b : { ...b, cancelled: outcome.cancelled }));
       })
       .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        end(controller);
+      });
+  };
+
+  /**
+   * Joins the records into contigs with no reference (#208). Each overlap is
+   * an alignment in the worker, so the main thread only waits.
+   */
+  const runAssemble = (): void => {
+    if (records.length < 2 || records.length > BATCH_LIMIT) return;
+    analytics.track('align', 'assemble');
+    const names = records.map((r) => (several ? `${r.name} (${r.file ?? ''})` : r.name));
+    const controller = begin();
+    setProgress(0);
+    setResult(null);
+    setBatch(null);
+    setBatchPicked(null);
+    setAssembly(null);
+    assembleReads(
+      records.map((r, i) => ({
+        name: names[i] ?? r.name,
+        sequence: r.sequence,
+        qualities: r.read?.qualities ?? null,
+      })),
+      {
+        align: (a, b, options) =>
+          analysisClient.alignEitherStrand(a, b, options, { signal: controller.signal }),
+        trimCutoff: trim ? readTrimCutoff : null,
+        confidentFrom: readConfidentQuality,
+        onProgress: setProgress,
+        signal: controller.signal,
+      },
+    )
+      .then((out) => {
+        setAssembly({ assembly: out, names });
+      })
+      .catch((e: unknown) => {
+        if (e instanceof AnalysisCancelledError || controller.signal.aborted) return;
         setError(e instanceof Error ? e.message : String(e));
       })
       .finally(() => {
@@ -960,6 +1010,17 @@ export function AlignPanel({ doc }: Props) {
         >
           {busy ? (all ? 'Aligning all…' : 'Aligning…') : all ? 'Align all' : 'Align'}
         </button>
+        {records.length > 1 && records.length <= BATCH_LIMIT && (
+          <button
+            type="button"
+            className="button button--small"
+            disabled={busy}
+            title="Join the records into contigs by their overlaps, with no reference, and call a consensus from their base qualities"
+            onClick={runAssemble}
+          >
+            Assemble reads
+          </button>
+        )}
       </div>
       {/* Only an alignment long enough to report shows this, so a quick one does not flash it. */}
       {busy && progress !== null && (
@@ -1068,6 +1129,12 @@ export function AlignPanel({ doc }: Props) {
             }
           </div>
           <QualitySettings trim={trim} />
+        </fieldset>
+      )}
+      {assembly !== null && (
+        <fieldset className="panel__group">
+          <legend>Assembly</legend>
+          <AssemblyResult assembly={assembly.assembly} readNames={assembly.names} />
         </fieldset>
       )}
       {(showBatch || result !== null) && (

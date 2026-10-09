@@ -87,6 +87,7 @@ piece of work needs its reasoning written down, with the next free number.
 73. [A piece of a feature remembers what it was cut from](73-feature-provenance.md)
 74. [CRISPR guide finder](74-crispr-guides.md)
 75. [GC content track](75-gc-track.md)
+76. [Assembling reads into a contig](76-read-assembly.md)
 
 ## Changelog to 1.1.0
 

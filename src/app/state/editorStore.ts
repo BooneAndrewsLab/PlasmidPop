@@ -1256,6 +1256,17 @@ export class EditorStore {
     return id;
   }
 
+  /**
+   * Save consensus as document (#208): the consensus of assembled reads in a
+   * tab of its own. It has no file behind it and starts clean, like a New
+   * document: closing it loses only what the reads can make again.
+   */
+  openConsensus(consensus: SeqDocument): string {
+    const id = this.openDocument(consensus);
+    this.setDocument(id, { savedDoc: consensus });
+    return id;
+  }
+
   /** Brings an open document to the front; null shows the file list with the tabs kept. */
   activateDocument(id: string | null): void {
     if (id === this.activeId && !this.bench) return;

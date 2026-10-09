@@ -113,6 +113,42 @@ own, unless it matched better somewhere else in the document that its
 words do not point to; where two alignments score the same (an indel in a
 repeat can sit in either copy), the batch may show the other one.
 
+## Assembling reads into a contig
+
+Reads of an insert whose sequence you do not know yet, or reads you want
+one consensus from, can be joined with no reference. Load the reads as for a
+batch (a FASTQ, AB1 files or a FASTA of two or more records, at most 96) and
+click **Assemble reads**, beside **Align**. Nothing is aligned against the
+document; the document is not used at all.
+
+Each read is first trimmed by its qualities (**Trim poor ends**, in the
+Reads group, as for an alignment). The longest read starts a contig, and
+every other read is joined to it if it overlaps an end, or lies inside it,
+by at least 25 bases at 90% identity or better. A read may be on either
+strand: those turned over to fit are paler in the layout. Reads that join
+nothing start contigs of their own, listed in the **Contig** picker, biggest
+first. A read with nothing left after trimming is counted as **left out**.
+
+The **Assembly** group shows the picked contig: its length, depth, a
+layout with a bar for each read and a red mark at each disagreement, and the
+disagreements listed with the position, the call and each read's base and
+quality there. The consensus is called from every read at once, weighted by
+quality: one high-quality base outweighs several poor ones; where reads at
+Q20 or better differ and none is clearly right, the consensus has an IUPAC
+code (R for A or G, and so on); a base most reads lack is left out. A
+disagreement is such a code, or a base a confident read calls differently
+from the consensus. Reads without qualities (a FASTA) count every base as
+Q20, which the note says.
+
+**Save consensus as document** opens the consensus in a new tab, named after
+the first read, with its call qualities when the reads had any. To check
+it against the intended construct, open that tab's Align tab and drop or
+paste the construct there.
+
+Assembly is greedy and meant for a few to a few dozen Sanger reads of one
+region. It does not resolve repeats, and a read is placed at the first
+contig it fits.
+
 ## Aligning a read with its qualities
 
 An AB1 or FASTQ file dropped on the box (or chosen with **Choose file…**)

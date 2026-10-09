@@ -178,9 +178,11 @@ export const EVENTS = {
    * with the open document as the read and the box as the reference (#57),
    * once per visit; `batch` is Align all, every record of a file, named by
    * the mode like `run` (#59), or `auto` when none was picked and each record
-   * gets its own (#86), never how many.
+   * gets its own (#86), never how many; `assemble` is Assemble reads, the
+   * records of a file joined into contigs with no reference (#208), and
+   * `assemble-save` the consensus saved as a document.
    */
-  align: ['run', 'quality', 'document-read', 'batch'],
+  align: ['run', 'quality', 'document-read', 'batch', 'assemble', 'assemble-save'],
   cloning: [
     'ligate',
     'open-fragment',
