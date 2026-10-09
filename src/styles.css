@@ -475,6 +475,13 @@ button {
   font-size: 13px;
 }
 
+/* A button that stays down: an on/off option short enough to be a button
+   rather than a checkbox (Named only, Show flagged). */
+.button--toggle[aria-pressed='true'] {
+  background: var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
 /* Segmented button groups (view switcher, show toggles, undo/redo) and split */
 
 .segmented {
@@ -921,7 +928,8 @@ button {
   white-space: nowrap;
 }
 
-.panel__field--row .panel__select {
+.panel__field--row .panel__select,
+.panel__field--row .panel__number {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -1082,6 +1090,13 @@ button {
   margin-top: 12px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
+}
+
+/* A label that keeps an acknowledged notice as its tooltip. */
+.panel__hint {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
 }
 
 /* Importing an enzyme table from the user's own REBASE download. */
@@ -3142,11 +3157,6 @@ button {
   color: var(--ink-2);
 }
 
-.history-panel__named-only[aria-pressed='true'] {
-  background: var(--surface-3);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-
 .history-panel__subheading {
   margin: 14px 0 4px;
   font-size: 12px;
@@ -4519,8 +4529,9 @@ button {
   display: block;
 }
 
-/* The Align form: the common path (box, files, Align) first, the rest in labelled groups. */
-.align-options {
+/* A panel's labelled groups (Options, Results, ...): the Align and CRISPR
+   tabs are laid out as these, the common path first, so the two read alike. */
+.panel__group {
   min-width: 0;
   margin: 0 0 8px;
   padding: 6px 8px 0;
@@ -4528,9 +4539,13 @@ button {
   border-radius: 6px;
 }
 
-.align-options legend {
+.panel__group legend {
   padding: 0 4px;
   color: var(--ink-2);
+}
+
+.panel__group legend .panel__heading-note {
+  font-size: 12px;
 }
 
 /* The result is a group of its own under the form (#118): the group draws the rule. */
@@ -4698,9 +4713,14 @@ button {
   padding: 0;
 }
 
-/* The filters sit between the heading and the rows they thin out. */
+/* The filters sit between the group's title and the rows they thin out. */
 .crispr-filters {
   margin-bottom: 4px;
+}
+
+/* The list ends its group, so it draws the group's bottom padding. */
+.crispr-list {
+  margin-bottom: 8px;
 }
 
 .crispr-row {

@@ -191,7 +191,7 @@ export function HistoryPanel() {
         {anyNamed && (
           <button
             type="button"
-            className="button button--small history-panel__named-only"
+            className="button button--small button--toggle"
             aria-pressed={filtering}
             title="Show only the states you have named"
             onClick={() => {

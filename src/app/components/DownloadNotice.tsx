@@ -2,26 +2,11 @@ import { useState } from 'react';
 
 import { openGuide } from '../help/openGuide';
 import { editorStore } from '../state/editorStore';
+import { rememberSeen, wasSeen } from '../state/seenOnce';
 import { useEditorState } from '../state/useEditorStore';
 
 /** Remembers that the user has read the notice, so it is said once, not at every save. */
 const SEEN_KEY = 'plasmidpop.downloadNoticeSeen';
-
-function wasSeen(): boolean {
-  try {
-    return globalThis.localStorage.getItem(SEEN_KEY) === '1';
-  } catch {
-    return false; // Storage unavailable (private mode, blocked cookies).
-  }
-}
-
-function rememberSeen(): void {
-  try {
-    globalThis.localStorage.setItem(SEEN_KEY, '1');
-  } catch {
-    // Best effort, like the rest of local persistence.
-  }
-}
 
 /**
  * What happened to a save that had to go out as a download: where the file
@@ -36,7 +21,7 @@ function rememberSeen(): void {
  */
 export function DownloadNotice() {
   const { downloadNotice } = useEditorState();
-  const [seen, setSeen] = useState(wasSeen);
+  const [seen, setSeen] = useState(() => wasSeen(SEEN_KEY));
   if (downloadNotice === null || seen) return null;
 
   return (
@@ -58,7 +43,7 @@ export function DownloadNotice() {
         type="button"
         className="copy-banner__link"
         onClick={() => {
-          rememberSeen();
+          rememberSeen(SEEN_KEY);
           setSeen(true);
           editorStore.dismissDownloadNotice();
         }}

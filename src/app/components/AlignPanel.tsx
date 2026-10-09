@@ -985,7 +985,7 @@ export function AlignPanel({ doc }: Props) {
         </div>
       )}
       {error !== null && <p className="panel__error">{error}</p>}
-      <fieldset className="align-options">
+      <fieldset className="panel__group">
         <legend>Options</legend>
         {docRead !== null && record?.read === undefined && (
           <label
@@ -1046,7 +1046,7 @@ export function AlignPanel({ doc }: Props) {
         )}
       </fieldset>
       {anyReads && (
-        <fieldset className="align-options">
+        <fieldset className="panel__group">
           <legend>Reads</legend>
           <div className="panel__controls">
             {
@@ -1070,7 +1070,7 @@ export function AlignPanel({ doc }: Props) {
       )}
       {(showBatch || result !== null) && (
         <fieldset
-          className={`align-options align-results${stale ? ' align-results--stale' : ''}`}
+          className={`panel__group align-results${stale ? ' align-results--stale' : ''}`}
           disabled={stale}
         >
           <legend>{showBatch ? 'Results' : 'Result'}</legend>
