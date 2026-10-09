@@ -8,13 +8,30 @@ edit gives a new list without asking.
 Each row shows the strand (→ forward, ← reverse), the spacer with its PAM
 run on in grey, the GC content, and the off-target counts. A row with a `!`
 has something worth a look — hover it for what. Clicking a row selects the
-protospacer in the views and opens its details below.
+protospacer in the views and opens the guide's details right under the row,
+so the list stays in view; clicking another row moves them there.
 
 While the tab is open, every guide listed is drawn on the map and in the
 sequence view as an arrow on its own strand labelled with its PAM (see
-[Previews](03-viewing.md#previews)); clicking one there opens it here. Past
-200 guides none are drawn and only the first 200 are listed — narrow the
-scan to a selection to see the rest.
+[Previews](03-viewing.md#previews)); clicking one there opens it here and
+scrolls the list to it. Past 200 guides none are drawn and only the first
+200 are listed — filter the list or narrow the scan to a selection to see
+the rest.
+
+## Filtering the list
+
+The filters above the list work on the guides already found, so they are
+instant and the heading says how many are shown, as in **139 of 345**:
+
+- **Spacer contains…** keeps the guides whose spacer has the bases typed, in
+  IUPAC codes as in Find — `GRCC` or `TTTN` work — which is how to find a
+  guide from a paper, or one starting with a `G` for a U6 promoter.
+- **PAM** keeps one PAM out of those found: SpCas9's `NGG` is four of them,
+  and the CRISPR literature prefers some over others.
+- **Hide flagged guides** drops every row with a `!`.
+
+Spacer length is not a filter: it is fixed by the nuclease, so every guide
+in a list has the same one.
 
 ## What it cannot tell you
 
@@ -65,8 +82,9 @@ insert does not also cut the vector it is going into. The selected guide's
 **Other sites** list says which document each hit is in, and **Show** jumps
 to the ones in this one.
 
-**Sort by** orders the list along the molecule, or worst-first by
-off-targets — fewest exact hits, then fewest near ones.
+**Sort by** orders the list along the molecule, worst-first by off-targets
+— fewest exact hits, then fewest near ones — or by GC content, highest
+first.
 
 ## Flags
 
@@ -96,8 +114,13 @@ selection now**, or untick and tick the box again.
 
 ## Ordering and annotating a guide
 
-The selected guide's panel gives its protospacer range, spacer, PAM, where
-both strands are cut, GC and flags.
+The selected guide's box, under its row, gives its protospacer range,
+spacer, PAM, where both strands are cut, GC and flags, and the buttons
+below.
+
+**Add as feature** annotates the protospacer on the document as a
+`misc_feature` on its strand, with the PAM in a note, and takes you to the
+feature list to name it. It is an ordinary edit, so undo takes it back.
 
 **Oligos to order** writes the two oligos to anneal and clone, 5′→3′.
 **pX330 / lentiCRISPRv2** adds the `CACC` and `AAAC` overhangs those vectors'
@@ -106,10 +129,6 @@ one, since the U6 promoter starts with G. These are Cas9 sgRNA vectors, so
 the choice is offered for SpCas9, SaCas9 and custom PAMs but not for
 AsCas12a, whose crRNA vectors take other overhangs. **No overhangs** gives
 the bare spacer and its reverse complement, for any nuclease. **Copy oligos** puts both on the
-clipboard; **Save oligos to My primers** puts them in
+clipboard; **Save to My primers** puts them in
 [My primers](10-primers.md#my-primers), where they can be exported with the
 rest of an order.
-
-**Add as feature** annotates the protospacer on the document as a
-`misc_feature` on its strand, with the PAM in a note, and takes you to the
-feature list to name it. It is an ordinary edit, so undo takes it back.

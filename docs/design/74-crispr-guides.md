@@ -105,3 +105,26 @@ the slow, obvious way.
   their own.
 - The guides are a preview overlay, not a track that can be exported with
   the map (#212 would be where that lands).
+
+## The panel, revised (2026-10-09)
+
+A first pass at the tab put the selected guide's details after the list,
+which can be 200 rows long: a guide clicked on the map opened somewhere off
+the bottom of the sidebar. The details now open in place under the row
+(`GuideDetail`, inside the row's `<li>`), and the row is scrolled into view
+when the click came from a view. The Overhangs select took its label's line
+and spilled past a 300 px sidebar; it sits under its label now, and the
+buttons wrap as whole pills rather than as two-line ones.
+
+Filters were added on the result rather than the scan — spacer contents in
+IUPAC, the PAM actually found, hide flagged — so they are instant, with GC
+as a third sort. Spacer length was considered and left out as a filter: the
+nuclease fixes it, so every guide in a list has the same one. A GC range
+was left out too; the flags already mark the 40–80% band and the sort finds
+the rest.
+
+Measuring this turned up a rescan per click: `documents` in the store is a
+new array on every selection change, the list of other documents was
+rebuilt from it, and the worker request keyed on that list. The list is now
+state replaced only when a document's name, sequence or topology differs,
+and a test counts the worker calls across a click.

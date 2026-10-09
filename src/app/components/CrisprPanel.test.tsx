@@ -3,6 +3,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { SeqDocument, reverseComplement } from '@/core';
 
+import { analysisClient } from '@/workers/analysisClient';
+
 import { editorStore } from '../state/editorStore';
 import { CrisprPanel } from './CrisprPanel';
 
@@ -68,10 +70,53 @@ describe('CrisprPanel', () => {
     const doc = docOf(`${UNIT}${FILLER}${UNIT}`);
     await openPanel(doc);
     // Both guides share the same spacer, so each is the other's off-target.
-    const rows = await screen.findAllByTitle('Exact, then by mismatch');
+    const rows = await screen.findAllByTitle('Off-targets: exact, then by mismatch');
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent('1 · 0 · 0 · 0');
-    expect(screen.getAllByTitle('Binds somewhere else exactly')).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('1·0·0·0');
+    // The exact second site is the first of the flags; the all-A spacer has others.
+    expect(screen.getAllByTitle(/^Binds somewhere else exactly;/)).toHaveLength(2);
+  });
+
+  it('filters the list by PAM, by spacer and by flag without rescanning', async () => {
+    // Two clean guides with different PAMs, and a third that is all one base.
+    const clean1 = 'ACGTACGTACGTACGTACGT';
+    const clean2 = 'GATCGATCGATCGATCGATC';
+    await openPanel(docOf(`${clean1}AGG${FILLER}${clean2}TGG${FILLER}${UNIT}`));
+    const rows = () => screen.getAllByTitle('Off-targets: exact, then by mismatch');
+    expect(rows()).toHaveLength(3);
+
+    fireEvent.click(screen.getByLabelText('Hide flagged guides'));
+    expect(rows()).toHaveLength(2);
+    expect(screen.getByText('2 of 3')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('PAM'), { target: { value: 'TGG' } });
+    expect(rows()).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /GATCGATC/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('PAM'), { target: { value: '' } });
+    // IUPAC: R is A or G, so this is in the first spacer and not the second.
+    fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'crta' } });
+    expect(rows()).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /ACGTACGT/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Spacer contains'), { target: { value: 'X' } });
+    expect(screen.getByText('No guides match the filters.')).toBeInTheDocument();
+  });
+
+  it('opens the chosen guide under its own row, without scanning again', async () => {
+    const scans = vi.spyOn(analysisClient, 'crisprGuides');
+    await openPanel(docOf(`${UNIT}${FILLER}${UNIT}`));
+    const [first, second] = await screen.findAllByRole('button', { name: /A{20}/ });
+    if (first === undefined || second === undefined) throw new Error('two rows expected');
+    expect(scans).toHaveBeenCalledTimes(1);
+    fireEvent.click(second);
+    // A click changes the selection, which is not part of the question asked.
+    expect(scans).toHaveBeenCalledTimes(1);
+    // The detail is the second row's sibling, not something after the list.
+    await waitFor(() => {
+      expect(second.parentElement?.querySelector('.crispr-detail')).not.toBeNull();
+    });
+    expect(first.parentElement?.querySelector('.crispr-detail')).toBeNull();
   });
 
   it('says plainly that it has no genome to search', async () => {
@@ -113,7 +158,7 @@ describe('CrisprPanel', () => {
     });
     fireEvent.click(screen.getByLabelText('Only cuts in the selection'));
     await waitFor(() => {
-      expect(screen.getAllByTitle('Exact, then by mismatch')).toHaveLength(2);
+      expect(screen.getAllByTitle('Off-targets: exact, then by mismatch')).toHaveLength(2);
     });
 
     // Clicking a guide selects its protospacer. Were the region read from
@@ -124,7 +169,7 @@ describe('CrisprPanel', () => {
     fireEvent.click(first);
     expect(editorStore.getState().selection).toEqual({ start: 33, end: 53 });
     expect(await screen.findByText('Oligos to order')).toBeInTheDocument();
-    expect(screen.getAllByTitle('Exact, then by mismatch')).toHaveLength(2);
+    expect(screen.getAllByTitle('Off-targets: exact, then by mismatch')).toHaveLength(2);
     expect(screen.getByLabelText('Only cuts in the selection')).toBeChecked();
 
     // A new selection is taken up only when asked for.
@@ -133,7 +178,7 @@ describe('CrisprPanel', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Use the selection now' }));
     await waitFor(() => {
-      expect(screen.getAllByTitle('Exact, then by mismatch')).toHaveLength(1);
+      expect(screen.getAllByTitle('Off-targets: exact, then by mismatch')).toHaveLength(1);
     });
   });
 

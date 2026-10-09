@@ -4687,9 +4687,10 @@ button {
  * The guide list (item 74). A row is the spacer itself, in mono, with its
  * PAM run on in a quieter colour: what a scientist compares between rows is
  * the bases, so they get the width and everything else is pushed to the
- * right. 20 mono characters at 11px fit the 330 px sidebar beside the
- * strand arrow; a longer spacer (Cas12a's 23) is allowed to ellipsize
- * rather than wrap, since the selected guide's panel below shows it whole.
+ * right. 20 mono characters at 11px and a 3-base PAM fit a sidebar dragged
+ * down to 300 px beside the strand arrow, GC and off-target counts, with
+ * nothing to spare: a longer spacer (Cas12a's 23) is allowed to ellipsize
+ * rather than wrap, since the selected guide's box shows it whole.
  */
 .crispr-list {
   list-style: none;
@@ -4697,13 +4698,18 @@ button {
   padding: 0;
 }
 
+/* The filters sit between the heading and the rows they thin out. */
+.crispr-filters {
+  margin-bottom: 4px;
+}
+
 .crispr-row {
   display: grid;
-  grid-template-columns: 1.2em minmax(0, 1fr) auto auto auto;
+  grid-template-columns: 1em minmax(0, 1fr) auto auto 0.7em;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
-  padding: 5px 6px;
+  padding: 5px 4px;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -4727,24 +4733,67 @@ button {
 .crispr-row__spacer {
   overflow: hidden;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .crispr-row__pam {
   color: var(--ink-3);
+  font-size: 10px;
 }
 
 .crispr-row__gc,
 .crispr-row__off {
   color: var(--ink-3);
-  font-size: 11.5px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .crispr-row__warning {
   color: var(--warn);
   font-weight: 600;
+}
+
+/*
+ * The selected guide opens in place under its row rather than at the foot
+ * of a list that can be 200 rows long: the row stays in sight, and a guide
+ * clicked on the map is scrolled to rather than hunted for. It keeps the
+ * full width — a 300 px sidebar has none to spare — and a selection-coloured
+ * edge ties it to the row above.
+ */
+.crispr-guide {
+  margin: 2px 0 6px;
+  padding: 6px 8px 8px;
+  border-left: 2px solid var(--seq-selection);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface);
+}
+
+.crispr-guide__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.crispr-detail__flags {
+  color: var(--warn);
+}
+
+/* The buttons wrap as whole pills, never as two-line ones. */
+.crispr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.crispr-actions .button {
+  white-space: nowrap;
 }
 
 .crispr-pam {
