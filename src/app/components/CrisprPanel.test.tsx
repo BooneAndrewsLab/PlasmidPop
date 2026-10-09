@@ -1,0 +1,125 @@
+// @vitest-environment jsdom
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+
+import { SeqDocument, reverseComplement } from '@/core';
+
+import { editorStore } from '../state/editorStore';
+import { CrisprPanel } from './CrisprPanel';
+
+/** One SpCas9 site: 20 A's and a TGG PAM, then filler with no GG or CC. */
+const UNIT = `${'A'.repeat(20)}TGG`;
+const FILLER = 'CTCTCTCTCT';
+
+function docOf(sequence: string, topology: 'linear' | 'circular' = 'linear'): SeqDocument {
+  return SeqDocument.create({ sequence, topology, name: 'test' });
+}
+
+async function openPanel(doc: SeqDocument) {
+  act(() => {
+    editorStore.openDocument(doc);
+  });
+  const view = render(<CrisprPanel doc={doc} />);
+  // The scan is a worker request even in tests, where it runs inline on a
+  // promise: wait for it rather than for a result, since a document with no
+  // guides at all is one of the things worth testing.
+  await waitFor(() => {
+    expect(screen.queryByText('Looking for guides…')).not.toBeInTheDocument();
+  });
+  return view;
+}
+
+describe('CrisprPanel', () => {
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+    });
+  });
+
+  it('lists the guides and draws them on the views while open', async () => {
+    const doc = docOf(`${UNIT}${FILLER}${reverseComplement(UNIT)}`);
+    const view = await openPanel(doc);
+
+    // One guide on each strand: the second unit is the first's reverse complement.
+    await waitFor(() => {
+      expect(editorStore.getState().preview?.items).toHaveLength(2);
+    });
+    const preview = editorStore.getState().preview;
+    expect(preview?.owners).toEqual(['crispr']);
+    expect(preview?.items.map((i) => [i.label, i.strand, i.shape])).toEqual([
+      ['TGG', 'forward', 'arrow'],
+      ['TGG', 'reverse', 'arrow'],
+    ]);
+
+    // Clicking one on a view opens it here and selects the protospacer.
+    const first = preview?.items[0];
+    if (first === undefined) throw new Error('no guide was previewed');
+    act(() => {
+      editorStore.activatePreview(first.id);
+    });
+    expect(editorStore.getState().selection).toEqual({ start: 0, end: 20 });
+    expect(await screen.findByText('Protospacer')).toBeInTheDocument();
+
+    // Leaving the tab takes the arrows off the views.
+    view.unmount();
+    expect(editorStore.getState().preview).toBeNull();
+  });
+
+  it('counts a guide that binds elsewhere exactly, and says so', async () => {
+    const doc = docOf(`${UNIT}${FILLER}${UNIT}`);
+    await openPanel(doc);
+    // Both guides share the same spacer, so each is the other's off-target.
+    const rows = await screen.findAllByTitle('Exact, then by mismatch');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('1 · 0 · 0 · 0');
+    expect(screen.getAllByTitle('Binds somewhere else exactly')).toHaveLength(2);
+  });
+
+  it('says plainly that it has no genome to search', async () => {
+    await openPanel(docOf(`${UNIT}${FILLER}`));
+    expect(screen.getByText(/no genome to search/)).toBeInTheDocument();
+  });
+
+  it('refuses a custom PAM that is not IUPAC, and scans once it is', async () => {
+    // TGA is no PAM for SpCas9, but it is one for a custom NGA.
+    await openPanel(docOf(`${'A'.repeat(20)}TGA${FILLER}`, 'linear'));
+    expect(screen.getByText(/No guides/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Nuclease'), { target: { value: 'custom' } });
+    const pam = screen.getByLabelText('PAM in IUPAC codes');
+    fireEvent.change(pam, { target: { value: 'NXG' } });
+    expect(await screen.findByText(/not an IUPAC base/)).toBeInTheDocument();
+    expect(screen.queryByText('Guides')).not.toBeInTheDocument();
+
+    fireEvent.change(pam, { target: { value: 'NGA' } });
+    expect(await screen.findByText('Guides')).toBeInTheDocument();
+  });
+
+  it('writes the pX330 oligos for the guide chosen', async () => {
+    const spacer = 'ACCTGCATTGGCATTGCATT';
+    await openPanel(docOf(`${spacer}TGG${FILLER}`));
+    fireEvent.click(await screen.findByRole('button', { name: /ACCTGCATTGGCATTGCATT/ }));
+
+    expect(await screen.findByText('Oligos to order')).toBeInTheDocument();
+    // The U6 promoter wants a G, which this spacer has not got.
+    expect(screen.getByText('CACCGACCTGCATTGGCATTGCATT')).toBeInTheDocument();
+    expect(screen.getByText('AAACAATGCAATGCCAATGCAGGTC')).toBeInTheDocument();
+  });
+
+  it('adds the chosen guide to the document as a feature', async () => {
+    const doc = docOf(`${UNIT}${FILLER}`);
+    await openPanel(doc);
+    fireEvent.click(await screen.findByRole('button', { name: /AAAAAAAAAAAAAAAAAAAA/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add as feature' }));
+
+    const state = editorStore.getState().documents[0];
+    if (state === undefined) throw new Error('the document was not opened');
+    const features = [...state.history.present.features.all()];
+    expect(features).toHaveLength(1);
+    expect(features[0]?.strand).toBe('forward');
+    expect(features[0]?.segments).toMatchObject([{ start: 0, end: 20 }]);
+    expect(features[0]?.qualifiers).toContainEqual({
+      name: 'note',
+      value: 'CRISPR protospacer, TGG PAM',
+    });
+  });
+});

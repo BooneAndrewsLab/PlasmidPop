@@ -2,10 +2,13 @@ import {
   type Alignment,
   type AlignmentOptions,
   type AnnealOptions,
+  type CrisprGuide,
+  type CrisprOptions,
   type CutSite,
   type EnzymeSet,
   type FeatureHit,
   type LibraryPart,
+  type Nuclease,
   type Orf,
   type OrfOptions,
   type PrimerSearch,
@@ -75,6 +78,15 @@ export type AnalysisRequest =
       readonly sequence: string;
       readonly topology: Topology;
       readonly minIdentity?: number;
+    }
+  | {
+      /** CRISPR guides for one nuclease, with off-targets (item 74, #206). */
+      readonly id: number;
+      readonly kind: 'crispr';
+      readonly sequence: string;
+      readonly topology: Topology;
+      readonly nuclease: Nuclease;
+      readonly options: Omit<CrisprOptions, 'onProgress'>;
     };
 
 /**
@@ -110,6 +122,7 @@ export type AnalysisResponse =
       readonly kind: 'detectFeatures';
       readonly detections: readonly Detection[];
     }
+  | { readonly id: number; readonly kind: 'crispr'; readonly guides: readonly CrisprGuide[] }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

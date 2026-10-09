@@ -2,8 +2,11 @@ import {
   type Alignment,
   type AlignmentOptions,
   type AnnealOptions,
+  type CrisprGuide,
+  type CrisprOptions,
   type CutSite,
   type EnzymeSet,
+  type Nuclease,
   type Orf,
   type OrfOptions,
   type PrimerSearch,
@@ -210,6 +213,20 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'detectFeatures') throw new Error('Unexpected analysis response');
     return res.detections;
+  }
+
+  /** CRISPR guides for one nuclease, with off-targets (item 74, #206). */
+  async crisprGuides(
+    sequence: string,
+    topology: Topology,
+    nuclease: Nuclease,
+    options: Omit<CrisprOptions, 'onProgress'> = {},
+    long: LongRequestOptions = {},
+  ): Promise<readonly CrisprGuide[]> {
+    const res = await this.send({ kind: 'crispr', sequence, topology, nuclease, options }, long);
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'crispr') throw new Error('Unexpected analysis response');
+    return res.guides;
   }
 
   dispose(): void {

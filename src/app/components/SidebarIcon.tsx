@@ -21,6 +21,8 @@ const PATHS: Readonly<Record<SidebarTab, string>> = {
   primers: 'M1.5 11h13M3 7.5h6.5M7.5 5.5l2 2-2 2',
   // Scissors.
   enzymes: 'M4 4.5a2 2 0 1 0 0 .01M4 11.5a2 2 0 1 0 0 .01M5.6 5.6 14 12M5.6 10.4 14 4',
+  // A guide RNA over a cut in the double helix.
+  crispr: 'M1.5 5.5h5M9.5 5.5h5M1.5 10.5h5M9.5 10.5h5M8 3v10M4 8h2.5M9.5 8H12',
   // Two pieces joining.
   cloning: 'M1.5 8h5v3h-5zM9.5 5h5v3h-5zM6.5 9.5h1.5V6.5h1.5',
   // Two sequences, lined up.

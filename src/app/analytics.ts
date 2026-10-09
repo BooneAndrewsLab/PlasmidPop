@@ -155,6 +155,15 @@ export const EVENTS = {
    */
   detect: ['run', 'add', 'setting'],
   /**
+   * The CRISPR guide finder (item 74, #206): `scan` named by the nuclease
+   * (`spcas9`, `sacas9`, `ascas12a`, `custom`), never the PAM typed in;
+   * `region` when a scan was narrowed to the selection; `background` when
+   * the other open documents were searched too; `add` a guide annotated as
+   * a feature; `oligos` the cloning oligos saved to My primers, named by
+   * the overhang scheme (`px330`, `none`).
+   */
+  crispr: ['scan', 'region', 'background', 'add', 'oligos'],
+  /**
    * The primer collection (#64): `collection-add` named by where the
    * primers came from (`design`, `check`, `feature`, `paste`, `file`,
    * `form`, `document`), never how many or which; `collection-export` by

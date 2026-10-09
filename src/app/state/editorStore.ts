@@ -126,6 +126,7 @@ export type SidebarTab =
   | 'orfs'
   | 'translate'
   | 'primers'
+  | 'crispr'
   | 'align'
   | 'cloning'
   | 'history';
@@ -154,6 +155,7 @@ export const SIDEBAR_TABS: readonly SidebarTab[] = [
   'translate',
   'primers',
   'enzymes',
+  'crispr',
   'cloning',
   'align',
   'history',
@@ -166,6 +168,7 @@ const SIDEBAR_TAB_TOOLS: Readonly<Partial<Record<SidebarTab, DocumentTool>>> = {
   translate: 'translate',
   primers: 'primers',
   enzymes: 'enzymes',
+  crispr: 'crispr',
   cloning: 'cloning',
   align: 'align',
 };
@@ -713,7 +716,8 @@ export interface DocumentPreview {
   readonly items: readonly OverlaySpan[];
 }
 
-export type PreviewOwner = 'primers' | 'collection' | 'find' | 'cloning' | 'pcr' | 'orfs' | 'align';
+export type PreviewOwner =
+  'primers' | 'collection' | 'find' | 'cloning' | 'pcr' | 'orfs' | 'crispr' | 'align';
 
 /**
  * The previews for the document in front, put together for the views: each

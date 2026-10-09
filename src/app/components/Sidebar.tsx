@@ -9,6 +9,7 @@ import { useEditorState } from '../state/useEditorStore';
 import { useBindingLabel } from './useAltKey';
 import { AlignPanel } from './AlignPanel';
 import { CloningPanel } from './CloningPanel';
+import { CrisprPanel } from './CrisprPanel';
 import { EnzymePanel } from './EnzymePanel';
 import { FeatureList } from './FeatureList';
 import { HistoryPanel } from './HistoryPanel';
@@ -30,6 +31,7 @@ const LABELS: Readonly<Record<SidebarTab, string>> = {
   translate: 'Translate',
   primers: 'Primers',
   enzymes: 'Enzymes',
+  crispr: 'CRISPR',
   cloning: 'Cloning',
   align: 'Align',
   history: 'History',
@@ -165,6 +167,8 @@ export function SidebarPanel({ doc, tab, reader = false }: PanelProps) {
       return <PrimerPanel doc={doc} />;
     case 'align':
       return <AlignPanel doc={doc} />;
+    case 'crispr':
+      return <CrisprPanel doc={doc} />;
     case 'cloning':
       return <CloningPanel doc={doc} />;
     case 'history':

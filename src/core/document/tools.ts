@@ -26,6 +26,8 @@ export type DocumentTool =
   | 'align'
   /** Detect features: the library of common parts is DNA (item 59). */
   | 'detectFeatures'
+  /** The CRISPR guide finder (item 74). */
+  | 'crispr'
   | 'reverseComplement'
   /** Making the molecule circular, setting its origin, and the circular map. */
   | 'circular'
@@ -46,6 +48,7 @@ const NUCLEOTIDE_TOOLS: ReadonlySet<DocumentTool> = new Set<DocumentTool>([
   'cloning',
   'align',
   'detectFeatures',
+  'crispr',
   'reverseComplement',
   'circular',
   'ends',

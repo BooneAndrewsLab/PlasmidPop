@@ -4,6 +4,7 @@ import {
   alignEitherStrand,
   alignPairwise,
   findCollectionPrimers,
+  findCrisprGuides,
   detectFeatures,
   findCutSites,
   findOrfs,
@@ -51,6 +52,15 @@ export function handleAnalysisRequest(
           id: req.id,
           kind: 'orfs',
           orfs: findOrfs(req.sequence, req.topology, req.options),
+        };
+      case 'crispr':
+        return {
+          id: req.id,
+          kind: 'crispr',
+          guides: findCrisprGuides(req.sequence, req.topology, req.nuclease, {
+            ...req.options,
+            ...(onProgress === undefined ? {} : { onProgress }),
+          }),
         };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };

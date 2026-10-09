@@ -1,5 +1,6 @@
 import align from '../../../docs/guide/11-align.md?raw';
 import cloning from '../../../docs/guide/12-cloning.md?raw';
+import crispr from '../../../docs/guide/17-crispr.md?raw';
 import editing from '../../../docs/guide/04-editing.md?raw';
 import enzymes from '../../../docs/guide/07-enzymes.md?raw';
 import features from '../../../docs/guide/05-features.md?raw';
@@ -49,6 +50,7 @@ export const GUIDE: readonly GuidePage[] = [
   page('14-shortcuts', shortcuts),
   page('15-reads', reads),
   page('16-proteins', proteins),
+  page('17-crispr', crispr),
 ];
 
 export function guidePage(id: string): GuidePage | undefined {
