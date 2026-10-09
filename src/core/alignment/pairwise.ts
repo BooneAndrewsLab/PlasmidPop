@@ -210,6 +210,35 @@ interface Filled {
   readonly bestState: number;
 }
 
+/**
+ * The first sequence, upper-cased and encoded, kept for the next call: the
+ * reads of a batch are each aligned to the same reference, in the worker
+ * as separate calls, and each takes several fills (#170). Compared by value.
+ */
+interface EncodedFirst {
+  readonly a: string;
+  readonly protein: boolean;
+  readonly A: string;
+  readonly codesA: Uint8Array;
+}
+
+/** Two, most recent first: a local check fills a slice of the reference between two fills of it all. */
+const firstEncoded: EncodedFirst[] = [];
+
+function encodedFirst(a: string, protein: boolean): EncodedFirst {
+  const at = firstEncoded.findIndex((e) => e.a === a && e.protein === protein);
+  const [hit] = at < 0 ? [undefined] : firstEncoded.splice(at, 1);
+  const entry =
+    hit ??
+    ((): EncodedFirst => {
+      const A = a.toUpperCase();
+      return { a, protein, A, codesA: protein ? encodeProtein(A) : encode(A) };
+    })();
+  firstEncoded.unshift(entry);
+  firstEncoded.length = Math.min(firstEncoded.length, 2);
+  return entry;
+}
+
 function fillBand(
   a: string,
   b: string,
@@ -232,9 +261,8 @@ function fillBand(
     : scoreTable(options.match ?? 5, options.mismatch ?? -4, options.iupac ?? true, SCALE);
   const codeCount = protein ? PROTEIN_CODES : CODES;
 
-  const A = a.toUpperCase();
+  const { A, codesA } = encodedFirst(a, protein);
   const B = b.toUpperCase();
-  const codesA = protein ? encodeProtein(A) : encode(A);
   const codesB = protein ? encodeProtein(B) : encode(B);
   const n = A.length;
   const m = B.length;

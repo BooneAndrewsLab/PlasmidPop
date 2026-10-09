@@ -107,7 +107,30 @@ traceback (the per-cell work is the three-state recurrence, not the
 traceback byte) but needs no memory a cell and reads only the rows the
 region has. The 300 kb plates' 0.1-0.3 s a read is not the check: it is
 the per-read 15-mer index and encoding of the whole unrolled reference,
-done again for every read.
+done again for every read. Fixed in #170, below.
+
+### The reference kept between reads (#170, 2026-10-09)
+
+Each read of a batch is its own call into the worker, so the reference's
+15-mer index (`banded.ts`), its 11-mer bitmap (`strands.ts`) and its
+upper-cased, encoded form (`pairwise.ts`, three fills a read) were built
+again for every read. The last one of each is now kept and reused when the
+next call's reference is equal (by value: the worker gets a new string with
+every request); the encoding keeps two, since a local check fills a slice of
+the reference between two fills of all of it. Node 24, 96 Sanger reads
+(`readBatch.timing.test.ts`, trimmed at 5%, local, `fast`), 300 kb circle
+unrolled to 600 kb:
+
+| Input                   | Before    | After       |
+| ----------------------- | --------- | ----------- |
+| 96 reads, 300 kb circle | 27.3 s    | 12.9-13.3 s |
+| 96 reads, 5 kb circle   | 1.1-1.4 s | 1.1-1.3 s   |
+
+The word index took 200+ ms for the first read and now 1-2 ms for the rest.
+What remains is the real work of each read: the band (about 0.8 M cells, 40
+ms), its check (about 0.2 M cells, 15-30 ms) and the O(reference) row
+tables of the band (10-40 ms), not shared between reads since they depend on
+the read. Cutting that further would need a band narrower than its margin.
 
 ## Edit marks (sequence diff)
 

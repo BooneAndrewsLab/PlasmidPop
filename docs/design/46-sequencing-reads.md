@@ -384,6 +384,19 @@ pairs, local ones up to 12% under.
   every difference in such a codon had no protein effect. A read that
   stops at the origin holds part of the codon only and still has none.
 
+### The reference between the reads of a batch (#170)
+
+Align all sends each read as its own request, with the reference again, so
+the per-reference work (the 15-mer index, the 11-mer bitmap, the encoding of
+the first sequence) used to be redone per read, and on a 300 kb circle,
+doubled to 600 kb, that was most of a read's time. The functions that build
+them keep the last reference's result (two for the encoding) and compare the
+string by value. A module-level cache rather than a handle passed through
+`alignEitherStrand`: the worker protocol stays one request a read, a cancel
+still stops the one running, and a single alignment is unchanged. The cost
+is a few MB held in the worker after a batch. Measurements in
+`docs/perf-notes.md`.
+
 ## The chromatogram (#52)
 
 - **Where** (decided on #52 at the start of the work): both in the sequence

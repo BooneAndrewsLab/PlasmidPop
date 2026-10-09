@@ -106,7 +106,7 @@ export function alignEitherStrand(
  * chance on either strand, so it is the ratio that decides.
  */
 export function likelyStrand(a: string, b: string, rcB = reverseComplement(b)): Strand | null {
-  const seen = kmerBitmap(a);
+  const seen = bitmapOf(a);
   const forward = sharedKmers(b, seen);
   const reverse = sharedKmers(rcB, seen);
   const best = Math.max(forward, reverse);
@@ -160,6 +160,14 @@ function kmerBitmap(seq: string): Uint8Array {
     bits[k >> 3] = (bits[k >> 3] ?? 0) | (1 << (k & 7));
   });
   return bits;
+}
+
+/** The bitmap of the last sequence given: a batch's reads share a reference (#170). */
+let bitmapped: { readonly seq: string; readonly bits: Uint8Array } | null = null;
+
+function bitmapOf(seq: string): Uint8Array {
+  if (bitmapped?.seq !== seq) bitmapped = { seq, bits: kmerBitmap(seq) };
+  return bitmapped.bits;
 }
 
 function sharedKmers(seq: string, seen: Uint8Array): number {

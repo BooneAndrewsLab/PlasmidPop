@@ -11,12 +11,12 @@ import { type BatchRead, runReadBatch } from './readBatch';
  * a 5 kb circular plasmid, aligned locally as the Align tab does. The
  * worker runs the same code; `docs/perf-notes.md` has the measurement.
  */
-function plate(): { plasmid: string; reads: BatchRead[] } {
+function plate(size = 5000, count = 96): { plasmid: string; reads: BatchRead[] } {
   const rand = seededRandom(96);
-  const plasmid = randomDna(rand, 5000);
+  const plasmid = randomDna(rand, size);
   const circle = plasmid + plasmid;
   const reads: BatchRead[] = [];
-  for (let r = 0; r < 96; r++) {
+  for (let r = 0; r < count; r++) {
     const length = randomInt(rand, 700, 900);
     const start = randomInt(rand, 0, plasmid.length);
     let bases = '';
@@ -62,5 +62,28 @@ describe('a plate of reads', () => {
       expectWithin(ms, 20_000);
     },
     60_000,
+  );
+
+  itTimed(
+    'aligns 96 reads against a 300 kb circle without indexing it for each read (#170)',
+    async () => {
+      const { plasmid, reads } = plate(300_000);
+      const t0 = performance.now();
+      const { rows } = await runReadBatch(
+        reads,
+        { sequence: plasmid, offset: 0, wrap: plasmid.length },
+        (a, b, options) => Promise.resolve(alignEitherStrand(a, b, options)),
+        { options: { fast: true }, mode: 'local', trimCutoff: 0.05 },
+      );
+      const ms = performance.now() - t0;
+      process.stderr.write(`[perf] 96 Sanger reads against 300 kb circle: ${ms.toFixed(0)} ms\n`);
+      // A read of mostly poor bases may share too few words with 300 kb to
+      // be banded, and fail as too large for a full fill: not what this measures.
+      const aligned = rows.filter((r) => r.status === 'aligned');
+      expect(aligned.length).toBeGreaterThanOrEqual(94);
+      expect(aligned.every((r) => r.result.alignment.identity > 0.9)).toBe(true);
+      expectWithin(ms, 60_000);
+    },
+    180_000,
   );
 });

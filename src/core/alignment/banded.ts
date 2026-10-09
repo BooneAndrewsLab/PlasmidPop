@@ -84,14 +84,32 @@ function forEachKmer(seq: string, visit: (kmer: number, start: number) => void):
   }
 }
 
-/** Where the read's words are found in the reference. */
-function anchors(reference: string, read: string): Anchor[] {
+/** The reference's words and where they occur, repeats cut short at the limit. */
+function indexWords(reference: string): Map<number, number[]> {
   const at = new Map<number, number[]>();
   forEachKmer(reference, (kmer, start) => {
     const list = at.get(kmer);
     if (list === undefined) at.set(kmer, [start]);
     else if (list.length <= MAX_OCCURRENCES) list.push(start);
   });
+  return at;
+}
+
+/**
+ * The index of the last reference given, so that the reads of a batch, each
+ * its own call against the same reference, build it once (#170). Compared
+ * by value: the worker gets a fresh copy of the string with every request.
+ */
+let indexed: { readonly reference: string; readonly at: Map<number, number[]> } | null = null;
+
+function wordIndex(reference: string): Map<number, number[]> {
+  if (indexed?.reference !== reference) indexed = { reference, at: indexWords(reference) };
+  return indexed.at;
+}
+
+/** Where the read's words are found in the reference. */
+function anchors(reference: string, read: string): Anchor[] {
+  const at = wordIndex(reference);
   const out: Anchor[] = [];
   forEachKmer(read, (kmer, j) => {
     const list = at.get(kmer);

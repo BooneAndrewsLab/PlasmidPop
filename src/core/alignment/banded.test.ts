@@ -464,3 +464,27 @@ describe(
     });
   },
 );
+
+describe('the reference kept between reads (#170)', () => {
+  it('gives each read the answer it has alone, whichever reference came before', () => {
+    const next = rng(170);
+    const one = randomSequence(30_000, next);
+    const two = randomSequence(30_000, next);
+    const readOne = noisy(one.slice(5000, 6200), 0.02, next);
+    const readTwo = noisy(two.slice(9000, 10200), 0.02, next);
+    const options = { mode: 'local' as const };
+    // Alternating references and one more with the same length, so a cache
+    // keyed by anything but the sequence would return the wrong one.
+    const alone = (ref: string, read: string): Alignment | undefined =>
+      alignBanded(ref, read, options)?.alignment;
+    const expectedOne = alone(one, readOne);
+    const expectedTwo = alone(two, readTwo);
+    for (let round = 0; round < 2; round++) {
+      expect(alone(one, readOne)).toEqual(expectedOne);
+      expect(alone(two, readTwo)).toEqual(expectedTwo);
+      expect(alone(one, readTwo)).not.toEqual(expectedTwo);
+    }
+    expect(expectedOne?.startA).toBe(5000);
+    expect(expectedTwo?.startA).toBe(9000);
+  });
+});
