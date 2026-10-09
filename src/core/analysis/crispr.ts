@@ -514,7 +514,6 @@ export function findCrisprGuides(
 
 /** Whether a break at boundary `cut` is in `region`: a base on either side of it is. */
 function cutInRegion(cut: number, region: Range, L: number, topology: Topology): boolean {
-  if (L === 0) return false;
   const after = topology === 'circular' ? cut % L : cut;
   const before = topology === 'circular' ? (cut - 1 + L) % L : cut - 1;
   return (

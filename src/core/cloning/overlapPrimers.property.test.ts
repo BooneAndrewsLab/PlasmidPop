@@ -176,7 +176,7 @@ describe('designOverlapPrimers, for random vectors and inserts', () => {
       ),
       { numRuns: 60 },
     );
-  }, 10_000);
+  }, 30_000);
 });
 
 describe('designOverlapPrimers refuses', () => {

@@ -391,3 +391,324 @@ describe('MIT specificity', () => {
     for (const g of findCrisprGuides(seq, 'linear', sa)) expect(g.specificity).toBeNull();
   });
 });
+
+// ------------------------------------------------- edges found by mutation testing
+
+/** A spacer of all four bases that makes no GG or CC, so no PAM of its own. */
+const S20 = 'ACGTACGTACGTACGTACGT';
+
+/** `s` with the bases at the given positions replaced. */
+function substitute(s: string, edits: Readonly<Record<number, string>>): string {
+  return Array.from(s, (c, i) => edits[i] ?? c).join('');
+}
+
+function custom(pam: string, pamSide: Nuclease['pamSide'], spacerLength: number): Nuclease {
+  return {
+    id: 'custom',
+    name: 'Custom',
+    pam,
+    pamSide,
+    spacerLength,
+    cut: { pamStrand: 17, targetStrand: 17 },
+  };
+}
+
+describe('custom nuclease limits', () => {
+  it('accepts the longest PAM and the shortest and longest spacers', () => {
+    expect(nucleaseProblem('NNNNNNNN', 20)).toBeNull();
+    expect(nucleaseProblem('NGG', 15)).toBeNull();
+    expect(nucleaseProblem('NGG', 30)).toBeNull();
+  });
+
+  it('words each reason exactly', () => {
+    expect(nucleaseProblem('', 20)).toBe('Enter a PAM.');
+    expect(nucleaseProblem('NNNNNNNNN', 20)).toBe('A PAM is at most 8 bases.');
+    expect(nucleaseProblem('NXG', 20)).toBe('“X” is not an IUPAC base.');
+    expect(nucleaseProblem('NGG', 14)).toBe('A spacer is 15–30 bases.');
+    expect(nucleaseProblem('NGG', 31)).toBe('A spacer is 15–30 bases.');
+    expect(nucleaseProblem('NGG', 20.5)).toBe('A spacer is 15–30 bases.');
+  });
+});
+
+describe('findCrisprGuides window edges', () => {
+  it('finds nothing in a sequence shorter than PAM plus spacer, even with a PAM at the start', () => {
+    expect(findCrisprGuides('TTTAACGT', 'linear', ASCAS12A)).toEqual([]);
+    expect(findCrisprGuides('TTTAACGT', 'circular', ASCAS12A)).toEqual([]);
+  });
+
+  it('needs the whole spacer after a 5′ PAM at the end of a linear sequence', () => {
+    // 22 bases follow the PAM, a spacer is 23.
+    expect(findCrisprGuides(`AAAATTTA${'C'.repeat(22)}`, 'linear', ASCAS12A)).toEqual([]);
+    const guides = findCrisprGuides(`AAAATTTA${'C'.repeat(23)}`, 'linear', ASCAS12A);
+    expect(guides).toHaveLength(1);
+    // The target strand is cut at the very end: boundary 31 of 31.
+    expect(guides[0]).toMatchObject({
+      strand: 'forward',
+      range: { start: 8, end: 31 },
+      cut: { forward: 26, reverse: 31 },
+    });
+  });
+
+  it('reads a circle that is exactly one window long through its origin', () => {
+    const rotated = `${UNIT.slice(5)}${UNIT.slice(0, 5)}`;
+    expect(rotated).toHaveLength(23);
+    const guides = findCrisprGuides(rotated, 'circular', SPCAS9);
+    expect(guides).toHaveLength(1);
+    expect(guides[0]).toMatchObject({ range: { start: 18, end: 38 }, pam: 'TGG' });
+  });
+
+  it('lists a guide on a circle once, not again for the window that wraps back to the start', () => {
+    const guides = findCrisprGuides(`TTTA${'C'.repeat(23)}`, 'circular', ASCAS12A);
+    expect(guides).toHaveLength(1);
+    expect(guides[0]?.range).toEqual({ start: 4, end: 27 });
+  });
+
+  it('does not take a character that is no base for a PAM base', () => {
+    expect(findCrisprGuides(`${A20}XGG${'A'.repeat(5)}`, 'linear', SPCAS9)).toEqual([]);
+    expect(findCrisprGuides(`${A20}TG-${'A'.repeat(5)}`, 'linear', SPCAS9)).toEqual([]);
+  });
+
+  it('sorts a forward and a reverse guide with the same start forward first', () => {
+    // S20 forward with its TGG, and S20 again on the reverse strand with its PAM
+    // (CCA on this one) round the origin: both spacers cover [0, 20).
+    const guides = findCrisprGuides(`${S20}TGGATATCCA`, 'circular', SPCAS9);
+    expect(guides.map((g) => [g.strand, g.range.start])).toEqual([
+      ['forward', 0],
+      ['reverse', 0],
+    ]);
+  });
+});
+
+describe('findCrisprGuides off-targets in detail', () => {
+  const pre = FILLER + FILLER;
+
+  it('compares all four bases, so a copy with any base changed is counted by how many', () => {
+    const other = substitute(S20, { 0: 'C', 1: 'G', 2: 'T', 3: 'A' });
+    const seq = `${pre}${S20}TGG${FILLER}${other}TGG`;
+    const guides = findCrisprGuides(seq, 'linear', SPCAS9, { maxMismatches: 4 });
+    expect(guides.map((g) => g.range.start)).toEqual([20, 53]);
+    expect(guides[0]?.offTargets).toEqual([0, 0, 0, 0, 1]);
+    expect(guides[0]?.sites).toEqual([
+      { doc: 0, strand: 'forward', range: { start: 53, end: 73 }, mismatches: 4 },
+    ]);
+    expect(guides[1]?.offTargets).toEqual([0, 0, 0, 0, 1]);
+  });
+
+  it('finds an exact copy of a spacer made of all four bases, wherever it is', () => {
+    const seq = `${pre}${S20}TGG${FILLER}${S20}TGG`;
+    const guides = findCrisprGuides(seq, 'linear', SPCAS9);
+    expect(guides.map((g) => g.offTargets)).toEqual([
+      [1, 0, 0, 0],
+      [1, 0, 0, 0],
+    ]);
+  });
+
+  it('offers a site to every guide that could match it, not only the first to ask', () => {
+    const x = 'ACGT'.repeat(5);
+    const y = 'TGCA'.repeat(5);
+    const guides = findCrisprGuides(`${x}TGG${FILLER}${y}TGG${FILLER}${y}TGG`, 'linear', SPCAS9);
+    expect(guides.map((g) => g.offTargets[0])).toEqual([0, 1, 1]);
+  });
+
+  it('finds a copy across the origin of a circular document', () => {
+    const seq = `${UNIT.slice(5)}${FILLER}${UNIT}AAAAA`;
+    const guides = findCrisprGuides(seq, 'circular', SPCAS9);
+    const middle = guides.find((g) => g.range.start === 28);
+    expect(middle?.offTargets).toEqual([1, 0, 0, 0]);
+    expect(middle?.sites).toEqual([
+      { doc: 0, strand: 'forward', range: { start: 51, end: 71 }, mismatches: 0 },
+    ]);
+  });
+
+  it('finds a copy whose spacer runs far past the origin of a short circle', () => {
+    // 24 bases, a 15 nt spacer and an NGG. The PAM at 3-5 has its spacer at 12,
+    // holding the Gs of the other PAM; the PAM at 14-16 has its spacer at 23,
+    // wrapping round the origin and holding the Gs of the first. The two
+    // spacers differ at four places.
+    const seq = substitute('A'.repeat(24), { 4: 'G', 5: 'G', 15: 'G', 16: 'G' });
+    const guides = findCrisprGuides(seq, 'circular', custom('NGG', '3prime', 15), {
+      maxMismatches: 4,
+    });
+    expect(guides.map((g) => g.range.start)).toEqual([12, 23]);
+    expect(guides.map((g) => g.offTargets)).toEqual([
+      [0, 0, 0, 0, 1],
+      [0, 0, 0, 0, 1],
+    ]);
+  });
+
+  it('counts a site whose PAM has an ambiguous base, which is not itself a guide', () => {
+    const guides = findCrisprGuides(`${UNIT}${FILLER}${A20}TNG`, 'linear', SPCAS9);
+    expect(guides).toHaveLength(1);
+    expect(guides[0]?.offTargets).toEqual([1, 0, 0, 0]);
+  });
+
+  it('counts a site that is ambiguous in every block of the seed index', () => {
+    const blurred = substitute(A20, { 2: 'N', 7: 'N', 12: 'N', 17: 'N' });
+    const guides = findCrisprGuides(`${UNIT}${FILLER}${blurred}TGG`, 'linear', SPCAS9);
+    expect(guides).toHaveLength(1);
+    expect(guides[0]?.offTargets).toEqual([1, 0, 0, 0]);
+  });
+
+  it('counts the same spacer on the other strand at the same place, and in another document', () => {
+    const seq = `${UNIT}${FILLER}${reverseComplement(UNIT)}`;
+    const guides = findCrisprGuides(seq, 'linear', SPCAS9);
+    expect(guides.map((g) => [g.strand, g.offTargets[0]])).toEqual([
+      ['forward', 1],
+      ['reverse', 1],
+    ]);
+    expect(guides[0]?.sites[0]).toMatchObject({ doc: 0, strand: 'reverse' });
+    expect(guides[1]?.sites[0]).toMatchObject({ doc: 0, strand: 'forward', range: { start: 0 } });
+
+    const same = findCrisprGuides(`${UNIT}${'A'.repeat(10)}`, 'linear', SPCAS9, {
+      background: [{ sequence: `${UNIT}${'A'.repeat(10)}`, topology: 'linear' }],
+    });
+    expect(same[0]?.offTargets).toEqual([1, 0, 0, 0]);
+    expect(same[0]?.sites).toEqual([
+      { doc: 1, strand: 'forward', range: { start: 0, end: 20 }, mismatches: 0 },
+    ]);
+  });
+
+  it('lists sites fewest mismatches first, then by document, then by position', () => {
+    const at = (edits: Record<number, string>): string => `${substitute(S20, edits)}TGG`;
+    const doc0 = [at({}), at({ 0: 'T' }), at({ 5: 'T' }), at({}), at({ 0: 'T', 5: 'T' })].join(
+      FILLER,
+    );
+    const doc1 = [FILLER, at({}), FILLER, at({ 5: 'T' })].join('');
+    const guides = findCrisprGuides(doc0, 'linear', SPCAS9, {
+      background: [{ sequence: doc1, topology: 'linear' }],
+    });
+    const first = guides.find((g) => g.range.start === 0);
+    expect(first?.offTargets).toEqual([2, 3, 1, 0]);
+    expect(first?.sites).toEqual([
+      { doc: 0, strand: 'forward', range: { start: 99, end: 119 }, mismatches: 0 },
+      { doc: 1, strand: 'forward', range: { start: 10, end: 30 }, mismatches: 0 },
+      { doc: 0, strand: 'forward', range: { start: 33, end: 53 }, mismatches: 1 },
+      { doc: 0, strand: 'forward', range: { start: 66, end: 86 }, mismatches: 1 },
+      { doc: 1, strand: 'forward', range: { start: 43, end: 63 }, mismatches: 1 },
+      { doc: 0, strand: 'forward', range: { start: 132, end: 152 }, mismatches: 2 },
+    ]);
+  });
+});
+
+describe('findCrisprGuides sites of equal mismatches', () => {
+  it('lists the one in the searched document before the one in a background document', () => {
+    // The background copy shares the guide's first seed block and the other
+    // copy does not, so the index offers the background one first.
+    const doc0 = `${S20}TGG${FILLER}${substitute(S20, { 0: 'T' })}TGG`;
+    const background = `${substitute(S20, { 5: 'T' })}TGG`;
+    const guides = findCrisprGuides(doc0, 'linear', SPCAS9, {
+      background: [{ sequence: background, topology: 'linear' }],
+    });
+    expect(guides[0]?.sites.map((s) => [s.doc, s.mismatches])).toEqual([
+      [0, 1],
+      [1, 1],
+    ]);
+  });
+});
+
+describe('findCrisprGuides progress', () => {
+  function progressOf(copies: number): number[] {
+    const calls: number[] = [];
+    const seq = Array.from({ length: copies }, () => UNIT).join('');
+    findCrisprGuides(seq, 'linear', SPCAS9, { onProgress: (f) => calls.push(f), maxMismatches: 0 });
+    return calls;
+  }
+
+  it('reports each guide while there are few, then 1', () => {
+    const calls = progressOf(3);
+    expect(calls).toHaveLength(4);
+    [0, 1 / 3, 2 / 3, 1].forEach((x, i) => {
+      expect(calls[i]).toBeCloseTo(x, 12);
+    });
+  });
+
+  it('reports about fifty times however many guides there are', () => {
+    const calls = progressOf(120);
+    // Every second guide of 120, then the final 1.
+    expect(calls).toHaveLength(61);
+    calls.slice(0, 60).forEach((c, i) => {
+      expect(c).toBeCloseTo((2 * i) / 120, 12);
+    });
+    expect(calls[60]).toBe(1);
+  });
+});
+
+describe('the MIT score is only for a 20 nt NGG nuclease with the PAM 3′', () => {
+  it('is null if any one of the three differs', () => {
+    expect(findCrisprGuides(`${A20}TGG`, 'linear', SPCAS9)[0]?.specificity).toBe(100);
+    const first = (n: Nuclease, seq: string) =>
+      findCrisprGuides(seq, 'linear', n).find((g) => g.strand === 'forward');
+    const fiveUp = first(custom('NGG', '5prime', 20), `TGG${A20}`);
+    expect(fiveUp).toBeDefined();
+    expect(fiveUp?.specificity).toBeNull();
+    const long = first(custom('NGG', '3prime', 21), `${'A'.repeat(21)}TGG`);
+    expect(long).toBeDefined();
+    expect(long?.specificity).toBeNull();
+    const nag = first(custom('NAG', '3prime', 20), `${A20}TAG`);
+    expect(nag).toBeDefined();
+    expect(nag?.specificity).toBeNull();
+  });
+});
+
+describe('a region is met by a base on either side of the cut', () => {
+  const straight = `${UNIT}${'A'.repeat(10)}`;
+  const starts = (seq: string, topology: Topology, region: { start: number; end: number }) =>
+    findCrisprGuides(seq, topology, SPCAS9, { region }).length;
+
+  it('takes the base after the cut, or the base before it, on a linear sequence', () => {
+    // The cut is between bases 16 and 17.
+    expect(starts(straight, 'linear', { start: 17, end: 18 })).toBe(1);
+    expect(starts(straight, 'linear', { start: 16, end: 17 })).toBe(1);
+    expect(starts(straight, 'linear', { start: 0, end: 16 })).toBe(0);
+    expect(starts(straight, 'linear', { start: 18, end: 33 })).toBe(0);
+  });
+
+  it('does not wrap a cut at the end of a linear sequence round to its start', () => {
+    const atEnd: Nuclease = {
+      ...custom('NGG', '3prime', 20),
+      cut: { pamStrand: 23, targetStrand: 23 },
+    };
+    const n = (seq: string, start: number, end: number): number =>
+      findCrisprGuides(seq, 'linear', atEnd, { region: { start, end } }).length;
+    // Forward strand: the cut is at boundary 23 of 23, after the last base.
+    expect(n(UNIT, 0, 1)).toBe(0);
+    expect(n(UNIT, 22, 23)).toBe(1);
+    // Reverse strand: the cut is at boundary 0, before the first base.
+    const reverse = `${reverseComplement(UNIT)}${'A'.repeat(10)}`;
+    expect(n(reverse, 0, 1)).toBe(1);
+    expect(n(reverse, 32, 33)).toBe(0);
+  });
+
+  it('takes base 0 as the base before a cut at boundary 1', () => {
+    const cutAtOne: Nuclease = {
+      ...custom('NGG', '3prime', 20),
+      cut: { pamStrand: 1, targetStrand: 1 },
+    };
+    const n = (start: number, end: number): number =>
+      findCrisprGuides(straight, 'linear', cutAtOne, { region: { start, end } }).filter(
+        (g) => g.strand === 'forward',
+      ).length;
+    expect(n(0, 1)).toBe(1);
+    expect(n(1, 2)).toBe(1);
+    expect(n(2, 33)).toBe(0);
+  });
+
+  it('works through the origin of a circle', () => {
+    const rotated = `${straight.slice(5)}${straight.slice(0, 5)}`;
+    // The cut is between bases 11 and 12 of 33.
+    expect(starts(rotated, 'circular', { start: 12, end: 13 })).toBe(1);
+    expect(starts(rotated, 'circular', { start: 11, end: 12 })).toBe(1);
+    expect(starts(rotated, 'circular', { start: 13, end: 20 })).toBe(0);
+  });
+
+  it('puts a cut at the origin between the last base and the first', () => {
+    const long = `${UNIT}${'A'.repeat(17)}`;
+    const rotated = `${long.slice(17)}${long.slice(0, 17)}`;
+    const guides = findCrisprGuides(rotated, 'circular', SPCAS9);
+    expect(guides[0]?.cut.forward).toBe(0);
+    expect(starts(rotated, 'circular', { start: 0, end: 1 })).toBe(1);
+    expect(starts(rotated, 'circular', { start: 39, end: 40 })).toBe(1);
+    expect(starts(rotated, 'circular', { start: 1, end: 39 })).toBe(0);
+    expect(starts(rotated, 'circular', { start: 1, end: 2 })).toBe(0);
+  });
+});

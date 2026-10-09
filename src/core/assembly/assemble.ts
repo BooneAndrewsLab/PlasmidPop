@@ -277,13 +277,6 @@ class Layout {
       }
       a++;
     }
-    // Between the first and last column the read covers, any column it did
-    // not put a base in (a consensus-only column) is a gap in the read.
-    const covered = row.cells.map((ch) => ch !== ' ');
-    const first = covered.indexOf(true);
-    const last = covered.lastIndexOf(true);
-    for (let c = first; c <= last; c++) if (row.cells[c] === ' ') row.cells[c] = '-';
-
     // The ends of the read the alignment did not reach.
     const left = planEnd(al.startA, al.startB);
     const right = planEnd(hit.consLength - al.endA, o.bases.length - al.endB);
@@ -311,7 +304,8 @@ class Layout {
       rightBases.push(o.bases.charAt(i));
       rightQuals.push(o.quals[i] ?? 0);
     }
-    // Fill gaps across paired ends the same way as inside.
+    // Between the first and last column the read covers, any column it did
+    // not put a base in (one the consensus left out) is a gap in the read.
     const cov2 = row.cells.map((ch) => ch !== ' ');
     const f2 = cov2.indexOf(true);
     const l2 = cov2.lastIndexOf(true);

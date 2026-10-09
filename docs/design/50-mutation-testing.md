@@ -118,3 +118,20 @@ other: each sandbox copies the others' `.stryker-tmp-*` directories
 mid-write, and every dry run runs the whole suite, so one agent's
 half-written test fails all of them. Run them one at a time, in their own
 worktrees, or check mutants by applying them by hand.
+
+## At 1.12
+
+`crispr.ts`, `gcContent.ts`, `assemble.ts` and `consensus.ts` joined the
+set. The first full run scored 90.6% over `core`; the new modules were
+weakest (`assemble.ts` 65%, `crispr.ts` 76%, 185 and 117 survivors).
+Triage wrote tests for about 170 of them and removed two dead guards; the
+single-file reruns scored `assemble.ts` 90%, `crispr.ts` 91%,
+`consensus.ts` 95% and `gcContent.ts` 89%, the rest equivalent (unreachable
+`??` fallbacks, loop bounds that read nothing, sort tie-breaks over
+already-sorted input).
+
+Two things to know before the next run. A property test with its own
+timeout overrides the 60 s mutation-mode `testTimeout`, so a slow one
+fails the dry run (`overlapPrimers.property.test.ts` did, at 10 s). And
+`.stryker-tmp` and `reports` are in ESLint's ignores: left in the tree
+after a run, the instrumented copy made `eslint .` run out of memory.

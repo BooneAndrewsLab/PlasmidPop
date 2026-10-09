@@ -31,6 +31,13 @@ describe('gcContent', () => {
   });
 });
 
+describe('gcContentOfRange with nothing to count', () => {
+  it('is null, not NaN, for a wrapped range of bases that say nothing', () => {
+    expect(gcContentOfRange('NNNN', 2, 6, true)).toBeNull();
+    expect(gcContentOfRange('', 0, 3, true)).toBeNull();
+  });
+});
+
 describe('gcProfile', () => {
   it('is one value per base, and a window of 1 is the base itself', () => {
     expect(Array.from(gcProfile('GATC', 1, false))).toEqual([1, 0, 0, 1]);
