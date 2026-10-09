@@ -201,7 +201,9 @@ it would cost as much as aligning in full, mostly for a long, noisy read
 in Local (a 10 kb nanopore read, say): its alignment is then the best the
 band found, which is usually but not always the best there is, since a
 tandem repeat or a long insertion near an end of the read can lead the
-band astray. Two sequences that share too little for a band, and would
+band astray. Such an alignment is marked: its heading says "not checked
+against the best possible alignment", and in a batch of reads its identity
+carries an asterisk with the same words on hover. Two sequences that share too little for a band, and would
 need more than 150 million cells in full (about 12 kb × 12 kb), are
 refused to protect the browser's memory; align against a selection for
 those.

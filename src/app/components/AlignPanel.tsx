@@ -39,6 +39,7 @@ import type { SampleFeatures } from '../alignmentSampleTrack';
 import { AlignmentDialog } from './AlignmentDialog';
 import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 import { ReadBatchList } from './ReadBatchList';
+import { UNCHECKED_NOTE } from '../readAlignment';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -351,6 +352,7 @@ function AlignmentResult({
             score {result.alignment.score}, identity {Math.round(result.alignment.identity * 100)}%
             over {result.alignment.columns.toLocaleString()} columns, {result.alignment.gaps} gap{' '}
             {result.alignment.gaps === 1 ? 'column' : 'columns'}
+            {result.alignment.unchecked === true ? `, ${UNCHECKED_NOTE}` : ''}
             {result.strand === 'reverse'
               ? shownAs === null
                 ? ', reverse complement of the pasted sequence'

@@ -63,6 +63,7 @@ import { AlignmentDifferencesList } from './AlignmentDifferencesList';
 import { AlignmentExport } from './AlignmentExport';
 import { AlignmentSamples } from './AlignmentSamples';
 import { AlignmentVerdictTable } from './AlignmentVerdictTable';
+import { UNCHECKED_NOTE } from '../readAlignment';
 import { AlignmentStackView, type StackHandle } from './AlignmentStackView';
 
 /** Lanes of features and ORFs drawn above the reference; more are left out and counted. */
@@ -774,7 +775,7 @@ export function AlignmentDialog({
             <span className="astack-tools__note" aria-live="polite">
               {shown === null
                 ? `${differencesText(stack.differences.length, counts)}. Click a name, or use ↑ and ↓, to see a sample's score.`
-                : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
+                : `${row?.name ?? ''}: ${shown.mode === 'global' ? 'global' : 'local'}, score ${shown.score}, identity ${Math.round(shown.identity * 100)}% over ${shown.columns.toLocaleString()} columns, ${shown.gaps} gap ${shown.gaps === 1 ? 'column' : 'columns'}${shown.unchecked === true ? `, ${UNCHECKED_NOTE}` : ''}${row?.result.strand === 'reverse' ? ', reverse complement' : ''}`}
               {track !== null && track.hidden > 0 ? ` · ${track.hidden} lanes not shown` : ''}
               {ownHidden > 0
                 ? ` · ${ownHidden.toLocaleString()} of its own ${ownHidden === 1 ? 'feature' : 'features'} not shown`

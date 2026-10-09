@@ -332,6 +332,10 @@ pairs, local ones up to 12% under.
   13 M, but a local 10 kb nanopore read with 3% errors leaves most of the
   matrix (118 M of 127 M) reachable by a path deleting enough reference,
   and stays unchecked. Measurements in `docs/perf-notes.md`.
+- **Shown** (#171). `alignLong` sets `Alignment.unchecked` on a band's
+  answer that was not checked; the panel and dialog headings say so, and a
+  batch row's identity gets an asterisk. No "align in full" action: past
+  the budget that is the alignment the band exists to avoid.
 - **Tested** against the full matrix on tandem repeats in either sequence
   and insertions near either end, both modes (`banded.test.ts`), on the
   region holding every cell of the best path, and against Biopython on 24

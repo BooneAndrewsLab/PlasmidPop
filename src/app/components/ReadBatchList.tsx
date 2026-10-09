@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { type BatchOrder, type BatchRow, sortRows, summarizeRow } from '../readBatch';
+import { UNCHECKED_NOTE } from '../readAlignment';
 
 const NEXT_ORDER: Readonly<Record<BatchOrder, BatchOrder>> = {
   file: 'identity-low',
@@ -115,7 +116,18 @@ export function ReadBatchList({
                   {row.result.strand === 'reverse' ? ', reversed' : ''}
                 </span>
               </th>
-              <td>{Math.round(s.identity * 1000) / 10}%</td>
+              <td>
+                {Math.round(s.identity * 1000) / 10}%
+                {row.result.alignment.unchecked === true && (
+                  <abbr
+                    className="read-batch__unchecked"
+                    title={`Best within the band around the shared words; ${UNCHECKED_NOTE}`}
+                  >
+                    {' '}
+                    *
+                  </abbr>
+                )}
+              </td>
               <td>{s.confident ?? s.differences}</td>
               <td>
                 {s.span === null

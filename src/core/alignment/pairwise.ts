@@ -81,6 +81,11 @@ export interface Alignment {
   readonly gaps: number;
   readonly columns: number;
   readonly identity: number;
+  /**
+   * True when a band's answer could not be checked against the best there is
+   * (`alignBanded`'s `exact: false`, #171). Absent otherwise.
+   */
+  readonly unchecked?: true;
 }
 
 export class AlignmentTooLargeError extends Error {

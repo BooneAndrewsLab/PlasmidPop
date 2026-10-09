@@ -2334,6 +2334,12 @@ button {
   text-decoration: underline;
 }
 
+.read-batch__unchecked {
+  color: var(--ink-3);
+  cursor: help;
+  text-decoration: none;
+}
+
 .read-batch__sub {
   display: block;
   color: var(--ink-3);

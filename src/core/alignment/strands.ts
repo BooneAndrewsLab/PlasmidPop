@@ -50,7 +50,7 @@ export function alignLong(
   if (cells <= FULL_UP_TO && options.fast !== true) return alignPairwise(a, b, options, onProgress);
   const banded = alignBanded(a, b, options, onProgress);
   if (banded !== null && (banded.exact || !banded.touchedEdge || cells > maxCells)) {
-    return banded.alignment;
+    return banded.exact ? banded.alignment : { ...banded.alignment, unchecked: true };
   }
   if (banded === null && cells > maxCells) {
     throw new AlignmentTooLargeError(cells, maxCells, 'unanchored');

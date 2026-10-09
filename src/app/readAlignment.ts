@@ -125,6 +125,9 @@ export interface ReadAlignment {
   readonly trace: SequencingRead | null;
 }
 
+/** Said beside an alignment a band found but could not check (#171). */
+export const UNCHECKED_NOTE = 'not checked against the best possible alignment';
+
 /** The worker's answer for `job`, turned into what is shown. */
 export function finishReadAlignment(job: AlignmentJob, best: StrandedAlignment): ReadAlignment {
   const reverse = best.strand === 'reverse';

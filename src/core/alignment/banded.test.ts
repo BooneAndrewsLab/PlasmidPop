@@ -2,7 +2,7 @@ import { expectWithin, itTimed } from '@/test/timing';
 import { reverseComplement } from '../sequence/alphabet';
 import { alignBanded, anchorChain, bandAround, boundBand, flankScoring } from './banded';
 import { type Alignment, alignPairwise, bandCells } from './pairwise';
-import { alignEitherStrand } from './strands';
+import { alignEitherStrand, alignLong } from './strands';
 
 /** Mulberry32, so every run sees the same sequences. */
 function rng(seed: number): () => number {
@@ -369,6 +369,18 @@ describe('the cost of checking a band (#167)', () => {
     const banded = alignBanded(plasmid, read, { mode: 'local' });
     expect(banded?.exact).toBe(false);
     expect(banded?.alignment.endA).toBeGreaterThan(11_000);
+  });
+
+  it('marks the alignment the caller gets as unchecked only when it was (#171)', () => {
+    const next = ints(12);
+    const plasmid = bases(12_000, next);
+    const noisyRead = errors(plasmid.slice(1000, 11_500), 10, next);
+    expect(alignLong(plasmid, noisyRead, { mode: 'local' }).unchecked).toBe(true);
+    // A clean read's region is small enough to check.
+    const clean = plasmid.slice(1000, 11_500);
+    expect(alignLong(plasmid, clean, { mode: 'local' }).unchecked).toBeUndefined();
+    // Small pairs are aligned in full, never marked.
+    expect(alignLong('ACGTACGTAC', 'ACGTACGTAC', { mode: 'local' }).unchecked).toBeUndefined();
   });
 });
 
