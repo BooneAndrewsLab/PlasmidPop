@@ -57,7 +57,14 @@
     "src/core/analysis/crispr.ts",
     "src/core/analysis/gcContent.ts",
     "src/core/assembly/assemble.ts",
-    "src/core/assembly/consensus.ts"
+    "src/core/assembly/consensus.ts",
+    "src/core/cloning/moclo.ts",
+    "src/core/cloning/overlapExtension.ts",
+    "src/core/cloning/protocol.ts",
+    "src/core/cloning/protocolText.ts",
+    "src/core/verify/verify.ts",
+    "src/core/verify/variants.ts",
+    "src/io/rebase/customEnzyme.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {

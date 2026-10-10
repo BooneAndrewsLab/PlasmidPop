@@ -7,7 +7,13 @@ import {
   type Protocol,
   type ProtocolStep,
   SeqDocument,
+  UNMETHYLATED_HOST,
   annealingPart,
+  compareDiagnostic,
+  diagnosticDigests,
+  meltingTemperature,
+  q5AnnealingTemperature,
+  q5MeltingTemperature,
   buildProtocol,
   designOverlapExtension,
   recordOverlapExtension,
@@ -289,5 +295,395 @@ describe('buildProtocol of an overlap-extension product', () => {
     expect(p.oligos.map((o) => o.sequence).sort()).toEqual(
       design.primers.map((x) => x.sequence.toUpperCase()).sort(),
     );
+  });
+});
+
+describe('annealingPart boundary', () => {
+  it('takes 30 bases whole and the last 22 of 31', () => {
+    const thirty = filler(30, 11);
+    expect(annealingPart(thirty)).toBe(thirty);
+    const thirtyOne = filler(31, 12);
+    expect(annealingPart(thirtyOne)).toBe(thirtyOne.slice(9));
+    expect(annealingPart(thirtyOne)).toHaveLength(22);
+  });
+});
+
+describe('buildProtocol PCR details', () => {
+  const pcrOf = (
+    parents: LineageNode[],
+    over: Partial<Extract<LineageStep, { op: 'pcr' }>> = {},
+  ) => {
+    const node: LineageNode = {
+      ...leaf('prod', 2000),
+      topology: 'linear',
+      step: {
+        op: 'pcr',
+        parents,
+        forward: { name: 'F1', sequence: FWD },
+        reverse: { name: 'R1', sequence: REV },
+        polymerase: 'proofreading',
+        ...over,
+      },
+    };
+    const doc = product({ op: 'phosphates', parents: [node], removed: false });
+    return stepOf(must(buildProtocol(doc)), 'pcr');
+  };
+
+  it('names the template and its length, or falls back without one', () => {
+    const named = pcrOf([leaf('pTemplateX', 4321)]);
+    expect(named.template).toBe('pTemplateX');
+    expect(named.templateLength).toBe(4321);
+    const none = pcrOf([]);
+    expect(none.template).toBe('template');
+    expect(none.templateLength).toBe(0);
+  });
+
+  it('works out each Tm from the annealing part and the annealing from both', () => {
+    const pcr = pcrOf([leaf('t', 100)]);
+    expect(pcr.tmForward).toBe(q5MeltingTemperature(annealingPart(FWD)));
+    expect(pcr.tmReverse).toBe(q5MeltingTemperature(annealingPart(REV)));
+    expect(pcr.annealing).toBe(q5AnnealingTemperature(pcr.tmForward, pcr.tmReverse));
+    const taq = pcrOf([leaf('t', 100)], { polymerase: 'taq' });
+    expect(taq.tmForward).toBe(meltingTemperature(annealingPart(FWD)));
+    expect(taq.annealing).toBe(Math.round((Math.min(taq.tmForward, taq.tmReverse) - 5) * 10) / 10);
+  });
+
+  it('gives no annealing temperature when either primer is ambiguous', () => {
+    const fwdN = pcrOf([leaf('t', 100)], {
+      forward: { name: 'F', sequence: 'ACGTNNACGTACGTACGT' },
+    });
+    expect(fwdN.tmForward).toBeNaN();
+    expect(fwdN.tmReverse).not.toBeNaN();
+    expect(fwdN.annealing).toBeNull();
+    const revN = pcrOf([leaf('t', 100)], {
+      reverse: { name: 'R', sequence: 'ACGTNNACGTACGTACGT' },
+    });
+    expect(revN.tmReverse).toBeNaN();
+    expect(revN.tmForward).not.toBeNaN();
+    expect(revN.annealing).toBeNull();
+  });
+});
+
+describe('buildProtocol digest steps', () => {
+  const digestOf = (enzymes: string[], uncut: number, parents: LineageNode[]) =>
+    stepOf(
+      must(
+        buildProtocol(
+          product({
+            op: 'digest',
+            parents,
+            enzymes,
+            range: { start: 0, end: 100 },
+            uncut,
+          }),
+        ),
+      ),
+      'digest',
+    );
+
+  it('keeps the template, enzymes and uncut count, with only the buffer note for a plain digest', () => {
+    const d = digestOf(['EcoRI'], 0, [leaf('pBase', 4000)]);
+    expect(d.template).toBe('pBase');
+    expect(d.templateLength).toBe(4000);
+    expect(d.uncut).toBe(0);
+    expect(d.notes).toEqual([
+      'Buffer and incubation: take them from the supplier’s table; PlasmidPop holds none.',
+    ]);
+  });
+
+  it('adds a two-enzyme note and a partial-digest note, in that order', () => {
+    const d = digestOf(['EcoRI', 'BamHI'], 2, [leaf('pBase', 4000)]);
+    expect(d.uncut).toBe(2);
+    expect(d.notes).toEqual([
+      'Two enzymes: check that both are active in one buffer, or cut with one, clean up, then the other.',
+      'A partial digest: stop it early, leaving 2 site(s) uncut.',
+      'Buffer and incubation: take them from the supplier’s table; PlasmidPop holds none.',
+    ]);
+  });
+
+  it('falls back when the record names no template', () => {
+    const d = digestOf(['EcoRI'], 0, []);
+    expect(d.template).toBe('template');
+    expect(d.templateLength).toBe(0);
+  });
+});
+
+describe('buildProtocol other steps', () => {
+  it.each([
+    [
+      { op: 'gateway', parents: [leaf('a', 10), leaf('b', 20)], reaction: 'LR', byproduct: false },
+      'Gateway LR reaction',
+    ],
+    [{ op: 'edited', parents: [leaf('a', 10)] }, 'Edited after it was made'],
+    [{ op: 'other', parents: [leaf('a', 10)], name: 'flip' }, 'flip of 1 part'],
+    [
+      {
+        op: 'gibson',
+        parents: [leaf('a', 10)],
+        kit: 'gibson',
+        circular: true,
+        overlap: 20,
+        flipped: [false],
+      },
+      null,
+    ],
+  ] as [LineageStep, string | null][])('step %#', (step, description) => {
+    const p = must(buildProtocol(product(step)));
+    expect(p.steps).toHaveLength(1);
+    const s = must(p.steps[0]);
+    if (description === null) {
+      expect(s.kind).toBe('gibson');
+      return;
+    }
+    expect(s.kind).toBe('other');
+    if (s.kind !== 'other') return;
+    expect(s.description).toBe(description);
+    expect(s.product).toBe('pOut');
+    expect(s.parts).toEqual(step.parents.map((x) => x.name));
+  });
+
+  it('lists the parts of an overlap-extension step by name', () => {
+    const doc = product({
+      op: 'gibson',
+      parents: [leaf('p1', 10), leaf('p2', 20)],
+      kit: 'overlap-extension',
+      circular: false,
+      overlap: 20,
+      flipped: [false, false],
+    });
+    const s = must(must(buildProtocol(doc)).steps[0]);
+    expect(s.kind).toBe('other');
+    expect(s.kind === 'other' ? s.parts : []).toEqual(['p1', 'p2']);
+  });
+
+  it('names the oligos of a mutagenesis forward then reverse', () => {
+    const p = must(
+      buildProtocol(
+        product({
+          op: 'mutagenesis',
+          parents: [leaf('pWT', 4000)],
+          change: 'A10G',
+          method: 'back-to-back',
+          primers: ['ACGTACGTACGTACGTACGT', 'TGCATGCATGCATGCATGCA'],
+        }),
+      ),
+    );
+    expect(p.oligos.map((o) => o.name)).toEqual(['pOut forward', 'pOut reverse']);
+    expect(p.oligos.map((o) => o.sequence)).toEqual([
+      'ACGTACGTACGTACGTACGT',
+      'TGCATGCATGCATGCATGCA',
+    ]);
+  });
+});
+
+describe('buildProtocol assemblies', () => {
+  const ggOf = (parents: LineageNode[], options = {}) =>
+    assemblyOf(
+      must(
+        buildProtocol(
+          product({
+            op: 'golden-gate',
+            parents,
+            enzymes: ['BsaI'],
+            flipped: parents.map(() => false),
+          }),
+          options,
+        ),
+      ),
+      'golden-gate',
+    );
+
+  it('takes the longest part as the vector, the first of equals, whatever the order', () => {
+    const a = ggOf([leaf('ins', 600), leaf('vec', 3000), leaf('ins2', 900)]);
+    expect(a.parts.map((x) => x.role)).toEqual(['insert', 'vector', 'insert']);
+    const tie = ggOf([leaf('x', 1000), leaf('y', 1000)]);
+    expect(tie.parts.map((x) => x.role)).toEqual(['vector', 'insert']);
+  });
+
+  it('measures out each insert against the vector, with volumes only for usable concentrations', () => {
+    const a = ggOf([leaf('vec', 3000), leaf('i0', 600), leaf('iNeg', 600), leaf('iOk', 600)], {
+      vectorNg: 66,
+      concentrations: { i0: 0, iNeg: -5, iOk: 8, vec: 22 },
+    });
+    expect(a.parts.map((x) => x.name)).toEqual(['vec', 'i0', 'iNeg', 'iOk']);
+    expect(a.parts.map((x) => x.microlitres)).toEqual([3, null, null, 3.3]);
+    expect(a.parts.map((x) => x.concentration)).toEqual([22, null, null, 8]);
+    expect(a.parts.map((x) => x.ng)).toEqual([66, 26.4, 26.4, 26.4]);
+    expect(a.parts.map((x) => x.pmol)).toEqual([0.0333, 0.0667, 0.0667, 0.0667]);
+    expect(a.parts.map((x) => x.role)).toEqual(['vector', 'insert', 'insert', 'insert']);
+  });
+
+  it('keeps the enzymes of a Golden Gate only, and the program of each kind', () => {
+    expect(ggOf([leaf('v', 3000), leaf('i', 600)]).enzymes).toEqual(['BsaI']);
+    const lig = assemblyOf(
+      must(
+        buildProtocol(
+          product({
+            op: 'ligation',
+            parents: [leaf('v', 3000), leaf('i', 600)],
+            circular: true,
+            flipped: [false, false],
+          }),
+        ),
+      ),
+      'ligation',
+    );
+    expect(lig.enzymes).toEqual([]);
+    expect(lig.ratio).toBe(3);
+    expect(lig.program).toEqual([
+      'T4 DNA ligase: 16 °C overnight, or 25 °C for 10 min for sticky ends.',
+    ]);
+    const gib = assemblyOf(
+      must(
+        buildProtocol(
+          product({
+            op: 'gibson',
+            parents: [leaf('v', 3000), leaf('i', 600)],
+            kit: 'gibson',
+            circular: true,
+            overlap: 20,
+            flipped: [false, false],
+          }),
+        ),
+      ),
+      'gibson',
+    );
+    expect(gib.enzymes).toEqual([]);
+    expect(gib.ratio).toBe(2);
+    expect(gib.program).toEqual(['50 °C for 15 min (up to 60 min for more than 4 parts)']);
+    expect(ggOf([leaf('v', 3000)]).program).toEqual([
+      '30 cycles of 37 °C for 1 min and 16 °C for 1 min',
+      '60 °C for 5 min to inactivate',
+    ]);
+  });
+
+  it('copes with a record that lists no parts', () => {
+    const a = ggOf([]);
+    expect(a.parts).toEqual([]);
+  });
+});
+
+describe('buildProtocol oligos', () => {
+  const pcrFor = (name: string, fwd = FWD, rev = REV): LineageNode => ({
+    ...leaf(name, 1000),
+    topology: 'linear',
+    step: {
+      op: 'pcr',
+      parents: [leaf('t', 100)],
+      forward: { name: 'F1', sequence: fwd },
+      reverse: { name: 'R1', sequence: rev },
+      polymerase: 'proofreading',
+    },
+  });
+
+  it('merges the products an oligo serves, once each, in order', () => {
+    const doc = product({
+      op: 'ligation',
+      parents: [
+        pcrFor('A'),
+        pcrFor('B'),
+        pcrFor('A'),
+        pcrFor('C', FWD.toLowerCase(), 'GTCAGTCAGTCAGTCA'),
+      ],
+      circular: true,
+      flipped: [false, false, false, false],
+    });
+    const p = must(buildProtocol(doc));
+    expect(p.oligos.map((o) => [o.name, o.usedFor])).toEqual([
+      ['F1', ['A', 'B', 'C']],
+      ['R1', ['A', 'B']],
+      ['R1', ['C']],
+    ]);
+    expect(p.oligos[0]?.sequence).toBe(FWD);
+    expect(p.oligos[0]?.length).toBe(FWD.length);
+  });
+});
+
+describe('buildProtocol document facts', () => {
+  const step: LineageStep = { op: 'phosphates', parents: [leaf('v', 3000)], removed: false };
+
+  it('reports the product name, length and topology, with no caveats when untouched', () => {
+    const doc = product(step);
+    const p = must(buildProtocol(doc));
+    expect(p.product).toBe('pOut');
+    expect(p.length).toBe(doc.length);
+    expect(p.topology).toBe('circular');
+    expect(p.caveats).toEqual([]);
+    const linear = withLineage(
+      SeqDocument.create({ name: 'lin', topology: 'linear', sequence: filler(500, 4) }),
+      step,
+    );
+    expect(must(buildProtocol(linear)).topology).toBe('linear');
+  });
+
+  it('says exactly what an edit and an elision change', () => {
+    const edited = product(step).setMetadata({}).insert(0, 'ACGT');
+    expect(must(buildProtocol(edited)).caveats).toEqual([
+      'The product has been edited since it was made; the reactions describe the molecule as made, and the digests are of the document as it is now.',
+    ]);
+    const elided = product({
+      op: 'phosphates',
+      parents: [{ ...leaf('v', 3000), step: { op: 'elided', parents: [], nodes: 9 } }],
+      removed: false,
+    });
+    const p = must(buildProtocol(elided));
+    expect(p.caveats).toEqual([
+      '9 earlier molecule(s) below v were left out of the record to keep it small.',
+    ]);
+    expect(p.steps.map((s) => s.kind)).toEqual(['other']);
+    expect(p.oligos).toEqual([]);
+  });
+
+  it('lists as many diagnostic digests as asked, three by default', () => {
+    const doc = product(step);
+    expect(must(buildProtocol(doc)).diagnostics).toHaveLength(3);
+    expect(must(buildProtocol(doc, { diagnosticCount: 5 })).diagnostics).toHaveLength(5);
+  });
+});
+
+describe('diagnosticDigests', () => {
+  const sites = (n: number): SeqDocument =>
+    SeqDocument.create({
+      name: 'd',
+      topology: 'circular',
+      sequence:
+        'GAATTCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'.repeat(
+          n,
+        ),
+    });
+
+  it('keeps an enzyme that cuts six times and drops one that cuts seven', () => {
+    const six = diagnosticDigests(sites(6), {}, 1000).find((d) => d.enzyme === 'EcoRI');
+    expect(six?.cuts).toBe(6);
+    expect(diagnosticDigests(sites(7), {}, 1000).find((d) => d.enzyme === 'EcoRI')).toBeUndefined();
+  });
+
+  it('is ordered clearest first, ties by enzyme name', () => {
+    const doc = product({ op: 'phosphates', parents: [leaf('v', 3000)], removed: true });
+    const all = diagnosticDigests(doc, {}, 1000);
+    expect(all.length).toBeGreaterThan(5);
+    let ties = 0;
+    for (let i = 1; i < all.length; i++) {
+      const a = must(all[i - 1]);
+      const b = must(all[i]);
+      const c = compareDiagnostic(a.profile, b.profile, {});
+      expect(c).toBeLessThanOrEqual(0);
+      if (c === 0) {
+        ties++;
+        expect(a.enzyme.localeCompare(b.enzyme)).toBeLessThan(0);
+      }
+    }
+    expect(ties).toBeGreaterThan(0);
+  });
+
+  it('leaves out a site the host methylation blocks, but not for an unmethylated host', () => {
+    const doc = SeqDocument.create({
+      name: 'm',
+      topology: 'circular',
+      sequence: `CCGATCGATCC${'A'.repeat(400)}`,
+    });
+    expect(diagnosticDigests(doc, {}, 1000).map((d) => d.enzyme)).not.toContain('ClaI');
+    const free = doc.setMethylation(UNMETHYLATED_HOST);
+    expect(diagnosticDigests(free, {}, 1000).map((d) => d.enzyme)).toContain('ClaI');
   });
 });

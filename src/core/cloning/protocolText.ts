@@ -25,8 +25,8 @@ function bp(n: number): string {
   return `${n.toLocaleString('en-US')} bp`;
 }
 
-function temp(t: number | null): string {
-  return t === null || Number.isNaN(t) ? dash : `${t.toFixed(1)} °C`;
+function temp(t: number): string {
+  return Number.isNaN(t) ? dash : `${t.toFixed(1)} °C`;
 }
 
 function seconds(s: number): string {
