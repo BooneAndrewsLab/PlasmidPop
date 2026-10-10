@@ -59,6 +59,10 @@ counts of codons in published sequences, which are facts about those
 genomes rather than an authored work, and whose underlying records are
 NCBI's, on the terms above.
 
+Recode and Back-translate (#209) use the same tables. A table the user
+imports there is read in their browser and kept in IndexedDB, never bundled
+or uploaded.
+
 - Attribution: Nakamura, Y., Gojobori, T. and Ikemura, T. (2000) Codon usage
   tabulated from international DNA sequence databases: status for the year 2000. _Nucleic Acids Res._ 28, 292.
   [doi:10.1093/nar/28.1.292](https://doi.org/10.1093/nar/28.1.292).

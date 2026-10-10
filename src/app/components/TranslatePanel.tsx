@@ -24,6 +24,7 @@ import { rangeBounds, sixFrameFasta, sixFrameFileName } from '../sixFrameExport'
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { GeneticCodeSelect } from './GeneticCodeSelect';
+import { RecodeCds } from './RecodeCds';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -187,6 +188,7 @@ export function TranslatePanel({ doc }: Props) {
               >
                 Open as protein
               </button>
+              <RecodeCds doc={doc} feature={f} />
             </li>
           );
         })}

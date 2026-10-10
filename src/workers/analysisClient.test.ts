@@ -1,5 +1,6 @@
 import pBR322 from '@/io/fixtures/J01749.gb?raw';
 import { parseSequenceFile } from '@/io';
+import { codonUsageTable } from '@/core';
 import { AnalysisCancelledError, AnalysisClient } from './analysisClient';
 import { packCutSites, unpackCutSites } from './analysisProtocol';
 
@@ -151,6 +152,23 @@ describe('AnalysisClient long requests (#54)', () => {
     await expect(
       client.alignEitherStrand('A', 'A', {}, { signal: controller.signal }),
     ).rejects.toBeInstanceOf(AnalysisCancelledError);
+  });
+});
+
+describe('recode (#209)', () => {
+  it('answers inline where there is no worker, and the protein is the one asked for', async () => {
+    const client = new AnalysisClient(null);
+    const host = codonUsageTable('ecoli');
+    const result = await client.recode(
+      [
+        { aminoAcid: 'M', fixed: null },
+        { aminoAcid: 'L', fixed: null },
+        { aminoAcid: '*', fixed: null },
+      ],
+      { host },
+    );
+    expect(result.dna).toBe('ATGCTGTAA');
+    expect(result.cai).toBeGreaterThan(0.99);
   });
 });
 

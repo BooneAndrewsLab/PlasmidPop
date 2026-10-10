@@ -209,6 +209,12 @@ export const EVENTS = {
     'nickPairs',
   ],
   /**
+   * Recoding a CDS and back-translating a protein (#209): `recode` and
+   * `backTranslate` named by the host (`ecoli`, `human`, … or `custom`),
+   * never the sequence; `import` is a codon usage table brought in.
+   */
+  recode: ['recode', 'backTranslate', 'import'],
+  /**
    * The primer collection (#64): `collection-add` named by where the
    * primers came from (`design`, `check`, `feature`, `paste`, `file`,
    * `form`, `document`), never how many or which; `collection-export` by

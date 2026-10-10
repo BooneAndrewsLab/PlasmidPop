@@ -2,6 +2,7 @@ import {
   type Alignment,
   type AlignmentOptions,
   type AnnealOptions,
+  type CodonSlot,
   type CrisprGuide,
   type CrisprOptions,
   type CutSite,
@@ -10,6 +11,8 @@ import {
   type Orf,
   type OrfOptions,
   type PrimerSearch,
+  type RecodeOptions,
+  type RecodeResult,
   type StrandedAlignment,
   type Topology,
   setActiveEnzymeSet,
@@ -235,6 +238,18 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'crispr') throw new Error('Unexpected analysis response');
     return res.guides;
+  }
+
+  /** A codon for each slot, within the limits of `options` (#209). */
+  async recode(
+    slots: readonly CodonSlot[],
+    options: RecodeOptions,
+    long: LongRequestOptions = {},
+  ): Promise<RecodeResult> {
+    const res = await this.send({ kind: 'recode', slots, options }, long);
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'recode') throw new Error('Unexpected analysis response');
+    return res.result;
   }
 
   dispose(): void {

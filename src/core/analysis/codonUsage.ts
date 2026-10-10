@@ -104,3 +104,77 @@ export function libraryCoverage(
   const screen95 = n <= 1 ? 1 : Math.ceil(Math.log(0.05) / Math.log(1 - 1 / n));
   return { codons: n, aminoAcids, stops, screen95 };
 }
+
+export type CodonUsageParse =
+  | { readonly ok: true; readonly table: CodonUsageTable }
+  | { readonly ok: false; readonly error: string };
+
+/** Lowercase letters and digits, for an id that survives a rename of the file. */
+function slugOf(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Reads a codon usage table the user brings (#209): the Codon Usage
+ * Database's own layout (`UUU 17.6(714298)`, four to a line) or one codon
+ * to a line, the count (or frequency) last (`TTT,F,17.6,714298` or `TTT 714298`).
+ * U is read as T. A first line `# name` names the table. Codons the text
+ * leaves out count as zero, so at least 61 must be there; a codon given twice
+ * is refused.
+ */
+export function parseCodonUsageText(text: string, fileName: string | null): CodonUsageParse {
+  const lines = text
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== '');
+  let name = (fileName ?? '').replace(/\.[^.]+$/, '').trim();
+  const counts = new Map<string, number>();
+  let duplicate = '';
+  const add = (raw: string, count: number): void => {
+    const codon = raw.toUpperCase().replace(/U/g, 'T');
+    if (!/^[ACGT]{3}$/.test(codon) || !Number.isFinite(count) || count < 0) return;
+    if (counts.has(codon)) duplicate = codon;
+    counts.set(codon, count);
+  };
+  for (const [i, line] of lines.entries()) {
+    if (line.startsWith('#')) {
+      const first = line.slice(1).trim();
+      if (i === 0 && first !== '') name = first;
+      continue;
+    }
+    const kazusa = [...line.matchAll(/\b([ACGTU]{3})\s+[\d.]+\s*\(\s*(\d+)\s*\)/gi)];
+    if (kazusa.length > 0) {
+      for (const m of kazusa) add(m[1] ?? '', Number(m[2]));
+      continue;
+    }
+    const cells = line.split(/[\s,;]+/).filter((c) => c !== '');
+    const [codon = '', ...rest] = cells;
+    const last = rest[rest.length - 1];
+    if (last !== undefined && /^\d+(\.\d+)?$/.test(last)) add(codon, Number(last));
+  }
+  if (duplicate !== '') return { ok: false, error: `${duplicate} is given more than once.` };
+  if (counts.size < 61) {
+    return {
+      ok: false,
+      error: `Found ${counts.size} codons with counts; a table needs all 64 (at least 61).`,
+    };
+  }
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+  if (total <= 0) return { ok: false, error: 'Every count is zero.' };
+  if (name === '') name = 'Imported table';
+  return {
+    ok: true,
+    table: {
+      id: `custom-${slugOf(name) || 'table'}`,
+      name,
+      organism: name,
+      taxon: 0,
+      cds: 0,
+      counts: ALL_CODONS.map((c) => counts.get(c) ?? 0),
+    },
+  };
+}

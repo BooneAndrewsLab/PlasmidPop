@@ -90,6 +90,17 @@ stop (`*`) is not counted as a residue. Ambiguous residues (B, Z, X) are
 weighed by an average and given no charge, and the tab says the numbers are
 then estimates.
 
+## Back-translate
+
+At the foot of the Protein tab, **Back-translate** writes DNA for the
+protein, with the same host, codon choice, enzyme sites and GC and run limits
+as [Recode a CDS](09-translate.md#recode-a-cds-for-a-host). A stop (`*`) is
+added at the end when the protein has none. It reports the CAI and any limit it
+could not meet; **Open as DNA** opens the result as a new document with the CDS
+annotated, and the DNA is translated again first to check it gives the protein.
+A protein with ambiguous residues (X, B, Z) has no codon for them and is
+refused. The protein document itself is not changed.
+
 ## Open as protein
 
 In a DNA document's **Translate** tab:

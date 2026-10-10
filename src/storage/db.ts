@@ -145,6 +145,15 @@ export interface StoredOverhangStandard {
   readonly importedAt: number;
 }
 
+/** A codon usage table the user imported (#209), a row each under its id. */
+export interface StoredCodonTable {
+  readonly id: string;
+  readonly name: string;
+  /** Codon counts in TCAG order. */
+  readonly counts: readonly number[];
+  readonly importedAt: number;
+}
+
 /** Key of the single `fidelityTables` row. */
 export const FIDELITY_TABLE_ID = 'active';
 
@@ -177,6 +186,8 @@ export class PlasmidPopDb extends Dexie {
   declare fidelityTables: EntityTable<StoredFidelityTable, 'id'>;
   /** Overhang standards the user imported (#214), a row each. */
   declare overhangStandards: EntityTable<StoredOverhangStandard, 'id'>;
+  /** The user's own codon usage tables (#209). */
+  declare codonTables: EntityTable<StoredCodonTable, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -236,6 +247,10 @@ export class PlasmidPopDb extends Dexie {
     // Version 10 adds the user's own overhang standards (#214).
     this.version(10).stores({
       overhangStandards: 'id',
+    });
+    // Version 11 adds the user's own codon usage tables (#209).
+    this.version(11).stores({
+      codonTables: 'id',
     });
   }
 }

@@ -5,6 +5,7 @@ import {
   type Enzyme,
   type EnzymeSet,
   type FidelityTable,
+  type CodonUsageTable,
   type OverhangStandard,
   type OverhangKind,
   type SeqDocument,
@@ -559,6 +560,40 @@ export class DocumentRepository {
 
   async deleteOverhangStandard(id: string): Promise<void> {
     await this.db.overhangStandards.delete(id);
+  }
+
+  /** The codon usage tables the user imported (#209), oldest first; rows are checked on the way in. */
+  async loadCodonTables(): Promise<CodonUsageTable[]> {
+    const rows = await this.db.codonTables.toArray();
+    const out: CodonUsageTable[] = [];
+    for (const r of rows.sort((a, b) => a.importedAt - b.importedAt)) {
+      if (!isString(r.id) || !isString(r.name) || !Array.isArray(r.counts)) continue;
+      const counts = r.counts as readonly unknown[];
+      if (counts.length !== 64 || !counts.every((n) => typeof n === 'number' && n >= 0)) continue;
+      out.push({
+        id: r.id,
+        name: r.name,
+        organism: r.name,
+        taxon: 0,
+        cds: 0,
+        counts: counts as readonly number[],
+      });
+    }
+    return out;
+  }
+
+  /** Adds an imported codon usage table, or replaces the one of the same id. */
+  async saveCodonTable(table: CodonUsageTable): Promise<void> {
+    await this.db.codonTables.put({
+      id: table.id,
+      name: table.name,
+      counts: [...table.counts],
+      importedAt: Date.now(),
+    });
+  }
+
+  async deleteCodonTable(id: string): Promise<void> {
+    await this.db.codonTables.delete(id);
   }
 
   /** The imported ligation-fidelity table (#68), or null when there is none. */

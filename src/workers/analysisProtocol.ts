@@ -3,6 +3,7 @@ import {
   type AlignmentOptions,
   type AnnealOptions,
   type CrisprGuide,
+  type CodonSlot,
   type CrisprOptions,
   type CutSite,
   type EnzymeSet,
@@ -12,6 +13,8 @@ import {
   type Orf,
   type OrfOptions,
   type PrimerSearch,
+  type RecodeOptions,
+  type RecodeResult,
   type StrandedAlignment,
   type Topology,
 } from '@/core';
@@ -95,6 +98,13 @@ export type AnalysisRequest =
       readonly sequence: string;
       readonly window: number;
       readonly circular: boolean;
+    }
+  | {
+      /** A codon for each slot, within the limits (#209). */
+      readonly id: number;
+      readonly kind: 'recode';
+      readonly slots: readonly CodonSlot[];
+      readonly options: RecodeOptions;
     };
 
 /**
@@ -132,6 +142,7 @@ export type AnalysisResponse =
     }
   | { readonly id: number; readonly kind: 'crispr'; readonly guides: readonly CrisprGuide[] }
   | { readonly id: number; readonly kind: 'gcProfile'; readonly profile: Float32Array }
+  | { readonly id: number; readonly kind: 'recode'; readonly result: RecodeResult }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

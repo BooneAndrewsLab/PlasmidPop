@@ -1290,6 +1290,35 @@ button {
   flex: none;
 }
 
+.coding-list .button + .button {
+  margin-left: 0;
+}
+
+.coding-list li {
+  flex-wrap: wrap;
+}
+
+/* Recoding a CDS or back-translating a protein (#209). */
+.recode {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 6px;
+  padding: 6px 0 2px;
+}
+
+.recode__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recode__unresolved {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
 .frame__protein {
   max-height: 120px;
 }

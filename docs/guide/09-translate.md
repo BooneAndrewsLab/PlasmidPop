@@ -172,6 +172,50 @@ part of the text, so selecting and copying a frame copies residues only.
 **Format ▸ Residue numbers ▸ Off** shows the frames as plain text, and so does
 a frame of more than 20,000 residues.
 
+## Recode a CDS for a host
+
+**Recode…** beside a CDS in the **CDS features** list chooses new codons for
+the same protein, to suit the organism the gene will be expressed in. The
+protein does not change: every result is translated again, with the CDS's own
+genetic code, and compared with the protein before it is offered, and a
+difference stops it with a message instead of a result.
+
+- **Host** is the codon usage to follow: _E. coli_ (W3110, a K-12
+  derivative), _S. cerevisiae_, _P. pastoris_, human, mouse or CHO, the
+  counts the [Codon Usage Database](https://www.kazusa.or.jp/codon/) compiled
+  from GenBank, or a table of your own. **Import a table…** reads either that
+  database's page saved as text or a file with one codon to a line and its
+  count last (`TTT,17.6,714298`, a first line `# Name` to name it); U is read
+  as T. It is read in your browser and kept there, and **remove** forgets it.
+- **Codons** is **most used by the host**, the commonest codon for each
+  residue, or **in the host's own mix**, each codon in the share the host
+  uses it, spread along the gene, which reads more like a native gene and
+  scores a lower CAI on purpose. The aim is not the highest score: a codon the
+  host uses for under a tenth of its amino acid is left out unless nothing
+  else will clear a limit.
+- **Keep these sites out** takes enzyme names (any enzyme of the set in use,
+  the list completes as you type); the recognition site is kept out of the
+  gene on both strands, including where it would straddle the gene's ends.
+- **GC at least / at most … in any … bases** and **Longest run** are the
+  other limits (30 % to 70 % in any 50 bases and runs of at most 6 by
+  default; 0 in **Longest run** and 0 to 100 % switch them off).
+
+**Recode** works on the analysis worker and shows a preview and nothing
+else: the **CAI** (Codon Adaptation Index, Sharp and Li 1987, relative to the
+host's own commonest codons) before and after, how many codons change, how
+many are ones the host seldom uses, and any limit that could not be met
+without changing the protein, with where it is. **Apply** makes the change as
+one step in the History, named **Recode _name_ for _host_**, and adds a
+`/note` to the CDS saying it was recoded, with the CAI and the number of
+codons changed; **Undo** takes back the bases and the note together.
+
+The start codon and the stop codon are left as they are, and so is any codon
+with a base that is not A, C, G or T. A CDS made of several pieces (a
+`join`), one that runs across the origin of a circular sequence, and one
+with `/transl_except` are not recoded, and the button says which. The
+bases only change within the CDS; features, case and the length of the
+document stay as they were.
+
 ## How to find the reading frame of a fragment
 
 1. Select the fragment in either view (or press `Ctrl+F` and find it).

@@ -16,3 +16,5 @@ export * from './residueNumbers';
 export * from './crispr';
 export * from './crisprEdit';
 export * from './gcContent';
+export * from './recode';
+export * from './recodeCds';

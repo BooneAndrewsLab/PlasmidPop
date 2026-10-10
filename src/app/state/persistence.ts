@@ -1,11 +1,14 @@
 import {
   type AssemblyPart,
+  type CodonUsageTable,
   type Enzyme,
   type EnzymeSet,
   type OverhangStandard,
   type SeqDocument,
   BUNDLED_ENZYME_SET,
   BUNDLED_STANDARDS,
+  CODON_USAGE_TABLES,
+  parseCodonUsageText,
   parseStandardText,
   parseFidelityCsv,
   parseFidelityWorkbook,
@@ -419,6 +422,32 @@ export class PersistenceService {
       editorStore.getState().customStandards.filter((s) => s.id !== id),
     );
     analytics.track('cloning', 'standard-remove');
+  }
+
+  /** Reads back the codon usage tables imported in earlier sessions (#209). */
+  async restoreCodonTables(): Promise<void> {
+    editorStore.setCustomCodonTables(await this.repo.loadCodonTables());
+  }
+
+  /** Reads a codon usage table from a text file, keeps it in this browser, and returns it. */
+  async importCodonTableFile(file: File): Promise<CodonUsageTable> {
+    const parsed = parseCodonUsageText(await file.text(), file.name);
+    if (!parsed.ok) throw new Error(parsed.error);
+    if (CODON_USAGE_TABLES.some((t) => t.id === parsed.table.id)) {
+      throw new Error(`${parsed.table.name} is already a table of the app.`);
+    }
+    await this.repo.saveCodonTable(parsed.table);
+    const others = editorStore.getState().customCodonTables.filter((t) => t.id !== parsed.table.id);
+    editorStore.setCustomCodonTables([...others, parsed.table]);
+    analytics.track('recode', 'import');
+    return parsed.table;
+  }
+
+  async removeCodonTable(id: string): Promise<void> {
+    await this.repo.deleteCodonTable(id);
+    editorStore.setCustomCodonTables(
+      editorStore.getState().customCodonTables.filter((t) => t.id !== id),
+    );
   }
 
   /** Reads back a fidelity table imported in an earlier session (#68). */

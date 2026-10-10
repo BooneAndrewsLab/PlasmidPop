@@ -11,6 +11,7 @@ import {
   type Enzyme,
   type FeatureId,
   type FidelityTable,
+  type CodonUsageTable,
   type OverhangStandard,
   type LadderChoice,
   type Orf,
@@ -644,6 +645,8 @@ export interface SharedState {
   readonly fidelityTable: FidelityTable | null;
   /** Overhang standards the user imported (#214), beside the bundled ones. */
   readonly customStandards: readonly OverhangStandard[];
+  /** The codon usage tables the user imported (#209). */
+  readonly customCodonTables: readonly CodonUsageTable[];
   /**
    * The key bindings the user has changed, action id → binding (#79).
    * Only the changes are kept; `resolveBindings` puts them over the
@@ -930,6 +933,7 @@ const SHARED_INITIAL: SharedState = {
   },
   fidelityTable: null,
   customStandards: [],
+  customCodonTables: [],
   keyBindings: {},
   keysDialog: false,
 };
@@ -2218,6 +2222,11 @@ export class EditorStore {
   /** Installs the user's imported overhang standards (#214). */
   setCustomStandards(standards: readonly OverhangStandard[]): void {
     this.setShared({ customStandards: standards });
+  }
+
+  /** Installs the user's imported codon usage tables (#209). */
+  setCustomCodonTables(tables: readonly CodonUsageTable[]): void {
+    this.setShared({ customCodonTables: tables });
   }
 
   /** Installs the imported fidelity table, or forgets it (#68). */

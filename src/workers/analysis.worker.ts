@@ -10,6 +10,7 @@ import {
   findOrfs,
   gcProfile,
   loadFeatureLibrary,
+  recodeSlots,
   setActiveEnzymeSet,
 } from '@/core';
 
@@ -68,6 +69,12 @@ export function handleAnalysisRequest(
           id: req.id,
           kind: 'gcProfile',
           profile: gcProfile(req.sequence, req.window, req.circular),
+        };
+      case 'recode':
+        return {
+          id: req.id,
+          kind: 'recode',
+          result: recodeSlots(req.slots, req.options),
         };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };

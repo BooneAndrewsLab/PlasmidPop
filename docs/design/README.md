@@ -270,3 +270,5 @@ the Bench, item 49). The rest stand.
   there. If it grows a third use it wants a place of its own (item 3). A PCR
   product is the obvious third thing to put on it and deliberately is not:
   it opens as a tab, which the tube already takes (item 36).
+
+98. [Back-translate and recode a CDS](84-codon-recoding.md)

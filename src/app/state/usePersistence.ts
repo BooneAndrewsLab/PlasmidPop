@@ -116,6 +116,12 @@ export function useRestoreSession(): boolean {
       } catch {
         // None, or storage unavailable: the bundled standards stand.
       }
+      try {
+        // The codon usage tables the user imported (#209).
+        await persistence.restoreCodonTables();
+      } catch {
+        // None, or storage unavailable: the bundled hosts stand.
+      }
       if (editorStore.getState().documents.length === 0) {
         try {
           await persistence.restoreLastSession();

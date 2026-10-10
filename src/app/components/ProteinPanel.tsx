@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { type SeqDocument, formatSpan, isEmptyRange, proteinProperties } from '@/core';
 
 import { useEditorState } from '../state/useEditorStore';
+import { BackTranslate } from './BackTranslate';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -112,6 +113,7 @@ export function ProteinPanel({ doc }: Props) {
         Average residue masses; pI from the pK values of Bjellqvist et al.; ε₂₈₀ in water by Pace et
         al. (1995), as ExPASy ProtParam computes them.
       </p>
+      <BackTranslate doc={doc} />
     </div>
   );
 }
