@@ -167,3 +167,20 @@ the cut split. Each piece now carries a record of the feature it was cut
 from, and ligation joins pieces only when they meet again exactly as they
 were cut, restoring the feature whole, `/translation` and located
 qualifiers included. See item 73.
+
+Added 2026-10-09 (#221): **the open ring says "linear" for every linear
+molecule**, not only those with known ends. The gap is `LINEAR_GAP`, 24
+degrees centred on 12 o'clock, a fixed angle so it holds at any map size.
+`CircularLayout.angleOf` lays the length over the other 336 degrees for a
+linear topology (position 0 half a gap clockwise of the top, position
+`length` half a gap counter-clockwise), so features, ruler, selection, edit
+and diff marks, the GC ring, labels, the SVG export and `fitRange` (through
+`ViewportBounds.gap`) follow without knowing about it. `positionOf` and
+`baseOf` give the nearer end for an angle in the gap, so a drag across it
+clamps to the end; `hitTest` returns `none` there. Every linear molecule
+gets a cap across the backbone at the boundaries 0 and `length` (the model
+is 0-based half-open; the ruler numbers them 1 and the length). A known end
+from #9 keeps a longer stroke in the cut-site colour over its cap. The
+centre line reads "N bp linear" or "N bp circular", falling back to the bare
+length and then to nothing when it does not fit. Not done: a straight linear
+map, drawn instead of the ring (separate discussion in the issue).

@@ -16,6 +16,13 @@ export type CircularHit =
 
 const TWO_PI = Math.PI * 2;
 
+/**
+ * The opening of a linear molecule's ring, in radians (#221): 24 degrees,
+ * centred on 12 o'clock, wide enough that it cannot be taken for a seam in
+ * the drawing. A fixed angle, so it reads the same at any map size.
+ */
+export const LINEAR_GAP = (24 * Math.PI) / 180;
+
 export interface CircularOptions {
   readonly width: number;
   readonly height: number;
@@ -41,6 +48,8 @@ export class CircularLayout {
   readonly maxZoom: number;
   readonly ringWidth: number;
   readonly laneCount: number;
+  /** Angle of the opening a linear molecule's ring leaves at the origin; 0 for a circular one. */
+  readonly gap: number;
 
   constructor(
     readonly seqLength: number,
@@ -51,6 +60,7 @@ export class CircularLayout {
     this.height = options.height;
     this.ringWidth = options.ringWidth;
     this.laneCount = options.laneCount;
+    this.gap = topology === 'linear' ? LINEAR_GAP : 0;
     const available = Math.min(options.width, options.height) / 2 - options.outerMargin;
     const needed = 40 + options.laneCount * options.ringWidth;
     this.baseRadius = Math.max(24, Math.max(available, needed));
@@ -72,6 +82,7 @@ export class CircularLayout {
       height: this.height,
       baseRadius: this.baseRadius,
       maxZoom: this.maxZoom,
+      gap: this.gap,
     };
   }
 
@@ -80,18 +91,41 @@ export class CircularLayout {
     return x >= -margin && x <= this.width + margin && y >= -margin && y <= this.height + margin;
   }
 
-  /** Angle (radians) of a base boundary; 0 → -π/2 (top). */
+  /**
+   * Angle (radians) of a base boundary; 0 → -π/2 (top) on a circular
+   * molecule. A linear one lays its length over the 360° the gap leaves, so
+   * position 0 (the left end, "1" on the ruler) sits half a gap clockwise of
+   * the top and position `seqLength` (the right end) half a gap
+   * counter-clockwise of it. Positions are 0-based half-open boundaries.
+   */
   angleOf(position: number): number {
-    if (this.seqLength === 0) return -Math.PI / 2;
-    return -Math.PI / 2 + (TWO_PI * position) / this.seqLength;
+    if (this.seqLength === 0) return -Math.PI / 2 + this.gap / 2;
+    return -Math.PI / 2 + this.gap / 2 + ((TWO_PI - this.gap) * position) / this.seqLength;
   }
 
-  /** Base boundary nearest to an angle, in [0, seqLength). */
+  /** Radians clockwise from the first end of the ring, in [0, 2π). */
+  private sweepOf(angle: number): number {
+    const t = (angle + Math.PI / 2 - this.gap / 2) / TWO_PI;
+    return (t - Math.floor(t)) * TWO_PI;
+  }
+
+  /** Whether an angle falls in the opening of a linear molecule's ring. */
+  inGap(angle: number): boolean {
+    return this.gap > 0 && this.sweepOf(angle) > TWO_PI - this.gap;
+  }
+
+  /**
+   * Base boundary nearest to an angle: in [0, seqLength) on a circular
+   * molecule, in [0, seqLength] on a linear one, where an angle in the gap
+   * gives the nearer end.
+   */
   positionOf(angle: number): number {
     if (this.seqLength === 0) return 0;
-    let turns = (angle + Math.PI / 2) / TWO_PI;
-    turns -= Math.floor(turns);
-    return Math.round(turns * this.seqLength) % this.seqLength;
+    const t = this.sweepOf(angle);
+    if (this.gap === 0) return Math.round((t / TWO_PI) * this.seqLength) % this.seqLength;
+    const span = TWO_PI - this.gap;
+    if (t > span) return t > span + this.gap / 2 ? 0 : this.seqLength;
+    return Math.round((t / span) * this.seqLength);
   }
 
   /**
@@ -99,12 +133,17 @@ export class CircularLayout {
    * it, where `positionOf` gives the nearer boundary. A feature is hit by
    * the base under the pointer, not by the boundary nearest it, which for
    * the half of every base nearer its far edge is the neighbour (#159).
+   * An angle in a linear molecule's gap gives the nearer end's base.
    */
   baseOf(angle: number): number {
     if (this.seqLength === 0) return 0;
-    let turns = (angle + Math.PI / 2) / TWO_PI;
-    turns -= Math.floor(turns);
-    return Math.min(this.seqLength - 1, Math.floor(turns * this.seqLength));
+    const t = this.sweepOf(angle);
+    const span = TWO_PI - this.gap;
+    if (this.gap > 0 && t > span) return t > span + this.gap / 2 ? 0 : this.seqLength - 1;
+    return Math.min(
+      this.seqLength - 1,
+      Math.floor((t / (this.gap > 0 ? span : TWO_PI)) * this.seqLength),
+    );
   }
 
   pointAt(position: number, r: number): { x: number; y: number } {
@@ -122,6 +161,8 @@ export class CircularLayout {
     const dy = y - this.cy;
     const r = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
+    // Nothing is on the ring where a linear molecule's ring is open.
+    if (this.inGap(angle)) return { kind: 'none' };
     const position = this.positionOf(angle);
     if (Math.abs(r - this.radius) <= 10) return { kind: 'backbone', position };
     if (this.laneCount > 0) {

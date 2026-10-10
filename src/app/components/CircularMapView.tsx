@@ -111,7 +111,9 @@ function gcTipAt(
   if (band === null) return undefined;
   const r = Math.hypot(pt.x - layout.cx, pt.y - layout.cy);
   if (r < band.inner - 4 || r > band.outer + 4) return undefined;
-  const base = layout.baseOf(Math.atan2(pt.y - layout.cy, pt.x - layout.cx));
+  const angle = Math.atan2(pt.y - layout.cy, pt.x - layout.cx);
+  if (layout.inGap(angle)) return undefined;
+  const base = layout.baseOf(angle);
   return describeGc(track, base, doc);
 }
 
@@ -385,7 +387,9 @@ export function CircularMapView({ doc }: Props) {
   const overlayIdAt = (x: number, y: number): string | null => {
     if (overlay.length === 0 || doc.length === 0) return null;
     const r = Math.hypot(x - layout.cx, y - layout.cy);
-    const position = layout.baseOf(Math.atan2(y - layout.cy, x - layout.cx));
+    const angle = Math.atan2(y - layout.cy, x - layout.cx);
+    if (layout.inGap(angle)) return null;
+    const position = layout.baseOf(angle);
     for (const span of overlay) {
       if (span.clickable !== true) continue;
       const lane = previewLanes.laneOf.get(span.id) ?? 0;

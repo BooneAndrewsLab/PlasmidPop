@@ -155,41 +155,58 @@ function drawBackbone(ctx: DrawingContext, p: CircularRenderParams): void {
   if (doc.topology === 'circular') {
     ctx.arc(layout.cx, layout.cy, layout.radius, 0, Math.PI * 2);
   } else {
-    // A linear molecule is shown as an open ring with a gap at the origin.
-    ctx.arc(
-      layout.cx,
-      layout.cy,
-      layout.radius,
-      layout.angleOf(0) + 0.06,
-      layout.angleOf(doc.length) - 0.06,
-    );
+    // A linear molecule is an open ring: the sequence is laid over the arc
+    // `angleOf` gives it, and the gap at the origin is left empty (#221).
+    ctx.arc(layout.cx, layout.cy, layout.radius, layout.angleOf(0), layout.angleOf(doc.length));
   }
   ctx.stroke();
-  if (doc.topology === 'linear' && doc.ends !== null) drawEndTips(ctx, p);
+  if (doc.topology === 'linear') {
+    drawEndCaps(ctx, p);
+    if (doc.ends !== null) drawEndTips(ctx, p);
+  }
+}
+
+/** A stroke across the backbone at `position`, `reach` pixels to either side of it. */
+function strokeAcross(
+  ctx: DrawingContext,
+  layout: CircularLayout,
+  position: number,
+  reach: number,
+): void {
+  const a = layout.angleOf(position);
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  ctx.beginPath();
+  ctx.moveTo(layout.cx + (layout.radius - reach) * cos, layout.cy + (layout.radius - reach) * sin);
+  ctx.lineTo(layout.cx + (layout.radius + reach) * cos, layout.cy + (layout.radius + reach) * sin);
+  ctx.stroke();
 }
 
 /**
- * A stroke across the backbone at each tip of an open ring whose ends are
- * worth naming — cut by an enzyme, or sticky — so the gap reads as the cut
- * ends it is rather than as a gap in the drawing (#9). What the ends are is
- * written in the centre (`drawCentre`).
+ * A cap across the backbone at each end of every linear molecule, so the
+ * open ring reads as a molecule with two ends rather than a plasmid with a
+ * hole in it (#221). The ends are the 0-based boundaries 0 and `length`;
+ * the ruler numbers them 1 and `length`.
+ */
+function drawEndCaps(ctx: DrawingContext, p: CircularRenderParams): void {
+  const { layout, theme, doc } = p;
+  ctx.strokeStyle = theme.backbone;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'butt';
+  for (const position of [0, doc.length]) strokeAcross(ctx, layout, position, 7);
+}
+
+/**
+ * A longer stroke in the cut-site colour over the cap of an end worth
+ * naming — cut by an enzyme, or sticky — so what #9 told the reader about
+ * the ends survives the plain caps. What the ends are is written in the
+ * centre (`drawCentre`).
  */
 function drawEndTips(ctx: DrawingContext, p: CircularRenderParams): void {
   const { layout, theme, doc } = p;
   ctx.strokeStyle = theme.cutSite;
-  ctx.lineWidth = 2;
-  for (const [position, nudge] of [
-    [0, 0.06],
-    [doc.length, -0.06],
-  ] as const) {
-    const a = layout.angleOf(position) + nudge;
-    const cos = Math.cos(a);
-    const sin = Math.sin(a);
-    ctx.beginPath();
-    ctx.moveTo(layout.cx + (layout.radius - 5) * cos, layout.cy + (layout.radius - 5) * sin);
-    ctx.lineTo(layout.cx + (layout.radius + 5) * cos, layout.cy + (layout.radius + 5) * sin);
-    ctx.stroke();
-  }
+  ctx.lineWidth = 3;
+  for (const position of [0, doc.length]) strokeAcross(ctx, layout, position, 9);
 }
 
 interface RulerTick {
@@ -211,7 +228,17 @@ function rulerTicks(p: CircularRenderParams, m: MapMetrics): RulerTick[] {
   // More ticks as the map zooms in, so their spacing on screen stays put.
   const step = tickInterval(doc.length, Math.round(16 * layout.zoom));
   const out: RulerTick[] = [];
+  const linear = doc.topology === 'linear';
+  // A linear molecule's far end is numbered too, and a tick that would crowd
+  // that number is left out. Position 0 is written 1: the model is 0-based
+  // half-open, the ruler 1-based.
+  const positions: number[] = [];
   for (let pos = 0; pos < doc.length; pos += step) {
+    if (linear && pos !== 0 && doc.length - pos < step * 0.35) continue;
+    positions.push(pos);
+  }
+  if (linear) positions.push(doc.length);
+  for (const pos of positions) {
     const a = layout.angleOf(pos);
     const inner = layout.pointAt(pos, layout.radius + 1);
     if (!layout.isOnCanvas(inner.x, inner.y, 80)) continue;
@@ -1288,10 +1315,15 @@ function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
   }
   ctx.font = p.sansFont;
   ctx.fillStyle = theme.inkMuted;
-  const length = `${doc.length.toLocaleString()} bp`;
+  // The length with its topology, as a readout (#221); the bare length when
+  // that does not fit, and nothing when neither does.
+  const bare = `${doc.length.toLocaleString()} bp`;
+  const length = `${bare} ${doc.topology}`;
   const lengthY = title === null ? layout.cy : layout.cy + 9;
   if (ctx.measureText(length).width <= maxWidth) {
     ctx.fillText(length, layout.cx, lengthY);
+  } else if (ctx.measureText(bare).width <= maxWidth) {
+    ctx.fillText(bare, layout.cx, lengthY);
   }
   // A linear molecule's ends under its length, left end first, in the words
   // the toolbar uses. Whole or not at all, like the title.

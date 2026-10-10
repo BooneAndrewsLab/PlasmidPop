@@ -20,6 +20,8 @@ export interface ViewportBounds {
   /** Backbone radius at zoom 1. */
   readonly baseRadius: number;
   readonly maxZoom: number;
+  /** Opening of a linear molecule's ring in radians (`LINEAR_GAP`); absent or 0 for a circle. */
+  readonly gap?: number;
 }
 
 const TWO_PI = Math.PI * 2;
@@ -82,8 +84,8 @@ export function panBy(v: MapViewport, b: ViewportBounds, dx: number, dy: number)
   return clampViewport({ zoom: v.zoom, panX: v.panX + dx, panY: v.panY + dy }, b);
 }
 
-function angleOf(position: number, seqLength: number): number {
-  return -Math.PI / 2 + (TWO_PI * position) / seqLength;
+function angleOf(position: number, seqLength: number, gap: number): number {
+  return -Math.PI / 2 + gap / 2 + ((TWO_PI - gap) * position) / seqLength;
 }
 
 /**
@@ -101,8 +103,9 @@ export function fitRange(
 ): MapViewport {
   if (seqLength <= 0 || end <= start || end - start >= seqLength) return FIT_VIEWPORT;
   const span = end - start;
-  const a0 = angleOf(start, seqLength);
-  const a1 = a0 + (TWO_PI * span) / seqLength;
+  const gap = b.gap ?? 0;
+  const a0 = angleOf(start, seqLength, gap);
+  const a1 = a0 + ((TWO_PI - gap) * span) / seqLength;
   // Bounding box of the unit arc: its ends plus any axis crossing inside it.
   const xs = [Math.cos(a0), Math.cos(a1)];
   const ys = [Math.sin(a0), Math.sin(a1)];

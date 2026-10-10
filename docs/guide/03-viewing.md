@@ -252,8 +252,15 @@ both views; the feature list still lists both. Cut sites of the ticked
 enzymes are labelled on the same ring, unless **Cut sites** is off in the
 toolbar. The centre shows the name and length when they fit whole; on a
 narrow map the name is set smaller, and past that it is left out rather than
-squeezed or cut short, since the toolbar has it.
-A linear sequence is drawn as an open ring with a gap at the ends.
+squeezed or cut short, since the toolbar has it. Under the name the length
+reads "5,432 bp circular" or "5,432 bp linear", dropping the topology on a map
+too narrow for it.
+
+A linear sequence is drawn as an open ring with a wide gap (24 degrees, at any
+map size) at the top. The sequence is laid out over the rest of the ring, so
+the features, ruler, selection and clicks all stop at its two ends and nothing
+is drawn or can be clicked in the gap. Each end has a cap across the backbone
+and a number: 1 at the left end and the length at the right.
 
 Nothing is too small to see. A feature of a few bases, less than a pixel of
 ring on a large plasmid, is drawn as a narrow mark at least three pixels

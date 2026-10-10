@@ -3,6 +3,7 @@ import {
   type LabelInput,
   type PlacedLabel,
   CircularLayout,
+  LINEAR_GAP,
   layoutLabels,
   tickInterval,
 } from './circularLayout';
@@ -326,5 +327,54 @@ describe('layoutLabels', () => {
     const { placed, dropped } = layoutLabels(inputs([0.1], 900), layout, base);
     expect(placed).toHaveLength(0);
     expect(dropped).toHaveLength(1);
+  });
+});
+
+describe('CircularLayout of a linear molecule (#221)', () => {
+  const L = 1000;
+  const layout = new CircularLayout(L, 'linear', opts);
+  const polar = (angle: number, r: number) => ({
+    x: layout.cx + r * Math.cos(angle),
+    y: layout.cy + r * Math.sin(angle),
+  });
+
+  it('lays the length over 360 degrees minus a 24 degree gap centred on the top', () => {
+    expect(layout.gap).toBeCloseTo((24 * Math.PI) / 180);
+    expect(layout.angleOf(0)).toBeCloseTo(-Math.PI / 2 + LINEAR_GAP / 2);
+    expect(layout.angleOf(L) - layout.angleOf(0)).toBeCloseTo(2 * Math.PI - LINEAR_GAP);
+    // The ends are symmetric about 12 o'clock.
+    expect(layout.angleOf(L) - 2 * Math.PI + Math.PI / 2).toBeCloseTo(-LINEAR_GAP / 2);
+    expect(new CircularLayout(L, 'circular', opts).gap).toBe(0);
+  });
+
+  it('round-trips pixel to position, ends included', () => {
+    for (const p of [0, 1, 250, 500, 999, L]) {
+      expect(layout.positionOf(layout.angleOf(p))).toBe(p);
+      const pt = polar(layout.angleOf(p), layout.radius);
+      expect(layout.hitTest(pt.x, pt.y)).toEqual({ kind: 'backbone', position: p });
+    }
+    for (const b of [0, 1, 500, L - 1]) {
+      expect(layout.baseOf(layout.angleOf(b + 0.5))).toBe(b);
+    }
+  });
+
+  it('hits nothing in the gap, backbone or lane', () => {
+    for (const frac of [-0.45, -0.2, 0, 0.2, 0.45]) {
+      const angle = -Math.PI / 2 + frac * LINEAR_GAP;
+      expect(layout.inGap(angle)).toBe(true);
+      for (const r of [layout.radius, layout.laneRadius(0), layout.laneRadius(1)]) {
+        const pt = polar(angle, r);
+        expect(layout.hitTest(pt.x, pt.y)).toEqual({ kind: 'none' });
+      }
+    }
+    expect(layout.inGap(layout.angleOf(0) + 0.01)).toBe(false);
+    expect(layout.inGap(layout.angleOf(L) - 0.01)).toBe(false);
+  });
+
+  it('gives the nearer end for an angle in the gap', () => {
+    expect(layout.positionOf(-Math.PI / 2 + 0.1)).toBe(0);
+    expect(layout.positionOf(-Math.PI / 2 - 0.1)).toBe(L);
+    expect(layout.baseOf(-Math.PI / 2 + 0.1)).toBe(0);
+    expect(layout.baseOf(-Math.PI / 2 - 0.1)).toBe(L - 1);
   });
 });

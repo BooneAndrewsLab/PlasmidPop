@@ -273,7 +273,7 @@ describe('exportMapSvg', () => {
     expect(svg).toContain('>tet<');
     expect(svg).toContain('>bla<');
     expect(svg).toContain('>SYNPBR322<');
-    expect(svg).toContain('>4,361 bp<');
+    expect(svg).toContain('>4,361 bp circular<');
     expect(svg).toContain('fill="#ffffff"');
     expect((svg.match(/<path /g) ?? []).length).toBeGreaterThan(20);
     expect(exportMapSvg(doc, { size: 300, transparent: true })).not.toContain('fill="#ffffff"/>');

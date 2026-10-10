@@ -8,7 +8,7 @@ import { type DrawingContext } from '../drawingContext';
 import { PRINT_THEME } from '../svg/exportMap';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
-import { CircularLayout } from './circularLayout';
+import { CircularLayout, LINEAR_GAP } from './circularLayout';
 import { MIN_FEATURE_PX, featureAtLane, renderCircularMap, selectionSweep } from './renderCircular';
 import { exportMapSvg } from '../svg';
 
@@ -751,7 +751,7 @@ describe('renderCircularMap centre title', () => {
     });
     const svg = ctx.toSvg();
     expect(title(svg)).toBeNull();
-    const bp = /<text x="([\d.]+)" y="([\d.]+)"[^>]*>4,360 bp<\/text>/.exec(svg);
+    const bp = /<text x="([\d.]+)" y="([\d.]+)"[^>]*>4,360 bp circular<\/text>/.exec(svg);
     expect(bp).not.toBeNull();
     expect(Number(bp?.[2])).toBeCloseTo(layout.cy, 0);
   });
@@ -796,6 +796,53 @@ describe('renderCircularMap ends of a linear molecule', () => {
     expect(svg).toContain('EcoRI 5′ AATT / SmaI blunt');
     const tips = svg.match(new RegExp(`stroke="${PRINT_THEME.cutSite}"`, 'g')) ?? [];
     expect(tips.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('#221: caps both ends of a plain linear molecule, numbered 1 and the length', () => {
+    const doc = SeqDocument.create({ name: 'frag', sequence });
+    const svg = draw(doc);
+    const layout = new CircularLayout(doc.length, doc.topology, opts);
+    for (const position of [0, doc.length]) {
+      const a = layout.angleOf(position);
+      const x1 = layout.cx + (layout.radius - 7) * Math.cos(a);
+      const y1 = layout.cy + (layout.radius - 7) * Math.sin(a);
+      const cap = new RegExp(
+        `<path d="M${x1.toFixed(2).replace(/\\.?0+$/, '')} ${y1.toFixed(2).replace(/\\.?0+$/, '')} L[^"]*" fill="none" stroke="${PRINT_THEME.backbone}" stroke-width="3"`,
+      );
+      expect(svg).toMatch(cap);
+    }
+    expect(svg).toMatch(/>1<\/text>/);
+    expect(svg).toContain(`>${doc.length.toLocaleString()}</text>`);
+    expect(svg).toContain(`>${doc.length.toLocaleString()} bp linear</text>`);
+  });
+
+  it('#221: the backbone arc stops at the caps and leaves the gap empty', () => {
+    const doc = SeqDocument.create({ name: 'frag', sequence });
+    const svg = draw(doc);
+    const layout = new CircularLayout(doc.length, doc.topology, opts);
+    const start = layout.pointAt(0, layout.radius);
+    const end = layout.pointAt(doc.length, layout.radius);
+    const f = (n: number): string => String(Number(n.toFixed(2)));
+    expect(svg).toContain(`d="M${f(start.x)} ${f(start.y)} A${layout.radius}`);
+    expect(svg).toContain(`${f(end.x)} ${f(end.y)}"`);
+    // No ruler tick or mark is drawn at the top, inside the gap.
+    const top = layout.pointAt(0, 0);
+    expect(top.x).toBeCloseTo(layout.cx);
+    const inGap = [...svg.matchAll(/M(-?[\d.]+) (-?[\d.]+) /g)].filter((m) => {
+      const x = Number(m[1]);
+      const y = Number(m[2]);
+      const radius = Math.hypot(x - layout.cx, y - layout.cy);
+      const angle = Math.atan2(y - layout.cy, x - layout.cx);
+      // Strictly inside the gap: the caps stand on its two edges.
+      return radius > layout.radius - 8 && Math.abs(angle + Math.PI / 2) < LINEAR_GAP / 2 - 0.02;
+    });
+    expect(inGap).toEqual([]);
+  });
+
+  it('#221: a circular molecule is drawn with no caps and reads "circular"', () => {
+    const svg = draw(SeqDocument.create({ name: 'c', sequence, topology: 'circular' }));
+    expect(svg).not.toContain('stroke-width="3"');
+    expect(svg).toContain('bp circular</text>');
   });
 
   it('says nothing about plain ends, or about a circle', () => {

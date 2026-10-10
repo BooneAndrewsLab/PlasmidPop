@@ -108,9 +108,10 @@ view draws it:
 - where the other strand runs past the sequence instead, its bases are drawn
   just outside the first or last column.
 
-On the circular map, where a linear molecule is an open ring, both tips are
-marked in the cut-site colour and the ends are named under the length in the
-middle.
+On the circular map, where a linear molecule is an open ring, every end has
+a cap across the backbone, numbered 1 and the length. A cut or sticky end has
+a longer cap in the cut-site colour, and the ends are named under the length
+in the middle.
 
 Digesting such a molecule again gives its outer fragments the ends it came
 with, so a piece can be cut, opened and cut again without losing track of
