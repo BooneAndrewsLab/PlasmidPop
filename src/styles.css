@@ -4788,6 +4788,7 @@ button {
 }
 
 .crispr-row__gc,
+.crispr-row__edit,
 .crispr-row__off {
   color: var(--ink-3);
   font-size: 11px;
@@ -5093,4 +5094,17 @@ button {
 .verify__progress {
   width: 100%;
   margin: 8px 0;
+}
+
+.crispr-peg {
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.crispr-peg__seq {
+  font-family: var(--mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }

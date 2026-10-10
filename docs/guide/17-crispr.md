@@ -134,6 +134,40 @@ box. Clicking a guide afterwards selects that guide without narrowing the
 list to it. To narrow to a different stretch, select it and press **Use the
 selection now**, or untick and tick the box again.
 
+## Base editing
+
+With SpCas9 (NGG), **Base editor** marks where a base editor can act. Choose
+**CBE** (C to T, protospacer positions 4–8), **ABE7.10** (A to G, 4–7) or
+**ABE8e** (A to G, 4–8). Positions count from the spacer's 5′ end, so the
+PAM is 21–23. Each row then shows how many bases of the right kind sit in the
+window, **Only with a C to edit** (or A) hides the guides with none, and a
+guide's details list the bases (such as `C4, C8`), where they are, and the
+spacer with all of them converted. More than one base listed means
+bystander edits: the window does not say how likely each is. On a
+reverse-strand guide the base in the sequence is the complement, so a C to T
+edit is a G to A there. The windows are measured for a 20 nt SpCas9 spacer, so
+the choice is not offered for other nucleases.
+
+## Prime editing
+
+The **Prime editing** group designs pegRNAs for the guides found above. Give
+the **Edit at** position (1-based), how many bases it **Replaces** and what
+it is replaced **With** (nothing deletes; zero bases replaced inserts), or
+select the bases and press **Use the selection**. **PBS** sets the primer
+binding site length, 8–17 (13 by default).
+
+For each guide whose nick lies up to 30 bases before the edit on the
+guide's strand, nearest first, the list gives the primer binding site, the
+reverse-transcriptase template (the edit plus ten bases of homology) and the
+3′ extension, which is the template followed by the primer binding site.
+**Copy spacer and extension** puts the two to order on the clipboard;
+add them to your scaffold. It also says whether the edit changes the PAM,
+which stops the edited site being nicked again, and flags a template that
+starts with C, a primer binding site outside 40–60% GC, and TTTT. An edit
+before the nick, or too far after it, has no pegRNA from that guide. PlasmidPop
+does not rank pegRNAs by predicted efficiency, and does not design the
+second nick of PE3.
+
 ## Ordering and annotating a guide
 
 The selected guide's box, under its row, gives its protospacer range,

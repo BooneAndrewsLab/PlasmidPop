@@ -241,4 +241,38 @@ describe('CrisprPanel', () => {
       value: 'CRISPR protospacer, TGG PAM',
     });
   });
+
+  it('marks the base editor window on each guide and filters to the editable ones', async () => {
+    // The first spacer has C's at positions 4 and 8; the second has none in 4-8.
+    const withC = 'GATCGATCGATCGATCGATC';
+    const noC = 'GAGAGAGAGAGAGAGAGAGA';
+    await openPanel(docOf(`${withC}TGG${FILLER}${noC}AGG`), false);
+    fireEvent.change(screen.getByLabelText('Base editor'), { target: { value: 'cbe' } });
+    expect(screen.getAllByTitle('C to T edits in the window').map((e) => e.textContent)).toEqual([
+      '2',
+      '0',
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'Only with a C to edit' }));
+    fireEvent.click(screen.getByRole('button', { name: /GATCGATC/ }));
+    expect(screen.getByText(/^C4, C8 \(/)).toBeInTheDocument();
+    expect(screen.getByText('GATTGATTGATCGATCGATC')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /GAGAGAGA/ })).not.toBeInTheDocument();
+  });
+
+  it('designs pegRNAs for an edit near a nick', async () => {
+    const spacer = 'GACCTAGCATCGATCGGTAC';
+    const doc = docOf(`${FILLER}${FILLER}${spacer}TGGATATCTATCTAGATCTATATCTCTAGATATCT`);
+    await openPanel(doc, false);
+    fireEvent.change(screen.getByLabelText('New bases'), { target: { value: 'g' } });
+    // Position 1 is the far left: no guide nicks before it
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Edit at' }), {
+      target: { value: String(20 + 17 + 4 + 1) },
+    });
+    expect((await screen.findAllByText('3′ extension')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/4 before the edit/).length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Edit at' }), {
+      target: { value: '1' },
+    });
+    expect(screen.getByText(/No guide above nicks/)).toBeInTheDocument();
+  });
 });

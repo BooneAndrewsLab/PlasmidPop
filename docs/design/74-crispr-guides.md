@@ -102,7 +102,7 @@ the slow, obvious way.
   assumed.
 - No on-target score, as above. If a published implementation ever ships
   test vectors, it becomes a column and an oracle file.
-- Base and prime editing windows, and paired nickases, are each a feature of
+- Paired nickases are a feature of
   their own.
 - The guides are a preview overlay, not a track that can be exported with
   the map (#212 would be where that lands).

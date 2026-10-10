@@ -92,6 +92,7 @@ piece of work needs its reasoning written down, with the next free number.
 78. [Bench protocol for a product](78-bench-protocol.md)
 79. [Overlap-extension (SOE) PCR primers](79-overlap-extension-pcr.md)
 80. [Verify clones](80-verify-clones.md)
+81. [CRISPR base-editing windows and pegRNAs](81-crispr-editing.md)
 
 ## Changelog to 1.1.0
 

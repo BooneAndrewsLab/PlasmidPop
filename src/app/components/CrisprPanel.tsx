@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  type BaseEditor,
   type CrisprGuide,
   type Nuclease,
   type OligoScheme,
   type Range,
   type SeqDocument,
   GC_HIGH,
+  BASE_EDITORS,
   GC_LOW,
   HOMOPOLYMER_FLAG,
   MAX_SPACER,
   MIN_SPACER,
   NUCLEASES,
   OLIGO_SCHEMES,
+  baseEditWindow,
   createFeature,
   formatSpan,
   guideOligos,
@@ -25,6 +28,8 @@ import {
   rangeSegment,
   rangesEqual,
   sequenceMasks,
+  supportsBaseEditing,
+  supportsPrimeEditing,
 } from '@/core';
 
 import { type OverlaySpan } from '@/view/overlay';
@@ -36,6 +41,7 @@ import { editorStore } from '../state/editorStore';
 import { rememberSeen, wasSeen } from '../state/seenOnce';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
+import { PrimeEditing } from './CrisprPrimeEditing';
 
 interface Props {
   readonly doc: SeqDocument;
@@ -139,6 +145,8 @@ export function CrisprPanel({ doc }: Props) {
   const [showFlagged, setShowFlagged] = useState(false);
   const [noteSeen, setNoteSeen] = useState(() => wasSeen(NOTE_SEEN_KEY));
   const [schemeId, setSchemeId] = useState(OLIGO_SCHEMES[0]?.id ?? 'none');
+  const [baseEditorId, setBaseEditorId] = useState('');
+  const [onlyEditable, setOnlyEditable] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
   /**
    * The row last clicked. Which guide the panel shows is the one the
@@ -168,6 +176,14 @@ export function CrisprPanel({ doc }: Props) {
       cut: { pamStrand: length - 3, targetStrand: length - 3 },
     };
   }, [custom, nucleaseId, pam, length, problem]);
+
+  const baseEditing = nuclease !== null && supportsBaseEditing(nuclease);
+  const baseEditor = useMemo(
+    () => (baseEditing ? BASE_EDITORS.find((e) => e.id === baseEditorId) : undefined),
+    [baseEditing, baseEditorId],
+  );
+  const editableCount = (g: CrisprGuide): number =>
+    baseEditor === undefined ? 0 : (baseEditWindow(g, baseEditor)?.editable.length ?? 0);
 
   const usableSelection = selection !== null && !isEmptyRange(selection) ? selection : null;
   // Dropped with the document it was taken in, or once an edit leaves it off the end.
@@ -264,6 +280,13 @@ export function CrisprPanel({ doc }: Props) {
     const list = (guides ?? []).filter((g) => {
       if (pamChosen !== '' && g.pam !== pamChosen) return false;
       if (!showFlagged && flagsOf(g).length > 0) return false;
+      if (
+        baseEditor !== undefined &&
+        onlyEditable &&
+        (baseEditWindow(g, baseEditor)?.editable.length ?? 0) === 0
+      ) {
+        return false;
+      }
       if (masks === null) return true;
       // IUPAC, so "GRCC" or "N" work as they do in Find; an unknown letter
       // is a mask of nothing and matches no guide.
@@ -278,7 +301,7 @@ export function CrisprPanel({ doc }: Props) {
       );
     }
     return list;
-  }, [guides, sortBy, spacerFilter, pamChosen, showFlagged]);
+  }, [guides, sortBy, spacerFilter, pamChosen, showFlagged, baseEditor, onlyEditable]);
   const filtered = guides !== null && sorted.length !== guides.length;
 
   const covered = sorted.filter(
@@ -383,6 +406,27 @@ export function CrisprPanel({ doc }: Props) {
                 />
               </label>
             </>
+          )}
+          {baseEditing && (
+            <label className="panel__field panel__field--row">
+              <span>Base editor</span>
+              <select
+                className="panel__select"
+                value={baseEditor?.id ?? ''}
+                onChange={(e) => {
+                  setBaseEditorId(e.target.value);
+                  if (e.target.value !== '')
+                    analytics.track('crispr', 'baseEditor', e.target.value);
+                }}
+              >
+                <option value="">none</option>
+                {BASE_EDITORS.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
           <label className="panel__field panel__field--row">
             {noteSeen ? (
@@ -558,6 +602,19 @@ export function CrisprPanel({ doc }: Props) {
                 >
                   Show flagged
                 </button>
+                {baseEditor !== undefined && (
+                  <button
+                    type="button"
+                    className="button button--small button--toggle"
+                    aria-pressed={onlyEditable}
+                    title={`Only list guides with a ${baseEditor.from} in the editing window`}
+                    onClick={() => {
+                      setOnlyEditable((on) => !on);
+                    }}
+                  >
+                    Only with a {baseEditor.from} to edit
+                  </button>
+                )}
               </div>
               {sorted.length === 0 ? (
                 <p className="panel__note">No guides match the filters.</p>
@@ -607,6 +664,14 @@ export function CrisprPanel({ doc }: Props) {
                           >
                             {offTargetSummary(g)}
                           </span>
+                          {baseEditor !== undefined && (
+                            <span
+                              className="crispr-row__edit"
+                              title={`${baseEditor.from} to ${baseEditor.to} edits in the window`}
+                            >
+                              {editableCount(g)}
+                            </span>
+                          )}
                           <span className="crispr-row__warning" title={flags.join('; ')}>
                             {flags.length > 0 ? '!' : ''}
                           </span>
@@ -617,6 +682,7 @@ export function CrisprPanel({ doc }: Props) {
                             guide={selected}
                             flags={flags}
                             others={others}
+                            baseEditor={baseEditor}
                             schemes={schemes}
                             scheme={scheme}
                             onScheme={setSchemeId}
@@ -637,6 +703,12 @@ export function CrisprPanel({ doc }: Props) {
           )}
         </fieldset>
       )}
+      {problem === null &&
+        nuclease !== null &&
+        guides !== null &&
+        supportsPrimeEditing(nuclease) && (
+          <PrimeEditing doc={doc} guides={guides} nuclease={nuclease} />
+        )}
     </div>
   );
 }
@@ -646,16 +718,27 @@ interface DetailProps {
   readonly guide: CrisprGuide;
   readonly flags: readonly string[];
   readonly others: readonly { readonly name: string }[];
+  readonly baseEditor: BaseEditor | undefined;
   readonly schemes: readonly OligoScheme[];
   readonly scheme: OligoScheme;
   readonly onScheme: (id: string) => void;
 }
 
 /** The selected guide, opened in place under its row. */
-function GuideDetail({ doc, guide, flags, others, schemes, scheme, onScheme }: DetailProps) {
+function GuideDetail({
+  doc,
+  guide,
+  flags,
+  others,
+  baseEditor,
+  schemes,
+  scheme,
+  onScheme,
+}: DetailProps) {
   const [saved, setSaved] = useState<string | null>(null);
   const oligos = guideOligos(guide.spacer, scheme);
   const at = (guide.range.start + 1).toLocaleString();
+  const window = baseEditor === undefined ? null : baseEditWindow(guide, baseEditor);
 
   return (
     <div className="crispr-guide">
@@ -682,6 +765,24 @@ function GuideDetail({ doc, guide, flags, others, schemes, scheme, onScheme }: D
             <dd title="MIT score (Hsu 2013) over the off-target sites counted here; 100 is no other site">
               {guide.specificity.toFixed(0)} / 100
             </dd>
+          </>
+        )}
+        {window !== null && (
+          <>
+            <dt>
+              {window.editor.from} to {window.editor.to}
+            </dt>
+            <dd>
+              {window.editable.length === 0
+                ? `no ${window.editor.from} in positions ${String(window.editor.window[0])}-${String(window.editor.window[1])}`
+                : `${window.editable.map((b) => `${b.base}${String(b.position)}`).join(', ')} (${formatSpan(window.range, doc.length)})`}
+            </dd>
+            {window.editable.length > 0 && (
+              <>
+                <dt>Edited</dt>
+                <dd className="crispr-detail__mono">{window.edited}</dd>
+              </>
+            )}
           </>
         )}
         <dt>Flags</dt>
