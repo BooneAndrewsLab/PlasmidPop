@@ -22,8 +22,14 @@ import { BASE_CODE, NONE, RESIDUE_BITS, codesOf, framesOf } from './protein';
 
 /** Residues of an exact word that seed a diagonal. */
 export const HOMOLOGUE_SEED = 4;
-/** Words that must fall within `BAND` diagonals of each other before an alignment is tried. */
-export const MIN_SEEDS = 3;
+/**
+ * Two words within `TWO_HIT_WINDOW` residues of each other and `BAND` diagonals
+ * apart (BLAST's two-hit rule) are what a hit is; words with no partner are
+ * not recorded at all, which is most of them in unrelated sequence.
+ */
+export const TWO_HIT_WINDOW = 48;
+/** Recorded words that must fall within `BAND` diagonals of each other before an alignment is tried. */
+export const MIN_SEEDS = 2;
 export const BAND = 16;
 /** Diagonals either side of a cluster that the alignment may wander (gaps). */
 export const BAND_WIDTH = 32;
@@ -73,10 +79,18 @@ interface Entry {
   readonly threshold: HomologueThreshold;
 }
 
+/** An entry's offset fits this many bits, so no protein of the library may be longer. */
+const OFFSET_BITS = 13;
+const OFFSET_RANGE = 1 << OFFSET_BITS;
+
 interface Index {
   readonly entries: readonly Entry[];
-  readonly seeds: ReadonlyMap<number, readonly number[]>;
-  readonly present: Uint8Array;
+  /**
+   * Seed word → the (entry, offset) pairs that have it, packed as
+   * `entry << OFFSET_BITS | offset`, in `slots[heads[word] .. heads[word + 1])`.
+   */
+  readonly heads: Int32Array;
+  readonly slots: Int32Array;
   readonly longest: number;
 }
 
@@ -86,12 +100,18 @@ function indexFor(library: FeatureLibrary): Index {
   const known = indexes.get(library);
   if (known !== undefined) return known;
   const entries: Entry[] = [];
-  const seeds = new Map<number, number[]>();
-  const present = new Uint8Array((SEED_MASK + 1) >>> 3);
+  const counts = new Int32Array(SEED_MASK + 2);
+  const words: number[] = [];
   let longest = 0;
   library.parts.forEach((part, index) => {
     const protein = part.protein;
-    if (protein === undefined || protein.length < MIN_HOMOLOGUE_RESIDUES) return;
+    if (
+      protein === undefined ||
+      protein.length < MIN_HOMOLOGUE_RESIDUES ||
+      protein.length >= OFFSET_RANGE
+    ) {
+      return;
+    }
     const e = entries.length;
     entries.push({
       part: index,
@@ -112,14 +132,21 @@ function indexFor(library: FeatureLibrary): Index {
       }
       word = ((word << RESIDUE_BITS) | code) & SEED_MASK;
       if (++run < HOMOLOGUE_SEED) continue;
-      present[word >>> 3] = (present[word >>> 3] ?? 0) | (1 << (word & 7));
-      const at = p - HOMOLOGUE_SEED + 1;
-      const list = seeds.get(word);
-      if (list === undefined) seeds.set(word, [e, at]);
-      else list.push(e, at);
+      counts[word + 1] = (counts[word + 1] ?? 0) + 1;
+      words.push(word, (e << OFFSET_BITS) | (p - HOMOLOGUE_SEED + 1));
     }
   });
-  const built = { entries, seeds, present, longest };
+  const heads = counts;
+  for (let w = 1; w < heads.length; w++) heads[w] = (heads[w] ?? 0) + (heads[w - 1] ?? 0);
+  const slots = new Int32Array(words.length / 2);
+  const next = heads.slice(0, SEED_MASK + 1);
+  for (let k = 0; k < words.length; k += 2) {
+    const w = words[k] ?? 0;
+    const at = next[w] ?? 0;
+    slots[at] = words[k + 1] ?? 0;
+    next[w] = at + 1;
+  }
+  const built = { entries, heads, slots, longest };
   indexes.set(library, built);
   return built;
 }
@@ -157,23 +184,69 @@ const FRAME_ROWS = (() => {
   return rows;
 })();
 
-/** Best ungapped local score of the part against the frame along one diagonal. */
-function ungapped(rows: Uint8Array, codes: Uint8Array, diagonal: number): number {
-  let best = 0;
-  let run = 0;
-  for (let i = Math.max(0, -diagonal); i < rows.length; i++) {
-    const at = i + diagonal;
-    if (at >= codes.length) break;
-    const frameRow = FRAME_ROWS[codes[at] ?? NONE] ?? PROTEIN_CODES - 1;
-    run = Math.max(0, run + (SCORES[(rows[i] ?? 0) * PROTEIN_CODES + frameRow] ?? 0));
-    if (run > best) best = run;
-  }
-  return best;
+/** How far below its best an ungapped extension may fall before it stops. */
+const XDROP = 20;
+
+function pairScore(rows: Uint8Array, codes: Uint8Array, i: number, at: number): number {
+  const frameRow = FRAME_ROWS[codes[at] ?? NONE] ?? PROTEIN_CODES - 1;
+  return SCORES[(rows[i] ?? 0) * PROTEIN_CODES + frameRow] ?? 0;
 }
 
-/** Diagonals are offset by this so they sort as non-negative numbers. */
+/**
+ * The score of the ungapped stretch through a seed: the seed's own words,
+ * extended either way along its diagonal until the score has fallen `XDROP`
+ * below its best (BLAST's ungapped extension). The cost is the stretch, not
+ * the protein, which is what keeps a megabase of unrelated words cheap.
+ */
+function extend(rows: Uint8Array, codes: Uint8Array, diagonal: number, offset: number): number {
+  let seed = 0;
+  for (let k = 0; k < HOMOLOGUE_SEED; k++) {
+    seed += pairScore(rows, codes, offset + k, offset + k + diagonal);
+  }
+  let right = 0;
+  let run = 0;
+  for (let i = offset + HOMOLOGUE_SEED; i < rows.length; i++) {
+    const at = i + diagonal;
+    if (at >= codes.length) break;
+    run += pairScore(rows, codes, i, at);
+    if (run > right) right = run;
+    else if (run < right - XDROP) break;
+  }
+  let left = 0;
+  run = 0;
+  for (let i = offset - 1; i >= 0; i--) {
+    const at = i + diagonal;
+    if (at < 0) break;
+    run += pairScore(rows, codes, i, at);
+    if (run > left) left = run;
+    else if (run < left - XDROP) break;
+  }
+  return seed + right + left;
+}
+
+/** Diagonals are grouped in bands of this many (a power of two) for the two-hit table. */
+const BAND_SHIFT = 4;
+/** Slots of the two-hit table (a power of two, matching the hash's shift). */
+const TABLE = 1 << 12;
+const tableBand = new Float64Array(TABLE);
+const tableKey = new Float64Array(TABLE);
+const tableAt = new Int32Array(TABLE);
+const tableRecorded = new Uint8Array(TABLE);
+
+/** `values[at] = value`, growing the array when it is full; returns the array. */
+function record(values: Float64Array, at: number, value: number): Float64Array {
+  let out = values;
+  if (at >= out.length) {
+    out = new Float64Array(out.length * 2);
+    out.set(values);
+  }
+  out[at] = value;
+  return out;
+}
+
+/** A seed hit is the number `(entry · 2^24 + diagonal + bias) · 2^13 + offset`, which sorts by entry, diagonal, offset. */
 const DIAGONAL_BIAS = 1 << 22;
-const ENTRY_STRIDE = 1 << 24;
+const DIAGONAL_RANGE = 1 << 24;
 
 /**
  * Every part with a protein of at least `MIN_HOMOLOGUE_RESIDUES` that has a
@@ -201,7 +274,11 @@ export function detectHomologues(
   const hits: FeatureHit[] = [];
   for (const frame of framesOf(bases)) {
     const { codes } = frame;
-    const found: number[] = [];
+    let found: Float64Array = new Float64Array(1 << 12);
+    let count = 0;
+    // The last word seen in each (entry, diagonal band), as a direct-mapped
+    // table: where it was, and whether it has been recorded yet.
+    tableBand.fill(-1);
     let word = 0;
     let run = 0;
     for (let p = 0; p < codes.length; p++) {
@@ -212,47 +289,59 @@ export function detectHomologues(
       }
       word = ((word << RESIDUE_BITS) | code) & SEED_MASK;
       if (++run < HOMOLOGUE_SEED) continue;
-      if (((index.present[word >>> 3] ?? 0) & (1 << (word & 7))) === 0) continue;
-      const list = index.seeds.get(word);
-      if (list === undefined) continue;
+      const to = index.heads[word + 1] ?? 0;
       const at = p - HOMOLOGUE_SEED + 1;
-      for (let k = 0; k + 1 < list.length; k += 2) {
-        found.push((list[k] ?? 0) * ENTRY_STRIDE + (at - (list[k + 1] ?? 0)) + DIAGONAL_BIAS);
+      for (let k = index.heads[word] ?? 0; k < to; k++) {
+        const slot = index.slots[k] ?? 0;
+        const e = slot >>> OFFSET_BITS;
+        const offset = slot & (OFFSET_RANGE - 1);
+        const diagonal = at - offset + DIAGONAL_BIAS;
+        const key = (e * DIAGONAL_RANGE + diagonal) * OFFSET_RANGE + offset;
+        const band = e * DIAGONAL_RANGE + (diagonal >> BAND_SHIFT);
+        const cell =
+          (Math.imul(e, 0x9e3779b1) ^ Math.imul(diagonal >> BAND_SHIFT, 0x85ebca6b)) >>> 20;
+        if (tableBand[cell] === band && at - (tableAt[cell] ?? 0) <= TWO_HIT_WINDOW) {
+          // A word that overlaps the last is the same match, not a second.
+          if (at - (tableAt[cell] ?? 0) < HOMOLOGUE_SEED) continue;
+          if (tableRecorded[cell] === 0) {
+            found = record(found, count++, tableKey[cell] ?? 0);
+            tableRecorded[cell] = 1;
+          }
+          found = record(found, count++, key);
+        } else {
+          tableBand[cell] = band;
+          tableRecorded[cell] = 0;
+        }
+        tableKey[cell] = key;
+        tableAt[cell] = at;
       }
     }
-    if (found.length < MIN_SEEDS) continue;
-    const sorted = Float64Array.from(found).sort();
+    if (count < MIN_SEEDS) continue;
+    const sorted = found.subarray(0, count).sort();
     // The accepted ranges of this frame, per entry, so one locus is aligned once.
     const done = new Map<number, number[]>();
+    // A seed hit with its offset removed: (entry, diagonal) as one number.
+    const cell = (k: number): number => Math.floor((sorted[k] ?? 0) / OFFSET_RANGE);
     let from = 0;
     while (from < sorted.length) {
-      const e = Math.floor((sorted[from] ?? 0) / ENTRY_STRIDE);
       let to = from + 1;
-      while (
-        to < sorted.length &&
-        Math.floor((sorted[to] ?? 0) / ENTRY_STRIDE) === e &&
-        (sorted[to] ?? 0) - (sorted[to - 1] ?? 0) <= BAND
-      ) {
-        to++;
-      }
+      while (to < sorted.length && cell(to) - cell(to - 1) <= BAND) to++;
       const seeds = to - from;
-      const first = (sorted[from] ?? 0) - e * ENTRY_STRIDE - DIAGONAL_BIAS;
-      const last = (sorted[to - 1] ?? 0) - e * ENTRY_STRIDE - DIAGONAL_BIAS;
+      const lowest = from;
       from = to;
       if (seeds < MIN_SEEDS) continue;
+      const e = Math.floor(cell(lowest) / DIAGONAL_RANGE);
       const entry = index.entries[e];
       if (entry === undefined) continue;
-      // Two-hit: the words must gather, and an ungapped stretch confirm them.
+      const diagonalOf = (k: number): number => (cell(k) % DIAGONAL_RANGE) - DIAGONAL_BIAS;
+      const first = diagonalOf(lowest);
+      const last = diagonalOf(to - 1);
+      // Two-hit: the words must gather, and an ungapped stretch through one
+      // of them confirm the cluster.
       let confirmed = false;
-      for (let k = to - seeds; k < to && !confirmed; k++) {
-        const diagonal = (sorted[k] ?? 0) - e * ENTRY_STRIDE - DIAGONAL_BIAS;
-        if (
-          k > to - seeds &&
-          diagonal === (sorted[k - 1] ?? 0) - e * ENTRY_STRIDE - DIAGONAL_BIAS
-        ) {
-          continue;
-        }
-        confirmed = ungapped(entry.rows, codes, diagonal) >= UNGAPPED_TRIGGER;
+      for (let k = lowest; k < to && !confirmed; k++) {
+        const offset = (sorted[k] ?? 0) % OFFSET_RANGE;
+        confirmed = extend(entry.rows, codes, diagonalOf(k), offset) >= UNGAPPED_TRIGGER;
       }
       if (!confirmed) continue;
       const centre = Math.round((first + last) / 2);

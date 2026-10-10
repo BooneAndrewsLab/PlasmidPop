@@ -183,13 +183,15 @@ large for the browser. The search is of the bundled list plus My parts.
   repressors such as lacI and tetR, Cas9, reporters) to the 98% protein match
   of #93, which now finds them recoded.
 - **A gapped search** (`homologue.ts`). The six translations are seeded with
-  exact four-residue words, a hit being a cluster of three words within 16
-  diagonals that an ungapped BLOSUM62 stretch (score 45, about 20 bits)
-  confirms, the way BLAST's two-hit method and DIAMOND confirm theirs.
-  A confirmed cluster is aligned locally, in a band around it, with
-  `alignInBand` and the protein alphabet, so the scoring is `src/core/alignment`'s BLOSUM62 with gaps at
-  11 to open and 1 to extend, not new code. A hit must reach its class's
-  identity (of the alignment's columns), coverage (share of the part's
+  exact four-residue words (an index of the proteins in typed arrays). A word
+  counts only when a second lies within 48 residues on the same diagonal
+  band, which is BLAST's two-hit rule and takes a megabase of unrelated
+  sequence from 677,000 words to a few thousand. A pair's cluster is confirmed
+  by an ungapped BLOSUM62 extension (X-drop 20) scoring 45 or more (about 20
+  bits), and then aligned locally in a band around it with `alignInBand` and
+  the protein alphabet, so the scoring is `src/core/alignment`'s BLOSUM62 with
+  gaps at 11 to open and 1 to extend, not new code. A hit must reach its
+  class's identity (of the alignment's columns), coverage (share of the part's
   protein spanned) and bit score (gapped statistics, λ 0.267, K 0.041), and
   also an expectation of 1e-5 or less over the six frames searched.
 - **Thresholds per part class** (`homologueThreshold`). Proteins under 150
@@ -207,8 +209,8 @@ large for the browser. The search is of the bundled list plus My parts.
   `similar` hits are set aside from the rest: a part of the same type found
   over half of the same bases (by DNA or by its protein) is the answer and
   the "similar to" is dropped; among homologues the better score wins.
-- **Speed.** 154 proteins (43,035 residues) against 1 Mb of random sequence: 0.8 s,
-  about 8 ms for a plasmid, and no hit in 400 kb of random sequence.
+- **Speed.** 154 proteins (43,035 residues) against 1 Mb of random sequence: 0.35 s,
+  a few ms for a plasmid, and no hit in 1 Mb of random sequence.
   `DetectOptions.homologues: false` turns it off.
 
 ## Matching (`src/core/annotate/detect.ts`)

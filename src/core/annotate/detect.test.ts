@@ -650,7 +650,7 @@ describe('the bundled library', () => {
     expect(await loadFeatureLibrary()).toBe(await loadFeatureLibrary());
   });
 
-  itTimed('scans a 1 Mb sequence in well under a second', async () => {
+  itTimed('scans a 1 Mb sequence in about a second', async () => {
     const lib = await loadFeatureLibrary();
     const r = seededRandom(1);
     let seq = randomDna(r, 1_000_000);
@@ -669,7 +669,8 @@ describe('the bundled library', () => {
       `[perf] detect features 1 Mb × ${lib.parts.length} parts: ${ms.toFixed(0)} ms, ${hits.length} hits\n`,
     );
     for (const p of planted) expect(hits.some((h) => lib.parts[h.part] === p)).toBe(true);
-    expectWithin(ms, 2000);
+    // Two seconds before homologues (#219); CI runs about three times slower than a desktop.
+    expectWithin(ms, 4000);
   });
 });
 
