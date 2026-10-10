@@ -2,8 +2,9 @@
  * Usage statistics via a self-hosted Matomo instance.
  *
  * Nothing is sent unless the instance URL and site id were set at build time
- * (`VITE_MATOMO_URL`, `VITE_MATOMO_SITE_ID`) and the browser does not send a
- * Do-Not-Track signal. Events carry only coarse actions ("opened genbank",
+ * (`VITE_MATOMO_URL`, `VITE_MATOMO_SITE_ID`), the browser sends neither a
+ * Do-Not-Track nor a Global Privacy Control signal, and the user has not
+ * switched statistics off in Help (#205; remembered in localStorage). Events carry only coarse actions ("opened genbank",
  * "ran ligation"); never sequence content, file names or other scientific
  * data. The tracker runs cookieless; IP anonymisation is an instance setting.
  *
@@ -44,6 +45,40 @@ export function readConfig(env: Env = import.meta.env): AnalyticsConfig | null {
 export function doNotTrack(nav: Partial<Navigator> = globalThis.navigator): boolean {
   const flag = nav.doNotTrack ?? (globalThis as { doNotTrack?: string }).doNotTrack;
   return flag === '1' || flag === 'yes';
+}
+
+/**
+ * True when the browser sends Global Privacy Control (`navigator.
+ * globalPrivacyControl`), the signal that replaced Do-Not-Track; nothing is
+ * sent then either, and the Help switch cannot override it.
+ */
+export function globalPrivacyControl(nav: Partial<Navigator> = globalThis.navigator): boolean {
+  return (nav as { globalPrivacyControl?: unknown }).globalPrivacyControl === true;
+}
+
+/** Either browser privacy signal. */
+export function privacySignal(nav: Partial<Navigator> = globalThis.navigator): boolean {
+  return doNotTrack(nav) || globalPrivacyControl(nav);
+}
+
+const OPT_OUT_KEY = 'plasmidpop.statsOptOut';
+
+/** True when the user switched statistics off in Help; best effort storage. */
+export function readOptOut(): boolean {
+  try {
+    return globalThis.localStorage.getItem(OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeOptOut(optedOut: boolean): void {
+  try {
+    if (optedOut) globalThis.localStorage.setItem(OPT_OUT_KEY, '1');
+    else globalThis.localStorage.removeItem(OPT_OUT_KEY);
+  } catch {
+    // Storage unavailable: the choice holds for this page load only.
+  }
 }
 
 /** Every kind of edit, by the name `EditOp` gives it; exhaustive by `Record`. */
@@ -294,17 +329,69 @@ function injectScript(url: string): void {
 }
 
 export class Analytics {
-  readonly enabled: boolean;
   /** What `trackOnce` has sent in this page load. */
   private readonly sent = new Set<string>();
+  private optedOut: boolean;
+  private started = false;
 
+  /**
+   * @param signal the browser asks not to be tracked (DNT or GPC); final.
+   * @param optedOut the user switched statistics off in Help.
+   */
   constructor(
-    config: AnalyticsConfig | null,
-    dnt: boolean,
-    load: (url: string) => void = injectScript,
+    private readonly config: AnalyticsConfig | null,
+    private readonly signal: boolean,
+    private readonly load: (url: string) => void = injectScript,
+    optedOut = false,
   ) {
-    this.enabled = config !== null && !dnt;
-    if (config === null || !this.enabled) return;
+    this.optedOut = optedOut;
+    this.begin();
+  }
+
+  /** Whether events are being sent right now. */
+  get enabled(): boolean {
+    return this.config !== null && !this.signal && !this.optedOut;
+  }
+
+  /** Whether a tracker is configured at all; without one there is nothing to switch. */
+  get available(): boolean {
+    return this.config !== null;
+  }
+
+  /** The browser's Do-Not-Track or Global Privacy Control signal is on. */
+  get blockedByBrowser(): boolean {
+    return this.signal;
+  }
+
+  get isOptedOut(): boolean {
+    return this.optedOut;
+  }
+
+  /**
+   * The Help switch. Off stops everything at once; on starts the tracker
+   * (loading the script the first time) with no reload. A browser signal
+   * is not overridden. The choice is
+   * remembered in localStorage.
+   */
+  setOptedOut(optedOut: boolean): void {
+    this.optedOut = optedOut;
+    writeOptOut(optedOut);
+    if (this.config === null || this.signal) return;
+    if (optedOut) {
+      if (this.started) this.push(['optUserOut']);
+    } else if (this.started) {
+      this.push(['forgetUserOptOut']);
+      this.push(['setCustomUrl', trackableUrl()]);
+      this.push(['trackPageView']);
+    } else {
+      this.begin();
+    }
+  }
+
+  private begin(): void {
+    const config = this.config;
+    if (config === null || !this.enabled || this.started) return;
+    this.started = true;
     this.push(['disableCookies']);
     this.push(['setDoNotTrack', true]);
     this.push(['setTrackerUrl', `${config.url}matomo.php`]);
@@ -313,7 +400,7 @@ export class Analytics {
     this.push(['setCustomUrl', trackableUrl()]);
     this.push(['trackPageView']);
     this.push(['enableLinkTracking']);
-    load(config.url);
+    this.load(config.url);
   }
 
   /**
@@ -368,4 +455,4 @@ export class Analytics {
   }
 }
 
-export const analytics = new Analytics(readConfig(), doNotTrack());
+export const analytics = new Analytics(readConfig(), privacySignal(), injectScript, readOptOut());

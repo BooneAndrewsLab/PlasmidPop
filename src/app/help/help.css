@@ -70,6 +70,27 @@
   font-size: 12px;
 }
 
+.help__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+}
+
+.help__stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help__stats-note {
+  color: var(--ink-3);
+}
+
 .help__body {
   display: flex;
   flex: 1;

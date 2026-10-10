@@ -5,8 +5,11 @@ import {
   Analytics,
   EVENTS,
   doNotTrack,
+  globalPrivacyControl,
+  privacySignal,
   formatOfFileName,
   readConfig,
+  readOptOut,
   trackableUrl,
 } from './analytics';
 
@@ -58,6 +61,15 @@ describe('trackableUrl', () => {
   });
 });
 
+describe('globalPrivacyControl', () => {
+  it('is true only for the browser flag being true', () => {
+    expect(globalPrivacyControl({ globalPrivacyControl: true } as never)).toBe(true);
+    expect(globalPrivacyControl({ globalPrivacyControl: false } as never)).toBe(false);
+    expect(globalPrivacyControl({})).toBe(false);
+    expect(privacySignal({ doNotTrack: '1' })).toBe(true);
+  });
+});
+
 describe('doNotTrack', () => {
   it('reads the navigator flag', () => {
     expect(doNotTrack({ doNotTrack: '1' })).toBe(true);
@@ -91,6 +103,52 @@ describe('Analytics', () => {
     a.track('file', 'open', 'genbank');
     expect(paq()).toEqual([]);
     expect(load).not.toHaveBeenCalled();
+  });
+
+  it('is silent when the browser signals Global Privacy Control', () => {
+    const load = vi.fn();
+    const a = new Analytics(CONFIG, privacySignal({ globalPrivacyControl: true } as never), load);
+    expect(a.enabled).toBe(false);
+    a.track('file', 'open', 'genbank');
+    a.setOptedOut(false);
+    expect(paq()).toEqual([]);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('is silent, and loads nothing, when the user opted out', () => {
+    const load = vi.fn();
+    const a = new Analytics(CONFIG, false, load, true);
+    expect(a.enabled).toBe(false);
+    a.track('file', 'open', 'genbank');
+    expect(paq()).toEqual([]);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('starts without a reload when switched on, stops when switched off', () => {
+    const load = vi.fn();
+    const a = new Analytics(CONFIG, false, load, true);
+    a.setOptedOut(false);
+    expect(a.enabled).toBe(true);
+    expect(load).toHaveBeenCalledTimes(1);
+    a.track('file', 'open', 'genbank');
+    expect(paq().at(-1)).toEqual(['trackEvent', 'file', 'open', 'genbank']);
+    a.setOptedOut(true);
+    const n = paq().length;
+    a.track('file', 'open', 'fasta');
+    expect(paq()).toHaveLength(n);
+    expect(paq().at(-1)).toEqual(['optUserOut']);
+    a.setOptedOut(false);
+    expect(load).toHaveBeenCalledTimes(1);
+    a.track('file', 'open', 'fasta');
+    expect(paq().at(-1)).toEqual(['trackEvent', 'file', 'open', 'fasta']);
+  });
+
+  it('remembers the choice', () => {
+    const a = new Analytics(CONFIG, false, vi.fn());
+    a.setOptedOut(true);
+    expect(readOptOut()).toBe(true);
+    a.setOptedOut(false);
+    expect(readOptOut()).toBe(false);
   });
 
   it('configures the tracker cookieless, loads the script and records events', () => {

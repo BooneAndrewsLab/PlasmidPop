@@ -3,6 +3,7 @@ import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { analytics } from '../analytics';
 import { GUIDE, guidePage } from './guide';
 import { Markdown } from './Markdown';
+import { StatsSwitch } from './StatsSwitch';
 
 interface Props {
   /** A page id, optionally with a section: `02-files` or `02-files#saving`. */
@@ -121,6 +122,7 @@ export function HelpDialog({ initialPage, onClose }: Props) {
             )}
           </article>
         </div>
+        <StatsSwitch />
       </div>
     </div>
   );

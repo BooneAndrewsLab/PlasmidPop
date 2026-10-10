@@ -44,8 +44,14 @@ all — without snooping.
   as buckets, how long a computation took (it gives away the size), where
   an edit was or how long, heartbeat and time-on-page pings, heatmaps,
   click positions, session recording, and anything that follows a user
-  from one visit to the next. Cookieless and Do-Not-Track as before; still
-  no toggle (decided 2026-09-18). Nothing needs configuring in Matomo:
+  from one visit to the next. Cookieless as before.
+  The earlier "still no toggle" (2026-09-18) was reversed on 2026-10-10
+  (#205): Help has an opt-out checkbox (`StatsSwitch`, stored as
+  `plasmidpop.statsOptOut`; off stops sends and the script is not loaded
+  if never started, on starts it without a reload), and Global Privacy
+  Control is honoured like Do-Not-Track, locking the checkbox off. Why:
+  DNT is deprecated and Chrome does not send it, GPC is the signal in
+  use, and people who choose a local-first tool notice the beacon. Nothing needs configuring in Matomo:
   plain events, no custom dimensions.
 - **Reading it.** Behaviour ▸ Events, by category then action/name, with
   _unique events_ for the `trackOnce` ones. `app / start` gives the number

@@ -44,8 +44,8 @@ server round-trip.
   round-tripping is where third-party ones break.
 - **Distribution:** PWA. No Electron/Tauri for v1.
 - **Analytics:** Matomo, self-hosted. Page views and coarse feature events
-  only, never sequence content or file names; no user-facing toggle;
-  honours Do-Not-Track, cookieless, IP anonymised. `VITE_MATOMO_URL` and
+  only, never sequence content or file names; opt-out in Help;
+  honours DNT and GPC, cookieless, IP anonymised. `VITE_MATOMO_URL` and
   `VITE_MATOMO_SITE_ID` are build-time config; unset, the tracker is a
   no-op (item 38 catalogues the events).
 

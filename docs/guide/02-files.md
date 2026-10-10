@@ -544,8 +544,13 @@ opening a [share link](#sharing-a-link) sends the tracker the app's address
 and nothing of the document it carries. A record opened from NCBI is
 counted as one (or, if it failed, why: not found, offline and so on), never
 by its accession. The tracker sets no cookies and the instance anonymises IP
-addresses. If your browser sends a Do-Not-Track signal, nothing is sent at
-all. Builds without a configured instance never send anything.
+addresses. Nothing is sent at all if your browser sends a Do-Not-Track or
+Global Privacy Control signal, or if you switch statistics off: the **Send
+anonymous usage statistics** checkbox at the foot of this guide (Help) turns
+them off at once and back on without a reload, and your choice is remembered
+in this browser. When the browser's signal is on, the checkbox shows off and
+cannot be turned on. Builds without a configured instance never send anything
+and show no checkbox.
 
 If Chrome asks whether the page may **access other devices on your local
 network**, that is this tracker: the statistics server is on the lab's
