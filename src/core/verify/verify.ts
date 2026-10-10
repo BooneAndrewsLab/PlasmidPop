@@ -167,7 +167,7 @@ function rotate(text: string, origin: number): string {
  * (or else its last) 24 bases are found there exactly and once; null when a
  * difference in them or a repeat leaves that open.
  */
-function exactOrigin(construct: string, text: string): number | null {
+export function exactOrigin(construct: string, text: string): number | null {
   const n = text.length;
   if (construct.length < 2 * ORIGIN_ANCHOR || n < 2 * ORIGIN_ANCHOR) return null;
   const ring = text + text.slice(0, ORIGIN_ANCHOR - 1);
@@ -224,8 +224,10 @@ export async function verifyClone(
   const chosen = chooseConstruct(clone.name, text, constructs, index);
   if (chosen === null) return failed(clone, null, null, 'No expected construct was chosen.');
   const construct = constructs[chosen.index];
+  // Stryker disable ConditionalExpression,StringLiteral: `chooseConstruct` answers an index into `constructs`; this narrows the type for `noUncheckedIndexedAccess`
   if (construct === undefined)
     return failed(clone, null, null, 'No expected construct was chosen.');
+  // Stryker restore ConditionalExpression,StringLiteral
   const expected = construct.doc;
   const base = {
     name: clone.name,
