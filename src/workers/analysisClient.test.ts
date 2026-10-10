@@ -52,6 +52,26 @@ describe('AnalysisClient (inline fallback)', () => {
     expect(amp?.part).not.toHaveProperty('sequence');
   });
 
+  it("searches the user's own parts with the bundled ones, ahead of them, and says where a hit came from", async () => {
+    const mine = 'TTGACAATTAATCATCGGCTCGTATAATGTGTGGA';
+    const seq = 'GATTACAGATTACAGATTACA' + mine + 'CATTAGGACCATTAGGACCA';
+    const found = await client.detectFeatures(seq, 'linear', undefined, {}, [
+      {
+        name: 'my promoter',
+        type: 'promoter',
+        category: 'my part',
+        sequence: mine,
+        accession: 'My parts',
+        location: '',
+        source: 'mine',
+        origin: 'My parts',
+      },
+    ]);
+    const hit = found.find((d) => d.part.name === 'my promoter');
+    expect(hit?.part).toMatchObject({ source: 'mine', origin: 'My parts' });
+    expect(hit?.part).not.toHaveProperty('sequence');
+  });
+
   it('uses the worker when a factory is provided', async () => {
     const posted: unknown[] = [];
     const fake = {

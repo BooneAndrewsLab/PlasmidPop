@@ -98,7 +98,10 @@ export function featureFromHit(
   const via = part.fpbase === undefined ? '' : ` via FPbase ${part.fpbase}`;
   qualifiers.push({
     name: 'note',
-    value: `Detected by PlasmidPop: ${describeMatch(hit)} to ${part.accession} ${part.location}${via}`,
+    value:
+      part.source === 'mine'
+        ? `Detected by PlasmidPop: ${describeMatch(hit)} to ${part.origin ?? 'My parts'}`
+        : `Detected by PlasmidPop: ${describeMatch(hit)} to ${part.accession} ${part.location}${via}`,
   });
   return createFeature({
     type: part.type,

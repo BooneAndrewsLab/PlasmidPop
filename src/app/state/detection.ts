@@ -6,12 +6,14 @@ import {
   duplicatesExisting,
   featureFromHit,
   hasTool,
+  myPartToLibraryPart,
 } from '@/core';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
 import { type Detection } from '@/workers/analysisProtocol';
 
 import { analytics } from '../analytics';
 import { editorStore } from './editorStore';
+import { myPartsStore } from './myParts';
 
 /**
  * Detect features' search and its answer, per open document (item 59). The
@@ -124,6 +126,12 @@ class DetectionStore {
     analytics.track('detect', 'run', auto ? 'open' : 'command');
     this.set(documentId, { status: 'running', progress: 0, doc });
     try {
+      // The user's own parts are searched with the bundled ones (#210); an
+      // unreadable store only means the bundled list alone.
+      await myPartsStore.load();
+      const userParts = myPartsStore.getState().parts.map(myPartToLibraryPart);
+      if (userParts.length > 0) analytics.track('parts', 'detect');
+      if (this.running.get(documentId) !== controller) return;
       const detections = await analysisClient.detectFeatures(
         doc.sequence.toString(),
         doc.topology,
@@ -136,6 +144,7 @@ class DetectionStore {
             }
           },
         },
+        userParts,
       );
       if (this.running.get(documentId) !== controller) return;
       this.running.delete(documentId);

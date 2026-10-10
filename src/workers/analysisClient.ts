@@ -12,6 +12,7 @@ import {
   type Nuclease,
   type Orf,
   type OrfOptions,
+  type LibraryPart,
   type PrimerSearch,
   type RecodeOptions,
   type RecodeResult,
@@ -216,11 +217,16 @@ export class AnalysisClient {
     topology: Topology,
     minIdentity?: number,
     long: LongRequestOptions = {},
+    userParts: readonly LibraryPart[] = [],
   ): Promise<readonly Detection[]> {
     const res = await this.send(
-      minIdentity === undefined
-        ? { kind: 'detectFeatures', sequence, topology }
-        : { kind: 'detectFeatures', sequence, topology, minIdentity },
+      {
+        kind: 'detectFeatures',
+        sequence,
+        topology,
+        ...(minIdentity === undefined ? {} : { minIdentity }),
+        ...(userParts.length === 0 ? {} : { userParts }),
+      },
       long,
     );
     if (res.kind === 'error') throw new Error(res.message);

@@ -9,6 +9,7 @@ import {
   formatLocation,
   hasTool,
   parseLocation,
+  partFromFeature,
   primerFromFeature,
 } from '@/core';
 
@@ -21,6 +22,7 @@ import {
 } from '@/view/featureShape';
 
 import { editorStore } from '../state/editorStore';
+import { sayAddedParts, saveMyParts } from '../state/myParts';
 import { savePrimers } from '../state/primerCollection';
 
 const THICKNESS_LABELS: Readonly<Record<FeatureThickness, string>> = {
@@ -102,6 +104,7 @@ export function FeatureEditor({ doc, feature }: Props) {
   const [nextKey, setNextKey] = useState(feature.qualifiers.length);
   /** What saving a primer_bind feature to My primers came to (#64). */
   const [savedPrimer, setSavedPrimer] = useState('');
+  const [savedPart, setSavedPart] = useState('');
 
   // Opening the editor (Edit, or Add feature on a fresh one) brings the
   // whole of it into view, a new feature's at the foot of the list included,
@@ -304,6 +307,29 @@ export function FeatureEditor({ doc, feature }: Props) {
           Add qualifier
         </button>
       </fieldset>
+      {hasTool(doc, 'detectFeatures') && (
+        <p className="panel__note panel__note--quiet">
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            title="Keep this feature's bases in My parts, in this browser, for Detect features to look for in other documents"
+            onClick={() => {
+              void saveMyParts([partFromFeature(doc, feature)], 'feature').then((r) => {
+                setSavedPart(
+                  r.added.length > 0
+                    ? 'Saved to My parts.'
+                    : r.duplicates > 0
+                      ? 'Already in My parts.'
+                      : sayAddedParts(r),
+                );
+              });
+            }}
+          >
+            Save to My parts
+          </button>{' '}
+          {savedPart}
+        </p>
+      )}
       {feature.type === 'primer_bind' && hasTool(doc, 'primers') && (
         <p className="panel__note panel__note--quiet">
           <button

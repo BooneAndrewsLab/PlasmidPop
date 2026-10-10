@@ -5,6 +5,7 @@ import {
   type Enzyme,
   type EnzymeSet,
   type FidelityTable,
+  type MyPart,
   type CodonUsageTable,
   type OverhangStandard,
   type OverhangKind,
@@ -516,6 +517,57 @@ export class DocumentRepository {
 
   async deletePrimers(ids: readonly string[]): Promise<void> {
     await this.db.primers.bulkDelete([...ids]);
+  }
+
+  /**
+   * The user's own parts (#210), in the order they were added. Rows are
+   * checked on the way in: one written wrong costs that part, not the list.
+   */
+  async loadMyParts(): Promise<MyPart[]> {
+    const rows = (await this.db.myParts.orderBy('addedAt').toArray()) as readonly unknown[];
+    const out: MyPart[] = [];
+    for (const row of rows) {
+      if (!isObject(row)) continue;
+      const { id, name, type, sequence, protein, notes, origin } = row;
+      if (
+        typeof id !== 'string' ||
+        typeof name !== 'string' ||
+        typeof type !== 'string' ||
+        typeof sequence !== 'string' ||
+        !/^[ACGT]*$/.test(sequence)
+      ) {
+        continue;
+      }
+      const residues =
+        typeof protein === 'string' && /^[A-Z]+$/.test(protein) ? protein : undefined;
+      if (sequence === '' && residues === undefined) continue;
+      out.push({
+        id,
+        name,
+        type,
+        sequence,
+        ...(residues === undefined ? {} : { protein: residues }),
+        notes: typeof notes === 'string' ? notes : '',
+        origin: typeof origin === 'string' && origin !== '' ? origin : 'My parts',
+      });
+    }
+    return out;
+  }
+
+  /** Writes parts, new or edited, keeping the time each was first added. */
+  async putMyParts(parts: readonly MyPart[]): Promise<void> {
+    if (parts.length === 0) return;
+    const now = Date.now();
+    await this.db.transaction('rw', this.db.myParts, async () => {
+      const before = await this.db.myParts.bulkGet(parts.map((p) => p.id));
+      await this.db.myParts.bulkPut(
+        parts.map((p, i) => ({ ...p, addedAt: before[i]?.addedAt ?? now + i / 1000 })),
+      );
+    });
+  }
+
+  async deleteMyParts(ids: readonly string[]): Promise<void> {
+    await this.db.myParts.bulkDelete([...ids]);
   }
 
   /** The overhang standards the user imported (#214), oldest first; rows are checked on the way in. */

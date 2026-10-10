@@ -164,6 +164,45 @@ the NCBI record FPbase names. The list is matched as DNA, so a fluorescent
 protein or tag written with other codons is not found, and some short tags
 (the His tag, HA, V5) are not in the list yet.
 
+### My parts
+
+The bundled list cannot know your lab's own parts: in-house promoters, tags,
+landing pads, toolkit parts. **My parts**, under the Detect features button in
+the Features tab, is a list of your own that Detect features looks for as
+well. It is kept in this browser, like My primers, and leaves it only as a
+download.
+
+- **Add a part** from any document: open a feature, choose **Save to My
+  parts**. Its bases are saved as they read in the feature's own direction,
+  with its type, name and notes. Or **Add from file…** with a GenBank file
+  (each feature of each record becomes a part; a record with no features is
+  one part) or a FASTA file (each record a part).
+- A part must be at least 12 bases of A, C, G and T (a peptide part, 5
+  residues); the message after adding says how many were left out as too short,
+  with other letters in them, or already kept.
+- **Download as GenBank** writes your parts as one record each, which **Add
+  from file…** reads back, so a lab can share one file. Parts that only
+  have a protein cannot be written as DNA, and imported lists (below) are
+  not included.
+- Detect features searches My parts together with the bundled list. A hit
+  from yours says **from My parts** under it, and the feature it adds has a
+  note naming that list instead of an NCBI record. Where one of your parts and
+  a bundled one cover the same bases, yours is the one offered.
+
+**Import a pLannotate database.** If you already have a copy of one of
+[pLannotate](https://github.com/mmcguffi/pLannotate)'s databases and may use
+it, open **Import a pLannotate database** and choose its FASTA file
+(`snapgene.fasta` for nucleotides, `fpbase.fasta` for proteins) together with
+its descriptions table, a CSV or TSV with the columns `sseqid, name, type,
+blurb` (older ones: `sseqid, Feature, Type, Description`), or FPbase's headerless
+`slug, name, blurb` TSV. A table is paired with the FASTA of the same file name
+stem; without one, parts are named by their ids. The files are read in your
+browser and not uploaded, and none of that data is part of PlasmidPop. Its
+parts are labelled **pLannotate: snapgene** (or **fpbase**) and show that label on
+a hit, so they are never taken for the bundled, cited list. **Remove this list**
+takes one import away again. pLannotate's BLAST, DIAMOND and SQLite files are not
+read; use its FASTA and table.
+
 ## Editing a feature
 
 **Edit** opens the full editor under the row, with the name selected for

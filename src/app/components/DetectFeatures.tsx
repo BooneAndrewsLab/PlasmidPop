@@ -156,10 +156,7 @@ function OfferList({
           {fresh.map((o, i) => {
             const { hit, part } = o.detection;
             const feature = featureFromHit(hit, part);
-            const source =
-              part.source === 'fpbase'
-                ? `${part.accession} ${part.location}, via FPbase`
-                : `${part.accession} ${part.location}`;
+            const source = hitSource(part);
             return (
               <li key={i} className="detect__item">
                 <label className="detect__check">
@@ -199,6 +196,11 @@ function OfferList({
                     >
                       {describeMatch(hit)}
                     </span>
+                    {part.source === 'mine' && (
+                      <span className="feature-row__detail detect__origin">
+                        from {part.origin ?? 'My parts'}
+                      </span>
+                    )}
                   </span>
                 </button>
               </li>
@@ -267,6 +269,15 @@ function OfferList({
       </div>
     </section>
   );
+}
+
+/** Where a hit's part comes from, for its tooltip: the record cited, or the user's own list. */
+function hitSource(part: Offer['detection']['part']): string {
+  if (part.source === 'mine')
+    return `your list "${part.origin ?? 'My parts'}", not the bundled list`;
+  return part.source === 'fpbase'
+    ? `${part.accession} ${part.location}, via FPbase`
+    : `${part.accession} ${part.location}`;
 }
 
 function plural(n: number, noun: string): string {

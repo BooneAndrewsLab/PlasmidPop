@@ -83,6 +83,8 @@ export type AnalysisRequest =
       readonly sequence: string;
       readonly topology: Topology;
       readonly minIdentity?: number;
+      /** The user's own parts (#210), searched with the bundled ones. */
+      readonly userParts?: readonly LibraryPart[];
     }
   | {
       /** CRISPR guides for one nuclease, with off-targets (item 74, #206). */

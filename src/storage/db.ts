@@ -172,6 +172,22 @@ export interface StoredPrimer {
   readonly updatedAt: number;
 }
 
+/**
+ * One of the user's own parts (#210, item 86), a row each, kept as
+ * `MyPart` is. Like the primers it stays in this browser.
+ */
+export interface StoredMyPart {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly sequence: string;
+  readonly protein?: string;
+  readonly notes: string;
+  readonly origin: string;
+  /** When it was added, which is the order the list is shown in. */
+  readonly addedAt: number;
+}
+
 export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
@@ -188,6 +204,8 @@ export class PlasmidPopDb extends Dexie {
   declare overhangStandards: EntityTable<StoredOverhangStandard, 'id'>;
   /** The user's own codon usage tables (#209). */
   declare codonTables: EntityTable<StoredCodonTable, 'id'>;
+  /** The user's own parts for Detect features (#210), a row each. */
+  declare myParts: EntityTable<StoredMyPart, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -251,6 +269,10 @@ export class PlasmidPopDb extends Dexie {
     // Version 11 adds the user's own codon usage tables (#209).
     this.version(11).stores({
       codonTables: 'id',
+    });
+    // Version 12 adds the user's own parts (#210).
+    this.version(12).stores({
+      myParts: 'id, addedAt',
     });
   }
 }

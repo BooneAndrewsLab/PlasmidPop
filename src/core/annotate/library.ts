@@ -14,8 +14,11 @@
  * carries none of it.
  */
 
-/** Which file a part came from, which decides the credit it carries. */
-export type LibrarySource = 'core' | 'fpbase';
+/**
+ * Which list a part came from, which decides the credit it carries: the two
+ * bundled files, or the user's own parts (`mine`, #210).
+ */
+export type LibrarySource = 'core' | 'fpbase' | 'mine';
 
 export interface LibraryPart {
   readonly name: string;
@@ -49,6 +52,12 @@ export interface LibraryPart {
   readonly source: LibrarySource;
   /** FPbase page of a fluorescent protein. */
   readonly fpbase?: string;
+  /**
+   * For a part of the user's own (`source: 'mine'`), the list it was kept
+   * from: `My parts`, or `pLannotate: snapgene` for an imported copy. A hit
+   * says so, so a part of the user's is never taken for the bundled, cited list.
+   */
+  readonly origin?: string;
 }
 
 export interface FeatureLibrary {

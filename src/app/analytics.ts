@@ -215,6 +215,13 @@ export const EVENTS = {
    */
   recode: ['recode', 'backTranslate', 'import'],
   /**
+   * My parts for Detect features (#210): `add` named by where the parts came
+   * from (`feature`, `file`, `plannotate`), never how many or which;
+   * `export` is My parts downloaded as GenBank; `detect` is a search that
+   * included some of them.
+   */
+  parts: ['add', 'export', 'detect'],
+  /**
    * The primer collection (#64): `collection-add` named by where the
    * primers came from (`design`, `check`, `feature`, `paste`, `file`,
    * `form`, `document`), never how many or which; `collection-export` by

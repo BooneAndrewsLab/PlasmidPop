@@ -16,6 +16,7 @@ import { useTranslationProblems } from '../state/translationProblems';
 import { useEditorState } from '../state/useEditorStore';
 import { describeTranslationProblem } from '../translationWarnings';
 import { DetectFeaturesButton, DetectFeaturesPanel } from './DetectFeatures';
+import { MyPartsSection } from './MyParts';
 import { FeatureEditor } from './FeatureEditor';
 
 interface Props {
@@ -174,6 +175,7 @@ export function FeatureList({ doc, reader = false }: Props) {
         {detect && <DetectFeaturesButton documentId={documentId} doc={doc} />}
       </div>
       {detect && <DetectFeaturesPanel documentId={documentId} doc={doc} />}
+      {detect && <MyPartsSection />}
       {features.length === 0 ? (
         <p className="features__empty">
           {reader

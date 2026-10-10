@@ -1,5 +1,6 @@
 import {
   type FeatureLibrary,
+  type LibraryPart,
   activeEnzymes,
   alignEitherStrand,
   alignMultiple,
@@ -24,6 +25,32 @@ import {
 
 /** The feature library once loaded; Detect features loads it on first use. */
 let library: FeatureLibrary | null = null;
+
+/** The last library searched with the user's parts, so an unchanged My parts is indexed once. */
+let combined: { readonly key: string; readonly library: FeatureLibrary } | null = null;
+
+/**
+ * The bundled library with the user's parts (#210) ahead of it, so that when
+ * a hit of theirs and a bundled one tie the user's name is the one kept.
+ */
+function libraryWith(
+  base: FeatureLibrary,
+  userParts: readonly LibraryPart[] | undefined,
+): FeatureLibrary {
+  if (userParts === undefined || userParts.length === 0) return base;
+  const key = userParts
+    .map((p) =>
+      [p.name, p.type, p.sequence, p.protein ?? '', p.origin ?? '', p.note ?? ''].join('\u0000'),
+    )
+    .join('\u0001');
+  if (
+    combined?.key !== key ||
+    combined.library.parts.length !== userParts.length + base.parts.length
+  ) {
+    combined = { key, library: { parts: [...userParts, ...base.parts] } };
+  }
+  return combined.library;
+}
 
 /**
  * Pure function so the same code runs inline where Workers are unavailable
@@ -103,7 +130,8 @@ export function handleAnalysisRequest(
       case 'detectFeatures': {
         const lib = library;
         if (lib === null) throw new Error('The feature library is not loaded');
-        const hits = detectFeatures(req.sequence, req.topology, lib, {
+        const searched = libraryWith(lib, req.userParts);
+        const hits = detectFeatures(req.sequence, req.topology, searched, {
           ...(req.minIdentity === undefined ? {} : { minIdentity: req.minIdentity }),
           ...(onProgress === undefined ? {} : { onProgress }),
         });
@@ -111,7 +139,7 @@ export function handleAnalysisRequest(
           id: req.id,
           kind: 'detectFeatures',
           detections: hits.flatMap((hit) => {
-            const found = lib.parts[hit.part];
+            const found = searched.parts[hit.part];
             if (found === undefined) return [];
             const { sequence: _bases, protein: _protein, ...part } = found;
             return [{ hit, part: part satisfies DetectedPart }];

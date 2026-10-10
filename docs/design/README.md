@@ -274,3 +274,5 @@ the Bench, item 49). The rest stand.
 98. [Back-translate and recode a CDS](84-codon-recoding.md)
 
 99. [Multiple sequence alignment](85-multiple-alignment.md)
+
+100.  [My parts for Detect features](86-my-parts.md)
