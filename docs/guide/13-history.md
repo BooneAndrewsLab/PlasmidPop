@@ -26,6 +26,9 @@ molecule shows:
   name, so a file edited since it was used does not count, and a renamed
   one still does. Otherwise it says **not in this browser**.
 
+Under the tree, **Protocol…** builds a page for the bench from it: see
+[Protocol for a product](12-cloning.md#protocol-for-a-product).
+
 At the top, **this document** means the document is still the molecule that
 was made; **edited since** means its bases have changed since. The list
 below says how.

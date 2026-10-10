@@ -733,7 +733,8 @@ each molecule it keeps the name, size, topology and
 [checksum](03-viewing.md#the-checksum), but not the sequence.
 
 To see it, open the **History** tab and expand **Made from** at the top.
-The tree is described in [History](13-history.md#made-from).
+The tree is described in [History](13-history.md#made-from), and
+[a protocol for the bench](#protocol-for-a-product) can be built from it.
 
 Editing a product afterwards does not rewrite it. The tree says what the
 product was made from, and the History list says what has been done to it
@@ -752,6 +753,44 @@ how many earlier molecules were left out.
 
 SnapGene keeps a history of its own in its `.dna` files, which PlasmidPop
 does not read yet.
+
+## Protocol for a product
+
+A product records how it was made, and **Protocol…** turns that record into
+a page to take to the bench. It is under the **Made from** tree in the
+History tab and under the map of a Bench product, and appears wherever the
+document carries a record. A document with no record has no protocol.
+
+The page lists, in this order:
+
+- the **oligos to order**: every primer the PCRs and mutagenesis steps used,
+  once each, with what it is for. One whose bases are already in
+  [My primers](10-primers.md#my-primers) says so, under whatever name it has
+  there, instead of "order";
+- the **reactions, in order**, each before the one that uses its product.
+  A PCR gives the template, the primers and the product length, the melting
+  temperature of each primer, a suggested annealing temperature and the
+  extension time for the product's length. A primer longer than 30 bases is
+  taken to have a tail, so its melting temperature is from its last 22
+  bases: check it against the PCR panel when the primers are tailed. A digest
+  gives its enzymes and fragment. A ligation, Golden Gate or Gibson gives
+  each part's length, ng and pmol, and the program;
+- the **expected diagnostic digest**: the enzymes of the set in use that cut
+  the product once to six times, clearest first, with the bands each gives.
+
+The dialog asks for the only things the record cannot say: the **vector in
+ng** (50 by default), the **insert : vector** molar ratio (3 for a ligation,
+2 for Golden Gate and Gibson, unless you type one), and, for each part, its
+**concentration in ng/µL**, which adds a µL column to the tables. The
+longest part is taken to be the vector. The preview is the page itself;
+**Download HTML** saves it as one file with its own styles, **Download
+Markdown** as text.
+
+Everything comes from what the app already works out. The programs are the
+usual ones for each reaction, and buffers are not given: PlasmidPop holds no
+enzyme buffer data, so a digest says to take it from the supplier's table. A
+tree trimmed to 64 molecules, or a product edited after it was made, is
+noted at the top of the page.
 
 ## Not yet
 

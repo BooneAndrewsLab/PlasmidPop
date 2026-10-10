@@ -89,6 +89,7 @@ piece of work needs its reasoning written down, with the next free number.
 75. [GC content track](75-gc-track.md)
 76. [Assembling reads into a contig](76-read-assembly.md)
 77. [Modular cloning standards and combinatorial plans](77-modular-standards.md)
+78. [Bench protocol for a product](78-bench-protocol.md)
 
 ## Changelog to 1.1.0
 

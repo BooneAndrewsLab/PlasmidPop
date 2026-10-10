@@ -8,3 +8,5 @@ export * from './gibson';
 export * from './mutagenesis';
 export * from './gateway';
 export * from './overlapPrimers';
+export * from './protocol';
+export * from './protocolText';

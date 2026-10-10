@@ -21,6 +21,7 @@ import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
+import { ProtocolDialog } from './ProtocolDialog';
 
 /** The oligos a step used, to show under it: PCR's two by name, a mutagenesis's two. */
 function primersOf(step: LineageStep): readonly { name: string; sequence: string }[] {
@@ -190,6 +191,7 @@ function MadeFromTree({
   const [shown, setShown] = useRemembered('history.madeFrom', documentId, false);
   const held = useHeld(lineage, documentId, shown);
   const edited = lineage.checksum !== cachedChecksum(doc);
+  const [protocol, setProtocol] = useState(false);
   return (
     <details
       className="made-from"
@@ -208,6 +210,26 @@ function MadeFromTree({
       <ul className="made-from__tree" aria-label="Made from">
         <Branch node={lineage} held={held} root={{ name: doc.name, edited }} />
       </ul>
+      <p className="made-from__protocol">
+        <button
+          type="button"
+          className="button button--small"
+          title="Oligos to order, reactions and the expected gel, as a page to take to the bench"
+          onClick={() => {
+            setProtocol(true);
+          }}
+        >
+          Protocol…
+        </button>
+      </p>
+      {protocol && (
+        <ProtocolDialog
+          doc={doc}
+          onClose={() => {
+            setProtocol(false);
+          }}
+        />
+      )}
     </details>
   );
 }

@@ -23,6 +23,7 @@ import { useGelOptions } from '../state/useGel';
 import { BenchProductSlot } from './benchProductSlot';
 import { DiffMap } from './DiffMap';
 import { Gel } from './Gel';
+import { ProtocolDialog } from './ProtocolDialog';
 import { type Ingredient } from './tube';
 
 /** Past this many cuts an enzyme's lane is a smear, not a check. */
@@ -125,6 +126,7 @@ function ProductView({
   const empty = useMemo(() => (molecule === undefined ? null : emptyVector(molecule)), [molecule]);
   const enzymes = useMemo(() => checkEnzymes(product, empty, gel), [product, empty, gel]);
   const [picked, setPicked] = useState('');
+  const [protocol, setProtocol] = useState(false);
   const check = enzymes.find((e) => e.name === picked) ?? enzymes[0];
   const apart = (e: CheckEnzyme): boolean =>
     e.empty !== null && laneContrast(e.profile, e.empty, gel).contrast >= gel.resolution;
@@ -147,6 +149,28 @@ function ProductView({
           explore
         />
       </div>
+      {product.metadata.lineage !== null && (
+        <div className="panel__section">
+          <button
+            type="button"
+            className="button button--small"
+            title="Oligos to order, reactions and the expected gel, as a page to take to the bench"
+            onClick={() => {
+              setProtocol(true);
+            }}
+          >
+            Protocol…
+          </button>
+          {protocol && (
+            <ProtocolDialog
+              doc={product}
+              onClose={() => {
+                setProtocol(false);
+              }}
+            />
+          )}
+        </div>
+      )}
       <div className="panel__section">
         <h3 className="panel__heading">
           Check by digest

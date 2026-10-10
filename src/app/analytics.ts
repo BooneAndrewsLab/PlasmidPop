@@ -238,6 +238,8 @@ export const EVENTS = {
     'modular-assemble',
     'standard-import',
     'standard-remove',
+    /** A bench protocol was downloaded, named by format (`html` or `md`) (#215); never a name. */
+    'protocol',
   ],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],
