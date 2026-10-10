@@ -41,6 +41,7 @@ import type { SampleFeatures } from '../alignmentSampleTrack';
 import { AlignmentDialog } from './AlignmentDialog';
 import { useAlignedRegionPointer } from './useAlignedRegionPointer';
 import { ReadBatchList } from './ReadBatchList';
+import { MsaControls } from './MsaControls';
 import { AssemblyResult } from './AssemblyResult';
 import { UNCHECKED_NOTE } from '../readAlignment';
 
@@ -1048,6 +1049,7 @@ export function AlignPanel({ doc }: Props) {
         </div>
       )}
       {error !== null && <p className="panel__error">{error}</p>}
+      {records.length > 1 && <MsaControls doc={doc} records={records} />}
       <fieldset className="panel__group">
         <legend>Options</legend>
         {docRead !== null && record?.read === undefined && (

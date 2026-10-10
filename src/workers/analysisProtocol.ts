@@ -9,6 +9,8 @@ import {
   type EnzymeSet,
   type FeatureHit,
   type LibraryPart,
+  type MsaOptions,
+  type MultipleAlignment,
   type Nuclease,
   type Orf,
   type OrfOptions,
@@ -100,6 +102,13 @@ export type AnalysisRequest =
       readonly circular: boolean;
     }
   | {
+      /** Several sequences aligned together (#207). */
+      readonly id: number;
+      readonly kind: 'msa';
+      readonly sequences: readonly string[];
+      readonly options: Omit<MsaOptions, 'onProgress'>;
+    }
+  | {
       /** A codon for each slot, within the limits (#209). */
       readonly id: number;
       readonly kind: 'recode';
@@ -143,6 +152,7 @@ export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'crispr'; readonly guides: readonly CrisprGuide[] }
   | { readonly id: number; readonly kind: 'gcProfile'; readonly profile: Float32Array }
   | { readonly id: number; readonly kind: 'recode'; readonly result: RecodeResult }
+  | { readonly id: number; readonly kind: 'msa'; readonly alignment: MultipleAlignment }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

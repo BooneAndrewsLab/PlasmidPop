@@ -2,6 +2,7 @@ import {
   type FeatureLibrary,
   activeEnzymes,
   alignEitherStrand,
+  alignMultiple,
   alignPairwise,
   findCollectionPrimers,
   findCrisprGuides,
@@ -75,6 +76,15 @@ export function handleAnalysisRequest(
           id: req.id,
           kind: 'recode',
           result: recodeSlots(req.slots, req.options),
+        };
+      case 'msa':
+        return {
+          id: req.id,
+          kind: 'msa',
+          alignment: alignMultiple(req.sequences, {
+            ...req.options,
+            ...(onProgress === undefined ? {} : { onProgress }),
+          }),
         };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };

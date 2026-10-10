@@ -7,6 +7,8 @@ import {
   type CrisprOptions,
   type CutSite,
   type EnzymeSet,
+  type MsaOptions,
+  type MultipleAlignment,
   type Nuclease,
   type Orf,
   type OrfOptions,
@@ -250,6 +252,18 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'recode') throw new Error('Unexpected analysis response');
     return res.result;
+  }
+
+  /** Several sequences aligned together, in the worker (#207). */
+  async alignMultiple(
+    sequences: readonly string[],
+    options: Omit<MsaOptions, 'onProgress'> = {},
+    long: LongRequestOptions = {},
+  ): Promise<MultipleAlignment> {
+    const res = await this.send({ kind: 'msa', sequences, options }, long);
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'msa') throw new Error('Unexpected analysis response');
+    return res.alignment;
   }
 
   dispose(): void {

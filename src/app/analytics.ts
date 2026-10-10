@@ -231,9 +231,21 @@ export const EVENTS = {
    * the mode like `run` (#59), or `auto` when none was picked and each record
    * gets its own (#86), never how many; `assemble` is Assemble reads, the
    * records of a file joined into contigs with no reference (#208), and
-   * `assemble-save` the consensus saved as a document.
+   * `assemble-save` the consensus saved as a document; `msa` is a multiple
+   * alignment run, named by the alphabet (`nucleotide`/`protein`), never how
+   * many sequences, and `msa-export` one saved or copied, named by the
+   * format (`fasta`/`clustal`) (#207).
    */
-  align: ['run', 'quality', 'document-read', 'batch', 'assemble', 'assemble-save'],
+  align: [
+    'run',
+    'quality',
+    'document-read',
+    'batch',
+    'assemble',
+    'assemble-save',
+    'msa',
+    'msa-export',
+  ],
   cloning: [
     'ligate',
     'open-fragment',

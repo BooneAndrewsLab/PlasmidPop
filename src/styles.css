@@ -5148,3 +5148,24 @@ button {
   font-size: 11px;
   overflow-wrap: anywhere;
 }
+
+/* The multiple alignment's grid (#207): a canvas pinned in a scrolling sizer, drawn for the columns in view. */
+.msa-scroll {
+  flex: 1 1 auto;
+  min-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.msa-sizer {
+  position: relative;
+}
+
+.msa-canvas {
+  position: sticky;
+  top: 0;
+  left: 0;
+  display: block;
+}

@@ -172,6 +172,26 @@ describe('recode (#209)', () => {
   });
 });
 
+describe('multiple alignment (#207)', () => {
+  it('answers inline where there is no worker, with progress', async () => {
+    const client = new AnalysisClient(null);
+    const seen: number[] = [];
+    const out = await client.alignMultiple(
+      ['ACGTACGTAC', 'ACGTACGTAC', 'ACGAACGTAC'],
+      {},
+      { onProgress: (f) => seen.push(f) },
+    );
+    expect(out.rows).toHaveLength(3);
+    expect(out.rows[0]).toBe('ACGTACGTAC');
+    expect(seen.at(-1)).toBe(1);
+  });
+
+  it('rejects with the reason when there are too few', async () => {
+    const client = new AnalysisClient(null);
+    await expect(client.alignMultiple(['ACGT'])).rejects.toThrow(/at least two/);
+  });
+});
+
 describe('packed cut sites', () => {
   it('come back as they went in, reverse strand and negative positions included', () => {
     const sites = [

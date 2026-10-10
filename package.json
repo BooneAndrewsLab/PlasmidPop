@@ -24,6 +24,7 @@
     "oracle:writer": "scripts/oracle/run.sh writer",
     "oracle:snapgene": "scripts/oracle/run.sh snapgene-local",
     "oracle:abif": "scripts/oracle/run.sh abif-local",
+    "oracle:msa": "python3 scripts/oracle/msa.py",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 stryker run"
   },

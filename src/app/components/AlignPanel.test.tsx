@@ -71,6 +71,16 @@ describe('AlignPanel', () => {
     expect(align).toBeDisabled(); // nothing to align yet
   });
 
+  it('offers a multiple alignment once the box holds several records (#207)', () => {
+    render(<AlignPanel doc={doc} />);
+    expect(screen.queryByRole('group', { name: 'Multiple alignment' })).toBeNull();
+    fireEvent.change(box(), {
+      target: { value: '>one\nACGTACGTAC\n>two\nACGTACGAAC\n' },
+    });
+    const group = screen.getByRole('group', { name: 'Multiple alignment' });
+    expect(within(group).getByRole('button', { name: 'Align 3 together' })).toBeEnabled();
+  });
+
   it('groups the read settings apart from the options (#107)', async () => {
     render(<AlignPanel doc={doc} />);
     const fastq = new File(['@r\nACGTACGTACGT\n+\nIIIIIIIIIIII\n'], 'r.fastq');
