@@ -85,12 +85,29 @@ describe('a plate of reads', () => {
       sets = set.mock.calls.length;
       set.mockRestore();
     }
-    // A read of mostly poor bases may share too few words with 300 kb to
-    // be banded, and fail as too large for a full fill: not what this measures.
     const aligned = rows.filter((r) => r.status === 'aligned');
-    expect(aligned.length).toBeGreaterThanOrEqual(11);
+    expect(aligned.length).toBe(rows.length);
     expect(aligned.every((r) => r.result.alignment.identity > 0.9)).toBe(true);
     expect(sets).toBeGreaterThan(200_000); // the spy sees the index at all
     expect(sets).toBeLessThan(2 * 300_000);
+  }, 120_000);
+
+  it('aligns a read whose words are in both copies of the repeated circle (#225)', async () => {
+    // Read 16 of this plate starts 1.5 kb into the circle, so each of its
+    // words is found twice in the reference the Align tab builds (the circle
+    // and its repeat). The longest chain of words started in one copy and
+    // finished in the next, a band across 300 000 rows: 163 million cells.
+    const { plasmid, reads } = plate(300_000, 17);
+    const read = reads[16];
+    if (read === undefined) throw new Error('no read');
+    const { rows } = await runReadBatch(
+      [read],
+      { sequence: plasmid, offset: 0, wrap: plasmid.length },
+      (a, b, options) => Promise.resolve(alignEitherStrand(a, b, options)),
+      { options: { fast: true }, mode: 'local', trimCutoff: 0.05 },
+    );
+    const row = rows[0];
+    expect(row?.status === 'failed' ? row.message : row?.status).toBe('aligned');
+    if (row?.status === 'aligned') expect(row.result.alignment.identity).toBeGreaterThan(0.9);
   }, 120_000);
 });

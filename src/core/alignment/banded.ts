@@ -168,9 +168,40 @@ function dropStrays(links: Anchor[]): Anchor[] {
   });
 }
 
-/** The anchors to band around, or null when the two do not share enough. */
-export function anchorChain(reference: string, read: string): readonly Anchor[] | null {
-  const links = dropStrays(chain(anchors(reference, read)));
+/**
+ * Against a repeated circle (`wrap`) a word near the origin occurs in both
+ * copies, so the longest chain may start in one copy and finish in the next:
+ * the same alignment, but a jump of a whole turn in diagonal, and a band
+ * across it holds every row between (#225: 163 million cells for a 779-base
+ * read). The anchors after such a jump move back a turn, onto the first
+ * copy's diagonal. Moving back never leaves the matrix: they sat a turn on.
+ */
+function foldTurns(links: Anchor[], wrap: number): Anchor[] {
+  const slack = 1024; // the widest margin: a smaller drift is the band's to absorb
+  let shift = 0;
+  return links.map((a, k) => {
+    const before = links[k - 1];
+    if (before !== undefined) {
+      const jump = a.i - a.j - (before.i - before.j);
+      const turns = Math.round(jump / wrap);
+      if (turns > 0 && Math.abs(jump - turns * wrap) <= slack) shift += turns * wrap;
+    }
+    return shift === 0 ? a : { i: a.i - shift, j: a.j };
+  });
+}
+
+/**
+ * The anchors to band around, or null when the two do not share enough.
+ * `wrap` is the length of a circle the reference repeats (`AlignmentOptions.wrap`).
+ */
+export function anchorChain(
+  reference: string,
+  read: string,
+  wrap?: number,
+): readonly Anchor[] | null {
+  // Strays out first: one met by chance between the two copies hides the jump.
+  const found = dropStrays(chain(anchors(reference, read)));
+  const links = wrap !== undefined && wrap > 0 ? foldTurns(found, wrap) : found;
   return links.length >= MIN_CHAIN ? links : null;
 }
 
@@ -433,7 +464,7 @@ export function alignBanded(
   options: AlignmentOptions = {},
   onProgress?: AlignmentProgress,
 ): CheckedResult | null {
-  const links = anchorChain(reference, read);
+  const links = anchorChain(reference, read, options.wrap);
   if (links === null) return null;
   const mode = options.mode ?? 'global';
   const scoring = flankScoring(options);

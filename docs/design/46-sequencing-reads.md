@@ -436,6 +436,22 @@ is a few MB held in the worker after a batch. Measurements in
   signal, needed nothing: each trace is already drawn against its own
   99th percentile (`traceScale`), so a weak read fills its band.
 
+- **A chain that changed copies** (#225). Against a 300 kb circle, one read of
+  a plate of 96 failed with "would need 163,476,561 alignment cells". The
+  words were plentiful (618 anchors): the read started 1.5 kb into the
+  circle, so each word is in the reference twice, and the longest chain took
+  the first copy's anchors for the first part of the read and the second
+  copy's for the rest, a jump of exactly L in diagonal. The band between
+  two anchors is the rectangle they span, 300 000 rows tall, and widening
+  it past the first margin overflowed the cell limit. With `wrap` known the
+  anchors after such a jump (within 1024 of a whole turn) move back a turn
+  onto the first copy's diagonal, after `dropStrays`, since a chance anchor
+  between the copies hides the jump from a fold made before it. The
+  hypotheses in the issue (too few shared words, a shorter seed) were not
+  the cause. A synthetic 60 kb circle did not reproduce the tie, so the
+  regression test is the plate's own read 16 (`readBatch.timing.test.ts`),
+  and the 300 kb test now requires every read to align.
+
 ## Follow-ups filed
 
 #55 a toggle for the sequence view's trace; #56 a setting for the Q20
