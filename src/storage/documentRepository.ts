@@ -446,6 +446,28 @@ export class DocumentRepository {
     });
   }
 
+  /** The enzymes the user typed in (#217), checked like the imported set, oldest first. */
+  async loadCustomEnzymes(): Promise<Enzyme[]> {
+    const rows = await this.db.customEnzymes.toArray();
+    return rows
+      .filter((r) => isEnzyme(r.enzyme))
+      .sort((a, b) => a.addedAt - b.addedAt)
+      .map((r) => ({ ...r.enzyme, custom: true }));
+  }
+
+  /** Adds an enzyme, or replaces the one of the same name (any case). */
+  async saveCustomEnzyme(enzyme: Enzyme): Promise<void> {
+    await this.db.customEnzymes.put({
+      id: enzyme.name.toLowerCase(),
+      enzyme,
+      addedAt: Date.now(),
+    });
+  }
+
+  async deleteCustomEnzyme(name: string): Promise<void> {
+    await this.db.customEnzymes.delete(name.toLowerCase());
+  }
+
   /**
    * The primer collection, in the order the primers were added. Rows are
    * checked on the way in like the shelf's: one written wrong costs that

@@ -7,7 +7,8 @@ handles ambiguity codes in recognition sequences (`GRCGYC`), enzymes that cut
 outside their site (Type IIS such as BsaI and BsmBI) and sites that wrap the
 origin of a circular sequence. You can swap the bundled table for the whole
 of REBASE — see [Importing the full REBASE table](#importing-the-full-rebase-table)
-below.
+below, or add a single enzyme of your own — see
+[Adding your own enzyme](#adding-your-own-enzyme).
 
 ## Reading the list
 
@@ -282,6 +283,34 @@ Scanning with the whole table takes about 15 ms on a 4 kb plasmid instead of
 If you publish work that used it, please cite REBASE: Roberts RJ, Vincze T,
 Posfai J, Macelis D, _REBASE — a database for DNA restriction and
 modification: enzymes, genes and genomes_, Nucleic Acids Research.
+
+## Adding your own enzyme
+
+For an engineered enzyme, a nicking or homing enzyme the table lacks, or a
+site you want to treat as an "enzyme" in a Golden Gate design, click
+**Add enzyme…** at the foot of the Enzymes tab. Give it a name and its
+recognition site in REBASE notation:
+
+- `G^AATTC` — the caret is the top-strand cut; the bottom strand is cut
+  symmetrically (EcoRI, a 4-base 5′ overhang).
+- `G^AATT_C` — the same with the bottom-strand cut written out after the
+  underscore, for a cut that is not the mirror image.
+- `GGTCTC(1/5)` — a Type IIS enzyme: the cuts fall 1 base (top) and 5 bases
+  (bottom) past the 3′ end of the site. Negative numbers count back into the
+  site, and `(10/12)CGANNNNNNTGC(12/10)` cuts on both sides.
+- IUPAC codes (`R`, `Y`, `N`, …) work in either case. A caret after N padding
+  (`GGTCTCN^NNNN_`) needs the underscore, because the caret alone does not
+  say where the bottom strand is cut.
+
+The dialog shows how the site was read: where the top and bottom strands are
+cut, the overhang that leaves, and whether the site is palindromic. **Save
+enzyme** stores it in this browser, and it is at once in the sites list,
+digests, Golden Gate and the diagnostic ranking, like any other enzyme. It
+is read by the same code as the REBASE import, so both mean the same by a
+notation. Your enzymes survive a reload and an imported table (importing or
+**Go back to the bundled table** leaves them alone); use **Remove** in the
+dialog to delete one. A name already in the table in use is refused, and a
+site with too few specific bases to be a real cutter is too.
 
 ## Notes
 

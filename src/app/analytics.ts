@@ -144,7 +144,7 @@ export const EVENTS = {
     'made-from',
     'made-from-open',
   ],
-  enzymes: ['show', 'import', 'import-clear'],
+  enzymes: ['show', 'import', 'import-clear', 'custom-add', 'custom-remove'],
   /**
    * Detect features (item 59): `run` is a search, named by what started it
    * (`command` for the button, `open` for the setting that runs it on a file

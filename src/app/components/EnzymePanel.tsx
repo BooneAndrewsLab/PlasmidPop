@@ -38,6 +38,7 @@ import { ENZYME_SORT_OPTIONS, isEnzymeSort } from '../state/enzymeSort';
 import { editorStore } from '../state/editorStore';
 import { useGelOptions } from '../state/useGel';
 import { useEditorState } from '../state/useEditorStore';
+import { CustomEnzymeForm } from './CustomEnzymeForm';
 import { EnzymeImport } from './EnzymeImport';
 import { Gel, type GelLane } from './Gel';
 import { useRowWindow } from './useRowWindow';
@@ -401,6 +402,7 @@ export function EnzymePanel({ doc }: Props) {
   const orderId = useId();
   const [filter, setFilter] = useState('');
   const [importing, setImporting] = useState(false);
+  const [adding, setAdding] = useState(false);
   const ready = analysis !== null && analysis.doc === doc;
   // A supplier is a code out of the table in use. A code stored from another
   // import — or from before "Go back to the bundled table" — names nobody
@@ -971,7 +973,19 @@ export function EnzymePanel({ doc }: Props) {
               ? 'Scanning with the bundled table of common cloning enzymes.'
               : `Scanning with ${enzymeSetInfo.label}${
                   enzymeSetInfo.fileName === null ? '' : `, from ${enzymeSetInfo.fileName}`
-                }.`}{' '}
+                }.`}
+            {enzymeSetInfo.custom.length > 0
+              ? ` Plus ${enzymeSetInfo.custom.length.toLocaleString()} of your own.`
+              : ''}{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setAdding((v) => !v);
+              }}
+            >
+              {adding ? 'Hide add enzyme' : 'Add enzyme…'}
+            </button>{' '}
             <button
               type="button"
               className="link"
@@ -982,6 +996,13 @@ export function EnzymePanel({ doc }: Props) {
               {importing ? 'Hide import' : 'Import a REBASE table…'}
             </button>
           </p>
+          {adding && (
+            <CustomEnzymeForm
+              onClose={() => {
+                setAdding(false);
+              }}
+            />
+          )}
           {importing && (
             <EnzymeImport
               onClose={() => {

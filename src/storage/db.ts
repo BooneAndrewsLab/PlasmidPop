@@ -99,6 +99,17 @@ export interface StoredEnzymeSet {
   readonly importedAt: number;
 }
 
+/**
+ * An enzyme the user typed in (#217), one row each under its lowercased name.
+ * Kept apart from `enzymeSets` so that importing or clearing a REBASE table
+ * never takes the user's own enzymes with it.
+ */
+export interface StoredCustomEnzyme {
+  readonly id: string;
+  readonly enzyme: Enzyme;
+  readonly addedAt: number;
+}
+
 /** Key of the single `enzymeSets` row. */
 export const ENZYME_SET_ID = 'active';
 
@@ -140,6 +151,8 @@ export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
   declare enzymeSets: EntityTable<StoredEnzymeSet, 'id'>;
+  /** Enzymes the user typed in (#217), a row each. */
+  declare customEnzymes: EntityTable<StoredCustomEnzyme, 'id'>;
   /** Each document's undo history, under the document's id (item 51). */
   declare histories: EntityTable<StoredHistory, 'id'>;
   /** The primer collection, a row per primer (#64). */
@@ -197,6 +210,10 @@ export class PlasmidPopDb extends Dexie {
     // Version 8 adds the imported ligation-fidelity table (#68).
     this.version(8).stores({
       fidelityTables: 'id',
+    });
+    // Version 9 adds the user's own enzymes (#217).
+    this.version(9).stores({
+      customEnzymes: 'id',
     });
   }
 }

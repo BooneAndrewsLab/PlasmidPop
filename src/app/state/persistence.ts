@@ -1,5 +1,6 @@
 import {
   type AssemblyPart,
+  type Enzyme,
   type EnzymeSet,
   type SeqDocument,
   BUNDLED_ENZYME_SET,
@@ -125,6 +126,10 @@ const BENCH_IN_FRONT = '<bench>';
 export class PersistenceService {
   private readonly autosaved = new Map<string, Autosaved>();
   /** The shelf as last written, so an unchanged one is not written again. */
+  /** The imported REBASE set in use, or null for the bundled table. */
+  private importedSet: (EnzymeSet & { fileName: string | null }) | null = null;
+  /** The enzymes the user typed in (#217), over whichever set is in use. */
+  private customEnzymes: readonly Enzyme[] = [];
   private savedShelf: readonly AssemblyPart[] | null = null;
   /** Whether the browser has been asked to keep this origin's storage. */
   private persistenceRequested = false;
@@ -278,30 +283,82 @@ export class PersistenceService {
    * re-renders and every document's stale cut sites are dropped.
    */
   private applyEnzymeSet(set: (EnzymeSet & { fileName: string | null }) | null): void {
-    analysisClient.useEnzymes(set);
-    editorStore.setEnzymeSetInfo(
-      set === null
-        ? {
-            label: 'Bundled table',
-            count: BUNDLED_ENZYME_SET.enzymes.length,
-            bundled: true,
-            fileName: null,
-            suppliers: [],
-          }
+    this.importedSet = set;
+    this.applyEffectiveSet();
+  }
+
+  /**
+   * The imported (or bundled) set with the user's own enzymes (#217) on top:
+   * one of the same name replaces the table's, so the user's definition wins.
+   */
+  private applyEffectiveSet(): void {
+    const set = this.importedSet;
+    const custom = this.customEnzymes;
+    const names = new Set(custom.map((e) => e.name.toLowerCase()));
+    const base = set ?? BUNDLED_ENZYME_SET;
+    const merged: EnzymeSet | null =
+      custom.length === 0
+        ? set
         : {
-            label: set.label,
-            count: set.enzymes.length,
-            bundled: false,
-            fileName: set.fileName,
-            suppliers: set.suppliers,
-          },
+            id: set?.id ?? 'custom',
+            label: base.label,
+            suppliers: base.suppliers,
+            enzymes: [
+              ...base.enzymes.filter((e) => !names.has(e.name.toLowerCase())),
+              ...custom,
+            ].sort((a, b) => a.name.localeCompare(b.name)),
+          };
+    analysisClient.useEnzymes(merged);
+    editorStore.setEnzymeSetInfo({
+      label: base.label,
+      count: (merged ?? BUNDLED_ENZYME_SET).enzymes.length,
+      bundled: set === null,
+      fileName: set?.fileName ?? null,
+      suppliers: base.suppliers,
+      custom,
+    });
+  }
+
+  /**
+   * Adds an enzyme the user typed in, or replaces their earlier one of that
+   * name. Saved here, in this browser, and live at once everywhere enzymes
+   * are used. Throws a sentence when the name is already an enzyme of the
+   * table in use, so a typo cannot shadow EcoRI.
+   */
+  async addCustomEnzyme(enzyme: Enzyme): Promise<void> {
+    const key = enzyme.name.toLowerCase();
+    const base = this.importedSet ?? BUNDLED_ENZYME_SET;
+    if (base.enzymes.some((e) => e.name.toLowerCase() === key)) {
+      throw new Error(
+        `${enzyme.name} is already an enzyme of the table in use; pick another name.`,
+      );
+    }
+    const custom: Enzyme = { ...enzyme, custom: true };
+    await this.repo.saveCustomEnzyme(custom);
+    this.customEnzymes = [
+      ...this.customEnzymes.filter((e) => e.name.toLowerCase() !== key),
+      custom,
+    ];
+    this.applyEffectiveSet();
+    analytics.track('enzymes', 'custom-add');
+  }
+
+  async removeCustomEnzyme(name: string): Promise<void> {
+    await this.repo.deleteCustomEnzyme(name);
+    this.customEnzymes = this.customEnzymes.filter(
+      (e) => e.name.toLowerCase() !== name.toLowerCase(),
     );
+    this.applyEffectiveSet();
+    analytics.track('enzymes', 'custom-remove');
   }
 
   /** Reads back an enzyme set imported in an earlier session, if there is one. */
   async restoreEnzymeSet(): Promise<void> {
     const stored = await this.repo.loadEnzymeSet();
-    if (stored !== null) this.applyEnzymeSet(stored);
+    // The user's own enzymes (#217) come back with it, in one install.
+    this.customEnzymes = await this.repo.loadCustomEnzymes().catch(() => []);
+    this.importedSet = stored;
+    if (stored !== null || this.customEnzymes.length > 0) this.applyEffectiveSet();
   }
 
   /**

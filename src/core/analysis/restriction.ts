@@ -35,6 +35,8 @@ export interface Enzyme {
    * Dam/Dcm sensitivity, which REBASE keeps elsewhere; see docs/design/07-rebase-enzymes.md.
    */
   readonly methylation?: string;
+  /** Typed in by the user (#217) rather than from a table; kept apart from the imported set. */
+  readonly custom?: boolean;
 }
 
 /** Where an enzyme cuts both strands, from the first base of its site. */

@@ -8,6 +8,7 @@ import {
   type DocumentTool,
   type DigestFragment,
   type EditOp,
+  type Enzyme,
   type FeatureId,
   type FidelityTable,
   type LadderChoice,
@@ -801,6 +802,8 @@ export interface EnzymeSetInfo {
   readonly fileName: string | null;
   /** Supplier letter to company name; empty for the bundled table. */
   readonly suppliers: readonly { readonly code: string; readonly name: string }[];
+  /** The enzymes the user typed in (#217); they are in `count` too. */
+  readonly custom: readonly Enzyme[];
 }
 
 /**
@@ -915,6 +918,7 @@ const SHARED_INITIAL: SharedState = {
     bundled: true,
     fileName: null,
     suppliers: [],
+    custom: [],
   },
   fidelityTable: null,
   keyBindings: {},

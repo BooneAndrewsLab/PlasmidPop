@@ -155,7 +155,7 @@ const PADDED_CARET_BOTTOM: ReadonlyMap<string, { notation: string; cutBottom: nu
 ]);
 
 /** What `readSite` makes of a record, and anything the user should be told. */
-type ReadSite =
+export type ReadSite =
   | {
       site: string;
       cutTop: number;
@@ -165,7 +165,7 @@ type ReadSite =
     }
   | { skip: keyof RebaseSkipped; warning?: string };
 
-function readSite(raw: string, name = ''): ReadSite {
+export function readSite(raw: string, name = ''): ReadSite {
   const s = raw.trim().toUpperCase();
   const known = PADDED_CARET_BOTTOM.get(name.toUpperCase());
   const read = readNotation(s, name, known);
@@ -184,6 +184,20 @@ function readSite(raw: string, name = ''): ReadSite {
   return read;
 }
 
+/** Where `mark` sits among the bases of `site`, ignoring the other cut mark. */
+function markAt(site: string, mark: '^' | '_'): number | 'none' | 'many' {
+  let at = -1;
+  let bases = 0;
+  for (const c of site) {
+    if (c === '^' || c === '_') {
+      if (c !== mark) continue;
+      if (at >= 0) return 'many';
+      at = bases;
+    } else bases++;
+  }
+  return at < 0 ? 'none' : at;
+}
+
 function readNotation(
   s: string,
   name: string,
@@ -196,7 +210,7 @@ function readNotation(
   const trail = /\((-?\d+)\/(-?\d+)\)$/.exec(s);
 
   const site = s.replace(/^\(-?\d+\/-?\d+\)/, '').replace(/\(-?\d+\/-?\d+\)$/, '');
-  const bare = site.replace(/\^/g, '');
+  const bare = site.replace(/[\^_]/g, '');
   if (bare === '' || !/^[ACGTRYSWKMBDHVN]+$/.test(bare)) return { skip: 'noSite' };
 
   if (lead !== null && trail !== null) {
@@ -223,9 +237,14 @@ function readNotation(
     // A cut before the site: the offsets are how far upstream, so negative here.
     return { site: bare, cutTop: -top, cutBottom: -bottom };
   }
-  const caret = site.indexOf('^');
-  if (caret < 0) return { skip: 'cutUnknown' };
-  if (site.includes('^', caret + 1)) return { skip: 'cutUnknown' };
+  // `_` writes the bottom-strand cut out (`G^AATT_C`). REBASE's own files
+  // never use it, but the custom-enzyme dialog accepts it (#217), and it
+  // goes through this reader so both read the notation alike.
+  const marks = { '^': markAt(site, '^'), _: markAt(site, '_') };
+  if (marks['^'] === 'many' || marks._ === 'many') return { skip: 'cutUnknown' };
+  const caret = marks['^'];
+  const under = marks._;
+  if (caret === 'none') return { skip: 'cutUnknown' };
   // N padding is not part of the site: REBASE writes `CASTGNN^` for a site
   // CASTG cut two bases past its end. Keeping the padding would make the
   // site non-palindromic and add a second cut on the other strand. Where the
@@ -236,6 +255,7 @@ function readNotation(
   if (padL + padR < bare.length && padL + padR > 0) {
     const core = bare.slice(padL, bare.length - padR);
     const top = caret - padL;
+    if (under !== 'none') return { site: core, cutTop: top, cutBottom: under - padL };
     if (known?.notation === s) return { site: core, cutTop: top, cutBottom: known.cutBottom };
     // Left out anyway, so not worth a warning: SgeI `CNNGNNNNNNNNN^`, whose
     // bottom cut is +17 and not the mirrored -9.
@@ -248,6 +268,7 @@ function readNotation(
           : `${name}: REBASE now writes ${s}, not ${known.notation} as when its bottom-strand cut was checked; left out rather than given a guessed cut.`,
     };
   }
+  if (under !== 'none') return { site: bare, cutTop: caret, cutBottom: under };
   return { site: bare, cutTop: caret, cutBottom: bare.length - caret };
 }
 

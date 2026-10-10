@@ -537,6 +537,7 @@ describe('EnzymePanel isoschizomers', () => {
         count: SET.length,
         bundled: false,
         fileName: null,
+        custom: [],
         suppliers: [
           { code: 'B', name: 'Thermo' },
           { code: 'K', name: 'Takara' },

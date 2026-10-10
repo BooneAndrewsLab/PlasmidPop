@@ -123,3 +123,23 @@ sequence.
   (checked by a one-off run on the real file, not committed). Nothing else
   in the reader is keyed to a name; the other notations carry both cuts
   themselves, so a change in them is read as written.
+
+- Custom enzymes (#217). **Add enzyme…** at the foot of the Enzymes tab takes
+  a name and a site in REBASE notation. `readSite` (the import's reader) is
+  exported and `parseCustomEnzyme` (`src/io/rebase/customEnzyme.ts`) wraps
+  it, so a typed site and an imported record cannot be read differently. The
+  one addition is `G^AATT_C`: an underscore writes the bottom cut out, which
+  also settles the N-padded caret (`GGTCTCN^NNNN_`) that the import has to
+  leave out. REBASE files never use `_`, so the import's output is unchanged.
+  The typed name is not passed to the reader, so it cannot borrow a
+  `PADDED_CARET_BOTTOM` entry.
+  - Stored in its own Dexie table, `customEnzymes` (version 9), a row per
+    enzyme, not inside the single `enzymeSets` row: importing a table or
+    going back to the bundled one must not take the user's enzymes along.
+    `Persistence` holds the base set and the custom list and installs
+    base + custom (a custom enzyme replaces a table enzyme of the same name)
+    through the usual `analysisClient.useEnzymes`, so every consumer of the
+    active set sees it with no further wiring. A name that the table in use
+    already has is refused rather than shadowed. `Enzyme.custom` marks them.
+  - #203's backup does not exist yet; when it does it should include the
+    `customEnzymes` table.

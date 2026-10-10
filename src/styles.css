@@ -4930,3 +4930,9 @@ button {
   padding: 3px 0;
   border-bottom: 1px solid var(--line);
 }
+
+/* Adding one enzyme by hand (#217). */
+.custom-enzyme ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
