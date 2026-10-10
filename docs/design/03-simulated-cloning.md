@@ -38,6 +38,15 @@ overhangs would misligate.
   `terminalOverlap` takes the _longest_ shared stretch of at least
   `minOverlap`, because a designed 30-mer also has a matching 15-base
   suffix and the designed one is the true junction.
+  - **A last part that is all homology is refused, not shortened (#202).**
+    When the last part is a repeat `R-m-R` that the first part also starts
+    with, the longest shared end is the whole part. Falling back to `R` would
+    pick one of two valid circles without being asked, and in a cloning plan
+    that is a wrong product nobody chose. A single part closing on itself has
+    no such choice and is held to its longest proper end. The refusal now says
+    which part matches the start of which and that the repeat is to be
+    trimmed or the part left out, instead of the generic "shorter than the
+    homology at its two ends" (which stays for a middle part).
   - **There is no upper bound on the search (#134).** It used to walk
     down from `maxOverlap` = 60 comparing an `n`-base suffix with an
     `n`-base prefix. When two parts share 61 bases or more, those are two

@@ -187,7 +187,8 @@ describe('gibson', () => {
     // C is a repeat R-m-R that A also starts with. B ends in R. Only a part
     // closing on itself is held to a proper end of it (see the one-part
     // test); here the longest shared end is all of C, which leaves nothing
-    // of it, so the assembly is refused rather than closed on R.
+    // of it, so the assembly is refused rather than closed on R, and the
+    // message says how to choose (#202).
     const r = template(15, 4242);
     const c = r + template(10, 3) + r;
     const joint = template(30, 5151);
@@ -198,7 +199,8 @@ describe('gibson', () => {
     ];
     const result = gibson(parts);
     expect(result.assembly).toBeNull();
-    expect(result.problem).toMatch(/C is shorter than the homology at its two ends/);
+    expect(result.problem).toMatch(/All of C matches the start of A/);
+    expect(result.problem).toMatch(/Trim the repeated bases from C/);
   });
 
   it('refuses when the parts do not close into a circle', () => {

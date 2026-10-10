@@ -287,6 +287,17 @@ export function gibson(parts: readonly SeqDocument[], options: GibsonOptions = {
       end: part.sequence.length - (i === order.length - 1 ? closing : 0),
     };
     if (range.end <= range.start) {
+      // The longest shared end of the last part and the first is all of the
+      // last part: it repeats the first part's start whole. Closing on a
+      // shorter end of it would be a guess between two circles, so it is
+      // refused, saying how to make the choice (#202). A part closing on
+      // itself has no such choice and is held to a proper end (above).
+      if (i === order.length - 1 && closing >= part.sequence.length) {
+        const first = order[0]?.document.name ?? 'the first part';
+        return fail(
+          `All of ${part.document.name} matches the start of ${first}, so closing the circle would leave nothing of it in the product. Trim the repeated bases from ${part.document.name} to the overlap you want, or leave ${part.document.name} out.`,
+        );
+      }
       return fail(
         `${part.document.name} is shorter than the homology at its two ends, so there would be nothing left of it in the product.`,
       );
