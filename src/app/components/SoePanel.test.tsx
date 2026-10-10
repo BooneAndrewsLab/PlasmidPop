@@ -96,7 +96,7 @@ describe('SoePanel', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Move fragment 3 up' }));
     });
-    expect(screen.getByLabelText('Fragment 2 from').value).toBe(ids[2]);
+    expect(screen.getByLabelText('Fragment 2 from')).toHaveValue(ids[2]);
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove fragment 3' }));
     });
