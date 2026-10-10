@@ -168,6 +168,23 @@ before the nick, or too far after it, has no pegRNA from that guide. PlasmidPop
 does not rank pegRNAs by predicted efficiency, and does not design the
 second nick of PE3.
 
+## Paired nickases
+
+For SpCas9 and the other nucleases that cut both strands at one point, the
+**Paired nickases** group lists pairs of guides on opposite strands whose
+nicks, one on each strand, are close enough to make a staggered
+double-strand break. Each pair shows its two guides and the overhang: the
+offset between the nicks, and whether it is a 5′ or 3′ overhang. **Nickase**
+picks which strand each guide's nick falls on: **D10A** nicks the strand the
+guide pairs with, **H840A** the PAM strand. With D10A, guides whose PAMs
+face outward (PAM-out) leave 5′ overhangs, the arrangement reported to work
+best, and guides facing inward leave 3′ overhangs. **Nicks at most … apart**
+sets the largest offset listed (100 by default). **Show** selects the span
+of both guides. Pairs are ranked by the distance between the nicks only; no
+pair is scored, and nothing is checked for off-target nicking beyond what
+each guide's own row shows. Pairing works through the origin of a circular
+sequence.
+
 ## Ordering and annotating a guide
 
 The selected guide's box, under its row, gives its protospacer range,

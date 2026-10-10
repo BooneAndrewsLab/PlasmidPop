@@ -93,6 +93,7 @@ piece of work needs its reasoning written down, with the next free number.
 79. [Overlap-extension (SOE) PCR primers](79-overlap-extension-pcr.md)
 80. [Verify clones](80-verify-clones.md)
 81. [CRISPR base-editing windows and pegRNAs](81-crispr-editing.md)
+82. [CRISPR paired nickases](82-crispr-paired-nickases.md)
 
 ## Changelog to 1.1.0
 

@@ -5,7 +5,9 @@ import { NUCLEASES, findCrisprGuides } from './crispr';
 import {
   BASE_EDITORS,
   baseEditWindow,
+  MAX_PAIR_OFFSET,
   designPegRnas,
+  pairNickases,
   primeEditProblem,
   supportsBaseEditing,
   supportsPrimeEditing,
@@ -207,5 +209,69 @@ describe('designPegRnas', () => {
       /past the end/,
     );
     expect(primeEditProblem({ start: 9, deleteLength: 2, insert: 'A' }, 10, 'circular')).toBeNull();
+  });
+});
+
+describe('pairNickases', () => {
+  const S1 = SPACER;
+  const S2 = 'TCAGTCCATGGATTACGCAG';
+  const find = (seq: string, topology: 'linear' | 'circular') =>
+    findCrisprGuides(seq, topology, SPCAS9, { maxMismatches: 0 }).filter(
+      (g) => g.spacer === S1 || g.spacer === S2,
+    );
+  // forward guide S1 with its PAM to the right; reverse guide S2 whose PAM (CCA) is to the left of it
+  const pamOut = `${LEFT}CCA${reverseComplement(S2)}${S1}TGG${RIGHT}`;
+  const pamIn = `${LEFT}${S1}TGG${'AT'.repeat(5)}CCA${reverseComplement(S2)}${RIGHT}`;
+
+  it('measures the offset between the two nicks and its direction (PAM-out gives 5 prime with D10A)', () => {
+    const a = pairNickases(find(pamOut, 'linear'), pamOut.length, 'linear', {
+      nickStrand: 'target',
+    });
+    const b = pairNickases(find(pamOut, 'linear'), pamOut.length, 'linear', { nickStrand: 'pam' });
+    // D10A: forward-strand nick is the reverse guide's (26), reverse-strand nick the forward guide's (60)
+    expect(a[0]).toMatchObject({ forwardCut: 26, reverseCut: 60, offset: 34, overhang: '5prime' });
+    expect(a[0]?.gap).toEqual({ start: 26, end: 60 });
+    // H840A nicks the other strands: the same two cuts, now swapped, so the overhang is 3'
+    expect(b[0]).toMatchObject({ forwardCut: 60, reverseCut: 26, offset: -34, overhang: '3prime' });
+    expect(b[0]?.gap).toEqual({ start: 26, end: 60 });
+  });
+
+  it('has PAM-in guides give the opposite overhang', () => {
+    const p = pairNickases(find(pamIn, 'linear'), pamIn.length, 'linear');
+    expect(p[0]?.overhang).toBe('3prime');
+    expect(p[0]?.offset).toBeLessThan(0);
+  });
+
+  it('drops pairs farther apart than the limit, and never pairs one strand', () => {
+    const guides = find(pamOut, 'linear');
+    expect(pairNickases(guides, pamOut.length, 'linear', { maxOffset: 33 })).toHaveLength(0);
+    expect(pairNickases(guides, pamOut.length, 'linear', { maxOffset: 34 })).toHaveLength(1);
+    const same = guides.filter((g) => g.strand === 'forward');
+    expect(pairNickases(same, pamOut.length, 'linear')).toHaveLength(0);
+    expect(MAX_PAIR_OFFSET).toBe(100);
+  });
+
+  it('pairs across the origin of a circle and agrees with a rotation', () => {
+    const rot = (s: string, k: number) => s.slice(k) + s.slice(0, k);
+    const base = pairNickases(find(pamOut, 'circular'), pamOut.length, 'circular');
+    expect(base).toHaveLength(1);
+    for (const k of [10, 30, 45, 70]) {
+      const r = rot(pamOut, k);
+      const pairs = pairNickases(find(r, 'circular'), r.length, 'circular');
+      expect(pairs).toHaveLength(1);
+      expect(pairs[0]?.offset).toBe(base[0]?.offset);
+      expect(pairs[0]?.overhang).toBe(base[0]?.overhang);
+    }
+  });
+
+  it('takes the short way round a circle', () => {
+    // nicks at 5 and 95 of a 100 bp circle are 10 apart, not 90
+    const g = (strand: 'forward' | 'reverse', cut: number) =>
+      ({ strand, cut: { forward: cut, reverse: cut }, range: { start: cut, end: cut } }) as never;
+    const p = pairNickases([g('reverse', 5), g('forward', 95)], 100, 'circular', {
+      nickStrand: 'pam',
+    });
+    // forward guide nicks forward at 95, reverse guide nicks reverse at 5: offset 5 - 95 = -90 -> +10
+    expect(p[0]?.offset).toBe(10);
   });
 });

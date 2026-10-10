@@ -29,6 +29,7 @@ import {
   rangesEqual,
   sequenceMasks,
   supportsBaseEditing,
+  supportsNickPairs,
   supportsPrimeEditing,
 } from '@/core';
 
@@ -41,6 +42,7 @@ import { editorStore } from '../state/editorStore';
 import { rememberSeen, wasSeen } from '../state/seenOnce';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
+import { PairedNickases } from './CrisprPairedNickases';
 import { PrimeEditing } from './CrisprPrimeEditing';
 
 interface Props {
@@ -709,6 +711,9 @@ export function CrisprPanel({ doc }: Props) {
         supportsPrimeEditing(nuclease) && (
           <PrimeEditing doc={doc} guides={guides} nuclease={nuclease} />
         )}
+      {problem === null && nuclease !== null && guides !== null && supportsNickPairs(nuclease) && (
+        <PairedNickases doc={doc} guides={guides} />
+      )}
     </div>
   );
 }

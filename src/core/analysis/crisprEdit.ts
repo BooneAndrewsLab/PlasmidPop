@@ -257,3 +257,97 @@ export function designPegRnas(
   }
   return out.sort((a, b) => a.distance - b.distance || a.nick - b.nick);
 }
+
+// ------------------------------------------------------- paired nickases
+
+/** Which strand a nickase cuts: the guide's target strand (Cas9 D10A) or its PAM strand (H840A). */
+export type NickStrand = 'target' | 'pam';
+
+/** Ran 2013 saw double-strand breaks from nick pairs up to this far apart. */
+export const MAX_PAIR_OFFSET = 100;
+
+export interface NickPair {
+  /** The guide whose nick is on the forward strand, and the one whose nick is on the reverse strand. */
+  readonly forwardNick: CrisprGuide;
+  readonly reverseNick: CrisprGuide;
+  /** Boundaries between bases (forward coordinates, as `CrisprGuide.cut`) where each strand is nicked. */
+  readonly forwardCut: number;
+  readonly reverseCut: number;
+  /**
+   * Reverse-strand nick minus forward-strand nick, along the molecule (the
+   * short way round on a circle). Positive is a 5' overhang of that many
+   * bases, negative a 3' overhang of that many, zero a blunt break.
+   */
+  readonly offset: number;
+  readonly overhang: '5prime' | '3prime' | 'blunt';
+  /** Length of the single-stranded overhang. */
+  readonly overhangLength: number;
+  /** The bases between the two nicks (empty when blunt), forward coordinates. */
+  readonly gap: Range;
+}
+
+function nickBoundary(
+  g: CrisprGuide,
+  nickStrand: NickStrand,
+): { strand: 'forward' | 'reverse'; at: number } {
+  // The strand a nick falls on: the PAM strand is the guide's own strand.
+  const onForward = (g.strand === 'forward') === (nickStrand === 'pam');
+  return onForward
+    ? { strand: 'forward', at: g.cut.forward }
+    : { strand: 'reverse', at: g.cut.reverse };
+}
+
+/**
+ * Pairs of guides on opposite strands whose nicks, one on each strand, lie
+ * within `maxOffset` bases of each other and so make a staggered
+ * double-strand break (item 82). Cut positions come from the scan; nothing
+ * is scored. Sorted by the distance between the nicks, then by position.
+ */
+export function pairNickases(
+  guides: readonly CrisprGuide[],
+  length: number,
+  topology: Topology,
+  options: { readonly nickStrand?: NickStrand; readonly maxOffset?: number } = {},
+): NickPair[] {
+  const nickStrand = options.nickStrand ?? 'target';
+  const maxOffset = options.maxOffset ?? MAX_PAIR_OFFSET;
+  const fwd: { g: CrisprGuide; at: number }[] = [];
+  const rev: { g: CrisprGuide; at: number }[] = [];
+  for (const g of guides) {
+    const n = nickBoundary(g, nickStrand);
+    (n.strand === 'forward' ? fwd : rev).push({ g, at: n.at });
+  }
+  const pairs: NickPair[] = [];
+  for (const f of fwd) {
+    for (const r of rev) {
+      let offset = r.at - f.at;
+      if (topology === 'circular') {
+        offset = ((offset % length) + length) % length;
+        if (offset > length / 2) offset -= length;
+      }
+      if (Math.abs(offset) > maxOffset) continue;
+      const lo = offset >= 0 ? f.at : r.at;
+      pairs.push({
+        forwardNick: f.g,
+        reverseNick: r.g,
+        forwardCut: f.at,
+        reverseCut: r.at,
+        offset,
+        overhang: offset > 0 ? '5prime' : offset < 0 ? '3prime' : 'blunt',
+        overhangLength: Math.abs(offset),
+        gap: { start: lo, end: lo + Math.abs(offset) },
+      });
+    }
+  }
+  return pairs.sort(
+    (a, b) =>
+      Math.abs(a.offset) - Math.abs(b.offset) ||
+      a.forwardNick.range.start - b.forwardNick.range.start ||
+      a.reverseNick.range.start - b.reverseNick.range.start,
+  );
+}
+
+/** Pairing needs a nuclease with one cut point per guide, so a nickase can be made of it. */
+export function supportsNickPairs(n: Pick<Nuclease, 'pamSide' | 'cut'>): boolean {
+  return n.pamSide === '3prime' && n.cut.pamStrand === n.cut.targetStrand;
+}
