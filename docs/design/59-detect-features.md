@@ -435,3 +435,117 @@ Usage statistics: `detect / run` (`command` or `open`), `detect / add`
 ## Measured
 
 See `docs/perf-notes.md`: a 1 Mb sequence against the whole library.
+
+## Against pLannotate (#220, 1.14)
+
+Nothing had measured how much Detect features misses, so pLannotate 2.0.0 is
+the outside oracle. It is run as a separate program only (it is GPL-3.0;
+nothing of it is linked or copied here), from its own conda env with its own
+databases, outside the repository:
+
+```
+mamba create -n plannotate -c conda-forge -c bioconda plannotate
+plannotate setupdb                                  # databases stay in the env
+python3 scripts/plannotate/fetch_corpus.py          # NCBI -> ~/.cache/plannotate-corpus
+python3 scripts/plannotate/run_plannotate.py        # -> src/test/oracle/plannotate.json
+```
+
+- **Corpus:** 83 vectors by NCBI accession (`scripts/plannotate/accessions.txt`):
+  pUC, pBR322, pET, pGEX, pcDNA, pEGFP, pRS yeast shuttles, pBAD, pLKO and
+  lentiviral backbones, AAV, binary plant vectors, reporters and others.
+  Only the sequence and the record's topology are kept, so the annotations
+  are gone before either tool runs. NCBI records are redistributable, so the
+  sequences are committed in `src/test/oracle/plannotate.json` (700 kB) with
+  pLannotate's version and database versions (snapgene 2021-07-23,
+  fpbase and Rfam 15.1 of the 2026-07-05 bundle, Swiss-Prot 2026_02) and its
+  hits: name, type, 0-based location, strand, identity, database.
+  Five records are marked linear by NCBI and are run, and compared, as such.
+- **Test:** `src/test/oracle/plannotate.test.ts` runs Detect features (the
+  bundled list, default options) on the same sequences, in about six
+  seconds. A pLannotate hit counts as **found** when a hit of ours on the
+  same strand shares half of the shorter of the two; an origin is compared
+  without strand, since SnapGene draws an origin in the direction of
+  replication and a GenBank record as its author did. Fragments of larger
+  features (pLannotate's `fragment` flag, 400 of 1388 hits) are left out.
+  The test asserts that per-class recall, and overall, stays at or above the
+  baseline below, a ratchet: after a change that raises it, raise the
+  baseline too. `PLANNOTATE_REPORT=file.md` writes the tables for a re-run.
+  CI reads only the JSON.
+- **Aliases:** `src/test/oracle/plannotate-aliases.json` maps the SnapGene
+  names pLannotate reports to our parts where the names differ (`ori` to
+  `pUC ori`, `lacZα` to `lacZ-alpha`). It is oracle data; the app keeps no
+  SnapGene names. It decides only whether a miss is "not in our list".
+- **Classes:** pLannotate's type, database and name give the class (origin,
+  marker, promoter, tag, FP, terminator, RNA); everything else (MCS,
+  enhancers, LTRs, introns, operators, other CDS) is `other`.
+
+Baseline, 2026-10-10 (bundled list at 1.14):
+
+| Class      | pLannotate hits | Found | Recall |
+| ---------- | --------------: | ----: | -----: |
+| origin     |             137 |   129 |  94.2% |
+| marker     |             113 |   106 |  93.8% |
+| promoter   |             277 |   244 |  88.1% |
+| tag        |              13 |    12 |  92.3% |
+| FP         |              32 |    29 |  90.6% |
+| terminator |              92 |    55 |  59.8% |
+| RNA        |              12 |     6 |  50.0% |
+| other      |             312 |   206 |  66.0% |
+| **all**    |             988 |   787 |  79.7% |
+
+Misses by cause, then the most frequent names of each:
+
+| Cause of a miss     | origin | marker | promoter | tag |  FP | terminator | RNA | other | all |
+| ------------------- | -----: | -----: | -------: | --: | --: | ---------: | --: | ----: | --: |
+| not in our list     |      8 |      0 |       24 |   1 |   3 |         16 |   0 |    72 | 124 |
+| homologue           |      0 |      3 |        0 |   0 |   0 |          0 |   0 |    22 |  25 |
+| RNA only            |      0 |      0 |        0 |   0 |   0 |          0 |   6 |     0 |   6 |
+| strand differs      |      0 |      0 |        0 |   0 |   0 |          9 |   0 |     5 |  14 |
+| below threshold     |      0 |      0 |        0 |   0 |   0 |          0 |   0 |     0 |   0 |
+| different extent    |      0 |      1 |        7 |   0 |   0 |         12 |   0 |     6 |  26 |
+| recoded or diverged |      0 |      3 |        2 |   0 |   0 |          0 |   0 |     1 |   6 |
+
+- not in our list: MCS (11), bom (10), RBS (9), NOS terminator (6), chimeric intron (5), poly(A) signal (5), RRE (5), LB T-DNA repeat (4), RB T-DNA repeat (4), URA3 promoter (4), AAV2 ITR (3), CaMV 35S promoter (3), EM7 promoter (3), hGH poly(A) signal (3), pVS1 oriV (3), pVS1 StaA (3), 2μ ori (2), attB (2), CMV IE94 promoter (2), gag (truncated) (2), hSyn promoter (2), iFP1.4 (2), NOS promoter (2), pVS1 RepA (2), 3' LTR (1), 5' LTR (1), AOX1 promoter (1), AOX1 terminator (1), CaMV 35S promoter (enhanced) (1), CaMV poly(A) signal (1), cat promoter (1), CloDF13 ori (1), hrGFP (1), hybrid intron (1), IS1 (1), LEU2 promoter (1), MESV Ψ (1), minimal CMV promoter (1), minP (1), MMLV Ψ (1), nucleoplasmin NLS (1), oriT (1), oriV (1), Pc promoter (1), pol region (1), Tn7L (1), Tn7R (1), traJ (1), trfA (1), TRP1 promoter (1), β-globin intron (1)
+- homologue: YPB1_ECOLX (6), ermC (2), bar (1), ectD (1), gli4 (1), hH1 (1), ho1 (1), IGK_HUMAN (1), L3 (1), luxS (1), nfsB (1), pcyA (1), PRNP (1), rnc (1), RPOL_BPT7 (1), S (1), tra (1), TUBA1 (1), xyl1 (1)
+- RNA only: gRNA scaffold (3), tRNA (3)
+- strand differs: SV40 poly(A) signal (7), lacZα (4), CYC1 terminator (2), attL2 (1)
+- below threshold:
+- different extent: HSV TK poly(A) signal (8), 5' LTR (truncated) (4), hPGK promoter (2), PGK promoter (2), tet promoter (2), β-globin poly(A) signal (2), attL1 (1), H1 promoter (1), his3 (1), rrnB T1 terminator (1), rrnB T2 terminator (1), small t intron (1)
+- recoded or diverged: KanR (3), CMV enhancer (1), TEF1 promoter (1), UbC promoter (1)
+
+How the causes are decided, in this order: **RNA only** is an Rfam hit (or
+a SnapGene RNA) with no part of ours; **homologue** is a Swiss-Prot hit we
+have no part for; **not in our list** is no part of ours by that name or
+alias; **strand differs** is a hit of ours there on the other strand;
+**below threshold** is a hit only at 90% identity, the lowest offered
+(none); **different extent** is our part over a third longer or shorter than
+SnapGene's feature of that name, so no hit shares half of both (SnapGene's
+HSV TK poly(A) signal is 48 bases, ours is 359); **recoded or diverged** is
+a same-sized part not found even at 90%.
+
+What the numbers say:
+
+- The classes the list was built for are found well (origins, markers,
+  promoters, tags and FPs, 88 to 94%). The gap is in `other` and in
+  terminators.
+- Most misses (124 of 201) are parts the bundled list does not have: the
+  plant and yeast promoters and terminators (NOS, CaMV 35S, URA3, LEU2 and
+  TRP1 promoters, AOX1), T-DNA borders, AAV ITRs, RBS, MCS, introns, pVS1
+  and other origins. They are additions to the list, not matcher faults.
+- 25 are found by pLannotate through Swiss-Prot homology (ermC, bar, luxS,
+  nfsB and the like); the bundled list carries no such proteins.
+- 26 are our part and SnapGene's feature cut differently; 14 are the same
+  part reported on the other strand (SV40 poly(A) signal, lacZα); 6 are
+  Rfam RNAs.
+- Nothing is lost to the identity threshold: lowering it to 90% finds no
+  further hit.
+- **Extras:** 254 of our 1358 hits have no pLannotate hit at the place.
+  Primer binding sites are 213 of them, which pLannotate never reports.
+  The rest were spot-checked: the SV40 late poly(A) signal (15, an exact
+  match; pLannotate calls the early signal where the two overlap), the
+  rabbit beta-globin poly(A) signal, the pUC19 and pGEX MCS, and tags
+  found in the translation (6xHis, FLAG, thrombin and PreScission sites;
+  pLannotate reports peptide tags rarely). None is wrong as far as
+  checked; none was removed.
+
+The follow-ups are filed as issues, not fixed here.
