@@ -4972,3 +4972,125 @@ button {
 .made-from__protocol {
   margin: 6px 0 0;
 }
+
+/* Verify clones (#218) */
+
+.verify {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.verify__heading {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.verify__constructs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verify__constructs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 2px 0;
+}
+
+.verify__meta {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.verify__empty {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.verify__pattern {
+  min-width: 12rem;
+  font: inherit;
+  font-size: 12px;
+}
+
+.verify__files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.verify__problem,
+.verify__problems {
+  margin: 6px 0;
+  color: var(--danger, #b3261e);
+  font-size: 12px;
+}
+
+.verify__problems {
+  padding-left: 18px;
+}
+
+.verify__summary {
+  margin: 12px 0 4px;
+  font-weight: 600;
+}
+
+.verify__scroll {
+  max-height: 22rem;
+  margin-bottom: 12px;
+  overflow: auto;
+}
+
+.verify__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.verify__table th,
+.verify__table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.verify__table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  color: var(--ink-3);
+}
+
+.verify__table tbody th {
+  font-weight: normal;
+}
+
+.verify__details {
+  overflow-wrap: anywhere;
+}
+
+.verify__verdict--match {
+  color: var(--ok, #1b7f3b);
+  font-weight: 600;
+}
+
+.verify__verdict--feature,
+.verify__verdict--wrong {
+  color: var(--danger, #b3261e);
+  font-weight: 600;
+}
+
+.verify__verdict--outside {
+  color: var(--warn, #9a6700);
+  font-weight: 600;
+}
+
+.verify__progress {
+  width: 100%;
+  margin: 8px 0;
+}

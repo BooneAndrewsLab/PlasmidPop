@@ -11,6 +11,7 @@ import { FindBar } from './components/FindBar';
 import { LinearSequenceView } from './components/LinearSequenceView';
 import { KeyBindingsDialog } from './components/KeyBindings';
 import { NcbiDialog } from './components/NcbiDialog';
+import { VerifyClonesDialog } from './components/VerifyClonesDialog';
 import { NewDocumentDialog } from './components/NewDocumentDialog';
 import { PhoneShell } from './components/PhoneShell';
 import { CopyBanner } from './components/CopyBanner';
@@ -274,6 +275,7 @@ export function App() {
       )}
       <StatusBar doc={doc} />
       <SaveReviewDialog />
+      <VerifyClonesDialog />
       <CompareDialog />
       <NewDocumentDialog />
       <NcbiDialog />

@@ -141,6 +141,14 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           >
             Open from NCBI…
           </Item>
+          <Item
+            title="Check a plate of whole-plasmid sequencing results against the constructs they should be"
+            onClick={run(() => {
+              editorStore.requestVerifyClones();
+            })}
+          >
+            Verify clones…
+          </Item>
           {example !== undefined && (
             <Item
               onClick={run(() => {

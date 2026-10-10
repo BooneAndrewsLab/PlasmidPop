@@ -93,6 +93,7 @@ export function useViewShortcuts(): void {
         state.comparison !== null ||
         state.newDialog ||
         state.ncbiDialog ||
+        state.verifyDialog ||
         state.keysDialog
       )
         return;

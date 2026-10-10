@@ -13,3 +13,4 @@ export * from './checksum';
 export * from './lineage';
 export * from './annotate';
 export * from './assembly';
+export * from './verify';

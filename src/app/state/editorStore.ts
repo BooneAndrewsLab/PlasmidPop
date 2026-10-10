@@ -75,7 +75,9 @@ export type ComparisonSource =
       /** The file as picked, so opening it goes the way File ▸ Open does. */
       readonly file: File;
     }
-  | { readonly kind: 'tab'; readonly documentId: string };
+  | { readonly kind: 'tab'; readonly documentId: string }
+  /** A clone of Verify clones (#218), held in memory; opening it makes it a tab. */
+  | { readonly kind: 'clone' };
 
 /**
  * The Compare with… dialog: first choosing what to compare with (another
@@ -702,6 +704,8 @@ export interface SharedState {
   readonly newDialog: boolean;
   /** Whether the Open from NCBI dialog is up (#65, item 58). */
   readonly ncbiDialog: boolean;
+  /** Whether the Verify clones dialog is up (#218, item 80). */
+  readonly verifyDialog: boolean;
   /** Where the draggable boundaries sit; see `LayoutSizes`. */
   readonly layout: LayoutSizes;
 }
@@ -914,6 +918,7 @@ const SHARED_INITIAL: SharedState = {
   comparison: null,
   newDialog: false,
   ncbiDialog: false,
+  verifyDialog: false,
   layout: DEFAULT_LAYOUT,
   enzymeSetInfo: {
     label: BUNDLED_ENZYME_SET.label,
@@ -2106,6 +2111,14 @@ export class EditorStore {
 
   dismissNcbi(): void {
     if (this.shared.ncbiDialog) this.setShared({ ncbiDialog: false });
+  }
+
+  requestVerifyClones(): void {
+    if (!this.shared.verifyDialog) this.setShared({ verifyDialog: true });
+  }
+
+  dismissVerifyClones(): void {
+    if (this.shared.verifyDialog) this.setShared({ verifyDialog: false });
   }
 
   /** Opens Compare with… on its first question: what to compare with. */

@@ -23,8 +23,8 @@ export function useAltKey(actionId: string, action: (() => void) | null): void {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent): void => {
       if (!matchesBinding(e, binding) || isAltBlocked(e.target)) return;
-      const { saveReview, comparison, keysDialog } = editorStore.getState();
-      if (saveReview !== null || comparison !== null || keysDialog) return;
+      const { saveReview, comparison, keysDialog, verifyDialog } = editorStore.getState();
+      if (saveReview !== null || comparison !== null || keysDialog || verifyDialog) return;
       e.preventDefault();
       latest.current?.();
     };

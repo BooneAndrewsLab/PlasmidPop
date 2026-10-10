@@ -99,7 +99,7 @@ export function CompareDialog() {
         <p id="compare-body" className="dialog__body">
           What this document has that <strong>{name}</strong> does not, in this document’s own
           coordinates.{' '}
-          {source.kind === 'file'
+          {source.kind === 'file' || source.kind === 'clone'
             ? 'Neither file is changed, and nothing was opened or stored.'
             : 'Neither document is changed.'}
         </p>
@@ -163,10 +163,11 @@ export function CompareDialog() {
               analytics.track('compare', 'open-other', source.kind);
               editorStore.dismissComparison();
               if (source.kind === 'tab') editorStore.activateDocument(source.documentId);
+              else if (source.kind === 'clone') editorStore.openDocument(comparison.doc);
               else void openFile(source.file);
             }}
           >
-            {source.kind === 'file' ? `Open ${name}` : `Go to ${name}`}
+            {source.kind === 'tab' ? `Go to ${name}` : `Open ${name}`}
           </button>
           <button
             type="button"

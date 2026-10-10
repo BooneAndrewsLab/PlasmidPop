@@ -149,6 +149,56 @@ Assembly is greedy and meant for a few to a few dozen Sanger reads of one
 region. It does not resolve repeats, and a read is placed at the first
 contig it fits.
 
+## Verifying a plate of clones
+
+A whole-plasmid sequencing run returns one consensus a clone, often a plate
+of them, and the question is which clones are the construct you meant to
+make. **File ▸ Verify clones…** answers it for the whole plate at once.
+
+1. Open the construct each clone should be (or several constructs, for a
+   mixed plate) in their own tabs. The dialog lists the open DNA documents;
+   tick the expected ones. The document in front is ticked to begin with.
+2. **Add consensus files…** takes FASTA, GenBank, SnapGene and the other
+   formats the app opens, as many files as you like and several records to a
+   file, up to 384 clones. A file with one record is named by the file, one
+   with several by the file and the record.
+3. **Verify** checks them one after another; **Stop** keeps what is done.
+
+Each clone is lined up with its construct through the origin and on either
+strand, so a consensus written from another start, or reverse complemented,
+is not a difference. It is then aligned end to end, and the table gives
+the clone's **Verdict**, its **Identity**, and what differs, each difference
+placed on the construct's features:
+
+| Verdict                      | Meaning                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| **Matches**                  | No difference at all.                                                          |
+| **Differs inside a feature** | A difference lies in an annotated feature (the whole-molecule `source` aside). |
+| **Differs outside features** | Differences, but only in sequence no feature covers.                           |
+| **Wrong construct**          | Under 75% identical to its construct, or sharing almost nothing.               |
+| **Could not be checked**     | Too large to align, or empty; the row says why.                                |
+
+A difference is an **SNV** (one base), a **substitution** (several adjacent
+bases), an **insertion** or **deletion** (fewer than 20 bases) or an **extra**
+or **missing region** (20 or more), with its position in the construct's
+numbering. In a feature it reads as "frameshift in CDS bla" (an insertion
+or deletion of a number of bases that is not a multiple of three in a CDS),
+"in-frame deletion of 3 bp in CDS bla", "promoter pLac changed" or "CDS bla
+deleted". An insertion at the very edge of a feature is next to it, not in it.
+Ambiguity codes in the consensus (an N) are not counted as differences; the
+row says how many there were.
+
+**Mixed plates.** With several constructs ticked, each clone goes to the
+one it shares the most sequence with. To send clones by name instead, type
+text in the box beside a construct: a clone whose file name contains it (case
+does not matter) goes to that construct, the longest text winning. A clone
+with no match by name is placed by sequence.
+
+Click a clone's name to open **Compare with…** between it and its construct,
+as for any two documents. **Export CSV** saves the table, a row a clone with
+every difference in the last column. Nothing leaves your browser and no file
+is changed.
+
 ## Aligning a read with its qualities
 
 An AB1 or FASTQ file dropped on the box (or chosen with **Choose file…**)

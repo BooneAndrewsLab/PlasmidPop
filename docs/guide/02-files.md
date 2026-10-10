@@ -299,6 +299,12 @@ Nothing is lost in the meantime: every open document is written to this
 browser's own storage as you work and comes back when you return. Downloading
 is how you get a file _out_ of PlasmidPop, not how you avoid losing work.
 
+## Verifying clones
+
+**File ▸ Verify clones…** checks a plate of whole-plasmid sequencing
+consensuses against the open constructs they should be, and says which match;
+see [Verifying a plate of clones](11-align.md#verifying-a-plate-of-clones).
+
 ## Comparing with another document
 
 **File ▸ Compare with…** (`Alt+K`) shows how the open document differs from

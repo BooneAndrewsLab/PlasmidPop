@@ -244,6 +244,12 @@ export const EVENTS = {
     /** A bench protocol was downloaded, named by format (`html` or `md`) (#215); never a name. */
     'protocol',
   ],
+  /**
+   * Verify clones (#218): `run` is a plate checked, named by how many
+   * constructs it was checked against (`one` or `several`), never how many
+   * clones; `csv` is the table exported; `compare` a row opened in Compare.
+   */
+  verify: ['run', 'csv', 'compare'],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],
   /** Which page of the guide was read. */
