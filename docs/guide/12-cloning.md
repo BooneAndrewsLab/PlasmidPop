@@ -13,7 +13,8 @@ deletion. The fragments and PCR products you keep go on the
 The **[Bench](#the-bench)**, a tab of its own beside **Files** in the tab
 strip, is where the parts are joined, from any number of documents:
 **Ligation**, which joins shelf fragments by their overhangs, **Golden
-Gate**, **Gibson** (with the In-Fusion and NEBuilder primer design), and
+Gate**, **Modular** (MoClo and Yeast Toolkit positions, and every
+combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer design), and
 **Gateway**. Beside the reaction it draws what the reaction would make, and
 a digest to check it by.
 
@@ -516,6 +517,52 @@ and an ambiguous set is a design problem worth seeing.
 The product is always circular, and always the whole set: a reaction that
 would use only some of the parts is reported as a failure, not quietly
 assembled from what fits.
+
+## Modular cloning
+
+Golden Gate on its own joins whatever is in the tube. Modular cloning
+(MoClo, the Yeast Toolkit) works from a **standard**: a list of named
+positions, such as Promoter, 5′UTR, CDS and Terminator, each with the two
+overhangs its part is cut with. Choose **Modular** on the Bench to work that
+way.
+
+1. Put the destination vector and the parts in the tube, as for Golden Gate.
+2. Choose the **standard**. **MoClo plant common syntax** and **Yeast Toolkit
+   (YTK)** come with the app; they are only overhang sequences, taken from
+   the papers named under the picker. Others, GoldenBraid or CIDAR say, are
+   not bundled: **Import a standard** reads a text or CSV file with one
+   position per line, `Promoter,GGAG,TACT`, and an optional first line
+   `# My kit, BsmBI` for its name and enzyme. An imported standard is kept in
+   this browser; **remove** forgets it.
+3. Choose the **enzyme** the parts were designed for. A standard starts it on
+   its own, and the second enzyme works as in Golden Gate.
+4. Every part is **placed**. The panel digests it, and a piece whose two ends
+   are one position's, read either way round, belongs there; a piece that
+   closes the gap from the last position back to the first is a
+   **Destination**. The list **Positions** shows what was found. Set a
+   part's position by hand from its menu when the panel could not (a part
+   with a different enzyme, or a part with an internal site), or choose
+   **Leave out**. A part that was set by hand stays set.
+5. The **plan** is one slot per position that has a part, with the destination
+   first. Two parts in one slot are alternatives: the plan makes every way of
+   choosing one per slot, so two promoters and three CDSs give six
+   assemblies. Each runs as the Golden Gate it is. The count says how many
+   assemble and how many cannot, and the list names the ones that cannot,
+   with the reason, ahead of the ones that can. Up to 500 combinations are
+   run; untick parts to get under it.
+6. **Assemble** beside a product opens it as a new document, with the parts
+   it was made from in its history. **Assemble all** opens every one that
+   forms, up to 24 at a time.
+
+If an end of a slot meets no other slot (a position left out of a chain), the
+panel says which, before the reaction does. Below the list it shows the
+overhang warnings and, if you imported a [fidelity table](#measured-fidelity),
+the fidelity of the junctions the plan uses; these depend on the positions,
+so they are the same for every product of the plan.
+
+Not covered: lab inventory and well positions, and a design of the oligos
+that make a new part. A standard that needs a different enzyme at each
+level is planned one level at a time, choosing the enzyme for that level.
 
 ## Gibson
 

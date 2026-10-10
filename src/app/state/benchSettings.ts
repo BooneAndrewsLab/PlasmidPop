@@ -28,6 +28,20 @@ export interface BenchSettings {
     readonly excluded: readonly string[];
     readonly name: string;
   };
+  /** Modular cloning standards and combinatorial plans (#214). */
+  readonly modular: {
+    /** A standard's id; empty for the first one. */
+    readonly standard: string;
+    /** Empty for the standard's own enzyme, else BsaI. */
+    readonly enzyme: string;
+    readonly secondEnzyme: string;
+    readonly excluded: readonly string[];
+    /**
+     * What each part was set to by hand, by ingredient id: a position's name,
+     * `NO_POSITION` to say it is none, or `DESTINATION`. Absent: read off its ends.
+     */
+    readonly tags: Readonly<Record<string, string>>;
+  };
   readonly gibson: {
     readonly excluded: readonly string[];
     readonly minOverlap: number;
@@ -52,6 +66,11 @@ export interface BenchSettings {
   };
 }
 
+/** A hand-set tag meaning the part is the vector the plan's parts go in. */
+export const DESTINATION_TAG = '@destination';
+/** A hand-set tag meaning the part is left out of the plan. */
+export const NO_POSITION_TAG = '@none';
+
 export type BenchPanel = Exclude<keyof BenchSettings, 'reaction'>;
 
 /** The homology lengths Gibson offers to insist on. */
@@ -61,6 +80,7 @@ export const DEFAULT_BENCH: BenchSettings = {
   reaction: 'ligation',
   ligation: { excluded: [], circular: true, name: '' },
   goldenGate: { enzyme: '', secondEnzyme: '', excluded: [], name: '' },
+  modular: { standard: '', enzyme: '', secondEnzyme: '', excluded: [], tags: {} },
   gibson: { excluded: [], minOverlap: GIBSON_DEFAULTS.minOverlap, circular: true, name: '' },
   overlap: { kit: 'in-fusion', vectorId: '', templateId: '', insert: '' },
   gateway: { reaction: 'LR', insertId: '', vectorId: '' },
@@ -87,6 +107,14 @@ function ids(v: unknown): readonly string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 500) : [];
 }
 
+function tagMap(v: unknown): Readonly<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const [k, t] of Object.entries(record(v)).slice(0, 500)) {
+    if (typeof t === 'string') out[k] = t.slice(0, 200);
+  }
+  return out;
+}
+
 /**
  * Reads stored settings back, field by field: whatever is missing or of the
  * wrong type takes its default, so an older or hand-edited entry cannot put
@@ -97,6 +125,7 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
   const d = DEFAULT_BENCH;
   const l = record(r['ligation']);
   const g = record(r['goldenGate']);
+  const m = record(r['modular']);
   const s = record(r['gibson']);
   const o = record(r['overlap']);
   const w = record(r['gateway']);
@@ -113,6 +142,13 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
       secondEnzyme: text(g['secondEnzyme'], ''),
       excluded: ids(g['excluded']),
       name: text(g['name'], ''),
+    },
+    modular: {
+      standard: text(m['standard'], ''),
+      enzyme: text(m['enzyme'], ''),
+      secondEnzyme: text(m['secondEnzyme'], ''),
+      excluded: ids(m['excluded']),
+      tags: tagMap(m['tags']),
     },
     gibson: {
       excluded: ids(s['excluded']),

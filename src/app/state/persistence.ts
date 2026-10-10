@@ -2,8 +2,11 @@ import {
   type AssemblyPart,
   type Enzyme,
   type EnzymeSet,
+  type OverhangStandard,
   type SeqDocument,
   BUNDLED_ENZYME_SET,
+  BUNDLED_STANDARDS,
+  parseStandardText,
   parseFidelityCsv,
   parseFidelityWorkbook,
 } from '@/core';
@@ -387,6 +390,35 @@ export class PersistenceService {
       skipped: parsed.skipped,
       warnings: parsed.warnings,
     };
+  }
+
+  /** Reads back the overhang standards imported in earlier sessions (#214). */
+  async restoreStandards(): Promise<void> {
+    editorStore.setCustomStandards(await this.repo.loadOverhangStandards());
+  }
+
+  /** Reads a standard from a text file, keeps it in this browser, and returns it. */
+  async importStandardFile(file: File): Promise<OverhangStandard> {
+    const parsed = parseStandardText(await file.text(), file.name);
+    if (!parsed.ok) throw new Error(parsed.error);
+    if (BUNDLED_STANDARDS.some((s) => s.id === parsed.standard.id)) {
+      throw new Error(`${parsed.standard.name} is already a standard of the app.`);
+    }
+    await this.repo.saveOverhangStandard(parsed.standard);
+    const others = editorStore
+      .getState()
+      .customStandards.filter((s) => s.id !== parsed.standard.id);
+    editorStore.setCustomStandards([...others, parsed.standard]);
+    analytics.track('cloning', 'standard-import');
+    return parsed.standard;
+  }
+
+  async removeStandard(id: string): Promise<void> {
+    await this.repo.deleteOverhangStandard(id);
+    editorStore.setCustomStandards(
+      editorStore.getState().customStandards.filter((s) => s.id !== id),
+    );
+    analytics.track('cloning', 'standard-remove');
   }
 
   /** Reads back a fidelity table imported in an earlier session (#68). */

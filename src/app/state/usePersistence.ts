@@ -110,6 +110,12 @@ export function useRestoreSession(): boolean {
       } catch {
         // No import, or storage unavailable: the rules stand alone.
       }
+      try {
+        // The overhang standards the user imported (#214).
+        await persistence.restoreStandards();
+      } catch {
+        // None, or storage unavailable: the bundled standards stand.
+      }
       if (editorStore.getState().documents.length === 0) {
         try {
           await persistence.restoreLastSession();

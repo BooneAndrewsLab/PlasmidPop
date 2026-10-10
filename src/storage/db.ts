@@ -129,6 +129,22 @@ export interface StoredFidelityTable {
   readonly importedAt: number;
 }
 
+/**
+ * An overhang standard the user imported (#214), a row each under the
+ * standard's id. The bundled ones are code; these are the user's own.
+ */
+export interface StoredOverhangStandard {
+  readonly id: string;
+  readonly name: string;
+  readonly enzyme: string;
+  readonly positions: readonly {
+    readonly name: string;
+    readonly left: string;
+    readonly right: string;
+  }[];
+  readonly importedAt: number;
+}
+
 /** Key of the single `fidelityTables` row. */
 export const FIDELITY_TABLE_ID = 'active';
 
@@ -159,6 +175,8 @@ export class PlasmidPopDb extends Dexie {
   declare primers: EntityTable<StoredPrimer, 'id'>;
   /** The imported ligation-fidelity table (#68), one row. */
   declare fidelityTables: EntityTable<StoredFidelityTable, 'id'>;
+  /** Overhang standards the user imported (#214), a row each. */
+  declare overhangStandards: EntityTable<StoredOverhangStandard, 'id'>;
 
   constructor(name = 'plasmidpop') {
     super(name);
@@ -214,6 +232,10 @@ export class PlasmidPopDb extends Dexie {
     // Version 9 adds the user's own enzymes (#217).
     this.version(9).stores({
       customEnzymes: 'id',
+    });
+    // Version 10 adds the user's own overhang standards (#214).
+    this.version(10).stores({
+      overhangStandards: 'id',
     });
   }
 }

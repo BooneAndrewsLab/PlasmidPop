@@ -234,6 +234,10 @@ export const EVENTS = {
     /** A ligation-fidelity table was imported, or forgotten again (#68). */
     'fidelity-import',
     'fidelity-clear',
+    /** A modular plan opened one product, or an overhang standard was imported or removed (#214); never a name. */
+    'modular-assemble',
+    'standard-import',
+    'standard-remove',
   ],
   /** A key binding was used; the name is the binding, e.g. `alt+c`. */
   shortcut: ['use'],

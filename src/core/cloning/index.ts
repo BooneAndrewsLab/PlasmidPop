@@ -3,6 +3,7 @@ export * from './ligate';
 export * from './pcr';
 export * from './fidelity';
 export * from './goldenGate';
+export * from './moclo';
 export * from './gibson';
 export * from './mutagenesis';
 export * from './gateway';

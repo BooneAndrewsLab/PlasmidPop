@@ -140,6 +140,25 @@ function namesOf(enzymes: readonly Enzyme[]): string {
   return enzymes.map((e) => e.name).join(' and ');
 }
 
+/**
+ * The pieces of one document's digest that survive the reaction: no site
+ * left and two sticky ends. It is what the reaction would put in the tube
+ * from this document, which is what a modular standard's positions are
+ * read off (#214).
+ */
+export function goldenGateFragments(
+  doc: SeqDocument,
+  options: GoldenGateOptions,
+): readonly DigestFragment[] {
+  const enzymes = enzymesOf(options);
+  return digestWith(doc, enzymes).filter(
+    (f) =>
+      !enzymes.some((e) => containsSite(f.sequence, e)) &&
+      f.left.kind !== 'blunt' &&
+      f.right.kind !== 'blunt',
+  );
+}
+
 /** One oriented candidate: a fragment, as itself or turned around. */
 interface Oriented {
   /** Index into the usable list, so a fragment is used only once. */

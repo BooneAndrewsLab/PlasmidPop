@@ -5,6 +5,7 @@ import {
   type Enzyme,
   type EnzymeSet,
   type FidelityTable,
+  type OverhangStandard,
   type OverhangKind,
   type SeqDocument,
   type SequencingRead,
@@ -514,6 +515,50 @@ export class DocumentRepository {
 
   async deletePrimers(ids: readonly string[]): Promise<void> {
     await this.db.primers.bulkDelete([...ids]);
+  }
+
+  /** The overhang standards the user imported (#214), oldest first; rows are checked on the way in. */
+  async loadOverhangStandards(): Promise<OverhangStandard[]> {
+    const rows = await this.db.overhangStandards.toArray();
+    const out: OverhangStandard[] = [];
+    for (const r of rows.sort((a, b) => a.importedAt - b.importedAt)) {
+      if (!isString(r.id) || !isString(r.name) || !Array.isArray(r.positions)) continue;
+      const positions = (r.positions as readonly unknown[]).flatMap((p) => {
+        const q = p as { name?: unknown; left?: unknown; right?: unknown } | null;
+        return q !== null &&
+          typeof q === 'object' &&
+          isString(q.name) &&
+          isString(q.left) &&
+          isString(q.right)
+          ? [{ name: q.name, left: q.left, right: q.right }]
+          : [];
+      });
+      if (positions.length === 0) continue;
+      out.push({
+        id: r.id,
+        name: r.name,
+        citation: '',
+        enzyme: isString(r.enzyme) ? r.enzyme : '',
+        positions,
+        bundled: false,
+      });
+    }
+    return out;
+  }
+
+  /** Adds an imported standard, or replaces the one of the same id. */
+  async saveOverhangStandard(standard: OverhangStandard): Promise<void> {
+    await this.db.overhangStandards.put({
+      id: standard.id,
+      name: standard.name,
+      enzyme: standard.enzyme,
+      positions: standard.positions.map((p) => ({ name: p.name, left: p.left, right: p.right })),
+      importedAt: Date.now(),
+    });
+  }
+
+  async deleteOverhangStandard(id: string): Promise<void> {
+    await this.db.overhangStandards.delete(id);
   }
 
   /** The imported ligation-fidelity table (#68), or null when there is none. */

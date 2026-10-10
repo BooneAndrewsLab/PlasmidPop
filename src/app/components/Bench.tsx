@@ -7,12 +7,14 @@ import { BenchProductSlot } from './benchProductSlot';
 import { GatewayPanel } from './GatewayPanel';
 import { GibsonPanel } from './GibsonPanel';
 import { GoldenGatePanel } from './GoldenGatePanel';
+import { ModularPanel } from './ModularPanel';
 import { LigationPanel } from './LigationPanel';
 import { ShelfPanel } from './ShelfPanel';
 
 const HEADINGS = {
   ligation: ['Ligation', "in the shelf's order"],
   'golden-gate': ['Golden Gate', 'one pot, one enzyme'],
+  modular: ['Modular cloning', 'a standard, a plan'],
   gibson: ['Gibson', 'no enzyme, matching ends'],
   gateway: ['Gateway', 'att sites, no enzyme'],
 } as const;
@@ -64,6 +66,7 @@ export function Bench() {
           <BenchProductSlot.Provider value={productSlot}>
             {reaction === 'ligation' && <LigationPanel />}
             {reaction === 'golden-gate' && <GoldenGatePanel />}
+            {reaction === 'modular' && <ModularPanel />}
             {reaction === 'gibson' && <GibsonPanel />}
             {reaction === 'gateway' && <GatewayPanel />}
           </BenchProductSlot.Provider>

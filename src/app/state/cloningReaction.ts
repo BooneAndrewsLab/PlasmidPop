@@ -13,7 +13,7 @@
  */
 export type SidebarReaction = 'digest' | 'pcr' | 'mutagenesis';
 
-export type BenchReaction = 'ligation' | 'golden-gate' | 'gibson' | 'gateway';
+export type BenchReaction = 'ligation' | 'golden-gate' | 'modular' | 'gibson' | 'gateway';
 
 export type CloningReaction = SidebarReaction | BenchReaction;
 
@@ -56,6 +56,11 @@ export const BENCH_REACTIONS: readonly ReactionOption<BenchReaction>[] = [
     value: 'golden-gate',
     label: 'Golden Gate',
     title: 'One Type IIS enzyme, every part in one tube',
+  },
+  {
+    value: 'modular',
+    label: 'Modular',
+    title: 'MoClo, YTK and other standards: one part per position, every combination',
   },
   { value: 'gibson', label: 'Gibson', title: 'No enzyme: parts that end in each other' },
   {

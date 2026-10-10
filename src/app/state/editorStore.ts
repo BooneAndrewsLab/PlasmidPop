@@ -11,6 +11,7 @@ import {
   type Enzyme,
   type FeatureId,
   type FidelityTable,
+  type OverhangStandard,
   type LadderChoice,
   type Orf,
   type PrimerCriteria,
@@ -639,6 +640,8 @@ export interface SharedState {
    * not bundled, so without it the panel has only its design rules.
    */
   readonly fidelityTable: FidelityTable | null;
+  /** Overhang standards the user imported (#214), beside the bundled ones. */
+  readonly customStandards: readonly OverhangStandard[];
   /**
    * The key bindings the user has changed, action id → binding (#79).
    * Only the changes are kept; `resolveBindings` puts them over the
@@ -921,6 +924,7 @@ const SHARED_INITIAL: SharedState = {
     custom: [],
   },
   fidelityTable: null,
+  customStandards: [],
   keyBindings: {},
   keysDialog: false,
 };
@@ -2196,6 +2200,11 @@ export class EditorStore {
   resetKeyBindings(): void {
     if (Object.keys(this.state.keyBindings).length === 0) return;
     this.setShared({ keyBindings: {} });
+  }
+
+  /** Installs the user's imported overhang standards (#214). */
+  setCustomStandards(standards: readonly OverhangStandard[]): void {
+    this.setShared({ customStandards: standards });
   }
 
   /** Installs the imported fidelity table, or forgets it (#68). */
