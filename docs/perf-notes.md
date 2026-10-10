@@ -800,3 +800,34 @@ three mismatches, the whole record):
 The Biopython oracle (`src/test/oracle/crispr.test.ts`) passes unchanged
 either way, which is what says the index only skips comparisons that could
 not have matched.
+
+## Homologue search (item 59, #219, 2026-10-10)
+
+The gapped protein search (`homologue.ts`) must not turn a 10 kb plasmid
+into a seconds-long wait. It seeds with exact 4-residue words from every
+protein of 50 residues or more (154 proteins, 43,035 residues in the bundled
+list), keeps words that gather three or more within 16 diagonals, requires an
+ungapped BLOSUM62 stretch of 45 or more on one of them (BLAST's two-hit idea),
+and only then aligns locally (`alignInBand`, protein alphabet) in a band of
+32 diagonals either side of the cluster. Two things were needed to get there.
+The first version aligned every chance cluster in full, most of them against
+the 1,000-residue proteins: 2.3 s for 10 kb of random sequence. The ungapped
+check removed most of the alignments, and the band made the rest about
+sixteen times cheaper: 1 Mb of random sequence went from 3.2 s to 0.8 s.
+
+Measured (Node 24, the whole bundled list, six frames, circular):
+
+| Case                                                         | Time          |
+| ------------------------------------------------------------ | ------------- |
+| 10 kb random, no homologue                                   | ~8 ms         |
+| 1 Mb random (`detect.test.ts`, whole `detectFeatures`)       | ~1.0 s        |
+| 1 Mb random, homologues alone / the rest of `detectFeatures` | 0.8 s / 0.4 s |
+
+Validation on synthetic variants (ten proteins, each recoded with random
+codons and diverged by random substitutions plus two indels, in 6 kb
+of random flank), before the trigger moved from 40 to 45: found 10/10 up
+to 30% of residues replaced (aligned identity 63-89%), 9/10 at 40%, 9/10 at
+50% (identity 48-57%), 6/10 at 60%, 2/10 at 70%. The misses are mostly EGFP,
+held to 60% identity as a fluorescent protein. No hit in 40 random 10 kb
+sequences (400 kb), nor in a shuffled AmpR. Recall on real homologues is
+for the oracle (#220) to measure.

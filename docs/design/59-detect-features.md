@@ -164,6 +164,53 @@ protein match`), and so does the note on the feature added.
   it. SUMO is still out: the "tag" is the whole SMT3 protein, which is a
   sequence to fetch rather than a probe to check.
 
+## Homologues of every CDS (#219, 1.14)
+
+Item 59 matched what a part codes for only for tags and fluorescent
+proteins, and only with substitutions. A resistance marker recoded for another
+host (Kan, Hyg, Bsd, Puro, Zeo are codon-optimised in every vector family) and
+a diverged homologue (another aminoglycoside phosphotransferase, another
+β-lactamase) read as too many mismatches in DNA. pLannotate finds them with a
+DIAMOND search against Swiss-Prot; its method (McGuffie and Barrick, NAR 2021) is the model, its code (GPL-3.0) is not used, and Swiss-Prot is far too
+large for the browser. The search is of the bundled list plus My parts.
+
+- **Every CDS has a protein.** `codingProtein` (`library.ts`) translates a part
+  of type CDS made of whole codons with no stop inside (a closing stop is
+  dropped), when the part has no protein of its own. It is applied as the
+  files are read and to My parts (`myPartToLibraryPart`), so nothing is typed
+  in and the build and data files are unchanged: the protein is the
+  part's own cited bases. That brings in about 60 CDS parts (markers, enzymes,
+  repressors such as lacI and tetR, Cas9, reporters) to the 98% protein match
+  of #93, which now finds them recoded.
+- **A gapped search** (`homologue.ts`). The six translations are seeded with
+  exact four-residue words, a hit being a cluster of three words within 16
+  diagonals that an ungapped BLOSUM62 stretch (score 45, about 20 bits)
+  confirms, the way BLAST's two-hit method and DIAMOND confirm theirs.
+  A confirmed cluster is aligned locally, in a band around it, with
+  `alignInBand` and the protein alphabet, so the scoring is `src/core/alignment`'s BLOSUM62 with gaps at
+  11 to open and 1 to extend, not new code. A hit must reach its class's
+  identity (of the alignment's columns), coverage (share of the part's
+  protein spanned) and bit score (gapped statistics, λ 0.267, K 0.041), and
+  also an expectation of 1e-5 or less over the six frames searched.
+- **Thresholds per part class** (`homologueThreshold`). Proteins under 150
+  residues: 50% identity, 80% coverage, 40 bits. Fluorescent proteins, a
+  family of relatives sharing one fold: 60%, 90%, 60 bits, so only a near
+  relative is named. The rest: 35%, 70%, 50 bits. Proteins under 50 residues
+  are not searched (tags match exactly, #93). Validated on synthetic recoded
+  and diverged variants and random sequence (`docs/perf-notes.md`); the oracle
+  (#220) will measure recall on real homologues, and the thresholds are
+  to be revisited then.
+- **"Similar to", never "is".** A hit carries `similar` (its coverage and
+  bits). The panel says "similar protein: 87% identical over 96% of the
+  part's protein", and a feature added is named `similar to KanR`, never
+  `KanR`, with the same words in its note and the part's record.
+  `similar` hits are set aside from the rest: a part of the same type found
+  over half of the same bases (by DNA or by its protein) is the answer and
+  the "similar to" is dropped; among homologues the better score wins.
+- **Speed.** 154 proteins (43,035 residues) against 1 Mb of random sequence: 0.8 s,
+  about 8 ms for a plasmid, and no hit in 400 kb of random sequence.
+  `DetectOptions.homologues: false` turns it off.
+
 ## Matching (`src/core/annotate/detect.ts`)
 
 Every part is indexed by its 12-mers on both strands, once per library; a

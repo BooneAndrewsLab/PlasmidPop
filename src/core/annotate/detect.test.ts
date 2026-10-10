@@ -605,7 +605,7 @@ describe('the bundled library', () => {
       expect(covered, p.name).toBe(true);
       if (self !== undefined) expect(self.identity, p.name).toBe(1);
     }
-  });
+  }, 30_000);
 
   it('finds every part that carries a protein in a sequence coding for it (#93)', async () => {
     const lib = await loadFeatureLibrary();

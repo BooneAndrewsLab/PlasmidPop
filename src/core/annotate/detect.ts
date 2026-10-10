@@ -2,6 +2,7 @@ import { type Strand } from '../features';
 import { type Range, type Topology, rangePieces } from '../range';
 import { alignNearDiagonal, bandCells } from './gapped';
 import { type FeatureLibrary } from './library';
+import { detectHomologues } from './homologue';
 import { detectProteinFeatures } from './protein';
 
 /**
@@ -62,6 +63,12 @@ export interface DetectOptions {
    */
   readonly protein?: boolean;
   /**
+   * Whether to look for homologues of the parts with a protein (#219): a
+   * gapped, BLOSUM62-scored search of the six translations. On by default,
+   * and only when `protein` is.
+   */
+  readonly homologues?: boolean;
+  /**
    * Whether a part may hang off the end of a linear sequence and be offered
    * for the piece that is there (#94). On by default: a fragment cut out of
    * a vector ends in the middle of whatever it ends in, and saying so is
@@ -108,6 +115,14 @@ export interface FeatureHit {
    * (#93): then `mismatches` and `identity` are of residues, not bases.
    */
   readonly viaProtein?: boolean;
+  /**
+   * A homologue (#219): the part's protein was matched with substitutions
+   * and gaps, not nearly whole. The hit is "similar to" the part, never the
+   * part; `identity` is of the aligned columns, `coverage` the share of the
+   * part's protein the alignment spans, and `mismatches` the columns that
+   * differ.
+   */
+  readonly similar?: { readonly coverage: number; readonly bits: number };
   /**
    * That the part runs off the start or the end of a linear sequence (#94),
    * so only the piece inside it was matched. The feature made from it is
@@ -411,7 +426,42 @@ export function detectFeatures(
     options.protein === false
       ? dna
       : [...dna, ...detectProteinFeatures(sequence, topology, library)];
-  return keepBest(withProtein, library, n, topology);
+  const kept = keepBest(withProtein, library, n, topology);
+  if (options.protein === false || options.homologues === false) return kept;
+  return withHomologues(kept, detectHomologues(sequence, topology, library), library, n, topology);
+}
+
+/**
+ * Homologue hits (#219) beside the ones that are the parts themselves: a
+ * "similar to" is dropped where a part of the same type was already found
+ * over at least half of it (the part is the better answer), and the rest
+ * are reduced among themselves, the better score winning where two parts
+ * are similar to the same bases.
+ */
+function withHomologues(
+  kept: readonly FeatureHit[],
+  similar: readonly FeatureHit[],
+  library: FeatureLibrary,
+  length: number,
+  topology: Topology,
+): FeatureHit[] {
+  const bySimilar = [...similar].sort(
+    (x, y) => (y.similar?.bits ?? 0) - (x.similar?.bits ?? 0) || x.part - y.part,
+  );
+  const out: FeatureHit[] = [];
+  for (const h of bySimilar) {
+    const type = library.parts[h.part]?.type;
+    const size = h.range.end - h.range.start;
+    const covered = (k: FeatureHit): boolean =>
+      library.parts[k.part]?.type === type &&
+      overlapLength(k.range, h.range, length, topology) >= 0.5 * size;
+    if (kept.some(covered) || out.some(covered)) continue;
+    out.push(h);
+  }
+  return [...kept, ...out].sort(
+    (x, y) =>
+      x.range.start - y.range.start || y.range.end - y.range.start - (x.range.end - x.range.start),
+  );
 }
 
 /**

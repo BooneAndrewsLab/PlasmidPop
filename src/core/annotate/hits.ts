@@ -58,6 +58,9 @@ export function describeMatch(hit: FeatureHit): string {
     const where = atStart && atEnd ? 'both ends' : atStart ? 'the start' : 'the end';
     return `${how} as far as it goes, cut off at ${where}`;
   }
+  if (hit.similar !== undefined) {
+    return `similar protein: ${formatIdentity(hit.identity)} identical over ${formatIdentity(hit.similar.coverage)} of the part's protein`;
+  }
   if (hit.viaProtein === true) {
     if (hit.mismatches === 0) return 'exact protein match';
     const residues =
@@ -93,7 +96,9 @@ export function featureFromHit(
   hit: FeatureHit,
   part: Omit<LibraryPart, 'sequence' | 'protein'>,
 ): Feature {
-  const qualifiers: Qualifier[] = [{ name: 'label', value: part.name }];
+  // A homologue is never named as the part itself (#219).
+  const name = hit.similar === undefined ? part.name : `similar to ${part.name}`;
+  const qualifiers: Qualifier[] = [{ name: 'label', value: name }];
   if (part.note !== undefined) qualifiers.push({ name: 'note', value: part.note });
   const via = part.fpbase === undefined ? '' : ` via FPbase ${part.fpbase}`;
   qualifiers.push({
@@ -105,7 +110,7 @@ export function featureFromHit(
   });
   return createFeature({
     type: part.type,
-    name: part.name,
+    name,
     strand: hit.strand,
     // A part running off the end of a linear sequence is annotated as the
     // piece that is there, marked partial as GenBank's `<`/`>` mean (#94).

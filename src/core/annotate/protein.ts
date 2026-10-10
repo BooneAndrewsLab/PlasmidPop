@@ -52,11 +52,11 @@ export const DEFAULT_PROTEIN_IDENTITY = 0.98;
 export const EXACT_UP_TO = 12;
 
 /** Five bits a residue, so a seed of five is 25 bits. */
-const RESIDUE_BITS = 5;
+export const RESIDUE_BITS = 5;
 const SEED_BITS = RESIDUE_BITS * PROTEIN_SEED;
 const SEED_MASK = (1 << SEED_BITS) - 1;
 /** Not a residue: a stop, an ambiguous codon, anything that breaks a run. */
-const NONE = 31;
+export const NONE = 31;
 
 export interface ProteinDetectOptions {
   readonly minIdentity?: number;
@@ -80,7 +80,7 @@ function residueCode(letter: string): number {
   return c >= 65 && c <= 90 ? c - 65 : NONE;
 }
 
-function codesOf(protein: string): Uint8Array {
+export function codesOf(protein: string): Uint8Array {
   const out = new Uint8Array(protein.length);
   for (let i = 0; i < protein.length; i++) out[i] = residueCode(protein.charAt(i));
   return out;
@@ -107,7 +107,7 @@ const CODON_TO_RESIDUE = (() => {
 })();
 
 /** Two bits per definite base, 4 for anything else (an IUPAC code, an N). */
-const BASE_CODE = (() => {
+export const BASE_CODE = (() => {
   const t = new Uint8Array(128).fill(4);
   const set = (letters: string, code: number): void => {
     for (const c of letters) {
@@ -185,7 +185,7 @@ function forEachSeed(
 }
 
 /** One frame of the translation, and how to get back to the bases. */
-interface Frame {
+export interface ProteinFrame {
   readonly strand: Strand;
   /** Bases skipped before the first codon, 0–2. */
   readonly offset: number;
@@ -198,9 +198,9 @@ interface Frame {
  * residue is the last codon of the strand and its residues count back
  * towards zero.
  */
-function framesOf(bases: Uint8Array): Frame[] {
+export function framesOf(bases: Uint8Array): ProteinFrame[] {
   const n = bases.length;
-  const out: Frame[] = [];
+  const out: ProteinFrame[] = [];
   for (let offset = 0; offset < 3; offset++) {
     const count = Math.max(0, Math.floor((n - offset) / 3));
     const forward = new Uint8Array(count);

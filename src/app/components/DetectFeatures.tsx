@@ -163,7 +163,7 @@ function OfferList({
                   <input
                     type="checkbox"
                     checked={!unticked.has(o.detection)}
-                    aria-label={`Add ${part.name}`}
+                    aria-label={`Add ${feature.name}`}
                     onChange={(e) => {
                       toggle(o, e.target.checked);
                     }}
@@ -184,7 +184,7 @@ function OfferList({
                     aria-hidden="true"
                   />
                   <span className="feature-row__text">
-                    <span className="feature-row__name">{part.name}</span>
+                    <span className="feature-row__name">{feature.name}</span>
                     <span className="feature-row__detail">
                       <span>{part.type} </span>
                       <span className="feature-row__location">

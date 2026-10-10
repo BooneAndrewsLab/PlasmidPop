@@ -1,3 +1,5 @@
+import { translate } from '../analysis/codons';
+
 /**
  * The bundled database of common features that Detect features looks for
  * (item 59, `docs/design/59-detect-features.md`). Two files, both generated
@@ -74,6 +76,24 @@ function text(entry: Record<string, unknown>, key: string): string | undefined {
 }
 
 /**
+ * What a coding part's own bases code for (#219): the translation of a CDS
+ * of whole codons with no stop inside (a closing stop is dropped), or
+ * undefined for anything else. Nothing is typed in: the protein is read off
+ * the part's cited bases, so every CDS of the library is also looked for in
+ * the six frames, and found recoded for another host or as a homologue.
+ */
+export function codingProtein(type: string, sequence: string): string | undefined {
+  if (type !== 'CDS' || sequence.length < 3 * MIN_CODING_RESIDUES || sequence.length % 3 !== 0) {
+    return undefined;
+  }
+  const protein = translate(sequence).replace(/\*$/, '');
+  return protein.length >= MIN_CODING_RESIDUES && /^[A-WYZ]+$/.test(protein) ? protein : undefined;
+}
+
+/** Shorter than the matcher's protein seed, a protein is no part. */
+const MIN_CODING_RESIDUES = 8;
+
+/**
  * The parts of one data file, checked field by field: a part that is not
  * what the matcher expects is a fault in the build, and throws.
  */
@@ -103,7 +123,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
     }
     const note = text(entry, 'note');
     const fpbase = text(entry, 'fpbase');
-    const protein = text(entry, 'protein');
+    const protein = text(entry, 'protein') ?? codingProtein(type, sequence);
     const exact = entry['exact'];
     if (exact !== undefined && typeof exact !== 'boolean') {
       throw new Error(`Feature library (${source}): part ${i} has a malformed exact`);

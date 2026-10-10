@@ -128,6 +128,19 @@ What is found:
   ECFP, mTurquoise2, mScarlet, Superfolder GFP, mKate2, TagBFP, Clover,
   mRuby2 and mRuby3 among them) are found at all. A short peptide must match
   exactly, for the same reason a short stretch of DNA must.
+  Every coding part in the list is looked for this way too, from its own
+  bases: a resistance marker recoded for another host (a Kan, Hyg or Bsd gene
+  in a different vector family's codons) is still found, as the part.
+- **Similar proteins**, a step further. A part's protein is also searched for
+  with substitutions and gaps, so a diverged relative of a part, such as
+  another aminoglycoside phosphotransferase or a β-lactamase variant, is
+  offered as _similar protein: 87% identical over 96% of the part's protein_.
+  It is never named as the part: the feature is called **similar to KanR**, so
+  a homologue is not taken for the exact part. How diverged a relative may be
+  depends on the part (a short protein or a fluorescent protein must be
+  closer than an enzyme), and where the part itself was found over the same
+  bases nothing "similar" is offered. Your own coding **My parts** are
+  searched this way too.
 - **Ambiguity codes** in your sequence (`N`, `R`, `Y`, …) count against a
   match like a mismatch, but are reported separately, as _1 ambiguous base_,
   when the code allows the part's base.

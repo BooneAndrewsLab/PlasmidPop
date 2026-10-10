@@ -1,6 +1,6 @@
 import { type Feature, qualifierValues } from '../features';
 import { type SeqDocument } from '../document';
-import { type LibraryPart } from './library';
+import { type LibraryPart, codingProtein } from './library';
 import { SEED } from './detect';
 import { PROTEIN_SEED } from './protein';
 
@@ -108,6 +108,7 @@ export function preparePartDrafts(
 
 /** A kept part as Detect features matches it. */
 export function myPartToLibraryPart(part: MyPart): LibraryPart {
+  const protein = part.protein ?? codingProtein(part.type, part.sequence);
   return {
     name: part.name,
     type: part.type,
@@ -118,7 +119,7 @@ export function myPartToLibraryPart(part: MyPart): LibraryPart {
     source: 'mine',
     origin: part.origin,
     ...(part.notes === '' ? {} : { note: part.notes }),
-    ...(part.protein === undefined ? {} : { protein: part.protein }),
+    ...(protein === undefined ? {} : { protein }),
   };
 }
 
