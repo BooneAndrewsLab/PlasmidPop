@@ -2418,6 +2418,21 @@ button {
   cursor: default;
 }
 
+/* A label and its control, label left and control right, as in a settings list. */
+.menu__field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding-left: 12px;
+}
+
+.menu__field-row select {
+  font: inherit;
+  min-width: 8.5em;
+}
+
 .menu__item--field input[type='text'],
 .menu__item--field input[type='number'] {
   width: 9em;

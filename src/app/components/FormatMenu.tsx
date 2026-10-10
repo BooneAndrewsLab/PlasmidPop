@@ -288,8 +288,11 @@ export function FormatMenu() {
           </button>
           {showGc && !isProtein && (
             <div className="menu__item menu__item--field" role="group" aria-label="GC window">
-              <label title="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map">
-                Window
+              <label
+                className="menu__field-row"
+                title="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map"
+              >
+                <span>Window</span>
                 <select
                   aria-label="GC window"
                   value={gcWindow === null ? 'auto' : String(gcWindow)}
