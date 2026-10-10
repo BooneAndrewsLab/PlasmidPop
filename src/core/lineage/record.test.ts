@@ -5,6 +5,7 @@ import {
   SeqDocument,
   createFeature,
   designMutagenesis,
+  designOverlapExtension,
   designOverlapPrimers,
   digest,
   documentChecksum,
@@ -33,6 +34,7 @@ import {
   recordLigation,
   recordMutagenesis,
   recordOverlapDesign,
+  recordOverlapExtension,
   recordPcr,
   withPhosphates,
 } from './record';
@@ -403,5 +405,36 @@ describe('an In-Fusion design', () => {
   it('makes nothing of a design that made nothing', () => {
     const design = designOverlapPrimers(vec, source, { start: 1000, end: 1010 }, 'in-fusion');
     expect(recordOverlapDesign(design, vec, source, 'in-fusion')).toBeNull();
+  });
+});
+
+describe('an overlap-extension design', () => {
+  const a = SeqDocument.create({ name: 'frag A', sequence: filler(900, 5).toLowerCase() });
+  const b = SeqDocument.create({ name: 'frag B', sequence: filler(800, 6).toLowerCase() });
+  const fragments = [a, b].map((doc) => ({ doc, range: { start: 0, end: doc.length } }));
+
+  it('is the fragments, each amplified, joined by their overlap, and amplified again', () => {
+    const design = designOverlapExtension(fragments);
+    const doc = must(recordOverlapExtension(design, fragments), 'a product');
+    const root = lineage(doc);
+    expect(root.step).toMatchObject({
+      op: 'pcr',
+      forward: { name: 'SOE F1' },
+      reverse: { name: 'SOE R2' },
+    });
+    const joined = parents(root)[0];
+    expect(joined?.step).toMatchObject({ op: 'gibson', kit: 'overlap-extension', circular: false });
+    const rounds = parents(joined);
+    expect(rounds.map((r) => r.step?.op)).toEqual(['pcr', 'pcr']);
+    expect(rounds[1]?.step).toMatchObject({
+      forward: { name: 'SOE F2', sequence: design.primers[2]?.sequence.toUpperCase() },
+    });
+    expect(parents(rounds[0])[0]?.checksum).toBe(checksum(a));
+    expect(parents(rounds[1])[0]?.checksum).toBe(checksum(b));
+  });
+
+  it('makes nothing of a design that made nothing', () => {
+    const design = designOverlapExtension(fragments.slice(0, 1));
+    expect(recordOverlapExtension(design, fragments.slice(0, 1))).toBeNull();
   });
 });

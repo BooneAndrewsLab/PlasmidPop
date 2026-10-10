@@ -300,7 +300,12 @@ function stepArb(parentArb: fc.Arbitrary<LineageNode>): fc.Arbitrary<LineageStep
     some.chain((parents) =>
       fc
         .tuple(
-          fc.constantFrom('gibson' as const, 'in-fusion' as const, 'nebuilder' as const),
+          fc.constantFrom(
+            'gibson' as const,
+            'in-fusion' as const,
+            'nebuilder' as const,
+            'overlap-extension' as const,
+          ),
           fc.boolean(),
           fc.nat(100),
           flagsOf(parents.length),

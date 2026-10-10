@@ -367,7 +367,14 @@ function finish(draft: Draft): LineageNode | null {
         const circular = readYesNo(s('circular'));
         const overlap = count(s('overlap'));
         const flipped = readFlags(s('flipped'), parents.length);
-        if (kit !== 'gibson' && kit !== 'in-fusion' && kit !== 'nebuilder') return null;
+        if (
+          kit !== 'gibson' &&
+          kit !== 'in-fusion' &&
+          kit !== 'nebuilder' &&
+          kit !== 'overlap-extension'
+        ) {
+          return null;
+        }
         if (circular === null || overlap === null || flipped === null) return null;
         return { op, parents, kit, circular, overlap, flipped };
       }

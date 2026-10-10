@@ -9,6 +9,8 @@ import {
   SeqDocument,
   annealingPart,
   buildProtocol,
+  designOverlapExtension,
+  recordOverlapExtension,
   ngOf,
   pmolOf,
   protocolToHtml,
@@ -267,5 +269,25 @@ describe('protocol text', () => {
     expect(html).toContain('v&amp;w');
     expect(html).not.toContain('<b>');
     expect(html.startsWith('<!doctype html>')).toBe(true);
+  });
+});
+
+describe('buildProtocol of an overlap-extension product', () => {
+  const a = SeqDocument.create({ name: 'frag A', sequence: filler(900, 5).toLowerCase() });
+  const b = SeqDocument.create({ name: 'frag B', sequence: filler(800, 6).toLowerCase() });
+  const fragments = [a, b].map((doc) => ({ doc, range: { start: 0, end: doc.length } }));
+
+  it('lists the PCRs, then the fusion as a step of its own, and every primer to order', () => {
+    const design = designOverlapExtension(fragments);
+    const doc = must(recordOverlapExtension(design, fragments));
+    const p = must(buildProtocol(doc));
+    expect(p.steps.map((s) => s.kind)).toEqual(['pcr', 'pcr', 'other', 'pcr']);
+    const fusion = p.steps[2];
+    expect(fusion?.kind === 'other' ? fusion.description : '').toMatch(
+      /Overlap-extension PCR of 2 parts, linear.*no primers/,
+    );
+    expect(p.oligos.map((o) => o.sequence).sort()).toEqual(
+      design.primers.map((x) => x.sequence.toUpperCase()).sort(),
+    );
   });
 });

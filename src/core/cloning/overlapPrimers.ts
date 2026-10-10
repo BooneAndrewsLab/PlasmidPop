@@ -71,7 +71,10 @@ export const OVERLAP_DEFAULTS: Required<Omit<OverlapOptions, 'name'>> = {
 };
 
 /** Grows an annealing part from `read(n)` until it melts at `target` or runs out. */
-function anneal(read: (n: number) => string, opts: Required<Omit<OverlapOptions, 'name'>>): string {
+export function growAnnealing(
+  read: (n: number) => string,
+  opts: Required<Omit<OverlapOptions, 'name'>>,
+): string {
   let n = opts.minAnneal;
   while (n < opts.maxAnneal && meltingTemperature(read(n)) < opts.targetTm) n++;
   return read(n);
@@ -130,8 +133,11 @@ export function designOverlapPrimers(
   // not an amplicon (`pcr`), and an insert the check above let through as
   // long enough would otherwise fail as primers pointing away from each other.
   const grow = { ...opts, maxAnneal: Math.min(opts.maxAnneal, Math.floor(insert.length / 2)) };
-  const forwardAnneal = anneal((n) => insert.slice(0, n), grow);
-  const reverseAnneal = anneal((n) => reverseComplement(insert.slice(insert.length - n)), grow);
+  const forwardAnneal = growAnnealing((n) => insert.slice(0, n), grow);
+  const reverseAnneal = growAnnealing(
+    (n) => reverseComplement(insert.slice(insert.length - n)),
+    grow,
+  );
 
   const forward: OverlapPrimer = {
     sequence: forwardTail + forwardAnneal.toLowerCase(),
@@ -151,7 +157,7 @@ export function designOverlapPrimers(
     { name: 'Forward', sequence: forward.sequence },
     { name: 'Reverse', sequence: reverse.sequence },
   ]);
-  const amplicon = wanted(reaction.products, insert);
+  const amplicon = productHolding(reaction.products, insert);
   if (amplicon === undefined) {
     return {
       kit,
@@ -206,7 +212,10 @@ export function designOverlapPrimers(
  * of the site, so the product's `templateRange` can begin a base or two
  * before the selection while being the very product that was designed.
  */
-function wanted(products: readonly PcrProduct[], insert: string): PcrProduct | undefined {
+export function productHolding(
+  products: readonly PcrProduct[],
+  insert: string,
+): PcrProduct | undefined {
   const bases = insert.toUpperCase();
   return products
     .filter((p) => p.document.sequence.toString().toUpperCase().includes(bases))

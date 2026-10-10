@@ -335,6 +335,19 @@ function collectSteps(
     case 'ligation':
     case 'golden-gate':
     case 'gibson':
+      // Overlap-extension joins by polymerase, not by an assembly mix: the
+      // fragments are the ones' PCR products listed before it, and the
+      // reaction is run without the outer primers (#216).
+      if (step.op === 'gibson' && step.kit === 'overlap-extension') {
+        out.push({
+          kind: 'other',
+          product: node.name,
+          productLength: node.length,
+          description: `${describeLineageStep(step)}: mix the first-round products in equimolar amounts, run about 10 cycles with no primers so they anneal at their overlaps and extend, then add the outer primers`,
+          parts: step.parents.map((p) => p.name),
+        });
+        return;
+      }
       out.push(assemblyStep(node, step, options));
       return;
     case 'mutagenesis':

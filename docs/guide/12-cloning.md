@@ -14,8 +14,8 @@ The **[Bench](#the-bench)**, a tab of its own beside **Files** in the tab
 strip, is where the parts are joined, from any number of documents:
 **Ligation**, which joins shelf fragments by their overhangs, **Golden
 Gate**, **Modular** (MoClo and Yeast Toolkit positions, and every
-combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer design), and
-**Gateway**. Beside the reaction it draws what the reaction would make, and
+combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer design),
+**Overlap PCR** (fusing fragments by PCR, with the primers designed), and **Gateway**. Beside the reaction it draws what the reaction would make, and
 a digest to check it by.
 
 In both places the reactions are alternatives, so one is shown at a time
@@ -251,8 +251,8 @@ strip, even with every document closed and the shelf empty. It has three
 columns:
 
 - the **shelf** on the left;
-- the **reaction** in the middle: **Ligation**, **Golden Gate**, **Gibson**
-  or **Gateway**, picked at the top. What each is set to — the parts left
+- the **reaction** in the middle: **Ligation**, **Golden Gate**, **Modular**,
+  **Gibson**, **Overlap PCR** or **Gateway**, picked at the top. What each is set to — the parts left
   out of its tube, its enzymes, the tabs it uses, a name you have started
   typing — stays as it was while you look at a document, and across a
   reload;
@@ -643,6 +643,66 @@ really make, not a promise. **Open product** opens it.
 It warns when the vector has sticky ends, and when the primers would
 amplify something else from the template as well.
 
+## Overlap PCR
+
+Overlap-extension PCR (SOE, or OE-PCR) fuses two or more fragments with
+nothing but a polymerase: each fragment is amplified with a primer whose 5′
+tail is the end of its neighbour, so the first-round products share a stretch
+where they meet. Mixed and cycled they anneal there and extend into one
+molecule, and the two outer primers amplify it. It is a cloning-free way to
+fuse parts, to add a tag, or, with two pieces of the same template, to make a
+deletion. **Overlap PCR** on the Bench designs the primers.
+
+1. Open the fragments, each in a tab. A fragment can be all of a document, its
+   selection, or one of its features; to make a deletion, use the same tab
+   twice, with the piece before the deletion first and the piece after it
+   second.
+2. Under **Overlap PCR** on the Bench, choose for **Fragment 1** its tab and
+   which **Part** of it, then the same for **Fragment 2**. **Add fragment**
+   adds more, up to eight; the arrows put them in order and **Remove** drops
+   one.
+3. Choose the **Overlap Tm** (60 °C by default). Each junction's overlap
+   grows, half from each neighbour, until it melts at about that temperature.
+
+The panel lists the primers in the order to ask for them: **F1** and **R2**
+(for two fragments) are the outer primers, with no tail; the **inner** ones
+carry the neighbour's end in upper case, and the two inner primers of a
+junction are complementary over the whole overlap, as they are usually drawn.
+Each annealing part is grown to melt at 60 °C. Under them are each junction's
+overlap and its melting temperature, the size of each first-round product, and
+the fused molecule.
+
+The panel _runs_ every step it describes, with the same PCR simulation as the
+PCR panel: each fragment is amplified from its own tab, the products are joined
+by their overlaps, and the outer primers amplify the join. What it shows as the
+product is what the outer primers would really amplify; a design that does not
+come out as the fragments end to end is refused with the reason, not shown.
+
+It warns when:
+
+- an **overlap is short**: under 15 bases, or melting under 50 °C;
+- an **overlap is not unique**: it occurs again in the fused molecule, so a
+  first-round product can anneal at the wrong place;
+- a primer's own **annealing part** melts well below its target, because its
+  fragment gave it no room to grow, and when its primers amplify more than
+  one product from a template;
+- a **gene is read out of frame** across a junction. For each CDS that runs up
+  to a junction, the frame it is in there is compared with the frame the CDS
+  on the other side was read in: a deletion inside a gene of a number of bases
+  that is not a multiple of three, or a tag fused a base or two off the frame
+  of the gene before it, is named.
+
+**Open product** opens the fused molecule with the outer primers drawn on it
+and how it was made recorded ([What a product was made from](#what-a-product-was-made-from)),
+so [Protocol…](#protocol-for-a-product) lists every primer and lists the fusion
+step as a reaction of its own. **Save primers** keeps all of the primers in
+[My primers](10-primers.md#my-primers), named after the fragments (or the name
+you typed for the product).
+
+Ambiguous bases (N, R, Y…) in a fragment are refused, as a primer cannot be
+designed over them, and so is a fragment under 36 bases, which cannot carry
+a primer at each end.
+
 ## Gateway
 
 Gateway is recombination, not cutting and joining: an integrase pairs two
@@ -722,7 +782,7 @@ One pair of sites at a time, so a multisite LR is done a fragment at a time.
 
 Every product remembers how it was made: a fragment you **Open**, a PCR
 product, a ligation, a Golden Gate, Gibson, In-Fusion or NEBuilder
-assembly, a Gateway clone and a mutant. A part on the shelf remembers too,
+assembly, an overlap-extension fusion, a Gateway clone and a mutant. A part on the shelf remembers too,
 so a plasmid ligated from a shelved fragment of a PCR product goes all the
 way back to the template the PCR was run on. Each step keeps the reaction
 and what set it apart: the enzymes and where the fragment lay, how many
@@ -800,6 +860,8 @@ primer's first-cycle temperature leaves out what the mismatched stretch
 still contributes. Gibson does not model the chew-back itself, only the
 length rules above. Golden Gate's overhang warnings follow design rules;
 measured fidelity needs a table you import. In-Fusion and NEBuilder differ here only in how much homology
-they ask for; their exonucleases are not modelled separately. Gateway reads
+they ask for; their exonucleases are not modelled separately. Overlap PCR does not
+model how efficiently the first-round products anneal to each other, a
+hairpin inside an overlap, or a fragment's own secondary structure. Gateway reads
 att sites from a file's annotation rather than finding them by sequence, and runs one pair at
 a time, so a multisite LR takes several passes.

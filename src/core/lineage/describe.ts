@@ -4,6 +4,7 @@ const KITS: Readonly<Record<HomologyKit, string>> = {
   gibson: 'Gibson assembly',
   'in-fusion': 'In-Fusion assembly',
   nebuilder: 'NEBuilder HiFi assembly',
+  'overlap-extension': 'Overlap-extension PCR',
 };
 
 function list(names: readonly string[]): string {

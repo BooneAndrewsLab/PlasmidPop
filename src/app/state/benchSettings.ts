@@ -1,4 +1,4 @@
-import { type GatewayReaction, type OverlapKit, GIBSON_DEFAULTS } from '@/core';
+import { type GatewayReaction, type OverlapKit, GIBSON_DEFAULTS, SOE_DEFAULTS } from '@/core';
 
 import { type BenchReaction, isBenchReaction } from './cloningReaction';
 
@@ -59,12 +59,32 @@ export interface BenchSettings {
      */
     readonly insert: string;
   };
+  /** Overlap-extension (SOE) PCR: fragments in order, and how the overlaps are made (#216). */
+  readonly soe: {
+    readonly fragments: readonly SoeSlot[];
+    /** Tm the overlaps grow to, in °C. */
+    readonly overlapTm: number;
+    readonly name: string;
+  };
   readonly gateway: {
     readonly reaction: GatewayReaction;
     readonly insertId: string;
     readonly vectorId: string;
   };
 }
+
+/** One fragment of an overlap-extension fusion: a tab, and which part of it. */
+export interface SoeSlot {
+  readonly templateId: string;
+  /** As `BenchSettings.overlap.insert`: `''` the tab's selection, `'whole'`, or a feature's id. */
+  readonly insert: string;
+}
+
+/** The overlap Tms offered, in °C. */
+export const SOE_OVERLAP_TMS: readonly number[] = [52, 55, 58, 60, 62, 65, 68];
+
+/** The most fragments one fusion takes; past it the tube is no longer a PCR but a project. */
+export const SOE_MAX_FRAGMENTS = 8;
 
 /** A hand-set tag meaning the part is the vector the plan's parts go in. */
 export const DESTINATION_TAG = '@destination';
@@ -83,6 +103,14 @@ export const DEFAULT_BENCH: BenchSettings = {
   modular: { standard: '', enzyme: '', secondEnzyme: '', excluded: [], tags: {} },
   gibson: { excluded: [], minOverlap: GIBSON_DEFAULTS.minOverlap, circular: true, name: '' },
   overlap: { kit: 'in-fusion', vectorId: '', templateId: '', insert: '' },
+  soe: {
+    fragments: [
+      { templateId: '', insert: '' },
+      { templateId: '', insert: '' },
+    ],
+    overlapTm: SOE_DEFAULTS.overlapTm,
+    name: '',
+  },
   gateway: { reaction: 'LR', insertId: '', vectorId: '' },
 };
 
@@ -107,6 +135,15 @@ function ids(v: unknown): readonly string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 500) : [];
 }
 
+function soeSlots(v: unknown, fallback: readonly SoeSlot[]): readonly SoeSlot[] {
+  if (!Array.isArray(v)) return fallback;
+  const slots = v.slice(0, SOE_MAX_FRAGMENTS).map((s): SoeSlot => {
+    const o = record(s);
+    return { templateId: text(o['templateId'], ''), insert: text(o['insert'], '') };
+  });
+  return slots.length >= 2 ? slots : fallback;
+}
+
 function tagMap(v: unknown): Readonly<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const [k, t] of Object.entries(record(v)).slice(0, 500)) {
@@ -129,6 +166,7 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
   const s = record(r['gibson']);
   const o = record(r['overlap']);
   const w = record(r['gateway']);
+  const x = record(r['soe']);
   const overlap = s['minOverlap'];
   return {
     reaction: isBenchReaction(r['reaction']) ? r['reaction'] : d.reaction,
@@ -164,6 +202,14 @@ export function normalizeBenchSettings(v: unknown): BenchSettings {
       vectorId: text(o['vectorId'], ''),
       templateId: text(o['templateId'], ''),
       insert: text(o['insert'], ''),
+    },
+    soe: {
+      fragments: soeSlots(x['fragments'], d.soe.fragments),
+      overlapTm:
+        typeof x['overlapTm'] === 'number' && SOE_OVERLAP_TMS.includes(x['overlapTm'])
+          ? x['overlapTm']
+          : d.soe.overlapTm,
+      name: text(x['name'], ''),
     },
     gateway: {
       reaction: w['reaction'] === 'BP' ? 'BP' : 'LR',

@@ -13,7 +13,7 @@
  */
 export type SidebarReaction = 'digest' | 'pcr' | 'mutagenesis';
 
-export type BenchReaction = 'ligation' | 'golden-gate' | 'modular' | 'gibson' | 'gateway';
+export type BenchReaction = 'ligation' | 'golden-gate' | 'modular' | 'gibson' | 'soe' | 'gateway';
 
 export type CloningReaction = SidebarReaction | BenchReaction;
 
@@ -63,6 +63,11 @@ export const BENCH_REACTIONS: readonly ReactionOption<BenchReaction>[] = [
     title: 'MoClo, YTK and other standards: one part per position, every combination',
   },
   { value: 'gibson', label: 'Gibson', title: 'No enzyme: parts that end in each other' },
+  {
+    value: 'soe',
+    label: 'Overlap PCR',
+    title: 'Fuse fragments by PCR, with primers whose tails overlap the neighbour (SOE)',
+  },
   {
     value: 'gateway',
     label: 'Gateway',

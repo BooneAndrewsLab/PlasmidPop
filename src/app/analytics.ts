@@ -227,6 +227,9 @@ export const EVENTS = {
     'mutagenesis',
     'gateway',
     'overlap-primers',
+    /** An overlap-extension (SOE) fusion opened (`soe`) or its primers saved to My primers (`soe-oligos`) (#216); never a name. */
+    'soe',
+    'soe-oligos',
     /** The Bench was brought to the front: `tab` from the tab strip, `link` from the Cloning tab, `key` by Alt+0. */
     'bench',
     'shelf-undo',

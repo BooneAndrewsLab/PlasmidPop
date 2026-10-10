@@ -4,6 +4,7 @@ import { type GatewayReaction } from '../cloning/gateway';
 import { type GibsonAssembly } from '../cloning/gibson';
 import { type GoldenGateAssembly } from '../cloning/goldenGate';
 import { type MutagenesisDesign } from '../cloning/mutagenesis';
+import { type SoeDesign, type SoeFragment } from '../cloning/overlapExtension';
 import { KIT_OVERLAP, type OverlapDesign, type OverlapKit } from '../cloning/overlapPrimers';
 import { type PcrPrimer, type PcrProduct, type Polymerase } from '../cloning/pcr';
 import { type SeqDocument } from '../document';
@@ -261,5 +262,60 @@ export function recordOverlapDesign(
     circular: true,
     overlap: KIT_OVERLAP[kit],
     flipped: [false, false],
+  });
+}
+
+/**
+ * The molecule an overlap-extension design makes, with how it was made (#216):
+ * each fragment copied off its own template by its two primers, the copies
+ * joined by their overlaps, and the outer primers amplifying the join. Null
+ * when the design made nothing.
+ */
+export function recordOverlapExtension(
+  design: SoeDesign,
+  fragments: readonly SoeFragment[],
+): SeqDocument | null {
+  const { product, fused, primers } = design;
+  if (product === null || fused === null) return null;
+  if (design.firstRound.length !== fragments.length) return null;
+  const primer = (i: number): LineagePrimer | null => {
+    const p = primers[i];
+    return p === undefined ? null : { name: p.name, sequence: p.sequence.toUpperCase() };
+  };
+  const parents: LineageNode[] = [];
+  for (const [i, f] of fragments.entries()) {
+    const forward = primer(2 * i);
+    const reverse = primer(2 * i + 1);
+    const round = design.firstRound[i];
+    if (forward === null || reverse === null || round === undefined) return null;
+    parents.push(
+      lineageOf(
+        withLineage(round, {
+          op: 'pcr',
+          parents: [lineageOf(f.doc)],
+          forward,
+          reverse,
+          polymerase: 'proofreading',
+        }),
+      ),
+    );
+  }
+  const outerForward = primer(0);
+  const outerReverse = primer(primers.length - 1);
+  if (outerForward === null || outerReverse === null) return null;
+  const joined = withLineage(fused, {
+    op: 'gibson',
+    parents,
+    kit: 'overlap-extension',
+    circular: false,
+    overlap: Math.min(...design.junctions.map((j) => j.length)),
+    flipped: parents.map(() => false),
+  });
+  return withLineage(product, {
+    op: 'pcr',
+    parents: [lineageOf(joined)],
+    forward: outerForward,
+    reverse: outerReverse,
+    polymerase: 'proofreading',
   });
 }

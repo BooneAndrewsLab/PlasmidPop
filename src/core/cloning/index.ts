@@ -10,3 +10,4 @@ export * from './gateway';
 export * from './overlapPrimers';
 export * from './protocol';
 export * from './protocolText';
+export * from './overlapExtension';
