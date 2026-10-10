@@ -175,7 +175,9 @@ export function designOverlapExtension(
   const cuts: { readonly a: number; readonly b: number }[] = [];
   const junctions: SoeJunction[] = [];
   for (let j = 0; j < n - 1; j++) {
+    // Stryker disable next-line StringLiteral: the `?? ''` is a noUncheckedIndexedAccess fallback, never reached
     const up = texts[j] ?? '';
+    // Stryker disable next-line StringLiteral: the `?? ''` is a noUncheckedIndexedAccess fallback, never reached
     const down = texts[j + 1] ?? '';
     const cut = chooseOverlap(up, down, numbers);
     cuts.push(cut);
@@ -203,8 +205,10 @@ export function designOverlapExtension(
     const forwardTail =
       before === undefined
         ? ''
-        : (texts[i - 1] ?? '').slice((texts[i - 1] ?? '').length - before.a);
+        : // Stryker disable next-line StringLiteral,LogicalOperator: texts[i - 1] exists whenever `before` does
+          (texts[i - 1] ?? '').slice((texts[i - 1] ?? '').length - before.a);
     const reverseTail =
+      // Stryker disable next-line ConditionalExpression,OptionalChaining,StringLiteral: texts[i + 1] exists whenever `after` does
       after === undefined ? '' : reverseComplement(texts[i + 1]?.slice(0, after.b) ?? '');
     primers.push({
       name: `${prefix}F${i + 1}`,
@@ -233,11 +237,13 @@ export function designOverlapExtension(
   for (const [i, f] of fragments.entries()) {
     const fwd = primers[2 * i];
     const rev = primers[2 * i + 1];
+    // Stryker disable next-line all: both primers exist for every fragment; the guard narrows the index type
     if (fwd === undefined || rev === undefined) continue;
     const reaction = pcr(f.doc, [
       { name: fwd.name, sequence: fwd.sequence },
       { name: rev.name, sequence: rev.sequence },
     ]);
+    // Stryker disable next-line StringLiteral: the `?? ''` is a noUncheckedIndexedAccess fallback, never reached
     const made = productHolding(reaction.products, texts[i] ?? '');
     if (made === undefined) {
       return failure(
@@ -247,6 +253,7 @@ export function designOverlapExtension(
       );
     }
     firstRound.push(
+      // Stryker disable next-line OptionalChaining,StringLiteral: fragments[i] exists; the fallback only narrows the index type
       made.document.rename(`${fragments[i]?.doc.name ?? 'Fragment'} fragment ${i + 1}`),
     );
   }
@@ -274,7 +281,9 @@ export function designOverlapExtension(
   const outerF = primers[0];
   const outerR = primers[2 * n - 1];
   const amplification = pcr(fused, [
+    // Stryker disable next-line all: the outer primers exist; the fallbacks only narrow the index type
     { name: outerF?.name ?? 'F', sequence: outerF?.sequence ?? '' },
+    // Stryker disable next-line all: the outer primers exist; the fallbacks only narrow the index type
     { name: outerR?.name ?? 'R', sequence: outerR?.sequence ?? '' },
   ]);
   const product = productHolding(amplification.products, expected);
@@ -409,6 +418,7 @@ function frameWarnings(fragments: readonly SoeFragment[]): string[] {
   for (let j = 0; j + 1 < fragments.length; j++) {
     const left = fragments[j];
     const right = fragments[j + 1];
+    // Stryker disable next-line all: j + 1 < length keeps both in range; the guard narrows the index type
     if (left === undefined || right === undefined) continue;
     const last = (left.range.end - 1) % left.doc.length;
     const first = right.range.start % right.doc.length;
