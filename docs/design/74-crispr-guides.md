@@ -103,8 +103,8 @@ the slow, obvious way.
 - No on-target score, as above. If a published implementation ever ships
   test vectors, it becomes a column and an oracle file.
 - Paired nickases: done in item 82.
-- The guides are a preview overlay, not a track that can be exported with
-  the map (#212 would be where that lands).
+- The guides are a preview overlay until they are added as features:
+  done in item 83.
 
 ## The panel, revised (2026-10-09)
 

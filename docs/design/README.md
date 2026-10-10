@@ -94,6 +94,7 @@ piece of work needs its reasoning written down, with the next free number.
 80. [Verify clones](80-verify-clones.md)
 81. [CRISPR base-editing windows and pegRNAs](81-crispr-editing.md)
 82. [CRISPR paired nickases](82-crispr-paired-nickases.md)
+83. [CRISPR guides as features](83-crispr-guides-as-features.md)
 
 ## Changelog to 1.1.0
 

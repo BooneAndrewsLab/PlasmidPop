@@ -7,6 +7,7 @@ import {
   baseEditWindow,
   MAX_PAIR_OFFSET,
   designPegRnas,
+  guideFeature,
   pairNickases,
   primeEditProblem,
   supportsBaseEditing,
@@ -273,5 +274,20 @@ describe('pairNickases', () => {
     });
     // forward guide nicks forward at 95, reverse guide nicks reverse at 5: offset 5 - 95 = -90 -> +10
     expect(p[0]?.offset).toBe(10);
+  });
+});
+
+describe('guideFeature', () => {
+  it('annotates the protospacer on its own strand, wherever the guide sits', () => {
+    const guides = findCrisprGuides(SEQ, 'linear', SPCAS9, { maxMismatches: 0 });
+    const forward = guides.find((g) => g.spacer === SPACER);
+    const reverse = guides.find((g) => g.strand === 'reverse');
+    if (forward === undefined || reverse === undefined) throw new Error('no guides');
+    const f = guideFeature(forward);
+    expect(f.strand).toBe('forward');
+    expect(f.segments).toMatchObject([{ start: 20, end: 40 }]);
+    expect(f.name).toBe('guide 21');
+    expect(f.qualifiers).toContainEqual({ name: 'note', value: 'CRISPR protospacer, TGG PAM' });
+    expect(guideFeature(reverse).strand).toBe('reverse');
   });
 });

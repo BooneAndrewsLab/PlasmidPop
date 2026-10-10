@@ -1,3 +1,4 @@
+import { type Feature, createFeature, rangeSegment } from '../features';
 import { type Range, type Topology } from '../range';
 import { complement, reverseComplement } from '../sequence';
 import { type CrisprGuide, type Nuclease } from './crispr';
@@ -350,4 +351,20 @@ export function pairNickases(
 /** Pairing needs a nuclease with one cut point per guide, so a nickase can be made of it. */
 export function supportsNickPairs(n: Pick<Nuclease, 'pamSide' | 'cut'>): boolean {
   return n.pamSide === '3prime' && n.cut.pamStrand === n.cut.targetStrand;
+}
+
+// ------------------------------------------------------------ annotation
+
+/**
+ * A guide as a `misc_feature` on its own strand, so it is saved, exported and
+ * drawn like any annotation (item 83). Named by its 1-based start.
+ */
+export function guideFeature(guide: CrisprGuide): Feature {
+  return createFeature({
+    type: 'misc_feature',
+    name: `guide ${(guide.range.start + 1).toLocaleString()}`,
+    strand: guide.strand,
+    segments: [rangeSegment(guide.range.start, guide.range.end)],
+    qualifiers: [{ name: 'note', value: `CRISPR protospacer, ${guide.pam} PAM` }],
+  });
 }

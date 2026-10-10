@@ -197,7 +197,17 @@ export const EVENTS = {
    * a feature; `oligos` the cloning oligos saved to My primers, named by
    * the overhang scheme (`px330`, `none`).
    */
-  crispr: ['scan', 'region', 'background', 'add', 'oligos', 'baseEditor', 'pegrna', 'nickPairs'],
+  crispr: [
+    'scan',
+    'region',
+    'background',
+    'add',
+    'addAll',
+    'oligos',
+    'baseEditor',
+    'pegrna',
+    'nickPairs',
+  ],
   /**
    * The primer collection (#64): `collection-add` named by where the
    * primers came from (`design`, `check`, `feature`, `paste`, `file`,

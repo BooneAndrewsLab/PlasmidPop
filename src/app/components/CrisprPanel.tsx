@@ -16,8 +16,8 @@ import {
   NUCLEASES,
   OLIGO_SCHEMES,
   baseEditWindow,
-  createFeature,
   formatSpan,
+  guideFeature,
   guideOligos,
   isEmptyRange,
   isValidRange,
@@ -25,7 +25,6 @@ import {
   nucleaseProblem,
   oligoSchemesFor,
   patternMasks,
-  rangeSegment,
   rangesEqual,
   sequenceMasks,
   supportsBaseEditing,
@@ -618,6 +617,26 @@ export function CrisprPanel({ doc }: Props) {
                   </button>
                 )}
               </div>
+              {sorted.length > 0 && (
+                <div className="crispr-actions">
+                  <button
+                    type="button"
+                    className="button button--small"
+                    title="Annotate every guide in the list as a feature, in one step to undo"
+                    onClick={() => {
+                      analytics.track('crispr', 'addAll');
+                      editorStore.apply({
+                        type: 'addFeatures',
+                        features: sorted.map(guideFeature),
+                      });
+                      editorStore.setSidebarTab('features');
+                    }}
+                  >
+                    Add {filtered ? 'the ' : 'all '}
+                    {sorted.length.toLocaleString()} listed as features
+                  </button>
+                </div>
+              )}
               {sorted.length === 0 ? (
                 <p className="panel__note">No guides match the filters.</p>
               ) : (
@@ -801,13 +820,7 @@ function GuideDetail({
           className="button button--small"
           onClick={() => {
             analytics.track('crispr', 'add');
-            const feature = createFeature({
-              type: 'misc_feature',
-              name: `guide ${at}`,
-              strand: guide.strand,
-              segments: [rangeSegment(guide.range.start, guide.range.end)],
-              qualifiers: [{ name: 'note', value: `CRISPR protospacer, ${guide.pam} PAM` }],
-            });
+            const feature = guideFeature(guide);
             editorStore.apply({ type: 'addFeature', feature }, guide.range);
             editorStore.requestRename(feature.id);
             editorStore.setSidebarTab('features');

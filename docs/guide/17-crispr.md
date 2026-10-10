@@ -195,6 +195,12 @@ below.
 `misc_feature` on its strand, with the PAM in a note, and takes you to the
 feature list to name it. It is an ordinary edit, so undo takes it back.
 
+**Add N listed as features**, above the list, annotates every guide the
+filters leave in the list in one go, so a whole set is saved with the file,
+exported to GenBank and drawn on the maps like any feature. Narrow the list
+first (a selection, the filters, hiding flagged guides) to annotate only
+the ones you want. One undo takes them all back.
+
 **Oligos to order** writes the two oligos to anneal and clone, 5′→3′.
 **pX330 / lentiCRISPRv2** adds the `CACC` and `AAAC` overhangs those vectors'
 BbsI and BsmBI sites take, and a `G` in front of a spacer that has not got

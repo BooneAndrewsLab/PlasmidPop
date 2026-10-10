@@ -242,6 +242,24 @@ describe('CrisprPanel', () => {
     });
   });
 
+  it('adds every listed guide as a feature in one step to undo', async () => {
+    const doc = docOf(`${UNIT}${FILLER}`);
+    await openPanel(doc);
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Add (all )?\d+ listed as features$/ }),
+    );
+
+    const state = editorStore.getState().documents[0];
+    if (state === undefined) throw new Error('the document was not opened');
+    const features = [...state.history.present.features.all()];
+    expect(features.length).toBeGreaterThan(0);
+    expect(features.every((f) => f.type === 'misc_feature')).toBe(true);
+    editorStore.undo();
+    expect([
+      ...(editorStore.getState().documents[0]?.history.present.features.all() ?? []),
+    ]).toHaveLength(0);
+  });
+
   it('marks the base editor window on each guide and filters to the editable ones', async () => {
     // The first spacer has C's at positions 4 and 8; the second has none in 4-8.
     const withC = 'GATCGATCGATCGATCGATC';
