@@ -92,6 +92,10 @@ for the parts plasmids are made of and offers what it finds:
 
 What is found:
 
+- **Common RNAs**: the Cas9 gRNA scaffold, the E. coli 5S rRNA and a
+  few tRNAs (the glycine tRNA of tRNA-gRNA arrays, E. coli tRNA-Glu), offered
+  as `misc_RNA`, `rRNA` and `tRNA` features. The structured-RNA families a
+  covariance model would find are not searched for.
 - **Both strands**, and **through the origin** of a circular sequence.
 - **A part cut off by the end**: in a linear sequence — a fragment, a
   sequencing read — a part may run past either end, and what is there is

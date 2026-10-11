@@ -79,7 +79,7 @@ export function classOfPart(category: string, type: string, name: string): PartC
   if (category === 'tag') return 'tag';
   if (category === 'terminator') return 'terminator';
   if (category !== 'primer' && FP.test(name)) return 'FP';
-  if (type === 'ncRNA' || type === 'misc_RNA') return 'RNA';
+  if (type === 'ncRNA' || type === 'misc_RNA' || type === 'tRNA' || type === 'rRNA') return 'RNA';
   return 'other';
 }
 

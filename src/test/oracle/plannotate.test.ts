@@ -37,10 +37,10 @@ const BASELINE: Record<PartClass, number> = {
   tag: 0.923,
   FP: 0.906,
   terminator: 0.782,
-  RNA: 0.5,
+  RNA: 0.916,
   other: 0.676,
 };
-const BASELINE_ALL = 0.818;
+const BASELINE_ALL = 0.823;
 
 describe('Detect features against pLannotate', () => {
   let result: Comparison;

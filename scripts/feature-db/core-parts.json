@@ -183,6 +183,10 @@
     { "name": "CYC1 rev", "type": "primer_bind", "category": "primer", "note": "CYC1 reverse sequencing primer, in the CYC1 terminator", "accession": "Z49548", "probe": "GCGTGAATGTAAGCGTGAC" },
     { "name": "KS primer", "type": "primer_bind", "category": "primer", "note": "pBluescript KS sequencing primer", "accession": "X52327", "probe": "TCGAGGTCGACGGTATC" },
     { "name": "SK primer", "type": "primer_bind", "category": "primer", "note": "pBluescript SK sequencing primer", "accession": "X52327", "probe": "CGCTCTAGAACTAGTGGATC" },
-    { "name": "hU6 fwd", "type": "primer_bind", "category": "primer", "note": "human U6 promoter sequencing primer", "accession": "X07425", "probe": "GAGGGCCTATTTCCCATGATT" }
+    { "name": "hU6 fwd", "type": "primer_bind", "category": "primer", "note": "human U6 promoter sequencing primer", "accession": "X07425", "probe": "GAGGGCCTATTTCCCATGATT" },
+    { "name": "gRNA scaffold", "type": "misc_RNA", "category": "RNA", "note": "the 76-base Cas9 guide RNA scaffold (tracrRNA and repeat joined by a GAAA loop, Jinek et al. 2012; Mali et al. 2013) that follows the 20-base spacer; the copy in the sgRNA expression vector KX151731, which carries it once", "accession": "KX151731", "probe": "GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGC" },
+    { "name": "5S rRNA", "type": "rRNA", "category": "RNA", "note": "E. coli 5S ribosomal RNA (120 bases) of the rrnB operon, as annotated in J01695; rrnB terminator cassettes carry it ahead of T1/T2", "accession": "J01695", "select": { "feature": "rRNA", "where": { "product": "5S ribosomal RNA" } } },
+    { "name": "tRNA-Glu", "type": "tRNA", "category": "RNA", "note": "E. coli Glu-tRNA-2 of the rrnB operon (anticodon for GAA), as annotated in J01695", "accession": "J01695", "select": { "feature": "tRNA", "where": { "product": "tRNA-Glu" } } },
+    { "name": "tRNA-Gly", "type": "tRNA", "category": "RNA", "note": "glycine tRNA (72 bases) used to excise gRNAs from tRNA-gRNA arrays (Xie et al. 2015); the first copy in the vector pCS2-tRNA-PT (MW827169), bases 105..176 of the 100..176 annotated as tRNA, whose first 5 bases are linker", "accession": "MW827169", "location": "105..176" }
   ]
 }

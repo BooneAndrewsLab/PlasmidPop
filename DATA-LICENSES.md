@@ -12,7 +12,8 @@ exactly where each record was fetched from; rerun it to rebuild them.
 `scripts/feature-db/core-parts.json`)
 
 Common plasmid parts — origins, markers, promoters, terminators, tags,
-operators, recombination sites, reporters, primer sites — each read from a
+operators, recombination sites, reporters, primer sites, the Cas9 gRNA
+scaffold and a few common RNAs (5S rRNA, tRNAs) — each read from a
 public nucleotide record of the NCBI (GenBank/RefSeq). Every part cites the
 record (`accession`, as accession.version) and where in it the bases lie
 (`location`, a GenBank location). NCBI places no restrictions on the use or
