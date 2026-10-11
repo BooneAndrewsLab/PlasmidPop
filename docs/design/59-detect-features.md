@@ -479,39 +479,39 @@ python3 scripts/plannotate/run_plannotate.py        # -> src/test/oracle/plannot
   marker, promoter, tag, FP, terminator, RNA); everything else (MCS,
   enhancers, LTRs, introns, operators, other CDS) is `other`.
 
-Baseline, 2026-10-11 (bundled list at 1.14, after the triage of #233 and the RNA parts of #235 below; it was 787 of 988, 79.7%, on 10-10):
+Baseline, 2026-10-11 (bundled list at 1.14, after the triage of #233, the RNA parts of #235 and the vector parts of #232 below; it was 787 of 988, 79.7%, on 10-10):
 
 | Class      | pLannotate hits | Found | Recall |
 | ---------- | --------------: | ----: | -----: |
-| origin     |             137 |   129 |  94.2% |
+| origin     |             137 |   133 |  97.1% |
 | marker     |             113 |   106 |  93.8% |
-| promoter   |             277 |   244 |  88.1% |
+| promoter   |             277 |   253 |  91.3% |
 | tag        |              13 |    12 |  92.3% |
 | FP         |              32 |    29 |  90.6% |
-| terminator |              92 |    72 |  78.3% |
+| terminator |              92 |    82 |  89.1% |
 | RNA        |              12 |    11 |  91.7% |
-| other      |             312 |   211 |  67.6% |
-| **all**    |             988 |   814 |  82.4% |
+| other      |             312 |   243 |  77.9% |
+| **all**    |             988 |   869 |  88.0% |
 
 Misses by cause, then the most frequent names of each:
 
 | Cause of a miss     | origin | marker | promoter | tag |  FP | terminator | RNA | other | all |
 | ------------------- | -----: | -----: | -------: | --: | --: | ---------: | --: | ----: | --: |
-| not in our list     |      8 |      0 |       26 |   1 |   3 |         16 |   0 |    72 | 126 |
+| not in our list     |      4 |      0 |       15 |   1 |   3 |          5 |   0 |    34 |  62 |
 | homologue           |      0 |      3 |        0 |   0 |   0 |          0 |   0 |    22 |  25 |
 | RNA only            |      0 |      0 |        0 |   0 |   0 |          0 |   1 |     0 |   1 |
-| strand differs      |      0 |      0 |        0 |   0 |   0 |          0 |   0 |     0 |   0 |
+| strand differs      |      0 |      0 |        0 |   0 |   0 |          1 |   0 |     2 |   3 |
 | below threshold     |      0 |      0 |        0 |   0 |   0 |          0 |   0 |     0 |   0 |
-| different extent    |      0 |      1 |        5 |   0 |   0 |          4 |   0 |     6 |  16 |
-| recoded or diverged |      0 |      3 |        2 |   0 |   0 |          0 |   0 |     1 |   6 |
+| different extent    |      0 |      1 |        7 |   0 |   0 |          4 |   0 |     7 |  19 |
+| recoded or diverged |      0 |      3 |        2 |   0 |   0 |          0 |   0 |     4 |   9 |
 
-- not in our list: MCS (11), bom (10), RBS (9), NOS terminator (6), chimeric intron (5), poly(A) signal (5), RRE (5), LB T-DNA repeat (4), RB T-DNA repeat (4), URA3 promoter (4), AAV2 ITR (3), CaMV 35S promoter (3), EM7 promoter (3), hGH poly(A) signal (3), pVS1 oriV (3), pVS1 StaA (3), 2μ ori (2), attB (2), CMV IE94 promoter (2), gag (truncated) (2), hSyn promoter (2), iFP1.4 (2), NOS promoter (2), pVS1 RepA (2), 3' LTR (1), 5' LTR (1), AOX1 promoter (1), AOX1 terminator (1), CaMV 35S promoter (enhanced) (1), CaMV poly(A) signal (1), cat promoter (1), CloDF13 ori (1), hrGFP (1), hybrid intron (1), IS1 (1), LEU2 promoter (1), MESV Ψ (1), minimal CMV promoter (1), minP (1), MMLV Ψ (1), nucleoplasmin NLS (1), oriT (1), oriV (1), Pc promoter (1), pol region (1), Tn7L (1), Tn7R (1), traJ (1), trfA (1), TRP1 promoter (1), β-globin intron (1)
+- not in our list: MCS (11), RBS (9), poly(A) signal (5), URA3 promoter (4), 2μ ori (2), attB (2), CMV IE94 promoter (2), gag (truncated) (2), hPGK promoter (2), iFP1.4 (2), 3' LTR (1), 5' LTR (1), CaMV 35S promoter (enhanced) (1), cat promoter (1), hrGFP (1), hybrid intron (1), IS1 (1), LEU2 promoter (1), MESV Ψ (1), minimal CMV promoter (1), minP (1), MMLV Ψ (1), nucleoplasmin NLS (1), oriT (1), oriV (1), Pc promoter (1), pol region (1), traJ (1), trfA (1), TRP1 promoter (1), β-globin intron (1)
 - homologue: YPB1_ECOLX (6), ermC (2), bar (1), ectD (1), gli4 (1), hH1 (1), ho1 (1), IGK_HUMAN (1), L3 (1), luxS (1), nfsB (1), pcyA (1), PRNP (1), rnc (1), RPOL_BPT7 (1), S (1), tra (1), TUBA1 (1), xyl1 (1)
 - RNA only: tRNA (1)
-- strand differs:
+- strand differs: CaMV poly(A) signal (1), Tn7L (1), Tn7R (1)
 - below threshold:
-- different extent: lacZα (4), PGK promoter (2), tet promoter (2), β-globin poly(A) signal (2), attL1 (1), H1 promoter (1), his3 (1), rrnB T1 terminator (1), rrnB T2 terminator (1), small t intron (1)
-- recoded or diverged: KanR (3), CMV enhancer (1), TEF1 promoter (1), UbC promoter (1)
+- different extent: lacZα (4), CaMV 35S promoter (2), PGK promoter (2), tet promoter (2), β-globin poly(A) signal (2), attL1 (1), chimeric intron (1), H1 promoter (1), his3 (1), rrnB T1 terminator (1), rrnB T2 terminator (1), small t intron (1)
+- recoded or diverged: AAV2 ITR (3), KanR (3), CMV enhancer (1), TEF1 promoter (1), UbC promoter (1)
 
 How the causes are decided, in this order: **RNA only** is an Rfam hit (or
 a SnapGene RNA) with no part of ours; **homologue** is a Swiss-Prot hit we
@@ -635,3 +635,50 @@ Recall of the RNA class is 11 of 12 (91.7%), all 814 of 988 (82.4%); the
 bundled data grew by 1.5 kB. The one miss is a tRNA in a Neurospora vector
 (JX156633) found by an Rfam model at 80% coverage, for which no record we
 could cite gave the sequence; it stays an Rfam-only hit.
+
+### Vector parts (#232)
+
+The largest group of misses was parts the bundled list lacked (126 of 201).
+Each part added reads its bases from one NCBI record that annotates the
+region, cited by accession and location (item 59's rule; no sequence, name or
+boundary comes from SnapGene's or pLannotate's lists or from the oracle, which
+only showed which vectors to look in):
+
+- **T-DNA borders** (U12540, the pBin19 T-DNA region; right 1..25, left
+  3188..3212), stored in the orientation of the published border consensus.
+- **NOS promoter** (307 bp) and **terminator** (253 bp), **CaMV 35S
+  promoter** (835 bp), as annotated in pBI121 (AF485783); **CaMV poly(A)
+  signal** from pCAMBIA-1300 (AF234296).
+- **AAV2 ITR**, the 145 bp repeat of the RefSeq genome NC_001401; **hSyn
+  promoter** (MH458079); **RRE** (KT368137); **chimeric intron** (AF061181);
+  **hGH poly(A)** (AF369966).
+- **EM7 promoter** and **AOX1 terminator** (KM035419), **AOX1 promoter**
+  (Z46234).
+- **pVS1 oriV, StaA, RepA** (DQ645594); **CloDF13 ori** (PQ310421);
+  **Tn7L and Tn7R** (AY599231); **bom**, found by identity in pBR322 (J01749
+  2238..2498) after pCAMBIA-1300 (AF234296) annotated it, which fixes the
+  strand the way the pBR322 ori part reads.
+
+Recall rose from 82.4% to 87.95% (869 of 988): terminator 78.3% to 89.1%,
+promoter 88.1% to 91.3%, origin 94.2% to 97.1%, other 67.6% to 77.9%. The
+bundled data grew by 12.7 kB (126,841 to 139,557 bytes of JSON). The 25 bp
+border repeats and the 68 bp EM7 promoter are above the 12-base seed and
+match exactly, so they are no more prone to chance hits than the shorter
+primer sites already bundled; the false-positive and 1 Mb timing tests are
+unchanged.
+
+Left out, with the reason:
+
+- **MCS (11), RBS (9), generic poly(A) signal (5), hybrid intron, minP,
+  minimal CMV, nucleoplasmin NLS**: generic or too short, with no single
+  canonical record; any one choice would be invented.
+- **URA3 (4), LEU2, TRP1 and cat promoters, 2μ ori, oriT, oriV, IS1, trfA,
+  traJ, Pc**: no record found annotates the region as a part; deriving a
+  boundary from the CDS start would be a guess.
+- **attB (2), 3'/5' LTR, MESV and MMLV Ψ, gag/pol fragments, CMV IE94,
+  hPGK, enhanced 35S, iFP1.4, hrGFP, β-globin intron**: no record with a
+  clear annotation, or an engineered variant only a vendor list defines.
+- **Strand differs** for Tn7L, Tn7R and the CaMV poly(A) signal: orientation
+  of a part is a convention and is left as the record has it.
+- **AAV2 ITR (3)** stays missed: the vectors carry modified ITRs below the
+  95% identity threshold.

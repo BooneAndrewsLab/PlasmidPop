@@ -96,6 +96,13 @@ What is found:
   few tRNAs (the glycine tRNA of tRNA-gRNA arrays, E. coli tRNA-Glu), offered
   as `misc_RNA`, `rRNA` and `tRNA` features. The structured-RNA families a
   covariance model would find are not searched for.
+- **Plant, yeast and viral-vector parts**: the T-DNA border repeats, the
+  NOS and CaMV 35S promoters and terminators, the pVS1, CloDF13 and
+  pBR322 _bom_ elements of binary vectors, the Tn7 ends, the AOX1 promoter
+  and terminator of _Pichia_, the EM7 and hSyn promoters, the AAV2 inverted
+  terminal repeat, the HIV-1 RRE, the pCI chimeric intron and the hGH
+  poly(A). Where a vector carries a shortened or altered version of one of
+  these, it is offered only if enough of it is left to match.
 - **Both strands**, and **through the origin** of a circular sequence.
 - **A part cut off by the end**: in a linear sequence — a fragment, a
   sequencing read — a part may run past either end, and what is there is
@@ -174,7 +181,8 @@ until you turn it on, and remembered in this browser.
 The bundled list holds over two hundred parts: origins of replication,
 resistance and auxotrophic markers, promoters, terminators, tags and fusion
 partners, operators and recombination sites, reporters, and the usual
-sequencing-primer sites, plus common fluorescent proteins. Every one is read
+sequencing-primer sites, the parts of binary and viral vectors, plus common
+fluorescent proteins. Every one is read
 from a public NCBI record whose accession and location are cited with it; the
 fluorescent proteins are chosen from [FPbase](https://www.fpbase.org), whose
 data is shared under CC BY-SA 4.0, and their DNA is the coding sequence of

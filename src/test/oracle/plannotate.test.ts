@@ -31,16 +31,16 @@ import {
 
 /** Least recall per class, the measured recall rounded down. */
 const BASELINE: Record<PartClass, number> = {
-  origin: 0.941,
+  origin: 0.97,
   marker: 0.938,
-  promoter: 0.88,
+  promoter: 0.913,
   tag: 0.923,
   FP: 0.906,
-  terminator: 0.782,
+  terminator: 0.891,
   RNA: 0.916,
-  other: 0.676,
+  other: 0.778,
 };
-const BASELINE_ALL = 0.823;
+const BASELINE_ALL = 0.879;
 
 describe('Detect features against pLannotate', () => {
   let result: Comparison;

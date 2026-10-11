@@ -13,7 +13,9 @@ exactly where each record was fetched from; rerun it to rebuild them.
 
 Common plasmid parts — origins, markers, promoters, terminators, tags,
 operators, recombination sites, reporters, primer sites, the Cas9 gRNA
-scaffold and a few common RNAs (5S rRNA, tRNAs) — each read from a
+scaffold, a few common RNAs (5S rRNA, tRNAs) and the parts of binary,
+yeast and viral vectors (T-DNA borders, NOS, CaMV 35S, AOX1, AAV2 ITR, RRE and
+the like) — each read from a
 public nucleotide record of the NCBI (GenBank/RefSeq). Every part cites the
 record (`accession`, as accession.version) and where in it the bases lie
 (`location`, a GenBank location). NCBI places no restrictions on the use or
