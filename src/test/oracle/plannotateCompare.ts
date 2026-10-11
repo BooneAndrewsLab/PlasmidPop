@@ -88,7 +88,7 @@ export function classOfPart(category: string, type: string, name: string): PartC
  * - `RNA only`: found by Rfam's covariance models; the bundled list has no RNAs.
  * - `homologue`: found by similarity to a Swiss-Prot protein we have no part for.
  * - `not in our list`: no part of ours by that name (or its alias).
- * - `strand differs`: we find it, on the other strand.
+ * - `strand differs`: we find that part, on the other strand.
  * - `below threshold`: we find it only at the lowest identity Detect features offers.
  * - `different extent`: our part is over a third longer or shorter than the feature
  *   pLannotate calls by that name (SnapGene cuts parts differently), so no hit
@@ -179,9 +179,18 @@ function strandOf(hit: { strand: number }): 'forward' | 'reverse' {
  * Whether two hits' strands agree. An origin has no strand to speak of: SnapGene
  * draws it in the direction of replication, a GenBank record as its author did,
  * and the two differ for the same origin, so origins are compared without it.
+ * Gateway att sites are the same: the record we cite for attL2 reads it in the
+ * direction of the vector, SnapGene draws it the other way round (#233).
  */
-function sameStrand(cls: PartClass, a: 'forward' | 'reverse', b: 'forward' | 'reverse'): boolean {
-  return cls === 'origin' || a === b;
+const RECOMBINATION_SITE = /^att[BPLR]\d$/;
+
+function sameStrand(
+  cls: PartClass,
+  name: string,
+  a: 'forward' | 'reverse',
+  b: 'forward' | 'reverse',
+): boolean {
+  return cls === 'origin' || RECOMBINATION_SITE.test(name) || a === b;
 }
 
 /** The name pLannotate gives a part, as ours is spelled (the alias table, then itself). */
@@ -212,7 +221,9 @@ export function compare(library: FeatureLibrary): Comparison {
       total[cls]++;
       const range = oracleRange(h, v.length, topology);
       const match = hits.some(
-        (o) => sameStrand(cls, o.strand, strandOf(h)) && agrees(range, o.range, v.length, topology),
+        (o) =>
+          sameStrand(cls, h.name, o.strand, strandOf(h)) &&
+          agrees(range, o.range, v.length, topology),
       );
       if (match) {
         found[cls]++;
@@ -223,7 +234,14 @@ export function compare(library: FeatureLibrary): Comparison {
       if (cls === 'RNA' && mine.length === 0) cause = 'RNA only';
       else if (mine.length === 0)
         cause = h.database === 'swissprot' ? 'homologue' : 'not in our list';
-      else if (hits.some((o) => agrees(range, o.range, v.length, topology)))
+      else if (
+        hits.some((o) => {
+          const part = library.parts[o.part];
+          return (
+            part !== undefined && mine.includes(part) && agrees(range, o.range, v.length, topology)
+          );
+        })
+      )
         cause = 'strand differs';
       else {
         lowHits ??= detectFeatures(v.sequence, topology, library, { minIdentity: 0.9 });
@@ -232,7 +250,8 @@ export function compare(library: FeatureLibrary): Comparison {
         if (
           lowHits.some(
             (o) =>
-              sameStrand(cls, o.strand, strandOf(h)) && agrees(range, o.range, v.length, topology),
+              sameStrand(cls, h.name, o.strand, strandOf(h)) &&
+              agrees(range, o.range, v.length, topology),
           )
         )
           cause = 'below threshold';
@@ -247,7 +266,7 @@ export function compare(library: FeatureLibrary): Comparison {
       const oursClass = classOfPart(part.category, part.type, part.name);
       const known = v.hits.some(
         (h) =>
-          sameStrand(oursClass, strandOf(h), o.strand) &&
+          sameStrand(oursClass, h.name, strandOf(h), o.strand) &&
           agrees(oracleRange(h, v.length, topology), o.range, v.length, topology),
       );
       if (known) continue;

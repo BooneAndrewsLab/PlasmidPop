@@ -479,7 +479,7 @@ python3 scripts/plannotate/run_plannotate.py        # -> src/test/oracle/plannot
   marker, promoter, tag, FP, terminator, RNA); everything else (MCS,
   enhancers, LTRs, introns, operators, other CDS) is `other`.
 
-Baseline, 2026-10-10 (bundled list at 1.14):
+Baseline, 2026-10-11 (bundled list at 1.14, after the triage of #233 below; it was 787 of 988, 79.7%, on 10-10):
 
 | Class      | pLannotate hits | Found | Recall |
 | ---------- | --------------: | ----: | -----: |
@@ -488,35 +488,35 @@ Baseline, 2026-10-10 (bundled list at 1.14):
 | promoter   |             277 |   244 |  88.1% |
 | tag        |              13 |    12 |  92.3% |
 | FP         |              32 |    29 |  90.6% |
-| terminator |              92 |    55 |  59.8% |
+| terminator |              92 |    72 |  78.3% |
 | RNA        |              12 |     6 |  50.0% |
-| other      |             312 |   206 |  66.0% |
-| **all**    |             988 |   787 |  79.7% |
+| other      |             312 |   211 |  67.6% |
+| **all**    |             988 |   809 |  81.9% |
 
 Misses by cause, then the most frequent names of each:
 
 | Cause of a miss     | origin | marker | promoter | tag |  FP | terminator | RNA | other | all |
 | ------------------- | -----: | -----: | -------: | --: | --: | ---------: | --: | ----: | --: |
-| not in our list     |      8 |      0 |       24 |   1 |   3 |         16 |   0 |    72 | 124 |
+| not in our list     |      8 |      0 |       26 |   1 |   3 |         16 |   0 |    72 | 126 |
 | homologue           |      0 |      3 |        0 |   0 |   0 |          0 |   0 |    22 |  25 |
 | RNA only            |      0 |      0 |        0 |   0 |   0 |          0 |   6 |     0 |   6 |
-| strand differs      |      0 |      0 |        0 |   0 |   0 |          9 |   0 |     5 |  14 |
+| strand differs      |      0 |      0 |        0 |   0 |   0 |          0 |   0 |     0 |   0 |
 | below threshold     |      0 |      0 |        0 |   0 |   0 |          0 |   0 |     0 |   0 |
-| different extent    |      0 |      1 |        7 |   0 |   0 |         12 |   0 |     6 |  26 |
+| different extent    |      0 |      1 |        5 |   0 |   0 |          4 |   0 |     6 |  16 |
 | recoded or diverged |      0 |      3 |        2 |   0 |   0 |          0 |   0 |     1 |   6 |
 
 - not in our list: MCS (11), bom (10), RBS (9), NOS terminator (6), chimeric intron (5), poly(A) signal (5), RRE (5), LB T-DNA repeat (4), RB T-DNA repeat (4), URA3 promoter (4), AAV2 ITR (3), CaMV 35S promoter (3), EM7 promoter (3), hGH poly(A) signal (3), pVS1 oriV (3), pVS1 StaA (3), 2μ ori (2), attB (2), CMV IE94 promoter (2), gag (truncated) (2), hSyn promoter (2), iFP1.4 (2), NOS promoter (2), pVS1 RepA (2), 3' LTR (1), 5' LTR (1), AOX1 promoter (1), AOX1 terminator (1), CaMV 35S promoter (enhanced) (1), CaMV poly(A) signal (1), cat promoter (1), CloDF13 ori (1), hrGFP (1), hybrid intron (1), IS1 (1), LEU2 promoter (1), MESV Ψ (1), minimal CMV promoter (1), minP (1), MMLV Ψ (1), nucleoplasmin NLS (1), oriT (1), oriV (1), Pc promoter (1), pol region (1), Tn7L (1), Tn7R (1), traJ (1), trfA (1), TRP1 promoter (1), β-globin intron (1)
 - homologue: YPB1_ECOLX (6), ermC (2), bar (1), ectD (1), gli4 (1), hH1 (1), ho1 (1), IGK_HUMAN (1), L3 (1), luxS (1), nfsB (1), pcyA (1), PRNP (1), rnc (1), RPOL_BPT7 (1), S (1), tra (1), TUBA1 (1), xyl1 (1)
 - RNA only: gRNA scaffold (3), tRNA (3)
-- strand differs: SV40 poly(A) signal (7), lacZα (4), CYC1 terminator (2), attL2 (1)
+- strand differs:
 - below threshold:
-- different extent: HSV TK poly(A) signal (8), 5' LTR (truncated) (4), hPGK promoter (2), PGK promoter (2), tet promoter (2), β-globin poly(A) signal (2), attL1 (1), H1 promoter (1), his3 (1), rrnB T1 terminator (1), rrnB T2 terminator (1), small t intron (1)
+- different extent: lacZα (4), PGK promoter (2), tet promoter (2), β-globin poly(A) signal (2), attL1 (1), H1 promoter (1), his3 (1), rrnB T1 terminator (1), rrnB T2 terminator (1), small t intron (1)
 - recoded or diverged: KanR (3), CMV enhancer (1), TEF1 promoter (1), UbC promoter (1)
 
 How the causes are decided, in this order: **RNA only** is an Rfam hit (or
 a SnapGene RNA) with no part of ours; **homologue** is a Swiss-Prot hit we
 have no part for; **not in our list** is no part of ours by that name or
-alias; **strand differs** is a hit of ours there on the other strand;
+alias; **strand differs** is a hit of that same part of ours there on the other strand;
 **below threshold** is a hit only at 90% identity, the lowest offered
 (none); **different extent** is our part over a third longer or shorter than
 SnapGene's feature of that name, so no hit shares half of both (SnapGene's
@@ -528,18 +528,18 @@ What the numbers say:
 - The classes the list was built for are found well (origins, markers,
   promoters, tags and FPs, 88 to 94%). The gap is in `other` and in
   terminators.
-- Most misses (124 of 201) are parts the bundled list does not have: the
+- Most misses (126 of 201 after #233) are parts the bundled list does not have: the
   plant and yeast promoters and terminators (NOS, CaMV 35S, URA3, LEU2 and
   TRP1 promoters, AOX1), T-DNA borders, AAV ITRs, RBS, MCS, introns, pVS1
   and other origins. They are additions to the list, not matcher faults.
 - 25 are found by pLannotate through Swiss-Prot homology (ermC, bar, luxS,
   nfsB and the like); the bundled list carries no such proteins.
-- 26 are our part and SnapGene's feature cut differently; 14 are the same
-  part reported on the other strand (SV40 poly(A) signal, lacZα); 6 are
+- 26 were our part and SnapGene's feature cut differently and 14 the same
+  part on the other strand (both triaged below; 16 and 0 remain); 6 are
   Rfam RNAs.
 - Nothing is lost to the identity threshold: lowering it to 90% finds no
   further hit.
-- **Extras:** 254 of our 1358 hits have no pLannotate hit at the place.
+- **Extras:** 254 of our 1358 hits (253 of 1385 after #233) have no pLannotate hit at the place.
   Primer binding sites are 213 of them, which pLannotate never reports.
   The rest were spot-checked: the SV40 late poly(A) signal (15, an exact
   match; pLannotate calls the early signal where the two overlap), the
@@ -548,4 +548,67 @@ What the numbers say:
   pLannotate reports peptide tags rarely). None is wrong as far as
   checked; none was removed.
 
-The follow-ups are filed as issues, not fixed here.
+### Triage of the 26 extent and 14 strand misses (#233)
+
+The oracle is a diagnostic here, not a target: its list is SnapGene's, which
+is not bundled, so no boundary was copied from it. Where a part was changed
+the new bounds come from our own cited NCBI record and from where the copies
+in the corpus vectors begin and end (the precedent of the H1 promoter), and
+the record's coordinates are in the data file. Which were artifacts and which
+fixes:
+
+**Strand (14): none was a wrong strand in our data.**
+
+- _SV40 poly(A) signal x7 (genuine app gap, fixed)._ The SV40 early signal
+  is the reverse complement of the late one, so in these vectors both are
+  there, on opposite strands. Our 75-base early part was displaced by the
+  222-base late part, because the rule that drops a part inside a longer one
+  of the same type (meant for variants and sub-parts) ignored strand.
+  `keepBest` now displaces only on the same strand (a test in
+  `detect.test.ts`; the guide's Detect features page says so). 27 more hits
+  appear in the corpus, every one at a place pLannotate also reports.
+- _lacZα x4, CYC1 terminator x2 (artifact of the diagnosis)._ Marked
+  "strand differs" because a primer of ours overlapped; we had no hit of the
+  part at all. They are extent cases (below). The cause now needs a hit of
+  the same part on the other strand, and there are none.
+- _attL2 x1 (convention)._ Our record (MN047938, annotation read as is)
+  reads attL2 in the direction of the vector, SnapGene draws it the other
+  way. Our strand is the record's; the comparison ignores strand for Gateway
+  att sites, as it does for origins.
+
+**Extent (26): 10 fixed, 16 remain.**
+
+- _HSV TK poly(A) signal x9 (data fix)._ Vectors carry 49 bases of our
+  359 (41 bases in, V00470 1482..1530; one has a base fewer). The part is
+  now those 49, found wherever the 359 were.
+- _HIV-1 5' LTR (truncated) x4 (data fix)._ Vectors that replace U3 carry the
+  last 181 bases of the HXB2 LTR, which our 634-base part never matched. New
+  part `HIV-1 5' LTR (R-U5)`, K03455 454..634.
+- _CYC1 terminator x2 (data fix)._ The vectors share the last 194 of our 219
+  bases (with a few single-base gaps); the first 25 differ. Part trimmed to
+  Z49548 1309..1502.
+- _hPGK promoter x2 (artifact of the alias table)._ hPGK is the human
+  promoter, ours is the mouse one (15 bases in common), and the alias said
+  they were one. Alias removed; it is now "not in our list" (a human PGK
+  part is a follow-up).
+- _Accepted, our part is right, no change:_
+  - lacZα x4: pBluescript-type vectors carry 15 + 158 bases of our 348 with
+    a 79-base MCS in between, past what an indel can span.
+  - β-globin poly(A) signal x2: our part ends at the cleavage site; SnapGene's
+    runs 31 bases beyond, so the hits share 25 of its 56 bases (45%, just
+    under the half the comparison asks).
+  - H1 promoter x1: the vector has the last 87 of our 215 bases, the
+    shRNA-cloning cut we chose on purpose.
+  - his3 x1: a 1110-base HIS3 of another species, no similarity to our
+    S. cerevisiae CDS.
+  - PGK promoter x2: 427 of our 852 bases, plus 73 beyond its end; a part
+    that matches in the middle of a vector needs sub-region matching, below.
+  - tet promoter x2, rrnB T1 and T2 x2, attL1 x1, small t intron x1: pieces
+    or variants of our parts (attL1 and the rrnB terminators differ by
+    several bases; the small t intron is the last 66 bases of our large T
+    intron). Not resolved, because the bounds would have to be taken from
+    SnapGene's list; they stay as misses.
+- _Not done, for a follow-up issue:_ letting a part match on a large,
+  well-defined sub-region in the middle of a sequence (as #94 does at linear
+  ends) would take lacZα, PGK and the like, but is a matcher change with a
+  false-positive cost that wants measuring first.

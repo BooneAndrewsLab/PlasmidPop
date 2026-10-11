@@ -671,7 +671,9 @@ export function overlapLength(a: Range, b: Range, length: number, topology: Topo
  * - a part inside a longer one (lacZα inside lacZ).
  *
  * Hits of different types never displace each other: a primer site inside a
- * promoter is two features.
+ * promoter is two features. Nor does a part inside a longer one on the other
+ * strand: it is the complement of another feature (the SV40 early and late
+ * poly(A) signals, #233).
  */
 function keepBest(
   hits: readonly FeatureHit[],
@@ -706,8 +708,12 @@ function keepBest(
       const shared = overlapLength(k.range, h.range, length, topology);
       if (k.part === h.part) return shared > 0;
       return (
+        // On the other strand only the same bases displace: a part inside a longer one there is another feature (the SV40 early poly(A) signal is the late one's complement).
+        (k.strand === h.strand || shared >= 0.9 * size(k)) &&
         // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
-        library.parts[k.part]?.type === type && k.identity >= h.identity && shared >= 0.9 * size(h)
+        library.parts[k.part]?.type === type &&
+        k.identity >= h.identity &&
+        shared >= 0.9 * size(h)
       );
     });
     if (!displaced) kept.push(h);

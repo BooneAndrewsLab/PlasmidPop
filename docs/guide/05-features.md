@@ -151,7 +151,8 @@ What is found:
   offered: the pBR322 origin rather than the pUC origin that differs from it
   by one base, `lacZ` rather than the `lacZα` inside it. Parts of different
   types are offered together, so a primer site inside a promoter is two
-  features.
+  features, and so are parts on opposite strands (the SV40 early poly(A)
+  signal is the complement of the late one, and both are offered).
 
 A feature added this way is named after the part and carries two notes: what
 the part is, and _Detected by PlasmidPop_ with how well it matched and the

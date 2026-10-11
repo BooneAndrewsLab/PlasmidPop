@@ -118,7 +118,8 @@ function slowKeepBest(hits: FeatureHit[], lib: FeatureLibrary, n: number): Featu
         ? sharedBases(k, h, n) > 0
         : lib.parts[k.part]?.type === type &&
           k.identity >= h.identity &&
-          sharedBases(k, h, n) >= 0.9 * size(h),
+          sharedBases(k, h, n) >= 0.9 * size(h) &&
+          (k.strand === h.strand || sharedBases(k, h, n) >= 0.9 * size(k)),
     );
     if (!displaced) kept.push(h);
   }

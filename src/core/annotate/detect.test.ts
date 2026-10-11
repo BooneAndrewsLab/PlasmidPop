@@ -312,6 +312,19 @@ describe('detectFeatures', () => {
       expect(lib.parts[hit.part]?.name).toBe('outer');
     });
 
+    it('keeps a part inside a longer one of the same type on the other strand (#233)', () => {
+      const inner = reverseComplement(PART.slice(50, 150));
+      const lib = library(
+        part('outer', PART, 'polyA_signal'),
+        part('inner', inner, 'polyA_signal'),
+      );
+      const hits = detectFeatures(PART, 'linear', lib);
+      expect(hits.map((h) => [lib.parts[h.part]?.name, h.strand])).toEqual([
+        ['outer', 'forward'],
+        ['inner', 'reverse'],
+      ]);
+    });
+
     it('keeps a part inside a longer one of another type', () => {
       const inner = PART.slice(50, 150);
       const lib = library(part('outer', PART, 'promoter'), part('primer', inner, 'primer_bind'));
