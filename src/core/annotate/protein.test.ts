@@ -3,6 +3,9 @@ import { detectFeatures } from './detect';
 import {
   DEFAULT_PROTEIN_IDENTITY,
   EXACT_UP_TO,
+  NONE,
+  codesOf,
+  framesOf,
   detectProteinFeatures,
   proteinMismatchBudget,
 } from './protein';
@@ -292,5 +295,87 @@ describe('the index the protein matcher builds', () => {
     expect(
       detectProteinFeatures(`${PAD}${broken}${PAD}`, 'linear', lib, { minIdentity: 1 }),
     ).toEqual([]);
+  });
+});
+
+describe('residue and frame codes', () => {
+  it('codes only the capital letters A to Z', () => {
+    expect(Array.from(codesOf('AZ@[a*1'))).toEqual([0, 25, NONE, NONE, NONE, NONE, NONE]);
+  });
+
+  it('reads no codon that has a base it cannot, on either strand', () => {
+    for (let x = 0; x < 5; x++)
+      for (let y = 0; y < 5; y++)
+        for (let z = 0; z < 5; z++) {
+          if (x < 4 && y < 4 && z < 4) continue;
+          const [forward, reverse] = framesOf(Uint8Array.of(x, y, z));
+          expect(forward?.codes[0], `${x}${y}${z} forward`).toBe(NONE);
+          expect(reverse?.codes[0], `${x}${y}${z} reverse`).toBe(NONE);
+        }
+  });
+
+  it('has as many residues in a frame as whole codons after its offset', () => {
+    for (const n of [0, 2, 3, 4, 5, 6, 8]) {
+      for (const frame of framesOf(new Uint8Array(n))) {
+        expect(frame.codes.length, `${n} bases, offset ${frame.offset}`).toBe(
+          Math.floor((n - frame.offset) / 3) < 0 ? 0 : Math.floor((n - frame.offset) / 3),
+        );
+      }
+    }
+  });
+});
+
+describe('placing a protein part', () => {
+  it('finds each of two parts that have the same protein', () => {
+    const lib = library(
+      part({ name: 'GFP', protein: 'MKVLTAAA' }),
+      part({ name: 'sfGFP', protein: 'MKVLTAAA' }),
+    );
+    const hits = detectProteinFeatures(`${PAD}${encode('MKVLTAAA')}${PAD}`, 'linear', lib);
+    expect(hits.map((h) => lib.parts[h.part]?.name).sort()).toEqual(['GFP', 'sfGFP']);
+  });
+
+  it('finds parts whose seed words differ only in the last residue', () => {
+    const lib = library(
+      part({ name: 'a', protein: 'MKVLA' }),
+      part({ name: 'c', protein: 'MKVLC' }),
+    );
+    for (const [protein, name] of [
+      ['MKVLA', 'a'],
+      ['MKVLC', 'c'],
+    ] as const) {
+      const hits = detectProteinFeatures(`${PAD}${encode(protein)}${PAD}`, 'linear', lib);
+      expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual([name]);
+    }
+  });
+
+  it('places a part by a later seed when the residues of its first one differ', () => {
+    const codons = encode(LONG);
+    // The second residue is changed: no seed from the start matches, but
+    // those further on do, and the part is still where it was.
+    const changed = `${codons.slice(0, 3)}GCG${codons.slice(6)}`;
+    const lib = library(part({ name: 'FP', protein: LONG }));
+    const [hit] = detectProteinFeatures(`${PAD}${changed}${PAD}`, 'linear', lib);
+    expect(hit).toMatchObject({ mismatches: 1, range: { start: PAD.length } });
+  });
+
+  it('reports a part at the origin of a circle once', () => {
+    const lib = library(part({ name: 'tag', protein: HIS }));
+    const hits = detectProteinFeatures(`${encode(HIS)}${PAD}`, 'circular', lib);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.range.start).toBe(0);
+  });
+
+  it('does not find a part that would run twice round a small circle', () => {
+    const unit = 'MKVLT';
+    const lib = library(part({ name: 'twice', protein: unit + unit }));
+    expect(detectProteinFeatures(encode(unit), 'circular', lib)).toEqual([]);
+  });
+
+  it('finds a part each time it occurs', () => {
+    const lib = library(part({ name: 'tag', protein: HIS }));
+    const sequence = `${PAD}${encode(HIS)}${PAD}${encode(HIS)}${PAD}`;
+    const hits = detectProteinFeatures(sequence, 'linear', lib);
+    expect(hits.map((h) => h.range.start)).toEqual([PAD.length, PAD.length * 2 + HIS.length * 3]);
   });
 });

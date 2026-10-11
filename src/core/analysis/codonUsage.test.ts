@@ -113,4 +113,10 @@ describe('libraryCoverage', () => {
     expect(libraryCoverage('TGA').stops).toBe(1);
     expect(libraryCoverage('TGA', 2).stops).toBe(0);
   });
+
+  it('stands for no codon where a position is not a nucleotide code', () => {
+    for (const bad of ['ZNN', 'NZN', 'NNZ', '']) {
+      expect(libraryCoverage(bad).codons, bad).toBe(0);
+    }
+  });
 });
