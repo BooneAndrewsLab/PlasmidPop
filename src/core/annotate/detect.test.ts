@@ -913,3 +913,226 @@ describe('keepBest ties (mutation survivors)', () => {
     expect(hits[0]?.viaProtein).toBeUndefined();
   });
 });
+
+describe('detectFeatures: options, ordering and protein-only libraries (mutation survivors)', () => {
+  const r = seededRandom(3030);
+  const flank = (n: number): string => randomDna(r, n);
+  const CODON: Record<string, string> = {
+    M: 'ATG',
+    K: 'AAA',
+    T: 'ACC',
+    A: 'GCG',
+    Y: 'TAT',
+    I: 'ATT',
+  };
+  const PROTEIN = 'MKTAYIAKTAYIMKTAYIAKTA';
+  const CODING = Array.from(PROTEIN, (aa) => CODON[aa] ?? 'NNN').join('');
+  const byProtein: LibraryPart = { ...part('byProtein', '', 'CDS'), protein: PROTEIN };
+
+  it('looks for a part by its protein when no part of the library has bases to seed on', () => {
+    const hits = detectFeatures(flank(100) + CODING + flank(100), 'linear', library(byProtein));
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ part: 0, viaProtein: true, range: { start: 100, end: 166 } });
+  });
+
+  it('looks for nothing by protein when asked not to', () => {
+    const seq = flank(100) + CODING + flank(100);
+    const lib = library(byProtein, part('other', flank(40)));
+    expect(detectFeatures(seq, 'linear', lib)).toHaveLength(1);
+    expect(detectFeatures(seq, 'linear', lib, { protein: false })).toEqual([]);
+  });
+
+  it('lists hits by start whichever is longer, the longer first where two start together', () => {
+    // The longer part lies later: the order is that along the sequence, not by length.
+    const short = randomDna(r, 60);
+    const long = randomDna(r, 200);
+    const lib = library(part('long', long), part('short', short));
+    const seq = flank(50) + short + flank(50) + long + flank(50);
+    // With homologues on or off the list is reduced by different code.
+    for (const options of [{}, { homologues: false }, { protein: false }]) {
+      const hits = detectFeatures(seq, 'linear', lib, options);
+      expect(hits.map((h) => h.part)).toEqual([1, 0]);
+      expect(hits.map((h) => h.range.start)).toEqual([50, 160]);
+    }
+  });
+
+  it('drops a part inside a longer one on the other strand only where the same bases are covered', () => {
+    // A is 100 bases forward; B is 90 of them, found on the reverse strand: 90% of A.
+    const a = randomDna(r, 100);
+    const inside = reverseComplement(a.slice(5, 95));
+    const seq = flank(60) + a + flank(60);
+    const full = detectFeatures(seq, 'linear', library(part('A', a), part('B', inside)));
+    expect(full.map((h) => h.part)).toEqual([0]);
+    // 89 bases are 89% of A: another feature on the other strand, kept.
+    const less = reverseComplement(a.slice(5, 94));
+    const kept = detectFeatures(seq, 'linear', library(part('A', a), part('B', less)));
+    expect(kept.map((h) => h.part)).toEqual([0, 1]);
+  });
+});
+
+describe('gapped hits: circles and library layout (mutation survivors)', () => {
+  const r = seededRandom(4040);
+  const flank = (n: number): string => randomDna(r, n);
+
+  it('finds a gapped copy that is the whole of a circle, at every rotation', () => {
+    // 299 part bases and one inserted: the reading is exactly the circle.
+    const q = randomDna(r, 299);
+    const circle = q.slice(0, 150) + 'T' + q.slice(150);
+    for (const origin of [0, 1, 100, 299]) {
+      const rotated = circle.slice(origin) + circle.slice(0, origin);
+      const hit = only(detectFeatures(rotated, 'circular', library(part('Q', q))));
+      const start = (300 - origin) % 300;
+      expect(hit.range).toEqual({ start, end: start + 300 });
+      expect(hit).toMatchObject({ insertions: 1, deletions: 0, mismatches: 0 });
+    }
+  });
+
+  it('reports a gapped copy at the very start of a circle where it begins', () => {
+    const q = randomDna(r, 300);
+    const copy = q.slice(0, 100) + q.slice(103);
+    for (const tail of [4, 150]) {
+      const hit = only(detectFeatures(copy + flank(tail), 'circular', library(part('Q', q))));
+      expect(hit.range).toEqual({ start: 0, end: 297 });
+    }
+  });
+
+  it('finds a gapped copy in a sequence shorter than the longest part of the library', () => {
+    const long = randomDna(r, 1000);
+    const q = randomDna(r, 300);
+    const copy = q.slice(0, 150) + q.slice(152);
+    const seq = flank(50) + copy + flank(50);
+    for (const parts of [
+      [part('long', long), part('Q', q)],
+      [part('Q', q), part('long', long)],
+    ]) {
+      const hits = detectFeatures(seq, 'linear', library(...parts));
+      const q0 = parts.findIndex((p) => p.name === 'Q');
+      expect(hits).toHaveLength(1);
+      expect(hits[0]).toMatchObject({ part: q0, deletions: 2, range: { start: 50, end: 348 } });
+    }
+  });
+
+  it('finds the gapped copy of each of two parts that share their bases', () => {
+    // B is A with a prefix: the words of A seed both, on diagonals 40 apart.
+    const a = randomDna(r, 300);
+    const b = randomDna(r, 40) + a;
+    const copyOfA = a.slice(0, 150) + a.slice(152);
+    const seq = flank(80) + copyOfA + flank(80);
+    const hits = detectFeatures(seq, 'linear', library(part('A', a), part('B', b)));
+    expect(hits.map((h) => h.part)).toEqual([0]);
+    expect(hits[0]).toMatchObject({ deletions: 2, range: { start: 80, end: 378 } });
+    const copyOfB = b.slice(0, 190) + b.slice(192);
+    const both = detectFeatures(
+      flank(80) + copyOfB + flank(80),
+      'linear',
+      library(part('A', a), part('B', b)),
+    );
+    expect(both.map((h) => h.part)).toEqual([1]);
+    expect(both[0]).toMatchObject({ deletions: 2, range: { start: 80, end: 418 } });
+  });
+
+  it('keeps the gapped reading of a part with a base deleted near its end, at either end of the sequence', () => {
+    // A base deleted 14 bases from the end of the part, and the sequence ends
+    // with it: the substitutions that read it as 300 bases cut off by one are
+    // within the budget too, and the whole, gapped reading is the better one.
+    const q = randomDna(r, 300);
+    const copy = q.slice(0, 285) + q.slice(286);
+    const atEnd = flank(100) + copy;
+    const atStart = reverseComplement(atEnd);
+    const end = only(detectFeatures(atEnd, 'linear', library(part('Q', q))));
+    expect(end).toMatchObject({ deletions: 1, mismatches: 0, range: { start: 100, end: 399 } });
+    expect(end.partialEnd).toBeUndefined();
+    const start = only(detectFeatures(atStart, 'linear', library(part('Q', q))));
+    expect(start).toMatchObject({ deletions: 1, mismatches: 0, range: { start: 0, end: 299 } });
+    expect(start.partialStart).toBeUndefined();
+  });
+
+  it('offers substitutions where they explain a copy with bases inserted near the end of the part', () => {
+    // The last 14 bases or fewer read shifted: at most 14 mismatches, within the
+    // 15 allowed, and the gapped reading is the longer and has none. The copy
+    // is read the cheaper way, with no indel.
+    for (const length of [300, 324]) {
+      const q = randomDna(r, length);
+      // A longer part reads a circle on far enough to see the whole copy a turn on.
+      const lib = library(part('Q', q), part('long', randomDna(r, 700)));
+      for (const topology of ['linear', 'circular'] as const) {
+        for (const reverse of [false, true]) {
+          for (const back of [10, 12, 14]) {
+            const copy = q.slice(0, length - back) + 'GT' + q.slice(length - back);
+            const seq = flank(120) + (reverse ? reverseComplement(copy) : copy) + flank(120);
+            const hits = detectFeatures(seq, topology, lib).filter((h) => h.part === 0);
+            const label = `${length} ${topology} ${reverse} ${back}`;
+            expect(
+              hits.map((h) => h.insertions),
+              label,
+            ).toEqual([undefined]);
+          }
+        }
+      }
+    }
+  });
+
+  it('finds a gapped copy near the start of a circle whose indel is near the start of the part', () => {
+    // Read at the start of the sequence such a copy has too short a flank to be sure of: it is
+    // the copy a turn on, in the circle read past its origin, that is found, and reported where it is.
+    const q = randomDna(r, 149);
+    const lib = library(part('Q', q), part('long', randomDna(r, 700)));
+    for (const reverse of [false, true]) {
+      for (const lead of [0, 5, 10]) {
+        for (const at of [10, 11, 12]) {
+          // A base unlike its neighbours, so the indel has one place.
+          const novel = Array.from('ACGT').find((b) => b !== q[at - 1] && b !== q[at]) ?? 'A';
+          const copy = q.slice(0, at) + novel + q.slice(at);
+          const tail = flank(189);
+          const seq = reverse
+            ? reverseComplement(flank(lead) + copy + tail)
+            : flank(lead) + copy + tail;
+          const n = seq.length;
+          const hits = detectFeatures(seq, 'circular', lib).filter((h) => h.part === 0);
+          const label = `${reverse} ${lead} ${at}`;
+          expect(hits, label).toHaveLength(1);
+          const start = reverse ? n - lead - 150 : lead;
+          expect(hits[0]?.range, label).toEqual({ start, end: start + 150 });
+          expect(hits[0]?.insertions, label).toBe(1);
+        }
+      }
+    }
+  });
+
+  it('keeps a gapped copy near the start of a circle beside an exact copy of the same part', () => {
+    // The circle is read on past its origin far enough for the whole of the later copy to be
+    // seen a turn on: that sight is not a third copy, and does not take the first one away.
+    const q = randomDna(r, 149);
+    const lib = library(part('Q', q), part('long', randomDna(r, 700)));
+    const novel = Array.from('ACGT').find((b) => b !== q[59] && b !== q[60]) ?? 'A';
+    const gapped = q.slice(0, 60) + novel + q.slice(60);
+    const seq = flank(5) + gapped + flank(2) + q + flank(180);
+    const hits = detectFeatures(seq, 'circular', lib).filter((h) => h.part === 0);
+    expect(hits.map((h) => h.range)).toEqual([
+      { start: 5, end: 155 },
+      { start: 157, end: 306 },
+    ]);
+    expect(hits.map((h) => h.insertions)).toEqual([1, undefined]);
+  });
+
+  it('reads the gapped copy of a part beside the substitution hit of another that is part of it', () => {
+    // B is A with 24 bases before it. The copy of B has a few bases missing just inside A: A is
+    // read on a diagonal of its own, B only with the gap. The hit on one is not an explanation of the other.
+    const a = randomDna(r, 296);
+    const b = randomDna(r, 24) + a;
+    const copy = b.slice(0, 32) + b.slice(35);
+    const lib = library(part('A', a, 'promoter'), part('B', b, 'CDS'));
+    for (const reverse of [false, true]) {
+      const seq = flank(20) + (reverse ? reverseComplement(copy) : copy) + flank(20);
+      const hits = detectFeatures(seq, 'linear', lib);
+      expect(hits.map((h) => h.part).sort(), String(reverse)).toEqual([0, 1]);
+      expect(
+        hits.find((h) => h.part === 1),
+        String(reverse),
+      ).toMatchObject({
+        deletions: 3,
+        mismatches: 0,
+      });
+    }
+  });
+});

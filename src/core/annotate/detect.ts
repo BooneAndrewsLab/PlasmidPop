@@ -187,6 +187,7 @@ const BITS = (() => {
 
 function masksOf(seq: string): Uint8Array {
   const out = new Uint8Array(seq.length);
+  // Stryker disable next-line EqualityOperator: equivalent, a write past the end of a typed array is dropped
   for (let i = 0; i < seq.length; i++) out[i] = MASKS[seq.charCodeAt(i)] ?? 0;
   return out;
 }
@@ -241,10 +242,12 @@ function indexFor(library: FeatureLibrary): FeatureIndex {
   const present = new Uint8Array((SEED_MASK + 1) >>> 3);
   let longest = 0;
   library.parts.forEach((part, index) => {
+    // Stryker disable next-line all: equivalent, a part shorter than a seed has no seeds, so its entry is never offered
     if (part.sequence.length < SEED) return;
     longest = Math.max(longest, part.sequence.length);
     const forward = masksOf(part.sequence);
     const reverse = new Uint8Array(forward.length);
+    // Stryker disable next-line EqualityOperator: equivalent, a write outside a typed array is dropped
     for (let i = 0; i < forward.length; i++) {
       reverse[forward.length - 1 - i] = COMPLEMENT_MASK[forward[i] ?? 0] ?? 0;
     }
@@ -278,12 +281,15 @@ function forEachSeed(
   let run = 0;
   for (let p = 0; p < end; p++) {
     if (onStride !== undefined && (p & 0xffff) === 0) onStride(p);
+    // Stryker disable next-line all: unreachable, every mask is an index of the table
     const bits = BITS[masks[p] ?? 0] ?? -1;
+    // Stryker disable next-line all: equivalent, a word spanning an ambiguous base is no word of any part: the extra candidates it offers fail the check
     if (bits < 0) {
       run = 0;
       continue;
     }
     word = ((word << 2) | bits) & SEED_MASK;
+    // Stryker disable next-line all: equivalent, a word is a seed whatever offset it is numbered from so long as the part and the sequence agree, and a short run only offers candidates that fail the check
     if (++run >= SEED) visit(word, p - SEED + 1);
   }
 }
@@ -306,15 +312,17 @@ export function detectFeatures(
     e.exact ? 0 : mismatchBudget(e.masks.length, minIdentity),
   );
   const n = sequence.length;
-  if (n === 0 || index.entries.length === 0) return [];
+  if (n === 0) return [];
   const circular = topology === 'circular';
   // A circle is read on past its origin far enough for the longest part
   // (and never so far that a part could cover a base twice), and for a
   // gapped one (#94) as far again as an insertion lengthens it and its flank
   // keeps it from the array's end (see `gappedHits`).
+  // Stryker disable next-line ArithmeticOperator: equivalent, a part longer than the circle is turned away, so reading one base more or fewer than a turn changes nothing
   const extra = circular ? Math.min(index.longest - 1 + GAPPED_OVERHANG, n - 1) : 0;
   const target = new Uint8Array(n + extra);
   target.set(masksOf(sequence));
+  // Stryker disable next-line EqualityOperator: equivalent, a write past the end of a typed array is dropped
   for (let i = 0; i < extra; i++) target[n + i] = target[i % n] ?? 0;
   const total = target.length;
 
@@ -329,6 +337,7 @@ export function detectFeatures(
   const limit = circular ? total : n;
   const check = (e: number, start: number): void => {
     const entry = index.entries[e];
+    // Stryker disable next-line all: unreachable, an entry is always defined
     if (entry === undefined) return;
     const len = entry.masks.length;
     // Where the part is inside the sequence: the whole of it, unless it is
@@ -336,12 +345,14 @@ export function detectFeatures(
     const from = Math.max(0, start);
     const to = Math.min(start + len, limit);
     const overlap = to - from;
+    // Stryker disable next-line all: equivalent, a part is wholly inside only if it starts at 0 or after
     const whole = overlap === len && start >= 0;
     if (!whole) {
       // A part cut off by a linear end cannot be shown to match in full.
       if (!partialEnds || entry.exact) return;
       if (overlap < MIN_PARTIAL_BASES || overlap < len * MIN_PARTIAL_SHARE) return;
     }
+    // Stryker disable next-line EqualityOperator,ArithmeticOperator: equivalent, a copy at the origin is read at 0 and at n alike, and a part wholly inside ends within the array
     if (start >= n || (whole && (len > n || start + len > total))) return;
     const key = start * entryCount + e;
     if (tried.has(key)) return;
@@ -361,6 +372,7 @@ export function detectFeatures(
       else ambiguous++;
       if (mismatches + ambiguous > budget) return;
     }
+    // Stryker disable next-line all: performance only, the diagonals a copy was found on only spare the gapped pass a window that `substitutionsFirst` would drop
     if (whole) found.add(key);
     raw.push({
       part: entry.part,
@@ -413,6 +425,7 @@ export function detectFeatures(
   );
   // Stryker disable next-line all: performance only, the gapped pass has nothing to do without seeds
   if (seeded.length > 0) {
+    // Stryker disable next-line all: performance only, as `found` above
     const onFoundDiagonal = (e: number, start: number): boolean =>
       found.has(start * entryCount + e);
     raw.push(...gappedHits(index, target, n, limit, seeded, indelBudgets, onFoundDiagonal));
@@ -446,13 +459,16 @@ function withHomologues(
   topology: Topology,
 ): FeatureHit[] {
   const bySimilar = [...similar].sort(
+    // Stryker disable next-line OptionalChaining: equivalent, a homologue hit always has its score
     (x, y) => (y.similar?.bits ?? 0) - (x.similar?.bits ?? 0) || x.part - y.part,
   );
   const out: FeatureHit[] = [];
   for (const h of bySimilar) {
+    // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const type = library.parts[h.part]?.type;
     const size = h.range.end - h.range.start;
     const covered = (k: FeatureHit): boolean =>
+      // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
       library.parts[k.part]?.type === type &&
       overlapLength(k.range, h.range, length, topology) >= 0.5 * size;
     if (kept.some(covered) || out.some(covered)) continue;
@@ -506,8 +522,11 @@ function gappedHits(
   // (entry, diagonal) as one sortable number; a diagonal can be negative on
   // a linear sequence, by up to the longest part.
   const shift = index.longest;
+  // Stryker disable next-line ArithmeticOperator: equivalent, the stride only has to exceed a diagonal plus the shift, which one less still does
   const stride = limit + 2 * index.longest + 1;
+  // Stryker disable next-line ArithmeticOperator: equivalent, the extra zero keys are seeds of the first entry on a diagonal no copy starts on
   const keys = new Float64Array(seeded.length / 2);
+  // Stryker disable next-line EqualityOperator: equivalent, a write past the end of a typed array is dropped
   for (let k = 0; k < keys.length; k++) {
     keys[k] = (seeded[2 * k] ?? 0) * stride + (seeded[2 * k + 1] ?? 0) + shift;
   }
@@ -518,6 +537,7 @@ function gappedHits(
   while (from < keys.length) {
     const e = Math.floor((keys[from] ?? 0) / stride);
     let to = from;
+    // Stryker disable next-line EqualityOperator: equivalent, a key past the end reads as zero, a seed of no window
     while (to < keys.length && Math.floor((keys[to] ?? 0) / stride) === e) to++;
     const entry = index.entries[e];
     const budget = budgets[e] ?? 0;
@@ -573,12 +593,14 @@ function gappedHits(
         // than the width is past what the band is sure to hold (it reaches
         // `width` either side of a window up to `width` wide).
         const gaps = found.insertions + found.deletions;
+        // Stryker disable next-line ConditionalExpression: equivalent, a reading with no gap is a substitution hit, found on its own, and `substitutionsFirst` drops it
         if (gaps === 0 || gaps > width) continue;
         // One turn of a circle at most, starting in the first. A reading
         // starting at the array's start may be a part running in from
         // before it, which the flank rule turns away; the copy a turn on
         // (the overhang is long enough for it) is then the one found, and
         // is moved back a turn.
+        // Stryker disable next-line ConditionalExpression: equivalent, a reading longer than the sequence would have to align a part more cheaply than its own length
         if (found.end - found.start > n) continue;
         const turn = found.start >= n ? n : 0;
         const edits = found.mismatches + found.ambiguous + found.insertions + found.deletions;

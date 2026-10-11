@@ -83,6 +83,7 @@ function text(entry: Record<string, unknown>, key: string): string | undefined {
  * the six frames, and found recoded for another host or as a homologue.
  */
 export function codingProtein(type: string, sequence: string): string | undefined {
+  // Stryker disable next-line ConditionalExpression,ArithmeticOperator: equivalent, a shorter sequence has too few residues for the check below
   if (type !== 'CDS' || sequence.length < 3 * MIN_CODING_RESIDUES || sequence.length % 3 !== 0) {
     return undefined;
   }
@@ -114,6 +115,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       name === undefined ||
       type === undefined ||
       category === undefined ||
+      // Stryker disable next-line ConditionalExpression: equivalent, a missing sequence fails the base test that ends the condition
       sequence === undefined ||
       accession === undefined ||
       location === undefined ||

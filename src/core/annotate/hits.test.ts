@@ -259,3 +259,39 @@ describe('a part cut off by the end of a linear sequence (#94)', () => {
     expect(whole).toMatchObject({ partialStart: false, partialEnd: false });
   });
 });
+
+describe('describeMatch and featureFromHit edge cases (mutation survivors)', () => {
+  it('counts an ambiguous base against a cut-off part being exact', () => {
+    const cut = hit(0, 100, { ambiguous: 1, identity: 0.99, partialEnd: true });
+    expect(describeMatch(cut)).toBe('99% as far as it goes, cut off at the end');
+  });
+
+  it('does not call a hit with only bases inserted or only bases deleted exact', () => {
+    expect(describeMatch(hit(0, 102, { insertions: 2, identity: 0.98 }))).toBe(
+      '2 bases inserted, 98%',
+    );
+    expect(describeMatch(hit(0, 98, { deletions: 2, identity: 0.98 }))).toBe(
+      '2 bases deleted, 98%',
+    );
+  });
+
+  it('cites a My parts part with no origin as "My parts"', () => {
+    const mine: Omit<LibraryPart, 'sequence' | 'protein'> = {
+      name: 'mine',
+      type: 'CDS',
+      category: 'other',
+      accession: '',
+      location: '',
+      source: 'mine',
+    };
+    const notes = featureFromHit(hit(0, 100), mine)
+      .qualifiers.filter((q) => q.name === 'note')
+      .map((q) => q.value);
+    expect(notes).toEqual(['Detected by PlasmidPop: exact to My parts']);
+  });
+
+  it('marks the start of a feature partial when the hit was cut off there', () => {
+    const [segment] = featureFromHit(hit(0, 80, { partialStart: true }), AMP).segments;
+    expect(segment).toMatchObject({ partialStart: true, partialEnd: false });
+  });
+});

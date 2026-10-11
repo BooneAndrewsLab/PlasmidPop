@@ -201,6 +201,9 @@ describe('homologues', () => {
     expect(off.some((h) => h.similar !== undefined)).toBe(false);
     const on = detectFeatures(dna, 'circular', library);
     expect(on.some((h) => h.similar !== undefined)).toBe(true);
+    // Homologues are made in the translation, so a search without that has none either.
+    const noProtein = detectFeatures(dna, 'circular', library, { protein: false });
+    expect(noProtein.some((h) => h.similar !== undefined || h.viaProtein === true)).toBe(false);
   });
 
   it('finds a diverged copy of a My parts CDS', () => {
@@ -262,5 +265,106 @@ describe('homologues', () => {
     const ms = performance.now() - t0;
     expect(hits.length).toBeGreaterThan(0);
     expect(ms).toBeLessThan(2000);
+  });
+});
+
+describe('which homologue is offered (mutation survivors)', () => {
+  const base = find('AmpR').part.protein ?? '';
+  const parts = (...proteins: string[]): FeatureLibrary => ({
+    parts: proteins.map((protein, i) => ({
+      name: `P${i}`,
+      type: 'CDS',
+      category: 'marker',
+      sequence: '',
+      protein,
+      accession: 'X00000.1',
+      location: '1..1',
+      source: 'core',
+    })),
+  });
+  /** A part found by its bases alone. */
+  const dnaPart = (name: string, type: string, sequence: string): LibraryPart => ({
+    name,
+    type,
+    category: 'marker',
+    sequence,
+    accession: 'X00000.1',
+    location: '1..1',
+    source: 'core',
+  });
+  const similarOf = (dna: string, lib: FeatureLibrary) =>
+    detectFeatures(dna, 'circular', lib).filter((h) => h.similar !== undefined);
+
+  function target(seed: number, share: number): { dna: string } {
+    const next = rng(seed);
+    const flank = randomDna(1500, next);
+    const dna = flank + recode(diverge(base, share, next), next) + randomDna(1500, next);
+    return { dna };
+  }
+
+  it('offers the closer of two parts similar to the same bases, whichever comes first', () => {
+    const { dna } = target(41, 0.2);
+    const near = diverge(base, 0.05, rng(5));
+    const far = diverge(base, 0.25, rng(6));
+    const nearFirst = similarOf(dna, parts(near, far));
+    const farFirst = similarOf(dna, parts(far, near));
+    expect(nearFirst.map((h) => h.part)).toEqual([0]);
+    expect(farFirst.map((h) => h.part)).toEqual([1]);
+  });
+
+  it('offers the first of two parts that are equally similar', () => {
+    const { dna } = target(42, 0.2);
+    const same = diverge(base, 0.1, rng(7));
+    expect(similarOf(dna, parts(same, same, same)).map((h) => h.part)).toEqual([0]);
+  });
+
+  it('is not hidden by a hit of another type over the same bases', () => {
+    const { dna } = target(43, 0.2);
+    const lib = parts(base);
+    const [hit] = similarOf(dna, lib);
+    if (hit === undefined) throw new Error('no homologue');
+    const exact = dna.slice(hit.range.start, hit.range.end);
+    const other = dnaPart('tag', 'misc_feature', exact);
+    const hits = detectFeatures(dna, 'circular', { parts: [...lib.parts, other] });
+    expect(hits.some((h) => h.part === 0 && h.similar !== undefined)).toBe(true);
+  });
+
+  it('is hidden by a hit of its type over half of it, and not by less', () => {
+    const { dna } = target(44, 0.2);
+    const lib = parts(base);
+    const [hit] = similarOf(dna, lib);
+    if (hit === undefined) throw new Error('no homologue');
+    const size = hit.range.end - hit.range.start;
+    const covering = (bases: number): FeatureLibrary => ({
+      parts: [
+        ...lib.parts,
+        dnaPart('piece', 'CDS', dna.slice(hit.range.start, hit.range.start + bases)),
+      ],
+    });
+    const half = Math.ceil(size / 2);
+    const hidden = detectFeatures(dna, 'circular', covering(half));
+    expect(hidden.some((h) => h.part === 0)).toBe(false);
+    expect(hidden.some((h) => h.part === 1)).toBe(true);
+    const shown = detectFeatures(dna, 'circular', covering(half - 1));
+    expect(shown.some((h) => h.part === 0 && h.similar !== undefined)).toBe(true);
+  });
+
+  it('lists the homologue among the other hits by start, the longer first where they start together', () => {
+    const { dna } = target(45, 0.2);
+    const lib = parts(base);
+    const [hit] = similarOf(dna, lib);
+    if (hit === undefined) throw new Error('no homologue');
+    const tag = (name: string, from: number, to: number): LibraryPart =>
+      dnaPart(name, 'misc_feature', dna.slice(from, to));
+    const order = (extra: LibraryPart): string[] =>
+      detectFeatures(dna, 'circular', { parts: [...lib.parts, extra] }).map((h) =>
+        h.part === 0 ? 'similar' : 'tag',
+      );
+    // A tag after the homologue starts: the homologue is listed first.
+    expect(order(tag('late', hit.range.end - 60, hit.range.end))).toEqual(['similar', 'tag']);
+    // A tag before it: the tag first.
+    expect(order(tag('early', hit.range.start - 60, hit.range.start))).toEqual(['tag', 'similar']);
+    // Both starting together: the longer, the homologue, first.
+    expect(order(tag('same', hit.range.start, hit.range.start + 60))).toEqual(['similar', 'tag']);
   });
 });

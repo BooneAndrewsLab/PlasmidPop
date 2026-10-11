@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { loadFeatureLibrary, parseLibraryFile } from './library';
+import { codingProtein, loadFeatureLibrary, parseLibraryFile } from './library';
 
 const GOOD = {
   name: 'lac operator',
@@ -149,6 +149,48 @@ describe('the bundled library, as loaded', () => {
     // A protein-only part still cites where its sequence came from.
     for (const p of lib.parts) {
       if (p.sequence === '') expect(p.accession.length, p.name).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('parseLibraryFile and codingProtein edge cases (mutation survivors)', () => {
+  it('says an empty protein with no bases is nothing, not a malformed protein', () => {
+    expect(() => parseLibraryFile(file({ ...GOOD, sequence: '', protein: '' }), 'core')).toThrow(
+      'part 0 has neither bases nor a protein',
+    );
+  });
+
+  it('keeps no protein key on a part without one', () => {
+    const [plain] = parseLibraryFile(file(GOOD), 'core');
+    expect(plain).not.toHaveProperty('protein');
+  });
+
+  it('reads a protein off a CDS of exactly the shortest length, and no shorter', () => {
+    const codons = 'ATGAAAGGGCCCTTTAAAGGGCCC';
+    // Eight codons: eight residues, the least that is a protein.
+    expect(codingProtein('CDS', codons)).toBe('MKGPFKGP');
+    // Seven residues and a closing stop is too short once the stop is dropped.
+    expect(codingProtein('CDS', `${codons.slice(0, 21)}TAA`)).toBeUndefined();
+    expect(codingProtein('CDS', `${codons}TAA`)).toBe('MKGPFKGP');
+  });
+});
+
+describe('loadFeatureLibrary after a failed load', () => {
+  it('tries again on the next call rather than keeping the failure', async () => {
+    vi.resetModules();
+    vi.doMock('./data/core-parts.json?raw', () => {
+      throw new Error('offline');
+    });
+    try {
+      const fresh = await import('./library');
+      const first = fresh.loadFeatureLibrary();
+      await expect(first).rejects.toThrow();
+      const second = fresh.loadFeatureLibrary();
+      expect(second).not.toBe(first);
+      await expect(second).rejects.toThrow();
+    } finally {
+      vi.doUnmock('./data/core-parts.json?raw');
+      vi.resetModules();
     }
   });
 });
