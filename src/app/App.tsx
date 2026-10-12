@@ -21,6 +21,7 @@ import { ImportSummaryDialog } from './components/ImportSummaryDialog';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { ReadNotice } from './components/ReadNotice';
 import { ShareNotice } from './components/ShareNotice';
+import { BackupNotice } from './components/BackupNotice';
 import { StorageNotice } from './components/StorageNotice';
 import { Sidebar } from './components/Sidebar';
 import { SPLITTER_SIZE, Splitter } from './components/Splitter';
@@ -147,6 +148,7 @@ export function App() {
             <ShareNotice />
             <ReadNotice />
             <StorageNotice />
+            <BackupNotice />
             <PhoneShell doc={doc} />
           </div>
         </main>
@@ -179,6 +181,7 @@ export function App() {
             <ShareNotice />
             <ReadNotice />
             <StorageNotice />
+            <BackupNotice />
             <EditBar doc={doc} />
             {findOpen && <FindBar doc={doc} />}
             <div

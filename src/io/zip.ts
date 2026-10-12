@@ -1,4 +1,4 @@
-import { unzipSync } from 'fflate';
+import { unzipSync, zipSync } from 'fflate';
 
 import { FormatError } from './types';
 
@@ -122,4 +122,21 @@ export function readZip(
     data: content,
   }));
   return { entries, skipped };
+}
+
+/**
+ * Writes the entries as a ZIP archive (#203), deflated. Paths use `/`; a
+ * path that is empty, absolute or leaves the archive is a programming error
+ * and throws, so what is written is always something `readZip` accepts.
+ */
+export function writeZip(entries: readonly ZipEntry[]): Uint8Array {
+  const files: Record<string, Uint8Array> = {};
+  for (const { path, data } of entries) {
+    if (path === '' || path.endsWith('/') || isUnsafe(path) || isNoise(path)) {
+      throw new Error(`Not a path a ZIP file can hold: "${path}"`);
+    }
+    if (path in files) throw new Error(`Two entries are named "${path}"`);
+    files[path] = data;
+  }
+  return zipSync(files, { level: 6 });
 }

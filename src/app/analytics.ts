@@ -130,6 +130,8 @@ export const EVENTS = {
     'export',
     'open-ncbi',
     'open-ncbi-failed',
+    'backup',
+    'restore',
   ],
   /**
    * Compare with…: `target` is what it was pointed at (`tab` or `file`),

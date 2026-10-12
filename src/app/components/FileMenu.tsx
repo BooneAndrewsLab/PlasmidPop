@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useState } from 'react';
 import { type SeqDocument, extractRange, hasTool, isEmptyRange } from '@/core';
 import { exportMapSvg } from '@/view/svg';
 
+import { backUpAll, pickBackupAndRestore } from '../backup';
 import { EXAMPLES } from '../examples';
 import { openExample } from '../openFile';
 import { copyShareLink } from '../share';
@@ -197,6 +198,23 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             onClick={run(onCompare)}
           >
             Compare with…
+          </Item>
+          <div className="menu__separator" role="separator" />
+          <Item
+            title="Every document with its undo history, and your primers, parts and imported tables, as one ZIP file. Nothing is uploaded."
+            onClick={run(() => {
+              report(backUpAll());
+            })}
+          >
+            Back up all documents…
+          </Item>
+          <Item
+            title="Read a backup file back in. Documents are merged by id; a copy here that is as new or newer is kept."
+            onClick={run(() => {
+              report(pickBackupAndRestore());
+            })}
+          >
+            Restore from backup…
           </Item>
           <div className="menu__separator" role="separator" />
           {/* A protein has no map (#66). */}

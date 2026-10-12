@@ -729,6 +729,8 @@ describe('toolbar', () => {
       'Copy share linkAlt+L', // as a file, or inside a link that goes nowhere near a server
       'Copy link to selection',
       'Compare with…Alt+K', // and the one that reads a file without opening it
+      'Back up all documents…', // everything this browser holds, out and back in (#203)
+      'Restore from backup…',
       'Export map as SVG',
       'Export sequence view as SVG…',
       'Export sequence as FASTA',

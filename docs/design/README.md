@@ -278,3 +278,5 @@ the Bench, item 49). The rest stand.
 100.  [My parts for Detect features](86-my-parts.md)
 
 101.  [Open a ZIP of sequence files](87-zip-import.md)
+
+102.  [Back up and restore all documents](88-backup-restore.md)

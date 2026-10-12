@@ -685,6 +685,8 @@ export interface SharedState {
    * follows something the user did rather than appearing out of nowhere.
    */
   readonly storageNotice: boolean;
+  /** The report of a backup or a restore (#203), shown under the toolbar until dismissed. */
+  readonly backupNotice: string | null;
   /**
    * What each panel is pointing at in the views, one entry per panel
    * (#32); see `DocumentPreview`. The views draw `EditorState.preview`, the
@@ -933,6 +935,7 @@ const SHARED_INITIAL: SharedState = {
   readNotice: null,
   importSummary: null,
   storageNotice: false,
+  backupNotice: null,
   previews: [],
   previewActivated: null,
   comparison: null,
@@ -1516,6 +1519,15 @@ export class EditorStore {
 
   dismissStorageNotice(): void {
     if (this.state.storageNotice) this.setShared({ storageNotice: false });
+  }
+
+  /** Puts up what a backup or a restore did (#203). */
+  noteBackup(message: string): void {
+    this.setShared({ backupNotice: message });
+  }
+
+  dismissBackupNotice(): void {
+    if (this.state.backupNotice !== null) this.setShared({ backupNotice: null });
   }
 
   /** Puts up the review of what this working copy changed, before a download writes it. */

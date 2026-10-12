@@ -9,6 +9,7 @@ import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
 import { InlineRename } from './InlineRename';
+import { StoragePanel } from './StoragePanel';
 
 function formatWhen(timestamp: number): string {
   const diff = Date.now() - timestamp;
@@ -190,6 +191,7 @@ export function EmptyState() {
           </ul>
         </section>
       )}
+      <StoragePanel documents={recent ?? []} onChanged={refresh} />
     </div>
   );
 }

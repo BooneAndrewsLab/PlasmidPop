@@ -561,8 +561,49 @@ it stays in this browser and nothing is uploaded.
 
 Either way your documents are still in the browser. Clearing site data
 removes them, and a private window keeps nothing. So: this browser is where
-your work lives while you are working, and it is not a backup. Download the
-documents you want to keep as files.
+your work lives while you are working, and on its own it is not a backup.
+Download the documents you want to keep as files, or back everything up at
+once, below.
+
+### Backing up and restoring everything
+
+The browser profile can go away: site data cleared, a new computer, a
+reinstalled system, or Safari dropping the storage of a site you have not
+visited for seven days. **File ▸ Back up all documents…** (also a button on
+the Files tab, under **Storage and backup**) writes one ZIP file,
+`plasmidpop-backup-YYYY-MM-DD.zip`, with every stored document and its undo
+history, and the rest of what this browser keeps for you: your primers, your
+parts, your own enzymes and imported tables, and the cloning shelf. It is an
+ordinary download, so keep it somewhere other than this browser. The ZIP is
+plain JSON inside; nothing is uploaded.
+
+**File ▸ Restore from backup…** reads such a file back, here or on another
+computer. It merges and never deletes:
+
+- A document that is not here is added, with its undo history.
+- A document that is here is replaced only by a _newer_ copy from the backup.
+  If the copy here is the same or newer it is kept, and the report says how
+  many. So restoring an old backup never takes back later edits.
+- A document that is open in a tab is left alone; close its tab and restore
+  again to bring the backup's copy.
+- Primers, parts and the other collections are added where missing; a row
+  that is already here is kept, except the shelf and imported tables, where
+  the newer one wins.
+- A backup made by a newer version of PlasmidPop is refused with a message;
+  a damaged entry is skipped and listed, and the rest is restored.
+
+A backup is not opened by **Open file…**: that opens a ZIP of sequence files
+as new documents ([Opening several files, or a ZIP](#opening-several-files-or-a-zip)).
+
+**Storage and backup**, on the Files tab, says how many documents are stored,
+whether the browser has agreed to keep them, and when you last backed up. It
+adds a warning when there are changes older than seven days that no backup
+holds. In Safari, and any browser on an iPhone or iPad, that is not installed
+to the home screen (or the Dock), it also says that the browser may drop the
+documents after seven days without a visit, which a backup or installing the
+app protects against. The date of the last backup is remembered in this
+browser only, so a restore on a new computer starts with "never backed up"
+until you back up there.
 
 ## Usage statistics
 
