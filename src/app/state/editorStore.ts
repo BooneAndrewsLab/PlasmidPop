@@ -676,6 +676,8 @@ export interface SharedState {
    * nonce restarts the notice when it happens again.
    */
   readonly readNotice: { readonly kind: 'edited' | 'downloaded'; readonly nonce: number } | null;
+  /** What opening several files, or an archive, came to (#213); the dialog that reports it. */
+  readonly importSummary: ImportSummary | null;
   /**
    * That the browser would ask the user before keeping this origin's
    * storage, and has not been asked yet. The banner explains what the
@@ -841,6 +843,20 @@ type ActiveDocumentFields = {
  */
 export type FrontTab = 'document' | 'files' | 'bench';
 
+/** What opening several files at once, or a ZIP of them, came to (#213). */
+export interface ImportSummary {
+  /** What was opened: the archive's name, or how many files. */
+  readonly source: string;
+  /** Documents that now have a tab. */
+  readonly opened: number;
+  /** Records that were the same file as one already open, so were not opened twice. */
+  readonly alreadyOpen: number;
+  /** Files left out, with why. */
+  readonly skipped: readonly { readonly name: string; readonly reason: string }[];
+  /** Parser warnings, per record. */
+  readonly warnings: readonly { readonly name: string; readonly messages: readonly string[] }[];
+}
+
 /** What a copied share link carries (#39), for the notice under the toolbar. */
 export interface ShareNoticeInfo {
   /** The link's length, in characters. */
@@ -915,6 +931,7 @@ const SHARED_INITIAL: SharedState = {
   downloadNotice: null,
   shareNotice: null,
   readNotice: null,
+  importSummary: null,
   storageNotice: false,
   previews: [],
   previewActivated: null,
@@ -1472,6 +1489,15 @@ export class EditorStore {
 
   dismissShareNotice(): void {
     if (this.state.shareNotice !== null) this.setShared({ shareNotice: null });
+  }
+
+  /** Puts up the report of a multi-file or archive import (#213). */
+  noteImport(summary: ImportSummary): void {
+    this.setShared({ importSummary: summary });
+  }
+
+  dismissImportSummary(): void {
+    if (this.state.importSummary !== null) this.setShared({ importSummary: null });
   }
 
   /** Records that a read was left behind, for the notice under the toolbar. */

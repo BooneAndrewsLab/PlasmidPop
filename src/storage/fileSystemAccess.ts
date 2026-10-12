@@ -36,6 +36,7 @@ export const SEQUENCE_FILE_TYPES: readonly FilePickerType[] = [
       'chemical/seq-na-genbank': ['.gb', '.gbk', '.genbank', '.gbff', '.ape'],
       'chemical/seq-na-fasta': ['.fa', '.fasta', '.fna', '.seq'],
       'application/vnd.snapgene': ['.dna', '.prot', '.rna'],
+      'application/zip': ['.zip'],
     },
   },
 ];
@@ -63,18 +64,22 @@ function isAbort(e: unknown): boolean {
  * write to what the user opened, and nothing in PlasmidPop may do that.
  */
 export async function pickOpenFile(): Promise<File | null> {
+  return (await pickOpenFiles(false))[0] ?? null;
+}
+
+/** `pickOpenFile` for several files at once (#213); empty when cancelled or unsupported. */
+export async function pickOpenFiles(multiple = true): Promise<File[]> {
   const w = pickerWindow();
-  if (w?.showOpenFilePicker === undefined) return null;
+  if (w?.showOpenFilePicker === undefined) return [];
   try {
-    const [handle] = await w.showOpenFilePicker({
-      multiple: false,
+    const handles = await w.showOpenFilePicker({
+      multiple,
       types: SEQUENCE_FILE_TYPES,
       id: 'plasmidpop-open',
     });
-    if (handle === undefined) return null;
-    return await handle.getFile();
+    return await Promise.all(handles.map((h) => h.getFile()));
   } catch (e) {
-    if (isAbort(e)) return null;
+    if (isAbort(e)) return [];
     throw e;
   }
 }

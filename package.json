@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "dexie": "^4.4.6",
+    "fflate": "^0.8.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "xz-decompress": "^0.2.3"

@@ -11,6 +11,7 @@
 | AB1        | `.ab1` `.abi`                              | yes  | as GenBank, or FASTQ |
 | FASTQ      | `.fastq` `.fq`, gzipped or not             | yes  | as GenBank, or FASTQ |
 | Bare bases | `.txt`, or pasted                          | yes  | as GenBank           |
+| ZIP        | `.zip` of any of the above                 | yes  | no                   |
 
 The format is sniffed from the content first, so a GenBank record in a
 `.txt` file still opens as GenBank. If a file holds several records, the first
@@ -107,6 +108,34 @@ single- or double-stranded, so nothing here does either, and it opens linear.
 
 **Geneious** files are not supported. Export them as GenBank first.
 
+## Opening several files, or a ZIP
+
+**File ▸ Open** takes several files at once (select them in the picker), and
+so does dropping them on the window. Each sequence opens in a tab of its own,
+and one summary says how many documents opened, which files were skipped and
+why, and any warnings the reader had about each record.
+
+A **`.zip`** is opened the same way: a lab moving off Benchling, or another
+tool, can export all its sequences as a ZIP of GenBank files and open that one
+file. Every sequence file inside becomes a document. Files that are not
+sequences (a spreadsheet of metadata, say), empty or unreadable files, and the
+hidden files macOS and Windows add to archives are left out; the ones that
+could have been a sequence are listed under **Skipped** with the reason. A
+file with several records (a multi-FASTA) opens every record; an AB1 or FASTQ
+opens its first record only, as it does on its own.
+
+The folder a file sat in is kept: it is added to the document's keywords
+(GenBank `KEYWORDS`) as `Projects/Plasmids`. Files with the same name from
+different folders are different documents and stay apart; a file that is
+identical to one already open, or to another in the batch, is not opened a
+second time and is counted as already open.
+
+Opening hundreds of files gives hundreds of tabs, and the archive is read in
+the browser: nothing is uploaded. An archive that holds more than 5,000 files,
+or that would expand to more than 512 MB, is refused rather than opened, and
+a single file over 64 MB inside one is skipped. Detect features on open
+(if you have turned it on) does not run for a batch.
+
 ## Opening a record from NCBI
 
 **File ▸ Open from NCBI…** (or **From NCBI…** in the toolbar when nothing is
@@ -163,7 +192,7 @@ from NCBI, never which (see [Usage statistics](#usage-statistics)).
 
 Every document you open gets a tab in the strip under the toolbar, so a
 vector and its insert can be open side by side. **Open file**, **New**,
-**Open example**, **Open from NCBI…**, a dropped file, a pasted record, a ligation product and a
+**Open example**, **Open from NCBI…**, a dropped file (or a [ZIP of them](#opening-several-files-or-a-zip)), a pasted record, a ligation product and a
 fragment opened from the Cloning tab all open in a new tab and bring it to
 the front. Opening a file that already has a tab goes to that tab instead of
 opening it twice — unless that tab has been edited, which makes it a

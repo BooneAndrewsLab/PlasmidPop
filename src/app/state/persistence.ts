@@ -18,7 +18,7 @@ import {
   type DocumentRepository,
   type StoredLoad,
   getRepository,
-  pickOpenFile,
+  pickOpenFiles,
   pickSaveFile,
   supportsFileSystemAccess,
   writeTextToHandle,
@@ -620,11 +620,14 @@ export class PersistenceService {
    * it. Returns false when the caller should fall back to the input, true
    * when the picker did its job (including when the user cancelled).
    */
-  async openWithPicker(handle: (file: File) => Promise<unknown>): Promise<boolean> {
+  async openWithPicker(
+    handle: (files: File[]) => Promise<unknown>,
+    multiple = false,
+  ): Promise<boolean> {
     if (!supportsFileSystemAccess()) return false;
-    const file = await pickOpenFile();
-    if (file === null) return true; // cancelled
-    await handle(file);
+    const files = await pickOpenFiles(multiple);
+    if (files.length === 0) return true; // cancelled
+    await handle(files);
     return true;
   }
 

@@ -5,7 +5,7 @@ import { type SeqDocument, describeEnds, formatLength, hasTool } from '@/core';
 import { analytics } from '../analytics';
 import { compareWithFile } from '../compare';
 import { EXAMPLES } from '../examples';
-import { SEQUENCE_FILE_ACCEPT, openExample, openFile } from '../openFile';
+import { SEQUENCE_FILE_ACCEPT, openExample, openFiles } from '../openFile';
 import { persistence } from '../state/persistence';
 import { HelpButton } from '../help/HelpButton';
 import { CompareChooser } from './CompareChooser';
@@ -53,11 +53,12 @@ export function Toolbar({ doc }: Props) {
   const compareRef = useRef<HTMLInputElement>(null);
   /** The picker where it exists, the hidden input where it does not. */
   const pickFile = (
-    handle: (file: File) => Promise<unknown>,
+    handle: (files: File[]) => Promise<unknown>,
     fallback: RefObject<HTMLInputElement | null>,
+    multiple = false,
   ): void => {
     persistence
-      .openWithPicker(handle)
+      .openWithPicker(handle, multiple)
       .then((handled) => {
         if (!handled) fallback.current?.click();
       })
@@ -66,10 +67,12 @@ export function Toolbar({ doc }: Props) {
       });
   };
   const openViaPicker = (): void => {
-    pickFile(openFile, inputRef);
+    pickFile(openFiles, inputRef, true);
   };
   const compareViaPicker = (): void => {
-    pickFile(compareWithFile, compareRef);
+    pickFile(async ([file]) => {
+      if (file !== undefined) await compareWithFile(file);
+    }, compareRef);
   };
   // With another tab open there is a choice to make first (#37); with none,
   // the only thing to compare with is a file, and the picker is the question.
@@ -102,6 +105,12 @@ export function Toolbar({ doc }: Props) {
       if (file !== undefined) void handle(file);
       e.target.value = '';
     };
+  /** The same for the Open input, which takes several files at once (#213). */
+  const onPickMany = (e: ChangeEvent<HTMLInputElement>): void => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) void openFiles(files);
+    e.target.value = '';
+  };
 
   const example = EXAMPLES[0];
 
@@ -296,8 +305,9 @@ export function Toolbar({ doc }: Props) {
           ref={inputRef}
           type="file"
           accept={SEQUENCE_FILE_ACCEPT}
+          multiple
           hidden
-          onChange={onPick(openFile)}
+          onChange={onPickMany}
         />
         <input
           ref={compareRef}

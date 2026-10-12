@@ -276,3 +276,5 @@ the Bench, item 49). The rest stand.
 99. [Multiple sequence alignment](85-multiple-alignment.md)
 
 100.  [My parts for Detect features](86-my-parts.md)
+
+101.  [Open a ZIP of sequence files](87-zip-import.md)

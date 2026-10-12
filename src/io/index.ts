@@ -11,3 +11,5 @@ export * from './detect';
 export * from './ncbi';
 export * from './parts';
 export * from './spreadsheet';
+export * from './zip';
+export * from './archive';

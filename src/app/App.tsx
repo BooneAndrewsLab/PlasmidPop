@@ -17,6 +17,7 @@ import { PhoneShell } from './components/PhoneShell';
 import { CopyBanner } from './components/CopyBanner';
 import { CompareDialog } from './components/CompareDialog';
 import { DownloadNotice } from './components/DownloadNotice';
+import { ImportSummaryDialog } from './components/ImportSummaryDialog';
 import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { ReadNotice } from './components/ReadNotice';
 import { ShareNotice } from './components/ShareNotice';
@@ -26,7 +27,7 @@ import { SPLITTER_SIZE, Splitter } from './components/Splitter';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
 import { useMediaQuery } from './components/useMediaQuery';
-import { openFile } from './openFile';
+import { openFiles } from './openFile';
 import {
   DEFAULT_LAYOUT,
   MIN_EDITOR_HEIGHT_PX,
@@ -103,8 +104,8 @@ export function App() {
     e.preventDefault();
     setDragging(false);
     if (claimed) return;
-    const file = e.dataTransfer.files[0];
-    if (file !== undefined) void openFile(file);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) void openFiles(files);
   };
 
   return (
@@ -275,6 +276,7 @@ export function App() {
       )}
       <StatusBar doc={doc} />
       <SaveReviewDialog />
+      <ImportSummaryDialog />
       <VerifyClonesDialog />
       <CompareDialog />
       <NewDocumentDialog />
