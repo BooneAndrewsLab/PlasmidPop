@@ -5,6 +5,7 @@ import {
   type Segment,
   reverseComplement,
 } from '@/core';
+import { newId } from '@/core/ids';
 
 /**
  * SnapGene .dna, .rna and .prot writer (#204): the packets `parseSnapGene`
@@ -318,7 +319,7 @@ export function writeSnapGene(
   const p = plan(doc, losses);
   const length = p.sequence.length;
   const colorOf = options.colorOf ?? (() => NO_COLOR);
-  const uuid = options.uuid ?? crypto.randomUUID();
+  const uuid = options.uuid ?? newId();
 
   if (doc.read !== null)
     losses.push('The sequencing read (qualities and trace) is not written; only its bases are.');

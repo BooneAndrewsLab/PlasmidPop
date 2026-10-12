@@ -125,6 +125,17 @@ describe('read, write, read (#204)', () => {
     const b = writeSnapGene(doc, { uuid: 'x' }).bytes;
     expect(Array.from(a)).toEqual(Array.from(b));
   });
+
+  it('writes outside a secure context, where crypto.randomUUID is missing', () => {
+    const doc = readBack(new Uint8Array(readFileSync(new URL('plasmid.dna', dir))));
+    const original = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+    try {
+      expect(() => writeSnapGene(doc)).not.toThrow();
+    } finally {
+      if (original) Object.defineProperty(crypto, 'randomUUID', original);
+    }
+  });
 });
 
 describe('what the packets hold', () => {
