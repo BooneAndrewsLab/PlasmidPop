@@ -45,6 +45,11 @@ export const GENBANK_SAVE_TYPES: readonly FilePickerType[] = [
   { description: 'GenBank', accept: { 'chemical/seq-na-genbank': ['.gb', '.gbk'] } },
 ];
 
+/** What a SnapGene file is called to the save dialog, by the extension it has. */
+export function snapGeneSaveTypes(extension: string): readonly FilePickerType[] {
+  return [{ description: 'SnapGene', accept: { 'application/vnd.snapgene': [`.${extension}`] } }];
+}
+
 function pickerWindow(): PickerWindow | null {
   return typeof window === 'undefined' ? null : (window as unknown as PickerWindow);
 }
@@ -85,13 +90,16 @@ export async function pickOpenFiles(multiple = true): Promise<File[]> {
 }
 
 /** Asks where to save; resolves null when cancelled or unsupported. */
-export async function pickSaveFile(suggestedName: string): Promise<FileSystemFileHandle | null> {
+export async function pickSaveFile(
+  suggestedName: string,
+  types: readonly FilePickerType[] = GENBANK_SAVE_TYPES,
+): Promise<FileSystemFileHandle | null> {
   const w = pickerWindow();
   if (w?.showSaveFilePicker === undefined) return null;
   try {
     return await w.showSaveFilePicker({
       suggestedName,
-      types: GENBANK_SAVE_TYPES,
+      types,
       id: 'plasmidpop-save',
     });
   } catch (e) {
@@ -104,6 +112,18 @@ export async function writeTextToHandle(handle: FileSystemFileHandle, text: stri
   const writable = await handle.createWritable();
   try {
     await writable.write(text);
+  } finally {
+    await writable.close();
+  }
+}
+
+export async function writeBytesToHandle(
+  handle: FileSystemFileHandle,
+  bytes: Uint8Array,
+): Promise<void> {
+  const writable = await handle.createWritable();
+  try {
+    await writable.write(new Blob([bytes as BlobPart]));
   } finally {
     await writable.close();
   }

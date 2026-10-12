@@ -42,6 +42,11 @@ export function fileNameFor(doc: SeqDocument, format: SaveFormat): string {
   return `${stem}.${extension}`;
 }
 
+/** The name a SnapGene download goes under: the document's own, with the extension the file has. */
+export function snapGeneFileName(doc: SeqDocument, extension: string): string {
+  return fileNameFor(doc, 'genbank').replace(/\.[^.]+$/, `.${extension}`);
+}
+
 export function serialize(doc: SeqDocument, format: SaveFormat): string {
   switch (format) {
     case 'genbank':

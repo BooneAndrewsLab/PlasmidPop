@@ -240,6 +240,52 @@ describe('PersistenceService', () => {
     editorStore.closeDocument();
   });
 
+  it('downloads a SnapGene file, listing first what it cannot hold (#204)', async () => {
+    editorStore.closeAllDocuments();
+    const created: HTMLAnchorElement[] = [];
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      created.push(this);
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    // Nothing in it SnapGene cannot hold, and nothing changed: it goes out.
+    editorStore.openDocument(doc, 'pKeep.gb');
+    await service.downloadSnapGene();
+    expect(created.map((a) => a.download)).toEqual(['pKeep.dna']);
+    expect(editorStore.getState().saveReview).toBeNull();
+    editorStore.closeDocument();
+
+    // A GenBank keyword has no place in the file, so it waits to be read.
+    const withKeywords = SeqDocument.create({
+      name: 'pKw',
+      sequence: 'ACGTACGTAC',
+      metadata: { keywords: 'plasmid' },
+    });
+    editorStore.openDocument(withKeywords, 'pKw.gb');
+    await service.downloadSnapGene();
+    expect(created).toHaveLength(1);
+    const review = editorStore.getState().saveReview;
+    expect(review?.fileName).toBe('');
+    expect(review?.snapGene?.extension).toBe('dna');
+    expect(review?.snapGene?.losses.join(' ')).toContain('keywords');
+    // Dismissing writes nothing; confirming writes the file.
+    editorStore.dismissSaveReview();
+    expect(created).toHaveLength(1);
+    await service.downloadSnapGene();
+    await service.confirmSaveReview();
+    expect(created.map((a) => a.download)).toEqual(['pKeep.dna', 'pKw.dna']);
+    editorStore.closeDocument();
+
+    // An empty document cannot be written as one.
+    editorStore.openDocument(SeqDocument.create({ name: 'empty', sequence: '' }), 'empty.gb');
+    await expect(service.downloadSnapGene()).rejects.toThrow(/at least one base/);
+    clickSpy.mockRestore();
+    editorStore.closeAllDocuments();
+  });
+
   it('writes through the save dialog where there is one, keeping no handle', async () => {
     editorStore.closeAllDocuments();
     const writes: string[] = [];

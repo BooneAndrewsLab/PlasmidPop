@@ -3,6 +3,8 @@
 #   scripts/oracle/run.sh generate   rewrite src/test/oracle/*.json (Biopython, primer3-py,
 #                                    pydna and seguid answers; needs Python 3.10+)
 #   scripts/oracle/run.sh writer     have Biopython read every file our GenBank writer produces
+#   scripts/oracle/run.sh snapgene-writer
+#                                    have Biopython read every SnapGene file our writer produces
 #   scripts/oracle/run.sh snapgene-local [dir]
 #                                    compare our SnapGene reader with Biopython's on every .dna
 #                                    under dir (default: a local SnapGene installation)
@@ -34,6 +36,12 @@ case "${1:-}" in
     (cd "$root" && ORACLE_EXPORT="$out" npx vitest run src/test/oracle/exportGenBank.test.ts)
     "$venv/bin/python" "$root/scripts/oracle/check_writer.py" "$out"
     ;;
+  snapgene-writer)
+    out="$(mktemp -d)"
+    trap 'rm -rf "$out"' EXIT
+    (cd "$root" && ORACLE_EXPORT_SNAPGENE="$out" npx vitest run src/test/oracle/exportSnapGene.test.ts)
+    "$venv/bin/python" "$root/scripts/oracle/check_snapgene_writer.py" "$out"
+    ;;
   snapgene-local)
     dir="${2:-$HOME/Programs/snapgene_8.2.2_linux/data/opt/gslbiotech/snapgene/resources}"
     out="$(mktemp -d)"
@@ -50,7 +58,7 @@ case "${1:-}" in
     (cd "$root" && ABIF_ORACLE="$out/abif.json" npx vitest run src/test/oracle/abif.test.ts)
     ;;
   *)
-    echo "usage: $0 generate|writer|snapgene-local [dir]|abif-local [dir...]" >&2
+    echo "usage: $0 generate|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]" >&2
     exit 2
     ;;
 esac

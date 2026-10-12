@@ -234,4 +234,31 @@ describe('CopyBanner', () => {
       editorStore.dismissSaveReview();
     });
   });
+
+  it('lists what a SnapGene file leaves out, for a document that is not a working copy (#204)', () => {
+    act(() => {
+      editorStore.closeAllDocuments();
+      const id = editorStore.openDocument(original, 'pRev.gb');
+      editorStore.requestSaveReview(id, '', {
+        extension: 'dna',
+        losses: ['GenBank keywords are not written.', '2 feature(s) lose their partial-end marks.'],
+      });
+    });
+    const { container } = render(<SaveReviewDialog />);
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe(
+      'Download “pRev” as SnapGene .dna',
+    );
+    const items = [...container.querySelectorAll('.save-review__losses li')].map(
+      (li) => li.textContent,
+    );
+    expect(items).toEqual([
+      'GenBank keywords are not written.',
+      '2 feature(s) lose their partial-end marks.',
+    ]);
+    // No working copy, so no diff of one.
+    expect(container.querySelector('.save-review')).toBeNull();
+    act(() => {
+      editorStore.dismissSaveReview();
+    });
+  });
 });

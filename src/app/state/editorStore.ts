@@ -382,6 +382,19 @@ function withProvenance(doc: SeqDocument, origin: DocumentOrigin): SeqDocument {
  * `EditorState`, so a view that reads `state.selection` gets the selection of
  * the document it is drawing.
  */
+/** What a SnapGene download tells the person before it writes (#204). */
+export interface SnapGeneReview {
+  /** The file's extension: `dna`, `rna` or `prot`. */
+  readonly extension: string;
+  /** What it leaves out or changes, one sentence each. */
+  readonly losses: readonly string[];
+}
+
+export interface SaveReview {
+  readonly fileName: string;
+  readonly snapGene?: SnapGeneReview;
+}
+
 export interface DocumentState {
   /** Stable id of the document in local storage; also the tab's identity. */
   readonly documentId: string;
@@ -421,9 +434,11 @@ export interface DocumentState {
   readonly warnings: readonly ParseWarning[];
   /**
    * Set while a download is showing what this working copy changed about the
-   * file it came from, before it is written out. Carries that file's name.
+   * file it came from, before it is written out. Carries that file's name,
+   * which is empty for a document that is not a working copy, and, for a
+   * SnapGene download (#204), what the file cannot hold.
    */
-  readonly saveReview: { readonly fileName: string } | null;
+  readonly saveReview: SaveReview | null;
   readonly analysis: AnalysisState | null;
   /** Enzymes whose cut sites are drawn in the views. */
   readonly shownEnzymes: ReadonlySet<string>;
@@ -1531,8 +1546,10 @@ export class EditorStore {
   }
 
   /** Puts up the review of what this working copy changed, before a download writes it. */
-  requestSaveReview(id: string, fileName: string): void {
-    this.setDocument(id, { saveReview: { fileName } });
+  requestSaveReview(id: string, fileName: string, snapGene?: SnapGeneReview): void {
+    this.setDocument(id, {
+      saveReview: snapGene === undefined ? { fileName } : { fileName, snapGene },
+    });
   }
 
   dismissSaveReview(): void {

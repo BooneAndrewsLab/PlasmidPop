@@ -726,6 +726,7 @@ describe('toolbar', () => {
       'Verify clones…',
       'Open example',
       'Download GenBank…Ctrl+S', // the two ways a document leaves the app:
+      'Download SnapGene…', // (the same file, written for the other program too, #204)
       'Copy share linkAlt+L', // as a file, or inside a link that goes nowhere near a server
       'Copy link to selection',
       'Compare with…Alt+K', // and the one that reads a file without opening it

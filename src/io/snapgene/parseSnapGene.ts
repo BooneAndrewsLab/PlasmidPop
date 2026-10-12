@@ -244,7 +244,12 @@ function parseFeatures(
     const frame = /^-?([123])$/.exec(el.attributes['readingFrame'] ?? '')?.[1];
     if (frame !== undefined) {
       const had = qualifiers.some((q) => q.name === 'codon_start');
-      if (had || frame !== '1') {
+      // One that already says the same stays where the file has it, so a
+      // file written back and read again keeps its qualifiers in order.
+      const agrees = qualifiers
+        .filter((q) => q.name === 'codon_start')
+        .every((q) => q.value === frame);
+      if ((had || frame !== '1') && !(had && agrees)) {
         qualifiers = qualifiers.filter((q) => q.name !== 'codon_start');
         qualifiers.push({ name: 'codon_start', value: frame });
       }

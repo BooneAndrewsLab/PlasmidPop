@@ -13,21 +13,30 @@ import {
   parseFidelityCsv,
   parseFidelityWorkbook,
 } from '@/core';
-import { type RebaseSkipped, parseRebaseWithRefM, readTableFile, writeGenBank } from '@/io';
+import {
+  type RebaseSkipped,
+  parseRebaseWithRefM,
+  readTableFile,
+  writeGenBank,
+  writeSnapGene,
+} from '@/io';
 import {
   type DocumentRepository,
   type StoredLoad,
   getRepository,
   pickOpenFiles,
   pickSaveFile,
+  snapGeneSaveTypes,
   supportsFileSystemAccess,
+  writeBytesToHandle,
   writeTextToHandle,
 } from '@/storage';
+import { featureColor } from '@/view/featureColors';
 
 import { analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
-import { downloadText, fileNameFor } from '../saveFile';
+import { downloadBlob, downloadText, fileNameFor, snapGeneFileName } from '../saveFile';
 import { type DocumentState, editorStore } from './editorStore';
 import { storageChoice } from './storageChoice';
 
@@ -650,11 +659,34 @@ export class PersistenceService {
     await this.write(documentId);
   }
 
+  /**
+   * Writes the document in front out as a SnapGene file (#204): `.dna`, or
+   * `.prot` for a protein. What the file cannot hold is listed first, in the
+   * same dialog a working copy's changes are, and the download waits for the
+   * user to have read it; a document SnapGene can hold whole is written at
+   * once.
+   */
+  async downloadSnapGene(): Promise<void> {
+    const target = editorStore.documentState();
+    if (target === null) return;
+    const { documentId, origin, derived } = target;
+    const { extension, losses } = writeSnapGene(target.history.present, SNAPGENE_OPTIONS);
+    if (losses.length > 0 || (origin !== null && derived)) {
+      editorStore.requestSaveReview(documentId, origin !== null && derived ? origin.fileName : '', {
+        extension,
+        losses,
+      });
+      return;
+    }
+    await this.write(documentId, 'snapgene');
+  }
+
   /** The user has read the review of their changes and wants the file written. */
   async confirmSaveReview(): Promise<void> {
-    const id = editorStore.getState().documentId;
+    const { documentId: id, saveReview } = editorStore.getState();
     editorStore.dismissSaveReview();
-    if (id !== null) await this.write(id);
+    if (id !== null)
+      await this.write(id, saveReview?.snapGene === undefined ? 'genbank' : 'snapgene');
   }
 
   /**
@@ -666,9 +698,13 @@ export class PersistenceService {
    * The tab is named rather than taken from the front, because the user may
    * switch tabs while the dialog is up.
    */
-  private async write(documentId: string): Promise<void> {
+  private async write(
+    documentId: string,
+    format: 'genbank' | 'snapgene' = 'genbank',
+  ): Promise<void> {
     const target = editorStore.documentState(documentId);
     if (target === null) return;
+    if (format === 'snapgene') return this.writeSnapGeneFile(documentId);
     const suggested = downloadNameFor(target);
     // GenBank has nowhere for a read's qualities and trace; they stay here.
     if (target.history.present.read !== null) editorStore.noteReadLeftBehind('downloaded');
@@ -688,6 +724,33 @@ export class PersistenceService {
     await writeTextToHandle(handle, writeGenBank(current));
     editorStore.markDownloaded(documentId, handle.name);
   }
+
+  /** `write`'s other half: the same download, as the bytes of a SnapGene file. */
+  private async writeSnapGeneFile(documentId: string): Promise<void> {
+    const target = editorStore.documentState(documentId);
+    if (target === null) return;
+    const first = writeSnapGene(target.history.present, SNAPGENE_OPTIONS);
+    const suggested = snapGeneFileName(target.history.present, first.extension);
+    if (target.history.present.read !== null) editorStore.noteReadLeftBehind('downloaded');
+    if (!supportsFileSystemAccess()) {
+      downloadBlob(
+        suggested,
+        new Blob([first.bytes as BlobPart], { type: 'application/octet-stream' }),
+      );
+      editorStore.markDownloaded(documentId, suggested);
+      editorStore.noteDownload(suggested);
+      return;
+    }
+    const handle = await pickSaveFile(suggested, snapGeneSaveTypes(first.extension));
+    if (handle === null) return; // cancelled
+    const current = editorStore.documentState(documentId)?.history.present;
+    if (current === undefined) return; // the tab was closed while the dialog was up
+    await writeBytesToHandle(handle, writeSnapGene(current, SNAPGENE_OPTIONS).bytes);
+    editorStore.markDownloaded(documentId, handle.name);
+  }
 }
+
+/** Features with no colour of their own go out in the colour the app draws them in. */
+const SNAPGENE_OPTIONS = { colorOf: featureColor } as const;
 
 export const persistence = new PersistenceService();

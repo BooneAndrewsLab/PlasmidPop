@@ -2,16 +2,16 @@
 
 ## Formats
 
-| Format     | Extensions                                 | Open | Download             |
-| ---------- | ------------------------------------------ | ---- | -------------------- |
-| GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape`     | yes  | yes                  |
-| GenPept    | `.gp` `.gpff`                              | yes  | yes, for a protein   |
-| FASTA      | `.fa` `.fasta` `.fna` `.faa` `.seq` `.txt` | yes  | export               |
-| SnapGene   | `.dna`, `.rna`, and `.prot` for a protein  | yes  | no                   |
-| AB1        | `.ab1` `.abi`                              | yes  | as GenBank, or FASTQ |
-| FASTQ      | `.fastq` `.fq`, gzipped or not             | yes  | as GenBank, or FASTQ |
-| Bare bases | `.txt`, or pasted                          | yes  | as GenBank           |
-| ZIP        | `.zip` of any of the above                 | yes  | no                   |
+| Format     | Extensions                                 | Open | Download                |
+| ---------- | ------------------------------------------ | ---- | ----------------------- |
+| GenBank    | `.gb` `.gbk` `.genbank` `.gbff` `.ape`     | yes  | yes                     |
+| GenPept    | `.gp` `.gpff`                              | yes  | yes, for a protein      |
+| FASTA      | `.fa` `.fasta` `.fna` `.faa` `.seq` `.txt` | yes  | export                  |
+| SnapGene   | `.dna`, `.rna`, and `.prot` for a protein  | yes  | yes, from the File menu |
+| AB1        | `.ab1` `.abi`                              | yes  | as GenBank, or FASTQ    |
+| FASTQ      | `.fastq` `.fq`, gzipped or not             | yes  | as GenBank, or FASTQ    |
+| Bare bases | `.txt`, or pasted                          | yes  | as GenBank              |
+| ZIP        | `.zip` of any of the above                 | yes  | no                      |
 
 The format is sniffed from the content first, so a GenBank record in a
 `.txt` file still opens as GenBank. If a file holds several records, the first
@@ -85,9 +85,9 @@ mutagenesis, and SnapGene's own word for anything PlasmidPop does not run
 (`flip`, `newFileFromSelection`, `changeMethylation`). SnapGene stores no
 checksums, so each molecule in that tree reads as _not in this browser_
 unless you have the file yourself. Enzyme sets, alignments and appearance
-settings are skipped. PlasmidPop
-cannot write `.dna`; download GenBank instead. Files from current SnapGene
-versions are what is tested; before version 1.2, primers were placed one base
+settings are skipped. **File > Download SnapGene…**
+writes a `.dna` back (see [Downloading a SnapGene file](#downloading-a-snapgene-file)).
+Files from current SnapGene versions are what is tested; before version 1.2, primers were placed one base
 to the left of where SnapGene has them, and a primer SnapGene stores twice
 came in twice — reopen the `.dna` file to get them right. A feature or primer
 whose position cannot be placed on the sequence (outside it, or backwards on a
@@ -97,7 +97,7 @@ of the file opens as usual.
 **SnapGene `.prot`** files open as [protein documents](16-proteins.md): the
 residues, every feature (domains, regions, sites, with their colours) on the
 residues SnapGene shows them on, and the notes, as a `.dna` file's are. A
-protein downloads as GenPept.
+protein downloads as GenPept, or as a `.prot`.
 
 **SnapGene `.rna`** files open as a nucleotide document with the molecule type
 RNA: the bases, every feature (rRNA, tRNA, modified bases, variations) and the
@@ -277,10 +277,12 @@ line's word for it.
 browser as you work on them (see
 [Local storage and recent files](#local-storage-and-recent-files)); when you
 want one as a file, you download it, and the file is yours from then on.
-Downloads are always GenBank.
+Downloads are GenBank, or SnapGene on request.
 
 - **Download GenBank…** (`Ctrl+S`, and `Ctrl+Shift+S` out of habit) writes
   the document in front.
+- **Download SnapGene…** writes it as a SnapGene file instead; see
+  [below](#downloading-a-snapgene-file).
 - A **working copy** is reviewed first: what it changed about the file it
   came from — a summary line, the whole molecule drawn as a map with the
   changes marked on the ring, each changed stretch of sequence drawn with the
@@ -327,6 +329,36 @@ download**.
 Nothing is lost in the meantime: every open document is written to this
 browser's own storage as you work and comes back when you return. Downloading
 is how you get a file _out_ of PlasmidPop, not how you avoid losing work.
+
+### Downloading a SnapGene file
+
+**File > Download SnapGene…** writes a `.dna` file that SnapGene and SnapGene
+Viewer are meant to open: the sequence and topology, the Dam and Dcm
+methylation of the host, the overhangs of a linear fragment, every feature
+with its segments, colour, direction, reading frame and qualifiers, primers
+(a `primer_bind` that holds a primer's own sequence and notes goes into
+SnapGene's primer list; one with other qualifiers stays a feature), and the
+notes: name, description, accession, organism, comments, references and date.
+A protein goes out as `.prot`, and a linear RNA as `.rna` (with T for U, as
+SnapGene writes it). A feature with no colour of its own gets the colour the
+map draws it in.
+
+SnapGene's format has no place for everything a document can carry. Before
+the file is written a dialog lists what it will leave out or change, so
+nothing goes silently: GenBank-only header fields (keywords, version,
+lineage, database links), base colours and sizes, the bases and qualities of
+a sequencing read, partial-end marks (`<` and `>`), locations between two
+bases, `order(...)` locations (written as joined), the record of what a
+molecule was made from, and the enzymes behind a fragment's ends. If there is
+nothing to list, and the document is not a working copy, the file is written
+at once. A working copy still shows what it changed first, as for GenBank.
+
+SnapGene's history tree is not written: the file records the molecule as it
+is, not how it was made. The file's format is not published, so it was
+written from SnapGene's own sample files and checked by reading the output
+back with PlasmidPop and with Biopython; it has not been opened in SnapGene
+itself. If SnapGene complains about a file, GenBank is the format to fall
+back on, and an issue with the file attached helps.
 
 ## Verifying clones
 

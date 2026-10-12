@@ -41,12 +41,18 @@ export function SaveReviewDialog() {
   // and diffing here on every render would evict what the sequence view's own
   // marks just put in it (and diff the document twice a render for nothing).
   const diff = useMemo(
-    () => (saveReview === null ? null : editDiffBetween(origin?.doc ?? null, current)),
+    () =>
+      saveReview === null || saveReview.fileName === ''
+        ? null
+        : editDiffBetween(origin?.doc ?? null, current),
     [saveReview, origin?.doc, current],
   );
 
-  if (saveReview === null || origin === null || current === null) return null;
-  const { fileName } = saveReview;
+  if (saveReview === null || current === null) return null;
+  const { fileName, snapGene } = saveReview;
+  // A working copy shows its changes; a SnapGene download of any other
+  // document has only the list of what the file cannot hold to show.
+  const copy = origin !== null && fileName !== '';
   // Without the File System Access API there is no save dialog: the file
   // goes to the downloads folder under a name the browser decides, so say
   // that rather than promising to ask where to put it.
@@ -55,9 +61,12 @@ export function SaveReviewDialog() {
   // worth marking, so the body below has one case to handle rather than two.
   // The copy's own name ("pRev copy") is not a change of the user's (#31):
   // it is what every working copy is called until it is renamed.
-  const ownName = isCopyNameOf(current.name, origin.doc.name);
+  const ownName = origin !== null && isCopyNameOf(current.name, origin.doc.name);
   const changes =
-    diff === null || isUnchanged(diff) || (ownName && isUnchanged({ ...diff, renamed: false }))
+    !copy ||
+    diff === null ||
+    isUnchanged(diff) ||
+    (ownName && isUnchanged({ ...diff, renamed: false }))
       ? null
       : diff;
   const report = (p: Promise<unknown>): void => {
@@ -77,25 +86,43 @@ export function SaveReviewDialog() {
       >
         <h2 id="save-review-title" className="dialog__title">
           Download “{current.name}”
+          {snapGene === undefined ? '' : ` as SnapGene .${snapGene.extension}`}
         </h2>
         <p id="save-review-body" className="dialog__body">
-          This is a working copy of <strong>{fileName}</strong>, which has not been changed and will
-          not be. Here is what differs from it.{' '}
+          {copy ? (
+            <>
+              This is a working copy of <strong>{fileName}</strong>, which has not been changed and
+              will not be. Here is what differs from it.{' '}
+            </>
+          ) : null}
+          {snapGene !== undefined && snapGene.losses.length > 0
+            ? 'SnapGene’s format has no place for everything in this document. The file will leave out or change what is listed below. '
+            : null}
           {picker
             ? 'You choose where the copy goes next.'
             : 'The copy goes to your downloads folder, under a name the browser decides.'}
         </p>
 
-        <div className="save-review">
-          {changes === null ? (
-            <p className="save-review__empty">
-              Nothing differs from {fileName}: the copy holds the same sequence and features
-              {ownName ? ', under its own name' : ' and name'}.
-            </p>
-          ) : (
-            <DiffReview doc={current} baseline={origin.doc} diff={changes} />
-          )}
-        </div>
+        {snapGene !== undefined && snapGene.losses.length > 0 && (
+          <ul className="save-review__losses" aria-label="What the SnapGene file leaves out">
+            {snapGene.losses.map((loss) => (
+              <li key={loss}>{loss}</li>
+            ))}
+          </ul>
+        )}
+
+        {copy && (
+          <div className="save-review">
+            {changes === null ? (
+              <p className="save-review__empty">
+                Nothing differs from {fileName}: the copy holds the same sequence and features
+                {ownName ? ', under its own name' : ' and name'}.
+              </p>
+            ) : (
+              <DiffReview doc={current} baseline={origin.doc} diff={changes} />
+            )}
+          </div>
+        )}
 
         <div className="dialog__actions">
           <button

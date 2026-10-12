@@ -282,3 +282,5 @@ the Bench, item 49). The rest stand.
 102.  [Back up and restore all documents](88-backup-restore.md)
 
 103.  [Export the map as PNG](89-map-png-export.md)
+
+104.  [Write SnapGene files](90-snapgene-writer.md)

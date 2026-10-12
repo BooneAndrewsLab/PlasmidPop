@@ -182,6 +182,14 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             {doc.isProtein ? 'Download GenPept…' : 'Download GenBank…'}
           </Item>
           <Item
+            title={`Write this document out as a SnapGene .${doc.isProtein ? 'prot' : 'dna'} file. What SnapGene cannot hold is listed first.`}
+            onClick={run(() => {
+              report(persistence.downloadSnapGene());
+            })}
+          >
+            Download SnapGene…
+          </Item>
+          <Item
             shortcut={shareKey}
             title="A link that carries this document inside it — nothing is uploaded"
             onClick={run(() => {
