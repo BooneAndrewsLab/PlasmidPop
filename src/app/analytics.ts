@@ -113,7 +113,7 @@ export const EVENTS = {
   /** Once per visit: `start` (the version), `layout` (desktop/phone), `display` (browser/standalone). */
   app: ['start', 'layout', 'display'],
   /**
-   * `export` is named by what was exported: `map-svg`, `sequence-svg`,
+   * `export` is named by what was exported: `map-svg`, `map-png` (#212), `sequence-svg`,
    * `selection-svg`, `sequence-svg-pages` (on A4 pages, #30), `fasta`,
    * `fastq`, `selection-genbank`, `selection-fasta`.
    * `open-ncbi` is File ▸ Open from NCBI… fetching at least one record

@@ -14,6 +14,7 @@ import { persistence } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useBindingLabel } from './useAltKey';
+import { ExportMapPngDialog } from './ExportMapPngDialog';
 import { ExportSequenceDialog } from './ExportSequenceDialog';
 import { useMenu } from './useMenu';
 
@@ -65,6 +66,8 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     traceSize,
     baseColors,
     history,
+    gcWindow,
+    showGc,
   } = useEditorState();
   /**
    * The parts of the sequence view's format the export follows. The text
@@ -86,6 +89,11 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
   const [exporting, setExporting] = useState(false);
   const closeExport = useCallback(() => {
     setExporting(false);
+  }, []);
+  /** The map PNG dialog (#212) is open. */
+  const [exportingPng, setExportingPng] = useState(false);
+  const closePng = useCallback(() => {
+    setExportingPng(false);
   }, []);
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const example = EXAMPLES[0];
@@ -234,6 +242,16 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
               Export map as SVG
             </Item>
           )}
+          {hasTool(doc, 'circular') && (
+            <Item
+              title="The map as a picture for slides and posters: choose the scale, the background and what is on it"
+              onClick={run(() => {
+                setExportingPng(true);
+              })}
+            >
+              Export map as PNG…
+            </Item>
+          )}
           <Item
             title="The sequence rows — ruler, strands, features — as a vector file: all of them, the selection or a range, on A4 pages if you like"
             onClick={run(() => {
@@ -313,6 +331,17 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Close
           </Item>
         </div>
+      )}
+      {exportingPng && (
+        <ExportMapPngDialog
+          doc={doc}
+          cutSites={editorStore.visibleCutSites()}
+          edits={editDiffOf(editorStore.getState())}
+          gcWindow={gcWindow}
+          showGc={showGc}
+          stem={stem}
+          onClose={closePng}
+        />
       )}
       {exporting && (
         <ExportSequenceDialog

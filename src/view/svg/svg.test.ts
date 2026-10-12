@@ -547,3 +547,27 @@ describe('SvgContext alpha and clipping (#126)', () => {
     expect(ctx.toSvg()).toContain('<rect x="5" y="5"');
   });
 });
+
+describe('exportMapSvg figure options (#212)', () => {
+  const doc = parseGenBank(readFixture('J01749.gb')).documents[0];
+  if (doc === undefined) throw new Error('fixture');
+
+  it('can leave out the centre text', () => {
+    expect(exportMapSvg(doc)).toContain('>4,361 bp circular<');
+    expect(exportMapSvg(doc, { showCentre: false })).not.toContain('>4,361 bp circular<');
+  });
+
+  it('draws only the chosen feature types', () => {
+    const all = exportMapSvg(doc);
+    const some = exportMapSvg(doc, { featureTypes: new Set(['rep_origin']) });
+    expect(some.length).toBeLessThan(all.length);
+    const paths = (x: string) => (x.match(/<path/g) ?? []).length;
+    expect(paths(some)).toBeLessThan(paths(all));
+    expect(exportMapSvg(doc, { featureTypes: new Set() })).not.toContain('stroke-width="11"');
+  });
+
+  it('scales the text', () => {
+    expect(exportMapSvg(doc, { fontScale: 2 })).toContain('font-size');
+    expect(exportMapSvg(doc, { fontScale: 2 })).not.toBe(exportMapSvg(doc));
+  });
+});

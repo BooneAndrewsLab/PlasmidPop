@@ -97,6 +97,8 @@ export interface CircularRenderParams {
    * export has no hover, so it pays the longer leader rather than lose it.
    */
   readonly labelShiftLines?: number;
+  /** Whether the name and length are written in the middle; true when omitted. */
+  readonly showCentre?: boolean;
 }
 
 interface MapMetrics {
@@ -1656,7 +1658,7 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   drawOverlays(ctx, p);
   const { dropped: droppedLabels, drawn } = drawLabels(ctx, p, m, features, ticks);
   drawChangeLabel(ctx, p, m);
-  drawCentre(ctx, p);
+  if (p.showCentre !== false) drawCentre(ctx, p);
   drawDroppedCount(ctx, p, m, droppedLabels);
   ctx.restore();
   return { droppedLabels, labels: drawn };

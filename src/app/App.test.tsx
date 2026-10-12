@@ -732,6 +732,7 @@ describe('toolbar', () => {
       'Back up all documents…', // everything this browser holds, out and back in (#203)
       'Restore from backup…',
       'Export map as SVG',
+      'Export map as PNG…',
       'Export sequence view as SVG…',
       'Export sequence as FASTA',
       'Export selection as GenBank',

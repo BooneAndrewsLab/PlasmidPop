@@ -467,6 +467,15 @@ From the **File** menu:
 - **Export map as SVG**: the circular map as a standalone vector file for
   figures, with the cut sites of the enzymes ticked in the Enzymes tab —
   none of them while the toolbar's **Cut sites** toggle is off.
+- **Export map as PNG…**: the same map as a picture for slides, posters and
+  documents. A dialog shows a preview and asks for the **scale** (1×, 2× or
+  4× the SVG's pixel size; the size in pixels is shown), a **white or
+  transparent background**, the **text size**, and what is on the figure:
+  the restriction enzymes, the GC ring, the name and length in the middle,
+  and which **feature types** are drawn. These options belong to the figure
+  only; the map on screen is not changed. A scale that would make a picture
+  larger than a browser can draw is refused with the size it would be. The
+  sequence view exports as SVG only.
 - **Export sequence view as SVG…**: the sequence rows as a vector file —
   ruler, bases, features and cut sites, and a read's trace, laid out as on
   screen. It follows the

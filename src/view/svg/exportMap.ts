@@ -7,7 +7,7 @@ import {
   lanesWithGhosts,
   renderCircularMap,
 } from '../circular';
-import { NO_LANES, assignLanes } from '../linear';
+import { type GcTrack, NO_LANES, assignLanes } from '../linear';
 import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from './svgContext';
@@ -36,6 +36,14 @@ export interface MapExportOptions {
   readonly transparent?: boolean;
   /** Tracked changes to mark on the ring, as the sequence-view export takes. */
   readonly edits?: DocumentDiff | null;
+  /** The GC ring inside the lanes (item 75); none when omitted. */
+  readonly gc?: GcTrack | null;
+  /** Only features of these types are drawn; every type when null or omitted (item 89). */
+  readonly featureTypes?: ReadonlySet<string> | null;
+  /** Whether the name and length are written in the middle; true when omitted. */
+  readonly showCentre?: boolean;
+  /** Multiplies the label and title text size; 1 when omitted. */
+  readonly fontScale?: number;
 }
 
 /**
@@ -50,7 +58,11 @@ const PAD_STEPS = [0, 48, 120, 260];
 /** The plasmid map as a standalone SVG document. */
 export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): string {
   const size = options.size ?? 900;
-  const features = drawableFeatures(doc.features.all());
+  const types = options.featureTypes ?? null;
+  const features = drawableFeatures(doc.features.all()).filter(
+    (f) => types === null || types.has(f.type),
+  );
+  const fontScale = options.fontScale ?? 1;
   const edits = options.edits ?? null;
   // Removed features are drawn as ghosts in the lanes, after the live ones (#27).
   const lanes = lanesWithGhosts(
@@ -91,6 +103,8 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
       overlay: NO_OVERLAY,
       overlayLanes: NO_LANES,
       edits,
+      gc: options.gc ?? null,
+      showCentre: options.showCentre !== false,
       hoveredFeatureId: null,
       hoveredCut: null,
       width: canvas,
@@ -104,8 +118,8 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
       // its own feature is lost rather than one hover away: the export buys
       // the long leader the screen refuses (item 31).
       labelShiftLines: 16,
-      sansFont: `${Math.max(11, size / 70)}px Helvetica, Arial, sans-serif`,
-      titleFont: `600 ${Math.max(14, size / 50)}px Helvetica, Arial, sans-serif`,
+      sansFont: `${String(Math.max(11, size / 70) * fontScale)}px Helvetica, Arial, sans-serif`,
+      titleFont: `600 ${String(Math.max(14, size / 50) * fontScale)}px Helvetica, Arial, sans-serif`,
     });
     return {
       svg: ctx.toSvg({
