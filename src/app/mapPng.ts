@@ -17,8 +17,9 @@ export function svgPixelSize(svg: string): { width: number; height: number } | n
   const root = /<svg\b[^>]*>/.exec(svg)?.[0];
   if (root === undefined) return null;
   const read = (name: string): number | null => {
-    const m = new RegExp(`\\s${name}="([\\d.]+)"`).exec(root);
-    const n = m === null ? NaN : Number.parseFloat(m[1] ?? '');
+    // Pixels, or millimetres as on an A4 page (#236), at the CSS 96 pixels per inch.
+    const m = new RegExp(`\\s${name}="([\\d.]+)(mm)?"`).exec(root);
+    const n = m === null ? NaN : Number.parseFloat(m[1] ?? '') * (m[2] === 'mm' ? 96 / 25.4 : 1);
     return Number.isFinite(n) && n > 0 ? n : null;
   };
   const width = read('width');

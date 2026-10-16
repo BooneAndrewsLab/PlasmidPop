@@ -84,8 +84,7 @@ question about the list in front of you, not a standing choice.
 
 Cut sites of the ticked enzymes are drawn in the sequence view (a mark with
 the enzyme name above the bases) and on the map (labels around the ring), and
-they are included in **Export map as SVG** and **Export sequence view as
-SVG**.
+they are included in **Export map as SVG** and **Export sequence view…**.
 
 ## Choosing a diagnostic digest
 
@@ -171,7 +170,7 @@ table).
 While it is off:
 
 - the sequence view, the map, **Export map as SVG** and **Export sequence
-  view as SVG** draw no cut sites;
+  view…** draw no cut sites;
 - the **Fragments from ticked enzymes** list below and the
   [Cloning](12-cloning.md) tab's digest are unchanged — they follow the
   ticks, not the toggle.

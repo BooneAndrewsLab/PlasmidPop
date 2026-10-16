@@ -92,9 +92,27 @@ export function downloadPages(
   pages: readonly string[],
   download: (name: string, text: string) => void = downloadText,
 ): void {
+  spacedDownloads(stem, 'svg', pages, download);
+}
+
+/** The same for PNG pages, already rasterised. */
+export function downloadPngPages(
+  stem: string,
+  pages: readonly Blob[],
+  download: (name: string, blob: Blob) => void,
+): void {
+  spacedDownloads(stem, 'png', pages, download);
+}
+
+function spacedDownloads<T>(
+  stem: string,
+  extension: string,
+  pages: readonly T[],
+  download: (name: string, page: T) => void,
+): void {
   const digits = Math.max(2, String(pages.length).length);
   pages.forEach((page, i) => {
-    const name = `${stem}_p${String(i + 1).padStart(digits, '0')}.svg`;
+    const name = `${stem}_p${String(i + 1).padStart(digits, '0')}.${extension}`;
     if (i === 0) download(name, page);
     else {
       setTimeout(() => {

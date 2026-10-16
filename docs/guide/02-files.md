@@ -506,15 +506,15 @@ From the **File** menu:
   the restriction enzymes, the GC ring, the name and length in the middle,
   and which **feature types** are drawn. These options belong to the figure
   only; the map on screen is not changed. A scale that would make a picture
-  larger than a browser can draw is refused with the size it would be. The
-  sequence view exports as SVG only.
-- **Export sequence view as SVG…**: the sequence rows as a vector file —
+  larger than a browser can draw is refused with the size it would be.
+- **Export sequence view…**: the sequence rows as an SVG vector file or a
+  PNG picture —
   ruler, bases, features and cut sites, and a read's trace, laid out as on
   screen. It follows the
   **Complement**, **Translations** and **Cut sites** toggles, the **Edits**
   marks, the enzymes ticked in the Enzymes tab and the **Format** menu's
   complement numbering and base colours; the text size is always the
-  export's own. A small dialog asks three things:
+  export's own. A small dialog asks for:
   - **Whole sequence**, **Selection** (chosen for you when there is one,
     and highlighted in the file) or **From–to**: two base numbers, counted
     from 1 as the ruler counts, both included. On a circular sequence a
@@ -526,7 +526,7 @@ From the **File** menu:
   - **Bases per row**, 10 to 200: the Format menu's setting to start with,
     or 60 when Format is left at "Fit the window", so the file does not
     depend on the window width.
-  - **Split into A4 pages**: one SVG file per A4 page (210 × 297 mm, 15 mm
+  - **Split into A4 pages**: one file per A4 page (210 × 297 mm, 15 mm
     margins), as many whole rows to a page as fit, scaled down to the
     page's width when the rows are wider and never scaled up. Each page's
     foot names the document, the bases on it and the page number. The
@@ -535,6 +535,12 @@ From the **File** menu:
     your browser may ask once whether the site may download several
     files. At most 40 pages go at once (pBR322 is 9 at 60 bases a row):
     choose a shorter range or more bases per row for more.
+  - **File type**: **SVG** (the default) or **PNG**. A PNG has the same
+    **Scale** (1×, 2×, 4×) and **White** or **Transparent** background as
+    the map's PNG; with pages, each page is a PNG of its own
+    (`…_p01.png`). A picture larger than a browser can draw is refused
+    with the size it would be: choose a smaller scale, more bases per row
+    or A4 pages.
 
   Sequences longer than 100,000 bases are refused: export a range instead.
 

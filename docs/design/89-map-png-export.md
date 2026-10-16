@@ -29,9 +29,15 @@ is on the figure without editing the SVG by hand.
 choose, and the dialog states the pixel size. "Label density" is not an
 option: the export already buys room for every label, which is the property
 that matters on paper. ORFs are not features of the map, so there is no ORF
-toggle. The sequence-view (linear) export stays SVG-only; PNG for it is a
-follow-up issue. PDF stays out of scope.
+toggle. The sequence-view (linear) export got the same PNG option in #236 (below). PDF stays out of scope.
 
 **Not verified in a browser:** `Image.decode` of an SVG blob and
 `canvas.toBlob` are not available in jsdom; the drawing function was not
 exercised by the test suite.
+
+**Sequence view (#236).** *Export sequence view…* has an SVG/PNG toggle; PNG
+reuses `rasterizeSvg`/`pngSize` and the map's scale and White/Transparent
+options (transparent is the linear renderer's own `transparent` flag). With
+A4 pages each page is rasterised in turn, never several canvases at once,
+and every page is size-checked before any is drawn so a refusal downloads
+nothing. Files are `…_pNN.png`, spaced like the SVG pages (`downloadPngPages`).

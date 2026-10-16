@@ -2631,7 +2631,7 @@ button {
   color: var(--ink-2);
 }
 
-/* Export sequence view as SVG (#30): range, bases per row, pages. */
+/* Export sequence view (#30, #236): range, bases per row, pages, file type. */
 .export-sequence {
   display: grid;
   gap: 12px;

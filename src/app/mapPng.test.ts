@@ -8,6 +8,10 @@ describe('map PNG size (#212)', () => {
     expect(svgPixelSize(svg(900, 640.5))).toEqual({ width: 900, height: 640.5 });
     expect(svgPixelSize('<svg viewBox="0 0 1 1"></svg>')).toBeNull();
     expect(svgPixelSize('not svg')).toBeNull();
+    // An A4 page of the sequence export is in millimetres (#236).
+    const a4 = svgPixelSize('<svg width="210mm" height="297mm"></svg>');
+    expect(a4?.width).toBeCloseTo(793.7, 1);
+    expect(a4?.height).toBeCloseTo(1122.5, 1);
   });
 
   it('multiplies by the scale', () => {

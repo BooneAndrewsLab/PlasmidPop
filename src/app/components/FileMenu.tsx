@@ -261,12 +261,12 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             </Item>
           )}
           <Item
-            title="The sequence rows — ruler, strands, features — as a vector file: all of them, the selection or a range, on A4 pages if you like"
+            title="The sequence rows — ruler, strands, features — as an SVG or PNG file: all of them, the selection or a range, on A4 pages if you like"
             onClick={run(() => {
               setExporting(true);
             })}
           >
-            Export sequence view as SVG…
+            Export sequence view…
           </Item>
           <Item
             onClick={run(() => {

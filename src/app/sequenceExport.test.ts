@@ -1,6 +1,12 @@
 import { SeqDocument } from '@/core';
 
-import { downloadPages, rangeBoxes, readBasesPerRow, readExportRange } from './sequenceExport';
+import {
+  downloadPages,
+  downloadPngPages,
+  rangeBoxes,
+  readBasesPerRow,
+  readExportRange,
+} from './sequenceExport';
 
 const circle = SeqDocument.create({ name: 'c', sequence: 'ACGT'.repeat(25), topology: 'circular' });
 const line = SeqDocument.create({ name: 'l', sequence: 'ACGT'.repeat(25) });
@@ -94,6 +100,21 @@ describe('downloadPages', () => {
       expect(names).toEqual(['pX_sequence_p01.svg']);
       vi.advanceTimersByTime(1000);
       expect(names).toEqual(['pX_sequence_p01.svg', 'pX_sequence_p02.svg', 'pX_sequence_p03.svg']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('downloadPngPages', () => {
+  it('downloads each picture as a numbered .png, spaced out', () => {
+    vi.useFakeTimers();
+    try {
+      const names: string[] = [];
+      downloadPngPages('pX_sequence', [new Blob(['1']), new Blob(['2'])], (n) => names.push(n));
+      expect(names).toEqual(['pX_sequence_p01.png']);
+      vi.advanceTimersByTime(1000);
+      expect(names).toEqual(['pX_sequence_p01.png', 'pX_sequence_p02.png']);
     } finally {
       vi.useRealTimers();
     }

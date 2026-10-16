@@ -200,8 +200,8 @@ The menu chooses what the marks are measured from:
 
 The choice is remembered between sessions (except **Mark from here** and
 **Compared with**, which belong to one session's work and come back as
-**Since opened**). The marks also appear in **File ▸ Export sequence view as
-SVG** and **Export map as SVG**, and in the review before a download and in
+**Since opened**). The marks also appear in **File ▸ Export sequence view…**
+and **Export map as SVG**, and in the review before a download and in
 **Compare with…**.
 
 **Next change** (`Alt+N`) and **Previous change** (`Alt+Shift+N`) in the

@@ -734,7 +734,7 @@ describe('toolbar', () => {
       'Restore from backup…',
       'Export map as SVG',
       'Export map as PNG…',
-      'Export sequence view as SVG…',
+      'Export sequence view…',
       'Export sequence as FASTA',
       'Export selection as GenBank',
       'Export selection as FASTA',
