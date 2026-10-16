@@ -43,12 +43,27 @@ describe('parseXml', () => {
 });
 
 describe('stripHtml', () => {
-  it('unwraps SnapGene rich text', () => {
+  it('unwraps SnapGene rich text and decodes its entities once', () => {
     expect(stripHtml('<html><body>mammalian codon-optimized</body></html>')).toBe(
       'mammalian codon-optimized',
     );
-    expect(stripHtml('&lt;html&gt;&lt;body&gt;a &amp; b&lt;/body&gt;&lt;/html&gt;')).toBe('a & b');
-    expect(stripHtml('line1<br>line2<p>para</p>')).toBe('line1\nline2\npara');
+    expect(stripHtml('<html><body><p>a &amp; b</p><p>&amp;lt;</p></body></html>')).toBe(
+      'a & b\n&lt;',
+    );
+    expect(stripHtml('<html><body>line1<br>line2<p>para</p></body></html>')).toBe(
+      'line1\nline2\npara',
+    );
+  });
+
+  it('leaves text without the wrapper alone', () => {
     expect(stripHtml('plain text')).toBe('plain text');
+    expect(stripHtml('a <b>bold</b> &amp; c')).toBe('a <b>bold</b> &amp; c');
+    expect(stripHtml('x < y & z')).toBe('x < y & z');
+  });
+
+  it('keeps literal markup and entities that parseXml decoded', () => {
+    const root = parseXml('<a v="&lt;b&gt;x&amp;amp;&lt;/b&gt;">&lt;i&gt;y&amp;amp;</a>');
+    expect(stripHtml(root.attributes['v'] ?? '')).toBe('<b>x&amp;</b>');
+    expect(stripHtml(textOf(root))).toBe('<i>y&amp;');
   });
 });

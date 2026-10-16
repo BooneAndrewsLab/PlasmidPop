@@ -185,12 +185,16 @@ export function textOf(el: XmlElement | undefined): string {
   return out;
 }
 
-/** Strips SnapGene's `<html><body>…</body></html>` wrapping and any other tags from a rich-text string. */
+/**
+ * Strips SnapGene's `<html><body>…</body></html>` wrapping from a rich-text string. The text is what
+ * `parseXml` already entity-decoded, so a value without the wrapper is returned as it is (a note that
+ * literally says `<b>` or `&amp;` stays so); inside the wrapper the markup is removed and the
+ * HTML entities that remain are decoded once.
+ */
 export function stripHtml(text: string): string {
-  const decoded = decodeEntities(text);
-  if (!/<[a-z!/]/i.test(decoded)) return decoded.trim();
+  if (!/^\s*<html[\s>]/i.test(text)) return text.trim();
   return decodeEntities(
-    decoded
+    text
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/?p\b[^>]*>/gi, '\n')
       .replace(/<[^>]*>/g, ''),

@@ -194,6 +194,31 @@ describe('what the packets hold', () => {
     expect(again.metadata.comments).toEqual(['one\n\ntwo']);
   });
 
+  it('keeps literal markup and entities in names, qualifiers and notes (#237)', () => {
+    const doc = Doc.create({
+      name: 'a <b>&amp; c',
+      sequence: seq,
+      features: [
+        createFeature({
+          name: '<i>x</i> &lt; y',
+          type: 'CDS',
+          strand: 'forward',
+          segments: [rangeSegment(0, 30)],
+          qualifiers: [{ name: 'note', value: 'a <b>bold</b> &amp; <html><body>c</body></html>' }],
+        }),
+      ],
+      metadata: createMetadata({ description: '<p>d</p> &quot;', comments: ['&lt;br&gt;'] }),
+    });
+    const { again } = roundTrip(doc);
+    expect(again.name).toBe(doc.name);
+    expect(again.features.all()[0]?.name).toBe('<i>x</i> &lt; y');
+    expect(again.features.all()[0]?.qualifiers[0]?.value).toBe(
+      'a <b>bold</b> &amp; <html><body>c</body></html>',
+    );
+    expect(again.metadata.description).toBe('<p>d</p> &quot;');
+    expect(again.metadata.comments).toEqual(['&lt;br&gt;']);
+  });
+
   it('writes a reverse CDS with its frame, and a feature over the origin', () => {
     const doc = Doc.create({
       name: 'p',

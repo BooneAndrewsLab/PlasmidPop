@@ -90,11 +90,15 @@ record; the enzymes behind ends; U to T in an RNA.
 
 **Known limits.**
 
-- Text with something like `<b>` or `&amp;` in it does not survive a read by
-  our own reader: it decodes entities twice and strips what looks like a tag
-  (`stripHtml`). SnapGene is not affected by this on its side; filed as #237.
 - A feature whose colour was `noColor` gets the app's colour for its type on
   the way out, so it is no longer uncoloured in SnapGene.
 - Packets are written without SnapGene's `recentID` bookkeeping beyond a
   running count, and without melting temperatures for primers; SnapGene
   recomputes those on opening as far as is known.
+
+**Literal markup (#237).** `stripHtml` used to decode entities a second time
+(`parseXml` has already decoded once) and strip anything tag-shaped, so a
+note saying `<b>` or `&amp;` did not survive a read. It now unwraps only a
+value that starts with `<html>` (SnapGene's rich text), decoding the entities
+inside that wrapper once; any other value is taken as it is. The writer
+never produces the wrapper, so its output reads back unchanged.
