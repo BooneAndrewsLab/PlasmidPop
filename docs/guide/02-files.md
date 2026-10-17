@@ -540,9 +540,12 @@ From the **File** menu:
     once (pBR322 is 9 at 60 bases a row): choose a shorter range or more
     bases per row for more.
 
-  A picture larger than a browser can draw is refused with the size it
-  would be: choose a smaller scale, more bases per row or A4 pages.
-  Sequences longer than 100,000 bases are refused: export a range instead.
+  The dialog checks as you change things. A range outside the sequence, a
+  row width outside 10–200, too many pages, or a PNG larger than a browser
+  can draw (16,384 pixels on a side) is said in red beside the **Export**
+  button, which stays off until it is put right; the message says what
+  would fit — a smaller scale, more bases per row or A4 pages. Sequences
+  longer than 100,000 bases are refused: export a range instead.
 
 - **Export sequence as FASTA**.
 - **Export read as FASTQ**, for a document opened from an AB1 or FASTQ

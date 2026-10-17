@@ -59,6 +59,16 @@ export function pngSizeOf(
   return { ok: true, width, height };
 }
 
+/** The largest offered scale at which a picture of `size` can still be drawn, or null when none. */
+export function largestPngScale(size: {
+  readonly width: number;
+  readonly height: number;
+}): PngScale | null {
+  const side = Math.max(size.width, size.height);
+  const fits = PNG_SCALES.filter((s) => Math.round(side * s) <= MAX_PNG_SIDE);
+  return fits[fits.length - 1] ?? null;
+}
+
 /**
  * Draws the SVG onto a canvas of `scale` times its size and returns it as a
  * PNG. A transparent figure keeps the SVG's own (clear) background.

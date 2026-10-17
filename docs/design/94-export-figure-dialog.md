@@ -39,12 +39,25 @@ shell.
   that the first rows are shown. The preview is sticky while the options
   scroll, and the action row is sticky at the bottom, so Export and its
   reason are always in view.
+- **Live check (#243).** `measureLinearSvg` (`src/view/svg/exportLinear.ts`)
+  extends the page-counting layout step to return the figure's width,
+  height, rows and pages without drawing; `pngSizeOf` (`src/app/mapPng.ts`)
+  is `pngSize` for a size already known. Every change re-runs the range,
+  row-width, page-count and PNG-size checks; the first problem goes into
+  its own `role="alert"` element (`.panel__note--error`) beside the
+  buttons, never into the help text, and Export is disabled while it is
+  there. `pngProblem` (`src/app/exportFigure.ts`) works the advice out from
+  the limit: the largest offered scale that fits, the row width that would
+  (the height falls about in proportion as rows widen, so `basesPerRow ×
+height / 16,384`, rounded up to a ten and capped at 200), or A4 pages,
+  each of which is far under the limit. A rasterise failure after the
+  click is shown the same way and cleared by the next change.
 - **Phone width** stacks the preview over the options and the labels over
   their controls, with a shorter preview.
 
 **Decisions.** The default view is the map when there is one, the default
 file type SVG, the scale 2×. With the whole of a 4 kb plasmid at 60 bases
-a row, PNG at 2× is already over the limit; the dialog refuses it
+a row, PNG at 2× is already over the limit; the dialog says so at once
 rather than guessing a scale on the user's behalf. The _Features_ toggles
 apply to the map only; the linear renderer has no per-type filter and the
 issue asked for none. Analytics events (item 38) are unchanged: `map-svg`,

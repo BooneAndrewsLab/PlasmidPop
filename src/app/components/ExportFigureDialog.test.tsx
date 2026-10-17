@@ -346,4 +346,55 @@ describe('ExportFigureDialog (#240)', () => {
       expect(problem()).toBeEmptyDOMElement();
     });
   });
+
+  describe('live size check (#243)', () => {
+    it('disables Export at 4× on a long sequence, with the reason as an alert', () => {
+      const { calls } = setup();
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(radio('4×'));
+      const alert = problem();
+      expect(alert).toHaveTextContent(
+        'At 4× the picture would be 2,256 × 30,680 pixels, more than a browser draws (16,384): choose 2× or less, about 120 or more bases per row or split into A4 pages.',
+      );
+      expect(alert).toHaveClass('panel__note--error');
+      expect(exportButton()).toBeDisabled();
+      fireEvent.click(exportButton());
+      expect(calls).toEqual([]);
+      // The help text is not what carries the error.
+      expect(screen.getByText(/Whole rows, numbered as in the document/)).not.toHaveAttribute(
+        'role',
+      );
+    });
+
+    it('enables Export again once the scale is lowered, or the rows widened', () => {
+      setup();
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(radio('4×'));
+      expect(exportButton()).toBeDisabled();
+      fireEvent.click(radio('1×'));
+      expect(problem()).toBeEmptyDOMElement();
+      expect(exportButton()).toBeEnabled();
+      fireEvent.click(radio('4×'));
+      expect(exportButton()).toBeDisabled();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Bases per row' }), {
+        target: { value: '200' },
+      });
+      expect(problem()).toBeEmptyDOMElement();
+      expect(exportButton()).toBeEnabled();
+    });
+
+    it('checks the size as the file type changes, without drawing', () => {
+      setup();
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(radio('4×'));
+      // 4x of the whole plasmid at 60 a row is over the limit; the SVG never is.
+      expect(exportButton()).toBeDisabled();
+      fireEvent.click(radio('SVG'));
+      expect(exportButton()).toBeEnabled();
+      expect(problem()).toBeEmptyDOMElement();
+    });
+  });
 });

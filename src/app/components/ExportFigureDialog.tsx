@@ -28,6 +28,7 @@ import {
   type FigureFileType,
   type FigureSize,
   type FigureView,
+  pngProblem,
 } from '../exportFigure';
 import { PNG_SCALES, pngSizeOf, rasterizeSvg, svgPixelSize } from '../mapPng';
 import { downloadBlob, downloadText } from '../saveFile';
@@ -293,6 +294,8 @@ export function ExportFigureDialog({
       if (pages && measure !== null && measure.pages > MAX_EXPORT_PAGES)
         return `That is ${String(measure.pages)} pages, more than the ${String(MAX_EXPORT_PAGES)} downloaded at once: choose a shorter range or more bases per row.`;
     }
+    if (png && size !== null)
+      return pngProblem(size, scale, view, { basesPerRow: rowWidth ?? 60, pages });
     return null;
   })();
   // A failure belongs to the export that was tried; the next change clears it.
@@ -355,11 +358,6 @@ export function ExportFigureDialog({
       onClose();
       return;
     }
-    const check = size === null ? null : pngSizeOf(size, scale);
-    if (check !== null && !check.ok) {
-      fail(check.message);
-      return;
-    }
     setBusy(true);
     rasterize(svg, scale)
       .then((blob) => {
@@ -394,11 +392,6 @@ export function ExportFigureDialog({
         download(`${name}.svg`, drawn[0] ?? '');
       }
       onClose();
-      return;
-    }
-    const check = size === null ? null : pngSizeOf(size, scale);
-    if (check !== null && !check.ok) {
-      fail(`${check.message} Try more bases per row, or split into A4 pages.`);
       return;
     }
     setBusy(true);
