@@ -113,9 +113,11 @@ export const EVENTS = {
   /** Once per visit: `start` (the version), `layout` (desktop/phone), `display` (browser/standalone). */
   app: ['start', 'layout', 'display'],
   /**
-   * `export` is named by what was exported: `map-svg`, `map-png` (#212), `sequence-svg`,
-   * `selection-svg`, `sequence-svg-pages` (on A4 pages, #30), `sequence-png`,
-   * `sequence-png-pages` (#236; all five from the one Export figure dialog, #240),
+   * `export` is named by what was exported: `map-svg`, `map-png` (#212),
+   * `map-pdf-vector`, `map-pdf-raster`, `sequence-svg`, `selection-svg`,
+   * `sequence-svg-zip` (A4 pages as one ZIP, #30, #242), `sequence-png`,
+   * `sequence-png-zip` (#236), `sequence-pdf-vector`, `sequence-pdf-raster`
+   * (a PDF of every page, #242; all from the one Export figure dialog, #240),
    * `fasta`, `fastq`, `selection-genbank`, `selection-fasta`.
    * `open-ncbi` is File ▸ Open from NCBI… fetching at least one record
    * (#65, item 58) and `open-ncbi-failed` one that fetched none, named by

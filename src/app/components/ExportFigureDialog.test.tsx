@@ -3,9 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { readFileSync } from 'node:fs';
 
-import { parseGenBank } from '@/io';
+import { parseGenBank, readZip } from '@/io';
 import { exportMapSvg } from '@/view/svg';
 
+import { type PdfOptions } from '../pdfExport';
 import { ExportFigureDialog } from './ExportFigureDialog';
 
 function pbr322() {
@@ -32,15 +33,18 @@ function setup({
   selection = null,
   basesPerRow = 60,
   rasterize = (svg: string) => Promise.resolve(new Blob([svg], { type: 'image/png' })),
+  pdf = () => Promise.resolve(new Blob(['%PDF-1.3'], { type: 'application/pdf' })),
 }: {
   doc?: ReturnType<typeof pbr322>;
   selection?: { start: number; end: number } | null;
   basesPerRow?: number;
   rasterize?: (svg: string, scale: number) => Promise<Blob>;
+  pdf?: (pages: readonly string[], options: PdfOptions) => Promise<Blob>;
 } = {}) {
   const files: { name: string; text: string }[] = [];
-  const pngs: { name: string; blob: Blob }[] = [];
+  const blobs: { name: string; blob: Blob }[] = [];
   const calls: { svg: string; scale: number }[] = [];
+  const pdfs: { pages: readonly string[]; options: PdfOptions }[] = [];
   const onClose = vi.fn();
   render(
     <ExportFigureDialog
@@ -55,14 +59,18 @@ function setup({
       stem="pBR322"
       onClose={onClose}
       download={(name, text) => files.push({ name, text })}
-      downloadPng={(name, blob) => pngs.push({ name, blob })}
+      downloadFile={(name, blob) => blobs.push({ name, blob })}
       rasterize={(svg, scale) => {
         calls.push({ svg, scale });
         return rasterize(svg, scale);
       }}
+      pdf={(pages, options) => {
+        pdfs.push({ pages, options });
+        return pdf(pages, options);
+      }}
     />,
   );
-  return { files, pngs, calls, onClose };
+  return { files, blobs, calls, pdfs, onClose };
 }
 
 const exportButton = () => screen.getByRole('button', { name: 'Export' });
@@ -124,7 +132,7 @@ describe('ExportFigureDialog (#240)', () => {
   });
 
   it('rasterises the map at the chosen scale as PNG', async () => {
-    const { calls, pngs, onClose } = setup();
+    const { calls, blobs, onClose } = setup();
     fireEvent.click(radio('PNG'));
     expect(radio('2×')).toBeEnabled();
     expect(screen.getByText('PNG, 1,800 × 1,800 pixels at 2×')).toBeInTheDocument();
@@ -135,7 +143,7 @@ describe('ExportFigureDialog (#240)', () => {
     });
     expect(calls[0]?.scale).toBe(4);
     expect(calls[0]?.svg).toContain('#ffffff');
-    expect(pngs.map((f) => f.name)).toEqual(['pBR322_map.png']);
+    expect(blobs.map((f) => f.name)).toEqual(['pBR322_map.png']);
   });
 
   it('offers a protein only the sequence view', () => {
@@ -221,40 +229,41 @@ describe('ExportFigureDialog (#240)', () => {
       expect(files).toEqual([]);
     });
 
-    it('splits into A4 pages, one file each, saying how many first', () => {
-      vi.useFakeTimers();
-      try {
-        const { files } = setup();
-        sequenceView();
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
-        const note = screen.getByText(/pages, each downloaded as an SVG file of its own/);
-        const n = Number(/^(\d+) pages/.exec(note.textContent)?.[1]);
-        expect(n).toBeGreaterThan(1);
-        expect(
-          screen.getByText(`${String(n)} A4 pages of SVG, 794 × 1,123 px; the first 4 rows shown`),
-        ).toBeInTheDocument();
-        fireEvent.click(exportButton());
-        vi.runAllTimers();
-        expect(files.map((f) => f.name)).toEqual(
-          Array.from(
-            { length: n },
-            (_, i) => `pBR322_sequence_p${String(i + 1).padStart(2, '0')}.svg`,
-          ),
-        );
-        expect(files.every((f) => f.text.includes('width="210mm" height="297mm"'))).toBe(true);
-        expect(files.flatMap((f) => rowNumbers(f.text))).toEqual(
-          Array.from({ length: 73 }, (_, i) => 1 + i * 60),
-        );
-      } finally {
-        vi.useRealTimers();
-      }
+    it('splits into A4 pages, one ZIP of SVGs, saying how many first', async () => {
+      const { files, blobs } = setup();
+      sequenceView();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      const note = screen.getByText(/pages, downloaded as one ZIP of \d+ SVGs\./);
+      const n = Number(/^(\d+) pages/.exec(note.textContent)?.[1]);
+      expect(n).toBeGreaterThan(1);
+      expect(
+        screen.getByText(`${String(n)} A4 pages of SVG, 794 × 1,123 px; the first 4 rows shown`),
+      ).toBeInTheDocument();
+      fireEvent.click(exportButton());
+      expect(files).toEqual([]);
+      expect(blobs.map((b) => b.name)).toEqual(['pBR322_sequence.zip']);
+      const zip = blobs[0]?.blob;
+      if (zip === undefined) throw new Error('no zip');
+      expect(zip.type).toBe('application/zip');
+      const { entries } = readZip(new Uint8Array(await zip.arrayBuffer()));
+      expect(entries.map((e) => e.path)).toEqual(
+        Array.from(
+          { length: n },
+          (_, i) => `pBR322_sequence_p${String(i + 1).padStart(2, '0')}.svg`,
+        ),
+      );
+      const pages = entries.map((e) => new TextDecoder().decode(e.data));
+      expect(pages.every((p) => p.includes('width="210mm" height="297mm"'))).toBe(true);
+      expect(pages.flatMap((p) => rowNumbers(p))).toEqual(
+        Array.from({ length: 73 }, (_, i) => 1 + i * 60),
+      );
     });
 
-    it('refuses more pages than it downloads at once', () => {
+    it('refuses more pages than one export holds', () => {
       setup({ basesPerRow: 10 });
       sequenceView();
       fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
-      expect(problem()).toHaveTextContent(/more than the 40 downloaded at once/);
+      expect(problem()).toHaveTextContent(/more than the 40 one export holds/);
       expect(exportButton()).toBeDisabled();
     });
   });
@@ -268,14 +277,14 @@ describe('ExportFigureDialog (#240)', () => {
     };
 
     it('rasterises one picture at the chosen scale', async () => {
-      const { calls, pngs, onClose } = png();
+      const { calls, blobs, onClose } = png();
       fireEvent.click(radio('1×'));
       expect(screen.getByText(/73 rows, PNG, 564 × 7,670 pixels at 1×/)).toBeInTheDocument();
       fireEvent.click(exportButton());
       await waitFor(() => {
         expect(onClose).toHaveBeenCalled();
       });
-      expect(pngs.map((f) => f.name)).toEqual(['pBR322_sequence.png']);
+      expect(blobs.map((f) => f.name)).toEqual(['pBR322_sequence.png']);
       expect(calls).toHaveLength(1);
       expect(calls[0]?.scale).toBe(1);
       expect(calls[0]?.svg).toMatch(/<rect x="0" y="0"[^>]*fill="#ffffff"/);
@@ -292,44 +301,45 @@ describe('ExportFigureDialog (#240)', () => {
       expect(calls[0]?.svg).toContain('fill="rgba(0,0,0,0)"');
     });
 
-    it('one PNG per A4 page, rasterised in turn', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-      try {
-        let running = 0;
-        let most = 0;
-        const { pngs, onClose } = setup({
-          rasterize: async () => {
-            running += 1;
-            most = Math.max(most, running);
-            await Promise.resolve();
-            running -= 1;
-            return new Blob(['x']);
-          },
-        });
-        sequenceView();
-        fireEvent.click(radio('PNG'));
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
-        expect(
-          screen.getByText(/pages, each downloaded as a PNG file of its own/),
-        ).toBeInTheDocument();
-        // A4 pages are well within what a browser draws, whatever the scale.
-        expect(exportButton()).toBeEnabled();
-        fireEvent.click(exportButton());
-        await waitFor(() => {
-          expect(onClose).toHaveBeenCalled();
-        });
-        vi.runAllTimers();
-        expect(pngs).toHaveLength(9);
-        expect(pngs[0]?.name).toBe('pBR322_sequence_p01.png');
-        expect(pngs[8]?.name).toBe('pBR322_sequence_p09.png');
-        expect(most).toBe(1);
-      } finally {
-        vi.useRealTimers();
-      }
+    it('one ZIP of a PNG per A4 page, rasterised in turn', async () => {
+      let running = 0;
+      let most = 0;
+      let n = 0;
+      const { blobs, onClose } = setup({
+        rasterize: async () => {
+          running += 1;
+          most = Math.max(most, running);
+          await Promise.resolve();
+          running -= 1;
+          n += 1;
+          return new Blob([`png${String(n)}`]);
+        },
+      });
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      expect(screen.getByText('9 pages, downloaded as one ZIP of 9 PNGs.')).toBeInTheDocument();
+      // A4 pages are well within what a browser draws, whatever the scale.
+      expect(exportButton()).toBeEnabled();
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+      expect(blobs.map((b) => b.name)).toEqual(['pBR322_sequence.zip']);
+      const zip = blobs[0]?.blob;
+      if (zip === undefined) throw new Error('no zip');
+      const { entries } = readZip(new Uint8Array(await zip.arrayBuffer()));
+      expect(entries.map((e) => e.path)).toEqual(
+        Array.from({ length: 9 }, (_, i) => `pBR322_sequence_p0${String(i + 1)}.png`),
+      );
+      expect(entries.map((e) => new TextDecoder().decode(e.data))).toEqual(
+        Array.from({ length: 9 }, (_, i) => `png${String(i + 1)}`),
+      );
+      expect(most).toBe(1);
     });
 
     it('shows a failure of the drawing and stays open until something changes', async () => {
-      const { pngs, onClose } = setup({
+      const { blobs, onClose } = setup({
         rasterize: () => Promise.reject(new Error('Canvas is blank.')),
       });
       sequenceView();
@@ -339,11 +349,111 @@ describe('ExportFigureDialog (#240)', () => {
       await waitFor(() => {
         expect(problem()).toHaveTextContent('Canvas is blank.');
       });
-      expect(pngs).toEqual([]);
+      expect(blobs).toEqual([]);
       expect(onClose).not.toHaveBeenCalled();
       expect(exportButton()).toBeEnabled();
       fireEvent.click(radio('Transparent'));
       expect(problem()).toBeEmptyDOMElement();
+    });
+  });
+
+  describe('PDF (#242)', () => {
+    it('keeps the Vector | Raster row in place, enabled for a PDF, with the scale following', () => {
+      setup();
+      expect(radio('Vector')).toBeDisabled();
+      expect(radio('Raster')).toBeDisabled();
+      expect(radio('2×')).toBeDisabled();
+      fireEvent.click(radio('PDF'));
+      expect(radio('Vector')).toBeChecked();
+      expect(radio('Raster')).toBeEnabled();
+      // A vector PDF has no pixels.
+      expect(radio('2×')).toBeDisabled();
+      fireEvent.click(radio('Raster'));
+      expect(radio('2×')).toBeEnabled();
+      fireEvent.click(radio('SVG'));
+      expect(radio('Raster')).toBeDisabled();
+      expect(radio('2×')).toBeDisabled();
+    });
+
+    it('writes the map as a one-page vector PDF', async () => {
+      const { blobs, pdfs, calls, onClose } = setup();
+      fireEvent.click(radio('PDF'));
+      expect(screen.getByText(/^PDF, [\d,]+ × [\d,]+ px$/)).toBeInTheDocument();
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+      expect(pdfs).toHaveLength(1);
+      expect(pdfs[0]?.options).toEqual({ mode: 'vector', title: 'SYNPBR322 map' });
+      expect(pdfs[0]?.pages).toHaveLength(1);
+      expect(pdfs[0]?.pages[0]).toContain('<svg');
+      expect(calls).toEqual([]);
+      expect(blobs.map((b) => b.name)).toEqual(['pBR322_map.pdf']);
+      expect(blobs[0]?.blob.type).toBe('application/pdf');
+    });
+
+    it('writes the A4 pages as one raster PDF at the scale asked for', async () => {
+      const { blobs, pdfs, calls, onClose } = setup();
+      sequenceView();
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(radio('Raster'));
+      fireEvent.click(radio('4×'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      expect(screen.getByText('9 pages, downloaded as one PDF of 9 pages.')).toBeInTheDocument();
+      expect(
+        screen.getByText('9 A4 pages of PDF, 3,175 × 4,490 pixels at 4×; the first 4 rows shown'),
+      ).toBeInTheDocument();
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+      expect(pdfs).toHaveLength(1);
+      const options = pdfs[0]?.options;
+      if (options?.mode !== 'raster') throw new Error('not raster');
+      expect(options.scale).toBe(4);
+      expect(options.title).toBe('SYNPBR322 sequence');
+      expect(pdfs[0]?.pages).toHaveLength(9);
+      // The writer draws with the dialog's own rasteriser.
+      await options.rasterize('<svg/>', options.scale);
+      expect(calls).toEqual([{ svg: '<svg/>', scale: 4 }]);
+      expect(blobs.map((b) => b.name)).toEqual(['pBR322_sequence.pdf']);
+    });
+
+    it('a single page is a one-page PDF', () => {
+      setup({ basesPerRow: 60, selection: { start: 0, end: 100 } });
+      sequenceView();
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      expect(screen.getByText('One page, downloaded as one PDF file.')).toBeInTheDocument();
+    });
+
+    it('checks the size for a raster PDF as for a PNG, and not for a vector one', () => {
+      setup();
+      sequenceView();
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(radio('Raster'));
+      fireEvent.click(radio('4×'));
+      expect(problem()).toHaveTextContent(
+        /At 4× the picture would be .* more than a browser draws/,
+      );
+      expect(exportButton()).toBeDisabled();
+      fireEvent.click(radio('Vector'));
+      expect(problem()).toBeEmptyDOMElement();
+      expect(exportButton()).toBeEnabled();
+    });
+
+    it('says why a PDF could not be written and stays open', async () => {
+      const { blobs, onClose } = setup({
+        pdf: () => Promise.reject(new Error('The PDF writer could not be loaded.')),
+      });
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(problem()).toHaveTextContent('The PDF writer could not be loaded.');
+      });
+      expect(blobs).toEqual([]);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(exportButton()).toBeEnabled();
     });
   });
 

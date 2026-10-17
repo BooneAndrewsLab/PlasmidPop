@@ -6,9 +6,8 @@
  */
 
 import { type Range, type SeqDocument, rangeWraps } from '@/core';
+import { writeZip } from '@/io';
 import { MAX_EXPORT_BASES_PER_ROW, MIN_EXPORT_BASES_PER_ROW } from '@/view/svg';
-
-import { downloadText } from './saveFile';
 
 export type ExportRangeKind = 'whole' | 'selection' | 'custom';
 
@@ -79,48 +78,28 @@ export function rangeBoxes(doc: SeqDocument, r: Range): { from: string; to: stri
   return { from: String(r.start + 1), to: String(to) };
 }
 
-/** More pages than this are not downloaded one by one: too many files to be useful. */
+/** More pages than this are refused: a ZIP or PDF of hundreds of pages is not a figure. */
 export const MAX_EXPORT_PAGES = 40;
 
-/** Time between two downloads, so a browser does not drop the later ones. */
-const DOWNLOAD_SPACING_MS = 300;
+/** The name of page `i` (0-based) of `n`, `stem_p01.svg` onwards, with as many digits as `n` needs. */
+export function pageFileName(stem: string, extension: string, i: number, n: number): string {
+  const digits = Math.max(2, String(n).length);
+  return `${stem}_p${String(i + 1).padStart(digits, '0')}.${extension}`;
+}
 
 /**
- * Downloads each page as a file of its own, `stem_p01.svg` onwards. The
- * project has no zip writer and a single SVG cannot hold pages, so pages
- * are files; they are spaced out, as browsers drop a burst of downloads.
+ * The pages as one ZIP archive (#242), the files inside named
+ * `stem_p01.svg` onwards (or `.png`): one download for the browser to ask
+ * about rather than one per page. A single SVG or PNG cannot hold pages;
+ * a PDF can (`pdfExport.ts`).
  */
-export function downloadPages(
+export function pagesZip(
   stem: string,
-  pages: readonly string[],
-  download: (name: string, text: string) => void = downloadText,
-): void {
-  spacedDownloads(stem, 'svg', pages, download);
-}
-
-/** The same for PNG pages, already rasterised. */
-export function downloadPngPages(
-  stem: string,
-  pages: readonly Blob[],
-  download: (name: string, blob: Blob) => void,
-): void {
-  spacedDownloads(stem, 'png', pages, download);
-}
-
-function spacedDownloads<T>(
-  stem: string,
-  extension: string,
-  pages: readonly T[],
-  download: (name: string, page: T) => void,
-): void {
-  const digits = Math.max(2, String(pages.length).length);
-  pages.forEach((page, i) => {
-    const name = `${stem}_p${String(i + 1).padStart(digits, '0')}.${extension}`;
-    if (i === 0) download(name, page);
-    else {
-      setTimeout(() => {
-        download(name, page);
-      }, i * DOWNLOAD_SPACING_MS);
-    }
-  });
+  extension: 'svg' | 'png',
+  pages: readonly Uint8Array[],
+): Blob {
+  const bytes = writeZip(
+    pages.map((data, i) => ({ path: pageFileName(stem, extension, i, pages.length), data })),
+  );
+  return new Blob([bytes as BlobPart], { type: 'application/zip' });
 }

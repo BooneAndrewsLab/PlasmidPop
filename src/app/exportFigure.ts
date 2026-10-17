@@ -12,10 +12,10 @@ import { MAX_PNG_SIDE, largestPngScale, pngSizeOf } from './mapPng';
 export type FigureView = 'map' | 'sequence';
 
 /**
- * How the figure leaves. A PDF (#242) joins here, with a vector-or-raster
- * choice of its own beside Scale.
+ * How the figure leaves. A PDF (#242) holds every page in one file, drawn
+ * as vectors or, with a scale, as pictures (`pdfExport.ts`).
  */
-export type FigureFileType = 'svg' | 'png';
+export type FigureFileType = 'svg' | 'png' | 'pdf';
 
 export const FIGURE_FILE_TYPES: readonly { value: FigureFileType; label: string; title: string }[] =
   [
@@ -25,6 +25,11 @@ export const FIGURE_FILE_TYPES: readonly { value: FigureFileType; label: string;
       title: 'A vector file: sharp at any size, editable in Inkscape or Illustrator',
     },
     { value: 'png', label: 'PNG', title: 'A picture at a chosen scale, for slides and documents' },
+    {
+      value: 'pdf',
+      label: 'PDF',
+      title: 'A document of every page, vector or a picture at a chosen scale',
+    },
   ];
 
 /** The text sizes the map's figure offers, as multiples of the on-screen size (item 89). */

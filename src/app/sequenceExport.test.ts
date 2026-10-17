@@ -1,8 +1,10 @@
 import { SeqDocument } from '@/core';
 
+import { readZip } from '@/io';
+
 import {
-  downloadPages,
-  downloadPngPages,
+  pageFileName,
+  pagesZip,
   rangeBoxes,
   readBasesPerRow,
   readExportRange,
@@ -126,40 +128,40 @@ describe('readBasesPerRow', () => {
   });
 });
 
-describe('downloadPages', () => {
-  it('downloads each page as a numbered file, spaced out', () => {
-    vi.useFakeTimers();
-    try {
-      const names: string[] = [];
-      downloadPages('pX_sequence', ['<svg>1</svg>', '<svg>2</svg>', '<svg>3</svg>'], (n) =>
-        names.push(n),
-      );
-      expect(names).toEqual(['pX_sequence_p01.svg']);
-      vi.advanceTimersByTime(299);
-      expect(names).toEqual(['pX_sequence_p01.svg']);
-      vi.advanceTimersByTime(1);
-      expect(names).toEqual(['pX_sequence_p01.svg', 'pX_sequence_p02.svg']);
-      vi.advanceTimersByTime(299);
-      expect(names).toHaveLength(2);
-      vi.advanceTimersByTime(1);
-      expect(names).toEqual(['pX_sequence_p01.svg', 'pX_sequence_p02.svg', 'pX_sequence_p03.svg']);
-    } finally {
-      vi.useRealTimers();
-    }
+describe('pagesZip (#242)', () => {
+  it('names the pages _p01 onwards, with as many digits as the count needs', () => {
+    expect(pageFileName('pX_sequence', 'svg', 0, 3)).toBe('pX_sequence_p01.svg');
+    expect(pageFileName('pX_sequence', 'png', 2, 3)).toBe('pX_sequence_p03.png');
+    expect(pageFileName('pX', 'svg', 99, 100)).toBe('pX_p100.svg');
+    expect(pageFileName('pX', 'svg', 0, 100)).toBe('pX_p001.svg');
   });
-});
 
-describe('downloadPngPages', () => {
-  it('downloads each picture as a numbered .png, spaced out', () => {
-    vi.useFakeTimers();
-    try {
-      const names: string[] = [];
-      downloadPngPages('pX_sequence', [new Blob(['1']), new Blob(['2'])], (n) => names.push(n));
-      expect(names).toEqual(['pX_sequence_p01.png']);
-      vi.advanceTimersByTime(1000);
-      expect(names).toEqual(['pX_sequence_p01.png', 'pX_sequence_p02.png']);
-    } finally {
-      vi.useRealTimers();
-    }
+  it('holds every page as a file of its own, bytes intact, in order', async () => {
+    const pages = ['<svg>1</svg>', '<svg>2</svg>', '<svg>3</svg>'].map((t) =>
+      new TextEncoder().encode(t),
+    );
+    const zip = pagesZip('pX_sequence', 'svg', pages);
+    expect(zip.type).toBe('application/zip');
+    const { entries, skipped } = readZip(new Uint8Array(await zip.arrayBuffer()));
+    expect(skipped).toEqual([]);
+    expect(entries.map((e) => e.path)).toEqual([
+      'pX_sequence_p01.svg',
+      'pX_sequence_p02.svg',
+      'pX_sequence_p03.svg',
+    ]);
+    expect(entries.map((e) => new TextDecoder().decode(e.data))).toEqual([
+      '<svg>1</svg>',
+      '<svg>2</svg>',
+      '<svg>3</svg>',
+    ]);
+  });
+
+  it('keeps binary pages byte for byte', async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 255]);
+    const zip = pagesZip('pX', 'png', [png, png.slice(0, 4)]);
+    const { entries } = readZip(new Uint8Array(await zip.arrayBuffer()));
+    expect(entries.map((e) => e.path)).toEqual(['pX_p01.png', 'pX_p02.png']);
+    expect([...(entries[0]?.data ?? [])]).toEqual([...png]);
+    expect([...(entries[1]?.data ?? [])]).toEqual([0x89, 0x50, 0x4e, 0x47]);
   });
 });

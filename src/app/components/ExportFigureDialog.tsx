@@ -31,12 +31,12 @@ import {
   pngProblem,
 } from '../exportFigure';
 import { PNG_SCALES, pngSizeOf, rasterizeSvg, svgPixelSize } from '../mapPng';
+import { PDF_MODES, type PdfMode, type PdfOptions, exportPdf } from '../pdfExport';
 import { downloadBlob, downloadText } from '../saveFile';
 import {
   type ExportRangeKind,
   MAX_EXPORT_PAGES,
-  downloadPages,
-  downloadPngPages,
+  pagesZip,
   rangeBoxes,
   readBasesPerRow,
   readExportRange,
@@ -61,9 +61,10 @@ interface Props {
   readonly onClose: () => void;
   /** Where a file goes; the browser's download unless a test says otherwise. */
   readonly download?: (name: string, text: string) => void;
-  /** The same for a PNG, and how it is drawn. */
-  readonly downloadPng?: (name: string, blob: Blob) => void;
+  /** The same for a PNG, ZIP or PDF; how a picture is drawn; and how a PDF is written. */
+  readonly downloadFile?: (name: string, blob: Blob) => void;
   readonly rasterize?: (svg: string, scale: number) => Promise<Blob>;
+  readonly pdf?: (pages: readonly string[], options: PdfOptions) => Promise<Blob>;
 }
 
 /** The rows the sequence view's preview draws: enough to see the format, cheap for any length. */
@@ -119,10 +120,11 @@ function Row({
 
 /**
  * Export figure (#240, item 94): one dialog for the map (#212, item 89) and
- * the sequence view (#30, #236, item 8), as SVG or PNG. Every row is always
- * rendered and disabled when it does not apply, so nothing moves as the
- * choices change (#241), and the size is checked from the layout on every
- * change, before anything is drawn (#243).
+ * the sequence view (#30, #236, item 8), as SVG, PNG or PDF (#242). Every
+ * row is always rendered and disabled when it does not apply, so nothing
+ * moves as the choices change (#241), and the size is checked from the
+ * layout on every change, before anything is drawn (#243). A4 pages leave
+ * as one file: a ZIP of SVGs or PNGs, or a PDF of as many pages.
  */
 export function ExportFigureDialog({
   doc,
@@ -136,14 +138,16 @@ export function ExportFigureDialog({
   stem,
   onClose,
   download = downloadText,
-  downloadPng = downloadBlob,
+  downloadFile = downloadBlob,
   rasterize = rasterizeSvg,
+  pdf: makePdf = exportPdf,
 }: Props) {
   // A protein has no map (#66): the dialog then offers the sequence view alone.
   const hasMap = hasTool(doc, 'circular');
   const [view, setView] = useState<FigureView>(hasMap ? 'map' : 'sequence');
   const [fileType, setFileType] = useState<FigureFileType>('svg');
   const [scale, setScale] = useState<number>(2);
+  const [pdfMode, setPdfMode] = useState<PdfMode>('vector');
   const [transparent, setTransparent] = useState(false);
 
   // The map's figure.
@@ -186,7 +190,10 @@ export function ExportFigureDialog({
     };
   }, [onClose]);
 
-  const png = fileType === 'png';
+  const pdf = fileType === 'pdf';
+  // What has pixels, so the scale applies and the size is checked against a canvas.
+  const raster = fileType === 'png' || (pdf && pdfMode === 'raster');
+  const typeName = fileType.toUpperCase();
 
   const window = gcWindowFor(gcWindow, doc.length, true);
   const profile = useGcProfile(doc, window, view === 'map' && gcOn);
@@ -292,9 +299,9 @@ export function ExportFigureDialog({
         return `Bases per row is a number from ${String(MIN_EXPORT_BASES_PER_ROW)} to ${String(MAX_EXPORT_BASES_PER_ROW)}.`;
       if (measure?.error != null) return measure.error;
       if (pages && measure !== null && measure.pages > MAX_EXPORT_PAGES)
-        return `That is ${String(measure.pages)} pages, more than the ${String(MAX_EXPORT_PAGES)} downloaded at once: choose a shorter range or more bases per row.`;
+        return `That is ${String(measure.pages)} pages, more than the ${String(MAX_EXPORT_PAGES)} one export holds: choose a shorter range or more bases per row.`;
     }
-    if (png && size !== null)
+    if (raster && size !== null)
       return pngProblem(size, scale, view, { basesPerRow: rowWidth ?? 60, pages });
     return null;
   })();
@@ -303,6 +310,7 @@ export function ExportFigureDialog({
     view,
     fileType,
     scale,
+    pdfMode,
     transparent,
     kind,
     from,
@@ -324,11 +332,11 @@ export function ExportFigureDialog({
       : `data:image/svg+xml;charset=utf-8,${encodeURIComponent(previewSvg)}`;
   const caption = ((): string => {
     if (size === null) return '';
-    const pixels = png ? pngSizeOf(size, scale) : null;
+    const pixels = raster ? pngSizeOf(size, scale) : null;
     const at =
       pixels === null
-        ? `SVG, ${px(size.width)} × ${px(size.height)} px`
-        : `PNG, ${px(size.width * scale)} × ${px(size.height * scale)} pixels at ${String(scale)}×`;
+        ? `${typeName}, ${px(size.width)} × ${px(size.height)} px`
+        : `${typeName}, ${px(size.width * scale)} × ${px(size.height * scale)} pixels at ${String(scale)}×`;
     if (view === 'map') return at;
     if (measure?.error !== null) return '';
     const first =
@@ -342,8 +350,11 @@ export function ExportFigureDialog({
     if (view === 'map') return 'The map is one picture; pages are for the sequence view.';
     if (!pages) return 'One file, as tall as its rows.';
     if (measure?.error !== null) return '';
-    if (measure.pages === 1) return `One page, downloaded as one ${png ? 'PNG' : 'SVG'} file.`;
-    return `${String(measure.pages)} pages, each downloaded as ${png ? 'a PNG' : 'an SVG'} file of its own; your browser may ask to allow several downloads.`;
+    const n = String(measure.pages);
+    if (measure.pages === 1) return `One page, downloaded as one ${typeName} file.`;
+    return pdf
+      ? `${n} pages, downloaded as one PDF of ${n} pages.`
+      : `${n} pages, downloaded as one ZIP of ${n} ${typeName}s.`;
   })();
 
   const fail = (message: string): void => {
@@ -351,23 +362,36 @@ export function ExportFigureDialog({
     setBusy(false);
   };
 
+  /** The PDF asked for: vector, or each page a picture at the scale. */
+  const pdfOptions = (title: string): PdfOptions =>
+    pdfMode === 'vector' ? { mode: 'vector', title } : { mode: 'raster', title, scale, rasterize };
+
+  /** Runs a drawing that may take a while, closing on success and saying why on failure. */
+  const finish = (made: Promise<void>): void => {
+    setBusy(true);
+    made.then(onClose).catch((e: unknown) => {
+      fail(e instanceof Error ? e.message : String(e));
+    });
+  };
+
   const submitMap = (svg: string): void => {
-    if (!png) {
+    if (fileType === 'svg') {
       analytics.track('file', 'export', 'map-svg');
       download(`${stem}_map.svg`, svg);
       onClose();
       return;
     }
-    setBusy(true);
-    rasterize(svg, scale)
-      .then((blob) => {
-        analytics.track('file', 'export', 'map-png');
-        downloadPng(`${stem}_map.png`, blob);
-        onClose();
-      })
-      .catch((e: unknown) => {
-        fail(e instanceof Error ? e.message : String(e));
-      });
+    finish(
+      pdf
+        ? makePdf([svg], pdfOptions(`${doc.name} map`)).then((blob) => {
+            analytics.track('file', 'export', `map-pdf-${pdfMode}`);
+            downloadFile(`${stem}_map.pdf`, blob);
+          })
+        : rasterize(svg, scale).then((blob) => {
+            analytics.track('file', 'export', 'map-png');
+            downloadFile(`${stem}_map.png`, blob);
+          }),
+    );
   };
 
   const submitSequence = (opts: LinearExportOptions, suffix: string): void => {
@@ -383,10 +407,18 @@ export function ExportFigureDialog({
       fail(drawn);
       return;
     }
-    if (!png) {
+    if (fileType === 'svg') {
       if (pages) {
-        analytics.track('file', 'export', 'sequence-svg-pages');
-        downloadPages(name, drawn, download);
+        analytics.track('file', 'export', 'sequence-svg-zip');
+        const encoder = new TextEncoder();
+        downloadFile(
+          `${name}.zip`,
+          pagesZip(
+            name,
+            'svg',
+            drawn.map((svg) => encoder.encode(svg)),
+          ),
+        );
       } else {
         analytics.track('file', 'export', kind === 'selection' ? 'selection-svg' : 'sequence-svg');
         download(`${name}.svg`, drawn[0] ?? '');
@@ -394,23 +426,35 @@ export function ExportFigureDialog({
       onClose();
       return;
     }
-    setBusy(true);
+    if (pdf) {
+      finish(
+        makePdf(drawn, pdfOptions(`${doc.name} sequence`)).then((blob) => {
+          analytics.track('file', 'export', `sequence-pdf-${pdfMode}`);
+          downloadFile(`${name}.pdf`, blob);
+        }),
+      );
+      return;
+    }
     // One picture at a time: a canvas of a page's size is the memory a browser lends.
     const rasterAll = async (): Promise<Blob[]> => {
       const blobs: Blob[] = [];
       for (const svg of drawn) blobs.push(await rasterize(svg, scale));
       return blobs;
     };
-    rasterAll()
-      .then((blobs) => {
-        analytics.track('file', 'export', pages ? 'sequence-png-pages' : 'sequence-png');
-        if (pages) downloadPngPages(name, blobs, downloadPng);
-        else if (blobs[0] !== undefined) downloadPng(`${name}.png`, blobs[0]);
-        onClose();
-      })
-      .catch((e: unknown) => {
-        fail(e instanceof Error ? e.message : String(e));
-      });
+    finish(
+      rasterAll().then(async (blobs) => {
+        if (pages) {
+          const bytes = await Promise.all(
+            blobs.map(async (blob) => new Uint8Array(await blob.arrayBuffer())),
+          );
+          analytics.track('file', 'export', 'sequence-png-zip');
+          downloadFile(`${name}.zip`, pagesZip(name, 'png', bytes));
+        } else if (blobs[0] !== undefined) {
+          analytics.track('file', 'export', 'sequence-png');
+          downloadFile(`${name}.png`, blobs[0]);
+        }
+      }),
+    );
   };
 
   const submit = (): void => {
@@ -602,14 +646,28 @@ export function ExportFigureDialog({
                 onChange={setFileType}
               />
             </Row>
-            <Row label="Scale" disabled={!png}>
+            <Row label="Scale" disabled={!raster}>
               <SegmentedChoices
                 label="Scale"
                 choices={SCALES}
                 value={scale}
-                disabled={!png}
-                disabledTitle="An SVG has no pixels; the scale is for a PNG"
+                disabled={!raster}
+                disabledTitle={
+                  pdf
+                    ? 'A vector PDF has no pixels; the scale is for a raster one'
+                    : 'An SVG has no pixels; the scale is for a PNG or a raster PDF'
+                }
                 onChange={setScale}
+              />
+            </Row>
+            <Row label="PDF" disabled={!pdf}>
+              <SegmentedChoices
+                label="PDF drawing"
+                choices={PDF_MODES}
+                value={pdfMode}
+                disabled={!pdf}
+                disabledTitle="Vector or raster is a choice for a PDF"
+                onChange={setPdfMode}
               />
             </Row>
             <Row label="Background">
