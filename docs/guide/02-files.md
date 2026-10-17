@@ -102,8 +102,10 @@ protein downloads as GenPept, or as a `.prot`.
 **SnapGene `.rna`** files open as a nucleotide document with the molecule type
 RNA: the bases, every feature (rRNA, tRNA, modified bases, variations) and the
 notes, as a `.dna` file's are. SnapGene writes an RNA with T where the RNA has
-U, and so does the editor for now, as GenBank does; a GenBank download names the
-molecule `RNA` on its LOCUS line. The file does not say whether the RNA is
+U, and so does the editor underneath, as GenBank does: the stored sequence, every
+download and the clipboard keep T, and the molecule type `RNA` (named on a
+GenBank download's LOCUS line) says it is RNA. The
+sequence view draws it with U (see [Viewing](03-viewing.md)). The file does not say whether the RNA is
 single- or double-stranded, so nothing here does either, and it opens linear.
 
 **Geneious** files are not supported. Export them as GenBank first.

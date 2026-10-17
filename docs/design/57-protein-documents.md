@@ -223,7 +223,26 @@ show:
   changes behaviour (translation, digests and so on act on the bases as they
   do for DNA). Converting to U for display, or a real RNA alphabet, would be
   a larger change with no sample to say what it should do; not done.
-  Decided 2026-10-02 to keep T for now; showing U is #113.
+  Decided 2026-10-02 to keep T for now; showing U is #113 (below).
+- **Showing U (#113): display only.** Decided 2026-10-16. A document is an RNA
+  when `isRnaDocument` (`src/core/document/rna.ts`, the one definition, used
+  by the `.rna` writer too) says so: molecule type matches `/rna/i` and not
+  `/dna/i`, and not a protein, so `RNA`, `mRNA` and `ss-RNA` are RNA while
+  `DNA`, `ds-DNA` and a `DNA/RNA` hybrid are not. The writer keeps its own
+  extra condition (linear) as `writesAsRna`; a circular RNA still goes out as
+  a `.dna`. The sequence view's `drawBaseLine` is the single place the letters
+  of the bases are chosen: it maps each drawn row's T to U (`toRnaLetters`) on
+  both strands and on a sticky end's overhang, so the SVG/PNG exports, which
+  run the same renderer, show U too. Only the row being drawn is mapped, so
+  nothing is allocated per sequence. The stored sequence, history, storage,
+  GenBank/FASTA/SnapGene downloads and the clipboard stay T. Typing or
+  pasting in an RNA document stores a `U` as `T` (`typeText`); in other
+  documents a `U` is still stored as typed, which is untouched. Search needed
+  no change: `U` already means `T` in the IUPAC tables, for the query and the
+  sequence alike. Left alone on purpose: an RNA alphabet on the document (as
+  proteins have), U-aware enzymes, primers, translation, ORFs or alignment
+  (they work on the T the model keeps), and the alignment/MSA views, which
+  draw their own letters. No UI note: no panel shows the molecule type.
 - **Checked against SnapGene itself.** Both files annotate single bases by
   what they are: a `modified_base` is named for the base it modifies (`m1a`,
   `m2g`, `cm`, `um`, `p` for pseudouridine), and each of the 16S file's 18

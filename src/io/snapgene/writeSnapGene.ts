@@ -6,6 +6,7 @@ import {
   reverseComplement,
 } from '@/core';
 import { newId } from '@/core/ids';
+import { isRnaDocument } from '@/core/document/rna';
 
 /**
  * SnapGene .dna, .rna and .prot writer (#204): the packets `parseSnapGene`
@@ -94,9 +95,9 @@ function snapGeneDate(genBankDate: string): string | null {
   return `${m[3] ?? ''}.${month + 1}.${Number(m[1])}`;
 }
 
-function isRnaDocument(doc: SeqDocument): boolean {
-  const type = doc.metadata.moleculeType;
-  return !doc.isProtein && doc.topology === 'linear' && /rna/i.test(type) && !/dna/i.test(type);
+/** A `.rna` is written for a linear RNA only; a circular one goes out as a `.dna`. */
+function writesAsRna(doc: SeqDocument): boolean {
+  return doc.topology === 'linear' && isRnaDocument(doc);
 }
 
 /** 1-based inclusive `a-b` of a feature segment; `b < a` where it crosses the origin. */
@@ -130,7 +131,7 @@ function plan(doc: SeqDocument, losses: string[]): Plan {
   const text = doc.sequence.toString();
   if (doc.isProtein)
     return { extension: 'prot', sequence: text, shift: 0, back: 0, upstream: 0, downstream: 0 };
-  if (isRnaDocument(doc)) {
+  if (writesAsRna(doc)) {
     if (/u/i.test(text))
       losses.push('SnapGene writes an RNA with T where the RNA has U; the Us become Ts.');
     return {

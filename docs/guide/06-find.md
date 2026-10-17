@@ -6,7 +6,8 @@ the views. What you type decides what is searched:
 - **Three or more IUPAC letters** search the sequence on both strands.
   Ambiguity codes work in the query: `GRCGYC` finds every BsaHI site, and
   `N` matches any base. An `N` in the sequence only matches an `N` in the
-  query. Matches wrap around the origin of a circular sequence.
+  query. Matches wrap around the origin of a circular sequence. `U` is read as `T`, so
+  an RNA is searched with the letters it is drawn with.
 - **Anything else** searches feature names and types, case-insensitively,
   so `tet` finds _tet_ and _tetR_, and `promoter` finds every promoter.
 

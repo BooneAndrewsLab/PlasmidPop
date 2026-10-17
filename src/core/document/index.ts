@@ -9,3 +9,4 @@ export * from './fragment';
 export * from './read';
 export * from './tools';
 export * from './featureOrigin';
+export * from './rna';

@@ -113,6 +113,12 @@ fix in the **Format** menu, below — with a ruler above each row giving the
 position of its first base. Below each row:
 
 - the **complement** strand, when **Complement** is on in the toolbar;
+- for a document whose molecule type is RNA (a `.rna` file, or a GenBank record
+  with RNA on its LOCUS line), both strands are drawn with **U** where the
+  stored sequence has T, and the complement of A is U. This is only how the
+  letters are drawn, in the view and in its SVG and PNG exports: the sequence
+  itself, copying, downloads, enzymes, primers, translation and search all
+  keep working on T, and a DNA/RNA hybrid is drawn as DNA;
 - one line of **amino acids** per CDS feature, when **Translations** is on
   (see [Translation](09-translate.md));
 - **features** as coloured bars with their names, stacked into lanes when

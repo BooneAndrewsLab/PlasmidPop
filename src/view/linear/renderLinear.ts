@@ -8,6 +8,8 @@ import {
   type Range,
   type SeqDocument,
   complement,
+  isRnaDocument,
+  toRnaLetters,
   marksIn,
   residueNumbers,
   rangePieces,
@@ -314,11 +316,12 @@ function drawEndOverhangBases(ctx: DrawingContext, p: RenderParams, row: RowLayo
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = theme.inkMuted;
   const y = layout.textBaseline(row, layout.complementTextTop(row));
+  const letters = isRnaDocument(doc) ? toRnaLetters : (t: string): string => t;
   if (leftBottom > 0 && row.index === 0) {
-    ctx.fillText(complement(ends.left.overhang), layout.xOfColumn(-leftBottom), y);
+    ctx.fillText(letters(complement(ends.left.overhang)), layout.xOfColumn(-leftBottom), y);
   }
   if (rightBottom > 0 && row.end === doc.length) {
-    ctx.fillText(complement(ends.right.overhang), layout.xOf(row, row.end), y);
+    ctx.fillText(letters(complement(ends.right.overhang)), layout.xOf(row, row.end), y);
   }
 }
 
@@ -445,6 +448,8 @@ function drawBaseLine(
 ): void {
   const { layout } = p;
   const y = layout.textBaseline(row, top);
+  // The one place the letters of the bases are chosen: an RNA's T is drawn U (#113).
+  const letters = isRnaDocument(p.doc) ? toRnaLetters : (t: string): string => t;
   for (const stretch of styleStretches(p, row)) {
     const style = stretch.style;
     const scale = style?.size ?? 1;
@@ -452,7 +457,7 @@ function drawBaseLine(
     drawBaseStretch(
       ctx,
       p,
-      s.slice(stretch.start - row.start, stretch.end - row.start),
+      letters(s.slice(stretch.start - row.start, stretch.end - row.start)),
       { x: layout.xOf(row, stretch.start), advance: layout.metrics.charWidth * scale, y },
       plain,
       // Letters on a highlight are drawn to read on it, dark theme or light.

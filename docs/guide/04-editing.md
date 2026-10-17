@@ -19,6 +19,9 @@ no stop codon of its own.
   (`ACGTU` and the ambiguity codes `RYSWKMBDHVN`), in either case, and
   the case is kept. Anything else is refused with a message in the status
   bar.
+  In an RNA document (molecule type RNA) a typed or pasted `U` is stored as `T`,
+  as the rest of the document is, and drawn as U; in other documents a `U` is
+  kept as typed.
 - **Type with a selection** to replace it.
 - `Backspace` deletes the base before the cursor, `Delete` the base after
   it, either one deletes the selection when there is one. **Delete

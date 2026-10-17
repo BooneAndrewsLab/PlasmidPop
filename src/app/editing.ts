@@ -13,6 +13,8 @@ import {
   newFeatureId,
   normalizePosition,
   normalizeSequenceInput,
+  isRnaDocument,
+  fromRnaLetters,
   range,
   shiftPositionForDelete,
   typingRun,
@@ -61,7 +63,9 @@ export function typeText(
   selection: Range | null,
   rawText: string,
 ): EditPlan | null {
-  const text = normalizeSequenceInput(rawText, doc.alphabet);
+  const typed = normalizeSequenceInput(rawText, doc.alphabet);
+  // An RNA shows U but keeps T (#113): a U typed or pasted is stored as T.
+  const text = isRnaDocument(doc) ? fromRnaLetters(typed) : typed;
   if (text.length === 0 || selection === null) return null;
   if (isEmptyRange(selection)) {
     const p = normalizePosition(selection.start, doc.length, doc.topology);

@@ -1,4 +1,10 @@
-import { InvalidSequenceError, SeqDocument, createFeature, rangeSegment } from '@/core';
+import {
+  InvalidSequenceError,
+  SeqDocument,
+  createFeature,
+  createMetadata,
+  rangeSegment,
+} from '@/core';
 
 import {
   clampPosition,
@@ -41,6 +47,28 @@ describe('typeText', () => {
     expect(() => typeText(linear, { start: 0, end: 0 }, 'hello')).toThrow(InvalidSequenceError);
     expect(typeText(linear, { start: 0, end: 0 }, '  \n')).toBeNull();
     expect(typeText(linear, null, 'A')).toBeNull();
+  });
+});
+
+describe('typeText in an RNA document (#113)', () => {
+  const rna = SeqDocument.create({
+    sequence: 'ACGTACGTAC',
+    metadata: createMetadata({ moleculeType: 'RNA' }),
+  });
+
+  it('stores a typed or pasted U as T', () => {
+    expect(typeText(rna, { start: 3, end: 3 }, 'GuU')).toMatchObject({
+      op: { type: 'insert', position: 3, text: 'GtT' },
+    });
+    expect(typeText(rna, { start: 1, end: 3 }, 'U')).toMatchObject({
+      op: { type: 'replace', text: 'T' },
+    });
+  });
+
+  it('leaves a DNA document as it was: U is kept as typed', () => {
+    expect(typeText(linear, { start: 3, end: 3 }, 'U')).toMatchObject({
+      op: { type: 'insert', text: 'U' },
+    });
   });
 });
 
