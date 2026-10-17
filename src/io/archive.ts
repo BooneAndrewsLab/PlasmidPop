@@ -60,12 +60,12 @@ export async function readSequenceArchive(
     const buffer = entry.data.slice().buffer;
     try {
       const result = await readSequenceData(buffer, fileName);
-      // Stryker disable BlockStatement,ConditionalExpression,ObjectLiteral,StringLiteral: every parser throws on a file with no records, so this guard is defensive and cannot be reached
+      // Stryker disable BlockStatement,CallExpression,ConditionalExpression,ObjectLiteral,StringLiteral: every parser throws on a file with no records, so this guard is defensive and cannot be reached
       if (result.documents.length === 0) {
         skipped.push({ path: entry.path, reason: 'The file contains no sequences' });
         continue;
       }
-      // Stryker restore BlockStatement,ConditionalExpression,ObjectLiteral,StringLiteral
+      // Stryker restore BlockStatement,CallExpression,ConditionalExpression,ObjectLiteral,StringLiteral
       const only = ONE_RECORD_FORMATS.has(result.format);
       const documents = only ? result.documents.slice(0, 1) : result.documents;
       const extra: ParseWarning[] =

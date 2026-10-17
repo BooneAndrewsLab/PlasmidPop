@@ -90,8 +90,10 @@ function body(text: string): string {
 function snapGeneDate(genBankDate: string): string | null {
   const m = /^(\d{1,2})-([A-Z]{3})-(\d{4})$/i.exec(genBankDate.trim());
   if (m === null) return null;
+  // Stryker disable next-line StringLiteral: group 2 of the regex is not optional, so it is always defined and the fallback is never read
   const month = MONTHS.indexOf((m[2] ?? '').toUpperCase());
   if (month < 0) return null;
+  // Stryker disable next-line StringLiteral: group 3 of the regex is not optional, so it is always defined and the fallback is never read
   return `${m[3] ?? ''}.${month + 1}.${Number(m[1])}`;
 }
 
@@ -370,7 +372,9 @@ export function writeSnapGene(
     // goes back to covering them: they are in SnapGene's sequence.
     let regained = 0;
     const spans = ranges.map((s, i) => {
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: with a shift of 0 the segment starts at 0 either way, and regained becomes 0, which changes nothing
       const first = s.partialStart && s.start === 0 && p.shift > 0;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: with a back of 0 the segment ends at s.end + shift either way, and regained becomes 0, which changes nothing
       const last = s.partialEnd && s.end === doc.length && p.back > 0;
       // The bases come back at the end the reading starts from: the frame
       // the reader moved when it cut them off moves back too.
@@ -394,12 +398,14 @@ export function writeSnapGene(
     let color: string | undefined;
     const qualifiers = feature.qualifiers
       .filter((q) => {
+        // Stryker disable next-line ConditionalExpression: exec(null) tests the text "null", which is never a colour note, so the null check is redundant
         const m = q.name === 'note' && q.value !== null ? COLOR_NOTE.exec(q.value) : null;
         if (m?.[1] === undefined) return true;
         color ??= m[1].toLowerCase();
         return false;
       })
       .map((q) =>
+        // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: with regained 0 the frame maps to itself and a null value fails the pattern under any fallback text, so the output is the same
         regained > 0 && q.name === 'codon_start' && /^[123]$/.test(q.value ?? '')
           ? { name: q.name, value: String(((Number(q.value) - 1 + regained) % 3) + 1) }
           : q,
@@ -408,6 +414,7 @@ export function writeSnapGene(
 
     const cds = feature.type === 'CDS';
     const start = qualifiers.find((q) => q.name === 'codon_start')?.value;
+    // Stryker disable next-line ConditionalExpression,StringLiteral: an undefined or null start fails the pattern under any fallback text, so the check and the fallback change nothing
     const frame = cds && start !== undefined && /^[123]$/.test(start ?? '') ? Number(start) : null;
     const directed = feature.strand === 'reverse' || !UNDIRECTED.has(feature.type);
     let segments = '';

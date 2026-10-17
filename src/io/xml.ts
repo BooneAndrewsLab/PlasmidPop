@@ -56,6 +56,7 @@ class Reader {
 
   readUntil(s: string): string {
     const end = this.text.indexOf(s, this.pos);
+    // Stryker disable next-line EqualityOperator: readUntil is only called after at least one character has been consumed, so a match at index 0 cannot happen
     if (end < 0) throw new XmlError(`expected "${s}"`, this.pos);
     const out = this.text.slice(this.pos, end);
     this.pos = end + s.length;

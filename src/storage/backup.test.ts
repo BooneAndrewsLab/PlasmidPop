@@ -490,6 +490,17 @@ describe('restoring odd backups', () => {
       fresh: 1,
     });
   });
+
+  it('keeps the local row when the incoming one has no stamp, even if the local stamp is negative', async () => {
+    const b = fresh();
+    await b.db.shelf.bulkPut([shelf('neg', -5)]);
+    const report = await restoreBackup(
+      zipOf({ 'tables/shelf.json': [{ id: 'neg', parts: [] }] }),
+      b.db,
+    );
+    expect(report.otherRows).toBe(0);
+    expect((await b.db.shelf.get('neg'))?.updatedAt).toBe(-5);
+  });
 });
 
 describe('backup status', () => {
@@ -529,6 +540,17 @@ describe('backup status', () => {
     expect(lastBackupAt()).toBeNull();
     recordBackup(42);
     expect(lastBackupAt()).toBe(42);
+  });
+
+  it('reads no last backup when the browser refuses to give the time', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    try {
+      expect(lastBackupAt()).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('does not fail when the browser refuses to store the time', () => {

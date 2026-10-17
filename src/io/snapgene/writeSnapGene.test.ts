@@ -1032,6 +1032,20 @@ describe('writer: exact bytes, packets and layout (mutation)', () => {
       );
     });
 
+    it('writes the Features packet as one string, the features joined with nothing between them', () => {
+      const doc = make([mk({ name: 'a' }), mk({ name: 'b', segments: [rangeSegment(20, 30)] })]);
+      const packet = packetsOf(writeSnapGene(doc).bytes).find((q) => q.type === 0x0a);
+      const attrs = (name: string, range: string) =>
+        `<Feature recentID="${name === 'a' ? 0 : 1}" name="${name}" type="misc_feature" allowSegmentOverlaps="0" consecutiveTranslationNumbering="1">` +
+        `<Segment range="${range}" color="noColor" type="standard"/></Feature>`;
+      expect(dec.decode(packet?.payload)).toBe(
+        '<?xml version="1.0"?><Features nextValidID="2">' +
+          attrs('a', '3-12') +
+          attrs('b', '21-30') +
+          '</Features>',
+      );
+    });
+
     it('writes directions: reverse always, forward unless the type is undirected', () => {
       const dir = (init: object) => featureXml(make([mk(init)]))[0] ?? '';
       expect(dir({ strand: 'reverse' })).toContain(' directionality="2" type="misc_feature"');

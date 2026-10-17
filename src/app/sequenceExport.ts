@@ -24,6 +24,7 @@ export type ExportRange =
 
 /** A whole number typed in a box, or null. */
 function wholeNumber(text: string): number | null {
+  // Stryker disable next-line MethodExpression: the replace on the next token strips every whitespace character, leading and trailing included, so trim() adds nothing
   const t = text.trim().replace(/[,\s]/g, '');
   return /^\d+$/.test(t) ? Number(t) : null;
 }
@@ -50,6 +51,7 @@ export function readExportRange(
   const L = doc.length;
   const from = wholeNumber(fromText);
   const to = wholeNumber(toText);
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: a null coerces to 0 in `from < 1` and `to < 1`, so those reject a null just as the null checks do
   if (from === null || to === null || from < 1 || to < 1 || from > L || to > L) {
     return { ok: false, message: `From and to are bases 1 to ${L.toLocaleString()}.` };
   }
@@ -67,6 +69,7 @@ export function readExportRange(
 /** The bases per row typed, if it is one the export offers. */
 export function readBasesPerRow(text: string): number | null {
   const n = wholeNumber(text);
+  // Stryker disable next-line ConditionalExpression: a null coerces to 0 in `n >= MIN`, which is false for the minimum of 10, so the null check is redundant
   return n !== null && n >= MIN_EXPORT_BASES_PER_ROW && n <= MAX_EXPORT_BASES_PER_ROW ? n : null;
 }
 

@@ -178,6 +178,7 @@ function isStoredDocument(v: unknown): v is StoredDocument {
     typeof v['id'] !== 'string' ||
     v['id'] === '' ||
     typeof v['name'] !== 'string' ||
+    // Stryker disable next-line ConditionalExpression: a non-string text makes parseGenBank throw, which the catch below turns into false, so this guard only narrows the type
     typeof v['text'] !== 'string' ||
     typeof v['length'] !== 'number' ||
     typeof v['featureCount'] !== 'number' ||
@@ -193,7 +194,9 @@ function isStoredDocument(v: unknown): v is StoredDocument {
     return false;
   }
   try {
+    // Stryker disable next-line EqualityOperator: parseGenBank throws on a text with no records and never returns an empty list, so > 0 and >= 0 agree
     return parseGenBank(v['text']).documents.length > 0;
+    // Stryker disable next-line BlockStatement: an empty catch leaves the function returning undefined, which every caller treats as false
   } catch {
     return false;
   }
