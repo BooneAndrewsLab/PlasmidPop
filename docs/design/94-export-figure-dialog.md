@@ -1,4 +1,4 @@
-# 94. One Export figure dialog for the map and the sequence view (#240, #241, #243)
+# 94. One Export figure dialog for the map and the sequence view (#240, #241, #243, #242)
 
 **Asked:** the File menu had three export-the-picture items that did the
 same job two ways: _Export map as SVG_ (no options, downloaded at once),
@@ -60,13 +60,86 @@ file type SVG, the scale 2×. With the whole of a 4 kb plasmid at 60 bases
 a row, PNG at 2× is already over the limit; the dialog says so at once
 rather than guessing a scale on the user's behalf. The _Features_ toggles
 apply to the map only; the linear renderer has no per-type filter and the
-issue asked for none. Analytics events (item 38) are unchanged: `map-svg`,
-`map-png`, `sequence-svg`, `selection-svg`, `sequence-svg-pages`,
-`sequence-png`, `sequence-png-pages`.
+issue asked for none.
 
-**Left for #242 (pages as one download, PDF).** The _File type_ row is a
-list (`FIGURE_FILE_TYPES`) a `pdf` entry slots into; a _Vector | Raster_
-row belongs after _Scale_ in **How big**, rendered always and disabled
-unless PDF, as the other rows are. The pages note under _Paper_
-(`pagesHint`) is the one place that says "each downloaded as a file of its
-own", to become "one ZIP of N PNGs" / "one PDF of N pages".
+## Pages as one download, and PDF (#242)
+
+**Asked:** _Split into A4 pages_ downloaded one file per page, so a browser
+that asks where to save asked fourteen times for the example; and there was
+no PDF, which is what a figure for a paper or a page for a lab book usually
+wants.
+
+**Built.**
+
+- **One ZIP for SVG and PNG pages** (`pagesZip`, `src/app/sequenceExport.ts`):
+  `stem.zip` holding `stem_p01.svg` … (or `.png`), written by `writeZip`
+  (item 87, fflate), which the backup already used; the "no zip writer"
+  reason for separate downloads was stale. The spaced downloads and their
+  timers are gone. The 40-page cap stays, now because a ZIP or PDF of
+  hundreds of pages is not a figure, and the message says so.
+- **PDF as a third file type**, for the map as well as the sequence view
+  since they share the dialog, with a _Vector | Raster_ row after _Scale_
+  in **How big**: always rendered, disabled unless PDF (the no-jumping rule,
+  #241), and _Scale_ is enabled for a PNG or a raster PDF. One PDF holds
+  every page (`stem.pdf`, `stem_map.pdf`); a single page is a one-page PDF.
+  - _Vector_: svg2pdf.js draws each SVG page into jsPDF; text and lines
+    stay vector, in the PDF's standard fonts (below).
+  - _Raster_: each page is rasterised as the PNG export does it, at the
+    chosen scale, and placed on a page of the figure's size with `addImage`,
+    so the scale is the pixels per inch (96 × scale). The live size check
+    (#243) runs for a raster PDF as it does for a PNG, and not for a vector
+    one, which has no pixels.
+  - Pages are in CSS pixels with jsPDF's `px_scaling` hotfix (1 px = 1/96
+    in), so the A4 page SVGs (written as 210 × 297 mm) come out as A4
+    (595.28 × 841.89 pt) and a figure's own size otherwise. Nothing is
+    sized twice.
+- **Behind our own interface.** `src/app/pdfExport.ts` is what the dialog
+  calls (`exportPdf`, `PdfOptions`, the _Vector | Raster_ choices);
+  `src/app/pdfWriter.ts` is the one module that names jsPDF and svg2pdf.js
+  (as `src/io/zip.ts` names fflate), loaded by a dynamic `import()` on the
+  first PDF, so it is a chunk of its own (`pdfWriter-*.js`, about 480 kB,
+  150 kB gzipped) and the first load is unchanged. The import failing is
+  reported in the dialog as "The PDF writer could not be loaded…".
+- **Build.** jsPDF names its optional dependencies (canvg, html2canvas,
+  dompurify) in dynamic imports that only `html()` and SVG-as-image reach;
+  they are declared external in `vite.config.ts` so the bundle never holds
+  them (core-js is only imported by jsPDF's separate polyfill entry). The
+  service worker does not precache the writer chunk (`globIgnores`): half
+  a megabyte most installs would never use; a `CacheFirst` runtime route
+  keeps it once fetched, so PDF export works offline from then on. Under
+  Vitest, `svg2pdf.js` is aliased to its ES build: the package has no
+  `exports` map and its `main` is the UMD build, which wants a global
+  jsPDF.
+- **Fonts (the spike).** svg2pdf sets text in jsPDF's standard fonts:
+  `"Courier New", Courier, monospace` is Courier and `Helvetica, Arial,
+sans-serif` Helvetica, whose widths jsPDF has, so the bases stay on their
+  grid and the ruler, numbers and feature labels keep their places; checked
+  by rendering the vector PDF with pdftoppm beside Chromium's rendering of
+  the same SVG, for the sequence view, an A4 page and the map. The figures'
+  only non-ASCII glyphs — the ellipsis of a shortened label, the en and em
+  dashes of a page footer — are in WinAnsi, so no font is embedded (nothing
+  to license, nothing to ship). One thing did not hold: the map's title is
+  `font-weight="600"`, which svg2pdf hands to jsPDF as a style it has no
+  font for, and the title fell back to Times. `pdfWriter` rounds numeric
+  weights to `bold` or `normal` before drawing. svg2pdf measures text for
+  `text-anchor` offsets with the browser's own metrics of the CSS family,
+  not the PDF font's; the two agree for Courier New and for what browsers
+  substitute for Helvetica, and the test suite lends jsdom a 0.6 em
+  `getBBox` for that.
+- **Dialog text.** The caption names the file type (`PDF, 564 × 1,395 px`,
+  `PDF, 1,128 × 2,790 pixels at 2×`); the pages note says "9 pages,
+  downloaded as one ZIP of 9 PNGs." or "… one PDF of 9 pages."
+- **Analytics (item 38).** `sequence-svg-pages` and `sequence-png-pages`
+  are `sequence-svg-zip` and `sequence-png-zip`; new are
+  `sequence-pdf-vector`, `sequence-pdf-raster`, `map-pdf-vector` and
+  `map-pdf-raster`.
+
+**Decisions.** The default PDF is vector: it is what a figure wants, and it
+is the smaller file. Raster is there for a viewer that renders the standard
+fonts badly or for a picture that must match the PNG pixel for pixel. No
+font is embedded, so a PDF shows Courier and Helvetica as the viewer has
+them rather than the on-screen Courier New; embedding a font would mean
+shipping one, and the third-party data policy (bundle only what may be
+redistributed) would want a licensed face for a gain nobody asked for.
+Dependencies: jspdf 4.2.1 (MIT), svg2pdf.js 2.8.1 (MIT); their transitive
+dependencies are MIT, with pako MIT AND Zlib.

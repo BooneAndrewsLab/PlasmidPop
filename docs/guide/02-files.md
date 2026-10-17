@@ -526,26 +526,34 @@ From the **File** menu:
     **Bases per row**, 10 to 200 (the Format menu's setting to start with,
     or 60 when Format is left at "Fit", so the file does not depend on the
     window width). Then the **file type**: **SVG** (the default), a vector
-    file that is sharp at any size, or **PNG**, a picture at a **scale** of
-    1×, 2× or 4× the SVG's pixel size; the size in pixels is shown under the
-    preview. The **background** is white or transparent for either type.
-  - **Pages** — **Split into A4 pages**, for the sequence view: one file per
-    A4 page (210 × 297 mm, 15 mm margins), as many whole rows to a page as
-    fit, scaled down to the page's width when the rows are wider and never
+    file that is sharp at any size; **PNG**, a picture at a **scale** of
+    1×, 2× or 4× the SVG's pixel size; or **PDF**, a document at the
+    figure's own size (A4 when split into pages) that is either **Vector**
+    — text and lines as in the SVG, set in the PDF's standard Courier and
+    Helvetica so the text can be searched and selected — or **Raster**,
+    each page a picture at the chosen scale, as the PNG would be. The size
+    in pixels is shown under the preview. The **background** is white or
+    transparent for every type.
+  - **Pages** — **Split into A4 pages**, for the sequence view: A4 pages
+    (210 × 297 mm, 15 mm margins), as many whole rows to a page as fit,
+    scaled down to the page's width when the rows are wider and never
     scaled up. Each page's foot names the document, the bases on it and the
     page number. The dialog says how many pages it will be before you
-    export; the pages download one after another as `…_p01.svg`,
-    `…_p02.svg` and so on (`.png` for a PNG), and your browser may ask once
-    whether the site may download several files. At most 40 pages go at
-    once (pBR322 is 9 at 60 bases a row): choose a shorter range or more
+    export, and they leave as one download: a PDF holds them as its pages;
+    SVG and PNG pages come as one ZIP file holding `…_p01.svg`,
+    `…_p02.svg` and so on (`.png` for a PNG). At most 40 pages go in one
+    export (pBR322 is 9 at 60 bases a row): choose a shorter range or more
     bases per row for more.
 
   The dialog checks as you change things. A range outside the sequence, a
-  row width outside 10–200, too many pages, or a PNG larger than a browser
-  can draw (16,384 pixels on a side) is said in red beside the **Export**
-  button, which stays off until it is put right; the message says what
-  would fit — a smaller scale, more bases per row or A4 pages. Sequences
-  longer than 100,000 bases are refused: export a range instead.
+  row width outside 10–200, too many pages, or a PNG or raster PDF larger
+  than a browser can draw (16,384 pixels on a side) is said in red beside
+  the **Export** button, which stays off until it is put right; the message
+  says what would fit — a smaller scale, more bases per row or A4 pages.
+  Sequences longer than 100,000 bases are refused: export a range instead.
+  The PDF writer is fetched the first time a PDF is exported and kept for
+  offline use after that; if you are offline that first time, the dialog
+  says so.
 
 - **Export sequence as FASTA**.
 - **Export read as FASTQ**, for a document opened from an AB1 or FASTQ

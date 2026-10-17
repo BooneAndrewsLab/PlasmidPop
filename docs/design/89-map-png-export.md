@@ -44,4 +44,4 @@ reuses `rasterizeSvg`/`pngSize` and the map's scale and White/Transparent
 options (transparent is the linear renderer's own `transparent` flag). With
 A4 pages each page is rasterised in turn, never several canvases at once,
 and every page is size-checked before any is drawn so a refusal downloads
-nothing. Files are `…_pNN.png`, spaced like the SVG pages (`downloadPngPages`).
+nothing. Files were `…_pNN.png`, spaced like the SVG pages; since #242 (item 94) the pages are one ZIP, or a PDF, and the map has PDF too.

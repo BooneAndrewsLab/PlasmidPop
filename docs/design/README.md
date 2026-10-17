@@ -291,4 +291,4 @@ the Bench, item 49). The rest stand.
 
 107.  [The Primers tab as three groups and a denser candidate list](93-primers-panel.md)
 
-108.  [One Export figure dialog for the map and the sequence view](94-export-figure-dialog.md)
+108.  [One Export figure dialog for the map and the sequence view; pages as one ZIP or PDF](94-export-figure-dialog.md)

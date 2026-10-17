@@ -46,7 +46,9 @@ Since #240 (item 94) the dialog is the _Export figure…_ dialog's
   onwards, downloaded 300 ms apart because browsers drop a burst of
   downloads, capped at 40 pages. The dialog says so before exporting.
 - **Usage**: `file / export` is `sequence-svg`, `selection-svg` or
-  `sequence-svg-pages`.
+  `sequence-svg-pages`. (Superseded by #242, item 94: the pages are one
+  ZIP, `sequence-svg-zip`, or a PDF; the backup's ZIP writer, item 87,
+  made that cheap.)
 - Checked by rasterising a page and a range through the origin with
   `rsvg-convert`: the page holds seven translated rows of pBR322 with the
   footer at the bottom margin.

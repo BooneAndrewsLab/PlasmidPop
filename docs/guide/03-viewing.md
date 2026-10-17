@@ -148,9 +148,9 @@ the caret. Lowercase bases stay lowercase, as many people use case to mark
 regions.
 
 **File ▸ Export figure…**, with **Sequence view** chosen, writes what you
-see as an SVG vector file or a PNG picture for figures — the whole sequence,
-the selection or a range, at a chosen number of bases per row, on A4 pages
-if you like; see [Exporting](02-files.md#exporting).
+see as an SVG vector file, a PNG picture or a PDF for figures — the whole
+sequence, the selection or a range, at a chosen number of bases per row, on
+A4 pages if you like; see [Exporting](02-files.md#exporting).
 
 ## GC content
 
