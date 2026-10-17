@@ -1,5 +1,10 @@
 import { MAX_PNG_SIDE } from './mapPng';
-import { defaultPaper, pngProblem } from './exportFigure';
+import { defaultPaper, pagesBudget, pagesProblem, pngProblem } from './exportFigure';
+import {
+  MAX_EXPORT_PAGES,
+  MAX_PNG_ZIP_MEGAPIXELS,
+  MAX_RASTER_PDF_MEGAPIXELS,
+} from './sequenceExport';
 
 describe('export figure size advice (#243)', () => {
   it('is null while the picture fits', () => {
@@ -74,5 +79,59 @@ describe('the default paper (#245)', () => {
     expect(defaultPaper(['en-GB', 'en-US'])).toBe('a4');
     expect(defaultPaper(['en-US', 'en-GB'])).toBe('letter');
     expect(defaultPaper(['', 'en-US'])).toBe('letter');
+  });
+});
+
+describe('export page limits (#246)', () => {
+  // A4 in CSS pixels: 3.5663 MP at 2x.
+  const a4 = { width: 793.7, height: 1122.52 };
+  const mp = (n: number, k: number): number => (n * a4.width * k * (a4.height * k)) / 1e6;
+
+  it('has a page count limit that SVG and vector PDF share, at its boundary', () => {
+    for (const output of ['svg', 'pdf-vector'] as const) {
+      expect(pagesProblem(MAX_EXPORT_PAGES, a4, 4, output)).toBeNull();
+      expect(pagesProblem(MAX_EXPORT_PAGES + 1, a4, 4, output)).toMatch(
+        /^That is 1,001 pages, more than the 1,000 one export holds: choose a shorter range or more bases per row\.$/,
+      );
+    }
+  });
+
+  it('counts pixels for a ZIP of PNGs at its boundary', () => {
+    const fits = Math.floor(MAX_PNG_ZIP_MEGAPIXELS / mp(1, 2));
+    expect(mp(fits, 2)).toBeLessThanOrEqual(MAX_PNG_ZIP_MEGAPIXELS);
+    expect(mp(fits + 1, 2)).toBeGreaterThan(MAX_PNG_ZIP_MEGAPIXELS);
+    expect(pagesProblem(fits, a4, 2, 'png')).toBeNull();
+    const message = pagesProblem(fits + 1, a4, 2, 'png') ?? '';
+    expect(message).toContain('more than a ZIP of PNGs holds (3,000)');
+    expect(message).toContain('choose 1× or less');
+    expect(message).toContain(`at most ${String(fits)} pages`);
+    // The most pages the dialog can lay out at 2x are within the budget.
+    expect(pagesProblem(834, a4, 2, 'png')).toBeNull();
+  });
+
+  it('counts pixels for a raster PDF at its boundary, and offers Vector', () => {
+    const fits = Math.floor(MAX_RASTER_PDF_MEGAPIXELS / mp(1, 2));
+    expect(pagesProblem(fits, a4, 2, 'pdf-raster')).toBeNull();
+    const message = pagesProblem(fits + 1, a4, 2, 'pdf-raster') ?? '';
+    expect(message).toContain('more than a raster PDF holds (600)');
+    expect(message).toContain('switch to Vector');
+    expect(message).toContain(`at most ${String(fits)} pages`);
+    // The 40 pages at 4x the old cap allowed still go.
+    expect(pagesProblem(40, a4, 4, 'pdf-raster')).toBeNull();
+  });
+
+  it('suggests only scales that fit, and omits the scale advice when none does', () => {
+    expect(pagesProblem(300, a4, 4, 'pdf-raster')).toContain('choose 1× or less');
+    const none = pagesProblem(900, a4, 1, 'pdf-raster') ?? '';
+    expect(none).not.toContain('or less');
+    expect(none).toContain('switch to Vector');
+    expect(none).toContain('at most 673 pages');
+  });
+
+  it('has a budget for rasterised output only', () => {
+    expect(pagesBudget('svg')).toBeNull();
+    expect(pagesBudget('pdf-vector')).toBeNull();
+    expect(pagesBudget('png')).toBe(3000);
+    expect(pagesBudget('pdf-raster')).toBe(600);
   });
 });

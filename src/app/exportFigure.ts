@@ -6,7 +6,12 @@
 
 import { MAX_EXPORT_BASES_PER_ROW, type PaperSize } from '@/view/svg';
 
-import { MAX_PNG_SIDE, largestPngScale, pngSizeOf } from './mapPng';
+import { MAX_PNG_SIDE, PNG_SCALES, largestPngScale, pngSizeOf } from './mapPng';
+import {
+  MAX_EXPORT_PAGES,
+  MAX_PNG_ZIP_MEGAPIXELS,
+  MAX_RASTER_PDF_MEGAPIXELS,
+} from './sequenceExport';
 
 /** The two pictures the dialog exports: the circular map or the sequence rows. */
 export type FigureView = 'map' | 'sequence';
@@ -118,6 +123,57 @@ export function pngProblem(
       advice.push(`about ${String(perRow)} or more bases per row`);
     advice.push('split into pages');
   }
+  if (advice.length === 0) return `${head}.`;
+  const last = advice.pop() ?? '';
+  return `${head}: ${advice.length === 0 ? last : `${advice.join(', ')} or ${last}`}.`;
+}
+
+/** What the pages of one export are drawn as, for what each costs (#246). */
+export type PagesOutput = 'svg' | 'png' | 'pdf-vector' | 'pdf-raster';
+
+/** The megapixels one export of pages may draw, or null where nothing is rasterised. */
+export function pagesBudget(output: PagesOutput): number | null {
+  if (output === 'png') return MAX_PNG_ZIP_MEGAPIXELS;
+  if (output === 'pdf-raster') return MAX_RASTER_PDF_MEGAPIXELS;
+  return null;
+}
+
+/**
+ * Why `count` pages of `page` size cannot go in one export, saying what to
+ * change, or null when they can (#246). There are two limits: the page
+ * count, and for PNG pages and a raster PDF the pixels summed over the
+ * pages at `scale`, which is what the browser holds in memory and what a
+ * raster PDF spends its time on. The advice is worked out from the limit:
+ * the largest offered scale that fits, then fewer pages, which a shorter
+ * range or more bases per row make.
+ */
+export function pagesProblem(
+  count: number,
+  page: FigureSize,
+  scale: number,
+  output: PagesOutput,
+): string | null {
+  if (count > MAX_EXPORT_PAGES)
+    return `That is ${count.toLocaleString()} pages, more than the ${MAX_EXPORT_PAGES.toLocaleString()} one export holds: choose a shorter range or more bases per row.`;
+  const budget = pagesBudget(output);
+  if (budget === null) return null;
+  const megapixels = (n: number, k: number): number =>
+    (n * page.width * k * (page.height * k)) / 1_000_000;
+  const total = megapixels(count, scale);
+  if (total <= budget) return null;
+  const what = output === 'png' ? 'a ZIP of PNGs' : 'a raster PDF';
+  const head = `${count.toLocaleString()} pages at ${String(scale)}× are ${Math.round(total).toLocaleString()} megapixels, more than ${what} holds (${budget.toLocaleString()})`;
+  const advice: string[] = [];
+  const fits = PNG_SCALES.filter((k) => k < scale && megapixels(count, k) <= budget);
+  const largest = fits[fits.length - 1];
+  if (largest !== undefined) advice.push(`choose ${String(largest)}× or less`);
+  if (output === 'pdf-raster') advice.push('switch to Vector');
+  const perPage = megapixels(1, scale);
+  const fewer = Math.floor(budget / perPage);
+  if (fewer >= 1)
+    advice.push(
+      `export at most ${fewer.toLocaleString()} ${fewer === 1 ? 'page' : 'pages'} (a shorter range or more bases per row)`,
+    );
   if (advice.length === 0) return `${head}.`;
   const last = advice.pop() ?? '';
   return `${head}: ${advice.length === 0 ? last : `${advice.join(', ')} or ${last}`}.`;

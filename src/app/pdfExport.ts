@@ -31,6 +31,8 @@ export const PDF_MODES: readonly {
 export type PdfOptions = {
   /** The document's title, as a PDF reader shows it. */
   readonly title: string;
+  /** Called with the pages done and the total, before the first and after each page. */
+  readonly onProgress?: (done: number, total: number) => void;
 } & (
   | { readonly mode: 'vector' }
   | {

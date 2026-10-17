@@ -75,8 +75,8 @@ wants.
   `stem.zip` holding `stem_p01.svg` … (or `.png`), written by `writeZip`
   (item 87, fflate), which the backup already used; the "no zip writer"
   reason for separate downloads was stale. The spaced downloads and their
-  timers are gone. The 40-page cap stays, now because a ZIP or PDF of
-  hundreds of pages is not a figure, and the message says so.
+  timers are gone. The 40-page cap stayed for the time being and was
+  replaced by a measured rule (#246, below).
 - **PDF as a third file type**, for the map as well as the sequence view
   since they share the dialog, with a _Vector | Raster_ row after _Scale_
   in **How big**: always rendered, disabled unless PDF (the no-jumping rule,
@@ -175,3 +175,47 @@ SVG, 816 × 1,056 px`); the PNG advice says "split into pages".
   PA, DO, SV, HN, NI, PR), A4 otherwise or when it names no region. It is
   read when the dialog opens and stored nowhere.
 - Analytics events and file names are unchanged: the paper is not an event.
+
+## The page cap, measured (#246)
+
+**Asked:** the 40-page cap dated from one download per page. With one ZIP or
+PDF the limits are memory and time, so measure them and lift the cap or make
+it a size-based check in the live check (#243).
+
+**Measured** (headless Chromium, the real dialog, a synthetic 100 kb
+sequence; the table is in `docs/perf-notes.md`). Nothing failed. The sequence
+view is already limited to 100,000 bases and 10 bases a row is the narrowest,
+so the most the dialog can lay out is about 830 A4 pages; SVG ZIP, PNG ZIP at
+2× and vector PDF all completed at that size, in 1 s, 45 s and 10 s. The cost
+that does not scale is the raster PDF: jsPDF decodes each PNG it is handed,
+about 0.2 s a megapixel at 1×, 2× and in between (139 A4 pages at 2×: 101 s,
+against 11 s for the same pages as a ZIP of PNGs), so 830 pages would be about
+10 minutes.
+
+**Rule.** `pagesProblem` (`src/app/exportFigure.ts`), through the same
+`role="alert"` slot, Export disabled, and a message worked out from the limit:
+
+- every file type: at most `MAX_EXPORT_PAGES` = 1000 pages, a guard above
+  anything the layout can produce;
+- ZIP of PNGs: at most 3,000 megapixels summed over the pages (the 2,970 MP
+  measured, which held at +640 MB of browser memory);
+- raster PDF: at most 600 megapixels, about two minutes, the 40 pages at 4×
+  the old cap allowed;
+- the advice names the largest offered scale that fits, _Vector_ for a PDF,
+  and how many pages the budget holds at this scale.
+
+Every export the old cap allowed is still allowed, and the files are
+unchanged: only the refusal moved. Per-page 16,384 px limit (`pngProblem`) is
+as before.
+
+**Responsiveness.** Pages are drawn on the main thread; no worker was built.
+The raster paths already await an image decode per page, so the browser
+answers between pages (longest stall 0.9 s). The vector PDF did not: svg2pdf
+ran the 834 pages in one 8.8 s task. `writePdf` now yields to the browser
+after any stretch of pages that took over 100 ms, so its longest stall is
+0.6 s (the closing `output()`), for 13 s rather than 10 s in all. A ZIP of
+PNGs still stalls once for 3 to 10 s while the ZIP is deflated (fflate's
+synchronous `zipSync`; PNG bytes are incompressible, so storing them would
+shorten it but would change the files). The dialog shows "Drawing page N of
+M…" (`role="status"`, beside Export in the room the problem uses, so
+nothing moves) while a PNG ZIP or a PDF is made.

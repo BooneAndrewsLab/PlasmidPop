@@ -837,3 +837,69 @@ identity 63-89%), 9/10 at 40%, 9/10 at 50% (identity 48-57%), 7/10 at 60%,
 fluorescent protein. No hit in 100 random 10 kb sequences (1 Mb), nor
 in a shuffled AmpR. Recall on real homologues is for the oracle (#220) to
 measure.
+
+## Export figure of a long sequence (#246, 2026-10-17)
+
+Pages go out as one ZIP or PDF (item 94), so the old 40-page cap had no
+reason left. Measured in the real dialog in headless Chromium (Playwright,
+`chromium-1248`, Linux), a synthetic random 100,000-base DNA (the most the
+sequence view exports) loaded from a FASTA file, _Sequence view_, _Split into
+pages_, click Export, time to the download event. Memory is the resident set
+of the whole browser process tree (`ps`, sampled every 150 ms), as a rise over
+the idle dialog (about 1.12 GB for a headless browser with the app loaded);
+heap is `performance.memory.usedJSHeapSize` (JS only, sampled every 0.5 s).
+The app was the Vite dev server's (unminified); the numbers are for
+comparing exports, not for the production bundle. Longest stall is the longest `longtask` (main thread blocked, no painting).
+One run each, so read them to a factor of about 1.3.
+
+A4 pages, 60 bases a row unless said (139 pages; 12 rows a page). Letter is
+152 pages at 60; 10 a row is 834 A4 pages, 30 a row 278.
+
+| Export                     | Pages | Time   | RSS rise | Heap peak | Longest stall | File    |
+| -------------------------- | ----: | ------ | -------- | --------- | ------------- | ------- |
+| SVG ZIP                    |   139 | 0.5 s  | 27 MB    | 81 MB     | 0.44 s        | 0.4 MB  |
+| SVG ZIP, US Letter         |   152 | 0.6 s  | 51 MB    | 104 MB    | 0.49 s        | 0.4 MB  |
+| SVG ZIP, 10 a row          |   834 | 1.0 s  | 50 MB    | 105 MB    | 0.89 s        | 0.9 MB  |
+| PNG ZIP 2×                 |   139 | 10.6 s | 280 MB   | 184 MB    | 2.7 s         | 38.5 MB |
+| PNG ZIP 4× (3,175 × 4,490) |   139 | 27 s   | 447 MB   | 333 MB    | 6.3 s         | 86 MB   |
+| PNG ZIP 2×, 30 a row       |   278 | 19 s   | 402 MB   | 258 MB    | 4.8 s         | 67 MB   |
+| PNG ZIP 2×, 10 a row       |   834 | 44.5 s | 638 MB   | 432 MB    | 9.9 s         | 116 MB  |
+| PDF vector                 |   139 | 5.6 s  | 335 MB   | 114 MB    | 5.1 s         | 0.4 MB  |
+| PDF vector, 30 a row       |   278 | 8.7 s  | 858 MB   | 77 MB     | 8.0 s         | 0.5 MB  |
+| PDF vector, 10 a row       |   834 | 9.6 s  | 854 MB   | 110 MB    | 8.9 s         | 0.9 MB  |
+| PDF raster 1×              |   139 | 27 s   | 277 MB   | 152 MB    | 0.37 s        | 14 MB   |
+| PDF raster 2×              |   139 | 101 s  | 368 MB   | 267 MB    | 0.91 s        | 33 MB   |
+
+Findings.
+
+- **Nothing failed**, up to the 834 pages that are the most the layout gives
+  (SVG ZIP, PNG ZIP at 2×, vector PDF). The cap did not protect anything at
+  its old value of 40.
+- **The raster PDF is the cost.** About 0.2 s a megapixel (139 pages at 1×,
+  0.89 MP: 27 s; at 2×, 3.57 MP: 101 s; the same pages as PNGs in a ZIP:
+  10.6 s), so linear in pixels and 9 times the ZIP's cost. It is jsPDF
+  decoding each PNG it is given (`addImage`), not the canvas. 834 pages at 2×
+  would be about 10 minutes. It does not stall: it awaits an image decode per
+  page, so the browser answers between pages.
+- **Memory** follows the retained pictures: about 0.2 MB of RSS a megapixel
+  held for PNG ZIPs (all blobs, then their bytes, then the ZIP), so
+  2,970 MP (834 pages at 2×) is +640 MB and 11,900 MP (834 pages at 4×) would
+  be about four times that, which is why the ZIP has a budget of 3,000 MP.
+  The vector PDF's rise (up to +860 MB with a 110 MB heap) is mostly
+  transient native memory from jsPDF and the DOM parse of each page (the
+  heap stayed at 110 MB), peaking near 2 GB in all at 834 pages.
+- **Freezes.** The vector PDF drew 834 pages in one 8.9 s task; yielding
+  between pages (after any 100 ms of work, `pdfWriter.ts`) cut the longest
+  stall to 0.59 s (the closing `output()`), at 12.5 s instead of 9.6 s in all
+  (the 139-page run: 7.9 s, longest stall 0.31 s, against 5.6 s and 5.1 s).
+  The PNG ZIP still blocks once, for 2.7 to 9.9 s, while fflate deflates the
+  ZIP synchronously (PNG data does not compress, so storing would be fast but
+  would change the files); a worker for that was not built. No export
+  stalled the page while it rasterised.
+
+The rule these set is in design note 94: pages at most 1,000; a ZIP of PNGs at
+most 3,000 megapixels; a raster PDF at most 600 (two minutes). Rejected
+configurations were checked in the dialog: 139 pages as a raster PDF at 4×
+(1,981 MP) and 834 pages as PNGs at 4× (11,889 MP) are refused with the
+advice; 300 kb sequences are refused by the 100,000-base limit before any of
+this.

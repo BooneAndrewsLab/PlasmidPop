@@ -546,15 +546,22 @@ From the **File** menu:
     page number. The dialog says how many pages it will be before you
     export, and they leave as one download: a PDF holds them as its pages;
     SVG and PNG pages come as one ZIP file holding `…_p01.svg`,
-    `…_p02.svg` and so on (`.png` for a PNG). At most 40 pages go in one
-    export (pBR322 is 9 at 60 bases a row): choose a shorter range or more
-    bases per row for more.
+    `…_p02.svg` and so on (`.png` for a PNG). Even the longest sequence the
+    export takes (100,000 bases at 10 to a row, about 830 A4 pages) goes in
+    one export as SVG, PNG or a vector PDF. Pictures are limited by their
+    pixels, summed over the pages: a ZIP of PNGs holds up to 3,000
+    megapixels (all 830 pages at 2×) and a raster PDF 600 (about 170 A4
+    pages at 2×, 40 at 4×), which takes about two minutes. A raster PDF is
+    slow because every page is a picture the PDF writer must re-encode;
+    the vector PDF of the same pages takes seconds. While pages are
+    drawn the dialog says which one it is on ("Drawing page 12 of 139…").
 
   The dialog checks as you change things. A range outside the sequence, a
-  row width outside 10–200, too many pages, or a PNG or raster PDF larger
-  than a browser can draw (16,384 pixels on a side) is said in red beside
+  row width outside 10–200, too many pages, too many pixels in the PNG or
+  raster PDF pages, or a PNG or raster PDF larger than a browser can draw
+  (16,384 pixels on a side) is said in red beside
   the **Export** button, which stays off until it is put right; the message
-  says what would fit — a smaller scale, more bases per row or pages.
+  says what would fit — a smaller scale, Vector, more bases per row or fewer pages.
   Sequences longer than 100,000 bases are refused: export a range instead.
   The PDF writer is fetched the first time a PDF is exported and kept for
   offline use after that; if you are offline that first time, the dialog

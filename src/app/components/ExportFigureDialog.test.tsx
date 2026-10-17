@@ -306,12 +306,57 @@ describe('ExportFigureDialog (#240)', () => {
       expect(radio('A4')).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('refuses more pages than one export holds', () => {
+    it('holds more pages than the old 40 for a ZIP of SVGs (#246)', () => {
       setup({ basesPerRow: 10 });
       sequenceView();
       fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
-      expect(problem()).toHaveTextContent(/more than the 40 one export holds/);
+      const n = Number(
+        /^(\d+) pages/.exec(screen.getByText(/pages, downloaded as one ZIP/).textContent)?.[1],
+      );
+      expect(n).toBeGreaterThan(40);
+      expect(problem()).toBeEmptyDOMElement();
+      expect(exportButton()).toBeEnabled();
+    });
+
+    it('says which page a long export is on, in the room the problem takes (#246)', async () => {
+      const release: (() => void)[] = [];
+      setup({
+        rasterize: () =>
+          new Promise<Blob>((resolve) => {
+            release.push(() => {
+              resolve(new Blob(['x'], { type: 'image/png' }));
+            });
+          }),
+      });
+      sequenceView();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      fireEvent.click(radio('PNG'));
+      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(screen.getByRole('status')).toHaveTextContent(/^Drawing page 1 of \d+…$/);
+      });
       expect(exportButton()).toBeDisabled();
+      release[0]?.();
+      await waitFor(() => {
+        expect(screen.getByRole('status')).toHaveTextContent(/^Drawing page 2 of \d+…$/);
+      });
+    });
+
+    it('refuses a raster PDF whose pages are too many pixels, saying what to change (#246)', () => {
+      setup({ basesPerRow: 10 });
+      sequenceView();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(radio('Raster'));
+      fireEvent.click(radio('4×'));
+      expect(problem()).toHaveTextContent(/megapixels, more than a raster PDF holds \(600\)/);
+      expect(problem()).toHaveTextContent(/choose 2× or less/);
+      expect(exportButton()).toBeDisabled();
+      // The vector PDF of the same pages has no pixels to count.
+      fireEvent.click(radio('Vector'));
+      expect(problem()).toBeEmptyDOMElement();
+      expect(exportButton()).toBeEnabled();
     });
   });
 
@@ -431,7 +476,7 @@ describe('ExportFigureDialog (#240)', () => {
         expect(onClose).toHaveBeenCalled();
       });
       expect(pdfs).toHaveLength(1);
-      expect(pdfs[0]?.options).toEqual({ mode: 'vector', title: 'SYNPBR322 map' });
+      expect(pdfs[0]?.options).toMatchObject({ mode: 'vector', title: 'SYNPBR322 map' });
       expect(pdfs[0]?.pages).toHaveLength(1);
       expect(pdfs[0]?.pages[0]).toContain('<svg');
       expect(calls).toEqual([]);

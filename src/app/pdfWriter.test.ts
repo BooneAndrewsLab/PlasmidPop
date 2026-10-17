@@ -70,6 +70,17 @@ describe('writePdf (#242)', () => {
     expect(pdf).toContain('/Creator (PlasmidPop)');
   });
 
+  it('reports each page done, before the first and after every one (#246)', async () => {
+    const pages = exportLinearSvgPages(pbr322(), { basesPerRow: 60 });
+    const seen: [number, number][] = [];
+    await writePdf(pages, {
+      mode: 'vector',
+      title: 'x',
+      onProgress: (done, total) => seen.push([done, total]),
+    });
+    expect(seen).toEqual(Array.from({ length: pages.length + 1 }, (_, i) => [i, pages.length]));
+  });
+
   it('writes Letter page SVGs as 612 × 792 pt pages (#245)', async () => {
     const pages = exportLinearSvgPages(pbr322(), { basesPerRow: 60, paper: 'letter' });
     expect(pages.length).toBeGreaterThan(1);

@@ -31,6 +31,7 @@ import {
   type FigureFileType,
   type FigureSize,
   type FigureView,
+  pagesProblem,
   pngProblem,
 } from '../exportFigure';
 import { PNG_SCALES, pngSizeOf, rasterizeSvg, svgPixelSize } from '../mapPng';
@@ -38,7 +39,6 @@ import { PDF_MODES, type PdfMode, type PdfOptions, exportPdf } from '../pdfExpor
 import { downloadBlob, downloadText } from '../saveFile';
 import {
   type ExportRangeKind,
-  MAX_EXPORT_PAGES,
   pagesZip,
   rangeBoxes,
   readBasesPerRow,
@@ -181,6 +181,8 @@ export function ExportFigureDialog({
   );
 
   const [busy, setBusy] = useState(false);
+  // Pages done and of how many, while a long export runs (#246).
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   /** Why the last export did not happen, kept until a setting changes. */
   const [failure, setFailure] = useState<{ settings: string; message: string } | null>(null);
 
@@ -306,8 +308,21 @@ export function ExportFigureDialog({
       if (rowWidth === null)
         return `Bases per row is a number from ${String(MIN_EXPORT_BASES_PER_ROW)} to ${String(MAX_EXPORT_BASES_PER_ROW)}.`;
       if (measure?.error != null) return measure.error;
-      if (pages && measure !== null && measure.pages > MAX_EXPORT_PAGES)
-        return `That is ${String(measure.pages)} pages, more than the ${String(MAX_EXPORT_PAGES)} one export holds: choose a shorter range or more bases per row.`;
+      if (pages && measure !== null) {
+        const tooMany = pagesProblem(
+          measure.pages,
+          pageOf(paper),
+          scale,
+          pdf
+            ? pdfMode === 'raster'
+              ? 'pdf-raster'
+              : 'pdf-vector'
+            : fileType === 'png'
+              ? 'png'
+              : 'svg',
+        );
+        if (tooMany !== null) return tooMany;
+      }
     }
     if (raster && size !== null)
       return pngProblem(size, scale, view, { basesPerRow: rowWidth ?? 60, pages });
@@ -333,6 +348,14 @@ export function ExportFigureDialog({
     [...hidden],
   ]);
   const shown = problem ?? (failure?.settings === settings ? failure.message : null);
+  // What a long export is doing, in the room the problem takes (#246); the
+  // browser paints it between pages, so the dialog stays alive while it runs.
+  const working =
+    busy && shown === null && progress !== null && progress.total > 1
+      ? progress.done < progress.total
+        ? `Drawing page ${String(progress.done + 1)} of ${String(progress.total)}…`
+        : 'Writing the file…'
+      : null;
 
   const previewSvg = view === 'map' ? (map?.svg ?? null) : sequencePreview;
   const previewUrl =
@@ -370,11 +393,18 @@ export function ExportFigureDialog({
   const fail = (message: string): void => {
     setFailure({ settings, message });
     setBusy(false);
+    setProgress(null);
+  };
+
+  const reportProgress = (done: number, total: number): void => {
+    setProgress({ done, total });
   };
 
   /** The PDF asked for: vector, or each page a picture at the scale. */
   const pdfOptions = (title: string): PdfOptions =>
-    pdfMode === 'vector' ? { mode: 'vector', title } : { mode: 'raster', title, scale, rasterize };
+    pdfMode === 'vector'
+      ? { mode: 'vector', title, onProgress: reportProgress }
+      : { mode: 'raster', title, scale, rasterize, onProgress: reportProgress };
 
   /** Runs a drawing that may take a while, closing on success and saying why on failure. */
   const finish = (made: Promise<void>): void => {
@@ -448,7 +478,11 @@ export function ExportFigureDialog({
     // One picture at a time: a canvas of a page's size is the memory a browser lends.
     const rasterAll = async (): Promise<Blob[]> => {
       const blobs: Blob[] = [];
-      for (const svg of drawn) blobs.push(await rasterize(svg, scale));
+      reportProgress(0, drawn.length);
+      for (const [i, svg] of drawn.entries()) {
+        blobs.push(await rasterize(svg, scale));
+        reportProgress(i + 1, drawn.length);
+      }
       return blobs;
     };
     finish(
@@ -706,9 +740,14 @@ export function ExportFigureDialog({
           </div>
         </div>
         <div className="dialog__actions export-figure__actions">
-          <p className="export-figure__problem panel__note panel__note--error" role="alert">
-            {shown}
-          </p>
+          <div className="export-figure__message">
+            <p className="export-figure__problem panel__note panel__note--error" role="alert">
+              {shown}
+            </p>
+            <p className="export-figure__working panel__note" role="status">
+              {working}
+            </p>
+          </div>
           <button type="button" className="button" onClick={onClose}>
             Cancel
           </button>

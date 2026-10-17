@@ -28,6 +28,15 @@ import { svg2pdf } from 'svg2pdf.js';
 import { svgPixelSize } from './mapPng';
 import type { PdfOptions } from './pdfExport';
 
+/** How long pages may run before the browser is given a turn. */
+const YIELD_AFTER_MS = 100;
+
+/** Lets the browser paint and handle input before the next page. */
+const yieldToBrowser = (): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+
 /** The weight names jsPDF has fonts for, from a CSS weight. */
 function pdfWeight(weight: string): string {
   const n = Number(weight);
@@ -76,6 +85,8 @@ export async function writePdf(pages: readonly string[], options: PdfOptions): P
     hotfixes: ['px_scaling'],
     compress: true,
   });
+  options.onProgress?.(0, sized.length);
+  let lastYield = performance.now();
   for (const [i, page] of sized.entries()) {
     if (i > 0) doc.addPage([page.width, page.height], orientationOf(page));
     if (options.mode === 'vector') {
@@ -89,6 +100,14 @@ export async function writePdf(pages: readonly string[], options: PdfOptions): P
       const png = await options.rasterize(page.svg, options.scale);
       const bytes = new Uint8Array(await png.arrayBuffer());
       doc.addImage(bytes, 'PNG', 0, 0, page.width, page.height, undefined, 'FAST');
+    }
+    options.onProgress?.(i + 1, sized.length);
+    // Let the browser paint and answer between pages, but only once a
+    // stretch of pages has taken a noticeable time: a yield costs about as
+    // much as a vector page (#246).
+    if (i + 1 < sized.length && performance.now() - lastYield > YIELD_AFTER_MS) {
+      await yieldToBrowser();
+      lastYield = performance.now();
     }
   }
   doc.setProperties({ title: options.title, creator: 'PlasmidPop' });
