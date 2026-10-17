@@ -8,6 +8,7 @@ import {
   countLinearSvgPages,
   exportLinearSvg,
   exportLinearSvgPages,
+  measureLinearSvg,
 } from './exportLinear';
 import { exportMapSvg } from './exportMap';
 import { SvgContext } from './svgContext';
@@ -454,6 +455,26 @@ describe('exportLinearSvgPages (#30)', () => {
     [...svg.matchAll(/text-anchor="end"[^>]*>([\d,]+)</g)].map((m) =>
       Number((m[1] ?? '').replace(/,/g, '')),
     );
+
+  it('measures the figure without drawing it (#243)', () => {
+    const d = doc();
+    const whole = measureLinearSvg(d, { basesPerRow: 60 });
+    const root = /<svg[^>]*width="([\d.]+)" height="([\d.]+)"/.exec(
+      exportLinearSvg(d, { basesPerRow: 60 }),
+    );
+    expect(whole.width).toBe(Number(root?.[1]));
+    expect(whole.height).toBe(Number(root?.[2]));
+    expect(whole.rows).toBe(Math.ceil(d.length / 60));
+    expect(whole.pages).toBe(countLinearSvgPages(d, { basesPerRow: 60 }));
+    // A range through the origin is its two stretches stacked, so their heights add.
+    const wrapped = measureLinearSvg(d, {
+      basesPerRow: 60,
+      range: { start: 4300, end: d.length + 70 },
+    });
+    expect(wrapped.rows).toBe(4);
+    expect(wrapped.width).toBe(whole.width);
+    expect(wrapped.height).toBeLessThan(whole.height);
+  });
 
   it('splits the rows over A4 pages, every row once and in order', () => {
     const d = doc();

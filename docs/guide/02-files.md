@@ -498,52 +498,49 @@ What follows from that is worth knowing.
 
 From the **File** menu:
 
-- **Export map as SVG**: the circular map as a standalone vector file for
-  figures, with the cut sites of the enzymes ticked in the Enzymes tab —
-  none of them while the toolbar's **Cut sites** toggle is off.
-- **Export map as PNG…**: the same map as a picture for slides, posters and
-  documents. A dialog shows a preview and asks for the **scale** (1×, 2× or
-  4× the SVG's pixel size; the size in pixels is shown), a **white or
-  transparent background**, the **text size**, and what is on the figure:
-  the restriction enzymes, the GC ring, the name and length in the middle,
-  and which **feature types** are drawn. These options belong to the figure
-  only; the map on screen is not changed. A scale that would make a picture
-  larger than a browser can draw is refused with the size it would be.
-- **Export sequence view…**: the sequence rows as an SVG vector file or a
-  PNG picture —
-  ruler, bases, features and cut sites, and a read's trace, laid out as on
-  screen. It follows the
-  **Complement**, **Translations** and **Cut sites** toggles, the **Edits**
-  marks, the enzymes ticked in the Enzymes tab and the **Format** menu's
-  complement numbering and base colours; the text size is always the
-  export's own. A small dialog asks for:
-  - **Whole sequence**, **Selection** (chosen for you when there is one,
-    and highlighted in the file) or **From–to**: two base numbers, counted
-    from 1 as the ruler counts, both included. On a circular sequence a
-    "to" before "from" runs through the origin — 4301 to 60 of a 4,361 bp
+- **Export figure…**: the circular map or the sequence rows as a picture
+  for figures, slides and posters. One dialog, with a preview of what will
+  be written and its size under it, asks three things:
+  - **What** — **Map** or **Sequence view**; a protein, which has no map,
+    gets the sequence view alone. For the map, what is on it: the
+    **restriction enzymes** (the cut sites of the enzymes ticked in the
+    Enzymes tab — none while the toolbar's **Cut sites** toggle is off), the
+    **GC ring**, the **name and length in the middle**, and which **feature
+    types** are drawn. These options belong to the figure only; the map on
+    screen is not changed. For the sequence view, which bases: **Whole
+    sequence**, **Selection** (chosen for you when there is one, and
+    highlighted in the file) or **From–to**, two base numbers counted from
+    1 as the ruler counts, both included. On a circular sequence a "to"
+    before "from" runs through the origin — 4301 to 60 of a 4,361 bp
     plasmid is its last 61 bases and then its first 60, drawn as two
     stretches one under the other, each numbered as in the document. So
     does a selection across the origin. The rows are whole rows, so the
-    first and last may hold a few bases either side of the range.
-  - **Bases per row**, 10 to 200: the Format menu's setting to start with,
-    or 60 when Format is left at "Fit", so the file does not
-    depend on the window width.
-  - **Split into A4 pages**: one file per A4 page (210 × 297 mm, 15 mm
-    margins), as many whole rows to a page as fit, scaled down to the
-    page's width when the rows are wider and never scaled up. Each page's
-    foot names the document, the bases on it and the page number. The
-    dialog says how many pages it will be before you export; the pages
-    download one after another as `…_p01.svg`, `…_p02.svg` and so on, and
-    your browser may ask once whether the site may download several
-    files. At most 40 pages go at once (pBR322 is 9 at 60 bases a row):
-    choose a shorter range or more bases per row for more.
-  - **File type**: **SVG** (the default) or **PNG**. A PNG has the same
-    **Scale** (1×, 2×, 4×) and **White** or **Transparent** background as
-    the map's PNG; with pages, each page is a PNG of its own
-    (`…_p01.png`). A picture larger than a browser can draw is refused
-    with the size it would be: choose a smaller scale, more bases per row
-    or A4 pages.
+    first and last may hold a few bases either side of the range. The rows
+    — ruler, bases, features and cut sites, and a read's trace — are laid
+    out as on screen: the figure follows the **Complement**,
+    **Translations** and **Cut sites** toggles, the **Edits** marks, the
+    enzymes ticked in the Enzymes tab and the **Format** menu's complement
+    numbering and base colours; the text size is always the export's own.
+  - **How big** — for the map, the **text size**; for the sequence view,
+    **Bases per row**, 10 to 200 (the Format menu's setting to start with,
+    or 60 when Format is left at "Fit", so the file does not depend on the
+    window width). Then the **file type**: **SVG** (the default), a vector
+    file that is sharp at any size, or **PNG**, a picture at a **scale** of
+    1×, 2× or 4× the SVG's pixel size; the size in pixels is shown under the
+    preview. The **background** is white or transparent for either type.
+  - **Pages** — **Split into A4 pages**, for the sequence view: one file per
+    A4 page (210 × 297 mm, 15 mm margins), as many whole rows to a page as
+    fit, scaled down to the page's width when the rows are wider and never
+    scaled up. Each page's foot names the document, the bases on it and the
+    page number. The dialog says how many pages it will be before you
+    export; the pages download one after another as `…_p01.svg`,
+    `…_p02.svg` and so on (`.png` for a PNG), and your browser may ask once
+    whether the site may download several files. At most 40 pages go at
+    once (pBR322 is 9 at 60 bases a row): choose a shorter range or more
+    bases per row for more.
 
+  A picture larger than a browser can draw is refused with the size it
+  would be: choose a smaller scale, more bases per row or A4 pages.
   Sequences longer than 100,000 bases are refused: export a range instead.
 
 - **Export sequence as FASTA**.

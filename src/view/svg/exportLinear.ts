@@ -329,6 +329,37 @@ export function countLinearSvgPages(doc: SeqDocument, options: LinearExportOptio
   return paginate(plan(doc, options)).length;
 }
 
+/** What `measureLinearSvg` finds out about a figure before it is drawn (#243). */
+export interface LinearSvgMeasure {
+  /** The size `exportLinearSvg` would write, in CSS pixels. */
+  readonly width: number;
+  readonly height: number;
+  /** The rows the figure holds. */
+  readonly rows: number;
+  /** The A4 pages `exportLinearSvgPages` would write. */
+  readonly pages: number;
+}
+
+/**
+ * The size of the figure `exportLinearSvg` would write, its rows and the A4
+ * pages it would take, from the layout alone: no row is drawn, so a dialog
+ * can keep this up to date on every keystroke and refuse a size before the
+ * export is asked for (#243). Throws as the export would for a range it
+ * cannot draw.
+ */
+export function measureLinearSvg(
+  doc: SeqDocument,
+  options: LinearExportOptions = {},
+): LinearSvgMeasure {
+  const p = plan(doc, options);
+  return {
+    width: p.width,
+    height: p.runs.reduce((h, rows) => h + heightOf(rows), 0),
+    rows: p.runs.reduce((n, rows) => n + rows.length, 0),
+    pages: paginate(p).length,
+  };
+}
+
 /**
  * The sequence view on A4 pages (#30), one SVG document each, 210 × 297 mm
  * with 15 mm margins: whole rows, as many as fit a page, scaled down to the

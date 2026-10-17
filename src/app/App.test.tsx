@@ -729,9 +729,7 @@ describe('toolbar', () => {
       'Compare with…Alt+K', // and the one that reads a file without opening it
       'Back up all documents…', // everything this browser holds, out and back in (#203)
       'Restore from backup…',
-      'Export map as SVG',
-      'Export map as PNG…',
-      'Export sequence view…',
+      'Export figure…', // the map or the sequence view as a picture (#240)
       'Export sequence as FASTA',
       'Export selection as GenBank',
       'Export selection as FASTA',

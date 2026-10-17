@@ -2,7 +2,6 @@ import { analytics } from '../analytics';
 import { type ReactNode, useCallback, useState } from 'react';
 
 import { type SeqDocument, extractRange, hasTool, isEmptyRange } from '@/core';
-import { exportMapSvg } from '@/view/svg';
 
 import { backUpAll, pickBackupAndRestore } from '../backup';
 import { EXAMPLES } from '../examples';
@@ -14,8 +13,7 @@ import { persistence } from '../state/persistence';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { useBindingLabel } from './useAltKey';
-import { ExportMapPngDialog } from './ExportMapPngDialog';
-import { ExportSequenceDialog } from './ExportSequenceDialog';
+import { ExportFigureDialog } from './ExportFigureDialog';
 import { useMenu } from './useMenu';
 
 interface Props {
@@ -85,15 +83,10 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     trace: traceSize,
   };
   const { open, toggle, close, ref } = useMenu();
-  /** The sequence-view export dialog (#30) is open. */
+  /** The Export figure dialog (#240) is open. */
   const [exporting, setExporting] = useState(false);
   const closeExport = useCallback(() => {
     setExporting(false);
-  }, []);
-  /** The map PNG dialog (#212) is open. */
-  const [exportingPng, setExportingPng] = useState(false);
-  const closePng = useCallback(() => {
-    setExportingPng(false);
   }, []);
   const hasSelection = selection !== null && !isEmptyRange(selection);
   const example = EXAMPLES[0];
@@ -233,40 +226,13 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Restore from backup…
           </Item>
           <div className="menu__separator" role="separator" />
-          {/* A protein has no map (#66). */}
-          {hasTool(doc, 'circular') && (
-            <Item
-              onClick={run(() => {
-                analytics.track('file', 'export', 'map-svg');
-                downloadText(
-                  `${stem}_map.svg`,
-                  exportMapSvg(doc, {
-                    cutSites: editorStore.visibleCutSites(),
-                    edits: editDiffOf(editorStore.getState()),
-                  }),
-                );
-              })}
-            >
-              Export map as SVG
-            </Item>
-          )}
-          {hasTool(doc, 'circular') && (
-            <Item
-              title="The map as a picture for slides and posters: choose the scale, the background and what is on it"
-              onClick={run(() => {
-                setExportingPng(true);
-              })}
-            >
-              Export map as PNG…
-            </Item>
-          )}
           <Item
-            title="The sequence rows — ruler, strands, features — as an SVG or PNG file: all of them, the selection or a range, on A4 pages if you like"
+            title="The map or the sequence view as an SVG or PNG file for figures: what is on it, how big, on A4 pages if you like"
             onClick={run(() => {
               setExporting(true);
             })}
           >
-            Export sequence view…
+            Export figure…
           </Item>
           <Item
             onClick={run(() => {
@@ -340,27 +306,16 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
         </div>
       )}
-      {exportingPng && (
-        <ExportMapPngDialog
+      {exporting && (
+        <ExportFigureDialog
           doc={doc}
+          selection={selection}
+          basesPerRow={seqBasesPerRow}
+          format={format}
           cutSites={editorStore.visibleCutSites()}
           edits={editDiffOf(editorStore.getState())}
           gcWindow={gcWindow}
           showGc={showGc}
-          stem={stem}
-          onClose={closePng}
-        />
-      )}
-      {exporting && (
-        <ExportSequenceDialog
-          doc={doc}
-          selection={selection}
-          basesPerRow={seqBasesPerRow}
-          format={{
-            ...format,
-            cutSites: editorStore.visibleCutSites(),
-            edits: editDiffOf(editorStore.getState()),
-          }}
           stem={stem}
           onClose={closeExport}
         />

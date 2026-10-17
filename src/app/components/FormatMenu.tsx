@@ -6,6 +6,7 @@ import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear'
 import { analytics } from '../analytics';
 import { type TraceSize, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
+import { type Choice, SegmentedChoices } from './SegmentedChoices';
 import { useAltKey, useBindingLabel } from './useAltKey';
 import { useMenu } from './useMenu';
 
@@ -29,13 +30,6 @@ function Tick({ on, hint }: { readonly on: boolean; readonly hint?: string }) {
       {on ? (hint === undefined ? '✓' : ' ✓') : ''}
     </span>
   );
-}
-
-/** One of a setting's choices, with its tooltip. */
-interface Choice<T> {
-  readonly value: T;
-  readonly label: string;
-  readonly title: string;
 }
 
 /** A read's trace: how tall above its bases, or not drawn (#55). */
@@ -109,11 +103,9 @@ function Row({
 }
 
 /**
- * A setting with a few choices, as a row of buttons: every choice in view
- * and one click to try it. Tab walks the buttons like the menu's other
- * items (#34); the arrow keys move along the row too. Disabled as a whole
- * when the setting has nothing to apply to, with the reason as the row's
- * tooltip.
+ * A setting with a few choices, as a row of buttons (`SegmentedChoices`):
+ * every choice in view and one click to try it. Disabled as a whole when
+ * the setting has nothing to apply to, with the reason as the row's tooltip.
  */
 function Choices<T extends string | number | null>({
   label,
@@ -133,46 +125,16 @@ function Choices<T extends string | number | null>({
   readonly disabledTitle?: string | undefined;
   readonly onChange: (value: T) => void;
 }) {
-  const group = useRef<HTMLDivElement>(null);
   return (
     <Row label={label} note={note} title={disabled ? disabledTitle : undefined}>
-      <div
-        className="segmented segmented--small"
-        role="radiogroup"
-        aria-label={label}
-        ref={group}
-        onKeyDown={(e) => {
-          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-          e.preventDefault();
-          // Step from the focused button, which is the chosen one unless the
-          // setting holds a typed value that no button stands for.
-          const buttons = Array.from(group.current?.querySelectorAll('button') ?? []);
-          const at = buttons.indexOf(e.target as HTMLButtonElement);
-          const step = e.key === 'ArrowRight' ? 1 : choices.length - 1;
-          const to = ((at < 0 ? 0 : at) + step) % choices.length;
-          const next = choices[to];
-          if (next === undefined) return;
-          onChange(next.value);
-          buttons[to]?.focus();
-        }}
-      >
-        {choices.map((choice) => (
-          <button
-            key={String(choice.value)}
-            type="button"
-            role="radio"
-            aria-checked={value === choice.value}
-            className={`segmented__button${value === choice.value ? ' segmented__button--active' : ''}`}
-            disabled={disabled}
-            title={disabled ? undefined : choice.title}
-            onClick={() => {
-              onChange(choice.value);
-            }}
-          >
-            {choice.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedChoices
+        label={label}
+        choices={choices}
+        value={value}
+        disabled={disabled}
+        small
+        onChange={onChange}
+      />
     </Row>
   );
 }

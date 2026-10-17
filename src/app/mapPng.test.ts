@@ -1,4 +1,4 @@
-import { MAX_PNG_SIDE, pngSize, rasterizeSvg, svgPixelSize } from './mapPng';
+import { MAX_PNG_SIDE, pngSize, pngSizeOf, rasterizeSvg, svgPixelSize } from './mapPng';
 
 const svg = (w: number, h: number) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${String(w)}" height="${String(h)}" viewBox="0 0 ${String(w)} ${String(h)}"><title>x width="5"</title></svg>`;
@@ -24,6 +24,17 @@ describe('map PNG size (#212)', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toContain('choose a smaller scale');
     expect(pngSize(svg(MAX_PNG_SIDE / 2, 100), 2).ok).toBe(true);
+  });
+
+  it('sizes a figure known by its layout, without an SVG (#243)', () => {
+    expect(pngSizeOf({ width: 564, height: 7670.4 }, 2)).toEqual({
+      ok: true,
+      width: 1128,
+      height: 15341,
+    });
+    const r = pngSizeOf({ width: 564, height: 7670 }, 4);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toContain('2256 × 30680');
   });
 
   it('refuses an SVG without a size', () => {

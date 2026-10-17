@@ -9,6 +9,9 @@ selection, keeping document positions and highlighting it
 `renderLinearView` as the canvas, with a print theme and a Courier metric
 the SVG text estimator matches). Refuses over 100,000 bases.
 
+Since #240 (item 94) the dialog is the _Export figure…_ dialog's
+**Sequence view**; what it asks is unchanged.
+
 ## Range, bases per row and A4 pages (#30, 2026-09-25)
 
 - **One menu item and a dialog** (`ExportSequenceDialog`) instead of

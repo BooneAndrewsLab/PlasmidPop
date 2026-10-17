@@ -36,6 +36,18 @@ export function pngSize(
 ): { ok: true; width: number; height: number } | { ok: false; message: string } {
   const size = svgPixelSize(svg);
   if (size === null) return { ok: false, message: 'The map has no size to draw.' };
+  return pngSizeOf(size, scale);
+}
+
+/**
+ * The same from a size already known, as the sequence view's layout gives
+ * it without drawing (#243). The message says the scale a browser would
+ * draw; the dialog adds what else could change.
+ */
+export function pngSizeOf(
+  size: { readonly width: number; readonly height: number },
+  scale: number,
+): { ok: true; width: number; height: number } | { ok: false; message: string } {
   const width = Math.round(size.width * scale);
   const height = Math.round(size.height * scale);
   if (width > MAX_PNG_SIDE || height > MAX_PNG_SIDE) {

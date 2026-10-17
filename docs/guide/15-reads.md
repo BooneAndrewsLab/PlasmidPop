@@ -88,8 +88,8 @@ describe them, so the menu item is greyed out and says why. **Undo** back
 to before the edit and it is offered again. A document that was never a
 read has no such item.
 
-**Export sequence view…** (see [Exporting](02-files.md#exporting))
-draws the trace as it is shown. The
+**File ▸ Export figure…** with **Sequence view** (see
+[Exporting](02-files.md#exporting)) draws the trace as it is shown. The
 read stays whole in the browser. A [share link](02-files.md#sharing-a-link)
 carries the document the same way, so it too arrives without the read. To
 keep the original, keep the file you opened: PlasmidPop never writes to it.

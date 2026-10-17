@@ -2900,29 +2900,158 @@ button {
   color: var(--ink-2);
 }
 
-/* Export sequence view (#30, #236): range, bases per row, pages, file type. */
-.export-sequence {
+/* Export figure (#240, items 89 and 94): a preview beside a settings list of
+   What / How big / Pages. Every row is always there, disabled when it does
+   not apply, and the hints keep their room, so nothing moves as the choices
+   change (#241). */
+.export-figure {
+  max-width: min(58rem, 100%);
+  max-height: calc(100dvh - 32px);
+}
+
+.export-figure__body {
   display: grid;
-  gap: 12px;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 20px;
+  align-items: start;
 }
 
-.export-sequence > .segmented,
-.export-sequence > .panel__field,
-.export-sequence > .toggle {
-  justify-self: start;
+.export-figure__preview {
+  display: grid;
+  gap: 6px;
+  margin: 0;
 }
 
-.export-sequence__range {
+.export-figure__picture {
+  --preview-height: clamp(240px, 46vh, 520px);
+  display: grid;
+  place-items: center;
+  height: var(--preview-height);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: repeating-conic-gradient(#e6e8eb 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+}
+
+.export-figure__picture img {
+  display: block;
+  max-width: 100%;
+  max-height: var(--preview-height);
+}
+
+.export-figure__caption {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* A setting per row: its name on the left, its control on the right. */
+.export-figure__options {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px 14px;
+  align-items: start;
+}
+
+.export-figure__heading {
+  grid-column: 1 / -1;
+  margin: 6px 0 -2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.export-figure__heading:first-child {
+  margin-top: 0;
+}
+
+.export-figure__row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: start;
+}
+
+.export-figure__label {
+  padding-top: 6px;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.export-figure__control {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
+  gap: 6px 14px;
+  min-height: 31px;
+  color: var(--ink-2);
 }
 
-.export-sequence__hint {
+.export-figure__hint {
+  grid-column: 2;
   margin: 0;
   font-size: 12px;
+  line-height: 1.3;
   color: var(--ink-3);
+}
+
+.export-figure__unit,
+.export-figure__none {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.export-figure__row--off .export-figure__label,
+.export-figure__row--off .export-figure__hint,
+.export-figure__row--off .export-figure__control > span,
+.export-figure__row--off .toggle {
+  opacity: 0.5;
+}
+
+/* The reason Export is disabled sits beside the buttons, in its own element
+   so it never replaces a hint (#243). */
+.export-figure__actions {
+  align-items: center;
+}
+
+.export-figure__problem {
+  flex: 1 1 14em;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+
+@media (max-width: 640px) {
+  .export-figure__body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .export-figure__picture {
+    --preview-height: clamp(150px, 28vh, 320px);
+  }
+
+  .export-figure__options {
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+  }
+
+  .export-figure__row {
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+  }
+
+  .export-figure__label {
+    padding-top: 0;
+    font-size: 12px;
+  }
+
+  .export-figure__hint {
+    grid-column: 1;
+  }
 }
 
 .dialog__actions {
@@ -5502,28 +5631,3 @@ button {
 }
 
 /* Export map as PNG (#212) */
-.export-map__preview {
-  display: grid;
-  place-items: center;
-  max-height: 46vh;
-  overflow: hidden;
-  border: 1px solid var(--line, currentColor);
-  border-radius: 6px;
-  background: repeating-conic-gradient(#e6e8eb 0% 25%, #fff 0% 50%) 50% / 16px 16px;
-}
-
-.export-map__preview img {
-  display: block;
-  max-width: 100%;
-  max-height: 46vh;
-}
-
-.export-map__types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin: 0;
-  padding: 6px 10px;
-  border: 1px solid var(--line, currentColor);
-  border-radius: 6px;
-}

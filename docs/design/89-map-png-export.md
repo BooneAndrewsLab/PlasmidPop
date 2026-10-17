@@ -35,6 +35,10 @@ toggle. The sequence-view (linear) export got the same PNG option in #236 (below
 `canvas.toBlob` are not available in jsdom; the drawing function was not
 exercised by the test suite.
 
+**Superseded (#240, item 94).** _Export map as SVG_, _Export map as PNG…_
+and _Export sequence view…_ are one _Export figure…_ dialog since 1.16; the
+SVG now takes the same figure options as the PNG.
+
 **Sequence view (#236).** _Export sequence view…_ has an SVG/PNG toggle; PNG
 reuses `rasterizeSvg`/`pngSize` and the map's scale and White/Transparent
 options (transparent is the linear renderer's own `transparent` flag). With
