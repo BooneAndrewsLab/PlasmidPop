@@ -64,7 +64,15 @@
     "src/core/cloning/protocolText.ts",
     "src/core/verify/verify.ts",
     "src/core/verify/variants.ts",
-    "src/io/rebase/customEnzyme.ts"
+    "src/io/rebase/customEnzyme.ts",
+    "src/core/document/rna.ts",
+    "src/io/xml.ts",
+    "src/io/zip.ts",
+    "src/io/archive.ts",
+    "src/io/snapgene/writeSnapGene.ts",
+    "src/storage/backup.ts",
+    "src/app/mapPng.ts",
+    "src/app/sequenceExport.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {
