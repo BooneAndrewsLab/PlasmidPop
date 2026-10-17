@@ -288,3 +288,5 @@ the Bench, item 49). The rest stand.
 105.  [Search and link-preview metadata](91-seo-metadata.md)
 
 106.  [The Format menu as a settings list](92-format-menu.md)
+
+107.  [The Primers tab as three groups and a denser candidate list](93-primers-panel.md)

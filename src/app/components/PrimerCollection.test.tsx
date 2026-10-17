@@ -110,6 +110,28 @@ describe('My primers', () => {
     expect(await screen.findByText(/No primer added; 4 already in the list/)).toBeTruthy();
   });
 
+  it('gives each primer its length and Tm, and a degenerate one its length alone (#226)', async () => {
+    await setup();
+    await paste(`fwd1,${FWD}\nmix,ACGTNNKACGTACGTACGTAC\n`);
+    const list = screen.getByRole('list', { name: 'My primers' });
+    const metas = within(list)
+      .getAllByRole('listitem')
+      .map((li) => li.querySelector('.primer-item__meta')?.textContent);
+    expect(metas).toEqual([expect.stringMatching(/^21 nt · Tm \d\d\.\d °C$/), '21 nt']);
+  });
+
+  it('shows the search limits only while Find is on (#226)', async () => {
+    await setup();
+    await paste(LIST);
+    expect(screen.queryByLabelText('Mismatches allowed')).toBeNull();
+    expect(screen.queryByLabelText('Shortest site searched')).toBeNull();
+    await findMine();
+    expect(screen.getByLabelText('Mismatches allowed')).toBeTruthy();
+    expect(screen.getByLabelText('Shortest site searched')).toBeTruthy();
+    await findMine();
+    expect(screen.queryByLabelText('Mismatches allowed')).toBeNull();
+  });
+
   it('finds where the primers bind, both strands and through the origin, as a preview', async () => {
     await setup();
     await paste(LIST);
@@ -117,9 +139,9 @@ describe('My primers', () => {
     const sites = await screen.findByRole('list', { name: 'Primer sites' });
     const rows = within(sites).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
-      expect.stringMatching(/^→fwd1 101–121exact/),
-      expect.stringMatching(/^←rev1 601–621exact/),
-      expect.stringMatching(/^→ori 1,493–12exact/),
+      expect.stringMatching(/^→fwd1101–121 · exact/),
+      expect.stringMatching(/^←rev1601–621 · exact/),
+      expect.stringMatching(/^→ori1,493–12 · exact/),
     ]);
     expect(screen.getByText(/3 primers bind at 3 sites/)).toBeTruthy();
     const preview = editorStore.getState().preview;
@@ -177,7 +199,7 @@ describe('My primers', () => {
     const rows = within(screen.getByRole('list', { name: 'Primer sites' })).getAllByRole(
       'listitem',
     );
-    expect(rows[1]?.textContent).toMatch(/^→shorty 301–312exact/);
+    expect(rows[1]?.textContent).toMatch(/^→shorty301–312 · exact/);
   });
 
   it("takes Check a primer's sites back in one undo step (#96)", async () => {
@@ -211,7 +233,7 @@ describe('My primers', () => {
     await paste(`fwd1 ${FWD}\n`);
     await findMine();
     expect(await screen.findByText(/1 primer binds at 1 site/)).toBeTruthy();
-    expect(screen.getByText('1 mm')).toBeTruthy();
+    expect(screen.getByText(/· 1 mm$/)).toBeTruthy();
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Mismatches allowed'), { target: { value: '0' } });
       await new Promise((resolve) => setTimeout(resolve, 0));

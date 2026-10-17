@@ -15,9 +15,10 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
    too: the panel then gives the target as the status bar does, `Target
 591–20 (30 bp)` on a 600 bp plasmid.
 2. Open **Primers** and click **Design primers**.
-3. Up to ten pairs are listed, best first. Each shows the forward and
-   reverse primer with its Tm and GC content, the product size and the Tm
-   difference between the two.
+3. Up to ten pairs are listed, best first. Each is headed by its rank, the
+   product size and the Tm difference between the two primers; under that
+   are the forward (`→`) and reverse (`←`) primer, each with its Tm and GC
+   content at the right of the line (below it when the panel is narrow).
 4. **Show** draws that pair in both views without touching the document:
    the two sites as dashed arrows pointing the way each primer reads, and
    the product between them as a bracket (see
@@ -28,7 +29,7 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
    yours and is left alone. Hovering a pair shows it for as long as the
    pointer is there — so three candidates can be compared without annotating
    anything.
-5. **Add both as features** annotates the pair as `primer_bind` features
+5. **Add both** annotates the pair as `primer_bind` features
    (the primer sequence goes in a `/note`), so the sites are on the map and
    saved with the file. Unlike **Show**, this is an edit: it goes into the
    History as one step, and one **Undo** takes both back.
@@ -46,11 +47,14 @@ again. Adding or editing annotations leaves it alone.
 
 ## Settings
 
-**Settings**, under the target, sets what a designed primer has to be. Every
-candidate that breaks one of them is refused, and the same numbers are what
-**Check a primer** warns about, so a pasted primer is judged by the rules the
-designed ones had to pass. They are remembered in this browser, from plasmid
-to plasmid; **Reset to defaults** puts them back.
+**Settings**, under the target, sets what a designed primer has to be. Its
+row sums the main rules up (`18–27 nt, Tm 55–65 °C, GC 35–65 %, within 0–200
+bp of the target`) and says **changed** once any setting is off its default;
+open it to see and change them all. Every candidate that breaks one of them
+is refused, and the same numbers are what **Check a primer** warns about, so
+a pasted primer is judged by the rules the designed ones had to pass. They
+are remembered in this browser, from plasmid to plasmid; **Reset to
+defaults** puts them back.
 
 | Setting    | Default               | What it means                                                                                                                                                                                                            |
 | ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -124,7 +128,9 @@ by PCR, use the Bench's [Overlap PCR](12-cloning.md#overlap-pcr).
 ## My primers
 
 **My primers**, at the bottom of the Primers tab, is your own list of
-primers: a name, the bases and notes for each. It is kept in this browser's
+primers: a name, the bases and notes for each, with the length and the Tm
+of the bases beside the name (a degenerate primer shows its length alone).
+It is kept in this browser's
 storage, beside the recent files, and like them it never leaves the browser
 except as a file you download. It is the same list whichever document is
 open.
@@ -181,7 +187,8 @@ searched on both strands and, on a circular sequence, through the origin, the
 way [PCR](12-cloning.md#pcr) anneals a primer: by its 3′ end. The last five
 bases must match exactly; before them up to two mismatches are allowed
 (**Mismatches** sets it, from none to three), and a site needs at least 15
-annealed bases (**Shortest site** sets it, from 10 to 20). What does not
+annealed bases (**Shortest site** sets it, from 10 to 20). The two settings
+appear under the tick box while it is ticked. What does not
 anneal at the 5′ end is reported as a tail, so a cloning primer with a
 restriction site or a homology arm on it is found by the part that binds.
 Primers shorter than the shortest site are counted but not searched; lower

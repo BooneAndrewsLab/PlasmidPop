@@ -9,7 +9,6 @@ import {
   type SeqDocument,
   analyzePrimer,
   createFeature,
-  describePrimerCriteria,
   designPrimers,
   findPrimerBindingSites,
   formatSpan,
@@ -94,6 +93,37 @@ function sitePreview(
     shape: 'arrow' as const,
     ...(s.mismatches === 0 ? {} : { marks: mismatchPositions(template, s, primer) }),
   }));
+}
+
+/**
+ * One primer of a candidate pair: its strand as the arrow the site lists
+ * use, the bases to order, and the Tm and GC content beside them when the
+ * row is wide enough, under them when it is not (the row wraps).
+ */
+function Oligo({
+  strand,
+  primer,
+}: {
+  readonly strand: 'forward' | 'reverse';
+  readonly primer: PrimerPair['forward'];
+}) {
+  return (
+    <div className="pair__oligo">
+      <span
+        className="pair__strand"
+        title={`${strand === 'forward' ? 'Forward' : 'Reverse'} primer`}
+      >
+        {strand === 'forward' ? '→' : '←'}
+      </span>
+      <span className="pair__seq">{primer.sequence}</span>
+      <span
+        className="pair__meta pair__meta--oligo"
+        title={`Tm ${tm(primer.tm)}, GC content ${pct(primer.gc)}`}
+      >
+        {tm(primer.tm)} · {pct(primer.gc)} GC
+      </span>
+    </div>
+  );
 }
 
 function primerFeature(
@@ -244,12 +274,16 @@ export function PrimerPanel({ doc }: Props) {
   };
 
   return (
-    <div className="panel">
-      <section>
-        <h3 className="panel__heading">Design primers for the selection</h3>
-        <p className="panel__note">
+    <div className="panel primers">
+      <fieldset className="panel__group">
+        <legend>
+          Design primers
+          <span className="panel__heading-note">for the selection</span>
+        </legend>
+        {/* The target on a line of its own, so the eye finds it before the rules. */}
+        <p className={`panel__note${hasTarget ? ' primers__target' : ''}`}>
           {hasTarget
-            ? `Target ${formatSpan(selection, doc.length)} (${(selection.end - selection.start).toLocaleString()} bp). Primers ${describePrimerCriteria(primerCriteria)}.`
+            ? `Target ${formatSpan(selection, doc.length)} (${(selection.end - selection.start).toLocaleString()} bp).`
             : 'Select the region to amplify, then design.'}
         </p>
         <PrimerSettings criteria={primerCriteria} />
@@ -269,123 +303,121 @@ export function PrimerPanel({ doc }: Props) {
                 or loosen the settings.
               </p>
             ) : (
-              <ol className="pair-list">
-                {pairs.map((p, i) => (
-                  <li
-                    key={i}
-                    className={`pair${shown === i ? ' pair--shown' : ''}`}
-                    onMouseEnter={() => {
-                      setHovered(i);
-                    }}
-                    onMouseLeave={() => {
-                      setHovered((h) => (h === i ? null : h));
-                    }}
-                    onFocus={() => {
-                      setHovered(i);
-                    }}
-                    onBlur={() => {
-                      setHovered((h) => (h === i ? null : h));
-                    }}
-                  >
-                    <div className="pair__row">
-                      <span className="pair__label">Fwd</span>
-                      <span className="pair__seq">{p.forward.sequence}</span>
-                      <span className="pair__meta">
-                        {tm(p.forward.tm)}, GC {pct(p.forward.gc)}
-                      </span>
-                    </div>
-                    <div className="pair__row">
-                      <span className="pair__label">Rev</span>
-                      <span className="pair__seq">{p.reverse.sequence}</span>
-                      <span className="pair__meta">
-                        {tm(p.reverse.tm)}, GC {pct(p.reverse.gc)}
-                      </span>
-                    </div>
-                    <div className="pair__foot">
-                      <span>
-                        Product {p.productLength.toLocaleString()} bp, ΔTm{' '}
-                        {p.tmDifference.toFixed(1)} °C
-                      </span>
-                      <span className="pair__buttons">
-                        <button
-                          type="button"
-                          className="button button--quiet button--small"
-                          aria-pressed={shown === i}
-                          onClick={() => {
-                            showPair(i, p);
-                          }}
-                        >
-                          {shown === i ? 'Hide' : 'Show'}
-                        </button>
-                        <button
-                          type="button"
-                          className="button button--quiet button--small"
-                          onClick={() => {
-                            // One click, so one Undo takes both back (#96).
-                            addFeaturesAsOneStep(
-                              [
-                                primerFeature(
-                                  `Fwd primer ${i + 1}`,
-                                  p.forwardSite,
-                                  'forward',
-                                  p.forward.sequence,
-                                ),
-                                primerFeature(
-                                  `Rev primer ${i + 1}`,
-                                  p.reverseSite,
-                                  'reverse',
-                                  p.reverse.sequence,
-                                ),
-                              ],
-                              p.reverseSite,
-                            );
-                          }}
-                        >
-                          Add both as features
-                        </button>
-                        <button
-                          type="button"
-                          className="button button--quiet button--small"
-                          title="Keep both primers in My primers, in this browser"
-                          onClick={() => {
-                            const note = (tmValue: number, gc: number): string =>
-                              `Designed for ${doc.name} ${designedFor}; Tm ${tm(tmValue)}, GC ${pct(gc)}`;
-                            save('design', [
-                              {
-                                name: `${doc.name} fwd ${i + 1}`,
-                                sequence: p.forward.sequence,
-                                notes: note(p.forward.tm, p.forward.gc),
-                              },
-                              {
-                                name: `${doc.name} rev ${i + 1}`,
-                                sequence: p.reverse.sequence,
-                                notes: note(p.reverse.tm, p.reverse.gc),
-                              },
-                            ]);
-                          }}
-                        >
-                          Save both
-                        </button>
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              <>
+                <p className="panel__note panel__note--quiet">
+                  {pairs.length} {pairs.length === 1 ? 'pair' : 'pairs'} for {designedFor}, best
+                  first. Point at one to see it in the views.
+                </p>
+                <ol className="pair-list pair-list--candidates" aria-label="Designed pairs">
+                  {pairs.map((p, i) => (
+                    <li
+                      key={i}
+                      className={`pair pair--candidate${shown === i ? ' pair--shown' : ''}`}
+                      onMouseEnter={() => {
+                        setHovered(i);
+                      }}
+                      onMouseLeave={() => {
+                        setHovered((h) => (h === i ? null : h));
+                      }}
+                      onFocus={() => {
+                        setHovered(i);
+                      }}
+                      onBlur={() => {
+                        setHovered((h) => (h === i ? null : h));
+                      }}
+                    >
+                      <div className="pair__head">
+                        <span className="pair__rank">{i + 1}</span>
+                        <span className="pair__length">{p.productLength.toLocaleString()} bp</span>
+                        <span className="pair__delta">ΔTm {p.tmDifference.toFixed(1)} °C</span>
+                      </div>
+                      <Oligo strand="forward" primer={p.forward} />
+                      <Oligo strand="reverse" primer={p.reverse} />
+                      <div className="pair__foot pair__foot--actions">
+                        <span className="pair__buttons">
+                          <button
+                            type="button"
+                            className="button button--quiet button--small"
+                            aria-pressed={shown === i}
+                            title="Draw the pair and its product in the views, and select the product"
+                            onClick={() => {
+                              showPair(i, p);
+                            }}
+                          >
+                            {shown === i ? 'Hide' : 'Show'}
+                          </button>
+                          <button
+                            type="button"
+                            className="button button--quiet button--small"
+                            aria-label="Add both as features"
+                            title="Annotate both sites as primer_bind features, one undo step"
+                            onClick={() => {
+                              // One click, so one Undo takes both back (#96).
+                              addFeaturesAsOneStep(
+                                [
+                                  primerFeature(
+                                    `Fwd primer ${i + 1}`,
+                                    p.forwardSite,
+                                    'forward',
+                                    p.forward.sequence,
+                                  ),
+                                  primerFeature(
+                                    `Rev primer ${i + 1}`,
+                                    p.reverseSite,
+                                    'reverse',
+                                    p.reverse.sequence,
+                                  ),
+                                ],
+                                p.reverseSite,
+                              );
+                            }}
+                          >
+                            Add both
+                          </button>
+                          <button
+                            type="button"
+                            className="button button--quiet button--small"
+                            title="Keep both primers in My primers, in this browser"
+                            onClick={() => {
+                              const note = (tmValue: number, gc: number): string =>
+                                `Designed for ${doc.name} ${designedFor}; Tm ${tm(tmValue)}, GC ${pct(gc)}`;
+                              save('design', [
+                                {
+                                  name: `${doc.name} fwd ${i + 1}`,
+                                  sequence: p.forward.sequence,
+                                  notes: note(p.forward.tm, p.forward.gc),
+                                },
+                                {
+                                  name: `${doc.name} rev ${i + 1}`,
+                                  sequence: p.reverse.sequence,
+                                  notes: note(p.reverse.tm, p.reverse.gc),
+                                },
+                              ]);
+                            }}
+                          >
+                            Save both
+                          </button>
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </>
             )}
             {saved?.from === 'design' && (
               <p className="panel__note panel__note--quiet">{saved.text}</p>
             )}
           </div>
         )}
-      </section>
+      </fieldset>
 
-      <section className="panel__section">
-        <h3 className="panel__heading">Check a primer</h3>
+      <fieldset className="panel__group">
+        <legend>Check a primer</legend>
         <input
-          className="panel__search"
+          className="panel__search panel__mono-input"
           type="text"
           spellCheck={false}
-          placeholder="Paste a primer sequence"
+          placeholder="Paste a primer, 5′ to 3′"
           aria-label="Primer sequence"
           value={probe}
           onChange={(e) => {
@@ -394,7 +426,7 @@ export function PrimerPanel({ doc }: Props) {
         />
         {report !== null && report.length > 0 && (
           <>
-            <p className="panel__mono">
+            <p className="panel__mono primers__stats">
               {report.length} nt, Tm{' '}
               {report.degenerate === 0
                 ? tm(report.tm)
@@ -430,7 +462,7 @@ export function PrimerPanel({ doc }: Props) {
                   : `${sites.length} binding ${sites.length === 1 ? 'site' : 'sites'}:`}
             </p>
             {sites.length > 0 && (
-              <ul className="orf-list">
+              <ul className="orf-list" aria-label="Binding sites">
                 {sites.map((s) => (
                   <li key={`${s.strand}-${s.range.start}`}>
                     <button
@@ -454,37 +486,39 @@ export function PrimerPanel({ doc }: Props) {
                 ))}
               </ul>
             )}
-            {sites.length > 0 && (
+            <div className="panel__controls">
+              {sites.length > 0 && (
+                <button
+                  type="button"
+                  className="button button--small"
+                  onClick={() => {
+                    // One click, so one Undo takes every site back (#96).
+                    addFeaturesAsOneStep(
+                      sites.map((s) => primerFeature('Primer', s.range, s.strand, report.sequence)),
+                      sites[sites.length - 1]?.range,
+                    );
+                  }}
+                >
+                  Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind
+                </button>
+              )}
               <button
                 type="button"
-                className="button button--small"
+                className="button button--quiet button--small"
+                title="Keep this primer in My primers, in this browser"
                 onClick={() => {
-                  // One click, so one Undo takes every site back (#96).
-                  addFeaturesAsOneStep(
-                    sites.map((s) => primerFeature('Primer', s.range, s.strand, report.sequence)),
-                    sites[sites.length - 1]?.range,
-                  );
+                  save('check', [{ name: '', sequence: report.sequence, notes: '' }]);
                 }}
               >
-                Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind
+                Save to My primers
               </button>
-            )}
-            <button
-              type="button"
-              className="button button--quiet button--small"
-              title="Keep this primer in My primers, in this browser"
-              onClick={() => {
-                save('check', [{ name: '', sequence: report.sequence, notes: '' }]);
-              }}
-            >
-              Save to My primers
-            </button>
+            </div>
             {saved?.from === 'check' && (
               <p className="panel__note panel__note--quiet">{saved.text}</p>
             )}
           </>
         )}
-      </section>
+      </fieldset>
 
       <PrimerCollection doc={doc} />
     </div>

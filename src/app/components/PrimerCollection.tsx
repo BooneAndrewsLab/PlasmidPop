@@ -10,6 +10,7 @@ import {
   ANNEAL_DEFAULTS,
   cleanPrimer,
   createFeature,
+  meltingTemperature,
   mismatchPositions,
   type ParsedPrimerList,
   parsePrimerList,
@@ -202,10 +203,15 @@ function PrimerRow({
       </li>
     );
   }
+  // The Tm a scientist checks before ordering, at the Primers tab's
+  // conditions; a degenerate primer has none and shows its length alone.
+  const tm = meltingTemperature(primer.sequence);
   return (
     <li className="primer-item">
       <span className="primer-item__name">{primer.name}</span>
-      <span className="primer-item__meta">{primer.sequence.length} nt</span>
+      <span className="primer-item__meta">
+        {primer.sequence.length} nt{Number.isNaN(tm) ? '' : ` · Tm ${tm.toFixed(1)} °C`}
+      </span>
       <span className="pair__seq primer-item__seq">{primer.sequence}</span>
       {primer.notes !== '' && <span className="primer-item__notes">{primer.notes}</span>}
       <span className="primer-item__buttons">
@@ -412,15 +418,15 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
   };
 
   return (
-    <section className="panel__section primer-collection">
-      <h3 className="panel__heading">
+    <fieldset className="panel__group primer-collection">
+      <legend>
         My primers
         <span className="panel__heading-note">
           {status === 'loading' || status === 'unloaded'
             ? 'reading…'
             : `${primers.length.toLocaleString()} in this browser`}
         </span>
-      </h3>
+      </legend>
       {status === 'failed' && (
         <p className="panel__error">
           This browser&rsquo;s storage could not be read, so the list lasts only until the page is
@@ -429,7 +435,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
       )}
       {error !== null && <p className="panel__error">{error}</p>}
 
-      <div className="panel__controls">
+      <div className="panel__controls primer-collection__find">
         <label className="toggle">
           <input
             type="checkbox"
@@ -442,41 +448,47 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           />
           Find my primers in {doc.name}
         </label>
-        <label className="panel__field panel__field--row">
-          <span>Mismatches</span>
-          <select
-            className="panel__select"
-            aria-label="Mismatches allowed"
-            value={maxMismatches}
-            onChange={(e) => {
-              setMaxMismatches(Number(e.target.value));
-            }}
-          >
-            {[0, 1, 2, 3].map((n) => (
-              <option key={n} value={n}>
-                {n === 0 ? 'none' : `up to ${n}`}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="panel__field panel__field--row">
-          <span>Shortest site</span>
-          <select
-            className="panel__select"
-            aria-label="Shortest site searched"
-            title="The fewest bases a primer must anneal by to be called a site; shorter primers are not searched"
-            value={minAnneal}
-            onChange={(e) => {
-              setMinAnneal(Number(e.target.value));
-            }}
-          >
-            {MIN_ANNEAL_CHOICES.map((n) => (
-              <option key={n} value={n}>
-                {n} nt{n === ANNEAL_DEFAULTS.minAnneal ? ' (default)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* The search's two limits belong to the toggle above, so they sit
+            indented under it and only while it is on (item 93). */}
+        {finding && (
+          <div className="panel__form panel__form--sub">
+            <label>
+              <span>Mismatches</span>
+              <select
+                className="panel__select"
+                aria-label="Mismatches allowed"
+                value={maxMismatches}
+                onChange={(e) => {
+                  setMaxMismatches(Number(e.target.value));
+                }}
+              >
+                {[0, 1, 2, 3].map((n) => (
+                  <option key={n} value={n}>
+                    {n === 0 ? 'none' : `up to ${n}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Shortest site</span>
+              <select
+                className="panel__select"
+                aria-label="Shortest site searched"
+                title="The fewest bases a primer must anneal by to be called a site; shorter primers are not searched"
+                value={minAnneal}
+                onChange={(e) => {
+                  setMinAnneal(Number(e.target.value));
+                }}
+              >
+                {MIN_ANNEAL_CHOICES.map((n) => (
+                  <option key={n} value={n}>
+                    {n} nt{n === ANNEAL_DEFAULTS.minAnneal ? ' (default)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
       </div>
       {finding && primers.length > 0 && (
         <FindResults
@@ -527,8 +539,11 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
         <p className="panel__note panel__note--quiet">No primer matches.</p>
       )}
 
-      <details className="primer-settings primer-collection__add">
-        <summary>Add primers</summary>
+      <details className="panel__details primer-collection__add">
+        <summary className="panel__details-summary">
+          <span className="panel__details-title">Add primers</span>
+          <span className="panel__details-note">one, a pasted list or a file</span>
+        </summary>
         <div className="panel__field panel__field--stack">
           <span>One primer</span>
           <input
@@ -706,7 +721,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           )}
         </div>
       )}
-    </section>
+    </fieldset>
   );
 }
 
@@ -767,10 +782,12 @@ function FindResults({
                 }}
               >
                 <span className="orf-row__strand">{h.strand === 'forward' ? '→' : '←'}</span>
-                <span>
-                  {h.name} <span className="orf-row__length">{describeRange(h, doc.length)}</span>
+                <span className="hit-row__text">
+                  <span className="hit-row__name">{h.name}</span>
+                  <span className="orf-row__length">
+                    {describeRange(h, doc.length)} · {describeFit(h)}
+                  </span>
                 </span>
-                <span className="orf-row__length">{describeFit(h)}</span>
               </button>
               <button
                 type="button"

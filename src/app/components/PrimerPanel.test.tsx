@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { createFeature, DEFAULT_PRIMER_CRITERIA, rangeSegment, SeqDocument } from '@/core';
 
@@ -207,6 +207,43 @@ describe('primer settings', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
     });
     expect(editorStore.getState().primerCriteria).toEqual(DEFAULT_PRIMER_CRITERIA);
+  });
+
+  it('sums the rules up in the Settings row and flags a change (#226)', () => {
+    setup();
+    const summary = screen.getByText('Settings').closest('summary');
+    expect(summary?.textContent).toBe(
+      'Settings18–27 nt, Tm 55–65 °C, GC 35–65 %, within 0–200 bp of the target',
+    );
+    const box = screen.getByLabelText('Lowest Tm');
+    act(() => {
+      fireEvent.change(box, { target: { value: '58' } });
+      fireEvent.keyDown(box, { key: 'Enter' });
+    });
+    expect(summary?.textContent).toBe(
+      'Settingschanged18–27 nt, Tm 58–65 °C, GC 35–65 %, within 0–200 bp of the target',
+    );
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
+    });
+  });
+
+  it('lists each pair as a block of rank, product, the two primers and three actions (#226)', () => {
+    setup();
+    const list = screen.getByRole('list', { name: 'Designed pairs' });
+    const [pair] = within(list).getAllByRole('listitem');
+    if (pair === undefined) throw new Error('no pair was designed');
+    expect(pair.textContent).toMatch(
+      /^1[\d,]+ bpΔTm \d\.\d °C→[ACGT]+\d+\.\d °C · \d+% GC←[ACGT]+/,
+    );
+    // The visible label is short; the accessible name is the guide's.
+    const add = within(pair).getByRole('button', { name: 'Add both as features' });
+    expect(add.textContent).toBe('Add both');
+    expect(
+      within(pair)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Show', 'Add both', 'Save both']);
   });
 });
 

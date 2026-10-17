@@ -3,6 +3,7 @@ import { type KeyboardEvent, useState } from 'react';
 import {
   DEFAULT_PRIMER_CRITERIA,
   type PrimerCriteria,
+  describePrimerCriteria,
   normalizePrimerCriteria,
   samePrimerCriteria,
 } from '@/core';
@@ -144,12 +145,17 @@ export function PrimerSettings({ criteria: c }: Props) {
   const isDefault = samePrimerCriteria(c, DEFAULT_PRIMER_CRITERIA);
 
   return (
-    <details className="primer-settings">
-      <summary>
-        Settings{' '}
-        <span className="primer-settings__summary">{isDefault ? 'defaults' : 'changed'}</span>
+    <details className="panel__details primer-settings">
+      {/* The summary says what the rules are, so they can be read without
+          opening it, and whether they are still the defaults. */}
+      <summary className="panel__details-summary">
+        <span className="panel__details-title">
+          Settings
+          {!isDefault && <span className="panel__details-flag">changed</span>}
+        </span>
+        <span className="panel__details-note">{describePrimerCriteria(c)}</span>
       </summary>
-      <div className="panel__form">
+      <div className="panel__form panel__details-body">
         <span className="panel__form-label">Length</span>
         <span className="panel__form-range">
           {field('minLength', 'Shortest primer')}–{field('maxLength', 'Longest primer')} nt

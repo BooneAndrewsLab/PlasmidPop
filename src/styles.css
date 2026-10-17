@@ -1023,30 +1023,114 @@ button {
   width: 6em;
 }
 
-.primer-settings {
+/**
+ * A disclosure in a panel (the Primers tab's Settings and Add primers, item
+ * 93): one row that reads as a settings row — its name on the left, what it
+ * currently comes to on the right in quiet text — and opens to a form under
+ * it. The marker is the chevron the Format menu's sub-rows and the
+ * alignment heading use, turned when open.
+ */
+.panel__details {
   margin: 8px 0;
-  padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
 }
 
-.primer-settings > summary {
+.panel__details-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding: 5px 8px 5px 22px;
+  position: relative;
+  list-style: none;
   cursor: pointer;
+  color: var(--ink-2);
+  border-radius: 6px;
+}
+
+.panel__details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel__details-summary::before {
+  content: '\203A';
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink-3);
+  transition: transform 120ms;
+}
+
+.panel__details[open] > .panel__details-summary::before {
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.panel__details-summary:hover {
+  background: var(--hover-bg, rgba(127, 127, 127, 0.12));
+}
+
+.panel__details-summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.panel__details-title {
+  font-weight: 550;
+}
+
+.panel__details-flag {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--seq-selection);
+  font-size: 11px;
+  font-weight: 500;
   color: var(--ink-2);
 }
 
-.primer-settings[open] > summary {
-  margin-bottom: 8px;
-}
-
-.primer-settings__summary {
-  margin-left: 4px;
+.panel__details-note {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 12px;
   color: var(--ink-3);
 }
 
+.panel__details[open] > .panel__details-summary {
+  border-bottom: 1px solid var(--line);
+  border-radius: 6px 6px 0 0;
+}
+
+.panel__details > .panel__details-summary ~ * {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.panel__details > .panel__details-summary + * {
+  margin-top: 8px;
+}
+
+.panel__details > :last-child {
+  margin-bottom: 8px;
+}
+
 .primer-settings > .button {
   margin-top: 8px;
+}
+
+/* Rows that belong to the control above them (the Find toggle's limits),
+   indented under it as the Format menu's sub-rows are (item 92). */
+.panel__form--sub {
+  padding-left: 22px;
+}
+
+.panel__form--sub .panel__select {
+  width: auto;
+  min-width: 9em;
+  justify-self: start;
 }
 
 .panel__buttons {
@@ -2245,13 +2329,19 @@ button {
   overflow-y: auto;
 }
 
+/* A kept primer: the name with its length and Tm at the right, the bases,
+   the notes, and its actions on one tight line (item 93). */
 .primer-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 8px;
-  padding: 6px 0;
+  gap: 1px 8px;
+  padding: 5px 0;
   border-bottom: 1px solid var(--line);
   font-size: 12.5px;
+}
+
+.primer-item:last-child {
+  border-bottom: 0;
 }
 
 .primer-item__name {
@@ -2261,7 +2351,9 @@ button {
 
 .primer-item__meta {
   color: var(--ink-3);
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .primer-item__seq,
@@ -2272,16 +2364,27 @@ button {
 
 .primer-item__notes {
   color: var(--ink-3);
+  font-size: 12px;
 }
 
 .primer-item__buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px;
+  margin-left: -8px;
 }
 
 .primer-item--editing {
   grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.primer-item--editing .primer-item__buttons {
+  margin-left: 0;
+}
+
+.primer-collection__find {
+  margin-bottom: 4px;
 }
 
 .primer-collection__add .panel__field--stack {
@@ -2292,6 +2395,8 @@ button {
   align-self: flex-start;
 }
 
+/* A site one of the kept primers binds: the row names the primer and gives
+   the position and fit under it, the actions at the right. */
 .hit-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -2299,11 +2404,135 @@ button {
   gap: 2px;
 }
 
+.hit-row .orf-row {
+  grid-template-columns: 1.4em minmax(0, 1fr);
+  padding: 4px 6px;
+}
+
+.hit-row__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hit-row__name {
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+
+.hit-row .orf-row__length {
+  font-size: 11.5px;
+}
+
 /* The pair whose preview is being held in the views. */
 .pair--shown {
   border-left: 2px solid var(--seq-preview);
   padding-left: 6px;
   margin-left: -8px;
+}
+
+/**
+ * A designed candidate (item 93). Numbered by hand so the rank sits in the
+ * row with the product size, the two numbers a pair is first judged by;
+ * then each primer as a row of its own — the strand arrow the site lists
+ * use, the bases, and its Tm and GC pushed to the right while they fit and
+ * dropped under the bases when they do not — and the actions last. Pointing
+ * at a row previews the pair, so the row says so by lighting up.
+ */
+.pair-list--candidates {
+  list-style: none;
+  padding-left: 0;
+}
+
+.pair--candidate {
+  padding: 5px 6px;
+  margin: 0 -6px;
+  border-radius: 6px;
+  border-bottom: 0;
+}
+
+.pair--candidate + .pair--candidate {
+  margin-top: 2px;
+}
+
+.pair--candidate:hover,
+.pair--candidate:focus-within {
+  background: var(--surface-3);
+}
+
+.pair--candidate.pair--shown {
+  margin-left: -6px;
+  padding-left: 4px;
+  background: var(--surface-3);
+}
+
+.pair__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pair__rank {
+  min-width: 1.2em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.pair__delta {
+  color: var(--ink-3);
+}
+
+.pair__oligo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  margin-top: 3px;
+  padding-left: 0;
+}
+
+.pair__strand {
+  flex: none;
+  width: 1.2em;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.pair__oligo > .pair__seq {
+  white-space: nowrap;
+}
+
+.pair__meta--oligo {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pair__foot--actions {
+  justify-content: flex-start;
+  padding-left: calc(1.2em + 6px);
+  margin-top: 2px;
+}
+
+.pair__foot--actions .pair__buttons {
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: -8px;
+}
+
+/* The target line, which the rules under Settings are measured from. */
+.primers__target {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.primers__stats {
+  color: var(--ink-2);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 .read-summary__list {
