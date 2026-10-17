@@ -854,6 +854,19 @@ describe('substitutionsFirst, seedsAtLeast and the seed threshold (mutation surv
     expect(hits[0]?.deletions).toBe(2);
   });
 
+  it('keeps a gapped hit where the only whole hit of the part overlapping it is on the other strand', () => {
+    // The part ends in a palindrome, so its reverse complement begins with the same 12 bases and
+    // a forward copy can share them with a reverse one. The insertion makes the gapped copy the
+    // longer, so keepBest takes it over the whole reverse copy, unless substitutionsFirst has
+    // already dropped it. (Dropping it for a whole hit on its own strand is the first test.)
+    const palin = randomDna(r, 288) + 'GAATTCGAATTC';
+    const novel = Array.from('ACGT').find((x) => x !== palin[99] && x !== palin[100]) ?? 'A';
+    const gapped = palin.slice(0, 100) + novel + novel + palin.slice(100);
+    const seq = flank(80) + gapped + reverseComplement(palin).slice(12) + flank(80);
+    const hits = detectFeatures(seq, 'linear', library(part('P', palin)));
+    expect(hits.map((h) => [h.strand, h.insertions])).toEqual([['forward', 2]]);
+  });
+
   it('finds a copy with exactly as many seeds as the budget guarantees', () => {
     // An insertion and 14 mismatches 12 bases apart: 15 edits, each spoiling
     // 12 seeds, none shared, leaving exactly the 109 a match of 15 edits must.
