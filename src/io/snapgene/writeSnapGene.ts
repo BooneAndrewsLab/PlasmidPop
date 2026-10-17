@@ -143,13 +143,16 @@ function plan(doc: SeqDocument, losses: string[]): Plan {
       downstream: 0,
     };
   }
+  // Stryker disable next-line ConditionalExpression: the document already holds null ends for a circular sequence (ends.ts), so the topology test repeats it
   const ends = doc.topology === 'linear' ? doc.ends : null;
   if (ends === null)
     return { extension: 'dna', sequence: text, shift: 0, back: 0, upstream: 0, downstream: 0 };
   const left = ends.left;
   const right = ends.right;
+  // Stryker disable next-line ConditionalExpression,StringLiteral: a blunt end's overhang is '', so its length is 0 whichever branch measures it
   const upstream = left.kind === 'blunt' ? 0 : (left.kind === "5'" ? 1 : -1) * left.overhang.length;
   const downstream =
+    // Stryker disable next-line ConditionalExpression,StringLiteral: a blunt end's overhang is '', so its length is 0 whichever branch measures it
     right.kind === 'blunt' ? 0 : (right.kind === "5'" ? 1 : -1) * right.overhang.length;
   const front = left.kind === "3'" ? left.overhang : '';
   const back = right.kind === "5'" ? right.overhang : '';
@@ -168,8 +171,10 @@ function plan(doc: SeqDocument, losses: string[]): Plan {
 function qualifierXml(qualifiers: readonly Qualifier[]): string {
   let out = '';
   let i = 0;
+  // Stryker disable next-line EqualityOperator: at i === length the next line's undefined guard breaks, the same as the loop ending
   while (i < qualifiers.length) {
     const q = qualifiers[i];
+    // Stryker disable next-line ConditionalExpression: guard for noUncheckedIndexedAccess, i < length keeps q defined
     if (q === undefined) break;
     let j = i;
     while (qualifiers[j + 1]?.name === q.name) j++;
@@ -178,6 +183,7 @@ function qualifierXml(qualifiers: readonly Qualifier[]): string {
     else {
       out += `<Q name="${attr(q.name)}">`;
       for (const v of values) {
+        // Stryker disable next-line StringLiteral: values were filtered to non-null above, so the fallback is never used
         const value = v.value ?? '';
         const numeric =
           (q.name === 'codon_start' || q.name === 'transl_table') && /^\d+$/.test(value);
@@ -218,12 +224,15 @@ function asPrimer(
 ): { name: string; sequence: string; description: string; site: PrimerSite } | null {
   if (feature.type !== 'primer_bind' || doc.isProtein) return null;
   const [seg, ...rest] = feature.segments;
+  // Stryker disable next-line OptionalChaining: a feature always has a segment (createFeature throws on none), so seg is never undefined
   if (seg?.kind !== 'range' || rest.length > 0 || seg.partialStart || seg.partialEnd) return null;
   if (feature.joining !== undefined) return null;
   const notes = feature.qualifiers.filter((q) => q.name === 'note');
   if (notes.length !== feature.qualifiers.length || notes.some((n) => n.value === null))
     return null;
+  // Stryker disable next-line StringLiteral: every note's value is non-null here (the line above returned otherwise)
   const given = notes.filter((n) => SEQUENCE_NOTE.test(n.value ?? ''));
+  // Stryker disable next-line StringLiteral: every note's value is non-null here (the line above returned otherwise)
   const others = notes.filter((n) => !SEQUENCE_NOTE.test(n.value ?? ''));
   if (given.length > 1 || others.length > 1) return null;
   const length = sequence.length;
@@ -232,6 +241,7 @@ function asPrimer(
   const doubled = sequence + sequence;
   const top = doubled.slice(start % length, (start % length) + (end - start));
   const bases = feature.strand === 'reverse' ? reverseComplement(top) : top;
+  // Stryker disable next-line StringLiteral: no given note means '' and any non-matching fallback gives the same undefined
   const own = SEQUENCE_NOTE.exec(given[0]?.value ?? '')?.[1];
   return {
     name: feature.name,

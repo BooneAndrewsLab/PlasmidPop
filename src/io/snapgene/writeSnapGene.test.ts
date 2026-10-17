@@ -535,3 +535,326 @@ describe('what is listed as not representable', () => {
     expect(again.metadata.description).toBe('test.');
   });
 });
+
+describe('writer: exact bytes (mutation)', () => {
+  const text = (doc: SeqDocument, uuid = 'U-1') =>
+    new TextDecoder().decode(writeSnapGene(doc, { uuid }).bytes);
+  const seq = 'ACGTTGCAAC'.repeat(12);
+  const notesOf = (doc: SeqDocument) => /<Notes>\n([\s\S]*?)\n<\/Notes>\n/.exec(text(doc))?.[1];
+  const lossesOf = (doc: SeqDocument) => writeSnapGene(doc).losses;
+  const withMeta = (meta: Parameters<typeof createMetadata>[0], extra = {}) =>
+    Doc.create({ name: 'p', sequence: seq, metadata: createMetadata(meta), ...extra });
+  type Qs = { name: string; value: string | null }[];
+  const feat = (qualifiers: Qs, extra = {}) =>
+    Doc.create({
+      name: 'p',
+      sequence: seq,
+      topology: 'circular',
+      features: [
+        createFeature({
+          name: 'f',
+          type: 'misc_feature',
+          strand: 'forward',
+          segments: [rangeSegment(2, 12)],
+          qualifiers,
+          ...extra,
+        }),
+      ],
+    });
+
+  it('drops control characters and escapes attribute whitespace', () => {
+    const xml = text(
+      feat([{ name: 'note', value: 'a\u0001b\u0008c\u000bd\u000ee\u001ff\r\n\tg"<>&' }]),
+    );
+    expect(xml).toContain('<V text="abcdef&#13;&#10;&#9;g&quot;&lt;&gt;&amp;"/>');
+    // Tab, LF and CR are legal in XML text and kept.
+    expect(text(withMeta({ description: 'a\u0000b\tc\nd\re\u000cf' }))).toContain(
+      '<Description>ab\tc\nd\ref</Description>',
+    );
+  });
+
+  it.each([
+    ['15-APR-2012', '2012.4.15'],
+    ['5-JAN-2012', '2012.1.5'],
+    ['01-DEC-1999', '1999.12.1'],
+    [' 3-feb-2020 ', '2020.2.3'],
+    ['x15-APR-2012', null],
+    ['15-APR-2012x', null],
+    ['15-XYZ-2012', null],
+    ['', null],
+  ])('writes the date %j as %j', (date, written) => {
+    const notes = notesOf(withMeta({ date })) ?? '';
+    const m = /<LastModified UTC="0:0:0">([^<]*)<\/LastModified>/.exec(notes);
+    expect(m === null ? null : m[1]).toBe(written);
+  });
+
+  it('writes the notes block exactly, with every field and in order', () => {
+    const doc = withMeta(
+      {
+        description: 'd & <e>',
+        accession: 'AB1',
+        organism: 'Orgo',
+        division: 'SYN',
+        date: '15-APR-2012',
+        comments: ['one', 'two'],
+        references: [
+          createReference({ number: 1, authors: 'A "B"', title: 'T', journal: 'J', pubmed: '123' }),
+          createReference({ number: 2, authors: 'C', title: 'U', journal: 'K' }),
+        ],
+      },
+      { name: 'nm<' },
+    );
+    expect(notesOf(doc)).toBe(
+      [
+        '<UUID>U-1</UUID>',
+        '<Type>Synthetic</Type>',
+        '<Description>d &amp; &lt;e&gt;</Description>',
+        '<LastModified UTC="0:0:0">2012.4.15</LastModified>',
+        '<AccessionNumber>AB1</AccessionNumber>',
+        '<Organism>Orgo</Organism>',
+        '<SequenceClass>SYN</SequenceClass>',
+        '<Comments>one\n\ntwo</Comments>',
+        '<References>',
+        '<Reference authors="A &quot;B&quot;" title="T" journal="J" pubMedID="123"/>',
+        '<Reference authors="C" title="U" journal="K"/>',
+        '</References>',
+        '<CustomMapLabel>nm&lt;</CustomMapLabel>',
+        '<UseCustomMapLabel>1</UseCustomMapLabel>',
+      ].join('\n'),
+    );
+  });
+
+  it('writes a bare notes block for a bare document', () => {
+    expect(notesOf(withMeta({ division: 'PLN', comments: ['x'] }, { name: 'q' }))).toBe(
+      [
+        '<UUID>U-1</UUID>',
+        '<Type>Natural</Type>',
+        '<SequenceClass>PLN</SequenceClass>',
+        '<Comments>x</Comments>',
+        '<CustomMapLabel>q</CustomMapLabel>',
+        '<UseCustomMapLabel>1</UseCustomMapLabel>',
+      ].join('\n'),
+    );
+    expect(notesOf(withMeta({}, { name: 'q' }))).toBe(
+      [
+        '<UUID>U-1</UUID>',
+        '<Type>Natural</Type>',
+        '<CustomMapLabel>q</CustomMapLabel>',
+        '<UseCustomMapLabel>1</UseCustomMapLabel>',
+      ].join('\n'),
+    );
+  });
+
+  it('names what the notes cannot hold, and only when it applies', () => {
+    const ref = (o: object) => createReference({ number: 1, ...o });
+    const refs = 'Reference remarks, consortia and base ranges are not written.';
+    const made = 'PlasmidPop’s record of what this molecule was made from is not written.';
+    const cases: [string, Parameters<typeof createMetadata>[0], string | null][] = [
+      ['one comment', { comments: ['a'] }, null],
+      [
+        'two comments',
+        { comments: ['a', 'b'] },
+        'The comments are joined into the one comment SnapGene has.',
+      ],
+      ['plain reference', { references: [ref({ authors: 'A' })] }, null],
+      ['remark', { references: [ref({ remark: 'r' })] }, refs],
+      ['consortium', { references: [ref({ consortium: 'c' })] }, refs],
+      ['location', { references: [ref({ location: '1..2' })] }, refs],
+      [
+        'extra headers',
+        {
+          extraHeaders: [
+            { keyword: 'K', value: 'v' },
+            { keyword: 'L', value: 'w' },
+          ],
+        },
+        '2 further GenBank header line(s) are not written.',
+      ],
+      ['source = organism', { source: 'O', organism: 'O' }, null],
+      ['no source', { organism: 'O' }, null],
+      [
+        'source differs',
+        { source: 'S', organism: 'O' },
+        'The source name, where it differs from the organism, is not written.',
+      ],
+      ['derived from', { derivedFrom: { checksum: 'cdseguid=x', fileName: 'f' } }, made],
+      [
+        'lineage',
+        { lineage: { name: 'n', checksum: null, topology: 'linear', length: 1, step: null } },
+        made,
+      ],
+      ['DNA molecule type', { moleculeType: 'DNA' }, null],
+    ];
+    for (const [label, meta, loss] of cases)
+      expect(lossesOf(withMeta(meta)), label).toEqual(loss === null ? [] : [loss]);
+    const protein = (moleculeType: string) =>
+      Doc.create({
+        name: 'p',
+        sequence: 'MKVLA',
+        alphabet: 'protein',
+        metadata: createMetadata({ moleculeType }),
+      });
+    expect(lossesOf(protein('AA'))).toEqual(['The molecule type is not written.']);
+    expect(lossesOf(protein(''))).toEqual([]);
+  });
+
+  it('writes an RNA with its Us as Ts, and lists that only when there are Us', () => {
+    const rna = (sequence: string) => withMeta({ moleculeType: 'RNA' }, { sequence });
+    expect(lossesOf(rna('GGAUCC'))).toEqual([
+      'SnapGene writes an RNA with T where the RNA has U; the Us become Ts.',
+    ]);
+    expect(lossesOf(rna('ggaucc'))).toHaveLength(1);
+    expect(lossesOf(rna('GGATCC'))).toEqual([]);
+    expect(readBack(writeSnapGene(rna('GGAUCCuagU')).bytes).sequence.toString()).toBe('GGATCCtagT');
+  });
+
+  it('records overhangs only on a linear fragment, and names the enzymes only when set', () => {
+    const ends = (l: string | null, r: string | null): DocumentEnds => ({
+      left: { kind: "5'", overhang: 'AATT', enzyme: l },
+      right: { kind: "3'", overhang: 'TT', enzyme: r },
+    });
+    const lin = (e: DocumentEnds) =>
+      Doc.create({ name: 'f', sequence: 'AATTGATTACAGATTACATT', topology: 'linear', ends: e });
+    expect(lossesOf(lin(ends(null, null)))).toEqual([]);
+    for (const e of [ends('EcoRI', null), ends(null, 'EcoRI')])
+      expect(lossesOf(lin(e))).toEqual([
+        'The enzymes that made the ends are not recorded; the overhangs are.',
+      ]);
+    const xml = text(lin(ends(null, null)));
+    expect(xml).toContain('<UpstreamStickiness>4</UpstreamStickiness>');
+    expect(xml).toContain('<DownstreamStickiness>-2</DownstreamStickiness>');
+    const circ = Doc.create({
+      name: 'c',
+      sequence: seq,
+      topology: 'circular',
+      ends: ends('E', 'E'),
+    });
+    const cx = text(circ);
+    expect(cx).not.toContain('<UpstreamStickiness>4<');
+    expect(cx).not.toContain('<DownstreamStickiness>-2<');
+    expect(lossesOf(circ)).toEqual([]);
+  });
+
+  it('writes qualifiers as <Q> elements: grouped by name, flags, and integers only where SnapGene reads them', () => {
+    const only = (qualifiers: Qs) =>
+      (text(feat(qualifiers)).match(/<Q [\s\S]*?<\/Q>|<Q [^>]*\/>/g) ?? []).join('');
+    expect(
+      only([
+        { name: 'note', value: 'a' },
+        { name: 'note', value: 'b&' },
+        { name: 'gene', value: 'x' },
+        { name: 'note', value: 'c' },
+      ]),
+    ).toBe(
+      '<Q name="note"><V text="a"/><V text="b&amp;"/></Q><Q name="gene"><V text="x"/></Q><Q name="note"><V text="c"/></Q>',
+    );
+    expect(only([{ name: 'pseudo', value: null }])).toBe('<Q name="pseudo"/>');
+    expect(
+      only([
+        { name: 'gene', value: 'x' },
+        { name: 'gene', value: null },
+      ]),
+    ).toBe('<Q name="gene"><V text="x"/></Q>');
+    const numeric: [string, string, string][] = [
+      ['codon_start', '3', '<V int="3"/>'],
+      ['transl_table', '11', '<V int="11"/>'],
+      ['transl_table', '1a', '<V text="1a"/>'],
+      ['codon_start', 'a1', '<V text="a1"/>'],
+      ['codon_start', 'x', '<V text="x"/>'],
+      ['codon_start', '', '<V text=""/>'],
+      ['note', '5', '<V text="5"/>'],
+      ['gene', '11', '<V text="11"/>'],
+    ];
+    for (const [name, value, v] of numeric)
+      expect(only([{ name, value }]), `${name}=${value}`).toBe(`<Q name="${name}">${v}</Q>`);
+  });
+
+  describe('primers', () => {
+    const body = 'GATTACAGGCTTAACCGTAGCTAGGATCCA';
+    const prim = (
+      segments: (ReturnType<typeof rangeSegment> | ReturnType<typeof siteSegment>)[],
+      qualifiers: Qs,
+      extra: object = {},
+      docExtra: object = {},
+    ) =>
+      Doc.create({
+        name: 'p',
+        sequence: body,
+        topology: 'circular',
+        ...docExtra,
+        features: [
+          createFeature({
+            name: 'pr',
+            type: 'primer_bind',
+            strand: 'forward',
+            segments,
+            qualifiers,
+            ...extra,
+          }),
+        ],
+      });
+    const isPrimer = (doc: SeqDocument) => text(doc).includes('<Primer recentID="0"');
+    const r = (a: number, b: number) => [rangeSegment(a, b)];
+
+    it('writes the site, its bases and the description', () => {
+      let xml = text(prim(r(2, 8), []));
+      expect(xml).toContain('<Primer recentID="0" name="pr" sequence="TTACAG">');
+      expect(xml).toContain(
+        '<BindingSite location="2-7" boundStrand="0" annealedBases="TTACAG"><Component hybridizedRange="2-7" bases="TTACAG"/></BindingSite>',
+      );
+      xml = text(prim(r(2, 8), [{ name: 'note', value: 'a "d"' }], { strand: 'reverse' }));
+      expect(xml).toContain(
+        '<Primer recentID="0" name="pr" sequence="CTGTAA" description="a &quot;d&quot;">',
+      );
+      expect(xml).toContain('boundStrand="1" annealedBases="CTGTAA"');
+      expect(text(prim(r(2, 8), []))).not.toContain(' description=');
+      expect(
+        text(
+          prim(r(2, 8), [
+            { name: 'note', value: 'sequence: TTT' },
+            { name: 'note', value: '' },
+          ]),
+        ),
+      ).toContain('sequence="TTT">');
+      // Across the origin
+      xml = text(prim([rangeSegment(26, 34)], []));
+      expect(xml).toContain('location="26-3" boundStrand="0" annealedBases="TCCAGATT"');
+    });
+
+    it('shifts the site by the bases a 3′ overhang adds in front', () => {
+      const doc = prim(
+        r(2, 8),
+        [],
+        {},
+        {
+          topology: 'linear',
+          ends: {
+            left: { kind: "3'", overhang: 'CG', enzyme: null },
+            right: { kind: 'blunt', overhang: '', enzyme: null },
+          },
+        },
+      );
+      expect(text(doc)).toContain('location="4-9" boundStrand="0" annealedBases="TTACAG"');
+    });
+
+    it('keeps anything SnapGene’s primer list cannot hold whole as a feature', () => {
+      const note = (value: string | null) => ({ name: 'note', value });
+      const cases: [string, SeqDocument][] = [
+        ['site', prim([siteSegment(5)], [])],
+        ['two segments', prim([rangeSegment(2, 5), rangeSegment(8, 12)], [])],
+        ['partial start', prim([rangeSegment(2, 8, { partialStart: true })], [])],
+        ['partial end', prim([rangeSegment(2, 8, { partialEnd: true })], [])],
+        ['joined', prim(r(2, 8), [], { joining: 'order' })],
+        ['other qualifier', prim(r(2, 8), [{ name: 'label', value: 'x' }])],
+        ['null note', prim(r(2, 8), [note(null)])],
+        ['two descriptions', prim(r(2, 8), [note('a'), note('b')])],
+        ['two sequences', prim(r(2, 8), [note('sequence: AA'), note('sequence: CC')])],
+      ];
+      for (const [label, doc] of cases) expect(isPrimer(doc), label).toBe(false);
+      expect(
+        isPrimer(prim(r(2, 8), [note('sequence: AA'), note('b')])),
+        'sequence + description',
+      ).toBe(true);
+    });
+  });
+});
