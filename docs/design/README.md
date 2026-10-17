@@ -286,3 +286,5 @@ the Bench, item 49). The rest stand.
 104.  [Write SnapGene files](90-snapgene-writer.md)
 
 105.  [Search and link-preview metadata](91-seo-metadata.md)
+
+106.  [The Format menu as a settings list](92-format-menu.md)

@@ -50,20 +50,20 @@ left for the view. In front of a [protein](16-proteins.md), `Alt+C`, `Alt+T`,
 translations, cut sites or map, and `Alt+[` and `Alt+]` step through the tabs
 it has.
 
-| Keys             | Action                                                    |
-| ---------------- | --------------------------------------------------------- |
-| `Alt+C`          | Complement strand on or off                               |
-| `Alt+T`          | Translations under CDS features on or off                 |
-| `Alt+R`          | Cut sites on or off (the ticked enzymes are kept)         |
-| `Alt+G`          | GC content track on or off                                |
-| `Alt+E`          | Edit marks off, and back to the baseline that was chosen  |
-| `Alt+S`          | Collapse the sidebar to its rail, or bring the panel back |
-| `Alt+V`          | The next of the views: Sequence, Map, Both                |
-| `Alt+[`, `Alt+]` | The sidebar tab above or below (opens the sidebar)        |
-| `Alt+=`, `Alt+−` | Larger or smaller sequence text                           |
-| `Alt+O`          | Open the Format menu; Tab walks its items, Escape closes  |
-| `Alt+Y`          | Open the Style menu for the selected bases (colour, size) |
-| `Alt+U`          | Open the Case menu for the selected bases (upper, lower)  |
+| Keys             | Action                                                                           |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `Alt+C`          | Complement strand on or off                                                      |
+| `Alt+T`          | Translations under CDS features on or off                                        |
+| `Alt+R`          | Cut sites on or off (the ticked enzymes are kept)                                |
+| `Alt+G`          | GC content track on or off                                                       |
+| `Alt+E`          | Edit marks off, and back to the baseline that was chosen                         |
+| `Alt+S`          | Collapse the sidebar to its rail, or bring the panel back                        |
+| `Alt+V`          | The next of the views: Sequence, Map, Both                                       |
+| `Alt+[`, `Alt+]` | The sidebar tab above or below (opens the sidebar)                               |
+| `Alt+=`, `Alt+−` | Larger or smaller sequence text                                                  |
+| `Alt+O`          | Open the Format menu; Tab walks its rows, `←`/`→` a row's choices, Escape closes |
+| `Alt+Y`          | Open the Style menu for the selected bases (colour, size)                        |
+| `Alt+U`          | Open the Case menu for the selected bases (upper, lower)                         |
 
 ## Selecting and moving
 

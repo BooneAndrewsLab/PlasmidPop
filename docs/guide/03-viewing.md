@@ -211,19 +211,25 @@ Today these use it:
 
 ### Format
 
-The toolbar's **Format** menu sets how the sequence view draws. Choices take
-effect at once and the menu stays open, so you can try one and look.
+The toolbar's **Format** menu (`Alt+O`) sets how the sequence view draws.
+It is laid out as a list of settings: each setting is one row, with its
+choices side by side on the right, so every choice is in view and one click
+away. Choices take effect at once and the menu stays open, so you can try one
+and look. Tab walks the rows and the arrow keys move along a row's choices;
+Escape closes.
+
+**Sequence view** — the strands themselves:
 
 - **Text size** — Small, Medium (the default) or Large. The rows, lanes and
   labels scale with the text, so a larger size gives a roomier view with
   fewer bases in a row.
-- **Bases per row** — **Fit the window** (the default) puts as many bases in
-  a row as the width holds, in tens, and re-flows when the window changes.
-  Pick 30, 60, 90 or 120 instead to keep the same rows whatever the window
-  size — useful for comparing two windows side by side, or for an export
-  that matches what you see — or type any count from 10 to 1,000 under
-  **Other** and press Enter. If the fixed width does not fit, the view
-  scrolls sideways.
+- **Bases per row** — **Fit** (the default) puts as many bases in a row as
+  the width holds, in tens, and re-flows when the window changes. Pick 30,
+  60, 90 or 120 instead to keep the same rows whatever the window size —
+  useful for comparing two windows side by side, or for an export that
+  matches what you see — or type any count from 10 to 1,000 in the
+  **Other** box under it and press Enter. If the fixed width does not fit,
+  the view scrolls sideways.
 - **Number the complement** repeats each row's position number beside the
   complement strand, so a wide row can be read from either line.
 - **Colour the bases** gives A, C, G and T each their own colour on both
@@ -231,16 +237,29 @@ effect at once and the menu stays open, so you can try one and look.
   on, the four swatches under it choose the colours, for the sequence view,
   a read's trace and the SVG export alike; **Reset** goes back to the
   theme's, which differ between light and dark.
+
+**Tracks** — what is drawn around the strands:
+
 - **GC content track** (`Alt+G`) draws the GC content under the strands in
   the sequence view and as a ring inside the map; **Window** under it sets
-  how many bases it is averaged over. See [GC content](#gc-content).
+  how many bases it is averaged over. See [GC content](#gc-content). Greyed
+  out for a protein.
 - **Residue numbers** — **Every 10th** (the default) numbers the first
-  residue and every tenth one above the amino acids under each CDS; **Every
-  residue** numbers them all; **Off** leaves the numbers out and gives the
-  rows back the room they took. See
-  [Numbered residues](09-translate.md#numbered-residues).
-- **Reset the layout** is not about the sequence view: it puts the panes back
-  to the sizes they started at, see [Sizing the panes](#sizing-the-panes).
+  residue and every tenth one above the amino acids under each CDS; **All**
+  numbers every residue; **Off** leaves the numbers out and gives the rows
+  back the room they took. See
+  [Numbered residues](09-translate.md#numbered-residues). Greyed out for a
+  protein, whose ruler already counts its residues.
+- **Trace** — **Hidden**, **Short** or **Tall**, for the chromatogram of a
+  sequencing read; see [Reads](15-reads.md). Greyed out unless a read with
+  a trace is in front.
+
+Under a separator, two items that are not about the sequence view:
+
+- **Reset the layout** puts the panes back to the sizes they started at,
+  see [Sizing the panes](#sizing-the-panes).
+- **Keyboard shortcuts…** opens the table of every key, where a binding can
+  be changed; see [Keyboard shortcuts](14-shortcuts.md).
 
 The SVG exports follow the bases-per-row, numbering (residue numbers
 included) and colour choices,

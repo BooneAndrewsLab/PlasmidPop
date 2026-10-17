@@ -608,8 +608,8 @@ describe('toolbar', () => {
     const { unmount } = render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
     fireEvent.click(screen.getByRole('button', { name: 'Format' }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Large' }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: '60' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Large' }));
+    fireEvent.click(screen.getByRole('radio', { name: '60' }));
     fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Colour the bases' }));
     expect(editorStore.getState()).toMatchObject({
       seqFontSize: 16,
@@ -617,10 +617,7 @@ describe('toolbar', () => {
       colorBases: true,
     });
     // The menu stays open so several choices can be tried in a row.
-    expect(screen.getByRole('menuitemradio', { name: 'Large' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+    expect(screen.getByRole('radio', { name: 'Large' })).toHaveAttribute('aria-checked', 'true');
     unmount();
     act(() => {
       editorStore.setSeqFontSize(13);

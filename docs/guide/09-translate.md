@@ -81,7 +81,7 @@ residue 1 is at the right-hand end.
 **Format ▸ Residue numbers** chooses how many are numbered:
 
 - **Every 10th**, the default;
-- **Every residue**, for reading a protein position off the sequence
+- **All**, for reading a protein position off the sequence
   directly. Where the numbers are wider than their codons — four-digit
   numbers at the Small text size, say — some are left out rather than drawn
   over each other, the tens always kept first. A larger text size or fewer

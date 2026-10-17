@@ -63,7 +63,7 @@ describe('sequencing reads in the app', () => {
     open();
     // Listed, so it can be found, but not to be set without a trace to see.
     expect(screen.getByText('Trace')).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', { name: 'Hidden' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Hidden' })).toBeDisabled();
     open();
     const bytes = new Uint8Array(readFileSync(join(fixtures, 'sanger.ab1')));
     await act(async () => {
@@ -71,9 +71,9 @@ describe('sequencing reads in the app', () => {
     });
     open();
     expect(screen.getByText('Trace')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Hidden' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Hidden' }));
     expect(editorStore.getState().traceSize).toBe('off');
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tall' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Tall' }));
     expect(editorStore.getState().traceSize).toBe('tall');
     act(() => {
       editorStore.setTraceSize('short');

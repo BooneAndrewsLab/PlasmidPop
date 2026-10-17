@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { GC_WINDOW_CHOICES } from '@/core';
 import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
@@ -15,43 +15,180 @@ const SIZE_LABELS: Readonly<Record<FontSize, string>> = {
   16: 'Large',
 };
 
-/** Row widths offered beside "Fit the window"; wider than the window scrolls sideways. */
+/** Row widths offered beside "Fit"; wider than the window scrolls sideways. */
 const ROW_WIDTHS: readonly number[] = [30, 60, 90, 120];
 
-/** The tick is decoration: `aria-checked` is what says which item is chosen. */
-function Tick({ on }: { readonly on: boolean }) {
+/**
+ * The tick is decoration: `aria-checked` is what says which item is chosen.
+ * A `hint` before it is the item's key, which `aria-keyshortcuts` carries.
+ */
+function Tick({ on, hint }: { readonly on: boolean; readonly hint?: string }) {
   return (
     <span className="menu__shortcut" aria-hidden="true">
-      {on ? '✓' : ''}
+      {hint}
+      {on ? (hint === undefined ? '✓' : ' ✓') : ''}
     </span>
   );
 }
 
+/** One of a setting's choices, with its tooltip. */
+interface Choice<T> {
+  readonly value: T;
+  readonly label: string;
+  readonly title: string;
+}
+
 /** A read's trace: how tall above its bases, or not drawn (#55). */
-const TRACE_SIZES: readonly (readonly [TraceSize, string, string])[] = [
-  ['off', 'Hidden', "Draw the read's bases without its chromatogram"],
-  ['short', 'Short', 'The chromatogram above the bases, low'],
-  ['tall', 'Tall', 'The chromatogram at twice the height, for reading close peaks'],
+const TRACE_SIZES: readonly Choice<TraceSize>[] = [
+  { value: 'off', label: 'Hidden', title: "Draw the read's bases without its chromatogram" },
+  { value: 'short', label: 'Short', title: 'The chromatogram above the bases, low' },
+  {
+    value: 'tall',
+    label: 'Tall',
+    title: 'The chromatogram at twice the height, for reading close peaks',
+  },
 ];
 
 /** Which residues of a CDS translation carry their number (#97). */
-const RESIDUE_NUMBERINGS: readonly (readonly [ResidueNumbering, string, string])[] = [
-  ['off', 'Off', 'Draw the amino acids without numbers, in lower rows'],
-  ['tens', 'Every 10th', 'Number the first residue and every tenth over the translations'],
-  [
-    'every',
-    'Every residue',
-    'Number every residue; those with no room are left out until the text is larger or the rows shorter',
-  ],
+const RESIDUE_NUMBERINGS: readonly Choice<ResidueNumbering>[] = [
+  { value: 'off', label: 'Off', title: 'Draw the amino acids without numbers, in lower rows' },
+  {
+    value: 'tens',
+    label: 'Every 10th',
+    title: 'Number the first residue and every tenth over the translations',
+  },
+  {
+    value: 'every',
+    label: 'All',
+    title:
+      'Number every residue; those with no room are left out until the text is larger or the rows shorter',
+  },
+];
+
+const TEXT_SIZES: readonly Choice<FontSize>[] = FONT_SIZES.map((size) => ({
+  value: size,
+  label: SIZE_LABELS[size],
+  title: `${SIZE_LABELS[size]} text; the rows, lanes and labels scale with it`,
+}));
+
+const ROW_CHOICES: readonly Choice<number | null>[] = [
+  { value: null, label: 'Fit', title: 'As many as the window holds, in tens' },
+  ...ROW_WIDTHS.map((bases) => ({
+    value: bases,
+    label: String(bases),
+    title: `Always ${bases} bases in a row, scrolling sideways if the window is narrower`,
+  })),
 ];
 
 /**
- * How the sequence view draws: text size, how many bases go in a row,
+ * A setting's row: its name on the left and its control on the right, as in
+ * a settings list. `sub` indents a row that belongs to the one above it.
+ */
+function Row({
+  label,
+  note,
+  sub = false,
+  title,
+  children,
+}: {
+  readonly label: string;
+  readonly note?: string | undefined;
+  readonly sub?: boolean;
+  readonly title?: string | undefined;
+  readonly children: ReactNode;
+}) {
+  return (
+    <div className={`menu__item menu__row${sub ? ' menu__row--sub' : ''}`} title={title}>
+      <span className="menu__row-label">
+        {label}
+        {note !== undefined && <span className="menu__group-note"> · {note}</span>}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A setting with a few choices, as a row of buttons: every choice in view
+ * and one click to try it. Tab walks the buttons like the menu's other
+ * items (#34); the arrow keys move along the row too. Disabled as a whole
+ * when the setting has nothing to apply to, with the reason as the row's
+ * tooltip.
+ */
+function Choices<T extends string | number | null>({
+  label,
+  note,
+  choices,
+  value,
+  disabled = false,
+  disabledTitle,
+  onChange,
+}: {
+  readonly label: string;
+  readonly note?: string | undefined;
+  readonly choices: readonly Choice<T>[];
+  /** The chosen one; `undefined` when the setting holds a value not offered here. */
+  readonly value: T | undefined;
+  readonly disabled?: boolean;
+  readonly disabledTitle?: string | undefined;
+  readonly onChange: (value: T) => void;
+}) {
+  const group = useRef<HTMLDivElement>(null);
+  return (
+    <Row label={label} note={note} title={disabled ? disabledTitle : undefined}>
+      <div
+        className="segmented segmented--small"
+        role="radiogroup"
+        aria-label={label}
+        ref={group}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          e.preventDefault();
+          // Step from the focused button, which is the chosen one unless the
+          // setting holds a typed value that no button stands for.
+          const buttons = Array.from(group.current?.querySelectorAll('button') ?? []);
+          const at = buttons.indexOf(e.target as HTMLButtonElement);
+          const step = e.key === 'ArrowRight' ? 1 : choices.length - 1;
+          const to = ((at < 0 ? 0 : at) + step) % choices.length;
+          const next = choices[to];
+          if (next === undefined) return;
+          onChange(next.value);
+          buttons[to]?.focus();
+        }}
+      >
+        {choices.map((choice) => (
+          <button
+            key={String(choice.value)}
+            type="button"
+            role="radio"
+            aria-checked={value === choice.value}
+            className={`segmented__button${value === choice.value ? ' segmented__button--active' : ''}`}
+            disabled={disabled}
+            title={disabled ? undefined : choice.title}
+            onClick={() => {
+              onChange(choice.value);
+            }}
+          >
+            {choice.label}
+          </button>
+        ))}
+      </div>
+    </Row>
+  );
+}
+
+/**
+ * How the sequence view draws — text size, how many bases go in a row,
  * whether the complement is numbered too and whether bases are coloured,
- * and — since it is the other thing about the arrangement rather than the
- * document — a way back from wherever the splitters were dragged to. These
- * are preferences for the app, not the document, and they are remembered
- * between sessions.
+ * then the tracks around the strands — and, since it is the other thing
+ * about the arrangement rather than the document, a way back from wherever
+ * the splitters were dragged to. These are preferences for the app, not the
+ * document, and they are remembered between sessions.
+ *
+ * Laid out as a settings list rather than a menu of one item per choice
+ * (item 92): a setting is one row, its choices side by side, so the whole
+ * menu is in view on a laptop screen and a choice is one click without
+ * reading past the others.
  */
 export function FormatMenu() {
   const {
@@ -122,7 +259,7 @@ export function FormatMenu() {
         className="button"
         aria-label="Format"
         aria-keyshortcuts={key}
-        title={`Text size, bases per row, numbering and base colours in the sequence view, and the pane sizes (${key})`}
+        title={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; and the pane sizes (${key})`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -130,81 +267,51 @@ export function FormatMenu() {
         Format <span className="button__caret">▾</span>
       </button>
       {open && (
-        <div className="menu__list" role="menu" aria-label="Format and layout">
-          <p className="menu__group-label">Text size</p>
-          {FONT_SIZES.map((size) => (
-            <button
-              key={size}
-              type="button"
-              role="menuitemradio"
-              aria-checked={seqFontSize === size}
-              className="menu__item"
-              onClick={() => {
-                analytics.trackOnce('view', 'format', 'font-size');
-                editorStore.setSeqFontSize(size);
-              }}
-            >
-              <span>{SIZE_LABELS[size]}</span>
-              <Tick on={seqFontSize === size} />
-            </button>
-          ))}
-          <div className="menu__separator" />
-          <p className="menu__group-label">Bases per row</p>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={seqBasesPerRow === null}
-            className="menu__item"
-            title="As many as the window holds, in tens"
-            onClick={() => {
-              analytics.trackOnce('view', 'format', 'bases-per-row');
-              editorStore.setSeqBasesPerRow(null);
+        <div className="menu__list menu__list--settings" role="menu" aria-label="Format and layout">
+          <p className="menu__group-label">Sequence view</p>
+          <Choices
+            label="Text size"
+            choices={TEXT_SIZES}
+            value={seqFontSize}
+            onChange={(size) => {
+              analytics.trackOnce('view', 'format', 'font-size');
+              editorStore.setSeqFontSize(size);
             }}
-          >
-            <span>Fit the window</span>
-            <Tick on={seqBasesPerRow === null} />
-          </button>
-          {ROW_WIDTHS.map((bases) => (
-            <button
-              key={bases}
-              type="button"
-              role="menuitemradio"
-              aria-checked={seqBasesPerRow === bases}
-              className="menu__item"
-              title={`Always ${bases} bases in a row, scrolling sideways if the window is narrower`}
-              onClick={() => {
-                analytics.trackOnce('view', 'format', 'bases-per-row');
-                editorStore.setSeqBasesPerRow(bases);
-              }}
-            >
-              <span>{bases}</span>
-              <Tick on={seqBasesPerRow === bases} />
-            </button>
-          ))}
+          />
+          <Choices
+            label="Bases per row"
+            choices={ROW_CHOICES}
+            value={customRow ? undefined : seqBasesPerRow}
+            onChange={(bases) => {
+              analytics.trackOnce('view', 'format', 'bases-per-row');
+              editorStore.setSeqBasesPerRow(bases);
+            }}
+          />
           <label
-            className="menu__item menu__item--field"
+            className="menu__item menu__row menu__row--sub"
             title="Any whole number of bases, 10 to 1,000"
           >
-            <span>Other</span>
-            <input
-              className="panel__number"
-              type="number"
-              min={10}
-              max={1000}
-              aria-label="Bases per row"
-              value={rowDraft ?? (customRow ? String(seqBasesPerRow) : '')}
-              placeholder="bases"
-              onChange={(e) => {
-                setRowDraft(e.target.value);
-              }}
-              onBlur={commitRow}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commitRow();
-              }}
-            />
-            <Tick on={customRow} />
+            <span className="menu__row-label">Other</span>
+            <span className="menu__row-control">
+              <input
+                className="panel__number"
+                type="number"
+                min={10}
+                max={1000}
+                aria-label="Bases per row"
+                value={rowDraft ?? (customRow ? String(seqBasesPerRow) : '')}
+                placeholder="bases"
+                onChange={(e) => {
+                  setRowDraft(e.target.value);
+                }}
+                onBlur={commitRow}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitRow();
+                }}
+              />
+              <Tick on={customRow} />
+            </span>
           </label>
-          <div className="menu__separator" />
           <button
             type="button"
             role="menuitemcheckbox"
@@ -234,7 +341,11 @@ export function FormatMenu() {
             <Tick on={colorBases} />
           </button>
           {colorBases && (
-            <div className="menu__item menu__item--field" role="group" aria-label="Base colours">
+            <div
+              className="menu__item menu__row menu__row--sub menu__row--swatches"
+              role="group"
+              aria-label="Base colours"
+            >
               {(['a', 'c', 'g', 't'] as const).map((base) => (
                 <label
                   key={base}
@@ -266,11 +377,13 @@ export function FormatMenu() {
               </button>
             </div>
           )}
-          <div className="menu__separator" />
+          <div className="menu__separator" role="separator" />
+          <p className="menu__group-label">Tracks</p>
           <button
             type="button"
             role="menuitemcheckbox"
             aria-checked={showGc}
+            aria-keyshortcuts={gcKey}
             className="menu__item"
             disabled={isProtein}
             title={
@@ -284,84 +397,60 @@ export function FormatMenu() {
             }}
           >
             <span>GC content track</span>
-            <Tick on={showGc} />
+            <Tick on={showGc} hint={gcKey} />
           </button>
           {showGc && !isProtein && (
-            <div className="menu__item menu__item--field" role="group" aria-label="GC window">
-              <label
-                className="menu__field-row"
-                title="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map"
+            <Row
+              label="Window"
+              sub
+              title="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map"
+            >
+              <select
+                aria-label="GC window"
+                value={gcWindow === null ? 'auto' : String(gcWindow)}
+                onChange={(e) => {
+                  analytics.trackOnce('view', 'format', 'gc-window');
+                  editorStore.setGcWindow(
+                    e.target.value === 'auto' ? null : Number(e.target.value),
+                  );
+                }}
               >
-                <span>Window</span>
-                <select
-                  aria-label="GC window"
-                  value={gcWindow === null ? 'auto' : String(gcWindow)}
-                  onChange={(e) => {
-                    analytics.trackOnce('view', 'format', 'gc-window');
-                    editorStore.setGcWindow(
-                      e.target.value === 'auto' ? null : Number(e.target.value),
-                    );
-                  }}
-                >
-                  <option value="auto">Automatic</option>
-                  {GC_WINDOW_CHOICES.map((w) => (
-                    <option key={w} value={w}>
-                      {w} bp
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+                <option value="auto">Automatic</option>
+                {GC_WINDOW_CHOICES.map((w) => (
+                  <option key={w} value={w}>
+                    {w} bp
+                  </option>
+                ))}
+              </select>
+            </Row>
           )}
-          <div className="menu__separator" />
-          <p className="menu__group-label">
-            Residue numbers
-            {isProtein && <span className="menu__group-note"> · for CDS translations</span>}
-          </p>
-          {RESIDUE_NUMBERINGS.map(([numbering, label, title]) => (
-            <button
-              key={numbering}
-              type="button"
-              role="menuitemradio"
-              aria-checked={residueNumbering === numbering}
-              className="menu__item"
-              // A protein's ruler already counts its residues (#66).
-              disabled={isProtein}
-              title={isProtein ? "A protein's ruler already counts its residues" : title}
-              onClick={() => {
-                analytics.trackOnce('view', 'format', 'residue-numbers');
-                editorStore.setResidueNumbering(numbering);
-              }}
-            >
-              <span>{label}</span>
-              <Tick on={residueNumbering === numbering} />
-            </button>
-          ))}
-          <div className="menu__separator" />
-          <p className="menu__group-label">
-            Trace
-            {!hasTrace && <span className="menu__group-note"> · for AB1 reads</span>}
-          </p>
-          {TRACE_SIZES.map(([size, label, title]) => (
-            <button
-              key={size}
-              type="button"
-              role="menuitemradio"
-              aria-checked={traceSize === size}
-              className="menu__item"
-              // Always listed, so it can be found; set only with a trace to see.
-              disabled={!hasTrace}
-              title={hasTrace ? title : 'Only a read opened from an AB1 file has a trace'}
-              onClick={() => {
-                analytics.trackOnce('view', 'format', 'trace');
-                editorStore.setTraceSize(size);
-              }}
-            >
-              <span>{label}</span>
-              <Tick on={traceSize === size} />
-            </button>
-          ))}
-          <div className="menu__separator" />
+          <Choices
+            label="Residue numbers"
+            note={isProtein ? 'for CDS translations' : undefined}
+            choices={RESIDUE_NUMBERINGS}
+            value={residueNumbering}
+            // A protein's ruler already counts its residues (#66).
+            disabled={isProtein}
+            disabledTitle="A protein's ruler already counts its residues"
+            onChange={(numbering) => {
+              analytics.trackOnce('view', 'format', 'residue-numbers');
+              editorStore.setResidueNumbering(numbering);
+            }}
+          />
+          <Choices
+            label="Trace"
+            note={hasTrace ? undefined : 'for AB1 reads'}
+            choices={TRACE_SIZES}
+            value={traceSize}
+            // Always listed, so it can be found; set only with a trace to see.
+            disabled={!hasTrace}
+            disabledTitle="Only a read opened from an AB1 file has a trace"
+            onChange={(size) => {
+              analytics.trackOnce('view', 'format', 'trace');
+              editorStore.setTraceSize(size);
+            }}
+          />
+          <div className="menu__separator" role="separator" />
           <button
             type="button"
             role="menuitem"

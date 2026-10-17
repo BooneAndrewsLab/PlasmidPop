@@ -526,7 +526,7 @@ From the **File** menu:
     does a selection across the origin. The rows are whole rows, so the
     first and last may hold a few bases either side of the range.
   - **Bases per row**, 10 to 200: the Format menu's setting to start with,
-    or 60 when Format is left at "Fit the window", so the file does not
+    or 60 when Format is left at "Fit", so the file does not
     depend on the window width.
   - **Split into A4 pages**: one file per A4 page (210 × 297 mm, 15 mm
     margins), as many whole rows to a page as fit, scaled down to the

@@ -32,7 +32,7 @@ describe('FormatMenu', () => {
     fireEvent.blur(other);
     expect(editorStore.getState().seqBasesPerRow).toBe(1000);
     // One of the fixed widths leaves the box empty again.
-    fireEvent.click(screen.getByRole('menuitemradio', { name: '60' }));
+    fireEvent.click(screen.getByRole('radio', { name: '60' }));
     expect(other).toHaveValue(null);
   });
 
@@ -66,13 +66,39 @@ describe('FormatMenu', () => {
     expect(editorStore.getState().showGc).toBe(false);
   });
 
+  it("moves along a row's choices with the arrow keys, wrapping at the ends (#227)", () => {
+    open();
+    const size = (name: string) => screen.getByRole('radio', { name });
+    expect(size('Medium')).toHaveAttribute('aria-checked', 'true');
+    size('Medium').focus();
+    fireEvent.keyDown(size('Medium'), { key: 'ArrowRight' });
+    expect(editorStore.getState().seqFontSize).toBe(16);
+    expect(size('Large')).toHaveFocus();
+    fireEvent.keyDown(size('Large'), { key: 'ArrowRight' });
+    expect(editorStore.getState().seqFontSize).toBe(11);
+    expect(size('Small')).toHaveFocus();
+    fireEvent.keyDown(size('Small'), { key: 'ArrowLeft' });
+    expect(editorStore.getState().seqFontSize).toBe(16);
+    // A row whose value is typed rather than picked has no segment chosen.
+    const other = screen.getByRole('spinbutton', { name: 'Bases per row' });
+    fireEvent.change(other, { target: { value: '75' } });
+    fireEvent.keyDown(other, { key: 'Enter' });
+    const row = screen.getByRole('radiogroup', { name: 'Bases per row' });
+    expect(row.querySelector('[aria-checked="true"]')).toBeNull();
+    fireEvent.keyDown(screen.getByRole('radio', { name: 'Fit' }), { key: 'ArrowRight' });
+    expect(editorStore.getState().seqBasesPerRow).toBe(30);
+    act(() => {
+      editorStore.setSeqFontSize(13);
+    });
+  });
+
   it('numbers residues every tenth by default, or every one, or not at all (#97)', () => {
     open();
-    const item = (name: string) => screen.getByRole('menuitemradio', { name });
+    const item = (name: string) => screen.getByRole('radio', { name });
     expect(item('Every 10th')).toHaveAttribute('aria-checked', 'true');
-    fireEvent.click(item('Every residue'));
+    fireEvent.click(item('All'));
     expect(editorStore.getState().residueNumbering).toBe('every');
-    expect(item('Every residue')).toHaveAttribute('aria-checked', 'true');
+    expect(item('All')).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(item('Off'));
     expect(editorStore.getState().residueNumbering).toBe('off');
   });

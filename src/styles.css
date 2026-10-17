@@ -2447,19 +2447,59 @@ button {
   cursor: default;
 }
 
-/* A label and its control, label left and control right, as in a settings list. */
-.menu__field-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding-left: 12px;
+/* The Format menu is a settings list (item 92): a setting per row, its name
+   left and its control right, the choices side by side. It scrolls rather
+   than running off a short screen. */
+.menu__list--settings {
+  max-height: calc(100dvh - 130px);
+  overflow-y: auto;
 }
 
-.menu__field-row select {
+.menu__row {
+  align-items: center;
+  gap: 12px;
+  cursor: default;
+}
+
+.menu__row:hover {
+  background: transparent;
+}
+
+.menu__row-label {
+  flex: 1;
+}
+
+/* A row that belongs to the one above it: the custom row width, the base
+   colours, the GC window. */
+.menu__row--sub {
+  padding-left: 22px;
+}
+
+.menu__row-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu__row select {
   font: inherit;
   min-width: 8.5em;
+}
+
+.menu__row input[type='number'] {
+  width: 6.5em;
+  min-width: 0;
+}
+
+.menu__row--swatches {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* Choices in a menu row: smaller than the toolbar's groups. */
+.segmented--small .segmented__button {
+  padding: 3px 9px;
+  font-size: 12px;
 }
 
 .menu__item--field input[type='text'],
@@ -3965,6 +4005,10 @@ button {
   .button,
   .segmented__button {
     min-height: 36px;
+  }
+
+  .segmented--small .segmented__button {
+    min-height: 30px;
   }
 
   .doctabs__name {
