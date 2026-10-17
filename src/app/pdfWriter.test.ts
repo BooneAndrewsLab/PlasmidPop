@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
+import { deflateSync, inflateSync } from 'node:zlib';
 
 import { parseGenBank } from '@/io';
 import { exportLinearSvg, exportLinearSvgPages, exportMapSvg } from '@/view/svg';
@@ -137,6 +138,62 @@ describe('writeVectorPdf (#242)', () => {
     }
   });
 
+  describe('font weights', () => {
+    const weighted = (weight: string): string =>
+      `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><text x="10" y="50" font-family="Helvetica" font-size="12" font-weight="${weight}">Hi</text></svg>`;
+    /** Whether the text is set in a bold font: the fonts the page's content stream selects. */
+    const bold = async (weight: string): Promise<boolean> => {
+      const pdf = Buffer.from(await writeVectorPdf([weighted(weight)], 'w')).toString('latin1');
+      const fonts = new Map<string, string>();
+      for (const m of pdf.matchAll(/(\d+) 0 obj\n<<[^>]*?\/BaseFont \/(\S+)/g))
+        fonts.set(m[1] ?? '', m[2] ?? '');
+      const names = new Map<string, string>();
+      for (const m of pdf.matchAll(/\/(F\d+) (\d+) 0 R/g))
+        names.set(m[1] ?? '', fonts.get(m[2] ?? '') ?? '');
+      const used: string[] = [];
+      for (const m of pdf.matchAll(/stream\n([\s\S]*?)\nendstream/g)) {
+        const content = inflateSync(Buffer.from(m[1] ?? '', 'latin1')).toString('latin1');
+        for (const f of content.matchAll(/\/(F\d+) [\d.]+ Tf/g))
+          used.push(names.get(f[1] ?? '') ?? '');
+      }
+      expect(used.length).toBeGreaterThan(0);
+      return used.every((f) => f.endsWith('-Bold'));
+    };
+
+    it('rounds numeric weights to bold from 600 up and to normal below, and keeps names', async () => {
+      expect(await bold('600')).toBe(true);
+      expect(await bold('700')).toBe(true);
+      expect(await bold('599')).toBe(false);
+      expect(await bold('400')).toBe(false);
+      expect(await bold('bold')).toBe(true);
+      expect(await bold('normal')).toBe(false);
+    });
+  });
+
+  it('gives each page its own size and orientation, wide pages included', async () => {
+    const sized = (w: number, h: number): string =>
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${String(w)}" height="${String(h)}"><rect width="5" height="5"/></svg>`;
+    const pdf = await text(
+      await writeVectorPdf([sized(400, 200), sized(100, 300), sized(300, 100)], 'x'),
+    );
+    expect(mediaBoxes(pdf)).toEqual([
+      '0.00 0.00 300.00 150.00',
+      '0.00 0.00 75.00 225.00',
+      '0.00 0.00 225.00 75.00',
+    ]);
+  });
+
+  it('compresses what it writes', async () => {
+    const svg = exportLinearSvg(pbr322(), { basesPerRow: 60, range: { start: 0, end: 120 } });
+    expect(await text(await writeVectorPdf([svg], 'x'))).toContain('/FlateDecode');
+  });
+
+  it('refuses a page whose root is not an SVG element', async () => {
+    await expect(
+      writeVectorPdf(['<!-- <svg width="10" height="10"> --><div/>'], 'x'),
+    ).rejects.toThrow('The figure is not an SVG picture.');
+  });
+
   it('refuses no pages and a page without a size', async () => {
     await expect(writeVectorPdf([], 'x')).rejects.toThrow('There is no page to write.');
     await expect(writeVectorPdf(['<svg></svg>'], 'x')).rejects.toThrow(
@@ -181,6 +238,45 @@ describe('writeRasterPdf (#248)', () => {
         },
       }),
     ).rejects.toBeInstanceOf(ExportCancelledError);
+  });
+
+  it('stores a picture compressed', async () => {
+    // A 64 × 64 gradient, 12 KB as pixels: written uncompressed it is over 15 KB.
+    const w = 64;
+    const raw = Buffer.alloc((w * 3 + 1) * w);
+    for (let y = 0; y < w; y++)
+      for (let x = 0; x < w * 3; x++) raw[y * (w * 3 + 1) + 1 + x] = (x * y) & 255;
+    const table = Array.from({ length: 256 }, (_, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      return c >>> 0;
+    });
+    const crc = (b: Buffer): number => {
+      let c = 0xffffffff;
+      for (const v of b) c = (table[(c ^ v) & 255] ?? 0) ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    };
+    const chunk = (type: string, data: Buffer): Buffer => {
+      const length = Buffer.alloc(4);
+      length.writeUInt32BE(data.length);
+      const body = Buffer.concat([Buffer.from(type), data]);
+      const sum = Buffer.alloc(4);
+      sum.writeUInt32BE(crc(body));
+      return Buffer.concat([length, body, sum]);
+    };
+    const header = Buffer.alloc(13);
+    header.writeUInt32BE(w, 0);
+    header.writeUInt32BE(w, 4);
+    header[8] = 8;
+    header[9] = 2;
+    const png = Buffer.concat([
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+      chunk('IHDR', header),
+      chunk('IDAT', deflateSync(raw)),
+      chunk('IEND', Buffer.alloc(0)),
+    ]);
+    const pdf = await writeRasterPdf([{ png: new Uint8Array(png), width: w, height: w }], 'x');
+    expect(pdf.length).toBeLessThan(8000);
   });
 
   it('refuses no pages', async () => {

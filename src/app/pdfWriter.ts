@@ -41,6 +41,7 @@ import { svgPixelSize } from './mapPng';
 function pdfWeight(weight: string): string {
   const n = Number(weight);
   if (Number.isNaN(n)) return weight;
+  // Stryker disable next-line StringLiteral: an empty weight is read as normal by svg2pdf, so the 'normal' branch's text cannot be told from empty
   return n >= 600 ? 'bold' : 'normal';
 }
 
@@ -50,6 +51,7 @@ function parseSvg(svg: string): Element {
   if (root.tagName !== 'svg') throw new Error('The figure is not an SVG picture.');
   for (const el of root.querySelectorAll('[font-weight]')) {
     const weight = el.getAttribute('font-weight');
+    // Stryker disable next-line ConditionalExpression: the selector matched on the attribute, so it is never null (the check is for the type)
     if (weight !== null) el.setAttribute('font-weight', pdfWeight(weight));
   }
   return root;
@@ -61,6 +63,7 @@ interface PageSize {
 }
 
 const orientationOf = (page: PageSize): 'landscape' | 'portrait' =>
+  // Stryker disable next-line EqualityOperator: a square page is the same either way round
   page.width > page.height ? 'landscape' : 'portrait';
 
 /** A document whose first page is `first`'s size; the rest are added as they come. */
@@ -101,6 +104,7 @@ export async function writeVectorPdf(
   const doc = newDocument(first);
   await eachPage(sized, 'drawing', options, async (page, i) => {
     if (i > 0) doc.addPage([page.width, page.height], orientationOf(page));
+    // Stryker disable next-line ObjectLiteral: without the options svg2pdf draws at the SVG's own origin and size, which is the page's
     await svg2pdf(parseSvg(page.svg), doc, {
       x: 0,
       y: 0,
@@ -128,6 +132,7 @@ export async function writeRasterPdf(
   const doc = newDocument(first);
   await eachPage(pages, 'writing', options, (page, i) => {
     if (i > 0) doc.addPage([page.width, page.height], orientationOf(page));
+    // Stryker disable next-line StringLiteral: jsPDF finds a PNG's format from its bytes when none is given (the compression, 'FAST', is tested by the size)
     doc.addImage(page.png, 'PNG', 0, 0, page.width, page.height, undefined, 'FAST');
   });
   return finish(doc, title);

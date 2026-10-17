@@ -69,12 +69,43 @@ describe('eachPage (#247, #248)', () => {
     }
   });
 
+  it('does not yield after the last page however long it took', async () => {
+    let clock = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    const timeouts = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      await eachPage([1, 2], 'drawing', {}, () => {
+        clock += YIELD_AFTER_MS + 1;
+      });
+      // One turn after the first page, none after the second, which is the last.
+      expect(timeouts).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('yields only after a stretch longer than the limit, not one exactly as long', async () => {
+    let clock = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => clock);
+    const timeouts = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      await eachPage([1, 2], 'drawing', {}, () => {
+        clock += YIELD_AFTER_MS;
+      });
+      expect(timeouts).not.toHaveBeenCalled();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
   it('yields, then sees a cancellation that arrived during the turn', async () => {
     let clock = 0;
     vi.spyOn(performance, 'now').mockImplementation(() => clock);
     const controller = new AbortController();
     try {
+      const started: number[] = [];
       const run = eachPage([1, 2], 'drawing', { signal: controller.signal }, (n) => {
+        started.push(n);
         clock += YIELD_AFTER_MS + 1;
         return n;
       });
@@ -82,6 +113,8 @@ describe('eachPage (#247, #248)', () => {
       await Promise.resolve();
       controller.abort();
       await expect(run).rejects.toBeInstanceOf(ExportCancelledError);
+      // The cancellation is seen before the next page starts, not after it.
+      expect(started).toEqual([1]);
     } finally {
       vi.restoreAllMocks();
     }

@@ -135,3 +135,56 @@ timeout overrides the 60 s mutation-mode `testTimeout`, so a slow one
 fails the dry run (`overlapPrimers.property.test.ts` did, at 10 s). And
 `.stryker-tmp` and `reports` are in ESLint's ignores: left in the tree
 after a run, the instrumented copy made `eslint .` run out of memory.
+
+## At 1.16
+
+`exportFigure.ts`, `exportJob.ts`, `pdfWriter.ts`, `help/staticGuide.ts` and
+`view/svg/exportLinear.ts` joined the set (the export dialog's size and page
+rules, the export job's yielding and cancelling, the PDF writers, the static
+guide and sitemap generator, and the sequence view's page layout). The
+primers panel and Format menu changes of 1.16 are React components with no
+logic module of their own, and the export worker and its client are glue, so
+they are not mutated. The first full incremental run scored 93.48% over all
+71 files (20,948 mutants, 86 minutes with a 45-minute dry-run timeout); the
+new modules were `staticGuide.ts` 47.7%, `exportLinear.ts` 71.8%,
+`pdfWriter.ts` 76.7%, `exportJob.ts` 86.1% and `exportFigure.ts` 86.4%,
+with 219 survivors and 19 uncovered among them.
+
+Triage wrote tests for nearly all of them: exact messages and boundaries of
+the size advice, the yield limit and the cancel point, the PDF writer's font
+weights (read from the fonts the content stream selects), page sizes and
+compression, the generated guide pages as exact HTML, the page-filling rule
+of the sequence view checked against each row's own height over a range of
+text sizes, and the 100,000-base limit counted per stretch of a range. The
+narrow reruns (`--mutate` on the five files, about 10 minutes each) end with
+`exportFigure.ts`, `exportJob.ts`, `pdfWriter.ts` and `exportLinear.ts` at
+100% and `staticGuide.ts` at 99.6%; the one survivor left there is the
+equivalent noted below, disabled after the last run. The whole-set score of
+that last run was 94.72%.
+
+One thing to know before writing tests for a module like these: a fixture
+built in a `describe` body (not in the test) runs while the file loads, so
+its mutants are static and are attributed to no test. The golden guide pages
+first survived for that reason, at 48%, and scored 96% once the pages were
+made in each test.
+
+Accepted equivalents, each a `// Stryker disable` with its reason beside
+the code (31 comments, one of them a disable/restore pair):
+
+- Guards for the type: values that are only undefined for no rows or no
+  pieces (`topOf`, `heightOf`, the runs of `plan`, `advice.pop() ?? ''`,
+  `dest.pop() ?? ''`), and `?.` on a run that always has rows.
+- Redundant by another check: the bounds of `relative`'s common-prefix loop
+  (the comparison fails where either list ends), the trace option's `'off'`
+  (the layout reads anything but `short` and `tall` as no trace), the residue
+  numbering and the translations without `showTranslations` (nothing draws
+  them), `kind === 'heading'` beside `level === 1`, and the empty filters
+  and joins in `relative` for the one-level page paths.
+- Floating-point equality: `used + cost > room` against `>=`.
+- Last chunk and last page of `paginate`, which are never empty.
+- Where the library fills the same value in: svg2pdf reads an empty
+  font weight as normal, jsPDF finds PNG from the bytes, a square page has
+  one orientation, the numeric region of a locale never names a Letter
+  country, and a scale below the current one is over the budget already.
+- `matchStaticRequest`'s `q <= 0`, which cannot occur for a path under the
+  base.

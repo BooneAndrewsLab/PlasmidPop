@@ -72,6 +72,7 @@ const LETTER_REGIONS: ReadonlySet<string> = new Set([
 export function defaultPaper(locales: readonly string[]): PaperSize {
   const first = locales.find((l) => l.trim() !== '');
   if (first === undefined) return 'a4';
+  // Stryker disable next-line Regex: the numeric (UN M.49) region branch never names a Letter country, so changing it cannot change the answer
   const region = /^[A-Za-z]{2,3}(?:[-_][A-Za-z]{4})?[-_]([A-Za-z]{2}|\d{3})(?:[-_]|$)/.exec(
     first.trim(),
   )?.[1];
@@ -125,6 +126,7 @@ export function pngProblem(
     advice.push('split into pages');
   }
   if (advice.length === 0) return `${head}.`;
+  // Stryker disable next-line StringLiteral: the list is not empty here (checked just above), so the fallback is for the type
   const last = advice.pop() ?? '';
   return `${head}: ${advice.length === 0 ? last : `${advice.join(', ')} or ${last}`}.`;
 }
@@ -185,6 +187,7 @@ export function pagesProblem(
   const what = output === 'png' ? 'a ZIP of PNGs' : 'a raster PDF';
   const head = `${count.toLocaleString()} pages at ${String(scale)}× are ${Math.round(total).toLocaleString()} megapixels, more than ${what} holds (${budget.toLocaleString()})`;
   const advice: string[] = [];
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: a scale of at least `scale` is over the budget already (it is what was just found too big), so `k < scale` filters nothing
   const fits = PNG_SCALES.filter((k) => k < scale && megapixels(count, k) <= budget);
   const largest = fits[fits.length - 1];
   if (largest !== undefined) advice.push(`choose ${String(largest)}× or less`);
@@ -196,6 +199,7 @@ export function pagesProblem(
       `export at most ${fewer.toLocaleString()} ${fewer === 1 ? 'page' : 'pages'} (a shorter range or more bases per row)`,
     );
   if (advice.length === 0) return `${head}.`;
+  // Stryker disable next-line StringLiteral: the list is not empty here (checked just above), so the fallback is for the type
   const last = advice.pop() ?? '';
   return `${head}: ${advice.length === 0 ? last : `${advice.join(', ')} or ${last}`}.`;
 }

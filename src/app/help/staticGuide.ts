@@ -59,14 +59,18 @@ function escapeHtml(s: string): string {
 function relative(fromDir: string, to: string): string {
   const from = fromDir.split('/').filter((x) => x !== '');
   const dest = to.split('/');
+  // Stryker disable next-line StringLiteral: `split` always gives one piece, so the fallback is for the type
   const file = dest.pop() ?? '';
+  // Stryker disable next-line ConditionalExpression,MethodExpression,StringLiteral: the page paths have no empty segment but the trailing one, which `pop` took off, so the filter removes nothing
   const target = dest.filter((x) => x !== '');
   let common = 0;
+  // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: the bounds are redundant with the comparison, which fails where either list has ended (undefined against a string)
   while (common < from.length && common < target.length && from[common] === target[common])
     common++;
   const ups = from.length - common;
   const parts = [...target.slice(common)];
   const prefix = ups === 0 ? './' : '../'.repeat(ups);
+  // Stryker disable next-line StringLiteral: the links go to pages one directory deep, so there is never a second part to join
   return prefix + parts.map((x) => `${x}/`).join('') + file;
 }
 
@@ -200,6 +204,7 @@ ${opts.pager}
 export function generateGuideFiles(pages: readonly SourcePage[]): StaticFile[] {
   const parsed = pages.map((p) => {
     const blocks = parseMarkdown(p.markdown);
+    // Stryker disable next-line ConditionalExpression: only a heading has a `level`, so `kind === 'heading'` adds nothing to `level === 1` (the `level` half is tested)
     const h1 = blocks.find((b) => b.kind === 'heading' && b.level === 1);
     const title = h1?.kind === 'heading' ? plainText(h1.children) : p.id;
     return { ...p, blocks, title };
@@ -213,6 +218,7 @@ export function generateGuideFiles(pages: readonly SourcePage[]): StaticFile[] {
       t === undefined
         ? '<span></span>'
         : `<a href="${escapeHtml(relative(dir, pagePath(t.id)))}">${label}</a>`;
+    // Stryker disable next-line StringLiteral: the label of a missing neighbour is not used (`link` writes an empty span instead)
     const pager = `<nav class="pager" aria-label="Guide pages">${link(prev, `&larr; ${escapeHtml(prev?.title ?? '')}`)}${link(next, `${escapeHtml(next?.title ?? '')} &rarr;`)}</nav>`;
     const body = p.blocks.map((b) => block(b, dir)).join('\n');
     return {
@@ -272,6 +278,7 @@ export type StaticRequest =
  */
 export function matchStaticRequest(url: string, base: string): StaticRequest | null {
   const q = url.search(/[?#]/);
+  // Stryker disable next-line EqualityOperator: `q` is 0 only for a url that starts with `?` or `#`, which has no path to match either way
   const pathname = q < 0 ? url : url.slice(0, q);
   if (!pathname.startsWith(base)) return null;
   const rel = pathname.slice(base.length);
@@ -279,6 +286,7 @@ export function matchStaticRequest(url: string, base: string): StaticRequest | n
   if (/^guide\/([^/]+\/)?index\.html$/.test(rel)) return { kind: 'file', path: rel };
   if (/^guide\/([^/]+\/)?$/.test(rel)) return { kind: 'file', path: `${rel}index.html` };
   if (rel === 'guide' || /^guide\/[^/]+$/.test(rel))
+    // Stryker disable next-line EqualityOperator: `q` is never 0 here, since the path matched the base and `guide` before it
     return { kind: 'redirect', to: `${pathname}/${q < 0 ? '' : url.slice(q)}` };
   return null;
 }

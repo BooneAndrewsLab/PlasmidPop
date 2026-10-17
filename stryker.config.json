@@ -72,7 +72,12 @@
     "src/io/snapgene/writeSnapGene.ts",
     "src/storage/backup.ts",
     "src/app/mapPng.ts",
-    "src/app/sequenceExport.ts"
+    "src/app/sequenceExport.ts",
+    "src/app/exportFigure.ts",
+    "src/app/exportJob.ts",
+    "src/app/pdfWriter.ts",
+    "src/app/help/staticGuide.ts",
+    "src/view/svg/exportLinear.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {

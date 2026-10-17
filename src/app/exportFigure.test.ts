@@ -69,6 +69,28 @@ describe('export figure size advice (#243)', () => {
   });
 });
 
+describe('export figure size advice, row widths (#243)', () => {
+  const seq = (basesPerRow: number) => ({ basesPerRow, pages: false });
+  const head = (w: string, h: string, k = 1): string =>
+    `At ${String(k)}× the picture would be ${w} × ${h} pixels, more than a browser draws (16,384)`;
+
+  it('offers no row width for a figure that is not taller than it is wide', () => {
+    // Square, and wide: widening the rows would not shorten what is over the limit.
+    expect(pngProblem({ width: 20_000, height: 20_000 }, 1, 'sequence', seq(60))).toBe(
+      `${head('20,000', '20,000')}: split into pages.`,
+    );
+    expect(pngProblem({ width: 30_000, height: 29_999 }, 1, 'sequence', seq(60))).toBe(
+      `${head('30,000', '29,999')}: split into pages.`,
+    );
+  });
+
+  it('offers no row width when the rows are already as wide as one can be', () => {
+    expect(pngProblem({ width: 600, height: 60_000 }, 1, 'sequence', seq(200))).toBe(
+      `${head('600', '60,000')}: split into pages.`,
+    );
+  });
+});
+
 describe('the default paper (#245)', () => {
   it('is US Letter for the Letter countries, by the first locale with a region', () => {
     for (const l of ['en-US', 'en-CA', 'fr-CA', 'es-MX', 'en_US', 'en-us', 'fil-PH'])
@@ -80,6 +102,16 @@ describe('the default paper (#245)', () => {
     for (const l of ['en-GB', 'de-DE', 'fr-FR', 'en-AU', 'ja-JP', 'en', 'fr', 'es-419', ''])
       expect(defaultPaper([l]), l).toBe('a4');
     expect(defaultPaper([])).toBe('a4');
+  });
+
+  it('reads the locale as written: trimmed, anchored at the start and ended by a separator', () => {
+    expect(defaultPaper([' en-US '])).toBe('letter');
+    expect(defaultPaper(['  ', 'en-US'])).toBe('letter');
+    expect(defaultPaper(['en-US-u-ca-gregory'])).toBe('letter');
+    // Not a language followed by a region: the tail 'de-US' must not be found inside it.
+    expect(defaultPaper(['abcde-US'])).toBe('a4');
+    // A region of three letters, of which the first two are Letter's.
+    expect(defaultPaper(['en-USA'])).toBe('a4');
   });
 
   it('goes by the first locale only', () => {
@@ -136,6 +168,29 @@ describe('export page limits (#246)', () => {
     expect(none).not.toContain('or less');
     expect(none).toContain('switch to Vector');
     expect(none).toContain('at most 187 pages');
+  });
+
+  it('counts a total exactly at the budget as fitting, and a smaller scale exactly at it as fitting', () => {
+    // 3 MP a page: 1,000 pages at 1x are exactly the 3,000 MP budget.
+    const page = { width: 3000, height: 1000 };
+    expect(pagesProblem(1000, page, 1, 'png')).toBeNull();
+    expect(pagesProblem(1000, page, 2, 'png')).toBe(
+      '1,000 pages at 2× are 12,000 megapixels, more than a ZIP of PNGs holds (3,000): choose 1× or less or export at most 250 pages (a shorter range or more bases per row).',
+    );
+  });
+
+  it('lists its advice with commas and a last "or", and gives none for one that cannot be met', () => {
+    expect(pagesProblem(300, a4, 4, 'pdf-raster')).toMatch(
+      /more than a raster PDF holds \(3,000\): choose 2× or less, switch to Vector or export at most \d+ pages \(a shorter range or more bases per row\)\.$/,
+    );
+    // One page alone is over the budget: nothing to suggest.
+    expect(pagesProblem(1, { width: 60_000, height: 60_000 }, 1, 'png')).toBe(
+      '1 pages at 1× are 3,600 megapixels, more than a ZIP of PNGs holds (3,000).',
+    );
+    // Room for exactly one page: said in the singular.
+    expect(pagesProblem(2, { width: 50_000, height: 50_000 }, 1, 'png')).toBe(
+      '2 pages at 1× are 5,000 megapixels, more than a ZIP of PNGs holds (3,000): export at most 1 page (a shorter range or more bases per row).',
+    );
   });
 
   it('has a budget for rasterised output only', () => {

@@ -127,11 +127,13 @@ interface Plan {
 /** Where a run of rows starts on its own drawing: row 0 keeps the layout's top padding. */
 function topOf(rows: Run): number {
   const first = rows[0];
+  // Stryker disable next-line ConditionalExpression: `first` is undefined only for no rows, and a run always has some (the guard is for the type; the `index === 0` half is tested)
   return first === undefined || first.index === 0 ? 0 : first.top;
 }
 
 function heightOf(rows: Run): number {
   const last = rows[rows.length - 1];
+  // Stryker disable next-line ConditionalExpression: `last` is undefined only for no rows, and a layout always has one, so the guard is for the type
   return last === undefined ? 0 : last.top + last.height - topOf(rows);
 }
 
@@ -142,10 +144,12 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
   );
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cutSites = options.cutSites ?? [];
+  // Stryker disable ConditionalExpression,StringLiteral: the numbering only shows on translation lines, which exist only with `showTranslations`, so it is 'off' in effect without it, and 'off' and an empty value both show no numbers
   const numbering =
     options.showTranslations === true
       ? (options.residueNumbering ?? DEFAULT_RESIDUE_NUMBERING)
       : 'off';
+  // Stryker restore ConditionalExpression,StringLiteral
   const monoFont = monoFontOf(fontSize);
   const charWidth = charWidthFor(monoFont);
   const overhangs = endOverhangs(doc);
@@ -157,6 +161,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
     // Room for the enzyme names above the strands, as in the on-screen view.
     cutSiteLabels: cutSites.length > 0,
     // A read's chromatogram is exported with it, at the height it has on screen.
+    // Stryker disable next-line ConditionalExpression,StringLiteral,BooleanLiteral: the layout reads anything but 'short' and 'tall' as no trace, so `'off'` (and `true`) are the same as `false`
     trace: doc.read?.trace == null || options.trace === 'off' ? false : (options.trace ?? 'short'),
     residueNumbering: numbering,
     // ...and for a sticky end drawn beside the first or last column.
@@ -187,11 +192,14 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
   for (const piece of pieces) {
     const first = layout.rowOfPosition(piece.start) ?? layout.rows[0];
     const last = layout.rowOfPosition(Math.max(piece.start, piece.end - 1)) ?? first;
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: a layout always has a first row, so neither is undefined (the guard is for the type)
     if (first === undefined || last === undefined) continue;
     runs.push(layout.rows.slice(first.index, last.index + 1));
   }
+  // Stryker disable next-line ConditionalExpression,StringLiteral,CallExpression: every piece adds a run, so there is always one (the guard is for the type)
   if (runs.length === 0) throw new Error('There is nothing to export.');
   const bases = runs.reduce(
+    // Stryker disable next-line OptionalChaining: a run always has rows
     (n, rows) => n + (rows[rows.length - 1]?.end ?? 0) - (rows[0]?.start ?? 0),
     0,
   );
@@ -201,6 +209,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
     );
 
   const width = linearWidth(metrics);
+  // Stryker disable next-line ConditionalExpression: with no translation lanes nothing asks the translations for a residue
   const translations = options.showTranslations === true ? new CdsTranslations(doc) : null;
   const draw = (rows: Run): { body: string; height: number } => {
     const top = topOf(rows);
@@ -247,7 +256,9 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
 function spansOf(runs: readonly Run[]): string {
   return runs
     .map((rows) => {
+      // Stryker disable next-line OptionalChaining: a run always has rows
       const from = (rows[0]?.start ?? 0) + 1;
+      // Stryker disable next-line OptionalChaining: a run always has rows
       const to = rows[rows.length - 1]?.end ?? 0;
       return `${from.toLocaleString()}–${to.toLocaleString()}`;
     })
@@ -330,6 +341,7 @@ export const LETTER_PAGE: PageGeometry = {
 };
 
 /** The page of a paper size; A4 when none is given. */
+// Stryker disable next-line StringLiteral: any other value is A4 as well, since only 'letter' is tested for
 export function pageOf(paper: PaperSize = 'a4'): PageGeometry {
   return paper === 'letter' ? LETTER_PAGE : A4_PAGE;
 }
@@ -346,6 +358,7 @@ function paginate(p: Plan, page_: PageGeometry): (readonly Run[])[] {
     for (const row of run) {
       // Row 0 brings the layout's top padding with it.
       const cost = (row.height + (row.index === 0 ? row.top : 0)) * scale;
+      // Stryker disable next-line EqualityOperator: a page filled to exactly the room would need the sum of row heights to equal it to the last bit
       if (used + cost > room && (page.length > 0 || chunk.length > 0)) {
         if (chunk.length > 0) page.push(chunk);
         pages.push(page);
@@ -356,8 +369,10 @@ function paginate(p: Plan, page_: PageGeometry): (readonly Run[])[] {
       chunk.push(row);
       used += cost;
     }
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: a run has at least one row, so its last chunk is never empty
     if (chunk.length > 0) page.push(chunk);
   }
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: the last chunk was just added to `page`, so it is never empty
   if (page.length > 0) pages.push(page);
   return pages;
 }

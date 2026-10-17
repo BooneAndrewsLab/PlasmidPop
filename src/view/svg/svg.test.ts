@@ -610,3 +610,271 @@ describe('exportMapSvg figure options (#212)', () => {
     expect(exportMapSvg(doc, { fontScale: 2 })).not.toBe(exportMapSvg(doc));
   });
 });
+
+describe('exportLinear: what the figure is made of (mutation triage, 1.16)', () => {
+  const plasmid = () => {
+    const d = parseGenBank(readFixture('J01749.gb')).documents[0];
+    if (d === undefined) throw new Error('fixture');
+    return d;
+  };
+  const plain = (n: number, topology: 'linear' | 'circular' = 'linear'): SeqDocument =>
+    SeqDocument.create({ sequence: randomBases(n, 7), topology, name: 'Plain' });
+  const rootSize = (svg: string): { w: number; h: number } => ({
+    w: Number(/^<svg[^>]*? width="([\d.]+)"/.exec(svg)?.[1]),
+    h: Number(/^<svg[^>]*? height="([\d.]+)"/.exec(svg)?.[1]),
+  });
+  const rowNumbers = (svg: string): number[] =>
+    [...svg.matchAll(/text-anchor="end"[^>]*>([\d,]+)</g)].map((m) =>
+      Number((m[1] ?? '').replace(/,/g, '')),
+    );
+
+  it('says what it shows in its description: the length, or the bases of a range', () => {
+    const d = plain(300);
+    expect(exportLinearSvg(d)).toContain(
+      '<desc>300 bp, linear. Exported from PlasmidPop.</desc><svg y="0" ',
+    );
+    expect(exportLinearSvg(d, { range: { start: 70, end: 130 } })).toContain(
+      '<desc>bases 61–180 of 300 bp, linear. Exported from PlasmidPop.</desc>',
+    );
+  });
+
+  it('refuses more than 100,000 bases, counting every stretch of a range', () => {
+    expect(() => measureLinearSvg(plain(100_000))).not.toThrow();
+    expect(() => measureLinearSvg(plain(100_001))).toThrow(
+      'The sequence view export is limited to 100,000 bases; select a shorter range.',
+    );
+    // The bases counted are those of the rows the range holds, from the first of them.
+    expect(() =>
+      measureLinearSvg(plain(100_020), { range: { start: 120, end: 100_020 } }),
+    ).not.toThrow();
+    // Two stretches of a circle, each under the limit, together over it.
+    const circle = plain(66_000, 'circular');
+    expect(() => measureLinearSvg(circle, { range: { start: 600, end: 66_000 + 65_000 } })).toThrow(
+      'limited to 100,000 bases',
+    );
+    // ...and together under it.
+    expect(() =>
+      measureLinearSvg(circle, { range: { start: 40_000, end: 66_000 + 30_000 } }),
+    ).not.toThrow();
+  });
+
+  it('starts the first row below its top padding, which later rows do not carry', () => {
+    const d = plain(240);
+    const row = (i: number) => measureLinearSvg(d, { range: { start: 60 * i, end: 60 * i + 60 } });
+    expect(row(0).height).toBeGreaterThan(row(1).height);
+    expect(row(1).height).toBe(row(2).height);
+  });
+
+  it('leaves the translation numbers off, as the view does, unless translations are on', () => {
+    const d = plasmid();
+    const range = { start: 86, end: 200 };
+    const base = exportLinearSvg(d, { range });
+    expect(exportLinearSvg(d, { range, residueNumbering: 'every' })).toBe(base);
+    expect(base).not.toContain('font-size="9.35"');
+  });
+
+  it('keeps the base colours, the numbering beside the complement and the cut-site labels as asked', () => {
+    const d = plain(120);
+    const base = exportLinearSvg(d);
+    expect(exportLinearSvg(d, { colorBases: false })).toBe(base);
+    const coloured = exportLinearSvg(d, { colorBases: true });
+    expect(coloured).not.toBe(base);
+    const custom = exportLinearSvg(d, {
+      colorBases: true,
+      baseColors: { a: '#123456', c: '#234567', g: '#345678', t: '#456789' },
+    });
+    for (const c of ['#123456', '#234567', '#345678', '#456789']) {
+      expect(custom).toContain(c);
+      expect(coloured).not.toContain(c);
+    }
+    expect(exportLinearSvg(d, { colorBases: true, baseColors: null })).toBe(coloured);
+    // Without colours of its own the print palette tints each of the four bases.
+    const baseFills = (svg: string): Set<string> =>
+      new Set([...svg.matchAll(/fill="(#[0-9a-f]{6})">[ACGTacgt ]+</g)].map((m) => m[1] ?? ''));
+    expect(baseFills(coloured).size).toBeGreaterThanOrEqual(4);
+    expect(rowNumbers(exportLinearSvg(d, { numberComplement: true })).length).toBeGreaterThan(
+      rowNumbers(base).length,
+    );
+    expect(exportLinearSvg(d, { numberComplement: false })).toBe(base);
+    const sites = [
+      { enzyme: 'EcoRI', cut: 10, cutBottom: 14, siteStart: 10, strand: 'forward' },
+    ] as const;
+    expect(rootSize(exportLinearSvg(d, { cutSites: sites })).h).toBeGreaterThan(rootSize(base).h);
+  });
+
+  it('draws a sticky end’s bottom strand in a gutter of its own width', () => {
+    const seq = randomBases(60, 3);
+    const sticky = (left: "5'" | "3'", right: "5'" | "3'") =>
+      SeqDocument.create({
+        sequence: seq,
+        topology: 'linear',
+        ends: {
+          left: { kind: left, overhang: 'ACGT', enzyme: 'X' },
+          right: { kind: right, overhang: 'TGCA', enzyme: 'Y' },
+        },
+      });
+    const wide = rootSize(exportLinearSvg(sticky("3'", "5'"))).w;
+    const none = rootSize(exportLinearSvg(plain(60))).w;
+    // Four columns at each end, of 0.6 em at 13 px.
+    expect(wide - none).toBeCloseTo(8 * 7.8, 1);
+  });
+
+  it('exports a read’s trace at the height asked for, and none for a document that has none', () => {
+    const n = 60;
+    const channel = () => Int16Array.from({ length: n * 8 }, (_, i) => (i * 37) % 900);
+    const read = {
+      qualities: Uint8Array.from({ length: n }, () => 30),
+      trace: {
+        channels: { A: channel(), C: channel(), G: channel(), T: channel() },
+        peaks: Int32Array.from({ length: n }, (_, i) => i * 8 + 4),
+      },
+    };
+    const d = plain(n);
+    const withTrace = d.setRead(read);
+    const h = (doc: SeqDocument, trace?: 'off' | 'short' | 'tall'): number =>
+      rootSize(exportLinearSvg(doc, trace === undefined ? {} : { trace })).h;
+    expect(h(withTrace, 'off')).toBe(h(d));
+    expect(h(withTrace)).toBe(h(withTrace, 'short'));
+    expect(h(withTrace, 'short')).toBeGreaterThan(h(d));
+    expect(h(withTrace, 'tall')).toBeGreaterThan(h(withTrace, 'short'));
+    const noTrace = d.setRead({ qualities: read.qualities, trace: null });
+    expect(h(noTrace, 'tall')).toBe(h(d));
+  });
+
+  it('writes numbers with at most two decimals and no trailing zeros', () => {
+    // Font sizes whose rows come to within a hundredth of a whole number of pixels.
+    for (const fontSize of [13.0001, 13.0004, 13.001, 13.0029, 12.9993, 11.0002, 15.0003]) {
+      const svg = exportLinearSvg(plain(60), { fontSize });
+      for (const m of svg.matchAll(/(?:width|height|y|x)="([\d.]+)"/g)) {
+        expect(m[1], `${String(fontSize)}: ${m[0]}`).not.toMatch(/\.\d*0$/);
+      }
+    }
+  });
+});
+
+describe('exportLinearSvgPages: where the pages break (mutation triage, 1.16)', () => {
+  const plain = (n: number): SeqDocument =>
+    SeqDocument.create({ sequence: randomBases(n, 11), topology: 'circular', name: 'Pg' });
+  const rowNumbers = (svg: string): number[] =>
+    [...svg.matchAll(/text-anchor="end"[^>]*>([\d,]+)</g)].map((m) =>
+      Number((m[1] ?? '').replace(/,/g, '')),
+    );
+  const room = (g: typeof A4_PAGE): number => g.height - 2 * g.margin - g.footer;
+  /** What each row costs on a page: the figure of that row alone. */
+  const costs = (d: SeqDocument, perRow: number, fontSize: number): number[] =>
+    Array.from(
+      { length: Math.ceil(d.length / perRow) },
+      (_, i) =>
+        measureLinearSvg(d, {
+          basesPerRow: perRow,
+          fontSize,
+          range: { start: i * perRow, end: (i + 1) * perRow },
+        }).height,
+    );
+  /** Each page holds as many rows as fit, and the next row would not have. */
+  const expectFilled = (
+    d: SeqDocument,
+    perRow: number,
+    fontSize: number,
+    paper: 'a4' | 'letter',
+  ): void => {
+    const geometry = paper === 'a4' ? A4_PAGE : LETTER_PAGE;
+    const cost = costs(d, perRow, fontSize);
+    const pages = exportLinearSvgPages(d, { basesPerRow: perRow, fontSize, paper });
+    const what = `${paper} at ${String(fontSize)} px`;
+    let row = 0;
+    pages.forEach((page, i) => {
+      const rows = rowNumbers(page).length;
+      const used = cost.slice(row, row + rows).reduce((a, b) => a + b, 0);
+      expect(used, `${what}, page ${String(i + 1)} fits`).toBeLessThanOrEqual(room(geometry));
+      const next = cost[row + rows];
+      if (next !== undefined)
+        expect(used + next, `${what}, page ${String(i + 1)} is full`).toBeGreaterThan(
+          room(geometry),
+        );
+      row += rows;
+    });
+    expect(row).toBe(cost.length);
+  };
+
+  for (const paper of ['a4', 'letter'] as const) {
+    it(`fills each ${paper} page with as many rows as fit, and starts the next with the one that does not`, () => {
+      expectFilled(plain(60 * 40), 60, 13, paper);
+    });
+  }
+
+  it('does so wherever the first row’s top padding tips a page over, at any text size', () => {
+    const d = plain(50 * 40);
+    for (let size = 9; size <= 14; size += 0.25) expectFilled(d, 50, size, 'a4');
+  });
+
+  it('gives a row taller than a page a page of its own, scaled to fit, with no empty page before it', () => {
+    // Eighty features over the first ten bases pile into as many lanes.
+    const features = Array.from({ length: 80 }, (_, i) =>
+      createFeature({
+        id: `f${String(i)}`,
+        type: 'misc_feature',
+        name: `F${String(i)}`,
+        segments: [rangeSegment(0, 10)],
+      }),
+    );
+    const d = SeqDocument.create({
+      sequence: randomBases(30, 5),
+      topology: 'linear',
+      name: 'Tall',
+      features,
+    });
+    const options = { basesPerRow: 10 } as const;
+    const first = measureLinearSvg(d, { ...options, range: { start: 0, end: 10 } }).height;
+    expect(first).toBeGreaterThan(room(A4_PAGE));
+    const pages = exportLinearSvgPages(d, options);
+    expect(pages.map((p) => rowNumbers(p))).toEqual([[1], [11, 21]]);
+    const scale = Number(/scale\(([\d.]+)\)/.exec(pages[0] ?? '')?.[1]);
+    expect(scale).toBeCloseTo(room(A4_PAGE) / first, 2);
+    expect(scale).toBeLessThan(1);
+    expect(countLinearSvgPages(d, options)).toBe(2);
+  });
+
+  it('writes a scale with its leading zero, and paper only unless transparent', () => {
+    const d = plain(60 * 6);
+    const [page] = exportLinearSvgPages(d, { basesPerRow: 200 });
+    expect(page).toMatch(/scale\(0\.\d+\)/);
+    const rect = `<rect x="0" y="0" width="793.7" height="1122.52" fill="#ffffff"/>`;
+    expect(page).toContain(rect);
+    const [clear] = exportLinearSvgPages(d, { basesPerRow: 200, transparent: true });
+    expect(clear).not.toContain('<rect x="0" y="0" width="793.7"');
+    // Nothing stands in for the paper: the figure follows the description directly.
+    expect(clear).toMatch(/<\/desc><g transform=/);
+  });
+
+  it('titles and describes each page', () => {
+    const d = plain(60 * 40);
+    const pages = exportLinearSvgPages(d, { basesPerRow: 60 });
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pages[0]).toContain(`<title>Pg sequence, page 1 of ${String(pages.length)}</title>`);
+    expect(pages[1]).toContain(`<title>Pg sequence, page 2 of ${String(pages.length)}</title>`);
+    expect(pages[0]).toMatch(
+      /<desc>Bases 1–\d+ of 2,400 bp, circular\. Exported from PlasmidPop\.<\/desc>/,
+    );
+  });
+
+  it('does not leave an empty stretch in a page when a range’s second stretch starts a new one', () => {
+    const d = plain(60 * 40);
+    const cost = costs(d, 60, 13);
+    // As many of the last rows as one page holds, then the first row, which cannot join them.
+    let k = 0;
+    let used = 0;
+    while (used + (cost[39 - k] ?? 0) <= room(A4_PAGE)) {
+      used += cost[39 - k] ?? 0;
+      k++;
+    }
+    const pages = exportLinearSvgPages(d, {
+      basesPerRow: 60,
+      range: { start: 60 * (40 - k), end: 2400 + 30 },
+    });
+    expect(pages).toHaveLength(2);
+    expect(rowNumbers(pages[0] ?? '')).toHaveLength(k);
+    expect(rowNumbers(pages[1] ?? '')).toEqual([1]);
+    expect(pages[0]).not.toContain('height="0"');
+  });
+});
