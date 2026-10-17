@@ -33,9 +33,12 @@ export function decodeEntities(text: string): string {
   // Stryker disable next-line ConditionalExpression,StringLiteral: a fast path only; replace() on text with no entity returns it unchanged
   if (!text.includes('&')) return text;
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
-    if (body.startsWith('#x') || body.startsWith('#X'))
-      return String.fromCodePoint(Number.parseInt(body.slice(2), 16));
-    if (body.startsWith('#')) return String.fromCodePoint(Number.parseInt(body.slice(1), 10));
+    if (body.startsWith('#')) {
+      const hex = body.startsWith('#x') || body.startsWith('#X');
+      const code = Number.parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10);
+      // Past U+10FFFF there is no character; keep the text as written, like an unknown named entity.
+      return code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+    }
     return NAMED_ENTITIES[body.toLowerCase()] ?? whole;
   });
 }

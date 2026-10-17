@@ -50,6 +50,18 @@ describe('decodeEntities', () => {
     expect(decodeEntities('&#65;&#x41;&#X42;&#xe9;')).toBe('AABé');
   });
 
+  it('leaves a numeric reference above U+10FFFF as written instead of throwing', () => {
+    expect(decodeEntities('&#99999999;')).toBe('&#99999999;');
+    expect(decodeEntities('&#x110000;')).toBe('&#x110000;');
+    expect(decodeEntities('&#x10FFFF;')).toBe('\u{10FFFF}');
+    expect(textOf(parseXml('<a v="&#x110000;">&#99999999;</a>'))).toBe('&#99999999;');
+  });
+
+  it('leaves a non-numeric hex reference as written instead of throwing', () => {
+    expect(decodeEntities('&#xZZ;')).toBe('&#xZZ;');
+    expect(parseXml('<a>&#xZZ;</a>').children).toEqual(['&#xZZ;']);
+  });
+
   it('leaves unknown, unterminated and bare ampersands alone', () => {
     expect(decodeEntities('plain')).toBe('plain');
     expect(decodeEntities('a & b &unknown; &amp c &#;')).toBe('a & b &unknown; &amp c &#;');
