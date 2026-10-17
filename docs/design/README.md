@@ -284,3 +284,5 @@ the Bench, item 49). The rest stand.
 103.  [Export the map as PNG](89-map-png-export.md)
 
 104.  [Write SnapGene files](90-snapgene-writer.md)
+
+105.  [Search and link-preview metadata](91-seo-metadata.md)
