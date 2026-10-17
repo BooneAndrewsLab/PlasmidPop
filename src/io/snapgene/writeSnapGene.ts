@@ -413,6 +413,7 @@ export function writeSnapGene(
     let segments = '';
     ranges.forEach((_, i) => {
       const prev = spans[i - 1];
+      // Stryker disable next-line ObjectLiteral: `spans` has one entry per range, so the fallback exists only for noUncheckedIndexedAccess and is never read.
       const s = spans[i] ?? { start: 0, end: 0 };
       // SnapGene draws the stretch between the pieces of a join as a gap
       // segment; the reader skips it, the picture needs it.

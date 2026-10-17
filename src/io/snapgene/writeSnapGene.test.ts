@@ -858,3 +858,439 @@ describe('writer: exact bytes (mutation)', () => {
     });
   });
 });
+
+describe('writer: exact bytes, packets and layout (mutation)', () => {
+  const dec = new TextDecoder();
+  const seq = 'ACGTTGCAAC'.repeat(12);
+  type Qs = { name: string; value: string | null }[];
+  const note = (value: string | null, name = 'note') => ({ name, value });
+  const packetsOf = (bytes: Uint8Array) => {
+    const out: { type: number; payload: Uint8Array }[] = [];
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    for (let at = 0; at < bytes.length;) {
+      const length = view.getUint32(at + 1, false);
+      out.push({ type: bytes[at] ?? -1, payload: bytes.subarray(at + 5, at + 5 + length) });
+      at += 5 + length;
+    }
+    return out;
+  };
+  const featureXml = (doc: SeqDocument, options = {}) =>
+    dec
+      .decode(packetsOf(writeSnapGene(doc, options).bytes).find((p) => p.type === 0x0a)?.payload)
+      .split('<Feature ')
+      .slice(1)
+      .map((f) => '<Feature ' + f.replace('</Features>', ''));
+  const make = (features: ReturnType<typeof createFeature>[], extra: object = {}) =>
+    Doc.create({ name: 'p', sequence: seq, topology: 'circular', features, ...extra });
+  const mk = (init: object) =>
+    createFeature({
+      name: 'f',
+      type: 'misc_feature',
+      strand: 'forward',
+      segments: [rangeSegment(2, 12)],
+      ...init,
+    });
+  const losses = (doc: SeqDocument) => writeSnapGene(doc).losses;
+
+  describe('packets', () => {
+    it.each([
+      ['dna', { topology: 'circular' as const }, 1, 0x00, [0x09, 0x00, 0x08, 0x0a, 0x05, 0x06]],
+      ['rna', { metadata: createMetadata({ moleculeType: 'RNA' }) }, 7, 0x20, undefined],
+      ['prot', { alphabet: 'protein' as const }, 2, 0x15, [0x09, 0x15, 0x08, 0x0a, 0x06]],
+    ])('lays out a %s file', (kind, extra, cookieKind, seqType, order) => {
+      const doc = Doc.create({
+        name: 'p',
+        sequence: kind === 'prot' ? 'MKVLAAGIVG' : seq,
+        methylation: { dam: true, dcm: true },
+        ...extra,
+      });
+      const out = writeSnapGene(doc, { uuid: 'U-9' });
+      const packets = packetsOf(out.bytes);
+      expect(packets.map((p) => p.type)).toEqual(order ?? [0x09, seqType, 0x08, 0x0a, 0x05, 0x06]);
+      const cookie = packets[0]?.payload ?? new Uint8Array();
+      expect(cookie.length).toBe(14);
+      expect(dec.decode(cookie.subarray(0, 8))).toBe('SnapGene');
+      expect(Array.from(cookie.subarray(8))).toEqual([0, cookieKind, 0, 15, 0, 19]);
+      // The packet length is a 4-byte big-endian count.
+      expect(Array.from(out.bytes.subarray(0, 5))).toEqual([0x09, 0, 0, 0, 14]);
+      const sequence = packets[1]?.payload ?? new Uint8Array();
+      expect(dec.decode(sequence.subarray(1))).toBe(kind === 'prot' ? 'MKVLAAGIVG' : seq);
+      expect(sequence[0]).toBe(kind === 'dna' ? 0x0f : 0);
+    });
+
+    it('writes the sequence flags byte from topology and methylation', () => {
+      const flagsOf = (extra: object) =>
+        packetsOf(
+          writeSnapGene(
+            Doc.create({
+              name: 'p',
+              sequence: seq,
+              methylation: { dam: false, dcm: false },
+              ...extra,
+            }),
+          ).bytes,
+        )[1]?.payload[0];
+      expect(flagsOf({ topology: 'linear' })).toBe(0x02);
+      expect(flagsOf({ topology: 'circular' })).toBe(0x03);
+      expect(flagsOf({ topology: 'linear', methylation: { dam: true, dcm: false } })).toBe(0x06);
+      expect(flagsOf({ topology: 'linear', methylation: { dam: false, dcm: true } })).toBe(0x0a);
+      expect(flagsOf({ topology: 'circular', methylation: { dam: true, dcm: true } })).toBe(0x0f);
+    });
+
+    it('writes the properties, features, empty primers and notes packets exactly', () => {
+      const doc = Doc.create({ name: 'p', sequence: seq, topology: 'circular' });
+      const packets = packetsOf(writeSnapGene(doc, { uuid: 'U-9' }).bytes);
+      const at = (i: number) => dec.decode(packets[i]?.payload);
+      expect(at(2)).toBe(
+        '<AdditionalSequenceProperties><UpstreamStickiness>0</UpstreamStickiness>' +
+          '<DownstreamStickiness>0</DownstreamStickiness>' +
+          '<UpstreamModification>Unmodified</UpstreamModification>' +
+          '<DownstreamModification>Unmodified</DownstreamModification>' +
+          '</AdditionalSequenceProperties>',
+      );
+      expect(at(3)).toBe('<?xml version="1.0"?><Features nextValidID="0"></Features>');
+      expect(at(4)).toBe(
+        '<?xml version="1.0"?><Primers nextValidID="0"><HybridizationParams minContinuousMatchLen="10" allowMismatch="1" minMeltingTemperature="40" showAdditionalFivePrimeMatches="1" minimumFivePrimeAnnealing="15"/></Primers>\n',
+      );
+      expect(at(5).startsWith('<Notes>\n<UUID>U-9</UUID>\n')).toBe(true);
+      expect(at(5).endsWith('\n</Notes>\n')).toBe(true);
+    });
+  });
+
+  describe('losses', () => {
+    it('lists a sequencing read', () => {
+      const doc = Doc.create({
+        name: 'p',
+        sequence: 'ACGT',
+        read: { qualities: new Uint8Array([30, 30, 30, 30]), trace: null },
+      });
+      expect(losses(doc)).toEqual([
+        'The sequencing read (qualities and trace) is not written; only its bases are.',
+      ]);
+      expect(losses(Doc.create({ name: 'p', sequence: 'ACGT' }))).toEqual([]);
+    });
+
+    it('lists features between bases, named or not, and writes none of them', () => {
+      const doc = make([
+        mk({ name: 'nm', segments: [siteSegment(3)] }),
+        mk({ name: '', type: 'gene', segments: [siteSegment(5)] }),
+        mk({ name: 'kept' }),
+      ]);
+      expect(losses(doc)).toEqual([
+        '2 feature(s) located between bases only are left out: “nm”, “gene”.',
+      ]);
+      expect(featureXml(doc)).toHaveLength(1);
+      expect(featureXml(doc)[0]).toContain('recentID="0" name="kept"');
+    });
+
+    it('says what is lost of a feature with a site among its segments, and only then', () => {
+      const mixed = make([mk({ name: 'm', segments: [rangeSegment(2, 12), siteSegment(20)] })]);
+      expect(losses(mixed)).toEqual([
+        'Feature “m”: a location between two bases cannot be written; the rest of it is.',
+      ]);
+      expect(featureXml(mixed)).toHaveLength(1);
+      expect(losses(make([mk({ segments: [rangeSegment(2, 12), rangeSegment(20, 30)] })]))).toEqual(
+        [],
+      );
+      expect(losses(make([mk({ segments: [rangeSegment(2, 12)] })]))).toEqual([]);
+    });
+
+    it('counts order(...) features, not join(...) ones', () => {
+      const two = [rangeSegment(2, 12), rangeSegment(20, 30)];
+      expect(losses(make([mk({ segments: two, joining: 'order' })]))).toEqual([
+        '1 feature(s) with order(…) locations are written as joined.',
+      ]);
+      expect(
+        losses(
+          make([mk({ segments: two, joining: 'order' }), mk({ segments: two, joining: 'order' })]),
+        ),
+      ).toEqual(['2 feature(s) with order(…) locations are written as joined.']);
+      expect(losses(make([mk({ segments: two })]))).toEqual([]);
+    });
+
+    it('counts features that lose partial marks, one per feature', () => {
+      const partial = (s: number, e: number, o: object) => rangeSegment(s, e, o);
+      expect(
+        losses(
+          make([
+            mk({ segments: [partial(2, 12, { partialStart: true })] }),
+            mk({ segments: [partial(2, 12, { partialEnd: true }), partial(20, 30, {})] }),
+            mk({ segments: [partial(2, 12, {})] }),
+          ]),
+        ),
+      ).toEqual(['2 feature(s) lose their partial-end marks (< and >).']);
+    });
+  });
+
+  describe('features', () => {
+    it('writes a feature element exactly, without a direction for a forward misc_feature', () => {
+      const [f] = featureXml(make([mk({ qualifiers: [note('hi')] })]));
+      expect(f).toBe(
+        '<Feature recentID="0" name="f" type="misc_feature" allowSegmentOverlaps="0" consecutiveTranslationNumbering="1">' +
+          '<Segment range="3-12" color="noColor" type="standard"/>' +
+          '<Q name="note"><V text="hi"/></Q></Feature>',
+      );
+    });
+
+    it('writes directions: reverse always, forward unless the type is undirected', () => {
+      const dir = (init: object) => featureXml(make([mk(init)]))[0] ?? '';
+      expect(dir({ strand: 'reverse' })).toContain(' directionality="2" type="misc_feature"');
+      expect(dir({ type: 'gene' })).toContain(' directionality="1" type="gene"');
+      expect(dir({ type: 'misc_feature' })).not.toContain('directionality');
+    });
+
+    it('colours: the colour note, then the callback, then none', () => {
+      const color = (qualifiers: Qs, options = {}) =>
+        /<Segment range="[^"]*" color="([^"]*)"/.exec(
+          featureXml(make([mk({ qualifiers })]), options)[0] ?? '',
+        )?.[1];
+      expect(color([])).toBe('noColor');
+      expect(color([], { colorOf: () => '#123456' })).toBe('#123456');
+      expect(color([note('color: #AbCdEf')], { colorOf: () => '#123456' })).toBe('#abcdef');
+      // Only a `note` qualifier holding the colour counts; the rest stay.
+      const doc = make([mk({ qualifiers: [note('color: #AbCdEf', 'label'), note(null)] })]);
+      const xml = featureXml(doc)[0] ?? '';
+      expect(xml).toContain('color="noColor"');
+      expect(xml).toContain('<Q name="label"><V text="color: #AbCdEf"/></Q><Q name="note"/>');
+      const coloured = featureXml(make([mk({ qualifiers: [note('color: #AbCdEf')] })]))[0] ?? '';
+      expect(coloured).not.toContain('<Q');
+    });
+
+    it('segments: a gap between pieces, none between adjacent ones', () => {
+      const xml = (segments: ReturnType<typeof rangeSegment>[]) =>
+        featureXml(make([mk({ segments })]))[0] ?? '';
+      expect(xml([rangeSegment(2, 12), rangeSegment(20, 30)])).toContain(
+        '<Segment range="3-12" color="noColor" type="standard"/>' +
+          '<Segment range="13-20" color="noColor" type="gap"/>' +
+          '<Segment range="21-30" color="noColor" type="standard"/>',
+      );
+      expect(xml([rangeSegment(2, 12), rangeSegment(12, 30)])).not.toContain('gap');
+      expect(xml([rangeSegment(20, 30), rangeSegment(2, 12)])).not.toContain('gap');
+    });
+
+    it('translated and reading frame: only a CDS with a codon_start of 1 to 3', () => {
+      const one = (init: object) => featureXml(make([mk(init)]))[0] ?? '';
+      const cds = (qualifiers: Qs, strand = 'forward') => one({ type: 'CDS', qualifiers, strand });
+      expect(cds([note('2', 'codon_start')])).toContain(
+        ' type="CDS" readingFrame="2" allowSegmentOverlaps',
+      );
+      expect(cds([note('2', 'codon_start')])).toContain('type="standard" translated="1"/>');
+      expect(cds([note('2', 'codon_start')], 'reverse')).toContain('readingFrame="-2"');
+      // The codon_start is found by name, wherever it is among the qualifiers.
+      expect(cds([note('9', 'label'), note('3', 'codon_start')])).toContain('readingFrame="3"');
+      for (const bad of ['0', '4', '12', '31', '41', 'x'])
+        expect(cds([note(bad, 'codon_start')])).not.toContain('readingFrame');
+      expect(cds([note('9', 'label')])).not.toContain('readingFrame');
+      expect(cds([])).not.toContain('readingFrame');
+      const gene = one({ type: 'gene', qualifiers: [note('2', 'codon_start')] });
+      expect(gene).not.toContain('readingFrame');
+      expect(gene).not.toContain('translated');
+    });
+  });
+
+  describe('primer groups', () => {
+    const body = 'ACGTTGCAACACGTTGCAACTTTTGGGGAAAA';
+    const pr = (name: string, start: number, qualifiers: Qs = [], strand = 'forward') =>
+      createFeature({
+        name,
+        type: 'primer_bind',
+        strand: strand as 'forward',
+        segments: [rangeSegment(start, start + 8)],
+        qualifiers,
+      });
+    const groups = (features: ReturnType<typeof createFeature>[]) => {
+      const doc = Doc.create({ name: 'p', sequence: body, topology: 'circular', features });
+      const xml = dec.decode(
+        packetsOf(writeSnapGene(doc).bytes).find((p) => p.type === 0x05)?.payload,
+      );
+      return xml.split('<Primer ').length - 1;
+    };
+    const sites = (features: ReturnType<typeof createFeature>[]) =>
+      groups(features) === 1 ? 'one' : 'many';
+    it('merges a primer found twice, and nothing that differs in any one field', () => {
+      // Positions 0 and 10 hold the same bases.
+      expect(sites([pr('a', 0), pr('a', 10)])).toBe('one');
+      expect(sites([pr('a', 0, [note('d')]), pr('a', 10, [note('d')])])).toBe('one');
+      expect(groups([pr('a', 0), pr('b', 10)])).toBe(2);
+      expect(groups([pr('a', 0), pr('a', 20)])).toBe(2);
+      expect(groups([pr('a', 0, [note('d')]), pr('a', 10, [note('e')])])).toBe(2);
+      expect(groups([pr('a', 0, [note('d')]), pr('a', 10)])).toBe(2);
+    });
+
+    it('lists the sites of a merged primer under one element', () => {
+      const doc = Doc.create({
+        name: 'p',
+        sequence: body,
+        topology: 'circular',
+        features: [pr('a', 0), pr('a', 10)],
+      });
+      const xml = dec.decode(
+        packetsOf(writeSnapGene(doc).bytes).find((p) => p.type === 0x05)?.payload,
+      );
+      expect(xml.match(/<BindingSite /g)).toHaveLength(2);
+      expect(xml).toContain('<Primer recentID="0" name="a" sequence="ACGTTGCA">');
+      expect(xml).toContain('<BindingSite location="0-7" boundStrand="0"');
+      expect(xml).toContain('<BindingSite location="10-17" boundStrand="0"');
+    });
+  });
+
+  describe('feature ends regained from an overhang', () => {
+    const body = 'GATTACAGATTACAGATTACAGATTACA';
+    const ends: DocumentEnds = {
+      left: { kind: "3'", overhang: 'CG', enzyme: null },
+      right: { kind: "5'", overhang: 'GATC', enzyme: null },
+    };
+    const cds = (name: string, segments: ReturnType<typeof rangeSegment>[], init: object = {}) =>
+      createFeature({
+        name,
+        type: 'CDS',
+        strand: 'forward',
+        segments,
+        qualifiers: [note('2', 'codon_start')],
+        ...init,
+      });
+    const doc = (features: ReturnType<typeof createFeature>[], e = ends) =>
+      Doc.create({ name: 'frag', sequence: body, topology: 'linear', ends: e, features });
+    const one = (f: ReturnType<typeof createFeature>, e = ends) => {
+      const [x] = featureXml(doc([f], e));
+      return {
+        ranges: [
+          ...(x ?? '').matchAll(/<Segment range="([^"]*)" color="[^"]*" type="standard"/g),
+        ].map((m) => m[1]),
+        frame: /codon_start"><V int="(\d+)"/.exec(x ?? '')?.[1],
+        reading: /readingFrame="(-?\d)"/.exec(x ?? '')?.[1],
+        lost: losses(doc([f], e)).some((l) => l.includes('partial-end')),
+      };
+    };
+    const ps = { partialStart: true };
+    const pe = { partialEnd: true };
+
+    it.each([
+      // Cut-off start regained (shift 2): the range reaches base 1, the frame moves by 2.
+      [
+        'forward, partial start at 0',
+        cds('a', [rangeSegment(0, 10, ps)]),
+        ['1-12'],
+        '1',
+        '1',
+        false,
+      ],
+      // Not partial: starts after the shift, frame untouched.
+      ['forward, whole, at 0', cds('a', [rangeSegment(0, 10)]), ['3-12'], '2', '2', false],
+      ['partial start not at 0', cds('a', [rangeSegment(4, 10, ps)]), ['7-12'], '2', '2', true],
+      [
+        'reverse, partial start at 0',
+        cds('a', [rangeSegment(0, 10, ps)], { strand: 'reverse' }),
+        ['1-12'],
+        '2',
+        '-2',
+        false,
+      ],
+      // Cut-off end regained (back 4): the reverse frame moves by 4.
+      [
+        'reverse, partial end at the end',
+        cds('a', [rangeSegment(18, 28, pe)], { strand: 'reverse' }),
+        ['21-34'],
+        '3',
+        '-3',
+        false,
+      ],
+      [
+        'forward, partial end at the end',
+        cds('a', [rangeSegment(18, 28, pe)]),
+        ['21-34'],
+        '2',
+        '2',
+        false,
+      ],
+      [
+        'partial end short of the end',
+        cds('a', [rangeSegment(10, 20, pe)], { strand: 'reverse' }),
+        ['13-22'],
+        '2',
+        '-2',
+        true,
+      ],
+      [
+        'whole, at the end',
+        cds('a', [rangeSegment(18, 28)], { strand: 'reverse' }),
+        ['21-30'],
+        '2',
+        '-2',
+        false,
+      ],
+      // Only the first piece of a forward feature and the last of a reverse one carries the frame.
+      [
+        'forward, partial piece not first',
+        cds('a', [rangeSegment(10, 20), rangeSegment(0, 5, ps)]),
+        ['13-22', '1-7'],
+        '2',
+        '2',
+        false,
+      ],
+      [
+        'reverse, partial piece not last',
+        cds('a', [rangeSegment(18, 28, pe), rangeSegment(0, 5)], { strand: 'reverse' }),
+        ['21-34', '3-7'],
+        '2',
+        '-2',
+        false,
+      ],
+      [
+        'forward, two pieces, first partial',
+        cds('a', [rangeSegment(0, 5, ps), rangeSegment(10, 20)]),
+        ['1-7', '13-22'],
+        '1',
+        '1',
+        false,
+      ],
+      [
+        'reverse, two pieces, last partial',
+        cds('a', [rangeSegment(0, 5), rangeSegment(18, 28, pe)], { strand: 'reverse' }),
+        ['3-7', '21-34'],
+        '3',
+        '-3',
+        false,
+      ],
+    ])('%s', (_name, f, ranges, frame, reading, lost) => {
+      expect(one(f)).toEqual({ ranges, frame, reading, lost });
+    });
+
+    it('moves a codon_start by the bases regained, modulo 3, and only a valid one', () => {
+      const frames = (qualifiers: Qs) =>
+        one(cds('a', [rangeSegment(0, 10, ps)], { qualifiers })).frame;
+      expect(frames([note('1', 'codon_start')])).toBe('3');
+      expect(frames([note('3', 'codon_start')])).toBe('2');
+      for (const bad of ['0', '4', '31', '41'])
+        expect(frames([note(bad, 'codon_start')])).toBe(bad);
+      // Another qualifier with such a value stays as it is.
+      const q = featureXml(
+        doc([cds('a', [rangeSegment(0, 10, ps)], { qualifiers: [note('1', 'label')] })]),
+      )[0];
+      expect(q).toContain('<Q name="label"><V text="1"/></Q>');
+    });
+
+    it('shifts a feature past a left overhang only', () => {
+      const left: DocumentEnds = {
+        left: { kind: "3'", overhang: 'CG', enzyme: null },
+        right: { kind: 'blunt', overhang: '', enzyme: null },
+      };
+      const right: DocumentEnds = {
+        left: { kind: 'blunt', overhang: '', enzyme: null },
+        right: { kind: "5'", overhang: 'GATC', enzyme: null },
+      };
+      // No overhang at the start: a partial start keeps its place and its mark is lost.
+      expect(one(cds('a', [rangeSegment(0, 10, ps)]), right)).toMatchObject({
+        ranges: ['1-10'],
+        frame: '2',
+        lost: true,
+      });
+      // No overhang at the end: likewise.
+      expect(one(cds('a', [rangeSegment(18, 28, pe)], { strand: 'reverse' }), left)).toMatchObject({
+        ranges: ['21-30'],
+        frame: '2',
+        lost: true,
+      });
+    });
+  });
+});
