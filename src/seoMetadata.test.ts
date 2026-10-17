@@ -59,10 +59,26 @@ describe('index.html metadata', () => {
 
 // Item 91 (#230): SoftwareApplication structured data and the crawlable
 // summary, both static in index.html.
-function jsonLd(): Record<string, unknown> {
+interface SoftwareLd {
+  '@context'?: string;
+  '@type'?: string;
+  name?: string;
+  url?: string;
+  description?: string;
+  applicationCategory?: string;
+  operatingSystem?: string;
+  isAccessibleForFree?: boolean;
+  license?: string;
+  codeRepository?: string;
+  image?: string;
+  citation?: string;
+  author?: { name?: string; url?: string };
+}
+
+function jsonLd(): SoftwareLd {
   const raw = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)?.[1];
   expect(raw).toBeTruthy();
-  return JSON.parse(raw ?? '{}') as Record<string, unknown>;
+  return JSON.parse(raw ?? '{}') as SoftwareLd;
 }
 
 describe('structured data and crawlable summary', () => {
@@ -91,7 +107,7 @@ describe('structured data and crawlable summary', () => {
     expect(cffField('license')).toBe('MIT');
     expect(String(ld.license)).toMatch(/\/mit$/i);
     expect(readFileSync(new URL('../LICENSE', import.meta.url), 'utf8')).toMatch(/^MIT License/);
-    const author = ld.author as Record<string, string>;
+    const author = ld.author ?? {};
     expect(author.name).toBe(`${cffField('given-names')} ${cffField('family-names')}`);
     expect(author.url).toBe(cffField('orcid'));
   });
