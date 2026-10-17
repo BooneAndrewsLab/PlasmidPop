@@ -30,6 +30,7 @@ const NAMED_ENTITIES: Readonly<Record<string, string>> = {
 };
 
 export function decodeEntities(text: string): string {
+  // Stryker disable next-line ConditionalExpression,StringLiteral: a fast path only; replace() on text with no entity returns it unchanged
   if (!text.includes('&')) return text;
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
     if (body.startsWith('#x') || body.startsWith('#X'))
@@ -49,6 +50,7 @@ class Reader {
   }
 
   skipWs(): void {
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: charAt past the end is '' which is not whitespace, so the loop stops there anyway
     while (this.pos < this.text.length && /\s/.test(this.text.charAt(this.pos))) this.pos++;
   }
 
@@ -136,6 +138,7 @@ function parseElement(r: Reader): XmlElement {
       continue;
     }
     const next = r.text.indexOf('<', r.pos);
+    // Stryker disable next-line EqualityOperator: next is never 0 here, the root's '<' is already behind r.pos
     const end = next < 0 ? r.text.length : next;
     text += r.text.slice(r.pos, end);
     r.pos = end;
