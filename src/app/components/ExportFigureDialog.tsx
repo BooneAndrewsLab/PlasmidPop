@@ -65,6 +65,9 @@ interface Props {
   readonly rasterize?: (svg: string, scale: number) => Promise<Blob>;
 }
 
+/** The rows the sequence view's preview draws: enough to see the format, cheap for any length. */
+const PREVIEW_ROWS = 4;
+
 const VIEWS: readonly Choice<FigureView>[] = [
   { value: 'map', label: 'Map', title: 'The circular map with its labels' },
   { value: 'sequence', label: 'Sequence view', title: 'The sequence rows, laid out as on screen' },
@@ -251,6 +254,23 @@ export function ExportFigureDialog({
       return { error: e instanceof Error ? e.message : String(e) };
     }
   }, [view, doc, options]);
+  // The preview is the first rows, drawn as the file would draw them.
+  const sequencePreview = useMemo(() => {
+    if (view !== 'sequence' || options === null || measure?.error !== null) {
+      return null;
+    }
+    const start = options.range?.start ?? 0;
+    const end = options.range?.end ?? doc.length;
+    try {
+      return exportLinearSvg(doc, {
+        ...options,
+        range: { start, end: Math.min(end, start + PREVIEW_ROWS * (options.basesPerRow ?? 60)) },
+      });
+    } catch {
+      return null;
+    }
+  }, [view, doc, options, measure]);
+
   const size: FigureSize | null =
     view === 'map'
       ? map?.svg == null
@@ -294,7 +314,7 @@ export function ExportFigureDialog({
   ]);
   const shown = problem ?? (failure?.settings === settings ? failure.message : null);
 
-  const previewSvg = view === 'map' ? (map?.svg ?? null) : null;
+  const previewSvg = view === 'map' ? (map?.svg ?? null) : sequencePreview;
   const previewUrl =
     previewSvg === null
       ? null
@@ -308,9 +328,11 @@ export function ExportFigureDialog({
         : `PNG, ${px(size.width * scale)} × ${px(size.height * scale)} pixels at ${String(scale)}×`;
     if (view === 'map') return at;
     if (measure?.error !== null) return '';
+    const first =
+      measure.rows > PREVIEW_ROWS ? `; the first ${String(PREVIEW_ROWS)} rows shown` : '';
     return pages
-      ? `${String(measure.pages)} A4 ${measure.pages === 1 ? 'page' : 'pages'} of ${at}`
-      : `${String(measure.rows)} ${measure.rows === 1 ? 'row' : 'rows'}, ${at}`;
+      ? `${String(measure.pages)} A4 ${measure.pages === 1 ? 'page' : 'pages'} of ${at}${first}`
+      : `${String(measure.rows)} ${measure.rows === 1 ? 'row' : 'rows'}, ${at}${first}`;
   })();
 
   const pagesHint = ((): string => {
@@ -530,7 +552,7 @@ export function ExportFigureDialog({
                   {toggle('GC ring', gcOn, setGcOn, !gcAvailable)}
                   {toggle('Name and length in the middle', centre, setCentre)}
                 </Row>
-                <Row label="Features" disabled={types.length === 0}>
+                <Row label="Features" disabled={types.length === 0} columns={types.length > 0}>
                   {types.length === 0 ? (
                     <span className="export-figure__none">None in this document</span>
                   ) : (

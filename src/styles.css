@@ -2916,12 +2916,16 @@ button {
   align-items: start;
 }
 
+/* The preview keeps up with the options as the dialog scrolls. */
 .export-figure__preview {
+  position: sticky;
+  top: 0;
   display: grid;
   gap: 6px;
   margin: 0;
 }
 
+/* A fixed height, so a shorter preview does not shrink the dialog. */
 .export-figure__picture {
   --preview-height: clamp(240px, 46vh, 520px);
   display: grid;
@@ -2993,9 +2997,21 @@ button {
 .export-figure__hint {
   grid-column: 2;
   margin: 0;
+  min-height: 2.6em;
   font-size: 12px;
   line-height: 1.3;
   color: var(--ink-3);
+}
+
+/* The feature types line up in columns rather than wrapping where they fall. */
+.export-figure__control--columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr));
+  gap: 4px 10px;
+}
+
+.export-figure input:disabled {
+  opacity: 0.5;
 }
 
 .export-figure__unit,
@@ -3012,14 +3028,21 @@ button {
 }
 
 /* The reason Export is disabled sits beside the buttons, in its own element
-   so it never replaces a hint (#243). */
+   so it never replaces a hint (#243). It keeps a line's room when empty. The
+   row stays in view while the options scroll under it. */
 .export-figure__actions {
+  position: sticky;
+  bottom: -20px;
   align-items: center;
+  margin: 0 -22px -20px;
+  padding: 10px 22px 20px;
+  background: var(--surface);
 }
 
 .export-figure__problem {
   flex: 1 1 14em;
   margin: 0;
+  min-height: 2.6em;
   font-size: 12.5px;
   line-height: 1.3;
 }
@@ -3028,6 +3051,10 @@ button {
   .export-figure__body {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+
+  .export-figure__preview {
+    position: static;
   }
 
   .export-figure__picture {
@@ -3051,6 +3078,11 @@ button {
 
   .export-figure__hint {
     grid-column: 1;
+  }
+
+  .export-figure__problem {
+    flex-basis: 100%;
+    min-height: 0;
   }
 }
 

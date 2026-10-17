@@ -166,6 +166,7 @@ describe('ExportFigureDialog (#240)', () => {
       expect(radio('Selection')).toBeDisabled();
       expect(radio('Whole sequence')).toHaveAttribute('aria-checked', 'true');
       expect(screen.getByRole('textbox', { name: 'Bases per row' })).toHaveValue('100');
+      expect(screen.getByRole('img', { name: 'Preview of the first rows' })).toBeInTheDocument();
       fireEvent.click(exportButton());
       expect(files.map((f) => f.name)).toEqual(['pBR322_sequence.svg']);
       expect(rowNumbers(files[0]?.text ?? '')).toHaveLength(44);
@@ -230,7 +231,7 @@ describe('ExportFigureDialog (#240)', () => {
         const n = Number(/^(\d+) pages/.exec(note.textContent)?.[1]);
         expect(n).toBeGreaterThan(1);
         expect(
-          screen.getByText(`${String(n)} A4 pages of SVG, 794 × 1,123 px`),
+          screen.getByText(`${String(n)} A4 pages of SVG, 794 × 1,123 px; the first 4 rows shown`),
         ).toBeInTheDocument();
         fireEvent.click(exportButton());
         vi.runAllTimers();

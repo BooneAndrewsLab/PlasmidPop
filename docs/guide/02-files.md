@@ -521,6 +521,7 @@ From the **File** menu:
     **Translations** and **Cut sites** toggles, the **Edits** marks, the
     enzymes ticked in the Enzymes tab and the **Format** menu's complement
     numbering and base colours; the text size is always the export's own.
+    The preview shows the first four rows.
   - **How big** — for the map, the **text size**; for the sequence view,
     **Bases per row**, 10 to 200 (the Format menu's setting to start with,
     or 60 when Format is left at "Fit", so the file does not depend on the
