@@ -47,6 +47,7 @@ export interface ZipContents {
 /** Whether the bytes begin like a ZIP archive (a local header, or an empty one's end record). */
 export function isZip(bytes: Uint8Array): boolean {
   return (
+    // Stryker disable next-line ConditionalExpression: a shorter array reads undefined past its end, which fails the byte tests anyway
     bytes.length >= 4 &&
     bytes[0] === 0x50 &&
     bytes[1] === 0x4b &&
@@ -62,6 +63,7 @@ export function isZip(bytes: Uint8Array): boolean {
 function isNoise(path: string): boolean {
   if (path.endsWith('/')) return true;
   const parts = path.split('/');
+  // Stryker disable next-line StringLiteral: split always returns one part, so the fallback is never taken
   const base = parts[parts.length - 1] ?? '';
   return parts[0] === '__MACOSX' || base.startsWith('.') || base.toLowerCase() === 'thumbs.db';
 }
@@ -132,11 +134,13 @@ export function readZip(
 export function writeZip(entries: readonly ZipEntry[]): Uint8Array {
   const files: Record<string, Uint8Array> = {};
   for (const { path, data } of entries) {
+    // Stryker disable next-line MethodExpression: isNoise already rejects a path ending in a slash, so the endsWith test is redundant
     if (path === '' || path.endsWith('/') || isUnsafe(path) || isNoise(path)) {
       throw new Error(`Not a path a ZIP file can hold: "${path}"`);
     }
     if (path in files) throw new Error(`Two entries are named "${path}"`);
     files[path] = data;
   }
+  // Stryker disable next-line ObjectLiteral: 6 is fflate's default level, so the option is only explicit
   return zipSync(files, { level: 6 });
 }

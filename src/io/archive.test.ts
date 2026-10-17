@@ -30,6 +30,31 @@ describe('readSequenceArchive (#213)', () => {
     expect(skipped.every((s) => s.reason !== '')).toBe(true);
   });
 
+  it('gives the reason each unreadable file was left out', async () => {
+    const { skipped } = await readSequenceArchive(
+      zip({ 'notes.csv': 'a,b,c\n1,2,3\n', 'empty.gb': '' }),
+    );
+    expect(skipped).toEqual([
+      { path: 'empty.gb', reason: 'No LOCUS line found; not a GenBank file' },
+      { path: 'notes.csv', reason: 'Unrecognised sequence format' },
+    ]);
+  });
+
+  it('carries the ZIP reader skips through, and sorts by path', async () => {
+    const { records, skipped } = await readSequenceArchive(
+      zip({
+        'b.gb': GB('pb', 'acgtacgt'),
+        '../evil.gb': GB('pe', 'acgtacgt'),
+        'a.gb': GB('pa', 'acgtacgt'),
+        'B.gb': GB('pB2', 'acgtacgt'),
+      }),
+    );
+    expect(records.map((r) => r.path)).toEqual(['a.gb', 'b.gb', 'B.gb']);
+    expect(skipped).toEqual([
+      { path: '../evil.gb', reason: 'The name points outside the archive' },
+    ]);
+  });
+
   it('keeps files with the same name apart', async () => {
     const { records } = await readSequenceArchive(
       zip({ 'a/p.gb': GB('p', 'acgtacgt'), 'b/p.gb': GB('p', 'ttttaaaa') }),
@@ -43,6 +68,7 @@ describe('readSequenceArchive (#213)', () => {
   it('imports every record of a multi-record FASTA', async () => {
     const { records } = await readSequenceArchive(zip({ 'm.fa': '>x\nACGT\n>y\nGGCC\n' }));
     expect(records.map((r) => r.document.name)).toEqual(['x', 'y']);
+    expect(records.every((r) => r.warnings.length === 0)).toBe(true);
   });
 
   it('takes the first record of a FASTQ only, with a warning', async () => {
@@ -50,6 +76,14 @@ describe('readSequenceArchive (#213)', () => {
       zip({ 'r.fastq': '@a\nACGT\n+\nIIII\n@b\nGGCC\n+\nIIII\n' }),
     );
     expect(records).toHaveLength(1);
-    expect(records[0]?.warnings.map((w) => w.message).join()).toMatch(/Only the first of 2/);
+    expect(records[0]?.warnings.map((w) => w.message)).toEqual([
+      'Only the first of 2 records was imported.',
+    ]);
+  });
+
+  it('gives a single-record FASTQ no warning', async () => {
+    const { records } = await readSequenceArchive(zip({ 'r.fastq': '@a\nACGT\n+\nIIII\n' }));
+    expect(records).toHaveLength(1);
+    expect(records[0]?.warnings).toEqual([]);
   });
 });
