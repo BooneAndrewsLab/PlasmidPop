@@ -53,3 +53,28 @@ describe('index.html metadata', () => {
     }
   });
 });
+
+describe('robots.txt and sitemap.xml', () => {
+  const robots = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8');
+  const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+
+  it('robots.txt allows crawling and names the absolute sitemap', () => {
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    expect(robots).toMatch(/^Allow: \/$/m);
+    expect(robots).not.toMatch(/^Disallow:\s*\S/m);
+    expect(robots).toMatch(new RegExp(`^Sitemap: ${SITE}sitemap\\.xml$`, 'm'));
+  });
+
+  it('sitemap.xml lists the site root, and only absolute URLs on the site', () => {
+    expect(sitemap).toContain('http://www.sitemaps.org/schemas/sitemap/0.9');
+    const locs = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1] ?? '');
+    expect(locs).toContain(SITE);
+    for (const loc of locs) expect(loc.startsWith(SITE)).toBe(true);
+    expect(new Set(locs).size).toBe(locs.length);
+  });
+
+  it('keeps both files out of the service worker navigation fallback', () => {
+    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+    expect(config).toMatch(/navigateFallbackDenylist:.*robots.*sitemap/);
+  });
+});

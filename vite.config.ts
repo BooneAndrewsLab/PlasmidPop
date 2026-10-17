@@ -112,6 +112,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${base}index.html`,
+        // robots.txt and sitemap.xml are plain static files (item 91), not
+        // app routes: a navigation to them must not be answered with the shell.
+        navigateFallbackDenylist: [/\/(robots\.txt|sitemap\.xml)$/],
         // The share target's POST: written into sw.js as the functions'
         // source, so they are self-contained (see the module).
         runtimeCaching: [

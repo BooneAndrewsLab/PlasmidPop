@@ -30,7 +30,21 @@ in Slack, email and papers.
 - `src/seoMetadata.test.ts` checks the tags, absolute URLs, the image's
   dimensions and that index.html names no third-party host.
 
+## robots.txt and sitemap.xml (#229)
+
+- Plain static files in `public/`, copied to the site root by the build.
+  Not generated: with one page there is nothing to derive, and a build step
+  would be code to maintain for a single `<loc>`. If #231 ever publishes
+  guide pages, generate the sitemap then, from the same page list.
+- `robots.txt` allows everything and points at the absolute sitemap URL
+  (the protocol needs absolute URLs, same site constant as the canonical).
+  The share-link fragment never reaches a server, so nothing needs hiding.
+- The PWA precache globs exclude `.txt`/`.xml`, so neither file is cached.
+  `navigateFallbackDenylist` in `vite.config.ts` stops an installed app's
+  navigation to them from being answered with `index.html`.
+- Tests in `src/seoMetadata.test.ts`.
+
 ## Not done
 
-Structured data and the crawlable text block (#230), robots.txt and
-sitemap.xml (#229). When those land they should reuse the same site URL.
+Structured data and the crawlable text block (#230). Guide pages in the
+sitemap wait on the #231 decision. Both should reuse the same site URL.

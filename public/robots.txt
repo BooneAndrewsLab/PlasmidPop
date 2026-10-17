@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://booneandrewslab.github.io/PlasmidPop/sitemap.xml
