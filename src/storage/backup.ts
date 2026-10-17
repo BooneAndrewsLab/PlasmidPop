@@ -53,6 +53,7 @@ type TypedName = keyof typeof TYPED;
 
 function toBase64(bytes: Uint8Array): string {
   let s = '';
+  // Stryker disable next-line EqualityOperator: the extra pass at i == length takes an empty subarray, which adds ''
   for (let i = 0; i < bytes.length; i += 0x8000) {
     s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
@@ -62,6 +63,7 @@ function toBase64(bytes: Uint8Array): string {
 function fromBase64(text: string): Uint8Array<ArrayBuffer> {
   const s = atob(text);
   const bytes = new Uint8Array(s.length);
+  // Stryker disable next-line EqualityOperator: a write at index == length of a typed array is ignored
   for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
   return bytes;
 }
@@ -198,6 +200,7 @@ function isStoredDocument(v: unknown): v is StoredDocument {
 }
 
 function stampOf(row: Row, field: string | null): number | null {
+  // Stryker disable next-line ConditionalExpression: row['null'] is undefined for every stored row, so it gives null just the same
   if (field === null) return null;
   const v = (row as unknown as Record<string, unknown>)[field];
   return typeof v === 'number' ? v : null;
@@ -341,6 +344,7 @@ export function backupStatus(
   now = Date.now(),
 ): BackupStatus {
   const pending = updatedAts.filter((t) => last === null || t > last);
+  // Stryker disable next-line ConditionalExpression: Math.min() of nothing is Infinity, and now - Infinity never exceeds the limit, so nudge is false either way
   const oldest = pending.length === 0 ? null : Math.min(...pending);
   return {
     documents: updatedAts.length,
