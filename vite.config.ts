@@ -9,6 +9,7 @@ import pkg from './package.json' with { type: 'json' };
 import {
   generateGuideFiles,
   generateSitemap,
+  matchStaticRequest,
   type SourcePage,
 } from './src/app/help/staticGuide.ts';
 import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.ts';
@@ -21,25 +22,61 @@ const base = process.env['BASE_PATH'] ?? '/';
 
 /**
  * The guide as crawlable static pages and the sitemap that lists them
- * (item 91, #231), written into the build from docs/guide/*.md. Page order is
- * the file order, as in the app's guide index.
+ * (item 91, #231), written into the build from docs/guide/*.md and served by
+ * the dev server (#244). Page order is the file order, as in the app's guide
+ * index.
  */
 function staticGuide(): Plugin {
+  const dir = new URL('./docs/guide/', import.meta.url);
+  const readPages = (): SourcePage[] =>
+    readdirSync(dir)
+      .filter((f) => /^\d+-.*\.md$/.test(f))
+      .sort()
+      .map((f) => ({
+        id: f.replace(/\.md$/, ''),
+        markdown: readFileSync(new URL(f, dir), 'utf8'),
+      }));
   return {
     name: 'plasmidpop-static-guide',
-    apply: 'build',
     generateBundle() {
-      const dir = new URL('./docs/guide/', import.meta.url);
-      const pages: SourcePage[] = readdirSync(dir)
-        .filter((f) => /^\d+-.*\.md$/.test(f))
-        .sort()
-        .map((f) => ({
-          id: f.replace(/\.md$/, ''),
-          markdown: readFileSync(new URL(f, dir), 'utf8'),
-        }));
+      const pages = readPages();
       for (const f of generateGuideFiles(pages))
         this.emitFile({ type: 'asset', fileName: f.path, source: f.content });
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: generateSitemap(pages) });
+    },
+    // Dev (#244): the same pages and sitemap, regenerated from docs/guide on
+    // every request so edits show up. Registered directly (not as a post
+    // hook), so it runs before Vite's SPA fallback; the base is still on the
+    // URL at this point.
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const hit = req.url === undefined ? null : matchStaticRequest(req.url, server.config.base);
+        if (hit === null || (req.method !== 'GET' && req.method !== 'HEAD')) {
+          next();
+          return;
+        }
+        if (hit.kind === 'redirect') {
+          res.statusCode = 301;
+          res.setHeader('Location', hit.to);
+          res.end();
+          return;
+        }
+        const pages = readPages();
+        const content =
+          hit.path === 'sitemap.xml'
+            ? generateSitemap(pages)
+            : generateGuideFiles(pages).find((f) => f.path === hit.path)?.content;
+        if (content === undefined) {
+          next();
+          return;
+        }
+        res.setHeader(
+          'Content-Type',
+          hit.path.endsWith('.xml') ? 'application/xml; charset=utf-8' : 'text/html; charset=utf-8',
+        );
+        res.setHeader('Cache-Control', 'no-cache');
+        res.end(req.method === 'HEAD' ? undefined : content);
+      });
     },
   };
 }

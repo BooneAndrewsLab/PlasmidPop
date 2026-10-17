@@ -258,3 +258,27 @@ ${urls.map((u) => `  <url>\n    <loc>${u}</loc>\n  </url>`).join('\n')}
 </urlset>
 `;
 }
+
+/** What a dev-server request for a static page resolves to (#244). */
+export type StaticRequest =
+  | { readonly kind: 'file'; readonly path: string }
+  | { readonly kind: 'redirect'; readonly to: string };
+
+/**
+ * Maps a request URL (query allowed, `base` still on it) to the generated
+ * file it names: `guide/`, `guide/<slug>/`, `sitemap.xml`. A directory
+ * without its trailing slash redirects to it, as GitHub Pages does, because
+ * the pages link relatively. Anything else is null: the app's.
+ */
+export function matchStaticRequest(url: string, base: string): StaticRequest | null {
+  const q = url.search(/[?#]/);
+  const pathname = q < 0 ? url : url.slice(0, q);
+  if (!pathname.startsWith(base)) return null;
+  const rel = pathname.slice(base.length);
+  if (rel === 'sitemap.xml') return { kind: 'file', path: 'sitemap.xml' };
+  if (/^guide\/([^/]+\/)?index\.html$/.test(rel)) return { kind: 'file', path: rel };
+  if (/^guide\/([^/]+\/)?$/.test(rel)) return { kind: 'file', path: `${rel}index.html` };
+  if (rel === 'guide' || /^guide\/[^/]+$/.test(rel))
+    return { kind: 'redirect', to: `${pathname}/${q < 0 ? '' : url.slice(q)}` };
+  return null;
+}

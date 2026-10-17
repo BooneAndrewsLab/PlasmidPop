@@ -94,6 +94,14 @@ editor behind JS, so without them a search engine sees one page.
 - Found on the way: `03-viewing.md` linked `04-editing#...` without `.md`, so
   the link opened a dead tab in the app and on GitHub. Fixed, and
   `guide.test.ts` now rejects relative links that are not page links.
+- Dev server (#244): the same plugin has a `configureServer` middleware that
+  serves `guide/`, `guide/<slug>/` and `sitemap.xml` from the same generator
+  (no second page list), re-reading `docs/guide` on every request so an edit
+  shows on reload. It is registered directly, not as a post hook, so it runs
+  before Vite's SPA fallback; at that point the base is still on the URL, so
+  the request-to-file mapping (`matchStaticRequest`, pure and unit tested)
+  takes it. A directory without its slash redirects to it. Everything else
+  still reaches the app.
 - Tests: `src/app/help/staticGuide.test.ts` (all pages emitted and in step
   with `GUIDE`, titles, canonicals, links and anchors resolve, sitemap lists
   every page).

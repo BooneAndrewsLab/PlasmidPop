@@ -8,6 +8,7 @@ import {
   generateSitemap,
   guideSlug,
   guideUrl,
+  matchStaticRequest,
   SITE_URL,
   type SourcePage,
 } from './staticGuide';
@@ -107,5 +108,33 @@ describe('sitemap', () => {
     expect(() => readFileSync(new URL('../../../public/sitemap.xml', import.meta.url))).toThrow();
     const robots = readFileSync(new URL('../../../public/robots.txt', import.meta.url), 'utf8');
     expect(robots).toContain(`Sitemap: ${SITE_URL}sitemap.xml`);
+  });
+});
+
+describe('matchStaticRequest (dev server, #244)', () => {
+  for (const base of ['/', '/PlasmidPop/']) {
+    it(`maps requests under base ${base}`, () => {
+      const m = (u: string) => matchStaticRequest(base + u, base);
+      expect(m('guide/')).toEqual({ kind: 'file', path: 'guide/index.html' });
+      expect(m('guide/index.html')).toEqual({ kind: 'file', path: 'guide/index.html' });
+      expect(m('guide/viewing/')).toEqual({ kind: 'file', path: 'guide/viewing/index.html' });
+      expect(m('guide/viewing/?x=1')).toEqual({ kind: 'file', path: 'guide/viewing/index.html' });
+      expect(m('guide/viewing/index.html')).toEqual({
+        kind: 'file',
+        path: 'guide/viewing/index.html',
+      });
+      expect(m('sitemap.xml?v=2')).toEqual({ kind: 'file', path: 'sitemap.xml' });
+      expect(m('guide')).toEqual({ kind: 'redirect', to: `${base}guide/` });
+      expect(m('guide/viewing?a=b')).toEqual({ kind: 'redirect', to: `${base}guide/viewing/?a=b` });
+      expect(m('')).toBeNull();
+      expect(m('guides/')).toBeNull();
+      expect(m('guide/a/b/')).toBeNull();
+      expect(m('src/main.tsx')).toBeNull();
+    });
+  }
+
+  it('leaves requests outside the base to the app', () => {
+    expect(matchStaticRequest('/guide/', '/PlasmidPop/')).toBeNull();
+    expect(matchStaticRequest('/sitemap.xml', '/PlasmidPop/')).toBeNull();
   });
 });
