@@ -550,11 +550,12 @@ From the **File** menu:
     export takes (100,000 bases at 10 to a row, about 830 A4 pages) goes in
     one export as SVG, PNG or a vector PDF. Pictures are limited by their
     pixels, summed over the pages: a ZIP of PNGs holds up to 3,000
-    megapixels (all 830 pages at 2×) and a raster PDF 600 (about 170 A4
-    pages at 2×, 40 at 4×), which takes about two minutes. A raster PDF is
-    slow because every page is a picture the PDF writer must re-encode,
-    about a fifth of a second per megapixel; the vector PDF of the same
-    pages takes seconds.
+    megapixels (all 830 pages at 2×), and so does a raster PDF. A raster
+    PDF is slow because every page is a picture the PDF writer must
+    re-encode, about a fifth of a second per megapixel — the 830 pages at 2×
+    take some ten minutes, 139 A4 pages at 2× about two; the pages hint says
+    so ("about 2 minutes to make") whenever it is a minute or more. The
+    vector PDF of the same pages takes seconds.
 
   While the file is made, the dialog says so beside the buttons, with a
   spinner and the page it is on: "Getting your file ready: drawing page 12

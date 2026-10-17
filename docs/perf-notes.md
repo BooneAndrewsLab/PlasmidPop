@@ -903,3 +903,54 @@ configurations were checked in the dialog: 139 pages as a raster PDF at 4×
 (1,981 MP) and 834 pages as PNGs at 4× (11,889 MP) are refused with the
 advice; 300 kb sequences are refused by the 100,000-base limit before any of
 this.
+
+## Export figure off the main thread (#247, #248, 2026-10-17)
+
+The same harness as above (headless Chromium 156 through Playwright
+`chromium-1248`, the dev server, the synthetic 100 kb FASTA, _Sequence view_,
+_Split into pages_, click Export, time to the download event; RSS of the
+browser process tree over the idle dialog, about 600 MB this time; longest
+`longtask`), after the ZIP's deflate and the raster PDF's assembly moved to
+the export worker and the pages are drawn through `eachPage` (design note
+94). One run each. The raster-PDF budget was lifted to 3,000 MP for the
+runs, to find where it breaks.
+
+| Export                  | Pages |    MP | Time   | RSS rise | Heap peak | Longest stall | File    | Before (#246)        |
+| ----------------------- | ----: | ----: | ------ | -------- | --------- | ------------- | ------- | -------------------- |
+| PNG ZIP 2×              |   139 |   496 | 11.9 s | 225 MB   | 77 MB     | 0.26 s        | 38.5 MB | 10.6 s, stall 2.7 s  |
+| PNG ZIP 2×, 10 a row    |   834 | 2,970 | 49.9 s | 608 MB   | 50 MB     | 0.58 s        | 116 MB  | 44.5 s, stall 9.9 s  |
+| PDF vector              |   139 |     — | 8.0 s  | 289 MB   | 124 MB    | 0.27 s        | 0.4 MB  | 7.9 s, stall 0.31 s  |
+| PDF vector, 10 a row    |   834 |     — | 12.6 s | 319 MB   | 152 MB    | 0.55 s        | 0.9 MB  | 12.5 s, stall 0.59 s |
+| PDF raster 2×           |   139 |   496 | 103 s  | 370 MB   | 87 MB     | 0.29 s        | 33 MB   | 101 s, stall 0.91 s  |
+| PDF raster 2×, 30 a row |   278 |   992 | 198 s  | 519 MB   | 120 MB    | 0.47 s        | 57 MB   | refused (600 MP)     |
+| PDF raster 4×           |   139 | 1,981 | 363 s  | 595 MB   | 150 MB    | 0.28 s        | 79 MB   | refused              |
+| PDF raster 2×, 10 a row |   834 | 2,970 | 567 s  | 787 MB   | 197 MB    | 0.55 s        | 98 MB   | refused              |
+
+Findings.
+
+- **Nothing stalls for longer than the page layout itself.** The longest
+  tasks left (0.26 to 0.58 s) are `exportLinearSvgPages` laying out the
+  pages before anything is drawn, the same 0.44 to 0.89 s the SVG ZIP always
+  had, plus the hand-over of 834 buffers. The PNG ZIP's 2.7 to 9.9 s deflate
+  is gone from the main thread; the status line was seen changing every
+  sample (150 ms) through every run.
+- **Total time is unchanged**: the worker does the same work at the same
+  speed (0.19 to 0.21 s a megapixel for the raster PDF, as on the main
+  thread, which is what the spike predicted), and the yields between pages
+  cost about a second in ten. Nothing got faster; it stopped blocking.
+- **Memory** of a raster PDF follows the retained PNGs as the ZIP's does:
+  about 0.26 MB of RSS a megapixel (+787 MB at 2,970 MP against the ZIP's
+  +608 MB), the extra being jsPDF's streams in the worker. The heap of the
+  main thread stays under 200 MB; the page bytes are transferred, not
+  copied. 2,970 MP is the most the layout can produce at 2×, and it held
+  with 1.4 GB of browser in all, so the raster budget is raised to the ZIP's
+  3,000 MP; the time, about 10 minutes at the top, is now a background job
+  with a spinner, progress and Cancel.
+- **Cancel** in the real browser: a PNG ZIP at 2× stopped at "drawing page
+  33 of 139…", the status cleared at once, Export was enabled, no download
+  came within 6 s, and the next Export (a fresh worker) delivered the ZIP in
+  11.9 s as before.
+
+The spikes that decided what runs where (rasterising in a worker fails in
+Chromium and Firefox; jsPDF holds in a worker, svg2pdf does not) are in
+design note 94.

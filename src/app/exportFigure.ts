@@ -129,6 +129,27 @@ export function pngProblem(
   return `${head}: ${advice.length === 0 ? last : `${advice.join(', ')} or ${last}`}.`;
 }
 
+/**
+ * About how long a raster PDF of `megapixels` takes to make, as the hint
+ * says it (#248): the PDF writer spends about 0.2 s a megapixel decoding and
+ * re-deflating each picture (docs/perf-notes.md), in the background with
+ * progress and Cancel, so the user is told when it is minutes rather than
+ * seconds. Null under a minute.
+ */
+export function rasterPdfTime(megapixels: number): string | null {
+  const seconds = megapixels * RASTER_PDF_SECONDS_PER_MEGAPIXEL;
+  if (seconds < 60) return null;
+  const minutes = Math.round(seconds / 60);
+  return `about ${String(minutes)} ${minutes === 1 ? 'minute' : 'minutes'}`;
+}
+
+const RASTER_PDF_SECONDS_PER_MEGAPIXEL = 0.2;
+
+/** The pixels `count` pages of `page` size draw at `scale`, in megapixels. */
+export function pagesMegapixels(count: number, page: FigureSize, scale: number): number {
+  return (count * page.width * scale * (page.height * scale)) / 1_000_000;
+}
+
 /** What the pages of one export are drawn as, for what each costs (#246). */
 export type PagesOutput = 'svg' | 'png' | 'pdf-vector' | 'pdf-raster';
 
@@ -158,8 +179,7 @@ export function pagesProblem(
     return `That is ${count.toLocaleString()} pages, more than the ${MAX_EXPORT_PAGES.toLocaleString()} one export holds: choose a shorter range or more bases per row.`;
   const budget = pagesBudget(output);
   if (budget === null) return null;
-  const megapixels = (n: number, k: number): number =>
-    (n * page.width * k * (page.height * k)) / 1_000_000;
+  const megapixels = (n: number, k: number): number => pagesMegapixels(n, page, k);
   const total = megapixels(count, scale);
   if (total <= budget) return null;
   const what = output === 'png' ? 'a ZIP of PNGs' : 'a raster PDF';

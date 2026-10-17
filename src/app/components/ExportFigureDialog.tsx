@@ -31,8 +31,10 @@ import {
   type FigureFileType,
   type FigureSize,
   type FigureView,
+  pagesMegapixels,
   pagesProblem,
   pngProblem,
+  rasterPdfTime,
   workingText,
 } from '../exportFigure';
 import {
@@ -413,9 +415,13 @@ export function ExportFigureDialog({
     if (measure?.error !== null) return '';
     const n = String(measure.pages);
     if (measure.pages === 1) return `One page, downloaded as one ${typeName} file.`;
-    return pdf
-      ? `${n} pages, downloaded as one PDF of ${n} pages.`
-      : `${n} pages, downloaded as one ZIP of ${n} ${typeName}s.`;
+    if (!pdf) return `${n} pages, downloaded as one ZIP of ${n} ${typeName}s.`;
+    // A raster PDF of many pages is minutes of background work (#248): say so.
+    const time =
+      pdfMode === 'raster'
+        ? rasterPdfTime(pagesMegapixels(measure.pages, pageOf(paper), scale))
+        : null;
+    return `${n} pages, downloaded as one PDF of ${n} pages${time === null ? '' : `, ${time} to make`}.`;
   })();
 
   /** The PDF asked for: vector, or each page a picture at the scale. */

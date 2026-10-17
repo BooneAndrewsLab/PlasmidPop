@@ -1,5 +1,12 @@
 import { MAX_PNG_SIDE } from './mapPng';
-import { defaultPaper, pagesBudget, pagesProblem, pngProblem, workingText } from './exportFigure';
+import {
+  defaultPaper,
+  pagesBudget,
+  pagesProblem,
+  pngProblem,
+  rasterPdfTime,
+  workingText,
+} from './exportFigure';
 import {
   MAX_EXPORT_PAGES,
   MAX_PNG_ZIP_MEGAPIXELS,
@@ -113,7 +120,7 @@ describe('export page limits (#246)', () => {
     const fits = Math.floor(MAX_RASTER_PDF_MEGAPIXELS / mp(1, 2));
     expect(pagesProblem(fits, a4, 2, 'pdf-raster')).toBeNull();
     const message = pagesProblem(fits + 1, a4, 2, 'pdf-raster') ?? '';
-    expect(message).toContain('more than a raster PDF holds (600)');
+    expect(message).toContain('more than a raster PDF holds (3,000)');
     expect(message).toContain('switch to Vector');
     expect(message).toContain(`at most ${String(fits)} pages`);
     // The 40 pages at 4x the old cap allowed still go.
@@ -121,18 +128,21 @@ describe('export page limits (#246)', () => {
   });
 
   it('suggests only scales that fit, and omits the scale advice when none does', () => {
-    expect(pagesProblem(300, a4, 4, 'pdf-raster')).toContain('choose 1× or less');
-    const none = pagesProblem(900, a4, 1, 'pdf-raster') ?? '';
+    expect(pagesProblem(300, a4, 4, 'pdf-raster')).toContain('choose 2× or less');
+    expect(pagesProblem(900, a4, 4, 'pdf-raster')).toContain('choose 1× or less');
+    // Pages of 16 megapixels at 1x: 200 of them are over the budget, and no scale is lower.
+    const big = { width: 4000, height: 4000 };
+    const none = pagesProblem(200, big, 1, 'pdf-raster') ?? '';
     expect(none).not.toContain('or less');
     expect(none).toContain('switch to Vector');
-    expect(none).toContain('at most 673 pages');
+    expect(none).toContain('at most 187 pages');
   });
 
   it('has a budget for rasterised output only', () => {
     expect(pagesBudget('svg')).toBeNull();
     expect(pagesBudget('pdf-vector')).toBeNull();
     expect(pagesBudget('png')).toBe(3000);
-    expect(pagesBudget('pdf-raster')).toBe(600);
+    expect(pagesBudget('pdf-raster')).toBe(3000);
   });
 });
 
@@ -162,5 +172,17 @@ describe('the status line while a file is made (#247, #248)', () => {
     expect(workingText({ stage: 'drawing', done: 0, total: 1 })).toBe(
       'Getting your file ready: drawing the picture…',
     );
+  });
+});
+
+describe('how long a raster PDF takes (#248)', () => {
+  it('says about how many minutes from the megapixels, and nothing under a minute', () => {
+    expect(rasterPdfTime(100)).toBeNull();
+    expect(rasterPdfTime(299)).toBeNull();
+    expect(rasterPdfTime(300)).toBe('about 1 minute');
+    expect(rasterPdfTime(496)).toBe('about 2 minutes');
+    expect(rasterPdfTime(992)).toBe('about 3 minutes');
+    expect(rasterPdfTime(1981)).toBe('about 7 minutes');
+    expect(rasterPdfTime(2970)).toBe('about 10 minutes');
   });
 });

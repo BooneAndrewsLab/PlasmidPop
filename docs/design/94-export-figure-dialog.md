@@ -331,3 +331,11 @@ worker is terminated to cancel rather than asked to stop: it is the only way
 to end a synchronous deflate, and a module worker starts in milliseconds.
 No overlay: the status slot was already reserved (#241), and an overlay
 would have hidden the settings the user may want to change after Cancel.
+**The raster-PDF budget (#246, revisited).** `MAX_RASTER_PDF_MEGAPIXELS` is
+3,000, the ZIP's figure: the 600 bounded a two-minute freeze, and the work
+is now a background job with progress and a stop, and 2,970 MP was measured
+to hold. What remains is time, so the pages hint says "about 2 minutes to
+make" (`rasterPdfTime`, 0.2 s a megapixel) once a raster PDF would take a
+minute or more, and the guide says ten minutes at the top. The advice in
+`pagesProblem` is unchanged in form; with equal budgets the "switch to
+Vector" is now the usual way out.

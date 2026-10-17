@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { readFileSync } from 'node:fs';
 
+import { SeqDocument } from '@/core';
 import { parseGenBank, readZip } from '@/io';
 import { exportMapSvg } from '@/view/svg';
 
@@ -312,7 +313,11 @@ describe('ExportFigureDialog (#240)', () => {
     });
 
     it('holds more pages than the old 40 for a ZIP of SVGs (#246)', () => {
-      setup({ basesPerRow: 10 });
+      // 100 kb at 10 a row is 834 A4 pages: 11,889 megapixels at 4x, 2,970 at 2x (#248).
+      setup({
+        doc: SeqDocument.create({ name: 'long', sequence: 'ACGT'.repeat(25_000) }),
+        basesPerRow: 10,
+      });
       sequenceView();
       fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       const n = Number(
@@ -352,14 +357,42 @@ describe('ExportFigureDialog (#240)', () => {
       });
     });
 
-    it('refuses a raster PDF whose pages are too many pixels, saying what to change (#246)', () => {
+    it('says about how long a raster PDF of many pages takes to make, and not for a vector one (#248)', () => {
       setup({ basesPerRow: 10 });
       sequenceView();
       fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       fireEvent.click(radio('PDF'));
       fireEvent.click(radio('Raster'));
       fireEvent.click(radio('4×'));
-      expect(problem()).toHaveTextContent(/megapixels, more than a raster PDF holds \(600\)/);
+      expect(exportButton()).toBeEnabled();
+      expect(
+        screen.getByText(
+          /^\d+ pages, downloaded as one PDF of \d+ pages, about \d+ minutes to make\.$/,
+        ),
+      ).toBeInTheDocument();
+      fireEvent.click(radio('1×'));
+      expect(
+        screen.getByText(/^\d+ pages, downloaded as one PDF of \d+ pages\.$/),
+      ).toBeInTheDocument();
+      fireEvent.click(radio('4×'));
+      fireEvent.click(radio('Vector'));
+      expect(
+        screen.getByText(/^\d+ pages, downloaded as one PDF of \d+ pages\.$/),
+      ).toBeInTheDocument();
+    });
+
+    it('refuses a raster PDF whose pages are too many pixels, saying what to change (#246)', () => {
+      // 100 kb at 10 a row is 834 A4 pages: 11,889 megapixels at 4x, 2,970 at 2x (#248).
+      setup({
+        doc: SeqDocument.create({ name: 'long', sequence: 'ACGT'.repeat(25_000) }),
+        basesPerRow: 10,
+      });
+      sequenceView();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(radio('Raster'));
+      fireEvent.click(radio('4×'));
+      expect(problem()).toHaveTextContent(/megapixels, more than a raster PDF holds \(3,000\)/);
       expect(problem()).toHaveTextContent(/choose 2× or less/);
       expect(exportButton()).toBeDisabled();
       // The vector PDF of the same pages has no pixels to count.

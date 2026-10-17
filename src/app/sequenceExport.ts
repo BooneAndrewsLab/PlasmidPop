@@ -91,14 +91,16 @@ export const MAX_EXPORT_PAGES = 1000;
 
 /**
  * The pictures one export may draw, in megapixels summed over its pages
- * (#246). PNG pages are held until the ZIP is written: 2,970 MP (834 A4
- * pages at 2×) took 45 s and about 640 MB more than an idle browser, so
+ * (#246, #248). PNG pages are held until the ZIP is written: 2,970 MP (834
+ * A4 pages at 2×) took 45 s and about 640 MB more than an idle browser, so
  * 3,000 is the most that was shown to hold. A raster PDF costs about 0.2 s
- * a megapixel in jsPDF's PNG decoding whatever the scale, so 600 MP (the
- * 40 pages at 4× the old cap allowed) is about two minutes.
+ * a megapixel in jsPDF's PNG decoding whatever the scale; it was capped at
+ * 600 MP (two minutes) while that ran on the main thread, and since it runs
+ * in the export worker with progress and Cancel (#248) the same 2,970 MP
+ * was measured to hold (567 s, +787 MB), so both budgets are 3,000.
  */
 export const MAX_PNG_ZIP_MEGAPIXELS = 3000;
-export const MAX_RASTER_PDF_MEGAPIXELS = 600;
+export const MAX_RASTER_PDF_MEGAPIXELS = 3000;
 
 /** The name of page `i` (0-based) of `n`, `stem_p01.svg` onwards, with as many digits as `n` needs. */
 export function pageFileName(stem: string, extension: string, i: number, n: number): string {
