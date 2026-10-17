@@ -46,7 +46,7 @@ function setup({
   const calls: { svg: string; scale: number }[] = [];
   const pdfs: { pages: readonly string[]; options: PdfOptions }[] = [];
   const onClose = vi.fn();
-  render(
+  const { unmount } = render(
     <ExportFigureDialog
       doc={doc}
       selection={selection}
@@ -70,7 +70,7 @@ function setup({
       }}
     />,
   );
-  return { files, blobs, calls, pdfs, onClose };
+  return { files, blobs, calls, pdfs, onClose, unmount };
 }
 
 const exportButton = () => screen.getByRole('button', { name: 'Export' });
@@ -250,8 +250,10 @@ describe('ExportFigureDialog (#240)', () => {
         screen.getByText(`${String(n)} A4 pages of SVG, 794 × 1,123 px; the first 4 rows shown`),
       ).toBeInTheDocument();
       fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(blobs.map((b) => b.name)).toEqual(['pBR322_sequence.zip']);
+      });
       expect(files).toEqual([]);
-      expect(blobs.map((b) => b.name)).toEqual(['pBR322_sequence.zip']);
       const zip = blobs[0]?.blob;
       if (zip === undefined) throw new Error('no zip');
       expect(zip.type).toBe('application/zip');
@@ -290,6 +292,9 @@ describe('ExportFigureDialog (#240)', () => {
         ),
       ).toBeInTheDocument();
       fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(blobs).toHaveLength(1);
+      });
       const zip = blobs[0]?.blob;
       if (zip === undefined) throw new Error('no zip');
       const { entries } = readZip(new Uint8Array(await zip.arrayBuffer()));
@@ -334,12 +339,16 @@ describe('ExportFigureDialog (#240)', () => {
       expect(screen.getByRole('status')).toBeEmptyDOMElement();
       fireEvent.click(exportButton());
       await waitFor(() => {
-        expect(screen.getByRole('status')).toHaveTextContent(/^Drawing page 1 of \d+…$/);
+        expect(screen.getByRole('status')).toHaveTextContent(
+          /^Getting your file ready: drawing page 1 of \d+…$/,
+        );
       });
       expect(exportButton()).toBeDisabled();
       release[0]?.();
       await waitFor(() => {
-        expect(screen.getByRole('status')).toHaveTextContent(/^Drawing page 2 of \d+…$/);
+        expect(screen.getByRole('status')).toHaveTextContent(
+          /^Getting your file ready: drawing page 2 of \d+…$/,
+        );
       });
     });
 
@@ -546,6 +555,153 @@ describe('ExportFigureDialog (#240)', () => {
       expect(blobs).toEqual([]);
       expect(onClose).not.toHaveBeenCalled();
       expect(exportButton()).toBeEnabled();
+    });
+  });
+
+  describe('getting the file ready (#247, #248)', () => {
+    /** A drawing that waits to be let go, page by page. */
+    function heldRasterize() {
+      const release: (() => void)[] = [];
+      const rasterize = () =>
+        new Promise<Blob>((resolve) => {
+          release.push(() => {
+            resolve(new Blob(['x'], { type: 'image/png' }));
+          });
+        });
+      return { release, rasterize };
+    }
+
+    const status = () => screen.getByRole('status');
+    const cancelButton = () => screen.getByRole('button', { name: 'Cancel' });
+
+    it('shows a spinner with the message while the file is made, and nothing before or after', async () => {
+      const { release, rasterize } = heldRasterize();
+      const { onClose } = setup({ rasterize });
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      expect(status()).toBeEmptyDOMElement();
+      expect(document.querySelector('.spinner')).toBeNull();
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(status()).toHaveTextContent(/^Getting your file ready: drawing page 1 of 9…$/);
+      });
+      expect(status().querySelector('.spinner')).not.toBeNull();
+      expect(cancelButton()).toHaveAttribute('title', 'Stop the export; the dialog stays open');
+      for (let i = 0; i < 9; i++) {
+        await waitFor(() => {
+          expect(release).toHaveLength(i + 1);
+        });
+        release[i]?.();
+      }
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    it('says the picture is being drawn for a single page', async () => {
+      const { release, rasterize } = heldRasterize();
+      setup({ rasterize });
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(radio('1×'));
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(status()).toHaveTextContent(/^Getting your file ready: drawing the picture…$/);
+      });
+      release[0]?.();
+    });
+
+    it('Cancel stops the export: no more pages, no file, the dialog stays with Export enabled', async () => {
+      const { release, rasterize } = heldRasterize();
+      const { blobs, calls, onClose } = setup({ rasterize });
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(status()).not.toBeEmptyDOMElement();
+      });
+      expect(exportButton()).toBeDisabled();
+      fireEvent.click(cancelButton());
+      expect(status()).toBeEmptyDOMElement();
+      expect(exportButton()).toBeEnabled();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(cancelButton()).not.toHaveAttribute('title');
+      // The page that was being drawn finishes; nothing follows it.
+      release[0]?.();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(calls).toHaveLength(1);
+      expect(blobs).toEqual([]);
+      expect(onClose).not.toHaveBeenCalled();
+      expect(problem()).toBeEmptyDOMElement();
+      // Cancel now closes, as before.
+      fireEvent.click(cancelButton());
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('Escape stops the export first and closes only when pressed again', async () => {
+      const { release, rasterize } = heldRasterize();
+      const { blobs, onClose } = setup({ rasterize });
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(status()).not.toBeEmptyDOMElement();
+      });
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(status()).toBeEmptyDOMElement();
+      expect(onClose).not.toHaveBeenCalled();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).toHaveBeenCalledTimes(1);
+      release[0]?.();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(blobs).toEqual([]);
+    });
+
+    it('a stopped PDF is not downloaded, and its writer sees the signal', async () => {
+      let signal: AbortSignal | undefined;
+      let finish: (() => void) | null = null;
+      const { blobs, onClose } = setup({
+        pdf: (_pages, options) => {
+          signal = options.signal;
+          return new Promise<Blob>((resolve) => {
+            finish = () => {
+              resolve(new Blob(['%PDF-1.3'], { type: 'application/pdf' }));
+            };
+          });
+        },
+      });
+      fireEvent.click(radio('PDF'));
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(status()).toHaveTextContent(/^Getting your file ready…$/);
+      });
+      expect(signal?.aborted).toBe(false);
+      fireEvent.click(cancelButton());
+      expect(signal?.aborted).toBe(true);
+      (finish as (() => void) | null)?.();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(blobs).toEqual([]);
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('closing the dialog while exporting stops the work, so no file appears later', async () => {
+      const { release, rasterize } = heldRasterize();
+      const { blobs, calls, unmount } = setup({ rasterize });
+      sequenceView();
+      fireEvent.click(radio('PNG'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      fireEvent.click(exportButton());
+      await waitFor(() => {
+        expect(calls).toHaveLength(1);
+      });
+      unmount();
+      release[0]?.();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(calls).toHaveLength(1);
+      expect(blobs).toEqual([]);
     });
   });
 

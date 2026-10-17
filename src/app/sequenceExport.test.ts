@@ -140,7 +140,7 @@ describe('pagesZip (#242)', () => {
     const pages = ['<svg>1</svg>', '<svg>2</svg>', '<svg>3</svg>'].map((t) =>
       new TextEncoder().encode(t),
     );
-    const zip = pagesZip('pX_sequence', 'svg', pages);
+    const zip = await pagesZip('pX_sequence', 'svg', pages);
     expect(zip.type).toBe('application/zip');
     const { entries, skipped } = readZip(new Uint8Array(await zip.arrayBuffer()));
     expect(skipped).toEqual([]);
@@ -158,7 +158,7 @@ describe('pagesZip (#242)', () => {
 
   it('keeps binary pages byte for byte', async () => {
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 255]);
-    const zip = pagesZip('pX', 'png', [png, png.slice(0, 4)]);
+    const zip = await pagesZip('pX', 'png', [png, png.slice(0, 4)]);
     const { entries } = readZip(new Uint8Array(await zip.arrayBuffer()));
     expect(entries.map((e) => e.path)).toEqual(['pX_p01.png', 'pX_p02.png']);
     expect([...(entries[0]?.data ?? [])]).toEqual([...png]);

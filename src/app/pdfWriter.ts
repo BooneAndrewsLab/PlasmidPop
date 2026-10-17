@@ -1,10 +1,18 @@
 /**
  * The PDF writer behind `pdfExport.ts` (#242): jsPDF (MIT) with svg2pdf.js
  * (MIT) drawing each SVG page into it. Nothing outside this file names
- * either library, and nothing imports this file statically: `exportPdf`
+ * either library, and nothing imports this file statically: `loadPdfWriter`
  * loads it with a dynamic `import()` when a PDF is first asked for, so it
  * is a chunk of its own (`pdfWriter-*.js`) that the first load never
  * fetches and the service worker does not precache (vite.config.ts).
+ *
+ * Two writers (#248): `writeVectorPdf` runs on the main thread, since
+ * svg2pdf wants the DOM (a parsed SVG tree, text measured by the browser);
+ * `writeRasterPdf` takes pages already encoded as PNGs and runs in the
+ * export worker, where jsPDF's decoding and re-deflating of each picture,
+ * about 0.2 s a megapixel, no longer stalls the page. svg2pdf is loaded
+ * only by the vector writer, so the worker's copy of this chunk never
+ * fetches it.
  *
  * Pages are in CSS pixels, as the SVGs are sized: with jsPDF's `px_scaling`
  * hotfix a pixel is 1/96 inch, so an A4 page SVG (210 × 297 mm, written as
@@ -23,19 +31,11 @@
  */
 
 import { jsPDF } from 'jspdf';
-import { svg2pdf } from 'svg2pdf.js';
 
+import type { PngPage } from '@/workers/exportProtocol';
+
+import { type ExportJobOptions, eachPage } from './exportJob';
 import { svgPixelSize } from './mapPng';
-import type { PdfOptions } from './pdfExport';
-
-/** How long pages may run before the browser is given a turn. */
-const YIELD_AFTER_MS = 100;
-
-/** Lets the browser paint and handle input before the next page. */
-const yieldToBrowser = (): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, 0);
-  });
 
 /** The weight names jsPDF has fonts for, from a CSS weight. */
 function pdfWeight(weight: string): string {
@@ -55,61 +55,80 @@ function parseSvg(svg: string): Element {
   return root;
 }
 
-interface Page {
-  readonly svg: string;
+interface PageSize {
   readonly width: number;
   readonly height: number;
 }
 
-const orientationOf = (page: Page): 'landscape' | 'portrait' =>
+const orientationOf = (page: PageSize): 'landscape' | 'portrait' =>
   page.width > page.height ? 'landscape' : 'portrait';
 
-/**
- * One PDF of every page, in the pages' order. Vector pages are drawn as
- * lines and text; raster ones are each `rasterize`d at `scale` as the PNG
- * export would and placed at the page's own size, so the scale sets the
- * pixels per inch (96 × scale).
- */
-export async function writePdf(pages: readonly string[], options: PdfOptions): Promise<Blob> {
-  const sized: Page[] = pages.map((svg) => {
-    const size = svgPixelSize(svg);
-    if (size === null) throw new Error('The page has no size to draw.');
-    return { svg, ...size };
-  });
-  const first = sized[0];
-  if (first === undefined) throw new Error('There is no page to write.');
-  const doc = new jsPDF({
+/** A document whose first page is `first`'s size; the rest are added as they come. */
+function newDocument(first: PageSize): jsPDF {
+  return new jsPDF({
     unit: 'px',
     format: [first.width, first.height],
     orientation: orientationOf(first),
     hotfixes: ['px_scaling'],
     compress: true,
   });
-  options.onProgress?.(0, sized.length);
-  let lastYield = performance.now();
-  for (const [i, page] of sized.entries()) {
+}
+
+function finish(doc: jsPDF, title: string): Uint8Array {
+  doc.setProperties({ title, creator: 'PlasmidPop' });
+  return new Uint8Array(doc.output('arraybuffer'));
+}
+
+/**
+ * One PDF of every SVG page, in the pages' order, drawn as lines and text.
+ * Runs on the main thread, a page at a time, giving the browser its turns
+ * and stopping on the signal (`eachPage`); a page in progress finishes
+ * first, which is a fraction of a second.
+ */
+export async function writeVectorPdf(
+  pages: readonly string[],
+  title: string,
+  options: ExportJobOptions = {},
+): Promise<Uint8Array> {
+  const sized = pages.map((svg) => {
+    const size = svgPixelSize(svg);
+    if (size === null) throw new Error('The page has no size to draw.');
+    return { svg, ...size };
+  });
+  const first = sized[0];
+  if (first === undefined) throw new Error('There is no page to write.');
+  const { svg2pdf } = await import('svg2pdf.js');
+  const doc = newDocument(first);
+  await eachPage(sized, 'drawing', options, async (page, i) => {
     if (i > 0) doc.addPage([page.width, page.height], orientationOf(page));
-    if (options.mode === 'vector') {
-      await svg2pdf(parseSvg(page.svg), doc, {
-        x: 0,
-        y: 0,
-        width: page.width,
-        height: page.height,
-      });
-    } else {
-      const png = await options.rasterize(page.svg, options.scale);
-      const bytes = new Uint8Array(await png.arrayBuffer());
-      doc.addImage(bytes, 'PNG', 0, 0, page.width, page.height, undefined, 'FAST');
-    }
-    options.onProgress?.(i + 1, sized.length);
-    // Let the browser paint and answer between pages, but only once a
-    // stretch of pages has taken a noticeable time: a yield costs about as
-    // much as a vector page (#246).
-    if (i + 1 < sized.length && performance.now() - lastYield > YIELD_AFTER_MS) {
-      await yieldToBrowser();
-      lastYield = performance.now();
-    }
-  }
-  doc.setProperties({ title: options.title, creator: 'PlasmidPop' });
-  return doc.output('blob');
+    await svg2pdf(parseSvg(page.svg), doc, {
+      x: 0,
+      y: 0,
+      width: page.width,
+      height: page.height,
+    });
+  });
+  return finish(doc, title);
+}
+
+/**
+ * One PDF of every PNG page, each placed at its own size in CSS pixels, so
+ * the pixels per inch are 96 times the scale it was drawn at. The pages are
+ * added in turn with progress after each (stage `writing`); the signal is
+ * looked at between pages, which matters when this runs inline rather than
+ * in the worker, where stopping is the worker ending.
+ */
+export async function writeRasterPdf(
+  pages: readonly PngPage[],
+  title: string,
+  options: ExportJobOptions = {},
+): Promise<Uint8Array> {
+  const first = pages[0];
+  if (first === undefined) throw new Error('There is no page to write.');
+  const doc = newDocument(first);
+  await eachPage(pages, 'writing', options, (page, i) => {
+    if (i > 0) doc.addPage([page.width, page.height], orientationOf(page));
+    doc.addImage(page.png, 'PNG', 0, 0, page.width, page.height, undefined, 'FAST');
+  });
+  return finish(doc, title);
 }

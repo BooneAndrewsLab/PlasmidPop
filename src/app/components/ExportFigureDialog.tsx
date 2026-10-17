@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type CutSite,
@@ -33,7 +33,15 @@ import {
   type FigureView,
   pagesProblem,
   pngProblem,
+  workingText,
 } from '../exportFigure';
+import {
+  type ExportJobOptions,
+  type ExportProgress,
+  eachPage,
+  isCancelled,
+  throwIfCancelled,
+} from '../exportJob';
 import { PNG_SCALES, pngSizeOf, rasterizeSvg, svgPixelSize } from '../mapPng';
 import { PDF_MODES, type PdfMode, type PdfOptions, exportPdf } from '../pdfExport';
 import { downloadBlob, downloadText } from '../saveFile';
@@ -180,24 +188,48 @@ export function ExportFigureDialog({
     defaultPaper(typeof navigator === 'undefined' ? [] : navigator.languages),
   );
 
+  // The export under way (#247, #248): its stop, and what it is doing. The
+  // controller is a ref so that Escape and an unmount can stop it without
+  // re-subscribing; `busy` is what the render reads.
+  const jobRef = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
-  // Pages done and of how many, while a long export runs (#246).
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<ExportProgress | null>(null);
   /** Why the last export did not happen, kept until a setting changes. */
   const [failure, setFailure] = useState<{ settings: string; message: string } | null>(null);
+
+  /** Stops the export under way, if there is one, and leaves the dialog as it was. */
+  const cancel = useCallback((): void => {
+    const job = jobRef.current;
+    if (job === null) return;
+    jobRef.current = null;
+    job.abort();
+    setBusy(false);
+    setProgress(null);
+  }, []);
 
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     // Keyboard users land on the first choice, as in the other dialogs.
     formRef.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
+    // Escape stops an export under way; pressed again, it closes.
     const esc = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (jobRef.current === null) onClose();
+      else cancel();
     };
     document.addEventListener('keydown', esc);
     return () => {
       document.removeEventListener('keydown', esc);
     };
-  }, [onClose]);
+  }, [onClose, cancel]);
+  // Closed some other way while exporting: the work stops and no file appears later.
+  useEffect(
+    () => () => {
+      jobRef.current?.abort();
+      jobRef.current = null;
+    },
+    [],
+  );
 
   const pdf = fileType === 'pdf';
   // What has pixels, so the scale applies and the size is checked against a canvas.
@@ -348,14 +380,10 @@ export function ExportFigureDialog({
     [...hidden],
   ]);
   const shown = problem ?? (failure?.settings === settings ? failure.message : null);
-  // What a long export is doing, in the room the problem takes (#246); the
-  // browser paints it between pages, so the dialog stays alive while it runs.
-  const working =
-    busy && shown === null && progress !== null && progress.total > 1
-      ? progress.done < progress.total
-        ? `Drawing page ${String(progress.done + 1)} of ${String(progress.total)}…`
-        : 'Writing the file…'
-      : null;
+  // What the export is doing, in the room the problem takes (#246, #247):
+  // the pages are drawn with the browser given its turns and the file is
+  // written in a worker, so the message and its spinner keep moving.
+  const working = busy && shown === null ? workingText(progress) : null;
 
   const previewSvg = view === 'map' ? (map?.svg ?? null) : sequencePreview;
   const previewUrl =
@@ -390,28 +418,50 @@ export function ExportFigureDialog({
       : `${n} pages, downloaded as one ZIP of ${n} ${typeName}s.`;
   })();
 
-  const fail = (message: string): void => {
-    setFailure({ settings, message });
-    setBusy(false);
-    setProgress(null);
-  };
-
-  const reportProgress = (done: number, total: number): void => {
-    setProgress({ done, total });
-  };
-
   /** The PDF asked for: vector, or each page a picture at the scale. */
-  const pdfOptions = (title: string): PdfOptions =>
+  const pdfOptions = (title: string, job: ExportJobOptions): PdfOptions =>
     pdfMode === 'vector'
-      ? { mode: 'vector', title, onProgress: reportProgress }
-      : { mode: 'raster', title, scale, rasterize, onProgress: reportProgress };
+      ? { mode: 'vector', title, ...job }
+      : { mode: 'raster', title, scale, rasterize, ...job };
 
-  /** Runs a drawing that may take a while, closing on success and saying why on failure. */
-  const finish = (made: Promise<void>): void => {
+  /**
+   * Runs an export that may take a while as the one job the dialog has:
+   * closing when the file is downloaded, saying why when it failed, and
+   * doing neither when Cancel or Escape stopped it. A job stopped is a job
+   * forgotten: its promise, settling later, changes nothing.
+   */
+  const start = (made: (job: ExportJobOptions) => Promise<void>): void => {
+    const controller = new AbortController();
+    jobRef.current = controller;
     setBusy(true);
-    made.then(onClose).catch((e: unknown) => {
-      fail(e instanceof Error ? e.message : String(e));
-    });
+    setProgress(null);
+    const mine = (): boolean => jobRef.current === controller;
+    made({
+      signal: controller.signal,
+      onProgress: (p) => {
+        if (mine()) setProgress(p);
+      },
+    })
+      .then(() => {
+        if (mine()) onClose();
+      })
+      .catch((e: unknown) => {
+        if (!mine() || isCancelled(e)) return;
+        setFailure({ settings, message: e instanceof Error ? e.message : String(e) });
+      })
+      .finally(() => {
+        if (!mine()) return;
+        jobRef.current = null;
+        setBusy(false);
+        setProgress(null);
+      });
+  };
+
+  /** Hands the file to the browser, unless the job was stopped while it was being made. */
+  const deliver = (job: ExportJobOptions, name: string, blob: Blob, event: string): void => {
+    throwIfCancelled(job.signal);
+    analytics.track('file', 'export', event);
+    downloadFile(name, blob);
   };
 
   const submitMap = (svg: string): void => {
@@ -421,17 +471,15 @@ export function ExportFigureDialog({
       onClose();
       return;
     }
-    finish(
-      pdf
-        ? makePdf([svg], pdfOptions(`${doc.name} map`)).then((blob) => {
-            analytics.track('file', 'export', `map-pdf-${pdfMode}`);
-            downloadFile(`${stem}_map.pdf`, blob);
-          })
-        : rasterize(svg, scale).then((blob) => {
-            analytics.track('file', 'export', 'map-png');
-            downloadFile(`${stem}_map.png`, blob);
-          }),
-    );
+    start(async (job) => {
+      if (pdf) {
+        const blob = await makePdf([svg], pdfOptions(`${doc.name} map`, job));
+        deliver(job, `${stem}_map.pdf`, blob, `map-pdf-${pdfMode}`);
+      } else {
+        const blob = await rasterize(svg, scale);
+        deliver(job, `${stem}_map.png`, blob, 'map-png');
+      }
+    });
   };
 
   const submitSequence = (opts: LinearExportOptions, suffix: string): void => {
@@ -444,61 +492,50 @@ export function ExportFigureDialog({
       }
     })();
     if (typeof drawn === 'string') {
-      fail(drawn);
+      setFailure({ settings, message: drawn });
       return;
     }
-    if (fileType === 'svg') {
-      if (pages) {
-        analytics.track('file', 'export', 'sequence-svg-zip');
-        const encoder = new TextEncoder();
-        downloadFile(
-          `${name}.zip`,
-          pagesZip(
-            name,
-            'svg',
-            drawn.map((svg) => encoder.encode(svg)),
-          ),
-        );
-      } else {
-        analytics.track('file', 'export', kind === 'selection' ? 'selection-svg' : 'sequence-svg');
-        download(`${name}.svg`, drawn[0] ?? '');
-      }
+    if (fileType === 'svg' && !pages) {
+      analytics.track('file', 'export', kind === 'selection' ? 'selection-svg' : 'sequence-svg');
+      download(`${name}.svg`, drawn[0] ?? '');
       onClose();
       return;
     }
-    if (pdf) {
-      finish(
-        makePdf(drawn, pdfOptions(`${doc.name} sequence`)).then((blob) => {
-          analytics.track('file', 'export', `sequence-pdf-${pdfMode}`);
-          downloadFile(`${name}.pdf`, blob);
-        }),
-      );
+    if (fileType === 'svg') {
+      start(async (job) => {
+        const encoder = new TextEncoder();
+        job.onProgress?.({ stage: 'writing', done: 0, total: 1 });
+        const zip = await pagesZip(
+          name,
+          'svg',
+          drawn.map((svg) => encoder.encode(svg)),
+          job,
+        );
+        deliver(job, `${name}.zip`, zip, 'sequence-svg-zip');
+      });
       return;
     }
-    // One picture at a time: a canvas of a page's size is the memory a browser lends.
-    const rasterAll = async (): Promise<Blob[]> => {
-      const blobs: Blob[] = [];
-      reportProgress(0, drawn.length);
-      for (const [i, svg] of drawn.entries()) {
-        blobs.push(await rasterize(svg, scale));
-        reportProgress(i + 1, drawn.length);
+    if (pdf) {
+      start(async (job) => {
+        const blob = await makePdf(drawn, pdfOptions(`${doc.name} sequence`, job));
+        deliver(job, `${name}.pdf`, blob, `sequence-pdf-${pdfMode}`);
+      });
+      return;
+    }
+    start(async (job) => {
+      // One picture at a time: a canvas of a page's size is the memory a browser lends.
+      const blobs = await eachPage(drawn, 'drawing', job, (svg) => rasterize(svg, scale));
+      if (pages) {
+        const bytes = await Promise.all(
+          blobs.map(async (blob) => new Uint8Array(await blob.arrayBuffer())),
+        );
+        job.onProgress?.({ stage: 'writing', done: 0, total: 1 });
+        const zip = await pagesZip(name, 'png', bytes, job);
+        deliver(job, `${name}.zip`, zip, 'sequence-png-zip');
+      } else if (blobs[0] !== undefined) {
+        deliver(job, `${name}.png`, blobs[0], 'sequence-png');
       }
-      return blobs;
-    };
-    finish(
-      rasterAll().then(async (blobs) => {
-        if (pages) {
-          const bytes = await Promise.all(
-            blobs.map(async (blob) => new Uint8Array(await blob.arrayBuffer())),
-          );
-          analytics.track('file', 'export', 'sequence-png-zip');
-          downloadFile(`${name}.zip`, pagesZip(name, 'png', bytes));
-        } else if (blobs[0] !== undefined) {
-          analytics.track('file', 'export', 'sequence-png');
-          downloadFile(`${name}.png`, blobs[0]);
-        }
-      }),
-    );
+    });
   };
 
   const submit = (): void => {
@@ -745,10 +782,20 @@ export function ExportFigureDialog({
               {shown}
             </p>
             <p className="export-figure__working panel__note" role="status">
-              {working}
+              {working !== null && (
+                <>
+                  <span className="spinner" aria-hidden="true" />
+                  {working}
+                </>
+              )}
             </p>
           </div>
-          <button type="button" className="button" onClick={onClose}>
+          <button
+            type="button"
+            className="button"
+            onClick={busy ? cancel : onClose}
+            title={busy ? 'Stop the export; the dialog stays open' : undefined}
+          >
             Cancel
           </button>
           <button

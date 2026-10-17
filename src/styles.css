@@ -3051,6 +3051,34 @@ button {
   line-height: 1.3;
 }
 
+/* The spinner before the status line while a file is got ready (#247,
+   #248): a ring with one accent-coloured arc, turning. It is text-sized,
+   so it sits in the line without changing its height. */
+.spinner {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.45em;
+  vertical-align: -0.1em;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spinner-turn 0.8s linear infinite;
+}
+
+@keyframes spinner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
 @media (max-width: 640px) {
   .export-figure__body {
     grid-template-columns: 1fr;

@@ -208,14 +208,126 @@ Every export the old cap allowed is still allowed, and the files are
 unchanged: only the refusal moved. Per-page 16,384 px limit (`pngProblem`) is
 as before.
 
-**Responsiveness.** Pages are drawn on the main thread; no worker was built.
-The raster paths already await an image decode per page, so the browser
-answers between pages (longest stall 0.9 s). The vector PDF did not: svg2pdf
-ran the 834 pages in one 8.8 s task. `writePdf` now yields to the browser
-after any stretch of pages that took over 100 ms, so its longest stall is
-0.6 s (the closing `output()`), for 13 s rather than 10 s in all. A ZIP of
-PNGs still stalls once for 3 to 10 s while the ZIP is deflated (fflate's
-synchronous `zipSync`; PNG bytes are incompressible, so storing them would
-shorten it but would change the files). The dialog shows "Drawing page N of
-M…" (`role="status"`, beside Export in the room the problem uses, so
-nothing moves) while a PNG ZIP or a PDF is made.
+**Responsiveness (as first built).** Pages were drawn on the main thread
+and no worker was built. The raster paths awaited an image decode per page,
+so the browser answered between pages (longest stall 0.9 s); the vector PDF
+did not (one 8.8 s task for 834 pages) and `writePdf` was given a yield after
+any stretch of pages over 100 ms, cutting its longest stall to 0.6 s. A ZIP of
+PNGs still stalled once for 3 to 10 s while fflate deflated it, and a raster
+PDF spent its 0.2 s a megapixel on the main thread. The dialog showed
+"Drawing page N of M…" (`role="status"`, in the room the problem uses). The
+next section replaces this.
+
+## Off the main thread, with a message, a spinner and a stop (#247, #248)
+
+**Asked:** nothing an export does should block the page; while the file is
+prepared, show a "getting your files ready" message with a spinner
+(`role="status"`, page progress, a Cancel that really stops the work) in
+the fixed-height slot so nothing moves (#241); share one overlay/progress/
+cancel mechanism and one worker between the PNG ZIP and the PDFs; spike
+rasterising in a worker and jsPDF/svg2pdf in a worker first, and fall back
+with a note where a spike fails; no export bytes change; then revisit the
+600-megapixel raster-PDF budget (#246).
+
+**Spikes** (headless Chromium 156 and Firefox 157 through Playwright, the
+real page SVGs of pBR322 at 60 bases a row; WebKit would not start on this
+machine, so Safari is untested):
+
+- _(a) Rasterise in a worker: failed._ `createImageBitmap(svgBlob)` throws
+  `InvalidStateError: The source image could not be decoded` in Chromium and
+  Firefox alike, in a worker and on the main thread, with or without
+  `resizeWidth`/`resizeHeight`. The one variant that ran — decode an `<img>`
+  on the main thread, `createImageBitmap(img, { resizeWidth, resizeHeight })`,
+  transfer the bitmap and draw it on an `OffscreenCanvas` in the worker —
+  resizes a bitmap of the SVG's intrinsic size rather than re-rendering the
+  vectors: in Chromium 60,503 of 3.56 million pixels differed from the PNG
+  export (Firefox happened to match), and the SVG decode stays on the main
+  thread anyway. So rasterising stays on the main thread, one page at a time
+  with the browser given its turns (`eachPage`, below), and the bytes are
+  what `rasterizeSvg` always made.
+- _(b) jsPDF in a worker: raster holds, vector does not._ jsPDF's `addImage`
+  of PNG bytes and `output('arraybuffer')` use its own decoder and deflate
+  (fast-png, fflate) and nothing of the DOM; in a worker three A4 pages at 2×
+  (10.7 MP) came out byte-identical to the main thread's PDF (given the same
+  creation date and file id) in the same 2.26 s against 2.24 s, so the 0.2 s
+  a megapixel is pure JS that a worker can carry. svg2pdf fails at once
+  (`ReferenceError: DOMParser is not defined`): it needs a parsed SVG tree and
+  the browser's text metrics, so the vector PDF stays on the main thread.
+
+**Built.**
+
+- **One job shape** (`src/app/exportJob.ts`): `ExportJobOptions` is a
+  `signal` and an `onProgress({ stage, done, total })` with `stage` either
+  `drawing` (main-thread work, a page at a time) or `writing` (the file
+  being assembled); `ExportCancelledError` is the rejection of a stopped
+  job. `eachPage(items, stage, options, step)` is the loop every path uses:
+  progress before the first and after each item, the signal looked at after
+  each report (so a stop asked for during a page starts no further page),
+  and a `setTimeout(0)` turn for the browser after any stretch of pages over
+  100 ms (the #246 rule, moved here from the PDF writer).
+- **One worker** (`src/workers/export.worker.ts`, `exportProtocol.ts`,
+  `exportClient.ts`), in the analysis worker's idiom: it takes `zip`
+  (`writeZip` from `src/io/zip.ts`, so the ZIP stays behind that module and
+  is the same bytes) and `rasterPdf` (PNG pages with their sizes, written by
+  `pdfWriter.ts`, which the worker loads with its own dynamic import), and
+  answers with progress and the file's bytes. Buffers cross by transfer, not
+  copy, both ways, so the memory held is the pages once. `ExportClient` runs
+  one job at a time (all the dialog allows); **cancelling is terminating the
+  worker** — a deflate cannot be interrupted from inside — and the next job
+  starts a fresh one. Where `Worker` does not exist (jsdom tests) the same
+  `handleExportRequest` runs inline and looks at the signal between pages.
+- **The PDF writer** (`src/app/pdfWriter.ts`, still the one file naming
+  jsPDF and svg2pdf) is two functions: `writeVectorPdf(pages, title, job)` on
+  the main thread through `eachPage`, and `writeRasterPdf(pngPages, title,
+job)` for the worker. `exportPdf` (`pdfExport.ts`) rasterises the pages on
+  the main thread (`rasterizePages`, stage `drawing`) and hands the PNGs to
+  the worker (stage `writing`, counted a second time as jsPDF adds them).
+  svg2pdf is now a dynamic import inside the vector writer, so the worker's
+  copy of the writer chunk never fetches it; `loadPdfWriter.ts` holds the
+  loader so the worker's module graph does not reach the worker client. The
+  service worker rules cover both: `pdfWriter-*.js` and `svg2pdf*.js` are
+  not precached and are kept once fetched. `pagesZip` is async and goes
+  through the client, for the ZIP of SVGs too, so every multi-page export is
+  cancellable the same way.
+- **The dialog.** One `AbortController` per export, in a ref: `start(job)`
+  runs the path, closes on success, shows the failure in the alert slot, and
+  does neither when stopped; a stopped job is forgotten, so its promise
+  settling later changes nothing (`deliver` also checks the signal before a
+  download). The `role="status"` line in the fixed-height message slot
+  (#241) reads "Getting your file ready: drawing page 12 of 139…", "…
+  writing page 4 of 139…" or "… writing the file…" (`workingText`,
+  `exportFigure.ts`), with a text-sized CSS spinner before it (`.spinner`,
+  slower under `prefers-reduced-motion`); nothing moves, because the slot
+  already kept two lines' room. **Cancel** while an export runs stops it
+  and leaves the dialog open with Export enabled again (its tooltip says
+  so); pressed again it closes, as the NCBI dialog's Cancel does. **Escape**
+  does the same. Unmounting while exporting aborts, so a dialog closed some
+  other way never downloads later.
+- **Tests.** `eachPage` (order, progress, cancel after a report, yields
+  after 100 ms of pages, a cancel arriving during a yield), the client with
+  a fake worker (transfer list, progress as the writing stage, abort
+  terminates and ignores a late answer, crash replaces the worker, inline
+  fallback), both writers' progress and cancellation, `exportPdf`'s two
+  stages and a stop while drawing, and the dialog: spinner and wording,
+  Cancel and Escape stopping without a download and closing on the second
+  press, a stopped PDF's writer seeing the signal, unmount aborting.
+
+**Measured** (the table is in `docs/perf-notes.md`): the same runs as
+#246, now with longest stalls of 0.26 to 0.58 s — the page layout, which the
+SVG ZIP always had — against 2.7 to 9.9 s for the PNG ZIPs before; total
+times within a second or two of before (the worker does the same work at the
+same speed, 0.19 to 0.21 s a megapixel for a raster PDF), and the status
+line changing on every sample. Beyond the old budget, raster PDFs of 992,
+1,981 and 2,970 megapixels completed (198 s, 363 s, 567 s; +519, +595, +787
+MB of browser memory), the last being the most the layout can produce at 2×.
+Cancel in the real browser stopped a PNG ZIP at page 33 with no download and
+a fresh worker made the next one.
+
+**Decisions.** Cancel keeps the dialog open rather than closing it: the
+user who stops a two-minute export usually wants to change a setting, and
+the NCBI dialog set the precedent. The ZIP of SVGs goes through the worker
+although its deflate is short, so there is one path and one Cancel. The
+worker is terminated to cancel rather than asked to stop: it is the only way
+to end a synchronous deflate, and a module worker starts in milliseconds.
+No overlay: the status slot was already reserved (#241), and an overlay
+would have hidden the settings the user may want to change after Cancel.

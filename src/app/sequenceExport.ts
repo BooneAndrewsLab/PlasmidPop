@@ -6,8 +6,10 @@
  */
 
 import { type Range, type SeqDocument, rangeWraps } from '@/core';
-import { writeZip } from '@/io';
 import { MAX_EXPORT_BASES_PER_ROW, MIN_EXPORT_BASES_PER_ROW } from '@/view/svg';
+import { exportClient } from '@/workers/exportClient';
+
+import type { ExportJobOptions } from './exportJob';
 
 export type ExportRangeKind = 'whole' | 'selection' | 'custom';
 
@@ -108,15 +110,21 @@ export function pageFileName(stem: string, extension: string, i: number, n: numb
  * The pages as one ZIP archive (#242), the files inside named
  * `stem_p01.svg` onwards (or `.png`): one download for the browser to ask
  * about rather than one per page. A single SVG or PNG cannot hold pages;
- * a PDF can (`pdfExport.ts`).
+ * a PDF can (`pdfExport.ts`). The archive is deflated in the export worker
+ * (#247), so the seconds a ZIP of PNGs takes no longer stall the page, and
+ * the job's signal stops it; the page bytes are handed to the worker, not
+ * copied, so they are not to be read afterwards.
  */
 export function pagesZip(
   stem: string,
   extension: 'svg' | 'png',
   pages: readonly Uint8Array[],
-): Blob {
-  const bytes = writeZip(
-    pages.map((data, i) => ({ path: pageFileName(stem, extension, i, pages.length), data })),
-  );
-  return new Blob([bytes as BlobPart], { type: 'application/zip' });
+  options: ExportJobOptions = {},
+): Promise<Blob> {
+  return exportClient
+    .zip(
+      pages.map((data, i) => ({ path: pageFileName(stem, extension, i, pages.length), data })),
+      options,
+    )
+    .then((bytes) => new Blob([bytes as BlobPart], { type: 'application/zip' }));
 }

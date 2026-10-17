@@ -552,9 +552,19 @@ From the **File** menu:
     pixels, summed over the pages: a ZIP of PNGs holds up to 3,000
     megapixels (all 830 pages at 2×) and a raster PDF 600 (about 170 A4
     pages at 2×, 40 at 4×), which takes about two minutes. A raster PDF is
-    slow because every page is a picture the PDF writer must re-encode;
-    the vector PDF of the same pages takes seconds. While pages are
-    drawn the dialog says which one it is on ("Drawing page 12 of 139…").
+    slow because every page is a picture the PDF writer must re-encode,
+    about a fifth of a second per megapixel; the vector PDF of the same
+    pages takes seconds.
+
+  While the file is made, the dialog says so beside the buttons, with a
+  spinner and the page it is on: "Getting your file ready: drawing page 12
+  of 139…", then "writing the file…" (a raster PDF counts its pages a second
+  time as they are written). The pages are drawn between the browser's
+  turns and the file itself — the ZIP, or the raster PDF — is put together
+  in the background, so the rest of PlasmidPop keeps answering while a long
+  export runs. **Cancel** (or `Escape`) stops an export under way: nothing
+  is downloaded and the dialog stays as it was, so you can change a setting
+  and export again; press it again to close.
 
   The dialog checks as you change things. A range outside the sequence, a
   row width outside 10–200, too many pages, too many pixels in the PNG or

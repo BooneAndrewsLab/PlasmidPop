@@ -6,6 +6,7 @@
 
 import { MAX_EXPORT_BASES_PER_ROW, type PaperSize } from '@/view/svg';
 
+import type { ExportProgress } from './exportJob';
 import { MAX_PNG_SIDE, PNG_SCALES, largestPngScale, pngSizeOf } from './mapPng';
 import {
   MAX_EXPORT_PAGES,
@@ -177,4 +178,22 @@ export function pagesProblem(
   if (advice.length === 0) return `${head}.`;
   const last = advice.pop() ?? '';
   return `${head}: ${advice.length === 0 ? last : `${advice.join(', ')} or ${last}`}.`;
+}
+
+/**
+ * What the status line says while an export runs (#247, #248): the file is
+ * being got ready, and which page of how many is being drawn (on the main
+ * thread, between the browser's turns) or written (in the worker); a
+ * single picture, or the ZIP's deflate, has no page to name.
+ */
+export function workingText(progress: ExportProgress | null): string {
+  const head = 'Getting your file ready';
+  if (progress === null) return `${head}…`;
+  const { stage, done, total } = progress;
+  if (total > 1 && done < total) {
+    return `${head}: ${stage} page ${String(done + 1)} of ${String(total)}…`;
+  }
+  return stage === 'drawing' && total === 1
+    ? `${head}: drawing the picture…`
+    : `${head}: writing the file…`;
 }

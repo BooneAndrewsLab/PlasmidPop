@@ -24,6 +24,7 @@ of the view's settings, in this browser.
 | `Alt+Shift+PageUp`, `Alt+Shift+PageDown` | Move the document in front one tab left or right               |
 | `Ctrl+V` with nothing open               | Open a pasted GenBank or FASTA record, or bare bases           |
 | `Alt+K`                                  | Compare with another tab or a file (**File ▸ Compare with…**)  |
+| `Escape` in **Export figure…**           | Stop an export under way (the dialog stays); again to close    |
 
 ## Editing
 

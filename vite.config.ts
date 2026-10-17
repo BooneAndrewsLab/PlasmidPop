@@ -189,16 +189,18 @@ export default defineConfig({
         // The PDF writer (#242) is a chunk of its own that only an export as
         // PDF fetches: half a megabyte that most installs would never use,
         // so it is not precached. Once fetched it is kept (below), so the
-        // export works offline from then on.
-        globIgnores: ['guide/**', '**/pdfWriter-*.js'],
+        // export works offline from then on. It comes as two chunks since
+        // #248: the writer (one copy for the main thread, one the export
+        // worker loads) and svg2pdf, which only the vector writer fetches.
+        globIgnores: ['guide/**', '**/pdfWriter-*.js', '**/svg2pdf*.js'],
         runtimeCaching: [
           // The share target's POST: written into sw.js as the functions'
           // source, so they are self-contained (see the module).
           { urlPattern: isShareTargetRequest, handler: handleShareTarget, method: 'POST' },
           {
-            urlPattern: /\/assets\/pdfWriter-[^/]+\.js$/,
+            urlPattern: /\/assets\/(?:pdfWriter|svg2pdf)[^/]*\.js$/,
             handler: 'CacheFirst',
-            options: { cacheName: 'plasmidpop-pdf-writer', expiration: { maxEntries: 2 } },
+            options: { cacheName: 'plasmidpop-pdf-writer', expiration: { maxEntries: 4 } },
           },
         ],
       },

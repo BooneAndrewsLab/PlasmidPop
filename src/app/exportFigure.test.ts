@@ -1,5 +1,5 @@
 import { MAX_PNG_SIDE } from './mapPng';
-import { defaultPaper, pagesBudget, pagesProblem, pngProblem } from './exportFigure';
+import { defaultPaper, pagesBudget, pagesProblem, pngProblem, workingText } from './exportFigure';
 import {
   MAX_EXPORT_PAGES,
   MAX_PNG_ZIP_MEGAPIXELS,
@@ -133,5 +133,34 @@ describe('export page limits (#246)', () => {
     expect(pagesBudget('pdf-vector')).toBeNull();
     expect(pagesBudget('png')).toBe(3000);
     expect(pagesBudget('pdf-raster')).toBe(600);
+  });
+});
+
+describe('the status line while a file is made (#247, #248)', () => {
+  it('names the stage and the page of how many, and the file or picture when there is no page', () => {
+    expect(workingText(null)).toBe('Getting your file ready…');
+    expect(workingText({ stage: 'drawing', done: 0, total: 139 })).toBe(
+      'Getting your file ready: drawing page 1 of 139…',
+    );
+    expect(workingText({ stage: 'drawing', done: 11, total: 139 })).toBe(
+      'Getting your file ready: drawing page 12 of 139…',
+    );
+    expect(workingText({ stage: 'writing', done: 3, total: 139 })).toBe(
+      'Getting your file ready: writing page 4 of 139…',
+    );
+    // Every page drawn, the file not yet started: nothing to count.
+    expect(workingText({ stage: 'drawing', done: 139, total: 139 })).toBe(
+      'Getting your file ready: writing the file…',
+    );
+    expect(workingText({ stage: 'writing', done: 139, total: 139 })).toBe(
+      'Getting your file ready: writing the file…',
+    );
+    // One picture: the ZIP's deflate, or a single page.
+    expect(workingText({ stage: 'writing', done: 0, total: 1 })).toBe(
+      'Getting your file ready: writing the file…',
+    );
+    expect(workingText({ stage: 'drawing', done: 0, total: 1 })).toBe(
+      'Getting your file ready: drawing the picture…',
+    );
   });
 });
