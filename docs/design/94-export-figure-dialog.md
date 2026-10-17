@@ -23,8 +23,8 @@ shell.
   the right, under three headings — **What** (view, then what is on it:
   the map's toggles and feature types, or the bases and range), **How big**
   (text size or bases per row, file type, scale, background) and **Pages**
-  (A4). Every row is always rendered and disabled when it does not apply
-  (_Scale_ for an SVG, _Range_ unless _From–to_, _Paper_ for the map), and
+  (pages, paper size). Every row is always rendered and disabled when it does not apply
+  (_Scale_ for an SVG, _Range_ unless _From–to_, _Split_ and _Paper size_ for the map), and
   each hint keeps a fixed two-line room, so no row moves when the file type,
   the range kind or the pages change: measured in headless Chromium, the
   row tops are identical across SVG/PNG, Whole/From–to and pages on/off.
@@ -143,3 +143,35 @@ shipping one, and the third-party data policy (bundle only what may be
 redistributed) would want a licensed face for a gain nobody asked for.
 Dependencies: jspdf 4.2.1 (MIT), svg2pdf.js 2.8.1 (MIT); their transitive
 dependencies are MIT, with pako MIT AND Zlib.
+
+## US Letter as well as A4 (#245)
+
+**Asked:** _Split into A4 pages_ offered only A4; North America uses US
+Letter.
+
+**Built.**
+
+- **Paper size row** in **Pages**, _A4 | US Letter_, after the _Split into
+  pages_ toggle (formerly "Split into A4 pages"). Always rendered, disabled
+  unless the sequence view is split into pages (the map is one picture),
+  so nothing moves (#241). It is a `SegmentedChoices`, like the rest.
+- **One geometry per paper** (`PageGeometry`, `pageOf`, `src/view/svg/
+exportLinear.ts`): width and height in CSS pixels, the margin and footer,
+  and the `width`/`height` attributes in mm. A4 is the old `A4_PAGE`
+  unchanged (793.7 × 1,122.52 px, `210mm` × `297mm`), so A4 output is
+  byte-identical; Letter is 816 × 1,056 px (`215.9mm` × `279.4mm`) with the
+  same 15 mm margin and footer. `paper` is a `LinearExportOptions` field
+  (default A4) that `paginate`, `countLinearSvgPages`, `measureLinearSvg`
+  and `exportLinearSvgPages` all read, so the row capacity of a page, the
+  page count in the live check (#243) and the files agree.
+- **SVG, PNG and PDF follow from the page SVG**: the ZIPs hold Letter-sized
+  pages, and the PDF writer, which sizes a page from its SVG (1 px = 1/96
+  in), writes a MediaBox of 612 × 792 pt (A4: 595.28 × 841.89). The live
+  size check and the caption use the chosen page (`9 US Letter pages of
+SVG, 816 × 1,056 px`); the PNG advice says "split into pages".
+- **Default from the browser's language** (`defaultPaper`,
+  `src/app/exportFigure.ts`): US Letter when the first language tag's
+  region is US, CA, MX or another Letter country (PH, CL, CO, VE, CR, GT,
+  PA, DO, SV, HN, NI, PR), A4 otherwise or when it names no region. It is
+  read when the dialog opens and stored nowhere.
+- Analytics events and file names are unchanged: the paper is not an event.

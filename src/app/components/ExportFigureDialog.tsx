@@ -10,7 +10,7 @@ import {
   isEmptyRange,
 } from '@/core';
 import {
-  A4_PAGE,
+  pageOf,
   type LinearExportOptions,
   MAX_EXPORT_BASES_PER_ROW,
   MIN_EXPORT_BASES_PER_ROW,
@@ -18,6 +18,7 @@ import {
   exportLinearSvgPages,
   exportMapSvg,
   measureLinearSvg,
+  type PaperSize,
 } from '@/view/svg';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
@@ -25,6 +26,8 @@ import { analytics } from '../analytics';
 import {
   FIGURE_FILE_TYPES,
   FIGURE_FONT_SCALES,
+  PAPER_SIZES,
+  defaultPaper,
   type FigureFileType,
   type FigureSize,
   type FigureView,
@@ -172,6 +175,10 @@ export function ExportFigureDialog({
   const [to, setTo] = useState(initial.to);
   const [perRow, setPerRow] = useState(String(basesPerRow ?? 60));
   const [pages, setPages] = useState(false);
+  // Suggested by the browser's language each time the dialog opens; never stored.
+  const [paper, setPaper] = useState<PaperSize>(() =>
+    defaultPaper(typeof navigator === 'undefined' ? [] : navigator.languages),
+  );
 
   const [busy, setBusy] = useState(false);
   /** Why the last export did not happen, kept until a setting changes. */
@@ -249,9 +256,10 @@ export function ExportFigureDialog({
             // The selection is shown highlighted when it is what is exported, as before.
             selection: kind === 'selection' ? selection : null,
             transparent,
+            paper,
           }
         : null,
-    [format, cutSites, exportRange, rowWidth, kind, selection, transparent],
+    [format, cutSites, exportRange, rowWidth, kind, selection, transparent, paper],
   );
   // Measuring lays the rows out without drawing them: cheap enough for every keystroke.
   const measure = useMemo(() => {
@@ -287,7 +295,7 @@ export function ExportFigureDialog({
       : measure?.error !== null
         ? null
         : pages
-          ? { width: A4_PAGE.width, height: A4_PAGE.height }
+          ? { width: pageOf(paper).width, height: pageOf(paper).height }
           : { width: measure.width, height: measure.height };
 
   const problem: string | null = (() => {
@@ -317,6 +325,7 @@ export function ExportFigureDialog({
     to,
     perRow,
     pages,
+    paper,
     enzymes,
     gcOn,
     centre,
@@ -330,6 +339,7 @@ export function ExportFigureDialog({
     previewSvg === null
       ? null
       : `data:image/svg+xml;charset=utf-8,${encodeURIComponent(previewSvg)}`;
+  const paperLabel = paper === 'letter' ? 'US Letter' : 'A4';
   const caption = ((): string => {
     if (size === null) return '';
     const pixels = raster ? pngSizeOf(size, scale) : null;
@@ -342,7 +352,7 @@ export function ExportFigureDialog({
     const first =
       measure.rows > PREVIEW_ROWS ? `; the first ${String(PREVIEW_ROWS)} rows shown` : '';
     return pages
-      ? `${String(measure.pages)} A4 ${measure.pages === 1 ? 'page' : 'pages'} of ${at}${first}`
+      ? `${String(measure.pages)} ${paperLabel} ${measure.pages === 1 ? 'page' : 'pages'} of ${at}${first}`
       : `${String(measure.rows)} ${measure.rows === 1 ? 'row' : 'rows'}, ${at}${first}`;
   })();
 
@@ -494,6 +504,7 @@ export function ExportFigureDialog({
   );
 
   const sequence = view === 'sequence';
+  const pagesOn = sequence && pages;
 
   return (
     <div className="dialog-backdrop">
@@ -679,8 +690,18 @@ export function ExportFigureDialog({
               />
             </Row>
             <h3 className="export-figure__heading">Pages</h3>
-            <Row label="Paper" disabled={!sequence} hint={pagesHint}>
-              {toggle('Split into A4 pages', sequence && pages, setPages, !sequence)}
+            <Row label="Split" disabled={!sequence} hint={pagesHint}>
+              {toggle('Split into pages', sequence && pages, setPages, !sequence)}
+            </Row>
+            <Row label="Paper size" disabled={!pagesOn}>
+              <SegmentedChoices
+                label="Paper size"
+                choices={PAPER_SIZES}
+                value={paper}
+                disabled={!pagesOn}
+                disabledTitle="The paper size is for the sequence view split into pages"
+                onChange={setPaper}
+              />
             </Row>
           </div>
         </div>

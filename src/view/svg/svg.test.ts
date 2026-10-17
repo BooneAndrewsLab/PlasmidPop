@@ -5,6 +5,7 @@ import { readFixture } from '@/test/fixtures';
 
 import {
   A4_PAGE,
+  LETTER_PAGE,
   countLinearSvgPages,
   exportLinearSvg,
   exportLinearSvgPages,
@@ -503,6 +504,23 @@ describe('exportLinearSvgPages (#30)', () => {
     expect(width * fit).toBeLessThanOrEqual(A4_PAGE.width - 2 * A4_PAGE.margin + 0.01);
     // Scaled down, 200-base rows take fewer pages than 60-base ones.
     expect(wide.length).toBeLessThan(exportLinearSvgPages(d).length);
+  });
+
+  it('lays pages out on US Letter when asked (#245)', () => {
+    const d = doc();
+    const a4 = exportLinearSvgPages(d, { basesPerRow: 90 });
+    const letter = exportLinearSvgPages(d, { basesPerRow: 90, paper: 'letter' });
+    expect(exportLinearSvgPages(d, { basesPerRow: 90, paper: 'a4' })).toEqual(a4);
+    for (const page of letter) {
+      expect(page).toMatch(/^<svg [^>]*width="215.9mm" height="279.4mm" viewBox="0 0 816 1056"/);
+    }
+    // Letter is shorter than A4, so the same rows take more pages.
+    expect(letter.length).toBeGreaterThan(a4.length);
+    expect(letter).toHaveLength(countLinearSvgPages(d, { basesPerRow: 90, paper: 'letter' }));
+    expect(measureLinearSvg(d, { basesPerRow: 90, paper: 'letter' }).pages).toBe(letter.length);
+    expect(letter.flatMap(rowNumbers)).toEqual(Array.from({ length: 49 }, (_, i) => 1 + i * 90));
+    // The footer sits in the bottom margin of the Letter page.
+    expect(letter[0]).toContain(`y="${String(LETTER_PAGE.height - LETTER_PAGE.margin)}"`);
   });
 
   it('pages a range through the origin, and a short range on one page', () => {

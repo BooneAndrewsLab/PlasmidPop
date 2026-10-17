@@ -74,6 +74,8 @@ export interface LinearExportOptions {
    * and then those from base 1 (#30). Rows stay whole rows.
    */
   readonly range?: Range | null;
+  /** The paper `exportLinearSvgPages` lays pages out for (#245). Default A4. */
+  readonly paper?: PaperSize;
   /** Bases per row; the page width follows from it. Default 60. */
   readonly basesPerRow?: number;
   /** Size of the strand text; the rest of the row scales with it. Default 13. */
@@ -293,13 +295,49 @@ export function exportLinearSvg(doc: SeqDocument, options: LinearExportOptions =
   );
 }
 
-/** An A4 page in CSS pixels (96 to the inch), and what is kept clear around its content. */
-export const A4_PAGE = { width: 793.7, height: 1122.52, margin: 56.69, footer: 22 } as const;
+/** The paper sizes a page export offers (#245). */
+export type PaperSize = 'a4' | 'letter';
 
-/** The rows each A4 page holds, runs split where the pages break. */
-function paginate(p: Plan): (readonly Run[])[] {
-  const scale = Math.min(1, (A4_PAGE.width - 2 * A4_PAGE.margin) / p.width);
-  const room = A4_PAGE.height - 2 * A4_PAGE.margin - A4_PAGE.footer;
+/** A page in CSS pixels (96 to the inch), what is kept clear around its content, and its size in mm. */
+export interface PageGeometry {
+  readonly width: number;
+  readonly height: number;
+  readonly margin: number;
+  readonly footer: number;
+  /** The `width` and `height` attributes the page SVG is written with. */
+  readonly widthMm: string;
+  readonly heightMm: string;
+}
+
+/** An A4 page, 210 × 297 mm. */
+export const A4_PAGE: PageGeometry = {
+  width: 793.7,
+  height: 1122.52,
+  margin: 56.69,
+  footer: 22,
+  widthMm: '210mm',
+  heightMm: '297mm',
+};
+
+/** A US Letter page, 215.9 × 279.4 mm (8.5 × 11 in), with the same 15 mm margins (#245). */
+export const LETTER_PAGE: PageGeometry = {
+  width: 816,
+  height: 1056,
+  margin: 56.69,
+  footer: 22,
+  widthMm: '215.9mm',
+  heightMm: '279.4mm',
+};
+
+/** The page of a paper size; A4 when none is given. */
+export function pageOf(paper: PaperSize = 'a4'): PageGeometry {
+  return paper === 'letter' ? LETTER_PAGE : A4_PAGE;
+}
+
+/** The rows each page holds, runs split where the pages break. */
+function paginate(p: Plan, page_: PageGeometry): (readonly Run[])[] {
+  const scale = Math.min(1, (page_.width - 2 * page_.margin) / p.width);
+  const room = page_.height - 2 * page_.margin - page_.footer;
   const pages: Run[][] = [];
   let page: Run[] = [];
   let used = 0;
@@ -324,9 +362,9 @@ function paginate(p: Plan): (readonly Run[])[] {
   return pages;
 }
 
-/** How many A4 pages `exportLinearSvgPages` would write, without drawing them. */
+/** How many pages `exportLinearSvgPages` would write, without drawing them. */
 export function countLinearSvgPages(doc: SeqDocument, options: LinearExportOptions = {}): number {
-  return paginate(plan(doc, options)).length;
+  return paginate(plan(doc, options), pageOf(options.paper)).length;
 }
 
 /** What `measureLinearSvg` finds out about a figure before it is drawn (#243). */
@@ -336,12 +374,12 @@ export interface LinearSvgMeasure {
   readonly height: number;
   /** The rows the figure holds. */
   readonly rows: number;
-  /** The A4 pages `exportLinearSvgPages` would write. */
+  /** The pages `exportLinearSvgPages` would write, on the options' paper. */
   readonly pages: number;
 }
 
 /**
- * The size of the figure `exportLinearSvg` would write, its rows and the A4
+ * The size of the figure `exportLinearSvg` would write, its rows and the
  * pages it would take, from the layout alone: no row is drawn, so a dialog
  * can keep this up to date on every keystroke and refuse a size before the
  * export is asked for (#243). Throws as the export would for a range it
@@ -356,13 +394,13 @@ export function measureLinearSvg(
     width: p.width,
     height: p.runs.reduce((h, rows) => h + heightOf(rows), 0),
     rows: p.runs.reduce((n, rows) => n + rows.length, 0),
-    pages: paginate(p).length,
+    pages: paginate(p, pageOf(options.paper)).length,
   };
 }
 
 /**
- * The sequence view on A4 pages (#30), one SVG document each, 210 × 297 mm
- * with 15 mm margins: whole rows, as many as fit a page, scaled down to the
+ * The sequence view on pages (#30), one SVG document each, 210 × 297 mm (A4,
+ * the default) or 215.9 × 279.4 mm (US Letter, #245) with 15 mm margins: whole rows, as many as fit a page, scaled down to the
  * page's width when wider and never up. A row taller than a page has a
  * page to itself, scaled to fit. Each page's footer names the document, the
  * bases on it and the page number.
@@ -372,10 +410,11 @@ export function exportLinearSvgPages(
   options: LinearExportOptions = {},
 ): string[] {
   const p = plan(doc, options);
-  const pages = paginate(p);
-  const room = A4_PAGE.height - 2 * A4_PAGE.margin - A4_PAGE.footer;
-  const fit = Math.min(1, (A4_PAGE.width - 2 * A4_PAGE.margin) / p.width);
-  const { width: W, height: H, margin: M } = A4_PAGE;
+  const geometry = pageOf(options.paper);
+  const pages = paginate(p, geometry);
+  const room = geometry.height - 2 * geometry.margin - geometry.footer;
+  const fit = Math.min(1, (geometry.width - 2 * geometry.margin) / p.width);
+  const { width: W, height: H, margin: M } = geometry;
   return pages.map((runs, i) => {
     const { body, height } = stacked(p, runs);
     const scale = Math.min(fit, room / Math.max(1, height));
@@ -385,7 +424,7 @@ export function exportLinearSvgPages(
         ? ''
         : `<rect x="0" y="0" width="${fmt(W)}" height="${fmt(H)}" fill="${PRINT_LINEAR_THEME.background}"/>`;
     return (
-      `<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 ${fmt(W)} ${fmt(H)}">` +
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${geometry.widthMm}" height="${geometry.heightMm}" viewBox="0 0 ${fmt(W)} ${fmt(H)}">` +
       `<title>${escapeSvgText(`${doc.name} sequence, page ${i + 1} of ${pages.length}`)}</title>` +
       `<desc>${escapeSvgText(`Bases ${spansOf(runs)} of ${formatLength(doc.length, doc.alphabet)}, ${doc.topology}. Exported from PlasmidPop.`)}</desc>` +
       paper +

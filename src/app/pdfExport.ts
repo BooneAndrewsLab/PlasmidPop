@@ -52,7 +52,7 @@ async function loadWriter(): Promise<{ readonly writePdf: typeof writePdf }> {
   }
 }
 
-/** One PDF of the SVG `pages`, each at its own size (A4 for A4 page SVGs). */
+/** One PDF of the SVG `pages`, each at its own size (A4 or Letter for page SVGs). */
 export async function exportPdf(pages: readonly string[], options: PdfOptions): Promise<Blob> {
   const { writePdf } = await loadWriter();
   return writePdf(pages, options);

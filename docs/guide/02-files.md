@@ -528,14 +528,19 @@ From the **File** menu:
     window width). Then the **file type**: **SVG** (the default), a vector
     file that is sharp at any size; **PNG**, a picture at a **scale** of
     1×, 2× or 4× the SVG's pixel size; or **PDF**, a document at the
-    figure's own size (A4 when split into pages) that is either **Vector**
+    figure's own size (A4 or US Letter when split into pages) that is either **Vector**
     — text and lines as in the SVG, set in the PDF's standard Courier and
     Helvetica so the text can be searched and selected — or **Raster**,
     each page a picture at the chosen scale, as the PNG would be. The size
     in pixels is shown under the preview. The **background** is white or
     transparent for every type.
-  - **Pages** — **Split into A4 pages**, for the sequence view: A4 pages
-    (210 × 297 mm, 15 mm margins), as many whole rows to a page as fit,
+  - **Pages** — **Split into pages**, for the sequence view, on the paper
+    chosen under **Paper size**: **A4** (210 × 297 mm) or **US Letter**
+    (215.9 × 279.4 mm, 8.5 × 11 in), with 15 mm margins. The paper size
+    starts as US Letter when the browser's language is from the United
+    States, Canada, Mexico or another Letter country and as A4 otherwise;
+    nothing is remembered, and it is greyed out until pages are asked for.
+    Pages hold as many whole rows to a page as fit,
     scaled down to the page's width when the rows are wider and never
     scaled up. Each page's foot names the document, the bases on it and the
     page number. The dialog says how many pages it will be before you
@@ -549,7 +554,7 @@ From the **File** menu:
   row width outside 10–200, too many pages, or a PNG or raster PDF larger
   than a browser can draw (16,384 pixels on a side) is said in red beside
   the **Export** button, which stays off until it is put right; the message
-  says what would fit — a smaller scale, more bases per row or A4 pages.
+  says what would fit — a smaller scale, more bases per row or pages.
   Sequences longer than 100,000 bases are refused: export a range instead.
   The PDF writer is fetched the first time a PDF is exported and kept for
   offline use after that; if you are offline that first time, the dialog

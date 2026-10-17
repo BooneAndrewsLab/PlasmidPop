@@ -1,5 +1,5 @@
 import { MAX_PNG_SIDE } from './mapPng';
-import { pngProblem } from './exportFigure';
+import { defaultPaper, pngProblem } from './exportFigure';
 
 describe('export figure size advice (#243)', () => {
   it('is null while the picture fits', () => {
@@ -35,13 +35,13 @@ describe('export figure size advice (#243)', () => {
       pages: false,
     });
     expect(message).toBe(
-      'At 4× the picture would be 2,400 × 48,000 pixels, more than a browser draws (16,384): choose 1× or less, about 180 or more bases per row or split into A4 pages.',
+      'At 4× the picture would be 2,400 × 48,000 pixels, more than a browser draws (16,384): choose 1× or less, about 180 or more bases per row or split into pages.',
     );
     // Past the widest row offered, only pages or a shorter range help.
     expect(
       pngProblem({ width: 600, height: 60_000 }, 1, 'sequence', { basesPerRow: 60, pages: false }),
     ).toBe(
-      'At 1× the picture would be 600 × 60,000 pixels, more than a browser draws (16,384): about 200 or more bases per row or split into A4 pages.',
+      'At 1× the picture would be 600 × 60,000 pixels, more than a browser draws (16,384): about 200 or more bases per row or split into pages.',
     );
   });
 
@@ -54,5 +54,25 @@ describe('export figure size advice (#243)', () => {
     ).toBe(
       'At 1× the picture would be 20,000 × 20,000 pixels, more than a browser draws (16,384).',
     );
+  });
+});
+
+describe('the default paper (#245)', () => {
+  it('is US Letter for the Letter countries, by the first locale with a region', () => {
+    for (const l of ['en-US', 'en-CA', 'fr-CA', 'es-MX', 'en_US', 'en-us', 'fil-PH'])
+      expect(defaultPaper([l]), l).toBe('letter');
+    expect(defaultPaper(['zh-Hant-US'])).toBe('letter');
+  });
+
+  it('is A4 elsewhere, and when no locale names a region', () => {
+    for (const l of ['en-GB', 'de-DE', 'fr-FR', 'en-AU', 'ja-JP', 'en', 'fr', 'es-419', ''])
+      expect(defaultPaper([l]), l).toBe('a4');
+    expect(defaultPaper([])).toBe('a4');
+  });
+
+  it('goes by the first locale only', () => {
+    expect(defaultPaper(['en-GB', 'en-US'])).toBe('a4');
+    expect(defaultPaper(['en-US', 'en-GB'])).toBe('letter');
+    expect(defaultPaper(['', 'en-US'])).toBe('letter');
   });
 });

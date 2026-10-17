@@ -82,6 +82,16 @@ const sequenceView = () => {
   fireEvent.click(radio('Sequence view'));
 };
 
+// The browser's language picks the paper (#245): pin it so the A4 tests do not depend on it.
+let languages: string[] = ['en-GB'];
+beforeEach(() => {
+  languages = ['en-GB'];
+  vi.spyOn(navigator, 'languages', 'get').mockImplementation(() => languages);
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('ExportFigureDialog (#240)', () => {
   it('starts on the map, as SVG, with every row present and the scale greyed out', () => {
     setup();
@@ -91,7 +101,7 @@ describe('ExportFigureDialog (#240)', () => {
     // Nothing jumps (#241): the PNG's rows are there, disabled.
     expect(radio('2×')).toBeDisabled();
     expect(radio('White')).toBeEnabled();
-    expect(screen.getByRole('checkbox', { name: 'Split into A4 pages' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Split into pages' })).toBeDisabled();
     expect(screen.getByRole('img', { name: 'Preview of the exported map' })).toBeInTheDocument();
     expect(screen.getByText('SVG, 900 × 900 px')).toBeInTheDocument();
     expect(problem()).toBeEmptyDOMElement();
@@ -229,10 +239,10 @@ describe('ExportFigureDialog (#240)', () => {
       expect(files).toEqual([]);
     });
 
-    it('splits into A4 pages, one ZIP of SVGs, saying how many first', async () => {
+    it('splits into pages, one ZIP of SVGs, saying how many first', async () => {
       const { files, blobs } = setup();
       sequenceView();
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       const note = screen.getByText(/pages, downloaded as one ZIP of \d+ SVGs\./);
       const n = Number(/^(\d+) pages/.exec(note.textContent)?.[1]);
       expect(n).toBeGreaterThan(1);
@@ -259,10 +269,47 @@ describe('ExportFigureDialog (#240)', () => {
       );
     });
 
+    it('splits into US Letter pages when chosen, in the ZIP, the count and the caption (#245)', async () => {
+      const { blobs } = setup({ basesPerRow: 90 });
+      sequenceView();
+      // The paper size is a row that is always there, disabled until pages are asked for.
+      expect(radio('US Letter')).toBeDisabled();
+      expect(radio('A4')).toBeDisabled();
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
+      expect(radio('A4')).toBeEnabled();
+      const a4 = Number(
+        /^(\d+) pages/.exec(screen.getByText(/pages, downloaded/).textContent)?.[1],
+      );
+      fireEvent.click(radio('US Letter'));
+      const note = screen.getByText(/pages, downloaded as one ZIP of \d+ SVGs\./);
+      const n = Number(/^(\d+) pages/.exec(note.textContent)?.[1]);
+      expect(n).toBeGreaterThan(a4);
+      expect(
+        screen.getByText(
+          `${String(n)} US Letter pages of SVG, 816 × 1,056 px; the first 4 rows shown`,
+        ),
+      ).toBeInTheDocument();
+      fireEvent.click(exportButton());
+      const zip = blobs[0]?.blob;
+      if (zip === undefined) throw new Error('no zip');
+      const { entries } = readZip(new Uint8Array(await zip.arrayBuffer()));
+      expect(entries).toHaveLength(n);
+      const pages = entries.map((e) => new TextDecoder().decode(e.data));
+      expect(pages.every((p) => p.includes('width="215.9mm" height="279.4mm"'))).toBe(true);
+    });
+
+    it('starts on US Letter for a North American browser language (#245)', () => {
+      languages = ['en-CA', 'fr'];
+      setup();
+      sequenceView();
+      expect(radio('US Letter')).toHaveAttribute('aria-checked', 'true');
+      expect(radio('A4')).toHaveAttribute('aria-checked', 'false');
+    });
+
     it('refuses more pages than one export holds', () => {
       setup({ basesPerRow: 10 });
       sequenceView();
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       expect(problem()).toHaveTextContent(/more than the 40 one export holds/);
       expect(exportButton()).toBeDisabled();
     });
@@ -317,7 +364,7 @@ describe('ExportFigureDialog (#240)', () => {
       });
       sequenceView();
       fireEvent.click(radio('PNG'));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       expect(screen.getByText('9 pages, downloaded as one ZIP of 9 PNGs.')).toBeInTheDocument();
       // A4 pages are well within what a browser draws, whatever the scale.
       expect(exportButton()).toBeEnabled();
@@ -398,7 +445,7 @@ describe('ExportFigureDialog (#240)', () => {
       fireEvent.click(radio('PDF'));
       fireEvent.click(radio('Raster'));
       fireEvent.click(radio('4×'));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       expect(screen.getByText('9 pages, downloaded as one PDF of 9 pages.')).toBeInTheDocument();
       expect(
         screen.getByText('9 A4 pages of PDF, 3,175 × 4,490 pixels at 4×; the first 4 rows shown'),
@@ -423,7 +470,7 @@ describe('ExportFigureDialog (#240)', () => {
       setup({ basesPerRow: 60, selection: { start: 0, end: 100 } });
       sequenceView();
       fireEvent.click(radio('PDF'));
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into A4 pages' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Split into pages' }));
       expect(screen.getByText('One page, downloaded as one PDF file.')).toBeInTheDocument();
     });
 
@@ -465,7 +512,7 @@ describe('ExportFigureDialog (#240)', () => {
       fireEvent.click(radio('4×'));
       const alert = problem();
       expect(alert).toHaveTextContent(
-        'At 4× the picture would be 2,256 × 30,680 pixels, more than a browser draws (16,384): choose 2× or less, about 120 or more bases per row or split into A4 pages.',
+        'At 4× the picture would be 2,256 × 30,680 pixels, more than a browser draws (16,384): choose 2× or less, about 120 or more bases per row or split into pages.',
       );
       expect(alert).toHaveClass('panel__note--error');
       expect(exportButton()).toBeDisabled();

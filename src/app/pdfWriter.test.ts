@@ -70,6 +70,14 @@ describe('writePdf (#242)', () => {
     expect(pdf).toContain('/Creator (PlasmidPop)');
   });
 
+  it('writes Letter page SVGs as 612 × 792 pt pages (#245)', async () => {
+    const pages = exportLinearSvgPages(pbr322(), { basesPerRow: 60, paper: 'letter' });
+    expect(pages.length).toBeGreaterThan(1);
+    const pdf = await text(await writePdf(pages, { mode: 'vector', title: 'pBR322 sequence' }));
+    expect(pageCount(pdf)).toBe(pages.length);
+    expect(new Set(mediaBoxes(pdf))).toEqual(new Set(['0.00 0.00 612.00 792.00']));
+  });
+
   it('gives a single figure a page of its own size', async () => {
     const svg = exportLinearSvg(pbr322(), { basesPerRow: 60, range: { start: 0, end: 120 } });
     const width = Number(/width="([\d.]+)"/.exec(svg)?.[1]);

@@ -227,7 +227,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <div className="menu__separator" role="separator" />
           <Item
-            title="The map or the sequence view as an SVG or PNG file for figures: what is on it, how big, on A4 pages if you like"
+            title="The map or the sequence view as an SVG or PNG file for figures: what is on it, how big, on pages if you like"
             onClick={run(() => {
               setExporting(true);
             })}

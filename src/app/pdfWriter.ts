@@ -8,7 +8,8 @@
  *
  * Pages are in CSS pixels, as the SVGs are sized: with jsPDF's `px_scaling`
  * hotfix a pixel is 1/96 inch, so an A4 page SVG (210 × 297 mm, written as
- * 793.7 × 1,122.52 px) comes out as A4 and a figure's own size otherwise.
+ * 793.7 × 1,122.52 px) comes out as A4, a Letter one (215.9 × 279.4 mm, 816 ×
+ * 1,056 px) as 612 × 792 pt, and a figure's own size otherwise.
  *
  * Text is set in the PDF's standard fonts, not embedded: the sequence's
  * `"Courier New", Courier, monospace` is Courier and the labels' `Helvetica,
