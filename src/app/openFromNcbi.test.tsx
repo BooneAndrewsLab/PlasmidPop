@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { REQUEST_GAP_MS, efetchUrl, resetRequestGap } from '@/io';
 import { getRepository } from '@/storage';
@@ -11,6 +11,12 @@ import { checkAccessionInput, openFromNcbi } from './openFromNcbi';
 import { editorStore } from './state/editorStore';
 
 /** A committed NCBI record (the jsdom URL cannot resolve `@/test/fixtures`' file URL). */
+// waitFor and findBy default to 1 s. These tests render the whole App and parse
+// a GenBank record before the dialog closes, which can take longer on a loaded
+// machine (issue #238); stay under the 5 s test timeout so a real hang still
+// reports as the failed expectation.
+configure({ asyncUtilTimeout: 4000 });
+
 function readFixture(name: string): string {
   return readFileSync(`src/io/fixtures/${name}`, 'utf8');
 }
