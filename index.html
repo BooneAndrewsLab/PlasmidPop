@@ -30,9 +30,62 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <title>PlasmidPop: free DNA sequence editor and plasmid viewer</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "PlasmidPop",
+        "description": "A browser-based DNA sequence editor and plasmid viewer. Opens, edits and saves GenBank, FASTA and SnapGene files; shows linear and circular maps; finds restriction sites, ORFs and primers; runs pairwise alignments. All computation is client-side.",
+        "url": "https://booneandrewslab.github.io/PlasmidPop/",
+        "applicationCategory": "ScientificApplication",
+        "applicationSubCategory": "Molecular biology",
+        "operatingSystem": "Any (web browser)",
+        "browserRequirements": "Requires JavaScript",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "license": "https://opensource.org/license/mit",
+        "codeRepository": "https://github.com/BooneAndrewsLab/PlasmidPop",
+        "image": "https://booneandrewslab.github.io/PlasmidPop/og-image.png",
+        "author": {
+          "@type": "Person",
+          "name": "Matej Usaj",
+          "url": "https://orcid.org/0000-0003-0675-2847",
+          "affiliation": {
+            "@type": "Organization",
+            "name": "The Donnelly Centre, University of Toronto"
+          }
+        },
+        "citation": "https://doi.org/10.5281/zenodo.22907552",
+        "identifier": "https://doi.org/10.5281/zenodo.22907552"
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>PlasmidPop: free DNA sequence editor and plasmid viewer</h1>
+        <p>
+          PlasmidPop is a free, open-source (MIT) DNA sequence editor and plasmid viewer that runs
+          in your browser. Open, edit and save GenBank, FASTA and SnapGene files; annotate features;
+          view linear and circular maps; find restriction sites, ORFs and primers; run pairwise
+          alignments. All computation is client-side: there is no account and no server, and your
+          files stay on your device.
+        </p>
+        <p>
+          PlasmidPop needs JavaScript. Enable it and reload
+          <a href="https://booneandrewslab.github.io/PlasmidPop/">this page</a> to start. Source
+          code and citation:
+          <a href="https://github.com/BooneAndrewsLab/PlasmidPop"
+            >github.com/BooneAndrewsLab/PlasmidPop</a
+          >.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -44,7 +44,24 @@ in Slack, email and papers.
   navigation to them from being answered with `index.html`.
 - Tests in `src/seoMetadata.test.ts`.
 
+## Structured data and crawlable summary (#230)
+
+- A `SoftwareApplication` JSON-LD block in `index.html`'s head: name, url,
+  `ScientificApplication`, free (`isAccessibleForFree` plus a 0 Offer), MIT
+  licence, repository, author with ORCID, and the concept DOI as citation.
+  Description, DOI, repository, licence and author are copied from
+  `CITATION.cff`, and the test fails if they drift. No version (it would go
+  stale each release), no ratings or reviews.
+- The summary is a `<noscript>` block after `#root`, not inside it. A
+  crawler that does not run JS reads it; with JS on it is never rendered, so
+  there is no flash and React's mount does not touch it or the layout.
+- The JSON-LD and the summary link to schema.org, doi.org, ORCID, GitHub and
+  the licence as identifiers; nothing is fetched. The third-party test now
+  checks fetching tags (script/link/img/iframe, `<meta>` URLs) rather than
+  every URL in the file.
+- No user-visible change in the app, so the guide is untouched.
+
 ## Not done
 
-Structured data and the crawlable text block (#230). Guide pages in the
-sitemap wait on the #231 decision. Both should reuse the same site URL.
+Guide pages in the sitemap wait on the #231 decision; they should reuse the
+same site URL.

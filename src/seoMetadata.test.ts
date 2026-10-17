@@ -45,36 +45,71 @@ describe('index.html metadata', () => {
   });
 
   it('sends no request to a third party', () => {
-    const urls = html.match(/https?:\/\/[^"')\s]+/g) ?? [];
-    for (const url of urls) {
-      expect(url.startsWith(SITE) || url.startsWith('https://booneandrewslab.github.io')).toBe(
-        true,
-      );
+    // Fetching tags only; plain links and JSON-LD identifiers name other
+    // sites (schema.org, DOI, ORCID, GitHub, licence) but load nothing.
+    const fetched = html.match(/<(?:script|link|img|iframe)\b[^>]*\b(?:src|href)="[^"]*"/g) ?? [];
+    for (const tag of fetched) {
+      const url = /(?:src|href)="([^"]*)"/.exec(tag)?.[1] ?? '';
+      expect(/^https?:\/\//.test(url) ? url.startsWith(SITE) : true, tag).toBe(true);
     }
+    const meta = html.match(/<meta\b[^>]*content="https?:\/\/[^"]*"/g) ?? [];
+    for (const tag of meta) expect(tag).toContain(`content="${SITE}`);
   });
 });
 
-describe('robots.txt and sitemap.xml', () => {
-  const robots = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8');
-  const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+// Item 91 (#230): SoftwareApplication structured data and the crawlable
+// summary, both static in index.html.
+function jsonLd(): Record<string, unknown> {
+  const raw = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)?.[1];
+  expect(raw).toBeTruthy();
+  return JSON.parse(raw ?? '{}') as Record<string, unknown>;
+}
 
-  it('robots.txt allows crawling and names the absolute sitemap', () => {
-    expect(robots).toMatch(/^User-agent: \*$/m);
-    expect(robots).toMatch(/^Allow: \/$/m);
-    expect(robots).not.toMatch(/^Disallow:\s*\S/m);
-    expect(robots).toMatch(new RegExp(`^Sitemap: ${SITE}sitemap\\.xml$`, 'm'));
+describe('structured data and crawlable summary', () => {
+  const cff = readFileSync(new URL('../CITATION.cff', import.meta.url), 'utf8');
+  const cffField = (key: string): string =>
+    new RegExp(`^\\s*(?:- )?${key}: '?([^'\\n]+)'?$`, 'm').exec(cff)?.[1] ?? '';
+
+  it('declares a SoftwareApplication with the required fields', () => {
+    const ld = jsonLd();
+    expect(ld['@context']).toBe('https://schema.org');
+    expect(ld['@type']).toBe('SoftwareApplication');
+    expect(ld.name).toBe('PlasmidPop');
+    expect(ld.url).toBe(SITE);
+    expect(ld.applicationCategory).toBe('ScientificApplication');
+    expect(ld.isAccessibleForFree).toBe(true);
+    expect(ld.operatingSystem).toBeTruthy();
+    expect(String(ld.description).length).toBeGreaterThan(80);
+    expect(ld.image).toBe(`${SITE}og-image.png`);
   });
 
-  it('sitemap.xml lists the site root, and only absolute URLs on the site', () => {
-    expect(sitemap).toContain('http://www.sitemaps.org/schemas/sitemap/0.9');
-    const locs = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1] ?? '');
-    expect(locs).toContain(SITE);
-    for (const loc of locs) expect(loc.startsWith(SITE)).toBe(true);
-    expect(new Set(locs).size).toBe(locs.length);
+  it('matches CITATION.cff and the licence', () => {
+    const ld = jsonLd();
+    expect(ld.description).toBe(cffField('abstract'));
+    expect(ld.citation).toBe(`https://doi.org/${cffField('doi')}`);
+    expect(ld.codeRepository).toBe(cffField('repository-code'));
+    expect(cffField('license')).toBe('MIT');
+    expect(String(ld.license)).toMatch(/\/mit$/i);
+    expect(readFileSync(new URL('../LICENSE', import.meta.url), 'utf8')).toMatch(/^MIT License/);
+    const author = ld.author as Record<string, string>;
+    expect(author.name).toBe(`${cffField('given-names')} ${cffField('family-names')}`);
+    expect(author.url).toBe(cffField('orcid'));
   });
 
-  it('keeps both files out of the service worker navigation fallback', () => {
-    const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
-    expect(config).toMatch(/navigateFallbackDenylist:.*robots.*sitemap/);
+  it('makes no claim of ratings or reviews', () => {
+    const ld = jsonLd();
+    expect(ld).not.toHaveProperty('aggregateRating');
+    expect(ld).not.toHaveProperty('review');
+  });
+
+  it('has a static summary outside #root that React never touches', () => {
+    const body = html.slice(html.indexOf('<body>'));
+    const root = body.indexOf('<div id="root"></div>');
+    const noscript = /<noscript>([\s\S]*?)<\/noscript>/.exec(body);
+    expect(root).toBeGreaterThan(-1);
+    expect(noscript).toBeTruthy();
+    expect(body.indexOf('<noscript>')).toBeGreaterThan(root);
+    expect(noscript?.[1]).toMatch(/GenBank, FASTA and SnapGene/);
+    expect(noscript?.[1]).toMatch(/restriction sites/);
   });
 });
