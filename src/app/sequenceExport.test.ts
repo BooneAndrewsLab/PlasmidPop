@@ -51,6 +51,28 @@ describe('readExportRange (#30)', () => {
       });
     }
     expect(readExportRange(line, 'custom', null, '1,0', '2 0')).toMatchObject({ ok: true });
+    // Each limit is checked on its own, from and to, low and high.
+    const bad = { ok: false, message: 'From and to are bases 1 to 100.' };
+    for (const [f, t] of [
+      ['5', '0'],
+      ['5', 'x'],
+      ['x', '5'],
+      ['101', '5'],
+      ['5', '101'],
+      ['0', '0'],
+      ['101', '101'],
+    ] as const) {
+      expect(readExportRange(circle, 'custom', null, f, t)).toEqual(bad);
+    }
+    // The ends themselves are fine: 1 and L, to equal to 1, from equal to L.
+    expect(readExportRange(circle, 'custom', null, '100', '100')).toMatchObject({ ok: true });
+    expect(readExportRange(circle, 'custom', null, '100', '1')).toMatchObject({ ok: true });
+    expect(readExportRange(circle, 'custom', null, '1', '1')).toMatchObject({ ok: true });
+    expect(readExportRange(circle, 'custom', null, '1', '100')).toMatchObject({ ok: true });
+    // Surrounding blanks and separators are ignored.
+    expect(readExportRange(line, 'custom', null, ' 1 0 ', '2,0')).toMatchObject({
+      range: { start: 9, end: 20 },
+    });
   });
 
   it('takes the whole sequence, or the selection as it is', () => {
@@ -65,7 +87,19 @@ describe('readExportRange (#30)', () => {
       range: wrap,
       suffix: 'selection',
     });
-    expect(readExportRange(circle, 'selection', null, '', '')).toMatchObject({ ok: false });
+    expect(readExportRange(circle, 'selection', null, '', '')).toEqual({
+      ok: false,
+      message: 'Nothing is selected.',
+    });
+    expect(readExportRange(circle, 'selection', { start: 5, end: 5 }, '', '')).toEqual({
+      ok: false,
+      message: 'Nothing is selected.',
+    });
+    // A whole or custom export never looks at the selection.
+    expect(readExportRange(line, 'whole', { start: 5, end: 5 }, '', '')).toMatchObject({
+      ok: true,
+    });
+    expect(readExportRange(line, 'custom', null, '1', '5')).toMatchObject({ ok: true });
   });
 
   it('shows a range in the boxes the way it is read back', () => {
@@ -86,6 +120,9 @@ describe('readBasesPerRow', () => {
     expect(readBasesPerRow('9')).toBeNull();
     expect(readBasesPerRow('201')).toBeNull();
     expect(readBasesPerRow('sixty')).toBeNull();
+    expect(readBasesPerRow('')).toBeNull();
+    expect(readBasesPerRow('0')).toBeNull();
+    expect(readBasesPerRow(' 1 2 ')).toBe(12);
   });
 });
 
@@ -98,7 +135,13 @@ describe('downloadPages', () => {
         names.push(n),
       );
       expect(names).toEqual(['pX_sequence_p01.svg']);
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(299);
+      expect(names).toEqual(['pX_sequence_p01.svg']);
+      vi.advanceTimersByTime(1);
+      expect(names).toEqual(['pX_sequence_p01.svg', 'pX_sequence_p02.svg']);
+      vi.advanceTimersByTime(299);
+      expect(names).toHaveLength(2);
+      vi.advanceTimersByTime(1);
       expect(names).toEqual(['pX_sequence_p01.svg', 'pX_sequence_p02.svg', 'pX_sequence_p03.svg']);
     } finally {
       vi.useRealTimers();

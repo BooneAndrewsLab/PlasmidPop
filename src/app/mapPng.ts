@@ -15,10 +15,12 @@ export const MAX_PNG_SIDE = 16_384;
 /** The pixel size of the SVG document, from its root `width` and `height`. */
 export function svgPixelSize(svg: string): { width: number; height: number } | null {
   const root = /<svg\b[^>]*>/.exec(svg)?.[0];
+  // Stryker disable next-line ConditionalExpression: with no root, exec(undefined) reads the text "undefined", finds no width, and the size is null anyway
   if (root === undefined) return null;
   const read = (name: string): number | null => {
     // Pixels, or millimetres as on an A4 page (#236), at the CSS 96 pixels per inch.
     const m = new RegExp(`\\s${name}="([\\d.]+)(mm)?"`).exec(root);
+    // Stryker disable next-line StringLiteral: the fallback is for a missing group 1, which a matched pattern always has
     const n = m === null ? NaN : Number.parseFloat(m[1] ?? '') * (m[2] === 'mm' ? 96 / 25.4 : 1);
     return Number.isFinite(n) && n > 0 ? n : null;
   };
