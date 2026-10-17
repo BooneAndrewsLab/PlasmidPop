@@ -149,11 +149,20 @@ export default defineConfig({
         // with the shell. The guide pages stay out of the precache too (the
         // app has its own copy of the guide); the network serves them.
         navigateFallbackDenylist: [/\/(robots\.txt|sitemap\.xml)$/, /\/guide\//],
-        globIgnores: ['guide/**'],
-        // The share target's POST: written into sw.js as the functions'
-        // source, so they are self-contained (see the module).
+        // The PDF writer (#242) is a chunk of its own that only an export as
+        // PDF fetches: half a megabyte that most installs would never use,
+        // so it is not precached. Once fetched it is kept (below), so the
+        // export works offline from then on.
+        globIgnores: ['guide/**', '**/pdfWriter-*.js'],
         runtimeCaching: [
+          // The share target's POST: written into sw.js as the functions'
+          // source, so they are self-contained (see the module).
           { urlPattern: isShareTargetRequest, handler: handleShareTarget, method: 'POST' },
+          {
+            urlPattern: /\/assets\/pdfWriter-[^/]+\.js$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'plasmidpop-pdf-writer', expiration: { maxEntries: 2 } },
+          },
         ],
       },
     }),
@@ -161,6 +170,15 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  build: {
+    rolldownOptions: {
+      // jsPDF (#242) names its optional dependencies in dynamic imports that
+      // only its html() and SVG-as-image paths reach, which the PDF export
+      // never calls; left external they are not bundled, and the lazy
+      // import() lines that name them are never run.
+      external: ['canvg', 'html2canvas', 'dompurify'],
     },
   },
   worker: {
@@ -177,6 +195,10 @@ export default defineConfig({
     // slow at all.
     testTimeout: process.env['PLASMIDPOP_MUTATION'] === '1' ? 60_000 : 5_000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // svg2pdf.js has no "exports" map and its "main" is the UMD build, which
+    // wants jsPDF as a global; Node's resolution picks that, the bundler's
+    // picks "module". The tests take the ES build the app takes (#242).
+    alias: { 'svg2pdf.js': 'svg2pdf.js/dist/svg2pdf.es.min.js' },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
