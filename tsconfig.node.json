@@ -10,5 +10,12 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["vite.config.ts", "eslint.config.js", "scripts/*.mjs", "src/pwa/shareTarget.ts"]
+  "include": [
+    "vite.config.ts",
+    "eslint.config.js",
+    "scripts/*.mjs",
+    "src/pwa/shareTarget.ts",
+    "src/app/help/staticGuide.ts",
+    "src/app/help/markdown.ts"
+  ]
 }

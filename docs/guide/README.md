@@ -1,7 +1,8 @@
 # PlasmidPop user guide
 
 The same pages open inside the app from the **?** button at the right of the
-toolbar.
+toolbar. They are also published as plain web pages, readable without
+JavaScript, at `/guide/` on the PlasmidPop site.
 
 1. [Getting started](01-getting-started.md)
 2. [Files and storage](02-files.md): formats, opening several files or a ZIP, opening a record from NCBI, document tabs, saving, comparing with another file or tab, sharing a link, exporting, recent files, backing up and restoring everything, usage statistics, offline use, opening an attachment from another app

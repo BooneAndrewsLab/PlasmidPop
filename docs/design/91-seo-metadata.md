@@ -61,7 +61,39 @@ in Slack, email and papers.
   every URL in the file.
 - No user-visible change in the app, so the guide is untouched.
 
-## Not done
+## Guide as static pages (#231)
 
-Guide pages in the sitemap wait on the #231 decision; they should reuse the
-same site URL.
+Decided: yes, publish the guide as crawlable pages; the app is a canvas
+editor behind JS, so without them a search engine sees one page.
+
+- `src/app/help/staticGuide.ts` is a pure generator over `{id, markdown}`
+  pages, reusing the app's `parseMarkdown`, `headingSlug` and
+  `guideLinkTarget`, so there is no second parser and heading anchors match
+  the in-app ones. A small Vite plugin in `vite.config.ts` (`generateBundle`)
+  reads `docs/guide/NN-*.md` in file order and emits the files; nothing is
+  written to the source tree.
+- URLs are `guide/` (an index) and `guide/<slug>/` with the numeric prefix
+  dropped (`guide/features/`), as `index.html` in a directory, which GitHub
+  Pages serves without a backend or rewrites. Every page has a title
+  (`<page> | PlasmidPop user guide`), a description (the first paragraph cut
+  to 160 characters), an absolute canonical, Open Graph tags, no script and a
+  link to the index, the app and the previous and next page. Links between
+  pages and the header are relative, so they work under any base path; only
+  the canonical, `og:url` and the sitemap use the absolute `SITE_URL`.
+- The guide has no images, so none are emitted; the test fails if a page
+  fetches from a third-party host or contains a script.
+- `sitemap.xml` is now generated from the same page list (the app, the guide
+  index, every page); `public/sitemap.xml` is gone, so there is no second
+  list to forget. `robots.txt` is unchanged and still names it.
+- Service worker: `navigateFallbackDenylist` gains `/guide/` so an installed
+  app's navigation to a guide page is not answered with the shell, and
+  `globIgnores: ['guide/**']` keeps the pages out of the precache (the app
+  carries its own copy of the guide). In-app navigation is untouched: the app
+  has no `/guide/` route.
+- The `<noscript>` summary in `index.html` links to `guide/`.
+- Found on the way: `03-viewing.md` linked `04-editing#...` without `.md`, so
+  the link opened a dead tab in the app and on GitHub. Fixed, and
+  `guide.test.ts` now rejects relative links that are not page links.
+- Tests: `src/app/help/staticGuide.test.ts` (all pages emitted and in step
+  with `GUIDE`, titles, canonicals, links and anchors resolve, sitemap lists
+  every page).

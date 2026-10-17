@@ -41,6 +41,15 @@ describe('the user guide', () => {
     }
   });
 
+  it('has no relative link that is neither a page link nor an anchor', () => {
+    for (const p of GUIDE) {
+      for (const href of parseMarkdown(p.markdown).flatMap(blockLinks)) {
+        if (/^(https?:|#)/.test(href)) continue;
+        expect(guideLinkTarget(href), `${p.id} links to ${href}`).not.toBeNull();
+      }
+    }
+  });
+
   it('mentions every sidebar tab and the main shortcuts', () => {
     const all = GUIDE.map((p) => p.markdown).join('\n');
     for (const word of ['Features', 'Enzymes', 'ORFs', 'Translate', 'Primers', 'Align', 'Cloning'])

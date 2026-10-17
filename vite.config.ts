@@ -1,10 +1,16 @@
 /// <reference types="vitest/config" />
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 import pkg from './package.json' with { type: 'json' };
+import {
+  generateGuideFiles,
+  generateSitemap,
+  type SourcePage,
+} from './src/app/help/staticGuide.ts';
 import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.ts';
 
 /**
@@ -12,6 +18,31 @@ import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.t
  * Set BASE_PATH in the environment at build time; defaults to the root.
  */
 const base = process.env['BASE_PATH'] ?? '/';
+
+/**
+ * The guide as crawlable static pages and the sitemap that lists them
+ * (item 91, #231), written into the build from docs/guide/*.md. Page order is
+ * the file order, as in the app's guide index.
+ */
+function staticGuide(): Plugin {
+  return {
+    name: 'plasmidpop-static-guide',
+    apply: 'build',
+    generateBundle() {
+      const dir = new URL('./docs/guide/', import.meta.url);
+      const pages: SourcePage[] = readdirSync(dir)
+        .filter((f) => /^\d+-.*\.md$/.test(f))
+        .sort()
+        .map((f) => ({
+          id: f.replace(/\.md$/, ''),
+          markdown: readFileSync(new URL(f, dir), 'utf8'),
+        }));
+      for (const f of generateGuideFiles(pages))
+        this.emitFile({ type: 'asset', fileName: f.path, source: f.content });
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: generateSitemap(pages) });
+    },
+  };
+}
 
 export default defineConfig({
   base,
@@ -22,6 +53,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    staticGuide(),
     VitePWA({
       // The service worker is registered by hand in main.tsx (production only).
       injectRegister: null,
@@ -112,9 +144,12 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${base}index.html`,
-        // robots.txt and sitemap.xml are plain static files (item 91), not
-        // app routes: a navigation to them must not be answered with the shell.
-        navigateFallbackDenylist: [/\/(robots\.txt|sitemap\.xml)$/],
+        // robots.txt, sitemap.xml and the static guide pages are plain files
+        // (item 91), not app routes: a navigation to them must not be answered
+        // with the shell. The guide pages stay out of the precache too (the
+        // app has its own copy of the guide); the network serves them.
+        navigateFallbackDenylist: [/\/(robots\.txt|sitemap\.xml)$/, /\/guide\//],
+        globIgnores: ['guide/**'],
         // The share target's POST: written into sw.js as the functions'
         // source, so they are self-contained (see the module).
         runtimeCaching: [
