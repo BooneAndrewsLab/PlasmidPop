@@ -1,6 +1,7 @@
 # PlasmidPop
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22907552.svg)](https://doi.org/10.5281/zenodo.22907552)
+[![bio.tools](https://img.shields.io/badge/bio.tools-plasmidpop-blue)](https://bio.tools/plasmidpop)
 
 Browser-based DNA sequence editor and plasmid viewer. Everything runs in
 the browser: open a GenBank, FASTA or SnapGene file and start working with
