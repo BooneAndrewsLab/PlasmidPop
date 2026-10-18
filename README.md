@@ -8,6 +8,16 @@ no account, no upload and no server round-trip. Works offline once loaded.
 
 **Try it:** https://booneandrewslab.github.io/PlasmidPop/
 
+<a href="https://booneandrewslab.github.io/PlasmidPop/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshot-dark.png" />
+    <img
+      src="docs/images/screenshot-light.png"
+      alt="PlasmidPop showing pBR322: a circular map with features and cut sites beside the sequence view with translations and the feature list"
+    />
+  </picture>
+</a>
+
 ## What it does
 
 - **Open** GenBank (`.gb`, `.gbk`, `.ape`, …), FASTA, SnapGene `.dna`,
