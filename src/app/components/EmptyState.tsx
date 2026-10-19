@@ -11,6 +11,8 @@ import { useEditorState } from '../state/useEditorStore';
 import { InlineRename } from './InlineRename';
 import { StoragePanel } from './StoragePanel';
 
+const REPOSITORY_URL = 'https://github.com/BooneAndrewsLab/PlasmidPop';
+
 function formatWhen(timestamp: number): string {
   const diff = Date.now() - timestamp;
   const minutes = Math.round(diff / 60_000);
@@ -120,6 +122,22 @@ export function EmptyState() {
               to look around.
             </>
           )}
+        </p>
+        <p className="empty__hint empty__licence">
+          Free and open source under the{' '}
+          <a
+            className="link"
+            href={`${REPOSITORY_URL}/blob/main/LICENSE`}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            MIT licence
+          </a>
+          ; the{' '}
+          <a className="link" href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
+            source is on GitHub
+          </a>
+          .
         </p>
       </div>
       {recent !== null && recent.length > 0 && (

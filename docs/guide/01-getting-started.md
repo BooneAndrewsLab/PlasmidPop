@@ -6,6 +6,10 @@ on your computer, and analysis runs on your own machine. The one request the
 editor makes to anyone else is **Open from NCBI…**, when you ask it to, and
 that sends NCBI the accession numbers you typed and nothing else.
 
+PlasmidPop is free and open source under the
+[MIT licence](https://github.com/BooneAndrewsLab/PlasmidPop/blob/main/LICENSE);
+the [source](https://github.com/BooneAndrewsLab/PlasmidPop) is on GitHub.
+
 ## Open something
 
 Any of these gets you a sequence on screen:
