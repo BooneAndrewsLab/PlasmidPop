@@ -21,6 +21,7 @@
  */
 
 import { type EditOp } from '@/core';
+import type { Enzyme } from '@/core/analysis/restriction';
 
 export interface AnalyticsConfig {
   /** Matomo instance URL, with trailing slash. */
@@ -508,6 +509,15 @@ export class Analytics {
     g._paq ??= [];
     g._paq.push(entry);
   }
+}
+
+/**
+ * The event label for an enzyme: its name when it is a bundled or REBASE one
+ * (public), `custom` when the user typed it in (#217), because that name is
+ * user text and never leaves the browser (#252).
+ */
+export function enzymeEventLabel(enzyme: Pick<Enzyme, 'name' | 'custom'>): string {
+  return enzyme.custom === true ? 'custom' : enzyme.name;
 }
 
 export const analytics = new Analytics(readConfig(), privacySignal(), injectScript, readOptOut());

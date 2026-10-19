@@ -14,7 +14,10 @@ all — without snooping.
   is not on the list does not type-check. Matomo only shows what it
   received, so "unused" is read as: on this list, absent from the Events
   report. The event name, where there is one, is a fixed label — a file
-  format, a panel, a view, a key binding, a guide page id, the version.
+  format, a panel, a view, a key binding, a guide page id, the version —
+  or an id from a bundled table. Where a choice can be the user's own (a
+  hand-typed enzyme, a custom host or overhang standard), the label is the
+  word `custom`, never the name (`enzymeEventLabel`, #252).
 - **Once per visit for the frequent things.** `trackOnce` sends an event the
   first time it happens in a page load. Edits, toggles, tab switches, Find,
   the Format options, guide pages and key bindings go through it; Matomo's

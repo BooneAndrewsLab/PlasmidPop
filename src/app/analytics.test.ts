@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getEnzyme } from '@/core';
+import { parseCustomEnzyme } from '@/io/rebase/customEnzyme';
+
 import {
   Analytics,
   EVENTS,
   doNotTrack,
   globalPrivacyControl,
   privacySignal,
+  enzymeEventLabel,
   formatOfFileName,
   readConfig,
   readOptOut,
@@ -230,5 +234,24 @@ describe('formatOfFileName', () => {
     expect(formatOfFileName('ECO 16S rRNA.rna')).toBe('snapgene');
     expect(formatOfFileName('lab-notes-for-project-x.docx')).toBe('other');
     expect(formatOfFileName('no-extension')).toBe('other');
+  });
+});
+
+describe('enzymeEventLabel (#252)', () => {
+  it('reports a bundled enzyme by name and a hand-typed one as custom', () => {
+    const typed = parseCustomEnzyme('MyLabEnzyme-7', 'GGTCTC(1/5)');
+    expect(typed.ok).toBe(true);
+    if (!typed.ok) return;
+    expect(enzymeEventLabel(getEnzyme('BsaI') ?? typed.enzyme)).toBe('BsaI');
+    expect(enzymeEventLabel(typed.enzyme)).toBe('custom');
+  });
+
+  it('never lets a custom enzyme name reach the tracker', () => {
+    const typed = parseCustomEnzyme('MyLabEnzyme-7', 'GGTCTC(1/5)');
+    if (!typed.ok) throw new Error(typed.error);
+    const a = new Analytics(CONFIG, false, vi.fn());
+    a.track('cloning', 'golden-gate', enzymeEventLabel(typed.enzyme));
+    expect(JSON.stringify(paq())).not.toContain('MyLabEnzyme');
+    expect(paq()).toContainEqual(['trackEvent', 'cloning', 'golden-gate', 'custom']);
   });
 });

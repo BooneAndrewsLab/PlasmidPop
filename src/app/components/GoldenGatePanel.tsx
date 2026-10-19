@@ -12,7 +12,7 @@ import {
   recordGoldenGate,
 } from '@/core';
 
-import { analytics } from '../analytics';
+import { analytics, enzymeEventLabel } from '../analytics';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
@@ -124,7 +124,7 @@ export function GoldenGatePanel() {
       editorStore.fail(run.problem ?? 'The parts do not assemble.');
       return;
     }
-    analytics.track('cloning', 'golden-gate', enzyme.name);
+    analytics.track('cloning', 'golden-gate', enzymeEventLabel(enzyme));
     editorStore.openDocument(
       recordGoldenGate(
         run.assembly,

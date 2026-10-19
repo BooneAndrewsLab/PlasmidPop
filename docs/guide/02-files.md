@@ -695,7 +695,8 @@ which parts of the app a visit used at all — which sidebar tabs, views,
 toggles and guide pages, which kinds of edit, which keyboard shortcuts —
 each reported once per visit however often it is used. The version of the
 app, and whether it runs on a phone or as an installed app, are sent once.
-Never sent: sequences, feature names, file names, sequence lengths, where
+Never sent: sequences, feature names, file names, names you give your own
+enzymes, hosts or standards (they are reported as "custom"), sequence lengths, where
 in a sequence you worked, or anything else from your documents. The page address is reported without the part after the `#`, so
 opening a [share link](#sharing-a-link) sends the tracker the app's address
 and nothing of the document it carries. A record opened from NCBI is
