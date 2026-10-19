@@ -927,6 +927,31 @@ describe('keepBest ties (mutation survivors)', () => {
   });
 });
 
+describe('two close variants at one locus (#257)', () => {
+  const r = seededRandom(257);
+  const egfp = randomDna(r, 720);
+  // ECFP: three bases shorter at the start, a few changed in the middle (the chromophore).
+  const ecfp = mutate(egfp.slice(3), [190, 193, 194, 200]);
+  const lib = library(part('EGFP', egfp, 'CDS'), part('ECFP', ecfp, 'CDS'));
+  const flank = (n: number): string => randomDna(r, n);
+
+  it('offers the better fit alone although the other is a few bases longer', () => {
+    const hits = detectFeatures(flank(200) + ecfp + flank(200), 'linear', lib);
+    expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['ECFP']);
+  });
+
+  it('offers the better fit alone on the reverse strand too', () => {
+    const hits = detectFeatures(flank(200) + reverseComplement(ecfp) + flank(200), 'linear', lib);
+    expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['ECFP']);
+    expect(hits[0]?.strand).toBe('reverse');
+  });
+
+  it('still offers the longer one where it is the better fit', () => {
+    const hits = detectFeatures(flank(200) + egfp + flank(200), 'linear', lib);
+    expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['EGFP']);
+  });
+});
+
 describe('detectFeatures: options, ordering and protein-only libraries (mutation survivors)', () => {
   const r = seededRandom(3030);
   const flank = (n: number): string => randomDna(r, n);

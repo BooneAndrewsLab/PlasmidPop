@@ -164,6 +164,9 @@ What is found:
   types are offered together, so a primer site inside a promoter is two
   features, and so are parts on opposite strands (the SV40 early poly(A)
   signal is the complement of the late one, and both are offered).
+- Two variants of one protein that differ in length by only a few bases (EGFP
+  and ECFP) are one locus: the one that matches better is offered, even if
+  it is the slightly shorter.
 
 A feature added this way is named after the part and carries two notes: what
 the part is, and _Detected by PlasmidPop_ with how well it matched and the

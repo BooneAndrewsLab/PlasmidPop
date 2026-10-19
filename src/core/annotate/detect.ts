@@ -681,6 +681,10 @@ export function overlapLength(a: Range, b: Range, length: number, topology: Topo
   return shared;
 }
 
+/** Two hits this close in length (bases, and share of the longer) are one locus's variants (#257). */
+const NEAR_LENGTH_BASES = 5;
+const NEAR_LENGTH_SHARE = 0.02;
+
 /**
  * Hits reduced to the ones worth offering. A part found twice over the same
  * bases — a palindrome on both strands, a repetitive part a few bases along —
@@ -691,6 +695,10 @@ export function overlapLength(a: Range, b: Range, length: number, topology: Topo
  * - a close variant of the part that fits better (the pUC origin where
  *   pBR322's matches exactly);
  * - a part inside a longer one (lacZα inside lacZ).
+ *
+ * Two variants of one protein a few bases apart in length are one locus,
+ * not two: where the longer fits worse (EGFP 720 bases, ECFP 717 matched
+ * exactly on its protein) the better fit stays, going by identity (#257).
  *
  * Hits of different types never displace each other: a primer site inside a
  * promoter is two features. Nor does a part inside a longer one on the other
@@ -740,6 +748,23 @@ function keepBest(
     });
     if (!displaced) kept.push(h);
   }
+  // Two variants of one protein a few bases apart in length, where the longer
+  // matches worse: the loop above kept both (the longer displaced nothing, as
+  // the shorter is the better fit); the worse fit goes (#257).
+  const sameLocus = (a: FeatureHit, b: FeatureHit): boolean => {
+    const gap = Math.abs(size(a) - size(b));
+    const longer = Math.max(size(a), size(b));
+    return (
+      a.strand === b.strand &&
+      gap <= NEAR_LENGTH_BASES &&
+      gap <= NEAR_LENGTH_SHARE * longer &&
+      library.parts[a.part]?.type === library.parts[b.part]?.type &&
+      overlapLength(a.range, b.range, length, topology) >= 0.9 * Math.min(size(a), size(b))
+    );
+  };
+  const finest = kept.filter(
+    (h) => !kept.some((k) => k !== h && k.identity > h.identity && sameLocus(k, h)),
+  );
   // Stryker disable next-line ArithmeticOperator: equivalent, `kept` is already longest first, and the sort is stable
-  return kept.sort((x, y) => x.range.start - y.range.start || size(y) - size(x));
+  return finest.sort((x, y) => x.range.start - y.range.start || size(y) - size(x));
 }

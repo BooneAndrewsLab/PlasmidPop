@@ -265,6 +265,24 @@ end passes the length.
   the lacZα inside it. Hits of different types never
   displace each other.
 
+- **Close variants at one locus (#257).** `keepBest` ranks longest first and
+  drops a hit only if a kept one is at least as long and matches at least as
+  well, so a variant a few bases longer that fits worse displaced nothing and
+  both were offered. Four of the 36 fluorescent-protein hits on the pLannotate
+  corpus were such a second label (JX679612 EGFP 6 mismatches against Sirius
+  30; KY171964 EGFP 7 against ECFP, exact on its protein; KP171163 EGFP 11
+  against EYFP, exact on its protein; AY916793 avGFP 7 against GFPmut3 1). In
+  each the longer hit was the worse fit, by two to three bases of length. A
+  second pass now drops a kept hit when another of the same type and strand
+  covers 90% of the shorter, differs in length by at most 5 bases and 2% of
+  the longer, and has higher identity (the share of the part matched, as for
+  the rule above, so bases and residues compare). Identity ties keep both. Two
+  parts further apart in length stay two features, as do parts of different
+  types. The oracle's agreement is unchanged (recall 869 of 988, every class the same; our hits fall from 1455 to 1451, the four second labels): its calls
+  are matched by overlap, and the better-fitting hit overlaps as well as the
+  one dropped. No "similar to" alternative is offered; the dropped hit is
+  simply not a feature.
+
 Align's seeding (items 45, 46) was looked at, as the issue suggested. It
 chains 15-mer anchors of one read against one reference to band an
 alignment; here there are hundreds of short queries against one long
