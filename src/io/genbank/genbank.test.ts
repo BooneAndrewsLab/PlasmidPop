@@ -794,3 +794,33 @@ describe('where a document came from', () => {
     expect(parsed.metadata.comments).toEqual(['PlasmidPop-derived-from: not-a-checksum']);
   });
 });
+
+describe('WGS/TSA/TLS master record (#254)', () => {
+  const text = [
+    'LOCUS       KBUV01000000            3714 rc    DNA     linear   ENV 26-FEB-2018',
+    'DEFINITION  Test master record.',
+    'ACCESSION   KBUV01000000',
+    'FEATURES             Location/Qualifiers',
+    '     source          1..3714',
+    '                     /organism="x"',
+    'CONTIG      join(AAAA01000001.1:1..3714)',
+    '//',
+    '',
+  ].join('\n');
+
+  it('reads rc as the unit: molecule type DNA, division ENV, with a warning', () => {
+    const result = parseGenBank(text);
+    const doc = only(result);
+    expect(doc.metadata.moleculeType).toBe('DNA');
+    expect(doc.metadata.division).toBe('ENV');
+    expect(result.warnings.some((w) => w.message.includes('no sequence'))).toBe(true);
+    expect(result.warnings.some((w) => w.message.includes('LOCUS says'))).toBe(false);
+  });
+
+  it('writes a valid LOCUS line', () => {
+    const out = writeGenBank(only(parseGenBank(text)));
+    expect(out.split('\n')[0]).toMatch(
+      /^LOCUS {7}KBUV01000000 +0 bp {4}DNA {5}linear {3}ENV 26-FEB-2018$/,
+    );
+  });
+});

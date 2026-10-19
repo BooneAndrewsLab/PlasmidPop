@@ -198,11 +198,13 @@ function parseLocus(line: Line): LocusInfo {
     date: '',
     alphabet: 'nucleotide',
   };
-  const unitIdx = tokens.findIndex((t) => t === 'bp' || t === 'aa');
+  // `rc` (records/contigs) is what a WGS/TSA/TLS master record counts in
+  // (#254); that number is not a sequence length, so it is not kept.
+  const unitIdx = tokens.findIndex((t) => t === 'bp' || t === 'aa' || t === 'rc');
   if (unitIdx >= 1) {
     if (tokens[unitIdx] === 'aa') info.alphabet = 'protein';
     info.name = tokens.slice(0, unitIdx - 1).join(' ');
-    info.length = Number.parseInt(tokens[unitIdx - 1] ?? '', 10);
+    info.length = tokens[unitIdx] === 'rc' ? null : Number.parseInt(tokens[unitIdx - 1] ?? '', 10);
     if (Number.isNaN(info.length)) info.length = null;
   } else {
     info.name = tokens[0] ?? '';
@@ -581,6 +583,14 @@ function parseRecord(lines: readonly Line[], warnings: ParseWarning[]): SeqDocum
         )
       : '';
 
+  if (originStart < 0 && lines.some((l) => l.text.startsWith('CONTIG'))) {
+    warnings.push(
+      warning(
+        'Master record (CONTIG, no ORIGIN) has no sequence; it opens empty and the CONTIG line is not kept',
+        first.number,
+      ),
+    );
+  }
   if (locus.length !== null && locus.length !== sequence.length) {
     warnings.push(
       warning(

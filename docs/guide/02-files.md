@@ -19,6 +19,11 @@ one is opened, and a warning in the status bar says how many others there
 were. AB1 and FASTQ files are sequencing reads, with a quality for every
 base: see [Sequencing reads](15-reads.md).
 
+A WGS, TSA or TLS **master record** (a `CONTIG` line, no `ORIGIN`, a LOCUS
+length counted in `rc`) holds no sequence of its own. It opens as an empty
+document, with a warning, and saving it writes a valid header only; the
+`CONTIG` line is not kept.
+
 **GenBank** is the native format: sequence, topology, definition, accession,
 references, and every feature with its full location (`complement(...)`,
 `join(...)`, `order(...)`, partial ends, ranges that wrap the origin) and
