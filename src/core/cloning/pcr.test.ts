@@ -317,7 +317,10 @@ describe('pcr', () => {
     // mismatches turns up by chance, so a long template really does give
     // spurious products; they sort below the exact one.
     expect(found).toBeGreaterThanOrEqual(20);
-    expectWithin(ms, 200);
+    // The walk costs ~15 ms on a quiet machine, so 500 ms is a 30x margin
+    // that a slow shared runner (a median of 201 ms failed once, #249) does
+    // not reach, yet a walk gone quadratic, which takes seconds, does.
+    expectWithin(ms, 500);
     // eslint-disable-next-line no-console
     console.info(`[perf] PCR over a 50 kb template (median of 20): ${ms.toFixed(2)} ms`);
   });

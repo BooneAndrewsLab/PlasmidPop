@@ -266,7 +266,9 @@ documents is the rest of it.
 | 2026-09-22 | 50,000 bp | 7        | 14.2 ms |
 
 Node 24 (V8), mean of 20–50 runs; the last row is `pcr.test.ts` perf, where
-the two primers also prime in enough other places to give six more products. Linear in the length, as
+the two primers also prime in enough other places to give six more products.
+The test's budget is 500 ms on the median of 20 runs, a margin for slow shared
+CI runners (#249) that a quadratic walk would still blow through. Linear in the length, as
 the walk says it should be, and the extra 3 ms of the last row is six more
 product documents rather than more searching.
 
