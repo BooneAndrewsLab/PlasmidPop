@@ -165,10 +165,34 @@ describe('formatLocation', () => {
     );
   });
 
-  it('writes a single-base range with partial markers in a..b form', () => {
-    expect(formatLocation(f([rangeSegment(4, 5, { partialStart: true })]), L, 'linear')).toBe(
-      '<5..5',
-    );
+  it('writes a one-base partial as <N / >N only when it came in as a single position', () => {
+    const one = (o: object) => formatLocation(f([rangeSegment(4, 5, o)]), L, 'linear');
+    expect(one({ partialStart: true, single: true })).toBe('<5');
+    expect(one({ partialEnd: true, single: true })).toBe('>5');
+    expect(one({ partialStart: true })).toBe('<5..5');
+    expect(one({ partialEnd: true })).toBe('5..>5');
+    expect(one({ partialStart: true, partialEnd: true, single: true })).toBe('<5..>5');
+  });
+
+  it('round-trips a single fuzzy base, alone, complemented and inside a join (#255)', () => {
+    for (const text of [
+      '<23',
+      '>30',
+      'complement(<23)',
+      'complement(>30)',
+      'join(<5,10..20)',
+      'join(10..20,>30)',
+      'complement(join(<5,10..20,>30))',
+      '<23..23',
+      '30..>30',
+      'complement(<23..23)',
+      'join(<5..5,10..20)',
+    ]) {
+      const parsed = parseLocation(text, L, 'linear');
+      expect(formatLocation(parsed, L, 'linear')).toBe(text);
+    }
+    const p = parseLocation('complement(<23)', L, 'linear');
+    expect(p.segments).toEqual([rangeSegment(22, 23, { partialStart: true, single: true })]);
   });
 
   it('clamps sites GenBank cannot express', () => {

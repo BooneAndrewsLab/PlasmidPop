@@ -23,6 +23,9 @@ import {
  * - `range`: a run of bases `[start, end)` (unrolled, may wrap on circular
  *   sequences). `partialStart`/`partialEnd` carry GenBank's `<` and `>`
  *   markers, which mean the true boundary lies beyond the sequence.
+ *   `single` records that a one-base segment was spelled as a single
+ *   position (`<23`, `>30`) rather than a range (`<23..23`), so it is written
+ *   back the way it came; it is dropped when the segment stops being one base.
  * - `site`: a zero-width location between two bases (GenBank `a^b`), stored
  *   as the 0-based insertion index, i.e. the site sits between
  *   `position - 1` and `position`.
@@ -33,6 +36,7 @@ export interface RangeSegment extends Range {
   readonly kind: 'range';
   readonly partialStart: boolean;
   readonly partialEnd: boolean;
+  readonly single?: true;
 }
 
 export interface SiteSegment {
@@ -43,6 +47,7 @@ export interface SiteSegment {
 export interface RangeSegmentOptions {
   readonly partialStart?: boolean;
   readonly partialEnd?: boolean;
+  readonly single?: boolean;
 }
 
 export function rangeSegment(
@@ -56,6 +61,7 @@ export function rangeSegment(
     end,
     partialStart: opts.partialStart ?? false,
     partialEnd: opts.partialEnd ?? false,
+    ...(opts.single === true ? { single: true as const } : {}),
   };
 }
 
@@ -96,7 +102,13 @@ export function assertValidSegment(seg: Segment, seqLength: number, topology: To
 }
 
 function withRange(seg: RangeSegment, r: Range): RangeSegment {
-  return r.start === seg.start && r.end === seg.end ? seg : { ...seg, start: r.start, end: r.end };
+  if (r.start === seg.start && r.end === seg.end) return seg;
+  const { single: _single, ...rest } = seg;
+  return {
+    ...(r.end - r.start === seg.end - seg.start ? seg : rest),
+    start: r.start,
+    end: r.end,
+  };
 }
 
 export function shiftSegmentForInsert(
@@ -173,6 +185,7 @@ export function flipSegment(seg: Segment, seqLength: number, topology: Topology)
         end: r.end,
         partialStart: seg.partialEnd,
         partialEnd: seg.partialStart,
+        ...(seg.single === true ? { single: true as const } : {}),
       };
     }
     case 'site':

@@ -187,5 +187,7 @@ function readSegment(value: unknown, length: number): Segment | null {
   const { start, end, partialStart, partialEnd } = value;
   if (!isIndex(start, length) || !isIndex(end, length) || end <= start) return null;
   if (typeof partialStart !== 'boolean' || typeof partialEnd !== 'boolean') return null;
-  return { kind: 'range', start, end, partialStart, partialEnd };
+  return value['single'] === true
+    ? { kind: 'range', start, end, partialStart, partialEnd, single: true }
+    : { kind: 'range', start, end, partialStart, partialEnd };
 }

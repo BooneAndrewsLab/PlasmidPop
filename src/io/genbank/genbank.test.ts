@@ -824,3 +824,24 @@ describe('WGS/TSA/TLS master record (#254)', () => {
     );
   });
 });
+
+describe('single fuzzy base locations (#255)', () => {
+  const text = [
+    'LOCUS       FUZZ                      40 bp    DNA     linear   UNA 01-JAN-2000',
+    'FEATURES             Location/Qualifiers',
+    '     mRNA            complement(<23)',
+    '     mRNA            >30',
+    '     mRNA            join(<5,10..20)',
+    'ORIGIN',
+    '        1 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt',
+    '//',
+    '',
+  ].join('\n');
+
+  it('writes each location back in the form it came in', () => {
+    const out = writeGenBank(only(parseGenBank(text)));
+    expect(out).toContain('mRNA            complement(<23)\n');
+    expect(out).toContain('mRNA            >30\n');
+    expect(out).toContain('mRNA            join(<5,10..20)\n');
+  });
+});

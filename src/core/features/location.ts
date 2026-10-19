@@ -192,6 +192,7 @@ function simpleToSegment(
       return rangeSegment(node.a - 1, node.a, {
         partialStart: node.partialStart,
         partialEnd: node.partialEnd,
+        single: node.partialStart !== node.partialEnd,
       });
     case 'site': {
       check(node.a);
@@ -296,8 +297,14 @@ function formatRangePiece(
   end: number,
   partialStart: boolean,
   partialEnd: boolean,
+  single: boolean,
 ): string {
   if (end - start === 1 && !partialStart && !partialEnd) return String(end);
+  // A one-base segment that came in as `<23` / `>30` goes back out that way;
+  // `<23..23` stays a range.
+  if (single && end - start === 1 && partialStart !== partialEnd) {
+    return `${partialStart ? '<' : '>'}${end}`;
+  }
   return `${partialStart ? '<' : ''}${start + 1}..${partialEnd ? '>' : ''}${end}`;
 }
 
@@ -317,6 +324,7 @@ function formatSegment(seg: Segment, seqLength: number, topology: Topology): str
       piece.end,
       i === 0 && seg.partialStart,
       i === pieces.length - 1 && seg.partialEnd,
+      seg.single === true,
     ),
   );
 }

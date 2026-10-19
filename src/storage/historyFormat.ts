@@ -192,7 +192,8 @@ function isSegment(v: unknown): v is Segment {
     isCount(v['start']) &&
     isCount(v['end']) &&
     typeof v['partialStart'] === 'boolean' &&
-    typeof v['partialEnd'] === 'boolean'
+    typeof v['partialEnd'] === 'boolean' &&
+    (v['single'] === undefined || v['single'] === true)
   );
 }
 

@@ -54,6 +54,7 @@ function toOwn(seg: Segment, p: Placement): Segment | null {
   return rangeSegment(start, start + length, {
     partialStart: p.reverse ? seg.partialEnd : seg.partialStart,
     partialEnd: p.reverse ? seg.partialStart : seg.partialEnd,
+    single: seg.single === true,
   });
 }
 
@@ -70,6 +71,7 @@ function fromOwn(seg: Segment, p: Placement): Segment | null {
   return rangeSegment(start, start + length, {
     partialStart: p.reverse ? seg.partialEnd : seg.partialStart,
     partialEnd: p.reverse ? seg.partialStart : seg.partialEnd,
+    single: seg.single === true,
   });
 }
 

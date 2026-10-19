@@ -206,6 +206,7 @@ function copySegment(s: Segment): Segment {
         end: s.end,
         partialStart: s.partialStart,
         partialEnd: s.partialEnd,
+        ...(s.single === true ? { single: true as const } : {}),
       };
 }
 
@@ -272,7 +273,8 @@ function segmentEqual(a: Segment, b: Segment): boolean {
     a.start === b.start &&
     a.end === b.end &&
     a.partialStart === b.partialStart &&
-    a.partialEnd === b.partialEnd
+    a.partialEnd === b.partialEnd &&
+    (a.single === true) === (b.single === true)
   );
 }
 
