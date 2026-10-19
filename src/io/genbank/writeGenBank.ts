@@ -201,7 +201,11 @@ function qualifierLines(name: string, raw: string | null): string[] {
     return out;
   }
   const prefix = `/${name}=`;
-  const words = escaped.split(' ');
+  // Break only at a single space between two non-space characters: the parser
+  // trims every line and joins them with one space, so a break inside a run of
+  // spaces would shrink the run. A run stays whole, with the word after it,
+  // even if that overflows the line (#256).
+  const words = escaped.split(/(?<=\S) (?=\S)/);
   const out: string[] = [];
   let current = prefix + (words[0] ?? '');
   for (const word of words.slice(1)) {

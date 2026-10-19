@@ -845,3 +845,32 @@ describe('single fuzzy base locations (#255)', () => {
     expect(out).toContain('mRNA            join(<5,10..20)\n');
   });
 });
+
+describe('a qualifier with a run of spaces (#256)', () => {
+  const gb = (note: string): string =>
+    [
+      'LOCUS       T                         20 bp    DNA     linear   SYN 01-JAN-2000',
+      'FEATURES             Location/Qualifiers',
+      '     misc_feature    1..10',
+      `                     /note="${note}"`,
+      'ORIGIN',
+      '        1 acgtacgtac gtacgtacgt',
+      '//',
+      '',
+    ].join('\n');
+  const save = (text: string): string => writeGenBank(only(parseGenBank(text)));
+
+  it('is a fixed point after the first save and keeps every word and space', () => {
+    for (const run of [3, 30, 70, 78, 79, 80, 200]) {
+      const note = `alpha beta gamma delta epsilon zeta eta theta${' '.repeat(run)}iota kappa lambda mu nu xi omicron pi rho sigma`;
+      const first = save(gb(note));
+      const second = save(first);
+      expect(second).toBe(first);
+      const value = only(parseGenBank(first))
+        .features.all()
+        .flatMap((f) => f.qualifiers)
+        .find((q) => q.name === 'note')?.value;
+      expect(value).toBe(note);
+    }
+  });
+});
