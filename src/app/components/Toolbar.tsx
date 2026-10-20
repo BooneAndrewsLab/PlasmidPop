@@ -204,7 +204,7 @@ export function Toolbar({ doc }: Props) {
             {example !== undefined && (
               <button
                 type="button"
-                className="button"
+                className="button toolbar__example"
                 onClick={() => {
                   openExample(example);
                 }}

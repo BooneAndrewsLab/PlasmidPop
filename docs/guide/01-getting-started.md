@@ -32,7 +32,8 @@ Any of these gets you a sequence on screen:
   GenBank record by its accession number, such as `L09137`, or a protein's
   GenPept record, such as `NP_000509`; see
   [Opening a record from NCBI](02-files.md#opening-a-record-from-ncbi).
-- **Open example** loads pBR322 (4,361 bp, circular) to look around.
+- **Open example** loads pBR322 (4,361 bp, circular) to look around. On a
+  phone it is the **open pBR322** link on the start screen.
 
 Each document opens in its own tab under the toolbar, so several can be open
 at once; the **Files** tab is the start screen. Files opened earlier appear

@@ -2655,6 +2655,8 @@ button {
   background: var(--surface);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
   z-index: 10;
+  /* useMenu caps the height when the list would run off the window. */
+  overflow-y: auto;
 }
 
 /* For a trigger at the left of its row: the list opens under its left edge. */
@@ -4401,6 +4403,19 @@ button {
   .toolbar__brand .logo {
     height: 22px;
     width: auto;
+  }
+
+  /* The app is a fixed shell whose panes scroll; the document itself must
+     not, or the address bar's resizing leaves it a few pixels to scroll. */
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  /* The start card links the example too; without the button the help
+     button keeps to the same row as New, From NCBI and Open file. */
+  .toolbar__example {
+    display: none;
   }
 
   /* The toggles that took this row's room at 720px are not on a phone's
