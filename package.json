@@ -27,7 +27,8 @@
     "oracle:abif": "scripts/oracle/run.sh abif-local",
     "oracle:msa": "python3 scripts/oracle/msa.py",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 stryker run"
+    "mutate": "node scripts/patch-stryker-vitest.mjs && PLASMIDPOP_MUTATION=1 stryker run",
+    "bench": "npm run build && node scripts/bench/open-scan.ts"
   },
   "dependencies": {
     "dexie": "^4.4.6",
@@ -57,6 +58,7 @@
     "fast-check": "^4.10.2",
     "globals": "^16.0.0",
     "jsdom": "^30.1.0",
+    "playwright-core": "1.64.0",
     "prettier": "^3.9.7",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.0",

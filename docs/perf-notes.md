@@ -956,3 +956,34 @@ Findings.
 The spikes that decided what runs where (rasterising in a worker fails in
 Chromium and Firefox; jsPDF holds in a worker, svg2pdf does not) are in
 design note 94.
+
+## Opening and scanning a large sequence (#253, 2026-10-20)
+
+`npm run bench -- --sizes 3000,50000,300000 --n 10` builds the app, serves
+`dist/` with `vite preview`, and in headless Chromium 156 (Playwright
+`chromium-1248`, a fresh context per run) picks a seeded random FASTA in the
+header's file input. It times, from the input's change event to the frame
+after each first appears, the painted sequence view and the drawn enzyme
+list (the Enzymes panel is opened as soon as its tab exists), then sends 120
+wheel events of 300 px over the sequence view and logs the gaps between
+animation frames. One unrecorded run per size warms the browser up. The
+script is `scripts/bench/open-scan.ts`; it writes one CSV row per run and
+prints mean ± SE. These are the runs of
+[`docs/perf/open-scan-2026-10-20.csv`](perf/open-scan-2026-10-20.csv), on a
+16-thread Xeon E5-2630 v3, at 1.16.1 plus the 1.16.2 fixes, while a system
+update was compiling on five or more of those threads; re-run on an idle
+machine before quoting them:
+
+| Size   | View painted | Enzyme list | Longest frame gap | Frames > 50 ms |
+| ------ | ------------ | ----------- | ----------------- | -------------- |
+| 3 kb   | 106 ± 3 ms   | 318 ± 6 ms  | 32 ± 2 ms         | 0              |
+| 50 kb  | 116 ± 5 ms   | 405 ± 8 ms  | 30 ± 2 ms         | 0              |
+| 300 kb | 197 ± 10 ms  | 673 ± 9 ms  | 45 ± 4 ms         | 0.2 ± 0.1      |
+
+- About 150 ms of every enzyme time is `useAnalysis` waiting a beat
+  (`DEBOUNCE_MS`) before it asks the worker, so the scan itself is the rest:
+  roughly 0.2 s at plasmid size and 0.5 s at 300 kb, off the main thread.
+- Scrolling holds frame rate at every size; a 300 kb record drops one frame
+  past 50 ms in about one run in five.
+- These are timings of the whole app in a browser, so they move with the
+  machine and with what else it runs. Compare runs made on one machine.

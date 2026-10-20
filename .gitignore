@@ -45,3 +45,6 @@ scripts/feature-db/.cache/
 
 # Local landscape survey notes, not part of the project
 /LANDSCAPE.md
+
+# Default output of npm run bench (#253)
+bench-open-scan-*.csv
