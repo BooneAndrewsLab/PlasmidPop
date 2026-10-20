@@ -434,7 +434,11 @@ export function writeSnapGene(
         (directed ? ` directionality="${feature.strand === 'reverse' ? 2 : 1}"` : '') +
         ` type="${attr(feature.type)}"` +
         (frame === null ? '' : ` readingFrame="${feature.strand === 'reverse' ? -frame : frame}"`) +
-        ` allowSegmentOverlaps="0" consecutiveTranslationNumbering="1">${segments}${qualifierXml(qualifiers)}</Feature>`,
+        ` allowSegmentOverlaps="0" consecutiveTranslationNumbering="1"` +
+        // SnapGene writes its own `source` hidden; written visible, each one is
+        // a full ring that can crowd the genes off the map (#259).
+        (feature.type === 'source' ? ' visible="0"' : '') +
+        `>${segments}${qualifierXml(qualifiers)}</Feature>`,
     );
   }
   if (dropped.length > 0)

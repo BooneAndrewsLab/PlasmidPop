@@ -219,6 +219,33 @@ describe('what the packets hold', () => {
     expect(again.metadata.comments).toEqual(['&lt;br&gt;']);
   });
 
+  it('writes visible="0" on source features only, and a round trip keeps the features (#259)', () => {
+    const mk = (name: string, type: string, a: number, b: number) =>
+      createFeature({ name, type, strand: 'forward', segments: [rangeSegment(a, b)] });
+    const doc = Doc.create({
+      name: 'p',
+      sequence: seq,
+      topology: 'circular',
+      features: [
+        mk('source', 'source', 0, 100),
+        mk('gene', 'gene', 10, 50),
+        mk('cds', 'CDS', 10, 50),
+        mk('src2', 'source', 0, 40),
+      ],
+    });
+    const xml = new TextDecoder().decode(writeSnapGene(doc).bytes);
+    const tags = xml.match(/<Feature [^>]*>/g) ?? [];
+    expect(tags).toHaveLength(4);
+    for (const tag of tags) {
+      const hidden = tag.includes('type="source"');
+      expect(tag.endsWith(' consecutiveTranslationNumbering="1" visible="0">')).toBe(hidden);
+      expect(tag.includes('visible=')).toBe(hidden);
+    }
+    expect(xml.match(/visible="0"/g)).toHaveLength(2);
+    const { again } = roundTrip(doc);
+    expect(shape(again, true)).toEqual(shape(doc, true));
+  });
+
   it('writes a reverse CDS with its frame, and a feature over the origin', () => {
     const doc = Doc.create({
       name: 'p',

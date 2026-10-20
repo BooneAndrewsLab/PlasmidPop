@@ -348,7 +348,9 @@ SnapGene's primer list; one with other qualifiers stays a feature), and the
 notes: name, description, accession, organism, comments, references and date.
 A protein goes out as `.prot`, and a linear RNA as `.rna` (with T for U, as
 SnapGene writes it). A feature with no colour of its own gets the colour the
-map draws it in.
+map draws it in. `source` features stay in the file and in SnapGene's Features
+list but are marked hidden, as SnapGene does, so they do not draw as rings
+over the genes on its map; read back here they are the same features.
 
 SnapGene's format has no place for everything a document can carry. Before
 the file is written a dialog lists what it will leave out or change, so
