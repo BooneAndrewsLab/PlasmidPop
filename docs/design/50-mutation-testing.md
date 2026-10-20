@@ -188,3 +188,25 @@ the code (31 comments, one of them a disable/restore pair):
   country, and a scale below the current one is over the budget already.
 - `matchStaticRequest`'s `q <= 0`, which cannot occur for a path under the
   base.
+
+## At 1.16.2
+
+The incremental run before 1.16.2 scored 94.65% over 71 files (21,023
+mutants, 17,634 reused, 1,283 tested, 154 minutes). Triage was scoped to the
+16 survivors on lines changed since 1.16.1: the `single` mark on range
+segments (#255) in `historyCodec.ts` (copy and `segmentEqual`) and
+`historyFormat.ts` (the segment validator), and `keepBest`'s close-variant
+rule (#257) in `detect.ts`.
+
+All 16 were killed by tests, none disabled: a history round trip that keeps
+`single` on a stored feature and adds none to a segment without it;
+`segmentEqual` telling a segment apart by the mark put on and taken off;
+the validator accepting `single: true` and rejecting `false` and `'true'`;
+and the overlap rule at exactly 90% of the shorter variant and at 91%
+(which separates `Math.min` from `Math.max`). The narrow rerun
+(`--mutate` on the three files) left none of the 16: `historyCodec.ts`
+92.80%, `historyFormat.ts` 99.69%, `detect.ts` 96.93%. Beside line 762 it
+still showed survivors on the length-closeness conditions of the same
+rule (gap against 2% of the longer, a gap of exactly five bases, the
+2% boundary, the strand and the `k.identity > h.identity` test); tests for
+those were added after the rerun and checked by hand-applied mutants.

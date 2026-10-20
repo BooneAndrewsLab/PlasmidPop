@@ -185,6 +185,8 @@ describe('feature deltas', () => {
     ['the end of a segment', x(), x({ segments: [rangeSegment(10, 25)] })],
     ['a partial start', x(), x({ segments: [rangeSegment(10, 20, { partialStart: true })] })],
     ['a partial end', x(), x({ segments: [rangeSegment(10, 20, { partialEnd: true })] })],
+    ['a single mark put on', x(), x({ segments: [rangeSegment(10, 20, { single: true })] })],
+    ['a single mark taken off', x({ segments: [rangeSegment(10, 20, { single: true })] }), x()],
     ['a segment more', x(), x({ segments: [rangeSegment(10, 20), rangeSegment(30, 40)] })],
     ['a site moved', x({ segments: [siteSegment(50)] }), x({ segments: [siteSegment(55)] })],
     [
@@ -221,6 +223,32 @@ describe('feature deltas', () => {
         upserted: [after],
       },
     });
+  });
+
+  const listed = (delta: ReturnType<typeof oneStep>): readonly Feature[] => {
+    const f = delta?.features;
+    if (f?.kind !== 'list') throw new Error('not a list');
+    return f.features;
+  };
+
+  it('keeps the single mark of a range segment, and adds none to one without', () => {
+    const q = (single: boolean) =>
+      createFeature({
+        id: 'q',
+        type: 'gene',
+        segments: [rangeSegment(1, 5, single ? { single: true } : {})],
+      });
+    const sequence = 'ACGTACGTACGT';
+    const prev = SeqDocument.create({ sequence, features: [q(false)] });
+    const next = SeqDocument.create({ sequence, features: [q(true)] });
+    const marked = listed(oneStep(prev, next));
+    expect(marked[0]?.segments).toStrictEqual([
+      { kind: 'range', start: 1, end: 5, partialStart: false, partialEnd: false, single: true },
+    ]);
+    const plain = listed(oneStep(next, prev));
+    expect(plain[0]?.segments).toStrictEqual([
+      { kind: 'range', start: 1, end: 5, partialStart: false, partialEnd: false },
+    ]);
   });
 
   it('writes features that only changed order as a list, in their new order', () => {

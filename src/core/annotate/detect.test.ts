@@ -952,6 +952,60 @@ describe('two close variants at one locus (#257)', () => {
   });
 });
 
+describe('two close variants at one locus: how much they must overlap (#257, mutation survivors)', () => {
+  // The exact one is 100 bases from the start of `base`; the other is 102 bases from `offset`,
+  // with three changed in the middle, so it is the longer and the worse fit.
+  function names(offset: number): (string | undefined)[] {
+    const r = seededRandom(2570 + offset);
+    const base = randomDna(r, 200);
+    const exact = base.slice(0, 100);
+    const worse = mutate(base.slice(offset, offset + 102), [40, 50, 60]);
+    const lib = library(part('exact', exact, 'CDS'), part('worse', worse, 'CDS'));
+    const hits = detectFeatures(randomDna(r, 150) + base + randomDna(r, 150), 'linear', lib);
+    return hits.map((h) => lib.parts[h.part]?.name);
+  }
+
+  it('drops the worse fit that shares exactly 90% of the shorter one', () => {
+    expect(names(10)).toEqual(['exact']);
+  });
+
+  it('drops it where the share is 91% of the shorter (90% of the shorter, not of the longer)', () => {
+    expect(names(9)).toEqual(['exact']);
+  });
+
+  it('keeps both where the share is under 90% of the shorter', () => {
+    expect(names(11)).toEqual(['exact', 'worse']);
+  });
+});
+
+describe('two close variants at one locus: how close in length (#257, mutation survivors)', () => {
+  // The exact one is `shorter` bases; the other starts with it and is `longer` bases, with three changed.
+  function names(shorter: number, longer: number): (string | undefined)[] {
+    const r = seededRandom(2571 + longer);
+    const base = randomDna(r, longer);
+    const worse = mutate(base, [40, 50, 60]);
+    const lib = library(part('exact', base.slice(0, shorter), 'CDS'), part('worse', worse, 'CDS'));
+    const hits = detectFeatures(randomDna(r, 150) + base + randomDna(r, 150), 'linear', lib);
+    return hits.map((h) => lib.parts[h.part]?.name);
+  }
+
+  it('compares the gap with 2% of the longer, not of the shorter', () => {
+    expect(names(99, 101)).toEqual(['exact']);
+  });
+
+  it('takes a gap of exactly 2% of the longer as close', () => {
+    expect(names(147, 150)).toEqual(['exact']);
+  });
+
+  it('takes a gap of exactly five bases as close', () => {
+    expect(names(395, 400)).toEqual(['exact']);
+  });
+
+  it('keeps both where the gap is a base over 2% of the longer', () => {
+    expect(names(146, 150).sort()).toEqual(['exact', 'worse']);
+  });
+});
+
 describe('detectFeatures: options, ordering and protein-only libraries (mutation survivors)', () => {
   const r = seededRandom(3030);
   const flank = (n: number): string => randomDna(r, n);

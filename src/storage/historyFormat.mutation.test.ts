@@ -212,6 +212,7 @@ describe('isStoredHistory', () => {
     ['a landmark of none', () => row({ opened: { kind: 'none' }, saved: { kind: 'origin' } })],
     ['no named states', () => row({ named: undefined })],
     ['a range beside a site', () => withSegment(range({}))],
+    ['a range marked single', () => withSegment(range({ single: true }))],
     ['a feature listed as an order(...)', () => withFeature({ joining: 'order' })],
     ['a named state of its own', () => withNamed({})],
   ])('accepts %s', (_, make) => {
@@ -227,6 +228,8 @@ describe('isStoredHistory', () => {
     ['a range whose end is not a count', () => withSegment(range({ end: 1.5 }))],
     ['a range whose partialStart is not a boolean', () => withSegment(range({ partialStart: 0 }))],
     ['a range whose partialEnd is not a boolean', () => withSegment(range({ partialEnd: 'no' }))],
+    ['a range whose single mark is false', () => withSegment(range({ single: false }))],
+    ['a range whose single mark is a string', () => withSegment(range({ single: 'true' }))],
     ['a site whose position is not a count', () => withSegment({ kind: 'site', position: -2 })],
     // Qualifiers
     ['a qualifier that is not an object', () => withFeature({ qualifiers: ['gene=bla'] })],
