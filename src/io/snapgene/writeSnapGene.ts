@@ -108,6 +108,7 @@ function writesAsRna(doc: SeqDocument): boolean {
  */
 function isSingleStranded(doc: SeqDocument): boolean {
   const type = doc.metadata.moleculeType;
+  // Stryker disable next-line Regex: in INSDC's molecule types (ss-DNA, ds-RNA, ms-DNA, mRNA, genomic DNA, …) ss- and ds- only ever begin one
   return /^ss-/i.test(type) || (isRnaDocument(doc) && !/^ds-/i.test(type));
 }
 
@@ -369,6 +370,7 @@ export function writeSnapGene(
           g.description === primer.description,
       );
       emptyPrimerNotes += feature.qualifiers.filter(
+        // Stryker disable next-line ConditionalExpression: asPrimer lets only notes through, so every qualifier here is one
         (q) => q.name === 'note' && q.value === '',
       ).length;
       if (group === undefined) groups.push({ ...primer, sites: [primer.site] });

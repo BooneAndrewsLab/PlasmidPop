@@ -210,3 +210,10 @@ still showed survivors on the length-closeness conditions of the same
 rule (gap against 2% of the longer, a gap of exactly five bases, the
 2% boundary, the strand and the `k.identity > h.identity` test); tests for
 those were added after the rerun and checked by hand-applied mutants.
+
+#258 and #259 joined the patch after that run, both in `writeSnapGene.ts`.
+A narrow rerun on that file (16 minutes; the merged report kept all 71
+files) scored 99.59%, with three survivors on the new lines, all equivalent
+and disabled: the `^` of `/^ss-/` and `/^ds-/` (INSDC molecule types only
+ever begin with those) and the `note` test in the empty-primer-note count
+(`asPrimer` lets only notes through).
