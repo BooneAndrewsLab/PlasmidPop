@@ -90,7 +90,8 @@ mutagenesis, and SnapGene's own word for anything PlasmidPop does not run
 (`flip`, `newFileFromSelection`, `changeMethylation`). SnapGene stores no
 checksums, so each molecule in that tree reads as _not in this browser_
 unless you have the file yourself. Enzyme sets, alignments and appearance
-settings are skipped. **File > Download SnapGene…**
+settings are skipped. A `.dna` whose double-stranded flag is clear opens as
+`ss-DNA`, otherwise as `DNA`. **File > Download SnapGene…**
 writes a `.dna` back (see [Downloading a SnapGene file](#downloading-a-snapgene-file)).
 Files from current SnapGene versions are what is tested; before version 1.2, primers were placed one base
 to the left of where SnapGene has them, and a primer SnapGene stores twice
@@ -347,7 +348,10 @@ with its segments, colour, direction, reading frame and qualifiers, primers
 SnapGene's primer list; one with other qualifiers stays a feature), and the
 notes: name, description, accession, organism, comments, references and date.
 A protein goes out as `.prot`, and a linear RNA as `.rna` (with T for U, as
-SnapGene writes it). A feature with no colour of its own gets the colour the
+SnapGene writes it). A circular RNA has no file of its own and goes out as a
+`.dna`. The double-stranded flag is set for DNA and left off for `ss-DNA` and for
+an RNA written as a `.dna`, so a single-stranded molecule re-opens as `ss-DNA`.
+A feature with no colour of its own gets the colour the
 map draws it in. `source` features stay in the file and in SnapGene's Features
 list but are marked hidden, as SnapGene does, so they do not draw as rings
 over the genes on its map; read back here they are the same features.
@@ -355,7 +359,9 @@ over the genes on its map; read back here they are the same features.
 SnapGene's format has no place for everything a document can carry. Before
 the file is written a dialog lists what it will leave out or change, so
 nothing goes silently: GenBank-only header fields (keywords, version,
-lineage, database links), base colours and sizes, the bases and qualities of
+lineage, database links), a molecule type SnapGene cannot keep (`mRNA` and
+`ss-RNA` come back as `RNA`, `ds-DNA` as `DNA`, a circular RNA as `ss-DNA`),
+an empty note on a primer, base colours and sizes, the bases and qualities of
 a sequencing read, partial-end marks (`<` and `>`), locations between two
 bases, `order(...)` locations (written as joined), the record of what a
 molecule was made from, and the enzymes behind a fragment's ends. If there is

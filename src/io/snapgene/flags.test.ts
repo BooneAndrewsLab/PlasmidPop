@@ -69,7 +69,14 @@ describe('the SnapGene sequence flags', () => {
     expect(host(0x1f)).toEqual({ dam: true, dcm: true });
   });
 
-  it('ignores 0x02 and 0x10 (double-stranded, EcoKI): each value reads as the one without them', () => {
+  it('reads a file with 0x02 clear as ss-DNA and one with it set as DNA (#258)', () => {
+    for (const flags of FLAGS)
+      expect(
+        must(parseSnapGene(file(flags)).documents[0], 'a document').metadata.moleculeType,
+      ).toBe((flags & 0x02) !== 0 ? 'DNA' : 'ss-DNA');
+  });
+
+  it('ignores 0x02 and 0x10 (double-stranded, EcoKI) for topology and host: each value reads as the one without them', () => {
     for (const flags of FLAGS.filter((f) => (f & 0x12) !== 0)) {
       const withIt = must(parseSnapGene(file(flags)).documents[0], 'a document');
       const without = must(parseSnapGene(file(flags & 0x0d)).documents[0], 'a document');

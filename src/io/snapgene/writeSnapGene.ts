@@ -102,6 +102,20 @@ function writesAsRna(doc: SeqDocument): boolean {
   return doc.topology === 'linear' && isRnaDocument(doc);
 }
 
+/**
+ * Whether the molecule is single-stranded: an `ss-` type, or an RNA that does
+ * not say `ds-`. SnapGene leaves flag 0x02 (double-stranded) off for these.
+ */
+function isSingleStranded(doc: SeqDocument): boolean {
+  const type = doc.metadata.moleculeType;
+  return /^ss-/i.test(type) || (isRnaDocument(doc) && !/^ds-/i.test(type));
+}
+
+/** The molecule type the file will say, as the reader names it. */
+function writtenMoleculeType(extension: SnapGeneExtension, single: boolean): string {
+  return extension === 'rna' ? 'RNA' : single ? 'ss-DNA' : 'DNA';
+}
+
 /** 1-based inclusive `a-b` of a feature segment; `b < a` where it crosses the origin. */
 function featureRange(start: number, end: number, length: number): string {
   return `${(start % length) + 1}-${((end - 1) % length) + 1}`;
@@ -341,6 +355,7 @@ export function writeSnapGene(
 
   const groups: PrimerGroup[] = [];
   const featureXml: string[] = [];
+  let emptyPrimerNotes = 0;
   let partial = 0;
   let ordered = 0;
   const dropped: string[] = [];
@@ -353,6 +368,9 @@ export function writeSnapGene(
           g.sequence === primer.sequence &&
           g.description === primer.description,
       );
+      emptyPrimerNotes += feature.qualifiers.filter(
+        (q) => q.name === 'note' && q.value === '',
+      ).length;
       if (group === undefined) groups.push({ ...primer, sites: [primer.site] });
       else group.sites.push(primer.site);
       continue;
@@ -449,9 +467,22 @@ export function writeSnapGene(
   if (ordered > 0)
     losses.push(`${ordered} feature(s) with order(…) locations are written as joined.`);
 
+  const single = isSingleStranded(doc);
+  const written = writtenMoleculeType(p.extension, single);
+  const type = doc.metadata.moleculeType;
+  if (!doc.isProtein && type !== '' && type !== written)
+    losses.push(
+      `The molecule type ${type} is written as ${written}` +
+        (isRnaDocument(doc) && p.extension === 'dna'
+          ? ': SnapGene has no circular RNA file.'
+          : '.'),
+    );
+  if (emptyPrimerNotes > 0)
+    losses.push(`${emptyPrimerNotes} empty primer note(s) are not written.`);
+
   const flags =
     (doc.topology === 'circular' ? 0x01 : 0) |
-    0x02 |
+    (single ? 0 : 0x02) |
     (doc.methylation.dam ? 0x04 : 0) |
     (doc.methylation.dcm ? 0x08 : 0);
   const cookie = new Uint8Array(14);

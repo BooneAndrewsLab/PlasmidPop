@@ -102,3 +102,12 @@ note saying `<b>` or `&amp;` did not survive a read. It now unwraps only a
 value that starts with `<html>` (SnapGene's rich text), decoding the entities
 inside that wrapper once; any other value is taken as it is. The writer
 never produces the wrapper, so its output reads back unchanged.
+
+**Strandedness and molecule type (#258).** Flag 0x02 is written only for a
+double-stranded molecule: not for an `ss-` type, nor for an RNA that has to go
+out as a `.dna` (a circular one) unless it says `ds-`. The reader gives a
+`.dna` with 0x02 clear the type `ss-DNA`, so a single-stranded DNA round-trips.
+SnapGene keeps only DNA, ss-DNA and RNA, so any other type (`mRNA`, `ds-DNA`,
+`genomic DNA`) is listed as written as one of those; an empty type says
+nothing. An empty `/note=""` on a primer is listed too: the primer list has no
+place for it (a plain feature keeps its empty qualifier).

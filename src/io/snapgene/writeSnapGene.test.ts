@@ -725,6 +725,99 @@ describe('writer: exact bytes (mutation)', () => {
     expect(lossesOf(protein(''))).toEqual([]);
   });
 
+  describe('strandedness and molecule type (#258)', () => {
+    /** The flags byte of the 0x00 sequence packet. */
+    const flagsOf = (doc: SeqDocument): number => {
+      const bytes = writeSnapGene(doc).bytes;
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      let at = 0;
+      while (at < bytes.length) {
+        if (bytes[at] === 0x00) return bytes[at + 5] ?? -1;
+        at += 5 + view.getUint32(at + 1, false);
+      }
+      return -1;
+    };
+    const typed = (moleculeType: string, extra = {}) =>
+      withMeta({ moleculeType }, { methylation: { dam: false, dcm: false }, ...extra });
+    const moleculeLosses = (doc: SeqDocument) =>
+      lossesOf(doc).filter((l) => l.startsWith('The molecule type'));
+
+    it('sets 0x02 only for a double-stranded molecule', () => {
+      for (const t of ['', 'DNA', 'ds-DNA', 'genomic DNA']) expect(flagsOf(typed(t)), t).toBe(0x02);
+      for (const t of ['ss-DNA', 'SS-DNA']) expect(flagsOf(typed(t)), t).toBe(0x00);
+      // an RNA that has to go out as a .dna is single-stranded unless it says ds-
+      const ring = { topology: 'circular' };
+      expect(flagsOf(typed('RNA', ring))).toBe(0x01);
+      expect(flagsOf(typed('mRNA', ring))).toBe(0x01);
+      expect(flagsOf(typed('ds-RNA', ring))).toBe(0x03);
+      expect(flagsOf(typed('ss-DNA', { ...ring }))).toBe(0x01);
+      expect(flagsOf(typed('DNA', ring))).toBe(0x03);
+      const dam = { methylation: { dam: true, dcm: false } };
+      expect(flagsOf(typed('ss-DNA', dam))).toBe(0x04);
+      expect(flagsOf(typed('DNA', dam))).toBe(0x06);
+    });
+
+    it('reads an ss-DNA back as ss-DNA with no loss, and a DNA as DNA', () => {
+      const back = (t: string) => readBack(writeSnapGene(typed(t)).bytes).metadata.moleculeType;
+      expect(back('ss-DNA')).toBe('ss-DNA');
+      expect(back('DNA')).toBe('DNA');
+      expect(moleculeLosses(typed('ss-DNA'))).toEqual([]);
+      expect(moleculeLosses(typed('DNA'))).toEqual([]);
+      expect(moleculeLosses(typed(''))).toEqual([]);
+    });
+
+    it('says when the molecule type is written as another', () => {
+      expect(moleculeLosses(typed('ds-DNA'))).toEqual([
+        'The molecule type ds-DNA is written as DNA.',
+      ]);
+      expect(moleculeLosses(typed('mRNA', { sequence: 'GGATCC' }))).toEqual([
+        'The molecule type mRNA is written as RNA.',
+      ]);
+      expect(moleculeLosses(typed('ss-RNA', { sequence: 'GGATCC' }))).toEqual([
+        'The molecule type ss-RNA is written as RNA.',
+      ]);
+      expect(moleculeLosses(typed('RNA', { sequence: 'GGATCC' }))).toEqual([]);
+      expect(moleculeLosses(typed('genomic DNA'))).toEqual([
+        'The molecule type genomic DNA is written as DNA.',
+      ]);
+      expect(moleculeLosses(typed('RNA', { topology: 'circular' }))).toEqual([
+        'The molecule type RNA is written as ss-DNA: SnapGene has no circular RNA file.',
+      ]);
+      expect(moleculeLosses(typed('ds-RNA', { topology: 'circular' }))).toEqual([
+        'The molecule type ds-RNA is written as DNA: SnapGene has no circular RNA file.',
+      ]);
+    });
+  });
+
+  it('notes an empty primer note, which the primer list cannot hold (#258)', () => {
+    const primer = (qualifiers: Qs) =>
+      Doc.create({
+        name: 'p',
+        sequence: seq,
+        features: [
+          createFeature({
+            name: 'pr',
+            type: 'primer_bind',
+            strand: 'forward',
+            segments: [rangeSegment(2, 8)],
+            qualifiers,
+          }),
+        ],
+      });
+    const empties = (qualifiers: Qs) =>
+      lossesOf(primer(qualifiers)).filter((l) => l.includes('empty'));
+    expect(empties([{ name: 'note', value: '' }])).toEqual([
+      '1 empty primer note(s) are not written.',
+    ]);
+    expect(empties([])).toEqual([]);
+    expect(empties([{ name: 'note', value: 'a' }])).toEqual([]);
+    expect(empties([{ name: 'gene', value: '' }])).toEqual([]);
+    // a feature keeps its empty qualifier, so nothing is lost there
+    expect(
+      lossesOf(feat([{ name: 'note', value: '' }])).filter((l) => l.includes('empty')),
+    ).toEqual([]);
+  });
+
   it('writes an RNA with its Us as Ts, and lists that only when there are Us', () => {
     const rna = (sequence: string) => withMeta({ moleculeType: 'RNA' }, { sequence });
     expect(lossesOf(rna('GGAUCC'))).toEqual([

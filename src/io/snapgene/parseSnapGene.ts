@@ -400,7 +400,6 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
   const protein = kind === PROTEIN_COOKIE;
   const rna = kind === RNA_COOKIE;
   // GenPept has no molecule type, and a protein written back as one has none.
-  const moleculeType = protein ? '' : rna ? 'RNA' : 'DNA';
 
   const seqPacket = packets.find(
     (p) =>
@@ -415,14 +414,16 @@ export function parseSnapGene(data: ArrayBuffer | Uint8Array, fileName?: string)
           : 'SnapGene file has no DNA sequence packet',
     );
   const flags = protein || rna ? 0 : (seqPacket.payload[0] ?? 0);
+  // A DNA file with 0x02 clear is single-stranded; a .rna's flags byte is not read.
+  const moleculeType = protein ? '' : rna ? 'RNA' : (flags & 0x02) !== 0 ? 'DNA' : 'ss-DNA';
   const topology: Topology = (flags & 0x01) !== 0 ? 'circular' : 'linear';
   /**
    * SnapGene keeps the methylation the DNA is taken to carry in the same
    * flags byte: 0x04 Dam, 0x08 Dcm, 0x10 EcoKI (#45, #152). 0x02 is
    * "double-stranded", set on every file but a single-stranded one, so it
-   * says nothing about methylation. EcoKI blocks no restriction enzyme in
-   * our table, so it is read and dropped rather than stored as something
-   * nothing consults. Dam is confirmed by a Dam+ Dcm- save (0x06); Dcm is
+   * says nothing about methylation; it gives the molecule type (#258).
+   * EcoKI blocks no restriction enzyme in our table, so it is read and
+   * dropped rather than stored as something nothing consults. Dam is confirmed by a Dam+ Dcm- save (0x06); Dcm is
    * 0x08 by elimination, the one bit no sample isolates.
    */
   const methylation: HostMethylationState = {
