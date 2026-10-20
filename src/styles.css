@@ -416,6 +416,13 @@ button {
     grid-template-rows: minmax(0, 1fr) 200px;
   }
 
+  /* The start screen and the bench have no sidebar under them: without this
+     the empty 200px row is a blank band and the start card is squeezed above it. */
+  .app__main--empty,
+  .app__main--bench {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
   .toolbar__meta,
   .toolbar__show {
     display: none;
@@ -1866,7 +1873,9 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* safe: when the content is taller than the screen, start at its top
+     rather than centring it past the top edge, out of scroll reach. */
+  justify-content: safe center;
   padding: 24px 16px;
   overflow: auto;
 }
