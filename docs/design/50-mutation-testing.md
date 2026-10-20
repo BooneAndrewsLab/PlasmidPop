@@ -217,3 +217,9 @@ files) scored 99.59%, with three survivors on the new lines, all equivalent
 and disabled: the `^` of `/^ss-/` and `/^ds-/` (INSDC molecule types only
 ever begin with those) and the `note` test in the empty-primer-note count
 (`asPrimer` lets only notes through).
+
+A full incremental run after those tests, the last before the release,
+scored 94.75% over the same 71 files (21,084 mutants, 1,136 tested, 160
+minutes with the 45-minute dry-run timeout, alongside a system update). It
+left no survived or uncovered mutant on any line changed since 1.16.1,
+the length-closeness survivors in `detect.ts` included.
