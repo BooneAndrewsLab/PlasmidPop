@@ -808,7 +808,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   };
 
   const moveCaret = (target: number, extend: boolean): void => {
-    const position = clampPosition(doc, target);
+    const position = clampPosition(doc, target, extend);
     if (extend && selection !== null) {
       const fixed = anchor.current ?? selection.start;
       anchor.current = fixed;

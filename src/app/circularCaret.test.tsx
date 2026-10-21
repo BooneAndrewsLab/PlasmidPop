@@ -117,10 +117,15 @@ describe('the caret on a circular sequence (#265)', () => {
     type(box, 'ga');
     expect(sequence()).toBe('acgtga');
     expect(caret()).toEqual(at(6));
-    // Past the end the caret carries on round the circle, one base a step.
+    // Past the end the caret comes round to the start, passing no base,
+    // and back again.
+    fireEvent.keyDown(box, { key: 'ArrowRight' });
+    expect(caret()).toEqual(at(0));
     fireEvent.keyDown(box, { key: 'ArrowRight' });
     expect(caret()).toEqual(at(1));
     fireEvent.keyDown(box, { key: 'ArrowLeft' });
+    fireEvent.keyDown(box, { key: 'ArrowLeft' });
+    expect(caret()).toEqual(at(6));
     fireEvent.keyDown(box, { key: 'ArrowLeft' });
     expect(caret()).toEqual(at(5));
   });
@@ -132,6 +137,9 @@ describe('the caret on a circular sequence (#265)', () => {
       editorStore.setSelection(at(2));
     });
     fireEvent.keyDown(box, { key: 'ArrowRight', shiftKey: true });
+    fireEvent.keyDown(box, { key: 'ArrowRight', shiftKey: true });
+    expect(caret()).toEqual({ start: 2, end: 4 });
+    // and stops there rather than reaching round the circle
     fireEvent.keyDown(box, { key: 'ArrowRight', shiftKey: true });
     expect(caret()).toEqual({ start: 2, end: 4 });
   });

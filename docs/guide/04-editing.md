@@ -28,8 +28,9 @@ no stop codon of its own.
   selection** in the edit bar does the same with the mouse.
 - On a circular sequence the cursor goes before the first base or after the
   last, as on a linear one, and typing or pasting there adds the bases at
-  the start or at the end. Past either end the arrow keys carry on round the
-  circle. `Backspace` before the first base deletes the last base, and
+  the start or at the end. An arrow key past either end comes round to the
+  other end (`→` after the last base goes before the first), and
+  `Shift`+arrow stops at the ends. `Backspace` before the first base deletes the last base, and
   `Delete` after the last base deletes the first.
 - **Case ▾**, on the bar beside a selection or in the edit bar (`Alt+U`),
   writes the selected bases in UPPERCASE or lowercase, or swaps the case of

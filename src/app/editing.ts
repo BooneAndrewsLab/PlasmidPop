@@ -56,14 +56,20 @@ function caretAfterDelete(doc: SeqDocument, selection: Range): number {
 
 /**
  * Wraps or clamps a position so it is a valid caret for the document. On a
- * circle a step past either end carries on round it, each step passing one
- * base: one past `length` is 1, one before 0 is `length - 1`. `length` itself
- * stays the end, so the caret can always get there to append.
+ * circle a step past either end comes round to the other end: one past
+ * `length` is 0 and one before 0 is `length`, the same point on the circle,
+ * so the caret passes no base on the way; further out it wraps round as
+ * bases do. `length` itself stays the end, so the caret can always get there
+ * to append. With `extend` (a Shift+arrow) the caret stops at the ends, as
+ * on a linear sequence, since the selection's anchor would otherwise end up
+ * across the whole circle from it.
  */
-export function clampPosition(doc: SeqDocument, position: number): number {
+export function clampPosition(doc: SeqDocument, position: number, extend = false): number {
   if (doc.length === 0) return 0;
-  if (doc.isCircular) {
+  if (doc.isCircular && !extend) {
     if (position >= 0 && position <= doc.length) return position;
+    if (position === doc.length + 1) return 0;
+    if (position === -1) return doc.length;
     return ((position % doc.length) + doc.length) % doc.length;
   }
   return Math.min(doc.length, Math.max(0, position));

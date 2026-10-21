@@ -263,12 +263,20 @@ describe('positions and selections', () => {
     expect(clampPosition(circular, 14)).toBe(4);
   });
 
-  it('lets the caret reach the end of a circle, and passes one base per step round it (#265)', () => {
+  it('lets the caret reach the end of a circle, and steps from either end to the other (#265)', () => {
     expect(clampPosition(circular, 10)).toBe(10);
     expect(clampPosition(circular, 0)).toBe(0);
-    expect(clampPosition(circular, 11)).toBe(1);
-    expect(clampPosition(circular, -1)).toBe(9);
+    expect(clampPosition(circular, 11)).toBe(0);
+    expect(clampPosition(circular, -1)).toBe(10);
+    expect(clampPosition(circular, 12)).toBe(2);
+    expect(clampPosition(circular, -2)).toBe(8);
     expect(clampPosition(SeqDocument.create({ sequence: '' }), 5)).toBe(0);
+  });
+
+  it('stops a Shift+arrow at the ends of a circle', () => {
+    expect(clampPosition(circular, 11, true)).toBe(10);
+    expect(clampPosition(circular, -1, true)).toBe(0);
+    expect(clampPosition(circular, 4, true)).toBe(4);
   });
 
   it('orders anchor and focus', () => {

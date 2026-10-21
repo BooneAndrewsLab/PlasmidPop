@@ -37,7 +37,9 @@ caret is and fold nothing; only a point that names a place on the circle
 (a feature's site, a new origin) is still canonicalised to 0. Bases and the
 ranges over them wrap as before, and whether an insertion grows a range
 over the origin is still judged on the circle, at 0 and `length` alike. A
-caret past either end carries on round, one base a step (one past `length`
-is 1, one before 0 is `length - 1`); Delete at the end takes the first
+caret stepped past either end comes round to the other end, passing no
+base (one past `length` is 0, one before 0 is `length`; at first it went on
+to 1 and `length - 1`, which skipped a base on screen), and a Shift+arrow
+stops at the ends rather than stretch the selection round the circle; Delete at the end takes the first
 base. The empty document's fallback caret now covers a pasted fragment as
 well as text, so a paste after Escape or a click on the empty map lands.
