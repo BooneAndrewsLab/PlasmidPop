@@ -9,11 +9,15 @@ import { reverseComplement } from '../sequence';
 import {
   cdseguid,
   csseguid,
+  describeMolecule,
   documentChecksum,
   documentStrands,
+  knownChecksum,
   ldseguid,
   lsseguid,
   minimalRotation,
+  moleculeChecksum,
+  rememberChecksum,
 } from './seguid';
 
 /**
@@ -127,6 +131,43 @@ describe('documentChecksum', () => {
     const empty = SeqDocument.create({ sequence: '' });
     expect(documentChecksum(empty)).toBeNull();
     expect(documentChecksum(empty)).toBeNull();
+  });
+
+  it('is the checksum of the description the worker is sent (#270)', () => {
+    const sticky = SeqDocument.create({
+      sequence: 'aattgacctaggcatgca',
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: "3'", overhang: 'TGCA', enzyme: 'PstI' },
+      },
+    });
+    for (const doc of [
+      circular('AACGTTGACCTAGGACGATCAGGTACC'),
+      SeqDocument.create({ sequence: 'AACGTTGACCTAGG' }),
+      sticky,
+      SeqDocument.create({ sequence: 'MKTAYIAKQR', alphabet: 'protein' }),
+      SeqDocument.create({ sequence: '' }),
+    ]) {
+      // The description is plain values, as structured cloning will hand them over.
+      const described = structuredClone(describeMolecule(doc));
+      expect(moleculeChecksum(described)).toEqual(documentChecksum(doc));
+    }
+  });
+
+  it('keeps a checksum taken elsewhere, and only the first one (#270)', () => {
+    const doc = circular('AACGTTGACCTAGGACGATCAGGTACC');
+    expect(knownChecksum(doc)).toBeUndefined();
+    const taken = moleculeChecksum(describeMolecule(doc));
+    rememberChecksum(doc, taken);
+    expect(knownChecksum(doc)).toBe(taken);
+    expect(documentChecksum(doc)).toBe(taken);
+    // A second answer for the same document is not the one kept.
+    rememberChecksum(doc, null);
+    expect(documentChecksum(doc)).toBe(taken);
+    // The null of an empty document is a known answer too.
+    const empty = SeqDocument.create({ sequence: '' });
+    rememberChecksum(empty, null);
+    expect(knownChecksum(empty)).toBeNull();
   });
 
   it('does not change when a linear molecule is turned around', () => {

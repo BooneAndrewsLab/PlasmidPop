@@ -1,4 +1,5 @@
-import { type SeqDocument } from '../document';
+import { type DocumentEnds, type SeqDocument } from '../document';
+import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
 
 import { sha1Base64Url } from './sha1';
@@ -147,8 +148,10 @@ export function cdseguid(watson: string, crick: string): Seguid {
  * staggered end.
  */
 export function documentStrands(doc: SeqDocument): { watson: string; crick: string } {
-  const sequence = canonicalSequence(doc);
-  const ends = doc.ends;
+  return strandsOf(canonicalSequence(doc), doc.ends);
+}
+
+function strandsOf(sequence: string, ends: DocumentEnds | null): { watson: string; crick: string } {
   if (ends === null) return { watson: sequence, crick: reverseComplement(sequence) };
 
   // A 5' overhang on the left and a 3' overhang on the right are bases of our
@@ -178,6 +181,19 @@ function canonicalSequence(doc: SeqDocument): string {
 }
 
 /**
+ * What a document's checksum is taken over: the fields of a `SeqDocument`
+ * that go into it, as plain values, so the analysis worker can take the
+ * same checksum from a copy (#270).
+ */
+export interface MoleculeDescription {
+  /** The sequence text, in whatever case it is written. */
+  readonly sequence: string;
+  readonly topology: Topology;
+  readonly isProtein: boolean;
+  readonly ends: DocumentEnds | null;
+}
+
+/**
  * The checksum of a document: `cdseguid` for a plasmid, `ldseguid` for a
  * linear molecule. Both are the double-stranded variants, because a DNA
  * document in this app is double-stranded whether or not the complement is
@@ -191,21 +207,51 @@ function canonicalSequence(doc: SeqDocument): string {
  * the lineage, `Compare with…` and the autosave: at 300 kb the digest is
  * some 40 ms on the main thread, which the autosave was paying again a
  * second after the open, in the middle of whatever the user was doing (#268).
+ * For a large document the status bar has the analysis worker take it and
+ * puts the answer here with `rememberChecksum` (#270), so whoever asks next
+ * finds it.
  */
 export function documentChecksum(doc: SeqDocument): Seguid | null {
   const known = checksums.get(doc);
   if (known !== undefined) return known;
-  const checksum = computeDocumentChecksum(doc);
+  const checksum = moleculeChecksum(describeMolecule(doc));
   checksums.set(doc, checksum);
   return checksum;
 }
 
+/** `documentChecksum` if it has been worked out for this document, else undefined. */
+export function knownChecksum(doc: SeqDocument): Seguid | null | undefined {
+  return checksums.get(doc);
+}
+
+/**
+ * Keeps a checksum taken elsewhere (the analysis worker, #270) as this
+ * document's, so `documentChecksum` is a lookup from here on. A document is
+ * immutable, so a checksum of its description is its checksum; one already
+ * known is left as it is.
+ */
+export function rememberChecksum(doc: SeqDocument, checksum: Seguid | null): void {
+  if (!checksums.has(doc)) checksums.set(doc, checksum);
+}
+
+/** The fields of `doc` that `moleculeChecksum` reads. */
+export function describeMolecule(doc: SeqDocument): MoleculeDescription {
+  return {
+    sequence: doc.sequence.toString(),
+    topology: doc.topology,
+    isProtein: doc.isProtein,
+    ends: doc.ends,
+  };
+}
+
 const checksums = new WeakMap<SeqDocument, Seguid | null>();
 
-function computeDocumentChecksum(doc: SeqDocument): Seguid | null {
-  if (doc.length === 0) return null;
+/** `documentChecksum` of the document `molecule` describes, with nothing remembered. */
+export function moleculeChecksum(molecule: MoleculeDescription): Seguid | null {
+  if (molecule.sequence.length === 0) return null;
+  const sequence = molecule.sequence.toUpperCase();
   // A protein is one chain: SEGUID's original, single-stranded form (#66).
-  if (doc.isProtein) return lsseguid(canonicalSequence(doc));
-  const { watson, crick } = documentStrands(doc);
-  return doc.topology === 'circular' ? cdseguid(watson, crick) : ldseguid(watson, crick);
+  if (molecule.isProtein) return lsseguid(sequence);
+  const { watson, crick } = strandsOf(sequence, molecule.ends);
+  return molecule.topology === 'circular' ? cdseguid(watson, crick) : ldseguid(watson, crick);
 }
