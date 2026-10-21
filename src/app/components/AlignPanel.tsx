@@ -40,6 +40,8 @@ import type { StackSample } from '../alignmentStack';
 import type { SampleFeatures } from '../alignmentSampleTrack';
 import { AlignmentDialog } from './AlignmentDialog';
 import { useAlignedRegionPointer } from './useAlignedRegionPointer';
+import { OpenTabPicker } from './OpenTabPicker';
+import { tabsToRecords } from '../alignTabs';
 import { ReadBatchList } from './ReadBatchList';
 import { MsaControls } from './MsaControls';
 import { AssemblyResult } from './AssemblyResult';
@@ -502,21 +504,30 @@ export function AlignPanel({ doc }: Props) {
     [openTabs, documentId, doc.alphabet],
   );
 
-  /** Takes a tab's current sequence, unsaved edits and read included, as the sample. */
-  const loadTab = (id: string): void => {
-    const tab = otherTabs.find((t) => t.documentId === id);
-    if (tab === undefined) return;
-    const d = tab.history.present;
-    const record: SequenceRecord = {
-      name: d.name,
-      sequence: d.sequence.toString(),
-      circular: d.isCircular,
-      ...(d.read === null ? {} : { read: d.read }),
-      ...featuresOf(d),
-    };
-    setText(writeFastaRecords([d]));
-    setLoaded({ text: writeFastaRecords([d]), records: [record] });
-    setFileNote(`From the open tab ${d.name}${d.read === null ? '' : ', with base qualities'}.`);
+  /**
+   * Takes the chosen tabs' current sequences, unsaved edits and reads
+   * included, as the samples (#262). One is a single sample as it always was;
+   * several are a batch, as several files are, to align all together.
+   */
+  const loadTabs = (ids: readonly string[]): void => {
+    const tabs = ids.flatMap((id) => otherTabs.filter((t) => t.documentId === id));
+    const docs = tabs.map((t) => t.history.present);
+    const records = tabsToRecords(docs, BATCH_LIMIT);
+    const [only] = docs;
+    if (only === undefined) return;
+    if (records.length === 1) {
+      setText(writeFastaRecords([only]));
+      setLoaded({ text: writeFastaRecords([only]), records });
+      setFileNote(
+        `From the open tab ${only.name}${only.read === null ? '' : ', with base qualities'}.`,
+      );
+      return;
+    }
+    // The box is emptied, as for several files; their records are the samples.
+    setText('');
+    setLoaded({ text: '', records });
+    setPicked(-1);
+    setFileNote(`${records.length} open tabs.`);
   };
 
   /**
@@ -941,23 +952,11 @@ export function AlignPanel({ doc }: Props) {
           }}
         />
         {otherTabs.length > 0 && (
-          <label className="panel__field panel__field--row">
-            <select
-              className="panel__select"
-              aria-label="Open tab to align"
-              value=""
-              onChange={(e) => {
-                loadTab(e.target.value);
-              }}
-            >
-              <option value="">Open tab…</option>
-              {otherTabs.map((t) => (
-                <option key={t.documentId} value={t.documentId}>
-                  {t.history.present.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <OpenTabPicker
+            tabs={otherTabs.map((t) => ({ id: t.documentId, name: t.history.present.name }))}
+            limit={BATCH_LIMIT}
+            onUse={loadTabs}
+          />
         )}
         {records.length > 1 && (
           <label className="panel__field panel__field--row">

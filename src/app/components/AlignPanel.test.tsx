@@ -769,15 +769,32 @@ describe('AlignPanel', () => {
       editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
     });
     render(<AlignPanel doc={doc} />);
-    const picker = screen.getByRole('combobox', { name: 'Open tab to align' });
-    expect(screen.getAllByRole('option', { name: 'pOther' })).toHaveLength(1);
-    fireEvent.change(picker, {
-      target: { value: editorStore.getState().documents[1]?.documentId },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Open tab…' }));
+    expect(screen.getAllByRole('checkbox', { name: 'pOther' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'pOther' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use 1 tab' }));
     await waitFor(() => {
       expect(screen.getByText(/From the open tab pOther/)).toBeInTheDocument();
     });
     expect((box() as HTMLTextAreaElement).value).toContain('TTGGCCAATT');
+  });
+
+  it('takes several open tabs as a batch of samples, with Select all', async () => {
+    act(() => {
+      editorStore.openDocument(SeqDocument.create({ name: 'tabB', sequence: 'TTGGCCAATT' }));
+      editorStore.openDocument(SeqDocument.create({ name: 'tabC', sequence: 'GGCCGGCCAA' }));
+      editorStore.activateDocument(editorStore.getState().documents[0]?.documentId ?? '');
+    });
+    render(<AlignPanel doc={doc} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open tab…' }));
+    expect(screen.getByRole('button', { name: 'Use 0 tabs' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }));
+    fireEvent.click(screen.getByRole('button', { name: /Use \d+ tabs/ }));
+    await waitFor(() => {
+      expect(screen.getByText(/\d+ open tabs\./)).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('group', { name: 'Open tabs to align' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Align all' })).toBeEnabled();
   });
 
   it('says why a dropped file could not be read', async () => {
@@ -873,10 +890,9 @@ describe('AlignPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(/identity 100%/)).toBeInTheDocument();
       });
-      const tab = screen.getByRole('combobox', { name: 'Open tab to align' });
-      fireEvent.change(tab, {
-        target: { value: editorStore.getState().documents[1]?.documentId },
-      });
+      fireEvent.click(screen.getByRole('button', { name: 'Open tab…' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'tab two' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Use 1 tab' }));
       expect(screen.queryByText(/identity/)).toBeNull();
     });
 

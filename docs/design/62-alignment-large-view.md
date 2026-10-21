@@ -643,3 +643,15 @@ found. Checked by eye: an `SvgContext` export of a three-row stack (a
 sample whose CDS sits five bases off the document's, a reversed sample, a
 sample without features), rasterised with rsvg; the canvas in a browser was
 not looked at.
+
+## Several open tabs as samples (#262)
+
+**Open tab…** is a button opening a checklist of the other open tabs of the
+same alphabet (`OpenTabPicker`, on `useMenu`, so Escape and a click outside
+close it and a narrow window keeps it inside), with Select all and a "Use N
+tabs" button. Decision: one ticked tab is the single sample it always was,
+qualities kept; two or more become the records of the existing batch path
+(`tabsToRecords` in `alignTabs.ts`), each with its read and features, so
+Align all puts them in the large view as a stack, as several files do. The
+same `BATCH_LIMIT` applies: the list stops accepting ticks at 96. A tab's
+records carry no file name, so rows are named by the tab alone.

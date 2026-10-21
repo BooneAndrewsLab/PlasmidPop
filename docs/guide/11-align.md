@@ -11,10 +11,15 @@ aligns two proteins, scored by BLOSUM62.
    GenBank record all work. Or drop a file on the box, or click **Choose
    file…**: GenBank, FASTA, SnapGene, AB1 and FASTQ files (gzipped too)
    are read into the box without opening a tab. To align against a
-   document already open in another tab, pick it from **Open tab…** (the
-   same kind only: protein against protein); its current sequence is used,
-   unsaved edits, topology and, for a read, its qualities and trace
-   included. Choose or drop several
+   document already open in another tab, press **Open tab…**: a list of
+   the other open tabs (the same kind only: protein against protein)
+   appears, each with a checkbox, and **Select all** ticks them all. Tick
+   one and press **Use 1 tab**, and its current sequence is used, unsaved
+   edits, topology and, for a read, its qualities and trace included. Tick
+   several and **Use N tabs** takes them as a batch, like several files:
+   each keeps its own qualities and features, and **Align all** aligns
+   them together (below). At most 96 tabs go in at once. The list is reached
+   with Tab and Space, and Escape closes it. Choose or drop several
    files at once to align all of their records together (below).
 2. If the box holds several records (a FASTA file of several reads, say),
    pick the one to align from the list that appears — or align them all,
@@ -58,7 +63,7 @@ whole row is the target, not just the name.
 
 A result stays on screen only while it describes what is in the panel.
 Pasting or editing the sequence box, choosing or dropping a file, taking
-another open tab or picking another record **clears** the result and its group (or the
+other open tabs or picking another record **clears** the result and its group (or the
 batch's list) and stops an alignment that is still running, so an old
 result never looks like the new input's. Changing **Mode** or **Against
 selection only** is different, since people tweak these while comparing:
@@ -265,7 +270,7 @@ used as above — trimming, confident and poor differences.
 Pairwise alignment lines two sequences up. To compare several variants of a
 construct, or several homologous coding sequences or proteins, align them
 all at once: paste a multi-record FASTA or GenBank text into the box, or drop
-or choose several files, and the **Multiple alignment** group appears under
+or choose several files (or tick several open tabs), and the **Multiple alignment** group appears under
 the Align button.
 
 1. Put three to fifty sequences in the box (one record each). **Include this
