@@ -24,7 +24,12 @@ import { preview } from 'vite';
 interface Profile {
   readonly nodes: readonly {
     readonly id: number;
-    readonly callFrame: { readonly functionName: string; readonly url: string };
+    readonly callFrame: {
+      readonly functionName: string;
+      readonly url: string;
+      /** 0-based. */
+      readonly lineNumber: number;
+    };
     readonly children?: readonly number[];
   }[];
   /** Microseconds. */
@@ -171,7 +176,12 @@ function stretches(profile: Profile, offsetMs: number): Stretch[] {
   const name = (id: number): string => {
     const n = nodes.get(id);
     if (n === undefined) return '?';
-    const fn = n.callFrame.functionName === '' ? '(anonymous)' : n.callFrame.functionName;
+    // An anonymous frame is named by its line in the bundle, so a memo or
+    // an arrow in a render can be found in `dist-profile/assets/index-*.js`.
+    const fn =
+      n.callFrame.functionName === ''
+        ? `(anonymous:${n.callFrame.lineNumber + 1})`
+        : n.callFrame.functionName;
     const file = n.callFrame.url.split('/').pop() ?? '';
     return file === '' ? fn : `${fn} ${file.replace(/-[\w-]+\.js$/, '')}`;
   };
@@ -266,7 +276,7 @@ async function runOnce(browser: Browser, url: string, file: string): Promise<voi
     for (const s of stretches(profile, offsetMs)) {
       const top = [...s.self.entries()]
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 6)
+        .slice(0, 10)
         .map(([n, ms]) => `${n} ${ms.toFixed(1)}`)
         .join(', ');
       lines.push(
