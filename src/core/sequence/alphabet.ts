@@ -3,6 +3,8 @@
  * Case is preserved everywhere (lowercase is commonly used to mark regions).
  */
 
+import { formatInt } from '../format';
+
 export const IUPAC_NUCLEOTIDES = 'ACGTURYSWKMBDHVN';
 
 const COMPLEMENT_UPPER: Readonly<Record<string, string>> = {
@@ -174,7 +176,7 @@ export function assertValidResidues(text: string, alphabet: Alphabet): void {
 
 /** `n` residues as a length: `4,361 bp`, or `147 aa` for a protein. */
 export function formatLength(n: number, alphabet: Alphabet): string {
-  return `${n.toLocaleString()} ${alphabet === 'protein' ? 'aa' : 'bp'}`;
+  return `${formatInt(n)} ${alphabet === 'protein' ? 'aa' : 'bp'}`;
 }
 
 export function complement(text: string): string {

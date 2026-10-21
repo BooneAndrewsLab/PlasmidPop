@@ -1,4 +1,5 @@
 export * from './ids';
+export * from './format';
 export * from './range';
 export * from './sequence';
 export * from './features';

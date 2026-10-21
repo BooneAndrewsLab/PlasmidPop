@@ -1,3 +1,4 @@
+import { formatInt } from '../format';
 import { type Topology } from '../range';
 import { type CutSite } from './restriction';
 import { digestFragments } from './restriction';
@@ -510,10 +511,7 @@ function pairJudge(
 export function describeBands(profile: DigestProfile, max = 4): string {
   const shown = profile.bands
     .slice(0, max)
-    .map(
-      (b) =>
-        `${b.length.toLocaleString()}${b.fragments.length > 1 ? ` ×${b.fragments.length}` : ''}`,
-    );
+    .map((b) => `${formatInt(b.length)}${b.fragments.length > 1 ? ` ×${b.fragments.length}` : ''}`);
   const rest = profile.bands.length - shown.length;
   return `${shown.join(' + ')}${rest > 0 ? ` + ${rest} more` : ''} bp`;
 }
@@ -531,17 +529,17 @@ export function bandProblems(profile: DigestProfile, options: GelOptions = {}): 
     // and listing them all is a paragraph nobody reads.
     out.push(
       shared.length === 1 && one.fragments.length <= 3
-        ? `${one.fragments.map((n) => n.toLocaleString()).join(' and ')} run together`
+        ? `${one.fragments.map(formatInt).join(' and ')} run together`
         : `${profile.comigrating} fragments run together under ${shared.length} bands`,
     );
   }
   if (profile.tooSmall > 0) {
     out.push(
-      `${profile.tooSmall} ${profile.tooSmall === 1 ? 'band is' : 'bands are'} under ${minVisible.toLocaleString()} bp and may run off`,
+      `${profile.tooSmall} ${profile.tooSmall === 1 ? 'band is' : 'bands are'} under ${formatInt(minVisible)} bp and may run off`,
     );
   }
   if (profile.tooLarge > 1) {
-    out.push(`${profile.tooLarge} bands are over ${maxResolved.toLocaleString()} bp and compress`);
+    out.push(`${profile.tooLarge} bands are over ${formatInt(maxResolved)} bp and compress`);
   }
   return out;
 }
@@ -639,5 +637,5 @@ export function bandIntensities(bands: readonly GelBand[]): number[] {
 
 /** "2,181 ×2", the label a band carries beside the lane. */
 export function bandLabel(band: GelBand): string {
-  return `${band.length.toLocaleString()}${band.fragments.length > 1 ? ` \u00d7${band.fragments.length}` : ''}`;
+  return `${formatInt(band.length)}${band.fragments.length > 1 ? ` \u00d7${band.fragments.length}` : ''}`;
 }
