@@ -1042,3 +1042,76 @@ issue: the open itself (205 ms at 300 kb, 410-429 ms at 1 Mb, of which the
 status bar's checksum is 15 ms and 80 ms and garbage collection 30 ms and
 125-158 ms), and drawing the enzyme list (165 ms at 300 kb, 317-330 ms at
 1 Mb, mostly the Enzymes panel's memos).
+
+## The checksum of a large document, off the main thread (#270, design note 97, 2026-10-21)
+
+The open task above was profiled with `scripts/bench/open-profile.ts`: an
+unminified production build (`npx vite build --minify false --outDir
+dist-profile`, so function names survive), a CPU profile of the page's main
+thread over CDP at a 0.2 ms interval, the `longtask` entries, and the frame
+after the sequence view, the checksum button and the enzyme list first
+appear. Headless Chromium 156, 16-thread Xeon E5-2630 v3, idle, three runs
+per size; the unminified build runs a little slower than the shipped one.
+
+Before, with the checksum taken inline in the status bar's first render:
+
+| Size   | Open task  | In `documentChecksum` | GC in the open | View painted | Checksum painted | Enzyme list |
+| ------ | ---------- | --------------------- | -------------- | ------------ | ---------------- | ----------- |
+| 300 kb | 132-156 ms | 35-39 ms              | 27-34 ms       | 178-203 ms   | with the view    | 710-738 ms  |
+| 1 Mb   | 311-320 ms | 122-131 ms            | 114-123 ms     | 355-371 ms   | with the view    | 1.29-1.45 s |
+
+At 1 Mb the checksum's 122-131 ms is 70-75 ms of `digestWords`, 22-28 ms of
+`documentStrands` and `reverseComplement`, and garbage collection inside
+it; the two strands and the 2 Mb `watson;crick` are what the collector was
+spending most of its 114-123 ms on.
+
+Where the threshold sits: the digest inline (Node 24, median over 10 fresh
+documents, circular random DNA) against a round trip of the sequence string
+to an echo worker (headless Chromium, median over 20; the timer's
+resolution is 0.1 ms):
+
+| Size   | Inline digest | Round trip: main-thread send | Round trip: answer back |
+| ------ | ------------- | ---------------------------- | ----------------------- |
+| 1 kb   | 0.74 ms       | < 0.1 ms                     | < 0.1 ms                |
+| 3 kb   | 0.80 ms       | < 0.1 ms                     | < 0.1 ms                |
+| 10 kb  | 1.9 ms        | < 0.1 ms                     | < 0.1 ms                |
+| 30 kb  | 3.9 ms        | < 0.1 ms                     | 0.1 ms                  |
+| 100 kb | 10.5 ms       | 0.1 ms                       | 0.1 ms                  |
+| 300 kb | 37 ms         | 0.2 ms                       | 0.4 ms                  |
+| 1 Mb   | 107 ms        | 0.6 ms                       | 1.2 ms                  |
+| 3 Mb   |               | 1.8 ms                       | 3.2 ms                  |
+
+The round trip's own main-thread cost is below the digest's at every size;
+what the worker costs instead is a paint without the checksum and one more
+render of the status bar when it lands, which for a plasmid is more than
+its 0.8 ms digest. `WORKER_CHECKSUM_FROM` is 50 kb: below it the digest is
+under 6 ms and stays in the first paint.
+
+After, with the worker asked at once from the status bar's first render
+(the restriction scan follows it 150 ms later):
+
+| Size   | Open task | GC in the open | View painted | Checksum painted | Enzyme list |
+| ------ | --------- | -------------- | ------------ | ---------------- | ----------- |
+| 300 kb | 67-97 ms  | 4-7 ms         | 110-147 ms   | 244-252 ms       | 612-693 ms  |
+| 1 Mb   | 77-94 ms  | 6-11 ms        | 127-147 ms   | 390-429 ms       | 1.27-1.39 s |
+
+The checksum button is painted 100 ms after the view at 300 kb and
+250-290 ms after it at 1 Mb: the worker's start-up (the first request
+creates it; the scan used to pay that), the digest, the answer's clone and
+a frame. The autosave's task at 1 Mb (65-100 ms, `sequenceLines`,
+`writeGenBank`, the IndexedDB put) has no checksum in it: the worker's
+answer is remembered on the document, and the autosave awaits it.
+
+The bench after (`npm run bench -- --sizes 300000,1000000 --n 5`, same
+machine, idle; the #268 table above is the same code before this change,
+measured the same day):
+
+| Size   | View painted | Enzyme list | Longest frame gap | Frames > 50 ms |
+| ------ | ------------ | ----------- | ----------------- | -------------- |
+| 300 kb | 111 ± 3 ms   | 587 ± 14 ms | 30.0 ± 3.3 ms     | 0              |
+| 1 Mb   | 133 ± 2 ms   | 1306 ± 8 ms | 16.8 ± 0.0 ms     | 0              |
+
+The view paints 60 ms sooner at 300 kb and 210 ms sooner at 1 Mb; the
+enzyme list is 100-130 ms sooner too, since the worker no longer starts up
+on the scan's request. What is left of the open task at 1 Mb is the parse,
+the first render and the sequence view's layout, none of it the checksum.

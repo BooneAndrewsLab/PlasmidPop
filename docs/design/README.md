@@ -296,3 +296,5 @@ the Bench, item 49). The rest stand.
 109.  [The app's own tooltip in place of the browser's `title`](95-custom-tooltip.md)
 
 110.  [The scroll hitch at 300 kb was the autosave](96-autosave-hitch.md)
+
+111.  [The checksum of a large document is taken in the analysis worker](97-seguid-worker.md)
