@@ -1,5 +1,4 @@
 import {
-  type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -72,6 +71,7 @@ import { SelectionBar } from './SelectionBar';
 import { editorStore } from '../state/editorStore';
 import { gcTip as describeGc } from '../gcTip';
 import { followTooltip, hideFollowTooltip } from './tooltip';
+import { useClipboardEvents } from './useClipboardEvents';
 import { useEditorState } from '../state/useEditorStore';
 import { useGcProfile } from '../state/useGcProfile';
 import { recallView, rememberView } from '../state/viewMemory';
@@ -1009,20 +1009,24 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     return { left: clampLeft(layout.xOf(shown, from)), top: scrollTop + 4, menuOpens: 'down' };
   }
 
-  const onCopy = (e: ReactClipboardEvent<HTMLDivElement>): void => {
-    if (copySelection(e.clipboardData)) e.preventDefault();
-  };
-
-  const onCut = (e: ReactClipboardEvent<HTMLDivElement>): void => {
-    if (selection === null || !copySelection(e.clipboardData)) return;
-    e.preventDefault();
-    editorStore.applyPlan(deleteSelection(doc, selection));
-  };
-
-  const onPaste = (e: ReactClipboardEvent<HTMLDivElement>): void => {
-    e.preventDefault();
-    withClipboard(e.clipboardData);
-  };
+  // On the document rather than as onCopy/onCut/onPaste: Firefox never
+  // sends a clipboard event to a focused element that is not editable (#267).
+  useClipboardEvents(containerRef, {
+    copy: (e) => {
+      if (e.clipboardData !== null && copySelection(e.clipboardData)) e.preventDefault();
+    },
+    cut: (e) => {
+      if (selection === null || e.clipboardData === null || !copySelection(e.clipboardData)) {
+        return;
+      }
+      e.preventDefault();
+      editorStore.applyPlan(deleteSelection(doc, selection));
+    },
+    paste: (e) => {
+      e.preventDefault();
+      if (e.clipboardData !== null) withClipboard(e.clipboardData);
+    },
+  });
 
   const bar = reader || dragging ? null : selectionBarPlace();
 
@@ -1038,9 +1042,6 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         rememberView(documentId, { topBase: layout.rowAtY(top)?.start ?? 0, scrollLeft: left });
       }}
       onKeyDown={onKeyDown}
-      onCopy={onCopy}
-      onCut={onCut}
-      onPaste={onPaste}
       role="textbox"
       aria-multiline="true"
       aria-label="Sequence"
