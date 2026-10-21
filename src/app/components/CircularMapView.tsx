@@ -146,7 +146,8 @@ export function CircularMapView({ doc }: Props) {
   const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
   const cutSites = useMemo(
     () =>
-      showCutSites && analysis !== null && analysis.doc === doc
+      // Nothing ticked is the usual state of a large document (#271).
+      showCutSites && analysis !== null && analysis.doc === doc && shownEnzymes.size > 0
         ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
         : [],
     [analysis, doc, shownEnzymes, showCutSites],

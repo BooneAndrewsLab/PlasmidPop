@@ -15,13 +15,14 @@ import {
   compareDiagnostic,
   describeBands,
   digestFragments,
-  enzymeProfile,
+  enzymeDigest,
+  formatInt,
   gelProfile,
   getEnzyme,
   type HostMethylationState,
-  blockedByHost,
   describeHost,
-  hostMethylationAt,
+  hostMarksFromBits,
+  hostStateBits,
   isHostMethylationSensitive,
   isDoubleCutter,
   isoschizomerGroups,
@@ -110,7 +111,7 @@ function describeBandFragments(band: GelBand): string {
 }
 
 function describeSite(site: CutSite, doc: SeqDocument): string {
-  return cutLabel(site.cut, doc.length, doc.topology).toLocaleString();
+  return formatInt(cutLabel(site.cut, doc.length, doc.topology));
 }
 
 /** Tooltip for an enzyme: the overhang, and whatever an import added. */
@@ -411,56 +412,74 @@ export function EnzymePanel({ doc }: Props) {
     ? enzymeSupplier
     : '';
 
+  /**
+   * The host methylation inside each site and the fragments each enzyme
+   * alone would give: the worker's, taken with the scan (item 98), or taken
+   * here for a result carried through an edit, whose sites have moved. At
+   * 1 Mb the two were 120 ms of main thread per scan (docs/perf-notes.md).
+   */
+  const digest = useMemo(
+    () =>
+      !ready
+        ? null
+        : (analysis.digest ??
+          enzymeDigest(analysis.cutSites, doc.sequence.toString(), doc.topology)),
+    [ready, analysis, doc],
+  );
+
   const groups = useMemo(() => {
-    const byName = new Map<string, CutSite[]>();
-    if (ready) {
-      for (const s of analysis.cutSites) {
-        const list = byName.get(s.enzyme) ?? [];
-        list.push(s);
-        byName.set(s.enzyme, list);
-      }
+    const byName = new Map<string, { readonly sites: CutSite[]; readonly host: number[] }>();
+    if (ready && digest !== null) {
+      analysis.cutSites.forEach((s, i) => {
+        let entry = byName.get(s.enzyme);
+        if (entry === undefined) {
+          entry = { sites: [], host: [] };
+          byName.set(s.enzyme, entry);
+        }
+        entry.sites.push(s);
+        entry.host.push(digest.host[i] ?? 0);
+      });
     }
     // The bands each enzyme alone would give. Computed for every enzyme
     // rather than for the rows on screen, because the list can be ordered by
-    // them; it is a sort of a handful of cut positions per enzyme, and costs
-    // a couple of ms over an imported REBASE table (docs/perf-notes.md).
+    // them; the lengths come sorted, so this is the banding alone, 6 ms over
+    // the 96,000 cuts of 1 Mb (docs/perf-notes.md).
     return activeEnzymes().map((enzyme) => {
-      const sites = byName.get(enzyme.name) ?? [];
+      const lengths = digest?.lengths.get(enzyme.name);
       return {
         enzyme,
-        sites,
-        profile: sites.length === 0 ? null : enzymeProfile(sites, doc.length, doc.topology, gel),
+        sites: byName.get(enzyme.name)?.sites ?? [],
+        /** Per site, its Dam/Dcm marks as `hostMarksBits`. */
+        host: byName.get(enzyme.name)?.host ?? [],
+        profile: lengths === undefined ? null : gelProfile(lengths, gel),
       };
     });
     // The enzymes come from module state, so the memo has to be told to
     // re-run when the set changes; `enzymeSetInfo` is the store's record of
     // which set that is, and the linter cannot see the connection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, ready, enzymeSetInfo, doc.length, doc.topology, gel]);
-
-  const sequence = useMemo(() => doc.sequence.toString(), [doc]);
+  }, [analysis, ready, digest, enzymeSetInfo, gel]);
 
   /**
-   * The cuts this DNA's own methylation would block (#45), by enzyme and
-   * position. The list still shows them, marked: "blocked in a dam+ strain"
-   * is worth knowing whatever this DNA is. What changes is the digest.
+   * The cuts this DNA's own methylation would block (#45). The list still
+   * shows them, marked: "blocked in a dam+ strain" is worth knowing whatever
+   * this DNA is. What changes is the digest.
    */
   const blocked = useMemo(() => {
-    const out = new Set<string>();
-    const { dam, dcm } = doc.methylation;
-    if (!ready || (!dam && !dcm)) return out;
-    for (const site of analysis.cutSites) {
-      const enzyme = getEnzyme(site.enzyme);
-      if (enzyme === undefined) continue;
-      const marks = hostMethylationAt(sequence, doc.topology, site, enzyme.site.length);
-      if (blockedByHost(doc.methylation, marks)) out.add(`${site.enzyme}:${site.cut}`);
+    const out = new Set<CutSite>();
+    const mask = hostStateBits(doc.methylation);
+    if (mask === 0) return out;
+    for (const g of groups) {
+      g.sites.forEach((site, i) => {
+        if (((g.host[i] ?? 0) & mask) !== 0) out.add(site);
+      });
     }
     return out;
-  }, [ready, analysis, sequence, doc.topology, doc.methylation]);
+  }, [groups, doc.methylation]);
   const cuts = useMemo(
     () =>
       (sites: readonly CutSite[]): number[] =>
-        sites.filter((s) => !blocked.has(`${s.enzyme}:${s.cut}`)).map((s) => s.cut),
+        sites.filter((s) => !blocked.has(s)).map((s) => s.cut),
     [blocked],
   );
 
@@ -568,14 +587,21 @@ export function EnzymePanel({ doc }: Props) {
           const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
           if (entry === undefined) return [];
           // A site this DNA's methylation blocks is not a cut, so an enzyme
-          // it silences is no partner for a digest (#45).
-          const open = cuts(entry.sites);
-          if (open.length === 0 || open.length > MAX_PAIR_CUTS) return [];
+          // it silences is no partner for a digest (#45). An enzyme that
+          // cuts a 1 Mb sequence thousands of times is out at its fourth
+          // open cut, not after a walk down all of them.
+          const open: number[] = [];
+          for (const site of entry.sites) {
+            if (blocked.has(site)) continue;
+            open.push(site.cut);
+            if (open.length > MAX_PAIR_CUTS) return [];
+          }
+          if (open.length === 0) return [];
           const name = (members.find((e) => shownEnzymes.has(e.name)) ?? entry.enzyme).name;
           return [{ name, members: members.map((e) => e.name), cuts: open }];
         })
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [units, supplier, entryByName, shownEnzymes, cuts],
+    [units, supplier, entryByName, shownEnzymes, blocked],
   );
 
   const needle = filter.trim().toLowerCase();
@@ -599,7 +625,7 @@ export function EnzymePanel({ doc }: Props) {
       // The name on the row is the one ticked, or the one searched for, so
       // neither disappears behind a better-known isoschizomer.
       const enzyme = members.find((e) => shownEnzymes.has(e.name)) ?? named[0] ?? entry.enzyme;
-      return [{ enzyme, members, sites: entry.sites, profile: entry.profile }];
+      return [{ enzyme, members, sites: entry.sites, host: entry.host, profile: entry.profile }];
     });
     // Ungrouped, `activeEnzymes()` is already in name order; grouped, the name
     // on a row can be any member's. Ties in the other sort keep that order,
@@ -663,10 +689,6 @@ export function EnzymePanel({ doc }: Props) {
   useEffect(() => {
     scrollToTop();
   }, [needle, supplier, enzymeCutFilter, enzymeSort, reversed, scrollToTop]);
-
-  /** Dam or Dcm inside this site in DNA from a methylating strain; see `hostMethylationAt`. */
-  const methylated = (enzyme: Enzyme, site: CutSite) =>
-    hostMethylationAt(sequence, doc.topology, site, enzyme.site.length);
 
   const selectSite = (site: CutSite): void => {
     const enzyme = getEnzyme(site.enzyme);
@@ -871,7 +893,7 @@ export function EnzymePanel({ doc }: Props) {
         <>
           <div className="enzyme-list__scroll" ref={attachScroller}>
             <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-              {rows.slice(first, end).map(({ enzyme, members, sites, profile }) => (
+              {rows.slice(first, end).map(({ enzyme, members, sites, host: marks, profile }) => (
                 <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
                   <label
                     className="enzyme-row__toggle"
@@ -908,7 +930,9 @@ export function EnzymePanel({ doc }: Props) {
                   </span>
                   <span className="enzyme-row__cuts">
                     {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => {
-                      const host = methylated(enzyme, s);
+                      // Dam or Dcm inside this site in DNA from a methylating
+                      // strain; see `hostMethylationAt`.
+                      const host = hostMarksFromBits(marks[i] ?? 0);
                       return (
                         <button
                           key={i}
@@ -940,7 +964,7 @@ export function EnzymePanel({ doc }: Props) {
                   <MethylationNote
                     count={
                       isHostMethylationSensitive(enzyme.name)
-                        ? sites.filter((s) => methylated(enzyme, s).length > 0).length
+                        ? marks.filter((bits) => bits !== 0).length
                         : 0
                     }
                     of={sites.length}

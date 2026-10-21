@@ -6,6 +6,7 @@ import {
   type Enzyme,
   SeqDocument,
   activeEnzymes,
+  enzymeDigest,
   findCutSites,
   getEnzyme,
   setActiveEnzymeSet,
@@ -89,6 +90,25 @@ describe('EnzymePanel', () => {
     setup(singleCutters(5));
     expect(editorStore.getState().shownEnzymes.size).toBe(5);
     expect(screen.queryByText(/enzymes that cut once/)).toBeNull();
+  });
+
+  it("ticks them from the worker's count of sites when it has one (item 98)", () => {
+    const sites = cutsEach([1, 2, 1, 3]);
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setAnalysis(
+        doc,
+        sites,
+        [],
+        enzymeDigest(sites, doc.sequence.toString(), 'linear'),
+      );
+    });
+    expect([...editorStore.getState().shownEnzymes]).toEqual(
+      activeEnzymes()
+        .slice(0, 4)
+        .filter((_, i) => i % 2 === 0)
+        .map((e) => e.name),
+    );
   });
 
   it('renders only the rows near the viewport', () => {
@@ -647,6 +667,38 @@ describe('EnzymePanel host methylation', () => {
     expect(cuts.map((c) => c.classList.contains('link--methylated'))).toEqual([true, false]);
     expect(cuts[0]?.getAttribute('data-tip')).toMatch(/Dam methylation overlaps it/);
     expect(screen.getByText(/1 of 2 sites may be blocked by Dam\/Dcm methylation/)).toBeVisible();
+  });
+
+  it("draws the same rows from the worker's digest as from the sites alone (item 98)", () => {
+    // MscI in a Dcm site and two ClaI sites, one Dam-marked, on a circle.
+    const sequence = `${'A'.repeat(20)}CCTGGCCA${'A'.repeat(20)}GATCGAT${'A'.repeat(20)}CATCGATA${'A'.repeat(20)}`;
+    const plasmid = SeqDocument.create({ sequence, topology: 'circular' });
+    const sites = findCutSites(sequence, 'circular', activeEnzymes());
+    const rows = () =>
+      [...document.querySelectorAll('.enzyme-row')].map((row) => ({
+        name: row.querySelector('.enzyme-row__name')?.textContent,
+        cuts: [...row.querySelectorAll('.enzyme-row__cuts .link')].map(
+          (c) => `${c.textContent}${c.classList.contains('link--methylated') ? 'm' : ''}`,
+        ),
+        note: row.querySelector('.enzyme-row__methylation')?.textContent ?? '',
+        bands: row.querySelector('.enzyme-row__bands')?.textContent ?? '',
+      }));
+    act(() => {
+      editorStore.openDocument(plasmid);
+      editorStore.setAnalysis(plasmid, sites, []);
+      editorStore.setEnzymeCutFilter('any');
+      editorStore.setEnzymeSupplier('');
+      editorStore.setEnzymeSort('bands');
+    });
+    const view = render(<EnzymePanel doc={plasmid} />);
+    const inline = rows();
+    expect(inline.length).toBeGreaterThan(2);
+    expect(inline.some(({ cuts }) => cuts.some((c) => c.endsWith('m')))).toBe(true);
+    act(() => {
+      editorStore.setAnalysis(plasmid, sites, [], enzymeDigest(sites, sequence, 'circular'));
+    });
+    view.rerender(<EnzymePanel doc={plasmid} />);
+    expect(rows()).toEqual(inline);
   });
 });
 

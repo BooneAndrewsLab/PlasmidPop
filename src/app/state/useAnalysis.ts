@@ -34,11 +34,11 @@ export function useAnalysis(): void {
     const run = (attempt: number): void => {
       const text = doc.sequence.toString();
       Promise.all([
-        analysisClient.cutSites(text, doc.topology),
+        analysisClient.cutSitesWithDigest(text, doc.topology),
         analysisClient.orfs(text, doc.topology, { minCodons: orfMinCodons, table: geneticCode }),
       ])
-        .then(([cutSites, orfs]) => {
-          if (!cancelled) editorStore.setAnalysis(doc, cutSites, orfs);
+        .then(([{ sites, digest }, orfs]) => {
+          if (!cancelled) editorStore.setAnalysis(doc, sites, orfs, digest);
         })
         .catch((e: unknown) => {
           if (cancelled) return;

@@ -5,6 +5,7 @@ import {
   type AssemblyPart,
   type Coalesce,
   type CutSite,
+  type EnzymeDigest,
   type DocumentTool,
   type DigestFragment,
   type EditOp,
@@ -204,6 +205,12 @@ export interface AnalysisState {
   readonly cutSites: readonly CutSite[];
   readonly orfs: readonly Orf[];
   /**
+   * The Enzymes tab's digest of the sites, taken by the worker with the
+   * scan (item 98); null for a carried result, whose sites have moved, and
+   * the tab takes it inline then.
+   */
+  readonly digest: EnzymeDigest | null;
+  /**
    * True when the results were carried over from the previous document by
    * shifting positions through an edit, so the views have something to draw
    * while the worker recomputes. Positions are approximate until then.
@@ -327,7 +334,7 @@ function carryAnalysis(
     if (end - start !== o.range.end - o.range.start || end > next.length) continue;
     orfs.push({ ...o, range: { start, end } });
   }
-  return { doc: next, cutSites, orfs, provisional: true };
+  return { doc: next, cutSites, orfs, digest: null, provisional: true };
 }
 
 /**
@@ -1988,21 +1995,32 @@ export class EditorStore {
    * The first results for a newly opened document also pick the default
    * enzymes to display: those that cut exactly once.
    */
-  setAnalysis(doc: SeqDocument, cutSites: readonly CutSite[], orfs: readonly Orf[]): void {
+  setAnalysis(
+    doc: SeqDocument,
+    cutSites: readonly CutSite[],
+    orfs: readonly Orf[],
+    digest: EnzymeDigest | null = null,
+  ): void {
     const target = this.docs.find((d) => d.history.present === doc);
     if (target === undefined) return; // stale result
     let shownEnzymes = target.shownEnzymes;
     let enzymesInitialized = target.enzymesInitialized;
     if (!enzymesInitialized) {
-      const counts = new Map<string, number>();
-      for (const s of cutSites) counts.set(s.enzyme, (counts.get(s.enzyme) ?? 0) + 1);
+      // The digest counted the sites per enzyme already; counting 96,000 of
+      // them here again is 10 ms (#271).
+      let counts = digest?.counts;
+      if (counts === undefined) {
+        const counted = new Map<string, number>();
+        for (const s of cutSites) counted.set(s.enzyme, (counted.get(s.enzyme) ?? 0) + 1);
+        counts = counted;
+      }
       let singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
       if (this.state.enzymeGroupIsoschizomers) singles = firstOfEachGroup(singles);
       shownEnzymes = new Set(singles.length > MAX_DEFAULT_ENZYMES ? [] : singles);
       enzymesInitialized = true;
     }
     this.setDocument(target.documentId, {
-      analysis: { doc, cutSites, orfs, provisional: false },
+      analysis: { doc, cutSites, orfs, digest, provisional: false },
       shownEnzymes,
       enzymesInitialized,
     });

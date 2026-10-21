@@ -167,7 +167,13 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   );
   const cutSites = useMemo(
     () =>
-      showCutSites && hasTool(doc, 'enzymes') && analysis !== null && analysis.doc === doc
+      // Nothing ticked is the usual state of a large document (too many
+      // single cutters to tick), and its scan is 96,000 sites at 1 Mb (#271).
+      showCutSites &&
+      hasTool(doc, 'enzymes') &&
+      analysis !== null &&
+      analysis.doc === doc &&
+      shownEnzymes.size > 0
         ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
         : [],
     [analysis, doc, shownEnzymes, showCutSites],

@@ -534,6 +534,7 @@ describe('EditorStore analysis', () => {
         doc: present,
         cutSites: [site('NotI', 0, 1)],
         orfs: [],
+        digest: null,
         provisional: false,
       });
     });

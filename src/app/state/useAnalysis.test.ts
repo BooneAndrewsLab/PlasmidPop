@@ -8,10 +8,12 @@ import { editorStore } from './editorStore';
 import { RETRY_DELAYS_MS, useAnalysis } from './useAnalysis';
 
 const { cutSites, orfs } = vi.hoisted(() => ({
-  cutSites: vi.fn<typeof analysisClient.cutSites>(),
+  cutSites: vi.fn<typeof analysisClient.cutSitesWithDigest>(),
   orfs: vi.fn<typeof analysisClient.orfs>(),
 }));
-vi.mock('@/workers/analysisClient', () => ({ analysisClient: { cutSites, orfs } }));
+vi.mock('@/workers/analysisClient', () => ({
+  analysisClient: { cutSitesWithDigest: cutSites, orfs },
+}));
 const doc = SeqDocument.create({ name: 'pX', sequence: 'ACGTACGTAC' });
 
 /** Lets the debounce or a retry fire, and the promises it starts settle. */
@@ -41,7 +43,10 @@ describe('useAnalysis (#138)', () => {
   });
 
   it('tries a failed scan again and keeps the result it then gets', async () => {
-    cutSites.mockRejectedValueOnce(new Error('worker crashed')).mockResolvedValue([]);
+    const digest = { host: new Uint8Array(0), lengths: new Map(), counts: new Map() };
+    cutSites
+      .mockRejectedValueOnce(new Error('worker crashed'))
+      .mockResolvedValue({ sites: [], digest });
     renderHook(() => {
       useAnalysis();
     });
@@ -50,7 +55,8 @@ describe('useAnalysis (#138)', () => {
     expect(editorStore.getState().analysis).toBeNull();
     await wait(RETRY_DELAYS_MS[0] ?? 0);
     expect(cutSites).toHaveBeenCalledTimes(2);
-    expect(editorStore.getState().analysis).toMatchObject({ doc, provisional: false });
+    // The worker's digest is kept with the sites (item 98).
+    expect(editorStore.getState().analysis).toMatchObject({ doc, digest, provisional: false });
     expect(editorStore.getState().error).toBeNull();
   });
 
