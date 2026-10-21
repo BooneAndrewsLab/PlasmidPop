@@ -149,6 +149,9 @@ export function diffDocuments(
   if (!forward.coarse && size(forward) * 2 < Math.max(baseline.length, current.length)) {
     return forward;
   }
+  // A protein has no other strand to have been turned over to (#66): the
+  // first residue typed into a new one would otherwise throw.
+  if (baseline.isProtein) return forward;
   const turned = compare(baseline.reverseComplement(), current, options);
   return size(turned) < size(forward)
     ? { ...turned, renamed: baseline.name !== current.name, reversed: true }

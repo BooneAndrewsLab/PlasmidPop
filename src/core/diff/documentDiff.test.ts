@@ -27,6 +27,14 @@ describe('diffDocuments', () => {
     expect(isEmptyDiff(diffDocuments(d, doc()))).toBe(true);
   });
 
+  it('compares a protein only as written, never turned over', () => {
+    const empty = SeqDocument.create({ name: 'p', sequence: '', alphabet: 'protein' });
+    const typed = empty.insert(0, 'M');
+    const diff = diffDocuments(empty, typed);
+    expect(diff.basesInserted).toBe(1);
+    expect(diff.reversed).toBe(false);
+  });
+
   it('marks inserted bases', () => {
     const before = doc();
     const after = before.insert(5, 'TTT');
