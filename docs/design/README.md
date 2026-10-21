@@ -298,3 +298,5 @@ the Bench, item 49). The rest stand.
 110.  [The scroll hitch at 300 kb was the autosave](96-autosave-hitch.md)
 
 111.  [The checksum of a large document is taken in the analysis worker](97-seguid-worker.md)
+
+112.  [The enzyme list's digest is taken in the analysis worker](98-enzyme-digest-worker.md)

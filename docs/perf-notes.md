@@ -1115,3 +1115,88 @@ The view paints 60 ms sooner at 300 kb and 210 ms sooner at 1 Mb; the
 enzyme list is 100-130 ms sooner too, since the worker no longer starts up
 on the scan's request. What is left of the open task at 1 Mb is the parse,
 the first render and the sequence view's layout, none of it the checksum.
+
+## Drawing the enzyme list of a large document (#271, design note 98, 2026-10-21)
+
+The other large task the #268 profile showed: when the scan comes back,
+the Enzymes panel's memos and its first render. Profiled with
+`scripts/bench/open-profile.ts` as above (it now names an anonymous frame
+by its line in the bundle, so a memo or an arrow in a render can be found),
+three runs per size, two at 4.64 Mb. Before:
+
+| Size    | List-draw task                      | Enzyme list drawn |
+| ------- | ----------------------------------- | ----------------- |
+| 300 kb  | 134-221 ms                          | 559-664 ms        |
+| 1 Mb    | 269-293 ms                          | 1.26-1.33 s       |
+| 4.64 Mb | 884-955 ms, then a 222 ms re-render | 4.75-5.07 s       |
+
+Where the 1 Mb task went, by self time (96,200 sites of the bundled 127
+enzymes; the enzyme list's own profile, not the scan, which is in the
+worker):
+
+- The `cuts` closure, 34-38 ms: `pairable` filtered every site of every
+  enzyme through a `Set` of `${enzyme}:${cut}` strings, building the
+  string per site, to find the enzymes with at most three open cuts.
+- The `blocked` memo, about 60 ms: `hostMethylationAt` over every site
+  (26-32 ms), `getEnzyme` per site (13-19 ms) and the same key strings.
+- The `groups` memo, about 65 ms: `digestFragments` (14-18 ms) and
+  `gelProfile` (25-39 ms) for each enzyme, a sort of its thousands of
+  fragment lengths inside the latter.
+- The render: `describeSite` 23-29 ms and `describeBands` 16 ms, which is
+  `Number.prototype.toLocaleString` for the dozen positions and the bands
+  of each of the 26 rows the first window draws; `attachRow` 13-17 ms, the
+  first `offsetHeight` of a row forcing the layout; garbage collection
+  12-18 ms.
+
+The same pieces in Node 24 (seeded random circular DNA, median of 5):
+
+| Size   | Sites  | `findCutSites` | `digestFragments` + `gelProfile` per enzyme | `gelProfile` on sorted lengths | `hostMethylationAt`, every site | Key strings, every site |
+| ------ | ------ | -------------- | ------------------------------------------- | ------------------------------ | ------------------------------- | ----------------------- |
+| 300 kb | 28,894 | 135 ms         | 17 ms                                       | 2.0 ms                         | 17.5 ms                         | 13 ms                   |
+| 1 Mb   | 96,200 | 380 ms         | 51 ms                                       | 5.7 ms                         | 58 ms                           | 55 ms                   |
+
+So the sort and the fragment objects are most of a profile, and the banding
+of sorted lengths is a tenth of it. `toLocaleString()` with no arguments
+makes a fresh `Intl.NumberFormat` each call: 600 calls are 8.4 ms in
+headless Chromium 156 against 0.4 ms through one formatter made once
+(`formatInt`), with the same output over 1,000 random values; Node has a
+cache and shows 0.4 ms either way, which is why the cost was only in the
+browser profile.
+
+What was done (design note 98): the worker's `cutSites` answer carries,
+when asked, an `EnzymeDigest` — the Dam/Dcm marks inside each site as one
+byte, each enzyme's fragment lengths sorted longest first, and its site
+count — packed as transferred buffers like the sites. The panel's `groups`
+takes the lengths through `gelProfile` (the sort is linear on sorted input),
+`blocked` is a mask over the bytes and a `Set` of site objects, `pairable`
+stops at an enzyme's fourth open cut, the store's first-result count of
+single cutters is the digest's, and the two views skip filtering 96,000
+sites when nothing is ticked. Measured after the digest and the formatter
+alone the task was 114-130 ms at 1 Mb and 89-103 ms at 300 kb; the three
+trims took the rest. After everything:
+
+| Size    | List-draw task | Enzyme list drawn |
+| ------- | -------------- | ----------------- |
+| 300 kb  | 80-91 ms       | 540-574 ms        |
+| 1 Mb    | 86-95 ms       | 1.14-1.18 s       |
+| 4.64 Mb | 197-214 ms     | 4.44-4.51 s       |
+
+What is left of the task at 1 Mb: the row measurement's forced layout
+(`attachRow`, 15-21 ms), grouping the sites by enzyme (9-11 ms),
+`gelProfile` and `bandsOf` over 96,000 sorted lengths (14 ms), garbage
+collection (10 ms) and React's own render. The worker's answer costs more
+to receive: unpacking the digest's lengths into arrays is 7 ms at 1 Mb and
+27 ms at 4.64 Mb, where the task taking the answer grew from 65 ms to
+102-107 ms with the garbage collection those arrays set off.
+
+The bench after (`npm run bench -- --sizes 300000,1000000 --n 5`, same
+machine, idle; the #270 table above is the day's code before this change):
+
+| Size   | View painted | Enzyme list  | Longest frame gap | Frames > 50 ms |
+| ------ | ------------ | ------------ | ----------------- | -------------- |
+| 300 kb | 100 ± 2 ms   | 524 ± 3 ms   | 33.3 ± 0.0 ms     | 0              |
+| 1 Mb   | 119 ± 2 ms   | 1129 ± 11 ms | 16.8 ± 0.0 ms     | 0              |
+
+The list is drawn 60 ms sooner at 300 kb and 180 ms sooner at 1 Mb: the
+digest moved to the worker costs the scan 60-100 ms there, and the main
+thread saves more than that in the task that follows.
