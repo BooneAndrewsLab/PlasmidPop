@@ -14,6 +14,10 @@
   --danger-surface: #fdecea;
   /* Something worth a second look but not an error: a gel whose bands run together. */
   --warn: #a86200;
+  /* The tooltip (item 95): a dark bubble in both themes, as the OS draws them. */
+  --tip-surface: #242c38;
+  --tip-ink: #f3f5f8;
+  --tip-line: rgba(255, 255, 255, 0.06);
 
   --seq-ink: var(--ink);
   --seq-ink-muted: #94a0b0;
@@ -72,6 +76,9 @@
     --danger: #ff8a80;
     --danger-surface: #3a1f1d;
     --warn: #e0a458;
+    --tip-surface: #2c3442;
+    --tip-ink: #e6e9ee;
+    --tip-line: rgba(255, 255, 255, 0.1);
 
     --seq-ink-muted: #6f7b8b;
     --seq-gutter: #7d8797;
@@ -2840,6 +2847,49 @@ button {
   color: var(--ink-3);
   font-size: 12px;
   white-space: nowrap;
+}
+
+/* Tooltip (item 95): the one node `TooltipLayer` moves under the control the
+   pointer rests on, or beside the pointer over a canvas. Fixed and outside the
+   flow, so showing it shifts nothing; no pointer events, so it never sits
+   between the pointer and what it describes. */
+
+.tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  max-width: min(320px, 100vw - 16px);
+  padding: 5px 9px;
+  border: 1px solid var(--tip-line);
+  border-radius: 6px;
+  background: var(--tip-surface);
+  color: var(--tip-ink);
+  font: 12px/1.4 var(--font-ui);
+  /* A `data-tip` may hold a line break, as a `title` could. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  opacity: 1;
+  transition: opacity 90ms ease-out;
+}
+
+.tooltip[hidden] {
+  display: none;
+}
+
+@starting-style {
+  .tooltip {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    transition: none;
+  }
 }
 
 /* Modal dialog (overwrite confirmation) */

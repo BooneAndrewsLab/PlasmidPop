@@ -27,6 +27,7 @@ import { Sidebar } from './components/Sidebar';
 import { SPLITTER_SIZE, Splitter } from './components/Splitter';
 import { StatusBar } from './components/StatusBar';
 import { Toolbar } from './components/Toolbar';
+import { TooltipLayer } from './components/TooltipLayer';
 import { useMediaQuery } from './components/useMediaQuery';
 import { openFiles } from './openFile';
 import {
@@ -285,6 +286,7 @@ export function App() {
       <NewDocumentDialog />
       <NcbiDialog />
       <KeyBindingsDialog />
+      <TooltipLayer />
     </div>
   );
 }
