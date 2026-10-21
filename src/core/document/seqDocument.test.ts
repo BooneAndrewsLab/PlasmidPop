@@ -123,8 +123,10 @@ describe('insert', () => {
     const atZero = circ.insert(0, 'NN');
     expect(segs(atZero.getFeature('w'))).toEqual([range(19, 27)]);
     expect(atZero.featureSequence('w')).toBe('CGG' + 'NN' + 'ACG');
+    // The end is the same point on the circle, but there the bases are appended (#265).
     const atEnd = circ.insert(20, 'NN');
-    expect(atEnd.sequence.toString()).toBe(atZero.sequence.toString());
+    expect(atEnd.sequence.toString()).toBe(SEQ + 'NN');
+    expect(segs(atEnd.getFeature('w'))).toEqual([range(17, 25)]);
     expect(atEnd.featureSequence('w')).toBe('CGG' + 'NN' + 'ACG');
     expect(before).toBe('CGGACG');
   });
@@ -271,12 +273,24 @@ describe('insertFragment', () => {
     expect(atOrigin.sequence.toString()).toBe('NNNNNN' + SEQ);
     expect(segs(atOrigin.getFeature('p'))).toEqual([range(1, 5)]);
     // Deleting 18,19,0,1 leaves old base 2 as base 0 and the cut at the origin,
-    // so the paste goes in at the origin; the wrapped feature grows around it.
+    // which is the end of what is left: the paste goes in there, after old
+    // base 17, and the wrapped feature grows around it.
     const wrapped = doc.insertFragment(range(18, 22), fragment);
-    expect(wrapped.sequence.toString()).toBe('NNNNNN' + SEQ.slice(2, 18));
-    expect(segs(wrapped.getFeature('p'))).toEqual([range(1, 5)]);
-    expect(segs(wrapped.getFeature('w'))).toEqual([range(21, 29)]);
+    expect(wrapped.sequence.toString()).toBe(SEQ.slice(2, 18) + 'NNNNNN');
+    expect(segs(wrapped.getFeature('p'))).toEqual([range(17, 21)]);
+    expect(segs(wrapped.getFeature('w'))).toEqual([range(15, 23)]);
     expect(wrapped.featureSequence('w')).toBe('C' + 'NNNNNN' + 'G');
+  });
+
+  it('pastes at a caret after the last base of a circle by appending (#265)', () => {
+    const atEnd = doc.insertFragment(range(20, 20), fragment);
+    expect(atEnd.sequence.toString()).toBe(SEQ + 'NNNNNN');
+    expect(segs(atEnd.getFeature('p'))).toEqual([range(21, 25)]);
+    expect(atEnd.getFeature('s')?.segments).toEqual([siteSegment(23)]);
+    expect(segs(atEnd.getFeature('a'))).toEqual([range(5, 10)]);
+    // The origin-spanning feature grows over the appended bases.
+    expect(segs(atEnd.getFeature('w'))).toEqual([range(17, 29)]);
+    expect(atEnd.featureSequence('w')).toBe('CGG' + 'NNNNNN' + 'ACG');
   });
 
   it('grows a feature the paste lands inside and pushes one starting there', () => {

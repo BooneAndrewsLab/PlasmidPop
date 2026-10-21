@@ -26,8 +26,11 @@ no stop codon of its own.
 - `Backspace` deletes the base before the cursor, `Delete` the base after
   it, either one deletes the selection when there is one. **Delete
   selection** in the edit bar does the same with the mouse.
-- On a circular sequence the cursor wraps: `Backspace` after base 1 deletes
-  the last base.
+- On a circular sequence the cursor goes before the first base or after the
+  last, as on a linear one, and typing or pasting there adds the bases at
+  the start or at the end. Past either end the arrow keys carry on round the
+  circle. `Backspace` before the first base deletes the last base, and
+  `Delete` after the last base deletes the first.
 - **Case ▾**, on the bar beside a selection or in the edit bar (`Alt+U`),
   writes the selected bases in UPPERCASE or lowercase, or swaps the case of
   each (tOGGLE cASE). Many people use case to mark a stretch, such as an

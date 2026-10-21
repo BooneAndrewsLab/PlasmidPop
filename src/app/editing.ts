@@ -11,7 +11,6 @@ import {
   flippedLength,
   isEmptyRange,
   newFeatureId,
-  normalizePosition,
   normalizeSequenceInput,
   isRnaDocument,
   fromRnaLetters,
@@ -37,20 +36,59 @@ function caret(position: number): Range {
   return range(position, position);
 }
 
-/** Where the start of a deleted selection sits once it is gone, as a valid caret. */
+/*
+ * A caret is a boundary between bases, in [0, length] on either topology.
+ * On a circle the caret after the last base and the one before the first are
+ * the same point, but text typed at the one is appended and at the other
+ * prepended, so a caret at `length` is never folded onto 0 (#265). Bases and
+ * the ranges over them wrap; carets only wrap when they go past an end.
+ */
+
+/**
+ * Where the start of a deleted selection sits once it is gone, as a valid
+ * caret. The same point `SeqDocument.insertFragment` pastes at.
+ */
 function caretAfterDelete(doc: SeqDocument, selection: Range): number {
   const newLength = doc.length - (selection.end - selection.start);
   if (newLength === 0) return 0;
-  const start = normalizePosition(selection.start, doc.length, doc.topology);
-  const moved = shiftPositionForDelete(start, selection, doc.length);
-  return doc.isCircular ? moved % newLength : Math.min(moved, newLength);
+  return Math.min(shiftPositionForDelete(selection.start, selection, doc.length), newLength);
 }
 
-/** Wraps or clamps a position so it is a valid caret for the document. */
+/**
+ * Wraps or clamps a position so it is a valid caret for the document. On a
+ * circle a step past either end carries on round it, each step passing one
+ * base: one past `length` is 1, one before 0 is `length - 1`. `length` itself
+ * stays the end, so the caret can always get there to append.
+ */
 export function clampPosition(doc: SeqDocument, position: number): number {
   if (doc.length === 0) return 0;
-  if (doc.isCircular) return ((position % doc.length) + doc.length) % doc.length;
+  if (doc.isCircular) {
+    if (position >= 0 && position <= doc.length) return position;
+    return ((position % doc.length) + doc.length) % doc.length;
+  }
   return Math.min(doc.length, Math.max(0, position));
+}
+
+/**
+ * Where the caret goes after `selection` is replaced by `count` bases: just
+ * past the last of them. Mirrors `SeqDocument.replace`, which overwrites the
+ * common prefix in place and then inserts or deletes the difference.
+ */
+function caretAfterReplace(doc: SeqDocument, selection: Range, count: number): number {
+  const oldLength = selection.end - selection.start;
+  const common = Math.min(oldLength, count);
+  const written = selection.start + common;
+  if (count >= oldLength) {
+    // The rest goes in after the overwritten bases, at the end of the circle
+    // rather than its start when they reach it.
+    const pivot = doc.isCircular && written > doc.length ? written - doc.length : written;
+    return pivot + count - common;
+  }
+  // What is left over is deleted after the written bases; when they reach
+  // the end of a circle it comes off the front, and the caret stays at the end.
+  if (doc.isCircular && written === doc.length) return doc.length - (oldLength - common);
+  const pivot = doc.isCircular ? written % doc.length : written;
+  return caretAfterDelete(doc, range(pivot, pivot + oldLength - common));
 }
 
 /**
@@ -68,7 +106,7 @@ export function typeText(
   const text = isRnaDocument(doc) ? fromRnaLetters(typed) : typed;
   if (text.length === 0 || selection === null) return null;
   if (isEmptyRange(selection)) {
-    const p = normalizePosition(selection.start, doc.length, doc.topology);
+    const p = selection.start;
     const after = p + text.length;
     const plan: EditPlan = {
       op: { type: 'insert', position: p, text },
@@ -77,19 +115,13 @@ export function typeText(
     // Only one base at a time is typing; a longer run of text is a paste and
     // deserves an undo step of its own.
     if (text.length !== 1) return plan;
-    // The key is the caret as the next keystroke will see it, so a run that
-    // reaches the origin of a circular sequence carries on across it.
-    return {
-      ...plan,
-      coalesce: typingRun(p, normalizePosition(after, doc.length + text.length, doc.topology)),
-    };
+    // The key is the caret as the next keystroke will see it.
+    return { ...plan, coalesce: typingRun(p, after) };
   }
-  const newLength = doc.length - (selection.end - selection.start) + text.length;
-  const after =
-    doc.isCircular && newLength > 0
-      ? (selection.start + text.length) % newLength
-      : selection.start + text.length;
-  return { op: { type: 'replace', range: selection, text }, selectionAfter: caret(after) };
+  return {
+    op: { type: 'replace', range: selection, text },
+    selectionAfter: caret(caretAfterReplace(doc, selection, text.length)),
+  };
 }
 
 /**
@@ -108,9 +140,7 @@ export function pasteFragment(
   if (fragment.features.length === 0) return typeText(doc, selection, fragment.sequence);
   if (selection === null) return null;
   const features = fragment.features.map((f) => ({ ...f, id: newFeatureId() }));
-  const newLength = doc.length - (selection.end - selection.start) + fragment.sequence.length;
-  const end = caretAfterDelete(doc, selection) + fragment.sequence.length;
-  const after = doc.isCircular && newLength > 0 ? end % newLength : end;
+  const after = caretAfterDelete(doc, selection) + fragment.sequence.length;
   return {
     op: { type: 'insertFragment', range: selection, fragment: { ...fragment, features } },
     selectionAfter: caret(after),
@@ -129,7 +159,7 @@ export function deleteSelection(doc: SeqDocument, selection: Range): EditPlan {
 export function deleteBackward(doc: SeqDocument, selection: Range | null): EditPlan | null {
   if (selection === null || doc.length === 0) return null;
   if (!isEmptyRange(selection)) return deleteSelection(doc, selection);
-  const p = normalizePosition(selection.start, doc.length, doc.topology);
+  const p = selection.start;
   if (p === 0) {
     if (!doc.isCircular) return null;
     // Backspacing at the origin of a circular sequence eats the last base
@@ -151,8 +181,17 @@ export function deleteBackward(doc: SeqDocument, selection: Range | null): EditP
 export function deleteForward(doc: SeqDocument, selection: Range | null): EditPlan | null {
   if (selection === null || doc.length === 0) return null;
   if (!isEmptyRange(selection)) return deleteSelection(doc, selection);
-  const p = normalizePosition(selection.start, doc.length, doc.topology);
-  if (p >= doc.length) return null;
+  const p = selection.start;
+  if (p >= doc.length) {
+    if (!doc.isCircular) return null;
+    // Delete at the end of a circular sequence eats the first base; the
+    // caret stays at the end, which is now one base nearer.
+    return {
+      op: { type: 'delete', range: range(0, 1) },
+      selectionAfter: caret(doc.length - 1),
+      coalesce: deleteForwardRun(p, doc.length - 1),
+    };
+  }
   return {
     op: { type: 'delete', range: range(p, p + 1) },
     selectionAfter: caret(p),

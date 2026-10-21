@@ -772,6 +772,10 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     editorStore.fail(message, { autoDismissMs: REJECTED_INPUT_NOTICE_MS });
   };
 
+  // With nothing to click on yet, what is typed or pasted into an empty
+  // document goes at the start, caret or not (#265).
+  const editTarget = selection ?? (doc.length === 0 ? { start: 0, end: 0 } : null);
+
   const withText = (text: string): void => {
     if (doc.length === 0) {
       // A whole record pasted into an empty document replaces it.
@@ -781,10 +785,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         return;
       }
     }
-    // With nothing to click on yet, typing into an empty document goes at the start.
-    const target = selection ?? (doc.length === 0 ? { start: 0, end: 0 } : null);
     try {
-      editorStore.applyPlan(typeText(doc, target, text));
+      editorStore.applyPlan(typeText(doc, editTarget, text));
     } catch (err) {
       if (err instanceof InvalidSequenceError) rejectInput(err.message);
       else throw err;
@@ -798,7 +800,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       return;
     }
     try {
-      editorStore.applyPlan(pasteFragment(doc, selection, content));
+      editorStore.applyPlan(pasteFragment(doc, editTarget, content));
     } catch (err) {
       if (err instanceof InvalidSequenceError) rejectInput(err.message);
       else throw err;

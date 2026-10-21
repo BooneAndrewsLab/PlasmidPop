@@ -30,8 +30,13 @@ describe('isValidRange', () => {
     expect(isValidRange(range(0, 10), 10, 'circular')).toBe(true);
     expect(isValidRange(range(7, 17), 10, 'circular')).toBe(true);
     expect(isValidRange(range(7, 18), 10, 'circular')).toBe(false);
-    expect(isValidRange(range(10, 10), 10, 'circular')).toBe(false);
     expect(isValidRange(range(0, 0), 0, 'circular')).toBe(true);
+  });
+
+  it('accepts a caret after the last base of a circular sequence, but no base there (#265)', () => {
+    expect(isValidRange(range(10, 10), 10, 'circular')).toBe(true);
+    expect(isValidRange(range(11, 11), 10, 'circular')).toBe(false);
+    expect(isValidRange(range(10, 11), 10, 'circular')).toBe(false);
   });
 });
 
@@ -90,7 +95,8 @@ describe('shiftRangeForInsert', () => {
 
   it('circular: a full-circle range grows wherever you insert', () => {
     expect(shiftRangeForInsert(range(0, 10), 0, 2, 10, 'circular')).toEqual(range(2, 14));
-    expect(shiftRangeForInsert(range(0, 10), 10, 2, 10, 'circular')).toEqual(range(2, 14));
+    // At the end the bases are appended: the range keeps its start and grows over them.
+    expect(shiftRangeForInsert(range(0, 10), 10, 2, 10, 'circular')).toEqual(range(0, 12));
     expect(shiftRangeForInsert(range(0, 10), 4, 2, 10, 'circular')).toEqual(range(0, 12));
   });
 
@@ -101,7 +107,8 @@ describe('shiftRangeForInsert', () => {
     it('grows when inserting at the origin', () => {
       // head [11,13) + tail [0,5): old 8,9 then new 0,1,2 then old 0,1
       expect(at(0)).toEqual(range(11, 18));
-      expect(at(10)).toEqual(range(11, 18));
+      // At the end (#265): old 8,9 then new 10,11,12, then the tail old 0,1.
+      expect(at(10)).toEqual(range(8, 15));
     });
     it('grows when inserting inside the head', () => {
       expect(at(9)).toEqual(range(8, 15));

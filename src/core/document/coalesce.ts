@@ -10,9 +10,8 @@ import { type Coalesce } from '../history';
  * caret has got to, so a keystroke at the caret continues the run while one
  * anywhere else begins a fresh step.
  *
- * Positions are the normalized caret positions before and after the change,
- * so a caret that wraps the origin of a circular sequence still lines up
- * with the next keystroke's.
+ * Positions are the caret positions before and after the change, as
+ * boundaries in [0, length], so they line up with the next keystroke's.
  */
 
 /** A pause at least this long ends a run, so a considered edit is its own step. */
@@ -46,8 +45,10 @@ export function backspaceRun(caretBefore: number, caretAfter: number): Coalesce 
 
 /**
  * Delete: the base after the caret goes, the rest shuffles up and the caret
- * stays put, so the whole run shares one position.
+ * stays put, so the whole run shares one position. At the end of a circle
+ * the base after the caret is the first one, and the caret, being the end,
+ * moves back one with it.
  */
-export function deleteForwardRun(caret: number): Coalesce {
-  return run('del', caret, caret, 'Delete');
+export function deleteForwardRun(caret: number, caretAfter = caret): Coalesce {
+  return run('del', caret, caretAfter, 'Delete');
 }

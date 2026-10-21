@@ -315,12 +315,15 @@ export class SeqDocument {
     return this.with({ metadata: { ...this.metadata, ...patch } });
   }
 
-  /** Inserts `text` before the base at `position`. `text` must be valid IUPAC. */
+  /**
+   * Inserts `text` before the base at `position`; `length` appends, on a
+   * circle too (#265). `text` must be valid IUPAC.
+   */
   insert(position: number, text: string): SeqDocument {
     assertValidPosition(position, this.length, this.topology);
     assertValidResidues(text, this.alphabet);
     if (text.length === 0) return this;
-    const p = normalizePosition(position, this.length, this.topology);
+    const p = position;
     const count = text.length;
     const oldLength = this.length;
     return this.with({
@@ -402,9 +405,7 @@ export class SeqDocument {
     const withEnds = (doc: SeqDocument): SeqDocument =>
       endsEqual(doc.ends, ends) ? doc : doc.with({ ends });
     const doc = common > 0 ? this.substitute(r.start, text.slice(0, common)) : this;
-    // First position after the substituted prefix, wrapped for circular sequences.
-    const pivot =
-      doc.isCircular && doc.length > 0 ? (r.start + common) % doc.length : r.start + common;
+    const pivot = replacePivot(doc, r, common);
     if (text.length > oldLen) {
       return withEnds(doc.insert(pivot, text.slice(common)));
     }
@@ -448,12 +449,14 @@ export class SeqDocument {
     return doc;
   }
 
-  /** Where `r.start` of `before` lands in this document once `r` has been deleted from it. */
+  /**
+   * Where `r.start` of `before` lands in this document once `r` has been
+   * deleted from it: a boundary in `[0, length]`. A caret after the last
+   * base stays there, on a circle too, so a paste there appends (#265).
+   */
   private pastePosition(before: SeqDocument, r: Range): number {
     if (this.length === 0) return 0;
-    const start = normalizePosition(r.start, before.length, before.topology);
-    const moved = shiftPositionForDelete(start, r, before.length);
-    return this.isCircular ? moved % this.length : Math.min(moved, this.length);
+    return Math.min(shiftPositionForDelete(r.start, r, before.length), this.length);
   }
 
   /** Same-length overwrite starting at `position`; never moves annotations. */
@@ -742,9 +745,7 @@ export class SeqDocument {
   /** Where a cursor at `position` ends up after `op`. Useful for the UI. */
   mapPositionThrough(op: EditOp, position: number): number {
     if (op.type === 'insert') {
-      return position >= normalizePosition(op.position, this.length, this.topology)
-        ? position + op.text.length
-        : position;
+      return position >= op.position ? position + op.text.length : position;
     }
     if (op.type === 'delete') return shiftPositionForDelete(position, op.range, this.length);
     if (op.type === 'replace') {
@@ -752,10 +753,7 @@ export class SeqDocument {
       // difference in length is inserted at, or deleted after, the pivot.
       const oldLen = rangeLength(op.range);
       const common = Math.min(oldLen, op.text.length);
-      const pivot =
-        this.isCircular && this.length > 0
-          ? (op.range.start + common) % this.length
-          : op.range.start + common;
+      const pivot = replacePivot(this, op.range, common);
       if (op.text.length > oldLen)
         return position >= pivot ? position + op.text.length - common : position;
       if (oldLen > op.text.length) {
@@ -779,6 +777,20 @@ export class SeqDocument {
     }
     return position;
   }
+}
+
+/**
+ * Where `replace` inserts or deletes the difference in length: just after the
+ * `common` bases overwritten in place, as a boundary of `doc`. Past the end of
+ * a circle it wraps to the start; at the end it stays there, so text longer
+ * than a selection that runs to the last base carries on at the end rather
+ * than at the front (#265). A deletion starts on a base, so there `length` is 0.
+ */
+function replacePivot(doc: SeqDocument, r: Range, common: number): number {
+  const pivot = r.start + common;
+  if (!doc.isCircular || doc.length === 0) return pivot;
+  const deletes = common < rangeLength(r);
+  return pivot > doc.length || (pivot === doc.length && deletes) ? pivot - doc.length : pivot;
 }
 
 /** `text` in the case `mode` asks for. */

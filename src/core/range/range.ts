@@ -4,9 +4,13 @@
  * All positions are 0-based. A `Range` is half-open `[start, end)` in
  * *unrolled* coordinates:
  *
- * - `start` is always a real position: `0 <= start < length` on a circular
- *   sequence, `0 <= start <= length` on a linear one (the latter only for an
- *   empty range at the very end).
+ * - `start` is always a real position: `0 <= start < length` for a range
+ *   that covers bases, `0 <= start <= length` for an empty one (a caret), on
+ *   either topology. A caret is a boundary between bases, not a base: on a
+ *   circular sequence the caret at `length` (after the last base) and the
+ *   one at 0 (before the first) are the same point on the circle, but they
+ *   are not the same edit, since text typed at `length` is appended and
+ *   text typed at 0 is prepended. So carets are never folded onto 0 (#265).
  * - `end` may exceed `length` by up to `start` to express a range that wraps
  *   past the origin of a circular sequence. A range wraps iff `end > length`.
  * - `end - start` is always the number of bases covered, so a full-circle
@@ -49,6 +53,8 @@ export function isValidRange(r: Range, seqLength: number, topology: Topology): b
   if (r.start < 0 || r.end < r.start) return false;
   if (topology === 'linear') return r.end <= seqLength;
   if (seqLength === 0) return r.start === 0 && r.end === 0;
+  // A caret may sit after the last base, as on a linear sequence (#265).
+  if (isEmptyRange(r)) return r.start <= seqLength;
   return r.start < seqLength && r.end - r.start <= seqLength;
 }
 
@@ -62,8 +68,9 @@ export function assertValidRange(r: Range, seqLength: number, topology: Topology
 
 export function isValidPosition(position: number, seqLength: number, _topology: Topology): boolean {
   if (!Number.isInteger(position) || position < 0) return false;
-  // Both topologies accept `seqLength`: for circular sequences it is the same
-  // point as 0 (see normalizePosition); for linear ones it means "append".
+  // Both topologies accept `seqLength`, and on both it means "append": on a
+  // circle it is the same point as 0, but an insertion there goes after the
+  // last base, not before the first (#265).
   return position <= seqLength;
 }
 
@@ -76,8 +83,10 @@ export function assertValidPosition(position: number, seqLength: number, topolog
 }
 
 /**
- * Canonical form of an insertion point. On a circular sequence position
- * `length` is the same point as position 0.
+ * Canonical form of a point on a circular sequence: position `length` is the
+ * same point as position 0. For what is at a point (a feature site, the new
+ * origin), never for where an insertion goes: inserting at `length` appends
+ * (#265).
  */
 export function normalizePosition(position: number, seqLength: number, topology: Topology): number {
   return topology === 'circular' && position === seqLength ? 0 : position;
@@ -151,8 +160,9 @@ export function rangesOverlap(a: Range, b: Range, seqLength: number): boolean {
  * - Insertion at the range's first base pushes the whole range right.
  * - Insertion at the base just past the range leaves it alone.
  * - On a circular sequence "inside" is judged circularly, so inserting at
- *   the origin grows a range that spans the origin, and grows a full-circle
- *   range.
+ *   the origin (at 0 or at `seqLength`, the same point) grows a range that
+ *   spans the origin, and grows a full-circle range. Where the bases go is
+ *   still the position as given: `seqLength` appends, 0 prepends.
  * - An empty range (a cursor) moves past the inserted text when it sits at
  *   the insertion point.
  */
@@ -164,12 +174,13 @@ export function shiftRangeForInsert(
   topology: Topology,
 ): Range {
   if (count === 0) return r;
-  const p = normalizePosition(position, seqLength, topology);
   const len = rangeLength(r);
-  const start = r.start >= p ? r.start + count : r.start;
+  const start = r.start >= position ? r.start + count : r.start;
   if (len === 0) return range(start, start);
-  const previous = topology === 'circular' && p === 0 ? seqLength - 1 : p - 1;
-  const inside = rangeContains(r, previous, seqLength) && rangeContains(r, p, seqLength);
+  // The base the insertion point sits in front of, judged on the circle.
+  const next = normalizePosition(position, seqLength, topology);
+  const previous = topology === 'circular' && next === 0 ? seqLength - 1 : next - 1;
+  const inside = rangeContains(r, previous, seqLength) && rangeContains(r, next, seqLength);
   return range(start, start + len + (inside ? count : 0));
 }
 

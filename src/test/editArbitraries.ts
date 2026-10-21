@@ -233,6 +233,8 @@ const STYLE_PATCHES: readonly BaseStylePatch[] = [
 /** A range of `len` taken from a raw shape, valid on `doc`; `minLen` 0 allows a caret. */
 function shapeRange(doc: SeqDocument, at: number, len: number, minLen: number) {
   const L = doc.length;
+  // A caret may sit after the last base, on a circle too (#265).
+  if (minLen === 0 && L > 0 && at % (L + 1) === L) return { start: L, end: L };
   const start = L === 0 ? 0 : at % L;
   const maxLen = doc.isCircular ? L : L - start;
   const cap = Math.min(maxLen, 30);
@@ -384,10 +386,10 @@ export class RefModel {
     return this.topology === 'circular' && L > 0 ? this.cells[L - 1]?.id : undefined;
   }
 
+  /** Inserts before the cell at `position`; `length` appends, on a circle too (#265). */
   private insertAt(position: number, text: string): number[] {
-    const p = normalizePosition(position, this.cells.length, this.topology);
     const fresh = Array.from(text).map((b) => this.cell(b));
-    this.cells.splice(p, 0, ...fresh);
+    this.cells.splice(position, 0, ...fresh);
     return fresh.map((c) => c.id);
   }
 
@@ -418,26 +420,28 @@ export class RefModel {
           const idx = (op.range.start + i) % L;
           this.cells[idx] = { id: this.at(idx).id, base: op.text.charAt(i) };
         }
-        const pivot =
-          this.topology === 'circular' && L > 0
-            ? (op.range.start + common) % L
-            : op.range.start + common;
-        if (op.text.length > oldLen)
+        // Right after the overwritten cells: past the end of a circle that is
+        // its start, but at the end an insertion appends while a deletion
+        // starts on the first cell.
+        const after = op.range.start + common;
+        const wraps = this.topology === 'circular' && L > 0;
+        if (op.text.length > oldLen) {
+          const pivot = wraps && after > L ? after - L : after;
           return { ...none, inserted: this.insertAt(pivot, op.text.slice(common)) };
-        if (oldLen > op.text.length)
+        }
+        if (oldLen > op.text.length) {
+          const pivot = wraps ? after % L : after;
           return { ...none, deleted: this.deleteRange(pivot, pivot + oldLen - common) };
+        }
         return none;
       }
       case 'insertFragment': {
         // The paste lands where the range's first base was, counted in the
-        // bases that survive the deletion (wrapping to 0 on a circle).
-        const L = this.cells.length;
-        const start = L === 0 ? 0 : op.range.start % L;
+        // bases that survive the deletion. A caret after the last base, or a
+        // range whose survivors all lie before it, appends, on a circle too.
         const deleted = this.deleteRange(op.range.start, op.range.end);
         const oldCells = this.lastCells;
-        let p = oldCells.slice(0, start).filter((c) => !deleted.has(c.id)).length;
-        const left = this.cells.length;
-        if (this.topology === 'circular') p = left === 0 ? 0 : p % left;
+        const p = oldCells.slice(0, op.range.start).filter((c) => !deleted.has(c.id)).length;
         const fresh = Array.from(op.fragment.sequence).map((b) => this.cell(b));
         this.cells.splice(p, 0, ...fresh);
         return { ...none, deleted, inserted: fresh.map((c) => c.id) };

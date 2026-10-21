@@ -25,10 +25,42 @@ describe('typeText', () => {
       op: { type: 'insert', position: 3, text: 'gg' },
       selectionAfter: { start: 5, end: 5 },
     });
-    expect(typeText(circular, { start: 10, end: 10 }, 'G')).toMatchObject({
+    expect(typeText(circular, { start: 0, end: 0 }, 'G')).toMatchObject({
       op: { type: 'insert', position: 0, text: 'G' },
       selectionAfter: { start: 1, end: 1 },
     });
+  });
+
+  it('appends at a caret after the last base of a circle, and carries on there (#265)', () => {
+    const plan = typeText(circular, { start: 10, end: 10 }, 'G');
+    expect(plan).toMatchObject({
+      op: { type: 'insert', position: 10, text: 'G' },
+      selectionAfter: { start: 11, end: 11 },
+    });
+    if (plan === null) throw new Error('no plan');
+    expect(circular.apply(plan.op).sequence.toString()).toBe('ACGTACGTACG');
+  });
+
+  it('types base after base into an empty circle in order (#265)', () => {
+    for (const topology of ['linear', 'circular'] as const) {
+      let doc = SeqDocument.create({ sequence: '', topology });
+      let selection = { start: 0, end: 0 };
+      for (const base of 'actg') {
+        const plan = typeText(doc, selection, base);
+        if (plan === null) throw new Error('no plan');
+        doc = doc.apply(plan.op);
+        selection = plan.selectionAfter;
+      }
+      expect(doc.sequence.toString()).toBe('actg');
+      expect(selection).toEqual({ start: 4, end: 4 });
+    }
+  });
+
+  it('types into the middle of a circle at the caret', () => {
+    const plan = typeText(circular, { start: 4, end: 4 }, 'ggg');
+    expect(plan?.selectionAfter).toEqual({ start: 7, end: 7 });
+    if (plan === null) throw new Error('no plan');
+    expect(circular.apply(plan.op).sequence.toString()).toBe('ACGTgggACGTAC');
   });
 
   it('replaces a selection and normalises pasted text', () => {
@@ -36,11 +68,36 @@ describe('typeText', () => {
       op: { type: 'replace', range: { start: 2, end: 6 }, text: 'acgt' },
       selectionAfter: { start: 6, end: 6 },
     });
-    // replacing the wrapped tail of a circular sequence wraps the caret
-    expect(typeText(circular, { start: 8, end: 12 }, 'AAAAAA')?.selectionAfter).toEqual({
-      start: 2,
-      end: 2,
-    });
+    // Replacing a selection that wraps the origin: the first four bases
+    // overwrite 8,9,0,1 and the last two go in after them, so the caret
+    // lands after old base 1, past all six.
+    const wrapped = typeText(circular, { start: 8, end: 12 }, 'gggggg');
+    expect(wrapped?.selectionAfter).toEqual({ start: 4, end: 4 });
+    if (wrapped === null) throw new Error('no plan');
+    expect(circular.apply(wrapped.op).sequence.toString()).toBe('ggggGTACGTgg');
+  });
+
+  it('replaces a selection running to the end of a circle there, not at the front (#265)', () => {
+    // Longer: the extra bases follow at the end.
+    const longer = typeText(circular, { start: 8, end: 10 }, 'gggg');
+    expect(longer?.selectionAfter).toEqual({ start: 12, end: 12 });
+    if (longer === null) throw new Error('no plan');
+    expect(circular.apply(longer.op).sequence.toString()).toBe('ACGTACGTgggg');
+    // Shorter: the caret stays after what was typed, at the end.
+    const shorter = typeText(circular, { start: 8, end: 10 }, 'g');
+    expect(shorter?.selectionAfter).toEqual({ start: 9, end: 9 });
+    if (shorter === null) throw new Error('no plan');
+    expect(circular.apply(shorter.op).sequence.toString()).toBe('ACGTACGTg');
+    // Shorter, wrapping, the typed bases reaching the end: the rest comes off the front.
+    const front = typeText(circular, { start: 8, end: 13 }, 'gg');
+    expect(front?.selectionAfter).toEqual({ start: 7, end: 7 });
+    if (front === null) throw new Error('no plan');
+    expect(circular.apply(front.op).sequence.toString()).toBe('TACGTgg');
+    // Shorter, wrapping, the deletion carrying on past the origin.
+    const past = typeText(circular, { start: 8, end: 12 }, 'g');
+    expect(past?.selectionAfter).toEqual({ start: 7, end: 7 });
+    if (past === null) throw new Error('no plan');
+    expect(circular.apply(past.op).sequence.toString()).toBe('GTACGTg');
   });
 
   it('rejects non-nucleotide text and ignores empty input', () => {
@@ -93,19 +150,39 @@ describe('pasteFragment', () => {
     );
   });
 
-  it('replaces a selection and puts the caret after the paste, wrapping on circles', () => {
+  it('replaces a selection and puts the caret after the paste, on circles too', () => {
     expect(pasteFragment(linear, { start: 2, end: 6 }, fragment)?.selectionAfter).toEqual({
       start: 8,
       end: 8,
     });
-    // Removing 8,9,0,1 leaves the cut at the origin: the paste occupies 0..6.
+    // Removing 8,9,0,1 leaves the cut at the origin, which is the end of
+    // what is left: the paste goes in after old base 7.
     const plan = pasteFragment(circular, { start: 8, end: 12 }, fragment);
-    expect(plan?.selectionAfter).toEqual({ start: 6, end: 6 });
+    expect(plan?.selectionAfter).toEqual({ start: 12, end: 12 });
     if (plan === null) throw new Error('no plan');
-    expect(circular.apply(plan.op).sequence.toString()).toBe('GGGGGG' + 'GTACGT');
-    // A paste filling the whole circle leaves the caret at 0, not at the length.
+    expect(circular.apply(plan.op).sequence.toString()).toBe('GTACGT' + 'GGGGGG');
+    // A paste filling the whole circle leaves the caret after it.
     const whole = pasteFragment(circular, { start: 0, end: 10 }, fragment);
-    expect(whole?.selectionAfter).toEqual({ start: 0, end: 0 });
+    expect(whole?.selectionAfter).toEqual({ start: 6, end: 6 });
+  });
+
+  it('pastes at a caret after the last base of a circle by appending (#265)', () => {
+    const plan = pasteFragment(circular, { start: 10, end: 10 }, fragment);
+    expect(plan?.selectionAfter).toEqual({ start: 16, end: 16 });
+    if (plan === null) throw new Error('no plan');
+    const next = circular.apply(plan.op);
+    expect(next.sequence.toString()).toBe('ACGTACGTAC' + 'GGGGGG');
+    expect(next.features.all().map((f) => f.segments)).toEqual([[rangeSegment(11, 15)]]);
+    // And into the middle, and into an empty circle.
+    expect(pasteFragment(circular, { start: 4, end: 4 }, fragment)?.selectionAfter).toEqual({
+      start: 10,
+      end: 10,
+    });
+    const empty = SeqDocument.create({ sequence: '', topology: 'circular' });
+    const first = pasteFragment(empty, { start: 0, end: 0 }, fragment);
+    expect(first?.selectionAfter).toEqual({ start: 6, end: 6 });
+    if (first === null) throw new Error('no plan');
+    expect(empty.apply(first.op).sequence.toString()).toBe('GGGGGG');
   });
 
   it('falls back to plain text for a fragment without features', () => {
@@ -130,10 +207,16 @@ describe('deleteBackward / deleteForward', () => {
     };
     expect(deleteBackward(linear, { start: 2, end: 6 })).toEqual(plan);
     expect(deleteForward(linear, { start: 2, end: 6 })).toEqual(plan);
-    // a selection wrapping the origin leaves the caret at the origin
+    // A selection wrapping the origin leaves the caret where it was cut,
+    // which is the end of what is left.
     expect(deleteForward(circular, { start: 8, end: 12 })?.selectionAfter).toEqual({
-      start: 0,
-      end: 0,
+      start: 6,
+      end: 6,
+    });
+    // One running to the end of a circle leaves the caret at the end, not at 0 (#265).
+    expect(deleteBackward(circular, { start: 7, end: 10 })?.selectionAfter).toEqual({
+      start: 7,
+      end: 7,
     });
     expect(deleteForward(circular, { start: 0, end: 10 })?.selectionAfter).toEqual({
       start: 0,
@@ -156,9 +239,16 @@ describe('deleteBackward / deleteForward', () => {
       selectionAfter: { start: 4, end: 4 },
     });
     expect(deleteForward(linear, { start: 10, end: 10 })).toBeNull();
-    expect(deleteForward(circular, { start: 10, end: 10 })?.op).toEqual({
-      type: 'delete',
-      range: { start: 0, end: 1 },
+    // At the end of a circle (#265): Backspace eats the last base and the
+    // caret stays at the end; Delete eats the first, the base after it on the
+    // circle, and the caret is still the end.
+    expect(deleteBackward(circular, { start: 10, end: 10 })).toMatchObject({
+      op: { type: 'delete', range: { start: 9, end: 10 } },
+      selectionAfter: { start: 9, end: 9 },
+    });
+    expect(deleteForward(circular, { start: 10, end: 10 })).toMatchObject({
+      op: { type: 'delete', range: { start: 0, end: 1 } },
+      selectionAfter: { start: 9, end: 9 },
     });
     expect(deleteForward(linear, null)).toBeNull();
     expect(deleteBackward(SeqDocument.create({ sequence: '' }), { start: 0, end: 0 })).toBeNull();
@@ -171,6 +261,13 @@ describe('positions and selections', () => {
     expect(clampPosition(linear, 14)).toBe(10);
     expect(clampPosition(circular, -3)).toBe(7);
     expect(clampPosition(circular, 14)).toBe(4);
+  });
+
+  it('lets the caret reach the end of a circle, and passes one base per step round it (#265)', () => {
+    expect(clampPosition(circular, 10)).toBe(10);
+    expect(clampPosition(circular, 0)).toBe(0);
+    expect(clampPosition(circular, 11)).toBe(1);
+    expect(clampPosition(circular, -1)).toBe(9);
     expect(clampPosition(SeqDocument.create({ sequence: '' }), 5)).toBe(0);
   });
 

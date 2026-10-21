@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 
-import { type Topology, normalizePosition, rangePieces } from '../range';
+import { type Topology, rangePieces } from '../range';
 
 import { type BaseStyle, type BaseStylePatch, BASE_SIZES, type StyleRun } from './baseStyles';
 import { SeqDocument } from './seqDocument';
@@ -106,6 +106,8 @@ const shapeArb: fc.Arbitrary<Shape> = fc.oneof(
 
 function span(doc: SeqDocument, at: number, len: number, min: number) {
   const L = doc.length;
+  // A caret may sit after the last base, on a circle too (#265).
+  if (min === 0 && L > 0 && at % (L + 1) === L) return { start: L, end: L };
   const start = L === 0 ? 0 : at % L;
   const max = doc.isCircular ? L : L - start;
   if (max < min) return null;
@@ -131,7 +133,8 @@ function step(doc: SeqDocument, cells: Cell[], shape: Shape): [SeqDocument, Cell
       return [doc.styleBases(r, shape.patch), next];
     }
     case 'insert': {
-      const p = normalizePosition(shape.at % (L + 1), L, doc.topology);
+      // `L` appends, on a circle too (#265).
+      const p = shape.at % (L + 1);
       const n = 1 + (shape.len % 5);
       const next = [...cells];
       next.splice(p, 0, ...new Array<Cell>(n).fill(inherited(cells, p)));
@@ -148,15 +151,20 @@ function step(doc: SeqDocument, cells: Cell[], shape: Shape): [SeqDocument, Cell
       if (r === null) return [doc, cells];
       const oldLen = r.end - r.start;
       const common = Math.min(oldLen, shape.text);
-      const pivot = doc.isCircular && L > 0 ? (r.start + common) % L : r.start + common;
+      // Past the end of a circle the difference goes at its start; at the
+      // end an insertion appends and a deletion starts on the first base.
+      const after = r.start + common;
+      const circle = doc.isCircular && L > 0;
       let next = [...cells];
       if (shape.text > oldLen) {
+        const pivot = circle && after > L ? after - L : after;
         next.splice(
           pivot,
           0,
           ...new Array<Cell>(shape.text - common).fill(inherited(cells, pivot)),
         );
       } else if (oldLen > shape.text) {
+        const pivot = circle ? after % L : after;
         const gone = new Set(indices({ start: pivot, end: pivot + oldLen - common }, L));
         next = next.filter((_, i) => !gone.has(i));
       }
@@ -173,8 +181,8 @@ function step(doc: SeqDocument, cells: Cell[], shape: Shape): [SeqDocument, Cell
       const kept = cells.filter((_, i) => !gone.has(i));
       // Where the first base of the range was, in the bases left.
       const before = indices(r, L)[0] ?? r.start;
-      let p = cells.slice(0, L === 0 ? 0 : before % L).filter((_, i) => !gone.has(i)).length;
-      if (doc.isCircular) p = kept.length === 0 ? 0 : p % kept.length;
+      // A caret after the last base appends, on a circle too (#265).
+      const p = cells.slice(0, before).filter((_, i) => !gone.has(i)).length;
       const pasted: Cell[] = Array.from({ length: shape.text }, (_, i) =>
         i < styled ? style : null,
       );

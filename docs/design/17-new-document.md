@@ -19,3 +19,25 @@ before, which is why the defaults are what New used to do. It holds the
 view shortcuts off while up, as the other dialogs do. Ctrl+V with nothing
 open still makes a document of pasted bases directly: the paste already
 says what the document is.
+
+**The caret on a circle** (#265, 2026-10-20). A new document is circular
+whenever Circular was chosen last, and typing into one came out backwards
+("act" became "cta"), Arrow Right never reached the end and a copied
+fragment pasted at the end did nothing. The cause was older than the
+dialog: since editing came in, a caret at `length` on a circular sequence
+was folded onto 0 (`normalizePosition`) wherever text went in, in the
+document model and in `editing.ts`, and `clampPosition` wrapped the arrow
+keys modulo the length. On a circle the two are one point, but not one
+edit: bases typed at `length` are appended, at 0 prepended, and the
+origin, base numbers and the caret's place on screen all differ. So a
+caret is now a boundary in `[0, length]` on both topologies
+(`isValidRange` accepts the empty range at `length`); `insert`,
+`insertFragment`, `replace` and `mapPositionThrough` put text where the
+caret is and fold nothing; only a point that names a place on the circle
+(a feature's site, a new origin) is still canonicalised to 0. Bases and the
+ranges over them wrap as before, and whether an insertion grows a range
+over the origin is still judged on the circle, at 0 and `length` alike. A
+caret past either end carries on round, one base a step (one past `length`
+is 1, one before 0 is `length - 1`); Delete at the end takes the first
+base. The empty document's fallback caret now covers a pasted fragment as
+well as text, so a paste after Escape or a click on the empty map lands.
