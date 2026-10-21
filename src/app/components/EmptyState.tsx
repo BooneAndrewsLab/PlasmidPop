@@ -171,7 +171,7 @@ export function EmptyState() {
                     <span className="recent__name">
                       {d.name}
                       {openIds.has(d.id) && (
-                        <span className="recent__badge" title="Open in a tab">
+                        <span className="recent__badge" data-tip="Open in a tab">
                           open
                         </span>
                       )}
@@ -187,7 +187,7 @@ export function EmptyState() {
                 <button
                   type="button"
                   className="button button--quiet button--small"
-                  title="Give this document a different name"
+                  data-tip="Give this document a different name"
                   onClick={() => {
                     setRenamingId(d.id);
                   }}
@@ -197,7 +197,7 @@ export function EmptyState() {
                 <button
                   type="button"
                   className="button button--quiet button--small"
-                  title="Remove from this browser's storage"
+                  data-tip="Remove from this browser's storage"
                   onClick={() => {
                     report(persistence.removeStored(d.id));
                   }}

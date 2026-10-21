@@ -5,6 +5,7 @@ import { getRepository } from '@/storage';
 
 import { App } from './App';
 import { editorStore } from './state/editorStore';
+import { getAllByTip } from '@/test/tips';
 
 function alt(code: string): void {
   fireEvent.keyDown(window, { code, altKey: true });
@@ -327,7 +328,7 @@ describe('a rebound key (#79)', () => {
     alt('KeyG');
     expect(open()).toBe(true);
     // And the tooltip says the key it is on now.
-    expect(screen.getAllByTitle(/Hide the panel \(Alt\+G\)/).length).toBeGreaterThan(0);
+    expect(getAllByTip(document.body, /Hide the panel \(Alt\+G\)/).length).toBeGreaterThan(0);
   });
 
   it('leaves the action whose key was taken without one, rather than firing both', () => {

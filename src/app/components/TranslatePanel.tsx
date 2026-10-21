@@ -105,7 +105,7 @@ function FrameRow({ frame, numbered, onOpen }: FrameRowProps) {
             type="button"
             className="button button--small"
             disabled={frame.protein === ''}
-            title={`Open frame ${label} as a protein document of its own, stops and all`}
+            data-tip={`Open frame ${label} as a protein document of its own, stops and all`}
             onClick={onOpen}
           >
             Open as protein
@@ -172,7 +172,7 @@ export function TranslatePanel({ doc }: Props) {
           const name = cdsName(doc, f);
           return (
             <li key={f.id}>
-              <span className="coding-list__name" title={name}>
+              <span className="coding-list__name" data-tip={name}>
                 {name}
               </span>
               <span className="panel__heading-note">
@@ -181,7 +181,7 @@ export function TranslatePanel({ doc }: Props) {
               <button
                 type="button"
                 className="button button--small"
-                title={`Translate ${name} with its own genetic code and open the protein in a tab of its own`}
+                data-tip={`Translate ${name} with its own genetic code and open the protein in a tab of its own`}
                 onClick={() => {
                   editorStore.openProtein(proteinFromCds(doc, f), 'cds');
                 }}
@@ -234,7 +234,7 @@ export function TranslatePanel({ doc }: Props) {
             {from.toLocaleString()}–{to.toLocaleString()} · {dna.length.toLocaleString()} bp
           </span>
         </span>
-        <GeneticCodeSelect title="The genetic code these six frames are read with. A CDS feature is read with its own /transl_table instead." />
+        <GeneticCodeSelect tip="The genetic code these six frames are read with. A CDS feature is read with its own /transl_table instead." />
         <div className="panel__buttons">
           <button
             type="button"

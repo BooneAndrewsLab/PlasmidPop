@@ -105,7 +105,7 @@ export function Sidebar({ doc }: Props) {
               aria-selected={active}
               aria-controls="sidebar-panel"
               tabIndex={tab === sidebarTab ? 0 : -1}
-              title={
+              data-tip={
                 active
                   ? `Hide the panel (${sidebarKey}); ${prevKey} and ${nextKey} step through the tabs`
                   : `Show ${label}`

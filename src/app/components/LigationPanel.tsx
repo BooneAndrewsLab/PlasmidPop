@@ -175,7 +175,7 @@ export function LigationPanel() {
             type="button"
             className="button button--primary button--small"
             disabled={!canAssemble}
-            title={
+            data-tip={
               canAssemble
                 ? 'Ligate the fragments into a new document'
                 : 'Every join must have matching ends, and a phosphate on at least one side'

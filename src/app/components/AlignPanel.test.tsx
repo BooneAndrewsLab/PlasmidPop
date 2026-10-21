@@ -624,7 +624,7 @@ describe('AlignPanel', () => {
     const take = within(dialog).getByRole('button', { name: 'Take Sequence’s bases' });
     expect(take).toBeDisabled();
     expect(take).toHaveAttribute(
-      'title',
+      'data-tip',
       'The document has changed since; align again to take more',
     );
   });
@@ -1453,7 +1453,7 @@ describe('AlignPanel', () => {
     // and leaves the selection alone (#108).
     const heading = screen.getByRole('button', { name: /^(Global|Local) alignment/ });
     // It says what it does (#116).
-    expect(heading).toHaveAttribute('title', expect.stringContaining('Show in document'));
+    expect(heading).toHaveAttribute('data-tip', expect.stringContaining('Show in document'));
     act(() => {
       editorStore.setSelection({ start: 5, end: 9 });
     });

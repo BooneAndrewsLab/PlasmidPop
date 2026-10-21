@@ -64,7 +64,7 @@ function RowMenu({
       type="button"
       role="menuitem"
       className="menu__item"
-      title={title}
+      data-tip={title}
       disabled={run === null}
       onClick={() => {
         close();
@@ -80,7 +80,7 @@ function RowMenu({
         type="button"
         className="history-panel__more"
         aria-label={`Actions for ${label}`}
-        title="Name this state, see what the step changed, or mark changes since it"
+        data-tip="Name this state, see what the step changed, or mark changes since it"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -193,7 +193,7 @@ export function HistoryPanel() {
             type="button"
             className="button button--small button--toggle"
             aria-pressed={filtering}
-            title="Show only the states you have named"
+            data-tip="Show only the states you have named"
             onClick={() => {
               setNamedOnly((v) => !v);
             }}
@@ -205,7 +205,7 @@ export function HistoryPanel() {
           type="button"
           className="button button--small history-panel__latest"
           disabled={undoneCount === 0}
-          title="Redo every undone change"
+          data-tip="Redo every undone change"
           onClick={() => {
             editorStore.jumpHistory(total);
           }}
@@ -310,7 +310,7 @@ function HistoryItem({
           className={`history-panel__item${row.current ? ' history-panel__item--current' : ''}${
             row.undone ? ' history-panel__item--undone' : ''
           }${row.name === undefined ? '' : ' history-panel__item--named'}`}
-          title={rowTitle(row)}
+          data-tip={rowTitle(row)}
           onClick={() => {
             editorStore.jumpHistory(row.position);
           }}
@@ -381,7 +381,7 @@ function KeptItem({
           className={`history-panel__item history-panel__item--named${
             row.current ? ' history-panel__item--current' : ''
           }`}
-          title="Bring this state back as a change of its own"
+          data-tip="Bring this state back as a change of its own"
           onClick={() => {
             editorStore.bringBackKeptState(row.index);
           }}

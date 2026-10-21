@@ -7,6 +7,7 @@ import { analysisClient } from '@/workers/analysisClient';
 
 import { editorStore } from '../state/editorStore';
 import { CrisprPanel } from './CrisprPanel';
+import { getByTip, getAllByTip, findAllByTip } from '@/test/tips';
 
 /** One SpCas9 site: 20 A's and a TGG PAM, then filler with no GG or CC. */
 const UNIT = `${'A'.repeat(20)}TGG`;
@@ -77,11 +78,11 @@ describe('CrisprPanel', () => {
     const doc = docOf(`${UNIT}${FILLER}${UNIT}`);
     await openPanel(doc);
     // Both guides share the same spacer, so each is the other's off-target.
-    const rows = await screen.findAllByTitle('Off-targets: exact, then by mismatch');
+    const rows = await findAllByTip(document.body, 'Off-targets: exact, then by mismatch');
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent('1·0·0·0');
     // The exact second site is the first of the flags; the all-A spacer has others.
-    expect(screen.getAllByTitle(/^Binds somewhere else exactly;/)).toHaveLength(2);
+    expect(getAllByTip(document.body, /^Binds somewhere else exactly;/)).toHaveLength(2);
   });
 
   it('filters the list by PAM, by spacer and by flag without rescanning', async () => {
@@ -89,7 +90,7 @@ describe('CrisprPanel', () => {
     const clean1 = 'ACGTACGTACGTACGTACGT';
     const clean2 = 'GATCGATCGATCGATCGATC';
     await openPanel(docOf(`${clean1}AGG${FILLER}${clean2}TGG${FILLER}${UNIT}`), false);
-    const rows = () => screen.getAllByTitle('Off-targets: exact, then by mismatch');
+    const rows = () => getAllByTip(document.body, 'Off-targets: exact, then by mismatch');
     // The flagged one is hidden until asked for, and the title says so.
     expect(rows()).toHaveLength(2);
     expect(screen.getByText('2 of 3')).toBeInTheDocument();
@@ -146,7 +147,7 @@ describe('CrisprPanel', () => {
       expect(screen.getByText(/no genome to search/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
       expect(screen.queryByText(/no genome to search/)).not.toBeInTheDocument();
-      expect(screen.getByTitle(/no genome to search/)).toHaveTextContent('Off-targets up to');
+      expect(getByTip(document.body, /no genome to search/)).toHaveTextContent('Off-targets up to');
       expect(globalThis.localStorage.getItem('plasmidpop.crisprOffTargetNoteSeen')).toBe('1');
     } finally {
       globalThis.localStorage.clear();
@@ -187,7 +188,7 @@ describe('CrisprPanel', () => {
     });
     fireEvent.click(screen.getByLabelText('Only cuts in the selection'));
     await waitFor(() => {
-      expect(screen.getAllByTitle('Off-targets: exact, then by mismatch')).toHaveLength(2);
+      expect(getAllByTip(document.body, 'Off-targets: exact, then by mismatch')).toHaveLength(2);
     });
 
     // Clicking a guide selects its protospacer. Were the region read from
@@ -198,7 +199,7 @@ describe('CrisprPanel', () => {
     fireEvent.click(first);
     expect(editorStore.getState().selection).toEqual({ start: 33, end: 53 });
     expect(await screen.findByText('Oligos to order')).toBeInTheDocument();
-    expect(screen.getAllByTitle('Off-targets: exact, then by mismatch')).toHaveLength(2);
+    expect(getAllByTip(document.body, 'Off-targets: exact, then by mismatch')).toHaveLength(2);
     expect(screen.getByLabelText('Only cuts in the selection')).toBeChecked();
 
     // A new selection is taken up only when asked for.
@@ -207,7 +208,7 @@ describe('CrisprPanel', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Use the selection now' }));
     await waitFor(() => {
-      expect(screen.getAllByTitle('Off-targets: exact, then by mismatch')).toHaveLength(1);
+      expect(getAllByTip(document.body, 'Off-targets: exact, then by mismatch')).toHaveLength(1);
     });
   });
 
@@ -266,10 +267,9 @@ describe('CrisprPanel', () => {
     const noC = 'GAGAGAGAGAGAGAGAGAGA';
     await openPanel(docOf(`${withC}TGG${FILLER}${noC}AGG`), false);
     fireEvent.change(screen.getByLabelText('Base editor'), { target: { value: 'cbe' } });
-    expect(screen.getAllByTitle('C to T edits in the window').map((e) => e.textContent)).toEqual([
-      '2',
-      '0',
-    ]);
+    expect(
+      getAllByTip(document.body, 'C to T edits in the window').map((e) => e.textContent),
+    ).toEqual(['2', '0']);
     fireEvent.click(screen.getByRole('button', { name: 'Only with a C to edit' }));
     fireEvent.click(screen.getByRole('button', { name: /GATCGATC/ }));
     expect(screen.getByText(/^C4, C8 \(/)).toBeInTheDocument();

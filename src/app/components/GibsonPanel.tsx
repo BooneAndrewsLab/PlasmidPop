@@ -50,7 +50,7 @@ function JoinRow({ join, closing }: { readonly join: GibsonJoin; readonly closin
   return (
     <li
       className={`junction${weak ? ' junction--weak' : ' junction--ok'}`}
-      title={`Shared: ${join.overlap.toUpperCase()}`}
+      data-tip={`Shared: ${join.overlap.toUpperCase()}`}
     >
       <span className="junction__mark" aria-hidden="true">
         {weak ? '!' : '✓'}
@@ -146,7 +146,7 @@ export function GibsonPanel() {
           <select
             className="panel__select"
             value={minOverlap}
-            title="The shortest homology to accept at a junction"
+            data-tip="The shortest homology to accept at a junction"
             onChange={(e) => {
               setMinOverlap(Number(e.target.value));
             }}
@@ -243,7 +243,7 @@ export function GibsonPanel() {
               type="button"
               className="button button--primary button--small"
               aria-label="Assemble by Gibson"
-              title="Open the product as a new document"
+              data-tip="Open the product as a new document"
               onClick={assemble}
             >
               Assemble

@@ -134,7 +134,7 @@ export function OverlapPrimerDesign() {
               type="button"
               className={`segmented__button${kit === k ? ' segmented__button--active' : ''}`}
               aria-pressed={kit === k}
-              title={`${KIT_NAMES[k]}: ${KIT_OVERLAP[k]} bases of homology`}
+              data-tip={`${KIT_NAMES[k]}: ${KIT_OVERLAP[k]} bases of homology`}
               onClick={() => {
                 setKit(k);
               }}
@@ -198,7 +198,7 @@ export function OverlapPrimerDesign() {
                   <button
                     type="button"
                     className="button button--primary button--small"
-                    title="Open the circle the amplicon and the vector would make"
+                    data-tip="Open the circle the amplicon and the vector would make"
                     onClick={() => {
                       // The circle with the vector and the amplicon it was made of, and the
                       // amplicon with its template and primers (#67).

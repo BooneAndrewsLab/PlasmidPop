@@ -46,7 +46,7 @@ export function ReadBatchList({
             <button
               type="button"
               className="read-batch__sort"
-              title="Sort by identity: lowest first, then highest first, then as in the file"
+              data-tip="Sort by identity: lowest first, then highest first, then as in the file"
               onClick={() => {
                 setOrder((o) => NEXT_ORDER[o]);
               }}
@@ -56,7 +56,7 @@ export function ReadBatchList({
           </th>
           <th
             scope="col"
-            title={
+            data-tip={
               withQualities
                 ? `Differences at bases of Q${confidentFrom} or better; a read without qualities counts all of its differences`
                 : 'Mismatches and gap columns'
@@ -101,7 +101,7 @@ export function ReadBatchList({
                   type="button"
                   className="read-batch__pick"
                   aria-pressed={picked}
-                  title="Point at the region this read covers; click the row to select it and show its alignment"
+                  data-tip="Point at the region this read covers; click the row to select it and show its alignment"
                   onFocus={() => {
                     onPoint?.(row.index);
                   }}
@@ -121,7 +121,7 @@ export function ReadBatchList({
                 {row.result.alignment.unchecked === true && (
                   <abbr
                     className="read-batch__unchecked"
-                    title={`Best within the band around the shared words; ${UNCHECKED_NOTE}`}
+                    data-tip={`Best within the band around the shared words; ${UNCHECKED_NOTE}`}
                   >
                     {' '}
                     *

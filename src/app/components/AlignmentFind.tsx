@@ -179,7 +179,7 @@ export function AlignmentFind({ stack, mode, row, getFrom, onRow, onJump, onClos
               className="segmented__button astack-pop__step"
               disabled={matches.length === 0}
               aria-label="Previous match"
-              title="Previous match (Shift+Enter)"
+              data-tip="Previous match (Shift+Enter)"
               onClick={() => {
                 step(true);
               }}
@@ -191,7 +191,7 @@ export function AlignmentFind({ stack, mode, row, getFrom, onRow, onJump, onClos
               className="segmented__button astack-pop__step"
               disabled={matches.length === 0}
               aria-label="Next match"
-              title="Next match (Enter)"
+              data-tip="Next match (Enter)"
               onClick={() => {
                 step(false);
               }}

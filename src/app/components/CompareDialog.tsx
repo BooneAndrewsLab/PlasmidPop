@@ -158,7 +158,7 @@ export function CompareDialog() {
           <button
             type="button"
             className="button"
-            title="Open the other side in its own tab"
+            data-tip="Open the other side in its own tab"
             onClick={() => {
               analytics.track('compare', 'open-other', source.kind);
               editorStore.dismissComparison();
@@ -172,7 +172,7 @@ export function CompareDialog() {
           <button
             type="button"
             className="button"
-            title={`Mark what this document has that ${name} does not in the sequence view and the map, as the Edits menu marks changes`}
+            data-tip={`Mark what this document has that ${name} does not in the sequence view and the map, as the Edits menu marks changes`}
             onClick={() => {
               analytics.track('compare', 'mark-in-views');
               editorStore.markComparedInViews(name, other);

@@ -44,7 +44,7 @@ export function AlignmentDifferencesList({ rows, current, onPick, marks, onMark 
           type="button"
           className="button button--small"
           disabled={rows.length === 0}
-          title="Copy the table as tab-separated text"
+          data-tip="Copy the table as tab-separated text"
           onClick={() => {
             copyText(differencesTsv(rows, marks));
             setCopied(true);
@@ -92,7 +92,7 @@ export function AlignmentDifferencesList({ rows, current, onPick, marks, onMark 
                     <button
                       type="button"
                       className="astack-diffs__go"
-                      title="Show this difference in the alignment"
+                      data-tip="Show this difference in the alignment"
                       onClick={(e) => {
                         e.stopPropagation();
                         onPick(row);
@@ -113,7 +113,7 @@ export function AlignmentDifferencesList({ rows, current, onPick, marks, onMark 
                       aria-label={`Reviewed: ${positionText(row) === '' ? 'insertion' : positionText(row)}`}
                       checked={marks.has(row.index)}
                       disabled={marks.get(row.index) === 'taken'}
-                      title={
+                      data-tip={
                         marks.get(row.index) === 'taken'
                           ? 'Taken into the document'
                           : 'Mark reviewed: dimmed, and counted apart in the verdict'

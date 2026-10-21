@@ -59,7 +59,7 @@ export function CaseMenu({ selection, opens = 'down', shortcut = true }: Props) 
         className="button button--small"
         disabled={!hasRange}
         aria-keyshortcuts={shortcut ? key : undefined}
-        title={`Upper, lower or swapped case for the selected bases${shortcut ? ` (${key})` : ''}`}
+        data-tip={`Upper, lower or swapped case for the selected bases${shortcut ? ` (${key})` : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -78,7 +78,7 @@ export function CaseMenu({ selection, opens = 'down', shortcut = true }: Props) 
               type="button"
               role="menuitem"
               className="menu__item"
-              title={title}
+              data-tip={title}
               onClick={() => {
                 editorStore.apply({ type: 'changeCase', range: selection, mode }, selection);
                 close();

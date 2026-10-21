@@ -65,7 +65,7 @@ function renderProduct(
             <button
               type="button"
               className="button button--quiet button--small"
-              title="The other circle the reaction makes, which carries the ccdB cassette"
+              data-tip="The other circle the reaction makes, which carries the ccdB cassette"
               onClick={() => {
                 open(byproduct);
               }}
@@ -171,7 +171,7 @@ export function GatewayPanel() {
               type="button"
               className={`segmented__button${reaction === r.value ? ' segmented__button--active' : ''}`}
               aria-pressed={reaction === r.value}
-              title={r.title}
+              data-tip={r.title}
               onClick={() => {
                 setReaction(r.value);
               }}

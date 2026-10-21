@@ -37,7 +37,7 @@ export function HistoryMenu() {
             type="button"
             className="segmented__button"
             disabled={shelfUndo === null}
-            title={shelfUndo === null ? 'Undo (Ctrl+Z)' : `Undo ${shelfUndo} (Ctrl+Z)`}
+            data-tip={shelfUndo === null ? 'Undo (Ctrl+Z)' : `Undo ${shelfUndo} (Ctrl+Z)`}
             onClick={() => {
               editorStore.undoShelf();
             }}
@@ -48,7 +48,9 @@ export function HistoryMenu() {
             type="button"
             className="segmented__button"
             disabled={shelfRedo === null}
-            title={shelfRedo === null ? 'Redo (Ctrl+Shift+Z)' : `Redo ${shelfRedo} (Ctrl+Shift+Z)`}
+            data-tip={
+              shelfRedo === null ? 'Redo (Ctrl+Shift+Z)' : `Redo ${shelfRedo} (Ctrl+Shift+Z)`
+            }
             onClick={() => {
               editorStore.redoShelf();
             }}
@@ -67,7 +69,7 @@ export function HistoryMenu() {
           type="button"
           className="segmented__button"
           disabled={history?.canUndo !== true}
-          title={
+          data-tip={
             history?.undoLabel === undefined
               ? 'Undo (Ctrl+Z)'
               : `Undo ${history.undoLabel} (Ctrl+Z)`
@@ -82,7 +84,7 @@ export function HistoryMenu() {
           type="button"
           className="segmented__button"
           disabled={history?.canRedo !== true}
-          title={
+          data-tip={
             history?.redoLabel === undefined
               ? 'Redo (Ctrl+Shift+Z)'
               : `Redo ${history.redoLabel} (Ctrl+Shift+Z)`
@@ -97,7 +99,7 @@ export function HistoryMenu() {
           type="button"
           className="segmented__button segmented__button--caret"
           aria-label="History"
-          title="Show the list of changes"
+          data-tip="Show the list of changes"
           aria-haspopup="menu"
           aria-expanded={open}
           disabled={history === null || labels.length === 0}
@@ -121,7 +123,7 @@ export function HistoryMenu() {
                 className={`menu__item history__item${current ? ' history__item--current' : ''}${
                   undone ? ' history__item--undone' : ''
                 }`}
-                title={
+                data-tip={
                   current
                     ? 'Current state'
                     : undone

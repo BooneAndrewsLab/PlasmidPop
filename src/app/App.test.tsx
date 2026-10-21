@@ -65,7 +65,7 @@ function fileMenu(item: string | RegExp): void {
 describe('App', () => {
   it('renders the brand and an empty state before a file is opened', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('PlasmidPop');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveAccessibleName('PlasmidPop');
     expect(screen.getByText(/Drop a GenBank, FASTA or SnapGene file/)).toBeInTheDocument();
     expect(screen.getByText('No sequence open')).toBeInTheDocument();
   });
@@ -998,7 +998,7 @@ describe('document tabs', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove part 1' }));
     expect(editorStore.getState().shelf).toHaveLength(0);
     const undo = screen.getByRole('button', { name: 'Undo' });
-    expect(undo).toHaveAttribute('title', 'Undo Remove pKeep fragment (Ctrl+Z)');
+    expect(undo).toHaveAttribute('data-tip', 'Undo Remove pKeep fragment (Ctrl+Z)');
     fireEvent.click(undo);
     expect(editorStore.getState().shelf).toHaveLength(1);
     fireEvent.keyDown(window, { key: 'z', ctrlKey: true, shiftKey: true });

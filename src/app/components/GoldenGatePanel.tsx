@@ -35,7 +35,7 @@ function OrderRow({ part, index }: { readonly part: AssembledPart; readonly inde
         </span>
         <span className="part__detail">{fragment.sequence.length.toLocaleString()} bp</span>
       </span>
-      <span className="end__overhang" title="The overhang this part joins on">
+      <span className="end__overhang" data-tip="The overhang this part joins on">
         {fragment.left.overhang.toUpperCase()}
       </span>
     </li>
@@ -261,7 +261,7 @@ export function GoldenGatePanel() {
               type="button"
               className="button button--primary button--small"
               aria-label="Assemble by Golden Gate"
-              title="Open the product as a new document"
+              data-tip="Open the product as a new document"
               onClick={assemble}
             >
               Assemble

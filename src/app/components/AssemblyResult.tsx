@@ -151,7 +151,7 @@ export function AssemblyResult({
       <button
         type="button"
         className="button button--primary button--small"
-        title="Open the consensus as a new document; IUPAC codes stay where reads disagreed"
+        data-tip="Open the consensus as a new document; IUPAC codes stay where reads disagreed"
         onClick={() => {
           analytics.track('align', 'assemble-save');
           editorStore.openConsensus(consensusDocument(contig, fileName, assembly.hasQualities));

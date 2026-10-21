@@ -62,7 +62,7 @@ export function CompareChooser({ onPickFile }: Props) {
                   ref={i === 0 ? firstRef : undefined}
                   type="button"
                   className="button compare-choices__item"
-                  title={d.fileName ?? undefined}
+                  data-tip={d.fileName ?? undefined}
                   onClick={() => {
                     analytics.track('compare', 'target', 'tab');
                     editorStore.compareWithTab(d.documentId);

@@ -218,7 +218,7 @@ function PrimerRow({
         <button
           type="button"
           className="button button--quiet button--small"
-          title="Put this primer in PCR's forward slot"
+          data-tip="Put this primer in PCR's forward slot"
           onClick={() => {
             onPcr('forward', primer);
           }}
@@ -228,7 +228,7 @@ function PrimerRow({
         <button
           type="button"
           className="button button--quiet button--small"
-          title="Put this primer in PCR's reverse slot"
+          data-tip="Put this primer in PCR's reverse slot"
           onClick={() => {
             onPcr('reverse', primer);
           }}
@@ -474,7 +474,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
               <select
                 className="panel__select"
                 aria-label="Shortest site searched"
-                title="The fewest bases a primer must anneal by to be called a site; shorter primers are not searched"
+                data-tip="The fewest bases a primer must anneal by to be called a site; shorter primers are not searched"
                 value={minAnneal}
                 onChange={(e) => {
                   setMinAnneal(Number(e.target.value));
@@ -648,7 +648,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
             <button
               type="button"
               className="button button--quiet button--small"
-              title="Add every primer_bind feature of this document to the list"
+              data-tip="Add every primer_bind feature of this document to the list"
               onClick={() => {
                 const drafts = docPrimers
                   .map((f) => primerFromFeature(doc, f))
@@ -775,7 +775,7 @@ function FindResults({
               <button
                 type="button"
                 className="orf-row"
-                title="Select the bases it anneals to"
+                data-tip="Select the bases it anneals to"
                 onClick={() => {
                   editorStore.setSelection(h.range);
                   editorStore.revealPosition(h.range.start);
@@ -792,7 +792,7 @@ function FindResults({
               <button
                 type="button"
                 className="button button--quiet button--small"
-                title="Annotate this site as a primer_bind feature"
+                data-tip="Annotate this site as a primer_bind feature"
                 onClick={() => {
                   addFeaturesAsOneStep([hitFeature(h, byId.get(h.primerId))]);
                 }}
@@ -802,7 +802,7 @@ function FindResults({
               <button
                 type="button"
                 className="button button--quiet button--small"
-                title={`Use as PCR's ${h.strand} primer`}
+                data-tip={`Use as PCR's ${h.strand} primer`}
                 onClick={() => {
                   const primer = byId.get(h.primerId);
                   if (primer !== undefined) onPcr(h.strand, primer);

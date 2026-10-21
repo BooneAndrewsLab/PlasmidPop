@@ -44,7 +44,7 @@ export function SelectionBar({ doc, selection, left, top, menuOpens }: Props) {
       <button
         type="button"
         className="button button--small"
-        title="Annotate the selected bases as a new feature"
+        data-tip="Annotate the selected bases as a new feature"
         onClick={() => {
           analytics.track('selection-bar', 'add-feature');
           editorStore.addFeatureFromSelection();
@@ -55,7 +55,7 @@ export function SelectionBar({ doc, selection, left, top, menuOpens }: Props) {
       <button
         type="button"
         className="button button--small"
-        title="Copy the selected bases with their features (Ctrl+C)"
+        data-tip="Copy the selected bases with their features (Ctrl+C)"
         onClick={() => {
           analytics.track('selection-bar', 'copy');
           copyFragment(fragmentFromRange(doc, selection));

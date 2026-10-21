@@ -274,7 +274,7 @@ export function SoePanel() {
           <select
             className="panel__select"
             value={overlapTm}
-            title="The overlap at each junction grows until it melts at about this temperature"
+            data-tip="The overlap at each junction grows until it melts at about this temperature"
             onChange={(e) => {
               editorStore.updateBench('soe', { overlapTm: Number(e.target.value) });
             }}
@@ -336,7 +336,7 @@ export function SoePanel() {
               <button
                 type="button"
                 className="button button--primary button--small"
-                title="Open the fused product as a new document"
+                data-tip="Open the fused product as a new document"
                 onClick={open}
               >
                 Open product
@@ -344,7 +344,7 @@ export function SoePanel() {
               <button
                 type="button"
                 className="button button--small"
-                title="Keep these primers in My primers, in this browser"
+                data-tip="Keep these primers in My primers, in this browser"
                 onClick={save}
               >
                 Save primers

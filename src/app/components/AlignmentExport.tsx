@@ -157,7 +157,7 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
             <button
               type="button"
               className="segmented__button astack-pop__step"
-              title="The columns in view now"
+              data-tip="The columns in view now"
               onClick={() => {
                 set(getVisible());
               }}
@@ -167,7 +167,7 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
             <button
               type="button"
               className="segmented__button astack-pop__step"
-              title="Every column of the alignment"
+              data-tip="Every column of the alignment"
               onClick={() => {
                 set({ start: 0, end: stack.columns });
               }}
@@ -181,7 +181,7 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
           <button
             type="button"
             className="button astack-pop__button"
-            title="Names, ruler, features, differences and amino acids as shown, as a vector file"
+            data-tip="Names, ruler, features, differences and amino acids as shown, as a vector file"
             onClick={() => {
               save('svg');
             }}
@@ -191,7 +191,7 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
           <button
             type="button"
             className="button astack-pop__button"
-            title="The same as an image file"
+            data-tip="The same as an image file"
             onClick={() => {
               save('png');
             }}
@@ -204,7 +204,7 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
           <button
             type="button"
             className="button astack-pop__button"
-            title="Blocks of columns with names, positions and a match line"
+            data-tip="Blocks of columns with names, positions and a match line"
             onClick={() => {
               copy('text');
             }}
@@ -229,7 +229,7 @@ export function AlignmentExport({ stack, referenceName, getVisible, getDrawing, 
           <button
             type="button"
             className="button astack-pop__button"
-            title="Every sequence at the full width of the range, gaps as -"
+            data-tip="Every sequence at the full width of the range, gaps as -"
             onClick={() => {
               copy('fasta');
             }}

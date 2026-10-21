@@ -28,7 +28,7 @@ export function DetectFeaturesButton({ documentId, doc }: Props) {
       type="button"
       className="button button--quiet button--small features__detect"
       disabled={doc.length === 0 || state?.status === 'running'}
-      title="Look for common parts (origins, resistance genes, promoters, terminators, tags, primer sites, fluorescent proteins) in this sequence"
+      data-tip="Look for common parts (origins, resistance genes, promoters, terminators, tags, primer sites, fluorescent proteins) in this sequence"
       onClick={() => {
         void detectionStore.run(documentId, doc);
       }}
@@ -172,7 +172,7 @@ function OfferList({
                 <button
                   type="button"
                   className="feature-row"
-                  title={`${part.note ?? part.name}\nMatched against ${source}`}
+                  data-tip={`${part.note ?? part.name}\nMatched against ${source}`}
                   onClick={() => {
                     editorStore.setSelection(hit.range);
                     editorStore.revealPosition(hit.range.start);

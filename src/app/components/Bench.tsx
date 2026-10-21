@@ -50,7 +50,7 @@ export function Bench() {
                   reaction === r.value ? ' segmented__button--active' : ''
                 }`}
                 aria-pressed={reaction === r.value}
-                title={r.title}
+                data-tip={r.title}
                 onClick={() => {
                   editorStore.setCloningReaction(r.value);
                 }}

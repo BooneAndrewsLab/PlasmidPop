@@ -72,7 +72,7 @@ export function AlignmentSamples({
         <ul className="astack-pop__list" aria-label="Hidden samples">
           {hiddenList.map((i) => (
             <li key={i}>
-              <span className="astack-pop__name" title={names[i]}>
+              <span className="astack-pop__name" data-tip={names[i]}>
                 {names[i]}
               </span>
               <button

@@ -196,7 +196,7 @@ describe('sequencing reads in the app', () => {
       );
       openMenu();
       expect(item()).toBeDisabled();
-      expect(item()).toHaveAttribute('title', expect.stringMatching(/bases were edited/));
+      expect(item()).toHaveAttribute('data-tip', expect.stringMatching(/bases were edited/));
       act(() => {
         editorStore.undo();
       });

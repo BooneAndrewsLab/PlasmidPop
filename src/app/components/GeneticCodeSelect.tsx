@@ -5,7 +5,7 @@ import { useEditorState } from '../state/useEditorStore';
 
 interface Props {
   /** What the code is being chosen for, for the tooltip. */
-  readonly title: string;
+  readonly tip: string;
 }
 
 /**
@@ -14,7 +14,7 @@ interface Props {
  * scan have no feature to ask, unlike a CDS, which is always read with its
  * own `/transl_table`.
  */
-export function GeneticCodeSelect({ title }: Props) {
+export function GeneticCodeSelect({ tip }: Props) {
   const { geneticCode } = useEditorState();
   return (
     <label className="panel__field panel__field--row">
@@ -22,7 +22,7 @@ export function GeneticCodeSelect({ title }: Props) {
       <select
         className="panel__select"
         value={geneticCode}
-        title={title}
+        data-tip={tip}
         onChange={(e) => {
           const id = Number.parseInt(e.target.value, 10);
           if (isTranslationTable(id)) editorStore.setGeneticCode(id);

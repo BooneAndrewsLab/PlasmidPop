@@ -154,7 +154,7 @@ function ProductView({
           <button
             type="button"
             className="button button--small"
-            title="Oligos to order, reactions and the expected gel, as a page to take to the bench"
+            data-tip="Oligos to order, reactions and the expected gel, as a page to take to the bench"
             onClick={() => {
               setProtocol(true);
             }}

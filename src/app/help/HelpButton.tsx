@@ -49,7 +49,7 @@ export function HelpButton() {
         aria-label="Help"
         aria-haspopup="dialog"
         aria-expanded={open}
-        title="Open the guide (?)"
+        data-tip="Open the guide (?)"
         onClick={() => {
           setPage(undefined);
           setOpen(true);

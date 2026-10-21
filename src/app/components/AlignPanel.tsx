@@ -275,7 +275,7 @@ function QualitySettings({ trim }: { trim: boolean }) {
     <div className="panel__controls">
       <label
         className="panel__field"
-        title="A difference on a read base of at least this quality counts as confident; poorer bases are shaded. Q20 is one error in a hundred, Q30 one in a thousand."
+        data-tip="A difference on a read base of at least this quality counts as confident; poorer bases are shaded. Q20 is one error in a hundred, Q30 one in a thousand."
       >
         <span>Confident from</span>
         <select
@@ -296,7 +296,7 @@ function QualitySettings({ trim }: { trim: boolean }) {
       </label>
       <label
         className="panel__field"
-        title="Trimming keeps the stretch whose bases are mostly better than this error rate"
+        data-tip="Trimming keeps the stretch whose bases are mostly better than this error rate"
       >
         <span>Trim at</span>
         <select
@@ -349,7 +349,7 @@ function AlignmentResult({
         <button
           type="button"
           className="panel__heading-pick"
-          title="Show in document: hover to see the aligned region, click to select it"
+          data-tip="Show in document: hover to see the aligned region, click to select it"
           {...pointing.handlers}
           onClick={pointing.select}
         >
@@ -370,7 +370,7 @@ function AlignmentResult({
       <button
         type="button"
         className="button button--primary button--small"
-        title="Show the alignment in a window of its own, wide enough to read along a long sequence"
+        data-tip="Show the alignment in a window of its own, wide enough to read along a long sequence"
         onClick={onOpenLarge}
       >
         Large view
@@ -1001,7 +1001,7 @@ export function AlignPanel({ doc }: Props) {
           type="button"
           className="button button--small"
           disabled={busy || (!all && other.trim() === '' && record === undefined)}
-          title={
+          data-tip={
             all
               ? 'Align every record against this document, one after another, and list them'
               : undefined
@@ -1015,7 +1015,7 @@ export function AlignPanel({ doc }: Props) {
             type="button"
             className="button button--small"
             disabled={busy}
-            title="Join the records into contigs by their overlaps, with no reference, and call a consensus from their base qualities"
+            data-tip="Join the records into contigs by their overlaps, with no reference, and call a consensus from their base qualities"
             onClick={runAssemble}
           >
             Assemble reads
@@ -1054,7 +1054,7 @@ export function AlignPanel({ doc }: Props) {
         {docRead !== null && record?.read === undefined && (
           <label
             className="toggle"
-            title="Untick to align the box's sequence to this document instead, as to any other; the read's qualities are then not used"
+            data-tip="Untick to align the box's sequence to this document instead, as to any other; the read's qualities are then not used"
           >
             <input
               type="checkbox"
@@ -1083,7 +1083,7 @@ export function AlignPanel({ doc }: Props) {
           </label>
           <label
             className="toggle"
-            title={
+            data-tip={
               docIsRead
                 ? 'Not used: the whole read is aligned'
                 : hasSelection
@@ -1116,7 +1116,7 @@ export function AlignPanel({ doc }: Props) {
             {
               <label
                 className="toggle"
-                title={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
+                data-tip={`Mott's algorithm: keep the stretch whose bases are mostly better than Q${qualityOfError(readTrimCutoff)} (${formatErrorRate(readTrimCutoff)} error)`}
               >
                 <input
                   type="checkbox"
@@ -1168,7 +1168,7 @@ export function AlignPanel({ doc }: Props) {
                 <button
                   type="button"
                   className="button button--primary button--small"
-                  title="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
+                  data-tip="Show every aligned read at once, stacked under the document, in a window of its own; the read picked in the list is the one selected there"
                   onClick={() => {
                     openBatchLarge(
                       batchPickedRow?.status === 'aligned' ? batchPickedRow.index : undefined,

@@ -73,14 +73,14 @@ export function EditsMenu() {
       <button
         type="button"
         className="button"
-        title={`${status}. Click to choose what changes are measured from; ${editsKey} turns the marks off and on.`}
+        data-tip={`${status}. Click to choose what changes are measured from; ${editsKey} turns the marks off and on.`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
       >
         Edits
         {on && summary !== '' && (
-          <span className="edits__dot" title={summary}>
+          <span className="edits__dot" data-tip={summary}>
             {' '}
             •
           </span>
@@ -96,7 +96,7 @@ export function EditsMenu() {
               role="menuitemradio"
               aria-checked={editsBaseline === choice.baseline}
               className="menu__item"
-              title={choice.title}
+              data-tip={choice.title}
               onClick={() => {
                 close();
                 analytics.track('edits', 'baseline', choice.baseline);
@@ -119,7 +119,7 @@ export function EditsMenu() {
             type="button"
             role="menuitem"
             className="menu__item"
-            title="Measure from the document as it is now; everything up to here counts as unchanged"
+            data-tip="Measure from the document as it is now; everything up to here counts as unchanged"
             onClick={() => {
               close();
               editorStore.markEditsFromHere();
@@ -134,7 +134,7 @@ export function EditsMenu() {
             role="menuitem"
             className="menu__item"
             disabled={stops.length === 0}
-            title="Select the next marked change after the cursor, going round at the end"
+            data-tip="Select the next marked change after the cursor, going round at the end"
             onClick={() => {
               close();
               goToChange(1);
@@ -148,7 +148,7 @@ export function EditsMenu() {
             role="menuitem"
             className="menu__item"
             disabled={stops.length === 0}
-            title="Select the marked change before the cursor, going round at the start"
+            data-tip="Select the marked change before the cursor, going round at the start"
             onClick={() => {
               close();
               goToChange(-1);

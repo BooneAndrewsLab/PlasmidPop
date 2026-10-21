@@ -229,7 +229,7 @@ export function FeatureEditor({ doc, feature }: Props) {
         <select
           className="panel__select"
           value={thickness ?? 'default'}
-          title="How thick the feature's bar is drawn in the sequence view and on the map"
+          data-tip="How thick the feature's bar is drawn in the sequence view and on the map"
           onChange={(e) => {
             const value = e.target.value;
             setThickness(isFeatureThickness(value) ? value : null);
@@ -312,7 +312,7 @@ export function FeatureEditor({ doc, feature }: Props) {
           <button
             type="button"
             className="button button--quiet button--small"
-            title="Keep this feature's bases in My parts, in this browser, for Detect features to look for in other documents"
+            data-tip="Keep this feature's bases in My parts, in this browser, for Detect features to look for in other documents"
             onClick={() => {
               void saveMyParts([partFromFeature(doc, feature)], 'feature').then((r) => {
                 setSavedPart(
@@ -335,7 +335,7 @@ export function FeatureEditor({ doc, feature }: Props) {
           <button
             type="button"
             className="button button--quiet button--small"
-            title="Keep this primer in My primers, in this browser, as it is saved in the document"
+            data-tip="Keep this primer in My primers, in this browser, as it is saved in the document"
             onClick={() => {
               const draft = primerFromFeature(doc, feature);
               if (draft === null) return;

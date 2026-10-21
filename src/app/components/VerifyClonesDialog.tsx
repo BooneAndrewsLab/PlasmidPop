@@ -312,7 +312,7 @@ function VerifyClonesForm() {
                           type="button"
                           className="read-batch__pick"
                           disabled={r.construct === null}
-                          title="Open the comparison with the construct"
+                          data-tip="Open the comparison with the construct"
                           onClick={() => {
                             open(i);
                           }}
@@ -329,7 +329,7 @@ function VerifyClonesForm() {
                         <td>
                           {r.constructName}
                           {r.byName && (
-                            <span className="verify__meta" title="Chosen by the file name">
+                            <span className="verify__meta" data-tip="Chosen by the file name">
                               {' '}
                               (by name)
                             </span>
@@ -342,7 +342,7 @@ function VerifyClonesForm() {
                           ? '—'
                           : `${(Math.round(r.identity * 1000) / 10).toString()}%`}
                         {r.unchecked && (
-                          <abbr title="Best within a band; not checked against the best possible alignment">
+                          <abbr data-tip="Best within a band; not checked against the best possible alignment">
                             {' '}
                             *
                           </abbr>

@@ -54,7 +54,7 @@ function NodeRow({
   return (
     <div className="made-from__node">
       <div className="made-from__head">
-        <span className="made-from__name" title={name}>
+        <span className="made-from__name" data-tip={name}>
           {name}
         </span>
         {root !== null ? (
@@ -62,7 +62,7 @@ function NodeRow({
             {root.edited ? (
               <span
                 className="made-from__edited"
-                title="Its bases have changed since it was made; the History list says how"
+                data-tip="Its bases have changed since it was made; the History list says how"
               >
                 edited since
               </span>
@@ -75,7 +75,7 @@ function NodeRow({
             type="button"
             className="button button--quiet button--small made-from__open"
             aria-label={`Open ${node.name}`}
-            title={
+            data-tip={
               where.kind === 'tab'
                 ? 'Go to the tab holding this molecule'
                 : 'Open this molecule from the files kept in this browser'
@@ -87,7 +87,10 @@ function NodeRow({
             Open
           </button>
         ) : (
-          <span className="made-from__where" title="No open tab or kept file holds this molecule">
+          <span
+            className="made-from__where"
+            data-tip="No open tab or kept file holds this molecule"
+          >
             not in this browser
           </span>
         )}
@@ -96,7 +99,7 @@ function NodeRow({
       <div className="made-from__meta">
         {node.length.toLocaleString()} bp, {node.topology}
         {node.checksum !== null && (
-          <span className="made-from__checksum" title={node.checksum}>
+          <span className="made-from__checksum" data-tip={node.checksum}>
             {' '}
             · {shortChecksum(node.checksum)}
           </span>
@@ -214,7 +217,7 @@ function MadeFromTree({
         <button
           type="button"
           className="button button--small"
-          title="Oligos to order, reactions and the expected gel, as a page to take to the bench"
+          data-tip="Oligos to order, reactions and the expected gel, as a page to take to the bench"
           onClick={() => {
             setProtocol(true);
           }}

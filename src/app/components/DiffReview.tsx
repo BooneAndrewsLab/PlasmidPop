@@ -160,7 +160,7 @@ export function DiffReview({ doc, baseline, diff }: Props) {
                   <button
                     type="button"
                     className="save-review__point"
-                    title="Show where it was on the map"
+                    data-tip="Show where it was on the map"
                     aria-pressed={
                       pointed?.kind === 'removed' && pointed.featureId === row.removedId
                     }

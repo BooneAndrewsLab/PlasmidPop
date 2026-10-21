@@ -101,7 +101,7 @@ describe('Recode on the Translate tab (#209)', () => {
     render(<TranslatePanel doc={doc} />);
     const button = screen.getByRole('button', { name: 'Recode…' });
     expect(button).toBeDisabled();
-    expect(button.getAttribute('title')).toMatch(/several pieces/);
+    expect(button.getAttribute('data-tip')).toMatch(/several pieces/);
   });
 });
 

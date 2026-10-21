@@ -29,11 +29,11 @@ export function Logo({ height = 26 }: Props) {
     <svg
       className="logo"
       role="img"
+      aria-label="PlasmidPop"
       viewBox={`0 ${VIEW_TOP} ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
       height={height}
       width={(height * VIEW_WIDTH) / VIEW_HEIGHT}
     >
-      <title>PlasmidPop</title>
       <g transform={`translate(0 ${MARK_TOP}) scale(${MARK_SCALE})`} fill="none">
         <rect x="4" y="17" width="11" height="45" fill="currentColor" />
         <path d="M49 34A17 17 0 1 1 32 17" stroke="currentColor" strokeWidth="11" />

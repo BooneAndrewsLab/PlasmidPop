@@ -78,7 +78,7 @@ export function MsaControls({ doc, records }: Props) {
         {include ? ' and with this document' : ''}, all in one view with a consensus.
       </p>
       <div className="panel__controls">
-        <label className="toggle" title="Add this document to the sequences aligned">
+        <label className="toggle" data-tip="Add this document to the sequences aligned">
           <input
             type="checkbox"
             checked={withDoc}
@@ -93,7 +93,7 @@ export function MsaControls({ doc, records }: Props) {
           type="button"
           className="button button--small"
           disabled={busy || reason !== null}
-          title={reason ?? `Align ${total} sequences together`}
+          data-tip={reason ?? `Align ${total} sequences together`}
           onClick={run}
         >
           {busy ? 'Aligning…' : `Align ${total.toLocaleString()} together`}

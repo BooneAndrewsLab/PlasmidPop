@@ -124,7 +124,7 @@ export function Toolbar({ doc }: Props) {
         <button
           type="button"
           className="toolbar__home"
-          title={
+          data-tip={
             front === 'files' ? 'PlasmidPop: the file list' : 'Show files (the open tabs stay open)'
           }
           onClick={() => {
@@ -152,14 +152,14 @@ export function Toolbar({ doc }: Props) {
             <button
               type="button"
               className={`toolbar__name${renamedNote === null ? '' : ' toolbar__name--changed'}`}
-              title={`${renamedNote === null ? '' : `${renamedNote}\n`}${doc.metadata.description === '' ? '' : `${doc.metadata.description}\n`}Click to rename`}
+              data-tip={`${renamedNote === null ? '' : `${renamedNote}\n`}${doc.metadata.description === '' ? '' : `${doc.metadata.description}\n`}Click to rename`}
               onClick={() => {
                 setRenaming(true);
               }}
             >
               {doc.name}
               {dirty && (
-                <span className="toolbar__dirty" title="Changed since the last download">
+                <span className="toolbar__dirty" data-tip="Changed since the last download">
                   {' '}
                   •
                 </span>
@@ -175,13 +175,13 @@ export function Toolbar({ doc }: Props) {
                 doc.topology
               )
             ) : (
-              <span className="toolbar__changed" title={shapeNote}>
+              <span className="toolbar__changed" data-tip={shapeNote}>
                 {doc.topology}
               </span>
             )}
             {/* Only a molecule something has cut has ends worth naming. */}
             {doc.ends !== null && (
-              <span title={`Ends: ${describeEnds(doc.ends)}`}> · {describeEnds(doc.ends)}</span>
+              <span data-tip={`Ends: ${describeEnds(doc.ends)}`}> · {describeEnds(doc.ends)}</span>
             )}
           </span>
         </div>
@@ -194,7 +194,7 @@ export function Toolbar({ doc }: Props) {
             <button
               type="button"
               className="button"
-              title="Start an empty sequence to type or paste into"
+              data-tip="Start an empty sequence to type or paste into"
               onClick={() => {
                 editorStore.requestNewDocument();
               }}
@@ -215,7 +215,7 @@ export function Toolbar({ doc }: Props) {
             <button
               type="button"
               className="button"
-              title="Fetch GenBank or GenPept records by accession number. Only the accessions are sent, to NCBI."
+              data-tip="Fetch GenBank or GenPept records by accession number. Only the accessions are sent, to NCBI."
               onClick={() => {
                 editorStore.requestNcbi();
               }}
@@ -238,7 +238,7 @@ export function Toolbar({ doc }: Props) {
                 className="segmented"
                 role="group"
                 aria-label="View"
-                title={`${viewKey} steps through the three`}
+                data-tip={`${viewKey} steps through the three`}
               >
                 {VIEWS.map(([mode, label]) => (
                   <button
@@ -263,7 +263,7 @@ export function Toolbar({ doc }: Props) {
                   type="button"
                   className={segmentedClass(showComplement)}
                   aria-pressed={showComplement}
-                  title="Show the complement strand (Alt+C)"
+                  data-tip="Show the complement strand (Alt+C)"
                   onClick={() => {
                     analytics.trackOnce('view', 'toggle', 'complement');
                     editorStore.setShowComplement(!showComplement);
@@ -275,7 +275,7 @@ export function Toolbar({ doc }: Props) {
                   type="button"
                   className={segmentedClass(showTranslations)}
                   aria-pressed={showTranslations}
-                  title="Show amino acids under CDS features (Alt+T)"
+                  data-tip="Show amino acids under CDS features (Alt+T)"
                   onClick={() => {
                     analytics.trackOnce('view', 'toggle', 'translations');
                     editorStore.setShowTranslations(!showTranslations);
@@ -287,7 +287,7 @@ export function Toolbar({ doc }: Props) {
                   type="button"
                   className={segmentedClass(showCutSites)}
                   aria-pressed={showCutSites}
-                  title="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks (Alt+R)"
+                  data-tip="Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks (Alt+R)"
                   onClick={() => {
                     analytics.trackOnce('view', 'toggle', 'cut-sites');
                     editorStore.setShowCutSites(!showCutSites);

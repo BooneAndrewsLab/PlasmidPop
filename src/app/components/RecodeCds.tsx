@@ -134,7 +134,7 @@ export function RecodeCds({
         type="button"
         className="button button--small"
         disabled={refusal !== null}
-        title={refusal ?? `Choose codons for ${name} that a host uses, keeping the protein`}
+        data-tip={refusal ?? `Choose codons for ${name} that a host uses, keeping the protein`}
         onClick={() => {
           setOpen(true);
         }}

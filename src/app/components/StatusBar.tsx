@@ -106,12 +106,12 @@ export function StatusBar({ doc }: Props) {
             }
             role="alert"
           >
-            <span title={error}>{error}</span>
+            <span data-tip={error}>{error}</span>
             <button
               type="button"
               className="statusbar__dismiss"
               aria-label="Dismiss"
-              title="Dismiss"
+              data-tip="Dismiss"
               onClick={() => {
                 editorStore.dismissError();
               }}
@@ -151,7 +151,7 @@ export function StatusBar({ doc }: Props) {
           {read !== null && (
             <span
               className="statusbar__read"
-              title={`This document is a sequencing read: its base qualities${read.trace === null ? '' : ' and trace'} are kept with it. Q20 is one error in a hundred bases or fewer, Q30 one in a thousand; the threshold is set in the Align tab.`}
+              data-tip={`This document is a sequencing read: its base qualities${read.trace === null ? '' : ' and trace'} are kept with it. Q20 is one error in a hundred bases or fewer, Q30 one in a thousand; the threshold is set in the Align tab.`}
             >
               {`Read, ${String(Math.round(fractionAtLeast(read, readConfidentQuality) * 100))}% Q${String(readConfidentQuality)}+`}
             </span>
@@ -160,7 +160,7 @@ export function StatusBar({ doc }: Props) {
             <button
               type="button"
               className="button button--quiet statusbar__checksum"
-              title={
+              data-tip={
                 doc?.isProtein === true
                   ? `${checksum.text}\nThe protein's SEGUID v2 name: the same for these residues in either case. Click to copy it in full.`
                   : `${checksum.text}\nThe molecule's SEGUID v2 name: the same for this sequence whatever origin it is written from and whichever strand is on top. Click to copy it in full.`

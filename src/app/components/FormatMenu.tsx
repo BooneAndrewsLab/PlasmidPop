@@ -82,17 +82,17 @@ function Row({
   label,
   note,
   sub = false,
-  title,
+  tip,
   children,
 }: {
   readonly label: string;
   readonly note?: string | undefined;
   readonly sub?: boolean;
-  readonly title?: string | undefined;
+  readonly tip?: string | undefined;
   readonly children: ReactNode;
 }) {
   return (
-    <div className={`menu__item menu__row${sub ? ' menu__row--sub' : ''}`} title={title}>
+    <div className={`menu__item menu__row${sub ? ' menu__row--sub' : ''}`} data-tip={tip}>
       <span className="menu__row-label">
         {label}
         {note !== undefined && <span className="menu__group-note"> · {note}</span>}
@@ -113,7 +113,7 @@ function Choices<T extends string | number | null>({
   choices,
   value,
   disabled = false,
-  disabledTitle,
+  disabledTip,
   onChange,
 }: {
   readonly label: string;
@@ -122,11 +122,11 @@ function Choices<T extends string | number | null>({
   /** The chosen one; `undefined` when the setting holds a value not offered here. */
   readonly value: T | undefined;
   readonly disabled?: boolean;
-  readonly disabledTitle?: string | undefined;
+  readonly disabledTip?: string | undefined;
   readonly onChange: (value: T) => void;
 }) {
   return (
-    <Row label={label} note={note} title={disabled ? disabledTitle : undefined}>
+    <Row label={label} note={note} tip={disabled ? disabledTip : undefined}>
       <SegmentedChoices
         label={label}
         choices={choices}
@@ -221,7 +221,7 @@ export function FormatMenu() {
         className="button"
         aria-label="Format"
         aria-keyshortcuts={key}
-        title={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; and the pane sizes (${key})`}
+        data-tip={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; and the pane sizes (${key})`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -251,7 +251,7 @@ export function FormatMenu() {
           />
           <label
             className="menu__item menu__row menu__row--sub"
-            title="Any whole number of bases, 10 to 1,000"
+            data-tip="Any whole number of bases, 10 to 1,000"
           >
             <span className="menu__row-label">Other</span>
             <span className="menu__row-control">
@@ -279,7 +279,7 @@ export function FormatMenu() {
             role="menuitemcheckbox"
             aria-checked={numberComplement}
             className="menu__item"
-            title="Repeat the row's position beside the complement strand"
+            data-tip="Repeat the row's position beside the complement strand"
             onClick={() => {
               analytics.trackOnce('view', 'format', 'number-complement');
               editorStore.setNumberComplement(!numberComplement);
@@ -293,7 +293,7 @@ export function FormatMenu() {
             role="menuitemcheckbox"
             aria-checked={colorBases}
             className="menu__item"
-            title="Give A, C, G and T each their own colour"
+            data-tip="Give A, C, G and T each their own colour"
             onClick={() => {
               analytics.trackOnce('view', 'format', 'color-bases');
               editorStore.setColorBases(!colorBases);
@@ -312,7 +312,7 @@ export function FormatMenu() {
                 <label
                   key={base}
                   className="menu__swatch"
-                  title={`The colour of ${base.toUpperCase()}`}
+                  data-tip={`The colour of ${base.toUpperCase()}`}
                 >
                   {base.toUpperCase()}
                   <input
@@ -330,7 +330,7 @@ export function FormatMenu() {
                 type="button"
                 className="button button--quiet button--small"
                 disabled={baseColors === null}
-                title="Back to the theme's colours, which differ between light and dark"
+                data-tip="Back to the theme's colours, which differ between light and dark"
                 onClick={() => {
                   editorStore.setBaseColors(null);
                 }}
@@ -348,7 +348,7 @@ export function FormatMenu() {
             aria-keyshortcuts={gcKey}
             className="menu__item"
             disabled={isProtein}
-            title={
+            data-tip={
               isProtein
                 ? 'GC content is a property of DNA'
                 : `A GC content track under the strands and inside the map (${gcKey})`
@@ -365,7 +365,7 @@ export function FormatMenu() {
             <Row
               label="Window"
               sub
-              title="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map"
+              tip="Bases the GC fraction is averaged over; automatic is 50 on the sequence and about 1 % of its length on the map"
             >
               <select
                 aria-label="GC window"
@@ -393,7 +393,7 @@ export function FormatMenu() {
             value={residueNumbering}
             // A protein's ruler already counts its residues (#66).
             disabled={isProtein}
-            disabledTitle="A protein's ruler already counts its residues"
+            disabledTip="A protein's ruler already counts its residues"
             onChange={(numbering) => {
               analytics.trackOnce('view', 'format', 'residue-numbers');
               editorStore.setResidueNumbering(numbering);
@@ -406,7 +406,7 @@ export function FormatMenu() {
             value={traceSize}
             // Always listed, so it can be found; set only with a trace to see.
             disabled={!hasTrace}
-            disabledTitle="Only a read opened from an AB1 file has a trace"
+            disabledTip="Only a read opened from an AB1 file has a trace"
             onChange={(size) => {
               analytics.trackOnce('view', 'format', 'trace');
               editorStore.setTraceSize(size);
@@ -417,7 +417,7 @@ export function FormatMenu() {
             type="button"
             role="menuitem"
             className="menu__item"
-            title="Put the map, the sequence and the sidebar back to the sizes they started at"
+            data-tip="Put the map, the sequence and the sidebar back to the sizes they started at"
             onClick={() => {
               editorStore.resetLayout();
             }}
@@ -428,7 +428,7 @@ export function FormatMenu() {
             type="button"
             role="menuitem"
             className="menu__item"
-            title="See every shortcut, and put an action on another key (#79)"
+            data-tip="See every shortcut, and put an action on another key (#79)"
             onClick={() => {
               toggle();
               editorStore.showKeysDialog(true);

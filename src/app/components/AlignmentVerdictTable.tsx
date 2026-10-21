@@ -60,7 +60,7 @@ export function AlignmentVerdictTable({ verdicts, order, onOrder, onPick }: Prop
             type="button"
             className={segmentedClass(order === 'position')}
             aria-pressed={order === 'position'}
-            title="In the order they sit in the document"
+            data-tip="In the order they sit in the document"
             onClick={() => {
               onOrder('position');
             }}
@@ -71,7 +71,7 @@ export function AlignmentVerdictTable({ verdicts, order, onOrder, onPick }: Prop
             type="button"
             className={segmentedClass(order === 'status')}
             aria-pressed={order === 'status'}
-            title="Differences first, then partly covered, not covered, and confirmed last"
+            data-tip="Differences first, then partly covered, not covered, and confirmed last"
             onClick={() => {
               onOrder('status');
             }}
@@ -82,7 +82,7 @@ export function AlignmentVerdictTable({ verdicts, order, onOrder, onPick }: Prop
         <button
           type="button"
           className="button button--small"
-          title="Copy the table as tab-separated text"
+          data-tip="Copy the table as tab-separated text"
           onClick={() => {
             copyText(verdictsTsv(rows));
             setCopied(true);
@@ -110,11 +110,11 @@ export function AlignmentVerdictTable({ verdicts, order, onOrder, onPick }: Prop
               <th
                 scope="col"
                 className="astack-verdict-table__num"
-                title="The fewest reads at good quality over the feature's bases"
+                data-tip="The fewest reads at good quality over the feature's bases"
               >
                 Reads
               </th>
-              <th scope="col" title="Which strands the covering reads come from">
+              <th scope="col" data-tip="Which strands the covering reads come from">
                 Strands
               </th>
               <th scope="col" className="astack-verdict-table__num">
@@ -142,7 +142,7 @@ export function AlignmentVerdictTable({ verdicts, order, onOrder, onPick }: Prop
                   <button
                     type="button"
                     className="astack-diffs__go"
-                    title="Show this feature in the alignment"
+                    data-tip="Show this feature in the alignment"
                     onClick={(e) => {
                       e.stopPropagation();
                       pick(v);

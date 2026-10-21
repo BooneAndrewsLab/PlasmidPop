@@ -40,7 +40,7 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
   it('marks nothing on a document as it was opened', () => {
     const { container } = render(<Bar />);
     expect(nameButton().className).not.toContain('toolbar__name--changed');
-    expect(nameButton().title).not.toContain('Renamed');
+    expect(nameButton().getAttribute('data-tip')).not.toContain('Renamed');
     expect(shape(container)).toBeNull();
   });
 
@@ -50,10 +50,12 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
       editorStore.apply({ type: 'rename', name: 'pRenamed' });
     });
     expect(nameButton().className).toContain('toolbar__name--changed');
-    expect(nameButton().title).toMatch(/^Renamed from “pTest”\n/);
-    expect(nameButton().title).toContain('Click to rename');
+    expect(nameButton().getAttribute('data-tip')).toMatch(/^Renamed from “pTest”\n/);
+    expect(nameButton().getAttribute('data-tip')).toContain('Click to rename');
     expect(shape(container)).toBeNull();
-    expect(screen.getByRole('button', { name: /Edits/ }).title).toContain('Since opened: renamed');
+    expect(screen.getByRole('button', { name: /Edits/ }).getAttribute('data-tip')).toContain(
+      'Since opened: renamed',
+    );
   });
 
   it('marks a change of topology on the shape, saying what it was', () => {
@@ -62,9 +64,11 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
       editorStore.apply({ type: 'setTopology', topology: 'linear' });
     });
     expect(shape(container)?.textContent).toBe('linear');
-    expect(shape(container)?.title).toBe('Was circular');
+    expect(shape(container)?.getAttribute('data-tip')).toBe('Was circular');
     expect(nameButton().className).not.toContain('toolbar__name--changed');
-    expect(screen.getByRole('button', { name: /Edits/ }).title).toContain('made linear');
+    expect(screen.getByRole('button', { name: /Edits/ }).getAttribute('data-tip')).toContain(
+      'made linear',
+    );
   });
 
   it('marks both at once', () => {
@@ -73,9 +77,11 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
       editorStore.apply({ type: 'rename', name: 'pRenamed' });
       editorStore.apply({ type: 'setTopology', topology: 'linear' });
     });
-    expect(nameButton().title).toMatch(/^Renamed from “pTest”/);
-    expect(shape(container)?.title).toBe('Was circular');
-    expect(screen.getByRole('button', { name: /Edits/ }).title).toContain('renamed · made linear');
+    expect(nameButton().getAttribute('data-tip')).toMatch(/^Renamed from “pTest”/);
+    expect(shape(container)?.getAttribute('data-tip')).toBe('Was circular');
+    expect(screen.getByRole('button', { name: /Edits/ }).getAttribute('data-tip')).toContain(
+      'renamed · made linear',
+    );
   });
 
   it('takes the name a working copy gives itself for no rename', () => {
@@ -96,7 +102,7 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
       editorStore.setEditsBaseline('off');
     });
     expect(nameButton().className).not.toContain('toolbar__name--changed');
-    expect(nameButton().title).not.toContain('Renamed');
+    expect(nameButton().getAttribute('data-tip')).not.toContain('Renamed');
     expect(shape(container)).toBeNull();
   });
 
@@ -112,7 +118,7 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
     act(() => {
       editorStore.setEditsBaseline('opened');
     });
-    expect(nameButton().title).toMatch(/^Renamed from “pTest”/);
+    expect(nameButton().getAttribute('data-tip')).toMatch(/^Renamed from “pTest”/);
 
     // Against another file, the tooltip says what that one is called and is.
     const theirs = SeqDocument.create({
@@ -123,7 +129,7 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
     act(() => {
       editorStore.markComparedInViews('theirs.gb', theirs);
     });
-    expect(nameButton().title).toMatch(/^Named “pOther” in theirs\.gb\n/);
-    expect(shape(container)?.title).toBe('Linear in theirs.gb');
+    expect(nameButton().getAttribute('data-tip')).toMatch(/^Named “pOther” in theirs\.gb\n/);
+    expect(shape(container)?.getAttribute('data-tip')).toBe('Linear in theirs.gb');
   });
 });

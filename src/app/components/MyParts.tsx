@@ -29,7 +29,7 @@ export function MyPartsSection() {
         type="button"
         className="button button--quiet button--small my-parts__toggle"
         aria-expanded={open}
-        title="Parts of your own (promoters, tags, landing pads) for Detect features to look for"
+        data-tip="Parts of your own (promoters, tags, landing pads) for Detect features to look for"
         onClick={() => {
           setOpen(!open);
         }}
@@ -165,7 +165,7 @@ function MyPartsBody() {
         <button
           type="button"
           className="button button--small"
-          title="Each feature of a GenBank record, or each FASTA record, becomes a part"
+          data-tip="Each feature of a GenBank record, or each FASTA record, becomes a part"
           onClick={() => files.current?.click()}
         >
           Add from file…
@@ -278,7 +278,7 @@ function PartRow({ part }: { readonly part: MyPart }) {
       : `${(part.protein?.length ?? 0).toLocaleString()} aa`;
   return (
     <li className="my-parts__item">
-      <span className="my-parts__name" title={part.notes === '' ? part.name : part.notes}>
+      <span className="my-parts__name" data-tip={part.notes === '' ? part.name : part.notes}>
         {part.name}
       </span>{' '}
       <span className="panel__note--quiet">

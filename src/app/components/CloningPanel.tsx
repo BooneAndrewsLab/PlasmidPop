@@ -45,7 +45,7 @@ function endLabel(end: FragmentEnd): string {
 function EndTag({ end, side }: { readonly end: FragmentEnd; readonly side: 'left' | 'right' }) {
   const shape = end.kind === 'blunt' ? 'blunt' : end.kind === "5'" ? '5′' : '3′';
   return (
-    <span className={`end end--${side}`} title={describeEnd(end)}>
+    <span className={`end end--${side}`} data-tip={describeEnd(end)}>
       <span className="end__enzyme">{endLabel(end)}</span>
       <span className="end__shape">{shape}</span>
       {end.overhang !== '' && <span className="end__overhang">{end.overhang.toUpperCase()}</span>}
@@ -122,18 +122,18 @@ function FragmentRow({
         <button
           type="button"
           className="fragment__length"
-          title="Select this fragment in the views"
+          data-tip="Select this fragment in the views"
           onClick={onSelect}
         >
           {fragment.sequence.length.toLocaleString()} bp
         </button>
-        <span className="fragment__range" title={range}>
+        <span className="fragment__range" data-tip={range}>
           {range}
         </span>
         <button
           type="button"
           className={`button button--quiet button--small fragment__add${added ? ' fragment__add--done' : ''}`}
-          title={
+          data-tip={
             onShelf > 0
               ? 'Put another copy of this fragment on the shelf'
               : 'Put this fragment on the shelf, for the reactions on the Bench'
@@ -153,7 +153,7 @@ function FragmentRow({
         <button
           type="button"
           className="button button--quiet button--small"
-          title="Open this fragment as a document of its own, sticky ends and all"
+          data-tip="Open this fragment as a document of its own, sticky ends and all"
           onClick={onOpen}
         >
           Open
@@ -164,13 +164,13 @@ function FragmentRow({
         <span className="fragment__bar" aria-hidden="true" />
         <EndTag end={fragment.right} side="right" />
         {onShelf > 0 && (
-          <span className="fragment__shelved" title="Copies of this fragment on the shelf">
+          <span className="fragment__shelved" data-tip="Copies of this fragment on the shelf">
             On shelf{onShelf > 1 ? ` ×${String(onShelf)}` : ''}
           </span>
         )}
       </div>
       {names.length > 0 && (
-        <div className="fragment__features" title={names.join(', ')}>
+        <div className="fragment__features" data-tip={names.join(', ')}>
           {names.slice(0, 4).join(', ')}
           {names.length > 4 ? `, +${names.length - 4} more` : ''}
         </div>
@@ -345,7 +345,7 @@ export function CloningPanel({ doc }: Props) {
                 sidebarReaction === r.value ? ' segmented__button--active' : ''
               }`}
               aria-pressed={sidebarReaction === r.value}
-              title={r.title}
+              data-tip={r.title}
               onClick={() => {
                 editorStore.setCloningReaction(r.value);
               }}
@@ -412,7 +412,7 @@ export function CloningPanel({ doc }: Props) {
           {ready && enzymesUsed.length > 0 && (
             <label
               className="toggle"
-              title="List every piece a digest that misses some of the sites can give, not only the complete digest's"
+              data-tip="List every piece a digest that misses some of the sites can give, not only the complete digest's"
             >
               <input
                 type="checkbox"

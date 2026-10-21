@@ -507,7 +507,7 @@ export function AlignmentDialog({
               className={segmentedClass(false)}
               disabled={passing.length === 0}
               aria-label="Previous difference"
-              title={`Previous difference (${formatBinding(withShift(nextBinding))})`}
+              data-tip={`Previous difference (${formatBinding(withShift(nextBinding))})`}
               onClick={() => {
                 go(true);
               }}
@@ -519,7 +519,7 @@ export function AlignmentDialog({
               className={segmentedClass(false)}
               disabled={passing.length === 0}
               aria-label="Next difference"
-              title={`Next difference (${formatBinding(nextBinding)})`}
+              data-tip={`Next difference (${formatBinding(nextBinding)})`}
               onClick={() => {
                 go(false);
               }}
@@ -537,7 +537,7 @@ export function AlignmentDialog({
                 className={segmentedClass(popover === 'filter' || filtering)}
                 aria-pressed={popover === 'filter'}
                 disabled={regions.length === 0}
-                title="Choose which differences Next and Previous stop at"
+                data-tip="Choose which differences Next and Previous stop at"
                 onClick={() => {
                   setPopover((m) => (m === 'filter' ? null : 'filter'));
                 }}
@@ -566,7 +566,7 @@ export function AlignmentDialog({
               className={segmentedClass(showList)}
               aria-pressed={showList}
               disabled={regions.length === 0}
-              title="A table of the differences, with their effect on the protein, to copy"
+              data-tip="A table of the differences, with their effect on the protein, to copy"
               onClick={() => {
                 setShowList((on) => !on);
                 setShowVerdicts(false);
@@ -579,7 +579,7 @@ export function AlignmentDialog({
               className={segmentedClass(showVerdicts)}
               aria-pressed={showVerdicts}
               disabled={verdicts.length === 0}
-              title="A table of every feature: status, position, reads and strands"
+              data-tip="A table of every feature: status, position, reads and strands"
               onClick={() => {
                 setShowVerdicts((on) => !on);
                 // One table at a time under the toolbar: this one or the differences.
@@ -595,7 +595,7 @@ export function AlignmentDialog({
                 type="button"
                 className={segmentedClass(search === 'goto')}
                 aria-pressed={search === 'goto'}
-                title="Go to a position of the reference (Ctrl+G)"
+                data-tip="Go to a position of the reference (Ctrl+G)"
                 onClick={() => {
                   setPopover((m) => (m === 'goto' ? null : 'goto'));
                 }}
@@ -606,7 +606,7 @@ export function AlignmentDialog({
                 type="button"
                 className={segmentedClass(search === 'find')}
                 aria-pressed={search === 'find'}
-                title="Find a motif in the reference or a sample (Ctrl+F)"
+                data-tip="Find a motif in the reference or a sample (Ctrl+F)"
                 onClick={() => {
                   setPopover((m) => (m === 'find' ? null : 'find'));
                 }}
@@ -635,7 +635,7 @@ export function AlignmentDialog({
                 className={segmentedClass(popover === 'export')}
                 aria-pressed={popover === 'export'}
                 aria-label="Export"
-                title="Save the alignment as SVG or PNG, or copy it as text or aligned FASTA"
+                data-tip="Save the alignment as SVG or PNG, or copy it as text or aligned FASTA"
                 onClick={() => {
                   setPopover((m) => (m === 'export' ? null : 'export'));
                 }}
@@ -664,7 +664,7 @@ export function AlignmentDialog({
                   type="button"
                   className={segmentedClass(popover === 'samples' || hidden.size > 0)}
                   aria-pressed={popover === 'samples'}
-                  title="Sort the samples, or bring back hidden ones"
+                  data-tip="Sort the samples, or bring back hidden ones"
                   onClick={() => {
                     setPopover((m) => (m === 'samples' ? null : 'samples'));
                   }}
@@ -702,7 +702,7 @@ export function AlignmentDialog({
                   type="button"
                   className={segmentedClass(showFeatures)}
                   aria-pressed={showFeatures}
-                  title={
+                  data-tip={
                     track !== null && track.hidden > 0
                       ? `${track.hidden} lanes not shown`
                       : source === null
@@ -725,7 +725,7 @@ export function AlignmentDialog({
                     className={segmentedClass(showOrfs)}
                     aria-pressed={showOrfs}
                     disabled={orfs === null}
-                    title={
+                    data-tip={
                       orfs === null
                         ? 'The open reading frames are still being found.'
                         : `ORFs of ${orfMinCodons} codons or more, as in the ORFs panel`
@@ -741,7 +741,7 @@ export function AlignmentDialog({
                       type="button"
                       className={segmentedClass(showResidues)}
                       aria-pressed={showResidues}
-                      title={
+                      data-tip={
                         translationsBinding === undefined
                           ? 'The CDS residues under each row'
                           : `The CDS residues under each row (${formatBinding(translationsBinding)})`
@@ -786,7 +786,7 @@ export function AlignmentDialog({
               <button
                 type="button"
                 className="button button--small"
-                title={`Take ${row.name} out of the alignment; Samples brings it back`}
+                data-tip={`Take ${row.name} out of the alignment; Samples brings it back`}
                 onClick={() => {
                   setHidden((h) => new Set(h).add(pickedSample));
                 }}
@@ -798,7 +798,7 @@ export function AlignmentDialog({
               <button
                 type="button"
                 className="button button--small astack-status__select"
-                title={`Select the region ${row.name} aligned to in this document`}
+                data-tip={`Select the region ${row.name} aligned to in this document`}
                 onClick={() => {
                   const range = alignedRegionInDocument(row.result, documentIsRead);
                   if (range !== null) {
@@ -818,7 +818,7 @@ export function AlignmentDialog({
                 className="button button--small"
                 aria-pressed={stopMark !== undefined}
                 disabled={stopMark === 'taken'}
-                title={
+                data-tip={
                   stopMark === 'taken'
                     ? 'Taken into the document'
                     : stopMark === 'reviewed'
@@ -839,7 +839,7 @@ export function AlignmentDialog({
                   type="button"
                   className="button button--small"
                   disabled={!take.ok}
-                  title={
+                  data-tip={
                     take.ok
                       ? `Write ${row?.name ?? ''}'s bases here into the document, as one edit to undo`
                       : take.reason
@@ -873,7 +873,7 @@ export function AlignmentDialog({
           {disagreement.length > 0 && (
             <span
               className="astack-tools__note"
-              title="Columns where two or more samples, at good quality, carry different bases from each other: more often a base-calling error than a real change. A difference every sample shares is not marked."
+              data-tip="Columns where two or more samples, at good quality, carry different bases from each other: more often a base-calling error than a real change. A difference every sample shares is not marked."
             >
               {'\u25BC'} {disagreement.length.toLocaleString()}{' '}
               {disagreement.length === 1 ? 'column' : 'columns'} where samples disagree
@@ -896,7 +896,7 @@ export function AlignmentDialog({
                 key={i}
                 type="button"
                 className={`astack-verdict astack-verdict--${v.kind}`}
-                title="Show this feature in the alignment"
+                data-tip="Show this feature in the alignment"
                 onClick={() => {
                   setFocus((f) => ({ start: v.start, end: v.end, nonce: (f?.nonce ?? 0) + 1 }));
                 }}
@@ -908,7 +908,7 @@ export function AlignmentDialog({
               <button
                 type="button"
                 className="astack-verdict astack-verdict--more"
-                title="Open the table of all features with the ones needing a look first"
+                data-tip="Open the table of all features with the ones needing a look first"
                 onClick={() => {
                   setVerdictOrder('status');
                   setShowVerdicts(true);

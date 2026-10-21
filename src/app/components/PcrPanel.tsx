@@ -432,7 +432,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
         </p>
         <label
           className="toggle"
-          title="Oligos are made without a 5′ phosphate unless ordered with one; without it the product will not ligate into a dephosphorylated vector"
+          data-tip="Oligos are made without a 5′ phosphate unless ordered with one; without it the product will not ligate into a dephosphorylated vector"
         >
           <input
             type="checkbox"
@@ -511,7 +511,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                         type="button"
                         className="button button--quiet button--small"
                         aria-pressed={shown === i}
-                        title="Draw this product and its primers on both views"
+                        data-tip="Draw this product and its primers on both views"
                         onClick={() => {
                           show(i);
                         }}
@@ -522,7 +522,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                     <button
                       type="button"
                       className="button button--quiet button--small"
-                      title="Put the product on the shelf, for a ligation, Golden Gate or Gibson"
+                      data-tip="Put the product on the shelf, for a ligation, Golden Gate or Gibson"
                       onClick={() => {
                         analytics.track('cloning', 'pcr');
                         shelve(made(p), phosphorylated);
@@ -533,7 +533,7 @@ export function PcrPanel({ doc }: { readonly doc: SeqDocument }) {
                     <button
                       type="button"
                       className="button button--quiet button--small"
-                      title="Open the product as a document of its own"
+                      data-tip="Open the product as a document of its own"
                       onClick={() => {
                         open(p);
                       }}

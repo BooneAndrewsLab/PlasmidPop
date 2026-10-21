@@ -13,6 +13,7 @@ import {
 
 import { MAX_DEFAULT_ENZYMES, editorStore } from '../state/editorStore';
 import { EnzymePanel } from './EnzymePanel';
+import { getByTip } from '@/test/tips';
 
 // 4,000 bp, linear: the fragment sizes below are cut positions on it.
 const doc = SeqDocument.create({ sequence: 'ACGT'.repeat(1000) });
@@ -143,7 +144,7 @@ describe('EnzymePanel', () => {
     expect(bands[2]).toBe('3,000 + 1,000 bp');
     const warned = document.querySelectorAll('.enzyme-row__bands--muddy');
     expect(warned).toHaveLength(1);
-    expect(warned[0]?.getAttribute('title')).toMatch(/run together/);
+    expect(warned[0]?.getAttribute('data-tip')).toMatch(/run together/);
   });
 
   it('says how everything ticked together would read on a gel', () => {
@@ -319,7 +320,9 @@ describe('EnzymePanel', () => {
         target: { value: '100 bp' },
       });
     });
-    expect(document.querySelector('.gel__svg title')?.textContent).toMatch(/100 bp ladder$/);
+    expect(document.querySelector('.gel__svg')?.getAttribute('aria-label')).toMatch(
+      /100 bp ladder$/,
+    );
   });
 
   it('offers the best double digests when ordered by band separation', () => {
@@ -564,7 +567,7 @@ describe('EnzymePanel isoschizomers', () => {
     // BamHI is the bundled table's name for it; neoschizomers keep their own rows.
     expect(listed()).toEqual(['BamHI', 'SmaI', 'XmaI']);
     expect([...editorStore.getState().shownEnzymes].sort()).toEqual(['BamHI', 'SmaI', 'XmaI']);
-    expect(screen.getByTitle('Same site and cut: BstI and AliI')).toHaveTextContent('+2');
+    expect(getByTip(document.body, 'Same site and cut: BstI and AliI')).toHaveTextContent('+2');
     expect(
       screen.getByText(/5 of 5 enzymes .* in 3 rows with isoschizomers together/),
     ).toBeVisible();
@@ -599,7 +602,7 @@ describe('EnzymePanel isoschizomers', () => {
     });
     // AliI and BstI are sold by B; BstI is sold by more companies.
     expect(listed()).toEqual(['BstI']);
-    expect(screen.getByTitle('Same site and cut: AliI')).toBeVisible();
+    expect(getByTip(document.body, 'Same site and cut: AliI')).toBeVisible();
   });
 
   it('unticks every member when the row is unticked', () => {
@@ -642,7 +645,7 @@ describe('EnzymePanel host methylation', () => {
     render(<EnzymePanel doc={methylDoc} />);
     const cuts = [...document.querySelectorAll('.enzyme-row__cuts .link')];
     expect(cuts.map((c) => c.classList.contains('link--methylated'))).toEqual([true, false]);
-    expect(cuts[0]?.getAttribute('title')).toMatch(/Dam methylation overlaps it/);
+    expect(cuts[0]?.getAttribute('data-tip')).toMatch(/Dam methylation overlaps it/);
     expect(screen.getByText(/1 of 2 sites may be blocked by Dam\/Dcm methylation/)).toBeVisible();
   });
 });

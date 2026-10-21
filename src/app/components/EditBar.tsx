@@ -21,7 +21,7 @@ export function EditBar({ doc }: Props) {
         type="button"
         className="button button--small"
         disabled={!hasRange}
-        title={`Annotate the selected ${unitName(doc.alphabet, true)} as a new feature`}
+        data-tip={`Annotate the selected ${unitName(doc.alphabet, true)} as a new feature`}
         onClick={() => {
           editorStore.addFeatureFromSelection();
         }}
@@ -45,7 +45,7 @@ export function EditBar({ doc }: Props) {
         <button
           type="button"
           className="button button--small"
-          title="Reverse-complement the whole sequence; features follow"
+          data-tip="Reverse-complement the whole sequence; features follow"
           onClick={() => {
             editorStore.apply({ type: 'reverseComplement' });
           }}
@@ -61,7 +61,7 @@ export function EditBar({ doc }: Props) {
               type="button"
               className="button button--small"
               disabled={!hasCaret}
-              title="Make the base after the cursor (or the selection start) base 1"
+              data-tip="Make the base after the cursor (or the selection start) base 1"
               onClick={() => {
                 if (selection !== null)
                   editorStore.apply({ type: 'setOrigin', position: selection.start });
@@ -73,7 +73,7 @@ export function EditBar({ doc }: Props) {
           <button
             type="button"
             className="button button--small"
-            title={
+            data-tip={
               doc.isCircular ? 'Treat the sequence as linear' : 'Treat the sequence as circular'
             }
             onClick={() => {
@@ -93,7 +93,7 @@ export function EditBar({ doc }: Props) {
           <button
             type="button"
             className="button button--small"
-            title="Klenow or T4 DNA polymerase: fill 5′ overhangs in, chew 3′ ones back"
+            data-tip="Klenow or T4 DNA polymerase: fill 5′ overhangs in, chew 3′ ones back"
             onClick={() => {
               editorStore.apply({ type: 'bluntEnds', method: 'fill' });
             }}
@@ -103,7 +103,7 @@ export function EditBar({ doc }: Props) {
           <button
             type="button"
             className="button button--small"
-            title="Mung bean nuclease: remove every overhang, 5′ or 3′"
+            data-tip="Mung bean nuclease: remove every overhang, 5′ or 3′"
             onClick={() => {
               editorStore.apply({ type: 'bluntEnds', method: 'trim' });
             }}
@@ -115,7 +115,7 @@ export function EditBar({ doc }: Props) {
       <button
         type="button"
         className="button button--small"
-        title={`Find ${unitName(doc.alphabet, true)} or features (Ctrl+F)`}
+        data-tip={`Find ${unitName(doc.alphabet, true)} or features (Ctrl+F)`}
         onClick={() => {
           editorStore.setFindOpen(true);
         }}

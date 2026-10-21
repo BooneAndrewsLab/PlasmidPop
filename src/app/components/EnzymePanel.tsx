@@ -148,7 +148,7 @@ function MethylationNote({ count, of }: { readonly count: number; readonly of: n
   return (
     <span
       className="enzyme-row__methylation"
-      title="Most laboratory E. coli strains methylate GATC (Dam) and CCWGG (Dcm). Grow the plasmid in a dam–/dcm– strain, or use an isoschizomer that is not sensitive, to cut these sites."
+      data-tip="Most laboratory E. coli strains methylate GATC (Dam) and CCWGG (Dcm). Grow the plasmid in a dam–/dcm– strain, or use an isoschizomer that is not sensitive, to cut these sites."
     >
       {count === of ? (of === 1 ? 'Its site' : `All ${of} sites`) : `${count} of ${of} sites`} may
       be blocked by Dam/Dcm methylation
@@ -182,7 +182,7 @@ function BandLine({ profile }: { readonly profile: DigestProfile }) {
   return (
     <span
       className={`enzyme-row__bands${clear ? '' : ' enzyme-row__bands--muddy'}`}
-      title={
+      data-tip={
         clear
           ? `On a gel: ${describeBands(profile, 12)}`
           : `On a gel: ${describeBands(profile, 12)} — ${problems.join('; ')}`
@@ -290,7 +290,7 @@ function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDige
           <select
             className="panel__select"
             value={anchor?.name ?? ''}
-            title="Pairs among the enzymes listed, or the best partners for one enzyme"
+            data-tip="Pairs among the enzymes listed, or the best partners for one enzyme"
             onChange={(e) => {
               setAnchorName(e.target.value);
             }}
@@ -348,7 +348,7 @@ function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDige
                   type="button"
                   className="button button--quiet button--small"
                   disabled={both}
-                  title={
+                  data-tip={
                     both
                       ? 'These two are what is ticked; the gel below is their digest'
                       : `Tick ${first} and ${second} alone, to see their digest beside each on its own`
@@ -697,7 +697,7 @@ export function EnzymePanel({ doc }: Props) {
             <select
               className="panel__select"
               value={enzymeCutFilter}
-              title="List only the enzymes that cut this many times — two for a diagnostic digest, one for a cloning site"
+              data-tip="List only the enzymes that cut this many times — two for a diagnostic digest, one for a cloning site"
               onChange={(e) => {
                 editorStore.setEnzymeCutFilter(
                   isCutCountFilter(e.target.value) ? e.target.value : 'any',
@@ -718,7 +718,7 @@ export function EnzymePanel({ doc }: Props) {
                 id={orderId}
                 className="panel__select"
                 value={enzymeSort}
-                title="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
+                data-tip="Alphabetically, or the enzymes whose fragments are furthest apart on a gel first"
                 onChange={(e) => {
                   editorStore.setEnzymeSort(isEnzymeSort(e.target.value) ? e.target.value : 'name');
                 }}
@@ -734,7 +734,7 @@ export function EnzymePanel({ doc }: Props) {
                 className="button button--quiet button--small"
                 aria-pressed={reversed}
                 aria-label="Reverse the order"
-                title={
+                data-tip={
                   enzymeSort === 'name'
                     ? 'List Z to A'
                     : 'List the lanes that would be hardest to read first'
@@ -747,7 +747,7 @@ export function EnzymePanel({ doc }: Props) {
               </button>
             </span>
           </label>
-          <label title="Where the DNA was grown. An ordinary laboratory strain methylates GATC (Dam) and CCWGG (Dcm), which blocks some enzymes; DNA made by PCR carries neither">
+          <label data-tip="Where the DNA was grown. An ordinary laboratory strain methylates GATC (Dam) and CCWGG (Dcm), which blocks some enzymes; DNA made by PCR carries neither">
             <span>Grown in</span>
             <select
               className="panel__select"
@@ -771,7 +771,7 @@ export function EnzymePanel({ doc }: Props) {
           <span className="panel__form-range">
             <label
               className="panel__form-check"
-              title="Enzymes that cut the same site in the same place give the same fragments and ends; list them as one row"
+              data-tip="Enzymes that cut the same site in the same place give the same fragments and ends; list them as one row"
             >
               <input
                 type="checkbox"
@@ -808,7 +808,7 @@ export function EnzymePanel({ doc }: Props) {
             type="button"
             className="button button--quiet button--small"
             disabled={rows.length > MAX_SHOW_LISTED}
-            title={
+            data-tip={
               rows.length > MAX_SHOW_LISTED
                 ? `${rows.length.toLocaleString()} enzymes is more than the views can label; filter the list first`
                 : 'Tick every enzyme in the list'
@@ -875,7 +875,7 @@ export function EnzymePanel({ doc }: Props) {
                 <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
                   <label
                     className="enzyme-row__toggle"
-                    title="Tick to draw this enzyme's cut sites and to digest with it"
+                    data-tip="Tick to draw this enzyme's cut sites and to digest with it"
                   >
                     <input
                       type="checkbox"
@@ -896,14 +896,14 @@ export function EnzymePanel({ doc }: Props) {
                     {members.length > 1 && (
                       <span
                         className="enzyme-row__more"
-                        title={`Same site and cut: ${describeOthers(enzyme, members)}`}
+                        data-tip={`Same site and cut: ${describeOthers(enzyme, members)}`}
                       >
                         {' '}
                         +{members.length - 1}
                       </span>
                     )}
                   </label>
-                  <span className="enzyme-row__site" title={describeEnzyme(enzyme)}>
+                  <span className="enzyme-row__site" data-tip={describeEnzyme(enzyme)}>
                     {enzyme.site}
                   </span>
                   <span className="enzyme-row__cuts">
@@ -914,7 +914,7 @@ export function EnzymePanel({ doc }: Props) {
                           key={i}
                           type="button"
                           className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
-                          title={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
+                          data-tip={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
                             host.length > 0
                               ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
                               : ''
@@ -931,7 +931,7 @@ export function EnzymePanel({ doc }: Props) {
                     {sites.length > MAX_SITES_SHOWN && (
                       <span
                         className="enzyme-row__more"
-                        title={`${enzyme.name} cuts ${sites.length} times in all`}
+                        data-tip={`${enzyme.name} cuts ${sites.length} times in all`}
                       >
                         +{sites.length - MAX_SITES_SHOWN}
                       </span>

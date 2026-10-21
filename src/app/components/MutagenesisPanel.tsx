@@ -148,7 +148,7 @@ function CodonChange({
           <select
             className="panel__select"
             aria-label="Codon usage host"
-            title="Whose codon usage orders the codons: the Codon Usage Database's counts for that organism"
+            data-tip="Whose codon usage orders the codons: the Codon Usage Database's counts for that organism"
             value={host}
             onChange={(e) => {
               setHost(e.target.value);
@@ -170,7 +170,7 @@ function CodonChange({
                 <button
                   type="button"
                   className="button button--small"
-                  title={`${(c.fraction * 100).toFixed(0)} % of ${residue === STOP ? 'stops' : residue} in ${table.organism}; ${c.changes} ${c.changes === 1 ? 'base' : 'bases'} changed`}
+                  data-tip={`${(c.fraction * 100).toFixed(0)} % of ${residue === STOP ? 'stops' : residue} in ${table.organism}; ${c.changes} ${c.changes === 1 ? 'base' : 'bases'} changed`}
                   onClick={() => {
                     onApply(c.codon);
                   }}
@@ -192,7 +192,7 @@ function CodonChange({
         <select
           className="panel__select"
           aria-label="Degenerate codon"
-          title="A saturation library at this codon, ordered as one degenerate oligo"
+          data-tip="A saturation library at this codon, ordered as one degenerate oligo"
           value={library}
           onChange={(e) => {
             setLibrary(e.target.value);
@@ -333,7 +333,7 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
               type="button"
               className={`segmented__button${method === m.value ? ' segmented__button--active' : ''}`}
               aria-pressed={method === m.value}
-              title={m.title}
+              data-tip={m.title}
               onClick={() => {
                 setMethod(m.value);
               }}
@@ -367,7 +367,7 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
               <button
                 type="button"
                 className="button button--primary button--small"
-                title="Open the plasmid with the change, as an edit you can see and undo"
+                data-tip="Open the plasmid with the change, as an edit you can see and undo"
                 onClick={open}
               >
                 Open mutant

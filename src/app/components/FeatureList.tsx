@@ -112,7 +112,7 @@ function TranslationNotice({
           <button
             type="button"
             className="button button--quiet button--small"
-            title="Replace the stored /translation with the protein these bases give"
+            data-tip="Replace the stored /translation with the protein these bases give"
             onClick={() => {
               setTranslation(translationFor(doc, feature));
             }}
@@ -122,7 +122,7 @@ function TranslationNotice({
           <button
             type="button"
             className="button button--quiet button--small"
-            title="Remove the stored /translation; the protein is still shown from the bases"
+            data-tip="Remove the stored /translation; the protein is still shown from the bases"
             onClick={() => {
               setTranslation(null);
             }}
@@ -227,7 +227,7 @@ export function FeatureList({ doc, reader = false }: Props) {
                         {translation.has(f.id) && (
                           <span
                             className="feature-row__warn"
-                            title={(translation.get(f.id) ?? [])
+                            data-tip={(translation.get(f.id) ?? [])
                               .map(describeTranslationProblem)
                               .join('\n')}
                           >

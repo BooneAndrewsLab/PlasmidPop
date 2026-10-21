@@ -456,7 +456,7 @@ export function ModularPanel() {
                     type="button"
                     className="button button--primary button--small"
                     disabled={formed.length > ASSEMBLE_ALL_MAX}
-                    title={
+                    data-tip={
                       formed.length > ASSEMBLE_ALL_MAX
                         ? `Each product opens as a tab; up to ${ASSEMBLE_ALL_MAX} at once`
                         : 'Open every product as a new document'

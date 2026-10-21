@@ -68,7 +68,7 @@ export function RecodeControls({ form, onChange }: Props) {
           className="panel__select"
           value={form.strategy}
           aria-label="How codons are chosen"
-          title="Most used: the host's commonest codon for each residue. Host mix: each codon in the share the host uses it, spread along the gene, which reads more like a native gene."
+          data-tip="Most used: the host's commonest codon for each residue. Host mix: each codon in the share the host uses it, spread along the gene, which reads more like a native gene."
           onChange={(e) => {
             set({ strategy: e.target.value === 'proportional' ? 'proportional' : 'best' });
           }}
@@ -127,7 +127,7 @@ export function RecodeControls({ form, onChange }: Props) {
         <button
           type="button"
           className="button button--small button--quiet"
-          title="A Codon Usage Database page saved as text, or one codon per line with its count. It is read in your browser and kept there."
+          data-tip="A Codon Usage Database page saved as text, or one codon per line with its count. It is read in your browser and kept there."
           onClick={() => input.current?.click()}
         >
           Import a table…

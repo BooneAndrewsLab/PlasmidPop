@@ -404,7 +404,7 @@ export function DiffMap({
         <button
           type="button"
           className="button map-view__control"
-          title="Zoom in (mouse wheel or pinch also zooms; double-click a feature to fit it)"
+          data-tip="Zoom in (mouse wheel or pinch also zooms; double-click a feature to fit it)"
           aria-label="Zoom in"
           disabled={layout.zoom >= layout.maxZoom}
           onClick={() => {
@@ -416,7 +416,7 @@ export function DiffMap({
         <button
           type="button"
           className="button map-view__control"
-          title="Zoom out"
+          data-tip="Zoom out"
           aria-label="Zoom out"
           disabled={!zoomed}
           onClick={() => {
@@ -428,7 +428,7 @@ export function DiffMap({
         <button
           type="button"
           className="button map-view__control"
-          title="Show the whole map"
+          data-tip="Show the whole map"
           aria-label="Show the whole map"
           disabled={!zoomed}
           onClick={() => {

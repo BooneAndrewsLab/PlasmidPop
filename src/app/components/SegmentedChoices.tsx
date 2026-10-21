@@ -43,7 +43,7 @@ export function SegmentedChoices<T extends string | number | boolean | null>({
       className={`segmented${small ? ' segmented--small' : ''}`}
       role="radiogroup"
       aria-label={label}
-      title={disabled ? disabledTitle : undefined}
+      data-tip={disabled ? disabledTitle : undefined}
       ref={group}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -74,7 +74,7 @@ export function SegmentedChoices<T extends string | number | boolean | null>({
             aria-checked={value === choice.value}
             className={`segmented__button${value === choice.value ? ' segmented__button--active' : ''}`}
             disabled={off}
-            title={disabled ? undefined : off ? choice.disabledTitle : choice.title}
+            data-tip={disabled ? undefined : off ? choice.disabledTitle : choice.title}
             onClick={() => {
               onChange(choice.value);
             }}

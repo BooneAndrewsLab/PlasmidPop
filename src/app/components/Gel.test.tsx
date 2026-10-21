@@ -52,7 +52,9 @@ describe('Gel', () => {
       <Gel lanes={[{ profile: gelProfile([2181, 2180, 432]), label: 'D' }]} />,
     );
     expect(screen.getByText('2,181 ×2')).toBeInTheDocument();
-    const titles = [...container.querySelectorAll('title')].map((t) => t.textContent);
+    const titles = [...container.querySelectorAll('[data-tip]')].map((t) =>
+      t.getAttribute('data-tip'),
+    );
     expect(titles).toContain('2,181 ×2 bp: 2181 + 2180 bp');
   });
 
@@ -107,7 +109,9 @@ describe('Gel', () => {
     // Only the combined lane's sizes are written; the others are on hover.
     expect(screen.getByText('1,111')).toBeInTheDocument();
     expect(screen.queryByText('3,456')).toBeNull();
-    const titles = [...container.querySelectorAll('title')].map((t) => t.textContent);
+    const titles = [...container.querySelectorAll('[data-tip]')].map((t) =>
+      t.getAttribute('data-tip'),
+    );
     expect(titles).toContain('EcoRI: 3,456 bp: 3456 bp');
     // A name too long for a shared lane is cut short and said in full on hover.
     expect(screen.getByText('BsaXI-\u2026')).toBeInTheDocument();

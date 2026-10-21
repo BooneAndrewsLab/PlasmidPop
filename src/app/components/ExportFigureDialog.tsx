@@ -800,7 +800,7 @@ export function ExportFigureDialog({
             type="button"
             className="button"
             onClick={busy ? cancel : onClose}
-            title={busy ? 'Stop the export; the dialog stays open' : undefined}
+            data-tip={busy ? 'Stop the export; the dialog stays open' : undefined}
           >
             Cancel
           </button>

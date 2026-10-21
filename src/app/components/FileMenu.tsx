@@ -27,18 +27,18 @@ interface Props {
 interface ItemProps {
   readonly children: ReactNode;
   readonly shortcut?: string;
-  readonly title?: string;
+  readonly tip?: string;
   readonly disabled?: boolean;
   readonly onClick: () => void;
 }
 
-function Item({ children, shortcut, title, disabled, onClick }: ItemProps) {
+function Item({ children, shortcut, tip, disabled, onClick }: ItemProps) {
   return (
     <button
       type="button"
       role="menuitem"
       className="menu__item"
-      title={title}
+      data-tip={tip}
       disabled={disabled}
       onClick={onClick}
     >
@@ -127,7 +127,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
       {open && (
         <div className="menu__list menu__list--start" role="menu" aria-label="File">
           <Item
-            title="Start an empty sequence to type or paste into"
+            tip="Start an empty sequence to type or paste into"
             onClick={run(() => {
               editorStore.requestNewDocument();
             })}
@@ -136,7 +136,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <Item onClick={run(onOpenFile)}>Open file…</Item>
           <Item
-            title="Fetch GenBank or GenPept records by accession number. Only the accessions are sent, to NCBI."
+            tip="Fetch GenBank or GenPept records by accession number. Only the accessions are sent, to NCBI."
             onClick={run(() => {
               editorStore.requestNcbi();
             })}
@@ -144,7 +144,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Open from NCBI…
           </Item>
           <Item
-            title="Check a plate of whole-plasmid sequencing results against the constructs they should be"
+            tip="Check a plate of whole-plasmid sequencing results against the constructs they should be"
             onClick={run(() => {
               editorStore.requestVerifyClones();
             })}
@@ -163,7 +163,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           <div className="menu__separator" role="separator" />
           <Item
             shortcut="Ctrl+S"
-            title={
+            tip={
               derived
                 ? `Write this copy out as a ${doc.isProtein ? 'GenPept' : 'GenBank'} file, after a look at what changed`
                 : `Write this document out as a ${doc.isProtein ? 'GenPept' : 'GenBank'} file`
@@ -175,7 +175,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             {doc.isProtein ? 'Download GenPept…' : 'Download GenBank…'}
           </Item>
           <Item
-            title={`Write this document out as a SnapGene .${doc.isProtein ? 'prot' : 'dna'} file. What SnapGene cannot hold is listed first.`}
+            tip={`Write this document out as a SnapGene .${doc.isProtein ? 'prot' : 'dna'} file. What SnapGene cannot hold is listed first.`}
             onClick={run(() => {
               report(persistence.downloadSnapGene());
             })}
@@ -184,7 +184,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <Item
             shortcut={shareKey}
-            title="A link that carries this document inside it — nothing is uploaded"
+            tip="A link that carries this document inside it — nothing is uploaded"
             onClick={run(() => {
               report(copyShareLink(doc));
             })}
@@ -193,7 +193,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <Item
             disabled={!hasSelection}
-            title="A link that carries only the selection, as a linear document with its features — shorter than one to the whole"
+            tip="A link that carries only the selection, as a linear document with its features — shorter than one to the whole"
             onClick={run(() => {
               if (selection === null) return;
               report(copyShareLink(doc, selection));
@@ -203,14 +203,14 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <Item
             shortcut={compareKey}
-            title="Show how this document differs from another open document or a file on disk. Neither is changed and nothing is opened."
+            tip="Show how this document differs from another open document or a file on disk. Neither is changed and nothing is opened."
             onClick={run(onCompare)}
           >
             Compare with…
           </Item>
           <div className="menu__separator" role="separator" />
           <Item
-            title="Every document with its undo history, and your primers, parts and imported tables, as one ZIP file. Nothing is uploaded."
+            tip="Every document with its undo history, and your primers, parts and imported tables, as one ZIP file. Nothing is uploaded."
             onClick={run(() => {
               report(backUpAll());
             })}
@@ -218,7 +218,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Back up all documents…
           </Item>
           <Item
-            title="Read a backup file back in. Documents are merged by id; a copy here that is as new or newer is kept."
+            tip="Read a backup file back in. Documents are merged by id; a copy here that is as new or newer is kept."
             onClick={run(() => {
               report(pickBackupAndRestore());
             })}
@@ -227,7 +227,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <div className="menu__separator" role="separator" />
           <Item
-            title="The map or the sequence view as an SVG or PNG file for figures: what is on it, how big, on pages if you like"
+            tip="The map or the sequence view as an SVG or PNG file for figures: what is on it, how big, on pages if you like"
             onClick={run(() => {
               setExporting(true);
             })}
@@ -244,7 +244,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           {doc.read !== null ? (
             <Item
-              title="The read's bases with their base qualities (Phred + 33), as a FASTQ file; the trace and features are left out"
+              tip="The read's bases with their base qualities (Phred + 33), as a FASTQ file; the trace and features are left out"
               onClick={run(() => {
                 analytics.track('file', 'export', 'fastq');
                 attempt(() => {
@@ -258,7 +258,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             readSetAside(doc, history) && (
               <Item
                 disabled
-                title="The bases were edited since the read was opened, so its qualities no longer describe them. Undo back to the read to export it as FASTQ."
+                tip="The bases were edited since the read was opened, so its qualities no longer describe them. Undo back to the read to export it as FASTQ."
                 onClick={() => undefined}
               >
                 Export read as FASTQ
@@ -289,7 +289,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
           </Item>
           <div className="menu__separator" role="separator" />
           <Item
-            title="Go to the list of files stored in this browser (the open tabs stay open)"
+            tip="Go to the list of files stored in this browser (the open tabs stay open)"
             onClick={run(() => {
               editorStore.showFiles();
             })}
@@ -297,7 +297,7 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             Show files
           </Item>
           <Item
-            title="Close this tab (the document stays stored in this browser)"
+            tip="Close this tab (the document stays stored in this browser)"
             onClick={run(() => {
               editorStore.closeDocument();
             })}

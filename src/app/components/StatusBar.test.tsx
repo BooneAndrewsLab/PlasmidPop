@@ -53,7 +53,7 @@ describe('the status bar checksum', () => {
       expect(full).not.toBeNull();
       const button = screen.getByRole('button', { name: /cdseguid=/ });
       expect(button.textContent).toContain(full?.short);
-      expect(button.getAttribute('title')).toContain(full?.text);
+      expect(button.getAttribute('data-tip')).toContain(full?.text);
 
       fireEvent.click(button);
       expect(clipboard.written).toEqual([full?.text]);

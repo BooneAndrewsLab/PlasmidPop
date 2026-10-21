@@ -43,7 +43,7 @@ export function DocumentTabs() {
             role="tab"
             className="doctabs__name"
             aria-selected={front === 'files'}
-            title="The files stored in this browser"
+            data-tip="The files stored in this browser"
             onClick={() => {
               editorStore.showFiles();
             }}
@@ -58,7 +58,7 @@ export function DocumentTabs() {
               role="tab"
               className="doctabs__name"
               aria-selected={front === 'bench'}
-              title="The Cloning Bench: the shelf, and reactions that join parts from any tab"
+              data-tip="The Cloning Bench: the shelf, and reactions that join parts from any tab"
               onClick={() => {
                 editorStore.showBench('tab');
               }}
@@ -104,7 +104,7 @@ export function DocumentTabs() {
       <button
         type="button"
         className="doctabs__new"
-        title="Start an empty sequence in a new tab"
+        data-tip="Start an empty sequence in a new tab"
         aria-label="New sequence"
         onClick={() => {
           editorStore.requestNewDocument();
@@ -175,14 +175,14 @@ function DocumentTab({
         role="tab"
         className="doctabs__name"
         aria-selected={active}
-        title={state.fileName === null ? name : `${name}\n${state.fileName}`}
+        data-tip={state.fileName === null ? name : `${name}\n${state.fileName}`}
         onClick={() => {
           editorStore.activateDocument(state.documentId);
         }}
       >
         {name}
         {dirty && (
-          <span className="doctabs__dirty" title="Changed since the last download">
+          <span className="doctabs__dirty" data-tip="Changed since the last download">
             {' '}
             •
           </span>
@@ -192,7 +192,7 @@ function DocumentTab({
         type="button"
         className="doctabs__close"
         aria-label={`Close ${name}`}
-        title="Close this tab (the document stays stored in this browser)"
+        data-tip="Close this tab (the document stays stored in this browser)"
         onClick={() => {
           editorStore.closeDocument(state.documentId);
         }}

@@ -137,7 +137,7 @@ export function OrfPanel({ doc }: Props) {
           />
           codons
         </label>
-        <GeneticCodeSelect title="The genetic code the scan reads with: it decides where an ORF ends as well as where it may begin." />
+        <GeneticCodeSelect tip="The genetic code the scan reads with: it decides where an ORF ends as well as where it may begin." />
       </div>
       {!ready ? (
         <p className="panel__note">Looking for open reading frames…</p>
@@ -197,7 +197,7 @@ export function OrfPanel({ doc }: Props) {
                 // An ORF carried through an edit may have grown or shrunk
                 // since (#138): wait for the rescan before annotating it.
                 disabled={provisional}
-                title={provisional ? 'Rescanning after the edit…' : undefined}
+                data-tip={provisional ? 'Rescanning after the edit…' : undefined}
                 onClick={() => {
                   const feature = createFeature({
                     type: 'CDS',

@@ -1,5 +1,3 @@
-import { useId } from 'react';
-
 import {
   AGAROSE_PERCENTAGES,
   type DigestProfile,
@@ -174,7 +172,6 @@ function laneName(label: string, shared: boolean): string {
 export function Gel({ lanes }: Props) {
   const options = useGelOptions();
   const { gelAgarose, gelLadder } = useEditorState();
-  const titleId = useId();
   const shared = lanes.length > 1;
   const laneW = shared ? LANE_W_SHARED : LANE_W_ALONE;
   const slabW = GAP * (lanes.length + 2) + laneW * (lanes.length + 1);
@@ -209,14 +206,11 @@ export function Gel({ lanes }: Props) {
         viewBox={`0 0 ${width} ${HEIGHT}`}
         style={{ maxWidth: Math.round(width * SCALE) }}
         role="group"
-        aria-labelledby={titleId}
+        aria-label={`${lanes
+          .map((l) => `${l.label}: ${l.profile.bands.map(bandLabel).join(', ')} bp`)
+          .join('; ')}; beside a ${ladder.name} ladder`}
         preserveAspectRatio="xMidYMid meet"
       >
-        <title id={titleId}>
-          {`${lanes
-            .map((l) => `${l.label}: ${l.profile.bands.map(bandLabel).join(', ')} bp`)
-            .join('; ')}; beside a ${ladder.name} ladder`}
-        </title>
         <rect className="gel__slab" x={SLAB_LEFT} y={0} width={slabW} height={SLAB_H} rx={2} />
         {[ladderX, ...lanes.map((_, i) => laneX(i))].map((x) => (
           <rect key={x} className="gel__well" x={x} y={WELL_Y} width={laneW} height={WELL_H} />
@@ -293,8 +287,7 @@ export function Gel({ lanes }: Props) {
                 const { onPick } = lane;
                 if (onPick === undefined) {
                   return (
-                    <g key={`${band.length}-${i}`}>
-                      <title>{title}</title>
+                    <g key={`${band.length}-${i}`} data-tip={title}>
                       {body}
                     </g>
                   );
@@ -306,6 +299,7 @@ export function Gel({ lanes }: Props) {
                     role="button"
                     tabIndex={0}
                     aria-label={title}
+                    data-tip={title}
                     onClick={() => {
                       onPick(band);
                     }}
@@ -315,7 +309,6 @@ export function Gel({ lanes }: Props) {
                       onPick(band);
                     }}
                   >
-                    <title>{title}</title>
                     {/* A 3 px band is not a target; the hit area is the row it is in. */}
                     <rect
                       className="gel__hit"
@@ -328,9 +321,8 @@ export function Gel({ lanes }: Props) {
                   </g>
                 );
               })}
-              <g>
-                {/* Only a name that was cut short needs saying in full. */}
-                {laneName(lane.label, shared) !== lane.label && <title>{lane.label}</title>}
+              {/* Only a name that was cut short needs saying in full. */}
+              <g data-tip={laneName(lane.label, shared) !== lane.label ? lane.label : undefined}>
                 <text
                   className="gel__lane-name"
                   x={x + laneW / 2}
@@ -355,7 +347,7 @@ export function Gel({ lanes }: Props) {
               className="panel__select"
               value={gelAgarose}
               aria-label="Agarose"
-              title="The gel percentage: a thicker gel separates small fragments and loses large ones"
+              data-tip="The gel percentage: a thicker gel separates small fragments and loses large ones"
               onChange={(e) => {
                 const v = Number(e.target.value);
                 if (isAgarosePercent(v)) editorStore.setGelAgarose(v);

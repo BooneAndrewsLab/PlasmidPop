@@ -123,7 +123,7 @@ export function PrimeEditing({ doc, guides, nuclease }: Props) {
           type="button"
           className="button button--small"
           disabled={selection === null}
-          title="Take the position and length from the selection"
+          data-tip="Take the position and length from the selection"
           onClick={() => {
             if (selection === null) return;
             setPosition(String(selection.start + 1));

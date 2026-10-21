@@ -49,7 +49,7 @@ export function AlignmentPopover({ title, closeLabel, onClose, className, childr
           type="button"
           className="button button--quiet astack-pop__close"
           aria-label={closeLabel}
-          title="Close (Esc)"
+          data-tip="Close (Esc)"
           onClick={onClose}
         >
           ×

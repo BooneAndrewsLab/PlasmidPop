@@ -111,14 +111,14 @@ function Oligo({
     <div className="pair__oligo">
       <span
         className="pair__strand"
-        title={`${strand === 'forward' ? 'Forward' : 'Reverse'} primer`}
+        data-tip={`${strand === 'forward' ? 'Forward' : 'Reverse'} primer`}
       >
         {strand === 'forward' ? '→' : '←'}
       </span>
       <span className="pair__seq">{primer.sequence}</span>
       <span
         className="pair__meta pair__meta--oligo"
-        title={`Tm ${tm(primer.tm)}, GC content ${pct(primer.gc)}`}
+        data-tip={`Tm ${tm(primer.tm)}, GC content ${pct(primer.gc)}`}
       >
         {tm(primer.tm)} · {pct(primer.gc)} GC
       </span>
@@ -339,7 +339,7 @@ export function PrimerPanel({ doc }: Props) {
                             type="button"
                             className="button button--quiet button--small"
                             aria-pressed={shown === i}
-                            title="Draw the pair and its product in the views, and select the product"
+                            data-tip="Draw the pair and its product in the views, and select the product"
                             onClick={() => {
                               showPair(i, p);
                             }}
@@ -350,7 +350,7 @@ export function PrimerPanel({ doc }: Props) {
                             type="button"
                             className="button button--quiet button--small"
                             aria-label="Add both as features"
-                            title="Annotate both sites as primer_bind features, one undo step"
+                            data-tip="Annotate both sites as primer_bind features, one undo step"
                             onClick={() => {
                               // One click, so one Undo takes both back (#96).
                               addFeaturesAsOneStep(
@@ -377,7 +377,7 @@ export function PrimerPanel({ doc }: Props) {
                           <button
                             type="button"
                             className="button button--quiet button--small"
-                            title="Keep both primers in My primers, in this browser"
+                            data-tip="Keep both primers in My primers, in this browser"
                             onClick={() => {
                               const note = (tmValue: number, gc: number): string =>
                                 `Designed for ${doc.name} ${designedFor}; Tm ${tm(tmValue)}, GC ${pct(gc)}`;
@@ -505,7 +505,7 @@ export function PrimerPanel({ doc }: Props) {
               <button
                 type="button"
                 className="button button--quiet button--small"
-                title="Keep this primer in My primers, in this browser"
+                data-tip="Keep this primer in My primers, in this browser"
                 onClick={() => {
                   save('check', [{ name: '', sequence: report.sequence, notes: '' }]);
                 }}

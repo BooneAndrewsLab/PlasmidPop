@@ -160,7 +160,7 @@ describe('ExportFigureDialog (#240)', () => {
   it('offers a protein only the sequence view', () => {
     setup({ doc: protein() });
     expect(radio('Map')).toBeDisabled();
-    expect(radio('Map')).toHaveAttribute('title', 'A protein has no map');
+    expect(radio('Map')).toHaveAttribute('data-tip', 'A protein has no map');
     expect(radio('Sequence view')).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('textbox', { name: 'Bases per row' })).toBeInTheDocument();
   });
@@ -620,7 +620,7 @@ describe('ExportFigureDialog (#240)', () => {
         expect(status()).toHaveTextContent(/^Getting your file ready: drawing page 1 of 9…$/);
       });
       expect(status().querySelector('.spinner')).not.toBeNull();
-      expect(cancelButton()).toHaveAttribute('title', 'Stop the export; the dialog stays open');
+      expect(cancelButton()).toHaveAttribute('data-tip', 'Stop the export; the dialog stays open');
       for (let i = 0; i < 9; i++) {
         await waitFor(() => {
           expect(release).toHaveLength(i + 1);
@@ -660,7 +660,7 @@ describe('ExportFigureDialog (#240)', () => {
       expect(status()).toBeEmptyDOMElement();
       expect(exportButton()).toBeEnabled();
       expect(onClose).not.toHaveBeenCalled();
-      expect(cancelButton()).not.toHaveAttribute('title');
+      expect(cancelButton()).not.toHaveAttribute('data-tip');
       // The page that was being drawn finishes; nothing follows it.
       release[0]?.();
       await new Promise((r) => setTimeout(r, 20));

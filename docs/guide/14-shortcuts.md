@@ -12,6 +12,10 @@ the browser keeps for itself or one another action already has, saying which.
 `Alt+Shift+PageUp`/`PageDown`) are fixed. Your changes are kept with the rest
 of the view's settings, in this browser.
 
+A control's help — the tooltip a mouse gets by resting on it — shows as well
+when focus reaches the control from the keyboard, so `Tab` reads a toolbar's
+help button by button; `Escape` hides it.
+
 ## Files
 
 | Keys                                     | Action                                                         |

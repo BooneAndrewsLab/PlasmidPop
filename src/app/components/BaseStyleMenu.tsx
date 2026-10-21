@@ -81,7 +81,7 @@ function ColorPicker({
     };
   }, []);
   return (
-    <label className="menu__swatch" title={`${label}: any colour`}>
+    <label className="menu__swatch" data-tip={`${label}: any colour`}>
       <input ref={ref} type="color" aria-label={label} defaultValue={value} />
     </label>
   );
@@ -113,7 +113,7 @@ function Swatches({
           role="menuitemradio"
           aria-checked={current === color}
           aria-label={`${label}: ${name}`}
-          title={name}
+          data-tip={name}
           className={`style-menu__swatch style-menu__swatch--${kind}`}
           style={kind === 'letters' ? { color } : { background: color }}
           onClick={() => {
@@ -132,7 +132,7 @@ function Swatches({
       <button
         type="button"
         className="button button--quiet button--small"
-        title={`Take the ${kind === 'letters' ? 'colour' : 'highlight'} off the selected bases`}
+        data-tip={`Take the ${kind === 'letters' ? 'colour' : 'highlight'} off the selected bases`}
         onClick={() => {
           onPick(null);
         }}
@@ -197,7 +197,7 @@ export function BaseStyleMenu({ doc, selection, opens = 'down', shortcut = true 
         className="button button--small"
         disabled={!hasRange}
         aria-keyshortcuts={shortcut ? key : undefined}
-        title={`Colour, highlight, bold or enlarge the selected bases (${key})`}
+        data-tip={`Colour, highlight, bold or enlarge the selected bases (${key})`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
@@ -266,7 +266,7 @@ export function BaseStyleMenu({ doc, selection, opens = 'down', shortcut = true 
               role="menuitemradio"
               aria-checked={shared.size === size}
               className="menu__item"
-              title="Larger letters take more room, so their row holds fewer bases"
+              data-tip="Larger letters take more room, so their row holds fewer bases"
               onClick={() => {
                 style({ size });
               }}
@@ -280,7 +280,7 @@ export function BaseStyleMenu({ doc, selection, opens = 'down', shortcut = true 
             type="button"
             role="menuitem"
             className="menu__item"
-            title="Take every colour, highlight, bold and size off the selected bases"
+            data-tip="Take every colour, highlight, bold and size off the selected bases"
             onClick={() => {
               style(CLEAR_BASE_STYLE);
             }}

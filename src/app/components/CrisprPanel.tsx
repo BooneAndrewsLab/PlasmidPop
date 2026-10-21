@@ -431,7 +431,7 @@ export function CrisprPanel({ doc }: Props) {
           )}
           <label className="panel__field panel__field--row">
             {noteSeen ? (
-              <span className="panel__hint" title={OFF_TARGET_NOTE}>
+              <span className="panel__hint" data-tip={OFF_TARGET_NOTE}>
                 Off-targets up to
               </span>
             ) : (
@@ -464,7 +464,7 @@ export function CrisprPanel({ doc }: Props) {
           </label>
           <label
             className="toggle"
-            title={
+            data-tip={
               region === null && usableSelection === null
                 ? 'Select part of the document first'
                 : undefined
@@ -508,7 +508,7 @@ export function CrisprPanel({ doc }: Props) {
             <button
               type="button"
               className="button button--quiet button--small"
-              title="Hide this; the Off-targets label keeps it as a tooltip"
+              data-tip="Hide this; the Off-targets label keeps it as a tooltip"
               onClick={() => {
                 rememberSeen(NOTE_SEEN_KEY);
                 setNoteSeen(true);
@@ -592,7 +592,7 @@ export function CrisprPanel({ doc }: Props) {
                   type="button"
                   className="button button--small button--toggle"
                   aria-pressed={showFlagged}
-                  title={
+                  data-tip={
                     showFlagged
                       ? 'Press to hide the guides marked with a ! again'
                       : 'Guides marked with a ! are hidden; press to list them too'
@@ -608,7 +608,7 @@ export function CrisprPanel({ doc }: Props) {
                     type="button"
                     className="button button--small button--toggle"
                     aria-pressed={onlyEditable}
-                    title={`Only list guides with a ${baseEditor.from} in the editing window`}
+                    data-tip={`Only list guides with a ${baseEditor.from} in the editing window`}
                     onClick={() => {
                       setOnlyEditable((on) => !on);
                     }}
@@ -622,7 +622,7 @@ export function CrisprPanel({ doc }: Props) {
                   <button
                     type="button"
                     className="button button--small"
-                    title="Annotate every guide in the list as a feature, in one step to undo"
+                    data-tip="Annotate every guide in the list as a feature, in one step to undo"
                     onClick={() => {
                       analytics.track('crispr', 'addAll');
                       editorStore.apply({
@@ -650,7 +650,7 @@ export function CrisprPanel({ doc }: Props) {
                           type="button"
                           className={`crispr-row${active ? ' crispr-row--selected' : ''}`}
                           aria-expanded={active}
-                          title={active ? 'Close the guide and clear the selection' : undefined}
+                          data-tip={active ? 'Close the guide and clear the selection' : undefined}
                           onClick={() => {
                             // The open row closes on a second click, and its
                             // selection goes with it, so the views are clear again.
@@ -676,24 +676,24 @@ export function CrisprPanel({ doc }: Props) {
                             {g.spacer}
                             <span className="crispr-row__pam">{g.pam}</span>
                           </span>
-                          <span className="crispr-row__gc" title="GC content">
+                          <span className="crispr-row__gc" data-tip="GC content">
                             {Math.round(g.gc * 100)}%
                           </span>
                           <span
                             className="crispr-row__off"
-                            title="Off-targets: exact, then by mismatch"
+                            data-tip="Off-targets: exact, then by mismatch"
                           >
                             {offTargetSummary(g)}
                           </span>
                           {baseEditor !== undefined && (
                             <span
                               className="crispr-row__edit"
-                              title={`${baseEditor.from} to ${baseEditor.to} edits in the window`}
+                              data-tip={`${baseEditor.from} to ${baseEditor.to} edits in the window`}
                             >
                               {editableCount(g)}
                             </span>
                           )}
-                          <span className="crispr-row__warning" title={flags.join('; ')}>
+                          <span className="crispr-row__warning" data-tip={flags.join('; ')}>
                             {flags.length > 0 ? '!' : ''}
                           </span>
                         </button>
@@ -786,7 +786,7 @@ function GuideDetail({
         {guide.specificity !== null && (
           <>
             <dt>Specificity</dt>
-            <dd title="MIT score (Hsu 2013) over the off-target sites counted here; 100 is no other site">
+            <dd data-tip="MIT score (Hsu 2013) over the off-target sites counted here; 100 is no other site">
               {guide.specificity.toFixed(0)} / 100
             </dd>
           </>
