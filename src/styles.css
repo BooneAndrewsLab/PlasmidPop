@@ -4796,6 +4796,16 @@ button {
   width: 22rem;
 }
 
+.astack-pop--aa {
+  width: 20rem;
+}
+
+/* The Amino acids button sits at the toolbar's right end, so its popover hangs from the right. */
+.astack-pop--end {
+  right: 0;
+  left: auto;
+}
+
 /* The Filter popover's switches (#122, #123), one per line under the form. */
 .astack-pop__checks {
   display: flex;
@@ -4812,6 +4822,21 @@ button {
 
 .astack-pop__check input {
   margin: 0;
+}
+
+/* A switch that needs the one above it (the residues' numbers and changes). */
+.astack-pop__check--sub {
+  padding-left: 22px;
+}
+
+.astack-pop__check:has(input:disabled) {
+  opacity: 0.5;
+}
+
+.astack-pop__key {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 12px;
 }
 
 .astack-pop__head {
@@ -5043,6 +5068,12 @@ button {
 @media (max-width: 720px) {
   .astack-tools__show {
     margin-inline-start: 0;
+  }
+
+  /* Wrapped, the button may be at the left edge, where a right-hung popover would run off. */
+  .astack-pop--end {
+    right: auto;
+    left: 0;
   }
 }
 

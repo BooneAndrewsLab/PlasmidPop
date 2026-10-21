@@ -23,6 +23,7 @@ import { formatBinding, matchesBinding, resolveBindings, withShift } from '../ke
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { buildFrames } from '../alignmentResidues';
+import { sampleChanges } from '../alignmentChanges';
 import {
   confidentDifferences,
   coverageOf,
@@ -57,6 +58,7 @@ import {
   takeEdit,
   type TakeResult,
 } from '../alignmentReview';
+import { AlignmentAminoAcids } from './AlignmentAminoAcids';
 import { AlignmentFilter } from './AlignmentFilter';
 import { AlignmentFind, type SearchMode } from './AlignmentFind';
 import { AlignmentDifferencesList } from './AlignmentDifferencesList';
@@ -81,6 +83,8 @@ const remembered: {
   orfs: boolean;
   trace: boolean;
   residues: boolean;
+  numbers: boolean;
+  changes: boolean;
   list: boolean;
   filter: DifferenceFilter;
 } = {
@@ -88,6 +92,8 @@ const remembered: {
   orfs: false,
   trace: true,
   residues: false,
+  numbers: true,
+  changes: false,
   list: false,
   filter: DEFAULT_FILTER,
 };
@@ -157,6 +163,8 @@ export function AlignmentDialog({
   const [showOrfs, setShowOrfs] = useState(remembered.orfs);
   const [showTrace, setShowTrace] = useState(remembered.trace);
   const [showResidues, setShowResidues] = useState(remembered.residues);
+  const [showNumbers, setShowNumbers] = useState(remembered.numbers);
+  const [showChanges, setShowChanges] = useState(remembered.changes);
   const [showList, setShowList] = useState(remembered.list);
   // Which differences Next/Previous stop at (#122).
   const [filter, setFilter] = useState(remembered.filter);
@@ -169,10 +177,12 @@ export function AlignmentDialog({
       orfs: showOrfs,
       trace: showTrace,
       residues: showResidues,
+      numbers: showNumbers,
+      changes: showChanges,
       list: showList,
       filter,
     });
-  }, [showFeatures, showOrfs, showTrace, showResidues, showList, filter]);
+  }, [showFeatures, showOrfs, showTrace, showResidues, showNumbers, showChanges, showList, filter]);
   // Which samples are shown and in what order (#127). Everything below works over the
   // stack of the shown ones, so a hidden sample is out of the verdicts as well.
   const [sort, setSort] = useState<SampleSort>('original');
@@ -332,9 +342,17 @@ export function AlignmentDialog({
     [passing, regions],
   );
   const current = useRef(0);
-  // One popover at a time: Go to, Find, Export, Samples or Filter.
-  const [popover, setPopover] = useState<SearchMode | 'export' | 'samples' | 'filter' | null>(null);
+  // One popover at a time: Go to, Find, Export, Samples, Filter or Amino acids.
+  const [popover, setPopover] = useState<
+    SearchMode | 'export' | 'samples' | 'filter' | 'amino' | null
+  >(null);
   const search = popover === 'goto' || popover === 'find' ? popover : null;
+  // What the Changes switch would name, for its popover's status line.
+  const changeCounts = useMemo(() => {
+    if (popover !== 'amino') return { changing: 0, named: 0 };
+    const per = stack.rows.map((row) => sampleChanges(frames, row).length);
+    return { changing: per.filter((n) => n > 0).length, named: per.reduce((a, n) => a + n, 0) };
+  }, [popover, stack, frames]);
   const stackHandle = useRef<StackHandle>(null);
   const searchOpen = useRef(false);
   useEffect(() => {
@@ -695,8 +713,52 @@ export function AlignmentDialog({
               )}
             </div>
           )}
+          {hasFrames && (
+            <div className="astack-tools__search astack-tools__show">
+              <div className="segmented" role="group" aria-label="Amino acids">
+                <button
+                  type="button"
+                  className={segmentedClass(popover === 'amino' || showResidues)}
+                  aria-pressed={popover === 'amino'}
+                  data-tip={
+                    translationsBinding === undefined
+                      ? 'The CDS residues under each row, their numbers, and the changes a sample makes'
+                      : `The CDS residues under each row, their numbers, and the changes a sample makes (${formatBinding(translationsBinding)})`
+                  }
+                  onClick={() => {
+                    setPopover((m) => (m === 'amino' ? null : 'amino'));
+                  }}
+                >
+                  {showChanges ? 'Amino acids (changes)' : 'Amino acids'}
+                </button>
+              </div>
+              {popover === 'amino' && (
+                <AlignmentAminoAcids
+                  residues={showResidues}
+                  onResidues={setShowResidues}
+                  residuesKey={
+                    translationsBinding === undefined ? null : formatBinding(translationsBinding)
+                  }
+                  numbers={showNumbers}
+                  onNumbers={setShowNumbers}
+                  changes={showChanges}
+                  onChanges={setShowChanges}
+                  changing={changeCounts.changing}
+                  named={changeCounts.named}
+                  samples={stack.rows.length}
+                  onClose={() => {
+                    setPopover(null);
+                  }}
+                />
+              )}
+            </div>
+          )}
           {(source !== null || hasTrace || samplesHaveFeatures) && (
-            <div className="segmented astack-tools__show" role="group" aria-label="Show">
+            <div
+              className={`segmented${hasFrames ? '' : ' astack-tools__show'}`}
+              role="group"
+              aria-label="Show"
+            >
               {(source !== null || samplesHaveFeatures) && (
                 <button
                   type="button"
@@ -736,23 +798,6 @@ export function AlignmentDialog({
                   >
                     ORFs
                   </button>
-                  {hasFrames && (
-                    <button
-                      type="button"
-                      className={segmentedClass(showResidues)}
-                      aria-pressed={showResidues}
-                      data-tip={
-                        translationsBinding === undefined
-                          ? 'The CDS residues under each row'
-                          : `The CDS residues under each row (${formatBinding(translationsBinding)})`
-                      }
-                      onClick={() => {
-                        setShowResidues((on) => !on);
-                      }}
-                    >
-                      Amino acids
-                    </button>
-                  )}
                 </>
               )}
               {hasTrace && (
@@ -955,6 +1000,8 @@ export function AlignmentDialog({
           disagreement={disagreement}
           showTrace={showTrace}
           residues={showResidues && frames.length > 0 ? frames : null}
+          residueNumbers={showNumbers}
+          showChanges={showChanges}
           onSelectRow={setSelected}
           focus={focus}
           reviewed={markedCols}
