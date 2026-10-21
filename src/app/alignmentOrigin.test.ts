@@ -246,9 +246,9 @@ describe('the protein effect of a difference across the origin', { timeout: 30_0
       const x = a[i];
       const y = b[i];
       if (x === undefined || y === undefined || x.aminoAcid === y.aminoAcid) continue;
-      if (y.aminoAcid === '*') return `p.${x.aminoAcid}${x.index + 1}*`;
-      if (x.aminoAcid === '*') return `p.*${x.index + 1}${y.aminoAcid}`;
-      return `p.${x.aminoAcid}${x.index + 1}${y.aminoAcid}`;
+      if (y.aminoAcid === '*') return `${x.aminoAcid}${x.index + 1}*`;
+      if (x.aminoAcid === '*') return `*${x.index + 1}${y.aminoAcid}`;
+      return `${x.aminoAcid}${x.index + 1}${y.aminoAcid}`;
     }
     return 'silent';
   }

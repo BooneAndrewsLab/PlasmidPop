@@ -227,7 +227,7 @@ Decisions: an indel anywhere in a region that overlaps a frame is a
 frameshift unless the region's net inserted minus deleted bases is a multiple
 of three ("in-frame indel"); it takes precedence over a mismatch beside it.
 Otherwise each touched codon is read: synonymous is `silent`, and the worst
-of the others is named (`p.K42R`, `p.K42*`, `p.*42K`), several joined by a
+of the others is named (`K42R`, `K42*`, `*42K`), several joined by a
 comma. Where carriers differ the effect and change are listed per sample.
 Not done: HGVS three-letter codes or nucleotide notation (c.), and
 effects per sample at positions a sample does not cover.
@@ -655,3 +655,42 @@ qualities kept; two or more become the records of the existing batch path
 Align all puts them in the large view as a stack, as several files do. The
 same `BATCH_LIMIT` applies: the list stops accepting ticks at 96. A tab's
 records carry no file name, so rows are named by the tab alone.
+
+## Residue numbers and change tags (#261)
+
+The reference's amino-acid strip has a protein ruler (`AA_RULER_HEIGHT`, 12
+px) under it: a number every tenth residue, from `codon.index + 1` of each
+frame (`rulerTicks`), so a reverse-strand CDS runs right to left without a
+special case and a frame that also appears across a circle's origin is
+numbered in both copies. A sample whose codons have a named change gets a tag
+row (`TAG_HEIGHT`, 13 px) _under_ its strip, so each base stays directly
+above its residue; a sample without one gets no row (`StackLayout.tagHeights`
+is per row, and every offset below the strip, own-feature lanes and trace,
+adds it).
+
+Decisions. The name of a change is made in one place, `residueChangeText` in
+`alignmentChanges.ts` (`R240S`, `E244*`, `*250K`), and `effectOnFrame` in
+`alignmentDifferences.ts` uses it, so the view, the hover, the Differences
+table and its export agree; the `p.` prefix is gone from all of them (the
+Biopython oracle's expected strings in `scripts/oracle/alignment.py` and
+`alignment.json` lost it too, as only the text changed). Silent changes and
+indels inside a codon are not named. Tags that collide are dropped by
+`placeTags`: nonsense, then stop lost, then missense, then left to right,
+greedy with a 3 px gap, using `measureText` (which `SvgContext` has, so the
+export draws the same tags). Placement runs over the whole row, not the part
+in view, so scrolling never changes which tags show; the changes of every row
+are computed once per stack and residue set (`sampleChanges`) and the
+placement per paint from them. A dropped tag's residue keeps its loud tint
+and its hover. The stack view has no zoom, so only this collision rule
+applies; if one is added, letters should go below about 7 px and tags stay
+where they fit.
+
+Hover is the canvas `title` as before: over a reference residue, a sample's
+strip or its tag row, `residueTitle` finds the codon from the column
+(`codonAtColumn`) and says `R240 · bla`, or for a named change
+`R240S · CGT→AGT · bla` with both codons in reading order (complemented on
+the reverse strand).
+
+Checked: unit tests for the helpers, the layout and the SVG export
+(`alignmentChanges.test.ts`, `alignmentExport.test.ts`). Not looked at by eye,
+in a browser or rasterised.

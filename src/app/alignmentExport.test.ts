@@ -1,5 +1,7 @@
-import { alignEitherStrand, createFeature, rangeSegment } from '@/core';
+import { alignEitherStrand, createFeature, rangeSegment, SeqDocument } from '@/core';
 
+import { sampleChanges } from './alignmentChanges';
+import { buildFrames } from './alignmentResidues';
 import { stackAlignments } from './alignmentStack';
 import {
   MAX_SVG_CELLS,
@@ -13,7 +15,10 @@ import { buildSampleTrack } from './alignmentSampleTrack';
 import { ColumnClass } from './alignmentTrack';
 import { finishReadAlignment, prepareReadAlignment } from './readAlignment';
 import {
+  AA_HEIGHT,
+  AA_RULER_HEIGHT,
   LANE_HEIGHT,
+  TAG_HEIGHT,
   stackLayout,
   type Colours,
   type StackDrawing,
@@ -161,5 +166,46 @@ describe("a sample's own features in the picture (#128)", () => {
     expect(svg).toContain('lacZ alpha');
     expect(svg).toContain('Own features');
     expect(alignmentSvg(d, { start: 10, end: 50 }, 'Alignment')).not.toContain('lacZ alpha');
+  });
+});
+
+describe('residue numbers and change tags in the picture (#261)', () => {
+  // codon 8 (columns 21-23) changed at its first base
+  const doc = SeqDocument.create({ sequence: reference, topology: 'linear' });
+  const cds = createFeature({ type: 'CDS', name: 'g', segments: [rangeSegment(0, 60)] });
+  const at = 21;
+  const base = reference.charAt(at) === 'A' ? 'C' : 'A';
+  const mutated = `${reference.slice(0, at)}${base}${reference.slice(at + 1)}`;
+  const d = drawingOf(mutated);
+  const frames = buildFrames(d.stack, doc, [cds], 0);
+  const row = d.stack.rows[0];
+  if (row === undefined) throw new Error('no row');
+  const changes = [sampleChanges(frames, row)];
+  const drawn: StackDrawing = {
+    ...d,
+    residues: frames,
+    changes,
+    layout: stackLayout(d.stack, null, true, false, null, changes),
+  };
+
+  it('adds the protein ruler to the header and a tag row to the sample that has a change', () => {
+    const plainLayout = stackLayout(d.stack, null, true, false);
+    expect(drawn.layout.headerHeight).toBe(plainLayout.headerHeight);
+    expect(drawn.layout.aaRulerHeight).toBe(AA_RULER_HEIGHT);
+    expect(plainLayout.headerHeight).toBe(
+      stackLayout(d.stack, null, false, false).headerHeight + AA_HEIGHT + AA_RULER_HEIGHT,
+    );
+    expect(changes[0]?.length).toBeGreaterThan(0);
+    expect(drawn.layout.tagHeights).toEqual([TAG_HEIGHT]);
+    expect(drawn.layout.contentHeight).toBe(plainLayout.contentHeight + TAG_HEIGHT);
+  });
+
+  it('draws the residue numbers and the tag', () => {
+    const svg = alignmentSvg(drawn, { start: 0, end: 60 }, 'Alignment');
+    const tag = changes[0]?.[0]?.text ?? '';
+    expect(tag).toMatch(/^[A-Z*]8[A-Z*]$/);
+    expect(svg).toContain(`>${tag}<`);
+    expect(svg).toContain('>10<');
+    expect(svg).toContain('>20<');
   });
 });

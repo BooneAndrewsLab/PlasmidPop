@@ -81,13 +81,13 @@ describe('differenceRows', () => {
 
   it('names a missense change with the residue number', () => {
     const { rows } = setup([mutate(sequence, 5, 'C')]);
-    expect(effectText(one(rows))).toBe('p.K2Q');
+    expect(effectText(one(rows))).toBe('K2Q');
   });
 
   it('names a nonsense change and a lost stop', () => {
-    expect(effectText(one(setup([mutate(sequence, 5, 'T')]).rows))).toBe('p.K2*');
+    expect(effectText(one(setup([mutate(sequence, 5, 'T')]).rows))).toBe('K2*');
     // TAA -> CAA at the last codon: stop lost, read as Q at residue 6.
-    expect(effectText(one(setup([mutate(sequence, 17, 'C')]).rows))).toBe('p.*6Q');
+    expect(effectText(one(setup([mutate(sequence, 17, 'C')]).rows))).toBe('*6Q');
   });
 
   it('calls a one-base deletion in a CDS a frameshift and a codon-sized one in-frame', () => {
@@ -103,7 +103,7 @@ describe('differenceRows', () => {
     const at = sequence.length - 1 - 5;
     const read = mutate(reference, at, 'G'); // forward A->C
     const { rows } = setup([read], { reference, strand: 'reverse', range: [15, 33] });
-    expect(effectText(one(rows))).toBe('p.K2Q');
+    expect(effectText(one(rows))).toBe('K2Q');
     expect(positionText(one(rows))).toBe(`${at + 1}`);
     expect(changeText(one(rows))).toBe('T→G');
   });
@@ -119,7 +119,7 @@ describe('differenceRows', () => {
     expect(rows).toHaveLength(1);
     expect(samplesText(one(rows))).toBe('r0, r1');
     expect(changeText(one(rows))).toBe('A→C, A→G');
-    expect(effectText(one(rows))).toBe('r0: p.K2Q; r1: p.K2E');
+    expect(effectText(one(rows))).toBe('r0: K2Q; r1: K2E');
   });
 
   it('puts an insertion after the base before it and shows no quality without any', () => {
@@ -155,7 +155,7 @@ describe('differencesTsv', () => {
     const { rows } = setup([mutate(sequence, 5, 'C'), mutate(sequence, 30, 'A')]);
     const lines = differencesTsv(rows).split('\n');
     expect(lines[0]).toBe('Position\tChange\tSamples\tFeature\tQuality\tProtein effect\tNote');
-    expect(lines[1]).toBe('6\tA→C\tr0\tCDS g\t\tp.K2Q\t');
+    expect(lines[1]).toBe('6\tA→C\tr0\tCDS g\t\tK2Q\t');
     expect(lines[2]).toBe('31\tT→A\tr1\tnone\t\t\t');
     expect(lines).toHaveLength(3);
   });

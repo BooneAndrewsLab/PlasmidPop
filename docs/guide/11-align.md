@@ -590,6 +590,20 @@ once the ORFs panel has found them. With no document behind the reference
   inside it; a codon the sample does not reach is left empty. The codons are
   the document's, so a frameshift shows as `-` where it starts and as changed
   residues after it, not as a re-read frame.
+  A thin **protein ruler** under the document's strip numbers every tenth
+  residue, counted from each CDS's first codon (on a reverse-strand CDS the
+  numbers run right to left, as the protein does). A sample whose codons
+  change a residue gets a row of **tags** under its strip, naming each as
+  the one-letter residue, its number and the new residue: `R240S` for a
+  substitution, `E244*` for a stop gained, `*250K` for a stop lost. A silent
+  change and an insertion or deletion inside a codon get no tag (the strip
+  still shades them). Tags are drawn only where they fit; where two would
+  overlap, the stop gained is kept before the stop lost, before a
+  substitution, then the left one, and the others go without a tag but keep
+  their shading. Hover a residue for `R240 · bla` (its number and the CDS's
+  name), or for a changed one `R240S · CGT→AGT · bla`, the codon in the
+  document and in the sample, read along the CDS. A sample with no named
+  change has no tag row.
 - **List** opens a table of the differences, one row per run of differing
   columns, between the verification lines and the alignment (it is closed by
   default and remembered like the Show buttons). Its columns are the
@@ -607,7 +621,8 @@ once the ORFs panel has found them. With no document behind the reference
   "reviewed" or "taken into the document" is added for a marked difference),
   and a **Reviewed** box (see above). The
   effect is `silent`, a missense such as
-  `p.K42R`, a nonsense `p.K42*`, a stop lost `p.*42K`, `frameshift` for an
+  `K42R`, a nonsense `K42*`, a stop lost `*42K` (the same names as the tags
+  above), `frameshift` for an
   insertion or deletion that is not a multiple of three bases, or
   `in-frame indel`. Codons are read in the CDS's own frame, strand and
   genetic code, so a reverse-strand CDS is translated after reverse

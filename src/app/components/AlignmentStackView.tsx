@@ -11,6 +11,7 @@ import {
 
 import { measureCharWidth, monoFontOf } from '@/view/linear';
 
+import { residueTitle, sampleChanges } from '../alignmentChanges';
 import { type Stack } from '../alignmentStack';
 import { ColumnClass, itemAt, type Track, type TrackItem } from '../alignmentTrack';
 import { coverageBand, type Coverage } from '../alignmentVerdict';
@@ -117,10 +118,25 @@ export function AlignmentStackView({
 
   const monoFont = monoFontOf(FONT_SIZE);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
+  /** Each sample's named changes, for its tags (#261); null without residues. */
+  const changes = useMemo(
+    () =>
+      residues === null || residues.length === 0
+        ? null
+        : stack.rows.map((row) => sampleChanges(residues, row)),
+    [stack, residues],
+  );
   const layout = useMemo(
     () =>
-      stackLayout(stack, track, residues !== null && residues.length > 0, showTrace, sampleTracks),
-    [stack, track, residues, showTrace, sampleTracks],
+      stackLayout(
+        stack,
+        track,
+        residues !== null && residues.length > 0,
+        showTrace,
+        sampleTracks,
+        changes,
+      ),
+    [stack, track, residues, showTrace, sampleTracks, changes],
   );
   const { headerHeight, tops, contentHeight } = layout;
   const [hover, setHover] = useState<string | null>(null);
@@ -141,10 +157,26 @@ export function AlignmentStackView({
     const r = rowAt(y - headerHeight + scroll.top);
     const own = r < 0 ? null : (sampleTracks?.[r] ?? null);
     if (own === null) return null;
-    const below = y - headerHeight + scroll.top - (tops[r] ?? 0) - ROW_HEIGHT - layout.aaHeight - 1;
+    const strips = layout.aaHeight + (layout.tagHeights[r] ?? 0);
+    const below = y - headerHeight + scroll.top - (tops[r] ?? 0) - ROW_HEIGHT - strips - 1;
     const lane = Math.floor(below / LANE_HEIGHT);
     const item = lane >= 0 && lane < own.lanes ? itemAt(own, lane, column) : null;
     return item === null ? null : { item, own: true };
+  };
+  /** What the pointer says over an amino-acid strip (or its tags) at `y` and `column` (#261). */
+  const residueAt = (y: number, column: number): string | null => {
+    if (residues === null || residues.length === 0) return null;
+    if (y < headerHeight) {
+      const top = RULER_HEIGHT + layout.trackHeight + ROW_HEIGHT;
+      return y >= top && y < top + layout.aaHeight
+        ? residueTitle(residues, stack, null, column)
+        : null;
+    }
+    const r = rowAt(y - headerHeight + scroll.top);
+    if (r < 0) return null;
+    const below = y - headerHeight + scroll.top - (tops[r] ?? 0) - ROW_HEIGHT;
+    if (below < 0 || below >= layout.aaHeight + (layout.tagHeights[r] ?? 0)) return null;
+    return residueTitle(residues, stack, r, column);
   };
   const drawing = useCallback(
     (
@@ -165,6 +197,7 @@ export function AlignmentStackView({
         disagreeing,
         showTrace,
         residues,
+        changes,
         marked: mark,
         reviewed: faded,
         colours: c,
@@ -183,6 +216,7 @@ export function AlignmentStackView({
       disagreeing,
       showTrace,
       residues,
+      changes,
       charWidth,
       monoFont,
       layout,
@@ -436,7 +470,9 @@ export function AlignmentStackView({
               const item = x < NAME_WIDTH ? null : trackItemAt(y, column);
               const text =
                 item === null
-                  ? null
+                  ? x < NAME_WIDTH
+                    ? null
+                    : residueAt(y, column)
                   : `${item.own ? 'Sample feature: ' : ''}${item.item.annotation.name} (${item.item.annotation.type}, ${item.item.annotation.strand} strand)`;
               if (text !== hover) setHover(text);
             }}

@@ -1,5 +1,6 @@
 import type { SeqDocument } from '@/core';
 
+import { residueChangeText } from './alignmentChanges';
 import { type ResidueFrame, Change, residueOf } from './alignmentResidues';
 import {
   Cell,
@@ -26,7 +27,7 @@ import { ColumnClass, columnsOfIndex, spansOf, type TrackAnnotation } from './al
 /** What a difference does to a CDS's protein, for one sample. */
 export interface ProteinEffect {
   readonly kind: 'silent' | 'missense' | 'nonsense' | 'stop-lost' | 'frameshift' | 'in-frame';
-  /** "silent", "p.K42R", "p.K42*", "p.*42K", "frameshift" or "in-frame indel". */
+  /** "silent", "K42R", "K42*", "*42K", "frameshift" or "in-frame indel". */
   readonly text: string;
 }
 
@@ -124,14 +125,16 @@ function effectOnFrame(
     const last = Math.max(...codon.columns);
     if (last < start || first >= end) continue;
     const residue = residueOf(frame, codon, row);
-    const n = codon.index + 1;
     if (residue.change === Change.Synonymous) silent = true;
-    else if (residue.change === Change.Missense)
-      notes.push({ kind: 'missense', text: `p.${codon.reference}${n}${residue.letter}` });
-    else if (residue.change === Change.Nonsense)
-      notes.push({ kind: 'nonsense', text: `p.${codon.reference}${n}*` });
-    else if (residue.change === Change.StopLost)
-      notes.push({ kind: 'stop-lost', text: `p.*${n}${residue.letter}` });
+    const text = residueChangeText(codon, residue);
+    if (text === null) continue;
+    const kind =
+      residue.change === Change.Nonsense
+        ? 'nonsense'
+        : residue.change === Change.StopLost
+          ? 'stop-lost'
+          : 'missense';
+    notes.push({ kind, text });
   }
   const worst = notes.find((n) => n.kind === 'nonsense') ?? notes[0];
   if (worst === undefined) return silent ? { kind: 'silent', text: 'silent' } : null;

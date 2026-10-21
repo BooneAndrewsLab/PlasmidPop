@@ -3,6 +3,7 @@ import { sansFontOf } from '@/view/linear';
 import { drawTrace, type TraceBaseAt } from '@/view/trace';
 import { contrastingText } from '@/view/featureColors';
 
+import { placeTags, rulerTicks, tagRank, type ResidueChange } from '../alignmentChanges';
 import {
   Change,
   codonSpan,
@@ -27,6 +28,12 @@ export const COVERAGE_HEIGHT = 6;
 export const TRACE_HEIGHT = 40;
 /** The amino-acid strip under the reference's row and under each sample's. */
 export const AA_HEIGHT = 16;
+/** The protein ruler under the reference's amino-acid strip (#261). */
+export const AA_RULER_HEIGHT = 12;
+/** A sample's change tags under its amino-acid strip, where it has a named change (#261). */
+export const TAG_HEIGHT = 13;
+/** The least space kept between two change tags. */
+const TAG_GAP = 3;
 /** How strongly a reviewed difference is drawn, against an unreviewed one (#123). */
 export const REVIEWED_DIM = 0.35;
 
@@ -261,10 +268,87 @@ function drawResidues(
   ctx.textAlign = 'left';
 }
 
+/**
+ * The reference's protein ruler: each frame's residue number at every tenth
+ * codon, centred under it with a tick up to its strip, counted from the
+ * CDS's first codon (right to left on the reverse strand).
+ */
+function drawAaRuler(
+  ctx: StackContext,
+  frames: readonly ResidueFrame[],
+  colours: Colours,
+  first: number,
+  last: number,
+  x: (column: number) => number,
+  charWidth: number,
+  top: number,
+): void {
+  ctx.font = sansFontOf(FONT_SIZE - 4);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = colours.muted;
+  ctx.strokeStyle = colours.muted;
+  for (const frame of frames) {
+    if (frame.end <= first || frame.start >= last) continue;
+    for (const tick of rulerTicks(frame)) {
+      if (tick.end <= first || tick.start >= last) continue;
+      const mid = x(tick.start) + ((tick.end - tick.start) * charWidth) / 2;
+      ctx.beginPath();
+      ctx.moveTo(mid, top);
+      ctx.lineTo(mid, top + 2);
+      ctx.stroke();
+      ctx.fillText(String(tick.number), mid, top + 2 + (AA_RULER_HEIGHT - 2) / 2);
+    }
+  }
+  ctx.textAlign = 'left';
+}
+
+/**
+ * A sample's change tags under its amino-acid strip: `R240S`, `E244*`,
+ * `*250K` centred under the codon. Those that do not clear each other are
+ * dropped by rank (see `placeTags`), over the whole row so scrolling never
+ * changes which are drawn; a dropped one's residue keeps its tint.
+ */
+function drawTags(
+  ctx: StackContext,
+  changes: readonly ResidueChange[],
+  colours: Colours,
+  first: number,
+  last: number,
+  x: (column: number) => number,
+  charWidth: number,
+  top: number,
+): void {
+  ctx.font = sansFontOf(FONT_SIZE - 3);
+  ctx.textAlign = 'center';
+  const boxes = changes.map((c) => ({
+    centre: ((c.start + c.end) / 2) * charWidth,
+    width: ctx.measureText(c.text).width + 4,
+    rank: tagRank(c.residue.change),
+  }));
+  const kept = placeTags(boxes, TAG_GAP);
+  changes.forEach((c, i) => {
+    const box = boxes[i];
+    if (box === undefined || kept[i] !== true) return;
+    if (c.end <= first - 4 || c.start >= last + 4) return;
+    const mid = x((c.start + c.end) / 2);
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = colours.byClass[2];
+    ctx.fillRect(mid - box.width / 2, top + 1, box.width, TAG_HEIGHT - 2);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = colours.ink;
+    ctx.fillText(c.text, mid, top + TAG_HEIGHT / 2);
+  });
+  ctx.textAlign = 'left';
+}
+
 /** The vertical layout of the stack: pinned header, then each row with its strips. */
 export interface StackLayout {
   readonly trackHeight: number;
   readonly aaHeight: number;
+  /** The protein ruler's height under the reference's strip, 0 without residues. */
+  readonly aaRulerHeight: number;
+  /** Each row's change-tag height under its strip: `TAG_HEIGHT` where it has a named change, else 0. */
+  readonly tagHeights: readonly number[];
   readonly headerHeight: number;
   /** Each row's top below the header, and a last entry for the total. */
   readonly tops: readonly number[];
@@ -283,10 +367,15 @@ export function stackLayout(
   hasResidues: boolean,
   showTrace: boolean,
   sampleTracks: readonly (Track | null)[] | null = null,
+  changes: readonly (readonly ResidueChange[])[] | null = null,
 ): StackLayout {
   const trackHeight = track === null ? 0 : track.lanes * LANE_HEIGHT + (track.lanes > 0 ? 4 : 0);
   const aaHeight = hasResidues ? AA_HEIGHT : 0;
-  const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT + aaHeight;
+  const aaRulerHeight = hasResidues ? AA_RULER_HEIGHT : 0;
+  const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT + aaHeight + aaRulerHeight;
+  const tagHeights = stack.rows.map((_, r) =>
+    hasResidues && (changes?.[r]?.length ?? 0) > 0 ? TAG_HEIGHT : 0,
+  );
   const tops = new Array<number>(stack.rows.length + 1);
   let y = 0;
   stack.rows.forEach((row, r) => {
@@ -294,6 +383,7 @@ export function stackLayout(
     y +=
       ROW_HEIGHT +
       aaHeight +
+      (tagHeights[r] ?? 0) +
       sampleTrackHeight(sampleTracks?.[r]) +
       (showTrace && row.readIndex !== null ? TRACE_HEIGHT : 0);
   });
@@ -301,6 +391,8 @@ export function stackLayout(
   return {
     trackHeight,
     aaHeight,
+    aaRulerHeight,
+    tagHeights,
     headerHeight,
     tops,
     rowsHeight: y,
@@ -334,6 +426,8 @@ export interface StackDrawing {
   readonly disagreeing: ReadonlySet<number>;
   readonly showTrace: boolean;
   readonly residues: readonly ResidueFrame[] | null;
+  /** Each row's named changes (#261), by row, for the tags under its strip; null for none. */
+  readonly changes?: readonly (readonly ResidueChange[])[] | null;
   readonly marked: { readonly start: number; readonly end: number } | null;
   /** Columns of differences marked reviewed or taken (#123), drawn faded; none in an export. */
   readonly reviewed?: ReadonlySet<number>;
@@ -370,6 +464,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
     disagreeing,
     showTrace,
     residues,
+    changes,
     marked,
     reviewed,
     colours,
@@ -485,12 +580,18 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
         row,
       );
     }
+    const tagHeight = layout.tagHeights[r] ?? 0;
+    const tags = changes?.[r];
+    if (tagHeight > 0 && tags !== undefined) {
+      drawTags(ctx, tags, colours, first, last, x, charWidth, y + ROW_HEIGHT + aaHeight);
+    }
     const own = sampleTracks?.[r] ?? null;
     const ownHeight = sampleTrackHeight(own);
+    const stripsHeight = aaHeight + tagHeight;
     if (own !== null && ownHeight > 0) {
-      drawTrack(ctx, own, colours, monoFont, first, last, x, y + ROW_HEIGHT + aaHeight + 1);
+      drawTrack(ctx, own, colours, monoFont, first, last, x, y + ROW_HEIGHT + stripsHeight + 1);
     }
-    const traceTop = y + ROW_HEIGHT + aaHeight + ownHeight;
+    const traceTop = y + ROW_HEIGHT + stripsHeight + ownHeight;
     if (showTrace && row.readIndex !== null && row.result.trace !== null) {
       // The chromatogram under the row: each base's peak under its letter.
       const bases: TraceBaseAt[] = [];
@@ -571,6 +672,7 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
   if (residues !== null && aaHeight > 0) {
     const top = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
     drawResidues(ctx, residues, colours, monoFont, first, last, x, charWidth, top, null);
+    drawAaRuler(ctx, residues, colours, first, last, x, charWidth, top + aaHeight);
   }
   if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x, RULER_HEIGHT);
   ctx.restore();
@@ -611,7 +713,8 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
       // Its own features' lanes, told from the reference's track above.
       ctx.fillStyle = colours.muted;
       ctx.font = sansFontOf(FONT_SIZE - 1);
-      ctx.fillText('Own features', 16, y + ROW_HEIGHT + aaHeight + LANE_HEIGHT / 2 + 2);
+      const strips = aaHeight + (layout.tagHeights[r] ?? 0);
+      ctx.fillText('Own features', 16, y + ROW_HEIGHT + strips + LANE_HEIGHT / 2 + 2);
       ctx.font = sansFontOf(FONT_SIZE + 1);
     }
   }

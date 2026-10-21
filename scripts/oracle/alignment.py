@@ -372,7 +372,7 @@ def effect_cases():
     segments, either strand, /codon_start 1 to 3), written as GenBank by Biopython.
     A read from 250 bases before the origin to 250 after it carries one
     substitution at a base near the origin or a segment boundary, forward and
-    reverse complemented. The expected 'p.X{n}Y' (or 'silent') is Biopython
+    reverse complemented. The expected 'X{n}Y' (or 'silent') is Biopython
     translating the CDS of the plasmid with and without the substitution.
     Left out: reads that start within 15 bases before the origin (#175) and
     insertions just after it (#177).
@@ -429,7 +429,7 @@ def effect_cases():
                     else:
                         i = diff[0]
                         x, y = ref_aa[i], mut[i]
-                        expected = f'p.{x}{i + 1}*' if y == '*' else f'p.*{i + 1}{y}' if x == '*' else f'p.{x}{i + 1}{y}'
+                        expected = f'{x}{i + 1}*' if y == '*' else f'*{i + 1}{y}' if x == '*' else f'{x}{i + 1}{y}'
                     subs.append({'at': at, 'base': base, 'expected': expected})
                 out.append({'loc': name, 'cs': cs, 'seq': seq, 'genbank': handle.getvalue(), 'subs': subs})
     return out
