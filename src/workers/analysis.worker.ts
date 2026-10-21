@@ -12,6 +12,7 @@ import {
   findOrfs,
   gcProfile,
   loadFeatureLibrary,
+  moleculeChecksum,
   recodeSlots,
   setActiveEnzymeSet,
 } from '@/core';
@@ -113,6 +114,8 @@ export function handleAnalysisRequest(
             ...(onProgress === undefined ? {} : { onProgress }),
           }),
         };
+      case 'checksum':
+        return { id: req.id, kind: 'checksum', checksum: moleculeChecksum(req.molecule) };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
       case 'alignEitherStrand':

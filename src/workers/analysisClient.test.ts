@@ -1,6 +1,6 @@
 import pBR322 from '@/io/fixtures/J01749.gb?raw';
 import { parseSequenceFile } from '@/io';
-import { codonUsageTable } from '@/core';
+import { SeqDocument, codonUsageTable, describeMolecule, documentChecksum } from '@/core';
 import { AnalysisCancelledError, AnalysisClient } from './analysisClient';
 import { packCutSites, unpackCutSites } from './analysisProtocol';
 
@@ -204,6 +204,24 @@ describe('multiple alignment (#207)', () => {
     expect(out.rows).toHaveLength(3);
     expect(out.rows[0]).toBe('ACGTACGTAC');
     expect(seen.at(-1)).toBe(1);
+  });
+
+  it('takes the checksum the main thread would (#270)', async () => {
+    const client = new AnalysisClient(null);
+    const [doc] = parseSequenceFile(pBR322, 'J01749.gb').documents;
+    if (doc === undefined) throw new Error('no document in the fixture');
+    expect(await client.checksum(describeMolecule(doc))).toEqual(documentChecksum(doc));
+    const sticky = SeqDocument.create({
+      sequence: 'aattgacctaggcatgca',
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: "3'", overhang: 'TGCA', enzyme: 'PstI' },
+      },
+    });
+    expect(await client.checksum(describeMolecule(sticky))).toEqual(documentChecksum(sticky));
+    expect(
+      await client.checksum(describeMolecule(SeqDocument.create({ sequence: '' }))),
+    ).toBeNull();
   });
 
   it('rejects with the reason when there are too few', async () => {

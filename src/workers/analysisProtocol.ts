@@ -9,6 +9,7 @@ import {
   type EnzymeSet,
   type FeatureHit,
   type LibraryPart,
+  type MoleculeDescription,
   type MsaOptions,
   type MultipleAlignment,
   type Nuclease,
@@ -17,6 +18,7 @@ import {
   type PrimerSearch,
   type RecodeOptions,
   type RecodeResult,
+  type Seguid,
   type StrandedAlignment,
   type Topology,
 } from '@/core';
@@ -111,6 +113,12 @@ export type AnalysisRequest =
       readonly options: Omit<MsaOptions, 'onProgress'>;
     }
   | {
+      /** The SEGUID checksum of a large document, off the main thread (#270). */
+      readonly id: number;
+      readonly kind: 'checksum';
+      readonly molecule: MoleculeDescription;
+    }
+  | {
       /** A codon for each slot, within the limits (#209). */
       readonly id: number;
       readonly kind: 'recode';
@@ -155,6 +163,7 @@ export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'gcProfile'; readonly profile: Float32Array }
   | { readonly id: number; readonly kind: 'recode'; readonly result: RecodeResult }
   | { readonly id: number; readonly kind: 'msa'; readonly alignment: MultipleAlignment }
+  | { readonly id: number; readonly kind: 'checksum'; readonly checksum: Seguid | null }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

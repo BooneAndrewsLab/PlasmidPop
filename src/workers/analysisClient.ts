@@ -7,6 +7,7 @@ import {
   type CrisprOptions,
   type CutSite,
   type EnzymeSet,
+  type MoleculeDescription,
   type MsaOptions,
   type MultipleAlignment,
   type Nuclease,
@@ -16,6 +17,7 @@ import {
   type PrimerSearch,
   type RecodeOptions,
   type RecodeResult,
+  type Seguid,
   type StrandedAlignment,
   type Topology,
   setActiveEnzymeSet,
@@ -270,6 +272,17 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'msa') throw new Error('Unexpected analysis response');
     return res.alignment;
+  }
+
+  /**
+   * The SEGUID checksum of the molecule, in the worker (#270): what
+   * `moleculeChecksum` gives, without its digest on the main thread.
+   */
+  async checksum(molecule: MoleculeDescription): Promise<Seguid | null> {
+    const res = await this.send({ kind: 'checksum', molecule });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'checksum') throw new Error('Unexpected analysis response');
+    return res.checksum;
   }
 
   dispose(): void {
