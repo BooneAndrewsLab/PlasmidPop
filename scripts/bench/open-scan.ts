@@ -25,7 +25,7 @@ interface Probe {
 declare global {
   interface Window {
     __bench?: Probe;
-    __stopFrames?: () => number[];
+    __stopFrames?: () => FrameLog;
   }
 }
 
@@ -37,7 +37,19 @@ interface Run {
   readonly scrolled: number;
   readonly frames: number;
   readonly maxGap: number;
+  /** When the longest gap's frame arrived: ms after the first wheel event, and after the file was picked. */
+  readonly maxGapAt: number;
+  readonly maxGapAfterOpen: number;
   readonly longFrames: number;
+}
+
+interface FrameLog {
+  /** The gap before each frame, in ms. */
+  readonly gaps: number[];
+  /** When each frame arrived, in ms after the log started. */
+  readonly at: number[];
+  /** The log's start, in ms after the file was picked. */
+  readonly afterOpen: number;
 }
 
 const { values } = parseArgs({
@@ -139,10 +151,14 @@ function installProbe(): void {
 
 function startFrameLog(): void {
   const gaps: number[] = [];
+  const at: number[] = [];
+  const start = performance.now();
+  const afterOpen = start - (window.__bench?.t0 ?? 0);
   let last = 0;
   let on = true;
   const tick = (now: number): void => {
     gaps.push(now - last);
+    at.push(now - start);
     last = now;
     if (on) requestAnimationFrame(tick);
   };
@@ -152,7 +168,7 @@ function startFrameLog(): void {
   });
   window.__stopFrames = () => {
     on = false;
-    return gaps;
+    return { gaps, at, afterOpen };
   };
 }
 
@@ -199,14 +215,20 @@ async function runOnce(
           });
         }),
     );
-    const gaps = await page.evaluate(() => window.__stopFrames?.() ?? []);
+    const log = await page.evaluate(() => window.__stopFrames?.());
+    if (log === undefined) throw new Error('the frame log was lost');
+    const { gaps, at, afterOpen } = log;
     const scrolled = (await page.evaluate(sequenceScrollTop)) - top;
+    const worst = gaps.indexOf(Math.max(...gaps));
+    const maxGapAt = at[worst] ?? 0;
     return {
       view: probe.view,
       enzymes: probe.enzymes,
       scrolled,
       frames: gaps.length,
-      maxGap: Math.max(...gaps),
+      maxGap: gaps[worst] ?? 0,
+      maxGapAt,
+      maxGapAfterOpen: afterOpen + maxGapAt,
       longFrames: gaps.filter((g) => g > LONG_FRAME_MS).length,
     };
   } finally {
@@ -239,7 +261,8 @@ try {
       rows.push({ size, run, ...r });
       process.stderr.write(
         `${size} bp run ${run}/${runs}: view ${r.view.toFixed(0)} ms, enzymes ${r.enzymes.toFixed(0)} ms, ` +
-          `max frame gap ${r.maxGap.toFixed(0)} ms\n`,
+          `max frame gap ${r.maxGap.toFixed(0)} ms at scroll+${r.maxGapAt.toFixed(0)} ms ` +
+          `(open+${r.maxGapAfterOpen.toFixed(0)} ms)\n`,
       );
     }
   }
@@ -250,7 +273,8 @@ try {
 }
 
 const header =
-  'size_bp,run,view_ms,enzymes_ms,scroll_px,scroll_frames,scroll_max_gap_ms,scroll_long_frames';
+  'size_bp,run,view_ms,enzymes_ms,scroll_px,scroll_frames,scroll_max_gap_ms,' +
+  'scroll_max_gap_at_ms,scroll_max_gap_after_open_ms,scroll_long_frames';
 const csv = rows.map((r) =>
   [
     r.size,
@@ -260,6 +284,8 @@ const csv = rows.map((r) =>
     Math.round(r.scrolled),
     r.frames,
     r.maxGap.toFixed(1),
+    r.maxGapAt.toFixed(1),
+    r.maxGapAfterOpen.toFixed(1),
     r.longFrames,
   ].join(','),
 );
