@@ -6,10 +6,13 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type Ref,
 } from 'react';
 
 import { measureCharWidth, monoFontOf } from '@/view/linear';
+
+import { followTooltip, hideFollowTooltip } from './tooltip';
 
 import { residueTitle, sampleChanges } from '../alignmentChanges';
 import { type Stack } from '../alignmentStack';
@@ -139,7 +142,6 @@ export function AlignmentStackView({
     [stack, track, residues, showTrace, sampleTracks, changes],
   );
   const { headerHeight, tops, contentHeight } = layout;
-  const [hover, setHover] = useState<string | null>(null);
   const contentWidth = NAME_WIDTH + stack.columns * charWidth;
   /** The row under `y` below the header, or -1. */
   const rowAt = useCallback(
@@ -177,6 +179,18 @@ export function AlignmentStackView({
     const below = y - headerHeight + scroll.top - (tops[r] ?? 0) - ROW_HEIGHT;
     if (below < 0 || below >= layout.aaHeight + (layout.tagHeights[r] ?? 0)) return null;
     return residueTitle(residues, stack, r, column);
+  };
+  /** What the pointer at a canvas event is on: a residue, a track feature or a sample's own, or nothing. */
+  const tipAt = (e: ReactMouseEvent<HTMLCanvasElement>): string | null => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (x < NAME_WIDTH) return null;
+    const column = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
+    const item = trackItemAt(y, column);
+    return item === null
+      ? residueAt(y, column)
+      : `${item.own ? 'Sample feature: ' : ''}${item.item.annotation.name} (${item.item.annotation.type}, ${item.item.annotation.strand} strand)`;
   };
   const drawing = useCallback(
     (
@@ -461,20 +475,16 @@ export function AlignmentStackView({
             ref={canvas}
             className="astack__canvas"
             style={{ width: size.width, height: size.height }}
-            title={hover ?? undefined}
             onPointerMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const y = e.clientY - rect.top;
-              const column = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
-              const item = x < NAME_WIDTH ? null : trackItemAt(y, column);
-              const text =
-                item === null
-                  ? x < NAME_WIDTH
-                    ? null
-                    : residueAt(y, column)
-                  : `${item.own ? 'Sample feature: ' : ''}${item.item.annotation.name} (${item.item.annotation.type}, ${item.item.annotation.strand} strand)`;
-              if (text !== hover) setHover(text);
+              // A finger scrolling the view is not asking what is under it;
+              // a tap is (`onClick`).
+              if (e.pointerType === 'touch') return;
+              const text = tipAt(e);
+              if (text === null) hideFollowTooltip();
+              else followTooltip(text, e.clientX, e.clientY);
+            }}
+            onPointerLeave={() => {
+              hideFollowTooltip();
             }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -487,6 +497,12 @@ export function AlignmentStackView({
               if (x >= NAME_WIDTH) {
                 const at = Math.floor((x - NAME_WIDTH + scroll.left) / charWidth);
                 setMarked({ start: at, end: at + 1 });
+              }
+              // A finger has no hover: a tap names the residue or feature
+              // under it, and the tip stays until the next tap or scroll.
+              if ('pointerType' in e.nativeEvent && e.nativeEvent.pointerType === 'touch') {
+                const text = tipAt(e);
+                if (text !== null) followTooltip(text, e.clientX, e.clientY);
               }
             }}
           />

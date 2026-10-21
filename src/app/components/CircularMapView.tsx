@@ -41,6 +41,7 @@ import { readCircularTheme } from './circularTheme';
 import { selectChange, useEditDiff } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { gcTip as describeGc } from '../gcTip';
+import { followTooltip, hideFollowTooltip } from './tooltip';
 import { useEditorState } from '../state/useEditorStore';
 import { useGcProfile } from '../state/useGcProfile';
 import { recallView, rememberView } from '../state/viewMemory';
@@ -140,7 +141,6 @@ export function CircularMapView({ doc }: Props) {
     [gcOn, gcValues, gcWindowBases, doc.length],
   );
   /** What the GC ring says under the pointer, as the canvas's tooltip. */
-  const [gcTip, setGcTip] = useState<string | undefined>(undefined);
   const overlay = preview?.items ?? NO_OVERLAY;
   const edits = useEditDiff();
   const previewLanes = useMemo(() => overlayLanes(overlay, doc.length), [overlay, doc.length]);
@@ -550,7 +550,8 @@ export function CircularMapView({ doc }: Props) {
       return;
     }
     const tip = gcTipAt(layout, gcTrack, pt, doc);
-    setGcTip((was) => (was === tip ? was : tip));
+    if (tip === undefined) hideFollowTooltip();
+    else followTooltip(tip, e.clientX, e.clientY);
     const label = labelAt(pt.x, pt.y);
     const next: Hover =
       label !== null
@@ -648,7 +649,6 @@ export function CircularMapView({ doc }: Props) {
         role="img"
         aria-label={`Map of ${doc.name}`}
         style={{ width: size.width, height: size.height, cursor }}
-        title={gcTip}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -660,7 +660,7 @@ export function CircularMapView({ doc }: Props) {
         onPointerLeave={(e) => {
           // A finger leaves the moment it lifts, and the label it brought
           // back would go with it.
-          setGcTip(undefined);
+          hideFollowTooltip();
           if (e.pointerType !== 'touch') setHover(NO_HOVER);
         }}
       />
@@ -668,7 +668,7 @@ export function CircularMapView({ doc }: Props) {
         <button
           type="button"
           className="button map-view__control"
-          title="Zoom in (mouse wheel or pinch also zooms; double-click a feature to fit it)"
+          data-tip="Zoom in (mouse wheel or pinch also zooms; double-click a feature to fit it)"
           aria-label="Zoom in"
           disabled={layout.zoom >= layout.maxZoom}
           onClick={() => {
@@ -680,7 +680,7 @@ export function CircularMapView({ doc }: Props) {
         <button
           type="button"
           className="button map-view__control"
-          title="Zoom out"
+          data-tip="Zoom out"
           aria-label="Zoom out"
           disabled={!zoomed}
           onClick={() => {
@@ -692,7 +692,7 @@ export function CircularMapView({ doc }: Props) {
         <button
           type="button"
           className="button map-view__control"
-          title="Zoom to the selected bases"
+          data-tip="Zoom to the selected bases"
           aria-label="Zoom to selection"
           disabled={!hasRange}
           onClick={() => {
@@ -704,7 +704,7 @@ export function CircularMapView({ doc }: Props) {
         <button
           type="button"
           className="button map-view__control"
-          title="Show the whole map"
+          data-tip="Show the whole map"
           aria-label="Show the whole map"
           disabled={!zoomed}
           onClick={() => {

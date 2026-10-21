@@ -71,6 +71,7 @@ import { readLinearTheme } from './linearTheme';
 import { SelectionBar } from './SelectionBar';
 import { editorStore } from '../state/editorStore';
 import { gcTip as describeGc } from '../gcTip';
+import { followTooltip, hideFollowTooltip } from './tooltip';
 import { useEditorState } from '../state/useEditorStore';
 import { useGcProfile } from '../state/useGcProfile';
 import { recallView, rememberView } from '../state/viewMemory';
@@ -197,7 +198,6 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   /** What the pointer is over: the feature and translation tracks are click
       targets, the bases are text. */
   /** What the GC track says under the pointer, as the canvas's tooltip. */
-  const [gcTip, setGcTip] = useState<string | undefined>(undefined);
   const [cursor, setCursor] = useState<'text' | 'pointer' | 'default'>('text');
   const dragAnchor = useRef<number | null>(null);
   /** While a mouse drag is making the selection, the selection bar waits for it to end. */
@@ -620,7 +620,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
     const tip = hit.kind === 'gc' ? describeGc(gcTrack, hit.position, doc) : undefined;
-    setGcTip((was) => (was === tip ? was : tip));
+    if (tip === undefined) hideFollowTooltip();
+    else followTooltip(tip, e.clientX, e.clientY);
     if (hit.kind === 'overlay') setCursor(spanAtHit(hit) === undefined ? 'default' : 'pointer');
     else if (hit.kind !== 'lane' && hit.kind !== 'translation') setCursor('text');
     else setCursor(featureAtHit(hit) === undefined ? 'default' : 'pointer');
@@ -1055,13 +1056,12 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
           ref={canvasRef}
           className="seq-view__canvas"
           style={{ width: size.width, height: size.height, cursor }}
-          title={gcTip}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           onPointerLeave={() => {
-            setGcTip(undefined);
+            hideFollowTooltip();
             setCursor('text');
           }}
           onContextMenu={(e) => {

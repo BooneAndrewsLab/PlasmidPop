@@ -602,8 +602,9 @@ once the ORFs panel has found them. With no document behind the reference
   substitution, then the left one, and the others go without a tag but keep
   their shading. Hover a residue for `R240 · bla` (its number and the CDS's
   name), or for a changed one `R240S · CGT→AGT · bla`, the codon in the
-  document and in the sample, read along the CDS. A sample with no named
-  change has no tag row.
+  document and in the sample, read along the CDS. On a phone, tap a residue
+  or a feature for the same words; they stay until the next tap. A sample
+  with no named change has no tag row.
 - **List** opens a table of the differences, one row per run of differing
   columns, between the verification lines and the alignment (it is closed by
   default and remembered like the Show buttons). Its columns are the
