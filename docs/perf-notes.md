@@ -987,3 +987,58 @@ machine before quoting them:
   past 50 ms in about one run in five.
 - These are timings of the whole app in a browser, so they move with the
   machine and with what else it runs. Compare runs made on one machine.
+
+## The scroll hitch at 300 kb (#268, design note 96, 2026-10-21)
+
+The bench above dropped one frame of 50-83 ms while scrolling a 300 kb
+record, every run, and none at 50 kb or 1 Mb. A CPU profile of the scroll
+(Playwright's CDP session, `Profiler.start` at a 0.2 ms interval; the
+longest busy stretch aggregated by stack) put the whole frame in
+`persistence.autosaveDocument`: the SEGUID digest for the stored row (SHA-1
+over `watson;crick`, ~30 ms, and ~10 ms building the strands), `writeGenBank`
+twice (`findIdentical` and `save`, ~8 ms each), the Dexie `put` and a garbage
+collection. The sequence view's own work held its frames at every size.
+
+The write is at a time, not a scroll position: `useAutosave` fires 500 ms
+after the last change to the document list, which at every size is about
+1.0-1.2 s after the file was picked. The bench starts scrolling when the
+enzyme list has drawn, which is 0.7 s after the open at 300 kb and 1.2-1.6 s
+at 500 kb and 1 Mb, so the bigger sizes scroll after the write has already
+happened. The autosave's main-thread task, from the `longtask` entries
+(headless Chromium 156, 16-thread Xeon E5-2630 v3, idle machine; three runs
+per size):
+
+| Size   | Autosave task, 1.17.0 | Autosave task, fixed | In the bench's scroll   |
+| ------ | --------------------- | -------------------- | ----------------------- |
+| 50 kb  | ~15 ms                |                      | yes, one 33 ms frame    |
+| 100 kb | ~20 ms                |                      | yes, one 33 ms frame    |
+| 200 kb | 54-62 ms              | ~30 ms               | yes, one 50-83 ms frame |
+| 300 kb | 52-77 ms              | 30-41 ms             | yes, one 50-83 ms frame |
+| 500 kb | 82-179 ms             |                      | no, before it           |
+| 1 Mb   | 265-271 ms            | 45-62 ms             | no, before it           |
+
+The fix remembers `documentChecksum` per document object (the status bar
+had already taken it at the open) and has `findIdentical` write the GenBank
+text only when a stored document shares the name and file name. The bench
+after it (`npm run bench -- --sizes 200000,300000,1000000 --n 5`, same
+machine, idle):
+
+| Size   | View painted | Enzyme list  | Longest frame gap | Frames > 50 ms |
+| ------ | ------------ | ------------ | ----------------- | -------------- |
+| 200 kb | 145 ± 5 ms   | 583 ± 10 ms  | 33.4 ± 0.0 ms     | 0              |
+| 300 kb | 170 ± 6 ms   | 691 ± 10 ms  | 33.3 ± 0.0 ms     | 0              |
+| 1 Mb   | 343 ± 6 ms   | 1432 ± 23 ms | 16.8 ± 0.0 ms     | 0              |
+
+What is left of the autosave is one `writeGenBank` (11-16 ms at 300 kb,
+28 ms at 1 Mb), the history encoding and the IndexedDB write; at 300 kb it
+still costs one 33 ms frame, which is a missed vsync rather than a hitch.
+The bench now records when its longest gap fell (`scroll_max_gap_at_ms`
+after the first wheel event, `scroll_max_gap_after_open_ms` after the file
+was picked), so a task that lands at a time shows as one.
+
+The same profile puts two larger main-thread tasks before the scroll, which
+the bench's `view_ms` and `enzymes_ms` include and which are not this
+issue: the open itself (205 ms at 300 kb, 410-429 ms at 1 Mb, of which the
+status bar's checksum is 15 ms and 80 ms and garbage collection 30 ms and
+125-158 ms), and drawing the enzyme list (165 ms at 300 kb, 317-330 ms at
+1 Mb, mostly the Enzymes panel's memos).

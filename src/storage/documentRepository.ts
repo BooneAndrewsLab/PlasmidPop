@@ -205,13 +205,17 @@ export class DocumentRepository {
    * entry to the recent list.
    */
   async findIdentical(doc: SeqDocument, fileName: string | null): Promise<string | null> {
-    const text = writeGenBank(doc);
-    const match = await this.db.documents
+    const candidates = await this.db.documents
       .where('name')
       .equals(doc.name)
-      .filter((d) => d.fileName === fileName && d.text === text)
-      .first();
-    return match?.id ?? null;
+      .filter((d) => d.fileName === fileName)
+      .toArray();
+    // The text is written only when there is a stored document to hold it
+    // against: at 300 kb it is a 10 ms job on the main thread, and the first
+    // save of a file just opened, which asks this, mostly finds nothing (#268).
+    if (candidates.length === 0) return null;
+    const text = writeGenBank(doc);
+    return candidates.find((d) => d.text === text)?.id ?? null;
   }
 
   async load(id: string): Promise<StoredLoad | null> {

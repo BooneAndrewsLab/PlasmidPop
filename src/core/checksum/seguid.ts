@@ -185,8 +185,24 @@ function canonicalSequence(doc: SeqDocument): string {
  *
  * Null for an empty document: SEGUID is not defined for one, and a checksum
  * shared by every empty sequence would say nothing anyway.
+ *
+ * Worked out once per document object. A document is immutable, so the
+ * answer cannot go stale, and the same one is asked for by the status bar,
+ * the lineage, `Compare with…` and the autosave: at 300 kb the digest is
+ * some 40 ms on the main thread, which the autosave was paying again a
+ * second after the open, in the middle of whatever the user was doing (#268).
  */
 export function documentChecksum(doc: SeqDocument): Seguid | null {
+  const known = checksums.get(doc);
+  if (known !== undefined) return known;
+  const checksum = computeDocumentChecksum(doc);
+  checksums.set(doc, checksum);
+  return checksum;
+}
+
+const checksums = new WeakMap<SeqDocument, Seguid | null>();
+
+function computeDocumentChecksum(doc: SeqDocument): Seguid | null {
   if (doc.length === 0) return null;
   // A protein is one chain: SEGUID's original, single-stranded form (#66).
   if (doc.isProtein) return lsseguid(canonicalSequence(doc));

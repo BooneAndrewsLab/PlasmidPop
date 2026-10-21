@@ -114,6 +114,21 @@ describe('documentChecksum', () => {
     expect(documentChecksum(doc.reverseComplement())?.text).toBe(documentChecksum(doc)?.text);
   });
 
+  it('is worked out once per document object (#268)', () => {
+    const doc = circular('AACGTTGACCTAGGACGATCAGGTACC');
+    const first = documentChecksum(doc);
+    expect(first).not.toBeNull();
+    expect(documentChecksum(doc)).toBe(first);
+    // A new document object is a new answer, even one with the same sequence.
+    const same = circular('AACGTTGACCTAGGACGATCAGGTACC');
+    expect(documentChecksum(same)).not.toBe(first);
+    expect(documentChecksum(same)?.text).toBe(first?.text);
+    // The null of an empty document is remembered too.
+    const empty = SeqDocument.create({ sequence: '' });
+    expect(documentChecksum(empty)).toBeNull();
+    expect(documentChecksum(empty)).toBeNull();
+  });
+
   it('does not change when a linear molecule is turned around', () => {
     const doc = SeqDocument.create({ sequence: 'AACGTTGACCTAGG' });
     expect(documentChecksum(doc.reverseComplement())?.text).toBe(documentChecksum(doc)?.text);

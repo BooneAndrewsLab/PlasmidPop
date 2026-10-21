@@ -294,3 +294,5 @@ the Bench, item 49). The rest stand.
 108.  [One Export figure dialog for the map and the sequence view; pages as one ZIP or PDF; exports off the main thread, with progress and Cancel](94-export-figure-dialog.md)
 
 109.  [The app's own tooltip in place of the browser's `title`](95-custom-tooltip.md)
+
+110.  [The scroll hitch at 300 kb was the autosave](96-autosave-hitch.md)
