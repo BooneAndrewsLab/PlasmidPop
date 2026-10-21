@@ -56,6 +56,16 @@ describe('gelProfile', () => {
     expect(said).toMatch(/over 10,000 bp/);
   });
 
+  it('words the too-small warning for one band and for several', () => {
+    expect(bandProblems(gelProfile([14000, 3000, 40]))).toContain(
+      '1 band is under 100 bp and may run off',
+    );
+    expect(bandProblems(gelProfile([14000, 3000, 40, 20]))).toContain(
+      '2 bands are under 100 bp and may run off',
+    );
+    expect(bandProblems(gelProfile([14000, 3000])).join(' ')).not.toMatch(/may run off/);
+  });
+
   it('calls a linearised plasmid uninformative but not misleading', () => {
     const p = gelProfile([4361]);
     expect(p.readable).toBe(false);
