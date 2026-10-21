@@ -37,6 +37,7 @@ import { analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
 import { downloadBlob, downloadText, fileNameFor, snapGeneFileName } from '../saveFile';
+import { documentChecksumLater } from './documentChecksum';
 import { type DocumentState, editorStore } from './editorStore';
 import { storageChoice } from './storageChoice';
 
@@ -238,6 +239,10 @@ export class PersistenceService {
       }
     }
     const doc = d.history.present;
+    // The stored row carries the checksum. A large document's is taken in
+    // the worker (#270), and the status bar has usually had it back by now;
+    // waiting for it here keeps the digest off the main thread either way.
+    await documentChecksumLater(doc);
     // The history goes with the document, in the same transaction: undo,
     // redo and the baselines come back after a reload (item 51).
     await this.repo.save(

@@ -413,7 +413,10 @@ position, or selecting nothing, puts it away. The phone reader has its own
 ## The checksum
 
 The right of the status bar shows a short checksum of the open molecule, like
-`cdseguid=dUxN7Y…`. Click it to copy the whole thing.
+`cdseguid=dUxN7Y…`. Click it to copy the whole thing. A large document's
+(50 kb and up) is worked out in the background once the document is on
+screen; the status bar shows a dimmed `cdseguid=…` for the moment that
+takes, and the checksum takes its place.
 
 It is a [SEGUID v2](https://www.seguid.org/) name, and it has one property
 that makes it worth having: **it does not change when the molecule is written

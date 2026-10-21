@@ -1765,6 +1765,14 @@ button {
   white-space: nowrap;
 }
 
+/* The checksum's place while the worker is still at it (#270): the same
+   box as the button it becomes, so the file name does not move. */
+.statusbar__checksum--pending {
+  padding: 1px 8px;
+  line-height: 18px;
+  opacity: 0.6;
+}
+
 /* The row's middle column, truncated so the bar never changes height. */
 .statusbar__error {
   min-width: 0;

@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 
 import {
   type SeqDocument,
-  documentChecksum,
   formatGc,
   formatLength,
   fractionAtLeast,
@@ -12,6 +11,7 @@ import {
 } from '@/core';
 
 import { copyText } from '../clipboard';
+import { useDocumentChecksum } from '../state/documentChecksum';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -49,9 +49,9 @@ export function StatusBar({ doc }: Props) {
     useEditorState();
   const [showWarnings, setShowWarnings] = useState(false);
   const [copied, setCopied] = useState(false);
-  // A SHA-1 over the sequence, which is microseconds even for a plasmid, but
-  // it is taken on every render of the status bar without this.
-  const checksum = useMemo(() => (doc === null ? null : documentChecksum(doc)), [doc]);
+  // A plasmid's is a SHA-1 in the render; a large document's comes from the
+  // worker a moment later, and is undefined until then (#270).
+  const checksum = useDocumentChecksum(doc);
   const read = doc?.read ?? null;
   // The text is fetched only while something is selected, and the count is a
   // single pass over the selection.
@@ -156,7 +156,16 @@ export function StatusBar({ doc }: Props) {
               {`Read, ${String(Math.round(fractionAtLeast(read, readConfidentQuality) * 100))}% Q${String(readConfidentQuality)}+`}
             </span>
           )}
-          {checksum !== null && (
+          {checksum === undefined && doc !== null && (
+            <span
+              className="statusbar__checksum statusbar__checksum--pending"
+              aria-busy="true"
+              data-tip="The molecule's SEGUID v2 name is being worked out."
+            >
+              {`${doc.isProtein ? 'lsseguid' : doc.topology === 'circular' ? 'cdseguid' : 'ldseguid'}=…`}
+            </span>
+          )}
+          {checksum != null && (
             <button
               type="button"
               className="button button--quiet statusbar__checksum"

@@ -4,7 +4,6 @@ import {
   alignToDocument,
   applyAlignment,
   diffDocuments,
-  documentChecksum,
   isUnchanged,
   isIdentityAlignment,
 } from '@/core';
@@ -12,6 +11,7 @@ import {
 import { analytics } from '../analytics';
 import { describeAlignment } from '../compare';
 import { openFile } from '../openFile';
+import { useDocumentChecksum } from '../state/documentChecksum';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { DiffReview } from './DiffReview';
@@ -69,13 +69,14 @@ export function CompareDialog() {
     () => (other === null || current === null ? null : diffDocuments(other, current)),
     [other, current],
   );
-  const checksums = useMemo(
-    () =>
-      file === null || current === null
-        ? null
-        : { mine: documentChecksum(current), theirs: documentChecksum(file) },
-    [file, current],
-  );
+  // A large document's checksum comes from the worker a moment after the
+  // dialog opens (#270); the checksums block waits for both.
+  const mine = useDocumentChecksum(current);
+  const theirs = useDocumentChecksum(file);
+  const checksums =
+    file === null || current === null || mine === undefined || theirs === undefined
+      ? null
+      : { mine, theirs };
 
   if (comparison === null || current === null || other === null || file === null) return null;
   const { name, source } = comparison;
