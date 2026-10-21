@@ -166,6 +166,11 @@ describe('placeTags', () => {
     expect(placeTags(boxes, 2)).toEqual([false, true]);
   });
 
+  it('keeps the first of two tags in the same place', () => {
+    const box = { centre: 5, width: 20, rank: 2 };
+    expect(placeTags([box, { ...box }, { ...box }], 2)).toEqual([true, false, false]);
+  });
+
   it('keeps nothing from nothing', () => {
     expect(placeTags([], 3)).toEqual([]);
   });
@@ -199,6 +204,16 @@ describe('residueTitle', () => {
     expect(residueTitle(frames, stack, 0, 0)).toBeNull();
     expect(residueTitle(frames, stack, 0, 18)).toBeNull();
     expect(residueTitle(frames, stack, 5, 3)).toBeNull();
+  });
+
+  it('finds the codon a column is in, at both of its edges', () => {
+    const stack = stackOf([read]);
+    const frames = framesOf(stack, 'forward', sequence);
+    // GGG, codon 3, is columns 8-10; 11 starts TTT
+    expect(codonAtColumn(frames, 8)?.codon.index).toBe(2);
+    expect(codonAtColumn(frames, 10)?.codon.index).toBe(2);
+    expect(codonAtColumn(frames, 11)?.codon.index).toBe(3);
+    expect(codonAtColumn(frames, 7)?.codon.index).toBe(1);
   });
 
   it('shows the codons in reading order on the reverse strand', () => {

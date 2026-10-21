@@ -110,9 +110,10 @@ export function tagRank(change: Residue['change']): number {
  */
 export function placeTags(boxes: readonly TagBox[], gap: number): boolean[] {
   const kept = boxes.map(() => false);
+  // Array.prototype.sort is stable, so ties keep the order they were given in.
   const order = boxes
     .map((box, i) => ({ box, i }))
-    .sort((p, q) => p.box.rank - q.box.rank || p.box.centre - q.box.centre || p.i - q.i);
+    .sort((p, q) => p.box.rank - q.box.rank || p.box.centre - q.box.centre);
   const placed: TagBox[] = [];
   for (const { box, i } of order) {
     const clear = placed.every(
@@ -131,6 +132,7 @@ export function codonAtColumn(
   column: number,
 ): { frame: ResidueFrame; codon: CodonColumns } | null {
   for (const frame of frames) {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a fast path only; a frame's codons all lie inside it, so the loop below finds nothing in a frame the column is outside
     if (column < frame.start || column >= frame.end) continue;
     for (const codon of frame.codons) {
       const { start, end } = codonSpan(codon);
@@ -165,9 +167,9 @@ export function residueTitle(
   const hit = codonAtColumn(frames, column);
   if (hit === null) return null;
   const { frame, codon } = hit;
-  const sample = row === null ? undefined : stack.rows[row];
-  if (row !== null && sample === undefined) return null;
-  if (sample === undefined) return `${residueLabel(codon)} · ${frame.name}`;
+  if (row === null) return `${residueLabel(codon)} · ${frame.name}`;
+  const sample = stack.rows[row];
+  if (sample === undefined) return null;
   const residue = residueOf(frame, codon, sample);
   if (residue.change === Change.Blank) return null;
   const text = residueChangeText(codon, residue);
