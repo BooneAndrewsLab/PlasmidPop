@@ -345,7 +345,7 @@ function drawTags(
 export interface StackLayout {
   readonly trackHeight: number;
   readonly aaHeight: number;
-  /** The protein ruler's height under the reference's strip, 0 without residues. */
+  /** The protein ruler's height under the reference's strip, 0 without residues or with their numbers off. */
   readonly aaRulerHeight: number;
   /** Each row's change-tag height under its strip: `TAG_HEIGHT` where it has a named change, else 0. */
   readonly tagHeights: readonly number[];
@@ -368,10 +368,11 @@ export function stackLayout(
   showTrace: boolean,
   sampleTracks: readonly (Track | null)[] | null = null,
   changes: readonly (readonly ResidueChange[])[] | null = null,
+  numbers = true,
 ): StackLayout {
   const trackHeight = track === null ? 0 : track.lanes * LANE_HEIGHT + (track.lanes > 0 ? 4 : 0);
   const aaHeight = hasResidues ? AA_HEIGHT : 0;
-  const aaRulerHeight = hasResidues ? AA_RULER_HEIGHT : 0;
+  const aaRulerHeight = hasResidues && numbers ? AA_RULER_HEIGHT : 0;
   const headerHeight = RULER_HEIGHT + trackHeight + ROW_HEIGHT + aaHeight + aaRulerHeight;
   const tagHeights = stack.rows.map((_, r) =>
     hasResidues && (changes?.[r]?.length ?? 0) > 0 ? TAG_HEIGHT : 0,
@@ -672,7 +673,9 @@ export function drawStack(ctx: StackContext, d: StackDrawing, view: StackView): 
   if (residues !== null && aaHeight > 0) {
     const top = RULER_HEIGHT + trackHeight + ROW_HEIGHT;
     drawResidues(ctx, residues, colours, monoFont, first, last, x, charWidth, top, null);
-    drawAaRuler(ctx, residues, colours, first, last, x, charWidth, top + aaHeight);
+    if (layout.aaRulerHeight > 0) {
+      drawAaRuler(ctx, residues, colours, first, last, x, charWidth, top + aaHeight);
+    }
   }
   if (track !== null) drawTrack(ctx, track, colours, monoFont, first, last, x, RULER_HEIGHT);
   ctx.restore();

@@ -75,6 +75,10 @@ interface Props {
   readonly showTrace: boolean;
   /** The CDS frames to draw residues for, under the reference and each sample; null for none. */
   readonly residues: readonly ResidueFrame[] | null;
+  /** Whether the residues carry their protein ruler's numbers; on by default. */
+  readonly residueNumbers?: boolean;
+  /** Whether a sample's changes are named in tags under its residues; on by default. */
+  readonly showChanges?: boolean;
   readonly onSelectRow: (row: number) => void;
   readonly handle?: Ref<StackHandle>;
   /** A run of columns to bring to the middle of the view and mark, with a nonce to do it again. */
@@ -104,6 +108,8 @@ export function AlignmentStackView({
   disagreement,
   showTrace,
   residues,
+  residueNumbers = true,
+  showChanges = true,
   onSelectRow,
   focus,
   handle,
@@ -121,13 +127,13 @@ export function AlignmentStackView({
 
   const monoFont = monoFontOf(FONT_SIZE);
   const charWidth = useMemo(() => measureCharWidth(monoFont), [monoFont]);
-  /** Each sample's named changes, for its tags (#261); null without residues. */
+  /** Each sample's named changes, for its tags (#261); null without residues or with the tags off. */
   const changes = useMemo(
     () =>
-      residues === null || residues.length === 0
+      residues === null || residues.length === 0 || !showChanges
         ? null
         : stack.rows.map((row) => sampleChanges(residues, row)),
-    [stack, residues],
+    [stack, residues, showChanges],
   );
   const layout = useMemo(
     () =>
@@ -138,8 +144,9 @@ export function AlignmentStackView({
         showTrace,
         sampleTracks,
         changes,
+        residueNumbers,
       ),
-    [stack, track, residues, showTrace, sampleTracks, changes],
+    [stack, track, residues, showTrace, sampleTracks, changes, residueNumbers],
   );
   const { headerHeight, tops, contentHeight } = layout;
   const contentWidth = NAME_WIDTH + stack.columns * charWidth;
