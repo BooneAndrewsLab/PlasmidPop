@@ -685,6 +685,15 @@ and its hover. The stack view has no zoom, so only this collision rule
 applies; if one is added, letters should go below about 7 px and tags stay
 where they fit.
 
+Amino acids popover. The tags crowded the strip and the hover already names
+every change, so the Amino acids button left the Show group for a one-button
+group of its own opening the window's popover (`AlignmentAminoAcids`, hung
+from the right: `astack-pop--end`) with Residues (`Alt+T`, as before), Residue
+numbers and Changes. Residues and Residue numbers default as they did; Changes
+defaults off, and all three are in `remembered`. The view takes
+`residueNumbers` and `showChanges`: off, the changes are `null` and the ruler's
+height 0 in `stackLayout`, so the picture exported follows the window.
+
 Hover is the canvas `title` as before: over a reference residue, a sample's
 strip or its tag row, `residueTitle` finds the codon from the column
 (`codonAtColumn`) and says `R240 · bla`, or for a named change

@@ -87,7 +87,7 @@ it has.
 | `Alt+Shift+N`                  | Select the previous marked change                                                                                                          |
 | `Alt+N`, `Alt+Shift+N`         | In the alignment's large view: next, previous difference (a whole run, among those the Filter lets through); follows a rebound Next change |
 | `Ctrl+F`, `Ctrl+G`             | In the alignment's large view: find a motif; go to a position (not rebindable; Esc closes the form, then the window)                       |
-| `Alt+T`                        | In the alignment's large view: Amino acids on or off (follows a rebound Translations)                                                      |
+| `Alt+T`                        | In the alignment's large view: Amino acids' Residues on or off (follows a rebound Translations)                                            |
 | `↑`, `↓`                       | In the alignment's large view, with the alignment focused: pick the sample above or below                                                  |
 
 ## Find

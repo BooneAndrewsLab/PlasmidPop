@@ -441,9 +441,10 @@ once the ORFs panel has found them. With no document behind the reference
   (one at a time), and **Go to** and **Find** open a small
   form under the toolbar (see below), **Export** opens another for
   saving or copying the alignment (see below), and, with more than one
-  sample, **Samples** sorts and hides them (see below). At the right, the **Show** group switches **Features**, **ORFs**,
-  **Amino acids** and **Trace** on and off; they stay as you left them
-  when you open the window again. The forms under the toolbar (Filter, Go to, Find, Export, Samples) close when
+  sample, **Samples** sorts and hides them (see below). At the right, **Amino acids** (when the document has a CDS; see below)
+  opens a small form of its own, and the **Show** group switches **Features**, **ORFs**
+  and **Trace** on and off; they stay as you left them
+  when you open the window again. The forms under the toolbar (Filter, Go to, Find, Export, Samples, Amino acids) close when
   you click anywhere outside them, on `Esc`, or with **×** at the end of
   their heading; the List and All features
   tables stay open until you press their button again. Under the toolbar, the status row has,
@@ -581,7 +582,13 @@ once the ORFs panel has found them. With no document behind the reference
   wholly in a trimmed or unaligned stretch is left out. Hover a bar for its
   name; up to three lanes per sample, and the status line says how many of
   the picked sample's features did not fit.
-- The **Amino acids** button (shown when the document has a CDS in the alignment; `Alt+T` in this window, as Translations is in the views) draws a
+- The **Amino acids** button (shown when the document has a CDS in the alignment) opens a small form under the
+  toolbar with three switches: **Residues**, **Residue numbers** and
+  **Changes**, and a line saying how many samples change the protein and how
+  many changes are named. The last two are greyed while Residues is off.
+  `Alt+T` switches Residues without opening the form (as Translations does in the
+  views). The button is filled while Residues is on, and reads **Amino acids
+  (changes)** while Changes is on. Residues draws a
   strip of residues under the document row and under each sample: the
   document's own, then what the sample's bases make of the same codons, read
   with the feature's genetic code and strand. A residue that changed is shaded
@@ -590,10 +597,11 @@ once the ORFs panel has found them. With no document behind the reference
   inside it; a codon the sample does not reach is left empty. The codons are
   the document's, so a frameshift shows as `-` where it starts and as changed
   residues after it, not as a re-read frame.
-  A thin **protein ruler** under the document's strip numbers every tenth
+  With Residue numbers on (the default), a thin **protein ruler** under the document's strip numbers every tenth
   residue, counted from each CDS's first codon (on a reverse-strand CDS the
   numbers run right to left, as the protein does). A sample whose codons
-  change a residue gets a row of **tags** under its strip, naming each as
+  change a residue gets, with Changes on (off until you turn it on, remembered
+  like the Show buttons), a row of **tags** under its strip, naming each as
   the one-letter residue, its number and the new residue: `R240S` for a
   substitution, `E244*` for a stop gained, `*250K` for a stop lost. A silent
   change and an insertion or deletion inside a codon get no tag (the strip
@@ -602,7 +610,9 @@ once the ORFs panel has found them. With no document behind the reference
   substitution, then the left one, and the others go without a tag but keep
   their shading. Hover a residue for `R240 · bla` (its number and the CDS's
   name), or for a changed one `R240S · CGT→AGT · bla`, the codon in the
-  document and in the sample, read along the CDS. On a phone, tap a residue
+  document and in the sample, read along the CDS; the hover names every change
+  whether or not the tags are drawn. The saved picture follows the window: no
+  tags, or no numbers, when those are off. On a phone, tap a residue
   or a feature for the same words; they stay until the next tap. A sample
   with no named change has no tag row.
 - **List** opens a table of the differences, one row per run of differing
