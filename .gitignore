@@ -48,3 +48,6 @@ scripts/feature-db/.cache/
 
 # Default output of npm run bench (#253)
 bench-open-scan-*.csv
+
+# Unminified build for scripts/bench/open-profile.ts (#270)
+dist-profile

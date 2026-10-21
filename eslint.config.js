@@ -41,7 +41,15 @@ const noTitleAttribute = {
 
 export default defineConfig(
   {
-    ignores: ['dist', 'coverage', 'node_modules', '.idea', '.stryker-tmp', 'reports'],
+    ignores: [
+      'dist',
+      'dist-profile',
+      'coverage',
+      'node_modules',
+      '.idea',
+      '.stryker-tmp',
+      'reports',
+    ],
   },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
