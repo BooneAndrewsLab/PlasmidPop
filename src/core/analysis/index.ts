@@ -10,6 +10,7 @@ export * from './translationCheck';
 export * from './sixFrame';
 export * from './gel';
 export * from './methylation';
+export * from './enzymeDigest';
 export * from './proteinProperties';
 export * from './openAsProtein';
 export * from './residueNumbers';

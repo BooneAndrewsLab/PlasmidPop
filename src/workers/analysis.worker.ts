@@ -8,6 +8,7 @@ import {
   findCollectionPrimers,
   findCrisprGuides,
   detectFeatures,
+  enzymeDigest,
   findCutSites,
   findOrfs,
   gcProfile,
@@ -22,6 +23,7 @@ import {
   type AnalysisResponse,
   type DetectedPart,
   packCutSites,
+  packEnzymeDigest,
 } from './analysisProtocol';
 
 /** The feature library once loaded; Detect features loads it on first use. */
@@ -72,10 +74,14 @@ export function handleAnalysisRequest(
           req.enzymes === undefined
             ? all
             : all.filter((e) => req.enzymes?.includes(e.name) === true);
+        const found = findCutSites(req.sequence, req.topology, enzymes);
+        const sites = packCutSites(found);
+        if (req.digest !== true) return { id: req.id, kind: 'cutSites', sites };
         return {
           id: req.id,
           kind: 'cutSites',
-          sites: packCutSites(findCutSites(req.sequence, req.topology, enzymes)),
+          sites,
+          digest: packEnzymeDigest(enzymeDigest(found, req.sequence, req.topology), sites.enzymes),
         };
       }
       case 'orfs':
@@ -184,9 +190,22 @@ if (typeof scope.postMessage === 'function' && typeof document === 'undefined') 
     void handleAnalysisRequestAsync(ev.data, (fraction) => {
       scope.postMessage?.({ id, kind: 'progress', fraction });
     }).then((res) => {
-      // The packed sites are handed over rather than copied.
-      if (res.kind === 'cutSites') scope.postMessage?.(res, [res.sites.data.buffer]);
-      else if (res.kind === 'gcProfile') scope.postMessage?.(res, [res.profile.buffer]);
+      // The packed sites and digest are handed over rather than copied.
+      if (res.kind === 'cutSites') {
+        const d = res.digest;
+        scope.postMessage?.(
+          res,
+          d === undefined
+            ? [res.sites.data.buffer]
+            : [
+                res.sites.data.buffer,
+                d.host.buffer,
+                d.lengths.buffer,
+                d.offsets.buffer,
+                d.counts.buffer,
+              ],
+        );
+      } else if (res.kind === 'gcProfile') scope.postMessage?.(res, [res.profile.buffer]);
       else scope.postMessage?.(res);
     });
   };

@@ -1,8 +1,22 @@
 import pBR322 from '@/io/fixtures/J01749.gb?raw';
 import { parseSequenceFile } from '@/io';
-import { SeqDocument, codonUsageTable, describeMolecule, documentChecksum } from '@/core';
+import {
+  SeqDocument,
+  activeEnzymes,
+  codonUsageTable,
+  describeMolecule,
+  documentChecksum,
+  enzymeDigest,
+  findCutSites,
+} from '@/core';
+import { handleAnalysisRequest } from './analysis.worker';
 import { AnalysisCancelledError, AnalysisClient } from './analysisClient';
-import { packCutSites, unpackCutSites } from './analysisProtocol';
+import {
+  packCutSites,
+  packEnzymeDigest,
+  unpackCutSites,
+  unpackEnzymeDigest,
+} from './analysisProtocol';
 
 describe('AnalysisClient (inline fallback)', () => {
   const client = new AnalysisClient(null);
@@ -242,5 +256,37 @@ describe('packed cut sites', () => {
     expect(packed.data).toHaveLength(12);
     expect(unpackCutSites(packed)).toEqual(sites);
     expect(unpackCutSites(packCutSites([]))).toEqual([]);
+  });
+});
+
+describe('the digest with the scan (item 98, #271)', () => {
+  const sequence = `${'A'.repeat(20)}CCTGGCCA${'A'.repeat(20)}GATCGAT${'A'.repeat(20)}GAATTC`;
+
+  it('packs and unpacks to the digest that went in, enzymes without lengths left out', () => {
+    const sites = findCutSites(sequence, 'circular', activeEnzymes());
+    const digest = enzymeDigest(sites, sequence, 'circular');
+    const enzymes = packCutSites(sites).enzymes;
+    const packed = packEnzymeDigest(digest, enzymes);
+    expect(packed.offsets).toHaveLength(enzymes.length + 1);
+    expect(packed.lengths).toHaveLength(
+      [...digest.lengths.values()].reduce((n, l) => n + l.length, 0),
+    );
+    expect(unpackEnzymeDigest(packed, enzymes)).toEqual(digest);
+    expect(unpackEnzymeDigest(packEnzymeDigest(digest, []), [])).toEqual({
+      host: digest.host,
+      lengths: new Map(),
+      counts: new Map(),
+    });
+  });
+
+  it('is answered with the sites when asked for, and only then', async () => {
+    const client = new AnalysisClient(null);
+    const sites = await client.cutSites(sequence, 'linear');
+    const withDigest = await client.cutSitesWithDigest(sequence, 'linear');
+    expect(withDigest.sites).toEqual(sites);
+    expect(withDigest.digest).toEqual(enzymeDigest(sites, sequence, 'linear'));
+    expect(withDigest.digest.lengths.get('EcoRI')).toEqual([76, sequence.length - 76]);
+    const plain = handleAnalysisRequest({ id: 1, kind: 'cutSites', sequence, topology: 'linear' });
+    expect(plain.kind === 'cutSites' && plain.digest).toBeUndefined();
   });
 });

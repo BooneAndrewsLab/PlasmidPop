@@ -383,6 +383,37 @@ export function blockedByHost(
   return marks.some((m) => (m === 'Dam' ? state.dam : state.dcm));
 }
 
+/** `hostMethylationAt`'s marks as bits: Dam is 1, Dcm 2 (item 98). */
+export const HOST_DAM = 1;
+export const HOST_DCM = 2;
+
+/**
+ * The marks of one site as a byte, so a scan's marks cross from the worker
+ * as one `Uint8Array` and a host state is a mask against them.
+ */
+export function hostMarksBits(marks: readonly HostMethylation[]): number {
+  let bits = 0;
+  for (const m of marks) bits |= m === 'Dam' ? HOST_DAM : HOST_DCM;
+  return bits;
+}
+
+/** The marks `hostMarksBits` packed, in the order `hostMethylationAt` lists them. */
+export function hostMarksFromBits(bits: number): HostMethylation[] {
+  const out: HostMethylation[] = [];
+  if ((bits & HOST_DAM) !== 0) out.push('Dam');
+  if ((bits & HOST_DCM) !== 0) out.push('Dcm');
+  return out;
+}
+
+/**
+ * The methylases a host carries as the same bits, so that
+ * `(hostMarksBits(marks) & hostStateBits(state)) !== 0` is
+ * `blockedByHost(state, marks)` without an array per site.
+ */
+export function hostStateBits(state: HostMethylationState): number {
+  return (state.dam ? HOST_DAM : 0) | (state.dcm ? HOST_DCM : 0);
+}
+
 /**
  * The sites of `sites` that would actually cut DNA grown as `state` says
  * (#45): a site an enzyme is sensitive to, with Dam or Dcm inside it and

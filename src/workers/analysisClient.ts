@@ -6,6 +6,7 @@ import {
   type CrisprGuide,
   type CrisprOptions,
   type CutSite,
+  type EnzymeDigest,
   type EnzymeSet,
   type MoleculeDescription,
   type MsaOptions,
@@ -29,6 +30,7 @@ import {
   type AnalysisResponse,
   type Detection,
   unpackCutSites,
+  unpackEnzymeDigest,
 } from './analysisProtocol';
 
 interface Pending {
@@ -164,6 +166,24 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'cutSites') throw new Error('Unexpected analysis response');
     return unpackCutSites(res.sites);
+  }
+
+  /**
+   * Every enzyme's cut sites and the Enzymes tab's digest of them (item 98),
+   * taken in the worker in the same pass as the scan.
+   */
+  async cutSitesWithDigest(
+    sequence: string,
+    topology: Topology,
+  ): Promise<{ readonly sites: CutSite[]; readonly digest: EnzymeDigest }> {
+    const res = await this.send({ kind: 'cutSites', sequence, topology, digest: true });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'cutSites' || res.digest === undefined)
+      throw new Error('Unexpected analysis response');
+    return {
+      sites: unpackCutSites(res.sites),
+      digest: unpackEnzymeDigest(res.digest, res.sites.enzymes),
+    };
   }
 
   /** The GC fraction in a window centred on each base (item 75). */

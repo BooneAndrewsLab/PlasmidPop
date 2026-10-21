@@ -6,6 +6,7 @@ import {
   type CodonSlot,
   type CrisprOptions,
   type CutSite,
+  type EnzymeDigest,
   type EnzymeSet,
   type FeatureHit,
   type LibraryPart,
@@ -42,6 +43,8 @@ export type AnalysisRequest =
       readonly sequence: string;
       readonly topology: Topology;
       readonly enzymes?: readonly string[];
+      /** Also the Enzymes tab's digest of the sites (item 98). */
+      readonly digest?: boolean;
     }
   | {
       readonly id: number;
@@ -145,7 +148,13 @@ export interface Detection {
 
 export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'setEnzymes' }
-  | { readonly id: number; readonly kind: 'cutSites'; readonly sites: PackedCutSites }
+  | {
+      readonly id: number;
+      readonly kind: 'cutSites';
+      readonly sites: PackedCutSites;
+      /** Only when the request asked for it. */
+      readonly digest?: PackedEnzymeDigest;
+    }
   | { readonly id: number; readonly kind: 'orfs'; readonly orfs: Orf[] }
   | { readonly id: number; readonly kind: 'align'; readonly alignment: Alignment }
   | {
@@ -218,4 +227,55 @@ export function unpackCutSites({ data, enzymes }: PackedCutSites): CutSite[] {
     });
   }
   return out;
+}
+
+/**
+ * An `EnzymeDigest` as two transferred buffers (item 98): the marks are
+ * already one, and the fragment lengths of every enzyme go end to end in
+ * the order of `PackedCutSites.enzymes`, with where each enzyme's start.
+ * A 1 Mb scan is 96,000 lengths, which as arrays would be cloned.
+ */
+export interface PackedEnzymeDigest {
+  readonly host: Uint8Array;
+  readonly lengths: Int32Array;
+  /** Per enzyme of the packed sites, where its lengths begin; one more entry closes the last. */
+  readonly offsets: Int32Array;
+  /** Per enzyme of the packed sites, how many sites are its. */
+  readonly counts: Int32Array;
+}
+
+export function packEnzymeDigest(
+  digest: EnzymeDigest,
+  enzymes: readonly string[],
+): PackedEnzymeDigest {
+  const offsets = new Int32Array(enzymes.length + 1);
+  const counts = new Int32Array(enzymes.length);
+  let total = 0;
+  enzymes.forEach((name, i) => {
+    offsets[i] = total;
+    total += digest.lengths.get(name)?.length ?? 0;
+    counts[i] = digest.counts.get(name) ?? 0;
+  });
+  offsets[enzymes.length] = total;
+  const lengths = new Int32Array(total);
+  enzymes.forEach((name, i) => {
+    lengths.set(digest.lengths.get(name) ?? [], offsets[i] ?? 0);
+  });
+  return { host: digest.host, lengths, offsets, counts };
+}
+
+export function unpackEnzymeDigest(
+  { host, lengths, offsets, counts }: PackedEnzymeDigest,
+  enzymes: readonly string[],
+): EnzymeDigest {
+  const out = new Map<string, readonly number[]>();
+  const n = new Map<string, number>();
+  enzymes.forEach((name, i) => {
+    const from = offsets[i] ?? 0;
+    const to = offsets[i + 1] ?? from;
+    if (to > from) out.set(name, Array.from(lengths.subarray(from, to)));
+    const count = counts[i] ?? 0;
+    if (count > 0) n.set(name, count);
+  });
+  return { host, lengths: out, counts: n };
 }

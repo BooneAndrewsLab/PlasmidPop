@@ -1,4 +1,12 @@
-import { hostMethylationAt, isHostMethylationSensitive } from './methylation';
+import {
+  type HostMethylation,
+  blockedByHost,
+  hostMarksBits,
+  hostMarksFromBits,
+  hostMethylationAt,
+  hostStateBits,
+  isHostMethylationSensitive,
+} from './methylation';
 import { findCutSites, getEnzyme } from './restriction';
 
 /** What host methylation each cut of `enzyme` in `sequence` would meet. */
@@ -72,5 +80,37 @@ describe('host methylation', () => {
     expect(reverse('AAAAGGCGGATCAA', 'EciI', 6)).toEqual([]);
     expect(reverse('AAAAGGTGATCAA', 'HphI', 5)).toEqual([]);
     expect(reverse('AAAAGAAGATCAA', 'MboII', 5)).toEqual([]);
+  });
+});
+
+describe('host marks as bits (item 98)', () => {
+  const marks: readonly (readonly HostMethylation[])[] = [
+    [],
+    ['Dam'],
+    ['Dcm'],
+    ['Dam', 'Dcm'],
+    ['Dcm', 'Dam'],
+  ];
+  const states = [
+    { dam: false, dcm: false },
+    { dam: true, dcm: false },
+    { dam: false, dcm: true },
+    { dam: true, dcm: true },
+  ];
+
+  it('round-trip, Dam first', () => {
+    for (const m of marks) {
+      expect(hostMarksFromBits(hostMarksBits(m))).toEqual([...m].sort());
+    }
+    expect(hostMarksBits(['Dam'])).toBe(1);
+    expect(hostMarksBits(['Dcm'])).toBe(2);
+  });
+
+  it('masked by the host, say what blockedByHost says, for every host and every marking', () => {
+    for (const m of marks) {
+      for (const state of states) {
+        expect((hostMarksBits(m) & hostStateBits(state)) !== 0).toBe(blockedByHost(state, m));
+      }
+    }
   });
 });
