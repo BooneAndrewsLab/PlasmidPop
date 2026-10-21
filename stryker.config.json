@@ -54,6 +54,7 @@
     "src/core/alignment/scoring.ts",
     "src/app/alignmentStack.ts",
     "src/app/alignmentTrack.ts",
+    "src/app/alignmentChanges.ts",
     "src/core/analysis/crispr.ts",
     "src/core/analysis/gcContent.ts",
     "src/core/assembly/assemble.ts",
