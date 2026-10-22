@@ -125,10 +125,11 @@ export function matchPatterns(
   const out: number[][] = patterns.map(() => []);
   const indexed: number[] = [];
   patterns.forEach((pattern, p) => {
-    // Stryker disable UnaryOperator: every pattern has its maxStart
     if (pattern.length >= INDEX_MIN) indexed.push(p);
-    else out[p] = matchPositions(masks, pattern, maxStarts[p] ?? -1);
-    // Stryker restore UnaryOperator
+    else {
+      // Stryker disable next-line UnaryOperator: every pattern has its maxStart
+      out[p] = matchPositions(masks, pattern, maxStarts[p] ?? -1);
+    }
   });
   if (indexed.length === 0) return out;
   // Stryker disable next-line OptionalChaining: p comes from indexed, so the pattern is there

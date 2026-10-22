@@ -212,8 +212,10 @@ describe('reverseComplement by byte table (#276)', () => {
   });
 
   it('takes the character loop from code 128 up, wherever it falls', () => {
-    // 128 is the first code past the table, and the bytes 128-159 would
-    // decode as other characters (windows-1252) if they reached it.
+    // 128 is the first code past the table. Where the ASCII decoder reads
+    // the bytes 128-159 as windows-1252 (browsers), they would come out as
+    // other characters if they reached it; Node reads them as Latin-1, so
+    // there a `>= 129` boundary cannot be told apart by this test.
     expect(reverseComplement('\u0080')).toBe('\u0080');
     expect(reverseComplement('\u0081')).toBe('\u0081');
     expect(reverseComplement('AC\u0080GT')).toBe('AC\u0080GT');

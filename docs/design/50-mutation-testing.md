@@ -230,7 +230,7 @@ the length-closeness survivors in `detect.ts` included.
 joined the mutated set with #274-#276 (items 99-101). The first narrow run
 over them and `alphabet.ts` left 213 survived or uncovered mutants in the
 five files and five on the new lines of `alphabet.ts`; after tests and
-disables the rerun left 57 survived and 2 uncovered in the five, none on
+disables the rerun left 58 survived and 2 uncovered in the five, none on
 the new lines of `alphabet.ts`.
 
 The tests are behavioural: empty and over-31-base patterns through
@@ -245,7 +245,8 @@ from three rewrites that change nothing (the scan plan in `cutSites`,
 
 A `next-line` disable silences every mutant of the named mutator on its
 line, so one went only where every such mutant on the line was equivalent
-(35 comments, one of them a disable/restore pair). The remaining survivors
+(a disable/restore pair does not work around that: a restore that ends a
+block is never applied, so write the `next-line` form). The remaining survivors
 are equivalent but share a line and mutator with a killed mutant: loop
 bounds one past a typed array's end, the dispatch between `shiftAnd` and the
 plain loop and between `matchPatterns`' index and its ambiguous path (which

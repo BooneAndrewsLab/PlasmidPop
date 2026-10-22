@@ -258,7 +258,6 @@ function cutSites(
 ): CutSite[] {
   const L = sequence.length;
   if (L === 0) return [];
-  // Stryker disable next-line MethodExpression: a longest site of 0 or less extends a circle by L - 1 bases, more than any site reads, and a line not at all
   const longestSite = Math.max(0, ...enzymes.map((e) => e.site.length));
   // Extend circular sequences so sites spanning the origin are seen once.
   const extended =
