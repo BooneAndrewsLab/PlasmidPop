@@ -1295,3 +1295,54 @@ The checksum's steps in Node (vitest, seeded random DNA, 3 runs):
 | `crypto.subtle` SHA-1, with encoding | 9-19 ms   | 36-44 ms   |
 | `moleculeChecksum` (circular), sync  | 81-92 ms  | 298-310 ms |
 | `moleculeChecksumAsync` (circular)   | 53-61 ms  | 198-208 ms |
+
+## Our SHA-1 (#273, design note 102, 2026-10-22)
+
+`sha1Base64Url` over seeded random DNA text, Node 24.4.1 (V8) on an Intel
+Xeon E5-2630 v3 (2.4 GHz, 16 threads), idle. Two scripts kept outside the
+repo: _warm_ is one size per fresh process, warmed (500 calls at 20 kB, 100
+at 100 kB, 10 at 1 MB, 5 above), then the median of 15 calls, three
+processes; _first call_ is the one call of a fresh process, median of 11
+processes (min-max in brackets). Every run checked the digest against
+`node:crypto` first. 2 and 9.28 MB are the canonical strings of a 1 Mb and
+a 4.64 Mb double-stranded molecule.
+
+| Text    | Warm, before | Warm, after | First call, before  | First call, after |
+| ------- | ------------ | ----------- | ------------------- | ----------------- |
+| 20 kB   | 0.21-0.24 ms | 0.15-0.17   | 3.8 (3.1-12.6) ms   | 4.6 (4.2-9.4)     |
+| 100 kB  | 1.0-1.1 ms   | 0.64-0.77   | 11.2 (5.3-12.4) ms  | 9.4 (7.3-13.5)    |
+| 1 MB    | 10.8-11.0 ms | 6.8-7.5     | 24.6 (22.6-27.7) ms | 30.1 (28.6-32.5)  |
+| 2 MB    | 34.8-35.0 ms | 13.3-15.4   | 42.1 (40.7-47.8) ms | 40.9 (37.0-47.5)  |
+| 4.64 MB | 77-81 ms     | 30-35       | 89 (88-92) ms       | 59 (53-77)        |
+| 9.28 MB | 156-162 ms   | 60-65       | 177 (174-181) ms    | 89 (84-113)       |
+
+Warm, that is 60-100 MB/s before (it depended on how the loop had been
+compiled: 90 MB/s at 1 MB, 57 MB/s at 2 MB) and about 150 MB/s after,
+the same at every size. `node:crypto` does 9.28 MB in 19 ms. A first call
+is mostly V8 compiling the loop, so its numbers move by several ms between
+identical runs; below 100 kB and at 1 MB the new loop's first call is no
+faster, at a few MB and above it is 1.5-2x faster.
+
+What it cost, at 9.28 MB warm, measured apart: `TextEncoder.encode` of the
+whole text 16 ms, `encodeInto` the same text 16,384 characters at a time
+into one 48 kB buffer 7 ms, the old compression loop on encoded bytes
+about 140 ms. So the rounds dominated, and in them mostly the optimized
+code bailing out (`--trace-deopt`: "Insufficient type feedback" at the
+write-back after the loop, on nearly every call). Variants tried, 4.64 MB:
+
+| Variant                                         | Warm     | First call |
+| ----------------------------------------------- | -------- | ---------- |
+| Before                                          | 78 ms    | 89 ms      |
+| Rounds as four loops, old outer loop            | 73 ms    |            |
+| A function per block, four loops of 20          | 36 ms    |            |
+| A function per block, 80 rounds written out     | 20 ms    | 108-114 ms |
+| Outer loop, write-back inside it, four loops    | 27 ms    | 46-62 ms   |
+| The same, one loop with the round's `if` (kept) | 29-31 ms | 53-59 ms   |
+
+The written-out rounds took V8's Maglev 35-40 ms to compile, so the first
+call got slower at every size up to several MB. Four loops of 20 were 7%
+faster warm than one loop, but at 10-50 kB the first call took 6-7 ms
+against 4-5 for the single loop and the old code. Reading a word with
+`getInt32` rather than four bytes and shifts: 27.4 vs 30.6 ms. Reading the
+characters with `charCodeAt` instead of encoding (an ASCII fast path) was
+no faster than encoding.

@@ -306,3 +306,5 @@ the Bench, item 49). The rest stand.
 114.  [Every recognition site in one pass](100-one-pass-scan.md)
 
 115.  [The restriction scan goes before the checksum](101-scan-before-checksum.md)
+
+116.  [A faster SHA-1](102-sha1-loop.md)
