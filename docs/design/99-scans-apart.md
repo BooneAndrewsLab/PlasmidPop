@@ -73,7 +73,7 @@ drawn, ms after the file was picked, mean ± SE, one machine, one session:
 
 The view paints at the same time (114-118 ms, 200-204 ms).
 
-## What was left (#275)
+## What was left (#275, done in item 100)
 
 - One Shift-And pass over the whole sequence per distinct recognition site,
   and another per non-palindromic one, is about 1 s at 4.64 Mb: a matcher

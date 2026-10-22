@@ -1228,3 +1228,35 @@ bundled enzymes, linear, 3 runs; 96,198 sites at 1 Mb, 446,034 at 4.64 Mb):
 | `packEnzymeDigest`             | 0-1 ms     | 1 ms         |
 
 What is left is the pass per site and the digest (#275).
+
+## One pass for every site, and the digest (#275, design note 100, 2026-10-22)
+
+`npm run bench -- --sizes 1000000,4640000 --n 3` (built from the tree each
+time; same machine, idle), the Enzymes list drawn, ms after the file was
+picked:
+
+| Code                                | 1 Mb        | 4.64 Mb      |
+| ----------------------------------- | ----------- | ------------ |
+| Before (design note 99)             | 930 ± 9 ms  | 3272 ± 24 ms |
+| `matchPatterns`, one pass           | 729 ± 25 ms | 2172 ± 29 ms |
+| And `enzymeDigest` with less a site | 683 ± 27 ms | 2101 ± 18 ms |
+
+The worker's steps, timed in Node on the bench's seeded sequences (127
+bundled enzymes, linear, 3 runs; 96,198 sites at 1 Mb, 446,034 at 4.64 Mb):
+
+| Step                           | 1 Mb       | 4.64 Mb      |
+| ------------------------------ | ---------- | ------------ |
+| `sequenceMasks`                | 5-9 ms     | 25-29 ms     |
+| Shift-And pass per pattern     | 240-321 ms | 1114-1153 ms |
+| `matchPatterns`, same patterns | 40-52 ms   | 183-194 ms   |
+| `findCutSites`, before         | 271-344 ms | 1280-1298 ms |
+| `findCutSites`, after          | 74-104 ms  | 362-448 ms   |
+| `packCutSites`                 | 7-11 ms    | 39-49 ms     |
+| `enzymeDigest`, before         | 93-138 ms  | 423-430 ms   |
+| `enzymeDigest`, after          | 52-119 ms  | 236-247 ms   |
+| `packEnzymeDigest`             | 0-1 ms     | 1-2 ms       |
+
+Inside the old digest at 4.64 Mb: `getEnzyme` per site 87-93 ms warm,
+`hostMethylationAt` per site 264-286 ms (with the lookup; 91,522 sites are
+of a Dam- or Dcm-sensitive enzyme), `digestFragments` and its sort per
+enzyme 183-201 ms. No WASM: the matching left is 0.19 s.
