@@ -2,8 +2,20 @@ import fc from 'fast-check';
 
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
-import { type Enzyme, activeEnzymes, findCutSites, findCutSitesOnePassEach } from './restriction';
-import { matchPatterns, matchPositions, patternMasks, sequenceMasks } from './search';
+import {
+  type Enzyme,
+  activeEnzymes,
+  findCutSites,
+  findCutSitesOnePassEach,
+  siteStillMatches,
+} from './restriction';
+import {
+  findSequenceMatches,
+  matchPatterns,
+  matchPositions,
+  patternMasks,
+  sequenceMasks,
+} from './search';
 
 // #275: `matchPatterns` takes every site in one pass, and `findCutSites` is
 // built on it. The pass per pattern it replaced, `matchPositions`, and
@@ -164,7 +176,7 @@ describe('findCutSites against one pass per site (#275)', () => {
     );
   }, 60_000);
 
-  it('agrees on short circles, where sites wrap more than once', () => {
+  it('agrees on short circles, as long as a site or shorter', () => {
     fc.assert(
       fc.property(sequenceArb(12), (seq) => {
         expect(findCutSites(seq, 'circular', BUNDLED)).toEqual(
@@ -172,6 +184,48 @@ describe('findCutSites against one pass per site (#275)', () => {
         );
       }),
       { numRuns: 300 },
+    );
+  }, 30_000);
+});
+
+describe('findCutSites against the other matchers (#277)', () => {
+  // A cut that cannot fall off a line, so every site found is reported.
+  const madeArb = fc
+    .array(fc.constantFrom(...IUPAC.split('')), { minLength: 1, maxLength: 10 })
+    .map((bases): Enzyme => {
+      const site = bases.join('');
+      return {
+        name: 'M',
+        site,
+        cutTop: 0,
+        cutBottom: 0,
+        palindromic: site === reverseComplement(site),
+      };
+    });
+
+  it('finds a site where findSequenceMatches finds it, and siteStillMatches keeps it, at any length', () => {
+    fc.assert(
+      fc.property(madeArb, sequenceArb(12), topologyArb, (enzyme, seq, topology) => {
+        const sites = findCutSites(seq, topology, [enzyme]);
+        for (const site of sites) expect(siteStillMatches(seq, topology, site, enzyme)).toBe(true);
+        // findSequenceMatches reads both strands but reports a start once,
+        // forward first; findCutSites skips the bottom strand only for a palindrome.
+        const forward = (pattern: string) =>
+          findSequenceMatches(seq, topology, pattern, { bothStrands: false }).map(
+            (m) => m.range.start,
+          );
+        // Sites come sorted by cut, which on a circle need not follow the starts.
+        const starts = (strand: 'forward' | 'reverse') =>
+          sites
+            .filter((s) => s.strand === strand)
+            .map((s) => s.siteStart)
+            .sort((a, b) => a - b);
+        expect(starts('forward')).toEqual(forward(enzyme.site));
+        expect(starts('reverse')).toEqual(
+          enzyme.palindromic ? [] : forward(reverseComplement(enzyme.site)),
+        );
+      }),
+      { numRuns: 1000 },
     );
   }, 30_000);
 });

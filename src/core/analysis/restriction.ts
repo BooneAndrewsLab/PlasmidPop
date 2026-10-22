@@ -223,8 +223,9 @@ function wrap(position: number, length: number, topology: Topology): number | nu
 
 /**
  * Finds every cut site of the given enzymes. On circular sequences sites
- * and cuts may straddle the origin. On linear sequences a Type IIS cut that
- * would fall outside the molecule is dropped.
+ * and cuts may straddle the origin, but a site longer than the circle does
+ * not match (#277). On linear sequences a Type IIS cut that would fall
+ * outside the molecule is dropped.
  */
 export function findCutSites(
   sequence: string,
@@ -260,6 +261,8 @@ function cutSites(
   if (L === 0) return [];
   const longestSite = Math.max(0, ...enzymes.map((e) => e.site.length));
   // Extend circular sequences so sites spanning the origin are seen once.
+  // The extension may reach a full turn, but a site longer than the circle
+  // is given no start below, so none reads round it twice (#277).
   const extended =
     topology === 'circular' ? sequence + sequence.slice(0, Math.min(L, longestSite - 1)) : sequence;
   const masks = sequenceMasks(extended);
@@ -292,7 +295,10 @@ function cutSites(
     readonly reverse: number;
   }[] = [];
   for (const [site, group] of bySite) {
-    const maxStart = topology === 'circular' ? L - 1 : L - site.length;
+    // A site longer than the molecule is not in it, on a circle either: it
+    // would read round more than once, which `siteStillMatches` and
+    // `findSequenceMatches` refuse too (#277).
+    const maxStart = site.length > L ? -1 : topology === 'circular' ? L - 1 : L - site.length;
     const forward = patterns.length;
     patterns.push(patternMasks(site));
     maxStarts.push(maxStart);

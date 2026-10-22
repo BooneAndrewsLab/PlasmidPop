@@ -18,6 +18,7 @@ import {
   siteStillMatches,
   summarizeEnzymes,
 } from './restriction';
+import { findSequenceMatches } from './search';
 
 describe('enzyme table', () => {
   it('has unique names and valid IUPAC sites', () => {
@@ -284,6 +285,84 @@ describe('cutLabel (#168)', () => {
     const [site] = findCutSites(sequence, 'circular', [ecoRI]);
     expect(site?.cut).toBe(0);
     expect(cutLabel(site?.cut ?? -1, sequence.length, 'circular')).toBe(sequence.length);
+  });
+});
+
+describe('a site as long as the circle, or longer (#277)', () => {
+  const made = (name: string, site: string, cutTop: number, cutBottom: number): Enzyme => ({
+    name,
+    site,
+    cutTop,
+    cutBottom,
+    palindromic: reverseComplement(site) === site,
+  });
+  // BsmBI is CGTCTC(1/5): Type IIS, non-palindromic, cutting 7 and 11 past its start.
+  const bsmBI = only('BsmBI');
+  // W is A or T, so WWWWWW is a palindrome every A/T circle spells at every start.
+  const w6 = [made('W6', 'WWWWWW', 3, 3)];
+
+  it('does not read a site round a circle shorter than it, on either strand', () => {
+    // The issue's case: five bases spell CGTCTC only by reading the first G twice.
+    expect(findCutSites('GTCTC', 'circular', bsmBI)).toEqual([]);
+    // The same on the bottom strand (GAGACG on top).
+    expect(findCutSites('AGACG', 'circular', bsmBI)).toEqual([]);
+    // A palindromic IUPAC site one base longer than the circle.
+    expect(findCutSites('ATTAA', 'circular', w6)).toEqual([]);
+    // And far longer: nothing, as before.
+    expect(findCutSites('AT', 'circular', w6)).toEqual([]);
+  });
+
+  it('reads a site exactly as long as the circle once at each start that spells it', () => {
+    expect(findCutSites('CGTCTC', 'circular', bsmBI)).toEqual([
+      { enzyme: 'BsmBI', cut: 1, cutBottom: 5, siteStart: 0, strand: 'forward' },
+    ]);
+    // Rotated, so the site starts at 4 and runs through the origin.
+    expect(findCutSites('TCTCCG', 'circular', bsmBI)).toEqual([
+      { enzyme: 'BsmBI', cut: 5, cutBottom: 3, siteStart: 4, strand: 'forward' },
+    ]);
+    // On the bottom strand: the cuts mirror round the site.
+    expect(findCutSites('GAGACG', 'circular', bsmBI)).toEqual([
+      { enzyme: 'BsmBI', cut: 1, cutBottom: 5, siteStart: 0, strand: 'reverse' },
+    ]);
+    expect(findCutSites('ATTAAT', 'circular', w6).map((s) => s.siteStart)).toEqual([
+      3, 4, 5, 0, 1, 2,
+    ]);
+  });
+
+  it('reads a site one base shorter than the circle through the origin', () => {
+    expect(findCutSites('CGTCTCA', 'circular', bsmBI)).toEqual([
+      { enzyme: 'BsmBI', cut: 0, cutBottom: 4, siteStart: 0, strand: 'forward' },
+    ]);
+    expect(findCutSites('TCTCACG', 'circular', bsmBI)).toEqual([
+      { enzyme: 'BsmBI', cut: 5, cutBottom: 2, siteStart: 5, strand: 'forward' },
+    ]);
+  });
+
+  it('on a line, matches a site as long as the molecule and not one longer', () => {
+    expect(findCutSites('GAATTC', 'linear', only('EcoRI'))).toEqual([
+      { enzyme: 'EcoRI', cut: 1, cutBottom: 5, siteStart: 0, strand: 'forward' },
+    ]);
+    expect(findCutSites('AATTAT', 'linear', w6).map((s) => s.siteStart)).toEqual([0]);
+    expect(findCutSites('ATTAA', 'linear', w6)).toEqual([]);
+    // A Type IIS cut past either end is dropped even when the site fits.
+    expect(findCutSites('CGTCTC', 'linear', bsmBI)).toEqual([]);
+  });
+
+  it('agrees with siteStillMatches and findSequenceMatches at every length round the site', () => {
+    const bsm = bsmBI[0];
+    if (bsm === undefined) throw new Error('BsmBI is in the table');
+    const circle = 'CGTCTCAGAGACG';
+    for (let L = 1; L <= circle.length; L++) {
+      const seq = circle.slice(0, L);
+      for (const topology of ['linear', 'circular'] as const) {
+        const sites = findCutSites(seq, topology, [{ ...bsm, cutTop: 0, cutBottom: 0 }]);
+        for (const site of sites) expect(siteStillMatches(seq, topology, site, bsm)).toBe(true);
+        const matches = findSequenceMatches(seq, topology, bsm.site);
+        expect(sites.map((s) => [s.siteStart, s.strand])).toEqual(
+          matches.map((m) => [m.range.start, m.strand]),
+        );
+      }
+    }
   });
 });
 
