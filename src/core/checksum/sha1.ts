@@ -38,7 +38,9 @@ function digestWords(bytes: Uint8Array): Int32Array {
   padded[bytes.length] = 0x80;
   const bits = bytes.length * 8;
   const view = new DataView(padded.buffer);
-  view.setUint32(padded.length - 8, Math.floor(bits / 0x100000000));
+  // Stryker disable next-line ArithmeticOperator: under 512 MB the high word is 0, and bits * 2^32 is a multiple of 2^32, which setUint32 also writes as 0
+  const high = Math.floor(bits / 0x100000000);
+  view.setUint32(padded.length - 8, high);
   view.setUint32(padded.length - 4, bits >>> 0);
 
   let h0 = 0x67452301;
@@ -126,6 +128,7 @@ function base64(bytes: Uint8Array, urlSafe: boolean): string {
     const c = bytes[i + 2] ?? 0;
     const chunk = (a << 16) | (b << 8) | c;
     const chars = i + 2 < bytes.length ? 4 : i + 1 < bytes.length ? 3 : 2;
+    // Stryker disable next-line StringLiteral: the index is masked to 0-63, so the alphabet always has the character
     for (let j = 0; j < chars; j++) out += alphabet[(chunk >>> (18 - j * 6)) & 0x3f] ?? '';
   }
   return out;

@@ -1,15 +1,20 @@
 import { reverseComplement } from '../sequence';
 import { ENZYME_TABLE } from './enzymeTable';
 import {
+  BUNDLED_ENZYME_SET,
   type Enzyme,
   ENZYMES,
+  activeEnzymeSet,
   cutLabel,
   digestFragments,
   findCutSites,
   getEnzyme,
+  isTypeIIS,
   isoschizomerGroups,
+  isoschizomerKey,
   overhangKind,
   overhangLength,
+  setActiveEnzymeSet,
   siteStillMatches,
   summarizeEnzymes,
 } from './restriction';
@@ -279,5 +284,148 @@ describe('cutLabel (#168)', () => {
     const [site] = findCutSites(sequence, 'circular', [ecoRI]);
     expect(site?.cut).toBe(0);
     expect(cutLabel(site?.cut ?? -1, sequence.length, 'circular')).toBe(sequence.length);
+  });
+});
+
+describe('restriction edges (mutation tests)', () => {
+  const fake = (name: string, site: string, cutTop: number, cutBottom: number): Enzyme => ({
+    name,
+    site,
+    cutTop,
+    cutBottom,
+    palindromic: reverseComplement(site).toUpperCase() === site.toUpperCase(),
+  });
+
+  it('calls a cut Type IIS only outside the site, its ends included', () => {
+    expect(isTypeIIS(fake('X', 'GAATTC', 0, 0))).toBe(false);
+    expect(isTypeIIS(fake('X', 'GAATTC', 6, 6))).toBe(false);
+    expect(isTypeIIS(fake('X', 'GAATTC', 0, 6))).toBe(false);
+    expect(isTypeIIS(fake('X', 'GAATTC', -1, 3))).toBe(true);
+    expect(isTypeIIS(fake('X', 'GAATTC', 7, 3))).toBe(true);
+    expect(isTypeIIS(fake('X', 'GAATTC', 3, -1))).toBe(true);
+    expect(isTypeIIS(fake('X', 'GAATTC', 3, 7))).toBe(true);
+  });
+
+  it('keys an isoschizomer by its site in capitals and its cuts', () => {
+    expect(isoschizomerKey(fake('X', 'gaattc', 1, 5))).toBe('GAATTC 1 5');
+    expect(
+      isoschizomerKey({
+        site: 'GAANNNNTTC',
+        cutTop: -7,
+        cutBottom: -12,
+        secondCut: { cutTop: 17, cutBottom: 22 },
+      }),
+    ).toBe('GAANNNNTTC -7 -12 17 22');
+  });
+
+  it('installs an enzyme set and goes back to the bundled one', () => {
+    expect(activeEnzymeSet()).toBe(BUNDLED_ENZYME_SET);
+    const set = {
+      id: 'rebase',
+      label: 'Mine',
+      enzymes: [fake('Zzz1', 'ACGTTA', 2, 4)],
+      suppliers: [],
+    };
+    try {
+      setActiveEnzymeSet(set);
+      expect(activeEnzymeSet()).toBe(set);
+      expect(getEnzyme('zzz1')?.site).toBe('ACGTTA');
+      expect(getEnzyme('EcoRI')?.site).toBe('GAATTC');
+    } finally {
+      setActiveEnzymeSet(null);
+    }
+    expect(activeEnzymeSet()).toBe(BUNDLED_ENZYME_SET);
+    expect(getEnzyme('Zzz1')).toBeUndefined();
+  });
+
+  it('finds nothing in an empty sequence, even for an empty site', () => {
+    for (const topology of ['linear', 'circular'] as const) {
+      expect(findCutSites('', topology, [fake('Empty', '', 0, 0)])).toEqual([]);
+    }
+  });
+
+  it('finds a site through the origin of a circle only', () => {
+    const ecoRI = getEnzyme('EcoRI');
+    if (ecoRI === undefined) throw new Error('EcoRI');
+    // GAA at the end, TTC at the start.
+    const seq = 'TTCAAAAAAAAGAA';
+    expect(findCutSites(seq, 'linear', [ecoRI])).toEqual([]);
+    expect(findCutSites(seq, 'circular', [ecoRI])).toEqual([
+      { enzyme: 'EcoRI', cut: 12, cutBottom: 2, siteStart: 11, strand: 'forward' },
+    ]);
+  });
+
+  it('keeps a cut at either end of a line', () => {
+    // GGATG is not its own reverse complement (CATCC), which neither holds.
+    const atStart = fake('Edge0', 'GGATG', 0, 0);
+    const atEnd = fake('Edge5', 'GGATG', 5, 5);
+    expect(findCutSites('GGATGAAAA', 'linear', [atStart]).map((s) => s.cut)).toEqual([0]);
+    expect(findCutSites('AAAAGGATG', 'linear', [atEnd]).map((s) => s.cut)).toEqual([9]);
+  });
+
+  it('orders enzymes cutting at one place by name, as people read them', () => {
+    const names = ['Gamma', 'beta', 'Alpha'];
+    const sites = findCutSites(
+      'AAGAATTCAAGAATTCAA',
+      'linear',
+      names.map((n) => fake(n, 'GAATTC', 1, 5)),
+    );
+    expect(sites.map((s) => `${s.cut} ${s.enzyme}`)).toEqual([
+      '3 Alpha',
+      '3 beta',
+      '3 Gamma',
+      '11 Alpha',
+      '11 beta',
+      '11 Gamma',
+    ]);
+  });
+
+  it('keeps that order when the enzymes come in it already', () => {
+    const names = ['Alpha', 'beta', 'Delta', 'Gamma'];
+    const sites = findCutSites(
+      'AAGAATTCAA',
+      'linear',
+      names.map((n) => fake(n, 'GAATTC', 1, 5)),
+    );
+    expect(sites.map((s) => s.enzyme)).toEqual(names);
+  });
+
+  it('checks a site where it is, and nowhere it cannot be', () => {
+    const ecoRI = fake('EcoRI', 'GAATTC', 1, 5);
+    const at = (siteStart: number) => ({
+      enzyme: 'EcoRI',
+      cut: siteStart + 1,
+      cutBottom: siteStart + 5,
+      siteStart,
+      strand: 'forward' as const,
+    });
+    expect(siteStillMatches('GAATTCAAAA', 'linear', at(0), ecoRI)).toBe(true);
+    // Ending at the last base of a line.
+    expect(siteStillMatches('AAAAGAATTC', 'linear', at(4), ecoRI)).toBe(true);
+    // Through the origin of a circle, and not of a line.
+    expect(siteStillMatches('TTCAAAAGAA', 'circular', at(7), ecoRI)).toBe(true);
+    expect(siteStillMatches('TTCAAAAGAA', 'linear', at(7), ecoRI)).toBe(false);
+    // A start at or past the end, or before the start, even on a circle.
+    expect(siteStillMatches('GAATTCAAAA', 'circular', at(10), ecoRI)).toBe(false);
+    expect(siteStillMatches('GAATTCAAAA', 'circular', at(11), ecoRI)).toBe(false);
+    expect(siteStillMatches('AGAATTCAAA', 'circular', at(-1), ecoRI)).toBe(false);
+    // String.slice reads a negative start from the end: -10 of ten bases is 0.
+    expect(siteStillMatches('GAATTCAAAA', 'linear', at(-10), ecoRI)).toBe(false);
+    expect(siteStillMatches('GAATTCAAAA', 'circular', at(-10), ecoRI)).toBe(false);
+    // A site longer than the circle would read round it more than once.
+    expect(siteStillMatches('AAAA', 'circular', at(0), fake('A6', 'AAAAAA', 0, 0))).toBe(false);
+    expect(siteStillMatches('AAAA', 'circular', at(0), fake('A4', 'AAAA', 0, 0))).toBe(true);
+    // An empty site is no site.
+    expect(siteStillMatches('AAAA', 'circular', at(0), fake('None', '', 0, 0))).toBe(false);
+  });
+
+  it('cuts a circle into pieces in order round it, a cut at the end being one at 0', () => {
+    expect(digestFragments([10, 3], 10, 'circular')).toEqual([
+      { start: 0, end: 3, length: 3 },
+      { start: 3, end: 10, length: 7 },
+    ]);
+    expect(digestFragments([10, 9], 20, 'circular').map((f) => f.start)).toEqual([9, 10]);
+    expect(digestFragments([4], 10, 'circular')).toEqual([{ start: 4, end: 14, length: 10 }]);
+    expect(digestFragments([10], 10, 'circular')).toEqual([{ start: 0, end: 10, length: 10 }]);
   });
 });

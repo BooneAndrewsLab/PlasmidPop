@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { sha1Base64, sha1Base64Url, sha1Hex } from './sha1';
+import { sha1Base64, sha1Base64Url, sha1Base64UrlAsync, sha1Hex } from './sha1';
 
 /**
  * The vectors are FIPS 180-1's own, which is the point of writing the hash
@@ -37,5 +37,42 @@ describe('sha1', () => {
     expect(sha1Base64('ACGT')).toBe('IQiZThf2zKn/I1KtqStlEdsHYDQ');
     expect(sha1Base64Url('ACGT')).toBe('IQiZThf2zKn_I1KtqStlEdsHYDQ');
     expect(sha1Base64Url('ACGT')).toHaveLength(27);
+  });
+});
+
+describe('sha1Base64UrlAsync (#276)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("gives sha1Base64Url's value by crypto.subtle", async () => {
+    // The test environment has one, so this is not the fallback.
+    expect(globalThis.crypto.subtle).toBeDefined();
+    for (const text of ['', 'ACGT', 'a'.repeat(56), 'é'])
+      expect(await sha1Base64UrlAsync(text)).toBe(sha1Base64Url(text));
+  });
+
+  it("asks crypto.subtle for SHA-1 of the text's UTF-8 and encodes what it answers", async () => {
+    const digest = vi.fn((_algorithm: string, _data: Uint8Array) =>
+      Promise.resolve(new Uint8Array(20).fill(0xff).buffer),
+    );
+    vi.stubGlobal('crypto', { subtle: { digest } });
+    // Twenty 0xff bytes: 26 of base64url's last character, then 111100 (60).
+    expect(await sha1Base64UrlAsync('é')).toBe(`${'_'.repeat(26)}8`);
+    expect(digest).toHaveBeenCalledTimes(1);
+    expect(digest.mock.calls[0]?.[0]).toBe('SHA-1');
+    expect([...(digest.mock.calls[0]?.[1] ?? [])]).toEqual([0xc3, 0xa9]);
+  });
+
+  it('falls back to its own digest when crypto.subtle fails', async () => {
+    vi.stubGlobal('crypto', { subtle: { digest: () => Promise.reject(new Error('no')) } });
+    expect(await sha1Base64UrlAsync('ACGT')).toBe('IQiZThf2zKn_I1KtqStlEdsHYDQ');
+  });
+
+  it('falls back to its own digest without crypto.subtle, or without crypto', async () => {
+    vi.stubGlobal('crypto', {});
+    expect(await sha1Base64UrlAsync('ACGT')).toBe('IQiZThf2zKn_I1KtqStlEdsHYDQ');
+    vi.stubGlobal('crypto', undefined);
+    expect(await sha1Base64UrlAsync('ACGT')).toBe('IQiZThf2zKn_I1KtqStlEdsHYDQ');
   });
 });

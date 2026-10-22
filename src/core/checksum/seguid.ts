@@ -72,11 +72,13 @@ export function minimalRotation(s: string): { readonly rotated: string; readonly
   let a = 0;
   let b = 0;
   while (b < n) {
+    // Stryker disable next-line ArithmeticOperator: comparing on to n + a only reads further copies of s after a break the shorter loop also reaches (checked exhaustively on short strings)
     for (let i = 0; i < n - a; i++) {
       // Code units rather than characters: every symbol here is ASCII, and
       // their order is the same one, `-` included (45, below every base).
       const sa = doubled.charCodeAt(a + i);
       const sb = doubled.charCodeAt(b + i);
+      // Stryker disable next-line ArithmeticOperator: a - i === b only drops Booth's shortcut out of comparing a rotation with itself, which the loop's end also gives (checked exhaustively on short strings)
       if (sa < sb || a + i === b) {
         if (i > 0) b += i - 1;
         break;
@@ -88,6 +90,7 @@ export function minimalRotation(s: string): { readonly rotated: string; readonly
     }
     b += 1;
   }
+  // Stryker disable next-line ArithmeticOperator: a - n is negative (a < n), which slice reads as 2n + a - n = a + n
   return { rotated: doubled.slice(a, a + n), index: a };
 }
 

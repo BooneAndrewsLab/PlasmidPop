@@ -78,7 +78,12 @@
     "src/app/exportJob.ts",
     "src/app/pdfWriter.ts",
     "src/app/help/staticGuide.ts",
-    "src/view/svg/exportLinear.ts"
+    "src/view/svg/exportLinear.ts",
+    "src/core/analysis/search.ts",
+    "src/core/analysis/restriction.ts",
+    "src/core/analysis/enzymeDigest.ts",
+    "src/core/checksum/seguid.ts",
+    "src/core/checksum/sha1.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {

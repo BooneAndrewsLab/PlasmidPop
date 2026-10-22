@@ -223,3 +223,33 @@ scored 94.75% over the same 71 files (21,084 mutants, 1,136 tested, 160
 minutes with the 45-minute dry-run timeout, alongside a system update). It
 left no survived or uncovered mutant on any line changed since 1.16.1,
 the length-closeness survivors in `detect.ts` included.
+
+## The scans of #274-#276
+
+`search.ts`, `restriction.ts`, `enzymeDigest.ts`, `seguid.ts` and `sha1.ts`
+joined the mutated set with #274-#276 (items 99-101). The first narrow run
+over them and `alphabet.ts` left 213 survived or uncovered mutants in the
+five files and five on the new lines of `alphabet.ts`; after tests and
+disables the rerun left 57 survived and 2 uncovered in the five, none on
+the new lines of `alphabet.ts`.
+
+The tests are behavioural: empty and over-31-base patterns through
+`matchPositions`' plain loop, ambiguity codes where `matchPatterns`' index
+cannot spell the window, the Type IIS and `siteStillMatches` boundaries,
+ties ordered by name, `sha1Base64UrlAsync` against a stubbed
+`crypto.subtle`, and a fresh import of `alphabet.ts` so the byte table is
+built while a mutant is active. Production code was left as it was apart
+from three rewrites that change nothing (the scan plan in `cutSites`,
+`undefined` for an unknown enzyme in `enzymeDigest`, the table built by
+`Uint8Array.from`).
+
+A `next-line` disable silences every mutant of the named mutator on its
+line, so one went only where every such mutant on the line was equivalent
+(35 comments, one of them a disable/restore pair). The remaining survivors
+are equivalent but share a line and mutator with a killed mutant: loop
+bounds one past a typed array's end, the dispatch between `shiftAnd` and the
+plain loop and between `matchPatterns`' index and its ambiguous path (which
+only change speed), redundant guards (`n === 0` beside the IUPAC regex, the
+origin's single point in `digestFragments` and `fragmentLengths`), Booth's
+shortcuts in `minimalRotation` (checked exhaustively on short strings), and
+`<` against `<=` where the tie is handled first.

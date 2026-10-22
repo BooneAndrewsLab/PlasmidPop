@@ -3,6 +3,7 @@ import {
   findResidueMatches,
   findSequenceMatches,
   looksLikeSequence,
+  matchPatterns,
   matchPositions,
   patternMasks,
   sequenceMasks,
@@ -138,5 +139,108 @@ describe('findResidueMatches (#66)', () => {
     expect(findResidueMatches('MKV', '')).toEqual([]);
     expect(findResidueMatches('MKV', 'MKVL')).toEqual([]);
     expect(findResidueMatches('MKV', 'M K')).toEqual([]);
+  });
+});
+
+describe('search edges (mutation tests)', () => {
+  it('matches an empty pattern at every start up to maxStart and the end', () => {
+    const masks = sequenceMasks('ACGTACGT');
+    expect(matchPositions(masks, [], 3)).toEqual([0, 1, 2, 3]);
+    expect(matchPositions(masks, [], 20)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(matchPositions(masks, [], -1)).toEqual([]);
+  });
+
+  it('matches a pattern longer than 31 bases up to maxStart and the end', () => {
+    const seq = `A${'C'.repeat(40)}G`;
+    const masks = sequenceMasks(seq);
+    expect(matchPositions(masks, patternMasks('C'.repeat(40)), 1)).toEqual([1]);
+    expect(matchPositions(masks, patternMasks('C'.repeat(40)), 0)).toEqual([]);
+    expect(matchPositions(masks, patternMasks(`${'C'.repeat(40)}G`), 1)).toEqual([1]);
+    expect(matchPositions(masks, patternMasks(`A${'C'.repeat(40)}G`), 0)).toEqual([0]);
+    expect(matchPositions(masks, patternMasks(`${'C'.repeat(40)}GA`), 5)).toEqual([]);
+  });
+
+  it('gives an empty pattern every start, as matchPositions does, beside indexed ones', () => {
+    const masks = sequenceMasks('ACGT');
+    expect(matchPatterns(masks, [[], patternMasks('ACGT')], [3, 0])).toEqual([[0, 1, 2, 3], [0]]);
+  });
+
+  it('reads a character outside ASCII by codeMask, as the long s for S', () => {
+    // U+017F upper-cases to S, which is C or G.
+    expect(codeMask('\u017f')).toBe(codeMask('S'));
+    expect([...sequenceMasks('A\u017fT')]).toEqual([codeMask('A'), codeMask('S'), codeMask('T')]);
+  });
+
+  it('matches ambiguous sequence in a window the index cannot spell', () => {
+    const one = (seq: string, pattern: string, maxStart = 100) =>
+      matchPatterns(sequenceMasks(seq), [patternMasks(pattern)], [maxStart])[0];
+    // A window of nothing but ambiguity codes.
+    expect(one('RRRRRR', 'RRRRRR')).toEqual([0]);
+    expect(one('ARRRRRRT', 'NRRRRRRN')).toEqual([0]);
+    // An ambiguity code at the window's first base and nowhere else.
+    expect(one('RACGTA', 'RACGTA')).toEqual([0]);
+    expect(one('TTRACGTA', 'RACGTA')).toEqual([2]);
+    // The most specific window starts two bases in (GTRCGA), where the
+    // pattern's first base would not admit the sequence's.
+    expect(one('TAGTRCGAC', 'TNGTRCGAC')).toEqual([0]);
+    expect(one('CCTAGTRCGAC', 'TNGTRCGAC')).toEqual([2]);
+    expect(one('CCTAGTRCGAC', 'TNGTRCGAC', 1)).toEqual([]);
+  });
+
+  it('reads U as T and finds nothing for an empty or foreign pattern', () => {
+    expect(findSequenceMatches('AAACGTTT', 'linear', 'acgu')).toEqual([
+      { range: { start: 2, end: 6 }, strand: 'forward' },
+    ]);
+    expect(findSequenceMatches('ACGT', 'linear', '')).toEqual([]);
+    expect(findSequenceMatches('aaugcatt', 'circular', 'UGCA')).toEqual([
+      { range: { start: 2, end: 6 }, strand: 'forward' },
+    ]);
+    expect(findSequenceMatches('AAAACCCA', 'linear', 'gggu')).toEqual([
+      { range: { start: 3, end: 7 }, strand: 'reverse' },
+    ]);
+    expect(findSequenceMatches('', 'circular', 'A')).toEqual([]);
+    expect(findSequenceMatches('ACGT', 'linear', 'A-G')).toEqual([]);
+    expect(findSequenceMatches('XACG', 'linear', 'XACG')).toEqual([]);
+    expect(findSequenceMatches('ACGX', 'circular', 'ACGX')).toEqual([]);
+  });
+
+  it('finds a pattern as long as the sequence, but none longer, even round a circle', () => {
+    expect(findSequenceMatches('ACCA', 'linear', 'ACCA', { bothStrands: false })).toEqual([
+      { range: { start: 0, end: 4 }, strand: 'forward' },
+    ]);
+    expect(findSequenceMatches('AT', 'circular', 'ATA')).toEqual([]);
+    expect(findSequenceMatches('AT', 'circular', 'ATAT')).toEqual([]);
+  });
+
+  it('wraps on a circle and not on a line', () => {
+    expect(findSequenceMatches('CGTAAAAA', 'linear', 'ACG', { bothStrands: false })).toEqual([]);
+    expect(findSequenceMatches('CGTAAAAA', 'circular', 'ACG', { bothStrands: false })).toEqual([
+      { range: { start: 7, end: 10 }, strand: 'forward' },
+    ]);
+  });
+
+  it('sorts hits on both strands by start', () => {
+    expect(findSequenceMatches('GTCAAAGAC', 'linear', 'GAC')).toEqual([
+      { range: { start: 0, end: 3 }, strand: 'reverse' },
+      { range: { start: 6, end: 9 }, strand: 'forward' },
+    ]);
+    expect(findSequenceMatches('GACGTCAAGAC', 'linear', 'GAC').map((m) => m.range.start)).toEqual([
+      0, 3, 8,
+    ]);
+  });
+
+  it('finds no residue pattern with anything but letters and stops in it', () => {
+    expect(findResidueMatches('MK-L', '-')).toEqual([]);
+    expect(findResidueMatches('MK-L', 'K-')).toEqual([]);
+    expect(findResidueMatches('M-KL', '-K')).toEqual([]);
+    expect(findResidueMatches('MKL', '')).toEqual([]);
+    expect(findResidueMatches('MKL', 'MKLV')).toEqual([]);
+    expect(findResidueMatches('MKL', 'mkl')).toEqual([{ start: 0, end: 3 }]);
+  });
+
+  it('takes a nucleotide pattern only when every letter is one, spaces around it aside', () => {
+    expect(looksLikeSequence('XACG')).toBe(false);
+    expect(looksLikeSequence('ACGX')).toBe(false);
+    expect(looksLikeSequence(' acgu ')).toBe(true);
   });
 });

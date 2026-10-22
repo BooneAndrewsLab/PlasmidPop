@@ -191,6 +191,7 @@ export function isoschizomerGroups(enzymes: readonly Enzyme[]): IsoschizomerGrou
         a.name.localeCompare(b.name),
     ),
   }));
+  // Stryker disable next-line OptionalChaining,StringLiteral: every group has a member, the enzyme that made it
   return groups.sort((a, b) => (a.members[0]?.name ?? '').localeCompare(b.members[0]?.name ?? ''));
 }
 
@@ -244,6 +245,7 @@ export function findCutSitesOnePassEach(
   enzymes: readonly Enzyme[] = activeEnzymes(),
 ): CutSite[] {
   return cutSites(sequence, topology, enzymes, (masks, patterns, maxStarts) =>
+    // Stryker disable next-line UnaryOperator: every pattern has its maxStart
     patterns.map((pattern, i) => matchPositions(masks, pattern, maxStarts[i] ?? -1)),
   );
 }
@@ -256,6 +258,7 @@ function cutSites(
 ): CutSite[] {
   const L = sequence.length;
   if (L === 0) return [];
+  // Stryker disable next-line MethodExpression: a longest site of 0 or less extends a circle by L - 1 bases, more than any site reads, and a line not at all
   const longestSite = Math.max(0, ...enzymes.map((e) => e.site.length));
   // Extend circular sequences so sites spanning the origin are seen once.
   const extended =
@@ -283,27 +286,35 @@ function cutSites(
   // there is a reverse pattern.
   const patterns: number[][] = [];
   const maxStarts: number[] = [];
-  const slots: { forward: number; reverse: number }[] = [];
+  const plan: {
+    readonly site: string;
+    readonly group: readonly Enzyme[];
+    readonly forward: number;
+    readonly reverse: number;
+  }[] = [];
   for (const [site, group] of bySite) {
     const maxStart = topology === 'circular' ? L - 1 : L - site.length;
+    const forward = patterns.length;
     patterns.push(patternMasks(site));
     maxStarts.push(maxStart);
     let reverse = -1;
-    if (!(group[0]?.palindromic ?? true)) {
+    // Stryker disable next-line BooleanLiteral: a group has at least one enzyme, so the fallback is never read
+    const palindromic = group[0]?.palindromic ?? true;
+    if (!palindromic) {
       reverse = patterns.length;
       patterns.push(patternMasks(reverseComplement(site)));
       maxStarts.push(maxStart);
     }
-    slots.push({ forward: patterns.length - (reverse < 0 ? 1 : 2), reverse });
+    plan.push({ site, group, forward, reverse });
   }
   const matches = match(masks, patterns, maxStarts);
 
-  let slot = 0;
-  for (const [site, group] of bySite) {
+  for (const { site, group, forward: f, reverse: r } of plan) {
     const n = site.length;
-    const { forward: f, reverse: r } = slots[slot++] ?? { forward: -1, reverse: -1 };
+    // Stryker disable next-line ArrayDeclaration: every forward pattern has its list of matches
     const forward = matches[f] ?? [];
-    const reverse = r < 0 ? [] : (matches[r] ?? []);
+    // matches[-1], for a palindrome, is undefined: no reverse pass.
+    const reverse = matches[r] ?? [];
 
     for (const enzyme of group) {
       const second = enzyme.secondCut;
@@ -423,6 +434,7 @@ export function digestFragments(
   }
   const points = [...new Set(unique.map((c) => c % seqLength))].sort((a, b) => a - b);
   if (points.length === 0) return [{ start: 0, end: seqLength, length: seqLength }];
+  // Stryker disable next-line BlockStatement: the map below gives one point the same whole turn, its own next being itself
   if (points.length === 1) {
     const p = points[0] ?? 0;
     return [{ start: p, end: p + seqLength, length: seqLength }];

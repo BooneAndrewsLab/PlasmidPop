@@ -7,6 +7,7 @@ const BASE_BITS: Readonly<Record<string, number>> = { A: 1, C: 2, G: 4, T: 8 };
 
 export function codeMask(code: string): number {
   let mask = 0;
+  // Stryker disable next-line ArrayDeclaration: a fallback holding a non-base string adds no bits, the same as an empty one
   for (const b of IUPAC_SETS[code.toUpperCase()] ?? []) mask |= BASE_BITS[b] ?? 0;
   return mask;
 }
@@ -48,6 +49,7 @@ export function matchPositions(
   const n = pattern.length;
   if (n > 0 && n <= SHIFT_AND_MAX) return shiftAnd(masks, pattern, maxStart);
   const out: number[] = [];
+  // Stryker disable next-line ArithmeticOperator: i - n <= length lets through starts whose bases run off the end, which read as 0 and fail
   outer: for (let i = 0; i <= maxStart && i + n <= masks.length; i++) {
     for (let j = 0; j < n; j++) {
       const s = masks[i + j] ?? 0;
@@ -123,20 +125,28 @@ export function matchPatterns(
   const out: number[][] = patterns.map(() => []);
   const indexed: number[] = [];
   patterns.forEach((pattern, p) => {
+    // Stryker disable UnaryOperator: every pattern has its maxStart
     if (pattern.length >= INDEX_MIN) indexed.push(p);
     else out[p] = matchPositions(masks, pattern, maxStarts[p] ?? -1);
+    // Stryker restore UnaryOperator
   });
   if (indexed.length === 0) return out;
+  // Stryker disable next-line OptionalChaining: p comes from indexed, so the pattern is there
   const k = Math.min(INDEX_MAX, ...indexed.map((p) => patterns[p]?.length ?? 0));
 
   // The window of each pattern: the k positions that admit the fewest k-mers.
   const offsets = new Int32Array(patterns.length);
+  // Stryker disable next-line BlockStatement: the window only decides which bucket a pattern waits in, so leaving every offset at 0 is slower, not wrong
   for (const p of indexed) {
+    // Stryker disable next-line ArrayDeclaration,LogicalOperator: p comes from indexed; and an empty stand-in leaves the offset at 0, which is slower, not wrong
     const pattern = patterns[p] ?? [];
     let best = Infinity;
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: any window of k positions files the pattern correctly, so choosing another (or none, offset 0) is only slower
     for (let o = 0; o + k <= pattern.length; o++) {
       let count = 1;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator,LogicalOperator,AssignmentOperator: the count only ranks windows, any of which files the pattern correctly
       for (let j = o; j < o + k; j++) count *= popcount(pattern[j] ?? 0);
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: the count only ranks windows, any of which files the pattern correctly
       if (count < best) {
         best = count;
         offsets[p] = o;
@@ -147,12 +157,14 @@ export function matchPatterns(
   // Buckets of pattern indices by k-mer, as one array with a start per k-mer.
   const buckets = 1 << (2 * k);
   const starts = new Int32Array(buckets + 1);
+  // Stryker disable next-line ArrayDeclaration: p comes from indexed, so the pattern is there
   const kmers = indexed.map((p) => windowKmers(patterns[p] ?? [], offsets[p] ?? 0, k));
   for (const list of kmers) for (const code of list) starts[code + 1] = (starts[code + 1] ?? 0) + 1;
   for (let c = 0; c < buckets; c++) starts[c + 1] = (starts[c + 1] ?? 0) + (starts[c] ?? 0);
   const filed = new Int32Array(starts[buckets] ?? 0);
   const fill = starts.slice(0, buckets);
   indexed.forEach((p, i) => {
+    // Stryker disable next-line ArrayDeclaration: kmers has an entry for every indexed pattern
     for (const code of kmers[i] ?? []) {
       const at = fill[code] ?? 0;
       filed[at] = p;
@@ -162,24 +174,30 @@ export function matchPatterns(
   // For windows holding an ambiguity code: the patterns whose window's first
   // position admits each of the sixteen masks.
   const byMask: number[][] = Array.from({ length: 16 }, (_, m) =>
+    // Stryker disable next-line ArrayDeclaration,MethodExpression,OptionalChaining: a wider list is only slower: check turns away a pattern that cannot start there, and a non-index has no pattern and a maxStart of -1
     m === 0 ? [] : indexed.filter((p) => (m & ~(patterns[p]?.[offsets[p] ?? 0] ?? 0)) === 0),
   );
 
   const length = masks.length;
   const check = (p: number, start: number): void => {
+    // Stryker disable next-line ArrayDeclaration: check is only given patterns' indices
     const pattern = patterns[p] ?? [];
     const n = pattern.length;
+    // Stryker disable next-line UnaryOperator,ArithmeticOperator: every pattern has its maxStart; and bases past the end read as 0, which fails the loop below
     if (start < 0 || start > (maxStarts[p] ?? -1) || start + n > length) return;
     for (let j = 0; j < n; j++) {
       const s = masks[start + j] ?? 0;
       if (s === 0 || (s & ~(pattern[j] ?? 0)) !== 0) return;
     }
+    // Stryker disable next-line OptionalChaining: out has a list for every pattern
     out[p]?.push(start);
   };
   const codeBits = buckets - 1;
   let code = 0;
+  // Stryker disable next-line UnaryOperator: starting at 1 sends the first windows the slower, ambiguous way, which finds the same
   let lastAmbiguous = -1;
   for (let j = 0; j < length; j++) {
+    // Stryker disable next-line LogicalOperator,UnaryOperator: reading a base as ambiguous only sends its windows the slower way, which finds the same
     const base = MASK_BASE[masks[j] ?? 0] ?? -1;
     if (base < 0) lastAmbiguous = j;
     code = ((code << 2) | (base & 3)) & codeBits;
@@ -192,14 +210,17 @@ export function matchPatterns(
         check(p, i - (offsets[p] ?? 0));
       }
     } else {
+      // Stryker disable next-line ArrayDeclaration: byMask has all sixteen masks
       for (const p of byMask[masks[i] ?? 0] ?? []) check(p, i - (offsets[p] ?? 0));
     }
   }
   return out;
 }
 
+// Stryker disable next-line BlockStatement: popcount only ranks the windows of matchPatterns, any of which is correct
 function popcount(mask: number): number {
   let n = 0;
+  // Stryker disable next-line ConditionalExpression,UpdateOperator: popcount only ranks the windows of matchPatterns, any of which is correct
   for (let m = mask; m !== 0; m &= m - 1) n++;
   return n;
 }
@@ -237,8 +258,10 @@ export function findSequenceMatches(
   const L = sequence.length;
   const n = p.length;
   if (n === 0 || L === 0 || n > L || !/^[ACGTRYSWKMBDHVN]+$/.test(p)) return [];
+  // Stryker disable next-line MethodExpression: a longer wrap is never read: the last start is L - 1 and the pattern at most L long
   const scan = topology === 'circular' ? sequence + sequence.slice(0, n - 1) : sequence;
   const masks = sequenceMasks(scan);
+  // Stryker disable next-line ArithmeticOperator: a start past what scan holds finds nothing: a line's scan ends at L, a circle's at L + n - 1
   const maxStart = topology === 'circular' ? L - 1 : L - n;
   const out: SequenceMatch[] = [];
   const forwardStarts = new Set<number>();
@@ -253,6 +276,7 @@ export function findSequenceMatches(
       if (!forwardStarts.has(s)) out.push({ range: { start: s, end: s + n }, strand: 'reverse' });
     }
   }
+  // Stryker disable next-line EqualityOperator,StringLiteral,UnaryOperator: a reverse hit at a forward hit's start was dropped above, so no two hits share a start and the tie-break never runs
   out.sort((a, b) => a.range.start - b.range.start || (a.strand === 'forward' ? -1 : 1));
   return out;
 }

@@ -37,21 +37,23 @@ export function enzymeDigest(
 ): EnzymeDigest {
   const host = new Uint8Array(sites.length);
   const cuts = new Map<string, number[]>();
-  // Per name, once (#275): the site's length, or -1 for a name no table
+  // Per name, once (#275): the site's length, undefined for a name no table
   // knows, and whether Dam or Dcm can touch it at all. Most sites are of
   // enzymes neither can, which `hostMethylationAt` would only look up.
-  const known = new Map<string, { readonly siteLength: number; readonly sensitive: boolean }>();
+  const known = new Map<
+    string,
+    { readonly siteLength: number | undefined; readonly sensitive: boolean }
+  >();
   sites.forEach((site, i) => {
     let entry = known.get(site.enzyme);
     if (entry === undefined) {
-      const enzyme = getEnzyme(site.enzyme);
       entry = {
-        siteLength: enzyme?.site.length ?? -1,
+        siteLength: getEnzyme(site.enzyme)?.site.length,
         sensitive: isHostMethylationSensitive(site.enzyme),
       };
       known.set(site.enzyme, entry);
     }
-    if (entry.siteLength < 0) return;
+    if (entry.siteLength === undefined) return;
     if (entry.sensitive) {
       host[i] = hostMarksBits(hostMethylationAt(sequence, topology, site, entry.siteLength));
     }
