@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { formatLength } from '@/core';
 import { type DocumentSummary } from '@/storage';
@@ -39,16 +39,28 @@ export function EmptyState() {
   const { documents } = useEditorState();
   const openIds = new Set(documents.map((d) => d.documentId));
 
+  // A listing that resolves after unmount is dropped: setting state then
+  // reaches React after the page (or a test's jsdom) is gone.
+  const mounted = useRef(true);
+
   const refresh = (): void => {
     persistence
       .listStored()
-      .then(setRecent)
+      .then((list) => {
+        if (mounted.current) setRecent(list);
+      })
       .catch(() => {
-        setRecent([]);
+        if (mounted.current) setRecent([]);
       });
   };
 
-  useEffect(refresh, []);
+  useEffect(() => {
+    mounted.current = true;
+    refresh();
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // Ctrl+V with nothing open: a record or bare bases pasted anywhere becomes a document.
   useEffect(() => {
