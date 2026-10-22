@@ -136,7 +136,9 @@ describe('the save worker writes what writeGenBank writes (#272)', () => {
           features: withQualifiers(layFeatures(shape), qualifiers),
           metadata,
           methylation,
-          ...(linear && sticky
+          // A 4-base overhang needs 4 bases to stand on: an edit that reaches
+          // a sticky tip blunts it, so no document holds one on fewer.
+          ...(linear && sticky && shape.sequence.length >= 4
             ? {
                 ends: {
                   left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
