@@ -290,3 +290,25 @@ describe('the digest with the scan (item 98, #271)', () => {
     expect(plain.kind === 'cutSites' && plain.digest).toBeUndefined();
   });
 });
+
+describe('AnalysisClient.start (#276)', () => {
+  it('starts the worker once, ahead of the first request, which then uses it', async () => {
+    const w = heldWorker();
+    const factory = vi.fn(() => w as unknown as Worker);
+    const client = new AnalysisClient(factory);
+    client.start();
+    client.start();
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(w.posted).toEqual([]);
+    const answer = client.orfs('ATG', 'linear');
+    expect(factory).toHaveBeenCalledTimes(1);
+    w.reply({ id: w.posted[0]?.id, kind: 'orfs', orfs: [] });
+    expect(await answer).toEqual([]);
+  });
+
+  it('does nothing without workers', async () => {
+    const client = new AnalysisClient(null);
+    client.start();
+    expect(await client.orfs('ATG', 'linear')).toEqual([]);
+  });
+});

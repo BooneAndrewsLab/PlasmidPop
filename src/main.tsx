@@ -6,6 +6,7 @@ import { App } from './app/App';
 import { openFile } from './app/openFile';
 import { editorStore } from './app/state/editorStore';
 import { PHONE_QUERY } from './app/state/layout';
+import { analysisClient } from './workers/analysisClient';
 import './styles.css';
 
 const container = document.getElementById('root');
@@ -49,3 +50,15 @@ createRoot(container).render(
     <App />
   </StrictMode>,
 );
+
+// The analysis worker is started while the page is idle after its first
+// paint, not by the first request: that comes while a file is being opened,
+// which keeps the main thread busy and made starting it 100 ms (#276).
+const startAnalysis = (): void => {
+  analysisClient.start();
+};
+if (typeof window.requestIdleCallback === 'function') {
+  window.requestIdleCallback(startAnalysis, { timeout: 1000 });
+} else {
+  setTimeout(startAnalysis, 0);
+}

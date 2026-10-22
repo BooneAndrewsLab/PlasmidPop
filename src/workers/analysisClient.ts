@@ -144,6 +144,16 @@ export class AnalysisClient {
   }
 
   /**
+   * Starts the worker before anything is asked of it (#276). Started by the
+   * first request, it was being spun up while opening a genome kept the main
+   * thread busy, 100 ms where it takes 20 when the page is idle. Does
+   * nothing where there are no workers.
+   */
+  start(): void {
+    this.ensureWorker();
+  }
+
+  /**
    * Installs the enzyme set on both threads: here, for the inline fallback
    * and for everything the UI reads, and in the worker if one is running.
    */
