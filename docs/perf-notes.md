@@ -1260,3 +1260,38 @@ Inside the old digest at 4.64 Mb: `getEnzyme` per site 87-93 ms warm,
 `hostMethylationAt` per site 264-286 ms (with the lookup; 91,522 sites are
 of a Dam- or Dcm-sensitive enzyme), `digestFragments` and its sort per
 enzyme 183-201 ms. No WASM: the matching left is 0.19 s.
+
+## The scan before the checksum (#276, design note 101, 2026-10-22)
+
+`npm run bench -- --sizes 1000000,4640000 --n 3` (built from the tree at
+each commit; same machine, idle), the Enzymes list drawn, ms after the file
+was picked:
+
+| Code                                       | 1 Mb        | 4.64 Mb      |
+| ------------------------------------------ | ----------- | ------------ |
+| Before (design note 100)                   | 664 ± 2 ms  | 2041 ± 8 ms  |
+| Fresh document's scan sent in the effect   | 447 ± 14 ms | 1184 ± 22 ms |
+| And byte-table `reverseComplement`, subtle | 471 ± 8 ms  | 1336 ± 7 ms  |
+| And the worker started at app load         | 423 ± 37 ms | 1252 ± 25 ms |
+| And the autosave after an idle callback    | 400 ± 4 ms  | 1167 ± 10 ms |
+| The same, run again                        | 490 ± 19 ms | 1183 ± 30 ms |
+
+The autosave, A/B with `--n 5`: 453 ± 8 / 1309 ± 40 ms written as soon as
+the checksum is in, 432 ± 12 / 1155 ± 30 ms after an idle callback. With
+only the scan moved forward, the save landed in the scroll instead (longest
+frame gap 261 ms at 4.64 Mb, against 17 ms before and after). First
+contentful paint over 8 loads, worker started at an idle callback or not:
+442 vs 445 ms mean.
+
+The checksum's steps in Node (vitest, seeded random DNA, 3 runs):
+
+| Step                                 | 1 Mb      | 4.64 Mb    |
+| ------------------------------------ | --------- | ---------- |
+| `reverseComplement`, character loop  | 46-112 ms | 460-485 ms |
+| `reverseComplement`, byte table      | 6-7 ms    | 19 ms      |
+| `minimalRotation` of both strands    | 35-41 ms  | 131-133 ms |
+| `TextEncoder`, canonical string      | 4-5 ms    | 15-16 ms   |
+| Our SHA-1                            | 40-46 ms  | 146-151 ms |
+| `crypto.subtle` SHA-1, with encoding | 9-19 ms   | 36-44 ms   |
+| `moleculeChecksum` (circular), sync  | 81-92 ms  | 298-310 ms |
+| `moleculeChecksumAsync` (circular)   | 53-61 ms  | 198-208 ms |

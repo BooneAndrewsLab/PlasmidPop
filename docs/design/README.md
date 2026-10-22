@@ -304,3 +304,5 @@ the Bench, item 49). The rest stand.
 113.  [The enzyme list does not wait for the ORFs](99-scans-apart.md)
 
 114.  [Every recognition site in one pass](100-one-pass-scan.md)
+
+115.  [The restriction scan goes before the checksum](101-scan-before-checksum.md)
