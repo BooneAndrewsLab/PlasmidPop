@@ -183,13 +183,18 @@ export function useSaveShortcut(): void {
  * visit. What a dialog would have protected is the half-second between the
  * last keystroke and the autosave, so flush that instead. `pagehide` is the
  * last event a page reliably gets (`beforeunload` does not fire on mobile);
- * the write is best effort, as everything about local storage is.
+ * the write is best effort, as everything about local storage is. It is an
+ * urgent autosave (#272): the text is written on this thread and the write
+ * begun at once, rather than after an idle callback and a round trip to the
+ * save worker that a page being left may not live to see; an ordinary save
+ * still waiting on the worker stands down rather than write an older state
+ * after it.
  */
 export function useFlushOnLeave(): void {
   useEffect(() => {
     const flush = (): void => {
       if (!persistence.restoreAttempted) return;
-      void persistence.autosave().catch(() => undefined);
+      void persistence.autosave({ urgent: true }).catch(() => undefined);
       void persistence.saveShelf().catch(() => undefined);
     };
     const onHidden = (): void => {

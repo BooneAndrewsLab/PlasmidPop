@@ -24,6 +24,7 @@ import {
   type DocumentRepository,
   type StoredLoad,
   getRepository,
+  historyRow,
   pickOpenFiles,
   pickSaveFile,
   snapGeneSaveTypes,
@@ -34,6 +35,7 @@ import {
 import { featureColor } from '@/view/featureColors';
 
 import { analysisClient } from '@/workers/analysisClient';
+import { saveClient } from '@/workers/saveClient';
 
 import { analytics } from '../analytics';
 import { downloadBlob, downloadText, fileNameFor, snapGeneFileName } from '../saveFile';
@@ -114,6 +116,26 @@ function isUnchanged(last: Autosaved | undefined, d: DocumentState): boolean {
 }
 
 /**
+ * What writes the autosave's GenBank text: the save worker (#272), or in a
+ * test something that answers when the test says so.
+ */
+export interface GenBankWriter {
+  genBank(docs: readonly SeqDocument[]): Promise<string[]>;
+}
+
+/**
+ * How an autosave runs. An urgent one is the flush when the page is hidden
+ * or left (`useFlushOnLeave`): it writes the latest state at once and on
+ * this thread, waiting neither for an idle moment, nor for the worker's
+ * checksum or text, nor for a save already under way, because a page being
+ * left may not live to see any of them. Nobody is looking at the page then,
+ * so its main-thread time costs nothing a user sees.
+ */
+export interface AutosaveOptions {
+  readonly urgent?: boolean;
+}
+
+/**
  * Whether asking to keep storage is a question for the user rather than
  * for the browser. `prompt` is the only state that says so; `granted` and
  * `denied` are already decided, and a browser without the query (Safari)
@@ -179,7 +201,26 @@ export class PersistenceService {
    */
   restoreAttempted = false;
 
-  constructor(private readonly repo: DocumentRepository = getRepository()) {}
+  /**
+   * The ordinary autosaves, one after another (#272): each reads the tabs
+   * when its turn comes, so with the text written in a worker, a second
+   * save cannot start on a newer state while the first is still out.
+   */
+  private queue: Promise<void> = Promise.resolve();
+  /**
+   * The tab state each stored id was last read in by a save, newest read
+   * last. Only a save of that state may write the id: an urgent flush that
+   * overtakes an ordinary save still waiting on the worker has read a newer
+   * state, and the older save finds out, inside its transaction, that it
+   * was overtaken and writes nothing rather than put an older state over a
+   * newer one. Two saves that read the same state may both write it.
+   */
+  private readonly lastRead = new Map<string, DocumentState>();
+
+  constructor(
+    private readonly repo: DocumentRepository = getRepository(),
+    private readonly writer: GenBankWriter = saveClient,
+  ) {}
 
   /**
    * Writes every open document that changed since it was last written to
@@ -190,11 +231,28 @@ export class PersistenceService {
    * stored one, so reopening a file or the example does not pile up
    * duplicates in the recent list.
    */
-  async autosave(): Promise<void> {
+  autosave(options: AutosaveOptions = {}): Promise<void> {
+    if (options.urgent === true) return this.autosaveAll(true);
+    const run = this.queue.then(() => this.autosaveAll(false));
+    this.queue = run.catch(() => undefined);
+    return run;
+  }
+
+  private async autosaveAll(urgent: boolean): Promise<void> {
     const openIds = new Set(editorStore.getState().documents.map((d) => d.documentId));
     for (const id of this.autosaved.keys()) if (!openIds.has(id)) this.autosaved.delete(id);
-    for (const d of editorStore.getState().documents) await this.autosaveDocument(d);
+    for (const d of editorStore.getState().documents) await this.autosaveDocument(d, urgent);
     this.rememberSession();
+  }
+
+  private isLatest(id: string, d: DocumentState): boolean {
+    return this.lastRead.get(id) === d;
+  }
+
+  /** The GenBank text of each document: in the save worker, or here when urgent. */
+  private async genBank(docs: readonly SeqDocument[], urgent: boolean): Promise<string[]> {
+    if (urgent) return docs.map((d) => writeGenBank(d));
+    return this.writer.genBank(docs);
   }
 
   /**
@@ -246,36 +304,77 @@ export class PersistenceService {
     }
   }
 
-  private async autosaveDocument(tab: DocumentState): Promise<void> {
+  private async autosaveDocument(tab: DocumentState, urgent: boolean): Promise<void> {
+    if (isUnchanged(this.autosaved.get(tab.documentId), tab)) return;
+    const claims: [string, DocumentState][] = [];
+    const claim = (id: string, d: DocumentState): void => {
+      this.lastRead.set(id, d);
+      claims.push([id, d]);
+    };
+    try {
+      await this.writeDocument(tab, urgent, claim);
+    } finally {
+      // Kept only while a save is out, so a closed tab's states are not held here.
+      for (const [id, d] of claims) if (this.lastRead.get(id) === d) this.lastRead.delete(id);
+    }
+  }
+
+  private async writeDocument(
+    tab: DocumentState,
+    urgent: boolean,
+    claim: (id: string, d: DocumentState) => void,
+  ): Promise<void> {
     let d = tab;
-    if (isUnchanged(this.autosaved.get(d.documentId), d)) return;
+    claim(d.documentId, d);
     let id = d.documentId;
     if (!(await this.repo.has(id))) {
       const opened = d.history.present;
       // A new document nobody has typed into yet is not worth a recent-files entry.
       if (opened.length === 0 && opened.features.size === 0) return;
-      const merged = await this.mergeIntoIdentical(d);
+      const merged = await this.mergeIntoIdentical(d, urgent);
       if (merged === 'gone') return;
       if (merged !== null) {
         d = merged;
         id = merged.documentId;
+        claim(id, d);
       }
     }
     const doc = d.history.present;
-    // The stored row carries the checksum. A large document's is taken in
-    // the worker (#270), and the status bar has usually had it back by now;
-    // waiting for it here keeps the digest off the main thread either way.
-    await documentChecksumLater(doc);
-    await whenIdle();
+    if (!urgent) {
+      // The stored row carries the checksum. A large document's is taken in
+      // the worker (#270), and the status bar has usually had it back by now;
+      // waiting for it here keeps the digest off the main thread either way.
+      // An urgent save takes it inline if it is not known yet.
+      await documentChecksumLater(doc);
+      await whenIdle();
+      if (!this.isLatest(id, d)) return;
+    }
+    const now = Date.now();
     // The history goes with the document, in the same transaction: undo,
-    // redo and the baselines come back after a reload (item 51).
-    await this.repo.save(
+    // redo and the baselines come back after a reload (item 51). Its row is
+    // worked out here, where the states are and their deltas remembered;
+    // the GenBank text in the save worker (#272).
+    const row = historyRow(
+      id,
+      doc,
+      { history: d.history, opened: d.openedDoc, saved: d.savedDoc, origin: d.origin?.doc ?? null },
+      now,
+    );
+    const origin = d.origin;
+    const [text, originText] = await this.genBank(
+      origin === null ? [doc] : [doc, origin.doc],
+      urgent,
+    );
+    if (text === undefined) throw new Error('The document could not be written out.');
+    const written = await this.repo.write(
       id,
       doc,
       d.fileName,
-      { origin: d.origin, derived: d.derived },
-      { history: d.history, opened: d.openedDoc, saved: d.savedDoc, origin: d.origin?.doc ?? null },
+      { origin, derived: d.derived },
+      { row, text, originText: origin === null ? null : (originText ?? null), now },
+      () => this.isLatest(id, d),
     );
+    if (!written || !this.isLatest(id, d)) return;
     this.autosaved.set(id, autosavedOf(d));
     void this.requestPersistentStorage();
   }
@@ -290,8 +389,15 @@ export class PersistenceService {
    * Gives the tab as merged, null when it keeps its own id, or `gone` when
    * it was closed while the entry was being looked up.
    */
-  private async mergeIntoIdentical(d: DocumentState): Promise<DocumentState | 'gone' | null> {
-    const existing = await this.repo.findIdentical(d.history.present, d.fileName);
+  private async mergeIntoIdentical(
+    d: DocumentState,
+    urgent: boolean,
+  ): Promise<DocumentState | 'gone' | null> {
+    const existing = await this.repo.findIdentical(
+      d.history.present,
+      d.fileName,
+      async (doc) => (await this.genBank([doc], urgent))[0] ?? '',
+    );
     if (existing === null || editorStore.documentState(existing) !== null) return null;
     const stored = await this.repo.load(existing);
     const now = editorStore.documentState(d.documentId);
