@@ -15,6 +15,7 @@
 //
 // Prints, per run, the marks (sequence view painted, checksum shown, enzyme
 // list drawn; ms after the file was picked), every `longtask` entry, and for
+// each long task the top self times inside it, and
 // each busy stretch of the profile past 20 ms (`--stretch`) its length, the time inside
 // `documentChecksum`, the garbage collector's share and the top self times.
 // The sequences are the bench's (`open-scan.ts`): seeded random DNA.
@@ -184,15 +185,9 @@ interface Stretch {
   readonly self: Map<string, number>;
 }
 
-/** The busy stretches of a profile, each with its time in the functions of interest. */
-function stretches(profile: Profile, offsetMs: number): Stretch[] {
-  const nodes = new Map<number, Profile['nodes'][number]>();
-  const parent = new Map<number, number>();
-  for (const n of profile.nodes) {
-    nodes.set(n.id, n);
-    for (const c of n.children ?? []) parent.set(c, n.id);
-  }
-  const name = (id: number): string => {
+/** A sample's function as printed: its name, or its line in the bundle, and its file. */
+function namer(nodes: ReadonlyMap<number, Profile['nodes'][number]>): (id: number) => string {
+  return (id) => {
     const n = nodes.get(id);
     if (n === undefined) return '?';
     // An anonymous frame is named by its line in the bundle, so a memo or
@@ -204,6 +199,53 @@ function stretches(profile: Profile, offsetMs: number): Stretch[] {
     const file = n.callFrame.url.split('/').pop() ?? '';
     return file === '' ? fn : `${fn} ${file.replace(/-[\w-]+\.js$/, '')}`;
   };
+}
+
+/** Per `longtask` entry, the top self times of the samples inside it (#278). */
+function insideTasks(
+  profile: Profile,
+  offsetMs: number,
+  tasks: readonly { start: number; duration: number }[],
+): string[] {
+  const nodes = new Map(profile.nodes.map((n) => [n.id, n]));
+  const name = namer(nodes);
+  const self = tasks.map(() => new Map<string, number>());
+  let t = profile.startTime;
+  let prevT = t;
+  const samples = profile.samples ?? [];
+  const deltas = profile.timeDeltas ?? [];
+  for (let i = 0; i < samples.length; i++) {
+    t += deltas[i] ?? 0;
+    const ms = (t - profile.startTime) / 1000 + offsetMs;
+    const dt = (t - prevT) / 1000;
+    prevT = t;
+    const k = tasks.findIndex((task) => ms >= task.start && ms <= task.start + task.duration);
+    const into = self[k];
+    if (into === undefined) continue;
+    const n = name(samples[i] ?? 0);
+    into.set(n, (into.get(n) ?? 0) + dt);
+  }
+  return tasks.map(
+    (task, k) =>
+      `  task ${task.duration.toFixed(0)} ms at +${task.start.toFixed(0)}: ${[
+        ...(self[k] ?? new Map<string, number>()).entries(),
+      ]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([n, ms]) => `${n} ${ms.toFixed(1)}`)
+        .join(', ')}`,
+  );
+}
+
+/** The busy stretches of a profile, each with its time in the functions of interest. */
+function stretches(profile: Profile, offsetMs: number): Stretch[] {
+  const nodes = new Map<number, Profile['nodes'][number]>();
+  const parent = new Map<number, number>();
+  for (const n of profile.nodes) {
+    nodes.set(n.id, n);
+    for (const c of n.children ?? []) parent.set(c, n.id);
+  }
+  const name = namer(nodes);
   const inChecksum = new Map<number, boolean>();
   const underChecksum = (id: number): boolean => {
     const known = inChecksum.get(id);
@@ -307,6 +349,7 @@ async function runOnce(
         .map((t) => `${t.duration.toFixed(0)} ms at +${t.start.toFixed(0)}`)
         .join(', ')}`,
     ];
+    lines.push(...insideTasks(profile, offsetMs, probe.tasks));
     for (const s of stretches(profile, offsetMs)) {
       const top = [...s.self.entries()]
         .sort((a, b) => b[1] - a[1])
