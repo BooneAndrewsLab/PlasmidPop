@@ -1346,3 +1346,69 @@ against 4-5 for the single loop and the old code. Reading a word with
 `getInt32` rather than four bytes and shifts: 27.4 vs 30.6 ms. Reading the
 characters with `charCodeAt` instead of encoding (an ASCII fast path) was
 no faster than encoding.
+
+## The autosave's GenBank text in a worker (#272, design note 103, 2026-10-22)
+
+After #268 the autosave was still one main-thread task of `writeGenBank`
+(`sequenceLines` most of it), the history encoding and the Dexie put. The
+GenBank text is now written in a save worker of its own; the history row
+and the put stay on the main thread.
+
+Measured with `scripts/bench/open-profile.ts` on unminified builds of main
+(7634ee9) and of this change, the profile's busy stretches taken down to
+1 ms (`--stretch 1`, new) and those holding the autosave's functions added
+up; headless Chromium 156, 16-thread Xeon E5-2630 v3, load average about 3,
+seeded random FASTA (no features), four runs per size:
+
+| Size    | Autosave before: total, longest piece        | Autosave after: total, longest piece       |
+| ------- | -------------------------------------------- | ------------------------------------------ |
+| 300 kb  | 39-40 ms, one task of 36-37 ms               | 20-26 ms in three pieces, longest 11-13 ms |
+| 1 Mb    | 81-84 ms, one 78-80 ms (a 59-61 ms longtask) | 33-44 ms in three pieces, longest 16-21 ms |
+| 4.64 Mb | 150-184 ms (a 115-143 ms longtask)           | 53-70 ms, longest 47-63 ms (no longtask)   |
+
+At 4.64 Mb the autosave before was in two runs of five part of one
+512-554 ms stretch with the Enzymes list's draw; after, that stretch is the
+list's alone. What is left, by piece: when the idle callback comes, the
+history row (`encodeHistory`, cached), the bases flattened (`toString`, 1.3
+ms at 300 kb, 3.2 ms at 1 Mb) and the post (2.4 ms at 1 Mb); when the text
+comes back, reading it (1.6 ms at 1 Mb, 9-13 ms at 4.64 Mb) and the Dexie
+put, whose structured clone of the text and the history row into IndexedDB
+is the 7-12 ms at 1 Mb and 33-46 ms at 4.64 Mb that no worker of ours can
+take (design note 103).
+
+What crossing costs the main thread, from a page posting snapshots to the
+built worker (headless Chromium, median of 9, features of three qualifiers
+at one per kb):
+
+| Size, features | Send: bases + JSON | Send: features as objects | Read the text back | Round trip |
+| -------------- | ------------------ | ------------------------- | ------------------ | ---------- |
+| 300 kb, 300    | 1.4 ms             | 1.5 ms                    | 0.3 ms             | 14 ms      |
+| 1 Mb, 1,000    | 2.9 ms             | 4.8 ms                    | 1.5 ms             | 25 ms      |
+| 4.64 Mb, 4,642 | 15.5 ms            | 21.6 ms                   | 5.9 ms             | 127 ms     |
+
+against `writeGenBank` on the main thread (Node 24, median of 5, the same
+documents): 0.7 ms at 10 kb, 2.0 ms at 50 kb, 10.5 ms at 300 kb, 29 ms at
+1 Mb, 110 ms at 4.64 Mb. Below `WORKER_GENBANK_FROM` (50 kb) the text is
+written inline. `JSON.stringify` of the features and a clone of the string
+is 1.7 ms at 1,000 features in Node against 7.8 ms for a `structuredClone`
+of the objects, which is why the protocol sends JSON.
+
+The first build's worker failed at 4.64 Mb with "Maximum call stack size
+exceeded" and the client wrote the text inline, as it should: `writeGenBank`
+pushed the 77,000 sequence lines with one spread call, which a worker's
+smaller stack does not take. It now pushes them one at a time.
+
+`node scripts/bench/open-scan.ts --sizes 1000000,4641652 --n 5` on the
+same two builds (mean ± SE):
+
+| Size    | Longest frame gap, before | after         | Frames > 50 ms, before | after     |
+| ------- | ------------------------- | ------------- | ---------------------- | --------- |
+| 1 Mb    | 46.7 ± 3.3 ms             | 26.7 ± 4.0 ms | 0.4 ± 0.2              | 0.0 ± 0.0 |
+| 4.64 Mb | 30.0 ± 3.3 ms             | 43.4 ± 4.1 ms | 0.0 ± 0.0              | 0.4 ± 0.2 |
+
+At 1 Mb the autosave's task had fallen into the scroll (#278) and is gone.
+At 4.64 Mb what is left of it, the 47-63 ms of reading the text and the
+put, comes about 0.3 s later than the whole autosave used to (the worker's
+130 ms, and the request is posted at the end of the list's busy stretch),
+at open+1.54-1.74 s, which is inside the bench's scroll where the old task
+at +1.2 s was just before it. When the autosave runs is #278's question.

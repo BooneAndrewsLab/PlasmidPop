@@ -308,3 +308,5 @@ the Bench, item 49). The rest stand.
 115.  [The restriction scan goes before the checksum](101-scan-before-checksum.md)
 
 116.  [A faster SHA-1](102-sha1-loop.md)
+
+117.  [The autosave's GenBank text in a worker](103-autosave-worker.md)

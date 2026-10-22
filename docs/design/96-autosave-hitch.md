@@ -79,7 +79,8 @@ at any size; at 200-300 kb it still shows one 33 ms frame, a missed vsync.
   bar showing nothing until it comes back.
 - `writeGenBank` and the history encoding for the autosave are the next
   largest pieces and could follow it into the worker, which would need the
-  document to cross to it.
+  document to cross to it. The text went to a save worker of its own (#272,
+  item 103); the history row stayed.
 - The SHA-1 itself runs at about 20 MB/s in `sha1.ts`; a tighter inner
   loop would be worth two or three times that if the digest stays on the
   main thread.
