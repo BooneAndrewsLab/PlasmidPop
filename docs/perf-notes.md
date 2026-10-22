@@ -1200,3 +1200,31 @@ machine, idle; the #270 table above is the day's code before this change):
 The list is drawn 60 ms sooner at 300 kb and 180 ms sooner at 1 Mb: the
 digest moved to the worker costs the scan 60-100 ms there, and the main
 thread saves more than that in the task that follows.
+
+## The enzyme list and the ORF scan, and the masks (#274, design note 99, 2026-10-21)
+
+`npm run bench -- --sizes 1000000,4640000 --n 3` (built from the tree each
+time; same machine, idle), the Enzymes list drawn, ms after the file was
+picked:
+
+| Code                         | 1 Mb         | 4.64 Mb      |
+| ---------------------------- | ------------ | ------------ |
+| 1.17.1                       | 1122 ± 10 ms | 4189 ± 37 ms |
+| Sites stored before the ORFs | 1028 ± 24 ms | 3483 ± 5 ms  |
+| And `sequenceMasks` by table | 949 ± 12 ms  | 3249 ± 26 ms |
+
+The worker's steps, timed in Node on the bench's seeded sequences (127
+bundled enzymes, linear, 3 runs; 96,198 sites at 1 Mb, 446,034 at 4.64 Mb):
+
+| Step                           | 1 Mb       | 4.64 Mb      |
+| ------------------------------ | ---------- | ------------ |
+| `sequenceMasks`, before        | 82-107 ms  | 375-383 ms   |
+| `sequenceMasks`, by table      | 5-8 ms     | 26-29 ms     |
+| Forward pass per distinct site | 208-222 ms | 965-972 ms   |
+| `findCutSites`, before         | 346-417 ms | 1641-1695 ms |
+| `findCutSites`, after          | 272-280 ms | 1267-1357 ms |
+| `packCutSites`                 | 7-10 ms    | 41-45 ms     |
+| `enzymeDigest`                 | 98-166 ms  | 419-445 ms   |
+| `packEnzymeDigest`             | 0-1 ms     | 1 ms         |
+
+What is left is the pass per site and the digest (#275).
