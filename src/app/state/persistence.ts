@@ -130,6 +130,29 @@ async function wouldAskTheUser(): Promise<boolean> {
 }
 
 /**
+ * Resolves when the main thread next has a moment to spare (#276). Writing a
+ * genome down is some 0.2 s of main thread (`writeGenBank`, the put), and the
+ * checksum it waits for now lands as the worker hands over the restriction
+ * scan, so without the wait the save ran just before the Enzymes list could
+ * be drawn and pushed it back by about as much. Where there are no idle
+ * callbacks (jsdom, Safari) it is the next task.
+ */
+function whenIdle(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(
+        () => {
+          resolve();
+        },
+        { timeout: 1000 },
+      );
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
+/**
  * Everything that touches disk or IndexedDB, kept out of the store so the
  * store stays synchronous and testable.
  */
@@ -243,6 +266,7 @@ export class PersistenceService {
     // the worker (#270), and the status bar has usually had it back by now;
     // waiting for it here keeps the digest off the main thread either way.
     await documentChecksumLater(doc);
+    await whenIdle();
     // The history goes with the document, in the same transaction: undo,
     // redo and the baselines come back after a reload (item 51).
     await this.repo.save(

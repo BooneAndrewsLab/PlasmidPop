@@ -361,6 +361,32 @@ describe('PersistenceService', () => {
   });
 });
 
+describe('PersistenceService autosave timing (#276)', () => {
+  it('writes a document down only once the main thread is idle', async () => {
+    const repo = new DocumentRepository(new PlasmidPopDb(`idle-${Date.now()}`));
+    const service = new PersistenceService(repo);
+    const idle: (() => void)[] = [];
+    vi.stubGlobal('requestIdleCallback', (cb: () => void) => idle.push(cb));
+    try {
+      editorStore.openDocument(
+        SeqDocument.create({ name: 'pIdle', sequence: 'ACGTTGCA' }),
+        'pIdle.gb',
+      );
+      const saving = service.autosave();
+      await vi.waitFor(() => {
+        expect(idle).toHaveLength(1);
+      });
+      expect(await service.listStored()).toEqual([]);
+      idle[0]?.();
+      await saving;
+      expect((await service.listStored()).map((d) => d.name)).toEqual(['pIdle']);
+    } finally {
+      vi.unstubAllGlobals();
+      editorStore.closeDocument();
+    }
+  });
+});
+
 describe('PersistenceService fragment shelf', () => {
   const blunt = { kind: 'blunt' as const, overhang: '', enzyme: null };
   const frag = (source: string) => ({
