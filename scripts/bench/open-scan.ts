@@ -4,6 +4,13 @@
 // so no run sees another's IndexedDB or HTTP cache.
 //
 //   npm run bench -- --sizes 3000,50000,300000 --n 10 [--out file.csv] [--headed]
+//     [--dist dist] [--settle 0]
+//
+// At the end of each run it reads the JS heap (`performance.memory`, the
+// browser started with precise memory info) as the scroll left it, then
+// after the collector has been made to run over it (#278), so what is held
+// shows apart from what is merely not collected yet; with `--settle` it
+// waits that many ms after the scroll first, so a late autosave is in.
 //
 // `npm run bench` builds first; `node scripts/bench/open-scan.ts` reuses
 // dist/. The sequences are seeded random DNA, so every run of a size opens the
@@ -41,6 +48,10 @@ interface Run {
   readonly maxGapAt: number;
   readonly maxGapAfterOpen: number;
   readonly longFrames: number;
+  readonly longestTask: number;
+  /** `usedJSHeapSize` in MB after the scroll, and after a forced collection. */
+  readonly heap: number;
+  readonly heapAfterGc: number;
 }
 
 interface FrameLog {
@@ -50,6 +61,8 @@ interface FrameLog {
   readonly at: number[];
   /** The log's start, in ms after the file was picked. */
   readonly afterOpen: number;
+  /** The longest `longtask` that started while the log ran, in ms (0 if none). */
+  readonly longestTask: number;
 }
 
 const { values } = parseArgs({
@@ -58,6 +71,8 @@ const { values } = parseArgs({
     n: { type: 'string', default: '10' },
     out: { type: 'string' },
     headed: { type: 'boolean', default: false },
+    dist: { type: 'string', default: 'dist' },
+    settle: { type: 'string', default: '0' },
   },
 });
 const sizes = values.sizes.split(',').map((s) => Number(s.trim()));
@@ -66,6 +81,7 @@ if (sizes.some((s) => !Number.isInteger(s) || s <= 0) || !Number.isInteger(runs)
   console.error('--sizes takes positive integers separated by commas, --n a positive integer');
   process.exit(2);
 }
+const SETTLE_MS = Number(values.settle);
 const out = values.out ?? `bench-open-scan-${new Date().toISOString().slice(0, 10)}.csv`;
 
 const TIMEOUT_MS = 120_000;
@@ -156,6 +172,13 @@ function startFrameLog(): void {
   const afterOpen = start - (window.__bench?.t0 ?? 0);
   let last = 0;
   let on = true;
+  let longestTask = 0;
+  const tasks = new PerformanceObserver((list) => {
+    for (const e of list.getEntries()) {
+      if (on && e.startTime >= start) longestTask = Math.max(longestTask, e.duration);
+    }
+  });
+  tasks.observe({ type: 'longtask' });
   const tick = (now: number): void => {
     gaps.push(now - last);
     at.push(now - start);
@@ -167,8 +190,12 @@ function startFrameLog(): void {
     requestAnimationFrame(tick);
   });
   window.__stopFrames = () => {
+    for (const e of tasks.takeRecords()) {
+      if (e.startTime >= start) longestTask = Math.max(longestTask, e.duration);
+    }
+    tasks.disconnect();
     on = false;
-    return { gaps, at, afterOpen };
+    return { gaps, at, afterOpen, longestTask };
   };
 }
 
@@ -217,8 +244,19 @@ async function runOnce(
     );
     const log = await page.evaluate(() => window.__stopFrames?.());
     if (log === undefined) throw new Error('the frame log was lost');
-    const { gaps, at, afterOpen } = log;
+    const { gaps, at, afterOpen, longestTask } = log;
     const scrolled = (await page.evaluate(sequenceScrollTop)) - top;
+    if (SETTLE_MS > 0) await page.waitForTimeout(SETTLE_MS);
+    const heapMb = (): Promise<number> =>
+      page.evaluate(
+        () =>
+          ((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
+            ?.usedJSHeapSize ?? NaN) / 1e6,
+      );
+    const heap = await heapMb();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('HeapProfiler.collectGarbage');
+    const heapAfterGc = await heapMb();
     const worst = gaps.indexOf(Math.max(...gaps));
     const maxGapAt = at[worst] ?? 0;
     return {
@@ -230,6 +268,9 @@ async function runOnce(
       maxGapAt,
       maxGapAfterOpen: afterOpen + maxGapAt,
       longFrames: gaps.filter((g) => g > LONG_FRAME_MS).length,
+      longestTask,
+      heap,
+      heapAfterGc,
     };
   } finally {
     await context.close();
@@ -244,12 +285,19 @@ function meanSe(xs: readonly number[]): { mean: number; se: number } {
 }
 
 const dir = mkdtempSync(join(tmpdir(), 'plasmidpop-bench-'));
-const server = await preview({ preview: { port: 0, strictPort: false }, logLevel: 'silent' });
+const server = await preview({
+  build: { outDir: values.dist },
+  preview: { port: 0, strictPort: false },
+  logLevel: 'silent',
+});
 const url = server.resolvedUrls?.local[0];
-const browser = await chromium.launch({ headless: !values.headed });
+const browser = await chromium.launch({
+  headless: !values.headed,
+  args: ['--enable-precise-memory-info'],
+});
 const rows: Run[] = [];
 try {
-  if (url === undefined) throw new Error('vite preview gave no URL; is there a dist/?');
+  if (url === undefined) throw new Error(`vite preview gave no URL; is there a ${values.dist}/?`);
   for (const size of sizes) {
     const file = join(dir, `bench-${size}.fa`);
     writeFileSync(file, fasta(`bench_${size}`, randomDna(size, size)));
@@ -262,7 +310,8 @@ try {
       process.stderr.write(
         `${size} bp run ${run}/${runs}: view ${r.view.toFixed(0)} ms, enzymes ${r.enzymes.toFixed(0)} ms, ` +
           `max frame gap ${r.maxGap.toFixed(0)} ms at scroll+${r.maxGapAt.toFixed(0)} ms ` +
-          `(open+${r.maxGapAfterOpen.toFixed(0)} ms)\n`,
+          `(open+${r.maxGapAfterOpen.toFixed(0)} ms), longest task ${r.longestTask.toFixed(0)} ms, heap ${r.heap.toFixed(1)} MB, ` +
+          `${r.heapAfterGc.toFixed(1)} MB after GC\n`,
       );
     }
   }
@@ -274,7 +323,7 @@ try {
 
 const header =
   'size_bp,run,view_ms,enzymes_ms,scroll_px,scroll_frames,scroll_max_gap_ms,' +
-  'scroll_max_gap_at_ms,scroll_max_gap_after_open_ms,scroll_long_frames';
+  'scroll_max_gap_at_ms,scroll_max_gap_after_open_ms,scroll_long_frames,scroll_longest_task_ms,heap_mb,heap_after_gc_mb';
 const csv = rows.map((r) =>
   [
     r.size,
@@ -287,6 +336,9 @@ const csv = rows.map((r) =>
     r.maxGapAt.toFixed(1),
     r.maxGapAfterOpen.toFixed(1),
     r.longFrames,
+    r.longestTask.toFixed(0),
+    r.heap.toFixed(1),
+    r.heapAfterGc.toFixed(1),
   ].join(','),
 );
 writeFileSync(out, `${[header, ...csv].join('\n')}\n`);
@@ -297,7 +349,7 @@ const fmt = (xs: readonly number[]): string => {
 };
 const summary = [
   `\nmean ± SE over ${runs} runs (${out})`,
-  'size_bp\tview_ms\tenzymes_ms\tscroll_max_gap_ms\tscroll_long_frames',
+  'size_bp\tview_ms\tenzymes_ms\tscroll_max_gap_ms\tscroll_long_frames\tscroll_longest_task_ms\theap_mb\theap_after_gc_mb',
   ...sizes.map((size) => {
     const of = rows.filter((r) => r.size === size);
     return [
@@ -306,6 +358,9 @@ const summary = [
       fmt(of.map((r) => r.enzymes)),
       fmt(of.map((r) => r.maxGap)),
       fmt(of.map((r) => r.longFrames)),
+      fmt(of.map((r) => r.longestTask)),
+      fmt(of.map((r) => r.heap)),
+      fmt(of.map((r) => r.heapAfterGc)),
     ].join('\t');
   }),
 ];

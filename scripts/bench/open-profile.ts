@@ -6,7 +6,12 @@
 //
 //   npx vite build --minify false --outDir dist-profile
 //   node scripts/bench/open-profile.ts [--sizes 300000,1000000] [--n 3] [--dist dist-profile]
-//     [--stretch 20]
+//     [--stretch 20] [--scroll] [--snapshot dir]
+//
+// `--scroll` wheels the sequence view as `open-scan.ts` does (120 x 300 px)
+// as soon as the list is drawn, so what lands in the first scroll is in the
+// profile (#278). `--snapshot` writes a heap snapshot of the page at the end
+// of each run, taken after a forced collection, into that directory.
 //
 // Prints, per run, the marks (sequence view painted, checksum shown, enzyme
 // list drawn; ms after the file was picked), every `longtask` entry, and for
@@ -61,6 +66,8 @@ const { values } = parseArgs({
     headed: { type: 'boolean', default: false },
     // Shorter stretches too, for work split into pieces under a long frame (#272).
     stretch: { type: 'string', default: '20' },
+    scroll: { type: 'boolean', default: false },
+    snapshot: { type: 'string' },
   },
 });
 const sizes = values.sizes.split(',').map((s) => Number(s.trim()));
@@ -83,6 +90,8 @@ const SETTLE_MS = 2000;
 const STRETCH_MS = Number(values.stretch);
 /** Samples further apart than this are different stretches. */
 const GAP_MS = 2;
+const WHEEL_EVENTS = 120;
+const WHEEL_DELTA_PX = 300;
 
 function randomDna(length: number, seed: number): string {
   let a = seed >>> 0;
@@ -250,7 +259,12 @@ function stretches(profile: Profile, offsetMs: number): Stretch[] {
   return out.filter((s) => s.end - s.start >= STRETCH_MS);
 }
 
-async function runOnce(browser: Browser, url: string, file: string): Promise<void> {
+async function runOnce(
+  browser: Browser,
+  url: string,
+  file: string,
+  snapshot: string | null,
+): Promise<void> {
   const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
   try {
     const page = await context.newPage();
@@ -269,6 +283,16 @@ async function runOnce(browser: Browser, url: string, file: string): Promise<voi
     await page.waitForFunction(
       () => window.__profile?.view != null && window.__profile.enzymes != null,
     );
+    let scroll = '';
+    if (values.scroll) {
+      const box = await page.locator('.seq-view__canvas').boundingBox();
+      if (box === null) throw new Error('the sequence view has no box');
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      const from = await page.evaluate(() => performance.now() - (window.__profile?.t0 ?? 0));
+      for (let i = 0; i < WHEEL_EVENTS; i++) await page.mouse.wheel(0, WHEEL_DELTA_PX);
+      const to = await page.evaluate(() => performance.now() - (window.__profile?.t0 ?? 0));
+      scroll = `, scroll +${from.toFixed(0)} to +${to.toFixed(0)}`;
+    }
     await page.waitForTimeout(SETTLE_MS);
     const { profile } = (await cdp.send('Profiler.stop')) as { profile: Profile };
     const probe = await page.evaluate(() => window.__profile);
@@ -278,7 +302,7 @@ async function runOnce(browser: Browser, url: string, file: string): Promise<voi
     const offsetMs = (nowBefore + nowAfter) / 2 - t0;
     const fmt = (x: number | null): string => (x === null ? '–' : `${x.toFixed(0)} ms`);
     const lines = [
-      `  view ${fmt(probe.view)}, checksum ${fmt(probe.checksum)}, enzymes ${fmt(probe.enzymes)}`,
+      `  view ${fmt(probe.view)}, checksum ${fmt(probe.checksum)}, enzymes ${fmt(probe.enzymes)}${scroll}`,
       `  long tasks: ${probe.tasks
         .map((t) => `${t.duration.toFixed(0)} ms at +${t.start.toFixed(0)}`)
         .join(', ')}`,
@@ -293,6 +317,15 @@ async function runOnce(browser: Browser, url: string, file: string): Promise<voi
         `  stretch ${(s.end - s.start).toFixed(0)} ms at +${s.start.toFixed(0)}: ` +
           `checksum ${s.checksum.toFixed(1)} ms, gc ${s.gc.toFixed(1)} ms; ${top}`,
       );
+    }
+    if (snapshot !== null) {
+      await cdp.send('HeapProfiler.enable');
+      await cdp.send('HeapProfiler.collectGarbage');
+      const chunks: string[] = [];
+      cdp.on('HeapProfiler.addHeapSnapshotChunk', (e: { chunk: string }) => chunks.push(e.chunk));
+      await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false });
+      writeFileSync(snapshot, chunks.join(''));
+      lines.push(`  heap snapshot ${snapshot}`);
     }
     process.stdout.write(`${lines.join('\n')}\n`);
   } finally {
@@ -313,10 +346,14 @@ try {
   for (const size of sizes) {
     const file = join(dir, `bench-${size}.fa`);
     writeFileSync(file, fasta(`bench_${size}`, randomDna(size, size)));
-    await runOnce(browser, url, file); // warm-up, unrecorded
+    await runOnce(browser, url, file, null); // warm-up, unrecorded
     for (let run = 1; run <= runs; run++) {
       process.stdout.write(`${size} bp run ${run}/${runs}\n`);
-      await runOnce(browser, url, file);
+      const snap =
+        values.snapshot === undefined
+          ? null
+          : join(values.snapshot, `open-${size}-${run}.heapsnapshot`);
+      await runOnce(browser, url, file, snap);
     }
   }
 } finally {
