@@ -32,7 +32,7 @@ import {
   decodeHistory,
   encodeHistory,
 } from './historyCodec';
-import { isStoredHistory } from './historyFormat';
+import { type StoredHistory, isStoredHistory } from './historyFormat';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
@@ -106,6 +106,36 @@ function withStoredRead<D extends SeqDocument | undefined>(
 }
 
 /**
+ * What `DocumentRepository.write` stores besides the document itself: the
+ * history row (undefined leaves the stored one alone, null deletes it), the
+ * GenBank text of the document and of the file a working copy came from,
+ * and the time to date the rows with.
+ */
+export interface PreparedWrite {
+  readonly row: StoredHistory | null | undefined;
+  readonly text: string;
+  readonly originText: string | null;
+  readonly now: number;
+}
+
+/**
+ * The `histories` row `save` writes for `history`: undefined when there is
+ * none to write (the stored one is left alone), null when the stored one is
+ * to go — a history whose present is not `doc`, or one too large to keep
+ * any of (`encodeHistory`).
+ */
+export function historyRow(
+  id: string,
+  doc: SeqDocument,
+  history: HistoryToStore | null | undefined,
+  now: number,
+): StoredHistory | null | undefined {
+  if (history === undefined) return undefined;
+  if (history?.history.present !== doc) return null;
+  return encodeHistory(id, history, undefined, now);
+}
+
+/**
  * Persistence for open documents. Every method takes the database as an
  * optional last argument so tests can use an isolated instance.
  */
@@ -130,16 +160,36 @@ export class DocumentRepository {
     const origin = provenance.origin;
     // Worked out before the transaction: IndexedDB commits a transaction
     // that has nothing pending while other work runs.
-    const row =
-      history === undefined
-        ? undefined
-        : history?.history.present !== doc
-          ? null
-          : encodeHistory(id, history, undefined, now);
+    const row = historyRow(id, doc, history, now);
     const text = writeGenBank(doc);
     const originText = origin === null ? null : writeGenBank(origin.doc);
-    await this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
+    await this.write(id, doc, fileName, provenance, { row, text, originText, now });
+  }
+
+  /**
+   * The second half of `save`, for a caller that has worked out the history
+   * row (`historyRow`) and written the texts itself — the autosave, which
+   * has the GenBank text written in a worker (#272). What is stored is what
+   * `save` would store for the same arguments.
+   *
+   * `isCurrent` is asked inside the transaction, just before anything is
+   * written: a false answer writes nothing and gives false. Read-write
+   * transactions over the same tables run in the order they were begun, so
+   * a writer that has been overtaken by a newer one can find out here and
+   * stand down rather than put an older document over a newer one.
+   */
+  async write(
+    id: string,
+    doc: SeqDocument,
+    fileName: string | null,
+    provenance: DocumentProvenance,
+    prepared: PreparedWrite,
+    isCurrent: () => boolean = () => true,
+  ): Promise<boolean> {
+    const { row, text, originText, now } = prepared;
+    return this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
       const existing = await this.db.documents.get(id);
+      if (!isCurrent()) return false;
       await this.db.documents.put(
         this.documentRow(
           id,
@@ -154,6 +204,7 @@ export class DocumentRepository {
       );
       if (row === null) await this.db.histories.delete(id);
       else if (row !== undefined) await this.db.histories.put(row);
+      return true;
     });
   }
 
@@ -204,7 +255,11 @@ export class DocumentRepository {
    * name), so opening the same file or example twice does not add a second
    * entry to the recent list.
    */
-  async findIdentical(doc: SeqDocument, fileName: string | null): Promise<string | null> {
+  async findIdentical(
+    doc: SeqDocument,
+    fileName: string | null,
+    write: (doc: SeqDocument) => string | Promise<string> = writeGenBank,
+  ): Promise<string | null> {
     const candidates = await this.db.documents
       .where('name')
       .equals(doc.name)
@@ -214,7 +269,8 @@ export class DocumentRepository {
     // against: at 300 kb it is a 10 ms job on the main thread, and the first
     // save of a file just opened, which asks this, mostly finds nothing (#268).
     if (candidates.length === 0) return null;
-    const text = writeGenBank(doc);
+    // The autosave has it written in the save worker (#272).
+    const text = await write(doc);
     return candidates.find((d) => d.text === text)?.id ?? null;
   }
 
