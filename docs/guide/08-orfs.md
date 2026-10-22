@@ -27,7 +27,8 @@ clicking its row does. Past 200 ORFs none are drawn — lower the count with
 Only ORFs of at least **Minimum length** codons (not counting the stop) are
 listed; the default is 75 codons, about 225 bp. Lower it to see short
 peptides, raise it to keep the list to real genes. Press `Enter` or leave the
-field to apply.
+field to apply. Only the ORFs are scanned again, for this and for **Code**
+below: the restriction sites and the Enzymes list stay as they are.
 
 ## Genetic code
 

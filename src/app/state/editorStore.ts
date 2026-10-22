@@ -2382,23 +2382,40 @@ export class EditorStore {
     this.setShared({ enzymeSetInfo: info });
   }
 
-  /** Sets the ORF threshold; every open document's ORFs are recomputed. */
+  /**
+   * Sets the ORF threshold; every open document's ORFs are recomputed. Its
+   * cut sites and digest stay: an ORF setting does not run the restriction
+   * scan again (#275).
+   */
   setOrfMinCodons(n: number): void {
     const value = Math.max(1, Math.floor(n));
     if (value === this.state.orfMinCodons) return;
-    this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
+    this.dropOrfs();
     this.setShared({ orfMinCodons: value });
   }
 
   /**
    * Sets the genetic code for six-frame translation and ORFs; every open
    * document's ORFs are recomputed, because which codons stop a reading
-   * differs by code.
+   * differs by code. The cut sites and digest stay, as for the threshold.
    */
   setGeneticCode(table: TranslationTable): void {
     if (table === this.state.geneticCode) return;
-    this.docs = this.docs.map((d) => (d.analysis === null ? d : { ...d, analysis: null }));
+    this.dropOrfs();
     this.setShared({ geneticCode: table });
+  }
+
+  /**
+   * Forgets every open document's ORFs, keeping its cut sites and digest;
+   * an analysis with neither part left goes altogether.
+   */
+  private dropOrfs(): void {
+    this.docs = this.docs.map((d) => {
+      const a = d.analysis;
+      if (a === null || (a.orfs === null && !a.orfsProvisional)) return d;
+      const analysis = a.cutSites === null ? null : { ...a, orfs: null, orfsProvisional: false };
+      return { ...d, analysis };
+    });
   }
 
   setPrimerCriteria(criteria: PrimerCriteria): void {

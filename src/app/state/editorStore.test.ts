@@ -2,6 +2,7 @@ import {
   SeqDocument,
   createFeature,
   documentChecksum,
+  enzymeDigest,
   findCutSites,
   getEnzyme,
   rangeSegment,
@@ -307,9 +308,52 @@ describe('EditorStore analysis', () => {
     expect(store.getState().analysis?.provisional).toBe(true);
     expect(store.getState().analysis?.cutSites?.map((s) => s.cut)).toEqual([4]);
     store.setOrfMinCodons(30);
-    expect(store.getState().analysis).toBeNull();
+    // An ORF setting leaves the sites alone (#275).
+    expect(store.getState().analysis?.cutSites?.map((s) => s.cut)).toEqual([4]);
+    expect(store.getState().analysis?.orfs).toBeNull();
     store.setShownEnzymes(['NotI']);
     expect([...store.getState().shownEnzymes]).toEqual(['NotI']);
+  });
+
+  it('drops only the ORFs when the ORF minimum or the genetic code changes (#275)', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    const sites = [
+      { enzyme: 'EcoRI', cut: 3, cutBottom: 7, siteStart: 2, strand: 'forward' as const },
+    ];
+    const orf = { range: { start: 0, end: 9 }, strand: 'forward' as const, frame: 0, codons: 2 };
+    const digest = enzymeDigest(sites, doc.sequence.toString(), doc.topology);
+    store.setAnalysis(doc, sites, [orf], digest);
+    const before = store.getState().analysis;
+    store.setOrfMinCodons(store.getState().orfMinCodons + 5);
+    let after = store.getState().analysis;
+    expect(after?.cutSites).toBe(before?.cutSites);
+    expect(after?.digest).toBe(digest);
+    expect(after?.provisional).toBe(false);
+    expect(after?.orfs).toBeNull();
+    expect(after?.orfsProvisional).toBe(false);
+    // The ORFs answering again keeps those sites.
+    store.setOrfs(doc, [orf]);
+    expect(store.getState().analysis?.cutSites).toBe(before?.cutSites);
+    expect(store.getState().analysis?.orfs).toHaveLength(1);
+    store.setGeneticCode(store.getState().geneticCode === 11 ? 1 : 11);
+    after = store.getState().analysis;
+    expect(after?.cutSites).toBe(before?.cutSites);
+    expect(after?.digest).toBe(digest);
+    expect(after?.orfs).toBeNull();
+    // The same value changes nothing.
+    const same = store.getState().analysis;
+    store.setOrfMinCodons(store.getState().orfMinCodons);
+    expect(store.getState().analysis).toBe(same);
+  });
+
+  it('drops an analysis that held only ORFs when an ORF setting changes', () => {
+    const store = new EditorStore();
+    store.openDocument(doc);
+    store.setOrfs(doc, []);
+    expect(store.getState().analysis?.orfs).toEqual([]);
+    store.setOrfMinCodons(store.getState().orfMinCodons + 1);
+    expect(store.getState().analysis).toBeNull();
   });
 
   it('ticks nothing when a big table gives too many single cutters', () => {
@@ -1063,10 +1107,12 @@ describe('EditorStore tabs', () => {
     expect(store.documentState(a)?.history.canUndo).toBe(false);
     store.apply({ type: 'rename', name: 'x' }, undefined, 'missing');
     expect(store.documentState(b)?.history.canUndo).toBe(false);
-    // A new ORF threshold sends every tab back to the worker.
+    // A new ORF threshold sends every tab's ORFs back to the worker, not its sites.
     store.setAnalysis(other, [], []);
     store.setOrfMinCodons(10);
-    expect(store.getState().documents.map((d) => d.analysis)).toEqual([null, null]);
+    expect(store.getState().documents.map((d) => d.analysis?.orfs ?? null)).toEqual([null, null]);
+    expect(store.documentState(a)?.analysis?.cutSites).toHaveLength(1);
+    expect(store.documentState(b)?.analysis?.cutSites).toEqual([]);
   });
 
   it('re-keys a tab in storage unless the id is taken', () => {

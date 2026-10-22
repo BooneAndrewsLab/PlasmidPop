@@ -104,6 +104,32 @@ describe('useAnalysis (#138)', () => {
     expect(orfs).toHaveBeenCalledTimes(1);
   });
 
+  it('asks only for the ORFs again when an ORF setting changes (#275)', async () => {
+    const digest = { host: new Uint8Array(0), lengths: new Map(), counts: new Map() };
+    cutSites.mockResolvedValue({ sites: [], digest });
+    renderHook(() => {
+      useAnalysis();
+    });
+    await wait(150);
+    expect(editorStore.getState().analysis).toMatchObject({ digest, orfs: [] });
+    const minCodons = editorStore.getState().orfMinCodons;
+    try {
+      act(() => {
+        editorStore.setOrfMinCodons(minCodons + 1);
+      });
+      expect(editorStore.getState().analysis).toMatchObject({ digest, orfs: null });
+      await wait(1000);
+      expect(orfs).toHaveBeenCalledTimes(2);
+      expect(orfs.mock.calls[1]?.[2]).toMatchObject({ minCodons: minCodons + 1 });
+      expect(cutSites).toHaveBeenCalledTimes(1);
+      expect(editorStore.getState().analysis).toMatchObject({ digest, orfs: [] });
+    } finally {
+      act(() => {
+        editorStore.setOrfMinCodons(minCodons);
+      });
+    }
+  });
+
   it('names both scans when both give up', async () => {
     cutSites.mockRejectedValue(new Error('worker crashed'));
     orfs.mockReset().mockRejectedValue(new Error('worker crashed'));
