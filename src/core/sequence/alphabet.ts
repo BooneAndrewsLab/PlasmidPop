@@ -190,8 +190,7 @@ export function complement(text: string): string {
 
 /** `COMPLEMENT` by character code, for the ASCII range; every other code stands for itself. */
 const COMPLEMENT_CODES: Uint8Array = (() => {
-  const table = new Uint8Array(128);
-  for (let i = 0; i < 128; i++) table[i] = i;
+  const table = Uint8Array.from({ length: 128 }, (_, i) => i);
   for (const [base, comp] of Object.entries(COMPLEMENT))
     table[base.charCodeAt(0)] = comp.charCodeAt(0);
   return table;
@@ -221,6 +220,7 @@ export function reverseComplement(text: string): string {
 
 function reverseComplementByChar(text: string): string {
   let out = '';
+  // Stryker disable next-line ArithmeticOperator: starting at text.length + 1 reads charAt past the end, '', which adds nothing
   for (let i = text.length - 1; i >= 0; i--) {
     const c = text.charAt(i);
     out += COMPLEMENT[c] ?? c;

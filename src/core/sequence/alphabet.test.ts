@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import { vi } from 'vitest';
 
 import {
   AlphabetMismatchError,
@@ -201,5 +202,40 @@ describe('reverseComplement by byte table (#276)', () => {
     for (let i = 0; i < 128; i++) all += String.fromCharCode(i);
     expect(reverseComplement(all)).toBe(oracle(all));
     expect(reverseComplement('')).toBe('');
+  });
+
+  it('keeps every ASCII code that is not a base as it is', () => {
+    // The table's identity entries: a gap, a digit, DEL (127), NUL.
+    expect(reverseComplement('A-0\u007f\u0000G')).toBe('C\u0000\u007f0-T');
+    expect(reverseComplement('\u007f')).toBe('\u007f');
+    expect(reverseComplement('Zz')).toBe('zZ');
+  });
+
+  it('takes the character loop from code 128 up, wherever it falls', () => {
+    // 128 is the first code past the table, and the bytes 128-159 would
+    // decode as other characters (windows-1252) if they reached it.
+    expect(reverseComplement('\u0080')).toBe('\u0080');
+    expect(reverseComplement('\u0081')).toBe('\u0081');
+    expect(reverseComplement('AC\u0080GT')).toBe('AC\u0080GT');
+    expect(reverseComplement('\u0080acg')).toBe('cgt\u0080');
+    expect(reverseComplement('acg\u0081')).toBe('\u0081cgt');
+    expect(reverseComplement('\u007f\u0080\u0081')).toBe('\u0081\u0080\u007f');
+    expect(reverseComplement('TTRA\u009f')).toBe('\u009fTYAA');
+  });
+
+  it('builds its table when the module loads, for every code up to 127', async () => {
+    // A fresh copy of the module, so the table is built inside this test
+    // rather than once when the test file loads.
+    vi.resetModules();
+    try {
+      const fresh = await import('./alphabet');
+      let all = '';
+      for (let i = 0; i < 128; i++) all += String.fromCharCode(i);
+      expect(fresh.reverseComplement(all)).toBe(oracle(all));
+      expect(fresh.reverseComplement('\u007f-x\u0000')).toBe('\u0000x-\u007f');
+      expect(fresh.reverseComplement('GATC\u0080')).toBe('\u0080GATC');
+    } finally {
+      vi.resetModules();
+    }
   });
 });
