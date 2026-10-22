@@ -188,7 +188,38 @@ export function complement(text: string): string {
   return out;
 }
 
+/** `COMPLEMENT` by character code, for the ASCII range; every other code stands for itself. */
+const COMPLEMENT_CODES: Uint8Array = (() => {
+  const table = new Uint8Array(128);
+  for (let i = 0; i < 128; i++) table[i] = i;
+  for (const [base, comp] of Object.entries(COMPLEMENT))
+    table[base.charCodeAt(0)] = comp.charCodeAt(0);
+  return table;
+})();
+
+const ASCII = new TextDecoder('ascii');
+
+/**
+ * The reverse complement of `text`, IUPAC codes and case kept; anything
+ * that is not a base is reversed but left as it is.
+ *
+ * Written into a byte array and decoded once (#276): adding to a string a
+ * character at a time was 270-440 ms for the 4.6 Mb strand of a checksum,
+ * this is some 20-30. Text outside ASCII, which no sequence holds, takes
+ * the plain loop.
+ */
 export function reverseComplement(text: string): string {
+  const n = text.length;
+  const out = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 128) return reverseComplementByChar(text);
+    out[n - 1 - i] = COMPLEMENT_CODES[code] ?? code;
+  }
+  return ASCII.decode(out);
+}
+
+function reverseComplementByChar(text: string): string {
   let out = '';
   for (let i = text.length - 1; i >= 0; i--) {
     const c = text.charAt(i);

@@ -2,7 +2,7 @@ import { type DocumentEnds, type SeqDocument } from '../document';
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
 
-import { sha1Base64Url } from './sha1';
+import { sha1Base64Url, sha1Base64UrlAsync } from './sha1';
 
 /**
  * SEGUID v2 checksums: a name for a molecule that two people can compare
@@ -49,7 +49,10 @@ export interface Seguid {
 }
 
 function seguid(kind: SeguidKind, canonical: string): Seguid {
-  const value = sha1Base64Url(canonical);
+  return seguidOf(kind, sha1Base64Url(canonical));
+}
+
+function seguidOf(kind: SeguidKind, value: string): Seguid {
   return { kind, value, text: `${kind}=${value}`, short: value.slice(0, 6) };
 }
 
@@ -112,8 +115,11 @@ export function csseguid(sequence: string): Seguid {
  * with `-` where a strand is absent, which sorts before every base.
  */
 export function ldseguid(watson: string, crick: string): Seguid {
-  const canonical = watson <= crick ? `${watson};${crick}` : `${crick};${watson}`;
-  return seguid('ldseguid', canonical);
+  return seguid('ldseguid', linearCanonical(watson, crick));
+}
+
+function linearCanonical(watson: string, crick: string): string {
+  return watson <= crick ? `${watson};${crick}` : `${crick};${watson}`;
 }
 
 /**
@@ -125,15 +131,17 @@ export function ldseguid(watson: string, crick: string): Seguid {
  * complement.
  */
 export function cdseguid(watson: string, crick: string): Seguid {
+  return seguid('cdseguid', circularCanonical(watson, crick));
+}
+
+function circularCanonical(watson: string, crick: string): string {
   const w = minimalRotation(watson);
   const c = minimalRotation(crick);
   // The second strand follows the first round the circle, which is two slices
   // rather than another reverse complement of the whole molecule.
-  const canonical =
-    w.rotated <= c.rotated
-      ? `${w.rotated};${rotateRight(crick, w.index)}`
-      : `${c.rotated};${rotateRight(watson, c.index)}`;
-  return seguid('cdseguid', canonical);
+  return w.rotated <= c.rotated
+    ? `${w.rotated};${rotateRight(crick, w.index)}`
+    : `${c.rotated};${rotateRight(watson, c.index)}`;
 }
 
 /**
@@ -248,10 +256,30 @@ const checksums = new WeakMap<SeqDocument, Seguid | null>();
 
 /** `documentChecksum` of the document `molecule` describes, with nothing remembered. */
 export function moleculeChecksum(molecule: MoleculeDescription): Seguid | null {
+  const canonical = canonicalOf(molecule);
+  return canonical === null ? null : seguid(canonical.kind, canonical.text);
+}
+
+/**
+ * `moleculeChecksum`, with the digest taken by `crypto.subtle` where there
+ * is one: the analysis worker's, for a large document (#276). The same value.
+ */
+export async function moleculeChecksumAsync(molecule: MoleculeDescription): Promise<Seguid | null> {
+  const canonical = canonicalOf(molecule);
+  if (canonical === null) return null;
+  return seguidOf(canonical.kind, await sha1Base64UrlAsync(canonical.text));
+}
+
+/** Which checksum a molecule takes, and the string it is taken over. */
+function canonicalOf(
+  molecule: MoleculeDescription,
+): { readonly kind: SeguidKind; readonly text: string } | null {
   if (molecule.sequence.length === 0) return null;
   const sequence = molecule.sequence.toUpperCase();
   // A protein is one chain: SEGUID's original, single-stranded form (#66).
-  if (molecule.isProtein) return lsseguid(sequence);
+  if (molecule.isProtein) return { kind: 'lsseguid', text: sequence };
   const { watson, crick } = strandsOf(sequence, molecule.ends);
-  return molecule.topology === 'circular' ? cdseguid(watson, crick) : ldseguid(watson, crick);
+  return molecule.topology === 'circular'
+    ? { kind: 'cdseguid', text: circularCanonical(watson, crick) }
+    : { kind: 'ldseguid', text: linearCanonical(watson, crick) };
 }

@@ -1,9 +1,10 @@
 /**
- * SHA-1, synchronously.
+ * SHA-1, synchronously, and `sha1Base64UrlAsync` for the analysis worker.
  *
  * SEGUID is defined as a SHA-1 digest (`seguid.ts`), and the browser already
- * has one in `crypto.subtle.digest`. It is not used here, for two reasons
- * that both come down to the shape of the call rather than the arithmetic:
+ * has one in `crypto.subtle.digest`. The synchronous one here is what most
+ * callers use, for two reasons that both come down to the shape of the call
+ * rather than the arithmetic:
  *
  * - `SubtleCrypto` is asynchronous, and a checksum is wanted in places that
  *   are not: `writeGenBank` builds a file as a string, a renderer draws a
@@ -17,7 +18,9 @@
  * A digest of a plasmid is a few microseconds' work either way. This is the
  * textbook algorithm (FIPS 180-1) and it is pinned by that document's own
  * test vectors in `sha1.test.ts`, which is the only thing that makes writing
- * one's own hash defensible.
+ * one's own hash defensible. It runs at about 30 MB/s; the worker's checksum
+ * of a genome, already asynchronous, takes `crypto.subtle` where there is
+ * one (#276), with this as the fallback.
  */
 
 const BLOCK_BYTES = 64;
@@ -91,7 +94,11 @@ function digestWords(bytes: Uint8Array): Int32Array {
 
 /** The 20 bytes of the SHA-1 digest of `text`, encoded as UTF-8. */
 export function sha1Bytes(text: string): Uint8Array {
-  const words = digestWords(new TextEncoder().encode(text));
+  return sha1OfBytes(new TextEncoder().encode(text));
+}
+
+function sha1OfBytes(bytes: Uint8Array): Uint8Array {
+  const words = digestWords(bytes);
   const out = new Uint8Array(20);
   const view = new DataView(out.buffer);
   for (let i = 0; i < words.length; i++) view.setInt32(i * 4, words[i] ?? 0);
@@ -132,4 +139,23 @@ export function sha1Base64Url(text: string): string {
 /** SHA-1 of `text` as unpadded standard base64: the 27 characters of a SEGUID v1. */
 export function sha1Base64(text: string): string {
   return base64(sha1Bytes(text), false);
+}
+
+/**
+ * `sha1Base64Url`, by `crypto.subtle` where the context has it (#276): the
+ * same 27 characters, some ten times faster over the 9 MB canonical string
+ * of a genome. Outside a secure context, or if the digest fails, it is the
+ * synchronous one.
+ */
+export async function sha1Base64UrlAsync(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text);
+  const subtle = (globalThis.crypto as Crypto | undefined)?.subtle;
+  if (subtle !== undefined) {
+    try {
+      return base64(new Uint8Array(await subtle.digest('SHA-1', bytes)), true);
+    } catch {
+      // Fall through to ours.
+    }
+  }
+  return base64(sha1OfBytes(bytes), true);
 }

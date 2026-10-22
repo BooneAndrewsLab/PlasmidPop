@@ -1,5 +1,5 @@
 import { expectWithin, itTimed } from '@/test/timing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { randomDna, seededRandom } from '@/test/random';
 
@@ -7,6 +7,7 @@ import { SeqDocument } from '../document';
 import { reverseComplement } from '../sequence';
 
 import {
+  type MoleculeDescription,
   cdseguid,
   csseguid,
   describeMolecule,
@@ -17,6 +18,7 @@ import {
   lsseguid,
   minimalRotation,
   moleculeChecksum,
+  moleculeChecksumAsync,
   rememberChecksum,
 } from './seguid';
 
@@ -314,4 +316,69 @@ describe('checksum performance', () => {
     },
     20_000,
   );
+});
+
+describe('moleculeChecksumAsync (#276)', () => {
+  const molecules: MoleculeDescription[] = [
+    { sequence: 'aattgacctaggcatgcaGGATCC', topology: 'circular', isProtein: false, ends: null },
+    { sequence: 'ACGTRYNacgt', topology: 'linear', isProtein: false, ends: null },
+    { sequence: 'MKVLAAGIV*', topology: 'linear', isProtein: true, ends: null },
+    {
+      sequence: 'aattgacctaggcatgca',
+      topology: 'linear',
+      isProtein: false,
+      ends: {
+        left: { kind: "5'", overhang: 'AATT', enzyme: 'EcoRI' },
+        right: { kind: "3'", overhang: 'TGCA', enzyme: 'PstI' },
+      },
+    },
+    { sequence: '', topology: 'linear', isProtein: false, ends: null },
+  ];
+
+  it('gives what moleculeChecksum gives, by crypto.subtle', async () => {
+    expect(globalThis.crypto.subtle).toBeDefined();
+    for (const m of molecules) expect(await moleculeChecksumAsync(m)).toEqual(moleculeChecksum(m));
+  });
+
+  it('gives the same without crypto.subtle, as outside a secure context', async () => {
+    const digest = vi.spyOn(globalThis.crypto.subtle, 'digest');
+    vi.stubGlobal('crypto', {});
+    try {
+      for (const m of molecules)
+        expect(await moleculeChecksumAsync(m)).toEqual(moleculeChecksum(m));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(digest).not.toHaveBeenCalled();
+    digest.mockRestore();
+  });
+
+  it('falls back to its own SHA-1 when the digest fails', async () => {
+    const digest = vi
+      .spyOn(globalThis.crypto.subtle, 'digest')
+      .mockRejectedValue(new Error('NotSupportedError'));
+    try {
+      for (const m of molecules)
+        expect(await moleculeChecksumAsync(m)).toEqual(moleculeChecksum(m));
+    } finally {
+      digest.mockRestore();
+    }
+  });
+
+  it('agrees with the reference vectors through the async path, and at genome size', async () => {
+    const plasmid: MoleculeDescription = {
+      sequence: 'TATGCCAA',
+      topology: 'circular',
+      isProtein: false,
+      ends: null,
+    };
+    expect((await moleculeChecksumAsync(plasmid))?.text).toBe(
+      'cdseguid=dUxN7YQyVInv3oDcvz8ByupL44A',
+    );
+    const big = randomDna(seededRandom(276), 300_000);
+    for (const topology of ['circular', 'linear'] as const) {
+      const m: MoleculeDescription = { sequence: big, topology, isProtein: false, ends: null };
+      expect(await moleculeChecksumAsync(m)).toEqual(moleculeChecksum(m));
+    }
+  });
 });

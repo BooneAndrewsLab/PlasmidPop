@@ -1,3 +1,5 @@
+import fc from 'fast-check';
+
 import {
   AlphabetMismatchError,
   InvalidResiduesError,
@@ -142,5 +144,62 @@ describe('alphabet', () => {
       expect(e).toBeInstanceOf(InvalidSequenceError);
       if (e instanceof InvalidSequenceError) expect(e.invalidCharacters).toEqual(['-', '*', 'X']);
     }
+  });
+});
+
+describe('reverseComplement by byte table (#276)', () => {
+  const PAIRS: Readonly<Record<string, string>> = {
+    A: 'T',
+    C: 'G',
+    G: 'C',
+    T: 'A',
+    U: 'A',
+    R: 'Y',
+    Y: 'R',
+    S: 'S',
+    W: 'W',
+    K: 'M',
+    M: 'K',
+    B: 'V',
+    V: 'B',
+    D: 'H',
+    H: 'D',
+    N: 'N',
+  };
+  /** The character-at-a-time version it replaced, as the oracle. */
+  function oracle(text: string): string {
+    let out = '';
+    for (let i = text.length - 1; i >= 0; i--) {
+      const c = text.charAt(i);
+      const upper = PAIRS[c];
+      const lower = PAIRS[c.toUpperCase()];
+      out += upper ?? (lower !== undefined && c !== c.toUpperCase() ? lower.toLowerCase() : c);
+    }
+    return out;
+  }
+
+  const bases = fc.constantFrom(...'ACGTURYSWKMBDHVNacgturyswkmbdhvn'.split(''));
+  // What else a string may hold: gaps, digits, spaces, punctuation, and text
+  // outside ASCII (the fallback), surrogate pairs included.
+  const other = fc.constantFrom('-', '*', '.', ' ', '0', 'X', 'x', 'é', '\u00ff', '\u0080', '😀');
+
+  it('gives what the character loop gave, for any text', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.oneof({ weight: 8, arbitrary: bases }, { weight: 1, arbitrary: other })),
+        (chars) => {
+          const text = chars.join('');
+          expect(reverseComplement(text)).toBe(oracle(text));
+        },
+      ),
+      { numRuns: 500 },
+    );
+  }, 30_000);
+
+  it('gives what the character loop gave for every ASCII code', () => {
+    let all = '';
+    for (let i = 0; i < 128; i++) all += String.fromCharCode(i);
+    expect(reverseComplement(all)).toBe(oracle(all));
+    expect(reverseComplement('')).toBe('');
   });
 });

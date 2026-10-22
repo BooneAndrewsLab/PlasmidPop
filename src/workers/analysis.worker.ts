@@ -14,6 +14,7 @@ import {
   gcProfile,
   loadFeatureLibrary,
   moleculeChecksum,
+  moleculeChecksumAsync,
   recodeSlots,
   setActiveEnzymeSet,
 } from '@/core';
@@ -164,12 +165,21 @@ export function handleAnalysisRequest(
 /**
  * `handleAnalysisRequest`, with what a request needs loaded first: the
  * feature library, a chunk of its own fetched the first time Detect features
- * runs, so no other request waits for it.
+ * runs, so no other request waits for it. A checksum is taken here too, by
+ * the browser's own SHA-1, which only comes asynchronously.
  */
 export async function handleAnalysisRequestAsync(
   req: AnalysisRequest,
   onProgress?: (fraction: number) => void,
 ): Promise<AnalysisResponse> {
+  // The digest by `crypto.subtle`, where the context has one (#276).
+  if (req.kind === 'checksum') {
+    try {
+      return { id: req.id, kind: 'checksum', checksum: await moleculeChecksumAsync(req.molecule) };
+    } catch (e) {
+      return { id: req.id, kind: 'error', message: e instanceof Error ? e.message : String(e) };
+    }
+  }
   if (req.kind === 'detectFeatures' && library === null) {
     try {
       library = await loadFeatureLibrary();
