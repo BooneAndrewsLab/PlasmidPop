@@ -1,6 +1,12 @@
+import { createHash } from 'node:crypto';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { sha1Base64, sha1Base64Url, sha1Base64UrlAsync, sha1Hex } from './sha1';
+
+function nodeSha1(text: string): string {
+  return createHash('sha1').update(text, 'utf8').digest('hex');
+}
 
 /**
  * The vectors are FIPS 180-1's own, which is the point of writing the hash
@@ -16,6 +22,17 @@ describe('sha1', () => {
     expect(sha1Hex('a'.repeat(1_000_000))).toBe('34aa973cd4c4daa4f61eeb2bdbad27316534016f');
   });
 
+  it('hashes the 896-bit message of FIPS 180-2 and the NIST examples', () => {
+    expect(
+      sha1Hex(
+        'abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu',
+      ),
+    ).toBe('a49b2446a02c645bf419f995b67091253a04a259');
+    expect(sha1Hex('The quick brown fox jumps over the lazy dog')).toBe(
+      '2fd4e1c67a2d28fced849ee1bb76e7391b93eb12',
+    );
+  });
+
   it('hashes the empty string', () => {
     expect(sha1Hex('')).toBe('da39a3ee5e6b4b0d3255bfef95601890afd80709');
   });
@@ -26,6 +43,42 @@ describe('sha1', () => {
     expect(sha1Hex('a'.repeat(55))).toBe('c1c8bbdc22796e28c0e15163d20899b65621d65a');
     expect(sha1Hex('a'.repeat(56))).toBe('c2db330f6083854c99d4b5bfb6e8f29f201be699');
     expect(sha1Hex('a'.repeat(64))).toBe('0098ba824b5c16427bd7a1122a5a442a25ec644d');
+  });
+
+  it('pads every message length around one and two blocks as node:crypto does', () => {
+    // 55/56 bytes: the length still fits in the last block or needs another;
+    // 63/64/65: a whole block or one byte either side of it; and the same a
+    // block on, where the tail starts at an offset.
+    const lengths = [
+      1, 54, 55, 56, 57, 62, 63, 64, 65, 118, 119, 120, 121, 127, 128, 129, 191, 192,
+    ];
+    for (const n of lengths) {
+      const text = 'ACGT'.repeat(50).slice(0, n);
+      expect(sha1Hex(text), `${n} bytes`).toBe(nodeSha1(text));
+    }
+  });
+
+  it('pads by the length of the UTF-8, not of the string', () => {
+    // 28 two-byte characters are 56 bytes: the padding needs a second block
+    // although the string is only 28 long; 18 of three bytes plus one are 55.
+    expect(sha1Hex('é'.repeat(28))).toBe(nodeSha1('é'.repeat(28)));
+    expect(sha1Hex(`a${'€'.repeat(18)}`)).toBe(nodeSha1(`a${'€'.repeat(18)}`));
+    expect(sha1Hex('😀'.repeat(16))).toBe(nodeSha1('😀'.repeat(16)));
+  });
+
+  it('keeps a surrogate pair whole across the chunks it encodes the text in (#273)', () => {
+    // `sha1.ts` encodes 16,384 characters at a time; a pair split between
+    // two chunks would be hashed as two replacement characters.
+    for (const boundary of [16_384, 32_768]) {
+      for (let at = boundary - 3; at <= boundary + 2; at++) {
+        const text = `${'A'.repeat(at)}😀${'C'.repeat(40)}`;
+        expect(sha1Hex(text), `pair at ${at}`).toBe(nodeSha1(text));
+      }
+    }
+    // A lone half is one replacement character, as TextEncoder writes it.
+    const lone = `${'A'.repeat(16_383)}\ud83dC`;
+    expect(sha1Hex(lone)).toBe(nodeSha1(lone));
+    expect(sha1Hex(`${'A'.repeat(16_383)}\ud83d`)).toBe(nodeSha1(`${'A'.repeat(16_383)}\ud83d`));
   });
 
   it('encodes the message as UTF-8, not as code units', () => {

@@ -18,44 +18,62 @@
  * A digest of a plasmid is a few microseconds' work either way. This is the
  * textbook algorithm (FIPS 180-1) and it is pinned by that document's own
  * test vectors in `sha1.test.ts`, which is the only thing that makes writing
- * one's own hash defensible. It runs at about 30 MB/s; the worker's checksum
- * of a genome, already asynchronous, takes `crypto.subtle` where there is
- * one (#276), with this as the fallback.
+ * one's own hash defensible. It runs at about 150 MB/s once V8 has compiled
+ * it (#273, design note 102); the worker's checksum of a genome, already
+ * asynchronous, takes `crypto.subtle` where there is one (#276), with this as
+ * the fallback.
  */
 
 const BLOCK_BYTES = 64;
 
-function rotl(value: number, bits: number): number {
-  return (value << bits) | (value >>> (32 - bits));
-}
+const K1 = 0x5a827999;
+const K2 = 0x6ed9eba1;
+const K3 = 0x8f1bbcdc;
+const K4 = 0xca62c1d6;
 
-/** SHA-1 of `bytes`, as five 32-bit words. */
-function digestWords(bytes: Uint8Array): Int32Array {
-  // Padding: a 1 bit, zeroes, then the length in bits as a 64-bit big-endian
-  // integer. `length * 8` is exact well past any sequence a browser can hold.
-  const padded = new Uint8Array(Math.ceil((bytes.length + 9) / BLOCK_BYTES) * BLOCK_BYTES);
-  padded.set(bytes);
-  padded[bytes.length] = 0x80;
-  const bits = bytes.length * 8;
-  const view = new DataView(padded.buffer);
-  // Stryker disable next-line ArithmeticOperator: under 512 MB the high word is 0, and bits * 2^32 is a multiple of 2^32, which setUint32 also writes as 0
-  const high = Math.floor(bits / 0x100000000);
-  view.setUint32(padded.length - 8, high);
-  view.setUint32(padded.length - 4, bits >>> 0);
+// Rotations of a 32-bit word, as int32. V8 inlines these.
+const rotl1 = (x: number): number => (x << 1) | (x >>> 31);
+const rotl5 = (x: number): number => (x << 5) | (x >>> 27);
+const rotl30 = (x: number): number => (x << 30) | (x >>> 2);
 
-  let h0 = 0x67452301;
-  let h1 = 0xefcdab89;
-  let h2 = 0x98badcfe;
-  let h3 = 0x10325476;
-  let h4 = 0xc3d2e1f0;
+/**
+ * The message schedule, one for the module: `blocks` fills and reads it
+ * within one block and nothing else touches it, so no block allocates.
+ */
+const W = new Int32Array(80);
 
-  const w = new Int32Array(80);
-  for (let block = 0; block < padded.length; block += BLOCK_BYTES) {
-    for (let i = 0; i < 16; i++) w[i] = view.getInt32(block + i * 4);
+/**
+ * The compression function over the 64-byte blocks of `bytes` from `from`
+ * to `to` (a multiple of 64 past it), updating the state `h` in place. Its
+ * shape is for V8 (#273, design note 102, measured in `docs/perf-notes.md`):
+ *
+ * - Every value stays an int32: `| 0` after each sum, `>>>` only inside a
+ *   rotation, and a word read as one by `getInt32` (some 10% faster than
+ *   four byte reads and shifts).
+ * - The state is written back to `h` inside the loop, not after it. V8
+ *   compiles this loop while it runs (on-stack replacement), before the code
+ *   after it has run once; with the write-back there, the optimized code
+ *   bailed out at the end of nearly every call for want of type feedback,
+ *   and the speed of the old loop depended on how it had been called.
+ * - The rounds stay one loop that picks its function by the round number.
+ *   Four loops of 20 were 7% faster once compiled, and the 80 rounds written
+ *   out 40%, but V8 took longer to compile each (some 40 ms for the written
+ *   out ones), and a plasmid's digest is usually the first call: it was
+ *   slower than before, not faster.
+ */
+function blocks(h: Int32Array, bytes: Uint8Array, from: number, to: number): void {
+  const w = W;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let h0 = h[0] ?? 0;
+  let h1 = h[1] ?? 0;
+  let h2 = h[2] ?? 0;
+  let h3 = h[3] ?? 0;
+  let h4 = h[4] ?? 0;
+  for (let p = from; p < to; p += BLOCK_BYTES) {
+    for (let i = 0; i < 16; i++) w[i] = view.getInt32(p + 4 * i);
     for (let i = 16; i < 80; i++) {
-      w[i] = rotl((w[i - 3] ?? 0) ^ (w[i - 8] ?? 0) ^ (w[i - 14] ?? 0) ^ (w[i - 16] ?? 0), 1);
+      w[i] = rotl1((w[i - 3] ?? 0) ^ (w[i - 8] ?? 0) ^ (w[i - 14] ?? 0) ^ (w[i - 16] ?? 0));
     }
-
     let a = h0;
     let b = h1;
     let c = h2;
@@ -63,44 +81,125 @@ function digestWords(bytes: Uint8Array): Int32Array {
     let e = h4;
     for (let i = 0; i < 80; i++) {
       let f: number;
-      let k: number;
-      if (i < 20) {
-        f = (b & c) | (~b & d);
-        k = 0x5a827999;
-      } else if (i < 40) {
-        f = b ^ c ^ d;
-        k = 0x6ed9eba1;
-      } else if (i < 60) {
-        f = (b & c) | (b & d) | (c & d);
-        k = 0x8f1bbcdc;
-      } else {
-        f = b ^ c ^ d;
-        k = 0xca62c1d6;
-      }
-      const t = (rotl(a, 5) + f + e + k + (w[i] ?? 0)) | 0;
+      if (i < 20) f = ((d ^ (b & (c ^ d))) + K1) | 0;
+      else if (i < 40) f = ((b ^ c ^ d) + K2) | 0;
+      else if (i < 60) f = (((b & c) | (d & (b | c))) + K3) | 0;
+      else f = ((b ^ c ^ d) + K4) | 0;
+      const t = (rotl5(a) + f + e + (w[i] ?? 0)) | 0;
       e = d;
       d = c;
-      c = rotl(b, 30);
+      c = rotl30(b);
       b = a;
       a = t;
     }
-    h0 = (h0 + a) | 0;
-    h1 = (h1 + b) | 0;
-    h2 = (h2 + c) | 0;
-    h3 = (h3 + d) | 0;
-    h4 = (h4 + e) | 0;
+    h[0] = h0 = (h0 + a) | 0;
+    h[1] = h1 = (h1 + b) | 0;
+    h[2] = h2 = (h2 + c) | 0;
+    h[3] = h3 = (h3 + d) | 0;
+    h[4] = h4 = (h4 + e) | 0;
   }
+}
 
-  return Int32Array.of(h0, h1, h2, h3, h4);
+/** SHA-1's initial state. */
+function initial(): Int32Array {
+  return Int32Array.of(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0);
+}
+
+/** The last partial block of a message and its padding: one block or two. */
+const TAIL = new Uint8Array(2 * BLOCK_BYTES);
+
+/**
+ * Pads and hashes the last `rest` (< 64) bytes of a message of `length`
+ * bytes, `bytes` from `from`: a 1 bit, zeroes, then the length in bits as a
+ * 64-bit big-endian integer. `length * 8` is exact well past any sequence a
+ * browser can hold.
+ */
+function finish(
+  h: Int32Array,
+  bytes: Uint8Array,
+  from: number,
+  rest: number,
+  length: number,
+): void {
+  const tail = TAIL;
+  tail.fill(0);
+  tail.set(bytes.subarray(from, from + rest));
+  tail[rest] = 0x80;
+  const tailLength = rest + 9 > BLOCK_BYTES ? 2 * BLOCK_BYTES : BLOCK_BYTES;
+  const bits = length * 8;
+  // Stryker disable next-line ArithmeticOperator: under 512 MB the high word is 0, and bits * 2^32 is a multiple of 2^32, which is also written as 0
+  const high = Math.floor(bits / 0x100000000);
+  const low = bits >>> 0;
+  for (let i = 0; i < 4; i++) {
+    tail[tailLength - 8 + i] = (high >>> (24 - 8 * i)) & 0xff;
+    tail[tailLength - 4 + i] = (low >>> (24 - 8 * i)) & 0xff;
+  }
+  blocks(h, tail, 0, tailLength);
+}
+
+/** SHA-1 of `bytes`, as five 32-bit words. */
+function digestBytes(bytes: Uint8Array): Int32Array {
+  const h = initial();
+  // The whole blocks are hashed where they lie; only the tail is copied.
+  const whole = bytes.length - (bytes.length % BLOCK_BYTES);
+  blocks(h, bytes, 0, whole);
+  finish(h, bytes, whole, bytes.length - whole, bytes.length);
+  return h;
+}
+
+/** Characters of the text encoded per step of `digestText`. */
+const CHUNK_CHARS = 16384;
+
+/**
+ * Where `digestText` encodes each chunk, after the up to 63 bytes the last
+ * one left over: UTF-8 takes at most three bytes per UTF-16 code unit.
+ */
+const CHUNK = new Uint8Array(BLOCK_BYTES + 3 * CHUNK_CHARS);
+
+const ENCODER = new TextEncoder();
+
+/**
+ * SHA-1 of the UTF-8 of `text`, as five 32-bit words, encoded a chunk at a
+ * time into one buffer kept for the module. `TextEncoder.encode` of the
+ * whole text allocates a buffer as long as the message and writes all of it
+ * before the first block is hashed; that was a quarter of the time once the
+ * rounds were faster (#273), and encoding into a buffer that stays in cache
+ * costs less than half as much. A chunk never ends between the two halves
+ * of a surrogate pair, which `encodeInto` would write as two replacement
+ * characters where `encode` writes the one character they make.
+ */
+function digestText(text: string): Int32Array {
+  const h = initial();
+  const buffer = CHUNK;
+  let carry = 0;
+  let length = 0;
+  for (let pos = 0; pos < text.length;) {
+    let end = Math.min(pos + CHUNK_CHARS, text.length);
+    const last = text.charCodeAt(end - 1);
+    if (end < text.length && last >= 0xd800 && last <= 0xdbff) end--;
+    const { written } = ENCODER.encodeInto(text.slice(pos, end), buffer.subarray(carry));
+    pos = end;
+    length += written;
+    const filled = carry + written;
+    const whole = filled - (filled % BLOCK_BYTES);
+    blocks(h, buffer, 0, whole);
+    buffer.copyWithin(0, whole, filled);
+    carry = filled - whole;
+  }
+  finish(h, buffer, 0, carry, length);
+  return h;
 }
 
 /** The 20 bytes of the SHA-1 digest of `text`, encoded as UTF-8. */
 export function sha1Bytes(text: string): Uint8Array {
-  return sha1OfBytes(new TextEncoder().encode(text));
+  return wordsToBytes(digestText(text));
 }
 
 function sha1OfBytes(bytes: Uint8Array): Uint8Array {
-  const words = digestWords(bytes);
+  return wordsToBytes(digestBytes(bytes));
+}
+
+function wordsToBytes(words: Int32Array): Uint8Array {
   const out = new Uint8Array(20);
   const view = new DataView(out.buffer);
   for (let i = 0; i < words.length; i++) view.setInt32(i * 4, words[i] ?? 0);

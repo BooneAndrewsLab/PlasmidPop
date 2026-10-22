@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+
+import fc from 'fast-check';
 import { expectWithin, itTimed } from '@/test/timing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -278,6 +281,42 @@ describe('documentStrands', () => {
       { kind: 'blunt', overhang: '' },
     );
     expect(documentChecksum(cut)?.value).not.toBe(documentChecksum(blunt)?.value);
+  });
+});
+
+describe('SEGUID over node:crypto (#273)', () => {
+  const sha1 = (text: string): string => createHash('sha1').update(text).digest('base64url');
+  const dna = fc.string({
+    unit: fc.constantFrom('A', 'C', 'G', 'T'),
+    minLength: 1,
+    maxLength: 20_000,
+  });
+
+  it('is the SHA-1 of the canonical string, whatever the length', () => {
+    fc.assert(
+      fc.property(dna, (seq) => {
+        const crick = reverseComplement(seq);
+        expect(lsseguid(seq).value).toBe(sha1(seq));
+        expect(csseguid(seq).value).toBe(sha1(minimalRotation(seq).rotated));
+        const linear = seq <= crick ? `${seq};${crick}` : `${crick};${seq}`;
+        expect(ldseguid(seq, crick).value).toBe(sha1(linear));
+      }),
+      { numRuns: 40 },
+    );
+  });
+
+  it('gives the cdseguid crypto.subtle gives, either side of a chunk of the encoding', async () => {
+    // Both strands and the semicolon: 8,192 bp is 16,385 characters, one
+    // past the 16,384 that `sha1.ts` encodes at a time.
+    for (const n of [8_191, 8_192, 8_224, 16_384]) {
+      const m: MoleculeDescription = {
+        sequence: randomDna(seededRandom(n), n),
+        topology: 'circular',
+        isProtein: false,
+        ends: null,
+      };
+      expect(moleculeChecksum(m)).toEqual(await moleculeChecksumAsync(m));
+    }
   });
 });
 
