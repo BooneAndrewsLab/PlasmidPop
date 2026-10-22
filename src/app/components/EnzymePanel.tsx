@@ -404,7 +404,14 @@ export function EnzymePanel({ doc }: Props) {
   const [filter, setFilter] = useState('');
   const [importing, setImporting] = useState(false);
   const [adding, setAdding] = useState(false);
-  const ready = analysis !== null && analysis.doc === doc;
+  // The sites, once the restriction scan has answered for this document;
+  // the ORFs may still be on their way (#274) and are not waited for.
+  // Both are kept as they are when the ORFs land, so the memos below do not
+  // run again for them.
+  const current = analysis?.doc === doc ? analysis : null;
+  const sites = current?.cutSites ?? null;
+  const workerDigest = current?.digest ?? null;
+  const ready = sites !== null;
   // A supplier is a code out of the table in use. A code stored from another
   // import — or from before "Go back to the bundled table" — names nobody
   // here, and filtering on it would empty the list with no way to see why.
@@ -420,17 +427,16 @@ export function EnzymePanel({ doc }: Props) {
    */
   const digest = useMemo(
     () =>
-      !ready
+      sites === null
         ? null
-        : (analysis.digest ??
-          enzymeDigest(analysis.cutSites, doc.sequence.toString(), doc.topology)),
-    [ready, analysis, doc],
+        : (workerDigest ?? enzymeDigest(sites, doc.sequence.toString(), doc.topology)),
+    [sites, workerDigest, doc],
   );
 
   const groups = useMemo(() => {
     const byName = new Map<string, { readonly sites: CutSite[]; readonly host: number[] }>();
-    if (ready && digest !== null) {
-      analysis.cutSites.forEach((s, i) => {
+    if (sites !== null && digest !== null) {
+      sites.forEach((s, i) => {
         let entry = byName.get(s.enzyme);
         if (entry === undefined) {
           entry = { sites: [], host: [] };
@@ -458,7 +464,7 @@ export function EnzymePanel({ doc }: Props) {
     // re-run when the set changes; `enzymeSetInfo` is the store's record of
     // which set that is, and the linter cannot see the connection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, ready, digest, enzymeSetInfo, gel]);
+  }, [sites, digest, enzymeSetInfo, gel]);
 
   /**
    * The cuts this DNA's own methylation would block (#45). The list still

@@ -199,11 +199,16 @@ export function sidebarTabsFor(doc: SeqDocument | null): readonly SidebarTab[] {
   return SIDEBAR_TABS.filter((tab) => hasSidebarTab(doc, tab));
 }
 
+/**
+ * The worker's two scans of a document. They answer separately (#274): the
+ * restriction scan with its digest first, the ORFs after it, and each is
+ * stored when it arrives, so the Enzymes tab does not wait for the ORFs.
+ */
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */
   readonly doc: SeqDocument;
-  readonly cutSites: readonly CutSite[];
-  readonly orfs: readonly Orf[];
+  /** The restriction scan's sites; null until that scan has answered for this document. */
+  readonly cutSites: readonly CutSite[] | null;
   /**
    * The Enzymes tab's digest of the sites, taken by the worker with the
    * scan (item 98); null for a carried result, whose sites have moved, and
@@ -211,11 +216,26 @@ export interface AnalysisState {
    */
   readonly digest: EnzymeDigest | null;
   /**
-   * True when the results were carried over from the previous document by
+   * True when the cut sites were carried over from the previous document by
    * shifting positions through an edit, so the views have something to draw
    * while the worker recomputes. Positions are approximate until then.
    */
   readonly provisional: boolean;
+  /** The ORF scan's reading frames; null until that scan has answered for this document. */
+  readonly orfs: readonly Orf[] | null;
+  /** As `provisional`, for the ORFs: carried through an edit, replaced when the ORF scan answers. */
+  readonly orfsProvisional: boolean;
+}
+
+/** The restriction scan's part of an `AnalysisState`. */
+interface SitesPart {
+  readonly cutSites: readonly CutSite[];
+  readonly digest: EnzymeDigest | null;
+}
+
+/** The ORF scan's part of an `AnalysisState`. */
+interface OrfsPart {
+  readonly orfs: readonly Orf[];
 }
 
 /** How long a self-dismissing error fades once its time is up. */
@@ -301,8 +321,8 @@ function carryAnalysis(
   // reach into it can have lost their bases; the rest moved whole.
   const at = op.type === 'insert' ? { start: op.position, end: op.position } : op.range;
   const edited = { start: at.start - 1, end: at.end + 1 };
-  const cutSites: CutSite[] = [];
-  for (const s of analysis.cutSites) {
+  const cutSites: CutSite[] | null = analysis.cutSites === null ? null : [];
+  for (const s of analysis.cutSites ?? []) {
     const cut = map(s.cut);
     const cutBottom = map(s.cutBottom);
     const siteStart = map(s.siteStart);
@@ -319,22 +339,29 @@ function carryAnalysis(
       !siteStillMatches(next.sequence, next.topology, moved, enzyme)
     )
       continue;
-    cutSites.push(moved);
+    cutSites?.push(moved);
   }
   // The bases a replace or a paste wrote over, in `doc`'s coordinates. An
   // insert or a delete inside an ORF changes its length and is caught below.
   const rewritten = op.type === 'replace' || op.type === 'insertFragment' ? op.range : null;
-  const orfs: Orf[] = [];
-  for (const o of analysis.orfs) {
+  const orfs: Orf[] | null = analysis.orfs === null ? null : [];
+  for (const o of analysis.orfs ?? []) {
     // Unrolled ranges past the end cannot be mapped reliably; let the worker redo them.
     if (o.range.end > doc.length) continue;
     if (rewritten !== null && rangesOverlap(o.range, rewritten, doc.length)) continue;
     const start = map(o.range.start);
     const end = map(o.range.end);
     if (end - start !== o.range.end - o.range.start || end > next.length) continue;
-    orfs.push({ ...o, range: { start, end } });
+    orfs?.push({ ...o, range: { start, end } });
   }
-  return { doc: next, cutSites, orfs, digest: null, provisional: true };
+  return {
+    doc: next,
+    cutSites,
+    digest: null,
+    provisional: cutSites !== null,
+    orfs,
+    orfsProvisional: orfs !== null,
+  };
 }
 
 /**
@@ -1990,10 +2017,8 @@ export class EditorStore {
   }
 
   /**
-   * Stores analysis results for whichever open document they are for, in
-   * front or not; results for a version no tab holds any more are dropped.
-   * The first results for a newly opened document also pick the default
-   * enzymes to display: those that cut exactly once.
+   * Stores both scans' results for whichever open document they are for;
+   * see `setCutSites` and `setOrfs`, which store one each as it arrives.
    */
   setAnalysis(
     doc: SeqDocument,
@@ -2001,17 +2026,66 @@ export class EditorStore {
     orfs: readonly Orf[],
     digest: EnzymeDigest | null = null,
   ): void {
+    this.applyAnalysis(doc, { cutSites, digest }, { orfs });
+  }
+
+  /**
+   * Stores the restriction scan's sites and digest for whichever open
+   * document they are for, in front or not, leaving its ORFs as they are
+   * (#274); results for a version no tab holds any more are dropped. The
+   * first sites for a newly opened document also pick the default enzymes
+   * to display: those that cut exactly once.
+   */
+  setCutSites(
+    doc: SeqDocument,
+    cutSites: readonly CutSite[],
+    digest: EnzymeDigest | null = null,
+  ): void {
+    this.applyAnalysis(doc, { cutSites, digest }, null);
+  }
+
+  /**
+   * Stores the ORF scan's result for whichever open document it is for,
+   * leaving its cut sites as they are (#274); a result for a version no tab
+   * holds any more is dropped.
+   */
+  setOrfs(doc: SeqDocument, orfs: readonly Orf[]): void {
+    this.applyAnalysis(doc, null, { orfs });
+  }
+
+  private applyAnalysis(doc: SeqDocument, sites: SitesPart | null, found: OrfsPart | null): void {
     const target = this.docs.find((d) => d.history.present === doc);
     if (target === undefined) return; // stale result
+    // What is already there for this version: a carried result, or the other scan's answer.
+    let analysis: AnalysisState =
+      target.analysis?.doc === doc
+        ? target.analysis
+        : {
+            doc,
+            cutSites: null,
+            digest: null,
+            provisional: false,
+            orfs: null,
+            orfsProvisional: false,
+          };
+    if (sites !== null) {
+      analysis = {
+        ...analysis,
+        cutSites: sites.cutSites,
+        digest: sites.digest,
+        provisional: false,
+      };
+    }
+    if (found !== null) analysis = { ...analysis, orfs: found.orfs, orfsProvisional: false };
     let shownEnzymes = target.shownEnzymes;
     let enzymesInitialized = target.enzymesInitialized;
-    if (!enzymesInitialized) {
+    if (sites !== null && !enzymesInitialized) {
       // The digest counted the sites per enzyme already; counting 96,000 of
       // them here again is 10 ms (#271).
-      let counts = digest?.counts;
+      let counts = sites.digest?.counts;
       if (counts === undefined) {
         const counted = new Map<string, number>();
-        for (const s of cutSites) counted.set(s.enzyme, (counted.get(s.enzyme) ?? 0) + 1);
+        for (const s of sites.cutSites) counted.set(s.enzyme, (counted.get(s.enzyme) ?? 0) + 1);
         counts = counted;
       }
       let singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
@@ -2019,11 +2093,7 @@ export class EditorStore {
       shownEnzymes = new Set(singles.length > MAX_DEFAULT_ENZYMES ? [] : singles);
       enzymesInitialized = true;
     }
-    this.setDocument(target.documentId, {
-      analysis: { doc, cutSites, orfs, digest, provisional: false },
-      shownEnzymes,
-      enzymesInitialized,
-    });
+    this.setDocument(target.documentId, { analysis, shownEnzymes, enzymesInitialized });
   }
 
   setEnzymeShown(name: string, shown: boolean): void {
@@ -2372,8 +2442,9 @@ export class EditorStore {
     const shown = this.state.shownEnzymes;
     // A carried result can lack a site the edit just made (#138), and an
     // export is kept: scan the ticked enzymes afresh. They are a handful,
-    // and this runs once per export, not per frame.
-    if (a.provisional) {
+    // and this runs once per export, not per frame. So too while the scan
+    // has not answered and only the ORFs have (#274).
+    if (a.provisional || a.cutSites === null) {
       const enzymes = activeEnzymes().filter((e) => shown.has(e.name));
       return findCutSites(doc.sequence.toString(), doc.topology, enzymes);
     }

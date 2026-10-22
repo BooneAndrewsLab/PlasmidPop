@@ -56,9 +56,12 @@ export function OrfPanel({ doc }: Props) {
     previewActivated: activated,
   } = useEditorState();
   const [pending, setPending] = useState(String(orfMinCodons));
-  const ready = analysis !== null && analysis.doc === doc;
-  const orfs = ready ? analysis.orfs : NO_ORFS;
-  const provisional = ready && analysis.provisional;
+  // The ORF scan answers after the restriction scan (#274): until it has,
+  // the analysis may hold this document's sites and no ORFs (null).
+  const found = analysis?.doc === doc ? analysis.orfs : null;
+  const ready = found !== null;
+  const orfs = found ?? NO_ORFS;
+  const provisional = ready && analysis?.orfsProvisional === true;
 
   // Every ORF listed is drawn on both views while the tab is open (#32), an
   // arrow on its own strand, and a click on one selects it as its row does.

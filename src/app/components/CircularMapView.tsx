@@ -148,7 +148,7 @@ export function CircularMapView({ doc }: Props) {
     () =>
       // Nothing ticked is the usual state of a large document (#271).
       showCutSites && analysis !== null && analysis.doc === doc && shownEnzymes.size > 0
-        ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
+        ? (analysis.cutSites ?? []).filter((s) => shownEnzymes.has(s.enzyme))
         : [],
     [analysis, doc, shownEnzymes, showCutSites],
   );

@@ -242,14 +242,18 @@ export function CloningPanel({ doc }: Props) {
   // Sites carried through an edit are provisional (#138): they lack any site
   // the edit made, so the digest waits for the worker's scan rather than
   // list, or shelve, fragments the tube would not give.
-  const ready = analysis !== null && analysis.doc === doc && !analysis.provisional;
+  // Nor is there a digest before the scan has answered (null), which the
+  // ORF scan may do first (#274).
+  const sites =
+    analysis !== null && analysis.doc === doc && !analysis.provisional ? analysis.cutSites : null;
+  const ready = sites !== null;
 
   // The ticked enzymes' sites, less the ones this DNA's own methylation
   // would block (#45): a digest cuts what the tube would cut. The Enzymes
   // tab still lists and marks them, and says where the DNA was grown.
   const tickedSites = useMemo(
-    () => (ready ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme)) : []),
-    [analysis, ready, shownEnzymes],
+    () => (sites === null ? [] : sites.filter((s) => shownEnzymes.has(s.enzyme))),
+    [sites, shownEnzymes],
   );
   const cutSites = useMemo(
     () =>

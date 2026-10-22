@@ -174,7 +174,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       analysis !== null &&
       analysis.doc === doc &&
       shownEnzymes.size > 0
-        ? analysis.cutSites.filter((s) => shownEnzymes.has(s.enzyme))
+        ? (analysis.cutSites ?? []).filter((s) => shownEnzymes.has(s.enzyme))
         : [],
     [analysis, doc, shownEnzymes, showCutSites],
   );

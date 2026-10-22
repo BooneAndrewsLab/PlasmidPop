@@ -301,11 +301,11 @@ describe('EditorStore analysis', () => {
     expect(store.getState().shownEnzymes.has('AluI')).toBe(true);
     // Results for another document are ignored.
     store.setAnalysis(SeqDocument.create({ sequence: 'ACGT' }), [site('NotI', 1)], []);
-    expect(store.getState().analysis?.cutSites.map((s) => s.enzyme)).toEqual(['EcoRI']);
+    expect(store.getState().analysis?.cutSites?.map((s) => s.enzyme)).toEqual(['EcoRI']);
     // Editing keeps the sites, shifted, as a provisional result until fresh ones arrive.
     store.apply({ type: 'insert', position: 0, text: 'A' });
     expect(store.getState().analysis?.provisional).toBe(true);
-    expect(store.getState().analysis?.cutSites.map((s) => s.cut)).toEqual([4]);
+    expect(store.getState().analysis?.cutSites?.map((s) => s.cut)).toEqual([4]);
     store.setOrfMinCodons(30);
     expect(store.getState().analysis).toBeNull();
     store.setShownEnzymes(['NotI']);
@@ -384,6 +384,61 @@ describe('EditorStore analysis', () => {
       return store;
     }
 
+    it('stores the two scans as each answers (#274)', () => {
+      const store = new EditorStore();
+      store.openDocument(linear);
+      store.setCutSites(linear, sites);
+      let a = store.getState().analysis;
+      expect(a).toMatchObject({ doc: linear, provisional: false, orfs: null });
+      expect(a?.cutSites).toHaveLength(3);
+      // The first sites tick the single cutters without waiting for the ORFs.
+      expect([...store.getState().shownEnzymes].sort()).toEqual(['AluI', 'BsaI', 'EcoRI']);
+      const kept = a?.cutSites;
+      store.setOrfs(linear, [orf(0, 6)]);
+      a = store.getState().analysis;
+      expect(a?.cutSites).toBe(kept);
+      expect(a?.orfs).toHaveLength(1);
+      expect(a?.orfsProvisional).toBe(false);
+    });
+
+    it('takes the ORFs first and waits for the sites (#274)', () => {
+      const store = new EditorStore();
+      store.openDocument(linear);
+      store.setOrfs(linear, [orf(0, 6)]);
+      expect(store.getState().analysis).toMatchObject({ cutSites: null, provisional: false });
+      expect(store.getState().enzymesInitialized).toBe(false);
+      // Nothing is ticked yet, so nothing is drawn, and nothing is scanned for it.
+      expect(store.visibleCutSites()).toEqual([]);
+      store.setCutSites(linear, sites);
+      expect(store.getState().analysis?.orfs).toHaveLength(1);
+      expect(store.getState().analysis?.cutSites).toHaveLength(3);
+    });
+
+    it('drops either scan for a version no tab holds any more (#274)', () => {
+      const store = new EditorStore();
+      store.openDocument(linear);
+      store.apply({ type: 'insert', position: 0, text: 'A' });
+      store.setCutSites(linear, sites);
+      store.setOrfs(linear, [orf(0, 6)]);
+      expect(store.getState().analysis).toBeNull();
+    });
+
+    it('keeps carried ORFs, provisional, when only the sites have answered (#274)', () => {
+      const store = withResults();
+      store.apply({ type: 'insert', position: 8, text: 'GG' });
+      const present = store.document;
+      if (present === null) throw new Error('no document');
+      store.setCutSites(present, findCutSites(present.sequence.toString(), 'linear', enzymes));
+      let a = store.getState().analysis;
+      expect(a?.provisional).toBe(false);
+      expect(a?.orfsProvisional).toBe(true);
+      expect(a?.orfs?.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
+      store.setOrfs(present, [orf(0, 6), orf(6, 21)]);
+      a = store.getState().analysis;
+      expect(a?.orfsProvisional).toBe(false);
+      expect(a?.orfs).toHaveLength(2);
+    });
+
     it('starts from the sites the sequence has', () => {
       expect(sites).toEqual([
         site('EcoRI', 2, 3, 7),
@@ -408,19 +463,19 @@ describe('EditorStore analysis', () => {
       const a = store.getState().analysis;
       expect(a?.doc).toBe(store.document);
       expect(a?.provisional).toBe(true);
-      expect(a?.cutSites.map((s) => [s.enzyme, s.siteStart, s.cut, s.cutBottom])).toEqual([
+      expect(a?.cutSites?.map((s) => [s.enzyme, s.siteStart, s.cut, s.cutBottom])).toEqual([
         ['EcoRI', 2, 3, 7],
         ['BsaI', 12, 19, 23],
         ['AluI', 25, 27, 27],
       ]);
       // The first ORF is before the insert; the second spans it and is gone.
-      expect(a?.orfs.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
+      expect(a?.orfs?.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
     });
 
     it('drops a site whose cut is separated from its recognition site by the edit', () => {
       const store = withResults();
       store.apply({ type: 'insert', position: 16, text: 'T' });
-      const names = store.getState().analysis?.cutSites.map((s) => s.enzyme);
+      const names = store.getState().analysis?.cutSites?.map((s) => s.enzyme);
       expect(names).toEqual(['EcoRI', 'AluI']);
     });
 
@@ -428,12 +483,12 @@ describe('EditorStore analysis', () => {
       const store = withResults();
       store.apply({ type: 'delete', range: { start: 8, end: 10 } });
       const a = store.getState().analysis;
-      expect(a?.cutSites.map((s) => [s.enzyme, s.cut])).toEqual([
+      expect(a?.cutSites?.map((s) => [s.enzyme, s.cut])).toEqual([
         ['EcoRI', 3],
         ['BsaI', 15],
         ['AluI', 23],
       ]);
-      expect(a?.orfs.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
+      expect(a?.orfs?.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
     });
 
     it('drops a site a same-length substitution rewrote, keeping the rest (#138)', () => {
@@ -441,7 +496,7 @@ describe('EditorStore analysis', () => {
       store.apply({ type: 'replace', range: { start: 2, end: 8 }, text: 'GAATTA' });
       const a = store.getState().analysis;
       expect(a?.provisional).toBe(true);
-      expect(a?.cutSites.map((s) => s.enzyme)).toEqual(['BsaI', 'AluI']);
+      expect(a?.cutSites?.map((s) => s.enzyme)).toEqual(['BsaI', 'AluI']);
       // Both ORFs had bases rewritten: one could now hold a stop.
       expect(a?.orfs).toEqual([]);
     });
@@ -451,14 +506,14 @@ describe('EditorStore analysis', () => {
       // T→A inside GGTCTC, plus two inserted bases after it.
       store.apply({ type: 'replace', range: { start: 12, end: 13 }, text: 'AGG' });
       const a = store.getState().analysis;
-      expect(a?.cutSites.map((s) => s.enzyme)).toEqual(['EcoRI', 'AluI']);
-      expect(a?.orfs.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
+      expect(a?.cutSites?.map((s) => s.enzyme)).toEqual(['EcoRI', 'AluI']);
+      expect(a?.orfs?.map((o) => [o.range.start, o.range.end])).toEqual([[0, 6]]);
     });
 
     it('keeps a site a substitution beside it left alone', () => {
       const store = withResults();
       store.apply({ type: 'replace', range: { start: 8, end: 10 }, text: 'CC' });
-      expect(store.getState().analysis?.cutSites.map((s) => s.enzyme)).toEqual([
+      expect(store.getState().analysis?.cutSites?.map((s) => s.enzyme)).toEqual([
         'EcoRI',
         'BsaI',
         'AluI',
@@ -507,7 +562,7 @@ describe('EditorStore analysis', () => {
       // A new EcoRI site in the A run; the carried result cannot know of it.
       store.apply({ type: 'replace', range: { start: 16, end: 22 }, text: 'GAATTC' });
       expect(store.getState().analysis?.provisional).toBe(true);
-      expect(store.getState().analysis?.cutSites.filter((s) => s.enzyme === 'EcoRI')).toHaveLength(
+      expect(store.getState().analysis?.cutSites?.filter((s) => s.enzyme === 'EcoRI')).toHaveLength(
         1,
       );
       expect(store.visibleCutSites().map((s) => [s.enzyme, s.cut])).toEqual([
@@ -536,6 +591,7 @@ describe('EditorStore analysis', () => {
         orfs: [],
         digest: null,
         provisional: false,
+        orfsProvisional: false,
       });
     });
   });
