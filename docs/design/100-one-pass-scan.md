@@ -88,3 +88,24 @@ scan, digest and packing now add up to about 0.65 s in Node. Where the rest
 goes (reading and parsing the file, the transfer, the list's own work on
 the main thread) has not been split yet. Of `findCutSites`, about 0.15 s is
 building and sorting the 446,034 site objects, not matching.
+
+## A site longer than the circle (#277)
+
+Found after release, and older than this item: on a circle `findCutSites`
+extended the sequence by up to a full turn (`Math.min(L, longest - 1)`) and
+let every site start anywhere on it, so a site one base longer than the
+circle matched by reading its first base twice (BsmBI's CGTCTC in the
+five-base circle GTCTC). `siteStillMatches` and `findSequenceMatches`
+already refused such a match, so the list could show a cut the digest then
+dropped as stale. A site that overlaps itself round a circle is not a site
+the enzyme finds once, so the refusal is the answer: a site longer than the
+molecule gets no start (`maxStart` of -1), on a circle as on a line, while
+one exactly as long as the circle is still read once at each start that
+spells it. Both scans go through the same `cutSites`, so `matchPatterns`
+and the oracle agree. A property test now holds `findCutSites` to
+`findSequenceMatches` and `siteStillMatches` on short sequences of both
+topologies with made-up sites. The clone check's 16-mer index
+(`src/core/verify/verify.ts`) read round a circle shorter than 16 bases the
+same way and now indexes nothing for one. The other origin extensions
+(primer binding, sequence search, CRISPR windows, feature detection) were
+already bounded by the sequence's length.

@@ -5,7 +5,9 @@ bundled table of about 130 common, commercially available enzymes. The scan
 runs in the background whenever the sequence changes, on both strands, and
 handles ambiguity codes in recognition sequences (`GRCGYC`), enzymes that cut
 outside their site (Type IIS such as BsaI and BsmBI) and sites that wrap the
-origin of a circular sequence. You can swap the bundled table for the whole
+origin of a circular sequence. A site longer than a circular sequence is not
+found in it, since spelling it would mean reading round the circle more than
+once. You can swap the bundled table for the whole
 of REBASE — see [Importing the full REBASE table](#importing-the-full-rebase-table)
 below, or add a single enzyme of your own — see
 [Adding your own enzyme](#adding-your-own-enzyme).
