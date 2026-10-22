@@ -13,14 +13,16 @@ export const RETRY_DELAYS_MS: readonly number[] = [500, 2000];
 type Scan = 'sites' | 'orfs';
 
 /**
- * Asks for one scan after the debounce and hands its answer to `apply`,
- * trying twice more if it fails (#138), then calling `fail`. Returns the
- * effect's cleanup, which drops an answer that comes after it.
+ * Asks for one scan after the debounce, or at once when `now`, and hands its
+ * answer to `apply`, trying twice more if it fails (#138), then calling
+ * `fail`. Returns the effect's cleanup, which drops an answer that comes
+ * after it.
  */
 function schedule<T>(
   ask: () => Promise<T>,
   apply: (result: T) => void,
   fail: (why: string) => void,
+  now = false,
 ): () => void {
   let cancelled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -43,9 +45,11 @@ function schedule<T>(
         fail(e instanceof Error ? e.message : String(e));
       });
   };
-  timer = setTimeout(() => {
-    run(0);
-  }, DEBOUNCE_MS);
+  if (now) run(0);
+  else
+    timer = setTimeout(() => {
+      run(0);
+    }, DEBOUNCE_MS);
   return () => {
     cancelled = true;
     clearTimeout(timer);
@@ -86,6 +90,13 @@ function reportFailure(failed: Failures, doc: SeqDocument, scan: Scan, why: stri
  * carried over from the previous document (`provisional`, `orfsProvisional`)
  * count as missing and are recomputed too. A scan that fails is tried again
  * twice before the error is shown.
+ *
+ * The beat is for edits, which come in runs. A document the tab has no
+ * analysis for at all (one just opened, or after the enzyme set changed) is
+ * asked for at once, in the effect (#276): the status bar's checksum, a
+ * child's effect, is queued with `setTimeout(0)` before this one runs, and
+ * on the one worker the restriction scan would otherwise wait the whole
+ * digest out.
  */
 export function useAnalysis(): void {
   const { history, analysis, orfMinCodons, geneticCode } = useEditorState();
@@ -93,6 +104,8 @@ export function useAnalysis(): void {
   const current = analysis?.doc === doc ? analysis : null;
   const needSites = current?.cutSites == null || current.provisional;
   const needOrfs = current?.orfs == null || current.orfsProvisional;
+  // Nothing for this tab at all, carried or stale: not the next of a run of edits.
+  const fresh = analysis === null;
   // Which scans have given up on which document, so a second failure says both.
   const failed = useRef<Failures>({ doc: null, scans: new Set() });
 
@@ -111,7 +124,11 @@ export function useAnalysis(): void {
       (why) => {
         reportFailure(failed.current, doc, 'sites', why);
       },
+      fresh,
     );
+    // `fresh` is read when the document arrives; it turning false as the
+    // answer lands is no reason to ask again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc, needSites]);
 
   useEffect(() => {

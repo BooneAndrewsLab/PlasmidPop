@@ -1,18 +1,21 @@
 // @vitest-environment jsdom
-import { act, renderHook } from '@testing-library/react';
+import { act, render, renderHook } from '@testing-library/react';
+import { type ReactNode } from 'react';
 
 import { SeqDocument } from '@/core';
 import { type analysisClient } from '@/workers/analysisClient';
 
+import { useDocumentChecksum } from './documentChecksum';
 import { editorStore } from './editorStore';
 import { RETRY_DELAYS_MS, useAnalysis } from './useAnalysis';
 
-const { cutSites, orfs } = vi.hoisted(() => ({
+const { cutSites, orfs, checksum } = vi.hoisted(() => ({
   cutSites: vi.fn<typeof analysisClient.cutSitesWithDigest>(),
   orfs: vi.fn<typeof analysisClient.orfs>(),
+  checksum: vi.fn<typeof analysisClient.checksum>(),
 }));
 vi.mock('@/workers/analysisClient', () => ({
-  analysisClient: { cutSitesWithDigest: cutSites, orfs },
+  analysisClient: { cutSitesWithDigest: cutSites, orfs, checksum },
 }));
 const doc = SeqDocument.create({ name: 'pX', sequence: 'ACGTACGTAC' });
 
@@ -141,5 +144,103 @@ describe('useAnalysis (#138)', () => {
     expect(editorStore.getState().error).toMatch(
       /Could not scan pX for restriction sites and ORFs \(worker crashed\)\. The digest waits/,
     );
+  });
+});
+
+describe('useAnalysis: what goes to the worker first (#276)', () => {
+  const digest = { host: new Uint8Array(0), lengths: new Map(), counts: new Map() };
+  /** Which request reached the worker when, in the order they were sent. */
+  let sent: string[] = [];
+
+  /** The status bar's checksum, in a child as in the app, so its effect runs first. */
+  function Checksum(): ReactNode {
+    useDocumentChecksum(editorStore.getState().history?.present ?? null);
+    return null;
+  }
+  function App(): ReactNode {
+    useAnalysis();
+    return <Checksum />;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sent = [];
+    cutSites.mockReset().mockImplementation(() => {
+      sent.push('sites');
+      return Promise.resolve({ sites: [], digest });
+    });
+    orfs.mockReset().mockImplementation(() => {
+      sent.push('orfs');
+      return Promise.resolve([]);
+    });
+    checksum.mockReset().mockImplementation(() => {
+      sent.push('checksum');
+      return Promise.resolve(null);
+    });
+    act(() => {
+      editorStore.dismissError();
+    });
+  });
+
+  afterEach(() => {
+    act(() => {
+      while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
+      editorStore.dismissError();
+    });
+    vi.useRealTimers();
+  });
+
+  /** Large enough that the status bar asks the worker for its checksum. */
+  function large(name: string): SeqDocument {
+    return SeqDocument.create({ name, sequence: 'ACGTTGCA'.repeat(10_000) });
+  }
+
+  it('sends the restriction scan of a document just opened before its checksum', async () => {
+    act(() => {
+      editorStore.openDocument(large('pBig'));
+    });
+    render(<App />);
+    // Sent in the effect, before any timer has run.
+    expect(sent).toEqual(['sites']);
+    await wait(0);
+    expect(sent).toEqual(['sites', 'checksum']);
+    await wait(150);
+    expect(sent).toEqual(['sites', 'checksum', 'orfs']);
+  });
+
+  it('still waits the beat after an edit', async () => {
+    act(() => {
+      editorStore.openDocument(large('pBig'));
+    });
+    render(<App />);
+    await wait(1000);
+    sent = [];
+    act(() => {
+      editorStore.apply({ type: 'insert', position: 0, text: 'A' });
+    });
+    await wait(149);
+    expect(sent).toEqual(['checksum']);
+    await wait(1);
+    expect(sent).toEqual(['checksum', 'sites', 'orfs']);
+  });
+
+  it('waits the beat for a document undone to, whose results it no longer holds', async () => {
+    act(() => {
+      editorStore.openDocument(large('pBig'));
+    });
+    render(<App />);
+    await wait(1000);
+    act(() => {
+      // Not mappable: nothing is carried through it.
+      editorStore.apply({ type: 'reverseComplement' });
+    });
+    await wait(1000);
+    sent = [];
+    act(() => {
+      editorStore.undo();
+    });
+    expect(sent).toEqual([]);
+    await wait(150);
+    expect(sent).toEqual(['sites', 'orfs']);
   });
 });
