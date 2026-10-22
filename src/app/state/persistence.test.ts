@@ -362,7 +362,7 @@ describe('PersistenceService', () => {
 });
 
 describe('PersistenceService autosave timing (#276)', () => {
-  it('writes a document down only once the main thread is idle', async () => {
+  it('writes a document down only once the main thread is idle, asked again before the put (#278)', async () => {
     const repo = new DocumentRepository(new PlasmidPopDb(`idle-${Date.now()}`));
     const service = new PersistenceService(repo);
     const idle: (() => void)[] = [];
@@ -378,6 +378,11 @@ describe('PersistenceService autosave timing (#276)', () => {
       });
       expect(await service.listStored()).toEqual([]);
       idle[0]?.();
+      await vi.waitFor(() => {
+        expect(idle).toHaveLength(2);
+      });
+      expect(await service.listStored()).toEqual([]);
+      idle[1]?.();
       await saving;
       expect((await service.listStored()).map((d) => d.name)).toEqual(['pIdle']);
     } finally {

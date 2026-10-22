@@ -197,15 +197,18 @@ describe('the autosave through the save worker (#272)', () => {
     workers[0]?.release();
     await older;
     expect(await storedText(db, activeId())).toBe(writeGenBank(latest ?? small));
+    // It finds out before the put (#278), or inside the put's transaction.
     const results = await Promise.all(write.mock.results.map((r) => r.value as Promise<boolean>));
-    expect(results).toEqual([true, false]);
+    expect(results[0]).toBe(true);
+    expect(results.slice(1).every((written) => !written)).toBe(true);
     const row = await db.histories.get(activeId());
     expect(decodeHistory(row, null)?.history.present.sequence.toString()).toBe(
       latest?.sequence.toString(),
     );
     // And nothing is left to write.
+    const calls = write.mock.calls.length;
     await service.autosave();
-    expect(write).toHaveBeenCalledTimes(2);
+    expect(write).toHaveBeenCalledTimes(calls);
   });
 
   it('keeps the last edit of a tab closed while its save waits on the worker', async () => {
@@ -273,6 +276,111 @@ describe('the autosave through the save worker (#272)', () => {
     workers[0]?.fail();
     await saving;
     expect(await storedText(db, activeId())).toBe(writeGenBank(editorStore.document ?? small));
+  });
+});
+
+/** A `settle` the test opens by hand: each call waits until `open()`. */
+function heldSettle(): { settle: () => Promise<void>; waiting: () => number; open: () => void } {
+  const gates: (() => void)[] = [];
+  return {
+    settle: () =>
+      new Promise<void>((resolve) => {
+        gates.push(resolve);
+      }),
+    waiting: () => gates.length,
+    open: () => {
+      for (const resolve of gates.splice(0)) resolve();
+    },
+  };
+}
+
+describe('the autosave waits for the input to be quiet (#278)', () => {
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    editorStore.closeAllDocuments();
+  });
+
+  it('before it asks the worker for the text, and again before the put', async () => {
+    const db = freshDb();
+    const { client, workers } = cloneSaveClient();
+    const quiet = heldSettle();
+    const service = new PersistenceService(new DocumentRepository(db), client, quiet.settle);
+    editorStore.openDocument(large(9), 'pLarge.gb');
+    const saving = service.autosave();
+    await vi.waitFor(() => {
+      expect(quiet.waiting()).toBe(1);
+    });
+    expect(workers[0]?.received ?? []).toHaveLength(0);
+    quiet.open();
+    await vi.waitFor(() => {
+      expect(quiet.waiting()).toBe(1);
+    });
+    expect(workers[0]?.received).toHaveLength(1);
+    expect(await db.documents.count()).toBe(0);
+    quiet.open();
+    await saving;
+    expect(await storedText(db, activeId())).toBe(writeGenBank(editorStore.document ?? small));
+  });
+
+  it('is not waited for by the flush on leaving, and a save still waiting then writes nothing', async () => {
+    for (const heldAt of [1, 2]) {
+      const db = freshDb();
+      const { client } = cloneSaveClient();
+      const quiet = heldSettle();
+      const repo = new DocumentRepository(db);
+      const service = new PersistenceService(repo, client, quiet.settle);
+      const write = vi.spyOn(repo, 'write');
+      editorStore.openDocument(large(10 + heldAt), 'pLarge.gb');
+      editorStore.apply({ type: 'insert', position: 0, text: 'A' });
+      const older = service.autosave();
+      // Held before the request to the worker, or before the put.
+      for (let gate = 1; gate <= heldAt; gate++) {
+        await vi.waitFor(() => {
+          expect(quiet.waiting()).toBe(1);
+        });
+        if (gate < heldAt) quiet.open();
+      }
+      editorStore.apply({ type: 'insert', position: 0, text: 'T' });
+      const latest = editorStore.document;
+      await service.autosave({ urgent: true });
+      expect(quiet.waiting()).toBe(1);
+      expect(await storedText(db, activeId())).toBe(writeGenBank(latest ?? small));
+      quiet.open();
+      await older;
+      expect(await storedText(db, activeId())).toBe(writeGenBank(latest ?? small));
+      const results = await Promise.all(write.mock.results.map((r) => r.value as Promise<boolean>));
+      expect(results).toEqual([true]);
+      const row = await db.histories.get(activeId());
+      expect(decodeHistory(row, null)?.history.present.sequence.toString()).toBe(
+        latest?.sequence.toString(),
+      );
+      editorStore.closeAllDocuments();
+    }
+  });
+
+  it('loses no edit made while a save waits: the next save writes it', async () => {
+    const db = freshDb();
+    const { client } = cloneSaveClient();
+    const quiet = heldSettle();
+    const service = new PersistenceService(new DocumentRepository(db), client, quiet.settle);
+    editorStore.openDocument(large(13), 'pLarge.gb');
+    const first = service.autosave();
+    await vi.waitFor(() => {
+      expect(quiet.waiting()).toBe(1);
+    });
+    editorStore.apply({ type: 'delete', range: { start: 5, end: 50 } });
+    const latest = editorStore.document;
+    const second = service.autosave();
+    const pump = setInterval(quiet.open, 1);
+    try {
+      await Promise.all([first, second]);
+    } finally {
+      clearInterval(pump);
+    }
+    expect(await storedText(db, activeId())).toBe(writeGenBank(latest ?? small));
   });
 });
 

@@ -90,7 +90,9 @@ editing controls. See [On a phone](03-viewing.md#on-a-phone).
 ## Where your data lives
 
 Open documents are written to the browser's local storage half a second
-after every change, and the tabs you had open come back when you return.
+after every change, or, while you are scrolling, typing or dragging, once
+you pause for a second (a few seconds at most); leaving or hiding the page
+writes them at once. The tabs you had open come back when you return.
 That storage is per browser and per device. PlasmidPop never writes to a file
 on your disk: to get one, download it (`Ctrl+S`).
 Your sequences never leave your device (Open from NCBI sends NCBI an

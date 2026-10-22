@@ -41,6 +41,7 @@ import { analytics } from '../analytics';
 import { downloadBlob, downloadText, fileNameFor, snapGeneFileName } from '../saveFile';
 import { documentChecksumLater } from './documentChecksum';
 import { type DocumentState, editorStore } from './editorStore';
+import { inputQuiet } from './inputQuiet';
 import { storageChoice } from './storageChoice';
 
 /** What an import turned out to hold, for the Enzymes tab to report. */
@@ -152,29 +153,6 @@ async function wouldAskTheUser(): Promise<boolean> {
 }
 
 /**
- * Resolves when the main thread next has a moment to spare (#276). Writing a
- * genome down is some 0.2 s of main thread (`writeGenBank`, the put), and the
- * checksum it waits for now lands as the worker hands over the restriction
- * scan, so without the wait the save ran just before the Enzymes list could
- * be drawn and pushed it back by about as much. Where there are no idle
- * callbacks (jsdom, Safari) it is the next task.
- */
-function whenIdle(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(
-        () => {
-          resolve();
-        },
-        { timeout: 1000 },
-      );
-    } else {
-      setTimeout(resolve, 0);
-    }
-  });
-}
-
-/**
  * Everything that touches disk or IndexedDB, kept out of the store so the
  * store stays synchronous and testable.
  */
@@ -220,6 +198,12 @@ export class PersistenceService {
   constructor(
     private readonly repo: DocumentRepository = getRepository(),
     private readonly writer: GenBankWriter = saveClient,
+    /**
+     * What an ordinary save waits for before each of its main-thread
+     * pieces: an idle moment with no input for a while (#278), or in a test
+     * what the test says.
+     */
+    private readonly settle: () => Promise<void> = () => inputQuiet.whenQuiet(),
   ) {}
 
   /**
@@ -346,7 +330,14 @@ export class PersistenceService {
       // waiting for it here keeps the digest off the main thread either way.
       // An urgent save takes it inline if it is not known yet.
       await documentChecksumLater(doc);
-      await whenIdle();
+      // Writing a genome down was some 0.2 s of main thread, and the
+      // checksum it waits for lands as the worker hands over the restriction
+      // scan, so without a wait the save ran just before the Enzymes list
+      // could be drawn (#276). After an idle callback alone, what is left of
+      // it (the request to the worker here, the put below) fell into the
+      // first scroll after the open (#278): it waits for the input to have
+      // been quiet a while too.
+      await this.settle();
       if (!this.isLatest(id, d)) return;
     }
     const now = Date.now();
@@ -366,6 +357,12 @@ export class PersistenceService {
       urgent,
     );
     if (text === undefined) throw new Error('The document could not be written out.');
+    if (!urgent) {
+      // The put clones the text into IndexedDB on this thread, 33-46 ms at
+      // 4.64 Mb (#278): not in the middle of a scroll that began meanwhile.
+      await this.settle();
+      if (!this.isLatest(id, d)) return;
+    }
     const written = await this.repo.write(
       id,
       doc,
