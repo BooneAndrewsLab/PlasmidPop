@@ -254,3 +254,37 @@ only change speed), redundant guards (`n === 0` beside the IUPAC regex, the
 origin's single point in `digestFragments` and `fragmentLengths`), Booth's
 shortcuts in `minimalRotation` (checked exhaustively on short strings), and
 `<` against `<=` where the tie is handled first.
+
+## Keeping a pass affordable (2026-10-22)
+
+The pass for #274-#276 took longer than the work it checked: an agent
+spent about five hours and five Stryker runs chasing zero survivors in five
+files, rewrote production code to make equivalent mutants go away (two
+reviews were needed to catch the regressions that brought), and wrote
+disables of which two were wrong. Two changes follow.
+
+**A survivor policy.** A release pass triages only the survivors on lines
+changed since the last release. A missing test is written; an equivalent
+mutant is listed in this note by kind and left as a survivor. Production
+code is never changed to remove a mutant. A disable comment is written
+only when every mutant of the named mutator on the line is equivalent and
+was checked by applying it; when in doubt, leave the survivor. One
+confirming rerun, not a loop.
+
+**Files share a module registry in a mutation run.** Stryker's Vitest
+runner runs the dry run on one worker (`maxWorkers: 1`), and a fresh module
+registry per file was about half of it: 10 min 9 s (300 s of tests, 309 s
+of overhead). With `PLASMIDPOP_MUTATION=1` the suite is two Vitest
+projects: `shared` (`isolate: false`, 258 node files) and `isolated` (89
+files, found from the source when the config loads: those using `vi.mock`,
+which needs its own registry, and the jsdom ones, whose late async work
+failed the next file with `window is not defined` when they shared). The
+dry run fell to 7 min 8 s (245 s of tests, 184 s of overhead), and
+`sha1.ts` kept its verdicts (114 killed, 4 timeouts, 6 survived). Normal
+runs and CI keep one project with isolation.
+
+Measured and dropped: running only the core tests in a mutation pass. 3,270
+of the 18,835 killed mutants (17%) were killed only by jsdom test files
+(390 in `backup.ts`, 248 in `gel.ts`). `timeoutMS` (30 s) was left as it
+is: a Timeout mutant costs at least that, but the verdicts are reused by
+the incremental run, so it only weighs on mutants that are new.

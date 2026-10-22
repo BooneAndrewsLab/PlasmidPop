@@ -21,6 +21,21 @@ import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.t
 const base = process.env['BASE_PATH'] ?? '/';
 
 /**
+ * Test files that need a module registry of their own: those that replace a
+ * module with vi.mock, and those in the DOM, whose late async work fails in
+ * the next file when the two share one (`window is not defined`).
+ */
+const TESTS = ['src/**/*.{test,spec}.{ts,tsx}'];
+
+const ISOLATED_TESTS = readdirSync('src', { recursive: true, encoding: 'utf8' })
+  .filter((f) => /\.(test|spec)\.tsx?$/.test(f))
+  .map((f) => `src/${f.replaceAll('\\', '/')}`)
+  .filter((f) => {
+    const text = readFileSync(f, 'utf8');
+    return text.includes('vi.mock(') || text.includes('@vitest-environment jsdom');
+  });
+
+/**
  * The guide as crawlable static pages and the sitemap that lists them
  * (item 91, #231), written into the build from docs/guide/*.md and served by
  * the dev server (#244). Page order is the file order, as in the app's guide
@@ -233,7 +248,20 @@ export default defineConfig({
     // many times slower; the ordinary limit would fail tests that are not
     // slow at all.
     testTimeout: process.env['PLASMIDPOP_MUTATION'] === '1' ? 60_000 : 5_000,
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // A mutation run's dry run goes through every file on one worker, and
+    // a fresh module registry per file is about half its time. There the
+    // files share one, apart from those that need their own.
+    ...(process.env['PLASMIDPOP_MUTATION'] === '1'
+      ? {
+          projects: [
+            {
+              extends: true,
+              test: { name: 'shared', include: TESTS, exclude: ISOLATED_TESTS, isolate: false },
+            },
+            { extends: true, test: { name: 'isolated', include: ISOLATED_TESTS } },
+          ],
+        }
+      : { include: TESTS }),
     // svg2pdf.js has no "exports" map and its "main" is the UMD build, which
     // wants jsPDF as a global; Node's resolution picks that, the bundler's
     // picks "module". The tests take the ES build the app takes (#242).
