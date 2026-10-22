@@ -1,4 +1,5 @@
 import {
+  codeMask,
   findResidueMatches,
   findSequenceMatches,
   looksLikeSequence,
@@ -6,6 +7,35 @@ import {
   patternMasks,
   sequenceMasks,
 } from './search';
+
+describe('sequenceMasks', () => {
+  it('gives every character the mask codeMask gives it (item 99)', () => {
+    // Every BMP character, lower case, IUPAC codes and the rest alike; 'ſ'
+    // and 'ı' upper-case to ASCII letters and must still come out the same.
+    const all = Array.from({ length: 0xd800 }, (_, c) => String.fromCharCode(c)).join('');
+    const masks = sequenceMasks(all);
+    const differ: number[] = [];
+    for (let c = 0; c < all.length; c++) {
+      if (masks[c] !== codeMask(String.fromCharCode(c))) differ.push(c);
+    }
+    expect(differ).toEqual([]);
+    expect([...sequenceMasks('ACGTacgtNnRu-')]).toEqual([
+      1,
+      2,
+      4,
+      8,
+      1,
+      2,
+      4,
+      8,
+      15,
+      15,
+      5,
+      codeMask('U'),
+      0,
+    ]);
+  });
+});
 
 describe('findSequenceMatches', () => {
   it('finds IUPAC patterns on both strands and wraps on circular sequences', () => {

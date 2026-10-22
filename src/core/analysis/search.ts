@@ -11,10 +11,21 @@ export function codeMask(code: string): number {
   return mask;
 }
 
-/** Bitmask per position of the sequence; unknown characters match nothing. */
+/** `codeMask` of every ASCII character, by its code. */
+const ASCII_MASKS = Uint8Array.from({ length: 128 }, (_, c) => codeMask(String.fromCharCode(c)));
+
+/**
+ * Bitmask per position of the sequence; unknown characters match nothing.
+ * ASCII goes through a table: `codeMask` per base was 380 ms of a 4.64 Mb
+ * restriction scan, the table 26-29 ms (item 99). Anything else, which a
+ * sequence does not hold, takes `codeMask` itself, so the two never differ.
+ */
 export function sequenceMasks(sequence: string): Uint8Array {
   const out = new Uint8Array(sequence.length);
-  for (let i = 0; i < sequence.length; i++) out[i] = codeMask(sequence.charAt(i));
+  for (let i = 0; i < sequence.length; i++) {
+    const c = sequence.charCodeAt(i);
+    out[i] = c < 128 ? (ASCII_MASKS[c] ?? 0) : codeMask(sequence.charAt(i));
+  }
   return out;
 }
 
