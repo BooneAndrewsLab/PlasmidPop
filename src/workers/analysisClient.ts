@@ -30,8 +30,21 @@ import {
   type AnalysisResponse,
   type Detection,
   unpackCutSites,
-  unpackEnzymeDigest,
+  unpackScan,
 } from './analysisProtocol';
+
+/**
+ * Lets the page run before the next slice of work (#278): `scheduler.yield`
+ * where there is one (Chromium), which goes back to the front of the queue,
+ * otherwise the next task.
+ */
+export function yieldToPage(): Promise<void> {
+  const scheduler = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (typeof scheduler?.yield === 'function') return scheduler.yield();
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
 
 interface Pending {
   readonly request: AnalysisRequest;
@@ -180,7 +193,8 @@ export class AnalysisClient {
 
   /**
    * Every enzyme's cut sites and the Enzymes tab's digest of them (item 98),
-   * taken in the worker in the same pass as the scan.
+   * taken in the worker in the same pass as the scan, unpacked a slice at a
+   * time with the sites grouped by enzyme on the way (#278).
    */
   async cutSitesWithDigest(
     sequence: string,
@@ -190,10 +204,7 @@ export class AnalysisClient {
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'cutSites' || res.digest === undefined)
       throw new Error('Unexpected analysis response');
-    return {
-      sites: unpackCutSites(res.sites),
-      digest: unpackEnzymeDigest(res.digest, res.sites.enzymes),
-    };
+    return unpackScan(res.sites, res.digest, yieldToPage);
   }
 
   /** The GC fraction in a window centred on each base (item 75). */

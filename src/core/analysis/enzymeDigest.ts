@@ -2,6 +2,9 @@ import { type Topology } from '../range';
 import { hostMarksBits, hostMethylationAt, isHostMethylationSensitive } from './methylation';
 import { type CutSite, getEnzyme } from './restriction';
 
+/** An array of numbers or a typed array's view: what a digest keeps its numbers in (#278). */
+export type NumberList = ArrayLike<number> & Iterable<number>;
+
 /**
  * What the Enzymes tab needs of a scan beyond the sites themselves, taken
  * once per scan where the scan is (item 98, #271): in the analysis worker
@@ -17,11 +20,48 @@ export interface EnzymeDigest {
   readonly host: Uint8Array;
   /**
    * Per enzyme that cuts, by name: the lengths its own digest gives,
-   * longest first, which is the order `gelProfile` wants them in.
+   * longest first, which is the order `gelProfile` wants them in. From the
+   * worker they are views into the one transferred buffer (#278), not an
+   * array of their own each.
    */
-  readonly lengths: ReadonlyMap<string, readonly number[]>;
+  readonly lengths: ReadonlyMap<string, NumberList>;
   /** Per enzyme that cuts, by name: how many of the sites are its. */
   readonly counts: ReadonlyMap<string, number>;
+  /**
+   * The sites by enzyme, as the client sorted them while unpacking the
+   * worker's answer (#278), so the Enzymes tab need not walk every site
+   * again to group them. Absent for a digest taken here; `sitesByEnzyme`
+   * then gives the same.
+   */
+  readonly byEnzyme?: ReadonlyMap<string, EnzymeSites>;
+}
+
+/** One enzyme's sites, in the scan's order, and the host marks of each. */
+export interface EnzymeSites {
+  readonly sites: readonly CutSite[];
+  /** Per site, its Dam/Dcm marks as `hostMarksBits`. */
+  readonly host: NumberList;
+}
+
+/**
+ * `sites` grouped by enzyme, each site with its entry of `host` (a digest's,
+ * in the order of `sites`). Only enzymes with a site have an entry.
+ */
+export function sitesByEnzyme(
+  sites: readonly CutSite[],
+  host: ArrayLike<number>,
+): Map<string, EnzymeSites> {
+  const byName = new Map<string, { readonly sites: CutSite[]; readonly host: number[] }>();
+  sites.forEach((s, i) => {
+    let entry = byName.get(s.enzyme);
+    if (entry === undefined) {
+      entry = { sites: [], host: [] };
+      byName.set(s.enzyme, entry);
+    }
+    entry.sites.push(s);
+    entry.host.push(host[i] ?? 0);
+  });
+  return byName;
 }
 
 /**

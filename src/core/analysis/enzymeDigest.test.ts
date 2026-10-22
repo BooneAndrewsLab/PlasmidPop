@@ -44,7 +44,7 @@ describe('enzymeDigest (item 98)', () => {
       expect(counts.get(name)).toBe(own.length);
       const fromDigest = lengths.get(name) ?? [];
       expect(gelProfile(fromDigest)).toEqual(enzymeProfile(own, sequence.length, 'circular'));
-      expect([...fromDigest]).toEqual([...fromDigest].sort((a, b) => b - a));
+      expect(Array.from(fromDigest)).toEqual(Array.from(fromDigest).sort((a, b) => b - a));
     }
   });
 

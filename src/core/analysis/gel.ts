@@ -163,7 +163,7 @@ function bandsOf(lengths: readonly number[], resolution: number): GelBand[] {
 }
 
 /** What `lengths` would look like on a gel. */
-export function gelProfile(lengths: readonly number[], options: GelOptions = {}): DigestProfile {
+export function gelProfile(lengths: Iterable<number>, options: GelOptions = {}): DigestProfile {
   const { resolution, minVisible, maxResolved } = { ...DEFAULT_GEL, ...options };
   const fragments = [...lengths].sort((a, b) => b - a);
   const bands = bandsOf(fragments, resolution);

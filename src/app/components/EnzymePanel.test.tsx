@@ -12,6 +12,8 @@ import {
   setActiveEnzymeSet,
 } from '@/core';
 
+import { packCutSites, packEnzymeDigest, unpackScan } from '@/workers/analysisProtocol';
+
 import { MAX_DEFAULT_ENZYMES, editorStore } from '../state/editorStore';
 import { EnzymePanel } from './EnzymePanel';
 import { getByTip } from '@/test/tips';
@@ -669,7 +671,7 @@ describe('EnzymePanel host methylation', () => {
     expect(screen.getByText(/1 of 2 sites may be blocked by Dam\/Dcm methylation/)).toBeVisible();
   });
 
-  it("draws the same rows from the worker's digest as from the sites alone (item 98)", () => {
+  it("draws the same rows from the worker's digest as from the sites alone (item 98)", async () => {
     // MscI in a Dcm site and two ClaI sites, one Dam-marked, on a circle.
     const sequence = `${'A'.repeat(20)}CCTGGCCA${'A'.repeat(20)}GATCGAT${'A'.repeat(20)}CATCGATA${'A'.repeat(20)}`;
     const plasmid = SeqDocument.create({ sequence, topology: 'circular' });
@@ -694,11 +696,35 @@ describe('EnzymePanel host methylation', () => {
     const inline = rows();
     expect(inline.length).toBeGreaterThan(2);
     expect(inline.some(({ cuts }) => cuts.some((c) => c.endsWith('m')))).toBe(true);
+    const whole = view.container.textContent;
     act(() => {
       editorStore.setAnalysis(plasmid, sites, [], enzymeDigest(sites, sequence, 'circular'));
     });
     view.rerender(<EnzymePanel doc={plasmid} />);
     expect(rows()).toEqual(inline);
+    // And unpacked as the client unpacks it: grouped on the way, the lengths
+    // views into one buffer, the bands worked out as asked for (#278).
+    const packed = packCutSites(sites);
+    const unpacked = await unpackScan(
+      packed,
+      packEnzymeDigest(enzymeDigest(sites, sequence, 'circular'), packed.enzymes),
+    );
+    expect(unpacked.digest.byEnzyme?.size).toBeGreaterThan(2);
+    act(() => {
+      editorStore.setAnalysis(plasmid, unpacked.sites, [], unpacked.digest);
+    });
+    view.rerender(<EnzymePanel doc={plasmid} />);
+    expect(rows()).toEqual(inline);
+    expect(view.container.textContent).toBe(whole);
+    act(() => {
+      editorStore.setEnzymeSort('name');
+    });
+    const byName = rows();
+    act(() => {
+      editorStore.setAnalysis(plasmid, sites, []);
+    });
+    view.rerender(<EnzymePanel doc={plasmid} />);
+    expect(rows()).toEqual(byName);
   });
 });
 
