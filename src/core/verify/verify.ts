@@ -90,7 +90,8 @@ export interface AlignLong {
 }
 
 function kmers(text: string, circular: boolean): Set<string> {
-  const ring = circular ? text + text.slice(0, K - 1) : text;
+  // A circle shorter than K holds no K-mer: one would read round it twice (#277).
+  const ring = circular && text.length >= K ? text + text.slice(0, K - 1) : text;
   const out = new Set<string>();
   for (let i = 0; i + K <= ring.length; i++) out.add(ring.slice(i, i + K));
   return out;

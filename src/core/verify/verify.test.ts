@@ -186,6 +186,20 @@ describe('verifyClone', () => {
     expect(b.verdict).toBe('match');
   });
 
+  it('indexes no 16-mer of a circle shorter than 16 bases, round it or not (#277)', () => {
+    const small = (sequence: string): Construct => ({
+      name: sequence,
+      doc: SeqDocument.create({ name: sequence, sequence, topology: 'circular' }),
+      pattern: '',
+    });
+    const [short, sixteen] = indexConstructs([small('ACGTTGCAAG'), small('ACGTTGCAAGCTTAGC')]);
+    expect(short?.size).toBe(0);
+    // Sixteen bases: each of the 16 starts, on both strands, reads round once.
+    expect(sixteen?.has('ACGTTGCAAGCTTAGC')).toBe(true);
+    expect(sixteen?.has('CACGTTGCAAGCTTAG')).toBe(true);
+    expect(sixteen?.size).toBe(32);
+  });
+
   it('uses a name pattern before the sequence', async () => {
     const constructs = [construct('pA', SEQ, 'plate1'), construct('pB', bases(1000, 5), 'plate2')];
     const index = indexConstructs(constructs);
