@@ -22,9 +22,10 @@ import {
  * A document as it crosses to the worker: everything `writeGenBank` reads,
  * and nothing it does not (the sequencing read stays behind). The bases are
  * one string, which the structured clone copies as a block; the rest is one
- * JSON string, because a clone of the feature objects themselves costs the
- * main thread four times what `JSON.stringify` does (1,000 features with
- * two qualifiers each: 7.8 ms against 1.7 ms, `docs/perf-notes.md`).
+ * JSON string, which costs the main thread less than a clone of the feature
+ * objects themselves (headless Chromium, 1 Mb with 1,000 features: 2.9 ms
+ * to send against 4.8 ms; 4.64 Mb with 4,642: 15.5 against 21.6 ms;
+ * `docs/perf-notes.md`).
  */
 export interface DocumentSnapshot {
   readonly sequence: string;

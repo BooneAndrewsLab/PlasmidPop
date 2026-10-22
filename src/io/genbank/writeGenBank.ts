@@ -267,7 +267,9 @@ export function writeGenBank(doc: SeqDocument): string {
   lines.push('FEATURES             Location/Qualifiers');
   for (const feature of doc.features) lines.push(...featureLines(feature, doc));
   lines.push('ORIGIN');
-  lines.push(...sequenceLines(doc));
+  // One push per line, not a spread: a genome is 77,000 lines, and as many
+  // arguments overflow the smaller stack of a worker (#272).
+  for (const line of sequenceLines(doc)) lines.push(line);
   lines.push('//');
   return `${lines.join('\n')}\n`;
 }
