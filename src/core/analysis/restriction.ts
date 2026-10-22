@@ -2,7 +2,7 @@ import { type OverhangKind } from '../document';
 import { type Topology } from '../range';
 import { reverseComplement } from '../sequence';
 import { ENZYME_TABLE } from './enzymeTable';
-import { matchPositions, patternMasks, sequenceMasks } from './search';
+import { matchPatterns, matchPositions, patternMasks, sequenceMasks } from './search';
 
 export interface Enzyme {
   readonly name: string;
@@ -230,6 +230,30 @@ export function findCutSites(
   topology: Topology,
   enzymes: readonly Enzyme[] = activeEnzymes(),
 ): CutSite[] {
+  return cutSites(sequence, topology, enzymes, matchPatterns);
+}
+
+/**
+ * `findCutSites` as it was before #275, one `matchPositions` pass per
+ * distinct site and per non-palindromic one's reverse complement: kept as
+ * the oracle `findCutSites` is tested against, not for the app.
+ */
+export function findCutSitesOnePassEach(
+  sequence: string,
+  topology: Topology,
+  enzymes: readonly Enzyme[] = activeEnzymes(),
+): CutSite[] {
+  return cutSites(sequence, topology, enzymes, (masks, patterns, maxStarts) =>
+    patterns.map((pattern, i) => matchPositions(masks, pattern, maxStarts[i] ?? -1)),
+  );
+}
+
+function cutSites(
+  sequence: string,
+  topology: Topology,
+  enzymes: readonly Enzyme[],
+  match: typeof matchPatterns,
+): CutSite[] {
   const L = sequence.length;
   if (L === 0) return [];
   const longestSite = Math.max(0, ...enzymes.map((e) => e.site.length));
@@ -252,17 +276,34 @@ export function findCutSites(
     else group.push(enzyme);
   }
 
+  // Every site, and every non-palindromic one's reverse complement, matched
+  // in one pass (#275). A site on the bottom strand reads as its reverse
+  // complement on top; the cut offsets mirror around the site. Palindromy
+  // follows from the site, so every enzyme in the group agrees about whether
+  // there is a reverse pattern.
+  const patterns: number[][] = [];
+  const maxStarts: number[] = [];
+  const slots: { forward: number; reverse: number }[] = [];
+  for (const [site, group] of bySite) {
+    const maxStart = topology === 'circular' ? L - 1 : L - site.length;
+    patterns.push(patternMasks(site));
+    maxStarts.push(maxStart);
+    let reverse = -1;
+    if (!(group[0]?.palindromic ?? true)) {
+      reverse = patterns.length;
+      patterns.push(patternMasks(reverseComplement(site)));
+      maxStarts.push(maxStart);
+    }
+    slots.push({ forward: patterns.length - (reverse < 0 ? 1 : 2), reverse });
+  }
+  const matches = match(masks, patterns, maxStarts);
+
+  let slot = 0;
   for (const [site, group] of bySite) {
     const n = site.length;
-    const maxStart = topology === 'circular' ? L - 1 : L - n;
-    const forward = matchPositions(masks, patternMasks(site), maxStart);
-    // A site on the bottom strand reads as its reverse complement on top; the
-    // cut offsets mirror around the site. Palindromy follows from the site, so
-    // every enzyme in the group agrees about whether there is a reverse pass.
-    const reverse =
-      (group[0]?.palindromic ?? true)
-        ? []
-        : matchPositions(masks, patternMasks(reverseComplement(site)), maxStart);
+    const { forward: f, reverse: r } = slots[slot++] ?? { forward: -1, reverse: -1 };
+    const forward = matches[f] ?? [];
+    const reverse = r < 0 ? [] : (matches[r] ?? []);
 
     for (const enzyme of group) {
       const second = enzyme.secondCut;

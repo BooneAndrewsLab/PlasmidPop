@@ -89,6 +89,134 @@ function shiftAnd(masks: Uint8Array, pattern: readonly number[], maxStart: numbe
   return out;
 }
 
+/** Shortest pattern `matchPatterns` indexes; shorter ones get a `matchPositions` pass each. */
+const INDEX_MIN = 4;
+/** Longest window it indexes: 4^6 = 4,096 buckets. */
+const INDEX_MAX = 6;
+/** The base a sequence mask spells, A C G T as 0-3; -1 for an ambiguity code or nothing. */
+const MASK_BASE = Int8Array.from({ length: 16 }, (_, m) => [1, 2, 4, 8].indexOf(m));
+
+/**
+ * `matchPositions` for many patterns in one pass over `masks` (#275): entry
+ * p of the result is exactly `matchPositions(masks, patterns[p],
+ * maxStarts[p])`, the same starts in the same ascending order.
+ *
+ * Each pattern is filed under the k-mers of A, C, G and T its most specific
+ * window of k positions accepts (k the shortest pattern's length, at most
+ * six). Where the sequence's k bases from a position are all plain bases,
+ * only the patterns filed under that k-mer can start there (less the
+ * window's offset), and each is checked base by base by the subset rule of
+ * `matchPositions`. Where an ambiguity code or a non-base falls in that
+ * window, every pattern whose window opens with a code that admits the
+ * position's base is checked the same way, so ambiguous sequence still
+ * matches as it does there. A pattern shorter than four bases, or empty,
+ * gets its own `matchPositions` pass.
+ *
+ * The bundled table's sites at 4.64 Mb: 0.19 s, against 1.12 s for a
+ * Shift-And pass per pattern (item 100).
+ */
+export function matchPatterns(
+  masks: Uint8Array,
+  patterns: readonly (readonly number[])[],
+  maxStarts: readonly number[],
+): number[][] {
+  const out: number[][] = patterns.map(() => []);
+  const indexed: number[] = [];
+  patterns.forEach((pattern, p) => {
+    if (pattern.length >= INDEX_MIN) indexed.push(p);
+    else out[p] = matchPositions(masks, pattern, maxStarts[p] ?? -1);
+  });
+  if (indexed.length === 0) return out;
+  const k = Math.min(INDEX_MAX, ...indexed.map((p) => patterns[p]?.length ?? 0));
+
+  // The window of each pattern: the k positions that admit the fewest k-mers.
+  const offsets = new Int32Array(patterns.length);
+  for (const p of indexed) {
+    const pattern = patterns[p] ?? [];
+    let best = Infinity;
+    for (let o = 0; o + k <= pattern.length; o++) {
+      let count = 1;
+      for (let j = o; j < o + k; j++) count *= popcount(pattern[j] ?? 0);
+      if (count < best) {
+        best = count;
+        offsets[p] = o;
+      }
+    }
+  }
+
+  // Buckets of pattern indices by k-mer, as one array with a start per k-mer.
+  const buckets = 1 << (2 * k);
+  const starts = new Int32Array(buckets + 1);
+  const kmers = indexed.map((p) => windowKmers(patterns[p] ?? [], offsets[p] ?? 0, k));
+  for (const list of kmers) for (const code of list) starts[code + 1] = (starts[code + 1] ?? 0) + 1;
+  for (let c = 0; c < buckets; c++) starts[c + 1] = (starts[c + 1] ?? 0) + (starts[c] ?? 0);
+  const filed = new Int32Array(starts[buckets] ?? 0);
+  const fill = starts.slice(0, buckets);
+  indexed.forEach((p, i) => {
+    for (const code of kmers[i] ?? []) {
+      const at = fill[code] ?? 0;
+      filed[at] = p;
+      fill[code] = at + 1;
+    }
+  });
+  // For windows holding an ambiguity code: the patterns whose window's first
+  // position admits each of the sixteen masks.
+  const byMask: number[][] = Array.from({ length: 16 }, (_, m) =>
+    m === 0 ? [] : indexed.filter((p) => (m & ~(patterns[p]?.[offsets[p] ?? 0] ?? 0)) === 0),
+  );
+
+  const length = masks.length;
+  const check = (p: number, start: number): void => {
+    const pattern = patterns[p] ?? [];
+    const n = pattern.length;
+    if (start < 0 || start > (maxStarts[p] ?? -1) || start + n > length) return;
+    for (let j = 0; j < n; j++) {
+      const s = masks[start + j] ?? 0;
+      if (s === 0 || (s & ~(pattern[j] ?? 0)) !== 0) return;
+    }
+    out[p]?.push(start);
+  };
+  const codeBits = buckets - 1;
+  let code = 0;
+  let lastAmbiguous = -1;
+  for (let j = 0; j < length; j++) {
+    const base = MASK_BASE[masks[j] ?? 0] ?? -1;
+    if (base < 0) lastAmbiguous = j;
+    code = ((code << 2) | (base & 3)) & codeBits;
+    const i = j - k + 1;
+    if (i < 0) continue;
+    if (lastAmbiguous < i) {
+      const end = starts[code + 1] ?? 0;
+      for (let e = starts[code] ?? 0; e < end; e++) {
+        const p = filed[e] ?? 0;
+        check(p, i - (offsets[p] ?? 0));
+      }
+    } else {
+      for (const p of byMask[masks[i] ?? 0] ?? []) check(p, i - (offsets[p] ?? 0));
+    }
+  }
+  return out;
+}
+
+function popcount(mask: number): number {
+  let n = 0;
+  for (let m = mask; m !== 0; m &= m - 1) n++;
+  return n;
+}
+
+/** Every k-mer, as 2 bits a base, that positions o..o+k-1 of `pattern` admit. */
+function windowKmers(pattern: readonly number[], o: number, k: number): number[] {
+  let codes = [0];
+  for (let j = o; j < o + k; j++) {
+    const mask = pattern[j] ?? 0;
+    const next: number[] = [];
+    for (const c of codes)
+      for (let b = 0; b < 4; b++) if ((mask & (1 << b)) !== 0) next.push((c << 2) | b);
+    codes = next;
+  }
+  return codes;
+}
+
 export interface SequenceMatch {
   readonly range: Range;
   readonly strand: Strand;
