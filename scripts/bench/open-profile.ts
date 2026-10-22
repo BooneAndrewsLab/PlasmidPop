@@ -6,10 +6,11 @@
 //
 //   npx vite build --minify false --outDir dist-profile
 //   node scripts/bench/open-profile.ts [--sizes 300000,1000000] [--n 3] [--dist dist-profile]
+//     [--stretch 20]
 //
 // Prints, per run, the marks (sequence view painted, checksum shown, enzyme
 // list drawn; ms after the file was picked), every `longtask` entry, and for
-// each busy stretch of the profile past 20 ms its length, the time inside
+// each busy stretch of the profile past 20 ms (`--stretch`) its length, the time inside
 // `documentChecksum`, the garbage collector's share and the top self times.
 // The sequences are the bench's (`open-scan.ts`): seeded random DNA.
 
@@ -58,19 +59,28 @@ const { values } = parseArgs({
     n: { type: 'string', default: '3' },
     dist: { type: 'string', default: 'dist-profile' },
     headed: { type: 'boolean', default: false },
+    // Shorter stretches too, for work split into pieces under a long frame (#272).
+    stretch: { type: 'string', default: '20' },
   },
 });
 const sizes = values.sizes.split(',').map((s) => Number(s.trim()));
 const runs = Number(values.n);
-if (sizes.some((s) => !Number.isInteger(s) || s <= 0) || !Number.isInteger(runs) || runs <= 0) {
-  console.error('--sizes takes positive integers separated by commas, --n a positive integer');
+if (
+  sizes.some((s) => !Number.isInteger(s) || s <= 0) ||
+  !Number.isInteger(runs) ||
+  runs <= 0 ||
+  !(Number(values.stretch) > 0)
+) {
+  console.error(
+    '--sizes takes positive integers separated by commas, --n a positive integer, --stretch a positive number of ms',
+  );
   process.exit(2);
 }
 
 const TIMEOUT_MS = 120_000;
 /** How long after the enzyme list to keep recording, so the autosave is in. */
 const SETTLE_MS = 2000;
-const STRETCH_MS = 20;
+const STRETCH_MS = Number(values.stretch);
 /** Samples further apart than this are different stretches. */
 const GAP_MS = 2;
 
