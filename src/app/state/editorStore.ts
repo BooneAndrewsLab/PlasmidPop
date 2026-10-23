@@ -1103,6 +1103,8 @@ function compose(
 }
 
 type Listener = () => void;
+/** Told the states of tabs that have just closed, as they stood (#280). */
+type ClosedListener = (closed: readonly DocumentState[]) => void;
 
 /**
  * Minimal external store for the editor: immutable state, plain methods for
@@ -1120,6 +1122,7 @@ export class EditorStore {
   private bench = false;
   private state: EditorState = compose(this.shared, this.docs, this.activeId, this.bench);
   private readonly listeners = new Set<Listener>();
+  private readonly closedListeners = new Set<ClosedListener>();
   /** See `restorePhonePanes`. */
   private panesToRestore = new Map<string, PhonePane>();
   /** Pending auto-dismiss of a timed error, see `fail`. */
@@ -1133,6 +1136,23 @@ export class EditorStore {
       this.listeners.delete(listener);
     };
   };
+
+  /**
+   * Listens for tabs closing, whichever way they close, so the autosave can
+   * write what a tab held before it was gone (#280). Called after the tab
+   * has left the state. Returns the way to stop listening.
+   */
+  onTabsClosed = (listener: ClosedListener): (() => void) => {
+    this.closedListeners.add(listener);
+    return () => {
+      this.closedListeners.delete(listener);
+    };
+  };
+
+  private tabsClosed(closed: readonly DocumentState[]): void {
+    if (closed.length === 0) return;
+    for (const l of this.closedListeners) l(closed);
+  }
 
   /** The document in front, or null while the file list is shown. */
   get document(): SeqDocument | null {
@@ -1267,13 +1287,15 @@ export class EditorStore {
       phonePane: this.takeRememberedPane(storage.id),
     };
     const active = this.documentState();
+    const replaced = active !== null && isUntouchedNew(active) ? active : null;
     this.docs =
-      active !== null && isUntouchedNew(active)
-        ? this.docs.map((d) => (d === active ? entry : d))
+      replaced !== null
+        ? this.docs.map((d) => (d === replaced ? entry : d))
         : [...this.docs, entry];
     this.activeId = entry.documentId;
     this.bench = false;
     this.commit();
+    if (replaced !== null) this.tabsClosed([replaced]);
     return entry.documentId;
   }
 
@@ -1390,12 +1412,14 @@ export class EditorStore {
     if (id === null) return;
     const i = this.docs.findIndex((d) => d.documentId === id);
     if (i < 0) return;
+    const closed = this.docs[i];
     const docs = this.docs.filter((d) => d.documentId !== id);
     this.pendingHistories.delete(id); // nothing to rebuild for a tab that is gone (#83)
     if (this.activeId === id) this.activeId = (docs[i] ?? docs[i - 1])?.documentId ?? null;
     this.docs = docs;
     this.shared = { ...this.shared, comparison: null };
     this.commit();
+    if (closed !== undefined) this.tabsClosed([closed]);
   }
 
   /**
@@ -1416,10 +1440,12 @@ export class EditorStore {
 
   closeAllDocuments(): void {
     if (this.docs.length === 0 && this.activeId === null) return;
+    const closed = this.docs;
     this.docs = [];
     this.activeId = null;
     this.shared = { ...this.shared, comparison: null };
     this.commit();
+    this.tabsClosed(closed);
   }
 
   /**
