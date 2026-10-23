@@ -76,6 +76,26 @@ describe('Detect features against pLannotate', () => {
     expect(found / all).toBeGreaterThanOrEqual(BASELINE_ALL);
   });
 
+  it('names no part differently from pLannotate where both know the part, but for the known cases', () => {
+    // Each entry is a call of ours (left) on bases pLannotate calls the part
+    // of ours on the right. The bundled "CMV promoter" was the chicken
+    // beta-actin promoter of CAG (#279), and this list is what would have
+    // caught it. f1/M13 and TetR/rtTA are variants told apart by a few
+    // bases (#284); pLannotate calls pBR322's tet gene tetA and the SV40
+    // origin, short in AF239250, the SV40 promoter.
+    const known = new Set([
+      'J01749.1: TcR / TetA (Tn10)',
+      'OR992667.1: M13 ori / f1 ori',
+      'KJ634048.1: M13 ori / f1 ori',
+      'AF239250.1: SV40 ori / SV40 promoter',
+      'AF396260.1: f1 ori / M13 ori',
+      'KX151731.1: f1 ori / M13 ori',
+      'U89930.1: TetR (Tn10) / rtTA (Tet-On 3G)',
+    ]);
+    const found = result.nameConflicts.map((c) => `${c.accession}: ${c.part} / ${c.theirs}`);
+    expect(found.filter((c) => !known.has(c))).toEqual([]);
+  });
+
   it('gives every miss a cause', () => {
     const missed = PART_CLASSES.reduce((n, c) => n + result.total[c] - result.found[c], 0);
     expect(result.misses).toHaveLength(missed);

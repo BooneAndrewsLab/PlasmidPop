@@ -700,3 +700,54 @@ Left out, with the reason:
   of a part is a convention and is left as the record has it.
 - **AAV2 ITR (3)** stays missed: the vectors carry modified ITRs below the
   95% identity threshold.
+
+### A part under the wrong name: the CAG chicken β-actin promoter (#279)
+
+The part bundled as **CMV promoter** ("human cytomegalovirus
+immediate-early promoter without its enhancer", OR372646 383..658) was the
+chicken β-actin promoter. OR372646 (pCAG-loxP-nG-STOP-loxP-mC-P2A-rtTA)
+annotates 383..658 only as an unnamed `regulatory` promoter, between the CMV
+enhancer (1..380) and the chicken β-actin / rabbit β-globin intron
+(659..1667): the place of the β-actin promoter in a CAG promoter. The name
+was a guess from the enhancer next to it. Checked by local alignment
+(Biopython 1.88, conda `primer3` env; match 2, mismatch −3, gap −5/−2):
+
+- **X00182.1** (_Gallus gallus_ cytoplasmic β-actin gene) 268..543: 276 of
+  276 identical, no gap. The stretch ends one base before the cap site the
+  record annotates at 544 and holds its CAAT (455..459) and TATA (517..524)
+  boxes.
+- **GU299216.1** (pCAGGS-T7), inside the promoter it annotates
+  _chicken beta-actin_ (365..646): 276 identities over 368..645, no
+  mismatch, the record two G longer in a run of G after base 106. KX151731.1
+  (px330 DBH-p2a-FLPo) 284..561 is the same.
+- **U55762.1** (pEGFP-N1), whose CMV promoter pLannotate calls at 364..568:
+  nothing beyond a chance word (19 identities over 22 bases, elsewhere in the
+  record).
+
+So the part now reads from the primary record, **X00182 268..543**, as
+**chicken beta-actin promoter (CAG)**; its bases are unchanged. The
+`(CAG)` sets it apart from **chicken beta-actin promoter**, X00182 1..1542
+(promoter, 5′ exon and first intron), and says where it is met: the long
+part runs past the chimeric intron's junction and is not found on a CAG
+promoter at all, while on the native gene `keepBest` keeps only the long
+part (both are promoters over one stretch), so the two never give two calls
+on one locus. No CMV promoter without its enhancer was added: the CMV
+promoters pLannotate reports are already found as **CMV enhancer and
+promoter** (recall matches on bases), and a part of its own would want a
+record that annotates the 204 bp by itself. pLannotate's _chicken β-actin
+promoter_ now aliases to the CAG part, the one it stands for (278 bp in
+both corpus vectors).
+
+**Why the comparison missed it.** Recall counts a pLannotate hit as found
+when a hit of ours covers its bases, whatever either is called, so our
+"CMV promoter" on GU299216 and KX151731 counted as two finds. The comparison
+now also lists **name conflicts**: a hit of ours and one of pLannotate's that
+each share at least half of the longer, on one strand, and name two
+different parts we both have (pLannotate's name through the alias table).
+Half of the longer, not the shorter, so a part nested in a bigger one (the
+SV40 ori in the SV40 promoter) is not a conflict. Before the fix it listed
+the two CMV-promoter calls; the test now fails on any conflict outside a
+known list of seven: f1/M13 ori (4) and TetR/rtTA (1), variants of one
+element (#284); TcR / tetA on pBR322 (J01749), where pLannotate's tetA maps to
+our Tn10 TetA; and the SV40 ori / SV40 promoter in AF239250, where
+pLannotate's promoter is short enough to be mostly the origin.

@@ -132,11 +132,24 @@ export interface Extra {
   readonly similar: boolean;
 }
 
+/**
+ * A hit of ours and one of pLannotate's over the same bases (each shares at
+ * least half of the longer, on the same strand) that name two different
+ * parts we both have: we call it `part`, pLannotate calls it what we know as
+ * `theirs` (#279). Recall cannot see this, as it matches on bases alone.
+ */
+export interface NameConflict {
+  readonly accession: string;
+  readonly part: string;
+  readonly theirs: string;
+}
+
 export interface Comparison {
   readonly total: Record<PartClass, number>;
   readonly found: Record<PartClass, number>;
   readonly misses: readonly Miss[];
   readonly extras: readonly Extra[];
+  readonly nameConflicts: readonly NameConflict[];
   /** Hits of ours, all told. */
   readonly ours: number;
 }
@@ -209,7 +222,17 @@ export function compare(library: FeatureLibrary): Comparison {
   const found = zero();
   const misses: Miss[] = [];
   const extras: Extra[] = [];
+  const nameConflicts: NameConflict[] = [];
   let oursCount = 0;
+  const partByName = new Map(library.parts.map((p) => [normalize(p.name), p.name]));
+  // The parts of ours that stand for a name pLannotate uses somewhere in the corpus.
+  const counterparts = new Set<string>();
+  for (const v of vectors) {
+    for (const h of v.hits) {
+      const ours = partByName.get(normalize(ourNameFor(h.name)));
+      if (ours !== undefined) counterparts.add(ours);
+    }
+  }
   for (const v of vectors) {
     const topology: Topology = v.topology === 'circular' ? 'circular' : 'linear';
     const hits = detectFeatures(v.sequence, topology, library);
@@ -280,8 +303,22 @@ export function compare(library: FeatureLibrary): Comparison {
         similar: o.similar !== undefined,
       });
     }
+    for (const o of hits) {
+      const part = library.parts[o.part];
+      if (part === undefined || !counterparts.has(part.name)) continue;
+      const oursClass = classOfPart(part.category, part.type, part.name);
+      for (const h of complete) {
+        const theirs = partByName.get(normalize(ourNameFor(h.name)));
+        if (theirs === undefined || theirs === part.name) continue;
+        if (!sameStrand(oursClass, h.name, strandOf(h), o.strand)) continue;
+        const range = oracleRange(h, v.length, topology);
+        const longer = Math.max(range.end - range.start, o.range.end - o.range.start);
+        if (overlapLength(range, o.range, v.length, topology) < MIN_SHARED * longer) continue;
+        nameConflicts.push({ accession: v.accession, part: part.name, theirs });
+      }
+    }
   }
-  return { total, found, misses, extras, ours: oursCount };
+  return { total, found, misses, extras, nameConflicts, ours: oursCount };
 }
 
 /** The comparison as the markdown tables of item 59, for re-running it after a change. */
