@@ -234,18 +234,28 @@ export class PersistenceService {
     const ids = editorStore.getState().documents.map((d) => d.documentId);
     const openIds = new Set(ids);
     for (const id of this.autosaved.keys()) if (!openIds.has(id)) this.autosaved.delete(id);
+    if (urgent) {
+      // The page may be gone before the first await returns (#290): note the
+      // tabs now, and begin every write at once rather than one after another.
+      this.rememberSession();
+      await Promise.all(
+        ids.map(async (id) => {
+          const d = editorStore.documentState(id);
+          if (d !== null) await this.autosaveDocument(d, true);
+        }),
+      );
+      for (const { state } of [...this.closing.values()]) {
+        await this.autosaveDocument(state, true, true);
+      }
+      this.rememberSession();
+      return;
+    }
     // Each tab as it stands when its turn comes, not as it stood when the
     // save began: a tab closed meanwhile has been saved by its close (#280),
     // and an older state read here would overtake that save.
     for (const id of ids) {
       const d = editorStore.documentState(id);
       if (d !== null) await this.autosaveDocument(d, urgent);
-    }
-    // Leaving the page also writes the tabs whose close is still saving.
-    if (urgent) {
-      for (const { state } of [...this.closing.values()]) {
-        await this.autosaveDocument(state, true, true);
-      }
     }
     this.rememberSession();
   }
@@ -369,11 +379,16 @@ export class PersistenceService {
     let d = tab;
     claim(d.documentId, d);
     let id = d.documentId;
-    if (!(await this.repo.has(id))) {
+    // An urgent save does not look the id up (#290): the lookup is a round
+    // trip the page may not live to see, and a document this page has not
+    // written yet is written under its own id, even if that leaves a
+    // duplicate in the recent list for the next visit.
+    const isNew = urgent ? !this.autosaved.has(id) : !(await this.repo.has(id));
+    if (isNew) {
       const opened = d.history.present;
       // A new document nobody has typed into yet is not worth a recent-files entry.
       if (opened.length === 0 && opened.features.size === 0) return;
-      const merged = await this.mergeIntoIdentical(d, urgent, closed);
+      const merged = urgent ? null : await this.mergeIntoIdentical(d, urgent, closed);
       if (merged === 'gone') return;
       if (merged !== null) {
         d = merged;

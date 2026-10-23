@@ -211,6 +211,24 @@ describe('the autosave through the save worker (#272)', () => {
     expect(write).toHaveBeenCalledTimes(calls);
   });
 
+  it('writes a newly opened document on leaving without a lookup first, and notes the tabs at once (#290)', async () => {
+    const db = freshDb();
+    const { client } = cloneSaveClient({ auto: false });
+    const repo = new DocumentRepository(db);
+    const service = new PersistenceService(repo, client);
+    const has = vi.spyOn(repo, 'has');
+    const identical = vi.spyOn(repo, 'findIdentical');
+    const remember = vi.spyOn(service, 'rememberSession');
+    editorStore.openDocument(large(5), 'pLarge.gb');
+    const flush = service.autosave({ urgent: true });
+    // Before anything has been awaited: a reload now must still find the tab.
+    expect(remember).toHaveBeenCalled();
+    await flush;
+    expect(has).not.toHaveBeenCalled();
+    expect(identical).not.toHaveBeenCalled();
+    expect(await storedText(db, activeId())).toBe(writeGenBank(editorStore.document ?? small));
+  });
+
   it('keeps the last edit of a tab closed while its save waits on the worker', async () => {
     const db = freshDb();
     const { client, workers } = cloneSaveClient({ auto: false });
