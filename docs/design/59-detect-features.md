@@ -1191,3 +1191,39 @@ unchanged — pLannotate's `GST26_SCHJA` is a Swiss-Prot hit over exactly
 calls now equal rather than overrun. `plannotate.test.ts` checks the five
 extents, `library.test.ts` the part's location, length and protein, and that
 the thrombin site and pGEX MCS are no longer inside it.
+
+### Parts inside parts (#282)
+
+`keepBest` drops a hit inside a longer one of the same type that matches at
+least as well, and never one of another type. Over a stretch where one part
+of ours holds others, which labels survived therefore went by the parts'
+types rather than by what they are. Three cases, each settled by a mark in
+the library rather than by a general containment rule.
+
+**A composite keeps its components.** The **T7lac promoter** (Z32692
+1722..1765, a `promoter`) is the T7 promoter running straight into the lac
+operator, and both are parts of ours: **T7 promoter** (a `promoter`, its
+bases 1..17 of T7lac) and **lac operator** (a `protein_bind`, 22..42). On the
+corpus T7lac is called 12 times in 8 vectors, every one exact, and each call
+carried the lac operator and never the T7 promoter, which shares its type.
+The issue counted 9 operator calls in 12 vectors; the operator is in all 12
+calls, three of them (the second T7lac of PP098727.1, PP098729.1 and
+PP554855.1) running over the origin of the circle, so the operator lies at
+the start of the record and the T7lac call at its end. A composite now names
+its parts (`components` in `scripts/feature-db/`, `LibraryPart.components`),
+and a hit of it displaces no hit of those parts. The build fails unless each
+named part's bases lie inside the composite's. Only T7lac needs it: the other
+composites of the list (the CMV enhancer in _CMV enhancer and promoter_, the
+SV40 ori and enhancer in the SV40 promoter, the CAP site in the lac promoter,
+the GAL4 UAS in GAL1-10, the tet operators in TRE) hold parts of other types,
+which were offered with them already. A survey of every hit `keepBest`
+dropped for a longer hit of another part, over the 83 vectors, found no other
+component among them: the rest are variants (the pMB1 origins, the
+fluorescent proteins), the tandem FLAG, and the segments below.
+
+On the corpus the 12 T7 promoter calls are added (1,434 calls to 1,446), each
+at a place pLannotate calls its own `T7 promoter`, so extras stay at 253;
+recall, every class and both conflict lists are unchanged. `plannotate.test.ts`
+checks that every T7lac call holds both components, `library.test.ts` the
+part and the bases, `detect.test.ts` the rule on synthetic parts (both
+components kept; spared only from the composite that names them).

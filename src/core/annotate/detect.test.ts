@@ -387,6 +387,47 @@ describe('detectFeatures', () => {
       ]);
     });
 
+    it('keeps the components of a composite part beside it, whatever their type (#282)', () => {
+      // The T7lac promoter: the T7 promoter running into the lac operator.
+      const promoter = PART.slice(0, 100);
+      const operator = PART.slice(100, 160);
+      const lib = library(
+        { ...part('composite', PART, 'promoter'), components: ['promoter', 'operator'] },
+        part('promoter', promoter, 'promoter'),
+        part('operator', operator, 'protein_bind'),
+      );
+      expect(detectFeatures(PART, 'linear', lib).map((h) => lib.parts[h.part]?.name)).toEqual([
+        'composite',
+        'promoter',
+        'operator',
+      ]);
+      // Without the list the component of the composite's own type goes and
+      // the other stays, which is the inconsistency #282 is about.
+      const plain = library(
+        part('composite', PART, 'promoter'),
+        part('promoter', promoter, 'promoter'),
+        part('operator', operator, 'protein_bind'),
+      );
+      expect(detectFeatures(PART, 'linear', plain).map((h) => plain.parts[h.part]?.name)).toEqual([
+        'composite',
+        'operator',
+      ]);
+    });
+
+    it('spares a component only from the composite that names it (#282)', () => {
+      const promoter = PART.slice(0, 100);
+      const lib = library(
+        part('longer', PART, 'promoter'),
+        { ...part('composite', PART.slice(0, 200), 'promoter'), components: ['promoter'] },
+        part('promoter', promoter, 'promoter'),
+      );
+      // The longer part of the type, which names no components, still takes
+      // out the composite and the component inside it.
+      expect(detectFeatures(PART, 'linear', lib).map((h) => lib.parts[h.part]?.name)).toEqual([
+        'longer',
+      ]);
+    });
+
     describe('touching copies of a repeated tag (#284)', () => {
       const TAG = 'GATTACAAGGACGATGACGATAAG';
       const tag = (name = 'FLAG'): LibraryPart => ({

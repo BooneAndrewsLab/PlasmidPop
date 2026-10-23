@@ -88,6 +88,14 @@ export interface LibraryPart {
    */
   readonly fragment?: boolean;
   /**
+   * The parts this one is made of (#282): the T7lac promoter is the T7
+   * promoter running straight into the lac operator. A hit of it displaces no
+   * hit of those parts, so a composite is offered together with its
+   * components, whatever their types; without it the component that shares
+   * the composite's type went and the other stayed.
+   */
+  readonly components?: readonly string[];
+  /**
    * What a hit must show for the part's name to be used (#284): the part is
    * named for one variant of an element (trc, kanMX, luc+, avGFP), and the
    * name is a claim about the bases, not only about the place. Where a hit
@@ -199,6 +207,19 @@ function parseVariant(
   };
 }
 
+/** A list of part names, or undefined; anything else is a fault in the build. */
+function partNames(value: unknown, field: string): readonly string[] | undefined {
+  if (value === undefined) return undefined;
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    !value.every((v): v is string => typeof v === 'string' && v !== '')
+  ) {
+    throw new Error(`malformed ${field}`);
+  }
+  return value;
+}
+
 /**
  * The parts of one data file, checked field by field: a part that is not
  * what the matcher expects is a fault in the build, and throws.
@@ -248,8 +269,10 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       throw new Error(`Feature library (${source}): part ${i} has a malformed protein`);
     }
     let variant;
+    let components;
     try {
       variant = parseVariant(entry['variant'], sequence, protein);
+      components = partNames(entry['components'], 'components');
     } catch (e) {
       throw new Error(
         `Feature library (${source}): part ${i}: ${e instanceof Error ? e.message : String(e)}`,
@@ -269,6 +292,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       ...(protein === undefined ? {} : { protein }),
       ...(exact === true ? { exact } : {}),
       ...(fragment === true ? { fragment } : {}),
+      ...(components === undefined ? {} : { components }),
       ...(variant === undefined ? {} : { variant }),
     };
   });

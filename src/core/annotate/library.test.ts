@@ -61,6 +61,19 @@ describe('parseLibraryFile', () => {
     }
   });
 
+  it('reads components as a list of part names (#282)', () => {
+    const components = ['T7 promoter', 'lac operator'];
+    const [yes] = parseLibraryFile(file({ ...GOOD, components }), 'core');
+    expect(yes).toEqual({ ...GOOD, components, source: 'core' });
+    const [no] = parseLibraryFile(file(GOOD), 'core');
+    expect(no).not.toHaveProperty('components');
+    for (const bad of ['T7 promoter', [], [''], [3], null]) {
+      expect(() => parseLibraryFile(file({ ...GOOD, components: bad }), 'core')).toThrow(
+        'malformed components',
+      );
+    }
+  });
+
   it('throws on a file without a list of parts', () => {
     for (const json of ['null', '[]', '"parts"', '{}', '{"parts":{}}']) {
       expect(() => parseLibraryFile(json, 'core'), json).toThrow(
@@ -171,6 +184,21 @@ describe('the bundled library, as loaded', () => {
     const onGene = detectFeatures(gene, 'linear', lib).map((h) => lib.parts[h.part]?.name);
     expect(onGene).toContain('chicken beta-actin promoter');
     expect(onGene).not.toContain('chicken beta-actin promoter (CAG)');
+  });
+
+  it('offers the T7lac promoter with both of its components (#282)', async () => {
+    const lib = await loadFeatureLibrary();
+    const part = (name: string) => lib.parts.find((p) => p.name === name);
+    const t7lac = part('T7lac promoter');
+    expect(t7lac?.components).toEqual(['T7 promoter', 'lac operator']);
+    // Each component's bases are in the composite's, where the note says.
+    const seq = t7lac?.sequence ?? '';
+    expect(seq.indexOf(part('T7 promoter')?.sequence ?? '-')).toBe(0);
+    expect(seq.indexOf(part('lac operator')?.sequence ?? '-')).toBe(21);
+    const names = detectFeatures(seq, 'linear', lib)
+      .filter((h) => lib.parts[h.part]?.category !== 'primer')
+      .map((h) => lib.parts[h.part]?.name);
+    expect(names).toEqual(['T7lac promoter', 'T7 promoter', 'lac operator']);
   });
 
   it('calls lacIq only on the Iq base, and one lacI promoter part per locus (#283)', async () => {

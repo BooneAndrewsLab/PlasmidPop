@@ -203,7 +203,9 @@ What is found:
   by one base, `lacZ` rather than the `lacZα` inside it. Parts of different
   types are offered together, so a primer site inside a promoter is two
   features, and so are parts on opposite strands (the SV40 early poly(A)
-  signal is the complement of the late one, and both are offered).
+  signal is the complement of the late one, and both are offered). A part
+  made of other parts is offered with them: the _T7lac promoter_ comes with
+  the _T7 promoter_ and the _lac operator_ it is made of.
 - Two variants of one protein that differ in length by only a few bases (EGFP
   and ECFP) are one locus: the one that matches better is offered, even if
   it is the slightly shorter.

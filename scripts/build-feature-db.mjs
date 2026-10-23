@@ -295,6 +295,9 @@ function translate(dna) {
  * @property {boolean} [exact] report the part only when every base matches (#94 follow-up)
  * @property {boolean} [fragment] the part is a piece of a longer part of the same type, so it is
  *   reported only where no longer hit of that type covers all of it (#286)
+ * @property {string[]} [components] the parts this one is made of (#282): a hit of it displaces
+ *   no hit of theirs, so a composite is offered with its components. The build checks each is a
+ *   part whose bases lie inside this one's
  * @property {{ family?: string, protein?: string, bases?: string, codons?: boolean }} [variant]
  *   what a hit must show for this name, which is one variant's, to be used, and what the
  *   element itself is called (#284). `protein` is `exact` or positions of the part's own
@@ -316,6 +319,7 @@ function translate(dna) {
  * @property {string} [note]
  * @property {boolean} [exact]
  * @property {boolean} [fragment]
+ * @property {string[]} [components]
  * @property {object} [variant]
  */
 
@@ -516,6 +520,7 @@ async function buildCorePart(spec) {
     ...(spec.note === undefined ? {} : { note: spec.note }),
     ...(spec.exact === true ? { exact: true } : {}),
     ...(spec.fragment === true ? { fragment: true } : {}),
+    ...(spec.components === undefined ? {} : { components: spec.components }),
     ...(spec.variant === undefined
       ? {}
       : {
@@ -671,6 +676,27 @@ function checkUnique(parts) {
   return problems;
 }
 
+/**
+ * Parts that name other parts — the components of a composite (#282) — name
+ * parts of the list whose bases lie inside their own, on the same strand, so
+ * the relation the name states is one the bases show.
+ * @param {readonly BuiltPart[]} parts
+ */
+function checkRelations(parts) {
+  /** @type {string[]} */
+  const problems = [];
+  const byName = new Map(parts.map((p) => [p.name, p]));
+  for (const p of parts) {
+    for (const name of p.components ?? []) {
+      const other = byName.get(name);
+      if (other === undefined) problems.push(`  ${p.name}: no component ${name}`);
+      else if (other.sequence === '' || !p.sequence.includes(other.sequence))
+        problems.push(`  ${p.name}: the bases of ${name} are not inside it`);
+    }
+  }
+  return problems;
+}
+
 /** @param {string} file */
 function readSpec(file) {
   /** @type {unknown} */
@@ -686,7 +712,12 @@ const fpSpecs = /** @type {FpSpec[]} */ (readSpec('fpbase-proteins.json'));
 
 const core = await buildAll(coreSpecs, buildCorePart, (s) => s.name);
 const fps = await buildAll(fpSpecs, buildFp, (s) => s.slug);
-const problems = [...core.failed, ...fps.failed, ...checkUnique([...core.out, ...fps.out])];
+const problems = [
+  ...core.failed,
+  ...fps.failed,
+  ...checkUnique([...core.out, ...fps.out]),
+  ...checkRelations(core.out),
+];
 if (problems.length > 0) {
   console.error(`Feature database not written:\n${problems.join('\n')}`);
   process.exit(1);

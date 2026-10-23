@@ -186,6 +186,39 @@ describe('Detect features against pLannotate', () => {
     }
   }, 300_000);
 
+  it('offers both components inside every T7lac promoter call (#282)', async () => {
+    // T7lac is the T7 promoter running into the lac operator. Its type is a
+    // promoter's, so it used to take out the T7 promoter and leave the
+    // operator; both are its components now, and both are offered with it.
+    const lib = await loadFeatureLibrary();
+    let calls = 0;
+    const accessions = new Set<string>();
+    for (const v of vectors) {
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const hits = detectFeatures(v.sequence, topology, lib);
+      for (const h of hits) {
+        if (lib.parts[h.part]?.name !== 'T7lac promoter') continue;
+        calls++;
+        accessions.add(v.accession);
+        const inside = hits
+          .filter(
+            (k) =>
+              k !== h &&
+              k.strand === h.strand &&
+              overlapLength(k.range, h.range, v.length, topology) >= k.range.end - k.range.start,
+          )
+          .map((k) => lib.parts[k.part]?.name)
+          .filter((name) => name !== 'T7 primer')
+          .sort();
+        expect(inside, `${v.accession} ${h.range.start + 1}`).toEqual(
+          ['T7 promoter', 'lac operator'].sort(),
+        );
+      }
+    }
+    // Three of them run over the origin of a pETDuet-type circle.
+    expect([calls, accessions.size]).toEqual([12, 8]);
+  }, 300_000);
+
   it('calls one filamentous-phage origin per locus (#284)', async () => {
     const lib = await loadFeatureLibrary();
     // The f1 and M13 parts used to be called on top of each other wherever

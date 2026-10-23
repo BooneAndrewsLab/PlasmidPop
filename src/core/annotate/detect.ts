@@ -838,6 +838,11 @@ const NEAR_LENGTH_SHARE = 0.02;
  * least as well": it is a known piece of a longer part of its type (the R-U5
  * end of an HIV-1 LTR), so a longer hit of that type that holds all of it
  * displaces it whatever either matched (#286).
+ *
+ * A composite part displaces none of the `components` it names (#282): the
+ * T7lac promoter is offered with the T7 promoter and the lac operator in it,
+ * where its type alone would have taken out the T7 promoter and left the
+ * operator.
  */
 function keepBest(
   hits: readonly FeatureHit[],
@@ -870,9 +875,15 @@ function keepBest(
     const type = library.parts[h.part]?.type;
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const fragment = library.parts[h.part]?.fragment === true;
+    // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
+    const name = library.parts[h.part]?.name;
     const displaced = kept.some((k) => {
       const shared = overlapLength(k.range, h.range, length, topology);
       if (k.part === h.part) return shared > 0;
+      // A component of a composite part is a feature of its own beside it (#282).
+      // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
+      if (name !== undefined && library.parts[k.part]?.components?.includes(name) === true)
+        return false;
       // A part that is a piece of a longer one of its type (the R-U5 end of
       // an HIV-1 LTR) is not offered inside a longer hit of that type on its
       // strand, however well the piece itself matches (#286).
