@@ -125,6 +125,13 @@ What is found:
   box, so it is only found where every base matches, whatever **Match at
   least** says. An ambiguity code where it has a base, a missing base or a
   cut-off end rules it out.
+- **lacI and lacIq promoters**: the 78 bp upstream of lacI is offered as
+  _lacI promoter_, or as _lacIq promoter_ where it carries the one base
+  (a T in its -35 box) that makes lacIq. Where that base is anything else,
+  unread or cut off, it is the wild-type _lacI promoter_. The last 35 bp,
+  next to the start codon, are offered as _lacI promoter (3' end)_ where
+  the whole region is not found, and beside it where a base before them
+  differs.
 - **Bases inserted or deleted**: a copy of a part with a small indel — a
   frameshift, a filled-in site — is found too, up to 8 bases inserted or
   deleted in all. Each one counts against **Match at least** as a mismatch

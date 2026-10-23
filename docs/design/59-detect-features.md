@@ -313,8 +313,10 @@ say `"exact": true` (build script → data JSON → `LibraryPart.exact` →
   pair of few-base variants. The cross hits it showed are one part inside
   another (CMV enhancer in CMV enhancer and promoter, 1 mismatch; SV40 ori
   in the SV40 promoter, 1 mismatch) or a primer/operator inside a longer part,
-  none of them a variant of the same sequence. There is no lacI promoter part,
-  so lacIq has no wild-type neighbour to be mistaken for.
+  none of them a variant of the same sequence. (That survey missed that the
+  part then bundled as lacIq was the end of the wild-type lacI promoter too;
+  the lacI and lacIq promoters are now one base apart and told apart by
+  `keepBest` rather than by `exact`, see #283 below.)
 
 ## Indels (#94, 1.10)
 
@@ -751,3 +753,53 @@ known list of seven: f1/M13 ori (4) and TetR/rtTA (1), variants of one
 element (#284); TcR / tetA on pBR322 (J01749), where pLannotate's tetA maps to
 our Tn10 TetA; and the SV40 ori / SV40 promoter in AF239250, where
 pLannotate's promoter is short enough to be mostly the origin.
+
+### lacI and lacIq promoters, one base apart (#283)
+
+The part bundled as **lacIq promoter** (U13853 3283..3317, "the 35 bp
+upstream of the lacIq CDS") carried no Iq base. Read from the records by
+efetch (J01636.1, the _E. coli_ lac operon, whose lacI CDS starts at 79
+with GTG; U13853.1, pGEX-4T-1, whose lacIq CDS starts at 3318), the 78 bp
+before each start codon are:
+
+    J01636.1 1..78       GACACCATCGAATGGCGCAAAACCTTTCGCGGTATGGCATGATAGCGCCCGGAAGAGAGTCAATTCAGGGTGGTGAAT
+    U13853.1 3240..3317  GACACCATCGAATGGTGCAAAACCTTTCGCGGTATGGCATGATAGCGCCCGGAAGAGAGTCAATTCAGGGTGGTGAAT
+
+They differ at position 16 alone, C to T in the -35 box (`GCGCAA` to
+`GTGCAA`), the lacIq change. The old part is positions 44..78, the same in
+both and found once in J01636, so it matched every lacI promoter and named
+it lacIq. KX782328.1 (pJM101) has the U13853 region (C to T at 16, nothing
+else) and annotates its own 36 bp `lacIq promoter` at complement
+(3161..3196), positions 15..50, around the changed base.
+
+Now three parts, all promoters, all NCBI bases:
+
+- **lacI promoter**, J01636 1..78, the wild type;
+- **lacIq promoter**, U13853 3240..3317;
+- **lacI promoter (3' end)**, J01636 44..78, the old 35 bp under the name
+  of what it is (it needs a name of its own, as the 78 bp take
+  _lacI promoter_, the name pLannotate uses for them).
+
+`exact` is not used. On a wild-type region lacIq fits 77 of 78 and the wild
+type 78, and the other way round on an Iq region, so `keepBest` keeps the
+one that fits all 78 and drops the other (same type, same bases, fits no
+better); the 35 bp lie inside either and go too. Where base 16 is neither C
+nor T, or an `N`, or cut off by a linear end, both 78 bp parts fit equally,
+and the tie goes by library order: the wild type is listed first, so the
+region is lacIq only where the T is read. An `exact` lacIq would have lost
+the Iq call to any other change in the 78 bp. The 3' end is called alone
+where the whole region is not found, and, as keepBest keeps any part that
+fits better than the longer one around it, beside the lacI promoter where
+a base in 1..43 differs (an `N` at 16, say). No corpus vector shows that.
+
+On the pLannotate corpus our calls now match pLannotate's, part and bases,
+on all 13 vectors where it calls either promoter: _lacI promoter_ on
+KJ782405.1, MG973081.1, PP098727.1, PP098729.1, PP554855.1, PQ310419.1 and
+OR992664.1 (wild type at 16, checked base by base), _lacIq promoter_ on
+U13872.1, M22744.1, U13850.1, U13852.1, U78872.1 and U84572.1 (T at 16), 78
+bp each and one call per locus. Before, all 13 got the 35 bp lacIq. On
+KX782328.1, not in the corpus, the one call is _lacIq promoter_ at
+complement(3133..3210). The name-conflict check had not caught it, since
+35 bp is less than half of pLannotate's 78; pLannotate's two names are now
+ours, with no alias. `plannotate.test.ts` checks the 13, and
+`library.test.ts` the tie cases.
