@@ -698,8 +698,10 @@ Left out, with the reason:
 - **attB (2), 3'/5' LTR, MESV and MMLV Ψ, gag/pol fragments, CMV IE94,
   hPGK, enhanced 35S, iFP1.4, hrGFP, β-globin intron**: no record with a
   clear annotation, or an engineered variant only a vendor list defines.
-- **Strand differs** for Tn7L, Tn7R and the CaMV poly(A) signal: orientation
-  of a part is a convention and is left as the record has it.
+- **Strand differs** for Tn7L and Tn7R: the orientation of a transposon end
+  is a convention and is left as the record has it. (The CaMV poly(A)
+  signal, listed here too at first, was a part stored antisense; see #287
+  below.)
 - **AAV2 ITR (3)** stays missed: the vectors carry modified ITRs below the
   95% identity threshold.
 
@@ -931,3 +933,64 @@ call anywhere in the corpus, `library.test.ts` the names and the flag, and
 `detect.test.ts` the rule on synthetic parts (dropped inside a longer hit of
 its type that matches worse; kept where none covers it, and where the
 longer hit is of another type or on the other strand).
+
+### A part stored antisense: the CaMV poly(A) signal (#287)
+
+The part bundled as **CaMV poly(A) signal** was AF234296 6649..6857 as the
+record writes it. Read from AF234296.1 by efetch: that `misc_feature` ("CaMV
+3'UTR (polyA signal)") has no strand, the hptII gene it ends is
+`complement(6873..7898)` and the 35S promoter that drives it
+`complement(7934..8714)`. The 209 bases hold `AATAAA` on the reverse strand
+alone (at 150 of the reverse complement, none on the forward), so every call
+pointed away from the gene it terminates. Other pCAMBIA-type records that
+give the element a strand put it on the complement, after the hptII gene
+read the same way: LC090756.2 (9232..9024 after hptII 10274..9249) and
+LC057478.1 (5175..4972 after hptII 6222..5197), from their feature tables.
+OR797711.1 (pCAMBIA 1301-GFP, in the corpus) annotates its 8727..8901 with no
+strand, after its reverse hph CDS (9966..8941), and pLannotate calls it on the
+reverse strand there, as it does the fragment on KP171163.1.
+
+The spec now reads `complement(6649..6857)`, so the build takes the reverse
+complement from the record as for any other complement location; the bases
+are the same 209 the other way round. On the corpus OR797711.1 gets it at
+8717..8925 on the reverse strand. Recall rises by that one hit, terminators
+to 83 of 92 (90.2%) and all parts to 869 of 987 (88.0%), the baselines with
+them; the strand-differs misses are Tn7L and Tn7R alone, and extras fall to
+255 of the same 1,443 hits.
+
+**Why the comparison missed it.** It counted the call a `strand differs`
+miss and the 1.14 triage took that for a convention (above). The comparison
+now also lists **strand conflicts**: a hit of ours and one of pLannotate's
+over the same bases (each shares half of the longer) that name the same part
+on opposite strands, fragments of pLannotate's included, origins and att sites
+left out as recall leaves them out. Before the fix it listed this call and
+the two Tn7 ends of MK161519.1; the test fails on anything outside those two.
+
+**The audit.** Every call of ours (origins left out) was set against every
+pLannotate hit on the same bases on the opposite strand, whatever either is
+named, on the 83 vectors. 27 pairs before the fix, of which:
+
+- _CaMV poly(A) signal (1):_ this fix.
+- _Tn7R, Tn7L (1 each, MK161519.1):_ AY599231 annotates both ends with no
+  strand, and reads Tn7R before Tn7L; MK161519.1 has them in that order on
+  the forward strand too, where SnapGene draws both reverse. A transposon
+  end is not read in one direction the way a terminator is, so these are
+  left as the record has them and listed as known.
+- _SV40 late poly(A) signal against pLannotate's SV40 poly(A) signal (15):_
+  not a strand fault. Our late part (U47295 1772..1993, after the forward
+  luc+ CDS 88..1740 in pGL3-Basic) carries `AATAAA` forward at 120 and
+  twice on the other strand, where its reverse complement holds our early
+  part (LT727011 3122..3196) whole. Where pLannotate
+  calls the signal, our 75 bp early part is called on its strand too (U55762.1
+  1520..1595 forward, with pLannotate's 1520..1642), and the late part on the
+  other; that is #233's point. Whether both should be offered is a question of
+  overlapping features, not of a stored strand.
+- _pUC19 MCS against pLannotate's MCS (7):_ a polylinker has no direction;
+  pLannotate's MCS is not a part of ours, so it is not a strand conflict.
+- _M13 fwd against a lacZα fragment, KS primer against an MCS fragment (1
+  each):_ different features on overlapping bases.
+
+No other bundled part is called against pLannotate's strand on the corpus.
+Parts absent from it, or never called there by both, are not checked by this.
+`library.test.ts` checks the part's location, length and the strand of its
+hexamer; `plannotate.test.ts` the OR797711.1 call and the strand-conflict list.

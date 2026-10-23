@@ -102,7 +102,9 @@ What is found:
   and terminator of _Pichia_, the EM7 and hSyn promoters, the AAV2 inverted
   terminal repeat, the HIV-1 RRE, the pCI chimeric intron and the hGH
   poly(A). Where a vector carries a shortened or altered version of one of
-  these, it is offered only if enough of it is left to match.
+  these, it is offered only if enough of it is left to match. The CaMV
+  poly(A) signal is offered on the strand of the gene it ends (in pCAMBIA
+  vectors, the hygromycin gene), the strand its AATAAA reads on.
 - **The pieces of a CAG promoter** are offered one by one: the CMV
   enhancer, the _chicken beta-actin promoter (CAG)_ and the CAG intron. A
   CMV promoter is offered with its enhancer, as _CMV enhancer and
