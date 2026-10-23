@@ -295,6 +295,12 @@ function translate(dna) {
  * @property {boolean} [exact] report the part only when every base matches (#94 follow-up)
  * @property {boolean} [fragment] the part is a piece of a longer part of the same type, so it is
  *   reported only where no longer hit of that type covers all of it (#286)
+ * @property {{ family?: string, protein?: string, bases?: string, codons?: boolean }} [variant]
+ *   what a hit must show for this name, which is one variant's, to be used, and what the
+ *   element itself is called (#284). `protein` is `exact` or positions of the part's own
+ *   protein (`71,95,101,102`, `1..8`), `bases` a stretch of its own bases (`176..204`),
+ *   `codons` that the variant is in the codons alone. Nothing is typed in: the residues and
+ *   bases a hit must carry are the part's own, and the build checks the positions are there.
  * @property {boolean} [allowPartial] a partial (`<`/`>`) record location is fine
  * @property {boolean} [alsoProtein] look for it in the translation too (#93): the peptide is
  *   what the part's own bases code for, so nothing is typed in
@@ -310,6 +316,7 @@ function translate(dna) {
  * @property {string} [note]
  * @property {boolean} [exact]
  * @property {boolean} [fragment]
+ * @property {object} [variant]
  */
 
 /**
@@ -410,6 +417,40 @@ async function buildPeptide(spec) {
 }
 
 /**
+ * A part's `variant` (#284), checked against the part's own data: the
+ * positions must be there, so a mark typed for a part that has no such
+ * residue fails the build rather than shipping a name that never applies.
+ * @param {string} name
+ * @param {NonNullable<CorePartSpec['variant']>} variant
+ * @param {string} sequence
+ * @param {string | undefined} protein
+ */
+function checkVariant(name, variant, sequence, protein) {
+  /** @param {string} spec @param {number} limit */
+  const positions = (spec, limit) => {
+    if (spec === 'exact') return [];
+    return spec.split(',').map((piece) => {
+      const m = /^\s*(\d+)(?:\.\.(\d+))?\s*$/.exec(piece);
+      if (m?.[1] === undefined) throw new Error(`${name}: malformed variant positions ${piece}`);
+      const to = Number(m[2] ?? m[1]);
+      if (Number(m[1]) < 1 || to < Number(m[1]) || to > limit) {
+        throw new Error(`${name}: variant positions ${piece} outside 1..${limit}`);
+      }
+      return to;
+    });
+  };
+  if (variant.protein !== undefined) {
+    if (protein === undefined) throw new Error(`${name}: a variant in residues of no protein`);
+    positions(variant.protein, protein.length);
+  }
+  if (variant.bases !== undefined) positions(variant.bases, sequence.length);
+  if (variant.protein === undefined && variant.bases === undefined && variant.codons !== true) {
+    throw new Error(`${name}: a variant that says nothing a hit must show`);
+  }
+  return variant;
+}
+
+/**
  * @param {CorePartSpec} spec
  * @returns {Promise<BuiltPart>}
  */
@@ -470,6 +511,9 @@ async function buildCorePart(spec) {
     ...(spec.note === undefined ? {} : { note: spec.note }),
     ...(spec.exact === true ? { exact: true } : {}),
     ...(spec.fragment === true ? { fragment: true } : {}),
+    ...(spec.variant === undefined
+      ? {}
+      : { variant: checkVariant(spec.name, spec.variant, sequence, protein) }),
   };
 }
 
@@ -477,6 +521,8 @@ async function buildCorePart(spec) {
  * @typedef {object} FpSpec
  * @property {string} slug
  * @property {string} [accession] a GenBank protein accession, when FPbase names none or the wrong one
+ * @property {{ family?: string, protein?: string, bases?: string, codons?: boolean }} [variant]
+ *   as a core part's (#284): what a hit must show for this protein's name to be used
  *
  * @typedef {object} BuiltFp
  * @property {string} name
@@ -508,6 +554,9 @@ async function buildFp(spec) {
     fpbase: `https://www.fpbase.org/protein/${fp.slug}/`,
     ...(fp.doi === null || fp.doi === '' ? {} : { doi: fp.doi }),
     ...(emMax === undefined ? {} : { emMax }),
+    ...(spec.variant === undefined
+      ? {}
+      : { variant: checkVariant(fp.name, spec.variant, '', expected) }),
   };
   const proteinAcc = spec.accession ?? fp.genbank;
   // The DNA is a bonus: a protein whose coding sequence cannot be found or

@@ -8,6 +8,7 @@ import {
 import { type Topology } from '../range';
 import { type FeatureHit, overlapLength } from './detect';
 import { type LibraryPart } from './library';
+import { nameOfHit } from './variant';
 
 /**
  * Whether a document already has the feature a hit found: one on the same
@@ -17,13 +18,13 @@ import { type LibraryPart } from './library';
  */
 export function duplicatesExisting(
   hit: FeatureHit,
-  part: Pick<LibraryPart, 'name' | 'type'>,
+  part: Pick<LibraryPart, 'name' | 'type' | 'variant'>,
   existing: Iterable<Feature>,
   length: number,
   topology: Topology,
 ): boolean {
   const size = hit.range.end - hit.range.start;
-  const name = part.name.toLowerCase();
+  const name = nameOfHit(hit, part).toLowerCase();
   for (const f of existing) {
     if (f.strand !== hit.strand) continue;
     if (f.type !== part.type && f.name.toLowerCase() !== name) continue;
@@ -126,10 +127,19 @@ export function featureFromHit(
   hit: FeatureHit,
   part: Omit<LibraryPart, 'sequence' | 'protein'>,
 ): Feature {
-  // A homologue is never named as the part itself (#219).
-  const name = hit.similar === undefined ? part.name : `similar to ${part.name}`;
+  // A homologue is never named as the part itself (#219), and a hit that
+  // does not show what names its part's variant is named for the element
+  // (#284), with the part's own note left off, as that note is the variant's.
+  const name = nameOfHit(hit, part);
+  const named = hit.family !== true;
   const qualifiers: Qualifier[] = [{ name: 'label', value: name }];
-  if (part.note !== undefined) qualifiers.push({ name: 'note', value: part.note });
+  if (named && part.note !== undefined) qualifiers.push({ name: 'note', value: part.note });
+  if (!named) {
+    qualifiers.push({
+      name: 'note',
+      value: `Named ${name} rather than ${part.name}: the match does not show what tells that variant apart`,
+    });
+  }
   const via = part.fpbase === undefined ? '' : ` via FPbase ${part.fpbase}`;
   qualifiers.push({
     name: 'note',

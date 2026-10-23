@@ -22,6 +22,30 @@ import { translate } from '../analysis/codons';
  */
 export type LibrarySource = 'core' | 'fpbase' | 'mine';
 
+/**
+ * What names a part for one variant of an element rather than for the
+ * element (#284), and what to call a hit that does not show it.
+ *
+ * - `protein`: residues of the part's own protein a hit must carry, 1-based,
+ *   or `'exact'` for all of them (the variant is the whole protein, as for a
+ *   wild-type fluorescent protein a mutant would otherwise be called).
+ *   Residues are placed by counting, so a hit with an indel, one cut off by a
+ *   linear end, and a homologue (`similar`) show nothing.
+ * - `bases`: a stretch of the part's own bases, 1-based and inclusive, that a
+ *   hit must carry base for base — looked for in what was matched, so a base
+ *   missing from it (the trc promoter's -35/-10 spacer in a tac promoter)
+ *   shows even where the matcher read the copy with an indel.
+ * - `codons`: the variant is in the codons alone (luc+ against luc2), so a
+ *   hit made in the translation can never show it.
+ */
+export interface PartVariant {
+  /** The element's own name, used where a hit does not show the variant. */
+  readonly family?: string;
+  readonly protein?: 'exact' | readonly number[];
+  readonly bases?: { readonly start: number; readonly end: number };
+  readonly codons?: boolean;
+}
+
 export interface LibraryPart {
   readonly name: string;
   /** GenBank feature key a hit is annotated as. */
@@ -59,6 +83,14 @@ export interface LibraryPart {
    * exactly stays beside the longer part that has a mismatch outside it.
    */
   readonly fragment?: boolean;
+  /**
+   * What a hit must show for the part's name to be used (#284): the part is
+   * named for one variant of an element (trc, kanMX, luc+, avGFP), and the
+   * name is a claim about the bases, not only about the place. Where a hit
+   * does not show it, the hit is reported under `family`, the name of the
+   * element itself, or not reported at all where the part names no family.
+   */
+  readonly variant?: PartVariant;
   readonly source: LibrarySource;
   /** FPbase page of a fluorescent protein. */
   readonly fpbase?: string;
@@ -101,6 +133,67 @@ export function codingProtein(type: string, sequence: string): string | undefine
 
 /** Shorter than the matcher's protein seed, a protein is no part. */
 const MIN_CODING_RESIDUES = 8;
+
+/**
+ * The positions a `variant`'s `protein` names: `exact`, or a list of 1-based
+ * positions and `a..b` ranges, as `71,95,101,102` or `1..8` (#284).
+ */
+function parsePositions(spec: string, limit: number): 'exact' | number[] {
+  if (spec === 'exact') return 'exact';
+  const out: number[] = [];
+  for (const piece of spec.split(',')) {
+    const m = /^\s*(\d+)(?:\.\.(\d+))?\s*$/.exec(piece);
+    if (m?.[1] === undefined) throw new Error(`malformed positions ${JSON.stringify(spec)}`);
+    const from = Number(m[1]);
+    const to = m[2] === undefined ? from : Number(m[2]);
+    if (from < 1 || to < from || to > limit) throw new Error(`positions ${piece} out of range`);
+    for (let p = from; p <= to; p++) out.push(p);
+  }
+  if (out.length === 0) throw new Error('no positions');
+  return out;
+}
+
+/** A part's `variant` (#284), checked against the part's own bases and protein. */
+function parseVariant(
+  value: unknown,
+  sequence: string,
+  protein: string | undefined,
+): PartVariant | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) throw new Error('variant is not an object');
+  const family = text(value, 'family');
+  const codons = value['codons'];
+  if (codons !== undefined && typeof codons !== 'boolean') throw new Error('malformed codons');
+  const proteinSpec = text(value, 'protein');
+  const basesSpec = text(value, 'bases');
+  if (proteinSpec !== undefined && (protein === undefined || protein === '')) {
+    throw new Error('variant names residues of a part with no protein');
+  }
+  const residues =
+    proteinSpec === undefined ? undefined : parsePositions(proteinSpec, protein?.length ?? 0);
+  let bases;
+  if (basesSpec !== undefined) {
+    const positions = parsePositions(basesSpec, sequence.length);
+    if (positions === 'exact') bases = { start: 1, end: sequence.length };
+    else {
+      const start = positions[0] ?? 0;
+      const end = positions[positions.length - 1] ?? 0;
+      if (positions.length !== end - start + 1)
+        throw new Error('variant bases are not one stretch');
+      bases = { start, end };
+    }
+    if (bases.end <= bases.start) throw new Error('variant bases are a single base');
+  }
+  if (residues === undefined && bases === undefined && codons !== true) {
+    throw new Error('variant says nothing a hit must show');
+  }
+  return {
+    ...(family === undefined ? {} : { family }),
+    ...(residues === undefined ? {} : { protein: residues }),
+    ...(bases === undefined ? {} : { bases }),
+    ...(codons === true ? { codons } : {}),
+  };
+}
 
 /**
  * The parts of one data file, checked field by field: a part that is not
@@ -150,6 +243,15 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
     if (protein !== undefined && !/^[A-Z]+$/.test(protein)) {
       throw new Error(`Feature library (${source}): part ${i} has a malformed protein`);
     }
+    let variant;
+    try {
+      variant = parseVariant(entry['variant'], sequence, protein);
+    } catch (e) {
+      throw new Error(
+        `Feature library (${source}): part ${i}: ${e instanceof Error ? e.message : String(e)}`,
+        { cause: e },
+      );
+    }
     return {
       name,
       type,
@@ -163,6 +265,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       ...(protein === undefined ? {} : { protein }),
       ...(exact === true ? { exact } : {}),
       ...(fragment === true ? { fragment } : {}),
+      ...(variant === undefined ? {} : { variant }),
     };
   });
 }

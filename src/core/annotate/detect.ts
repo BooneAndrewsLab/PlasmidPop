@@ -5,6 +5,7 @@ import { type FeatureLibrary } from './library';
 import { detectHomologues } from './homologue';
 import { detectProteinFeatures } from './protein';
 import { withoutAntisense } from './translated';
+import { withVariantNames } from './variant';
 
 /**
  * Finding the library's parts in a sequence (item 59): on both strands,
@@ -138,6 +139,13 @@ export interface FeatureHit {
    */
   readonly insertions?: number;
   readonly deletions?: number;
+  /**
+   * That the hit does not show what names its part's variant (#284), so it
+   * is reported under the name of the element itself (`variant.family`): a
+   * GFP that is not the wild type, a luciferase found through its protein,
+   * which cannot tell luc+ from luc2.
+   */
+  readonly family?: boolean;
 }
 
 /**
@@ -448,12 +456,20 @@ export function detectFeatures(
             topology,
           ),
         ];
-  const kept = keepBest(withProtein, library, n, topology);
+  // A part named for one variant of an element keeps its name only where the
+  // hit shows what the name claims (#284).
+  const kept = keepBest(
+    withVariantNames(withProtein, sequence, topology, library),
+    library,
+    n,
+    topology,
+  );
   if (options.protein === false || options.homologues === false) return kept;
-  const homologues = withoutAntisense(
-    detectHomologues(sequence, topology, library),
+  const homologues = withVariantNames(
+    withoutAntisense(detectHomologues(sequence, topology, library), sequence, topology),
     sequence,
     topology,
+    library,
   );
   return withHomologues(kept, homologues, library, n, topology);
 }
