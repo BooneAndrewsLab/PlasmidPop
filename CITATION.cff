@@ -16,8 +16,8 @@ identifiers:
     description: 'All versions of PlasmidPop (concept DOI)'
 license: MIT
 repository-code: 'https://github.com/BooneAndrewsLab/PlasmidPop'
-version: 1.17.2
-date-released: 2026-10-22
+version: 1.17.3
+date-released: 2026-10-23
 keywords:
   - plasmid
   - DNA
