@@ -1537,3 +1537,31 @@ cutters) and no site object is made; with the Enzymes tab open, 308, 322 and
 324 objects at 300 kb, 1 Mb and 4.64 Mb, the first twelve sites of each row
 the list has drawn, against 446,000 at 4.64 Mb before. A ticked enzyme makes
 its own sites' objects when the views first pick it.
+
+## Detect features on repeat-rich input (#288, 2026-10-23)
+
+Detection was quadratic in the number of hits: every reduction step asked
+all the hits so far about each new one. A random megabase has few hits, so
+the 1 Mb test above never showed it; a tandem repeat has thousands. Profiled
+by timing the stages of `detectFeatures` on a tandem of a 2.6 kb unit (forty
+short parts, alternating strands), 400 kb: `keepBest` 4.1 s of 5.6 s,
+`withRepeats` 0.6 s, the protein search's duplicate check and the rest the
+remainder.
+
+Each became a lookup. `keepBest`, `withHomologues`, `substitutionsFirst`
+and `fewestEdits` ask an `OverlapIndex` (`overlapIndex.ts`, 512-base buckets)
+for the hits near the one in hand, which is every hit that could overlap it;
+`withRepeats` finds the next copy of a tag by the base a copy starts at; the
+protein search keeps the starts found per part in a set. The hits reported
+are unchanged (the corpus tests and the pLannotate oracle pass untouched).
+
+Measured (Node 24, circular, whole `detectFeatures`, `detect.test.ts` perf):
+
+| Input                                 | Hits   | Before  | After  |
+| ------------------------------------- | ------ | ------- | ------ |
+| 100 kb tandem of the 2.6 kb unit      | 1,521  | 0.74 s  | 0.39 s |
+| 400 kb                                | 6,006  | 5.8 s   | 0.72 s |
+| 1 Mb                                  | 15,015 | (>40 s) | 1.0 s  |
+| 1 Mb of a 942 bp unit ending in 6×His | 9,260  | —       | 1.0 s  |
+
+The "before" for 1 Mb is extrapolated from the doubling, not run.

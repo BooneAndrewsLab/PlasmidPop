@@ -251,6 +251,9 @@ export function detectProteinFeatures(
   for (let i = 0; i < extra; i++) bases[n + i] = bases[i % n] ?? 4;
 
   const hits: FeatureHit[] = [];
+  // The starts already found, per part: the duplicate check below is a lookup,
+  // not a scan of every hit so far (#288).
+  const startsOf = new Map<number, Set<number>>();
   for (const frame of framesOf(bases)) {
     const { codes } = frame;
     forEachSeed(codes, codes.length, (word, at) => {
@@ -273,7 +276,9 @@ export function detectProteinFeatures(
         if (from < 0 || from + length * 3 > total || from >= n) continue;
         // The same part may be seeded by several of its words; the first
         // that places it here has already answered for it.
-        if (hits.some((h) => h.part === entry.part && h.range.start === from)) continue;
+        let starts = startsOf.get(entry.part);
+        if (starts === undefined) startsOf.set(entry.part, (starts = new Set()));
+        if (starts.has(from)) continue;
         const budget = budgets[e] ?? 0;
         let mismatches = 0;
         let ok = true;
@@ -285,6 +290,7 @@ export function detectProteinFeatures(
           }
         }
         if (!ok) continue;
+        starts.add(from);
         hits.push({
           part: entry.part,
           range: { start: from, end: from + length * 3 },

@@ -3,6 +3,7 @@ import { type Range, type Topology, rangePieces } from '../range';
 import { alignNearDiagonal, bandCells } from './gapped';
 import { type FeatureLibrary } from './library';
 import { detectHomologues } from './homologue';
+import { OverlapIndex } from './overlapIndex';
 import { detectProteinFeatures } from './protein';
 import { withoutAntisense } from './translated';
 import { withVariantNames } from './variant';
@@ -529,7 +530,33 @@ function withRepeats(
   // so a tandem that runs over the origin of a circle is one chain and not
   // two. A ring of copies with no first one is left as it came.
   const ordered = [...hits].sort((x, y) => x.range.start - y.range.start);
-  const heads = ordered.filter((h) => !ordered.some((p) => follows(p, h)));
+  // Copies are found by where they begin and end, not by asking every hit (#288).
+  const order = new Map<FeatureHit, number>(ordered.map((h, i) => [h, i]));
+  const startingAt = new Map<number, FeatureHit[]>();
+  const endingAt = new Map<number, FeatureHit[]>();
+  const listed = (m: Map<number, FeatureHit[]>, at: number): readonly FeatureHit[] =>
+    m.get(at) ?? [];
+  for (const h of ordered) {
+    for (const [m, at] of [
+      [startingAt, h.range.start],
+      [endingAt, h.range.end],
+    ] as const) {
+      const list = m.get(at);
+      if (list === undefined) m.set(at, [h]);
+      else list.push(h);
+    }
+  }
+  /** The hits that could come right after `a`: those starting where it ends, or at 0 if it ends the circle. */
+  const after = (a: FeatureHit): readonly FeatureHit[] =>
+    circular && a.range.end === length
+      ? [...listed(startingAt, a.range.end), ...listed(startingAt, 0)]
+      : listed(startingAt, a.range.end);
+  /** The hits that could come right before `b`. */
+  const before = (b: FeatureHit): readonly FeatureHit[] =>
+    circular && b.range.start === 0
+      ? [...listed(endingAt, 0), ...listed(endingAt, length)]
+      : listed(endingAt, b.range.start);
+  const heads = ordered.filter((h) => !before(h).some((p) => follows(p, h)));
   const taken = new Set<FeatureHit>();
   const out: FeatureHit[] = [];
   for (const first of [...heads, ...ordered]) {
@@ -540,13 +567,20 @@ function withRepeats(
       continue;
     }
     const chain = [first];
+    const inChain = new Set<FeatureHit>(chain);
     for (;;) {
       const last = chain[chain.length - 1];
       // Stryker disable next-line all: unreachable, a chain always has a last copy
       if (last === undefined) break;
-      const next = ordered.find((h) => !taken.has(h) && !chain.includes(h) && follows(last, h));
+      // The first in sequence order, as a scan of `ordered` would find.
+      let next: FeatureHit | undefined;
+      for (const h of after(last)) {
+        if (taken.has(h) || inChain.has(h) || !follows(last, h)) continue;
+        if (next === undefined || (order.get(h) ?? 0) < (order.get(next) ?? 0)) next = h;
+      }
       if (next === undefined) break;
       chain.push(next);
+      inChain.add(next);
     }
     for (const h of chain) taken.add(h);
     if (chain.length === 1) {
@@ -592,6 +626,8 @@ function withHomologues(
     (x, y) => (y.similar?.bits ?? 0) - (x.similar?.bits ?? 0) || x.part - y.part,
   );
   const out: FeatureHit[] = [];
+  const near = new OverlapIndex<FeatureHit>(length, topology);
+  for (const k of kept) near.add(k);
   for (const h of bySimilar) {
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const type = library.parts[h.part]?.type;
@@ -600,8 +636,9 @@ function withHomologues(
       // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
       library.parts[k.part]?.type === type &&
       overlapLength(k.range, h.range, length, topology) >= 0.5 * size;
-    if (kept.some(covered) || out.some(covered)) continue;
+    if (near.some(h.range, covered)) continue;
     out.push(h);
+    near.add(h);
   }
   return [...kept, ...out].sort(
     (x, y) =>
@@ -757,11 +794,16 @@ function fewestEdits(readings: readonly FeatureHit[]): FeatureHit[] {
   const edits = (h: FeatureHit): number =>
     h.mismatches + h.ambiguous + (h.insertions ?? 0) + (h.deletions ?? 0);
   const kept: FeatureHit[] = [];
+  // Readings of one entry are on one strand, none of them across the origin.
+  const near = new OverlapIndex<FeatureHit>(Number.MAX_SAFE_INTEGER, 'linear');
   const ranked = [...readings].sort(
     (x, y) => edits(x) - edits(y) || x.range.start - y.range.start || x.range.end - y.range.end,
   );
   for (const h of ranked) {
-    if (!kept.some((k) => k.range.start < h.range.end && h.range.start < k.range.end)) kept.push(h);
+    if (!near.some(h.range, (k) => k.range.start < h.range.end && h.range.start < k.range.end)) {
+      kept.push(h);
+      near.add(h);
+    }
   }
   return kept;
 }
@@ -785,10 +827,13 @@ function substitutionsFirst(
   const whole = hits.filter(
     (h) => !isGapped(h) && h.partialStart !== true && h.partialEnd !== true,
   );
+  const near = new OverlapIndex<FeatureHit>(length, topology);
+  for (const u of whole) near.add(u);
   return hits.filter(
     (h) =>
       !isGapped(h) ||
-      !whole.some(
+      !near.some(
+        h.range,
         (u) =>
           u.part === h.part &&
           u.strand === h.strand &&
@@ -872,6 +917,8 @@ function keepBest(
       x.range.start - y.range.start,
   );
   const kept: FeatureHit[] = [];
+  // Whatever displaces a hit overlaps it, so only the kept hits near it are asked (#288).
+  const nearKept = new OverlapIndex<FeatureHit>(length, topology);
   for (const h of ranked) {
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const type = library.parts[h.part]?.type;
@@ -879,7 +926,7 @@ function keepBest(
     const segmentOf = library.parts[h.part]?.segmentOf;
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const name = library.parts[h.part]?.name;
-    const displaced = kept.some((k) => {
+    const displaced = nearKept.some(h.range, (k) => {
       const shared = overlapLength(k.range, h.range, length, topology);
       if (k.part === h.part) return shared > 0;
       // A component of a composite part is a feature of its own beside it (#282).
@@ -907,7 +954,10 @@ function keepBest(
         shared >= 0.9 * size(h)
       );
     });
-    if (!displaced) kept.push(h);
+    if (!displaced) {
+      kept.push(h);
+      nearKept.add(h);
+    }
   }
   // Two variants of one protein a few bases apart in length, where the longer
   // matches worse: the loop above kept both (the longer displaced nothing, as
@@ -923,8 +973,10 @@ function keepBest(
       overlapLength(a.range, b.range, length, topology) >= 0.9 * Math.min(size(a), size(b))
     );
   };
+  const keptNear = new OverlapIndex<FeatureHit>(length, topology);
+  for (const k of kept) keptNear.add(k);
   const finest = kept.filter(
-    (h) => !kept.some((k) => k !== h && k.identity > h.identity && sameLocus(k, h)),
+    (h) => !keptNear.some(h.range, (k) => k !== h && k.identity > h.identity && sameLocus(k, h)),
   );
   // Stryker disable next-line ArithmeticOperator: equivalent, `kept` is already longest first, and the sort is stable
   return finest.sort((x, y) => x.range.start - y.range.start || size(y) - size(x));
