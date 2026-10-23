@@ -718,6 +718,11 @@ const NEAR_LENGTH_SHARE = 0.02;
  * promoter is two features. Nor does a part inside a longer one on the other
  * strand: it is the complement of another feature (the SV40 early and late
  * poly(A) signals, #233).
+ *
+ * A part marked `fragment` in the library is the exception to "matches at
+ * least as well": it is a known piece of a longer part of its type (the R-U5
+ * end of an HIV-1 LTR), so a longer hit of that type that holds all of it
+ * displaces it whatever either matched (#286).
  */
 function keepBest(
   hits: readonly FeatureHit[],
@@ -748,9 +753,23 @@ function keepBest(
   for (const h of ranked) {
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const type = library.parts[h.part]?.type;
+    // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
+    const fragment = library.parts[h.part]?.fragment === true;
     const displaced = kept.some((k) => {
       const shared = overlapLength(k.range, h.range, length, topology);
       if (k.part === h.part) return shared > 0;
+      // A part that is a piece of a longer one of its type (the R-U5 end of
+      // an HIV-1 LTR) is not offered inside a longer hit of that type on its
+      // strand, however well the piece itself matches (#286).
+      if (
+        fragment &&
+        k.strand === h.strand &&
+        // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
+        library.parts[k.part]?.type === type &&
+        size(k) > size(h) &&
+        shared >= size(h)
+      )
+        return true;
       return (
         // On the other strand only the same bases displace: a part inside a longer one there is another feature (the SV40 early poly(A) signal is the late one's complement).
         (k.strand === h.strand || shared >= 0.9 * size(k)) &&

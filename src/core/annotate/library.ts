@@ -51,6 +51,14 @@ export interface LibraryPart {
    * (lacUV5 of the lac promoter), which would otherwise match it.
    */
   readonly exact?: boolean;
+  /**
+   * The part is a piece of a longer part of the same type — the R-U5 end of
+   * an HIV-1 LTR, which is all a vector keeps where a heterologous promoter
+   * replaces U3 — so it is reported only where no longer hit of that type on
+   * its strand covers all of it (#286). Without it a piece that matches
+   * exactly stays beside the longer part that has a mismatch outside it.
+   */
+  readonly fragment?: boolean;
   readonly source: LibrarySource;
   /** FPbase page of a fluorescent protein. */
   readonly fpbase?: string;
@@ -130,6 +138,10 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
     if (exact !== undefined && typeof exact !== 'boolean') {
       throw new Error(`Feature library (${source}): part ${i} has a malformed exact`);
     }
+    const fragment = entry['fragment'];
+    if (fragment !== undefined && typeof fragment !== 'boolean') {
+      throw new Error(`Feature library (${source}): part ${i} has a malformed fragment`);
+    }
     // A part is looked for by its bases, by its protein, or by both; one
     // with neither would match nothing and is a fault in the build.
     if (sequence === '' && (protein === undefined || protein === '')) {
@@ -150,6 +162,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       ...(fpbase === undefined ? {} : { fpbase }),
       ...(protein === undefined ? {} : { protein }),
       ...(exact === true ? { exact } : {}),
+      ...(fragment === true ? { fragment } : {}),
     };
   });
 }

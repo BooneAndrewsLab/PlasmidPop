@@ -45,6 +45,20 @@ describe('parseLibraryFile', () => {
     }
   });
 
+  it('reads fragment as a flag, kept only when true (#286)', () => {
+    const [yes] = parseLibraryFile(file({ ...GOOD, fragment: true }), 'core');
+    expect(yes).toEqual({ ...GOOD, fragment: true, source: 'core' });
+    for (const fragment of [false, undefined]) {
+      const [no] = parseLibraryFile(file({ ...GOOD, fragment }), 'core');
+      expect(no).not.toHaveProperty('fragment');
+    }
+    for (const fragment of ['true', 1, null]) {
+      expect(() => parseLibraryFile(file({ ...GOOD, fragment }), 'core')).toThrow(
+        'malformed fragment',
+      );
+    }
+  });
+
   it('throws on a file without a list of parts', () => {
     for (const json of ['null', '[]', '"parts"', '{}', '{"parts":{}}']) {
       expect(() => parseLibraryFile(json, 'core'), json).toThrow(
@@ -103,6 +117,36 @@ describe('the bundled library, as loaded', () => {
     expect(lib.parts.find((p) => p.name === 'lacUV5 promoter')?.exact).toBe(true);
     expect(lib.parts.find((p) => p.name === 'lac promoter')).not.toHaveProperty('exact');
     expect(lib.parts.find((p) => p.name === 'H1 promoter')?.location).toBe('152..366');
+  });
+
+  it('names the HIV-1 LTR parts without claiming a copy, and marks R-U5 a fragment (#286)', async () => {
+    const lib = await loadFeatureLibrary();
+    // K03455 annotates the 5' LTR at 1..634 and the 3' LTR at 9086..9719;
+    // the two differ at 8 bases, all of them in U3, and share R and U5
+    // (454..634) base for base, so neither copy's name belongs to the part.
+    const ltr = lib.parts.find((p) => p.name === 'HIV-1 LTR');
+    expect(ltr?.location).toBe('1..634');
+    const ru5 = lib.parts.find((p) => p.name === 'HIV-1 LTR (R-U5)');
+    expect(ru5?.location).toBe('454..634');
+    expect(ru5?.fragment).toBe(true);
+    expect(ru5?.sequence).toBe(ltr?.sequence.slice(453));
+    expect(
+      lib.parts.filter((p) => p.name.startsWith('HIV-1') && p.name.includes('LTR')),
+    ).toHaveLength(3);
+    expect(lib.parts.filter((p) => p.type === 'LTR').map((p) => p.name)).toEqual([
+      'RSV LTR',
+      'HIV-1 LTR',
+      'HIV-1 LTR (R-U5)',
+      // The ΔU3 LTR of a self-inactivating vector: its U3 is deleted, which
+      // is a difference the bases carry, so it keeps the 3' of its name.
+      "HIV-1 3' dLTR",
+    ]);
+    // R-U5 inside a whole LTR is the LTR's own end, not a second feature.
+    const names = detectFeatures(ltr?.sequence ?? '', 'linear', lib).map(
+      (h) => lib.parts[h.part]?.name,
+    );
+    expect(names).toContain('HIV-1 LTR');
+    expect(names).not.toContain('HIV-1 LTR (R-U5)');
   });
 
   it('names the promoter between the CMV enhancer and the intron of CAG chicken beta-actin (#279)', async () => {

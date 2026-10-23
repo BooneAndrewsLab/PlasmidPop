@@ -339,6 +339,53 @@ describe('detectFeatures', () => {
       expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['outer', 'inner']);
     });
 
+    it('drops a fragment part inside a longer one of its type that matches worse (#286)', () => {
+      const end = PART.slice(200);
+      const lib = library(part('outer', PART, 'LTR'), {
+        ...part('end', end, 'LTR'),
+        fragment: true,
+      });
+      // The mismatch is outside the fragment, so the fragment alone matches
+      // exactly: without the flag both would be offered, stacked.
+      const hits = detectFeatures(mutate(PART, [10]), 'linear', lib);
+      expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['outer']);
+    });
+
+    it('keeps a fragment part where no longer hit of its type covers it (#286)', () => {
+      const end = PART.slice(200);
+      const lib = library(part('outer', PART, 'LTR'), {
+        ...part('end', end, 'LTR'),
+        fragment: true,
+      });
+      const hits = detectFeatures(randomDna(rand, 40) + end + randomDna(rand, 40), 'linear', lib);
+      expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['end']);
+    });
+
+    it('keeps a fragment part inside a longer hit of another type or strand (#286)', () => {
+      const end = PART.slice(200);
+      const lib = library(part('outer', PART, 'promoter'), {
+        ...part('end', end, 'LTR'),
+        fragment: true,
+      });
+      expect(detectFeatures(PART, 'linear', lib).map((h) => lib.parts[h.part]?.name)).toEqual([
+        'outer',
+        'end',
+      ]);
+      const onReverse = library(part('outer', reverseComplement(PART), 'LTR'), {
+        ...part('end', end, 'LTR'),
+        fragment: true,
+      });
+      expect(
+        detectFeatures(PART, 'linear', onReverse).map((h) => [
+          onReverse.parts[h.part]?.name,
+          h.strand,
+        ]),
+      ).toEqual([
+        ['outer', 'reverse'],
+        ['end', 'forward'],
+      ]);
+    });
+
     it('orders hits along the sequence, the longer first where two start together', () => {
       const a = randomDna(rand, 80);
       const b = randomDna(rand, 90);

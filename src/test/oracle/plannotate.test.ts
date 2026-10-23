@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { detectFeatures } from '@/core/annotate/detect';
+import { detectFeatures, overlapLength } from '@/core/annotate/detect';
 import { loadFeatureLibrary } from '@/core/annotate/library';
 
 import {
@@ -117,6 +117,58 @@ describe('Detect features against pLannotate', () => {
     }
     expect(seen).toBe(13);
   });
+
+  it('calls one LTR per copy, named without a 5′ claim the bases cannot make (#286)', async () => {
+    // The R-U5 end of an HIV-1 LTR is the same in both copies, so it used to
+    // be drawn on top of a whole LTR call of ours, and under a 5' name on
+    // the downstream copy. It is a `fragment` part now, and the whole-LTR
+    // part no longer says which copy it is.
+    const lib = await loadFeatureLibrary();
+    const ltrs = (accession: string): string[] => {
+      const v = vectors.find((x) => x.accession === accession);
+      if (v === undefined) throw new Error(accession);
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      return detectFeatures(v.sequence, topology, lib)
+        .filter((h) => lib.parts[h.part]?.type === 'LTR')
+        .map((h) => `${lib.parts[h.part]?.name} ${h.range.start + 1}..${h.range.end}`);
+    };
+    // Both copies whole: one call each, neither named for a copy.
+    expect(ltrs('PX139668.1')).toEqual(['HIV-1 LTR 1..634', 'HIV-1 LTR 4638..5271']);
+    expect(ltrs('MH325104.1')).toEqual(['HIV-1 LTR 1..634', 'HIV-1 LTR 5254..5887']);
+    // A ΔU3 LTR downstream (its deletion says so) and R-U5 alone upstream,
+    // where the hybrid RSV promoter has taken U3's place.
+    for (const accession of ['OQ427862.1', 'OQ427864.1']) {
+      expect(ltrs(accession), accession).toEqual([
+        "HIV-1 3' dLTR 1293..1526",
+        'HIV-1 LTR (R-U5) 5002..5182',
+      ]);
+    }
+    // Both copies cut back to R-U5: two calls, neither claiming a copy.
+    expect(ltrs('EF177827.1')).toEqual([
+      'HIV-1 LTR (R-U5) 835..1015',
+      'HIV-1 LTR (R-U5) 4733..4913',
+    ]);
+    // Corpus-wide: no fragment part is offered inside a longer LTR call.
+    for (const v of vectors) {
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const hits = detectFeatures(v.sequence, topology, lib).filter(
+        (h) => lib.parts[h.part]?.type === 'LTR',
+      );
+      for (const h of hits) {
+        if (lib.parts[h.part]?.fragment !== true) continue;
+        const inside = hits.filter(
+          (k) =>
+            k !== h &&
+            k.strand === h.strand &&
+            overlapLength(k.range, h.range, v.length, topology) >= h.range.end - h.range.start,
+        );
+        expect(
+          inside.map((k) => lib.parts[k.part]?.name),
+          v.accession,
+        ).toEqual([]);
+      }
+    }
+  }, 300_000);
 
   it("makes none of pLannotate's known errors (#285)", () => {
     expect(ORACLE_ERRORS.length).toBeGreaterThan(0);
