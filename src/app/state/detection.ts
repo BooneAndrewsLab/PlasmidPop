@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import {
   type Feature,
   type SeqDocument,
+  antisenseToCds,
   duplicatesExisting,
   featureFromHit,
   hasTool,
@@ -45,13 +46,18 @@ export interface Offer {
 
 /**
  * The hits of a search set against `doc` as it stands: the features it now
- * has mark the hits they duplicate. Null when `doc` no longer has the bases
- * that were searched, since the hits' positions then say nothing.
+ * has mark the hits they duplicate, and a hit found by its protein inside a
+ * CDS annotated on the other strand is not offered (#285). Null when `doc`
+ * no longer has the bases that were searched, since the hits' positions then
+ * say nothing.
  */
 export function offered(state: DetectionState, doc: SeqDocument): readonly Offer[] | null {
   if (state.status !== 'done' || !sameBases(state.doc, doc)) return null;
   const features = doc.features.all();
-  return state.detections.map((detection) => ({
+  const shown = state.detections.filter(
+    (d) => !antisenseToCds(d.hit, features, doc.length, doc.topology),
+  );
+  return shown.map((detection) => ({
     detection,
     duplicate: duplicatesExisting(
       detection.hit,

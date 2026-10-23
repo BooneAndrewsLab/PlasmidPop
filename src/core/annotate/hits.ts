@@ -35,6 +35,36 @@ export function duplicatesExisting(
   return false;
 }
 
+/**
+ * Whether a hit found by what it codes for lies wholly inside a CDS the
+ * document annotates on the other strand, with no CDS of its own strand
+ * over any of it (#285). The record then says which strand is translated
+ * there, and it is not the hit's: a His tag read in the antisense of a
+ * glycine linker. The sequence alone catches most of these
+ * (`readsAntisense`); this catches the rest where the record says so.
+ */
+export function antisenseToCds(
+  hit: FeatureHit,
+  existing: Iterable<Feature>,
+  length: number,
+  topology: Topology,
+): boolean {
+  if (hit.viaProtein !== true) return false;
+  const size = hit.range.end - hit.range.start;
+  let inside = false;
+  for (const f of existing) {
+    if (f.type !== 'CDS') continue;
+    for (const seg of f.segments) {
+      if (seg.kind !== 'range') continue;
+      const shared = overlapLength(seg, hit.range, length, topology);
+      if (f.strand === hit.strand) {
+        if (shared > 0) return false;
+      } else if (shared >= size) inside = true;
+    }
+  }
+  return inside;
+}
+
 /** "100%" or "98.6%": one decimal only when it is not a whole number. */
 export function formatIdentity(identity: number): string {
   const percent = Math.floor(identity * 1000) / 10;

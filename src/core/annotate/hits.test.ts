@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { createFeature, rangeSegment, siteSegment } from '../features';
 import { type FeatureHit } from './detect';
-import { describeMatch, duplicatesExisting, featureFromHit, formatIdentity } from './hits';
+import {
+  antisenseToCds,
+  describeMatch,
+  duplicatesExisting,
+  featureFromHit,
+  formatIdentity,
+} from './hits';
 import { type LibraryPart } from './library';
 
 const AMP: LibraryPart = {
@@ -27,6 +33,54 @@ function hit(start: number, end: number, extra: Partial<FeatureHit> = {}): Featu
     ...extra,
   };
 }
+
+describe('antisenseToCds (#285)', () => {
+  const cds = (strand: 'forward' | 'reverse', ...ranges: readonly (readonly [number, number])[]) =>
+    createFeature({
+      type: 'CDS',
+      name: 'TG',
+      strand,
+      segments: ranges.map(([a, b]) => rangeSegment(a, b)),
+    });
+  // A His tag found in the translation on the reverse strand, 3365..3383.
+  const his = hit(3365, 3383, { viaProtein: true });
+
+  it('is a protein hit wholly inside a CDS annotated on the other strand', () => {
+    expect(antisenseToCds(his, [cds('forward', [2734, 4117])], 7181, 'circular')).toBe(true);
+  });
+
+  it('is not one a CDS of its own strand covers any of', () => {
+    const own = cds('reverse', [3370, 3500]);
+    expect(antisenseToCds(his, [cds('forward', [2734, 4117]), own], 7181, 'circular')).toBe(false);
+    expect(antisenseToCds(his, [own, cds('forward', [2734, 4117])], 7181, 'circular')).toBe(false);
+  });
+
+  it('is not one the CDS opposite covers only part of, or no CDS at all', () => {
+    expect(antisenseToCds(his, [cds('forward', [3370, 4117])], 7181, 'circular')).toBe(false);
+    const gene = createFeature({
+      type: 'gene',
+      strand: 'forward',
+      segments: [rangeSegment(2734, 4117)],
+    });
+    expect(antisenseToCds(his, [gene], 7181, 'circular')).toBe(false);
+    expect(antisenseToCds(his, [], 7181, 'circular')).toBe(false);
+  });
+
+  it('looks at each segment of a joined CDS, and round the origin of a circle', () => {
+    const joined = cds('forward', [100, 200], [3300, 3400]);
+    expect(antisenseToCds(his, [joined], 7181, 'circular')).toBe(true);
+    const intron = cds('forward', [100, 3370], [3380, 3500]);
+    expect(antisenseToCds(his, [intron], 7181, 'circular')).toBe(false);
+    const atOrigin = hit(7175, 7190, { viaProtein: true });
+    expect(antisenseToCds(atOrigin, [cds('forward', [7000, 7200])], 7181, 'circular')).toBe(true);
+  });
+
+  it('leaves a hit on its bases alone: only the translation reads every frame', () => {
+    expect(antisenseToCds(hit(3365, 3383), [cds('forward', [2734, 4117])], 7181, 'circular')).toBe(
+      false,
+    );
+  });
+});
 
 describe('duplicatesExisting', () => {
   const existing = (
