@@ -83,7 +83,11 @@
     "src/core/analysis/restriction.ts",
     "src/core/analysis/enzymeDigest.ts",
     "src/core/checksum/seguid.ts",
-    "src/core/checksum/sha1.ts"
+    "src/core/checksum/sha1.ts",
+    "src/core/analysis/cutSiteSet.ts",
+    "src/workers/analysisProtocol.ts",
+    "src/workers/saveProtocol.ts",
+    "src/app/state/inputQuiet.ts"
   ],
   "reporters": ["html", "json", "clear-text", "progress"],
   "htmlReporter": {
