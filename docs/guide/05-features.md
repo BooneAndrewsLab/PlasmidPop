@@ -127,6 +127,10 @@ What is found:
   box, so it is only found where every base matches, whatever **Match at
   least** says. An ambiguity code where it has a base, a missing base or a
   cut-off end rules it out.
+- **f1 and M13 origins** are one part, _f1/M13 ori_. The two phages differ
+  at two bases over the origin, records in GenBank name the same bases
+  either way, and a vector's copy is usually a base or two from both, so
+  one label covers them and a locus gets one call rather than two.
 - **lacI and lacIq promoters**: the 78 bp upstream of lacI is offered as
   _lacI promoter_, or as _lacIq promoter_ where it carries the one base
   (a T in its -35 box) that makes lacIq. Where that base is anything else,

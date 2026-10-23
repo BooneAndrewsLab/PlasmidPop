@@ -2,6 +2,8 @@
  "note": "pLannotate (SnapGene database) feature name -> the bundled part of ours that stands for it, where the names differ. Oracle data only: the app keeps no SnapGene names.",
  "aliases": {
   "ori": "pUC ori",
+  "f1 ori": "f1/M13 ori",
+  "M13 ori": "f1/M13 ori",
   "KanR": "KanR (Tn903)",
   "TetR": "TetR (Tn10)",
   "tetA": "TetA (Tn10)",

@@ -210,6 +210,20 @@ describe('the bundled library, as loaded', () => {
     expect(called(unrelated + (tail?.sequence ?? ''))).toEqual(["lacI promoter (3' end)"]);
   });
 
+  it("carries one filamentous-phage origin, under both phages' names (#284)", async () => {
+    const lib = await loadFeatureLibrary();
+    // f1 and M13 differ at two bases over the origin, and deposited records
+    // name the same bases either way, so there is one part, not two.
+    expect(
+      lib.parts
+        .filter((p) => p.category === 'origin' && /\bf1\b|M13/.test(p.name))
+        .map((p) => p.name),
+    ).toEqual(['f1/M13 ori']);
+    const ori = lib.parts.find((p) => p.name === 'f1/M13 ori');
+    expect([ori?.accession, ori?.location]).toEqual(['U47295.2', '4072..4527']);
+    expect(ori?.sequence).toHaveLength(456);
+  });
+
   it('reads the CaMV poly(A) signal on the strand it terminates (#287)', async () => {
     const lib = await loadFeatureLibrary();
     const part = lib.parts.find((p) => p.name === 'CaMV poly(A) signal');

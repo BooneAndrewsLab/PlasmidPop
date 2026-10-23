@@ -87,11 +87,7 @@ describe('Detect features against pLannotate', () => {
     // origin, short in AF239250, the SV40 promoter.
     const known = new Set([
       'J01749.1: TcR / TetA (Tn10)',
-      'OR992667.1: M13 ori / f1 ori',
-      'KJ634048.1: M13 ori / f1 ori',
       'AF239250.1: SV40 ori / SV40 promoter',
-      'AF396260.1: f1 ori / M13 ori',
-      'KX151731.1: f1 ori / M13 ori',
       'U89930.1: TetR (Tn10) / rtTA (Tet-On 3G)',
     ]);
     const found = result.nameConflicts.map((c) => `${c.accession}: ${c.part} / ${c.theirs}`);
@@ -191,6 +187,25 @@ describe('Detect features against pLannotate', () => {
         ).toEqual([]);
       }
     }
+  }, 300_000);
+
+  it('calls one filamentous-phage origin per locus (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    // The f1 and M13 parts used to be called on top of each other wherever
+    // either fitted, each naming a phage the bases cannot be sure of.
+    let loci = 0;
+    for (const v of vectors) {
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const ours = detectFeatures(v.sequence, topology, lib).filter(
+        (h) => lib.parts[h.part]?.name === 'f1/M13 ori',
+      );
+      const theirs = v.hits.filter((h) => !h.fragment && /^(f1|M13) ori$/.test(h.name));
+      // One call where pLannotate makes one, and never two over one locus.
+      expect(ours.length, v.accession).toBe(theirs.length);
+      loci += ours.length;
+    }
+    // Every vector of the corpus that carries one.
+    expect(loci).toBe(43);
   }, 300_000);
 
   it("makes none of pLannotate's known errors (#285)", () => {
