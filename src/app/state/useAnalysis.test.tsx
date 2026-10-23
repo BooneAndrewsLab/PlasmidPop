@@ -2,7 +2,7 @@
 import { act, render, renderHook } from '@testing-library/react';
 import { type ReactNode } from 'react';
 
-import { SeqDocument } from '@/core';
+import { SeqDocument, cutSiteSetOf } from '@/core';
 import { type analysisClient } from '@/workers/analysisClient';
 
 import { useDocumentChecksum } from './documentChecksum';
@@ -49,7 +49,7 @@ describe('useAnalysis (#138)', () => {
     const digest = { host: new Uint8Array(0), lengths: new Map(), counts: new Map() };
     cutSites
       .mockRejectedValueOnce(new Error('worker crashed'))
-      .mockResolvedValue({ sites: [], digest });
+      .mockResolvedValue({ sites: cutSiteSetOf([]), digest });
     renderHook(() => {
       useAnalysis();
     });
@@ -83,7 +83,7 @@ describe('useAnalysis (#138)', () => {
 
   it('stores the sites without waiting for the ORFs, and asks for each once (#274)', async () => {
     const digest = { host: new Uint8Array(0), lengths: new Map(), counts: new Map() };
-    cutSites.mockResolvedValue({ sites: [], digest });
+    cutSites.mockResolvedValue({ sites: cutSiteSetOf([]), digest });
     let answer: (found: Awaited<ReturnType<typeof analysisClient.orfs>>) => void = () => undefined;
     orfs.mockReset().mockReturnValue(
       new Promise((resolve) => {
@@ -109,7 +109,7 @@ describe('useAnalysis (#138)', () => {
 
   it('asks only for the ORFs again when an ORF setting changes (#275)', async () => {
     const digest = { host: new Uint8Array(0), lengths: new Map(), counts: new Map() };
-    cutSites.mockResolvedValue({ sites: [], digest });
+    cutSites.mockResolvedValue({ sites: cutSiteSetOf([]), digest });
     renderHook(() => {
       useAnalysis();
     });
@@ -167,7 +167,7 @@ describe('useAnalysis: what goes to the worker first (#276)', () => {
     sent = [];
     cutSites.mockReset().mockImplementation(() => {
       sent.push('sites');
-      return Promise.resolve({ sites: [], digest });
+      return Promise.resolve({ sites: cutSiteSetOf([]), digest });
     });
     orfs.mockReset().mockImplementation(() => {
       sent.push('orfs');

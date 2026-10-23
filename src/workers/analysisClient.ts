@@ -6,6 +6,7 @@ import {
   type CrisprGuide,
   type CrisprOptions,
   type CutSite,
+  type CutSiteSet,
   type EnzymeDigest,
   type EnzymeSet,
   type MoleculeDescription,
@@ -193,13 +194,13 @@ export class AnalysisClient {
 
   /**
    * Every enzyme's cut sites and the Enzymes tab's digest of them (item 98),
-   * taken in the worker in the same pass as the scan, unpacked a slice at a
-   * time with the sites grouped by enzyme on the way (#278).
+   * taken in the worker in the same pass as the scan; the sites stay packed
+   * and are made into objects an enzyme at a time as they are asked for (#281).
    */
   async cutSitesWithDigest(
     sequence: string,
     topology: Topology,
-  ): Promise<{ readonly sites: CutSite[]; readonly digest: EnzymeDigest }> {
+  ): Promise<{ readonly sites: CutSiteSet; readonly digest: EnzymeDigest }> {
     const res = await this.send({ kind: 'cutSites', sequence, topology, digest: true });
     if (res.kind === 'error') throw new Error(res.message);
     if (res.kind !== 'cutSites' || res.digest === undefined)

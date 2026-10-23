@@ -6,15 +6,16 @@ import {
   type CodonSlot,
   type CrisprOptions,
   type CutSite,
+  type CutSiteSet,
   type EnzymeDigest,
   type EnzymeSet,
-  type EnzymeSites,
   type FeatureHit,
   type LibraryPart,
   type MoleculeDescription,
   type MsaOptions,
   type MultipleAlignment,
   type Nuclease,
+  PackedCutSiteSet,
   type Orf,
   type OrfOptions,
   type PrimerSearch,
@@ -265,71 +266,44 @@ export function packEnzymeDigest(
   return { host: digest.host, lengths, offsets, counts };
 }
 
-/** How many sites `unpackScan` turns into objects before it lets the page go on (#278). */
+/**
+ * Past how many sites `unpackScan` lets the page go on before the sites are
+ * put to use (#278), so what they are for (the Enzymes tab's first render)
+ * is a task of its own.
+ */
 export const UNPACK_SLICE = 50_000;
 
 /**
- * A scan's sites and its digest, as the main thread keeps them (#278): the
- * sites as objects, the lengths as views into the transferred buffer, and
- * the sites grouped by enzyme on the way (`EnzymeDigest.byEnzyme`), which
- * the Enzymes tab would otherwise do in a pass of its own. At 4.64 Mb that
- * is 446,000 sites; between slices of `slice` of them, and after the last,
- * it awaits `pause`, so the work and the render that follows are tasks of
- * their own rather than one of a third of a second.
+ * A scan's sites and its digest, as the main thread keeps them (#281): the
+ * sites still packed (`PackedCutSiteSet`), sorted by enzyme in one pass over
+ * the integers, with an enzyme's site objects made only when something asks
+ * for them; the lengths as views into the transferred buffer; and the
+ * Enzymes tab's view of each enzyme (`EnzymeDigest.byEnzyme`), which reads
+ * counts, cuts and marks off typed arrays. At 4.64 Mb the scan is 446,000
+ * sites, whose objects, made here in #278, set off a 35-80 ms collection.
+ * When there are more than `pauseAfter` sites it awaits `pause` before it
+ * answers.
  */
 export async function unpackScan(
   packed: PackedCutSites,
   { host, lengths, offsets, counts }: PackedEnzymeDigest,
   pause: () => Promise<void> = () => Promise.resolve(),
-  slice: number = UNPACK_SLICE,
-): Promise<{ readonly sites: CutSite[]; readonly digest: EnzymeDigest }> {
+  pauseAfter: number = UNPACK_SLICE,
+): Promise<{ readonly sites: CutSiteSet; readonly digest: EnzymeDigest }> {
   const { data, enzymes } = packed;
-  const n = data.length >> 2;
-  // Each enzyme's share first, so its marks are one typed array of the right length.
-  const perEnzyme = new Int32Array(enzymes.length);
-  for (let i = 0; i < n; i++) {
-    const e = (data[i * 4] ?? 0) >> 1;
-    perEnzyme[e] = (perEnzyme[e] ?? 0) + 1;
-  }
-  const groupSites: CutSite[][] = enzymes.map(() => []);
-  const groupHost = enzymes.map((_, e) => new Uint8Array(perEnzyme[e] ?? 0));
-  const sites: CutSite[] = [];
-  for (let from = 0; from < n; from += slice) {
-    if (from > 0) await pause();
-    const to = Math.min(n, from + slice);
-    for (let i = from; i < to; i++) {
-      const head = data[i * 4] ?? 0;
-      const e = head >> 1;
-      const site: CutSite = {
-        enzyme: enzymes[e] ?? '',
-        cut: data[i * 4 + 1] ?? 0,
-        cutBottom: data[i * 4 + 2] ?? 0,
-        siteStart: data[i * 4 + 3] ?? 0,
-        strand: (head & 1) === 1 ? 'reverse' : 'forward',
-      };
-      sites.push(site);
-      const group = groupSites[e];
-      if (group === undefined) continue;
-      const marks = groupHost[e];
-      if (marks !== undefined) marks[group.length] = host[i] ?? 0;
-      group.push(site);
-    }
-  }
-  // And once more when it took more than one slice, so what the sites are
-  // for (the Enzymes tab's first render of them) is a task of its own too.
-  if (n > slice) await pause();
+  const sites = new PackedCutSiteSet(data, enzymes, host);
+  if (sites.size > pauseAfter) await pause();
   const byLength = new Map<string, Int32Array>();
   const countOf = new Map<string, number>();
-  const byEnzyme = new Map<string, EnzymeSites>();
   enzymes.forEach((name, i) => {
     const from = offsets[i] ?? 0;
     const to = offsets[i + 1] ?? from;
     if (to > from) byLength.set(name, lengths.subarray(from, to));
     const count = counts[i] ?? 0;
     if (count > 0) countOf.set(name, count);
-    const group = groupSites[i];
-    if (group !== undefined && group.length > 0)
-      byEnzyme.set(name, { sites: group, host: groupHost[i] ?? new Uint8Array(0) });
   });
-  return { sites, digest: { host, lengths: byLength, counts: countOf, byEnzyme } };
+  return {
+    sites,
+    digest: { host, lengths: byLength, counts: countOf, byEnzyme: sites.groups() },
+  };
 }

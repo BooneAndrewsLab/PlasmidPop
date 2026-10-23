@@ -252,7 +252,7 @@ export function CloningPanel({ doc }: Props) {
   // would block (#45): a digest cuts what the tube would cut. The Enzymes
   // tab still lists and marks them, and says where the DNA was grown.
   const tickedSites = useMemo(
-    () => (sites === null ? [] : sites.filter((s) => shownEnzymes.has(s.enzyme))),
+    () => (sites === null ? [] : sites.pick(shownEnzymes)),
     [sites, shownEnzymes],
   );
   const cutSites = useMemo(

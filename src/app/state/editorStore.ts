@@ -5,6 +5,7 @@ import {
   type AssemblyPart,
   type Coalesce,
   type CutSite,
+  type CutSiteSet,
   type EnzymeDigest,
   type DocumentTool,
   type DigestFragment,
@@ -30,6 +31,7 @@ import {
   activeEnzymes,
   cleanStateName,
   createFeature,
+  cutSiteSetOf,
   defaultFragmentName,
   describeEditStep,
   findCutSites,
@@ -47,6 +49,7 @@ import {
   rangeSegment,
   rangesOverlap,
   siteStillMatches,
+  toCutSiteSet,
 } from '@/core';
 import { type ParseResult, type ParseWarning } from '@/io';
 import { type FontSize, type ResidueNumbering, DEFAULT_RESIDUE_NUMBERING } from '@/view/linear';
@@ -207,8 +210,11 @@ export function sidebarTabsFor(doc: SeqDocument | null): readonly SidebarTab[] {
 export interface AnalysisState {
   /** Document the results belong to; stale when it is not the present document. */
   readonly doc: SeqDocument;
-  /** The restriction scan's sites; null until that scan has answered for this document. */
-  readonly cutSites: readonly CutSite[] | null;
+  /**
+   * The restriction scan's sites, read by enzyme, packed until asked for
+   * (#281); null until that scan has answered for this document.
+   */
+  readonly cutSites: CutSiteSet | null;
   /**
    * The Enzymes tab's digest of the sites, taken by the worker with the
    * scan (item 98); null for a carried result, whose sites have moved, and
@@ -229,7 +235,7 @@ export interface AnalysisState {
 
 /** The restriction scan's part of an `AnalysisState`. */
 interface SitesPart {
-  readonly cutSites: readonly CutSite[];
+  readonly cutSites: CutSiteSet;
   readonly digest: EnzymeDigest | null;
 }
 
@@ -321,8 +327,9 @@ function carryAnalysis(
   // reach into it can have lost their bases; the rest moved whole.
   const at = op.type === 'insert' ? { start: op.position, end: op.position } : op.range;
   const edited = { start: at.start - 1, end: at.end + 1 };
+  // Every site moves, so every site is made an object here: an edit, not the open.
   const cutSites: CutSite[] | null = analysis.cutSites === null ? null : [];
-  for (const s of analysis.cutSites ?? []) {
+  for (const s of analysis.cutSites?.all() ?? []) {
     const cut = map(s.cut);
     const cutBottom = map(s.cutBottom);
     const siteStart = map(s.siteStart);
@@ -356,7 +363,7 @@ function carryAnalysis(
   }
   return {
     doc: next,
-    cutSites,
+    cutSites: cutSites === null ? null : cutSiteSetOf(cutSites),
     digest: null,
     provisional: cutSites !== null,
     orfs,
@@ -2048,11 +2055,11 @@ export class EditorStore {
    */
   setAnalysis(
     doc: SeqDocument,
-    cutSites: readonly CutSite[],
+    cutSites: CutSiteSet | readonly CutSite[],
     orfs: readonly Orf[],
     digest: EnzymeDigest | null = null,
   ): void {
-    this.applyAnalysis(doc, { cutSites, digest }, { orfs });
+    this.applyAnalysis(doc, { cutSites: toCutSiteSet(cutSites), digest }, { orfs });
   }
 
   /**
@@ -2064,10 +2071,10 @@ export class EditorStore {
    */
   setCutSites(
     doc: SeqDocument,
-    cutSites: readonly CutSite[],
+    cutSites: CutSiteSet | readonly CutSite[],
     digest: EnzymeDigest | null = null,
   ): void {
-    this.applyAnalysis(doc, { cutSites, digest }, null);
+    this.applyAnalysis(doc, { cutSites: toCutSiteSet(cutSites), digest }, null);
   }
 
   /**
@@ -2108,12 +2115,7 @@ export class EditorStore {
     if (sites !== null && !enzymesInitialized) {
       // The digest counted the sites per enzyme already; counting 96,000 of
       // them here again is 10 ms (#271).
-      let counts = sites.digest?.counts;
-      if (counts === undefined) {
-        const counted = new Map<string, number>();
-        for (const s of sites.cutSites) counted.set(s.enzyme, (counted.get(s.enzyme) ?? 0) + 1);
-        counts = counted;
-      }
+      const counts = sites.digest?.counts ?? sites.cutSites.counts();
       let singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
       if (this.state.enzymeGroupIsoschizomers) singles = firstOfEachGroup(singles);
       shownEnzymes = new Set(singles.length > MAX_DEFAULT_ENZYMES ? [] : singles);
@@ -2491,7 +2493,7 @@ export class EditorStore {
       const enzymes = activeEnzymes().filter((e) => shown.has(e.name));
       return findCutSites(doc.sequence.toString(), doc.topology, enzymes);
     }
-    return a.cutSites.filter((s) => shown.has(s.enzyme));
+    return a.cutSites.pick(shown);
   }
 
   setView(view: ViewMode): void {

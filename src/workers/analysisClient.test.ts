@@ -268,7 +268,10 @@ describe('the digest with the scan (item 98, #271)', () => {
   });
   const plainGroups = (groups: ReadonlyMap<string, EnzymeSites> | undefined) =>
     new Map(
-      [...(groups ?? [])].map(([name, g]) => [name, { sites: g.sites, host: Array.from(g.host) }]),
+      [...(groups ?? [])].map(([name, g]) => [
+        name,
+        { count: g.count, sites: g.sites(), cuts: Array.from(g.cuts), host: Array.from(g.host) },
+      ]),
     );
 
   it('packs and unpacks to the digest that went in, enzymes without lengths left out', async () => {
@@ -281,10 +284,11 @@ describe('the digest with the scan (item 98, #271)', () => {
       [...digest.lengths.values()].reduce((n, l) => n + l.length, 0),
     );
     const back = await unpackScan(packCutSites(sites), packed);
-    expect(back.sites).toEqual(sites);
+    expect(back.sites.all()).toEqual(sites);
     expect(plain(back.digest)).toEqual(plain(digest));
     const none = await unpackScan(packCutSites([]), packEnzymeDigest(digest, []));
-    expect(none.sites).toEqual([]);
+    expect(none.sites.all()).toEqual([]);
+    expect(none.sites.size).toBe(0);
     expect(plain(none.digest)).toEqual({
       host: Array.from(digest.host),
       lengths: new Map(),
@@ -293,7 +297,7 @@ describe('the digest with the scan (item 98, #271)', () => {
     expect(none.digest.byEnzyme?.size).toBe(0);
   });
 
-  it('groups the sites by enzyme on the way, with their marks, as sitesByEnzyme does (#278)', async () => {
+  it('groups the sites by enzyme, with their cuts and marks, as sitesByEnzyme does (#278, #281)', async () => {
     const sites = findCutSites(sequence.repeat(3), 'circular', activeEnzymes());
     const digest = enzymeDigest(sites, sequence.repeat(3), 'circular');
     const packedSites = packCutSites(sites);
@@ -301,9 +305,13 @@ describe('the digest with the scan (item 98, #271)', () => {
     expect(plainGroups(back.digest.byEnzyme)).toEqual(
       plainGroups(sitesByEnzyme(sites, digest.host)),
     );
-    // The grouped sites are the same objects as the list's, so a set of them means one thing.
-    const first = back.digest.byEnzyme?.values().next().value?.sites[0];
-    expect(back.sites).toContain(first);
+    // The grouped sites are the same objects as the set's, so a set of them means one thing.
+    const [name, group] = back.digest.byEnzyme?.entries().next().value ?? ['', undefined];
+    const first = group?.site(0);
+    expect(first).toBeDefined();
+    expect(group?.sites()[0]).toBe(first);
+    expect(back.sites.of(name)[0]).toBe(first);
+    expect(back.sites.all()).toContain(first);
     expect(
       [...(back.digest.byEnzyme?.values() ?? [])].some((g) =>
         Array.from(g.host).some((m) => m !== 0),
@@ -311,31 +319,29 @@ describe('the digest with the scan (item 98, #271)', () => {
     ).toBe(true);
   });
 
-  it('pauses between slices, and gives the same whatever the slice (#278)', async () => {
+  it('lets the page go on once before it answers a large scan, and only then (#278)', async () => {
     const long = sequence.repeat(4);
     const sites = findCutSites(long, 'linear', activeEnzymes());
     const digest = enzymeDigest(sites, long, 'linear');
     const packedSites = packCutSites(sites);
     const packed = packEnzymeDigest(digest, packedSites.enzymes);
     const pause = vi.fn(() => Promise.resolve());
-    const sliced = await unpackScan(packedSites, packed, pause, 3);
-    // Between slices, and once after the last.
-    expect(sites.length).toBeGreaterThan(6);
-    expect(pause).toHaveBeenCalledTimes(Math.ceil(sites.length / 3));
+    const paused = await unpackScan(packedSites, packed, pause, sites.length - 1);
+    expect(pause).toHaveBeenCalledTimes(1);
     const once = vi.fn(() => Promise.resolve());
     await unpackScan(packedSites, packed, once, sites.length);
     expect(once).not.toHaveBeenCalled();
     const whole = await unpackScan(packedSites, packed);
-    expect(sliced.sites).toEqual(whole.sites);
-    expect(plain(sliced.digest)).toEqual(plain(whole.digest));
-    expect(plainGroups(sliced.digest.byEnzyme)).toEqual(plainGroups(whole.digest.byEnzyme));
+    expect(paused.sites.all()).toEqual(whole.sites.all());
+    expect(plain(paused.digest)).toEqual(plain(whole.digest));
+    expect(plainGroups(paused.digest.byEnzyme)).toEqual(plainGroups(whole.digest.byEnzyme));
   });
 
   it('is answered with the sites when asked for, and only then', async () => {
     const client = new AnalysisClient(null);
     const sites = await client.cutSites(sequence, 'linear');
     const withDigest = await client.cutSitesWithDigest(sequence, 'linear');
-    expect(withDigest.sites).toEqual(sites);
+    expect(withDigest.sites.all()).toEqual(sites);
     expect(plain(withDigest.digest)).toEqual(plain(enzymeDigest(sites, sequence, 'linear')));
     expect(Array.from(withDigest.digest.lengths.get('EcoRI') ?? [])).toEqual([
       76,

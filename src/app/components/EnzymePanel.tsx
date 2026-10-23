@@ -69,6 +69,16 @@ const HOSTS: readonly HostMethylationState[] = [
 
 const MAX_SITES_SHOWN = 12;
 
+/** The sites a row lists, made one by one rather than all of the enzyme's (#281). */
+function firstSites(site: EnzymeSites['site'], count: number): CutSite[] {
+  const out: CutSite[] = [];
+  for (let i = 0; i < Math.min(count, MAX_SITES_SHOWN); i++) {
+    const s = site(i);
+    if (s !== undefined) out.push(s);
+  }
+  return out;
+}
+
 /**
  * Height assumed for a row not yet measured, in pixels: a name and one line
  * of cut positions. Only rows below the viewport are ever guessed at, so the
@@ -85,6 +95,14 @@ function countMarked(marks: Iterable<number>): number {
   return n;
 }
 const NO_MARKS = new Uint8Array(0);
+/** The sites of an enzyme that does not cut. */
+const NOT_CUT: EnzymeSites = {
+  count: 0,
+  cuts: NO_MARKS,
+  host: NO_MARKS,
+  site: () => undefined,
+  sites: () => NO_SITES,
+};
 
 /** One enzyme of the list, with its sites, their marks, and its lane. */
 interface EnzymeEntry extends EnzymeSites {
@@ -273,7 +291,7 @@ function DoubleDigests({ listed, pairable, cuts, doc, shownEnzymes }: DoubleDige
     const names = new Set(key.split(' '));
     const pool = listed
       .filter((g) => names.has(g.enzyme.name))
-      .sort((a, b) => a.sites.length - b.sites.length)
+      .sort((a, b) => a.count - b.count)
       .slice(0, MAX_PAIR_CANDIDATES);
     return bestPairs(
       pool.map((g) => ({ name: g.enzyme.name, cuts: cuts(g) })),
@@ -455,16 +473,16 @@ export function EnzymePanel({ doc }: Props) {
     () =>
       sites === null
         ? null
-        : (workerDigest ?? enzymeDigest(sites, doc.sequence.toString(), doc.topology)),
+        : (workerDigest ?? enzymeDigest(sites.all(), doc.sequence.toString(), doc.topology)),
     [sites, workerDigest, doc],
   );
 
   const groups = useMemo((): EnzymeEntry[] => {
-    // Grouped by the client as it unpacked the worker's answer (#278), or here.
+    // Read off the worker's packed answer (#281), or grouped here.
     const byName =
       digest === null || sites === null
         ? null
-        : (digest.byEnzyme ?? sitesByEnzyme(sites, digest.host));
+        : (digest.byEnzyme ?? sitesByEnzyme(sites.all(), digest.host));
     return activeEnzymes().map((enzyme) => {
       const own = byName?.get(enzyme.name);
       const lengths = digest?.lengths.get(enzyme.name);
@@ -474,10 +492,14 @@ export function EnzymePanel({ doc }: Props) {
       // 30-40 ms of the open of a 4.64 Mb sequence, and a copy of each
       // enzyme's lengths kept as long as the tab was.
       let profile: DigestProfile | null | undefined;
+      const { count, cuts, host, site, sites: all } = own ?? NOT_CUT;
       return {
         enzyme,
-        sites: own?.sites ?? NO_SITES,
-        host: own?.host ?? NO_MARKS,
+        count,
+        cuts,
+        host,
+        site,
+        sites: all,
         cutting: lengths !== undefined,
         profile: () => (profile ??= lengths === undefined ? null : gelProfile(lengths, gel)),
       };
@@ -498,11 +520,11 @@ export function EnzymePanel({ doc }: Props) {
   const mask = hostStateBits(doc.methylation);
   const cuts = useMemo(
     () =>
-      ({ sites, host }: EnzymeSites): number[] => {
+      ({ count, cuts: at, host }: EnzymeSites): number[] => {
         const out: number[] = [];
-        sites.forEach((s, i) => {
-          if (((host[i] ?? 0) & mask) === 0) out.push(s.cut);
-        });
+        for (let i = 0; i < count; i++) {
+          if (((host[i] ?? 0) & mask) === 0) out.push(at[i] ?? 0);
+        }
         return out;
       },
     [mask],
@@ -538,9 +560,7 @@ export function EnzymePanel({ doc }: Props) {
     () =>
       groups.flatMap((g) => {
         const profile = shownEnzymes.has(g.enzyme.name) ? g.profile() : null;
-        return profile === null
-          ? []
-          : [{ name: g.enzyme.name, sites: g.sites, host: g.host, profile }];
+        return profile === null ? [] : [{ ...g, name: g.enzyme.name, profile }];
       }),
     [groups, shownEnzymes],
   );
@@ -621,10 +641,9 @@ export function EnzymePanel({ doc }: Props) {
           // cuts a 1 Mb sequence thousands of times is out at its fourth
           // open cut, not after a walk down all of them.
           const open: number[] = [];
-          for (let i = 0; i < entry.sites.length; i++) {
-            const site = entry.sites[i];
-            if (site === undefined || ((entry.host[i] ?? 0) & mask) !== 0) continue;
-            open.push(site.cut);
+          for (let i = 0; i < entry.count; i++) {
+            if (((entry.host[i] ?? 0) & mask) !== 0) continue;
+            open.push(entry.cuts[i] ?? 0);
             if (open.length > MAX_PAIR_CUTS) return [];
           }
           if (open.length === 0) return [];
@@ -643,7 +662,7 @@ export function EnzymePanel({ doc }: Props) {
       const members =
         supplier === '' ? all : all.filter((e) => e.suppliers?.includes(supplier) === true);
       const entry = members[0] === undefined ? undefined : entryByName.get(members[0].name);
-      if (entry === undefined || !matchesCutCount(enzymeCutFilter, entry.sites.length)) return [];
+      if (entry === undefined || !matchesCutCount(enzymeCutFilter, entry.count)) return [];
       const named =
         needle === '' ? [] : members.filter((e) => e.name.toLowerCase().includes(needle));
       if (
@@ -660,8 +679,11 @@ export function EnzymePanel({ doc }: Props) {
         {
           enzyme,
           members,
-          sites: entry.sites,
+          count: entry.count,
+          cuts: entry.cuts,
           host: entry.host,
+          site: entry.site,
+          sites: entry.sites,
           cutting: entry.cutting,
           profile: entry.profile,
         },
@@ -703,7 +725,7 @@ export function EnzymePanel({ doc }: Props) {
     gel,
   ]);
   const listedEnzymes = rows.reduce((n, r) => n + r.members.length, 0);
-  const nonCutters = groups.filter((g) => g.sites.length === 0).length;
+  const nonCutters = groups.filter((g) => g.count === 0).length;
   const cutters = groups.length - nonCutters;
   /**
    * What the "nothing is ticked" note offers, whatever the name and supplier
@@ -716,8 +738,8 @@ export function EnzymePanel({ doc }: Props) {
   const offerFilter = enzymeCutFilter === 'any' ? 'once' : enzymeCutFilter;
   const offered = units.flatMap((members) => {
     const first = members[0];
-    const sites = first === undefined ? undefined : entryByName.get(first.name)?.sites;
-    return first !== undefined && sites !== undefined && matchesCutCount(offerFilter, sites.length)
+    const count = first === undefined ? undefined : entryByName.get(first.name)?.count;
+    return first !== undefined && count !== undefined && matchesCutCount(offerFilter, count)
       ? [first.name]
       : [];
   });
@@ -935,81 +957,83 @@ export function EnzymePanel({ doc }: Props) {
         <>
           <div className="enzyme-list__scroll" ref={attachScroller}>
             <ul className="enzyme-list" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-              {rows.slice(first, end).map(({ enzyme, members, sites, host: marks, profile }) => (
-                <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
-                  <label
-                    className="enzyme-row__toggle"
-                    data-tip="Tick to draw this enzyme's cut sites and to digest with it"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={members.some((e) => shownEnzymes.has(e.name))}
-                      onChange={(e) => {
-                        if (e.target.checked) editorStore.setEnzymeShown(enzyme.name, true);
-                        else {
-                          // Unticking the row unticks the whole group, or an
-                          // isoschizomer ticked earlier would keep it ticked.
-                          const names = new Set(members.map((m) => m.name));
-                          editorStore.setShownEnzymes(
-                            [...shownEnzymes].filter((name) => !names.has(name)),
-                          );
-                        }
-                      }}
-                    />
-                    <span className="enzyme-row__name">{enzyme.name}</span>
-                    {members.length > 1 && (
-                      <span
-                        className="enzyme-row__more"
-                        data-tip={`Same site and cut: ${describeOthers(enzyme, members)}`}
-                      >
-                        {' '}
-                        +{members.length - 1}
-                      </span>
-                    )}
-                  </label>
-                  <span className="enzyme-row__site" data-tip={describeEnzyme(enzyme)}>
-                    {enzyme.site}
-                  </span>
-                  <span className="enzyme-row__cuts">
-                    {sites.slice(0, MAX_SITES_SHOWN).map((s, i) => {
-                      // Dam or Dcm inside this site in DNA from a methylating
-                      // strain; see `hostMethylationAt`.
-                      const host = hostMarksFromBits(marks[i] ?? 0);
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
-                          data-tip={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
-                            host.length > 0
-                              ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
-                              : ''
-                          }`}
-                          onClick={() => {
-                            selectSite(s);
-                          }}
+              {rows
+                .slice(first, end)
+                .map(({ enzyme, members, count, site, host: marks, profile }) => (
+                  <li key={enzyme.name} className="enzyme-row" ref={attachRow(enzyme.name)}>
+                    <label
+                      className="enzyme-row__toggle"
+                      data-tip="Tick to draw this enzyme's cut sites and to digest with it"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={members.some((e) => shownEnzymes.has(e.name))}
+                        onChange={(e) => {
+                          if (e.target.checked) editorStore.setEnzymeShown(enzyme.name, true);
+                          else {
+                            // Unticking the row unticks the whole group, or an
+                            // isoschizomer ticked earlier would keep it ticked.
+                            const names = new Set(members.map((m) => m.name));
+                            editorStore.setShownEnzymes(
+                              [...shownEnzymes].filter((name) => !names.has(name)),
+                            );
+                          }
+                        }}
+                      />
+                      <span className="enzyme-row__name">{enzyme.name}</span>
+                      {members.length > 1 && (
+                        <span
+                          className="enzyme-row__more"
+                          data-tip={`Same site and cut: ${describeOthers(enzyme, members)}`}
                         >
-                          {describeSite(s, doc)}
-                          {host.length > 0 && <sup>m</sup>}
-                        </button>
-                      );
-                    })}
-                    {sites.length > MAX_SITES_SHOWN && (
-                      <span
-                        className="enzyme-row__more"
-                        data-tip={`${enzyme.name} cuts ${sites.length} times in all`}
-                      >
-                        +{sites.length - MAX_SITES_SHOWN}
-                      </span>
-                    )}
-                  </span>
-                  <MethylationNote
-                    count={isHostMethylationSensitive(enzyme.name) ? countMarked(marks) : 0}
-                    of={sites.length}
-                  />
-                  <BandLine profile={profile()} />
-                </li>
-              ))}
+                          {' '}
+                          +{members.length - 1}
+                        </span>
+                      )}
+                    </label>
+                    <span className="enzyme-row__site" data-tip={describeEnzyme(enzyme)}>
+                      {enzyme.site}
+                    </span>
+                    <span className="enzyme-row__cuts">
+                      {firstSites(site, count).map((s, i) => {
+                        // Dam or Dcm inside this site in DNA from a methylating
+                        // strain; see `hostMethylationAt`.
+                        const host = hostMarksFromBits(marks[i] ?? 0);
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            className={`link link--mono${host.length > 0 ? ' link--methylated' : ''}`}
+                            data-tip={`Select the ${enzyme.name} site cut after base ${describeSite(s, doc)}${
+                              host.length > 0
+                                ? ` — ${host.join(' and ')} methylation overlaps it, so it may not cut DNA grown in a ${host.map((h) => h.toLowerCase()).join('+/')}+ strain of E. coli`
+                                : ''
+                            }`}
+                            onClick={() => {
+                              selectSite(s);
+                            }}
+                          >
+                            {describeSite(s, doc)}
+                            {host.length > 0 && <sup>m</sup>}
+                          </button>
+                        );
+                      })}
+                      {count > MAX_SITES_SHOWN && (
+                        <span
+                          className="enzyme-row__more"
+                          data-tip={`${enzyme.name} cuts ${count} times in all`}
+                        >
+                          +{count - MAX_SITES_SHOWN}
+                        </span>
+                      )}
+                    </span>
+                    <MethylationNote
+                      count={isHostMethylationSensitive(enzyme.name) ? countMarked(marks) : 0}
+                      of={count}
+                    />
+                    <BandLine profile={profile()} />
+                  </li>
+                ))}
             </ul>
           </div>
           <p className="panel__note">

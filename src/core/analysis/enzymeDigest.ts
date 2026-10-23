@@ -28,19 +28,29 @@ export interface EnzymeDigest {
   /** Per enzyme that cuts, by name: how many of the sites are its. */
   readonly counts: ReadonlyMap<string, number>;
   /**
-   * The sites by enzyme, as the client sorted them while unpacking the
-   * worker's answer (#278), so the Enzymes tab need not walk every site
-   * again to group them. Absent for a digest taken here; `sitesByEnzyme`
-   * then gives the same.
+   * The sites by enzyme, read out of the worker's packed answer (#278,
+   * #281), so the Enzymes tab need not walk every site again to group them,
+   * nor make an object of each. Absent for a digest taken here;
+   * `sitesByEnzyme` then gives the same.
    */
   readonly byEnzyme?: ReadonlyMap<string, EnzymeSites>;
 }
 
-/** One enzyme's sites, in the scan's order, and the host marks of each. */
+/**
+ * One enzyme's sites, in the scan's order: how many, where each cuts and
+ * the host marks of each, and the sites as objects only when asked for
+ * (#281), the same objects each time.
+ */
 export interface EnzymeSites {
-  readonly sites: readonly CutSite[];
+  readonly count: number;
+  /** Per site, where its top strand is cut. */
+  readonly cuts: NumberList;
   /** Per site, its Dam/Dcm marks as `hostMarksBits`. */
   readonly host: NumberList;
+  /** The `i`-th site, undefined past the last. */
+  readonly site: (i: number) => CutSite | undefined;
+  /** Every site. */
+  readonly sites: () => readonly CutSite[];
 }
 
 /**
@@ -51,17 +61,32 @@ export function sitesByEnzyme(
   sites: readonly CutSite[],
   host: ArrayLike<number>,
 ): Map<string, EnzymeSites> {
-  const byName = new Map<string, { readonly sites: CutSite[]; readonly host: number[] }>();
+  const byName = new Map<
+    string,
+    { readonly sites: CutSite[]; readonly cuts: number[]; readonly host: number[] }
+  >();
   sites.forEach((s, i) => {
     let entry = byName.get(s.enzyme);
     if (entry === undefined) {
-      entry = { sites: [], host: [] };
+      entry = { sites: [], cuts: [], host: [] };
       byName.set(s.enzyme, entry);
     }
     entry.sites.push(s);
+    entry.cuts.push(s.cut);
     entry.host.push(host[i] ?? 0);
   });
-  return byName;
+  return new Map(
+    [...byName].map(([name, { sites: own, cuts, host: marks }]) => [
+      name,
+      {
+        count: own.length,
+        cuts,
+        host: marks,
+        site: (i: number) => own[i],
+        sites: () => own,
+      },
+    ]),
+  );
 }
 
 /**
