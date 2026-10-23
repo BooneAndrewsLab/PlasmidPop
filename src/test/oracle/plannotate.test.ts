@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { detectFeatures } from '@/core/annotate/detect';
 import { loadFeatureLibrary } from '@/core/annotate/library';
 
 import {
@@ -94,6 +95,26 @@ describe('Detect features against pLannotate', () => {
     ]);
     const found = result.nameConflicts.map((c) => `${c.accession}: ${c.part} / ${c.theirs}`);
     expect(found.filter((c) => !known.has(c))).toEqual([]);
+  });
+
+  it('calls the lacI promoter lacIq only where it carries the Iq base (#283)', async () => {
+    // pLannotate calls the 78 bp lacI promoter on the pET/Duet vectors and
+    // the lacIq promoter, one base apart, on pTrc99A and the pGEX vectors.
+    // The part bundled as lacIq used to be the last 35 bp, which both share.
+    const lib = await loadFeatureLibrary();
+    const lacI = new Set(['lacI promoter', "lacI promoter (3' end)", 'lacIq promoter']);
+    let seen = 0;
+    for (const v of vectors) {
+      const theirs = v.hits.filter((h) => lacI.has(h.name));
+      if (theirs.length === 0) continue;
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const ours = detectFeatures(v.sequence, topology, lib)
+        .filter((h) => lacI.has(lib.parts[h.part]?.name ?? ''))
+        .map((h) => `${lib.parts[h.part]?.name} ${h.range.start}..${h.range.end}`);
+      expect(ours, v.accession).toEqual(theirs.map((h) => `${h.name} ${h.start}..${h.end}`));
+      seen += theirs.length;
+    }
+    expect(seen).toBe(13);
   });
 
   it('gives every miss a cause', () => {

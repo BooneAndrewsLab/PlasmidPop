@@ -127,6 +127,43 @@ describe('the bundled library, as loaded', () => {
     expect(onGene).not.toContain('chicken beta-actin promoter (CAG)');
   });
 
+  it('calls lacIq only on the Iq base, and one lacI promoter part per locus (#283)', async () => {
+    const lib = await loadFeatureLibrary();
+    const part = (name: string) => lib.parts.find((p) => p.name === name);
+    const wild = part('lacI promoter');
+    const iq = part('lacIq promoter');
+    const tail = part("lacI promoter (3' end)");
+    expect([wild?.accession, wild?.location]).toEqual(['J01636.1', '1..78']);
+    expect([iq?.accession, iq?.location]).toEqual(['U13853.1', '3240..3317']);
+    expect([tail?.accession, tail?.location]).toEqual(['J01636.1', '44..78']);
+    const seq = wild?.sequence ?? '';
+    // The two 78 bp regions differ at position 16 alone (the -35 box, C to T),
+    // and the 35 bp part is the end both share.
+    const diffs = seq.split('').flatMap((b, i) => (b === iq?.sequence[i] ? [] : [i + 1]));
+    expect(diffs).toEqual([16]);
+    expect(seq.endsWith(tail?.sequence ?? '-')).toBe(true);
+    const at16 = (base: string): string => seq.slice(0, 15) + base + seq.slice(16);
+    const called = (s: string, minIdentity?: number): string[] =>
+      detectFeatures(s, 'linear', lib, minIdentity === undefined ? {} : { minIdentity })
+        .filter((h) => (lib.parts[h.part]?.name ?? '').startsWith('lacI'))
+        .map((h) => lib.parts[h.part]?.name ?? '');
+    for (const identity of [0.9, 0.95, 0.98, 1]) {
+      expect(called(seq, identity), `wild type at ${identity}`).toEqual(['lacI promoter']);
+      expect(called(at16('T'), identity), `Iq at ${identity}`).toEqual(['lacIq promoter']);
+    }
+    // Neither base at 16, or no base read there: both fit as well, and the
+    // wild type is the one called. The 3' end, matched in full where the
+    // region is not, stays beside it, as any part fitting better than the
+    // longer one around it does (keepBest).
+    expect(called(at16('N'))).toEqual(['lacI promoter', "lacI promoter (3' end)"]);
+    expect(called(at16('A'))).toEqual(['lacI promoter', "lacI promoter (3' end)"]);
+    // Cut off before the Iq base by a linear end, it cannot be told Iq.
+    expect(called(at16('T').slice(20))).toEqual(['lacI promoter']);
+    // The 3' end alone, with what lies before it changed, is the short part.
+    const unrelated = 'GTTTAAACGGATCCTCTAGAGTCGACCTGCAGGCA'.slice(0, 43);
+    expect(called(unrelated + (tail?.sequence ?? ''))).toEqual(["lacI promoter (3' end)"]);
+  });
+
   it('carries notes, and FPbase pages on the fluorescent proteins alone', async () => {
     const lib = await loadFeatureLibrary();
     expect(lib.parts.some((p) => p.source === 'core' && p.note !== undefined)).toBe(true);
