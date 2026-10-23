@@ -1,5 +1,6 @@
 import { type FeatureHit, detectFeatures, overlapLength } from '@/core/annotate/detect';
 import { type FeatureLibrary } from '@/core/annotate/library';
+import { nameOfHit } from '@/core/annotate/variant';
 import { type Topology } from '@/core/range';
 
 import aliases from './plannotate-aliases.json';
@@ -331,7 +332,8 @@ export function compare(library: FeatureLibrary): Comparison {
     for (const o of hits) {
       const part = library.parts[o.part];
       if (part === undefined) continue;
-      const oursClass = classOfPart(part.category, part.type, part.name);
+      const ours = nameOfHit(o, part);
+      const oursClass = classOfPart(part.category, part.type, ours);
       const known = v.hits.some(
         (h) =>
           sameStrand(oursClass, h.name, strandOf(h), o.strand) &&
@@ -340,7 +342,7 @@ export function compare(library: FeatureLibrary): Comparison {
       if (known) continue;
       extras.push({
         accession: v.accession,
-        part: part.name,
+        part: ours,
         category: part.category,
         cls: oursClass,
         strand: o.strand,
@@ -350,31 +352,37 @@ export function compare(library: FeatureLibrary): Comparison {
     }
     for (const o of hits) {
       const part = library.parts[o.part];
-      if (part === undefined || !counterparts.has(part.name)) continue;
-      const oursClass = classOfPart(part.category, part.type, part.name);
+      if (part === undefined) continue;
+      // The name the call carries, which for a hit that does not show its
+      // part's variant is the element's (#284): such a call claims no part
+      // of ours, so it is no part's name against pLannotate's.
+      const ours = nameOfHit(o, part);
+      if (!counterparts.has(ours)) continue;
+      const oursClass = classOfPart(part.category, part.type, ours);
       for (const h of complete) {
         const theirs = partByName.get(normalize(ourNameFor(h.name)));
-        if (theirs === undefined || theirs === part.name) continue;
+        if (theirs === undefined || theirs === ours) continue;
         if (!sameStrand(oursClass, h.name, strandOf(h), o.strand)) continue;
         const range = oracleRange(h, v.length, topology);
         const longer = Math.max(range.end - range.start, o.range.end - o.range.start);
         if (overlapLength(range, o.range, v.length, topology) < MIN_SHARED * longer) continue;
-        nameConflicts.push({ accession: v.accession, part: part.name, theirs });
+        nameConflicts.push({ accession: v.accession, part: ours, theirs });
       }
     }
     // Fragments too: a piece of a part still reads one way.
     for (const o of hits) {
       const part = library.parts[o.part];
       if (part === undefined) continue;
-      const oursClass = classOfPart(part.category, part.type, part.name);
+      const ours = nameOfHit(o, part);
+      const oursClass = classOfPart(part.category, part.type, ours);
       for (const h of v.hits) {
         if (isOracleError(v.accession, h)) continue;
-        if (partByName.get(normalize(ourNameFor(h.name))) !== part.name) continue;
+        if (partByName.get(normalize(ourNameFor(h.name))) !== ours) continue;
         if (sameStrand(oursClass, h.name, strandOf(h), o.strand)) continue;
         const range = oracleRange(h, v.length, topology);
         const longer = Math.max(range.end - range.start, o.range.end - o.range.start);
         if (overlapLength(range, o.range, v.length, topology) < MIN_SHARED * longer) continue;
-        strandConflicts.push({ accession: v.accession, part: part.name, ours: o.strand });
+        strandConflicts.push({ accession: v.accession, part: ours, ours: o.strand });
       }
     }
   }

@@ -210,6 +210,41 @@ describe('the bundled library, as loaded', () => {
     expect(called(unrelated + (tail?.sequence ?? ''))).toEqual(["lacI promoter (3' end)"]);
   });
 
+  it('says what names each variant part, and what the element is (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const variant = (name: string) => lib.parts.find((p) => p.name === name)?.variant;
+    // The one base of the -35/-10 spacer that tells trc from tac lies in
+    // the part's bases 176..204 (TTGACA at 176, TATAAT at 199).
+    expect(variant('trc promoter region')).toEqual({ bases: { start: 176, end: 204 } });
+    const trc = lib.parts.find((p) => p.name === 'trc promoter region')?.sequence ?? '';
+    expect(trc.slice(175, 181)).toBe('TTGACA');
+    expect(trc.slice(198, 204)).toBe('TATAAT');
+    // kanMX's first eight residues, MGKEKTHV, where the transposon's gene
+    // reads MSHIQRET; no family, as `KanR (Tn903)` is the part for that.
+    expect(variant('kanMX KanR')).toEqual({ protein: [1, 2, 3, 4, 5, 6, 7, 8] });
+    expect(lib.parts.find((p) => p.name === 'kanMX KanR')?.protein?.slice(0, 8)).toBe('MGKEKTHV');
+    expect(lib.parts.find((p) => p.name === 'KanR (Tn903)')?.protein?.slice(0, 8)).toBe('MSHIQRET');
+    // The four residues an rtTA's repressor differs in (E71K, D95N, L101S,
+    // G102D), and the element both TetR parts belong to.
+    expect(variant('TetR (Tn10)')).toEqual({ family: 'TetR', protein: [71, 95, 101, 102] });
+    const tetR = lib.parts.find((p) => p.name === 'TetR (Tn10)')?.protein ?? '';
+    expect([tetR[70], tetR[94], tetR[100], tetR[101]]).toEqual(['E', 'D', 'L', 'G']);
+    expect(variant('TetR (class C)')).toEqual({ family: 'TetR' });
+    // luc+ and luc2 code for one protein, so only the bases can tell them
+    // apart, and a hit made on the protein is a firefly luciferase.
+    expect(variant('luciferase (luc+)')).toEqual({ family: 'firefly luciferase', codons: true });
+    expect(lib.parts.some((p) => p.name === 'firefly luciferase')).toBe(true);
+    // The fluorescent proteins ask for their whole protein.
+    expect(variant('avGFP')).toEqual({ family: 'GFP', protein: 'exact' });
+    expect(variant('DsRed-Express2')).toEqual({ family: 'DsRed', protein: 'exact' });
+    // No part is named after a family that is itself a variant.
+    for (const p of lib.parts) {
+      const family = p.variant?.family;
+      if (family === undefined) continue;
+      expect(lib.parts.find((q) => q.name === family)?.variant).toBeUndefined();
+    }
+  });
+
   it("carries one filamentous-phage origin, under both phages' names (#284)", async () => {
     const lib = await loadFeatureLibrary();
     // f1 and M13 differ at two bases over the origin, and deposited records

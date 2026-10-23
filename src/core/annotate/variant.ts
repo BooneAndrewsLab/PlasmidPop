@@ -68,8 +68,10 @@ export function showsVariant(
       !(hit.partialStart ?? false) &&
       !(hit.partialEnd ?? false);
     if (!whole) return false;
-    const got = translate(bases).replace(/\*$/, '');
-    if (got.length !== want.length) return false;
+    // The part's own protein has no closing stop; what the hit's bases read
+    // may have one, or, where the frame runs on past the part's stop into a
+    // fusion, a residue there instead. Only the marked positions are read.
+    const got = translate(bases);
     const positions =
       variant.protein === 'exact'
         ? Array.from({ length: want.length }, (_, i) => i + 1)

@@ -216,8 +216,12 @@ describe('the library file', () => {
     });
   });
 
+  it('takes a family on its own, which only a homologue fails', () => {
+    expect(parseLibraryFile(one({ family: 'X' }), 'core')[0]?.variant).toEqual({ family: 'X' });
+  });
+
   it('refuses a variant that names nothing, or a position the part has not', () => {
-    expect(() => parseLibraryFile(one({ family: 'X' }), 'core')).toThrow(/says nothing/);
+    expect(() => parseLibraryFile(one({}), 'core')).toThrow(/says nothing/);
     expect(() => parseLibraryFile(one({ protein: '99' }), 'core')).toThrow(/out of range/);
     expect(() => parseLibraryFile(one({ bases: '1,9' }), 'core')).toThrow(/one stretch/);
     expect(() => parseLibraryFile(one({ bases: 'x' }), 'core')).toThrow(/malformed positions/);

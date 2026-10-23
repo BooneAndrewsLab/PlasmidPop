@@ -86,11 +86,7 @@ describe('Detect features against pLannotate', () => {
     // caught it. f1/M13 and TetR/rtTA are variants told apart by a few
     // bases (#284); pLannotate calls pBR322's tet gene tetA and the SV40
     // origin, short in AF239250, the SV40 promoter.
-    const known = new Set([
-      'J01749.1: TcR / TetA (Tn10)',
-      'AF239250.1: SV40 ori / SV40 promoter',
-      'U89930.1: TetR (Tn10) / rtTA (Tet-On 3G)',
-    ]);
+    const known = new Set(['J01749.1: TcR / TetA (Tn10)', 'AF239250.1: SV40 ori / SV40 promoter']);
     const found = result.nameConflicts.map((c) => `${c.accession}: ${c.part} / ${c.theirs}`);
     expect(found.filter((c) => !known.has(c))).toEqual([]);
   });
@@ -217,7 +213,7 @@ describe('Detect features against pLannotate', () => {
       const topology = v.topology === 'circular' ? 'circular' : 'linear';
       for (const h of detectFeatures(v.sequence, topology, lib)) {
         const part = lib.parts[h.part];
-        if (part === undefined || part.category !== 'fluorescent protein') continue;
+        if (part?.category !== 'fluorescent protein') continue;
         if (h.range.start + 1 === from && h.range.end === to) return nameOfHit(h, part);
       }
       return undefined;
@@ -229,6 +225,55 @@ describe('Detect features against pLannotate', () => {
     expect(named('U47949.1', 1, 717)).toBe('GFP');
     // DsRed.T3 (identical to AJ851289's protein), 16 residues from Express2.
     expect(named('AY916793.1', 953, 1630)).toBe('DsRed');
+  }, 300_000);
+
+  it('keeps a variant name only where the bases carry the variant (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const called = (accession: string, from: number, to: number): string[] => {
+      const v = vectors.find((x) => x.accession === accession);
+      if (v === undefined) throw new Error(accession);
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      return (
+        detectFeatures(v.sequence, topology, lib)
+          // Every call of ours that lies mostly over the stretch asked about.
+          .filter(
+            (h) =>
+              overlapLength({ start: from - 1, end: to }, h.range, v.length, topology) >=
+              0.5 * (h.range.end - h.range.start),
+          )
+          .flatMap((h) => {
+            const part = lib.parts[h.part];
+            return part === undefined || part.category === 'primer' ? [] : [nameOfHit(h, part)];
+          })
+      );
+    };
+    // The pGEX vectors' promoter is tac: 245 of the trc part's 246 bases,
+    // the one missing in the -35/-10 spacer. The 29 bp tac part is called
+    // there, and the trc region is not.
+    for (const accession of ['U13850.1', 'U13852.1', 'U78872.1', 'U84572.1']) {
+      const over = called(accession, 8, 252);
+      expect(over, accession).toContain('tac promoter');
+      expect(over, accession).not.toContain('trc promoter region');
+    }
+    // pTrc99A and pKK233-2's own region keeps the name.
+    expect(called('M22744.1', 18, 263)).toContain('trc promoter region');
+    // GU931384's kanamycin gene starts MSHIQRETS, the transposon's, not
+    // kanMX's MGKEKTHV: our Tn903 part covers it and kanMX is not offered.
+    expect(called('GU931384.1', 1019, 1828)).toEqual(['KanR (Tn903)']);
+    // The TetR of pTet-On's rtTA: E71K, D95N, L101S and G102D against
+    // J01830, and the frame runs on into the activator domain.
+    expect(called('U89930.1', 774, 1397)).toEqual(['TetR']);
+    // A TetR-GFP fusion whose repressor is the Tn10 one, residue for
+    // residue, keeps the Tn10 name although its frame runs on as well.
+    expect(called('JX679612.1', 2735, 3358)).toEqual(['TetR (Tn10)']);
+    // pBI121's repressor is the RP4 one (648 of 648 bases to X75761), 70%
+    // identical to the pSC101 class C part it is found through.
+    expect(called('AF485783.1', 1342, 1989)).toEqual(['similar to TetR']);
+    // pGL4's luciferase is luc2, which differs from luc+ in its codons
+    // alone, so the protein it was found by cannot tell them apart.
+    expect(called('MK484106.1', 141, 1790)).toEqual(['firefly luciferase']);
+    // pGL3's own luc+, found on its bases, keeps the name.
+    expect(called('OR236194.1', 429, 2081)).toEqual(['luciferase (luc+)']);
   }, 300_000);
 
   it("makes none of pLannotate's known errors (#285)", () => {

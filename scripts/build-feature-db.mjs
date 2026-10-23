@@ -444,7 +444,12 @@ function checkVariant(name, variant, sequence, protein) {
     positions(variant.protein, protein.length);
   }
   if (variant.bases !== undefined) positions(variant.bases, sequence.length);
-  if (variant.protein === undefined && variant.bases === undefined && variant.codons !== true) {
+  if (
+    variant.family === undefined &&
+    variant.protein === undefined &&
+    variant.bases === undefined &&
+    variant.codons !== true
+  ) {
     throw new Error(`${name}: a variant that says nothing a hit must show`);
   }
   return variant;
@@ -513,7 +518,20 @@ async function buildCorePart(spec) {
     ...(spec.fragment === true ? { fragment: true } : {}),
     ...(spec.variant === undefined
       ? {}
-      : { variant: checkVariant(spec.name, spec.variant, sequence, protein) }),
+      : {
+          variant: checkVariant(
+            spec.name,
+            spec.variant,
+            sequence,
+            // What the library reads off a coding part's bases when the part
+            // carries no protein of its own (`codingProtein`), so a variant
+            // may name residues of any CDS.
+            protein ??
+              (spec.type === 'CDS' && sequence.length % 3 === 0
+                ? translate(sequence).replace(/\*$/, '')
+                : undefined),
+          ),
+        }),
   };
 }
 

@@ -37,6 +37,10 @@ export type LibrarySource = 'core' | 'fpbase' | 'mine';
  *   shows even where the matcher read the copy with an indel.
  * - `codons`: the variant is in the codons alone (luc+ against luc2), so a
  *   hit made in the translation can never show it.
+ *
+ * A `family` alone asks only that the hit be the part rather than a
+ * homologue of it: a protein 70% identical to the pSC101 repressor is a
+ * TetR, but not that class of one.
  */
 export interface PartVariant {
   /** The element's own name, used where a hit does not show the variant. */
@@ -184,7 +188,7 @@ function parseVariant(
     }
     if (bases.end <= bases.start) throw new Error('variant bases are a single base');
   }
-  if (residues === undefined && bases === undefined && codons !== true) {
+  if (family === undefined && residues === undefined && bases === undefined && codons !== true) {
     throw new Error('variant says nothing a hit must show');
   }
   return {
