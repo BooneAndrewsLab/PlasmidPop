@@ -144,12 +144,27 @@ export interface NameConflict {
   readonly theirs: string;
 }
 
+/**
+ * A hit of ours and one of pLannotate's over the same bases (each shares at
+ * least half of the longer) that name the same part on opposite strands
+ * (#287). Origins and att sites are left out, as `sameStrand` leaves them
+ * out. A part stored antisense to the way it works shows up here on every
+ * vector that carries it.
+ */
+export interface StrandConflict {
+  readonly accession: string;
+  readonly part: string;
+  /** The strand of our call; pLannotate's is the other. */
+  readonly ours: 'forward' | 'reverse';
+}
+
 export interface Comparison {
   readonly total: Record<PartClass, number>;
   readonly found: Record<PartClass, number>;
   readonly misses: readonly Miss[];
   readonly extras: readonly Extra[];
   readonly nameConflicts: readonly NameConflict[];
+  readonly strandConflicts: readonly StrandConflict[];
   /** Calls in `ORACLE_ERRORS` that a hit of ours makes too, on the same strand. */
   readonly erroneous: readonly { readonly accession: string; readonly name: string }[];
   /** Hits of ours, all told. */
@@ -245,6 +260,7 @@ export function compare(library: FeatureLibrary): Comparison {
   const misses: Miss[] = [];
   const extras: Extra[] = [];
   const nameConflicts: NameConflict[] = [];
+  const strandConflicts: StrandConflict[] = [];
   const erroneous: { accession: string; name: string }[] = [];
   let oursCount = 0;
   const partByName = new Map(library.parts.map((p) => [normalize(p.name), p.name]));
@@ -346,8 +362,32 @@ export function compare(library: FeatureLibrary): Comparison {
         nameConflicts.push({ accession: v.accession, part: part.name, theirs });
       }
     }
+    // Fragments too: a piece of a part still reads one way.
+    for (const o of hits) {
+      const part = library.parts[o.part];
+      if (part === undefined) continue;
+      const oursClass = classOfPart(part.category, part.type, part.name);
+      for (const h of v.hits) {
+        if (isOracleError(v.accession, h)) continue;
+        if (partByName.get(normalize(ourNameFor(h.name))) !== part.name) continue;
+        if (sameStrand(oursClass, h.name, strandOf(h), o.strand)) continue;
+        const range = oracleRange(h, v.length, topology);
+        const longer = Math.max(range.end - range.start, o.range.end - o.range.start);
+        if (overlapLength(range, o.range, v.length, topology) < MIN_SHARED * longer) continue;
+        strandConflicts.push({ accession: v.accession, part: part.name, ours: o.strand });
+      }
+    }
   }
-  return { total, found, misses, extras, nameConflicts, erroneous, ours: oursCount };
+  return {
+    total,
+    found,
+    misses,
+    extras,
+    nameConflicts,
+    strandConflicts,
+    erroneous,
+    ours: oursCount,
+  };
 }
 
 /** The comparison as the markdown tables of item 59, for re-running it after a change. */
