@@ -69,6 +69,7 @@ describe('PackedCutSiteSet', () => {
     expect(set.size).toBe(6);
     expect(set.all()).toEqual(SITES);
     expect(set.of('EcoRI')).toEqual(SITES.filter((s) => s.enzyme === 'EcoRI'));
+    expect(set.count('EcoRI')).toBe(3);
     expect(set.count('SmaI')).toBe(0);
     expect(set.of('SmaI')).toEqual([]);
     expect(set.pick(new Set(['EcoRI', 'SmaI']))).toEqual(set.of('EcoRI'));

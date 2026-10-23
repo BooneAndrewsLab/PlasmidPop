@@ -288,3 +288,68 @@ of the 18,835 killed mutants (17%) were killed only by jsdom test files
 (390 in `backup.ts`, 248 in `gel.ts`). `timeoutMS` (30 s) was left as it
 is: a Timeout mutant costs at least that, but the verdicts are reused by
 the incremental run, so it only weighs on mutants that are new.
+
+## At 1.17.3
+
+`cutSiteSet.ts` (#281), `analysisProtocol.ts` (the scan's pack and unpack),
+`saveProtocol.ts` (the save worker's snapshot, #272) and `inputQuiet.ts`
+(#278, on an injected clock) joined the set, 81 files. The save worker, its
+client and `persistence.ts` are glue around a worker and IndexedDB and stay
+out.
+
+**The shared project broke the full run.** Stryker's setup puts the
+coverage record on its global into each file's results after the file. With
+shared globals that record was the whole run's so far, so every file
+carried all the files before it: the dry run's runner grew past 13 GB and
+crashed twice. The narrow runs of the 2026-10-22 measurement never showed
+it. `src/test/setup.ts` now empties the record's two maps as each file
+starts. It keeps the object, because an instrumented module goes on writing
+to the record it first wrote to. A first attempt replaced the record. That
+lost the coverage of every later file, and half the retested mutants
+survived. Vitest has sent each file's results before the next one starts,
+and the runner sums the files. A narrow run on `sha1.ts` checked the fix:
+320 covering tests per mutant against 314 at 1.17.2. The full dry run now
+stays near 1.2 GB but takes 21.5 minutes, since every scan test runs through
+instrumented code. A narrow one takes 7.
+
+The full incremental run scored 94.75% over 81 files (22,867 mutants;
+19,204 killed, 362 timed out, 981 survived, 103 not covered; 18,117 reused,
+2,540 tested; 144 minutes after the dry run). 54 survived or uncovered
+mutants sat on lines changed since 1.17.2. Tests killed 26 of them:
+
+- the sites of a set made once and kept (`of`, a view's `site(j)`);
+- no site before an enzyme's first or past its last (`cutSiteSet.test.ts`);
+- input-quiet's capture and passive options, a wheel with no button held,
+  the idle callback's timeout, and giving up at the deadline itself on a
+  clock that stands still;
+- an enzyme with sites and nothing in the digest, unpacked;
+- SHA-1's fallback over whole blocks, and U+10000 and U+10FFFF across a
+  chunk's end.
+
+The confirming rerun scored 94.92% (19,248 killed, 353 timed out, 947
+survived, 102 not covered; 418 tested, 88 minutes). It showed one more on a
+changed line: `PackedCutSiteSet.count` read as 0 for every enzyme had been
+killed only by the property test's random draws. A plain test now kills it;
+that was checked by applying the mutant by hand. No disable comment was
+added. The 28 left on changed lines are equivalent:
+
+- **Caching and identity only:** `counts()` and `groups()` built again
+  on each call. An empty answer is the shared empty list or a new one
+  (`pick` of nothing, `of` an unknown name, `pick`'s seeded list). `pick`
+  merges instead of taking the one enzyme's list.
+- **Names it does not know:** an unknown name already reads as a share of 0,
+  in `count` and in `pick`'s test.
+- **Enzymes without a site**, which `packCutSites` never lists: the
+  `share > 0` tests in `counts`, `pick` and `groups`.
+- **`merge`'s redundant guards:** groups made that were not asked for. The
+  loop runs one past the end and reads a 0 head, whose cursor is past its
+  group. A group not asked for is the empty list. `groups[k]` and the site
+  are always defined. Also a write past `offsets`' end, which a typed array
+  drops, and `?? ''` for an enzyme index that is always in range.
+- **SHA-1's chunk end:** `end++` keeps a pair whole in the earlier chunk
+  rather than the later. Dropping `last >= 0xd800` moves a chunk's end back
+  one before any code unit, which splits nothing.
+- **`kmers` on a circle:** `text + text` and `slice(0, K + 1)` add only
+  K-mers that start at the origin again.
+- **`unpackScan`'s default pause:** `await undefined` instead of
+  `await Promise.resolve()`.
