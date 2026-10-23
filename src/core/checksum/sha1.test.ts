@@ -75,6 +75,11 @@ describe('sha1', () => {
         expect(sha1Hex(text), `pair at ${at}`).toBe(nodeSha1(text));
       }
     }
+    // The first and last high halves, U+10000 and U+10FFFF, ending a chunk.
+    for (const pair of ['𐀀', '􏿿']) {
+      const text = `${'A'.repeat(16_383)}${pair}C`;
+      expect(sha1Hex(text), pair.codePointAt(0)?.toString(16)).toBe(nodeSha1(text));
+    }
     // A lone half is one replacement character, as TextEncoder writes it.
     const lone = `${'A'.repeat(16_383)}\ud83dC`;
     expect(sha1Hex(lone)).toBe(nodeSha1(lone));
@@ -127,5 +132,15 @@ describe('sha1Base64UrlAsync (#276)', () => {
     expect(await sha1Base64UrlAsync('ACGT')).toBe('IQiZThf2zKn_I1KtqStlEdsHYDQ');
     vi.stubGlobal('crypto', undefined);
     expect(await sha1Base64UrlAsync('ACGT')).toBe('IQiZThf2zKn_I1KtqStlEdsHYDQ');
+  });
+
+  it('hashes the whole blocks and the tail in the fallback too', async () => {
+    vi.stubGlobal('crypto', {});
+    // One block and a bit, two exact blocks, and a multi-byte character
+    // straddling the first block's end.
+    for (const text of ['ACGT'.repeat(25), 'a'.repeat(128), `${'A'.repeat(63)}é${'C'.repeat(70)}`])
+      expect(await sha1Base64UrlAsync(text), `${text.length} characters`).toBe(
+        Buffer.from(nodeSha1(text), 'hex').toString('base64url'),
+      );
   });
 });

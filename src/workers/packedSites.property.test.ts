@@ -18,7 +18,7 @@ import {
 
 import { handleAnalysisRequest } from './analysis.worker';
 import { AnalysisClient } from './analysisClient';
-import { unpackScan } from './analysisProtocol';
+import { packCutSites, unpackScan } from './analysisProtocol';
 
 // #281: the main thread keeps the worker's scan packed and makes an
 // enzyme's site objects when asked. Whatever is asked, and in whatever
@@ -211,6 +211,24 @@ describe('the packed sites against findCutSites (#281)', () => {
     expect(claI?.count).toBe(1);
     expect(claI?.host[0]).not.toBe(0);
     expect(sites.all()).toEqual(expected);
+  });
+
+  it('gives no lengths and no count to an enzyme the digest has none for', async () => {
+    // A site of a name no enzyme table knows: the digest skips it (item 98),
+    // so its entries in the packed digest are empty and zero.
+    const sites = [
+      { enzyme: 'EcoRI', cut: 5, cutBottom: 9, siteStart: 4, strand: 'forward' as const },
+      { enzyme: 'Mystery', cut: 12, cutBottom: 12, siteStart: 10, strand: 'forward' as const },
+    ];
+    const { digest } = await unpackScan(packCutSites(sites), {
+      host: new Uint8Array(2),
+      lengths: Int32Array.from([30, 10]),
+      offsets: Int32Array.from([0, 2, 2]),
+      counts: Int32Array.from([1, 0]),
+    });
+    expect([...digest.lengths]).toEqual([['EcoRI', Int32Array.from([30, 10])]]);
+    expect([...digest.counts]).toEqual([['EcoRI', 1]]);
+    expect(digest.byEnzyme?.get('Mystery')?.count).toBe(1);
   });
 
   it('is what the client gives where there is no worker', async () => {

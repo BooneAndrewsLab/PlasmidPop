@@ -72,6 +72,48 @@ describe('InputQuiet', () => {
     const hover = page();
     hover.input('pointermove', { buttons: 0 });
     expect(hover.quiet.sinceInput()).toBe(Infinity);
+    // A wheel turned with no button held carries buttons 0 too, and counts.
+    const wheel = page();
+    wheel.input('wheel', { buttons: 0 });
+    expect(wheel.quiet.sinceInput()).toBe(0);
+  });
+
+  it('listens in the capture phase and passively, and to nothing without a page', () => {
+    const addEventListener = vi.fn();
+    new InputQuiet({ addEventListener } as unknown as EventTarget, () => 0);
+    expect(addEventListener.mock.calls.length).toBeGreaterThan(0);
+    for (const [, , options] of addEventListener.mock.calls)
+      expect(options).toEqual({ capture: true, passive: true });
+    expect(new InputQuiet(null, () => 0).sinceInput()).toBe(Infinity);
+  });
+
+  it('asks for the idle moment within a second, or by the deadline if that is sooner', async () => {
+    const quiet = new InputQuiet(new EventTarget(), () => Date.now());
+    const timeouts: unknown[] = [];
+    vi.stubGlobal('requestIdleCallback', (cb: () => void, options: unknown) => {
+      timeouts.push(options);
+      cb();
+    });
+    try {
+      await quiet.whenQuiet(1000, 5000);
+      await quiet.whenQuiet(1000, 300);
+      expect(timeouts).toEqual([{ timeout: 1000 }, { timeout: 300 }]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('gives up at the deadline itself, not a moment after it', async () => {
+    // On a clock that stands still the deadline is now: one idle moment, then done.
+    const target = new EventTarget();
+    const quiet = new InputQuiet(target, () => 0);
+    target.dispatchEvent(new Event('keydown'));
+    let done = false;
+    void quiet.whenQuiet(1000, 0).then(() => {
+      done = true;
+    });
+    await vi.advanceTimersByTimeAsync(1);
+    expect(done).toBe(true);
   });
 
   it('gives up waiting after the longest wait, however busy the page', async () => {
