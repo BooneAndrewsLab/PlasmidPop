@@ -67,7 +67,8 @@ worker too.
   hidden one, so its main-thread time is free. This is the main-thread
   fallback; everything else goes through the worker.
 - **A tab closed while its save is out keeps that save**: nothing checks
-  whether the tab is still open before writing.
+  whether the tab is still open before writing. Since #280 the close's own
+  save overtakes it instead (below).
 
 The tests (`autosaveWorker.test.ts`) put the rows of tabs of every kind
 through both paths and compare them, and hold the worker's answer to
@@ -95,6 +96,88 @@ a failure is only as good as the profile that would show it.
 - Because the text now comes back a round trip later, at 4.64 Mb that
   remainder lands about 0.3 s later than the whole autosave did, inside the
   bench's first scroll. When the autosave should run is #278's.
-- An edit followed by closing the tab within the 500 ms debounce is still
-  not saved: the debounced autosave goes over the open tabs only. That was
-  so before this change.
+- An edit followed by closing the tab within the 500 ms debounce was still
+  not saved: the debounced autosave went over the open tabs only. That was
+  so before this change; it is #280's, below.
+
+## Closing a tab (#280)
+
+### What was asked
+
+An edit followed by closing its tab before the autosave had stored it was
+lost: reopening the document from Recent files showed the state before it.
+#278 (item 104) widened the window from the 500 ms debounce to as much as
+some ten seconds, since an ordinary save started for a state d1 may wait up
+to 5 s for quiet before the worker request and again before the put, and
+an edit d2 made meanwhile is only in the next save, which reads the open
+tabs and so never sees a tab closed in between.
+
+### What was done
+
+**The store says when tabs close.** `editorStore.onTabsClosed` tells its
+listeners the states of the tabs that just left, whichever way they left:
+`closeDocument` (the tab's close button, File → Close, `Alt+W`, the last
+tab of the window, removing an open document from Recent files),
+`closeAllDocuments`, and an untouched New tab given up to an opened file.
+There is no Close others or Close all in the UI; closing the page is
+`useFlushOnLeave`'s. `useSaveOnClose` (in `App`) has the persistence service
+listen, so a test's own `PersistenceService` listens only when it asks to
+(`saveOnClose()`), and nothing saves behind a test that did not.
+
+**`saveClosed` writes each closed tab that changed since it was last
+written** (the same `isUnchanged` test the autosave uses); an unchanged one,
+and an untouched new one, write nothing. It claims the closed state in
+`lastRead` before its first await, so every ordinary save of that id still
+out, waiting for quiet, at the worker or before its put, finds out at its
+next check, or inside its transaction, that it was overtaken and writes
+nothing. It claims a shallow copy of the state rather than the state itself:
+claims go by identity, so an ordinary save that read the very same state
+stands down too, and a genome is put once rather than twice. A save whose
+transaction had already passed its check before the close writes first;
+the close's transaction begins later and lands after it. The ordinary save
+now reads each tab when its turn in the loop comes rather than all of them
+when it starts, so a tab closed during it is skipped rather than written in
+a state older than its close's.
+
+**It is neither urgent nor queued.** Its text is written in the save worker
+and it waits for neither the queue nor quiet; it does wait for the worker's
+checksum, as an ordinary save does.
+
+- Not inline, as the flush on leaving is: that is for a page nobody may see
+  again, whose main-thread time is free. A closed tab's page is still in
+  use: the next tab is being drawn, and an inline `writeGenBank` of a
+  4.64 Mb genome is about 110 ms on top of the put. Through the worker the
+  close costs the main thread the history row, crossing the document over
+  and the put, 47-63 ms at 4.64 Mb (above), once.
+- Not queued, and not waiting for quiet: the queue can be held for seconds
+  by a save waiting for quiet, and the point of the save is that the
+  document is stored by the time anyone looks for it. Reopening it from
+  Recent files is the likely next step, and `openStored` waits for the
+  close's save of that id before it reads it, so a wait for quiet there
+  would be a reopen held for seconds. Closing a tab is not a moment of
+  scrolling, so the put the wait was for (#278) has nothing to land in.
+- Leaving the page while a close's save is still at the worker loses
+  nothing: the urgent flush also writes the states of closes still under
+  way (`closing`), inline, as it writes the open tabs.
+
+**A closed tab is not merged into an identical entry by re-keying it**:
+there is no tab left to re-key. With no steps of its own and an identical
+entry not open, the entry already holds it and nothing is written; with
+steps it keeps an entry of its own, as an open tab with steps does.
+
+**Removing a document closes its tab first without saving it** (`removing`),
+drops any claim on it so a save still out stands down, and waits for a
+close's save already under way before it deletes, so nothing writes a
+removed document back.
+
+**A reopened document whose undo history is rebuilt a task later** (#83)
+counts as unchanged: what came back is what is stored. Before, the rebuild
+made it look changed, and it was written again by the next autosave; now
+neither that nor closing it unchanged writes anything.
+
+The tests are in `saveOnClose.test.tsx`: each way a tab closes (the close
+button, `Alt+W`, File → Close, closing all, an untouched New tab replaced),
+the close against a save waiting for quiet before the worker and before the
+put, out at the worker and held at the put, of the same state, two quick
+edits, the page left while the close is at the worker, reopening from the
+list with the close's save still out, removal, and the hook.
