@@ -803,3 +803,78 @@ complement(3133..3210). The name-conflict check had not caught it, since
 35 bp is less than half of pLannotate's 78; pLannotate's two names are now
 ours, with no alias. `plannotate.test.ts` checks the 13, and
 `library.test.ts` the tie cases.
+
+### Tags read antisense to a gene (#285)
+
+The protein search reads all six frames, so a peptide of one repeated codon
+turns up in frames nobody translates. JX679612.1 (pRS416 pRS-TG) got a
+6xHis (3366..3383) and an 8xHis (3357..3380) on the reverse strand. The
+bases there are `GGT` nine times, the glycine linker of the record's TetR-GFP
+fusion CDS (TG, 2735..4117, which translates to `...LKCESGSGGGGGGGGGVSKGEE...`
+there); read the other way, `(ACC)9` is `HHHHHHHHH` in one frame. pLannotate
+calls the same 9xHis (3357..3383, reverse), so the recall test had counted
+it found.
+
+A hit found by its protein (`viaProtein`, exact or similar) is now dropped
+(`readsAntisense`, `src/core/annotate/translated.ts`) when both hold:
+
+- **its own frame is no ORF:** no ATG at or before it back to the stop before
+  it, and open, stop to stop, for fewer than 75 codons
+  (`DEFAULT_MIN_ORF_CODONS`, the ORFs tab's default); and
+- **the other strand has an ORF across it:** ATG to stop, at least 75 codons,
+  holding every base of the hit, in any of the three frames there.
+
+A frame that runs off a linear end, or into an ambiguous base, before its
+stop may have a start there and is kept. The ORF opposite must end in a
+definite stop. It is applied to the protein hits before `keepBest`, so a
+dropped hit takes no other with it.
+
+Measured on the 83 vectors, the search makes 68 protein hits (47 of them
+tags, 8 of the 68 homologues). 10 have no start in their frame; 4 of those
+lie in a 75-codon ORF on the other strand; 2 of the 4 are dropped, the
+JX679612 pair (22 open codons against a 485-codon ORF). The other 2 are the
+TEV sites of JF327847.1 and JF327851.1. Their frames have no start but are
+open for 360 codons, on into the iFP1.4 that pLannotate calls in the same
+frame: a fusion whose start a cloning step supplies. That is why an open
+frame of an ORF's length counts as an ORF. 18 hits have a start before them
+and a 75-codon ORF opposite, and are kept. 5 of them would be hidden by a
+"longer ORF on the other strand" rule alone: the N-terminal 6xHis of
+PP098729.1, PP554855.1 and OR992664.1 (pETDuet-type vectors, each in a
+29-codon ORF across ORFs of 182 to 271 codons), the T7 tag of U16281.1 (a
+54-codon ORF across 217), and the 6xHis of JF327851.1 (336 across 358). So
+a start is decisive whatever the other strand holds. Nothing else changes:
+1,449 hits where there were 1,451, and the same 256 extras.
+
+The rule covers every part found by its protein, not only the His tags. Of
+the bundled parts, 6xHis and 8xHis are the ones made of one repeated
+residue, so the ones a repeat spells by chance. His (`CAC`, `CAT`) is `GTG`
+or `ATG` on the other strand, so a valine run reads as His antisense, and a
+(GGT)n linker, `(ACC)n` the other way, does so one base along. A (GGC)n
+linker does not: its six frames read Gly, Ala, Arg, Ala, Pro and Arg runs,
+and no bundled part is one of those. A user's own part made of one repeated
+residue is held to the same rule.
+
+**The record's own CDS.** Detection sees only the bases. Where the document
+annotates a CDS, `offered` (`src/app/state/detection.ts`) also leaves out a
+protein hit wholly inside a CDS on the other strand, unless a CDS on the
+hit's own strand covers any of it (`antisenseToCds`). It catches a linker
+whose antisense frame has a chance ATG before it. Like the duplicate check,
+it is decided against the features as they stand, not in the worker.
+
+**The oracle.** pLannotate's 9xHis on JX679612 is wrong, so it is listed in
+`ORACLE_ERRORS` (`plannotateCompare.ts`). It is left out of recall, and the
+test fails if a hit of ours makes it again. Tags are now 11 of 12 (91.7%;
+the baseline was 12 of 13, one of them this call), all parts 868 of 987
+(87.9%); the tag baseline is 0.916. `plannotate.test.ts` checks the pair is
+gone and that the five tags above are still found. `translated.test.ts`
+checks the rule on synthetic sequences, across the origin and at a linear
+end.
+
+**Cost.** The walks along the hit's own frame stop at 75 codons. Those along
+the other strand are memoised per codon in `withoutAntisense`, so the hits
+of one sequence walk each codon at most once. 2,000 short His frames inside
+one 300 kb antisense ORF took 11.5 s to filter before the memo and about
+0.2 s after (Node 24, one run on a loaded machine). A random megabase has no
+protein hit to check. The protein search itself is slow on such a sequence,
+and on 2,000 copies of a linker fusion (8,000 His hits): 7 s and 92 s, from
+before this change.

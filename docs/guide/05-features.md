@@ -163,6 +163,17 @@ What is found:
   closer than an enzyme), and where the part itself was found over the same
   bases nothing "similar" is offered. Your own coding **My parts** are
   searched this way too.
+- **Only in a frame that can be read.** Six translations read things nobody
+  translates: a glycine linker (`GGT GGT GGT …`) in a fusion reads, on the
+  other strand, as a run of histidines. So a part found by what it codes for
+  is not offered where its own frame has no ATG before it (back to the stop
+  before it) and is open for fewer than 75 codons (the [ORFs](08-orfs.md)
+  tab's default shortest ORF), while an ORF of at least that length runs
+  across it on the other strand.
+  Nor is it offered where it lies inside a CDS the document has on the other
+  strand, unless a CDS on its own strand covers it too. A tag with a start
+  codon before it is offered whatever the other strand holds, and so is a
+  tag with no ORF on either side.
 - **Ambiguity codes** in your sequence (`N`, `R`, `Y`, …) count against a
   match like a mismatch, but are reported separately, as _1 ambiguous base_,
   when the code allows the part's base.
@@ -200,9 +211,9 @@ fluorescent proteins. Every one is read
 from a public NCBI record whose accession and location are cited with it; the
 fluorescent proteins are chosen from [FPbase](https://www.fpbase.org), whose
 data is shared under CC BY-SA 4.0, and their DNA is the coding sequence of
-the NCBI record FPbase names. The list is matched as DNA, so a fluorescent
-protein or tag written with other codons is not found, and some short tags
-(the His tag, HA, V5) are not in the list yet.
+the NCBI record FPbase names. Tags and coding parts are matched by their
+protein as well as their DNA (above), so one written in other codons is
+still found.
 
 ### My parts
 
