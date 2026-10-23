@@ -103,6 +103,10 @@ What is found:
   terminal repeat, the HIV-1 RRE, the pCI chimeric intron and the hGH
   poly(A). Where a vector carries a shortened or altered version of one of
   these, it is offered only if enough of it is left to match.
+- **The pieces of a CAG promoter** are offered one by one: the CMV
+  enhancer, the _chicken beta-actin promoter (CAG)_ and the CAG intron. A
+  CMV promoter is offered with its enhancer, as _CMV enhancer and
+  promoter_.
 - **Both strands**, and **through the origin** of a circular sequence.
 - **A part cut off by the end**: in a linear sequence — a fragment, a
   sequencing read — a part may run past either end, and what is there is

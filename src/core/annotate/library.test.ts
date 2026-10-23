@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { detectFeatures } from './detect';
 import { codingProtein, loadFeatureLibrary, parseLibraryFile } from './library';
 
 const GOOD = {
@@ -102,6 +103,28 @@ describe('the bundled library, as loaded', () => {
     expect(lib.parts.find((p) => p.name === 'lacUV5 promoter')?.exact).toBe(true);
     expect(lib.parts.find((p) => p.name === 'lac promoter')).not.toHaveProperty('exact');
     expect(lib.parts.find((p) => p.name === 'H1 promoter')?.location).toBe('152..366');
+  });
+
+  it('names the promoter between the CMV enhancer and the intron of CAG chicken beta-actin (#279)', async () => {
+    const lib = await loadFeatureLibrary();
+    const byName = (name: string): string => {
+      const part = lib.parts.find((p) => p.name === name);
+      expect(part, name).toBeDefined();
+      return part?.sequence ?? '';
+    };
+    const promoter = lib.parts.find((p) => p.name === 'chicken beta-actin promoter (CAG)');
+    expect(promoter?.accession).toBe('X00182.1');
+    expect(promoter?.location).toBe('268..543');
+    // A CAG promoter put together from its three parts reads as those three.
+    const cag =
+      byName('CMV enhancer') + byName('chicken beta-actin promoter (CAG)') + byName('CAG intron');
+    const names = detectFeatures(cag, 'linear', lib).map((h) => lib.parts[h.part]?.name);
+    expect(names).toEqual(['CMV enhancer', 'chicken beta-actin promoter (CAG)', 'CAG intron']);
+    // On the native gene it lies inside the longer part, which is the one called.
+    const gene = byName('chicken beta-actin promoter');
+    const onGene = detectFeatures(gene, 'linear', lib).map((h) => lib.parts[h.part]?.name);
+    expect(onGene).toContain('chicken beta-actin promoter');
+    expect(onGene).not.toContain('chicken beta-actin promoter (CAG)');
   });
 
   it('carries notes, and FPbase pages on the fluorescent proteins alone', async () => {
