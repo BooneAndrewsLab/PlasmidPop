@@ -36,6 +36,21 @@ export function useAutosave(): void {
 }
 
 /**
+ * Writes a tab's latest state as it closes, whichever way it closes (#280):
+ * the debounced autosave above goes over the open tabs only, so an edit
+ * followed by closing its tab before that save had written it was lost.
+ */
+export function useSaveOnClose(): void {
+  useEffect(
+    () =>
+      persistence.saveOnClose((e: unknown) => {
+        editorStore.fail(`Could not save locally: ${e instanceof Error ? e.message : String(e)}`);
+      }),
+    [],
+  );
+}
+
+/**
  * Writes the Cloning tab's fragment shelf shortly after it changes. It has
  * an effect of its own because the shelf outlives the documents: closing
  * every tab must not take the gathered fragments with it.

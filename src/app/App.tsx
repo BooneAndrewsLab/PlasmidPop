@@ -53,6 +53,7 @@ import {
   useAutosave,
   useAutosaveShelf,
   useFlushOnLeave,
+  useSaveOnClose,
   useRestoreSession,
   useSaveShortcut,
   useViewPrefs,
@@ -78,6 +79,7 @@ export function App() {
   useSaveShortcut();
   useViewShortcuts();
   useFlushOnLeave();
+  useSaveOnClose();
   useViewPrefs();
   const [dragging, setDragging] = useState(false);
   // The two layouts divide different axes, so each keeps its own fraction and

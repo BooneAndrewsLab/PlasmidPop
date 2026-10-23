@@ -194,6 +194,14 @@ export class PersistenceService {
    * newer one. Two saves that read the same state may both write it.
    */
   private readonly lastRead = new Map<string, DocumentState>();
+  /**
+   * The saves of tabs being closed (#280), by stored id, with the state each
+   * writes: the flush on leaving writes these too, and reopening or removing
+   * the document waits for its save first.
+   */
+  private readonly closing = new Map<string, { state: DocumentState; done: Promise<void> }>();
+  /** The ids `removeStored` is closing, whose tabs must not be saved on the way out. */
+  private readonly removing = new Set<string>();
 
   constructor(
     private readonly repo: DocumentRepository = getRepository(),
@@ -223,10 +231,55 @@ export class PersistenceService {
   }
 
   private async autosaveAll(urgent: boolean): Promise<void> {
-    const openIds = new Set(editorStore.getState().documents.map((d) => d.documentId));
+    const ids = editorStore.getState().documents.map((d) => d.documentId);
+    const openIds = new Set(ids);
     for (const id of this.autosaved.keys()) if (!openIds.has(id)) this.autosaved.delete(id);
-    for (const d of editorStore.getState().documents) await this.autosaveDocument(d, urgent);
+    // Each tab as it stands when its turn comes, not as it stood when the
+    // save began: a tab closed meanwhile has been saved by its close (#280),
+    // and an older state read here would overtake that save.
+    for (const id of ids) {
+      const d = editorStore.documentState(id);
+      if (d !== null) await this.autosaveDocument(d, urgent);
+    }
+    // Leaving the page also writes the tabs whose close is still saving.
+    if (urgent) {
+      for (const { state } of [...this.closing.values()]) {
+        await this.autosaveDocument(state, true, true);
+      }
+    }
     this.rememberSession();
+  }
+
+  /**
+   * Saves tabs as they close (#280): the debounced autosave only goes over
+   * the open tabs, and an ordinary save may wait for quiet for seconds
+   * (#278), so without this an edit followed by closing its tab was lost.
+   * A tab unchanged since it was last written writes nothing. The save is
+   * neither queued nor waits for quiet, and its text is written in the save
+   * worker (design note 103): it claims the closed state at once, so an
+   * ordinary save of an older state still out stands down, and so does one
+   * of the same state, which is the reason for the copy.
+   */
+  saveClosed(closed: readonly DocumentState[]): Promise<void> {
+    const runs: Promise<void>[] = [];
+    for (const tab of closed) {
+      const id = tab.documentId;
+      if (this.removing.has(id) || isUnchanged(this.autosaved.get(id), tab)) continue;
+      const state: DocumentState = { ...tab };
+      const run = this.autosaveDocument(state, false, true).finally(() => {
+        if (this.closing.get(id)?.state === state) this.closing.delete(id);
+      });
+      this.closing.set(id, { state, done: run.catch(() => undefined) });
+      runs.push(run);
+    }
+    return Promise.all(runs).then(() => undefined);
+  }
+
+  /** Saves every tab the store closes from now on (`saveClosed`); returns the way to stop. */
+  saveOnClose(onError: (e: unknown) => void = () => undefined): () => void {
+    return editorStore.onTabsClosed((closed) => {
+      this.saveClosed(closed).catch(onError);
+    });
   }
 
   private isLatest(id: string, d: DocumentState): boolean {
@@ -288,7 +341,11 @@ export class PersistenceService {
     }
   }
 
-  private async autosaveDocument(tab: DocumentState, urgent: boolean): Promise<void> {
+  private async autosaveDocument(
+    tab: DocumentState,
+    urgent: boolean,
+    closed = false,
+  ): Promise<void> {
     if (isUnchanged(this.autosaved.get(tab.documentId), tab)) return;
     const claims: [string, DocumentState][] = [];
     const claim = (id: string, d: DocumentState): void => {
@@ -296,7 +353,7 @@ export class PersistenceService {
       claims.push([id, d]);
     };
     try {
-      await this.writeDocument(tab, urgent, claim);
+      await this.writeDocument(tab, urgent, closed, claim);
     } finally {
       // Kept only while a save is out, so a closed tab's states are not held here.
       for (const [id, d] of claims) if (this.lastRead.get(id) === d) this.lastRead.delete(id);
@@ -306,6 +363,7 @@ export class PersistenceService {
   private async writeDocument(
     tab: DocumentState,
     urgent: boolean,
+    closed: boolean,
     claim: (id: string, d: DocumentState) => void,
   ): Promise<void> {
     let d = tab;
@@ -315,7 +373,7 @@ export class PersistenceService {
       const opened = d.history.present;
       // A new document nobody has typed into yet is not worth a recent-files entry.
       if (opened.length === 0 && opened.features.size === 0) return;
-      const merged = await this.mergeIntoIdentical(d, urgent);
+      const merged = await this.mergeIntoIdentical(d, urgent, closed);
       if (merged === 'gone') return;
       if (merged !== null) {
         d = merged;
@@ -336,8 +394,9 @@ export class PersistenceService {
       // could be drawn (#276). After an idle callback alone, what is left of
       // it (the request to the worker here, the put below) fell into the
       // first scroll after the open (#278): it waits for the input to have
-      // been quiet a while too.
-      await this.settle();
+      // been quiet a while too. A closed tab's save does not (#280): the
+      // user has just let go of it and may reopen it at once.
+      if (!closed) await this.settle();
       if (!this.isLatest(id, d)) return;
     }
     const now = Date.now();
@@ -357,7 +416,7 @@ export class PersistenceService {
       urgent,
     );
     if (text === undefined) throw new Error('The document could not be written out.');
-    if (!urgent) {
+    if (!urgent && !closed) {
       // The put clones the text into IndexedDB on this thread, 33-46 ms at
       // 4.64 Mb (#278): not in the middle of a scroll that began meanwhile.
       await this.settle();
@@ -385,10 +444,15 @@ export class PersistenceService {
    * its own entry instead, so neither history is written over the other.
    * Gives the tab as merged, null when it keeps its own id, or `gone` when
    * it was closed while the entry was being looked up.
+   *
+   * A tab already closed (#280) has nothing left to re-key: with no steps
+   * of its own the entry already holds it and nothing is written (`gone`),
+   * with steps it keeps its own entry.
    */
   private async mergeIntoIdentical(
     d: DocumentState,
     urgent: boolean,
+    closed: boolean,
   ): Promise<DocumentState | 'gone' | null> {
     const existing = await this.repo.findIdentical(
       d.history.present,
@@ -396,6 +460,7 @@ export class PersistenceService {
       async (doc) => (await this.genBank([doc], urgent))[0] ?? '',
     );
     if (existing === null || editorStore.documentState(existing) !== null) return null;
+    if (closed) return d.history.size === 0 ? 'gone' : null;
     const stored = await this.repo.load(existing);
     const now = editorStore.documentState(d.documentId);
     if (now === null) return 'gone';
@@ -685,6 +750,12 @@ export class PersistenceService {
       editorStore.activateDocument(id);
       return;
     }
+    // A tab just closed is still being written (#280): reopen what it wrote.
+    await this.closing.get(id)?.done;
+    if (editorStore.documentState(id) !== null) {
+      editorStore.activateDocument(id);
+      return;
+    }
     const stored = await this.repo.load(id);
     if (stored === null) {
       editorStore.fail('That document is no longer in local storage.');
@@ -720,14 +791,40 @@ export class PersistenceService {
     // the user is reading. A timeout rather than a microtask, which would
     // run before the paint and save nothing.
     setTimeout(() => {
+      const before = editorStore.documentState(id);
       editorStore.restoreHistory(id);
+      const after = editorStore.documentState(id);
+      // What came back is what is stored: unless the tab changed first, it
+      // is no change to write, nor to write again when the tab closes (#280).
+      if (
+        before !== null &&
+        after !== null &&
+        after !== before &&
+        isUnchanged(this.autosaved.get(id), before)
+      ) {
+        this.autosaved.set(id, autosavedOf(after));
+      }
     }, 0);
   }
 
+  /**
+   * Deletes a stored document, closing its tab first without saving it on
+   * the way out (#280). A save of it still out stands down, and one of its
+   * close is waited for, so neither writes it back after the delete.
+   */
   async removeStored(id: string): Promise<void> {
+    this.removing.add(id);
+    try {
+      editorStore.closeDocument(id);
+    } finally {
+      this.removing.delete(id);
+    }
+    this.lastRead.delete(id);
+    const closing = this.closing.get(id);
+    this.closing.delete(id);
+    await closing?.done;
     await this.repo.remove(id);
     this.autosaved.delete(id);
-    editorStore.closeDocument(id);
   }
 
   /** Renames a stored document; an open one goes through the store so the change is undoable. */

@@ -608,8 +608,10 @@ translations, see [Translation](09-translate.md).
 ## Local storage and recent files
 
 Every open document is written to the browser's storage (IndexedDB) half a
-second after each change, and again when you leave the page, so a closed tab
-or a crash loses nothing. Its undo history is written with it, so undo and
+second after each change (a little later while you are scrolling or typing),
+when you close its tab, and again when you leave the page, so a closed tab
+or a crash loses nothing: reopen a closed tab from **Recent files** and its
+last edit is there. Its undo history is written with it, so undo and
 redo still work after a reload. On the
 start screen (the **Files** tab), **Recent files** lists these documents with
 size, topology, feature count and when they were last changed. Opening the
