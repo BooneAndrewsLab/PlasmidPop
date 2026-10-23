@@ -19,6 +19,7 @@ import {
 } from './detect';
 import { type FeatureLibrary, type LibraryPart, loadFeatureLibrary } from './library';
 import { detectProteinFeatures } from './protein';
+import { nameOfHit } from './variant';
 
 function part(name: string, sequence: string, type = 'misc_feature'): LibraryPart {
   return {
@@ -384,6 +385,78 @@ describe('detectFeatures', () => {
         ['outer', 'reverse'],
         ['end', 'forward'],
       ]);
+    });
+
+    describe('touching copies of a repeated tag (#284)', () => {
+      const TAG = 'GATTACAAGGACGATGACGATAAG';
+      const tag = (name = 'FLAG'): LibraryPart => ({
+        ...part(name, TAG, 'CDS'),
+        category: 'tag',
+      });
+      const names = (hits: FeatureHit[], lib: FeatureLibrary): string[] =>
+        hits.map((h) => {
+          const p = lib.parts[h.part];
+          if (p === undefined) throw new Error('no part');
+          return nameOfHit(h, p);
+        });
+
+      it('reports three touching copies as one 3xFLAG', () => {
+        const lib = library(tag());
+        const flank = randomDna(rand, 60);
+        const hits = detectFeatures(flank + TAG.repeat(3) + flank, 'linear', lib);
+        expect(names(hits, lib)).toEqual(['3xFLAG']);
+        expect(only(hits).range).toEqual({ start: 60, end: 132 });
+        expect(only(hits).repeats).toBe(3);
+        expect(only(hits).identity).toBe(1);
+      });
+
+      it('counts the units of a part that is itself a count', () => {
+        const lib = library(tag('6xHis'));
+        const flank = randomDna(rand, 60);
+        expect(names(detectFeatures(flank + TAG.repeat(2) + flank, 'linear', lib), lib)).toEqual([
+          '12xHis',
+        ]);
+      });
+
+      it('leaves copies with bases between them apart', () => {
+        const lib = library(tag());
+        const flank = randomDna(rand, 60);
+        const spacer = randomDna(rand, 9);
+        const hits = detectFeatures(flank + TAG + spacer + TAG + flank, 'linear', lib);
+        expect(names(hits, lib)).toEqual(['FLAG', 'FLAG']);
+      });
+
+      it('leaves copies on opposite strands apart', () => {
+        const lib = library(tag());
+        const flank = randomDna(rand, 60);
+        const hits = detectFeatures(flank + TAG + reverseComplement(TAG) + flank, 'linear', lib);
+        expect(names(hits, lib)).toEqual(['FLAG', 'FLAG']);
+      });
+
+      it('leaves touching copies of a part that is not a tag apart', () => {
+        const lib = library(part('P', TAG, 'CDS'));
+        const flank = randomDna(rand, 60);
+        const hits = detectFeatures(flank + TAG.repeat(2) + flank, 'linear', lib);
+        expect(names(hits, lib)).toEqual(['P', 'P']);
+      });
+
+      it('chains a tandem that runs over the origin of a circle', () => {
+        const lib = library(tag());
+        const hits = detectFeatures(TAG + randomDna(rand, 120) + TAG, 'circular', lib);
+        expect(names(hits, lib)).toEqual(['2xFLAG']);
+        expect(only(hits).range).toEqual({ start: 144, end: 192 });
+      });
+
+      it('sums what the copies matched', () => {
+        const lib = library(tag());
+        const flank = randomDna(rand, 60);
+        // One base of the middle copy differs: 71 of the 72 bases.
+        const seq = mutate(flank + TAG.repeat(3) + flank, [90]);
+        const hit = only(detectFeatures(seq, 'linear', lib));
+        expect(hit.repeats).toBe(3);
+        expect(hit.mismatches).toBe(1);
+        expect(hit.identity).toBeCloseTo(71 / 72, 10);
+      });
     });
 
     it('orders hits along the sequence, the longer first where two start together', () => {

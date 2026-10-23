@@ -207,6 +207,14 @@ What is found:
 - Two variants of one protein that differ in length by only a few bases (EGFP
   and ECFP) are one locus: the one that matches better is offered, even if
   it is the slightly shorter.
+- **Touching copies of one tag are one feature.** A tandem epitope tag is
+  the same short peptide two or three times over, end to end, so three
+  `DYKDDDDK` in a row are offered as one **3xFLAG** rather than as three
+  FLAGs. The count is of the epitope: two touching _6xHis_ are **12xHis**.
+  Copies with any bases between them stay separate features — a tandem Myc
+  whose repeats are nine bases apart is that many labels — and so do copies
+  on opposite strands. The 3xFLAG whose first two units are the
+  variants `DYKDHDG` and `DYKDHDI` is a part of its own, found whole.
 - A part that is a known **piece of a longer part** — _HIV-1 LTR (R-U5)_ is
   the end of an _HIV-1 LTR_, all a lentiviral vector keeps where a
   heterologous promoter replaces U3 — is offered only where no

@@ -259,6 +259,20 @@ describe('the bundled library, as loaded', () => {
     expect(ori?.sequence).toHaveLength(456);
   });
 
+  it('carries the 3xFLAG epitope, whose units are not three FLAGs (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const flag = lib.parts.find((p) => p.name === 'FLAG');
+    const three = lib.parts.find((p) => p.name === '3xFLAG');
+    expect(flag?.protein).toBe('DYKDDDDK');
+    expect([three?.accession, three?.location]).toEqual(['PV833271.1', '1450..1515']);
+    expect(three?.protein).toBe('DYKDHDGDYKDHDIDYKDDDDK');
+    expect(three?.sequence).toHaveLength(66);
+    // Only the last of the three units is the plain FLAG epitope, which is
+    // why three touching FLAG hits never make this form.
+    expect(three?.protein?.endsWith(flag?.protein ?? 'x')).toBe(true);
+    expect(three?.protein?.slice(0, 14).includes(flag?.protein ?? 'x')).toBe(false);
+  });
+
   it('reads the CaMV poly(A) signal on the strand it terminates (#287)', async () => {
     const lib = await loadFeatureLibrary();
     const part = lib.parts.find((p) => p.name === 'CaMV poly(A) signal');

@@ -182,6 +182,15 @@ export function normalize(name: string): string {
 }
 
 /**
+ * A name without the count of a repeated tag (#284): `3xFLAG` and `FLAG`
+ * are the same element, so calling three touching copies `3xFLAG` where
+ * pLannotate labels one of them `FLAG` is no name conflict.
+ */
+function element(name: string): string {
+  return normalize(name.replace(/^\d+x/, ''));
+}
+
+/**
  * Hits of both sides overlap when they share at least half of the shorter,
  * on the same strand.
  */
@@ -362,6 +371,7 @@ export function compare(library: FeatureLibrary): Comparison {
       for (const h of complete) {
         const theirs = partByName.get(normalize(ourNameFor(h.name)));
         if (theirs === undefined || theirs === ours) continue;
+        if (element(theirs) === element(ours)) continue;
         if (!sameStrand(oursClass, h.name, strandOf(h), o.strand)) continue;
         const range = oracleRange(h, v.length, topology);
         const longer = Math.max(range.end - range.start, o.range.end - o.range.start);

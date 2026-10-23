@@ -1089,3 +1089,64 @@ repressor, 97.9% of them the Tn10 one, and pLannotate's own `rtTA` call
 (1008 bp, of which ours would be 624) is the better answer there, which our
 `rtTA (Tet-On 3G)` part — 448 of 619 bases to this 1997 rtTA — does not
 make. The contained-feature question (#282) is untouched.
+
+### Touching copies of one tag, and the 3xFLAG form (#284)
+
+A tandem epitope tag is one short part repeated end to end, and each copy
+was a label of its own. JX088702.1 (pDsRed-IRES-GFP) got three `FLAG` calls
+at 1418-1441, 1442-1465 and 1466-1489, where the frame reads
+`MRRLE DYKDDDDK DYKDDDDK DYKDDDDK**` (efetch of the record, bases
+1403..1495): one triple FLAG said three times.
+
+**Copies that touch are chained** (`withRepeats`, `src/core/annotate/detect.ts`),
+after `keepBest`, so each copy is the one the reduction kept. A chain is of
+hits of one part of the `tag` category, on one strand, found the same way
+(bases or translation), neither cut off by a linear end nor a homologue,
+each starting exactly where the one before it ends — over the origin of a
+circle too, which is why a chain is built from the copy nothing precedes.
+The chain becomes one hit over all of their bases, with their mismatches
+summed and the identity of all the copies together, and `repeats` set.
+`nameOfHit` turns that into the count: `3xFLAG`, and for a part whose name
+is already a count the units are counted rather than the parts, so two
+touching `6xHis` are `12xHis`, never `2x6xHis`.
+
+Only exact touching chains, which is what keeps the His tags right. A run
+of nine histidines gives `6xHis` hits at four offsets, all overlapping, and
+`keepBest` already keeps one of them (a part never displaces itself without
+sharing bases); only a run long enough for two copies side by side chains.
+The six Myc calls of MF444683.1 (4111-4140, 4150-4179, …) are nine bases
+apart and stay six labels, as pLannotate has them.
+
+**The 3xFLAG form is a part, not three FLAGs.** KX151731.1 (px330
+DBH-p2a-FLPo) annotates its Cas9 CDS at 808..5079 with the translation
+`MDYKDHDGDYKDHDIDYKDDDDKMAPKKKRK…`: the three units are `DYKDHDG`,
+`DYKDHDI` and `DYKDDDDK`, and only the last is the `DYKDDDDK` the FLAG part
+is, which is why one unit of three was labelled. The first two are not FLAG
+and no chain can make them one, so the 22 residues are a part of their own,
+read like any other from a record that annotates them: **PV833271.1
+1450..1515**, the `VP3 GTase 3xFlag` misc_feature (1450..1518) without its
+stop codon, matched in the translation as the other peptide tags are. The
+same 22 residues are in KX151731.1 811..876 and KU870447.1 1100..1165
+(pCI-NEO-FLAG-SMNdelta3,5, whose CDS the record calls a `3XFLAG-SMN
+isoform`); their bases are 76% to 96% identical between the three records
+(Biopython 1.88, conda `primer3` env), which is why the part is found by
+what it codes for. Where it is found it covers the single FLAG inside it,
+which `keepBest` then drops as a shorter hit of the same type.
+
+**On the corpus.** The three JX088702.1 calls are one `3xFLAG` 1418-1489;
+KX151731.1 goes from `FLAG` 853-876 to `3xFLAG` 811-876 and KU870447.1 from
+`FLAG` 1142-1165 to `3xFLAG` 1100-1165, which is pLannotate's own 3xFLAG
+call there. MT612434.1 and AF025668.1 keep their single `FLAG`, as
+pLannotate's 3xFLAG is a fragment hit over a third of its part on both.
+Recall is unchanged at 869 of 987 (88.0%) and so is every class; our calls
+fall from 1,436 to 1,434 (the two FLAG labels), extras from 255 to 253.
+The name-conflict and strand-conflict lists are unchanged: a count is not
+another part's name, so the comparison strips a leading `3x` before setting
+our name against pLannotate's (`element`, `plannotateCompare.ts`), which is
+what keeps `3xFLAG` over bases pLannotate labels `FLAG` off the list. No
+alias was added: pLannotate's `3xFLAG` is now a part of ours by that name.
+`plannotate.test.ts` checks the four vectors and that no two calls of one
+tag part are left touching anywhere in the corpus, `detect.test.ts` the
+chaining rule on synthetic parts (touching, spaced, opposite strands, not a
+tag, over the origin, and the summed identity), `variant.test.ts` the
+counting of names and `library.test.ts` the part.

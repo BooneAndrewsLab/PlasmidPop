@@ -146,6 +146,13 @@ export interface FeatureHit {
    * which cannot tell luc+ from luc2.
    */
   readonly family?: boolean;
+  /**
+   * How many touching copies of a repeated tag this hit is (#284): three
+   * FLAG epitopes end to end are one `3xFLAG`, not three `FLAG`s. Absent, or
+   * 1, for an ordinary hit; `mismatches`, `ambiguous` and `identity` are
+   * then of all the copies together.
+   */
+  readonly repeats?: number;
 }
 
 /**
@@ -458,8 +465,10 @@ export function detectFeatures(
         ];
   // A part named for one variant of an element keeps its name only where the
   // hit shows what the name claims (#284).
-  const kept = keepBest(
-    withVariantNames(withProtein, sequence, topology, library),
+  // Touching copies of one repeated tag are one feature (#284), settled
+  // after the hits are reduced, so each copy is the one `keepBest` kept.
+  const kept = withRepeats(
+    keepBest(withVariantNames(withProtein, sequence, topology, library), library, n, topology),
     library,
     n,
     topology,
@@ -472,6 +481,96 @@ export function detectFeatures(
     library,
   );
   return withHomologues(kept, homologues, library, n, topology);
+}
+
+/**
+ * Touching copies of one repeated tag, reported as one feature (#284).
+ *
+ * A tandem epitope tag is the same short part two or three times over, end
+ * to end: `DYKDDDDK` three times in a row is a 3xFLAG, and three separate
+ * FLAG labels on it say the same thing three times over, none of them what
+ * the construct carries. So hits of one tag part, on one strand, found the
+ * same way, that touch base to base are chained into one hit whose `repeats`
+ * is how many copies it is; `nameOfHit` turns that into `3xFLAG`.
+ *
+ * Only tags are chained, and only copies that touch exactly: two tags a few
+ * bases apart (the six Myc repeats of MF444683, nine bases apart) are
+ * separate labels, as is anything with other bases between it. A part found
+ * through its protein in a run of one residue — the His tags — cannot be
+ * double-counted this way either: overlapping copies of a part are already
+ * reduced to one by `keepBest`, so only a run long enough for two copies
+ * side by side (twelve histidines, read as `12xHis`) ever chains.
+ */
+function withRepeats(
+  hits: readonly FeatureHit[],
+  library: FeatureLibrary,
+  length: number,
+  topology: Topology,
+): FeatureHit[] {
+  const circular = topology === 'circular';
+  const chainable = (h: FeatureHit): boolean =>
+    library.parts[h.part]?.category === 'tag' &&
+    h.similar === undefined &&
+    !(h.partialStart ?? false) &&
+    !(h.partialEnd ?? false);
+  /** Whether `b` is the next copy after `a`: the same tag, read the same way, base to base. */
+  const follows = (a: FeatureHit, b: FeatureHit): boolean =>
+    b !== a &&
+    b.part === a.part &&
+    b.strand === a.strand &&
+    (b.viaProtein ?? false) === (a.viaProtein ?? false) &&
+    (b.family ?? false) === (a.family ?? false) &&
+    chainable(a) &&
+    chainable(b) &&
+    // Base to base, the next copy starting where this one ends — over the
+    // origin of a circle too.
+    (b.range.start === a.range.end || (circular && a.range.end === length && b.range.start === 0));
+  // In sequence order, but a chain is built from the copy nothing precedes,
+  // so a tandem that runs over the origin of a circle is one chain and not
+  // two. A ring of copies with no first one is left as it came.
+  const ordered = [...hits].sort((x, y) => x.range.start - y.range.start);
+  const heads = ordered.filter((h) => !ordered.some((p) => follows(p, h)));
+  const taken = new Set<FeatureHit>();
+  const out: FeatureHit[] = [];
+  for (const first of [...heads, ...ordered]) {
+    if (taken.has(first)) continue;
+    if (!chainable(first)) {
+      taken.add(first);
+      out.push(first);
+      continue;
+    }
+    const chain = [first];
+    for (;;) {
+      const last = chain[chain.length - 1];
+      // Stryker disable next-line all: unreachable, a chain always has a last copy
+      if (last === undefined) break;
+      const next = ordered.find((h) => !taken.has(h) && !chain.includes(h) && follows(last, h));
+      if (next === undefined) break;
+      chain.push(next);
+    }
+    for (const h of chain) taken.add(h);
+    if (chain.length === 1) {
+      out.push(first);
+      continue;
+    }
+    const size = (h: FeatureHit): number => h.range.end - h.range.start;
+    const total = chain.reduce((n, h) => n + size(h), 0);
+    const mismatches = chain.reduce((n, h) => n + h.mismatches, 0);
+    const ambiguous = chain.reduce((n, h) => n + h.ambiguous, 0);
+    out.push({
+      ...first,
+      range: { start: first.range.start, end: first.range.start + total },
+      mismatches,
+      ambiguous,
+      // Of all the copies together: what share of them was matched.
+      identity: chain.reduce((n, h) => n + h.identity * size(h), 0) / total,
+      repeats: chain.length,
+    });
+  }
+  return out.sort(
+    (x, y) =>
+      x.range.start - y.range.start || y.range.end - y.range.start - (x.range.end - x.range.start),
+  );
 }
 
 /**

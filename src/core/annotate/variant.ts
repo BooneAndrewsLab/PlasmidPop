@@ -110,13 +110,30 @@ export function withVariantNames<T extends FeatureHit>(
 
 /**
  * What a hit is called: the part's name, the element's name where the hit
- * does not show the variant (#284), and either of those prefixed for a
- * homologue, which is never named as the part itself (#219).
+ * does not show the variant (#284), a count for touching copies of a
+ * repeated tag (#284 again: three FLAG epitopes end to end are `3xFLAG`),
+ * and any of those prefixed for a homologue, which is never named as the
+ * part itself (#219).
  */
 export function nameOfHit(
-  hit: Pick<FeatureHit, 'family' | 'similar'>,
+  hit: Pick<FeatureHit, 'family' | 'similar' | 'repeats'>,
   part: Pick<LibraryPart, 'name' | 'variant'>,
 ): string {
-  const name = (hit.family === true ? part.variant?.family : undefined) ?? part.name;
+  const name = repeated(
+    (hit.family === true ? part.variant?.family : undefined) ?? part.name,
+    hit.repeats ?? 1,
+  );
   return hit.similar === undefined ? name : `similar to ${name}`;
+}
+
+/**
+ * A name for `copies` touching copies of a part. A part that is itself a
+ * count of a unit — `6xHis`, `3xFLAG` — counts the units rather than the
+ * parts, so two 6xHis side by side are `12xHis`, never `2x6xHis`.
+ */
+function repeated(name: string, copies: number): string {
+  if (copies <= 1) return name;
+  const already = /^(\d+)x(.+)$/.exec(name);
+  if (already === null) return `${copies}x${name}`;
+  return `${Number(already[1]) * copies}x${already[2]}`;
 }

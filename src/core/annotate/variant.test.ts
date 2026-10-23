@@ -189,6 +189,28 @@ describe('a part named for a variant', () => {
   });
 });
 
+describe('the name of touching copies of a repeated tag (#284)', () => {
+  const named = (name: string, repeats?: number): string =>
+    nameOfHit({ ...(repeats === undefined ? {} : { repeats }) }, { name });
+
+  it('counts the copies', () => {
+    expect(named('FLAG')).toBe('FLAG');
+    expect(named('FLAG', 1)).toBe('FLAG');
+    expect(named('FLAG', 3)).toBe('3xFLAG');
+  });
+
+  it('counts the units of a part whose name is already a count', () => {
+    expect(named('6xHis', 2)).toBe('12xHis');
+    expect(named('3xFLAG', 3)).toBe('9xFLAG');
+  });
+
+  it('counts the element a hit is named for, not the part', () => {
+    expect(
+      nameOfHit({ family: true, repeats: 2 }, { name: 'FLAG (v2)', variant: { family: 'FLAG' } }),
+    ).toBe('2xFLAG');
+  });
+});
+
 describe('the library file', () => {
   const one = (variant: unknown): string =>
     JSON.stringify({

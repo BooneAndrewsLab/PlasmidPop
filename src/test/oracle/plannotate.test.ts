@@ -276,6 +276,50 @@ describe('Detect features against pLannotate', () => {
     expect(called('OR236194.1', 429, 2081)).toEqual(['luciferase (luc+)']);
   }, 300_000);
 
+  it('reports touching copies of one tag as one feature (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const tagCalls = (accession: string): { name: string; at: string }[] => {
+      const v = vectors.find((x) => x.accession === accession);
+      if (v === undefined) throw new Error(accession);
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      return detectFeatures(v.sequence, topology, lib).flatMap((h) => {
+        const part = lib.parts[h.part];
+        if (part?.category !== 'tag' || !nameOfHit(h, part).includes('FLAG')) return [];
+        return [{ name: nameOfHit(h, part), at: `${h.range.start + 1}-${h.range.end}` }];
+      });
+    };
+    // pDsRed-IRES-GFP carries DYKDDDDK three times end to end (MRRLE then
+    // the three units): one 3xFLAG where there were three FLAG labels.
+    expect(tagCalls('JX088702.1')).toEqual([{ name: '3xFLAG', at: '1418-1489' }]);
+    // px330's Cas9 starts M-DYKDHDG-DYKDHDI-DYKDDDDK: the 3xFLAG form, of
+    // which only the last unit used to be labelled.
+    expect(tagCalls('KX151731.1')).toEqual([{ name: '3xFLAG', at: '811-876' }]);
+    // pCI-NEO-FLAG-SMN carries the same form, where pLannotate calls its own
+    // 3xFLAG over 1100..1165.
+    expect(tagCalls('KU870447.1')).toEqual([{ name: '3xFLAG', at: '1100-1165' }]);
+    // A single FLAG stays one.
+    expect(tagCalls('MT612434.1')).toEqual([{ name: 'FLAG', at: '2202-2225' }]);
+    // Nowhere in the corpus are two calls of one tag part left touching.
+    const touching: string[] = [];
+    for (const v of vectors) {
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const hits = detectFeatures(v.sequence, topology, lib);
+      for (const a of hits) {
+        for (const b of hits) {
+          if (
+            a !== b &&
+            a.part === b.part &&
+            a.strand === b.strand &&
+            lib.parts[a.part]?.category === 'tag' &&
+            b.range.start === a.range.end
+          )
+            touching.push(`${v.accession}: ${lib.parts[a.part]?.name} ${a.range.start}`);
+        }
+      }
+    }
+    expect(touching).toEqual([]);
+  }, 300_000);
+
   it("makes none of pLannotate's known errors (#285)", () => {
     expect(ORACLE_ERRORS.length).toBeGreaterThan(0);
     expect(result.erroneous).toEqual([]);
