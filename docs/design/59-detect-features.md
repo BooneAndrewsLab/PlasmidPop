@@ -261,9 +261,13 @@ end passes the length.
   strands, a repetitive tag a codon along) is kept once, where it fits best.
   Otherwise a hit is dropped when one of the same type, at least as long and
   matching at least as well, covers 90% of it: the pBR322 origin wins over
-  the pUC one that differs from it by the copy-number mutation, lacZ over
-  the lacZα inside it. Hits of different types never
-  displace each other.
+  the pUC one that differs from it by the copy-number mutation, the 3xFLAG
+  over the FLAG inside it. (This read "lacZ over the lacZα inside it"
+  until #282; our lacZα part is pUC57's, with the MCS in it, and matches
+  lacZ at no more than 118 of its 348 bases on any diagonal, either strand,
+  so it is never found inside lacZ.)
+  Hits of different types never displace each other, but see the
+  components and segments of #282 below.
 
 - **Close variants at one locus (#257).** `keepBest` ranks longest first and
   drops a hit only if a kept one is at least as long and matches at least as
@@ -1227,3 +1231,61 @@ recall, every class and both conflict lists are unchanged. `plannotate.test.ts`
 checks that every T7lac call holds both components, `library.test.ts` the
 part and the bases, `detect.test.ts` the rule on synthetic parts (both
 components kept; spared only from the composite that names them).
+
+**A segment of one gene is hidden where the gene is called.** The **AmpR
+signal peptide** (the `sig_peptide` J01749 annotates on bla) is the first 69
+bases of **AmpR**, of another type, so it was never displaced: all 61
+signal-peptide calls in the corpus sat inside one of the 63 AmpR calls, on its
+strand, and none was called alone (checked over the 83 vectors). A part now
+names what it is a segment of (`segmentOf`), and `keepBest` drops it where a
+longer hit of one of those parts on its strand holds all of its bases,
+whatever its type and whatever either matched. Tying it to the named parts,
+rather than to any longer feature over it, is what keeps it where the gene
+is absent: a signal peptide fused to another protein is offered as itself
+(`library.test.ts` checks one). The build fails unless the segment's bases,
+or for a part matched only in the translation its peptide, lie inside each
+part it names. Every part of that kind in the list is marked:
+
+| Segment                             | Of                                | Where (checked by the build)             |
+| ----------------------------------- | --------------------------------- | ---------------------------------------- |
+| `AmpR signal peptide`               | `AmpR`                            | bases 1..69 of bla                       |
+| `HIV-1 LTR (R-U5)`                  | `HIV-1 LTR`, `HIV-1 3' dLTR`      | 454..634 of the LTR, 54..234 of the dLTR |
+| `lacI promoter (3' end)`            | `lacI promoter`, `lacIq promoter` | 44..78 of either                         |
+| `chicken beta-actin promoter (CAG)` | `chicken beta-actin promoter`     | 268..543 of X00182 1..1542               |
+| `SV40 NLS`                          | `SV40 large T antigen`            | residues 126..132 of its protein         |
+
+Left unmarked: `lacZ-alpha`, which carries pUC57's MCS and is not inside our
+lacZ; the `FLAG` inside the `3xFLAG`, which `keepBest` already drops as a
+shorter hit of the same type that fits no better; the `T7 tag`, `thrombin site` and `2A peptide`, which are
+segments of no part of ours.
+
+This is #286's `fragment` flag generalised, and the flag is gone: it said
+"a piece of a longer part of my type", which for R-U5 is the two LTR parts
+it lies in, now named. On the bundled list the two rules hide the same hits —
+no other `LTR` part holds R-U5 (the RSV LTR is another virus's) — so the
+#286 calls are unchanged. The one difference is a user's own LTR part from
+My parts that holds R-U5, which hid it before and does not now; it names no
+relation to the bundled part. `lacI promoter (3' end)` no longer stays
+beside the lacI promoter where a base in 1..43 differs (the #283 section),
+and the CAG part can no longer stand beside the whole chicken β-actin
+promoter where the longer part has a mismatch outside it (#279 relied on
+`keepBest` for that).
+
+On the corpus the 61 signal-peptide calls go (1,446 calls to 1,385) and
+nothing else moves: extras stay at 253 (each signal peptide lay under a pLannotate call on its strand, so none was an extra), recall, every
+class and both conflict lists are unchanged; the other segments are not
+called inside their genes anywhere in the corpus (R-U5's four calls are the
+#286 ones, alone; the CAG part's two and the NLS's two have no whole
+β-actin promoter or large T around them). `plannotate.test.ts` checks that
+no segment is offered inside a call of a part it names, and the 63 and 0;
+`library.test.ts` the five marks, AmpR with a mismatch outside the signal
+peptide, the fused signal peptide and large T; `detect.test.ts` the rule on
+synthetic parts.
+
+**What remains of the stacking in #283.** The general rule is unchanged: a
+shorter part of the same type that fits better than a longer one around it
+is kept beside it. That is right for variants (the pUC and pBR322 origins
+differ inside), and the segments above, where it was wrong, are now marked.
+Over the 83 vectors no two calls of one type on one strand are left with one
+wholly inside the other, but for the T7 promoter in T7lac, which is meant
+(primer sites left out of the count).

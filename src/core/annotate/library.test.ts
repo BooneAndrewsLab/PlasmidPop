@@ -47,16 +47,18 @@ describe('parseLibraryFile', () => {
     }
   });
 
-  it('reads fragment as a flag, kept only when true (#286)', () => {
-    const [yes] = parseLibraryFile(file({ ...GOOD, fragment: true }), 'core');
-    expect(yes).toEqual({ ...GOOD, fragment: true, source: 'core' });
-    for (const fragment of [false, undefined]) {
-      const [no] = parseLibraryFile(file({ ...GOOD, fragment }), 'core');
-      expect(no).not.toHaveProperty('fragment');
-    }
-    for (const fragment of ['true', 1, null]) {
-      expect(() => parseLibraryFile(file({ ...GOOD, fragment }), 'core')).toThrow(
-        'malformed fragment',
+  it('reads segmentOf as a list of part names (#282)', () => {
+    const segmentOf = ['AmpR'];
+    const [yes] = parseLibraryFile(file({ ...GOOD, segmentOf }), 'core');
+    expect(yes).toEqual({ ...GOOD, segmentOf, source: 'core' });
+    const [no] = parseLibraryFile(file(GOOD), 'core');
+    expect(no).not.toHaveProperty('segmentOf');
+    // #286's flag is gone; a part that still says it is not read as a segment.
+    const [old] = parseLibraryFile(file({ ...GOOD, fragment: true }), 'core');
+    expect(old).toEqual({ ...GOOD, source: 'core' });
+    for (const bad of [true, 'AmpR', [], [''], [null]]) {
+      expect(() => parseLibraryFile(file({ ...GOOD, segmentOf: bad }), 'core')).toThrow(
+        'malformed segmentOf',
       );
     }
   });
@@ -134,7 +136,7 @@ describe('the bundled library, as loaded', () => {
     expect(lib.parts.find((p) => p.name === 'H1 promoter')?.location).toBe('152..366');
   });
 
-  it('names the HIV-1 LTR parts without claiming a copy, and marks R-U5 a fragment (#286)', async () => {
+  it('names the HIV-1 LTR parts without claiming a copy, and marks R-U5 a segment of them (#286)', async () => {
     const lib = await loadFeatureLibrary();
     // K03455 annotates the 5' LTR at 1..634 and the 3' LTR at 9086..9719;
     // the two differ at 8 bases, all of them in U3, and share R and U5
@@ -143,7 +145,7 @@ describe('the bundled library, as loaded', () => {
     expect(ltr?.location).toBe('1..634');
     const ru5 = lib.parts.find((p) => p.name === 'HIV-1 LTR (R-U5)');
     expect(ru5?.location).toBe('454..634');
-    expect(ru5?.fragment).toBe(true);
+    expect(ru5?.segmentOf).toEqual(['HIV-1 LTR', "HIV-1 3' dLTR"]);
     expect(ru5?.sequence).toBe(ltr?.sequence.slice(453));
     expect(
       lib.parts.filter((p) => p.name.startsWith('HIV-1') && p.name.includes('LTR')),
@@ -184,6 +186,41 @@ describe('the bundled library, as loaded', () => {
     const onGene = detectFeatures(gene, 'linear', lib).map((h) => lib.parts[h.part]?.name);
     expect(onGene).toContain('chicken beta-actin promoter');
     expect(onGene).not.toContain('chicken beta-actin promoter (CAG)');
+  });
+
+  it('hides a segment of a gene where the gene is called, and only there (#282)', async () => {
+    const lib = await loadFeatureLibrary();
+    const part = (name: string) => lib.parts.find((p) => p.name === name);
+    const segments = lib.parts.filter((p) => p.segmentOf !== undefined);
+    expect(segments.map((p) => [p.name, p.segmentOf])).toEqual([
+      ['AmpR signal peptide', ['AmpR']],
+      ['chicken beta-actin promoter (CAG)', ['chicken beta-actin promoter']],
+      ["lacI promoter (3' end)", ['lacI promoter', 'lacIq promoter']],
+      ['SV40 NLS', ['SV40 large T antigen']],
+      ['HIV-1 LTR (R-U5)', ['HIV-1 LTR', "HIV-1 3' dLTR"]],
+    ]);
+    const names = (s: string): string[] =>
+      detectFeatures(s, 'linear', lib)
+        .filter((h) => lib.parts[h.part]?.category !== 'primer')
+        .map((h) => lib.parts[h.part]?.name ?? '');
+    // The signal peptide is the first 69 bases of bla, of another type.
+    const bla = part('AmpR')?.sequence ?? '';
+    const signal = part('AmpR signal peptide')?.sequence ?? '-';
+    expect(bla.indexOf(signal)).toBe(0);
+    expect(names(bla)).toEqual(['AmpR']);
+    // With a mismatch in the gene outside it, the segment matches better
+    // than the gene; it is hidden all the same.
+    const changed = bla.slice(0, 400) + (bla[400] === 'A' ? 'C' : 'A') + bla.slice(401);
+    expect(names(changed)).toEqual(['AmpR']);
+    // Where the gene is not there, a signal peptide fused to something else
+    // is offered as itself.
+    const fused = signal + 'GGTGGCTCTGGTGGCTCAGGCGGTGGTTCAGGAGGCAGCGGTGGCTCAGGT';
+    expect(names(fused)).toEqual(['AmpR signal peptide']);
+    // The SV40 NLS is residues 126..132 of large T, found in the translation.
+    const largeT = part('SV40 large T antigen')?.sequence ?? '';
+    const onLargeT = names(largeT);
+    expect(onLargeT).toContain('SV40 large T antigen');
+    expect(onLargeT).not.toContain('SV40 NLS');
   });
 
   it('offers the T7lac promoter with both of its components (#282)', async () => {
@@ -227,10 +264,11 @@ describe('the bundled library, as loaded', () => {
     }
     // Neither base at 16, or no base read there: both fit as well, and the
     // wild type is the one called. The 3' end, matched in full where the
-    // region is not, stays beside it, as any part fitting better than the
-    // longer one around it does (keepBest).
-    expect(called(at16('N'))).toEqual(['lacI promoter', "lacI promoter (3' end)"]);
-    expect(called(at16('A'))).toEqual(['lacI promoter', "lacI promoter (3' end)"]);
+    // region is not, is a segment of either region and not offered inside
+    // one (#282); it used to stay beside it, fitting better.
+    expect(tail?.segmentOf).toEqual(['lacI promoter', 'lacIq promoter']);
+    expect(called(at16('N'))).toEqual(['lacI promoter']);
+    expect(called(at16('A'))).toEqual(['lacI promoter']);
     // Cut off before the Iq base by a linear end, it cannot be told Iq.
     expect(called(at16('T').slice(20))).toEqual(['lacI promoter']);
     // The 3' end alone, with what lies before it changed, is the short part.

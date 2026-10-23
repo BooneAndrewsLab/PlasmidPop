@@ -834,10 +834,12 @@ const NEAR_LENGTH_SHARE = 0.02;
  * strand: it is the complement of another feature (the SV40 early and late
  * poly(A) signals, #233).
  *
- * A part marked `fragment` in the library is the exception to "matches at
- * least as well": it is a known piece of a longer part of its type (the R-U5
- * end of an HIV-1 LTR), so a longer hit of that type that holds all of it
- * displaces it whatever either matched (#286).
+ * A part that names in the library the parts it is a `segmentOf` (#282) is
+ * the exception to both "matches at least as well" and "of the same type": it
+ * is a known piece of one gene or element (the signal peptide of AmpR, the
+ * R-U5 end of an HIV-1 LTR, #286), so a longer hit of one of those parts on
+ * its strand that holds all of it displaces it, whatever either matched.
+ * Nothing else does: where the gene is not called the segment is offered.
  *
  * A composite part displaces none of the `components` it names (#282): the
  * T7lac promoter is offered with the T7 promoter and the lac operator in it,
@@ -874,7 +876,7 @@ function keepBest(
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const type = library.parts[h.part]?.type;
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
-    const fragment = library.parts[h.part]?.fragment === true;
+    const segmentOf = library.parts[h.part]?.segmentOf;
     // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
     const name = library.parts[h.part]?.name;
     const displaced = kept.some((k) => {
@@ -884,14 +886,14 @@ function keepBest(
       // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
       if (name !== undefined && library.parts[k.part]?.components?.includes(name) === true)
         return false;
-      // A part that is a piece of a longer one of its type (the R-U5 end of
-      // an HIV-1 LTR) is not offered inside a longer hit of that type on its
-      // strand, however well the piece itself matches (#286).
+      // A segment of a gene (the AmpR signal peptide) or of a longer element
+      // (the R-U5 end of an HIV-1 LTR) is not offered inside a hit of that
+      // gene on its strand, however well the segment itself matches (#282).
       if (
-        fragment &&
+        segmentOf !== undefined &&
         k.strand === h.strand &&
         // Stryker disable next-line OptionalChaining: equivalent, a hit's part is always in the library
-        library.parts[k.part]?.type === type &&
+        segmentOf.includes(library.parts[k.part]?.name ?? '') &&
         size(k) > size(h) &&
         shared >= size(h)
       )

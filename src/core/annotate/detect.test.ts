@@ -340,41 +340,61 @@ describe('detectFeatures', () => {
       expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['outer', 'inner']);
     });
 
-    it('drops a fragment part inside a longer one of its type that matches worse (#286)', () => {
+    it('drops a segment inside a hit of its gene that matches worse (#286, #282)', () => {
       const end = PART.slice(200);
       const lib = library(part('outer', PART, 'LTR'), {
         ...part('end', end, 'LTR'),
-        fragment: true,
+        segmentOf: ['outer'],
       });
-      // The mismatch is outside the fragment, so the fragment alone matches
-      // exactly: without the flag both would be offered, stacked.
+      // The mismatch is outside the segment, so the segment alone matches
+      // exactly: without the mark both would be offered, stacked.
       const hits = detectFeatures(mutate(PART, [10]), 'linear', lib);
       expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['outer']);
     });
 
-    it('keeps a fragment part where no longer hit of its type covers it (#286)', () => {
+    it('drops a segment of another type inside its gene (#282)', () => {
+      // The AmpR signal peptide: the first bases of the gene, a sig_peptide.
+      const signal = PART.slice(0, 69);
+      const lib = library(part('gene', PART, 'CDS'), {
+        ...part('signal', signal, 'sig_peptide'),
+        segmentOf: ['gene'],
+      });
+      expect(detectFeatures(PART, 'linear', lib).map((h) => lib.parts[h.part]?.name)).toEqual([
+        'gene',
+      ]);
+      // Unmarked, it is a feature of another type beside the gene.
+      const plain = library(part('gene', PART, 'CDS'), part('signal', signal, 'sig_peptide'));
+      expect(detectFeatures(PART, 'linear', plain).map((h) => plain.parts[h.part]?.name)).toEqual([
+        'gene',
+        'signal',
+      ]);
+    });
+
+    it('keeps a segment where no hit of its gene holds it (#286, #282)', () => {
       const end = PART.slice(200);
       const lib = library(part('outer', PART, 'LTR'), {
         ...part('end', end, 'LTR'),
-        fragment: true,
+        segmentOf: ['outer'],
       });
       const hits = detectFeatures(randomDna(rand, 40) + end + randomDna(rand, 40), 'linear', lib);
       expect(hits.map((h) => lib.parts[h.part]?.name)).toEqual(['end']);
     });
 
-    it('keeps a fragment part inside a longer hit of another type or strand (#286)', () => {
+    it('keeps a segment inside a longer hit of a part it does not name, or on the other strand (#282)', () => {
       const end = PART.slice(200);
-      const lib = library(part('outer', PART, 'promoter'), {
+      // A longer part of its own type that it is no segment of.
+      const lib = library(part('other', PART, 'LTR'), part('gene', randomDna(rand, 300), 'LTR'), {
         ...part('end', end, 'LTR'),
-        fragment: true,
+        segmentOf: ['gene'],
       });
-      expect(detectFeatures(PART, 'linear', lib).map((h) => lib.parts[h.part]?.name)).toEqual([
-        'outer',
-        'end',
-      ]);
+      // `other` matches worse than `end` (a mismatch outside it), so the
+      // ordinary rule keeps both, and the mark is only for `gene`.
+      expect(
+        detectFeatures(mutate(PART, [10]), 'linear', lib).map((h) => lib.parts[h.part]?.name),
+      ).toEqual(['other', 'end']);
       const onReverse = library(part('outer', reverseComplement(PART), 'LTR'), {
         ...part('end', end, 'LTR'),
-        fragment: true,
+        segmentOf: ['outer'],
       });
       expect(
         detectFeatures(PART, 'linear', onReverse).map((h) => [

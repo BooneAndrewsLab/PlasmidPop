@@ -80,13 +80,17 @@ export interface LibraryPart {
    */
   readonly exact?: boolean;
   /**
-   * The part is a piece of a longer part of the same type — the R-U5 end of
-   * an HIV-1 LTR, which is all a vector keeps where a heterologous promoter
-   * replaces U3 — so it is reported only where no longer hit of that type on
-   * its strand covers all of it (#286). Without it a piece that matches
-   * exactly stays beside the longer part that has a mismatch outside it.
+   * The parts this one is a segment of (#282): the signal peptide of AmpR,
+   * the R-U5 end of an HIV-1 LTR (all a vector keeps where a heterologous
+   * promoter replaces U3, #286). It is reported only where no hit of one of
+   * them, on its strand, holds all of its bases, however well either
+   * matched: where the gene is called the segment is a part of it, not a
+   * feature beside it, and where the gene is not called (a signal peptide
+   * fused to something else) it is offered as itself. Without it a segment
+   * of another type stayed beside its gene always, and one of the same type
+   * whenever the gene had a mismatch outside it.
    */
-  readonly fragment?: boolean;
+  readonly segmentOf?: readonly string[];
   /**
    * The parts this one is made of (#282): the T7lac promoter is the T7
    * promoter running straight into the lac operator. A hit of it displaces no
@@ -256,10 +260,6 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
     if (exact !== undefined && typeof exact !== 'boolean') {
       throw new Error(`Feature library (${source}): part ${i} has a malformed exact`);
     }
-    const fragment = entry['fragment'];
-    if (fragment !== undefined && typeof fragment !== 'boolean') {
-      throw new Error(`Feature library (${source}): part ${i} has a malformed fragment`);
-    }
     // A part is looked for by its bases, by its protein, or by both; one
     // with neither would match nothing and is a fault in the build.
     if (sequence === '' && (protein === undefined || protein === '')) {
@@ -270,9 +270,11 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
     }
     let variant;
     let components;
+    let segmentOf;
     try {
       variant = parseVariant(entry['variant'], sequence, protein);
       components = partNames(entry['components'], 'components');
+      segmentOf = partNames(entry['segmentOf'], 'segmentOf');
     } catch (e) {
       throw new Error(
         `Feature library (${source}): part ${i}: ${e instanceof Error ? e.message : String(e)}`,
@@ -291,7 +293,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       ...(fpbase === undefined ? {} : { fpbase }),
       ...(protein === undefined ? {} : { protein }),
       ...(exact === true ? { exact } : {}),
-      ...(fragment === true ? { fragment } : {}),
+      ...(segmentOf === undefined ? {} : { segmentOf }),
       ...(components === undefined ? {} : { components }),
       ...(variant === undefined ? {} : { variant }),
     };

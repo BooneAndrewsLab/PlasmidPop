@@ -137,8 +137,9 @@ describe('Detect features against pLannotate', () => {
   it('calls one LTR per copy, named without a 5′ claim the bases cannot make (#286)', async () => {
     // The R-U5 end of an HIV-1 LTR is the same in both copies, so it used to
     // be drawn on top of a whole LTR call of ours, and under a 5' name on
-    // the downstream copy. It is a `fragment` part now, and the whole-LTR
-    // part no longer says which copy it is.
+    // the downstream copy. It is a segment of the LTR parts now (#286's
+    // `fragment`, #282's `segmentOf`), and the whole-LTR part no longer says
+    // which copy it is.
     const lib = await loadFeatureLibrary();
     const ltrs = (accession: string): string[] => {
       const v = vectors.find((x) => x.accession === accession);
@@ -164,14 +165,14 @@ describe('Detect features against pLannotate', () => {
       'HIV-1 LTR (R-U5) 835..1015',
       'HIV-1 LTR (R-U5) 4733..4913',
     ]);
-    // Corpus-wide: no fragment part is offered inside a longer LTR call.
+    // Corpus-wide: no segment is offered inside a longer LTR call.
     for (const v of vectors) {
       const topology = v.topology === 'circular' ? 'circular' : 'linear';
       const hits = detectFeatures(v.sequence, topology, lib).filter(
         (h) => lib.parts[h.part]?.type === 'LTR',
       );
       for (const h of hits) {
-        if (lib.parts[h.part]?.fragment !== true) continue;
+        if (lib.parts[h.part]?.segmentOf === undefined) continue;
         const inside = hits.filter(
           (k) =>
             k !== h &&
@@ -184,6 +185,33 @@ describe('Detect features against pLannotate', () => {
         ).toEqual([]);
       }
     }
+  }, 300_000);
+
+  it('offers no segment of a gene inside a call of that gene (#282)', async () => {
+    // The AmpR signal peptide is the first 69 bases of bla, and was offered
+    // on top of every one of the 61 AmpR calls that hold it.
+    const lib = await loadFeatureLibrary();
+    let genes = 0;
+    let signals = 0;
+    for (const v of vectors) {
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const hits = detectFeatures(v.sequence, topology, lib);
+      for (const h of hits) {
+        const segmentOf = lib.parts[h.part]?.segmentOf;
+        if (segmentOf === undefined) continue;
+        const inside = hits.filter(
+          (k) =>
+            k.strand === h.strand &&
+            segmentOf.includes(lib.parts[k.part]?.name ?? '') &&
+            overlapLength(k.range, h.range, v.length, topology) >= h.range.end - h.range.start,
+        );
+        expect(inside, `${v.accession} ${lib.parts[h.part]?.name}`).toEqual([]);
+      }
+      genes += hits.filter((h) => lib.parts[h.part]?.name === 'AmpR').length;
+      signals += hits.filter((h) => lib.parts[h.part]?.name === 'AmpR signal peptide').length;
+    }
+    // No corpus vector has the signal peptide without the rest of bla.
+    expect([genes, signals]).toEqual([63, 0]);
   }, 300_000);
 
   it('offers both components inside every T7lac promoter call (#282)', async () => {

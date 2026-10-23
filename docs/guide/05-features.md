@@ -148,8 +148,7 @@ What is found:
   (a T in its -35 box) that makes lacIq. Where that base is anything else,
   unread or cut off, it is the wild-type _lacI promoter_. The last 35 bp,
   next to the start codon, are offered as _lacI promoter (3' end)_ where
-  the whole region is not found, and beside it where a base before them
-  differs.
+  the whole region is not found.
 - **Bases inserted or deleted**: a copy of a part with a small indel — a
   frameshift, a filled-in site — is found too, up to 8 bases inserted or
   deleted in all. Each one counts against **Match at least** as a mismatch
@@ -200,7 +199,7 @@ What is found:
   list says how many there were.
 - Where two parts of one type cover the same bases, only the better match is
   offered: the pBR322 origin rather than the pUC origin that differs from it
-  by one base, `lacZ` rather than the `lacZα` inside it. Parts of different
+  by one base, a _3xFLAG_ rather than the _FLAG_ inside it. Parts of different
   types are offered together, so a primer site inside a promoter is two
   features, and so are parts on opposite strands (the SV40 early poly(A)
   signal is the complement of the late one, and both are offered). A part
@@ -217,11 +216,19 @@ What is found:
   whose repeats are nine bases apart is that many labels — and so do copies
   on opposite strands. The 3xFLAG whose first two units are the
   variants `DYKDHDG` and `DYKDHDI` is a part of its own, found whole.
-- A part that is a known **piece of a longer part** — _HIV-1 LTR (R-U5)_ is
-  the end of an _HIV-1 LTR_, all a lentiviral vector keeps where a
-  heterologous promoter replaces U3 — is offered only where no
-  longer hit of its type covers all of it, even where the piece matches
-  exactly and the whole part around it has a mismatch somewhere else.
+- A part that is a **segment of a gene** or of a longer element is not
+  offered where that gene is found around it on the same strand: the _AmpR
+  signal peptide_ is the start of _AmpR_, and the map shows one AmpR rather
+  than AmpR with its first 69 bases labelled again. The same holds for
+  _HIV-1 LTR (R-U5)_, the end of an _HIV-1 LTR_ (all a lentiviral vector
+  keeps where a heterologous promoter replaces U3), the _lacI promoter
+  (3' end)_ inside a lacI or lacIq promoter, the _chicken beta-actin
+  promoter (CAG)_ inside the whole _chicken beta-actin promoter_, and the
+  _SV40 NLS_ inside _SV40 large T antigen_. It holds even where the segment
+  matches exactly and the gene around it has a mismatch somewhere else.
+  Where the gene is not there — a signal peptide or an NLS fused to
+  something else — the segment is offered as itself. A segment hidden this
+  way is not listed at all; the gene's feature covers its bases.
 
 A feature added this way is named after the part and carries two notes: what
 the part is, and _Detected by PlasmidPop_ with how well it matched and the

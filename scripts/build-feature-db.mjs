@@ -293,8 +293,10 @@ function translate(dna) {
  * @property {string} [proteinProbe] a peptide matched in the translation (#93), which must
  *   occur exactly once in the cited protein record; the part carries no DNA
  * @property {boolean} [exact] report the part only when every base matches (#94 follow-up)
- * @property {boolean} [fragment] the part is a piece of a longer part of the same type, so it is
- *   reported only where no longer hit of that type covers all of it (#286)
+ * @property {string[]} [segmentOf] the part is a segment of one of these parts (#282, after #286's
+ *   `fragment`): the signal peptide of AmpR, the R-U5 end of an HIV-1 LTR. It is reported only
+ *   where no hit of them on its strand holds all of it. The build checks its bases (or, for a
+ *   part matched only in the translation, its peptide) lie inside each one's
  * @property {string[]} [components] the parts this one is made of (#282): a hit of it displaces
  *   no hit of theirs, so a composite is offered with its components. The build checks each is a
  *   part whose bases lie inside this one's
@@ -318,7 +320,7 @@ function translate(dna) {
  * @property {string} location
  * @property {string} [note]
  * @property {boolean} [exact]
- * @property {boolean} [fragment]
+ * @property {string[]} [segmentOf]
  * @property {string[]} [components]
  * @property {object} [variant]
  */
@@ -417,6 +419,7 @@ async function buildPeptide(spec) {
     accession: version,
     location: `${at + 1}..${at + peptide.length}`,
     ...(spec.note === undefined ? {} : { note: spec.note }),
+    ...(spec.segmentOf === undefined ? {} : { segmentOf: spec.segmentOf }),
   };
 }
 
@@ -519,7 +522,7 @@ async function buildCorePart(spec) {
     location: location.replace(/\s+/g, ''),
     ...(spec.note === undefined ? {} : { note: spec.note }),
     ...(spec.exact === true ? { exact: true } : {}),
-    ...(spec.fragment === true ? { fragment: true } : {}),
+    ...(spec.segmentOf === undefined ? {} : { segmentOf: spec.segmentOf }),
     ...(spec.components === undefined ? {} : { components: spec.components }),
     ...(spec.variant === undefined
       ? {}
@@ -677,21 +680,41 @@ function checkUnique(parts) {
 }
 
 /**
- * Parts that name other parts — the components of a composite (#282) — name
- * parts of the list whose bases lie inside their own, on the same strand, so
- * the relation the name states is one the bases show.
+ * Parts that name other parts — the components of a composite, the gene a
+ * segment is of (#282) — name parts of the list that hold them, or that they
+ * hold, base for base on the same strand, so the relation the name states is
+ * one the bases show. A segment matched only in the translation (the SV40
+ * NLS) is checked against the protein of the part it is a segment of.
  * @param {readonly BuiltPart[]} parts
  */
 function checkRelations(parts) {
   /** @type {string[]} */
   const problems = [];
   const byName = new Map(parts.map((p) => [p.name, p]));
+  /** @param {BuiltPart} p */
+  const proteinOf = (p) =>
+    p.protein ??
+    (p.type === 'CDS' && p.sequence.length % 3 === 0
+      ? translate(p.sequence).replace(/\*$/, '')
+      : '');
+  /**
+   * @param {BuiltPart} outer
+   * @param {BuiltPart} inner
+   */
+  const holds = (outer, inner) =>
+    inner.sequence === ''
+      ? (inner.protein ?? '') !== '' && proteinOf(outer).includes(inner.protein ?? '')
+      : outer.sequence.includes(inner.sequence);
   for (const p of parts) {
     for (const name of p.components ?? []) {
       const other = byName.get(name);
       if (other === undefined) problems.push(`  ${p.name}: no component ${name}`);
-      else if (other.sequence === '' || !p.sequence.includes(other.sequence))
-        problems.push(`  ${p.name}: the bases of ${name} are not inside it`);
+      else if (!holds(p, other)) problems.push(`  ${p.name}: ${name} is not inside it`);
+    }
+    for (const name of p.segmentOf ?? []) {
+      const other = byName.get(name);
+      if (other === undefined) problems.push(`  ${p.name}: no part ${name} to be a segment of`);
+      else if (!holds(other, p)) problems.push(`  ${p.name}: not inside ${name}`);
     }
   }
   return problems;
