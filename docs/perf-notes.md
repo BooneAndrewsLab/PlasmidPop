@@ -1481,3 +1481,59 @@ The heap snapshots (`open-profile.ts --snapshot`, after a forced
 collection, 4.64 Mb): 63.1 MB of self sizes before, 56.8 MB after, of
 which the 446,000 site objects and the other objects 25.7 MB, the sequence
 4.64 MB once, the bundle's source 6.8 MB.
+
+## The cut sites kept packed (#281, design note 105, 2026-10-22)
+
+The same machine and method as #278: headless Chromium (Playwright), 16-thread
+Xeon E5-2630 v3, seeded random FASTA (no features). _Before_ is main at
+3db0488, _after_ this change; minified builds of each in directories of
+their own (and unminified ones for the profiles), run one after the other.
+Load average 13.5 falling to 5.5 during the first set (`before`, scroll after
+the list; the builds had just finished), 4-6 for the rest.
+
+`node scripts/bench/open-scan.ts --sizes 300000,1000000,4641652 --n 10`
+(mean ± SE; the scroll starts once the list is drawn):
+
+| Size    | Enzymes list, before | after         | Longest frame gap, before | after         | Heap, before | after   | After GC, before | after   |
+| ------- | -------------------- | ------------- | ------------------------- | ------------- | ------------ | ------- | ---------------- | ------- |
+| 300 kb  | 238.0 ± 9.8 ms       | 222.3 ± 11.3  | 16.8 ± 0.0 ms             | 16.8 ± 0.0 ms | 19.7 MB      | 15.1 MB | 11.8 MB          | 11.3 MB |
+| 1 Mb    | 408.2 ± 11.5 ms      | 360.8 ± 8.9   | 16.8 ± 0.0 ms             | 16.8 ± 0.0 ms | 23.1 MB      | 27.2 MB | 17.7 MB          | 16.1 MB |
+| 4.64 Mb | 1165.6 ± 21.5 ms     | 1022.2 ± 10.8 | 28.4 ± 2.5 ms             | 21.8 ± 2.5 ms | 93.8 MB      | 88.0 MB | 60.7 MB          | 52.7 MB |
+
+The same with `--scroll-from view`, where the rest of the open lands in
+the scroll:
+
+| Size    | Longest frame gap, before | after         | Longest task, before | after       | Frames > 50 ms, before | after | After GC, before | after   |
+| ------- | ------------------------- | ------------- | -------------------- | ----------- | ---------------------- | ----- | ---------------- | ------- |
+| 300 kb  | 20.1 ± 3.3 ms             | 33.4 ± 4.3 ms | 6.1 ± 6.1 ms         | 10.5 ± 7.0  | 0.0                    | 0.0   | 11.8 MB          | 11.3 MB |
+| 1 Mb    | 68.3 ± 3.9 ms             | 56.7 ± 4.4 ms | 27.9 ± 9.4 ms        | 36.7 ± 10.0 | 0.9                    | 0.4   | 17.7 MB          | 16.1 MB |
+| 4.64 Mb | 100.0 ± 6.1 ms            | 85.0 ± 3.0 ms | 44.8 ± 11.1 ms       | 69.5 ± 2.2  | 1.9                    | 1.0   | 48.9 MB          | 40.9 MB |
+
+At 4.64 Mb the two frames of 50-100 ms became one of 85 ms. The longest
+task reads longer because the receive and the first render are now one task
+with no collection between them; before, the collections fell between the
+two tasks, in the gap but in no task. At 300 kb the open is done before the
+scroll starts, either way; the frame gaps there are within the noise.
+
+`open-profile.ts --scroll` on unminified builds, three runs per size:
+
+| Size    | Receive and first render, before                     | after                                         |
+| ------- | ---------------------------------------------------- | --------------------------------------------- |
+| 300 kb  | one task of 57-64 ms; busy stretch 77-88 ms, GC 4-8  | 52-59 ms; stretch 65-79 ms, GC 0-0.3          |
+| 1 Mb    | one task of 52-68 ms; stretch 118-126 ms, GC 9-17    | 52-74 ms; stretch 40-97 ms, GC 2-4            |
+| 4.64 Mb | 85-113 ms and 54-72 ms; stretch 238-288 ms, GC 72-90 | one of 72-85 ms; stretch 138-155 ms, GC 0-0.3 |
+
+In the 4.64 Mb stretch before: `unpackScan` 60-75 ms and the collector
+72-90 ms. After: building the packed set (`PackedCutSiteSet`, the counting
+sort by enzyme) 16-19 ms, `unpackScan` 2-4 ms, no collection; what is left
+is the panel's first render (`gelProfile` 9-14 ms for the rows on screen,
+React). Up to a third of each long task the profiler samples as idle, as
+before. The autosave's put is unchanged (52-55 ms at open+6.2-6.4 s).
+
+What is made at open, counted in an instrumented build (a counter in the
+set's object maker, the bench's sequences, 1400 x 900): with the sequence
+view and map alone, nothing is ticked at any of the three sizes (no single
+cutters) and no site object is made; with the Enzymes tab open, 308, 322 and
+324 objects at 300 kb, 1 Mb and 4.64 Mb, the first twelve sites of each row
+the list has drawn, against 446,000 at 4.64 Mb before. A ticked enzyme makes
+its own sites' objects when the views first pick it.

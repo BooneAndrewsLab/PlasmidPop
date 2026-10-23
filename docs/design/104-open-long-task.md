@@ -123,6 +123,6 @@ collection, 35-80 ms, set off while the 446,000 site objects are made,
 whichever slice it falls in. Making fewer objects is a change of the
 analysis state: keep the sites packed and make an enzyme's site objects
 when they are asked for (the ticked enzymes for the views, a row on screen,
-the cloning tab). That is for a follow-up issue.
+the cloning tab). Done in #281 (item 105).
 
 See `docs/perf-notes.md` (#278) for the measurements.
