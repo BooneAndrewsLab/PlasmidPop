@@ -38,11 +38,11 @@ const BASELINE: Record<PartClass, number> = {
   promoter: 0.913,
   tag: 0.916,
   FP: 0.906,
-  terminator: 0.891,
+  terminator: 0.902,
   RNA: 0.916,
   other: 0.778,
 };
-const BASELINE_ALL = 0.879;
+const BASELINE_ALL = 0.88;
 
 describe('Detect features against pLannotate', () => {
   let result: Comparison;
@@ -96,6 +96,29 @@ describe('Detect features against pLannotate', () => {
     ]);
     const found = result.nameConflicts.map((c) => `${c.accession}: ${c.part} / ${c.theirs}`);
     expect(found.filter((c) => !known.has(c))).toEqual([]);
+  });
+
+  it('puts no part on the other strand from pLannotate where both call it, but for the known cases', () => {
+    // Each entry is a call of ours on the strand given, on bases pLannotate
+    // calls the same part on the other strand. The bundled CaMV poly(A)
+    // signal was stored antisense (#287), and this list is what would have
+    // caught it. The Tn7 ends have no direction to work in: ours read as in
+    // AY599231, SnapGene draws them the other way.
+    const known = new Set(['MK161519.1: Tn7R forward', 'MK161519.1: Tn7L forward']);
+    const found = result.strandConflicts.map((c) => `${c.accession}: ${c.part} ${c.ours}`);
+    expect(found.filter((c) => !known.has(c))).toEqual([]);
+  });
+
+  it('calls the CaMV poly(A) signal of pCAMBIA on the strand of the gene it ends (#287)', async () => {
+    const lib = await loadFeatureLibrary();
+    const v = vectors.find((x) => x.accession === 'OR797711.1');
+    if (v === undefined) throw new Error('OR797711.1');
+    const calls = detectFeatures(v.sequence, 'circular', lib)
+      .filter((h) => lib.parts[h.part]?.name === 'CaMV poly(A) signal')
+      .map((h) => `${h.range.start + 1}..${h.range.end} ${h.strand}`);
+    // The hygromycin gene it ends, and pLannotate's call, are both reverse.
+    expect(calls).toEqual(['8717..8925 reverse']);
+    expect(v.hits.find((h) => h.name === 'CaMV poly(A) signal')?.strand).toBe(-1);
   });
 
   it('calls the lacI promoter lacIq only where it carries the Iq base (#283)', async () => {

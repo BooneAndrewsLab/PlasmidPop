@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { reverseComplement } from '@/core/sequence/alphabet';
+
 import { detectFeatures } from './detect';
 import { codingProtein, loadFeatureLibrary, parseLibraryFile } from './library';
 
@@ -206,6 +208,19 @@ describe('the bundled library, as loaded', () => {
     // The 3' end alone, with what lies before it changed, is the short part.
     const unrelated = 'GTTTAAACGGATCCTCTAGAGTCGACCTGCAGGCA'.slice(0, 43);
     expect(called(unrelated + (tail?.sequence ?? ''))).toEqual(["lacI promoter (3' end)"]);
+  });
+
+  it('reads the CaMV poly(A) signal on the strand it terminates (#287)', async () => {
+    const lib = await loadFeatureLibrary();
+    const part = lib.parts.find((p) => p.name === 'CaMV poly(A) signal');
+    // AF234296 gives the 3' UTR no strand, but the hptII gene it ends is
+    // complement(6873..7898): the part is the complement of the record's bases.
+    expect([part?.accession, part?.location]).toEqual(['AF234296.1', 'complement(6649..6857)']);
+    const seq = part?.sequence ?? '';
+    expect(seq).toHaveLength(209);
+    // The hexamer is on this strand alone.
+    expect(seq.indexOf('AATAAA')).toBe(149);
+    expect(reverseComplement(seq)).not.toContain('AATAAA');
   });
 
   it('carries notes, and FPbase pages on the fluorescent proteins alone', async () => {
