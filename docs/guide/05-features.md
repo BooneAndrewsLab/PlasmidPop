@@ -189,6 +189,11 @@ What is found:
 - Two variants of one protein that differ in length by only a few bases (EGFP
   and ECFP) are one locus: the one that matches better is offered, even if
   it is the slightly shorter.
+- A part that is a known **piece of a longer part** — _HIV-1 LTR (R-U5)_ is
+  the end of an _HIV-1 LTR_, all a lentiviral vector keeps where a
+  heterologous promoter replaces U3 — is offered only where no
+  longer hit of its type covers all of it, even where the piece matches
+  exactly and the whole part around it has a mismatch somewhere else.
 
 A feature added this way is named after the part and carries two notes: what
 the part is, and _Detected by PlasmidPop_ with how well it matched and the

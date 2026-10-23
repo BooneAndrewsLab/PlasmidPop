@@ -878,3 +878,56 @@ one 300 kb antisense ORF took 11.5 s to filter before the memo and about
 protein hit to check. The protein search itself is slow on such a sequence,
 and on 2,000 copies of a linker fusion (8,000 His hits): 7 s and 92 s, from
 before this change.
+
+### The HIV-1 LTR parts: one copy's name, and a piece on top of the whole (#286)
+
+Two faults, both of the LTR parts. **The names claimed a copy the bases
+cannot tell apart.** K03455 (HXB2) annotates its `5' LTR` at 1..634 and its
+`3' LTR` at 9086..9719. Fetched by efetch (and identical to the build's
+cached copy), the two 634 bp differ at 8 bases — 24, 108, 164, 168, 176,
+182, 227 and 291 — every one of them in U3, which runs to 453; R and U5
+(454..634) are the same base for base. 98.7% identity is well inside the
+match threshold, so the part bundled as `HIV-1 5' LTR` was found on both
+copies (PX139668.1 at 1..634 and 4638..5271, MH325104.1 at 1..634 and
+5254..5887, at 98.6% and 98.7%), and `HIV-1 5' LTR (R-U5)` landed on the
+downstream copy of OQ427862.1, OQ427864.1 and EF177827.1. Both are renamed
+for what the bases say: **`HIV-1 LTR`** and **`HIV-1 LTR (R-U5)`**, bases and
+records unchanged. `HIV-1 3' dLTR` (KX757249 4172..4405) keeps its 3': it is
+53 bases of U3 remnant followed by exactly the 181 bases of R-U5, and that
+deletion is the self-inactivating change a transfer plasmid carries in its
+downstream LTR, where the upstream one has a heterologous U3 (the
+`RSV/5'LTR promoter` part). It is a difference the bases carry; which copy
+the whole 634 bp is, is not.
+
+**The piece was drawn on top of the whole.** R-U5 is the last 181 bases of
+the LTR, so wherever a whole LTR was found it was found too, and `keepBest`
+kept both: the piece matches exactly while the LTR around it has a mismatch
+somewhere outside it, and the rule that drops a part inside a longer one of
+its type asks the longer to match at least as well (the finding in the #283
+section). PX139668.1 and MH325104.1 got R-U5 stacked on each of their two
+LTRs, OQ427862.1 and OQ427864.1 on their `3' dLTR`.
+
+Rather than a general containment rule — a part wholly inside a longer one
+of its type is a sub-region whatever either matched — the fix is one flag on
+the one part: `fragment: true` in the library data (`scripts/feature-db/`
+and the built `core-parts.json`, carried by `build-feature-db.mjs`). A part
+marked so is a known piece of a longer part of its type, and `keepBest`
+drops it where a longer hit of that type on its strand holds all of its
+bases, whatever either matched. Same type, same strand and full containment
+are all required, so the SV40 poly(A) rule of #233 is untouched. The general
+policy for contained features is #282's to decide; if that lands a
+containment rule, this flag becomes a special case of it and can go.
+
+On the corpus the stacked calls are gone and nothing else moved: 1,443 hits
+where there were 1,449 (the 6 above), the same 256 extras, recall 868 of 987
+(87.9%) and every class unchanged. OQ427862.1 and OQ427864.1 now read
+`HIV-1 3' dLTR` 1293..1526 and `HIV-1 LTR (R-U5)` 5002..5182, EF177827.1
+`HIV-1 LTR (R-U5)` twice (835..1015 and 4733..4913, the record's own 5' and
+3' LTRs), PX139668.1 and MH325104.1 one `HIV-1 LTR` per copy. pLannotate's
+`5' LTR (truncated)` aliases to `HIV-1 LTR` (the alias table), which leaves
+recall and the name-conflict list as they were. `plannotate.test.ts` checks
+the five vectors and that no fragment part is offered inside a longer LTR
+call anywhere in the corpus, `library.test.ts` the names and the flag, and
+`detect.test.ts` the rule on synthetic parts (dropped inside a longer hit of
+its type that matches worse; kept where none covers it, and where the
+longer hit is of another type or on the other strand).
