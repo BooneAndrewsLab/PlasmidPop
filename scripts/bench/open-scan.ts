@@ -4,7 +4,11 @@
 // so no run sees another's IndexedDB or HTTP cache.
 //
 //   npm run bench -- --sizes 3000,50000,300000 --n 10 [--out file.csv] [--headed]
-//     [--dist dist] [--settle 0]
+//     [--dist dist] [--settle 0] [--scroll-from enzymes]
+//
+// The scroll starts once the enzyme list is drawn, or with `--scroll-from
+// view` once the sequence view is painted, so what the open still has to do
+// lands inside it (#278).
 //
 // At the end of each run it reads the JS heap (`performance.memory`, the
 // browser started with precise memory info) as the scroll left it, then
@@ -73,6 +77,7 @@ const { values } = parseArgs({
     headed: { type: 'boolean', default: false },
     dist: { type: 'string', default: 'dist' },
     settle: { type: 'string', default: '0' },
+    'scroll-from': { type: 'string', default: 'enzymes' },
   },
 });
 const sizes = values.sizes.split(',').map((s) => Number(s.trim()));
@@ -82,6 +87,11 @@ if (sizes.some((s) => !Number.isInteger(s) || s <= 0) || !Number.isInteger(runs)
   process.exit(2);
 }
 const SETTLE_MS = Number(values.settle);
+const SCROLL_FROM_VIEW = values['scroll-from'] === 'view';
+if (!SCROLL_FROM_VIEW && values['scroll-from'] !== 'enzymes') {
+  console.error('--scroll-from takes view or enzymes');
+  process.exit(2);
+}
 const out = values.out ?? `bench-open-scan-${new Date().toISOString().slice(0, 10)}.csv`;
 
 const TIMEOUT_MS = 120_000;
@@ -221,10 +231,9 @@ async function runOnce(
     await page.evaluate(installProbe);
     await input.setInputFiles(file);
     await page.waitForFunction(
-      () => window.__bench?.view != null && window.__bench.enzymes != null,
+      (fromView) => window.__bench?.view != null && (fromView || window.__bench.enzymes != null),
+      SCROLL_FROM_VIEW,
     );
-    const probe = await page.evaluate(() => window.__bench);
-    if (probe?.view == null || probe.enzymes == null) throw new Error('the probe lost its marks');
 
     const box = await page.locator('.seq-view__canvas').boundingBox();
     if (box === null) throw new Error('the sequence view has no box');
@@ -243,6 +252,9 @@ async function runOnce(
         }),
     );
     const log = await page.evaluate(() => window.__stopFrames?.());
+    await page.waitForFunction(() => window.__bench?.enzymes != null);
+    const probe = await page.evaluate(() => window.__bench);
+    if (probe?.view == null || probe.enzymes == null) throw new Error('the probe lost its marks');
     if (log === undefined) throw new Error('the frame log was lost');
     const { gaps, at, afterOpen, longestTask } = log;
     const scrolled = (await page.evaluate(sequenceScrollTop)) - top;
