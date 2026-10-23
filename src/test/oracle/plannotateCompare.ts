@@ -150,6 +150,8 @@ export interface Comparison {
   readonly misses: readonly Miss[];
   readonly extras: readonly Extra[];
   readonly nameConflicts: readonly NameConflict[];
+  /** Calls in `ORACLE_ERRORS` that a hit of ours makes too, on the same strand. */
+  readonly erroneous: readonly { readonly accession: string; readonly name: string }[];
   /** Hits of ours, all told. */
   readonly ours: number;
 }
@@ -206,6 +208,26 @@ function sameStrand(
   return cls === 'origin' || RECOMBINATION_SITE.test(name) || a === b;
 }
 
+/**
+ * Calls of pLannotate's that are wrong, checked against the record: left out
+ * of recall, and Detect features must not make them (`erroneous`).
+ *
+ * - JX679612.1 (pRS416 pRS-TG), 9xHis on the reverse strand: the bases are
+ *   the (GGT)9 glycine linker of the record's own TetR-GFP fusion CDS (TG,
+ *   2735..4117), which reads His only antisense to it (#285).
+ */
+export const ORACLE_ERRORS: readonly {
+  readonly accession: string;
+  readonly name: string;
+  readonly start: number;
+}[] = [{ accession: 'JX679612.1', name: '9xHis', start: 3356 }];
+
+function isOracleError(accession: string, h: OracleHit): boolean {
+  return ORACLE_ERRORS.some(
+    (x) => x.accession === accession && x.name === h.name && x.start === h.start,
+  );
+}
+
 /** The name pLannotate gives a part, as ours is spelled (the alias table, then itself). */
 export function ourNameFor(name: string): string {
   const alias = (aliases.aliases as Record<string, string>)[name];
@@ -223,6 +245,7 @@ export function compare(library: FeatureLibrary): Comparison {
   const misses: Miss[] = [];
   const extras: Extra[] = [];
   const nameConflicts: NameConflict[] = [];
+  const erroneous: { accession: string; name: string }[] = [];
   let oursCount = 0;
   const partByName = new Map(library.parts.map((p) => [normalize(p.name), p.name]));
   // The parts of ours that stand for a name pLannotate uses somewhere in the corpus.
@@ -237,7 +260,13 @@ export function compare(library: FeatureLibrary): Comparison {
     const topology: Topology = v.topology === 'circular' ? 'circular' : 'linear';
     const hits = detectFeatures(v.sequence, topology, library);
     oursCount += hits.length;
-    const complete = v.hits.filter((h) => !h.fragment);
+    for (const h of v.hits) {
+      if (!isOracleError(v.accession, h)) continue;
+      const range = oracleRange(h, v.length, topology);
+      if (hits.some((o) => o.strand === strandOf(h) && agrees(range, o.range, v.length, topology)))
+        erroneous.push({ accession: v.accession, name: h.name });
+    }
+    const complete = v.hits.filter((h) => !h.fragment && !isOracleError(v.accession, h));
     let lowHits: FeatureHit[] | undefined;
     for (const h of complete) {
       const cls = classOfOracle(h);
@@ -318,7 +347,7 @@ export function compare(library: FeatureLibrary): Comparison {
       }
     }
   }
-  return { total, found, misses, extras, nameConflicts, ours: oursCount };
+  return { total, found, misses, extras, nameConflicts, erroneous, ours: oursCount };
 }
 
 /** The comparison as the markdown tables of item 59, for re-running it after a change. */

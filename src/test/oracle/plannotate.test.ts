@@ -7,6 +7,7 @@ import { loadFeatureLibrary } from '@/core/annotate/library';
 
 import {
   type Comparison,
+  ORACLE_ERRORS,
   PART_CLASSES,
   type PartClass,
   compare,
@@ -35,7 +36,7 @@ const BASELINE: Record<PartClass, number> = {
   origin: 0.97,
   marker: 0.938,
   promoter: 0.913,
-  tag: 0.923,
+  tag: 0.916,
   FP: 0.906,
   terminator: 0.891,
   RNA: 0.916,
@@ -115,6 +116,35 @@ describe('Detect features against pLannotate', () => {
       seen += theirs.length;
     }
     expect(seen).toBe(13);
+  });
+
+  it("makes none of pLannotate's known errors (#285)", () => {
+    expect(ORACLE_ERRORS.length).toBeGreaterThan(0);
+    expect(result.erroneous).toEqual([]);
+  });
+
+  it('finds tags by their protein only where the frame is plausibly translated (#285)', async () => {
+    const lib = await loadFeatureLibrary();
+    const tags = (accession: string): string[] => {
+      const v = vectors.find((x) => x.accession === accession);
+      if (v === undefined) throw new Error(accession);
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      return detectFeatures(v.sequence, topology, lib)
+        .filter((h) => h.viaProtein === true && lib.parts[h.part]?.category === 'tag')
+        .map((h) => `${lib.parts[h.part]?.name} ${h.range.start} ${h.strand}`);
+    };
+    // The (GGT)9 linker of pRS-TG's TetR-GFP fusion, read antisense as His:
+    // the 6xHis and 8xHis there are gone, nothing else is.
+    expect(tags('JX679612.1')).toEqual([]);
+    // Kept: an N-terminal His tag in pETDuet-1's 29-codon ORF, across a
+    // 271-codon ORF on the other strand; the T7 tag of pACpET24 at the head
+    // of its 54-codon ORF, across a 217-codon one; a TEV site with no start
+    // before it, in a frame open into the iFP after it; a His tag in a
+    // phagemid with no ORF on either strand.
+    expect(tags('PP098729.1')).toContain('6xHis 82 forward');
+    expect(tags('U16281.1')).toContain('T7 tag 2503 reverse');
+    expect(tags('JF327847.1')).toContain('TEV site 697 forward');
+    expect(tags('AF013597.1')).toContain('6xHis 21 forward');
   });
 
   it('gives every miss a cause', () => {

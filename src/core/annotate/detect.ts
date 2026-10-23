@@ -4,6 +4,7 @@ import { alignNearDiagonal, bandCells } from './gapped';
 import { type FeatureLibrary } from './library';
 import { detectHomologues } from './homologue';
 import { detectProteinFeatures } from './protein';
+import { withoutAntisense } from './translated';
 
 /**
  * Finding the library's parts in a sequence (item 59): on both strands,
@@ -433,15 +434,28 @@ export function detectFeatures(
   // The parts that are looked for by what they code for (#93): the short
   // tags no record spells in DNA, and the proteins a construct carries with
   // synonymous changes. Their hits join the rest and are reduced with them,
-  // so a part found both ways is offered once.
+  // so a part found both ways is offered once. A frame read only antisense
+  // (#285) is dropped first, so it takes nothing else with it.
   const dna = substitutionsFirst(raw, n, topology);
   const withProtein =
     options.protein === false
       ? dna
-      : [...dna, ...detectProteinFeatures(sequence, topology, library)];
+      : [
+          ...dna,
+          ...withoutAntisense(
+            detectProteinFeatures(sequence, topology, library),
+            sequence,
+            topology,
+          ),
+        ];
   const kept = keepBest(withProtein, library, n, topology);
   if (options.protein === false || options.homologues === false) return kept;
-  return withHomologues(kept, detectHomologues(sequence, topology, library), library, n, topology);
+  const homologues = withoutAntisense(
+    detectHomologues(sequence, topology, library),
+    sequence,
+    topology,
+  );
+  return withHomologues(kept, homologues, library, n, topology);
 }
 
 /**

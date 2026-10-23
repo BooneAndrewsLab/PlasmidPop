@@ -13,8 +13,11 @@ export interface Orf {
   readonly codons: number;
 }
 
+/** Shortest ORF reported unless asked otherwise, in codons, excluding the stop. */
+export const DEFAULT_MIN_ORF_CODONS = 75;
+
 export interface OrfOptions {
-  /** Minimum ORF length in codons, excluding the stop. Default 75. */
+  /** Minimum ORF length in codons, excluding the stop. Default `DEFAULT_MIN_ORF_CODONS`. */
   readonly minCodons?: number;
   /**
    * Genetic code to read with. It decides where an ORF ends as well as where
@@ -118,7 +121,7 @@ function scanCircle(
  */
 export function findOrfs(sequence: string, topology: Topology, options: OrfOptions = {}): Orf[] {
   const opts: Required<OrfOptions> = {
-    minCodons: options.minCodons ?? 75,
+    minCodons: options.minCodons ?? DEFAULT_MIN_ORF_CODONS,
     table: options.table ?? DEFAULT_TABLE,
     atgOnly: options.atgOnly ?? true,
   };
