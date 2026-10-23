@@ -320,6 +320,27 @@ describe('Detect features against pLannotate', () => {
     expect(touching).toEqual([]);
   }, 300_000);
 
+  it('calls the GST tag over the protein, not the pGEX fusion after it (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const gst = (accession: string): string[] => {
+      const v = vectors.find((x) => x.accession === accession);
+      if (v === undefined) throw new Error(accession);
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      return detectFeatures(v.sequence, topology, lib)
+        .filter((h) => lib.parts[h.part]?.name === 'GST' && h.similar === undefined)
+        .map((h) => `${h.range.start + 1}-${h.range.end}`);
+    };
+    // pGEX-2T, whose own GST CDS is 258..956: the call used to run to 977,
+    // 21 bases past that stop.
+    expect(gst('U13850.1')).toEqual(['258-911']);
+    expect(gst('U13852.1')).toEqual(['258-911']);
+    expect(gst('U78872.1')).toEqual(['258-911']);
+    expect(gst('U84572.1')).toEqual(['258-911']);
+    // pRSFDuet-gst-xr, whose xyl1 CDS is 977..1951: the call used to run
+    // 1018, 42 bases into it. The record's own "GST tag" is 299..952.
+    expect(gst('PP554855.1')).toEqual(['299-952']);
+  }, 300_000);
+
   it("makes none of pLannotate's known errors (#285)", () => {
     expect(ORACLE_ERRORS.length).toBeGreaterThan(0);
     expect(result.erroneous).toEqual([]);

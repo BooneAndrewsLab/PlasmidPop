@@ -1150,3 +1150,44 @@ tag part are left touching anywhere in the corpus, `detect.test.ts` the
 chaining rule on synthetic parts (touching, spaced, opposite strands, not a
 tag, over the origin, and the summed identity), `variant.test.ts` the
 counting of names and `library.test.ts` the part.
+
+### The GST part ran past the GST protein (#284)
+
+The part bundled as **GST** was the CDS of U13853 (pGEX-4T-1) picked by its
+`/product="glutathione S-transferase"`, 257..977 as the record writes it,
+720 bp. That CDS does not stop at the protein: it runs through the linker,
+the thrombin site and the multiple cloning site to the vector's own stop, so
+the call extended into whatever is fused after it. Read by efetch and
+compared with Biopython 1.88 (conda `primer3` env):
+
+- U13853.1 258..911 (654 bp, 218 codons) is **base for base** the CDS of
+  **M14654.1 17..670**, the _Schistosoma japonicum_ Sj26 antigen without its
+  stop codon (654 of 654 identical, no gap); the two proteins are the same
+  218 residues, `MSPILGYW…GGGDHPPK`.
+- U13853.1 912..977 is the rest: `SDLVPRGSPEFPGRLERPHRD` and the stop, which
+  holds the thrombin site `LVPRGS` (the record's own `encodes thrombin
+recognition site` misc_feature, 918..935) and its MCS (930..966) — parts
+  of ours already found there, with `PreScission site` and `pGEX MCS`.
+
+So the part is now **U13853 258..911**, the protein alone; the accession and
+the bases are otherwise unchanged.
+
+**Where the issue was right.** U13850.1 (pGEX-2T) annotates its own GST CDS
+at 258..956, and the old call to 977 ran 21 bases past that stop; in
+PP554855.1 (pRSFDuet-gst-xr) the old call 299-1018 ran 42 bases into the
+`xyl1` CDS the record annotates at 977..1951 (the issue gives its start
+0-based). M14654 does end 66 bases before the part's old end (977 − 911).
+Every number checked out.
+
+**On the corpus.** Five vectors change and nothing else does. U13850.1 and
+U84572.1 go from `GST` 258-977 at 96.1% and 96.5% to 258-911 exact;
+PP554855.1 from 299-1018 at 95.7% to 299-952 exact, which is the record's
+own `GST tag` misc_feature (299..952). U13852.1 and U78872.1 had no GST part
+at all, only `similar to GST` (the homologue search, 258-941 and 258-989,
+the vector tails too far from pGEX-4T-1's); both are now `GST` 258-911
+exact. Recall, every class, the extras and both conflict lists are
+unchanged — pLannotate's `GST26_SCHJA` is a Swiss-Prot hit over exactly
+258..911 on the four pGEX vectors and 299..952 on PP554855.1, which our
+calls now equal rather than overrun. `plannotate.test.ts` checks the five
+extents, `library.test.ts` the part's location, length and protein, and that
+the thrombin site and pGEX MCS are no longer inside it.

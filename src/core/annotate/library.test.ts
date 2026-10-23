@@ -259,6 +259,26 @@ describe('the bundled library, as loaded', () => {
     expect(ori?.sequence).toHaveLength(456);
   });
 
+  it('carries the GST tag as the protein alone, not the pGEX fusion past it (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const gst = lib.parts.find((p) => p.name === 'GST');
+    // U13853's CDS runs 258..977, through the linker, the thrombin site and
+    // the MCS to the vector's stop; the Sj26 protein ends 66 bases earlier.
+    expect([gst?.accession, gst?.location]).toEqual(['U13853.1', '258..911']);
+    expect(gst?.sequence).toHaveLength(654);
+    expect(gst?.protein).toHaveLength(218);
+    expect(
+      gst?.protein?.startsWith('MSPILGYWKIKGLVQPTRLLLEYLEEKYEEHLYERDEGDKWRNKKFELGLEFPNLPYY'),
+    ).toBe(true);
+    // The parts that follow it in a pGEX vector are its neighbours, not part
+    // of it: U13853 918..935 (thrombin) and 930..966 (the MCS).
+    const after = lib.parts.filter(
+      (p) => p.accession === 'U13853.1' && ['thrombin site', 'pGEX MCS'].includes(p.name),
+    );
+    expect(after.map((p) => p.location).sort()).toEqual(['918..935', '930..966']);
+    expect(gst?.sequence.includes(after[0]?.sequence ?? 'x')).toBe(false);
+  });
+
   it('carries the 3xFLAG epitope, whose units are not three FLAGs (#284)', async () => {
     const lib = await loadFeatureLibrary();
     const flag = lib.parts.find((p) => p.name === 'FLAG');
