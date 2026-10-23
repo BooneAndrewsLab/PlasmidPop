@@ -1289,3 +1289,108 @@ differ inside), and the segments above, where it was wrong, are now marked.
 Over the 83 vectors no two calls of one type on one strand are left with one
 wholly inside the other, but for the T7 promoter in T7lac, which is meant
 (primer sites left out of the count).
+
+**At the SV40 poly(A) region, the strand a gene runs into.** Our **SV40
+late poly(A) signal** (U47295 1772..1993, 222 bp, after the forward luc+ of
+pGL3-Basic) holds our **SV40 poly(A) signal**, the early one (LT727011
+3122..3196, 75 bp), whole on its other strand at 92..166 of its reverse
+complement (#287's audit). The late part is found on 15 corpus vectors, 16
+loci, and the early one over it every time, so each locus was labelled on
+both strands. A vector uses one of the two: the record of every vector that
+names the signal names the strand its gene runs into (efetch of each, read
+with Biopython 1.88, conda `primer3` env). pGL3-Basic U47295, pRL-SV40
+AF025845.2, pGL4.10 MZ090950.1 and pCI-neo U47120 (the parent of KU870447.1)
+annotate an `SV40 late poly(A) signal` on the forward strand after the
+forward luciferase or MCS, pGL4.23 MK484106.1 an `SV40 late poly(A) region`;
+pHis-GFP AF525449.1 annotates two `SV40 early signal` hexamers on the
+forward strand after its forward EGFP. Two records disagree with that or say
+nothing: OR236194.1 calls its stretch `SV40 3'UTR` on the complement,
+although its luciferase runs into it forward, and the pEGFP records (U55762.1,
+U55763.1, U57607.1) annotate no poly(A) at all.
+
+The late part now names the early one (`complementOf`), and the build checks
+the early part's reverse complement lies inside it. Where both are called
+over one stretch, each is offered only where a gene on its strand runs into
+it: a CDS whose 3′ end lies at most `RUN_IN_BASES` (500) before the signal's
+5′ end, or inside the signal. Where neither strand has one, the early signal
+is offered alone, as the generic label — what SnapGene's list, and the
+records that name no strand, call `SV40 poly(A) signal`; where both have
+one, both are offered. A gene is a CDS hit of ours or a CDS the document
+annotates. A hit's 3′ end is where its frame stops, followed on past the
+hit, as a part may be only the start of the gene that carries it: our
+`TetR` call on pTet-On (U89930.1 774-1397) is the repressor half of an rtTA
+whose frame stops at 1781, which is where the record's rtTA `misc_feature`
+(774..1781) ends. It is decided in `inUseStrands` (`bidirectional.ts`), which
+the app applies in `offered`, against the features as they stand (as for
+#285's `antisenseToCds`), so a CDS annotated after the search counts; the
+comparison with pLannotate applies it to the bare corpus.
+
+Measured on the 15 vectors, the gene ending nearest before each signal on
+its strand (bases from the gene's 3′ end to the signal's 5′ end; our calls, with the record's CDS named where none of ours is near):
+
+| Vector                        | Early strand        | Late strand            | Shown before | Shown now       |
+| ----------------------------- | ------------------- | ---------------------- | ------------ | --------------- |
+| U55762.1 (pEGFP-N1)           | EGFP, 122           | none                   | both         | early           |
+| U55763.1 (pEGFP-C1)           | EGFP, 108           | none                   | both         | early           |
+| U57607.1 (pEGFP-C3)           | EGFP, 104           | none                   | both         | early           |
+| AF525449.1 (pHis-GFP)         | 6xHis-EGFP, 122     | none                   | both         | early           |
+| AF025668.1 (pCMV-Tag 1)       | Myc tag frame, 318  | none                   | both         | early           |
+| AF028239.1 (pCMV-Script)      | none within 500     | none                   | both         | early (generic) |
+| JX088702.1 (pDsRed-IRES-GFP)  | hrGFP (record), 322 | AmpR, 673              | both         | early (generic) |
+| MK161519.1 (pFastBac)         | none within 500     | none within 500        | both         | early (generic) |
+| KU870447.1 (pCI-neo-FLAG-SMN) | none                | 3xFLAG-SMN, 646        | both         | early (generic) |
+| AF025845.2 (pRL-SV40)         | none                | Renilla luciferase, 21 | both         | late            |
+| MK484106.1 (pGL4.23)          | AmpR, 1206          | firefly luciferase, 34 | both         | late            |
+| MZ090950.1 (pGL4.10-CMV)      | AmpR, 1206          | firefly luciferase, 34 | both         | late            |
+| OR236194.1 (pGL3-derived)     | AmpR, 1177          | luciferase (luc+), 31  | both         | late            |
+| U89930.1 (pTet-On), copy 1    | AmpR, 1468          | rtTA (TetR frame), 14  | both         | late            |
+| U89930.1 (pTet-On), copy 2    | large T frame, 22   | TetR frame, 2695       | both         | early           |
+
+hrGFP is no part of ours, so on the bare sequence JX088702.1 gets the
+generic label, which is the strand its record's GFP runs into. Copy 2 of
+pTet-On is read the other way: its reverse strand carries the end of SV40
+large T (the frame of our NLS call there runs on to large T's `…PPEPET*`).
+
+**Where the comment was wrong, and what this rule gets wrong.** U89930.1's
+first copy has a gene running into its late strand (the rtTA above), not
+"none nearby"; its second copy has none on the late strand. AF025668.1 and
+AF028239.1 carry no EGFP or DsRed: their records annotate no CDS, and the
+early label they get is the generic one. KU870447.1's insert does not end
+"just upstream": its record's CDS ends at 1756, 646 bases before the late
+signal at 2403, past the 500 bases the rule allows, so it gets the generic
+early label where pCI-neo's own record says late. No window fixes it on this
+corpus: JX088702.1's AmpR ends 673 bases before its late strand, which is not
+in use, so a window long enough for KU870447.1 labels JX088702.1 late alone.
+"Nearest gene wins" fails twice (JX088702.1 and MK161519.1). 500 lies in the gap between the genes that run in (14 to 322 bases) and the nearest of the rest, KU870447.1's insert at 646 and JX088702.1's AmpR at 673; any value from 322 to 645 gives the same table. The fallback the
+comment offered, one label marked bidirectional, was not needed: of the 16 loci, 14 have a gene or a record that shows the strand in use, and the rule agrees on 13 of them (KU870447.1 is the other); AF028239.1 and MK161519.1 show nothing and get the generic label.
+
+**The late part's extent.** The comment's 9 bp of linker are real but only
+where the late strand is not used: on the seven pEGFP, pHis-GFP, pCMV and pDsRed vectors above (U55762.1, U55763.1, U57607.1, AF525449.1, AF025668.1, AF028239.1, JX088702.1) the part's bases 1..9 differ at six or seven positions (the vectors' SV40
+fragment starts there), while on every vector that uses the late strand all
+222 bases match (one mismatch, at 177, on KU870447.1), all 222 are SV40
+(J02400.1 2538..2759, base for base), and pCI-neo's record annotates exactly
+these 222 (U47120 1167..1388) and MZ090950.1 exactly our call (2329..2550).
+So the part is not re-cut; where its first bases overrun, it is now the
+label not shown.
+
+**On the corpus**, 15 labels go (10 late and 5 early; 1,385 calls to 1,370).
+pLannotate (SnapGene's list) labels the early signal at every locus, on
+whichever strand, so the comparison now lets a call of ours stand for
+pLannotate's call of the part it is the `complementOf`, on the other strand,
+as it lets an origin go without a strand. Without that, the five late-only
+loci would be five terminator misses; with it, recall, every class and both
+conflict lists are unchanged, and extras fall from 253 to 238 (the 15 late
+calls had been extras; 10 are gone and 5 now stand for pLannotate's call).
+`plannotate.test.ts` checks the table's last column, `bidirectional.test.ts`
+the rule on synthetic parts (each strand, neither, both, the window, a stop
+inside the signal, a frame followed to its stop, an annotated CDS, the
+origin of a circle) and the bundled pair, and `DetectFeatures.test.tsx` that
+the list follows a CDS annotated in the document.
+
+**Not done.** Detect features drops what it hides: no setting shows a hidden
+segment, or the unused SV40 strand, and the list does not say that one was
+left out. Whether a "show all" toggle is wanted is a question for the
+maintainer, not built here. The SV40 ori / SV40 promoter name conflict on
+AF239250.1 is untouched: it is not two of our labels over one stretch but
+pLannotate's short SV40 promoter (mostly the origin) against our origin
+call, and the containment rules above do not apply to it.

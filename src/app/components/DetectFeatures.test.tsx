@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { SeqDocument, createFeature, rangeSegment } from '@/core';
+import { SeqDocument, createFeature, loadFeatureLibrary, rangeSegment } from '@/core';
 import pBR322 from '@/io/fixtures/J01749.gb?raw';
 import { parseSequenceFile } from '@/io';
 
@@ -101,6 +101,46 @@ describe('Detect features', () => {
     const panel = screen.getByRole('region', { name: 'Detect features' });
     expect(within(panel).queryByRole('checkbox', { name: 'Add AmpR' })).toBeNull();
     expect(within(panel).getByRole('checkbox', { name: 'Add TcR' })).toBeChecked();
+  });
+
+  it('offers the SV40 poly(A) signal of the strand a gene runs into (#282)', async () => {
+    const lib = await loadFeatureLibrary();
+    const late = lib.parts.find((p) => p.name === 'SV40 late poly(A) signal')?.sequence ?? '';
+    // An insert of no part of ours, then the late SV40 fragment after it.
+    const insert = 'ATG' + 'GCTGAAAAACTGGGC'.repeat(40) + 'TAA';
+    const seq = 'C'.repeat(60) + insert + 'C'.repeat(30) + late + 'C'.repeat(60);
+    const names = async (): Promise<string[]> => {
+      render(<Tab />);
+      fireEvent.click(screen.getByRole('button', { name: 'Detect features' }));
+      await screen.findByText(/^Found/);
+      const panel = screen.getByRole('region', { name: 'Detect features' });
+      return within(panel)
+        .getAllByRole('checkbox')
+        .map((c) => c.getAttribute('aria-label') ?? '')
+        .filter((n) => n.includes('SV40') && n.includes('poly(A)'));
+    };
+    // Nothing runs into it: the generic early signal alone.
+    openBare(seq, 'no gene');
+    expect(await names()).toEqual(['Add SV40 poly(A) signal']);
+    cleanup();
+    // The document says the insert is a CDS: it runs into the late strand.
+    const id = openBare(seq, 'with gene');
+    act(() => {
+      editorStore.apply(
+        {
+          type: 'addFeature',
+          feature: createFeature({
+            type: 'CDS',
+            name: 'insert',
+            strand: 'forward',
+            segments: [rangeSegment(60, 60 + insert.length)],
+          }),
+        },
+        undefined,
+        id,
+      );
+    });
+    expect(await names()).toEqual(['Add SV40 late poly(A) signal']);
   });
 
   it('says so when nothing is found, and can be dismissed', async () => {

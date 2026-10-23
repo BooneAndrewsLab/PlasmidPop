@@ -201,10 +201,24 @@ What is found:
   offered: the pBR322 origin rather than the pUC origin that differs from it
   by one base, a _3xFLAG_ rather than the _FLAG_ inside it. Parts of different
   types are offered together, so a primer site inside a promoter is two
-  features, and so are parts on opposite strands (the SV40 early poly(A)
-  signal is the complement of the late one, and both are offered). A part
+  features, and so are parts on opposite strands (but see the SV40 poly(A)
+  region below). A part
   made of other parts is offered with them: the _T7lac promoter_ comes with
   the _T7 promoter_ and the _lac operator_ it is made of.
+- **The SV40 poly(A) region reads both ways.** The SV40 early and late
+  poly(A) signals are the same stretch of DNA on opposite strands, and a
+  vector uses the one its gene runs into. Where both are found, each is
+  offered only if a gene on its strand — one found, or a CDS the document
+  has — ends no more than 500 bases before it: _SV40 late poly(A) signal_
+  after a luciferase, _SV40 poly(A) signal_ (the early one) after EGFP.
+  Where no gene runs into either, the early _SV40 poly(A) signal_ is
+  offered alone, as the usual name for the region; where genes run into
+  both, both are offered. A gene ends where its frame stops, so a part that
+  is only the start of one (a tag before an insert) counts from the
+  insert's stop codon. Annotate the gene and the list follows, without
+  searching again. A gene of no part of ours that you have not annotated
+  cannot count, and neither can one whose stop is further than 500 bases
+  away (a long 3′ untranslated region): the region is then labelled early.
 - Two variants of one protein that differ in length by only a few bases (EGFP
   and ECFP) are one locus: the one that matches better is offered, even if
   it is the slightly shorter.

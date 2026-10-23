@@ -5,3 +5,4 @@ export * from './hits';
 export * from './translated';
 export * from './myParts';
 export * from './variant';
+export * from './bidirectional';

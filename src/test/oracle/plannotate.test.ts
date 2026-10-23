@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { inUseStrands } from '@/core/annotate/bidirectional';
 import { detectFeatures, overlapLength } from '@/core/annotate/detect';
 import { loadFeatureLibrary } from '@/core/annotate/library';
 import { nameOfHit } from '@/core/annotate/variant';
@@ -212,6 +213,51 @@ describe('Detect features against pLannotate', () => {
     }
     // No corpus vector has the signal peptide without the rest of bla.
     expect([genes, signals]).toEqual([63, 0]);
+  }, 300_000);
+
+  it('offers the SV40 poly(A) signal of the strand a gene runs into (#282)', async () => {
+    // 15 vectors carry the late SV40 fragment, and so both signals, one on
+    // each strand; both used to be offered on every copy.
+    const lib = await loadFeatureLibrary();
+    const shown: Record<string, string[]> = {};
+    for (const v of vectors) {
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      const found = detectFeatures(v.sequence, topology, lib).flatMap((hit) => {
+        const part = lib.parts[hit.part];
+        return part === undefined ? [] : [{ hit, part }];
+      });
+      const late = found.filter((d) => d.part.name === 'SV40 late poly(A) signal');
+      if (late.length === 0) continue;
+      shown[v.accession] = inUseStrands(found, v.sequence, topology)
+        .filter((d) => d.part.name.startsWith('SV40') && d.part.type === 'polyA_signal')
+        .map((d) => `${d.part.name === 'SV40 poly(A) signal' ? 'early' : 'late'} ${d.hit.strand}`);
+    }
+    const early = ['early forward'];
+    expect(shown).toEqual({
+      // EGFP (and a His-EGFP) runs into the early strand.
+      'U55762.1': early,
+      'U55763.1': early,
+      'U57607.1': early,
+      'AF525449.1': early,
+      // No gene of ours runs into either strand: the generic early label.
+      // (pCMV-Tag 1 and pCMV-Script annotate no CDS; pDsRed-IRES-GFP's
+      // hrGFP and pCI-neo's insert are no part of ours, and the insert ends
+      // 646 bases before the late signal; pFastBac's PuroR-EGFP is far.)
+      'AF025668.1': early,
+      'AF028239.1': early,
+      'JX088702.1': early,
+      'MK161519.1': early,
+      'KU870447.1': ['early reverse'],
+      // Renilla or firefly luciferase runs into the late strand.
+      'AF025845.2': ['late forward'],
+      'MK484106.1': ['late forward'],
+      'MZ090950.1': ['late forward'],
+      'OR236194.1': ['late forward'],
+      // pTet-On: the rtTA (our TetR call, its frame followed to the stop at
+      // 1781) runs into the first copy's late strand; the second is the
+      // early signal after the SV40 fragment read the other way.
+      'U89930.1': ['late forward', 'early reverse'],
+    });
   }, 300_000);
 
   it('offers both components inside every T7lac promoter call (#282)', async () => {

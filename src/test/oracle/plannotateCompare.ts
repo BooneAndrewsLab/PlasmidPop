@@ -1,3 +1,4 @@
+import { inUseStrands } from '@/core/annotate/bidirectional';
 import { type FeatureHit, detectFeatures, overlapLength } from '@/core/annotate/detect';
 import { type FeatureLibrary } from '@/core/annotate/library';
 import { nameOfHit } from '@/core/annotate/variant';
@@ -284,7 +285,16 @@ export function compare(library: FeatureLibrary): Comparison {
   }
   for (const v of vectors) {
     const topology: Topology = v.topology === 'circular' ? 'circular' : 'linear';
-    const hits = detectFeatures(v.sequence, topology, library);
+    // What the app offers on a bare sequence: the hits, with the unused
+    // strand of a bidirectional element left out (#282), as `offered` does.
+    const hits = inUseStrands(
+      detectFeatures(v.sequence, topology, library).flatMap((hit) => {
+        const part = library.parts[hit.part];
+        return part === undefined ? [] : [{ hit, part }];
+      }),
+      v.sequence,
+      topology,
+    ).map((d) => d.hit);
     oursCount += hits.length;
     for (const h of v.hits) {
       if (!isOracleError(v.accession, h)) continue;
@@ -292,6 +302,14 @@ export function compare(library: FeatureLibrary): Comparison {
       if (hits.some((o) => o.strand === strandOf(h) && agrees(range, o.range, v.length, topology)))
         erroneous.push({ accession: v.accession, name: h.name });
     }
+    // A call of ours on the other strand of a bidirectional element stands
+    // for pLannotate's call of the part it is the complement of (#282): at
+    // the SV40 poly(A) region SnapGene labels the early signal on whichever
+    // strand, and we offer the strand a gene runs into, the late one there.
+    const complementFor = (o: FeatureHit, h: OracleHit): boolean =>
+      o.strand !== strandOf(h) &&
+      library.parts[o.part]?.complementOf !== undefined &&
+      library.parts[o.part]?.complementOf === partByName.get(normalize(ourNameFor(h.name)));
     const complete = v.hits.filter((h) => !h.fragment && !isOracleError(v.accession, h));
     let lowHits: FeatureHit[] | undefined;
     for (const h of complete) {
@@ -300,7 +318,7 @@ export function compare(library: FeatureLibrary): Comparison {
       const range = oracleRange(h, v.length, topology);
       const match = hits.some(
         (o) =>
-          sameStrand(cls, h.name, o.strand, strandOf(h)) &&
+          (sameStrand(cls, h.name, o.strand, strandOf(h)) || complementFor(o, h)) &&
           agrees(range, o.range, v.length, topology),
       );
       if (match) {
@@ -345,7 +363,7 @@ export function compare(library: FeatureLibrary): Comparison {
       const oursClass = classOfPart(part.category, part.type, ours);
       const known = v.hits.some(
         (h) =>
-          sameStrand(oursClass, h.name, strandOf(h), o.strand) &&
+          (sameStrand(oursClass, h.name, strandOf(h), o.strand) || complementFor(o, h)) &&
           agrees(oracleRange(h, v.length, topology), o.range, v.length, topology),
       );
       if (known) continue;

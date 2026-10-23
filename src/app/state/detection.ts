@@ -7,6 +7,7 @@ import {
   duplicatesExisting,
   featureFromHit,
   hasTool,
+  inUseStrands,
   myPartToLibraryPart,
 } from '@/core';
 import { AnalysisCancelledError, analysisClient } from '@/workers/analysisClient';
@@ -46,16 +47,23 @@ export interface Offer {
 
 /**
  * The hits of a search set against `doc` as it stands: the features it now
- * has mark the hits they duplicate, and a hit found by its protein inside a
- * CDS annotated on the other strand is not offered (#285). Null when `doc`
+ * has mark the hits they duplicate, a hit found by its protein inside a CDS
+ * annotated on the other strand is not offered (#285), and at a
+ * bidirectional element neither strand's signal is offered unless a gene on
+ * its strand runs into it, the generic one where none does (#282). Null when `doc`
  * no longer has the bases that were searched, since the hits' positions then
  * say nothing.
  */
 export function offered(state: DetectionState, doc: SeqDocument): readonly Offer[] | null {
   if (state.status !== 'done' || !sameBases(state.doc, doc)) return null;
   const features = doc.features.all();
-  const shown = state.detections.filter(
-    (d) => !antisenseToCds(d.hit, features, doc.length, doc.topology),
+  // At a bidirectional element (the SV40 poly(A) region) only the strand a
+  // gene runs into, found or annotated, is offered (#282).
+  const shown = inUseStrands(
+    state.detections.filter((d) => !antisenseToCds(d.hit, features, doc.length, doc.topology)),
+    doc.sequence,
+    doc.topology,
+    features,
   );
   return shown.map((detection) => ({
     detection,

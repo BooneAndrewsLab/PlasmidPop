@@ -300,6 +300,10 @@ function translate(dna) {
  * @property {string[]} [components] the parts this one is made of (#282): a hit of it displaces
  *   no hit of theirs, so a composite is offered with its components. The build checks each is a
  *   part whose bases lie inside this one's
+ * @property {string} [complementOf] a part that lies inside this one on the other strand, the two
+ *   being one bidirectional element (#282, the SV40 late and early poly(A) signals): where both
+ *   are called, each is offered only where a gene on its strand runs into it. The build checks
+ *   the named part's reverse complement is inside this one
  * @property {{ family?: string, protein?: string, bases?: string, codons?: boolean }} [variant]
  *   what a hit must show for this name, which is one variant's, to be used, and what the
  *   element itself is called (#284). `protein` is `exact` or positions of the part's own
@@ -322,6 +326,7 @@ function translate(dna) {
  * @property {boolean} [exact]
  * @property {string[]} [segmentOf]
  * @property {string[]} [components]
+ * @property {string} [complementOf]
  * @property {object} [variant]
  */
 
@@ -524,6 +529,7 @@ async function buildCorePart(spec) {
     ...(spec.exact === true ? { exact: true } : {}),
     ...(spec.segmentOf === undefined ? {} : { segmentOf: spec.segmentOf }),
     ...(spec.components === undefined ? {} : { components: spec.components }),
+    ...(spec.complementOf === undefined ? {} : { complementOf: spec.complementOf }),
     ...(spec.variant === undefined
       ? {}
       : {
@@ -710,6 +716,12 @@ function checkRelations(parts) {
       const other = byName.get(name);
       if (other === undefined) problems.push(`  ${p.name}: no component ${name}`);
       else if (!holds(p, other)) problems.push(`  ${p.name}: ${name} is not inside it`);
+    }
+    if (p.complementOf !== undefined) {
+      const other = byName.get(p.complementOf);
+      if (other === undefined) problems.push(`  ${p.name}: no part ${p.complementOf}`);
+      else if (other.sequence === '' || !p.sequence.includes(reverseComplement(other.sequence)))
+        problems.push(`  ${p.name}: ${p.complementOf} is not inside it on the other strand`);
     }
     for (const name of p.segmentOf ?? []) {
       const other = byName.get(name);

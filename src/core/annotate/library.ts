@@ -100,6 +100,15 @@ export interface LibraryPart {
    */
   readonly components?: readonly string[];
   /**
+   * The part named here lies inside this one on the other strand: the two
+   * are one bidirectional element read either way (#282), the SV40 late
+   * poly(A) signal holding the early one. Where both are called over one
+   * stretch, each is offered only where a gene on its strand runs into it,
+   * and the named part, the generic label, also where none runs into either
+   * (`inUseStrands`, `bidirectional.ts`).
+   */
+  readonly complementOf?: string;
+  /**
    * What a hit must show for the part's name to be used (#284): the part is
    * named for one variant of an element (trc, kanMX, luc+, avGFP), and the
    * name is a claim about the bases, not only about the place. Where a hit
@@ -254,6 +263,10 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       throw new Error(`Feature library (${source}): part ${i} is malformed`);
     }
     const note = text(entry, 'note');
+    const complementOf = entry['complementOf'];
+    if (complementOf !== undefined && (typeof complementOf !== 'string' || complementOf === '')) {
+      throw new Error(`Feature library (${source}): part ${i} has a malformed complementOf`);
+    }
     const fpbase = text(entry, 'fpbase');
     const protein = text(entry, 'protein') ?? codingProtein(type, sequence);
     const exact = entry['exact'];
@@ -295,6 +308,7 @@ export function parseLibraryFile(json: string, source: LibrarySource): LibraryPa
       ...(exact === true ? { exact } : {}),
       ...(segmentOf === undefined ? {} : { segmentOf }),
       ...(components === undefined ? {} : { components }),
+      ...(complementOf === undefined ? {} : { complementOf }),
       ...(variant === undefined ? {} : { variant }),
     };
   });
