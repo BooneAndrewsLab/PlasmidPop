@@ -1,8 +1,8 @@
 {
-  "about": "Fluorescent proteins by FPbase slug. `accession` overrides the GenBank protein accession FPbase names — here always because FPbase names the nucleotide record instead of the protein it encodes. The build keeps a protein only when the CDS its GenBank record points at translates exactly to FPbase's protein sequence, so entries whose GenBank record disagrees are dropped rather than corrected by hand.",
+  "about": "Fluorescent proteins by FPbase slug. `variant` (#284) says what a hit must show for the protein's own name to be used, and what the family is called otherwise. `accession` overrides the GenBank protein accession FPbase names — here always because FPbase names the nucleotide record instead of the protein it encodes. The build keeps a protein only when the CDS its GenBank record points at translates exactly to FPbase's protein sequence, so entries whose GenBank record disagrees are dropped rather than corrected by hand.",
   "parts": [
     { "slug": "egfp" },
-    { "slug": "avgfp" },
+    { "slug": "avgfp", "variant": { "family": "GFP", "protein": "exact" } },
     { "slug": "mneongreen" },
     { "slug": "mvenus" },
     { "slug": "syfp2", "accession": "AAZ65845.1" },
@@ -16,7 +16,7 @@
     { "slug": "tdtomato" },
     { "slug": "dtomato" },
     { "slug": "dsred" },
-    { "slug": "dsred-express2" },
+    { "slug": "dsred-express2", "variant": { "family": "DsRed", "protein": "exact" } },
     { "slug": "mrfp1" },
     { "slug": "tagrfp" },
     { "slug": "tagrfp-t" },

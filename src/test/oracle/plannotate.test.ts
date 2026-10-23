@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { detectFeatures, overlapLength } from '@/core/annotate/detect';
 import { loadFeatureLibrary } from '@/core/annotate/library';
+import { nameOfHit } from '@/core/annotate/variant';
 
 import {
   type Comparison,
@@ -206,6 +207,28 @@ describe('Detect features against pLannotate', () => {
     }
     // Every vector of the corpus that carries one.
     expect(loci).toBe(43);
+  }, 300_000);
+
+  it('names a fluorescent protein for its family where the bases are another variant (#284)', async () => {
+    const lib = await loadFeatureLibrary();
+    const named = (accession: string, from: number, to: number): string | undefined => {
+      const v = vectors.find((x) => x.accession === accession);
+      if (v === undefined) throw new Error(accession);
+      const topology = v.topology === 'circular' ? 'circular' : 'linear';
+      for (const h of detectFeatures(v.sequence, topology, lib)) {
+        const part = lib.parts[h.part];
+        if (part === undefined || part.category !== 'fluorescent protein') continue;
+        if (h.range.start + 1 === from && h.range.end === to) return nameOfHit(h, part);
+      }
+      return undefined;
+    };
+    // Cycle 3 GFP (Q80R, F99S, M153T, V163A against avGFP M62653) and two
+    // GFPs of their own (one with S65A): none is the wild type the part is.
+    expect(named('PP098727.1', 116, 832)).toBe('GFP');
+    expect(named('U56996.1', 1, 717)).toBe('GFP');
+    expect(named('U47949.1', 1, 717)).toBe('GFP');
+    // DsRed.T3 (identical to AJ851289's protein), 16 residues from Express2.
+    expect(named('AY916793.1', 953, 1630)).toBe('DsRed');
   }, 300_000);
 
   it("makes none of pLannotate's known errors (#285)", () => {

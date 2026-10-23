@@ -127,6 +127,18 @@ What is found:
   box, so it is only found where every base matches, whatever **Match at
   least** says. An ambiguity code where it has a base, a missing base or a
   cut-off end rules it out.
+- **A variant's name only where the bases carry the variant.** Several
+  parts are named for one variant of an element: _trc_ beside tac, the
+  kanamycin gene of _kanMX_ beside the transposon's, _luc+_ beside luc2,
+  _avGFP_ beside the GFP mutants, _DsRed-Express2_ beside the other DsReds,
+  _TetR (Tn10)_ beside the repressor inside an rtTA. The two differ by
+  little enough that a match finds either, so such a name is only used
+  where what was matched shows what the name claims — the residues the
+  variant alone has, the one base of a promoter's spacer, or a match on the
+  bases where the variant is in the codons alone. Where it does not, the
+  call is named for the element itself (_GFP_, _DsRed_, _TetR_, _firefly
+  luciferase_), and the note says so; where another part of the list is the
+  right answer there instead, it is left to it.
 - **f1 and M13 origins** are one part, _f1/M13 ori_. The two phages differ
   at two bases over the origin, records in GenBank name the same bases
   either way, and a vector's copy is usually a base or two from both, so
