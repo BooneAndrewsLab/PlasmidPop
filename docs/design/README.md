@@ -310,3 +310,5 @@ the Bench, item 49). The rest stand.
 116.  [A faster SHA-1](102-sha1-loop.md)
 
 117.  [The autosave's GenBank text in a worker](103-autosave-worker.md)
+
+118.  [The open's last long task, the autosave in the first scroll, and the heap](104-open-long-task.md)

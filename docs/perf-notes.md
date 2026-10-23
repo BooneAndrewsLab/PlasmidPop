@@ -1412,3 +1412,72 @@ put, comes about 0.3 s later than the whole autosave used to (the worker's
 130 ms, and the request is posted at the end of the list's busy stretch),
 at open+1.54-1.74 s, which is inside the bench's scroll where the old task
 at +1.2 s was just before it. When the autosave runs is #278's question.
+
+## The open's last long task, the autosave and the heap (#278, design note 104, 2026-10-22)
+
+Headless Chromium 156 (Playwright), 16-thread Xeon E5-2630 v3, load
+average 2.7-4.1 throughout (two unrelated processes at 100% of a core
+each), seeded random FASTA (no features). _Before_ is main at 0612215
+(#272 and #274-#276; ce62d92 after it changes a test only), _after_ this
+change; minified builds of each in
+directories of their own, run one after the other. `open-scan.ts` now also
+reads the JS heap as the scroll left it and after a forced collection, the
+longest `longtask` inside the scroll, and with `--scroll-from view` starts
+the scroll as soon as the sequence view is painted instead of once the
+Enzymes list is drawn.
+
+`node scripts/bench/open-scan.ts --sizes 300000,1000000,4641652 --n 10`
+(mean ± SE; the scroll starts once the list is drawn):
+
+| Size    | Enzymes list, before | after         | Longest frame gap, before | after         | Heap, before | after   | After GC, before | after   |
+| ------- | -------------------- | ------------- | ------------------------- | ------------- | ------------ | ------- | ---------------- | ------- |
+| 300 kb  | 213.5 ± 5.8 ms       | 214.4 ± 10.1  | 18.5 ± 1.6 ms             | 16.8 ± 0.0 ms | 19.3 MB      | 19.1 MB | 12.6 MB          | 11.8 MB |
+| 1 Mb    | 417.5 ± 10.4 ms      | 410.3 ± 12.5  | 28.4 ± 2.5 ms             | 16.8 ± 0.0 ms | 39.8 MB      | 24.9 MB | 20.2 MB          | 17.7 MB |
+| 4.64 Mb | 1209.5 ± 16.9 ms     | 1138.2 ± 11.9 | 40.0 ± 2.7 ms             | 26.7 ± 3.7 ms | 125.3 MB     | 93.8 MB | 55.5 MB          | 60.7 MB |
+
+The same with `--scroll-from view`, where the rest of the open lands in
+the scroll:
+
+| Size    | Longest frame gap, before | after         | Longest task, before | after      | Frames > 50 ms, before | after |
+| ------- | ------------------------- | ------------- | -------------------- | ---------- | ---------------------- | ----- |
+| 300 kb  | 36.7 ± 6.9 ms             | 35.1 ± 6.3 ms | 33.6 ± 9.3 ms        | 45.2 ± 7.6 | 0.2                    | 0.1   |
+| 1 Mb    | 108.3 ± 4.5 ms            | 70.0 ± 5.4 ms | 116.0 ± 4.3 ms       | 33.0 ± 9.1 | 1.0                    | 0.8   |
+| 4.64 Mb | 283.3 ± 11.7 ms           | 88.3 ± 2.5 ms | 292.3 ± 10.7 ms      | 18.7 ± 9.5 | 1.0                    | 2.0   |
+
+At 4.64 Mb one frame of 283 ms became two of 50-90 ms. The longest task
+the observer reports during the scroll is smaller than the longest gap
+because a collection between tasks is in the gap but in no task.
+
+`open-profile.ts --scroll` (new: the bench's wheel events once the list is
+drawn, and per long task the profile's top self times inside it) on
+unminified builds, three runs per size:
+
+| Size    | Receive and first render, before           | after                                      |
+| ------- | ------------------------------------------ | ------------------------------------------ |
+| 1 Mb    | one task of 101-136 ms (GC 19-22 ms)       | one of 52-68 ms (GC 4-5 ms)                |
+| 4.64 Mb | one of 305-320 ms at +818-855 (GC 100-122) | 66-106 ms and 56-94 ms (GC 4-48 and 17-24) |
+
+In the 4.64 Mb task before: `unpackEnzymeDigest` 21-35 ms, `unpackCutSites`
+26-30, the panel's grouping 23-31, `gelProfile` 25-30 and `bandsOf` 9-10
+for every enzyme, the blocked set 7-10, the collector 100-122. After, the
+autosave's put is a task of 52-54 ms at open+6.35-6.46 s, a second after
+the scroll ended (+5.1-5.2 s); before, it and the text read back were a
+55-82 ms stretch at +1.50-1.58 s, inside the scroll. Timed per slice in an
+instrumented build (4.64 Mb, three runs), a slice of 50,000 sites is 4-17
+ms, except the one a collection falls in, 75-90 ms; at 10,000 sites a slice
+the long tasks were the same length, so what is left is that collection.
+
+The heap, `--settle 4000` (the scroll, then 4 s more, so every autosave is
+written; three runs): after a forced collection 20.2 → 18.9 MB at 1 Mb and
+55.5 → 49.1 MB at 4.64 Mb. 1.17.1 built from its tag, five runs, the
+scroll after the list: 20.1 and 55.3 MB after the collection, 29.7 and
+130.7 MB before it. So what the issue saw growing between releases is
+garbage not yet collected; what is held did not change until this change
+lowered it. At the end of the scroll `after` holds 60.7 MB because the
+first save is still waiting for the input to be quiet before its put: a
+heap snapshot then has the save's GenBank text, two strings of 5.88 MB,
+held by `writeDocument`; once it is written the heap is the 49.1 MB above.
+The heap snapshots (`open-profile.ts --snapshot`, after a forced
+collection, 4.64 Mb): 63.1 MB of self sizes before, 56.8 MB after, of
+which the 446,000 site objects and the other objects 25.7 MB, the sequence
+4.64 MB once, the bundle's source 6.8 MB.
