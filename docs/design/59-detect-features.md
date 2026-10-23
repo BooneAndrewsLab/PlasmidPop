@@ -752,7 +752,7 @@ Half of the longer, not the shorter, so a part nested in a bigger one (the
 SV40 ori in the SV40 promoter) is not a conflict. Before the fix it listed
 the two CMV-promoter calls; the test now fails on any conflict outside a
 known list of seven: f1/M13 ori (4) and TetR/rtTA (1), variants of one
-element (#284); TcR / tetA on pBR322 (J01749), where pLannotate's tetA maps to
+element (#284, which took those five off the list); TcR / tetA on pBR322 (J01749), where pLannotate's tetA maps to
 our Tn10 TetA; and the SV40 ori / SV40 promoter in AF239250, where
 pLannotate's promoter is short enough to be mostly the origin.
 
@@ -994,3 +994,98 @@ No other bundled part is called against pLannotate's strand on the corpus.
 Parts absent from it, or never called there by both, are not checked by this.
 `library.test.ts` checks the part's location, length and the strand of its
 hexamer; `plannotate.test.ts` the OR797711.1 call and the strand-conflict list.
+
+### A variant's name on another variant (#284)
+
+Eight calls in the corpus named a part for one variant of an element where
+the bases are another's. Variants differ by little enough that a match
+finds either (the trc and tac promoters by one base in 246), so the name
+is a claim the match has to support.
+
+**The rule.** A part may now say in the library what a hit must show for
+its name to be used, and what the element itself is called
+(`variant` in `scripts/feature-db/*.json`, `PartVariant` in `library.ts`,
+checked in `src/core/annotate/variant.ts`):
+
+- `protein`, residues of the part's own protein (`71,95,101,102`), or
+  `exact` for all of them;
+- `bases`, a stretch of the part's own bases (`176..204`);
+- `codons`, that the variant is in the codons alone.
+
+Nothing is typed in: what a hit must carry is the part's own data at those
+positions, and the build fails on a position the part has not. The residues
+are counted off the start of the part, so an indel, a linear end that cuts
+the part, and a homologue (`similar`) show nothing; the base stretch is
+looked for inside what was matched, so a base missing from the stretch
+itself is caught even where the matcher read the copy with that indel. A
+`family` alone asks only that the hit be the part rather than a homologue of
+it. A hit that does not show the variant is marked `family` and reported
+under the element's name — with the part's own note left off and one saying
+why in its place (`hits.ts`, the Detect features list's tooltip) — or, where
+the part names no family because another part of ours is the answer there,
+not offered at all. The check runs before `keepBest`, so a hit no one will
+see displaces nothing. The oracle comparison reads the name a call carries,
+not the part's, so a call named for an element claims no part of ours and
+is in no name conflict.
+
+**What each call is now**, with what the bases are (checked by efetch of
+the records and local alignment, Biopython 1.88 in the conda `primer3` env,
+match 2, mismatch −3, gap −5/−2; corpus coordinates 1-based):
+
+| Was                 | Vector                                       | Is now                                           | Why                                                                                                                                                                                      |
+| ------------------- | -------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| trc promoter region | U13850.1, U13852.1, U78872.1, U84572.1 8-252 | nothing of ours there but `tac promoter` 183-211 | 245 of the part's 246 bases, the missing one inside the -35/-10 spacer (17 bp in M22744 18..263, 16 here); the records annotate `tac` at 183..211, which is a part of ours and is called |
+| DsRed-Express2      | AY916793.1 953-1630                          | `DsRed`                                          | 675 of 678 bases to AJ851289 (DsRed.T3) and the same protein; 646/678 and 16 residues from the part's FJ226077                                                                           |
+| kanMX KanR          | GU931384.1 1019-1828                         | nothing; `KanR (Tn903)` 1013-1828 stands alone   | the protein starts MSHIQRETS, the transposon's, where kanMX (AJ002682) starts MGKEKTHV                                                                                                   |
+| avGFP               | PP098727.1 116-832                           | `GFP`                                            | Q80R, F99S, M153T, V163A against M62653 (Cycle 3 GFP)                                                                                                                                    |
+| avGFP               | U56996.1 and U47949.1 1-717 (reverse)        | `GFP`                                            | H25Q, F100Y, L141M, Q157P, E172K, V219I against M62653, and S65A in U56996.1                                                                                                             |
+| TetR (Tn10)         | U89930.1 774-1397                            | `TetR`                                           | E71K, D95N, L101S, G102D against J01830, and no stop: the frame runs on into the activator domain (…DALDDFDLDML…)                                                                        |
+| M13 ori, f1 ori     | 43 loci                                      | one `f1/M13 ori`                                 | below                                                                                                                                                                                    |
+| luciferase (luc+)   | MK484106.1 141-1790, MZ090950.1              | `firefly luciferase`                             | 1650 of those 1650 bases are in AY738222 (luc2) and 1247/1653 match luc+; the proteins are the same, so the hit, made on the protein, cannot tell them apart                             |
+| TetR (class C)      | AF485783.1 1342-1989 (reverse)               | `similar to TetR`                                | 648 of 648 bases to the RP4 tetR of X75761 and its protein residue for residue; 152 of 219 columns to the part's pSC101 tetR(C)                                                          |
+
+Two of them keep their names where the bases do carry the variant, which is
+what the marks are for: JX679612.1 (pRS-TG) 2735-3358 is `TetR (Tn10)`, its
+repressor residue for residue although its frame runs on into a GFP, and
+OR236194.1 429-2081 and EU753858.1 are `luciferase (luc+)`, found on their
+bases. M22744.1 and U13872.1 keep `trc promoter region`.
+
+**Where the issue was wrong.** Its f1/M13 identities for OR992667.1 and
+KJ634048.1 (477 and 475) are 479 and 477 by efetch of J02448.1 and V00604.2
+and the same local alignment; the difference of two between the phages, the
+point of the row, holds. Its residue count for the pBI121 repressor
+(152/216) is 152 of 219 aligned columns here. Everything else checked out
+base for base.
+
+**f1 and M13.** The two parts were `f1 ori` (U47295 4072..4527, 456 bp) and
+`M13 ori` (V00604 5501..6005, 505 bp), and both were called wherever either
+fitted: the shorter matched better than the longer around it, and `keepBest`
+keeps a part that fits better, so 4 loci got two origin calls under two
+phages' names. Over those 456 bases the phages differ at two (the part is
+455/456 to f1 J02448.1 and 453/456 to M13 V00604.2), and a vector's copy is
+usually a base or two from both — AF396260.1 2128-2583 and KX151731.1
+5541-5996 are 456/456 to M13 and 454/456 to f1, OR992667.1 7202-7706 and
+KJ634048.1 7591-8095 the other way. So the two parts are one,
+**`f1/M13 ori`**, the U47295 bases unchanged; the V00604 part goes, as it
+found no locus the other does not (checked over all 83 vectors: the f1
+bases are at least 94% of every locus either was called on, and 43 loci now
+get exactly the 43 calls pLannotate makes there). pLannotate's `f1 ori` and
+`M13 ori` both alias to it.
+
+**On the corpus.** Recall is unchanged at 869 of 987 (88.0%) and so is every
+class, since recall counts bases, not names. Our calls fall from 1,443 to
+1,436: the 2 duplicate origin calls, the 4 trc calls and the kanMX call; 5
+calls are renamed (two GFP, one DsRed, one TetR, two luciferase, one
+"similar to"). Extras stay at 255. The name-conflict list of
+`plannotate.test.ts` is down from seven to two — pLannotate's `tetA` on
+pBR322 and its short SV40 promoter in AF239250 — and the f1/M13 and
+TetR/rtTA entries are gone. The strand-conflict list is untouched.
+
+**What was decided and not done.** No part was added for a variant we
+cannot name (tac as a region, DsRed.T3, GFPuv, luc2, class A tetR): where a
+call cannot be supported, the element's name is what it gets. `TetR (Tn10)`
+on an rtTA is reported as `TetR` rather than dropped: the bases are a
+repressor, 97.9% of them the Tn10 one, and pLannotate's own `rtTA` call
+(1008 bp, of which ours would be 624) is the better answer there, which our
+`rtTA (Tet-On 3G)` part — 448 of 619 bases to this 1997 rtTA — does not
+make. The contained-feature question (#282) is untouched.

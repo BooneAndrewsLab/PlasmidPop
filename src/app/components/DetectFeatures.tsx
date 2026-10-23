@@ -172,7 +172,13 @@ function OfferList({
                 <button
                   type="button"
                   className="feature-row"
-                  data-tip={`${part.note ?? part.name}\nMatched against ${source}`}
+                  data-tip={
+                    hit.family === true
+                      ? // Named for the element, not the part it was found
+                        // through, so the part's own note is not about it (#284).
+                        `${feature.name}: the match does not show what tells ${part.name} apart\nMatched against ${source}`
+                      : `${part.note ?? part.name}\nMatched against ${source}`
+                  }
                   onClick={() => {
                     editorStore.setSelection(hit.range);
                     editorStore.revealPosition(hit.range.start);
