@@ -55,9 +55,9 @@ export function Sidebar({ doc }: Props) {
   const stacked = useMediaQuery(SIDEBAR_STACKED_QUERY);
   const rail = useRef<HTMLDivElement>(null);
   // On a rail too short for every label at full length, icons alone (#292).
-  const iconsOnly = !useRailLabelsFit(rail, !stacked);
   // A protein has no Enzymes or Primers, and DNA no Protein panel (#66).
   const tabs = sidebarTabsFor(doc);
+  const iconsOnly = !useRailLabelsFit(rail, !stacked, tabs.length);
 
   // The tabs pattern of WAI-ARIA (#35): one Tab stop for the whole rail, on
   // the tab the panel is on, and the arrow keys along it, which open the

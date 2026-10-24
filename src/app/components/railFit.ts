@@ -22,27 +22,32 @@ export function railLabelsFit(available: number, labelLengths: readonly number[]
  * layout (hidden, unclipped) when they are not shown, so they can still be
  * measured and the answer does not flip back and forth.
  */
-export function useRailLabelsFit(rail: RefObject<HTMLElement | null>, enabled: boolean): boolean {
+export function useRailLabelsFit(
+  rail: RefObject<HTMLElement | null>,
+  enabled: boolean,
+  tabCount: number,
+): boolean {
   const [fit, setFit] = useState(true);
   useLayoutEffect(() => {
     const el = rail.current;
-    if (!enabled || el === null) {
-      setFit(true);
-      return;
-    }
+    if (!enabled || el === null || typeof ResizeObserver === 'undefined') return;
+    const labels = Array.from(el.querySelectorAll<HTMLElement>('.sidebar__tab-label'));
     const measure = (): void => {
-      const lengths = Array.from(el.querySelectorAll<HTMLElement>('.sidebar__tab-label')).map(
-        (label) => label.scrollHeight,
+      setFit(
+        railLabelsFit(
+          el.clientHeight,
+          labels.map((label) => label.scrollHeight),
+        ),
       );
-      setFit(railLabelsFit(el.clientHeight, lengths));
     };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
+    // Observing reports once at once, so the first measurement comes from
+    // here; the labels are watched too, as a font arriving resizes them.
     const observer = new ResizeObserver(measure);
     observer.observe(el);
+    for (const label of labels) observer.observe(label);
     return () => {
       observer.disconnect();
     };
-  });
-  return fit;
+  }, [rail, enabled, tabCount]);
+  return !enabled || fit;
 }

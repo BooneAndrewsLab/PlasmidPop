@@ -89,7 +89,7 @@ describe('cut labels on a narrow map (#292)', () => {
       for (const cut of [1250, 3750]) {
         const { svg } = texts(width, cut);
         expect(svg).not.toMatch(/AlwNI \([^)<]*…/);
-        if (/>AlwNI</.test(svg)) bare++;
+        if (svg.includes('>AlwNI<')) bare++;
       }
     }
     expect(bare).toBeGreaterThan(0);

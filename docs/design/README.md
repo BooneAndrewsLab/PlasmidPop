@@ -314,3 +314,5 @@ the Bench, item 49). The rest stand.
 118.  [The open's last long task, the autosave in the first scroll, and the heap](104-open-long-task.md)
 
 119.  [The cut sites kept packed](105-packed-sites.md)
+
+120.  [Short and narrow windows](106-short-and-narrow-windows.md)
