@@ -18,6 +18,7 @@ import { PrimerPanel } from './PrimerPanel';
 import { ProteinPanel } from './ProteinPanel';
 import { SidebarIcon } from './SidebarIcon';
 import { TranslatePanel } from './TranslatePanel';
+import { useRailLabelsFit } from './railFit';
 import { useMediaQuery } from './useMediaQuery';
 
 interface Props {
@@ -53,6 +54,8 @@ export function Sidebar({ doc }: Props) {
   // A rail down the edge, or a strip across the top on a narrow window.
   const stacked = useMediaQuery(SIDEBAR_STACKED_QUERY);
   const rail = useRef<HTMLDivElement>(null);
+  // On a rail too short for every label at full length, icons alone (#292).
+  const iconsOnly = !useRailLabelsFit(rail, !stacked);
   // A protein has no Enzymes or Primers, and DNA no Protein panel (#66).
   const tabs = sidebarTabsFor(doc);
 
@@ -86,7 +89,7 @@ export function Sidebar({ doc }: Props) {
   return (
     <aside className={`sidebar${sidebarOpen ? '' : ' sidebar--collapsed'}`}>
       <div
-        className="sidebar__tabs"
+        className={`sidebar__tabs${iconsOnly && !stacked ? ' sidebar__tabs--icons' : ''}`}
         role="tablist"
         aria-label="Sidebar"
         aria-orientation={stacked ? 'horizontal' : 'vertical'}
@@ -104,6 +107,7 @@ export function Sidebar({ doc }: Props) {
               role="tab"
               aria-selected={active}
               aria-controls="sidebar-panel"
+              aria-label={label}
               tabIndex={tab === sidebarTab ? 0 : -1}
               data-tip={
                 active

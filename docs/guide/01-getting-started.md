@@ -69,7 +69,9 @@ See [Files and storage](02-files.md).
   right. Both show the same selection and the same features.
 - **Sidebar** (right): tabs for Features, ORFs, Translate, Primers, Enzymes,
   Cloning, Align and History (and Protein in front of a protein), in a narrow rail down the right-hand edge,
-  each an icon above its label turned on its side. On a narrow window the
+  each an icon above its label turned on its side. On a window too short for
+  every label at full length, the labels all go and the rail shows icons
+  alone; hover a tab for its name. On a narrow window the
   rail becomes a row of tabs above the panel. From the keyboard the rail is
   one Tab stop: the arrow keys move along it and open the tab they reach,
   Home and End go to either end, and `Alt+[` / `Alt+]` do the same from

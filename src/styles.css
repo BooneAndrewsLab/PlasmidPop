@@ -761,6 +761,7 @@ button {
   background: var(--surface);
   color: var(--ink-2);
   cursor: pointer;
+  position: relative;
 }
 
 /* Above the label, and kept whole when a short rail clips the label (#35). */
@@ -789,6 +790,24 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Labels that do not all fit at full length go altogether (#292), not one
+   letter each: the icons and the tooltips carry the tabs. The labels stay in
+   the layout, unclipped and hidden, so the rail can go on measuring them. */
+.sidebar__tabs--icons .sidebar__tab-label {
+  position: absolute;
+  visibility: hidden;
+  max-height: none;
+  pointer-events: none;
+}
+
+.sidebar__tabs--icons .sidebar__tab {
+  padding: 8px 0;
+}
+
+.sidebar__tabs--icons .sidebar__tab-icon {
+  transform: none;
 }
 
 .sidebar__tab:hover:not(.sidebar__tab--active) {
