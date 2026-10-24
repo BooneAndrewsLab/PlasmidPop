@@ -353,3 +353,64 @@ added. The 28 left on changed lines are equivalent:
   K-mers that start at the origin again.
 - **`unpackScan`'s default pause:** `await undefined` instead of
   `await Promise.resolve()`.
+
+## At 1.17.4
+
+The pass was scoped to the 95 survivors on lines changed since 1.17.3, all
+in `detect.ts` (37), `hits.ts` (4) and `library.ts` (54): the touching-copies
+chain of #284/#288, the segment rule of #282, antisense CDS (#285), the
+variant name note, and the library's `variant`, `complementOf`, `segmentOf`
+and `components` parsing. Tests killed 70 of them: `library.test.ts` now
+reads each kind of variant, every position error with its exact message,
+the regex's anchors and the bounds of `to > limit`, and the part a bad
+field was found in; `detect.test.ts` chains across the origin of a circle
+only from the copy that ends it (and not on a linear sequence), a
+tandem running over the origin from its first copy, a ring of copies, two
+different tags side by side, copies cut off by a linear end, copies found in
+the translation or under the family name beside one that was not, the sum
+of ambiguous bases, a chain listed before a shorter part starting with it
+(before homologues re-sort), copies of two parts over the same bases, and a
+segment as long as its gene; `hits.test.ts` an own-strand CDS that touches
+none of the hit and the family note's name. The narrow rerun (three files,
+29 minutes, a dry run of about 2) left 32 on those lines; the 8 that were
+new to the list had been reported killed in the full run, and by hand they
+survive the whole suite with the code as it stood, so that earlier verdict
+was stale. Two of them (`list.push` and the `list === undefined` test in the
+start/end index) were killed by a new test, five were equivalent and
+disabled (below), and `k !== h` in the finest-fit filter was left.
+
+Tests of this module that draw from the file's shared `rand` shift every
+later test's random fixtures, and in a mutation run the draws also depend
+on which tests were selected. The new tests seed their own generator.
+
+Equivalents disabled, with the reason beside each (5 comments, 7 mutants):
+the `?.` on `protein` in `parseVariant` (a spec is only read when the part
+has a protein); `ordered`'s sort in `withRepeats` (the hits come in
+sequence order and the result is sorted again); the pairs of `order`
+(it only ranks several candidates for one copy, and there is never more than
+one); the `?? []` of `listed` (a stray entry follows nothing); and
+`inChain.add(next)` (a chain only comes round to its first copy).
+
+Equivalents left as survivors, each sharing a mutator with a killed mutant
+on its line (24 on changed lines):
+
+- **Redundant by the start/end index:** `follows`' adjacency test (the
+  candidates are listed by where they start or end, so all of the range test
+  and its wrap clause hold already: 6 on line 528), `b !== a` (a copy that
+  is the whole circle follows itself, and the fallback pass chains it just
+  the same), `after`'s extra candidate at 0 where the copy does not end the
+  circle (`follows` rejects it), and `!chainable(first)` (a lone hit comes
+  out the same).
+- **Never more than one candidate:** the choice of the first of several
+  following copies (6 on line 579); two copies of one part cannot both start
+  or both end at one base after `keepBest`.
+- **Never reaches `withRepeats`:** `similar === undefined` in `chainable`,
+  since homologues are added after the chains are made.
+- **Typed away:** `?? ''` for a part not in the library, `k !== h` in the
+  finest-fit filter (a hit's identity is not greater than its own), and
+  `seg.kind !== 'range'` in `antisenseToCds` (a site's NaN bounds share
+  nothing either way).
+- **Unreachable in the parser:** `positions` always has an entry, so the
+  "no positions" throw never runs (2), and `protein === ''` beside
+  `undefined` (2): an empty protein is refused earlier as nothing or as
+  malformed.
