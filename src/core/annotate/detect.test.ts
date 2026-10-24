@@ -370,6 +370,19 @@ describe('detectFeatures', () => {
       ]);
     });
 
+    it('keeps a segment as long as the hit of its gene it lies in (#282)', () => {
+      // Same bases, same strand, another type: the segment is not inside the
+      // gene, it is the gene's whole length, so it is offered beside it.
+      const lib = library(part('gene', PART, 'CDS'), {
+        ...part('same', PART, 'sig_peptide'),
+        segmentOf: ['gene'],
+      });
+      expect(detectFeatures(PART, 'linear', lib).map((h) => lib.parts[h.part]?.name)).toEqual([
+        'gene',
+        'same',
+      ]);
+    });
+
     it('keeps a segment where no hit of its gene holds it (#286, #282)', () => {
       const end = PART.slice(200);
       const lib = library(part('outer', PART, 'LTR'), {
@@ -506,6 +519,116 @@ describe('detectFeatures', () => {
         const hits = detectFeatures(TAG + randomDna(rand, 120) + TAG, 'circular', lib);
         expect(names(hits, lib)).toEqual(['2xFLAG']);
         expect(only(hits).range).toEqual({ start: 144, end: 192 });
+      });
+
+      it('does not chain across the end of a linear sequence', () => {
+        const lib = library(tag());
+        const hits = detectFeatures(TAG + randomDna(rand, 60) + TAG, 'linear', lib);
+        expect(names(hits, lib)).toEqual(['FLAG', 'FLAG']);
+        expect(hits.map((h) => h.repeats)).toEqual([undefined, undefined]);
+      });
+
+      it('chains over the origin only from a copy that ends the circle', () => {
+        const lib = library(tag());
+        // The copy at the origin follows nothing: the one before it ends 50 bases short.
+        const seq = TAG + randomDna(rand, 100) + TAG + randomDna(rand, 50);
+        expect(names(detectFeatures(seq, 'circular', lib), lib)).toEqual(['FLAG', 'FLAG']);
+      });
+
+      it('chains a tandem over the origin from its first copy, not from the one at 0', () => {
+        const lib = library(tag());
+        const hits = detectFeatures(
+          TAG.repeat(2) + randomDna(rand, 100) + TAG.repeat(2),
+          'circular',
+          lib,
+        );
+        expect(names(hits, lib)).toEqual(['4xFLAG']);
+        expect(only(hits).range).toEqual({ start: 148, end: 244 });
+      });
+
+      it('chains a ring of copies with no first one once, and ends', () => {
+        const lib = library(tag());
+        const hits = detectFeatures(TAG.repeat(3), 'circular', lib);
+        expect(names(hits, lib)).toEqual(['3xFLAG']);
+        expect(only(hits).range).toEqual({ start: 0, end: 72 });
+      });
+
+      it('leaves touching copies of two different tags apart', () => {
+        const other = 'CATCACCATCATCACCATCACCAT';
+        const lib = library(tag(), tag('HIS'), { ...part('HIS', other, 'CDS'), category: 'tag' });
+        const hits = detectFeatures(
+          randomDna(rand, 60) + TAG + other + randomDna(rand, 60),
+          'linear',
+          lib,
+        );
+        expect(names(hits, lib).sort()).toEqual(['FLAG', 'HIS']);
+      });
+
+      it('leaves a copy cut off by the end of the sequence out of the chain', () => {
+        // Long enough that a piece of it is offered (MIN_PARTIAL_BASES).
+        const long = randomDna(rand, 48);
+        const lib = library({ ...part('LONG', long, 'CDS'), category: 'tag' });
+        const before = detectFeatures(
+          randomDna(rand, 60) + long + long.slice(0, 36),
+          'linear',
+          lib,
+        );
+        expect(names(before, lib)).toEqual(['LONG', 'LONG']);
+        expect(before.map((h) => h.partialEnd)).toEqual([undefined, true]);
+        const after = detectFeatures(long.slice(12) + long + randomDna(rand, 60), 'linear', lib);
+        expect(names(after, lib)).toEqual(['LONG', 'LONG']);
+        expect(after.map((h) => h.partialStart)).toEqual([true, undefined]);
+      });
+
+      it('leaves a copy found in the translation apart from one found in the bases', () => {
+        const lib = library({ ...tag(), protein: 'DYKDDDDK' });
+        // The same eight residues in other codons: too far from TAG to match its bases.
+        const recoded = 'GACTATAAAGATGACGATGACAAA';
+        const flank = randomDna(rand, 60);
+        const hits = detectFeatures(flank + TAG + recoded + flank, 'linear', lib);
+        expect(hits.map((h) => [h.viaProtein === true, h.range.start, h.repeats])).toEqual([
+          [false, 60, undefined],
+          [true, 84, undefined],
+        ]);
+      });
+
+      it('leaves a copy that shows its variant apart from one that does not', () => {
+        const lib = library({
+          ...tag(),
+          variant: { family: 'tag', protein: [3] },
+          protein: 'DYKDDDDK',
+        });
+        // AAG to AAT: the third residue is N, not K, so the copy is named for the element.
+        const odd = TAG.slice(0, 8) + 'T' + TAG.slice(9);
+        const flank = randomDna(rand, 60);
+        const hits = detectFeatures(flank + TAG + odd + flank, 'linear', lib);
+        expect(names(hits, lib)).toEqual(['FLAG', 'tag']);
+      });
+
+      it('adds up the ambiguous bases of the copies', () => {
+        const lib = library(tag());
+        const flank = randomDna(rand, 60);
+        const seq =
+          flank +
+          TAG +
+          TAG.slice(0, 5) +
+          'N' +
+          TAG.slice(6) +
+          TAG.slice(0, 9) +
+          'N' +
+          TAG.slice(10) +
+          flank;
+        const hit = only(detectFeatures(seq, 'linear', lib));
+        expect(hit.repeats).toBe(3);
+        expect(hit.ambiguous).toBe(2);
+      });
+
+      it('lists a longer chain before a shorter part that starts at the same base, before homologues are added', () => {
+        const run = TAG.repeat(3);
+        const lib = library(tag(), part('primer', run.slice(0, 40), 'primer_bind'));
+        const flank = randomDna(rand, 60);
+        const hits = detectFeatures(flank + run + flank, 'linear', lib, { homologues: false });
+        expect(names(hits, lib)).toEqual(['3xFLAG', 'primer']);
       });
 
       it('sums what the copies matched', () => {
