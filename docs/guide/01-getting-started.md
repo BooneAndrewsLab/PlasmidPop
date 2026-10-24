@@ -55,7 +55,7 @@ See [Files and storage](02-files.md).
 ## What is on the screen
 
 - **Toolbar** (top): the logo, the document name (click it to rename), its
-  length and topology, then the **File** menu, **Undo / Redo** with the
+  length and topology, then the **File** menu, **Undo / Redo** (↶ ↷) with the
   history list, the view switcher (**Sequence**, **Map**, **Both**), the
   **Complement**, **Translations** and **Cut sites** toggles, the
   **Format** and **Edits** menus, and the **?** button that opens this
@@ -63,8 +63,11 @@ See [Files and storage](02-files.md).
 - **Document tabs** (under the toolbar): **Files**, the
   [**Bench**](12-cloning.md#the-bench), then one tab per open document, and
   **+** for a new one. Tabs can be dragged into another order.
-- **Edit bar** (under the tabs): Add feature, Delete selection, Reverse
-  complement, Set origin here, Make circular / linear, Find.
+- **Edit bar** (under the tabs): Add feature, Delete selection (a bin icon),
+  Reverse complement, Style, Case, Set origin here, Make circular / linear
+  and Find (a magnifier icon). On a narrow window Style, Case, Set origin
+  here and Make circular / linear are behind a **More ▾** button. The hint at
+  the right says "Insert bases…"; hover it for the typing and copy keys.
 - **Views**: the circular map on the left and the linear sequence view on the
   right. Both show the same selection and the same features.
 - **Sidebar** (right): tabs for Features, ORFs, Translate, Primers, Enzymes,

@@ -464,6 +464,8 @@ button {
 }
 
 .editbar {
+  container-type: inline-size;
+  container-name: editbar;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -478,6 +480,64 @@ button {
   height: 18px;
   background: var(--line);
   margin: 0 4px;
+}
+
+/* Icons where a convention exists: the magnifier and the bin (#292). */
+.editbar__icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Style, Case, Set origin and Make linear: in the bar when it is wide, behind
+   More when it is not. The group's own box disappears on a wide bar. */
+.editbar__more {
+  display: contents;
+}
+
+.editbar__more-items {
+  display: contents;
+}
+
+.editbar__more-toggle {
+  display: none;
+}
+
+@container editbar (max-width: 860px) {
+  .editbar__more {
+    display: block;
+    position: relative;
+  }
+
+  .editbar__more-toggle {
+    display: inline-block;
+  }
+
+  .editbar__more-items {
+    display: none;
+  }
+
+  .editbar__more--open .editbar__more-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: max-content;
+    max-width: 90vw;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+    z-index: 11;
+  }
 }
 
 .editbar__hint {

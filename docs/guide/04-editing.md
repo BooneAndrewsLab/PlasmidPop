@@ -25,7 +25,7 @@ no stop codon of its own.
 - **Type with a selection** to replace it.
 - `Backspace` deletes the base before the cursor, `Delete` the base after
   it, either one deletes the selection when there is one. **Delete
-  selection** in the edit bar does the same with the mouse.
+  selection** in the edit bar (the bin icon) does the same with the mouse.
 - On a circular sequence the cursor goes before the first base or after the
   last, as on a linear one, and typing or pasting there adds the bases at
   the start or at the end. An arrow key past either end comes round to the
@@ -88,7 +88,9 @@ SVG export.
 
 ## Whole-sequence operations
 
-In the edit bar:
+In the edit bar (on a narrow window **Set origin here** and **Make
+circular** / **Make linear** are behind its **More ▾** button, with Style and
+Case):
 
 - **Reverse complement** flips the entire molecule. Features move to the
   opposite strand at the mirrored position. A linear molecule with sticky
@@ -235,7 +237,7 @@ length changes but whose molecule does not.
 ## Undo, redo and the history list
 
 - `Ctrl+Z` undoes, `Ctrl+Shift+Z` or `Ctrl+Y` redoes. The **Undo** and
-  **Redo** buttons show what they will undo or redo in their tooltip.
+  **Redo** buttons (the arrows ↶ and ↷) show what they will undo or redo in their tooltip.
 - A run of typing is one step, not one step per base, and so is a run of
   `Backspace` or `Delete`. A pause, a click elsewhere, a download or
   60 bases ends the run and the next keystroke starts a new step. See
