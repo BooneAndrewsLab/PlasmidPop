@@ -529,12 +529,15 @@ function withRepeats(
   // In sequence order, but a chain is built from the copy nothing precedes,
   // so a tandem that runs over the origin of a circle is one chain and not
   // two. A ring of copies with no first one is left as it came.
+  // Stryker disable next-line ArithmeticOperator,ArrowFunction,MethodExpression: equivalent, `keepBest` hands the hits over in sequence order, and the result is sorted again below
   const ordered = [...hits].sort((x, y) => x.range.start - y.range.start);
   // Copies are found by where they begin and end, not by asking every hit (#288).
+  // Stryker disable next-line ArrayDeclaration: equivalent, `order` only ranks several candidates for one copy, and there is never more than one
   const order = new Map<FeatureHit, number>(ordered.map((h, i) => [h, i]));
   const startingAt = new Map<number, FeatureHit[]>();
   const endingAt = new Map<number, FeatureHit[]>();
   const listed = (m: Map<number, FeatureHit[]>, at: number): readonly FeatureHit[] =>
+    // Stryker disable next-line ArrayDeclaration: equivalent, a list nothing was put in is empty, and a stray entry in it follows nothing
     m.get(at) ?? [];
   for (const h of ordered) {
     for (const [m, at] of [
@@ -580,6 +583,7 @@ function withRepeats(
       }
       if (next === undefined) break;
       chain.push(next);
+      // Stryker disable next-line CallExpression: equivalent, a chain only comes back round to its first copy, which `inChain` starts with
       inChain.add(next);
     }
     for (const h of chain) taken.add(h);
