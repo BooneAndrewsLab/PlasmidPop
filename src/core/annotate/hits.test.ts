@@ -75,6 +75,12 @@ describe('antisenseToCds (#285)', () => {
     expect(antisenseToCds(atOrigin, [cds('forward', [7000, 7200])], 7181, 'circular')).toBe(true);
   });
 
+  it('is not told otherwise by a CDS of its own strand that touches none of the hit', () => {
+    const away = cds('reverse', [10, 100]);
+    expect(antisenseToCds(his, [away, cds('forward', [2734, 4117])], 7181, 'circular')).toBe(true);
+    expect(antisenseToCds(his, [away, cds('forward', [2734, 4117])], 7181, 'linear')).toBe(true);
+  });
+
   it('leaves a hit on its bases alone: only the translation reads every frame', () => {
     expect(antisenseToCds(hit(3365, 3383), [cds('forward', [2734, 4117])], 7181, 'circular')).toBe(
       false,
@@ -214,6 +220,22 @@ describe('featureFromHit', () => {
         name: 'note',
         value: 'Detected by PlasmidPop: 2 mismatches, 99.7% to J01749.1 complement(3293..4153)',
       },
+    ]);
+  });
+
+  it('notes that a hit is named for its element rather than the part, as a note', () => {
+    const f = featureFromHit(hit(0, 861, { strand: 'forward', family: true }), {
+      ...AMP,
+      variant: { family: 'bla' },
+    });
+    expect(f.name).toBe('bla');
+    expect(f.qualifiers).toEqual([
+      { name: 'label', value: 'bla' },
+      {
+        name: 'note',
+        value: 'Named bla rather than AmpR: the match does not show what tells that variant apart',
+      },
+      { name: 'note', value: 'Detected by PlasmidPop: exact to J01749.1 complement(3293..4153)' },
     ]);
   });
 
