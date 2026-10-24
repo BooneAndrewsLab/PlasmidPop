@@ -431,6 +431,10 @@ export class PersistenceService {
       urgent,
     );
     if (text === undefined) throw new Error('The document could not be written out.');
+    // The flush on leaving (#290): the write below is begun as the page goes
+    // and may never commit, so the text is also put where a reload reads it
+    // without waiting for anything. Its commit takes it away again.
+    if (urgent && !closed) this.repo.stash(id, d.fileName, doc, text, now);
     if (!urgent && !closed) {
       // The put clones the text into IndexedDB on this thread, 33-46 ms at
       // 4.64 Mb (#278): not in the middle of a scroll that began meanwhile.
@@ -446,6 +450,8 @@ export class PersistenceService {
       () => this.isLatest(id, d),
     );
     if (!written || !this.isLatest(id, d)) return;
+    this.repo.unstash(tab.documentId);
+    this.repo.unstash(id);
     this.autosaved.set(id, autosavedOf(d));
     void this.requestPersistentStorage();
   }
@@ -741,10 +747,27 @@ export class PersistenceService {
       const opened: string[] = [];
       for (const id of ids) {
         const stored = await this.repo.load(id);
-        if (stored === null) continue;
-        this.reopen(id, stored);
+        // What the flush on leaving stashed (#290) when its write did not
+        // commit, or the document was never written: it is newer than the
+        // stored one, whose history it leaves behind, and is written again.
+        const pending = await this.repo.loadPending(id);
+        if (stored === null && pending === null) continue;
+        if (pending !== null) {
+          this.reopen(id, {
+            origin: null,
+            derived: false,
+            ...stored,
+            ...pending,
+            history: () => null,
+            historyStatus: () => 'none',
+          });
+          this.autosaved.delete(id);
+        } else if (stored !== null) {
+          this.reopen(id, stored);
+        }
         opened.push(id);
       }
+      this.repo.pruneStashes(new Set(opened));
       // The Bench comes back in front only with something to work with.
       if (bench && (opened.length > 0 || editorStore.getState().shelf.length > 0)) {
         editorStore.showBench();

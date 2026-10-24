@@ -36,6 +36,13 @@ import { type StoredHistory, isStoredHistory } from './historyFormat';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
+const PENDING_PREFIX = 'plasmidpop.pending.';
+/**
+ * The most text (UTF-16 units) the flush on leaving puts in localStorage for
+ * one document (#290). A browser gives an origin some 5 million units in all,
+ * and a stash that does not fit costs only the safety net, never the save.
+ */
+const MAX_PENDING_CHARS = 1_500_000;
 
 /**
  * Where a document came from, as `save` takes it: the file it was forked
@@ -56,6 +63,22 @@ const NO_PROVENANCE: DocumentProvenance = { origin: null, derived: false };
  * the stored document) and was left behind.
  */
 export type HistoryStatus = 'none' | 'restored' | 'dropped';
+
+interface PendingDocument {
+  name: string;
+  fileName: string | null;
+  text: string;
+  now: number;
+  read?: SequencingRead;
+}
+
+function isPendingDocument(v: unknown): v is PendingDocument {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o['name'] === 'string' && typeof o['text'] === 'string' && typeof o['now'] === 'number'
+  );
+}
 
 /** A stored document read back, with what is known about where it came from. */
 export interface StoredLoad extends DocumentProvenance {
@@ -244,6 +267,85 @@ export class DocumentRepository {
           }),
       ...(provenance.derived ? { derived: true } : {}),
     };
+  }
+
+  /**
+   * Keeps a document's text in localStorage, which is written before the call
+   * returns, for the flush on leaving the page (#290): an IndexedDB write
+   * begun as the page goes may never commit, and this is what a reload then
+   * reads instead (`loadPending`). Best effort: a document too large for
+   * localStorage, or no room left in it, is simply not stashed.
+   */
+  stash(id: string, fileName: string | null, doc: SeqDocument, text: string, now: number): void {
+    if (text.length > MAX_PENDING_CHARS) return;
+    try {
+      const pending: PendingDocument = { name: doc.name, fileName, text, now };
+      if (doc.read !== null) pending.read = doc.read;
+      globalThis.localStorage.setItem(PENDING_PREFIX + id, JSON.stringify(pending));
+    } catch {
+      // Over quota, or no localStorage: IndexedDB alone, as before.
+    }
+  }
+
+  /** Forgets a stash, once the document it holds has been written to IndexedDB. */
+  unstash(id: string): void {
+    try {
+      globalThis.localStorage.removeItem(PENDING_PREFIX + id);
+    } catch {
+      // Nothing to forget.
+    }
+  }
+
+  /** Whether a document has a stash (`stash`). */
+  stashed(id: string): string | null {
+    try {
+      return globalThis.localStorage.getItem(PENDING_PREFIX + id);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The stash of a document, as `stash` left it, unless IndexedDB has the
+   * document written at the same time or later: a stash that outlived its
+   * write (the page went before the write could say so) is no newer than it.
+   * Gives the document and file name; the caller keeps the stored provenance.
+   */
+  async loadPending(id: string): Promise<{ doc: SeqDocument; fileName: string | null } | null> {
+    const raw = this.stashed(id);
+    if (raw === null) return null;
+    try {
+      const pending: unknown = JSON.parse(raw);
+      if (!isPendingDocument(pending)) return null;
+      const stored = await this.db.documents.get(id);
+      if (stored !== undefined && stored.updatedAt >= pending.now) return null;
+      const parsed = parseGenBank(pending.text).documents[0];
+      if (parsed === undefined) return null;
+      const doc = withStoredRead(parsed, pending.read);
+      return { doc: doc.rename(pending.name), fileName: pending.fileName };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Forgets every stash but those of `keep`: the leftovers of tabs that are no more. */
+  pruneStashes(keep: ReadonlySet<string>): void {
+    try {
+      const storage = globalThis.localStorage;
+      const stale: string[] = [];
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (
+          key?.startsWith(PENDING_PREFIX) === true &&
+          !keep.has(key.slice(PENDING_PREFIX.length))
+        ) {
+          stale.push(key);
+        }
+      }
+      for (const key of stale) storage.removeItem(key);
+    } catch {
+      // Best effort, like the rest.
+    }
   }
 
   async has(id: string): Promise<boolean> {

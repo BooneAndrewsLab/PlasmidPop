@@ -181,3 +181,37 @@ the close against a save waiting for quiet before the worker and before the
 put, out at the worker and held at the put, of the same state, two quick
 edits, the page left while the close is at the worker, reopening from the
 list with the close's save still out, removal, and the hook.
+
+## The flush on leaving also stashes the text (#290)
+
+Skipping `has()` and `findIdentical()` on the urgent path (6f975a3) did not
+fix a document opened, or edited, less than about a second before a reload:
+the reload still found nothing. The cause is the write itself, not the steps
+before it: an IndexedDB transaction begun in `pagehide` (a read of the row,
+then the puts) is asynchronous, and a page being reloaded does not wait for
+it to commit. `localStorage.setItem` is the one store a page leaving can
+finish, and `rememberSession` already relies on it for the tab ids.
+
+So the urgent save, having the GenBank text inline anyway, also stashes it
+in localStorage (`DocumentRepository.stash`, key `plasmidpop.pending.<id>`:
+name, file name, text, read, time) before it begins the IndexedDB write, and
+the write's commit removes the stash. `restoreLastSession` reads a stash
+(`loadPending`) for each tab it restores and uses it over the stored row
+unless the row is at least as new (a stash that outlived a write whose
+commit the page did not see is equal, not newer). A restored stash is
+treated as unwritten, so the ordinary autosave writes it and drops the
+stash; its tab has no undo history (the stored one ends at an older state),
+and keeps the stored origin and `derived` flag if there was a row. Leftover
+stashes of tabs not restored are removed.
+
+Limits: a document over 1.5 million characters of text is not stashed
+(localStorage is some 5 million units per origin, shared with the rest), a
+failed `setItem` is ignored, and a tab closed as the page goes (#280's
+`closed` path) is not stashed. In those cases the IndexedDB write alone is
+what there is, as before.
+
+`leaveStash.test.ts` models "the page is gone" by a repository whose
+`write` never commits, then restores through a new service over the same
+storage: open then leave, edit then leave, commit clearing the stash, and
+the size limit and pruning. Not verified outside the tests: real Chromium and
+Firefox reloads (the issue's Playwright recipe).
