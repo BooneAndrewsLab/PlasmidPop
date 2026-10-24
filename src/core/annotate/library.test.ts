@@ -137,10 +137,11 @@ describe('parseLibraryFile: variant, complementOf and the errors they raise (#28
   };
   const variantOf = (variant: unknown, base: object = GOOD) =>
     parseLibraryFile(file({ ...base, variant }), 'core')[0]?.variant;
-  const refuses = (variant: unknown, message: string, base: object = GOOD) =>
+  const refuses = (variant: unknown, message: string, base: object = GOOD): void => {
     expect(() => parseLibraryFile(file({ ...base, variant }), 'core')).toThrow(
       `Feature library (core): part 0: ${message}`,
     );
+  };
 
   it('reads a variant of each kind, and keeps only what it says', () => {
     expect(variantOf({ family: 'lac' })).toStrictEqual({ family: 'lac' });
