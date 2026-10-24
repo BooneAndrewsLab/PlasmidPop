@@ -867,29 +867,35 @@ describe('the bundled library', () => {
     expectWithin(ms, 4000);
   });
 
-  itTimed('scans a repeat-rich 1 Mb sequence in about a second (#288)', async () => {
-    const lib = await loadFeatureLibrary();
-    const r = seededRandom(288);
-    // A 2.6 kb unit of forty short parts, on alternating strands, repeated
-    // to a megabase: some 15,000 hits, every one with its neighbours to be
-    // reduced against. Every step that asked all the hits was quadratic.
-    const unit = lib.parts
-      .filter((p) => p.sequence.length < 120)
-      .slice(0, 40)
-      .map((p, k) => (k % 2 === 0 ? p.sequence : reverseComplement(p.sequence)) + randomDna(r, 20))
-      .join('');
-    const seq = unit.repeat(Math.ceil(1_000_000 / unit.length));
-    detectFeatures(seq.slice(0, 50_000), 'circular', lib); // warm the index
-    const t0 = performance.now();
-    const hits = detectFeatures(seq, 'circular', lib);
-    const ms = performance.now() - t0;
-    process.stderr.write(
-      `[perf] detect features, 1 Mb tandem of a 2.6 kb unit: ${ms.toFixed(0)} ms, ${hits.length} hits\n`,
-    );
-    expect(hits.length).toBeGreaterThan(10_000);
-    // Minutes before; CI runs three to four times slower than a desktop here.
-    expectWithin(ms, 10_000);
-  }, 60_000);
+  itTimed(
+    'scans a repeat-rich 1 Mb sequence in about a second (#288)',
+    async () => {
+      const lib = await loadFeatureLibrary();
+      const r = seededRandom(288);
+      // A 2.6 kb unit of forty short parts, on alternating strands, repeated
+      // to a megabase: some 15,000 hits, every one with its neighbours to be
+      // reduced against. Every step that asked all the hits was quadratic.
+      const unit = lib.parts
+        .filter((p) => p.sequence.length < 120)
+        .slice(0, 40)
+        .map(
+          (p, k) => (k % 2 === 0 ? p.sequence : reverseComplement(p.sequence)) + randomDna(r, 20),
+        )
+        .join('');
+      const seq = unit.repeat(Math.ceil(1_000_000 / unit.length));
+      detectFeatures(seq.slice(0, 50_000), 'circular', lib); // warm the index
+      const t0 = performance.now();
+      const hits = detectFeatures(seq, 'circular', lib);
+      const ms = performance.now() - t0;
+      process.stderr.write(
+        `[perf] detect features, 1 Mb tandem of a 2.6 kb unit: ${ms.toFixed(0)} ms, ${hits.length} hits\n`,
+      );
+      expect(hits.length).toBeGreaterThan(10_000);
+      // Minutes before; CI runs three to four times slower than a desktop here.
+      expectWithin(ms, 10_000);
+    },
+    60_000,
+  );
 });
 
 describe('exact parts (#94 follow-up)', () => {
