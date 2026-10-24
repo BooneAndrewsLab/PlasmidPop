@@ -349,7 +349,13 @@ rather than writing them over each other. It says how many in the bottom-left
 corner: **+7 labels not shown**. What is left out is decided by the document,
 not by where the crowding happens to be: features keep their labels before
 cut sites do, longer features before shorter ones, and a rare cutter before
-an enzyme that cuts all over the plasmid.
+an enzyme that cuts all over the plasmid. **Hover the count** (or tap it) to
+list the labels that were left out.
+
+A cut site's label that has less room than its full text (a map near the
+edge of a narrow pane) loses its position first and reads just `AlwNI`, rather
+than being cut in the middle of a number. Hover the tick mark for the whole
+label with its position.
 
 Nothing is lost by it. **Hover a feature arc or a cut site's tick mark** and
 its name appears even if the ring had no room for it, drawn in a rounded

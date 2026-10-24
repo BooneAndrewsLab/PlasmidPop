@@ -14,6 +14,7 @@ import { type GcTrack } from '@/view/linear';
 import {
   type ChangeTarget,
   type DrawnLabel,
+  type MapRenderResult,
   type MapViewport,
   type RingTarget,
   CircularLayout,
@@ -28,6 +29,7 @@ import {
   labelMargin,
   overlayRingRadius,
   panBy,
+  hiddenLabelsTip,
   renderCircularMap,
   ringTargetAt,
   zoomAround,
@@ -173,6 +175,7 @@ export function CircularMapView({ doc }: Props) {
   const gesture = useRef<Gesture>({ kind: 'idle' });
   /** The labels the last frame drew, for the pointer to find (#25). */
   const drawnLabels = useRef<readonly DrawnLabel[]>([]);
+  const hiddenLabels = useRef<MapRenderResult['hiddenLabels']>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
 
   const [viewportDocId, setViewportDocId] = useState(documentId);
@@ -331,7 +334,7 @@ export function CircularMapView({ doc }: Props) {
       canvas.height = h;
     }
     const frame = requestAnimationFrame(() => {
-      const { labels } = renderCircularMap(ctx, {
+      const { labels, hiddenLabels: hidden } = renderCircularMap(ctx, {
         doc,
         layout,
         lanes,
@@ -352,6 +355,7 @@ export function CircularMapView({ doc }: Props) {
         titleFont: TITLE_FONT,
       });
       drawnLabels.current = labels;
+      hiddenLabels.current = hidden ?? null;
     });
     return () => {
       cancelAnimationFrame(frame);
@@ -430,6 +434,16 @@ export function CircularMapView({ doc }: Props) {
     return null;
   };
 
+  /** The list of labels left out, when the point is on the `+N labels not shown` line (#292). */
+  const hiddenTipAt = (x: number, y: number): string | undefined => {
+    const hidden = hiddenLabels.current;
+    if (hidden === null) return undefined;
+    const { box } = hidden;
+    return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom
+      ? hiddenLabelsTip(hidden.names)
+      : undefined;
+  };
+
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const pt = point(e);
     pointers.current.set(e.pointerId, pt);
@@ -441,6 +455,12 @@ export function CircularMapView({ doc }: Props) {
       return;
     }
     if (pointers.current.size > 2) return;
+    // A tap, which has no hover, on the count lists what it counts (#292).
+    const hiddenTip = e.button === 0 ? hiddenTipAt(pt.x, pt.y) : undefined;
+    if (hiddenTip !== undefined) {
+      followTooltip(hiddenTip, e.clientX, e.clientY);
+      return;
+    }
     // A label names what it is for, so clicking it does what clicking that
     // does: a feature's selects the feature, a cut site's puts the caret at
     // the cut (#25).
@@ -550,7 +570,7 @@ export function CircularMapView({ doc }: Props) {
       );
       return;
     }
-    const tip = gcTipAt(layout, gcTrack, pt, doc);
+    const tip = hiddenTipAt(pt.x, pt.y) ?? gcTipAt(layout, gcTrack, pt, doc);
     if (tip === undefined) hideFollowTooltip();
     else followTooltip(tip, e.clientX, e.clientY);
     const label = labelAt(pt.x, pt.y);

@@ -904,6 +904,37 @@ function fitText(
 }
 
 /**
+ * A cut-site label's text for the room it has (#292): the enzymes with their
+ * position when that fits whole, else the enzymes alone — `AlwNI`, the
+ * position left to the tooltip — and only when even the names do not fit,
+ * the names shortened. A position is never cut mid-number.
+ */
+export function fitCutLabel(
+  ctx: DrawingContext,
+  full: string,
+  namesOnly: string,
+  maxWidth: number,
+): { readonly text: string; readonly width: number } | null {
+  const whole = ctx.measureText(full).width;
+  if (whole <= maxWidth) return { text: full, width: whole };
+  return fitText(ctx, namesOnly, maxWidth);
+}
+
+/** Most hidden labels the tooltip lists before it says how many more there are. */
+const HIDDEN_LIST_MAX = 12;
+
+/** The tooltip of the `+N labels not shown` line: what was left out, one per line. */
+export function hiddenLabelsTip(names: readonly string[]): string {
+  const shown = names.slice(0, HIDDEN_LIST_MAX);
+  const more = names.length - shown.length;
+  return [
+    'Labels not shown:',
+    ...shown,
+    ...(more > 0 ? [`and ${more.toLocaleString()} more`] : []),
+  ].join('\n');
+}
+
+/**
  * The background behind a piece of text, so a leader line that passes under
  * it does not read as a strike-through. An export asked for a transparent
  * background paints nothing here, which is the right answer for one.
@@ -1028,7 +1059,11 @@ function drawLabels(
   m: MapMetrics,
   visible: readonly Feature[],
   ticks: readonly RulerTick[],
-): { readonly dropped: number; readonly drawn: DrawnLabel[] } {
+): {
+  readonly dropped: number;
+  readonly hiddenNames: readonly string[];
+  readonly drawn: DrawnLabel[];
+} {
   const { layout, theme, doc } = p;
   ctx.font = p.sansFont;
   const labelRadius = layout.radius + m.labelRing;
@@ -1038,8 +1073,18 @@ function drawLabels(
 
   const inputs: LabelInput[] = [];
   let unfit = 0;
-  const add = (id: string, text: string, angle: number, rank: number): void => {
+  /** What each label said in full, for the list of those left out. */
+  const fullText = new Map<string, string>();
+  const unfitIds: string[] = [];
+  const add = (
+    id: string,
+    text: string,
+    angle: number,
+    rank: number,
+    namesOnly: string = text,
+  ): void => {
     if (text === '') return;
+    fullText.set(id, text);
     const ax = layout.cx + labelRadius * Math.cos(angle);
     const ay = layout.cy + labelRadius * Math.sin(angle);
     // A label anchored off the canvas is not "left out" — the thing it names
@@ -1050,9 +1095,10 @@ function drawLabels(
     // that side is all the room there is. Long names on the left used to run
     // off the edge because only the anchor was tested.
     const room = (Math.cos(angle) >= 0 ? p.width - ax : ax) - 8 - EDGE_INSET;
-    const fitted = fitText(ctx, text, room);
+    const fitted = fitCutLabel(ctx, text, namesOnly, room);
     if (fitted === null) {
       unfit++;
+      unfitIds.push(id);
       return;
     }
     inputs.push({ id, text: fitted.text, angle, textWidth: fitted.width, rank });
@@ -1079,7 +1125,7 @@ function drawLabels(
     const text = `${names.join(', ')} (${cutLabel(cut, doc.length, doc.topology).toLocaleString()})`;
     const rarity = Math.min(...names.map((n) => cutsPerEnzyme.get(n) ?? 1));
     const rank = RANK_CUT + 1e6 - Math.min(rarity, 1e3) * 1e3;
-    add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank);
+    add(`${CUT_PREFIX}${cut}`, text, layout.angleOf(cut), rank, names.join(', '));
   }
 
   const { placed, dropped } = layoutLabels(inputs, layout, {
@@ -1261,7 +1307,10 @@ function drawLabels(
       ? { kind: 'cut', position: Number(label.id.slice(CUT_PREFIX.length)) }
       : { kind: 'feature', featureId: label.id },
   }));
-  return { dropped: dropped.length + unfit, drawn };
+  const hiddenNames = [...unfitIds, ...dropped.map((d) => d.id)].map(
+    (id) => fullText.get(id) ?? id,
+  );
+  return { dropped: dropped.length + unfit, hiddenNames, drawn };
 }
 
 /**
@@ -1274,8 +1323,8 @@ function drawDroppedCount(
   p: CircularRenderParams,
   m: MapMetrics,
   dropped: number,
-): void {
-  if (dropped <= 0) return;
+): LabelBox | null {
+  if (dropped <= 0) return null;
   const text = `+${dropped.toLocaleString()} label${dropped === 1 ? '' : 's'} not shown`;
   ctx.font = p.sansFont;
   ctx.textAlign = 'left';
@@ -1286,6 +1335,12 @@ function drawDroppedCount(
   ctx.fillRect(4, y - m.lineHeight / 2 - 2, width + 8, m.lineHeight + 4);
   ctx.fillStyle = p.theme.inkMuted;
   ctx.fillText(text, 8, y);
+  return {
+    left: 4,
+    right: 12 + width,
+    top: y - m.lineHeight / 2 - 2,
+    bottom: y + m.lineHeight / 2 + 2,
+  };
 }
 
 function drawCentre(ctx: DrawingContext, p: CircularRenderParams): void {
@@ -1630,6 +1685,11 @@ export interface DrawnLabel {
 export interface MapRenderResult {
   /** Labels the ring had no room for; the map draws the count in the corner. */
   readonly droppedLabels: number;
+  /**
+   * The `+N labels not shown` line's box and what each of those labels said,
+   * so the view can list them on hover or tap (#292); null when none.
+   */
+  readonly hiddenLabels: { readonly box: LabelBox; readonly names: readonly string[] } | null;
   /** Where each drawn label is, so the view can make it a click target (#25). */
   readonly labels: readonly DrawnLabel[];
 }
@@ -1656,12 +1716,16 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   drawEditMarks(ctx, p, m);
   drawGcRing(ctx, p);
   drawOverlays(ctx, p);
-  const { dropped: droppedLabels, drawn } = drawLabels(ctx, p, m, features, ticks);
+  const { dropped: droppedLabels, hiddenNames, drawn } = drawLabels(ctx, p, m, features, ticks);
   drawChangeLabel(ctx, p, m);
   if (p.showCentre !== false) drawCentre(ctx, p);
-  drawDroppedCount(ctx, p, m, droppedLabels);
+  const countBox = drawDroppedCount(ctx, p, m, droppedLabels);
   ctx.restore();
-  return { droppedLabels, labels: drawn };
+  return {
+    droppedLabels,
+    hiddenLabels: countBox === null ? null : { box: countBox, names: hiddenNames },
+    labels: drawn,
+  };
 }
 
 /** Bases covered by a clockwise drag from `anchor` to `focus`. */
