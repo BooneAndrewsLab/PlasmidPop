@@ -36,17 +36,19 @@ export function HistoryMenu() {
           <button
             type="button"
             className="segmented__button"
+            aria-label="Undo"
             disabled={shelfUndo === null}
             data-tip={shelfUndo === null ? 'Undo (Ctrl+Z)' : `Undo ${shelfUndo} (Ctrl+Z)`}
             onClick={() => {
               editorStore.undoShelf();
             }}
           >
-            Undo
+            <span aria-hidden="true">↶</span>
           </button>
           <button
             type="button"
             className="segmented__button"
+            aria-label="Redo"
             disabled={shelfRedo === null}
             data-tip={
               shelfRedo === null ? 'Redo (Ctrl+Shift+Z)' : `Redo ${shelfRedo} (Ctrl+Shift+Z)`
@@ -55,7 +57,7 @@ export function HistoryMenu() {
               editorStore.redoShelf();
             }}
           >
-            Redo
+            <span aria-hidden="true">↷</span>
           </button>
         </div>
       </div>
@@ -68,6 +70,7 @@ export function HistoryMenu() {
         <button
           type="button"
           className="segmented__button"
+          aria-label="Undo"
           disabled={history?.canUndo !== true}
           data-tip={
             history?.undoLabel === undefined
@@ -78,11 +81,12 @@ export function HistoryMenu() {
             editorStore.undo();
           }}
         >
-          Undo
+          <span aria-hidden="true">↶</span>
         </button>
         <button
           type="button"
           className="segmented__button"
+          aria-label="Redo"
           disabled={history?.canRedo !== true}
           data-tip={
             history?.redoLabel === undefined
@@ -93,7 +97,7 @@ export function HistoryMenu() {
             editorStore.redo();
           }}
         >
-          Redo
+          <span aria-hidden="true">↷</span>
         </button>
         <button
           type="button"
