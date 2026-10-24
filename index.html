@@ -64,9 +64,79 @@
         "identifier": "https://doi.org/10.5281/zenodo.22907552"
       }
     </script>
+    <style>
+      #old-browser {
+        box-sizing: border-box;
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2rem 16px;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        color: #1c2b33;
+      }
+      #old-browser[hidden],
+      #old-browser [hidden] {
+        display: none;
+      }
+      #old-browser h1 {
+        font-size: 1.4rem;
+      }
+      #old-browser a {
+        color: #1b6e8c;
+      }
+      @media (prefers-color-scheme: dark) {
+        body.old-browser {
+          background: #14212a;
+        }
+        #old-browser {
+          color: #e4edf1;
+        }
+        #old-browser a {
+          color: #7cc4de;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="old-browser" hidden>
+      <h1>PlasmidPop needs a newer browser</h1>
+      <p>
+        This browser (<span id="old-browser-name">unknown</span>) is too old to run PlasmidPop. It
+        works in Chrome or Edge 111, Firefox 114 and Safari 16.4 (iOS and iPadOS 16.4) or later, all
+        from 2023. Nothing has been lost: files stay on your device.
+      </p>
+      <section data-for="safari-mac" hidden>
+        <p>
+          Update Safari on its own, without upgrading macOS: open <b>System Preferences</b> &gt;
+          <b>Software Update</b> (on Ventura and later, <b>System Settings</b> &gt;
+          <b>General</b> &gt; <b>Software Update</b>). Under &ldquo;Other updates are
+          available&rdquo;, click <b>More info&hellip;</b>, tick only <b>Safari</b>, and click
+          <b>Install Now</b>. Do not click <b>Upgrade Now</b>; that installs a new version of macOS.
+        </p>
+        <p>
+          Safari 16.4 needs macOS Big Sur (11) or later. On Catalina (10.15) or older, Safari stops
+          at 15, so use a current Firefox or Chrome there instead.
+        </p>
+      </section>
+      <section data-for="ios" hidden>
+        <p>
+          On an iPhone or iPad, Safari updates only with the system: open <b>Settings</b> &gt;
+          <b>General</b> &gt; <b>Software Update</b> and install iOS or iPadOS 16.4 or later. Other
+          browsers on iOS use the same engine, so they do not help.
+        </p>
+      </section>
+      <section data-for="chrome" hidden>
+        <p>Update Chrome at <b>chrome://settings/help</b>.</p>
+      </section>
+      <section data-for="edge" hidden>
+        <p>Update Edge at <b>edge://settings/help</b>.</p>
+      </section>
+      <section data-for="firefox" hidden>
+        <p>Update Firefox from <b>Help</b> &gt; <b>About Firefox</b>.</p>
+      </section>
+    </div>
     <noscript>
       <main>
         <h1>PlasmidPop: free DNA sequence editor and plasmid viewer</h1>
@@ -91,6 +161,69 @@
         </p>
       </main>
     </noscript>
+    <script>
+      // Written in old syntax on purpose: a browser too old for the bundle must still run this.
+      (function () {
+        var ua = navigator.userAgent;
+        function supported() {
+          try {
+            // Lookbehind (Safari 16.4) is the newest syntax the bundle holds that esbuild does not lower.
+            new RegExp('(?<=a)b');
+            new RegExp('(?<!a)b');
+          } catch (e) {
+            return false;
+          }
+          return 'noModule' in HTMLScriptElement.prototype;
+        }
+        function version(re) {
+          var m = re.exec(ua);
+          return m ? ' ' + m[1] : '';
+        }
+        function show() {
+          var box = document.getElementById('old-browser');
+          if (!box || !box.hidden) return;
+          var kind = 'other';
+          var name = 'this browser';
+          if (
+            /iPhone|iPad|iPod/.test(ua) ||
+            (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+          ) {
+            kind = 'ios';
+            name = 'Safari on iOS' + version(/OS (\d+)[_\d]* like Mac/);
+          } else if (/Edg\//.test(ua)) {
+            kind = 'edge';
+            name = 'Edge' + version(/Edg\/(\d+)/);
+          } else if (/Firefox\//.test(ua)) {
+            kind = 'firefox';
+            name = 'Firefox' + version(/Firefox\/(\d+)/);
+          } else if (/Chrome\//.test(ua) && !/OPR\//.test(ua)) {
+            kind = 'chrome';
+            name = 'Chrome' + version(/Chrome\/(\d+)/);
+          } else if (/Macintosh/.test(ua) && /Version\/[\d.]+.*Safari\//.test(ua)) {
+            kind = 'safari-mac';
+            name = 'Safari' + version(/Version\/([\d.]+)/);
+          }
+          document.getElementById('old-browser-name').textContent = name;
+          var sections = box.getElementsByTagName('section');
+          for (var i = 0; i < sections.length; i++) {
+            if (sections[i].getAttribute('data-for') === kind) sections[i].hidden = false;
+          }
+          document.getElementById('root').hidden = true;
+          document.body.className = 'old-browser';
+          box.hidden = false;
+        }
+        if (!supported()) {
+          show();
+        } else {
+          // A bundle that still fails to parse (a syntax newer than the check knows of).
+          window.addEventListener('error', function (e) {
+            var root = document.getElementById('root');
+            if (root && root.childNodes.length === 0 && /SyntaxError/.test(String(e.message)))
+              show();
+          });
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

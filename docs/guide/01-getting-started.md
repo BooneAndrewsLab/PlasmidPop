@@ -10,6 +10,18 @@ PlasmidPop is free and open source under the
 [MIT licence](https://github.com/BooneAndrewsLab/PlasmidPop/blob/main/LICENSE);
 the [source](https://github.com/BooneAndrewsLab/PlasmidPop) is on GitHub.
 
+## Which browsers
+
+PlasmidPop runs in Chrome or Edge 111 or later, Firefox 114 or later, and
+Safari 16.4 or later (iOS and iPadOS 16.4 or later), all from 2023. In an older
+browser the page says so, with the steps to update that browser, instead of
+staying blank. On a Mac, Safari can be updated on its own, without upgrading
+macOS: **System Settings ▸ General ▸ Software Update**, then **More info…**
+under "Other updates are available", tick only **Safari**, and **Install Now**.
+On macOS Catalina (10.15) or older Safari stops at 15, so use a current Firefox
+or Chrome there. On an iPhone or iPad Safari updates only with iOS, and the
+other iOS browsers use the same engine.
+
 ## Open something
 
 Any of these gets you a sequence on screen:

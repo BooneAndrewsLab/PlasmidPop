@@ -72,6 +72,12 @@ The **user guide** lives in [`docs/guide`](./docs/guide/README.md) and
 opens inside the app from the **?** button at the right of the toolbar.
 Start with [Getting started](./docs/guide/01-getting-started.md).
 
+## Supported browsers
+
+Chrome or Edge 111+, Firefox 114+, Safari 16.4+ (iOS and iPadOS 16.4+): the
+build target, from 2023. An older browser gets a page that says so and how to
+update it, instead of a blank one (#291).
+
 ## Contributing
 
 Issues and pull requests are welcome. PlasmidPop is MIT licensed
