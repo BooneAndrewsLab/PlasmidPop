@@ -7,6 +7,7 @@ import {
   backupStatus,
   lastBackupAt,
   mayBeDroppedAfterAWeek,
+  persistenceSentence,
 } from '@/storage';
 
 import { backUpAll, pickBackupAndRestore } from '../backup';
@@ -84,8 +85,7 @@ export function StoragePanel({ documents, onChanged }: Props) {
           {status.documents === 0
             ? 'No documents are stored in this browser.'
             : `${status.documents.toLocaleString()} ${status.documents === 1 ? 'document is' : 'documents are'} stored in this browser.`}{' '}
-          {persisted === true && 'The browser has agreed to keep them.'}
-          {persisted === false && 'The browser may clear them when disk space runs low.'}
+          {persistenceSentence(persisted, webkit)}
         </li>
         <li>
           {status.lastBackupAt === null

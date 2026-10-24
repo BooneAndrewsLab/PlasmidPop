@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 
+import { persistenceSentence } from '@/storage';
+
 import { StoragePanel } from './StoragePanel';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -34,5 +36,17 @@ describe('StoragePanel (#203)', () => {
       <StoragePanel documents={[summary(Date.now() - 8 * DAY)]} onChanged={() => undefined} />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent(/not in any backup/);
+  });
+});
+
+describe('persistenceSentence (#292)', () => {
+  it('states the promise only where the seven-day cap does not apply', () => {
+    expect(persistenceSentence(true, false)).toBe('The browser has agreed to keep them.');
+    expect(persistenceSentence(true, true)).toBe('');
+  });
+  it('keeps the low-disk warning and says nothing when unknown', () => {
+    expect(persistenceSentence(false, true)).toMatch(/may clear them/);
+    expect(persistenceSentence(false, false)).toMatch(/may clear them/);
+    expect(persistenceSentence(null, false)).toBe('');
   });
 });

@@ -374,3 +374,14 @@ export function mayBeDroppedAfterAWeek(env: {
     ua.includes('Version/');
   return (ios || safari) && !env.standalone;
 }
+
+/**
+ * The sentence about the browser's promise. Where the seven-day cap applies
+ * (Safari, not installed) a granted `persisted()` does not exempt the site
+ * from it, so the promise is not stated there and the warning speaks.
+ */
+export function persistenceSentence(persisted: boolean | null, capApplies: boolean): string {
+  if (persisted === true) return capApplies ? '' : 'The browser has agreed to keep them.';
+  if (persisted === false) return 'The browser may clear them when disk space runs low.';
+  return '';
+}
