@@ -128,6 +128,110 @@ describe('parseLibraryFile', () => {
   });
 });
 
+describe('parseLibraryFile: variant, complementOf and the errors they raise (#284)', () => {
+  const CDS = {
+    ...GOOD,
+    type: 'CDS',
+    category: 'marker',
+    sequence: 'ATGAAAGGGCCCTTTAAAGGGCCCTAA',
+  };
+  const variantOf = (variant: unknown, base: object = GOOD) =>
+    parseLibraryFile(file({ ...base, variant }), 'core')[0]?.variant;
+  const refuses = (variant: unknown, message: string, base: object = GOOD) =>
+    expect(() => parseLibraryFile(file({ ...base, variant }), 'core')).toThrow(
+      `Feature library (core): part 0: ${message}`,
+    );
+
+  it('reads a variant of each kind, and keeps only what it says', () => {
+    expect(variantOf({ family: 'lac' })).toStrictEqual({ family: 'lac' });
+    expect(variantOf({ bases: '3..9' })).toStrictEqual({ bases: { start: 3, end: 9 } });
+    expect(variantOf({ bases: 'exact' })).toStrictEqual({ bases: { start: 1, end: 17 } });
+    expect(variantOf({ protein: 'exact' }, CDS)).toStrictEqual({ protein: 'exact' });
+    expect(variantOf({ protein: '1,3..4' }, CDS)).toStrictEqual({ protein: [1, 3, 4] });
+    expect(variantOf({ codons: true })).toStrictEqual({ codons: true });
+    expect(variantOf({ family: 'lac', codons: false })).toStrictEqual({ family: 'lac' });
+    expect(variantOf({ family: 'lac', bases: '2..4', protein: undefined })).toStrictEqual({
+      family: 'lac',
+      bases: { start: 2, end: 4 },
+    });
+    const [none] = parseLibraryFile(file(GOOD), 'core');
+    expect(none).not.toHaveProperty('variant');
+  });
+
+  it('refuses a variant that is not an object, or says nothing', () => {
+    for (const bad of ['lac', 3, true, null]) refuses(bad, 'variant is not an object');
+    for (const bad of [{}, { codons: false }, { family: 3 }]) {
+      refuses(bad, 'variant says nothing a hit must show');
+    }
+  });
+
+  it('refuses codons that are not a flag', () => {
+    for (const bad of ['yes', 1, null]) refuses({ codons: bad, family: 'x' }, 'malformed codons');
+  });
+
+  it('refuses residues of a part with no protein', () => {
+    const message = 'variant names residues of a part with no protein';
+    refuses({ protein: 'exact' }, message);
+    expect(variantOf({ protein: '1' }, { ...GOOD, protein: 'MK' })).toStrictEqual({ protein: [1] });
+  });
+
+  it('refuses positions that are malformed, out of range or not one stretch', () => {
+    // Whitespace around a position is allowed; anything else is not.
+    expect(variantOf({ bases: ' 3..9 ' })).toStrictEqual({ bases: { start: 3, end: 9 } });
+    for (const bad of ['x3..9', '3..9x', '3..', '..9', '3,,4', '']) {
+      refuses({ bases: bad }, `malformed positions ${JSON.stringify(bad)}`);
+    }
+    refuses({ bases: '0..3' }, 'positions 0..3 out of range');
+    refuses({ bases: '5..3' }, 'positions 5..3 out of range');
+    refuses({ bases: '3..18' }, 'positions 3..18 out of range');
+    refuses({ bases: '2..3,0' }, 'positions 0 out of range');
+    expect(variantOf({ bases: '3..17' })).toStrictEqual({ bases: { start: 3, end: 17 } });
+    refuses({ bases: '1..3,5..6' }, 'variant bases are not one stretch');
+    refuses({ bases: '5' }, 'variant bases are a single base');
+    expect(variantOf({ bases: '5..6' })).toStrictEqual({ bases: { start: 5, end: 6 } });
+    refuses({ protein: '1..9' }, 'positions 1..9 out of range', CDS);
+    expect(variantOf({ protein: '1..8' }, CDS)).toStrictEqual({
+      protein: [1, 2, 3, 4, 5, 6, 7, 8],
+    });
+  });
+
+  it('keeps the part that was refused, and the cause', () => {
+    try {
+      parseLibraryFile(file(GOOD, { ...GOOD, variant: { codons: 'x' } }), 'fpbase');
+      expect.unreachable();
+    } catch (e) {
+      expect((e as Error).message).toBe('Feature library (fpbase): part 1: malformed codons');
+      expect((e as Error).cause).toEqual(new Error('malformed codons'));
+    }
+  });
+
+  it('reads complementOf as the name of a part, kept only when there is one', () => {
+    const [yes] = parseLibraryFile(file({ ...GOOD, complementOf: 'SV40 poly(A)' }), 'core');
+    expect(yes).toEqual({ ...GOOD, complementOf: 'SV40 poly(A)', source: 'core' });
+    const [no] = parseLibraryFile(file(GOOD), 'core');
+    expect(no).not.toHaveProperty('complementOf');
+    for (const bad of ['', 3, true, null]) {
+      expect(() => parseLibraryFile(file({ ...GOOD, complementOf: bad }), 'core')).toThrow(
+        'Feature library (core): part 0 has a malformed complementOf',
+      );
+    }
+  });
+
+  it('refuses a list of names with one bad name among good ones', () => {
+    for (const field of ['segmentOf', 'components']) {
+      for (const bad of [
+        ['AmpR', ''],
+        ['AmpR', 3],
+        [3, 'AmpR'],
+      ]) {
+        expect(() => parseLibraryFile(file({ ...GOOD, [field]: bad }), 'core')).toThrow(
+          `malformed ${field}`,
+        );
+      }
+    }
+  });
+});
+
 describe('the bundled library, as loaded', () => {
   it('marks lacUV5 exact and the plain lac promoter not', async () => {
     const lib = await loadFeatureLibrary();

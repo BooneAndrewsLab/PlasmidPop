@@ -195,6 +195,7 @@ function parseVariant(
     throw new Error('variant names residues of a part with no protein');
   }
   const residues =
+    // Stryker disable next-line OptionalChaining: equivalent, a part with a spec has a protein, or the check above threw
     proteinSpec === undefined ? undefined : parsePositions(proteinSpec, protein?.length ?? 0);
   let bases;
   if (basesSpec !== undefined) {
