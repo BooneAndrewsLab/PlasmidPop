@@ -5,6 +5,23 @@ import { useEditorState } from '../state/useEditorStore';
 import { useMenu } from './useMenu';
 
 /**
+ * The conventional curved arrow, head on the left for Undo and mirrored for
+ * Redo. Drawn rather than typed as ↶ ↷: those take whatever font the system
+ * picks, and some render them as bent arrows nobody reads as undo (#293).
+ */
+function HistoryIcon({ direction }: { readonly direction: 'undo' | 'redo' }) {
+  return (
+    <svg
+      className={`history__icon history__icon--${direction}`}
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+    >
+      <path d="M5.5 2.5 2.5 5.5l3 3M2.5 5.5h6.5a4 4 0 0 1 0 8H5.5" />
+    </svg>
+  );
+}
+
+/**
  * Undo and Redo buttons with a dropdown listing every recorded change, so
  * the user can see what each step did and jump straight to any state.
  * With the Bench in front they undo and redo the shelf instead, which keeps
@@ -43,7 +60,7 @@ export function HistoryMenu() {
               editorStore.undoShelf();
             }}
           >
-            <span aria-hidden="true">↶</span>
+            <HistoryIcon direction="undo" />
           </button>
           <button
             type="button"
@@ -57,7 +74,7 @@ export function HistoryMenu() {
               editorStore.redoShelf();
             }}
           >
-            <span aria-hidden="true">↷</span>
+            <HistoryIcon direction="redo" />
           </button>
         </div>
       </div>
@@ -81,7 +98,7 @@ export function HistoryMenu() {
             editorStore.undo();
           }}
         >
-          <span aria-hidden="true">↶</span>
+          <HistoryIcon direction="undo" />
         </button>
         <button
           type="button"
@@ -97,7 +114,7 @@ export function HistoryMenu() {
             editorStore.redo();
           }}
         >
-          <span aria-hidden="true">↷</span>
+          <HistoryIcon direction="redo" />
         </button>
         <button
           type="button"

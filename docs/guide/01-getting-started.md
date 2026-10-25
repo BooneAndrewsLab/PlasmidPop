@@ -55,7 +55,7 @@ See [Files and storage](02-files.md).
 ## What is on the screen
 
 - **Toolbar** (top): the logo, the document name (click it to rename), its
-  length and topology, then the **File** menu, **Undo / Redo** (↶ ↷) with the
+  length and topology, then the **File** menu, **Undo / Redo** (the curved arrows) with the
   history list, the view switcher (**Sequence**, **Map**, **Both**), the
   **Complement**, **Translations** and **Cut sites** toggles, the
   **Format** and **Edits** menus, and the **?** button that opens this

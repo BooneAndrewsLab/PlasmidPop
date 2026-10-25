@@ -237,7 +237,7 @@ length changes but whose molecule does not.
 ## Undo, redo and the history list
 
 - `Ctrl+Z` undoes, `Ctrl+Shift+Z` or `Ctrl+Y` redoes. The **Undo** and
-  **Redo** buttons (the arrows ↶ and ↷) show what they will undo or redo in their tooltip.
+  **Redo** buttons (the curved arrows) show what they will undo or redo in their tooltip.
 - A run of typing is one step, not one step per base, and so is a run of
   `Backspace` or `Delete`. A pause, a click elsewhere, a download or
   60 bases ends the run and the next keystroke starts a new step. See

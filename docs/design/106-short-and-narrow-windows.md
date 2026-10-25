@@ -7,7 +7,7 @@ layout, with no new setting.
 
 1. **Sidebar rail.** Icons alone when the labels do not all fit; see
    item 18 for the measurement.
-2. **Header.** Undo and Redo are the arrows `↶` `↷`, with the name (kept as
+2. **Header.** Undo and Redo are curved arrows (first the characters `↶` `↷`, drawn as SVG from 1.17.6 because macOS fonts render them as bent arrows, #293), with the name (kept as
    the `aria-label`, so queries by name still work) and the shortcut in the
    tooltip. The planned `⋯` overflow menu for the least-used groups was
    _not_ built: it was only to follow if the icons alone did not stop the
