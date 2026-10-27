@@ -1439,3 +1439,41 @@ describe('EditorStore preview', () => {
     expect(store.getState().preview?.owners).toEqual(['primers']);
   });
 });
+
+describe('EditorStore primer workspace (item 107)', () => {
+  it('opens on Primers with the sidebar out, and shuts with another tab or the sidebar put away', () => {
+    const store = new EditorStore();
+    store.openDocument(doc, 'x.gb');
+    store.setSidebarTab('features');
+    store.setSidebarOpen(false);
+    store.setPrimerWorkspace(true);
+    expect(store.getState()).toMatchObject({
+      primerWorkspace: true,
+      sidebarTab: 'primers',
+      sidebarOpen: true,
+    });
+    store.setSidebarTab('enzymes');
+    expect(store.getState().primerWorkspace).toBe(false);
+    store.setPrimerWorkspace(true);
+    store.setSidebarOpen(false);
+    expect(store.getState().primerWorkspace).toBe(false);
+    // Opening the sidebar again brings the slim panel, not the workspace.
+    store.setSidebarOpen(true);
+    expect(store.getState()).toMatchObject({ primerWorkspace: false, sidebarTab: 'primers' });
+  });
+
+  it('is per document, and refused where there is no Primers tab', () => {
+    const store = new EditorStore();
+    const first = store.openDocument(doc, 'x.gb');
+    store.setPrimerWorkspace(true);
+    const second = store.openDocument(SeqDocument.create({ sequence: 'ACGTACGT' }), 'y.gb');
+    expect(store.getState().primerWorkspace).toBe(false);
+    store.activateDocument(first);
+    expect(store.getState().primerWorkspace).toBe(true);
+    store.activateDocument(second);
+    const protein = SeqDocument.create({ sequence: 'MKLV', alphabet: 'protein' });
+    store.openDocument(protein, 'p.fa');
+    store.setPrimerWorkspace(true);
+    expect(store.getState().primerWorkspace).toBe(false);
+  });
+});

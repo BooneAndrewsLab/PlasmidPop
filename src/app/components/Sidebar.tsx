@@ -47,7 +47,11 @@ const LABELS: Readonly<Record<SidebarTab, string>> = {
  * hiding it.
  */
 export function Sidebar({ doc }: Props) {
-  const { sidebarTab, sidebarOpen } = useEditorState();
+  const { sidebarTab, sidebarOpen, primerWorkspace } = useEditorState();
+  // The primer workspace (item 107) stands in the panel's place, in a column
+  // of its own: the sidebar is then its rail alone, with Primers lit. The
+  // panel is not mounted behind it, so the two never hold the design at once.
+  const panelShown = sidebarOpen && !primerWorkspace;
   const sidebarKey = useBindingLabel('toggle-sidebar');
   const prevKey = useBindingLabel('sidebar-previous');
   const nextKey = useBindingLabel('sidebar-next');
@@ -87,7 +91,7 @@ export function Sidebar({ doc }: Props) {
   };
 
   return (
-    <aside className={`sidebar${sidebarOpen ? '' : ' sidebar--collapsed'}`}>
+    <aside className={`sidebar${panelShown ? '' : ' sidebar--collapsed'}`}>
       <div
         className={`sidebar__tabs${iconsOnly && !stacked ? ' sidebar__tabs--icons' : ''}`}
         role="tablist"
@@ -136,9 +140,9 @@ export function Sidebar({ doc }: Props) {
         id="sidebar-panel"
         role="tabpanel"
         aria-labelledby={`sidebar-tab-${sidebarTab}`}
-        hidden={!sidebarOpen}
+        hidden={!panelShown}
       >
-        <SidebarPanel doc={doc} tab={sidebarTab} />
+        {!primerWorkspace && <SidebarPanel doc={doc} tab={sidebarTab} />}
       </div>
     </aside>
   );

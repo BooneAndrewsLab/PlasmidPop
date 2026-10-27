@@ -460,6 +460,8 @@ describe('previews', () => {
       editorStore.setSelection({ start: 600, end: 900 });
       editorStore.setSidebarTab('primers');
     });
+    // The slim panel's button opens the workspace; its Design page designs.
+    fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
     fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
     const [show] = await screen.findAllByRole('button', { name: 'Show' });
     if (show === undefined) throw new Error('expected a designed pair');
@@ -476,15 +478,55 @@ describe('previews', () => {
     // ...and nothing about the document changed.
     expect(editorStore.document).toBe(before);
     expect(editorStore.getState().dirty).toBe(false);
-    // Leaving the tab takes the preview off; coming back brings the design,
-    // and the pair that was shown, back with it (#32).
+    // Another tab shuts the workspace and takes the preview off; the slim
+    // panel then offers the last design, which brings the workspace back on
+    // Results with the pair that was shown (#32, item 107 point 4).
     fireEvent.click(screen.getByRole('tab', { name: 'Features' }));
-    expect(editorStore.getState().preview).toBeNull();
+    expect(editorStore.getState()).toMatchObject({ preview: null, primerWorkspace: false });
     fireEvent.click(screen.getByRole('tab', { name: 'Primers' }));
+    expect(screen.queryByRole('region', { name: 'Primer workspace' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Last design · \d+ pairs/ }));
+    expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
     expect(editorStore.getState().preview?.items).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
     expect(editorStore.getState().preview).toBeNull();
+  });
+
+  it('gives the primer workspace the sidebar column, widened, and Escape hands the keyboard back (item 107)', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open example' }));
+    act(() => {
+      editorStore.setSelection({ start: 600, end: 900 });
+      editorStore.setSidebarTab('primers');
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
+    const region = screen.getByRole('region', { name: 'Primer workspace' });
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Design primers' }));
+    const main = document.querySelector('.app__main');
+    expect(main?.getAttribute('style')).toContain(`${DEFAULT_LAYOUT.primerWorkspaceWidth}px`);
+    expect(
+      screen.getByRole('separator', { name: 'Resize the primer workspace' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('separator', { name: 'Resize the sidebar' })).toBeNull();
+    // The sequence pane yields: the Both view shows the map alone meanwhile.
+    expect(document.querySelector('.app__views--map')).not.toBeNull();
+    // The sidebar is its rail, with Primers lit; its panel is not behind the workspace.
+    expect(screen.getByRole('tab', { name: 'Primers' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('button', { name: 'Design primers…' })).toBeNull();
+    // Tab order: the workspace comes before the sidebar's rail.
+    const rail = screen.getByRole('tablist', { name: 'Sidebar' });
+    expect(region.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Escape with the keyboard inside shuts it; the keyboard lands on the slim panel's button.
+    fireEvent.keyDown(screen.getByRole('heading', { name: 'Design primers' }), { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: 'Primer workspace' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Design primers…' }));
+    expect(screen.getByRole('separator', { name: 'Resize the sidebar' })).toBeInTheDocument();
+    expect(document.querySelector('.app__views--both')).not.toBeNull();
+    // Escape on the map keeps the map's meaning: the workspace stays.
+    fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.getByRole('region', { name: 'Primer workspace' })).toBeInTheDocument();
   });
 });
 

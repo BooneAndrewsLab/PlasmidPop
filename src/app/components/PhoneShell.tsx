@@ -16,14 +16,16 @@ const PANES: readonly [PhonePane, string][] = [
 ];
 
 /**
- * The sidebar tabs a reader has a use for. The others make things — primers,
- * assemblies, alignments — and want a keyboard and a desk; nobody designs a
- * primer standing at the freezer.
+ * The sidebar tabs a reader has a use for. The others make things —
+ * assemblies, alignments — and want a keyboard and a desk. Primers is the
+ * exception since item 107: its slim panel checks a pasted primer and lists
+ * the document's, and "Design primers…" opens the full-screen workspace.
  */
 const DETAIL_TABS: readonly [SidebarTab, string][] = [
   ['features', 'Features'],
   ['protein', 'Protein'],
   ['enzymes', 'Enzymes'],
+  ['primers', 'Primers'],
 ];
 
 interface Props {

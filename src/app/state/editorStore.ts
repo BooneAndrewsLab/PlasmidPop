@@ -62,7 +62,7 @@ import { type BenchPanel, type BenchSettings, DEFAULT_BENCH } from './benchSetti
 import { type CloningReaction, type SidebarReaction, isSidebarReaction } from './cloningReaction';
 import { type CutCountFilter } from './cutFilter';
 import { type EnzymeSort } from './enzymeSort';
-import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout } from './layout';
+import { DEFAULT_LAYOUT, type LayoutSizes, clampLayout, sameLayout } from './layout';
 
 export type ViewMode = 'sequence' | 'map' | 'both';
 /**
@@ -511,6 +511,14 @@ export interface DocumentState {
    * was left on (`restorePhonePanes`).
    */
   readonly phonePane: PhonePane;
+  /**
+   * Whether the primer workspace (item 107) is open on this document: a
+   * modeless region in the sidebar's column, widened, beside the live map.
+   * Open only while the sidebar is on its Primers tab, and shut by choosing
+   * another tab or putting the sidebar away; which of its pages it is on
+   * and what each holds is the panels' own memory (`primers.workspace`).
+   */
+  readonly primerWorkspace: boolean;
 }
 
 /** State of the app as a whole, the same whichever document is in front. */
@@ -891,6 +899,7 @@ type ActiveDocumentFields = {
     // value; `NO_DOCUMENT` carries the one a new tab would start on.
     | 'sidebarTab'
     | 'phonePane'
+    | 'primerWorkspace'
     ? DocumentState[K]
     : DocumentState[K] | null;
 };
@@ -1037,6 +1046,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   findOpen: false,
   sidebarTab: 'features',
   phonePane: 'map',
+  primerWorkspace: false,
 };
 
 /**
@@ -1292,6 +1302,7 @@ export class EditorStore {
       // Translate tab goes to the one that is about it.
       sidebarTab: inheritedSidebarTab(doc, this.documentState()?.sidebarTab ?? 'features'),
       phonePane: this.takeRememberedPane(storage.id),
+      primerWorkspace: false,
     };
     const active = this.documentState();
     const replaced = active !== null && isUntouchedNew(active) ? active : null;
@@ -2004,8 +2015,24 @@ export class EditorStore {
   setSidebarTab(tab: SidebarTab): void {
     // A protein has no Enzymes tab, and DNA no Protein one (#66).
     if (tab !== this.state.sidebarTab && hasSidebarTab(this.document, tab)) {
-      this.setActive({ sidebarTab: tab });
+      // Choosing another tab shuts the primer workspace (item 107, point 4).
+      this.setActive({ sidebarTab: tab, primerWorkspace: false });
     }
+  }
+
+  /**
+   * Opens or shuts the primer workspace (item 107) on the document in
+   * front. Opening it puts the sidebar on Primers and brings it out, since
+   * the workspace stands in the sidebar's column; the slim Primers panel
+   * comes back when it shuts.
+   */
+  setPrimerWorkspace(open: boolean): void {
+    if (open === this.state.primerWorkspace) return;
+    if (open && !hasSidebarTab(this.document, 'primers')) return;
+    this.setActive(
+      open ? { primerWorkspace: true, sidebarTab: 'primers' } : { primerWorkspace: false },
+    );
+    if (open) this.setSidebarOpen(true);
   }
 
   setPhonePane(pane: PhonePane): void {
@@ -2199,6 +2226,8 @@ export class EditorStore {
   }
 
   setSidebarOpen(open: boolean): void {
+    // The workspace stands where the panel does: putting the sidebar away shuts it.
+    if (!open && this.state.primerWorkspace) this.setActive({ primerWorkspace: false });
     if (open !== this.state.sidebarOpen) this.setShared({ sidebarOpen: open });
   }
 
@@ -2230,15 +2259,7 @@ export class EditorStore {
    */
   setLayout(patch: Partial<LayoutSizes>): void {
     const next = { ...this.state.layout, ...clampLayout(patch) };
-    const current = this.state.layout;
-    if (
-      next.viewsSplit === current.viewsSplit &&
-      next.viewsSplitStacked === current.viewsSplitStacked &&
-      next.sidebarWidth === current.sidebarWidth &&
-      next.sidebarHeightStacked === current.sidebarHeightStacked
-    ) {
-      return;
-    }
+    if (sameLayout(next, this.state.layout)) return;
     this.setShared({ layout: next });
   }
 

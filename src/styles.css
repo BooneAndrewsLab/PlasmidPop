@@ -6037,3 +6037,420 @@ button {
 }
 
 /* Export map as PNG (#212) */
+
+/* ---------------------------------------------------------------------------
+   The primer workspace and the slim Primers tab (item 107, #300). The
+   workspace is a region in the sidebar's column beside the live map: a top
+   bar, a rail of four pages down its left edge, and the page itself. The
+   classes follow the mockups in docs/design/300-mockups.
+   ------------------------------------------------------------------------ */
+
+.app__main--workspace .sidebar {
+  grid-template-columns: auto;
+}
+
+.ws {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+}
+
+.ws__top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.ws__title {
+  flex: 1;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws__title-doc {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.ws__close,
+.ws__back {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.ws__rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 128px;
+  border-right: 1px solid var(--line);
+  background: var(--surface-2);
+  padding: 6px 0;
+}
+
+.ws__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  white-space: nowrap;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.ws__tab:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.ws__tab--on {
+  border-left-color: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--surface);
+}
+
+.ws__icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+.ws__tab-label {
+  flex: 1;
+}
+
+.ws__badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: var(--seq-selection);
+  border-radius: 8px;
+  padding: 0 5px;
+}
+
+.ws__body {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  padding: 10px 12px 14px;
+}
+
+.ws__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ws__heading {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.ws__heading:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.ws__heading .panel__heading-note {
+  margin-left: 8px;
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.ws__sub {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.ws__sub--note {
+  color: var(--ink);
+}
+
+.ws__page {
+  min-width: 0;
+}
+
+/* The target chooser: a label, the three ways of choosing, the target itself. */
+.ws__target {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ws__target-label {
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ws__feature,
+.ws__target-value {
+  grid-column: 2;
+  margin: 0;
+}
+
+.ws__feature {
+  justify-self: start;
+  max-width: 100%;
+}
+
+.ws__target-value--none {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.ws__feature-name {
+  font-weight: 600;
+}
+
+.ws__ncbi {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  max-width: 560px;
+}
+
+.ws .primer-settings {
+  max-width: 560px;
+}
+
+.ws__actions {
+  margin: 14px 0 8px;
+}
+
+.ws__last {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  margin: 10px 0 0;
+}
+
+/* The results list takes the width the panel never had: two pairs a row. */
+.ws .pair-list--candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 8px;
+}
+
+.ws .pair--candidate {
+  margin: 0;
+}
+
+/* My primers is the sidebar's component as it is, without its own frame. */
+.ws .primer-collection {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.ws .primer-collection > legend {
+  display: none;
+}
+
+/* A window too short for the labels: the rail is its icons (point 5). */
+@media (max-height: 500px) {
+  .ws__rail {
+    min-width: 0;
+  }
+
+  .ws__tab-label,
+  .ws__badge {
+    display: none;
+  }
+}
+
+/* The whole main area, 601 to 1000 px wide (point 5). */
+.ws--full {
+  border-left: 0;
+}
+
+/* A phone: full screen, the rail across the top as page tabs (point 5). */
+.ws--phone {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  border-left: 0;
+}
+
+.ws--phone .ws__rail {
+  flex-direction: row;
+  min-width: 0;
+  padding: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ws--phone .ws__tab {
+  flex: 1;
+  justify-content: center;
+  min-height: 40px;
+  padding: 6px 4px;
+  border-left: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+}
+
+.ws--phone .ws__tab--on {
+  border-bottom-color: var(--accent);
+  background: transparent;
+}
+
+.ws--phone .ws__icon {
+  display: none;
+}
+
+.ws--phone .ws__tab-label {
+  flex: none;
+}
+
+.ws--phone .ws__target {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ws--phone .ws__feature,
+.ws--phone .ws__target-value {
+  grid-column: 1;
+}
+
+.ws--phone .ws__actions .button--primary {
+  width: 100%;
+  min-height: 44px;
+}
+
+.ws--phone .pair-list--candidates {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The slim Primers tab. */
+.primers--slim .primers__open {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.primers__last,
+.primers__more {
+  display: block;
+  margin: 6px 0 2px;
+  font-size: 12.5px;
+  text-decoration: none;
+}
+
+.primers__last:hover,
+.primers__more:hover {
+  text-decoration: underline;
+}
+
+.primers__paste {
+  width: 100%;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+.primers__stats--slim {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 4px 0;
+  font-size: 12.5px;
+}
+
+.primers__ok {
+  color: var(--accent);
+}
+
+.primers__sites {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.primers__site {
+  display: grid;
+  grid-template-columns: 16px auto minmax(0, 1fr);
+  gap: 0 8px;
+  align-items: baseline;
+  width: 100%;
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.primers__site:hover {
+  background: var(--surface-3);
+}
+
+.primers__strand {
+  color: var(--seq-preview);
+  font-weight: 600;
+}
+
+.primers__pos {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.primers__fit {
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+
+.primers__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primers__sites--doc .primers__site {
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+}
+
+.primers__mine {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.primers__mine .panel__heading-note {
+  margin-left: 6px;
+}

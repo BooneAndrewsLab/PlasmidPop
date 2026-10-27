@@ -24,9 +24,11 @@ export interface SplitterProps {
   /**
    * The size the pane before the handle should take and the room the two
    * panes share (the container less the handle), both in px and already
-   * held to the floors. The caller turns that into whatever it stores.
+   * held to the floors. The caller turns that into whatever it stores; the
+   * handle itself comes along for a caller whose after-pane shares its room
+   * with another grid item it has to measure (the primer workspace's rail).
    */
-  readonly onMove: (before: number, extent: number) => void;
+  readonly onMove: (before: number, extent: number, handle: HTMLElement) => void;
   /** Double-click: put the boundary back where it started. */
   readonly onReset: () => void;
   /**
@@ -120,7 +122,9 @@ export function Splitter({
     // The upper bound is floored at minBefore so a container too small for
     // both floors gives the first pane its own rather than a negative size.
     const ceiling = Math.max(minBefore, extent - minAfter);
-    onMove(Math.min(Math.max(before, minBefore), ceiling), extent);
+    const handle = ref.current;
+    if (handle === null) return;
+    onMove(Math.min(Math.max(before, minBefore), ceiling), extent, handle);
   };
 
   const pointerAt = (e: ReactPointerEvent<HTMLDivElement>): number =>

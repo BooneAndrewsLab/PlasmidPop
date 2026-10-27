@@ -9,12 +9,13 @@ import { xlsx, zip } from '@/test/xlsx';
 
 import type * as SaveFile from '../saveFile';
 import { downloadText } from '../saveFile';
+import { rememberWorkspacePage } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { forgetPanels } from '../state/panelMemory';
 import { primerCollection } from '../state/primerCollection';
 import { FeatureEditor } from './FeatureEditor';
 import { PcrPanel } from './PcrPanel';
-import { PrimerPanel } from './PrimerPanel';
+import { PrimerWorkspace } from './PrimerWorkspace';
 
 vi.mock('../saveFile', async (importOriginal) => ({
   ...(await importOriginal<typeof SaveFile>()),
@@ -54,13 +55,23 @@ async function settle(): Promise<void> {
   });
 }
 
+/** Opens the document with the primer workspace on My primers (item 107). */
 async function setup(d: SeqDocument = doc) {
   act(() => {
-    editorStore.openDocument(d);
+    const id = editorStore.openDocument(d);
+    rememberWorkspacePage(id, 'mine');
+    editorStore.setPrimerWorkspace(true);
   });
-  const view = render(<PrimerPanel doc={d} />);
+  const view = render(<PrimerWorkspace doc={d} />);
   await settle();
   return view;
+}
+
+/** Goes to one of the workspace's pages by its rail tab. */
+function page(name: 'Design' | 'Results' | 'Check' | 'My primers'): void {
+  act(() => {
+    fireEvent.click(screen.getByRole('tab', { name: new RegExp(`^${name}`) }));
+  });
 }
 
 async function paste(text: string): Promise<void> {
@@ -210,6 +221,7 @@ describe('My primers', () => {
       topology: 'circular',
     });
     await setup(twice);
+    page('Check');
     fireEvent.change(screen.getByRole('textbox', { name: 'Primer sequence' }), {
       target: { value: FWD },
     });
@@ -295,6 +307,7 @@ describe('My primers', () => {
 
   it('saves a designed pair and a checked primer', async () => {
     await setup();
+    page('Design');
     act(() => {
       editorStore.setSelection({ start: 400, end: 700 });
     });
@@ -308,6 +321,7 @@ describe('My primers', () => {
     expect(
       await screen.findByText('Saved pColl fwd 1 and pColl rev 1 to My primers.'),
     ).toBeTruthy();
+    page('Check');
     fireEvent.change(screen.getByLabelText('Primer sequence'), { target: { value: FWD } });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save to My primers' }));

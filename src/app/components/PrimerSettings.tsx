@@ -9,6 +9,8 @@ import {
 } from '@/core';
 
 import { editorStore } from '../state/editorStore';
+import { useRemembered } from '../state/panelMemory';
+import { useEditorState } from '../state/useEditorStore';
 
 type NumericKey = {
   [K in keyof PrimerCriteria]: PrimerCriteria[K] extends number ? K : never;
@@ -143,17 +145,39 @@ export function PrimerSettings({ criteria: c }: Props) {
     />
   );
   const isDefault = samePrimerCriteria(c, DEFAULT_PRIMER_CRITERIA);
+  const { documentId } = useEditorState();
+  // Whether it was left open, kept with the workspace's other state (item 107).
+  const [open, setOpen] = useRemembered('primers.settingsOpen', documentId, false);
 
   return (
-    <details className="panel__details primer-settings">
-      {/* The summary says what the rules are, so they can be read without
-          opening it, and whether they are still the defaults. */}
+    <details
+      className="panel__details primer-settings"
+      open={open}
+      onToggle={(e) => {
+        setOpen(e.currentTarget.open);
+      }}
+      onKeyDown={(e: KeyboardEvent<HTMLDetailsElement>) => {
+        // Escape folds an open disclosure before anything outer (the
+        // workspace) takes it as its own cue to shut (item 107, point 1).
+        if (e.key !== 'Escape' || !e.currentTarget.open) return;
+        e.preventDefault();
+        // The element as well as the state: a click toggles the element
+        // itself and tells React afterwards (`toggle`), so the two can
+        // differ for a moment, and this must shut it whichever one has it open.
+        e.currentTarget.open = false;
+        setOpen(false);
+        e.currentTarget.querySelector<HTMLElement>('summary')?.focus();
+      }}
+    >
+      {/* The summary says whether the rules are still the defaults, and
+          what they come to only once they are not (item 107): the defaults
+          are a click away and need no line of their own. */}
       <summary className="panel__details-summary">
         <span className="panel__details-title">
           Settings
           {!isDefault && <span className="panel__details-flag">changed</span>}
         </span>
-        <span className="panel__details-note">{describePrimerCriteria(c)}</span>
+        {!isDefault && <span className="panel__details-note">{describePrimerCriteria(c)}</span>}
       </summary>
       <div className="panel__form panel__details-body">
         <span className="panel__form-label">Length</span>

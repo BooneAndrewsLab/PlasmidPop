@@ -72,7 +72,7 @@ describe('PhoneShell', () => {
   it('offers Features and Enzymes, falling back to Features from a tab it has not got', () => {
     setup();
     act(() => {
-      editorStore.setSidebarTab('primers');
+      editorStore.setSidebarTab('cloning');
     });
     fireEvent.click(pane('Details'));
     expect(screen.getByRole('tab', { name: 'Features' })).toHaveAttribute('aria-selected', 'true');
@@ -80,6 +80,19 @@ describe('PhoneShell', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
     expect(editorStore.getState().sidebarTab).toBe('enzymes');
     expect(screen.queryByRole('complementary', { name: 'Features' })).toBeNull();
+  });
+
+  it('offers Primers as a fourth Details subtab, whose Design primers… opens the workspace (item 107)', () => {
+    setup();
+    act(() => {
+      editorStore.setSelection({ start: 100, end: 900 });
+    });
+    fireEvent.click(pane('Details'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Primers' }));
+    expect(editorStore.getState().sidebarTab).toBe('primers');
+    expect(screen.getByText('101–900 · 800 bp')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
+    expect(editorStore.getState().primerWorkspace).toBe(true);
   });
 
   it('goes back to the view last looked at when a list reveals a position', () => {

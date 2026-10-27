@@ -20,6 +20,11 @@ export interface LayoutSizes {
    * editor, where it is a row under it (#36).
    */
   readonly sidebarHeightStacked: number;
+  /**
+   * The primer workspace's width in px (item 107): it takes the sidebar's
+   * column, widened, while it is open, and has a splitter of its own.
+   */
+  readonly primerWorkspaceWidth: number;
 }
 
 /** The ratios the stylesheet had before the splitters: 2fr/3fr and 1fr/1.4fr. */
@@ -28,6 +33,7 @@ export const DEFAULT_LAYOUT: LayoutSizes = {
   viewsSplitStacked: 1 / 2.4,
   sidebarWidth: 330,
   sidebarHeightStacked: 200,
+  primerWorkspaceWidth: 900,
 };
 
 /**
@@ -74,6 +80,13 @@ export const MIN_EDITOR_PX = 360;
 /** Stacked, the sidebar keeps its tabs and a few lines of panel; the editor a toolbar and a view. */
 export const MIN_SIDEBAR_HEIGHT_PX = 120;
 export const MIN_EDITOR_HEIGHT_PX = 200;
+/**
+ * The primer workspace beside a live map (item 107): the workspace needs
+ * its results table, the map the user's view of the target.
+ */
+export const MIN_PRIMER_WORKSPACE_PX = 560;
+export const MIN_WORKSPACE_MAP_PX = 280;
+export const MAX_PRIMER_WORKSPACE_PX = 1400;
 
 export function clampFraction(f: number): number {
   if (!Number.isFinite(f)) return DEFAULT_LAYOUT.viewsSplit;
@@ -90,6 +103,11 @@ export function clampSidebarHeight(px: number): number {
   return Math.min(900, Math.max(MIN_SIDEBAR_HEIGHT_PX, Math.round(px)));
 }
 
+export function clampPrimerWorkspaceWidth(px: number): number {
+  if (!Number.isFinite(px)) return DEFAULT_LAYOUT.primerWorkspaceWidth;
+  return Math.min(MAX_PRIMER_WORKSPACE_PX, Math.max(MIN_PRIMER_WORKSPACE_PX, Math.round(px)));
+}
+
 /** Sanity-checks a patch on its way into the store or out of storage. */
 export function clampLayout(patch: Partial<LayoutSizes>): Partial<LayoutSizes> {
   const next: { -readonly [K in keyof LayoutSizes]?: LayoutSizes[K] } = {};
@@ -101,5 +119,19 @@ export function clampLayout(patch: Partial<LayoutSizes>): Partial<LayoutSizes> {
   if (patch.sidebarHeightStacked !== undefined) {
     next.sidebarHeightStacked = clampSidebarHeight(patch.sidebarHeightStacked);
   }
+  if (patch.primerWorkspaceWidth !== undefined) {
+    next.primerWorkspaceWidth = clampPrimerWorkspaceWidth(patch.primerWorkspaceWidth);
+  }
   return next;
+}
+
+/** Whether two layouts put every boundary in the same place. */
+export function sameLayout(a: LayoutSizes, b: LayoutSizes): boolean {
+  return (
+    a.viewsSplit === b.viewsSplit &&
+    a.viewsSplitStacked === b.viewsSplitStacked &&
+    a.sidebarWidth === b.sidebarWidth &&
+    a.sidebarHeightStacked === b.sidebarHeightStacked &&
+    a.primerWorkspaceWidth === b.primerWorkspaceWidth
+  );
 }

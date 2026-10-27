@@ -1,484 +1,145 @@
-import { analytics } from '../analytics';
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
-import {
-  type BindingSite,
-  type Feature,
-  type PrimerPair,
-  type Range,
-  type SeqDocument,
-  analyzePrimer,
-  createFeature,
-  designPrimers,
-  findPrimerBindingSites,
-  formatSpan,
-  isEmptyRange,
-  mismatchPositions,
-  rangeSegment,
-  unrollRange,
-} from '@/core';
-import { type OverlaySpan } from '@/view/overlay';
+import { type Feature, type SeqDocument, featureExtent, formatSpan, isEmptyRange } from '@/core';
 
+import { openPrimerWorkspace, takeFocusRequest } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
-import { addFeaturesAsOneStep } from '../state/featureSteps';
-import { useRemembered } from '../state/panelMemory';
+import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
-import { savePrimers } from '../state/primerCollection';
-import { PrimerCollection } from './PrimerCollection';
-import { PrimerSettings } from './PrimerSettings';
+import { ProbeBox } from './PrimerCheck';
+import {
+  goToSite,
+  pct,
+  siteSpan,
+  tm,
+  usePrimerDesign,
+  usePrimerProbe,
+  usePrimersPreview,
+} from './primerDesign';
 
 interface Props {
   readonly doc: SeqDocument;
 }
 
-function pct(x: number): string {
-  return `${Math.round(x * 100)}%`;
-}
+/** The id the workspace's Escape hands the keyboard back to (item 107, point 1). */
+export const DESIGN_BUTTON_ID = 'primers-design-open';
 
-function tm(x: number): string {
-  return Number.isNaN(x) ? '–' : `${x.toFixed(1)} °C`;
-}
-
-/**
- * The stretch a pair amplifies: the forward primer's 5′ end through the
- * reverse primer's. Unrolled, because on a plasmid the product may be the
- * piece that runs over the origin.
- */
-function productRange(pair: PrimerPair, seqLength: number): Range {
-  return unrollRange(pair.forwardSite.start, pair.reverseSite.end, seqLength);
-}
-
-/**
- * What a pair looks like in the views before it is anything in the
- * document: the two sites as arrows and the product between them as a
- * bracket. Nothing here is an edit, so three candidates can be compared
- * without three add-and-undo rounds.
- */
-function pairPreview(pair: PrimerPair, n: number, seqLength: number): OverlaySpan[] {
-  return [
-    {
-      id: 'product',
-      label: `Product ${pair.productLength.toLocaleString()} bp`,
-      range: productRange(pair, seqLength),
-      strand: 'none',
-      shape: 'span',
-    },
-    {
-      id: 'forward',
-      label: `Fwd ${n}`,
-      range: pair.forwardSite,
-      strand: 'forward',
-      shape: 'arrow',
-    },
-    {
-      id: 'reverse',
-      label: `Rev ${n}`,
-      range: pair.reverseSite,
-      strand: 'reverse',
-      shape: 'arrow',
-    },
-  ];
-}
-
-function sitePreview(
-  sites: readonly BindingSite[],
-  template: string,
-  primer: string,
-): OverlaySpan[] {
-  return sites.map((s, i) => ({
-    id: `site-${i}`,
-    label: s.mismatches === 0 ? 'Primer' : `Primer (${s.mismatches} mm)`,
-    range: s.range,
-    strand: s.strand,
-    shape: 'arrow' as const,
-    ...(s.mismatches === 0 ? {} : { marks: mismatchPositions(template, s, primer) }),
-  }));
+/** A `primer_bind` feature with where it lies, for the On this document list. */
+function primerFeatures(
+  doc: SeqDocument,
+): readonly { readonly f: Feature; readonly start: number; readonly end: number }[] {
+  const out: { f: Feature; start: number; end: number }[] = [];
+  for (const f of doc.features.all()) {
+    if (f.type !== 'primer_bind') continue;
+    const extent = featureExtent(f);
+    if (extent !== null) out.push({ f, start: extent.start, end: extent.end });
+  }
+  return out.sort((a, b) => a.start - b.start);
 }
 
 /**
- * One primer of a candidate pair: its strand as the arrow the site lists
- * use, the bases to order, and the Tm and GC content beside them when the
- * row is wide enough, under them when it is not (the row wraps).
+ * The slim Primers tab (item 107): quick actions only. The selection with
+ * "Design primers…", which opens the workspace; a quick check of a pasted
+ * primer (Tm, where it binds); the primers already on this document; and
+ * "My primers…". Settings, results and the full check live in the
+ * workspace, so the panel is read at a glance.
  */
-function Oligo({
-  strand,
-  primer,
-}: {
-  readonly strand: 'forward' | 'reverse';
-  readonly primer: PrimerPair['forward'];
-}) {
-  return (
-    <div className="pair__oligo">
-      <span
-        className="pair__strand"
-        data-tip={`${strand === 'forward' ? 'Forward' : 'Reverse'} primer`}
-      >
-        {strand === 'forward' ? '→' : '←'}
-      </span>
-      <span className="pair__seq">{primer.sequence}</span>
-      <span
-        className="pair__meta pair__meta--oligo"
-        data-tip={`Tm ${tm(primer.tm)}, GC content ${pct(primer.gc)}`}
-      >
-        {tm(primer.tm)} · {pct(primer.gc)} GC
-      </span>
-    </div>
-  );
-}
-
-function primerFeature(
-  name: string,
-  site: { start: number; end: number },
-  strand: 'forward' | 'reverse',
-  sequence: string,
-): Feature {
-  return createFeature({
-    type: 'primer_bind',
-    name,
-    strand,
-    segments: [rangeSegment(site.start, site.end)],
-    qualifiers: [{ name: 'note', value: `sequence: ${sequence}` }],
-  });
-}
-
-/**
- * Gives back the selection **Show** made. A preview that is taken off the
- * views but leaves the product highlighted behind it reads as a pair still
- * being shown, which is confusing while hovering the others. Only the range
- * this panel selected is cleared: a selection the user has made since is
- * theirs, and is left alone.
- */
-function releaseSelection(owned: RefObject<Range | null>): void {
-  const product = owned.current;
-  owned.current = null;
-  if (product === null) return;
-  const current = editorStore.getState().selection;
-  if (current === null) return;
-  if (current.start !== product.start || current.end !== product.end) return;
-  editorStore.setSelection(null);
-}
-
 export function PrimerPanel({ doc }: Props) {
-  const { selection, primerCriteria, documentId } = useEditorState();
-  // Remembered per document, so leaving the tab and coming back finds the
-  // design, the primer being checked and the pair shown still there (#32).
-  const [probe, setProbe] = useRemembered('primers.probe', documentId, '');
-  const [storedPairs, setPairs] = useRemembered<PrimerPair[] | null>(
-    'primers.pairs',
-    documentId,
-    null,
-  );
-  // The template the pairs were designed against. Their coordinates and
-  // oligos mean nothing once the bases or the topology have changed, so a
-  // design made on anything else is dropped, never offered (#132).
-  const [designedOn, setDesignedOn] = useRemembered('primers.template', documentId, '');
-  const template = useMemo(() => `${doc.topology}:${doc.sequence.toString()}`, [doc]);
-  const pairs = designedOn === template ? storedPairs : null;
-  const [designedFor, setDesignedFor] = useRemembered('primers.designedFor', documentId, '');
-  /** The pair whose preview is held on screen, and the one under the pointer. */
-  const [shown, setShown] = useRemembered<number | null>('primers.shown', documentId, null);
-  const [hovered, setHovered] = useState<number | null>(null);
-  /**
-   * The product range **Show** put on the selection, so that **Hide** and
-   * leaving the tab can take it off again. Held as the range rather than as
-   * a flag: the user may have selected something else in the meantime, and
-   * that selection is theirs to keep.
-   */
-  const ownedSelection = useRef<Range | null>(null);
-  /** What the last save to My primers came to, said under the list it was saved from. */
-  const [saved, setSaved] = useState<{
-    readonly from: 'design' | 'check';
-    readonly text: string;
-  } | null>(null);
-  const save = (from: 'design' | 'check', drafts: Parameters<typeof savePrimers>[0]): void => {
-    void savePrimers(drafts, from).then((r) => {
-      setSaved({
-        from,
-        text:
-          r.added.length === 0
-            ? 'Already in My primers.'
-            : `Saved ${r.added.map((p) => p.name).join(' and ')} to My primers.`,
-      });
-    });
-  };
+  const { selection, documentId } = useEditorState();
+  const design = usePrimerDesign(doc);
+  const probe = usePrimerProbe(doc);
+  const collection = usePrimerCollection();
+  usePrimersPreview(probe.preview);
+  const designButton = useRef<HTMLButtonElement>(null);
+  // The workspace shut with Escape: the keyboard comes back here.
+  useEffect(() => {
+    if (takeFocusRequest()) designButton.current?.focus();
+  }, []);
 
   const hasTarget = selection !== null && !isEmptyRange(selection);
-  const report = useMemo(
-    () => (probe.trim() === '' ? null : analyzePrimer(probe, primerCriteria)),
-    [probe, primerCriteria],
-  );
-  const sites: BindingSite[] = useMemo(
-    () =>
-      report === null || report.length < 8
-        ? []
-        : findPrimerBindingSites(doc.sequence.toString(), doc.topology, report.sequence),
-    [doc, report],
-  );
-
-  // A pair held on screen wins over one merely under the pointer, and the
-  // binding sites of "Check a primer" show when no pair is being looked at.
-  const previewed = useMemo<OverlaySpan[]>(() => {
-    const index = shown ?? hovered;
-    if (index !== null) {
-      const pair = pairs?.[index];
-      if (pair !== undefined) return pairPreview(pair, index + 1, doc.length);
-    }
-    return sitePreview(sites, doc.sequence.toString(), report?.sequence ?? '');
-  }, [shown, hovered, pairs, sites, doc, report]);
-
-  useEffect(() => {
-    if (storedPairs === null || designedOn === template) return;
-    setPairs(null);
-    setShown(null);
-    releaseSelection(ownedSelection);
-  }, [storedPairs, designedOn, template, setPairs, setShown]);
-  useEffect(() => {
-    editorStore.setPreview('primers', previewed);
-  }, [previewed]);
-  // Leaving the tab takes this panel's preview with it, and nobody else's,
-  // and the selection it made along with it.
-  useEffect(
-    () => () => {
-      editorStore.clearPreview('primers');
-      releaseSelection(ownedSelection);
-    },
-    [],
-  );
-
-  const design = (): void => {
-    if (selection === null) return;
-    analytics.track('primers', 'design');
-    const result = designPrimers(doc.sequence.toString(), doc.topology, selection, primerCriteria);
-    setPairs(result);
-    setDesignedOn(template);
-    setShown(null);
-    setHovered(null);
-    // The selection is the target being designed for now, not a product
-    // this panel put there; forget it rather than clearing it.
-    ownedSelection.current = null;
-    setDesignedFor(formatSpan(selection, doc.length));
-  };
-
-  /** Holds a pair's preview on screen and selects what it would amplify. */
-  const showPair = (index: number, pair: PrimerPair): void => {
-    if (shown === index) {
-      setShown(null);
-      releaseSelection(ownedSelection);
-      return;
-    }
-    setShown(index);
-    const product = productRange(pair, doc.length);
-    editorStore.setSelection(product);
-    ownedSelection.current = product;
-    editorStore.revealPosition(product.start);
-  };
+  const onDocument = useMemo(() => primerFeatures(doc), [doc]);
+  const { report, sites } = probe;
+  const { pairs } = design;
 
   return (
-    <div className="panel primers">
+    <div className="panel primers primers--slim">
       <fieldset className="panel__group">
-        <legend>
-          Design primers
-          <span className="panel__heading-note">for the selection</span>
-        </legend>
-        {/* The target on a line of its own, so the eye finds it before the rules. */}
+        <legend>Selection</legend>
         <p className={`panel__note${hasTarget ? ' primers__target' : ''}`}>
           {hasTarget
-            ? `Target ${formatSpan(selection, doc.length)} (${(selection.end - selection.start).toLocaleString()} bp).`
-            : 'Select the region to amplify, then design.'}
+            ? `${formatSpan(selection, doc.length)} · ${(selection.end - selection.start).toLocaleString()} bp`
+            : 'Nothing selected'}
         </p>
-        <PrimerSettings criteria={primerCriteria} />
         <button
           type="button"
-          className="button button--small"
+          id={DESIGN_BUTTON_ID}
+          ref={designButton}
+          className="button button--primary primers__open"
           disabled={!hasTarget}
-          onClick={design}
+          data-tip="Open the primer workspace on this region"
+          onClick={() => {
+            openPrimerWorkspace(documentId, 'design');
+          }}
         >
-          Design primers
+          Design primers…
         </button>
+        {!hasTarget && (
+          <p className="panel__note panel__note--quiet">Select a region or click a feature.</p>
+        )}
         {pairs !== null && (
-          <div className="panel__section">
-            {pairs.length === 0 ? (
-              <p className="panel__note">
-                No suitable pairs for {designedFor}. Try a different region, look further from it,
-                or loosen the settings.
-              </p>
-            ) : (
-              <>
-                <p className="panel__note panel__note--quiet">
-                  {pairs.length} {pairs.length === 1 ? 'pair' : 'pairs'} for {designedFor}, best
-                  first. Point at one to see it in the views.
-                </p>
-                <ol className="pair-list pair-list--candidates" aria-label="Designed pairs">
-                  {pairs.map((p, i) => (
-                    <li
-                      key={i}
-                      className={`pair pair--candidate${shown === i ? ' pair--shown' : ''}`}
-                      onMouseEnter={() => {
-                        setHovered(i);
-                      }}
-                      onMouseLeave={() => {
-                        setHovered((h) => (h === i ? null : h));
-                      }}
-                      onFocus={() => {
-                        setHovered(i);
-                      }}
-                      onBlur={() => {
-                        setHovered((h) => (h === i ? null : h));
-                      }}
-                    >
-                      <div className="pair__head">
-                        <span className="pair__rank">{i + 1}</span>
-                        <span className="pair__length">{p.productLength.toLocaleString()} bp</span>
-                        <span className="pair__delta">ΔTm {p.tmDifference.toFixed(1)} °C</span>
-                      </div>
-                      <Oligo strand="forward" primer={p.forward} />
-                      <Oligo strand="reverse" primer={p.reverse} />
-                      <div className="pair__foot pair__foot--actions">
-                        <span className="pair__buttons">
-                          <button
-                            type="button"
-                            className="button button--quiet button--small"
-                            aria-pressed={shown === i}
-                            data-tip="Draw the pair and its product in the views, and select the product"
-                            onClick={() => {
-                              showPair(i, p);
-                            }}
-                          >
-                            {shown === i ? 'Hide' : 'Show'}
-                          </button>
-                          <button
-                            type="button"
-                            className="button button--quiet button--small"
-                            aria-label="Add both as features"
-                            data-tip="Annotate both sites as primer_bind features, one undo step"
-                            onClick={() => {
-                              // One click, so one Undo takes both back (#96).
-                              addFeaturesAsOneStep(
-                                [
-                                  primerFeature(
-                                    `Fwd primer ${i + 1}`,
-                                    p.forwardSite,
-                                    'forward',
-                                    p.forward.sequence,
-                                  ),
-                                  primerFeature(
-                                    `Rev primer ${i + 1}`,
-                                    p.reverseSite,
-                                    'reverse',
-                                    p.reverse.sequence,
-                                  ),
-                                ],
-                                p.reverseSite,
-                              );
-                            }}
-                          >
-                            Add both
-                          </button>
-                          <button
-                            type="button"
-                            className="button button--quiet button--small"
-                            data-tip="Keep both primers in My primers, in this browser"
-                            onClick={() => {
-                              const note = (tmValue: number, gc: number): string =>
-                                `Designed for ${doc.name} ${designedFor}; Tm ${tm(tmValue)}, GC ${pct(gc)}`;
-                              save('design', [
-                                {
-                                  name: `${doc.name} fwd ${i + 1}`,
-                                  sequence: p.forward.sequence,
-                                  notes: note(p.forward.tm, p.forward.gc),
-                                },
-                                {
-                                  name: `${doc.name} rev ${i + 1}`,
-                                  sequence: p.reverse.sequence,
-                                  notes: note(p.reverse.tm, p.reverse.gc),
-                                },
-                              ]);
-                            }}
-                          >
-                            Save both
-                          </button>
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </>
-            )}
-            {saved?.from === 'design' && (
-              <p className="panel__note panel__note--quiet">{saved.text}</p>
-            )}
-          </div>
+          <button
+            type="button"
+            className="link primers__last"
+            data-tip="Open the last results"
+            onClick={() => {
+              openPrimerWorkspace(documentId, 'results');
+            }}
+          >
+            Last design · {pairs.length} {pairs.length === 1 ? 'pair' : 'pairs'} ›
+          </button>
         )}
       </fieldset>
 
       <fieldset className="panel__group">
-        <legend>Check a primer</legend>
-        <input
-          className="panel__search panel__mono-input"
-          type="text"
-          spellCheck={false}
-          placeholder="Paste a primer, 5′ to 3′"
-          aria-label="Primer sequence"
-          value={probe}
-          onChange={(e) => {
-            setProbe(e.target.value);
-          }}
-        />
+        <legend>Quick check</legend>
+        <ProbeBox probe={probe} />
         {report !== null && report.length > 0 && (
           <>
-            <p className="panel__mono primers__stats">
-              {report.length} nt, Tm{' '}
-              {report.degenerate === 0
-                ? tm(report.tm)
-                : report.tmRange === null
-                  ? '–'
-                  : `${report.tmRange.min.toFixed(1)}–${report.tmRange.max.toFixed(1)} °C`}
-              , GC{' '}
-              {report.degenerate === 0
-                ? pct(report.gc)
-                : `${pct(report.gcRange.min)}–${pct(report.gcRange.max)}`}
-              {report.gcClamp ? ', GC clamp' : ''}
+            <p className="primers__stats primers__stats--slim">
+              <span>{report.length} nt</span>
+              <span>
+                Tm{' '}
+                {report.degenerate === 0
+                  ? tm(report.tm)
+                  : report.tmRange === null
+                    ? '–'
+                    : `${report.tmRange.min.toFixed(1)}–${report.tmRange.max.toFixed(1)} °C`}
+              </span>
+              <span>
+                GC{' '}
+                {report.degenerate === 0
+                  ? pct(report.gc)
+                  : `${pct(report.gcRange.min)}–${pct(report.gcRange.max)}`}
+              </span>
+              {report.gcClamp && <span className="primers__ok">clamp</span>}
             </p>
-            {report.degenerate > 0 && (
-              <p className="panel__note panel__note--quiet">
-                Degenerate: {report.degenerate} {report.degenerate === 1 ? 'position' : 'positions'}
-                , a mix of {report.molecules.toLocaleString()} molecules. Tm and GC are ranges over
-                the mix; hairpins and dimers are counted on the plain bases. A code binds wherever
-                it stands for the template&rsquo;s base.
-              </p>
+            {report.length >= 8 && sites.length === 0 && (
+              <p className="panel__note panel__note--quiet">No binding site in this sequence.</p>
             )}
-            {report.warnings.length > 0 && (
-              <ul className="panel__warnings">
-                {report.warnings.map((w) => (
-                  <li key={w}>{w}</li>
-                ))}
-              </ul>
-            )}
-            <p className="panel__note">
-              {report.length < 8
-                ? 'Enter at least 8 bases to search for binding sites.'
-                : sites.length === 0
-                  ? 'No binding site in this sequence (exact 3′ end, up to 2 mismatches elsewhere).'
-                  : `${sites.length} binding ${sites.length === 1 ? 'site' : 'sites'}:`}
-            </p>
             {sites.length > 0 && (
-              <ul className="orf-list" aria-label="Binding sites">
+              <ul className="primers__sites" aria-label="Binding sites">
                 {sites.map((s) => (
                   <li key={`${s.strand}-${s.range.start}`}>
                     <button
                       type="button"
-                      className="orf-row"
+                      className="primers__site"
                       onClick={() => {
-                        editorStore.setSelection(s.range);
-                        editorStore.revealPosition(s.range.start);
+                        goToSite(s);
                       }}
                     >
-                      <span className="orf-row__strand">{s.strand === 'forward' ? '→' : '←'}</span>
-                      <span className="orf-row__range">
-                        {(s.range.start + 1).toLocaleString()}–
-                        {(((s.range.end - 1) % Math.max(1, doc.length)) + 1).toLocaleString()}
-                      </span>
-                      <span className="orf-row__length">
+                      <span className="primers__strand">{s.strand === 'forward' ? '→' : '←'}</span>
+                      <span className="primers__pos">{siteSpan(s, doc.length)}</span>
+                      <span className="primers__fit">
                         {s.mismatches === 0 ? 'exact' : `${s.mismatches} mm`}
                       </span>
                     </button>
@@ -486,41 +147,62 @@ export function PrimerPanel({ doc }: Props) {
                 ))}
               </ul>
             )}
-            <div className="panel__controls">
-              {sites.length > 0 && (
-                <button
-                  type="button"
-                  className="button button--small"
-                  onClick={() => {
-                    // One click, so one Undo takes every site back (#96).
-                    addFeaturesAsOneStep(
-                      sites.map((s) => primerFeature('Primer', s.range, s.strand, report.sequence)),
-                      sites[sites.length - 1]?.range,
-                    );
-                  }}
-                >
-                  Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind
-                </button>
-              )}
-              <button
-                type="button"
-                className="button button--quiet button--small"
-                data-tip="Keep this primer in My primers, in this browser"
-                onClick={() => {
-                  save('check', [{ name: '', sequence: report.sequence, notes: '' }]);
-                }}
-              >
-                Save to My primers
-              </button>
-            </div>
-            {saved?.from === 'check' && (
-              <p className="panel__note panel__note--quiet">{saved.text}</p>
-            )}
+            <button
+              type="button"
+              className="link primers__more"
+              data-tip="Warnings, dimers, Add sites, Save"
+              onClick={() => {
+                openPrimerWorkspace(documentId, 'check');
+              }}
+            >
+              Full check ›
+            </button>
           </>
         )}
       </fieldset>
 
-      <PrimerCollection doc={doc} />
+      <fieldset className="panel__group">
+        <legend>
+          On this document
+          <span className="panel__heading-note">{onDocument.length}</span>
+        </legend>
+        {onDocument.length === 0 ? (
+          <p className="panel__note panel__note--quiet">No primer_bind features.</p>
+        ) : (
+          <ul className="primers__sites primers__sites--doc" aria-label="Primers on this document">
+            {onDocument.map(({ f, start, end }) => (
+              <li key={f.id}>
+                <button
+                  type="button"
+                  className="primers__site"
+                  onClick={() => {
+                    editorStore.setSelection({ start, end });
+                    editorStore.revealPosition(start);
+                  }}
+                >
+                  <span className="primers__strand">{f.strand === 'reverse' ? '←' : '→'}</span>
+                  <span className="primers__name">{f.name === '' ? 'primer_bind' : f.name}</span>
+                  <span className="primers__pos">{formatSpan({ start, end }, doc.length)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </fieldset>
+
+      <button
+        type="button"
+        className="button primers__mine"
+        data-tip="Open My primers in the workspace"
+        onClick={() => {
+          openPrimerWorkspace(documentId, 'mine');
+        }}
+      >
+        My primers…
+        {collection.status === 'ready' && (
+          <span className="panel__heading-note">{collection.primers.length}</span>
+        )}
+      </button>
     </div>
   );
 }

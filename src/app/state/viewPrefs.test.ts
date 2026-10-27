@@ -109,6 +109,7 @@ describe('view preferences', () => {
         viewsSplitStacked: 0.3,
         sidebarWidth: 420,
         sidebarHeightStacked: 260,
+        primerWorkspaceWidth: 1000,
       },
       sidebarOpen: false,
       enzymeCutFilter: 'twice',
@@ -188,6 +189,7 @@ describe('view preferences', () => {
         viewsSplitStacked: 0.5,
         sidebarWidth: 420,
         sidebarHeightStacked: 200,
+        primerWorkspaceWidth: 900,
       },
       sidebarOpen: false,
       enzymeCutFilter: 'once-or-twice',
@@ -228,6 +230,7 @@ describe('view preferences', () => {
         viewsSplitStacked: 0.5,
         sidebarWidth: 420,
         sidebarHeightStacked: 200,
+        primerWorkspaceWidth: 900,
       },
       sidebarOpen: false,
       enzymeCutFilter: 'once-or-twice',
@@ -419,6 +422,7 @@ describe('view preferences', () => {
           sidebarWidth: 10,
           viewsSplitStacked: 'wide',
           sidebarHeightStacked: 5000,
+          primerWorkspaceWidth: 100,
         },
       }),
     );
@@ -428,6 +432,7 @@ describe('view preferences', () => {
         viewsSplitStacked: DEFAULT_LAYOUT.viewsSplitStacked,
         sidebarWidth: 240,
         sidebarHeightStacked: 900,
+        primerWorkspaceWidth: 560,
       },
     });
   });

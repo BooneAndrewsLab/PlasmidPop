@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { createFeature, DEFAULT_PRIMER_CRITERIA, rangeSegment, SeqDocument } from '@/core';
+import { SeqDocument, createFeature, rangeSegment } from '@/core';
 
+import { closePrimerWorkspace, recallWorkspace, rememberWorkspacePage } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
+import { forgetPanels } from '../state/panelMemory';
 import { PrimerPanel } from './PrimerPanel';
+import { PrimerWorkspace } from './PrimerWorkspace';
 
-// A pseudo-random but fixed 600-bp template with balanced composition, the
-// same one the design tests use, so pairs are found.
+// The same fixed 600-bp template the workspace tests design on.
 function template(): string {
   let x = 12345;
   let out = '';
@@ -18,305 +20,118 @@ function template(): string {
   return out;
 }
 
-const doc = SeqDocument.create({ sequence: template() });
+const doc = SeqDocument.create({ name: 'pSlim', sequence: template() });
 
-/** Opens the document with a target selected and the first pair designed. */
-function setup() {
+function open(d: SeqDocument = doc) {
   act(() => {
-    editorStore.openDocument(doc);
-    editorStore.setSelection({ start: 250, end: 350 });
+    editorStore.openDocument(d);
   });
-  const view = render(<PrimerPanel doc={doc} />);
-  act(() => {
-    fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-  });
-  return view;
+  return render(<PrimerPanel doc={d} />);
 }
 
-function firstToggle(): HTMLElement {
-  const button = screen.getAllByRole('button', { name: /^Show$|^Hide$/ })[0];
-  if (button === undefined) throw new Error('no pair was designed');
-  return button;
-}
-
-describe('PrimerPanel', () => {
+describe('the slim Primers tab (item 107)', () => {
   afterEach(() => {
-    act(() => {
-      editorStore.closeDocument();
-    });
-  });
-
-  it('gives the selection back when a shown pair is hidden', () => {
-    setup();
-    const target = editorStore.getState().selection;
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
-    const product = editorStore.getState().selection;
-    expect(product).not.toBeNull();
-    expect(product).not.toEqual(target);
-    expect(editorStore.getState().preview?.items.length).toBe(3);
-
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
-    // The preview and the highlight go together: a product left selected
-    // reads as a pair still being shown.
-    expect(editorStore.getState().selection).toBeNull();
-    expect(editorStore.getState().preview).toBeNull();
-  });
-
-  it('leaves a selection the user made since alone', () => {
-    setup();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
-    const mine = { start: 10, end: 20 };
-    act(() => {
-      editorStore.setSelection(mine);
-    });
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
-    expect(editorStore.getState().selection).toEqual(mine);
-  });
-
-  it('takes its selection away with it when the tab is left', () => {
-    const view = setup();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
-    expect(editorStore.getState().selection).not.toBeNull();
-    act(() => {
-      view.unmount();
-    });
-    expect(editorStore.getState().selection).toBeNull();
-  });
-
-  it('keeps the target when the same selection is designed for again', () => {
-    setup();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
-    // Designing for the product is a new target, not a preview this panel
-    // is holding: hiding nothing must not clear it.
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
-    expect(editorStore.getState().selection).not.toBeNull();
-  });
-});
-
-describe('a design made before the sequence changed (#132)', () => {
-  afterEach(() => {
-    act(() => {
-      editorStore.closeDocument();
-    });
-  });
-
-  it('drops the pairs when the bases are edited, so nothing stale can be added', () => {
-    const view = setup();
-    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
-      0,
-    );
-    act(() => {
-      editorStore.apply({ type: 'insert', position: 240, text: 'GGGGGGGGGG' });
-    });
-    const edited = editorStore.document;
-    if (edited === null) throw new Error('no document');
-    view.rerender(<PrimerPanel doc={edited} />);
-    expect(screen.queryByRole('button', { name: 'Add both as features' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Save both' })).toBeNull();
-    // Designing again works on the new template.
-    act(() => {
-      editorStore.setSelection({ start: 260, end: 360 });
-    });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
-    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
-      0,
-    );
-  });
-
-  it.each([
-    ['reverse complement', { type: 'reverseComplement' }],
-    ['topology change', { type: 'setTopology', topology: 'circular' }],
-  ] as const)('drops the pairs after a %s too', (_, op) => {
-    const view = setup();
-    act(() => {
-      editorStore.apply(op);
-    });
-    view.rerender(<PrimerPanel doc={editorStore.document ?? doc} />);
-    expect(screen.queryByRole('button', { name: 'Add both as features' })).toBeNull();
-  });
-
-  it('keeps the pairs when only the annotations change', () => {
-    const view = setup();
-    act(() => {
-      editorStore.apply({
-        type: 'addFeature',
-        feature: createFeature({ type: 'gene', name: 'g', segments: [rangeSegment(10, 20)] }),
-      });
-    });
-    view.rerender(<PrimerPanel doc={editorStore.document ?? doc} />);
-    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
-      0,
-    );
-  });
-});
-
-describe('primer settings', () => {
-  afterEach(() => {
-    act(() => {
-      editorStore.setPrimerCriteria(DEFAULT_PRIMER_CRITERIA);
-    });
-  });
-
-  it('commits a typed number on leaving the box, and designs to it', () => {
-    setup();
-    const box = screen.getByLabelText('Shortest primer');
-    act(() => {
-      fireEvent.change(box, { target: { value: '2' } });
-    });
-    // Nothing is committed while the number is still being typed.
-    expect(editorStore.getState().primerCriteria.minLength).toBe(18);
-    act(() => {
-      fireEvent.change(box, { target: { value: '22' } });
-      fireEvent.blur(box);
-    });
-    const c = editorStore.getState().primerCriteria;
-    expect(c.minLength).toBe(22);
-    expect(c.maxLength).toBe(27);
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    });
-    expect(screen.getAllByText(/^[ACGT]{22,27}$/).length).toBeGreaterThan(0);
-    expect(screen.queryAllByText(/^[ACGT]{18,21}$/)).toHaveLength(0);
-  });
-
-  it('moves the other end of a range rather than leaving it backwards', () => {
-    setup();
-    const box = screen.getByLabelText('Lowest Tm');
-    act(() => {
-      fireEvent.change(box, { target: { value: '70' } });
-      fireEvent.keyDown(box, { key: 'Enter' });
-    });
-    expect(editorStore.getState().primerCriteria).toMatchObject({ minTm: 70, maxTm: 70 });
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
-    });
-    expect(editorStore.getState().primerCriteria).toEqual(DEFAULT_PRIMER_CRITERIA);
-  });
-
-  it('sums the rules up in the Settings row and flags a change (#226)', () => {
-    setup();
-    const summary = screen.getByText('Settings').closest('summary');
-    expect(summary?.textContent).toBe(
-      'Settings18–27 nt, Tm 55–65 °C, GC 35–65 %, within 0–200 bp of the target',
-    );
-    const box = screen.getByLabelText('Lowest Tm');
-    act(() => {
-      fireEvent.change(box, { target: { value: '58' } });
-      fireEvent.keyDown(box, { key: 'Enter' });
-    });
-    expect(summary?.textContent).toBe(
-      'Settingschanged18–27 nt, Tm 58–65 °C, GC 35–65 %, within 0–200 bp of the target',
-    );
-    act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
-    });
-  });
-
-  it('lists each pair as a block of rank, product, the two primers and three actions (#226)', () => {
-    setup();
-    const list = screen.getByRole('list', { name: 'Designed pairs' });
-    const [pair] = within(list).getAllByRole('listitem');
-    if (pair === undefined) throw new Error('no pair was designed');
-    expect(pair.textContent).toMatch(
-      /^1[\d,]+ bpΔTm \d\.\d °C→[ACGT]+\d+\.\d °C · \d+% GC←[ACGT]+/,
-    );
-    // The visible label is short; the accessible name is the guide's.
-    const add = within(pair).getByRole('button', { name: 'Add both as features' });
-    expect(add.textContent).toBe('Add both');
-    expect(
-      within(pair)
-        .getAllByRole('button')
-        .map((b) => b.textContent),
-    ).toEqual(['Show', 'Add both', 'Save both']);
-  });
-});
-
-describe('checking a degenerate primer (#76)', () => {
-  afterEach(() => {
+    forgetPanels();
     act(() => {
       while (editorStore.getState().documents.length > 0) editorStore.closeDocument();
     });
   });
 
-  it('shows ranges over the mix, and finds the site a code stands for', () => {
+  it('names the selection and opens the workspace on Design from it', () => {
+    open();
+    expect(screen.getByText('Nothing selected')).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Design primers…' });
+    expect(button).toBeDisabled();
     act(() => {
-      editorStore.openDocument(doc);
+      editorStore.setSelection({ start: 250, end: 350 });
     });
-    render(<PrimerPanel doc={doc} />);
-    const site = template().slice(100, 122);
-    // An N where the template has whatever base, and an R/Y that covers it.
-    const b = site.charAt(12);
-    const code = { A: 'R', G: 'R', C: 'Y', T: 'Y' }[b] ?? 'N';
-    const primer = `${site.slice(0, 5)}N${site.slice(6, 12)}${code}${site.slice(13)}`;
-    act(() => {
-      fireEvent.change(screen.getByLabelText('Primer sequence'), { target: { value: primer } });
+    expect(screen.getByText('251–350 · 100 bp')).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    const state = editorStore.getState();
+    expect(state).toMatchObject({
+      primerWorkspace: true,
+      sidebarTab: 'primers',
+      sidebarOpen: true,
     });
-    const summary = screen.getByText(/22 nt, Tm/);
-    expect(summary.textContent).toMatch(/Tm \d+\.\d–\d+\.\d °C, GC \d+%–\d+%/);
-    expect(screen.getByText(/Degenerate: 2 positions, a mix of 8 molecules/)).toBeInTheDocument();
-    expect(screen.getByText('1 binding site:')).toBeInTheDocument();
-    expect(screen.getByText('101–122')).toBeInTheDocument();
-    expect(screen.getByText('exact')).toBeInTheDocument();
+    expect(recallWorkspace(state.documentId).page).toBe('design');
   });
 
-  it('shows a plain primer as before', () => {
-    act(() => {
-      editorStore.openDocument(doc);
-    });
-    render(<PrimerPanel doc={doc} />);
-    act(() => {
-      fireEvent.change(screen.getByLabelText('Primer sequence'), {
-        target: { value: template().slice(100, 122) },
-      });
-    });
-    expect(screen.getByText(/22 nt, Tm/).textContent).toMatch(/Tm \d+\.\d °C, GC \d+%/);
-    expect(screen.queryByText(/Degenerate:/)).toBeNull();
-  });
-});
-
-describe('a target through the origin (#143)', () => {
-  afterEach(() => {
-    act(() => {
-      editorStore.closeDocument();
-    });
+  it('checks a pasted primer at a glance: length, Tm, GC, clamp and where it binds', () => {
+    open();
+    const primer = template().slice(100, 122);
+    fireEvent.change(screen.getByLabelText('Primer sequence'), { target: { value: primer } });
+    const stats = screen.getByText('22 nt').closest('p');
+    expect(stats?.textContent).toMatch(/^22 ntTm \d+\.\d °CGC \d+%(clamp)?$/);
+    const sites = screen.getByRole('list', { name: 'Binding sites' });
+    const [site] = within(sites).getAllByRole('button');
+    expect(site?.textContent).toBe('→101–122exact');
+    // The sites are the tab's preview, and a click selects one.
+    expect(editorStore.getState().preview?.items).toHaveLength(1);
+    if (site === undefined) throw new Error('no site');
+    fireEvent.click(site);
+    expect(editorStore.getState().selection).toEqual({ start: 100, end: 122 });
+    // The full check, with the warnings and the actions, is the workspace's Check page.
+    fireEvent.click(screen.getByRole('button', { name: 'Full check ›' }));
+    expect(editorStore.getState().primerWorkspace).toBe(true);
+    expect(recallWorkspace(editorStore.getState().documentId).page).toBe('check');
   });
 
-  it('writes the target with its end wrapped onto the circle', () => {
-    const circle = SeqDocument.create({ sequence: template(), topology: 'circular' });
-    act(() => {
-      editorStore.openDocument(circle);
-      editorStore.setSelection({ start: 590, end: 620 });
-    });
-    render(<PrimerPanel doc={circle} />);
-    expect(screen.getByText(/^Target 591–20 \(30 bp\)\./)).toBeInTheDocument();
+  it('lists the primer_bind features of the document, and selects one on a click', () => {
+    const annotated = doc
+      .addFeature(
+        createFeature({
+          type: 'primer_bind',
+          name: 'M13 rev',
+          strand: 'reverse',
+          segments: [rangeSegment(470, 487)],
+        }),
+      )
+      .addFeature(
+        createFeature({ type: 'primer_bind', name: 'M13 fwd', segments: [rangeSegment(373, 390)] }),
+      )
+      .addFeature(
+        createFeature({ type: 'CDS', name: 'not a primer', segments: [rangeSegment(1, 50)] }),
+      );
+    open(annotated);
+    const list = screen.getByRole('list', { name: 'Primers on this document' });
+    expect(
+      within(list)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['→M13 fwd374–390', '←M13 rev471–487']);
+    const [, rev] = within(list).getAllByRole('button');
+    if (rev === undefined) throw new Error('no second primer');
+    fireEvent.click(rev);
+    expect(editorStore.getState().selection).toEqual({ start: 470, end: 487 });
   });
 
-  it('says which target found no pairs the same way', () => {
-    const poly = SeqDocument.create({ sequence: 'A'.repeat(600), topology: 'circular' });
+  it('offers the last design, which reopens the workspace on Results, and My primers on its page', () => {
+    // A design made in the workspace, which then shuts.
     act(() => {
-      editorStore.openDocument(poly);
-      editorStore.setSelection({ start: 590, end: 620 });
+      const id = editorStore.openDocument(doc);
+      rememberWorkspacePage(id, 'design');
+      editorStore.setPrimerWorkspace(true);
+      editorStore.setSelection({ start: 250, end: 350 });
     });
-    render(<PrimerPanel doc={poly} />);
+    const workspace = render(<PrimerWorkspace doc={doc} />);
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
     });
-    expect(screen.getByText(/No suitable pairs for 591–20\./)).toBeInTheDocument();
+    act(() => {
+      closePrimerWorkspace(true);
+    });
+    workspace.unmount();
+    render(<PrimerPanel doc={doc} />);
+    // Shut with Escape, the keyboard comes back to the button that opens it.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Design primers…' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Last design · \d+ pairs ›$/ }));
+    expect(editorStore.getState().primerWorkspace).toBe(true);
+    expect(recallWorkspace(editorStore.getState().documentId).page).toBe('results');
+    act(() => {
+      closePrimerWorkspace();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^My primers…/ }));
+    expect(recallWorkspace(editorStore.getState().documentId).page).toBe('mine');
   });
 });
