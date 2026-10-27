@@ -11,6 +11,10 @@
 #   scripts/oracle/run.sh abif-local [dir...]
 #                                    compare our AB1 reader with Biopython's on every .ab1
 #                                    under the directories (default: fixtures/local)
+#   scripts/oracle/run.sh ncbi-region
+#                                    fetch one real region from NCBI through Biopython's
+#                                    Entrez.efetch and rewrite src/test/oracle/ncbi-region.json
+#                                    with its fixture (the only oracle that uses the network)
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 venv="$root/.venv-oracle"
@@ -57,8 +61,11 @@ case "${1:-}" in
     "$venv/bin/python" "$root/scripts/oracle/abif_local.py" "$out/abif.json" "$@"
     (cd "$root" && ABIF_ORACLE="$out/abif.json" npx vitest run src/test/oracle/abif.test.ts)
     ;;
+  ncbi-region)
+    "$venv/bin/python" "$root/scripts/oracle/ncbi_region.py"
+    ;;
   *)
-    echo "usage: $0 generate|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]" >&2
+    echo "usage: $0 generate|writer|snapgene-writer|snapgene-local [dir]|abif-local [dir...]|ncbi-region" >&2
     exit 2
     ;;
 esac
