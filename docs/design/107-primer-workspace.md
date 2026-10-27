@@ -26,6 +26,10 @@ open points decided (2026-10-27); nothing is implemented.
   - File menu: opens the record as a document, as now.
   - Primer workspace: the fetched gene (with flanks) becomes the design
     target; whether it also opens as a document tab is for #299 to settle.
+    Settled by #299 (note 58): the component takes an optional `onFetched`
+    prop and hands the host an `NcbiFetched` (documents, warnings, source:
+    accession, region or gene with its `GeneHit` and `Region`) instead of
+    opening tabs; the workspace decides whether to open one as well.
 - Extract the component first, as its own change with no behaviour change
   and the existing `openFromNcbi` tests as the guard, then build #299 on it
   and the workspace on both.

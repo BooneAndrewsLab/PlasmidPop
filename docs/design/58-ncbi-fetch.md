@@ -160,7 +160,93 @@ worker's only runtime route is the share target's POST; workbox does not
 intercept a cross-origin GET it has no route for, so the request goes
 straight to the network, and offline it fails as `offline` above.
 
+## A gene by name and organism, with flanks (#299)
+
+Added 2026-10-27, in the shared `NcbiSearch` component (item 107), so File ▸
+Open from NCBI… and, later, the primer workspace's Design page get the same
+search. Asked for: look a gene up by name or alias for an organism and open
+it with its features and optional flanking sequence; flanks for a plain
+accession range too.
+
+**NCBI itself, not mygene.info.** The issue found mygene.info would do; the
+Gene database's own `esearch`/`esummary` have the same data, and keeping to
+one host keeps CLAUDE.md's "one third-party host" line true and the privacy
+story one sentence. Checked with curl on 2026-10-27, with an `Origin` header
+of another site: `esearch.fcgi`, `esummary.fcgi` and `elink.fcgi` all answer
+`200` with `access-control-allow-origin: *` and the same `X-RateLimit-*`
+headers as efetch, so the gap and retry in `ncbiRequest` (the request
+machinery lifted out of `fetchRecords`) cover every call.
+
+- **Search term**: `TP5*[sym] AND txid9606[orgn] AND alive[prop]`. `[sym]`
+  matches aliases too (`P53[sym]` finds TP53), the `*` makes it a prefix for
+  the list as the user types, `txid…[orgn]` explodes to strains (yeast genes
+  sit under S288C, 559292; E. coli K-12's under MG1655), and `alive[prop]`
+  drops discontinued genes, which have no placement. Entrez's own syntax
+  characters are stripped from what is typed so the text cannot become a
+  query of its own. A name with a space is quoted instead of truncated.
+- **Coordinates**: esummary's `genomicinfo` gives `chraccver`, `chrstart`,
+  `chrstop`, **0-based and inclusive**, `chrstart > chrstop` on the reverse
+  strand — TP53 is `chrstart 7687489, chrstop 7668420` for GenBank's
+  `complement(7668421..7687490)`. `geneHit` turns that into the internal
+  0-based half-open form, and `geneWindow` into efetch's 1-based inclusive
+  `seq_start`/`seq_stop`. Flanks are measured along the gene, so upstream
+  of a reverse-strand gene is the higher coordinates.
+- **`strand=2` does the reverse-complementing.** efetch reverse-complements
+  the stretch and rewrites every location (a forward neighbour arrives as
+  `complement(…)`), so the "read 5′ to 3′" option is a URL parameter, not
+  client code. The ACCESSION line comes back as `NC_000017 REGION:
+complement(7687000..7689000)`: NCBI's own record of what was fetched,
+  kept in `metadata.accession`, is the provenance the issue asked for.
+- **Clipping is NCBI's at the far end, ours at the near one.** `seq_stop`
+  past the record's end is answered with what exists and no error; only the
+  REGION line says so. So the low end is clamped at 1 before the request,
+  the high end read back from the REGION line after it, and a flank cut
+  short is a warning on the tab naming the bp had and asked. A region of a
+  circular record comes back `linear` (NC_000913.3 checked), so a flank
+  never wraps the origin; it is clamped like a chromosome end.
+- **Partial features need no code**: a feature cut by the window's edge
+  arrives as `<1..352` and the parser already keeps the marks (the oracle
+  below checks they survive).
+- **RefSeqGene first.** `elink` with `gene_nuccore_refseqgene` finds the
+  `NG_` record where one is curated (TP53 yes, yeast HBT1 no). It has no
+  range API of its own — the gene's position inside it is not known before
+  fetching — so the whole record (gene-sized, well under the cap) is
+  fetched and the window cut here with `extractRange`, which marks what it
+  cuts partial; the ACCESSION line is written in NCBI's own `REGION:` form.
+  A record that does not place the gene (no `gene` feature with its
+  symbol) falls back to the chromosome.
+- **Ambiguity**: the suggestion list is the pick list. Open with nothing
+  picked takes the one exact symbol match or the only hit; otherwise the
+  list stays open and the error says how many match and to pick one.
+- **Autocomplete**: 400 ms after the last keystroke, from two characters,
+  one `esearch` then one `esummary` (so two spaced requests, ~0.8 s to the
+  list), the previous lookup aborted on each change; the timer bails when
+  Open has already started a fetch, which resolves the name itself. The
+  stale list is kept as a cache but shown only while the query is the one
+  it answers.
+- **Naming**: a gene opens as a tab named by its symbol with the file name
+  `TP53_NC_000017.11:7667421-7688490.gb`; a plain range as
+  `NC_000017.11:7668421-7687490` (the form `extractRange` already uses),
+  rather than the chromosome's LOCUS name, which three stretches of chr17
+  would share. The ACCESSION line is the record's own either way.
+- **What is sent, and when.** By accession, nothing until Open, as before.
+  In the gene mode, the hint under the box says before the first character
+  that what is typed and the organism go to NCBI as you type; it is the
+  mode switch that reveals the box, so the sentence is read before the box
+  is used. The `tool` parameter and the no-cookie, no-referrer request are
+  as for efetch. Analytics: `open-ncbi` named `gene` or `region`, never the
+  name, organism or accession.
+- **Oracle**: `scripts/oracle/ncbi_region.py` (the one oracle that uses the
+  network, run by hand as `run.sh ncbi-region`) fetches yeast HBT1 ± 200 bp
+  as the minus strand through Biopython's `Entrez.efetch` with the same
+  parameters and writes `src/test/oracle/ncbi-region.json` beside the
+  GenBank text as the fixture; the test rebuilds the request from
+  esummary's placement and compares bases, name, topology, the ACCESSION
+  line and every feature's location and partial marks.
+
 ## Follow-ups
 
 - Perhaps name the tab by the accession when the LOCUS name is an opaque
   one (`SYNPUC19CV`), if users find it confusing.
+- The primer workspace (item 107) hosts the same component with
+  `onFetched` to take the gene as a design target instead of a tab.

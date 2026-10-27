@@ -4,7 +4,8 @@ PlasmidPop is a DNA sequence editor and plasmid viewer that runs entirely in
 your browser. There is no account and nothing is uploaded: files you open stay
 on your computer, and analysis runs on your own machine. The one request the
 editor makes to anyone else is **Open from NCBI…**, when you ask it to, and
-that sends NCBI the accession numbers you typed and nothing else.
+that sends NCBI the accession numbers you typed — or, in its gene search,
+the gene name and organism as you type them — and nothing else.
 
 PlasmidPop is free and open source under the
 [MIT licence](https://github.com/BooneAndrewsLab/PlasmidPop/blob/main/LICENSE);
@@ -115,7 +116,7 @@ at once. The tabs you had open come back when you return.
 That storage is per browser and per device. PlasmidPop never writes to a file
 on your disk: to get one, download it (`Ctrl+S`).
 Your sequences never leave your device (Open from NCBI sends NCBI an
-accession, not a sequence); the public build only counts
+accession or a gene name, not a sequence); the public build only counts
 anonymous feature usage (see the usage statistics section of the files page).
 
 PlasmidPop can be installed as an app from the browser's address bar. Once

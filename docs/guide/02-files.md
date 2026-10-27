@@ -186,15 +186,68 @@ plasmid, gene or protein opens without downloading it first.
   once more after two seconds if NCBI is busy; if it still is, the dialog
   says so. It needs a connection: offline, it says that instead.
 
+### A stretch of a record
+
+Type a range after the accession, `NC_000017.11:7668421-7687490` (positions
+counted from 1, both ends included, as NCBI shows them), to open just that
+stretch of a chromosome or any other nucleotide record. The **Upstream** and
+**Downstream** boxes add flanking sequence on either side (**1 kb** fills
+both with 1,000 bp), and **Reverse-complement** fetches the other strand. A
+window longer than 10 Mb is refused before anything is sent. The features
+inside the window come with it; one that runs past an edge is kept with
+that end marked partial (`<` or `>`), never silently shortened. The tab is
+named `NC_000017.11:7668421-7687490` and the record's ACCESSION line keeps
+the range (`NC_000017 REGION: 7668421..7687490`), so the same stretch can be
+fetched again. A flank that would run past the end of the record is cut
+there, and the status bar says by how much.
+
+### A gene by name
+
+Click **Gene** at the top of the dialog to look a gene up by its symbol or
+an alias instead of its accession.
+
+1. Pick the organism — human, mouse, rat, zebrafish, fruit fly, worm,
+   budding and fission yeast, Arabidopsis or _E. coli_ K-12 — or choose
+   **Other…** and type a name or an NCBI taxonomy id (`8355` for _Xenopus
+   laevis_). **Any organism** searches them all.
+2. Type the gene: `TP53`, `Cdc28`, `lacZ`, or an alias such as `P53`. From
+   the second character, after a pause in typing, a list of the matching
+   genes appears under the box with each one's symbol, full name, organism
+   and chromosome position; pick one with the mouse or with the arrow keys
+   and `Enter`. `Escape` closes the list. If you press **Open** without
+   picking and the name matches several genes (paralogs, an alias two genes
+   share), the list stays open and asks you to choose; a name matching
+   exactly one gene is used without asking.
+3. Set the flanks, measured along the gene: **Upstream** is before its 5′
+   end and **Downstream** after its 3′ end, whichever strand of the
+   chromosome it lies on. **Reverse-complement a reverse-strand gene** (on
+   by default) opens a minus-strand gene reading 5′ to 3′, with every
+   feature's coordinates following; off, it opens as the chromosome's plus
+   strand, the gene annotated as `complement(…)`.
+4. Press **Open**. Where NCBI has a curated RefSeqGene record for the gene
+   (an `NG_` accession — most human genes), the window is cut from that;
+   otherwise it is fetched as a stretch of the chromosome (`NC_`). Either
+   way the tab is named after the gene, **Recent files** lists it as
+   `TP53_NC_000017.11:7667421-7688490.gb`, and the ACCESSION line keeps the
+   record and range.
+
+A flank cut short at a record end, and a feature cut by the window's edge,
+are handled as for a stretch of a record above.
+
 **What is sent.** This is the one feature that reaches a server other than
-the one the app is loaded from, and only when you press **Open**. What goes
-to NCBI (`eutils.ncbi.nlm.nih.gov`) is the accession numbers you typed and
-the name `PlasmidPop`, which NCBI asks every program using its service to
-send. No document, sequence or file name goes, no cookies, and not the
-address of the page you are on; there is no API key and no e-mail address.
-NCBI sees the request come from your network, as it would if you opened the
-record on its website. The usage statistics count that a record was opened
-from NCBI, never which (see [Usage statistics](#usage-statistics)).
+the one the app is loaded from. By accession, nothing goes until you press
+**Open**, and then what goes to NCBI (`eutils.ncbi.nlm.nih.gov`) is the
+accession numbers you typed, with a range if you gave one, and the name
+`PlasmidPop`, which NCBI asks every program using its service to send. In
+the gene search, what is in the **Gene** box and the organism go to NCBI as
+you type, to list the matching genes — the dialog says so before you type
+the first character — and **Open** then asks NCBI for the gene's record
+and its sequence. No document, sequence or file name goes, no cookies, and
+not the address of the page you are on; there is no API key and no e-mail
+address. NCBI sees the requests come from your network, as it would if you
+searched on its website. The usage statistics count that a record was
+opened from NCBI, and whether by accession, by range or by gene, never
+which (see [Usage statistics](#usage-statistics)).
 
 ## Several documents at once
 
