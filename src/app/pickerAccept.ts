@@ -24,5 +24,5 @@ export function pickerAccept(
 
 function currentEnv(): { readonly userAgent: string; readonly maxTouchPoints: number } {
   if (typeof navigator === 'undefined') return { userAgent: '', maxTouchPoints: 0 };
-  return { userAgent: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints ?? 0 };
+  return { userAgent: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints };
 }
