@@ -3,18 +3,70 @@
 The **Primers** tab designs PCR primer pairs for a selected region, checks
 primers you already have, and keeps your own list of primers,
 [My primers](#my-primers), with where each of them binds on the document.
+The tab itself is short — the selection, a quick check, the primers already
+on the document — and the work is done in the
+[primer workspace](#the-primer-workspace), a larger panel beside the map.
 
 Melting temperatures use the nearest-neighbour method (SantaLucia 1998,
 unified parameters) at 500 nM oligo and 50 mM monovalent salt. They are
 good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
 
+## The Primers tab
+
+- **Selection** names the current selection (`251–350 · 100 bp`) and
+  **Design primers…** opens the workspace on its Design page for it. Once a
+  design has been made, **Last design · 10 pairs ›** reopens the workspace on
+  its Results.
+- **Quick check** takes a pasted primer and gives its length, Tm, GC content
+  and whether it ends in a GC clamp, with where it binds on the document
+  (each site previewed in the views; click one to select it). **Full check ›**
+  opens the workspace's Check page, which adds the warnings and the actions.
+- **On this document** lists the document's `primer_bind` features with their
+  strand and position; click one to select it.
+- **My primers…** opens the workspace on your list.
+
+## The primer workspace
+
+The workspace takes the sidebar's place, widened, with the map live beside
+it: a design is judged by where it lands, so the map stays in view and
+follows every click. The sequence view yields to it in the Both view and
+comes back when it closes; the boundary between the map and the workspace
+can be dragged like the other pane boundaries, and is remembered. A rail
+down its left edge names its four pages — **Design**, **Results**, **Check**
+and **My primers** — each with a heading of its own and a count where there
+is one; `↑` and `↓` on the rail move between them.
+
+The workspace is a region of the window, not a dialog: nothing is greyed
+out behind it, the map and the toolbar keep working, and `Escape` closes it
+only while the keyboard is inside it (an open **Settings** folds first). Its
+**✕** closes it too, as does choosing another sidebar tab; the Primers tab
+then offers the last design to come back to, with everything as it was
+left. On a window narrower than about 1000 px the workspace takes the whole
+area under the toolbar; on a phone it fills the screen, with the pages as
+tabs across the top, and **Primers** is a fourth tab under **Details**.
+
 ## Designing primers for a region
 
-1. Select the region to amplify in either view. It can be a feature (click
-   it in the Features tab) or any range, through the origin of a circle
-   too: the panel then gives the target as the status bar does, `Target
-591–20 (30 bp)` on a 600 bp plasmid.
-2. Open **Primers** and click **Design primers**.
+1. Select the region to amplify in either view, through the origin of a
+   circle too: the Design page gives the target as the status bar does,
+   `591–20 · 30 bp` on a 600 bp plasmid. **Target** offers three ways of
+   choosing it:
+   - **Selection**: whatever is selected, live — click the map or the
+     sequence and the target follows. When the selection is exactly a
+     feature, its name is given (`lacZα 146–469 · 324 bp · reverse strand`).
+   - **Feature**: pick one of the document's features from a list; it is
+     selected for you. A later click elsewhere takes over, as above.
+   - **Gene from NCBI…**: look a gene up by name and organism, as in
+     [File ▸ Open from NCBI…](02-files.md#opening-a-record-from-ncbi), with the flanks
+     you want to design in. The record opens in a tab of its own and the
+     workspace follows it there, with the gene selected as the target and
+     the flanks around it.
+
+   While a target is selected, the two stretches the designer will search —
+   the forward primer's window before it and the reverse primer's after it,
+   as **Settings** sets them — are drawn in the views as previews.
+
+2. Click **Design primers**. The workspace goes to **Results**.
 3. Up to ten pairs are listed, best first. Each is headed by its rank, the
    product size and the Tm difference between the two primers; under that
    are the forward (`→`) and reverse (`←`) primer, each with its Tm and GC
@@ -24,11 +76,11 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
    the product between them as a bracket (see
    [Previews](03-viewing.md#previews)). It also selects the product, so the
    views scroll to it and the status bar gives its length. **Hide** takes
-   both away again, the drawing and the selection, as does leaving the tab;
-   if you have selected something else in the meantime that selection is
-   yours and is left alone. Hovering a pair shows it for as long as the
-   pointer is there — so three candidates can be compared without annotating
-   anything.
+   both away again, the drawing and the selection, as does closing the
+   workspace; if you have selected something else in the meantime that
+   selection is yours and is left alone. Hovering a pair shows it for as
+   long as the pointer is there — so three candidates can be compared
+   without annotating anything.
 5. **Add both** annotates the pair as `primer_bind` features
    (the primer sequence goes in a `/note`), so the sites are on the map and
    saved with the file. Unlike **Show**, this is an edit: it goes into the
@@ -43,18 +95,21 @@ selection, or loosen the settings.
 A design belongs to the sequence it was made on. If you edit the bases, reverse
 complement, or change the topology or origin, the list is cleared, because
 the coordinates and oligos no longer fit; select the target and design
-again. Adding or editing annotations leaves it alone.
+again. Adding or editing annotations leaves it alone. Selecting something
+else while on Results keeps the list but takes its preview off the map, and
+**Target changed — Design again** at the top goes back to Design for the new
+selection; the Design page's **Last design** line goes the other way.
 
 ## Settings
 
-**Settings**, under the target, sets what a designed primer has to be. Its
-row sums the main rules up (`18–27 nt, Tm 55–65 °C, GC 35–65 %, within 0–200
-bp of the target`) and says **changed** once any setting is off its default;
-open it to see and change them all. Every candidate that breaks one of them
-is refused, and the same numbers are what **Check a primer** warns about, so
-a pasted primer is judged by the rules the designed ones had to pass. They
-are remembered in this browser, from plasmid to plasmid; **Reset to
-defaults** puts them back.
+**Settings**, under the target on the Design page, sets what a designed
+primer has to be. It is folded by default; its row says **changed** once any
+setting is off its default and then sums the main rules up (`18–27 nt, Tm
+58–65 °C, GC 35–65 %, within 0–200 bp of the target`). Open it to see and
+change them all. Every candidate that breaks one of them is refused, and the
+same numbers are what **Check a primer** warns about, so a pasted primer is
+judged by the rules the designed ones had to pass. They are remembered in
+this browser, from plasmid to plasmid; **Reset to defaults** puts them back.
 
 | Setting    | Default               | What it means                                                                                                                                                                                                            |
 | ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -88,21 +143,22 @@ difference.
 
 ## Checking a primer
 
-Paste a sequence under **Check a primer**. You get its length, Tm, GC
-content and whether it ends in a GC clamp, plus a warning for each setting it
-breaks — too short or too long, Tm or GC out of range, a long run of one
-base, a hairpin, a self-complementary stretch, a 3′ end that pairs with
-itself — and for a missing GC clamp.
+Paste a sequence into the tab's **Quick check**, or into the workspace's
+**Check** page (**Full check ›** takes the pasted primer there). You get its
+length, Tm, GC content and whether it ends in a GC clamp; the Check page
+adds a warning for each setting it breaks — too short or too long, Tm or GC
+out of range, a long run of one base, a hairpin, a self-complementary
+stretch, a 3′ end that pairs with itself — and for a missing GC clamp.
 
-With eight or more bases, the tab also searches the document for **binding
+With eight or more bases, both also search the document for **binding
 sites** on both strands: the 3′ end must match exactly and up to two
 mismatches are allowed elsewhere. Every site found is previewed in both
 views at once, so off-target binding is visible at a glance, and a site's
 mismatches are marked on its arrow at the bases they fall on. Each site also
 shows its strand, position and mismatch count in the list; click one to
-select it, or **Add sites as primer_bind** to annotate them all, as one step
-a single **Undo** takes back. **Save to My
-primers** keeps the primer in [My primers](#my-primers).
+select it. On the Check page, **Add sites as primer_bind** annotates them
+all, as one step a single **Undo** takes back, and **Save to My primers**
+keeps the primer in [My primers](#my-primers).
 
 A **degenerate primer** — one with ambiguity codes, such as `NNK` for a codon
 library — is a mix of molecules, and the check says so: how many positions
@@ -127,9 +183,10 @@ by PCR, use the Bench's [Overlap PCR](12-cloning.md#overlap-pcr).
 
 ## My primers
 
-**My primers**, at the bottom of the Primers tab, is your own list of
-primers: a name, the bases and notes for each, with the length and the Tm
-of the bases beside the name (a degenerate primer shows its length alone).
+**My primers**, the workspace's last page (the tab's **My primers…** button
+opens it, with the count), is your own list of primers: a name, the bases
+and notes for each, with the length and the Tm of the bases beside the name
+(a degenerate primer shows its length alone).
 It is kept in this browser's
 storage, beside the recent files, and like them it never leaves the browser
 except as a file you download. It is the same list whichever document is

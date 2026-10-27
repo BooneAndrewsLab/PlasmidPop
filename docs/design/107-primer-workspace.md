@@ -2,7 +2,9 @@
 
 Design pass for #300 (second round after note 93, #226); mockups in
 `300-mockups/` (open `index.html`). Status: layout and the seven
-open points decided (2026-10-27); nothing is implemented.
+open points decided (2026-10-27); stage one built the same day (the shell,
+the slim tab, the Design page; see **Built** below), stage two is to
+redesign Results, Check and My primers and polish the phone.
 
 ## Decided
 
@@ -73,3 +75,82 @@ have yet.
    fills the cell. #299: "Gene from NCBI…" as a third target on Design,
    plus the same search in File ▸ Open from NCBI (the shared component
    above).
+
+## Built (stage one)
+
+**Where the state lives.** `primerWorkspace` is a boolean in the store's
+per-document state beside `sidebarTab`: the layout (`App.tsx`) and the
+sidebar need it reactively, and the store keeps the invariant — open means
+the sidebar is out on Primers; `setSidebarTab` to anything else and
+`setSidebarOpen(false)` shut it (point 4). Which page is in front, the
+target chooser's mode and the settings disclosure's state are panel memory
+under `primers.*` (`primerWorkspace.ts`: `recallWorkspace`,
+`rememberWorkspacePage`), so the slim panel's "Last design ›", "Full check
+›" and "My primers…" land on a page without the store knowing the pages.
+The width is `layout.primerWorkspaceWidth` (560–1400 px, default 900),
+persisted with the other boundaries.
+
+**One owner of the design at a time.** The design, the probe and the
+preview logic moved out of `PrimerPanel` into hooks (`primerDesign.ts`:
+`usePrimerDesign`, `usePrimerProbe`, `usePrimersPreview`) over the same
+`primers.*` memory slots as before. The sidebar does not mount its panel
+behind the workspace (`Sidebar` renders the rail alone while it is open),
+so the slim panel and the workspace never hold the design at once and the
+`primers` preview has one owner. What the views draw follows the page:
+the search windows around the target on Design, the pair shown or hovered
+on Results, the binding sites on Check; My primers draws its own.
+
+**Layout.** In the grid the workspace is a column of its own between the
+editor and the sidebar — `editor | splitter | workspace | rail` — which is
+also the tab order point 2 asks for (toolbar, views, workspace, rail). The
+splitter's after-pane is the workspace plus the rail, so `Splitter.onMove`
+now hands the handle over and the caller subtracts the rail's measured
+width. The Both view shows the map alone while the workspace is open
+(`view` is derived in `App`, the user's choice untouched). Narrower than
+1000 px (`VIEWS_STACKED_QUERY`) the workspace takes the whole main area
+with the rail beside or under it; the foldable map strip point 5 gives
+that range is **not built** — it needs the unrolled map the layout section
+mentions, and the window is a laptop's at that width. On a phone the
+workspace replaces `PhoneShell` under the toolbar (`layout="phone"`: rail
+across the top as tabs, ‹ and ✕ in the top bar); Primers is a fourth
+Details subtab (point 6). The phone's strip is not built either. A window
+500 px high or less drops the rail to icons by CSS.
+
+**Keyboard (points 1–3).** The region's own `keydown` shuts it on Escape
+unless `defaultPrevented`; the settings disclosure folds first and marks
+the event, the NCBI search's autocomplete stops it, and the "Gene from
+NCBI…" wrapper marks Escape so the search's Cancel does not also shut the
+workspace. Focus return is a one-shot request (`closePrimerWorkspace(true)`
+→ `takeFocusRequest()` in the slim panel's mount effect), because the
+button to return to mounts only after the shut. Opening, and a page change
+that is not the rail's doing (a design, "Design again"), focuses the
+heading (`tabindex=-1`); the rail's arrows keep the keyboard on the rail.
+Design follows the selection live; Results hides the preview and says
+"Target changed — Design again" once the selection is neither the designed
+target nor the shown pair's product — an empty selection counts as no
+change, since Escape on the map and the product being given back on close
+are not new targets.
+
+**The target chooser.** The target is always the selection; Feature and
+Gene are ways of setting it. Choosing a feature selects its extent and the
+line names it while the selection is exactly a feature's; a later click on
+the map takes over without the chooser having to be reset. **Gene from
+NCBI… opens the record as a tab**: a design needs a template and the flanks
+are where the primers may lie, so the fetched gene cannot be a target of
+the document in front. `designForFetchedGene` opens the tab (`openFetched`),
+selects the `gene` feature NCBI annotated (`geneTarget`; the whole record
+without one) and opens the workspace on Design there. That is the
+least-surprising reading of "design primers for this gene": one tab, the
+band already on the map.
+
+**Settings.** The disclosure's row says **changed** and the summary only
+once a setting is off its default (the defaults are a click away); the
+disclosure's open state is remembered. The mockup's "Enter" hint beside
+Design primers is not built: Enter on a page with number boxes and a
+textarea has no one meaning.
+
+**Left to stage two.** Results as a sortable table with a detail pane and
+the "Spec." column (#298); Check and My primers redesigned (they host the
+item 93 content unchanged, My primers with its own legend hidden by CSS);
+the foldable map strips; the phone pages' polish; the `#298` link. The
+guide's page 10 and the shortcuts page describe what stage one built.

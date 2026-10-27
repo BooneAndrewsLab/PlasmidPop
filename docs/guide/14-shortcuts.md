@@ -124,6 +124,20 @@ since there is nothing on it to select.
 | `Escape`                  | Back to where the keyboard was before `Alt+B`       |
 | Double-click the boundary | Put that boundary back where it was                 |
 
+## Primer workspace
+
+The [primer workspace](10-primers.md#the-primer-workspace) is a region
+beside the map, not a dialog: the keyboard moves in and out of it with
+`Tab` as with any other part of the window, and opening it puts the
+keyboard on the page's heading.
+
+| Keys                             | Action                                                                                   |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| `↑ ↓` on the rail                | The page above or below (`Home`, `End` the first and the last); `← →` on a phone         |
+| `Escape`                         | Close the workspace, with the keyboard inside it; back on **Design primers…** in the tab |
+| `Escape` in an open **Settings** | Fold the settings first; a second `Escape` closes the workspace                          |
+| `Escape` on the map              | Clears the selection, as always; the workspace stays open                                |
+
 ## Feature editor
 
 In the editor under a feature in the Features tab (see

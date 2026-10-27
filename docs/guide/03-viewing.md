@@ -68,9 +68,10 @@ screen. It is meant for the plasmid someone sent you as a link, read where the
 message arrived.
 
 - **Map**, **Sequence** and **Details** are the three panes. Details holds the
-  Features and Enzymes lists; the other sidebar tabs (primers, alignment,
-  cloning, ORFs, translation, history) are for making things and are not
-  offered on a phone.
+  Features and Enzymes lists and the [Primers](10-primers.md) tab, whose
+  **Design primers…** opens the primer workspace over the whole screen; the
+  other sidebar tabs (alignment, cloning, ORFs, translation, history) are
+  for making things and are not offered on a phone.
 - The toolbar keeps the name, the size and shape of the molecule and the
   **File** menu, so a document can still be downloaded or sent on as a link.
   The view switcher, the toggles, **Format**, **Edits** and **History** are
