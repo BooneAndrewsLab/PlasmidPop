@@ -43,7 +43,12 @@ only while the keyboard is inside it (an open **Settings** folds first). Its
 then offers the last design to come back to, with everything as it was
 left. On a window narrower than about 1000 px the workspace takes the whole
 area under the toolbar; on a phone it fills the screen, with the pages as
-tabs across the top, and **Primers** is a fourth tab under **Details**.
+tabs across the top, and **Primers** is a fourth tab under **Details**. In
+both of those the map cannot be beside the workspace, so a **Map** strip
+across its top draws the whole document as one ribbon — the features, the
+selection and whatever the page is previewing — and follows every click;
+its label folds it away and brings it back, and a short window starts with
+it folded.
 
 ## Designing primers for a region
 
@@ -67,27 +72,46 @@ tabs across the top, and **Primers** is a fourth tab under **Details**.
    as **Settings** sets them — are drawn in the views as previews.
 
 2. Click **Design primers**. The workspace goes to **Results**.
-3. Up to ten pairs are listed, best first. Each is headed by its rank, the
-   product size and the Tm difference between the two primers; under that
-   are the forward (`→`) and reverse (`←`) primer, each with its Tm and GC
-   content at the right of the line (below it when the panel is narrow).
-4. **Show** draws that pair in both views without touching the document:
-   the two sites as dashed arrows pointing the way each primer reads, and
-   the product between them as a bracket (see
-   [Previews](03-viewing.md#previews)). It also selects the product, so the
-   views scroll to it and the status bar gives its length. **Hide** takes
-   both away again, the drawing and the selection, as does closing the
-   workspace; if you have selected something else in the meantime that
-   selection is yours and is left alone. Hovering a pair shows it for as
-   long as the pointer is there — so three candidates can be compared
-   without annotating anything.
+3. Up to ten pairs are listed in a table, best first: the rank (**#**),
+   the product size, the Tm difference (**ΔTm**), then each primer's bases
+   5′→3′ with its Tm and GC content, and **Spec.**, the pair's specificity
+   (see [below](#checking-specificity-with-ncbi-primer-blast)). Click a
+   column heading to sort by it, again to turn the order round. The box
+   above the table narrows the rows to the pairs with a run of bases
+   (`acgtac`, four or more), a position inside a site or the product
+   (`150`), or a rank (`#3`); the chips keep only the pairs with **ΔTm ≤ 1**
+   °C, a **GC clamp** on **both** primers, or **No hairpin**. The count
+   says how many of the pairs are shown.
+4. Select a pair — click its row, or with the keyboard in the table press
+   `↓` and `↑` (`Home`, `End` for the first and the last). The pair is
+   drawn in both views without touching the document: the two sites as
+   dashed arrows pointing the way each primer reads, and the product
+   between them as a bracket (see [Previews](03-viewing.md#previews)). The
+   product is selected too, so the views scroll to it and the status bar
+   gives its length. Pointing at another row shows that pair for as long
+   as the pointer is there, so candidates can be compared without
+   annotating anything. Under the table the selected pair is given in
+   full: each primer's bases, length, Tm, GC content, position and whether
+   it ends in a GC clamp, and the checks — the longest hairpin stem,
+   self-complementary stretch and 3′-end pairing of each primer, the 3′
+   pairing between the two (**cross**), and **elsewhere**, whether either
+   primer would also anneal somewhere else on the document. Untick **Show
+   on map** to take the drawing and the selection off while keeping the
+   pair selected; closing the workspace takes them off too. If you have
+   selected something else in the meantime that selection is yours and is
+   left alone.
 5. **Add both** annotates the pair as `primer_bind` features
    (the primer sequence goes in a `/note`), so the sites are on the map and
-   saved with the file. Unlike **Show**, this is an edit: it goes into the
+   saved with the file. Unlike showing it, this is an edit: it goes into the
    History as one step, and one **Undo** takes both back.
 6. **Save both** keeps the two primers in [My primers](#my-primers), named
    after the document (`pUC19 fwd 1`, `pUC19 rev 1`), with the target, Tm
-   and GC content in their notes.
+   and GC content in their notes. **Copy** puts both oligos on the
+   clipboard, a name and the bases a line each, ready for an order form.
+
+On a phone the table is a list of rows — rank, product, ΔTm and the two
+Tms — and the selected row opens out into the same detail; **Sort by** is
+a list above it.
 
 If nothing qualifies, select more flanking sequence, look further from the
 selection, or loosen the settings.
@@ -99,6 +123,21 @@ again. Adding or editing annotations leaves it alone. Selecting something
 else while on Results keeps the list but takes its preview off the map, and
 **Target changed — Design again** at the top goes back to Design for the new
 selection; the Design page's **Last design** line goes the other way.
+
+## Checking specificity with NCBI Primer-BLAST
+
+Whether a pair would also amplify something in a genome cannot be checked
+in the browser: no genome is bundled. **Check specificity…**, under a
+selected pair on Results and under a picked pair in
+[My primers](#my-primers), opens NCBI's
+[Primer-BLAST](https://www.ncbi.nlm.nih.gov/tools/primer-blast/) in a new
+tab with the two primers already in its form; choose the database and the
+organism there and run the search on NCBI's site.
+
+What leaves the browser: the two primer sequences, in the address of the
+page that opens, and nothing else — not the template, not the document's
+name — and nothing at all until you click. The **Spec.** column says **not
+checked** for every pair: the answer stays on NCBI's page for now.
 
 ## Settings
 
@@ -145,30 +184,34 @@ difference.
 
 Paste a sequence into the tab's **Quick check**, or into the workspace's
 **Check** page (**Full check ›** takes the pasted primer there). You get its
-length, Tm, GC content and whether it ends in a GC clamp; the Check page
-adds a warning for each setting it breaks — too short or too long, Tm or GC
-out of range, a long run of one base, a hairpin, a self-complementary
-stretch, a 3′ end that pairs with itself — and for a missing GC clamp.
+length, Tm, GC content and, when it ends in G or C, **clamp**; the Check
+page adds, under those, a warning for each setting it breaks — too short or
+too long, Tm or GC out of range, a long run of one base, a hairpin, a
+self-complementary stretch, a 3′ end that pairs with itself — and for a
+missing GC clamp, then a line with the three dimer measures themselves
+(`No hairpin, self-dimer 3 bp, 3′ dimer 2 bp`).
 
 With eight or more bases, both also search the document for **binding
 sites** on both strands: the 3′ end must match exactly and up to two
 mismatches are allowed elsewhere. Every site found is previewed in both
 views at once, so off-target binding is visible at a glance, and a site's
-mismatches are marked on its arrow at the bases they fall on. Each site also
-shows its strand, position and mismatch count in the list; click one to
-select it. On the Check page, **Add sites as primer_bind** annotates them
-all, as one step a single **Undo** takes back, and **Save to My primers**
-keeps the primer in [My primers](#my-primers).
+mismatches are marked on its arrow at the bases they fall on. The Check
+page lists the sites in a table at the right — strand, position,
+mismatches; the tab lists them under the box — and clicking a position
+selects the site. On the Check page, **Add sites as primer_bind** annotates
+them all, as one step a single **Undo** takes back, and **Save to My
+primers** keeps the primer in [My primers](#my-primers).
 
 A **degenerate primer** — one with ambiguity codes, such as `NNK` for a codon
-library — is a mix of molecules, and the check says so: how many positions
-are degenerate and how many molecules the mix holds. Tm and GC content are
-given as the range over the mix (`Tm 58.2–63.9 °C`). A setting is broken when
-all of the mix breaks it, and **Part of the mix** says when only some does.
-Past 4,096 molecules (six `N`s) the Tm is not given. A code binds wherever it
-stands for the template's base, so a degenerate primer's sites are the ones
-some molecule of the mix binds at, as in PCR. Hairpins and dimers are counted
-on the plain bases.
+library — is a mix of molecules, and the check says so: **mix of 8** gives
+how many molecules the mix holds, and its tooltip how many positions are
+degenerate. Tm and GC content are given as the range over the mix
+(`Tm 58.2–63.9 °C`). A setting is broken when all of the mix breaks it, and
+**Part of the mix** says when only some does. Past 4,096 molecules (six
+`N`s) the Tm is not given. A code binds wherever it stands for the
+template's base, so a degenerate primer's sites are the ones some molecule
+of the mix binds at, as in PCR. Hairpins and dimers are counted on the
+plain bases.
 
 Use this to check a primer from a paper or an old order against the plasmid
 you have, and to spot off-target binding.
@@ -184,13 +227,16 @@ by PCR, use the Bench's [Overlap PCR](12-cloning.md#overlap-pcr).
 ## My primers
 
 **My primers**, the workspace's last page (the tab's **My primers…** button
-opens it, with the count), is your own list of primers: a name, the bases
-and notes for each, with the length and the Tm of the bases beside the name
-(a degenerate primer shows its length alone).
-It is kept in this browser's
-storage, beside the recent files, and like them it never leaves the browser
-except as a file you download. It is the same list whichever document is
-open.
+opens it, with the count), is your own list of primers as a table: a name,
+the bases, the length (**nt**), the Tm of the bases (none for a degenerate
+primer) and notes for each, with **Edit**, **PCR fwd**, **PCR rev** and
+**Delete** at the right. Click a column heading to sort by it, again for
+the other way round; the order is remembered. The box above the table
+finds primers by name, notes or bases. The list is kept in this browser's
+storage, beside the recent files, and like it it never leaves the browser
+except as a file you download, or as the two primers of a pair you send to
+Primer-BLAST (below). It is the same list whichever document is open. On a
+phone the table scrolls sideways.
 
 ### Adding primers
 
@@ -233,28 +279,38 @@ open.
   5′ tail the template does not have), otherwise it is the bases under the
   feature, read along its strand.
 
-**Edit** and **Delete** change one primer; **Delete all…** asks once more
-before emptying the list. Past eight primers a filter box finds them by name,
-notes or bases.
+**Edit** and **Delete** change one primer; **Delete all…**, at the foot of
+the page, asks once more before emptying the list.
+
+### A pair from the list
+
+Tick the box at the left of two primers, the forward one first, and a
+line under the table names the pair: **Check specificity…** opens NCBI
+Primer-BLAST with the two in its form (what that sends is
+[above](#checking-specificity-with-ncbi-primer-blast)), **Swap** turns
+the pair round, **Use in PCR** puts them in the two slots of
+[Cloning ▸ PCR](12-cloning.md#pcr), and **Clear** unticks both.
 
 ### Finding where they bind
 
-Tick **Find my primers in** _the document_. Every primer of the list is
-searched on both strands and, on a circular sequence, through the origin, the
-way [PCR](12-cloning.md#pcr) anneals a primer: by its 3′ end. The last five
-bases must match exactly; before them up to two mismatches are allowed
-(**Mismatches** sets it, from none to three), and a site needs at least 15
-annealed bases (**Shortest site** sets it, from 10 to 20). The two settings
-appear under the tick box while it is ticked. What does not
-anneal at the 5′ end is reported as a tail, so a cloning primer with a
-restriction site or a homology arm on it is found by the part that binds.
+Tick **Find in** _the document_, beside the filter box. Every primer of
+the list is searched on both strands and, on a circular sequence, through
+the origin, the way [PCR](12-cloning.md#pcr) anneals a primer: by its 3′
+end. The last five bases must match exactly; before them up to two
+mismatches are allowed (**Mismatches** sets it, from none to three), and a
+site needs at least 15 annealed bases (**Shortest site** sets it, from 10
+to 20). The two settings appear beside the tick box while it is ticked,
+with how many of the primers bind. What does not anneal at the 5′ end is
+reported as a tail, so a cloning primer with a restriction site or a
+homology arm on it is found by the part that binds.
 Primers shorter than the shortest site are counted but not searched; lower
 **Shortest site** to search a short sequencing primer. Under 15 bases a site
 is more likely to be there by chance, which is why it is not the default.
 
-Each site is listed with its strand, position, name, mismatches and tail,
-and every site is drawn on both views at once as a [preview](03-viewing.md#previews),
-mismatches marked on its arrow. The search runs again as you edit.
+Each site is listed under the table with its strand, position, name,
+mismatches and tail, and every site is drawn on both views at once as a
+[preview](03-viewing.md#previews), mismatches marked on its arrow. The
+search runs again as you edit.
 
 - Click a site to select the bases it anneals to.
 - **Add** annotates one site as a `primer_bind` feature, with the whole

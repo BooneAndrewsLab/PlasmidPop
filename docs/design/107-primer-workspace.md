@@ -3,8 +3,9 @@
 Design pass for #300 (second round after note 93, #226); mockups in
 `300-mockups/` (open `index.html`). Status: layout and the seven
 open points decided (2026-10-27); stage one built the same day (the shell,
-the slim tab, the Design page; see **Built** below), stage two is to
-redesign Results, Check and My primers and polish the phone.
+the slim tab, the Design page), stage two the day after (Results, Check
+and My primers redesigned, the map strip, #298's link; see **Built**
+below). What is left of #298 is its stage b, an issue of its own.
 
 ## Decided
 
@@ -149,8 +150,82 @@ disclosure's open state is remembered. The mockup's "Enter" hint beside
 Design primers is not built: Enter on a page with number boxes and a
 textarea has no one meaning.
 
-**Left to stage two.** Results as a sortable table with a detail pane and
-the "Spec." column (#298); Check and My primers redesigned (they host the
-item 93 content unchanged, My primers with its own legend hidden by CSS);
-the foldable map strips; the phone pages' polish; the `#298` link. The
-guide's page 10 and the shortcuts page describe what stage one built.
+## Built (stage two)
+
+**Results as a table.** `PrimerCandidates` is a dense table — rank,
+product, ΔTm, each primer's bases, Tm and GC, Spec. — over the same design
+hook. The order and the filters are pure functions in `primerResults.ts`
+(`sortRows`, `filterRows`, `rowMatches`) and panel memory per document, so
+"Last design ›" brings the table back as it was left (point 4). A row keeps
+its rank through any sort, so a filtered table never loses which pair is
+which. The filter box takes bases (four or more, cleaned as a primer is),
+a 1-based position inside a site or the product (unrolled, so a product
+over the origin answers), or `#rank`; the three chips are ΔTm ≤ 1 °C, GC
+clamp on both and no hairpin — the mockup's "Product ≤ 600" was dropped
+because a fixed bound means nothing for a 2 kb ORF. **Selecting** a row is
+the hook's new `selected`; `followMap` (remembered, on by default) is
+whether selecting also shows the pair, which is the old `showPair` without
+its toggle. "Show on map" unticks without losing the row (point 3), and a
+target change on the map hides the preview and keeps the row as before.
+The table is `role="grid"` with one tab stop (`tableKeys.ts`: the selected
+row or the first), `↑ ↓ Home End` moving the selection; the headers are
+`SortTh` with `aria-sort`. The detail pane's checks come from the pair's
+reports plus `findPrimerBindingSites` for **elsewhere**, counted when a
+row is selected, not for every row. On a phone the table is a list of
+rows and the selected one opens out around the same detail pane; sorting
+is a `select`.
+
+**#298, stage a.** `primerBlast.ts` builds the link: `index.cgi` with
+`PRIMER_LEFT_INPUT` and `PRIMER_RIGHT_INPUT`, which NCBI's form reads from
+a GET (checked 2026-10-27 against the live form, as were
+`PRIMER_SPECIFICITY_DATABASE` and `ORGANISM`, which the function takes but
+the app does not send: a GenBank plasmid's organism is "synthetic
+construct" more often than the genome the user means, and a wrong
+organism prefilled is worse than NCBI's default the user has to look at
+anyway). The control is a plain anchor with `rel="noopener noreferrer"`,
+so the address is in the status bar before it is clicked, and its tooltip
+and the guide say what leaves the browser: the two oligos, in the URL,
+nothing until the click. The Spec. cell is "not checked" throughout —
+stage b (an in-app result, which needs a browser POST to `primertool.cgi`
+proven) is a follow-up issue. CLAUDE.md's third-party line says so.
+
+**Check.** Two columns (`checkgrid`): the primer with its numbers as a
+line of labels, the broken settings as a list with the three dimer
+measures under them, the actions; the sites as a table at the right. The
+degenerate explanation is the "mix of N" label's tooltip; the tailed-
+primer note is one line. The guide keeps the prose.
+
+**My primers.** A table (`collectionSort.ts`: name, bases, nt, Tm, notes;
+the order remembered browser-wide) with the filter box always there and
+"Find in" the document with its two limits on the same row, the count of
+primers that bind beside them. Each row has a pick box: two picked make a
+pair, forward first, with Check specificity…, Swap and Use in PCR — the
+mockup's per-row "Spec." button was dropped because Primer-BLAST wants
+both primers (or a template, which is not sent). The sites found stay the
+item 56 list under the table. The slim panel's `fieldset` and legend are
+gone; the component no longer needs the panel frame. On a phone the table
+scrolls sideways rather than collapsing: the phone frame only drew
+Results, and a sideways scroll keeps Edit in reach.
+
+**The map strip (point 5).** `view/ribbon/renderRibbon.ts` draws the
+document as one ribbon on the `DrawingContext`: features in the lanes
+`assignLanes` gives them (clamped to what fits, the rest sharing the top
+lane), the selection as a band, the preview in the preview colour —
+arrows with heads, a dashed bracket with end ticks for a product, ticks
+for a primer's mismatches — and the two ends numbered. A circular document
+is open at its origin, a stretch over it two pieces. `MapStrip` is the
+canvas at the strip's width (ResizeObserver, DPR, `readLinearTheme`), fed
+from the store's merged preview and selection, so it follows the views
+live. The workspace shows it in the `full` and `phone` layouts inside a
+`details` whose fold is remembered (`primers.stripFolded`, browser-wide)
+and starts folded on `SHORT_WINDOW_QUERY`; on the phone it sits under the
+page tabs by CSS `order`. It is not the "unrolled circular map" the layout
+section asked for — no labels, no bases, no interaction — but it answers
+"where does this land" and reuses the lane and overlay primitives rather
+than adding a renderer of its own size.
+
+**Not seen in a browser.** The Chrome extension connected but its browser
+could not reach this host's dev server (Chrome's error page for both
+`localhost` and `127.0.0.1`), so the stage-two layouts, like stage one's,
+were checked through the DOM in tests and the renderer through
+`SvgContext`, not by eye.

@@ -38,8 +38,9 @@ server round-trip.
 - **Backend: none.** A static site on GitHub Pages, and it stays one. Auth,
   sync and team libraries are dropped, not deferred. Sharing is a link that
   carries the document in its URL fragment (item 11). The one third-party
-  host is NCBI E-utilities: only the accessions typed, or a gene name and
-  organism as typed into the gene box (#299), leave the browser.
+  host is NCBI: only the accessions typed, or a gene name and organism as
+  typed into the gene box (#299), go to E-utilities; a pair's two primer
+  sequences go to Primer-BLAST only in a link the user opens (#298).
 - **File formats:** GenBank, FASTA, SnapGene .dna/.prot/.rna, AB1, FASTQ
   (gzipped too), protein FASTA/GenPept. The parsers and writers are ours;
   round-tripping is where third-party ones break.

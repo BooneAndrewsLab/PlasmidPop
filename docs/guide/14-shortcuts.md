@@ -138,6 +138,14 @@ keyboard on the page's heading.
 | `Escape` in an open **Settings** | Fold the settings first; a second `Escape` closes the workspace                          |
 | `Escape` on the map              | Clears the selection, as always; the workspace stays open                                |
 
+In the Results table, which is one stop in the tab order:
+
+| Keys                 | Action                                                       |
+| -------------------- | ------------------------------------------------------------ |
+| `↓ ↑`                | Select the next or the previous pair, and show it on the map |
+| `Home`, `End`        | The first and the last pair                                  |
+| `Enter` on a heading | Sort by that column; again, the other way round              |
+
 ## Feature editor
 
 In the editor under a feature in the Features tab (see
