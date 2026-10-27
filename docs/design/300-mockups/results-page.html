@@ -1,0 +1,3186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Results page · #300 mockup</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --surface: #ffffff;
+        --surface-2: #f3f5f8;
+        --surface-3: #e8ecf1;
+        --line: #d5dae2;
+        --ink: #1c2430;
+        --ink-2: #4a5566;
+        --ink-3: #8a94a3;
+        --accent: #1b6e8c;
+        --accent-ink: #ffffff;
+        --danger: #b3261e;
+        --warn: #a86200;
+        --ok: #1d7a4c;
+        --seq-selection: rgba(27, 110, 140, 0.2);
+        --seq-cut: #b3261e;
+        --seq-preview: #6b4fd8;
+        --seq-base-a: #2f7d32;
+        --seq-base-c: #1b6ec8;
+        --seq-base-g: #8a5a00;
+        --seq-base-t: #c0392b;
+        --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+        --mock-bg: #fff7e6;
+        --mock-ink: #6b4a00;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --surface: #14181f;
+          --surface-2: #1b2029;
+          --surface-3: #232a35;
+          --line: #2f3742;
+          --ink: #e6e9ee;
+          --ink-2: #b4bcc8;
+          --ink-3: #7d8797;
+          --accent: #5fb0d0;
+          --accent-ink: #0e1620;
+          --danger: #ff8a80;
+          --warn: #e0a458;
+          --ok: #5fd196;
+          --seq-selection: rgba(95, 176, 208, 0.28);
+          --seq-cut: #ff8a80;
+          --seq-preview: #b9a6ff;
+          --seq-base-a: #6fcf7a;
+          --seq-base-c: #6ab8ff;
+          --seq-base-g: #e0a458;
+          --seq-base-t: #ff8a80;
+          --mock-bg: #2a2410;
+          --mock-ink: #e0c070;
+        }
+      }
+      :root[data-theme='dark'] {
+        --surface: #14181f;
+        --surface-2: #1b2029;
+        --surface-3: #232a35;
+        --line: #2f3742;
+        --ink: #e6e9ee;
+        --ink-2: #b4bcc8;
+        --ink-3: #7d8797;
+        --accent: #5fb0d0;
+        --accent-ink: #0e1620;
+        --danger: #ff8a80;
+        --warn: #e0a458;
+        --ok: #5fd196;
+        --seq-selection: rgba(95, 176, 208, 0.28);
+        --seq-cut: #ff8a80;
+        --seq-preview: #b9a6ff;
+        --seq-base-a: #6fcf7a;
+        --seq-base-c: #6ab8ff;
+        --seq-base-g: #e0a458;
+        --seq-base-t: #ff8a80;
+        --mock-bg: #2a2410;
+        --mock-ink: #e0c070;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        font-family: var(--font-ui);
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--ink);
+        background: var(--surface-2);
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      a {
+        color: var(--accent);
+      }
+      .mono {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .note {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ink-2);
+        background: var(--seq-selection);
+        border-radius: 8px;
+        padding: 0 5px;
+        margin-left: 4px;
+      }
+      .dnote {
+        font-size: 12px;
+        color: var(--ink-3);
+      }
+      .feat {
+        font-weight: 600;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .warn {
+        color: var(--warn);
+      }
+
+      /* mock chrome (not the app) */
+      .mock {
+        background: var(--mock-bg);
+        color: var(--mock-ink);
+        border-bottom: 1px dashed var(--mock-ink);
+        padding: 6px 16px;
+        font-size: 13px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      .mock a {
+        color: inherit;
+      }
+      .mock strong {
+        font-weight: 600;
+      }
+      .mock .seg {
+        background: var(--surface);
+      }
+      .mock-note {
+        max-width: 1250px;
+        margin: 10px auto 0;
+        padding: 0 16px;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .stage {
+        padding: 14px 16px 40px;
+        overflow-x: auto;
+      }
+      .stage h3 {
+        margin: 18px 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-2);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .stage h3:first-child {
+        margin-top: 0;
+      }
+      .stage-row {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      /* app frame */
+      .frame {
+        width: 1250px;
+        height: 740px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px 20px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-2);
+        min-height: 48px;
+      }
+      .toolbar__brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .logo {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid var(--accent);
+        display: inline-block;
+        box-shadow: inset 0 0 0 3px var(--surface);
+      }
+      .toolbar__doc {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+      }
+      .toolbar__name {
+        font-weight: 600;
+      }
+      .toolbar__meta {
+        font-size: 11.5px;
+        color: var(--ink-3);
+      }
+      .toolbar__actions {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex: 1;
+      }
+      .toolbar__group {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+      }
+      .toolbar__help {
+        margin-left: auto;
+        font-weight: 600;
+      }
+      .button {
+        padding: 5px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .button:hover:not(:disabled) {
+        background: var(--surface-3);
+      }
+      .button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .button--primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+      }
+      .button--quiet {
+        border-color: transparent;
+        background: transparent;
+        color: var(--ink-2);
+        padding: 3px 8px;
+      }
+      .button--small {
+        padding: 3px 9px;
+        font-size: 13px;
+      }
+      .button--big {
+        padding: 7px 18px;
+        font-size: 15px;
+      }
+      .button--toggle[aria-pressed='true'] {
+        background: var(--surface-3);
+        box-shadow: inset 0 0 0 1px var(--accent);
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .seg__b {
+        padding: 3px 9px;
+        border: 0;
+        background: var(--surface);
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .seg__b + .seg__b {
+        border-left: 1px solid var(--line);
+      }
+      .seg__b--on {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      .splitter {
+        background: var(--line);
+      }
+
+      .main {
+        display: grid;
+        min-height: 0;
+      }
+      .main--sidebar {
+        grid-template-columns: minmax(0, 1fr) 1px 330px;
+      }
+      .main--ws {
+        grid-template-columns: minmax(0, 1fr) 1px 900px;
+      }
+      .views {
+        display: grid;
+        min-height: 0;
+        min-width: 0;
+      }
+      .views--both {
+        grid-template-columns: minmax(280px, 2fr) 1px minmax(0, 3fr);
+      }
+      .pane {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pane--map {
+        background: var(--surface);
+      }
+      .pane--seq {
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 10px 12px;
+      }
+      .cmap text,
+      .lmap text {
+        font-family: var(--font-ui);
+      }
+      .cmap {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        display: block;
+      }
+      .seqv {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        line-height: 1.9;
+      }
+      .seqv__row {
+        display: flex;
+        gap: 10px;
+        white-space: nowrap;
+      }
+      .seqv__pos {
+        width: 44px;
+        text-align: right;
+        color: var(--ink-3);
+      }
+      .seqv__bases i {
+        font-style: normal;
+      }
+      .b-a {
+        color: var(--seq-base-a);
+      }
+      .b-c {
+        color: var(--seq-base-c);
+      }
+      .b-g {
+        color: var(--seq-base-g);
+      }
+      .b-t {
+        color: var(--seq-base-t);
+      }
+      .seqv__bases .sel {
+        background: var(--seq-selection);
+      }
+      .strip {
+        display: none;
+        grid-column: 1 / -1;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+        padding: 2px 8px 0;
+      }
+
+      /* status bar */
+      .statusbar {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        padding: 4px 12px;
+        border-top: 1px solid var(--line);
+        background: var(--surface-2);
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .statusbar__file {
+        color: var(--ink-3);
+      }
+      .statusbar__sel {
+        font-variant-numeric: tabular-nums;
+      }
+      .statusbar__right {
+        margin-left: auto;
+        color: var(--ink-3);
+      }
+
+      /* sidebar */
+      .sb {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 30px;
+        background: var(--surface-2);
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .sb__tabs {
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--line);
+        background: var(--surface-2);
+        overflow: hidden;
+      }
+      .sb__tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 0;
+        font-size: 12.5px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink-2);
+        cursor: pointer;
+        flex: 0 1 auto;
+        min-height: 30px;
+        overflow: hidden;
+      }
+      .sb__icon {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transform: rotate(90deg);
+        flex: none;
+      }
+      .sb__tab-label {
+        writing-mode: vertical-rl;
+        white-space: nowrap;
+      }
+      .sb__tab--active {
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 550;
+      }
+      .panel {
+        padding: 8px 12px 12px;
+        overflow: auto;
+        min-height: 0;
+      }
+      .group {
+        min-width: 0;
+        margin: 0 0 8px;
+        padding: 6px 8px 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      .group legend {
+        padding: 0 4px;
+        color: var(--ink-2);
+      }
+      .slim .button--primary {
+        width: 100%;
+        margin-top: 6px;
+      }
+      .slim__target {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .slim__target--none,
+      .slim__hint {
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .slim__hint {
+        margin-top: 4px;
+      }
+      .slim__range {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .slim__last,
+      .slim__more {
+        display: block;
+        margin-top: 6px;
+        font-size: 12.5px;
+        text-decoration: none;
+      }
+      .slim__paste,
+      .paste {
+        width: 100%;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 4px 6px;
+        background: var(--surface);
+        color: var(--ink);
+        white-space: pre-wrap;
+      }
+      .slim__stats,
+      .statline {
+        display: flex;
+        gap: 10px;
+        font-size: 12.5px;
+        color: var(--ink-2);
+        margin: 4px 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .slim__sites {
+        list-style: none;
+        margin: 2px 0 0;
+        padding: 0;
+        font-size: 12.5px;
+      }
+      .slim__sites li {
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr) auto auto;
+        gap: 0 8px;
+        align-items: baseline;
+        padding: 2px 0;
+      }
+      .slim__sites .strand {
+        color: var(--seq-preview);
+        font-weight: 600;
+      }
+      .slim__sites .pos {
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+      .slim__sites .fit {
+        color: var(--ink-3);
+        font-size: 11.5px;
+      }
+      .slim__sites li:not(:has(.nm)) {
+        grid-template-columns: 16px auto auto;
+      }
+      .slim__sites--doc li {
+        cursor: pointer;
+        border-radius: 4px;
+        margin: 0 -4px;
+        padding: 2px 4px;
+      }
+      .slim__sites--doc li:hover {
+        background: var(--surface-3);
+      }
+      .slim__mine {
+        width: 100%;
+      }
+
+      /* workspace */
+      .sb--ws {
+        grid-template-columns: minmax(0, 1fr) 30px;
+      }
+      .ws {
+        display: grid;
+        grid-template-columns: 128px minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        min-height: 0;
+        background: var(--surface);
+      }
+      .ws__top {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 6px 4px 12px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-2);
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .ws__title {
+        font-weight: 600;
+      }
+      .ws__rail {
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        background: var(--surface-2);
+        padding: 6px 0;
+      }
+      .ws__tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        white-space: nowrap;
+        border: 0;
+        border-left: 3px solid transparent;
+        background: transparent;
+        color: var(--ink-2);
+        cursor: pointer;
+        text-align: left;
+        font-size: 13.5px;
+      }
+      .ws__tab:hover {
+        background: var(--surface-3);
+        color: var(--ink);
+      }
+      .ws__tab--on {
+        border-left-color: var(--accent);
+        color: var(--ink);
+        font-weight: 600;
+        background: var(--surface);
+      }
+      .ws__icon {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex: none;
+      }
+      .ws__tab-l {
+        flex: 1;
+      }
+      .ws__badge {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ink-2);
+        background: var(--seq-selection);
+        border-radius: 8px;
+        padding: 0 5px;
+      }
+      .ws__body {
+        min-height: 0;
+        overflow: auto;
+        display: grid;
+      }
+      .ws__page {
+        display: none;
+        padding: 10px 12px 14px;
+        min-width: 0;
+      }
+      .ws[data-active='design'] [data-page='design'],
+      .ws[data-active='results'] [data-page='results'],
+      .ws[data-active='check'] [data-page='check'],
+      .ws[data-active='mine'] [data-page='mine'] {
+        display: block;
+      }
+      .ws__head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: baseline;
+        gap: 2px 12px;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      .ws__head h2 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 650;
+      }
+      .ws__sub {
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .ws__head-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .target {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 6px 12px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .target__l {
+        color: var(--ink-2);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .target__v {
+        grid-column: 2;
+      }
+      .details {
+        margin: 8px 0;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        max-width: 560px;
+      }
+      .details__s {
+        display: flex;
+        align-items: baseline;
+        gap: 2px 8px;
+        padding: 5px 8px 5px 22px;
+        position: relative;
+        list-style: none;
+        cursor: pointer;
+        color: var(--ink-2);
+        border-radius: 6px;
+      }
+      .details__s::-webkit-details-marker {
+        display: none;
+      }
+      .details__s::before {
+        content: '\203A';
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        line-height: 1;
+        color: var(--ink-3);
+        transition: transform 120ms;
+      }
+      .details[open] > .details__s::before {
+        transform: translateY(-50%) rotate(90deg);
+      }
+      .details[open] > .details__s {
+        border-bottom: 1px solid var(--line);
+        border-radius: 6px 6px 0 0;
+      }
+      .details__s:hover {
+        background: rgba(127, 127, 127, 0.12);
+      }
+      .details__t {
+        font-weight: 550;
+      }
+      .flag {
+        margin-left: 2px;
+        padding: 0 5px;
+        border-radius: 8px;
+        background: var(--seq-selection);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ink-2);
+      }
+      .sgrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 18px;
+        padding: 8px 10px 4px;
+      }
+      .sf {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+      }
+      .sf__l {
+        width: 72px;
+        color: var(--ink-2);
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+        text-decoration-color: var(--line);
+      }
+      .sf__u {
+        color: var(--ink-3);
+        font-size: 12px;
+      }
+      .sf__dash {
+        color: var(--ink-3);
+      }
+      .sf--inline .sf__l {
+        width: auto;
+      }
+      .num,
+      .select,
+      .search {
+        font: inherit;
+        font-size: 13px;
+        padding: 3px 6px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--ink);
+      }
+      .num {
+        width: 52px;
+        text-align: right;
+      }
+      .srow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 10px 8px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .actions__gap {
+        flex: 1;
+      }
+      .actions--design {
+        margin: 14px 0 8px;
+      }
+      .last {
+        font-size: 12.5px;
+        color: var(--ink-2);
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        margin-top: 10px;
+      }
+      .chk {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+      }
+
+      /* results */
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .search {
+        width: 170px;
+      }
+      .tablewrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        max-height: 330px;
+      }
+      .cands {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+      }
+      .cands th {
+        position: sticky;
+        top: 0;
+        background: var(--surface-2);
+        text-align: left;
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--ink-2);
+        border-bottom: 1px solid var(--line);
+        padding: 0;
+        white-space: nowrap;
+      }
+      .cands th button {
+        display: block;
+        width: 100%;
+        text-align: inherit;
+        padding: 5px 6px;
+        border: 0;
+        background: none;
+        cursor: pointer;
+        font-weight: inherit;
+        font-size: inherit;
+        color: inherit;
+      }
+      .cands th button:hover {
+        background: var(--surface-3);
+      }
+      .cands th[aria-sort] button {
+        color: var(--ink);
+      }
+      .sort {
+        font-style: normal;
+        font-size: 9px;
+        margin-left: 3px;
+      }
+      .cands td {
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .cands td.mono {
+        font-size: 11.5px;
+      }
+      .cands .n {
+        text-align: right;
+      }
+      .cands tr.cand {
+        cursor: pointer;
+      }
+      .cands tr.cand:hover {
+        background: var(--surface-3);
+      }
+      .cands tr.is-selected {
+        background: var(--surface-3);
+        box-shadow: inset 3px 0 0 var(--seq-preview);
+      }
+      .cands tr.is-selected td {
+        color: var(--ink);
+      }
+      .cands tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .cands .nm {
+        font-weight: 600;
+      }
+      .cands .notes {
+        color: var(--ink-3);
+        font-size: 12px;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cands .acts {
+        text-align: right;
+      }
+      .spec {
+        font-size: 11.5px;
+        padding: 0 6px;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+      .spec--none {
+        color: var(--ink-3);
+      }
+      .spec--ok {
+        color: var(--ok);
+        background: color-mix(in srgb, var(--ok) 14%, transparent);
+      }
+      .spec--warn {
+        color: var(--warn);
+        background: color-mix(in srgb, var(--warn) 16%, transparent);
+      }
+      .spec--pending {
+        color: var(--ink-2);
+        background: var(--surface-3);
+      }
+      .detail {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--seq-preview);
+        border-radius: 6px;
+        padding: 8px 12px 10px;
+        background: var(--surface-2);
+      }
+      .detail__head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .detail__head .chk {
+        margin-left: auto;
+      }
+      .dt {
+        border-collapse: collapse;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+      }
+      .dt th {
+        text-align: left;
+        font-weight: 600;
+        color: var(--seq-preview);
+        padding: 2px 10px 2px 0;
+      }
+      .dt td {
+        padding: 2px 10px 2px 0;
+        white-space: nowrap;
+      }
+      .detail__checks {
+        display: flex;
+        gap: 14px;
+        font-size: 12px;
+        color: var(--ink-2);
+        margin-top: 4px;
+      }
+      .detail__checks span {
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+        text-decoration-color: var(--line);
+      }
+
+      /* index tables */
+      .cands.qa td,
+      .cands.qa th {
+        white-space: normal;
+        vertical-align: top;
+      }
+      .cands.qa td:first-child {
+        white-space: nowrap;
+        font-weight: 600;
+        color: var(--ink-2);
+      }
+      .cands.qa th button {
+        cursor: default;
+      }
+      .cands.qa code {
+        font-size: 12px;
+      }
+
+      /* check & mine */
+      .checkgrid {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+        gap: 20px;
+      }
+      .warns {
+        list-style: none;
+        margin: 4px 0;
+        padding: 0;
+        font-size: 13px;
+      }
+      .warns li::before {
+        content: '•';
+        margin-right: 6px;
+      }
+      .subhead {
+        font-weight: 600;
+        color: var(--ink-2);
+        font-size: 13px;
+        margin-bottom: 4px;
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+      .sites {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+      }
+      .sites th {
+        text-align: left;
+        font-size: 12px;
+        color: var(--ink-2);
+        border-bottom: 1px solid var(--line);
+        padding: 3px 8px 3px 0;
+      }
+      .sites td {
+        padding: 3px 8px 3px 0;
+      }
+      .sites .strand {
+        color: var(--seq-preview);
+        font-weight: 600;
+      }
+
+      /* strip layout: the map is a full-width ribbon above a full-width workspace */
+      .frame[data-layout='strip'] .main--ws {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      .frame[data-layout='strip'] .sb--ws {
+        grid-column: 1;
+      }
+      .frame[data-layout='strip'] .strip {
+        display: block;
+      }
+      .frame[data-layout='strip'] .views,
+      .frame[data-layout='strip'] .main--ws > .splitter {
+        display: none;
+      }
+      .frame[data-layout='strip'] .tablewrap {
+        max-height: 300px;
+      }
+      .frame[data-layout='strip'] [data-page='results'] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 400px;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 0 14px;
+      }
+      .frame[data-layout='strip'] .ws[data-active='results'] [data-page='results'] {
+        display: grid;
+      }
+      .frame[data-layout='strip'] [data-page='results'] > .ws__head,
+      .frame[data-layout='strip'] [data-page='results'] > .filters {
+        grid-column: 1 / -1;
+      }
+      .frame[data-layout='strip'] .detail {
+        margin-top: 0;
+        align-self: start;
+      }
+      .frame[data-layout='strip'] .dt tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 10px;
+        margin-bottom: 6px;
+      }
+      .frame[data-layout='strip'] .dt td.mono {
+        flex-basis: 100%;
+      }
+      .frame[data-layout='strip'] .dt th {
+        flex-basis: 100%;
+        padding: 0;
+      }
+      .frame[data-layout='strip'] .detail__checks {
+        flex-wrap: wrap;
+        gap: 4px 12px;
+      }
+      .frame[data-layout='strip'] .sb__tab-label {
+        display: none;
+      }
+      .frame[data-layout='strip'] .sb__icon {
+        transform: none;
+      }
+      .frame[data-layout='strip'] .ws__body {
+        overflow: hidden;
+      }
+      .frame[data-layout='strip'] .tablewrap {
+        max-height: none;
+        min-height: 0;
+      }
+
+      /* phone frame */
+      .phone-frame {
+        width: 390px;
+        height: 780px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        flex: none;
+      }
+      .ph {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        height: 100%;
+      }
+      .ph__top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-2);
+        min-height: 44px;
+      }
+      .ph__name {
+        font-weight: 600;
+      }
+      .ph__pane {
+        min-height: 0;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .ph__subtabs {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-2);
+        flex: none;
+      }
+      .ph__subtab {
+        flex: 1;
+        padding: 8px 4px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: var(--ink-2);
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .ph__subtab--on {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        font-weight: 600;
+      }
+      .ph__subtab .ws__badge {
+        margin-left: 4px;
+      }
+      .ph__bar {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--line);
+        background: var(--surface-2);
+      }
+      .ph__tab {
+        min-height: 48px;
+        border: 0;
+        border-top: 2px solid transparent;
+        background: transparent;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .ph__tab--on {
+        color: var(--accent);
+        border-top-color: var(--accent);
+        font-weight: 600;
+      }
+      .ph__strip {
+        border-bottom: 1px solid var(--line);
+        flex: none;
+      }
+      .ph__strip summary {
+        font-size: 11px;
+        color: var(--ink-3);
+        padding: 2px 10px;
+        cursor: pointer;
+      }
+      .ph .panel {
+        flex: 1;
+      }
+      .ph .slim .button--primary {
+        min-height: 40px;
+      }
+      .ws--phone {
+        display: block;
+        flex: 1;
+        background: var(--surface);
+      }
+      .ws--phone .ws__page {
+        padding: 10px 12px 16px;
+      }
+      .ws--phone .ws__head {
+        grid-template-columns: auto 1fr;
+      }
+      .ws--phone .ws__head-actions {
+        grid-column: 1 / -1;
+      }
+      .ws--phone .target {
+        grid-template-columns: 1fr;
+      }
+      .ws--phone .target__v {
+        grid-column: 1;
+      }
+      .ws--phone .seg--target {
+        flex-wrap: wrap;
+      }
+      .ws--phone .sgrid {
+        grid-template-columns: 1fr;
+      }
+      .ws--phone .details {
+        max-width: none;
+      }
+      .ws--phone .button--big {
+        width: 100%;
+        min-height: 44px;
+      }
+      .plist {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .prow {
+        border-bottom: 1px solid var(--line);
+        padding: 7px 8px;
+        margin: 0 -8px;
+      }
+      .prow.is-selected {
+        background: var(--surface-3);
+        box-shadow: inset 3px 0 0 var(--seq-preview);
+      }
+      .prow__h {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        flex-wrap: wrap;
+      }
+      .prow__h b {
+        width: 24px;
+      }
+      .prow__d {
+        margin-top: 6px;
+      }
+      .prow__d .mono {
+        font-size: 12px;
+      }
+      .prow__d .button {
+        min-height: 36px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mock">
+      <span
+        >Mockup · #300 · <a href="index.html">Index</a> · <a href="sidebar.html">Sidebar</a> ·
+        <a href="design-page.html">Design page</a> · <strong>Results page</strong></span
+      ><span
+        >Theme
+        <span class="seg"
+          ><button class="seg__b seg__b--on" data-theme-set="">auto</button
+          ><button class="seg__b" data-theme-set="light">light</button
+          ><button class="seg__b" data-theme-set="dark">dark</button></span
+        ></span
+      ><span
+        >Layout
+        <span class="seg"
+          ><button class="seg__b seg__b--on" data-layout-set="split">split (recommended)</button
+          ><button class="seg__b" data-layout-set="strip">strip</button></span
+        ></span
+      >
+    </div>
+    <div class="stage">
+      <h3>Desktop · workspace open on Results, pair 2 selected and shown on the map</h3>
+      <div class="frame" data-layout="split">
+        <header class="toolbar">
+          <div class="toolbar__brand"><span class="logo" aria-hidden="true"></span>PlasmidPop</div>
+          <div class="toolbar__doc">
+            <span class="toolbar__name">pUC19</span
+            ><span class="toolbar__meta">2,686 bp · circular</span>
+          </div>
+          <div class="toolbar__actions">
+            <div class="toolbar__group">
+              <button class="button button--quiet">File ▾</button
+              ><button class="button button--quiet">Format ▾</button
+              ><button class="button button--quiet">Edits ▾</button>
+            </div>
+            <div class="toolbar__group">
+              <div class="seg">
+                <button class="seg__b">↶</button><button class="seg__b">↷</button>
+              </div>
+            </div>
+            <div class="toolbar__group">
+              <div class="seg">
+                <button class="seg__b seg__b--on">Map</button
+                ><button class="seg__b">Sequence</button><button class="seg__b">Both</button>
+              </div>
+            </div>
+            <div class="toolbar__group">
+              <div class="seg">
+                <button class="seg__b">Complement</button
+                ><button class="seg__b">Translations</button
+                ><button class="seg__b seg__b--on">Cut sites</button>
+              </div>
+            </div>
+          </div>
+          <button class="button button--quiet toolbar__help" title="Help">?</button>
+        </header>
+        <div class="main main--ws">
+          <div class="strip" aria-label="Map strip">
+            <svg
+              class="lmap"
+              viewBox="0 0 1250 84"
+              width="100%"
+              height="84"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label="Linear map of pUC19"
+            >
+              <defs>
+                <marker
+                  id="lp-fwd"
+                  viewBox="0 0 6 6"
+                  refX="5"
+                  refY="3"
+                  markerWidth="5"
+                  markerHeight="5"
+                  orient="auto"
+                >
+                  <path d="M0,0L6,3L0,6z" fill="var(--seq-preview)" />
+                </marker>
+                <marker
+                  id="lp-rev"
+                  viewBox="0 0 6 6"
+                  refX="1"
+                  refY="3"
+                  markerWidth="5"
+                  markerHeight="5"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M0,0L6,3L0,6z" fill="var(--seq-preview)" />
+                </marker>
+              </defs>
+              <rect
+                x="78.2"
+                y="22.200000000000003"
+                width="147.4"
+                height="48"
+                fill="var(--seq-selection)"
+              />
+              <line
+                x1="12"
+                y1="46.2"
+                x2="1238"
+                y2="46.2"
+                stroke="var(--ink-2)"
+                stroke-width="1.5"
+              />
+              <line x1="239.8" y1="42.2" x2="239.8" y2="50.2" stroke="var(--ink-3)" />
+              <text x="239.8" y="80" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                500
+              </text>
+              <line x1="468.0" y1="42.2" x2="468.0" y2="50.2" stroke="var(--ink-3)" />
+              <text x="468.0" y="80" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                1,000
+              </text>
+              <line x1="696.2" y1="42.2" x2="696.2" y2="50.2" stroke="var(--ink-3)" />
+              <text x="696.2" y="80" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                1,500
+              </text>
+              <line x1="924.4" y1="42.2" x2="924.4" y2="50.2" stroke="var(--ink-3)" />
+              <text x="924.4" y="80" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                2,000
+              </text>
+              <line x1="1152.6" y1="42.2" x2="1152.6" y2="50.2" stroke="var(--ink-3)" />
+              <text x="1152.6" y="80" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                2,500
+              </text>
+              <rect x="78.2" y="35.2" width="147.4" height="7" fill="#4c8bd6" rx="1">
+                <title>lacZα 146–469</title>
+              </rect>
+              <text x="151.9" y="32.2" font-size="9" fill="var(--ink)" text-anchor="middle">
+                lacZα
+              </text>
+              <rect x="192.8" y="50.2" width="26.0" height="7" fill="#c9a227" rx="1">
+                <title>MCS 397–454</title>
+              </rect>
+              <rect x="226.1" y="35.2" width="13.7" height="7" fill="#8e7cc3" rx="1">
+                <title>lac promoter 470–500</title>
+              </rect>
+              <rect x="407.3" y="35.2" width="268.4" height="7" fill="#6aa84f" rx="1">
+                <title>ori 867–1455</title>
+              </rect>
+              <text x="541.5" y="32.2" font-size="9" fill="var(--ink)" text-anchor="middle">
+                ori
+              </text>
+              <rect x="753.7" y="35.2" width="392.5" height="7" fill="#d6704c" rx="1">
+                <title>AmpR 1626–2486</title>
+              </rect>
+              <text x="950.0" y="32.2" font-size="9" fill="var(--ink)" text-anchor="middle">
+                AmpR
+              </text>
+              <rect x="1146.7" y="35.2" width="47.5" height="7" fill="#8e7cc3" rx="1">
+                <title>AmpR promoter 2487–2591</title>
+              </rect>
+              <text x="1170.4" y="32.2" font-size="9" fill="var(--ink)" text-anchor="middle">
+                AmpR promoter
+              </text>
+              <line
+                x1="32.1"
+                y1="64.2"
+                x2="270.3"
+                y2="64.2"
+                stroke="var(--seq-preview)"
+                stroke-width="1.2"
+                stroke-dasharray="3 3"
+              />
+              <line
+                x1="32.1"
+                y1="64.2"
+                x2="47.7"
+                y2="64.2"
+                stroke="var(--seq-preview)"
+                stroke-width="3"
+                marker-end="url(#lp-fwd)"
+              />
+              <line
+                x1="255.7"
+                y1="64.2"
+                x2="270.3"
+                y2="64.2"
+                stroke="var(--seq-preview)"
+                stroke-width="3"
+                marker-start="url(#lp-rev)"
+              />
+              <text x="151.2" y="76.2" font-size="9" fill="var(--seq-preview)" text-anchor="middle">
+                pair 2 · 523 bp
+              </text>
+            </svg>
+          </div>
+          <div class="views views--map">
+            <div class="pane pane--map">
+              <svg class="cmap" viewBox="0 0 340 340" role="img" aria-label="Circular map of pUC19">
+                <defs>
+                  <marker
+                    id="pv-fwd"
+                    viewBox="0 0 6 6"
+                    refX="5"
+                    refY="3"
+                    markerWidth="5"
+                    markerHeight="5"
+                    orient="auto"
+                  >
+                    <path d="M0,0L6,3L0,6z" fill="var(--seq-preview)" />
+                  </marker>
+                  <marker
+                    id="pv-rev"
+                    viewBox="0 0 6 6"
+                    refX="1"
+                    refY="3"
+                    markerWidth="5"
+                    markerHeight="5"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M0,0L6,3L0,6z" fill="var(--seq-preview)" />
+                  </marker>
+                </defs>
+                <path
+                  d="M194.9,99.5A74.8,74.8 0 0 1 236.6,135.9"
+                  stroke="var(--seq-selection)"
+                  stroke-width="34"
+                  fill="none"
+                />
+                <circle
+                  cx="170.0"
+                  cy="170.0"
+                  r="74.8"
+                  fill="none"
+                  stroke="var(--ink-2)"
+                  stroke-width="1.5"
+                />
+                <line x1="170.0" y1="99.2" x2="170.0" y2="91.2" stroke="var(--ink-3)" />
+                <text
+                  x="170.0"
+                  y="109.2"
+                  font-size="8"
+                  fill="var(--ink-3)"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                >
+                  1
+                </text>
+                <line x1="235.2" y1="142.4" x2="242.5" y2="139.2" stroke="var(--ink-3)" />
+                <text
+                  x="226.0"
+                  y="146.3"
+                  font-size="8"
+                  fill="var(--ink-3)"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                >
+                  500
+                </text>
+                <line x1="220.9" y1="219.2" x2="226.7" y2="224.8" stroke="var(--ink-3)" />
+                <text
+                  x="213.7"
+                  y="212.3"
+                  font-size="8"
+                  fill="var(--ink-3)"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                >
+                  1000
+                </text>
+                <line x1="144.6" y1="236.1" x2="141.7" y2="243.5" stroke="var(--ink-3)" />
+                <text
+                  x="148.2"
+                  y="226.7"
+                  font-size="8"
+                  fill="var(--ink-3)"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                >
+                  1500
+                </text>
+                <line x1="99.2" y1="172.4" x2="91.2" y2="172.7" stroke="var(--ink-3)" />
+                <text
+                  x="109.2"
+                  y="172.1"
+                  font-size="8"
+                  fill="var(--ink-3)"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                >
+                  2000
+                </text>
+                <line x1="140.2" y1="105.8" x2="136.8" y2="98.5" stroke="var(--ink-3)" />
+                <text
+                  x="144.4"
+                  y="114.9"
+                  font-size="8"
+                  fill="var(--ink-3)"
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                >
+                  2500
+                </text>
+                <path
+                  d="M197.5,91.9A82.8,82.8 0 0 1 243.7,132.2"
+                  stroke="#4c8bd6"
+                  stroke-width="7"
+                  fill="none"
+                  stroke-linecap="butt"
+                >
+                  <title>lacZα 146–469</title>
+                </path>
+                <line x1="227.8" y1="104.0" x2="245.6" y2="83.6" stroke="var(--line)" />
+                <text
+                  x="245.6"
+                  y="83.6"
+                  font-size="10.5"
+                  fill="var(--ink)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  lacZα
+                </text>
+                <path
+                  d="M223.4,129.9A66.8,66.8 0 0 1 228.3,137.5"
+                  stroke="#c9a227"
+                  stroke-width="7"
+                  fill="none"
+                  stroke-linecap="butt"
+                >
+                  <title>MCS 397–454</title>
+                </path>
+                <line x1="243.7" y1="122.2" x2="266.3" y2="107.5" stroke="var(--line)" />
+                <text
+                  x="266.3"
+                  y="107.5"
+                  font-size="10.5"
+                  fill="var(--ink)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  MCS
+                </text>
+                <path
+                  d="M243.7,132.2A82.8,82.8 0 0 1 246.2,137.7"
+                  stroke="#8e7cc3"
+                  stroke-width="7"
+                  fill="none"
+                  stroke-linecap="butt"
+                >
+                  <title>lac promoter 470–500</title>
+                </path>
+                <line x1="249.6" y1="132.9" x2="274.0" y2="121.5" stroke="var(--line)" />
+                <text
+                  x="274.0"
+                  y="121.5"
+                  font-size="10.5"
+                  fill="var(--ink)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  lac promoter
+                </text>
+                <path
+                  d="M244.4,206.4A82.8,82.8 0 0 1 148.6,250.0"
+                  stroke="#6aa84f"
+                  stroke-width="7"
+                  fill="none"
+                  stroke-linecap="butt"
+                >
+                  <title>ori 867–1455</title>
+                </path>
+                <line x1="206.3" y1="250.0" x2="217.4" y2="274.6" stroke="var(--line)" />
+                <text
+                  x="217.4"
+                  y="274.6"
+                  font-size="10.5"
+                  fill="var(--ink)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  ori
+                </text>
+                <path
+                  d="M119.3,235.4A82.8,82.8 0 0 1 132.7,96.1"
+                  stroke="#d6704c"
+                  stroke-width="7"
+                  fill="none"
+                  stroke-linecap="butt"
+                >
+                  <title>AmpR 1626–2486</title>
+                </path>
+                <line x1="82.6" y1="161.5" x2="55.7" y2="158.9" stroke="var(--line)" />
+                <text
+                  x="55.7"
+                  y="158.9"
+                  font-size="10.5"
+                  fill="var(--ink)"
+                  text-anchor="end"
+                  dominant-baseline="middle"
+                >
+                  AmpR
+                </text>
+                <path
+                  d="M132.7,96.1A82.8,82.8 0 0 1 151.8,89.2"
+                  stroke="#8e7cc3"
+                  stroke-width="7"
+                  fill="none"
+                  stroke-linecap="butt"
+                >
+                  <title>AmpR promoter 2487–2591</title>
+                </path>
+                <line x1="140.4" y1="87.3" x2="131.3" y2="61.9" stroke="var(--line)" />
+                <text
+                  x="131.3"
+                  y="61.9"
+                  font-size="10.5"
+                  fill="var(--ink)"
+                  text-anchor="end"
+                  dominant-baseline="middle"
+                >
+                  AmpR promoter
+                </text>
+                <line x1="206.4" y1="90.1" x2="209.4" y2="83.8" stroke="var(--seq-cut)" />
+                <text
+                  x="223.5"
+                  y="52.8"
+                  font-size="9"
+                  fill="var(--seq-cut)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  NdeI 183
+                </text>
+                <line x1="240.2" y1="117.3" x2="245.8" y2="113.0" stroke="var(--seq-cut)" />
+                <text
+                  x="273.0"
+                  y="92.6"
+                  font-size="9"
+                  fill="var(--seq-cut)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  EcoRI 396
+                </text>
+                <line x1="253.5" y1="197.2" x2="260.1" y2="199.3" stroke="var(--seq-cut)" />
+                <text
+                  x="292.5"
+                  y="209.9"
+                  font-size="9"
+                  fill="var(--seq-cut)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  AflIII 806
+                </text>
+                <line x1="155.9" y1="83.3" x2="154.8" y2="76.4" stroke="var(--seq-cut)" />
+                <text
+                  x="149.3"
+                  y="42.9"
+                  font-size="9"
+                  fill="var(--seq-cut)"
+                  text-anchor="end"
+                  dominant-baseline="middle"
+                >
+                  AatII 2,617
+                </text>
+                <line x1="222.8" y1="99.9" x2="227.0" y2="94.3" stroke="var(--seq-cut)" />
+                <text
+                  x="247.5"
+                  y="67.1"
+                  font-size="9"
+                  fill="var(--seq-cut)"
+                  text-anchor="start"
+                  dominant-baseline="middle"
+                >
+                  PvuI 276
+                </text>
+                <line x1="88.5" y1="137.4" x2="82.0" y2="134.8" stroke="var(--seq-cut)" />
+                <text
+                  x="50.4"
+                  y="122.2"
+                  font-size="9"
+                  fill="var(--seq-cut)"
+                  text-anchor="end"
+                  dominant-baseline="middle"
+                >
+                  ScaI 2,177
+                </text>
+                <path
+                  d="M180.2,71.7A98.8,98.8 0 0 1 265.9,146.1"
+                  stroke="var(--seq-preview)"
+                  stroke-width="1.2"
+                  stroke-dasharray="3 3"
+                  fill="none"
+                />
+                <path
+                  d="M180.2,71.7A98.8,98.8 0 0 1 185.2,72.4"
+                  stroke="var(--seq-preview)"
+                  stroke-width="3"
+                  fill="none"
+                  marker-end="url(#pv-fwd)"
+                />
+                <path
+                  d="M264.6,141.6A98.8,98.8 0 0 1 265.9,146.1"
+                  stroke="var(--seq-preview)"
+                  stroke-width="3"
+                  fill="none"
+                  marker-start="url(#pv-rev)"
+                />
+                <text
+                  x="170.0"
+                  y="154.0"
+                  font-size="10"
+                  fill="var(--seq-preview)"
+                  text-anchor="middle"
+                >
+                  pair 2 · 523 bp
+                </text>
+                <text
+                  x="170.0"
+                  y="178.0"
+                  font-size="13"
+                  font-weight="600"
+                  fill="var(--ink)"
+                  text-anchor="middle"
+                >
+                  pUC19
+                </text>
+                <text x="170.0" y="192.0" font-size="10" fill="var(--ink-3)" text-anchor="middle">
+                  2,686 bp
+                </text>
+              </svg>
+            </div>
+          </div>
+          <div class="splitter"></div>
+          <aside class="sb sb--ws">
+            <div class="ws" data-active="results" role="region" aria-label="Primers">
+              <div class="ws__top">
+                <span class="ws__title">Primers · pUC19</span
+                ><button class="button button--quiet ws__close" title="Close (Esc)">✕</button>
+              </div>
+              <nav
+                class="ws__rail"
+                role="tablist"
+                aria-label="Primer workspace"
+                aria-orientation="vertical"
+              >
+                <button
+                  class="ws__tab"
+                  role="tab"
+                  aria-selected="false"
+                  data-goto="design"
+                  title="Design"
+                >
+                  <svg class="ws__icon" viewBox="0 0 15 15" aria-hidden="true">
+                    <path d="M2 5h8l-2-2m2 2-2 2M13 10H5l2-2m-2 2 2 2" /></svg
+                  ><span class="ws__tab-l">Design</span></button
+                ><button
+                  class="ws__tab ws__tab--on"
+                  role="tab"
+                  aria-selected="true"
+                  data-goto="results"
+                  title="Results"
+                >
+                  <svg class="ws__icon" viewBox="0 0 15 15" aria-hidden="true">
+                    <path d="M2 8h11m-3-3 3 3-3 3" /></svg
+                  ><span class="ws__tab-l">Results</span><span class="ws__badge">10</span></button
+                ><button
+                  class="ws__tab"
+                  role="tab"
+                  aria-selected="false"
+                  data-goto="check"
+                  title="Check"
+                >
+                  <svg class="ws__icon" viewBox="0 0 15 15" aria-hidden="true">
+                    <path d="M2 4h11M2 7h7M2 10h11" /></svg
+                  ><span class="ws__tab-l">Check</span></button
+                ><button
+                  class="ws__tab"
+                  role="tab"
+                  aria-selected="false"
+                  data-goto="mine"
+                  title="My primers"
+                >
+                  <svg class="ws__icon" viewBox="0 0 15 15" aria-hidden="true">
+                    <path d="M2 4h11M2 8h7M2 12h9" /></svg
+                  ><span class="ws__tab-l">My primers</span><span class="ws__badge">12</span>
+                </button>
+              </nav>
+              <div class="ws__body">
+                <section class="ws__page" data-page="design" aria-labelledby="h-design">
+                  <header class="ws__head">
+                    <h2 id="h-design">Design primers</h2>
+                    <div class="ws__sub">Up to 10 pairs, best first</div>
+                  </header>
+                  <div class="target">
+                    <span class="target__l">Target</span>
+                    <div class="seg seg--target" role="group" aria-label="Target">
+                      <button class="seg__b seg__b--on" title="The current selection, live">
+                        Selection
+                      </button>
+                      <button class="seg__b" title="Pick a feature of this document">
+                        Feature ▾
+                      </button>
+                      <button
+                        class="seg__b"
+                        title="Look a gene up by name and organism (NCBI), then design for it"
+                      >
+                        Gene from NCBI…
+                      </button>
+                    </div>
+                    <div class="target__v">
+                      <span class="feat">lacZα</span> <span class="mono">146–469</span> · 324 bp ·
+                      reverse strand
+                    </div>
+                  </div>
+                  <details class="details">
+                    <summary class="details__s">
+                      <span class="details__t">Settings</span><span class="flag">changed</span
+                      ><span class="dnote">Tm 58–62 °C · product ≤ 1,000 bp</span>
+                    </summary>
+                    <div class="sgrid">
+                      <label class="sf" title="Shortest and longest primer"
+                        ><span class="sf__l">Length</span><input class="num" value="18" /><span
+                          class="sf__dash"
+                          >–</span
+                        ><input class="num" value="27" /><span class="sf__u">nt</span></label
+                      ><label class="sf" title="Melting temperature range"
+                        ><span class="sf__l">Tm</span><input class="num" value="58" /><span
+                          class="sf__dash"
+                          >–</span
+                        ><input class="num" value="62" /><span class="sf__u">°C</span></label
+                      ><label class="sf" title="GC content range"
+                        ><span class="sf__l">GC</span><input class="num" value="35" /><span
+                          class="sf__dash"
+                          >–</span
+                        ><input class="num" value="65" /><span class="sf__u">%</span></label
+                      ><label class="sf" title="Shortest and longest product"
+                        ><span class="sf__l">Product</span><input class="num" value="0" /><span
+                          class="sf__dash"
+                          >–</span
+                        ><input class="num" value="1,000" /><span class="sf__u">bp</span></label
+                      ><label class="sf" title="Where the forward primer may lie"
+                        ><span class="sf__l">Forward</span><input class="num" value="0" /><span
+                          class="sf__dash"
+                          >–</span
+                        ><input class="num" value="200" /><span class="sf__u"
+                          >bp before start</span
+                        ></label
+                      ><label class="sf" title="Where the reverse primer may lie"
+                        ><span class="sf__l">Reverse</span><input class="num" value="0" /><span
+                          class="sf__dash"
+                          >–</span
+                        ><input class="num" value="200" /><span class="sf__u"
+                          >bp after end</span
+                        ></label
+                      ><label class="sf" title="Largest Tm difference in a pair"
+                        ><span class="sf__l">ΔTm</span><input class="num" value="≤ 3" /><span
+                          class="sf__u"
+                          >°C</span
+                        ></label
+                      ><label class="sf" title="Longest run of one base"
+                        ><span class="sf__l">Base run</span><input class="num" value="≤ 4" /><span
+                          class="sf__u"
+                        ></span></label
+                      ><label class="sf" title="Longest hairpin stem"
+                        ><span class="sf__l">Hairpin</span><input class="num" value="≤ 4" /><span
+                          class="sf__u"
+                          >bp</span
+                        ></label
+                      ><label class="sf" title="Longest self-complementary stretch"
+                        ><span class="sf__l">Self-dimer</span><input class="num" value="≤ 6" /><span
+                          class="sf__u"
+                          >bp</span
+                        ></label
+                      ><label
+                        class="sf"
+                        title="Longest 3′ stretch that pairs with itself or its partner"
+                        ><span class="sf__l">3′ dimer</span><input class="num" value="≤ 4" /><span
+                          class="sf__u"
+                          >bp</span
+                        ></label
+                      ><label
+                        class="sf"
+                        title="Tick required to refuse a primer that does not end in G or C"
+                        ><span class="sf__l">GC clamp</span
+                        ><select class="select">
+                          <option>preferred</option>
+                          <option>required</option>
+                        </select></label
+                      ><label
+                        class="sf"
+                        title="Refuse a primer that also anneals elsewhere on the document"
+                        ><span class="sf__l">Elsewhere</span
+                        ><select class="select">
+                          <option>refused</option>
+                          <option>allowed</option>
+                        </select></label
+                      >
+                    </div>
+                    <div class="srow">
+                      <button class="button button--small">Reset to defaults</button
+                      ><span class="dnote">Remembered in this browser</span>
+                    </div>
+                  </details>
+                  <div class="actions actions--design">
+                    <button
+                      class="button button--primary button--big"
+                      title="Design up to ten pairs for the target"
+                    >
+                      Design primers
+                    </button>
+                    <span class="dnote">Enter</span>
+                  </div>
+                  <div class="last" title="Results are kept until the sequence changes">
+                    Last design · 10 pairs for <span class="feat">lacZα</span> 146–469 · 2 min ago
+                    <a href="#" data-goto="results">Results ›</a>
+                  </div>
+                </section>
+                <section class="ws__page" data-page="results" aria-labelledby="h-results">
+                  <header class="ws__head">
+                    <h2 id="h-results">Results</h2>
+                    <div class="ws__sub">
+                      10 pairs · <span class="feat">lacZα</span> 146–469 ·
+                      <a
+                        href="#"
+                        data-goto="design"
+                        title="Settings: Tm 58–62 °C · product ≤ 1,000 bp"
+                        >changed settings</a
+                      >
+                    </div>
+                    <div class="ws__head-actions">
+                      <button class="button button--small" data-goto="design">Design again</button>
+                    </div>
+                  </header>
+                  <div class="filters">
+                    <input
+                      class="search"
+                      placeholder="Filter bases, position…"
+                      aria-label="Filter"
+                    />
+                    <button class="button button--small button--toggle" aria-pressed="false">
+                      ΔTm ≤ 1
+                    </button>
+                    <button class="button button--small button--toggle" aria-pressed="false">
+                      GC clamp both
+                    </button>
+                    <button class="button button--small button--toggle" aria-pressed="false">
+                      Product ≤ 600
+                    </button>
+                    <span class="dnote">10 of 10</span>
+                    <span class="actions__gap"></span>
+                    <button class="button button--small button--quiet" title="Columns">
+                      Columns ▾
+                    </button>
+                    <button
+                      class="button button--small button--quiet"
+                      title="Download the table as CSV"
+                    >
+                      CSV
+                    </button>
+                  </div>
+                  <div class="tablewrap">
+                    <table class="cands" aria-label="Candidate pairs">
+                      <thead>
+                        <tr>
+                          <th class="n" aria-sort="ascending" title="Rank: lowest penalty first">
+                            <button>#<i class="sort">▲</i></button>
+                          </th>
+                          <th class="n">
+                            <button>Product<i class="sort"></i></button>
+                          </th>
+                          <th class="n" title="Tm difference">
+                            <button>ΔTm<i class="sort"></i></button>
+                          </th>
+                          <th><button>Forward 5′→3′</button></th>
+                          <th class="n"><button>Tm</button></th>
+                          <th class="n"><button>GC</button></th>
+                          <th><button>Reverse 5′→3′</button></th>
+                          <th class="n"><button>Tm</button></th>
+                          <th class="n"><button>GC</button></th>
+                          <th title="Specificity (NCBI Primer-BLAST, #298)">
+                            <button>Spec.</button>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">1</td>
+                          <td class="n">479</td>
+                          <td class="n">0.4</td>
+                          <td class="mono">CAGCTTGTCTGTAAGCGGAT</td>
+                          <td class="n">61.0</td>
+                          <td class="n">50</td>
+                          <td class="mono">CACTTTATGCTTCCGGCTCG</td>
+                          <td class="n">60.6</td>
+                          <td class="n">55</td>
+                          <td>
+                            <span
+                              class="spec spec--ok"
+                              title="Specific: 1 amplicon in E. coli K-12 (479 bp)"
+                              >✓ 1</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand is-selected"
+                          tabindex="0"
+                          aria-selected="true"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">2</td>
+                          <td class="n">523</td>
+                          <td class="n">1.6</td>
+                          <td class="mono">CTCCCGGAGACGGTCACAGCTT</td>
+                          <td class="n">62.6</td>
+                          <td class="n">64</td>
+                          <td class="mono">GCTCACTCATTAGGCACCCC</td>
+                          <td class="n">61.0</td>
+                          <td class="n">60</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">3</td>
+                          <td class="n">507</td>
+                          <td class="n">0.0</td>
+                          <td class="mono">CAGCTTGTCTGTAAGCGGAT</td>
+                          <td class="n">61.0</td>
+                          <td class="n">50</td>
+                          <td class="mono">GCTCACTCATTAGGCACCCC</td>
+                          <td class="n">61.0</td>
+                          <td class="n">60</td>
+                          <td>
+                            <span
+                              class="spec spec--pending"
+                              title="Primer-BLAST job queued 40 s ago"
+                              >…</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">4</td>
+                          <td class="n">439</td>
+                          <td class="n">1.9</td>
+                          <td class="mono">TCAGGGCGCGTCAGCGGGTG</td>
+                          <td class="n">62.5</td>
+                          <td class="n">75</td>
+                          <td class="mono">CACTTTATGCTTCCGGCTCG</td>
+                          <td class="n">60.6</td>
+                          <td class="n">55</td>
+                          <td>
+                            <span
+                              class="spec spec--warn"
+                              title="3 amplicons in E. coli K-12: 439, 1,204, 2,980 bp"
+                              >! 3</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">5</td>
+                          <td class="n">594</td>
+                          <td class="n">1.0</td>
+                          <td class="mono">GAAAACCTCTGACACATGCA</td>
+                          <td class="n">60.6</td>
+                          <td class="n">45</td>
+                          <td class="mono">TTTCCCGACTGGAAAGCGGG</td>
+                          <td class="n">61.6</td>
+                          <td class="n">60</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">6</td>
+                          <td class="n">573</td>
+                          <td class="n">1.0</td>
+                          <td class="mono">CTCCCGGAGACGGTCACAGCTT</td>
+                          <td class="n">62.6</td>
+                          <td class="n">64</td>
+                          <td class="mono">TTTCCCGACTGGAAAGCGGG</td>
+                          <td class="n">61.6</td>
+                          <td class="n">60</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">7</td>
+                          <td class="n">540</td>
+                          <td class="n">2.1</td>
+                          <td class="mono">TCAGGGCGCGTCAGCGGGTG</td>
+                          <td class="n">62.5</td>
+                          <td class="n">75</td>
+                          <td class="mono">ATTAATGCAGCTGGCACGACA</td>
+                          <td class="n">60.4</td>
+                          <td class="n">48</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">8</td>
+                          <td class="n">556</td>
+                          <td class="n">0.4</td>
+                          <td class="mono">GGTGATGACGGTGAAAACCT</td>
+                          <td class="n">60.6</td>
+                          <td class="n">50</td>
+                          <td class="mono">GCTCACTCATTAGGCACCCC</td>
+                          <td class="n">61.0</td>
+                          <td class="n">60</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">9</td>
+                          <td class="n">420</td>
+                          <td class="n">2.1</td>
+                          <td class="mono">GTTGGCGGGTGTCGGGGCTGG</td>
+                          <td class="n">62.7</td>
+                          <td class="n">76</td>
+                          <td class="mono">CACTTTATGCTTCCGGCTCG</td>
+                          <td class="n">60.6</td>
+                          <td class="n">55</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                        <tr
+                          class="cand"
+                          tabindex="0"
+                          aria-selected="false"
+                          title="Select to show on the map"
+                        >
+                          <td class="n">10</td>
+                          <td class="n">651</td>
+                          <td class="n">1.2</td>
+                          <td class="mono">GAAAACCTCTGACACATGCA</td>
+                          <td class="n">60.6</td>
+                          <td class="n">45</td>
+                          <td class="mono">CGCAAACCGCCTCTCCCCGC</td>
+                          <td class="n">61.8</td>
+                          <td class="n">75</td>
+                          <td>
+                            <span
+                              class="spec spec--none"
+                              title="Not checked (NCBI Primer-BLAST, #298)"
+                              >—</span
+                            >
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <aside class="detail" aria-label="Pair 2">
+                    <div class="detail__head">
+                      <strong>Pair 2</strong>
+                      <span class="dnote">523 bp · 45–567 · ΔTm 1.6 °C</span>
+                      <label class="chk"><input type="checkbox" checked /> Show on map</label>
+                    </div>
+                    <table class="dt">
+                      <tbody>
+                        <tr>
+                          <th>→ Forward</th>
+                          <td class="mono">CTCCCGGAGACGGTCACAGCTT</td>
+                          <td class="n">22 nt</td>
+                          <td class="n">Tm 62.6</td>
+                          <td class="n">GC 64 %</td>
+                          <td class="n">45–66</td>
+                          <td class="ok">clamp</td>
+                        </tr>
+                        <tr>
+                          <th>← Reverse</th>
+                          <td class="mono">GCTCACTCATTAGGCACCCC</td>
+                          <td class="n">20 nt</td>
+                          <td class="n">Tm 61.0</td>
+                          <td class="n">GC 60 %</td>
+                          <td class="n">548–567</td>
+                          <td class="ok">clamp</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="detail__checks">
+                      <span title="Longest hairpin stem">hairpin 2 · 3</span
+                      ><span title="Longest self-complementary stretch">self-dimer 4 · 3</span>
+                      <span title="3′ end pairing, with itself or its partner">3′ dimer 2</span
+                      ><span title="Also anneals elsewhere on the document">elsewhere none</span>
+                    </div>
+                    <div class="actions">
+                      <button
+                        class="button"
+                        title="Annotate both as primer_bind features — one Undo step"
+                      >
+                        Add both
+                      </button>
+                      <button class="button" title="Keep both in My primers">Save both</button>
+                      <button class="button" title="Copy both oligos, 5′ to 3′">Copy</button>
+                      <span class="actions__gap"></span>
+                      <button
+                        class="button"
+                        title="Sends the two primer sequences (nothing else) to NCBI Primer-BLAST in a new tab. #298"
+                      >
+                        Check specificity…
+                      </button>
+                      <span class="spec spec--none" title="Not checked">not checked</span>
+                    </div>
+                  </aside>
+                </section>
+                <section class="ws__page" data-page="check" aria-labelledby="h-check">
+                  <header class="ws__head">
+                    <h2 id="h-check">Check a primer</h2>
+                    <div class="ws__sub">Against this document and the design settings</div>
+                  </header>
+                  <div class="checkgrid">
+                    <div>
+                      <textarea
+                        class="mono paste"
+                        rows="3"
+                        aria-label="Primer sequence"
+                        placeholder="Paste a primer, 5′ to 3′"
+                      >
+CCGGAATTCATGGTGAGCAAGGGCGAG</textarea>
+                      <div class="statline">
+                        <span>27 nt</span><span>Tm 66.1 °C</span><span>GC 63 %</span
+                        ><span class="ok">clamp</span>
+                      </div>
+                      <ul class="warns">
+                        <li class="warn" title="Setting: Tm 58–62 °C">Tm above 62 °C</li>
+                        <li class="warn" title="Setting: length 18–27 nt">At the length limit</li>
+                        <li class="ok">No hairpin, self-dimer 3 bp, 3′ dimer 2 bp</li>
+                      </ul>
+                      <div class="actions">
+                        <button class="button">Add sites as primer_bind</button
+                        ><button class="button">Save to My primers</button>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="subhead">
+                        Binding sites <span class="dnote">3′ end exact, ≤ 2 mismatches</span>
+                      </div>
+                      <table class="sites">
+                        <thead>
+                          <tr>
+                            <th></th>
+                            <th>Position</th>
+                            <th>Mismatches</th>
+                            <th>Tail</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td class="strand">→</td>
+                            <td class="mono">1,331–1,350</td>
+                            <td>1</td>
+                            <td class="mono">CCGGAAT</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <div class="dnote">
+                        The whole oligo must match; for a tailed cloning primer use Cloning ▸ PCR.
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section class="ws__page" data-page="mine" aria-labelledby="h-mine">
+                  <header class="ws__head">
+                    <h2 id="h-mine">My primers <span class="note">12</span></h2>
+                    <div class="ws__sub">
+                      Kept in this browser, the same list for every document
+                    </div>
+                    <div class="ws__head-actions">
+                      <button class="button button--small">Add primers ▾</button
+                      ><button class="button button--small">Export</button>
+                    </div>
+                  </header>
+                  <div class="filters">
+                    <input
+                      class="search"
+                      placeholder="Filter name, notes, bases"
+                      aria-label="Filter"
+                    />
+                    <label class="chk"><input type="checkbox" checked /> Find in pUC19</label>
+                    <label class="sf sf--inline"
+                      >Mismatches
+                      <select class="select">
+                        <option>2</option>
+                      </select></label
+                    >
+                    <label class="sf sf--inline"
+                      >Shortest site
+                      <select class="select">
+                        <option>15</option>
+                      </select></label
+                    >
+                    <span class="dnote">4 of 12 bind</span>
+                  </div>
+                  <div class="tablewrap">
+                    <table class="cands mine" aria-label="My primers">
+                      <thead>
+                        <tr>
+                          <th>
+                            <button>Name<i class="sort">▲</i></button>
+                          </th>
+                          <th><button>Bases 5′→3′</button></th>
+                          <th class="n"><button>nt</button></th>
+                          <th class="n"><button>Tm</button></th>
+                          <th><button>Notes</button></th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="nm">M13 fwd (-20)</td>
+                          <td class="mono">GTAAAACGACGGCCAGT</td>
+                          <td class="n">17</td>
+                          <td class="n">59.6</td>
+                          <td class="notes">Sequencing, universal</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">M13 rev</td>
+                          <td class="mono">CAGGAAACAGCTATGAC</td>
+                          <td class="n">17</td>
+                          <td class="n">59.6</td>
+                          <td class="notes">Sequencing, universal</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">T7 promoter</td>
+                          <td class="mono">TAATACGACTCACTATAGGG</td>
+                          <td class="n">20</td>
+                          <td class="n">60.3</td>
+                          <td class="notes"></td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">SP6</td>
+                          <td class="mono">ATTTAGGTGACACTATAG</td>
+                          <td class="n">18</td>
+                          <td class="n">58.8</td>
+                          <td class="notes"></td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">pUC19 fwd 1</td>
+                          <td class="mono">CAGCTTGTCTGTAAGCGGAT</td>
+                          <td class="n">20</td>
+                          <td class="n">61.0</td>
+                          <td class="notes">lacZα 146–469 · Tm 61.0 °C · GC 50 %</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">pUC19 rev 1</td>
+                          <td class="mono">CACTTTATGCTTCCGGCTCG</td>
+                          <td class="n">20</td>
+                          <td class="n">60.6</td>
+                          <td class="notes">lacZα 146–469 · Tm 60.6 °C · GC 55 %</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">bla-F</td>
+                          <td class="mono">ATGAGTATTCAACATTTCCGTGTCG</td>
+                          <td class="n">25</td>
+                          <td class="n">61.5</td>
+                          <td class="notes">AmpR, from the ATG</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">bla-R</td>
+                          <td class="mono">TTACCAATGCTTAATCAGTGAGGC</td>
+                          <td class="n">24</td>
+                          <td class="n">61.1</td>
+                          <td class="notes">AmpR, from the stop</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">lacZ-NNK-F</td>
+                          <td class="mono">GGCGTAATCATGGTCNNKGCTGTTTCC</td>
+                          <td class="n">27</td>
+                          <td class="n"></td>
+                          <td class="notes">Codon library, degenerate</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">ori-seq</td>
+                          <td class="mono">GAGCGCAGCGAGTCAGTGAG</td>
+                          <td class="n">20</td>
+                          <td class="n">61.2</td>
+                          <td class="notes">Sequencing across ori</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">GFP-F-EcoRI</td>
+                          <td class="mono">CCGGAATTCATGGTGAGCAAGGGCGAG</td>
+                          <td class="n">27</td>
+                          <td class="n">63.8</td>
+                          <td class="notes">EcoRI tail</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="nm">GFP-R-HindIII</td>
+                          <td class="mono">CCCAAGCTTTTACTTGTACAGCTCGTCC</td>
+                          <td class="n">28</td>
+                          <td class="n">63.1</td>
+                          <td class="notes">HindIII tail</td>
+                          <td class="acts">
+                            <button class="button button--small button--quiet">Edit</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Use as the forward PCR primer"
+                            >
+                              PCR fwd</button
+                            ><button
+                              class="button button--small button--quiet"
+                              title="Check specificity with NCBI Primer-BLAST (#298)"
+                            >
+                              Spec.
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            </div>
+            <nav class="sb__tabs" role="tablist" aria-label="Sidebar">
+              <button class="sb__tab" role="tab" aria-selected="false" title="Features">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M2 4h11M2 8h7M2 12h9" /></svg
+                ><span class="sb__tab-label">Features</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="ORFs">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M2 8h11m-3-3 3 3-3 3" /></svg
+                ><span class="sb__tab-label">ORFs</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="Translate">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M2 11 7 3l5 8M4 8h6" /></svg
+                ><span class="sb__tab-label">Translate</span></button
+              ><button
+                class="sb__tab sb__tab--active"
+                role="tab"
+                aria-selected="true"
+                title="Primers"
+              >
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M2 5h8l-2-2m2 2-2 2M13 10H5l2-2m-2 2 2 2" /></svg
+                ><span class="sb__tab-label">Primers</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="Enzymes">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M3 3v9M7 3v9M11 3v9M2 7h4m3 0h4" /></svg
+                ><span class="sb__tab-label">Enzymes</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="CRISPR">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M3 11 11 3M3 3l8 8" /></svg
+                ><span class="sb__tab-label">CRISPR</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="Cloning">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M4 2v4a3 3 0 0 0 6 0V2M7 9v4" /></svg
+                ><span class="sb__tab-label">Cloning</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="Align">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M2 4h11M2 7h7M2 10h11" /></svg
+                ><span class="sb__tab-label">Align</span></button
+              ><button class="sb__tab" role="tab" aria-selected="false" title="History">
+                <svg class="sb__icon" viewBox="0 0 15 15" aria-hidden="true">
+                  <path d="M3 7a4.5 4.5 0 1 1 1.3 3.2M3 4v3h3" /></svg
+                ><span class="sb__tab-label">History</span>
+              </button>
+            </nav>
+          </aside>
+        </div>
+        <footer class="statusbar">
+          <span class="statusbar__file">pUC19.gb</span
+          ><span class="statusbar__sel">Preview pair 2 · product 45–567 (523 bp)</span
+          ><span class="statusbar__right">Saved 2 min ago · SEGUID 4A…9k</span>
+        </footer>
+      </div>
+      <h3>Phone · 390 px · rows, the selected one expanded</h3>
+      <div class="stage-row">
+        <div class="phone-frame">
+          <div class="ph">
+            <div class="ph__top">
+              <button class="button button--quiet" title="Back to pUC19">‹</button
+              ><span class="ph__name">Primers</span><span class="dnote">pUC19</span
+              ><span class="actions__gap"></span
+              ><button class="button button--quiet" title="Close">✕</button>
+            </div>
+            <div class="ph__pane">
+              <div class="ph__subtabs ph__subtabs--ws" role="tablist">
+                <button class="ph__subtab" role="tab" data-goto="design">Design</button
+                ><button class="ph__subtab ph__subtab--on" role="tab" data-goto="results">
+                  Results<span class="ws__badge">10</span></button
+                ><button class="ph__subtab" role="tab" data-goto="check">Check</button
+                ><button class="ph__subtab" role="tab" data-goto="mine">
+                  My primers<span class="ws__badge">12</span>
+                </button>
+              </div>
+              <details class="ph__strip" open>
+                <summary title="Map strip, tap to fold">Map</summary>
+                <svg
+                  class="lmap"
+                  viewBox="0 0 390 68"
+                  width="100%"
+                  height="68"
+                  preserveAspectRatio="none"
+                  role="img"
+                  aria-label="Linear map of pUC19"
+                >
+                  <defs>
+                    <marker
+                      id="lp-fwd"
+                      viewBox="0 0 6 6"
+                      refX="5"
+                      refY="3"
+                      markerWidth="5"
+                      markerHeight="5"
+                      orient="auto"
+                    >
+                      <path d="M0,0L6,3L0,6z" fill="var(--seq-preview)" />
+                    </marker>
+                    <marker
+                      id="lp-rev"
+                      viewBox="0 0 6 6"
+                      refX="1"
+                      refY="3"
+                      markerWidth="5"
+                      markerHeight="5"
+                      orient="auto-start-reverse"
+                    >
+                      <path d="M0,0L6,3L0,6z" fill="var(--seq-preview)" />
+                    </marker>
+                  </defs>
+                  <rect
+                    x="31.8"
+                    y="13.400000000000006"
+                    width="44.0"
+                    height="48"
+                    fill="var(--seq-selection)"
+                  />
+                  <line
+                    x1="12"
+                    y1="37.400000000000006"
+                    x2="378"
+                    y2="37.400000000000006"
+                    stroke="var(--ink-2)"
+                    stroke-width="1.5"
+                  />
+                  <line
+                    x1="80.0"
+                    y1="33.400000000000006"
+                    x2="80.0"
+                    y2="41.400000000000006"
+                    stroke="var(--ink-3)"
+                  />
+                  <text x="80.0" y="64" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                    500
+                  </text>
+                  <line
+                    x1="148.1"
+                    y1="33.400000000000006"
+                    x2="148.1"
+                    y2="41.400000000000006"
+                    stroke="var(--ink-3)"
+                  />
+                  <text x="148.1" y="64" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                    1,000
+                  </text>
+                  <line
+                    x1="216.3"
+                    y1="33.400000000000006"
+                    x2="216.3"
+                    y2="41.400000000000006"
+                    stroke="var(--ink-3)"
+                  />
+                  <text x="216.3" y="64" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                    1,500
+                  </text>
+                  <line
+                    x1="284.4"
+                    y1="33.400000000000006"
+                    x2="284.4"
+                    y2="41.400000000000006"
+                    stroke="var(--ink-3)"
+                  />
+                  <text x="284.4" y="64" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                    2,000
+                  </text>
+                  <line
+                    x1="352.5"
+                    y1="33.400000000000006"
+                    x2="352.5"
+                    y2="41.400000000000006"
+                    stroke="var(--ink-3)"
+                  />
+                  <text x="352.5" y="64" font-size="9" fill="var(--ink-3)" text-anchor="middle">
+                    2,500
+                  </text>
+                  <rect
+                    x="31.8"
+                    y="26.400000000000006"
+                    width="44.0"
+                    height="7"
+                    fill="#4c8bd6"
+                    rx="1"
+                  >
+                    <title>lacZα 146–469</title>
+                  </rect>
+                  <text
+                    x="53.8"
+                    y="23.400000000000006"
+                    font-size="9"
+                    fill="var(--ink)"
+                    text-anchor="middle"
+                  >
+                    lacZα
+                  </text>
+                  <rect
+                    x="66.0"
+                    y="41.400000000000006"
+                    width="7.8"
+                    height="7"
+                    fill="#c9a227"
+                    rx="1"
+                  >
+                    <title>MCS 397–454</title>
+                  </rect>
+                  <rect
+                    x="75.9"
+                    y="26.400000000000006"
+                    width="4.1"
+                    height="7"
+                    fill="#8e7cc3"
+                    rx="1"
+                  >
+                    <title>lac promoter 470–500</title>
+                  </rect>
+                  <rect
+                    x="130.0"
+                    y="26.400000000000006"
+                    width="80.1"
+                    height="7"
+                    fill="#6aa84f"
+                    rx="1"
+                  >
+                    <title>ori 867–1455</title>
+                  </rect>
+                  <text
+                    x="170.1"
+                    y="23.400000000000006"
+                    font-size="9"
+                    fill="var(--ink)"
+                    text-anchor="middle"
+                  >
+                    ori
+                  </text>
+                  <rect
+                    x="233.4"
+                    y="26.400000000000006"
+                    width="117.2"
+                    height="7"
+                    fill="#d6704c"
+                    rx="1"
+                  >
+                    <title>AmpR 1626–2486</title>
+                  </rect>
+                  <text
+                    x="292.0"
+                    y="23.400000000000006"
+                    font-size="9"
+                    fill="var(--ink)"
+                    text-anchor="middle"
+                  >
+                    AmpR
+                  </text>
+                  <rect
+                    x="350.7"
+                    y="26.400000000000006"
+                    width="14.2"
+                    height="7"
+                    fill="#8e7cc3"
+                    rx="1"
+                  >
+                    <title>AmpR promoter 2487–2591</title>
+                  </rect>
+                  <line
+                    x1="18.0"
+                    y1="55.400000000000006"
+                    x2="89.1"
+                    y2="55.400000000000006"
+                    stroke="var(--seq-preview)"
+                    stroke-width="1.2"
+                    stroke-dasharray="3 3"
+                  />
+                  <line
+                    x1="18.0"
+                    y1="55.400000000000006"
+                    x2="26.9"
+                    y2="55.400000000000006"
+                    stroke="var(--seq-preview)"
+                    stroke-width="3"
+                    marker-end="url(#lp-fwd)"
+                  />
+                  <line
+                    x1="80.5"
+                    y1="55.400000000000006"
+                    x2="89.1"
+                    y2="55.400000000000006"
+                    stroke="var(--seq-preview)"
+                    stroke-width="3"
+                    marker-start="url(#lp-rev)"
+                  />
+                  <text
+                    x="53.6"
+                    y="67.4"
+                    font-size="9"
+                    fill="var(--seq-preview)"
+                    text-anchor="middle"
+                  >
+                    pair 2 · 523 bp
+                  </text>
+                </svg>
+              </details>
+              <div class="ws ws--phone" data-active="results">
+                <section class="ws__page" data-page="results">
+                  <header class="ws__head">
+                    <h2>Results</h2>
+                    <div class="ws__sub">10 pairs · lacZα 146–469</div>
+                    <div class="ws__head-actions">
+                      <button class="button button--small">Sort ▾</button
+                      ><button class="button button--small">Filter</button>
+                    </div>
+                  </header>
+                  <ul class="plist" aria-label="Candidate pairs">
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#1</b><span>479 bp</span><span>ΔTm 0.4</span><span>Tm 61.0 / 60.6</span
+                        ><span
+                          class="spec spec--ok"
+                          title="Specific: 1 amplicon in E. coli K-12 (479 bp)"
+                          >✓ 1</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow is-selected" aria-selected="true">
+                      <div class="prow__h">
+                        <b>#2</b><span>523 bp</span><span>ΔTm 1.6</span><span>Tm 62.6 / 61.0</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                      <div class="prow__d">
+                        <div class="mono">→ CTCCCGGAGACGGTCACAGCTT</div>
+                        <div class="mono">← GCTCACTCATTAGGCACCCC</div>
+                        <div class="dnote">45–66 · 548–567 · GC 64 / 60 % · clamp both</div>
+                        <div class="actions">
+                          <button class="button button--small">Add both</button
+                          ><button class="button button--small">Save both</button
+                          ><button class="button button--small">Copy</button
+                          ><button class="button button--small" title="NCBI Primer-BLAST, new tab">
+                            Specificity…
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#3</b><span>507 bp</span><span>ΔTm 0.0</span><span>Tm 61.0 / 61.0</span
+                        ><span class="spec spec--pending" title="Primer-BLAST job queued 40 s ago"
+                          >…</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#4</b><span>439 bp</span><span>ΔTm 1.9</span><span>Tm 62.5 / 60.6</span
+                        ><span
+                          class="spec spec--warn"
+                          title="3 amplicons in E. coli K-12: 439, 1,204, 2,980 bp"
+                          >! 3</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#5</b><span>594 bp</span><span>ΔTm 1.0</span><span>Tm 60.6 / 61.6</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#6</b><span>573 bp</span><span>ΔTm 1.0</span><span>Tm 62.6 / 61.6</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#7</b><span>540 bp</span><span>ΔTm 2.1</span><span>Tm 62.5 / 60.4</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#8</b><span>556 bp</span><span>ΔTm 0.4</span><span>Tm 60.6 / 61.0</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#9</b><span>420 bp</span><span>ΔTm 2.1</span><span>Tm 62.7 / 60.6</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                    </li>
+                    <li class="prow" aria-selected="false">
+                      <div class="prow__h">
+                        <b>#10</b><span>651 bp</span><span>ΔTm 1.2</span><span>Tm 60.6 / 61.8</span
+                        ><span class="spec spec--none" title="Not checked (NCBI Primer-BLAST, #298)"
+                          >—</span
+                        >
+                      </div>
+                    </li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-note" style="max-width: 520px; margin: 0">
+          <p>
+            One row per pair, sortable by any column and narrowed by the filter box and the toggles.
+            Selecting a row (click, or ↑↓ with focus in the table) shows the pair on the map and
+            fills the detail pane; <em>Show on map</em> can be unticked without losing the row.
+          </p>
+          <p>
+            <em>Spec.</em> is the #298 slot: not checked, queued, one amplicon, or a count that
+            wants a look, each with its tooltip. The detail pane's <em>Check specificity…</em> opens
+            NCBI Primer-BLAST prefilled in a new tab; its tooltip says what leaves the browser. The
+            in-app result (stage b of #298) would fill the same cell.
+          </p>
+          <p>
+            In the split layout the detail pane sits under the table; in the strip layout, beside
+            it.
+          </p>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-goto]');
+        if (t) {
+          e.preventDefault();
+          var ws = t.closest('.ws');
+          if (ws) ws.dataset.active = t.dataset.goto;
+          ws &&
+            ws.querySelectorAll('.ws__tab').forEach(function (b) {
+              var on = b.dataset.goto === t.dataset.goto;
+              b.classList.toggle('ws__tab--on', on);
+              b.setAttribute('aria-selected', on);
+            });
+        }
+        var th = e.target.closest('[data-theme-set]');
+        if (th) {
+          document.documentElement.dataset.theme = th.dataset.themeSet;
+          th.parentNode.querySelectorAll('.seg__b').forEach(function (b) {
+            b.classList.toggle('seg__b--on', b === th);
+          });
+        }
+        var ly = e.target.closest('[data-layout-set]');
+        if (ly) {
+          document.querySelectorAll('.frame[data-layout]').forEach(function (f) {
+            if (f.dataset.layout !== 'sidebar') f.dataset.layout = ly.dataset.layoutSet;
+          });
+          ly.parentNode.querySelectorAll('.seg__b').forEach(function (b) {
+            b.classList.toggle('seg__b--on', b === ly);
+          });
+        }
+        if (e.target.closest('a[href="#"]')) e.preventDefault();
+      });
+    </script>
+  </body>
+</html>
