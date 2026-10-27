@@ -246,11 +246,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           )}
           {page === 'results' && <PrimerCandidates doc={doc} design={design} layout={layout} />}
           {page === 'check' && <PrimerCheck doc={doc} probe={probe} />}
-          {page === 'mine' && (
-            <div className="panel">
-              <PrimerCollection doc={doc} />
-            </div>
-          )}
+          {page === 'mine' && <PrimerCollection doc={doc} />}
         </div>
       </section>
     </div>

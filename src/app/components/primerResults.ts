@@ -1,5 +1,7 @@
 import { type PrimerPair, type SeqDocument, cleanPrimer, findPrimerBindingSites } from '@/core';
 
+import { type SortState } from './tableKeys';
+
 /**
  * The Results table's order, filters and the detail pane's checks (item
  * 107, stage two): what the table shows is the design's pairs as rows, each
@@ -16,10 +18,7 @@ export interface ResultRow {
 export type ResultsSortKey =
   'rank' | 'product' | 'dtm' | 'fwd' | 'fwdTm' | 'fwdGc' | 'rev' | 'revTm' | 'revGc';
 
-export interface ResultsSort {
-  readonly key: ResultsSortKey;
-  readonly dir: 'asc' | 'desc';
-}
+export type ResultsSort = SortState<ResultsSortKey>;
 
 export const DEFAULT_RESULTS_SORT: ResultsSort = { key: 'rank', dir: 'asc' };
 
@@ -58,11 +57,6 @@ export function sortRows(rows: readonly ResultRow[], sort: ResultsSort): ResultR
       typeof x === 'string' || typeof y === 'string' ? String(x).localeCompare(String(y)) : x - y;
     return d === 0 ? a.index - b.index : sign * d;
   });
-}
-
-/** A click on a column: the same column turns the order round, another starts ascending. */
-export function toggleSort(sort: ResultsSort, key: ResultsSortKey): ResultsSort {
-  return sort.key === key ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' };
 }
 
 export interface ResultsFilter {

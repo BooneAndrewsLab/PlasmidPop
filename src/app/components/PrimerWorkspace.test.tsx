@@ -302,12 +302,13 @@ describe('checking a degenerate primer (#76)', () => {
     act(() => {
       fireEvent.change(screen.getByLabelText('Primer sequence'), { target: { value: primer } });
     });
-    const summary = screen.getByText(/22 nt, Tm/);
-    expect(summary.textContent).toMatch(/Tm \d+\.\d–\d+\.\d °C, GC \d+%–\d+%/);
-    expect(screen.getByText(/Degenerate: 2 positions, a mix of 8 molecules/)).toBeInTheDocument();
-    expect(screen.getByText('1 binding site:')).toBeInTheDocument();
-    expect(screen.getByText('101–122')).toBeInTheDocument();
-    expect(screen.getByText('exact')).toBeInTheDocument();
+    const summary = screen.getByLabelText('Primer summary');
+    expect(summary.textContent).toMatch(/^22 ntTm \d+\.\d–\d+\.\d °CGC \d+%–\d+%(clamp)?mix of 8$/);
+    // The degenerate positions are the mix's tooltip, not a paragraph (item 107).
+    expect(screen.getByText('mix of 8').getAttribute('data-tip')).toMatch(/2 degenerate positions/);
+    const sites = screen.getByRole('table', { name: 'Binding sites' });
+    const [row] = within(sites).getAllByRole('row').slice(1);
+    expect(row?.textContent).toBe('→101–122exact');
   });
 
   it('shows a plain primer as before', () => {
@@ -317,8 +318,11 @@ describe('checking a degenerate primer (#76)', () => {
         target: { value: template().slice(100, 122) },
       });
     });
-    expect(screen.getByText(/22 nt, Tm/).textContent).toMatch(/Tm \d+\.\d °C, GC \d+%/);
-    expect(screen.queryByText(/Degenerate:/)).toBeNull();
+    expect(screen.getByLabelText('Primer summary').textContent).toMatch(
+      /^22 ntTm \d+\.\d °CGC \d+%(clamp)?$/,
+    );
+    expect(screen.queryByText(/mix of/)).toBeNull();
+    expect(screen.getByText(/^No hairpin|^Hairpin \d/)).toBeInTheDocument();
   });
 });
 

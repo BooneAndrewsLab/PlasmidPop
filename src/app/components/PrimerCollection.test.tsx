@@ -84,7 +84,7 @@ async function paste(text: string): Promise<void> {
 
 async function findMine(): Promise<void> {
   await act(async () => {
-    fireEvent.click(screen.getByLabelText(/Find my primers in/));
+    fireEvent.click(screen.getByLabelText(/^Find in /));
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 }
@@ -107,8 +107,8 @@ describe('My primers', () => {
   it('adds a pasted list, keeps it in IndexedDB, and leaves out what is already there', async () => {
     await setup();
     await paste(LIST);
-    const list = screen.getByRole('list', { name: 'My primers' });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(4);
+    const list = screen.getByRole('table', { name: 'My primers' });
+    expect(within(list).getAllByRole('row').slice(1)).toHaveLength(4);
     expect(within(list).getByText('lab stock')).toBeTruthy();
     expect(await screen.findByText(/Added 4 primers/)).toBeTruthy();
     expect((await getRepository().loadPrimers()).map((p) => p.name)).toEqual([
@@ -124,11 +124,20 @@ describe('My primers', () => {
   it('gives each primer its length and Tm, and a degenerate one its length alone (#226)', async () => {
     await setup();
     await paste(`fwd1,${FWD}\nmix,ACGTNNKACGTACGTACGTAC\n`);
-    const list = screen.getByRole('list', { name: 'My primers' });
+    const list = screen.getByRole('table', { name: 'My primers' });
     const metas = within(list)
-      .getAllByRole('listitem')
-      .map((li) => li.querySelector('.primer-item__meta')?.textContent);
-    expect(metas).toEqual([expect.stringMatching(/^21 nt · Tm \d\d\.\d °C$/), '21 nt']);
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) =>
+        within(row)
+          .getAllByRole('cell')
+          .slice(3, 5)
+          .map((c) => c.textContent),
+      );
+    expect(metas).toEqual([
+      ['21', expect.stringMatching(/^\d\d\.\d$/)],
+      ['21', '–'],
+    ]);
   });
 
   it('shows the search limits only while Find is on (#226)', async () => {
@@ -273,6 +282,55 @@ describe('My primers', () => {
     );
   });
 
+  it('sorts by a column and picks two primers as a pair for Primer-BLAST (item 107, #298)', async () => {
+    await setup();
+    await paste(LIST);
+    const table = screen.getByRole('table', { name: 'My primers' });
+    const names = () =>
+      within(table)
+        .getAllByRole('row')
+        .slice(1)
+        .map((r) => within(r).getAllByRole('cell')[1]?.textContent);
+    expect(names()).toEqual(['fwd1', 'rev1', 'ori', 'stray']);
+    act(() => {
+      fireEvent.click(
+        within(within(table).getByRole('columnheader', { name: 'Name' })).getByRole('button'),
+      );
+    });
+    expect(within(table).getByRole('columnheader', { name: 'Name' })).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    );
+    expect(names()).toEqual(['fwd1', 'ori', 'rev1', 'stray']);
+    expect(screen.queryByRole('group', { name: 'Picked pair' })).toBeNull();
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Pick fwd1 for a pair' }));
+    });
+    expect(screen.getByRole('group', { name: 'Picked pair' }).textContent).toMatch(
+      /Tick one more primer/,
+    );
+    act(() => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Pick rev1 for a pair' }));
+    });
+    const link = screen.getByRole('link', { name: 'Check specificity…' });
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    const url = new URL(link.getAttribute('href') ?? '');
+    expect(url.searchParams.get('PRIMER_LEFT_INPUT')).toBe(FWD);
+    expect(url.searchParams.get('PRIMER_RIGHT_INPUT')).toBe(REV);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Swap' }));
+    });
+    expect(
+      new URL(
+        screen.getByRole('link', { name: 'Check specificity…' }).getAttribute('href') ?? '',
+      ).searchParams.get('PRIMER_LEFT_INPUT'),
+    ).toBe(REV);
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    });
+    expect(screen.queryByRole('group', { name: 'Picked pair' })).toBeNull();
+  });
+
   it('downloads the list as CSV and as FASTA', async () => {
     await setup();
     await paste(LIST);
@@ -289,7 +347,7 @@ describe('My primers', () => {
   it('edits and deletes a primer', async () => {
     await setup();
     await paste(`fwd1 ${FWD}\nrev1 ${REV}\n`);
-    const list = screen.getByRole('list', { name: 'My primers' });
+    const list = screen.getByRole('table', { name: 'My primers' });
     act(() => {
       fireEvent.click(first(within(list).getAllByRole('button', { name: 'Edit' })));
     });
@@ -314,8 +372,18 @@ describe('My primers', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
     });
+    // The pair's actions are in the detail pane, once a row is selected (item 107).
+    act(() => {
+      fireEvent.click(
+        first(
+          within(screen.getByRole('grid', { name: 'Candidate pairs' }))
+            .getAllByRole('row')
+            .slice(1),
+        ),
+      );
+    });
     await act(async () => {
-      fireEvent.click(first(screen.getAllByRole('button', { name: 'Save both' })));
+      fireEvent.click(screen.getByRole('button', { name: 'Save both' }));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(

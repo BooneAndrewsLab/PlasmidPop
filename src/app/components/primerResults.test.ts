@@ -9,8 +9,8 @@ import {
   pairChecks,
   rowMatches,
   sortRows,
-  toggleSort,
 } from './primerResults';
+import { toggleSort } from './tableKeys';
 
 function report(
   sequence: string,

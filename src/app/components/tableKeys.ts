@@ -1,3 +1,14 @@
+/** A table's order: the column and its direction (item 107). */
+export interface SortState<K extends string> {
+  readonly key: K;
+  readonly dir: 'asc' | 'desc';
+}
+
+/** A click on a column: the same column turns the order round, another starts ascending. */
+export function toggleSort<K extends string>(sort: SortState<K>, key: K): SortState<K> {
+  return sort.key === key ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' };
+}
+
 /**
  * Where an arrow key takes the selection among `count` rows, from `at` (or
  * from nowhere), or null for a key that is not one of the table's.

@@ -21,11 +21,10 @@ import {
   pairAsText,
   pairChecks,
   sortRows,
-  toggleSort,
 } from './primerResults';
 import { type WorkspaceLayout } from '../primerWorkspace';
 import { SortTh } from './SortTh';
-import { nextRowIndex } from './tableKeys';
+import { nextRowIndex, toggleSort } from './tableKeys';
 
 /** "45–66", a site 1-based and inclusive, the end wrapped onto a circle. */
 function span(r: Range, seqLength: number): string {

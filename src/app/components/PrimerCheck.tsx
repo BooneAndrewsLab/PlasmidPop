@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { type SeqDocument } from '@/core';
+import { type PrimerReport, type SeqDocument } from '@/core';
 
 import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { savePrimers } from '../state/primerCollection';
@@ -29,119 +29,167 @@ export function ProbeBox({
   );
 }
 
+/** "Tm 61.0 °C", or the range over a degenerate mix. */
+function tmText(report: PrimerReport): string {
+  if (report.degenerate === 0) return `Tm ${tm(report.tm)}`;
+  if (report.tmRange === null) return 'Tm –';
+  return `Tm ${report.tmRange.min.toFixed(1)}–${report.tmRange.max.toFixed(1)} °C`;
+}
+
+function gcText(report: PrimerReport): string {
+  return report.degenerate === 0
+    ? `GC ${pct(report.gc)}`
+    : `GC ${pct(report.gcRange.min)}–${pct(report.gcRange.max)}`;
+}
+
 interface Props {
   readonly doc: SeqDocument;
   readonly probe: PrimerProbe;
 }
 
 /**
- * Check a primer in full (item 93), on the workspace's Check page (item
- * 107): length, Tm, GC and clamp, the warnings against the settings, where
- * it binds, and Add sites and Save.
+ * The workspace's Check page (item 107, stage two): the primer on the left
+ * — its numbers as a line of labels, the settings it breaks as a list, the
+ * dimer checks, the actions — and where it binds on the right, as a table
+ * a row a site. Labels and tooltips rather than prose; the guide has the
+ * prose.
  */
 export function PrimerCheck({ doc, probe }: Props) {
   const { report, sites } = probe;
   const [saved, setSaved] = useState<string | null>(null);
+  const live = report !== null && report.length > 0;
   return (
-    <>
-      <ProbeBox probe={probe} />
-      {report !== null && report.length > 0 && (
-        <>
-          <p className="panel__mono primers__stats">
-            {report.length} nt, Tm{' '}
-            {report.degenerate === 0
-              ? tm(report.tm)
-              : report.tmRange === null
-                ? '–'
-                : `${report.tmRange.min.toFixed(1)}–${report.tmRange.max.toFixed(1)} °C`}
-            , GC{' '}
-            {report.degenerate === 0
-              ? pct(report.gc)
-              : `${pct(report.gcRange.min)}–${pct(report.gcRange.max)}`}
-            {report.gcClamp ? ', GC clamp' : ''}
-          </p>
-          {report.degenerate > 0 && (
-            <p className="panel__note panel__note--quiet">
-              Degenerate: {report.degenerate} {report.degenerate === 1 ? 'position' : 'positions'},
-              a mix of {report.molecules.toLocaleString()} molecules. Tm and GC are ranges over the
-              mix; hairpins and dimers are counted on the plain bases. A code binds wherever it
-              stands for the template&rsquo;s base.
+    <div className="checkgrid">
+      <div className="checkgrid__primer">
+        <ProbeBox probe={probe} />
+        {live && (
+          <>
+            <p className="statline" aria-label="Primer summary">
+              <span>{report.length} nt</span>
+              <span data-tip="Melting temperature, nearest-neighbour">{tmText(report)}</span>
+              <span data-tip="GC content">{gcText(report)}</span>
+              {report.gcClamp && (
+                <span className="dt__ok" data-tip="Ends in G or C">
+                  clamp
+                </span>
+              )}
+              {report.degenerate > 0 && (
+                <span
+                  data-tip={`${report.degenerate} degenerate ${report.degenerate === 1 ? 'position' : 'positions'}; Tm and GC are ranges over the mix, hairpins and dimers are counted on the plain bases`}
+                >
+                  mix of {report.molecules.toLocaleString()}
+                </span>
+              )}
             </p>
-          )}
-          {report.warnings.length > 0 && (
-            <ul className="panel__warnings">
+            <ul className="warns" aria-label="Warnings">
               {report.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          )}
-          <p className="panel__note">
-            {report.length < 8
-              ? 'Enter at least 8 bases to search for binding sites.'
-              : sites.length === 0
-                ? 'No binding site in this sequence (exact 3′ end, up to 2 mismatches elsewhere).'
-                : `${sites.length} binding ${sites.length === 1 ? 'site' : 'sites'}:`}
-          </p>
-          {sites.length > 0 && (
-            <ul className="orf-list" aria-label="Binding sites">
-              {sites.map((s) => (
-                <li key={`${s.strand}-${s.range.start}`}>
-                  <button
-                    type="button"
-                    className="orf-row"
-                    onClick={() => {
-                      goToSite(s);
-                    }}
-                  >
-                    <span className="orf-row__strand">{s.strand === 'forward' ? '→' : '←'}</span>
-                    <span className="orf-row__range">{siteSpan(s, doc.length)}</span>
-                    <span className="orf-row__length">
-                      {s.mismatches === 0 ? 'exact' : `${s.mismatches} mm`}
-                    </span>
-                  </button>
+                <li key={w} className="warns__warn">
+                  {w}
                 </li>
               ))}
+              <li
+                className="warns__ok"
+                data-tip="Longest hairpin stem, self-complementary stretch and 3′-end self-pairing, bp"
+              >
+                {report.hairpin === 0 ? 'No hairpin' : `Hairpin ${report.hairpin} bp`}, self-dimer{' '}
+                {report.selfComplementarity} bp, 3′ dimer {report.threePrimeSelf} bp
+              </li>
             </ul>
-          )}
-          <div className="panel__controls">
-            {sites.length > 0 && (
+            <div className="actions">
+              {sites.length > 0 && (
+                <button
+                  type="button"
+                  className="button button--small"
+                  data-tip="Annotate every site as a primer_bind feature, one undo step"
+                  onClick={() => {
+                    // One click, so one Undo takes every site back (#96).
+                    addFeaturesAsOneStep(
+                      sites.map((s) => primerFeature('Primer', s.range, s.strand, report.sequence)),
+                      sites[sites.length - 1]?.range,
+                    );
+                  }}
+                >
+                  Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind
+                </button>
+              )}
               <button
                 type="button"
-                className="button button--small"
+                className="button button--quiet button--small"
+                data-tip="Keep this primer in My primers, in this browser"
                 onClick={() => {
-                  // One click, so one Undo takes every site back (#96).
-                  addFeaturesAsOneStep(
-                    sites.map((s) => primerFeature('Primer', s.range, s.strand, report.sequence)),
-                    sites[sites.length - 1]?.range,
-                  );
+                  void savePrimers(
+                    [{ name: '', sequence: report.sequence, notes: '' }],
+                    'check',
+                  ).then((r) => {
+                    setSaved(
+                      r.added.length === 0
+                        ? 'Already in My primers.'
+                        : `Saved ${r.added.map((p) => p.name).join(' and ')} to My primers.`,
+                    );
+                  });
                 }}
               >
-                Add {sites.length === 1 ? 'site' : 'sites'} as primer_bind
+                Save to My primers
               </button>
+            </div>
+            {saved !== null && (
+              <p className="panel__note panel__note--quiet" role="status">
+                {saved}
+              </p>
             )}
-            <button
-              type="button"
-              className="button button--quiet button--small"
-              data-tip="Keep this primer in My primers, in this browser"
-              onClick={() => {
-                void savePrimers(
-                  [{ name: '', sequence: report.sequence, notes: '' }],
-                  'check',
-                ).then((r) => {
-                  setSaved(
-                    r.added.length === 0
-                      ? 'Already in My primers.'
-                      : `Saved ${r.added.map((p) => p.name).join(' and ')} to My primers.`,
-                  );
-                });
-              }}
-            >
-              Save to My primers
-            </button>
+          </>
+        )}
+      </div>
+      {live && (
+        <div className="checkgrid__sites">
+          <div className="subhead">
+            Binding sites
+            <span className="dnote" data-tip="Both strands, through the origin of a circle">
+              3′ end exact, ≤ 2 mismatches
+            </span>
           </div>
-          {saved !== null && <p className="panel__note panel__note--quiet">{saved}</p>}
-        </>
+          {report.length < 8 ? (
+            <p className="dnote">At least 8 bases are needed to search.</p>
+          ) : sites.length === 0 ? (
+            <p className="dnote">None on {doc.name}.</p>
+          ) : (
+            <table className="sites" aria-label="Binding sites">
+              <thead>
+                <tr>
+                  <th>
+                    <span className="visually-hidden">Strand</span>
+                  </th>
+                  <th>Position</th>
+                  <th>Mismatches</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sites.map((s) => (
+                  <tr key={`${s.strand}-${s.range.start}`}>
+                    <td className="sites__strand">{s.strand === 'forward' ? '→' : '←'}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="link link--mono"
+                        data-tip="Select the bases it anneals to"
+                        onClick={() => {
+                          goToSite(s);
+                        }}
+                      >
+                        {siteSpan(s, doc.length)}
+                      </button>
+                    </td>
+                    <td>{s.mismatches === 0 ? 'exact' : s.mismatches}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="dnote checkgrid__note">
+            The whole oligo must match; for a tailed cloning primer use Cloning ▸ PCR.
+          </p>
+        </div>
       )}
-    </>
+    </div>
   );
 }

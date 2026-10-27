@@ -2450,73 +2450,7 @@ button {
   gap: 6px;
 }
 
-/* My primers (#64): the collection, and where its primers bind. */
-.primer-list {
-  list-style: none;
-  margin: 4px 0 8px;
-  padding: 0;
-  max-height: min(45vh, 420px);
-  overflow-y: auto;
-}
-
-/* A kept primer: the name with its length and Tm at the right, the bases,
-   the notes, and its actions on one tight line (item 93). */
-.primer-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1px 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 12.5px;
-}
-
-.primer-item:last-child {
-  border-bottom: 0;
-}
-
-.primer-item__name {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.primer-item__meta {
-  color: var(--ink-3);
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.primer-item__seq,
-.primer-item__notes,
-.primer-item__buttons {
-  grid-column: 1 / -1;
-}
-
-.primer-item__notes {
-  color: var(--ink-3);
-  font-size: 12px;
-}
-
-.primer-item__buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  margin-left: -8px;
-}
-
-.primer-item--editing {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-}
-
-.primer-item--editing .primer-item__buttons {
-  margin-left: 0;
-}
-
-.primer-collection__find {
-  margin-bottom: 4px;
-}
-
+/* My primers (#64): the add form, and where its primers bind. */
 .primer-collection__add .panel__field--stack {
   gap: 4px;
 }
@@ -6169,16 +6103,6 @@ button {
 
 /* The results list takes the width the panel never had: two pairs a row. */
 /* My primers is the sidebar's component as it is, without its own frame. */
-.ws .primer-collection {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-
-.ws .primer-collection > legend {
-  display: none;
-}
-
 /* ---- The workspace's tables (stage two): Results and My primers. One row
    a pair or a primer, dense and tabular; the header says its order, the
    selected row carries the preview colour the map draws the pair in. ---- */
@@ -6397,6 +6321,144 @@ button {
 
 .results__hint {
   margin-top: 10px;
+}
+
+/* The Check page: the primer on the left, where it binds on the right. */
+.checkgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 6px 20px;
+}
+
+.statline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 2px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.warns {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.warns li::before {
+  content: '•';
+  margin-right: 6px;
+}
+
+.warns__warn {
+  color: var(--warn);
+}
+
+.warns__ok {
+  color: var(--ink-2);
+}
+
+.subhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.sites {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sites th {
+  padding: 3px 8px 3px 0;
+  text-align: left;
+  font-size: 12px;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.sites td {
+  padding: 3px 8px 3px 0;
+}
+
+.sites__strand {
+  width: 1.2em;
+  color: var(--seq-preview);
+  font-weight: 600;
+}
+
+.checkgrid__note {
+  margin: 8px 0 0;
+}
+
+/* My primers as a table: the pick box, the name, the bases, nt, Tm, the
+   notes (ellipsized) and the actions; the picked rows make a pair. */
+.mine__wrap {
+  max-height: min(55vh, 520px);
+}
+
+.mine__pick {
+  width: 1.4em;
+  padding-right: 0;
+}
+
+.mine__name {
+  font-weight: 600;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mine__notes {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.mine__acts {
+  text-align: right;
+}
+
+.mine__acts .button {
+  margin-left: 2px;
+}
+
+.mine__row.is-picked {
+  background: var(--surface-3);
+  box-shadow: inset 3px 0 0 var(--seq-preview);
+}
+
+.mine__row--editing .panel__search {
+  width: 100%;
+  min-width: 8em;
+}
+
+.mine__pair {
+  margin: 8px 0 0;
+}
+
+.mine__sites {
+  margin-top: 12px;
+}
+
+.mine__foot {
+  margin-top: 12px;
+}
+
+.mine .primer-collection__add {
+  margin-top: 12px;
+  max-width: 560px;
 }
 
 /* The phone's Results: one row a pair, the selected one opened out. */

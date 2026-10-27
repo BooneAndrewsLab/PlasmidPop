@@ -11,7 +11,6 @@ import {
   ANNEAL_DEFAULTS,
   cleanPrimer,
   createFeature,
-  meltingTemperature,
   mismatchPositions,
   type ParsedPrimerList,
   parsePrimerList,
@@ -26,6 +25,7 @@ import { type OverlaySpan } from '@/view/overlay';
 import { analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
+import { PRIMER_BLAST_SENDS, primerBlastUrl } from '../primerBlast';
 import { type PcrSlot, openPcr, pcrChoice, sendToPcr } from '../primerToPcr';
 import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
@@ -38,15 +38,24 @@ import {
   usePrimerCollection,
 } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
+import {
+  type CollectionSort,
+  type CollectionSortKey,
+  DEFAULT_COLLECTION_SORT,
+  collectionTm,
+  sortCollection,
+} from './collectionSort';
+import { SortTh } from './SortTh';
+import { toggleSort } from './tableKeys';
 
 /**
- * My primers (#64, item 56): the collection kept in this browser, and
- * "Find my primers" on the document in front.
+ * My primers (#64, item 56; a table since item 107): the collection kept
+ * in this browser, and "Find in" the document in front.
  *
  * The search is PCR's own annealing search run over the collection, so a
  * primer found here is one PCR would anneal, tail and all; it runs in the
  * analysis worker, since a lab's list is hundreds of oligos. What it finds
- * is a preview, as the designed pairs above are: nothing is in the document
+ * is a preview, as the designed pairs are: nothing is in the document
  * until **Add** makes a `primer_bind` feature of a site, which is an edit
  * and can be undone.
  */
@@ -133,47 +142,77 @@ function sayAdded(
   return `${parts.join('; ')}.`;
 }
 
+/** The bases typed into an edit, or what they were when nothing is left of them. */
+function cleanOr(typed: string, was: string): string {
+  const bases = cleanPrimer(typed);
+  return bases === '' ? was : bases;
+}
+
+/** One primer as a row of the table: its columns, or the three boxes while it is being edited. */
 function PrimerRow({
   primer,
+  picked,
+  onPick,
   onPcr,
 }: {
   readonly primer: CollectionPrimer;
+  readonly picked: boolean;
+  readonly onPick: (on: boolean) => void;
   readonly onPcr: (slot: PcrSlot, primer: CollectionPrimer) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(primer.name);
   const [sequence, setSequence] = useState(primer.sequence);
   const [notes, setNotes] = useState(primer.notes);
+  const pick = (
+    <td className="mine__pick">
+      <input
+        type="checkbox"
+        aria-label={`Pick ${primer.name} for a pair`}
+        checked={picked}
+        onChange={(e) => {
+          onPick(e.target.checked);
+        }}
+      />
+    </td>
+  );
   if (editing) {
     return (
-      <li className="primer-item primer-item--editing">
-        <input
-          className="panel__search"
-          aria-label="Primer name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-          }}
-        />
-        <input
-          className="panel__search panel__mono-input"
-          aria-label="Primer bases"
-          spellCheck={false}
-          value={sequence}
-          onChange={(e) => {
-            setSequence(e.target.value);
-          }}
-        />
-        <input
-          className="panel__search"
-          aria-label="Primer notes"
-          placeholder="Notes"
-          value={notes}
-          onChange={(e) => {
-            setNotes(e.target.value);
-          }}
-        />
-        <span className="primer-item__buttons">
+      <tr className="mine__row mine__row--editing">
+        {pick}
+        <td>
+          <input
+            className="panel__search"
+            aria-label="Primer name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+            }}
+          />
+        </td>
+        <td colSpan={3}>
+          <input
+            className="panel__search panel__mono-input"
+            aria-label="Primer bases"
+            spellCheck={false}
+            value={sequence}
+            onChange={(e) => {
+              setSequence(e.target.value);
+            }}
+          />
+        </td>
+        <td>
+          <input
+            className="panel__search"
+            aria-label="Primer notes"
+            placeholder="Notes"
+            value={notes}
+            onChange={(e) => {
+              setNotes(e.target.value);
+            }}
+          />
+        </td>
+        <td className="mine__acts">
           <button
             type="button"
             className="button button--small"
@@ -200,22 +239,33 @@ function PrimerRow({
           >
             Cancel
           </button>
-        </span>
-      </li>
+        </td>
+      </tr>
     );
   }
   // The Tm a scientist checks before ordering, at the Primers tab's
   // conditions; a degenerate primer has none and shows its length alone.
-  const tm = meltingTemperature(primer.sequence);
+  const tm = collectionTm(primer);
   return (
-    <li className="primer-item">
-      <span className="primer-item__name">{primer.name}</span>
-      <span className="primer-item__meta">
-        {primer.sequence.length} nt{Number.isNaN(tm) ? '' : ` · Tm ${tm.toFixed(1)} °C`}
-      </span>
-      <span className="pair__seq primer-item__seq">{primer.sequence}</span>
-      {primer.notes !== '' && <span className="primer-item__notes">{primer.notes}</span>}
-      <span className="primer-item__buttons">
+    <tr className={`mine__row${picked ? ' is-picked' : ''}`}>
+      {pick}
+      <td className="mine__name">{primer.name}</td>
+      <td className="panel__mono wst__seq">{primer.sequence}</td>
+      <td className="wst__n">{primer.sequence.length}</td>
+      <td className="wst__n">{tm === null ? '–' : tm.toFixed(1)}</td>
+      <td className="mine__notes" data-tip={primer.notes === '' ? undefined : primer.notes}>
+        {primer.notes}
+      </td>
+      <td className="mine__acts">
+        <button
+          type="button"
+          className="button button--quiet button--small"
+          onClick={() => {
+            setEditing(true);
+          }}
+        >
+          Edit
+        </button>
         <button
           type="button"
           className="button button--quiet button--small"
@@ -239,15 +289,6 @@ function PrimerRow({
         <button
           type="button"
           className="button button--quiet button--small"
-          onClick={() => {
-            setEditing(true);
-          }}
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          className="button button--quiet button--small"
           aria-label={`Delete ${primer.name}`}
           onClick={() => {
             void primerCollection.remove([primer.id]);
@@ -255,15 +296,9 @@ function PrimerRow({
         >
           Delete
         </button>
-      </span>
-    </li>
+      </td>
+    </tr>
   );
-}
-
-/** The bases typed into an edit, or what they were when nothing is left of them. */
-function cleanOr(typed: string, was: string): string {
-  const bases = cleanPrimer(typed);
-  return bases === '' ? was : bases;
 }
 
 export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
@@ -276,6 +311,14 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
   const [fileError, setFileError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // The table's order is the user's, from plasmid to plasmid.
+  const [sort, setSort] = useRemembered<CollectionSort>(
+    'collection.sort',
+    null,
+    DEFAULT_COLLECTION_SORT,
+  );
+  /** The primers ticked for a pair: two make one, forward first (item 107, #298). */
+  const [picked, setPicked] = useState<readonly string[]>([]);
   // Whether Find is on for this document, and how strict it is, kept with
   // the rest of the tab's state per document (#32).
   const [finding, setFinding] = useRemembered('collection.finding', documentId, false);
@@ -358,19 +401,27 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
   const byId = useMemo(() => new Map(primers.map((p) => [p.id, p])), [primers]);
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (q === '') return primers;
     const bases = cleanPrimer(q);
-    return primers.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.notes.toLowerCase().includes(q) ||
-        (bases.length >= 4 && p.sequence.includes(bases)),
-    );
-  }, [primers, filter]);
+    const matching =
+      q === ''
+        ? primers
+        : primers.filter(
+            (p) =>
+              p.name.toLowerCase().includes(q) ||
+              p.notes.toLowerCase().includes(q) ||
+              (bases.length >= 4 && p.sequence.includes(bases)),
+          );
+    return sortCollection(matching, sort);
+  }, [primers, filter, sort]);
   const docPrimers = useMemo(
     () => doc.features.all().filter((f) => f.type === 'primer_bind'),
     [doc],
   );
+  // A primer deleted or never there drops out of the pick.
+  const pair = picked
+    .map((id) => byId.get(id))
+    .filter((p): p is CollectionPrimer => p !== undefined);
+  const bound = useMemo(() => new Set(hits.map((h) => h.primerId)).size, [hits]);
 
   const toPcr = (slot: PcrSlot, primer: { name: string; sequence: string }): void => {
     analytics.track('primers', 'to-pcr');
@@ -418,16 +469,12 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
     );
   };
 
+  const onSort = (key: CollectionSortKey): void => {
+    setSort((s) => toggleSort(s, key));
+  };
+
   return (
-    <fieldset className="panel__group primer-collection">
-      <legend>
-        My primers
-        <span className="panel__heading-note">
-          {status === 'loading' || status === 'unloaded'
-            ? 'reading…'
-            : `${primers.length.toLocaleString()} in this browser`}
-        </span>
-      </legend>
+    <div className="mine">
       {status === 'failed' && (
         <p className="panel__error">
           This browser&rsquo;s storage could not be read, so the list lasts only until the page is
@@ -436,8 +483,21 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
       )}
       {error !== null && <p className="panel__error">{error}</p>}
 
-      <div className="panel__controls primer-collection__find">
-        <label className="toggle">
+      <div className="filters">
+        <input
+          className="panel__search results__filter"
+          type="search"
+          placeholder="Filter name, notes, bases"
+          aria-label="Filter primers"
+          value={filter}
+          onChange={(e) => {
+            setFilter(e.target.value);
+          }}
+        />
+        <label
+          className="chk"
+          data-tip="Search the document for every primer of the list, both strands, by the 3′ end"
+        >
           <input
             type="checkbox"
             checked={finding}
@@ -447,17 +507,16 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
               setFinding(e.target.checked);
             }}
           />
-          Find my primers in {doc.name}
+          Find in {doc.name}
         </label>
-        {/* The search's two limits belong to the toggle above, so they sit
-            indented under it and only while it is on (item 93). */}
         {finding && (
-          <div className="panel__form panel__form--sub">
-            <label>
-              <span>Mismatches</span>
+          <>
+            <label className="chk">
+              Mismatches
               <select
                 className="panel__select"
                 aria-label="Mismatches allowed"
+                data-tip={`Before the last ${ANNEAL_DEFAULTS.exactThreePrime} bases, which must match`}
                 value={maxMismatches}
                 onChange={(e) => {
                   setMaxMismatches(Number(e.target.value));
@@ -470,8 +529,8 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
                 ))}
               </select>
             </label>
-            <label>
-              <span>Shortest site</span>
+            <label className="chk">
+              Shortest site
               <select
                 className="panel__select"
                 aria-label="Shortest site searched"
@@ -488,9 +547,136 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
                 ))}
               </select>
             </label>
-          </div>
+            {current !== null && (
+              <span className="dnote" role="status">
+                {bound} of {primers.length} bind
+              </span>
+            )}
+          </>
         )}
       </div>
+
+      {primers.length === 0 && status === 'ready' ? (
+        <p className="panel__note">
+          No primers yet. Add them under <strong>Add primers</strong> below, save a designed pair or
+          a checked primer, or take this document&rsquo;s primer_bind features.
+        </p>
+      ) : (
+        <div className="tablewrap mine__wrap">
+          <table className="wst mine__table" aria-label="My primers">
+            <thead>
+              <tr>
+                <th className="wst__th mine__pick">
+                  <span className="visually-hidden">Pick for a pair</span>
+                </th>
+                <SortTh column="name" sort={sort} onSort={onSort}>
+                  Name
+                </SortTh>
+                <SortTh column="bases" sort={sort} onSort={onSort}>
+                  Bases 5′→3′
+                </SortTh>
+                <SortTh column="nt" sort={sort} onSort={onSort} numeric tip="Length">
+                  nt
+                </SortTh>
+                <SortTh
+                  column="tm"
+                  sort={sort}
+                  onSort={onSort}
+                  numeric
+                  tip="Melting temperature, °C"
+                >
+                  Tm
+                </SortTh>
+                <SortTh column="notes" sort={sort} onSort={onSort}>
+                  Notes
+                </SortTh>
+                <th className="wst__th mine__acts">
+                  <span className="visually-hidden">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((p) => (
+                <PrimerRow
+                  key={p.id}
+                  primer={p}
+                  picked={picked.includes(p.id)}
+                  onPick={(on) => {
+                    setPicked((ids) => (on ? [...ids, p.id] : ids.filter((id) => id !== p.id)));
+                  }}
+                  onPcr={toPcr}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {filter.trim() !== '' && shown.length === 0 && (
+        <p className="panel__note panel__note--quiet">No primer matches.</p>
+      )}
+      {pair.length > 0 && (
+        <div className="actions mine__pair" role="group" aria-label="Picked pair">
+          {pair.length === 2 ? (
+            <>
+              <span className="dnote">
+                Pair: <strong>{pair[0]?.name}</strong> → · <strong>{pair[1]?.name}</strong> ←
+              </span>
+              <a
+                className="button button--small"
+                href={primerBlastUrl({
+                  forward: pair[0]?.sequence ?? '',
+                  reverse: pair[1]?.sequence ?? '',
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-tip={PRIMER_BLAST_SENDS}
+                onClick={() => {
+                  analytics.track('primers', 'primer-blast');
+                }}
+              >
+                Check specificity…
+              </a>
+              <button
+                type="button"
+                className="button button--quiet button--small"
+                data-tip="The other way round: the second as the forward primer"
+                onClick={() => {
+                  setPicked((ids) => [...ids].reverse());
+                }}
+              >
+                Swap
+              </button>
+              <button
+                type="button"
+                className="button button--quiet button--small"
+                data-tip="Put the pair in PCR's two slots"
+                onClick={() => {
+                  const [f, r] = pair;
+                  if (f !== undefined) toPcr('forward', f);
+                  if (r !== undefined) toPcr('reverse', r);
+                }}
+              >
+                Use in PCR
+              </button>
+            </>
+          ) : (
+            <span className="dnote">
+              {pair.length === 1
+                ? 'Tick one more primer for a pair: forward first, then reverse.'
+                : `${pair.length} ticked; a pair is two.`}
+            </span>
+          )}
+          <button
+            type="button"
+            className="button button--quiet button--small"
+            onClick={() => {
+              setPicked([]);
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
       {finding && primers.length > 0 && (
         <FindResults
           doc={doc}
@@ -509,35 +695,6 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
             Open PCR
           </button>
         </p>
-      )}
-
-      {primers.length > 8 && (
-        <input
-          className="panel__search"
-          type="search"
-          placeholder="Filter by name, notes or bases"
-          aria-label="Filter primers"
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value);
-          }}
-        />
-      )}
-      {primers.length === 0 && status === 'ready' ? (
-        <p className="panel__note">
-          No primers yet. Add them one at a time, paste a list, save a designed pair or a checked
-          primer, or take the primer_bind features of this document. The list stays in this browser;
-          download it to back it up or to take it to another.
-        </p>
-      ) : (
-        <ul className="primer-list" aria-label="My primers">
-          {shown.map((p) => (
-            <PrimerRow key={p.id} primer={p} onPcr={toPcr} />
-          ))}
-        </ul>
-      )}
-      {filter.trim() !== '' && shown.length === 0 && (
-        <p className="panel__note panel__note--quiet">No primer matches.</p>
       )}
 
       <details className="panel__details primer-collection__add">
@@ -665,13 +822,18 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
         </div>
       </details>
       {fileError !== null && <p className="panel__error">{fileError}</p>}
-      {said !== null && <p className="panel__note panel__note--quiet">{said}</p>}
+      {said !== null && (
+        <p className="panel__note panel__note--quiet" role="status">
+          {said}
+        </p>
+      )}
 
       {primers.length > 0 && (
-        <div className="panel__controls">
+        <div className="actions mine__foot">
           <button
             type="button"
             className="button button--quiet button--small"
+            data-tip="name,sequence,notes — reads back exactly"
             onClick={() => {
               download('csv');
             }}
@@ -681,12 +843,14 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           <button
             type="button"
             className="button button--quiet button--small"
+            data-tip="One >name notes record a primer"
             onClick={() => {
               download('fasta');
             }}
           >
             Download FASTA
           </button>
+          <span className="actions__gap" />
           {confirmClear ? (
             <>
               <button
@@ -722,7 +886,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           )}
         </div>
       )}
-    </fieldset>
+    </div>
   );
 }
 
@@ -752,12 +916,15 @@ function FindResults({
       ? 'every annealed base matching'
       : `the last ${ANNEAL_DEFAULTS.exactThreePrime} bases exact, up to ${maxMismatches} ${maxMismatches === 1 ? 'mismatch' : 'mismatches'} before them`;
   return (
-    <>
-      <p className="panel__note">
-        {hits.length === 0
-          ? `None of them binds ${doc.name} (${rule}).`
-          : `${bound.toLocaleString()} ${bound === 1 ? 'primer binds' : 'primers bind'} at ${hits.length.toLocaleString()} ${hits.length === 1 ? 'site' : 'sites'} (${rule}):`}
-      </p>
+    <div className="mine__sites">
+      <div className="subhead">
+        Sites on {doc.name}
+        <span className="dnote">
+          {hits.length === 0
+            ? `None of them binds ${doc.name} (${rule}).`
+            : `${bound.toLocaleString()} ${bound === 1 ? 'primer binds' : 'primers bind'} at ${hits.length.toLocaleString()} ${hits.length === 1 ? 'site' : 'sites'} (${rule}):`}
+        </span>
+      </div>
       {tooShort.length > 0 && (
         <p className="panel__note panel__note--quiet">
           {tooShort.length === 1 ? 'One primer is' : `${tooShort.length} primers are`} shorter than
@@ -833,6 +1000,6 @@ function FindResults({
           Add {Math.min(hits.length, MAX_HITS_SHOWN) === 1 ? 'site' : 'all sites'} as primer_bind
         </button>
       )}
-    </>
+    </div>
   );
 }
