@@ -121,9 +121,12 @@ export const EVENTS = {
    * (a PDF of every page, #242; all from the one Export figure dialog, #240),
    * `fasta`, `fastq`, `selection-genbank`, `selection-fasta`.
    * `open-ncbi` is File ▸ Open from NCBI… fetching at least one record
-   * (#65, item 58) and `open-ncbi-failed` one that fetched none, named by
-   * why (`not-found`, `offline`, `network`, `rate-limit`, `too-large`,
-   * `server`, `not-genbank`): never the accession, nor how many.
+   * (#65, item 58) — unnamed for an accession list, `region` for a range
+   * of one record and `gene` for a gene looked up by name (#299) — and
+   * `open-ncbi-failed` one that fetched none, named by why (`not-found`,
+   * `offline`, `network`, `rate-limit`, `too-large`, `server`,
+   * `not-genbank`): never the accession, the gene name or the organism,
+   * nor how many.
    */
   file: [
     'open',

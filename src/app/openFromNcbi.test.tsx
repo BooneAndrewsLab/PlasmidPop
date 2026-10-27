@@ -3,7 +3,15 @@ import { readFileSync } from 'node:fs';
 
 import { act, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { REQUEST_GAP_MS, efetchUrl, resetRequestGap } from '@/io';
+import {
+  REQUEST_GAP_MS,
+  efetchRegionUrl,
+  efetchUrl,
+  elinkRefSeqGeneUrl,
+  esearchUrl,
+  esummaryUrl,
+  resetRequestGap,
+} from '@/io';
 import { getRepository } from '@/storage';
 
 import { App } from './App';
@@ -52,8 +60,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Opens the dialog on the accession search (the last mode used is remembered across tests). */
 function openDialog(): void {
   fireEvent.click(screen.getByRole('button', { name: 'From NCBI…' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accession' }));
 }
 
 function type(text: string): void {
@@ -138,7 +148,7 @@ describe('Open from NCBI', () => {
     openDialog();
     const dialog = screen.getByRole('dialog', { name: 'Open from NCBI' });
     expect(dialog).toHaveAccessibleDescription(
-      /Only the accession numbers are sent, to NCBI \(eutils\.ncbi\.nlm\.nih\.gov\), and nothing else leaves your browser\./,
+      /Only the accession numbers \(and the range\) are sent, to NCBI \(eutils\.ncbi\.nlm\.nih\.gov\), and nothing else leaves your browser\./,
     );
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -318,5 +328,288 @@ describe('Open from NCBI', () => {
     fireEvent.click(screen.getByRole('button', { name: 'File' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open from NCBI…' }));
     expect(screen.getByRole('dialog', { name: 'Open from NCBI' })).toBeInTheDocument();
+  });
+});
+
+/** NCBI's JSON answers for yeast HBT1 (Gene 851303), as seen 2026-10-27, trimmed. */
+const HBT1 = {
+  esearch: {
+    esearchresult: { count: '1', retmax: '1', retstart: '0', idlist: ['851303'] },
+  },
+  esummary: {
+    result: {
+      uids: ['851303'],
+      '851303': {
+        uid: '851303',
+        name: 'HBT1',
+        description: 'Hbt1p',
+        organism: {
+          scientificname: 'Saccharomyces cerevisiae S288C',
+          commonname: '',
+          taxid: 559292,
+        },
+        chromosome: 'IV',
+        otheraliases: 'YDL223C',
+        genomicinfo: [
+          {
+            chrloc: 'IV',
+            chraccver: 'NC_001136.10',
+            chrstart: 60404,
+            chrstop: 57264,
+            exoncount: 1,
+          },
+        ],
+      },
+    },
+  },
+  elinkNone: { linksets: [{ dbfrom: 'gene', ids: ['851303'] }] },
+};
+
+const HBT1_REGION = {
+  accession: 'NC_001136.10',
+  start: 57065,
+  stop: 60605,
+  strand: 'reverse',
+} as const;
+
+function json(body: unknown): Response {
+  return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
+}
+
+/** Answers each E-utility by its address; anything else is an unexpected request. */
+function byEndpoint(table: Record<string, () => Response>): typeof answer {
+  return (url) => {
+    const found = Object.entries(table).find(
+      ([prefix]) => url === prefix || url.startsWith(prefix),
+    );
+    return found === undefined
+      ? Promise.reject(new Error(`unexpected request ${url}`))
+      : Promise.resolve(found[1]());
+  };
+}
+
+function geneMode(): HTMLElement {
+  fireEvent.click(screen.getByRole('button', { name: 'Gene' }));
+  return screen.getByRole('combobox', { name: 'Gene' });
+}
+
+function flank(label: RegExp, bp: string): void {
+  fireEvent.change(screen.getByLabelText(label), { target: { value: bp } });
+}
+
+describe('Open from NCBI, a gene by name (#299)', () => {
+  it('looks the gene up, fetches its stretch of the chromosome with the flanks on its strand, and keeps the partial marks', async () => {
+    answer = byEndpoint({
+      [esearchUrl('HBT1*[sym] AND txid4932[orgn] AND alive[prop]')]: () => json(HBT1.esearch),
+      [esummaryUrl(['851303'])]: () => json(HBT1.esummary),
+      [elinkRefSeqGeneUrl('851303')]: () => json(HBT1.elinkNone),
+      [efetchRegionUrl(HBT1_REGION)]: () =>
+        new Response(readFixture('NC_001136.10_57065-60605_minus.gb')),
+    });
+    render(<App />);
+    openDialog();
+    const gene = geneMode();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Organism' }), {
+      target: { value: '4932' },
+    });
+    fireEvent.change(gene, { target: { value: 'HBT1' } });
+    flank(/Upstream/, '200');
+    flank(/Downstream/, '200');
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(requests.map(([url]) => urlOf(url))).toEqual([
+      esearchUrl('HBT1*[sym] AND txid4932[orgn] AND alive[prop]'),
+      esummaryUrl(['851303']),
+      elinkRefSeqGeneUrl('851303'),
+      efetchRegionUrl(HBT1_REGION),
+    ]);
+    const state = editorStore.getState();
+    const doc = state.history?.present;
+    expect(doc?.name).toBe('HBT1');
+    expect(doc?.length).toBe(3541);
+    expect(doc?.metadata.accession).toBe('NC_001136 REGION: complement(57065..60605)');
+    expect(state.fileName).toBe('HBT1_NC_001136.10:57065-60605.gb');
+    // The gene reads forward after its 200 bp upstream flank; RefSeq's own
+    // partial marks on the gene and mRNA arrive and stay.
+    const cds = doc?.features.all().find((f) => f.type === 'CDS');
+    expect(cds?.strand).toBe('forward');
+    expect(cds?.segments[0]).toMatchObject({ start: 200, end: 3341 });
+    const g = doc?.features.all().find((f) => f.type === 'gene');
+    expect(g?.segments[0]).toMatchObject({ partialStart: true, partialEnd: true });
+    expect(state.warnings).toEqual([]);
+  });
+
+  it('fetches a reverse-strand gene as the plus strand when the option is off', async () => {
+    const plus = { ...HBT1_REGION, strand: 'forward' } as const;
+    answer = byEndpoint({
+      [esearchUrl('HBT1*[sym] AND txid4932[orgn] AND alive[prop]')]: () => json(HBT1.esearch),
+      [esummaryUrl(['851303'])]: () => json(HBT1.esummary),
+      [elinkRefSeqGeneUrl('851303')]: () => json(HBT1.elinkNone),
+      [efetchRegionUrl(plus)]: () => new Response(readFixture('NC_001136.10_57065-60605_minus.gb')),
+    });
+    render(<App />);
+    openDialog();
+    const gene = geneMode();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Organism' }), {
+      target: { value: '4932' },
+    });
+    fireEvent.change(gene, { target: { value: 'HBT1' } });
+    fireEvent.click(screen.getByRole('button', { name: '1 kb' }));
+    flank(/Upstream/, '200');
+    flank(/Downstream/, '200');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Reverse-complement/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(requests.map(([url]) => urlOf(url))).toContain(efetchRegionUrl(plus));
+  });
+
+  it('prefers the RefSeqGene record, cutting the window from it with partial marks, and says when the record ends short of a flank', async () => {
+    const refSeqGene = [
+      'LOCUS       NG_017013                100 bp    DNA     linear   PRI 01-JAN-2000',
+      'DEFINITION  Homo sapiens tumor protein p53 (TP53), RefSeqGene on chromosome 17.',
+      'ACCESSION   NG_017013',
+      'VERSION     NG_017013.2',
+      'FEATURES             Location/Qualifiers',
+      '     gene            21..60',
+      '                     /gene="TP53"',
+      '     CDS             11..95',
+      '                     /gene="TP53"',
+      '                     /codon_start=1',
+      'ORIGIN',
+      '        1 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '       61 acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '//',
+      '',
+    ].join('\n');
+    const tp53 = {
+      esearch: { esearchresult: { count: '1', idlist: ['7157'] } },
+      esummary: {
+        result: {
+          uids: ['7157'],
+          '7157': {
+            name: 'TP53',
+            description: 'tumor protein p53',
+            organism: { scientificname: 'Homo sapiens', taxid: 9606 },
+            chromosome: '17',
+            genomicinfo: [{ chraccver: 'NC_000017.11', chrstart: 7687489, chrstop: 7668420 }],
+          },
+        },
+      },
+      elink: {
+        linksets: [{ linksetdbs: [{ linkname: 'gene_nuccore_refseqgene', links: ['383209646'] }] }],
+      },
+    };
+    answer = byEndpoint({
+      [esearchUrl('TP53*[sym] AND txid9606[orgn] AND alive[prop]')]: () => json(tp53.esearch),
+      [esummaryUrl(['7157'])]: () => json(tp53.esummary),
+      [elinkRefSeqGeneUrl('7157')]: () => json(tp53.elink),
+      [efetchUrl(['383209646'], 'nucleotide')]: () => new Response(refSeqGene),
+    });
+    render(<App />);
+    openDialog();
+    const gene = geneMode();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Organism' }), {
+      target: { value: '9606' },
+    });
+    fireEvent.change(gene, { target: { value: 'TP53' } });
+    flank(/Upstream/, '30');
+    flank(/Downstream/, '30');
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(requests).toHaveLength(4);
+    const state = editorStore.getState();
+    const doc = state.history?.present;
+    // Bases 1..90: the gene (21..60) with 20 of the 30 bp upstream the record has, and 30 downstream.
+    expect(doc?.name).toBe('TP53');
+    expect(doc?.length).toBe(90);
+    expect(doc?.metadata.accession).toBe('NG_017013 REGION: 1..90');
+    expect(doc?.metadata.version).toBe('NG_017013.2');
+    expect(state.fileName).toBe('TP53_NG_017013.2:1-90.gb');
+    const g = doc?.features.all().find((f) => f.type === 'gene');
+    expect(g?.segments[0]).toMatchObject({
+      start: 20,
+      end: 60,
+      partialStart: false,
+      partialEnd: false,
+    });
+    // The CDS ran to 95: cut at 90 and marked so, not silently shortened.
+    const cds = doc?.features.all().find((f) => f.type === 'CDS');
+    expect(cds?.segments[0]).toMatchObject({
+      start: 10,
+      end: 90,
+      partialStart: false,
+      partialEnd: true,
+    });
+    expect(state.warnings.map((w) => w.message)).toEqual([
+      'NG_017013.2 ends there: the upstream flank is 20 bp, not 30.',
+    ]);
+  });
+
+  it('opens a range typed as an accession, with flanks, and says when NCBI clipped one at the record end', async () => {
+    // Asked 1531924-1531933 with 100 up and 1,000 down: chromosome IV ends at 1,531,933.
+    const asked = {
+      accession: 'NC_001136.10',
+      start: 1531824,
+      stop: 1532933,
+      strand: 'forward',
+    } as const;
+    const clipped = [
+      'LOCUS       NC_001136                110 bp    DNA     linear   CON 10-JUL-2026',
+      'ACCESSION   NC_001136 REGION: 1531824..1531933',
+      'VERSION     NC_001136.10',
+      'ORIGIN',
+      '        1 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '       61 acgtacgtac acgtacgtac acgtacgtac acgtacgtac acgtacgtac',
+      '//',
+      '',
+    ].join('\n');
+    answer = byEndpoint({ [efetchRegionUrl(asked)]: () => new Response(clipped) });
+    render(<App />);
+    openDialog();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Accession' }), {
+      target: { value: 'NC_001136.10:1531924-1531933' },
+    });
+    flank(/Upstream/, '100');
+    flank(/Downstream/, '1000');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Reverse-complement/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(requests.map(([url]) => urlOf(url))).toEqual([efetchRegionUrl(asked)]);
+    const state = editorStore.getState();
+    expect(state.history?.present.name).toBe('NC_001136.10:1531824-1531933');
+    expect(state.history?.present.length).toBe(110);
+    expect(state.fileName).toBe('NC_001136.10:1531824-1531933.gb');
+    expect(state.warnings.map((w) => w.message)).toEqual([
+      'NC_001136.10 ends there: the downstream flank is 0 bp, not 1,000.',
+    ]);
+  });
+
+  it('refuses a window past 10 Mb before anything is sent', async () => {
+    answer = byEndpoint({
+      [esearchUrl('HBT1*[sym] AND txid4932[orgn] AND alive[prop]')]: () => json(HBT1.esearch),
+      [esummaryUrl(['851303'])]: () => json(HBT1.esummary),
+    });
+    render(<App />);
+    openDialog();
+    const gene = geneMode();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Organism' }), {
+      target: { value: '4932' },
+    });
+    fireEvent.change(gene, { target: { value: 'HBT1' } });
+    flank(/Upstream/, '10000000');
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /PlasmidPop opens sequences up to 10 Mb/,
+    );
+    expect(requests).toHaveLength(2);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

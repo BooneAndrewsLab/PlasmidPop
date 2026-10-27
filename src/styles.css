@@ -3075,6 +3075,83 @@ button {
   color: var(--ink-2);
 }
 
+/* The gene lookup (#299): a combobox over its suggestion list, the organism
+   beside it, and the flank boxes with the 1 kb preset and the strand option
+   on one wrapping row. */
+.ncbi-open__modes {
+  justify-self: start;
+}
+
+.ncbi-open__gene {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.ncbi-open__combo {
+  position: relative;
+  flex: 1 1 220px;
+}
+
+.ncbi-open__combo > .panel__search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ncbi-open__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  margin: 2px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+}
+
+.ncbi-open__option {
+  display: grid;
+  gap: 2px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.ncbi-open__option--active {
+  background: var(--surface-3);
+}
+
+.ncbi-open__option-meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.ncbi-open__option[aria-disabled='true'] {
+  cursor: default;
+}
+
+.ncbi-open__searching {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.ncbi-open__flanks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.ncbi-open__flank > .panel__search {
+  width: 6em;
+}
+
 /* Export figure (#240, items 89 and 94): a preview beside a settings list of
    What / How big / Pages. Every row is always there, disabled when it does
    not apply, and the hints keep their room, so nothing moves as the choices
