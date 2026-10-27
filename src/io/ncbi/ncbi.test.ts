@@ -7,10 +7,13 @@ import {
   MAX_RESPONSE_BYTES,
   NcbiError,
   RETRY_AFTER_MS,
+  efetchRegionUrl,
   efetchUrl,
   fetchRecords,
+  fetchRegion,
   isAbort,
   recordIds,
+  regionSent,
   resetRequestGap,
 } from './efetch';
 
@@ -689,5 +692,78 @@ describe('fetchRecords, more answers', () => {
       expect(isAbort(await pending)).toBe(true);
       expect(calls).toHaveLength(0);
     });
+  });
+});
+
+describe('fetchRegion (#299)', () => {
+  const base = { wait: () => Promise.resolve(), online: () => true, now: () => 0 };
+  const REGION = {
+    accession: 'NC_001136.10',
+    start: 57065,
+    stop: 60605,
+    strand: 'reverse',
+  } as const;
+  const FIXTURE = 'NC_001136.10_57065-60605_minus.gb';
+
+  beforeEach(() => {
+    resetRequestGap();
+  });
+
+  it('asks for the stretch on its strand and reads the range NCBI says it sent', async () => {
+    const { fetch, calls } = mockFetch(streamed(readFixture(FIXTURE)));
+    const got = await fetchRegion(REGION, { ...base, fetch });
+    expect(calls.map(([url]) => url)).toEqual([efetchRegionUrl(REGION)]);
+    expect(got.text.startsWith('LOCUS       NC_001136')).toBe(true);
+    expect(got.sent).toEqual({ start: 57065, stop: 60605 });
+  });
+
+  it('notices a far end NCBI clipped at the record end', async () => {
+    // Asked past the end of chromosome IV (1,531,933 bp): NCBI answers the
+    // part that exists, saying so only on the ACCESSION line (checked 2026-10-27).
+    const text = tiny('NC_001136', 934).replace(
+      'ACCESSION   NC_001136',
+      'ACCESSION   NC_001136 REGION: 1531000..1531933',
+    );
+    const { fetch } = mockFetch(inPieces(text));
+    const got = await fetchRegion(
+      { accession: 'NC_001136.10', start: 1531000, stop: 1540000, strand: 'forward' },
+      { ...base, fetch },
+    );
+    expect(got.sent).toEqual({ start: 1531000, stop: 1531933 });
+    expect(regionSent('ACCESSION   X REGION: complement(5..9)\n')).toEqual({ start: 5, stop: 9 });
+    expect(regionSent('ACCESSION   X\n')).toBeNull();
+  });
+
+  it('refuses a window past the record cap, and a bad range, before anything is sent', async () => {
+    const { fetch, calls } = mockFetch();
+    await expect(
+      fetchRegion(
+        { accession: 'NC_000001.11', start: 1, stop: MAX_RECORD_BP + 1, strand: 'forward' },
+        { ...base, fetch },
+      ),
+    ).rejects.toMatchObject({ kind: 'too-large' });
+    await expect(
+      fetchRegion(
+        { accession: 'NC_000001.11', start: 0, stop: 10, strand: 'forward' },
+        { ...base, fetch },
+      ),
+    ).rejects.toMatchObject({ kind: 'not-found' });
+    await expect(
+      fetchRegion(
+        { accession: 'NC_000001.11', start: 20, stop: 10, strand: 'forward' },
+        { ...base, fetch },
+      ),
+    ).rejects.toMatchObject({ kind: 'not-found' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('reports a record NCBI lacks, or a range outside it, as not found', async () => {
+    const { fetch } = mockFetch(new Response('+Error%3A', { status: 400 }));
+    await expect(
+      fetchRegion(
+        { accession: 'AB999999', start: 1, stop: 10, strand: 'forward' },
+        { ...base, fetch },
+      ),
+    ).rejects.toMatchObject({ kind: 'not-found' });
   });
 });

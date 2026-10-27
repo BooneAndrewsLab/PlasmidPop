@@ -1,21 +1,22 @@
 /**
  * GenBank and GenPept records fetched from NCBI by accession (#65, #92,
- * item 58).
+ * item 58), and stretches of one record by range (#299).
  *
- * The one request the app makes to a third party on the user's behalf, and
- * only when asked: E-utilities `efetch`, which answers a browser directly
- * (`Access-Control-Allow-Origin: *`, checked 2026-09-25). What goes is the
- * accessions, `tool=PlasmidPop` as NCBI's usage policy asks, and nothing
- * else: no cookies (`credentials: 'omit'`), no referrer, no API key, no
- * e-mail address.
+ * The one host the app talks to on the user's behalf, and only when asked:
+ * E-utilities, which answer a browser directly (`Access-Control-Allow-Origin:
+ * *`, checked 2026-09-25 for `efetch` and 2026-10-27 for `esearch`,
+ * `esummary` and `elink`). What goes is the accessions (or, for a gene
+ * lookup, the name and organism typed — `gene.ts`), `tool=PlasmidPop` as
+ * NCBI's usage policy asks, and nothing else: no cookies (`credentials:
+ * 'omit'`), no referrer, no API key, no e-mail address.
  *
  * Without a key NCBI allows 3 requests a second, and its 429 answer carries
  * no CORS header, so a browser sees a refused request as a network failure
  * it cannot tell from being offline. Hence one request for all the
- * accessions typed, a gap kept between requests, and one retry after the
- * two seconds NCBI's `Retry-After` gives. Nucleotide and protein records
- * live in two databases, so a list of both takes two requests, spaced like
- * any others.
+ * accessions typed, a gap kept between requests (`ncbiRequest`, shared by
+ * every E-utility call the app makes), and one retry after the two seconds
+ * NCBI's `Retry-After` gives. Nucleotide and protein records live in two
+ * databases, so a list of both takes two requests, spaced like any others.
  */
 
 import type { AccessionKind } from './accession';
@@ -94,6 +95,46 @@ export function efetchUrl(
   return `${EFETCH_URL}?${params.toString()}`;
 }
 
+/**
+ * A stretch of one nucleotide record, in efetch's own terms: `start` and
+ * `stop` are **1-based and inclusive** on the forward strand (the internal
+ * model's `[start, end)` is 0-based; `regionOf` converts). On the reverse
+ * strand NCBI reverse-complements the stretch and rewrites every feature
+ * location to match, so the record reads 5′ to 3′ as it arrives.
+ */
+export interface Region {
+  readonly accession: string;
+  readonly start: number;
+  readonly stop: number;
+  readonly strand: 'forward' | 'reverse';
+}
+
+/** The efetch address for a stretch of one record (#299). */
+export function efetchRegionUrl(region: Region): string {
+  const { db, rettype } = DATABASES.nucleotide;
+  const params = new URLSearchParams({
+    db,
+    id: region.accession,
+    seq_start: region.start.toString(),
+    seq_stop: region.stop.toString(),
+    strand: region.strand === 'reverse' ? '2' : '1',
+    rettype,
+    retmode: 'text',
+    tool: NCBI_TOOL,
+  });
+  return `${EFETCH_URL}?${params.toString()}`;
+}
+
+/** `[start, end)`, 0-based, as a region (1-based, inclusive) of `accession`. */
+export function regionOf(
+  accession: string,
+  start: number,
+  end: number,
+  strand: Region['strand'] = 'forward',
+): Region {
+  return { accession, start: start + 1, stop: end, strand };
+}
+
 /** When this page may next send a request. Shared by every call. */
 let nextRequestAt = 0;
 
@@ -126,26 +167,25 @@ export function isAbort(e: unknown): boolean {
 }
 
 /**
- * Fetches the records of accessions of one kind (already checked by
- * `parseAccessions`) in one request: GenBank for nucleotide, GenPept for
- * protein. Accessions NCBI has no record for are listed in `missing`; when
- * none has one, or the request fails, it throws `NcbiError`. A cancel
+ * One E-utilities request, as every call the app makes goes: after the gap
+ * since the last one, without cookies or a referrer, and once more after a
+ * pause when the first fails — to reach NCBI at all (a failure is most
+ * likely its 429, which the browser cannot show us), or with a 429 we can
+ * see. Throws `NcbiError` for a 429 that persists, for being offline and
+ * for a server error; any other status is the caller's to read. A cancel
  * rejects with the AbortError `fetch` gives.
  */
-export async function fetchRecords(
-  kind: AccessionKind,
-  accessions: readonly string[],
+export async function ncbiRequest(
+  url: string,
   options: FetchRecordsOptions = {},
-): Promise<FetchedRecords> {
+): Promise<Response> {
   const {
     signal,
-    onProgress,
     fetch = globalThis.fetch.bind(globalThis),
     wait = defaultWait,
     online = () => globalThis.navigator.onLine,
     now = Date.now,
   } = options;
-  const url = efetchUrl(accessions, kind);
 
   const send = async (): Promise<Response> => {
     const delay = nextRequestAt - now();
@@ -159,11 +199,6 @@ export async function fetchRecords(
     });
   };
 
-  /**
-   * One request, and one more after a pause when the first fails: to reach
-   * NCBI at all (a failure is most likely its 429, which the browser cannot
-   * show us), or with a 429 we can see.
-   */
   const attempt = async (retry: boolean): Promise<Response> => {
     let response: Response;
     try {
@@ -193,23 +228,111 @@ export async function fetchRecords(
       'NCBI is limiting requests from this address (3 a second without an API key). Wait a few seconds and try again.',
     );
   }
-  if (response.status === 400 || response.status === 404) throw notFound(kind, accessions);
+  if (response.status >= 500) {
+    throw new NcbiError(
+      'server',
+      `NCBI answered with an error (HTTP ${response.status}). Try again later.`,
+    );
+  }
+  return response;
+}
+
+/**
+ * Fetches the records of accessions of one kind (already checked by
+ * `parseAccessions`) in one request: GenBank for nucleotide, GenPept for
+ * protein. Accessions NCBI has no record for are listed in `missing`; when
+ * none has one, or the request fails, it throws `NcbiError`. A cancel
+ * rejects with the AbortError `fetch` gives.
+ */
+export async function fetchRecords(
+  kind: AccessionKind,
+  accessions: readonly string[],
+  options: FetchRecordsOptions = {},
+): Promise<FetchedRecords> {
+  const text = await fetchGenBank(efetchUrl(accessions, kind), options, () =>
+    notFound(kind, accessions),
+  );
+  const found = recordIds(text);
+  const missing = accessions.filter((a) => !found.has(a) && !found.has(stripVersion(a)));
+  return { text, missing };
+}
+
+export interface FetchedRegion {
+  /** The GenBank text of the stretch, as NCBI wrote it (one record). */
+  readonly text: string;
+  /**
+   * The stretch NCBI actually sent, from its `ACCESSION … REGION:` line:
+   * 1-based, inclusive, forward-strand coordinates whichever strand was
+   * asked. Shorter than asked when `stop` ran past the record's end — NCBI
+   * clips there without a word (checked 2026-10-27), and this is how a
+   * flank cut short is noticed.
+   */
+  readonly sent: { readonly start: number; readonly stop: number };
+}
+
+/**
+ * Fetches one stretch of a nucleotide record (#299). The window is refused
+ * before anything is sent when longer than `MAX_RECORD_BP`; `start` below 1
+ * is the caller's to clamp (NCBI answers it with an error).
+ */
+export async function fetchRegion(
+  region: Region,
+  options: FetchRecordsOptions = {},
+): Promise<FetchedRegion> {
+  const length = region.stop - region.start + 1;
+  if (length > MAX_RECORD_BP) {
+    throw new NcbiError(
+      'too-large',
+      `${region.accession}:${region.start.toString()}-${region.stop.toString()} is ${length.toLocaleString('en-US')} bp. PlasmidPop opens sequences up to ${(MAX_RECORD_BP / 1_000_000).toString()} Mb; ask for less flank.`,
+    );
+  }
+  if (region.start < 1 || region.stop < region.start) {
+    throw new NcbiError(
+      'not-found',
+      `${region.start.toString()}-${region.stop.toString()} is not a range of ${region.accession}: positions count from 1, and the end comes after the start.`,
+    );
+  }
+  const text = await fetchGenBank(
+    efetchRegionUrl(region),
+    options,
+    () =>
+      new NcbiError(
+        'not-found',
+        `NCBI has no nucleotide record ${region.accession}, or ${region.start.toString()}-${region.stop.toString()} lies outside it.`,
+      ),
+  );
+  return { text, sent: regionSent(text) ?? { start: region.start, stop: region.stop } };
+}
+
+/** The `REGION:` range on a record's ACCESSION line, as NCBI writes a stretch. */
+export function regionSent(text: string): { start: number; stop: number } | null {
+  const m = /^ACCESSION {2,}\S+ REGION: (?:complement\()?(\d+)\.\.(\d+)/m.exec(text);
+  if (m === null) return null;
+  return { start: Number(m[1]), stop: Number(m[2]) };
+}
+
+/** One efetch request read as GenBank text, or the error `notFound` makes when NCBI has nothing. */
+async function fetchGenBank(
+  url: string,
+  options: FetchRecordsOptions,
+  notFound: () => NcbiError,
+): Promise<string> {
+  const { signal, onProgress } = options;
+  const response = await ncbiRequest(url, options);
+  if (response.status === 400 || response.status === 404) throw notFound();
   if (!response.ok) {
     throw new NcbiError(
       'server',
       `NCBI answered with an error (HTTP ${response.status}). Try again later.`,
     );
   }
-
   const text = await readLimited(response, signal, onProgress);
   const trimmed = text.trimStart();
-  if (trimmed === '' || /^Error/i.test(trimmed)) throw notFound(kind, accessions);
+  if (trimmed === '' || /^Error/i.test(trimmed)) throw notFound();
   if (!trimmed.startsWith('LOCUS')) {
     throw new NcbiError('not-genbank', 'NCBI sent something that is not a GenBank record.');
   }
-  const found = recordIds(text);
-  const missing = accessions.filter((a) => !found.has(a) && !found.has(stripVersion(a)));
-  return { text, missing };
+  return text;
 }
 
 function offlineError(): NcbiError {

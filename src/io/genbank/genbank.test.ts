@@ -81,6 +81,7 @@ describe('GenBank fixtures from NCBI', () => {
       'AJ237582.gb',
       'J01749.gb',
       'L09137.gb',
+      'NC_001136.10_57065-60605_minus.gb',
       'NC_001422.1.gb',
       'NM_000581.gb',
       'U49845.gb',
@@ -117,6 +118,9 @@ describe('GenBank fixtures from NCBI', () => {
           // the spec (hashlib), which reproduces the linear values above.
           'NM_000581.gb': 'ldseguid=kNDFGKxWhpOW_tBzh6GlnduF5UM',
           'U49845.gb': 'ldseguid=nNE7TwWKYuNXOHdAmChDxGK9QTg',
+          // A stretch of a chromosome fetched by range (#299); computed by
+          // the reference `seguid` Python package (pinned oracle venv).
+          'NC_001136.10_57065-60605_minus.gb': 'ldseguid=46OfsKDmpkrQKofYM8K9OsBM2kU',
         };
         expect(documentChecksum(doc)?.text).toBe(expected[name]);
       });

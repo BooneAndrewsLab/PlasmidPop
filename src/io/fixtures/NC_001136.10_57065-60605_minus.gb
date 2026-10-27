@@ -1,0 +1,209 @@
+LOCUS       NC_001136               3541 bp    DNA     linear   CON 10-JUL-2026
+DEFINITION  Saccharomyces cerevisiae S288C chromosome IV, complete sequence.
+ACCESSION   NC_001136 REGION: complement(57065..60605)
+VERSION     NC_001136.10
+DBLINK      BioProject: PRJNA128
+            Assembly: GCF_000146045.2
+KEYWORDS    RefSeq.
+SOURCE      Saccharomyces cerevisiae S288C
+  ORGANISM  Saccharomyces cerevisiae S288C
+            Eukaryota; Fungi; Dikarya; Ascomycota; Saccharomycotina;
+            Saccharomycetes; Saccharomycetales; Saccharomycetaceae;
+            Saccharomyces.
+REFERENCE   1  (bases 1 to 3541)
+  AUTHORS   Engel,S.R., Wong,E.D., Nash,R.S., Aleksander,S., Alexander,M.,
+            Douglass,E., Karra,K., Miyasato,S.R., Simison,M., Skrzypek,M.S.,
+            Weng,S. and Cherry,J.M.
+  TITLE     New data and collaborations at the Saccharomyces Genome Database:
+            updated reference genome, alleles, and the Alliance of Genome
+            Resources
+  JOURNAL   Genetics 220 (4) (2022)
+   PUBMED   34897464
+REFERENCE   2  (bases 1 to 3541)
+  AUTHORS   Jacq,C., Alt-Morbe,J., Andre,B., Arnold,W., Bahr,A., Ballesta,J.P.,
+            Bargues,M., Baron,L., Becker,A., Biteau,N., Blocker,H., Blugeon,C.,
+            Boskovic,J., Brandt,P., Bruckner,M., Buitrago,M.J., Coster,F.,
+            Delaveau,T., del Rey,F., Dujon,B., Eide,L.G.,
+            Garcia-Cantalejo,J.M., Goffeau,A., Gomez-Peris,A., Zaccaria,P. et
+            al.
+  TITLE     The nucleotide sequence of Saccharomyces cerevisiae chromosome IV
+  JOURNAL   Nature 387 (6632 SUPPL), 75-78 (1997)
+   PUBMED   9169867
+REFERENCE   3  (bases 1 to 3541)
+  AUTHORS   Goffeau,A., Barrell,B.G., Bussey,H., Davis,R.W., Dujon,B.,
+            Feldmann,H., Galibert,F., Hoheisel,J.D., Jacq,C., Johnston,M.,
+            Louis,E.J., Mewes,H.W., Murakami,Y., Philippsen,P., Tettelin,H. and
+            Oliver,S.G.
+  TITLE     Life with 6000 genes
+  JOURNAL   Science 274 (5287), 546 (1996)
+   PUBMED   8849441
+REFERENCE   4  (bases 1 to 3541)
+  CONSRTM   NCBI Genome Project
+  TITLE     Direct Submission
+  JOURNAL   Submitted (10-JUL-2026) National Center for Biotechnology
+            Information, NIH, Bethesda, MD 20894, USA
+REFERENCE   5  (bases 1 to 3541)
+  CONSRTM   Saccharomyces Genome Database
+  TITLE     Direct Submission
+  JOURNAL   Submitted (16-JAN-2015) Department of Genetics, Stanford
+            University, Stanford, CA 94305-5120, USA
+  REMARK    Protein update by submitter
+REFERENCE   6  (bases 1 to 3541)
+  CONSRTM   Saccharomyces Genome Database
+  TITLE     Direct Submission
+  JOURNAL   Submitted (06-FEB-2013) Department of Genetics, Stanford
+            University, Stanford, CA 94305-5120, USA
+  REMARK    Protein update by submitter
+REFERENCE   7  (bases 1 to 3541)
+  CONSRTM   Saccharomyces Genome Database
+  TITLE     Direct Submission
+  JOURNAL   Submitted (04-MAY-2012) Department of Genetics, Stanford
+            University, Stanford, CA 94305-5120, USA
+  REMARK    Protein update by submitter
+REFERENCE   8  (bases 1 to 3541)
+  CONSRTM   Saccharomyces Genome Database
+  TITLE     Direct Submission
+  JOURNAL   Submitted (31-MAR-2011) Department of Genetics, Stanford
+            University, Stanford, CA 94305-5120, USA
+  REMARK    Sequence update by submitter
+REFERENCE   9  (bases 1 to 3541)
+  CONSRTM   Saccharomyces Genome Database
+  TITLE     Direct Submission
+  JOURNAL   Submitted (11-DEC-2009) Department of Genetics, Stanford
+            University, Stanford, CA 94305-5120, USA
+COMMENT     REVIEWED REFSEQ: This record has been curated by SGD. The reference
+            sequence is identical to BK006938.
+            
+            On Apr 26, 2011 this sequence version replaced NC_001136.9.
+            Structural annotation is propagated from INSDC submissions or other
+            annotation providers and processed to follow RefSeq standards.
+            Functional annotation is provided by RefSeq, and is derived from
+            model organism databases, orthologous species, curation, domain
+            architecture analysis, and submitted information.
+            
+            ##Genome-Annotation-Data-START##
+            Annotation Provider :: SGD
+            Annotation Status   :: Full Annotation
+            Annotation Version  :: R64-5-1
+            URL                 :: http://www.yeastgenome.org/
+            ##Genome-Annotation-Data-END##
+            COMPLETENESS: full length.
+FEATURES             Location/Qualifiers
+     source          1..3541
+                     /organism="Saccharomyces cerevisiae S288C"
+                     /mol_type="genomic DNA"
+                     /strain="S288C"
+                     /db_xref="taxon:559292"
+                     /chromosome="IV"
+     gene            <201..>3341
+                     /gene="HBT1"
+                     /locus_tag="YDL223C"
+                     /db_xref="GeneID:851303"
+     mRNA            <201..>3341
+                     /gene="HBT1"
+                     /locus_tag="YDL223C"
+                     /product="Hbt1p"
+                     /transcript_id="NM_001180283.1"
+                     /db_xref="GeneID:851303"
+     CDS             201..3341
+                     /gene="HBT1"
+                     /locus_tag="YDL223C"
+                     /experiment="EXISTENCE:direct assay:GO:0005886 plasma
+                     membrane [PMID:16622836]"
+                     /experiment="EXISTENCE:direct assay:GO:0005937 mating
+                     projection [PMID:11923536]"
+                     /experiment="EXISTENCE:mutant phenotype:GO:0000753 cell
+                     morphogenesis involved in conjugation with cellular fusion
+                     [PMID:11923536]"
+                     /note="Shmoo tip protein, substrate of Hub1p
+                     ubiquitin-like protein; mutants are defective for mating
+                     projection formation, thereby implicating Hbt1p in
+                     polarized cell morphogenesis; HBT1 has a paralog, YNL195C,
+                     that arose from the whole genome duplication"
+                     /codon_start=1
+                     /product="Hbt1p"
+                     /protein_id="NP_010058.1"
+                     /db_xref="GeneID:851303"
+                     /db_xref="SGD:S000002382"
+                     /translation="MNMNESISKDGQGEEEQNNFSFGGKPGSYDSNSDSAQRKKSFST
+                     TKPTEYNLPKEQPESTSKNLETKAKNILLPWRKKHNKDSETPHEDTEADANRRANVTS
+                     DVNPVSADTKSSSGPNATITTHGYSYVKTTTPAATSEQSKVKTSPPTSHEHSNIKASP
+                     TAHRHSKGDAGHPSIATTHNHSTSKAATSPVTHTHGHSSATTSPVTHTHGHASVKTTS
+                     PTNTHEHSKANTGPSATATTHGHINVKTTHPVSHGHSGSSTGPKSTAAAQDHSSTKTN
+                     PSVTHGHTSVKDNSSATKGYSNTDSNSDRDVIPGSFRGMTGTDVNPVDPSVYTSTGPK
+                     SNVSSGMNAVDPSVYTDTSSKSADRRKYSGNTATGPPQDTIKEIAQNVKMDESEQTGL
+                     KNDQVSGSDAIQQQTMEPEPKAAVGTSGFVSQQPSYHDSNKNIQHPEKNKVDNKNISE
+                     RAAEKFNIERDDILESADDYQQKNIKSKTDSNWGPIEYSSSAGKNKNLQDVVIPSSMK
+                     EKFDSGTSGSQNMPKAGTELGHMKYNDNGRDNLQYVAGSQAGSQNTNNNIDMSPRHEA
+                     EWSGLSNDATTRNNVVSPAMKDEDMNEDSTKPHQYGLDYLDDVEDYHENDIDDYSNAK
+                     KNDLYSKKAYQGKPSDYNYEQREKIPGTFEPDTLSKSVQKQDEDPLSPRQTTNRAGME
+                     TARDESLGNYEYSNTSGNKKLSDLSKNKSGPTPTRSNFIDQIEPRRAKTTQDIASDAK
+                     DFTNNPETGTTGNVDTTGRMGAKSKTFSSNPFDDSKNTDTHLENANVAAFDNSRSGDT
+                     TYSKSGDAETAAYDNIKNADPTYAKSQDITGMTHDQEPSSEQKASYGSGGNSQNQEYS
+                     SDDNIDVNKNAKVLEEDAPGYKREVDLKNKRRTDLGGADASNAYAAEVGNFPSLIDPH
+                     VPTYGFKDTNTSSSQKPSEGTYPETTSYSIHNETTSQGRKVSVGSMGSGKSKHHHNHH
+                     RHSRQNSSKGSDYDYNNSTHSAEHTPRHHQYGSDEGEQDYHDDEQGEEQAGKQSFMGR
+                     VRKSISGGTFGFRSEI"
+ORIGIN      
+        1 cccggcacct tagtgtaatt aatagtaata atattgaatt taattcttta ataataccac
+       61 cccctcaaga aaattaatat ataatactaa ctaactcaaa aacacctttt tttatatgta
+      121 actgtagaga taagaataat accgaacacc gtgaagattt cccagtggag agctatcaag
+      181 aatatcaccc aacccaagat atgaatatga acgagtccat ttccaaagat ggtcaaggcg
+      241 aagaagaaca aaataatttt tcgtttggtg gtaagcccgg ttcctatgat tccaattcag
+      301 attctgctca acgcaaaaag tctttcagta ctacaaagcc gaccgaatat aacttaccaa
+      361 aagaacagcc cgaatcaacg tccaagaatt tggaaaccaa ggctaaaaac attctgttac
+      421 cttggaggaa gaagcataat aaagactcgg aaactccaca cgaagacact gaggcggacg
+      481 ctaaccgccg tgccaacgta acttctgatg tgaaccctgt ttctgccgac accaagtcaa
+      541 gttctggccc taatgctact attactaccc atggatactc ttatgtcaaa acaacgacac
+      601 ccgctgctac aagtgagcaa tccaaagtga aaacgtcacc tcccactagc catgaacatt
+      661 caaatataaa ggcgtccccc actgcgcata gacattccaa aggtgatgca gggcatccaa
+      721 gtattgcaac cactcataac cacagcactt ccaaagctgc cacttctcct gttactcaca
+      781 cgcatggtca ttccagtgct accacttccc ctgtcactca cacacatggt catgccagtg
+      841 tgaaaaccac atctcctacc aatactcatg agcattctaa agcgaatact ggtccatcag
+      901 ccactgcaac tacacatgga catatcaacg tcaaaactac ccaccctgtt agccatggtc
+      961 actctggttc aagcactggt cctaaatcca ccgctgctgc acaggatcat tccagtacta
+     1021 aaactaaccc ttcagttact catggacata caagtgttaa agataactcc tcagctacga
+     1081 agggttattc gaacactgat tccaactcag atcgagatgt catacctggt agtttccggg
+     1141 gcatgactgg tactgatgtg aaccctgttg atcctagtgt ttacacaagt acaggcccaa
+     1201 agagtaatgt tagttccggt atgaacgctg tcgaccctag tgtctacacg gacacaagtt
+     1261 cgaagtctgc agatcgtaga aagtactctg gcaacactgc gactggtcct cctcaagata
+     1321 caattaaaga aattgcacag aacgtgaaga tggatgagag cgaacaaact ggattgaaaa
+     1381 atgaccaagt ttctggttct gatgcaatcc aacagcaaac tatggaacct gaacccaaag
+     1441 cagcagtcgg gacaagtggt tttgtaagcc agcaaccttc ttatcatgat agcaataaaa
+     1501 acattcaaca cccagaaaag aataaggttg ataataaaaa tatatcagaa agagcggctg
+     1561 aaaaatttaa cattgaaaga gatgacattc tggaatccgc cgatgattat caacagaaaa
+     1621 acattaaatc caagacggat tctaattggg gtccaattga atatagttcc agcgctggta
+     1681 aaaataagaa tctgcaggat gttgttatac cttctagtat gaaggagaaa ttcgacagcg
+     1741 gtacatctgg atctcagaat atgcctaaag cgggaaccga attaggacat atgaagtata
+     1801 atgataatgg tagggataac ttgcaatatg ttgccggttc acaagctggt tctcaaaata
+     1861 cgaacaacaa tattgacatg tcaccccgtc atgaagcaga atggtccggg ctttctaatg
+     1921 atgccaccac ccgaaacaat gttgtatcac ctgctatgaa ggacgaagat atgaatgaag
+     1981 attctactaa acctcatcaa tatgggttgg attatttgga tgatgttgaa gactaccacg
+     2041 agaatgatat tgacgactac tcaaatgcaa agaaaaacga cttgtattct aagaaagcgt
+     2101 accagggaaa accatcggat tacaattatg agcagagaga gaaaatccca ggtacttttg
+     2161 aacctgatac gttgtcaaaa tcagtgcaaa aacaagatga agacccgttg tctccaaggc
+     2221 aaaccactaa ccgtgctggt atggagactg caagagatga gagtcttggc aattacgaat
+     2281 actcgaatac ttctggtaac aaaaaattat ctgatttaag caaaaataaa tcaggcccaa
+     2341 ctccaacgcg ttctaatttt attgaccaaa ttgagccaag aagagcaaaa acaacacagg
+     2401 atattgcatc cgatgccaag gatttcacca ataatccgga aacaggtact actggaaacg
+     2461 tagatacaac cggaaggatg ggtgcaaaat ccaagacctt cagctcgaac ccttttgatg
+     2521 atagtaaaaa tacagacact catctcgaaa acgctaatgt tgctgccttt gataattcca
+     2581 gatctggaga cactacatac tccaaatcag gggatgctga aacagctgct tacgataata
+     2641 ttaaaaatgc ggaccctaca tatgccaaat cacaagatat tactggaatg actcacgatc
+     2701 aggaaccatc atcagaacaa aaggccagtt acggttctgg cggcaattcc caaaatcaag
+     2761 aatattctag cgacgataat attgatgtca ataagaatgc gaaagtttta gaggaagacg
+     2821 caccgggcta caagcgtgaa gtagatttga agaacaaacg tagaaccgac cttggtggtg
+     2881 ccgacgcctc aaacgcttat gctgccgaag ttggtaattt ccctagtttg attgacccac
+     2941 atgtcccaac atacggattt aaagacacca acacctctag ttctcaaaag ccatctgagg
+     3001 gcacctaccc agaaaccact tcctattcaa ttcataatga aacaacttct cagggaagga
+     3061 aagtgtcggt gggttcaatg ggttccggaa aatcaaaaca tcatcacaat catcaccgtc
+     3121 acagcagaca gaattcttca aaagggtctg actacgacta taataattct actcattcag
+     3181 ccgagcacac tccaagacat catcagtacg gttccgatga gggtgagcaa gattaccatg
+     3241 acgacgagca aggtgaggaa caggctggta aacaaagttt catgggtaga gtgagaaaaa
+     3301 gtatttctgg cggtactttt ggatttagga gtgaaattta aacacttctc gattaacaaa
+     3361 ttcccagtat tctttgaaat ctatttttct tcctcaattg aatttgaata actgtctacg
+     3421 cggactcctc ctatctacaa ctacaacaaa ttttaaccac tttattacca ctttcctctt
+     3481 tcatttattt ttgtctttta tgttgtcaat ttactagtat tttttttttt ttcatttacg
+     3541 t
+//
+
