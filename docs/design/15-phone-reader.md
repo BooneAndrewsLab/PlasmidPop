@@ -203,3 +203,45 @@ through `pickerAccept` (`src/app/pickerAccept.ts`), which returns no
 an `accept` uses it, not only the sequence ones, since the same greying
 applies to `.csv`/`.dat` lists. Not verifiable off a device; the unit tests
 cover the detection only.
+
+## Download names on iOS (issue 295)
+
+Seen on iOS 27.0.1 Safari with 1.17.6: Download GenBank saved
+`<name>.gb.txt`, an SVG figure `<name>.svg.txt`, and a PDF figure opened in
+the browser instead of downloading. Every export already went through one
+helper, `downloadBlob` in `src/app/saveFile.ts` (a blob URL on an anchor
+with a `download` attribute; Chromium's save dialog is the only other way
+out, item 24). Its text exports, `downloadText` (GenBank, GenPept, FASTA,
+FASTQ, CSV, `.aln`, and the map's SVG from Export Figure), were typed
+`text/plain;charset=utf-8`; the alignment SVG `image/svg+xml`, the PDF
+`application/pdf`, PNG `image/png`, ZIPs `application/zip`, `.dna`
+`application/octet-stream`.
+
+**Hypothesis.** WebKit checks a download's suggested name against its MIME
+type and, when the extension does not belong to that type, appends the
+type's preferred one: `.gb` is no `text/plain` extension, so `.txt` is
+added. `.svg.txt` fits the same rule for the text-typed map SVG. A PDF
+typed `application/pdf` is a type Safari can show, and it shows it. The
+`.dna` download, already `application/octet-stream`, was not reported as
+renamed, which fits: that type names no format and so has no extension to
+add and nothing to preview.
+
+**Fix.** `downloadBlob` hands every download over as
+`application/octet-stream` (`DOWNLOAD_TYPE`, `asDownload` re-wraps a blob
+made with another type; the bytes are unchanged), and the name is exactly
+the one given. One change, every export, rather than a per-format table:
+a registered type (`image/svg+xml`, `application/pdf`) is exactly what
+invites a preview, and GenBank, FASTA and the rest have no registered type
+to choose. Desktop browsers keep the `download` name whatever the type, so
+nothing changes there. The blob URL in `mapPng.ts` that rasterises the SVG
+is not a download and keeps `image/svg+xml`. `saveFile.test.ts` asserts the
+type and name per format; the Chromium save dialog writes through a handle
+and is untouched.
+
+**Not verified on a device.** No iPhone was reachable from the session;
+the reasoning is from WebKit's behaviour as known, not from a test. If a
+device still shows `.txt` or opens the PDF, the fallback is the Web Share
+API on iOS only: `navigator.share({ files: [new File([blob], name)] })`
+from the click, which hands the named file to the share sheet (**Save to
+Files**) and so never meets the download path. It is a second way out to
+keep in step with the first, which is why it is not the first choice.

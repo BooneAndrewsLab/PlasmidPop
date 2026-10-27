@@ -58,14 +58,40 @@ export function serialize(doc: SeqDocument, format: SaveFormat): string {
   }
 }
 
-/** Triggers a browser download of `text`. */
+/**
+ * The type every download is handed to the browser as, whatever is in it.
+ *
+ * iOS Safari checks a download's name against its type and, when the
+ * extension is not one it knows for that type, appends the type's own:
+ * GenBank as `text/plain` came out as `.gb.txt`, an SVG as `.svg.txt`, and a
+ * PDF typed `application/pdf` opened in the browser rather than downloading
+ * (#295). `application/octet-stream` names no format, so there is nothing to
+ * correct the name to and nothing to preview, and every browser then keeps
+ * the name the `download` attribute gives. The bytes are unchanged; a file's
+ * format is in its name and its content, never in this type. Not verified on
+ * a device; see item 15.
+ */
+export const DOWNLOAD_TYPE = 'application/octet-stream';
+
+/** Triggers a browser download of `text`, encoded as UTF-8. */
 export function downloadText(fileName: string, text: string): void {
-  downloadBlob(fileName, new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  downloadBlob(fileName, new Blob([text], { type: DOWNLOAD_TYPE }));
 }
 
-/** Triggers a browser download of `blob`: a document leaves the app this way and no other (item 24). */
+/**
+ * `blob` as the browser is handed it: the same bytes, typed
+ * {@link DOWNLOAD_TYPE} whatever type it was made with.
+ */
+export function asDownload(blob: Blob): Blob {
+  return blob.type === DOWNLOAD_TYPE ? blob : new Blob([blob], { type: DOWNLOAD_TYPE });
+}
+
+/**
+ * Triggers a browser download of `blob` under exactly `fileName`: a document
+ * leaves the app this way and no other (item 24).
+ */
 export function downloadBlob(fileName: string, blob: Blob): void {
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(asDownload(blob));
   const a = document.createElement('a');
   a.href = url;
   a.download = fileName;

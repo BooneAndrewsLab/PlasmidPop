@@ -510,7 +510,8 @@ describe('AlignPanel', () => {
     // SVG: a download of a vector file with the names and the columns asked for.
     fireEvent.click(within(form).getByRole('button', { name: 'Save SVG' }));
     expect(click).toHaveBeenCalledTimes(1);
-    expect(blobs[0]?.type).toContain('image/svg+xml');
+    // Typed as no format, so iOS Safari keeps the `.svg` name (#295).
+    expect(blobs[0]?.type).toBe('application/octet-stream');
     const svg = await blobs[0]?.text();
     expect(svg).toContain('<svg');
     expect(svg).toContain('target');

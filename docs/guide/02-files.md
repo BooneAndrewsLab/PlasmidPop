@@ -338,6 +338,20 @@ Nothing is lost in the meantime: every open document is written to this
 browser's own storage as you work and comes back when you return. Downloading
 is how you get a file _out_ of PlasmidPop, not how you avoid losing work.
 
+### Downloading on an iPhone or iPad
+
+Safari on an iPhone or iPad asks whether to download the file, then puts it
+in **Files ▸ Downloads** (or wherever **Settings ▸ Apps ▸ Safari ▸
+Downloads** points) under the name PlasmidPop gave it: `pBR322_copy.gb`,
+`pBR322_copy_map.svg`, `pBR322_copy.pdf`. Every download is saved this way,
+a PDF or a picture included; to look at one, open it from the Files app.
+
+Up to version 1.17.6 Safari added `.txt` to some of these names
+(`pBR322_copy.gb.txt`, `…_map.svg.txt`) and showed a PDF in the browser
+instead of saving it. PlasmidPop opens such a file as it is; for other
+programs, rename it in Files (touch and hold the file, **Rename**) and take
+off the `.txt`.
+
 ### Downloading a SnapGene file
 
 **File > Download SnapGene…** writes a `.dna` file that SnapGene and SnapGene
