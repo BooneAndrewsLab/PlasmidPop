@@ -13,6 +13,14 @@ export type WorkspacePage = 'design' | 'results' | 'check' | 'mine';
 
 export const WORKSPACE_PAGES: readonly WorkspacePage[] = ['design', 'results', 'check', 'mine'];
 
+/**
+ * Where the workspace is on screen (point 5): beside the live map (`split`,
+ * 1000 px and wider), the whole main area under a foldable map strip
+ * (`full`, 601 to 1000 px) or the whole screen with the rail across the top
+ * (`phone`).
+ */
+export type WorkspaceLayout = 'split' | 'full' | 'phone';
+
 /** What the slim Primers panel and the workspace remember between openings. */
 export interface WorkspaceMemory {
   readonly page: WorkspacePage;

@@ -5,6 +5,7 @@ import { type OverlaySpan } from '@/view/overlay';
 
 import {
   WORKSPACE_PAGES,
+  type WorkspaceLayout,
   type WorkspaceMemory,
   type WorkspacePage,
   closePrimerWorkspace,
@@ -40,15 +41,11 @@ const ICONS: Readonly<Record<WorkspacePage, string>> = {
   mine: 'M2 4h11M2 8h7M2 12h9',
 };
 
-export type WorkspaceLayout = 'split' | 'full' | 'phone';
+export type { WorkspaceLayout };
 
 interface Props {
   readonly doc: SeqDocument;
-  /**
-   * Beside the live map (`split`, 1000 px and wider), the whole main area
-   * (`full`, narrower windows) or the whole screen with the rail across the
-   * top (`phone`); item 107, point 5.
-   */
+  /** Beside the live map, the whole main area, or the whole screen (point 5). */
   readonly layout?: WorkspaceLayout;
 }
 
@@ -247,7 +244,7 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
               }}
             />
           )}
-          {page === 'results' && <PrimerCandidates doc={doc} design={design} />}
+          {page === 'results' && <PrimerCandidates doc={doc} design={design} layout={layout} />}
           {page === 'check' && <PrimerCheck doc={doc} probe={probe} />}
           {page === 'mine' && (
             <div className="panel">

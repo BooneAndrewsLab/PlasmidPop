@@ -237,7 +237,7 @@ export const EVENTS = {
    * format (`csv`, `fasta`); `find-mine` is Find my primers turned on;
    * `to-pcr` a primer put in a PCR slot.
    */
-  primers: ['design', 'collection-add', 'collection-export', 'find-mine', 'to-pcr'],
+  primers: ['design', 'collection-add', 'collection-export', 'find-mine', 'to-pcr', 'primer-blast'],
   /**
    * `run` names the mode (`global`/`local`); `quality` is a change to the
    * confident threshold or the trimming cutoff (`confident`/`trim`, once

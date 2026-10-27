@@ -51,10 +51,24 @@ function page(name: 'Design' | 'Results' | 'Check' | 'My primers'): void {
   });
 }
 
-function firstToggle(): HTMLElement {
-  const button = screen.getAllByRole('button', { name: /^Show$|^Hide$/ })[0];
-  if (button === undefined) throw new Error('no pair was designed');
-  return button;
+/** The Results table's body rows, one a pair; none when there is no design. */
+function pairRows(): HTMLElement[] {
+  const grid = screen.queryByRole('grid', { name: 'Candidate pairs' });
+  return grid === null ? [] : within(grid).getAllByRole('row').slice(1);
+}
+
+/** Selects the first pair, which shows it on the map (item 107). */
+function selectFirst(): void {
+  const row = pairRows()[0];
+  if (row === undefined) throw new Error('no pair was designed');
+  act(() => {
+    fireEvent.click(row);
+  });
+}
+
+/** The detail pane's "Show on map", the pair's preview and selection. */
+function showOnMap(): HTMLElement {
+  return screen.getByRole('checkbox', { name: 'Show on map' });
 }
 
 describe('PrimerWorkspace', () => {
@@ -68,43 +82,40 @@ describe('PrimerWorkspace', () => {
   it('gives the selection back when a shown pair is hidden', () => {
     setup();
     const target = editorStore.getState().selection;
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
+    selectFirst();
     const product = editorStore.getState().selection;
     expect(product).not.toBeNull();
     expect(product).not.toEqual(target);
     expect(editorStore.getState().preview?.items.length).toBe(3);
+    expect(showOnMap()).toBeChecked();
 
     act(() => {
-      fireEvent.click(firstToggle());
+      fireEvent.click(showOnMap());
     });
     // The preview and the highlight go together: a product left selected
-    // reads as a pair still being shown.
+    // reads as a pair still being shown. The row stays selected (point 3).
     expect(editorStore.getState().selection).toBeNull();
     expect(editorStore.getState().preview).toBeNull();
+    expect(showOnMap()).not.toBeChecked();
+    expect(screen.getByRole('row', { selected: true })).toBeInTheDocument();
   });
 
   it('leaves a selection the user made since alone', () => {
     setup();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
+    selectFirst();
     const mine = { start: 10, end: 20 };
     act(() => {
       editorStore.setSelection(mine);
     });
     act(() => {
-      fireEvent.click(firstToggle());
+      fireEvent.click(showOnMap());
     });
     expect(editorStore.getState().selection).toEqual(mine);
   });
 
   it('takes its selection away with it when the tab is left', () => {
     const view = setup();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
+    selectFirst();
     expect(editorStore.getState().selection).not.toBeNull();
     act(() => {
       view.unmount();
@@ -114,9 +125,7 @@ describe('PrimerWorkspace', () => {
 
   it('keeps the target when the same selection is designed for again', () => {
     setup();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
+    selectFirst();
     // Designing for the product is a new target, not a preview this panel
     // is holding: hiding nothing must not clear it.
     page('Design');
@@ -136,15 +145,15 @@ describe('a design made before the sequence changed (#132)', () => {
 
   it('drops the pairs when the bases are edited, so nothing stale can be added', () => {
     const view = setup();
-    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
-      0,
-    );
+    selectFirst();
+    expect(screen.getByRole('button', { name: 'Add both as features' })).toBeInTheDocument();
     act(() => {
       editorStore.apply({ type: 'insert', position: 240, text: 'GGGGGGGGGG' });
     });
     const edited = editorStore.document;
     if (edited === null) throw new Error('no document');
     view.rerender(<PrimerWorkspace doc={edited} />);
+    expect(pairRows()).toHaveLength(0);
     expect(screen.queryByRole('button', { name: 'Add both as features' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save both' })).toBeNull();
     // Designing again works on the new template.
@@ -155,9 +164,7 @@ describe('a design made before the sequence changed (#132)', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
     });
-    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
-      0,
-    );
+    expect(pairRows().length).toBeGreaterThan(0);
   });
 
   it.each([
@@ -169,7 +176,7 @@ describe('a design made before the sequence changed (#132)', () => {
       editorStore.apply(op);
     });
     view.rerender(<PrimerWorkspace doc={editorStore.document ?? doc} />);
-    expect(screen.queryByRole('button', { name: 'Add both as features' })).toBeNull();
+    expect(pairRows()).toHaveLength(0);
   });
 
   it('keeps the pairs when only the annotations change', () => {
@@ -181,9 +188,7 @@ describe('a design made before the sequence changed (#132)', () => {
       });
     });
     view.rerender(<PrimerWorkspace doc={editorStore.document ?? doc} />);
-    expect(screen.getAllByRole('button', { name: 'Add both as features' }).length).toBeGreaterThan(
-      0,
-    );
+    expect(pairRows().length).toBeGreaterThan(0);
   });
 });
 
@@ -250,22 +255,32 @@ describe('primer settings', () => {
     });
   });
 
-  it('lists each pair as a block of rank, product, the two primers and three actions (#226)', () => {
+  it('lists each pair as a row of rank, product, ΔTm, the two primers and Spec., and the selected one in full (item 107)', () => {
     setup();
-    const list = screen.getByRole('list', { name: 'Designed pairs' });
-    const [pair] = within(list).getAllByRole('listitem');
-    if (pair === undefined) throw new Error('no pair was designed');
-    expect(pair.textContent).toMatch(
-      /^1[\d,]+ bpΔTm \d\.\d °C→[ACGT]+\d+\.\d °C · \d+% GC←[ACGT]+/,
-    );
+    const [row] = pairRows();
+    if (row === undefined) throw new Error('no pair was designed');
+    const cells = within(row)
+      .getAllByRole('cell')
+      .map((c) => c.textContent);
+    expect(cells).toHaveLength(10);
+    expect(cells[0]).toBe('1');
+    expect(cells[3]).toMatch(/^[ACGT]{18,27}$/);
+    expect(cells[6]).toMatch(/^[ACGT]{18,27}$/);
+    expect(cells[9]).toBe('not checked');
+    expect(screen.queryByRole('complementary')).toBeNull();
+    selectFirst();
+    const detail = within(screen.getByRole('complementary', { name: 'Pair 1' }));
     // The visible label is short; the accessible name is the guide's.
-    const add = within(pair).getByRole('button', { name: 'Add both as features' });
-    expect(add.textContent).toBe('Add both');
-    expect(
-      within(pair)
-        .getAllByRole('button')
-        .map((b) => b.textContent),
-    ).toEqual(['Show', 'Add both', 'Save both']);
+    expect(detail.getByRole('button', { name: 'Add both as features' }).textContent).toBe(
+      'Add both',
+    );
+    expect(detail.getAllByRole('button').map((b) => b.textContent)).toEqual([
+      'Add both',
+      'Save both',
+      'Copy',
+    ]);
+    expect(detail.getByText(/^hairpin \d · \d$/)).toBeInTheDocument();
+    expect(detail.getByText(/^elsewhere /)).toBeInTheDocument();
   });
 });
 
@@ -417,9 +432,7 @@ describe('the workspace shell (item 107)', () => {
   it('says the target changed on Results and hides the preview, keeping the rows (point 3)', () => {
     setup();
     expect(screen.queryByText(/Target changed/)).toBeNull();
-    act(() => {
-      fireEvent.click(firstToggle());
-    });
+    selectFirst();
     // The shown pair's product is the design's own selection, not a new target.
     expect(screen.queryByText(/Target changed/)).toBeNull();
     expect(editorStore.getState().preview?.items).toHaveLength(3);
@@ -427,7 +440,7 @@ describe('the workspace shell (item 107)', () => {
       editorStore.setSelection({ start: 10, end: 20 });
     });
     expect(screen.getByText(/Target changed/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { selected: true })).toBeInTheDocument();
     expect(editorStore.getState().preview).toBeNull();
     // Design again goes back to the Design page, on the new selection.
     act(() => {

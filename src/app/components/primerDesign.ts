@@ -210,6 +210,15 @@ export interface PrimerDesign {
   readonly design: (target: Range) => readonly PrimerPair[];
   /** Holds a pair's preview on screen and selects what it would amplify; again hides it. */
   readonly showPair: (index: number, pair: PrimerPair) => void;
+  /**
+   * The Results table's row (item 107): the pair the detail pane is about.
+   * Selecting it shows it on the map while `followMap` is on; the row stays
+   * selected when the map preview is taken off (point 3).
+   */
+  readonly selected: number | null;
+  readonly select: (index: number | null) => void;
+  readonly followMap: boolean;
+  readonly setFollowMap: (on: boolean) => void;
 }
 
 /**
@@ -235,6 +244,14 @@ export function usePrimerDesign(doc: SeqDocument): PrimerDesign {
     null,
   );
   const [shown, setShown] = useRemembered<number | null>('primers.shown', documentId, null);
+  const [selected, setSelected] = useRemembered<number | null>(
+    'primers.selected',
+    documentId,
+    null,
+  );
+  // Whether selecting a row shows the pair on the map: the user's, from
+  // plasmid to plasmid, since unticking it is a way of working.
+  const [followMap, setFollowMapMemory] = useRemembered('primers.followMap', null, true);
   const [hovered, setHovered] = useState<number | null>(null);
   /**
    * The product range **Show** put on the selection, so that **Hide** and
@@ -248,8 +265,9 @@ export function usePrimerDesign(doc: SeqDocument): PrimerDesign {
     if (storedPairs === null || designedOn === template) return;
     setPairs(null);
     setShown(null);
+    setSelected(null);
     releaseSelection(ownedSelection);
-  }, [storedPairs, designedOn, template, setPairs, setShown]);
+  }, [storedPairs, designedOn, template, setPairs, setShown, setSelected]);
   // Leaving takes the selection this design made with it, and nobody else's.
   useEffect(
     () => () => {
@@ -271,6 +289,7 @@ export function usePrimerDesign(doc: SeqDocument): PrimerDesign {
     setPairs(result);
     setDesignedOn(template);
     setShown(null);
+    setSelected(null);
     setHovered(null);
     // The selection is the target being designed for now, not a product
     // this panel put there; forget it rather than clearing it.
@@ -280,17 +299,38 @@ export function usePrimerDesign(doc: SeqDocument): PrimerDesign {
     return result;
   };
 
-  const showPair = (index: number, pair: PrimerPair): void => {
-    if (shown === index) {
-      setShown(null);
-      releaseSelection(ownedSelection);
-      return;
-    }
+  const show = (index: number, pair: PrimerPair): void => {
     setShown(index);
     const product = productRange(pair, doc.length);
     editorStore.setSelection(product);
     ownedSelection.current = product;
     editorStore.revealPosition(product.start);
+  };
+  const hide = (): void => {
+    setShown(null);
+    releaseSelection(ownedSelection);
+  };
+
+  const showPair = (index: number, pair: PrimerPair): void => {
+    if (shown === index) hide();
+    else show(index, pair);
+  };
+
+  const select = (index: number | null): void => {
+    setSelected(index);
+    const pair = index === null ? undefined : pairs?.[index];
+    if (pair === undefined || index === null) {
+      if (shown !== null) hide();
+      return;
+    }
+    if (followMap) show(index, pair);
+  };
+
+  const setFollowMap = (on: boolean): void => {
+    setFollowMapMemory(on);
+    const pair = selected === null ? undefined : pairs?.[selected];
+    if (on && pair !== undefined && selected !== null) show(selected, pair);
+    else if (!on && shown !== null) hide();
   };
 
   // A shown pair's product is this design's own selection, not a new target;
@@ -312,6 +352,10 @@ export function usePrimerDesign(doc: SeqDocument): PrimerDesign {
     preview,
     design,
     showPair,
+    selected,
+    select,
+    followMap,
+    setFollowMap,
   };
 }
 

@@ -463,9 +463,11 @@ describe('previews', () => {
     // The slim panel's button opens the workspace; its Design page designs.
     fireEvent.click(screen.getByRole('button', { name: 'Design primers…' }));
     fireEvent.click(screen.getByRole('button', { name: 'Design primers' }));
-    const [show] = await screen.findAllByRole('button', { name: 'Show' });
-    if (show === undefined) throw new Error('expected a designed pair');
-    fireEvent.click(show);
+    // Selecting a row of the Results table shows the pair (item 107).
+    const grid = await screen.findByRole('grid', { name: 'Candidate pairs' });
+    const [, first] = within(grid).getAllByRole('row');
+    if (first === undefined) throw new Error('expected a designed pair');
+    fireEvent.click(first);
     const preview = editorStore.getState().preview;
     expect(preview?.items.map((i) => i.id)).toEqual([
       'primers:product',
@@ -488,8 +490,8 @@ describe('previews', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Last design · \d+ pairs/ }));
     expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
     expect(editorStore.getState().preview?.items).toHaveLength(3);
-    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    expect(screen.getByRole('checkbox', { name: 'Show on map' })).toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show on map' }));
     expect(editorStore.getState().preview).toBeNull();
   });
 
