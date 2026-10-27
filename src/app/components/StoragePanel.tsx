@@ -105,7 +105,9 @@ export function StoragePanel({ documents, onChanged }: Props) {
         {webkit && (
           <li role="alert">
             This browser may drop the documents of a site you have not visited for seven days,
-            unless the app is added to the home screen (or the Dock). Back up, or install it.
+            unless the app is added to the home screen (or the Dock). On an iPhone or iPad the
+            installed app has its own, empty storage: use Back up all documents here first, then
+            Restore from backup in the installed app.
           </li>
         )}
       </ul>

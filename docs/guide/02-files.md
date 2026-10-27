@@ -697,7 +697,10 @@ adds a warning when there are changes older than seven days that no backup
 holds. In Safari, and any browser on an iPhone or iPad, that is not installed
 to the home screen (or the Dock), it also says that the browser may drop the
 documents after seven days without a visit, which a backup or installing the
-app protects against. There the "agreed to keep them" line is left out, because
+app protects against. On an iPhone or iPad the installed app does not share
+storage with the Safari tab: it starts empty. Before you add PlasmidPop to the
+home screen, use **Back up all documents…** in Safari, then open the installed
+app and use **Restore from backup…**. There the "agreed to keep them" line is left out, because
 Safari's seven-day limit applies even when the browser has granted persistent
 storage. The date of the last backup is remembered in this
 browser only, so a restore on a new computer starts with "never backed up"

@@ -39,6 +39,23 @@ describe('StoragePanel (#203)', () => {
   });
 });
 
+describe('StoragePanel iOS warning (#297)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('says the installed app starts empty and to back up first', () => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+    render(<StoragePanel documents={[summary(Date.now())]} onChanged={() => undefined} />);
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(/installed app has its own, empty storage/);
+    expect(alert).toHaveTextContent(/Back up all documents here first/);
+    expect(alert).toHaveTextContent(/Restore from backup in the installed app/);
+  });
+});
+
 describe('persistenceSentence (#292)', () => {
   it('states the promise only where the seven-day cap does not apply', () => {
     expect(persistenceSentence(true, false)).toBe('The browser has agreed to keep them.');
