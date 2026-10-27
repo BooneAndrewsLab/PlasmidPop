@@ -498,3 +498,44 @@ describe('the workspace shell (item 107)', () => {
     expect(screen.queryByText('gfp')).toBeNull();
   });
 });
+
+describe('the map strip (item 107, point 5)', () => {
+  afterEach(() => {
+    forgetPanels();
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('is there, unfolded, where the map cannot be beside the workspace, and not in the split', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setPrimerWorkspace(true);
+    });
+    const { unmount } = render(<PrimerWorkspace doc={doc} layout="full" />);
+    const fold = screen.getByText('Map');
+    expect(fold.closest('details')?.open).toBe(true);
+    expect(screen.getByRole('img', { name: `Map strip of ${doc.name}` })).toBeInTheDocument();
+    unmount();
+    render(<PrimerWorkspace doc={doc} layout="split" />);
+    expect(screen.queryByText('Map')).toBeNull();
+  });
+
+  it('folds and remembers it, across the phone and the full layout', () => {
+    act(() => {
+      editorStore.openDocument(doc);
+      editorStore.setPrimerWorkspace(true);
+    });
+    const { unmount } = render(<PrimerWorkspace doc={doc} layout="phone" />);
+    const details = screen.getByText('Map').closest('details');
+    if (details === null) throw new Error('no strip');
+    act(() => {
+      details.open = false;
+      fireEvent(details, new Event('toggle'));
+    });
+    expect(screen.queryByRole('img', { name: /Map strip/ })).toBeNull();
+    unmount();
+    render(<PrimerWorkspace doc={doc} layout="full" />);
+    expect(screen.getByText('Map').closest('details')?.open).toBe(false);
+  });
+});

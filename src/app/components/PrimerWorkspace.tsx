@@ -10,14 +10,20 @@ import {
   type WorkspacePage,
   closePrimerWorkspace,
 } from '../primerWorkspace';
+import { SHORT_WINDOW_QUERY } from '../state/layout';
 import { useRemembered } from '../state/panelMemory';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
+import { MapStrip } from './MapStrip';
 import { PrimerCandidates } from './PrimerCandidates';
 import { PrimerCheck } from './PrimerCheck';
 import { PrimerCollection } from './PrimerCollection';
 import { PrimerDesignPage } from './PrimerDesignPage';
 import { searchWindows, usePrimerDesign, usePrimerProbe, usePrimersPreview } from './primerDesign';
+import { useMediaQuery } from './useMediaQuery';
+
+/** The strip's height: a phone's rows are dear, a laptop's less so. */
+const STRIP_HEIGHT: Readonly<Record<WorkspaceLayout, number>> = { split: 0, full: 72, phone: 56 };
 
 const LABELS: Readonly<Record<WorkspacePage, string>> = {
   design: 'Design',
@@ -105,6 +111,11 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   };
 
   const horizontal = layout === 'phone';
+  // The map strip (point 5), where the map cannot be beside the workspace:
+  // folded to begin with on a window too short to spare its rows, and
+  // remembered either way.
+  const short = useMediaQuery(SHORT_WINDOW_QUERY);
+  const [stripFolded, setStripFolded] = useRemembered('primers.stripFolded', null, short);
   const onRailKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     const back = horizontal ? 'ArrowLeft' : 'ArrowUp';
     const on = horizontal ? 'ArrowRight' : 'ArrowDown';
@@ -173,6 +184,23 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           ✕
         </button>
       </div>
+      {layout !== 'split' && (
+        <details
+          className="ws__strip"
+          open={!stripFolded}
+          onToggle={(e) => {
+            setStripFolded(!e.currentTarget.open);
+          }}
+        >
+          <summary
+            className="ws__strip-summary"
+            data-tip="The document as a ribbon: fold or unfold"
+          >
+            Map
+          </summary>
+          {!stripFolded && <MapStrip doc={doc} height={STRIP_HEIGHT[layout]} />}
+        </details>
+      )}
       <div
         className="ws__rail"
         role="tablist"

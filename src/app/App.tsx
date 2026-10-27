@@ -173,8 +173,8 @@ export function App() {
       ) : workspace && stackedViews ? (
         // Narrower than the split needs (601 to 1000 px): the workspace takes
         // the whole main area, the sidebar's rail beside or under it as the
-        // rail is at that width (item 107, point 5). The foldable map strip
-        // this layout is to have is not built yet.
+        // rail is at that width (item 107, point 5), with the document as a
+        // foldable strip across the top of the workspace.
         <main
           className="app__main app__main--workspace"
           style={
