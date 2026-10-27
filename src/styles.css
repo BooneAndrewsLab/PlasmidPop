@@ -436,8 +436,9 @@ button {
     grid-template-rows: minmax(0, 1fr);
   }
 
-  .toolbar__meta,
-  .toolbar__show {
+  /* The toggles are not rendered here at all: they are items in Format
+     (SHOW_IN_FORMAT_QUERY, #296). */
+  .toolbar__meta {
     display: none;
   }
 }
@@ -4606,6 +4607,52 @@ button {
   .statusbar__row {
     padding: 0 10px;
     gap: 8px;
+  }
+}
+
+/* A short window that is not a phone: a phone on its side (about 800 x 400)
+   or a laptop window dragged short (#296; SHORT_WINDOW_QUERY in layout.ts,
+   with a floor so the phone's own rules above are left alone). The toggles
+   are in Format there, and the rest is drawn tighter so the toolbar is one
+   row at 800 px rather than four. Wrapping stays on as the fallback for a
+   long name. */
+@media (min-width: 601px) and (max-width: 1000px) and (max-height: 500px) {
+  .toolbar {
+    padding: 4px 10px;
+    gap: 4px 10px;
+    min-height: 0;
+  }
+
+  .toolbar__brand .logo {
+    height: 22px;
+    width: auto;
+  }
+
+  /* The size and the shape under the name, as on a phone, so they cost
+     the row no width; the 720px rule that hid them was for the toggles. */
+  .toolbar__doc {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .toolbar__name {
+    max-width: 20vw;
+  }
+
+  .toolbar__meta {
+    display: inline;
+    font-size: 12px;
+  }
+
+  .toolbar__actions {
+    gap: 4px 8px;
+  }
+
+  /* The toolbar's own buttons, not those inside its menus' lists. */
+  .toolbar .button:not(.menu__list *),
+  .toolbar .segmented__button:not(.menu__list *) {
+    padding: 4px 8px;
   }
 }
 

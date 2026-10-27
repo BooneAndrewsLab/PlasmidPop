@@ -38,6 +38,12 @@ below, so it is never squeezed to a sliver.
   not imposed on the other one. On a window narrower still the sidebar moves
   under the editor, and its top edge is a handle too; its height is kept
   apart from its width beside the editor.
+- On a narrow window, and on a short one such as a phone turned on its side,
+  the **Complement**, **Translations** and **Cut sites** toggles are not in
+  the toolbar: they are the first three items of the **Format** menu, under
+  **Show**, and `Alt+C`, `Alt+T` and `Alt+R` work as before. On the short
+  window the rest of the toolbar is drawn tighter, with the size and shape
+  under the name, so it keeps to one row and leaves the height to the views.
 - **Format ▸ Reset the layout** puts the map, the sequence and the sidebar
   back to the sizes they started at, and opens the sidebar if it is closed.
 
@@ -104,7 +110,10 @@ Nothing about a document is different on a phone: it is the same file, stored
 in the same browser, and everything comes back on a wider window. A notice
 says so the first time; **Got it** puts it away for good. A tablet is wide
 enough for the normal layout, with the map above the sequence in portrait, and
-the same touch gestures work there.
+the same touch gestures work there. So is a phone turned on its side: wider
+than 600 px, it has the normal layout with a one-row toolbar (see
+[Sizing the panes](#sizing-the-panes) above), and turning it back
+upright brings the reader back.
 
 ## Sequence view
 

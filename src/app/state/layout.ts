@@ -47,6 +47,22 @@ export const SIDEBAR_STACKED_QUERY = '(max-width: 720px)';
  */
 export const PHONE_QUERY = '(max-width: 600px)';
 
+/**
+ * A window too short for a toolbar of several rows: a phone on its side
+ * (about 800 x 400, wider than `PHONE_QUERY`) or a laptop window dragged
+ * short and narrow (#296). The width cap keeps a wide, short window, whose
+ * toolbar fits on one row anyway, as it is. `styles.css` repeats it, with a
+ * 601 px floor so the phone's own rules are left alone, to draw the
+ * toolbar compact.
+ */
+export const SHORT_WINDOW_QUERY = '(max-width: 1000px) and (max-height: 500px)';
+/**
+ * Where the toolbar's Complement, Translations and Cut sites toggles do not
+ * fit and are items in the Format menu instead: under the stacked layout's
+ * width (where they were simply hidden until #296) and on a short window.
+ */
+export const SHOW_IN_FORMAT_QUERY = `${SIDEBAR_STACKED_QUERY}, ${SHORT_WINDOW_QUERY}`;
+
 /** Floors, in px, for what a pane is still usable at. */
 export const MIN_MAP_PX = 200;
 /** Gutters plus a few columns of bases; the view itself fits 10 to a row. */

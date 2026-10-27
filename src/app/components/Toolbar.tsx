@@ -20,7 +20,7 @@ import { Logo } from './Logo';
 import { renameNote, topologyNote } from '../editsView';
 import { useIdentityChange } from '../state/editDiff';
 import { type ViewMode, editorStore, effectiveEditsBaseline } from '../state/editorStore';
-import { PHONE_QUERY } from '../state/layout';
+import { PHONE_QUERY, SHOW_IN_FORMAT_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
 import { useMediaQuery } from './useMediaQuery';
 
@@ -97,6 +97,9 @@ export function Toolbar({ doc }: Props) {
   // the shell's own bar there, and the toggles, Format, Edits and History
   // are for editing, which a phone does not do.
   const phone = useMediaQuery(PHONE_QUERY);
+  // Where the three toggles would take a row of their own (a stacked
+  // window, a phone on its side) they are items in Format instead (#296).
+  const showInFormat = useMediaQuery(SHOW_IN_FORMAT_QUERY);
 
   /** The hidden inputs' handler; `handle` is what to do with the file picked. */
   const onPick =
@@ -258,7 +261,7 @@ export function Toolbar({ doc }: Props) {
               </div>
             )}
             {/* A protein has one strand, no CDS under it and no sites to cut (#66). */}
-            {hasTool(doc, 'complement') && (
+            {hasTool(doc, 'complement') && !showInFormat && (
               <div className="segmented toolbar__show" role="group" aria-label="Show">
                 <button
                   type="button"
@@ -298,7 +301,7 @@ export function Toolbar({ doc }: Props) {
                 </button>
               </div>
             )}
-            <FormatMenu />
+            <FormatMenu viewToggles={showInFormat && hasTool(doc, 'complement')} />
             <EditsMenu />
           </>
         )}

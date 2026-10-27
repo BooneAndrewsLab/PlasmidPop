@@ -152,7 +152,90 @@ function Choices<T extends string | number | null>({
  * menu is in view on a laptop screen and a choice is one click without
  * reading past the others.
  */
-export function FormatMenu() {
+/**
+ * The toolbar's three toggles as menu items, for a window where they do not
+ * fit beside the other groups (#296): the same store setters and the same
+ * analytics as the buttons, and the same keys shown beside them.
+ */
+function ViewToggles() {
+  const { showComplement, showTranslations, showCutSites } = useEditorState();
+  const complementKey = useBindingLabel('toggle-complement');
+  const translationsKey = useBindingLabel('toggle-translations');
+  const cutSitesKey = useBindingLabel('toggle-cut-sites');
+  const items: readonly {
+    readonly label: string;
+    readonly on: boolean;
+    readonly hint: string;
+    readonly tip: string;
+    readonly event: string;
+    readonly flip: () => void;
+  }[] = [
+    {
+      label: 'Complement',
+      on: showComplement,
+      hint: complementKey,
+      tip: 'Show the complement strand',
+      event: 'complement',
+      flip: () => {
+        editorStore.setShowComplement(!showComplement);
+      },
+    },
+    {
+      label: 'Translations',
+      on: showTranslations,
+      hint: translationsKey,
+      tip: 'Show amino acids under CDS features',
+      event: 'translations',
+      flip: () => {
+        editorStore.setShowTranslations(!showTranslations);
+      },
+    },
+    {
+      label: 'Cut sites',
+      on: showCutSites,
+      hint: cutSitesKey,
+      tip: 'Show cut sites of the enzymes ticked in the Enzymes tab; hiding them keeps the ticks',
+      event: 'cut-sites',
+      flip: () => {
+        editorStore.setShowCutSites(!showCutSites);
+      },
+    },
+  ];
+  return (
+    <>
+      <p className="menu__group-label">Show</p>
+      {items.map((item) => (
+        <button
+          key={item.event}
+          type="button"
+          role="menuitemcheckbox"
+          aria-checked={item.on}
+          aria-keyshortcuts={item.hint}
+          className="menu__item"
+          data-tip={`${item.tip} (${item.hint})`}
+          onClick={() => {
+            analytics.trackOnce('view', 'toggle', item.event);
+            item.flip();
+          }}
+        >
+          <span>{item.label}</span>
+          <Tick on={item.on} hint={item.hint} />
+        </button>
+      ))}
+      <div className="menu__separator" role="separator" />
+    </>
+  );
+}
+
+export function FormatMenu({
+  viewToggles = false,
+}: {
+  /**
+   * Whether the menu starts with the Complement, Translations and Cut sites
+   * toggles: true where the toolbar has no room for their own buttons.
+   */
+  readonly viewToggles?: boolean;
+} = {}) {
   const {
     seqFontSize,
     seqBasesPerRow,
@@ -230,6 +313,7 @@ export function FormatMenu() {
       </button>
       {open && (
         <div className="menu__list menu__list--settings" role="menu" aria-label="Format and layout">
+          {viewToggles && <ViewToggles />}
           <p className="menu__group-label">Sequence view</p>
           <Choices
             label="Text size"

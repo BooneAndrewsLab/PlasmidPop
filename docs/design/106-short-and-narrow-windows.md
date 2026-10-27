@@ -1,6 +1,6 @@
 # 106. Short and narrow laptop windows
 
-Done in 1.17.5 (#292). Seen on a small MacBook in Safari 16.6 with a
+Done in 1.17.5 (#292); point 6 for #296. Seen on a small MacBook in Safari 16.6 with a
 circular plasmid in the Both view: five parts of the layout degraded when
 there was little height or width. Each fix is a patch to the existing
 layout, with no new setting.
@@ -36,3 +36,33 @@ layout, with no new setting.
    its seven-day cap, so where the cap warning applies
    (`mayBeDroppedAfterAWeek`) the "agreed to keep them" sentence is left
    out (`persistenceSentence`).
+6. **A phone on its side (#296, after 1.17.6).** At about 800 x 400 the
+   desktop layout applies (wider than `PHONE_QUERY`) and the toolbar took
+   four rows, 154 px of 400: the logo and name; File, History, View and the
+   three toggles; Format and Edits; the `?`. `SHORT_WINDOW_QUERY`
+   (`layout.ts`: at most 1000 px wide and 500 px high) names that window,
+   and two changes bring the toolbar to one row of 49 px at 800 x 400 and
+   844 x 390, measured in iframes of the dev server:
+   - **The toggles go into Format.** `SHOW_IN_FORMAT_QUERY` is the short
+     window or the stacked layout's 720 px, where `.toolbar__show` had been
+     hidden by CSS with no other way to them but the keys. There the toolbar
+     does not render the group, and `FormatMenu`'s `viewToggles` puts
+     Complement, Translations and Cut sites first under **Show**, as
+     checkbox items with their keys, the same setters and the same
+     analytics. A protein, which has none of the three, gets neither. This is
+     the edit bar's `More ▾` (point 4) applied to the toolbar, but into an
+     existing menu rather than a new one: a fourth menu beside File, Format
+     and Edits would cost the row what it saved.
+   - **The rest is drawn tighter** in a CSS block on the same query, with a
+     601 px floor so the phone's own rules are untouched: smaller padding
+     and gaps, the logo at 22 px, the toolbar's own buttons (not those in
+     its menus' lists) at 4 x 8 px padding, the name capped at 20vw, and the
+     size and shape back under the name as on a phone (the 720 px rule hid
+     them only to make room for the toggles). Wrapping stays on, so a name
+     or a font that does not fit costs a second row, not an overflow.
+     The width cap leaves a wide short window as it was: its toolbar fits on
+     one row with the toggles in it. Not measured: a real phone, and the
+     36 px buttons of `pointer: coarse`, which the desktop Chrome used cannot
+     emulate; at that height the row is about 48 px plus padding. Also seen
+     in the same session, unchanged here: at 1280 x 800 the `?` still drops
+     to a row of its own (point 2's open question).

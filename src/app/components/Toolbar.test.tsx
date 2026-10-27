@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { SeqDocument } from '@/core';
 
 import { editorStore } from '../state/editorStore';
+import { SHORT_WINDOW_QUERY, SHOW_IN_FORMAT_QUERY } from '../state/layout';
 import { useEditorState } from '../state/useEditorStore';
 import { Toolbar } from './Toolbar';
 
@@ -131,5 +132,72 @@ describe('the toolbar says what the edit marks cannot (#31)', () => {
     });
     expect(nameButton().getAttribute('data-tip')).toMatch(/^Named “pOther” in theirs\.gb\n/);
     expect(shape(container)?.getAttribute('data-tip')).toBe('Linear in theirs.gb');
+  });
+});
+
+describe('the toolbar on a short window (#296)', () => {
+  // Answer the queries of a phone on its side, about 800 x 400.
+  const real = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+  beforeEach(() => {
+    const matchMedia = (query: string): MediaQueryList =>
+      ({
+        matches: query === SHOW_IN_FORMAT_QUERY || query === SHORT_WINDOW_QUERY,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as MediaQueryList;
+    Object.defineProperty(window, 'matchMedia', {
+      value: matchMedia,
+      configurable: true,
+      writable: true,
+    });
+    act(() => {
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(PLASMID, 'pTest.gb');
+    });
+  });
+  afterEach(() => {
+    if (real === undefined) Reflect.deleteProperty(window, 'matchMedia');
+    else Object.defineProperty(window, 'matchMedia', real);
+  });
+
+  it('moves Complement, Translations and Cut sites into Format and keeps the rest', () => {
+    render(<Bar />);
+    expect(screen.queryByRole('group', { name: 'Show' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'View' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Edits/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    expect(screen.getByRole('menuitemcheckbox', { name: /^Complement/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: /^Translations/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: /^Cut sites/ })).toBeInTheDocument();
+  });
+
+  it('keeps them out of Format for a protein, which has none of the three', () => {
+    act(() => {
+      editorStore.openDocument(
+        SeqDocument.create({ name: 'pProt', sequence: 'MKVLAAGIVG', alphabet: 'protein' }),
+        'pProt.fasta',
+      );
+    });
+    render(<Bar />);
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    expect(screen.queryByRole('menuitemcheckbox', { name: /^Complement/ })).toBeNull();
+  });
+});
+
+describe('the toolbar on a wide window', () => {
+  it('has the three toggles as its own buttons and not in Format', () => {
+    act(() => {
+      editorStore.closeAllDocuments();
+      editorStore.openDocument(PLASMID, 'pTest.gb');
+    });
+    render(<Bar />);
+    expect(screen.getByRole('group', { name: 'Show' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    expect(screen.queryByRole('menuitemcheckbox', { name: /^Complement/ })).toBeNull();
   });
 });

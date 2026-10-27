@@ -59,7 +59,8 @@ See [Files and storage](02-files.md).
   history list, the view switcher (**Sequence**, **Map**, **Both**), the
   **Complement**, **Translations** and **Cut sites** toggles, the
   **Format** and **Edits** menus, and the **?** button that opens this
-  guide.
+  guide. On a narrow or short window (a phone on its side) the three
+  toggles are the first items of **Format** instead.
 - **Document tabs** (under the toolbar): **Files**, the
   [**Bench**](12-cloning.md#the-bench), then one tab per open document, and
   **+** for a new one. Tabs can be dragged into another order.

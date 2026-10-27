@@ -102,4 +102,35 @@ describe('FormatMenu', () => {
     fireEvent.click(item('Off'));
     expect(editorStore.getState().residueNumbering).toBe('off');
   });
+
+  it('starts with the three view toggles only where the toolbar has no room for them (#296)', () => {
+    const { unmount } = render(<FormatMenu />);
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    expect(screen.queryByRole('menuitemcheckbox', { name: /^Complement/ })).toBeNull();
+    unmount();
+
+    render(<FormatMenu viewToggles />);
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }));
+    const complement = screen.getByRole('menuitemcheckbox', { name: /^Complement/ });
+    const was = editorStore.getState().showComplement;
+    expect(complement).toHaveAttribute('aria-checked', String(was));
+    expect(complement).toHaveAttribute('aria-keyshortcuts', 'Alt+C');
+    fireEvent.click(complement);
+    expect(editorStore.getState().showComplement).toBe(!was);
+    expect(complement).toHaveAttribute('aria-checked', String(!was));
+    // The menu stays open, as for every other Format item.
+    const translations = screen.getByRole('menuitemcheckbox', { name: /^Translations/ });
+    const sites = screen.getByRole('menuitemcheckbox', { name: /^Cut sites/ });
+    const translationsWere = editorStore.getState().showTranslations;
+    const sitesWere = editorStore.getState().showCutSites;
+    fireEvent.click(translations);
+    fireEvent.click(sites);
+    expect(editorStore.getState().showTranslations).toBe(!translationsWere);
+    expect(editorStore.getState().showCutSites).toBe(!sitesWere);
+    act(() => {
+      editorStore.setShowComplement(was);
+      editorStore.setShowTranslations(translationsWere);
+      editorStore.setShowCutSites(sitesWere);
+    });
+  });
 });
