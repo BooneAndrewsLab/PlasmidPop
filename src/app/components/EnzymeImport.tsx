@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import { type RebaseImportSummary, persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
@@ -100,7 +101,7 @@ export function EnzymeImport({ onClose }: { readonly onClose: () => void }) {
            * arrived without an extension (saving the page gives
            * link_withrefm.txt, but "Save link as" need not).
            */
-          accept="text/plain,.txt,.dat"
+          accept={pickerAccept('text/plain,.txt,.dat')}
           onChange={(e) => {
             take(e.target.files?.[0]);
             e.target.value = '';

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import { type MyPart, type PartDraft } from '@/core';
 import {
@@ -154,7 +155,7 @@ function MyPartsBody() {
           ref={files}
           type="file"
           multiple
-          accept=".gb,.gbk,.genbank,.fa,.fasta,.fna,.txt"
+          accept={pickerAccept('.gb,.gbk,.genbank,.fa,.fasta,.fna,.txt')}
           hidden
           aria-label="Add parts from a GenBank or FASTA file"
           onChange={(e) => {

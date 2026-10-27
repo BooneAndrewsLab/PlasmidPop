@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import {
   type CollectionPrimer,
@@ -635,7 +636,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
           <input
             ref={fileInput}
             type="file"
-            accept={PRIMER_FILE_ACCEPT}
+            accept={pickerAccept(PRIMER_FILE_ACCEPT)}
             aria-label="Primer list file"
             hidden
             onChange={(e) => {

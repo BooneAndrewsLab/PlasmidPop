@@ -760,4 +760,7 @@ The file goes from the other app to PlasmidPop on the phone and nowhere else:
 it is handed over inside the browser, kept only until it has been opened, and
 never uploaded. **iPhone and iPad** do not support this (Safari has no share
 target for web apps); save the attachment to Files and open it with **File ▸
-Open** instead. Desktop browsers do not offer it either.
+Open** instead. On an iPhone or iPad the picker shows every file, not only the
+sequence formats, because iOS greys out a file whose extension it does not
+know (`.gb`, `.ape`); pick the file anyway and PlasmidPop reads its format
+from the content. Desktop browsers do not offer it either.

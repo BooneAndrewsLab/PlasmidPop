@@ -1,4 +1,5 @@
 import { analytics } from '../analytics';
+import { pickerAccept } from '../pickerAccept';
 import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -942,7 +943,7 @@ export function AlignPanel({ doc }: Props) {
         <input
           ref={fileInput}
           type="file"
-          accept={SEQUENCE_FILE_ACCEPT}
+          accept={pickerAccept(SEQUENCE_FILE_ACCEPT)}
           aria-label="File to align"
           multiple
           hidden

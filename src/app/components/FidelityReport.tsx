@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import { type FidelityTable, formatFidelity, setFidelity } from '@/core';
 
@@ -96,7 +97,7 @@ function FidelityImport({ onClose }: { readonly onClose: () => void }) {
           ref={input}
           type="file"
           className="visually-hidden"
-          accept={FIDELITY_FILE_ACCEPT}
+          accept={pickerAccept(FIDELITY_FILE_ACCEPT)}
           onChange={(e) => {
             take(e.target.files?.[0]);
             e.target.value = '';

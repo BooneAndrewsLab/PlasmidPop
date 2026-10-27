@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import { activeEnzymes } from '@/core';
 
@@ -106,7 +107,7 @@ export function RecodeControls({ form, onChange }: Props) {
         ref={input}
         type="file"
         className="visually-hidden"
-        accept=".txt,.csv,.tsv,text/plain,text/csv"
+        accept={pickerAccept('.txt,.csv,.tsv,text/plain,text/csv')}
         aria-label="Codon usage file"
         onChange={(e) => {
           const file = e.target.files?.[0];

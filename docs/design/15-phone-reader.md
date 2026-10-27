@@ -190,3 +190,16 @@ share-target-open`, once per share; each file's `file / open` gives its
   map and in the sequence a finger lands on a site as often as on the
   feature it was after. A 1.5 entry, which has only the desktop's value,
   leaves the phone on its default.
+
+## File pickers on iOS (issue 294)
+
+iOS turns an `accept` list of extensions into file types and leaves a file
+whose extension it has no type for (`.gb`, `.ape`) greyed out in the picker;
+`.txt` has a type, so a renamed file worked. The app decides each file's
+format from its content, so on iPhone and iPad every file input goes
+through `pickerAccept` (`src/app/pickerAccept.ts`), which returns no
+`accept` there and the list elsewhere. iPadOS reports a Mac user agent, so a
+"Macintosh" with more than one touch point counts as iOS. Every picker with
+an `accept` uses it, not only the sequence ones, since the same greying
+applies to `.csv`/`.dat` lists. Not verifiable off a device; the unit tests
+cover the detection only.

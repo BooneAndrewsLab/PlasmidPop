@@ -1,4 +1,5 @@
 import { type ChangeEvent, type RefObject, useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import { type SeqDocument, describeEnds, formatLength, hasTool } from '@/core';
 
@@ -304,7 +305,7 @@ export function Toolbar({ doc }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept={SEQUENCE_FILE_ACCEPT}
+          accept={pickerAccept(SEQUENCE_FILE_ACCEPT)}
           multiple
           hidden
           onChange={onPickMany}
@@ -312,7 +313,7 @@ export function Toolbar({ doc }: Props) {
         <input
           ref={compareRef}
           type="file"
-          accept={SEQUENCE_FILE_ACCEPT}
+          accept={pickerAccept(SEQUENCE_FILE_ACCEPT)}
           aria-label="File to compare with"
           hidden
           onChange={onPick(compareWithFile)}

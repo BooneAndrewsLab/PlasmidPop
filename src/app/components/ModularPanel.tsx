@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { pickerAccept } from '../pickerAccept';
 
 import {
   type GoldenGateOptions,
@@ -138,7 +139,7 @@ function StandardImport({ custom }: { readonly custom: readonly OverhangStandard
         ref={input}
         type="file"
         className="visually-hidden"
-        accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values"
+        accept={pickerAccept('.csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values')}
         aria-label="Standard file"
         onChange={(e) => {
           const file = e.target.files?.[0];
