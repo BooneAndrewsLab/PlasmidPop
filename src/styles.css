@@ -6758,3 +6758,296 @@ button {
 .primers__mine .panel__heading-note {
   margin-left: 6px;
 }
+
+/* ---- The Design page's cloning mode (#303, item 108): the mode switch,
+   four numbered steps, the enzyme-pair table; Results' oligos with their
+   parts told apart, the ends table, the warnings and the product. ---- */
+
+.mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 12px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 0 10px;
+  margin: 0 0 12px;
+}
+
+.step__n {
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step__t {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.step__h {
+  margin: 0;
+  font: inherit;
+}
+
+.step__t .dnote {
+  font-weight: 400;
+}
+
+.step__b {
+  min-width: 0;
+}
+
+.step .ws__target-value {
+  margin: 0 0 6px;
+}
+
+.step .segmented {
+  margin-bottom: 6px;
+}
+
+.cloning__sites {
+  margin: 4px 0 0;
+}
+
+.cloning__site--on {
+  color: var(--seq-cut);
+  font-weight: 600;
+}
+
+.cloning__insert-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.cloning__insert-row .ws__feature {
+  max-width: 360px;
+}
+
+.cloning__ncbi {
+  max-width: 560px;
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.orient {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.ez .ez--off td {
+  color: var(--ink-3);
+}
+
+.ez__radio {
+  color: var(--seq-preview);
+}
+
+.ez--off .ez__radio {
+  color: var(--ink-3);
+}
+
+.ez__bad {
+  color: var(--warn);
+}
+
+.ez--off .ez__bad {
+  color: var(--ink-3);
+}
+
+.ez__why {
+  font-size: 12.5px;
+  max-width: 320px;
+  white-space: normal;
+}
+
+.ez .ez--more td {
+  font-size: 12.5px;
+}
+
+.override {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.override__body {
+  display: contents;
+}
+
+.ws__button-for {
+  font-weight: 400;
+}
+
+/* The oligo's parts: padding muted, the site in the cut colour and
+   underlined, the annealing part as it is; the case tells them apart too. */
+.oligo__pad {
+  color: var(--ink-3);
+}
+
+.oligo__site {
+  color: var(--seq-cut);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1.5px;
+}
+
+.oligo__ann {
+  color: var(--ink);
+}
+
+.legend {
+  margin: 4px 0 0;
+}
+
+.wtags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px 4px;
+  align-items: center;
+}
+
+.wtag {
+  font-size: 11.5px;
+  padding: 0 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.wtag--caution {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+}
+
+.wtag--danger {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.detail--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 12px;
+}
+
+.detail__main {
+  min-width: 0;
+}
+
+.dt--ends {
+  margin-top: 6px;
+}
+
+.dt--ends td {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.warns {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.warns--ok {
+  color: var(--ok, #2e9e5b);
+}
+
+.warns li::before {
+  content: '•';
+  margin-right: 6px;
+}
+
+.warns__danger {
+  color: var(--danger);
+}
+
+.warns__caution {
+  color: var(--warn);
+}
+
+.warns-danger {
+  color: var(--danger);
+}
+
+.product {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0 6px 12px;
+  border-left: 1px solid var(--line);
+}
+
+.product__t {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.product__t .dnote {
+  font-weight: 400;
+}
+
+.product__l {
+  font-size: 12.5px;
+}
+
+.product--ph {
+  width: auto;
+  padding: 4px 0;
+  border: 0;
+}
+
+.ws--phone .mode {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ws--phone .override .panel__select {
+  max-width: 120px;
+}
+
+.ws--phone .step .dnote {
+  white-space: normal;
+}
+
+.ws--phone .ez__why {
+  max-width: none;
+  white-space: nowrap;
+}

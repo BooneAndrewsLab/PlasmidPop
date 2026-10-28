@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import {
   type Feature,
@@ -9,9 +9,12 @@ import {
   isEmptyRange,
 } from '@/core';
 
+import { type DesignMode, type WorkspaceLayout } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
+import { CloningDesign } from './CloningDesign';
+import { type CloningDesignState } from './cloningDesign';
 import { type PrimerDesign } from './primerDesign';
 import { PrimerSettings } from './PrimerSettings';
 
@@ -35,21 +38,14 @@ function featureAt(doc: SeqDocument, selection: Range): Feature | null {
   return null;
 }
 
-interface Props {
-  readonly doc: SeqDocument;
-  readonly design: PrimerDesign;
-  /** The results are shown once a design was made. */
-  readonly onDesigned: () => void;
-  /** The last-design line's link. */
-  readonly onResults: () => void;
-}
-
 /**
- * The workspace's Design page (item 107): the target chooser, the settings
- * as a closed disclosure, one primary button and the last-design line.
+ * Selection / Feature: the two ways of setting the selection the target
+ * (plain mode) or the vector region (cloning mode) follows. The feature
+ * list sets the selection and reveals it; a later click on the map takes
+ * over without the chooser having to be reset.
  */
-export function PrimerDesignPage({ doc, design, onDesigned, onResults }: Props) {
-  const { selection, primerCriteria, documentId } = useEditorState();
+function TargetChooser({ doc, label }: { readonly doc: SeqDocument; readonly label: string }) {
+  const { selection, documentId } = useEditorState();
   const [mode, setMode] = useRemembered<TargetMode>('primers.targetMode', documentId, 'selection');
   const hasTarget = selection !== null && !isEmptyRange(selection);
   const feature = hasTarget ? featureAt(doc, selection) : null;
@@ -61,9 +57,7 @@ export function PrimerDesignPage({ doc, design, onDesigned, onResults }: Props) 
         .filter((x): x is { f: Feature; extent: Range } => x.extent !== null),
     [doc],
   );
-  const { pairs, designedFor } = design;
-
-  const chooser = (which: TargetMode, label: string, tip: string) => (
+  const chooser = (which: TargetMode, text: string, tip: string) => (
     <button
       type="button"
       className={`segmented__button${mode === which ? ' segmented__button--active' : ''}`}
@@ -73,40 +67,130 @@ export function PrimerDesignPage({ doc, design, onDesigned, onResults }: Props) 
         setMode(which);
       }}
     >
-      {label}
+      {text}
     </button>
   );
+  return (
+    <>
+      <div className="segmented segmented--small" role="group" aria-label={label}>
+        {chooser('selection', 'Selection', 'The current selection, live')}
+        {chooser('feature', 'Feature', 'Pick a feature of this document')}
+      </div>
+      {mode === 'feature' && (
+        <select
+          className="panel__select ws__feature"
+          aria-label="Feature to design for"
+          value={feature?.id ?? ''}
+          onChange={(e) => {
+            const chosen = features.find((x) => x.f.id === e.target.value);
+            if (chosen === undefined) return;
+            editorStore.setSelection(chosen.extent);
+            editorStore.revealPosition(chosen.extent.start);
+          }}
+        >
+          <option value="">Choose a feature…</option>
+          {features.map(({ f, extent }) => (
+            <option key={f.id} value={f.id}>
+              {f.name === '' ? f.type : f.name} · {formatSpan(extent, doc.length)}
+            </option>
+          ))}
+        </select>
+      )}
+    </>
+  );
+}
+
+interface Props {
+  readonly doc: SeqDocument;
+  readonly design: PrimerDesign;
+  readonly cloning: CloningDesignState;
+  readonly mode: DesignMode;
+  readonly setMode: (mode: DesignMode) => void;
+  readonly layout: WorkspaceLayout;
+  /** The results are shown once a design was made. */
+  readonly onDesigned: () => void;
+  /** The last-design line's link. */
+  readonly onResults: () => void;
+}
+
+/**
+ * The workspace's Design page (item 107): the mode switch (#303), then in
+ * the plain mode the target chooser, the settings as a closed disclosure,
+ * one primary button and the last-design line; in the cloning mode the
+ * four steps of `CloningDesign`.
+ */
+export function PrimerDesignPage({
+  doc,
+  design,
+  cloning,
+  mode,
+  setMode,
+  layout,
+  onDesigned,
+  onResults,
+}: Props) {
+  const { selection, primerCriteria } = useEditorState();
+  const hasTarget = selection !== null && !isEmptyRange(selection);
+  const feature = hasTarget ? featureAt(doc, selection) : null;
+  const { pairs, designedFor } = design;
+
+  const modeButton = (which: DesignMode, text: string, tip: string): ReactNode => (
+    <button
+      type="button"
+      className={`segmented__button${mode === which ? ' segmented__button--active' : ''}`}
+      aria-pressed={mode === which}
+      data-tip={tip}
+      onClick={() => {
+        setMode(which);
+      }}
+    >
+      {text}
+    </button>
+  );
+  const switcher = (
+    <div className="mode">
+      <span className="ws__target-label" id="ws-mode-label">
+        Mode
+      </span>
+      <div className="segmented segmented--small" role="group" aria-labelledby="ws-mode-label">
+        {modeButton(
+          'plain',
+          'Primers on this sequence',
+          'Design a pair that amplifies the selection, up to ten pairs',
+        )}
+        {modeButton(
+          'cloning',
+          'Clone an insert into this plasmid',
+          'Design primers for an insert from another tab, with two restriction sites on their tails',
+        )}
+      </div>
+    </div>
+  );
+
+  if (mode === 'cloning') {
+    return (
+      <>
+        {switcher}
+        <CloningDesign
+          doc={doc}
+          cloning={cloning}
+          layout={layout}
+          chooser={<TargetChooser doc={doc} label="Where on the vector" />}
+          onDesigned={onDesigned}
+          onResults={onResults}
+        />
+      </>
+    );
+  }
 
   return (
     <>
+      {switcher}
       <div className="ws__target">
         <span className="ws__target-label" id="ws-target-label">
           Target
         </span>
-        <div className="segmented segmented--small" role="group" aria-labelledby="ws-target-label">
-          {chooser('selection', 'Selection', 'The current selection, live')}
-          {chooser('feature', 'Feature', 'Pick a feature of this document')}
-        </div>
-        {mode === 'feature' && (
-          <select
-            className="panel__select ws__feature"
-            aria-label="Feature to design for"
-            value={feature?.id ?? ''}
-            onChange={(e) => {
-              const chosen = features.find((x) => x.f.id === e.target.value);
-              if (chosen === undefined) return;
-              editorStore.setSelection(chosen.extent);
-              editorStore.revealPosition(chosen.extent.start);
-            }}
-          >
-            <option value="">Choose a feature…</option>
-            {features.map(({ f, extent }) => (
-              <option key={f.id} value={f.id}>
-                {f.name === '' ? f.type : f.name} · {formatSpan(extent, doc.length)}
-              </option>
-            ))}
-          </select>
-        )}
+        <TargetChooser doc={doc} label="Target" />
         <p className={`ws__target-value${hasTarget ? '' : ' ws__target-value--none'}`}>
           {hasTarget ? (
             <>

@@ -4,6 +4,7 @@ import { type SeqDocument, isEmptyRange } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 
 import {
+  type DesignMode,
   WORKSPACE_PAGES,
   type WorkspaceLayout,
   type WorkspaceMemory,
@@ -14,6 +15,8 @@ import { SHORT_WINDOW_QUERY } from '../state/layout';
 import { useRemembered } from '../state/panelMemory';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
+import { CloningCandidates } from './CloningCandidates';
+import { designRows, useCloningDesign } from './cloningDesign';
 import { MapStrip } from './MapStrip';
 import { PrimerCandidates } from './PrimerCandidates';
 import { PrimerCheck } from './PrimerCheck';
@@ -68,9 +71,20 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const { documentId, selection } = useEditorState();
   const [memory, setMemory] = useRemembered<WorkspaceMemory>('primers.workspace', documentId, {
     page: 'design',
+    mode: 'plain',
   });
   const { page } = memory;
+  // A memory written before the mode existed has none: the plain mode then.
+  const mode: DesignMode = memory.mode === 'cloning' ? 'cloning' : 'plain';
   const design = usePrimerDesign(doc);
+  const cloning = useCloningDesign(doc);
+  // Results shows whichever table the last design made (#303).
+  const [resultsKind, setResultsKind] = useRemembered<DesignMode>(
+    'primers.resultsKind',
+    documentId,
+    'plain',
+  );
+  const cloningResults = resultsKind === 'cloning' && cloning.record !== null;
   const probe = usePrimerProbe(doc);
   const { primerCriteria } = useEditorState();
   const collection = usePrimerCollection();
@@ -85,18 +99,32 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   const preview = useMemo<readonly OverlaySpan[]>(() => {
     switch (page) {
       case 'design':
+        if (mode === 'cloning') return cloning.preview;
         return selection === null || isEmptyRange(selection)
           ? []
           : searchWindows(selection, primerCriteria, doc);
       case 'results':
         // A target changed since the design takes the preview off, keeping the row (point 3).
+        if (cloningResults) return cloning.designUnchanged ? cloning.preview : [];
         return design.targetUnchanged ? design.preview : [];
       case 'check':
         return probe.preview;
       case 'mine':
         return [];
     }
-  }, [page, selection, primerCriteria, doc, design.preview, design.targetUnchanged, probe.preview]);
+  }, [
+    page,
+    mode,
+    selection,
+    primerCriteria,
+    doc,
+    design.preview,
+    design.targetUnchanged,
+    cloning.preview,
+    cloning.designUnchanged,
+    cloningResults,
+    probe.preview,
+  ]);
   usePrimersPreview(preview);
 
   useEffect(() => {
@@ -139,7 +167,10 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
   };
 
   const badge = (p: WorkspacePage): number | null => {
-    if (p === 'results') return design.pairs?.length ?? null;
+    if (p === 'results') {
+      if (cloningResults) return designRows(cloning.record.results).length;
+      return design.pairs?.length ?? null;
+    }
     if (p === 'mine') return collection.primers.length;
     return null;
   };
@@ -243,10 +274,19 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
               <span className="panel__heading-note">{collection.primers.length}</span>
             )}
           </h2>
-          {page === 'design' && <span className="ws__sub">Up to 10 pairs, best first</span>}
-          {page === 'results' && design.pairs !== null && !design.targetUnchanged && (
+          {page === 'design' && (
+            <span className="ws__sub">
+              {mode === 'cloning'
+                ? 'Restriction-cloning ends: padding + site + annealing part on each primer'
+                : 'Up to 10 pairs, best first'}
+            </span>
+          )}
+          {page === 'results' && cloningResults && (
+            <span className="ws__sub">Cloning primers · {cloning.record.designedFor}</span>
+          )}
+          {page === 'results' && cloningResults && !cloning.designUnchanged && (
             <span className="ws__sub ws__sub--note" role="status">
-              Target changed —{' '}
+              Insert, region or pair changed —{' '}
               <button
                 type="button"
                 className="link"
@@ -258,21 +298,51 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
               </button>
             </span>
           )}
+          {page === 'results' &&
+            !cloningResults &&
+            design.pairs !== null &&
+            !design.targetUnchanged && (
+              <span className="ws__sub ws__sub--note" role="status">
+                Target changed —{' '}
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    goTo('design', true);
+                  }}
+                >
+                  Design again
+                </button>
+              </span>
+            )}
         </header>
         <div className="ws__page">
           {page === 'design' && (
             <PrimerDesignPage
               doc={doc}
               design={design}
+              cloning={cloning}
+              mode={mode}
+              setMode={(next) => {
+                setMemory((m) => ({ ...m, mode: next }));
+              }}
+              layout={layout}
               onDesigned={() => {
+                setResultsKind(mode);
                 goTo('results', true);
               }}
               onResults={() => {
+                setResultsKind(mode);
                 goTo('results', true);
               }}
             />
           )}
-          {page === 'results' && <PrimerCandidates doc={doc} design={design} layout={layout} />}
+          {page === 'results' &&
+            (cloningResults ? (
+              <CloningCandidates cloning={cloning} layout={layout} />
+            ) : (
+              <PrimerCandidates doc={doc} design={design} layout={layout} />
+            ))}
           {page === 'check' && <PrimerCheck doc={doc} probe={probe} />}
           {page === 'mine' && <PrimerCollection doc={doc} />}
         </div>
