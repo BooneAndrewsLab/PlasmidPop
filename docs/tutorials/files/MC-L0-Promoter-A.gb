@@ -1,0 +1,19 @@
+LOCUS       MC-L0-PromA                96 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  MC-L0-PromA, synthetic example level-0 promoter part, MoClo
+            position Promoter + 5′UTR (BsaI GGAG-AATG) (synthetic example,
+            invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     promoter        10..87
+                     /label="synthetic promoter A"
+     misc_feature    complement(88..94)
+                     /label="BsaI site"
+ORIGIN
+        1 ttggtctcag gagccccccc atgcgagcca ctatcggaca acaatgcggt ttcaatcttt
+       61 aggattggta agaatgtttg tgcaatgaga gacctt
+//

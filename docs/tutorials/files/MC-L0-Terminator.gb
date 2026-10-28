@@ -1,0 +1,19 @@
+LOCUS       MC-L0-Term                 92 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  MC-L0-Term, synthetic example level-0 terminator part, MoClo
+            position 3′UTR + terminator (BsaI GCTT-CGCT) (synthetic example,
+            invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     terminator      10..83
+                     /label="synthetic terminator"
+     misc_feature    complement(84..90)
+                     /label="BsaI site"
+ORIGIN
+        1 ttggtctcag cttgacgtta taggctgatc gtcaataagg gcagaccgtc aacttgctat
+       61 gagctgaaac tgttgaatcc gctagagacc tt
+//

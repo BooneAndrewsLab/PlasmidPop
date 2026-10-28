@@ -106,7 +106,7 @@ describe('static tutorial pages (#312)', () => {
   it('link every sample file as a download from sample-files, and every tutorial links its own', () => {
     const table = byPath.get('tutorials/sample-files/index.html') ?? '';
     for (const s of samples) expect(table, s.name).toContain(`href="../files/${s.name}" download`);
-    for (const id of ['ligation', 'golden-gate', 'golden-gate-parts']) {
+    for (const id of ['ligation', 'golden-gate', 'golden-gate-parts', 'modular']) {
       const page = byPath.get(`tutorials/${id}/index.html`) ?? '';
       expect(page, id).toMatch(/href="\.\.\/files\/[\w.-]+\.gb" download/);
     }

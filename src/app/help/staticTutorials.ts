@@ -31,6 +31,7 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'ligation',
   'golden-gate',
   'golden-gate-parts',
+  'modular',
   'sample-files',
 ];
 

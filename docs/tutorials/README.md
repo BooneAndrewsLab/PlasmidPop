@@ -33,7 +33,20 @@ New to the Bench or to the sample files? Start with
   [GG-tag.gb](files/GG-tag.gb), [GG-term.gb](files/GG-term.gb) and the
   `GG-broken-*` and `GG-warn-*` files.
 
-More methods (modular cloning, Gibson, overlap-extension PCR, Gateway and
+- **[Modular cloning](modular.md)**: the MoClo plant standard. Promoter, coding
+  part and terminator, each cut for its own position, go into a level-1
+  destination in one reaction; one part at the wrong position shows what the
+  panel says; then two promoters by two coding parts make four constructs from
+  one plan. Intermediate, about 25 minutes; do Golden Gate first. Files:
+  [MC-L1-Destination.gb](files/MC-L1-Destination.gb),
+  [MC-L0-Promoter-A.gb](files/MC-L0-Promoter-A.gb),
+  [MC-L0-Promoter-B.gb](files/MC-L0-Promoter-B.gb),
+  [MC-L0-CDS-A.gb](files/MC-L0-CDS-A.gb),
+  [MC-L0-CDS-B.gb](files/MC-L0-CDS-B.gb),
+  [MC-L0-Terminator.gb](files/MC-L0-Terminator.gb),
+  [MC-wrong-position.gb](files/MC-wrong-position.gb).
+
+More methods (Gibson, overlap-extension PCR, Gateway and
 others) are planned.
 
 ## Reference

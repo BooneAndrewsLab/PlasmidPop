@@ -1,0 +1,19 @@
+LOCUS       MC-L0-PromB               116 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  MC-L0-PromB, synthetic example level-0 promoter part, MoClo
+            position Promoter + 5′UTR (BsaI GGAG-AATG) (synthetic example,
+            invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     promoter        10..107
+                     /label="synthetic promoter B"
+     misc_feature    complement(108..114)
+                     /label="BsaI site"
+ORIGIN
+        1 ttggtctcag gaggatcact caggatccgt gcgagtgcgg aacagggccc ccaacgagct
+       61 aatgaaaagt gttaatcccg tggtgcttag ttcttataaa caaaatgaga gacctt
+//

@@ -1,0 +1,19 @@
+LOCUS       MC-L0-YTK-Type3           106 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  MC-L0-YTK-Type3, synthetic example part cut for the Yeast Toolkit
+            Type 3 position (BsaI TATG-ATCC), the wrong standard for these
+            parts (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     misc_feature    10..97
+                     /label="synthetic Type 3 part"
+     misc_feature    complement(98..104)
+                     /label="BsaI site"
+ORIGIN
+        1 ttggtctcat atgaatggtt gggtaagggt gaacgccctt atccgtctgc aaagctccga
+       61 tcatcatttc cacaagaagt cgtagatgaa gcgatccaga gacctt
+//

@@ -1,0 +1,22 @@
+LOCUS       MC-L0-CdsA                326 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  MC-L0-CdsA, synthetic example level-0 coding part, MoClo position
+            CDS (BsaI AATG-GCTT) (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     CDS             11..313
+                     /label="synthCDS A"
+     misc_feature    complement(318..324)
+                     /label="BsaI site"
+ORIGIN
+        1 ttggtctcaa atgactacaa ataggacaac tggatcagtc tatataccta gatcggtatt
+       61 aaatgagagc acgggaagcc cgccagcttc gtttctcggg tatgccccgt catcttggac
+      121 tatatttgac acgactgttc ttaaggagct tgcagtagtg aacgcggccc cgctactggg
+      181 tctagacgtc gttacgatcg aatatgaact gcctcagcag aatgttaacg caccgtgccg
+      241 ccaattcttg aagcttgtta cgttagttcc acatatatca tatcgaaagt atcgacgggt
+      301 cactccaatt taagcttaga gacctt
+//

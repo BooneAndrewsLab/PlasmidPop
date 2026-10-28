@@ -1,0 +1,52 @@
+LOCUS       pMC-L1-Destination       1572 bp    DNA     circular SYN 28-OCT-2026
+DEFINITION  pMC-L1-Destination, synthetic example level-1 destination vector
+            with a lacZ-dropout between two BsaI sites; its backbone takes the
+            MoClo positions Promoter + 5′UTR to 3′UTR + terminator (CGCT ...
+            GGAG) (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             complement(55..594)
+                     /label="AmpR"
+                     /undefined="synthetic stand-in for a resistance gene"
+     rep_origin      675..1174
+                     /label="ori"
+                     /undefined="synthetic stand-in for an origin"
+     misc_feature    complement(1259..1265)
+                     /label="BsaI site"
+     misc_feature    1266..1565
+                     /label="lacZ-dropout"
+                     /undefined="synthetic stand-in for a lacZ colour-marker dropout"
+     misc_feature    1566..1572
+                     /label="BsaI site"
+ORIGIN
+        1 cgctccgaac tttctgcgca cactcgatgt cgagccacat caagacactt gccctgtcac
+       61 acaccgtgga ctaatccgcg gcactctggc aatgatggct agtgccaact ttcaaaatct
+      121 caatgcggta cggatttcct ttttcatcgt gacagcaggc tagcttttgg cggcaggctt
+      181 cgtgtgcatt tgggttgagg ccgaggtaat gatagcacca ttttcaatgc cccattattc
+      241 taataaccgt gagaacacgc ctttaaggtg tcctcgggag gctcgaccta gcgtacaaat
+      301 ctccggcgta acttctctga aggaagatca cccggatcta tagttcatgc agggcggaga
+      361 cttggagcgc ataggcccta cccgtcaacc agggtaaacg cgagagccat aacaaaatgc
+      421 agggaagatc ctccttctgt tagaaccaga cggaagccgc cattctattg acaccgtttt
+      481 tgaacctgga aatccccatt ttaccgaaag gcgatttaat atctacaccg gctacaggct
+      541 gattacctta aaatatcaga taccgcggct gtattgccct cagctgtccg taaatcctag
+      601 gttaatcctt gattatagta cctgttcaac gacgtcatct acaataagtt tcgcatatgt
+      661 cattgaccaa ccggctcgtt ggcatgaggg gtagaacata acaaacacac ggctctggca
+      721 cacgggtgaa cacgccgtaa atttgcccag gcacccgggc gaccctcaat caattcgctt
+      781 ggattgagac taaccctatc tgcggggtga ttatgacaca tgatgtgcat aaggaacact
+      841 ctatcctcaa tgtctgggac cgtacgtttc aagcaaaggt ccgcgggtat ttaagcacag
+      901 gagtggatcg ggttgataag tgctcgctac gatacacaaa cgtgctgtac aattccgcgg
+      961 gcttagcgca cacgggatcc cgctctcgtt gccacaggtt ggtagggtag attacaacgc
+     1021 aatgcgtgtt tccaggtaaa agcaactggc tagtgatggc gcgcctgtga tagatcttac
+     1081 tgagcaatgt tgtgtaagtt cgagtaaaag agagacacca gatgtacggt ggctaactct
+     1141 gtaaccgttg tgatggcaag ctttcccggc gcccgattgc tatataacag ccgtcacttg
+     1201 cgtagcttga tacacattgg taatccgttt aggtagcggg ctttcagatt cttaggagtg
+     1261 agaccacgct gtcatctgag ttcccaaccc ggggcaagaa aaaggagatt aaccactata
+     1321 aactatatag ctgaaaactc gtgctgattc ggaggcgacc cattacgaac aaggaatcca
+     1381 catgaaatat atctttgtag acctaggaat aactcccgtt aacggaaaga ccttcgcctc
+     1441 ggtggaatcg cgtaccaaga tcagctggtt gtcccccagc ttcgggccat agttggttag
+     1501 gaattttgcc gcctaaaagg cttacagtga gcaagggtat aagagtggtc ctctttactg
+     1561 cttagggtct ca
+//
