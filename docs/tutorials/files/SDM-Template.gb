@@ -1,0 +1,49 @@
+LOCUS       SDM-Template         1241 bp    DNA     circular SYN 28-OCT-2026
+DEFINITION  SDM-Template, circular plasmid for the site-directed mutagenesis
+            tutorial: a 100 residue ORF, synthORF, a BamHI site and an AT-rich
+            spacer (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        1..120
+                     /label="synthetic promoter"
+     CDS             139..441
+                     /label="synthORF"
+                     /codon_start=1
+                     /note="synthetic example ORF, 100 codons, ATG to stop, 303 bp with the stop"
+     terminator      442..521
+                     /label="synthetic terminator"
+     misc_feature    552..641
+                     /label="AT-rich spacer"
+                     /note="synthetic AT-rich stretch"
+     CDS             complement(642..941)
+                     /label="AmpR"
+                     /note="synthetic stand-in for a resistance gene"
+     rep_origin      942..1241
+                     /label="ori"
+                     /note="synthetic stand-in for an origin"
+ORIGIN
+        1 agaactacac ttcaggtccc agcttggtta ggcgagcgga agttagcgag aatagattca
+       61 atgtccaagt caaggtaccg actccagtcg attggcttta gaatatttct tagcaccggg
+      121 cccccggggc aagcctgaat ggcaaggggg cgtctgtgga acatatctag aaatccgaag
+      181 aacagcctac gcctggcccg cttagttaga ccgatgaccg aaaaaggaga aatatccgac
+      241 cggatggtcc cctgtgatat tcagtggctt tcttacgttt atttacgaaa agctacccag
+      301 cttttcatga gttgtgaaat gtttatgtct ctctgtggta agtggcctta ccgcaatctc
+      361 tcacaaaagt tctccttcgc tagggccctg acagcatcta cacttgtatt cagcagttac
+      421 cgtcttctgg tggaagtata aggatgcggt cccctggtac ctttcatcgg agtgagaggg
+      481 atcgccaact tagctatacg gcttcgagac aggaagactt tgtcccctgc gcaggatcct
+      541 ataaactcct gtattttatt atatataatt atattaataa atataaaata attataataa
+      601 ataaaaaatt tattattaat aattattata aaaaaaatat aggaaacgac tcgacttgaa
+      661 tggggtatct atatcttcta tctctatccc ttagagaggc gagtcgtggg ttcgaggctg
+      721 gtccgagtct cgcatttctc tagtcgaaag agttatctgt actaaaagga tgaaacgtta
+      781 ctccgggcta agcgtgactc ggagtcctcg aactgtaaca attgaccgag ttatcattaa
+      841 gacttcgacg ttaccgtact actaataccg ggatcttatt caagtaggcg gtcagatgct
+      901 cgtcacagcc ggggtgtatg ccaatgggtc ctactttgaa gtgaggggcg gttctacggt
+      961 ctcagtccca actaacatca aggcggcatc acaaccgtta tgttgcttcc gtaggcggct
+     1021 gtcgatgtaa tacacccttt tagattgcat tggctgcacg ggtctggtag ggaagttgtg
+     1081 ggaggagatt gactaggcat gcgccagcga cgacttctcc gggagggtca gcgataatta
+     1141 aagcgacatt tagcaagcgc gatatgcttc cactgggtgc cacgcaacgg acgtagatcc
+     1201 catgctggat cgcacggctg tgacgaattc acccaaggta a
+//

@@ -36,6 +36,7 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'in-fusion',
   'overlap-pcr',
   'gateway',
+  'mutagenesis',
   'sample-files',
 ];
 

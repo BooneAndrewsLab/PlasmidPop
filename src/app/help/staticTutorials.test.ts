@@ -117,6 +117,7 @@ describe('static tutorial pages (#312)', () => {
       'in-fusion',
       'overlap-pcr',
       'gateway',
+      'mutagenesis',
     ]) {
       const page = byPath.get(`tutorials/${id}/index.html`) ?? '';
       expect(page, id).toMatch(/href="\.\.\/files\/[\w.-]+\.gb" download/);
@@ -128,7 +129,9 @@ describe('static tutorial pages (#312)', () => {
     for (const p of [index, ...pages]) {
       for (const m of p.markdown.matchAll(/\]\(files\/([^)#]+)\)/g))
         expect(names.has(m[1] ?? ''), `${p.id}: ${m[1]}`).toBe(true);
-      for (const m of p.markdown.matchAll(/`((?:p?GG|pLig|Insert|GB|pIF|IF|OE|GW)[\w-]*\.gb)`/g))
+      for (const m of p.markdown.matchAll(
+        /`((?:p?GG|pLig|Insert|GB|pIF|IF|OE|GW|SDM)[\w-]*\.gb)`/g,
+      ))
         expect(names.has(m[1] ?? ''), `${p.id} names ${m[1]}`).toBe(true);
     }
   });

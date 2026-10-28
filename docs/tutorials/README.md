@@ -25,6 +25,9 @@ New to the Bench or to the sample files? Start with
 - [Gateway](#gateway): recombination at att sites, no cutting and no joining:
   an insert into a donor vector, then into a destination vector.
 
+- [Site-directed mutagenesis](#site-directed-mutagenesis): change one plasmid on
+  purpose: one amino acid, a tag, a deletion, a silent site.
+
 More methods are planned and will appear here as their own entries.
 
 ### Ligation
@@ -118,6 +121,18 @@ between them, so every reaction makes a clone and a byproduct.
   sites are invented. Intermediate, about 25 minutes. Files:
   [GW-Insert.gb](files/GW-Insert.gb), [GW-pDONR.gb](files/GW-pDONR.gb),
   [GW-pDEST.gb](files/GW-pDEST.gb), [GW-bad-pDEST.gb](files/GW-bad-pDEST.gb).
+
+### Site-directed mutagenesis
+
+Not a joining at all: two primers carry the change, and the whole plasmid is
+copied with them. The panel designs the pair and opens the mutant.
+
+- **[Site-directed mutagenesis: a point mutation, a tag, a deletion and a new
+  site](mutagenesis.md)**: change one amino acid with the panel's codon list,
+  read the back-to-back and overlapping primers and their Tm, add a His tag and
+  delete a residue, make a silent EcoRV site and check it by digest, then a
+  change in an AT-rich stretch where the primers cannot reach 60 °C. Beginner,
+  about 25 minutes. File: [SDM-Template.gb](files/SDM-Template.gb).
 
 ## Reference
 
