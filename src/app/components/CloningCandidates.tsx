@@ -456,10 +456,16 @@ export function CloningCandidates({ cloning, layout }: Props) {
                 >
                   <b>#{(index + 1).toString()}</b>
                   <span>{pairLabel({ forward: d.forward.enzyme, reverse: d.reverse.enzyme })}</span>
-                  <span>
-                    Tm {d.forward.tm.toFixed(1)} / {d.reverse.tm.toFixed(1)}
-                  </span>
-                  <span>{d.productLength.toLocaleString()} bp</span>
+                  {d.problem === null ? (
+                    <>
+                      <span>
+                        Tm {d.forward.tm.toFixed(1)} / {d.reverse.tm.toFixed(1)}
+                      </span>
+                      <span>{d.productLength.toLocaleString()} bp</span>
+                    </>
+                  ) : (
+                    <span className="dnote">no primers</span>
+                  )}
                   {d.warnings.length > 0 && (
                     <span
                       className={`wtag wtag--${d.warnings.some((w) => w.severity === 'danger') ? 'danger' : 'caution'}`}
@@ -522,17 +528,25 @@ export function CloningCandidates({ cloning, layout }: Props) {
                     >
                       <td className="wst__n">{(index + 1).toString()}</td>
                       <td>{pairLabel({ forward: d.forward.enzyme, reverse: d.reverse.enzyme })}</td>
-                      <td className="wst__seq">
-                        <Oligo primer={d.forward} />
-                      </td>
-                      <td className="wst__n">{d.forward.sequence.length.toString()}</td>
-                      <td className="wst__n">{d.forward.tm.toFixed(1)}</td>
-                      <td className="wst__seq">
-                        <Oligo primer={d.reverse} />
-                      </td>
-                      <td className="wst__n">{d.reverse.sequence.length.toString()}</td>
-                      <td className="wst__n">{d.reverse.tm.toFixed(1)}</td>
-                      <td className="wst__n">{d.productLength.toLocaleString()}</td>
+                      {d.problem !== null ? (
+                        <td colSpan={7} className="dnote">
+                          {d.problem}
+                        </td>
+                      ) : (
+                        <>
+                          <td className="wst__seq">
+                            <Oligo primer={d.forward} />
+                          </td>
+                          <td className="wst__n">{d.forward.sequence.length.toString()}</td>
+                          <td className="wst__n">{d.forward.tm.toFixed(1)}</td>
+                          <td className="wst__seq">
+                            <Oligo primer={d.reverse} />
+                          </td>
+                          <td className="wst__n">{d.reverse.sequence.length.toString()}</td>
+                          <td className="wst__n">{d.reverse.tm.toFixed(1)}</td>
+                          <td className="wst__n">{d.productLength.toLocaleString()}</td>
+                        </>
+                      )}
                       <td>
                         <WarningTags warnings={d.warnings} />
                       </td>

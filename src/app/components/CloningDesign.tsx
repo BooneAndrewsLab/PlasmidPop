@@ -32,6 +32,8 @@ import { nextRowIndex } from './tableKeys';
 
 /** Excluded pairs shown before the fold; the rest wait behind "N more". */
 const SHOWN_EXCLUDED = 4;
+/** Enzymes named on the region's and the insert's lines; a wide region has dozens, the table has them all. */
+const SHOWN_SITES = 12;
 
 function pickOf(p: EnzymePairReport): EnzymePick {
   return { forward: p.forward.enzyme, reverse: p.reverse.enzyme };
@@ -39,6 +41,13 @@ function pickOf(p: EnzymePairReport): EnzymePick {
 
 function samePair(p: EnzymePairReport, pick: EnzymePick | null): boolean {
   return pick !== null && p.forward.enzyme === pick.forward && p.reverse.enzyme === pick.reverse;
+}
+
+/** "HindIII 872" or "AluI 9, 34, 181 +6": the first few positions, the rest counted. */
+function positionsText(enzyme: string, positions: readonly number[]): string {
+  const shown = positions.slice(0, 3).map((x) => x.toLocaleString());
+  const more = positions.length - shown.length;
+  return `${enzyme} ${shown.join(', ')}${more > 0 ? ` +${more.toString()}` : ''}`;
 }
 
 function issuesOf(p: EnzymePairReport, kinds: readonly PairIssue['kind'][]): PairIssue[] {
@@ -53,11 +62,7 @@ function insertCell(p: EnzymePairReport): ReactNode {
     <span className="ez__bad">
       ✗{' '}
       {cuts
-        .map((i) =>
-          i.kind === 'cutsInsert'
-            ? `${i.enzyme} ${i.positions.map((x) => x.toLocaleString()).join(', ')}`
-            : '',
-        )
+        .map((i) => (i.kind === 'cutsInsert' ? positionsText(i.enzyme, i.positions) : ''))
         .join(' · ')}
     </span>
   );
@@ -160,6 +165,15 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
     }
     return cuts;
   }, [pairs, doc]);
+  // The picked pair's enzymes are always named, whatever the cap leaves out.
+  const shownCandidates = useMemo(() => {
+    const first = candidates.slice(0, SHOWN_SITES);
+    for (const name of [picked?.forward, picked?.reverse]) {
+      if (name !== undefined && candidates.includes(name) && !first.includes(name))
+        first.push(name);
+    }
+    return first;
+  }, [candidates, picked]);
   const usable = pairs.filter((p) => p.usable);
   const excluded = pairs.filter((p) => !p.usable);
   const shownExcluded = unfolded ? excluded : excluded.slice(0, SHOWN_EXCLUDED);
@@ -269,7 +283,7 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
           {candidates.length > 0 && (
             <p className="dnote cloning__sites">
               Cuts in the region:{' '}
-              {candidates.map((name, i) => {
+              {shownCandidates.map((name, i) => {
                 const cut = regionCuts.get(name) ?? null;
                 const on = picked !== null && (picked.forward === name || picked.reverse === name);
                 return (
@@ -283,6 +297,8 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
                   </span>
                 );
               })}
+              {candidates.length > shownCandidates.length &&
+                ` · ${(candidates.length - shownCandidates.length).toLocaleString()} more in the table`}
             </p>
           )}
         </>,
@@ -392,11 +408,11 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
                   : internal.length === 0
                     ? "Internal sites: none of the region's enzymes cut the insert"
                     : `Internal sites: ${internal
-                        .map(
-                          (s) =>
-                            `${s.enzyme} ${s.positions.map((x) => x.toLocaleString()).join(', ')}`,
-                        )
-                        .join(' · ')} (greys those pairs below)`}
+                        .slice(0, SHOWN_SITES)
+                        .map((s) => positionsText(s.enzyme, s.positions))
+                        .join(
+                          ' · ',
+                        )}${internal.length > SHOWN_SITES ? ` · ${(internal.length - SHOWN_SITES).toLocaleString()} more` : ''} (greys those pairs below)`}
               </p>
               <p className="orient">
                 <span className="dnote">Orientation</span>
@@ -526,7 +542,7 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
                 Picked {pairLabel(picked)}
                 {pickedReport.usable
                   ? ''
-                  : `, no longer usable: ${pickedReport.issues.map(describePairIssue).join(' ')} Design will warn.`}
+                  : ` is not usable: ${pickedReport.issues.map(describePairIssue).join(' ')} Design will warn.`}
               </p>
             )}
             {picked !== null && pickedReport !== null && pickedListed && !pickedReport.usable && (

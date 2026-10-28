@@ -6956,13 +6956,16 @@ button {
 }
 
 .detail--split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
+/* The tables inside scroll sideways rather than running under the product. */
 .detail__main {
+  flex: 1 1 560px;
   min-width: 0;
+  overflow-x: auto;
 }
 
 .dt--ends {
@@ -7003,6 +7006,7 @@ button {
 }
 
 .product {
+  flex: 0 0 240px;
   width: 240px;
   display: flex;
   flex-direction: column;

@@ -209,7 +209,7 @@ describe('the Design page’s cloning mode (#303)', () => {
       editorStore.setSelection({ start: 1000, end: 1100 });
     });
     const note = await screen.findByRole('status', {}, { timeout: 15000 });
-    expect(note).toHaveTextContent(`Picked ${pair}, no longer usable:`);
+    expect(note).toHaveTextContent(`Picked ${pair} is not usable:`);
     expect(note).toHaveTextContent('outside the region');
     expect(note).toHaveTextContent('Design will warn.');
     expect(designButton()).toBeEnabled();
