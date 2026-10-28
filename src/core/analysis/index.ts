@@ -20,3 +20,4 @@ export * from './crisprEdit';
 export * from './gcContent';
 export * from './recode';
 export * from './recodeCds';
+export * from './translationScope';

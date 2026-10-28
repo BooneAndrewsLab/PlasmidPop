@@ -19,6 +19,7 @@ import {
   codonSpan,
   fragmentFromRange,
   isCodingFeature,
+  translatedFeatures,
   formatLength,
   gcWindowFor,
   hasTool,
@@ -135,6 +136,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     selection,
     showComplement: complementPref,
     showTranslations: translationsPref,
+    translationScope,
+    selectedFeatureId,
     showCutSites,
     seqFontSize,
     seqBasesPerRow,
@@ -282,8 +285,15 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const contentWidth = linearWidth(metrics);
   const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
   const codingFeatures = useMemo(
-    () => (showTranslations ? drawableFeatures(doc.features.all()).filter(isCodingFeature) : []),
-    [doc, showTranslations],
+    () =>
+      showTranslations
+        ? translatedFeatures(
+            drawableFeatures(doc.features.all()).filter(isCodingFeature),
+            translationScope,
+            selectedFeatureId,
+          )
+        : [],
+    [doc, showTranslations, translationScope, selectedFeatureId],
   );
   const translationLanes = useMemo(
     () => assignLanes(codingFeatures, doc.length),

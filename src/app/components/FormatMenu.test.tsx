@@ -103,6 +103,17 @@ describe('FormatMenu', () => {
     expect(editorStore.getState().residueNumbering).toBe('off');
   });
 
+  it('chooses which CDS features get a translation line (#304)', () => {
+    open();
+    const item = (name: string) => screen.getByRole('radio', { name });
+    expect(item('One per gene')).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(item('Selected CDS'));
+    expect(editorStore.getState().translationScope).toBe('selected');
+    fireEvent.click(item('Every CDS'));
+    expect(editorStore.getState().translationScope).toBe('all');
+    editorStore.setTranslationScope('gene');
+  });
+
   it('starts with the three view toggles only where the toolbar has no room for them (#296)', () => {
     const { unmount } = render(<FormatMenu />);
     fireEvent.click(screen.getByRole('button', { name: 'Format' }));

@@ -12,6 +12,7 @@ const DEFAULTS = {
   view: 'both',
   showComplement: true,
   showTranslations: true,
+  translationScope: 'gene',
   showCutSites: true,
   seqFontSize: 13,
   seqBasesPerRow: null,
@@ -47,6 +48,7 @@ function reset(): void {
   editorStore.setView(DEFAULTS.view);
   editorStore.setShowComplement(DEFAULTS.showComplement);
   editorStore.setShowTranslations(DEFAULTS.showTranslations);
+  editorStore.setTranslationScope(DEFAULTS.translationScope);
   editorStore.setPhoneLayout(false);
   editorStore.setShowCutSites(DEFAULTS.showCutSites, 'desktop');
   editorStore.setShowCutSites(false, 'phone');
@@ -92,6 +94,7 @@ describe('view preferences', () => {
       view: 'map',
       showComplement: false,
       showTranslations: true,
+      translationScope: 'selected',
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 16,
@@ -159,6 +162,7 @@ describe('view preferences', () => {
         seqBasesPerRow: 4,
         colorBases: 1,
         residueNumbering: 'all',
+        translationScope: 'every',
       }),
     );
     expect(loadViewPrefs()).toEqual({});
@@ -172,6 +176,7 @@ describe('view preferences', () => {
       view: 'sequence',
       showComplement: false,
       showTranslations: false,
+      translationScope: 'all',
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 11,
@@ -215,6 +220,7 @@ describe('view preferences', () => {
       view: 'sequence',
       showComplement: false,
       showTranslations: false,
+      translationScope: 'all',
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 11,

@@ -130,7 +130,9 @@ position of its first base. Below each row:
   itself, copying, downloads, enzymes, primers, translation and search all
   keep working on T, and a DNA/RNA hybrid is drawn as DNA;
 - one line of **amino acids** per CDS feature, when **Translations** is on
-  (see [Translation](09-translate.md));
+  and **Format ▸ Translations** is **Every CDS**; by default **One per gene** draws
+  only the longest CDS of each gene, plus the selected one (see
+  [Translation](09-translate.md#which-cds-features-get-a-line));
 - **features** as coloured bars with their names, stacked into lanes when
   they overlap;
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
@@ -255,6 +257,10 @@ Escape closes.
   the sequence view and as a ring inside the map; **Window** under it sets
   how many bases it is averaged over. See [GC content](#gc-content). Greyed
   out for a protein.
+- **Translations** — which CDS features get an amino-acid line:
+  **One per gene** (the default), **Selected CDS** or **Every CDS**. See
+  [Which CDS features get a line](09-translate.md#which-cds-features-get-a-line).
+  Greyed out for a protein.
 - **Residue numbers** — **Every 10th** (the default) numbers the first
   residue and every tenth one above the amino acids under each CDS; **All**
   numbers every residue; **Off** leaves the numbers out and gives the rows
@@ -272,7 +278,7 @@ Under a separator, two items that are not about the sequence view:
 - **Keyboard shortcuts…** opens the table of every key, where a binding can
   be changed; see [Keyboard shortcuts](14-shortcuts.md).
 
-The SVG exports follow the bases-per-row, numbering (residue numbers
+The SVG exports follow the bases-per-row, translation scope, numbering (residue numbers
 included) and colour choices,
 chosen colours included. They keep their own text size and font so the file
 looks the same whatever the screen is set to. All of these are remembered in

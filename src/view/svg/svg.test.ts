@@ -421,6 +421,28 @@ describe('exportLinearSvg', () => {
     );
   });
 
+  it('follows the translation scope (#304)', () => {
+    const { doc } = plasmid();
+    const range = { start: 86, end: 200 };
+    const plain = height(exportLinearSvg(doc, { range }));
+    const all = height(exportLinearSvg(doc, { range, showTranslations: true }));
+    // Nothing is selected, so 'selected' draws no translation line at all.
+    const none = exportLinearSvg(doc, {
+      range,
+      showTranslations: true,
+      translationScope: 'selected',
+    });
+    expect(height(none)).toBe(plain);
+    const cds = doc.features.all().find((f) => f.type === 'CDS');
+    const picked = exportLinearSvg(doc, {
+      range,
+      showTranslations: true,
+      translationScope: 'selected',
+      selectedFeatureId: cds?.id ?? null,
+    });
+    expect(height(picked)).toBe(all);
+  });
+
   it('numbers the residues as the view does (#97)', () => {
     const { doc } = plasmid();
     // The residue numbers are the only text at 0.85 of the 11 px label size.

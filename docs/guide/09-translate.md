@@ -5,7 +5,9 @@ view, and for any selection in the **Translate** tab.
 
 ## Amino acids under CDS features
 
-With **Translations** on in the toolbar, every `CDS` feature gets a line of
+With **Translations** on in the toolbar, each `CDS` feature that
+**Format ▸ Translations** lets through (see
+[Which CDS features](#which-cds-features-get-a-line)) gets a line of
 one-letter amino acids between the strands and the feature bars. Each
 residue sits under its codon, and codons are shaded alternately so the
 frame is easy to follow. The translation honours:
@@ -67,6 +69,25 @@ A `/transl_table` naming a code NCBI does not use — 7 and 8 were withdrawn,
 in the status bar says which feature asked for what. So does a
 `/transl_except` that names no codon of its feature, such as one out of
 frame; that codon is read with the genetic code.
+
+### Which CDS features get a line
+
+A record with several isoforms of one gene, such as a fetched genomic region,
+has CDS features that overlap, and a line for each would stack near-identical
+rows above the sequence. **Format ▸ Translations** chooses which get one:
+
+- **One per gene**, the default: the longest CDS of each `/gene` (by total
+  length over all its pieces; on a tie, the one named after the gene). A CDS
+  with no `/gene` qualifier keeps its own line. The CDS selected in the
+  view always has its line as well, so clicking an isoform's bar shows its
+  translation;
+- **Selected CDS**: only the selected CDS;
+- **Every CDS**: a line for every CDS.
+
+The choice only changes what is drawn. Clicking an amino acid, dragging over
+codons, the **CDS features** list in the Translate tab and everything else
+that works on a CDS see all of them. The SVG and PNG exports follow the
+choice, and it is remembered in this browser.
 
 ### Numbered residues
 

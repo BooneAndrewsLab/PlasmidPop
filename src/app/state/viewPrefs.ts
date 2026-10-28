@@ -3,11 +3,13 @@ import {
   type AgarosePercent,
   type LadderChoice,
   type PrimerCriteria,
+  type TranslationScope,
   type TranslationTable,
   isAgarosePercent,
   isConfidentQuality,
   isLadderChoice,
   isMinIdentityChoice,
+  isTranslationScope,
   isTranslationTable,
   isTrimCutoff,
   normalizePrimerCriteria,
@@ -50,6 +52,8 @@ export interface ViewPrefs {
   readonly view: ViewMode;
   readonly showComplement: boolean;
   readonly showTranslations: boolean;
+  /** Which CDS features get a translation line; see `SharedState.translationScope`. */
+  readonly translationScope: TranslationScope;
   /** The desktop's; see `SharedState.desktopShowCutSites`. */
   readonly showCutSites: boolean;
   /** The phone reader's, off until chosen there; see `SharedState.phoneShowCutSites`. */
@@ -180,6 +184,9 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isStoredBaseline(record['editsBaseline'])) prefs.editsBaseline = record['editsBaseline'];
   if (isFontSize(record['seqFontSize'])) prefs.seqFontSize = record['seqFontSize'];
   if (isTraceSize(record['traceSize'])) prefs.traceSize = record['traceSize'];
+  if (isTranslationScope(record['translationScope'])) {
+    prefs.translationScope = record['translationScope'];
+  }
   if (isResidueNumbering(record['residueNumbering'])) {
     prefs.residueNumbering = record['residueNumbering'];
   }
@@ -292,6 +299,7 @@ function snapshot(): ViewPrefs {
     view,
     showComplement,
     showTranslations,
+    translationScope,
     desktopShowCutSites,
     phoneShowCutSites,
     seqFontSize,
@@ -327,6 +335,7 @@ function snapshot(): ViewPrefs {
     view,
     showComplement,
     showTranslations,
+    translationScope,
     showCutSites: desktopShowCutSites,
     phoneShowCutSites,
     seqFontSize,
@@ -367,6 +376,7 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.view === b.view &&
     a.showComplement === b.showComplement &&
     a.showTranslations === b.showTranslations &&
+    a.translationScope === b.translationScope &&
     a.showCutSites === b.showCutSites &&
     a.phoneShowCutSites === b.phoneShowCutSites &&
     a.seqFontSize === b.seqFontSize &&
@@ -411,6 +421,9 @@ export function startViewPrefs(): () => void {
   if (stored.showComplement !== undefined) editorStore.setShowComplement(stored.showComplement);
   if (stored.showTranslations !== undefined) {
     editorStore.setShowTranslations(stored.showTranslations);
+  }
+  if (stored.translationScope !== undefined) {
+    editorStore.setTranslationScope(stored.translationScope);
   }
   if (stored.showCutSites !== undefined) {
     editorStore.setShowCutSites(stored.showCutSites, 'desktop');

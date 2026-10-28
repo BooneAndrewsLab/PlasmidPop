@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { GC_WINDOW_CHOICES } from '@/core';
+import { type TranslationScope, GC_WINDOW_CHOICES } from '@/core';
 import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
 
 import { analytics } from '../analytics';
@@ -40,6 +40,18 @@ const TRACE_SIZES: readonly Choice<TraceSize>[] = [
     value: 'tall',
     label: 'Tall',
     title: 'The chromatogram at twice the height, for reading close peaks',
+  },
+];
+
+/** Which CDS features get a translation line (#304). */
+const TRANSLATION_SCOPES: readonly Choice<TranslationScope>[] = [
+  { value: 'all', label: 'Every CDS', title: 'A line for every CDS, isoforms stacked' },
+  { value: 'selected', label: 'Selected CDS', title: 'A line for the selected CDS only' },
+  {
+    value: 'gene',
+    label: 'One per gene',
+    title:
+      'The longest CDS of each gene, with the selected CDS too; a CDS with no gene qualifier keeps its own line',
   },
 ];
 
@@ -240,6 +252,7 @@ export function FormatMenu({
     seqFontSize,
     seqBasesPerRow,
     numberComplement,
+    translationScope,
     residueNumbering,
     colorBases,
     showGc,
@@ -470,6 +483,19 @@ export function FormatMenu({
               </select>
             </Row>
           )}
+          <Choices
+            label="Translations"
+            note={isProtein ? 'for CDS translations' : undefined}
+            choices={TRANSLATION_SCOPES}
+            value={translationScope}
+            // A protein has no CDS to translate (#66).
+            disabled={isProtein}
+            disabledTip="A protein has no CDS to translate"
+            onChange={(scope) => {
+              analytics.trackOnce('view', 'format', 'translation-scope');
+              editorStore.setTranslationScope(scope);
+            }}
+          />
           <Choices
             label="Residue numbers"
             note={isProtein ? 'for CDS translations' : undefined}

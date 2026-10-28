@@ -3,11 +3,13 @@ import {
   type DocumentDiff,
   type Range,
   type SeqDocument,
+  type TranslationScope,
   CdsTranslations,
   formatLength,
   isCodingFeature,
   rangePieces,
   rangeWraps,
+  translatedFeatures,
 } from '@/core';
 
 import {
@@ -99,6 +101,10 @@ export interface LinearExportOptions {
   readonly selection?: Range | null;
   readonly showComplement?: boolean;
   readonly showTranslations?: boolean;
+  /** Which CDS features get a translation line, as on screen (#304). Default all. */
+  readonly translationScope?: TranslationScope;
+  /** The selected feature, which every scope but 'selected' shows besides its own picks. */
+  readonly selectedFeatureId?: string | null;
   readonly cutSites?: readonly CutSite[];
   /** Changes to mark, as the sequence view marks them on screen. */
   readonly edits?: DocumentDiff | null;
@@ -171,7 +177,14 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
 
   const features = drawableFeatures(doc.features.all());
   const lanes = assignLanes(features, doc.length);
-  const coding = options.showTranslations === true ? features.filter(isCodingFeature) : [];
+  const coding =
+    options.showTranslations === true
+      ? translatedFeatures(
+          features.filter(isCodingFeature),
+          options.translationScope ?? 'all',
+          options.selectedFeatureId ?? null,
+        )
+      : [];
   const translationLanes = assignLanes(coding, doc.length);
   const breaks = new RowBreaks(doc.length, basesPerRow, sizedRuns(doc.styles));
   const layout = new LinearLayout(

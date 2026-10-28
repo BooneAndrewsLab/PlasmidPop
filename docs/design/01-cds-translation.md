@@ -7,6 +7,16 @@ reverse strand, partial ends and origin wrap
 (`src/core/analysis/cdsTranslation.ts`, `drawTranslations` in
 `renderLinear.ts`); "Translations" toggle in the toolbar.
 
+- **Translation scope, #304.** A fetched region with seven isoforms drew
+  seven overlapping lines. `translatedFeatures`
+  (`src/core/analysis/translationScope.ts`) filters the coding features
+  before lane assignment: All (the old behaviour), Selected, or One per
+  gene (the default: longest total segment length per `/gene`, then the CDS
+  named after the gene, then listing order; a gene-less CDS is its own
+  group; the selected CDS always stays). Display only: hit-testing, codon
+  drag and the Translate tab read every CDS. Stored in the view prefs as
+  `translationScope`; `exportLinear` takes `translationScope` and
+  `selectedFeatureId`, defaulting to All when absent.
 - **Every genetic code, 2026-09-21.** `codons.ts` shipped tables 1 and 11
   and they shared one codon map, so they differed only in start codons;
   anything else a file asked for was read with the standard code and

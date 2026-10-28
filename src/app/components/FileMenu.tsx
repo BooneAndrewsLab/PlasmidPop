@@ -57,6 +57,8 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     derived,
     showComplement,
     showTranslations,
+    translationScope,
+    selectedFeatureId,
     seqBasesPerRow,
     numberComplement,
     residueNumbering,
@@ -76,6 +78,8 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
     // As the view draws it: a protein has no complement or translations (#66).
     showComplement: showComplement && hasTool(doc, 'complement'),
     showTranslations: showTranslations && hasTool(doc, 'translations'),
+    translationScope,
+    selectedFeatureId,
     numberComplement,
     residueNumbering,
     colorBases: colorBases && !doc.isProtein,

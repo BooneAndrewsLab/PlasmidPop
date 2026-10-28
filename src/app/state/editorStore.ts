@@ -19,12 +19,14 @@ import {
   type Orf,
   type PrimerCriteria,
   type Range,
+  type TranslationScope,
   type TranslationTable,
   BUNDLED_ENZYME_SET,
   CONFIDENT_QUALITY,
   DEFAULT_MIN_IDENTITY,
   DEFAULT_PRIMER_CRITERIA,
   DEFAULT_TABLE,
+  DEFAULT_TRANSLATION_SCOPE,
   History,
   SeqDocument,
   TRIM_CUTOFF,
@@ -537,6 +539,8 @@ export interface SharedState {
   readonly showComplement: boolean;
   /** Whether amino-acid translations are drawn under CDS features in the sequence view. */
   readonly showTranslations: boolean;
+  /** Which CDS features get a translation line (#304). */
+  readonly translationScope: TranslationScope;
   /** Size of the sequence view's text; the rest of the row scales with it. */
   readonly seqFontSize: FontSize;
   /**
@@ -961,6 +965,7 @@ const SHARED_INITIAL: SharedState = {
   errorCountdown: null,
   showComplement: true,
   showTranslations: true,
+  translationScope: DEFAULT_TRANSLATION_SCOPE,
   seqFontSize: 13,
   seqBasesPerRow: null,
   numberComplement: false,
@@ -2527,6 +2532,10 @@ export class EditorStore {
 
   setShowTranslations(show: boolean): void {
     if (show !== this.state.showTranslations) this.setShared({ showTranslations: show });
+  }
+
+  setTranslationScope(scope: TranslationScope): void {
+    if (scope !== this.state.translationScope) this.setShared({ translationScope: scope });
   }
 
   setSeqFontSize(size: FontSize): void {
