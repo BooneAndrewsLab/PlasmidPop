@@ -1,0 +1,22 @@
+LOCUS       GB-bad-Insert2        449 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  GB-bad-Insert2, GB-Insert2 with one base of its 30 bp homology
+            changed, so it no longer matches GB-Insert1 (synthetic example,
+            invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             31..423
+                     /label="synthDomainB"
+                     /undefined="synthetic example domain, in frame with synthDomainA, ends in a stop"
+ORIGIN
+        1 cggtgtgctc cactaatagc cagtcaaaag tcggtccacc gaatgctgcc tctcgtggcc
+       61 agacgtcgca aggataggtt aaggggtaca ctcctgtgcc tacgtgctcc agcgttcatt
+      121 ctgcctgtga cagatgtgca gttggaacgt tatattaaag aactacgctt cccgcagtat
+      181 tatcggatag tgatcgccat aatcttacat gtgggaaaag tggcccaaaa caacattacc
+      241 tactgggtga tactctgcca agttcgaggt atcctggccc gtatatgggt tcgcaccgac
+      301 gtcggtcgac cagggaaacc atgtcgctat gctaccaata gcgcgccccg gtatccctct
+      361 tgtagcggat caactggagg cccacatttc ggtgtgactg cgggatctaa agacgcagga
+      421 taacctcctc cgttggccga gttaatgca
+//

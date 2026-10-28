@@ -1,0 +1,46 @@
+LOCUS       pIF-Vector           1446 bp    DNA     circular SYN 28-OCT-2026
+DEFINITION  pIF-Vector, circular expression vector for the In-Fusion tutorial,
+            one EcoRV site between promoter and terminator (synthetic example,
+            invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             complement(1..603)
+                     /label="KanR"
+                     /undefined="synthetic stand-in for a resistance gene"
+     rep_origin      644..1232
+                     /label="ori"
+                     /undefined="synthetic stand-in for an origin"
+     promoter        1263..1332
+                     /label="synthetic promoter"
+     terminator      1367..1421
+                     /label="synthetic terminator"
+ORIGIN
+        1 ttagtaagag aaaactgatt ttaccttgaa gctggatctt ctcagtatgg tttcatgcag
+       61 acgtacggaa cgagtccaga ataataaaac agaaaaagtg tcatcaagcg aatgcatgca
+      121 ttccacaact gaggggggga cgtcaacgtc acgcgggctc gcccttgctc tctcgttaca
+      181 ttttatgtgt aagctcacta atggggttac cttgaggcca tttgattgct gcttaaagcg
+      241 agagcgggct agggcgacgc ggctagtcca gccaacctgg tgagcctgta tgtcatgcca
+      301 acccgaaggc aatgagacgt aagttttggt ttcacccgaa cgcttacgtg gaccctgaga
+      361 tgcggacttc acgctgtctc gaattttggt cacgaaccgt ggaagatcag ctgagaagcc
+      421 agctgcactg ctcctaggct cccttccgcg actcaagtgg agcaattcgg aatagctcag
+      481 tctcgaagac actctgcgag aatcaagatg cggctgacta gcgcagggaa agggtcggta
+      541 gactgtcggg aaaatacatg ctctgatagc gtctatgaaa tgccacaagg aaggactttt
+      601 catcacccaa agaccaacgt ctggggtcaa ttctctaagt ccaatacgac ttgactggaa
+      661 ccaaacccag gaatctgctc ccctagccga gggagggatg gggtagcgcg ccggttccca
+      721 tttgctagcc ccatctaaga tttcgctcaa cccataactt aaacatctaa gctgtgcata
+      781 ggcagtgttg tcaagtagac gcccgtatga gtctttgatt ccttagctag ccggcttcac
+      841 gaacagcgac atcttagaca ttaacagcat tggtccctga tgcgacttgt ggttcgttac
+      901 ggggaccgcc agaatgggca tccccaaaca aggaaccaag agctcgacac accactcgta
+      961 tggcaagcta aggcctatct aggttactgg gccgggtaga atggaagtac attcacactc
+     1021 tcactgcgga ggctctgatc tgatattctg gttattctat cataacaccg gcgttttaaa
+     1081 gccggaagat atgctcaggc taaaatacgc tcgacatatg tagatagcga agtcgagcgc
+     1141 tcctcggctc gtatgtgtaa cagtcagatg aaagagaata gcgcattgtc cagaaacact
+     1201 gactaatcat aaactacata gtttgtgcgg gcaagagctg gaagccctgc agcatatcca
+     1261 aactatcgga tcactctgta tcgagttaag atcacattca agatttgaaa gtcaaacgag
+     1321 ccacactaaa ctatatgaca gcggctgata tccgcaaggg gcccgaatct caaactacgc
+     1381 taccgccgca tgctaccttc cttaggggat aatgctcatc cccctggcga gtttgccgcc
+     1441 aaactg
+//

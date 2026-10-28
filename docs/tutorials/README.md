@@ -18,9 +18,11 @@ New to the Bench or to the sample files? Start with
   out, overhangs that decide the order.
 - [Modular cloning](#modular-cloning): Golden Gate with a standard's part
   positions (MoClo).
+- [Gibson, In-Fusion and NEBuilder](#gibson-in-fusion-and-nebuilder): no enzyme
+  site at all, pieces that end in each other.
 
-More methods (Gibson, overlap-extension PCR, Gateway and others) are planned
-and will appear here as their own entries.
+More methods (overlap-extension PCR, Gateway and others) are planned and will
+appear here as their own entries.
 
 ### Ligation
 
@@ -67,6 +69,25 @@ promoter fits in front of any coding part. Do Golden Gate first.
   [MC-L0-CDS-B.gb](files/MC-L0-CDS-B.gb),
   [MC-L0-Terminator.gb](files/MC-L0-Terminator.gb),
   [MC-wrong-position.gb](files/MC-wrong-position.gb).
+
+### Gibson, In-Fusion and NEBuilder
+
+No restriction site and no scar: each piece ends in the bases the next one
+starts with, and an exonuclease, a polymerase and a ligase join them. Do the
+Gibson tutorial before the In-Fusion one.
+
+- **[Gibson: a vector and two inserts](gibson.md)**: a linearised vector and
+  two inserts joined by 26 to 30 bp overlaps in a scrambled tab order, the
+  panel's overlap and Tm report, the 2,379 bp circle, then one mismatched
+  overlap and what the panel says about it. Intermediate, about 20 minutes.
+  Files: [GB-Vector.gb](files/GB-Vector.gb),
+  [GB-Insert1.gb](files/GB-Insert1.gb), [GB-Insert2.gb](files/GB-Insert2.gb),
+  [GB-bad-Insert2.gb](files/GB-bad-Insert2.gb).
+- **[In-Fusion and NEBuilder: one gene into a vector](in-fusion.md)**: cut a
+  vector with EcoRV, let the app design the insert primers with homology tails,
+  and read the circle they make, with a synthetic ORF and again with insulin
+  from NCBI. Intermediate, about 20 minutes. Files:
+  [pIF-Vector.gb](files/pIF-Vector.gb), [IF-gene.gb](files/IF-gene.gb).
 
 ## Reference
 

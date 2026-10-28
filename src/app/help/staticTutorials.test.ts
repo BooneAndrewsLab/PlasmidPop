@@ -106,7 +106,14 @@ describe('static tutorial pages (#312)', () => {
   it('link every sample file as a download from sample-files, and every tutorial links its own', () => {
     const table = byPath.get('tutorials/sample-files/index.html') ?? '';
     for (const s of samples) expect(table, s.name).toContain(`href="../files/${s.name}" download`);
-    for (const id of ['ligation', 'golden-gate', 'golden-gate-parts', 'modular']) {
+    for (const id of [
+      'ligation',
+      'golden-gate',
+      'golden-gate-parts',
+      'modular',
+      'gibson',
+      'in-fusion',
+    ]) {
       const page = byPath.get(`tutorials/${id}/index.html`) ?? '';
       expect(page, id).toMatch(/href="\.\.\/files\/[\w.-]+\.gb" download/);
     }
@@ -117,7 +124,7 @@ describe('static tutorial pages (#312)', () => {
     for (const p of [index, ...pages]) {
       for (const m of p.markdown.matchAll(/\]\(files\/([^)#]+)\)/g))
         expect(names.has(m[1] ?? ''), `${p.id}: ${m[1]}`).toBe(true);
-      for (const m of p.markdown.matchAll(/`((?:p?GG|pLig|Insert)[\w-]*\.gb)`/g))
+      for (const m of p.markdown.matchAll(/`((?:p?GG|pLig|Insert|GB|pIF|IF)[\w-]*\.gb)`/g))
         expect(names.has(m[1] ?? ''), `${p.id} names ${m[1]}`).toBe(true);
     }
   });

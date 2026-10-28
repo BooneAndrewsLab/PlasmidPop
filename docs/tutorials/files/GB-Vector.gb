@@ -1,0 +1,47 @@
+LOCUS       GB-Vector            1506 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  GB-Vector, linearised vector for the Gibson tutorial, its two ends
+            are the homology arms of the inserts (synthetic example, invented
+            sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     terminator      47..101
+                     /label="synthetic terminator"
+     CDS             complement(127..729)
+                     /label="KanR"
+                     /undefined="synthetic stand-in for a resistance gene"
+     rep_origin      770..1358
+                     /label="ori"
+                     /undefined="synthetic stand-in for an origin"
+     promoter        1389..1458
+                     /label="synthetic promoter"
+ORIGIN
+        1 cctcctccgt tggccgagtt aatgcacagc aatcgtcagc gcgacttaat atggcccctc
+       61 tcggccctag ggctgggcat gcccagataa gccgtacgca ttaggactgg tcgtagacac
+      121 tcccggttag ttaggtccgc ggcgtcgaga ccgtctgctg caactccttt cgcgatcgga
+      181 aggcaagcat tgttgcgtag cgggcctcaa ttcttgcctt tcaccccgtt ccgcggccgt
+      241 atgacttttg tcggtcttgg ctagagaaaa tcggtttcgg aaggtcccag tcgggtccca
+      301 ctggactgaa gacgatgata gctgaccgcg gagtgagcca ggcaatatat atggctgcag
+      361 gcggaaaagt aactcgaaat ctagggggcg gggccaaagg ccgacgaatc cgcgtaatcg
+      421 cagatcgacc gtaggcgcgt gaaagatcac taaatagaat tgaagcatca aacactcctc
+      481 aagatccgac gaacgttgga gaagtgtgtg accggggagc ctggcacagc ggccggcaac
+      541 ggtatcccgc ccacactgca tgggtttctc atacccaagt actgtgctga ggccgttatt
+      601 cgtcggaggc ggcgaagagc aaattgcaga gtccatcatg cgcgtatcgg taccgtacct
+      661 atataggttg cggatactag cggctaatat aaagttgtcg acgctcataa tatacttttc
+      721 cggagtcatt ctcgttcgat acaattgtcg gcgcaccaag ttatggcaga gacgtgccgg
+      781 cctaacgcgg tcaggacatc gaccgcctga tgtttctagc aaactccatt gtcactgtct
+      841 ggcaggacac gatagatcta atactagccc aaagccagtc ctaacgtgat tctcataaat
+      901 taggtgacga gcgtcagaag gaacgcgccg tcgagtggac caatgatccg gaagtggatt
+      961 agaagatatt caccaaagaa tacgtgggac atgttggcgg agccgtgacg tttttgcact
+     1021 ttccactgga caggcttaaa gaccgacatg gttcgctaac catatatgct ttgtgactcc
+     1081 gaggaatgtc ctttataagc aattcggaat tgtcgccacc aaccctttca taatccgagt
+     1141 tgcgacccga tcgtcataac gtactgcttt tgtccaactc gcaccatact caaagtatga
+     1201 agctcccctt tggaccttac ccagatcttg tctattcttt tattctaaga tagttcacgc
+     1261 caggccgtag tagtttcatc ctcactctta attgacgggg aatcacacag ccgtatacaa
+     1321 tgccgacgtt tatagcgata tatatagtaa ggcttttgcg aggtgcaaat tggaaatgca
+     1381 gacagtaata cactatctag cacataaagg cttcactttt atgcgttctt taatccggga
+     1441 caatcgtagg accatccatc gcgcgaggga cgtgatagac atcgatccaa cttgcctaca
+     1501 actagc
+//

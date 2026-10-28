@@ -1,0 +1,26 @@
+LOCUS       GB-Insert1            508 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  GB-Insert1, first insert for the Gibson tutorial, 28 bp of homology
+            with the vector at its start and a 30 bp linker at its end
+            (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             29..478
+                     /label="synthDomainA"
+                     /undefined="synthetic example domain, ATG, no stop"
+     misc_feature    479..508
+                     /label="linker"
+                     /undefined="synthetic 30 bp linker, shared with the next part"
+ORIGIN
+        1 acatcgatcc aacttgccta caactagcat gcttgccacg ttcacagttc tctacagtgt
+       61 attggtaaca catttgagcc gggtagttga cggtggctgc cgatgggccc ctgtaggcag
+      121 atatcgggta tcgaggatga gcgtagccta ttcaattgct cccgggctcc tgacagcttg
+      181 gtgtcaaacc ctgaaccctc ctgaatgttt ctgtatgata ctctcgtctg gcctgaatgt
+      241 gttagaatac tgtgatagag catgcgcagc ggcgcttcaa tgccagtcga ctagaggcca
+      301 caataagcaa ggctcaagtc tacagactga tagcgacatt tacgctgact ttgacacaat
+      361 gcccgccatt tgcgcagtac taatacttat ctgtcagtat gcaagctttt tcttaaggac
+      421 attatattac aaggaccggt ttcacatctc agcactgaag ttcgcctggt catgcacgcg
+      481 gtgtgctcca cgaatagcca gtcaaaag
+//

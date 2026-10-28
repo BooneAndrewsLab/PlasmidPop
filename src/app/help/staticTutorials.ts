@@ -32,6 +32,8 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'golden-gate',
   'golden-gate-parts',
   'modular',
+  'gibson',
+  'in-fusion',
   'sample-files',
 ];
 

@@ -1,0 +1,24 @@
+LOCUS       IF-gene               603 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  IF-gene, open reading frame with no cloning sites at its ends
+            (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             1..603
+                     /label="synthProt"
+                     /undefined="synthetic example ORF, ATG to stop"
+ORIGIN
+        1 atgtgtagcg agcgtatgcg ttctaaaatg ttggtgcggg acacgtttac agagagtagg
+       61 aaggtcaatg aagctaattg cataaaccaa gggtcagggg gcatcgtgcc gcgcaaatgt
+      121 cgttaccgag gacaagagcg acctcccaag catcgctcaa aggatccggg tatgttgcga
+      181 cgcccgacca tcaagccagc aggaagtgaa tgttcacctg tcgataatac tgtgccacgg
+      241 agaatattcc acttacatga taagatcctc gatcgtttct cccagtgcgc ggctttgccc
+      301 ctactagcaa gtaccacgag tctatttatg ttggcttcgg gaaggtccat aagctcctcg
+      361 ggattcgcaa tgaagacact gattagccgc aacccgcacg aacagcccct agtggactcc
+      421 gtcctacgcc ccttcgatgc acgcaaacag agagttaaat tccgtagcct gggagtggag
+      481 agtgtcgctt gccttcacca atctgctcac aacatcccgc tgcccatgat cgagccatgc
+      541 tctcccctcc gggtactagg ccaagttggc ctgagatcgt gcgtatacag ttggcagcca
+      601 taa
+//
