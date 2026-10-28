@@ -324,3 +324,5 @@ the Bench, item 49). The rest stand.
 123.  [Per-type feature visibility](109-feature-type-visibility.md)
 
 124.  [Scratch documents](110-scratch-documents.md)
+
+125.  [Browse all files, grouped products, Undo for Remove](111-file-browser.md)

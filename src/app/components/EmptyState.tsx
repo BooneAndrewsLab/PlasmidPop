@@ -1,27 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { formatLength } from '@/core';
-import { type DocumentSummary, SCRATCH_LIFETIME_DAYS, expiringScratch } from '@/storage';
+import {
+  type DocumentSummary,
+  RECENT_FILES_LIMIT,
+  SCRATCH_LIFETIME_DAYS,
+  expiringScratch,
+  groupByParent,
+} from '@/storage';
 
 import { EXAMPLES } from '../examples';
 import { openExample, openPastedText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
 import { useEditorState } from '../state/useEditorStore';
-import { InlineRename } from './InlineRename';
+import { BrowseFilesDialog } from './BrowseFilesDialog';
 import { StoragePanel } from './StoragePanel';
+import { StoredList } from './StoredRow';
 
 const REPOSITORY_URL = 'https://github.com/BooneAndrewsLab/PlasmidPop';
-
-function formatWhen(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const minutes = Math.round(diff / 60_000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  return new Date(timestamp).toLocaleDateString();
-}
 
 function isTextField(target: EventTarget | null): boolean {
   return (
@@ -38,7 +34,8 @@ export function EmptyState() {
   // When the listing was read, which the notice about documents going soon is judged by.
   const [listedAt, setListedAt] = useState(() => Date.now());
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const { documents } = useEditorState();
+  const [browsing, setBrowsing] = useState(false);
+  const { documents, removalNotice } = useEditorState();
   const openIds = new Set(documents.map((d) => d.documentId));
 
   // A listing that resolves after unmount is dropped: setting state then
@@ -71,6 +68,15 @@ export function EmptyState() {
     };
   }, []);
 
+  // The listing follows the Undo toast: documents are hidden while it is up
+  // and listed again when Undo brings them back or the hold ends.
+  const noticed = useRef(removalNotice);
+  useEffect(() => {
+    if (noticed.current === removalNotice) return;
+    noticed.current = removalNotice;
+    refresh();
+  }, [removalNotice]);
+
   // Ctrl+V with nothing open: a record or bare bases pasted anywhere becomes a document.
   useEffect(() => {
     const onPaste = (e: ClipboardEvent): void => {
@@ -94,6 +100,7 @@ export function EmptyState() {
 
   const kept = (recent ?? []).filter((d) => d.kind === 'file');
   const unkept = (recent ?? []).filter((d) => d.kind === 'scratch');
+  const shown = kept.slice(0, RECENT_FILES_LIMIT);
   const expiring = expiringScratch(unkept, listedAt, openIds);
 
   const open = (id: string): void => {
@@ -101,6 +108,40 @@ export function EmptyState() {
       editorStore.fail(e instanceof Error ? e.message : String(e));
     });
   };
+
+  // Remove holds the documents for a few seconds with an Undo (item 111).
+  const remove = (docs: readonly DocumentSummary[]): void => {
+    const only = docs[0];
+    const message =
+      docs.length === 1 && only !== undefined
+        ? `Removed "${only.name}".`
+        : `Removed ${docs.length.toLocaleString()} documents.`;
+    report(
+      persistence.removeStoredWithUndo(
+        docs.map((d) => d.id),
+        message,
+      ),
+    );
+  };
+
+  const actions = {
+    openIds,
+    renamingId,
+    onOpen: open,
+    onStartRename: setRenamingId,
+    onRename: (id: string, name: string): void => {
+      report(persistence.renameStored(id, name));
+    },
+    onDoneRename: (): void => {
+      setRenamingId(null);
+    },
+    onKeep: (ids: readonly string[]): void => {
+      report(persistence.keepStored(ids));
+    },
+    onRemove: remove,
+  };
+  // Everything under Recent files is kept, so there is nothing to Keep.
+  const { onKeep: _onKeep, ...recentActions } = actions;
 
   return (
     <div className="empty">
@@ -189,71 +230,13 @@ export function EmptyState() {
           </button>
         </p>
       )}
-      {kept.length > 0 && (
+      {shown.length > 0 && (
         <section className="recent" aria-label="Recent files">
           <h2 className="recent__title">Recent files</h2>
-          <ul className="recent__list">
-            {kept.map((d) => (
-              <li key={d.id} className="recent__item">
-                {renamingId === d.id ? (
-                  <InlineRename
-                    value={d.name}
-                    label="Document name"
-                    className="recent__rename"
-                    onCommit={(name) => {
-                      report(persistence.renameStored(d.id, name));
-                    }}
-                    onDone={() => {
-                      setRenamingId(null);
-                    }}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="recent__open"
-                    onClick={() => {
-                      open(d.id);
-                    }}
-                  >
-                    <span className="recent__name">
-                      <span className="recent__title-text">{d.name}</span>
-                      {openIds.has(d.id) && (
-                        <span className="recent__badge" data-tip="Open in a tab">
-                          open
-                        </span>
-                      )}
-                    </span>
-                    <span className="recent__meta">
-                      {formatLength(d.length, d.alphabet)},{' '}
-                      {d.alphabet === 'protein' ? 'protein' : d.topology}, {d.featureCount} features
-                      {d.fileName === null ? '' : `, ${d.fileName}`}
-                    </span>
-                    <span className="recent__when">{formatWhen(d.updatedAt)}</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  data-tip="Give this document a different name"
-                  onClick={() => {
-                    setRenamingId(d.id);
-                  }}
-                >
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  data-tip="Remove from this browser's storage"
-                  onClick={() => {
-                    report(persistence.removeStored(d.id));
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+          <StoredList
+            entries={shown.map((row) => ({ type: 'row' as const, row }))}
+            actions={recentActions}
+          />
         </section>
       )}
       {unkept.length > 0 && (
@@ -273,54 +256,30 @@ export function EmptyState() {
               Keep all
             </button>
           </p>
-          <ul className="recent__list">
-            {unkept.map((d) => (
-              <li key={d.id} className="recent__item">
-                <button
-                  type="button"
-                  className="recent__open"
-                  onClick={() => {
-                    open(d.id);
-                  }}
-                >
-                  <span className="recent__name">
-                    <span className="recent__title-text">{d.name}</span>
-                    {openIds.has(d.id) && (
-                      <span className="recent__badge" data-tip="Open in a tab">
-                        open
-                      </span>
-                    )}
-                  </span>
-                  <span className="recent__meta">
-                    {formatLength(d.length, d.alphabet)},{' '}
-                    {d.alphabet === 'protein' ? 'protein' : d.topology}, {d.featureCount} features
-                  </span>
-                  <span className="recent__when">{formatWhen(d.updatedAt)}</span>
-                </button>
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  data-tip="Keep this document: it stays under Recent files"
-                  onClick={() => {
-                    report(persistence.keepStored([d.id]));
-                  }}
-                >
-                  Keep
-                </button>
-                <button
-                  type="button"
-                  className="button button--quiet button--small"
-                  data-tip="Remove from this browser's storage"
-                  onClick={() => {
-                    report(persistence.removeStored(d.id));
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+          <StoredList entries={groupByParent(unkept)} actions={actions} />
         </details>
+      )}
+      {(recent?.length ?? 0) > shown.length && (
+        <p className="recent__browse">
+          <button
+            type="button"
+            className="button"
+            onClick={() => {
+              setBrowsing(true);
+            }}
+          >
+            Browse all files…
+          </button>
+        </p>
+      )}
+      {browsing && (
+        <BrowseFilesDialog
+          documents={recent ?? []}
+          actions={actions}
+          onClose={() => {
+            setBrowsing(false);
+          }}
+        />
       )}
       <StoragePanel documents={recent ?? []} onChanged={refresh} />
     </div>

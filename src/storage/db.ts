@@ -6,6 +6,7 @@ import {
   type SequencingRead,
   type Topology,
   documentChecksum,
+  lineageParent,
 } from '@/core';
 import { parseGenBank } from '@/io';
 
@@ -74,6 +75,51 @@ export interface StoredDocument {
    * before version 6 until the upgrade fills it in.
    */
   readonly checksum?: string;
+  /**
+   * The checksum and name of the molecule this document was first made from
+   * (`lineageParent`, item 111), so the products of one parent can be shown
+   * together without parsing every text. Absent for a document with no
+   * lineage, and on rows from before version 14 until the upgrade fills it in.
+   */
+  readonly parentChecksum?: string;
+  readonly parentName?: string;
+}
+
+/**
+ * What a listing of the stored documents needs of each, kept in a table of
+ * its own so that listing never reads the GenBank text (item 111). It is
+ * written with the row it describes, in the same transaction, by
+ * `summaryOf`.
+ */
+export interface StoredSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly fileName: string | null;
+  readonly length: number;
+  readonly topology: Topology;
+  readonly alphabet?: 'protein';
+  readonly featureCount: number;
+  readonly kind: DocumentKind;
+  readonly updatedAt: number;
+  readonly parentChecksum?: string;
+  readonly parentName?: string;
+}
+
+/** The summary of a stored row: its small fields, none of its text. */
+export function summaryOf(row: StoredDocument): StoredSummary {
+  return {
+    id: row.id,
+    name: row.name,
+    fileName: row.fileName,
+    length: row.length,
+    topology: row.topology,
+    ...(row.alphabet === undefined ? {} : { alphabet: row.alphabet }),
+    featureCount: row.featureCount,
+    kind: row.kind ?? 'file',
+    updatedAt: row.updatedAt,
+    ...(row.parentChecksum === undefined ? {} : { parentChecksum: row.parentChecksum }),
+    ...(row.parentName === undefined ? {} : { parentName: row.parentName }),
+  };
 }
 
 /**
@@ -200,6 +246,8 @@ export interface StoredMyPart {
 
 export class PlasmidPopDb extends Dexie {
   declare documents: EntityTable<StoredDocument, 'id'>;
+  /** A small row per document for listing them without their text (item 111). */
+  declare summaries: EntityTable<StoredSummary, 'id'>;
   declare shelf: EntityTable<StoredShelf, 'id'>;
   declare enzymeSets: EntityTable<StoredEnzymeSet, 'id'>;
   /** Enzymes the user typed in (#217), a row each. */
@@ -299,6 +347,38 @@ export class PlasmidPopDb extends Dexie {
             row.kind ??= 'file';
           }),
       );
+    // Version 14 puts what a listing needs in a table of its own, so that
+    // listing no longer reads every document's text (item 111), and gives
+    // each row the parent it was made from. One pass over the rows: a text
+    // that will not parse is left without a parent and still listed.
+    this.version(14)
+      .stores({
+        summaries: 'id, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        const summaries: StoredSummary[] = [];
+        await tx
+          .table<StoredDocument, string>('documents')
+          .toCollection()
+          .modify((row: { -readonly [K in keyof StoredDocument]: StoredDocument[K] }) => {
+            const parent = parentOfText(row.text);
+            if (parent !== null) {
+              row.parentChecksum = parent.checksum;
+              row.parentName = parent.name;
+            }
+            summaries.push(summaryOf(row));
+          });
+        await tx.table<StoredSummary, string>('summaries').bulkPut(summaries);
+      });
+  }
+}
+
+/** The molecule a stored GenBank text was first made from (`lineageParent`), or null when it has no lineage or will not parse. */
+export function parentOfText(text: string): { name: string; checksum: string } | null {
+  try {
+    return lineageParent(parseGenBank(text).documents[0]?.metadata.lineage);
+  } catch {
+    return null;
   }
 }
 

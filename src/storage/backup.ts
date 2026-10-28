@@ -1,6 +1,6 @@
 import { FormatError, parseGenBank, readZip, writeZip } from '@/io';
 
-import { type PlasmidPopDb, type StoredDocument, getDb } from './db';
+import { type PlasmidPopDb, type StoredDocument, getDb, parentOfText, summaryOf } from './db';
 import { type StoredHistory, isStoredHistory } from './historyFormat';
 
 /**
@@ -265,15 +265,36 @@ export async function restoreBackup(
         open++;
         continue;
       }
-      const outcome = await db.transaction('rw', db.documents, db.histories, async () => {
-        const local = await db.documents.get(document.id);
-        if (local !== undefined && local.updatedAt >= document.updatedAt) return 'kept' as const;
-        // A backup from before scratch documents has no kind: all of it was kept.
-        await db.documents.put({ ...document, kind: document.kind ?? 'file' });
-        if (history === null) await db.histories.delete(document.id);
-        else await db.histories.put(history);
-        return local === undefined ? ('added' as const) : ('replaced' as const);
-      });
+      const outcome = await db.transaction(
+        'rw',
+        db.documents,
+        db.summaries,
+        db.histories,
+        async () => {
+          const local = await db.documents.get(document.id);
+          if (local !== undefined && local.updatedAt >= document.updatedAt) return 'kept' as const;
+          // A backup from before scratch documents has no kind: all of it was kept.
+          // A backup from before item 111 has no parent on its rows: read it
+          // from the text, as the upgrade does. One that has both is trusted.
+          const { parentChecksum, parentName, ...rest } = document;
+          const parent =
+            typeof parentChecksum === 'string' && typeof parentName === 'string'
+              ? { checksum: parentChecksum, name: parentName }
+              : parentOfText(document.text);
+          const row: StoredDocument = {
+            ...rest,
+            kind: document.kind ?? 'file',
+            ...(parent === null
+              ? {}
+              : { parentChecksum: parent.checksum, parentName: parent.name }),
+          };
+          await db.documents.put(row);
+          await db.summaries.put(summaryOf(row));
+          if (history === null) await db.histories.delete(document.id);
+          else await db.histories.put(history);
+          return local === undefined ? ('added' as const) : ('replaced' as const);
+        },
+      );
       if (outcome === 'added') added++;
       else if (outcome === 'replaced') replaced++;
       else kept++;

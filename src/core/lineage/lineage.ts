@@ -329,6 +329,20 @@ export function pruneLineage(
   return rebuild(root, '');
 }
 
+/**
+ * The molecule a document was first made from: the first parent of the
+ * root's step, by name and checksum (item 111), for grouping the products
+ * of one parent. Null when there is no lineage, the root's step has no
+ * parent, or the first parent has no checksum to be told by.
+ */
+export function lineageParent(
+  lineage: LineageNode | null | undefined,
+): { readonly name: string; readonly checksum: string } | null {
+  const first = lineage?.step?.parents[0];
+  if (first?.checksum == null) return null;
+  return { name: first.name, checksum: first.checksum };
+}
+
 /** Every checksum in a lineage, root first, each once. */
 export function lineageChecksums(node: LineageNode): string[] {
   const out = new Set<string>();

@@ -23,6 +23,7 @@ import { SaveReviewDialog } from './components/SaveReviewDialog';
 import { ReadNotice } from './components/ReadNotice';
 import { ShareNotice } from './components/ShareNotice';
 import { BackupNotice } from './components/BackupNotice';
+import { RemovalNotice } from './components/RemovalNotice';
 import { StorageNotice } from './components/StorageNotice';
 import { Sidebar } from './components/Sidebar';
 import { SPLITTER_SIZE, Splitter } from './components/Splitter';
@@ -349,6 +350,7 @@ export function App() {
       <StatusBar doc={doc} />
       <SaveReviewDialog />
       <ImportSummaryDialog />
+      <RemovalNotice />
       <VerifyClonesDialog />
       <CompareDialog />
       <NewDocumentDialog />

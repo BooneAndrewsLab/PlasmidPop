@@ -782,6 +782,11 @@ export interface SharedState {
   /** The report of a backup or a restore (#203), shown under the toolbar until dismissed. */
   readonly backupNotice: string | null;
   /**
+   * What was just removed from the stored documents and can still be taken
+   * back (item 111), for the Undo toast; null when nothing waits.
+   */
+  readonly removalNotice: string | null;
+  /**
    * What each panel is pointing at in the views, one entry per panel
    * (#32); see `DocumentPreview`. The views draw `EditorState.preview`, the
    * ones for the document in front put together.
@@ -1035,6 +1040,7 @@ const SHARED_INITIAL: SharedState = {
   importSummary: null,
   storageNotice: false,
   backupNotice: null,
+  removalNotice: null,
   previews: [],
   previewActivated: null,
   comparison: null,
@@ -1667,6 +1673,15 @@ export class EditorStore {
 
   dismissBackupNotice(): void {
     if (this.state.backupNotice !== null) this.setShared({ backupNotice: null });
+  }
+
+  /** Puts up the Undo toast for a removal that is being held (item 111). */
+  noteRemoval(message: string): void {
+    this.setShared({ removalNotice: message });
+  }
+
+  dismissRemovalNotice(): void {
+    if (this.state.removalNotice !== null) this.setShared({ removalNotice: null });
   }
 
   /** Puts up the review of what this working copy changed, before a download writes it. */

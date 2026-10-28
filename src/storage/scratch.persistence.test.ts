@@ -16,6 +16,12 @@ function fresh(): { db: PlasmidPopDb; repo: DocumentRepository } {
   return { db, repo: new DocumentRepository(db) };
 }
 
+/** Sets a row's time as a clock in the past would have left it, in the row and in its summary. */
+async function touch(db: PlasmidPopDb, id: string, updatedAt: number): Promise<void> {
+  await db.documents.update(id, { updatedAt });
+  await db.summaries.update(id, { updatedAt });
+}
+
 const doc = (name: string) =>
   SeqDocument.create({ name, sequence: 'ACGTACGTACGTACGTACGT', topology: 'circular' });
 
@@ -57,7 +63,7 @@ describe('the kind of a stored document (item 110)', () => {
   it('is kept by Keep, which leaves the time alone and ignores ids that are gone', async () => {
     const { repo, db } = fresh();
     await repo.save('s', doc('product'), null, SCRATCH);
-    await db.documents.update('s', { updatedAt: 5 });
+    await touch(db, 's', 5);
     expect(await repo.keep(['s', 'nothing'])).toBe(1);
     const row = await db.documents.get('s');
     expect(row).toMatchObject({ kind: 'file', updatedAt: 5 });
@@ -80,9 +86,9 @@ describe('removing scratch documents that have outlived their time', () => {
     await repo.save('older-open', doc('open'), null, SCRATCH);
     await repo.save('young', doc('young'), null, SCRATCH);
     await repo.save('kept', doc('kept'), 'kept.gb');
-    await db.documents.update('old', { updatedAt: 1 });
-    await db.documents.update('older-open', { updatedAt: 1 });
-    await db.documents.update('kept', { updatedAt: 1 });
+    await touch(db, 'old', 1);
+    await touch(db, 'older-open', 1);
+    await touch(db, 'kept', 1);
     await db.histories.put({ id: 'old' } as never);
     return t;
   }

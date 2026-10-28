@@ -85,5 +85,5 @@ pasted, opened or fetched by name is one.
 
 ## Not done here
 
-Unkept grouped by parent, a cap on the list, and Undo of Remove / Keep are
-#307.
+Unkept grouped by parent, a cap on the list, and Undo of Remove are item 111
+(#307). Undo of Keep was not asked for there and is not done.

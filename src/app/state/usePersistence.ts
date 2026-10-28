@@ -145,6 +145,12 @@ export function useRestoreSession(): boolean {
         }
       }
       try {
+        // Removals a closed page left marked are carried out (item 111).
+        await persistence.settleRemovals();
+      } catch {
+        // Storage unavailable: they stay hidden, and are tried again next load.
+      }
+      try {
         // Unkept documents past their time go once the tabs to keep are open (item 110).
         await persistence.pruneScratch();
       } catch {

@@ -5,3 +5,4 @@ export * from './fileSystemAccess';
 export * from './historyCodec';
 export * from './historyFormat';
 export * from './scratch';
+export * from './summaries';

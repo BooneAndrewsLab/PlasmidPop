@@ -23,6 +23,7 @@ import {
 import {
   type DocumentRepository,
   type StoredLoad,
+  REMOVAL_HOLD_MS,
   getRepository,
   historyRow,
   pickOpenFiles,
@@ -859,6 +860,13 @@ export class PersistenceService {
    * close is waited for, so neither writes it back after the delete.
    */
   async removeStored(id: string): Promise<void> {
+    await this.detach(id);
+    await this.repo.remove(id);
+    this.autosaved.delete(id);
+  }
+
+  /** The tab of a stored document closed unsaved, and its pending save out of the way. */
+  private async detach(id: string): Promise<void> {
     this.removing.add(id);
     try {
       editorStore.closeDocument(id);
@@ -869,8 +877,75 @@ export class PersistenceService {
     const closing = this.closing.get(id);
     this.closing.delete(id);
     await closing?.done;
-    await this.repo.remove(id);
-    this.autosaved.delete(id);
+  }
+
+  /** The documents of the removal whose Undo is open, and the timer that carries it out. */
+  private held: { ids: readonly string[]; timer: ReturnType<typeof setTimeout> } | null = null;
+
+  /**
+   * Removes stored documents with an Undo (item 111). The tabs close at
+   * once, the documents leave the listing, and `REMOVAL_HOLD_MS` later the
+   * rows and their histories are deleted; nothing is deleted before then,
+   * so Undo is only forgetting the mark. A removal still held when the next
+   * one comes is carried out first: there is one Undo, for the latest.
+   */
+  async removeStoredWithUndo(ids: readonly string[], message: string): Promise<void> {
+    if (ids.length === 0) return;
+    await this.commitHeld();
+    for (const id of ids) await this.detach(id);
+    this.repo.hideForRemoval(ids, Date.now() + REMOVAL_HOLD_MS);
+    this.held = { ids, timer: setTimeout(() => void this.commitHeld(), REMOVAL_HOLD_MS) };
+    editorStore.noteRemoval(message);
+  }
+
+  /** Takes back the removal that is held; false when none is (its time ran out). */
+  undoRemoval(): boolean {
+    const held = this.held;
+    if (held === null) return false;
+    clearTimeout(held.timer);
+    this.held = null;
+    this.repo.restoreRemoved(held.ids);
+    editorStore.dismissRemovalNotice();
+    return true;
+  }
+
+  /** Carries out the removal that is held, now. */
+  private async commitHeld(): Promise<void> {
+    const held = this.held;
+    if (held === null) return;
+    clearTimeout(held.timer);
+    this.held = null;
+    editorStore.dismissRemovalNotice();
+    await this.carryOut(held.ids);
+  }
+
+  /**
+   * Deletes marked documents, but never one open in a tab (opened again
+   * since it was removed): that one only loses its mark.
+   */
+  private async carryOut(ids: readonly string[]): Promise<void> {
+    const open = new Set(editorStore.getState().documents.map((d) => d.documentId));
+    const [spared, doomed] = [ids.filter((id) => open.has(id)), ids.filter((id) => !open.has(id))];
+    this.repo.restoreRemoved(spared);
+    await this.repo.commitRemoved(doomed);
+    for (const id of doomed) this.autosaved.delete(id);
+  }
+
+  /**
+   * Carries out removals a closed page left marked (item 111), run when the
+   * app starts: one whose time ran out is deleted now, one still within its
+   * hold is deleted when it is due. There is no Undo for them: the toast
+   * went with the page. A document that is not marked is never touched.
+   */
+  async settleRemovals(now: number = Date.now()): Promise<void> {
+    const marks = this.repo.pendingRemovals();
+    const held = new Set(this.held?.ids ?? []);
+    const due = [...marks].filter(([id, until]) => until <= now && !held.has(id));
+    await this.carryOut(due.map(([id]) => id));
+    for (const [id, until] of marks) {
+      if (until <= now || held.has(id)) continue;
+      setTimeout(() => void this.carryOut([id]), until - now);
+    }
   }
 
   /**

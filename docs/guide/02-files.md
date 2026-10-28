@@ -683,8 +683,9 @@ when you close its tab, and again when you leave the page, so a closed tab
 or a crash loses nothing: reopen a closed tab from **Recent files** and its
 last edit is there. Its undo history is written with it, so undo and
 redo still work after a reload. On the
-start screen (the **Files** tab), **Recent files** lists these documents with
-size, topology, feature count and when they were last changed. Opening the
+start screen (the **Files** tab), **Recent files** lists the six most recent of
+these documents with size, topology, feature count and when they were last
+changed; **Browse all files…** under it opens the rest (see below). Opening the
 same file twice does not create a second entry: a file identical to a stored
 document whose tab is closed opens as that document, with its history, as if
 you had reopened it from the list. (If you edit the new tab back to the stored
@@ -697,9 +698,25 @@ neither history is lost.)
 - **Rename** changes the stored name (and the document name, as an undoable
   step of its history, whether it is open or not).
 - **Remove** deletes it from the browser, with its undo history, and closes
-  its tab. This does not touch files on disk.
+  its tab. This does not touch files on disk. A message at the bottom of the
+  window offers **Undo** for about ten seconds; the document is not deleted
+  until then, and it is not listed meanwhile. If you close the page in that
+  time, the removal still happens (the next time PlasmidPop starts, or when its
+  ten seconds are up), and a document you did not remove is never touched.
+  Removing something else first makes the earlier removal final, so Undo is
+  always for the latest one.
 - **File ▸ Show files** goes back to this list while keeping every tab
   open.
+
+### Browse all files
+
+**Browse all files…** on the start screen lists everything in storage, kept and
+unkept, in one window. Type in the search box to find a document by its name
+or by the name of the file it came from, and sort by **Last updated**, **Name**
+or **Size**. Click a document to open it (the **open** badge marks those that
+already are), or **Rename** it in place. Tick several, or **Select all shown**,
+and use **Remove selected** (with the same Undo) or **Keep selected** (for
+unkept documents). Escape clears the search box, then closes the window.
 
 ### Unkept documents
 
@@ -719,7 +736,11 @@ and are not affected.
   keeps it without changing anything.
 - Unkept documents are listed under **Unkept** on the Files tab, a collapsed
   section below Recent files. Each has **Keep** and **Remove**, and **Keep
-  all** keeps every one. A kept document moves up to Recent files.
+  all** keeps every one. A kept document moves up to Recent files. Two or more
+  unkept documents made from the same molecule (the three PCR products of one
+  template, say) are one line, "3 products of AF025746", that opens to them,
+  with **Keep all** and **Remove all** for the group; the same grouping shows
+  in Browse all files. A document made from nothing recorded stands alone.
 - An unkept document is removed from this browser **30 days after it was
   last changed**, with its undo history, unless it is open in a tab. This is
   done when PlasmidPop starts and when the Files tab is shown, not while you

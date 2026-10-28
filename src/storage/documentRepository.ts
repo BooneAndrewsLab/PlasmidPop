@@ -15,6 +15,7 @@ import {
   describeEditOp,
   documentChecksum,
   isLineageNode,
+  lineageParent,
 } from '@/core';
 import { parseGenBank, writeGenBank } from '@/io';
 
@@ -26,6 +27,7 @@ import {
   FIDELITY_TABLE_ID,
   SHELF_ID,
   getDb,
+  summaryOf,
 } from './db';
 import {
   type HistoryToStore,
@@ -39,6 +41,9 @@ import { expiredScratch } from './scratch';
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
 const PENDING_PREFIX = 'plasmidpop.pending.';
+const REMOVING_KEY = 'plasmidpop.removing';
+/** How long a removal waits for Undo before the document is deleted (item 111). */
+export const REMOVAL_HOLD_MS = 10_000;
 /**
  * The most text (UTF-16 units) the flush on leaving puts in localStorage for
  * one document (#290). A browser gives an origin some 5 million units in all,
@@ -120,6 +125,9 @@ export interface DocumentSummary {
   readonly featureCount: number;
   readonly kind: DocumentKind;
   readonly updatedAt: number;
+  /** What it was first made from (item 111), when it has a lineage; for grouping products. */
+  readonly parentChecksum?: string;
+  readonly parentName?: string;
 }
 
 /**
@@ -221,17 +229,21 @@ export class DocumentRepository {
     isCurrent: () => boolean = () => true,
   ): Promise<boolean> {
     const { row, text, originText, now } = prepared;
-    return this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
-      const existing = await this.db.documents.get(id);
-      if (!isCurrent()) return false;
-      // Kept is one way: a row that is kept (or from before kinds) is not
-      // made scratch again by a tab that has not heard it was kept.
-      const kind: DocumentKind =
-        provenance.kind === 'scratch' && (existing === undefined || existing.kind === 'scratch')
-          ? 'scratch'
-          : 'file';
-      await this.db.documents.put(
-        this.documentRow(
+    return this.db.transaction(
+      'rw',
+      this.db.documents,
+      this.db.summaries,
+      this.db.histories,
+      async () => {
+        const existing = await this.db.documents.get(id);
+        if (!isCurrent()) return false;
+        // Kept is one way: a row that is kept (or from before kinds) is not
+        // made scratch again by a tab that has not heard it was kept.
+        const kind: DocumentKind =
+          provenance.kind === 'scratch' && (existing === undefined || existing.kind === 'scratch')
+            ? 'scratch'
+            : 'file';
+        const stored = this.documentRow(
           id,
           doc,
           fileName,
@@ -240,12 +252,14 @@ export class DocumentRepository {
           originText,
           existing?.createdAt ?? now,
           now,
-        ),
-      );
-      if (row === null) await this.db.histories.delete(id);
-      else if (row !== undefined) await this.db.histories.put(row);
-      return true;
-    });
+        );
+        await this.db.documents.put(stored);
+        await this.db.summaries.put(summaryOf(stored));
+        if (row === null) await this.db.histories.delete(id);
+        else if (row !== undefined) await this.db.histories.put(row);
+        return true;
+      },
+    );
   }
 
   private documentRow(
@@ -260,12 +274,14 @@ export class DocumentRepository {
   ): StoredDocument {
     const origin = provenance.origin;
     const checksum = documentChecksum(doc)?.text;
+    const parent = lineageParent(doc.metadata.lineage);
     return {
       id,
       name: doc.name,
       fileName,
       text,
       ...(checksum === undefined ? {} : { checksum }),
+      ...(parent === null ? {} : { parentChecksum: parent.checksum, parentName: parent.name }),
       ...(doc.read === null ? {} : { read: doc.read }),
       length: doc.length,
       topology: doc.topology,
@@ -394,10 +410,13 @@ export class DocumentRepository {
     fileName: string | null,
     write: (doc: SeqDocument) => string | Promise<string> = writeGenBank,
   ): Promise<string | null> {
+    // A document waiting out its Undo is as good as gone: it must not be the
+    // one a new open merges into, only to be deleted under it (item 111).
+    const hidden = this.removing();
     const candidates = await this.db.documents
       .where('name')
       .equals(doc.name)
-      .filter((d) => d.fileName === fileName)
+      .filter((d) => d.fileName === fileName && !hidden.has(d.id))
       .toArray();
     // The text is written only when there is a stored document to hold it
     // against: at 300 kb it is a 10 ms job on the main thread, and the first
@@ -530,29 +549,38 @@ export class DocumentRepository {
     return (await this.db.histories.where('id').equals(id).count()) > 0;
   }
 
+  /**
+   * Everything stored, newest first, from the summaries table: no text is
+   * read (item 111). A document waiting out its Undo (`hideForRemoval`) is
+   * not listed.
+   */
   async list(): Promise<DocumentSummary[]> {
-    const all = await this.db.documents.orderBy('updatedAt').reverse().toArray();
-    return all.map(
-      ({ id, name, fileName, length, topology, alphabet, featureCount, kind, updatedAt }) => ({
-        id,
-        name,
-        fileName,
-        length,
-        topology,
-        alphabet: alphabet ?? 'nucleotide',
-        featureCount,
-        kind: kind ?? 'file',
-        updatedAt,
-      }),
-    );
+    const hidden = this.removing();
+    const all = await this.db.summaries.orderBy('updatedAt').reverse().toArray();
+    return all
+      .filter((s) => !hidden.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        fileName: s.fileName,
+        length: s.length,
+        topology: s.topology,
+        alphabet: s.alphabet ?? 'nucleotide',
+        featureCount: s.featureCount,
+        kind: s.kind,
+        updatedAt: s.updatedAt,
+        ...(s.parentChecksum === undefined ? {} : { parentChecksum: s.parentChecksum }),
+        ...(s.parentName === undefined ? {} : { parentName: s.parentName }),
+      }));
   }
 
   /** Keeps scratch documents (item 110), without touching their times; gives how many rows there were to keep. */
   async keep(ids: readonly string[]): Promise<number> {
     let kept = 0;
-    await this.db.transaction('rw', this.db.documents, async () => {
+    await this.db.transaction('rw', this.db.documents, this.db.summaries, async () => {
       for (const id of ids) {
         kept += await this.db.documents.update(id, { kind: 'file' });
+        await this.db.summaries.update(id, { kind: 'file' });
       }
     });
     return kept;
@@ -571,12 +599,81 @@ export class DocumentRepository {
 
   /** Deletes a document and its undo history; closing a tab deletes neither. */
   async remove(id: string): Promise<void> {
-    await this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
-      await this.db.documents.delete(id);
-      await this.db.histories.delete(id);
-    });
+    await this.db.transaction(
+      'rw',
+      this.db.documents,
+      this.db.summaries,
+      this.db.histories,
+      async () => {
+        await this.db.documents.delete(id);
+        await this.db.summaries.delete(id);
+        await this.db.histories.delete(id);
+      },
+    );
     if (this.lastDocumentId() === id) this.setLastDocumentId(null);
     this.setOpenDocumentIds(this.openDocumentIds().filter((open) => open !== id));
+  }
+
+  /**
+   * Hides documents from the listing until `until` (ms) while their Undo is
+   * open (item 111). Nothing is deleted: the row and its history stay, so
+   * `restoreRemoved` is only forgetting the mark. The mark is in localStorage,
+   * written before this returns, so a reload cannot lose a removal that was
+   * asked for (`settleRemovals` carries it out) nor delete a document that
+   * was not marked.
+   */
+  hideForRemoval(ids: readonly string[], until: number): void {
+    const marks = this.removing();
+    for (const id of ids) marks.set(id, until);
+    this.setRemoving(marks);
+  }
+
+  /** Takes the marks off: the documents are listed again. */
+  restoreRemoved(ids: readonly string[]): void {
+    const marks = this.removing();
+    for (const id of ids) marks.delete(id);
+    this.setRemoving(marks);
+  }
+
+  /** The documents marked for removal, with the time each is due (ms). */
+  pendingRemovals(): ReadonlyMap<string, number> {
+    return this.removing();
+  }
+
+  /** Deletes marked documents and their histories, and forgets the marks (only after the delete: a crash between leaves the mark, which deletes nothing). */
+  async commitRemoved(ids: readonly string[]): Promise<void> {
+    for (const id of ids) await this.remove(id);
+    this.restoreRemoved(ids);
+  }
+
+  private memoryRemoving = new Map<string, number>();
+
+  private removing(): Map<string, number> {
+    try {
+      const raw = globalThis.localStorage.getItem(REMOVING_KEY);
+      const marks = new Map<string, number>();
+      if (raw !== null) {
+        const parsed: unknown = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null) {
+          for (const [id, until] of Object.entries(parsed)) {
+            if (typeof until === 'number') marks.set(id, until);
+          }
+        }
+      }
+      return marks;
+    } catch {
+      return new Map(this.memoryRemoving);
+    }
+  }
+
+  private setRemoving(marks: ReadonlyMap<string, number>): void {
+    this.memoryRemoving = new Map(marks);
+    try {
+      if (marks.size === 0) globalThis.localStorage.removeItem(REMOVING_KEY);
+      else globalThis.localStorage.setItem(REMOVING_KEY, JSON.stringify(Object.fromEntries(marks)));
+    } catch {
+      // Best effort: the marks held in memory still hide the rows for this page.
+    }
   }
 
   /** The document that was in front when the page was last left, or null for the file list. */
