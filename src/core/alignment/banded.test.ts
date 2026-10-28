@@ -330,7 +330,7 @@ describe('a band led astray by repeats or an end insertion (#167)', { timeout: 1
 });
 
 // What the check costs (#167), quoted in docs/perf-notes.md.
-describe('the cost of checking a band (#167)', () => {
+describe('the cost of checking a band (#167)', { timeout: FULL_ALIGNMENT_MS }, () => {
   itTimed('checks a Sanger read against a 300 kb circle, unrolled', () => {
     const next = ints(300);
     const circle = bases(300_000, next);
