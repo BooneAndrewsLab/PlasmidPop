@@ -123,6 +123,16 @@ leaves the browser.
       `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCN*`:
       preproinsulin, one frame, one stop, then `GCTT`.
 
+**Two things on the map that look odd and are right.** The base just before
+the start codon is a capital `A` that is not in the NCBI record: the overhang
+is `AATG`, and its `ATG` is the gene's own start codon, so the primer adds only
+the first `A`. That is why the promoter runs straight into the start codon.
+After the stop codon come the four overhang bases `GCTT`, then the
+terminator, so there is a four-base gap there and none on the promoter side.
+The `INS` gene feature, the first `exon` and the forward primer feature start
+on that `A`, because the part's edge cuts them off; the CDS and the peptides
+start on the `ATG`.
+
 (The oligos depend on the padding setting and on the annealing lengths the
 designer picks, so they are not written out. What does not depend on them is
 the part and the product length.)
