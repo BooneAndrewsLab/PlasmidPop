@@ -155,7 +155,12 @@ describe('the Results page (item 107, stage two)', () => {
       .map((c) => c.textContent);
     expect(url.searchParams.get('PRIMER_LEFT_INPUT')).toBe(cells[3]);
     expect(url.searchParams.get('PRIMER_RIGHT_INPUT')).toBe(cells[6]);
-    expect([...url.searchParams.keys()]).toEqual(['PRIMER_LEFT_INPUT', 'PRIMER_RIGHT_INPUT']);
+    expect([...url.searchParams.keys()]).toEqual([
+      'PRIMER_LEFT_INPUT',
+      'PRIMER_RIGHT_INPUT',
+      'PRIMER_PRODUCT_MIN',
+      'PRIMER_PRODUCT_MAX',
+    ]);
     // The control says what leaves the browser.
     expect(link.getAttribute('data-tip')).toMatch(/two primer sequences in the address/);
     expect(within(first).getByText('not checked')).toBeInTheDocument();

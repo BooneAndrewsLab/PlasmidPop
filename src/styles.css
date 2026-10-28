@@ -1012,6 +1012,11 @@ button {
   color: var(--ink-2);
 }
 
+/* A setting the page in front does not use: shown, but greyed and inert. */
+.panel__form-dim {
+  opacity: 0.45;
+}
+
 /**
  * A field that takes the whole width of the controls row. Supplier names run
  * to "Molecular Biology Resources - CHIMERx", which leaves the label wrapping
@@ -2990,8 +2995,17 @@ button {
   align-items: center;
 }
 
+.ncbi-open__flank {
+  white-space: nowrap;
+}
+
+.ncbi-open__flank > span {
+  flex: none;
+}
+
 .ncbi-open__flank > .panel__search {
   width: 6em;
+  flex: none;
 }
 
 /* Export figure (#240, items 89 and 94): a preview beside a settings list of
@@ -6063,6 +6077,10 @@ button {
   margin: 0;
 }
 
+.ws__target .segmented {
+  justify-self: start;
+}
+
 .ws__feature {
   justify-self: start;
   max-width: 100%;
@@ -6821,7 +6839,14 @@ button {
 }
 
 .step .segmented {
+  display: flex;
+  width: fit-content;
   margin-bottom: 6px;
+}
+
+.step .ws__feature {
+  display: block;
+  margin: 0 0 6px;
 }
 
 .cloning__sites {
@@ -6857,7 +6882,7 @@ button {
 .orient {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
   margin: 4px 0 0;
   font-size: 13px;
@@ -6865,6 +6890,21 @@ button {
 
 .ez .ez--off td {
   color: var(--ink-3);
+}
+
+/* Seven columns in a side pane: wrap rather than scroll sideways, and give
+   each column room so neighbours do not read as one word. */
+.ez td,
+.ez th {
+  white-space: normal;
+  vertical-align: top;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.ez td + td,
+.ez th + th {
+  border-left: 1px solid var(--line);
 }
 
 .ez__radio {

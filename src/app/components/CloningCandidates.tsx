@@ -11,7 +11,6 @@ import {
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
-import { primerBlastUrl } from '../primerBlast';
 import { openPcr, sendToPcr } from '../primerToPcr';
 import { type WorkspaceLayout } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
@@ -27,6 +26,7 @@ import {
   pairLabel,
   siteWithCut,
 } from './cloningDesign';
+import { CheckSpecificity } from './CheckSpecificity';
 import { MapStrip } from './MapStrip';
 import { pct } from './primerDesign';
 import { nextRowIndex } from './tableKeys';
@@ -216,10 +216,6 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
   const insertLength = design.amplicon.length - forward.sequence.length - reverse.sequence.length;
   const simulation = useMemo(() => design.simulate(), [design]);
   const product = simulation.product;
-  const blast = primerBlastUrl({
-    forward: forward.segments.annealing,
-    reverse: reverse.segments.annealing,
-  });
   const names = cloningPrimerNames(record.insert.name, forward.enzyme, reverse.enzyme);
   const openProduct = (): void => {
     if (product === null) return;
@@ -369,18 +365,17 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
             Use in PCR
           </button>
           <span className="actions__gap" />
-          <a
-            className="button button--small"
-            href={blast}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-tip={BLAST_ANNEALING}
-            onClick={() => {
-              analytics.track('primers', 'primer-blast');
+          <CheckSpecificity
+            pair={{
+              forward: forward.segments.annealing,
+              reverse: reverse.segments.annealing,
+              productLength: insertLength,
             }}
-          >
-            Check specificity…
-          </a>
+            doc={record.insert.document}
+            sites={[record.insert.range]}
+            forwardOnBottom={record.insert.strand === 'reverse'}
+            tip={BLAST_ANNEALING}
+          />
         </div>
       </div>
       {thumb}

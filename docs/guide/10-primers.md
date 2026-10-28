@@ -145,7 +145,7 @@ document, and **Results** shows whichever design was made last.
    tab's features and, when it has one, its selection; the insert is read
    off that tab, so an edit there follows and a closed tab is said rather
    than kept. **Gene from NCBI…** is the same search as File ▸ Open from
-   NCBI: the record opens as a tab of its own (it is the PCR template) and
+   NCBI, with **Add** where that one says Open: the record opens as a tab of its own (it is the PCR template) and
    its CDS — else its gene, else the whole record — becomes the insert,
    while the workspace stays on the vector. The insert's line gives its
    first and last bases and, once the scans are in, which of the region's
@@ -217,12 +217,21 @@ in the browser: no genome is bundled. **Check specificity…**, under a
 selected pair on Results and under a picked pair in
 [My primers](#my-primers), opens NCBI's
 [Primer-BLAST](https://www.ncbi.nlm.nih.gov/tools/primer-blast/) in a new
-tab with the two primers already in its form; choose the database and the
-organism there and run the search on NCBI's site.
+tab with the two primers already in its form. When the document has an
+NCBI accession (a record opened from NCBI, say) the form also gets it as the
+template, its organism, a genome database to search, and a product-size range
+that fits the pair; otherwise choose those there. Run the search on NCBI's
+site.
 
 What leaves the browser: the two primer sequences, in the address of the
-page that opens, and nothing else — not the template, not the document's
-name — and nothing at all until you click. The **Spec.** column says **not
+page that opens, plus the template's NCBI accession and organism when the
+document has them. When the document annotates an mRNA (a gene opened from NCBI does)
+whose exons hold both primers, that transcript's accession is the template,
+so the result names the gene the pair targets; a pair in an intron or outside
+every transcript uses the record's own accession instead. The two primers
+swap places when the template reads the other way round, as Primer-BLAST
+wants the first one on the template's top strand — never its sequence or name, and a name that is not an
+NCBI accession is not sent — and nothing at all until you click. The **Spec.** column says **not
 checked** for every pair: the answer stays on NCBI's page for now.
 
 ## Settings
@@ -260,6 +269,11 @@ own first bases — how an ORF is amplified from its start codon. To keep
 primers well clear of the region, as for sequencing across it, raise the
 near edge: `50`–`200` leaves at least 50 bp between each primer and the
 selection.
+
+When you [clone an insert](#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert) the **Product**
+and **Where to look** rows are greyed out: the primers sit at the two ends of
+the insert, and the product is the insert plus the enzyme-site tails, so
+neither is a choice. The other settings still hold the annealing parts.
 
 Among the candidates that pass, pairs are ranked by a penalty that favours
 a Tm in the middle of the range, GC in the middle of its range, a GC clamp,

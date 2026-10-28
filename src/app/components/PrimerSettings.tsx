@@ -56,6 +56,7 @@ interface NumberProps {
   readonly step?: number;
   /** Room for five digits, which a product length runs to. */
   readonly wide?: boolean;
+  readonly disabled?: boolean;
   readonly onCommit: (value: number) => void;
 }
 
@@ -65,7 +66,14 @@ interface NumberProps {
  * which the criteria hold up to the shortest primer allowed before the
  * second digit arrives.
  */
-function NumberBox({ value, label, step = 1, wide = false, onCommit }: NumberProps) {
+function NumberBox({
+  value,
+  label,
+  step = 1,
+  wide = false,
+  disabled = false,
+  onCommit,
+}: NumberProps) {
   // Null while nothing is being typed, so the box shows the stored value
   // and follows it when it changes elsewhere (Reset, a clamped range).
   const [draft, setDraft] = useState<string | null>(null);
@@ -82,6 +90,7 @@ function NumberBox({ value, label, step = 1, wide = false, onCommit }: NumberPro
       inputMode="decimal"
       step={step}
       aria-label={label}
+      disabled={disabled}
       value={draft ?? String(value)}
       onChange={(e) => {
         setDraft(e.target.value);
@@ -120,12 +129,17 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
   const set = (next: PrimerCriteria): void => {
     editorStore.setPrimerCriteria(next);
   };
-  const field = (key: NumericKey, label: string, step = 1, wide = false) => (
+  // Cloning pins the primers to the insert's two ends: no windows to look in,
+  // and the product is the insert plus its tails, so neither is a choice.
+  const off = cloning !== undefined;
+  const dim = off ? ' panel__form-dim' : '';
+  const field = (key: NumericKey, label: string, step = 1, wide = false, disabled = false) => (
     <NumberBox
       value={c[key]}
       label={label}
       step={step}
       wide={wide}
+      disabled={disabled}
       onCommit={(v) => {
         set(withField(c, key, v));
       }}
@@ -148,6 +162,7 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
     <NumberBox
       value={c[which][end]}
       label={label}
+      disabled={off}
       onCommit={(v) => {
         set(withRegion(c, which, end, v));
       }}
@@ -255,26 +270,32 @@ export function PrimerSettings({ criteria: c, cloning }: Props) {
           ≤ {field('maxTmDifference', 'Largest Tm difference in a pair', 0.5)} °C
         </span>
 
-        <span className="panel__form-label">Product</span>
-        <span className="panel__form-range">
-          {field('minProduct', 'Shortest product', 1, true)}–
-          {field('maxProduct', 'Longest product', 1, true)} bp
+        <span className={`panel__form-label${dim}`}>Product</span>
+        <span className={`panel__form-range${dim}`}>
+          {field('minProduct', 'Shortest product', 1, true, off)}–
+          {field('maxProduct', 'Longest product', 1, true, off)} bp
         </span>
 
-        <span className="panel__form-heading">Where to look</span>
-        <span className="panel__form-label">Forward</span>
-        <span className="panel__form-range">
+        <span className={`panel__form-heading${dim}`}>Where to look</span>
+        <span className={`panel__form-label${dim}`}>Forward</span>
+        <span className={`panel__form-range${dim}`}>
           {regionField('forwardRegion', 'near', 'Forward primer, nearest to the start')}–
           {regionField('forwardRegion', 'far', 'Forward primer, farthest from the start')} bp before
           start
         </span>
-        <span className="panel__form-label">Reverse</span>
-        <span className="panel__form-range">
+        <span className={`panel__form-label${dim}`}>Reverse</span>
+        <span className={`panel__form-range${dim}`}>
           {regionField('reverseRegion', 'near', 'Reverse primer, nearest to the end')}–
           {regionField('reverseRegion', 'far', 'Reverse primer, farthest from the end')} bp after
           end
         </span>
-        <span className="panel__form-hint">
+        {off && (
+          <span className="panel__form-hint">
+            Product and Where to look do not apply when cloning: the primers sit at the two ends of
+            the insert, and the product is the insert plus the enzyme-site tails.
+          </span>
+        )}
+        <span className={`panel__form-hint${dim}`}>
           The whole primer lies in this stretch. A negative number reaches into the selection, so{' '}
           <code>-30</code>–<code>0</code> puts a primer on the selection&apos;s own first bases, as
           when amplifying an ORF from its start codon.

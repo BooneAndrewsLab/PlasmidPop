@@ -2,9 +2,9 @@ import { type KeyboardEvent, useMemo, useRef, useState } from 'react';
 
 import { type PrimerPair, type PrimerReport, type Range, type SeqDocument } from '@/core';
 
-import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
-import { PRIMER_BLAST_SENDS, primerBlastUrl } from '../primerBlast';
+import { PRIMER_BLAST_SENDS } from '../primerBlast';
+import { CheckSpecificity } from './CheckSpecificity';
 import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { useRemembered } from '../state/panelMemory';
 import { savePrimers } from '../state/primerCollection';
@@ -139,7 +139,6 @@ function PairDetail({ doc, design, row, onSaid }: DetailProps) {
   const checks = useMemo(() => pairChecks(pair, doc), [pair, doc]);
   const product = productRange(pair, doc.length);
   const two = (a: number, b: number): string => `${a} · ${b}`;
-  const blast = primerBlastUrl({ forward: pair.forward.sequence, reverse: pair.reverse.sequence });
   return (
     <aside className="detail" aria-label={`Pair ${rank}`}>
       <div className="detail__head">
@@ -226,18 +225,16 @@ function PairDetail({ doc, design, row, onSaid }: DetailProps) {
           Copy
         </button>
         <span className="actions__gap" />
-        <a
-          className="button button--small"
-          href={blast}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-tip={PRIMER_BLAST_SENDS}
-          onClick={() => {
-            analytics.track('primers', 'primer-blast');
+        <CheckSpecificity
+          pair={{
+            forward: pair.forward.sequence,
+            reverse: pair.reverse.sequence,
+            productLength: pair.productLength,
           }}
-        >
-          Check specificity…
-        </a>
+          doc={doc}
+          sites={[pair.forwardSite, pair.reverseSite]}
+          tip={PRIMER_BLAST_SENDS}
+        />
         <SpecCell />
       </div>
     </aside>

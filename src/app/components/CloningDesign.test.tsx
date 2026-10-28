@@ -353,7 +353,7 @@ describe('the Design page’s cloning mode (#303)', () => {
       });
       fireEvent.keyDown(gene, { key: 'ArrowDown' });
       fireEvent.keyDown(gene, { key: 'Enter' });
-      fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }));
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();

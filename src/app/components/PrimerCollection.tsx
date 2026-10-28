@@ -25,7 +25,7 @@ import { type OverlaySpan } from '@/view/overlay';
 import { analysisClient } from '@/workers/analysisClient';
 
 import { analytics } from '../analytics';
-import { PRIMER_BLAST_SENDS, primerBlastUrl } from '../primerBlast';
+import { PRIMER_BLAST_SENDS, primerBlastSource, primerBlastUrl } from '../primerBlast';
 import { type PcrSlot, openPcr, pcrChoice, sendToPcr } from '../primerToPcr';
 import { downloadText } from '../saveFile';
 import { editorStore } from '../state/editorStore';
@@ -47,6 +47,12 @@ import {
 } from './collectionSort';
 import { SortTh } from './SortTh';
 import { toggleSort } from './tableKeys';
+
+/** A saved primer's strand on the document is unknown, so no template: Primer-BLAST would refuse one the wrong way round. */
+function organismOnly(meta: SeqDocument['metadata']): ReturnType<typeof primerBlastSource> {
+  const { template: _template, ...rest } = primerBlastSource(meta);
+  return rest;
+}
 
 /**
  * My primers (#64, item 56; a table since item 107): the collection kept
@@ -626,6 +632,7 @@ export function PrimerCollection({ doc }: { readonly doc: SeqDocument }) {
                 href={primerBlastUrl({
                   forward: pair[0]?.sequence ?? '',
                   reverse: pair[1]?.sequence ?? '',
+                  ...organismOnly(doc.metadata),
                 })}
                 target="_blank"
                 rel="noopener noreferrer"

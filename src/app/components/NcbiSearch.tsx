@@ -86,6 +86,8 @@ export interface NcbiSearchProps {
   className?: string;
   /** Id of the host's heading, when it has one. */
   titleId?: string;
+  /** The submit button's text: "Open" for a tab, "Add" where the record becomes an insert. */
+  submitLabel?: string;
 }
 
 /**
@@ -102,6 +104,7 @@ export function NcbiSearch({
   initialMode,
   className,
   titleId,
+  submitLabel = 'Open',
 }: NcbiSearchProps) {
   const [mode, setMode] = useState<NcbiMode>(initialMode ?? lastMode);
   const [input, setInput] = useState(lastInput);
@@ -673,7 +676,7 @@ export function NcbiSearch({
           Cancel
         </button>
         <button type="submit" className="button button--primary" disabled={busy}>
-          Open
+          {submitLabel}
         </button>
       </div>
     </form>

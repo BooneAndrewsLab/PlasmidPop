@@ -356,6 +356,7 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
             >
               <NcbiSearch
                 initialMode="gene"
+                submitLabel="Add"
                 onFetched={(fetched) => {
                   const vectorId = documentId;
                   const ids = openFetched(fetched);
