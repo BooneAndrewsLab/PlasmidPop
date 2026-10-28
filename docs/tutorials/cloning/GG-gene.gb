@@ -1,0 +1,25 @@
+LOCUS       GG-gene                 702 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  GG-gene, synthetic example open reading frame with no cloning
+            sites at its ends (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             1..702
+                     /label="synthGene"
+                     /undefined="synthetic example ORF, ATG to stop"
+ORIGIN
+        1 atgagcatgt atcaattgcg gttcctccag tcataccaag tagtcgccgg catgctcact
+       61 gcacaagtag gtccgtgctt ctacacttcc cataggccgc accttgagtg tagcttactt
+      121 ttatatattg gcaaaatacc taggcgagac aggcatagat cgcccgcatg gtgcattacg
+      181 agtctatact acagagtcat caggccgttg aaatgtggag aatgcttgac tttctatagt
+      241 cggtcccccg tcagcgtatt cccaccagat gtatccatca ccctcgagcg aacttccaag
+      301 tttgcagtac acacctactc cgtagggaat gaccttacct cccaggctca cattccattc
+      361 cgccgggtag cactcaagga gtatcccggg aacgatcagc gccccggaca aaatgcggaa
+      421 tcttcgggtt ggcaaattgc tgcacatttt tgcgtagcta gtcagtggcc gaccaacaga
+      481 cgagattccg ttctatggcg gatagccaag ttgtacgggg agcggggaat tagagatgga
+      541 tcacatatag tgttcctgca aagtcacaca ctagtcctag gcgccagctc attaagacta
+      601 gctaatataa ggaagcacaa actggaaaac cgattggcag agtccccgat tactgggagt
+      661 gtacggagat acccgctgag ccataagaga tattacccgt aa
+//

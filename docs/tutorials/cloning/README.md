@@ -12,6 +12,18 @@ once with a real gene, human insulin (`INS`), that you fetch from NCBI. A gene
 off NCBI has no cloning sites at its ends, so those exercises start by
 designing primers that add them.
 
+**Where to start**
+
+- **New to Golden Gate:** [golden-gate.md](golden-gate.md). One gene into one
+  expression vector, about eight steps, done with a synthetic ORF and again
+  with a gene from NCBI. Two optional tutorials follow it, which point back
+  into this page.
+- **Ligation** (restriction enzymes, ligase, one fragment into a vector): the
+  [Ligation](#ligation) section below.
+- **Several Golden Gate parts in one tube**, the overhang-order exercise, and
+  what the warnings look like: [Golden Gate: four parts](#golden-gate-four-parts-in-one-tube)
+  and [Seeing the warnings](#seeing-the-warnings) below.
+
 ## Files
 
 | File                                      | What it is                                                                                                                                                                                                                                                                                |
@@ -20,6 +32,8 @@ designing primers that add them.
 | `Insert-EcoRI-BamHI.gb`                   | Linear 819 bp: EcoRI site, the 783 bp ORF `synthORF1` (ATG to stop), BamHI site, with a few bases of padding. No other EcoRI, BamHI or PstI site.                                                                                                                                         |
 | `Insert-PstI-BamHI.gb`                    | The same ORF with a PstI site where the EcoRI site was: the negative control.                                                                                                                                                                                                             |
 | `Insert-EcoRI-EcoRI.gb`                   | The same ORF with an EcoRI site at both ends, for single-enzyme cloning and dephosphorylation.                                                                                                                                                                                            |
+| `pGG-Expression.gb`                       | Circular 2,857 bp Golden Gate expression vector for [golden-gate.md](golden-gate.md): `KanR` (stand-in), `ori`, `synthetic promoter`, a `lacZ-dropout` between two BsaI sites, `synthetic terminator`. The slot asks for the overhangs `AATG` ... `GCTT`, the MoClo plant CDS pair.       |
+| `GG-gene.gb`                              | Linear 702 bp `synthGene`, a plain ORF (ATG to stop) with no BsaI site and no Golden Gate ends, for [golden-gate.md](golden-gate.md): the app designs its primers.                                                                                                                        |
 | `pGG-Destination.gb`                      | Circular 2,647 bp Golden Gate destination vector: `KanR` (stand-in), `ori`, and a `lacZ-dropout` between two BsaI sites.                                                                                                                                                                  |
 | `GG-prom.gb`                              | Part 1, 106 bp, `synthetic promoter`, BsaI overhangs `GGAG` ... `AATG`.                                                                                                                                                                                                                   |
 | `GG-cds.gb`                               | Part 2, 623 bp, `synthCDS`, a coding part without a stop, `AATG` ... `TTCG`.                                                                                                                                                                                                              |
@@ -29,7 +43,7 @@ designing primers that add them.
 | `GG-broken-duplicate-overhang.gb`         | Part 3 whose right overhang is `AATG`, already taken by the promoter/CDS junction.                                                                                                                                                                                                        |
 | `GG-warn-tag.gb`, `GG-warn-terminator.gb` | A replacement pair for parts 3 and 4 that joins on `AATC`, one base from `AATG`: assembles, with a warning.                                                                                                                                                                               |
 
-Not in this folder: the INS record. It is third party data, so you fetch it
+Not in this folder: the INS record (`NM_000207`). It is third party data, so you fetch it
 yourself (below); nothing here contains it.
 
 ## Opening the files
@@ -215,7 +229,11 @@ or BamHI site in the CDS (checked), which is why EcoRI + BamHI will work.
    3. Tick **MluI**. **Fragments from ticked enzymes** reads
       `2,414, 565 bp`, two bands on the gel lane.
 
-## Golden Gate
+## Golden Gate: four parts in one tube
+
+This is the longer exercise, with four parts, a destination and a scrambled
+tab order. If you have not run a Golden Gate in PlasmidPop before, do
+[golden-gate.md](golden-gate.md) first (one vector, one gene).
 
 Background: [Golden Gate](../../guide/12-cloning.md#golden-gate).
 
@@ -291,7 +309,7 @@ Keep the vector, parts 1 and 2 open; close the original part 3 and part 4.
   **Assemble** still works, but in the tube the ligase can pair `AATG` with
   `AATC` and make other products. A designer swaps one of the overhangs.
 
-### Golden Gate with a gene from NCBI: human insulin (INS)
+### Four parts with a gene from NCBI: human insulin (INS)
 
 The gene replaces `GG-cds` (`AATG` ... `TTCG`), with no stop codon of its own so
 that the tag follows in frame. The insulin CDS is 110 codons plus a stop, so the
