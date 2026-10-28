@@ -109,6 +109,7 @@ describe('static tutorial pages (#312)', () => {
     const table = byPath.get('tutorials/sample-files/index.html') ?? '';
     for (const s of samples) expect(table, s.name).toContain(`href="../files/${s.name}" download`);
     for (const id of [
+      'digest-pcr',
       'ligation',
       'golden-gate',
       'golden-gate-parts',
@@ -138,11 +139,14 @@ describe('static tutorial pages (#312)', () => {
 
   it('chain the tutorials with previous, index and next links', () => {
     const second = byPath.get('tutorials/ligation/index.html') ?? '';
-    expect(second).toContain('href="../before-you-start/"');
+    expect(second).toContain('href="../digest-pcr/"');
     expect(second).toContain('href="../golden-gate/"');
     expect(second).toContain('href="../"');
     const first = byPath.get('tutorials/before-you-start/index.html') ?? '';
     expect(first).toContain('<span></span>');
+    expect(first).toContain('href="../digest-pcr/"');
+    const basics = byPath.get('tutorials/digest-pcr/index.html') ?? '';
+    expect(basics).toContain('href="../before-you-start/"');
   });
 
   it('ship synthetic files only, never an NCBI record', () => {

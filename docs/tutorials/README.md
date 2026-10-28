@@ -9,10 +9,14 @@ They are also published as plain web pages, readable without JavaScript, at
 `/tutorials/` on the PlasmidPop site.
 
 New to the Bench or to the sample files? Start with
-[Before you start](before-you-start.md) (five minutes).
+[Before you start](before-you-start.md) (five minutes), and
+[Digest and PCR basics](digest-pcr.md) if the Cloning tab's Digest and PCR are new.
 
 ## Pick a method
 
+- [Digest and PCR basics](#digest-and-pcr-basics): the two operations every
+  other tutorial builds on: cut a plasmid and read the fragments, copy a gene
+  with a primer pair that adds restriction sites.
 - [Ligation](#ligation): cut with restriction enzymes and join the pieces.
 - [Golden Gate](#golden-gate): one reaction, enzyme sites that cut themselves
   out, overhangs that decide the order.
@@ -28,7 +32,18 @@ New to the Bench or to the sample files? Start with
 - [Site-directed mutagenesis](#site-directed-mutagenesis): change one plasmid on
   purpose: one amino acid, a tag, a deletion, a silent site.
 
-More methods are planned and will appear here as their own entries.
+### Digest and PCR basics
+
+Start here if you have not used the Cloning tab. Nothing is joined: you cut and
+copy, and put the pieces on the shelf for the methods below.
+
+- **[Digest and PCR basics: cut a plasmid, copy a gene](digest-pcr.md)**: tick
+  enzymes and read the fragment table and the gel, see sticky and blunt ends
+  and blunt one, shelve a fragment; then amplify a gene with a primer pair, add
+  EcoRI and BamHI sites with 5′ tails, shelve and cut the product, and read what
+  the panel says when the primers cannot work. Beginner, about 30 minutes.
+  Files: [pLig-Vector.gb](files/pLig-Vector.gb),
+  [SDM-Template.gb](files/SDM-Template.gb).
 
 ### Ligation
 

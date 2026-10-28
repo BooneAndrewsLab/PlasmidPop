@@ -5,7 +5,8 @@ Four short exercises on the [Bench](../guide/12-cloning.md#the-bench): the
 directional case that works, the mismatch that cannot, the single-enzyme case
 that needs dephosphorylation, and a real gene from NCBI. About 30 minutes. Read
 [Before you start](before-you-start.md) first if the Bench or the sample files
-are new to you. Every number below is checked by
+are new to you, and [Digest and PCR basics](digest-pcr.md), the basics this
+tutorial builds on, if cutting a plasmid or the shelf is new. Every number below is checked by
 `src/core/cloning/tutorialFiles.test.ts`, which runs these same files through
 the functions the Bench uses.
 

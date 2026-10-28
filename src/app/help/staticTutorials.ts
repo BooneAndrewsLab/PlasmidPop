@@ -28,6 +28,7 @@ import { guideLinkTarget, parseMarkdown, plainText } from './markdown';
  */
 export const TUTORIAL_ORDER: readonly string[] = [
   'before-you-start',
+  'digest-pcr',
   'ligation',
   'golden-gate',
   'golden-gate-parts',

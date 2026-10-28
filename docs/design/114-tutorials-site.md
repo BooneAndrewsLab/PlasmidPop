@@ -15,6 +15,8 @@ Issue #313 adds the other methods as pages of the same shape.
 - `before-you-start.md`, linked from every tutorial: opening the files, what the
   Bench is, enzyme ticks, scratch documents, the NCBI box, and what to do when a
   number does not match;
+- `digest-pcr.md`, the Cloning tab's Digest and PCR (item #313's last page),
+  which the others build on;
 - `ligation.md`, `golden-gate.md`, `golden-gate-parts.md` (Golden Gate
   Tutorials 2 and 3: four parts, and the warnings);
 - `sample-files.md`, the table of every file, each a plain download;

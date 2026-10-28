@@ -1,7 +1,9 @@
 # Before you start
 
 What every tutorial assumes. Nothing to install: PlasmidPop runs in the browser,
-and the files stay on your device.
+and the files stay on your device. If digesting a plasmid or amplifying a gene
+with primers is new to you, do [Digest and PCR basics](digest-pcr.md) next: it
+is the basics the other tutorials build on.
 
 ## Opening the sample files
 
