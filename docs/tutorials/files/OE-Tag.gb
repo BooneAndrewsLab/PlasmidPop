@@ -1,0 +1,18 @@
+LOCUS       OE-Tag               169 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  OE-Tag, template for the overlap PCR tutorial: synthTag, a short
+            linker and His tag ending in a stop codon, between flanking sequence
+            (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             41..109
+                     /label="synthTag"
+                     /codon_start=1
+                     /note="synthetic example tag, ATG, linker, His6, stop"
+ORIGIN
+        1 tagtccgtgt cgtcgtcggg gaggtggcga aaattgtttc atgggcagcg gcagcggcag
+       61 ccatcatcat catcatcatg gcagcgcccg ggcgaggacg aggtcttaat ggcgggccac
+      121 tcccctgaac gtcgaccatg ttactttcac acccataggc cgactatta
+//

@@ -1,0 +1,18 @@
+LOCUS       OE-bad-Tag           170 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  OE-bad-Tag, OE-Tag with one extra base in front of the start codon:
+            the CDS starts on that base and reads from its second one (synthetic
+            example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             41..110
+                     /label="synthTag"
+                     /codon_start=2
+                     /note="synthetic example tag, one extra base before the ATG"
+ORIGIN
+        1 tagtccgtgt cgtcgtcggg gaggtggcga aaattgtttc gatgggcagc ggcagcggca
+       61 gccatcatca tcatcatcat ggcagcgccc gggcgaggac gaggtcttaa tggcgggcca
+      121 ctcccctgaa cgtcgaccat gttactttca cacccatagg ccgactatta
+//

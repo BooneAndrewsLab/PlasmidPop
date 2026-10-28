@@ -34,6 +34,7 @@ export const TUTORIAL_ORDER: readonly string[] = [
   'modular',
   'gibson',
   'in-fusion',
+  'overlap-pcr',
   'sample-files',
 ];
 

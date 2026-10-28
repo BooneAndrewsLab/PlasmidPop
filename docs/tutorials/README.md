@@ -20,9 +20,11 @@ New to the Bench or to the sample files? Start with
   positions (MoClo).
 - [Gibson, In-Fusion and NEBuilder](#gibson-in-fusion-and-nebuilder): no enzyme
   site at all, pieces that end in each other.
+- [Overlap-extension PCR](#overlap-extension-pcr): fuse fragments from different
+  templates with primer tails and nothing else.
 
-More methods (overlap-extension PCR, Gateway and others) are planned and will
-appear here as their own entries.
+More methods (Gateway and others) are planned and will appear here as their own
+entries.
 
 ### Ligation
 
@@ -88,6 +90,20 @@ Gibson tutorial before the In-Fusion one.
   and read the circle they make, with a synthetic ORF and again with insulin
   from NCBI. Intermediate, about 20 minutes. Files:
   [pIF-Vector.gb](files/pIF-Vector.gb), [IF-gene.gb](files/IF-gene.gb).
+
+### Overlap-extension PCR
+
+No enzyme at all: each fragment is amplified with a tail that is its
+neighbour's end, and the products anneal at the overlap and extend into one
+molecule. Do Gibson first if you want the comparison.
+
+- **[Overlap-extension PCR: a promoter, a gene and a tag](overlap-pcr.md)**:
+  fuse three fragments from three templates, read the six primers the panel
+  designs, the overlaps and the 769 bp fusion, try the overlap Tm, then one tag
+  that is a base off the frame and the warning the panel gives. Intermediate,
+  about 20 minutes. Files: [OE-Promoter.gb](files/OE-Promoter.gb),
+  [OE-Gene.gb](files/OE-Gene.gb), [OE-Tag.gb](files/OE-Tag.gb),
+  [OE-bad-Tag.gb](files/OE-bad-Tag.gb).
 
 ## Reference
 

@@ -1,0 +1,19 @@
+LOCUS       OE-Promoter          260 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  OE-Promoter, template for the overlap PCR tutorial: a 160 bp
+            promoter between flanking sequence (synthetic example, invented
+            sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        41..200
+                     /label="synthetic promoter"
+                     /note="synthetic example promoter"
+ORIGIN
+        1 cgaccgatgg caagtcactc tcggcgccgg atctgtaatt ctaccaaagc cacggctaga
+       61 aaggctagta tgactgggac agtatccgtg cgaactccag catggatatt taaagactaa
+      121 ttgatcggga ttggctcata gtcacattgg caactctatg ttctcggcgg actaactaac
+      181 ctgacttatc ttagaagcct cgtgacggag tgcatctcta gctaatttcc tcgacaggct
+      241 accagtgtat gtggtcgtcc
+//

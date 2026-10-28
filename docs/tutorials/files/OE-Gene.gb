@@ -1,0 +1,26 @@
+LOCUS       OE-Gene              660 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  OE-Gene, template for the overlap PCR tutorial: the 180 codon ORF
+            synthGene, ATG and no stop, between flanking sequence (synthetic
+            example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     CDS             51..590
+                     /label="synthGene"
+                     /codon_start=1
+                     /note="synthetic example ORF, ATG, no stop"
+ORIGIN
+        1 ggatgtgtct tatcgcgtga ttcgcaattt ggccggcgga tcactcacgg atgatagatc
+       61 atttggaggg ctgtggcaaa tgcgcaaaga agtgggtttt cgcgatctac atcaggtcca
+      121 gaacctatcc agatcgatgt ggtcttaccc ggtttttatt gggtgtctta gtcctaaccg
+      181 gtcctgagat tcatgaagtc aaatgccgac tctttttact ctgtcggcgg attcttgtaa
+      241 agacgcacct agctacgttt gctgttggca cacgcaggtg tgctctacgt caggcgttac
+      301 aacgatttag acgtcgaaaa ccaggtgtgc tatgcaagat tgccttacgt tacgatgaat
+      361 catgcaaaat tatttatcga agagcatggg ctcggcgatg ggtaggggtc acctcgcgca
+      421 ggccgggaga cgaaaggttt cagcgaaaat cccgcctttc ctttcgtagg aataggcagg
+      481 tcctcagcct gtcagacaag ctcaaaggat atccttatac gccagttaac accattggaa
+      541 ggccaacacc ccccagatgg acatctaagt ttccatcgtc cttttgcagc tttcggcggt
+      601 tcaccaccgc atggtcgcgc tgtgtttgca ctttgatcgt gaacgcgacc tgtggacgtt
+//
