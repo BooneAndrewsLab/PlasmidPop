@@ -98,12 +98,19 @@ function overhangRange(site: CutSite, length: number, topology: Topology): Range
   return { start: wrapped, end: wrapped + Math.abs(d) };
 }
 
-function endAt(doc: SeqDocument, site: CutSite): FragmentEnd {
+/**
+ * The end one cut leaves, as both pieces on either side of it describe it
+ * (`FragmentEnd`): the kind of overhang and its bases read along the top
+ * strand. The cloning-ends designer (item 108) asks for it without cutting.
+ */
+export function cutEnd(doc: SeqDocument, site: CutSite): FragmentEnd {
   const d = cutOffset(site, doc.length, doc.topology);
   const kind: OverhangKind = d === 0 ? 'blunt' : d > 0 ? "5'" : "3'";
   const overhang = d === 0 ? '' : doc.subsequence(overhangRange(site, doc.length, doc.topology));
   return { kind, overhang, enzyme: site.enzyme };
 }
+
+const endAt = cutEnd;
 
 /**
  * Keeps one cut per top-strand position (an enzyme that cuts on both

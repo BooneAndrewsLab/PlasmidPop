@@ -347,6 +347,115 @@ export function designPrimers(
   return out;
 }
 
+/**
+ * The two primers that amplify exactly `insert`, nothing before or after
+ * it: the forward one starts at its first base and the reverse one ends at
+ * its last. What a tailed primer for cloning wants (item 108): the tail
+ * carries the site, and the annealing part must begin where the insert
+ * does, so only its length is free.
+ */
+export interface AnchoredPair {
+  readonly forward: PrimerReport;
+  readonly reverse: PrimerReport;
+  readonly tmDifference: number;
+  readonly crossDimer: number;
+  /** As `PrimerPair.penalty`; meaningless when `withinCriteria` is false. */
+  readonly penalty: number;
+  /**
+   * Whether both primers meet every criterion and pair within the Tm
+   * difference. When nothing does, the pair is the least bad one, and each
+   * report's `warnings` say what it breaks.
+   */
+  readonly withinCriteria: boolean;
+}
+
+/**
+ * Designs `AnchoredPair` for `insert` (5′→3′, the strand the forward primer
+ * copies), judging each length of either end by the designer's own
+ * criteria and penalty and each pairing by its rules, so a tailed cloning
+ * primer is held to what a plain one is. Neither annealing part grows past
+ * half the insert, since two that overlap are not an amplicon (`pcr`).
+ * Null when the insert is too short for two primers of `minLength`.
+ * Specificity (`requireSpecific`) is not judged here: the template the
+ * primers run on is the caller's to check.
+ */
+export function designAnchoredPrimers(
+  insert: string,
+  options: Partial<PrimerCriteria> = {},
+): AnchoredPair | null {
+  const c: PrimerCriteria = { ...DEFAULT_PRIMER_CRITERIA, ...options };
+  const text = insert.toUpperCase();
+  const longest = Math.min(c.maxLength, Math.floor(text.length / 2));
+  if (longest < c.minLength) return null;
+  interface Anchored {
+    readonly report: PrimerReport;
+    readonly penalty: number | null;
+  }
+  const ends = (read: (n: number) => string): Anchored[] => {
+    const out: Anchored[] = [];
+    for (let n = c.minLength; n <= longest; n++) {
+      const report = analyzePrimer(read(n), c);
+      out.push({ report, penalty: candidatePenalty(report, c) });
+    }
+    return out;
+  };
+  const forwards = ends((n) => text.slice(0, n));
+  const reverses = ends((n) => reverseComplement(text.slice(text.length - n)));
+  const dimer = (f: PrimerReport, r: PrimerReport): number =>
+    Math.max(
+      threePrimeComplementarity(f.sequence, r.sequence),
+      threePrimeComplementarity(r.sequence, f.sequence),
+    );
+
+  let best: AnchoredPair | null = null;
+  for (const f of forwards) {
+    for (const r of reverses) {
+      if (f.penalty === null || r.penalty === null) continue;
+      const tmDifference = Math.abs(f.report.tm - r.report.tm);
+      if (tmDifference > c.maxTmDifference) continue;
+      const crossDimer = dimer(f.report, r.report);
+      if (crossDimer > c.maxThreePrime) continue;
+      const penalty = f.penalty + r.penalty + tmDifference + crossDimer * 0.3;
+      if (best === null || penalty < best.penalty) {
+        best = {
+          forward: f.report,
+          reverse: r.report,
+          tmDifference,
+          crossDimer,
+          penalty,
+          withinCriteria: true,
+        };
+      }
+    }
+  }
+  if (best !== null) return best;
+
+  // Nothing passes: the least bad end on each side, judged by how many
+  // criteria it breaks and then by its distance from the middle of the Tm
+  // range, which is what a user relaxing the settings would look at first.
+  const idealTm = (c.minTm + c.maxTm) / 2;
+  const tmDistance = (r: PrimerReport): number =>
+    Number.isNaN(r.tm) ? Infinity : Math.abs(r.tm - idealTm);
+  const leastBad = (list: readonly Anchored[]): PrimerReport | undefined =>
+    [...list].sort(
+      (a, b) =>
+        a.report.warnings.length - b.report.warnings.length ||
+        tmDistance(a.report) - tmDistance(b.report),
+    )[0]?.report;
+  const forward = leastBad(forwards);
+  const reverse = leastBad(reverses);
+  // Both lists hold at least the `minLength` candidate.
+  if (forward === undefined || reverse === undefined) return null;
+  return {
+    forward,
+    reverse,
+    tmDifference: Math.abs(forward.tm - reverse.tm),
+    crossDimer: dimer(forward, reverse),
+    penalty: Infinity,
+    withinCriteria: false,
+  };
+}
+
 export interface BindingSite {
   /** Bases the primer anneals to, forward coordinates (unrolled). */
   readonly range: Range;
