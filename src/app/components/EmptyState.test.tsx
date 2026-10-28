@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { type DocumentSummary, SCRATCH_LIFETIME_DAYS } from '@/storage';
 
+import { onOpenGuide } from '../help/openGuide';
 import { persistence } from '../state/persistence';
 import { EmptyState } from './EmptyState';
 
@@ -24,6 +25,24 @@ describe('EmptyState licence line', () => {
     expect(licence.closest('p')?.textContent).toContain(
       'Free and open source under the MIT licence',
     );
+  });
+});
+
+describe('EmptyState start buttons', () => {
+  it('puts the cloning tutorials and the user guide on the landing page', async () => {
+    const listed = Promise.resolve([]);
+    vi.spyOn(persistence, 'listStored').mockReturnValue(listed);
+    vi.spyOn(persistence, 'pruneScratch').mockResolvedValue(0);
+    const opened: string[] = [];
+    const off = onOpenGuide((id) => opened.push(id));
+    render(<EmptyState />);
+    await act(() => listed);
+    const tutorials = screen.getByRole('link', { name: 'Cloning tutorials' });
+    expect(tutorials.getAttribute('href')).toBe(`${import.meta.env.BASE_URL}tutorials/`);
+    expect(tutorials.getAttribute('target')).toBe('_blank');
+    fireEvent.click(screen.getByRole('button', { name: 'User guide' }));
+    off();
+    expect(opened).toEqual(['01-getting-started']);
   });
 });
 

@@ -2021,6 +2021,34 @@ button {
   font-weight: 600;
 }
 
+/* The way in for someone who has not found the ? button: two large buttons
+   under the lead, the tutorials first. */
+.empty__start {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.empty__start-text {
+  margin: 0 0 10px;
+  color: var(--ink-2);
+}
+
+.empty__start-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.empty__start-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .empty__hint {
   margin: 0;
   color: var(--ink-2);

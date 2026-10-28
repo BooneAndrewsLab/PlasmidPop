@@ -9,6 +9,7 @@ import {
 } from '@/storage';
 
 import { EXAMPLES } from '../examples';
+import { openGuide } from '../help/openGuide';
 import { openExample, openPastedText } from '../openFile';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
@@ -149,6 +150,29 @@ export function EmptyState() {
         <p className="empty__lead">
           Drop a GenBank, FASTA or SnapGene file anywhere on this page to open it.
         </p>
+        <div className="empty__start">
+          <p className="empty__start-text">New here? Learn by doing, or read how it all works.</p>
+          <div className="empty__start-buttons">
+            {/* The standalone tutorials (#312): a page of the site, not of the app. */}
+            <a
+              className="button button--primary empty__start-button"
+              href={`${import.meta.env.BASE_URL}tutorials/`}
+              target="_blank"
+              rel="noopener"
+            >
+              Cloning tutorials
+            </a>
+            <button
+              type="button"
+              className="button empty__start-button"
+              onClick={() => {
+                openGuide('01-getting-started');
+              }}
+            >
+              User guide
+            </button>
+          </div>
+        </div>
         <p className="empty__hint">
           Or paste a sequence, GenBank or FASTA record here (Ctrl+V), or{' '}
           <button

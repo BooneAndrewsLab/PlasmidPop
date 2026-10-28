@@ -13,6 +13,10 @@ the [source](https://github.com/BooneAndrewsLab/PlasmidPop) is on GitHub.
 
 ## Cloning tutorials
 
+The start page, the first thing you see with nothing open, has a large
+**Cloning tutorials** button and a **User guide** button, so you do not have to
+find the **?** button first.
+
 New to cloning in PlasmidPop? The [cloning
 tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/) are
 step-by-step exercises with sample files you can download: ligation, Golden
