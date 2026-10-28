@@ -13,6 +13,11 @@ interface Props {
   readonly doc: SeqDocument;
   /** The ribbon's height in CSS pixels. */
   readonly height: number;
+  /**
+   * A document that is not the one in front (a simulated product, #303):
+   * drawn with its features alone, no selection and no preview.
+   */
+  readonly fixed?: boolean;
 }
 
 /**
@@ -21,11 +26,12 @@ interface Props {
  * draws what the views draw — the features, the selection, the primers
  * preview — on a canvas at the strip's width, and follows them live.
  */
-export function MapStrip({ doc, height }: Props) {
-  const { selection, preview } = useEditorState();
+export function MapStrip({ doc, height, fixed = false }: Props) {
+  const live = useEditorState();
+  const selection = fixed ? null : live.selection;
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
-  const overlay = preview?.items ?? NO_OVERLAY;
+  const overlay = fixed ? NO_OVERLAY : (live.preview?.items ?? NO_OVERLAY);
   const lanes = useMemo(() => {
     const features = drawableFeatures(doc.features.all());
     return {

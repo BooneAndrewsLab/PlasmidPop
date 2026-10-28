@@ -18,13 +18,21 @@ export const WORKSPACE_PAGES: readonly WorkspacePage[] = ['design', 'results', '
  */
 export type WorkspaceLayout = 'split' | 'full' | 'phone';
 
+/**
+ * The Design page's mode (#303, item 108): primers on the document in
+ * front, or an insert from another tab cloned into it with restriction
+ * ends. Results shows whichever table the last design made.
+ */
+export type DesignMode = 'plain' | 'cloning';
+
 /** What the slim Primers panel and the workspace remember between openings. */
 export interface WorkspaceMemory {
   readonly page: WorkspacePage;
+  readonly mode: DesignMode;
 }
 
 const SLOT = 'primers.workspace';
-const INITIAL: WorkspaceMemory = { page: 'design' };
+const INITIAL: WorkspaceMemory = { page: 'design', mode: 'plain' };
 
 export function recallWorkspace(documentId: string | null): WorkspaceMemory {
   return recallPanel(SLOT, documentId, INITIAL);

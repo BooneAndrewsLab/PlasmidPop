@@ -235,9 +235,20 @@ export const EVENTS = {
    * primers came from (`design`, `check`, `feature`, `paste`, `file`,
    * `form`, `document`), never how many or which; `collection-export` by
    * format (`csv`, `fasta`); `find-mine` is Find my primers turned on;
-   * `to-pcr` a primer put in a PCR slot.
+   * `to-pcr` a primer put in a PCR slot; `design-cloning` a restriction-
+   * cloning design and `simulate-cloning` its product opened (#303), never
+   * the enzymes, the insert or the vector.
    */
-  primers: ['design', 'collection-add', 'collection-export', 'find-mine', 'to-pcr', 'primer-blast'],
+  primers: [
+    'design',
+    'collection-add',
+    'collection-export',
+    'find-mine',
+    'to-pcr',
+    'primer-blast',
+    'design-cloning',
+    'simulate-cloning',
+  ],
   /**
    * `run` names the mode (`global`/`local`); `quality` is a change to the
    * confident threshold or the trimming cutoff (`confident`/`trim`, once

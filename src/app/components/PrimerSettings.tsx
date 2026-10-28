@@ -98,8 +98,17 @@ function pct(x: number): number {
   return Math.round(x * 1000) / 10;
 }
 
+/** The cloning mode's two settings of its own (#303), shown above the shared ones. */
+export interface CloningSettingsProps {
+  readonly padding: number;
+  readonly avoidJunctionSites: boolean;
+  readonly onChange: (next: { padding: number; avoidJunctionSites: boolean }) => void;
+}
+
 interface Props {
   readonly criteria: PrimerCriteria;
+  /** In the Design page's cloning mode: padding and the junction rule, cloning-only. */
+  readonly cloning?: CloningSettingsProps;
 }
 
 /**
@@ -107,7 +116,7 @@ interface Props {
  * looked for. They are shared with **Check a primer**, which warns about
  * exactly what the designer would have refused.
  */
-export function PrimerSettings({ criteria: c }: Props) {
+export function PrimerSettings({ criteria: c, cloning }: Props) {
   const set = (next: PrimerCriteria): void => {
     editorStore.setPrimerCriteria(next);
   };
@@ -144,7 +153,9 @@ export function PrimerSettings({ criteria: c }: Props) {
       }}
     />
   );
-  const isDefault = samePrimerCriteria(c, DEFAULT_PRIMER_CRITERIA);
+  const cloningDefault =
+    cloning === undefined || (cloning.padding === 6 && cloning.avoidJunctionSites);
+  const isDefault = samePrimerCriteria(c, DEFAULT_PRIMER_CRITERIA) && cloningDefault;
   const { documentId } = useEditorState();
   // Whether it was left open, kept with the workspace's other state (item 107).
   const [open, setOpen] = useRemembered('primers.settingsOpen', documentId, false);
@@ -177,9 +188,55 @@ export function PrimerSettings({ criteria: c }: Props) {
           Settings
           {!isDefault && <span className="panel__details-flag">changed</span>}
         </span>
-        {!isDefault && <span className="panel__details-note">{describePrimerCriteria(c)}</span>}
+        {!isDefault && (
+          <span className="panel__details-note">
+            {cloning !== undefined && !cloningDefault
+              ? `padding ${cloning.padding.toString()} nt${cloning.avoidJunctionSites ? '' : ', junction sites allowed'}; `
+              : ''}
+            {describePrimerCriteria(c)}
+          </span>
+        )}
       </summary>
       <div className="panel__form panel__details-body">
+        {cloning !== undefined && (
+          <>
+            <span className="panel__form-heading">Cloning ends</span>
+            <span className="panel__form-label">Padding</span>
+            <span className="panel__form-range">
+              <NumberBox
+                value={cloning.padding}
+                label="Padding bases 5′ of each site"
+                onCommit={(v) => {
+                  cloning.onChange({
+                    padding: Math.max(0, Math.min(20, Math.round(v))),
+                    avoidJunctionSites: cloning.avoidJunctionSites,
+                  });
+                }}
+              />{' '}
+              nt 5′ of each site, raised for an enzyme that cuts poorly near an end
+            </span>
+            <span className="panel__form-label">Junction</span>
+            <span className="panel__form-range">
+              <label className="panel__form-check">
+                <input
+                  type="checkbox"
+                  checked={cloning.avoidJunctionSites}
+                  onChange={(e) => {
+                    cloning.onChange({
+                      padding: cloning.padding,
+                      avoidJunctionSites: e.target.checked,
+                    });
+                  }}
+                />
+                pick padding that makes no new site where padding, site and insert meet
+              </label>
+            </span>
+            <span className="panel__form-hint">
+              Padding and the junction rule are cloning-only; the rest below is shared with the
+              plain mode and judges the annealing part of each primer.
+            </span>
+          </>
+        )}
         <span className="panel__form-label">Length</span>
         <span className="panel__form-range">
           {field('minLength', 'Shortest primer')}–{field('maxLength', 'Longest primer')} nt
@@ -273,6 +330,7 @@ export function PrimerSettings({ criteria: c }: Props) {
         disabled={isDefault}
         onClick={() => {
           set(DEFAULT_PRIMER_CRITERIA);
+          cloning?.onChange({ padding: 6, avoidJunctionSites: true });
         }}
       >
         Reset to defaults
