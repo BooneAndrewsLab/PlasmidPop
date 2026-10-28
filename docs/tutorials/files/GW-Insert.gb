@@ -1,0 +1,28 @@
+LOCUS       GW-Insert             422 bp    DNA     linear SYN 28-OCT-2026
+DEFINITION  GW-Insert, attB-flanked PCR product for the Gateway tutorial:
+            synthGene between attB1 and attB2 (synthetic example, invented
+            sequence and invented att sites)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     protein_bind    1..25
+                     /label="attB1"
+                     /note="invented synthetic att site: arms around a 15 base core"
+     CDS             32..391
+                     /label="synthGene"
+                     /note="synthetic ORF, ATG to stop, 120 codons"
+     protein_bind    398..422
+                     /label="attB2"
+                     /note="invented synthetic att site: arms around a 15 base core"
+ORIGIN
+        1 acttctcaga tcctgagaat ctaagattgc gatgagttat ggacgtggat atgtaaatag
+       61 cggattcgtt gttgcggcac cagtcacctg ccatcgattc gaaatatatc cacaggtcgt
+      121 acgatggagc ggtttcccat ggggtgaact aatcccgtct acgaagcgga cccctggaag
+      181 catacctcta caccgcgtca tcaatcgtat tcgtctacac caaatacata aaaatggtct
+      241 gattttagat aattcctacg aggaacaacc tagacgtaaa gggcagagag tgcggcttga
+      301 ggcggaagat cttataagcc cctatatcac gggcgcgtct aagcattttg gccaattggc
+      361 attggtgaag ttgatgatag attttcagta agaatggact tcaggcttac gatctgacta
+      421 ag
+//

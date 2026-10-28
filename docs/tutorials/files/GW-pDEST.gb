@@ -1,0 +1,64 @@
+LOCUS       GW-pDEST             1837 bp    DNA     circular SYN 28-OCT-2026
+DEFINITION  GW-pDEST, destination vector for the Gateway tutorial: promoter,
+            attR1, ccdB and CmR stand-ins, attR2, terminator, AmpR and ori
+            (synthetic example, invented sequence and invented att sites)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     promoter        41..110
+                     /label="synthetic promoter"
+     protein_bind    123..162
+                     /label="attR1"
+                     /note="invented synthetic att site: arms around a 15 base core"
+     CDS             173..472
+                     /label="ccdB"
+                     /note="synthetic stand-in for the ccdB gene"
+     CDS             481..780
+                     /label="CmR"
+                     /note="synthetic stand-in for a resistance gene"
+     protein_bind    791..830
+                     /label="attR2"
+                     /note="invented synthetic att site: arms around a 15 base core"
+     terminator      843..897
+                     /label="synthetic terminator"
+     CDS             complement(948..1367)
+                     /label="AmpR"
+                     /note="synthetic stand-in for a resistance gene"
+     rep_origin      1408..1807
+                     /label="ori"
+                     /note="synthetic stand-in for an origin"
+ORIGIN
+        1 tatcccatag gtagcatttt cgctggggaa aggtagacaa tatccgacta aaccgcaatg
+       61 actgtaaagc agcgtaagac gacaacgtga gaatccggcc tattctagtg atccttcgtt
+      121 ctacttctca gatcctgaga attgacctag tcagtacgtc aagagggatc gcatgtataa
+      181 agacattagg gctagtgaga aaagggaacg gatccggcct acgctcttga tccgtgtcct
+      241 aacaagcagg aaccaatcgt ttacaggtgt caccctctat ggcttttatc ggcgatcaca
+      301 tgtaacacct atagacagcc cctatcaaaa gttttcgatt agcggagtcg tacaaaagca
+      361 ccgcgctgta ctacgacggc gaactacgcc taccctcccc gctaatcact cacgctatct
+      421 actagaggag ggtagacctc gtgccgtcat gccctatcaa aagggtacgt aacttctatt
+      481 atgcgggtgg cgccagcccg tgctacctgc agaggaacga tcggagtacg tccaccgaca
+      541 aaagcacggt cgcatgatgg tcagttaaca ctcaatgccg ggatgcacgg cctacgctat
+      601 aaagtcagtt tctctccacg agtatcgtgc gaaatggtct ggtcgcccca aggacctatc
+      661 ataagatcaa acattgcttg ttcggccttc tccttgcgag ctggctggca ccattttctg
+      721 aaacgcaagg gcacggcttt gtcacattta agtatactat ctggggcttt aacagattaa
+      781 gtctcgccca gtcaactgca tcgattgaca aggcttacga tctgactaag agaaatgaga
+      841 gcgggagtag tggagtgggg atagtatatc cgcagagaca acgcgctttt tgctccagta
+      901 accgccaaac attgcgagac cgttcactcc tacctgcaaa gaccttttta cgtcgcgaac
+      961 agcagccacc cgcaattgaa cacgagaacc ttagcttctt ccgttatcga tctacagcct
+     1021 gcacgaggta ggaaaacatt ggccaattgg cgtggatcac tccctacgaa aatgggtatt
+     1081 atgttactaa tgtctcttct gtgatgatta gctttcgggt cgaggcgaac cccaccaacc
+     1141 tggactgtct gacggtcaga ccaggtagat agacgcgggg cgaccggaca aactagaacg
+     1201 atcataacca aggcacgtcc cgaaccttta atgccagtat ttaagtccat agtacataga
+     1261 cggcccatgc aaagaccaag cacaccattt ccgtgcgagg gaacggccca acagtgggtg
+     1321 agtggctctc gtgttttctt gggttcgctc tgcatgcaaa tcgccatatt gaaactaatg
+     1381 caggcccaac ccccaaccct ctccagtggt agaccttcga tccatgacaa attccataag
+     1441 ggtgatcgtt caacccctag gttgcttgga gaatcagcgg cacctacagc accagcaatt
+     1501 cgaagaggtc ttagaacggc ggtcttagag agttacaccg catttacgtt tgtaccacgg
+     1561 agaacgagtt tgtcactatg agtcttccca ttaagctagt cgggatacca taggctgtaa
+     1621 caggcaaacg cccgagtgcc gtttcatgtc gtggtcagat ccatttggag tacgggtatc
+     1681 tctcgggata gcgttatatc cgaatatact ttgaaccaac aagccccggt acgcaaggcc
+     1741 gggagagagt gacgcagatg gcaggacaac aatgtgtaaa taggtggcaa aagtgtgttc
+     1801 cccttcacat acaattctcg caataattcg gcattaa
+//

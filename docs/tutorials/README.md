@@ -22,9 +22,10 @@ New to the Bench or to the sample files? Start with
   site at all, pieces that end in each other.
 - [Overlap-extension PCR](#overlap-extension-pcr): fuse fragments from different
   templates with primer tails and nothing else.
+- [Gateway](#gateway): recombination at att sites, no cutting and no joining:
+  an insert into a donor vector, then into a destination vector.
 
-More methods (Gateway and others) are planned and will appear here as their own
-entries.
+More methods are planned and will appear here as their own entries.
 
 ### Ligation
 
@@ -104,6 +105,19 @@ molecule. Do Gibson first if you want the comparison.
   about 20 minutes. Files: [OE-Promoter.gb](files/OE-Promoter.gb),
   [OE-Gene.gb](files/OE-Gene.gb), [OE-Tag.gb](files/OE-Tag.gb),
   [OE-bad-Tag.gb](files/OE-bad-Tag.gb).
+
+### Gateway
+
+Recombination instead of cutting and joining: partner att sites swap the DNA
+between them, so every reaction makes a clone and a byproduct.
+
+- **[Gateway: a BP reaction, then an LR reaction](gateway.md)**: an attB-flanked
+  insert into a donor vector for the 1,412 bp entry clone, the entry clone into
+  a destination vector for the 1,551 bp expression clone and its byproduct, the
+  marker swap, then att sites that do not pair and what the panel says. The att
+  sites are invented. Intermediate, about 25 minutes. Files:
+  [GW-Insert.gb](files/GW-Insert.gb), [GW-pDONR.gb](files/GW-pDONR.gb),
+  [GW-pDEST.gb](files/GW-pDEST.gb), [GW-bad-pDEST.gb](files/GW-bad-pDEST.gb).
 
 ## Reference
 
