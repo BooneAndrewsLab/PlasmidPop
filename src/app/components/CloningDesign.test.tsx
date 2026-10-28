@@ -1,4 +1,7 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
@@ -83,6 +86,10 @@ function fixture(text: string): SeqDocument {
 
 const pUC19 = fixture(L09137);
 const U49845 = fixture(U49845_GB);
+/** The tutorial's Golden Gate destination: a lacZ dropout between two BsaI sites. */
+const pGG = fixture(
+  readFileSync(join(__dirname, '../../../docs/tutorials/cloning/pGG-Destination.gb'), 'utf8'),
+);
 /** pUC19's polylinker, as the engine tests select it. */
 const MCS = { start: 395, end: 452 };
 
@@ -90,17 +97,20 @@ const MCS = { start: 395, end: 452 };
  * Opens the insert's tab first and the vector in front, with the workspace
  * on Design in cloning mode and the MCS selected.
  */
-function setup(layout: 'split' | 'phone' = 'split'): { vectorId: string; insertId: string } {
+function setup(
+  layout: 'split' | 'phone' = 'split',
+  vector: SeqDocument = pUC19,
+): { vectorId: string; insertId: string } {
   let insertId = '';
   let vectorId = '';
   act(() => {
     insertId = editorStore.openDocument(U49845);
-    vectorId = editorStore.openDocument(pUC19);
+    vectorId = editorStore.openDocument(vector);
     rememberWorkspacePage(vectorId, 'design');
     editorStore.setPrimerWorkspace(true);
     editorStore.setSelection(MCS);
   });
-  render(<PrimerWorkspace doc={pUC19} layout={layout} />);
+  render(<PrimerWorkspace doc={vector} layout={layout} />);
   act(() => {
     fireEvent.click(screen.getByRole('button', { name: 'Clone an insert into this plasmid' }));
   });
@@ -379,5 +389,126 @@ describe('the Design page’s cloning mode (#303)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/** Switches step 3 to the Golden Gate option, the insert already chosen. */
+function toGoldenGate(): void {
+  act(() => {
+    fireEvent.click(screen.getByRole('button', { name: 'Golden Gate part' }));
+  });
+}
+
+function overhangField(which: 'Left' | 'Right'): HTMLInputElement {
+  return screen.getByRole('textbox', { name: new RegExp(`^${which} overhang`) });
+}
+
+describe('the Golden Gate option of cloning mode (#310)', () => {
+  it('asks for the overhangs, then designs a part with the geometry the table gives', async () => {
+    setup();
+    await chooseAxl2();
+    toGoldenGate();
+    expect(screen.getByRole('heading', { name: 'Golden Gate ends' })).toBeInTheDocument();
+    // The region step gives way to the destination, and no pair table is left.
+    expect(screen.queryByRole('grid', { name: 'Enzyme pairs' })).toBeNull();
+    expect(screen.getByText(/is the destination/)).toBeInTheDocument();
+    expect(designButton()).toBeDisabled();
+    expect(screen.getByText('Choose the two overhangs — 4 bases each')).toBeInTheDocument();
+    // BsaI's own row of the enzyme table, said in words.
+    expect(screen.getByText(/GGTCTC/)).toBeInTheDocument();
+    expect(screen.getByText(/then 1 base and a 4-base 5′ overhang/)).toBeInTheDocument();
+
+    const picker = screen.getByRole('combobox', { name: 'Overhangs' });
+    const cds = within(picker)
+      .getAllByRole('option')
+      .find((o) => o.textContent.includes('MoClo plant common syntax · CDS'));
+    act(() => {
+      fireEvent.change(picker, {
+        target: { value: (must(cds, 'the MoClo CDS position') as HTMLOptionElement).value },
+      });
+    });
+    expect(overhangField('Left')).toHaveValue('AATG');
+    expect(overhangField('Right')).toHaveValue('GCTT');
+    expect(designButton()).toBeEnabled();
+    expect(designButton()).toHaveTextContent('for Axl2p as a BsaI part, AATG…GCTT');
+    // The live note: AATG spells the start codon the CDS has of its own.
+    const note = screen.getByRole('status');
+    expect(note).toHaveTextContent("its last 3 bases are the part's own start codon");
+    expect(note).toHaveTextContent('stop codon left out');
+
+    act(() => {
+      fireEvent.click(designButton());
+    });
+    const detail = within(screen.getByRole('complementary', { name: 'Golden Gate part' }));
+    expect(detail.getByText('BsaI part AATG…GCTT')).toBeInTheDocument();
+    const oligo = must(detail.getAllByRole('row')[0]?.querySelector('.oligo'), 'the forward oligo');
+    // padding + GGTCTC + one spacer base + AATG, then the annealing part.
+    expect(oligo.querySelector('.oligo__site')?.textContent).toBe('ggtctc');
+    expect(oligo.querySelector('.oligo__ann')?.textContent).toMatch(/^[ACGT]{15,}$/);
+    expect(must(oligo.querySelectorAll('.oligo__pad')[1], 'the spacer').textContent).toMatch(
+      /^[acgt]aatg$/,
+    );
+
+    act(() => {
+      fireEvent.click(detail.getByRole('button', { name: 'Save both' }));
+    });
+    expect(saved.mock.calls[0]?.[0].map((d) => d.name)).toEqual(['Axl2p-F-BsaI', 'Axl2p-R-BsaI']);
+  });
+
+  it('says what the tube has not got when the vector is no destination', async () => {
+    setup();
+    await chooseAxl2();
+    toGoldenGate();
+    const picker = screen.getByRole('combobox', { name: 'Overhangs' });
+    // pUC19 has no BsaI site, so there is nothing to read off it.
+    expect(
+      within(picker)
+        .getAllByRole('option')
+        .find((o) => o.textContent.includes('opens nothing')),
+    ).toBeDisabled();
+    act(() => {
+      fireEvent.change(overhangField('Left'), { target: { value: 'aatg' } });
+      fireEvent.change(overhangField('Right'), { target: { value: 'gctt' } });
+    });
+    act(() => {
+      fireEvent.click(designButton());
+    });
+    const detail = within(screen.getByRole('complementary', { name: 'Golden Gate part' }));
+    expect(detail.getByRole('button', { name: 'Simulate' })).toBeDisabled();
+    expect(detail.getAllByText(/BsaI opens nothing in/).length).toBeGreaterThan(0);
+  });
+
+  it('reads the overhangs off the destination and assembles the circle', async () => {
+    setup('split', pGG);
+    await chooseAxl2();
+    toGoldenGate();
+    const picker = screen.getByRole('combobox', { name: 'Overhangs' });
+    const fromDest = must(
+      within(picker)
+        .getAllByRole('option')
+        .find((o) => o.textContent.startsWith(`From ${pGG.name}`)),
+      'the destination pair',
+    ) as HTMLOptionElement;
+    expect(fromDest).toHaveTextContent('GGAG…CGCT');
+    act(() => {
+      fireEvent.change(picker, { target: { value: fromDest.value } });
+    });
+    expect(overhangField('Left')).toHaveValue('GGAG');
+    act(() => {
+      fireEvent.click(designButton());
+    });
+    const detail = within(screen.getByRole('complementary', { name: 'Golden Gate part' }));
+    expect(detail.getByText('Simulated product')).toBeInTheDocument();
+    const before = editorStore.getState().documents.length;
+    act(() => {
+      fireEvent.click(detail.getByRole('button', { name: 'Simulate' }));
+    });
+    const state = editorStore.getState();
+    expect(state.documents.length).toBe(before + 1);
+    const product = state.documents.find((d) => d.documentId === state.documentId)?.history.present;
+    expect(product?.name).toBe(`${pGG.name}-Axl2p`);
+    expect(product?.topology).toBe('circular');
+    expect(state.scratch).toBe(true);
+    expect(state.sidebarTab).toBe('features');
   });
 });

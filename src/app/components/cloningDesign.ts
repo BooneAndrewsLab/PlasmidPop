@@ -8,8 +8,11 @@ import {
   type CloningResults,
   type CloningScans,
   type CutSite,
+  type DestinationOverhangs,
   type EnzymePairSuggestions,
   type Feature,
+  type GoldenGatePartContext,
+  type GoldenGatePartDesign,
   type Range,
   type SeqDocument,
   type Strand,
@@ -17,14 +20,19 @@ import {
   type VectorRegion,
   cutLabel,
   designCloningResults,
+  designGoldenGatePart,
+  destinationOverhangs,
   featureExtent,
   formatSpan,
   getEnzyme,
+  goldenGateFragments,
+  goldenGatePartEnzymes,
   insertSequence,
   isEmptyRange,
   resolveVectorRegion,
   scanForCloning,
   suggestEnzymePairs,
+  typeIISLayout,
 } from '@/core';
 import { type OverlaySpan } from '@/view/overlay';
 import { analysisClient } from '@/workers/analysisClient';
@@ -280,17 +288,58 @@ export function pairLabel(pick: EnzymePick): string {
   return `${pick.forward} · ${pick.reverse}`;
 }
 
+/**
+ * The Golden Gate option of cloning mode (#310, item 113): one Type IIS
+ * enzyme and two overhangs instead of a pair of restriction sites. Kept per
+ * vector document, like the rest of the page's memory.
+ */
+export interface GoldenGateMemory {
+  /** Whether the ends are Golden Gate's rather than two restriction sites'. */
+  readonly on: boolean;
+  readonly enzyme: string;
+  /** A second Type IIS enzyme in the same tube; empty for none. */
+  readonly second: string;
+  readonly left: string;
+  readonly right: string;
+  /** Where the overhangs came from: a standard's position, `destination`, or `custom`. */
+  readonly choice: string;
+  readonly includeStart: boolean;
+  readonly includeStop: boolean;
+}
+
+export const GOLDEN_GATE_MEMORY: GoldenGateMemory = {
+  on: false,
+  enzyme: 'BsaI',
+  second: '',
+  left: '',
+  right: '',
+  choice: '',
+  includeStart: true,
+  includeStop: false,
+};
+
+/** The overhang picker's own value for two bases typed by hand. */
+export const CUSTOM_OVERHANGS = 'custom';
+/** The overhang picker's own value for the pair read off the destination. */
+export const FROM_DESTINATION = 'destination';
+
 /** What a design was made of, so Results can tell when any of it changed. */
 interface DesignKey {
   readonly template: string;
   readonly insert: string;
   readonly region: string;
   readonly flipped: boolean;
-  readonly picked: EnzymePick;
+  /** Null for a Golden Gate design, which picks no pair of enzymes. */
+  readonly picked: EnzymePick | null;
+  /** The Golden Gate settings the design was made with; null in the other mode. */
+  readonly goldenGate: GoldenGateMemory | null;
 }
 
 export interface CloningDesignRecord {
-  readonly results: CloningResults;
+  /** The restriction-ends design, or null when the record is a Golden Gate part. */
+  readonly results: CloningResults | null;
+  /** The Golden Gate part, or null when the record is a pair of restriction ends. */
+  readonly goldenGate: GoldenGatePartDesign | null;
   readonly key: DesignKey;
   /** "ACT1 CDS (ACT1_cDNA.gb) into pUC19 396–454", the Results heading's line. */
   readonly designedFor: string;
@@ -326,9 +375,17 @@ export interface CloningDesignState {
   readonly setPicked: (pick: EnzymePick | null) => void;
   readonly settings: CloningSettingsMemory;
   readonly setSettings: (next: CloningSettingsMemory) => void;
+  /** The Golden Gate option: its settings, what the destination offers, and the tube. */
+  readonly goldenGate: GoldenGateMemory;
+  readonly setGoldenGate: (next: GoldenGateMemory) => void;
+  /** The two overhangs the vector in front asks of a part; null when the enzyme opens nothing in it. */
+  readonly destinationOverhangs: DestinationOverhangs | null;
+  /** The other open tabs the enzyme releases a part from, which Simulate puts in the tube. */
+  readonly tube: readonly SeqDocument[];
   /** Why Design is off, or null when it can run. */
   readonly blocked: string | null;
-  readonly design: () => CloningResults | null;
+  /** Makes the design the mode asks for and keeps it; false when it could not run. */
+  readonly design: () => boolean;
   /** The last design on this vector, dropped once the vector's bases change. */
   readonly record: CloningDesignRecord | null;
   /** Whether the region, the insert, Flip and the pick are still what the design was made of. */
@@ -363,8 +420,64 @@ function samePick(a: EnzymePick | null, b: EnzymePick | null): boolean {
 }
 
 /** The rows of a design: the picked pair first, then the alternatives. */
-export function designRows(results: CloningResults): readonly CloningDesign[] {
-  return [results.picked, ...results.alternatives];
+export function designRows(results: CloningResults | null): readonly CloningDesign[] {
+  return results === null ? [] : [results.picked, ...results.alternatives];
+}
+
+function sameGoldenGate(a: GoldenGateMemory | null, b: GoldenGateMemory | null): boolean {
+  if (a === null || b === null) return a === b;
+  return (
+    a.enzyme === b.enzyme &&
+    a.second === b.second &&
+    a.left === b.left &&
+    a.right === b.right &&
+    a.includeStart === b.includeStart &&
+    a.includeStop === b.includeStop
+  );
+}
+
+/** Whether the two overhangs are the bases the enzyme's cut asks for. */
+export function overhangsReady(memory: GoldenGateMemory): boolean {
+  const enzyme = getEnzyme(memory.enzyme);
+  const layout = enzyme === undefined ? null : typeIISLayout(enzyme);
+  if (layout === null) return false;
+  const ok = (o: string): boolean =>
+    o.length === layout.overhang && !/[^ACGT]/.test(o.toUpperCase());
+  return ok(memory.left.trim()) && ok(memory.right.trim());
+}
+
+/** How many bases each overhang must have, for the fields' labels; 0 without an enzyme. */
+export function overhangWidth(enzymeName: string): number {
+  const enzyme = getEnzyme(enzymeName);
+  const layout = enzyme === undefined ? null : typeIISLayout(enzyme);
+  return layout?.overhang ?? 0;
+}
+
+/**
+ * What else goes in the tube when Simulate runs the assembly: every other
+ * open DNA tab the enzyme releases a part from, which leaves out the
+ * insert's own record (a gene has no Type IIS site) and the vector itself.
+ */
+export function tubeDocuments(
+  documents: readonly DocumentState[],
+  vectorId: string | null,
+  insertId: string | null,
+  enzymeName: string,
+  secondName: string,
+): SeqDocument[] {
+  const enzyme = getEnzyme(enzymeName);
+  if (enzyme === undefined) return [];
+  const second = secondName === '' ? undefined : getEnzyme(secondName);
+  const options = second === undefined ? { enzyme } : { enzyme, secondEnzyme: second };
+  return cloningDocuments(documents)
+    .filter((d) => d.documentId !== vectorId && d.documentId !== insertId)
+    .map((d) => d.history.present)
+    .filter((doc) => goldenGateFragments(doc, options).length > 0);
+}
+
+/** The enzymes the Golden Gate picker offers, the usual four first. */
+export function goldenGateEnzymeNames(): string[] {
+  return goldenGatePartEnzymes().map((e) => e.name);
 }
 
 /** What a scan was of, so one is not run twice for the same bases. */
@@ -407,6 +520,11 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     'primers.cloning.selected',
     documentId,
     null,
+  );
+  const [goldenGate, setGoldenGate] = useRemembered<GoldenGateMemory>(
+    'primers.cloning.goldenGate',
+    documentId,
+    GOLDEN_GATE_MEMORY,
   );
   /** A scan the worker could not do, so the page does not wait on it forever. */
   const [failed, setFailed] = useState<string | null>(null);
@@ -457,8 +575,41 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     setPickedMemory(pick);
   };
 
-  const blocked =
-    insertRef !== null && insert === null
+  // The Golden Gate option (#310): the destination is the vector in front,
+  // and the tube is whatever else the enzyme opens a part out of.
+  const destination = useMemo(() => {
+    const enzyme = getEnzyme(goldenGate.enzyme);
+    if (!goldenGate.on || enzyme === undefined) return null;
+    const second = goldenGate.second === '' ? undefined : getEnzyme(goldenGate.second);
+    return destinationOverhangs(doc, enzyme, second);
+  }, [doc, goldenGate.on, goldenGate.enzyme, goldenGate.second]);
+  const tube = useMemo(
+    () =>
+      goldenGate.on
+        ? tubeDocuments(
+            documents,
+            documentId,
+            insertRef?.documentId ?? null,
+            goldenGate.enzyme,
+            goldenGate.second,
+          )
+        : [],
+    [documents, documentId, insertRef, goldenGate.on, goldenGate.enzyme, goldenGate.second],
+  );
+  const ggContext = useMemo<GoldenGatePartContext | null>(
+    () => (insert === null ? null : { insert, destination: doc, otherParts: tube }),
+    [insert, doc, tube],
+  );
+
+  const blocked = goldenGate.on
+    ? insertRef !== null && insert === null
+      ? "The insert's tab was closed — choose an insert again"
+      : insert === null
+        ? 'Choose an insert'
+        : !overhangsReady(goldenGate)
+          ? `Choose the two overhangs — ${overhangWidth(goldenGate.enzyme).toString()} bases each`
+          : null
+    : insertRef !== null && insert === null
       ? "The insert's tab was closed — choose an insert again"
       : insert === null
         ? 'Choose an insert'
@@ -470,42 +621,58 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
             ? 'Choose two enzymes'
             : null;
 
-  const key = useMemo<DesignKey | null>(
-    () =>
-      picked === null
-        ? null
-        : { template, insert: insertKey, region: keyOfRegion(region), flipped, picked },
-    [template, insertKey, region, flipped, picked],
-  );
+  const key = useMemo<DesignKey | null>(() => {
+    const common = { template, insert: insertKey, region: keyOfRegion(region), flipped };
+    if (goldenGate.on) return { ...common, picked: null, goldenGate };
+    return picked === null ? null : { ...common, picked, goldenGate: null };
+  }, [template, insertKey, region, flipped, picked, goldenGate]);
 
-  const design = (): CloningResults | null => {
-    if (
-      context === null ||
-      picked === null ||
-      key === null ||
-      insert === null ||
-      insertRef === null
-    ) {
-      return null;
+  const design = (): boolean => {
+    if (key === null || insert === null || insertRef === null) return false;
+    const designedFor = `${insert.name} (${insert.document.name}) into ${doc.name}${goldenGate.on ? '' : ` ${formatSpan(region.range, doc.length)}`}`;
+    const keep = (results: CloningResults | null, part: GoldenGatePartDesign | null): boolean => {
+      setRecord({
+        results,
+        goldenGate: part,
+        key,
+        designedFor,
+        insert,
+        insertDocumentId: insertRef.documentId,
+        vector: doc,
+        vectorName: doc.name,
+        padding: settings.padding,
+      });
+      setSelected(0);
+      return true;
+    };
+    if (goldenGate.on) {
+      if (ggContext === null || !overhangsReady(goldenGate)) return false;
+      analytics.track('primers', 'design-golden-gate');
+      return keep(
+        null,
+        designGoldenGatePart(ggContext, {
+          enzyme: goldenGate.enzyme,
+          secondEnzyme: goldenGate.second,
+          left: goldenGate.left.trim().toUpperCase(),
+          right: goldenGate.right.trim().toUpperCase(),
+          includeStart: goldenGate.includeStart,
+          includeStop: goldenGate.includeStop,
+          padding: settings.padding,
+          avoidJunctionSites: settings.avoidJunctionSites,
+          criteria: primerCriteria,
+        }),
+      );
     }
+    if (context === null || picked === null) return false;
     analytics.track('primers', 'design-cloning');
-    const results = designCloningResults(context, picked, {
-      padding: settings.padding,
-      avoidJunctionSites: settings.avoidJunctionSites,
-      criteria: primerCriteria,
-    });
-    setRecord({
-      results,
-      key,
-      designedFor: `${insert.name} (${insert.document.name}) into ${doc.name} ${formatSpan(region.range, doc.length)}`,
-      insert,
-      insertDocumentId: insertRef.documentId,
-      vector: doc,
-      vectorName: doc.name,
-      padding: settings.padding,
-    });
-    setSelected(0);
-    return results;
+    return keep(
+      designCloningResults(context, picked, {
+        padding: settings.padding,
+        avoidJunctionSites: settings.avoidJunctionSites,
+        criteria: primerCriteria,
+      }),
+      null,
+    );
   };
 
   // A design on other bases means nothing: dropped, as the plain one is.
@@ -522,16 +689,21 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     (liveRecord.key.insert === insertKey &&
       liveRecord.key.region === keyOfRegion(region) &&
       liveRecord.key.flipped === flipped &&
-      samePick(liveRecord.key.picked, picked));
+      samePick(liveRecord.key.picked, picked) &&
+      sameGoldenGate(liveRecord.key.goldenGate, goldenGate.on ? goldenGate : null));
 
   const preview = useMemo<OverlaySpan[]>(() => {
+    // A Golden Gate part has no sites of its own on the vector: the
+    // destination's own are what the reaction uses, and the Enzymes tab
+    // draws those.
+    if (goldenGate.on) return [];
     const report = suggestions?.picked ?? null;
     return cloningPreview(
       doc,
       region,
       report === null ? [] : [report.forward.site, report.reverse.site],
     );
-  }, [doc, region, suggestions]);
+  }, [doc, region, suggestions, goldenGate.on]);
 
   return {
     vector: doc,
@@ -549,6 +721,10 @@ export function useCloningDesign(doc: SeqDocument): CloningDesignState {
     setPicked,
     settings,
     setSettings,
+    goldenGate,
+    setGoldenGate,
+    destinationOverhangs: destination,
+    tube,
     blocked,
     design,
     record: liveRecord,

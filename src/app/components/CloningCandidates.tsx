@@ -28,6 +28,8 @@ import {
   siteWithCut,
 } from './cloningDesign';
 import { CheckSpecificity } from './CheckSpecificity';
+import { GoldenGatePartResult } from './GoldenGatePartResult';
+import { Oligo } from './Oligo';
 import { MapStrip } from './MapStrip';
 import { pct } from './primerDesign';
 import { nextRowIndex } from './tableKeys';
@@ -73,27 +75,17 @@ function tagText(w: CloningWarning): string {
       return 'dimer';
     case 'vectorPieces':
       return 'vector in pieces';
+    case 'internalSite':
+      return `${w.enzyme ?? ''} site in part`.trim();
+    case 'overhang':
+      return 'overhangs';
+    case 'frame':
+      return 'frame';
+    case 'ambiguous':
+      return 'ambiguity code';
+    case 'destination':
+      return 'destination';
   }
-}
-
-/**
- * One oligo 5′→3′ with its parts told apart: padding in the muted ink and
- * lower case, the site in the cut colour, underlined and lower case, the
- * annealing part in upper case. The case carries the distinction on its
- * own; the site has a label for a reader that sees no colour.
- */
-export function Oligo({ primer }: { readonly primer: CloningPrimer }) {
-  const { padding, site, spacer, annealing } = primer.segments;
-  return (
-    <span className="oligo panel__mono">
-      {padding !== '' && <span className="oligo__pad">{padding.toLowerCase()}</span>}
-      <span className="oligo__site" aria-label={`${primer.enzyme} site ${site.toLowerCase()}`}>
-        {site.toLowerCase()}
-      </span>
-      {spacer !== '' && <span className="oligo__pad">{spacer.toLowerCase()}</span>}
-      <span className="oligo__ann">{annealing.toUpperCase()}</span>
-    </span>
-  );
 }
 
 function WarningTags({ warnings }: { readonly warnings: readonly CloningWarning[] }) {
@@ -409,6 +401,24 @@ export function CloningCandidates({ cloning, layout }: Props) {
 
   if (record === null) {
     return <p className="panel__note">No design yet. Design cloning primers first.</p>;
+  }
+  // A Golden Gate part is one design, not a table of pairs (#310).
+  if (record.goldenGate !== null) {
+    return (
+      <div className="results results--clone">
+        <GoldenGatePartResult
+          record={record}
+          design={record.goldenGate}
+          layout={layout}
+          onSaid={setSaid}
+        />
+        {said !== null && (
+          <p className="panel__note panel__note--quiet" role="status">
+            {said}
+          </p>
+        )}
+      </div>
+    );
   }
   const stop = selected !== null && selected < rows.length ? selected : 0;
   const onRowsKeyDown = (e: KeyboardEvent<HTMLElement>): void => {

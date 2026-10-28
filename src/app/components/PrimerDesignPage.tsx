@@ -161,7 +161,7 @@ export function PrimerDesignPage({
         {modeButton(
           'cloning',
           'Clone an insert into this plasmid',
-          'Design primers for an insert from another tab, with two restriction sites on their tails',
+          'Design primers for an insert from another tab, with two restriction sites or a Golden Gate end on their tails',
         )}
       </div>
     </div>

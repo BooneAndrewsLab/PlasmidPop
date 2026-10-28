@@ -293,45 +293,62 @@ Keep the vector, parts 1 and 2 open; close the original part 3 and part 4.
 
 ### Golden Gate with a gene from NCBI: human insulin (INS)
 
-The app's primer workspace has no Golden Gate primer mode: its cloning mode designs
-restriction-site primers (and warns on a Type IIS enzyme rather than designing
-for it). So the primers are written by hand and entered in Cloning ▸ PCR, which
-takes any oligo with a tail. The layout of a Golden Gate primer is:
+The gene replaces `GG-cds` (`AATG` ... `TTCG`), with no stop codon of its own so
+that the tag follows in frame. The insulin CDS is 110 codons plus a stop, so the
+stop is left out, and the 330 bp that remain are a whole number of codons. The
+primer workspace designs the two oligos for that; nothing is typed by hand.
+
+The layout of a Golden Gate primer, which the workspace follows:
 
 `5′ - padding - BsaI site - 1 spacer base - 4-nt overhang - gene-specific 3′ end - 3′`
 
-Here the gene replaces `GG-cds` (`AATG` ... `TTCG`), with no stop codon of its own so
-that the tag follows in frame. The insulin CDS is 110 codons plus a stop, so the stop
-is left out, and the 330 bp that remain are a whole number of codons.
-
-```
-INS-F-BsaI  5′ TTGGTCTCAAATGGCCCTGTGGATGCGCCTCC 3′
-            TT | GGTCTC | A | AATG (the ATG is the gene's start) ... the gene from its first base
-INS-R-BsaI  5′ TTGGTCTCACGAAGTTGCAGTAGTTCTCCAGCTGG 3′
-            TT | GGTCTC | A | CGAA (reverse complement of TTCG) | gene's last 22 bases before the stop, reverse complemented
-```
-
-1. Fetch `NM_000207` as in the ligation section (**File ▸ Open from NCBI…**,
-   type `NM_000207`, **Open**), and leave its tab in front.
-2. Cloning tab, picker **PCR**. Paste the two oligos above. Template is the
-   record. The panel finds one product of **353 bp** (the 330 bp CDS plus both
-   tails). **Open** it: its two BsaI sites point inwards, with `AATG` at the left end
-   and `TTCG` at the right.
-3. Open `pGG-Destination.gb`, `GG-prom.gb`, `GG-tag.gb` and `GG-term.gb` too.
-   **Close or untick every other tab**: the INS record has no BsaI site and
-   would sit in the tube as a blunt piece, and the Ligation exercise files are
-   not wanted.
-4. Bench, **Golden Gate**, BsaI. The tube now has: the destination, the
-   promoter, the PCR product `NM_000207 PCR product` (in place of
-   `GG-cds`), the tag and the terminator. Order: destination, promoter, PCR
-   product, tag, terminator; no warnings.
-5. **Product: 2,848 bp**, circular, with `KanR`, `ori`, `synthetic promoter`,
-   `INS` and the insulin chain features, `synthTag`, `synthetic terminator`.
-   Translating from the INS start codon gives
+1. Open `pGG-Destination.gb`, `GG-prom.gb`, `GG-tag.gb` and `GG-term.gb`, and
+   close the Ligation exercise's files. Leave **pGG-Destination** in front: it
+   is the destination, and the workspace designs against the document in front.
+2. **Primers ▸ Design** (the primer workspace), mode **Clone an insert into
+   this plasmid**. Step 2, **Gene from NCBI…**, type `NM_000207`, **Add**. The
+   record opens as a tab of its own and its CDS becomes the insert — 333 bp,
+   named `insulin preproprotein` after the CDS's `/product`, as in the
+   ligation exercise above — while the workspace stays on the destination.
+3. Step 3, **Ends ▸ Golden Gate part**. **Enzyme: BsaI** (the default); the
+   note beside it reads `GGTCTC then 1 base and a 4-base 5′ overhang`, from the
+   enzyme table. Leave **and** at _no other_.
+4. **Overhangs**: type `AATG` on the left and `TTCG` on the right (the picker's
+   **From pGG-Destination: GGAG…CGCT** is the pair for a part filling the whole
+   dropout; here the CDS sits between the promoter and the tag, so it takes
+   their junctions instead). Leave **Include the start codon** ticked and
+   **Include the stop codon** unticked.
+5. The note under the fields: the part is **335 bp**, `AATG` (its last 3 bases
+   are the part's own start codon, so the primer anneals from the base after
+   it) … `TTCG`, stop codon left out, **330 coding bases** to the right
+   overhang — a whole number of codons, so what follows reads on in frame —
+   and a **PCR product of 361 bp**. **Design primers**.
+6. Results shows the one part: `BsaI part AATG…TTCG`, both oligos with their
+   padding, site, spacer and overhang told apart from the annealing part, and
+   one amber warning about the annealing parts (the gene's ends are GC-rich).
+   The tube line on the Design page names the destination, the promoter, the
+   tag and the terminator; the INS record has no BsaI site, so it is not in it.
+7. **Simulate**: the PCR runs on the INS tab and the Golden Gate on the five
+   parts, and the product opens as `pGG-Destination-insulin preproprotein`,
+   **2,848 bp**,
+   circular, with `KanR`, `ori`, `synthetic promoter`, `INS` and the insulin
+   chain features, `synthTag`, `synthetic terminator`, and **BsaI** ticked in
+   its Enzymes tab. Translating from the INS start codon gives
    `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCNFGGSGGHHHH*`: preproinsulin, then
-   the linker and His tag from the tag part, one frame, one stop.
-6. **Check by digest**, on the Bench before **Assemble**, against the destination (2,647 bp): first rows
-   `AseI: 2,313 + 535 bp | empty 2,647 bp` and `EcoNI: 2,220 + 628 bp | empty 2,647 bp`.
+   the linker and His tag from the tag part, one frame, one stop. (The
+   product and the primers are named after that CDS feature, so the tab is
+   `pGG-Destination-insulin preproprotein` and **Save both** keeps
+   `insulin_preproprotein-F-BsaI` and `-R-BsaI`.)
+8. **Check by digest**: put the same five documents on the Bench's **Golden
+   Gate** and read the check digest there before **Assemble**, against the
+   destination (2,647 bp): first rows `AseI: 2,313 + 535 bp | empty 2,647 bp`
+   and `EcoNI: 2,220 + 628 bp | empty 2,647 bp`.
+
+(The oligos themselves depend on the padding setting — 6 bases by default,
+which is what NEB advises for an enzyme its cleavage-near-the-end chart does
+not rate — and on the annealing lengths the designer picks, so they are not
+written out here. What does not depend on them is the part, 335 bp between
+`AATG` and `TTCG`, and the 2,848 bp product.)
 
 (These NCBI results were verified against a local copy of the record kept
 under the gitignored `fixtures/local/ncbi/NM_000207.gb`; the test skips cleanly when that file

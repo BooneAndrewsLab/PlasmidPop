@@ -237,7 +237,9 @@ export const EVENTS = {
    * format (`csv`, `fasta`); `find-mine` is Find my primers turned on;
    * `to-pcr` a primer put in a PCR slot; `design-cloning` a restriction-
    * cloning design and `simulate-cloning` its product opened (#303), never
-   * the enzymes, the insert or the vector.
+   * the enzymes, the insert or the vector; `design-golden-gate` a Golden
+   * Gate part designed in the same mode and `simulate-golden-gate` its
+   * assembly opened (#310), never the overhangs chosen.
    */
   primers: [
     'design',
@@ -248,6 +250,8 @@ export const EVENTS = {
     'primer-blast',
     'design-cloning',
     'simulate-cloning',
+    'design-golden-gate',
+    'simulate-golden-gate',
   ],
   /**
    * `run` names the mode (`global`/`local`); `quality` is a change to the

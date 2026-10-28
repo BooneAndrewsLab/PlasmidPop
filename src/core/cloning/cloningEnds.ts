@@ -627,7 +627,13 @@ export interface CloningWarning {
     | 'annealing'
     | 'notSpecific'
     | 'dimer'
-    | 'vectorPieces';
+    | 'vectorPieces'
+    // Golden Gate ends (#310, item 113), which share these primers:
+    | 'internalSite'
+    | 'overhang'
+    | 'frame'
+    | 'ambiguous'
+    | 'destination';
   /** `danger`: the clone will be wrong; `caution`: look before ordering. */
   readonly severity: WarningSeverity;
   readonly text: string;
@@ -669,7 +675,7 @@ export function cloningPrimerNames(
 }
 
 /** Where the site sits on a tail and how it cuts there, in tail coordinates from the site's start. */
-interface TailSite {
+export interface TailSite {
   readonly bases: string;
   readonly cutTop: number;
   readonly cutBottom: number;
@@ -740,7 +746,7 @@ function freeBases(rand: () => number, n: number): string {
   return out;
 }
 
-interface TailPlan {
+export interface TailPlan {
   readonly enzyme: Enzyme;
   readonly site: TailSite;
   /** The overhang the insert's end must carry, in the primer's own direction; empty for a cut inside the site. */
@@ -748,7 +754,7 @@ interface TailPlan {
   readonly padding: number;
 }
 
-interface Tail {
+export interface Tail {
   readonly segments: Omit<PrimerSegments, 'annealing'>;
   /** Whether the free bases make no site of the enzymes checked. */
   readonly clean: boolean;
@@ -760,7 +766,7 @@ interface Tail {
  * none of `check` has a site touching them (the intended site, at the
  * padding's end, is allowed); past `FREE_BASE_TRIES` the first draw stands.
  */
-function buildTail(
+export function buildTail(
   plan: TailPlan,
   annealing: string,
   check: readonly Enzyme[],
@@ -827,7 +833,7 @@ function issueWarning(issue: PairIssue): CloningWarning {
     compatibleEnds: ' Dephosphorylate the vector and screen the orientation.',
     tooClose: ' Digest with one enzyme, then the other.',
     typeIIS:
-      ' The site is placed 5′ of the cut with the vector’s overhang copied after it, so the product keeps no site at that junction; Golden Gate design is not supported, so check the simulated product.',
+      ' The site is placed 5′ of the cut with the vector’s overhang copied after it, so the product keeps no site at that junction; for a part with overhangs of your own, switch Ends to Golden Gate part.',
     cutsInsert: ' The digest will cut the insert too.',
     vectorCuts: ' The simulated product uses the cut inside the region.',
   };
@@ -839,7 +845,7 @@ function issueWarning(issue: PairIssue): CloningWarning {
   };
 }
 
-function emptyPrimer(name: string, enzyme: string): CloningPrimer {
+export function emptyPrimer(name: string, enzyme: string): CloningPrimer {
   return {
     name,
     sequence: '',

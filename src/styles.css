@@ -6971,6 +6971,35 @@ button {
   font-size: 13px;
 }
 
+/* The Golden Gate option of cloning mode (#310, item 113): the enzyme, the
+   two overhangs and the codon ticks, a row each, with a live note under. */
+.mode--ends {
+  margin-bottom: 8px;
+}
+
+.gg__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.gg__oh {
+  width: 7ch;
+  text-transform: uppercase;
+}
+
+.gg__note {
+  margin: 4px 0 6px;
+}
+
+.gg__warn {
+  display: block;
+  margin-top: 2px;
+}
+
 .override__body {
   display: contents;
 }

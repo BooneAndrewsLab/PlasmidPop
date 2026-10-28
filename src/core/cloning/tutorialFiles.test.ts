@@ -34,11 +34,11 @@ import { writeGenBank } from '@/io/genbank/writeGenBank';
 import {
   assemblyJunctions,
   designCloningEnds,
+  designGoldenGatePart,
   documentFromFragment,
   flipFragment,
   goldenGate,
   ligate,
-  pcr,
   resolveVectorRegion,
   cloningSeed,
   goldenGateSeed,
@@ -608,42 +608,62 @@ describe.skipIf(!existsSync(NCBI_FILE))('NCBI gene: INS, NM_000207', () => {
     ).toEqual([2414, 565]);
   });
 
-  it('Golden Gate: two BsaI primers, PCR 353 bp, then 2,848 bp with the synthetic promoter, tag and terminator', () => {
+  it('Golden Gate: the workspace designs the two BsaI primers, PCR 361 bp, then 2,848 bp with the synthetic promoter, tag and terminator', () => {
     const rec = record();
     const r = cdsRange(rec);
     const body = rec.sequence
       .toString()
       .toUpperCase()
       .slice(r.start, r.end - 3);
-    const F = `TTGGTCTCAA${body.slice(0, 22)}`;
-    const R = `TTGGTCTCACGAA${reverseComplement(body.slice(-22))}`;
-    expect(F).toBe('TTGGTCTCAAATGGCCCTGTGGATGCGCCTCC');
-    expect(R).toBe('TTGGTCTCACGAAGTTGCAGTAGTTCTCCAGCTGG');
-    const res = pcr(rec, [
-      { name: 'INS-F-BsaI', sequence: F },
-      { name: 'INS-R-BsaI', sequence: R },
-    ]);
-    expect(res.problem).toBeNull();
-    expect(res.products).toHaveLength(1);
-    const amplicon = def(res.products[0]?.document);
-    expect(amplicon.length).toBe(353);
-    expect(sites(amplicon, 'BsaI')).toBe(2);
     const dest = tut('pGG-Destination');
     const others = ['GG-term', 'GG-tag', 'GG-prom'].map(tut);
-    const run = goldenGate([amplicon, ...others, dest], { enzyme: enz('BsaI') });
-    expect(run.problem).toBeNull();
-    expect(run.assembly?.warnings).toEqual([]);
-    const got = run.assembly?.order.map((p) => p.document.name) ?? [];
-    const at = got.indexOf('pGG-Destination');
-    expect([...got.slice(at), ...got.slice(0, at)]).toEqual([
-      'pGG-Destination',
-      'GG-Part1-Promoter',
-      amplicon.name,
-      'GG-Part3-Tag',
-      'GG-Part4-Terminator',
-    ]);
-    const product = def(run.assembly?.product);
+    // The primer workspace's Golden Gate ends (#310), with the settings the
+    // tutorial names: BsaI, AATG at the left, TTCG at the right, no stop.
+    const design = designGoldenGatePart(
+      {
+        // The workspace names the insert after the CDS feature, which the
+        // record's /product gives (`fetchedInsertRef`).
+        insert: {
+          document: rec,
+          range: cdsRange(rec),
+          strand: 'forward',
+          name: 'insulin preproprotein',
+        },
+        destination: dest,
+        otherParts: others,
+      },
+      { enzyme: 'BsaI', left: 'AATG', right: 'TTCG' },
+    );
+    expect(design.problem).toBeNull();
+    expect(design.trimmed).toEqual({ start: false, stop: true });
+    // AATG spells the start codon, so the annealing part begins after it —
+    // the hand-typed oligos of earlier editions of the tutorial, with the
+    // 6-base padding NEB's chart advises in place of their TT.
+    expect(design.overlap).toEqual({ left: 3, right: 0 });
+    expect(design.forward.segments.site).toBe('GGTCTC');
+    expect(design.forward.segments.spacer.slice(1)).toBe('AATG');
+    expect(design.forward.segments.annealing).toBe(
+      body.slice(3, 3 + design.forward.segments.annealing.length),
+    );
+    expect(design.reverse.segments.spacer.slice(1)).toBe('CGAA');
+    expect(design.reverse.segments.annealing).toBe(
+      reverseComplement(body.slice(body.length - design.reverse.segments.annealing.length)),
+    );
+    expect(design.part).toBe(`AATG${body.slice(3)}TTCG`);
+    expect(design.part).toHaveLength(335);
+    expect(design.frame.inFrame).toBe(true);
+    expect(design.productLength).toBe(361);
+    const sim = design.simulate();
+    expect(sim.problem).toBeNull();
+    expect(sim.missing).toBeNull();
+    const amplicon = def(sim.amplicon);
+    expect(amplicon.length).toBe(361);
+    expect(sites(amplicon, 'BsaI')).toBe(2);
+    const product = def(sim.product);
     expect(product.length).toBe(2848);
+    expect(product.name).toBe('pGG-Destination-insulin preproprotein');
+    // Simulate opens it with BsaI ticked (#309), as the Bench's does.
+    expect(seeded(goldenGateSeed('BsaI'))).toEqual(['BsaI']);
     expect(names(product)).toEqual(
       expect.arrayContaining([
         'KanR',

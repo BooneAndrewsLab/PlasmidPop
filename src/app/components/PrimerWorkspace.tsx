@@ -168,7 +168,9 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
 
   const badge = (p: WorkspacePage): number | null => {
     if (p === 'results') {
-      if (cloningResults) return designRows(cloning.record.results).length;
+      if (cloningResults) {
+        return cloning.record.goldenGate === null ? designRows(cloning.record.results).length : 1;
+      }
       return design.pairs?.length ?? null;
     }
     if (p === 'mine') return collection.primers.length;
@@ -277,7 +279,9 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           {page === 'design' && (
             <span className="ws__sub">
               {mode === 'cloning'
-                ? 'Restriction-cloning ends: padding + site + annealing part on each primer'
+                ? cloning.goldenGate.on
+                  ? 'Golden Gate ends: padding + Type IIS site + spacer + overhang + annealing part'
+                  : 'Restriction-cloning ends: padding + site + annealing part on each primer'
                 : 'Up to 10 pairs, best first'}
             </span>
           )}
@@ -286,7 +290,9 @@ export function PrimerWorkspace({ doc, layout = 'split' }: Props) {
           )}
           {page === 'results' && cloningResults && !cloning.designUnchanged && (
             <span className="ws__sub ws__sub--note" role="status">
-              Insert, region or pair changed —{' '}
+              {cloning.record.goldenGate === null
+                ? 'Insert, region or pair changed — '
+                : 'Insert, enzyme or overhangs changed — '}
               <button
                 type="button"
                 className="link"

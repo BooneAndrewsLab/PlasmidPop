@@ -531,6 +531,13 @@ The product is always circular, and always the whole set: a reaction that
 would use only some of the parts is reported as a failure, not quietly
 assembled from what fits.
 
+A gene that is not a part yet — one fetched from NCBI, say — is made into
+one in the primer workspace, which designs the two primers that put the
+Type IIS site, the spacer and the overhang on its ends:
+[Golden Gate ends](10-primers.md#golden-gate-ends-primers-that-make-the-insert-a-part).
+Its **Simulate** runs the PCR and this reaction in one step, so nothing has
+to be typed by hand.
+
 ## Modular cloning
 
 Golden Gate on its own joins whatever is in the tube. Modular cloning

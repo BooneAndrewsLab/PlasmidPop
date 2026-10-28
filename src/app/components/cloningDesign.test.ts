@@ -12,13 +12,19 @@ import { readFixture } from '@/test/fixtures';
 
 import { type DocumentState, editorStore } from '../state/editorStore';
 import {
+  GOLDEN_GATE_MEMORY,
   cloningPreview,
+  designRows,
   endText,
   fetchedInsertRef,
   insertChoices,
   internalSites,
+  goldenGateEnzymeNames,
+  overhangWidth,
+  overhangsReady,
   resolveInsert,
   siteWithCut,
+  tubeDocuments,
   vectorEnzymes,
 } from './cloningDesign';
 
@@ -194,5 +200,44 @@ describe('the cloning mode’s helpers (#303)', () => {
         shape: 'span',
       },
     ]);
+  });
+});
+
+describe('the Golden Gate option’s helpers (#310)', () => {
+  it('knows how wide an overhang the enzyme asks for', () => {
+    expect(overhangWidth('BsaI')).toBe(4);
+    expect(overhangWidth('SapI')).toBe(3);
+    // Not a Type IIS enzyme, so it makes no part.
+    expect(overhangWidth('EcoRI')).toBe(0);
+    expect(goldenGateEnzymeNames().slice(0, 4)).toEqual(['BsaI', 'BsmBI', 'BbsI', 'SapI']);
+  });
+
+  it('is ready only with two overhangs of the right width and bases', () => {
+    const gg = { ...GOLDEN_GATE_MEMORY, left: 'AATG', right: 'GCTT' };
+    expect(overhangsReady(gg)).toBe(true);
+    expect(overhangsReady({ ...gg, right: 'GCT' })).toBe(false);
+    expect(overhangsReady({ ...gg, right: 'GCNT' })).toBe(false);
+    expect(overhangsReady({ ...gg, enzyme: 'SapI' })).toBe(false);
+    expect(overhangsReady({ ...gg, enzyme: 'SapI', left: 'ATG', right: 'CGA' })).toBe(true);
+  });
+
+  it('puts only the other tabs the enzyme opens a part out of in the tube', () => {
+    const vector = open(pUC19);
+    const insert = open(U49845);
+    const part = open(
+      SeqDocument.create({
+        name: 'part',
+        sequence: `TTGGTCTCAAATG${'ACGT'.repeat(20)}CGAATGAGACCAA`,
+      }),
+    );
+    const documents = editorStore.getState().documents;
+    const tube = tubeDocuments(documents, vector.documentId, insert.documentId, 'BsaI', '');
+    expect(tube.map((d) => d.name)).toEqual([part.history.present.name]);
+    // The vector itself and the insert's own record are never in it.
+    expect(tubeDocuments(documents, vector.documentId, part.documentId, 'BsaI', '')).toEqual([]);
+  });
+
+  it('has no rows without a restriction design', () => {
+    expect(designRows(null)).toEqual([]);
   });
 });

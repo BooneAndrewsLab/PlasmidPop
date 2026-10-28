@@ -26,6 +26,7 @@ import {
   pairLabel,
   vectorEnzymes,
 } from './cloningDesign';
+import { GoldenGateEnds } from './GoldenGateEnds';
 import { NcbiSearch } from './NcbiSearch';
 import { PrimerSettings } from './PrimerSettings';
 import { nextRowIndex } from './tableKeys';
@@ -128,9 +129,12 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
     setPicked,
     settings,
     setSettings,
+    goldenGate,
+    setGoldenGate,
     blocked,
     record,
   } = cloning;
+  const gg = goldenGate.on;
   const [ncbiOpen, setNcbiOpen] = useRemembered('primers.cloning.ncbiOpen', documentId, false);
   const [overrideOpen, setOverrideOpen] = useRemembered(
     'primers.cloning.override',
@@ -258,51 +262,250 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
     </section>
   );
 
+  const endsButton = (on: boolean, text: string, tip: string): ReactNode => (
+    <button
+      type="button"
+      className={`segmented__button${gg === on ? ' segmented__button--active' : ''}`}
+      aria-pressed={gg === on}
+      data-tip={tip}
+      onClick={() => {
+        setGoldenGate({ ...goldenGate, on });
+      }}
+    >
+      {text}
+    </button>
+  );
+  /** Restriction sites or a Golden Gate part: the two kinds of end (#310). */
+  const endsSwitch = (
+    <div className="mode mode--ends">
+      <span className="ws__target-label" id="ws-ends-label">
+        Ends
+      </span>
+      <div className="segmented segmented--small" role="group" aria-labelledby="ws-ends-label">
+        {endsButton(
+          false,
+          'Two restriction sites',
+          'A site on each tail, so a double digest matches the vector cut with the same two enzymes',
+        )}
+        {endsButton(
+          true,
+          'Golden Gate part',
+          'One Type IIS site on each tail with an overhang of your own, so the part goes into a destination in one tube',
+        )}
+      </div>
+    </div>
+  );
+
+  const restrictionEnds =
+    suggestions === null ? (
+      <p className="ws__target-value ws__target-value--none">
+        {insert === null
+          ? 'Pairs are suggested once an insert is chosen: each must cut the vector once, inside the region, not inside the insert, past the host’s methylation, and give a directional insert.'
+          : 'Scanning the vector and the insert for cut sites…'}
+      </p>
+    ) : (
+      <>
+        {pairs.length === 0 ? (
+          <p className="ws__target-value ws__target-value--none">
+            No enzyme cuts inside the region. Select a wider region, or choose any two enzymes
+            below.
+          </p>
+        ) : (
+          <div className="tablewrap">
+            <table className="wst cands ez" role="grid" aria-label="Enzyme pairs">
+              <thead>
+                <tr>
+                  <th className="wst__th">Enzymes</th>
+                  <th className="wst__th wst__n" data-tip="Top-strand cut positions on the vector">
+                    Cuts at
+                  </th>
+                  <th className="wst__th" data-tip="The overhang each enzyme leaves">
+                    Ends
+                  </th>
+                  <th className="wst__th" data-tip="The insert can go in one way only">
+                    Directional
+                  </th>
+                  <th className="wst__th" data-tip="Sites inside the insert">
+                    Insert
+                  </th>
+                  <th className="wst__th" data-tip="Blocked by the vector's dam/dcm">
+                    Host
+                  </th>
+                  <th className="wst__th">Why excluded</th>
+                </tr>
+              </thead>
+              <tbody ref={rowsEl} onKeyDown={onRowsKeyDown}>
+                {rows.map((p, i) => {
+                  const on = samePair(p, picked);
+                  return (
+                    <tr
+                      key={`${p.forward.enzyme}-${p.reverse.enzyme}`}
+                      className={`cand${on ? ' is-selected' : ''}${p.usable ? '' : ' ez--off'}`}
+                      data-row={i}
+                      tabIndex={i === (stop < 0 ? 0 : stop) ? 0 : -1}
+                      aria-selected={on}
+                      onClick={() => {
+                        setPicked(pickOf(p));
+                      }}
+                    >
+                      <td>
+                        <span className="ez__radio" aria-hidden="true">
+                          {on ? '◉' : '○'}
+                        </span>{' '}
+                        {pairLabel(pickOf(p))}
+                      </td>
+                      <td className="wst__n">
+                        {cutAt(p.forward.site, doc)?.toLocaleString() ?? '—'} ·{' '}
+                        {cutAt(p.reverse.site, doc)?.toLocaleString() ?? '—'}
+                      </td>
+                      <td className="panel__mono">
+                        {endText(p.forward.end)} · {endText(p.reverse.end)}
+                      </td>
+                      <td>{directionalCell(p)}</td>
+                      <td>{insertCell(p)}</td>
+                      <td>{hostCell(p)}</td>
+                      <td className="ez__why">
+                        {p.usable ? '—' : p.issues.map(describePairIssue).join(' ')}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {folded > 0 && (
+                  <tr className="ez--more">
+                    <td colSpan={7}>
+                      <button
+                        type="button"
+                        className="link"
+                        aria-expanded={false}
+                        onClick={() => {
+                          setUnfolded(true);
+                        }}
+                      >
+                        {folded.toLocaleString()} more excluded {folded === 1 ? 'pair' : 'pairs'} ›
+                      </button>{' '}
+                      <span className="dnote">
+                        same site twice, cuts the insert, not directional
+                      </span>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {picked !== null && pickedReport !== null && !pickedListed && (
+          <p className="dnote" role="status">
+            Picked {pairLabel(picked)}
+            {pickedReport.usable
+              ? ''
+              : ` is not usable: ${pickedReport.issues.map(describePairIssue).join(' ')} Design will warn.`}
+          </p>
+        )}
+        {picked !== null && pickedReport !== null && pickedListed && !pickedReport.usable && (
+          <p className="dnote" role="status">
+            Picked {pairLabel(picked)} is excluded:{' '}
+            {pickedReport.issues.map(describePairIssue).join(' ')} Design will warn, and Simulate
+            shows what the digest makes.
+          </p>
+        )}
+        <div className="override">
+          <button
+            type="button"
+            className="link"
+            aria-expanded={overrideOpen}
+            aria-controls="ws-cloning-override"
+            onClick={() => {
+              setOverrideOpen(!overrideOpen);
+            }}
+          >
+            Any two enzymes…
+          </button>
+          {overrideOpen && (
+            <span className="override__body" id="ws-cloning-override">
+              {overrideSelect('forward', 'Enzyme at the insert’s 5′ end')}
+              <span className="dnote">5′ end ·</span>
+              {overrideSelect('reverse', 'Enzyme at the insert’s 3′ end')}
+              <span className="dnote">
+                3′ end, from every enzyme that cuts the vector, excluded pairs included — Design
+                then warns
+              </span>
+            </span>
+          )}
+        </div>
+      </>
+    );
+
   return (
     <div className={`cloning cloning--${layout}`}>
-      {step(
-        1,
-        'Where on the vector',
-        region.source === 'given'
-          ? 'the selection, live — click the map or pick a feature'
-          : region.source === 'mcs'
-            ? `the ${region.feature?.name ?? 'MCS'} feature — select a region to change it`
-            : 'the whole plasmid — select a region to narrow',
-        <>
-          <p className="ws__target-value">
-            {region.feature !== null && (
-              <span className="ws__feature-name">{region.feature.name} </span>
-            )}
-            <span className="panel__mono">{formatSpan(region.range, doc.length)}</span> ·{' '}
-            {(region.range.end - region.range.start).toLocaleString()} bp
-            {region.source === 'whole' && (
-              <span className="dnote"> · enzymes that cut the plasmid once, anywhere</span>
-            )}
-          </p>
-          {chooser}
-          {candidates.length > 0 && (
-            <p className="dnote cloning__sites">
-              Cuts in the region:{' '}
-              {shownCandidates.map((name, i) => {
-                const cut = regionCuts.get(name) ?? null;
-                const on = picked !== null && (picked.forward === name || picked.reverse === name);
-                return (
-                  <span
-                    key={name}
-                    className={on ? 'cloning__site cloning__site--on' : 'cloning__site'}
-                  >
-                    {i > 0 && ' · '}
-                    {name}
-                    {cut !== null && ` ${cut.toLocaleString()}`}
+      {gg
+        ? step(
+            1,
+            'Where on the vector',
+            'Golden Gate uses the destination’s own Type IIS sites, so no region is chosen',
+            <p className="ws__target-value">
+              <span className="ws__feature-name">{doc.name}</span> is the destination ·{' '}
+              {doc.length.toLocaleString()} bp
+              {cloning.destinationOverhangs === null ? (
+                <span className="dnote">
+                  {' '}
+                  · {goldenGate.enzyme} opens nothing in it — Simulate will run the PCR only
+                </span>
+              ) : (
+                <span className="dnote">
+                  {' '}
+                  · its backbone is {cloning.destinationOverhangs.backbone.toLocaleString()} bp and
+                  asks for{' '}
+                  <span className="panel__mono">
+                    {cloning.destinationOverhangs.left}…{cloning.destinationOverhangs.right}
                   </span>
-                );
-              })}
-              {candidates.length > shownCandidates.length &&
-                ` · ${(candidates.length - shownCandidates.length).toLocaleString()} more in the table`}
-            </p>
+                </span>
+              )}
+            </p>,
+          )
+        : step(
+            1,
+            'Where on the vector',
+            region.source === 'given'
+              ? 'the selection, live — click the map or pick a feature'
+              : region.source === 'mcs'
+                ? `the ${region.feature?.name ?? 'MCS'} feature — select a region to change it`
+                : 'the whole plasmid — select a region to narrow',
+            <>
+              <p className="ws__target-value">
+                {region.feature !== null && (
+                  <span className="ws__feature-name">{region.feature.name} </span>
+                )}
+                <span className="panel__mono">{formatSpan(region.range, doc.length)}</span> ·{' '}
+                {(region.range.end - region.range.start).toLocaleString()} bp
+                {region.source === 'whole' && (
+                  <span className="dnote"> · enzymes that cut the plasmid once, anywhere</span>
+                )}
+              </p>
+              {chooser}
+              {candidates.length > 0 && (
+                <p className="dnote cloning__sites">
+                  Cuts in the region:{' '}
+                  {shownCandidates.map((name, i) => {
+                    const cut = regionCuts.get(name) ?? null;
+                    const on =
+                      picked !== null && (picked.forward === name || picked.reverse === name);
+                    return (
+                      <span
+                        key={name}
+                        className={on ? 'cloning__site cloning__site--on' : 'cloning__site'}
+                      >
+                        {i > 0 && ' · '}
+                        {name}
+                        {cut !== null && ` ${cut.toLocaleString()}`}
+                      </span>
+                    );
+                  })}
+                  {candidates.length > shownCandidates.length &&
+                    ` · ${(candidates.length - shownCandidates.length).toLocaleString()} more in the table`}
+                </p>
+              )}
+            </>,
           )}
-        </>,
-      )}
       {step(
         2,
         'What to insert',
@@ -436,149 +639,14 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
       )}
       {step(
         3,
-        'Enzymes',
-        'suggested: cut the vector once in the region, not the insert, past dam/dcm, directional',
-        suggestions === null ? (
-          <p className="ws__target-value ws__target-value--none">
-            {insert === null
-              ? 'Pairs are suggested once an insert is chosen: each must cut the vector once, inside the region, not inside the insert, past the host’s methylation, and give a directional insert.'
-              : 'Scanning the vector and the insert for cut sites…'}
-          </p>
-        ) : (
-          <>
-            {pairs.length === 0 ? (
-              <p className="ws__target-value ws__target-value--none">
-                No enzyme cuts inside the region. Select a wider region, or choose any two enzymes
-                below.
-              </p>
-            ) : (
-              <div className="tablewrap">
-                <table className="wst cands ez" role="grid" aria-label="Enzyme pairs">
-                  <thead>
-                    <tr>
-                      <th className="wst__th">Enzymes</th>
-                      <th
-                        className="wst__th wst__n"
-                        data-tip="Top-strand cut positions on the vector"
-                      >
-                        Cuts at
-                      </th>
-                      <th className="wst__th" data-tip="The overhang each enzyme leaves">
-                        Ends
-                      </th>
-                      <th className="wst__th" data-tip="The insert can go in one way only">
-                        Directional
-                      </th>
-                      <th className="wst__th" data-tip="Sites inside the insert">
-                        Insert
-                      </th>
-                      <th className="wst__th" data-tip="Blocked by the vector's dam/dcm">
-                        Host
-                      </th>
-                      <th className="wst__th">Why excluded</th>
-                    </tr>
-                  </thead>
-                  <tbody ref={rowsEl} onKeyDown={onRowsKeyDown}>
-                    {rows.map((p, i) => {
-                      const on = samePair(p, picked);
-                      return (
-                        <tr
-                          key={`${p.forward.enzyme}-${p.reverse.enzyme}`}
-                          className={`cand${on ? ' is-selected' : ''}${p.usable ? '' : ' ez--off'}`}
-                          data-row={i}
-                          tabIndex={i === (stop < 0 ? 0 : stop) ? 0 : -1}
-                          aria-selected={on}
-                          onClick={() => {
-                            setPicked(pickOf(p));
-                          }}
-                        >
-                          <td>
-                            <span className="ez__radio" aria-hidden="true">
-                              {on ? '◉' : '○'}
-                            </span>{' '}
-                            {pairLabel(pickOf(p))}
-                          </td>
-                          <td className="wst__n">
-                            {cutAt(p.forward.site, doc)?.toLocaleString() ?? '—'} ·{' '}
-                            {cutAt(p.reverse.site, doc)?.toLocaleString() ?? '—'}
-                          </td>
-                          <td className="panel__mono">
-                            {endText(p.forward.end)} · {endText(p.reverse.end)}
-                          </td>
-                          <td>{directionalCell(p)}</td>
-                          <td>{insertCell(p)}</td>
-                          <td>{hostCell(p)}</td>
-                          <td className="ez__why">
-                            {p.usable ? '—' : p.issues.map(describePairIssue).join(' ')}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {folded > 0 && (
-                      <tr className="ez--more">
-                        <td colSpan={7}>
-                          <button
-                            type="button"
-                            className="link"
-                            aria-expanded={false}
-                            onClick={() => {
-                              setUnfolded(true);
-                            }}
-                          >
-                            {folded.toLocaleString()} more excluded{' '}
-                            {folded === 1 ? 'pair' : 'pairs'} ›
-                          </button>{' '}
-                          <span className="dnote">
-                            same site twice, cuts the insert, not directional
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {picked !== null && pickedReport !== null && !pickedListed && (
-              <p className="dnote" role="status">
-                Picked {pairLabel(picked)}
-                {pickedReport.usable
-                  ? ''
-                  : ` is not usable: ${pickedReport.issues.map(describePairIssue).join(' ')} Design will warn.`}
-              </p>
-            )}
-            {picked !== null && pickedReport !== null && pickedListed && !pickedReport.usable && (
-              <p className="dnote" role="status">
-                Picked {pairLabel(picked)} is excluded:{' '}
-                {pickedReport.issues.map(describePairIssue).join(' ')} Design will warn, and
-                Simulate shows what the digest makes.
-              </p>
-            )}
-            <div className="override">
-              <button
-                type="button"
-                className="link"
-                aria-expanded={overrideOpen}
-                aria-controls="ws-cloning-override"
-                onClick={() => {
-                  setOverrideOpen(!overrideOpen);
-                }}
-              >
-                Any two enzymes…
-              </button>
-              {overrideOpen && (
-                <span className="override__body" id="ws-cloning-override">
-                  {overrideSelect('forward', 'Enzyme at the insert’s 5′ end')}
-                  <span className="dnote">5′ end ·</span>
-                  {overrideSelect('reverse', 'Enzyme at the insert’s 3′ end')}
-                  <span className="dnote">
-                    3′ end, from every enzyme that cuts the vector, excluded pairs included — Design
-                    then warns
-                  </span>
-                </span>
-              )}
-            </div>
-          </>
-        ),
+        gg ? 'Golden Gate ends' : 'Enzymes',
+        gg
+          ? 'one Type IIS enzyme, cutting past its site: the site leaves with the flank'
+          : 'suggested: cut the vector once in the region, not the insert, past dam/dcm, directional',
+        <>
+          {endsSwitch}
+          {gg ? <GoldenGateEnds cloning={cloning} /> : restrictionEnds}
+        </>,
       )}
       <PrimerSettings
         criteria={primerCriteria}
@@ -594,16 +662,25 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
           className="button button--primary"
           disabled={blocked !== null}
           aria-describedby={blocked === null ? undefined : 'ws-design-why'}
-          data-tip="Design both primers: padding, site and an annealing part on the insert's end"
+          data-tip={
+            gg
+              ? "Design both primers: padding, the Type IIS site, the spacer, the overhang and an annealing part on the part's end"
+              : "Design both primers: padding, site and an annealing part on the insert's end"
+          }
           onClick={() => {
-            if (cloning.design() !== null) onDesigned();
+            if (cloning.design()) onDesigned();
           }}
         >
           Design primers
-          {blocked === null && insert !== null && picked !== null && (
+          {blocked === null && insert !== null && (
             <span className="ws__button-for">
               {' '}
-              for {insert.name} into {doc.name} at {pairLabel(picked)}
+              for {insert.name}{' '}
+              {gg
+                ? `as a ${goldenGate.enzyme} part, ${goldenGate.left}…${goldenGate.right}`
+                : picked === null
+                  ? ''
+                  : `into ${doc.name} at ${pairLabel(picked)}`}
             </span>
           )}
         </button>
@@ -615,7 +692,12 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
       </div>
       {record !== null && (
         <p className="ws__last">
-          Last design · {record.designedFor} at {pairLabel(record.key.picked)}{' '}
+          Last design · {record.designedFor}
+          {record.key.picked === null
+            ? record.goldenGate === null
+              ? ''
+              : ` as a ${record.goldenGate.forward.enzyme} part`
+            : ` at ${pairLabel(record.key.picked)}`}{' '}
           <button type="button" className="link" onClick={onResults}>
             Results ›
           </button>

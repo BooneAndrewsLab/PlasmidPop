@@ -197,7 +197,8 @@ enzyme that cuts inside the insert (the digest cuts the product too), one
 that cuts the vector never or more than once, a site on the vector blocked
 by its dam/dcm host, two ends that ligate to each other or one enzyme used
 twice (the insert can go in either way), a Type IIS enzyme (its cut lands
-beside the site, so the overhang is the insert's own bases), a site the
+beside the site, so the overhang is the insert's own bases — for a part
+with overhangs of your own, switch **Ends** to **Golden Gate part**), a site the
 amplicon spells beyond the two intended. Amber means look before ordering:
 padding raised because the enzyme cuts poorly within a few bases of an end
 (NEB's cleavage-near-the-end chart: NotI and PmeI want 8, NdeI 7, SalI 4),
@@ -210,6 +211,71 @@ The methylation rule: the vector's host decides whether a site on the
 vector cuts, and the insert's does not — the amplified insert is a PCR
 product and carries no methylation, so a site in it cuts whatever the tab
 it came from says.
+
+### Golden Gate ends: primers that make the insert a part
+
+Step 3 has a second kind of end: **Ends ▸ Golden Gate part**, beside
+**Two restriction sites**. It designs the two primers that turn the insert
+into a [Golden Gate](12-cloning.md#golden-gate) part, each one
+
+```
+5′ padding · Type IIS site · spacer · overhang · annealing part 3′
+```
+
+with the site pointing into the part, so the enzyme cuts past it and the
+site leaves with the flank. Nothing about the geometry is typed in: the
+spacer's length and the overhang's are read off the enzyme's own row of the
+table, so BsaI (`GGTCTC(1/5)`) and BsmBI get one spacer base and a 4-base
+overhang, BbsI (`GAAGAC(2/6)`) two and four, and SapI (`GCTCTTC(1/4)`) one
+and three. The line beside the picker says which. Only enzymes the table
+can express this way are offered: one that cuts on both sides of its site,
+leaves a blunt end or a 3′ overhang, or has an ambiguity code in its site,
+is left out.
+
+- **Enzyme.** BsaI by default; BsmBI, BbsI, SapI and the other Type IIS
+  enzymes in the table follow. **and** adds a second enzyme for a tube that
+  holds parts made for two, as the Bench's Golden Gate does; its site must
+  not be in the part either.
+- **Overhangs.** Choose a pair, or type four bases (three for SapI). The
+  list offers every position of the bundled standards — the MoClo plant
+  common syntax, the Yeast Toolkit — so a CDS part is `AATG`…`GCTT`, and,
+  when the enzyme opens the plasmid in front, the pair that plasmid's own
+  cut ends ask for, as **From pGG-Destination: GGAG…CGCT**. That last one
+  is the way to be sure the part fits the destination you have open. Both
+  overhangs are written as they read on the **top strand**; the reverse
+  primer carries the right one reverse-complemented for you.
+- **Start and stop codons.** `AATG` is `A` plus a start codon, so when the
+  region begins with `ATG` the overhang spells it and the annealing part
+  begins at the base after it — the note under the fields says so. Untick
+  **Include the stop codon** (it is off by default) to leave the region's
+  own stop out, so that a tag or a second domain follows in frame; untick
+  **Include the start codon** for an N-terminal fusion part. Only those two
+  codons are ever taken as spelled by an overhang: a part whose first base
+  happens to be the overhang's last keeps it, since eating it would shift
+  the frame for nothing.
+
+The note under the fields is the design as it would be made: the part's
+length, what each overhang does, how many coding bases reach the right
+overhang and whether that is a whole number of codons, the PCR product's
+length, and in red anything that would spoil it. **Design primers** then
+puts the one part on Results — one design, not a table of pairs — with the
+oligos written as ordered, the part the reaction releases, the warnings and
+the same actions. **Simulate** runs the PCR on the insert's tab and then
+the Golden Gate into the plasmid in front, with every other open tab the
+enzyme releases a part from in the tube, and opens the circle with the
+enzyme ticked in its Enzymes tab. When there is no destination, or the
+enzyme opens nothing in it, or the set needs parts that are not open, it
+says which in plain words and gives the PCR product alone — which is the
+part, ready for the Bench.
+
+Red warnings: a site for the enzyme (or the second one) inside the part,
+which the reaction would cut; a site the tails and the part spell between
+them. Amber: an overhang that is its own reverse complement, the same
+overhang at both ends, or one a base away from another in the tube, by the
+rules the [assembly](12-cloning.md#golden-gate) is judged by; coding bases
+that do not reach the right overhang in frame; an ambiguity code in the
+annealing part; and the padding, annealing, specificity and dimer warnings
+of the restriction ends above.
 
 ## Checking specificity with NCBI Primer-BLAST
 
