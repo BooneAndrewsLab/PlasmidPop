@@ -85,12 +85,12 @@ export function HelpDialog({ initialPage, onClose }: Props) {
           <span className="help__version">Version {__APP_VERSION__}</span>
           {/* The standalone tutorials (#312): a page of the site, not of the dialog. */}
           <a
-            className="link"
+            className="button button--small button--primary help__tutorials"
             href={`${import.meta.env.BASE_URL}tutorials/`}
             target="_blank"
             rel="noopener"
           >
-            Tutorials
+            Cloning tutorials
           </a>
           <button
             type="button"

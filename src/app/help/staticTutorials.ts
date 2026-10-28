@@ -56,9 +56,9 @@ export function tutorialUrl(id: string | null): string {
 }
 
 const SECTION: SiteSection = {
-  name: 'PlasmidPop tutorials',
+  name: 'PlasmidPop cloning tutorials',
   indexPath: 'tutorials/',
-  indexLabel: 'All tutorials',
+  indexLabel: 'All cloning tutorials',
   footer: (home, fromDir) =>
     `Step-by-step cloning exercises for <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser. The sample files are synthetic. Reference: the <a href="${escapeHtml(relative(fromDir, 'guide/'))}">user guide</a>.`,
 };
@@ -133,13 +133,13 @@ export function generateTutorialFiles(
       t === undefined
         ? '<span></span>'
         : `<a href="${escapeHtml(relative(dir, pagePath(t.id)))}">${label}</a>`;
-    const up = `<a href="${escapeHtml(relative(dir, pagePath(null)))}">All tutorials</a>`;
+    const up = `<a href="${escapeHtml(relative(dir, pagePath(null)))}">All cloning tutorials</a>`;
     const pager = `<nav class="pager" aria-label="Tutorials">${link(prev, `&larr; ${escapeHtml(prev?.title ?? '')}`)}${up}${link(next, `${escapeHtml(next?.title ?? '')} &rarr;`)}</nav>`;
     files.push({
       path: `${dir}index.html`,
       content: document({
         section: SECTION,
-        title: `${p.title} | PlasmidPop tutorials`,
+        title: `${p.title} | PlasmidPop cloning tutorials`,
         description: describe(p.blocks, p.title),
         canonical: tutorialUrl(p.id),
         fromDir: dir,

@@ -11,6 +11,15 @@ PlasmidPop is free and open source under the
 [MIT licence](https://github.com/BooneAndrewsLab/PlasmidPop/blob/main/LICENSE);
 the [source](https://github.com/BooneAndrewsLab/PlasmidPop) is on GitHub.
 
+## Cloning tutorials
+
+New to cloning in PlasmidPop? The [cloning
+tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/) are
+step-by-step exercises with sample files you can download: ligation, Golden
+Gate, modular cloning, Gibson and more, each ending in a checklist of what you
+should see. Pick the method you want on their index page. They are also behind
+the **Cloning tutorials** button at the top of this guide.
+
 ## Which browsers
 
 PlasmidPop runs in Chrome or Edge 111 or later, Firefox 114 or later, and
@@ -111,7 +120,7 @@ editing controls. See [On a phone](03-viewing.md#on-a-phone).
 6. Press `Ctrl+S` to download the result as a GenBank file.
 
 For longer hands-on exercises, such as cloning a gene into a vector, see the
-[tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/).
+[cloning tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/).
 
 ## Where your data lives
 

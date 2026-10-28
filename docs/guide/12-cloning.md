@@ -19,7 +19,7 @@ combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer desig
 a digest to check it by.
 
 Step-by-step exercises for ligation and Golden Gate, with sample files to
-download, are in the [tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/), a section of the site of its own.
+download, are in the [cloning tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/), a section of the site of its own.
 
 In both places the reactions are alternatives, so one is shown at a time
 and the choice is remembered. Whichever you use, the product opens as a new

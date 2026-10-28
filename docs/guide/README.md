@@ -5,7 +5,7 @@ toolbar. They are also published as plain web pages, readable without
 JavaScript, at `/guide/` on the PlasmidPop site.
 
 Step-by-step cloning exercises, with sample files to download, are the
-[tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/), in `docs/tutorials` and at `/tutorials/` on the site.
+[cloning tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/), in `docs/tutorials` and at `/tutorials/` on the site.
 
 1. [Getting started](01-getting-started.md)
 2. [Files and storage](02-files.md): formats, opening several files or a ZIP, opening a record from NCBI, document tabs, saving, comparing with another file or tab, sharing a link, exporting, recent files, backing up and restoring everything, usage statistics, offline use, opening an attachment from another app

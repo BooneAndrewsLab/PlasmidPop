@@ -1,4 +1,4 @@
-# PlasmidPop tutorials
+# PlasmidPop cloning tutorials
 
 Hands-on, step-by-step exercises for cloning in PlasmidPop. Pick the method you
 want to learn; each tutorial is one page with numbered steps, the numbers to

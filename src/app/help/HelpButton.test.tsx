@@ -30,7 +30,7 @@ describe('HelpButton', () => {
   it('links the standalone tutorials, opened in a tab of their own (#312)', () => {
     render(<HelpButton />);
     fireEvent.click(screen.getByRole('button', { name: 'Help' }));
-    const link = screen.getByRole('link', { name: 'Tutorials' });
+    const link = screen.getByRole('link', { name: 'Cloning tutorials' });
     expect(link).toHaveAttribute('href', `${import.meta.env.BASE_URL}tutorials/`);
     expect(link).toHaveAttribute('target', '_blank');
   });

@@ -54,7 +54,9 @@ describe('static tutorial pages (#312)', () => {
 
   it('render the index: a heading and a link to every tutorial', () => {
     const body = byPath.get('tutorials/index.html') ?? '';
-    expect(body).toContain('<h1 id="plasmidpop-tutorials">PlasmidPop tutorials</h1>');
+    expect(body).toContain(
+      '<h1 id="plasmidpop-cloning-tutorials">PlasmidPop cloning tutorials</h1>',
+    );
     for (const id of TUTORIAL_ORDER) expect(body, id).toContain(`href="./${id}/"`);
     expect(body).toContain('href="../guide/cloning/"');
   });
@@ -181,8 +183,8 @@ describe('tutorial links in the Markdown, exactly', () => {
     const page = out[1]?.content ?? '';
     expect(page).toContain('<a href="../">back</a>');
     expect(page).toContain('<a href="../files/X.gb" download>file</a>');
-    expect(page).toContain('<strong>PlasmidPop tutorials</strong>');
-    expect(page).toContain('<a href="../">All tutorials</a>');
+    expect(page).toContain('<strong>PlasmidPop cloning tutorials</strong>');
+    expect(page).toContain('<a href="../">All cloning tutorials</a>');
     expect(out[2]).toEqual({ path: 'tutorials/files/X.gb', content: 'LOCUS' });
   });
 });

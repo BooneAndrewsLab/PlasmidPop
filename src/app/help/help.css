@@ -63,6 +63,12 @@
   font-weight: 600;
 }
 
+/* The cloning tutorials link is an anchor dressed as the primary button. */
+.help__tutorials {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 /* The release, beside the title; pushes the Close button to the far end. */
 .help__version {
   margin-right: auto;
