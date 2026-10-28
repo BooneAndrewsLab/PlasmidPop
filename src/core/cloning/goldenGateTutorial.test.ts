@@ -191,8 +191,16 @@ describe('golden-gate.md, path A: the synthetic ORF', () => {
 });
 
 describe.skipIf(!existsSync(NCBI_FILE))('golden-gate.md, path B: NM_000207 (insulin)', () => {
-  const rec = load(NCBI_FILE);
-  const { design, sim, cds } = run(rec, 'insulin preproprotein');
+  // describe bodies run even when the suite is skipped, so the gitignored
+  // record is read in beforeAll, which a skip does not run.
+  let rec: SeqDocument;
+  let design: ReturnType<typeof run>['design'];
+  let sim: ReturnType<typeof run>['sim'];
+  let cds: ReturnType<typeof run>['cds'];
+  beforeAll(() => {
+    rec = load(NCBI_FILE);
+    ({ design, sim, cds } = run(rec, 'insulin preproprotein'));
+  });
 
   it('is the record the page describes: a 333 bp CDS with no BsaI or BsmBI site', () => {
     expect(rec.length).toBe(465);
