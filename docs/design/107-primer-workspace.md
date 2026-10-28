@@ -245,3 +245,6 @@ decided.
 
 Also on the Design page: the disabled Design primers button now says why
 ("Select a region or pick a feature") instead of being silently off.
+
+The Design page's cloning mode (#303) is note 108: its engine
+(`core/cloning/cloningEnds.ts`) and what the page calls.

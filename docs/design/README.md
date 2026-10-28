@@ -318,3 +318,5 @@ the Bench, item 49). The rest stand.
 120.  [Short and narrow windows](106-short-and-narrow-windows.md)
 
 121.  [Primer workspace and one shared NCBI search](107-primer-workspace.md)
+
+122.  [Restriction-cloning ends: the engine](108-cloning-ends.md)
