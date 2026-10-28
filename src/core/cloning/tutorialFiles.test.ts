@@ -40,6 +40,10 @@ import {
   ligate,
   pcr,
   resolveVectorRegion,
+  cloningSeed,
+  goldenGateSeed,
+  ligationSeed,
+  resolveSeed,
   scanForCloningNow,
   suggestEnzymePairs,
 } from './index';
@@ -103,6 +107,10 @@ function sites(doc: SeqDocument, name: string): number {
   const a = count(doc, name, METHYLATED_HOST);
   expect(count(doc, name, UNMETHYLATED_HOST)).toBe(a);
   return a;
+}
+/** The ticks a product opens with, as the store resolves them against the enzyme table (#309). */
+function seeded(wanted: readonly string[]): string[] {
+  return [...(resolveSeed(wanted, activeEnzymes()) ?? [])].sort();
 }
 function longest(frags: DigestFragment[]): DigestFragment {
   const f = [...frags].sort((a, b) => b.sequence.length - a.sequence.length)[0];
@@ -268,6 +276,8 @@ describe('Ligation exercise A: EcoRI + BamHI, directional', () => {
     expect(sites(product, 'BamHI')).toBe(1);
     expect(sites(product, 'PstI')).toBe(0);
     expect(sites(product, 'SacI')).toBe(2);
+    // The product opens with the two enzymes the reaction used ticked, one site each.
+    expect(seeded(ligationSeed([backbone, middle]))).toEqual(['BamHI', 'EcoRI']);
     // The insert reads the same way as the promoter.
     const orf = [...product.features].find((f) => f.name === 'synthORF1');
     expect(orf?.strand).toBe('forward');
@@ -367,6 +377,9 @@ describe('Ligation exercise C: one enzyme and dephosphorylation', () => {
     const rev = ligate([bare, flip(piece)], { name: 'x', circular: true });
     expect(fwd.length).toBe(3465);
     expect(rev.length).toBe(3465);
+    // One enzyme on all three ends: one tick, two sites in the product.
+    expect(seeded(ligationSeed([bare, piece]))).toEqual(['EcoRI']);
+    expect(sites(fwd, 'EcoRI')).toBe(2);
     const strand = (d: SeqDocument): string | undefined =>
       [...d.features].find((f) => f.name === 'synthORF1')?.strand;
     expect(strand(fwd)).toBe('forward');
@@ -460,6 +473,9 @@ describe('Golden Gate exercise: BsaI, four parts, scrambled order', () => {
       ['KanR', 'ori', 'synthCDS', 'synthTag', 'synthetic promoter', 'synthetic terminator'].sort(),
     );
     expect(sites(product, 'BsaI')).toBe(0);
+    // The product opens with BsaI ticked (the Bench's choice), though it has no site left.
+    expect(seeded(goldenGateSeed(BsaI.name))).toEqual(['BsaI']);
+    expect(seeded(goldenGateSeed(BsaI.name, 'BsmBI'))).toEqual(['BsaI', 'BsmBI']);
     // The CDS and the tag read as one frame to a single stop.
     const text = product.sequence.toString().toUpperCase();
     const cds = [...product.features].find((f) => f.name === 'synthCDS');
@@ -580,6 +596,16 @@ describe.skipIf(!existsSync(NCBI_FILE))('NCBI gene: INS, NM_000207', () => {
     expect(sites(product, 'EcoRI')).toBe(1);
     expect(sites(product, 'BamHI')).toBe(1);
     expect(checkRows(product, null, 1)).toEqual([CHECK_LIG]);
+    // Simulate opens it with EcoRI and BamHI ticked, one site each.
+    expect(seeded(cloningSeed(d.forward.enzyme, d.reverse.enzyme))).toEqual(['BamHI', 'EcoRI']);
+    // Step 7: MluI cuts it twice, so the Enzymes tab lists it under a Cuts
+    // setting that includes twice-cutters, and ticking it gives these bands.
+    expect(sites(product, 'MluI')).toBe(2);
+    expect(
+      digest(product, sitesOf(product, [enz('MluI')]))
+        .map((f) => f.sequence.length)
+        .sort((a, b) => b - a),
+    ).toEqual([2414, 565]);
   });
 
   it('Golden Gate: two BsaI primers, PCR 353 bp, then 2,848 bp with the synthetic promoter, tag and terminator', () => {

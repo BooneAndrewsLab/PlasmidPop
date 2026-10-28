@@ -12,6 +12,7 @@ import {
   getEnzyme,
   goldenGateEnzymes,
   goldenGateFragments,
+  goldenGateSeed,
   planAssemblies,
   recordGoldenGate,
 } from '@/core';
@@ -283,7 +284,10 @@ export function ModularPanel() {
       'modular-assemble',
       standard?.bundled === true ? standard.id : 'custom',
     );
-    editorStore.openDocument(recordGoldenGate(p.assembly, names), null, [], { scratch: true });
+    editorStore.openDocument(recordGoldenGate(p.assembly, names), null, [], {
+      scratch: true,
+      shownEnzymes: goldenGateSeed(enzyme?.name, second?.name),
+    });
     editorStore.setSidebarTab('features');
   };
 

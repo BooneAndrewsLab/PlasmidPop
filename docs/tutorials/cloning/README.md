@@ -40,9 +40,11 @@ select several at once. Each opens in a tab of its own; **File ▸ Show files**
 it names, and close the rest, because the Golden Gate panel puts every open
 tab in the tube.
 
-Throughout, **Hide all** in the Enzymes tab clears the ticks (a document opens
-with every enzyme that cuts once ticked), then tick only what the exercise
-says; the **Filter** box finds an enzyme by name.
+Throughout, **Hide all** in the Enzymes tab clears the ticks: a file you open
+yourself opens with every enzyme that cuts once ticked, so clear them and tick
+only what the exercise says; the **Filter** box finds an enzyme by name. A
+product the app makes (Assemble, Simulate) opens with only the enzymes the
+reaction used ticked, and the exercises say which.
 
 ## Ligation
 
@@ -78,7 +80,8 @@ Background: [Ligation](../../guide/12-cloning.md#ligation),
    (`MCS` is there twice, as two partial pieces: the cut ran through it, and
    the 24 bp stuffer with the PstI site is gone). Click **Assemble**.
 7. In the new document: `synthORF1` is on the **forward** strand, the same way
-   as the promoter. EcoRI and BamHI each cut it once; **PstI cuts it not at
+   as the promoter. The Enzymes tab has **EcoRI** and **BamHI** ticked, the two
+   enzymes the ligation used, and each cuts it once; **PstI cuts it not at
    all** (it cut the vector only inside the stuffer); SacI cuts it twice (once
    in the backbone, once in the ORF, see the extra below).
 
@@ -90,8 +93,9 @@ What to check:
 - [ ] Product 3,441 bp = 2,640 + 801.
 - [ ] No PstI site in the product.
 
-**Check by digest** (under the product's map). A vector cut with two enzymes
-cannot close on itself, so the Bench says there is no empty vector to compare
+**Check by digest** is on the Bench, under the product's map, before you press
+**Assemble** (the assembled document has no such panel). A vector cut with two
+enzymes cannot close on itself, so the Bench says there is no empty vector to compare
 with and ranks the product's own lane, clearest first. With the bundled
 enzyme set the first rows are `MluI: 2,876 + 565 bp`, `HpaI: 2,741 + 700 bp`,
 `ScaI: 2,566 + 875 bp`, `SacI: 2,541 + 900 bp`. The vector alone with SacI is
@@ -143,7 +147,10 @@ phosphates off, so it cannot.
    3,465 bp with `synthORF1` on the **reverse** strand. On a bench you would
    screen for the right one.
 
-Optional extra, a miniprep check digest: repeat step 3 without **−P**, **Assemble**, and look at the **Check by digest** under the 3,465 bp product.
+Optional extra, a miniprep check digest: repeat step 3 without **−P** and, on
+the Bench, look at **Check by digest** under the 3,465 bp product, before
+**Assemble**. After **Assemble** the product opens with **EcoRI** ticked, two
+sites.
 The vector is the longest part, so it is the empty vector (cut once with EcoRI
 and closed on itself, 2,664 bp). The first rows: `EcoRI: 2,664 + 801 bp | empty
 2,664 bp` and `SacI: 2,565 + 900 bp | empty 2,664 bp`. An insert-carrying
@@ -190,15 +197,23 @@ or BamHI site in the CDS (checked), which is why EcoRI + BamHI will work.
    primers as features, named after the record's feature
    (`insulin_preproprotein-F-EcoRI`); the primer names above are labels for this
    page.
-   The product opens with **every enzyme that cuts once ticked** (34 of them),
-   so its map is crowded with cut sites. To see only the two that matter, open
-   the Enzymes tab, **Hide all**, then tick **EcoRI** and **BamHI**: one site
-   each (EcoRI just before the `ATG`, BamHI just after the stop codon). PstI
-   does not cut this product at all.
-7. The check digest's ranking (the same function the Bench's **Check by
-   digest** uses, product lane alone because the two-enzyme backbone cannot
-   close) puts `MluI: 2,414 + 565 bp` first for this product. The Enzymes tab on
-   the product's document lists the same bands.
+   The product opens with **EcoRI** and **BamHI** ticked in the Enzymes tab,
+   the two enzymes the primers use: one site each (EcoRI just before the
+   `ATG`, BamHI just after the stop codon). PstI does not cut this product at
+   all.
+7. Optional, a miniprep-style check: which single enzyme tells a colony that
+   took the insert from one that did not. The enzyme with the clearest bands
+   for this product is **MluI**, which cuts it **twice**: **2,414 + 565 bp**
+   (the same ranking function the Bench's **Check by digest** uses). That
+   panel is not on screen here: this product came from the primer workspace's
+   **Simulate**, not from a Bench reaction. Use the product's own Enzymes tab:
+   1. **Hide all**, so EcoRI and BamHI stop counting in the digest.
+   2. **Cuts** is a remembered setting. If it says **Once**, MluI is not
+      listed, because it cuts twice. Change it to **Twice**, **Once or twice**,
+      **3 times or fewer** or **Any number**; **Filter** (the name box) narrows
+      the list further, so type `MluI` there to find it quickly.
+   3. Tick **MluI**. **Fragments from ticked enzymes** reads
+      `2,414, 565 bp`, two bands on the gel lane.
 
 ## Golden Gate
 
@@ -231,7 +246,9 @@ order on purpose.
 5. **Product**: **3,118 bp, circular**, with `KanR`, `ori`, `synthetic promoter`,
    `synthCDS`, `synthTag`, `synthetic terminator` (no `lacZ-dropout`, no BsaI
    site). **No overhang warnings.** **Assemble**.
-6. In the product, `synthCDS` runs straight into `synthTag` in the same frame:
+6. In the product, the Enzymes tab has **BsaI** ticked, the Bench's enzyme, but
+   it has no site left, so nothing is marked (a second enzyme set on the
+   Bench would be ticked too). `synthCDS` runs straight into `synthTag` in the same frame:
    translating from the CDS's ATG gives one open reading frame that ends
    `...FGGSGGHHHH*`.
 
@@ -242,7 +259,7 @@ What to check:
 - [ ] 9 pieces left out, none of them parts.
 - [ ] 3,118 bp = the 2,326 bp backbone + 84 + 601 + 33 + 74 bp of parts.
 
-**Check by digest.** The empty vector is the longest part, the uncut
+**Check by digest** (on the Bench, before **Assemble**). The empty vector is the longest part, the uncut
 destination, 2,647 bp (**Against** picks another). With the bundled enzyme
 set the first rows are `AseI: 2,583 + 535 bp | empty 2,647 bp` and
 `DraI: 1,953 + 1,165 bp | empty 2,647 bp`. This is the Golden Gate miniprep:
@@ -313,7 +330,7 @@ INS-R-BsaI  5′ TTGGTCTCACGAAGTTGCAGTAGTTCTCCAGCTGG 3′
    Translating from the INS start codon gives
    `MALWMRLLPLLALLALWGPDPAAAFVNQHLCGSHLVEALYLVCGERGFFYTPKTRREAEDLQVGQVELGGGPGAGSLQPLALEGSLQKRGIVEQCCTSICSLYQLENYCNFGGSGGHHHH*`: preproinsulin, then
    the linker and His tag from the tag part, one frame, one stop.
-6. **Check by digest**, against the destination (2,647 bp): first rows
+6. **Check by digest**, on the Bench before **Assemble**, against the destination (2,647 bp): first rows
    `AseI: 2,313 + 535 bp | empty 2,647 bp` and `EcoNI: 2,220 + 628 bp | empty 2,647 bp`.
 
 (These NCBI results were verified against a local copy of the record kept

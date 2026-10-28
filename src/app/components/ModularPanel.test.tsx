@@ -69,6 +69,21 @@ describe('ModularPanel (#214)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Assemble pDest + pro1 + cds + term' }));
     });
     expect(editorStore.document?.name).toBe('pDest+pro1+cds+term assembly');
+    // The product opens with the Bench's Type IIS enzyme ticked (#309).
+    const made = editorStore.document;
+    if (made !== null) {
+      const site = (enzyme: string, cut: number) => ({
+        enzyme,
+        cut,
+        cutBottom: cut,
+        siteStart: cut,
+        strand: 'forward' as const,
+      });
+      act(() => {
+        editorStore.setAnalysis(made, [site('BsaI', 3), site('NotI', 9)], []);
+      });
+      expect([...editorStore.getState().shownEnzymes]).toEqual(['BsaI']);
+    }
   });
 
   it('opens every product that forms with Assemble all', () => {

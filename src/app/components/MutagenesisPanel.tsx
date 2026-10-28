@@ -14,6 +14,7 @@ import {
   codonSiteAt,
   codonUsageTable,
   designMutagenesis,
+  inheritedSeed,
   isEmptyRange,
   libraryCoverage,
   readChangeBases,
@@ -283,7 +284,7 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
       recordMutagenesis(doc, design, `${doc.name} ${design.label}`),
       null,
       [],
-      { scratch: true },
+      { scratch: true, shownEnzymes: inheritedSeed(editorStore.getState().shownEnzymes) },
     );
     editorStore.apply(design.edit, undefined, undefined, undefined, false);
     editorStore.setSidebarTab('features');

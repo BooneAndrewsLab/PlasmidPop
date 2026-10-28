@@ -9,6 +9,7 @@ import {
   describeDropped,
   getEnzyme,
   goldenGate,
+  goldenGateSeed,
   recordGoldenGate,
 } from '@/core';
 
@@ -132,7 +133,7 @@ export function GoldenGatePanel() {
       ),
       null,
       [],
-      { scratch: true },
+      { scratch: true, shownEnzymes: goldenGateSeed(enzyme.name, second?.name) },
     );
     editorStore.setSidebarTab('features');
     setName('');

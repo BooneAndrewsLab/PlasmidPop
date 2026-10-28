@@ -33,6 +33,9 @@ describe('MutagenesisPanel', () => {
     render(<MutagenesisPanel doc={doc} />);
     expect(screen.getByText(/Select the bases to change/)).toBeInTheDocument();
     act(() => {
+      editorStore.setShownEnzymes(['NotI']);
+    });
+    act(() => {
       editorStore.setSelection({ start: 800, end: 801 });
     });
     const old = TEXT.charAt(800).toUpperCase();
@@ -66,6 +69,22 @@ describe('MutagenesisPanel', () => {
     expect(mutant !== null && editedSinceMade(mutant)).toBe(false);
     // Making the mutant is not the user's edit: it stays unkept (item 110).
     expect(editorStore.getState().scratch).toBe(true);
+    // It opens with the template's ticked enzymes, not every single cutter (#309).
+    const mutantDoc = editorStore.document;
+    expect(mutantDoc).not.toBeNull();
+    if (mutantDoc !== null) {
+      const site = (enzyme: string, cut: number) => ({
+        enzyme,
+        cut,
+        cutBottom: cut,
+        siteStart: cut,
+        strand: 'forward' as const,
+      });
+      act(() => {
+        editorStore.setAnalysis(mutantDoc, [site('EcoRI', 3), site('NotI', 9)], []);
+      });
+      expect([...editorStore.getState().shownEnzymes]).toEqual(['NotI']);
+    }
     // The change is the mutant's one edit, so Undo gives the template back.
     act(() => {
       editorStore.undo();

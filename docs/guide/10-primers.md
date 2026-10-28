@@ -184,7 +184,8 @@ site with its cut, padding, overhang, how the vector is cut — the warnings
 in full, and the actions: **Simulate** runs PCR on the insert's tab, the
 digest with both enzymes and the ligation into the vector's backbone, and
 opens the product as a new document named `vector-insert` (the thumbnail
-in the pane is that product drawn small, so what it shows is what opens);
+in the pane is that product drawn small, so what it shows is what opens,
+with the two enzymes ticked in its Enzymes tab);
 **Save both** keeps the primers in [My primers](#my-primers) as
 `insert-F-enzyme` and `insert-R-enzyme`; **Copy** puts both on the
 clipboard; **Use in PCR** fills Cloning ▸ PCR with them and the insert's

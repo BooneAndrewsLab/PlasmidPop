@@ -1,6 +1,13 @@
 import { Fragment, useMemo } from 'react';
 
-import { type FragmentEnd, assemblyJunctions, describeEnd, ligate, recordLigation } from '@/core';
+import {
+  type FragmentEnd,
+  assemblyJunctions,
+  describeEnd,
+  ligate,
+  ligationSeed,
+  recordLigation,
+} from '@/core';
 
 import { analytics } from '../analytics';
 import { editorStore } from '../state/editorStore';
@@ -105,7 +112,10 @@ export function LigationPanel() {
       );
       // The shelf is left as it is: a vector cut once is often ligated to
       // one insert after another, and the other reactions may want its parts.
-      editorStore.openDocument(product, null, [], { scratch: true });
+      editorStore.openDocument(product, null, [], {
+        scratch: true,
+        shownEnzymes: ligationSeed(parts),
+      });
       editorStore.setSidebarTab('features');
       setName('');
     } catch (e) {

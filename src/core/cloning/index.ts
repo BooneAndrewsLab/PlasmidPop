@@ -13,3 +13,4 @@ export * from './protocolText';
 export * from './overlapExtension';
 export * from './endFlanks';
 export * from './cloningEnds';
+export * from './productEnzymes';

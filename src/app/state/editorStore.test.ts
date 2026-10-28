@@ -415,6 +415,60 @@ describe('EditorStore analysis', () => {
     expect([...store.getState().shownEnzymes]).toEqual(['Enz0']);
   });
 
+  describe('opening with an explicit set of ticked enzymes (#309)', () => {
+    const site = (enzyme: string, cut: number) => ({
+      enzyme,
+      cut,
+      cutBottom: cut,
+      siteStart: cut,
+      strand: 'forward' as const,
+    });
+    const sites = [site('EcoRI', 3), site('BamHI', 5), site('NotI', 7), site('AluI', 9)];
+    const product = () => SeqDocument.create({ name: 'p', sequence: 'ACGTACGTACGTAC' });
+
+    it('ticks the named enzymes instead of every single cutter, as the opening state only', () => {
+      const store = new EditorStore();
+      const p = product();
+      store.openDocument(p, null, [], { scratch: true, shownEnzymes: ['EcoRI', 'BamHI'] });
+      store.setAnalysis(p, sites, []);
+      expect([...store.getState().shownEnzymes].sort()).toEqual(['BamHI', 'EcoRI']);
+      // Neither history nor the dirty mark is touched: same as opened without ticks.
+      const plain = new EditorStore();
+      plain.openDocument(product(), null, [], { scratch: true });
+      expect(store.getState().dirty).toBe(plain.getState().dirty);
+      expect(store.documentState()?.history.canUndo).toBe(false);
+      // The user's later choice stands against a fresh scan.
+      store.setEnzymeShown('NotI', true);
+      store.setAnalysis(p, sites, []);
+      expect(store.getState().shownEnzymes.has('NotI')).toBe(true);
+    });
+
+    it('ignores names the enzyme table does not know, and falls back when none is known', () => {
+      const store = new EditorStore();
+      const p = product();
+      store.openDocument(p, null, [], { scratch: true, shownEnzymes: ['EcoRI', 'NoSuchI'] });
+      store.setAnalysis(p, sites, []);
+      expect([...store.getState().shownEnzymes]).toEqual(['EcoRI']);
+      const q = SeqDocument.create({ name: 'q', sequence: 'TTTTACGTACGTAC' });
+      store.openDocument(q, null, [], { scratch: true, shownEnzymes: ['NoSuchI'] });
+      store.setAnalysis(q, sites, []);
+      expect([...store.getState().shownEnzymes].sort()).toEqual(['AluI', 'BamHI', 'EcoRI', 'NotI']);
+      const r = SeqDocument.create({ name: 'r', sequence: 'GGGGACGTACGTAC' });
+      store.openDocument(r, null, [], { scratch: true, shownEnzymes: [] });
+      store.setAnalysis(r, sites, []);
+      expect(store.getState().shownEnzymes.size).toBe(4);
+    });
+
+    it('does not seed a document opened again from storage', () => {
+      const store = new EditorStore();
+      const p = product();
+      const id = store.openDocument(p, null, [], { id: 'kept' });
+      expect(id).toBe('kept');
+      store.setAnalysis(p, sites, []);
+      expect(store.getState().shownEnzymes.size).toBe(4);
+    });
+  });
+
   it('hides drawn cut sites without touching the ticks', () => {
     const store = new EditorStore();
     store.openDocument(doc);

@@ -42,6 +42,7 @@ import {
   hasTool,
   documentChecksum,
   withPhosphates,
+  resolveSeed,
   isConfidentQuality,
   isMinIdentityChoice,
   isEmptyRange,
@@ -395,6 +396,14 @@ export interface OpenStorage {
    * file name, which a paste and a new document lack too.
    */
   readonly scratch?: boolean;
+  /**
+   * The enzymes to open with ticked instead of every one that cuts once
+   * (#309): those a reaction used. Names are looked up in the enzyme table
+   * in use and unknown ones ignored; when none is known the usual default
+   * applies. Only the opening state, so a document opened again from
+   * storage, which passes nothing, keeps the ticks it was left with.
+   */
+  readonly shownEnzymes?: Iterable<string>;
   /**
    * The undo history kept in local storage, whose present is the document
    * being opened, and the two baselines as they stood (item 51). Without it
@@ -1175,6 +1184,8 @@ type ClosedListener = (closed: readonly DocumentState[]) => void;
 export class EditorStore {
   private shared: SharedState = SHARED_INITIAL;
   private docs: readonly DocumentState[] = [];
+  /** Enzymes a product opened with (#309), until its first scan ticks them. */
+  private readonly enzymeSeeds = new Map<string, ReadonlySet<string>>();
   /** The document in front, or null while the file list or the Bench is shown. */
   private activeId: string | null = null;
   /** Whether the Bench is in front; only while `activeId` is null. */
@@ -1350,6 +1361,10 @@ export class EditorStore {
       phonePane: this.takeRememberedPane(storage.id),
       primerWorkspace: false,
     };
+    if (storage.shownEnzymes !== undefined) {
+      const seed = resolveSeed([...storage.shownEnzymes], activeEnzymes());
+      if (seed !== null) this.enzymeSeeds.set(entry.documentId, seed);
+    }
     const active = this.documentState();
     const replaced = active !== null && isUntouchedNew(active) ? active : null;
     this.docs =
@@ -2214,6 +2229,9 @@ export class EditorStore {
       let singles = [...counts.entries()].filter(([, n]) => n === 1).map(([name]) => name);
       if (this.state.enzymeGroupIsoschizomers) singles = firstOfEachGroup(singles);
       shownEnzymes = new Set(singles.length > MAX_DEFAULT_ENZYMES ? [] : singles);
+      const seed = this.enzymeSeeds.get(target.documentId);
+      if (seed !== undefined) shownEnzymes = seed;
+      this.enzymeSeeds.delete(target.documentId);
       enzymesInitialized = true;
     }
     this.setDocument(target.documentId, { analysis, shownEnzymes, enzymesInitialized });

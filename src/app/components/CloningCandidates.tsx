@@ -7,6 +7,7 @@ import {
   type EnzymeEnd,
   type SeqDocument,
   cloningPrimerNames,
+  cloningSeed,
 } from '@/core';
 
 import { analytics } from '../analytics';
@@ -220,7 +221,10 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
   const openProduct = (): void => {
     if (product === null) return;
     analytics.track('primers', 'simulate-cloning');
-    editorStore.openDocument(product, null, [], { scratch: true });
+    editorStore.openDocument(product, null, [], {
+      scratch: true,
+      shownEnzymes: cloningSeed(forward.enzyme, reverse.enzyme),
+    });
     editorStore.setSidebarTab('features');
   };
   const saveBoth = (): void => {

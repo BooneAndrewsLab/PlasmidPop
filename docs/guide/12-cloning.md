@@ -365,7 +365,8 @@ you, and opens the plasmid they would make.
    as you would order it, new bases in upper case, with **Copy**.
 5. **Open mutant** opens the plasmid with the change made. It opens as the
    template renamed, with the change as its one edit, so the edit marks show
-   it and **Undo** takes it back.
+   it and **Undo** takes it back, and with the enzymes ticked in the
+   template's Enzymes tab ticked in the mutant's.
 
 A design that cannot reach its temperature within 60 bases says so.
 
@@ -391,7 +392,9 @@ The usual workflow is:
    and click **Assemble**.
 
 The product opens as a new circular or linear document carrying the parts'
-features; the shelf keeps its fragments. The product is kept in the browser
+features, with the enzymes the ligation joined on (those at the parts' ends)
+ticked in its Enzymes tab rather than every enzyme that cuts once; the shelf
+keeps its fragments. The product is kept in the browser
 like any other document; download it to get a file.
 
 For an insert that has no sites of its own to cut with, the primer
@@ -446,7 +449,10 @@ The panel works that out:
    whole and joins on the sticky ends it already has, which is what happens
    in the tube.
 5. Name the product if you like, then **Assemble**. It opens as a new
-   circular document with the parts' features.
+   circular document with the parts' features, and with the Type IIS enzyme
+   chosen above (and the second one, when set) ticked in its Enzymes tab. The
+   enzyme has no site left in the product, so nothing is marked until you tick
+   others. The Modular plan's products open the same way.
 
 When the parts assemble, the panel also checks the set of overhangs the
 product joins on, as a designer would, and lists what could make a ligase

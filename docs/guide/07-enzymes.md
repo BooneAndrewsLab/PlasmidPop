@@ -55,6 +55,17 @@ Below the list: how many enzymes cut, and how many do not cut at all.
   the N enzymes that cut once** if you want them after all; with a **Cuts**
   filter set, it offers those instead — **Tick the N enzymes that cut
   twice**.
+- A cloning product the app makes opens with just the enzymes the reaction
+  used ticked instead: the enzymes at the joined ends of a **Ligation**, the
+  two enzymes of a primer-workspace **Simulate** (cloning mode), the Type IIS
+  enzyme (and the second one, when set) of a **Golden Gate** or **Modular**
+  assembly, and the template's own ticks for a **mutagenesis** mutant. An
+  enzyme the product no longer cuts (BsaI after Golden Gate) is still ticked,
+  with nothing to mark. Gibson, PCR, Overlap PCR, Gateway, fragments,
+  back-translations and comparisons open with the default above. This only
+  sets the opening state: it is not saved in a file, is not an edit and
+  does not mark the document changed, and a product reopened from storage keeps
+  the ticks it was left with.
 - Tick or untick individual enzymes. **Show listed** ticks every enzyme
   currently in the (filtered) list, **Hide all** clears them. Show listed
   asks for a narrower list past 200 enzymes: more labels than that is more
