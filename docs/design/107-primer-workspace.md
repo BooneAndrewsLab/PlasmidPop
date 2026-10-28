@@ -5,7 +5,8 @@ Design pass for #300 (second round after note 93, #226); mockups in
 open points decided (2026-10-27); stage one built the same day (the shell,
 the slim tab, the Design page), stage two the day after (Results, Check
 and My primers redesigned, the map strip, #298's link; see **Built**
-below). What is left of #298 is its stage b, an issue of its own.
+below). #298's stage b, an in-app result (#302), was decided against on
+2026-10-28: see **Primer-BLAST** below.
 
 ## Decided
 
@@ -188,7 +189,7 @@ so the address is in the status bar before it is clicked, and its tooltip
 and the guide say what leaves the browser: the two oligos, in the URL,
 nothing until the click. The Spec. cell is "not checked" throughout —
 stage b (an in-app result, which needs a browser POST to `primertool.cgi`
-proven) is a follow-up issue. CLAUDE.md's third-party line says so.
+proven) is not planned; see the end of this note. CLAUDE.md's third-party line says so.
 
 **Check.** Two columns (`checkgrid`): the primer with its numbers as a
 line of labels, the broken settings as a list with the three dimer
@@ -248,3 +249,18 @@ Also on the Design page: the disabled Design primers button now says why
 
 The Design page's cloning mode (#303) is note 108: its engine
 (`core/cloning/cloningEnds.ts`) and what the page calls.
+
+## Primer-BLAST: the link stays (2026-10-28)
+
+#302, the Spec. cell filled in the app, is closed as not planned. Primer-BLAST
+has no documented API, so a result in the app means scraping an undocumented
+endpoint, and its jobs queue for an unpredictable time, which a cell meant to
+answer quickly cannot hide. NCBI's documented BLAST URL API has the same
+queue (10 s between requests, 60 s between polls of one job) and returns hits,
+not amplicons. UCSC In-Silico PCR gives amplicons but has no supported API;
+EBI's Job Dispatcher has a documented one but, as far as checked, no primer
+search. A service with a documented primer-amplicon API would be a backend,
+which is out of scope. The link, with the template taken from the record's own
+mRNA annotation (strand-aware) and the organism, database and product range
+filled in, is the supported route. The local "Elsewhere" filter already
+checks the document itself. Reopen #302 if NCBI documents an API.
