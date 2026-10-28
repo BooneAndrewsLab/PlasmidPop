@@ -184,9 +184,17 @@ or BamHI site in the CDS (checked), which is why EcoRI + BamHI will work.
 
 6. **Simulate** runs PCR on the record, the EcoRI + BamHI digests and the
    ligation into the vector's backbone, and opens the product as a new
-   document: **2,979 bp, circular**, carrying the vector's features and the
-   record's: `INS`, `insulin preproprotein`, `proinsulin`, `insulin B chain`,
-   `C-peptide`, `insulin A chain`. One EcoRI and one BamHI site, no PstI.
+   document: **2,979 bp, circular**. It carries the vector's features and the
+   record's annotation (`INS`, `insulin preproprotein`, `sig_peptide`,
+   `proinsulin`, `insulin B chain`, `C-peptide` and the exons), plus the two
+   primers as features, named after the record's feature
+   (`insulin_preproprotein-F-EcoRI`); the primer names above are labels for this
+   page.
+   The product opens with **every enzyme that cuts once ticked** (34 of them),
+   so its map is crowded with cut sites. To see only the two that matter, open
+   the Enzymes tab, **Hide all**, then tick **EcoRI** and **BamHI**: one site
+   each (EcoRI just before the `ATG`, BamHI just after the stop codon). PstI
+   does not cut this product at all.
 7. The check digest's ranking (the same function the Bench's **Check by
    digest** uses, product lane alone because the two-enzyme backbone cannot
    close) puts `MluI: 2,414 + 565 bp` first for this product. The Enzymes tab on
