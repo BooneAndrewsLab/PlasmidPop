@@ -1044,14 +1044,18 @@ export function designCloningEnds(
     (site.enzyme === pair.forward && site.siteStart === fTail.segments.padding.length) ||
     (site.enzyme === pair.reverse &&
       site.siteStart === amplicon.length - rTail.segments.padding.length - rPlan.site.bases.length);
-  const extra = findCutSites(amplicon, 'linear', [fEnzyme, rEnzyme]).filter((site) => {
-    if (intended(site)) return false;
-    const length = (lookup.get(site.enzyme) ?? fEnzyme).site.length;
-    const insideInsert =
-      site.siteStart >= insertBody.start && site.siteStart + length <= insertBody.end;
-    // Inside the insert it is the pair's `cutsInsert` already.
-    return !insideInsert;
-  });
+  // A cut the pair's `cutsInsert` already reported, in amplicon coordinates.
+  const reported = new Set(
+    [report.forward, report.reverse].flatMap((end) =>
+      end.insertCuts.map((cut) => `${end.enzyme}:${cut + insertBody.start}`),
+    ),
+  );
+  const extra = findCutSites(amplicon, 'linear', [fEnzyme, rEnzyme]).filter(
+    // A site wholly inside the insert is the pair's own `cutsInsert`, unless
+    // the insert's scan dropped it: a Type IIS site at the insert's edge
+    // whose cut falls outside the stretch, which here lands in the tail.
+    (site) => !intended(site) && !reported.has(`${site.enzyme}:${site.cut}`),
+  );
   for (const site of extra) {
     warnings.push({
       kind: 'extraSite',

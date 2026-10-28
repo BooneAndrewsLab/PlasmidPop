@@ -62,12 +62,15 @@ make.
    them; after 256 draws the first stands and a `junctionSite` caution
    says so.
 6. **After the design** the expected amplicon is scanned for both enzymes:
-   a site beyond the two intended that is not wholly inside the insert
-   (where it is the pair's own `cutsInsert`) is an `extraSite` warning in
-   red, since the digest will cut there. A site that the vector's site and
-   the insert's own first or last bases happen to spell cannot be padded
-   away; it is reported, and `simulate` shows the cut. The reading-frame
-   check, Golden Gate and blunt/sticky mixes stay out of scope.
+   a cut beyond the two intended that the pair's own `cutsInsert` did not
+   already report is an `extraSite` warning in red, since the digest will
+   cut there. A site that the vector's site and the insert's own first or
+   last bases happen to spell cannot be padded away; it is reported, and
+   `simulate` shows the cut. So is a Type IIS site at the insert's edge
+   whose cut falls in the tail, which the insert's own linear scan drops
+   (`findCutSites` keeps no cut outside a linear molecule). The
+   reading-frame check, Golden Gate and blunt/sticky mixes stay out of
+   scope.
 7. **Results** (`designCloningResults`): the picked pair and up to five
    other usable pairs in the suggestions' rank, each a `CloningDesign`
    with both primers (segments kept apart for the page's styling: padding,

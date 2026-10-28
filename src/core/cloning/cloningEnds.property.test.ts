@@ -327,7 +327,15 @@ describe('cloning ends (property)', () => {
             : { forward: lowerName, reverse: higherName };
           const design = designCloningEnds(ctx, pair);
           expect(design.problem).toBeNull();
-          expect(design.pair.issues.map((i) => i.kind)).toEqual(['typeIIS']);
+          // BsaI's overhang is whatever four bases the vector has there, and
+          // now and then they are the other enzyme's (AATT beside EcoRI):
+          // not directional, but the forward placement still ligates.
+          const kinds = design.pair.issues.map((i) => i.kind).filter((k) => k !== 'compatibleEnds');
+          expect(kinds).toEqual(['typeIIS']);
+          // The copied overhang and the insert's own bases can spell the
+          // other enzyme's site (TTGA + ATTC... is GAATTC): said in red, and
+          // the digest then cuts there, so the construction below is off.
+          if (design.warnings.some((w) => w.kind === 'extraSite')) return;
           const iisPrimer = design.forward.enzyme === 'BsaI' ? design.forward : design.reverse;
           expect(iisPrimer.segments.site).toBe('GGTCTC');
           expect(iisPrimer.segments.spacer).toHaveLength(5);
