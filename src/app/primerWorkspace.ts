@@ -1,7 +1,4 @@
-import { type Range, featureExtent } from '@/core';
-
 import { analytics } from './analytics';
-import { type NcbiFetched, geneFeature, openFetched } from './openFromNcbi';
 import { editorStore } from './state/editorStore';
 import { recallPanel, rememberPanel } from './state/panelMemory';
 
@@ -68,40 +65,4 @@ export function takeFocusRequest(): boolean {
   const wanted = focusWanted;
   focusWanted = false;
   return wanted;
-}
-
-/**
- * The stretch the fetched gene itself covers in its record, flanks left
- * out: the `gene` feature NCBI annotated, which both the RefSeqGene and the
- * chromosome paths carry. Without one (a record with no annotation) the
- * whole record is the target, flanks and all.
- */
-export function geneTarget(fetched: NcbiFetched): Range | null {
-  const doc = fetched.documents[fetched.documents.length - 1];
-  if (doc === undefined) return null;
-  if (fetched.source.kind !== 'gene') return { start: 0, end: doc.length };
-  const feature = geneFeature(doc, fetched.source.gene.symbol);
-  const extent = feature === null ? null : featureExtent(feature);
-  return extent ?? { start: 0, end: doc.length };
-}
-
-/**
- * "Gene from NCBI…" on the Design page (item 107, #299): the fetched gene
- * opens as a document of its own — a design needs a template, and the
- * flanks are where the primers may lie — and the workspace follows it
- * there with the gene selected as the target. So one tab, open on Design,
- * with the band already on the map: the least surprising reading of
- * "design primers for this gene".
- */
-export function designForFetchedGene(fetched: NcbiFetched): void {
-  const target = geneTarget(fetched);
-  const ids = openFetched(fetched);
-  const id = ids[ids.length - 1];
-  if (id === undefined) return;
-  rememberWorkspacePage(id, 'design');
-  if (target !== null) {
-    editorStore.setSelection(target);
-    editorStore.revealPosition(target.start);
-  }
-  editorStore.setPrimerWorkspace(true);
 }

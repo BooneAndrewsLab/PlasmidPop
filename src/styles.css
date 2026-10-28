@@ -6077,12 +6077,10 @@ button {
   font-weight: 600;
 }
 
-.ws__ncbi {
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  max-width: 560px;
+.ws__actions-why {
+  margin-left: 10px;
+  color: var(--ink-3);
+  font-size: 12.5px;
 }
 
 .ws .primer-settings {

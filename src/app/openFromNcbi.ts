@@ -301,8 +301,8 @@ export async function fetchRegionFromNcbi(
 }
 
 /** The gene feature of `symbol` in a record, else its only gene feature, else null. */
-/** The `gene` feature named `symbol`, or the record's only one; what the primer workspace targets too (item 107). */
-export function geneFeature(doc: SeqDocument, symbol: string): Feature | null {
+/** The `gene` feature named `symbol`, or the record's only one. */
+function geneFeature(doc: SeqDocument, symbol: string): Feature | null {
   const genes = doc.features.all().filter((f) => f.type === 'gene');
   const named = genes.find(
     (f) => (firstQualifier(f, 'gene') ?? f.name).toUpperCase() === symbol.toUpperCase(),

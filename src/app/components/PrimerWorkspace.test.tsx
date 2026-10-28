@@ -454,6 +454,26 @@ describe('the workspace shell (item 107)', () => {
     expect(screen.getByText('11–20').closest('p')?.textContent).toBe('11–20 · 10 bp');
   });
 
+  it('says why Design primers is disabled, and drops the reason once there is a target', () => {
+    open();
+    const button = screen.getByRole('button', { name: 'Design primers' });
+    expect(button).toBeDisabled();
+    expect(screen.getByText('Select a region or pick a feature')).toBeInTheDocument();
+    expect(button).toHaveAccessibleDescription('Select a region or pick a feature');
+    act(() => {
+      editorStore.setSelection({ start: 250, end: 350 });
+    });
+    expect(button).toBeEnabled();
+    expect(screen.queryByText('Select a region or pick a feature')).toBeNull();
+  });
+
+  it('offers Selection and Feature as targets, and no gene lookup', () => {
+    open();
+    expect(screen.getByRole('button', { name: 'Selection' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Feature' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Gene from NCBI/ })).toBeNull();
+  });
+
   it('follows the selection live on Design, and draws the search windows around it', () => {
     open();
     expect(screen.getByText(/Nothing selected/)).toBeInTheDocument();

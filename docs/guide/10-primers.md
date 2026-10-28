@@ -54,24 +54,21 @@ it folded.
 
 1. Select the region to amplify in either view, through the origin of a
    circle too: the Design page gives the target as the status bar does,
-   `591–20 · 30 bp` on a 600 bp plasmid. **Target** offers three ways of
+   `591–20 · 30 bp` on a 600 bp plasmid. **Target** offers two ways of
    choosing it:
    - **Selection**: whatever is selected, live — click the map or the
      sequence and the target follows. When the selection is exactly a
      feature, its name is given (`lacZα 146–469 · 324 bp · reverse strand`).
    - **Feature**: pick one of the document's features from a list; it is
      selected for you. A later click elsewhere takes over, as above.
-   - **Gene from NCBI…**: look a gene up by name and organism, as in
-     [File ▸ Open from NCBI…](02-files.md#opening-a-record-from-ncbi), with the flanks
-     you want to design in. The record opens in a tab of its own and the
-     workspace follows it there, with the gene selected as the target and
-     the flanks around it.
 
    While a target is selected, the two stretches the designer will search —
    the forward primer's window before it and the reverse primer's after it,
    as **Settings** sets them — are drawn in the views as previews.
 
-2. Click **Design primers**. The workspace goes to **Results**.
+2. Click **Design primers**. The workspace goes to **Results**. Until
+   something is selected the button is off, with "Select a region or pick a
+   feature" beside it to say why.
 3. Up to ten pairs are listed in a table, best first: the rank (**#**),
    the product size, the Tm difference (**ΔTm**), then each primer's bases
    5′→3′ with its Tm and GC content, and **Spec.**, the pair's specificity

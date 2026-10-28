@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import {
   type Feature,
@@ -9,20 +9,18 @@ import {
   isEmptyRange,
 } from '@/core';
 
-import { designForFetchedGene } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { useRemembered } from '../state/panelMemory';
 import { useEditorState } from '../state/useEditorStore';
-import { NcbiSearch } from './NcbiSearch';
 import { type PrimerDesign } from './primerDesign';
 import { PrimerSettings } from './PrimerSettings';
 
 /**
- * How the target is being chosen (item 107, #299). The target itself is
- * always the selection, so the map stays live: Feature and Gene are two
- * ways of setting it, and a click on the map takes over from either.
+ * How the target is being chosen (item 107). The target itself is always
+ * the selection, so the map stays live: Feature is a second way of setting
+ * it, and a click on the map takes over.
  */
-type TargetMode = 'selection' | 'feature' | 'gene';
+type TargetMode = 'selection' | 'feature';
 
 function sameRange(a: Range, b: Range): boolean {
   return a.start === b.start && a.end === b.end;
@@ -88,11 +86,6 @@ export function PrimerDesignPage({ doc, design, onDesigned, onResults }: Props) 
         <div className="segmented segmented--small" role="group" aria-labelledby="ws-target-label">
           {chooser('selection', 'Selection', 'The current selection, live')}
           {chooser('feature', 'Feature', 'Pick a feature of this document')}
-          {chooser(
-            'gene',
-            'Gene from NCBI…',
-            'Look a gene up by name and organism (NCBI), then design for it',
-          )}
         </div>
         {mode === 'feature' && (
           <select
@@ -127,33 +120,13 @@ export function PrimerDesignPage({ doc, design, onDesigned, onResults }: Props) 
           )}
         </p>
       </div>
-      {mode === 'gene' && (
-        <div
-          className="ws__ncbi"
-          onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-            // The search answers Escape itself (back to the selection); the
-            // workspace must not take that as its own cue to shut.
-            if (e.key === 'Escape') e.preventDefault();
-          }}
-        >
-          <NcbiSearch
-            initialMode="gene"
-            onFetched={designForFetchedGene}
-            onOpened={() => {
-              setMode('selection');
-            }}
-            onCancel={() => {
-              setMode('selection');
-            }}
-          />
-        </div>
-      )}
       <PrimerSettings criteria={primerCriteria} />
       <div className="ws__actions">
         <button
           type="button"
           className="button button--primary"
           disabled={!hasTarget}
+          aria-describedby={hasTarget ? undefined : 'ws-design-why'}
           data-tip="Design up to ten pairs for the target"
           onClick={() => {
             if (!hasTarget) return;
@@ -163,6 +136,11 @@ export function PrimerDesignPage({ doc, design, onDesigned, onResults }: Props) 
         >
           Design primers
         </button>
+        {!hasTarget && (
+          <span className="ws__actions-why" id="ws-design-why">
+            Select a region or pick a feature
+          </span>
+        )}
       </div>
       {pairs !== null && (
         <p className="ws__last">

@@ -18,7 +18,8 @@ below). What is left of #298 is its stage b, an issue of its own.
   single reusable component (today's accession field in
   `NcbiDialog.tsx`, grown by #299 into an autocomplete gene search by name
   and organism, with flanks). It is hosted by File ▸ Open from NCBI… and by
-  the Design page's "Gene from NCBI…" target (#299), and behaves
+  the Design page's "Gene from NCBI…" target (#299, withdrawn 2026-10-27,
+  see "Withdrawn" below), and behaves
   identically in both: same autocomplete, pick list for ambiguous names,
   flank controls, privacy wording, progress, cancel and errors. It owns the
   request lifecycle and takes the host's reaction as props (what happens
@@ -132,11 +133,11 @@ target nor the shown pair's product — an empty selection counts as no
 change, since Escape on the map and the product being given back on close
 are not new targets.
 
-**The target chooser.** The target is always the selection; Feature and
-Gene are ways of setting it. Choosing a feature selects its extent and the
+**The target chooser.** The target is always the selection; Feature is
+another way of setting it (Gene, below, was withdrawn). Choosing a feature selects its extent and the
 line names it while the selection is exactly a feature's; a later click on
 the map takes over without the chooser having to be reset. **Gene from
-NCBI… opens the record as a tab**: a design needs a template and the flanks
+NCBI… opened the record as a tab (withdrawn, see below)**: a design needs a template and the flanks
 are where the primers may lie, so the fetched gene cannot be a target of
 the document in front. `designForFetchedGene` opens the tab (`openFetched`),
 selects the `gene` feature NCBI annotated (`geneTarget`; the whole record
@@ -229,3 +230,18 @@ could not reach this host's dev server (Chrome's error page for both
 `localhost` and `127.0.0.1`), so the stage-two layouts, like stage one's,
 were checked through the DOM in tests and the renderer through
 `SvgContext`, not by eye.
+
+## Withdrawn: the Design page's "Gene from NCBI…" target
+
+Withdrawn 2026-10-27 (maintainer). Designing plain primers on a gene
+fetched into a new tab, while a plasmid is open, does nothing for cloning.
+The gene comes back later as the insert source of the restriction-cloning
+designer (#303). Removed: the third target option, `geneTarget` and
+`designForFetchedGene` (and their tests), the `.ws__ncbi` style, and the
+export of `geneFeature` (still used inside `openFromNcbi.ts`). Kept: the
+shared `NcbiSearch` with its gene lookup (File ▸ Open from NCBI, #299) and
+its generic `onFetched` host prop. The history above stays as it was
+decided.
+
+Also on the Design page: the disabled Design primers button now says why
+("Select a region or pick a feature") instead of being silently off.
