@@ -308,6 +308,7 @@ describe('the Design page’s cloning mode (#303)', () => {
     expect(state.documentId).not.toBe(vectorId);
     const product = state.documents.find((d) => d.documentId === state.documentId)?.history.present;
     expect(product?.name).toBe(`${pUC19.name}-Axl2p`);
+    expect(state.scratch).toBe(true);
     expect(product?.topology).toBe('circular');
     expect(product?.length).toBeGreaterThan(pUC19.length);
     expect(state.sidebarTab).toBe('features');
@@ -367,6 +368,8 @@ describe('the Design page’s cloning mode (#303)', () => {
       expect(state.documents.some((d) => d.history.present.name === 'ACT1 (NM_001179927.3)')).toBe(
         true,
       );
+      // Fetched for the primers, not asked for as a document (item 110).
+      expect(state.documents.filter((d) => d.scratch).length).toBe(1);
       expect(screen.getByRole('status')).toHaveTextContent(
         'Fetched ACT1 (NM_001179927.3) and opened it as a tab; its ACT1 feature is the insert.',
       );

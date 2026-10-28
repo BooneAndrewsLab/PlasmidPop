@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 
 import { persistence } from './persistence';
 import { useRestoreSession } from './usePersistence';
@@ -47,5 +47,29 @@ describe('useRestoreSession (#101)', () => {
       vi.restoreAllMocks();
     }
     expect(loose).toEqual([]);
+  });
+
+  it('removes unkept documents past their time once the session is back, and only then (item 110)', async () => {
+    const order: string[] = [];
+    vi.spyOn(persistence, 'restoreEnzymeSet').mockResolvedValue();
+    vi.spyOn(persistence, 'restoreFidelityTable').mockResolvedValue();
+    vi.spyOn(persistence, 'restoreLastSession').mockImplementation(() => {
+      order.push('restore');
+      return Promise.resolve(false);
+    });
+    vi.spyOn(persistence, 'pruneScratch').mockImplementation(() => {
+      order.push('prune');
+      return Promise.resolve(0);
+    });
+    const view = render(<Probe />);
+    await waitFor(() => {
+      expect(order).toContain('prune');
+    });
+    // Each removal comes after a restore, never before the tabs are back.
+    order.forEach((step, i) => {
+      if (step === 'prune') expect(order[i - 1]).toBe('restore');
+    });
+    view.unmount();
+    vi.restoreAllMocks();
   });
 });

@@ -55,6 +55,8 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
   const {
     selection,
     derived,
+    scratch,
+    documentId,
     showComplement,
     showTranslations,
     translationScope,
@@ -167,6 +169,16 @@ export function FileMenu({ doc, onOpenFile, onCompare }: Props) {
             </Item>
           )}
           <div className="menu__separator" role="separator" />
+          {scratch && (
+            <Item
+              tip="This document was made along the way and goes after a while. Keep it under Recent files."
+              onClick={run(() => {
+                if (documentId !== null) report(persistence.keepStored([documentId]));
+              })}
+            >
+              Keep this document
+            </Item>
+          )}
           <Item
             shortcut="Ctrl+S"
             tip={

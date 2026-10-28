@@ -19,6 +19,7 @@ import {
 import { parseGenBank, writeGenBank } from '@/io';
 
 import {
+  type DocumentKind,
   type PlasmidPopDb,
   type StoredDocument,
   ENZYME_SET_ID,
@@ -33,6 +34,7 @@ import {
   encodeHistory,
 } from './historyCodec';
 import { type StoredHistory, isStoredHistory } from './historyFormat';
+import { expiredScratch } from './scratch';
 
 const LAST_DOCUMENT_KEY = 'plasmidpop.lastDocument';
 const OPEN_DOCUMENTS_KEY = 'plasmidpop.openDocuments';
@@ -53,6 +55,12 @@ const MAX_PENDING_CHARS = 1_500_000;
 export interface DocumentProvenance {
   readonly origin: { readonly fileName: string; readonly doc: SeqDocument } | null;
   readonly derived: boolean;
+  /**
+   * `scratch` for a document the app made and the user has not yet kept
+   * (item 110); absent reads as `file`. A stored row that is kept stays
+   * kept whatever this says (`write`).
+   */
+  readonly kind?: DocumentKind;
 }
 
 const NO_PROVENANCE: DocumentProvenance = { origin: null, derived: false };
@@ -70,6 +78,7 @@ interface PendingDocument {
   text: string;
   now: number;
   read?: SequencingRead;
+  scratch?: true;
 }
 
 function isPendingDocument(v: unknown): v is PendingDocument {
@@ -82,6 +91,7 @@ function isPendingDocument(v: unknown): v is PendingDocument {
 
 /** A stored document read back, with what is known about where it came from. */
 export interface StoredLoad extends DocumentProvenance {
+  readonly kind: DocumentKind;
   readonly doc: SeqDocument;
   readonly fileName: string | null;
   /**
@@ -108,6 +118,7 @@ export interface DocumentSummary {
   readonly topology: StoredDocument['topology'];
   readonly alphabet: Alphabet;
   readonly featureCount: number;
+  readonly kind: DocumentKind;
   readonly updatedAt: number;
 }
 
@@ -213,12 +224,18 @@ export class DocumentRepository {
     return this.db.transaction('rw', this.db.documents, this.db.histories, async () => {
       const existing = await this.db.documents.get(id);
       if (!isCurrent()) return false;
+      // Kept is one way: a row that is kept (or from before kinds) is not
+      // made scratch again by a tab that has not heard it was kept.
+      const kind: DocumentKind =
+        provenance.kind === 'scratch' && (existing === undefined || existing.kind === 'scratch')
+          ? 'scratch'
+          : 'file';
       await this.db.documents.put(
         this.documentRow(
           id,
           doc,
           fileName,
-          provenance,
+          { ...provenance, kind },
           text,
           originText,
           existing?.createdAt ?? now,
@@ -254,6 +271,7 @@ export class DocumentRepository {
       topology: doc.topology,
       ...(doc.isProtein ? { alphabet: 'protein' as const } : {}),
       featureCount: doc.features.size,
+      kind: provenance.kind ?? 'file',
       createdAt,
       updatedAt: now,
       ...(origin === null || originText === null
@@ -276,11 +294,19 @@ export class DocumentRepository {
    * reads instead (`loadPending`). Best effort: a document too large for
    * localStorage, or no room left in it, is simply not stashed.
    */
-  stash(id: string, fileName: string | null, doc: SeqDocument, text: string, now: number): void {
+  stash(
+    id: string,
+    fileName: string | null,
+    doc: SeqDocument,
+    text: string,
+    now: number,
+    scratch = false,
+  ): void {
     if (text.length > MAX_PENDING_CHARS) return;
     try {
       const pending: PendingDocument = { name: doc.name, fileName, text, now };
       if (doc.read !== null) pending.read = doc.read;
+      if (scratch) pending.scratch = true;
       globalThis.localStorage.setItem(PENDING_PREFIX + id, JSON.stringify(pending));
     } catch {
       // Over quota, or no localStorage: IndexedDB alone, as before.
@@ -311,7 +337,9 @@ export class DocumentRepository {
    * write (the page went before the write could say so) is no newer than it.
    * Gives the document and file name; the caller keeps the stored provenance.
    */
-  async loadPending(id: string): Promise<{ doc: SeqDocument; fileName: string | null } | null> {
+  async loadPending(
+    id: string,
+  ): Promise<{ doc: SeqDocument; fileName: string | null; kind: DocumentKind } | null> {
     const raw = this.stashed(id);
     if (raw === null) return null;
     try {
@@ -322,7 +350,11 @@ export class DocumentRepository {
       const parsed = parseGenBank(pending.text).documents[0];
       if (parsed === undefined) return null;
       const doc = withStoredRead(parsed, pending.read);
-      return { doc: doc.rename(pending.name), fileName: pending.fileName };
+      return {
+        doc: doc.rename(pending.name),
+        fileName: pending.fileName,
+        kind: pending.scratch === true ? 'scratch' : 'file',
+      };
     } catch {
       return null;
     }
@@ -413,6 +445,7 @@ export class DocumentRepository {
     return {
       doc: doc.rename(stored.name),
       fileName: stored.fileName,
+      kind: stored.kind ?? 'file',
       origin,
       derived: stored.derived ?? false,
       history: () => restore().history,
@@ -461,7 +494,8 @@ export class DocumentRepository {
       id,
       renamed,
       stored.fileName,
-      { origin: stored.origin, derived: stored.derived },
+      // A rename is the user's own work on it: the document is kept.
+      { origin: stored.origin, derived: stored.derived, kind: 'file' },
       kept === null
         ? null
         : {
@@ -499,7 +533,7 @@ export class DocumentRepository {
   async list(): Promise<DocumentSummary[]> {
     const all = await this.db.documents.orderBy('updatedAt').reverse().toArray();
     return all.map(
-      ({ id, name, fileName, length, topology, alphabet, featureCount, updatedAt }) => ({
+      ({ id, name, fileName, length, topology, alphabet, featureCount, kind, updatedAt }) => ({
         id,
         name,
         fileName,
@@ -507,9 +541,32 @@ export class DocumentRepository {
         topology,
         alphabet: alphabet ?? 'nucleotide',
         featureCount,
+        kind: kind ?? 'file',
         updatedAt,
       }),
     );
+  }
+
+  /** Keeps scratch documents (item 110), without touching their times; gives how many rows there were to keep. */
+  async keep(ids: readonly string[]): Promise<number> {
+    let kept = 0;
+    await this.db.transaction('rw', this.db.documents, async () => {
+      for (const id of ids) {
+        kept += await this.db.documents.update(id, { kind: 'file' });
+      }
+    });
+    return kept;
+  }
+
+  /**
+   * Removes the scratch documents that have outlived `SCRATCH_LIFETIME_DAYS`
+   * (item 110), except those in `openIds`, and gives how many went. Kept
+   * rows are never looked at beyond their kind.
+   */
+  async pruneScratch(openIds: ReadonlySet<string>, now: number = Date.now()): Promise<number> {
+    const expired = expiredScratch(await this.list(), now, openIds);
+    for (const id of expired) await this.remove(id);
+    return expired.length;
   }
 
   /** Deletes a document and its undo history; closing a tab deletes neither. */

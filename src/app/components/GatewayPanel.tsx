@@ -119,7 +119,7 @@ export function GatewayPanel() {
       insert === undefined || vector === undefined
         ? doc
         : recordGateway(doc, insert, vector, reaction, doc === result?.byproduct);
-    editorStore.openDocument(made);
+    editorStore.openDocument(made, null, [], { scratch: true });
     editorStore.setSidebarTab('features');
   };
 

@@ -78,6 +78,12 @@ describe('ModularPanel (#214)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Assemble all 2' }));
     });
     expect(editorStore.getState().documents.length).toBe(before + 2);
+    expect(
+      editorStore
+        .getState()
+        .documents.slice(before)
+        .every((d) => d.scratch),
+    ).toBe(true);
   });
 
   it('says which parts it could not place, and takes a position by hand', () => {

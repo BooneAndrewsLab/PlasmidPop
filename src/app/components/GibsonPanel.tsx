@@ -121,6 +121,9 @@ export function GibsonPanel() {
         circular,
         overlap: minOverlap,
       }),
+      null,
+      [],
+      { scratch: true },
     );
     editorStore.setSidebarTab('features');
     setName('');

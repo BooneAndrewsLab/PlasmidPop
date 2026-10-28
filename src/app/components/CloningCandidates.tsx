@@ -220,7 +220,7 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
   const openProduct = (): void => {
     if (product === null) return;
     analytics.track('primers', 'simulate-cloning');
-    editorStore.openDocument(product);
+    editorStore.openDocument(product, null, [], { scratch: true });
     editorStore.setSidebarTab('features');
   };
   const saveBoth = (): void => {

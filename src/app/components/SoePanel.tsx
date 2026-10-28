@@ -137,7 +137,7 @@ export function SoePanel() {
   const open = (): void => {
     if (recorded === null) return;
     analytics.track('cloning', 'soe');
-    editorStore.openDocument(recorded);
+    editorStore.openDocument(recorded, null, [], { scratch: true });
     editorStore.setSidebarTab('features');
   };
   const save = (): void => {

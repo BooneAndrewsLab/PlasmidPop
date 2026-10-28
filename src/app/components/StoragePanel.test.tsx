@@ -14,6 +14,7 @@ const summary = (updatedAt: number) => ({
   topology: 'linear' as const,
   alphabet: 'nucleotide' as const,
   featureCount: 0,
+  kind: 'file' as const,
   updatedAt,
 });
 

@@ -30,6 +30,14 @@ export interface StoredOrigin {
   readonly read?: SequencingRead;
 }
 
+/**
+ * What a stored document is to the user (item 110): a `file` is theirs to
+ * keep, a `scratch` document is something the app made on the way to one (a
+ * cloning product, a fragment, a record fetched for primer design) that
+ * goes after a while unless it is kept.
+ */
+export type DocumentKind = 'file' | 'scratch';
+
 export interface StoredDocument {
   readonly id: string;
   readonly name: string;
@@ -41,6 +49,8 @@ export interface StoredDocument {
   /** 'protein' for a protein (#66); absent for DNA, and in every row from before proteins. */
   readonly alphabet?: 'protein';
   readonly featureCount: number;
+  /** Absent in every row from before scratch documents, which are all kept (a `file`). */
+  readonly kind?: DocumentKind;
   readonly createdAt: number;
   readonly updatedAt: number;
   /** The file this document was forked from, when it is a working copy. */
@@ -274,6 +284,21 @@ export class PlasmidPopDb extends Dexie {
     this.version(12).stores({
       myParts: 'id, addedAt',
     });
+    // Version 13 marks scratch documents (item 110). Every row already
+    // stored is the user's, and now says so, so none is ever swept up by the
+    // removal of scratch rows.
+    this.version(13)
+      .stores({
+        documents: 'id, updatedAt, name, checksum, kind',
+      })
+      .upgrade((tx) =>
+        tx
+          .table<StoredDocument, string>('documents')
+          .toCollection()
+          .modify((row: { kind?: DocumentKind }) => {
+            row.kind ??= 'file';
+          }),
+      );
   }
 }
 

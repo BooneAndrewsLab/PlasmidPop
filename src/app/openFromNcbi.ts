@@ -418,9 +418,15 @@ async function fetchFromRefSeqGene(
 
 /**
  * Opens each fetched document in a tab of its own, the last in front with
- * the warnings, returning their ids.
+ * the warnings, returning their ids. A host that fetches a record for its
+ * own purpose (the primer workspace's template, item 110) opens it as
+ * `scratch`: the user did not ask for the document, so it is not kept
+ * until they use it. File ▸ Open from NCBI keeps what it fetches.
  */
-export function openFetched(fetched: NcbiFetched): readonly string[] {
+export function openFetched(
+  fetched: NcbiFetched,
+  options: { readonly scratch?: boolean } = {},
+): readonly string[] {
   const ids: string[] = [];
   const { documents, warnings } = fetched;
   documents.forEach((doc, i) => {
@@ -431,7 +437,7 @@ export function openFetched(fetched: NcbiFetched): readonly string[] {
     const id = editorStore.openParsed(
       { format: 'genbank', documents: [doc], warnings: last ? warnings : [] },
       fetched.fileName(doc),
-      { origin: null },
+      { origin: null, scratch: options.scratch === true },
     );
     if (id !== null) ids.push(id);
   });

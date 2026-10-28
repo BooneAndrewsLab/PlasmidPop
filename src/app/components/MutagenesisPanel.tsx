@@ -279,8 +279,13 @@ export function MutagenesisPanel({ doc }: { readonly doc: SeqDocument }) {
     // The mutant opens as the template renamed, with the change as its one
     // edit: the edit marks show it and Undo takes it back. It carries what
     // it was made from, recorded for the mutant (#67).
-    editorStore.openDocument(recordMutagenesis(doc, design, `${doc.name} ${design.label}`));
-    editorStore.apply(design.edit);
+    editorStore.openDocument(
+      recordMutagenesis(doc, design, `${doc.name} ${design.label}`),
+      null,
+      [],
+      { scratch: true },
+    );
+    editorStore.apply(design.edit, undefined, undefined, undefined, false);
     editorStore.setSidebarTab('features');
   };
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { formatLength } from '@/core';
-import { type DocumentSummary } from '@/storage';
+import { type DocumentSummary, SCRATCH_LIFETIME_DAYS, expiringScratch } from '@/storage';
 
 import { EXAMPLES } from '../examples';
 import { openExample, openPastedText } from '../openFile';
@@ -35,6 +35,8 @@ function isTextField(target: EventTarget | null): boolean {
 export function EmptyState() {
   const example = EXAMPLES[0];
   const [recent, setRecent] = useState<DocumentSummary[] | null>(null);
+  // When the listing was read, which the notice about documents going soon is judged by.
+  const [listedAt, setListedAt] = useState(() => Date.now());
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const { documents } = useEditorState();
   const openIds = new Set(documents.map((d) => d.documentId));
@@ -47,7 +49,9 @@ export function EmptyState() {
     persistence
       .listStored()
       .then((list) => {
-        if (mounted.current) setRecent(list);
+        if (!mounted.current) return;
+        setListedAt(Date.now());
+        setRecent(list);
       })
       .catch(() => {
         if (mounted.current) setRecent([]);
@@ -56,7 +60,12 @@ export function EmptyState() {
 
   useEffect(() => {
     mounted.current = true;
-    refresh();
+    // Scratch documents past their time go as the page loads, before it lists
+    // them (item 110); a failure only leaves them for the next load.
+    void persistence
+      .pruneScratch()
+      .catch(() => 0)
+      .then(refresh);
     return () => {
       mounted.current = false;
     };
@@ -79,6 +88,16 @@ export function EmptyState() {
 
   const report = (p: Promise<unknown>): void => {
     p.then(refresh).catch((e: unknown) => {
+      editorStore.fail(e instanceof Error ? e.message : String(e));
+    });
+  };
+
+  const kept = (recent ?? []).filter((d) => d.kind === 'file');
+  const unkept = (recent ?? []).filter((d) => d.kind === 'scratch');
+  const expiring = expiringScratch(unkept, listedAt, openIds);
+
+  const open = (id: string): void => {
+    persistence.openStored(id).catch((e: unknown) => {
       editorStore.fail(e instanceof Error ? e.message : String(e));
     });
   };
@@ -152,11 +171,29 @@ export function EmptyState() {
           .
         </p>
       </div>
-      {recent !== null && recent.length > 0 && (
+      {expiring !== null && (
+        <p className="recent__notice" role="status">
+          {expiring.ids.length === 1
+            ? '1 unkept document'
+            : `${expiring.ids.length.toString()} unkept documents`}{' '}
+          will be removed from this browser as early as{' '}
+          {new Date(expiring.firstAt).toLocaleDateString()}.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              report(persistence.keepStored(expiring.ids));
+            }}
+          >
+            Keep {expiring.ids.length === 1 ? 'it' : 'them'}
+          </button>
+        </p>
+      )}
+      {kept.length > 0 && (
         <section className="recent" aria-label="Recent files">
           <h2 className="recent__title">Recent files</h2>
           <ul className="recent__list">
-            {recent.map((d) => (
+            {kept.map((d) => (
               <li key={d.id} className="recent__item">
                 {renamingId === d.id ? (
                   <InlineRename
@@ -175,9 +212,7 @@ export function EmptyState() {
                     type="button"
                     className="recent__open"
                     onClick={() => {
-                      persistence.openStored(d.id).catch((e: unknown) => {
-                        editorStore.fail(e instanceof Error ? e.message : String(e));
-                      });
+                      open(d.id);
                     }}
                   >
                     <span className="recent__name">
@@ -220,6 +255,72 @@ export function EmptyState() {
             ))}
           </ul>
         </section>
+      )}
+      {unkept.length > 0 && (
+        <details className="recent recent--unkept" aria-label="Unkept documents">
+          <summary className="recent__title">Unkept ({unkept.length})</summary>
+          <p className="recent__note">
+            Made along the way by cloning, PCR and the like, or fetched for primer design. They are
+            removed {SCRATCH_LIFETIME_DAYS} days after you last touched them unless you keep them;
+            editing, renaming or downloading one keeps it too.{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                report(persistence.keepStored(unkept.map((d) => d.id)));
+              }}
+            >
+              Keep all
+            </button>
+          </p>
+          <ul className="recent__list">
+            {unkept.map((d) => (
+              <li key={d.id} className="recent__item">
+                <button
+                  type="button"
+                  className="recent__open"
+                  onClick={() => {
+                    open(d.id);
+                  }}
+                >
+                  <span className="recent__name">
+                    <span className="recent__title-text">{d.name}</span>
+                    {openIds.has(d.id) && (
+                      <span className="recent__badge" data-tip="Open in a tab">
+                        open
+                      </span>
+                    )}
+                  </span>
+                  <span className="recent__meta">
+                    {formatLength(d.length, d.alphabet)},{' '}
+                    {d.alphabet === 'protein' ? 'protein' : d.topology}, {d.featureCount} features
+                  </span>
+                  <span className="recent__when">{formatWhen(d.updatedAt)}</span>
+                </button>
+                <button
+                  type="button"
+                  className="button button--quiet button--small"
+                  data-tip="Keep this document: it stays under Recent files"
+                  onClick={() => {
+                    report(persistence.keepStored([d.id]));
+                  }}
+                >
+                  Keep
+                </button>
+                <button
+                  type="button"
+                  className="button button--quiet button--small"
+                  data-tip="Remove from this browser's storage"
+                  onClick={() => {
+                    report(persistence.removeStored(d.id));
+                  }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
       <StoragePanel documents={recent ?? []} onChanged={refresh} />
     </div>

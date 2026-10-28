@@ -283,7 +283,7 @@ export function ModularPanel() {
       'modular-assemble',
       standard?.bundled === true ? standard.id : 'custom',
     );
-    editorStore.openDocument(recordGoldenGate(p.assembly, names));
+    editorStore.openDocument(recordGoldenGate(p.assembly, names), null, [], { scratch: true });
     editorStore.setSidebarTab('features');
   };
 

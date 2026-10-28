@@ -2048,6 +2048,23 @@ button {
   color: var(--ink-2);
 }
 
+.recent__notice,
+.recent__note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.recent__notice {
+  width: 100%;
+  max-width: 34rem;
+  margin-top: 28px;
+}
+
+.recent--unkept > summary {
+  cursor: pointer;
+}
+
 .recent__list {
   list-style: none;
   margin: 0;
@@ -2178,6 +2195,10 @@ button {
 /* A closable tab's name gives up its right-hand padding to the close button. */
 .doctabs__name:has(+ .doctabs__close) {
   padding-right: 4px;
+}
+
+.doctabs__name--unkept {
+  font-style: italic;
 }
 
 .doctabs__dirty {

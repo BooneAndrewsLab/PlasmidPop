@@ -213,7 +213,7 @@ function shelve(made: SeqDocument, phosphorylated: boolean): void {
 
 function openProduct(doc: SeqDocument): void {
   analytics.track('cloning', 'pcr');
-  editorStore.openDocument(doc);
+  editorStore.openDocument(doc, null, [], { scratch: true });
   editorStore.setSidebarTab('features');
 }
 

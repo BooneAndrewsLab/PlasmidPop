@@ -165,4 +165,47 @@ describe('coming up from a database an older build wrote', () => {
     expect(editorStore.document?.name).toBe('SCU49845');
     expect(editorStore.document?.length).toBe(5028);
   });
+
+  it('keeps every row of a version 12 database, and they survive the removal of scratch rows (item 110)', async () => {
+    const name = `migration-v12-${Date.now()}`;
+    // Dexie's version 12 is IndexedDB's 120.
+    const open = indexedDB.open(name, 120);
+    open.onupgradeneeded = () => {
+      const docs = open.result.createObjectStore('documents', { keyPath: 'id' });
+      docs.createIndex('updatedAt', 'updatedAt');
+      docs.createIndex('name', 'name');
+      docs.createIndex('checksum', 'checksum');
+    };
+    const db = await request(open);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(['documents'], 'readwrite');
+      // Years old, with nothing to say it is the user's but being there.
+      tx.objectStore('documents').put({
+        id: 'v12-doc',
+        name: 'SCU49845',
+        fileName: null,
+        text: U49845,
+        length: 5028,
+        topology: 'linear',
+        featureCount: 9,
+        createdAt: 1,
+        updatedAt: 2,
+      });
+      tx.oncomplete = () => {
+        resolve();
+      };
+      tx.onerror = () => {
+        reject(tx.error ?? new Error('Could not seed the database'));
+      };
+    });
+    db.close();
+
+    const repo = new DocumentRepository(new PlasmidPopDb(name));
+    expect(await repo.list()).toMatchObject([{ id: 'v12-doc', kind: 'file' }]);
+    expect((await repo.load('v12-doc'))?.kind).toBe('file');
+    // The row itself says so, which the index on kind needs.
+    expect((await new PlasmidPopDb(name).documents.get('v12-doc'))?.kind).toBe('file');
+    expect(await repo.pruneScratch(new Set(), Date.now() + 1000 * 24 * 60 * 60 * 1000)).toBe(0);
+    expect(await repo.has('v12-doc')).toBe(true);
+  });
 });

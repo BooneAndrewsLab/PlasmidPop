@@ -91,6 +91,7 @@ export function downloadNameFor(d: {
 interface Autosaved {
   readonly doc: SeqDocument;
   readonly fileName: string | null;
+  readonly scratch: boolean;
   readonly history: DocumentState['history'] | null;
   readonly savedDoc: SeqDocument | null;
   readonly openedDoc: SeqDocument | null;
@@ -100,6 +101,7 @@ function autosavedOf(d: DocumentState): Autosaved {
   return {
     doc: d.history.present,
     fileName: d.fileName,
+    scratch: d.scratch,
     history: d.history,
     savedDoc: d.savedDoc,
     openedDoc: d.openedDoc,
@@ -110,6 +112,7 @@ function isUnchanged(last: Autosaved | undefined, d: DocumentState): boolean {
   return (
     last?.doc === d.history.present &&
     last.fileName === d.fileName &&
+    last.scratch === d.scratch &&
     last.history === d.history &&
     last.savedDoc === d.savedDoc &&
     last.openedDoc === d.openedDoc
@@ -434,7 +437,7 @@ export class PersistenceService {
     // The flush on leaving (#290): the write below is begun as the page goes
     // and may never commit, so the text is also put where a reload reads it
     // without waiting for anything. Its commit takes it away again.
-    if (urgent && !closed) this.repo.stash(id, d.fileName, doc, text, now);
+    if (urgent && !closed) this.repo.stash(id, d.fileName, doc, text, now, d.scratch);
     if (!urgent && !closed) {
       // The put clones the text into IndexedDB on this thread, 33-46 ms at
       // 4.64 Mb (#278): not in the middle of a scroll that began meanwhile.
@@ -445,7 +448,7 @@ export class PersistenceService {
       id,
       doc,
       d.fileName,
-      { origin, derived: d.derived },
+      { origin, derived: d.derived, kind: d.scratch ? 'scratch' : 'file' },
       { row, text, originText: origin === null ? null : (originText ?? null), now },
       () => this.isLatest(id, d),
     );
@@ -493,6 +496,10 @@ export class PersistenceService {
       // Nothing stored worth keeping: an empty history, or none that reads.
       editorStore.setDocumentId(d.documentId, existing);
     }
+    // The entry the tab becomes may be the user's already: it is not made
+    // scratch by a tab that is (item 110). The other way round, a tab of the
+    // user's writes its kind over a scratch entry.
+    if (stored?.kind === 'file') editorStore.keepDocument(existing);
     this.autosaved.delete(d.documentId);
     return editorStore.documentState(existing) ?? 'gone';
   }
@@ -812,6 +819,7 @@ export class PersistenceService {
       id,
       origin: stored.origin,
       derived: stored.derived,
+      scratch: stored.kind === 'scratch',
     });
     const state = editorStore.documentState(id);
     if (state !== null) this.autosaved.set(id, autosavedOf(state));
@@ -863,6 +871,30 @@ export class PersistenceService {
     await closing?.done;
     await this.repo.remove(id);
     this.autosaved.delete(id);
+  }
+
+  /**
+   * Removes the scratch documents past their lifetime (item 110), run when
+   * the app starts and when the Files page loads, not continuously. A
+   * document in a tab, or one of the tabs to come back on the next load, is
+   * never taken, nor one whose tab is still being written. Gives how many.
+   */
+  async pruneScratch(now: number = Date.now()): Promise<number> {
+    const keep = new Set<string>([
+      ...editorStore.getState().documents.map((d) => d.documentId),
+      ...this.repo.openDocumentIds(),
+      ...this.closing.keys(),
+    ]);
+    return this.repo.pruneScratch(keep, now);
+  }
+
+  /**
+   * Keeps scratch documents by id (item 110). One in a tab is kept through
+   * the store, so its next write does not make it scratch again.
+   */
+  async keepStored(ids: readonly string[]): Promise<void> {
+    for (const id of ids) editorStore.keepDocument(id);
+    await this.repo.keep(ids);
   }
 
   /** Renames a stored document; an open one goes through the store so the change is undoable. */

@@ -276,10 +276,12 @@ nothing has been typed into gives its tab up to the next file you open.
 - The **Files** tab at the left is the start screen with the recent files;
   the logo and **File ▸ Show files** go there too. The other tabs stay open
   behind it, and entries that are open in a tab are marked **open**.
+- A tab in _italics_ is an [unkept document](#unkept-documents): something
+  the program made for you, which is removed after a while unless you keep it.
 - **+** at the right of the strip starts a new sequence, like **New**.
 - A dot after a tab's name means that document has changed since it was
   last downloaded. Closing the tab, or the page, loses nothing: the document
-  is in this browser's storage either way.
+  is in this browser's storage either way (an unkept document is, for 30 days).
 
 The open tabs, their order and the one in front are remembered, so a reload
 brings them all back.
@@ -341,7 +343,8 @@ want one as a file, you download it, and the file is yours from then on.
 Downloads are GenBank, or SnapGene on request.
 
 - **Download GenBank…** (`Ctrl+S`, and `Ctrl+Shift+S` out of habit) writes
-  the document in front.
+  the document in front (and keeps it, if it was an
+  [unkept document](#unkept-documents)).
 - **Download SnapGene…** writes it as a SnapGene file instead; see
   [below](#downloading-a-snapgene-file).
 - A **working copy** is reviewed first: what it changed about the file it
@@ -698,6 +701,36 @@ neither history is lost.)
 - **File ▸ Show files** goes back to this list while keeping every tab
   open.
 
+### Unkept documents
+
+Not everything in storage is something you asked for. A cloning run opens a
+product, a PCR opens its amplicon, **Open as fragment** opens a piece, and
+designing primers for a gene fetches its record from NCBI: each of these is
+an **unkept** document. It is a tab like any other, in _italics_, and it is
+stored like any other, but it is not listed under **Recent files**, so one
+cloning run does not bury the files you care about. Pasted sequences, files
+you open, **New** documents and **Open from NCBI…** are yours from the start
+and are not affected.
+
+- An unkept document is **kept** the moment you work on it: change the
+  sequence or the annotations, rename it, or download it. Looking at it,
+  running digests on it and moving around in it does not keep it.
+- **File ▸ Keep this document** (in the menu while the document is unkept)
+  keeps it without changing anything.
+- Unkept documents are listed under **Unkept** on the Files tab, a collapsed
+  section below Recent files. Each has **Keep** and **Remove**, and **Keep
+  all** keeps every one. A kept document moves up to Recent files.
+- An unkept document is removed from this browser **30 days after it was
+  last changed**, with its undo history, unless it is open in a tab. This is
+  done when PlasmidPop starts and when the Files tab is shown, not while you
+  work. Within a week of that time, the Files tab says how many documents
+  are about to go and when, with **Keep them**.
+- A document that was made from a removed one still says what it was made
+  from ([History](13-history.md)): the **Made from** tree shows the name and
+  checksum of the missing molecule, marked as not in this browser.
+
+Documents stored before unkept documents existed are all kept.
+
 The view switcher and the Complement, Translations and Cut sites toggles are
 remembered in the same browser storage, see
 [Viewing and selecting](03-viewing.md). So is your primer list,
@@ -749,6 +782,10 @@ computer. It merges and never deletes:
   many. So restoring an old backup never takes back later edits.
 - A document that is open in a tab is left alone; close its tab and restore
   again to bring the backup's copy.
+- Whether a document is [unkept](#unkept-documents) is in the backup. A
+  backup made before that existed restores everything as kept, and an unkept
+  document restored from an old backup is removed on the usual schedule,
+  counted from when it was last changed.
 - Primers, parts and the other collections are added where missing; a row
   that is already here is kept, except the shelf and imported tables, where
   the newer one wins.

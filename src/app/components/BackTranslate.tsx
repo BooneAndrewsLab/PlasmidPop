@@ -113,7 +113,7 @@ export function BackTranslate({ doc }: { readonly doc: SeqDocument }) {
               type="button"
               className="button button--small button--primary"
               onClick={() => {
-                editorStore.openDocument(done.dna);
+                editorStore.openDocument(done.dna, null, [], { scratch: true });
                 editorStore.setSidebarTab('features');
               }}
             >

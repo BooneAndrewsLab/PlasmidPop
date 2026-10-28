@@ -389,6 +389,13 @@ export interface OpenStorage {
   readonly origin?: DocumentOrigin | null;
   readonly derived?: boolean;
   /**
+   * Opens the document as scratch (item 110): something the app made on the
+   * way to a document, kept only once the user edits, renames, downloads or
+   * keeps it. Said outright by the opener rather than read off a missing
+   * file name, which a paste and a new document lack too.
+   */
+  readonly scratch?: boolean;
+  /**
    * The undo history kept in local storage, whose present is the document
    * being opened, and the two baselines as they stood (item 51). Without it
    * the document starts a fresh history as it always did.
@@ -474,6 +481,12 @@ export interface DocumentState {
    * file it came from cannot be overwritten from this tab.
    */
   readonly derived: boolean;
+  /**
+   * Whether this document is scratch (item 110) and still unkept: its stored
+   * row goes after a while. An edit, a rename, a download or `keepDocument`
+   * ends it, for good.
+   */
+  readonly scratch: boolean;
   readonly warnings: readonly ParseWarning[];
   /**
    * Set while a download is showing what this working copy changed about the
@@ -913,6 +926,7 @@ type ActiveDocumentFields = {
     | 'hiddenFeatureTypes'
     | 'findOpen'
     | 'derived'
+    | 'scratch'
     // The sidebar is shown beside the file list too, so its tab always has a
     // value; `NO_DOCUMENT` carries the one a new tab would start on.
     | 'sidebarTab'
@@ -1054,6 +1068,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   compared: null,
   origin: null,
   derived: false,
+  scratch: false,
   warnings: [],
   saveReview: null,
   analysis: null,
@@ -1278,6 +1293,8 @@ export class EditorStore {
     const open =
       storage.id === undefined ? this.findOpenCopy(doc, fileName) : this.documentState(storage.id);
     if (open !== null) {
+      // Opened again as something of the user's, a scratch tab is kept.
+      if (open.scratch && storage.scratch !== true) this.keepDocument(open.documentId);
       this.activateDocument(open.documentId);
       return open.documentId;
     }
@@ -1308,6 +1325,7 @@ export class EditorStore {
             ? null
             : { fileName, doc },
       derived: storage.derived ?? false,
+      scratch: storage.scratch ?? false,
       warnings,
       saveReview: null,
       analysis: null,
@@ -1556,7 +1574,13 @@ export class EditorStore {
     // keystroke right after a save must not be folded into the step that
     // produced what was written.
     const history = target.history.seal();
-    this.setDocument(id, { savedDoc: present, fileName, history });
+    // Downloading is keeping: the user has taken the document for their own.
+    this.setDocument(id, { savedDoc: present, fileName, history, scratch: false });
+  }
+
+  /** Keeps a scratch document (item 110): its row no longer goes with time. Nothing happens to one that is kept. */
+  keepDocument(id: string): void {
+    if (this.documentState(id)?.scratch === true) this.setDocument(id, { scratch: false });
   }
 
   /**
@@ -1668,12 +1692,17 @@ export class EditorStore {
    * `selectionAfter` overrides that when given. `coalesce` lets a change
    * that carries on from the one before it share its undo step, which is how
    * a run of typing stays one step; see `applyPlan`.
+   *
+   * An edit keeps a scratch document (item 110) unless `keeps` is false,
+   * which is for the edit that makes the product what it is (a mutant: the
+   * point mutation is applied to a copy), not the user's work on it.
    */
   apply(
     op: EditOp,
     selectionAfter?: Range | null,
     id: string | null = this.activeId,
     coalesce?: Coalesce,
+    keeps = true,
   ): void {
     // An edit goes on top of the stored history, so it is wanted now (#83).
     this.restoreHistory(id);
@@ -1738,6 +1767,8 @@ export class EditorStore {
       // The copy has never been written anywhere, whatever the file it came
       // from holds, so nothing about it is on disk yet.
       ...(forking ? { derived: true, savedDoc: null } : {}),
+      // An edit, a rename included, is the user's work: it is kept.
+      ...(keeps ? { scratch: false } : {}),
     });
     // The read described the bases this edit changed; undo brings it back.
     if (doc.read !== null && next.read === null) this.noteReadLeftBehind('edited');

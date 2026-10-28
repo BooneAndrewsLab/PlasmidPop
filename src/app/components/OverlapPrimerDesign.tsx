@@ -119,7 +119,7 @@ export function OverlapPrimerDesign() {
 
   const open = (product: SeqDocument): void => {
     analytics.track('cloning', 'overlap-primers', KIT_NAMES[kit]);
-    editorStore.openDocument(product);
+    editorStore.openDocument(product, null, [], { scratch: true });
     editorStore.setSidebarTab('features');
   };
 

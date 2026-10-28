@@ -144,6 +144,12 @@ export function useRestoreSession(): boolean {
           // Nothing to restore, or storage unavailable: start empty.
         }
       }
+      try {
+        // Unkept documents past their time go once the tabs to keep are open (item 110).
+        await persistence.pruneScratch();
+      } catch {
+        // Storage unavailable: nothing to remove.
+      }
       if (shared !== null) await openSharedPayload(shared);
       if (sharedFiles !== null) await openSharedFiles(sharedFiles);
     })().finally(() => {

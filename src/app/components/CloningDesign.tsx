@@ -359,7 +359,7 @@ export function CloningDesign({ doc, cloning, layout, chooser, onDesigned, onRes
                 submitLabel="Add"
                 onFetched={(fetched) => {
                   const vectorId = documentId;
-                  const ids = openFetched(fetched);
+                  const ids = openFetched(fetched, { scratch: true });
                   const first = fetched.documents[0];
                   const id = ids[0];
                   // The record is a tab of its own (it is the PCR template),

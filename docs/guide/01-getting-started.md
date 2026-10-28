@@ -51,7 +51,9 @@ Any of these gets you a sequence on screen:
 Each document opens in its own tab under the toolbar, so several can be open
 at once; the **Files** tab is the start screen. Files opened earlier appear
 there under **Recent files**, where they can be reopened, renamed or removed.
-See [Files and storage](02-files.md).
+What the program makes along the way (the products of cloning, PCR and the
+like) waits in a collapsed **Unkept** list instead, and goes after 30 days
+unless you keep it. See [Files and storage](02-files.md).
 
 ## What is on the screen
 

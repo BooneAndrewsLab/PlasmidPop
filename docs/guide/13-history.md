@@ -24,7 +24,9 @@ molecule shows:
   tab, which it brings to the front, or among the documents kept in this
   browser, which it opens. A molecule is matched by its checksum, not its
   name, so a file edited since it was used does not count, and a renamed
-  one still does. Otherwise it says **not in this browser**.
+  one still does. Otherwise it says **not in this browser**: that includes a
+  molecule that was an [unkept document](02-files.md#unkept-documents) and
+  has been removed, which keeps its name, size and checksum in the tree.
 
 Under the tree, **Protocol…** builds a page for the bench from it: see
 [Protocol for a product](12-cloning.md#protocol-for-a-product).

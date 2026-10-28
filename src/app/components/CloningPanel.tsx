@@ -457,7 +457,12 @@ export function CloningPanel({ doc }: Props) {
                   }}
                   onOpen={() => {
                     analytics.track('cloning', 'open-fragment');
-                    editorStore.openDocument(documentFromFragment(fragmentWithLineage(f, doc)));
+                    editorStore.openDocument(
+                      documentFromFragment(fragmentWithLineage(f, doc)),
+                      null,
+                      [],
+                      { scratch: true },
+                    );
                     editorStore.setSidebarTab('features');
                   }}
                   onHover={(on) => {

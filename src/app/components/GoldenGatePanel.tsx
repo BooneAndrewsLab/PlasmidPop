@@ -130,6 +130,9 @@ export function GoldenGatePanel() {
         run.assembly,
         second === undefined ? [enzyme.name] : [enzyme.name, second.name],
       ),
+      null,
+      [],
+      { scratch: true },
     );
     editorStore.setSidebarTab('features');
     setName('');

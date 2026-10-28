@@ -322,3 +322,5 @@ the Bench, item 49). The rest stand.
 122.  [Restriction-cloning ends: the engine](108-cloning-ends.md)
 
 123.  [Per-type feature visibility](109-feature-type-visibility.md)
+
+124.  [Scratch documents](110-scratch-documents.md)

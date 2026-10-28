@@ -105,7 +105,7 @@ export function LigationPanel() {
       );
       // The shelf is left as it is: a vector cut once is often ligated to
       // one insert after another, and the other reactions may want its parts.
-      editorStore.openDocument(product);
+      editorStore.openDocument(product, null, [], { scratch: true });
       editorStore.setSidebarTab('features');
       setName('');
     } catch (e) {

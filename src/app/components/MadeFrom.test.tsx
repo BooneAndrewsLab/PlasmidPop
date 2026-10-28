@@ -159,6 +159,33 @@ describe('Made from, in the History tab (#67)', () => {
     expect(editorStore.document?.name).toBe('pIns');
   });
 
+  it('falls back to a name and checksum for a parent whose unkept row has been removed (item 110)', async () => {
+    const repo = getRepository();
+    await repo.save('scratch-insert', insert, null, {
+      origin: null,
+      derived: false,
+      kind: 'scratch',
+    });
+    const made = product(stranger, insert);
+    act(() => {
+      editorStore.openDocument(made);
+    });
+    const { unmount } = render(<HistoryPanel />);
+    let tree = openTree();
+    await waitFor(() => within(tree).getByRole('button', { name: 'Open pIns' }));
+    unmount();
+    // Past its thirty days, with no tab holding it.
+    await repo.pruneScratch(new Set(), Date.now() + 31 * 24 * 60 * 60 * 1000);
+    render(<HistoryPanel />);
+    tree = screen.getByRole('list', { name: 'Made from' });
+    await waitFor(() => {
+      expect(within(tree).queryByRole('button', { name: 'Open pIns' })).toBeNull();
+    });
+    expect(within(tree).getAllByText('pIns').length).toBeGreaterThan(0);
+    expect(within(tree).getAllByText('not in this browser').length).toBeGreaterThan(0);
+    expect(tree.textContent).toContain('cdseguid');
+  });
+
   it('says the document has been edited since it was made', () => {
     act(() => {
       editorStore.openDocument(product(vector, insert));

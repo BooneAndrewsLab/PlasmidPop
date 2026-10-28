@@ -64,6 +64,8 @@ describe('MutagenesisPanel', () => {
     });
     expect(mutant?.metadata.lineage?.step?.parents[0]?.name).toBe('pTest');
     expect(mutant !== null && editedSinceMade(mutant)).toBe(false);
+    // Making the mutant is not the user's edit: it stays unkept (item 110).
+    expect(editorStore.getState().scratch).toBe(true);
     // The change is the mutant's one edit, so Undo gives the template back.
     act(() => {
       editorStore.undo();

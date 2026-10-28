@@ -173,9 +173,14 @@ function DocumentTab({
       <button
         type="button"
         role="tab"
-        className="doctabs__name"
+        className={`doctabs__name${state.scratch ? ' doctabs__name--unkept' : ''}`}
         aria-selected={active}
-        data-tip={state.fileName === null ? name : `${name}\n${state.fileName}`}
+        data-tip={
+          (state.fileName === null ? name : `${name}\n${state.fileName}`) +
+          (state.scratch
+            ? '\nUnkept: removed after a while unless you edit, download or keep it (File ▸ Keep)'
+            : '')
+        }
         onClick={() => {
           editorStore.activateDocument(state.documentId);
         }}

@@ -15,7 +15,7 @@ import {
 import { getRepository } from '@/storage';
 
 import { App } from './App';
-import { checkAccessionInput, openFromNcbi } from './openFromNcbi';
+import { checkAccessionInput, fetchAccessions, openFetched, openFromNcbi } from './openFromNcbi';
 import { editorStore } from './state/editorStore';
 
 // waitFor and findBy default to 1 s. These tests render the whole App and parse
@@ -118,6 +118,23 @@ describe('openFromNcbi', () => {
       expect.stringMatching(/^NP_000509 not opened: Could not reach NCBI/),
     );
     expect(progress[progress.length - 1]).toBe(new TextEncoder().encode(gb).length);
+  });
+
+  it('keeps what it opens, and opens what a host fetched for its own purposes as scratch (item 110)', async () => {
+    const gb = readFixture('L09137.gb');
+    const fetched = await fetchAccessions(
+      { nucleotide: ['L09137'], protein: [] },
+      { fetch: () => Promise.resolve(new Response(gb)), wait: () => Promise.resolve() },
+    );
+    const [kept] = openFetched(fetched);
+    expect(editorStore.documentState(kept)?.scratch).toBe(false);
+    editorStore.closeDocument(kept);
+    const [fetchedForPrimers] = openFetched(fetched, { scratch: true });
+    expect(editorStore.documentState(fetchedForPrimers)?.scratch).toBe(true);
+    // Then opened for its own sake, it is the user's.
+    const [again] = openFetched(fetched);
+    expect(again).toBe(fetchedForPrimers);
+    expect(editorStore.documentState(again)?.scratch).toBe(false);
   });
 
   it('counts the bytes of the second request on top of the first', async () => {

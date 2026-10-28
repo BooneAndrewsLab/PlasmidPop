@@ -164,7 +164,8 @@ export function CompareDialog() {
               analytics.track('compare', 'open-other', source.kind);
               editorStore.dismissComparison();
               if (source.kind === 'tab') editorStore.activateDocument(source.documentId);
-              else if (source.kind === 'clone') editorStore.openDocument(comparison.doc);
+              else if (source.kind === 'clone')
+                editorStore.openDocument(comparison.doc, null, [], { scratch: true });
               else void openFile(source.file);
             }}
           >

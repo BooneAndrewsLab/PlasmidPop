@@ -185,7 +185,8 @@ function isStoredDocument(v: unknown): v is StoredDocument {
     typeof v['createdAt'] !== 'number' ||
     typeof v['updatedAt'] !== 'number' ||
     (v['topology'] !== 'linear' && v['topology'] !== 'circular') ||
-    (v['fileName'] !== null && typeof v['fileName'] !== 'string')
+    (v['fileName'] !== null && typeof v['fileName'] !== 'string') ||
+    (v['kind'] !== undefined && v['kind'] !== 'file' && v['kind'] !== 'scratch')
   ) {
     return false;
   }
@@ -267,7 +268,8 @@ export async function restoreBackup(
       const outcome = await db.transaction('rw', db.documents, db.histories, async () => {
         const local = await db.documents.get(document.id);
         if (local !== undefined && local.updatedAt >= document.updatedAt) return 'kept' as const;
-        await db.documents.put(document);
+        // A backup from before scratch documents has no kind: all of it was kept.
+        await db.documents.put({ ...document, kind: document.kind ?? 'file' });
         if (history === null) await db.histories.delete(document.id);
         else await db.histories.put(history);
         return local === undefined ? ('added' as const) : ('replaced' as const);
