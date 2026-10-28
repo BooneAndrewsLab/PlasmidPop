@@ -757,6 +757,72 @@ describe('fetchRegion (#299)', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('words its refusals with the range, and takes a window exactly at the cap and a one-base range', async () => {
+    const { fetch } = mockFetch();
+    const asked = {
+      accession: 'NC_000001.11',
+      start: 1,
+      stop: MAX_RECORD_BP + 1,
+      strand: 'forward',
+    } as const;
+    await expect(fetchRegion(asked, { ...base, fetch })).rejects.toThrow(
+      'NC_000001.11:1-10000001 is 10,000,001 bp. PlasmidPop opens sequences up to 10 Mb; ask for less flank.',
+    );
+    await expect(fetchRegion({ ...asked, start: 0, stop: 10 }, { ...base, fetch })).rejects.toThrow(
+      '0-10 is not a range of NC_000001.11: positions count from 1, and the end comes after the start.',
+    );
+    // A window of exactly the cap, and a range of one base, are asked for.
+    const edge = mockFetch(streamed(tiny('X')), streamed(tiny('X')));
+    await fetchRegion({ ...asked, stop: MAX_RECORD_BP }, { ...base, fetch: edge.fetch });
+    const one = await fetchRegion({ ...asked, start: 5, stop: 5 }, { ...base, fetch: edge.fetch });
+    expect(edge.calls).toHaveLength(2);
+    expect(one.sent).toEqual({ start: 5, stop: 5 });
+  });
+
+  it('words a missing record with its range, and falls back to the range asked when NCBI names none', async () => {
+    const { fetch } = mockFetch(new Response('+Error%3A', { status: 400 }));
+    await expect(
+      fetchRegion(
+        { accession: 'AB999999', start: 3, stop: 10, strand: 'forward' },
+        { ...base, fetch },
+      ),
+    ).rejects.toThrow('NCBI has no nucleotide record AB999999, or 3-10 lies outside it.');
+    const plain = mockFetch(streamed(tiny('AB000001')));
+    const got = await fetchRegion(
+      { accession: 'AB000001', start: 3, stop: 10, strand: 'forward' },
+      { ...base, fetch: plain.fetch },
+    );
+    expect(got.sent).toEqual({ start: 3, stop: 10 });
+  });
+
+  it('reads the REGION line wherever it sits in the text, and only on the ACCESSION line', () => {
+    expect(regionSent('LOCUS       X\nACCESSION   X REGION: 5..9\n')).toEqual({
+      start: 5,
+      stop: 9,
+    });
+    expect(regionSent('LOCUS       X REGION: 5..9\n')).toBeNull();
+    expect(regionSent('/note="ACCESSION   X REGION: 5..9"\n')).toBeNull();
+    expect(regionSent('ACCESSION X REGION: 5..9\n')).toBeNull();
+    expect(regionSent('ACCESSION   X REGION: 5..9\n')).toEqual({ start: 5, stop: 9 });
+    expect(regionSent('ACCESSION   X  REGION: 5..9\n')).toBeNull();
+    expect(regionSent('ACCESSION   X REGION: 5..9')).toEqual({ start: 5, stop: 9 });
+  });
+
+  it('words an HTTP error that is neither rate limit nor 5xx, and the 5xx ones, with the status', async () => {
+    for (const status of [403, 500, 503]) {
+      const { fetch } = mockFetch(new Response('', { status }));
+      await expect(
+        fetchRegion(
+          { accession: 'AB000001', start: 1, stop: 10, strand: 'forward' },
+          { ...base, fetch },
+        ),
+      ).rejects.toMatchObject({
+        kind: 'server',
+        message: `NCBI answered with an error (HTTP ${status.toString()}). Try again later.`,
+      });
+    }
+  });
+
   it('reports a record NCBI lacks, or a range outside it, as not found', async () => {
     const { fetch } = mockFetch(new Response('+Error%3A', { status: 400 }));
     await expect(

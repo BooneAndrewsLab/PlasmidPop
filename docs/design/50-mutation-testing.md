@@ -414,3 +414,31 @@ on its line (24 on changed lines):
   "no positions" throw never runs (2), and `protein === ''` beside
   `undefined` (2): an empty protein is refused earlier as nothing or as
   malformed.
+
+## At 1.18: `designAnchoredPrimers` and `fetchRegion` (#299)
+
+The mutants on lines changed since v1.17.6 were triaged (39 in
+`primerDesign.ts`, 17 in `efetch.ts`). Each was applied by hand and the
+tests rerun, so "equivalent" below was tried, not argued. 45 were real
+gaps and got tests: `designAnchored.test.ts` now restates the criteria and
+picks the pair the slow way (every forward length against every reverse
+length) and the fallback ends the slow way, and `ncbi.test.ts` pins the
+wording of `fetchRegion`'s refusals, the window at exactly the cap and a
+one-base range, the `REGION:` line anchored to a line start, and the error
+for an HTTP status that is not a rate limit.
+
+Equivalents left as survivors:
+
+- **Duplicated check:** the `status >= 500` branch of `ncbiRequest` (3
+  mutants): a 5xx that gets past it is refused by `fetchGenBank`'s
+  `!response.ok` with the same error kind and text.
+- **Tie-break order:** `penalty < best.penalty` as `<=`. Two pairs score
+  exactly alike only for mirrored primers, and the pair with equal lengths
+  (Tm difference 0) wins either way.
+- **Unreachable guard:** `longest < c.minLength` (with fewer than two
+  candidate lengths the lists are empty and the fallback returns null
+  anyway); `?.` on `[0]?.report` and the `forward === undefined ||
+reverse === undefined` check (5 together), since the lists hold the `minLength`
+  candidate whenever the first guard passes.
+- **Case already folded:** `toUpperCase()` read as `toLowerCase()` on the insert,
+  since `analyzePrimer` upper-cases the primer it is given.
