@@ -394,6 +394,13 @@ The product opens as a new circular or linear document carrying the parts'
 features; the shelf keeps its fragments. The product is kept in the browser
 like any other document; download it to get a file.
 
+For an insert that has no sites of its own to cut with, the primer
+workspace's [cloning mode](10-primers.md#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)
+designs the two PCR primers that put a vector-matched site on each end of
+it, suggests the enzyme pairs that work for this vector and this insert,
+and simulates the digest and the ligation from the oligos; its **Simulate**
+opens the same product this ligation would make.
+
 Ends are compatible when both are blunt, or when they have the same kind of
 overhang with complementary bases. A PstI end will not join an EcoRI end,
 and a BamHI end will join a BglII end (both leave `GATC`). An ambiguity code

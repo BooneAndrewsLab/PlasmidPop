@@ -196,3 +196,46 @@ way, the methylation rule); `designAnchored.test.ts`; `endFlanks.test.ts`;
 and `src/test/oracle/cloningEnds.test.ts` against Bio.Restriction's cut
 positions and pydna's cut-and-loop products
 (`scripts/oracle/cloningends.py`, pinned venv, committed JSON).
+
+## Built (UI)
+
+Stage two (#303, 2026-10-27): `src/app/components/cloningDesign.ts` (the
+state, as panel memory per vector document, and the pure helpers),
+`CloningDesign.tsx` (the Design page's four steps), `CloningCandidates.tsx`
+(Results), with the mode switch in `PrimerDesignPage.tsx` and the wiring
+in `PrimerWorkspace.tsx`; the mode is in `primers.workspace`, and
+`primers.resultsKind` says which table Results shows. The insert is an
+`InsertRef` — a tab's id and a feature's id or a range — resolved against
+the open tabs on every render, so an edit on the insert's tab follows and
+a closed tab is said ("The insert's tab was closed") rather than kept. The
+scans go through `scanForCloning(analysisClient, …)`, once per
+vector-and-insert and kept with the memory; a stale answer is dropped. The
+"Gene from NCBI…" step hosts the shared `NcbiSearch` with `onFetched`: the
+record opens as a tab (`openFetched`) and the store is put back on the
+vector at once, so the workspace never leaves it; `fetchedInsertRef` takes
+the one CDS, else the gene, else the whole record. Settings: padding and
+the junction rule are two cloning-only rows above the shared ones in
+`PrimerSettings` (browser-wide memory, like `followMap`); Reset takes both
+back. The map draws the picked pair's two sites as previews, and the MCS
+region as a span when it was not the selection (`cloningPreview`).
+
+Decisions made while building: the region's ruler in the mockup is a line
+of text ("Cuts in the region: EcoRI 396 · …", capped at twelve enzymes
+with the picked pair always named) rather than an SVG ruler, since the
+table under it carries every site; the product thumbnail is the ribbon
+renderer (`MapStrip` with `fixed`) rather than a small circular map, so no
+renderer was added; Simulate is the one button that opens the product (the
+thumbnail is the same simulation, run when a row is selected); Check
+specificity… sends the annealing parts only, and says so; a design the
+engine refused is its problem sentence in the row, not NaN; the override's
+first chosen enzyme is held as the same enzyme twice until the second
+arrives, which the table already explains. Seen in Chrome at the dev
+server on pBR322 with U49845's Axl2p CDS: the suggestions, the override's
+warnings, the design, the product thumbnail and Simulate opening
+`SYNPBR322-Axl2p` as a tab; that look found the detail pane's tables
+running under the thumbnail and the site lines growing to dozens of
+enzymes on a 1.2 kb region, both fixed. Tests: `cloningDesign.test.ts`
+(the helpers) and `CloningDesign.test.tsx` (the workspace driven as a user
+would: mode memory, the disabled reasons step by step, decision 8, the
+override, the oligos' parts on Results, Save both's names, Simulate's
+product, the phone list, the NCBI insert with the fetch mocked).

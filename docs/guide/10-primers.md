@@ -121,6 +121,92 @@ else while on Results keeps the list but takes its preview off the map, and
 **Target changed — Design again** at the top goes back to Design for the new
 selection; the Design page's **Last design** line goes the other way.
 
+## Cloning ends: primers that put two restriction sites on an insert
+
+The Design page has a second mode, **Clone an insert into this plasmid**
+(the switch at the top; **Primers on this sequence** is the design above).
+With a plasmid open as the vector it designs the two primers that amplify
+an insert from another tab with a restriction site on each 5′ tail, so
+that after PCR and a double digest the insert's ends match the vector cut
+with the same two enzymes, in one direction. The mode is remembered per
+document, and **Results** shows whichever design was made last.
+
+1. **Where on the vector.** The selection, live, as in the plain mode —
+   the polylinker, say — with the same **Selection** / **Feature** chooser.
+   With nothing selected the one feature named as the cloning site (`MCS`,
+   `multiple cloning site`, `polylinker`) is taken, and failing that the
+   whole plasmid, in which case the line says so and the candidates are
+   the enzymes that cut it once anywhere; select a region to narrow them.
+   The line under it names the enzymes that cut inside the region.
+2. **What to insert.** **Feature in another tab…** lists every open DNA
+   tab's features and, when it has one, its selection; the insert is read
+   off that tab, so an edit there follows and a closed tab is said rather
+   than kept. **Gene from NCBI…** is the same search as File ▸ Open from
+   NCBI: the record opens as a tab of its own (it is the PCR template) and
+   its CDS — else its gene, else the whole record — becomes the insert,
+   while the workspace stays on the vector. The insert's line gives its
+   first and last bases and, once the scans are in, which of the region's
+   enzymes cut inside it. **Orientation** says which end goes to which cut;
+   **Flip** turns the insert round, for a vector whose promoter runs the
+   other way.
+3. **Enzymes.** Pairs are suggested, not picked blind: each enzyme must
+   cut the vector exactly once, inside the region, past the vector's
+   dam/dcm host, leave a sticky end, not be Type IIS, have room to cut
+   beside the other, give two ends that cannot ligate to each other (so
+   the insert goes in one way and the vector cannot close), and cut the
+   insert nowhere. Usable pairs come first, the wider stretch between the
+   cuts first; the rest are greyed with the reason, the long tail folded
+   behind **N more excluded pairs**. Click a row (or `↓` `↑` in the table)
+   to pick a pair; the two sites are drawn on the map. **Any two enzymes…**
+   picks any pair at all from every enzyme that cuts the vector, excluded
+   ones included: Design then warns instead of refusing. A pair picked
+   before the region or the insert changed is kept and said to be unusable
+   with its reason.
+4. **Design primers** is off, with the reason beside it, until an insert
+   and two enzymes are set. **Settings** has two rows of its own in this
+   mode — **Padding**, the bases 5′ of each site (6 by default), and
+   **Junction**, whether the padding is chosen so that padding, site and
+   insert spell no new site where they meet — above the shared ones, which
+   judge the part that anneals.
+
+Each primer is padding + site + an annealing part on the insert's end, and
+on Results each oligo is written as ordered, 5′→3′: the tail in lower case
+(padding in grey, the site in the cut colour and underlined), the annealing
+part in upper case. **Tm** and GC are the annealing part's, since that is
+what the first cycles see; **PCR** is the product with its tails. The
+picked pair is row 1 and up to five other suggested pairs follow, designed
+with the same settings, so EcoRI · BamHI can be compared with EcoRI · PstI
+without going back. The selected row's detail names both ends — enzyme,
+site with its cut, padding, overhang, how the vector is cut — the warnings
+in full, and the actions: **Simulate** runs PCR on the insert's tab, the
+digest with both enzymes and the ligation into the vector's backbone, and
+opens the product as a new document named `vector-insert` (the thumbnail
+in the pane is that product drawn small, so what it shows is what opens);
+**Save both** keeps the primers in [My primers](#my-primers) as
+`insert-F-enzyme` and `insert-R-enzyme`; **Copy** puts both on the
+clipboard; **Use in PCR** fills Cloning ▸ PCR with them and the insert's
+tab as the template; **Check specificity…** opens Primer-BLAST with the
+two annealing parts only, since the tails match no template.
+
+**Warnings** come in two colours. Red means the clone will be wrong: an
+enzyme that cuts inside the insert (the digest cuts the product too), one
+that cuts the vector never or more than once, a site on the vector blocked
+by its dam/dcm host, two ends that ligate to each other or one enzyme used
+twice (the insert can go in either way), a Type IIS enzyme (its cut lands
+beside the site, so the overhang is the insert's own bases), a site the
+amplicon spells beyond the two intended. Amber means look before ordering:
+padding raised because the enzyme cuts poorly within a few bases of an end
+(NEB's cleavage-near-the-end chart: NotI and PmeI want 8, NdeI 7, SalI 4),
+two sites too close together for a double digest (digest with one enzyme,
+then the other), a new site made where padding, site and insert meet, an
+annealing part that misses the settings, or one that binds elsewhere on
+the insert's tab.
+
+The methylation rule: the vector's host decides whether a site on the
+vector cuts, and the insert's does not — the amplified insert is a PCR
+product and carries no methylation, so a site in it cuts whatever the tab
+it came from says.
+
 ## Checking specificity with NCBI Primer-BLAST
 
 Whether a pair would also amplify something in a genome cannot be checked
