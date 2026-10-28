@@ -1,22 +1,24 @@
 # Golden Gate in PlasmidPop: start here
 
 A first run, about eight steps: put one gene into an expression vector in one
-reaction. Files are in this folder, and every one is a **synthetic example**
-(invented sequence). Every number below is checked by
+reaction. Read [Before you start](before-you-start.md) first if the Bench or the
+sample files are new to you. Every file is a **synthetic example** (invented
+sequence): [pGG-Expression.gb](files/pGG-Expression.gb) and
+[GG-gene.gb](files/GG-gene.gb) are plain downloads. Every number below is checked by
 `src/core/cloning/goldenGateTutorial.test.ts`, which runs these same files
 through the functions the app uses, so the page cannot drift from the app
 without the build failing.
 
-> **Four words**
->
-> - **Type IIS enzyme** (BsaI here): cuts a short distance _beside_ its
->   recognition site, so the site is thrown away with the cut-off end.
-> - **Overhang**: the 4 single-stranded bases a cut leaves. Two ends join only
->   when their overhangs match, so overhangs decide what goes where.
-> - **Dropout**: the stretch of the vector that the cut removes, with its two
->   BsaI sites. The gene takes its place.
-> - **Part**: a piece with an overhang at each end, ready to go into a slot. Here
->   the gene is the part, and its primers add the sites and overhangs.
+### Four words
+
+- **Type IIS enzyme** (BsaI here): cuts a short distance _beside_ its
+  recognition site, so the site is thrown away with the cut-off end.
+- **Overhang**: the 4 single-stranded bases a cut leaves. Two ends join only
+  when their overhangs match, so overhangs decide what goes where.
+- **Dropout**: the stretch of the vector that the cut removes, with its two
+  BsaI sites. The gene takes its place.
+- **Part**: a piece with an overhang at each end, ready to go into a slot. Here
+  the gene is the part, and its primers add the sites and overhangs.
 
 ## The vector, and what the app does
 
@@ -140,21 +142,22 @@ the part and the product length.)
 ## Tutorial 2 (optional): several parts in one tube
 
 Real constructs are often built from a promoter, a coding part, a tag and a
-terminator at once. The four-part exercise in the
-[README](README.md#golden-gate-four-parts-in-one-tube) opens four part files
-and a destination in a scrambled tab order, and shows that the overhangs, not
-the tab order, decide the assembly: **3,118 bp**, with a check digest. It also
-has an NCBI version, where the gene replaces one of the parts.
+terminator at once. [Four parts and the warnings](golden-gate-parts.md) opens
+four part files and a destination in a scrambled tab order, and shows that the
+overhangs, not the tab order, decide the assembly: **3,118 bp**, with a check
+digest. It also has an NCBI version, where the gene replaces one of the parts.
 
 ## Tutorial 3 (optional): what a bad design looks like
 
-[Seeing the warnings](README.md#seeing-the-warnings) in the README shows
-three broken designs: a BsaI site inside a part, two parts that offer the
-same overhang, and two overhangs one base apart. Each one tells you what is
-wrong, in the panel's own words, before you order anything.
+[Seeing the warnings](golden-gate-parts.md#seeing-the-warnings) shows three
+broken designs: a BsaI site inside a part, two parts that offer the same
+overhang, and two overhangs one base apart. Each one tells you what is wrong,
+in the panel's own words, before you order anything.
 
 ## Background
 
-[Golden Gate](../../guide/12-cloning.md#golden-gate) on the Bench, and
-[Golden Gate ends](../../guide/10-primers.md#golden-gate-ends-primers-that-make-the-insert-a-part)
+[Golden Gate](../guide/12-cloning.md#golden-gate) on the Bench, and
+[Golden Gate ends](../guide/10-primers.md#golden-gate-ends-primers-that-make-the-insert-a-part)
 in the primer workspace.
+
+Back to the [tutorials index](README.md).

@@ -88,7 +88,7 @@ const pUC19 = fixture(L09137);
 const U49845 = fixture(U49845_GB);
 /** The tutorial's Golden Gate destination: a lacZ dropout between two BsaI sites. */
 const pGG = fixture(
-  readFileSync(join(__dirname, '../../../docs/tutorials/cloning/pGG-Destination.gb'), 'utf8'),
+  readFileSync(join(__dirname, '../../../docs/tutorials/files/pGG-Destination.gb'), 'utf8'),
 );
 /** pUC19's polylinker, as the engine tests select it. */
 const MCS = { start: 395, end: 452 };

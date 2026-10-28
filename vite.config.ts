@@ -11,7 +11,15 @@ import {
   generateSitemap,
   matchStaticRequest,
   type SourcePage,
+  type StaticFile,
 } from './src/app/help/staticGuide.ts';
+import {
+  SAMPLE_FILE,
+  TUTORIAL_ORDER,
+  generateTutorialFiles,
+  tutorialUrls,
+  type SampleFile,
+} from './src/app/help/staticTutorials.ts';
 import { handleShareTarget, isShareTargetRequest } from './src/pwa/shareTarget.ts';
 
 /**
@@ -39,7 +47,8 @@ const ISOLATED_TESTS = readdirSync('src', { recursive: true, encoding: 'utf8' })
  * The guide as crawlable static pages and the sitemap that lists them
  * (item 91, #231), written into the build from docs/guide/*.md and served by
  * the dev server (#244). Page order is the file order, as in the app's guide
- * index.
+ * index. The tutorials (#312) ride along: docs/tutorials/*.md as pages, and
+ * its files/ folder as downloads, under /tutorials/.
  */
 function staticGuide(): Plugin {
   const dir = new URL('./docs/guide/', import.meta.url);
@@ -51,13 +60,27 @@ function staticGuide(): Plugin {
         id: f.replace(/\.md$/, ''),
         markdown: readFileSync(new URL(f, dir), 'utf8'),
       }));
+  const tdir = new URL('./docs/tutorials/', import.meta.url);
+  const readTutorial = (id: string): SourcePage => ({
+    id,
+    markdown: readFileSync(new URL(`${id}.md`, tdir), 'utf8'),
+  });
+  const readTutorials = (): StaticFile[] => {
+    const pages = TUTORIAL_ORDER.map(readTutorial);
+    const samples: SampleFile[] = readdirSync(new URL('files/', tdir))
+      .filter((f) => SAMPLE_FILE.test(f))
+      .sort()
+      .map((name) => ({ name, content: readFileSync(new URL(`files/${name}`, tdir), 'utf8') }));
+    return generateTutorialFiles(readTutorial('README'), pages, samples);
+  };
+  const sitemap = (): string =>
+    generateSitemap(readPages(), tutorialUrls(TUTORIAL_ORDER.map(readTutorial)));
   return {
     name: 'plasmidpop-static-guide',
     generateBundle() {
-      const pages = readPages();
-      for (const f of generateGuideFiles(pages))
+      for (const f of [...generateGuideFiles(readPages()), ...readTutorials()])
         this.emitFile({ type: 'asset', fileName: f.path, source: f.content });
-      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: generateSitemap(pages) });
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap() });
     },
     // Dev (#244): the same pages and sitemap, regenerated from docs/guide on
     // every request so edits show up. Registered directly (not as a post
@@ -76,18 +99,23 @@ function staticGuide(): Plugin {
           res.end();
           return;
         }
-        const pages = readPages();
         const content =
           hit.path === 'sitemap.xml'
-            ? generateSitemap(pages)
-            : generateGuideFiles(pages).find((f) => f.path === hit.path)?.content;
+            ? sitemap()
+            : [...generateGuideFiles(readPages()), ...readTutorials()].find(
+                (f) => f.path === hit.path,
+              )?.content;
         if (content === undefined) {
           next();
           return;
         }
         res.setHeader(
           'Content-Type',
-          hit.path.endsWith('.xml') ? 'application/xml; charset=utf-8' : 'text/html; charset=utf-8',
+          hit.path.endsWith('.xml')
+            ? 'application/xml; charset=utf-8'
+            : hit.path.endsWith('.html')
+              ? 'text/html; charset=utf-8'
+              : 'text/plain; charset=utf-8',
         );
         res.setHeader('Cache-Control', 'no-cache');
         res.end(req.method === 'HEAD' ? undefined : content);
@@ -198,16 +226,16 @@ export default defineConfig({
         navigateFallback: `${base}index.html`,
         // robots.txt, sitemap.xml and the static guide pages are plain files
         // (item 91), not app routes: a navigation to them must not be answered
-        // with the shell. The guide pages stay out of the precache too (the
+        // with the shell. The guide and tutorial pages stay out of the precache too (the
         // app has its own copy of the guide); the network serves them.
-        navigateFallbackDenylist: [/\/(robots\.txt|sitemap\.xml)$/, /\/guide\//],
+        navigateFallbackDenylist: [/\/(robots\.txt|sitemap\.xml)$/, /\/guide\//, /\/tutorials\//],
         // The PDF writer (#242) is a chunk of its own that only an export as
         // PDF fetches: half a megabyte that most installs would never use,
         // so it is not precached. Once fetched it is kept (below), so the
         // export works offline from then on. It comes as two chunks since
         // #248: the writer (one copy for the main thread, one the export
         // worker loads) and svg2pdf, which only the vector writer fetches.
-        globIgnores: ['guide/**', '**/pdfWriter-*.js', '**/svg2pdf*.js'],
+        globIgnores: ['guide/**', 'tutorials/**', '**/pdfWriter-*.js', '**/svg2pdf*.js'],
         runtimeCaching: [
           // The share target's POST: written into sw.js as the functions'
           // source, so they are self-contained (see the module).

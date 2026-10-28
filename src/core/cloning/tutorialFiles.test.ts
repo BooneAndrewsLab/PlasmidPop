@@ -49,13 +49,13 @@ import {
 } from './index';
 
 /**
- * Verifies docs/tutorials/cloning/README.md: every file the tutorial hands
+ * Verifies docs/tutorials/ligation.md and golden-gate-parts.md: every file the tutorial hands
  * out and every number it promises, through the functions the Bench uses.
  * The NCBI half needs a copy of the record in fixtures/local/ncbi (gitignored,
  * third-party data policy) and skips when it is absent.
  */
 
-const DIR = join(__dirname, '../../../docs/tutorials/cloning');
+const DIR = join(__dirname, '../../../docs/tutorials/files');
 const NCBI_FILE = join(__dirname, '../../../fixtures/local/ncbi/NM_000207.gb');
 
 function load(path: string): SeqDocument {

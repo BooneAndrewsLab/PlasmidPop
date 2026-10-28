@@ -19,14 +19,14 @@ import { writeGenBank } from '@/io/genbank/writeGenBank';
 import { designGoldenGatePart, destinationOverhangs, goldenGate, goldenGateSeed } from './index';
 
 /**
- * Verifies docs/tutorials/cloning/golden-gate.md, Tutorial 1: one gene into
+ * Verifies docs/tutorials/golden-gate.md, Tutorial 1: one gene into
  * an expression vector. Every number the page prints is asserted here
  * through the functions the primer workspace and the Bench use. The NCBI
  * path needs the gitignored fixtures/local/ncbi/NM_000207.gb (third-party
  * data policy) and skips when it is absent.
  */
 
-const DIR = join(__dirname, '../../../docs/tutorials/cloning');
+const DIR = join(__dirname, '../../../docs/tutorials/files');
 const NCBI_FILE = join(__dirname, '../../../fixtures/local/ncbi/NM_000207.gb');
 
 function load(path: string): SeqDocument {

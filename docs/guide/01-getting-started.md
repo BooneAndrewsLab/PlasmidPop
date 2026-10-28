@@ -110,6 +110,9 @@ editing controls. See [On a phone](03-viewing.md#on-a-phone).
    lists what you did.
 6. Press `Ctrl+S` to download the result as a GenBank file.
 
+For longer hands-on exercises, such as cloning a gene into a vector, see the
+[tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/).
+
 ## Where your data lives
 
 Open documents are written to the browser's local storage half a second

@@ -1,7 +1,7 @@
 # 112. Cloning products open with the enzymes the reaction used
 
 Issue #309. A new document opens with every enzyme that cuts once ticked
-(34 for the insulin ligation product in `docs/tutorials/cloning`), so a
+(34 for the insulin ligation product in `docs/tutorials`), so a
 product's map was crowded with sites the user had not chosen. A separate
 note rather than an addition to item 110: this is about the enzyme ticks,
 not about how long a scratch document lives.

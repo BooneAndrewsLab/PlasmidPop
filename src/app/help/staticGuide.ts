@@ -44,7 +44,7 @@ export function guideUrl(id: string | null): string {
   return `${SITE_URL}${pagePath(id)}`;
 }
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -56,7 +56,7 @@ function escapeHtml(s: string): string {
  * Relative URL from a page's directory to another site path. Relative, so
  * the pages work under any base path and from a local `vite preview`.
  */
-function relative(fromDir: string, to: string): string {
+export function relative(fromDir: string, to: string): string {
   const from = fromDir.split('/').filter((x) => x !== '');
   const dest = to.split('/');
   // Stryker disable next-line StringLiteral: `split` always gives one piece, so the fallback is for the type
@@ -74,7 +74,29 @@ function relative(fromDir: string, to: string): string {
   return prefix + parts.map((x) => `${x}/`).join('') + file;
 }
 
-function inlines(nodes: readonly Inline[], fromDir: string): string {
+/**
+ * Where a page is written and how its relative Markdown links resolve: to a
+ * site path (`guide/files/`, possibly with `#anchor`), or null for a link
+ * that is not to another page of the site.
+ */
+export interface LinkContext {
+  readonly fromDir: string;
+  readonly resolve: (href: string) => string | null;
+}
+
+/** The context of a guide page: a bare `05-features.md` is another guide page. */
+function guideContext(fromDir: string): LinkContext {
+  return {
+    fromDir,
+    resolve: (href) => {
+      const page = guideLinkTarget(href);
+      if (page === null) return null;
+      return pagePath(page) + (href.includes('#') ? href.slice(href.indexOf('#')) : '');
+    },
+  };
+}
+
+function inlines(nodes: readonly Inline[], ctx: LinkContext): string {
   return nodes
     .map((n) => {
       switch (n.kind) {
@@ -83,16 +105,19 @@ function inlines(nodes: readonly Inline[], fromDir: string): string {
         case 'code':
           return `<code>${escapeHtml(n.text)}</code>`;
         case 'strong':
-          return `<strong>${inlines(n.children, fromDir)}</strong>`;
+          return `<strong>${inlines(n.children, ctx)}</strong>`;
         case 'em':
-          return `<em>${inlines(n.children, fromDir)}</em>`;
+          return `<em>${inlines(n.children, ctx)}</em>`;
         case 'link': {
-          const inner = inlines(n.children, fromDir);
+          const inner = inlines(n.children, ctx);
           if (anchorTarget(n.href) !== null) return `<a href="${escapeHtml(n.href)}">${inner}</a>`;
-          const page = guideLinkTarget(n.href);
-          if (page !== null) {
-            const hash = n.href.includes('#') ? n.href.slice(n.href.indexOf('#')) : '';
-            return `<a href="${escapeHtml(relative(fromDir, pagePath(page)) + hash)}">${inner}</a>`;
+          const target = ctx.resolve(n.href);
+          if (target !== null) {
+            const at = target.indexOf('#');
+            const path = at < 0 ? target : target.slice(0, at);
+            const hash = at < 0 ? '' : target.slice(at);
+            const download = /\.(?:gb|fasta)$/.test(path) ? ' download' : '';
+            return `<a href="${escapeHtml(relative(ctx.fromDir, path) + hash)}"${download}>${inner}</a>`;
           }
           return `<a href="${escapeHtml(n.href)}" rel="noopener">${inner}</a>`;
         }
@@ -101,25 +126,25 @@ function inlines(nodes: readonly Inline[], fromDir: string): string {
     .join('');
 }
 
-function block(b: Block, fromDir: string): string {
+export function block(b: Block, ctx: LinkContext): string {
   switch (b.kind) {
     case 'heading': {
       const id = headingSlug(plainText(b.children));
-      return `<h${b.level} id="${escapeHtml(id)}">${inlines(b.children, fromDir)}</h${b.level}>`;
+      return `<h${b.level} id="${escapeHtml(id)}">${inlines(b.children, ctx)}</h${b.level}>`;
     }
     case 'paragraph':
-      return `<p>${inlines(b.children, fromDir)}</p>`;
+      return `<p>${inlines(b.children, ctx)}</p>`;
     case 'list': {
       const tag = b.ordered ? 'ol' : 'ul';
-      const items = b.items.map((i) => `<li>${inlines(i, fromDir)}</li>`).join('\n');
+      const items = b.items.map((i) => `<li>${inlines(i, ctx)}</li>`).join('\n');
       return `<${tag}>\n${items}\n</${tag}>`;
     }
     case 'code':
       return `<pre><code>${escapeHtml(b.text)}</code></pre>`;
     case 'table': {
-      const head = b.header.map((c) => `<th>${inlines(c, fromDir)}</th>`).join('');
+      const head = b.header.map((c) => `<th>${inlines(c, ctx)}</th>`).join('');
       const rows = b.rows
-        .map((r) => `<tr>${r.map((c) => `<td>${inlines(c, fromDir)}</td>`).join('')}</tr>`)
+        .map((r) => `<tr>${r.map((c) => `<td>${inlines(c, ctx)}</td>`).join('')}</tr>`)
         .join('\n');
       return `<table>\n<thead><tr>${head}</tr></thead>\n<tbody>\n${rows}\n</tbody>\n</table>`;
     }
@@ -154,7 +179,27 @@ footer{color:var(--muted);font-size:.9em;padding-bottom:2rem}
   .trim()
   .replace(/\n/g, '');
 
-function document(opts: {
+/** What differs between the sections of the site: the header and the footer. */
+export interface SiteSection {
+  /** The name in the header. */
+  readonly name: string;
+  /** Site path of the section's index, and what its link says. */
+  readonly indexPath: string;
+  readonly indexLabel: string;
+  /** The footer paragraph, as HTML; `home` is the relative URL of the app, `fromDir` the page's directory. */
+  readonly footer: (home: string, fromDir: string) => string;
+}
+
+const GUIDE_SECTION: SiteSection = {
+  name: 'PlasmidPop user guide',
+  indexPath: 'guide/',
+  indexLabel: 'All pages',
+  footer: (home) =>
+    `This is the same user guide that opens from the <strong>?</strong> button inside <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.`,
+};
+
+export function document(opts: {
+  section?: SiteSection;
   title: string;
   description: string;
   canonical: string;
@@ -164,7 +209,8 @@ function document(opts: {
 }): string {
   const { title, description, canonical, fromDir } = opts;
   const home = escapeHtml(relative(fromDir, ''));
-  const index = escapeHtml(relative(fromDir, 'guide/'));
+  const section = opts.section ?? GUIDE_SECTION;
+  const index = escapeHtml(relative(fromDir, section.indexPath));
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -184,8 +230,8 @@ function document(opts: {
 </head>
 <body>
 <header>
-<strong>PlasmidPop user guide</strong>
-<a href="${index}">All pages</a>
+<strong>${escapeHtml(section.name)}</strong>
+<a href="${index}">${escapeHtml(section.indexLabel)}</a>
 <a href="${home}">Open the app</a>
 </header>
 <main>
@@ -193,7 +239,7 @@ ${opts.body}
 ${opts.pager}
 </main>
 <footer>
-<p>This is the same user guide that opens from the <strong>?</strong> button inside <a href="${home}">PlasmidPop</a>, a free DNA sequence editor and plasmid viewer that runs in your browser.</p>
+<p>${section.footer(home, fromDir)}</p>
 </footer>
 </body>
 </html>
@@ -220,7 +266,7 @@ export function generateGuideFiles(pages: readonly SourcePage[]): StaticFile[] {
         : `<a href="${escapeHtml(relative(dir, pagePath(t.id)))}">${label}</a>`;
     // Stryker disable next-line StringLiteral: the label of a missing neighbour is not used (`link` writes an empty span instead)
     const pager = `<nav class="pager" aria-label="Guide pages">${link(prev, `&larr; ${escapeHtml(prev?.title ?? '')}`)}${link(next, `${escapeHtml(next?.title ?? '')} &rarr;`)}</nav>`;
-    const body = p.blocks.map((b) => block(b, dir)).join('\n');
+    const body = p.blocks.map((b) => block(b, guideContext(dir))).join('\n');
     return {
       path: `${dir}index.html`,
       content: document({
@@ -255,9 +301,12 @@ export function generateGuideFiles(pages: readonly SourcePage[]): StaticFile[] {
   return files;
 }
 
-/** sitemap.xml: the app and every guide page, from the same list. */
-export function generateSitemap(pages: readonly SourcePage[]): string {
-  const urls = [SITE_URL, guideUrl(null), ...pages.map((p) => guideUrl(p.id))];
+/** sitemap.xml: the app and every guide page, from the same list, then `moreUrls` (the tutorials). */
+export function generateSitemap(
+  pages: readonly SourcePage[],
+  moreUrls: readonly string[] = [],
+): string {
+  const urls = [SITE_URL, guideUrl(null), ...pages.map((p) => guideUrl(p.id)), ...moreUrls];
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url>\n    <loc>${u}</loc>\n  </url>`).join('\n')}
@@ -272,7 +321,8 @@ export type StaticRequest =
 
 /**
  * Maps a request URL (query allowed, `base` still on it) to the generated
- * file it names: `guide/`, `guide/<slug>/`, `sitemap.xml`. A directory
+ * file it names: `guide/`, `guide/<slug>/`, `tutorials/`, `tutorials/<id>/`,
+ * `tutorials/files/<name>`, `sitemap.xml`. A directory
  * without its trailing slash redirects to it, as GitHub Pages does, because
  * the pages link relatively. Anything else is null: the app's.
  */
@@ -283,9 +333,11 @@ export function matchStaticRequest(url: string, base: string): StaticRequest | n
   if (!pathname.startsWith(base)) return null;
   const rel = pathname.slice(base.length);
   if (rel === 'sitemap.xml') return { kind: 'file', path: 'sitemap.xml' };
-  if (/^guide\/([^/]+\/)?index\.html$/.test(rel)) return { kind: 'file', path: rel };
-  if (/^guide\/([^/]+\/)?$/.test(rel)) return { kind: 'file', path: `${rel}index.html` };
-  if (rel === 'guide' || /^guide\/[^/]+$/.test(rel))
+  if (/^(?:guide|tutorials)\/([^/]+\/)?index\.html$/.test(rel)) return { kind: 'file', path: rel };
+  if (/^(?:guide|tutorials)\/([^/]+\/)?$/.test(rel))
+    return { kind: 'file', path: `${rel}index.html` };
+  if (/^tutorials\/files\/[\w.-]+\.(?:gb|fasta)$/.test(rel)) return { kind: 'file', path: rel };
+  if (/^(?:guide|tutorials)$/.test(rel) || /^(?:guide|tutorials)\/[^/]+$/.test(rel))
     // Stryker disable next-line EqualityOperator: `q` is never 0 here, since the path matched the base and `guide` before it
     return { kind: 'redirect', to: `${pathname}/${q < 0 ? '' : url.slice(q)}` };
   return null;

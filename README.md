@@ -71,6 +71,9 @@ no account, no upload and no server round-trip. Works offline once loaded.
 The **user guide** lives in [`docs/guide`](./docs/guide/README.md) and
 opens inside the app from the **?** button at the right of the toolbar.
 Start with [Getting started](./docs/guide/01-getting-started.md).
+Hands-on cloning exercises with sample files are the
+[tutorials](./docs/tutorials/README.md), also published at
+[`/tutorials/`](https://booneandrewslab.github.io/PlasmidPop/tutorials/) on the site.
 
 ## Supported browsers
 
@@ -162,6 +165,7 @@ scripts/        Build-time tools: the feature database, icons, genetic codes
 fixtures/local/ Private test files (gitignored); tests use them when present
 docs/
   guide/        The user guide, also rendered in the app
+  tutorials/    Cloning tutorials and their sample files, published at /tutorials/
   design/       One note per numbered piece of work, and why it is that way
   perf-notes.md Measurements, with what was tried and what it cost
 ```

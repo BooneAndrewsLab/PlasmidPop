@@ -18,6 +18,9 @@ combination of parts), **Gibson** (with the In-Fusion and NEBuilder primer desig
 **Overlap PCR** (fusing fragments by PCR, with the primers designed), and **Gateway**. Beside the reaction it draws what the reaction would make, and
 a digest to check it by.
 
+Step-by-step exercises for ligation and Golden Gate, with sample files to
+download, are in the [tutorials](https://booneandrewslab.github.io/PlasmidPop/tutorials/), a section of the site of its own.
+
 In both places the reactions are alternatives, so one is shown at a time
 and the choice is remembered. Whichever you use, the product opens as a new
 document with the features of its parts.

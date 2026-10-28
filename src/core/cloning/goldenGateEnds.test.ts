@@ -31,7 +31,7 @@ import { parseGenBank } from '../../io/genbank/parseGenBank';
  * record.
  */
 
-const DIR = join(__dirname, '../../../docs/tutorials/cloning');
+const DIR = join(__dirname, '../../../docs/tutorials/files');
 
 function tut(name: string): SeqDocument {
   const result = parseGenBank(readFileSync(join(DIR, `${name}.gb`), 'utf8'));

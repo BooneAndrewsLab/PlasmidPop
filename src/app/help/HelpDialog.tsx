@@ -83,6 +83,15 @@ export function HelpDialog({ initialPage, onClose }: Props) {
             PlasmidPop guide
           </h1>
           <span className="help__version">Version {__APP_VERSION__}</span>
+          {/* The standalone tutorials (#312): a page of the site, not of the dialog. */}
+          <a
+            className="link"
+            href={`${import.meta.env.BASE_URL}tutorials/`}
+            target="_blank"
+            rel="noopener"
+          >
+            Tutorials
+          </a>
           <button
             type="button"
             className="button button--quiet button--small"

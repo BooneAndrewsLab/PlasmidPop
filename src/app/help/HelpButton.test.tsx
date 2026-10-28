@@ -27,6 +27,14 @@ describe('HelpButton', () => {
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
+  it('links the standalone tutorials, opened in a tab of their own (#312)', () => {
+    render(<HelpButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'Help' }));
+    const link = screen.getByRole('link', { name: 'Tutorials' });
+    expect(link).toHaveAttribute('href', `${import.meta.env.BASE_URL}tutorials/`);
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
   it('switches pages from the list and from links inside a page', () => {
     render(<HelpButton />);
     fireEvent.click(screen.getByRole('button', { name: 'Help' }));
