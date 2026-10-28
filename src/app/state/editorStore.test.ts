@@ -56,6 +56,31 @@ describe('EditorStore', () => {
     expect(store.document?.isCircular).toBe(true);
   });
 
+  it('hides feature types per document, as view state that seeds the next one (#305)', () => {
+    const store = new EditorStore();
+    const id = store.openDocument(doc, 'x.gb');
+    expect(store.getState().hiddenFeatureTypes.size).toBe(0);
+    const history = store.getState().history;
+    store.setFeatureTypeHidden('gene', true);
+    expect([...store.getState().hiddenFeatureTypes]).toEqual(['gene']);
+    // Not an edit: nothing to undo, nothing to save, the document untouched.
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().history).toBe(history);
+    expect(store.document).toBe(doc);
+    // The next document starts from the last choice; the first keeps its own.
+    const other = store.openDocument(doc.rename('other'), 'y.gb');
+    expect([...store.getState().hiddenFeatureTypes]).toEqual(['gene']);
+    store.setFeatureTypeHidden('gene', false);
+    store.setFeatureTypeHidden('CDS', true);
+    store.activateDocument(id);
+    expect([...store.getState().hiddenFeatureTypes]).toEqual(['gene']);
+    store.activateDocument(other);
+    expect([...store.getState().hiddenFeatureTypes]).toEqual(['CDS']);
+    expect([...store.getState().lastHiddenFeatureTypes]).toEqual(['CDS']);
+    store.setHiddenFeatureTypes([]);
+    expect(store.getState().hiddenFeatureTypes.size).toBe(0);
+  });
+
   it('opens parse results and reports empty ones', () => {
     const store = new EditorStore();
     store.openParsed(

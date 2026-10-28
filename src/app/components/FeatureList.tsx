@@ -10,6 +10,7 @@ import {
   translationFor,
 } from '@/core';
 import { featureColor } from '@/view/featureColors';
+import { hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
@@ -137,9 +138,16 @@ function TranslationNotice({
 
 export function FeatureList({ doc, reader = false }: Props) {
   const translation = useTranslationProblems(doc);
-  const { documentId, selection, selectedFeatureId, renameRequest, editingFeatureId } =
-    useEditorState();
+  const {
+    documentId,
+    selection,
+    selectedFeatureId,
+    renameRequest,
+    editingFeatureId,
+    hiddenFeatureTypes,
+  } = useEditorState();
   const features = doc.features.all();
+  const hiddenTypes = hiddenTypeCount(features, hiddenFeatureTypes);
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
   // A gene and the CDS inside it can cover exactly the same bases, so the
@@ -174,6 +182,20 @@ export function FeatureList({ doc, reader = false }: Props) {
         </h2>
         {detect && <DetectFeaturesButton documentId={documentId} doc={doc} />}
       </div>
+      {hiddenTypes > 0 && (
+        <p className="panel__note">
+          {hiddenTypesNote(hiddenTypes)} in the views; they are still listed here.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.setHiddenFeatureTypes([]);
+            }}
+          >
+            Show all
+          </button>
+        </p>
+      )}
       {detect && <DetectFeaturesPanel documentId={documentId} doc={doc} />}
       {detect && <MyPartsSection />}
       {features.length === 0 ? (

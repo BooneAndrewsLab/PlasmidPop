@@ -138,6 +138,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     showTranslations: translationsPref,
     translationScope,
     selectedFeatureId,
+    hiddenFeatureTypes,
     showCutSites,
     seqFontSize,
     seqBasesPerRow,
@@ -283,17 +284,20 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   ]);
   /** How wide the rows are; more than the viewport when a fixed width overflows. */
   const contentWidth = linearWidth(metrics);
-  const lanes = useMemo(() => assignLanes(drawableFeatures(doc.features.all()), doc.length), [doc]);
+  // What is hidden by type (#305) is out of every list below, so it has no
+  // lane to be hit in and no translation line; the translation scope then
+  // picks among the CDS features that are left.
+  const drawable = useMemo(
+    () => drawableFeatures(doc.features.all(), hiddenFeatureTypes),
+    [doc, hiddenFeatureTypes],
+  );
+  const lanes = useMemo(() => assignLanes(drawable, doc.length), [drawable, doc.length]);
   const codingFeatures = useMemo(
     () =>
       showTranslations
-        ? translatedFeatures(
-            drawableFeatures(doc.features.all()).filter(isCodingFeature),
-            translationScope,
-            selectedFeatureId,
-          )
+        ? translatedFeatures(drawable.filter(isCodingFeature), translationScope, selectedFeatureId)
         : [],
-    [doc, showTranslations, translationScope, selectedFeatureId],
+    [drawable, showTranslations, translationScope, selectedFeatureId],
   );
   const translationLanes = useMemo(
     () => assignLanes(codingFeatures, doc.length),
@@ -310,11 +314,21 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     [doc.length, doc.styles, metrics.basesPerRow],
   );
   const layout = useMemo(() => {
-    const perRow = lanesPerRow(drawableFeatures(doc.features.all()), lanes, doc.length, breaks);
+    const perRow = lanesPerRow(drawable, lanes, doc.length, breaks);
     const translationsPerRow = lanesPerRow(codingFeatures, translationLanes, doc.length, breaks);
     const previewPerRow = overlaysPerRow(overlay, previewLanes, doc.length, breaks);
     return new LinearLayout(doc.length, metrics, perRow, translationsPerRow, previewPerRow, breaks);
-  }, [doc, lanes, codingFeatures, translationLanes, metrics, overlay, previewLanes, breaks]);
+  }, [
+    doc,
+    drawable,
+    lanes,
+    codingFeatures,
+    translationLanes,
+    metrics,
+    overlay,
+    previewLanes,
+    breaks,
+  ]);
 
   // Track the viewport size.
   useLayoutEffect(() => {
@@ -853,7 +867,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       // A protein's CDS feature is residues, not codons (#66).
       if (!hasTool(doc, 'translations')) return false;
       for (const feature of doc.features.all()) {
-        if (!isCodingFeature(feature)) continue;
+        if (!isCodingFeature(feature) || hiddenFeatureTypes.has(feature.type)) continue;
         const translation = allTranslations.get(feature);
         const index = codonIndexAt(translation, position);
         if (index < 0) continue;

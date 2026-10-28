@@ -270,6 +270,19 @@ Escape closes.
 - **Trace** — **Hidden**, **Short** or **Tall**, for the chromatogram of a
   sequencing read; see [Reads](15-reads.md). Greyed out unless a read with
   a trace is in front.
+- **Feature types** — a tick for each type of feature the document has
+  (`CDS`, `mRNA`, `exon`, `misc_feature`…; `source` is never drawn, so it is
+  not offered). Untick a type to leave it out of the map, the sequence view
+  and the map strip, so a record with several mRNA variants and exons can be
+  read as just its genes. A hidden feature cannot be clicked on the map or
+  the sequence, and a hidden CDS gets no translation line, whatever the
+  Translations choice; it is still in the **Features** list and in a
+  share link, a download or a GenBank file, which are unchanged. **Format**
+  says "N hidden" while any type the document has is hidden, and **Show all
+  feature types** brings them back. Each document keeps its own ticks, and
+  the last ones you chose are where the next document you open starts (a type
+  it lacks is ignored); they are remembered in this browser. See
+  [Features](05-features.md#hiding-a-type-of-feature).
 
 Under a separator, two items that are not about the sequence view:
 
@@ -278,8 +291,8 @@ Under a separator, two items that are not about the sequence view:
 - **Keyboard shortcuts…** opens the table of every key, where a binding can
   be changed; see [Keyboard shortcuts](14-shortcuts.md).
 
-The SVG exports follow the bases-per-row, translation scope, numbering (residue numbers
-included) and colour choices,
+The SVG exports follow the bases-per-row, translation scope, hidden feature types, numbering
+(residue numbers included) and colour choices,
 chosen colours included. They keep their own text size and font so the file
 looks the same whatever the screen is set to. All of these are remembered in
 this browser.

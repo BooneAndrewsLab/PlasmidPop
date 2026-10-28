@@ -491,6 +491,13 @@ export interface DocumentState {
    * `MAX_DEFAULT_ENZYMES`.
    */
   readonly enzymesInitialized: boolean;
+  /**
+   * Feature types the views leave out for this document (#305). View state
+   * like `shownEnzymes`: never written to a file, not in the undo history,
+   * and no reason to call the document changed. A type the document does
+   * not have is harmless, so the set can carry a choice from another file.
+   */
+  readonly hiddenFeatureTypes: ReadonlySet<string>;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
   /** Set when the feature panel should open an inline rename for a feature. */
@@ -541,6 +548,12 @@ export interface SharedState {
   readonly showTranslations: boolean;
   /** Which CDS features get a translation line (#304). */
   readonly translationScope: TranslationScope;
+  /**
+   * The feature types last hidden in any document, which a document opened
+   * next starts with (#305). A remembered preference, not a document's own
+   * state; each document's is `hiddenFeatureTypes`.
+   */
+  readonly lastHiddenFeatureTypes: ReadonlySet<string>;
   /** Size of the sequence view's text; the rest of the row scales with it. */
   readonly seqFontSize: FontSize;
   /**
@@ -897,6 +910,7 @@ type ActiveDocumentFields = {
     | 'warnings'
     | 'shownEnzymes'
     | 'enzymesInitialized'
+    | 'hiddenFeatureTypes'
     | 'findOpen'
     | 'derived'
     // The sidebar is shown beside the file list too, so its tab always has a
@@ -966,6 +980,7 @@ const SHARED_INITIAL: SharedState = {
   showComplement: true,
   showTranslations: true,
   translationScope: DEFAULT_TRANSLATION_SCOPE,
+  lastHiddenFeatureTypes: new Set(),
   seqFontSize: 13,
   seqBasesPerRow: null,
   numberComplement: false,
@@ -1044,6 +1059,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   analysis: null,
   shownEnzymes: new Set(),
   enzymesInitialized: false,
+  hiddenFeatureTypes: new Set(),
   selectedFeatureId: null,
   reveal: null,
   renameRequest: null,
@@ -1297,6 +1313,7 @@ export class EditorStore {
       analysis: null,
       shownEnzymes: new Set(),
       enzymesInitialized: false,
+      hiddenFeatureTypes: this.shared.lastHiddenFeatureTypes,
       reveal: { position: 0, nonce: 1 },
       renameRequest: null,
       editingFeatureId: null,
@@ -2536,6 +2553,27 @@ export class EditorStore {
 
   setTranslationScope(scope: TranslationScope): void {
     if (scope !== this.state.translationScope) this.setShared({ translationScope: scope });
+  }
+
+  /** Hides or shows a feature type in the document in front, and remembers it for the next one (#305). */
+  setFeatureTypeHidden(type: string, hidden: boolean): void {
+    const next = new Set(this.state.hiddenFeatureTypes);
+    if (hidden) next.add(type);
+    else next.delete(type);
+    this.setHiddenFeatureTypes(next);
+  }
+
+  setHiddenFeatureTypes(types: Iterable<string>): void {
+    const next = new Set(types);
+    const now = this.state.hiddenFeatureTypes;
+    if (next.size === now.size && [...next].every((t) => now.has(t))) return;
+    this.setActive({ hiddenFeatureTypes: next });
+    this.setShared({ lastHiddenFeatureTypes: next });
+  }
+
+  /** Brings back the remembered choice at start-up (#305); no document's own is touched. */
+  restoreLastHiddenFeatureTypes(types: Iterable<string>): void {
+    this.setShared({ lastHiddenFeatureTypes: new Set(types) });
   }
 
   setSeqFontSize(size: FontSize): void {

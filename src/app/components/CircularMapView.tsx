@@ -131,6 +131,7 @@ export function CircularMapView({ doc }: Props) {
     preview,
     showGc,
     gcWindow,
+    hiddenFeatureTypes,
   } = useEditorState();
   const gcOn = showGc && hasTool(doc, 'gc');
   const gcWindowBases = gcWindowFor(gcWindow, doc.length, true);
@@ -184,7 +185,10 @@ export function CircularMapView({ doc }: Props) {
     setViewport(recallView(documentId).mapViewport ?? FIT_VIEWPORT);
   }
 
-  const liveFeatures = useMemo(() => drawableFeatures(doc.features.all()), [doc]);
+  const liveFeatures = useMemo(
+    () => drawableFeatures(doc.features.all(), hiddenFeatureTypes),
+    [doc, hiddenFeatureTypes],
+  );
   const liveLanes = useMemo(
     () => assignLanes(liveFeatures, doc.length),
     [liveFeatures, doc.length],
@@ -192,8 +196,14 @@ export function CircularMapView({ doc }: Props) {
   // Removed features are ghosts in the lanes after the live ones (#27), so
   // the lanes follow the marks as well as the document.
   const lanes = useMemo(
-    () => lanesWithGhosts(liveFeatures, liveLanes, ghostFeatures(edits), doc.length),
-    [liveFeatures, liveLanes, edits, doc.length],
+    () =>
+      lanesWithGhosts(
+        liveFeatures,
+        liveLanes,
+        ghostFeatures(edits, hiddenFeatureTypes),
+        doc.length,
+      ),
+    [liveFeatures, liveLanes, edits, hiddenFeatureTypes, doc.length],
   );
   const layout = useMemo(() => {
     const options = {
@@ -343,6 +353,7 @@ export function CircularMapView({ doc }: Props) {
         overlay,
         overlayLanes: previewLanes,
         edits,
+        hiddenTypes: hiddenFeatureTypes,
         gc: gcTrack,
         hoveredFeatureId: hover.featureId,
         hoveredCut: hover.cut,
@@ -370,6 +381,7 @@ export function CircularMapView({ doc }: Props) {
     overlay,
     previewLanes,
     edits,
+    hiddenFeatureTypes,
     hover.featureId,
     hover.cut,
     hover.change,

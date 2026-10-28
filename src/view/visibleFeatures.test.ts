@@ -1,6 +1,12 @@
-import { createFeature, rangeSegment } from '@/core';
+import { createFeature, isCodingFeature, rangeSegment, translatedFeatures } from '@/core';
 
-import { drawableFeatures, featuresToLabel } from './visibleFeatures';
+import {
+  drawableFeatures,
+  drawableTypes,
+  featuresToLabel,
+  hiddenTypeCount,
+  hiddenTypesNote,
+} from './visibleFeatures';
 
 const f = (id: string, name: string, start: number, end: number, type = 'misc') =>
   createFeature({ id, type, name, segments: [rangeSegment(start, end)] });
@@ -64,5 +70,77 @@ describe('featuresToLabel', () => {
   it('treats wrapped features as overlapping across the origin', () => {
     const list = [f('w', 'ori', 180, 210), f('t', 'ori', 0, 5)];
     expect(featuresToLabel(list, 200).map((x) => x.id)).toEqual(['w']);
+  });
+});
+
+describe('hidden feature types (#305)', () => {
+  const list = [
+    f('s', '', 0, 100, 'source'),
+    f('m', 'tet', 10, 90, 'mRNA'),
+    f('c', 'tet', 10, 90, 'CDS'),
+    f('g', 'tet', 10, 90, 'gene'),
+    f('e', 'x', 20, 30, 'exon'),
+  ];
+  const ids = (hidden: string[]) => drawableFeatures(list, new Set(hidden)).map((x) => x.id);
+
+  it('draws everything when nothing is hidden', () => {
+    expect(drawableFeatures(list, new Set())).toEqual(drawableFeatures(list));
+    expect(ids([])).toEqual(['m', 'c', 'e']);
+  });
+
+  it('leaves out a hidden type, whatever its place in the list', () => {
+    expect(ids(['mRNA', 'exon'])).toEqual(['c']);
+    // A type the document does not have is ignored.
+    expect(ids(['misc_feature'])).toEqual(['m', 'c', 'e']);
+  });
+
+  it('draws the gene once its twin CDS is hidden, since it is no longer a duplicate', () => {
+    expect(ids(['CDS'])).toEqual(['m', 'g', 'e']);
+  });
+
+  it('offers the types the document has, but never source', () => {
+    expect(drawableTypes(list)).toEqual(['CDS', 'exon', 'gene', 'mRNA']);
+  });
+
+  it('counts only hidden types the document has', () => {
+    expect(hiddenTypeCount(list, new Set())).toBe(0);
+    expect(hiddenTypeCount(list, new Set(['exon', 'mRNA', 'misc_feature', 'source']))).toBe(2);
+    expect(hiddenTypesNote(1)).toBe('1 type hidden');
+    expect(hiddenTypesNote(3)).toBe('3 types hidden');
+  });
+
+  it('stops the translations of a hidden CDS, in every translation scope', () => {
+    const cds = [
+      createFeature({
+        id: 'a',
+        type: 'CDS',
+        name: 'tet',
+        segments: [rangeSegment(0, 90)],
+        qualifiers: [{ name: 'gene', value: 'tet' }],
+      }),
+      createFeature({
+        id: 'b',
+        type: 'CDS',
+        name: 'tet',
+        segments: [rangeSegment(0, 60)],
+        qualifiers: [{ name: 'gene', value: 'tet' }],
+      }),
+    ];
+    const translated = (
+      hidden: string[],
+      scope: 'all' | 'selected' | 'gene',
+      selected: string | null,
+    ) =>
+      translatedFeatures(
+        drawableFeatures(cds, new Set(hidden)).filter(isCodingFeature),
+        scope,
+        selected,
+      ).map((x) => x.id);
+    expect(translated([], 'all', null)).toEqual(['a', 'b']);
+    expect(translated([], 'gene', null)).toEqual(['a']);
+    for (const scope of ['all', 'selected', 'gene'] as const) {
+      // Even the selected CDS is not translated while its type is hidden.
+      expect(translated(['CDS'], scope, 'a')).toEqual([]);
+    }
   });
 });

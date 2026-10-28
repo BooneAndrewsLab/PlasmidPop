@@ -10,20 +10,62 @@ import { type Feature, rangePieces, rangesOverlap } from '@/core';
  * it is the one with a translation and a reading frame. SnapGene does the
  * same. It is display only: the feature list shows both, and both are
  * written back out.
+ *
+ * `hiddenTypes` are the feature types the user switched off for this
+ * document (#305): another display-only filter, so the same one serves the
+ * map, the sequence view, the ribbon and what they hit-test, and the
+ * translations drawn under CDS features follow it too.
  */
-export function drawableFeatures(features: readonly Feature[]): Feature[] {
+export function drawableFeatures(
+  features: readonly Feature[],
+  hiddenTypes: ReadonlySet<string> = NO_TYPES,
+): Feature[] {
   const shape = (f: Feature): string =>
     `${f.name}\u0000${f.strand}\u0000${f.segments
       .map((s) =>
         s.kind === 'range' ? `${String(s.start)}-${String(s.end)}` : `@${String(s.position)}`,
       )
       .join(',')}`;
+  // A hidden CDS is not drawn, so it is no longer the one its gene is a twin of.
   const cds = new Set(
-    features.filter((f) => f.type === 'CDS' && f.name !== '').map((f) => shape(f)),
+    features
+      .filter((f) => f.type === 'CDS' && f.name !== '' && !hiddenTypes.has('CDS'))
+      .map((f) => shape(f)),
   );
   return features.filter(
-    (f) => f.type !== 'source' && !(f.type === 'gene' && cds.size > 0 && cds.has(shape(f))),
+    (f) =>
+      f.type !== 'source' &&
+      !hiddenTypes.has(f.type) &&
+      !(f.type === 'gene' && cds.size > 0 && cds.has(shape(f))),
   );
+}
+
+const NO_TYPES: ReadonlySet<string> = new Set();
+
+/**
+ * The feature types the checklist offers: those a document has that
+ * `drawableFeatures` would draw, sorted. A `source` is never drawn, so it is
+ * not a choice; a `gene` is, even when every one of them is the CDS's twin.
+ */
+export function drawableTypes(features: readonly Feature[]): string[] {
+  return [...new Set(features.filter((f) => f.type !== 'source').map((f) => f.type))].sort();
+}
+
+/**
+ * How many of the document's types are hidden, for the "N types hidden"
+ * note. A type the document does not have costs nothing: the choice is
+ * remembered across documents, and a plasmid without `exon` is not hiding any.
+ */
+export function hiddenTypeCount(
+  features: readonly Feature[],
+  hiddenTypes: ReadonlySet<string>,
+): number {
+  return drawableTypes(features).filter((t) => hiddenTypes.has(t)).length;
+}
+
+/** "1 type hidden" / "3 types hidden". */
+export function hiddenTypesNote(count: number): string {
+  return `${String(count)} ${count === 1 ? 'type' : 'types'} hidden`;
 }
 
 function featureLength(f: Feature): number {

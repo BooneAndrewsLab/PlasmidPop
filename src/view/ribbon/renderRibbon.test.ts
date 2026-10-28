@@ -71,6 +71,14 @@ describe('the map strip (item 107, point 5)', () => {
     expect(rows.featureTop(1)).toBeGreaterThan(0);
   });
 
+  it('leaves out the feature types hidden for the document (#305)', () => {
+    const doc = plain
+      .addFeature(createFeature({ type: 'CDS', name: 'a', segments: [rangeSegment(100, 300)] }))
+      .addFeature(createFeature({ type: 'gene', name: 'b', segments: [rangeSegment(200, 400)] }));
+    const paths = (svg: string): number => (svg.match(/<path/g) ?? []).length;
+    expect(paths(draw(doc, { hiddenTypes: new Set(['gene']) }))).toBe(paths(draw(doc)) - 1);
+  });
+
   it('draws the selection as a band and a stretch over the origin as two pieces', () => {
     const svg = draw(plain, { selection: { start: 950, end: 1050 } });
     const rects = svg.match(/<rect[^>]*>/g) ?? [];

@@ -13,6 +13,7 @@ const DEFAULTS = {
   showComplement: true,
   showTranslations: true,
   translationScope: 'gene',
+  hiddenFeatureTypes: [] as string[],
   showCutSites: true,
   seqFontSize: 13,
   seqBasesPerRow: null,
@@ -49,6 +50,7 @@ function reset(): void {
   editorStore.setShowComplement(DEFAULTS.showComplement);
   editorStore.setShowTranslations(DEFAULTS.showTranslations);
   editorStore.setTranslationScope(DEFAULTS.translationScope);
+  editorStore.restoreLastHiddenFeatureTypes(DEFAULTS.hiddenFeatureTypes);
   editorStore.setPhoneLayout(false);
   editorStore.setShowCutSites(DEFAULTS.showCutSites, 'desktop');
   editorStore.setShowCutSites(false, 'phone');
@@ -95,6 +97,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: true,
       translationScope: 'selected',
+      hiddenFeatureTypes: ['exon', 'mRNA'],
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 16,
@@ -177,6 +180,7 @@ describe('view preferences', () => {
       showComplement: false,
       showTranslations: false,
       translationScope: 'all',
+      hiddenFeatureTypes: ['exon'],
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 11,
@@ -216,6 +220,7 @@ describe('view preferences', () => {
       phonePanes: {},
     });
     const stop = startViewPrefs();
+    expect([...editorStore.getState().lastHiddenFeatureTypes]).toEqual(['exon']);
     expect(editorStore.getState()).toMatchObject({
       view: 'sequence',
       showComplement: false,
@@ -282,7 +287,12 @@ describe('view preferences', () => {
   it('leaves the defaults alone when only some fields are stored', () => {
     localStorage.setItem(KEY, JSON.stringify({ showCutSites: false }));
     const stop = startViewPrefs();
-    expect(editorStore.getState()).toMatchObject({ ...DEFAULTS, showCutSites: false });
+    // The store holds the open document's own set under that name; the remembered one is `lastHiddenFeatureTypes`.
+    expect(editorStore.getState()).toMatchObject({
+      ...DEFAULTS,
+      hiddenFeatureTypes: new Set(),
+      showCutSites: false,
+    });
     stop();
   });
 

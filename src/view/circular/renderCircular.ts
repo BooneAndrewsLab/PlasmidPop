@@ -70,6 +70,8 @@ export interface CircularRenderParams {
    * question the same way. Null when there is nothing to mark.
    */
   readonly edits: DocumentDiff | null;
+  /** Feature types switched off for this document (#305); `lanes` has none of them either. */
+  readonly hiddenTypes?: ReadonlySet<string>;
   /**
    * The GC ring just inside the feature lanes (item 75); null draws none.
    * The profile is per base and wraps the origin already.
@@ -579,7 +581,7 @@ function drawGhosts(ctx: DrawingContext, p: CircularRenderParams): void {
   const half = (layout.ringWidth - 4) / 2;
   ctx.lineCap = 'butt';
   ctx.strokeStyle = theme.editDelete;
-  for (const ghost of ghostFeatures(edits)) {
+  for (const ghost of ghostFeatures(edits, p.hiddenTypes)) {
     const lane = lanes.laneOf.get(ghostLaneKey(ghost.id));
     if (lane === undefined) continue;
     const r = layout.laneRadius(lane);
@@ -1706,7 +1708,7 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   drawBackbone(ctx, p);
   const ticks = rulerTicks(p, m);
   drawTickMarks(ctx, p, m, ticks);
-  const features = drawableFeatures(doc.features.all());
+  const features = drawableFeatures(doc.features.all(), p.hiddenTypes);
   for (const f of features) {
     const lane = lanes.laneOf.get(f.id);
     if (lane !== undefined) drawFeature(ctx, p, f, lane);

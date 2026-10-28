@@ -68,7 +68,7 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
   const lanes = lanesWithGhosts(
     features,
     assignLanes(features, doc.length),
-    ghostFeatures(edits),
+    ghostFeatures(edits).filter((g) => types === null || types.has(g.type)),
     doc.length,
   );
   const ringWidth = Math.max(12, size / 60);

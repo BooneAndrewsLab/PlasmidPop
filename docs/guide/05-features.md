@@ -31,6 +31,24 @@ The `source` feature that GenBank records use for organism metadata is
 listed but not drawn on the views. On the map, features that share a name
 share one label.
 
+### Hiding a type of feature
+
+An NCBI record carries an mRNA, a CDS and often a run of exons for each gene,
+and the map draws them all. **Format ▸ Feature types** (see
+[Format](03-viewing.md#format)) has a tick for each type the document has;
+unticking one leaves it out of the circular map, the sequence view and the
+map strip, with its labels and translation line. Only the display changes: the
+features stay in this list (and a banner here says "N types hidden", with a
+**Show all** link), they are still written to GenBank and SnapGene files, and
+editing is unaffected. Selecting a hidden feature in this list still
+selects its bases, but it cannot be clicked on the map or the sequence while
+its type is hidden.
+
+The ticks belong to the document, are not an edit (nothing to undo, nothing
+unsaved), and the last choice is where each new document starts. **File ▸
+Export figure** starts its own Features ticks from them, and the sequence
+figure leaves hidden types out.
+
 ## Where a name comes from
 
 GenBank has no one field for a feature's name, so it is taken from the

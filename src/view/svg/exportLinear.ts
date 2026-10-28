@@ -105,6 +105,8 @@ export interface LinearExportOptions {
   readonly translationScope?: TranslationScope;
   /** The selected feature, which every scope but 'selected' shows besides its own picks. */
   readonly selectedFeatureId?: string | null;
+  /** Feature types left out, as the view's checklist has them (#305). */
+  readonly hiddenTypes?: ReadonlySet<string>;
   readonly cutSites?: readonly CutSite[];
   /** Changes to mark, as the sequence view marks them on screen. */
   readonly edits?: DocumentDiff | null;
@@ -175,7 +177,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
     extraRightGutter: overhangs.rightBottom * charWidth,
   });
 
-  const features = drawableFeatures(doc.features.all());
+  const features = drawableFeatures(doc.features.all(), options.hiddenTypes);
   const lanes = assignLanes(features, doc.length);
   const coding =
     options.showTranslations === true

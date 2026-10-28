@@ -54,6 +54,8 @@ export interface ViewPrefs {
   readonly showTranslations: boolean;
   /** Which CDS features get a translation line; see `SharedState.translationScope`. */
   readonly translationScope: TranslationScope;
+  /** Feature types the last document left hidden, sorted; see `SharedState.lastHiddenFeatureTypes`. */
+  readonly hiddenFeatureTypes: readonly string[];
   /** The desktop's; see `SharedState.desktopShowCutSites`. */
   readonly showCutSites: boolean;
   /** The phone reader's, off until chosen there; see `SharedState.phoneShowCutSites`. */
@@ -187,6 +189,10 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (isTranslationScope(record['translationScope'])) {
     prefs.translationScope = record['translationScope'];
   }
+  const hiddenTypes = record['hiddenFeatureTypes'];
+  if (Array.isArray(hiddenTypes)) {
+    prefs.hiddenFeatureTypes = hiddenTypes.filter((t): t is string => typeof t === 'string').sort();
+  }
   if (isResidueNumbering(record['residueNumbering'])) {
     prefs.residueNumbering = record['residueNumbering'];
   }
@@ -300,6 +306,7 @@ function snapshot(): ViewPrefs {
     showComplement,
     showTranslations,
     translationScope,
+    lastHiddenFeatureTypes,
     desktopShowCutSites,
     phoneShowCutSites,
     seqFontSize,
@@ -336,6 +343,7 @@ function snapshot(): ViewPrefs {
     showComplement,
     showTranslations,
     translationScope,
+    hiddenFeatureTypes: [...lastHiddenFeatureTypes].sort(),
     showCutSites: desktopShowCutSites,
     phoneShowCutSites,
     seqFontSize,
@@ -377,6 +385,8 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.showComplement === b.showComplement &&
     a.showTranslations === b.showTranslations &&
     a.translationScope === b.translationScope &&
+    a.hiddenFeatureTypes.length === b.hiddenFeatureTypes.length &&
+    a.hiddenFeatureTypes.every((t, i) => t === b.hiddenFeatureTypes[i]) &&
     a.showCutSites === b.showCutSites &&
     a.phoneShowCutSites === b.phoneShowCutSites &&
     a.seqFontSize === b.seqFontSize &&
@@ -424,6 +434,9 @@ export function startViewPrefs(): () => void {
   }
   if (stored.translationScope !== undefined) {
     editorStore.setTranslationScope(stored.translationScope);
+  }
+  if (stored.hiddenFeatureTypes !== undefined) {
+    editorStore.restoreLastHiddenFeatureTypes(stored.hiddenFeatureTypes);
   }
   if (stored.showCutSites !== undefined) {
     editorStore.setShowCutSites(stored.showCutSites, 'desktop');

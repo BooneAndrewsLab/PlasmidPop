@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
+import { SeqDocument, createFeature, rangeSegment } from '@/core';
+
 import { editorStore } from '../state/editorStore';
 import { FormatMenu } from './FormatMenu';
 
@@ -11,6 +13,8 @@ describe('FormatMenu', () => {
       editorStore.setBaseColors(null);
       editorStore.setColorBases(false);
       editorStore.setResidueNumbering('tens');
+      editorStore.closeAllDocuments();
+      editorStore.restoreLastHiddenFeatureTypes([]);
     });
   });
 
@@ -112,6 +116,36 @@ describe('FormatMenu', () => {
     fireEvent.click(item('Every CDS'));
     expect(editorStore.getState().translationScope).toBe('all');
     editorStore.setTranslationScope('gene');
+  });
+
+  it('lists the feature types of the document and hides them (#305)', () => {
+    act(() => {
+      editorStore.openDocument(
+        SeqDocument.create({
+          sequence: 'ACGT'.repeat(10),
+          features: [
+            createFeature({ type: 'CDS', name: 'a', segments: [rangeSegment(0, 12)] }),
+            createFeature({ type: 'exon', name: 'b', segments: [rangeSegment(0, 6)] }),
+            createFeature({ type: 'source', segments: [rangeSegment(0, 40)] }),
+          ],
+        }),
+        'x.gb',
+      );
+    });
+    open();
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'source' })).toBeNull();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'CDS' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'exon' }));
+    expect(screen.getByRole('menuitemcheckbox', { name: 'exon' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    expect(screen.getByText(/1 type hidden/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Show all feature types' }));
+    expect(editorStore.getState().hiddenFeatureTypes.size).toBe(0);
   });
 
   it('starts with the three view toggles only where the toolbar has no room for them (#296)', () => {

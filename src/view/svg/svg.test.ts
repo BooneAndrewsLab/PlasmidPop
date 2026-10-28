@@ -443,6 +443,15 @@ describe('exportLinearSvg', () => {
     expect(height(picked)).toBe(all);
   });
 
+  it('leaves out the feature types hidden in the view (#305)', () => {
+    const { doc } = plasmid();
+    const range = { start: 86, end: 200 };
+    const all = exportLinearSvg(doc, { range });
+    const hidden = exportLinearSvg(doc, { range, hiddenTypes: new Set(['CDS']) });
+    expect(hidden).not.toBe(all);
+    expect(hidden.length).toBeLessThan(all.length);
+  });
+
   it('numbers the residues as the view does (#97)', () => {
     const { doc } = plasmid();
     // The residue numbers are the only text at 0.85 of the 11 px label size.

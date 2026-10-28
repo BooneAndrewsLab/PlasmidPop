@@ -39,9 +39,12 @@ export function ghostLaneKey(featureId: string): string {
  * nothing, and the seven a long deletion takes would stack seven lanes deep
  * for it (item 27's rule, `deletionThatTook`).
  */
-export function ghostFeatures(edits: DocumentDiff | null): readonly Feature[] {
+export function ghostFeatures(
+  edits: DocumentDiff | null,
+  hiddenTypes?: ReadonlySet<string>,
+): readonly Feature[] {
   if (edits === null || edits.featuresRemoved.size === 0) return [];
-  return drawableFeatures([...edits.featuresRemoved.values()]).filter(
+  return drawableFeatures([...edits.featuresRemoved.values()], hiddenTypes).filter(
     (f) => deletionThatTook(f, edits) === null,
   );
 }

@@ -42,6 +42,8 @@ export interface RibbonParams {
   readonly featureLanes: LaneAssignment;
   readonly overlayLanes: LaneAssignment;
   readonly font: string;
+  /** Feature types switched off for this document (#305). */
+  readonly hiddenTypes?: ReadonlySet<string>;
 }
 
 /** Room at either end, so the first and last base are not on the edge. */
@@ -159,7 +161,7 @@ export function renderRibbon(ctx: DrawingContext, p: RibbonParams): void {
   ctx.fillText(L.toLocaleString(), width - PAD, rows.backbone + 3);
 
   // The features, in the lanes the sequence view would give them.
-  for (const f of drawableFeatures(doc.features.all())) {
+  for (const f of drawableFeatures(doc.features.all(), p.hiddenTypes)) {
     const extent = featureExtent(f);
     if (extent === null) continue;
     const lane = featureLanes.laneOf.get(f.id) ?? 0;

@@ -54,6 +54,7 @@ import {
   readBasesPerRow,
   readExportRange,
 } from '../sequenceExport';
+import { editorStore } from '../state/editorStore';
 import { useGcProfile } from '../state/useGcProfile';
 import { type Choice, SegmentedChoices } from './SegmentedChoices';
 
@@ -173,7 +174,10 @@ export function ExportFigureDialog({
     () => [...new Set(drawableFeatures(doc.features.all()).map((f) => f.type))].sort(),
     [doc],
   );
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  // Starts from the types hidden on screen (#305); the figure's own ticks are its own after that.
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(
+    () => new Set(editorStore.getState().hiddenFeatureTypes),
+  );
 
   // The sequence view's.
   const selected = selection !== null && !isEmptyRange(selection) ? selection : null;

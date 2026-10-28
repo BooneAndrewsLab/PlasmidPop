@@ -33,12 +33,12 @@ export function MapStrip({ doc, height, fixed = false }: Props) {
   const [width, setWidth] = useState(0);
   const overlay = fixed ? NO_OVERLAY : (live.preview?.items ?? NO_OVERLAY);
   const lanes = useMemo(() => {
-    const features = drawableFeatures(doc.features.all());
+    const features = drawableFeatures(doc.features.all(), live.hiddenFeatureTypes);
     return {
       features: assignLanes(features, doc.length),
       overlay: overlayLanes(overlay, doc.length),
     };
-  }, [doc, overlay]);
+  }, [doc, overlay, live.hiddenFeatureTypes]);
 
   useEffect(() => {
     const el = canvas.current?.parentElement;
@@ -77,9 +77,10 @@ export function MapStrip({ doc, height, fixed = false }: Props) {
       overlay,
       featureLanes: lanes.features,
       overlayLanes: lanes.overlay,
+      hiddenTypes: live.hiddenFeatureTypes,
       font: sansFontOf(10),
     });
-  }, [doc, width, height, selection, overlay, lanes]);
+  }, [doc, width, height, selection, overlay, lanes, live.hiddenFeatureTypes]);
 
   return (
     <div className="map-strip" style={{ height }}>

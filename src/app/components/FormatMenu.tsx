@@ -1,7 +1,8 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { type TranslationScope, GC_WINDOW_CHOICES } from '@/core';
+import { type Feature, type TranslationScope, GC_WINDOW_CHOICES } from '@/core';
 import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
+import { drawableTypes, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { analytics } from '../analytics';
 import { type TraceSize, editorStore } from '../state/editorStore';
@@ -152,6 +153,59 @@ function Choices<T extends string | number | null>({
 }
 
 /**
+ * The feature types the document has, each a tick: unticked, the map, the
+ * sequence view and the ribbon leave that type out (#305). The Features list
+ * still shows them, and nothing is written to the file.
+ */
+function FeatureTypes({ features }: { readonly features: readonly Feature[] }) {
+  const { hiddenFeatureTypes } = useEditorState();
+  const types = drawableTypes(features);
+  const hidden = hiddenTypeCount(features, hiddenFeatureTypes);
+  if (types.length === 0) return null;
+  return (
+    <>
+      <p className="menu__group-label">
+        Feature types
+        {hidden > 0 && <span className="menu__group-note"> · {hiddenTypesNote(hidden)}</span>}
+      </p>
+      {types.map((type) => {
+        const on = !hiddenFeatureTypes.has(type);
+        return (
+          <button
+            key={type}
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={on}
+            className="menu__item"
+            data-tip={`Draw ${type} features in the map and the sequence view; the Features list keeps them`}
+            onClick={() => {
+              analytics.trackOnce('view', 'format', 'feature-types');
+              editorStore.setFeatureTypeHidden(type, on);
+            }}
+          >
+            <span>{type}</span>
+            <Tick on={on} />
+          </button>
+        );
+      })}
+      {hidden > 0 && (
+        <button
+          type="button"
+          role="menuitem"
+          className="menu__item"
+          onClick={() => {
+            editorStore.setHiddenFeatureTypes([]);
+          }}
+        >
+          <span>Show all feature types</span>
+        </button>
+      )}
+      <div className="menu__separator" role="separator" />
+    </>
+  );
+}
+
+/**
  * How the sequence view draws — text size, how many bases go in a row,
  * whether the complement is numbered too and whether bases are coloured,
  * then the tracks around the strands — and, since it is the other thing
@@ -260,7 +314,10 @@ export function FormatMenu({
     traceSize,
     history,
     baseColors,
+    hiddenFeatureTypes,
   } = useEditorState();
+  const features = history?.present.features.all() ?? [];
+  const hiddenTypes = hiddenTypeCount(features, hiddenFeatureTypes);
   // Typed values are committed on Enter or on leaving the box, not per key.
   const [rowDraft, setRowDraft] = useState<string | null>(null);
   const customRow = seqBasesPerRow !== null && !ROW_WIDTHS.includes(seqBasesPerRow);
@@ -317,12 +374,14 @@ export function FormatMenu({
         className="button"
         aria-label="Format"
         aria-keyshortcuts={key}
-        data-tip={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; and the pane sizes (${key})`}
+        data-tip={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; which feature types show; and the pane sizes (${key})${hiddenTypes > 0 ? `. ${hiddenTypesNote(hiddenTypes)}` : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
       >
-        Format <span className="button__caret">▾</span>
+        Format
+        {hiddenTypes > 0 && <span className="menu__group-note"> · {hiddenTypes} hidden</span>}{' '}
+        <span className="button__caret">▾</span>
       </button>
       {open && (
         <div className="menu__list menu__list--settings" role="menu" aria-label="Format and layout">
@@ -523,6 +582,7 @@ export function FormatMenu({
             }}
           />
           <div className="menu__separator" role="separator" />
+          <FeatureTypes features={features} />
           <button
             type="button"
             role="menuitem"
