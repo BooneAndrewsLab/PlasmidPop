@@ -1,0 +1,255 @@
+{
+ "biopython": "1.85",
+ "inserts": [
+  {
+   "cuts": {
+    "AccI": [
+     170
+    ],
+    "BamHI": [],
+    "BfuAI": [],
+    "BsaI": [],
+    "EcoRI": [
+     715
+    ],
+    "HindIII": [
+     1246
+    ],
+    "KpnI": [],
+    "NdeI": [
+     804
+    ],
+    "NotI": [],
+    "PstI": [],
+    "SacI": [],
+    "SalI": [],
+    "SmaI": [],
+    "SphI": [
+     1630
+    ],
+    "XbaI": [
+     238
+    ],
+    "XhoI": [
+     313
+    ],
+    "XmaI": []
+   },
+   "end": 3158,
+   "fixture": "U49845.gb",
+   "length": 2472,
+   "name": "AXL2",
+   "products": [
+    {
+     "flipped": false,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 5155,
+     "pair": [
+      "KpnI",
+      "BamHI"
+     ],
+     "sha256": "5619d0e91472cff3188e2313cc4575dcb850ee638225a6957ded3570a7ab8ca5"
+    },
+    {
+     "flipped": true,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 5155,
+     "pair": [
+      "KpnI",
+      "BamHI"
+     ],
+     "sha256": "b44104ed36e473ea4dc21848f6124e781754abfb21c22b68b5ea40fb32025457"
+    },
+    {
+     "flipped": false,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 5137,
+     "pair": [
+      "SacI",
+      "SalI"
+     ],
+     "sha256": "61829967d79792939172d50439e26d4fca4fea78828e8b3b6ef42f3e6a53235a"
+    },
+    {
+     "flipped": true,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 5137,
+     "pair": [
+      "SacI",
+      "SalI"
+     ],
+     "sha256": "076392bba35c33b9467ede8735307482774bffedbae35dc584e243305d1acb65"
+    },
+    {
+     "flipped": false,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 5146,
+     "pair": [
+      "BamHI",
+      "PstI"
+     ],
+     "sha256": "3dcf863da524f7b6c6b03a054c82d58766b30561c4d6ed7b67d29094a70d5fba"
+    },
+    {
+     "flipped": true,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 5146,
+     "pair": [
+      "BamHI",
+      "PstI"
+     ],
+     "sha256": "3744ab2d4bfc9e4089405bc26dfe3162c4ffaf3c349da96517d1ad8f3248911a"
+    }
+   ],
+   "start": 686,
+   "strand": "forward"
+  },
+  {
+   "cuts": {
+    "AccI": [
+     32,
+     77
+    ],
+    "BamHI": [],
+    "BfuAI": [],
+    "BsaI": [],
+    "EcoRI": [
+     346
+    ],
+    "HindIII": [],
+    "KpnI": [],
+    "NdeI": [],
+    "NotI": [],
+    "PstI": [],
+    "SacI": [],
+    "SalI": [],
+    "SmaI": [],
+    "SphI": [],
+    "XbaI": [],
+    "XhoI": [],
+    "XmaI": []
+   },
+   "end": 4037,
+   "fixture": "U49845.gb",
+   "length": 738,
+   "name": "REV",
+   "products": [
+    {
+     "flipped": false,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 3421,
+     "pair": [
+      "KpnI",
+      "BamHI"
+     ],
+     "sha256": "35e4ea71042ae0f2ccc682eca6566007905adb9bd8858e04aa2d2202123fa135"
+    },
+    {
+     "flipped": true,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 3421,
+     "pair": [
+      "KpnI",
+      "BamHI"
+     ],
+     "sha256": "652c423fb3ee80fd64539d3158fdf73a1543e39fd5488f6975f3df466d4c26b1"
+    },
+    {
+     "flipped": false,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 3403,
+     "pair": [
+      "SacI",
+      "SalI"
+     ],
+     "sha256": "69629b72daffb96189fe3daa02feb7942625efd70f2695fbb59989b9c9b54484"
+    },
+    {
+     "flipped": true,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 3403,
+     "pair": [
+      "SacI",
+      "SalI"
+     ],
+     "sha256": "5865f7f24bd9fb610073c8f5e195d3ef634ebfd767e1a805e94cf27e967767da"
+    },
+    {
+     "flipped": false,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 3412,
+     "pair": [
+      "BamHI",
+      "PstI"
+     ],
+     "sha256": "25b24aee66366dacd0eb6641640024245853e92ee49a6a8aec2e16726894182e"
+    },
+    {
+     "flipped": true,
+     "head": "TCGCGCGTTTCGGTGATGACGGTGAAAACCTCTGACACATGCAGCTCCCGGAGACGGTCA",
+     "length": 3412,
+     "pair": [
+      "BamHI",
+      "PstI"
+     ],
+     "sha256": "73e1c1ce5c44e7f8a88faa56c6fe41904b0087e82f0db97d245fc63499f64fa7"
+    }
+   ],
+   "start": 3299,
+   "strand": "reverse"
+  }
+ ],
+ "vector": {
+  "cuts": {
+   "AccI": [
+    430
+   ],
+   "BamHI": [
+    417
+   ],
+   "BfuAI": [
+    442
+   ],
+   "BsaI": [
+    1760
+   ],
+   "EcoRI": [
+    396
+   ],
+   "HindIII": [
+    447
+   ],
+   "KpnI": [
+    412
+   ],
+   "NdeI": [
+    184
+   ],
+   "NotI": [],
+   "PstI": [
+    439
+   ],
+   "SacI": [
+    406
+   ],
+   "SalI": [
+    429
+   ],
+   "SmaI": [
+    414
+   ],
+   "SphI": [
+    445
+   ],
+   "XbaI": [
+    423
+   ],
+   "XhoI": [],
+   "XmaI": [
+    412
+   ]
+  },
+  "fixture": "L09137.gb",
+  "length": 2686
+ }
+}
