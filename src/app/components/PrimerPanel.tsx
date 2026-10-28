@@ -75,17 +75,17 @@ export function PrimerPanel({ doc }: Props) {
           id={DESIGN_BUTTON_ID}
           ref={designButton}
           className="button button--primary primers__open"
-          disabled={!hasTarget}
-          data-tip="Open the primer workspace on this region"
+          data-tip={
+            hasTarget
+              ? 'Open the primer workspace on this region'
+              : 'Open the primer workspace: pick a feature there, or clone an insert into this plasmid'
+          }
           onClick={() => {
             openPrimerWorkspace(documentId, 'design');
           }}
         >
           Design primers…
         </button>
-        {!hasTarget && (
-          <p className="panel__note panel__note--quiet">Select a region or click a feature.</p>
-        )}
         {pairs !== null && (
           <button
             type="button"

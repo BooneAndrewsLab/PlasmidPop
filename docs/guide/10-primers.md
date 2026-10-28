@@ -14,7 +14,10 @@ good to about ±2 °C for ordinary PCR primers; adjust for your buffer.
 ## The Primers tab
 
 - **Selection** names the current selection (`251–350 · 100 bp`) and
-  **Design primers…** opens the workspace on its Design page for it. Once a
+  **Design primers…** opens the workspace on its Design page for it. With
+  nothing selected it opens the workspace all the same: pick a feature
+  there, or switch to cloning an insert into this plasmid, which needs no
+  selection. Once a
   design has been made, **Last design · 10 pairs ›** reopens the workspace on
   its Results.
 - **Quick check** takes a pasted primer and gives its length, Tm, GC content

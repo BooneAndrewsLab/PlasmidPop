@@ -37,11 +37,20 @@ describe('the slim Primers tab (item 107)', () => {
     });
   });
 
-  it('names the selection and opens the workspace on Design from it', () => {
+  it('opens the workspace on Design with nothing selected too', () => {
     open();
     expect(screen.getByText('Nothing selected')).toBeInTheDocument();
     const button = screen.getByRole('button', { name: 'Design primers…' });
-    expect(button).toBeDisabled();
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    const state = editorStore.getState();
+    expect(state).toMatchObject({ primerWorkspace: true, sidebarTab: 'primers' });
+    expect(recallWorkspace(state.documentId).page).toBe('design');
+  });
+
+  it('names the selection and opens the workspace on Design from it', () => {
+    open();
+    const button = screen.getByRole('button', { name: 'Design primers…' });
     act(() => {
       editorStore.setSelection({ start: 250, end: 350 });
     });
