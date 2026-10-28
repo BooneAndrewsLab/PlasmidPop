@@ -169,7 +169,6 @@ describe('in-fusion.md, path A: the synthetic ORF', () => {
     expect(d.amplicon?.length).toBe(633);
     expect(d.product?.length).toBe(2049);
     expect(d.warnings).toEqual([
-      "pIF-Vector EcoRV fragment has sticky ends; the tails match its top strand, and the kit's exonuclease chews them back either way, but check the ends are where you meant to cut.",
       'In-Fusion asks for 15 bases of homology, which both tails carry.',
     ]);
   });
@@ -192,7 +191,7 @@ describe('in-fusion.md, path A: the synthetic ORF', () => {
     expect(d.reverse.annealLength).toBe(25);
     expect(d.amplicon?.length).toBe(643);
     expect(d.product?.length).toBe(2049);
-    expect(d.warnings[1]).toBe(
+    expect(d.warnings[0]).toBe(
       'NEBuilder HiFi asks for 20 bases of homology, which both tails carry.',
     );
   });
@@ -248,7 +247,7 @@ describe.skipIf(!existsSync(NCBI_FILE))('in-fusion.md, path B: NM_000207 (insuli
     expect([d.forward.tm, d.reverse.tm].map((t) => t.toFixed(0))).toEqual(['61', '61']);
     expect(d.amplicon?.length).toBe(363);
     expect(d.product?.length).toBe(1779);
-    expect(d.warnings).toHaveLength(2);
+    expect(d.warnings).toHaveLength(1);
   });
 
   it('NEBuilder HiFi: amplicon 373 bp, same 1,779 bp product', () => {

@@ -90,9 +90,8 @@ with no cloning ends and no EcoRV site.
 7. Read the **Product** line, **2,049 bp, circular**, with `KanR`, `ori`,
    `synthetic promoter`, `synthetic terminator` and `synthProt`. Under it the
    panel says **The parts assemble, but the tube may also give something else:**
-   and gives two notes: that `pIF-Vector EcoRV fragment` has sticky ends (see
-   the note below), and that **In-Fusion asks for 15 bases of homology, which
-   both tails carry**.
+   and gives one note: **In-Fusion asks for 15 bases of homology, which both
+   tails carry**.
    _Why: the design is run, not promised: the panel amplifies the insert with
    these primers and assembles the amplicon with the vector, and shows the
    circle._
@@ -121,11 +120,7 @@ with no cloning ends and no EcoRV site.
 - [ ] The Enzymes tab has the default ticks, every enzyme that cuts the product
       once. An In-Fusion design has no enzyme of its own to tick.
 
-**Two things that look odd and are right.** The note says the vector fragment
-**has sticky ends**, although EcoRV leaves blunt ones. The designer warns about
-any vector that came from a digest, because the tails match the top strand and a
-cut with an overhang would need a check; here there is no overhang, so it needs
-none. Second, the product's map starts at the fragment's first base, `ATC`,
+**Two things that look odd and are right.** First, the product's map starts at the fragment's first base, `ATC`,
 after the cut, so the gene begins at base 1,447 rather than near the origin:
 the circle is the same, only the numbering starts elsewhere. And the two
 annealing parts are different lengths (22 and 25 bases) because each grows until

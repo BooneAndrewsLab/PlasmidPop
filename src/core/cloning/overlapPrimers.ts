@@ -224,7 +224,9 @@ export function productHolding(
 
 function designWarnings(vector: SeqDocument, products: number, kit: OverlapKit): string[] {
   const out: string[] = [];
-  if (vector.ends !== null) {
+  // A blunt end has nothing for the tails to mismatch; only an overhang is worth a look.
+  const ends = vector.ends;
+  if (ends !== null && (ends.left.kind !== 'blunt' || ends.right.kind !== 'blunt')) {
     out.push(
       `${vector.name} has sticky ends; the tails match its top strand, and the kit's exonuclease chews them back either way, but check the ends are where you meant to cut.`,
     );

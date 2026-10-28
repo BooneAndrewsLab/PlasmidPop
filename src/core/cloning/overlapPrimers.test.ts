@@ -93,6 +93,16 @@ describe('designOverlapPrimers', () => {
     expect(d.problem).toBeNull();
     expect(d.warnings.join(' ')).toMatch(/has sticky ends/);
   });
+
+  it('does not call a vector with two blunt ends sticky (#314)', () => {
+    const blunt = vector.setEnds({
+      left: { kind: 'blunt', overhang: '', enzyme: 'EcoRV' },
+      right: { kind: 'blunt', overhang: '', enzyme: 'EcoRV' },
+    });
+    const d = designOverlapPrimers(blunt, source, REGION, 'nebuilder');
+    expect(d.problem).toBeNull();
+    expect(d.warnings.join(' ')).not.toMatch(/sticky ends/);
+  });
 });
 
 describe('designOverlapPrimers, pinned (#77)', () => {
