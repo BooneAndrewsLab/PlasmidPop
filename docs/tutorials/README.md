@@ -13,31 +13,53 @@ New to the Bench or to the sample files? Start with
 
 ## Pick a method
 
-- **[Ligation](ligation.md)**: restriction cloning. Cut a vector and an insert
+- [Ligation](#ligation): cut with restriction enzymes and join the pieces.
+- [Golden Gate](#golden-gate): one reaction, enzyme sites that cut themselves
+  out, overhangs that decide the order.
+- [Modular cloning](#modular-cloning): Golden Gate with a standard's part
+  positions (MoClo).
+
+More methods (Gibson, overlap-extension PCR, Gateway and others) are planned
+and will appear here as their own entries.
+
+### Ligation
+
+Restriction cloning: the oldest and plainest method, and the one to start with.
+
+- **[Ligation: vector and insert](ligation.md)**: cut a vector and an insert
   with EcoRI and BamHI, ligate them, see why mismatched ends fail and why a
   single-enzyme cut needs dephosphorylation; then do it with insulin from NCBI.
   Beginner, about 30 minutes. Files: [pLig-Vector.gb](files/pLig-Vector.gb),
   [Insert-EcoRI-BamHI.gb](files/Insert-EcoRI-BamHI.gb),
   [Insert-PstI-BamHI.gb](files/Insert-PstI-BamHI.gb),
   [Insert-EcoRI-EcoRI.gb](files/Insert-EcoRI-EcoRI.gb).
-- **[Golden Gate: one gene into one vector](golden-gate.md)**: put a gene into
-  a BsaI expression vector in one reaction, about eight steps, with a synthetic
-  ORF and again with insulin from NCBI. Beginner, about 20 minutes. Files:
+
+### Golden Gate
+
+BsaI cuts its own site out of every part and leaves a four-base overhang, so
+cutting and joining happen in one tube. Do the first tutorial before the second.
+
+- **[One gene into one vector](golden-gate.md)**: put a gene into a BsaI
+  expression vector in about eight steps, with a synthetic ORF and again with
+  insulin from NCBI. Beginner, about 20 minutes. Files:
   [pGG-Expression.gb](files/pGG-Expression.gb), [GG-gene.gb](files/GG-gene.gb).
-- **[Golden Gate: four parts and the warnings](golden-gate-parts.md)**:
-  promoter, coding part, tag and terminator in one tube, in a scrambled tab
-  order, then three broken designs and what the panel says about them.
-  Intermediate, about 30 minutes; do the previous tutorial first. Files:
-  [pGG-Destination.gb](files/pGG-Destination.gb),
+- **[Four parts and the warnings](golden-gate-parts.md)**: promoter, coding
+  part, tag and terminator in one tube, in a scrambled tab order, then three
+  broken designs and what the panel says about them. Intermediate, about 30
+  minutes. Files: [pGG-Destination.gb](files/pGG-Destination.gb),
   [GG-prom.gb](files/GG-prom.gb), [GG-cds.gb](files/GG-cds.gb),
   [GG-tag.gb](files/GG-tag.gb), [GG-term.gb](files/GG-term.gb) and the
   `GG-broken-*` and `GG-warn-*` files.
 
-- **[Modular cloning](modular.md)**: the MoClo plant standard. Promoter, coding
-  part and terminator, each cut for its own position, go into a level-1
-  destination in one reaction; one part at the wrong position shows what the
-  panel says; then two promoters by two coding parts make four constructs from
-  one plan. Intermediate, about 25 minutes; do Golden Gate first. Files:
+### Modular cloning
+
+Golden Gate with a standard: every part is cut for its own position, so any
+promoter fits in front of any coding part. Do Golden Gate first.
+
+- **[MoClo plant standard](modular.md)**: promoter, coding part and terminator
+  go into a level-1 destination in one reaction; one part at the wrong position
+  shows what the panel says; then two promoters by two coding parts make four
+  constructs from one plan. Intermediate, about 25 minutes. Files:
   [MC-L1-Destination.gb](files/MC-L1-Destination.gb),
   [MC-L0-Promoter-A.gb](files/MC-L0-Promoter-A.gb),
   [MC-L0-Promoter-B.gb](files/MC-L0-Promoter-B.gb),
@@ -45,9 +67,6 @@ New to the Bench or to the sample files? Start with
   [MC-L0-CDS-B.gb](files/MC-L0-CDS-B.gb),
   [MC-L0-Terminator.gb](files/MC-L0-Terminator.gb),
   [MC-wrong-position.gb](files/MC-wrong-position.gb).
-
-More methods (Gibson, overlap-extension PCR, Gateway and
-others) are planned.
 
 ## Reference
 
