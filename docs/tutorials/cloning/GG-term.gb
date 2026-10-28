@@ -1,0 +1,18 @@
+LOCUS       GG-Part4-Terminator          96 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  GG-Part4-Terminator, synthetic example terminator part, BsaI
+            GCTT-CGCT (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     terminator      10..83
+                     /label="synthetic terminator"
+     misc_feature    complement(88..94)
+                     /label="BsaI site"
+ORIGIN
+        1 TTGGTCTCAG CTTTGCGTTT AGCGTAACAC ATCATTCGGT CTATGCTGCC GAATCCCGTA
+       61 CGGTAGACGA CCGCCCGCTG TCGCGCTAGA GACCTT
+//

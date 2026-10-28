@@ -1,0 +1,18 @@
+LOCUS       GG-Warn-Terminator-AATC          96 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  GG-Warn-Terminator-AATC, tutorial terminator part that takes over
+            at overhang AATC (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     terminator      10..83
+                     /label="synthetic terminator"
+     misc_feature    complement(88..94)
+                     /label="BsaI site"
+ORIGIN
+        1 TTGGTCTCAA ATCGGTAGAA GCGAGAGATA CTTCTACTCT GCATGTAGTA AGTTGACCTG
+       61 ATAGGAGAAG AGTCGTATCG AGTCGCTAGA GACCTT
+//

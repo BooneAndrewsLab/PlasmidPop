@@ -1,0 +1,17 @@
+LOCUS       GG-Part3-Tag              55 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  GG-Part3-Tag, synthetic example C-terminal tag part with stop, BsaI
+            TTCG-GCTT (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     misc_feature    10..42
+                     /label="synthTag"
+     misc_feature    complement(47..53)
+                     /label="BsaI site"
+ORIGIN
+        1 TTGGTCTCAT TCGGTGGTAG CGGTGGTCAT CACCATCACT AAGCTTAGAG ACCTT
+//

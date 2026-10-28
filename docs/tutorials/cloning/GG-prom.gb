@@ -1,0 +1,18 @@
+LOCUS       GG-Part1-Promoter         106 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  GG-Part1-Promoter, synthetic example promoter part, BsaI GGAG-AATG
+            (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     promoter        10..93
+                     /label="synthetic promoter"
+     misc_feature    complement(98..104)
+                     /label="BsaI site"
+ORIGIN
+        1 TTGGTCTCAG GAGACAGTCT CTCCCTGAGG TTTCGTTAGT TACATATACT TCCTTCCATT
+       61 GCCTACCACC CGATACGAAA ACGTATCGGC ATTAATGAGA GACCTT
+//

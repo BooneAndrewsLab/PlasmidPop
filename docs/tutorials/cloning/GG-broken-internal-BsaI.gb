@@ -1,0 +1,17 @@
+LOCUS       GG-Broken-Tag-InternalBsaI          54 bp    DNA     linear   SYN 28-OCT-2026
+DEFINITION  GG-Broken-Tag-InternalBsaI, tutorial part with an extra BsaI site
+            inside (synthetic example, invented sequence)
+ACCESSION   .
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+FEATURES             Location/Qualifiers
+     misc_feature    3..9
+                     /label="BsaI site"
+     misc_feature    10..41
+                     /label="synthTag"
+     misc_feature    complement(46..52)
+                     /label="BsaI site"
+ORIGIN
+        1 TTGGTCTCAT TCGGTGGTAG CGGTGGTCTC ACCATCACTA AGCTTAGAGA CCTT
+//
