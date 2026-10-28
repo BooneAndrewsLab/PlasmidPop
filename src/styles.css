@@ -2086,7 +2086,14 @@ button {
 }
 
 .recent__name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   font-weight: 600;
+}
+
+.recent__title-text {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2247,6 +2254,7 @@ button {
 }
 
 .recent__badge {
+  flex: none;
   margin-left: 8px;
   padding: 1px 6px;
   border-radius: 999px;

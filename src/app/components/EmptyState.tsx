@@ -181,7 +181,7 @@ export function EmptyState() {
                     }}
                   >
                     <span className="recent__name">
-                      {d.name}
+                      <span className="recent__title-text">{d.name}</span>
                       {openIds.has(d.id) && (
                         <span className="recent__badge" data-tip="Open in a tab">
                           open
