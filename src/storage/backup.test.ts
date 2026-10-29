@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto';
 
 import { strToU8, zipSync } from 'fflate';
 
-import { History, SeqDocument } from '@/core';
+import { type LineageNode, History, SeqDocument, withLineage } from '@/core';
 import { readZip, writeZip } from '@/io';
 
 import {
@@ -422,6 +422,64 @@ describe('restoring odd backups', () => {
     expect((await restoreWith({ ...body.history, id: 'other' })).ids).toEqual(['stale-marker']);
     expect((await restoreWith({ id: 'd1' })).ids).toEqual(['stale-marker']);
     expect((await restoreWith(null)).ids).toEqual(['stale-marker']);
+  });
+
+  it('trusts the parent a row carries only when it has both halves, else reads it from the text', async () => {
+    const parent: LineageNode = {
+      name: 'pVec',
+      checksum: 'cdseguid=AAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      topology: 'circular',
+      length: 20,
+      step: null,
+    };
+    const made = withLineage(doc('made'), { op: 'edited', parents: [parent] });
+    const a = fresh();
+    await a.repo.save('d1', made, null);
+    const stored = await a.db.documents.get('d1');
+    if (stored === undefined) throw new Error('not stored');
+    const {
+      parentChecksum: _c,
+      parentName: _n,
+      ...bare
+    } = JSON.parse(JSON.stringify(stored)) as Record<string, unknown>;
+    const restored = async (extra: Record<string, unknown>) => {
+      const target = fresh().db;
+      const report = await restoreBackup(
+        zipOf({ 'documents/0001.json': { document: { ...bare, ...extra } } }),
+        target,
+      );
+      expect(report).toMatchObject({ added: 1, skipped: [] });
+      const row = await target.documents.get('d1');
+      const summary = await target.summaries.get('d1');
+      // the summary row mirrors the document row
+      expect(summary?.parentChecksum).toBe(row?.parentChecksum);
+      expect(summary?.parentName).toBe(row?.parentName);
+      return row;
+    };
+    const fromText = { parentChecksum: parent.checksum, parentName: 'pVec' };
+    // a backup from before item 111: no parent on the row, so the text says
+    expect(await restored({})).toMatchObject(fromText);
+    // both halves on the row: trusted over the text
+    expect(await restored({ parentChecksum: 'cdseguid=X', parentName: 'Other' })).toMatchObject({
+      parentChecksum: 'cdseguid=X',
+      parentName: 'Other',
+    });
+    // one half alone is not enough
+    expect(await restored({ parentChecksum: 'cdseguid=X' })).toMatchObject(fromText);
+    expect(await restored({ parentName: 'Other' })).toMatchObject(fromText);
+    // nothing on the row and no lineage in the text: no parent at all
+    const plain = fresh();
+    await plain.repo.save('d2', doc('plain'), null);
+    const plainRow = JSON.parse(JSON.stringify(await plain.db.documents.get('d2'))) as Record<
+      string,
+      unknown
+    >;
+    const target = fresh().db;
+    await restoreBackup(zipOf({ 'documents/0001.json': { document: plainRow } }), target);
+    const got = await target.documents.get('d2');
+    expect(got).toBeDefined();
+    expect(Object.keys(got ?? {})).not.toContain('parentChecksum');
+    expect(Object.keys(got ?? {})).not.toContain('parentName');
   });
 
   it('removes the stored history of a document the backup replaces without one', async () => {

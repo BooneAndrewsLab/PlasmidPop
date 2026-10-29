@@ -442,3 +442,23 @@ reverse === undefined` check (5 together), since the lists hold the `minLength`
   candidate whenever the first guard passes.
 - **Case already folded:** `toUpperCase()` read as `toLowerCase()` on the insert,
   since `analyzePrimer` upper-cases the primer it is given.
+
+## At 1.19: the guide's Markdown, `overlapPrimers`, backup parents, linear export scope
+
+The 28 survivors on lines changed since v1.18.0 (18 in `staticGuide.ts`, 1 in
+`overlapPrimers.ts`, 8 in `backup.ts`, 1 in `exportLinear.ts`) were applied by
+hand where a test was in doubt. Tests killed all but the equivalents below:
+`staticGuide.test.ts` writes small Markdown inputs through the real parser and
+asserts the exact HTML (task items, a nested block's lines, `start`, quotes and
+the folded tip, the `download` attribute with and without an anchor and for
+`.gb.bak`, the dev server's file and redirect anchors); `overlapPrimers.test.ts`
+warns for a vector whose only sticky end is the right one; `backup.test.ts`
+restores rows with no, one or both halves of a parent and reads the stored row
+and its summary; `svg.test.ts` leaves `translationScope` unset and expects the
+output of `'all'` (an unknown scope would act as `'gene'`).
+
+Equivalents left as survivors:
+
+- **Output of `undefined` joined:** the `?? []` of an item's details read as a
+  one-element list: `block` of a string returns `undefined`, and `[undefined]`
+  joins to the empty string.

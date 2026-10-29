@@ -94,6 +94,23 @@ describe('designOverlapPrimers', () => {
     expect(d.warnings.join(' ')).toMatch(/has sticky ends/);
   });
 
+  it('warns when only the right end of the vector is sticky, and for a 3′ overhang', () => {
+    const right = vector.setEnds({
+      left: { kind: 'blunt', overhang: '', enzyme: 'SmaI' },
+      right: { kind: "5'", overhang: VECTOR_TEXT.slice(0, 4), enzyme: 'EcoRI' },
+    });
+    const d = designOverlapPrimers(right, source, REGION, 'nebuilder');
+    expect(d.problem).toBeNull();
+    expect(d.warnings.join(' ')).toMatch(/has sticky ends/);
+    const three = vector.setEnds({
+      left: { kind: 'blunt', overhang: '', enzyme: 'SmaI' },
+      right: { kind: "3'", overhang: VECTOR_TEXT.slice(0, 4), enzyme: 'KpnI' },
+    });
+    expect(designOverlapPrimers(three, source, REGION, 'nebuilder').warnings.join(' ')).toMatch(
+      /has sticky ends/,
+    );
+  });
+
   it('does not call a vector with two blunt ends sticky (#314)', () => {
     const blunt = vector.setEnds({
       left: { kind: 'blunt', overhang: '', enzyme: 'EcoRV' },

@@ -443,6 +443,31 @@ describe('exportLinearSvg', () => {
     expect(height(picked)).toBe(all);
   });
 
+  it('translates every CDS when no scope is given, as under "all" (#304)', () => {
+    const cds = (id: string, start: number, end: number) =>
+      createFeature({
+        id,
+        type: 'CDS',
+        name: id,
+        segments: [rangeSegment(start, end)],
+        qualifiers: [{ name: 'gene', value: 'G' }],
+      });
+    // two CDSs of one gene: the 'gene' scope keeps only the longer one
+    const doc = SeqDocument.create({
+      name: 'two',
+      sequence: 'ATGAAACCCGGGTTTATGAAACCCGGGTTTTAA'.repeat(2),
+      topology: 'linear',
+      features: [cds('short', 0, 24), cds('long', 30, 66)],
+    });
+    const run = (translationScope?: 'all' | 'gene') =>
+      exportLinearSvg(doc, {
+        showTranslations: true,
+        ...(translationScope ? { translationScope } : {}),
+      });
+    expect(run()).toBe(run('all'));
+    expect(run()).not.toBe(run('gene'));
+  });
+
   it('leaves out the feature types hidden in the view (#305)', () => {
     const { doc } = plasmid();
     const range = { start: 86, end: 200 };

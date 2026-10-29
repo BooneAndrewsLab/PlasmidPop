@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { GUIDE } from './guide';
 import { parseMarkdown } from './markdown';
 import {
+  block,
   describe as describeBlocks,
   generateGuideFiles,
   generateSitemap,
@@ -433,6 +434,30 @@ describe('matchStaticRequest, what is not the guide (#244)', () => {
     expect(m('guide#top')).toEqual({ kind: 'redirect', to: `${base}guide/#top` });
   });
 
+  it('serves a tutorial file only by its whole path and a GenBank or FASTA name', () => {
+    const base = '/PlasmidPop/';
+    const m = (u: string) => matchStaticRequest(base + u, base);
+    expect(m('tutorials/files/a.gb')).toEqual({ kind: 'file', path: 'tutorials/files/a.gb' });
+    expect(m('tutorials/files/a-b.1.fasta')).toEqual({
+      kind: 'file',
+      path: 'tutorials/files/a-b.1.fasta',
+    });
+    expect(m('tutorials/files/a.gb.bak')).toBeNull();
+    expect(m('tutorials/files/a.fastaX')).toBeNull();
+    expect(m('x/tutorials/files/a.gb')).toBeNull();
+    expect(m('Xtutorials/files/a.gb')).toBeNull();
+  });
+
+  it('redirects a directory without its slash only when it is the guide or the tutorials', () => {
+    const base = '/PlasmidPop/';
+    const m = (u: string) => matchStaticRequest(base + u, base);
+    expect(m('tutorials')).toEqual({ kind: 'redirect', to: `${base}tutorials/` });
+    expect(m('tutorials/x')).toEqual({ kind: 'redirect', to: `${base}tutorials/x/` });
+    expect(m('xguide')).toBeNull();
+    expect(m('xtutorials')).toBeNull();
+    expect(m('x/guide')).toBeNull();
+  });
+
   it('does not take a path that only has the base’s length in front of a match', () => {
     expect(matchStaticRequest(`/${'Z'.repeat(11)}sitemap.xml`, '/PlasmidPop/')).toBeNull();
   });
@@ -459,5 +484,83 @@ describe('static guide, smaller pieces (item 91)', () => {
   it('takes the title from a heading, not from whatever block comes first', () => {
     const html = page('Intro paragraph.\n\n# The title\n');
     expect(html).toContain('<title>The title | PlasmidPop user guide</title>');
+  });
+});
+
+describe('static guide blocks and links, exactly (mutation triage, 1.19)', () => {
+  const ctx = {
+    fromDir: 'guide/x/',
+    resolve: (href: string): string | null => (href.startsWith('http') ? null : href),
+  };
+  const html = (markdown: string): string =>
+    parseMarkdown(markdown)
+      .map((b) => block(b, ctx))
+      .join('\n');
+
+  it('writes a task list with checked and unchecked boxes, and an item with nothing in it', () => {
+    expect(html('- [ ] one\n- [x] two\n- three\n- ')).toBe(
+      [
+        '<ul>',
+        '<li class="task"><input type="checkbox" aria-label="Done">one</li>',
+        '<li class="task"><input type="checkbox" checked aria-label="Done">two</li>',
+        '<li>three</li>',
+        '<li></li>',
+        '</ul>',
+      ].join('\n'),
+    );
+  });
+
+  it('writes the blocks that follow an item inside it, one per line', () => {
+    expect(html('- a\n\n  first\n\n  second\n- b')).toBe(
+      '<ul>\n<li>a\n<p>first</p>\n<p>second</p>\n</li>\n<li>b</li>\n</ul>',
+    );
+  });
+
+  it('numbers an ordered list from its first number, when that is not 1', () => {
+    expect(html('3. a\n4. b')).toBe('<ol start="3">\n<li>a</li>\n<li>b</li>\n</ol>');
+    expect(html('1. a\n2. b')).toBe('<ol>\n<li>a</li>\n<li>b</li>\n</ol>');
+  });
+
+  it('writes a quote, a note and a tip as what they are', () => {
+    expect(html('> plain words')).toBe(
+      '<blockquote class="aside plain">\n<p>plain words</p>\n</blockquote>',
+    );
+    expect(html('> [!WARNING]\n> careful')).toBe(
+      '<blockquote class="aside warning">\n<p>careful</p>\n</blockquote>',
+    );
+    expect(html('> [!TIP]\n> first\n>\n> second')).toBe(
+      '<details class="aside tip">\n<summary>Why</summary>\n<p>first</p>\n<p>second</p>\n</details>',
+    );
+  });
+
+  it('marks a link to a GenBank or FASTA file as a download, and no other', () => {
+    expect(html('[a](tutorials/files/a.gb)')).toContain(
+      '<a href="../../tutorials/files/a.gb" download>a</a>',
+    );
+    expect(html('[a](tutorials/files/a.fasta)')).toContain(
+      '<a href="../../tutorials/files/a.fasta" download>a</a>',
+    );
+    // the anchor is not part of the file name
+    expect(html('[a](tutorials/files/a.gb#top)')).toContain(
+      '<a href="../../tutorials/files/a.gb#top" download>a</a>',
+    );
+    expect(html('[a](tutorials/files/a.gb.bak)')).toContain(
+      '<a href="../../tutorials/files/a.gb.bak">a</a>',
+    );
+    expect(html('[a](tutorials/files/a.md)')).toContain(
+      '<a href="../../tutorials/files/a.md">a</a>',
+    );
+    expect(html('[a](tutorials/files/gb)')).toContain('<a href="../../tutorials/files/gb">a</a>');
+  });
+
+  it('keeps the anchor of a link that resolves to an anchor alone', () => {
+    const own = {
+      fromDir: 'guide/x/',
+      resolve: (href: string): string | null => (href === 'self' ? '#top' : null),
+    };
+    const out = parseMarkdown('[a](self)')
+      .map((b) => block(b, own))
+      .join('\n');
+    expect(out).toBe('<p><a href="../../#top">a</a></p>');
   });
 });
