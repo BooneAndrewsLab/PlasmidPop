@@ -14,6 +14,7 @@ import {
 } from '@/core';
 
 import { analytics, enzymeEventLabel } from '../analytics';
+import { FIXED_BY, cloneCheckFromParts, longestPart, openCloneCheck } from '../cloneCheck';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
@@ -117,7 +118,8 @@ export function GoldenGatePanel() {
     setExcluded(next);
   };
 
-  const assemble = (): void => {
+  /** Assembles and opens the product; with `check`, on the clone-check page with its context (item 120). */
+  const assemble = (check = false): void => {
     if (options === null || enzyme === undefined) return;
     const trimmed = name.trim();
     const run = goldenGate(docs, trimmed === '' ? options : { ...options, name: trimmed });
@@ -126,16 +128,29 @@ export function GoldenGatePanel() {
       return;
     }
     analytics.track('cloning', 'golden-gate', enzymeEventLabel(enzyme));
-    editorStore.openDocument(
-      recordGoldenGate(
-        run.assembly,
-        second === undefined ? [enzyme.name] : [enzyme.name, second.name],
-      ),
-      null,
-      [],
-      { scratch: true, shownEnzymes: goldenGateSeed(enzyme.name, second?.name) },
+    const product = recordGoldenGate(
+      run.assembly,
+      second === undefined ? [enzyme.name] : [enzyme.name, second.name],
     );
-    editorStore.setSidebarTab('features');
+    const storage = { scratch: true, shownEnzymes: goldenGateSeed(enzyme.name, second?.name) };
+    if (check) {
+      // The destination is the circle the backbone comes from: the longest circular part.
+      const vector = longestPart(used.filter((i) => i.document.isCircular)) ?? longestPart(used);
+      const context =
+        vector === undefined
+          ? null
+          : cloneCheckFromParts(
+              product,
+              vector,
+              used.filter((i) => i !== vector),
+              'Golden Gate',
+              { open: false, note: FIXED_BY.overhangs },
+            );
+      openCloneCheck(product, context, storage, 'golden-gate');
+    } else {
+      editorStore.openDocument(product, null, [], storage);
+      editorStore.setSidebarTab('features');
+    }
     setName('');
   };
 
@@ -152,7 +167,17 @@ export function GoldenGatePanel() {
 
   return (
     <>
-      <BenchProduct product={assembly?.product ?? null} parts={used} />
+      <BenchProduct
+        product={assembly?.product ?? null}
+        parts={used}
+        onCheckPrimers={
+          assembly === null
+            ? undefined
+            : () => {
+                assemble(true);
+              }
+        }
+      />
       <div className="panel__controls">
         <label className="panel__field panel__field--row">
           <span>Enzyme</span>
@@ -266,7 +291,9 @@ export function GoldenGatePanel() {
               className="button button--primary button--small"
               aria-label="Assemble by Golden Gate"
               data-tip="Open the product as a new document"
-              onClick={assemble}
+              onClick={() => {
+                assemble();
+              }}
             >
               Assemble
             </button>

@@ -112,9 +112,11 @@ function longest(parts: readonly Ingredient[]): Ingredient | undefined {
 function ProductView({
   product,
   parts,
+  onCheckPrimers,
 }: {
   readonly product: SeqDocument;
   readonly parts: readonly Ingredient[];
+  readonly onCheckPrimers?: (() => void) | undefined;
 }) {
   const gel = useGelOptions();
   const [vectorId, setVectorId] = useState('');
@@ -169,6 +171,22 @@ function ProductView({
               }}
             />
           )}
+        </div>
+      )}
+      {onCheckPrimers !== undefined && (
+        <div className="panel__section">
+          <h3 className="panel__heading">
+            Check by colony PCR
+            <span className="panel__heading-note">primers across the junctions</span>
+          </h3>
+          <button
+            type="button"
+            className="button button--small"
+            data-tip="Assemble the product and design primers that give a band only with the insert, and a size with and without it"
+            onClick={onCheckPrimers}
+          >
+            Design check primers…
+          </button>
         </div>
       )}
       <div className="panel__section">
@@ -267,10 +285,13 @@ function ProductView({
 export function BenchProduct({
   product,
   parts = NO_PARTS,
+  onCheckPrimers,
 }: {
   readonly product: SeqDocument | null;
   /** What went into the tube, to pick the empty vector from (#78). */
   readonly parts?: readonly Ingredient[];
+  /** Assembles the product and opens the clone check on it (item 120); absent, no such button. */
+  readonly onCheckPrimers?: (() => void) | undefined;
 }) {
   const slot = useContext(BenchProductSlot);
   if (slot === null) return null;
@@ -280,7 +301,7 @@ export function BenchProduct({
         The product is drawn here once the parts in the tube go together.
       </p>
     ) : (
-      <ProductView product={product} parts={parts} />
+      <ProductView product={product} parts={parts} onCheckPrimers={onCheckPrimers} />
     ),
     slot,
   );

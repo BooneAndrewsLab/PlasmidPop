@@ -286,6 +286,14 @@ columns:
   the empty vector leaves it uncut, and a supercoiled circle does not run
   at its size, so that lane is not drawn.
 
+  Above it, for a Ligation or a Golden Gate that can assemble, **Check by
+  colony PCR** has one button: **Design check primers…** assembles the
+  product, opens it as a document and lands on the primer workspace's
+  [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page, which
+  then knows the insert, the empty vector (the same one the digest is
+  checked against) and, for a ligation, whether the insert's ends let it
+  go in either way round.
+
 The phone reader has no Bench.
 
 ## The shelf

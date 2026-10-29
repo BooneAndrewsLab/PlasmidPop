@@ -12,6 +12,7 @@ import {
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
+import { openCloneCheck, restrictionCloningContext } from '../cloneCheck';
 import { openPcr, sendToPcr } from '../primerToPcr';
 import { type WorkspaceLayout } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
@@ -219,6 +220,27 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
     });
     editorStore.setSidebarTab('features');
   };
+  /** Simulate, then the clone check on the product with the backbone and the amplicon known (item 120). */
+  const checkProduct = (): void => {
+    const amplicon = simulation.amplicon;
+    if (product === null || amplicon === null) return;
+    analytics.track('primers', 'simulate-cloning');
+    openCloneCheck(
+      product,
+      restrictionCloningContext(
+        product,
+        record.vector,
+        amplicon,
+        [forward.enzyme, reverse.enzyme],
+        [
+          { name: names.forward, sequence: forward.sequence },
+          { name: names.reverse, sequence: reverse.sequence },
+        ],
+      ),
+      { scratch: true, shownEnzymes: cloningSeed(forward.enzyme, reverse.enzyme) },
+      'cloning',
+    );
+  };
   const saveBoth = (): void => {
     const note = `${record.insert.name} into ${record.vectorName} · padding ${record.padding.toString()} nt; Tm of the annealing part`;
     void savePrimers(
@@ -327,6 +349,15 @@ function CloningDetail({ record, design, rank, layout, onSaid }: DetailProps) {
             onClick={openProduct}
           >
             Simulate
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            disabled={product === null}
+            data-tip="Simulate, then design colony-PCR primers on the product: a band only with the insert, a size with and without it"
+            onClick={checkProduct}
+          >
+            Check primers…
           </button>
           <button
             type="button"

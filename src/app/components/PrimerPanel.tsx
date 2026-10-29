@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import { type Feature, type SeqDocument, featureExtent, formatSpan, isEmptyRange } from '@/core';
 
+import { recallCloneCheck } from '../cloneCheck';
 import { openPrimerWorkspace, takeFocusRequest } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
 import { usePrimerCollection } from '../state/primerCollection';
@@ -58,6 +59,8 @@ export function PrimerPanel({ doc }: Props) {
 
   const hasTarget = selection !== null && !isEmptyRange(selection);
   const onDocument = useMemo(() => primerFeatures(doc), [doc]);
+  // A product a reaction just made knows where its insert is (item 120).
+  const cloneCheck = useMemo(() => recallCloneCheck(doc), [doc]);
   const { report, sites } = probe;
   const { pairs } = design;
 
@@ -96,6 +99,18 @@ export function PrimerPanel({ doc }: Props) {
             }}
           >
             Last design · {pairs.length} {pairs.length === 1 ? 'pair' : 'pairs'} ›
+          </button>
+        )}
+        {cloneCheck !== null && (
+          <button
+            type="button"
+            className="link primers__last"
+            data-tip="Design colony-PCR primers for this product, across its junctions"
+            onClick={() => {
+              openPrimerWorkspace(documentId, 'clone');
+            }}
+          >
+            Check a clone · {cloneCheck.method} product ›
           </button>
         )}
       </fieldset>

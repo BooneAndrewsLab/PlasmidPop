@@ -342,3 +342,5 @@ the Bench, item 49). The rest stand.
 132.  [Marking the gap between the pieces of a join](118-join-gaps.md)
 
 133.  [Showing one transcript of a gene](119-transcript-pick.md)
+
+134.  [Check primers for a clone](120-check-primers.md)

@@ -3,12 +3,19 @@ import { editorStore } from './state/editorStore';
 import { recallPanel, rememberPanel } from './state/panelMemory';
 
 /**
- * The primer workspace's pages (item 107): a left rail of four, each with
- * its own heading, so where one ends and the next begins is plain.
+ * The primer workspace's pages (item 107): a left rail of five, each with
+ * its own heading, so where one ends and the next begins is plain. `clone`
+ * is the clone check (item 120): primers to screen a colony by PCR.
  */
-export type WorkspacePage = 'design' | 'results' | 'check' | 'mine';
+export type WorkspacePage = 'design' | 'results' | 'check' | 'clone' | 'mine';
 
-export const WORKSPACE_PAGES: readonly WorkspacePage[] = ['design', 'results', 'check', 'mine'];
+export const WORKSPACE_PAGES: readonly WorkspacePage[] = [
+  'design',
+  'results',
+  'check',
+  'clone',
+  'mine',
+];
 
 /**
  * Where the workspace is on screen (point 5): beside the live map (`split`,

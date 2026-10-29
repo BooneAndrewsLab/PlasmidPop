@@ -53,12 +53,12 @@ const part = (id: string, fragment: DigestFragment): Ingredient => ({
   fragment,
 });
 
-function renderBench(parts: readonly Ingredient[]) {
+function renderBench(parts: readonly Ingredient[], onCheckPrimers?: () => void) {
   const slot = document.createElement('div');
   document.body.append(slot);
   render(
     <BenchProductSlot.Provider value={slot}>
-      <BenchProduct product={product} parts={parts} />
+      <BenchProduct product={product} parts={parts} onCheckPrimers={onCheckPrimers} />
     </BenchProductSlot.Provider>,
   );
   return within(slot);
@@ -96,6 +96,17 @@ describe('BenchProduct check digest against the empty vector (#78)', () => {
       column.getByRole('combobox', { name: 'Check digest enzyme' }),
     ).getAllByRole('option')[0];
     expect(first?.textContent).toMatch(/\(clearest\)$/);
+  });
+
+  it('offers the clone check only where the panel can assemble (item 120)', () => {
+    let checked = 0;
+    const column = renderBench([part('v', backbone), part('i', insert)], () => {
+      checked++;
+    });
+    fireEvent.click(column.getByRole('button', { name: 'Design check primers…' }));
+    expect(checked).toBe(1);
+    const without = renderBench([part('v', backbone), part('i', insert)]);
+    expect(without.queryByRole('button', { name: 'Design check primers…' })).toBeNull();
   });
 
   it('offers no choice of vector with one part', () => {

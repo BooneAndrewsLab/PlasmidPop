@@ -7450,3 +7450,61 @@ button {
 .undo-toast__button:hover {
   text-decoration: underline;
 }
+
+/* ---- The clone check (item 120): the form row, the pairs, the lanes ---- */
+
+.ccheck__form {
+  margin-bottom: 8px;
+}
+
+.ccheck__form .panel__field--row {
+  flex: 0 1 auto;
+}
+
+/* A pair that does not do its job keeps its row but reads as a warning. */
+.wst .ccheck__row--problem td:first-child {
+  color: var(--warn);
+}
+
+.detail--ccheck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: flex-start;
+}
+
+.ccheck__tells {
+  margin: 6px 0 4px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+/* "Clone 612 bp", a label and its sizes on one line, three to the row. */
+.ccheck__bands {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 10px;
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.ccheck__bands dt {
+  color: var(--ink-2);
+}
+
+.ccheck__bands dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.ccheck__gel {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .ccheck__table {
+    display: block;
+    overflow-x: auto;
+  }
+}

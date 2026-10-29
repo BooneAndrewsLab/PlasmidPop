@@ -10,6 +10,12 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import {
+  cloneCheckFromParts,
+  ligationOrientation,
+  longestPart,
+  openCloneCheck,
+} from '../cloneCheck';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { PartsTube } from './PartsTube';
@@ -98,7 +104,8 @@ export function LigationPanel() {
     setExcluded(next);
   };
 
-  const assemble = (): void => {
+  /** Assembles and opens the product; with `check`, on the clone-check page with its context (item 120). */
+  const assemble = (check = false): void => {
     try {
       analytics.track('cloning', 'ligate');
       // With the parts it was joined from, in order and orientation (#67).
@@ -112,11 +119,26 @@ export function LigationPanel() {
       );
       // The shelf is left as it is: a vector cut once is often ligated to
       // one insert after another, and the other reactions may want its parts.
-      editorStore.openDocument(product, null, [], {
-        scratch: true,
-        shownEnzymes: ligationSeed(parts),
-      });
-      editorStore.setSidebarTab('features');
+      const storage = { scratch: true, shownEnzymes: ligationSeed(parts) };
+      if (check) {
+        const inTube = ingredients.filter((i) => !excluded.has(i.id));
+        const vector = longestPart(inTube);
+        const at = vector === undefined ? -1 : inTube.indexOf(vector);
+        const context =
+          vector === undefined
+            ? null
+            : cloneCheckFromParts(
+                product,
+                vector,
+                inTube.filter((i) => i !== vector),
+                'Ligation',
+                ligationOrientation(parts, at, circular),
+              );
+        openCloneCheck(product, context, storage, 'ligation');
+      } else {
+        editorStore.openDocument(product, null, [], storage);
+        editorStore.setSidebarTab('features');
+      }
       setName('');
     } catch (e) {
       editorStore.fail(e instanceof Error ? e.message : String(e));
@@ -125,7 +147,17 @@ export function LigationPanel() {
 
   return (
     <>
-      <BenchProduct product={preview} parts={ingredients.filter((i) => !excluded.has(i.id))} />
+      <BenchProduct
+        product={preview}
+        parts={ingredients.filter((i) => !excluded.has(i.id))}
+        onCheckPrimers={
+          canAssemble
+            ? () => {
+                assemble(true);
+              }
+            : undefined
+        }
+      />
       <PartsTube
         ingredients={ingredients}
         excluded={excluded}
@@ -190,7 +222,9 @@ export function LigationPanel() {
                 ? 'Ligate the fragments into a new document'
                 : 'Every join must have matching ends, and a phosphate on at least one side'
             }
-            onClick={assemble}
+            onClick={() => {
+              assemble();
+            }}
           >
             Assemble
           </button>

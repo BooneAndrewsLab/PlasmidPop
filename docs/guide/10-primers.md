@@ -35,9 +35,9 @@ it: a design is judged by where it lands, so the map stays in view and
 follows every click. The sequence view yields to it in the Both view and
 comes back when it closes; the boundary between the map and the workspace
 can be dragged like the other pane boundaries, and is remembered. A rail
-down its left edge names its four pages — **Design**, **Results**, **Check**
-and **My primers** — each with a heading of its own and a count where there
-is one; `↑` and `↓` on the rail move between them.
+down its left edge names its five pages — **Design**, **Results**, **Check**,
+**Clone check** and **My primers** — each with a heading of its own and a
+count where there is one; `↑` and `↓` on the rail move between them.
 
 The workspace is a region of the window, not a dialog: nothing is greyed
 out behind it, the map and the toolbar keep working, and `Escape` closes it
@@ -185,7 +185,11 @@ in full, and the actions: **Simulate** runs PCR on the insert's tab, the
 digest with both enzymes and the ligation into the vector's backbone, and
 opens the product as a new document named `vector-insert` (the thumbnail
 in the pane is that product drawn small, so what it shows is what opens,
-with the two enzymes ticked in its Enzymes tab);
+with the two enzymes ticked in its Enzymes tab); **Check primers…** does
+the same and lands on the
+[Clone check](#checking-a-clone-by-colony-pcr) page for the product,
+which then knows where the insert is, what the empty vector is and that
+these two primers can be reused;
 **Save both** keeps the primers in [My primers](#my-primers) as
 `insert-F-enzyme` and `insert-R-enzyme`; **Copy** puts both on the
 clipboard; **Use in PCR** fills Cloning ▸ PCR with them and the insert's
@@ -263,7 +267,9 @@ oligos written as ordered, the part the reaction releases, the warnings and
 the same actions. **Simulate** runs the PCR on the insert's tab and then
 the Golden Gate into the plasmid in front, with every other open tab the
 enzyme releases a part from in the tube, and opens the circle with the
-enzyme ticked in its Enzymes tab. When there is no destination, or the
+enzyme ticked in its Enzymes tab; **Check primers…** opens the same circle
+on the [Clone check](#checking-a-clone-by-colony-pcr) page, the uncut
+destination being the empty vector. When there is no destination, or the
 enzyme opens nothing in it, or the set needs parts that are not open, it
 says which in plain words and gives the PCR product alone — which is the
 part, ready for the Bench.
@@ -276,6 +282,69 @@ rules the [assembly](12-cloning.md#golden-gate) is judged by; coding bases
 that do not reach the right overhang in frame; an ambiguity code in the
 annealing part; and the padding, annealing, specificity and dimer warnings
 of the restriction ends above.
+
+## Checking a clone by colony PCR
+
+A colony is screened by PCR before a miniprep: a pair with one primer on
+the vector and the other in the insert gives a band only when the insert
+is there, and which junction it spans says which way round the insert
+went; a pair on the vector either side of the insert gives one size with
+it and another without. **Clone check** designs such pairs on the product
+itself.
+
+Open it on a product the app just made: **Check primers…** beside
+**Simulate** in [cloning mode](#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)
+and under a [Golden Gate part](#golden-gate-ends-primers-that-make-the-insert-a-part),
+or **Design check primers…** under the map of a
+[Bench](12-cloning.md#the-bench) product (Ligation and Golden Gate), and
+the Primers tab of such a product offers **Check a clone ›**. The page
+then names the product, the **insert** (and the junctions inside it for a
+build of several parts), the **empty vector** — the vector as it went in,
+or the cut vector closed on itself; when it cannot close, or is a PCR
+product with no phosphates to close with, the page says so and checks the
+pairs on the product alone — and whether the **orientation** is fixed by
+the method (two different sticky ends, Golden Gate overhangs) or open (one
+enzyme at both ends, blunt ends). On any other document the insert is the
+**selection** and the empty vector is any open circular tab you pick, or
+none.
+
+- **Reuse** takes one primer as given — the insert's own primer from the
+  design, one from the product's record, or one of My primers — and
+  designs only its counterpart across the junction it points at; the
+  counterpart's Tm follows the reused primer's annealing part rather than
+  the settings' range. With a tailed primer the tail is counted in the
+  band, as the PCR panel counts it. **Design both primers** designs the
+  whole pair.
+- **Band from … to** is the size window a band must fall in (300–1,000 bp
+  by default) and **From the junction** how far from the junction either
+  primer must keep (50 bp), so a few bases lost or gained at the join do
+  not sit under a primer. The [settings](#settings) are the primer
+  designer's own, and every designed primer must anneal nowhere else on
+  the product.
+- **Design check primers** then gives, best first, up to five pairs across
+  each junction and five flanking the insert. The table says what each
+  pair spans and the band it gives on the **clone**, on the **empty**
+  vector and on the clone with its insert **reversed** (— for no band;
+  n/a where there is no empty vector, or the method fixes the orientation).
+  A pair that also amplifies the empty vector, or whose empty-vector band
+  is the clone's size, keeps its row and says so in its detail. A junction
+  with no room for a pair — a part shorter than the distance kept from its
+  junctions, or a window the insert does not fit — is named under the
+  table, with what to change.
+
+Selecting a pair draws its two sites and its band on the map, with the
+insert as a bracket, and opens its detail: both primers with Tm, GC and
+position, what the pair tells, the three expected bands, and a gel of the
+same three lanes, judged by the agarose and ladder the gels share.
+**Add both** annotates the sites as `primer_bind` features in one undo
+step, **Save both** keeps the pair in My primers with the band it gives,
+**Copy** puts both oligos on the clipboard and **Use in PCR** fills
+Cloning ▸ PCR with them on this product, so the colony PCR can be
+simulated on any tab. The bands are the ones the PCR simulation gives, run
+on each of the three molecules; sizes include a reused primer's tail.
+
+The design runs in the background and the page says so; a design is kept
+with the document until its bases change.
 
 ## Checking specificity with NCBI Primer-BLAST
 

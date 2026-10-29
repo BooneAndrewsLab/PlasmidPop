@@ -9,6 +9,7 @@ import {
 
 import { analytics } from '../analytics';
 import { copyText } from '../clipboard';
+import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
 import { openPcr, sendToPcr } from '../primerToPcr';
 import { type WorkspaceLayout } from '../primerWorkspace';
 import { editorStore } from '../state/editorStore';
@@ -96,6 +97,28 @@ export function GoldenGatePartResult({ record, design, layout, onSaid }: Props) 
       shownEnzymes: goldenGateSeed(enzyme),
     });
     editorStore.setSidebarTab('features');
+  };
+  /** Simulate, then the clone check on the circle, the uncut destination being the empty vector (item 120). */
+  const checkProduct = (): void => {
+    const amplicon = simulation.amplicon;
+    if (product === null || amplicon === null) return;
+    analytics.track('primers', 'simulate-golden-gate');
+    openCloneCheck(
+      product,
+      cloneCheckFromParts(
+        product,
+        { document: record.vector },
+        [{ document: amplicon }],
+        'Golden Gate',
+        { open: false, note: FIXED_BY.overhangs },
+        [
+          { name: names.forward, sequence: forward.sequence },
+          { name: names.reverse, sequence: reverse.sequence },
+        ],
+      ),
+      { scratch: true, shownEnzymes: goldenGateSeed(enzyme) },
+      'golden-gate',
+    );
   };
   const saveBoth = (): void => {
     const note = `${record.insert.name} as a ${enzyme} part ${design.left}…${design.right} for ${record.vectorName} · padding ${record.padding.toString()} nt; Tm of the annealing part`;
@@ -225,6 +248,15 @@ export function GoldenGatePartResult({ record, design, layout, onSaid }: Props) 
             onClick={openProduct}
           >
             Simulate
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            disabled={product === null}
+            data-tip="Simulate, then design colony-PCR primers on the circle: a band only with the part, a size with and without it"
+            onClick={checkProduct}
+          >
+            Check primers…
           </button>
           <button
             type="button"
