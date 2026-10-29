@@ -332,3 +332,5 @@ the Bench, item 49). The rest stand.
 127.  [Golden Gate ends in the primer workspace](113-golden-gate-primers.md)
 
 128.  [Tutorials as a standalone site section](114-tutorials-site.md)
+
+129.  [Grouped features in the views](115-feature-grouping.md)

@@ -246,6 +246,12 @@ complement(7687000..7689000)`: NCBI's own record of what was fetched,
 
 ## Follow-ups
 
+- **Ruled out (2026-10-29, #308): choosing a transcript variant at fetch
+  time.** A RefSeq gene record lists every variant's mRNA and CDS, and a
+  picker in the dialog would have opened only the chosen one's; but then
+  the opened content would no longer match the record its ACCESSION line
+  names, and a file written from it would not be that record. The views
+  group the variants instead (item 115), and the document stays whole.
 - Perhaps name the tab by the accession when the LOCUS name is an opaque
   one (`SYNPUC19CV`), if users find it confusing.
 - The primer workspace (item 107) hosts the same component with

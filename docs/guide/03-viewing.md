@@ -134,7 +134,10 @@ position of its first base. Below each row:
   only the longest CDS of each gene, plus the selected one (see
   [Translation](09-translate.md#which-cds-features-get-a-line));
 - **features** as coloured bars with their names, stacked into lanes when
-  they overlap;
+  they overlap. Features of one type on exactly the same bases are drawn
+  as one bar with a count (`sig_peptide ×4`), and a gene's mRNA variants
+  as one row (`INS · 4 transcripts ▸`); see
+  [Grouped features](05-features.md#grouped-features);
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
   enzyme name, unless **Cut sites** is off in the toolbar (see
   [Restriction enzymes](07-enzymes.md));
@@ -153,7 +156,10 @@ been cut: single-stranded bases are washed over with a gap opposite them, and
 an overhang on the other strand is drawn just outside the first or last
 column (see [Simulated cloning](12-cloning.md)).
 
-Clicking a feature bar selects that feature; clicking an amino acid on a
+Clicking a feature bar selects that feature — for a grouped bar, the first
+of its features, and hovering the bar lists them all. Clicking a selected
+transcripts row opens it, a row per transcript above it; clicking an open
+row closes it. Clicking an amino acid on a
 translation line selects that residue's three bases. The pointer turns into a
 hand over those tracks and stays a text cursor over the bases, where it places
 the caret. Lowercase bases stay lowercase, as many people use case to mark
@@ -303,7 +309,12 @@ The map draws the backbone as a ring with tick marks, features as arcs in
 lanes around it, and labels with leader lines. Features that share a name
 (a gene and its CDS, for example) get one label, and a gene and CDS of the
 same name on exactly the same bases are drawn as one bar, the CDS's, in
-both views; the feature list still lists both. Cut sites of the ticked
+both views; the feature list still lists both. Features of one type on
+exactly the same bases are one arc with a count, and a gene's mRNA
+variants one row, in the same way (see
+[Grouped features](05-features.md#grouped-features)). When a record has
+more lanes than the map has room for, the lanes are drawn narrower, down
+to 6 px, before the circle is allowed to grow past the pane. Cut sites of the ticked
 enzymes are labelled on the same ring, unless **Cut sites** is off in the
 toolbar. The centre shows the name and length when they fit whole; on a
 narrow map the name is set smaller, and past that it is left out rather than
@@ -329,7 +340,9 @@ backbone in through the lanes, so they are not lost under a feature.
 - **Click** a feature arc to select the feature; if the **Features** tab is
   open, its row is highlighted on its own and scrolls into view — even where
   another feature covers exactly the same bases, as a gene and its CDS often
-  do. **Double-click** the arc to zoom in on it.
+  do. A grouped arc selects the first of its features, and hovering it
+  lists them; a second click on a selected transcripts row opens it, and a
+  click on an open row closes it. **Double-click** the arc to zoom in on it.
 - A **label** is a target too: clicking a feature's name selects the
   feature, double-clicking it zooms in on it, and clicking a cut site's
   name, or its tick mark on the backbone, puts the cursor at the cut. Hovering one highlights it and its

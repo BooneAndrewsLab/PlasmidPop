@@ -49,6 +49,34 @@ unsaved), and the last choice is where each new document starts. **File ▸
 Export figure** starts its own Features ticks from them, and the sequence
 figure leaves hidden types out.
 
+### Grouped features
+
+A gene record from NCBI repeats itself: one CDS per transcript variant,
+each differing only in its `/protein_id`, and after each one the same
+signal peptide and mature peptides again. Drawn one each they stack into
+twenty lanes of the same few bars. The views draw them grouped instead:
+
+- Features of the **same type, strand and location** are one bar with a
+  count: `sig_peptide ×4`, `insulin preproprotein ×4`. Their qualifiers may
+  differ; hovering the bar lists each feature with the qualifiers that
+  tell it from the others.
+- A gene's **mRNA variants** (by `/gene`) are one row showing the union
+  of their exons, labelled `INS · 4 transcripts ▸`. A gene with a single
+  transcript keeps its own row.
+
+Clicking a grouped bar selects the first of its features. Its row in this
+list is highlighted with the usual **Rename**, **Edit** and **Remove**, and
+a note under it says what the views draw it with and lists the others;
+click one to select that feature instead and act on it. Clicking a
+transcripts row that is already selected opens it (`▾`): a row per
+transcript stacks above it, each clickable on its own; clicking the open
+row closes it again. Open rows are remembered for the document while it is
+open, and figures exported from it draw them open too.
+
+Only the drawing is grouped. This list, the editor, undo, the GenBank and
+SnapGene files and the clipboard all have every feature; hidden types (above)
+are left out first, so a hidden feature is never counted in a bar.
+
 ## Where a name comes from
 
 GenBank has no one field for a feature's name, so it is taken from the
