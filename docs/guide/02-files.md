@@ -191,8 +191,9 @@ plasmid, gene or protein opens without downloading it first.
 Type a range after the accession, `NC_000017.11:7668421-7687490` (positions
 counted from 1, both ends included, as NCBI shows them), to open just that
 stretch of a chromosome or any other nucleotide record. The **Upstream** and
-**Downstream** boxes add flanking sequence on either side (**1 kb** fills
-both with 1,000 bp), and **Reverse-complement** fetches the other strand. A
+**Downstream** boxes add flanking sequence on either side (**1 kb each
+side** fills both with 1,000 bp), and **Reverse-complement** fetches the
+other strand. A
 window longer than 10 Mb is refused before anything is sent. The features
 inside the window come with it; one that runs past an edge is kept with
 that end marked partial (`<` or `>`), never silently shortened. The tab is
@@ -220,10 +221,11 @@ an alias instead of its accession.
    exactly one gene is used without asking.
 3. Set the flanks, measured along the gene: **Upstream** is before its 5′
    end and **Downstream** after its 3′ end, whichever strand of the
-   chromosome it lies on. **Reverse-complement a reverse-strand gene** (on
-   by default) opens a minus-strand gene reading 5′ to 3′, with every
-   feature's coordinates following; off, it opens as the chromosome's plus
-   strand, the gene annotated as `complement(…)`.
+   chromosome it lies on. **Read a reverse-strand gene 5′→3′** (ticked by
+   default) reverse-complements a minus-strand gene so it reads 5′ to 3′,
+   with every feature's coordinates following, and leaves a plus-strand
+   gene as it is; unticked, a minus-strand gene opens as the chromosome's
+   plus strand, annotated as `complement(…)`.
 4. Press **Open**. Where NCBI has a curated RefSeqGene record for the gene
    (an `NG_` accession — most human genes), the window is cut from that;
    otherwise it is fetched as a stretch of the chromosome (`NC_`). Either

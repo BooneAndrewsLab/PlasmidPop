@@ -476,7 +476,10 @@ describe('Open from NCBI, a gene by name (#299)', () => {
     fireEvent.click(screen.getByRole('button', { name: '1 kb each side' }));
     flank(/Upstream/, '200');
     flank(/Downstream/, '200');
-    fireEvent.click(screen.getByRole('checkbox', { name: /Reverse-complement/ }));
+    const strand = screen.getByRole('checkbox', { name: /Read a reverse-strand gene 5′→3′/ });
+    expect(strand).toBeChecked();
+    fireEvent.click(strand);
+    expect(strand).not.toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull();
@@ -594,7 +597,7 @@ describe('Open from NCBI, a gene by name (#299)', () => {
     });
     flank(/Upstream/, '100');
     flank(/Downstream/, '1000');
-    fireEvent.click(screen.getByRole('checkbox', { name: /Reverse-complement/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Reverse-complement' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull();

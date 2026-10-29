@@ -3002,8 +3002,9 @@ button {
 }
 
 /* The gene lookup (#299): a combobox over its suggestion list, the organism
-   beside it, and the flank boxes with the 1 kb preset and the strand option
-   on one wrapping row. */
+   beside it, then the flanks block (#325): Upstream and Downstream as two
+   equal columns with the 1 kb preset at the end of their row, and the
+   strand checkbox on the row below. */
 .ncbi-open__modes {
   justify-self: start;
 }
@@ -3014,9 +3015,10 @@ button {
   gap: 8px 12px;
 }
 
-/* A field in the gene grid: its name above, the control the full width of
-   its column, so the gene box and the organism select are one width. */
-.ncbi-open__gene > .ncbi-open__field {
+/* A field in the gene or flank grid: its name above, the control the full
+   width of its column, so the paired boxes are one width. */
+.ncbi-open__gene > .ncbi-open__field,
+.ncbi-open__flank {
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
@@ -3080,18 +3082,43 @@ button {
 }
 
 .ncbi-open__flanks {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
   gap: 8px 12px;
-  align-items: center;
+  align-items: end;
 }
 
-.ncbi-open__flank {
-  white-space: nowrap;
+.ncbi-open__flank > .unit-input {
+  width: auto;
 }
 
-.ncbi-open__flank > span:first-child {
-  flex: none;
+/* The preset sits on the boxes' row, after the pair it fills, at their
+   height (4px padding inside a 1px border, as .unit-input). */
+.ncbi-open__preset {
+  padding: 4px 10px;
+}
+
+/* The strand option under the pair; its box stays with the first line
+   when the label wraps on a phone. */
+.ncbi-open__strand {
+  grid-column: 1 / -1;
+  justify-self: start;
+  align-items: start;
+}
+
+.ncbi-open__strand > input {
+  margin-top: 0.25em;
+}
+
+@media (max-width: 420px) {
+  .ncbi-open__flanks {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ncbi-open__preset {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
 
 /* An input with its unit inside the box, as in JustFig: the unit is part of

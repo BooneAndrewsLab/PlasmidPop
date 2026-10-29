@@ -601,7 +601,7 @@ export function NcbiSearch({
         )}
 
         <div className="ncbi-open__flanks">
-          <label className="panel__field ncbi-open__flank">
+          <label className="panel__field ncbi-open__field ncbi-open__flank">
             <span>Upstream</span>
             <span className="unit-input">
               <input
@@ -621,7 +621,7 @@ export function NcbiSearch({
               </span>
             </span>
           </label>
-          <label className="panel__field ncbi-open__flank">
+          <label className="panel__field ncbi-open__field ncbi-open__flank">
             <span>Downstream</span>
             <span className="unit-input">
               <input
@@ -643,7 +643,7 @@ export function NcbiSearch({
           </label>
           <button
             type="button"
-            className="button"
+            className="button button--small ncbi-open__preset"
             disabled={busy}
             data-tip={`${FLANK_PRESET_BP.toLocaleString('en-US')} bp on each side`}
             onClick={() => {
@@ -654,7 +654,14 @@ export function NcbiSearch({
           >
             1 kb each side
           </button>
-          <label className="toggle">
+          <label
+            className="toggle ncbi-open__strand"
+            data-tip={
+              mode === 'gene'
+                ? 'A reverse-strand gene is reverse-complemented so it reads 5′ to 3′; a forward-strand gene is left as it is.'
+                : 'Opens the other strand of the range.'
+            }
+          >
             <input
               type="checkbox"
               checked={reverseComplement}
@@ -663,9 +670,7 @@ export function NcbiSearch({
                 setReverseComplement(e.target.checked);
               }}
             />
-            {mode === 'gene'
-              ? 'Reverse-complement a reverse-strand gene so it reads 5′ to 3′'
-              : 'Reverse-complement (the other strand)'}
+            {mode === 'gene' ? 'Read a reverse-strand gene 5′→3′' : 'Reverse-complement'}
           </label>
         </div>
         {busy && (
