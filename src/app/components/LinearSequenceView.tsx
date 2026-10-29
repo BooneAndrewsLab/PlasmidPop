@@ -17,6 +17,7 @@ import {
   FeatureSet,
   InvalidSequenceError,
   codonIndexAt,
+  codonNoteAt,
   codonSpan,
   fragmentFromRange,
   isCodingFeature,
@@ -89,6 +90,8 @@ const TOUCH_SLOP = 10;
  * end, so a slow start to a scroll is not taken for a selection.
  */
 export const LONG_PRESS_MS = 500;
+/** How long what a tap on a split or unfinished codon says stays up (#318): a finger leaves no hover. */
+export const TAP_TIP_MS = 4000;
 /** How near the top or bottom edge a selecting finger scrolls the view. */
 const EDGE_SCROLL_PX = 40;
 /** How long the Copy button says "Copied" before it goes. */
@@ -219,6 +222,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const touchTap = useRef<{ x: number; y: number } | null>(null);
   /** The long press waiting to fire while that finger rests (#43). */
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The timer that takes a tapped codon's tooltip away again. */
+  const tapTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * The base a long press landed on, while the finger that made it drags
    * the selection; where that finger is now, for the edge scroll.
@@ -445,6 +450,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   useEffect(
     () => () => {
       if (pressTimer.current !== null) clearTimeout(pressTimer.current);
+      if (tapTipTimer.current !== null) clearTimeout(tapTipTimer.current);
       if (edgeFrame.current !== null) cancelAnimationFrame(edgeFrame.current);
     },
     [],
@@ -696,6 +702,30 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     if (member !== undefined) editorStore.selectFeature(member.id);
   };
 
+  /**
+   * What the translation line says over a codon that is split by a join or
+   * that never finishes (#318); undefined over any other.
+   */
+  const codonTipAt = (hit: Hit): string | undefined => {
+    if (hit.kind !== 'translation') return undefined;
+    const feature = featureAtHit(hit);
+    if (feature === undefined) return undefined;
+    return codonNoteAt(doc, allTranslations.get(feature), hit.position) ?? undefined;
+  };
+
+  /** Shows a tapped codon's tooltip where the finger landed, for a while; nothing else is tapped for. */
+  const tapTip = (e: ReactPointerEvent<HTMLCanvasElement>, hit: Hit): void => {
+    if (tapTipTimer.current !== null) clearTimeout(tapTipTimer.current);
+    tapTipTimer.current = null;
+    const tip = codonTipAt(hit);
+    if (tip === undefined) {
+      hideFollowTooltip();
+      return;
+    }
+    followTooltip(tip, e.clientX, e.clientY);
+    tapTipTimer.current = setTimeout(hideFollowTooltip, TAP_TIP_MS);
+  };
+
   const updateCursor = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
@@ -705,9 +735,11 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     const tip =
       hit.kind === 'gc'
         ? describeGc(gcTrack, hit.position, doc)
-        : group === undefined
-          ? undefined
-          : groupTip(group, doc.length, doc.topology);
+        : hit.kind === 'translation'
+          ? codonTipAt(hit)
+          : group === undefined
+            ? undefined
+            : groupTip(group, doc.length, doc.topology);
     if (tip === undefined) hideFollowTooltip();
     else followTooltip(tip, e.clientX, e.clientY);
     if (hit.kind === 'overlay') setCursor(spanAtHit(hit) === undefined ? 'default' : 'pointer');
@@ -724,6 +756,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       // canvas), so nothing is selected or captured here; `onPointerUp`
       // acts on the tap, the timer on the long press.
       touchTap.current = { x: e.clientX, y: e.clientY };
+      hideFollowTooltip();
       cancelLongPress();
       const { clientX, clientY, pointerId } = e;
       pressTimer.current = setTimeout(() => {
@@ -741,6 +774,8 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   const press = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
+    // A finger has no hover: a tap is what asks a codon what it is.
+    if (e.pointerType === 'touch') tapTip(e, hit);
     if (hit.kind === 'lane' || hit.kind === 'translation') {
       const feature = featureAtHit(hit);
       if (feature !== undefined) {
@@ -1151,8 +1186,9 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          onPointerLeave={() => {
-            hideFollowTooltip();
+          onPointerLeave={(e) => {
+            // A finger leaves the canvas as it lifts, and the tap's tip outlives it.
+            if (e.pointerType !== 'touch') hideFollowTooltip();
             setCursor('text');
           }}
           onContextMenu={(e) => {

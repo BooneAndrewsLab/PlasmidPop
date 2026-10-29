@@ -4,8 +4,8 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
 
 import { editorStore } from '../state/editorStore';
-import { LONG_PRESS_MS, LinearSequenceView } from './LinearSequenceView';
-import { currentFollowTooltip } from './tooltip';
+import { LONG_PRESS_MS, LinearSequenceView, TAP_TIP_MS } from './LinearSequenceView';
+import { currentFollowTooltip, hideFollowTooltip } from './tooltip';
 
 /**
  * Without a canvas, `measureCharWidth` falls back to 8 px a character and the
@@ -633,5 +633,120 @@ describe('grouped features (#308)', () => {
     click();
     expect(editorStore.getState().selectedFeatureId).toBe('m1');
     expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
+  });
+});
+
+describe('split and unfinished codons (#318)', () => {
+  // ATG AAA G | 20 bases of intron | TG AAA C: codon 3 is G (7) + TG (28-29) = GTG.
+  const sequence = `ATGAAAG${'C'.repeat(20)}TGAAAC`;
+  const joined = SeqDocument.create({
+    sequence,
+    features: [
+      createFeature({
+        id: 'cds',
+        type: 'CDS',
+        name: 'orf',
+        segments: [rangeSegment(0, 7), rangeSegment(27, 33)],
+      }),
+    ],
+  });
+  const open = SeqDocument.create({
+    sequence,
+    features: [
+      createFeature({
+        id: 'cds',
+        type: 'CDS',
+        name: 'orf',
+        segments: [rangeSegment(0, 7, { partialEnd: true })],
+      }),
+    ],
+  });
+  const split = 'Codon 3: G (7) + TG (28-29) = GTG, Val. The codon continues in the next exon.';
+  const column = (n: number): number => LEFT_GUTTER + n * CHAR_WIDTH + CHAR_WIDTH / 2;
+
+  afterEach(() => {
+    act(() => {
+      editorStore.setSeqBasesPerRow(null);
+      editorStore.closeDocument();
+    });
+    hideFollowTooltip();
+  });
+
+  /** The y of the translation line: the first pixel down the column where it says something. */
+  function lineAt(canvas: Element, x: number): number {
+    for (let y = 0; y < 220; y++) {
+      fireEvent.pointerMove(canvas, { clientX: x, clientY: y });
+      if (currentFollowTooltip() !== null) return y;
+    }
+    throw new Error('no tooltip in the first row');
+  }
+
+  it('says what a split codon is when the pointer is over its stub or its continuation', () => {
+    const { canvas } = setup(joined);
+    const y = lineAt(canvas, column(6));
+    expect(currentFollowTooltip()?.text).toBe(split);
+    fireEvent.pointerMove(canvas, { clientX: column(28), clientY: y });
+    expect(currentFollowTooltip()?.text).toBe(split);
+    fireEvent.pointerMove(canvas, { clientX: column(27), clientY: y });
+    expect(currentFollowTooltip()?.text).toBe(split);
+  });
+
+  it('says nothing over an ordinary codon, the intron, or the sequence', () => {
+    const { canvas } = setup(joined);
+    const y = lineAt(canvas, column(6));
+    fireEvent.pointerMove(canvas, { clientX: column(1), clientY: y });
+    expect(currentFollowTooltip()).toBeNull();
+    fireEvent.pointerMove(canvas, { clientX: column(15), clientY: y });
+    expect(currentFollowTooltip()).toBeNull();
+    fireEvent.pointerMove(canvas, { clientX: column(6), clientY: 2 });
+    expect(currentFollowTooltip()).toBeNull();
+  });
+
+  it('says where a CDS that ends open leaves its codon unfinished', () => {
+    const { canvas } = setup(open);
+    lineAt(canvas, column(6));
+    expect(currentFollowTooltip()?.text).toBe('Incomplete codon: the CDS ends open at 7.');
+  });
+
+  describe('on a tap', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const tap = (canvas: Element, x: number, y: number): void => {
+      const finger = { clientX: x, clientY: y, button: 0, pointerId: 3, pointerType: 'touch' };
+      fireEvent.pointerDown(canvas, finger);
+      fireEvent.pointerUp(canvas, finger);
+      fireEvent.pointerLeave(canvas, finger);
+    };
+
+    it('shows it where the finger came down, keeps it after the finger leaves, and takes it away after a while', () => {
+      const { canvas } = setup(joined);
+      const y = lineAt(canvas, column(6));
+      hideFollowTooltip();
+      tap(canvas, column(28), y);
+      expect(currentFollowTooltip()).toMatchObject({ text: split, x: column(28), y });
+      act(() => {
+        vi.advanceTimersByTime(TAP_TIP_MS - 1);
+      });
+      expect(currentFollowTooltip()?.text).toBe(split);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(currentFollowTooltip()).toBeNull();
+    });
+
+    it('takes it away at the next tap, which says nothing of an ordinary codon', () => {
+      const { canvas } = setup(joined);
+      const y = lineAt(canvas, column(6));
+      hideFollowTooltip();
+      tap(canvas, column(6), y);
+      expect(currentFollowTooltip()?.text).toBe(split);
+      tap(canvas, column(1), y);
+      expect(currentFollowTooltip()).toBeNull();
+    });
   });
 });
