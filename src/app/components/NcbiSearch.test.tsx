@@ -75,8 +75,13 @@ function hit(symbol: string, id = symbol): GeneHit {
   };
 }
 
+function accessionMode(): HTMLElement {
+  fireEvent.click(screen.getByRole('button', { name: 'Accession' }));
+  return screen.getByRole('textbox', { name: 'Accession' });
+}
+
 function start(): void {
-  fireEvent.change(screen.getByLabelText('Accession'), { target: { value: 'L09137' } });
+  fireEvent.change(accessionMode(), { target: { value: 'L09137' } });
   fireEvent.click(screen.getByRole('button', { name: 'Open' }));
 }
 
@@ -98,6 +103,28 @@ afterEach(() => {
 });
 
 describe('NcbiSearch', () => {
+  // First, before any submit: the mode last submitted is remembered for the next opening.
+  it('opens on Gene with the Gene box focused, Accession out of reach until chosen, and each mode keeps its own strand option', () => {
+    render(<NcbiSearch onOpened={noop} onCancel={noop} />);
+    expect(screen.getByRole('button', { name: 'Gene' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('combobox', { name: 'Gene' })).toHaveFocus();
+    expect(screen.queryByRole('textbox', { name: 'Accession' })).toBeNull();
+    const orient = screen.getByRole('checkbox', { name: /Read a reverse-strand gene/ });
+    expect(orient).toBeChecked();
+
+    expect(accessionMode()).toHaveFocus();
+    expect(screen.queryByRole('combobox', { name: 'Gene' })).toBeNull();
+    const reverse = screen.getByRole('checkbox', { name: 'Reverse-complement' });
+    expect(reverse).not.toBeChecked();
+    fireEvent.click(reverse);
+    expect(reverse).toBeChecked();
+
+    geneMode();
+    expect(screen.getByRole('checkbox', { name: /Read a reverse-strand gene/ })).toBeChecked();
+    accessionMode();
+    expect(screen.getByRole('checkbox', { name: 'Reverse-complement' })).toBeChecked();
+  });
+
   it('keeps a fetch running when the host re-renders with new callbacks', () => {
     const { rerender } = render(<NcbiSearch onOpened={noop} onCancel={noop} />);
     start();
@@ -150,7 +177,7 @@ describe('NcbiSearch', () => {
     const { rerender } = render(<NcbiSearch onOpened={noop} onCancel={onCancel} />);
     fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(onCancel).not.toHaveBeenCalled();
-    fireEvent.keyDown(screen.getByLabelText('Accession'), { key: 'Escape' });
+    fireEvent.keyDown(accessionMode(), { key: 'Escape' });
     expect(onCancel).toHaveBeenCalledOnce();
 
     onCancel.mockClear();
@@ -164,6 +191,7 @@ describe('NcbiSearch, gene lookup (#299)', () => {
   it('says what is sent before anything is, and sends nothing in accession mode or under two characters', () => {
     vi.useFakeTimers();
     render(<NcbiSearch onOpened={noop} onCancel={noop} />);
+    accessionMode();
     expect(screen.getByText(/Only the accession numbers/)).toBeInTheDocument();
     const gene = geneMode();
     expect(

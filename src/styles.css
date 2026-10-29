@@ -2982,12 +2982,25 @@ button {
   gap: 12px;
 }
 
+/* Every field in the dialog: its name above, the control the full width of
+   its column, so Accession, Gene, Organism and the flank boxes all stack
+   the same way and paired boxes are one width. */
 .ncbi-open__field {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
 }
 
 .ncbi-open__field > span {
   flex: none;
+}
+
+/* .panel__search's 100% basis would be its height here. */
+.ncbi-open__field > .panel__search {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ncbi-open__hint,
@@ -3001,28 +3014,38 @@ button {
   color: var(--ink-2);
 }
 
-/* The gene lookup (#299): a combobox over its suggestion list, the organism
-   beside it, then the flanks block (#325): Upstream and Downstream as two
-   equal columns with the 1 kb preset at the end of their row, and the
-   strand checkbox on the row below. */
+/* The two ways in (#299, #325): Gene and Accession panes laid one over the
+   other in a single grid cell, so the dialog is the taller pane's height
+   in either mode and does not jump when switching; the pane not shown is
+   inert and hidden. Under them the flanks block: Upstream and Downstream
+   as two equal columns with the 1 kb preset at the end of their row, and
+   the strand checkbox on the row below. */
 .ncbi-open__modes {
   justify-self: start;
+}
+
+.ncbi-open__panes {
+  display: grid;
+}
+
+/* Rows pack at the top: the shorter pane's spare height sits under its
+   hint, not in its field (stretched rows would grow the Accession box). */
+.ncbi-open__pane {
+  grid-area: 1 / 1;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ncbi-open__pane[inert] {
+  visibility: hidden;
 }
 
 .ncbi-open__gene {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: 8px 12px;
-}
-
-/* A field in the gene or flank grid: its name above, the control the full
-   width of its column, so the paired boxes are one width. */
-.ncbi-open__gene > .ncbi-open__field,
-.ncbi-open__flank {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  min-width: 0;
 }
 
 .ncbi-open__gene .panel__select {
@@ -3032,11 +3055,6 @@ button {
 
 .ncbi-open__combo {
   position: relative;
-}
-
-.ncbi-open__combo > .panel__search {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .ncbi-open__list {

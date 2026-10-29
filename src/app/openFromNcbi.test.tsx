@@ -597,7 +597,8 @@ describe('Open from NCBI, a gene by name (#299)', () => {
     });
     flank(/Upstream/, '100');
     flank(/Downstream/, '1000');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Reverse-complement' }));
+    // Off by default: the range as NCBI shows it, the forward strand.
+    expect(screen.getByRole('checkbox', { name: 'Reverse-complement' })).not.toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull();
@@ -610,6 +611,37 @@ describe('Open from NCBI, a gene by name (#299)', () => {
     expect(state.warnings.map((w) => w.message)).toEqual([
       'NC_001136.10 ends there: the downstream flank is 0 bp, not 1,000.',
     ]);
+  });
+
+  it('fetches a range as the other strand when Reverse-complement is ticked', async () => {
+    const reverse = {
+      accession: 'NC_001136.10',
+      start: 1531924,
+      stop: 1531933,
+      strand: 'reverse',
+    } as const;
+    const record = [
+      'LOCUS       NC_001136                 10 bp    DNA     linear   CON 10-JUL-2026',
+      'ACCESSION   NC_001136 REGION: complement(1531924..1531933)',
+      'VERSION     NC_001136.10',
+      'ORIGIN',
+      '        1 acgtacgtac',
+      '//',
+      '',
+    ].join('\n');
+    answer = byEndpoint({ [efetchRegionUrl(reverse)]: () => new Response(record) });
+    render(<App />);
+    openDialog();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Accession' }), {
+      target: { value: 'NC_001136.10:1531924-1531933' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Reverse-complement' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(requests.map(([url]) => urlOf(url))).toEqual([efetchRegionUrl(reverse)]);
+    expect(editorStore.getState().history?.present.length).toBe(10);
   });
 
   it('refuses a window past 10 Mb before anything is sent', async () => {

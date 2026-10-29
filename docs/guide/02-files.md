@@ -147,10 +147,12 @@ a single file over 64 MB inside one is skipped. Detect features on open
 ## Opening a record from NCBI
 
 **File ▸ Open from NCBI…** (or **From NCBI…** in the toolbar when nothing is
-open) fetches a GenBank record by its accession number, so a published
-plasmid, gene or protein opens without downloading it first.
+open) fetches a gene by its name, or a GenBank record by its accession
+number, so a published plasmid, gene or protein opens without downloading
+it first. The dialog opens on **Gene** (or on whichever of the two you used
+last); **Accession** at the top switches to an accession.
 
-1. Type the accession: `L09137` (pUC19), `NC_001422` (phiX174),
+1. Click **Accession** and type it: `L09137` (pUC19), `NC_001422` (phiX174),
    `NM_000581.2`, or a protein's, `NP_000509` (haemoglobin β). The version
    after the dot is optional; without it you get the current one. A pasted
    NCBI address such as
@@ -192,8 +194,8 @@ Type a range after the accession, `NC_000017.11:7668421-7687490` (positions
 counted from 1, both ends included, as NCBI shows them), to open just that
 stretch of a chromosome or any other nucleotide record. The **Upstream** and
 **Downstream** boxes add flanking sequence on either side (**1 kb each
-side** fills both with 1,000 bp), and **Reverse-complement** fetches the
-other strand. A
+side** fills both with 1,000 bp), and **Reverse-complement** (off by
+default: the range comes as NCBI shows it) fetches the other strand. A
 window longer than 10 Mb is refused before anything is sent. The features
 inside the window come with it; one that runs past an edge is kept with
 that end marked partial (`<` or `>`), never silently shortened. The tab is
@@ -204,8 +206,8 @@ there, and the status bar says by how much.
 
 ### A gene by name
 
-Click **Gene** at the top of the dialog to look a gene up by its symbol or
-an alias instead of its accession.
+**Gene**, the mode the dialog opens on, looks a gene up by its symbol or an
+alias instead of its accession.
 
 1. Pick the organism — human, mouse, rat, zebrafish, fruit fly, worm,
    budding and fission yeast, Arabidopsis or _E. coli_ K-12 — or choose

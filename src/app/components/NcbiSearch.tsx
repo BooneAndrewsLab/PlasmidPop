@@ -34,7 +34,7 @@ export type NcbiMode = 'accession' | 'gene';
 
 /** What was last typed and chosen, so a mistyped accession is there to fix next time. */
 let lastInput = '';
-let lastMode: NcbiMode = 'accession';
+let lastMode: NcbiMode = 'gene';
 let lastGene = '';
 let lastOrganism = ORGANISMS[0]?.taxId.toString() ?? '';
 let lastOtherOrganism = '';
@@ -113,7 +113,12 @@ export function NcbiSearch({
   const [otherOrganism, setOtherOrganism] = useState(lastOtherOrganism);
   const [upstream, setUpstream] = useState('');
   const [downstream, setDownstream] = useState('');
-  const [reverseComplement, setReverseComplement] = useState(true);
+  /** Gene mode: orient a reverse-strand gene to read 5′→3′ (on by default). */
+  const [orientGene, setOrientGene] = useState(true);
+  /** Accession mode: fetch the range's other strand (off by default: as NCBI shows it). */
+  const [reverseRegion, setReverseRegion] = useState(false);
+  const reverseComplement = mode === 'gene' ? orientGene : reverseRegion;
+  const setReverseComplement = mode === 'gene' ? setOrientGene : setReverseRegion;
   const [error, setError] = useState<string | null>(null);
   /** Bytes received while a fetch is under way; null when none is. */
   const [received, setReceived] = useState<number | null>(null);
@@ -406,18 +411,6 @@ export function NcbiSearch({
         <div className="segmented ncbi-open__modes" role="group" aria-label="Look up by">
           <button
             type="button"
-            className={segmentedClass(mode === 'accession')}
-            aria-pressed={mode === 'accession'}
-            disabled={busy}
-            onClick={() => {
-              setMode('accession');
-              setError(null);
-            }}
-          >
-            Accession
-          </button>
-          <button
-            type="button"
             className={segmentedClass(mode === 'gene')}
             aria-pressed={mode === 'gene'}
             disabled={busy}
@@ -428,10 +421,28 @@ export function NcbiSearch({
           >
             Gene
           </button>
+          <button
+            type="button"
+            className={segmentedClass(mode === 'accession')}
+            aria-pressed={mode === 'accession'}
+            disabled={busy}
+            onClick={() => {
+              setMode('accession');
+              setError(null);
+            }}
+          >
+            Accession
+          </button>
         </div>
 
-        {mode === 'accession' ? (
-          <>
+        {/* Both panes stay mounted, one over the other, so the dialog keeps
+            the taller one's height whichever is shown; the other is inert. */}
+        <div className="ncbi-open__panes">
+          <div
+            className="ncbi-open__pane"
+            inert={mode !== 'accession'}
+            aria-hidden={mode !== 'accession'}
+          >
             <label className="panel__field ncbi-open__field">
               <span>Accession</span>
               <input
@@ -451,15 +462,14 @@ export function NcbiSearch({
                 }}
               />
             </label>
-            <p id="ncbi-privacy" className="ncbi-open__hint">
+            <p id={mode === 'accession' ? 'ncbi-privacy' : undefined} className="ncbi-open__hint">
               One accession or several, nucleotide or protein, separated by spaces or commas; each
               opens in a tab of its own. A range, NC_000017.11:7668421-7687490, opens that stretch
               with the flanks below. Only the accession numbers (and the range) are sent, to NCBI
               (eutils.ncbi.nlm.nih.gov), and nothing else leaves your browser.
             </p>
-          </>
-        ) : (
-          <>
+          </div>
+          <div className="ncbi-open__pane" inert={mode !== 'gene'} aria-hidden={mode !== 'gene'}>
             <div className="ncbi-open__gene">
               <label className="panel__field ncbi-open__field ncbi-open__combo">
                 <span>Gene</span>
@@ -590,15 +600,15 @@ export function NcbiSearch({
                 <span className="ncbi-open__searching">{lookupError}</span>
               )}
             </div>
-            <p id="ncbi-privacy" className="ncbi-open__hint">
+            <p id={mode === 'gene' ? 'ncbi-privacy' : undefined} className="ncbi-open__hint">
               As you type, what is in the Gene box and the organism go to NCBI
               (eutils.ncbi.nlm.nih.gov) to list the genes that match; nothing else leaves your
               browser. Open fetches the gene's stretch of its chromosome (or its RefSeqGene record)
               with the flanks below, every feature marked, and the document keeps the accession and
               range.
             </p>
-          </>
-        )}
+          </div>
+        </div>
 
         <div className="ncbi-open__flanks">
           <label className="panel__field ncbi-open__field ncbi-open__flank">
