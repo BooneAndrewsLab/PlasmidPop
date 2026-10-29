@@ -7529,3 +7529,45 @@ button {
     overflow-x: auto;
   }
 }
+
+/* Phone: a stored-list row stacks. The checkbox, name, open badge and details
+   take the full width; the time and the actions run on a line below, so a
+   name is never cut to a letter by what sits beside it. The Browse all files
+   footer becomes two even rows with Close last. */
+@media (max-width: 600px) {
+  .recent__item {
+    flex-wrap: wrap;
+    padding-bottom: 4px;
+  }
+
+  .recent__open {
+    flex: 1 1 0;
+    min-width: calc(100% - 36px);
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 4px;
+  }
+
+  .recent__when {
+    grid-column: 1;
+    grid-row: auto;
+    align-self: start;
+  }
+
+  .recent__open + .button {
+    margin-left: auto;
+  }
+
+  .browse__list {
+    min-height: 0;
+    margin-bottom: 10px;
+  }
+
+  .browse__actions > .button {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .browse__actions > .button--quiet,
+  .browse__actions > .button--primary {
+    flex-basis: 100%;
+  }
+}
