@@ -449,3 +449,45 @@ describe('codonSpan', () => {
     expect(codonSpan(t, 0, 1, doc.length)).toEqual({ start: 0, end: 7 });
   });
 });
+
+describe('translateCds: the bases a 3′-partial CDS leaves over (#318)', () => {
+  const open = { partialEnd: true };
+  const doc = SeqDocument.create({ sequence: 'ATGAAAGTC', topology: 'linear' });
+
+  it('lists a lone last base, and two that fix no residue', () => {
+    // ATG AAA G: one base never finishes.
+    expect(translateCds(doc, cds({ segments: [rangeSegment(0, 7, open)] })).leftover).toEqual([6]);
+    // TA: TAA and TAG stop, TAT and TAC are tyrosine, so no residue is read.
+    const ta = SeqDocument.create({ sequence: 'ATGAAATAC' });
+    expect(translateCds(ta, cds({ segments: [rangeSegment(0, 8, open)] })).leftover).toEqual([
+      6, 7,
+    ]);
+  });
+
+  it('leaves out two that are read as a part codon, and a closed end', () => {
+    expect(translateCds(doc, cds({ segments: [rangeSegment(0, 8, open)] })).leftover).toEqual([]);
+    expect(translateCds(doc, cds({ segments: [rangeSegment(0, 7)] })).leftover).toEqual([]);
+    // Only the 3' end counts.
+    expect(
+      translateCds(doc, cds({ segments: [rangeSegment(0, 7, { partialStart: true })] })).leftover,
+    ).toEqual([]);
+  });
+
+  it('lists them in reading order on the reverse strand, and across a join', () => {
+    const rev = SeqDocument.create({ sequence: `C${reverseComplement('ATGAAAG')}` });
+    const t = translateCds(
+      rev,
+      cds({ strand: 'reverse', segments: [rangeSegment(1, 8, { partialStart: true })] }),
+    );
+    expect(t.protein).toBe('MK');
+    expect(t.leftover).toEqual([1]);
+    // join(1..5,7..>8) on ATGAA T C: ATG AAT, then C alone
+    const joined = SeqDocument.create({ sequence: 'ATGAAGTC' });
+    const j = translateCds(
+      joined,
+      cds({ segments: [rangeSegment(0, 5), rangeSegment(6, 8, open)] }),
+    );
+    expect(j.protein).toBe('MN');
+    expect(j.leftover).toEqual([7]);
+  });
+});

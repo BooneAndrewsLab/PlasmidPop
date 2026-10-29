@@ -43,6 +43,14 @@ export interface CdsTranslation {
   readonly strand: Strand;
   /** The codons' amino acids concatenated (stops included as `*`). */
   readonly protein: string;
+  /**
+   * Forward-strand positions, in reading order, of the one or two bases a
+   * 3'-partial CDS ends on without making a codon of them: the codon that
+   * never finishes (#318). Empty otherwise, and when the bases are the part
+   * codon in `codons`, which already says what they stand for. A closed CDS
+   * that stops short of a codon is not listed: nothing was left open.
+   */
+  readonly leftover: readonly number[];
   /** The genetic code it was read with. */
   readonly table: TranslationTable;
   /**
@@ -249,13 +257,16 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
     codons.push({ index, positions: [a, b, c], aminoAcid });
   }
   const tail = text.length - (codonStart - 1) - index * 3;
-  if (tail === 2 && threePrimePartial(feature)) {
-    const i = text.length - 2;
-    const aminoAcid = partCodonResidue(text.slice(i), table);
+  let leftover: number[] = [];
+  if ((tail === 1 || tail === 2) && threePrimePartial(feature)) {
+    const i = text.length - tail;
+    const aminoAcid = tail === 2 ? partCodonResidue(text.slice(i), table) : null;
     const a = positions[i];
     const b = positions[i + 1];
     if (aminoAcid !== null && a !== undefined && b !== undefined) {
       codons.push({ index, positions: [a, b], aminoAcid });
+    } else {
+      leftover = positions.slice(i);
     }
   }
   const unusedExceptions = applyExceptions(doc, feature, codons);
@@ -263,6 +274,7 @@ export function translateCds(doc: SeqDocument, feature: Feature): CdsTranslation
   return {
     codons,
     protein,
+    leftover,
     strand: feature.strand,
     table,
     unknownTable,

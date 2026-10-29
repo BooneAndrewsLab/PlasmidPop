@@ -15,6 +15,7 @@ export * from './enzymeDigest';
 export * from './proteinProperties';
 export * from './openAsProtein';
 export * from './residueNumbers';
+export * from './splitCodons';
 export * from './crispr';
 export * from './crisprEdit';
 export * from './gcContent';
