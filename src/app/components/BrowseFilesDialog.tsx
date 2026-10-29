@@ -88,6 +88,7 @@ export function BrowseFilesDialog({ documents, actions, onClose }: Props) {
           <label className="browse__sort">
             <span>Sort by</span>
             <select
+              className="panel__select"
               value={sort}
               onChange={(e) => {
                 setSort(SORTS.find((s) => s.key === e.target.value)?.key ?? 'updated');
