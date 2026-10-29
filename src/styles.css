@@ -7524,9 +7524,18 @@ button {
 }
 
 @media (max-width: 600px) {
-  .ccheck__table {
-    display: block;
-    overflow-x: auto;
+  /* The gel takes the width of the card, so its caption wraps in it. */
+  .ccheck__gel {
+    flex: 1 1 100%;
+  }
+
+  /* The sequences are in the pair's detail below; the row keeps what it
+     spans and the three band sizes, so they are on screen. */
+  .ccheck__table th:nth-child(2),
+  .ccheck__table th:nth-child(3),
+  .ccheck__table td:nth-child(2),
+  .ccheck__table td:nth-child(3) {
+    display: none;
   }
 }
 
