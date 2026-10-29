@@ -196,7 +196,7 @@ function GroupNotice({
         ))}
       </ul>
       {(others !== null || gene !== undefined) && (
-        <div className="feature-item__actions">
+        <div className="feature-item__actions feature-item__actions--wrap">
           {gene !== undefined && gene !== '' && (
             <button
               type="button"
@@ -212,7 +212,7 @@ function GroupNotice({
           {others !== null && (
             <button
               type="button"
-              className="button button--quiet button--small"
+              className="button button--quiet button--small feature-item__bulk"
               data-tip={`Keep this one and remove the others from the document; Undo puts them back${group.kind === 'transcripts' ? '. Their CDSs and peptides stay.' : ''}`}
               onClick={() => {
                 editorStore.apply(others);
@@ -452,7 +452,7 @@ export function FeatureList({ doc, reader = false }: Props) {
                   <PickedNotice gene={pickedGene} plan={plan} />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
-                  <div className="feature-item__actions">
+                  <div className="feature-item__actions feature-item__actions--wrap">
                     <button
                       type="button"
                       className="button button--quiet button--small"
@@ -483,14 +483,15 @@ export function FeatureList({ doc, reader = false }: Props) {
                     {(typeCounts.get(f.type) ?? 0) > 1 && (
                       <button
                         type="button"
-                        className="button button--quiet button--small"
+                        className="button button--quiet button--small feature-item__bulk"
                         data-tip={`Remove every ${f.type} feature from the document, hidden ones too; Undo puts them back`}
                         onClick={() => {
                           const op = removeTypeOp(doc, f.type);
                           if (op !== null) editorStore.apply(op);
                         }}
                       >
-                        Remove all {(typeCounts.get(f.type) ?? 0).toLocaleString()} {f.type}
+                        <span>Remove all {(typeCounts.get(f.type) ?? 0).toLocaleString()}</span>{' '}
+                        <span className="feature-item__bulk-type">{f.type}</span>
                       </button>
                     )}
                   </div>

@@ -1783,6 +1783,27 @@ button {
   padding: 0 8px 6px 28px;
 }
 
+.feature-item__actions--wrap {
+  flex-wrap: wrap;
+}
+
+/* A bulk action sits on its own line under the row, a quieter full-width
+   button; a long type is cut with an ellipsis, never wrapped (#316). */
+.feature-item__bulk {
+  flex: 1 0 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.3em;
+  white-space: nowrap;
+}
+
+.feature-item__bulk-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .feature-row__rename {
   flex: 1;
   min-width: 0;
