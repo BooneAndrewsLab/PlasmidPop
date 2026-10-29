@@ -158,7 +158,7 @@ function GroupNotice({
     <div className="feature-item__notice feature-item__group" role="note">
       <p>
         {group.kind === 'transcripts'
-          ? `Drawn in the views as one row of ${String(n)} transcripts; click the row to open it.`
+          ? `Drawn in the views as one row of ${String(n)} transcripts; click the row again to open it.`
           : `Drawn in the views as one bar with ${String(n - 1)} other feature${n === 2 ? '' : 's'} of this type on these bases.`}
       </p>
       <ul className="feature-item__members">

@@ -305,7 +305,7 @@ export function groupTip(group: FeatureGroup, seqLength: number, topology: Topol
   const n = String(group.members.length);
   const head =
     group.kind === 'transcripts'
-      ? `${n} transcripts drawn as one row (click to ${group.expanded ? 'collapse' : 'expand'})`
+      ? `${n} transcripts drawn as one row (${group.expanded ? 'click to collapse' : 'click to select, again to expand'})`
       : `${n} features drawn as one bar`;
   return [head, ...describeGroupMembers(group, seqLength, topology)].join('\n');
 }

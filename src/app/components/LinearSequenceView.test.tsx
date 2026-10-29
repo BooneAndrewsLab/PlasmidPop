@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render } from '@testing-library/react';
 
-import { SeqDocument, createFeature } from '@/core';
+import { SeqDocument, createFeature, rangeSegment } from '@/core';
 
 import { editorStore } from '../state/editorStore';
 import { LONG_PRESS_MS, LinearSequenceView } from './LinearSequenceView';
+import { currentFollowTooltip } from './tooltip';
 
 /**
  * Without a canvas, `measureCharWidth` falls back to 8 px a character and the
@@ -15,12 +16,12 @@ const LEFT_GUTTER = 72;
 
 const doc = SeqDocument.create({ sequence: 'ACGT'.repeat(500) });
 
-function setup() {
+function setup(d = doc) {
   act(() => {
-    editorStore.openDocument(doc);
+    editorStore.openDocument(d);
     editorStore.setSeqBasesPerRow(120);
   });
-  const view = render(<LinearSequenceView doc={doc} />);
+  const view = render(<LinearSequenceView doc={d} />);
   const canvas = view.container.querySelector('canvas');
   const container = view.container.querySelector('.seq-view');
   if (canvas === null || container === null) throw new Error('no view');
@@ -524,5 +525,113 @@ describe('LinearSequenceView', () => {
       expect(editorStore.getState().selection).toEqual({ start: 10, end: 10 });
       expect(container.querySelector('.seq-view__copy')).toBeNull();
     });
+  });
+});
+
+describe('grouped features (#308)', () => {
+  const qualifier = (name: string, value: string) => ({ name, value });
+  const copies = SeqDocument.create({
+    sequence: 'ACGT'.repeat(500),
+    features: [
+      createFeature({
+        id: 'c1',
+        type: 'CDS',
+        name: 'p',
+        segments: [rangeSegment(0, 600)],
+        qualifiers: [qualifier('protein_id', 'NP_1')],
+      }),
+      createFeature({
+        id: 'c2',
+        type: 'CDS',
+        name: 'p',
+        segments: [rangeSegment(0, 600)],
+        qualifiers: [qualifier('protein_id', 'NP_2')],
+      }),
+    ],
+  });
+  const transcripts = SeqDocument.create({
+    sequence: 'ACGT'.repeat(500),
+    features: [
+      createFeature({
+        id: 'm1',
+        type: 'mRNA',
+        name: 'v1',
+        segments: [rangeSegment(0, 100), rangeSegment(300, 600)],
+        qualifiers: [qualifier('gene', 'G')],
+      }),
+      createFeature({
+        id: 'm2',
+        type: 'mRNA',
+        name: 'v2',
+        segments: [rangeSegment(0, 200), rangeSegment(300, 600)],
+        qualifiers: [qualifier('gene', 'G')],
+      }),
+    ],
+  });
+
+  afterEach(() => {
+    act(() => {
+      editorStore.setSeqBasesPerRow(null);
+      editorStore.closeDocument();
+    });
+  });
+
+  /**
+   * Walks the first row from the top at column 10, pressing each pixel until
+   * a feature is selected, and gives that pixel's y back: the bar's place
+   * depends on the metrics, which are not restated here.
+   */
+  function clickFirstBar(canvas: Element): number {
+    const x = LEFT_GUTTER + 10 * CHAR_WIDTH;
+    for (let y = 0; y < 220; y++) {
+      fireEvent.pointerDown(canvas, { clientX: x, clientY: y, button: 0, pointerId: 6 });
+      fireEvent.pointerUp(canvas, { clientX: x, clientY: y, button: 0, pointerId: 6 });
+      if (editorStore.getState().selectedFeatureId !== null) return y;
+    }
+    throw new Error('no bar in the first row');
+  }
+
+  it('selects the first copy on a click on the shared bar, and names them on hover', () => {
+    const { canvas } = setup(copies);
+    const y = clickFirstBar(canvas);
+    expect(editorStore.getState().selectedFeatureId).toBe('c1');
+    expect(editorStore.getState().selection).toEqual({ start: 0, end: 600 });
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
+    fireEvent.pointerMove(canvas, { clientX: LEFT_GUTTER + 10 * CHAR_WIDTH, clientY: y });
+    expect(currentFollowTooltip()?.text).toBe(
+      '2 features drawn as one bar\np: /protein_id=NP_1\np: /protein_id=NP_2',
+    );
+    fireEvent.pointerMove(canvas, { clientX: LEFT_GUTTER + 10 * CHAR_WIDTH, clientY: 2 });
+    expect(currentFollowTooltip()).toBeNull();
+  });
+
+  it("selects a gene's transcripts on a click on their row, opens them on the next and closes them on a third", () => {
+    const { canvas } = setup(transcripts);
+    const y = clickFirstBar(canvas);
+    const x = LEFT_GUTTER + 10 * CHAR_WIDTH;
+    const click = (): void => {
+      fireEvent.pointerDown(canvas, { clientX: x, clientY: y, button: 0, pointerId: 6 });
+      fireEvent.pointerUp(canvas, { clientX: x, clientY: y, button: 0, pointerId: 6 });
+    };
+    expect(editorStore.getState().selectedFeatureId).toBe('m1');
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
+    fireEvent.pointerMove(canvas, { clientX: x, clientY: y });
+    expect(currentFollowTooltip()?.text).toMatch(/\(click to select, again to expand\)/);
+    click();
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(1);
+    expect(editorStore.getState().selectedFeatureId).toBe('m1');
+    // The row keeps the lane nearest the sequence when it opens, so the same
+    // pixel is still the row; the transcripts stack above it.
+    fireEvent.pointerMove(canvas, { clientX: x, clientY: y });
+    expect(currentFollowTooltip()?.text).toMatch(/\(click to collapse\)/);
+    click();
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
+    // Selecting something else first: the next click selects again, not opens.
+    act(() => {
+      editorStore.setSelection(null);
+    });
+    click();
+    expect(editorStore.getState().selectedFeatureId).toBe('m1');
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
   });
 });

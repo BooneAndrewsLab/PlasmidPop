@@ -1,4 +1,11 @@
-import { type DocumentDiff, EMPTY_DIFF, SeqDocument, createFeature, rangeSegment } from '@/core';
+import {
+  type DocumentDiff,
+  EMPTY_DIFF,
+  FeatureSet,
+  SeqDocument,
+  createFeature,
+  rangeSegment,
+} from '@/core';
 import { parseGenBank } from '@/io/genbank';
 import { readFixture } from '@/test/fixtures';
 
@@ -6,6 +13,7 @@ import { NO_LANES, assignLanes } from '../linear/lanes';
 import { type OverlaySpan, NO_OVERLAY, overlayLanes } from '../overlay';
 import { type DrawingContext } from '../drawingContext';
 import { PRINT_THEME } from '../svg/exportMap';
+import { groupFeatures } from '../featureGroups';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from '../svg/svgContext';
 import { CircularLayout, LINEAR_GAP } from './circularLayout';
@@ -903,6 +911,36 @@ describe('hit-testing a feature lane (#159)', () => {
       if ((got !== null) !== (b >= 20 && b < 40)) wrong.push(b);
     }
     expect(wrong).toEqual([]);
+  });
+
+  it('finds a group of copies by its stand-in in the lanes it was packed from (#308)', () => {
+    const N = 100;
+    const doc = SeqDocument.create({
+      sequence: 'ACGT'.repeat(25),
+      topology: 'circular',
+      features: [
+        feat('a', 'f', [[20, 40]]),
+        feat('b', 'f', [[20, 40]]),
+        feat('c', 'g', [[60, 70]]),
+      ],
+    });
+    const grouped = groupFeatures(drawableFeatures(doc.features.all()), N);
+    const shown = FeatureSet.from(grouped.features);
+    const lanes = assignLanes(grouped.features, N);
+    expect(lanes.laneCount).toBe(1);
+    const L = new CircularLayout(N, 'circular', {
+      width: 600,
+      height: 600,
+      laneCount: 1,
+      ringWidth: 14,
+      outerMargin: 60,
+    });
+    const hit = featureAtLane(doc, lanes, L, 0, 30, shown);
+    expect(hit).not.toBeNull();
+    expect(grouped.groups.get(hit ?? '')?.members.map((m) => m.id)).toEqual(['a', 'b']);
+    expect(featureAtLane(doc, lanes, L, 0, 65, shown)).toBe('c');
+    // Without the drawn set the document's own features are asked, which have no such lane.
+    expect(featureAtLane(doc, lanes, L, 0, 30)).toBeNull();
   });
 
   describe('the slop around a feature too short to see (#168)', () => {

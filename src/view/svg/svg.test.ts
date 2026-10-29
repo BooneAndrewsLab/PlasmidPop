@@ -11,6 +11,8 @@ import {
   exportLinearSvgPages,
   measureLinearSvg,
 } from './exportLinear';
+import { groupFeatures } from '../featureGroups';
+import { drawableFeatures } from '../visibleFeatures';
 import { exportMapSvg } from './exportMap';
 import { SvgContext } from './svgContext';
 
@@ -933,5 +935,77 @@ describe('exportLinearSvgPages: where the pages break (mutation triage, 1.16)', 
     expect(rowNumbers(pages[0] ?? '')).toHaveLength(k);
     expect(rowNumbers(pages[1] ?? '')).toEqual([1]);
     expect(pages[0]).not.toContain('height="0"');
+  });
+});
+
+describe('grouped features in the figures (#308)', () => {
+  const qualifier = (name: string, value: string) => ({ name, value });
+  const copy = (id: string, pid: string) =>
+    createFeature({
+      id,
+      type: 'CDS',
+      name: 'x',
+      segments: [rangeSegment(10, 100)],
+      qualifiers: [qualifier('protein_id', pid)],
+    });
+  const transcript = (id: string, name: string, segs: [number, number][]) =>
+    createFeature({
+      id,
+      type: 'mRNA',
+      name,
+      segments: segs.map(([a, b]) => rangeSegment(a, b)),
+      qualifiers: [qualifier('gene', 'G')],
+    });
+  const doc = SeqDocument.create({
+    sequence: randomBases(240, 7),
+    topology: 'circular',
+    name: 'grouped',
+    features: [
+      copy('c1', 'NP_1'),
+      copy('c2', 'NP_2'),
+      copy('c3', 'NP_3'),
+      transcript('m1', 'v1', [
+        [120, 150],
+        [180, 230],
+      ]),
+      transcript('m2', 'v2', [[120, 230]]),
+    ],
+  });
+  const groupId = (): string => {
+    const grouped = groupFeatures(drawableFeatures(doc.features.all()), doc.length);
+    const row = grouped.features.find((f) => f.type === 'mRNA');
+    if (row === undefined) throw new Error('no transcripts row');
+    return row.id;
+  };
+
+  it('labels the map with one label per group, and the open transcripts when asked', () => {
+    // The ring may shorten a long label with an ellipsis, so only its start is looked for.
+    const row = (texts: string[]): string[] =>
+      texts.filter((t) => t.startsWith('G · 2 transcript'));
+    const texts = svgLabels(exportMapSvg(doc)).map((l) => l.text);
+    expect(texts).toContain('x ×3');
+    expect(row(texts)).toHaveLength(1);
+    expect(texts).not.toContain('x');
+    expect(texts).not.toContain('v1');
+    const open = svgLabels(exportMapSvg(doc, { expandedGroups: new Set([groupId()]) })).map(
+      (l) => l.text,
+    );
+    expect(row(open)).toHaveLength(1);
+    expect(open).toContain('v1');
+    expect(open).toContain('v2');
+  });
+
+  it('draws one bar per group in the sequence figure, and the open transcripts when asked', () => {
+    const texts = svgLabels(exportLinearSvg(doc, { basesPerRow: 240 })).map((l) => l.text);
+    expect(texts).toContain('x ×3');
+    expect(texts).toContain('G · 2 transcripts ▸');
+    expect(texts).not.toContain('x');
+    expect(texts).not.toContain('v1');
+    const open = svgLabels(
+      exportLinearSvg(doc, { basesPerRow: 240, expandedGroups: new Set([groupId()]) }),
+    ).map((l) => l.text);
+    expect(open).toContain('G · 2 transcripts ▾');
+    expect(open).toContain('v1');
+    expect(open).toContain('v2');
   });
 });

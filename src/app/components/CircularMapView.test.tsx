@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render } from '@testing-library/react';
 
-import { SeqDocument, createFeature } from '@/core';
+import { SeqDocument, createFeature, rangeSegment } from '@/core';
 import { CircularLayout, overlayRingRadius } from '@/view/circular';
 
 import { goToChange } from '../state/editDiff';
 import { editorStore } from '../state/editorStore';
 import { CircularMapView } from './CircularMapView';
+import { currentFollowTooltip } from './tooltip';
 
 const doc = SeqDocument.create({
   name: 'circle',
@@ -22,11 +23,11 @@ const doc = SeqDocument.create({
   ],
 });
 
-function setup(): HTMLCanvasElement {
+function setup(d = doc): HTMLCanvasElement {
   act(() => {
-    editorStore.openDocument(doc);
+    editorStore.openDocument(d);
   });
-  const view = render(<CircularMapView doc={doc} />);
+  const view = render(<CircularMapView doc={d} />);
   const canvas = view.container.querySelector('canvas');
   if (canvas === null) throw new Error('no canvas');
   canvas.getBoundingClientRect = () => new DOMRect(0, 0, 600, 600);
@@ -351,5 +352,97 @@ describe('CircularMapView edit marks', () => {
     expect(canvas.style.cursor).not.toBe('pointer');
     fireEvent.pointerMove(canvas, at(3020));
     expect(canvas.style.cursor).toBe('pointer');
+  });
+});
+
+describe('grouped features (#308)', () => {
+  const qualifier = (name: string, value: string) => ({ name, value });
+  const twins = SeqDocument.create({
+    name: 'twins',
+    sequence: 'ACGT'.repeat(1000),
+    topology: 'circular',
+    features: [
+      createFeature({
+        id: 'c1',
+        type: 'CDS',
+        name: 'thing',
+        segments: [rangeSegment(100, 900)],
+        qualifiers: [qualifier('protein_id', 'NP_1')],
+      }),
+      createFeature({
+        id: 'c2',
+        type: 'CDS',
+        name: 'thing',
+        segments: [rangeSegment(100, 900)],
+        qualifiers: [qualifier('protein_id', 'NP_2')],
+      }),
+    ],
+  });
+  const transcripts = SeqDocument.create({
+    name: 'transcripts',
+    sequence: 'ACGT'.repeat(1000),
+    topology: 'circular',
+    features: [
+      createFeature({
+        id: 'm1',
+        type: 'mRNA',
+        name: 'v1',
+        segments: [rangeSegment(100, 500), rangeSegment(600, 900)],
+        qualifiers: [qualifier('gene', 'G')],
+      }),
+      createFeature({
+        id: 'm2',
+        type: 'mRNA',
+        name: 'v2',
+        segments: [rangeSegment(100, 800)],
+        qualifiers: [qualifier('gene', 'G')],
+      }),
+    ],
+  });
+
+  afterEach(() => {
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+
+  it('selects the first copy on a click on the shared arc, and names them on hover', () => {
+    const canvas = setup(twins);
+    fireEvent.pointerDown(canvas, MOUSE_ON_FEATURE);
+    fireEvent.pointerUp(canvas, MOUSE_ON_FEATURE);
+    expect(editorStore.getState().selectedFeatureId).toBe('c1');
+    expect(editorStore.getState().selection).toEqual({ start: 100, end: 900 });
+    fireEvent.pointerMove(canvas, MOUSE_ON_FEATURE);
+    expect(currentFollowTooltip()?.text).toBe(
+      '2 features drawn as one bar\nthing: /protein_id=NP_1\nthing: /protein_id=NP_2',
+    );
+    fireEvent.pointerMove(canvas, { ...EMPTY, pointerType: 'mouse' });
+    expect(currentFollowTooltip()).toBeNull();
+  });
+
+  it("selects a gene's transcripts on a click on their row, opens them on the next and closes them on a third", () => {
+    const canvas = setup(transcripts);
+    const click = (): void => {
+      fireEvent.pointerDown(canvas, MOUSE_ON_FEATURE);
+      fireEvent.pointerUp(canvas, MOUSE_ON_FEATURE);
+    };
+    click();
+    expect(editorStore.getState().selectedFeatureId).toBe('m1');
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
+    click();
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(1);
+    // The row keeps the lane nearest the backbone when it opens (it is the
+    // longest), so the same point is still the row.
+    fireEvent.pointerMove(canvas, MOUSE_ON_FEATURE);
+    expect(currentFollowTooltip()?.text).toMatch(/\(click to collapse\)/);
+    click();
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(0);
+    // A transcript selected from the Features tab counts: the next click opens.
+    act(() => {
+      editorStore.selectFeature('m2');
+    });
+    click();
+    expect(editorStore.getState().expandedFeatureGroups.size).toBe(1);
+    expect(editorStore.getState().selectedFeatureId).toBe('m1');
   });
 });

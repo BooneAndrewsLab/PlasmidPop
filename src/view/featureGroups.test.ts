@@ -464,7 +464,7 @@ describe('describeGroupMembers and groupTip', () => {
       'v2: 1..30',
     ]);
     expect(groupTip(group, 100, 'linear').split('\n')[0]).toBe(
-      '2 transcripts drawn as one row (click to expand)',
+      '2 transcripts drawn as one row (click to select, again to expand)',
     );
     const expanded = groupFeatures(list, 100, new Set([group.id]));
     const open = expanded.groups.get(group.id);

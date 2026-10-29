@@ -131,6 +131,7 @@ function gcTipAt(
 export function CircularMapView({ doc }: Props) {
   const {
     selection,
+    selectedFeatureId,
     analysis,
     shownEnzymes,
     showCutSites,
@@ -445,7 +446,9 @@ export function CircularMapView({ doc }: Props) {
    * Selects what an arc or a label stands for: the feature, or a group's
    * first member (item 115), which is the one the Features tab then offers
    * to rename, edit or remove; its notice there lists the others. A
-   * transcripts row also opens, or closes, on the click.
+   * transcripts row opens on a second click, once one of its transcripts is
+   * selected, so a click alone never moves the lanes about; an open row
+   * closes on a click.
    */
   const selectShown = (id: string): void => {
     const group = grouped.groups.get(id);
@@ -453,7 +456,10 @@ export function CircularMapView({ doc }: Props) {
       editorStore.selectFeature(id);
       return;
     }
-    if (group.kind === 'transcripts') editorStore.toggleFeatureGroup(group.id);
+    if (group.kind === 'transcripts') {
+      const selected = group.members.some((m) => m.id === selectedFeatureId);
+      if (group.expanded || selected) editorStore.toggleFeatureGroup(group.id);
+    }
     const member = group.members[0];
     if (member !== undefined) editorStore.selectFeature(member.id);
   };

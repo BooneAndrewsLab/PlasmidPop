@@ -238,3 +238,44 @@ describe('FeatureList translation check', () => {
     expect(warned()).toBe(false);
   });
 });
+
+describe('grouped features (#308)', () => {
+  const copy = (id: string, pid: string) =>
+    createFeature({
+      id,
+      type: 'CDS',
+      name: 'p',
+      segments: [rangeSegment(100, 400)],
+      qualifiers: [{ name: 'protein_id', value: pid }],
+    });
+  const twins = SeqDocument.create({
+    name: 'twins',
+    sequence: 'ACGT'.repeat(200),
+    features: [copy('c1', 'NP_1'), copy('c2', 'NP_2'), feature('f1', 500)],
+  });
+
+  it('says under a selected member what the views draw it as, and lets another member be picked', () => {
+    act(() => {
+      editorStore.openDocument(twins);
+      editorStore.selectFeature('c1');
+    });
+    const view = render(<FeatureList doc={twins} />);
+    const note = view.container.querySelector('.feature-item__group');
+    expect(note?.textContent).toContain(
+      'Drawn in the views as one bar with 1 other feature of this type on these bases.',
+    );
+    expect(note?.querySelector('.feature-item__member--selected')?.textContent).toBe(
+      'p: /protein_id=NP_1',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'p: /protein_id=NP_2' }));
+    expect(editorStore.getState().selectedFeatureId).toBe('c2');
+    // A feature in no group has no such note.
+    act(() => {
+      editorStore.selectFeature('f1');
+    });
+    expect(view.container.querySelector('.feature-item__group')).toBeNull();
+    act(() => {
+      editorStore.closeDocument();
+    });
+  });
+});

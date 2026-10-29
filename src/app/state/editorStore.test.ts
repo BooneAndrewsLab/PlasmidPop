@@ -81,6 +81,25 @@ describe('EditorStore', () => {
     expect(store.getState().hiddenFeatureTypes.size).toBe(0);
   });
 
+  it('opens and closes transcript groups per document, as view state (#308)', () => {
+    const store = new EditorStore();
+    const id = store.openDocument(doc, 'x.gb');
+    const history = store.getState().history;
+    store.toggleFeatureGroup('group:transcripts:forward:INS');
+    expect([...store.getState().expandedFeatureGroups]).toEqual(['group:transcripts:forward:INS']);
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().history).toBe(history);
+    // The next document starts with every group closed; the first keeps its own.
+    const other = store.openDocument(doc.rename('other'), 'y.gb');
+    expect(store.getState().expandedFeatureGroups.size).toBe(0);
+    store.activateDocument(id);
+    expect(store.getState().expandedFeatureGroups.size).toBe(1);
+    store.toggleFeatureGroup('group:transcripts:forward:INS');
+    expect(store.getState().expandedFeatureGroups.size).toBe(0);
+    store.activateDocument(other);
+    expect(store.getState().expandedFeatureGroups.size).toBe(0);
+  });
+
   it('opens parse results and reports empty ones', () => {
     const store = new EditorStore();
     store.openParsed(
