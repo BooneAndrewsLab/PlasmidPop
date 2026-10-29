@@ -91,3 +91,36 @@ reverse strand, partial ends and origin wrap
   status-bar warning at open already said. The fix is in the list rather
   than the feature editor because the editor holds its qualifiers as form
   state, and a button rewriting one underneath it would race the form.
+
+- **Split and unfinished codons, #318.** The stub of a codon split by a
+  join (INS `join(249..435,1223..1368)`: base 435 `G` is codon 63, finished
+  by `TG` at 1223-1224) was a tint with no letter, which read as a rendering
+  glitch, and a CDS with an open end (`249..>435`) left a codon that never
+  finishes and drew nothing for it. Chosen from mockups B, E and D:
+  - _Split (B)._ `codonRuns` (`src/core/analysis/splitCodons.ts`) cuts a
+    codon's bases into the stretches a row draws and says on which side each
+    is open: more of the codon later in reading order lies right of a
+    forward-strand stretch and left of a reverse one. The stretch without the
+    middle base gets the letter at 35% opacity (the stop colour for `*`) and
+    a dotted 2 px edge in the theme's caret colour on its open side. The same
+    rule covers a row break and the origin of a circular record, so a codon
+    cut only by the drawing is marked where it is cut; it has no tooltip,
+    since nothing splits it in the sequence. A split is told from a whole
+    codon by `codonPieces`: bases that are neighbours on the sequence (the
+    last and the first base are, on a circular one), read down on the
+    reverse strand.
+  - _Unfinished (E)._ `translateCds` returns the one or two last bases of a
+    3'-partial CDS that make no codon as `CdsTranslation.leftover`; a closed
+    CDS that stops short lists none, since nothing was left open. They, and
+    the two-base part codon of #142, are drawn hatched under a dashed outline
+    in the muted ink with no solid tint, so they cannot be taken for a split
+    stub. The part codon keeps its letter: that residue is in NCBI's
+    `/translation` and in our protein, so hiding it would disagree with both.
+  - _Tooltip (D)._ `codonNoteAt` words it, in the app's 1-based positions,
+    with the three-letter name from `AMINO_ACID_NAMES` (the one letter where
+    there is none, as for `U`) and U for T in an RNA record. A pointer over a
+    translation line uses the existing follow tooltip; a touch has no hover,
+    so a tap shows it for `TAP_TIP_MS` and the next tap or touch removes it
+    (the canvas's `pointerleave`, which a lifting finger fires, does not).
+  - The hatching is drawn by hand, as clipped diagonal lines, because the
+    drawing context the SVG export shares has no clip.

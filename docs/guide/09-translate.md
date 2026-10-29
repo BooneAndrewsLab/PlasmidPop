@@ -31,16 +31,19 @@ frame is easy to follow. The translation honours:
   well as the start codons — TGA is a stop under the standard code and
   tryptophan under the vertebrate mitochondrial one — so a gene read with the
   wrong code comes out chopped short;
-- `join(...)` locations: the pieces are spliced before translating;
+- `join(...)` locations: the pieces are spliced before translating, and a
+  codon that falls across a junction is drawn as the pieces it is made of
+  (see [Split and unfinished codons](#split-and-unfinished-codons));
 - reverse-strand features, translated from the reverse complement and drawn
   right to left;
 - partial ends (`<` and `>`), which suppress the start-codon `M`;
-- the bases left over after the last whole codon, which are dropped, except
+- the bases left over after the last whole codon, which are not read, except
   two at a partial 3′ end that give the same residue whatever the third base
   would have been: `GT` is valine, `CC` proline, so the gene ends in `V` or
   `P` as NCBI's own `/translation` does. Where the third base would decide
-  (`TA` could be a stop or tyrosine) they are dropped too. Clicking that
-  residue selects its two bases; Mutate offers no codon there;
+  (`TA` could be a stop or tyrosine) they are not read either. Clicking that
+  residue selects its two bases; Mutate offers no codon there. At a partial
+  3′ end the left-over bases are drawn hatched, as the next section says;
 - `/transl_except`, which reads one codon as a residue the genetic code
   would not give it: `(pos:220..222,aa:Sec)` makes that UGA selenocysteine,
   `U`, instead of a stop. Pyrrolysine shows as `O`;
@@ -56,6 +59,32 @@ codon. An edit to that codon's own bases removes it. The same goes for
 `/translation`, which no longer matches the bases; where the copy splits the
 CDS into stretches, a `/transl_except` stays only on the stretch that holds its
 codon.
+
+### Split and unfinished codons
+
+A codon is sometimes in pieces, or never finishes. The line draws both so
+that neither looks like a glitch.
+
+- **A codon split across a junction.** In `join(249..435,1223..1368)` the last
+  base of the first exon and the first two of the second make one codon. The
+  letter sits over the piece that holds the codon's middle base, as for every
+  codon. The other piece is tinted like the rest and carries a faint copy of
+  the letter, and each piece has a dotted edge on the side where the codon
+  goes on: the right edge of the first piece and the left edge of the
+  continuation on a forward-strand CDS, the other way round on the reverse
+  strand. A codon cut by the end of a row, or by the origin of a circular
+  sequence, is drawn the same way at the row's edge, since the row break is
+  the only thing splitting it.
+- **A codon that never finishes.** When the CDS ends open (`249..>435`) and
+  its last one or two bases make no codon, they are drawn as a hatched box
+  with a dashed outline and no tint, which a split codon never has. Two bases
+  that fix their residue (see above) are hatched the same way and keep their
+  letter. A CDS whose end is closed draws nothing for left-over bases.
+- **Hover** (or **tap**, on a touch screen) a piece of a split codon to read
+  what it is made of: `Codon 63: G (435) + TG (1223-1224) = GTG, Val. The
+codon continues in the next exon.` Over an unfinished codon it says
+  `Incomplete codon: the CDS ends open at 435.` Positions are the sequence's
+  own, 1-based. A tapped tip goes away after a few seconds or at the next tap.
 
 Clicking an amino acid selects its codon — the three bases it is read from —
 and dragging along the line extends the selection codon by codon, which is a

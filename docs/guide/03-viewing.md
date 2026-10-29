@@ -132,7 +132,10 @@ position of its first base. Below each row:
 - one line of **amino acids** per CDS feature, when **Translations** is on
   and **Format ▸ Translations** is **Every CDS**; by default **One per gene** draws
   only the longest CDS of each gene, plus the selected one (see
-  [Translation](09-translate.md#which-cds-features-get-a-line));
+  [Translation](09-translate.md#which-cds-features-get-a-line)). A codon
+  split across an exon junction shows a faint letter and a dotted open edge
+  on each piece, and one a CDS leaves unfinished at an open end is hatched
+  (see [Split and unfinished codons](09-translate.md#split-and-unfinished-codons));
 - **features** as coloured bars with their names, stacked into lanes when
   they overlap. Features of one type on exactly the same bases are drawn
   as one bar with a count (`sig_peptide ×4`), and a gene's mRNA variants
@@ -160,7 +163,8 @@ Clicking a feature bar selects that feature — for a grouped bar, the first
 of its features, and hovering the bar lists them all. Clicking a selected
 transcripts row opens it, a row per transcript above it; clicking an open
 row closes it. Clicking an amino acid on a
-translation line selects that residue's three bases. The pointer turns into a
+translation line selects that residue's three bases; hovering a split or
+unfinished codon, or tapping it on a touch screen, says what it is. The pointer turns into a
 hand over those tracks and stays a text cursor over the bases, where it places
 the caret. Lowercase bases stay lowercase, as many people use case to mark
 regions.
