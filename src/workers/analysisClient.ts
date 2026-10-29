@@ -2,6 +2,9 @@ import {
   type Alignment,
   type AlignmentOptions,
   type AnnealOptions,
+  type CheckDesign,
+  type CheckOptions,
+  type CloneGeometry,
   type CodonSlot,
   type CrisprGuide,
   type CrisprOptions,
@@ -29,6 +32,7 @@ import { handleAnalysisRequestAsync } from './analysis.worker';
 import {
   type AnalysisRequest,
   type AnalysisResponse,
+  type CheckMolecule,
   type Detection,
   unpackCutSites,
   unpackScan,
@@ -320,6 +324,19 @@ export class AnalysisClient {
    * The SEGUID checksum of the molecule, in the worker (#270): what
    * `moleculeChecksum` gives, without its digest on the main thread.
    */
+  /** Colony-PCR check primers for a cloning product (#311, item 120). */
+  async checkPrimers(
+    product: CheckMolecule,
+    empty: CheckMolecule | null,
+    geometry: CloneGeometry,
+    options: Omit<CheckOptions, 'empty'> = {},
+  ): Promise<CheckDesign> {
+    const res = await this.send({ kind: 'checkPrimers', product, empty, geometry, options });
+    if (res.kind === 'error') throw new Error(res.message);
+    if (res.kind !== 'checkPrimers') throw new Error('Unexpected analysis response');
+    return res.design;
+  }
+
   async checksum(molecule: MoleculeDescription): Promise<Seguid | null> {
     const res = await this.send({ kind: 'checksum', molecule });
     if (res.kind === 'error') throw new Error(res.message);

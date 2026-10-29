@@ -2,6 +2,9 @@ import {
   type Alignment,
   type AlignmentOptions,
   type AnnealOptions,
+  type CheckDesign,
+  type CheckOptions,
+  type CloneGeometry,
   type CrisprGuide,
   type CodonSlot,
   type CrisprOptions,
@@ -129,7 +132,24 @@ export type AnalysisRequest =
       readonly kind: 'recode';
       readonly slots: readonly CodonSlot[];
       readonly options: RecodeOptions;
+    }
+  | {
+      /** Colony-PCR check primers for a cloning product (#311, item 120). */
+      readonly id: number;
+      readonly kind: 'checkPrimers';
+      readonly product: CheckMolecule;
+      /** The empty vector, or null when none can be said. */
+      readonly empty: CheckMolecule | null;
+      readonly geometry: CloneGeometry;
+      readonly options: Omit<CheckOptions, 'empty'>;
     };
+
+/** A molecule as the clone-check designer needs it: its bases and shape, no features. */
+export interface CheckMolecule {
+  readonly name: string;
+  readonly sequence: string;
+  readonly topology: Topology;
+}
 
 /**
  * A part of the library as the main thread is told of it: everything but
@@ -175,6 +195,7 @@ export type AnalysisResponse =
   | { readonly id: number; readonly kind: 'recode'; readonly result: RecodeResult }
   | { readonly id: number; readonly kind: 'msa'; readonly alignment: MultipleAlignment }
   | { readonly id: number; readonly kind: 'checksum'; readonly checksum: Seguid | null }
+  | { readonly id: number; readonly kind: 'checkPrimers'; readonly design: CheckDesign }
   | {
       /** Sent ahead of the answer to a long request; not an answer itself. */
       readonly id: number;

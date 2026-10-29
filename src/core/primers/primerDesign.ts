@@ -183,8 +183,12 @@ function basesAt(text: string, r: Range, seqLength: number): string {
     .join('');
 }
 
-/** Null when the candidate breaks a criterion, else how far it is from ideal. */
-function candidatePenalty(report: PrimerReport, c: PrimerCriteria): number | null {
+/**
+ * Null when the candidate breaks a criterion, else how far it is from ideal.
+ * Exported for the clone-check designer (item 120), which enumerates its
+ * own candidates around a junction and judges them by this same rule.
+ */
+export function candidatePenalty(report: PrimerReport, c: PrimerCriteria): number | null {
   if (Number.isNaN(report.tm) || report.tm < c.minTm || report.tm > c.maxTm) return null;
   if (report.gc < c.minGc || report.gc > c.maxGc) return null;
   if (report.homopolymer > c.maxHomopolymer) return null;
@@ -493,12 +497,19 @@ export function findPrimerBindingSites(
   const out: BindingSite[] = [];
 
   const search = (probe: string, strand: Strand): void => {
+    // The probe's codes once, and which of its bases are plain (an exact
+    // match is then a code comparison; only a mismatch or an ambiguity
+    // code asks `pairsWithCode`). The 3′ anchor is visited first: it must
+    // match exactly, so nearly every position is refused on its first
+    // base rather than after walking to the third mismatch.
+    const codes = Array.from(probe, (b) => b.charCodeAt(0));
+    const plain = Array.from(probe, (b) => 'ACGT'.includes(b));
+    const order = Array.from({ length: n }, (_, k) => (strand === 'forward' ? n - 1 - k : k));
     for (let s = 0; s + n <= scan.length; s++) {
       let mismatches = 0;
       let ok = true;
-      for (let i = 0; i < n; i++) {
-        if (scan.charCodeAt(s + i) === probe.charCodeAt(i) && 'ACGT'.includes(probe.charAt(i)))
-          continue;
+      for (const i of order) {
+        if (scan.charCodeAt(s + i) === codes[i] && plain[i] === true) continue;
         if (pairsWithCode(scan.charAt(s + i), probe.charAt(i))) continue;
         // For a forward primer the 3' end is the right end of the probe; for a
         // reverse primer (probe = its reverse complement) it is the left end.

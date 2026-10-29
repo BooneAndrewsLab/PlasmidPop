@@ -1565,3 +1565,33 @@ Measured (Node 24, circular, whole `detectFeatures`, `detect.test.ts` perf):
 | 1 Mb of a 942 bp unit ending in 6×His | 9,260  | —       | 1.0 s  |
 
 The "before" for 1 Mb is extrapolated from the doubling, not run.
+
+## Clone-check primers (#311, design note 120, 2026-10-29)
+
+`designCheckPrimers` judges every stretch of a window either side of each
+junction by the primer designer's rules, pairs them, scans the product for
+each kept primer's other binding sites and runs `pcr` on the clone, the
+empty vector and the clone with its insert turned round. Measured in Node 24
+on the tutorials' files (`checkPrimers.test.ts`, timings taken ad hoc, not
+asserted):
+
+| Product                                                       | Design                           | Time   |
+| ------------------------------------------------------------- | -------------------------------- | ------ |
+| 3,465 bp one-enzyme ligation, both orientations, empty vector | 15 pairs (two junctions, flank)  | 0.5 s  |
+| same, one primer reused                                       | 5 pairs                          | 0.13 s |
+| 3,118 bp four-part Golden Gate, fixed                         | 20 pairs (five junctions, flank) | 0.65 s |
+| 20 kb random circle, 2 kb insert                              | 10 pairs                         | 1.5 s  |
+| 5 kb of a 300 bp tandem repeat as the vector                  | none (scan budget spent)         | 0.5 s  |
+
+Three things brought the first figure down from 1.7 s: the cheap rules (GC
+content, homopolymer, Tm) before the full report, whose hairpin and
+self-complementarity scans are quadratic; windows that start 218 bp from
+the junction and double only while fewer than five pairs come out, since a
+colony band is best small anyway; and the dimer and specificity checks run
+in order of the rest of the penalty and stopped once no later pair can
+beat the five found. `findPrimerBindingSites` itself visits the 3′ anchor
+first and compares character codes (2.5 ms a scan at 3.5 kb, from 3.8 ms),
+which the Primers tab's designer gains too. What is left is `analyzePrimer`
+at about 45 µs a candidate and `pcr` at 4–5 ms a template at 3.5 kb; both
+grow with the product, so the design runs in the analysis worker
+(`checkPrimers` request) and the page says it is designing.

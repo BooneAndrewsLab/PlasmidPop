@@ -49,6 +49,31 @@ describe('AnalysisClient (inline fallback)', () => {
     ]);
   });
 
+  it('designs clone-check primers without a worker, with the bands pcr gives (#311)', async () => {
+    const doc = parseSequenceFile(pBR322, 'J01749.gb').documents[0];
+    if (doc === undefined) throw new Error('no pBR322');
+    const text = doc.sequence.toString();
+    // pBR322 with a 600 bp stretch of itself put in at 1,000 as "the insert".
+    const insert = text.slice(2000, 2600);
+    const product = {
+      name: 'clone',
+      sequence: text.slice(0, 1000) + insert + text.slice(1000),
+      topology: 'circular' as const,
+    };
+    const design = await client.checkPrimers(
+      product,
+      { name: 'pBR322', sequence: text, topology: 'circular' },
+      { insert: { start: 1000, end: 1600 }, junctions: [1000, 1600] },
+      { orientation: 'fixed', maxPairs: 2 },
+    );
+    expect(design.pairs.length).toBeGreaterThan(0);
+    for (const p of design.pairs) {
+      expect(p.bands.clone).toEqual([p.productLength]);
+      expect(p.bands.empty).not.toBeNull();
+      expect(p.bands.flipped).toBeNull();
+    }
+  });
+
   it('detects features, loading the library first, and names the parts it found', async () => {
     const [doc] = parseSequenceFile(pBR322, 'J01749.gb').documents;
     if (doc === undefined) throw new Error('no fixture');

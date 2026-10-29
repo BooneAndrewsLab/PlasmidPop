@@ -1,12 +1,14 @@
 import {
   type FeatureLibrary,
   type LibraryPart,
+  SeqDocument,
   activeEnzymes,
   alignEitherStrand,
   alignMultiple,
   alignPairwise,
   findCollectionPrimers,
   findCrisprGuides,
+  designCheckPrimers,
   detectFeatures,
   enzymeDigest,
   findCutSites,
@@ -123,6 +125,15 @@ export function handleAnalysisRequest(
         };
       case 'checksum':
         return { id: req.id, kind: 'checksum', checksum: moleculeChecksum(req.molecule) };
+      case 'checkPrimers':
+        return {
+          id: req.id,
+          kind: 'checkPrimers',
+          design: designCheckPrimers(SeqDocument.create(req.product), req.geometry, {
+            ...req.options,
+            empty: req.empty === null ? null : SeqDocument.create(req.empty),
+          }),
+        };
       case 'align':
         return { id: req.id, kind: 'align', alignment: alignPairwise(req.a, req.b, req.options) };
       case 'alignEitherStrand':

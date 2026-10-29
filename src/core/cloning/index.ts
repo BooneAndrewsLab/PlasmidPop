@@ -15,3 +15,4 @@ export * from './endFlanks';
 export * from './cloningEnds';
 export * from './goldenGateEnds';
 export * from './productEnzymes';
+export * from './checkPrimers';
