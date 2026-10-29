@@ -67,8 +67,13 @@ describe('Recent files is capped (item 111)', () => {
     expect(screen.getByRole('button', { name: 'Browse all files…' })).toBeInTheDocument();
   });
 
-  it('offers no browse button when everything is already on the page', async () => {
+  it('offers the browse button even when everything is already on the page', async () => {
     await show([row('f1'), row('f2')]);
+    expect(screen.getByRole('button', { name: 'Browse all files…' })).toBeInTheDocument();
+  });
+
+  it('offers no browse button while nothing is stored', async () => {
+    await show([]);
     expect(screen.queryByRole('button', { name: 'Browse all files…' })).toBeNull();
   });
 

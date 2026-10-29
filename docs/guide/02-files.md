@@ -689,7 +689,8 @@ last edit is there. Its undo history is written with it, so undo and
 redo still work after a reload. On the
 start screen (the **Files** tab), **Recent files** lists the six most recent of
 these documents with size, topology, feature count and when they were last
-changed; **Browse all files…** under it opens the rest (see below). Opening the
+changed; **Browse all files…** under it, shown whenever anything is stored, lists
+the rest as well (see below). Opening the
 same file twice does not create a second entry: a file identical to a stored
 document whose tab is closed opens as that document, with its history, as if
 you had reopened it from the list. (If you edit the new tab back to the stored

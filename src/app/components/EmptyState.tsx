@@ -283,7 +283,7 @@ export function EmptyState() {
           <StoredList entries={groupByParent(unkept)} actions={actions} />
         </details>
       )}
-      {(recent?.length ?? 0) > shown.length && (
+      {(recent?.length ?? 0) > 0 && (
         <p className="recent__browse">
           <button
             type="button"
