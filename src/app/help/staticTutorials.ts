@@ -10,8 +10,8 @@ import {
   type SiteSection,
   type SourcePage,
   type StaticFile,
-} from './staticGuide';
-import { guideLinkTarget, parseMarkdown, plainText } from './markdown';
+} from './staticGuide.ts';
+import { guideLinkTarget, parseMarkdown, plainText } from './markdown.ts';
 
 /**
  * The tutorials as plain static HTML (#312): `/tutorials/` with an index

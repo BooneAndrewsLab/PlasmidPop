@@ -6,7 +6,7 @@ import {
   plainText,
   type Block,
   type Inline,
-} from './markdown';
+} from './markdown.ts';
 
 /**
  * The user guide as plain static HTML (item 91, #231), generated at build
