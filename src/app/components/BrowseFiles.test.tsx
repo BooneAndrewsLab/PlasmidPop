@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { type DocumentSummary, RECENT_FILES_LIMIT } from '@/storage';
+import { type DocumentSummary, RECENT_FILES_LIMIT, REMOVAL_HOLD_MS } from '@/storage';
 
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
@@ -285,6 +285,22 @@ describe('the Undo toast (item 111)', () => {
     expect(undo).toHaveBeenCalledWith(1);
     fireEvent.click(within(second).getByRole('button', { name: 'Dismiss' }));
     expect(editorStore.getState().removalNotices.map((r) => r.key)).toEqual([1]);
+  });
+
+  it('gives each toast a decorative ring that carries the hold duration (#322)', () => {
+    render(<RemovalNotice />);
+    act(() => {
+      editorStore.noteRemoval(1, 'Removed "pUC19".');
+      editorStore.noteRemoval(2, 'Removed 3 documents.');
+    });
+    const rings = screen
+      .getAllByRole('status')
+      .map((t) => t.querySelector<SVGElement>('svg.undo-toast__ring'));
+    expect(rings).toHaveLength(2);
+    for (const ring of rings) {
+      expect(ring?.getAttribute('aria-hidden')).toBe('true');
+      expect(ring?.style.getPropertyValue('--undo-hold')).toBe(`${REMOVAL_HOLD_MS}ms`);
+    }
   });
 
   it('can be dismissed without undoing', () => {

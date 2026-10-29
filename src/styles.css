@@ -7399,6 +7399,40 @@ button {
   font-size: 13px;
 }
 
+.undo-toast__ring {
+  flex: none;
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.undo-toast__ring-track {
+  stroke: var(--line);
+}
+
+.undo-toast__ring-drain {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  animation: undo-toast-drain var(--undo-hold) linear forwards;
+}
+
+@keyframes undo-toast-drain {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo-toast__ring-drain {
+    animation: none;
+  }
+}
+
 .undo-toast__text {
   min-width: 0;
   overflow-wrap: anywhere;

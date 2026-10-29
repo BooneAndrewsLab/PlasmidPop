@@ -704,7 +704,7 @@ neither history is lost.)
   step of its history, whether it is open or not).
 - **Remove** deletes it from the browser, with its undo history, and closes
   its tab. This does not touch files on disk. A message at the bottom of the
-  window offers **Undo** for about ten seconds; the document is not deleted
+  window offers **Undo** for about ten seconds (a small ring on the message empties as the time runs out); the document is not deleted
   until then, and it is not listed meanwhile. If you close the page in that
   time, the removal still happens (the next time PlasmidPop starts, or when its
   ten seconds are up), and a document you did not remove is never touched.

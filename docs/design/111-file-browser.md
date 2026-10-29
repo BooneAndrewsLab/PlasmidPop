@@ -83,6 +83,11 @@ Chosen design: **mark, hold, then delete**, not soft delete in the rows.
   that is dropped with its toast. A document that is open in a tab when its
   hold ends (the user opened it from elsewhere) is spared and only loses its
   mark.
+- Each toast has a ring that drains over the hold (#322): an `aria-hidden`
+  SVG circle emptied by a CSS `stroke-dashoffset` animation whose duration is
+  `REMOVAL_HOLD_MS` passed as `--undo-hold`, so ring and deadline share one
+  constant and nothing runs per frame; keyed toasts keep their animation when
+  others come and go, and reduced motion shows the ring full.
 - The persisted side needed no change: the localStorage mark was always a
   map of id to due time, so several pending removals were already
   representable, and what an older build wrote reads the same.
