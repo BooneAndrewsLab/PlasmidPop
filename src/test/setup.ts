@@ -1,8 +1,12 @@
 import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { relative } from 'node:path';
+
+import { act, cleanup } from '@testing-library/react';
 
 import { forgetPanels } from '@/app/state/panelMemory';
+
+import { actWarningBudget } from './actWarningBudget';
 
 // In a mutation run's `shared` project the files share their globals and
 // modules (item 50), and Stryker's runner gives each file's results the
@@ -38,3 +42,56 @@ afterEach(() => {
   // What the sidebar panels remember lasts a page load; a test is one.
   forgetPanels();
 });
+
+// Results arrive after the test body that asked for them (the analysis
+// scans, the custom enzyme and codon tables read from storage), and the
+// store then re-renders every component that reads it outside `act`: React
+// warned some 3,500 times a run (#324), burying real failures in the CI
+// log. They arrive the same way in the app, where there is no `act`; in a
+// DOM test they are delivered inside one. (Wrapping every store commit
+// instead breaks tests that commit during a render.)
+if (typeof window !== 'undefined') {
+  const { EditorStore } = await import('@/app/state/editorStore');
+  const methods = EditorStore.prototype as unknown as Record<
+    string,
+    ((this: unknown, ...args: unknown[]) => void) | undefined
+  >;
+  for (const method of [
+    'setAnalysis',
+    'setCutSites',
+    'setOrfs',
+    'setCustomCodonTables',
+    'setCustomStandards',
+    'setEnzymeSetInfo',
+  ]) {
+    const original = methods[method];
+    if (original === undefined) continue;
+    methods[method] = function inAct(this: unknown, ...args: unknown[]): void {
+      act(() => {
+        original.apply(this, args);
+      });
+    };
+  }
+}
+
+// A DOM test file may print no more act warnings than its budget says,
+// which is zero unless `actWarningBudget` names it, so a new one fails the
+// file instead of joining the noise (#324).
+if (typeof window !== 'undefined') {
+  let warnings = 0;
+  const forward = console.error.bind(console);
+  console.error = (...args: unknown[]): void => {
+    if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) warnings++;
+    forward(...args);
+  };
+  afterAll(() => {
+    const path = relative(process.cwd(), expect.getState().testPath ?? '').replaceAll('\\', '/');
+    const allowed = actWarningBudget[path] ?? 0;
+    if (warnings > allowed) {
+      throw new Error(
+        `${path} printed ${warnings} "not wrapped in act(...)" warnings, over its budget of ${allowed}: ` +
+          `wrap what updates state in act (or await it) rather than raising the budget (#324)`,
+      );
+    }
+  });
+}

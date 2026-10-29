@@ -115,7 +115,9 @@ afterEach(async () => {
   // Every close's save is finished before the next test, and nothing listens after it.
   for (const wait of pending.splice(0)) await wait();
   for (const stop of stops.splice(0)) stop();
-  editorStore.closeAllDocuments();
+  act(() => {
+    editorStore.closeAllDocuments();
+  });
   vi.restoreAllMocks();
 });
 

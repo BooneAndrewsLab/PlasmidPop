@@ -132,7 +132,9 @@ describe('the Browse all files panel (item 111)', () => {
     expect(within(item).getByText('open')).toBeInTheDocument();
     fireEvent.click(within(item).getByRole('button', { name: /pUC19/ }));
     expect(openStored).toHaveBeenCalledWith(id);
-    editorStore.closeDocument(id);
+    act(() => {
+      editorStore.closeDocument(id);
+    });
   });
 
   it('renames a document in the list', async () => {

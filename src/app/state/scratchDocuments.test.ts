@@ -179,8 +179,9 @@ describe('autosaving scratch (item 110)', () => {
     const id = open();
     editorStore.closeDocument(id);
     await svc.autosave();
-    await new Promise((r) => setTimeout(r, 20));
-    expect((await repo.list()).find((d) => d.id === id)?.kind).toBe('scratch');
+    await vi.waitFor(async () => {
+      expect((await repo.list()).find((d) => d.id === id)?.kind).toBe('scratch');
+    });
   });
 });
 

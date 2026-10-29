@@ -115,7 +115,9 @@ describe('FormatMenu', () => {
     expect(editorStore.getState().translationScope).toBe('selected');
     fireEvent.click(item('Every CDS'));
     expect(editorStore.getState().translationScope).toBe('all');
-    editorStore.setTranslationScope('gene');
+    act(() => {
+      editorStore.setTranslationScope('gene');
+    });
   });
 
   it('lists the feature types of the document and hides them (#305)', () => {
