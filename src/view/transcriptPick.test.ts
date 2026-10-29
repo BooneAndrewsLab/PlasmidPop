@@ -6,6 +6,7 @@ import {
   NO_PICKS,
   carries,
   describeTranscript,
+  transcriptOptionLabel,
   planTranscripts,
   showTranscripts,
   transcriptChoice,
@@ -430,5 +431,18 @@ describe('the notes', () => {
       INS_LENGTH,
     );
     expect(transcriptPicksBanner(two)).toMatch(/^Showing one transcript of INS and G in/);
+  });
+});
+
+describe('transcriptOptionLabel', () => {
+  it('joins the accession and the name, cuts a long name, and drops a repeat', () => {
+    const named = f('m', 'mRNA', [[0, 10]], {
+      name: 'x, transcript variant 1',
+      qualifiers: [q('transcript_id', 'NM_1')],
+    });
+    expect(transcriptOptionLabel(named)).toBe('NM_1 · x, transcript variant 1');
+    expect(transcriptOptionLabel(named, 8)).toBe('NM_1 · x, tran…');
+    const plain = f('m', 'mRNA', [[0, 10]]);
+    expect(transcriptOptionLabel(plain)).toBe('mRNA');
   });
 });

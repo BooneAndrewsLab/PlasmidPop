@@ -4,8 +4,8 @@ import { type Feature, type TranslationScope, GC_WINDOW_CHOICES } from '@/core';
 import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
 import {
   describeTranscript,
+  transcriptOptionLabel,
   planTranscripts,
-  transcriptChoice,
   transcriptKey,
   transcriptPicksNote,
   transcriptVariants,
@@ -261,7 +261,7 @@ function TranscriptPicker({
               <option value="all">All {mRNAs.length}</option>
               {mRNAs.map((m) => (
                 <option key={m.id} value={transcriptKey(m)} title={describeTranscript(m)}>
-                  {transcriptChoice(m)}
+                  {transcriptOptionLabel(m)}
                 </option>
               ))}
             </select>

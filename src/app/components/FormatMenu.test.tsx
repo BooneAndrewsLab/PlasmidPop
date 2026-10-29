@@ -136,10 +136,10 @@ describe('FormatMenu', () => {
     expect(pick).toHaveValue('all');
     expect([...pick.querySelectorAll('option')].map((o) => o.textContent)).toEqual([
       'All 4',
-      'NM_001185098.2',
-      'NM_001291897.2',
-      'NM_001185097.2',
-      'NM_000207.3',
+      'NM_001185098.2 · insulin, transcript variant 3',
+      'NM_001291897.2 · insulin, transcript variant 4',
+      'NM_001185097.2 · insulin, transcript variant 2',
+      'NM_000207.3 · insulin, transcript variant 1',
     ]);
     fireEvent.change(pick, { target: { value: 'NM_000207.3' } });
     expect([...editorStore.getState().transcriptPicks]).toEqual([['INS', 'NM_000207.3']]);

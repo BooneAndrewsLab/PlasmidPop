@@ -253,6 +253,19 @@ export function transcriptPicksBanner(plan: TranscriptPlan): string {
   return `Showing one transcript of ${list} in the views; the others, with the CDSs and peptides only they carry, are not listed here either.`;
 }
 
+/**
+ * An option's text in the picker: the accession and the name after a
+ * middle dot, the name cut with an ellipsis past `max` characters; the
+ * accession alone when the transcript has no other name.
+ */
+export function transcriptOptionLabel(mRNA: Feature, max = 40): string {
+  const id = transcriptChoice(mRNA);
+  const name = featureLabel(mRNA);
+  if (id === name) return id;
+  const cut = name.length > max ? `${name.slice(0, max - 1).trimEnd()}…` : name;
+  return `${id} · ${cut}`;
+}
+
 /** An option's tip in the picker: the accession and the name, when it has both. */
 export function describeTranscript(mRNA: Feature): string {
   const id = transcriptChoice(mRNA);
