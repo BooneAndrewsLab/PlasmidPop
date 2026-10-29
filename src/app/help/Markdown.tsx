@@ -33,6 +33,17 @@ function renderInlines(
         return <strong key={i}>{renderInlines(node.children, onNavigate, onAnchor)}</strong>;
       case 'em':
         return <em key={i}>{renderInlines(node.children, onNavigate, onAnchor)}</em>;
+      case 'check':
+        // Uncontrolled: a reader ticks steps off as they go.
+        return (
+          <input
+            key={i}
+            type="checkbox"
+            className="help__check"
+            defaultChecked={node.checked}
+            aria-label="Done"
+          />
+        );
       case 'link': {
         // A link into the same page scrolls rather than opening a tab: the
         // guide is a dialog, and `#working-copies` is not a URL here.
@@ -111,9 +122,18 @@ function renderBlock(
       return <p key={key}>{renderInlines(block.children, onNavigate, onAnchor)}</p>;
     case 'list': {
       const items = block.items.map((item, i) => (
-        <li key={i}>{renderInlines(item, onNavigate, onAnchor)}</li>
+        <li key={i} className={item[0]?.kind === 'check' ? 'help__task' : undefined}>
+          {renderInlines(item, onNavigate, onAnchor)}
+          {(block.details?.[i] ?? []).map((b, j) => renderBlock(b, j, onNavigate, onAnchor))}
+        </li>
       ));
-      return block.ordered ? <ol key={key}>{items}</ol> : <ul key={key}>{items}</ul>;
+      return block.ordered ? (
+        <ol key={key} start={block.start}>
+          {items}
+        </ol>
+      ) : (
+        <ul key={key}>{items}</ul>
+      );
     }
     case 'code':
       return (

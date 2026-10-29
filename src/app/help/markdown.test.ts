@@ -93,4 +93,45 @@ describe('helpers', () => {
     expect(guideLinkTarget('https://example.org/x.md')).toBeNull();
     expect(guideLinkTarget('#anchor')).toBeNull();
   });
+
+  it('keeps indented blocks inside a list item and the written numbering', () => {
+    const blocks = parseMarkdown(
+      '1. one\n\n   | A | B |\n   | --- | --- |\n   | x | y |\n\n   _Why: because._\n\n2. two\n\n5. five\n',
+    );
+    expect(blocks).toHaveLength(2);
+    const [first, second] = blocks;
+    expect(first?.kind === 'list' && first.items).toHaveLength(2);
+    expect(first?.kind === 'list' && first.details?.[0]?.map((b) => b.kind)).toEqual([
+      'table',
+      'paragraph',
+    ]);
+    expect(first?.kind === 'list' && first.details?.[1]).toEqual([]);
+    expect(second?.kind === 'list' && second.start).toBe(5);
+    expect(first?.kind === 'list' && first.start).toBeUndefined();
+  });
+
+  it('does not swallow the text after a list as a detail', () => {
+    const blocks = parseMarkdown('- a\n- b\n\nNot part of it.\n');
+    expect(blocks.map((b) => b.kind)).toEqual(['list', 'paragraph']);
+    expect(blocks[0]).toEqual({
+      kind: 'list',
+      ordered: false,
+      items: [[{ kind: 'text', text: 'a' }], [{ kind: 'text', text: 'b' }]],
+    });
+  });
+
+  it('reads checkboxes and underscore italics, but not snake_case', () => {
+    expect(parseInline('[ ] open it')).toEqual([
+      { kind: 'check', checked: false },
+      { kind: 'text', text: 'open it' },
+    ]);
+    expect(parseInline('[x] done')[0]).toEqual({ kind: 'check', checked: true });
+    expect(parseInline('see _this_ now')).toEqual([
+      { kind: 'text', text: 'see ' },
+      { kind: 'em', children: [{ kind: 'text', text: 'this' }] },
+      { kind: 'text', text: ' now' },
+    ]);
+    expect(parseInline('a snake_case_name')).toEqual([{ kind: 'text', text: 'a snake_case_name' }]);
+    expect(parseInline('a [ ] mid')).toEqual([{ kind: 'text', text: 'a [ ] mid' }]);
+  });
 });

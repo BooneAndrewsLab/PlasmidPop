@@ -170,6 +170,20 @@
   margin: 0 0 4px;
 }
 
+.help__page li.help__task {
+  list-style: none;
+  margin-left: -1.4em;
+}
+
+.help__check {
+  margin-right: 0.5em;
+}
+
+.help__page li > table,
+.help__page li > p {
+  margin-top: 6px;
+}
+
 .help__page li > ul,
 .help__page li > ol {
   margin-top: 4px;

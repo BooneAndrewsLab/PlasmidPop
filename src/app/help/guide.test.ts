@@ -13,7 +13,7 @@ function blockLinks(block: Block): string[] {
     case 'paragraph':
       return links(block.children);
     case 'list':
-      return block.items.flatMap(links);
+      return [...block.items.flatMap(links), ...(block.details ?? []).flat().flatMap(blockLinks)];
     case 'table':
       return [...block.header.flatMap(links), ...block.rows.flat().flatMap(links)];
     case 'code':

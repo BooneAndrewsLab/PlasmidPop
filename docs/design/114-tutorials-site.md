@@ -56,6 +56,18 @@ which resolves only guide pages). The Help dialog has a Tutorials link beside
 the version that opens `${BASE_URL}tutorials/` in a new tab. The noscript
 notice in `index.html` and the repo README link it too.
 
+## The Markdown subset grew with the tutorials
+
+The tutorials put tables and notes inside numbered steps and use `[ ]`
+checkboxes and `_italics_`, which the guide's parser did not read: a table
+indented under a step ran into the paragraph, the numbering restarted after
+it, and the checkboxes showed as text. The parser now keeps indented blocks
+(tables, paragraphs, sub-lists) inside their list item, honours the number a
+list starts at, reads `[ ]` / `[x]` at the start of an item as a tickable
+checkbox (uncontrolled, so a reader ticks steps off) and `_x_` as italics at
+a word boundary (`snake_case` is left alone). Both renderers, the app's and
+the static one, handle the new nodes.
+
 ## Not done
 
 An "Open in PlasmidPop" link per sample file, through the share-link fragment

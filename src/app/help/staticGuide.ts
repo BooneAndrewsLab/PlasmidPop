@@ -108,6 +108,8 @@ function inlines(nodes: readonly Inline[], ctx: LinkContext): string {
           return `<strong>${inlines(n.children, ctx)}</strong>`;
         case 'em':
           return `<em>${inlines(n.children, ctx)}</em>`;
+        case 'check':
+          return `<input type="checkbox"${n.checked ? ' checked' : ''} aria-label="Done">`;
         case 'link': {
           const inner = inlines(n.children, ctx);
           if (anchorTarget(n.href) !== null) return `<a href="${escapeHtml(n.href)}">${inner}</a>`;
@@ -136,8 +138,15 @@ export function block(b: Block, ctx: LinkContext): string {
       return `<p>${inlines(b.children, ctx)}</p>`;
     case 'list': {
       const tag = b.ordered ? 'ol' : 'ul';
-      const items = b.items.map((i) => `<li>${inlines(i, ctx)}</li>`).join('\n');
-      return `<${tag}>\n${items}\n</${tag}>`;
+      const items = b.items
+        .map((item, i) => {
+          const task = item[0]?.kind === 'check' ? ' class="task"' : '';
+          const more = (b.details?.[i] ?? []).map((d) => block(d, ctx)).join('\n');
+          return `<li${task}>${inlines(item, ctx)}${more === '' ? '' : `\n${more}\n`}</li>`;
+        })
+        .join('\n');
+      const start = b.start === undefined ? '' : ` start="${b.start}"`;
+      return `<${tag}${start}>\n${items}\n</${tag}>`;
     }
     case 'code':
       return `<pre><code>${escapeHtml(b.text)}</code></pre>`;
@@ -172,6 +181,7 @@ code,pre{background:var(--code);border-radius:4px;font-size:.9em}
 code{padding:.1em .3em}
 pre{padding:.75rem;overflow-x:auto}pre code{padding:0}
 table{border-collapse:collapse;display:block;overflow-x:auto}
+li.task{list-style:none;margin-left:-1.4em}li.task input{margin-right:.5em}
 th,td{border:1px solid var(--line);padding:.3rem .6rem;text-align:left;vertical-align:top}
 nav.pager{display:flex;justify-content:space-between;gap:1rem;margin:2rem 0;padding-top:1rem;border-top:1px solid var(--line)}
 footer{color:var(--muted);font-size:.9em;padding-bottom:2rem}

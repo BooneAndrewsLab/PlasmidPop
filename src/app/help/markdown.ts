@@ -1,8 +1,8 @@
 /**
  * The small Markdown subset the user guide is written in, parsed into a
  * tree the help dialog renders. Kept deliberately narrow (headings,
- * paragraphs, lists, tables, fenced code, and inline code / bold / italic /
- * links) so the same files read well on GitHub and in the app without a
+ * paragraphs, lists whose items may hold indented blocks, tables, fenced
+ * code, and inline code / bold / italic / `[ ]` checkboxes / links) so the same files read well on GitHub and in the app without a
  * Markdown dependency.
  */
 
@@ -11,12 +11,21 @@ export type Inline =
   | { readonly kind: 'code'; readonly text: string }
   | { readonly kind: 'strong'; readonly children: readonly Inline[] }
   | { readonly kind: 'em'; readonly children: readonly Inline[] }
+  | { readonly kind: 'check'; readonly checked: boolean }
   | { readonly kind: 'link'; readonly href: string; readonly children: readonly Inline[] };
 
 export type Block =
   | { readonly kind: 'heading'; readonly level: 1 | 2 | 3; readonly children: readonly Inline[] }
   | { readonly kind: 'paragraph'; readonly children: readonly Inline[] }
-  | { readonly kind: 'list'; readonly ordered: boolean; readonly items: readonly Inline[][] }
+  | {
+      readonly kind: 'list';
+      readonly ordered: boolean;
+      readonly items: readonly Inline[][];
+      /** The number the first item is written with, when it is not 1. */
+      readonly start?: number;
+      /** Per item, the indented blocks after its first paragraph; only when some item has any. */
+      readonly details?: readonly (readonly Block[])[];
+    }
   | { readonly kind: 'code'; readonly text: string }
   | {
       readonly kind: 'table';
@@ -25,7 +34,7 @@ export type Block =
     };
 
 const BULLET = /^[-*] (.*)$/;
-const NUMBERED = /^\d+\. (.*)$/;
+const NUMBERED = /^(\d+)\. (.*)$/;
 const HEADING = /^(#{1,3}) (.*)$/;
 const TABLE_SEPARATOR = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$/;
 
@@ -40,7 +49,10 @@ export function markdownTitle(markdown: string): string | null {
 
 export function plainText(inlines: readonly Inline[]): string {
   return inlines
-    .map((i) => (i.kind === 'text' || i.kind === 'code' ? i.text : plainText(i.children)))
+    .map((i) => {
+      if (i.kind === 'text' || i.kind === 'code') return i.text;
+      return i.kind === 'check' ? '' : plainText(i.children);
+    })
     .join('');
 }
 
@@ -107,22 +119,52 @@ export function parseMarkdown(markdown: string): Block[] {
     if (bullet !== null || numbered !== null) {
       flushParagraph();
       const ordered = numbered !== null;
+      const first = Number(numbered?.[1] ?? 1);
       const items: string[] = [];
+      const details: Block[][] = [];
       while (i < lines.length) {
         const current = lines[i] ?? '';
         const m = ordered ? NUMBERED.exec(current) : BULLET.exec(current);
         if (m !== null) {
-          items.push(m[1] ?? '');
+          items.push(m[ordered ? 2 : 1] ?? '');
+          details.push([]);
           i++;
         } else if (/^\s+\S/.test(current) && items.length > 0) {
           // Wrapped continuation of the previous item.
           items[items.length - 1] = `${items[items.length - 1] ?? ''} ${current.trim()}`;
           i++;
+        } else if (current.trim() === '' && items.length > 0) {
+          // A blank line followed by indented text: more blocks of this item.
+          let next = i;
+          while (next < lines.length && (lines[next] ?? '').trim() === '') next++;
+          if (!/^\s+\S/.test(lines[next] ?? '')) break;
+          const body: string[] = [];
+          while (
+            next < lines.length &&
+            ((lines[next] ?? '').trim() === '' || /^\s/.test(lines[next] ?? ''))
+          ) {
+            body.push(lines[next] ?? '');
+            next++;
+          }
+          while ((body[body.length - 1] ?? '').trim() === '') body.pop();
+          const indent = Math.min(
+            ...body.filter((l) => l.trim() !== '').map((l) => /^\s*/.exec(l)?.[0].length ?? 0),
+          );
+          details[details.length - 1]?.push(
+            ...parseMarkdown(body.map((l) => l.slice(indent)).join('\n')),
+          );
+          i = next;
         } else {
           break;
         }
       }
-      blocks.push({ kind: 'list', ordered, items: items.map(parseInline) });
+      blocks.push({
+        kind: 'list',
+        ordered,
+        items: items.map(parseInline),
+        ...(ordered && first !== 1 ? { start: first } : {}),
+        ...(details.some((d) => d.length > 0) ? { details } : {}),
+      });
       continue;
     }
     paragraph.push(line.trim());
@@ -135,6 +177,21 @@ export function parseMarkdown(markdown: string): Block[] {
 /** Index of the closing `marker` after `from`, or -1. */
 function findClose(text: string, marker: string, from: number): number {
   return text.indexOf(marker, from);
+}
+
+const WORD = /\w/;
+
+/** `_` opens italics at a word boundary, so `snake_case` stays as written. */
+function isEmphasisOpen(text: string, at: number): boolean {
+  return !WORD.test(text.charAt(at - 1)) && text.charAt(at + 1) !== ' ' && at + 1 < text.length;
+}
+
+/** The `_` closing italics: after a non-space, before a non-word character. */
+function emphasisClose(text: string, from: number): number {
+  for (let j = text.indexOf('_', from); j > 0; j = text.indexOf('_', j + 1)) {
+    if (text.charAt(j - 1) !== ' ' && !WORD.test(text.charAt(j + 1))) return j;
+  }
+  return -1;
 }
 
 export function parseInline(text: string): Inline[] {
@@ -172,6 +229,18 @@ export function parseInline(text: string): Inline[] {
         i = close + 1;
         continue;
       }
+    } else if (ch === '_' && isEmphasisOpen(text, i)) {
+      const close = emphasisClose(text, i + 1);
+      if (close > i + 1) {
+        flush();
+        out.push({ kind: 'em', children: parseInline(text.slice(i + 1, close)) });
+        i = close + 1;
+        continue;
+      }
+    } else if (ch === '[' && i === 0 && /^\[[ x]\] /.test(text)) {
+      out.push({ kind: 'check', checked: text.charAt(1) === 'x' });
+      i = 4;
+      continue;
     } else if (ch === '[') {
       const closeText = findClose(text, '](', i + 1);
       const closeHref = closeText < 0 ? -1 : findClose(text, ')', closeText + 2);

@@ -335,7 +335,7 @@ describe('the page description (#231)', () => {
   const blocks = (md: string) => parseMarkdown(md);
 
   it('is the first paragraph, even after other blocks, as plain text', () => {
-    expect(describeBlocks(blocks('# Title\n\n- item\n\n  Some **plain** text \n'), 'fb')).not.toBe(
+    expect(describeBlocks(blocks('# Title\n\n- item\n\nSome **plain** text \n'), 'fb')).not.toBe(
       'fb',
     );
     expect(describeBlocks(blocks('# Title\n\nSome **plain** `text` here.\n\nSecond.'), 'fb')).toBe(
