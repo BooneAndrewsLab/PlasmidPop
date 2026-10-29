@@ -54,9 +54,12 @@ type)` and `removeOtherMembersOp(group, keepId)`, pure and null when there
   nothing in the qualifiers that links an mRNA to its CDS, or a CDS to the
   `sig_peptide`, `proprotein` and `mat_peptide` features after it; only file
   order does, which non-NCBI files do not keep. Item 115 links none of them,
-  and that linkage is #315's to decide, so this removes what item 115 links
+  and that linkage was #315's to decide, so this removes what item 115 links
   and no more. The CDS copies are reduced the same way from their own group;
-  the button's tip says the transcripts' CDSs and peptides stay.
+  the button's tip says the transcripts' CDSs and peptides stay. Item 119
+  since decided the link by coordinates — which CDSs and peptides a
+  transcript _can_ carry — for its display-time pick; taking the CDSs that
+  cannot be the kept variant's along with the mRNAs would be a follow-up.
 
 ## Decided
 

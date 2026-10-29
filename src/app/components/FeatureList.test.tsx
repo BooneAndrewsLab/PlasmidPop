@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
+import { INS_LENGTH, insShapedRecord } from '@/test/insShapedRecord';
 
 import { editorStore } from '../state/editorStore';
 import { FeatureList } from './FeatureList';
@@ -316,6 +317,53 @@ describe('grouped features (#308)', () => {
     expect(screen.queryByRole('button', { name: /^Remove all/ })).toBeNull();
     act(() => {
       editorStore.closeDocument();
+    });
+  });
+
+  it('shows one transcript of a gene, its rows alone, and brings the rest back (item 119)', () => {
+    const ins = SeqDocument.create({
+      sequence: 'A'.repeat(INS_LENGTH),
+      features: insShapedRecord(),
+    });
+    act(() => {
+      editorStore.setTranscriptPicks(new Map());
+      editorStore.openDocument(ins);
+      editorStore.selectFeature('m-1');
+    });
+    const history = editorStore.getState().history;
+    const view = render(<FeatureList doc={ins} />);
+    const names = (): string[] =>
+      [...view.container.querySelectorAll('.feature-row__name')].map((e) => e.textContent);
+    expect(view.container.querySelectorAll('li.feature-item')).toHaveLength(36);
+    // Under the selected transcript, the group notice offers to show it alone.
+    fireEvent.click(screen.getByRole('button', { name: 'Show only this transcript' }));
+    expect([...editorStore.getState().transcriptPicks]).toEqual([['INS', 'NM_000207.3']]);
+    // The other three INS mRNAs are out of the list; every CDS and peptide
+    // can be variant 1's, so they all stay, as does the readthrough's mRNA.
+    expect(view.container.querySelectorAll('li.feature-item')).toHaveLength(33);
+    expect(names().filter((n) => n.startsWith('insulin, transcript variant'))).toEqual([
+      'insulin, transcript variant 1',
+    ]);
+    expect(names()).toContain('INS-IGF2 readthrough, transcript variant 2');
+    expect(screen.getByRole('note').textContent).toMatch(
+      /^Shown alone in the views: the other 3 INS transcripts/,
+    );
+    expect(screen.getByText(/^Showing one transcript of INS in the views;/)).toBeInTheDocument();
+    // Not an edit: nothing to undo.
+    expect(editorStore.getState().history).toBe(history);
+    fireEvent.click(screen.getByRole('button', { name: 'Show all 4 INS transcripts' }));
+    expect(editorStore.getState().transcriptPicks.size).toBe(0);
+    expect(view.container.querySelectorAll('li.feature-item')).toHaveLength(36);
+    // The banner's own link does the same.
+    act(() => {
+      editorStore.pickTranscript('INS', 'NM_001185098.2');
+    });
+    expect(view.container.querySelectorAll('li.feature-item')).toHaveLength(33);
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(editorStore.getState().transcriptPicks.size).toBe(0);
+    act(() => {
+      editorStore.closeDocument();
+      editorStore.restoreLastTranscriptPicks([]);
     });
   });
 });

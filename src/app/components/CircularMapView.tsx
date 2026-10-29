@@ -42,6 +42,7 @@ import {
   zoomAround,
 } from '@/view/circular';
 import { groupFeatures, groupTip } from '@/view/featureGroups';
+import { planTranscripts, showTranscripts } from '@/view/transcriptPick';
 import { assignLanes } from '@/view/linear';
 import { NO_OVERLAY, overlayAt, overlayLanes } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
@@ -142,6 +143,7 @@ export function CircularMapView({ doc }: Props) {
     gcWindow,
     hiddenFeatureTypes,
     expandedFeatureGroups,
+    transcriptPicks,
   } = useEditorState();
   const gcOn = showGc && hasTool(doc, 'gc');
   const gcWindowBases = gcWindowFor(gcWindow, doc.length, true);
@@ -195,17 +197,21 @@ export function CircularMapView({ doc }: Props) {
     setViewport(recallView(documentId).mapViewport ?? FIT_VIEWPORT);
   }
 
-  // Copies and a gene's transcript variants draw as one arc (item 115): the
-  // lanes, the arcs, the labels and the hit tests all work from the grouped list.
+  // One transcript per picked gene (item 119), then copies and a gene's
+  // transcript variants as one arc (item 115): the lanes, the arcs, the
+  // labels and the hit tests all work from the grouped list.
   const grouped = useMemo(
     () =>
       groupFeatures(
-        drawableFeatures(doc.features.all(), hiddenFeatureTypes),
+        showTranscripts(
+          drawableFeatures(doc.features.all(), hiddenFeatureTypes),
+          planTranscripts(doc.features.all(), transcriptPicks, doc.length),
+        ),
         doc.length,
         expandedFeatureGroups,
         selectedFeatureId,
       ),
-    [doc, hiddenFeatureTypes, expandedFeatureGroups, selectedFeatureId],
+    [doc, hiddenFeatureTypes, expandedFeatureGroups, transcriptPicks, selectedFeatureId],
   );
   const liveFeatures = grouped.features;
   const liveSet = useMemo(() => FeatureSet.from(liveFeatures), [liveFeatures]);

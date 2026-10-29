@@ -57,6 +57,7 @@ import {
 import { type ParseResult, type ParseWarning } from '@/io';
 import { type FontSize, type ResidueNumbering, DEFAULT_RESIDUE_NUMBERING } from '@/view/linear';
 import { type OverlaySpan } from '@/view/overlay';
+import { type TranscriptPicks } from '@/view/transcriptPick';
 
 import { type EditPlan, selectionAfterOp } from '../editing';
 import { translationWarnings } from '../translationWarnings';
@@ -158,6 +159,15 @@ export function isPhonePane(v: unknown): v is PhonePane {
  * never reopened from piling up in the stored preferences.
  */
 export const MAX_REMEMBERED_PANES = 20;
+
+/** How many genes' transcript picks are kept (item 119); the oldest go first. */
+export const MAX_REMEMBERED_PICKS = 50;
+
+function samePicks(a: TranscriptPicks, b: TranscriptPicks): boolean {
+  if (a.size !== b.size) return false;
+  for (const [gene, key] of a) if (b.get(gene) !== key) return false;
+  return true;
+}
 
 /** The sidebar's tabs in the rail's order, top to bottom, which `Alt+[` and `Alt+]` step through. */
 export const SIDEBAR_TABS: readonly SidebarTab[] = [
@@ -528,6 +538,13 @@ export interface DocumentState {
    * the gene's name, which says nothing about another document. Not stored.
    */
   readonly expandedFeatureGroups: ReadonlySet<string>;
+  /**
+   * The transcript shown per gene (item 119, #315), by gene name: the views
+   * and the Features list leave out the gene's other mRNAs and what only
+   * they carry. View state like `hiddenFeatureTypes`, and seeded the same
+   * way: a gene or an accession the document lacks does nothing.
+   */
+  readonly transcriptPicks: TranscriptPicks;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
   /** Set when the feature panel should open an inline rename for a feature. */
@@ -593,6 +610,8 @@ export interface SharedState {
    * state; each document's is `hiddenFeatureTypes`.
    */
   readonly lastHiddenFeatureTypes: ReadonlySet<string>;
+  /** The transcript picks last made in any document, which the next starts with (item 119). */
+  readonly lastTranscriptPicks: TranscriptPicks;
   /** Size of the sequence view's text; the rest of the row scales with it. */
   readonly seqFontSize: FontSize;
   /**
@@ -957,6 +976,7 @@ type ActiveDocumentFields = {
     | 'enzymesInitialized'
     | 'hiddenFeatureTypes'
     | 'expandedFeatureGroups'
+    | 'transcriptPicks'
     | 'findOpen'
     | 'derived'
     | 'scratch'
@@ -1028,6 +1048,7 @@ const SHARED_INITIAL: SharedState = {
   showTranslations: true,
   translationScope: DEFAULT_TRANSLATION_SCOPE,
   lastHiddenFeatureTypes: new Set(),
+  lastTranscriptPicks: new Map(),
   seqFontSize: 13,
   seqBasesPerRow: null,
   numberComplement: false,
@@ -1110,6 +1131,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   enzymesInitialized: false,
   hiddenFeatureTypes: new Set(),
   expandedFeatureGroups: new Set(),
+  transcriptPicks: new Map(),
   selectedFeatureId: null,
   reveal: null,
   renameRequest: null,
@@ -1370,6 +1392,7 @@ export class EditorStore {
       enzymesInitialized: false,
       hiddenFeatureTypes: this.shared.lastHiddenFeatureTypes,
       expandedFeatureGroups: new Set(),
+      transcriptPicks: this.shared.lastTranscriptPicks,
       reveal: { position: 0, nonce: 1 },
       renameRequest: null,
       editingFeatureId: null,
@@ -2675,6 +2698,32 @@ export class EditorStore {
   /** Brings back the remembered choice at start-up (#305); no document's own is touched. */
   restoreLastHiddenFeatureTypes(types: Iterable<string>): void {
     this.setShared({ lastHiddenFeatureTypes: new Set(types) });
+  }
+
+  /**
+   * Shows one transcript of `gene` in the document in front, or every one
+   * again with a null key (item 119), and remembers it for the next
+   * document as the hidden types are. Not an edit: nothing to undo.
+   */
+  pickTranscript(gene: string, key: string | null): void {
+    const next = new Map(this.state.transcriptPicks);
+    next.delete(gene);
+    if (key !== null) next.set(gene, key);
+    this.setTranscriptPicks(next);
+  }
+
+  setTranscriptPicks(picks: TranscriptPicks): void {
+    const now = this.state.transcriptPicks;
+    if (samePicks(picks, now)) return;
+    // The most recent last, so the oldest go when there are too many to keep.
+    const next = new Map([...picks].slice(-MAX_REMEMBERED_PICKS));
+    this.setActive({ transcriptPicks: next });
+    this.setShared({ lastTranscriptPicks: next });
+  }
+
+  /** Brings back the remembered picks at start-up (item 119); no document's own is touched. */
+  restoreLastTranscriptPicks(picks: Iterable<readonly [string, string]>): void {
+    this.setShared({ lastTranscriptPicks: new Map([...picks].slice(-MAX_REMEMBERED_PICKS)) });
   }
 
   setSeqFontSize(size: FontSize): void {

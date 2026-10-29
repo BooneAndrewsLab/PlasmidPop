@@ -4,6 +4,7 @@ import {
   type Feature,
   type SeqDocument,
   type TranslationProblem,
+  firstQualifier,
   formatLocation,
   hasTool,
   isStaleTranslation,
@@ -11,6 +12,13 @@ import {
 } from '@/core';
 import { featureColor } from '@/view/featureColors';
 import { type FeatureGroup, describeGroupMembers, groupFeatures } from '@/view/featureGroups';
+import {
+  type TranscriptPlan,
+  planTranscripts,
+  showTranscripts,
+  transcriptKey,
+  transcriptPicksBanner,
+} from '@/view/transcriptPick';
 import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { removeOtherMembersOp, removeTypeOp } from '../featureRemoval';
@@ -159,6 +167,8 @@ function GroupNotice({
   const n = group.members.length;
   // Keeping this one and dropping the rest of the group is one edit (#316).
   const others = reader ? null : removeOtherMembersOp(group, feature.id);
+  // Showing this one alone is a view setting, not an edit (item 119).
+  const gene = group.kind === 'transcripts' ? firstQualifier(feature, 'gene')?.trim() : undefined;
   return (
     <div className="feature-item__notice feature-item__group" role="note">
       <p>
@@ -185,22 +195,67 @@ function GroupNotice({
           </li>
         ))}
       </ul>
-      {others !== null && (
+      {(others !== null || gene !== undefined) && (
         <div className="feature-item__actions">
-          <button
-            type="button"
-            className="button button--quiet button--small"
-            data-tip={`Keep this one and remove the others from the document; Undo puts them back${group.kind === 'transcripts' ? '. Their CDSs and peptides stay.' : ''}`}
-            onClick={() => {
-              editorStore.apply(others);
-            }}
-          >
-            {n === 2
-              ? `Remove the other ${group.kind === 'transcripts' ? 'transcript' : 'copy'}`
-              : `Remove the other ${String(n - 1)} ${group.kind === 'transcripts' ? 'transcripts' : 'copies'}`}
-          </button>
+          {gene !== undefined && gene !== '' && (
+            <button
+              type="button"
+              className="button button--quiet button--small"
+              data-tip="Draw this transcript alone in the views, with the CDSs and peptides it can carry; the others stay in the document, and Format ▸ Transcripts brings them back"
+              onClick={() => {
+                editorStore.pickTranscript(gene, transcriptKey(feature));
+              }}
+            >
+              Show only this transcript
+            </button>
+          )}
+          {others !== null && (
+            <button
+              type="button"
+              className="button button--quiet button--small"
+              data-tip={`Keep this one and remove the others from the document; Undo puts them back${group.kind === 'transcripts' ? '. Their CDSs and peptides stay.' : ''}`}
+              onClick={() => {
+                editorStore.apply(others);
+              }}
+            >
+              {n === 2
+                ? `Remove the other ${group.kind === 'transcripts' ? 'transcript' : 'copy'}`
+                : `Remove the other ${String(n - 1)} ${group.kind === 'transcripts' ? 'transcripts' : 'copies'}`}
+            </button>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Under the transcript a pick shows alone (item 119): what is left out
+ * with it, and the way back. The gene's other transcripts are not in this
+ * list while picked, so the group notice above cannot list them.
+ */
+function PickedNotice({ gene, plan }: { readonly gene: string; readonly plan: TranscriptPlan }) {
+  const n = plan.variants.get(gene)?.length ?? 0;
+  return (
+    <div className="feature-item__notice feature-item__group" role="note">
+      <p>
+        Shown alone in the views: the other {String(n - 1)} {gene}{' '}
+        {n === 2 ? 'transcript' : 'transcripts'}, with the CDSs and peptides only{' '}
+        {n === 2 ? 'it carries' : 'they carry'}, {n === 2 ? 'is' : 'are'} left out of the views and
+        this list. Nothing is removed.
+      </p>
+      <div className="feature-item__actions">
+        <button
+          type="button"
+          className="button button--quiet button--small"
+          data-tip={`Draw every ${gene} transcript again, and list them here`}
+          onClick={() => {
+            editorStore.pickTranscript(gene, null);
+          }}
+        >
+          Show all {String(n)} {gene} transcripts
+        </button>
+      </div>
     </div>
   );
 }
@@ -215,9 +270,19 @@ export function FeatureList({ doc, reader = false }: Props) {
     editingFeatureId,
     hiddenFeatureTypes,
     expandedFeatureGroups,
+    transcriptPicks,
   } = useEditorState();
   const features = doc.features.all();
   const hiddenTypes = hiddenTypeCount(features, hiddenFeatureTypes);
+  // What a transcript pick leaves out (item 119) is out of this list too,
+  // unlike a hidden type: the pick's point is one variant's worth of rows.
+  const plan = useMemo(
+    () => planTranscripts(features, transcriptPicks, doc.length),
+    // `features` is `doc.features.all()`, so the document stands for it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doc, transcriptPicks],
+  );
+  const listed = plan.hidden.size === 0 ? features : features.filter((f) => !plan.hidden.has(f.id));
   // How many features each type has, for Remove all (#316).
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -228,13 +293,13 @@ export function FeatureList({ doc, reader = false }: Props) {
   const groupOf = useMemo(
     () =>
       groupFeatures(
-        drawableFeatures(features, hiddenFeatureTypes),
+        showTranscripts(drawableFeatures(features, hiddenFeatureTypes), plan),
         doc.length,
         expandedFeatureGroups,
       ).groupOf,
     // `features` is `doc.features.all()`, so the document stands for it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [doc, hiddenFeatureTypes, expandedFeatureGroups],
+    [doc, hiddenFeatureTypes, expandedFeatureGroups, plan],
   );
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
@@ -284,6 +349,20 @@ export function FeatureList({ doc, reader = false }: Props) {
           </button>
         </p>
       )}
+      {plan.picked.size > 0 && (
+        <p className="panel__note">
+          {transcriptPicksBanner(plan)}{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              editorStore.setTranscriptPicks(new Map());
+            }}
+          >
+            Show all
+          </button>
+        </p>
+      )}
       {detect && <DetectFeaturesPanel documentId={documentId} doc={doc} />}
       {detect && <MyPartsSection />}
       {features.length === 0 ? (
@@ -294,9 +373,13 @@ export function FeatureList({ doc, reader = false }: Props) {
         </p>
       ) : (
         <ul className="features__list">
-          {features.map((f) => {
+          {listed.map((f) => {
             const selected = precise === null ? isSelected(f, selection) : f.id === precise;
             const group = groupOf.get(f.id);
+            const pickedGene =
+              f.type === 'mRNA'
+                ? [...plan.picked].find(([, ms]) => ms.some((m) => m.id === f.id))?.[0]
+                : undefined;
             return (
               <li
                 key={f.id}
@@ -364,6 +447,9 @@ export function FeatureList({ doc, reader = false }: Props) {
                 )}
                 {selected && editingFeatureId !== f.id && group !== undefined && (
                   <GroupNotice doc={doc} feature={f} group={group} reader={reader} />
+                )}
+                {selected && editingFeatureId !== f.id && pickedGene !== undefined && (
+                  <PickedNotice gene={pickedGene} plan={plan} />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions">

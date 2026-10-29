@@ -75,7 +75,7 @@ function copiesKey(f: Feature): string {
 }
 
 /** The gene a transcript belongs to, for grouping; undefined for one that names none. */
-function transcriptGene(f: Feature): string | undefined {
+export function transcriptGene(f: Feature): string | undefined {
   if (f.type !== 'mRNA') return undefined;
   const gene = firstQualifier(f, 'gene')?.trim();
   return gene === undefined || gene === '' ? undefined : gene;

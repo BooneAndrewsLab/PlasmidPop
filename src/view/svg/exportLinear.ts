@@ -31,6 +31,12 @@ import {
   renderLinearView,
 } from '../linear';
 import { groupFeatures } from '../featureGroups';
+import {
+  NO_PICKS,
+  type TranscriptPicks,
+  planTranscripts,
+  showTranscripts,
+} from '../transcriptPick';
 import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext, escapeSvgText } from './svgContext';
@@ -111,6 +117,8 @@ export interface LinearExportOptions {
   readonly hiddenTypes?: ReadonlySet<string>;
   /** The transcript groups drawn open, as on screen (item 115); every one closed when omitted. */
   readonly expandedGroups?: ReadonlySet<string>;
+  /** The transcript shown per gene, as on screen (item 119); every one when omitted. */
+  readonly transcriptPicks?: TranscriptPicks;
   readonly cutSites?: readonly CutSite[];
   /** Changes to mark, as the sequence view marks them on screen. */
   readonly edits?: DocumentDiff | null;
@@ -181,7 +189,11 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
     extraRightGutter: overhangs.rightBottom * charWidth,
   });
 
-  const drawable = drawableFeatures(doc.features.all(), options.hiddenTypes);
+  // One transcript per picked gene, as on screen (item 119).
+  const drawable = showTranscripts(
+    drawableFeatures(doc.features.all(), options.hiddenTypes),
+    planTranscripts(doc.features.all(), options.transcriptPicks ?? NO_PICKS, doc.length),
+  );
   // Copies and transcript variants draw as one bar, as on screen (item 115);
   // the translations are the document's CDSs, so they come from the ungrouped list.
   const features = groupFeatures(drawable, doc.length, options.expandedGroups).features;

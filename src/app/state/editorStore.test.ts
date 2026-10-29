@@ -81,6 +81,35 @@ describe('EditorStore', () => {
     expect(store.getState().hiddenFeatureTypes.size).toBe(0);
   });
 
+  it('picks a transcript per document, as view state that seeds the next one (item 119)', () => {
+    const store = new EditorStore();
+    const id = store.openDocument(doc, 'x.gb');
+    expect(store.getState().transcriptPicks.size).toBe(0);
+    const history = store.getState().history;
+    store.pickTranscript('INS', 'NM_000207.3');
+    expect([...store.getState().transcriptPicks]).toEqual([['INS', 'NM_000207.3']]);
+    // Not an edit: nothing to undo, nothing to save, the document untouched.
+    expect(store.getState().dirty).toBe(false);
+    expect(store.getState().history).toBe(history);
+    expect(store.document).toBe(doc);
+    // The next document starts from the last picks; the first keeps its own.
+    const other = store.openDocument(doc.rename('other'), 'y.gb');
+    expect([...store.getState().transcriptPicks]).toEqual([['INS', 'NM_000207.3']]);
+    store.pickTranscript('INS', null);
+    store.pickTranscript('TP53', 'NM_000546.6');
+    store.activateDocument(id);
+    expect([...store.getState().transcriptPicks]).toEqual([['INS', 'NM_000207.3']]);
+    store.activateDocument(other);
+    expect([...store.getState().transcriptPicks]).toEqual([['TP53', 'NM_000546.6']]);
+    expect([...store.getState().lastTranscriptPicks]).toEqual([['TP53', 'NM_000546.6']]);
+    // A re-pick of a gene moves it to the end: the newest is the last kept.
+    store.pickTranscript('A', '1');
+    store.pickTranscript('TP53', 'NM_001126112.3');
+    expect([...store.getState().transcriptPicks.keys()]).toEqual(['A', 'TP53']);
+    store.setTranscriptPicks(new Map());
+    expect(store.getState().transcriptPicks.size).toBe(0);
+  });
+
   it('opens and closes transcript groups per document, as view state (#308)', () => {
     const store = new EditorStore();
     const id = store.openDocument(doc, 'x.gb');

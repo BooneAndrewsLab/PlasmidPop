@@ -55,6 +55,7 @@ import {
   overlaysPerRow,
 } from '@/view/overlay';
 import { groupFeatures, groupTip } from '@/view/featureGroups';
+import { planTranscripts, showTranscripts } from '@/view/transcriptPick';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { detectFormat } from '@/io';
@@ -147,6 +148,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     selectedFeatureId,
     hiddenFeatureTypes,
     expandedFeatureGroups,
+    transcriptPicks,
     showCutSites,
     seqFontSize,
     seqBasesPerRow,
@@ -294,12 +296,17 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
   ]);
   /** How wide the rows are; more than the viewport when a fixed width overflows. */
   const contentWidth = linearWidth(metrics);
-  // What is hidden by type (#305) is out of every list below, so it has no
-  // lane to be hit in and no translation line; the translation scope then
-  // picks among the CDS features that are left.
+  // What is hidden by type (#305) or left out by a transcript pick (item
+  // 119) is out of every list below, so it has no lane to be hit in and no
+  // translation line; the translation scope then picks among the CDS
+  // features that are left.
+  const plan = useMemo(
+    () => planTranscripts(doc.features.all(), transcriptPicks, doc.length),
+    [doc, transcriptPicks],
+  );
   const drawable = useMemo(
-    () => drawableFeatures(doc.features.all(), hiddenFeatureTypes),
-    [doc, hiddenFeatureTypes],
+    () => showTranscripts(drawableFeatures(doc.features.all(), hiddenFeatureTypes), plan),
+    [doc, hiddenFeatureTypes, plan],
   );
   // Copies and a gene's transcript variants draw as one bar (item 115): the
   // lanes, the bars and the hit tests all work from the grouped list, while
@@ -981,6 +988,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       if (!hasTool(doc, 'translations')) return false;
       for (const feature of doc.features.all()) {
         if (!isCodingFeature(feature) || hiddenFeatureTypes.has(feature.type)) continue;
+        if (plan.hidden.has(feature.id)) continue;
         const translation = allTranslations.get(feature);
         const index = codonIndexAt(translation, position);
         if (index < 0) continue;

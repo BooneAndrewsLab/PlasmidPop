@@ -5,6 +5,7 @@ import { assignLanes, sansFontOf } from '@/view/linear';
 import { NO_OVERLAY, overlayLanes } from '@/view/overlay';
 import { renderRibbon } from '@/view/ribbon/renderRibbon';
 import { groupFeatures } from '@/view/featureGroups';
+import { planTranscripts, showTranscripts } from '@/view/transcriptPick';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { useEditorState } from '../state/useEditorStore';
@@ -34,9 +35,14 @@ export function MapStrip({ doc, height, fixed = false }: Props) {
   const [width, setWidth] = useState(0);
   const overlay = fixed ? NO_OVERLAY : (live.preview?.items ?? NO_OVERLAY);
   const lanes = useMemo(() => {
-    // Grouped as the views group (item 115), so the strip has their lanes.
+    // One transcript per picked gene (item 119) and grouped as the views
+    // group (item 115), so the strip has their lanes.
+    const all = doc.features.all();
     const features = groupFeatures(
-      drawableFeatures(doc.features.all(), live.hiddenFeatureTypes),
+      showTranscripts(
+        drawableFeatures(all, live.hiddenFeatureTypes),
+        planTranscripts(all, live.transcriptPicks, doc.length),
+      ),
       doc.length,
       live.expandedFeatureGroups,
     ).features;
@@ -45,7 +51,7 @@ export function MapStrip({ doc, height, fixed = false }: Props) {
       features: assignLanes(features, doc.length),
       overlay: overlayLanes(overlay, doc.length),
     };
-  }, [doc, overlay, live.hiddenFeatureTypes, live.expandedFeatureGroups]);
+  }, [doc, overlay, live.hiddenFeatureTypes, live.expandedFeatureGroups, live.transcriptPicks]);
 
   useEffect(() => {
     const el = canvas.current?.parentElement;

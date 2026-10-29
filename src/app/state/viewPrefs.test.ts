@@ -14,6 +14,7 @@ const DEFAULTS = {
   showTranslations: true,
   translationScope: 'gene',
   hiddenFeatureTypes: [] as string[],
+  transcriptPicks: [] as (readonly [string, string])[],
   showCutSites: true,
   seqFontSize: 13,
   seqBasesPerRow: null,
@@ -51,6 +52,7 @@ function reset(): void {
   editorStore.setShowTranslations(DEFAULTS.showTranslations);
   editorStore.setTranslationScope(DEFAULTS.translationScope);
   editorStore.restoreLastHiddenFeatureTypes(DEFAULTS.hiddenFeatureTypes);
+  editorStore.restoreLastTranscriptPicks(DEFAULTS.transcriptPicks);
   editorStore.setPhoneLayout(false);
   editorStore.setShowCutSites(DEFAULTS.showCutSites, 'desktop');
   editorStore.setShowCutSites(false, 'phone');
@@ -98,6 +100,7 @@ describe('view preferences', () => {
       showTranslations: true,
       translationScope: 'selected',
       hiddenFeatureTypes: ['exon', 'mRNA'],
+      transcriptPicks: [['INS', 'NM_000207.3']],
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 16,
@@ -181,6 +184,10 @@ describe('view preferences', () => {
       showTranslations: false,
       translationScope: 'all',
       hiddenFeatureTypes: ['exon'],
+      transcriptPicks: [
+        ['INS', 'NM_000207.3'],
+        ['TP53', 'NM_000546.6'],
+      ],
       showCutSites: false,
       phoneShowCutSites: true,
       seqFontSize: 11,
@@ -221,6 +228,10 @@ describe('view preferences', () => {
     });
     const stop = startViewPrefs();
     expect([...editorStore.getState().lastHiddenFeatureTypes]).toEqual(['exon']);
+    expect([...editorStore.getState().lastTranscriptPicks]).toEqual([
+      ['INS', 'NM_000207.3'],
+      ['TP53', 'NM_000546.6'],
+    ]);
     expect(editorStore.getState()).toMatchObject({
       view: 'sequence',
       showComplement: false,
@@ -291,6 +302,7 @@ describe('view preferences', () => {
     expect(editorStore.getState()).toMatchObject({
       ...DEFAULTS,
       hiddenFeatureTypes: new Set(),
+      transcriptPicks: new Map(),
       showCutSites: false,
     });
     stop();
@@ -309,6 +321,20 @@ describe('view preferences', () => {
       traceSize: 'tall',
     });
     stop();
+  });
+
+  it('records a transcript pick, and drops a malformed stored one (item 119)', () => {
+    const stop = startViewPrefs();
+    editorStore.openDocument(SeqDocument.create({ name: 'g', sequence: 'ACGT' }));
+    editorStore.pickTranscript('INS', 'NM_000207.3');
+    expect(loadViewPrefs()).toMatchObject({ transcriptPicks: [['INS', 'NM_000207.3']] });
+    stop();
+    editorStore.closeAllDocuments();
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ transcriptPicks: [['TP53', 'NM_000546.6'], ['x'], 3, ['', 'y'], ['z', 1]] }),
+    );
+    expect(loadViewPrefs().transcriptPicks).toEqual([['TP53', 'NM_000546.6']]);
   });
 
   it('records a toggle, and stops recording once released', () => {

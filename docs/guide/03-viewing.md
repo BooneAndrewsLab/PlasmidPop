@@ -325,6 +325,14 @@ Escape closes.
   the last ones you chose are where the next document you open starts (a type
   it lacks is ignored); they are remembered in this browser. See
   [Features](05-features.md#hiding-a-type-of-feature).
+- **Transcripts** — for each gene with two or more mRNA variants, a select
+  of **All** and each transcript's accession. Pick one to draw that
+  transcript alone, with the CDSs and peptides it can carry; the gene's
+  other variants leave the views and the Features list, and nothing is
+  removed. **Format** says "N picked" while any gene is narrowed, and
+  **Show all transcripts** brings every variant back. Absent when no gene
+  in the document has two transcripts. See
+  [Features](05-features.md#showing-one-transcript).
 
 Under a separator, two items that are not about the sequence view:
 
@@ -333,7 +341,7 @@ Under a separator, two items that are not about the sequence view:
 - **Keyboard shortcuts…** opens the table of every key, where a binding can
   be changed; see [Keyboard shortcuts](14-shortcuts.md).
 
-The SVG exports follow the bases-per-row, translation scope, hidden feature types, numbering
+The SVG exports follow the bases-per-row, translation scope, hidden feature types, transcript picks, numbering
 (residue numbers included) and colour choices,
 chosen colours included. They keep their own text size and font so the file
 looks the same whatever the screen is set to. All of these are remembered in

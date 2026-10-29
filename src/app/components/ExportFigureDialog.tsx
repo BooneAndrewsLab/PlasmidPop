@@ -257,6 +257,10 @@ export function ExportFigureDialog({
           featureTypes: new Set(types.filter((t) => !hidden.has(t))),
           // The transcript rows open on screen are open in the figure (item 115).
           ...(format.expandedGroups === undefined ? {} : { expandedGroups: format.expandedGroups }),
+          // And one transcript per picked gene (item 119).
+          ...(format.transcriptPicks === undefined
+            ? {}
+            : { transcriptPicks: format.transcriptPicks }),
           gc:
             gcOn && profile !== null && profile.length === doc.length ? { profile, window } : null,
         }),
@@ -277,6 +281,7 @@ export function ExportFigureDialog({
     types,
     hidden,
     format.expandedGroups,
+    format.transcriptPicks,
     gcOn,
     profile,
     window,

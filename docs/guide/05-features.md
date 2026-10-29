@@ -84,6 +84,39 @@ Only the drawing is grouped. This list, the editor, undo, the GenBank and
 SnapGene files and the clipboard all have every feature; hidden types (above)
 are left out first, so a hidden feature is never counted in a bar.
 
+### Showing one transcript
+
+To read a gene record as a single variant without touching it, pick the
+transcript: **Format ▸ Transcripts** has a row for each gene with two or
+more mRNAs, with a select of **All** and each transcript's accession
+(`NM_000207.3`; hover an entry for its name). Under a selected transcript in
+this list, the group note has **Show only this transcript**, which does the
+same. The views and this list then show that mRNA, and leave out:
+
+- the gene's other mRNAs;
+- a CDS of the gene that another transcript can carry and this one cannot —
+  one that uses an exon this transcript skips, or reads through an intron it
+  splices;
+- a signal, transit or mature peptide, propeptide or proprotein that no
+  CDS still shown can carry.
+
+Nothing is removed: a banner here says which genes are narrowed, with a
+**Show all** link, the Format button says "N picked", and under the shown
+transcript **Show all 4 INS transcripts** brings the gene's back; **Show all
+transcripts** in the menu clears every gene. The picks belong to the
+document, are not an edit (nothing to undo, nothing unsaved), are never
+written to a file, and the last ones are where the next document starts — a
+gene or an accession the document lacks is ignored. Exported figures draw
+what the screen draws.
+
+What stays is whatever the record cannot tell apart. Nothing in an NCBI
+record says which CDS belongs to which mRNA, so the pick keeps every CDS the
+chosen transcript _could_ carry; on the INS record its four CDSs, which
+encode the same protein from four different 5′ ends, all stay, as the one
+`×4` bar they already were, with their peptides. A CDS or peptide the
+record gives no way to place — one with no `/gene`, one that fits none of
+the gene's transcripts, a peptide inside no CDS — is never hidden by a pick.
+
 ### Removing features in bulk
 
 Hiding and grouping leave the document as NCBI sent it. To make it hold one
@@ -102,7 +135,8 @@ Removing the other transcripts removes only those mRNAs. Their CDSs and
 peptides stay, as nothing in the record says which CDS belongs to which
 mRNA; select one of the CDSs, drawn as one bar with a count, and remove its
 other copies the same way. The History tab and the Undo button's tip
-name what went: `Remove 3 other INS transcripts`.
+name what went: `Remove 3 other INS transcripts`. While a transcript is
+picked (above) its gene's others are not listed here, so show all first.
 
 ## Where a name comes from
 

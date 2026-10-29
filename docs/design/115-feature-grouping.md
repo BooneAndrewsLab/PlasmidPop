@@ -84,7 +84,8 @@ lane whatever was drawn there.
   outlines are per feature id, so a changed member inside a group bar is
   not outlined there; it is in the list.
 - **Removing the other members** of a group in one edit is item 117 (#316),
-  from the same notice.
+  from the same notice; **showing one transcript** of the gene, display-time
+  like this, is item 119 (#315), from the same notice and the Format menu.
 
 ## Decided
 

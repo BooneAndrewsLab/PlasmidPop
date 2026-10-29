@@ -56,6 +56,11 @@ export interface ViewPrefs {
   readonly translationScope: TranslationScope;
   /** Feature types the last document left hidden, sorted; see `SharedState.lastHiddenFeatureTypes`. */
   readonly hiddenFeatureTypes: readonly string[];
+  /**
+   * The transcript last picked per gene, `[gene, accession]` pairs in the
+   * order they were made; see `SharedState.lastTranscriptPicks` (item 119).
+   */
+  readonly transcriptPicks: readonly (readonly [string, string])[];
   /** The desktop's; see `SharedState.desktopShowCutSites`. */
   readonly showCutSites: boolean;
   /** The phone reader's, off until chosen there; see `SharedState.phoneShowCutSites`. */
@@ -193,6 +198,19 @@ export function loadViewPrefs(): Partial<ViewPrefs> {
   if (Array.isArray(hiddenTypes)) {
     prefs.hiddenFeatureTypes = hiddenTypes.filter((t): t is string => typeof t === 'string').sort();
   }
+  const transcriptPicks = record['transcriptPicks'];
+  if (Array.isArray(transcriptPicks)) {
+    prefs.transcriptPicks = transcriptPicks.flatMap((pair): (readonly [string, string])[] =>
+      Array.isArray(pair) &&
+      pair.length === 2 &&
+      typeof pair[0] === 'string' &&
+      typeof pair[1] === 'string' &&
+      pair[0] !== '' &&
+      pair[1] !== ''
+        ? [[pair[0], pair[1]]]
+        : [],
+    );
+  }
   if (isResidueNumbering(record['residueNumbering'])) {
     prefs.residueNumbering = record['residueNumbering'];
   }
@@ -307,6 +325,7 @@ function snapshot(): ViewPrefs {
     showTranslations,
     translationScope,
     lastHiddenFeatureTypes,
+    lastTranscriptPicks,
     desktopShowCutSites,
     phoneShowCutSites,
     seqFontSize,
@@ -344,6 +363,7 @@ function snapshot(): ViewPrefs {
     showTranslations,
     translationScope,
     hiddenFeatureTypes: [...lastHiddenFeatureTypes].sort(),
+    transcriptPicks: [...lastTranscriptPicks],
     showCutSites: desktopShowCutSites,
     phoneShowCutSites,
     seqFontSize,
@@ -387,6 +407,9 @@ function same(a: ViewPrefs, b: ViewPrefs): boolean {
     a.translationScope === b.translationScope &&
     a.hiddenFeatureTypes.length === b.hiddenFeatureTypes.length &&
     a.hiddenFeatureTypes.every((t, i) => t === b.hiddenFeatureTypes[i]) &&
+    a.transcriptPicks.length === b.transcriptPicks.length &&
+    a.transcriptPicks.every((p, i) => p[0] === b.transcriptPicks[i]?.[0]) &&
+    a.transcriptPicks.every((p, i) => p[1] === b.transcriptPicks[i]?.[1]) &&
     a.showCutSites === b.showCutSites &&
     a.phoneShowCutSites === b.phoneShowCutSites &&
     a.seqFontSize === b.seqFontSize &&
@@ -437,6 +460,9 @@ export function startViewPrefs(): () => void {
   }
   if (stored.hiddenFeatureTypes !== undefined) {
     editorStore.restoreLastHiddenFeatureTypes(stored.hiddenFeatureTypes);
+  }
+  if (stored.transcriptPicks !== undefined) {
+    editorStore.restoreLastTranscriptPicks(stored.transcriptPicks);
   }
   if (stored.showCutSites !== undefined) {
     editorStore.setShowCutSites(stored.showCutSites, 'desktop');

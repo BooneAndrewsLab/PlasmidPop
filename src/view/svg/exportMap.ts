@@ -9,6 +9,12 @@ import {
 } from '../circular';
 import { type GcTrack, NO_LANES, assignLanes } from '../linear';
 import { groupFeatures } from '../featureGroups';
+import {
+  NO_PICKS,
+  type TranscriptPicks,
+  planTranscripts,
+  showTranscripts,
+} from '../transcriptPick';
 import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from './svgContext';
@@ -43,6 +49,8 @@ export interface MapExportOptions {
   readonly featureTypes?: ReadonlySet<string> | null;
   /** The transcript groups drawn open, as on screen (item 115); every one closed when omitted. */
   readonly expandedGroups?: ReadonlySet<string>;
+  /** The transcript shown per gene, as on screen (item 119); every one when omitted. */
+  readonly transcriptPicks?: TranscriptPicks;
   /** Whether the name and length are written in the middle; true when omitted. */
   readonly showCentre?: boolean;
   /** Multiplies the label and title text size; 1 when omitted. */
@@ -62,9 +70,13 @@ const PAD_STEPS = [0, 48, 120, 260];
 export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): string {
   const size = options.size ?? 900;
   const types = options.featureTypes ?? null;
-  // Copies and transcript variants draw as one arc, as on screen (item 115).
+  // One transcript per picked gene (item 119), then copies and transcript
+  // variants as one arc (item 115), as on screen.
   const features = groupFeatures(
-    drawableFeatures(doc.features.all()).filter((f) => types === null || types.has(f.type)),
+    showTranscripts(
+      drawableFeatures(doc.features.all()).filter((f) => types === null || types.has(f.type)),
+      planTranscripts(doc.features.all(), options.transcriptPicks ?? NO_PICKS, doc.length),
+    ),
     doc.length,
     options.expandedGroups,
   ).features;

@@ -1,7 +1,15 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { type Feature, type TranslationScope, GC_WINDOW_CHOICES } from '@/core';
 import { type FontSize, type ResidueNumbering, FONT_SIZES } from '@/view/linear';
+import {
+  describeTranscript,
+  planTranscripts,
+  transcriptChoice,
+  transcriptKey,
+  transcriptPicksNote,
+  transcriptVariants,
+} from '@/view/transcriptPick';
 import { drawableTypes, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { analytics } from '../analytics';
@@ -206,6 +214,78 @@ function FeatureTypes({ features }: { readonly features: readonly Feature[] }) {
 }
 
 /**
+ * One row per gene with two or more transcript variants (item 119): a select
+ * of **All** and each variant's accession. Picking one leaves the gene's
+ * other mRNAs, and the CDSs and peptides only they carry, out of the views
+ * and the Features list; nothing is removed, and All brings them back.
+ * Absent when the document has no gene with variants.
+ */
+function TranscriptPicker({
+  features,
+  seqLength,
+}: {
+  readonly features: readonly Feature[];
+  readonly seqLength: number;
+}) {
+  const { transcriptPicks } = useEditorState();
+  const variants = useMemo(() => transcriptVariants(features, seqLength), [features, seqLength]);
+  const picked = useMemo(
+    () => planTranscripts(features, transcriptPicks, seqLength).picked,
+    [features, transcriptPicks, seqLength],
+  );
+  if (variants.size === 0) return null;
+  return (
+    <>
+      <p className="menu__group-label">
+        Transcripts
+        {picked.size > 0 && (
+          <span className="menu__group-note"> · {transcriptPicksNote(picked.size)}</span>
+        )}
+      </p>
+      {[...variants].map(([gene, mRNAs]) => {
+        const chosen = picked.get(gene)?.[0];
+        return (
+          <Row
+            key={gene}
+            label={gene}
+            tip={`Which of the ${String(mRNAs.length)} ${gene} transcripts the views draw, with the CDSs and peptides it can carry; the others stay in the document`}
+          >
+            <select
+              aria-label={`Transcript of ${gene}`}
+              value={chosen === undefined ? 'all' : transcriptKey(chosen)}
+              onChange={(e) => {
+                analytics.trackOnce('view', 'format', 'transcript');
+                editorStore.pickTranscript(gene, e.target.value === 'all' ? null : e.target.value);
+              }}
+            >
+              <option value="all">All {mRNAs.length}</option>
+              {mRNAs.map((m) => (
+                <option key={m.id} value={transcriptKey(m)} title={describeTranscript(m)}>
+                  {transcriptChoice(m)}
+                </option>
+              ))}
+            </select>
+          </Row>
+        );
+      })}
+      {picked.size > 0 && (
+        <button
+          type="button"
+          role="menuitem"
+          className="menu__item"
+          onClick={() => {
+            editorStore.setTranscriptPicks(new Map());
+          }}
+        >
+          <span>Show all transcripts</span>
+        </button>
+      )}
+      <div className="menu__separator" role="separator" />
+    </>
+  );
+}
+
+/**
  * How the sequence view draws — text size, how many bases go in a row,
  * whether the complement is numbered too and whether bases are coloured,
  * then the tracks around the strands — and, since it is the other thing
@@ -315,9 +395,16 @@ export function FormatMenu({
     history,
     baseColors,
     hiddenFeatureTypes,
+    transcriptPicks,
   } = useEditorState();
   const features = history?.present.features.all() ?? [];
+  const seqLength = history?.present.length ?? 0;
   const hiddenTypes = hiddenTypeCount(features, hiddenFeatureTypes);
+  const pickedGenes = planTranscripts(features, transcriptPicks, seqLength).picked.size;
+  const notes = [
+    ...(hiddenTypes > 0 ? [`${String(hiddenTypes)} hidden`] : []),
+    ...(pickedGenes > 0 ? [`${String(pickedGenes)} picked`] : []),
+  ];
   // Typed values are committed on Enter or on leaving the box, not per key.
   const [rowDraft, setRowDraft] = useState<string | null>(null);
   const customRow = seqBasesPerRow !== null && !ROW_WIDTHS.includes(seqBasesPerRow);
@@ -374,13 +461,18 @@ export function FormatMenu({
         className="button"
         aria-label="Format"
         aria-keyshortcuts={key}
-        data-tip={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; which feature types show; and the pane sizes (${key})${hiddenTypes > 0 ? `. ${hiddenTypesNote(hiddenTypes)}` : ''}`}
+        data-tip={`How the sequence view draws: text size, bases per row, numbering, colours and tracks; which feature types and transcripts show; and the pane sizes (${key})${hiddenTypes > 0 ? `. ${hiddenTypesNote(hiddenTypes)}` : ''}${pickedGenes > 0 ? `. ${transcriptPicksNote(pickedGenes)}` : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
       >
         Format
-        {hiddenTypes > 0 && <span className="menu__group-note"> · {hiddenTypes} hidden</span>}{' '}
+        {notes.map((note) => (
+          <span key={note} className="menu__group-note">
+            {' '}
+            · {note}
+          </span>
+        ))}{' '}
         <span className="button__caret">▾</span>
       </button>
       {open && (
@@ -583,6 +675,7 @@ export function FormatMenu({
           />
           <div className="menu__separator" role="separator" />
           <FeatureTypes features={features} />
+          <TranscriptPicker features={features} seqLength={seqLength} />
           <button
             type="button"
             role="menuitem"

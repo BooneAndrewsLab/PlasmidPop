@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { SeqDocument, createFeature, rangeSegment } from '@/core';
+import { INS_LENGTH, insShapedRecord } from '@/test/insShapedRecord';
 
 import { editorStore } from '../state/editorStore';
 import { FormatMenu } from './FormatMenu';
@@ -15,6 +16,7 @@ describe('FormatMenu', () => {
       editorStore.setResidueNumbering('tens');
       editorStore.closeAllDocuments();
       editorStore.restoreLastHiddenFeatureTypes([]);
+      editorStore.restoreLastTranscriptPicks([]);
     });
   });
 
@@ -118,6 +120,40 @@ describe('FormatMenu', () => {
     act(() => {
       editorStore.setTranslationScope('gene');
     });
+  });
+
+  it('offers a transcript per gene with variants, and shows all again (item 119)', () => {
+    act(() => {
+      editorStore.openDocument(
+        SeqDocument.create({ sequence: 'A'.repeat(INS_LENGTH), features: insShapedRecord() }),
+        'ins.gb',
+      );
+    });
+    open();
+    // INS has four transcripts; the readthrough gene has one and no row.
+    expect(screen.queryByRole('combobox', { name: 'Transcript of INS-IGF2' })).toBeNull();
+    const pick = screen.getByRole('combobox', { name: 'Transcript of INS' });
+    expect(pick).toHaveValue('all');
+    expect([...pick.querySelectorAll('option')].map((o) => o.textContent)).toEqual([
+      'All 4',
+      'NM_001185098.2',
+      'NM_001291897.2',
+      'NM_001185097.2',
+      'NM_000207.3',
+    ]);
+    fireEvent.change(pick, { target: { value: 'NM_000207.3' } });
+    expect([...editorStore.getState().transcriptPicks]).toEqual([['INS', 'NM_000207.3']]);
+    expect(pick).toHaveValue('NM_000207.3');
+    expect(screen.getByText(/1 transcript picked/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Format/ })).toHaveTextContent('1 picked');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Show all transcripts' }));
+    expect(editorStore.getState().transcriptPicks.size).toBe(0);
+    expect(pick).toHaveValue('all');
+    // A document with no gene of two or more transcripts has no such group.
+    act(() => {
+      editorStore.openDocument(SeqDocument.create({ sequence: 'ACGT' }), 'plain.gb');
+    });
+    expect(screen.queryByRole('combobox', { name: 'Transcript of INS' })).toBeNull();
   });
 
   it('lists the feature types of the document and hides them (#305)', () => {
