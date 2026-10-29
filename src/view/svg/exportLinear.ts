@@ -5,6 +5,7 @@ import {
   type SeqDocument,
   type TranslationScope,
   CdsTranslations,
+  FeatureSet,
   formatLength,
   isCodingFeature,
   rangePieces,
@@ -29,6 +30,7 @@ import {
   linearWidth,
   renderLinearView,
 } from '../linear';
+import { groupFeatures } from '../featureGroups';
 import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext, escapeSvgText } from './svgContext';
@@ -107,6 +109,8 @@ export interface LinearExportOptions {
   readonly selectedFeatureId?: string | null;
   /** Feature types left out, as the view's checklist has them (#305). */
   readonly hiddenTypes?: ReadonlySet<string>;
+  /** The transcript groups drawn open, as on screen (item 115); every one closed when omitted. */
+  readonly expandedGroups?: ReadonlySet<string>;
   readonly cutSites?: readonly CutSite[];
   /** Changes to mark, as the sequence view marks them on screen. */
   readonly edits?: DocumentDiff | null;
@@ -177,12 +181,16 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
     extraRightGutter: overhangs.rightBottom * charWidth,
   });
 
-  const features = drawableFeatures(doc.features.all(), options.hiddenTypes);
+  const drawable = drawableFeatures(doc.features.all(), options.hiddenTypes);
+  // Copies and transcript variants draw as one bar, as on screen (item 115);
+  // the translations are the document's CDSs, so they come from the ungrouped list.
+  const features = groupFeatures(drawable, doc.length, options.expandedGroups).features;
+  const featureSet = FeatureSet.from(features);
   const lanes = assignLanes(features, doc.length);
   const coding =
     options.showTranslations === true
       ? translatedFeatures(
-          features.filter(isCodingFeature),
+          drawable.filter(isCodingFeature),
           options.translationScope ?? 'all',
           options.selectedFeatureId ?? null,
         )
@@ -234,6 +242,7 @@ function plan(doc: SeqDocument, options: LinearExportOptions): Plan {
       doc,
       layout,
       lanes,
+      features: featureSet,
       translations,
       translationLanes,
       selection: options.selection ?? null,

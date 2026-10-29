@@ -1,4 +1,4 @@
-import { type Range, type SeqDocument, featureExtent, rangePieces } from '@/core';
+import { type Feature, type Range, type SeqDocument, featureExtent, rangePieces } from '@/core';
 
 import { type DrawingContext } from '../drawingContext';
 import { featureColor } from '../featureColors';
@@ -44,6 +44,8 @@ export interface RibbonParams {
   readonly font: string;
   /** Feature types switched off for this document (#305). */
   readonly hiddenTypes?: ReadonlySet<string>;
+  /** What `featureLanes` holds (item 115); the drawable features, ungrouped, when omitted. */
+  readonly features?: readonly Feature[];
 }
 
 /** Room at either end, so the first and last base are not on the edge. */
@@ -161,7 +163,7 @@ export function renderRibbon(ctx: DrawingContext, p: RibbonParams): void {
   ctx.fillText(L.toLocaleString(), width - PAD, rows.backbone + 3);
 
   // The features, in the lanes the sequence view would give them.
-  for (const f of drawableFeatures(doc.features.all(), p.hiddenTypes)) {
+  for (const f of p.features ?? drawableFeatures(doc.features.all(), p.hiddenTypes)) {
     const extent = featureExtent(f);
     if (extent === null) continue;
     const lane = featureLanes.laneOf.get(f.id) ?? 0;

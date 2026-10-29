@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   type Feature,
@@ -10,7 +10,8 @@ import {
   translationFor,
 } from '@/core';
 import { featureColor } from '@/view/featureColors';
-import { hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
+import { type FeatureGroup, describeGroupMembers, groupFeatures } from '@/view/featureGroups';
+import { drawableFeatures, hiddenTypeCount, hiddenTypesNote } from '@/view/visibleFeatures';
 
 import { editorStore } from '../state/editorStore';
 import { useTranslationProblems } from '../state/translationProblems';
@@ -136,6 +137,53 @@ function TranslationNotice({
   );
 }
 
+/**
+ * Under a selected feature the views draw as part of a group (item 115):
+ * what the group is, and its members, each a link that selects it. The
+ * first member is what a click on the group selects, so this is where a
+ * user picks another one to rename, edit or remove.
+ */
+function GroupNotice({
+  doc,
+  feature,
+  group,
+}: {
+  readonly doc: SeqDocument;
+  readonly feature: Feature;
+  readonly group: FeatureGroup;
+}) {
+  const lines = describeGroupMembers(group, doc.length, doc.topology);
+  const n = group.members.length;
+  return (
+    <div className="feature-item__notice feature-item__group" role="note">
+      <p>
+        {group.kind === 'transcripts'
+          ? `Drawn in the views as one row of ${String(n)} transcripts; click the row to open it.`
+          : `Drawn in the views as one bar with ${String(n - 1)} other feature${n === 2 ? '' : 's'} of this type on these bases.`}
+      </p>
+      <ul className="feature-item__members">
+        {group.members.map((m, i) => (
+          <li key={m.id}>
+            {m.id === feature.id ? (
+              <span className="feature-item__member--selected">{lines[i]}</span>
+            ) : (
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  editorStore.selectFeature(m.id);
+                }}
+              >
+                {lines[i]}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function FeatureList({ doc, reader = false }: Props) {
   const translation = useTranslationProblems(doc);
   const {
@@ -145,9 +193,22 @@ export function FeatureList({ doc, reader = false }: Props) {
     renameRequest,
     editingFeatureId,
     hiddenFeatureTypes,
+    expandedFeatureGroups,
   } = useEditorState();
   const features = doc.features.all();
   const hiddenTypes = hiddenTypeCount(features, hiddenFeatureTypes);
+  // Which features the views draw as one (item 115), for the notice under a selected member.
+  const groupOf = useMemo(
+    () =>
+      groupFeatures(
+        drawableFeatures(features, hiddenFeatureTypes),
+        doc.length,
+        expandedFeatureGroups,
+      ).groupOf,
+    // `features` is `doc.features.all()`, so the document stands for it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doc, hiddenFeatureTypes, expandedFeatureGroups],
+  );
   const renaming =
     renameRequest !== null && doc.features.has(renameRequest.id) ? renameRequest.id : null;
   // A gene and the CDS inside it can cover exactly the same bases, so the
@@ -208,6 +269,7 @@ export function FeatureList({ doc, reader = false }: Props) {
         <ul className="features__list">
           {features.map((f) => {
             const selected = precise === null ? isSelected(f, selection) : f.id === precise;
+            const group = groupOf.get(f.id);
             return (
               <li
                 key={f.id}
@@ -272,6 +334,9 @@ export function FeatureList({ doc, reader = false }: Props) {
                 )}
                 {!reader && selected && editingFeatureId !== f.id && translation.has(f.id) && (
                   <TranslationNotice doc={doc} feature={f} problems={translation.get(f.id) ?? []} />
+                )}
+                {selected && editingFeatureId !== f.id && group !== undefined && (
+                  <GroupNotice doc={doc} feature={f} group={group} />
                 )}
                 {!reader && selected && renaming !== f.id && editingFeatureId !== f.id && (
                   <div className="feature-item__actions">

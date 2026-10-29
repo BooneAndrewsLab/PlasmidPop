@@ -4,6 +4,7 @@ import { type SeqDocument } from '@/core';
 import { assignLanes, sansFontOf } from '@/view/linear';
 import { NO_OVERLAY, overlayLanes } from '@/view/overlay';
 import { renderRibbon } from '@/view/ribbon/renderRibbon';
+import { groupFeatures } from '@/view/featureGroups';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { useEditorState } from '../state/useEditorStore';
@@ -33,12 +34,18 @@ export function MapStrip({ doc, height, fixed = false }: Props) {
   const [width, setWidth] = useState(0);
   const overlay = fixed ? NO_OVERLAY : (live.preview?.items ?? NO_OVERLAY);
   const lanes = useMemo(() => {
-    const features = drawableFeatures(doc.features.all(), live.hiddenFeatureTypes);
+    // Grouped as the views group (item 115), so the strip has their lanes.
+    const features = groupFeatures(
+      drawableFeatures(doc.features.all(), live.hiddenFeatureTypes),
+      doc.length,
+      live.expandedFeatureGroups,
+    ).features;
     return {
+      shown: features,
       features: assignLanes(features, doc.length),
       overlay: overlayLanes(overlay, doc.length),
     };
-  }, [doc, overlay, live.hiddenFeatureTypes]);
+  }, [doc, overlay, live.hiddenFeatureTypes, live.expandedFeatureGroups]);
 
   useEffect(() => {
     const el = canvas.current?.parentElement;
@@ -78,6 +85,7 @@ export function MapStrip({ doc, height, fixed = false }: Props) {
       featureLanes: lanes.features,
       overlayLanes: lanes.overlay,
       hiddenTypes: live.hiddenFeatureTypes,
+      features: lanes.shown,
       font: sansFontOf(10),
     });
   }, [doc, width, height, selection, overlay, lanes, live.hiddenFeatureTypes]);

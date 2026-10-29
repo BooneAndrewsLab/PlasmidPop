@@ -255,6 +255,8 @@ export function ExportFigureDialog({
           showCentre: centre,
           fontScale,
           featureTypes: new Set(types.filter((t) => !hidden.has(t))),
+          // The transcript rows open on screen are open in the figure (item 115).
+          ...(format.expandedGroups === undefined ? {} : { expandedGroups: format.expandedGroups }),
           gc:
             gcOn && profile !== null && profile.length === doc.length ? { profile, window } : null,
         }),
@@ -274,6 +276,7 @@ export function ExportFigureDialog({
     fontScale,
     types,
     hidden,
+    format.expandedGroups,
     gcOn,
     profile,
     window,

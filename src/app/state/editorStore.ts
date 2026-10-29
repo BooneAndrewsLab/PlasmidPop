@@ -520,6 +520,13 @@ export interface DocumentState {
    * not have is harmless, so the set can carry a choice from another file.
    */
   readonly hiddenFeatureTypes: ReadonlySet<string>;
+  /**
+   * The transcript groups (item 115, #308) the views draw with a row per
+   * transcript under the gene's row, by group id. View state like
+   * `hiddenFeatureTypes`, and this document's alone: a group's id is made of
+   * the gene's name, which says nothing about another document. Not stored.
+   */
+  readonly expandedFeatureGroups: ReadonlySet<string>;
   /** Bumped when the view should scroll to `revealPosition`. */
   readonly reveal: { readonly position: number; readonly nonce: number } | null;
   /** Set when the feature panel should open an inline rename for a feature. */
@@ -938,6 +945,7 @@ type ActiveDocumentFields = {
     | 'shownEnzymes'
     | 'enzymesInitialized'
     | 'hiddenFeatureTypes'
+    | 'expandedFeatureGroups'
     | 'findOpen'
     | 'derived'
     | 'scratch'
@@ -1090,6 +1098,7 @@ const NO_DOCUMENT: ActiveDocumentFields = {
   shownEnzymes: new Set(),
   enzymesInitialized: false,
   hiddenFeatureTypes: new Set(),
+  expandedFeatureGroups: new Set(),
   selectedFeatureId: null,
   reveal: null,
   renameRequest: null,
@@ -1349,6 +1358,7 @@ export class EditorStore {
       shownEnzymes: new Set(),
       enzymesInitialized: false,
       hiddenFeatureTypes: this.shared.lastHiddenFeatureTypes,
+      expandedFeatureGroups: new Set(),
       reveal: { position: 0, nonce: 1 },
       renameRequest: null,
       editingFeatureId: null,
@@ -2633,6 +2643,14 @@ export class EditorStore {
     if (next.size === now.size && [...next].every((t) => now.has(t))) return;
     this.setActive({ hiddenFeatureTypes: next });
     this.setShared({ lastHiddenFeatureTypes: next });
+  }
+
+  /** Opens a collapsed transcript group in the views, or closes an open one (#308). */
+  toggleFeatureGroup(id: string): void {
+    const next = new Set(this.state.expandedFeatureGroups);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this.setActive({ expandedFeatureGroups: next });
   }
 
   /** Brings back the remembered choice at start-up (#305); no document's own is touched. */

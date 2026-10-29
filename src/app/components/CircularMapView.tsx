@@ -9,7 +9,14 @@ import {
   useState,
 } from 'react';
 
-import { type SeqDocument, featureExtent, gcWindowFor, hasTool, isEmptyRange } from '@/core';
+import {
+  type SeqDocument,
+  FeatureSet,
+  featureExtent,
+  gcWindowFor,
+  hasTool,
+  isEmptyRange,
+} from '@/core';
 import { type GcTrack } from '@/view/linear';
 import {
   type ChangeTarget,
@@ -34,6 +41,7 @@ import {
   ringTargetAt,
   zoomAround,
 } from '@/view/circular';
+import { groupFeatures, groupTip } from '@/view/featureGroups';
 import { assignLanes } from '@/view/linear';
 import { NO_OVERLAY, overlayAt, overlayLanes } from '@/view/overlay';
 import { drawableFeatures } from '@/view/visibleFeatures';
@@ -132,6 +140,7 @@ export function CircularMapView({ doc }: Props) {
     showGc,
     gcWindow,
     hiddenFeatureTypes,
+    expandedFeatureGroups,
   } = useEditorState();
   const gcOn = showGc && hasTool(doc, 'gc');
   const gcWindowBases = gcWindowFor(gcWindow, doc.length, true);
@@ -185,10 +194,19 @@ export function CircularMapView({ doc }: Props) {
     setViewport(recallView(documentId).mapViewport ?? FIT_VIEWPORT);
   }
 
-  const liveFeatures = useMemo(
-    () => drawableFeatures(doc.features.all(), hiddenFeatureTypes),
-    [doc, hiddenFeatureTypes],
+  // Copies and a gene's transcript variants draw as one arc (item 115): the
+  // lanes, the arcs, the labels and the hit tests all work from the grouped list.
+  const grouped = useMemo(
+    () =>
+      groupFeatures(
+        drawableFeatures(doc.features.all(), hiddenFeatureTypes),
+        doc.length,
+        expandedFeatureGroups,
+      ),
+    [doc, hiddenFeatureTypes, expandedFeatureGroups],
   );
+  const liveFeatures = grouped.features;
+  const liveSet = useMemo(() => FeatureSet.from(liveFeatures), [liveFeatures]);
   const liveLanes = useMemo(
     () => assignLanes(liveFeatures, doc.length),
     [liveFeatures, doc.length],
@@ -349,6 +367,7 @@ export function CircularMapView({ doc }: Props) {
         doc,
         layout,
         lanes,
+        features: liveFeatures,
         selection,
         cutSites,
         overlay,
@@ -377,6 +396,7 @@ export function CircularMapView({ doc }: Props) {
     gcTrack,
     layout,
     lanes,
+    liveFeatures,
     selection,
     cutSites,
     overlay,
@@ -419,7 +439,30 @@ export function CircularMapView({ doc }: Props) {
   };
 
   const featureAt = (lane: number, position: number): string | null =>
-    featureAtLane(doc, lanes, layout, lane, position);
+    featureAtLane(doc, lanes, layout, lane, position, liveSet);
+
+  /**
+   * Selects what an arc or a label stands for: the feature, or a group's
+   * first member (item 115), which is the one the Features tab then offers
+   * to rename, edit or remove; its notice there lists the others. A
+   * transcripts row also opens, or closes, on the click.
+   */
+  const selectShown = (id: string): void => {
+    const group = grouped.groups.get(id);
+    if (group === undefined) {
+      editorStore.selectFeature(id);
+      return;
+    }
+    if (group.kind === 'transcripts') editorStore.toggleFeatureGroup(group.id);
+    const member = group.members[0];
+    if (member !== undefined) editorStore.selectFeature(member.id);
+  };
+
+  /** What a group's arc stands for, as the pointer's tip (item 115); undefined over anything else. */
+  const groupTipFor = (featureId: string | null): string | undefined => {
+    const group = featureId === null ? undefined : grouped.groups.get(featureId);
+    return group === undefined ? undefined : groupTip(group, doc.length, doc.topology);
+  };
 
   const endGesture = (): void => {
     gesture.current = { kind: 'idle' };
@@ -479,7 +522,7 @@ export function CircularMapView({ doc }: Props) {
     // the cut (#25).
     const label = e.button === 0 ? labelAt(pt.x, pt.y) : null;
     if (label !== null) {
-      if (label.kind === 'feature') editorStore.selectFeature(label.featureId);
+      if (label.kind === 'feature') selectShown(label.featureId);
       else caretAtCut(label.position);
       // A finger has no hover: the tapped label is outlined with its leader,
       // as a tap on the feature itself does (#42).
@@ -510,7 +553,7 @@ export function CircularMapView({ doc }: Props) {
     if (hit.kind === 'lane') {
       const id = featureAt(hit.lane, hit.position);
       if (id !== null) {
-        editorStore.selectFeature(id);
+        selectShown(id);
         // A finger has no hover, so the tap does what a pointer resting
         // there does: the feature's label comes back if the ring dropped
         // it, and stays until the next tap (`onPointerLeave` lets it be).
@@ -583,9 +626,6 @@ export function CircularMapView({ doc }: Props) {
       );
       return;
     }
-    const tip = hiddenTipAt(pt.x, pt.y) ?? gcTipAt(layout, gcTrack, pt, doc);
-    if (tip === undefined) hideFollowTooltip();
-    else followTooltip(tip, e.clientX, e.clientY);
     const label = labelAt(pt.x, pt.y);
     const next: Hover =
       label !== null
@@ -605,6 +645,10 @@ export function CircularMapView({ doc }: Props) {
               change: ring?.kind === 'change' ? ring.change : null,
             };
           })();
+    const tip =
+      hiddenTipAt(pt.x, pt.y) ?? gcTipAt(layout, gcTrack, pt, doc) ?? groupTipFor(next.featureId);
+    if (tip === undefined) hideFollowTooltip();
+    else followTooltip(tip, e.clientX, e.clientY);
     setHover((prev) =>
       prev.featureId === next.featureId &&
       prev.cut === next.cut &&
@@ -652,7 +696,8 @@ export function CircularMapView({ doc }: Props) {
           : hit.kind === 'lane'
             ? featureAt(hit.lane, hit.position)
             : null;
-      const feature = id === null ? undefined : doc.getFeature(id);
+      // A group's stand-in is in the drawn set, not the document.
+      const feature = id === null ? undefined : liveSet.get(id);
       const extent = feature === undefined ? null : featureExtent(feature);
       if (extent !== null) {
         zoomTo(extent.start, extent.end);

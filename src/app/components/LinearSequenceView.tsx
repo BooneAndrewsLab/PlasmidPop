@@ -14,6 +14,7 @@ import {
   type Range,
   type SeqDocument,
   CdsTranslations,
+  FeatureSet,
   InvalidSequenceError,
   codonIndexAt,
   codonSpan,
@@ -50,6 +51,7 @@ import {
   overlayLanes,
   overlaysPerRow,
 } from '@/view/overlay';
+import { groupFeatures, groupTip } from '@/view/featureGroups';
 import { drawableFeatures } from '@/view/visibleFeatures';
 
 import { detectFormat } from '@/io';
@@ -139,6 +141,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     translationScope,
     selectedFeatureId,
     hiddenFeatureTypes,
+    expandedFeatureGroups,
     showCutSites,
     seqFontSize,
     seqBasesPerRow,
@@ -291,7 +294,18 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     () => drawableFeatures(doc.features.all(), hiddenFeatureTypes),
     [doc, hiddenFeatureTypes],
   );
-  const lanes = useMemo(() => assignLanes(drawable, doc.length), [drawable, doc.length]);
+  // Copies and a gene's transcript variants draw as one bar (item 115): the
+  // lanes, the bars and the hit tests all work from the grouped list, while
+  // the translations below are the document's own CDS features.
+  const grouped = useMemo(
+    () => groupFeatures(drawable, doc.length, expandedFeatureGroups),
+    [drawable, doc.length, expandedFeatureGroups],
+  );
+  const shownSet = useMemo(() => FeatureSet.from(grouped.features), [grouped]);
+  const lanes = useMemo(
+    () => assignLanes(grouped.features, doc.length),
+    [grouped.features, doc.length],
+  );
   const codingFeatures = useMemo(
     () =>
       showTranslations
@@ -314,13 +328,13 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     [doc.length, doc.styles, metrics.basesPerRow],
   );
   const layout = useMemo(() => {
-    const perRow = lanesPerRow(drawable, lanes, doc.length, breaks);
+    const perRow = lanesPerRow(grouped.features, lanes, doc.length, breaks);
     const translationsPerRow = lanesPerRow(codingFeatures, translationLanes, doc.length, breaks);
     const previewPerRow = overlaysPerRow(overlay, previewLanes, doc.length, breaks);
     return new LinearLayout(doc.length, metrics, perRow, translationsPerRow, previewPerRow, breaks);
   }, [
     doc,
-    drawable,
+    grouped.features,
     lanes,
     codingFeatures,
     translationLanes,
@@ -474,6 +488,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         doc,
         layout,
         lanes,
+        features: shownSet,
         translations,
         translationLanes,
         selection,
@@ -503,6 +518,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     doc,
     layout,
     lanes,
+    shownSet,
     translations,
     translationLanes,
     selection,
@@ -644,18 +660,49 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
       ? overlayAt(overlay, doc.length, hit.position, previewLanes, hit.lane)
       : undefined;
 
-  /** The feature drawn at a lane or translation hit; undefined where the lane is empty. */
+  /**
+   * The feature drawn at a lane or translation hit; undefined where the lane
+   * is empty. In a lane that is a group's stand-in (item 115), which is not
+   * in the document; on a translation line always the document's CDS.
+   */
   const featureAtHit = (hit: Hit): Feature | undefined => {
     if (hit.kind !== 'lane' && hit.kind !== 'translation') return undefined;
-    const laneOf = hit.kind === 'lane' ? lanes.laneOf : translationLanes.laneOf;
-    const index = hit.kind === 'lane' ? hit.lane : hit.line;
-    return doc.features.at(hit.position, doc.length).find((f) => laneOf.get(f.id) === index);
+    if (hit.kind === 'lane')
+      return shownSet.at(hit.position, doc.length).find((f) => lanes.laneOf.get(f.id) === hit.lane);
+    return doc.features
+      .at(hit.position, doc.length)
+      .find((f) => translationLanes.laneOf.get(f.id) === hit.line);
+  };
+
+  /**
+   * Selects what a bar stands for: the feature, or a group's first member
+   * (item 115), which is the one the Features tab then offers to rename,
+   * edit or remove; its notice there lists the others. A transcripts row
+   * also opens, or closes, on the click.
+   */
+  const selectShown = (feature: Feature): void => {
+    const group = grouped.groups.get(feature.id);
+    if (group === undefined) {
+      editorStore.selectFeature(feature.id);
+      return;
+    }
+    if (group.kind === 'transcripts') editorStore.toggleFeatureGroup(group.id);
+    const member = group.members[0];
+    if (member !== undefined) editorStore.selectFeature(member.id);
   };
 
   const updateCursor = (e: ReactPointerEvent<HTMLCanvasElement>): void => {
     const { x, y } = docPoint(e);
     const hit = layout.hitTest(x, y);
-    const tip = hit.kind === 'gc' ? describeGc(gcTrack, hit.position, doc) : undefined;
+    // A group's bar says what it stands for (item 115), as the GC track says its value.
+    const over = hit.kind === 'lane' ? featureAtHit(hit) : undefined;
+    const group = over === undefined ? undefined : grouped.groups.get(over.id);
+    const tip =
+      hit.kind === 'gc'
+        ? describeGc(gcTrack, hit.position, doc)
+        : group === undefined
+          ? undefined
+          : groupTip(group, doc.length, doc.topology);
     if (tip === undefined) hideFollowTooltip();
     else followTooltip(tip, e.clientX, e.clientY);
     if (hit.kind === 'overlay') setCursor(spanAtHit(hit) === undefined ? 'default' : 'pointer');
@@ -708,7 +755,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
             return;
           }
         }
-        editorStore.selectFeature(feature.id);
+        selectShown(feature);
         return;
       }
     }

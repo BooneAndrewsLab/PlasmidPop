@@ -865,11 +865,12 @@ describe('exportLinearSvgPages: where the pages break (mutation triage, 1.16)', 
   });
 
   it('gives a row taller than a page a page of its own, scaled to fit, with no empty page before it', () => {
-    // Eighty features over the first ten bases pile into as many lanes.
+    // Eighty features over the first ten bases pile into as many lanes: each
+    // of its own type, or the views would draw them as one bar (item 115).
     const features = Array.from({ length: 80 }, (_, i) =>
       createFeature({
         id: `f${String(i)}`,
-        type: 'misc_feature',
+        type: `misc_${String(i)}`,
         name: `F${String(i)}`,
         segments: [rangeSegment(0, 10)],
       }),

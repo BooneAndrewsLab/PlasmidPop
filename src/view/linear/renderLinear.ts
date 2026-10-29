@@ -5,6 +5,7 @@ import {
   type CutSite,
   type DocumentDiff,
   type Feature,
+  type FeatureSet,
   type Range,
   type SeqDocument,
   complement,
@@ -78,6 +79,13 @@ export interface RenderParams {
   readonly doc: SeqDocument;
   readonly layout: LinearLayout;
   readonly lanes: LaneAssignment;
+  /**
+   * The features `lanes` were packed from, which the bars are drawn from:
+   * the drawable ones, grouped (item 115), with a group's stand-in in place
+   * of its members. The document's own when omitted, as a view that draws
+   * one side of a comparison (`DiffStrip`) wants.
+   */
+  readonly features?: FeatureSet;
   /**
    * Amino-acid translations drawn under the strands, and which line each
    * coding feature occupies. `null` hides translations altogether.
@@ -1070,10 +1078,8 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
     drawCutSites(ctx, p, row);
     drawOverlays(ctx, p, row);
     if (row.lanes > 0) {
-      for (const feature of doc.features.overlapping(
-        { start: row.start, end: row.end },
-        doc.length,
-      )) {
+      const features = p.features ?? doc.features;
+      for (const feature of features.overlapping({ start: row.start, end: row.end }, doc.length)) {
         drawFeature(ctx, p, row, feature);
       }
     }

@@ -3,6 +3,7 @@ import {
   type DeletionMark,
   type DocumentDiff,
   type Feature,
+  type FeatureSet,
   type Range,
   type Segment,
   type SeqDocument,
@@ -72,6 +73,13 @@ export interface CircularRenderParams {
   readonly edits: DocumentDiff | null;
   /** Feature types switched off for this document (#305); `lanes` has none of them either. */
   readonly hiddenTypes?: ReadonlySet<string>;
+  /**
+   * The features `lanes` were packed from, which the arcs and labels are
+   * drawn from: the drawable ones, grouped (item 115), with a group's
+   * stand-in in place of its members. The document's drawable features,
+   * ungrouped, when omitted, as a comparison's map (`DiffMap`) wants.
+   */
+  readonly features?: readonly Feature[];
   /**
    * The GC ring just inside the feature lanes (item 75); null draws none.
    * The profile is per base and wraps the origin already.
@@ -1570,9 +1578,11 @@ export function featureAtLane(
   layout: CircularLayout,
   lane: number,
   position: number,
+  /** What the lanes hold (item 115); the document's own features when omitted. */
+  features: FeatureSet = doc.features,
 ): string | null {
   const inLane = (x: Feature): boolean => lanes.laneOf.get(x.id) === lane;
-  const f = doc.features.at(position, doc.length).find(inLane);
+  const f = features.at(position, doc.length).find(inLane);
   if (f !== undefined) return f.id;
   const r = layout.laneRadius(lane);
   const pxPerBase = (Math.PI * 2 * r) / Math.max(1, doc.length);
@@ -1592,7 +1602,7 @@ export function featureAtLane(
     const at: Range = seg.kind === 'range' ? seg : { start: seg.position, end: seg.position + 1 };
     return rangesOverlap(at, within, doc.length);
   };
-  const near = doc.features
+  const near = features
     .overlapping(
       circular && reach.end - reach.start >= doc.length ? { start: 0, end: doc.length } : reach,
       doc.length,
@@ -1708,7 +1718,7 @@ export function renderCircularMap(ctx: DrawingContext, p: CircularRenderParams):
   drawBackbone(ctx, p);
   const ticks = rulerTicks(p, m);
   drawTickMarks(ctx, p, m, ticks);
-  const features = drawableFeatures(doc.features.all(), p.hiddenTypes);
+  const features = p.features ?? drawableFeatures(doc.features.all(), p.hiddenTypes);
   for (const f of features) {
     const lane = lanes.laneOf.get(f.id);
     if (lane !== undefined) drawFeature(ctx, p, f, lane);

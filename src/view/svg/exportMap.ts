@@ -8,6 +8,7 @@ import {
   renderCircularMap,
 } from '../circular';
 import { type GcTrack, NO_LANES, assignLanes } from '../linear';
+import { groupFeatures } from '../featureGroups';
 import { NO_OVERLAY } from '../overlay';
 import { drawableFeatures } from '../visibleFeatures';
 import { SvgContext } from './svgContext';
@@ -40,6 +41,8 @@ export interface MapExportOptions {
   readonly gc?: GcTrack | null;
   /** Only features of these types are drawn; every type when null or omitted (item 89). */
   readonly featureTypes?: ReadonlySet<string> | null;
+  /** The transcript groups drawn open, as on screen (item 115); every one closed when omitted. */
+  readonly expandedGroups?: ReadonlySet<string>;
   /** Whether the name and length are written in the middle; true when omitted. */
   readonly showCentre?: boolean;
   /** Multiplies the label and title text size; 1 when omitted. */
@@ -59,9 +62,12 @@ const PAD_STEPS = [0, 48, 120, 260];
 export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): string {
   const size = options.size ?? 900;
   const types = options.featureTypes ?? null;
-  const features = drawableFeatures(doc.features.all()).filter(
-    (f) => types === null || types.has(f.type),
-  );
+  // Copies and transcript variants draw as one arc, as on screen (item 115).
+  const features = groupFeatures(
+    drawableFeatures(doc.features.all()).filter((f) => types === null || types.has(f.type)),
+    doc.length,
+    options.expandedGroups,
+  ).features;
   const fontScale = options.fontScale ?? 1;
   const edits = options.edits ?? null;
   // Removed features are drawn as ghosts in the lanes, after the live ones (#27).
@@ -97,6 +103,7 @@ export function exportMapSvg(doc: SeqDocument, options: MapExportOptions = {}): 
       doc,
       layout,
       lanes,
+      features,
       selection: null,
       cutSites: options.cutSites ?? [],
       // As in the sequence-view export: a preview is not part of the document.
