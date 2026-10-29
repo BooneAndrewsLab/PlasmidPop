@@ -462,3 +462,67 @@ Equivalents left as survivors:
 - **Output of `undefined` joined:** the `?? []` of an item's details read as a
   one-element list: `block` of a string returns `undefined`, and `[undefined]`
   joins to the empty string.
+
+## Cutting the pass down (#320, 2026-10-29)
+
+The 1.19.0 pass was 4 h, 71 min and 76 min over three runs for a few changed
+files. Where it went, measured from the Stryker logs: the dry run is one
+process, so workers do not shorten it, and it took about 30 min with all 81
+files instrumented against 8 min 41 s with two (6,367 tests, 301 s of tests,
+220 s of overhead); the rest was a last mutant that waited out its timeout.
+Changes, all in `scripts/mutate-changed.mjs` (`npm run mutate:changed`) and
+`vite.config.ts`:
+
+- **Only the changed files.** The script takes the files of the `mutate`
+  list that differ from the latest tag (or a ref given as its first
+  argument) and passes them as `--mutate`. The incremental file still reuses
+  the verdicts of unchanged mutants: the two-file run reused all 661 and
+  finished in 8 min 52 s, almost all of it the dry run.
+- **`--skip-loops`** leaves out `UpdateOperator` (`i++` to `i--`). In the
+  1.19.0 report 150 of its 253 mutants were timeouts (a loop that never
+  ends, 43 % of all 350 timeouts), 90 were killed by a test and 2 survived.
+  It is a flag, not the default, because those 90 are real kills on loop
+  counters; use it when the wait matters more than that signal.
+- **`--unit-only`** leaves out the jsdom test files (109 of 408) through
+  `PLASMIDPOP_MUTATION_UNIT=1`: 5,236 tests, 2 min 53 s (152 s of tests,
+  21 s of overhead). Not the default for the reason already measured above:
+  a mutant only a component test kills becomes a survivor (17 % of the
+  killed mutants at 1.17.4), which triage then answers with a unit test or
+  lists. Good for iterating on survivors, not for the final pass.
+- **Concurrency** defaults to the cores minus two. Contention turns slow
+  mutants into timeouts (6 in 333 mutants on an idle machine, 82 in 402 with
+  the suite running beside it), and each costs its full budget.
+- **Every run keeps** a copy of the incremental file taken before it
+  (`reports/mutation/logs/incremental-before-<time>.json`; an interrupted
+  Stryker writes its report only at the end) and its own log, and the script
+  kills the orphaned `child-proxy-process-proxy-worker` processes of this
+  checkout when Stryker ends.
+
+**The long wait at the end.** Stryker kills a timed-out runner's whole
+process tree with SIGKILL (`child-process-proxy.js`, `tree-kill`), so a
+timed-out mutant does not keep spinning in a run that ends normally; only an
+interrupted run leaves orphans (hence the cleanup above). What stalled the
+runs is the timeout itself: Stryker's budget is the net time of the tests
+covering a mutant times 1.5 plus `timeoutMS`, and a loop mutant in code that
+hundreds of tests cover gets a budget of many minutes, then waits for it.
+The 1.19.0 report has hundreds of such timeouts across `src/core`,
+`src/io` and `src/storage`, not one mutant to exclude, so no mutant was
+excluded; `--skip-loops` removes the bulk of them. This is a reading of the
+code and the logs: the budgets themselves are not in the report.
+
+**Measured and ruled out: `coverageAnalysis: off`.** Without per-test
+coverage every mutant runs the whole suite (about 5 min of test time on a
+quiet machine even with four files instrumented), so 661 mutants would take
+days, not the 52 s the mutant stage took with `perTest`.
+
+**A second machine.** A 12-core, 31 GB workstation was set up as a mutation
+runner: a conda env with Node 24 and a clone of the repository (public, so no
+credentials), `npm ci`, then the same command. The same two files, from
+scratch (no incremental file), ran the dry run in 5 min 21 s and the whole
+661 mutants in 6 min 17 s, and gave the same verdicts as the main machine
+(`staticGuide.ts` 318 killed, 1 timeout, 1 survived; `exportLinear.ts` 224
+killed). Its dry run was quicker than the main machine's 8 min 41 s, but the
+main machine was busy updating at the time, so the two are not a fair
+comparison. The use is a second, quiet machine, so a pass runs beside other
+work without the contention above. Copy `reports/mutation/stryker-incremental.json` over
+first to keep the reuse.

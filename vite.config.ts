@@ -35,13 +35,23 @@ const base = process.env['BASE_PATH'] ?? '/';
  */
 const TESTS = ['src/**/*.{test,spec}.{ts,tsx}'];
 
-const ISOLATED_TESTS = readdirSync('src', { recursive: true, encoding: 'utf8' })
+const ALL_TESTS = readdirSync('src', { recursive: true, encoding: 'utf8' })
   .filter((f) => /\.(test|spec)\.tsx?$/.test(f))
-  .map((f) => `src/${f.replaceAll('\\', '/')}`)
-  .filter((f) => {
-    const text = readFileSync(f, 'utf8');
-    return text.includes('vi.mock(') || text.includes('@vitest-environment jsdom');
-  });
+  .map((f) => `src/${f.replaceAll('\\', '/')}`);
+
+const DOM_TESTS = ALL_TESTS.filter((f) =>
+  readFileSync(f, 'utf8').includes('@vitest-environment jsdom'),
+);
+
+// `npm run mutate:changed -- --unit-only` (#320) leaves the DOM tests out of
+// the run: in the dry run they are a large share of the time, and the
+// mutated files are mostly not UI.
+const UNIT_ONLY = process.env['PLASMIDPOP_MUTATION_UNIT'] === '1';
+
+const ISOLATED_TESTS = ALL_TESTS.filter((f) => {
+  const text = readFileSync(f, 'utf8');
+  return text.includes('vi.mock(') || text.includes('@vitest-environment jsdom');
+});
 
 /**
  * The guide as crawlable static pages and the sitemap that lists them
@@ -284,9 +294,22 @@ export default defineConfig({
           projects: [
             {
               extends: true,
-              test: { name: 'shared', include: TESTS, exclude: ISOLATED_TESTS, isolate: false },
+              test: {
+                name: 'shared',
+                include: TESTS,
+                exclude: [...ISOLATED_TESTS, ...(UNIT_ONLY ? DOM_TESTS : [])],
+                isolate: false,
+              },
             },
-            { extends: true, test: { name: 'isolated', include: ISOLATED_TESTS } },
+            {
+              extends: true,
+              test: {
+                name: 'isolated',
+                include: UNIT_ONLY
+                  ? ISOLATED_TESTS.filter((f) => !DOM_TESTS.includes(f))
+                  : ISOLATED_TESTS,
+              },
+            },
           ],
         }
       : { include: TESTS }),
