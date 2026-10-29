@@ -134,4 +134,32 @@ describe('helpers', () => {
     expect(parseInline('a snake_case_name')).toEqual([{ kind: 'text', text: 'a snake_case_name' }]);
     expect(parseInline('a [ ] mid')).toEqual([{ kind: 'text', text: 'a [ ] mid' }]);
   });
+
+  it('reads quotes and GitHub alert boxes, also inside a list item', () => {
+    expect(parseMarkdown('> plain **words**\n> more')[0]).toEqual({
+      kind: 'quote',
+      tone: 'plain',
+      children: [
+        {
+          kind: 'paragraph',
+          children: [
+            { kind: 'text', text: 'plain ' },
+            { kind: 'strong', children: [{ kind: 'text', text: 'words' }] },
+            { kind: 'text', text: ' more' },
+          ],
+        },
+      ],
+    });
+    const tones = ['NOTE', 'WARNING', 'TIP'].map((t) => {
+      const q = parseMarkdown(`> [!${t}]\n> body`)[0];
+      return q?.kind === 'quote' ? [q.tone, q.children.length] : null;
+    });
+    expect(tones).toEqual([
+      ['note', 1],
+      ['warning', 1],
+      ['tip', 1],
+    ]);
+    const list = parseMarkdown('1. step\n\n   > [!NOTE]\n   > you see it\n\n2. next\n')[0];
+    expect(list?.kind === 'list' && list.details?.[0]?.map((b) => b.kind)).toEqual(['quote']);
+  });
 });

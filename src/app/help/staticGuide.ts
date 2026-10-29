@@ -148,6 +148,12 @@ export function block(b: Block, ctx: LinkContext): string {
       const start = b.start === undefined ? '' : ` start="${b.start}"`;
       return `<${tag}${start}>\n${items}\n</${tag}>`;
     }
+    case 'quote': {
+      const inner = b.children.map((c) => block(c, ctx)).join('\n');
+      if (b.tone === 'tip')
+        return `<details class="aside tip">\n<summary>Why</summary>\n${inner}\n</details>`;
+      return `<blockquote class="aside ${b.tone}">\n${inner}\n</blockquote>`;
+    }
     case 'code':
       return `<pre><code>${escapeHtml(b.text)}</code></pre>`;
     case 'table': {
@@ -181,6 +187,9 @@ code,pre{background:var(--code);border-radius:4px;font-size:.9em}
 code{padding:.1em .3em}
 pre{padding:.75rem;overflow-x:auto}pre code{padding:0}
 table{border-collapse:collapse;display:block;overflow-x:auto}
+blockquote.aside{margin:.6rem 0;padding:.1rem .8rem;border-left:4px solid var(--accent);background:var(--code);border-radius:0 4px 4px 0}
+blockquote.warning{border-left-color:#c27c0e}
+details.aside{margin:.6rem 0}details.aside summary{cursor:pointer;color:var(--muted)}
 li.task{list-style:none;margin-left:-1.4em}li.task input{margin-right:.5em}
 th,td{border:1px solid var(--line);padding:.3rem .6rem;text-align:left;vertical-align:top}
 nav.pager{display:flex;justify-content:space-between;gap:1rem;margin:2rem 0;padding-top:1rem;border-top:1px solid var(--line)}

@@ -2,7 +2,7 @@
  * The small Markdown subset the user guide is written in, parsed into a
  * tree the help dialog renders. Kept deliberately narrow (headings,
  * paragraphs, lists whose items may hold indented blocks, tables, fenced
- * code, and inline code / bold / italic / `[ ]` checkboxes / links) so the same files read well on GitHub and in the app without a
+ * code, GitHub-style `> [!NOTE]` boxes, and inline code / bold / italic / `[ ]` checkboxes / links) so the same files read well on GitHub and in the app without a
  * Markdown dependency.
  */
 
@@ -27,6 +27,12 @@ export type Block =
       readonly details?: readonly (readonly Block[])[];
     }
   | { readonly kind: 'code'; readonly text: string }
+  | {
+      readonly kind: 'quote';
+      /** GitHub's alert syntax: `> [!NOTE]` (what you see), `[!WARNING]` (if not), `[!TIP]` (why). */
+      readonly tone: 'plain' | 'note' | 'warning' | 'tip';
+      readonly children: readonly Block[];
+    }
   | {
       readonly kind: 'table';
       readonly header: readonly Inline[][];
@@ -92,6 +98,22 @@ export function parseMarkdown(markdown: string): Block[] {
       }
       i++; // closing fence
       blocks.push({ kind: 'code', text: code.join('\n') });
+      continue;
+    }
+    if (line.startsWith('>')) {
+      flushParagraph();
+      const body: string[] = [];
+      while (i < lines.length && (lines[i] ?? '').startsWith('>')) {
+        body.push((lines[i] ?? '').replace(/^> ?/, ''));
+        i++;
+      }
+      const alert = /^\[!(NOTE|WARNING|TIP)\]\s*$/.exec(body[0] ?? '');
+      const tone = alert === null ? 'plain' : (alert[1] ?? '').toLowerCase();
+      blocks.push({
+        kind: 'quote',
+        tone: tone as 'plain' | 'note' | 'warning' | 'tip',
+        children: parseMarkdown(body.slice(alert === null ? 0 : 1).join('\n')),
+      });
       continue;
     }
     const heading = HEADING.exec(line);

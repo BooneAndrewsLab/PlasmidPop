@@ -16,6 +16,8 @@ function blockLinks(block: Block): string[] {
       return [...block.items.flatMap(links), ...(block.details ?? []).flat().flatMap(blockLinks)];
     case 'table':
       return [...block.header.flatMap(links), ...block.rows.flat().flatMap(links)];
+    case 'quote':
+      return block.children.flatMap(blockLinks);
     case 'code':
       return [];
   }

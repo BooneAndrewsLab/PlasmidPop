@@ -135,6 +135,23 @@ function renderBlock(
         <ul key={key}>{items}</ul>
       );
     }
+    case 'quote': {
+      const inner = block.children.map((b, i) => renderBlock(b, i, onNavigate, onAnchor));
+      // The reason behind a step folds away: it is for the curious, and the
+      // steps are the page.
+      if (block.tone === 'tip')
+        return (
+          <details key={key} className="help__aside help__aside--tip">
+            <summary>Why</summary>
+            {inner}
+          </details>
+        );
+      return (
+        <blockquote key={key} className={`help__aside help__aside--${block.tone}`}>
+          {inner}
+        </blockquote>
+      );
+    }
     case 'code':
       return (
         <pre key={key}>

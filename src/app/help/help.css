@@ -175,6 +175,23 @@
   margin-left: -1.4em;
 }
 
+.help__aside {
+  margin: 8px 0;
+  padding: 2px 12px;
+  border-left: 4px solid var(--accent, #1b6e8c);
+  background: var(--surface-2, rgba(127, 127, 127, 0.1));
+  border-radius: 0 4px 4px 0;
+}
+
+.help__aside--warning {
+  border-left-color: #c27c0e;
+}
+
+details.help__aside > summary {
+  cursor: pointer;
+  opacity: 0.75;
+}
+
 .help__check {
   margin-right: 0.5em;
 }
