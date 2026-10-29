@@ -94,11 +94,26 @@ primers may be reused. A reaction registers these for its product
 the page; the product's own tab then finds them (`recallCloneCheck`), and
 the slim Primers panel offers **Check a clone ›**.
 
-| Method                                | Vector                    | Empty vector                                     | Orientation                                                    | Reuse                      |
-| ------------------------------------- | ------------------------- | ------------------------------------------------ | -------------------------------------------------------------- | -------------------------- |
-| Ligation (Bench)                      | the longest part          | `emptyVector` of its fragment: closed, or none   | `ligationOrientation`: open iff some insert turned still joins | the record's PCR primers   |
-| Cloning mode Simulate (item 108)      | the plasmid in front      | the backbone cut with the pair's enzymes, closed | the same rule on the backbone and the cut amplicon             | the two cloning oligos     |
-| Golden Gate (Bench), Golden Gate part | the longest circular part | the uncut destination                            | fixed by the overhangs                                         | the two oligos (part mode) |
+| Method                                 | Vector                         | Empty vector                                     | Orientation                                                    | Reuse                      |
+| -------------------------------------- | ------------------------------ | ------------------------------------------------ | -------------------------------------------------------------- | -------------------------- |
+| Ligation (Bench)                       | the longest part               | `emptyVector` of its fragment: closed, or none   | `ligationOrientation`: open iff some insert turned still joins | the record's PCR primers   |
+| Cloning mode Simulate (item 108)       | the plasmid in front           | the backbone cut with the pair's enzymes, closed | the same rule on the backbone and the cut amplicon             | the two cloning oligos     |
+| Golden Gate (Bench), Golden Gate part  | the longest circular part      | the uncut destination                            | fixed by the overhangs                                         | the two oligos (part mode) |
+| Modular (item 76)                      | the longest circular part      | the uncut destination                            | fixed by the overhangs                                         | the record's               |
+| Gibson (Bench)                         | the longest part               | closed if it can; a PCR vector has none          | fixed by the homology arms                                     | the record's               |
+| In-Fusion, NEBuilder (item 79's panel) | the vector tab                 | the uncut vector                                 | fixed by the homology arms                                     | the two insert primers     |
+| Gateway (Bench)                        | the destination (or donor) tab | the uncut vector, cassette and all               | fixed by the att sites                                         | the record's               |
+| Overlap PCR (item 79)                  | none: the fusion is the insert | none, said so                                    | fixed by the overlaps                                          | the design's primers       |
+
+The Bench's four reactions put the button under the product's map
+(`BenchProduct`'s `onCheckPrimers`, there only when the tube goes
+together); Modular, the In-Fusion designer and Overlap PCR put **Check
+primers…** beside their open button, since their products are not drawn
+in the Bench's column. Overlap PCR is the odd one: `fusionContext` makes
+the whole linear molecule the insert and `partJunctions` (the inner part
+of `locateInsert`, exported) finds a junction at each join, so the engine's
+junction pairs confirm each fusion and its flank pair is refused as
+reaching both ends.
 
 `ligationOrientation` turns each non-vector part over in turn and asks
 `assemblyJunctions` whether every join is still compatible: one enzyme at
@@ -109,15 +124,24 @@ dephosphorylated) or a PCR product with no phosphates has none, and the
 page says which rather than guessing; the pairs are then checked on the
 product alone and the empty column reads n/a.
 
-**Not covered in this pass** (the page still works on any document, with
-the selection as the insert and an open circular tab as the empty
-vector): Gibson, In-Fusion and NEBuilder, Overlap PCR, Gateway, Modular
-and mutagenesis register no context yet, and a plain PCR product cloned by
-hand is not a product the app made. The engine handles the first four
-(the tests locate the insert on the Gibson tutorial's two-insert circle and
-the Gateway LR clone); the registration from their panels is the follow-up.
-Mutagenesis has no junction: a point mutation is confirmed by sequencing,
-and the page would only mislead there.
+**Not covered, by decision.** Mutagenesis has no junction: a point
+mutation is confirmed by sequencing, and a pair across nothing would only
+mislead, so its panel registers no context. A plain PCR product is not a
+clone until it is ligated, and the ligation registers. A product opened
+from storage, or edited since it was made, has no context (the registry is
+by checksum, for the session): the page then takes the selection as the
+insert and any open circular tab as the empty vector, which is also how it
+works on a plasmid made elsewhere. The Bench's **Against** picker is not
+consulted: the clone check takes the longest part as the vector, as Check
+by digest does by default.
+
+**The protocol** (item 78) lists the page's design when the document has
+one: the best pair across each junction and the best flanking one
+(`protocolChecks`, pairs with a problem left out), with the three bands,
+under its own heading after the diagnostic digest, and their oligos among
+those to order. `ProtocolDialog` reads the record the page remembered
+for the tab (`recallCloneCheckRecord`); a Bench preview has no tab and so
+no checks.
 
 ## The page
 

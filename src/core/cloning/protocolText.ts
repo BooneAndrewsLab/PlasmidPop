@@ -196,6 +196,27 @@ function blocks(p: Protocol): Block[] {
       text: 'Clearest first. Band sizes are of the fragments the product gives; a circle left uncut runs supercoiled, not at its size.',
     });
   }
+  if (p.colonyPcr.length > 0) {
+    const sizes = (bands: readonly number[] | null): string =>
+      bands === null ? 'n/a' : bands.length === 0 ? 'no band' : bands.map(bp).join(' + ');
+    out.push({ t: 'h2', text: 'Colony PCR check' });
+    out.push({
+      t: 'table',
+      head: ['Spans', 'Forward', 'Reverse', 'Clone', 'Empty vector', 'Insert reversed'],
+      rows: p.colonyPcr.map((c) => [
+        c.spans,
+        `${c.forward.name}: ${c.forward.sequence}`,
+        `${c.reverse.name}: ${c.reverse.sequence}`,
+        sizes(c.clone),
+        sizes(c.empty),
+        sizes(c.flipped),
+      ]),
+    });
+    out.push({
+      t: 'p',
+      text: 'A pair across a junction gives a band only with the insert, in this orientation; a flanking pair gives one size with the insert and another without. Bands are what the PCR simulation gives on each molecule; "n/a" is a molecule the method has none of. Pick a colony, boil it in water, and use the lysate as the template.',
+    });
+  }
   return out;
 }
 

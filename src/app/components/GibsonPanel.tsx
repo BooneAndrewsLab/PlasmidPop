@@ -10,6 +10,7 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { FIXED_BY, cloneCheckFromParts, longestPart, openCloneCheck } from '../cloneCheck';
 import { GIBSON_OVERLAPS } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -103,7 +104,8 @@ export function GibsonPanel() {
     setExcluded(next);
   };
 
-  const assemble = (): void => {
+  /** Assembles and opens the product; with `check`, on the clone-check page with its context (item 120). */
+  const assemble = (check = false): void => {
     const trimmed = name.trim();
     const run = gibson(docs, {
       minOverlap,
@@ -115,17 +117,28 @@ export function GibsonPanel() {
       return;
     }
     analytics.track('cloning', 'gibson');
-    editorStore.openDocument(
-      recordGibson(run.assembly, {
-        kit: 'gibson',
-        circular,
-        overlap: minOverlap,
-      }),
-      null,
-      [],
-      { scratch: true },
-    );
-    editorStore.setSidebarTab('features');
+    const product = recordGibson(run.assembly, {
+      kit: 'gibson',
+      circular,
+      overlap: minOverlap,
+    });
+    if (check) {
+      const vector = longestPart(used);
+      const context =
+        vector === undefined
+          ? null
+          : cloneCheckFromParts(
+              product,
+              vector,
+              used.filter((i) => i !== vector),
+              'Gibson',
+              { open: false, note: FIXED_BY.homology },
+            );
+      openCloneCheck(product, context, { scratch: true }, 'gibson');
+    } else {
+      editorStore.openDocument(product, null, [], { scratch: true });
+      editorStore.setSidebarTab('features');
+    }
     setName('');
   };
 
@@ -142,7 +155,17 @@ export function GibsonPanel() {
 
   return (
     <>
-      <BenchProduct product={assembly?.product ?? null} parts={used} />
+      <BenchProduct
+        product={assembly?.product ?? null}
+        parts={used}
+        onCheckPrimers={
+          assembly === null || !circular
+            ? undefined
+            : () => {
+                assemble(true);
+              }
+        }
+      />
       <div className="panel__controls">
         <label className="panel__field">
           <span>Overlap</span>
@@ -247,7 +270,9 @@ export function GibsonPanel() {
               className="button button--primary button--small"
               aria-label="Assemble by Gibson"
               data-tip="Open the product as a new document"
-              onClick={assemble}
+              onClick={() => {
+                assemble();
+              }}
             >
               Assemble
             </button>

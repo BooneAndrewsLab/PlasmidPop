@@ -10,6 +10,7 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { fusionContext, openCloneCheck } from '../cloneCheck';
 import { copyText } from '../clipboard';
 import { SOE_MAX_FRAGMENTS, SOE_OVERLAP_TMS, type SoeSlot } from '../state/benchSettings';
 import { cloningDocuments, editorStore } from '../state/editorStore';
@@ -139,6 +140,21 @@ export function SoePanel() {
     analytics.track('cloning', 'soe');
     editorStore.openDocument(recorded, null, [], { scratch: true });
     editorStore.setSidebarTab('features');
+  };
+  /** The fusion with a pair across each join to confirm it (item 120). */
+  const check = (): void => {
+    if (recorded === null || design === null || fragments === null) return;
+    analytics.track('cloning', 'soe');
+    openCloneCheck(
+      recorded,
+      fusionContext(
+        recorded,
+        fragments.map((f) => f.doc),
+        design.primers.map((p) => ({ name: p.name, sequence: p.sequence })),
+      ),
+      { scratch: true },
+      'soe',
+    );
   };
   const save = (): void => {
     if (design === null) return;
@@ -340,6 +356,14 @@ export function SoePanel() {
                 onClick={open}
               >
                 Open product
+              </button>
+              <button
+                type="button"
+                className="button button--small"
+                data-tip="Open the fusion and design colony-PCR primers across each join"
+                onClick={check}
+              >
+                Check primers…
               </button>
               <button
                 type="button"

@@ -286,13 +286,16 @@ columns:
   the empty vector leaves it uncut, and a supercoiled circle does not run
   at its size, so that lane is not drawn.
 
-  Above it, for a Ligation or a Golden Gate that can assemble, **Check by
-  colony PCR** has one button: **Design check primers…** assembles the
-  product, opens it as a document and lands on the primer workspace's
+  Above it, once the tube goes together, **Check by colony PCR** has one
+  button: **Design check primers…** assembles the product, opens it as a
+  document and lands on the primer workspace's
   [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page, which
   then knows the insert, the empty vector (the same one the digest is
-  checked against) and, for a ligation, whether the insert's ends let it
-  go in either way round.
+  checked against) and whether the insert could have gone in the other
+  way round: open for a ligation whose ends let it, fixed by the overhangs,
+  the homology arms or the att sites otherwise. Modular lists **Check
+  primers…** beside each product's **Assemble**, Overlap PCR and the
+  In-Fusion designer beside **Open product**.
 
 The phone reader has no Bench.
 
@@ -581,7 +584,10 @@ way.
    assemble and how many cannot, and the list names the ones that cannot,
    with the reason, ahead of the ones that can. Up to 500 combinations are
    run; untick parts to get under it.
-6. **Assemble** beside a product opens it as a new document, with the parts
+6. **Assemble** beside a product opens it as a new document (and **Check
+   primers…** opens it on the
+   [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page, with
+   a junction between each two parts), with the parts
    it was made from in its history. **Assemble all** opens every one that
    forms, up to 24 at a time.
 
@@ -669,7 +675,10 @@ Each primer is the vector's end in upper case followed by the bases that
 anneal to the template, grown until they melt at 60 °C. The panel then
 _runs_ the design — amplifies the insert with those primers and assembles
 the amplicon with the vector — so what it shows is the circle they would
-really make, not a promise. **Open product** opens it.
+really make, not a promise. **Open product** opens it; **Check primers…**
+opens it on the [Clone check](10-primers.md#checking-a-clone-by-colony-pcr)
+page, the uncut vector being the empty vector and the two insert primers
+offered for reuse.
 
 It warns when the vector has sticky ends, and when the primers would
 amplify something else from the template as well.
@@ -723,6 +732,10 @@ It warns when:
   that is not a multiple of three, or a tag fused a base or two off the frame
   of the gene before it, is named.
 
+**Check primers…** opens the fusion on the
+[Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page with a
+junction at each join, so a pair across each confirms the fusion (a PCR
+product has no empty vector, and the page says so).
 **Open product** opens the fused molecule with the outer primers drawn on it
 and how it was made recorded ([What a product was made from](#what-a-product-was-made-from)),
 so [Protocol…](#protocol-for-a-product) lists every primer and lists the fusion
@@ -867,7 +880,12 @@ The page lists, in this order:
   gives its enzymes and fragment. A ligation, Golden Gate or Gibson gives
   each part's length, ng and pmol, and the program;
 - the **expected diagnostic digest**: the enzymes of the set in use that cut
-  the product once to six times, clearest first, with the bands each gives.
+  the product once to six times, clearest first, with the bands each gives;
+- the **colony PCR check**, when the
+  [Clone check](10-primers.md#checking-a-clone-by-colony-pcr) page has a
+  design for the document: the best pair across each junction and the best
+  flanking one, with the band each gives on the clone, the empty vector and
+  the clone with its insert reversed. Their oligos join the list to order.
 
 The dialog asks for the only things the record cannot say: the **vector in
 ng** (50 by default), the **insert : vector** molar ratio (3 for a ligation,

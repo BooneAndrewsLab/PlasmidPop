@@ -16,7 +16,7 @@ import { addFeaturesAsOneStep } from '../state/featureSteps';
 import { savePrimers } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 import { useGelOptions } from '../state/useGel';
-import { type CloneCheckState, junctionLabel } from './cloneCheck';
+import { type CloneCheckState, checkPairNames, junctionLabel } from './cloneCheck';
 import { Gel, type GelLane } from './Gel';
 import { pct, primerFeature, tm } from './primerDesign';
 import { PrimerSettings } from './PrimerSettings';
@@ -31,13 +31,6 @@ function bandText(bands: readonly number[] | null): string {
   if (bands === null) return 'n/a';
   if (bands.length === 0) return '—';
   return bands.map((n) => n.toLocaleString()).join(' + ');
-}
-
-/** What the pair's name is in the features and My primers. */
-function pairNames(pair: CheckPair, rank: number): { forward: string; reverse: string } {
-  const kind =
-    pair.kind === 'flank' ? 'flank' : `junction ${((pair.junction ?? 0) + 1).toString()}`;
-  return { forward: `Check ${kind} fwd ${rank}`, reverse: `Check ${kind} rev ${rank}` };
 }
 
 function OligoRow({
@@ -92,7 +85,7 @@ function PairDetail({ doc, state, pair, rank, onSaid }: DetailProps) {
   const gel = useGelOptions();
   const record = state.record;
   const junctions = record?.junctions.length ?? 2;
-  const names = pairNames(pair, rank);
+  const names = checkPairNames(pair, rank);
   const lanes: GelLane[] = [];
   if (pair.bands.empty !== null) {
     lanes.push({ profile: gelProfile(pair.bands.empty, gel), label: 'Empty' });

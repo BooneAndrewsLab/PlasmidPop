@@ -24,6 +24,7 @@ import {
   flipInsert,
   locateInsert,
   longestSharedStretch,
+  partJunctions,
 } from './checkPrimers';
 import { digest } from './digest';
 import { gateway } from './gateway';
@@ -289,6 +290,21 @@ describe('locateInsert', () => {
     expect(h.insert.end - h.insert.start).toBe(g.insert.end - g.insert.start);
     expect(h.insert.end).toBeGreaterThan(turned.length);
     expect(h.insert.start).toBe(product.length - 300);
+  });
+});
+
+describe('partJunctions', () => {
+  it('a linear fusion of three fragments: the middle of each overlap', () => {
+    const whole = pseudo(1200, 21);
+    const parts = [whole.slice(0, 400), whole.slice(380, 800), whole.slice(780, 1200)].map(
+      (seq, i) => linear(`part ${i.toString()}`, seq),
+    );
+    const product = linear('fusion', whole);
+    expect(partJunctions(product, { start: 0, end: 1200 }, parts)).toEqual([390, 790]);
+    // A part not on the product adds nothing; one found barely (under 24 bases) neither.
+    expect(partJunctions(product, { start: 0, end: 1200 }, [linear('x', pseudo(300, 5))])).toEqual(
+      [],
+    );
   });
 });
 

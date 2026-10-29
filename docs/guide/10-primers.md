@@ -295,9 +295,11 @@ itself.
 Open it on a product the app just made: **Check primers…** beside
 **Simulate** in [cloning mode](#cloning-ends-primers-that-put-two-restriction-sites-on-an-insert)
 and under a [Golden Gate part](#golden-gate-ends-primers-that-make-the-insert-a-part),
-or **Design check primers…** under the map of a
-[Bench](12-cloning.md#the-bench) product (Ligation and Golden Gate), and
-the Primers tab of such a product offers **Check a clone ›**. The page
+**Design check primers…** under the map of a
+[Bench](12-cloning.md#the-bench) product (Ligation, Golden Gate, Gibson,
+Gateway), **Check primers…** beside a Modular product, an In-Fusion or
+NEBuilder design and an Overlap PCR fusion, and the Primers tab of such a
+product offers **Check a clone ›**. The page
 then names the product, the **insert** (and the junctions inside it for a
 build of several parts), the **empty vector** — the vector as it went in,
 or the cut vector closed on itself; when it cannot close, or is a PCR
@@ -341,7 +343,10 @@ step, **Save both** keeps the pair in My primers with the band it gives,
 **Copy** puts both oligos on the clipboard and **Use in PCR** fills
 Cloning ▸ PCR with them on this product, so the colony PCR can be
 simulated on any tab. The bands are the ones the PCR simulation gives, run
-on each of the three molecules; sizes include a reused primer's tail.
+on each of the three molecules; sizes include a reused primer's tail. The
+document's [protocol](12-cloning.md#protocol-for-a-product) then lists the
+best pair across each junction and the best flanking one, and orders
+their oligos.
 
 The design runs in the background and the page says so; a design is kept
 with the document until its bases change.

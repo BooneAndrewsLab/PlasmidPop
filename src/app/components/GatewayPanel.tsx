@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { type GatewayReaction, type SeqDocument, attSites, gateway, recordGateway } from '@/core';
 
 import { analytics } from '../analytics';
+import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
 import { cloningDocuments, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
 import { AssemblyWarnings } from './AssemblyWarnings';
@@ -122,6 +123,21 @@ export function GatewayPanel() {
     editorStore.openDocument(made, null, [], { scratch: true });
     editorStore.setSidebarTab('features');
   };
+  /** The clone with the uncut vector as the empty vector and the att sites fixing the orientation (item 120). */
+  const check = (doc: SeqDocument): void => {
+    if (insert === undefined || vector === undefined) return;
+    analytics.track('cloning', 'gateway', reaction);
+    const made = recordGateway(doc, insert, vector, reaction, false);
+    openCloneCheck(
+      made,
+      cloneCheckFromParts(made, { document: vector }, [{ document: insert }], 'Gateway', {
+        open: false,
+        note: FIXED_BY.att,
+      }),
+      { scratch: true },
+      'gateway',
+    );
+  };
 
   if (docs.length < 2) {
     return (
@@ -157,6 +173,14 @@ export function GatewayPanel() {
     <>
       <BenchProduct
         product={result?.problem === null ? result.product : null}
+        onCheckPrimers={(() => {
+          const clone = result?.problem === null ? result.product : null;
+          return clone === null
+            ? undefined
+            : () => {
+                check(clone);
+              };
+        })()}
         parts={[insert, vector].flatMap((d, i) =>
           d === undefined
             ? []

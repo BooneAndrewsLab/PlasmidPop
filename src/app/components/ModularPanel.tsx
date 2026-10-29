@@ -18,6 +18,7 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { FIXED_BY, cloneCheckFromParts, longestPart, openCloneCheck } from '../cloneCheck';
 import { DESTINATION_TAG, NO_POSITION_TAG } from '../state/benchSettings';
 import { editorStore } from '../state/editorStore';
 import { persistence } from '../state/persistence';
@@ -92,9 +93,12 @@ function describeRole(role: Role): string {
 function ProductRow({
   product,
   onAssemble,
+  onCheck,
 }: {
   readonly product: PlanProduct;
   readonly onAssemble: (p: PlanProduct) => void;
+  /** Assembles and opens the clone check on the circle (item 120). */
+  readonly onCheck: (p: PlanProduct) => void;
 }) {
   return (
     <li className="part">
@@ -116,6 +120,19 @@ function ProductRow({
           }}
         >
           Assemble
+        </button>
+      )}
+      {product.assembly !== null && (
+        <button
+          type="button"
+          className="button button--small"
+          aria-label={`Check primers for ${product.name}`}
+          data-tip="Assemble, then design colony-PCR primers across each junction of the circle"
+          onClick={() => {
+            onCheck(product);
+          }}
+        >
+          Check primers…
         </button>
       )}
     </li>
@@ -277,18 +294,34 @@ export function ModularPanel() {
 
   const names =
     enzyme === undefined ? [] : second === undefined ? [enzyme.name] : [enzyme.name, second.name];
-  const assemble = (p: PlanProduct): void => {
+  const assemble = (p: PlanProduct, check = false): void => {
     if (p.assembly === null) return;
     analytics.track(
       'cloning',
       'modular-assemble',
       standard?.bundled === true ? standard.id : 'custom',
     );
-    editorStore.openDocument(recordGoldenGate(p.assembly, names), null, [], {
-      scratch: true,
-      shownEnzymes: goldenGateSeed(enzyme?.name, second?.name),
-    });
-    editorStore.setSidebarTab('features');
+    const product = recordGoldenGate(p.assembly, names);
+    const storage = { scratch: true, shownEnzymes: goldenGateSeed(enzyme?.name, second?.name) };
+    if (check) {
+      // The destination is the circle the backbone comes from: the longest circular part in the order.
+      const docs = p.assembly.order.map((o) => ({ document: o.document }));
+      const vector = longestPart(docs.filter((d) => d.document.isCircular)) ?? longestPart(docs);
+      const context =
+        vector === undefined
+          ? null
+          : cloneCheckFromParts(
+              product,
+              vector,
+              docs.filter((d) => d !== vector),
+              'Modular',
+              { open: false, note: FIXED_BY.overhangs },
+            );
+      openCloneCheck(product, context, storage, 'modular');
+    } else {
+      editorStore.openDocument(product, null, [], storage);
+      editorStore.setSidebarTab('features');
+    }
   };
 
   if (ingredients.length === 0 || standard === undefined) {
@@ -447,6 +480,9 @@ export function ModularPanel() {
                     key={p.parts.map((x) => x.id).join('|')}
                     product={p}
                     onAssemble={assemble}
+                    onCheck={(q) => {
+                      assemble(q, true);
+                    }}
                   />
                 ))}
               </ol>

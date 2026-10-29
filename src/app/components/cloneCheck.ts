@@ -5,6 +5,7 @@ import {
   type CheckDesign,
   type CheckPair,
   type CloneGeometry,
+  type ColonyPcrCheck,
   type PcrPrimer,
   type Range,
   type SeqDocument,
@@ -19,7 +20,7 @@ import { analysisClient } from '@/workers/analysisClient';
 import { analytics } from '../analytics';
 import { type CloneCheckContext, lineagePrimers, recallCloneCheck } from '../cloneCheck';
 import { cloningDocuments } from '../state/editorStore';
-import { useRemembered } from '../state/panelMemory';
+import { recallPanel, useRemembered } from '../state/panelMemory';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useEditorState } from '../state/useEditorStore';
 
@@ -98,6 +99,53 @@ export function checkPairPreview(pair: CheckPair, seqLength: number): OverlaySpa
     { id: 'forward', label: 'Fwd', range: pair.forwardSite, strand: 'forward', shape: 'arrow' },
     { id: 'reverse', label: 'Rev', range: pair.reverseSite, strand: 'reverse', shape: 'arrow' },
   ];
+}
+
+/** What the pair's two oligos are called in the features, My primers and the protocol. */
+export function checkPairNames(
+  pair: CheckPair,
+  rank: number,
+): { readonly forward: string; readonly reverse: string } {
+  const kind =
+    pair.kind === 'flank' ? 'flank' : `junction ${((pair.junction ?? 0) + 1).toString()}`;
+  return { forward: `Check ${kind} fwd ${rank}`, reverse: `Check ${kind} rev ${rank}` };
+}
+
+/** The design kept for `doc` under `documentId`, if its bases are still the ones it was made on. */
+export function recallCloneCheckRecord(
+  documentId: string | null,
+  doc: SeqDocument,
+): CloneCheckRecord | null {
+  const stored = recallPanel<{
+    readonly template: string;
+    readonly record: CloneCheckRecord;
+  } | null>('primers.cloneRecord', documentId, null);
+  if (stored === null) return null;
+  return stored.template === `${doc.topology}:${doc.sequence.toString()}` ? stored.record : null;
+}
+
+/**
+ * The pairs a protocol lists (item 78): the best pair across each junction
+ * and the best flanking one, with the bands as the page shows them.
+ */
+export function protocolChecks(record: CloneCheckRecord): ColonyPcrCheck[] {
+  const seen = new Set<string>();
+  const out: ColonyPcrCheck[] = [];
+  record.design.pairs.forEach((pair, i) => {
+    const key = `${pair.kind}:${pair.junction ?? ''}`;
+    if (seen.has(key) || pair.problems.length > 0) return;
+    seen.add(key);
+    const names = checkPairNames(pair, i + 1);
+    out.push({
+      spans: junctionLabel(pair, record.junctions.length),
+      forward: { name: names.forward, sequence: pair.forward.sequence },
+      reverse: { name: names.reverse, sequence: pair.reverse.sequence },
+      clone: pair.bands.clone,
+      empty: pair.bands.empty,
+      flipped: pair.bands.flipped,
+    });
+  });
+  return out;
 }
 
 /** Which junction a pair spans, as the page names it. */

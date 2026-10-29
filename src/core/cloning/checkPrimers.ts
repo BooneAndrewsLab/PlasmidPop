@@ -180,9 +180,29 @@ export function locateInsert(
   } else {
     return null;
   }
+  for (const j of partJunctions(product, insert, parts)) junctions.push(j);
+  return { insert, junctions };
+}
+
+/**
+ * The junctions between the pieces of an insert, as positions on the
+ * product: each part's stretch on the product (`longestSharedStretch`) as
+ * an offset along the insert, and between each two neighbours the middle
+ * of their overlap or gap, which for sticky ends and homology arms alike
+ * is the bases both pieces carry. A part found mostly outside the insert,
+ * or barely at all, is not one of its pieces; a junction within
+ * `JUNCTION_GAP` of the insert's ends or of another is dropped. For a
+ * linear molecule that is all insert — an overlap-extension fusion — the
+ * insert is the whole molecule.
+ */
+export function partJunctions(
+  product: SeqDocument,
+  insert: Range,
+  parts: readonly SeqDocument[],
+): number[] {
+  const L = product.length;
+  const norm = (p: number): number => ((p % L) + L) % L;
   const insertLength = insert.end - insert.start;
-  // Each part's stretch as offsets along the insert, in order; a part found
-  // mostly outside the insert (or barely at all) is not one of its pieces.
   const stretches: { start: number; end: number }[] = [];
   for (const part of parts) {
     const found = longestSharedStretch(product, part);
@@ -211,8 +231,7 @@ export function locateInsert(
     if (inner.some((o) => Math.abs(o - offset) < JUNCTION_GAP)) continue;
     inner.push(offset);
   }
-  for (const o of inner) junctions.push(norm(insert.start + o));
-  return { insert, junctions };
+  return inner.map((o) => norm(insert.start + o));
 }
 
 /**

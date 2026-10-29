@@ -14,6 +14,7 @@ import {
   findCutSites,
   flipFragment,
   locateInsert,
+  partJunctions,
 } from '@/core';
 
 import { analytics } from './analytics';
@@ -199,6 +200,33 @@ export function restrictionCloningContext(
     ligationOrientation([backbone, piece], 0, true),
     primers,
   );
+}
+
+/**
+ * The context for an overlap-extension fusion (item 79): a linear PCR
+ * product with no vector, so the whole molecule is the insert and the
+ * junctions are where the fragments were joined; a pair across each one
+ * confirms that join. There is no empty vector and no other orientation.
+ * Null when the fragments are not found on the product.
+ */
+export function fusionContext(
+  product: SeqDocument,
+  fragments: readonly SeqDocument[],
+  primers: readonly PcrPrimer[],
+): CloneCheckContext | null {
+  const insert = { start: 0, end: product.length };
+  const junctions = partJunctions(product, insert, fragments);
+  if (junctions.length === 0) return null;
+  return {
+    method: 'Overlap PCR',
+    geometry: { insert, junctions },
+    empty: null,
+    emptyNote:
+      'A fusion is a PCR product, not a clone: there is no empty vector. The pairs confirm each join instead.',
+    orientation: 'fixed',
+    orientationNote: 'The overlaps direct each fragment, so the joins can only be this way round.',
+    primers,
+  };
 }
 
 /** The primers the PCR and mutagenesis steps of a lineage used, each once, nearest the product first. */

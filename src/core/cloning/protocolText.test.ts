@@ -43,6 +43,7 @@ const base: Protocol = {
   steps: [],
   oligos: [],
   diagnostics: [],
+  colonyPcr: [],
   caveats: [],
 };
 
@@ -388,5 +389,45 @@ describe('protocol text of a diagnostic digest', () => {
         '',
       ].join('\n'),
     );
+  });
+});
+
+describe('protocol text of colony PCR checks (item 120)', () => {
+  const withChecks: Protocol = {
+    ...base,
+    colonyPcr: [
+      {
+        spans: 'Left junction',
+        forward: { name: 'Check junction 1 fwd 1', sequence: 'ACGTACGTACGTACGTACGTA' },
+        reverse: { name: 'Check junction 1 rev 1', sequence: 'TTGCATGCATGCATGCATGCA' },
+        clone: [612],
+        empty: [],
+        flipped: null,
+      },
+      {
+        spans: 'Flank',
+        forward: { name: 'Check flank fwd 7', sequence: 'GGGGCCCCAAAATTTTGGGGC' },
+        reverse: { name: 'Check flank rev 7', sequence: 'CCAATTGGCCAATTGGCCAAT' },
+        clone: [1430],
+        empty: [629],
+        flipped: [1430, 2100],
+      },
+    ],
+  };
+
+  it('writes the section with a row per pair and the bands as sizes, no band or n/a', () => {
+    const md = protocolToMarkdown(withChecks);
+    expect(md).toContain('## Colony PCR check');
+    expect(md).toContain(
+      '| Left junction | Check junction 1 fwd 1: ACGTACGTACGTACGTACGTA | Check junction 1 rev 1: TTGCATGCATGCATGCATGCA | 612 bp | no band | n/a |',
+    );
+    expect(md).toContain(
+      '| Flank | Check flank fwd 7: GGGGCCCCAAAATTTTGGGGC | Check flank rev 7: CCAATTGGCCAATTGGCCAAT | 1,430 bp | 629 bp | 1,430 bp + 2,100 bp |',
+    );
+    expect(md).toContain('boil it in water');
+    const html = protocolToHtml(withChecks);
+    expect(html).toContain('<h2>Colony PCR check</h2>');
+    expect(html).toContain('<td>no band</td>');
+    expect(protocolToMarkdown(base)).not.toContain('Colony PCR');
   });
 });

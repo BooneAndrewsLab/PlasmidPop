@@ -14,7 +14,9 @@ import {
   digest,
   findCutSites,
   flipFragment,
+  gateway,
   getEnzyme,
+  gibson,
   ligate,
   pcr,
   setActiveEnzymeSet,
@@ -22,8 +24,10 @@ import {
 import { parseGenBank } from '@/io/genbank/parseGenBank';
 
 import {
+  FIXED_BY,
   cloneCheckFromParts,
   forgetCloneChecks,
+  fusionContext,
   ligationOrientation,
   lineagePrimers,
   recallCloneCheck,
@@ -252,6 +256,71 @@ describe('restrictionCloningContext', () => {
     );
     expect(context.empty?.length).toBe(2664);
     expect(context.orientation).toBe('open');
+  });
+});
+
+describe('the other methods’ contexts', () => {
+  it('a Gibson of two inserts: the linearised vector has no empty form, three junctions, fixed by homology', () => {
+    const vector = tut('GB-Vector');
+    const inserts = ['GB-Insert1', 'GB-Insert2'].map(tut);
+    const product = def(gibson([vector, ...inserts]).assembly).product;
+    const context = def(
+      cloneCheckFromParts(
+        product,
+        { document: vector },
+        inserts.map((document) => ({ document })),
+        'Gibson',
+        { open: false, note: FIXED_BY.homology },
+      ),
+    );
+    expect(context.geometry.junctions).toHaveLength(3);
+    expect(context.empty).toBeNull();
+    expect(context.emptyNote).toMatch(/PCR product with no phosphates/);
+    expect(context.orientation).toBe('fixed');
+  });
+
+  it('a Gateway LR clone: the uncut destination is the empty vector, the att sites fix the orientation', () => {
+    const dest = tut('GW-pDEST');
+    const entry = def(gateway(tut('GW-Insert'), tut('GW-pDONR'), 'BP').product);
+    const clone = def(gateway(entry, dest, 'LR').product);
+    const context = def(
+      cloneCheckFromParts(clone, { document: dest }, [{ document: entry }], 'Gateway', {
+        open: false,
+        note: FIXED_BY.att,
+      }),
+    );
+    expect(context.empty).toBe(dest);
+    expect(context.geometry.junctions).toHaveLength(2);
+    expect(context.orientationNote).toBe(FIXED_BY.att);
+  });
+
+  it('an overlap-extension fusion: the whole molecule is the insert, a junction per join, no empty vector', () => {
+    const a = SeqDocument.create({
+      name: 'a',
+      sequence: vector.sequence.toString().slice(100, 500),
+    });
+    const b = SeqDocument.create({
+      name: 'b',
+      sequence: vector.sequence.toString().slice(480, 900),
+    });
+    const c = SeqDocument.create({
+      name: 'c',
+      sequence: vector.sequence.toString().slice(880, 1300),
+    });
+    const fused = SeqDocument.create({
+      name: 'fusion',
+      sequence: vector.sequence.toString().slice(100, 1300),
+    });
+    const context = def(
+      fusionContext(fused, [a, b, c], [{ name: 'F1', sequence: 'ACGTACGTACGTACGTACGT' }]),
+    );
+    expect(context.geometry.insert).toEqual({ start: 0, end: 1200 });
+    // The joins are the middles of the 20-base overlaps: 380–400 and 780–800 along the fusion.
+    expect(context.geometry.junctions).toEqual([390, 790]);
+    expect(context.empty).toBeNull();
+    expect(context.orientation).toBe('fixed');
+    expect(context.primers).toHaveLength(1);
+    expect(fusionContext(fused, [], [])).toBeNull();
   });
 });
 

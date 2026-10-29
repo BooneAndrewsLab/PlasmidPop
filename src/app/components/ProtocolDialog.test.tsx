@@ -4,8 +4,9 @@ import 'fake-indexeddb/auto';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type LineageNode, SeqDocument, withLineage } from '@/core';
+import { type CheckPair, type LineageNode, SeqDocument, withLineage } from '@/core';
 
+import { forgetPanels, rememberPanel } from '../state/panelMemory';
 import { ProtocolDialog } from './ProtocolDialog';
 
 function filler(length: number, seed: number): string {
@@ -58,6 +59,63 @@ describe('Protocol dialog (#215)', () => {
     expect(frame.getAttribute('srcdoc')).not.toContain('<th>µL</th>');
     fireEvent.change(screen.getByLabelText('Concentration of insA'), { target: { value: '10' } });
     expect(screen.getByTitle('Protocol preview').getAttribute('srcdoc')).toContain('<th>µL</th>');
+  });
+
+  it('lists the tab’s clone-check design, when it has one for these bases (item 120)', () => {
+    const report = (sequence: string) => ({
+      sequence,
+      length: sequence.length,
+      tm: 60,
+      gc: 0.5,
+      homopolymer: 2,
+      selfComplementarity: 2,
+      hairpin: 1,
+      threePrimeSelf: 1,
+      gcClamp: true,
+      degenerate: 0,
+      molecules: 1,
+      tmRange: null,
+      gcRange: { min: 0.5, max: 0.5 },
+      warnings: [],
+    });
+    const pair: CheckPair = {
+      kind: 'junction',
+      junction: 0,
+      forward: report('ACGTACGTACGTACGTACGTA'),
+      reverse: report('TTGCATGCATGCATGCATGCA'),
+      forwardSite: { start: 100, end: 121 },
+      reverseSite: { start: 600, end: 621 },
+      fixed: null,
+      productLength: 521,
+      tmDifference: 0,
+      crossDimer: 0,
+      penalty: 1,
+      bands: { clone: [521], empty: [], flipped: null },
+      problems: [],
+    };
+    const record = {
+      design: { pairs: [pair], notes: [], reused: null },
+      designedFor: 'the Golden Gate product',
+      insert: { start: 200, end: 500 },
+      junctions: [200, 500],
+      emptyName: 'pDest',
+      orientation: 'fixed' as const,
+      reused: null,
+    };
+    rememberPanel('primers.cloneRecord', 'tab-1', {
+      template: `${made.topology}:${made.sequence.toString()}`,
+      record,
+    });
+    render(<ProtocolDialog doc={made} documentId="tab-1" onClose={noop} />);
+    const page = screen.getByTitle('Protocol preview').getAttribute('srcdoc') ?? '';
+    expect(page).toContain('<h2>Colony PCR check</h2>');
+    expect(page).toContain('Check junction 1 fwd 1: ACGTACGTACGTACGTACGTA');
+    expect(page).toContain('colony PCR check');
+    forgetPanels();
+    // Another tab, or none, has no design to list.
+    render(<ProtocolDialog doc={made} onClose={noop} />);
+    const plain = screen.getAllByTitle('Protocol preview').at(-1)?.getAttribute('srcdoc') ?? '';
+    expect(plain).not.toContain('Colony PCR check');
   });
 
   it('downloads the page as HTML and as Markdown', () => {

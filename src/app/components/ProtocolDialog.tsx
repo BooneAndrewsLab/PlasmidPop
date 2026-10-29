@@ -6,9 +6,12 @@ import { analytics } from '../analytics';
 import { downloadText, fileNameFor } from '../saveFile';
 import { usePrimerCollection } from '../state/primerCollection';
 import { useGelOptions } from '../state/useGel';
+import { protocolChecks, recallCloneCheckRecord } from './cloneCheck';
 
 interface Props {
   readonly doc: SeqDocument;
+  /** The tab `doc` is open in, whose Clone check design the page lists (item 120); null for none. */
+  readonly documentId?: string | null;
   readonly onClose: () => void;
   /** Where a file goes; the browser's download unless a test says otherwise. */
   readonly download?: (name: string, text: string) => void;
@@ -26,7 +29,12 @@ function positive(text: string): number | null {
  * from the record of how it was made. The amounts are the only thing asked:
  * how much vector, the insert ratio, and each part's concentration.
  */
-export function ProtocolDialog({ doc, onClose, download = downloadText }: Props) {
+export function ProtocolDialog({
+  doc,
+  documentId = null,
+  onClose,
+  download = downloadText,
+}: Props) {
   const gel = useGelOptions();
   const { primers } = usePrimerCollection();
   const [vectorNg, setVectorNg] = useState('50');
@@ -53,16 +61,21 @@ export function ProtocolDialog({ doc, onClose, download = downloadText }: Props)
   }, [conc]);
   const ng = positive(vectorNg);
   const ratioValue = positive(ratio);
+  const checks = useMemo(() => {
+    const record = recallCloneCheckRecord(documentId, doc);
+    return record === null ? [] : protocolChecks(record);
+  }, [documentId, doc]);
   const protocol = useMemo(
     () =>
       buildProtocol(doc, {
+        colonyPcr: checks,
         ...(ng === null ? {} : { vectorNg: ng }),
         ...(ratioValue === null ? {} : { ratio: ratioValue }),
         concentrations,
         collection: primers,
         gel,
       }),
-    [doc, ng, ratioValue, concentrations, primers, gel],
+    [doc, checks, ng, ratioValue, concentrations, primers, gel],
   );
   const html = useMemo(() => (protocol === null ? '' : protocolToHtml(protocol)), [protocol]);
   const partNames = useMemo(() => {

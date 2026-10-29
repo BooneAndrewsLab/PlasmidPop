@@ -116,6 +116,20 @@ export interface DiagnosticDigest {
   readonly profile: DigestProfile;
 }
 
+/**
+ * A colony-PCR check pair (item 120): what it spans, the two oligos and the
+ * band each molecule a colony may carry gives, shortest first; an empty
+ * list is no band, null a molecule the method has none of.
+ */
+export interface ColonyPcrCheck {
+  readonly spans: string;
+  readonly forward: { readonly name: string; readonly sequence: string };
+  readonly reverse: { readonly name: string; readonly sequence: string };
+  readonly clone: readonly number[];
+  readonly empty: readonly number[] | null;
+  readonly flipped: readonly number[] | null;
+}
+
 export interface Protocol {
   readonly product: string;
   readonly length: number;
@@ -125,6 +139,8 @@ export interface Protocol {
   readonly oligos: readonly ProtocolOligo[];
   /** Digests to check the product by, clearest first. */
   readonly diagnostics: readonly DiagnosticDigest[];
+  /** Colony-PCR pairs designed for the product, as given; empty when none were. */
+  readonly colonyPcr: readonly ColonyPcrCheck[];
   /** Things the record could not say, e.g. molecules a long tree left out. */
   readonly caveats: readonly string[];
 }
@@ -141,6 +157,8 @@ export interface ProtocolOptions {
   readonly gel?: GelOptions;
   /** How many diagnostic digests to list. */
   readonly diagnosticCount?: number;
+  /** Colony-PCR check pairs the Clone check page designed, to list with their bands (item 120). */
+  readonly colonyPcr?: readonly ColonyPcrCheck[];
 }
 
 export const DEFAULT_VECTOR_NG = 50;
@@ -452,6 +470,20 @@ export function buildProtocol(doc: SeqDocument, options: ProtocolOptions = {}): 
   collectSteps(root, options, steps, caveats);
   const oligos: ProtocolOligo[] = [];
   collectOligos(root, options.collection, oligos);
+  // The check primers are oligos to order too, each once, for the check.
+  for (const check of options.colonyPcr ?? []) {
+    for (const o of [check.forward, check.reverse]) {
+      const oligo = oligoFor(o.name, o.sequence, 'colony PCR check', options.collection);
+      const same = oligos.findIndex((x) => x.sequence === oligo.sequence);
+      if (same < 0) oligos.push(oligo);
+      else {
+        const prior = oligos[same];
+        if (prior !== undefined && !prior.usedFor.includes('colony PCR check')) {
+          oligos[same] = { ...prior, usedFor: [...prior.usedFor, 'colony PCR check'] };
+        }
+      }
+    }
+  }
   if (editedSinceMade(doc)) {
     caveats.push(
       'The product has been edited since it was made; the reactions describe the molecule as made, and the digests are of the document as it is now.',
@@ -464,6 +496,7 @@ export function buildProtocol(doc: SeqDocument, options: ProtocolOptions = {}): 
     steps,
     oligos,
     diagnostics: diagnosticDigests(doc, options.gel, options.diagnosticCount ?? 3),
+    colonyPcr: options.colonyPcr ?? [],
     caveats,
   };
 }

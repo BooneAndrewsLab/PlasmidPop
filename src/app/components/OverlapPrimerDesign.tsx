@@ -11,6 +11,7 @@ import {
 } from '@/core';
 
 import { analytics } from '../analytics';
+import { FIXED_BY, cloneCheckFromParts, openCloneCheck } from '../cloneCheck';
 import { copyText } from '../clipboard';
 import { cloningDocuments, editorStore } from '../state/editorStore';
 import { useEditorState } from '../state/useEditorStore';
@@ -210,6 +211,38 @@ export function OverlapPrimerDesign() {
                     }}
                   >
                     Open product
+                  </button>
+                  <button
+                    type="button"
+                    className="button button--small"
+                    data-tip="Open the circle and design colony-PCR primers for it, the uncut vector being the empty vector"
+                    onClick={() => {
+                      const amplicon = design.amplicon;
+                      if (vector === undefined || template === undefined || amplicon === null) {
+                        return;
+                      }
+                      const made = recordOverlapDesign(design, vector.doc, template.doc, kit);
+                      if (made === null) return;
+                      analytics.track('cloning', 'overlap-primers', KIT_NAMES[kit]);
+                      openCloneCheck(
+                        made,
+                        cloneCheckFromParts(
+                          made,
+                          { document: vector.doc },
+                          [{ document: amplicon }],
+                          KIT_NAMES[kit],
+                          { open: false, note: FIXED_BY.homology },
+                          [
+                            { name: 'Forward', sequence: design.forward.sequence },
+                            { name: 'Reverse', sequence: design.reverse.sequence },
+                          ],
+                        ),
+                        { scratch: true },
+                        'overlap-primers',
+                      );
+                    }}
+                  >
+                    Check primers…
                   </button>
                 </div>
               </div>

@@ -228,6 +228,7 @@ function MadeFromTree({
       {protocol && (
         <ProtocolDialog
           doc={doc}
+          documentId={documentId}
           onClose={() => {
             setProtocol(false);
           }}

@@ -599,6 +599,35 @@ describe('buildProtocol oligos', () => {
   });
 });
 
+describe('buildProtocol colony PCR checks (item 120)', () => {
+  const check = {
+    spans: 'Left junction',
+    forward: { name: 'Check junction 1 fwd 1', sequence: 'ACGTACGTACGTACGTACGTA' },
+    reverse: { name: 'Check junction 1 rev 1', sequence: 'TTGCATGCATGCATGCATGCA' },
+    clone: [612],
+    empty: [],
+    flipped: null,
+  };
+
+  it('lists the pairs as given and orders their oligos, once each, for the check', () => {
+    const doc = product(must(pcrNode().step));
+    const p = must(buildProtocol(doc, { colonyPcr: [check] }));
+    expect(p.colonyPcr).toEqual([check]);
+    const names = p.oligos.map((o) => o.name);
+    expect(names).toContain('Check junction 1 fwd 1');
+    expect(names).toContain('Check junction 1 rev 1');
+    expect(p.oligos.find((o) => o.name === 'Check junction 1 fwd 1')?.usedFor).toEqual([
+      'colony PCR check',
+    ]);
+    // An oligo the reactions already use is listed once, for both.
+    const reused = { ...check, forward: { name: 'as F', sequence: FWD } };
+    const q = must(buildProtocol(doc, { colonyPcr: [reused] }));
+    expect(q.oligos.filter((o) => o.sequence === FWD)).toHaveLength(1);
+    expect(q.oligos.find((o) => o.sequence === FWD)?.usedFor).toContain('colony PCR check');
+    expect(must(buildProtocol(doc)).colonyPcr).toEqual([]);
+  });
+});
+
 describe('buildProtocol document facts', () => {
   const step: LineageStep = { op: 'phosphates', parents: [leaf('v', 3000)], removed: false };
 
