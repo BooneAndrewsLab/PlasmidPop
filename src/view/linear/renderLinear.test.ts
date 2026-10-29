@@ -817,3 +817,154 @@ describe('renderLinearView split and unfinished codons (#318)', () => {
     expect(svg).toMatch(/fill="rgba\(255, 255, 255, 0\.35\)"/);
   });
 });
+
+describe('renderLinearView join gaps (#319)', () => {
+  /** The gap marks: vertical paths in the cut-site colour with the join dash, as `M x y1 L x y2`. */
+  function marks(svg: string, color = '#ff0000'): string[] {
+    return [
+      ...svg.matchAll(
+        new RegExp(
+          `<path d="([^"]*)" fill="none" stroke="${color}" stroke-width="1" stroke-dasharray="3 3"/>`,
+          'g',
+        ),
+      ),
+    ].map((m) => m[1] ?? '');
+  }
+  /** The chips' texts with their x. */
+  function chips(svg: string): { text: string; x: number; y: number }[] {
+    return texts(svg).filter((t) => / · \d+ bp$/.test(t.text));
+  }
+  /** The chip's outline: the pill path stroked in the muted ink, with its left x. */
+  function pills(svg: string, color = '#888888'): number[] {
+    return [
+      ...svg.matchAll(
+        new RegExp(`<path d="M([\\d.]+) [\\d.]+ L[^"]*A[^"]*" fill="none" stroke="${color}"`, 'g'),
+      ),
+    ].map((m) => Number(m[1]));
+  }
+  /** What a chip needs: its text in the sans font plus the padding on each side. */
+  function chipWidth(text: string, font: string): number {
+    const ctx = new SvgContext(1, 1);
+    ctx.font = font;
+    return ctx.measureText(text).width + 12;
+  }
+  const cds = (init: Partial<Parameters<typeof createFeature>[0]>) =>
+    createFeature({ type: 'CDS', name: 'orf', segments: [], ...init });
+
+  // 10 bases a row, 10 px a base, the sequence starting at x = 100. Row 0 is
+  // 100 px tall (ruler 20, strands 40, one translation line, one lane), the
+  // next starts at 110.
+  const joined = SeqDocument.create({
+    sequence: 'ATGAAAGCCCCCCTGAAACC',
+    features: [cds({ segments: [rangeSegment(0, 7), rangeSegment(13, 19)] })],
+  });
+
+  it('marks the end of the earlier piece and the start of the later one, from the strands down through the lane', () => {
+    const svg = render(joined);
+    expect(marks(svg)).toEqual(['M170.5 20 L170.5 100', 'M130.5 130 L130.5 210']);
+    // A gap of six bases has no room for its chip in either row; the tooltip has it.
+    expect(chips(svg)).toEqual([]);
+  });
+
+  it('marks the same boundaries for a reverse-strand feature', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACC',
+      features: [cds({ strand: 'reverse', segments: [rangeSegment(0, 7), rangeSegment(13, 19)] })],
+    });
+    expect(marks(render(doc))).toEqual(marks(render(joined)));
+  });
+
+  it('draws nothing for an order(...) or a feature in one piece', () => {
+    const order = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACC',
+      features: [cds({ joining: 'order', segments: [rangeSegment(0, 7), rangeSegment(13, 19)] })],
+    });
+    expect(marks(render(order))).toEqual([]);
+    const one = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACC',
+      features: [cds({ segments: [rangeSegment(0, 19)] })],
+    });
+    expect(marks(render(one))).toEqual([]);
+  });
+
+  it('draws one mark and no chip where two pieces touch', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACC',
+      features: [cds({ segments: [rangeSegment(0, 5), rangeSegment(5, 9)] })],
+    });
+    const svg = render(doc);
+    expect(marks(svg)).toEqual(['M150.5 20 L150.5 100']);
+    expect(chips(svg)).toEqual([]);
+  });
+
+  it('puts the chip in the gap after the mark when it fits, outlined in the muted ink on the background', () => {
+    // join(1..2,49..60): the gap 3-48 starts at column 2 of row 0, with 74 px to the row's edge.
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACC',
+      features: [cds({ segments: [rangeSegment(0, 2), rangeSegment(48, 60)] })],
+    });
+    const sansFont = '6px sans-serif';
+    expect(chipWidth('intron 3-48 · 46 bp', sansFont)).toBeLessThanOrEqual(74);
+    const svg = render(doc, true, null, { sansFont });
+    expect(chips(svg)).toEqual([{ text: 'intron 3-48 · 46 bp', x: 129, y: 90.5 }]);
+    expect(pills(svg)).toEqual([123.5 + 7.5]);
+    expect(svg).toMatch(/A[^"]*" fill="#ffffff" stroke="none"/);
+    // Rows 1 to 3 hold no bar and no translation, so they are 60 px tall; row 4 starts at 320.
+    expect(marks(svg)).toEqual(['M120.5 20 L120.5 100', 'M180.5 340 L180.5 420']);
+  });
+
+  it('moves the chip along the gap to a row where its lane is free of other bars', () => {
+    // As above, with a feature packed into the same lane under the gap's part of row 0.
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACC',
+      features: [
+        cds({ segments: [rangeSegment(0, 2), rangeSegment(48, 60)] }),
+        createFeature({ type: 'misc_feature', name: 'x', segments: [rangeSegment(5, 9)] }),
+      ],
+    });
+    const sansFont = '6px sans-serif';
+    const svg = render(doc, true, null, { sansFont });
+    // Rows 1 to 3 hold no bar, so they keep no lane; row 4 has the lane, and 74 px before the mark.
+    expect(chips(svg).map((c) => c.x)).toEqual([103 + 6]);
+    expect(chips(svg)[0]?.y).toBeGreaterThan(400);
+  });
+
+  it('calls the gap of a feature that is not spliced a gap', () => {
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACC',
+      features: [
+        createFeature({
+          type: 'misc_feature',
+          name: 'rep',
+          segments: [rangeSegment(0, 2), rangeSegment(48, 60)],
+        }),
+      ],
+    });
+    expect(
+      chips(render(doc, true, null, { sansFont: '6px sans-serif' })).map((c) => c.text),
+    ).toEqual(['gap 3-48 · 46 bp']);
+  });
+
+  it('marks a gap across the origin of a circular record at both ends', () => {
+    // Length 20: join(15..18,3..8) leaves 19-20 and 1-2 between the pieces.
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACC',
+      topology: 'circular',
+      features: [cds({ segments: [rangeSegment(14, 18), rangeSegment(2, 8)] })],
+    });
+    const svg = render(doc);
+    expect(marks(svg)).toEqual(['M120.5 20 L120.5 100', 'M180.5 130 L180.5 210']);
+  });
+
+  it('uses the theme colours, so a dark theme carries over', () => {
+    const dark = { ...theme, cutSite: '#ff7b63', inkMuted: '#9aa8b4', background: '#12181e' };
+    const doc = SeqDocument.create({
+      sequence: 'ATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACCATGAAAGCCCCCCTGAAACC',
+      features: [cds({ segments: [rangeSegment(0, 2), rangeSegment(48, 60)] })],
+    });
+    const svg = render(doc, true, null, { sansFont: '6px sans-serif', theme: dark });
+    expect(marks(svg, '#ff7b63')).toHaveLength(2);
+    expect(pills(svg, '#9aa8b4')).toHaveLength(1);
+    expect(svg).toMatch(/A[^"]*" fill="#12181e" stroke="none"/);
+  });
+});

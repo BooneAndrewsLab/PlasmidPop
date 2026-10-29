@@ -338,3 +338,5 @@ the Bench, item 49). The rest stand.
 130.  [React act(...) warnings in the tests](116-act-warnings.md)
 
 131.  [Removing features by type or by variant](117-remove-features-in-bulk.md)
+
+132.  [Marking the gap between the pieces of a join](118-join-gaps.md)

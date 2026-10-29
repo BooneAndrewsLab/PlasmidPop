@@ -74,7 +74,9 @@ that neither looks like a glitch.
   continuation on a forward-strand CDS, the other way round on the reverse
   strand. A codon cut by the end of a row, or by the origin of a circular
   sequence, is drawn the same way at the row's edge, since the row break is
-  the only thing splitting it.
+  the only thing splitting it. The junction itself is marked in the feature
+  lane, with a chip saying how long the intron is; see
+  [Features in pieces](03-viewing.md#features-in-pieces).
 - **A codon that never finishes.** When the CDS ends open (`249..>435`) and
   its last one or two bases make no codon, they are drawn as a hatched box
   with a dashed outline and no tint, which a split codon never has. Two bases

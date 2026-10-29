@@ -9,7 +9,9 @@ anything you annotate travels with the file.
 
 Each row shows the feature's colour, its name (or type when it has no name),
 its type and its location in GenBank notation: `complement(1234..1500)` for a
-reverse-strand feature, `join(...)` for a feature in several pieces,
+reverse-strand feature, `join(...)` for a feature in several pieces (the
+sequence view marks the gaps between them; see
+[Features in pieces](03-viewing.md#features-in-pieces)),
 `order(...)` for pieces listed but not joined (a binding site's residues, as
 GenPept has them), and a range like `4200..150` for one that wraps the origin
 of a circular sequence.

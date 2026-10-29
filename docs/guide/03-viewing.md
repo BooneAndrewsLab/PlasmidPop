@@ -140,7 +140,9 @@ position of its first base. Below each row:
   they overlap. Features of one type on exactly the same bases are drawn
   as one bar with a count (`sig_peptide ×4`), and a gene's mRNA variants
   as one row (`INS · 4 transcripts`, with an arrow once selected); see
-  [Grouped features](05-features.md#grouped-features);
+  [Grouped features](05-features.md#grouped-features). A feature in
+  several pieces (`join(...)`) has a dashed mark at each end of each gap
+  and a chip naming the gap; see [Features in pieces](#features-in-pieces);
 - **cut sites** of the enzymes ticked in the Enzymes tab, as marks with the
   enzyme name, unless **Cut sites** is off in the toolbar (see
   [Restriction enzymes](07-enzymes.md));
@@ -168,6 +170,36 @@ unfinished codon, or tapping it on a touch screen, says what it is. The pointer 
 hand over those tracks and stays a text cursor over the bases, where it places
 the caret. Lowercase bases stay lowercase, as many people use case to mark
 regions.
+
+### Features in pieces
+
+A feature whose location is a `join(...)` — a CDS or an mRNA with introns, or
+anything else annotated in several pieces — is drawn as one bar per piece,
+and where the pieces leave a gap the view says so:
+
+- a **dashed mark** in the colour of the cut-site marks stands at each end of
+  the gap, right after the last base of one piece and right before the first
+  base of the next, running from the bases down through the feature's lane.
+  It is why a codon on the translation line is split there (see
+  [Split and unfinished codons](09-translate.md#split-and-unfinished-codons));
+- a **chip** in the feature's lane, just after the first mark, names the gap
+  and its size: `intron 436-1222 · 787 bp` for a CDS, mRNA or RNA feature,
+  `gap 436-1222 · 787 bp` for any other. Positions are the sequence's own,
+  1-based, and the size is the number of bases between the pieces. The chip
+  moves along to the first row with room for it, and is left out of a gap
+  too short to hold it;
+- **hover the empty lane** between the pieces (or tap it on a touch screen)
+  for the whole story: `INS: intron 436-1222, 787 bp. The exons are joined;
+the feature continues at 1223.` On the reverse strand the feature continues
+  at the end of the lower piece, since it reads right to left.
+
+Pieces that touch (`join(1..100,101..200)`) share one mark and have no chip;
+pieces that overlap, as a ribosomal frameshift is annotated, get a mark each
+and the tooltip says by how much. An `order(...)` location gets no marks,
+since its pieces are listed together but not joined. The bases between the
+pieces are drawn as always — they are sequence, and other features, cut
+sites and the ruler go on over them — so a long intron is scrolled past, not
+folded. Exported figures carry the marks and the chips.
 
 **File ▸ Export figure…**, with **Sequence view** chosen, writes what you
 see as an SVG vector file, a PNG picture or a PDF for figures — the whole

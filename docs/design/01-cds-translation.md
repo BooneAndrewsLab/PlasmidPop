@@ -124,3 +124,5 @@ reverse strand, partial ends and origin wrap
     (the canvas's `pointerleave`, which a lifting finger fires, does not).
   - The hatching is drawn by hand, as clipped diagonal lines, because the
     drawing context the SVG export shares has no clip.
+  - Why the codon is cut, and how far the next exon is, is said by the gap
+    marks and chip of #319 (item 118), option C of the same mockups.

@@ -749,4 +749,47 @@ describe('split and unfinished codons (#318)', () => {
       expect(currentFollowTooltip()).toBeNull();
     });
   });
+
+  describe('the gap of a join (#319)', () => {
+    const note = 'orf: intron 8-27, 20 bp. The exons are joined; the feature continues at 28.';
+
+    /** The y of the feature lane: the first pixel down an intron column where the gap speaks. */
+    function laneAt(canvas: Element, x: number): number {
+      for (let y = 0; y < 260; y++) {
+        fireEvent.pointerMove(canvas, { clientX: x, clientY: y });
+        if (currentFollowTooltip()?.text === note) return y;
+      }
+      throw new Error('no gap tooltip in the first row');
+    }
+
+    it('says what lies between the pieces when the pointer is over the empty lane there, not over a bar', () => {
+      const { canvas } = setup(joined);
+      const y = laneAt(canvas, column(15));
+      fireEvent.pointerMove(canvas, { clientX: column(3), clientY: y });
+      expect(currentFollowTooltip()).toBeNull();
+      fireEvent.pointerMove(canvas, { clientX: column(26), clientY: y });
+      expect(currentFollowTooltip()?.text).toBe(note);
+    });
+
+    it('shows it on a tap too', () => {
+      vi.useFakeTimers();
+      try {
+        const { canvas } = setup(joined);
+        const y = laneAt(canvas, column(15));
+        hideFollowTooltip();
+        const finger = {
+          clientX: column(15),
+          clientY: y,
+          button: 0,
+          pointerId: 3,
+          pointerType: 'touch',
+        };
+        fireEvent.pointerDown(canvas, finger);
+        fireEvent.pointerUp(canvas, finger);
+        expect(currentFollowTooltip()?.text).toBe(note);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });

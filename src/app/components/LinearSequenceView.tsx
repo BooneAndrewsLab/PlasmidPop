@@ -36,6 +36,8 @@ import {
   assignLanes,
   basesPerRowFor,
   endOverhangs,
+  gapAtLane,
+  gapNote,
   lanesPerRow,
   linearMetrics,
   linearWidth,
@@ -713,11 +715,29 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     return codonNoteAt(doc, allTranslations.get(feature), hit.position) ?? undefined;
   };
 
-  /** Shows a tapped codon's tooltip where the finger landed, for a while; nothing else is tapped for. */
+  /**
+   * What the empty stretch of a lane between two pieces of a join says
+   * (#319): the gap's chip in full, with where the feature goes on; undefined
+   * over a bar or an empty lane.
+   */
+  const gapTipAt = (hit: Hit): string | undefined => {
+    if (hit.kind !== 'lane' || featureAtHit(hit) !== undefined) return undefined;
+    const found = gapAtLane(
+      grouped.features,
+      lanes.laneOf,
+      hit.lane,
+      hit.position,
+      doc.length,
+      doc.topology,
+    );
+    return found === undefined ? undefined : gapNote(found.gap, found.feature, doc.length);
+  };
+
+  /** Shows a tapped codon's or gap's tooltip where the finger landed, for a while; nothing else is tapped for. */
   const tapTip = (e: ReactPointerEvent<HTMLCanvasElement>, hit: Hit): void => {
     if (tapTipTimer.current !== null) clearTimeout(tapTipTimer.current);
     tapTipTimer.current = null;
-    const tip = codonTipAt(hit);
+    const tip = codonTipAt(hit) ?? gapTipAt(hit);
     if (tip === undefined) {
       hideFollowTooltip();
       return;
@@ -738,7 +758,7 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
         : hit.kind === 'translation'
           ? codonTipAt(hit)
           : group === undefined
-            ? undefined
+            ? gapTipAt(hit)
             : groupTip(group, doc.length, doc.topology);
     if (tip === undefined) hideFollowTooltip();
     else followTooltip(tip, e.clientX, e.clientY);

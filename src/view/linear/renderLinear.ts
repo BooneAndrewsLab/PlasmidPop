@@ -25,6 +25,7 @@ import { drawTrace } from '../trace';
 import { contrastingText, featureColor, withAlpha } from '../featureColors';
 import { thicknessFraction } from '../featureShape';
 import { type OverlaySpan, overlayPieces } from '../overlay';
+import { type JoinGap, gapChipText, gapPieces, joinGaps } from './joinGaps';
 import { type LaneAssignment } from './lanes';
 import { type LinearLayout, type RowLayout } from './layout';
 import {
@@ -903,6 +904,159 @@ function drawFeature(ctx: DrawingContext, p: RenderParams, row: RowLayout, featu
   }
 }
 
+/** Dash of the marks at the ends of a join's gap (#319): the cut-site colour, broken so it is not a cut. */
+const JOIN_DASH = [3, 3];
+/** Room between a gap mark and the chip beside it, and between the chip and the row's edge. */
+const CHIP_GAP = 3;
+const CHIP_PAD = 6;
+
+/** Where a gap's chip is drawn: the row and the left edge, settled once per render (`ChipPlaces`). */
+interface ChipPlace {
+  readonly row: number;
+  readonly x: number;
+  readonly width: number;
+}
+
+/** Chip placement per feature and gap for one render, so a long gap's rows are not walked per row. */
+type ChipPlaces = Map<string, ChipPlace | null>;
+
+/** The features in several pieces of each (immutable) set, so a render does not scan the set per row. */
+const joinedCache = new WeakMap<FeatureSet, readonly Feature[]>();
+function joinedFeatures(features: FeatureSet): readonly Feature[] {
+  let joined = joinedCache.get(features);
+  if (joined === undefined) {
+    joined = features.all().filter((f) => f.segments.length > 1 && f.joining !== 'order');
+    joinedCache.set(features, joined);
+  }
+  return joined;
+}
+
+/** Whether no other feature in `lane` has a piece in `[start, end)`. */
+function laneFree(
+  p: RenderParams,
+  feature: Feature,
+  lane: number,
+  start: number,
+  end: number,
+): boolean {
+  const features = p.features ?? p.doc.features;
+  return features
+    .overlapping({ start, end }, p.doc.length)
+    .every((f) => f.id === feature.id || p.lanes.laneOf.get(f.id) !== lane);
+}
+
+/**
+ * The first row along a gap, in forward order, with room for its chip in the
+ * feature's lane: enough width between the gap's bases' edges, and no bar of
+ * another feature packed into the same lane there. `null` when no row has
+ * it, as in a short gap, which keeps its marks and its tooltip.
+ */
+function placeChip(
+  p: RenderParams,
+  feature: Feature,
+  lane: number,
+  gap: JoinGap,
+  width: number,
+): ChipPlace | null {
+  const { layout, doc } = p;
+  for (const piece of gapPieces(gap, doc.length)) {
+    let row = layout.rowOfPosition(piece.start);
+    while (row !== undefined && row.start < piece.end) {
+      const s = Math.max(piece.start, row.start);
+      const e = Math.min(piece.end, row.end);
+      const x0 = layout.xOf(row, s) + CHIP_GAP;
+      const x1 = layout.xOf(row, e) - CHIP_GAP;
+      // A row keeps only the lanes its own bars need: one deep in a gap may lack this one.
+      if (lane < row.lanes && x1 - x0 >= width && laneFree(p, feature, lane, s, e))
+        return { row: row.index, x: x0, width };
+      row = layout.rows[row.index + 1];
+    }
+  }
+  return null;
+}
+
+function pillPath(ctx: DrawingContext, x: number, y: number, w: number, h: number): void {
+  const r = h / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+  ctx.lineTo(x + r, y + h);
+  ctx.arc(x + r, y + r, r, Math.PI / 2, Math.PI * 1.5);
+  ctx.closePath();
+}
+
+/**
+ * Marks the gaps of a feature in several pieces (#319): a dashed line in the
+ * cut-site colour at each end of each gap, from the top of the strands down
+ * through the feature's lane, and in a gap with bases a chip naming it
+ * (`intron 436-1222 · 787 bp`) in the lane, where the feature has no bar.
+ * Pieces that touch share one mark and get no chip; the tooltip says the
+ * rest. The gap's bases are drawn as they are: they are sequence, often
+ * annotated by other features, and the ruler keeps counting through them.
+ */
+function drawJoinGaps(
+  ctx: DrawingContext,
+  p: RenderParams,
+  row: RowLayout,
+  feature: Feature,
+  chips: ChipPlaces,
+): void {
+  if (feature.segments.length < 2) return;
+  const { doc, layout, lanes, theme } = p;
+  const lane = lanes.laneOf.get(feature.id);
+  if (lane === undefined || lane >= row.lanes) return;
+  const gaps = joinGaps(feature, doc.length, doc.topology);
+  if (gaps.length === 0) return;
+  const m = layout.metrics;
+  const top = layout.forwardTextTop(row);
+  const laneTop = layout.laneTop(row, lane);
+  const bottom = laneTop + m.laneHeight;
+  ctx.strokeStyle = theme.cutSite;
+  ctx.lineWidth = 1;
+  ctx.setLineDash(JOIN_DASH);
+  const marked = new Set<number>();
+  const mark = (x: number): void => {
+    const xr = Math.round(x) + 0.5;
+    if (marked.has(xr)) return;
+    marked.add(xr);
+    ctx.beginPath();
+    ctx.moveTo(xr, top);
+    ctx.lineTo(xr, bottom);
+    ctx.stroke();
+  };
+  for (const gap of gaps) {
+    // After the earlier segment's last base, and before the later one's first.
+    const last = (gap.end - 1) % doc.length;
+    if (last >= row.start && last < row.end) mark(layout.xOf(row, last + 1));
+    if (gap.start >= row.start && gap.start < row.end) mark(layout.xOf(row, gap.start));
+  }
+  ctx.setLineDash([]);
+
+  ctx.font = p.sansFont;
+  for (const gap of gaps) {
+    if (gap.length <= 0) continue;
+    const text = gapChipText(gap, feature, doc.length);
+    const key = `${feature.id}\n${gap.index}`;
+    let place = chips.get(key);
+    if (place === undefined) {
+      place = placeChip(p, feature, lane, gap, ctx.measureText(text).width + 2 * CHIP_PAD);
+      chips.set(key, place);
+    }
+    if (place?.row !== row.index) continue;
+    const height = m.laneHeight - RIBBON_INSET * 2;
+    pillPath(ctx, place.x + 0.5, laneTop + RIBBON_INSET + 0.5, place.width, height - 1);
+    ctx.fillStyle = theme.background;
+    ctx.fill();
+    ctx.strokeStyle = theme.inkMuted;
+    ctx.stroke();
+    ctx.fillStyle = theme.inkMuted;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, place.x + CHIP_PAD, laneTop + RIBBON_INSET + height / 2 + 0.5);
+  }
+}
+
 function fitText(ctx: DrawingContext, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let lo = 0;
@@ -1161,6 +1315,7 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
   ctx.fillRect(0, 0, width, height);
   ctx.translate(-scrollLeft, -scrollTop);
 
+  const chips: ChipPlaces = new Map();
   for (const row of layout.rowsInWindow(scrollTop, scrollTop + height)) {
     drawHighlights(ctx, p, row);
     drawEndShading(ctx, p, row);
@@ -1178,6 +1333,12 @@ export function renderLinearView(ctx: DrawingContext, p: RenderParams): void {
       const features = p.features ?? doc.features;
       for (const feature of features.overlapping({ start: row.start, end: row.end }, doc.length)) {
         drawFeature(ctx, p, row, feature);
+      }
+      // After the bars, so the marks lie over them as the cut-site marks lie
+      // over the strands. A row deep inside a long gap has no bar of the
+      // feature to find it by, so every joined feature is asked.
+      for (const feature of joinedFeatures(features)) {
+        drawJoinGaps(ctx, p, row, feature, chips);
       }
     }
   }
