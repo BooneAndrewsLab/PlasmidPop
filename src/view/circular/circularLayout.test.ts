@@ -4,6 +4,7 @@ import {
   type PlacedLabel,
   CircularLayout,
   LINEAR_GAP,
+  MIN_RING_WIDTH,
   layoutLabels,
   tickInterval,
 } from './circularLayout';
@@ -58,8 +59,8 @@ describe('CircularLayout', () => {
     expect(layout.viewport).toEqual({ zoom: 1, panX: 0, panY: 0 });
   });
 
-  it('grows the radius when many lanes need room', () => {
-    const crowded = new CircularLayout(1000, 'circular', { ...opts, laneCount: 12 });
+  it('grows the radius when many lanes need room even at the narrowest width', () => {
+    const crowded = new CircularLayout(1000, 'circular', { ...opts, laneCount: 30 });
     expect(crowded.radius).toBeGreaterThan(140);
     expect(new CircularLayout(0, 'circular', opts).angleOf(5)).toBeCloseTo(-Math.PI / 2);
     expect(new CircularLayout(0, 'circular', opts).positionOf(1)).toBe(0);
@@ -376,5 +377,40 @@ describe('CircularLayout of a linear molecule (#221)', () => {
     expect(layout.positionOf(-Math.PI / 2 - 0.1)).toBe(L);
     expect(layout.baseOf(-Math.PI / 2 + 0.1)).toBe(0);
     expect(layout.baseOf(-Math.PI / 2 - 0.1)).toBe(L - 1);
+  });
+});
+
+describe('ring width guard (#308)', () => {
+  // 600 × 400 with a 60 px margin leaves a 140 px radius for the circle.
+  const at = (laneCount: number) =>
+    new CircularLayout(1000, 'circular', { ...opts, laneCount, ringWidth: 14 });
+
+  it('keeps the asked width while the lanes fit', () => {
+    expect(at(0).ringWidth).toBe(14);
+    expect(at(0).radius).toBe(140);
+    expect(at(2).ringWidth).toBe(14);
+    expect(at(2).radius).toBe(140);
+    // Seven lanes of 14 need 40 + 98 = 138 px: still inside.
+    expect(at(7).ringWidth).toBe(14);
+    expect(at(7).radius).toBe(140);
+  });
+
+  it('narrows the lanes instead of growing the circle past the canvas', () => {
+    // Ten lanes of 14 would need 180 px; at 10 px each they fit exactly.
+    expect(at(10).ringWidth).toBe(10);
+    expect(at(10).radius).toBe(140);
+    expect(at(10).laneRadius(9)).toBeGreaterThan(0);
+  });
+
+  it('floors the width and lets the circle grow only past that', () => {
+    // 21 lanes, the INS record's before grouping: 4.8 px each would be
+    // unreadable, so they get MIN_RING_WIDTH and the circle grows to hold them.
+    const layout = at(21);
+    expect(layout.ringWidth).toBe(MIN_RING_WIDTH);
+    expect(layout.radius).toBe(40 + 21 * MIN_RING_WIDTH);
+    expect(layout.radius).toBeLessThan(40 + 21 * 14);
+    // Hit testing still spans every lane at the narrower width.
+    const inner = layout.pointAt(250, layout.laneRadius(20));
+    expect(layout.hitTest(inner.x, inner.y)).toEqual({ kind: 'lane', lane: 20, position: 250 });
   });
 });

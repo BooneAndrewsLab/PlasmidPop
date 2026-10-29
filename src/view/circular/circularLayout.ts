@@ -23,6 +23,9 @@ const TWO_PI = Math.PI * 2;
  */
 export const LINEAR_GAP = (24 * Math.PI) / 180;
 
+/** The narrowest a feature lane is drawn when the lanes outnumber the room (#308): a 2 px arc and its gap. */
+export const MIN_RING_WIDTH = 6;
+
 export interface CircularOptions {
   readonly width: number;
   readonly height: number;
@@ -58,11 +61,20 @@ export class CircularLayout {
   ) {
     this.width = options.width;
     this.height = options.height;
-    this.ringWidth = options.ringWidth;
     this.laneCount = options.laneCount;
     this.gap = topology === 'linear' ? LINEAR_GAP : 0;
     const available = Math.min(options.width, options.height) / 2 - options.outerMargin;
-    const needed = 40 + options.laneCount * options.ringWidth;
+    // Lanes that would push the circle past the canvas are drawn narrower
+    // instead (#308), down to `MIN_RING_WIDTH`; only past that does the
+    // circle grow, and a map of a deeply annotated record is cropped.
+    this.ringWidth =
+      options.laneCount > 0
+        ? Math.max(
+            MIN_RING_WIDTH,
+            Math.min(options.ringWidth, (available - 40) / options.laneCount),
+          )
+        : options.ringWidth;
+    const needed = 40 + options.laneCount * this.ringWidth;
     this.baseRadius = Math.max(24, Math.max(available, needed));
     this.maxZoom = maxZoomFor(seqLength, this.baseRadius);
     this.viewport = options.viewport ?? FIT_VIEWPORT;

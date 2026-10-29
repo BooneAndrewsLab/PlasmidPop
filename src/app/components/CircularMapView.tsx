@@ -244,7 +244,8 @@ export function CircularMapView({ doc }: Props) {
 
   // Room kept around a fitted arc for its lanes and labels; matching the
   // fit-to-canvas margin means fitting the whole circle is exactly zoom 1.
-  const labelPad = Math.max(OUTER_MARGIN, 20 + lanes.laneCount * RING_WIDTH);
+  // The lanes may be narrower than asked when there are many (#308).
+  const labelPad = Math.max(OUTER_MARGIN, 20 + lanes.laneCount * layout.ringWidth);
 
   const zoomTo = (start: number, end: number): void => {
     commit(fitRange(layout.bounds, start, end, doc.length, labelPad));
