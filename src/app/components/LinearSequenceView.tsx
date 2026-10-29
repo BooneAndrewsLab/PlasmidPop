@@ -393,16 +393,22 @@ export function LinearSequenceView({ doc, reader = false }: Props) {
     setScrollTop(top);
   }, [layout, overlay]);
 
-  // Scroll to a requested position.
+  // Scroll to a requested position. The layout is rebuilt for reasons that
+  // have nothing to do with the request (a click that changes the selected
+  // feature re-picks the translated ones), so a request is answered once it
+  // can be laid out for real, and not again: answered again, it would drag
+  // the view back to where the request pointed (#317).
+  const answeredReveal = useRef(returning.answeredReveal);
   useEffect(() => {
     const el = containerRef.current;
-    if (el === null || reveal === null || reveal.nonce === returning.answeredReveal) return;
+    if (el === null || reveal === null || reveal.nonce === answeredReveal.current) return;
     const row = layout.rowOfPosition(reveal.position);
     if (row === undefined) return;
+    if (measured) answeredReveal.current = reveal.nonce;
     const visible =
       row.top >= el.scrollTop && row.top + row.height <= el.scrollTop + el.clientHeight;
     if (!visible) el.scrollTop = Math.max(0, row.top - metrics.topPadding);
-  }, [reveal, layout, metrics.topPadding, returning]);
+  }, [reveal, layout, measured, metrics.topPadding]);
 
   // A long-press selection takes the drag from the browser (#43). The only
   // way to stop a touch scroll once `touch-action` has allowed it is to

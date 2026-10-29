@@ -101,6 +101,125 @@ describe('LinearSequenceView', () => {
     expect(withCds).toBeGreaterThan(plain + 20);
   });
 
+  describe('scrolling to a request (#317)', () => {
+    const tops = new WeakMap<Element, number>();
+    const range = (start: number, end: number) => ({
+      kind: 'range' as const,
+      start,
+      end,
+      partialStart: false,
+      partialEnd: false,
+    });
+    /** The signal peptide that gets selected; it is not itself translated. */
+    const peptide = createFeature({
+      id: 'p',
+      type: 'sig_peptide',
+      name: 'peptide',
+      segments: [range(249, 320)],
+    });
+    /** The gene whose translation is shown under the rows. */
+    const gene = (strand: 'forward' | 'reverse', segments: readonly [number, number][]) =>
+      createFeature({
+        id: 'c',
+        type: 'CDS',
+        name: 'INS',
+        strand,
+        segments: segments.map(([start, end]) => range(start, end)),
+        qualifiers: [{ name: 'gene', value: 'INS' }],
+      });
+
+    beforeEach(() => {
+      // jsdom has no layout: a settable scroll position and a 60 px viewport, shorter than a row.
+      Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
+        configurable: true,
+        get(this: Element) {
+          return tops.get(this) ?? 0;
+        },
+        set(this: Element, value: number) {
+          tops.set(this, value);
+        },
+      });
+      Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+        configurable: true,
+        get: () => 60,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollTop');
+      Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight');
+    });
+
+    /** Selects the feature, then a codon far down it, as a click on an amino acid does. */
+    function selectLaterCodon(
+      d: SeqDocument,
+      codon: { start: number; end: number },
+    ): { container: Element; scrolled: number } {
+      act(() => {
+        editorStore.openDocument(d);
+        editorStore.setSeqBasesPerRow(100);
+        editorStore.selectFeature('p');
+      });
+      const { container } = render(<LinearSequenceView doc={d} />);
+      const view = container.querySelector('.seq-view');
+      if (view === null) throw new Error('no view');
+      expect(view.scrollTop).toBeGreaterThan(0);
+      // The reader scrolls down the translation to the amino acid.
+      const atFeature = view.scrollTop + 200;
+      view.scrollTop = atFeature;
+      fireEvent.scroll(view);
+      act(() => {
+        // A click on an amino acid: it selects the codon's bases, and the
+        // peptide is no longer the selected feature.
+        editorStore.setSelection(codon);
+      });
+      expect(view.scrollTop).toBe(atFeature);
+      return { container: view, scrolled: atFeature };
+    }
+
+    const long = 'ACGT'.repeat(500);
+
+    it('does not scroll back to the feature when the selection leaves it', () => {
+      const d = SeqDocument.create({
+        sequence: long,
+        features: [peptide, gene('forward', [[249, 700]])],
+      });
+      const { scrolled } = selectLaterCodon(d, { start: 426, end: 429 });
+      expect(scrolled).toBeGreaterThan(0);
+    });
+
+    it('does the same for a reverse-strand feature', () => {
+      const d = SeqDocument.create({
+        sequence: long,
+        features: [peptide, gene('reverse', [[249, 700]])],
+      });
+      selectLaterCodon(d, { start: 426, end: 429 });
+    });
+
+    it('does the same for a feature joined across rows', () => {
+      const d = SeqDocument.create({
+        sequence: long,
+        features: [
+          peptide,
+          gene('forward', [
+            [249, 435],
+            [1223, 1368],
+          ]),
+        ],
+      });
+      selectLaterCodon(d, { start: 426, end: 429 });
+    });
+
+    it('does the same on a circular document', () => {
+      const d = SeqDocument.create({
+        sequence: long,
+        topology: 'circular',
+        features: [peptide, gene('forward', [[249, 700]])],
+      });
+      selectLaterCodon(d, { start: 426, end: 429 });
+    });
+  });
+
   it('shows the selection bar for Ctrl+A on a sequence longer than the view', () => {
     const { container } = setup();
     expect(container.querySelector('.selection-bar')).toBeNull();
